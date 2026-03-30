@@ -180,6 +180,14 @@ def _handle_data(args: argparse.Namespace) -> None:
     handlers[args.data_command](args)
 
 
+def _report(args: argparse.Namespace) -> None:
+    from .report import run_report
+
+    text = run_report(mhc_class=args.mhc_class, output=args.output)
+    if not args.output:
+        print(text)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="hitlist",
@@ -188,12 +196,20 @@ def main() -> None:
     sub = parser.add_subparsers(dest="command")
     _build_data_parser(sub)
 
+    p_report = sub.add_parser(
+        "report", help="Generate data quality report from registered IEDB/CEDAR"
+    )
+    p_report.add_argument("--class", dest="mhc_class", help="MHC class filter (I or II)")
+    p_report.add_argument("--output", "-o", help="Save report to file")
+
     args = parser.parse_args()
     if args.command is None:
         parser.print_help()
         sys.exit(1)
     if args.command == "data":
         _handle_data(args)
+    elif args.command == "report":
+        _report(args)
 
 
 if __name__ == "__main__":
