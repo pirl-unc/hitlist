@@ -34,6 +34,9 @@ dev = [
     "ruff",
 ]
 
+[project.scripts]
+hitlist = "hitlist.cli:main"
+
 [project.urls]
 Homepage = "https://github.com/pirl-unc/hitlist"
 Repository = "https://github.com/pirl-unc/hitlist"
