@@ -1,0 +1,13 @@
+site_name: hitlist
+site_description: Curated mass spectrometry evidence for MHC ligand data from IEDB and CEDAR
+site_url: https://pirl-unc.github.io/hitlist/
+repo_url: https://github.com/pirl-unc/hitlist
+repo_name: pirl-unc/hitlist
+
+nav:
+  - Home: index.md
+  - Source Classification: source-classification.md
+  - PMID Curation: pmid-curation.md
+
+theme:
+  name: readthedocs
