@@ -1,20 +1,31 @@
 # Per-PMID study-level curation overrides for IEDB/CEDAR MHC ligand data.
 #
-# Each entry overrides the default source classification for all rows
-# from a given study. Override values:
-#   healthy          - confirmed healthy tissue (default classification OK)
+# Three levels of specificity:
+#   1. PMID-level default (override) — applies to all rows from this study
+#   2. Conditional rules (rules) — checked in order, first match wins.
+#      Each rule has a "condition" dict of IEDB field → value(s) to match,
+#      plus an "override" to apply when matched.
+#   3. No match — falls through to structured-field classification
+#
+# Override values:
+#   healthy          - confirmed healthy tissue
 #   cancer_patient   - reclassify as cancer-derived
 #   adjacent         - reclassify as tumor-adjacent normal tissue
-#   activated_apc    - reclassify as activated antigen-presenting cell artifact
-#   cell_line        - reclassify as cell line (when IEDB annotation is wrong)
+#   activated_apc    - reclassify as activated APC artifact
+#   cell_line        - reclassify as cell line
+#   null             - no override, use default classification logic
 #
-# tissue_overrides: per-tissue refinement within a study (e.g. Neidert biobank
-# where some tissues are from surgical departments with high cancer adjacency risk).
+# Condition fields match against IEDB columns (case-insensitive for
+# Source Tissue). Values can be a single string or a list (any match).
+#
+# Studies without PMIDs: use submission_id instead of pmid as the key.
+# The curation code checks both.
 
 # ── Gold-standard healthy tissue ────────────────────────────────────────────
 
 - pmid: 33858848
   label: "Marcu 2021 — HLA Ligand Atlas"
+  title: "HLA Ligand Atlas: a benign reference of HLA-bound peptides for biomarker discovery and T-cell-based immunotherapy"
   override: healthy
   note: >
     21 subjects (16 autopsy + 5 living thymus + 2 living ovary),
@@ -25,6 +36,7 @@
 
 - pmid: 29557506
   label: "Neidert 2018 — Tübingen/Zurich biobank"
+  title: "A comprehensive analysis of the naturally presented HLA-I ligandome of malignant and nonmalignant tissues"
   override: healthy
   note: >
     160 class I samples from patients and autopsy material. Sample IDs
@@ -33,46 +45,66 @@
     occult cancer.
   donors: ~160
   samples: 160
-  tissue_overrides:
-    # Blood bank donors -- genuinely healthy
-    Blood: healthy
-    Bone Marrow: healthy  # hip arthroplasty (elderly, non-cancer)
-    Central nervous system (CNS): healthy  # autopsy
-    Cerebellum: healthy  # autopsy
-    # Surgical department tissues -- cancer adjacency risk
-    Gastrointestinal Tract: adjacent  # Visceral & Transplant Surgery
-    Colon: adjacent  # same dept, likely CRC adjacent
-    Kidney: adjacent  # Urology, likely nephrectomy/RCC adjacent
-    Liver: adjacent  # Visceral Surgery, likely HCC/met adjacent
-    Lung: adjacent
-    Stomach: adjacent
-    Breast: adjacent
-    Pancreas: adjacent
+  rules:
+    # Genuinely healthy sources
+    - condition:
+        Source Tissue:
+          - Blood
+          - Bone Marrow
+          - Central nervous system (CNS)
+          - Cerebellum
+      override: healthy
+      reason: "Blood bank donors and autopsy CNS material"
+    # Surgical department tissues — cancer adjacency risk
+    - condition:
+        Source Tissue:
+          - Gastrointestinal Tract
+          - Colon
+          - Kidney
+          - Liver
+          - Lung
+          - Stomach
+          - Breast
+          - Pancreas
+      override: adjacent
+      reason: "Visceral Surgery / Urology departments — likely cancer resection margins"
 
 - pmid: 27862975
   label: "Bassani-Sternberg 2017 — soluble HLA"
+  title: "Soluble plasma HLA peptidome as a potential source for cancer biomarkers"
   override: healthy
   note: >
     3 healthy donors, soluble HLA from serum. Weak evidence due to
     sHLA bias — peptides from sHLA may not reflect cell surface presentation.
   donors: 3
 
-# ── Healthy donor blood controls ────────────────────────────────────────────
+# ── Mixed studies (conditional rules needed) ────────────────────────────────
 
 - pmid: 36589698
   label: "CTA-specific TCR library study"
-  override: healthy
-  note: "Healthy donor blood."
+  override: ~  # no blanket override — let structured fields decide
+  note: "Mixed: cell lines → cancer, ex vivo blood → healthy."
+  rules:
+    - condition:
+        Culture Condition: "Direct Ex Vivo"
+      override: healthy
+      reason: "Healthy donor blood controls"
 
 - pmid: 38920720
   label: "Ovarian cancer antigen study"
-  override: healthy
-  note: "Healthy donor blood control."
+  override: ~
+  note: "Mixed: cell lines → cancer, ex vivo blood → healthy."
+  rules:
+    - condition:
+        Culture Condition: "Direct Ex Vivo"
+      override: healthy
+      reason: "Healthy donor blood controls"
 
 # ── Activated APCs (pharmacological artifact) ───────────────────────────────
 
 - pmid: 32983136
   label: "Marino 2020 — monocyte-derived DCs"
+  title: "Differential expression of HLA ligands on activated and resting human APCs"
   override: activated_apc
   note: >
     CD14+ monocytes → immature DCs (GM-CSF + IL-4) → mature DCs
@@ -85,6 +117,7 @@
 
 - pmid: 35051231
   label: "Pyke 2022 — influenza lung study"
+  title: "A repository of HLA class I peptide ligands identified from human lung tissue"
   override: adjacent
   note: >
     Lung from surgery patients ('clinical reasons') — almost certainly
@@ -93,6 +126,7 @@
 
 - pmid: 29786170
   label: "TNBC immunopeptidomics"
+  title: "Immunopeptidomics of triple-negative breast cancer"
   override: adjacent
   note: "Paired tumor + adjacent normal breast tissue."
 
@@ -100,11 +134,13 @@
 
 - pmid: 26992070
   label: "Caron 2015 — melanoma study"
+  title: "Analysis of HLA class I immunopeptidomes of tumors and matched normal tissue from a melanoma cohort"
   override: cancer_patient
   note: "Melanoma patient serum + cancer cell lines."
 
 - pmid: 31154438
   label: "GBM tumor antigens"
+  title: "Identification of tumor-associated antigens in glioblastoma by immunopeptidomics"
   override: cancer_patient
   note: "GBM patient plasma + tumor tissue."
 
@@ -112,5 +148,6 @@
 
 - pmid: 28514659
   label: "HLA-B*46:01 study"
+  title: "Peptide-binding motif of the HLA-B*46:01 molecule"
   override: cell_line
   note: "721.221 transfectants wrongly annotated as spleen in IEDB."

@@ -77,6 +77,31 @@ def load_tissue_categories() -> dict[str, frozenset[str]]:
     }
 
 
+def _matches_condition(row_fields: dict[str, str], condition: dict) -> bool:
+    """Check if a row's fields match a condition dict.
+
+    Each condition key is an IEDB field name, value is either a string
+    or a list of strings. All conditions must match (AND logic).
+    String matching is case-insensitive for Source Tissue.
+    """
+    for field, expected in condition.items():
+        actual = row_fields.get(field, "")
+        if isinstance(expected, list):
+            # Any of the listed values matches
+            if field == "Source Tissue":
+                if actual.lower() not in {v.lower() for v in expected}:
+                    return False
+            elif actual not in expected:
+                return False
+        else:
+            if field == "Source Tissue":
+                if actual.lower() != str(expected).lower():
+                    return False
+            elif actual != expected:
+                return False
+    return True
+
+
 def classify_ms_row(
     process_type: str,
     disease: str,
@@ -141,23 +166,33 @@ def classify_ms_row(
         and source_tissue_lower in categories["activated_apc_tissues"]
     )
 
-    # ── Apply PMID override ─────────────────────────────────────────────
-    override = None
-    tissue_override = None
+    # ── Apply PMID override (three-level specificity) ─────────────────
+    # Level 1: conditional rules (checked first, in order)
+    # Level 2: PMID-level default override
+    # Level 3: no match → fall through to structured-field classification
+    effective_override = None
     if pmid_int and pmid_int in overrides:
         entry = overrides[pmid_int]
-        override = entry.get("override")
-        # Check per-tissue overrides within the study
-        tissue_overrides = entry.get("tissue_overrides")
-        if tissue_overrides:
-            # Try matching Source Tissue against tissue override keys (case-insensitive)
-            for tissue_key, tissue_val in tissue_overrides.items():
-                if source_tissue_str.lower() == tissue_key.lower():
-                    tissue_override = tissue_val
-                    break
 
-    # Resolve: tissue-level override takes priority over study-level
-    effective_override = tissue_override or override
+        # Build row fields for condition matching
+        row_fields = {
+            "Source Tissue": source_tissue_str,
+            "Culture Condition": culture_condition,
+            "Cell Name": cell_name_str,
+            "Disease": disease,
+            "Process Type": process_type,
+        }
+
+        # Level 1: check conditional rules
+        for rule in entry.get("rules", []):
+            condition = rule.get("condition", {})
+            if _matches_condition(row_fields, condition):
+                effective_override = rule.get("override")
+                break
+
+        # Level 2: PMID-level default (only if no rule matched)
+        if effective_override is None:
+            effective_override = entry.get("override")
 
     # ── Classification ──────────────────────────────────────────────────
     if effective_override == "cancer_patient":
