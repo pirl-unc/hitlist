@@ -1,0 +1,29 @@
+# IEDB Source Tissue → category mappings.
+# Categories: reproductive, thymus, somatic (default if not listed).
+# Tissue names are lowercased for matching.
+
+reproductive:
+  - testis
+  - ovary
+  - placenta
+  - uterus
+  - uterine cervix
+  - embryo
+  - cervix
+  - endometrium
+  - fallopian tube
+  - prostate
+  - epididymis
+  - seminal vesicle
+  - vagina
+
+thymus:
+  - thymus
+
+# Cell types that indicate activated APCs when source tissue is blood.
+activated_apc_cell_names:
+  - dendritic cell
+  - macrophage
+
+activated_apc_tissues:
+  - blood

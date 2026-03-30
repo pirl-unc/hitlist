@@ -1,0 +1,116 @@
+# Per-PMID study-level curation overrides for IEDB/CEDAR MHC ligand data.
+#
+# Each entry overrides the default source classification for all rows
+# from a given study. Override values:
+#   healthy          - confirmed healthy tissue (default classification OK)
+#   cancer_patient   - reclassify as cancer-derived
+#   adjacent         - reclassify as tumor-adjacent normal tissue
+#   activated_apc    - reclassify as activated antigen-presenting cell artifact
+#   cell_line        - reclassify as cell line (when IEDB annotation is wrong)
+#
+# tissue_overrides: per-tissue refinement within a study (e.g. Neidert biobank
+# where some tissues are from surgical departments with high cancer adjacency risk).
+
+# ── Gold-standard healthy tissue ────────────────────────────────────────────
+
+- pmid: 33858848
+  label: "Marcu 2021 — HLA Ligand Atlas"
+  override: healthy
+  note: >
+    21 subjects (16 autopsy + 5 living thymus + 2 living ovary),
+    227 samples across 29 tissues. Gold standard benign reference.
+  donors: 21
+  tissues: 29
+  samples: 227
+
+- pmid: 29557506
+  label: "Neidert 2018 — Tübingen/Zurich biobank"
+  override: healthy
+  note: >
+    160 class I samples from patients and autopsy material. Sample IDs
+    in Antigen Processing Comments (e.g. 'buffy coat 23', 'colon 32').
+    Per-donor analysis shows single-CTA-per-sample pattern ruling out
+    occult cancer.
+  donors: ~160
+  samples: 160
+  tissue_overrides:
+    # Blood bank donors -- genuinely healthy
+    Blood: healthy
+    Bone Marrow: healthy  # hip arthroplasty (elderly, non-cancer)
+    Central nervous system (CNS): healthy  # autopsy
+    Cerebellum: healthy  # autopsy
+    # Surgical department tissues -- cancer adjacency risk
+    Gastrointestinal Tract: adjacent  # Visceral & Transplant Surgery
+    Colon: adjacent  # same dept, likely CRC adjacent
+    Kidney: adjacent  # Urology, likely nephrectomy/RCC adjacent
+    Liver: adjacent  # Visceral Surgery, likely HCC/met adjacent
+    Lung: adjacent
+    Stomach: adjacent
+    Breast: adjacent
+    Pancreas: adjacent
+
+- pmid: 27862975
+  label: "Bassani-Sternberg 2017 — soluble HLA"
+  override: healthy
+  note: >
+    3 healthy donors, soluble HLA from serum. Weak evidence due to
+    sHLA bias — peptides from sHLA may not reflect cell surface presentation.
+  donors: 3
+
+# ── Healthy donor blood controls ────────────────────────────────────────────
+
+- pmid: 36589698
+  label: "CTA-specific TCR library study"
+  override: healthy
+  note: "Healthy donor blood."
+
+- pmid: 38920720
+  label: "Ovarian cancer antigen study"
+  override: healthy
+  note: "Healthy donor blood control."
+
+# ── Activated APCs (pharmacological artifact) ───────────────────────────────
+
+- pmid: 32983136
+  label: "Marino 2020 — monocyte-derived DCs"
+  override: activated_apc
+  note: >
+    CD14+ monocytes → immature DCs (GM-CSF + IL-4) → mature DCs
+    (LPS + IFN-gamma). DC maturation upregulates ~765 proteins.
+    Pharmacological activation artifact, not representative of
+    healthy tissue.
+  donors: 7
+
+# ── Tumor-adjacent normal tissue ────────────────────────────────────────────
+
+- pmid: 35051231
+  label: "Pyke 2022 — influenza lung study"
+  override: adjacent
+  note: >
+    Lung from surgery patients ('clinical reasons') — almost certainly
+    cancer resection. Tumor-adjacent normal tissue.
+  donors: 3
+
+- pmid: 29786170
+  label: "TNBC immunopeptidomics"
+  override: adjacent
+  note: "Paired tumor + adjacent normal breast tissue."
+
+# ── Cancer patient biofluids ────────────────────────────────────────────────
+
+- pmid: 26992070
+  label: "Caron 2015 — melanoma study"
+  override: cancer_patient
+  note: "Melanoma patient serum + cancer cell lines."
+
+- pmid: 31154438
+  label: "GBM tumor antigens"
+  override: cancer_patient
+  note: "GBM patient plasma + tumor tissue."
+
+# ── Cell line mis-annotations ───────────────────────────────────────────────
+
+- pmid: 28514659
+  label: "HLA-B*46:01 study"
+  override: cell_line
+  note: "721.221 transfectants wrongly annotated as spleen in IEDB."

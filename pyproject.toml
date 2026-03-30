@@ -1,0 +1,71 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hitlist"
+dynamic = ["version"]
+description = "Curated mass spectrometry evidence for MHC ligand data from IEDB and CEDAR"
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Alex Rubinsteyn", email = "alex.rubinsteyn@unc.edu"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+requires-python = ">=3.9"
+dependencies = [
+    "pandas",
+    "PyYAML",
+    "tqdm",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "ruff",
+]
+
+[project.urls]
+Homepage = "https://github.com/pirl-unc/hitlist"
+Repository = "https://github.com/pirl-unc/hitlist"
+
+[tool.setuptools.dynamic]
+version = {attr = "hitlist.version.__version__"}
+
+[tool.setuptools.packages.find]
+include = ["hitlist*"]
+
+[tool.setuptools.package-data]
+hitlist = ["data/*.yaml"]
+
+[tool.ruff]
+target-version = "py39"
+line-length = 100
+src = ["hitlist", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "C4", "UP", "SIM", "RUF"]
+ignore = ["E501", "B008", "B905", "SIM108", "UP007"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B011", "RUF012"]
+"__init__.py" = ["F401"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["hitlist"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
+
+[tool.coverage.run]
+source = ["hitlist"]
