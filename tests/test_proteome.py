@@ -80,6 +80,48 @@ def test_map_peptides_empty():
     assert "peptide" in df.columns
 
 
+def test_merge():
+    proteins_a = {"PROT_A": "ACDEFGHIKLMN"}
+    meta_a = {"PROT_A": {"gene_name": "GENE_A", "gene_id": "A1"}}
+    proteins_b = {"PROT_B": "PQRSTVWYACDE"}
+    meta_b = {"PROT_B": {"gene_name": "GENE_B", "gene_id": "B1"}}
+
+    idx_a = ProteomeIndex._build(proteins_a, meta_a, lengths=(5,), verbose=False)
+    idx_b = ProteomeIndex._build(proteins_b, meta_b, lengths=(5,), verbose=False)
+
+    merged = idx_a.merge(idx_b)
+    assert len(merged.proteins) == 2
+    # ACDEF in both (shared between PROT_A pos 0 and PROT_B pos 7)
+    # but "ACDE" is only 4 chars, we indexed 5-mers
+    # ACDEF: PROT_A at 0, not in PROT_B (PROT_B has VYACDE, YACDE at pos 7)
+    hits = merged.lookup("ACDEF")
+    assert len(hits) == 1  # only in PROT_A
+    # PQRST only in PROT_B
+    hits_b = merged.lookup("PQRST")
+    assert len(hits_b) == 1
+    assert hits_b[0][0] == "PROT_B"
+
+
+def test_merge_map_peptides():
+    idx_human = ProteomeIndex._build(
+        {"HUMAN1": "ACDEFGHIKLMN"},
+        {"HUMAN1": {"gene_name": "MAGEA4", "gene_id": "ENSG1"}},
+        lengths=(5,),
+        verbose=False,
+    )
+    idx_viral = ProteomeIndex._build(
+        {"VIRAL1": "PQRSTVWYACDE"},
+        {"VIRAL1": {"gene_name": "E7", "gene_id": "HPV16"}},
+        lengths=(5,),
+        verbose=False,
+    )
+    merged = idx_human.merge(idx_viral)
+    df = merged.map_peptides(["PQRST", "ACDEF"], flank=3, verbose=False)
+    assert len(df) == 2
+    genes = set(df["gene_name"])
+    assert genes == {"MAGEA4", "E7"}
+
+
 def test_from_fasta(tmp_path):
     fasta = tmp_path / "test.fasta"
     fasta.write_text(">sp|P12345|TEST_HUMAN GN=TESTGENE\nACDEFGHIKL\n>sp|Q99999|OTH\nMNPQRSTVWY\n")

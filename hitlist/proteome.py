@@ -213,6 +213,65 @@ class ProteomeIndex:
             )
         return cls(proteins=proteins, protein_meta=meta, index=index, lengths=lengths)
 
+    def merge(self, other: ProteomeIndex) -> ProteomeIndex:
+        """Merge another index into this one.
+
+        Combines proteins, metadata, and k-mer index entries from both.
+        Useful for combining human + viral proteome indices.
+
+        Parameters
+        ----------
+        other
+            Another ProteomeIndex to merge in.
+
+        Returns
+        -------
+        ProteomeIndex
+            New merged index (does not modify self or other).
+        """
+        proteins = {**self.proteins, **other.proteins}
+        meta = {**self.protein_meta, **other.protein_meta}
+        index: dict[str, list[tuple[str, int]]] = {}
+        for idx_source in [self.index, other.index]:
+            for kmer, hits in idx_source.items():
+                if kmer not in index:
+                    index[kmer] = []
+                index[kmer].extend(hits)
+        lengths = tuple(sorted(set(self.lengths) | set(other.lengths)))
+        return ProteomeIndex(proteins=proteins, protein_meta=meta, index=index, lengths=lengths)
+
+    @classmethod
+    def from_ensembl_plus_fastas(
+        cls,
+        fasta_paths: list[str | Path] | None = None,
+        release: int = 112,
+        lengths: tuple[int, ...] = (8, 9, 10, 11),
+        verbose: bool = True,
+    ) -> ProteomeIndex:
+        """Build a combined human + viral/custom proteome index.
+
+        Parameters
+        ----------
+        fasta_paths
+            List of FASTA files to include (e.g. viral proteomes).
+        release
+            Ensembl release for human proteome.
+        lengths
+            Peptide lengths to index.
+        verbose
+            Print progress.
+
+        Returns
+        -------
+        ProteomeIndex
+            Merged index covering human and all provided FASTA proteomes.
+        """
+        idx = cls.from_ensembl(release=release, lengths=lengths, verbose=verbose)
+        for fasta in fasta_paths or []:
+            viral_idx = cls.from_fasta(fasta, lengths=lengths, verbose=verbose)
+            idx = idx.merge(viral_idx)
+        return idx
+
     def lookup(self, peptide: str) -> list[tuple[str, int]]:
         """Look up a peptide in the index.
 
