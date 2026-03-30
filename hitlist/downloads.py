@@ -52,11 +52,35 @@ from pathlib import Path
 # ── Data directory ──────────────────────────────────────────────────────────
 
 _DEFAULT_DATA_DIR = Path.home() / ".hitlist"
+_override_data_dir: Path | None = None
+
+
+def set_data_dir(path: str | Path) -> None:
+    """Override the data directory for this session.
+
+    Parameters
+    ----------
+    path
+        Directory to use for all data storage. Created if it doesn't exist.
+
+    Example
+    -------
+    >>> from hitlist.downloads import set_data_dir
+    >>> set_data_dir("/data/shared/hitlist")
+    """
+    global _override_data_dir
+    _override_data_dir = Path(path)
 
 
 def data_dir() -> Path:
-    """Return the hitlist data directory, creating it if needed."""
-    d = Path(os.environ.get("HITLIST_DATA_DIR", str(_DEFAULT_DATA_DIR)))
+    """Return the hitlist data directory, creating it if needed.
+
+    Priority: ``set_data_dir()`` > ``HITLIST_DATA_DIR`` env var > ``~/.hitlist/``.
+    """
+    if _override_data_dir is not None:
+        d = _override_data_dir
+    else:
+        d = Path(os.environ.get("HITLIST_DATA_DIR", str(_DEFAULT_DATA_DIR)))
     d.mkdir(parents=True, exist_ok=True)
     return d
 
