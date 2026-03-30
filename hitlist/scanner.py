@@ -162,7 +162,10 @@ def scan(
     iedb_path, cedar_path
         Paths to IEDB/CEDAR exports.
     human_only
-        Keep only human-source rows (default True).
+        Keep only rows where the antigen-presenting cells are human
+        (default True). Filters on the Host field, NOT the epitope
+        source organism -- so viral peptides presented on human MHC
+        are correctly retained.
     hla_only
         Keep only HLA-restricted rows (default True).
     mhc_class
@@ -201,9 +204,12 @@ def scan(
 
             src_org = _safe_col(row, c["source_organism"])
             species = _safe_col(row, c["species"])
+            host = _safe_col(row, c["host"])
             mhc_res = _safe_col(row, c["mhc_restriction"])
 
-            if human_only and "Homo sapiens" not in (src_org, species):
+            # Filter on HOST organism (the APC), not epitope source.
+            # This keeps viral/bacterial peptides presented on human MHC.
+            if human_only and "Homo sapiens" not in (host, species):
                 continue
             if hla_only and not mhc_res.startswith("HLA-"):
                 continue
