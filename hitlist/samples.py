@@ -113,6 +113,9 @@ def sample_peptidomes(
         if flag in df.columns:
             agg[flag] = (flag, "any")
 
+    if "is_monoallelic" in df.columns:
+        agg["has_monoallelic"] = ("is_monoallelic", "any")
+
     result = df.groupby(sample_key, as_index=False).agg(**agg)
     return result.sort_values("total_peptides", ascending=False).reset_index(drop=True)
 

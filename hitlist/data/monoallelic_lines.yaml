@@ -1,0 +1,43 @@
+# Known HLA class I-null / HLA-low cell line hosts used for mono-allelic
+# immunopeptidome experiments.
+#
+# When a row's cell_name matches one of these hosts AND the culture
+# condition indicates a cell line, the peptide-allele assignment is
+# flagged as mono-allelic (the reported HLA allele is the transfected allele).
+#
+# Fields:
+#   name:                 canonical name
+#   aliases:              lowercase substrings to match against IEDB cell_name
+#   hla_status:           endogenous HLA expression profile
+#   endogenous_alleles:   residual HLA alleles (if reported allele matches,
+#                         the assignment is NOT mono-allelic)
+
+- name: "721.221"
+  aliases:
+    - "721.221"
+    - "b721.221"
+    - ".221"
+  hla_status: "HLA class I null"
+  endogenous_alleles: []
+
+- name: "C1R"
+  aliases:
+    - "c1r"
+    - "hmy2.cir"
+  hla_status: "HLA-A/B low, retains weak HLA-B*35:03 and HLA-C*04:01"
+  endogenous_alleles:
+    - "HLA-B*35:03"
+    - "HLA-C*04:01"
+
+- name: "K562"
+  aliases:
+    - "k562"
+  hla_status: "HLA class I null"
+  endogenous_alleles: []
+
+- name: "T2"
+  aliases:
+    - "174xcem.t2"
+  hla_status: "TAP-deficient, expresses HLA-A*02:01"
+  endogenous_alleles:
+    - "HLA-A*02:01"

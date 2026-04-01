@@ -1,6 +1,8 @@
 from hitlist.curation import (
     classify_ms_row,
+    detect_monoallelic,
     is_cancer_specific,
+    load_monoallelic_lines,
     load_pmid_overrides,
     load_tissue_categories,
 )
@@ -100,3 +102,82 @@ def test_cancer_specific_thymus_ok():
     assert is_cancer_specific(
         {"found_in_cancer": True, "found_in_healthy_tissue": False, "found_in_healthy_thymus": True}
     )
+
+
+# ── Mono-allelic detection ─────────────────────────────────────────────
+
+
+def test_load_monoallelic_lines():
+    lines = load_monoallelic_lines()
+    assert len(lines) >= 3
+    names = {entry["name"] for entry in lines}
+    assert "721.221" in names
+    assert "C1R" in names
+    assert "K562" in names
+
+
+def test_detect_monoallelic_721_221():
+    is_mono, host = detect_monoallelic("B721.221", "HLA-A*02:01")
+    assert is_mono is True
+    assert host == "721.221"
+
+
+def test_detect_monoallelic_c1r_transfected():
+    is_mono, host = detect_monoallelic("C1R cells-B cell", "HLA-A*02:01")
+    assert is_mono is True
+    assert host == "C1R"
+
+
+def test_detect_monoallelic_c1r_endogenous():
+    is_mono, _host = detect_monoallelic("C1R cells-B cell", "HLA-B*35:03")
+    assert is_mono is False
+
+
+def test_detect_monoallelic_k562():
+    is_mono, host = detect_monoallelic("K562 cells", "HLA-A*24:02")
+    assert is_mono is True
+    assert host == "K562"
+
+
+def test_detect_monoallelic_unrelated():
+    is_mono, host = detect_monoallelic("HeLa", "HLA-A*02:01")
+    assert is_mono is False
+    assert host == ""
+
+
+def test_detect_monoallelic_empty():
+    is_mono, _host = detect_monoallelic("", "HLA-A*02:01")
+    assert is_mono is False
+
+
+def test_classify_ms_row_monoallelic():
+    flags = classify_ms_row(
+        "No immunization",
+        "healthy",
+        "Cell Line / Clone",
+        "Blood",
+        "B721.221",
+        pmid="",
+        mhc_restriction="HLA-A*02:01",
+    )
+    assert flags["is_monoallelic"] is True
+    assert flags["monoallelic_host"] == "721.221"
+    assert flags["src_cell_line"] is True
+
+
+def test_classify_ms_row_not_monoallelic_ex_vivo():
+    flags = classify_ms_row(
+        "No immunization",
+        "healthy",
+        "Direct Ex Vivo",
+        "Blood",
+        "B721.221",
+        mhc_restriction="HLA-A*02:01",
+    )
+    assert flags["is_monoallelic"] is False
+
+
+def test_classify_ms_row_backward_compat():
+    flags = classify_ms_row("No immunization", "healthy", "Cell Line / Clone", "Blood", "HeLa")
+    assert "is_monoallelic" in flags
+    assert flags["is_monoallelic"] is False

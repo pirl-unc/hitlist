@@ -98,3 +98,14 @@ def test_empty_scan():
     result = sample_peptidomes(pd.DataFrame())
     assert isinstance(result, pd.DataFrame)
     assert len(result) == 0
+
+
+def test_sample_peptidomes_monoallelic():
+    df = _make_full_scan()
+    df["is_monoallelic"] = [True, True, False, False, False, False, False, False]
+    result = sample_peptidomes(df)
+    assert "has_monoallelic" in result.columns
+    colon = result[result["antigen_processing_comments"] == "colon 1"].iloc[0]
+    assert colon["has_monoallelic"] == True  # noqa: E712
+    buffy = result[result["antigen_processing_comments"] == "buffy coat 5"].iloc[0]
+    assert buffy["has_monoallelic"] == False  # noqa: E712

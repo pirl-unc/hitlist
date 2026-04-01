@@ -77,6 +77,51 @@ def load_tissue_categories() -> dict[str, frozenset[str]]:
     }
 
 
+@lru_cache(maxsize=1)
+def load_monoallelic_lines() -> list[dict]:
+    """Load known mono-allelic cell line systems from YAML.
+
+    Returns
+    -------
+    list[dict]
+        Each entry has keys: name, aliases (list[str]), hla_status,
+        endogenous_alleles (list[str]).
+    """
+    with open(_data_path("monoallelic_lines.yaml")) as f:
+        return yaml.safe_load(f)
+
+
+def detect_monoallelic(cell_name: str, mhc_restriction: str = "") -> tuple[bool, str]:
+    """Detect if a row comes from a known mono-allelic cell line system.
+
+    Parameters
+    ----------
+    cell_name
+        IEDB "Cell Name" field value.
+    mhc_restriction
+        IEDB "MHC Restriction" field value (the reported allele).
+
+    Returns
+    -------
+    tuple[bool, str]
+        ``(is_monoallelic, host_name)``. ``is_monoallelic`` is True when
+        the cell_name matches a known HLA-null/low host AND the reported
+        allele is not one of the host's endogenous alleles.
+    """
+    if not cell_name:
+        return False, ""
+
+    cell_name_lower = cell_name.lower()
+    for entry in load_monoallelic_lines():
+        for alias in entry["aliases"]:
+            if alias in cell_name_lower:
+                endogenous = entry.get("endogenous_alleles", [])
+                if mhc_restriction and mhc_restriction in endogenous:
+                    return False, ""
+                return True, entry["name"]
+    return False, ""
+
+
 def _matches_condition(row_fields: dict[str, str], condition: dict) -> bool:
     """Check if a row's fields match a condition dict.
 
@@ -109,6 +154,7 @@ def classify_ms_row(
     source_tissue: str = "",
     cell_name: str = "",
     pmid: int | str = "",
+    mhc_restriction: str = "",
 ) -> dict[str, bool | str]:
     """Classify a public-MS row into curated source-context flags.
 
@@ -128,6 +174,9 @@ def classify_ms_row(
         IEDB "Cell Name" field.
     pmid
         PubMed ID for per-study override lookup.
+    mhc_restriction
+        IEDB "MHC Restriction" field value. Used to check whether
+        the reported allele is endogenous to a mono-allelic host.
 
     Returns
     -------
@@ -228,6 +277,12 @@ def classify_ms_row(
 
     cl_name = cell_name_str if (is_cell_line or is_ebv_lcl) else ""
 
+    # Mono-allelic detection: only for cell line rows
+    is_monoallelic = False
+    mono_host = ""
+    if is_cell_line or is_ebv_lcl:
+        is_monoallelic, mono_host = detect_monoallelic(cell_name_str, mhc_restriction)
+
     return {
         "src_cancer": is_cancer,
         "src_adjacent_to_tumor": is_adjacent,
@@ -239,6 +294,8 @@ def classify_ms_row(
         "src_ebv_lcl": is_ebv_lcl,
         "src_ex_vivo": is_ex_vivo,
         "cell_line_name": cl_name,
+        "is_monoallelic": is_monoallelic,
+        "monoallelic_host": mono_host,
     }
 
 
