@@ -129,7 +129,7 @@ def test_detect_monoallelic_c1r_transfected():
 
 
 def test_detect_monoallelic_c1r_endogenous():
-    is_mono, host = detect_monoallelic("C1R cells-B cell", "HLA-B*35:03")
+    is_mono, _host = detect_monoallelic("C1R cells-B cell", "HLA-B*35:03")
     assert is_mono is False
 
 
@@ -146,7 +146,7 @@ def test_detect_monoallelic_unrelated():
 
 
 def test_detect_monoallelic_empty():
-    is_mono, host = detect_monoallelic("", "HLA-A*02:01")
+    is_mono, _host = detect_monoallelic("", "HLA-A*02:01")
     assert is_mono is False
 
 
