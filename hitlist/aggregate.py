@@ -69,6 +69,10 @@ def aggregate_per_peptide(hits_df: pd.DataFrame) -> pd.DataFrame:
         if flag in hits_df.columns:
             agg[f"found_in_{flag.removeprefix('src_')}"] = (flag, "any")
 
+    if "is_monoallelic" in hits_df.columns:
+        agg["mono_allelic_hit_count"] = ("is_monoallelic", "sum")
+        agg["has_mono_allelic_evidence"] = ("is_monoallelic", "any")
+
     if "source_tissue" in hits_df.columns:
         agg["ms_tissues"] = ("source_tissue", _join_unique)
     if "disease" in hits_df.columns:
@@ -105,6 +109,9 @@ def aggregate_per_pmhc(hits_df: pd.DataFrame) -> pd.DataFrame:
     if "pmid" in hits_df.columns:
         agg["ms_pmhc_pmid_count"] = ("pmid", _count_unique)
         agg["ms_pmhc_pmids"] = ("pmid", _join_unique)
+    if "is_monoallelic" in hits_df.columns:
+        agg["ms_pmhc_mono_hit_count"] = ("is_monoallelic", "sum")
+        agg["ms_pmhc_has_mono_evidence"] = ("is_monoallelic", "any")
 
     result = hits_df.groupby(["peptide", "mhc_restriction"], as_index=False).agg(**agg)
     return result[result["mhc_restriction"].str.startswith("HLA-", na=False)].reset_index(drop=True)

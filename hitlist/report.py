@@ -203,6 +203,30 @@ def generate_report(
                 p(f"  {cl:<35s} {count:>8,} rows  {peps:>8,} peptides")
             p()
 
+    # ── Mono-allelic evidence ─────────────────────────────────────────
+    if "is_monoallelic" in df.columns:
+        mono = df[df["is_monoallelic"]]
+        if len(mono) > 0:
+            p("── Mono-allelic Evidence ──")
+            p()
+            p(f"  Mono-allelic rows:            {len(mono):>10,} ({len(mono) / total * 100:.1f}%)")
+            p(f"  Unique peptides (mono):       {mono['peptide'].nunique():>10,}")
+            p(f"  Unique alleles (mono):        {mono['mhc_restriction'].nunique():>10,}")
+            p()
+            if "monoallelic_host" in df.columns:
+                host_counts = mono["monoallelic_host"].value_counts()
+                p("  Host cell lines:")
+                for host, count in host_counts.items():
+                    peps = mono[mono["monoallelic_host"] == host]["peptide"].nunique()
+                    p(f"    {host:<25s} {count:>8,} rows  {peps:>8,} peptides")
+                p()
+            mono_alleles = mono["mhc_restriction"].value_counts().head(15)
+            p("  Top alleles with mono-allelic evidence:")
+            for allele, count in mono_alleles.items():
+                peps = mono[mono["mhc_restriction"] == allele]["peptide"].nunique()
+                p(f"    {allele:<25s} {count:>8,} rows  {peps:>8,} peptides")
+            p()
+
     # ── Per-PMID study summary ──────────────────────────────────────────
     if "pmid" in df.columns:
         p("── Top Studies by Row Count ──")

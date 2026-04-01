@@ -256,7 +256,13 @@ def scan(
             if classify_source:
                 record.update(
                     classify_ms_row(
-                        process_type, disease, culture_condition, source_tissue, cell_name, pmid
+                        process_type,
+                        disease,
+                        culture_condition,
+                        source_tissue,
+                        cell_name,
+                        pmid,
+                        mhc_restriction=mhc_res,
                     )
                 )
 
