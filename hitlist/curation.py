@@ -260,13 +260,19 @@ def classify_ms_row(
         is_cancer = True
         is_adjacent = False
         is_activated_apc = False
+    elif effective_override == "healthy":
+        is_cancer = False
+        is_adjacent = False
+        is_activated_apc = False
     else:
         # Default: non-EBV cell lines are cancer-derived
         is_cancer = process_type == "Occurrence of cancer" or (is_cell_line and not is_ebv_lcl)
         is_adjacent = False
 
-    # Healthy requires: ex vivo, no cancer/adjacent/apc, no disease
-    is_healthy_donor = (
+    # Healthy requires: ex vivo, no cancer/adjacent/apc, no disease.
+    # When override is "healthy", force the healthy path regardless of
+    # process_type / disease fields (the override corrects bad IEDB metadata).
+    is_healthy_donor = effective_override == "healthy" or (
         is_ex_vivo
         and not is_cancer
         and not is_adjacent

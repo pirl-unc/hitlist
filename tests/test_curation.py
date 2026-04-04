@@ -181,3 +181,35 @@ def test_classify_ms_row_backward_compat():
     flags = classify_ms_row("No immunization", "healthy", "Cell Line / Clone", "Blood", "HeLa")
     assert "is_monoallelic" in flags
     assert flags["is_monoallelic"] is False
+
+
+def test_healthy_override_forces_healthy_path():
+    """PMID 33858848 (Marcu 2021 HLA Ligand Atlas) declares override: healthy.
+
+    Even if IEDB fields say "Occurrence of cancer", the override should
+    force the row into the healthy-donor classification.
+    """
+    flags = classify_ms_row(
+        "Occurrence of cancer",
+        "melanoma",
+        "Direct Ex Vivo",
+        "Liver",
+        "",
+        pmid=33858848,
+    )
+    assert flags["src_cancer"] is False
+    assert flags["src_healthy_tissue"] is True
+
+
+def test_healthy_override_conditional_rule():
+    """PMID 36589698 has conditional rules: ex vivo -> healthy."""
+    flags = classify_ms_row(
+        "No immunization",
+        "",
+        "Direct Ex Vivo",
+        "Blood",
+        "",
+        pmid=36589698,
+    )
+    assert flags["src_healthy_tissue"] is True
+    assert flags["src_cancer"] is False
