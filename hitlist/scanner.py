@@ -211,7 +211,7 @@ def scan(
             # This keeps viral/bacterial peptides presented on human MHC.
             if human_only and "Homo sapiens" not in (host, species):
                 continue
-            if hla_only and not mhc_res.startswith("HLA-"):
+            if hla_only and not mhc_res.startswith("HLA"):
                 continue
             if mhc_class is not None and _safe_col(row, c["mhc_class"]) != mhc_class:
                 continue
