@@ -152,6 +152,7 @@ def scan(
     hla_only: bool = True,
     mhc_class: str | None = None,
     classify_source: bool = True,
+    min_allele_resolution: str | None = None,
 ) -> pd.DataFrame:
     """Scan IEDB/CEDAR for matching peptides, or profile entire dataset.
 
@@ -172,6 +173,10 @@ def scan(
         Filter to ``"I"`` or ``"II"``. None = both.
     classify_source
         Run source classification (default True).
+    min_allele_resolution
+        Minimum allele resolution to keep. One of ``"four_digit"``,
+        ``"two_digit"``, ``"serological"``, ``"class_only"``. Rows
+        with coarser resolution are dropped. None = no filtering.
 
     Returns
     -------
@@ -184,6 +189,10 @@ def scan(
         source_paths.append(Path(iedb_path))
     if cedar_path is not None:
         source_paths.append(Path(cedar_path))
+
+    from .curation import allele_resolution_rank, classify_allele_resolution
+
+    min_res_rank = allele_resolution_rank(min_allele_resolution) if min_allele_resolution else None
 
     rows: list[dict] = []
     seen: set[str] = set()
@@ -215,6 +224,10 @@ def scan(
                 continue
             if mhc_class is not None and _safe_col(row, c["mhc_class"]) != mhc_class:
                 continue
+            if min_res_rank is not None:
+                res = classify_allele_resolution(mhc_res)
+                if allele_resolution_rank(res) > min_res_rank:
+                    continue
 
             raw_pmid = _safe_col(row, c["pmid"]).strip()
             pmid: str | int = ""
@@ -266,6 +279,8 @@ def scan(
                         submission_id=record.get("submission_id", ""),
                     )
                 )
+            else:
+                record["allele_resolution"] = classify_allele_resolution(mhc_res)
 
             rows.append(record)
 

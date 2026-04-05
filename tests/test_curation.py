@@ -1,4 +1,7 @@
 from hitlist.curation import (
+    ALLELE_RESOLUTION_ORDER,
+    allele_resolution_rank,
+    classify_allele_resolution,
     classify_ms_row,
     detect_monoallelic,
     is_cancer_specific,
@@ -213,3 +216,60 @@ def test_healthy_override_conditional_rule():
     )
     assert flags["src_healthy_tissue"] is True
     assert flags["src_cancer"] is False
+
+
+# ── Allele resolution ──────────────────────────────────────────────────
+
+
+def test_classify_allele_resolution_four_digit():
+    assert classify_allele_resolution("HLA-A*02:01") == "four_digit"
+    assert classify_allele_resolution("HLA-B*49:01") == "four_digit"
+    assert classify_allele_resolution("HLA-C*07:02") == "four_digit"
+
+
+def test_classify_allele_resolution_serological():
+    assert classify_allele_resolution("HLA-A2") == "serological"
+    assert classify_allele_resolution("HLA-B7") == "serological"
+
+
+def test_classify_allele_resolution_class_only():
+    assert classify_allele_resolution("HLA class I") == "class_only"
+    assert classify_allele_resolution("HLA class II") == "class_only"
+
+
+def test_classify_allele_resolution_unresolved():
+    assert classify_allele_resolution("") == "unresolved"
+
+
+def test_classify_allele_resolution_mouse():
+    # H-2Kb is a valid mouse allele. mhcgnomes parses it as two_digit;
+    # regex fallback returns unresolved (not HLA). Either is acceptable
+    # since hla_only filters these out before they reach output.
+    assert classify_allele_resolution("H-2Kb") in ("two_digit", "unresolved")
+
+
+def test_allele_resolution_rank_ordering():
+    ranks = [allele_resolution_rank(r) for r in ALLELE_RESOLUTION_ORDER]
+    assert ranks == sorted(ranks)
+    assert allele_resolution_rank("four_digit") < allele_resolution_rank("serological")
+    assert allele_resolution_rank("serological") < allele_resolution_rank("class_only")
+
+
+def test_classify_ms_row_includes_allele_resolution():
+    flags = classify_ms_row(
+        "No immunization",
+        "healthy",
+        "Direct Ex Vivo",
+        "Liver",
+        mhc_restriction="HLA-A*02:01",
+    )
+    assert flags["allele_resolution"] == "four_digit"
+
+    flags = classify_ms_row(
+        "No immunization",
+        "healthy",
+        "Direct Ex Vivo",
+        "Liver",
+        mhc_restriction="HLA class I",
+    )
+    assert flags["allele_resolution"] == "class_only"
