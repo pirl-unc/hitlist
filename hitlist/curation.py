@@ -77,6 +77,82 @@ def load_tissue_categories() -> dict[str, frozenset[str]]:
     }
 
 
+# ── Allele resolution ──────────────────────────────────────────────────────
+
+#: Resolution tiers, ordered from most to least specific.
+ALLELE_RESOLUTION_ORDER: list[str] = [
+    "four_digit",
+    "two_digit",
+    "serological",
+    "class_only",
+    "unresolved",
+]
+
+_RESOLUTION_RANK: dict[str, int] = {v: i for i, v in enumerate(ALLELE_RESOLUTION_ORDER)}
+
+
+def classify_allele_resolution(mhc_restriction: str) -> str:
+    """Classify the resolution level of an MHC restriction annotation.
+
+    Uses mhcgnomes if available for authoritative parsing, otherwise
+    falls back to regex patterns.
+
+    Parameters
+    ----------
+    mhc_restriction
+        IEDB "MHC Restriction" field value.
+
+    Returns
+    -------
+    str
+        One of: ``"four_digit"``, ``"two_digit"``, ``"serological"``,
+        ``"class_only"``, ``"unresolved"``.
+    """
+    if not mhc_restriction:
+        return "unresolved"
+
+    try:
+        from mhcgnomes import parse
+        from mhcgnomes.allele import Allele
+        from mhcgnomes.mhc_class import MhcClass
+        from mhcgnomes.serotype import Serotype
+
+        result = parse(mhc_restriction)
+        if isinstance(result, Allele):
+            if len(result.allele_fields) >= 2:
+                return "four_digit"
+            return "two_digit"
+        if isinstance(result, Serotype):
+            return "serological"
+        if isinstance(result, MhcClass):
+            return "class_only"
+        return "unresolved"
+    except ImportError:
+        pass
+
+    # Regex fallback when mhcgnomes is not installed
+    if not mhc_restriction.startswith("HLA"):
+        return "unresolved"
+    if "class" in mhc_restriction.lower():
+        return "class_only"
+    if "*" in mhc_restriction and ":" in mhc_restriction:
+        return "four_digit"
+    if "*" in mhc_restriction:
+        return "two_digit"
+    # HLA-A2, HLA-B7 etc.
+    if mhc_restriction.startswith("HLA-"):
+        return "serological"
+    return "unresolved"
+
+
+def allele_resolution_rank(resolution: str) -> int:
+    """Integer rank for resolution (lower = more specific)."""
+    return _RESOLUTION_RANK.get(resolution, len(ALLELE_RESOLUTION_ORDER))
+
+
+# ── Mono-allelic cell line detection ──────────────────────────────────────
+
+
 @lru_cache(maxsize=1)
 def load_monoallelic_lines() -> list[dict]:
     """Load known mono-allelic cell line systems from YAML.
@@ -309,6 +385,7 @@ def classify_ms_row(
         "cell_line_name": cl_name,
         "is_monoallelic": is_monoallelic,
         "monoallelic_host": mono_host,
+        "allele_resolution": classify_allele_resolution(mhc_restriction),
     }
 
 
