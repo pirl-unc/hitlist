@@ -263,6 +263,7 @@ def scan(
                         cell_name,
                         pmid,
                         mhc_restriction=mhc_res,
+                        submission_id=record.get("submission_id", ""),
                     )
                 )
 

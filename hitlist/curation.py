@@ -155,6 +155,7 @@ def classify_ms_row(
     cell_name: str = "",
     pmid: int | str = "",
     mhc_restriction: str = "",
+    submission_id: str = "",
 ) -> dict[str, bool | str]:
     """Classify a public-MS row into curated source-context flags.
 
@@ -193,11 +194,12 @@ def classify_ms_row(
     categories = load_tissue_categories()
     overrides = load_pmid_overrides()
 
-    # Parse PMID
+    # Parse PMID and submission_id
     pmid_int = None
     if pmid:
         with contextlib.suppress(ValueError, TypeError):
             pmid_int = int(pmid)
+    submission_id_str = str(submission_id).strip() if pd.notna(submission_id) else ""
 
     # Base signals
     is_ex_vivo = culture_condition == "Direct Ex Vivo"
@@ -220,9 +222,14 @@ def classify_ms_row(
     # Level 2: PMID-level default override
     # Level 3: no match → fall through to structured-field classification
     effective_override = None
+    # Look up override by PMID (int) or submission_id (str)
+    entry = None
     if pmid_int and pmid_int in overrides:
         entry = overrides[pmid_int]
+    elif submission_id_str and submission_id_str in overrides:
+        entry = overrides[submission_id_str]
 
+    if entry is not None:
         # Build row fields for condition matching
         row_fields = {
             "Source Tissue": source_tissue_str,
