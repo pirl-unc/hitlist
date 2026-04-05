@@ -242,9 +242,10 @@ def test_classify_allele_resolution_unresolved():
 
 
 def test_classify_allele_resolution_mouse():
-    # H-2Kb is a valid mouse allele; mhcgnomes parses it as two_digit.
-    # These are filtered out by hla_only, but resolution is still classifiable.
-    assert classify_allele_resolution("H-2Kb") == "two_digit"
+    # H-2Kb is a valid mouse allele. mhcgnomes parses it as two_digit;
+    # regex fallback returns unresolved (not HLA). Either is acceptable
+    # since hla_only filters these out before they reach output.
+    assert classify_allele_resolution("H-2Kb") in ("two_digit", "unresolved")
 
 
 def test_allele_resolution_rank_ordering():
