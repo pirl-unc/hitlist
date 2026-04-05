@@ -150,6 +150,62 @@ def allele_resolution_rank(resolution: str) -> int:
     return _RESOLUTION_RANK.get(resolution, len(ALLELE_RESOLUTION_ORDER))
 
 
+@lru_cache(maxsize=1)
+def _build_allele_to_serotype_map() -> dict[str, str]:
+    """Build a reverse map from allele compact key to serotype name.
+
+    Uses mhcgnomes data. Returns empty dict if mhcgnomes unavailable.
+    """
+    try:
+        from mhcgnomes.data import serotypes
+
+        reverse: dict[str, str] = {}
+        hla = serotypes["HLA"]
+        for sero_name, allele_list in hla.items():
+            for allele_str in allele_list:
+                reverse[allele_str] = f"HLA-{sero_name}"
+        return reverse
+    except ImportError:
+        return {}
+
+
+def allele_to_serotype(mhc_restriction: str) -> str:
+    """Map an HLA allele or serotype annotation to its serotype group.
+
+    Uses mhcgnomes when available. Returns the serotype name (e.g.
+    ``"HLA-A2"``) for both ``"HLA-A*02:01"`` and ``"HLA-A2"`` input.
+
+    Parameters
+    ----------
+    mhc_restriction
+        IEDB "MHC Restriction" field value.
+
+    Returns
+    -------
+    str
+        Serotype name (e.g. ``"HLA-A2"``), or empty string if the
+        allele cannot be mapped.
+    """
+    if not mhc_restriction:
+        return ""
+
+    try:
+        from mhcgnomes import parse
+        from mhcgnomes.allele import Allele
+        from mhcgnomes.serotype import Serotype
+
+        result = parse(mhc_restriction)
+        if isinstance(result, Serotype):
+            return f"HLA-{result.name}"
+        if isinstance(result, Allele):
+            key = f"{result.gene.name}*{''.join(result.allele_fields)}"
+            return _build_allele_to_serotype_map().get(key, "")
+    except (ImportError, Exception):
+        pass
+
+    return ""
+
+
 # ── Mono-allelic cell line detection ──────────────────────────────────────
 
 
@@ -386,6 +442,7 @@ def classify_ms_row(
         "is_monoallelic": is_monoallelic,
         "monoallelic_host": mono_host,
         "allele_resolution": classify_allele_resolution(mhc_restriction),
+        "serotype": allele_to_serotype(mhc_restriction),
     }
 
 

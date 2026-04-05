@@ -280,7 +280,10 @@ def scan(
                     )
                 )
             else:
+                from .curation import allele_to_serotype
+
                 record["allele_resolution"] = classify_allele_resolution(mhc_res)
+                record["serotype"] = allele_to_serotype(mhc_res)
 
             rows.append(record)
 
