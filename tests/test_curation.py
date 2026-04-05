@@ -1,6 +1,7 @@
 from hitlist.curation import (
     ALLELE_RESOLUTION_ORDER,
     allele_resolution_rank,
+    allele_to_serotype,
     classify_allele_resolution,
     classify_ms_row,
     detect_monoallelic,
@@ -273,3 +274,52 @@ def test_classify_ms_row_includes_allele_resolution():
         mhc_restriction="HLA class I",
     )
     assert flags["allele_resolution"] == "class_only"
+
+
+# ── Serotype mapping ──────────────────────────────────────────────────
+
+
+try:
+    import mhcgnomes  # noqa: F401
+
+    _HAS_MHCGNOMES = True
+except ImportError:
+    _HAS_MHCGNOMES = False
+
+
+def test_allele_to_serotype_four_digit():
+    # Requires mhcgnomes; returns "" without it
+    result = allele_to_serotype("HLA-A*02:01")
+    if _HAS_MHCGNOMES:
+        assert result == "HLA-A2"
+    else:
+        assert result == ""
+
+
+def test_allele_to_serotype_already_serotype():
+    result = allele_to_serotype("HLA-A2")
+    if _HAS_MHCGNOMES:
+        assert result == "HLA-A2"
+    else:
+        assert result == ""
+
+
+def test_allele_to_serotype_class_only():
+    assert allele_to_serotype("HLA class I") == ""
+
+
+def test_allele_to_serotype_empty():
+    assert allele_to_serotype("") == ""
+
+
+def test_classify_ms_row_includes_serotype():
+    flags = classify_ms_row(
+        "No immunization",
+        "healthy",
+        "Direct Ex Vivo",
+        "Liver",
+        mhc_restriction="HLA-A*02:01",
+    )
+    assert "serotype" in flags
+    if _HAS_MHCGNOMES:
+        assert flags["serotype"] == "HLA-A2"
