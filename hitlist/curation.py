@@ -77,6 +77,58 @@ def load_tissue_categories() -> dict[str, frozenset[str]]:
     }
 
 
+# ── Cached mhcgnomes parse ─────────────────────────────────────────────────
+
+
+@lru_cache(maxsize=1024)
+def _cached_parse(mhc_restriction: str):
+    """Cache mhcgnomes parse results.
+
+    ~300 unique allele strings across millions of IEDB rows.
+    Without caching, parse() is called 6M+ times redundantly.
+    """
+    try:
+        from mhcgnomes import parse
+
+        return parse(mhc_restriction)
+    except (ImportError, Exception):
+        return None
+
+
+# ── MHC species ────────────────────────────────────────────────────────────
+
+
+def classify_mhc_species(mhc_restriction: str) -> str:
+    """Determine the species of an MHC restriction annotation.
+
+    Uses mhcgnomes when available, falls back to prefix matching.
+
+    Parameters
+    ----------
+    mhc_restriction
+        IEDB "MHC Restriction" field value.
+
+    Returns
+    -------
+    str
+        Species name (e.g. ``"Homo sapiens"``, ``"Mus musculus"``),
+        or empty string if undetermined.
+    """
+    if not mhc_restriction:
+        return ""
+
+    result = _cached_parse(mhc_restriction)
+    if result is not None and hasattr(result, "species"):
+        return result.species.name
+
+    # Regex fallback
+    if mhc_restriction.startswith("HLA"):
+        return "Homo sapiens"
+    if mhc_restriction.startswith(("H-2", "H2")):
+        return "Mus musculus"
+    return ""
+
+
 # ── Allele resolution ──────────────────────────────────────────────────────
 
 #: Resolution tiers, ordered from most to least specific.
@@ -111,24 +163,24 @@ def classify_allele_resolution(mhc_restriction: str) -> str:
     if not mhc_restriction:
         return "unresolved"
 
-    try:
-        from mhcgnomes import parse
-        from mhcgnomes.allele import Allele
-        from mhcgnomes.mhc_class import MhcClass
-        from mhcgnomes.serotype import Serotype
+    result = _cached_parse(mhc_restriction)
+    if result is not None:
+        try:
+            from mhcgnomes.allele import Allele
+            from mhcgnomes.mhc_class import MhcClass
+            from mhcgnomes.serotype import Serotype
 
-        result = parse(mhc_restriction)
-        if isinstance(result, Allele):
-            if len(result.allele_fields) >= 2:
-                return "four_digit"
-            return "two_digit"
-        if isinstance(result, Serotype):
-            return "serological"
-        if isinstance(result, MhcClass):
-            return "class_only"
-        return "unresolved"
-    except ImportError:
-        pass
+            if isinstance(result, Allele):
+                if len(result.allele_fields) >= 2:
+                    return "four_digit"
+                return "two_digit"
+            if isinstance(result, Serotype):
+                return "serological"
+            if isinstance(result, MhcClass):
+                return "class_only"
+            return "unresolved"
+        except ImportError:
+            pass
 
     # Regex fallback when mhcgnomes is not installed
     if not mhc_restriction.startswith("HLA"):
@@ -154,7 +206,9 @@ def allele_resolution_rank(resolution: str) -> int:
 def _build_allele_to_serotype_map() -> dict[str, str]:
     """Build a reverse map from allele compact key to serotype name.
 
-    Uses mhcgnomes data. Returns empty dict if mhcgnomes unavailable.
+    Uses mhcgnomes data. Prefers broad serotypes (A2) over IEF
+    sub-serotypes (A2.1) when both map to the same allele.
+    Returns empty dict if mhcgnomes unavailable.
     """
     try:
         from mhcgnomes.data import serotypes
@@ -163,7 +217,10 @@ def _build_allele_to_serotype_map() -> dict[str, str]:
         hla = serotypes["HLA"]
         for sero_name, allele_list in hla.items():
             for allele_str in allele_list:
-                reverse[allele_str] = f"HLA-{sero_name}"
+                existing = reverse.get(allele_str, "")
+                # Prefer shorter (broader) serotype: A2 over A2.1
+                if not existing or len(sero_name) < len(existing.removeprefix("HLA-")):
+                    reverse[allele_str] = f"HLA-{sero_name}"
         return reverse
     except ImportError:
         return {}
@@ -189,19 +246,19 @@ def allele_to_serotype(mhc_restriction: str) -> str:
     if not mhc_restriction:
         return ""
 
-    try:
-        from mhcgnomes import parse
-        from mhcgnomes.allele import Allele
-        from mhcgnomes.serotype import Serotype
+    result = _cached_parse(mhc_restriction)
+    if result is not None:
+        try:
+            from mhcgnomes.allele import Allele
+            from mhcgnomes.serotype import Serotype
 
-        result = parse(mhc_restriction)
-        if isinstance(result, Serotype):
-            return f"HLA-{result.name}"
-        if isinstance(result, Allele):
-            key = f"{result.gene.name}*{''.join(result.allele_fields)}"
-            return _build_allele_to_serotype_map().get(key, "")
-    except (ImportError, Exception):
-        pass
+            if isinstance(result, Serotype):
+                return f"HLA-{result.name}"
+            if isinstance(result, Allele):
+                key = f"{result.gene.name}*{''.join(result.allele_fields)}"
+                return _build_allele_to_serotype_map().get(key, "")
+        except ImportError:
+            pass
 
     return ""
 
@@ -422,11 +479,17 @@ def classify_ms_row(
 
     cl_name = cell_name_str if (is_cell_line or is_ebv_lcl) else ""
 
-    # Mono-allelic detection: only for cell line rows
+    # Mono-allelic detection: cell_name alias matching
     is_monoallelic = False
     mono_host = ""
     if is_cell_line or is_ebv_lcl:
         is_monoallelic, mono_host = detect_monoallelic(cell_name_str, mhc_restriction)
+
+    # PMID-level mono-allelic override (catches 721.221 studies where
+    # IEDB cell_name is "B cell" instead of the actual cell line name)
+    if not is_monoallelic and entry is not None and entry.get("mono_allelic_host"):
+        is_monoallelic = True
+        mono_host = entry["mono_allelic_host"]
 
     return {
         "src_cancer": is_cancer,
@@ -443,6 +506,7 @@ def classify_ms_row(
         "monoallelic_host": mono_host,
         "allele_resolution": classify_allele_resolution(mhc_restriction),
         "serotype": allele_to_serotype(mhc_restriction),
+        "mhc_species": classify_mhc_species(mhc_restriction),
     }
 
 

@@ -28,6 +28,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+alleles = [
+    "mhcgnomes>=3.20.0",
+]
 dev = [
     "pytest",
     "pytest-cov",
