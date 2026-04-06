@@ -99,22 +99,24 @@
 - pmid: 36589698
   label: "de Rooij 2022 — CTA-specific TCR library"
   title: "A library of cancer testis specific T cell receptors for T cell receptor gene therapy"
-  override: ~  # no blanket override — let structured fields decide
+  override: ~  # no blanket override — structured fields handle it
   note: >
-    Mixed: cell lines (U266, RPMI8226, UM9, C4-2B4) → cancer,
-    8 resected ovarian cancer specimens → cancer,
-    ex vivo healthy donor PBMCs → healthy.
-    54 HLA-typed healthy donors provided PBMCs for T cell isolation.
+    IEDB elution data: 29 records total, all from cancer samples.
+    MS samples: 4 cell lines (U266, RPMI8226, UM9, C4-2B4) +
+    8 resected ovarian carcinomas. No healthy donor MS data in IEDB —
+    the 54 healthy donors provided PBMCs only for T cell isolation,
+    not peptidomics. 26 rows tagged "multiple myeloma", 3 tagged
+    "no immunization" (likely from C4-2B4 or ovarian tumors).
+    No perturbations on MS samples. IFN-gamma (100 IU/mL, 48h) was
+    used only on melanoma/fibroblast/keratinocyte lines for functional
+    T cell assays, not for peptidomics.
+  samples:
+    ms_cell_lines: ["U266 (MM)", "RPMI8226 (MM)", "UM9 (MM)", "C4-2B4 (prostate)"]
+    ms_primary_tumors: "8 resected ovarian carcinomas"
+    ms_healthy: "none — PBMCs used for T cell isolation only"
   hla_alleles:
     primary_targets: ["HLA-A*01:01", "HLA-A*02:01", "HLA-A*03:01", "HLA-B*07:02", "HLA-B*35:01", "HLA-C*07:02"]
     broader_screening: ["HLA-A*11:01", "HLA-A*24:02", "HLA-B*08:01", "HLA-C*07:01"]
-  perturbations:
-    - "IFN-gamma (100 IU/mL, 48h) on some melanoma/non-hematopoietic cell lines (functional assays, not peptidomics)"
-  rules:
-    - condition:
-        Culture Condition: "Direct Ex Vivo"
-      override: healthy
-      reason: "Healthy donor blood controls"
 
 - pmid: 38920720
   label: "Hesnard 2024 — ovarian cancer antigen immunogenicity"
@@ -122,15 +124,18 @@
   override: ~
   note: >
     Not a traditional tumor immunopeptidomics study. MS was on moDCs
-    pulsed with synthetic TSA peptides (from Laumont 2018). Healthy
-    donor leukapheresis products (8 donors for MS, additional for
+    pulsed with synthetic TSA peptides (10 ug/mL, 2h; from Laumont 2018).
+    Healthy donor leukapheresis products (8 donors for MS, additional for
     immunogenicity). No tumor tissue or cancer cell lines in this study.
+    mRNA electroporation was used for T cell stimulation assays only,
+    NOT for the MS experiment.
   donors: 8
   hla_alleles:
     ms_donors: ["HLA-A*01:01", "HLA-A*02:01", "HLA-A*03:01", "HLA-A*11:01", "HLA-A*29:02", "HLA-B*07:02", "HLA-B*08:01", "HLA-B*15:01", "HLA-B*44:03"]
   perturbations:
-    - "moDC differentiation from CD14+ monocytes (IL-4 + GM-CSF)"
-    - "mRNA electroporation for peptide loading"
+    - "moDC differentiation: CD14+ monocytes + IL-4 (50 IU/mL) + GM-CSF (800 IU/mL) 5d"
+    - "moDC maturation: IFN-gamma (100 IU/mL) + LPS (10 ng/mL) overnight"
+    - "synthetic peptide pulsing (10 ug/mL, 2h) before MS"
   rules:
     - condition:
         Culture Condition: "Direct Ex Vivo"
@@ -165,9 +170,11 @@
   note: >
     Lung from 3 surgery patients ('clinical reasons') — almost certainly
     cancer resection. Tissue taken distant from resection margin, no
-    visible abnormalities. Primary focus is influenza infection of
-    lung tissue ex vivo (A/H3N2 strains, 22h). Also profiled THP-1
-    macrophages and moDCs fed infected apoptotic A549 cells.
+    visible abnormalities. ALL MS lung samples were influenza-infected —
+    no uninfected control lung tissue was profiled by MS (mock-infected
+    controls used only for infection rate comparison). Also profiled
+    PMA-differentiated THP-1 macrophages (infected) and moDCs fed
+    UV-irradiated apoptotic infected A549 cells.
   donors: 3
   perturbations:
     - "Influenza A/H3N2/X31 and A/H3N2/Wisconsin/67/2005 infection (22h ex vivo)"
@@ -292,8 +299,13 @@
     95 HLA class I alleles (31 HLA-A, 40 HLA-B, 21 HLA-C, 3 HLA-G)
     profiled on 721.221 transfectants. 79 new + 16 from Abelin 2017.
     >185,000 peptides. 95% worldwide population coverage.
-    Validation on patient-derived tumors (melanoma, GBM, RCC, CLL, ovarian).
+    Validation included 11 patient-derived tumor cell lines (melanoma,
+    GBM, RCC, CLL, ovarian), 6 of which were profiled +/- IFN-gamma
+    (2000 U/mL, 3d). The IFN-gamma treatment is in validation only,
+    not in the mono-allelic 721.221 training data.
     IEDB cell_name is "B cell" not "721.221".
+  perturbations:
+    - "IFN-gamma (2000 U/mL, 3d) on 6 validation tumor cell lines only — NOT on 721.221 mono-allelic data"
 
 - pmid: 31092671
   label: "Guasp 2019 — ERAP1/ERAP2 antigen processing"
