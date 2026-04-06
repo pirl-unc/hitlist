@@ -16,33 +16,44 @@
 #   null             - no override, use default classification logic
 #
 # Condition fields match against IEDB columns (case-insensitive for
-# Source Tissue). Values can be a single string or a list (any match).
+# Source Tissue). Values can be a single string or a list of strings (any match).
 #
 # Studies without PMIDs: use submission_id instead of pmid as the key.
 # The curation code checks both.
+#
+# Optional metadata fields (informational, not used by classification logic):
+#   hla_alleles      - HLA alleles profiled in the study
+#   perturbations    - non-standard antigen processing conditions
+#                      (gene KO, siRNA, cytokines, infection, etc.)
 
 # ── Gold-standard healthy tissue ────────────────────────────────────────────
 
 - pmid: 33858848
   label: "Marcu 2021 — HLA Ligand Atlas"
-  title: "HLA Ligand Atlas: a benign reference of HLA-bound peptides for biomarker discovery and T-cell-based immunotherapy"
+  title: "HLA Ligand Atlas: a benign reference of HLA-presented peptides to improve T-cell-based cancer immunotherapy"
   override: healthy
   note: >
-    21 subjects (16 autopsy + 5 living thymus + 2 living ovary),
+    21 subjects (14 autopsy + 5 living thymus + 2 living ovary),
     227 samples across 29 tissues. Gold standard benign reference.
+    None of the subjects was diagnosed with any malignant disease.
   donors: 21
   tissues: 29
   samples: 227
+  hla_alleles:
+    class_i: "51 HLA-I allotypes (95% HLA-A, 74% HLA-B, 93% HLA-C population coverage)"
+    class_ii: "86 HLA-II allotypes"
 
 - pmid: 29557506
   label: "Neidert 2018 — Tübingen/Zurich biobank"
-  title: "A comprehensive analysis of the naturally presented HLA-I ligandome of malignant and nonmalignant tissues"
+  title: "The natural HLA ligandome of glioblastoma stem-like cells: antigen discovery for T cell-based immunotherapy"
   override: healthy
   note: >
-    160 class I samples from patients and autopsy material. Sample IDs
-    in Antigen Processing Comments (e.g. 'buffy coat 23', 'colon 32').
-    Per-donor analysis shows single-CTA-per-sample pattern ruling out
-    occult cancer.
+    The GBM paper itself used 9 GBM tumors + 3 GSC lines (GS-2, GS-5, GS-9),
+    but the IEDB deposit under this PMID includes the Tübingen group's benign
+    tissue reference dataset (~160 class I samples from patients and autopsy
+    material). Sample IDs in Antigen Processing Comments (e.g. 'buffy coat 23',
+    'colon 32'). Per-donor analysis shows single-CTA-per-sample pattern ruling
+    out occult cancer.
   donors: ~160
   samples: 160
   rules:
@@ -70,20 +81,35 @@
       reason: "Visceral Surgery / Urology departments — likely cancer resection margins"
 
 - pmid: 27862975
-  label: "Bassani-Sternberg 2017 — soluble HLA"
-  title: "Soluble plasma HLA peptidome as a potential source for cancer biomarkers"
+  label: "Ritz 2017 — soluble HLA"
+  title: "Purification of soluble HLA class I complexes from human serum or plasma deliver high quality immuno peptidomes required for biomarker discovery"
   override: healthy
   note: >
-    3 healthy donors, soluble HLA from serum. Weak evidence due to
+    3 healthy donors, soluble HLA from serum and plasma. Weak evidence due to
     sHLA bias — peptides from sHLA may not reflect cell surface presentation.
+    THP-1 and HEK cell lines also used for comparison (not healthy samples).
   donors: 3
+  hla_alleles:
+    donor_1: ["HLA-A*01:01", "HLA-A*03:01", "HLA-B*07:02", "HLA-B*37:01", "HLA-C*06:02", "HLA-C*07:02"]
+    donor_2: ["HLA-A*02:01", "HLA-A*03:01", "HLA-B*07:02", "HLA-B*35:02", "HLA-C*04:01", "HLA-C*07:02"]
+    donor_3: ["HLA-A*02:01", "HLA-A*29:02", "HLA-B*44:03", "HLA-B*58:01", "HLA-C*03:02", "HLA-C*16:01"]
 
 # ── Mixed studies (conditional rules needed) ────────────────────────────────
 
 - pmid: 36589698
-  label: "CTA-specific TCR library study"
+  label: "de Rooij 2022 — CTA-specific TCR library"
+  title: "A library of cancer testis specific T cell receptors for T cell receptor gene therapy"
   override: ~  # no blanket override — let structured fields decide
-  note: "Mixed: cell lines → cancer, ex vivo blood → healthy."
+  note: >
+    Mixed: cell lines (U266, RPMI8226, UM9, C4-2B4) → cancer,
+    8 resected ovarian cancer specimens → cancer,
+    ex vivo healthy donor PBMCs → healthy.
+    54 HLA-typed healthy donors provided PBMCs for T cell isolation.
+  hla_alleles:
+    primary_targets: ["HLA-A*01:01", "HLA-A*02:01", "HLA-A*03:01", "HLA-B*07:02", "HLA-B*35:01", "HLA-C*07:02"]
+    broader_screening: ["HLA-A*11:01", "HLA-A*24:02", "HLA-B*08:01", "HLA-C*07:01"]
+  perturbations:
+    - "IFN-gamma (100 IU/mL, 48h) on some melanoma/non-hematopoietic cell lines (functional assays, not peptidomics)"
   rules:
     - condition:
         Culture Condition: "Direct Ex Vivo"
@@ -91,9 +117,20 @@
       reason: "Healthy donor blood controls"
 
 - pmid: 38920720
-  label: "Ovarian cancer antigen study"
+  label: "Hesnard 2024 — ovarian cancer antigen immunogenicity"
+  title: "Immunogenicity of Non-Mutated Ovarian Cancer-Specific Antigens"
   override: ~
-  note: "Mixed: cell lines → cancer, ex vivo blood → healthy."
+  note: >
+    Not a traditional tumor immunopeptidomics study. MS was on moDCs
+    pulsed with synthetic TSA peptides (from Laumont 2018). Healthy
+    donor leukapheresis products (8 donors for MS, additional for
+    immunogenicity). No tumor tissue or cancer cell lines in this study.
+  donors: 8
+  hla_alleles:
+    ms_donors: ["HLA-A*01:01", "HLA-A*02:01", "HLA-A*03:01", "HLA-A*11:01", "HLA-A*29:02", "HLA-B*07:02", "HLA-B*08:01", "HLA-B*15:01", "HLA-B*44:03"]
+  perturbations:
+    - "moDC differentiation from CD14+ monocytes (IL-4 + GM-CSF)"
+    - "mRNA electroporation for peptide loading"
   rules:
     - condition:
         Culture Condition: "Direct Ex Vivo"
@@ -103,81 +140,175 @@
 # ── Activated APCs (pharmacological artifact) ───────────────────────────────
 
 - pmid: 32983136
-  label: "Marino 2020 — monocyte-derived DCs"
-  title: "Differential expression of HLA ligands on activated and resting human APCs"
+  label: "Marino 2020 — activated immune cell subsets"
+  title: "Biogenesis of HLA Ligand Presentation in Immune Cells Upon Activation Reveals Changes in Peptide Length Preference"
   override: activated_apc
   note: >
     CD14+ monocytes → immature DCs (GM-CSF + IL-4) → mature DCs
-    (LPS + IFN-gamma). DC maturation upregulates ~765 proteins.
-    Pharmacological activation artifact, not representative of
-    healthy tissue.
+    (LPS + IFN-gamma). Also profiled activated T cells and B cells.
+    DC maturation upregulates ~765 proteins. Pharmacological activation
+    artifact, not representative of healthy tissue.
   donors: 7
+  perturbations:
+    - "DCs: GM-CSF (500 IU/mL) + IL-4 (250 IU/mL) 6d, then LPS (60 EU/mL) + IFN-gamma (2000 IU/mL) 24h"
+    - "T cells: PMA (10 ng/mL) + Ionomycin (1 ug/mL) 48h"
+    - "B cells: IL-4 (2 ng/mL) + CD40L-Tri (1 ug/mL) 48h"
+  hla_alleles:
+    noted: ["HLA-A*01:01", "HLA-A*02:01", "HLA-A*11:01", "HLA-B*08:01", "HLA-B*15:01", "HLA-B*40:01", "HLA-B*44:03", "HLA-B*51:01"]
 
 # ── Tumor-adjacent normal tissue ────────────────────────────────────────────
 
 - pmid: 35051231
-  label: "Pyke 2022 — influenza lung study"
-  title: "A repository of HLA class I peptide ligands identified from human lung tissue"
+  label: "Nicholas 2022 — influenza-infected lung"
+  title: "Immunopeptidomic analysis of influenza A virus infected human tissues identifies internal proteins as a rich source of HLA ligands"
   override: adjacent
   note: >
-    Lung from surgery patients ('clinical reasons') — almost certainly
-    cancer resection. Tumor-adjacent normal tissue.
+    Lung from 3 surgery patients ('clinical reasons') — almost certainly
+    cancer resection. Tissue taken distant from resection margin, no
+    visible abnormalities. Primary focus is influenza infection of
+    lung tissue ex vivo (A/H3N2 strains, 22h). Also profiled THP-1
+    macrophages and moDCs fed infected apoptotic A549 cells.
   donors: 3
+  perturbations:
+    - "Influenza A/H3N2/X31 and A/H3N2/Wisconsin/67/2005 infection (22h ex vivo)"
+    - "THP-1 differentiated to macrophage-like (THP1-M-phi)"
+    - "moDCs fed UV-irradiated apoptotic infected A549 cells"
+  hla_alleles:
+    P1: ["HLA-A*03:01", "HLA-A*26:01", "HLA-B*07:02"]
+    P2: ["HLA-A*02:01", "HLA-B*15:01", "HLA-B*44:27", "HLA-DRB1*04:01"]
+    P3: ["HLA-A*02:01", "HLA-A*03:01", "HLA-B*15:01", "HLA-B*18:01"]
 
 - pmid: 29786170
-  label: "TNBC immunopeptidomics"
-  title: "Immunopeptidomics of triple-negative breast cancer"
-  override: adjacent
-  note: "Paired tumor + adjacent normal breast tissue."
+  label: "Ternette 2018 — TNBC immunopeptidomics"
+  title: "Immunopeptidomic Profiling of HLA-A2-Positive Triple Negative Breast Cancer Identifies Potential Immunotherapy Target Antigens"
+  override: ~  # mixed: tumor + adjacent normal
+  note: >
+    6 TNBC patients, paired tumor + adjacent normal breast tissue.
+    Only HLA-A*02:01 profiled (samples pre-selected by IHC with BB7.2).
+    5 patients had paired tumor + adjacent normal; 1 tumor only.
+  donors: 6
+  hla_alleles:
+    profiled: ["HLA-A*02:01"]
+  rules:
+    - condition:
+        Process Type: "Occurrence of cancer"
+      override: cancer_patient
+      reason: "TNBC tumor tissue"
+    - condition:
+        Culture Condition: "Direct Ex Vivo"
+      override: adjacent
+      reason: "Adjacent normal breast tissue from cancer resection"
 
 # ── Cancer patient biofluids ────────────────────────────────────────────────
 
 - pmid: 26992070
-  label: "Caron 2015 — melanoma study"
-  title: "Analysis of HLA class I immunopeptidomes of tumors and matched normal tissue from a melanoma cohort"
-  override: cancer_patient
-  note: "Melanoma patient serum + cancer cell lines."
+  label: "Ritz 2016 — high-sensitivity HLA peptidome"
+  title: "High-sensitivity HLA class I peptidome analysis enables a precise definition of peptide motifs and the identification of peptides from cell lines and patients' sera"
+  override: ~  # mixed: cell lines, melanoma sera, healthy sera
+  note: >
+    Cell lines: MAVER-1, HEK293, HL-60, RPMI8226, THP-1, CA46.
+    8 melanoma patient sera (Stages III-IV).
+    4 healthy volunteer sera (H1-H4).
+    Originally mislabeled as "Caron 2015" — that is a different paper.
+  donors: 12
+  hla_alleles:
+    noted: ["HLA-A*02", "HLA-A*03", "HLA-A*26", "HLA-A*32",
+            "HLA-B*07", "HLA-B*15", "HLA-B*18", "HLA-B*27", "HLA-B*35",
+            "HLA-B*39", "HLA-B*40", "HLA-B*44", "HLA-B*47", "HLA-B*51",
+            "HLA-B*52", "HLA-B*55", "HLA-B*57", "HLA-B*58"]
+  rules:
+    - condition:
+        Culture Condition: "Direct Ex Vivo"
+        Disease: "healthy"
+      override: healthy
+      reason: "Healthy volunteer sera"
+    - condition:
+        Culture Condition: "Direct Ex Vivo"
+      override: cancer_patient
+      reason: "Melanoma patient sera"
 
 - pmid: 31154438
-  label: "GBM tumor antigens"
-  title: "Identification of tumor-associated antigens in glioblastoma by immunopeptidomics"
-  override: cancer_patient
-  note: "GBM patient plasma + tumor tissue."
+  label: "Shraibman 2019 — GBM tumor antigens"
+  title: "Identification of Tumor Antigens Among the HLA Peptidomes of Glioblastoma Tumors and Plasma"
+  override: ~  # mixed: GBM patients, healthy controls, AS controls
+  note: >
+    10 GBM tumor samples (fresh-frozen). 142 plasma samples: 106 from
+    GBM patients, 30 ankylosing spondylitis (inflammatory controls),
+    6 healthy donors. 52 GBM patients total. Retraction and republication
+    of a 2018 paper.
+  donors: 52
+  hla_alleles:
+    noted: ["HLA-A*02:01", "HLA-A*24:02", "HLA-A*26:01", "HLA-A*32:01",
+            "HLA-B*27:05", "HLA-B*35:01", "HLA-B*38:01", "HLA-B*40:01",
+            "HLA-B*40:02", "HLA-B*44:02",
+            "HLA-C*02:02", "HLA-C*04:01", "HLA-C*05:01", "HLA-C*12:03"]
+  rules:
+    - condition:
+        Disease: "healthy"
+      override: healthy
+      reason: "Healthy donor plasma controls"
+    - condition:
+        Disease: "Ankylosing spondylitis"
+      override: ~
+      reason: "Inflammatory disease controls — not cancer, not healthy"
 
 # ── Cell line mis-annotations ───────────────────────────────────────────────
 
 - pmid: 28514659
-  label: "HLA-B*46:01 study"
-  title: "Peptide-binding motif of the HLA-B*46:01 molecule"
+  label: "Hilton 2017 — HLA-B*46:01 peptidome"
+  title: "The Intergenic Recombinant HLA-B*46:01 Has a Distinctive Peptidome that Includes KIR2DL3 Ligands"
   override: cell_line
   mono_allelic_host: "721.221"
-  note: "721.221 transfectants wrongly annotated as spleen in IEDB."
+  note: >
+    721.221 transfectants expressing soluble HLA-B*46:01, HLA-B*15:01,
+    HLA-C*01:02. Wrongly annotated as spleen in IEDB. NK cell functional
+    assays used T2 cells and 5 healthy donors (not peptidomics).
+  hla_alleles:
+    profiled: ["HLA-B*46:01", "HLA-B*15:01", "HLA-C*01:02"]
 
 # ── Mono-allelic 721.221 studies (IEDB cell_name = "B cell") ───────────────
 
 - pmid: 28228285
-  label: "Sarkizova 2020 — mono-allelic immunopeptidomes"
-  title: "A large peptidome dataset improves HLA class I epitope prediction across most of the human population"
-  override: cell_line
-  mono_allelic_host: "721.221"
-  note: >
-    95 HLA class I alleles profiled on 721.221 transfectants.
-    IEDB cell_name is "B cell" not "721.221".
-
-- pmid: 31844290
-  label: "Abelin 2019 — mono-allelic HLA class I"
+  label: "Abelin 2017 — mono-allelic immunopeptidomes"
   title: "Mass Spectrometry Profiling of HLA-Associated Peptidomes in Mono-allelic Cells Enables More Accurate Epitope Prediction"
   override: cell_line
   mono_allelic_host: "721.221"
   note: >
-    721.221 mono-allelic transfectants.
-    IEDB cell_name is "B cell" not "721.221".
+    16 HLA class I alleles profiled on 721.221 transfectants (B721.221).
+    >24,000 peptides total. Validation sets from HCC1937, HCT116,
+    fibroblasts, HeLa, PBMCs. IEDB cell_name is "B cell" not "721.221".
+  hla_alleles:
+    profiled: ["HLA-A*02:01", "HLA-A*03:01", "HLA-A*24:02", "HLA-A*29:02",
+               "HLA-A*31:01", "HLA-A*68:02",
+               "HLA-B*35:01", "HLA-B*44:03", "HLA-B*51:01", "HLA-B*54:01",
+               "HLA-B*57:01"]
 
-- pmid: 31092671
-  label: "Alvarez 2020 — ERAP1/ERAP2 study"
-  title: "Redundancy and Complementarity between ERAP1 and ERAP2 Revealed by Quantitative HLA Peptidome Analysis"
+- pmid: 31844290
+  label: "Sarkizova 2020 — large-scale mono-allelic immunopeptidomes"
+  title: "A large peptidome dataset improves HLA class I epitope prediction across most of the human population"
   override: cell_line
   mono_allelic_host: "721.221"
   note: >
-    721.221 transfectants for ERAP study.
+    95 HLA class I alleles (31 HLA-A, 40 HLA-B, 21 HLA-C, 3 HLA-G)
+    profiled on 721.221 transfectants. 79 new + 16 from Abelin 2017.
+    >185,000 peptides. 95% worldwide population coverage.
+    Validation on patient-derived tumors (melanoma, GBM, RCC, CLL, ovarian).
     IEDB cell_name is "B cell" not "721.221".
+
+- pmid: 31092671
+  label: "Guasp 2019 — ERAP1/ERAP2 antigen processing"
+  title: "Redundancy and Complementarity between ERAP1 and ERAP2 Revealed by their Effects on the Behcet's Disease-associated HLA-B*51 Peptidome"
+  override: cell_line
+  mono_allelic_host: "721.221"
+  note: >
+    721.221-B*51:01 transfectants with ERAP1/ERAP2 CRISPR knockouts.
+    Five conditions: WT, ERAP1 KO, ERAP2 KO, double KO (2 clones).
+    3 biological replicates per condition = 15 MS samples.
+    Also validated with shRNA knockdown. IEDB cell_name is "B cell".
+  hla_alleles:
+    profiled: ["HLA-B*51:01"]
+  perturbations:
+    - "ERAP1 CRISPR/Cas9 knockout"
+    - "ERAP2 CRISPR/Cas9 knockout"
+    - "ERAP1+ERAP2 double CRISPR/Cas9 knockout (2 independent clones)"
+    - "ERAP1 shRNA knockdown (validation)"
