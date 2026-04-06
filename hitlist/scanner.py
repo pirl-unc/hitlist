@@ -149,7 +149,6 @@ def scan(
     iedb_path: str | Path | None = None,
     cedar_path: str | Path | None = None,
     human_only: bool = True,
-    hla_only: bool = True,
     mhc_class: str | None = None,
     classify_source: bool = True,
     min_allele_resolution: str | None = None,
@@ -168,13 +167,8 @@ def scan(
         Uses mhcgnomes to determine species from the MHC restriction
         annotation (e.g. "HLA-A*02:01" → Homo sapiens, "H2-Kb" →
         Mus musculus). Falls back to the host field when mhcgnomes
-        cannot determine species. Viral peptides presented on human
-        MHC are correctly retained.
-    hla_only
-        Legacy filter: keep only rows whose MHC restriction starts
-        with "HLA" (default True). Only applies when ``human_only``
-        and ``mhc_species`` are both off. When ``human_only=True``,
-        species detection via mhcgnomes supersedes this.
+        cannot determine species from the allele name. Viral peptides
+        presented on human MHC are correctly retained.
     mhc_class
         Filter to ``"I"`` or ``"II"``. None = both.
     classify_source
@@ -236,7 +230,6 @@ def scan(
             mhc_sp = classify_mhc_species(mhc_res)
 
             if mhc_species is not None:
-                # Explicit species filter supersedes human_only and hla_only
                 if mhc_sp != mhc_species:
                     continue
             elif human_only:
@@ -245,13 +238,6 @@ def scan(
                         continue
                 elif "Homo sapiens" not in (host, species):
                     continue
-            if (
-                hla_only
-                and mhc_species is None
-                and not human_only
-                and not mhc_res.startswith("HLA")
-            ):
-                continue
             if mhc_class is not None and _safe_col(row, c["mhc_class"]) != mhc_class:
                 continue
             if min_res_rank is not None:
