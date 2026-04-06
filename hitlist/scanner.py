@@ -164,13 +164,17 @@ def scan(
     iedb_path, cedar_path
         Paths to IEDB/CEDAR exports.
     human_only
-        Keep only rows where the antigen-presenting cells are human
-        (default True). Filters on the Host field, NOT the epitope
-        source organism -- so viral peptides presented on human MHC
-        are correctly retained.
+        Keep only rows where the MHC molecule is human (default True).
+        Uses mhcgnomes to determine species from the MHC restriction
+        annotation (e.g. "HLA-A*02:01" → Homo sapiens, "H2-Kb" →
+        Mus musculus). Falls back to the host field when mhcgnomes
+        cannot determine species. Viral peptides presented on human
+        MHC are correctly retained.
     hla_only
-        Keep only HLA-restricted rows (default True). Ignored when
-        ``mhc_species`` is set.
+        Legacy filter: keep only rows whose MHC restriction starts
+        with "HLA" (default True). Only applies when ``human_only``
+        and ``mhc_species`` are both off. When ``human_only=True``,
+        species detection via mhcgnomes supersedes this.
     mhc_class
         Filter to ``"I"`` or ``"II"``. None = both.
     classify_source
@@ -227,15 +231,26 @@ def scan(
             host = _safe_col(row, c["host"])
             mhc_res = _safe_col(row, c["mhc_restriction"])
 
-            # Filter on HOST organism (the APC), not epitope source.
-            # This keeps viral/bacterial peptides presented on human MHC.
-            if human_only and "Homo sapiens" not in (host, species):
-                continue
-            # Species-aware MHC filter (mhc_species) supersedes hla_only
+            # Species filtering: use MHC allele name (via mhcgnomes) as the
+            # authoritative species source, falling back to host field.
+            mhc_sp = classify_mhc_species(mhc_res)
+
             if mhc_species is not None:
-                if classify_mhc_species(mhc_res) != mhc_species:
+                # Explicit species filter supersedes human_only and hla_only
+                if mhc_sp != mhc_species:
                     continue
-            elif hla_only and not mhc_res.startswith("HLA"):
+            elif human_only:
+                if mhc_sp:
+                    if mhc_sp != "Homo sapiens":
+                        continue
+                elif "Homo sapiens" not in (host, species):
+                    continue
+            if (
+                hla_only
+                and mhc_species is None
+                and not human_only
+                and not mhc_res.startswith("HLA")
+            ):
                 continue
             if mhc_class is not None and _safe_col(row, c["mhc_class"]) != mhc_class:
                 continue
@@ -299,7 +314,7 @@ def scan(
 
                 record["allele_resolution"] = classify_allele_resolution(mhc_res)
                 record["serotype"] = allele_to_serotype(mhc_res)
-                record["mhc_species"] = classify_mhc_species(mhc_res)
+                record["mhc_species"] = mhc_sp
 
             rows.append(record)
 
