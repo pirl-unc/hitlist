@@ -274,32 +274,76 @@
   note: >
     Lung from 3 surgery patients ('clinical reasons') — almost certainly
     cancer resection. Tissue taken distant from resection margin, no
-    visible abnormalities. ALL MS lung samples were influenza-infected —
-    no uninfected control lung tissue was profiled by MS (mock-infected
-    controls used only for infection rate comparison).
+    visible abnormalities. PRIDE data (PXD022884, 149 raw files) shows
+    UV-inactivated mock controls WERE profiled by MS for both lung
+    tissue and THP-1 (but NOT for moDCs). P1 has no X31 immunopeptidome
+    despite text implying all donors received both strains.
   donors: 3
   perturbations:
-    - "Influenza A/H3N2/X31 and A/H3N2/Wisconsin/67/2005 infection (22h ex vivo)"
-    - "THP-1: PMA differentiation to macrophage-like (THP1-M-phi), then infected"
-    - "moDCs: fed UV-irradiated apoptotic influenza-infected A549 cells"
+    - "Influenza A/H3N2/X31 infection (22h ex vivo)"
+    - "Influenza A/H3N2/Wisconsin/67/2005 infection (22h ex vivo)"
+    - "THP-1: PMA differentiation to macrophage-like, then infected"
+    - "moDCs (P4): PromoCell DC medium (GM-CSF + IL-4) 6d, then DC activation supplement 4h"
   hla_alleles:
     P1: ["HLA-A*03:01", "HLA-A*26:01", "HLA-B*07:02"]
     P2: ["HLA-A*02:01", "HLA-B*15:01", "HLA-B*44:27", "HLA-DRB1*04:01"]
     P3: ["HLA-A*02:01", "HLA-A*03:01", "HLA-B*15:01", "HLA-B*18:01"]
   ms_samples:
-    - type: "lung tissue (influenza-infected)"
-      n: 3
-      source: "surgical resection, macroscopically normal, distant from margin"
-      condition: "influenza A/H3N2 infection 22h ex vivo"
-    - type: "lung tissue (uninfected)"
+    # Lung tissue — each condition has HLA-I + HLA-II IPs, 2 RP fraction pools x 2 injections = 8 raw files
+    - type: "P1 lung — UV mock (uninfected)"
+      n: 1
+      source: "TL1165, surgical resection"
+      condition: "UV-inactivated virus control"
+    - type: "P1 lung — Wisconsin-infected"
+      n: 1
+      source: "TL1165"
+      condition: "influenza A/H3N2/Wisconsin 22h"
+    - type: "P1 lung — X31-infected"
       n: 0
-      condition: "NOT profiled by MS — mock controls for infection rate only"
-    - type: "THP-1 macrophages (infected)"
-      source: "PMA-differentiated THP-1"
-      condition: "PMA differentiation → influenza infection"
-    - type: "moDCs (cross-presentation)"
-      source: "monocyte-derived DCs"
-      condition: "fed UV-irradiated apoptotic influenza-infected A549 cells"
+      condition: "NOT profiled (no PRIDE files despite text implying exposure)"
+    - type: "P2 lung — UV mock (uninfected)"
+      n: 1
+      source: "TL1178, surgical resection"
+      condition: "UV-inactivated virus control"
+    - type: "P2 lung — Wisconsin-infected"
+      n: 1
+      source: "TL1178"
+      condition: "influenza A/H3N2/Wisconsin 22h"
+    - type: "P2 lung — X31-infected"
+      n: 1
+      source: "TL1178"
+      condition: "influenza A/H3N2/X31 22h"
+    - type: "P3 lung — UV mock (uninfected)"
+      n: 1
+      source: "TL1187, surgical resection"
+      condition: "UV-inactivated virus control"
+    - type: "P3 lung — Wisconsin-infected"
+      n: 1
+      source: "TL1187"
+      condition: "influenza A/H3N2/Wisconsin 22h"
+    - type: "P3 lung — X31-infected"
+      n: 1
+      source: "TL1187"
+      condition: "influenza A/H3N2/X31 22h"
+    # THP-1 macrophages — 3 biological replicates per condition
+    - type: "THP-1 macrophage — UV mock (uninfected)"
+      n: 3
+      source: "PMA-differentiated THP-1 (3 independent differentiations)"
+      condition: "UV-inactivated virus control"
+    - type: "THP-1 macrophage — Wisconsin-infected"
+      n: 3
+      condition: "PMA differentiation → influenza A/H3N2/Wisconsin"
+    - type: "THP-1 macrophage — X31-infected"
+      n: 3
+      condition: "PMA differentiation → influenza A/H3N2/X31"
+    # moDCs — single donor, NO uninfected control
+    - type: "moDC cross-presentation — Wisconsin-infected A549 feeders"
+      n: 1
+      source: "donor P4, heterotypic HLA relative to A549"
+      condition: "PromoCell DC medium 6d → fed UV-irradiated apoptotic Wisconsin-infected A549 → DC activation 4h"
+    - type: "moDC cross-presentation — uninfected control"
+      n: 0
+      condition: "NOT profiled by MS"
 
 - pmid: 29786170
   label: "Ternette 2018 — TNBC immunopeptidomics"
@@ -550,3 +594,99 @@
     - type: "721.221-B*51:01 ERAP1+ERAP2 double KO (clone 19)"
       n: 3
       condition: "ERAP1+ERAP2 double CRISPR/Cas9 knockout (3 replicates)"
+
+# ── Antigen processing perturbation studies ───────────────────────────────
+
+- pmid: 40113210
+  label: "Shapiro 2025 — HLA-I antigen processing KO panel"
+  title: "Deleterious KOs in the HLA Class I Antigen Processing and Presentation Machinery Induce Distinct Changes in the Immunopeptidome"
+  override: cell_line
+  note: >
+    Isogenic panel of 11 single-gene CRISPR KOs in HAP1 (near-haploid
+    CML-derived cell line). Most comprehensive antigen processing
+    perturbation study to date. Data in PRIDE (PXD056426), not yet in
+    IEDB. Should be curated proactively for when it enters IEDB.
+  hla_alleles:
+    profiled: ["HLA-A*02:01", "HLA-B*40:01", "HLA-C*03:04"]
+  perturbations:
+    - "B2M CRISPR KO (beta-2-microglobulin — complete HLA-I loss)"
+    - "TAP1 CRISPR KO (peptide transporter 1)"
+    - "TAP2 CRISPR KO (peptide transporter 2)"
+    - "TAPBP CRISPR KO (tapasin — peptide editing)"
+    - "IRF2 CRISPR KO (interferon regulatory factor 2)"
+    - "PDIA3 CRISPR KO (ERp57 — PLC component)"
+    - "ERAP1 CRISPR KO (ER aminopeptidase 1)"
+    - "GANAB CRISPR KO (glucosidase II alpha — glycan trimming)"
+    - "SPPL3 CRISPR KO (signal peptide peptidase like 3)"
+    - "CANX CRISPR KO (calnexin — chaperone)"
+    - "CALR CRISPR KO (calreticulin — chaperone/PLC)"
+  ms_samples:
+    - type: "HAP1 wildtype"
+      n: 1
+      condition: "unperturbed"
+    - type: "HAP1 B2M KO"
+      n: 1
+      condition: "B2M CRISPR/Cas9 knockout"
+    - type: "HAP1 TAP1 KO"
+      n: 1
+      condition: "TAP1 CRISPR/Cas9 knockout"
+    - type: "HAP1 TAP2 KO"
+      n: 1
+      condition: "TAP2 CRISPR/Cas9 knockout"
+    - type: "HAP1 TAPBP KO"
+      n: 1
+      condition: "TAPBP CRISPR/Cas9 knockout (tapasin)"
+    - type: "HAP1 IRF2 KO"
+      n: 1
+      condition: "IRF2 CRISPR/Cas9 knockout"
+    - type: "HAP1 PDIA3 KO"
+      n: 1
+      condition: "PDIA3 CRISPR/Cas9 knockout (ERp57)"
+    - type: "HAP1 ERAP1 KO"
+      n: 1
+      condition: "ERAP1 CRISPR/Cas9 knockout"
+    - type: "HAP1 GANAB KO"
+      n: 1
+      condition: "GANAB CRISPR/Cas9 knockout (glucosidase II alpha)"
+    - type: "HAP1 SPPL3 KO"
+      n: 1
+      condition: "SPPL3 CRISPR/Cas9 knockout"
+    - type: "HAP1 CANX KO"
+      n: 1
+      condition: "CANX CRISPR/Cas9 knockout (calnexin)"
+    - type: "HAP1 CALR KO"
+      n: 1
+      condition: "CALR CRISPR/Cas9 knockout (calreticulin)"
+
+# ── Non-human species (belt-and-suspenders alongside species filter) ──────
+
+- pmid: 41459947
+  label: "Xu 2026 — CyHV-2 fish MHC-II"
+  title: "Analysis of MHC class II-bound CyHV-2 peptides in Carassius gibelio using mass spectrometry"
+  override: ~
+  species: "Carassius gibelio (Prussian carp)"
+  note: >
+    Fish MHC class II (Cagi-DDA/DFA), not human HLA. 276 records in
+    IEDB. Filtered by mhc_species but curated here for completeness.
+    Head kidney tissue from CyHV-2-infected Prussian carp.
+  perturbations:
+    - "Cyprinid herpesvirus 2 (CyHV-2) infection"
+  ms_samples:
+    - type: "head kidney tissue (CyHV-2-infected)"
+      source: "Carassius gibelio"
+      condition: "CyHV-2 viral infection"
+
+- pmid: 36146698
+  label: "Motz 2022 — PRRSV porcine MHC-I"
+  title: "Identification of MHC-I-Presented Porcine Respiratory and Reproductive Syndrome Virus (PRRSV) Peptides Reveals Immunogenic Epitopes within Several Non-Structural Proteins Recognized by CD8+ T Cells"
+  override: ~
+  species: "Sus scrofa (pig)"
+  note: >
+    Porcine SLA-I (swine leukocyte antigen class I), not human HLA.
+    Not in IEDB. Data in PRIDE (PXD035499). Curated here for completeness.
+  perturbations:
+    - "PRRSV infection (strain AUT15-33)"
+  ms_samples:
+    - type: "SLA-I Lr-Hp 35.0/24 mod (porcine cell line, PRRSV-infected)"
+      n: 1
+      condition: "PRRSV infection"
