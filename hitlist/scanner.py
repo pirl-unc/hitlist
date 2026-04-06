@@ -153,6 +153,7 @@ def scan(
     mhc_class: str | None = None,
     classify_source: bool = True,
     min_allele_resolution: str | None = None,
+    mhc_species: str | None = None,
 ) -> pd.DataFrame:
     """Scan IEDB/CEDAR for matching peptides, or profile entire dataset.
 
@@ -168,7 +169,8 @@ def scan(
         source organism -- so viral peptides presented on human MHC
         are correctly retained.
     hla_only
-        Keep only HLA-restricted rows (default True).
+        Keep only HLA-restricted rows (default True). Ignored when
+        ``mhc_species`` is set.
     mhc_class
         Filter to ``"I"`` or ``"II"``. None = both.
     classify_source
@@ -177,6 +179,11 @@ def scan(
         Minimum allele resolution to keep. One of ``"four_digit"``,
         ``"two_digit"``, ``"serological"``, ``"class_only"``. Rows
         with coarser resolution are dropped. None = no filtering.
+    mhc_species
+        Filter to rows where the MHC molecule belongs to this species
+        (e.g. ``"Homo sapiens"``, ``"Mus musculus"``). Uses mhcgnomes
+        to determine species from the MHC restriction annotation.
+        When set, ``hla_only`` is ignored.
 
     Returns
     -------
@@ -190,7 +197,11 @@ def scan(
     if cedar_path is not None:
         source_paths.append(Path(cedar_path))
 
-    from .curation import allele_resolution_rank, classify_allele_resolution
+    from .curation import (
+        allele_resolution_rank,
+        classify_allele_resolution,
+        classify_mhc_species,
+    )
 
     min_res_rank = allele_resolution_rank(min_allele_resolution) if min_allele_resolution else None
 
@@ -220,7 +231,11 @@ def scan(
             # This keeps viral/bacterial peptides presented on human MHC.
             if human_only and "Homo sapiens" not in (host, species):
                 continue
-            if hla_only and not mhc_res.startswith("HLA"):
+            # Species-aware MHC filter (mhc_species) supersedes hla_only
+            if mhc_species is not None:
+                if classify_mhc_species(mhc_res) != mhc_species:
+                    continue
+            elif hla_only and not mhc_res.startswith("HLA"):
                 continue
             if mhc_class is not None and _safe_col(row, c["mhc_class"]) != mhc_class:
                 continue
@@ -284,6 +299,7 @@ def scan(
 
                 record["allele_resolution"] = classify_allele_resolution(mhc_res)
                 record["serotype"] = allele_to_serotype(mhc_res)
+                record["mhc_species"] = classify_mhc_species(mhc_res)
 
             rows.append(record)
 

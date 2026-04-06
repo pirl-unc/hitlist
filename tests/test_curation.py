@@ -3,6 +3,7 @@ from hitlist.curation import (
     allele_resolution_rank,
     allele_to_serotype,
     classify_allele_resolution,
+    classify_mhc_species,
     classify_ms_row,
     detect_monoallelic,
     is_cancer_specific,
@@ -323,3 +324,67 @@ def test_classify_ms_row_includes_serotype():
     assert "serotype" in flags
     if _HAS_MHCGNOMES:
         assert flags["serotype"] == "HLA-A2"
+
+
+# ── MHC species classification ─────────────────────────────────────────
+
+
+def test_classify_mhc_species_human():
+    assert classify_mhc_species("HLA-A*02:01") == "Homo sapiens"
+    assert classify_mhc_species("HLA class I") == "Homo sapiens"
+
+
+def test_classify_mhc_species_mouse():
+    result = classify_mhc_species("H-2Kb")
+    if _HAS_MHCGNOMES:
+        assert result == "Mus musculus"
+    else:
+        assert result == "Mus musculus"  # regex fallback handles H-2
+
+
+def test_classify_mhc_species_empty():
+    assert classify_mhc_species("") == ""
+
+
+def test_classify_ms_row_includes_mhc_species():
+    flags = classify_ms_row(
+        "No immunization",
+        "healthy",
+        "Direct Ex Vivo",
+        "Liver",
+        mhc_restriction="HLA-A*02:01",
+    )
+    assert flags["mhc_species"] == "Homo sapiens"
+
+
+# ── PMID-level mono-allelic override ───────────────────────────────────
+
+
+def test_pmid_mono_allelic_override():
+    """PMID 28228285 (Sarkizova 2020) is a 721.221 study."""
+    flags = classify_ms_row(
+        "No immunization",
+        "",
+        "Cell Line / Clone",
+        "Blood",
+        "B cell",
+        pmid=28228285,
+        mhc_restriction="HLA-A*01:01",
+    )
+    assert flags["is_monoallelic"] is True
+    assert flags["monoallelic_host"] == "721.221"
+
+
+def test_pmid_mono_allelic_override_28514659():
+    """PMID 28514659 (HLA-B*46:01) is also a 721.221 study."""
+    flags = classify_ms_row(
+        "No immunization",
+        "",
+        "Cell Line / Clone",
+        "Spleen",
+        "Other",
+        pmid=28514659,
+        mhc_restriction="HLA-B*46:01",
+    )
+    assert flags["is_monoallelic"] is True
+    assert flags["monoallelic_host"] == "721.221"

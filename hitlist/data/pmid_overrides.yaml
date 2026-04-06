@@ -150,4 +150,34 @@
   label: "HLA-B*46:01 study"
   title: "Peptide-binding motif of the HLA-B*46:01 molecule"
   override: cell_line
+  mono_allelic_host: "721.221"
   note: "721.221 transfectants wrongly annotated as spleen in IEDB."
+
+# ── Mono-allelic 721.221 studies (IEDB cell_name = "B cell") ───────────────
+
+- pmid: 28228285
+  label: "Sarkizova 2020 — mono-allelic immunopeptidomes"
+  title: "A large peptidome dataset improves HLA class I epitope prediction across most of the human population"
+  override: cell_line
+  mono_allelic_host: "721.221"
+  note: >
+    95 HLA class I alleles profiled on 721.221 transfectants.
+    IEDB cell_name is "B cell" not "721.221".
+
+- pmid: 31844290
+  label: "Abelin 2019 — mono-allelic HLA class I"
+  title: "Mass Spectrometry Profiling of HLA-Associated Peptidomes in Mono-allelic Cells Enables More Accurate Epitope Prediction"
+  override: cell_line
+  mono_allelic_host: "721.221"
+  note: >
+    721.221 mono-allelic transfectants.
+    IEDB cell_name is "B cell" not "721.221".
+
+- pmid: 31092671
+  label: "Alvarez 2020 — ERAP1/ERAP2 study"
+  title: "Redundancy and Complementarity between ERAP1 and ERAP2 Revealed by Quantitative HLA Peptidome Analysis"
+  override: cell_line
+  mono_allelic_host: "721.221"
+  note: >
+    721.221 transfectants for ERAP study.
+    IEDB cell_name is "B cell" not "721.221".
