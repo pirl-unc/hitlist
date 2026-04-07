@@ -10,23 +10,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Single-pass indexer for IEDB/CEDAR data with caching.
+"""Summary index derived from the unified observations table.
 
-Builds two cached summary tables from each source CSV:
-
-- **study_counts**: unique peptides and observations per
-  (pmid, mhc_class, mhc_species)
-- **allele_counts**: occurrence counts per unique MHC restriction string
-
-The index is stored as parquet files in ``~/.hitlist/`` and reused
-when the source CSV has not changed (checked via file size + mtime).
+Provides aggregated study counts and allele counts from
+:func:`hitlist.observations.load_observations`. Falls back to
+direct CSV scanning if the observations table has not been built.
 
 Usage::
 
     from hitlist.indexer import get_index
 
-    study_df, allele_df = get_index("iedb")
-    study_df, allele_df = get_index("merged")  # IEDB+CEDAR deduped
+    study_df, allele_df = get_index()
+    study_df, allele_df = get_index(source="iedb")
 """
 
 from __future__ import annotations
@@ -37,23 +32,6 @@ from collections import defaultdict
 from pathlib import Path
 
 import pandas as pd
-
-from .curation import _cached_parse  # noqa: F401 — reuse the LRU cache
-
-
-def _fast_species(mhc_restriction: str, _cache: dict[str, str] = {}) -> str:  # noqa: B006
-    """Species lookup with local dict cache (faster than LRU for hot path)."""
-    if not mhc_restriction:
-        return ""
-    cached = _cache.get(mhc_restriction)
-    if cached is not None:
-        return cached
-
-    from .curation import classify_mhc_species
-
-    result = classify_mhc_species(mhc_restriction)
-    _cache[mhc_restriction] = result
-    return result
 
 
 def _resolve_source_paths() -> dict[str, Path]:
@@ -78,7 +56,6 @@ def _cache_dir() -> Path:
 
 
 def _cache_key(source_path: Path) -> dict:
-    """File identity: size + mtime."""
     stat = source_path.stat()
     return {"path": str(source_path), "size": stat.st_size, "mtime": stat.st_mtime}
 
@@ -92,117 +69,106 @@ def _cache_is_valid(label: str, source_path: Path) -> bool:
     return stored.get("size") == current["size"] and stored.get("mtime") == current["mtime"]
 
 
-def _save_cache(label: str, source_path: Path, study_df: pd.DataFrame, allele_df: pd.DataFrame):
-    d = _cache_dir()
-    study_df.to_parquet(d / f"{label}_study_counts.parquet", index=False)
-    allele_df.to_parquet(d / f"{label}_allele_counts.parquet", index=False)
-    meta = _cache_key(source_path)
-    (d / f"{label}_meta.json").write_text(json.dumps(meta))
-
-
-def _load_cache(label: str) -> tuple[pd.DataFrame, pd.DataFrame]:
-    d = _cache_dir()
-    study_df = pd.read_parquet(d / f"{label}_study_counts.parquet")
-    allele_df = pd.read_parquet(d / f"{label}_allele_counts.parquet")
-    return study_df, allele_df
-
-
-def _index_single_source(source_path: Path, label: str) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Single-pass index of one CSV. Returns (study_counts, allele_counts)."""
-    from .scanner import _open_csv, _progress, _safe_col
-
-    # (pmid, mhc_class, species) -> set of peptides
-    peptide_sets: dict[tuple, set[str]] = defaultdict(set)
-    obs_counts: dict[tuple, int] = defaultdict(int)
-    allele_counts: dict[str, int] = defaultdict(int)
-
-    reader, c, p = _open_csv(source_path)
-    for row in _progress(reader, p, f"Indexing {p.name}"):
-        mhc_res = _safe_col(row, c["mhc_restriction"])
-        if mhc_res:
-            allele_counts[mhc_res] += 1
-
-        pep = _safe_col(row, c["epitope_name"])
-        if not pep:
-            continue
-
-        raw_pmid = _safe_col(row, c["pmid"]).strip()
-        if not raw_pmid:
-            continue
-        try:
-            pmid = int(raw_pmid)
-        except ValueError:
-            continue
-
-        mhc_cls = _safe_col(row, c["mhc_class"])
-        species = _fast_species(mhc_res)
-        if not species:
-            host = _safe_col(row, c["host"])
-            species = host if host else "unknown"
-
-        key = (pmid, mhc_cls, species)
-        peptide_sets[key].add(pep)
-        obs_counts[key] += 1
-
-    study_rows = []
-    for (pmid, mhc_cls, species), peps in sorted(peptide_sets.items()):
-        study_rows.append(
-            {
-                "source": label,
-                "pmid": pmid,
-                "mhc_class": mhc_cls,
-                "mhc_species": species,
-                "n_peptides": len(peps),
-                "n_observations": obs_counts[(pmid, mhc_cls, species)],
-            }
-        )
-
-    allele_rows = [
-        {"allele": a, "n_occurrences": n}
-        for a, n in sorted(allele_counts.items(), key=lambda x: -x[1])
-    ]
-
-    return pd.DataFrame(study_rows), pd.DataFrame(allele_rows)
-
-
-def index_source(label: str, source_path: Path | None = None, force: bool = False):
-    """Index a single source (iedb or cedar), using cache if valid.
-
-    Returns (study_counts_df, allele_counts_df).
-    """
-    if source_path is None:
-        paths = _resolve_source_paths()
-        if label not in paths:
-            raise FileNotFoundError(f"'{label}' not registered.")
-        source_path = paths[label]
-
-    if not force and _cache_is_valid(label, source_path):
-        return _load_cache(label)
-
-    study_df, allele_df = _index_single_source(source_path, label)
-    _save_cache(label, source_path, study_df, allele_df)
-    return study_df, allele_df
-
-
 def get_index(
     source: str = "merged",
     force: bool = False,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Get indexed study counts and allele counts.
+    """Get study counts and allele counts.
+
+    Reads from the built observations table if available (fast).
+    Falls back to direct CSV scanning if not built.
 
     Parameters
     ----------
     source
-        ``"iedb"``, ``"cedar"``, ``"merged"`` (deduped), or ``"all"``
-        (per-source rows concatenated).
+        ``"iedb"``, ``"cedar"``, ``"merged"`` (default), or ``"all"``.
     force
-        Re-index even if cache is valid.
+        Ignored when reading from observations.parquet.
 
     Returns
     -------
     tuple[pd.DataFrame, pd.DataFrame]
         ``(study_counts, allele_counts)``
     """
+    from .observations import is_built
+
+    if is_built():
+        return _index_from_observations(source)
+
+    # Fallback: direct CSV scan (legacy path)
+    return _index_from_csv(source, force)
+
+
+def _index_from_observations(source: str) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Derive index from the built observations table."""
+    from .observations import load_observations
+
+    if source in ("iedb", "cedar"):
+        obs = load_observations(source=source)
+    else:
+        obs = load_observations()
+
+    source_label = source if source in ("iedb", "cedar") else "iedb+cedar"
+
+    # Study counts: group by (pmid, mhc_class, mhc_species)
+    study_groups = obs.dropna(subset=["pmid"]).groupby(["pmid", "mhc_class", "mhc_species"])
+    study_rows = []
+    for (pmid, mhc_cls, species), group in study_groups:
+        study_rows.append(
+            {
+                "source": source_label,
+                "pmid": int(pmid),
+                "mhc_class": mhc_cls,
+                "mhc_species": species,
+                "n_peptides": group["peptide"].nunique(),
+                "n_observations": len(group),
+            }
+        )
+    study_df = pd.DataFrame(study_rows)
+
+    # Allele counts
+    allele_counts = obs["mhc_restriction"].value_counts()
+    allele_df = pd.DataFrame({"allele": allele_counts.index, "n_occurrences": allele_counts.values})
+
+    if source == "all":
+        # Split by source column
+        study_dfs = []
+        for src_label in obs["source"].unique():
+            src_obs = obs[obs["source"] == src_label]
+            src_groups = src_obs.dropna(subset=["pmid"]).groupby(
+                ["pmid", "mhc_class", "mhc_species"]
+            )
+            for (pmid, mhc_cls, species), group in src_groups:
+                study_dfs.append(
+                    {
+                        "source": src_label,
+                        "pmid": int(pmid),
+                        "mhc_class": mhc_cls,
+                        "mhc_species": species,
+                        "n_peptides": group["peptide"].nunique(),
+                        "n_observations": len(group),
+                    }
+                )
+        study_df = pd.DataFrame(study_dfs)
+
+    return study_df, allele_df
+
+
+def _index_from_csv(source: str, force: bool) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Legacy fallback: scan CSV directly when observations table not built."""
+    from .curation import classify_mhc_species
+    from .scanner import _open_csv, _progress, _safe_col
+
+    def _fast_species(mhc_restriction: str, _cache: dict[str, str] = {}) -> str:  # noqa: B006
+        if not mhc_restriction:
+            return ""
+        cached = _cache.get(mhc_restriction)
+        if cached is not None:
+            return cached
+        result = classify_mhc_species(mhc_restriction)
+        _cache[mhc_restriction] = result
+        return result
+
     paths = _resolve_source_paths()
     if not paths:
         raise FileNotFoundError(
@@ -210,36 +176,11 @@ def get_index(
         )
 
     if source in ("iedb", "cedar"):
-        return index_source(source, force=force)
+        if source not in paths:
+            raise FileNotFoundError(f"'{source}' not registered.")
+        return _scan_single(paths[source], source, _fast_species, _open_csv, _progress, _safe_col)
 
-    if source == "all":
-        study_dfs, allele_dfs = [], []
-        for label in sorted(paths):
-            s, a = index_source(label, force=force)
-            study_dfs.append(s)
-            allele_dfs.append(a)
-        return (
-            pd.concat(study_dfs, ignore_index=True),
-            pd.concat(allele_dfs, ignore_index=True),
-        )
-
-    # Merged: need IRI-based dedup — check if merged cache is valid
-    # (valid if both source caches are valid)
-    merged_meta = _cache_dir() / "merged_meta.json"
-    if not force and merged_meta.exists():
-        stored = json.loads(merged_meta.read_text())
-        all_valid = True
-        for label, path in paths.items():
-            current = _cache_key(path)
-            if stored.get(label) != current:
-                all_valid = False
-                break
-        if all_valid:
-            return _load_cache("merged")
-
-    # Must do a merged scan with IRI dedup
-    from .scanner import _open_csv, _progress, _safe_col
-
+    # Merged or all
     peptide_sets: dict[tuple, set[str]] = defaultdict(set)
     obs_counts: dict[tuple, int] = defaultdict(int)
     allele_counts: dict[str, int] = defaultdict(int)
@@ -260,7 +201,6 @@ def get_index(
             pep = _safe_col(row, c["epitope_name"])
             if not pep:
                 continue
-
             raw_pmid = _safe_col(row, c["pmid"]).strip()
             if not raw_pmid:
                 continue
@@ -295,33 +235,65 @@ def get_index(
         for a, n in sorted(allele_counts.items(), key=lambda x: -x[1])
     ]
 
-    study_df = pd.DataFrame(study_rows)
-    allele_df = pd.DataFrame(allele_rows)
-
-    # Cache merged result
-    d = _cache_dir()
-    study_df.to_parquet(d / "merged_study_counts.parquet", index=False)
-    allele_df.to_parquet(d / "merged_allele_counts.parquet", index=False)
-    meta = {label: _cache_key(path) for label, path in paths.items()}
-    merged_meta.write_text(json.dumps(meta))
-
-    return study_df, allele_df
+    return pd.DataFrame(study_rows), pd.DataFrame(allele_rows)
 
 
-def validate_alleles_from_index(
-    allele_df: pd.DataFrame,
-) -> pd.DataFrame:
-    """Validate allele strings with mhcgnomes from an index allele_counts DataFrame.
+def _scan_single(path, label, _fast_species, _open_csv, _progress, _safe_col):
+    """Scan a single CSV source."""
+    peptide_sets: dict[tuple, set[str]] = defaultdict(set)
+    obs_counts: dict[tuple, int] = defaultdict(int)
+    allele_counts: dict[str, int] = defaultdict(int)
 
-    Fast: only parses each unique string once (typically ~500-2000 unique strings).
-    """
+    reader, c, p = _open_csv(path)
+    for row in _progress(reader, p, f"Indexing {p.name}"):
+        mhc_res = _safe_col(row, c["mhc_restriction"])
+        if mhc_res:
+            allele_counts[mhc_res] += 1
+        pep = _safe_col(row, c["epitope_name"])
+        if not pep:
+            continue
+        raw_pmid = _safe_col(row, c["pmid"]).strip()
+        if not raw_pmid:
+            continue
+        try:
+            pmid = int(raw_pmid)
+        except ValueError:
+            continue
+        mhc_cls = _safe_col(row, c["mhc_class"])
+        species = _fast_species(mhc_res)
+        if not species:
+            host = _safe_col(row, c["host"])
+            species = host if host else "unknown"
+        key = (pmid, mhc_cls, species)
+        peptide_sets[key].add(pep)
+        obs_counts[key] += 1
+
+    study_rows = [
+        {
+            "source": label,
+            "pmid": pmid,
+            "mhc_class": mhc_cls,
+            "mhc_species": species,
+            "n_peptides": len(peps),
+            "n_observations": obs_counts[(pmid, mhc_cls, species)],
+        }
+        for (pmid, mhc_cls, species), peps in sorted(peptide_sets.items())
+    ]
+    allele_rows = [
+        {"allele": a, "n_occurrences": n}
+        for a, n in sorted(allele_counts.items(), key=lambda x: -x[1])
+    ]
+    return pd.DataFrame(study_rows), pd.DataFrame(allele_rows)
+
+
+def validate_alleles_from_index(allele_df: pd.DataFrame) -> pd.DataFrame:
+    """Validate allele strings with mhcgnomes."""
     try:
         from mhcgnomes import parse
     except ImportError:
         allele_df = allele_df.copy()
-        allele_df["parsed_name"] = ""
-        allele_df["parsed_type"] = ""
-        allele_df["species"] = ""
+        for col in ("parsed_name", "parsed_type", "species"):
+            allele_df[col] = ""
         allele_df["valid"] = False
         return allele_df
 
