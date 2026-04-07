@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""hitlist: curated mass spectrometry evidence for MHC ligand data from IEDB and CEDAR."""
+"""hitlist: curated and harmonized MHC ligand mass spectrometry data for pMHC target selection and model training."""
 
 from .version import __version__
 
