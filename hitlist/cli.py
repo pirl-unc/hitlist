@@ -217,8 +217,19 @@ def main() -> None:
     p_alleles = export_sub.add_parser("alleles", help="Validate MHC alleles with mhcgnomes")
     p_alleles.add_argument("--output", "-o", help="Write CSV to file")
 
+    p_data_alleles = export_sub.add_parser(
+        "data-alleles", help="Validate all MHC alleles in local IEDB/CEDAR with mhcgnomes"
+    )
+    p_data_alleles.add_argument("--output", "-o", help="Write CSV to file")
+
     p_counts = export_sub.add_parser(
         "counts", help="Count peptides per study from local IEDB/CEDAR"
+    )
+    p_counts.add_argument(
+        "--source",
+        choices=["iedb", "cedar", "merged", "all"],
+        default="merged",
+        help="Data source: iedb, cedar, merged (deduped, default), or all (side-by-side)",
     )
     p_counts.add_argument("--output", "-o", help="Write CSV to file")
 
@@ -236,6 +247,7 @@ def main() -> None:
 
 def _export(args: argparse.Namespace) -> None:
     from .export import (
+        collect_alleles_from_data,
         count_peptides_by_study,
         generate_ms_samples_table,
         generate_species_summary,
@@ -248,10 +260,12 @@ def _export(args: argparse.Namespace) -> None:
         df = generate_species_summary(mhc_class=args.mhc_class)
     elif args.export_command == "alleles":
         df = validate_mhc_alleles()
+    elif args.export_command == "data-alleles":
+        df = collect_alleles_from_data()
     elif args.export_command == "counts":
-        df = count_peptides_by_study()
+        df = count_peptides_by_study(source=args.source)
     else:
-        print("Usage: hitlist export {samples,summary,alleles,counts}")
+        print("Usage: hitlist export {samples,summary,alleles,data-alleles,counts}")
         sys.exit(1)
 
     if args.output:
