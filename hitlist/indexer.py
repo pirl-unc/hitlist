@@ -328,15 +328,27 @@ def validate_alleles_from_index(
     rows = []
     for _, row in allele_df.iterrows():
         allele_str = row["allele"]
-        result = parse(allele_str)
-        rows.append(
-            {
-                "allele": allele_str,
-                "n_occurrences": row["n_occurrences"],
-                "parsed_name": str(result),
-                "parsed_type": type(result).__name__,
-                "species": result.species.name if hasattr(result, "species") else "",
-                "valid": type(result).__name__ not in ("ParseError", "str"),
-            }
-        )
+        try:
+            result = parse(allele_str)
+            rows.append(
+                {
+                    "allele": allele_str,
+                    "n_occurrences": row["n_occurrences"],
+                    "parsed_name": str(result),
+                    "parsed_type": type(result).__name__,
+                    "species": result.species.name if hasattr(result, "species") else "",
+                    "valid": True,
+                }
+            )
+        except Exception:
+            rows.append(
+                {
+                    "allele": allele_str,
+                    "n_occurrences": row["n_occurrences"],
+                    "parsed_name": "",
+                    "parsed_type": "ParseError",
+                    "species": "",
+                    "valid": False,
+                }
+            )
     return pd.DataFrame(rows)
