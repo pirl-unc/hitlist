@@ -61,14 +61,27 @@ def _data_list(args: argparse.Namespace) -> None:
         print(f"Data directory: {data_dir()}")
         print("Run 'hitlist data available' to see known datasets.")
         return
-    print(f"{'Name':<12} {'Size':>12}  {'Date':<12} Description")
-    print("-" * 75)
+    print(f"{'Name':<12} {'Size':>12}  {'Date':<12} {'Index':<8} Description")
+    print("-" * 85)
+
+    from .indexer import _cache_is_valid
+
     for name, ds in sorted(datasets.items()):
         size_str = _fmt_size(ds.get("size_bytes", 0))
         date = ds.get("registered", "")[:10]
         desc = ds.get("description", "")
-        print(f"{name:<12} {size_str:>12}  {date:<12} {desc}")
+        idx_status = ""
+        if name in ("iedb", "cedar"):
+            from pathlib import Path
+
+            p = Path(ds.get("path", ""))
+            if p.exists():
+                idx_status = "cached" if _cache_is_valid(name, p) else "stale"
+            else:
+                idx_status = "missing"
+        print(f"{name:<12} {size_str:>12}  {date:<12} {idx_status:<8} {desc}")
     print(f"\nData directory: {data_dir()}")
+    print("Run 'hitlist data index' to build/rebuild the search index.")
 
 
 def _data_available(args: argparse.Namespace) -> None:
@@ -133,6 +146,32 @@ def _data_remove(args: argparse.Namespace) -> None:
         print(f"Unregistered '{args.name}' (file kept on disk).")
 
 
+def _data_index(args: argparse.Namespace) -> None:
+    from .indexer import _cache_dir, _cache_is_valid, _resolve_source_paths, get_index
+
+    paths = _resolve_source_paths()
+    if not paths:
+        print("No IEDB/CEDAR data registered. Nothing to index.")
+        sys.exit(1)
+
+    source = args.source or "merged"
+    force = args.force
+
+    # Show cache status before indexing
+    if not force:
+        for label, path in sorted(paths.items()):
+            valid = _cache_is_valid(label, path)
+            status = "cached" if valid else "stale/missing"
+            print(f"  {label}: {status}")
+
+    study_df, allele_df = get_index(source=source, force=force)
+    print(f"\nIndex ({source}):")
+    print(f"  Studies:  {len(study_df):,}")
+    print(f"  Alleles:  {len(allele_df):,}")
+    print(f"  Species:  {study_df['mhc_species'].nunique()}")
+    print(f"  Cache:    {_cache_dir()}")
+
+
 def _build_data_parser(sub: argparse._SubParsersAction) -> None:
     dp = sub.add_parser("data", help="Manage external datasets")
     ds = dp.add_subparsers(dest="data_command")
@@ -162,6 +201,16 @@ def _build_data_parser(sub: argparse._SubParsersAction) -> None:
     p.add_argument("name", help="Dataset name")
     p.add_argument("--delete", action="store_true", help="Also delete the file")
 
+    p = ds.add_parser("index", help="Build/rebuild cached index of IEDB/CEDAR data")
+    p.add_argument(
+        "--source",
+        choices=["iedb", "cedar", "merged", "all"],
+        help="Source to index (default: all registered sources independently + merged)",
+    )
+    p.add_argument(
+        "--force", "-f", action="store_true", help="Force re-index even if cache is valid"
+    )
+
 
 def _handle_data(args: argparse.Namespace) -> None:
     handlers = {
@@ -173,9 +222,10 @@ def _handle_data(args: argparse.Namespace) -> None:
         "info": _data_info,
         "path": _data_path,
         "remove": _data_remove,
+        "index": _data_index,
     }
     if args.data_command is None:
-        print("Usage: hitlist data {list,available,register,fetch,refresh,info,path,remove}")
+        print("Usage: hitlist data {list,available,register,fetch,refresh,info,path,remove,index}")
         sys.exit(1)
     handlers[args.data_command](args)
 
