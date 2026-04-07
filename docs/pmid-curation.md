@@ -2,25 +2,38 @@
 
 hitlist applies expert per-study overrides to correct IEDB annotations that don't reflect the true biological context of each sample. Overrides are stored in `hitlist/data/pmid_overrides.yaml` as data, not hardcoded Python.
 
-**34 studies curated** across 7 species, with per-sample MHC class, perturbation conditions, and estimated peptide counts.
+**34 studies curated** across 7 species, with per-sample MHC class and perturbation conditions.
 
-## Species x MHC class summary
+## Species x MHC class summary (from local IEDB index)
 
-| Species | Class | Studies | Sample Types | Peptides |
-|---------|-------|---------|-------------|----------|
-| Bos taurus (cattle) | I | 1 | 1 | ~5,000 |
-| Bos taurus (cattle) | II | 2 | 2 | ~5,000 |
-| Canis lupus familiaris (dog) | I | 2 | 4 | ~7,742 |
-| Carassius gibelio (Prussian carp) | II | 1 | 1 | ~276 |
-| Gallus gallus (chicken) | I | 2 | 4 | ~1,064 |
-| Gallus gallus (chicken) | II | 1 | 2 | ~1,000 |
-| **Homo sapiens (human)** | **I** | **23** | **112** | **~745,000** |
-| **Homo sapiens (human)** | **II** | **4** | **22** | **~261,000** |
-| Macaca mulatta (rhesus macaque) | I | 1 | 6 | ~65 |
-| Sus scrofa (pig) | I | 1 | 1 | ~200 |
-| Sus scrofa (pig) | II | 1 | 3 | ~1,000 |
+Actual unique peptide counts from `hitlist export counts`:
 
-Regenerate this table: `hitlist export summary`
+| Species | Class | Studies | Peptides | Observations |
+|---------|-------|---------|----------|-------------|
+| **Homo sapiens** | **I** | **1,412** | **1,879,622** | **2,690,053** |
+| **Homo sapiens** | **II** | **800** | **789,540** | **1,699,554** |
+| Homo sapiens | non-classical | 103 | 5,881 | 7,595 |
+| Mus musculus | I | 520 | 94,438 | 161,565 |
+| Mus musculus | II | 293 | 39,093 | 44,779 |
+| Sarcophilus harrisii | I | 1 | 26,455 | 33,959 |
+| Sus sp. | I | 25 | 13,175 | 13,530 |
+| Trichosurus vulpecula | I | 1 | 5,614 | 5,615 |
+| Canis sp. | I | 6 | 2,446 | 2,465 |
+| Macaca mulatta | I | 19 | 1,637 | 1,724 |
+| Equus caballus | I | 4 | 776 | 887 |
+| Pan troglodytes | I | 5 | 360 | 431 |
+| Bos sp. | I | 10 | 319 | 404 |
+| Gallus gallus | I | 12 | 266 | 318 |
+| Rattus sp. | II | 27 | 248 | 633 |
+| Macaca mulatta | II | 2 | 106 | 207 |
+| Pteropus alecto | I | 3 | 85 | 95 |
+| + 20 more species | | | | |
+
+Regenerate: `hitlist export counts --source iedb` then group by species/class.
+
+## Curated vs uncurated
+
+Of the 37 species in IEDB, hitlist currently has YAML overrides for 34 PMIDs across 7 species. Many species with data in IEDB are not yet curated — see GitHub issues for planned additions.
 
 ## Exporting data
 
