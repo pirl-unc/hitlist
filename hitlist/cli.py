@@ -61,14 +61,27 @@ def _data_list(args: argparse.Namespace) -> None:
         print(f"Data directory: {data_dir()}")
         print("Run 'hitlist data available' to see known datasets.")
         return
-    print(f"{'Name':<12} {'Size':>12}  {'Date':<12} Description")
-    print("-" * 75)
+    print(f"{'Name':<12} {'Size':>12}  {'Date':<12} {'Index':<8} Description")
+    print("-" * 85)
+
+    from .indexer import _cache_is_valid
+
     for name, ds in sorted(datasets.items()):
         size_str = _fmt_size(ds.get("size_bytes", 0))
         date = ds.get("registered", "")[:10]
         desc = ds.get("description", "")
-        print(f"{name:<12} {size_str:>12}  {date:<12} {desc}")
+        idx_status = ""
+        if name in ("iedb", "cedar"):
+            from pathlib import Path
+
+            p = Path(ds.get("path", ""))
+            if p.exists():
+                idx_status = "cached" if _cache_is_valid(name, p) else "stale"
+            else:
+                idx_status = "missing"
+        print(f"{name:<12} {size_str:>12}  {date:<12} {idx_status:<8} {desc}")
     print(f"\nData directory: {data_dir()}")
+    print("Run 'hitlist data index' to build/rebuild the search index.")
 
 
 def _data_available(args: argparse.Namespace) -> None:
@@ -133,6 +146,32 @@ def _data_remove(args: argparse.Namespace) -> None:
         print(f"Unregistered '{args.name}' (file kept on disk).")
 
 
+def _data_index(args: argparse.Namespace) -> None:
+    from .indexer import _cache_dir, _cache_is_valid, _resolve_source_paths, get_index
+
+    paths = _resolve_source_paths()
+    if not paths:
+        print("No IEDB/CEDAR data registered. Nothing to index.")
+        sys.exit(1)
+
+    source = args.source or "merged"
+    force = args.force
+
+    # Show cache status before indexing
+    if not force:
+        for label, path in sorted(paths.items()):
+            valid = _cache_is_valid(label, path)
+            status = "cached" if valid else "stale/missing"
+            print(f"  {label}: {status}")
+
+    study_df, allele_df = get_index(source=source, force=force)
+    print(f"\nIndex ({source}):")
+    print(f"  Studies:  {len(study_df):,}")
+    print(f"  Alleles:  {len(allele_df):,}")
+    print(f"  Species:  {study_df['mhc_species'].nunique()}")
+    print(f"  Cache:    {_cache_dir()}")
+
+
 def _build_data_parser(sub: argparse._SubParsersAction) -> None:
     dp = sub.add_parser("data", help="Manage external datasets")
     ds = dp.add_subparsers(dest="data_command")
@@ -162,6 +201,16 @@ def _build_data_parser(sub: argparse._SubParsersAction) -> None:
     p.add_argument("name", help="Dataset name")
     p.add_argument("--delete", action="store_true", help="Also delete the file")
 
+    p = ds.add_parser("index", help="Build/rebuild cached index of IEDB/CEDAR data")
+    p.add_argument(
+        "--source",
+        choices=["iedb", "cedar", "merged", "all"],
+        help="Source to index (default: all registered sources independently + merged)",
+    )
+    p.add_argument(
+        "--force", "-f", action="store_true", help="Force re-index even if cache is valid"
+    )
+
 
 def _handle_data(args: argparse.Namespace) -> None:
     handlers = {
@@ -173,9 +222,10 @@ def _handle_data(args: argparse.Namespace) -> None:
         "info": _data_info,
         "path": _data_path,
         "remove": _data_remove,
+        "index": _data_index,
     }
     if args.data_command is None:
-        print("Usage: hitlist data {list,available,register,fetch,refresh,info,path,remove}")
+        print("Usage: hitlist data {list,available,register,fetch,refresh,info,path,remove,index}")
         sys.exit(1)
     handlers[args.data_command](args)
 
@@ -202,6 +252,37 @@ def main() -> None:
     p_report.add_argument("--class", dest="mhc_class", help="MHC class filter (I or II)")
     p_report.add_argument("--output", "-o", help="Save report to file")
 
+    # ── export subcommand ──────────────────────────────────────────────
+    p_export = sub.add_parser("export", help="Export curated study metadata as CSV")
+    export_sub = p_export.add_subparsers(dest="export_command")
+
+    p_samples = export_sub.add_parser("samples", help="Per-sample MS conditions table")
+    p_samples.add_argument("--class", dest="mhc_class", help="Filter to MHC class (I or II)")
+    p_samples.add_argument("--output", "-o", help="Write CSV to file")
+
+    p_summary = export_sub.add_parser("summary", help="Species x MHC class summary")
+    p_summary.add_argument("--class", dest="mhc_class", help="Filter to MHC class (I or II)")
+    p_summary.add_argument("--output", "-o", help="Write CSV to file")
+
+    p_alleles = export_sub.add_parser("alleles", help="Validate MHC alleles with mhcgnomes")
+    p_alleles.add_argument("--output", "-o", help="Write CSV to file")
+
+    p_data_alleles = export_sub.add_parser(
+        "data-alleles", help="Validate all MHC alleles in local IEDB/CEDAR with mhcgnomes"
+    )
+    p_data_alleles.add_argument("--output", "-o", help="Write CSV to file")
+
+    p_counts = export_sub.add_parser(
+        "counts", help="Count peptides per study from local IEDB/CEDAR"
+    )
+    p_counts.add_argument(
+        "--source",
+        choices=["iedb", "cedar", "merged", "all"],
+        default="merged",
+        help="Data source: iedb, cedar, merged (deduped, default), or all (side-by-side)",
+    )
+    p_counts.add_argument("--output", "-o", help="Write CSV to file")
+
     args = parser.parse_args()
     if args.command is None:
         parser.print_help()
@@ -210,6 +291,38 @@ def main() -> None:
         _handle_data(args)
     elif args.command == "report":
         _report(args)
+    elif args.command == "export":
+        _export(args)
+
+
+def _export(args: argparse.Namespace) -> None:
+    from .export import (
+        collect_alleles_from_data,
+        count_peptides_by_study,
+        generate_ms_samples_table,
+        generate_species_summary,
+        validate_mhc_alleles,
+    )
+
+    if args.export_command == "samples":
+        df = generate_ms_samples_table(mhc_class=args.mhc_class)
+    elif args.export_command == "summary":
+        df = generate_species_summary(mhc_class=args.mhc_class)
+    elif args.export_command == "alleles":
+        df = validate_mhc_alleles()
+    elif args.export_command == "data-alleles":
+        df = collect_alleles_from_data(source=getattr(args, "source", "merged"))
+    elif args.export_command == "counts":
+        df = count_peptides_by_study(source=args.source)
+    else:
+        print("Usage: hitlist export {samples,summary,alleles,data-alleles,counts}")
+        sys.exit(1)
+
+    if args.output:
+        df.to_csv(args.output, index=False)
+        print(f"Wrote {len(df)} rows to {args.output}")
+    else:
+        print(df.to_csv(index=False), end="")
 
 
 if __name__ == "__main__":
