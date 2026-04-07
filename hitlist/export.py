@@ -37,7 +37,7 @@ def generate_ms_samples_table(mhc_class: str | None = None) -> pd.DataFrame:
     -------
     pd.DataFrame
         Columns: species, sample, perturbation, pmid, study, mhc_class,
-        n_samples, notes.
+        n_samples, peptides, peptides_estimated, notes.
     """
     overrides = load_pmid_overrides()
     rows: list[dict] = []
@@ -67,6 +67,9 @@ def generate_ms_samples_table(mhc_class: str | None = None) -> pd.DataFrame:
             if n == 0:
                 continue  # skip "NOT profiled" placeholder rows
 
+            peptides = sample.get("peptides", None)
+            estimated = sample.get("peptides_estimated", False)
+
             rows.append(
                 {
                     "species": species,
@@ -76,6 +79,8 @@ def generate_ms_samples_table(mhc_class: str | None = None) -> pd.DataFrame:
                     "study": label,
                     "mhc_class": cls,
                     "n_samples": n if n != "" else None,
+                    "peptides": peptides,
+                    "peptides_estimated": estimated,
                     "notes": sample.get("classification", sample.get("reason", "")),
                 }
             )
@@ -94,7 +99,8 @@ def generate_species_summary(mhc_class: str | None = None) -> pd.DataFrame:
     Returns
     -------
     pd.DataFrame
-        Columns: species, mhc_class, n_studies, n_sample_types, n_samples.
+        Columns: species, mhc_class, n_studies, n_sample_types,
+        n_samples, total_peptides.
     """
     df = generate_ms_samples_table(mhc_class=mhc_class)
     if df.empty:
@@ -123,10 +129,12 @@ def generate_species_summary(mhc_class: str | None = None) -> pd.DataFrame:
             n_studies=("pmid", "nunique"),
             n_sample_types=("sample", "count"),
             n_samples=("n_samples", lambda x: x.dropna().sum()),
+            total_peptides=("peptides", lambda x: x.dropna().sum()),
         )
         .reset_index()
     )
     summary["n_samples"] = summary["n_samples"].astype(int)
+    summary["total_peptides"] = summary["total_peptides"].astype(int)
     return summary
 
 

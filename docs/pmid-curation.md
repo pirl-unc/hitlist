@@ -2,6 +2,38 @@
 
 hitlist applies expert per-study overrides to correct IEDB annotations that don't reflect the true biological context of each sample. Overrides are stored in `hitlist/data/pmid_overrides.yaml` as data, not hardcoded Python.
 
+**34 studies curated** across 7 species, with per-sample MHC class, perturbation conditions, and estimated peptide counts.
+
+## Species x MHC class summary
+
+| Species | Class | Studies | Sample Types | Peptides |
+|---------|-------|---------|-------------|----------|
+| Bos taurus (cattle) | I | 1 | 1 | ~5,000 |
+| Bos taurus (cattle) | II | 2 | 2 | ~5,000 |
+| Canis lupus familiaris (dog) | I | 2 | 4 | ~7,742 |
+| Carassius gibelio (Prussian carp) | II | 1 | 1 | ~276 |
+| Gallus gallus (chicken) | I | 2 | 4 | ~1,064 |
+| Gallus gallus (chicken) | II | 1 | 2 | ~1,000 |
+| **Homo sapiens (human)** | **I** | **23** | **112** | **~745,000** |
+| **Homo sapiens (human)** | **II** | **4** | **22** | **~261,000** |
+| Macaca mulatta (rhesus macaque) | I | 1 | 6 | ~65 |
+| Sus scrofa (pig) | I | 1 | 1 | ~200 |
+| Sus scrofa (pig) | II | 1 | 3 | ~1,000 |
+
+Regenerate this table: `hitlist export summary`
+
+## Exporting data
+
+```bash
+hitlist export samples                    # all ms_samples as CSV
+hitlist export samples --class I          # MHC class I only
+hitlist export samples --class II -o c2.csv
+hitlist export summary                    # species x class totals
+hitlist export alleles                    # validate alleles with mhcgnomes
+```
+
+Each ms_sample entry includes: species, sample type, perturbation condition, PMID, study label, MHC class, estimated peptide count, and whether the count is from the paper or estimated.
+
 ## Override types
 
 | Override | Meaning |
@@ -39,50 +71,69 @@ Some studies (e.g. Neidert biobank) have mixed sample sources. The `rules` field
 
 Conditional rules are checked first (in order); the PMID-level override is the fallback.
 
-## Optional metadata fields
+## Per-sample metadata
 
-The YAML supports optional informational fields that do not affect classification:
+Each study has an `ms_samples` list with structured per-sample-type entries:
 
-| Field | Purpose |
-|---|---|
-| `hla_alleles` | HLA alleles profiled in the study |
-| `perturbations` | Non-standard antigen processing conditions (gene KO, cytokines, infection, etc.) |
+```yaml
+ms_samples:
+  - type: "721.221-B*51:01 (WT)"
+    n: 3
+    condition: "unperturbed"
+    mhc_class: "I"
+    peptides: 3000
+    peptides_estimated: true
+  - type: "721.221-B*51:01 ERAP1 KO"
+    n: 3
+    condition: "ERAP1 CRISPR/Cas9 knockout"
+    mhc_class: "I"
+    peptides: 2500
+    peptides_estimated: true
+```
 
-## Curated studies
+Fields: `type` (sample description), `n` (sample count), `source`, `condition` (perturbation or "unperturbed"), `mhc_class` ("I", "II", or "I+II"), `peptides` (unique peptide count), `peptides_estimated` (true if estimated rather than from paper).
 
-### Gold-standard healthy tissue
+## Perturbation categories
 
-| PMID | Study | Donors | Notes |
-|---|---|---|---|
-| 33858848 | Marcu 2021 (HLA Ligand Atlas) | 21 | 14 autopsy + 5 living thymus + 2 ovary, 29 tissues, 227 samples |
-| 29557506 | Neidert 2018 (Tübingen biobank) | ~160 | Per-tissue overrides for surgical vs autopsy samples |
-| 27862975 | Ritz 2017 (soluble HLA) | 3 | Soluble HLA from serum and plasma (weak evidence, sHLA bias) |
+| Category | Studies |
+|----------|---------|
+| CRISPR gene KO (ERAP1, ERAP2, B2M, TAP1/2, TAPBP, IRF2, PDIA3, GANAB, SPPL3, CANX, CALR) | 31092671, 40113210 |
+| shRNA knockdown (ERAP1) | 31092671 |
+| DNMT inhibitor (decitabine 1 uM 72h) | 27412690 |
+| TKI resistance (imatinib 1 uM) | 25576301 |
+| IFN-gamma stimulation | 31844290 |
+| DC differentiation + maturation (GM-CSF + IL-4 → LPS + IFN-gamma) | 32983136, 38920720 |
+| T cell activation (PMA + Ionomycin) | 32983136 |
+| B cell activation (IL-4 + CD40L) | 32983136 |
+| Influenza A/H3N2 infection | 35051231 |
+| Canine distemper virus (CDV) | 29475511 |
+| Marek's disease virus (MDV) | 33901176 |
+| PRRSV (porcine) | 36146698, 32796065 |
+| *Theileria parva* (bovine) | 36423003 |
+| CyHV-2 (fish) | 41459947 |
+| Synthetic peptide pulsing | 38920720 |
+| HLA-DM editing (dm+/dm-) | 31495665 |
+| SILAC cross-presentation | 31495665 |
+| CMV pp65 transgene | 23481700 |
+| TIL expansion (IL-2 + OKT3) | 28832583 |
+| Macrophage differentiation (PMA) | 35051231 |
 
-### Mixed studies (conditional rules)
+## Peptide-to-protein mapping
 
-| PMID | Study | Rules | Notes |
-|---|---|---|---|
-| 36589698 | de Rooij 2022 (CTA TCR library) | Ex vivo → healthy | Cell lines (U266, RPMI8226, UM9, C4-2B4) + ovarian tumors + healthy PBMCs |
-| 38920720 | Hesnard 2024 (ovarian antigen) | Ex vivo → healthy | moDCs pulsed with synthetic peptides, healthy donor leukapheresis |
-| 29786170 | Ternette 2018 (TNBC) | Cancer → cancer, ex vivo → adjacent | Paired tumor + adjacent normal breast, HLA-A*02:01 only |
-| 26992070 | Ritz 2016 (HLA peptidome) | Healthy sera → healthy, disease sera → cancer | Cell lines + 8 melanoma sera + 4 healthy sera |
-| 31154438 | Shraibman 2019 (GBM) | Healthy → healthy, AS → neutral | 10 GBM tumors, 106 GBM plasma, 6 healthy + 30 AS controls |
+Use `ProteomeIndex.from_ensembl_plus_fastas()` to map peptides back to source proteins with flanking context:
 
-### Reclassified studies
+```python
+from hitlist.proteome import ProteomeIndex
 
-| PMID | Study | Override | Reason |
-|---|---|---|---|
-| 32983136 | Marino 2020 | `activated_apc` | Monocyte-derived DCs (LPS + IFN-gamma), T cells (PMA + Ionomycin), B cells (IL-4 + CD40L) |
-| 35051231 | Nicholas 2022 | `adjacent` | Lung from surgery patients + influenza infection perturbation |
-| 28514659 | Hilton 2017 | `cell_line` | 721.221 transfectants wrongly annotated as spleen |
+idx = ProteomeIndex.from_ensembl_plus_fastas(
+    release=112,
+    fastas=["influenza_a.fasta", "cmv.fasta"],  # viral proteomes
+    lengths=(8, 25),  # peptide length range
+)
+hits = idx.map_peptides(peptides, flank=10)  # 10aa flanking on each side
+```
 
-### Mono-allelic 721.221 studies
-
-| PMID | Study | Alleles | Notes |
-|---|---|---|---|
-| 28228285 | Abelin 2017 | 16 HLA-I | 721.221 transfectants, IEDB cell_name = "B cell" |
-| 31844290 | Sarkizova 2020 | 95 HLA-I | 721.221 transfectants (79 new + 16 from Abelin), IEDB cell_name = "B cell" |
-| 31092671 | Guasp 2019 | HLA-B*51:01 | 721.221 + ERAP1/ERAP2 CRISPR KOs, antigen processing perturbation |
+This handles human + viral source proteins in a single index, returning position, N-terminal flank, C-terminal flank, gene name, and protein ID for each peptide.
 
 ## Adding new overrides
 
@@ -94,12 +145,19 @@ Edit `hitlist/data/pmid_overrides.yaml`:
   title: "Exact PubMed title"
   override: adjacent  # or healthy, cancer_patient, activated_apc, cell_line, ~
   note: "Why this override is needed."
-  donors: 10  # optional
-  hla_alleles:  # optional
+  donors: 10
+  hla_alleles:
     profiled: ["HLA-A*02:01"]
-  perturbations:  # optional
+  perturbations:
     - "IFN-gamma stimulation (100 IU/mL, 48h)"
-  rules:  # optional per-condition refinement
+  ms_samples:
+    - type: "sample description"
+      n: 3
+      condition: "unperturbed"
+      mhc_class: "I"
+      peptides: 3000
+      peptides_estimated: true
+  rules:
     - condition:
         Culture Condition: "Direct Ex Vivo"
       override: healthy
@@ -107,6 +165,14 @@ Edit `hitlist/data/pmid_overrides.yaml`:
 ```
 
 No code changes needed. The YAML is loaded at runtime by `hitlist.curation.load_pmid_overrides()`.
+
+## MHC allele validation
+
+All 233 MHC alleles in the YAML parse correctly with mhcgnomes 3.20.0. Validate with:
+
+```bash
+hitlist export alleles
+```
 
 ## Per-donor analysis
 

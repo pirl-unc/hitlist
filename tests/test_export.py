@@ -16,6 +16,8 @@ def test_ms_samples_table_columns():
         "study",
         "mhc_class",
         "n_samples",
+        "peptides",
+        "peptides_estimated",
         "notes",
     }
     assert expected == set(df.columns)
@@ -51,7 +53,14 @@ def test_ms_samples_no_zero_n():
 
 def test_species_summary_columns():
     df = generate_species_summary()
-    expected = {"species", "mhc_class", "n_studies", "n_sample_types", "n_samples"}
+    expected = {
+        "species",
+        "mhc_class",
+        "n_studies",
+        "n_sample_types",
+        "n_samples",
+        "total_peptides",
+    }
     assert expected == set(df.columns)
 
 
