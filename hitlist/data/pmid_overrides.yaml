@@ -1118,3 +1118,200 @@
       n: 1
       condition: "PRRSV infection"
       mhc_class: "I"
+
+- pmid: 32796065
+  label: "Wu 2020 — PRRSV porcine MHC-II"
+  title: "Porcine Reproductive and Respiratory Syndrome Virus Promotes SLA-DR-Mediated Antigen Presentation of Nonstructural Proteins To Evoke a Nonneutralizing Antibody Response In Vivo"
+  override: ~
+  species: "Sus scrofa (pig)"
+  note: >
+    Porcine SLA-DR (class II). MS-based immunopeptidome from PRRSV-infected
+    BMDCs, PAMs, and in vivo hilar lymph node tissue. Identified NSP-derived
+    immunopeptides. Not in IEDB.
+  perturbations:
+    - "PRRSV infection (PRRSV-1 and PRRSV-2 isolates)"
+  ms_samples:
+    - type: "BMDCs (PRRSV-infected)"
+      source: "bone marrow-derived dendritic cells, in vitro"
+      condition: "PRRSV infection"
+      mhc_class: "II"
+    - type: "PAMs (PRRSV-infected)"
+      source: "porcine alveolar macrophages, in vitro"
+      condition: "PRRSV infection"
+      mhc_class: "II"
+    - type: "hilar lymph node (PRRSV-infected piglets)"
+      source: "in vivo, PRRSV-infected piglets"
+      condition: "PRRSV infection (in vivo)"
+      mhc_class: "II"
+
+# ── Cattle (BoLA) ──────────────────────────────────────────────────────────
+
+- pmid: 36423003
+  label: "Connelley/Sheldrake 2022 — BoLA I+II T. parva"
+  title: "Immunopeptidomic Analysis of BoLA-I and BoLA-DR Presented Peptides from Theileria parva Infected Cells"
+  override: ~
+  species: "Bos taurus (cattle)"
+  note: >
+    Most comprehensive BoLA immunopeptidome study. T. parva-infected
+    parasitized bovine lymphocyte cell lines. Both BoLA class I (13 datasets)
+    and BoLA-DR class II (6 datasets). 74 BoLA-I and 15 BoLA-DR curated
+    T. parva peptides plus thousands of self-peptides. In IEDB.
+  perturbations:
+    - "Theileria parva (Muguga strain) parasitic infection"
+  ms_samples:
+    - type: "T. parva-infected bovine lymphocyte lines (BoLA-I)"
+      n: 13
+      source: "parasitized lymphocyte cell lines, multiple BoLA genotypes"
+      condition: "T. parva infection"
+      mhc_class: "I"
+    - type: "T. parva-infected bovine lymphocyte lines (BoLA-DR)"
+      n: 6
+      source: "same cell lines, class II IP"
+      condition: "T. parva infection"
+      mhc_class: "II"
+
+- pmid: 33789985
+  label: "Fisch 2021 — BoLA-DR class II"
+  title: "Integral Use of Immunopeptidomics and Immunoinformatics for the Characterization of Antigen Presentation and Rational Identification of BoLA-DR-Presented Peptides and Epitopes"
+  override: ~
+  species: "Bos taurus (cattle)"
+  note: >
+    BoLA-DR (class II) immunopeptidome from bovine cell lines expressing
+    various DRB3 alleles prevalent in Holstein-Friesian populations.
+    Self-peptidome characterization + CD4 epitope validation. In IEDB.
+  ms_samples:
+    - type: "bovine cell lines (BoLA-DR)"
+      source: "Holstein-Friesian, multiple DRB3 alleles"
+      condition: "unperturbed"
+      mhc_class: "II"
+
+# ── Dog (DLA) ──────────────────────────────────────────────────────────────
+
+- pmid: 27893789
+  label: "Barth 2016 — DLA-88*501:01 peptidome"
+  title: "Characterization of the Canine MHC Class I DLA-88*50101 Peptide Binding Motif as a Prerequisite for Canine T Cell Immunotherapy"
+  override: ~
+  species: "Canis lupus familiaris (dog)"
+  note: >
+    DLA-88*501:01 mono-allelic system. 3,720 peptides identified.
+    Human C1R and K562 cells transfected with canine DLA heavy chain.
+    Motif similar to HLA-A*02:01. In IEDB.
+  ms_samples:
+    - type: "C1R transfected with DLA-88*501:01"
+      source: "human C1R (HLA-null) cell line"
+      condition: "unperturbed — mono-allelic (DLA in human host)"
+      mhc_class: "I"
+    - type: "K562 transfected with DLA-88*501:01"
+      source: "human K562 (HLA-null) cell line"
+      condition: "unperturbed — mono-allelic (DLA in human host)"
+      mhc_class: "I"
+
+- pmid: 29475511
+  label: "Ross 2018 — DLA-88*508:01 + CDV"
+  title: "The canine MHC class Ia allele DLA-88*508:01 presents diverse self- and canine distemper virus-origin peptides of varying length that have a conserved binding motif"
+  override: ~
+  species: "Canis lupus familiaris (dog)"
+  note: >
+    FLAG-tagged DLA-88*508:01 in canine histiocytic cell line. Both
+    uninfected self-peptidome and CDV-infected samples profiled.
+    22 CDV-derived peptides identified. In IEDB.
+  perturbations:
+    - "Canine distemper virus (CDV) infection"
+  ms_samples:
+    - type: "canine histiocytic cells (DLA-88*508:01, uninfected)"
+      source: "FLAG-tagged DLA-88*508:01 transfectant"
+      condition: "unperturbed — self-peptidome"
+      mhc_class: "I"
+    - type: "canine histiocytic cells (DLA-88*508:01, CDV-infected)"
+      source: "same cell line"
+      condition: "canine distemper virus infection"
+      mhc_class: "I"
+
+# ── Chicken (BF/BL) ───────────────────────────────────────────────────────
+
+- pmid: 18612635
+  label: "Sherman 2008 — chicken BF2 class I"
+  title: "Mass spectral data for 64 eluted peptides and structural modeling define peptide binding preferences for class I alleles in two chicken MHC-B haplotypes associated with opposite responses to Marek's disease"
+  override: ~
+  species: "Gallus gallus (chicken)"
+  note: >
+    64 eluted peptides from two chicken MHC class I alleles in RP9
+    lymphoblastoid cell line transduced with BF2 cDNA. Haplotypes
+    associated with resistance (B21) vs susceptibility (B13) to
+    Marek's disease. In IEDB.
+  ms_samples:
+    - type: "RP9 transduced with BF2*2101 (B21 haplotype)"
+      source: "chicken lymphoblastoid cell line"
+      condition: "unperturbed"
+      mhc_class: "I"
+    - type: "RP9 transduced with BF2*1301 (B13 haplotype)"
+      source: "chicken lymphoblastoid cell line"
+      condition: "unperturbed"
+      mhc_class: "I"
+
+- pmid: 33901176
+  label: "Halabi 2021 — chicken BL2 class II + MDV"
+  title: "The dominantly expressed class II molecule from a resistant MHC haplotype presents only a few Marek's disease virus peptides by using an unprecedented binding motif"
+  override: ~
+  species: "Gallus gallus (chicken)"
+  note: >
+    BL2*02 (B2 haplotype class II) immunopeptidomics + in vitro MDV
+    infection. Unprecedented decamer binding motif. Only ~4 MDV proteins
+    give rise to most presented epitopes. Not in IEDB.
+  perturbations:
+    - "Marek's disease virus (MDV, oncogenic herpesvirus) infection"
+  ms_samples:
+    - type: "B2 chicken cells (uninfected)"
+      condition: "unperturbed — self-peptidome"
+      mhc_class: "II"
+    - type: "B2 chicken cells (MDV-infected)"
+      condition: "Marek's disease virus infection"
+      mhc_class: "II"
+
+- pmid: 36695776
+  label: "Han 2023 — chicken BF2 class I (B15 vs B19)"
+  title: "A Wider and Deeper Peptide-Binding Groove for the Class I Molecules from B15 Compared with B19 Chickens Correlates with Relative Resistance to Marek's Disease"
+  override: ~
+  species: "Gallus gallus (chicken)"
+  note: >
+    BF2*1501 (B15) and BF2*1901 (B19) immunopeptidomics + X-ray
+    crystallography. B15 wider/deeper groove correlates with MD resistance.
+    In IEDB.
+  ms_samples:
+    - type: "B15 chicken cells (BF2*1501)"
+      condition: "unperturbed"
+      mhc_class: "I"
+    - type: "B19 chicken cells (BF2*1901)"
+      condition: "unperturbed"
+      mhc_class: "I"
+
+# ── Rhesus macaque (Mamu) ─────────────────────────────────────────────────
+
+- pmid: 15972670
+  label: "Hickman-Miller 2005 — Mamu class I (6 alleles)"
+  title: "Rhesus macaque MHC class I molecules present HLA-B-like peptides"
+  override: ~
+  species: "Macaca mulatta (rhesus macaque)"
+  note: >
+    65 endogenous peptide ligands sequenced by tandem MS across 6 Mamu
+    alleles. All macaque class I molecules appeared HLA-B-like.
+    5 peptides shared with human HLA elutions.
+  ms_samples:
+    - type: "cells expressing Mamu-A*02"
+      condition: "unperturbed"
+      mhc_class: "I"
+    - type: "cells expressing Mamu-A*08"
+      condition: "unperturbed"
+      mhc_class: "I"
+    - type: "cells expressing Mamu-A*11"
+      condition: "unperturbed"
+      mhc_class: "I"
+    - type: "cells expressing Mamu-B*01"
+      condition: "unperturbed"
+      mhc_class: "I"
+    - type: "cells expressing Mamu-B*03"
+      condition: "unperturbed"
+      mhc_class: "I"
+    - type: "cells expressing Mamu-B*12"
+      condition: "unperturbed"
+      mhc_class: "I"
