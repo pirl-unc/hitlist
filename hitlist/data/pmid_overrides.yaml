@@ -1769,3 +1769,105 @@
       n: 1
       condition: "unperturbed — RPMI + 10% FBS"
       mhc_class: "I"
+
+# ── Non-human species (from issue #7) ─────────────────────────────────────
+
+- pmid: 33460454
+  label: "Gastaldello 2021 — Tasmanian devil DFTD immunopeptidome"
+  title: "The immunopeptidomes of two transmissible cancers and their host have a common, dominant peptide motif"
+  override: ~
+  species: "Sarcophilus harrisii (Tasmanian devil)"
+  note: >
+    Devil Facial Tumour Disease (DFTD) — two transmissible cancers
+    (DFT1, DFT2) compared to host fibroblasts. DFT1 requires IFN-gamma
+    to express MHC-I. DFT2 is constitutively MHC-I positive.
+    25,554 unique 7-15mer peptides total.
+  perturbations:
+    - "DFT1: IFN-gamma treatment to induce MHC-I expression"
+  pulldown_antibody: "anti-devil beta-2-microglobulin (hybridoma 13-34-38)"
+  ms_samples:
+    - type: "devil fibroblasts (healthy host)"
+      n: 4
+      condition: "unperturbed"
+      mhc_class: "I"
+    - type: "DFT1 cell line 4906 + IFN-gamma"
+      n: 4
+      condition: "IFN-gamma (required to induce MHC-I expression)"
+      mhc_class: "I"
+    - type: "DFT2 cell line Red Velvet"
+      n: 4
+      condition: "unperturbed — constitutively MHC-I positive"
+      mhc_class: "I"
+
+- pmid: 34535575
+  label: "Wang 2021 — brushtail possum MHC-I structure (NOT cellular IP)"
+  title: "Peptide Presentations of Marsupial MHC Class I Visualize Immune Features of Lower Mammals Paralleled with Bats"
+  override: ~
+  species: "Trichosurus vulpecula (brushtail possum)"
+  exclude_from_ms: true
+  note: >
+    NOT a cellular immunopeptidome study. Recombinant refolding of
+    Trvu-UB*01:01 with synthetic peptides + X-ray crystallography.
+    Peptides in IEDB are from binding/refolding screen, not from
+    immunoaffinity purification of cell lysates.
+
+- pmid: 35296092
+  label: "Wei 2022 — pig SLA-I RPLD-MS (NOT cellular IP)"
+  title: "Peptidomes and Structures Illustrate How SLA-I Micropolymorphism Influences the Preference of Binding Peptide Length"
+  override: ~
+  species: "Sus scrofa (pig)"
+  exclude_from_ms: true
+  note: >
+    NOT a cellular immunopeptidome study. RPLD-MS (Random Peptide
+    Library + de novo MS sequencing) using recombinant SLA-1*04:01
+    and SLA-1*13:01 refolded in vitro. In vitro biochemistry, not
+    immunoaffinity purification from cells.
+
+- pmid: 26811146
+  label: "Marcilla 2016 — Mamu-B*08 vs HLA-B*27 peptidomes"
+  title: "Comparative Analysis of the Endogenous Peptidomes Displayed by HLA-B*27 and Mamu-B*08: Two MHC Class I Alleles Associated with Elite Control of HIV/SIV Infection"
+  override: cell_line
+  species: "Macaca mulatta (rhesus macaque)"
+  note: >
+    Comparative immunopeptidome of HIV/SIV elite controller alleles.
+    Cell line transfectants expressing individual alleles. Several
+    thousand endogenous ligands per allele.
+  hla_alleles:
+    profiled: ["Mamu-B*008:01", "HLA-B*27:05"]
+  ms_samples:
+    - type: "cell line expressing Mamu-B*008:01"
+      condition: "unperturbed"
+      mhc_class: "I"
+    - type: "cell line expressing HLA-B*27:05"
+      condition: "unperturbed"
+      mhc_class: "I"
+
+- pmid: 34428180
+  label: "Son 2021 — mouse transplant tolerance immunopeptidome"
+  title: "The self-peptide repertoire plays a critical role in transplant tolerance induction"
+  override: ~
+  species: "Mus musculus (mouse)"
+  note: >
+    In vivo mouse immunopeptidome from AAV-transduced hepatocytes,
+    spleen, and skin grafts. Multiple mouse strains (C57BL/6, B10.BR,
+    BALB/c). Includes Tap1 hepatocyte-specific KO. ~42K total peptides.
+  hla_alleles:
+    profiled: ["H2-Kb", "H2-Kd", "H2-Kk", "H2-Db"]
+  pulldown_antibody: "K9-178 (H-2Kb-specific) + allele-specific for H-2Kd"
+  perturbations:
+    - "AAV-mediated hepatocyte expression of allogeneic MHC-I (H-2Kd in C57BL/6)"
+    - "Tap1 hepatocyte-specific knockout (Tap1KOHep)"
+    - "Single-chain trimer constructs (SCT-Kb-KIIT, SCT-Kb-SIIN)"
+  ms_samples:
+    - type: "C57BL/6 hepatocytes (AAV-HC-Kd)"
+      condition: "AAV-transduced allogeneic MHC-I expression"
+      mhc_class: "I"
+    - type: "Tap1KO hepatocytes (AAV-HC-Kd-YCAC)"
+      condition: "Tap1 hepatocyte-specific KO + AAV H-2Kd stabilized"
+      mhc_class: "I"
+    - type: "spleen (178.3 and B6.Kd)"
+      condition: "unperturbed — congenic mice"
+      mhc_class: "I"
+    - type: "skin grafts (7 days post-transplant)"
+      condition: "transplant context"
+      mhc_class: "I"
