@@ -53,22 +53,16 @@
     tissues: "29 tissue types (brain, heart, liver, kidney, lung, spleen, etc.)"
     condition: unperturbed
     mhc_class: I+II
-    peptides: 90000
-    peptides_estimated: true
   - type: living donor thymus
     n: 5
     source: surgical thymus from living donors
     condition: unperturbed
     mhc_class: I+II
-    peptides: 8000
-    peptides_estimated: true
   - type: living donor ovary
     n: 2
     source: surgical ovary from living donors
     condition: unperturbed
     mhc_class: I+II
-    peptides: 2000
-    peptides_estimated: true
 - pmid: 29557506
   label: Neidert 2018 — Tübingen/Zurich biobank
   title: "The natural HLA ligandome of glioblastoma stem-like cells: antigen discovery for T cell-based\
@@ -87,52 +81,38 @@
     condition: unperturbed
     mhc_class: I
     classification: healthy
-    peptides: 10000
-    peptides_estimated: true
   - type: bone marrow
     source: hip arthroplasty — elderly non-cancer patients
     condition: unperturbed
     mhc_class: I
     classification: healthy
-    peptides: 3000
-    peptides_estimated: true
   - type: brain / cerebellum
     source: autopsy (Zurich)
     condition: unperturbed
     mhc_class: I
     classification: healthy
-    peptides: 5000
-    peptides_estimated: true
   - type: colon / stomach / liver / pancreas
     source: Visceral & Transplant Surgery
     condition: unperturbed
     mhc_class: I
     classification: adjacent
     reason: surgical departments where cancer resection is routine
-    peptides: 15000
-    peptides_estimated: true
   - type: kidney
     source: Urology
     condition: unperturbed
     mhc_class: I
     classification: adjacent
     reason: likely nephrectomy (RCC) adjacent
-    peptides: 5000
-    peptides_estimated: true
   - type: lung / breast
     source: surgical departments
     condition: unperturbed
     mhc_class: I
     classification: adjacent
-    peptides: 5000
-    peptides_estimated: true
   - type: spleen / ovary / testis
     source: mixed surgical
     condition: unperturbed
     mhc_class: I
     classification: fall-through (reproductive or somatic default)
-    peptides: 5000
-    peptides_estimated: true
   rules:
   - condition:
       Source Tissue:
@@ -192,29 +172,21 @@
     source: "9 mL whole blood, healthy volunteers"
     condition: unperturbed — sHLA immunoaffinity purification
     mhc_class: I
-    peptides: 2000
-    peptides_estimated: true
   - type: healthy donor plasma
     n: 3
     source: "same 3 donors, EDTA plasma"
     condition: unperturbed — sHLA immunoaffinity purification
     mhc_class: I
-    peptides: 2000
-    peptides_estimated: true
   - type: THP-1 cell line
     n: 1
     source: acute monocytic leukemia line
     condition: unperturbed — comparison only
     mhc_class: I
-    peptides: 3000
-    peptides_estimated: true
   - type: HEK293 cell line
     n: 1
     source: human embryonic kidney line
     condition: unperturbed — comparison only
     mhc_class: I
-    peptides: 3000
-    peptides_estimated: true
 - pmid: 36589698
   label: de Rooij 2022 — CTA-specific TCR library
   title: A library of cancer testis specific T cell receptors for T cell receptor gene therapy
@@ -241,33 +213,23 @@
     n: 1
     condition: unperturbed — standard culture (IMDM + 10% FBS)
     mhc_class: I
-    peptides: 8
-    peptides_estimated: true
   - type: RPMI8226 (multiple myeloma)
     n: 1
     condition: unperturbed — standard culture
     mhc_class: I
-    peptides: 8
-    peptides_estimated: true
   - type: UM9 (multiple myeloma)
     n: 1
     condition: unperturbed — standard culture
     mhc_class: I
-    peptides: 5
-    peptides_estimated: true
   - type: C4-2B4 (prostate carcinoma)
     n: 1
     condition: unperturbed — standard culture
     mhc_class: I
-    peptides: 3
-    peptides_estimated: true
   - type: resected ovarian carcinomas
     n: 8
     source: "fresh tumor tissue, dissociated with gentleMACS"
     condition: unperturbed
     mhc_class: I
-    peptides: 5
-    peptides_estimated: true
   - type: healthy donor PBMCs
     n: 0
     condition: NOT profiled by MS — used for T cell isolation only
@@ -301,8 +263,6 @@
     condition: "IL-4 + GM-CSF 5d differentiation → IFN-gamma + LPS overnight maturation → synthetic peptide\
       \ pulse (10 ug/mL, 2h)"
     mhc_class: I
-    peptides: 2000
-    peptides_estimated: true
   - type: tumor tissue
     n: 0
     condition: NOT in this study — TSAs from prior Laumont 2018 study
@@ -341,43 +301,31 @@
     source: donors D1-D4
     condition: unperturbed
     mhc_class: I
-    peptides: 2000
-    peptides_estimated: true
   - type: immature DCs
     n: 4
     source: donors D1-D4
     condition: GM-CSF (500 IU/mL) + IL-4 (250 IU/mL) 6d
     mhc_class: I
-    peptides: 3000
-    peptides_estimated: true
   - type: mature DCs
     n: 4
     source: donors D1-D4
     condition: GM-CSF + IL-4 6d → LPS (60 EU/mL) + IFN-gamma (2000 IU/mL) 24h
     mhc_class: I
-    peptides: 5000
-    peptides_estimated: true
   - type: CD8+ T cells (activated)
     n: 4
     source: donors D1-D4
     condition: PMA (10 ng/mL) + Ionomycin (1 ug/mL) 48h
     mhc_class: I
-    peptides: 2000
-    peptides_estimated: true
   - type: CD4+ T cells (activated)
     n: 4
     source: donors D1-D4
     condition: PMA (10 ng/mL) + Ionomycin (1 ug/mL) 48h
     mhc_class: I
-    peptides: 2000
-    peptides_estimated: true
   - type: CD19+ B cells (activated)
     n: 4
     source: donors D1-D4
     condition: IL-4 (2 ng/mL) + CD40L-Tri (1 ug/mL) 48h
     mhc_class: I
-    peptides: 2000
-    peptides_estimated: true
 - pmid: 35051231
   label: Nicholas 2022 — influenza-infected lung
   title: Immunopeptidomic analysis of influenza A virus infected human tissues identifies internal proteins
@@ -416,15 +364,11 @@
     source: "TL1165, surgical resection"
     condition: UV-inactivated virus control
     mhc_class: I+II
-    peptides: 3000
-    peptides_estimated: true
   - type: P1 lung — Wisconsin-infected
     n: 1
     source: TL1165
     condition: influenza A/H3N2/Wisconsin 22h
     mhc_class: I+II
-    peptides: 3000
-    peptides_estimated: true
   - type: P1 lung — X31-infected
     n: 0
     condition: NOT profiled (no PRIDE files despite text implying exposure)
@@ -433,73 +377,53 @@
     source: "TL1178, surgical resection"
     condition: UV-inactivated virus control
     mhc_class: I+II
-    peptides: 3000
-    peptides_estimated: true
   - type: P2 lung — Wisconsin-infected
     n: 1
     source: TL1178
     condition: influenza A/H3N2/Wisconsin 22h
     mhc_class: I+II
-    peptides: 3000
-    peptides_estimated: true
   - type: P2 lung — X31-infected
     n: 1
     source: TL1178
     condition: influenza A/H3N2/X31 22h
     mhc_class: I+II
-    peptides: 3000
-    peptides_estimated: true
   - type: P3 lung — UV mock (uninfected)
     n: 1
     source: "TL1187, surgical resection"
     condition: UV-inactivated virus control
     mhc_class: I+II
-    peptides: 3000
-    peptides_estimated: true
   - type: P3 lung — Wisconsin-infected
     n: 1
     source: TL1187
     condition: influenza A/H3N2/Wisconsin 22h
     mhc_class: I+II
-    peptides: 3000
-    peptides_estimated: true
   - type: P3 lung — X31-infected
     n: 1
     source: TL1187
     condition: influenza A/H3N2/X31 22h
     mhc_class: I+II
-    peptides: 3000
-    peptides_estimated: true
   - type: THP-1 macrophage — UV mock (uninfected)
     n: 3
     source: PMA-differentiated THP-1 (3 independent differentiations)
     condition: UV-inactivated virus control
     mhc_class: I+II
-    peptides: 1500
-    peptides_estimated: true
   - type: THP-1 macrophage — Wisconsin-infected
     n: 3
     condition: PMA differentiation → influenza A/H3N2/Wisconsin
     mhc_class: I+II
-    peptides: 1500
-    peptides_estimated: true
   - type: THP-1 macrophage — X31-infected
     n: 3
     condition: PMA differentiation → influenza A/H3N2/X31
     mhc_class: I+II
-    peptides: 1500
-    peptides_estimated: true
   - type: moDC cross-presentation — Wisconsin-infected A549 feeders
     n: 1
     source: "donor P4, heterotypic HLA relative to A549"
     condition: PromoCell DC medium 6d → fed UV-irradiated apoptotic Wisconsin-infected A549 → DC activation
       4h
     mhc_class: I+II
-    peptides: 4639
   - type: moDC cross-presentation — uninfected control
     n: 0
     condition: NOT profiled by MS
-    peptides: 4639
 - pmid: 29786170
   label: Ternette 2018 — TNBC immunopeptidomics
   title: Immunopeptidomic Profiling of HLA-A2-Positive Triple Negative Breast Cancer Identifies Potential
@@ -520,16 +444,12 @@
     condition: unperturbed
     mhc_class: I
     classification: cancer
-    peptides: 3000
-    peptides_estimated: true
   - type: adjacent normal breast
     n: 5
     source: paired adjacent normal from same resection (1 failed IP)
     condition: unperturbed
     mhc_class: I
     classification: adjacent
-    peptides: 2500
-    peptides_estimated: true
   rules:
   - condition:
       Process Type: Occurrence of cancer
@@ -582,54 +502,38 @@
     n: 1
     condition: unperturbed — standard culture
     mhc_class: I
-    peptides: 3000
-    peptides_estimated: true
   - type: HEK293 (human embryonic kidney)
     n: 1
     condition: unperturbed — standard culture
     mhc_class: I
-    peptides: 3000
-    peptides_estimated: true
   - type: HL-60 (acute myeloid leukemia)
     n: 1
     condition: unperturbed — standard culture
     mhc_class: I
-    peptides: 3000
-    peptides_estimated: true
   - type: RPMI8226 (multiple myeloma)
     n: 1
     condition: unperturbed — standard culture
     mhc_class: I
-    peptides: 3000
-    peptides_estimated: true
   - type: THP-1 (acute monocytic leukemia)
     n: 1
     condition: unperturbed — standard culture
     mhc_class: I
-    peptides: 3000
-    peptides_estimated: true
   - type: CA46 (B-cell lymphoma)
     n: 1
     condition: unperturbed — standard culture
     mhc_class: I
-    peptides: 3000
-    peptides_estimated: true
   - type: melanoma patient sera
     n: 8
     source: Stages III-IV melanoma patients
     condition: unperturbed — sHLA from serum
     mhc_class: I
     classification: cancer_patient
-    peptides: 800
-    peptides_estimated: true
   - type: healthy volunteer sera
     n: 4
     source: healthy donors H1-H4
     condition: unperturbed — sHLA from serum
     mhc_class: I
     classification: healthy
-    peptides: 800
-    peptides_estimated: true
   rules:
   - condition:
       Culture Condition: Direct Ex Vivo
@@ -671,40 +575,30 @@
     condition: unperturbed
     mhc_class: I
     classification: cancer
-    peptides: 5000
-    peptides_estimated: true
   - type: GBM patient plasma (pre-surgery)
     n: 52
     source: "52 GBM patients, collected before surgery"
     condition: unperturbed — sHLA from plasma
     mhc_class: I
     classification: cancer_patient
-    peptides: 1000
-    peptides_estimated: true
   - type: GBM patient plasma (post-surgery)
     n: 54
     source: longitudinal samples at multiple time points after surgery
     condition: unperturbed — sHLA from plasma
     mhc_class: I
     classification: cancer_patient
-    peptides: 1000
-    peptides_estimated: true
   - type: healthy donor plasma
     n: 6
     source: healthy volunteer controls
     condition: unperturbed — sHLA from plasma
     mhc_class: I
     classification: healthy
-    peptides: 1000
-    peptides_estimated: true
   - type: ankylosing spondylitis patient plasma
     n: 30
     source: inflammatory disease controls
     condition: unperturbed — sHLA from plasma
     mhc_class: I
     classification: "neutral (not cancer, not healthy)"
-    peptides: 1000
-    peptides_estimated: true
   rules:
   - condition:
       Disease: healthy
@@ -732,20 +626,14 @@
     n: 1
     condition: unperturbed — soluble HLA secreted into supernatant
     mhc_class: I
-    peptides: 2000
-    peptides_estimated: true
   - type: "721.221 transfectant (sHLA-B*15:01)"
     n: 1
     condition: unperturbed — soluble HLA (parental allele comparison)
     mhc_class: I
-    peptides: 2000
-    peptides_estimated: true
   - type: "721.221 transfectant (sHLA-C*01:02)"
     n: 1
     condition: unperturbed — soluble HLA (parental allele comparison)
     mhc_class: I
-    peptides: 1500
-    peptides_estimated: true
 - pmid: 28228285
   label: Abelin 2017 — mono-allelic immunopeptidomes
   title: Mass Spectrometry Profiling of HLA-Associated Peptidomes in Mono-allelic Cells Enables More Accurate
@@ -774,19 +662,14 @@
     source: retroviral transduction of single HLA alleles into B721.221
     condition: unperturbed — standard culture
     mhc_class: I
-    peptides: 24000
   - type: "validation cell lines (HCC1937, HCT116, fibroblasts, HeLa)"
     source: multi-allelic validation samples
     condition: unperturbed — standard culture
     mhc_class: I
-    peptides: 5000
-    peptides_estimated: true
   - type: validation PBMCs
     source: healthy donor PBMCs
     condition: unperturbed
     mhc_class: I
-    peptides: 3000
-    peptides_estimated: true
 - pmid: 31844290
   label: Sarkizova 2020 — large-scale mono-allelic immunopeptidomes
   title: A large peptidome dataset improves HLA class I epitope prediction across most of the human population
@@ -804,21 +687,16 @@
     source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
     condition: unperturbed — standard culture
     mhc_class: I
-    peptides: 185000
   - type: patient-derived tumor cell lines (untreated)
     n: 11
     source: "3 CLL, 1 ovarian, 3 GBM, 4 melanoma"
     condition: unperturbed — validation only
     mhc_class: I
-    peptides: 5000
-    peptides_estimated: true
   - type: patient-derived tumor cell lines (IFN-gamma)
     n: 6
     source: subset of above 11 lines
     condition: "IFN-gamma (2000 U/mL, 3d) — validation only, NOT in training data"
     mhc_class: I
-    peptides: 5500
-    peptides_estimated: true
 - pmid: 31092671
   label: Guasp 2019 — ERAP1/ERAP2 antigen processing
   title: "Redundancy and Complementarity between ERAP1 and ERAP2 Revealed by their Effects on the Behcet's\
@@ -841,32 +719,22 @@
     n: 3
     condition: unperturbed (3 biological replicates)
     mhc_class: I
-    peptides: 3000
-    peptides_estimated: true
   - type: "721.221-B*51:01 ERAP1 KO"
     n: 3
     condition: "ERAP1 CRISPR/Cas9 knockout (clone 3.36, 3 replicates)"
     mhc_class: I
-    peptides: 2500
-    peptides_estimated: true
   - type: "721.221-B*51:01 ERAP2 KO"
     n: 3
     condition: ERAP2 CRISPR/Cas9 knockout (3 replicates)
     mhc_class: I
-    peptides: 2800
-    peptides_estimated: true
   - type: "721.221-B*51:01 ERAP1+ERAP2 double KO (clone 1)"
     n: 3
     condition: ERAP1+ERAP2 double CRISPR/Cas9 knockout (3 replicates)
     mhc_class: I
-    peptides: 2000
-    peptides_estimated: true
   - type: "721.221-B*51:01 ERAP1+ERAP2 double KO (clone 19)"
     n: 3
     condition: ERAP1+ERAP2 double CRISPR/Cas9 knockout (3 replicates)
     mhc_class: I
-    peptides: 2000
-    peptides_estimated: true
 - pmid: 40113210
   label: Shapiro 2025 — HLA-I antigen processing KO panel
   title: Deleterious KOs in the HLA Class I Antigen Processing and Presentation Machinery Induce Distinct
@@ -898,74 +766,50 @@
     n: 1
     condition: unperturbed
     mhc_class: I
-    peptides: 5000
-    peptides_estimated: true
   - type: HAP1 B2M KO
     n: 1
     condition: B2M CRISPR/Cas9 knockout
     mhc_class: I
-    peptides: 500
-    peptides_estimated: true
   - type: HAP1 TAP1 KO
     n: 1
     condition: TAP1 CRISPR/Cas9 knockout
     mhc_class: I
-    peptides: 2000
-    peptides_estimated: true
   - type: HAP1 TAP2 KO
     n: 1
     condition: TAP2 CRISPR/Cas9 knockout
     mhc_class: I
-    peptides: 2000
-    peptides_estimated: true
   - type: HAP1 TAPBP KO
     n: 1
     condition: TAPBP CRISPR/Cas9 knockout (tapasin)
     mhc_class: I
-    peptides: 3500
-    peptides_estimated: true
   - type: HAP1 IRF2 KO
     n: 1
     condition: IRF2 CRISPR/Cas9 knockout
     mhc_class: I
-    peptides: 4000
-    peptides_estimated: true
   - type: HAP1 PDIA3 KO
     n: 1
     condition: PDIA3 CRISPR/Cas9 knockout (ERp57)
     mhc_class: I
-    peptides: 3500
-    peptides_estimated: true
   - type: HAP1 ERAP1 KO
     n: 1
     condition: ERAP1 CRISPR/Cas9 knockout
     mhc_class: I
-    peptides: 4000
-    peptides_estimated: true
   - type: HAP1 GANAB KO
     n: 1
     condition: GANAB CRISPR/Cas9 knockout (glucosidase II alpha)
     mhc_class: I
-    peptides: 4000
-    peptides_estimated: true
   - type: HAP1 SPPL3 KO
     n: 1
     condition: SPPL3 CRISPR/Cas9 knockout
     mhc_class: I
-    peptides: 4500
-    peptides_estimated: true
   - type: HAP1 CANX KO
     n: 1
     condition: CANX CRISPR/Cas9 knockout (calnexin)
     mhc_class: I
-    peptides: 3500
-    peptides_estimated: true
   - type: HAP1 CALR KO
     n: 1
     condition: CALR CRISPR/Cas9 knockout (calreticulin)
     mhc_class: I
-    peptides: 3000
-    peptides_estimated: true
 - pmid: 27600516
   label: Gloger 2016 — melanoma cell line peptidomes
   title: Mass spectrometric analysis of the HLA class I peptidome of melanoma cell lines as a promising
@@ -1016,32 +860,22 @@
     n: 4
     condition: unperturbed — RPMI + 10% FBS
     mhc_class: I
-    peptides: 2500
-    peptides_estimated: true
   - type: FM-93/2 (melanoma)
     n: 4
     condition: unperturbed — RPMI + 10% FBS
     mhc_class: I
-    peptides: 2500
-    peptides_estimated: true
   - type: Mel-624 (melanoma)
     n: 4
     condition: unperturbed — RPMI + 10% FBS
     mhc_class: I
-    peptides: 2500
-    peptides_estimated: true
   - type: MeWo (melanoma)
     n: 5
     condition: unperturbed — RPMI + 10% FBS
     mhc_class: I
-    peptides: 2500
-    peptides_estimated: true
   - type: SK-Mel-5 (melanoma)
     n: 4
     condition: unperturbed — RPMI + 10% FBS
     mhc_class: I
-    peptides: 2500
-    peptides_estimated: true
 - pmid: 23481700
   label: Hassan 2013 — B-LCL HLA-I ligandome
   title: The human leukocyte antigen-presented ligandome of B lymphocytes
@@ -1070,13 +904,11 @@
     source: 60 billion cells
     condition: CMV pp65 retroviral transduction
     mhc_class: I
-    peptides: 6500
   - type: HHC (EBV-LCL)
     n: 1
     source: 40 billion cells
     condition: unperturbed — IMDM + 10% FBS
     mhc_class: I
-    peptides: 10900
 - pmid: 24616531
   label: Mommen 2014 — EThcD methods / B-LCL GR
   title: Expanding the detectable HLA peptide repertoire using electron-transfer/higher-energy collision
@@ -1101,7 +933,6 @@
     source: 9 billion cells
     condition: unperturbed — RPMI-1640
     mhc_class: I
-    peptides: 12000
 - pmid: 25576301
   label: Bassani-Sternberg 2015 — protein abundance & HLA presentation
   title: Mass spectrometry of human leukocyte antigen class I peptidomes reveals strong effects of protein
@@ -1158,45 +989,31 @@
     n: 4
     condition: unperturbed — RPMI
     mhc_class: I
-    peptides: 5000
-    peptides_estimated: true
   - type: HCC1143 (basal-like breast cancer)
     n: 4
     condition: unperturbed — RPMI
     mhc_class: I
-    peptides: 4000
-    peptides_estimated: true
   - type: "HCC1937 (basal-like breast cancer, BRCA1 mutant)"
     n: 4
     condition: unperturbed — RPMI
     mhc_class: I
-    peptides: 4000
-    peptides_estimated: true
   - type: HCT116 (colorectal carcinoma)
     n: 4
     condition: unperturbed — DMEM
     mhc_class: I
-    peptides: 4000
-    peptides_estimated: true
   - type: Fib (primary fibroblasts)
     n: 4
     source: "gift from Dr. Stern-Ginossar, UCSF"
     condition: unperturbed
     mhc_class: I
-    peptides: 3000
-    peptides_estimated: true
   - type: SupB15WT (Ph+ ALL)
     n: 3
     condition: unperturbed — RPMI
     mhc_class: I
-    peptides: 3000
-    peptides_estimated: true
   - type: "SupB15RT (Ph+ ALL, imatinib-resistant)"
     n: 3
     condition: 1 uM imatinib in culture
     mhc_class: I
-    peptides: 3000
-    peptides_estimated: true
 - pmid: 27412690
   label: Shraibman 2016 — GBM + decitabine
   title: Human Leukocyte Antigen (HLA) Peptides Derived from Tumor Antigens Induced by Inhibition of DNA
@@ -1227,38 +1044,26 @@
     n: 3
     condition: unperturbed — DMEM + 10% FBS
     mhc_class: I
-    peptides: 3000
-    peptides_estimated: true
   - type: "U-87 MG + DAC (GBM, decitabine)"
     n: 3
     condition: 1 uM decitabine 72h
     mhc_class: I
-    peptides: 3500
-    peptides_estimated: true
   - type: "T98G (GBM, untreated)"
     n: 3
     condition: unperturbed — DMEM + 10% FBS
     mhc_class: I
-    peptides: 3000
-    peptides_estimated: true
   - type: "T98G + DAC (GBM, decitabine)"
     n: 3
     condition: 1 uM decitabine 72h
     mhc_class: I
-    peptides: 3500
-    peptides_estimated: true
   - type: "LNT-229 (GBM, untreated)"
     n: 3
     condition: unperturbed — DMEM + 10% FBS
     mhc_class: I
-    peptides: 3000
-    peptides_estimated: true
   - type: "LNT-229 + DAC (GBM, decitabine)"
     n: 3
     condition: 1 uM decitabine 72h
     mhc_class: I
-    peptides: 3500
-    peptides_estimated: true
 - pmid: 28832583
   label: Bassani-Sternberg 2017 — HLA-I motif deconvolution
   title: Deciphering HLA-I motifs across HLA peptidomes improves neo-antigen predictions and identifies
@@ -1344,64 +1149,44 @@
     n: 1
     condition: unperturbed — RPMI + GlutaMAX + 10% FBS
     mhc_class: I
-    peptides: 4000
-    peptides_estimated: true
   - type: CM467 (EBV-LCL)
     n: 1
     condition: unperturbed
     mhc_class: I
-    peptides: 4000
-    peptides_estimated: true
   - type: GD149 (EBV-LCL)
     n: 1
     condition: unperturbed
     mhc_class: I
-    peptides: 4000
-    peptides_estimated: true
   - type: MD155 (EBV-LCL)
     n: 1
     condition: unperturbed
     mhc_class: I
-    peptides: 4000
-    peptides_estimated: true
   - type: PD42 (EBV-LCL)
     n: 1
     condition: unperturbed
     mhc_class: I
-    peptides: 4000
-    peptides_estimated: true
   - type: RA957 (EBV-LCL)
     n: 1
     condition: unperturbed
     mhc_class: I
-    peptides: 4000
-    peptides_estimated: true
   - type: "TIL1 (melanoma TIL, expanded)"
     n: 1
     condition: IL-2 expansion + OKT3 rapid expansion
     mhc_class: I
-    peptides: 3000
-    peptides_estimated: true
   - type: "TIL3 (melanoma TIL, expanded)"
     n: 1
     condition: IL-2 expansion + OKT3 rapid expansion
     mhc_class: I
-    peptides: 3000
-    peptides_estimated: true
   - type: Apher1 (healthy donor leukapheresis)
     n: 1
     condition: unperturbed
     mhc_class: I
     classification: healthy
-    peptides: 3000
-    peptides_estimated: true
   - type: Apher6 (healthy donor leukapheresis)
     n: 1
     condition: unperturbed
     mhc_class: I
     classification: healthy
-    peptides: 3000
-    peptides_estimated: true
 - pmid: 27869121
   label: Bassani-Sternberg 2016 — melanoma neoepitope discovery
   title: Direct identification of clinically relevant neoepitopes presented on native human melanoma tissue
@@ -1445,13 +1230,11 @@
     source: "snap-frozen surgical resections, 0.1g-4g tissue"
     condition: unperturbed — some patients post-ipilimumab
     mhc_class: I
-    peptides: 78605
   - type: melanoma metastasis tissue (class II)
     n: 25
     source: "same tissue, sequential IP flow-through from W6/32 → HB-145"
     condition: unperturbed
     mhc_class: II
-    peptides: 78605
 - pmid: 31495665
   label: Abelin 2019 — MAPTAC HLA-II + class I
   title: Defining HLA-II Ligand Processing and Binding Rules with Mass Spectrometry Enhances Cancer Epitope
@@ -1503,53 +1286,39 @@
     source: cell line mixtures per allele
     condition: unperturbed — 48h transfection
     mhc_class: I
-    peptides: 15000
-    peptides_estimated: true
   - type: MAPTAC class II dm+ (HLA-DM co-transfected)
     n: 10
     source: "ExpiHEK293, A375, K562, KG-1, B721.221 mixtures"
     condition: "dm+: HLA-DM co-transfection enables peptide editing"
     mhc_class: II
-    peptides: 15000
-    peptides_estimated: true
   - type: MAPTAC class II dm- (no HLA-DM)
     n: 7
     source: ExpiHEK293 and others
     condition: "dm-: no HLA-DM, CLIP-loaded, unedited peptide repertoire"
     mhc_class: II
-    peptides: 15000
-    peptides_estimated: true
   - type: lung tissue (HLA-DR)
     n: 1
     source: healthy donor
     condition: unperturbed — L243 (anti-HLA-DR) IP
     mhc_class: II
     classification: healthy
-    peptides: 3000
-    peptides_estimated: true
   - type: spleen tissue (HLA-DR)
     n: 1
     source: healthy donor
     condition: unperturbed — L243 (anti-HLA-DR) IP
     mhc_class: II
     classification: healthy
-    peptides: 3000
-    peptides_estimated: true
   - type: healthy donor PBMCs (HLA-DR)
     n: 4
     source: "donors HDSC, RG1095, RG1104, RG1248"
     condition: unperturbed — tal1b5 (anti-HLA-DR) IP
     mhc_class: II
     classification: healthy
-    peptides: 8000
-    peptides_estimated: true
   - type: SILAC DCs cross-presenting tumor antigens
     n: 4
     source: 2 donors x 2 timepoints
     condition: SILAC heavy DCs + light tumor cells → cross-presentation
     mhc_class: II
-    peptides: 5000
-    peptides_estimated: true
 - pmid: 41459947
   label: Xu 2026 — CyHV-2 fish MHC-II
   title: Analysis of MHC class II-bound CyHV-2 peptides in Carassius gibelio using mass spectrometry
@@ -1565,7 +1334,6 @@
     source: Carassius gibelio
     condition: CyHV-2 viral infection
     mhc_class: II
-    peptides: 276
 - pmid: 36146698
   label: Motz 2022 — PRRSV porcine MHC-I
   title: Identification of MHC-I-Presented Porcine Respiratory and Reproductive Syndrome Virus (PRRSV)
@@ -1583,8 +1351,6 @@
     n: 1
     condition: PRRSV infection
     mhc_class: I
-    peptides: 200
-    peptides_estimated: true
 - pmid: 32796065
   label: Wu 2020 — PRRSV porcine MHC-II
   title: Porcine Reproductive and Respiratory Syndrome Virus Promotes SLA-DR-Mediated Antigen Presentation
@@ -1601,20 +1367,14 @@
     source: "bone marrow-derived dendritic cells, in vitro"
     condition: PRRSV infection
     mhc_class: II
-    peptides: 500
-    peptides_estimated: true
   - type: PAMs (PRRSV-infected)
     source: "porcine alveolar macrophages, in vitro"
     condition: PRRSV infection
     mhc_class: II
-    peptides: 300
-    peptides_estimated: true
   - type: hilar lymph node (PRRSV-infected piglets)
     source: "in vivo, PRRSV-infected piglets"
     condition: PRRSV infection (in vivo)
     mhc_class: II
-    peptides: 200
-    peptides_estimated: true
 - pmid: 36423003
   label: Connelley/Sheldrake 2022 — BoLA I+II T. parva
   title: Immunopeptidomic Analysis of BoLA-I and BoLA-DR Presented Peptides from Theileria parva Infected
@@ -1633,15 +1393,11 @@
     source: "parasitized lymphocyte cell lines, multiple BoLA genotypes"
     condition: T. parva infection
     mhc_class: I
-    peptides: 5000
-    peptides_estimated: true
   - type: T. parva-infected bovine lymphocyte lines (BoLA-DR)
     n: 6
     source: "same cell lines, class II IP"
     condition: T. parva infection
     mhc_class: II
-    peptides: 2000
-    peptides_estimated: true
 - pmid: 33789985
   label: Fisch 2021 — BoLA-DR class II
   title: Integral Use of Immunopeptidomics and Immunoinformatics for the Characterization of Antigen Presentation
@@ -1656,8 +1412,6 @@
     source: "Holstein-Friesian, multiple DRB3 alleles"
     condition: unperturbed
     mhc_class: II
-    peptides: 3000
-    peptides_estimated: true
 - pmid: 27893789
   label: "Barth 2016 — DLA-88*501:01 peptidome"
   title: Characterization of the Canine MHC Class I DLA-88*50101 Peptide Binding Motif as a Prerequisite
@@ -1672,14 +1426,10 @@
     source: human C1R (HLA-null) cell line
     condition: unperturbed — mono-allelic (DLA in human host)
     mhc_class: I
-    peptides: 2500
-    peptides_estimated: true
   - type: "K562 transfected with DLA-88*501:01"
     source: human K562 (HLA-null) cell line
     condition: unperturbed — mono-allelic (DLA in human host)
     mhc_class: I
-    peptides: 1220
-    peptides_estimated: true
 - pmid: 29475511
   label: "Ross 2018 — DLA-88*508:01 + CDV"
   title: "The canine MHC class Ia allele DLA-88*508:01 presents diverse self- and canine distemper virus-origin\
@@ -1696,14 +1446,10 @@
     source: "FLAG-tagged DLA-88*508:01 transfectant"
     condition: unperturbed — self-peptidome
     mhc_class: I
-    peptides: 2000
-    peptides_estimated: true
   - type: "canine histiocytic cells (DLA-88*508:01, CDV-infected)"
     source: same cell line
     condition: canine distemper virus infection
     mhc_class: I
-    peptides: 2022
-    peptides_estimated: true
 - pmid: 18612635
   label: Sherman 2008 — chicken BF2 class I
   title: "Mass spectral data for 64 eluted peptides and structural modeling define peptide binding preferences\
@@ -1720,12 +1466,10 @@
     source: chicken lymphoblastoid cell line
     condition: unperturbed
     mhc_class: I
-    peptides: 38
   - type: RP9 transduced with BF2*1301 (B13 haplotype)
     source: chicken lymphoblastoid cell line
     condition: unperturbed
     mhc_class: I
-    peptides: 26
 - pmid: 33901176
   label: Halabi 2021 — chicken BL2 class II + MDV
   title: "The dominantly expressed class II molecule from a resistant MHC haplotype presents only a few\
@@ -1741,13 +1485,9 @@
   - type: B2 chicken cells (uninfected)
     condition: unperturbed — self-peptidome
     mhc_class: II
-    peptides: 500
-    peptides_estimated: true
   - type: B2 chicken cells (MDV-infected)
     condition: "Marek's disease virus infection"
     mhc_class: II
-    peptides: 500
-    peptides_estimated: true
 - pmid: 36695776
   label: Han 2023 — chicken BF2 class I (B15 vs B19)
   title: "A Wider and Deeper Peptide-Binding Groove for the Class I Molecules from B15 Compared with B19\
@@ -1761,13 +1501,9 @@
   - type: B15 chicken cells (BF2*1501)
     condition: unperturbed
     mhc_class: I
-    peptides: 500
-    peptides_estimated: true
   - type: B19 chicken cells (BF2*1901)
     condition: unperturbed
     mhc_class: I
-    peptides: 500
-    peptides_estimated: true
 - pmid: 15972670
   label: Hickman-Miller 2005 — Mamu class I (6 alleles)
   title: Rhesus macaque MHC class I molecules present HLA-B-like peptides
@@ -1780,30 +1516,18 @@
   - type: cells expressing Mamu-A*02
     condition: unperturbed
     mhc_class: I
-    peptides: 11
-    peptides_estimated: true
   - type: cells expressing Mamu-A*08
     condition: unperturbed
     mhc_class: I
-    peptides: 11
-    peptides_estimated: true
   - type: cells expressing Mamu-A*11
     condition: unperturbed
     mhc_class: I
-    peptides: 11
-    peptides_estimated: true
   - type: cells expressing Mamu-B*01
     condition: unperturbed
     mhc_class: I
-    peptides: 11
-    peptides_estimated: true
   - type: cells expressing Mamu-B*03
     condition: unperturbed
     mhc_class: I
-    peptides: 11
-    peptides_estimated: true
   - type: cells expressing Mamu-B*12
     condition: unperturbed
     mhc_class: I
-    peptides: 10
-    peptides_estimated: true

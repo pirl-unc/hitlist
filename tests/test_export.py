@@ -16,8 +16,6 @@ def test_ms_samples_table_columns():
         "study",
         "mhc_class",
         "n_samples",
-        "peptides",
-        "peptides_estimated",
         "notes",
     }
     assert expected == set(df.columns)
@@ -59,7 +57,6 @@ def test_species_summary_columns():
         "n_studies",
         "n_sample_types",
         "n_samples",
-        "total_peptides",
     }
     assert expected == set(df.columns)
 
