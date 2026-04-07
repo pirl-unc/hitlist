@@ -15,13 +15,20 @@
 Reads ``pmid_overrides.yaml`` and generates per-sample, per-species,
 and allele-validation reports from the ``ms_samples`` and ``hla_alleles``
 metadata fields.
+
+Can also scan local IEDB/CEDAR CSV files to count actual peptides
+per study, species, and MHC class.
 """
 
 from __future__ import annotations
 
+import contextlib
+from collections import defaultdict
+from pathlib import Path
+
 import pandas as pd
 
-from .curation import load_pmid_overrides
+from .curation import classify_mhc_species, load_pmid_overrides
 
 
 def generate_ms_samples_table(mhc_class: str | None = None) -> pd.DataFrame:
@@ -199,6 +206,98 @@ def _mhc_class_matches(sample_class: str, filter_class: str) -> bool:
         return False
     parts = {p.strip() for p in sample_class.split("+")}
     return filter_class in parts
+
+
+def count_peptides_by_study(
+    iedb_path: str | Path | None = None,
+    cedar_path: str | Path | None = None,
+) -> pd.DataFrame:
+    """Count unique peptides per PMID x MHC class x species from local IEDB/CEDAR.
+
+    Fast pass — reads the CSV directly, extracts only the columns needed
+    for counting. No source classification overhead.
+
+    Parameters
+    ----------
+    iedb_path, cedar_path
+        Paths to IEDB/CEDAR CSV exports. If None, resolves from
+        ``hitlist.downloads.get_path()``.
+
+    Returns
+    -------
+    pd.DataFrame
+        Columns: pmid, mhc_class, mhc_species, n_peptides, n_observations.
+    """
+    from .downloads import get_path
+    from .scanner import _open_csv, _progress, _safe_col
+
+    paths: list[Path] = []
+    if iedb_path is not None:
+        paths.append(Path(iedb_path))
+    else:
+        with contextlib.suppress(KeyError, FileNotFoundError):
+            paths.append(get_path("iedb"))
+    if cedar_path is not None:
+        paths.append(Path(cedar_path))
+    else:
+        with contextlib.suppress(KeyError, FileNotFoundError):
+            paths.append(get_path("cedar"))
+
+    if not paths:
+        raise FileNotFoundError(
+            "No IEDB/CEDAR data found. Register with: hitlist data register iedb /path/to/file.csv"
+        )
+
+    # (pmid, mhc_class, species) -> set of peptides
+    peptide_sets: dict[tuple, set[str]] = defaultdict(set)
+    assay_counts: dict[tuple, int] = defaultdict(int)
+    seen_iris: set[str] = set()
+
+    for source_path in paths:
+        if not source_path.exists():
+            continue
+        reader, c, p = _open_csv(source_path)
+        for row in _progress(reader, p, f"Counting {p.name}"):
+            iri = row[c["assay_iri"]] if row else ""
+            if iri in seen_iris:
+                continue
+            seen_iris.add(iri)
+
+            pep = _safe_col(row, c["epitope_name"])
+            if not pep:
+                continue
+
+            raw_pmid = _safe_col(row, c["pmid"]).strip()
+            if not raw_pmid:
+                continue
+            try:
+                pmid = int(raw_pmid)
+            except ValueError:
+                continue
+
+            mhc_cls = _safe_col(row, c["mhc_class"])
+            mhc_res = _safe_col(row, c["mhc_restriction"])
+            species = classify_mhc_species(mhc_res)
+            if not species:
+                host = _safe_col(row, c["host"])
+                species = host if host else "unknown"
+
+            key = (pmid, mhc_cls, species)
+            peptide_sets[key].add(pep)
+            assay_counts[key] += 1
+
+    rows = []
+    for (pmid, mhc_cls, species), peps in sorted(peptide_sets.items()):
+        rows.append(
+            {
+                "pmid": pmid,
+                "mhc_class": mhc_cls,
+                "mhc_species": species,
+                "n_peptides": len(peps),
+                "n_observations": assay_counts[(pmid, mhc_cls, species)],
+            }
+        )
+    return pd.DataFrame(rows)
 
 
 def _extract_allele_strings(hla_alleles: dict | list | str) -> list[str]:
