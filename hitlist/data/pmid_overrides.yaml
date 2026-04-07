@@ -1531,3 +1531,241 @@
   - type: cells expressing Mamu-B*12
     condition: unperturbed
     mhc_class: I
+
+# ── Top uncurated human studies (by peptide count) ─────────────────────────
+
+- pmid: 32903714
+  label: "Wendorff 2020 — HLA-DP peptide microarray (NOT MS)"
+  title: "Unbiased Characterization of Peptide-HLA Class II Interactions Based on Large-Scale Peptide Microarrays"
+  override: ~
+  exclude_from_ms: true
+  note: >
+    NOT an immunopeptidome study. Synthetic peptide binding microarray
+    (69,815 random 13-mers tested against recombinant HLA-DP molecules).
+    Incorrectly categorized in IEDB as eluted ligand data. Must be
+    excluded from all MS-based analyses.
+  hla_alleles:
+    profiled: ["HLA-DPB1*09:01", "HLA-DPB1*10:01", "HLA-DPB1*17:01",
+               "HLA-DPB1*04:01", "HLA-DPB1*04:02", "HLA-DPB1*02:01"]
+
+- pmid: 33968037
+  label: "Goncalves 2021 — TNBC MDA-MB-231 ± IFNg"
+  title: "IFNg Modulates the Immunopeptidome of Triple Negative Breast Cancer Cells by Enhancing and Diversifying Antigen Processing and Presentation"
+  override: cell_line
+  note: >
+    Single cell line MDA-MB-231 (metastatic TNBC) profiled ± IFN-gamma.
+    IEDB tissue annotation "Lymphoid" is WRONG — this is breast
+    adenocarcinoma (epithelial). HLA-II only detected after IFN-gamma.
+    Only 34% HLA-I overlap between untreated and treated.
+  hla_alleles:
+    class_i: ["HLA-A*02:01", "HLA-A*02:17", "HLA-B*40:02", "HLA-B*41:01", "HLA-C*02:02", "HLA-C*17:01"]
+    class_ii: ["HLA-DRB1*07:01", "HLA-DRB1*13:05", "HLA-DPA1*02:01", "HLA-DPB1*17:01", "HLA-DQA1*02:02", "HLA-DQB1*03:01"]
+  pulldown_antibody: "W6/32 (class I); LB3.1 (DR), B721 (DP), SPV-L3 (DQ)"
+  perturbations:
+    - "IFN-gamma 50 IU/mL 48h (half of samples)"
+  ms_samples:
+    - type: "MDA-MB-231 (untreated)"
+      condition: "unperturbed — DMEM + 10% FBS"
+      mhc_class: "I"
+    - type: "MDA-MB-231 + IFN-gamma (class I)"
+      condition: "IFN-gamma 50 IU/mL 48h"
+      mhc_class: "I"
+    - type: "MDA-MB-231 + IFN-gamma (class II)"
+      condition: "IFN-gamma 50 IU/mL 48h — HLA-II only expressed after IFNg"
+      mhc_class: "II"
+
+- pmid: 29242379
+  label: "Chong 2018 — high-throughput immunopeptidomics ± IFNg"
+  title: "High-throughput and Sensitive Immunopeptidomics Platform Reveals Profound Interferon-gamma-Mediated Remodeling of the Human Leukocyte Antigen (HLA) Ligandome"
+  override: ~
+  note: >
+    Mixed study: 5 B-LCLs, 1 ovarian CA cell line (UWB.1 289),
+    4 primary meningioma tissues, 2 melanoma TIL samples. Cell lines
+    profiled ± IFN-gamma (100 IU/mL, 24h) in quadruplicate.
+  pulldown_antibody: "W6/32 (class I); HB145/L243 (class II, anti-HLA-DR)"
+  perturbations:
+    - "IFN-gamma 100 IU/mL 24h (cell line experiments only)"
+  ms_samples:
+    - type: "B-LCLs (JY, CD165, PD42, CM467, RA957) untreated"
+      condition: "unperturbed"
+      mhc_class: "I+II"
+    - type: "B-LCLs + IFN-gamma"
+      condition: "IFN-gamma 100 IU/mL 24h"
+      mhc_class: "I+II"
+    - type: "UWB.1 289 (ovarian carcinoma) untreated"
+      condition: "unperturbed"
+      mhc_class: "I+II"
+      classification: cancer
+    - type: "UWB.1 289 + IFN-gamma"
+      condition: "IFN-gamma 100 IU/mL 24h"
+      mhc_class: "I+II"
+      classification: cancer
+    - type: "primary meningioma tissue"
+      n: 4
+      condition: "unperturbed — snap-frozen surgical resection"
+      mhc_class: "I+II"
+      classification: cancer
+    - type: "melanoma TILs (expanded)"
+      n: 2
+      condition: "TIL expansion protocol"
+      mhc_class: "I"
+      classification: cancer
+
+- pmid: 34357683
+  label: "Ramarathinam 2021 — C1R HLA-II haplodome"
+  title: "HLA class II immunopeptidomics reveals that co-inherited HLA-allotypes within an extended haplotype can improve proteome coverage for immunosurveillance"
+  override: cell_line
+  note: >
+    C1R B-LCL (HLA-I-low) expressing class II haplotype
+    DR12/DQ7/DP4. IEDB annotation "Blood" is misleading — this is
+    a cell line, not primary blood. 71K class II peptides.
+  hla_alleles:
+    class_ii: ["HLA-DRB1*12:01", "HLA-DQB1*03:01", "HLA-DPB1*04:01"]
+  ms_samples:
+    - type: "C1R expressing DR12/DQ7/DP4"
+      condition: "unperturbed"
+      mhc_class: "II"
+
+- pmid: 32938616
+  label: "Faridi 2020 — melanoma spliced peptides ± IFNg"
+  title: "Spliced Peptides and Cytokine-Driven Changes in the Immunopeptidome of Melanoma"
+  override: cell_line
+  note: >
+    Patient-derived melanoma cell lines (LM-MEL panel) profiled
+    ± IFN-gamma. IEDB annotation "Lymph Node" is misleading — these
+    are CELL LINES, not tissue. ~6-8% of peptides are cis-spliced.
+  pulldown_antibody: "W6/32"
+  perturbations:
+    - "IFN-gamma (concentration/duration in methods)"
+  ms_samples:
+    - type: "LM-MEL melanoma cell lines (untreated)"
+      condition: "unperturbed"
+      mhc_class: "I"
+    - type: "LM-MEL melanoma cell lines + IFN-gamma"
+      condition: "IFN-gamma treatment"
+      mhc_class: "I"
+
+- pmid: 32350084
+  label: "van Balen 2020 — HLA-DP allelic variant immunopeptidomes"
+  title: "Immunopeptidome Analysis of HLA-DPB1 Allelic Variants Reveals New Functional Hierarchies"
+  override: cell_line
+  note: >
+    EBV-LCLs homozygous for different HLA-DPB1 alleles + K562
+    transfectants. IEDB "Blood, healthy" is approximately correct for
+    B-LCLs but misses K562 cancer cell line component. ~13 DPB1 alleles.
+  hla_alleles:
+    profiled: ["HLA-DPB1*09:01", "HLA-DPB1*10:01", "HLA-DPB1*17:01",
+               "HLA-DPB1*04:01", "HLA-DPB1*04:02", "HLA-DPB1*02:01"]
+  ms_samples:
+    - type: "EBV-LCLs (DPB1 homozygous)"
+      condition: "unperturbed"
+      mhc_class: "II"
+    - type: "K562 DPB1 transfectants"
+      condition: "unperturbed — mono-allelic expression system"
+      mhc_class: "II"
+
+- pmid: 32157095
+  label: "Laumont 2020 — proteogenomic melanoma + lung"
+  title: "Integrated proteogenomic deep sequencing and analytics accurately identify non-canonical peptides in tumor immunopeptidomes"
+  override: ~
+  note: >
+    7 melanoma cell lines + 2 lung cancer patients with matched normal.
+    IEDB annotation of "healthy skin" is WRONG — no skin tissue was
+    profiled. "Skin" refers to melanoma cell lines (melanocyte origin).
+    Matched normal lung is adjacent tissue (from cancer patients), not
+    truly healthy. 452 non-canonical peptides identified.
+  pulldown_antibody: "W6/32 (class I); HB145/L243 (class II)"
+  ms_samples:
+    - type: "melanoma cell lines (0D5P, 0MM745, 0NVC, T1185B, T1015A, Me290, Me275)"
+      n: 7
+      condition: "unperturbed"
+      mhc_class: "I+II"
+      classification: cancer
+    - type: "lung tumor tissue (SCC + adenocarcinoma)"
+      n: 2
+      source: "C3N-02289 (SCC grade 2), C3N-02671 (adeno grade 2)"
+      condition: "unperturbed — snap-frozen"
+      mhc_class: "I+II"
+      classification: cancer
+    - type: "matched normal lung tissue"
+      n: 2
+      source: "from same 2 cancer patients"
+      condition: "unperturbed — snap-frozen"
+      mhc_class: "I+II"
+      classification: adjacent
+  rules:
+    - condition:
+        Process Type: "Occurrence of cancer"
+      override: cancer_patient
+      reason: "Melanoma cell lines or lung tumor tissue"
+    - condition:
+        Disease: "healthy"
+      override: adjacent
+      reason: "Matched normal lung from cancer patients, not independent healthy donors"
+
+- pmid: 33592498
+  label: "Bassani-Sternberg 2021 — GBM CIITA-transduced HLA-II"
+  title: "CIITA-Transduced Glioblastoma Cells Uncover a Rich Repertoire of Clinically Relevant Tumor-Associated HLA-II Antigens"
+  override: cell_line
+  note: >
+    3 GBM cell lines (HROG02, HROG17, RA) profiled as parental
+    (CIITA-) and CIITA-transduced (CIITA+). GBM cells do not
+    naturally express HLA-II — ALL class II data is from forced
+    CIITA expression. Parental class I data is unperturbed.
+  hla_alleles:
+    HROG02: ["HLA-A*01:01", "HLA-A*02:01", "HLA-B*08:01", "HLA-B*13:02", "HLA-C*06:02", "HLA-C*07:01",
+             "HLA-DRB1*03:01", "HLA-DRB1*07:01"]
+    HROG17: ["HLA-A*11:01", "HLA-A*66:01", "HLA-B*14:02", "HLA-B*40:02", "HLA-C*01:02", "HLA-C*08:02",
+             "HLA-DRB1*01:02", "HLA-DRB1*12:01"]
+    RA: ["HLA-A*02:01", "HLA-A*24:02", "HLA-B*35:03", "HLA-B*51:01", "HLA-C*04:01", "HLA-C*14:02",
+         "HLA-DRB1*04:01", "HLA-DRB1*08:01"]
+  pulldown_antibody: "HB95/W6/32 (class I); HB245/IVA12 (pan-class II)"
+  perturbations:
+    - "CIITA transduction (flag-CIITA plasmid, G418 selection) — forces HLA-II expression on GBM"
+  ms_samples:
+    - type: "GBM parental (CIITA-, class I only)"
+      n: 3
+      condition: "unperturbed"
+      mhc_class: "I"
+    - type: "GBM CIITA-transduced (class I)"
+      n: 3
+      condition: "CIITA transduction"
+      mhc_class: "I"
+    - type: "GBM CIITA-transduced (class II — artificially induced)"
+      n: 3
+      condition: "CIITA transduction — HLA-II not naturally expressed in GBM"
+      mhc_class: "II"
+
+- pmid: 30315122
+  label: "Faridi 2018 — cis/trans-spliced HLA-I peptides"
+  title: "A subset of HLA-I peptides are not genomically templated: Evidence for cis- and trans-spliced peptide ligands"
+  override: cell_line
+  mono_allelic_host: "C1R"
+  note: >
+    Mono-allelic C1R/721.221 transfectants expressing single HLA-A/B
+    allotypes. IEDB annotation "Blood" is misleading — these are cell
+    line expression systems. ~17 alleles, ~45K unique peptides.
+    Focus on cis- and trans-spliced peptide identification.
+  pulldown_antibody: "W6/32"
+  ms_samples:
+    - type: "C1R/721.221 mono-allelic transfectants"
+      n: 17
+      condition: "unperturbed"
+      mhc_class: "I"
+
+- pmid: 32387766
+  label: "Pandey 2020 — THP-1 deep immunopeptidome"
+  title: "In-depth mining of the immunopeptidome of an acute myeloid leukemia cell line using complementary ligand enrichment and data acquisition strategies"
+  override: cell_line
+  note: >
+    Single cell line THP-1 (AML, FAB M5) profiled with two
+    complementary enrichment methods. 41,816 unique HLA-I peptides.
+    IEDB metadata is correct (Blood, AML).
+  hla_alleles:
+    THP-1: ["HLA-A*02:01", "HLA-A*24:02", "HLA-B*15:11", "HLA-B*35:01", "HLA-C*03:03"]
+  pulldown_antibody: "W6/32"
+  ms_samples:
+    - type: "THP-1 (AML)"
+      n: 1
+      condition: "unperturbed — RPMI + 10% FBS"
+      mhc_class: "I"
