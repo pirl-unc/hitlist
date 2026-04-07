@@ -261,7 +261,7 @@ def _export(args: argparse.Namespace) -> None:
     elif args.export_command == "alleles":
         df = validate_mhc_alleles()
     elif args.export_command == "data-alleles":
-        df = collect_alleles_from_data()
+        df = collect_alleles_from_data(source=getattr(args, "source", "merged"))
     elif args.export_command == "counts":
         df = count_peptides_by_study(source=args.source)
     else:

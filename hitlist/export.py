@@ -22,13 +22,9 @@ per study, species, and MHC class.
 
 from __future__ import annotations
 
-import contextlib
-from collections import defaultdict
-from pathlib import Path
-
 import pandas as pd
 
-from .curation import classify_mhc_species, load_pmid_overrides
+from .curation import load_pmid_overrides
 
 
 def generate_ms_samples_table(mhc_class: str | None = None) -> pd.DataFrame:
@@ -204,95 +200,18 @@ def _mhc_class_matches(sample_class: str, filter_class: str) -> bool:
     return filter_class in parts
 
 
-def _scan_single_source(
-    source_path: Path,
-    source_label: str,
-) -> pd.DataFrame:
-    """Count unique peptides per PMID x MHC class x species from one CSV.
-
-    Returns DataFrame with columns: source, pmid, mhc_class, mhc_species,
-    n_peptides, n_observations.
-    """
-    from .scanner import _open_csv, _progress, _safe_col
-
-    peptide_sets: dict[tuple, set[str]] = defaultdict(set)
-    obs_counts: dict[tuple, int] = defaultdict(int)
-
-    reader, c, p = _open_csv(source_path)
-    for row in _progress(reader, p, f"Counting {p.name}"):
-        pep = _safe_col(row, c["epitope_name"])
-        if not pep:
-            continue
-
-        raw_pmid = _safe_col(row, c["pmid"]).strip()
-        if not raw_pmid:
-            continue
-        try:
-            pmid = int(raw_pmid)
-        except ValueError:
-            continue
-
-        mhc_cls = _safe_col(row, c["mhc_class"])
-        mhc_res = _safe_col(row, c["mhc_restriction"])
-        species = classify_mhc_species(mhc_res)
-        if not species:
-            host = _safe_col(row, c["host"])
-            species = host if host else "unknown"
-
-        key = (pmid, mhc_cls, species)
-        peptide_sets[key].add(pep)
-        obs_counts[key] += 1
-
-    rows = []
-    for (pmid, mhc_cls, species), peps in sorted(peptide_sets.items()):
-        rows.append(
-            {
-                "source": source_label,
-                "pmid": pmid,
-                "mhc_class": mhc_cls,
-                "mhc_species": species,
-                "n_peptides": len(peps),
-                "n_observations": obs_counts[(pmid, mhc_cls, species)],
-            }
-        )
-    return pd.DataFrame(rows)
-
-
-def _resolve_source_paths() -> dict[str, Path]:
-    """Resolve registered IEDB/CEDAR paths. Returns {label: path}."""
-    from .downloads import get_path
-
-    sources: dict[str, Path] = {}
-    for name in ("iedb", "cedar"):
-        with contextlib.suppress(KeyError, FileNotFoundError):
-            p = get_path(name)
-            if p.exists():
-                sources[name] = p
-    return sources
-
-
 def count_peptides_by_study(
     source: str | None = None,
-    iedb_path: str | Path | None = None,
-    cedar_path: str | Path | None = None,
 ) -> pd.DataFrame:
     """Count unique peptides per PMID x MHC class x species.
 
-    Scans local IEDB/CEDAR CSVs. Fast single-pass per file, no
-    source classification overhead.
+    Uses cached index (built on first call, reused if source CSV
+    unchanged). See :mod:`hitlist.indexer`.
 
     Parameters
     ----------
     source
-        Which source(s) to scan:
-
-        - ``"iedb"`` — IEDB only
-        - ``"cedar"`` — CEDAR only
-        - ``"merged"`` — IEDB + CEDAR deduplicated by assay IRI (default)
-        - ``"all"`` — returns per-source rows (no dedup) so you can
-          compare IEDB vs CEDAR side by side
-    iedb_path, cedar_path
-        Override paths. If None, resolves from ``hitlist.downloads``.
+        ``"iedb"``, ``"cedar"``, ``"merged"`` (default), or ``"all"``.
 
     Returns
     -------
@@ -300,100 +219,18 @@ def count_peptides_by_study(
         Columns: source, pmid, mhc_class, mhc_species, n_peptides,
         n_observations.
     """
-    from .scanner import _open_csv, _progress, _safe_col
+    from .indexer import get_index
 
-    if source is None:
-        source = "merged"
-
-    # Resolve paths
-    paths: dict[str, Path] = {}
-    if iedb_path is not None:
-        paths["iedb"] = Path(iedb_path)
-    if cedar_path is not None:
-        paths["cedar"] = Path(cedar_path)
-    if not paths:
-        paths = _resolve_source_paths()
-
-    if not paths:
-        raise FileNotFoundError(
-            "No IEDB/CEDAR data found. Register with: hitlist data register iedb /path/to/file.csv"
-        )
-
-    # "all" mode: scan each independently, return concatenated with source labels
-    if source == "all":
-        dfs = []
-        for label, path in sorted(paths.items()):
-            dfs.append(_scan_single_source(path, label))
-        return pd.concat(dfs, ignore_index=True) if dfs else pd.DataFrame()
-
-    # Single source
-    if source in ("iedb", "cedar"):
-        if source not in paths:
-            raise FileNotFoundError(f"'{source}' not registered.")
-        return _scan_single_source(paths[source], source)
-
-    # Merged: scan all files, deduplicate by IRI across sources
-    peptide_sets: dict[tuple, set[str]] = defaultdict(set)
-    obs_counts: dict[tuple, int] = defaultdict(int)
-    seen_iris: set[str] = set()
-
-    for _label, source_path in sorted(paths.items()):
-        reader, c, p = _open_csv(source_path)
-        for row in _progress(reader, p, f"Counting {p.name}"):
-            iri = row[c["assay_iri"]] if row else ""
-            if iri in seen_iris:
-                continue
-            seen_iris.add(iri)
-
-            pep = _safe_col(row, c["epitope_name"])
-            if not pep:
-                continue
-
-            raw_pmid = _safe_col(row, c["pmid"]).strip()
-            if not raw_pmid:
-                continue
-            try:
-                pmid = int(raw_pmid)
-            except ValueError:
-                continue
-
-            mhc_cls = _safe_col(row, c["mhc_class"])
-            mhc_res = _safe_col(row, c["mhc_restriction"])
-            species = classify_mhc_species(mhc_res)
-            if not species:
-                host = _safe_col(row, c["host"])
-                species = host if host else "unknown"
-
-            key = (pmid, mhc_cls, species)
-            peptide_sets[key].add(pep)
-            obs_counts[key] += 1
-
-    rows = []
-    for (pmid, mhc_cls, species), peps in sorted(peptide_sets.items()):
-        rows.append(
-            {
-                "source": "iedb+cedar",
-                "pmid": pmid,
-                "mhc_class": mhc_cls,
-                "mhc_species": species,
-                "n_peptides": len(peps),
-                "n_observations": obs_counts[(pmid, mhc_cls, species)],
-            }
-        )
-    return pd.DataFrame(rows)
+    study_df, _allele_df = get_index(source=source or "merged")
+    return study_df
 
 
 def collect_alleles_from_data(
     source: str | None = None,
-    iedb_path: str | Path | None = None,
-    cedar_path: str | Path | None = None,
 ) -> pd.DataFrame:
-    """Collect all unique MHC restriction strings from IEDB/CEDAR and validate with mhcgnomes.
+    """Collect all unique MHC restriction strings and validate with mhcgnomes.
 
-    Parameters
-    ----------
-    source
-        ``"iedb"``, ``"cedar"``, or ``"merged"`` (default).
+    Uses cached index. See :mod:`hitlist.indexer`.
 
     Returns
     -------
@@ -401,53 +238,10 @@ def collect_alleles_from_data(
         Columns: allele, n_occurrences, parsed_name, parsed_type,
         species, valid.
     """
-    from .scanner import _open_csv, _progress, _safe_col
+    from .indexer import get_index, validate_alleles_from_index
 
-    if source is None:
-        source = "merged"
-
-    paths: dict[str, Path] = {}
-    if iedb_path is not None:
-        paths["iedb"] = Path(iedb_path)
-    if cedar_path is not None:
-        paths["cedar"] = Path(cedar_path)
-    if not paths:
-        paths = _resolve_source_paths()
-
-    allele_counts: dict[str, int] = defaultdict(int)
-    seen_iris: set[str] = set()
-
-    scan_paths = [paths[source]] if source in paths else list(paths.values())
-
-    for source_path in scan_paths:
-        reader, c, p = _open_csv(source_path)
-        for row in _progress(reader, p, f"Alleles {p.name}"):
-            if source == "merged":
-                iri = row[c["assay_iri"]] if row else ""
-                if iri in seen_iris:
-                    continue
-                seen_iris.add(iri)
-            mhc_res = _safe_col(row, c["mhc_restriction"])
-            if mhc_res:
-                allele_counts[mhc_res] += 1
-
-    try:
-        from mhcgnomes import parse
-    except ImportError:
-        parse = None
-
-    rows = []
-    for allele_str, count in sorted(allele_counts.items(), key=lambda x: -x[1]):
-        entry = {"allele": allele_str, "n_occurrences": count}
-        if parse is not None:
-            result = parse(allele_str)
-            entry["parsed_name"] = str(result)
-            entry["parsed_type"] = type(result).__name__
-            entry["species"] = result.species.name if hasattr(result, "species") else ""
-            entry["valid"] = entry["parsed_type"] not in ("ParseError", "str")
-        rows.append(entry)
-
-    return pd.DataFrame(rows)
+    _study_df, allele_df = get_index(source=source or "merged")
+    return validate_alleles_from_index(allele_df)
 
 
 def _extract_allele_strings(hla_alleles: dict | list | str) -> list[str]:
