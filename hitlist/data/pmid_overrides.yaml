@@ -27,6 +27,7 @@
 #                      (gene KO, siRNA, cytokines, infection, etc.)
 #   ms_samples       - per-sample-type enumeration of what was profiled
 #                      by mass spectrometry and under what conditions
+#   mhc_class on ms_samples: "I", "II", or "I+II" for easy filtering
 
 # ── Gold-standard healthy tissue ────────────────────────────────────────────
 
@@ -38,6 +39,7 @@
     21 subjects (14 autopsy + 5 living thymus + 2 living ovary),
     227 samples across 29 tissues. Gold standard benign reference.
     None of the subjects was diagnosed with any malignant disease.
+    Paired HLA-I (198 samples) and HLA-II (220 samples).
   donors: 21
   tissues: 29
   samples: 227
@@ -50,14 +52,17 @@
       source: "14 subjects, snap-frozen within 72h post-mortem"
       tissues: "29 tissue types (brain, heart, liver, kidney, lung, spleen, etc.)"
       condition: "unperturbed"
+      mhc_class: "I+II"
     - type: "living donor thymus"
       n: 5
       source: "surgical thymus from living donors"
       condition: "unperturbed"
+      mhc_class: "I+II"
     - type: "living donor ovary"
       n: 2
       source: "surgical ovary from living donors"
       condition: "unperturbed"
+      mhc_class: "I+II"
 
 - pmid: 29557506
   label: "Neidert 2018 — Tübingen/Zurich biobank"
@@ -76,32 +81,39 @@
     - type: "blood (buffy coat)"
       source: "Dept of Transfusion Medicine — healthy blood bank donors"
       condition: "unperturbed"
+      mhc_class: "I"
       classification: healthy
     - type: "bone marrow"
       source: "hip arthroplasty — elderly non-cancer patients"
       condition: "unperturbed"
+      mhc_class: "I"
       classification: healthy
     - type: "brain / cerebellum"
       source: "autopsy (Zurich)"
       condition: "unperturbed"
+      mhc_class: "I"
       classification: healthy
     - type: "colon / stomach / liver / pancreas"
       source: "Visceral & Transplant Surgery"
       condition: "unperturbed"
+      mhc_class: "I"
       classification: adjacent
       reason: "surgical departments where cancer resection is routine"
     - type: "kidney"
       source: "Urology"
       condition: "unperturbed"
+      mhc_class: "I"
       classification: adjacent
       reason: "likely nephrectomy (RCC) adjacent"
     - type: "lung / breast"
       source: "surgical departments"
       condition: "unperturbed"
+      mhc_class: "I"
       classification: adjacent
     - type: "spleen / ovary / testis"
       source: "mixed surgical"
       condition: "unperturbed"
+      mhc_class: "I"
       classification: "fall-through (reproductive or somatic default)"
   rules:
     - condition:
@@ -143,18 +155,22 @@
       n: 3
       source: "9 mL whole blood, healthy volunteers"
       condition: "unperturbed — sHLA immunoaffinity purification"
+      mhc_class: "I"
     - type: "healthy donor plasma"
       n: 3
       source: "same 3 donors, EDTA plasma"
       condition: "unperturbed — sHLA immunoaffinity purification"
+      mhc_class: "I"
     - type: "THP-1 cell line"
       n: 1
       source: "acute monocytic leukemia line"
       condition: "unperturbed — comparison only"
+      mhc_class: "I"
     - type: "HEK293 cell line"
       n: 1
       source: "human embryonic kidney line"
       condition: "unperturbed — comparison only"
+      mhc_class: "I"
 
 # ── Mixed studies (conditional rules needed) ────────────────────────────────
 
@@ -175,19 +191,24 @@
     - type: "U266 (multiple myeloma)"
       n: 1
       condition: "unperturbed — standard culture (IMDM + 10% FBS)"
+      mhc_class: "I"
     - type: "RPMI8226 (multiple myeloma)"
       n: 1
       condition: "unperturbed — standard culture"
+      mhc_class: "I"
     - type: "UM9 (multiple myeloma)"
       n: 1
       condition: "unperturbed — standard culture"
+      mhc_class: "I"
     - type: "C4-2B4 (prostate carcinoma)"
       n: 1
       condition: "unperturbed — standard culture"
+      mhc_class: "I"
     - type: "resected ovarian carcinomas"
       n: 8
       source: "fresh tumor tissue, dissociated with gentleMACS"
       condition: "unperturbed"
+      mhc_class: "I"
     - type: "healthy donor PBMCs"
       n: 0
       condition: "NOT profiled by MS — used for T cell isolation only"
@@ -212,6 +233,7 @@
       n: 8
       source: "CD14+ monocytes from healthy donor leukapheresis (BioIVT, Miltenyi)"
       condition: "IL-4 + GM-CSF 5d differentiation → IFN-gamma + LPS overnight maturation → synthetic peptide pulse (10 ug/mL, 2h)"
+      mhc_class: "I"
     - type: "tumor tissue"
       n: 0
       condition: "NOT in this study — TSAs from prior Laumont 2018 study"
@@ -244,26 +266,32 @@
       n: 4
       source: "donors D1-D4"
       condition: "unperturbed"
+      mhc_class: "I"
     - type: "immature DCs"
       n: 4
       source: "donors D1-D4"
       condition: "GM-CSF (500 IU/mL) + IL-4 (250 IU/mL) 6d"
+      mhc_class: "I"
     - type: "mature DCs"
       n: 4
       source: "donors D1-D4"
       condition: "GM-CSF + IL-4 6d → LPS (60 EU/mL) + IFN-gamma (2000 IU/mL) 24h"
+      mhc_class: "I"
     - type: "CD8+ T cells (activated)"
       n: 4
       source: "donors D1-D4"
       condition: "PMA (10 ng/mL) + Ionomycin (1 ug/mL) 48h"
+      mhc_class: "I"
     - type: "CD4+ T cells (activated)"
       n: 4
       source: "donors D1-D4"
       condition: "PMA (10 ng/mL) + Ionomycin (1 ug/mL) 48h"
+      mhc_class: "I"
     - type: "CD19+ B cells (activated)"
       n: 4
       source: "donors D1-D4"
       condition: "IL-4 (2 ng/mL) + CD40L-Tri (1 ug/mL) 48h"
+      mhc_class: "I"
 
 # ── Tumor-adjacent normal tissue ────────────────────────────────────────────
 
@@ -278,6 +306,7 @@
     UV-inactivated mock controls WERE profiled by MS for both lung
     tissue and THP-1 (but NOT for moDCs). P1 has no X31 immunopeptidome
     despite text implying all donors received both strains.
+    Both HLA-I and HLA-II IPs for lung and THP-1. moDC had HLA-II only.
   donors: 3
   perturbations:
     - "Influenza A/H3N2/X31 infection (22h ex vivo)"
@@ -289,15 +318,17 @@
     P2: ["HLA-A*02:01", "HLA-B*15:01", "HLA-B*44:27", "HLA-DRB1*04:01"]
     P3: ["HLA-A*02:01", "HLA-A*03:01", "HLA-B*15:01", "HLA-B*18:01"]
   ms_samples:
-    # Lung tissue — each condition has HLA-I + HLA-II IPs, 2 RP fraction pools x 2 injections = 8 raw files
+    # Lung tissue — each condition has separate HLA-I + HLA-II IPs
     - type: "P1 lung — UV mock (uninfected)"
       n: 1
       source: "TL1165, surgical resection"
       condition: "UV-inactivated virus control"
+      mhc_class: "I+II"
     - type: "P1 lung — Wisconsin-infected"
       n: 1
       source: "TL1165"
       condition: "influenza A/H3N2/Wisconsin 22h"
+      mhc_class: "I+II"
     - type: "P1 lung — X31-infected"
       n: 0
       condition: "NOT profiled (no PRIDE files despite text implying exposure)"
@@ -305,42 +336,52 @@
       n: 1
       source: "TL1178, surgical resection"
       condition: "UV-inactivated virus control"
+      mhc_class: "I+II"
     - type: "P2 lung — Wisconsin-infected"
       n: 1
       source: "TL1178"
       condition: "influenza A/H3N2/Wisconsin 22h"
+      mhc_class: "I+II"
     - type: "P2 lung — X31-infected"
       n: 1
       source: "TL1178"
       condition: "influenza A/H3N2/X31 22h"
+      mhc_class: "I+II"
     - type: "P3 lung — UV mock (uninfected)"
       n: 1
       source: "TL1187, surgical resection"
       condition: "UV-inactivated virus control"
+      mhc_class: "I+II"
     - type: "P3 lung — Wisconsin-infected"
       n: 1
       source: "TL1187"
       condition: "influenza A/H3N2/Wisconsin 22h"
+      mhc_class: "I+II"
     - type: "P3 lung — X31-infected"
       n: 1
       source: "TL1187"
       condition: "influenza A/H3N2/X31 22h"
-    # THP-1 macrophages — 3 biological replicates per condition
+      mhc_class: "I+II"
+    # THP-1 macrophages — 3 biological replicates per condition, class I + II (Expt3 class I only)
     - type: "THP-1 macrophage — UV mock (uninfected)"
       n: 3
       source: "PMA-differentiated THP-1 (3 independent differentiations)"
       condition: "UV-inactivated virus control"
+      mhc_class: "I+II"
     - type: "THP-1 macrophage — Wisconsin-infected"
       n: 3
       condition: "PMA differentiation → influenza A/H3N2/Wisconsin"
+      mhc_class: "I+II"
     - type: "THP-1 macrophage — X31-infected"
       n: 3
       condition: "PMA differentiation → influenza A/H3N2/X31"
-    # moDCs — single donor, NO uninfected control
+      mhc_class: "I+II"
+    # moDCs — single donor, NO uninfected control, class II only (no class I flu peptides detected)
     - type: "moDC cross-presentation — Wisconsin-infected A549 feeders"
       n: 1
       source: "donor P4, heterotypic HLA relative to A549"
       condition: "PromoCell DC medium 6d → fed UV-irradiated apoptotic Wisconsin-infected A549 → DC activation 4h"
+      mhc_class: "I+II"
     - type: "moDC cross-presentation — uninfected control"
       n: 0
       condition: "NOT profiled by MS"
@@ -362,11 +403,13 @@
       n: 6
       source: "fresh-frozen surgical resection"
       condition: "unperturbed"
+      mhc_class: "I"
       classification: cancer
     - type: "adjacent normal breast"
       n: 5
       source: "paired adjacent normal from same resection (1 failed IP)"
       condition: "unperturbed"
+      mhc_class: "I"
       classification: adjacent
   rules:
     - condition:
@@ -390,39 +433,47 @@
     centrifugation only for sera.
   donors: 12
   hla_alleles:
-    noted: ["HLA-A*02", "HLA-A*03", "HLA-A*26", "HLA-A*32",
-            "HLA-B*07", "HLA-B*15", "HLA-B*18", "HLA-B*27", "HLA-B*35",
-            "HLA-B*39", "HLA-B*40", "HLA-B*44", "HLA-B*47", "HLA-B*51",
-            "HLA-B*52", "HLA-B*55", "HLA-B*57", "HLA-B*58"]
+    MAVER-1: ["HLA-A*24:02", "HLA-A*26:01", "HLA-B*38:01", "HLA-B*44:02", "HLA-C*05:01", "HLA-C*12:03"]
+    HEK293: ["HLA-A*03:01", "HLA-B*07:02", "HLA-C*07:01"]
+    HL-60: ["HLA-A*01:01", "HLA-B*57:01", "HLA-C*06:02"]
+    RPMI8226: ["HLA-A*30:01", "HLA-A*68:02", "HLA-B*15:03", "HLA-B*15:10", "HLA-C*02:10", "HLA-C*03:04"]
+    THP-1: ["HLA-A*02:01", "HLA-A*24:02", "HLA-B*15:11", "HLA-B*35:01", "HLA-C*03:03"]
   ms_samples:
     - type: "MAVER-1 (mantle cell lymphoma)"
       n: 1
       condition: "unperturbed — standard culture"
-      hla: ["HLA-A*26:03", "HLA-B*27:04", "HLA-C*12:02"]
+      mhc_class: "I"
     - type: "HEK293 (human embryonic kidney)"
       n: 1
       condition: "unperturbed — standard culture"
+      mhc_class: "I"
     - type: "HL-60 (acute myeloid leukemia)"
       n: 1
       condition: "unperturbed — standard culture"
+      mhc_class: "I"
     - type: "RPMI8226 (multiple myeloma)"
       n: 1
       condition: "unperturbed — standard culture"
+      mhc_class: "I"
     - type: "THP-1 (acute monocytic leukemia)"
       n: 1
       condition: "unperturbed — standard culture"
+      mhc_class: "I"
     - type: "CA46 (B-cell lymphoma)"
       n: 1
       condition: "unperturbed — standard culture"
+      mhc_class: "I"
     - type: "melanoma patient sera"
       n: 8
       source: "Stages III-IV melanoma patients"
       condition: "unperturbed — sHLA from serum"
+      mhc_class: "I"
       classification: cancer_patient
     - type: "healthy volunteer sera"
       n: 4
       source: "healthy donors H1-H4"
       condition: "unperturbed — sHLA from serum"
+      mhc_class: "I"
       classification: healthy
   rules:
     - condition:
@@ -454,26 +505,31 @@
       n: 10
       source: "fresh-frozen immediately after surgical dissection"
       condition: "unperturbed"
+      mhc_class: "I"
       classification: cancer
     - type: "GBM patient plasma (pre-surgery)"
       n: 52
       source: "52 GBM patients, collected before surgery"
       condition: "unperturbed — sHLA from plasma"
+      mhc_class: "I"
       classification: cancer_patient
     - type: "GBM patient plasma (post-surgery)"
       n: 54
       source: "longitudinal samples at multiple time points after surgery"
       condition: "unperturbed — sHLA from plasma"
+      mhc_class: "I"
       classification: cancer_patient
     - type: "healthy donor plasma"
       n: 6
       source: "healthy volunteer controls"
       condition: "unperturbed — sHLA from plasma"
+      mhc_class: "I"
       classification: healthy
     - type: "ankylosing spondylitis patient plasma"
       n: 30
       source: "inflammatory disease controls"
       condition: "unperturbed — sHLA from plasma"
+      mhc_class: "I"
       classification: "neutral (not cancer, not healthy)"
   rules:
     - condition:
@@ -502,12 +558,15 @@
     - type: "721.221 transfectant (sHLA-B*46:01)"
       n: 1
       condition: "unperturbed — soluble HLA secreted into supernatant"
+      mhc_class: "I"
     - type: "721.221 transfectant (sHLA-B*15:01)"
       n: 1
       condition: "unperturbed — soluble HLA (parental allele comparison)"
+      mhc_class: "I"
     - type: "721.221 transfectant (sHLA-C*01:02)"
       n: 1
       condition: "unperturbed — soluble HLA (parental allele comparison)"
+      mhc_class: "I"
 
 # ── Mono-allelic 721.221 studies (IEDB cell_name = "B cell") ───────────────
 
@@ -529,12 +588,15 @@
       n: 16
       source: "retroviral transduction of single HLA alleles into B721.221"
       condition: "unperturbed — standard culture"
+      mhc_class: "I"
     - type: "validation cell lines (HCC1937, HCT116, fibroblasts, HeLa)"
       source: "multi-allelic validation samples"
       condition: "unperturbed — standard culture"
+      mhc_class: "I"
     - type: "validation PBMCs"
       source: "healthy donor PBMCs"
       condition: "unperturbed"
+      mhc_class: "I"
 
 - pmid: 31844290
   label: "Sarkizova 2020 — large-scale mono-allelic immunopeptidomes"
@@ -553,14 +615,17 @@
       n: 95
       source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
       condition: "unperturbed — standard culture"
+      mhc_class: "I"
     - type: "patient-derived tumor cell lines (untreated)"
       n: 11
       source: "3 CLL, 1 ovarian, 3 GBM, 4 melanoma"
       condition: "unperturbed — validation only"
+      mhc_class: "I"
     - type: "patient-derived tumor cell lines (IFN-gamma)"
       n: 6
       source: "subset of above 11 lines"
       condition: "IFN-gamma (2000 U/mL, 3d) — validation only, NOT in training data"
+      mhc_class: "I"
 
 - pmid: 31092671
   label: "Guasp 2019 — ERAP1/ERAP2 antigen processing"
@@ -582,18 +647,23 @@
     - type: "721.221-B*51:01 wildtype"
       n: 3
       condition: "unperturbed (3 biological replicates)"
+      mhc_class: "I"
     - type: "721.221-B*51:01 ERAP1 KO"
       n: 3
       condition: "ERAP1 CRISPR/Cas9 knockout (clone 3.36, 3 replicates)"
+      mhc_class: "I"
     - type: "721.221-B*51:01 ERAP2 KO"
       n: 3
       condition: "ERAP2 CRISPR/Cas9 knockout (3 replicates)"
+      mhc_class: "I"
     - type: "721.221-B*51:01 ERAP1+ERAP2 double KO (clone 1)"
       n: 3
       condition: "ERAP1+ERAP2 double CRISPR/Cas9 knockout (3 replicates)"
+      mhc_class: "I"
     - type: "721.221-B*51:01 ERAP1+ERAP2 double KO (clone 19)"
       n: 3
       condition: "ERAP1+ERAP2 double CRISPR/Cas9 knockout (3 replicates)"
+      mhc_class: "I"
 
 # ── Antigen processing perturbation studies ───────────────────────────────
 
@@ -624,39 +694,395 @@
     - type: "HAP1 wildtype"
       n: 1
       condition: "unperturbed"
+      mhc_class: "I"
     - type: "HAP1 B2M KO"
       n: 1
       condition: "B2M CRISPR/Cas9 knockout"
+      mhc_class: "I"
     - type: "HAP1 TAP1 KO"
       n: 1
       condition: "TAP1 CRISPR/Cas9 knockout"
+      mhc_class: "I"
     - type: "HAP1 TAP2 KO"
       n: 1
       condition: "TAP2 CRISPR/Cas9 knockout"
+      mhc_class: "I"
     - type: "HAP1 TAPBP KO"
       n: 1
       condition: "TAPBP CRISPR/Cas9 knockout (tapasin)"
+      mhc_class: "I"
     - type: "HAP1 IRF2 KO"
       n: 1
       condition: "IRF2 CRISPR/Cas9 knockout"
+      mhc_class: "I"
     - type: "HAP1 PDIA3 KO"
       n: 1
       condition: "PDIA3 CRISPR/Cas9 knockout (ERp57)"
+      mhc_class: "I"
     - type: "HAP1 ERAP1 KO"
       n: 1
       condition: "ERAP1 CRISPR/Cas9 knockout"
+      mhc_class: "I"
     - type: "HAP1 GANAB KO"
       n: 1
       condition: "GANAB CRISPR/Cas9 knockout (glucosidase II alpha)"
+      mhc_class: "I"
     - type: "HAP1 SPPL3 KO"
       n: 1
       condition: "SPPL3 CRISPR/Cas9 knockout"
+      mhc_class: "I"
     - type: "HAP1 CANX KO"
       n: 1
       condition: "CANX CRISPR/Cas9 knockout (calnexin)"
+      mhc_class: "I"
     - type: "HAP1 CALR KO"
       n: 1
       condition: "CALR CRISPR/Cas9 knockout (calreticulin)"
+      mhc_class: "I"
+
+# ── mhcflurry-curated studies ─────────────────────────────────────────────
+
+- pmid: 27600516
+  label: "Gloger 2016 — melanoma cell line peptidomes"
+  title: "Mass spectrometric analysis of the HLA class I peptidome of melanoma cell lines as a promising tool for the identification of putative tumor-associated HLA epitopes"
+  override: cell_line
+  note: >
+    5 melanoma cell lines, all sharing HLA-A*02:01. Quadruplicate biological
+    replicates (quintuplicates for MeWo). >10,000 unique peptides.
+    HLA types from ESTDAB. No perturbations.
+  hla_alleles:
+    FM-82: ["HLA-A*01:01", "HLA-A*02:01", "HLA-B*08:01", "HLA-B*15:01", "HLA-C*03:04", "HLA-C*07:01"]
+    FM-93/2: ["HLA-A*02:01", "HLA-A*26:01", "HLA-B*40:01", "HLA-B*44:02", "HLA-C*03:04", "HLA-C*05:01"]
+    Mel-624: ["HLA-A*02:01", "HLA-A*03:01", "HLA-B*07:02", "HLA-B*14:01", "HLA-C*07:02", "HLA-C*08:02"]
+    MeWo: ["HLA-A*02:01", "HLA-A*26:01", "HLA-B*14:02", "HLA-B*38:01", "HLA-C*08:02", "HLA-C*12:03"]
+    SK-Mel-5: ["HLA-A*02:01", "HLA-A*11:01", "HLA-B*07:02", "HLA-B*40:01", "HLA-C*03:04", "HLA-C*07:02"]
+  pulldown_antibody: "W6/32"
+  ms_samples:
+    - type: "FM-82 (melanoma)"
+      n: 4
+      condition: "unperturbed — RPMI + 10% FBS"
+      mhc_class: "I"
+    - type: "FM-93/2 (melanoma)"
+      n: 4
+      condition: "unperturbed — RPMI + 10% FBS"
+      mhc_class: "I"
+    - type: "Mel-624 (melanoma)"
+      n: 4
+      condition: "unperturbed — RPMI + 10% FBS"
+      mhc_class: "I"
+    - type: "MeWo (melanoma)"
+      n: 5
+      condition: "unperturbed — RPMI + 10% FBS"
+      mhc_class: "I"
+    - type: "SK-Mel-5 (melanoma)"
+      n: 4
+      condition: "unperturbed — RPMI + 10% FBS"
+      mhc_class: "I"
+
+- pmid: 23481700
+  label: "Hassan 2013 — B-LCL HLA-I ligandome"
+  title: "The human leukocyte antigen-presented ligandome of B lymphocytes"
+  override: cell_line
+  note: >
+    EBV-transformed B-LCLs. JY was transduced with CMV pp65 (internal
+    control for known T cell epitopes — a gene modification perturbation).
+    HHC is an obscure B-LCL not in Cellosaurus. 100 billion cells total.
+    14,065 unique peptides.
+  hla_alleles:
+    JY: ["HLA-A*02:01", "HLA-B*07:02", "HLA-C*07:02"]
+    HHC: ["HLA-A*02:01", "HLA-B*07:02", "HLA-B*44:02", "HLA-C*05:01", "HLA-C*07:02"]
+  pulldown_antibody: "W6/32"
+  perturbations:
+    - "JY transduced with CMV pp65 (retroviral, internal control)"
+  ms_samples:
+    - type: "JYpp65 (EBV-LCL, CMV pp65 transduced)"
+      n: 1
+      source: "60 billion cells"
+      condition: "CMV pp65 retroviral transduction"
+      mhc_class: "I"
+    - type: "HHC (EBV-LCL)"
+      n: 1
+      source: "40 billion cells"
+      condition: "unperturbed — IMDM + 10% FBS"
+      mhc_class: "I"
+
+- pmid: 24616531
+  label: "Mommen 2014 — EThcD methods / B-LCL GR"
+  title: "Expanding the detectable HLA peptide repertoire using electron-transfer/higher-energy collision dissociation (EThcD)"
+  override: cell_line
+  note: >
+    Primarily a methods paper comparing fragmentation techniques (EThcD vs
+    CID vs HCD vs ETD). Single B-LCL (GR). HLA alleles at 2-digit only.
+    >12,000 unique peptides. Only 23 epitopes curated in IEDB (highlights only).
+  hla_alleles:
+    GR: ["HLA-A*01", "HLA-A*03", "HLA-B*07", "HLA-B*27", "HLA-C*02", "HLA-C*07"]
+  pulldown_antibody: "W6/32"
+  ms_samples:
+    - type: "GR (EBV-LCL)"
+      n: 1
+      source: "9 billion cells"
+      condition: "unperturbed — RPMI-1640"
+      mhc_class: "I"
+
+- pmid: 25576301
+  label: "Bassani-Sternberg 2015 — protein abundance & HLA presentation"
+  title: "Mass spectrometry of human leukocyte antigen class I peptidomes reveals strong effects of protein abundance and turnover on antigen presentation"
+  override: ~  # mixed: cancer cell lines, B-LCL, primary fibroblasts
+  note: >
+    >22,000 unique HLA peptides. SupB15RT is an imatinib-resistant
+    variant of the Ph+ ALL line SupB15, cultured with 1 uM imatinib.
+    SupB15WT/RT dropped by mhcflurry due to uncertain 4-digit HLA typing.
+    3-4 biological replicates per sample.
+  hla_alleles:
+    JY: ["HLA-A*02:01", "HLA-B*07:02", "HLA-C*07:02"]
+    HCC1143: ["HLA-A*31:01", "HLA-B*35:08", "HLA-B*37:01", "HLA-C*04:01", "HLA-C*06:02"]
+    HCC1937: ["HLA-A*23:01", "HLA-A*24:02", "HLA-B*07:02", "HLA-B*40:01", "HLA-C*03:04", "HLA-C*07:02"]
+    HCT116: ["HLA-A*01:01", "HLA-A*02:01", "HLA-B*18:01", "HLA-B*45:01", "HLA-C*05:01", "HLA-C*07:01"]
+    Fib: ["HLA-A*03:01", "HLA-A*23:01", "HLA-B*08:01", "HLA-B*15:18", "HLA-C*07:02", "HLA-C*07:04"]
+    SupB15: ["HLA-A*03:01", "HLA-A*11:01", "HLA-B*51:02", "HLA-B*52:01", "HLA-C*12:02", "HLA-C*14:02"]
+  pulldown_antibody: "W6/32"
+  perturbations:
+    - "SupB15RT: cultured with 1 uM imatinib (BCR-ABL TKI resistance selection)"
+  ms_samples:
+    - type: "JY (EBV-LCL)"
+      n: 4
+      condition: "unperturbed — RPMI"
+      mhc_class: "I"
+    - type: "HCC1143 (basal-like breast cancer)"
+      n: 4
+      condition: "unperturbed — RPMI"
+      mhc_class: "I"
+    - type: "HCC1937 (basal-like breast cancer, BRCA1 mutant)"
+      n: 4
+      condition: "unperturbed — RPMI"
+      mhc_class: "I"
+    - type: "HCT116 (colorectal carcinoma)"
+      n: 4
+      condition: "unperturbed — DMEM"
+      mhc_class: "I"
+    - type: "Fib (primary fibroblasts)"
+      n: 4
+      source: "gift from Dr. Stern-Ginossar, UCSF"
+      condition: "unperturbed"
+      mhc_class: "I"
+    - type: "SupB15WT (Ph+ ALL)"
+      n: 3
+      condition: "unperturbed — RPMI"
+      mhc_class: "I"
+    - type: "SupB15RT (Ph+ ALL, imatinib-resistant)"
+      n: 3
+      condition: "1 uM imatinib in culture"
+      mhc_class: "I"
+
+- pmid: 27412690
+  label: "Shraibman 2016 — GBM + decitabine"
+  title: "Human Leukocyte Antigen (HLA) Peptides Derived from Tumor Antigens Induced by Inhibition of DNA Methylation for Development of Drug-facilitated Immunotherapy"
+  override: cell_line
+  note: >
+    3 GBM cell lines each profiled ± decitabine (DAC). DAC is a DNMT
+    inhibitor that demethylates promoters and induces CTA expression
+    (MAGE, SSX, GAGE families). 3 biological replicates per condition.
+    All three lines have lost HLA heterozygosity.
+  hla_alleles:
+    U-87: ["HLA-A*02:01", "HLA-B*44:02", "HLA-C*05:01"]
+    T98G: ["HLA-A*02:01", "HLA-B*39:06", "HLA-C*07:02"]
+    LNT-229: ["HLA-A*03:01", "HLA-B*35:01", "HLA-C*04:01"]
+  pulldown_antibody: "W6/32"
+  perturbations:
+    - "Decitabine (5-aza-2'-deoxycytidine) 1 uM, 72h — DNMT inhibitor inducing CTA expression"
+  ms_samples:
+    - type: "U-87 MG (GBM, untreated)"
+      n: 3
+      condition: "unperturbed — DMEM + 10% FBS"
+      mhc_class: "I"
+    - type: "U-87 MG + DAC (GBM, decitabine)"
+      n: 3
+      condition: "1 uM decitabine 72h"
+      mhc_class: "I"
+    - type: "T98G (GBM, untreated)"
+      n: 3
+      condition: "unperturbed — DMEM + 10% FBS"
+      mhc_class: "I"
+    - type: "T98G + DAC (GBM, decitabine)"
+      n: 3
+      condition: "1 uM decitabine 72h"
+      mhc_class: "I"
+    - type: "LNT-229 (GBM, untreated)"
+      n: 3
+      condition: "unperturbed — DMEM + 10% FBS"
+      mhc_class: "I"
+    - type: "LNT-229 + DAC (GBM, decitabine)"
+      n: 3
+      condition: "1 uM decitabine 72h"
+      mhc_class: "I"
+
+- pmid: 28832583
+  label: "Bassani-Sternberg 2017 — HLA-I motif deconvolution"
+  title: "Deciphering HLA-I motifs across HLA peptidomes improves neo-antigen predictions and identifies allostery regulating HLA specificity"
+  override: ~  # mixed: B-LCLs, TILs, leukapheresis, reanalysis
+  note: >
+    10 newly generated immunopeptidomes + reanalysis of PMID 27841757
+    (Pearson 2016 B-LCLs). New data in PRIDE (PXD005231).
+    TILs expanded from melanoma with high IL-2 (6000 IU/mL) 3-5 weeks
+    then rapid expansion with irradiated feeders + OKT3 + IL-2.
+  hla_alleles:
+    CD165: ["HLA-A*02:05", "HLA-A*24:02", "HLA-B*15:01", "HLA-B*50:01", "HLA-C*03:03", "HLA-C*06:02"]
+    CM467: ["HLA-A*01:01", "HLA-A*24:02", "HLA-B*13:02", "HLA-B*39:06", "HLA-C*06:02", "HLA-C*12:03"]
+    GD149: ["HLA-A*01:01", "HLA-A*24:02", "HLA-B*38:01", "HLA-B*44:03", "HLA-C*06:02", "HLA-C*12:03"]
+    MD155: ["HLA-A*02:01", "HLA-A*24:02", "HLA-B*15:01", "HLA-B*18:01", "HLA-C*03:03", "HLA-C*07:01"]
+    PD42: ["HLA-A*02:06", "HLA-A*24:02", "HLA-B*07:02", "HLA-B*55:01", "HLA-C*01:02", "HLA-C*07:02"]
+    RA957: ["HLA-A*02:20", "HLA-A*68:01", "HLA-B*35:03", "HLA-B*39:01", "HLA-C*04:01", "HLA-C*07:02"]
+    TIL1: ["HLA-A*02:01", "HLA-B*18:01", "HLA-B*38:01", "HLA-C*05:01"]
+    TIL3: ["HLA-A*01:01", "HLA-A*23:01", "HLA-B*07:02", "HLA-B*15:01", "HLA-C*12:03", "HLA-C*14:02"]
+    Apher1: ["HLA-A*03:01", "HLA-A*29:02", "HLA-B*44:02", "HLA-B*44:03", "HLA-C*12:03", "HLA-C*16:01"]
+    Apher6: ["HLA-A*02:01", "HLA-A*03:01", "HLA-B*07:02", "HLA-C*07:02"]
+  pulldown_antibody: "W6/32"
+  perturbations:
+    - "TIL expansion: IL-2 (6000 IU/mL) 3-5 wk → irradiated feeders + OKT3 (30 ng/mL) + IL-2 (3000 IU/mL) 14d"
+  ms_samples:
+    - type: "CD165 (EBV-LCL)"
+      n: 1
+      condition: "unperturbed — RPMI + GlutaMAX + 10% FBS"
+      mhc_class: "I"
+    - type: "CM467 (EBV-LCL)"
+      n: 1
+      condition: "unperturbed"
+      mhc_class: "I"
+    - type: "GD149 (EBV-LCL)"
+      n: 1
+      condition: "unperturbed"
+      mhc_class: "I"
+    - type: "MD155 (EBV-LCL)"
+      n: 1
+      condition: "unperturbed"
+      mhc_class: "I"
+    - type: "PD42 (EBV-LCL)"
+      n: 1
+      condition: "unperturbed"
+      mhc_class: "I"
+    - type: "RA957 (EBV-LCL)"
+      n: 1
+      condition: "unperturbed"
+      mhc_class: "I"
+    - type: "TIL1 (melanoma TIL, expanded)"
+      n: 1
+      condition: "IL-2 expansion + OKT3 rapid expansion"
+      mhc_class: "I"
+    - type: "TIL3 (melanoma TIL, expanded)"
+      n: 1
+      condition: "IL-2 expansion + OKT3 rapid expansion"
+      mhc_class: "I"
+    - type: "Apher1 (healthy donor leukapheresis)"
+      n: 1
+      condition: "unperturbed"
+      mhc_class: "I"
+      classification: healthy
+    - type: "Apher6 (healthy donor leukapheresis)"
+      n: 1
+      condition: "unperturbed"
+      mhc_class: "I"
+      classification: healthy
+
+- pmid: 27869121
+  label: "Bassani-Sternberg 2016 — melanoma neoepitope discovery"
+  title: "Direct identification of clinically relevant neoepitopes presented on native human melanoma tissue by mass spectrometry"
+  override: cancer_patient
+  note: >
+    25 melanoma metastasis patients, 5 analyzed in depth. 78,605 HLA-I
+    peptides + 15,009 HLA-II peptides. Sequential class I (W6/32) then
+    class II (HB-145) IP from same lysate. Snap-frozen surgical tissue.
+    Some patients received ipilimumab (anti-CTLA-4).
+  donors: 25
+  pulldown_antibody: "W6/32 (class I) + HB-145 (class II, anti-HLA-DR)"
+  hla_alleles:
+    Mel-8: ["HLA-A*01:01", "HLA-A*03:01", "HLA-B*07:02", "HLA-B*08:01", "HLA-C*07:01", "HLA-C*07:02"]
+    Mel-12: ["HLA-A*01:01", "HLA-B*08:01", "HLA-C*07:01"]
+    Mel-15: ["HLA-A*03:01", "HLA-A*68:01", "HLA-B*27:05", "HLA-B*35:03", "HLA-C*02:02", "HLA-C*04:01"]
+    Mel-16: ["HLA-A*01:01", "HLA-A*24:02", "HLA-B*07:02", "HLA-B*08:01", "HLA-C*07:01", "HLA-C*07:02"]
+  ms_samples:
+    - type: "melanoma metastasis tissue (class I)"
+      n: 25
+      source: "snap-frozen surgical resections, 0.1g-4g tissue"
+      condition: "unperturbed — some patients post-ipilimumab"
+      mhc_class: "I"
+    - type: "melanoma metastasis tissue (class II)"
+      n: 25
+      source: "same tissue, sequential IP flow-through from W6/32 → HB-145"
+      condition: "unperturbed"
+      mhc_class: "II"
+
+- pmid: 31495665
+  label: "Abelin 2019 — MAPTAC HLA-II + class I"
+  title: "Defining HLA-II Ligand Processing and Binding Rules with Mass Spectrometry Enhances Cancer Epitope Prediction"
+  override: ~  # mixed: mono-allelic cell lines, healthy tissue, DCs
+  note: >
+    MAPTAC (Mono-Allelic Purification with Tagged Allele Constructs) uses
+    biotin-acceptor peptide tag + BirA → streptavidin pulldown for
+    mono-allelic class II profiling. dm+ = HLA-DM co-transfected
+    (peptide editing), dm- = no DM (CLIP-loaded, low-affinity peptides).
+    Also includes SILAC DC cross-presentation (heavy DCs + light tumor
+    cells → distinguish cross-presented vs endogenous peptides).
+    Lung and spleen from healthy donors. PBMCs from healthy donors.
+  hla_alleles:
+    class_i_maptac: ["HLA-A*02:01", "HLA-A*11:01", "HLA-A*32:01",
+                      "HLA-B*07:02", "HLA-B*45:01", "HLA-B*52:01",
+                      "HLA-C*03:03", "HLA-C*06:02"]
+    class_ii_maptac: ["HLA-DRB1*01:01", "HLA-DRB1*03:01", "HLA-DRB1*04:01",
+                       "HLA-DRB1*07:01", "HLA-DRB1*11:01", "HLA-DRB1*12:01",
+                       "HLA-DRB1*15:01", "HLA-DRB3*01:01",
+                       "HLA-DPB1*06:01/DPA1*01:03",
+                       "HLA-DQB1*06:04/DQA1*01:02"]
+    tissue_lung: ["HLA-DRB1*01:01", "HLA-DRB1*03:01", "HLA-DRB3*01:01"]
+    tissue_spleen: ["HLA-DRB1*04:01", "HLA-DRB4*01:03", "HLA-DRB1*15:03", "HLA-DRB5*01:01"]
+  pulldown_antibody: "streptavidin (MAPTAC) / L243 or tal1b5 (anti-HLA-DR, tissue/PBMC)"
+  perturbations:
+    - "dm+ vs dm-: HLA-DM co-transfection alters peptide editing (class II)"
+    - "SILAC cross-presentation: heavy-labeled DCs phagocytose light-labeled tumor cells"
+  ms_samples:
+    # MAPTAC mono-allelic class I
+    - type: "MAPTAC class I mono-allelic (A375, ExpiHEK293, HEK293, HeLa mixtures)"
+      n: 8
+      source: "cell line mixtures per allele"
+      condition: "unperturbed — 48h transfection"
+      mhc_class: "I"
+    # MAPTAC mono-allelic class II — dm+ (with HLA-DM)
+    - type: "MAPTAC class II dm+ (HLA-DM co-transfected)"
+      n: 10
+      source: "ExpiHEK293, A375, K562, KG-1, B721.221 mixtures"
+      condition: "dm+: HLA-DM co-transfection enables peptide editing"
+      mhc_class: "II"
+    # MAPTAC mono-allelic class II — dm- (without HLA-DM)
+    - type: "MAPTAC class II dm- (no HLA-DM)"
+      n: 7
+      source: "ExpiHEK293 and others"
+      condition: "dm-: no HLA-DM, CLIP-loaded, unedited peptide repertoire"
+      mhc_class: "II"
+    # Tissue HLA-DR
+    - type: "lung tissue (HLA-DR)"
+      n: 1
+      source: "healthy donor"
+      condition: "unperturbed — L243 (anti-HLA-DR) IP"
+      mhc_class: "II"
+      classification: healthy
+    - type: "spleen tissue (HLA-DR)"
+      n: 1
+      source: "healthy donor"
+      condition: "unperturbed — L243 (anti-HLA-DR) IP"
+      mhc_class: "II"
+      classification: healthy
+    # PBMCs
+    - type: "healthy donor PBMCs (HLA-DR)"
+      n: 4
+      source: "donors HDSC, RG1095, RG1104, RG1248"
+      condition: "unperturbed — tal1b5 (anti-HLA-DR) IP"
+      mhc_class: "II"
+      classification: healthy
+    # SILAC DC cross-presentation (skipped by mhcflurry)
+    - type: "SILAC DCs cross-presenting tumor antigens"
+      n: 4
+      source: "2 donors x 2 timepoints"
+      condition: "SILAC heavy DCs + light tumor cells → cross-presentation"
+      mhc_class: "II"
 
 # ── Non-human species (belt-and-suspenders alongside species filter) ──────
 
@@ -675,6 +1101,7 @@
     - type: "head kidney tissue (CyHV-2-infected)"
       source: "Carassius gibelio"
       condition: "CyHV-2 viral infection"
+      mhc_class: "II"
 
 - pmid: 36146698
   label: "Motz 2022 — PRRSV porcine MHC-I"
@@ -690,3 +1117,4 @@
     - type: "SLA-I Lr-Hp 35.0/24 mod (porcine cell line, PRRSV-infected)"
       n: 1
       condition: "PRRSV infection"
+      mhc_class: "I"
