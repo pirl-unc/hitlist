@@ -146,6 +146,16 @@ def _data_remove(args: argparse.Namespace) -> None:
         print(f"Unregistered '{args.name}' (file kept on disk).")
 
 
+def _data_build(args: argparse.Namespace) -> None:
+    from .builder import build_observations
+
+    build_observations(
+        with_flanking=args.with_flanking,
+        proteome_release=args.proteome_release,
+        force=args.force,
+    )
+
+
 def _data_index(args: argparse.Namespace) -> None:
     from .indexer import _cache_dir, _cache_is_valid, _resolve_source_paths, get_index
 
@@ -201,6 +211,17 @@ def _build_data_parser(sub: argparse._SubParsersAction) -> None:
     p.add_argument("name", help="Dataset name")
     p.add_argument("--delete", action="store_true", help="Also delete the file")
 
+    p = ds.add_parser("build", help="Build unified observations table from IEDB/CEDAR")
+    p.add_argument(
+        "--with-flanking",
+        action="store_true",
+        help="Map peptides to source proteins with 10aa flanking",
+    )
+    p.add_argument(
+        "--proteome-release", type=int, default=112, help="Ensembl release (default 112)"
+    )
+    p.add_argument("--force", "-f", action="store_true", help="Rebuild even if cached")
+
     p = ds.add_parser("index", help="Build/rebuild cached index of IEDB/CEDAR data")
     p.add_argument(
         "--source",
@@ -222,10 +243,13 @@ def _handle_data(args: argparse.Namespace) -> None:
         "info": _data_info,
         "path": _data_path,
         "remove": _data_remove,
+        "build": _data_build,
         "index": _data_index,
     }
     if args.data_command is None:
-        print("Usage: hitlist data {list,available,register,fetch,refresh,info,path,remove,index}")
+        print(
+            "Usage: hitlist data {list,available,register,fetch,refresh,info,path,remove,build,index}"
+        )
         sys.exit(1)
     handlers[args.data_command](args)
 
