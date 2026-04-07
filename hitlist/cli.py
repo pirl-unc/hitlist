@@ -202,6 +202,21 @@ def main() -> None:
     p_report.add_argument("--class", dest="mhc_class", help="MHC class filter (I or II)")
     p_report.add_argument("--output", "-o", help="Save report to file")
 
+    # ── export subcommand ──────────────────────────────────────────────
+    p_export = sub.add_parser("export", help="Export curated study metadata as CSV")
+    export_sub = p_export.add_subparsers(dest="export_command")
+
+    p_samples = export_sub.add_parser("samples", help="Per-sample MS conditions table")
+    p_samples.add_argument("--class", dest="mhc_class", help="Filter to MHC class (I or II)")
+    p_samples.add_argument("--output", "-o", help="Write CSV to file")
+
+    p_summary = export_sub.add_parser("summary", help="Species x MHC class summary")
+    p_summary.add_argument("--class", dest="mhc_class", help="Filter to MHC class (I or II)")
+    p_summary.add_argument("--output", "-o", help="Write CSV to file")
+
+    p_alleles = export_sub.add_parser("alleles", help="Validate MHC alleles with mhcgnomes")
+    p_alleles.add_argument("--output", "-o", help="Write CSV to file")
+
     args = parser.parse_args()
     if args.command is None:
         parser.print_help()
@@ -210,6 +225,28 @@ def main() -> None:
         _handle_data(args)
     elif args.command == "report":
         _report(args)
+    elif args.command == "export":
+        _export(args)
+
+
+def _export(args: argparse.Namespace) -> None:
+    from .export import generate_ms_samples_table, generate_species_summary, validate_mhc_alleles
+
+    if args.export_command == "samples":
+        df = generate_ms_samples_table(mhc_class=args.mhc_class)
+    elif args.export_command == "summary":
+        df = generate_species_summary(mhc_class=args.mhc_class)
+    elif args.export_command == "alleles":
+        df = validate_mhc_alleles()
+    else:
+        print("Usage: hitlist export {samples,summary,alleles}")
+        sys.exit(1)
+
+    if args.output:
+        df.to_csv(args.output, index=False)
+        print(f"Wrote {len(df)} rows to {args.output}")
+    else:
+        print(df.to_csv(index=False), end="")
 
 
 if __name__ == "__main__":
