@@ -2461,3 +2461,541 @@
     - type: "colorectal carcinoma cell lines + 5-azacytidine"
       condition: "5-azacytidine treatment"
       mhc_class: "I"
+
+# ── Issue #12: human studies 51-100 ────────────────────────────────────────
+
+# --- NOT immunopeptidome MS (exclude) ---
+
+- pmid: 35486722
+  label: "Obermair 2022 — MEDi display platform (NOT MS)"
+  title: "MEDi mammalian epitope display for MHC-II peptide presentation"
+  exclude_from_ms: true
+  override: ~
+  note: "Cell-based reporter assay, not immunoaffinity MS."
+
+- pmid: 33705522
+  label: "Dai 2021 — ML method + yeast display (NOT MS)"
+  title: "MHC-II peptide binding optimization via machine learning"
+  exclude_from_ms: true
+  override: ~
+  note: "Computational method + yeast display validation, not IP-MS."
+
+- pmid: 19734234
+  label: "Ishizuka 2009 — T cell cross-reactivity assay (NOT MS)"
+  title: "T cell cross-reactivity quantitation using synthetic peptide libraries"
+  exclude_from_ms: true
+  override: ~
+  note: "Synthetic peptide library T cell assay, not IP-MS."
+
+- pmid: 31611695
+  label: "Chen 2019 — MARIA computational tool (NOT MS)"
+  title: "MARIA deep learning predictor for HLA-II presentation"
+  exclude_from_ms: true
+  override: ~
+  note: "Computational method paper. Uses existing MS data for training."
+
+- pmid: 35781135
+  label: "Huisman 2022 — yeast display MHC-II (NOT MS)"
+  title: "Yeast display platform for MHC-II binding assessment"
+  exclude_from_ms: true
+  override: ~
+  note: "Yeast display binding assay for SARS-CoV-2/dengue, not IP-MS."
+
+# --- Perturbation studies ---
+
+- pmid: 31217245
+  label: "Chikata 2019 — HLA-C*12:02 + HIV-1 infection"
+  override: cell_line
+  perturbations: ["HIV-1 infection of 721.221 transfectants"]
+  ms_samples:
+    - type: "721.221 HLA-C*12:02 + HIV-1"
+      condition: "HIV-1 infection"
+      mhc_class: "I"
+
+- pmid: 33392160
+  label: "Ghosh 2020 — THP-1 + biomaterials + LPS"
+  override: cell_line
+  perturbations: ["Biomaterial contact (steel, aluminum, zinc, polyethylene)", "LPS stimulation"]
+  ms_samples:
+    - type: "THP-1 + biomaterial contact"
+      condition: "biomaterial contact + LPS"
+      mhc_class: "I+II"
+
+- pmid: 31530632
+  label: "Lorente 2019 — HLA-B*40:02 ERAP2 KO"
+  override: cell_line
+  perturbations: ["ERAP2 CRISPR KO"]
+  ms_samples:
+    - type: "C1R HLA-B*40:02 (WT)"
+      condition: "unperturbed"
+      mhc_class: "I"
+    - type: "C1R HLA-B*40:02 (ERAP2 KO)"
+      condition: "ERAP2 CRISPR KO"
+      mhc_class: "I"
+
+- pmid: 29632046
+  label: "Sanz-Bravo 2018 — HLA-B*27 ERAP1 variants"
+  override: cell_line
+  perturbations: ["ERAP1 polymorphism variants"]
+  ms_samples:
+    - type: "C1R HLA-B*27 (multiple ERAP1 variants)"
+      condition: "ERAP1 variant comparison"
+      mhc_class: "I"
+
+- pmid: 29437277
+  label: "Ramarathinam 2018 — HLA-B*57:01 + HIV Env"
+  override: cell_line
+  perturbations: ["HIV envelope protein transduction"]
+  ms_samples:
+    - type: "cells expressing HLA-B*57:01 + HIV Env"
+      condition: "HIV Env transduction"
+      mhc_class: "I"
+
+- pmid: 30779550
+  label: "Murphy 2019 — cancer cells + doxorubicin"
+  override: cell_line
+  perturbations: ["Doxorubicin treatment"]
+  ms_samples:
+    - type: "cancer cell lines (untreated)"
+      condition: "unperturbed"
+      mhc_class: "I"
+    - type: "cancer cell lines + doxorubicin"
+      condition: "doxorubicin treatment"
+      mhc_class: "I"
+
+- pmid: 30524438
+  label: "Jensen 2018 — BET PROTAC immunopeptidome"
+  override: cell_line
+  perturbations: ["PROTAC (BET-targeting degrader compounds)"]
+  ms_samples:
+    - type: "cells (untreated)"
+      condition: "unperturbed"
+      mhc_class: "I"
+    - type: "cells + BET PROTAC"
+      condition: "PROTAC BET degrader treatment"
+      mhc_class: "I"
+
+- pmid: 30833945
+  label: "Javitt 2019 — A549 + TNFa + IFNg"
+  override: cell_line
+  perturbations: ["TNF-alpha + IFN-gamma stimulation"]
+  ms_samples:
+    - type: "A549 lung cancer (untreated)"
+      condition: "unperturbed"
+      mhc_class: "I"
+    - type: "A549 + TNFa + IFNg"
+      condition: "TNF-alpha + IFN-gamma"
+      mhc_class: "I"
+
+- pmid: 32265295
+  label: "Lorente 2020 — HLA-B*27:05 ERAP2 KO"
+  override: cell_line
+  perturbations: ["ERAP2 CRISPR KO"]
+  ms_samples:
+    - type: "cells HLA-B*27:05 (WT vs ERAP2 KO)"
+      condition: "ERAP2 KO comparison"
+      mhc_class: "I"
+
+- pmid: 35561310
+  label: "Bourne 2022 — DLBCL + EZH2i + decitabine + IFNg"
+  override: cell_line
+  perturbations: ["EZH2 inhibitor (tazemetostat)", "Decitabine", "IFN-gamma"]
+  ms_samples:
+    - type: "EZH2-mutant DLBCL (untreated)"
+      condition: "unperturbed"
+      mhc_class: "I+II"
+    - type: "DLBCL + tazemetostat/decitabine/IFNg combinations"
+      condition: "EZH2i + decitabine + IFNg (various combinations)"
+      mhc_class: "I+II"
+
+- pmid: 25892735
+  label: "Alvarez-Navarro 2015 — HLA-A*29:02 ERAP1 variants"
+  override: cell_line
+  perturbations: ["ERAP1 polymorphism variants"]
+  ms_samples:
+    - type: "C1R HLA-A*29:02 (ERAP1 variant comparison)"
+      condition: "ERAP1 variant comparison"
+      mhc_class: "I"
+
+- pmid: 29769354
+  label: "Sanz-Bravo 2018b — HLA-A*29:02 + ERAP2 overexpression"
+  override: cell_line
+  perturbations: ["ERAP2 lentiviral overexpression"]
+  ms_samples:
+    - type: "cells (ERAP2-negative baseline)"
+      condition: "unperturbed"
+      mhc_class: "I"
+    - type: "cells + ERAP2 lentiviral transduction"
+      condition: "ERAP2 overexpression"
+      mhc_class: "I"
+
+- pmid: 28063628
+  label: "Martin-Esteban 2017 — HLA-B*27 ERAP1/ERAP2 combinations"
+  override: cell_line
+  perturbations: ["ERAP1/ERAP2 KO/variant combinations"]
+  ms_samples:
+    - type: "cells (various ERAP1/ERAP2 genotype combinations)"
+      condition: "ERAP1/ERAP2 variant combinations"
+      mhc_class: "I"
+
+- pmid: 31222486
+  label: "Koumantou 2019 — A375 + ERAP1 inhibitor"
+  override: cell_line
+  perturbations: ["ERAP1 pharmacological inhibitor"]
+  ms_samples:
+    - type: "A375 melanoma (untreated)"
+      condition: "unperturbed"
+      mhc_class: "I"
+    - type: "A375 + ERAP1 inhibitor"
+      condition: "ERAP1 pharmacological inhibition"
+      mhc_class: "I"
+
+- pmid: 30484775
+  label: "Ilca 2018 — TAPBPR peptide editing"
+  override: cell_line
+  perturbations: ["TAPBPR overexpression/mutation"]
+  ms_samples:
+    - type: "cells ± TAPBPR manipulation"
+      condition: "TAPBPR overexpression/mutation"
+      mhc_class: "I"
+
+- pmid: 33633747
+  label: "Puig 2021 — HLA-B*57:01 + flucloxacillin"
+  override: cell_line
+  perturbations: ["Flucloxacillin (antibiotic, DILI model)"]
+  ms_samples:
+    - type: "cells (untreated)"
+      condition: "unperturbed"
+      mhc_class: "I"
+    - type: "cells + flucloxacillin"
+      condition: "flucloxacillin treatment"
+      mhc_class: "I"
+
+- pmid: 26375851
+  label: "Schellens 2015 — EBV-LCLs ± vaccinia virus"
+  override: cell_line
+  perturbations: ["Vaccinia virus infection (some conditions)"]
+  ms_samples:
+    - type: "EBV-LCLs (uninfected)"
+      condition: "unperturbed"
+      mhc_class: "I"
+    - type: "EBV-LCLs + vaccinia virus"
+      condition: "vaccinia virus infection"
+      mhc_class: "I"
+
+# --- Healthy/adjacent tissue studies ---
+
+- pmid: 29789417
+  label: "Loffler 2018 — CRC + matched normal colon"
+  override: ~
+  ms_samples:
+    - type: "CRC tumor tissue"
+      condition: "unperturbed"
+      mhc_class: "I+II"
+      classification: cancer
+    - type: "matched normal colon mucosa"
+      condition: "unperturbed"
+      mhc_class: "I+II"
+      classification: adjacent
+  rules:
+    - condition:
+        Disease: "colonic benign neoplasm"
+      override: adjacent
+      reason: "Matched normal colon from cancer patient"
+
+- pmid: 34185709
+  label: "Hirama 2021 — CRC + matched normal colon"
+  override: ~
+  ms_samples:
+    - type: "CRC tumor tissue"
+      condition: "unperturbed"
+      mhc_class: "I"
+      classification: cancer
+    - type: "matched normal colon"
+      condition: "unperturbed"
+      mhc_class: "I"
+      classification: adjacent
+  rules:
+    - condition:
+        Disease: "healthy"
+      override: adjacent
+      reason: "Matched normal from CRC patient"
+
+- pmid: 33091337
+  label: "Wang 2020 — HLA-DR15 in MS brain/thymus/B cells"
+  override: ~
+  note: >
+    Primary healthy thymus + B cells + monocytes, plus MS brain lesions.
+    Important for understanding self-tolerance and autoimmunity.
+  ms_samples:
+    - type: "thymus tissue"
+      condition: "unperturbed"
+      mhc_class: "II"
+      classification: healthy
+    - type: "primary B cells"
+      condition: "unperturbed"
+      mhc_class: "II"
+      classification: healthy
+    - type: "primary monocytes"
+      condition: "unperturbed"
+      mhc_class: "II"
+      classification: healthy
+    - type: "MS brain tissue"
+      condition: "unperturbed — multiple sclerosis lesion"
+      mhc_class: "II"
+
+- pmid: 27452731
+  label: "Heyder 2016 — HLA-DR in sarcoidosis BAL + B cells"
+  override: ~
+  ms_samples:
+    - type: "EBV-B cells"
+      condition: "unperturbed"
+      mhc_class: "II"
+    - type: "BAL cells (sarcoidosis patients)"
+      condition: "unperturbed — bronchoalveolar lavage"
+      mhc_class: "II"
+
+# --- Standard cell line studies (no override needed, but curated for completeness) ---
+
+- pmid: 37938771
+  label: "Yarmarkovich 2023 — neuroblastoma immunopeptidome"
+  override: ~
+  ms_samples:
+    - type: "neuroblastoma cell lines + patient tumors"
+      condition: "unperturbed"
+      mhc_class: "I"
+      classification: cancer
+
+- pmid: 25418920
+  label: "Schittenhelm 2015 — 8 HLA-B27 subtypes"
+  override: cell_line
+  mono_allelic_host: "C1R"
+  ms_samples:
+    - type: "C1R B*27:02-09 transfectants (8 subtypes)"
+      n: 8
+      condition: "unperturbed"
+      mhc_class: "I"
+
+- pmid: 33717175
+  label: "Venema 2021 — HLA-A29 uveitis ERAP2 comparison"
+  override: cell_line
+  ms_samples:
+    - type: "APCs from ERAP2+ vs ERAP2- patients"
+      condition: "unperturbed — natural ERAP2 genotype"
+      mhc_class: "I"
+
+- pmid: 33691108
+  label: "Ruiz Cuevas 2021 — DLBCL cryptic MAPs"
+  override: cell_line
+  ms_samples:
+    - type: "DLBCL cell lines (3 lines)"
+      condition: "unperturbed"
+      mhc_class: "I"
+
+- pmid: 30573663
+  label: "Nanaware 2019 — HLA-DO KO mouse class II"
+  override: ~
+  species: "Mus musculus (mouse)"
+  perturbations: ["HLA-DO knockout"]
+  ms_samples:
+    - type: "mouse splenocytes (WT)"
+      condition: "unperturbed"
+      mhc_class: "II"
+    - type: "mouse splenocytes (DO KO)"
+      condition: "HLA-DO knockout"
+      mhc_class: "II"
+
+- pmid: 26740625
+  label: "Clement 2016 — HLA-DR1 transgenic mouse DCs"
+  override: ~
+  species: "Mus musculus (mouse)"
+  ms_samples:
+    - type: "DCs from lymph nodes (HLA-DR1 transgenic mouse)"
+      condition: "unperturbed"
+      mhc_class: "II"
+
+- pmid: 24715725
+  label: "Bourdetsky 2014 — SILAC DRiPs study"
+  override: cell_line
+  ms_samples:
+    - type: "hematopoietic cell lines (SILAC-labeled)"
+      condition: "SILAC metabolic labeling"
+      mhc_class: "I"
+
+- pmid: 29632046
+  label: "Sanz-Bravo 2018a — HLA-B*27 ERAP1 polymorphisms"
+  override: cell_line
+  ms_samples:
+    - type: "C1R HLA-B*27 transfectants"
+      condition: "ERAP1 variant comparison"
+      mhc_class: "I"
+
+- pmid: 30833945
+  label: "Javitt 2019 — A549 + TNFa/IFNg"
+  override: cell_line
+  ms_samples:
+    - type: "A549 ± TNFa + IFNg"
+      condition: "TNF-alpha + IFN-gamma"
+      mhc_class: "I"
+
+- pmid: 33298915
+  label: "Jappe 2020 — pMHC thermostability"
+  override: cell_line
+  ms_samples:
+    - type: "EBV-LCLs"
+      condition: "unperturbed"
+      mhc_class: "I"
+
+- pmid: 30410026
+  label: "Illing 2018 — HLA-B57 micropolymorphism"
+  override: cell_line
+  ms_samples:
+    - type: "C1R B*57:01/B*57:03/B*58:01 transfectants"
+      condition: "unperturbed"
+      mhc_class: "I"
+
+- pmid: 34561969
+  label: "Khan 2022 — HLA-A*33:03 peptidome"
+  override: cell_line
+  mono_allelic_host: "721.221"
+  ms_samples:
+    - type: "721.221 HLA-A*33:03"
+      condition: "unperturbed"
+      mhc_class: "I"
+
+- pmid: 28855257
+  label: "Mobbs 2017 — HLA-C*06:02 peptidome"
+  override: cell_line
+  mono_allelic_host: "C1R"
+  ms_samples:
+    - type: "C1R HLA-C*06:02"
+      condition: "unperturbed"
+      mhc_class: "I"
+
+- pmid: 29331515
+  label: "Rozanov 2018 — 20 breast cancer cell lines"
+  override: cell_line
+  ms_samples:
+    - type: "breast cancer cell lines"
+      n: 20
+      condition: "unperturbed"
+      mhc_class: "I"
+
+- pmid: 26728094
+  label: "Laumont 2016 — cryptic MAPs from B cells"
+  override: cell_line
+  ms_samples:
+    - type: "EBV-LCLs"
+      condition: "unperturbed"
+      mhc_class: "I"
+
+- pmid: 32561536
+  label: "Erhard 2020 — cryptic ORF peptides in tumors"
+  override: ~
+  ms_samples:
+    - type: "tumor tissues + cell lines"
+      condition: "unperturbed"
+      mhc_class: "I"
+
+- pmid: 35318648
+  label: "Kumar 2022 — EV vs cell surface immunopeptidome"
+  override: cell_line
+  ms_samples:
+    - type: "breast cancer + melanoma + myeloma cell lines"
+      condition: "unperturbed"
+      mhc_class: "I"
+
+- pmid: 31998317
+  label: "Kemps 2020 — BRAF neoantigen targeted peptidomics"
+  override: cell_line
+  ms_samples:
+    - type: "BRAF-transduced cell lines"
+      condition: "unperturbed"
+      mhc_class: "I"
+
+- pmid: 25880248
+  label: "Giam 2015 — HLA-A*01:01 peptidome"
+  override: cell_line
+  mono_allelic_host: "C1R"
+  ms_samples:
+    - type: "C1R HLA-A*01:01"
+      condition: "unperturbed"
+      mhc_class: "I"
+
+- pmid: 24714562
+  label: "Granados 2014 — minor histocompatibility antigens"
+  override: cell_line
+  ms_samples:
+    - type: "EBV-LCLs from MHC-identical siblings"
+      condition: "unperturbed"
+      mhc_class: "I"
+
+- pmid: 34211107
+  label: "Bauza-Martinez 2021 — EV immunopeptidome (JY)"
+  override: cell_line
+  ms_samples:
+    - type: "JY EBV-LCL (whole cell + EV fraction)"
+      condition: "unperturbed"
+      mhc_class: "I"
+
+- pmid: 35494241
+  label: "Solleder 2022 — phospho HLA-II reanalysis"
+  override: ~
+  ms_samples:
+    - type: "reanalysis of existing HLA-II datasets"
+      condition: "unperturbed"
+      mhc_class: "II"
+
+- pmid: 30192525
+  label: "Chen 2018 — HCT116 chemical derivatization"
+  override: cell_line
+  ms_samples:
+    - type: "HCT116 colon cancer"
+      condition: "unperturbed"
+      mhc_class: "I"
+
+- pmid: 31937595
+  label: "Ghosh 2020b — LC-MS/MS validation pipeline"
+  override: ~
+  ms_samples:
+    - type: "JY, PBMCs, CLL, bladder cancer (method validation)"
+      condition: "unperturbed"
+      mhc_class: "I"
+
+- pmid: 34932366
+  label: "Sudhir 2022 — T1D vs healthy (already partial)"
+  override: ~
+  note: "Already partially curated — extending with remaining samples."
+
+- pmid: 33633747
+  label: "Puig 2021 — flucloxacillin DILI"
+  override: cell_line
+  ms_samples:
+    - type: "cells ± flucloxacillin"
+      condition: "flucloxacillin treatment"
+      mhc_class: "I"
+
+- pmid: 34433824
+  label: "Tran 2021 — HLA-DQ8 hybrid insulin peptide"
+  override: ~
+  ms_samples:
+    - type: "HLA-DQ8 immunopeptidome component"
+      condition: "unperturbed"
+      mhc_class: "II"
+
+- pmid: 29317506
+  label: "Ting 2018 — citrullinated peptides HLA-DR (RA)"
+  override: ~
+  ms_samples:
+    - type: "HLA-DR immunopeptidome (citrullinated peptides)"
+      condition: "unperturbed"
+      mhc_class: "II"
+
+- pmid: 28467828
+  label: "Ooi 2017 — Goodpasture HLA-DR15 (NOT primarily MS)"
+  override: ~
+  note: "Primarily immunology/structural paper, borderline IP-MS."
+  ms_samples:
+    - type: "HLA-DR15 immunopeptidome component"
+      condition: "unperturbed"
+      mhc_class: "II"
