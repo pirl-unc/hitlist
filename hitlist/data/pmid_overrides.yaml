@@ -1871,3 +1871,334 @@
     - type: "skin grafts (7 days post-transplant)"
       condition: "transplant context"
       mhc_class: "I"
+
+# ── Batch 2: studies 11-30 by peptide count ────────────────────────────────
+
+- pmid: 33936100
+  label: "Olsson 2021 — mantle cell lymphoma ± IFNg"
+  title: "An Integrated Genomic, Proteomic, and Immunopeptidomic Approach to Discover Treatment-Induced Neoantigens"
+  override: cell_line
+  perturbations:
+    - "IFN-gamma (vs untreated control)"
+  ms_samples:
+    - type: "GRANTA-519 (mantle cell lymphoma, untreated)"
+      condition: "unperturbed"
+      mhc_class: "I+II"
+    - type: "GRANTA-519 + IFN-gamma"
+      condition: "IFN-gamma treatment"
+      mhc_class: "I+II"
+
+- pmid: 28904123
+  label: "Di Marco 2017 — HLA-C/E/G motifs on C1R"
+  title: "Unveiling the Peptide Motifs of HLA-C and HLA-G from Naturally Presented Peptides"
+  override: cell_line
+  mono_allelic_host: "C1R"
+  note: >
+    C1R transfectants expressing 15 HLA-C alleles + HLA-E*01:01 +
+    HLA-G*01:01. IEDB may label as EBV-LCL — actually C1R (HLA-I-low).
+    Includes non-classical HLA (E + G).
+  ms_samples:
+    - type: "C1R HLA-C transfectants (15 alleles)"
+      n: 15
+      condition: "unperturbed — mono-allelic"
+      mhc_class: "I"
+    - type: "C1R HLA-E*01:01 transfectant"
+      n: 1
+      condition: "unperturbed — mono-allelic"
+      mhc_class: "non-classical"
+    - type: "C1R HLA-G*01:01 transfectant"
+      n: 1
+      condition: "unperturbed — mono-allelic"
+      mhc_class: "non-classical"
+
+- pmid: 36010968
+  label: "Vadakekolathu 2022 — SaOS-2 p53 mutant immunopeptidome"
+  title: "Multi-Omic Analysis of Two Common P53 Mutations"
+  override: cell_line
+  perturbations:
+    - "TP53 R175H mutant transfection"
+    - "TP53 R273H mutant transfection"
+  ms_samples:
+    - type: "SaOS-2 (osteosarcoma, TP53-null, vector control)"
+      condition: "unperturbed — empty vector"
+      mhc_class: "I"
+    - type: "SaOS-2 + TP53 R175H"
+      condition: "TP53 R175H mutant transfection"
+      mhc_class: "I"
+    - type: "SaOS-2 + TP53 R273H"
+      condition: "TP53 R273H mutant transfection"
+      mhc_class: "I"
+
+- pmid: 35154160
+  label: "Kaabinejadian 2022 — DRB3/4/5 class II motifs"
+  title: "Accurate MHC Motif Deconvolution of Immunopeptidomics Data Reveals a Significant Contribution of DRB3, 4 and 5"
+  override: cell_line
+  ms_samples:
+    - type: "EBV-LCLs (multiple HLA-DR genotypes)"
+      condition: "unperturbed"
+      mhc_class: "II"
+
+- pmid: 32502341
+  label: "Pfammatter 2020 — TMT-labeled ALL + healthy B cells"
+  title: "Extending the Comprehensiveness of Immunopeptidome Analyses Using Isobaric Peptide Labeling"
+  override: ~
+  note: >
+    Primary B cells from ALL patients and healthy donors. TMT-labeling
+    method paper. Needs rules to separate ALL from healthy.
+  ms_samples:
+    - type: "primary B cells from ALL patients"
+      condition: "unperturbed"
+      mhc_class: "I"
+      classification: cancer_patient
+    - type: "primary B cells from healthy donors"
+      condition: "unperturbed"
+      mhc_class: "I"
+      classification: healthy
+  rules:
+    - condition:
+        Disease: "healthy"
+      override: healthy
+      reason: "Healthy donor B cells"
+    - condition:
+        Disease: "acute lymphoblastic leukemia"
+      override: cancer_patient
+      reason: "ALL patient B cells"
+
+- pmid: 27846572
+  label: "Liepe 2016 — proteasome-spliced peptides"
+  title: "A large fraction of HLA class I ligands are proteasome-generated spliced peptides"
+  override: cell_line
+  note: >
+    GR-LCL, JY, C1R, HeLa, primary fibroblasts. Demonstrates ~1/3 of
+    immunopeptidome diversity is cis-spliced. Multiple cell types.
+  ms_samples:
+    - type: "GR-LCL (EBV-LCL)"
+      condition: "unperturbed"
+      mhc_class: "I"
+    - type: "JY (EBV-LCL)"
+      condition: "unperturbed"
+      mhc_class: "I"
+    - type: "C1R (B-lymphoblastoid)"
+      condition: "unperturbed"
+      mhc_class: "I"
+    - type: "HeLa (cervical carcinoma)"
+      condition: "unperturbed"
+      mhc_class: "I"
+    - type: "primary fibroblasts"
+      condition: "unperturbed"
+      mhc_class: "I"
+
+- pmid: 34171305
+  label: "Weingarten-Gabbay 2021 — SARS-CoV-2 immunopeptidome"
+  title: "Profiling SARS-CoV-2 HLA-I peptidome reveals T cell epitopes from out-of-frame ORFs"
+  override: cell_line
+  note: >
+    A549, HBECs, HEK293T infected with SARS-CoV-2. IEDB annotation
+    of "healthy" is WRONG — these are virally infected cell lines.
+  perturbations:
+    - "SARS-CoV-2 infection"
+  ms_samples:
+    - type: "A549 (lung adenocarcinoma, SARS-CoV-2-infected)"
+      condition: "SARS-CoV-2 infection"
+      mhc_class: "I"
+    - type: "HBECs (human bronchial epithelial, SARS-CoV-2-infected)"
+      condition: "SARS-CoV-2 infection"
+      mhc_class: "I"
+    - type: "HEK293T (SARS-CoV-2-infected)"
+      condition: "SARS-CoV-2 infection"
+      mhc_class: "I"
+
+- pmid: 34509645
+  label: "Scull 2021 — THP-1 immunopeptidogenomics"
+  title: "Immunopeptidogenomics: Harnessing RNA-Seq to Illuminate the Dark Immunopeptidome"
+  override: cell_line
+  ms_samples:
+    - type: "THP-1 (AML)"
+      condition: "unperturbed"
+      mhc_class: "I"
+
+- pmid: 36241641
+  label: "Mayer 2022 — Listeria-infected cell lines"
+  title: "Immunopeptidomics-based design of mRNA vaccine formulations against Listeria monocytogenes"
+  override: cell_line
+  perturbations:
+    - "Listeria monocytogenes infection"
+  ms_samples:
+    - type: "HeLa (cervical carcinoma, Listeria-infected)"
+      condition: "Listeria monocytogenes infection"
+      mhc_class: "I"
+    - type: "HCT-116 (colon carcinoma, Listeria-infected)"
+      condition: "Listeria monocytogenes infection"
+      mhc_class: "I"
+
+- pmid: 26783342
+  label: "Trolle 2016 — 721.221 peptide length distributions"
+  title: "The Length Distribution of Class I-Restricted T Cell Epitopes Is Determined by Both Peptide Supply and MHC Allele-Specific Binding Preference"
+  override: cell_line
+  mono_allelic_host: "721.221"
+  note: >
+    721.221 mono-allelic transfectants. IEDB annotation "Uterine Cervix"
+    is WRONG — 721.221 is an EBV-transformed B cell line.
+  ms_samples:
+    - type: "721.221 mono-allelic transfectants"
+      condition: "unperturbed"
+      mhc_class: "I"
+
+- pmid: 36215666
+  label: "Sarango 2022 — HeLa-CIITA T6BP/autophagy"
+  title: "The Autophagy Receptor TAX1BP1 (T6BP) improves antigen presentation by MHC-II molecules"
+  override: cell_line
+  note: >
+    HeLa-CIITA cells (cervical carcinoma + forced class II expression).
+    IEDB annotation "healthy cervix" is WRONG — HeLa is a cancer cell
+    line with CIITA transduction + T6BP siRNA knockdown.
+  perturbations:
+    - "CIITA transduction (forced HLA-II expression)"
+    - "T6BP/TAX1BP1 siRNA knockdown (autophagy receptor)"
+  ms_samples:
+    - type: "HeLa-CIITA (control)"
+      condition: "CIITA transduction only"
+      mhc_class: "I+II"
+    - type: "HeLa-CIITA + T6BP siRNA"
+      condition: "CIITA transduction + T6BP/TAX1BP1 siRNA knockdown"
+      mhc_class: "I+II"
+
+- pmid: 27920218
+  label: "Alpizar 2017 — HLA-B phosphopeptidome"
+  title: "A Molecular Basis for the Presentation of Phosphorylated Peptides by HLA-B Antigens"
+  override: cell_line
+  mono_allelic_host: "C1R"
+  note: >
+    C1R and 721.221 cells expressing single HLA-B alleles. Focus on
+    phosphopeptides (256 unique phosphopeptides identified).
+  ms_samples:
+    - type: "C1R/721.221 HLA-B transfectants (B*40, B*27, B*39, B*07)"
+      condition: "unperturbed — mono-allelic"
+      mhc_class: "I"
+
+- pmid: 32897882
+  label: "Klatt 2020 — hydrophobic peptide recovery method"
+  title: "Solving an MHC allele-specific bias in the reported immunopeptidome"
+  override: cell_line
+  note: >
+    BV173 (B-ALL/CML), MSTO-211H (mesothelioma), JY (EBV-LCL).
+    Method paper on acetonitrile concentration optimization for
+    hydrophobic peptide recovery.
+  ms_samples:
+    - type: "BV173 (B-ALL/CML blast crisis)"
+      condition: "unperturbed"
+      mhc_class: "I"
+    - type: "MSTO-211H (biphasic mesothelioma)"
+      condition: "unperturbed"
+      mhc_class: "I"
+    - type: "JY (EBV-LCL)"
+      condition: "unperturbed"
+      mhc_class: "I"
+
+- pmid: 36284347
+  label: "Fujiwara 2022 — PDAC tissue immunopeptidome"
+  title: "Direct identification of HLA class I and class II-restricted T cell epitopes in pancreatic cancer tissues by mass spectrometry"
+  override: cancer_patient
+  note: >
+    Primary PDAC tissue from multiple patients. Direct tissue
+    immunopeptidomics (class I + class II).
+  ms_samples:
+    - type: "PDAC tumor tissue"
+      condition: "unperturbed — snap-frozen surgical resection"
+      mhc_class: "I+II"
+      classification: cancer
+
+- pmid: 29493099
+  label: "Olsson 2018 — primary T cell subsets (healthy)"
+  title: "T-Cell Immunopeptidomes Reveal Cell Subtype Surface Markers Derived From Intracellular Proteins"
+  override: healthy
+  note: >
+    Primary human T cell subsets (Treg, Tconv, activated) from healthy
+    donors, direct ex vivo. 13,804 unique HLA ligands. Activated T cells
+    are in-vitro stimulated subset.
+  ms_samples:
+    - type: "primary Treg (healthy donors)"
+      condition: "unperturbed — direct ex vivo"
+      mhc_class: "I"
+      classification: healthy
+    - type: "primary Tconv (healthy donors)"
+      condition: "unperturbed — direct ex vivo"
+      mhc_class: "I"
+      classification: healthy
+    - type: "primary activated T cells"
+      condition: "in vitro activation"
+      mhc_class: "I"
+
+- pmid: 29632711
+  label: "Nelde 2018 — CLL ± lenalidomide"
+  title: "HLA ligandome analysis of primary chronic lymphocytic leukemia (CLL) cells under lenalidomide treatment"
+  override: cancer_patient
+  perturbations:
+    - "Lenalidomide treatment (in vitro, longitudinal pre/post)"
+  ms_samples:
+    - type: "primary CLL cells (untreated)"
+      n: 3
+      condition: "unperturbed — direct ex vivo"
+      mhc_class: "I+II"
+      classification: cancer_patient
+    - type: "primary CLL cells + lenalidomide"
+      n: 3
+      condition: "lenalidomide treatment in vitro"
+      mhc_class: "I+II"
+      classification: cancer_patient
+
+- pmid: 28834231
+  label: "Ritz 2017b — DIA method (JY + HEK293)"
+  title: "Data-Independent Acquisition of HLA Class I Peptidomes on the Q Exactive Mass Spectrometer Platform"
+  override: cell_line
+  note: >
+    JY (EBV-LCL) and HEK293 cell lines. DIA vs DDA method comparison.
+    10,000+ peptides from 100M cells.
+  ms_samples:
+    - type: "JY (EBV-LCL)"
+      condition: "unperturbed"
+      mhc_class: "I"
+    - type: "HEK293 (embryonic kidney)"
+      condition: "unperturbed"
+      mhc_class: "I"
+
+- pmid: 25502872
+  label: "Bergseng 2015 — celiac HLA-DQ motifs"
+  title: "Different binding motifs of the celiac disease-associated HLA molecules DQ2.5, DQ2.2, and DQ7.5"
+  override: cell_line
+  note: >
+    EBV-LCLs from 9 lines expressing DQ2.5, DQ2.2, or DQ7.5. Celiac
+    disease-associated HLA-DQ motif study. 12,712 endogenous peptides.
+  ms_samples:
+    - type: "EBV-LCLs (DQ2.5, DQ2.2, DQ7.5)"
+      n: 9
+      condition: "unperturbed"
+      mhc_class: "II"
+
+- pmid: 25645385
+  label: "Pritchard 2015 — melanoma class I"
+  title: "Exploration of peptides bound to MHC class I molecules in melanoma"
+  override: cell_line
+  ms_samples:
+    - type: "melanoma cell lines (3 lines)"
+      n: 3
+      condition: "unperturbed"
+      mhc_class: "I"
+
+- pmid: 32488085
+  label: "Stopfer 2020 — CDK4/6i + IFNg on melanoma/breast"
+  title: "Multiplexed relative and absolute quantitative immunopeptidomics reveals MHC I repertoire alterations induced by CDK4/6 inhibition"
+  override: cell_line
+  perturbations:
+    - "CDK4/6 inhibitor (palbociclib)"
+    - "IFN-gamma"
+  ms_samples:
+    - type: "melanoma/breast cancer cell lines (untreated)"
+      condition: "unperturbed"
+      mhc_class: "I"
+    - type: "melanoma/breast cancer cell lines + palbociclib"
+      condition: "CDK4/6 inhibitor (palbociclib)"
+      mhc_class: "I"
+    - type: "melanoma/breast cancer cell lines + IFN-gamma"
+      condition: "IFN-gamma"
+      mhc_class: "I"
