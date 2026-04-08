@@ -2202,3 +2202,262 @@
     - type: "melanoma/breast cancer cell lines + IFN-gamma"
       condition: "IFN-gamma"
       mhc_class: "I"
+
+# ── Batch 3: studies 31-50 by peptide count ────────────────────────────────
+
+- pmid: 28188227
+  label: "Barnea 2017 — HLA-B27 transgenic rat spondyloarthritis"
+  title: "HLA-B27 peptidome in HLA-B27 transgenic rats"
+  override: ~
+  note: >
+    HLA-B27 transgenic RAT model for spondyloarthritis. In vivo spleen.
+    Despite being human HLA, the host is rat. Includes ERAP1 deletion.
+  perturbations:
+    - "ERAP1 deletion (transgenic rat model)"
+  ms_samples:
+    - type: "HLA-B27 transgenic rat spleen (WT)"
+      condition: "unperturbed — in vivo"
+      mhc_class: "I"
+    - type: "HLA-B27 transgenic rat spleen (ERAP1 KO)"
+      condition: "ERAP1 deletion"
+      mhc_class: "I"
+
+- pmid: 35580925
+  label: "Khazan-Kost 2022 — pleural effusion sHLA"
+  title: "Soluble HLA peptidome from pleural effusions"
+  override: ~
+  note: >
+    sHLA from pleural effusion fluid (not solid lung tissue). Cancer
+    patients vs non-malignant pleural disease. IEDB "Blood/Lung" is
+    imprecise — source is pleural effusion specifically.
+  ms_samples:
+    - type: "pleural effusion (cancer patients)"
+      condition: "unperturbed — sHLA from pleural fluid"
+      mhc_class: "I"
+      classification: cancer_patient
+    - type: "pleural effusion (non-malignant disease)"
+      condition: "unperturbed — sHLA from pleural fluid"
+      mhc_class: "I"
+
+- pmid: 29393594
+  label: "Yair-Sabag 2018 — HLA-B27 Lys-P2 ligands"
+  title: "HLA-B27 peptide repertoire with lysine at P2"
+  override: cell_line
+  ms_samples:
+    - type: "cell lines expressing HLA-B27"
+      condition: "unperturbed"
+      mhc_class: "I"
+
+- pmid: 32357974
+  label: "Mei 2020 — deamidated HLA peptides from deglycosylation"
+  title: "Deamidated HLA-bound peptides arise from deglycosylated precursors"
+  override: cell_line
+  ms_samples:
+    - type: "EBV-LCLs (healthy donors)"
+      condition: "unperturbed"
+      mhc_class: "I"
+
+- pmid: 33912179
+  label: "Mifsud 2021 — carbamazepine immunopeptidome"
+  title: "Carbamazepine effect on immunopeptidome in SJS/TEN context"
+  override: cell_line
+  note: >
+    Drug perturbation study: carbamazepine exposure. Key finding is
+    that carbamazepine does NOT perturb the immunopeptidome.
+  perturbations:
+    - "Carbamazepine drug exposure (negative result — no immunopeptidome change)"
+  ms_samples:
+    - type: "cell line (untreated)"
+      condition: "unperturbed"
+      mhc_class: "I"
+    - type: "cell line + carbamazepine"
+      condition: "carbamazepine exposure"
+      mhc_class: "I"
+
+- pmid: 35251023
+  label: "Laghmouchi 2022 — HLA-DP promiscuity"
+  title: "HLA-DP peptidome promiscuity across immunogenicity groups"
+  override: cell_line
+  note: >
+    HLA-DP class II. IEDB "Bone Marrow" likely refers to transplant
+    donor context, not tissue source. Cell lines used.
+  ms_samples:
+    - type: "cell lines (multiple HLA-DP genotypes)"
+      condition: "unperturbed"
+      mhc_class: "II"
+
+- pmid: 30429286
+  label: "Gfeller 2018 — HLA-I length distributions"
+  title: "Length distribution and multiple specificity of naturally presented HLA-I ligands"
+  override: ~
+  note: >
+    Reanalysis of meningioma tissues (direct ex vivo) + cell lines.
+  ms_samples:
+    - type: "meningioma tissue (direct ex vivo)"
+      condition: "unperturbed"
+      mhc_class: "I"
+      classification: cancer
+    - type: "cell lines"
+      condition: "unperturbed"
+      mhc_class: "I"
+
+- pmid: 33298915
+  label: "Jappe 2020 — pMHC thermostability profiling"
+  title: "Thermostability profiling of MHC-bound peptides"
+  override: cell_line
+  ms_samples:
+    - type: "EBV-LCLs"
+      condition: "unperturbed"
+      mhc_class: "I"
+
+- pmid: 27841757
+  label: "Pearson 2016 — MHC-I from selective genome regions"
+  title: "MHC class I peptides derived from selective genome regions"
+  override: cell_line
+  note: >
+    EBV-LCLs. Raw data later reanalyzed by Bassani-Sternberg 2017
+    (PMID 28832583) with MaxQuant.
+  ms_samples:
+    - type: "EBV-LCLs (multiple donors)"
+      condition: "unperturbed"
+      mhc_class: "I"
+
+- pmid: 31848261
+  label: "Solleder 2020 — phosphorylated HLA-I ligands"
+  title: "Phosphorylated HLA class I ligand predictions"
+  override: ~
+  ms_samples:
+    - type: "adenocarcinoma tissue (direct ex vivo)"
+      condition: "unperturbed"
+      mhc_class: "I"
+      classification: cancer
+    - type: "cell lines"
+      condition: "unperturbed"
+      mhc_class: "I"
+
+- pmid: 26154972
+  label: "Caron 2015 — digital immunopeptidome maps"
+  title: "Open-source computational resource for digital maps of immunopeptidomes"
+  override: cell_line
+  ms_samples:
+    - type: "multiple cell lines (JY, B721.221, etc.)"
+      condition: "unperturbed"
+      mhc_class: "I"
+
+- pmid: 34087483
+  label: "Komov 2021 — IFN + DRiPs in breast cancer"
+  title: "Effect of interferons on presentation of defective ribosomal products as HLA peptides"
+  override: cell_line
+  perturbations:
+    - "IFN treatment (type/concentration in methods)"
+  ms_samples:
+    - type: "breast adenocarcinoma cell line (untreated)"
+      condition: "unperturbed"
+      mhc_class: "I"
+    - type: "breast adenocarcinoma cell line + IFN"
+      condition: "IFN treatment"
+      mhc_class: "I"
+
+- pmid: 29508533
+  label: "Lanoix 2018 — IP method comparison (CLL + LCL)"
+  title: "Comparison of MHC I immunopeptidome isolation methods"
+  override: ~
+  ms_samples:
+    - type: "primary CLL cells"
+      condition: "unperturbed"
+      mhc_class: "I"
+      classification: cancer_patient
+    - type: "EBV-LCLs"
+      condition: "unperturbed"
+      mhc_class: "I"
+
+- pmid: 29314611
+  label: "Ritz 2018 — sHLA class II (NHL + cell lines)"
+  title: "Membranal and blood-soluble HLA class II peptidome using DDA and DIA"
+  override: ~
+  ms_samples:
+    - type: "NHL patient plasma (sHLA)"
+      condition: "unperturbed — sHLA from plasma"
+      mhc_class: "II"
+      classification: cancer_patient
+    - type: "cell lines (class II)"
+      condition: "unperturbed"
+      mhc_class: "II"
+
+- pmid: 33043033
+  label: "Gutierrez-Hoffmann 2020 — Borrelia-infected DCs"
+  title: "Borrelia burgdorferi-induced changes in class II self-immunopeptidome on DCs"
+  override: activated_apc
+  perturbations:
+    - "Borrelia burgdorferi infection/restimulation"
+  ms_samples:
+    - type: "DCs (direct ex vivo)"
+      condition: "unperturbed"
+      mhc_class: "II"
+    - type: "DCs + Borrelia restimulation"
+      condition: "Borrelia burgdorferi short-term restimulation"
+      mhc_class: "II"
+
+- pmid: 32161166
+  label: "Chen 2020 — HLA-B*51:01 subpeptidome / ERAP1"
+  title: "Unconventional subpeptidome bound to HLA-B*51:01 regulated by ERAP1"
+  override: cell_line
+  note: >
+    IEDB annotation "cervical cancer" is WRONG — this is an HLA-B*51:01 /
+    Behcet's disease study. Cell line with ERAP1 variants.
+  perturbations:
+    - "ERAP1 variants (studying effect on B*51:01 peptidome)"
+  ms_samples:
+    - type: "cell line expressing HLA-B*51:01"
+      condition: "unperturbed"
+      mhc_class: "I"
+    - type: "cell line + ERAP1 variant"
+      condition: "ERAP1 variant effect on peptidome"
+      mhc_class: "I"
+
+- pmid: 28218747
+  label: "Pymm 2017 — HIV escape via peptide bulging"
+  title: "MHC-I peptides enabling HIV-1 escape by extending out of the groove"
+  override: cell_line
+  ms_samples:
+    - type: "cell lines"
+      condition: "unperturbed"
+      mhc_class: "I"
+
+- pmid: 34932366
+  label: "Sudhir 2022 — T1D vs healthy B cell immunopeptidome"
+  title: "HLA allele-specific quantitative profiling of T1D B lymphocyte immunopeptidome"
+  override: ~
+  note: >
+    EBV-LCLs from T1D patients and healthy controls. Mixed disease.
+  ms_samples:
+    - type: "EBV-LCLs from T1D patients"
+      condition: "unperturbed"
+      mhc_class: "I+II"
+    - type: "EBV-LCLs from healthy donors"
+      condition: "unperturbed"
+      mhc_class: "I+II"
+      classification: healthy
+
+- pmid: 33141586
+  label: "Sturm 2021 — mild acid vs IP method comparison"
+  title: "Comparison of mild acid elution vs MHC immunoaffinity for HLA class I"
+  override: cell_line
+  ms_samples:
+    - type: "monocytic leukemia cell line (likely THP-1)"
+      condition: "unperturbed"
+      mhc_class: "I"
+
+- pmid: 33981976
+  label: "Becker 2021 — NMD inhibition + 5-azacytidine on CRC"
+  title: "NMD inhibition augments presentation of frameshift-derived neoepitopes"
+  override: cell_line
+  perturbations:
+    - "5-azacytidine (NMD inhibitor / DNMT inhibitor)"
+  ms_samples:
+    - type: "colorectal carcinoma cell lines (untreated)"
+      condition: "unperturbed"
+      mhc_class: "I"
+    - type: "colorectal carcinoma cell lines + 5-azacytidine"
+      condition: "5-azacytidine treatment"
+      mhc_class: "I"
