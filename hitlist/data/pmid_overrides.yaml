@@ -28,6 +28,17 @@
 #   ms_samples       - per-sample-type enumeration of what was profiled
 #                      by mass spectrometry and under what conditions
 #   mhc_class on ms_samples: "I", "II", or "I+II" for easy filtering
+#
+# MS acquisition metadata (two-level inheritance):
+#   These fields may appear at the PMID level (study-wide default) or on
+#   individual ms_samples entries.  Per-sample values override PMID-level.
+#   ip_antibody      - immunoprecipitation antibody (W6/32, L243, etc.)
+#   acquisition_mode - DDA, DIA, PRM, SRM/MRM
+#   instrument       - mass spectrometer (Q Exactive HF, Orbitrap Fusion, etc.)
+#   fragmentation    - HCD, CID, ETD, EThcD
+#   labeling         - label-free, TMT, SILAC, SIL/hipMHC
+#   search_engine    - MaxQuant, PEAKS, Proteome Discoverer, Mascot, etc.
+#   fdr              - false discovery rate (e.g. "1%")
 
 # ── Gold-standard healthy tissue ────────────────────────────────────────────
 
@@ -854,7 +865,7 @@
     - "HLA-B*40:01"
     - "HLA-C*03:04"
     - "HLA-C*07:02"
-  pulldown_antibody: W6/32
+  ip_antibody: W6/32
   ms_samples:
   - type: FM-82 (melanoma)
     n: 4
@@ -895,7 +906,7 @@
     - "HLA-B*44:02"
     - "HLA-C*05:01"
     - "HLA-C*07:02"
-  pulldown_antibody: W6/32
+  ip_antibody: W6/32
   perturbations:
   - "JY transduced with CMV pp65 (retroviral, internal control)"
   ms_samples:
@@ -926,7 +937,13 @@
     - HLA-B*27
     - HLA-C*02
     - HLA-C*07
-  pulldown_antibody: W6/32
+  ip_antibody: W6/32
+  instrument: "LTQ Orbitrap Elite"
+  acquisition_mode: DDA
+  fragmentation: EThcD
+  labeling: label-free
+  search_engine: "Proteome Discoverer"
+  fdr: "1%"
   ms_samples:
   - type: GR (EBV-LCL)
     n: 1
@@ -981,7 +998,7 @@
     - "HLA-B*52:01"
     - "HLA-C*12:02"
     - "HLA-C*14:02"
-  pulldown_antibody: W6/32
+  ip_antibody: W6/32
   perturbations:
   - "SupB15RT: cultured with 1 uM imatinib (BCR-ABL TKI resistance selection)"
   ms_samples:
@@ -1036,7 +1053,7 @@
     - "HLA-A*03:01"
     - "HLA-B*35:01"
     - "HLA-C*04:01"
-  pulldown_antibody: W6/32
+  ip_antibody: W6/32
   perturbations:
   - "Decitabine (5-aza-2'-deoxycytidine) 1 uM, 72h — DNMT inhibitor inducing CTA expression"
   ms_samples:
@@ -1140,7 +1157,7 @@
     - "HLA-A*03:01"
     - "HLA-B*07:02"
     - "HLA-C*07:02"
-  pulldown_antibody: W6/32
+  ip_antibody: W6/32
   perturbations:
   - "TIL expansion: IL-2 (6000 IU/mL) 3-5 wk → irradiated feeders + OKT3 (30 ng/mL) + IL-2 (3000 IU/mL)\
     \ 14d"
@@ -1197,7 +1214,6 @@
     Sequential class I (W6/32) then class II (HB-145) IP from same lysate. Snap-frozen surgical tissue.
     Some patients received ipilimumab (anti-CTLA-4).
   donors: 25
-  pulldown_antibody: "W6/32 (class I) + HB-145 (class II, anti-HLA-DR)"
   hla_alleles:
     Mel-8:
     - "HLA-A*01:01"
@@ -1230,11 +1246,13 @@
     source: "snap-frozen surgical resections, 0.1g-4g tissue"
     condition: unperturbed — some patients post-ipilimumab
     mhc_class: I
+    ip_antibody: W6/32
   - type: melanoma metastasis tissue (class II)
     n: 25
     source: "same tissue, sequential IP flow-through from W6/32 → HB-145"
     condition: unperturbed
     mhc_class: II
+    ip_antibody: HB-145
 - pmid: 31495665
   label: Abelin 2019 — MAPTAC HLA-II + class I
   title: Defining HLA-II Ligand Processing and Binding Rules with Mass Spectrometry Enhances Cancer Epitope
@@ -1276,49 +1294,59 @@
     - "HLA-DRB4*01:03"
     - "HLA-DRB1*15:03"
     - "HLA-DRB5*01:01"
-  pulldown_antibody: "streptavidin (MAPTAC) / L243 or tal1b5 (anti-HLA-DR, tissue/PBMC)"
   perturbations:
   - "dm+ vs dm-: HLA-DM co-transfection alters peptide editing (class II)"
   - "SILAC cross-presentation: heavy-labeled DCs phagocytose light-labeled tumor cells"
+  acquisition_mode: DDA
+  fragmentation: HCD
+  labeling: label-free
   ms_samples:
   - type: "MAPTAC class I mono-allelic (A375, ExpiHEK293, HEK293, HeLa mixtures)"
     n: 8
     source: cell line mixtures per allele
     condition: unperturbed — 48h transfection
     mhc_class: I
+    ip_antibody: "streptavidin (MAPTAC)"
   - type: MAPTAC class II dm+ (HLA-DM co-transfected)
     n: 10
     source: "ExpiHEK293, A375, K562, KG-1, B721.221 mixtures"
     condition: "dm+: HLA-DM co-transfection enables peptide editing"
     mhc_class: II
+    ip_antibody: "streptavidin (MAPTAC)"
   - type: MAPTAC class II dm- (no HLA-DM)
     n: 7
     source: ExpiHEK293 and others
     condition: "dm-: no HLA-DM, CLIP-loaded, unedited peptide repertoire"
     mhc_class: II
+    ip_antibody: "streptavidin (MAPTAC)"
   - type: lung tissue (HLA-DR)
     n: 1
     source: healthy donor
     condition: unperturbed — L243 (anti-HLA-DR) IP
     mhc_class: II
+    ip_antibody: L243
     classification: healthy
   - type: spleen tissue (HLA-DR)
     n: 1
     source: healthy donor
     condition: unperturbed — L243 (anti-HLA-DR) IP
     mhc_class: II
+    ip_antibody: L243
     classification: healthy
   - type: healthy donor PBMCs (HLA-DR)
     n: 4
     source: "donors HDSC, RG1095, RG1104, RG1248"
     condition: unperturbed — tal1b5 (anti-HLA-DR) IP
     mhc_class: II
+    ip_antibody: tal1b5
     classification: healthy
   - type: SILAC DCs cross-presenting tumor antigens
     n: 4
     source: 2 donors x 2 timepoints
     condition: SILAC heavy DCs + light tumor cells → cross-presentation
     mhc_class: II
+    ip_antibody: L243
+    labeling: SILAC
 - pmid: 41459947
   label: Xu 2026 — CyHV-2 fish MHC-II
   title: Analysis of MHC class II-bound CyHV-2 peptides in Carassius gibelio using mass spectrometry
@@ -1560,19 +1588,21 @@
   hla_alleles:
     class_i: ["HLA-A*02:01", "HLA-A*02:17", "HLA-B*40:02", "HLA-B*41:01", "HLA-C*02:02", "HLA-C*17:01"]
     class_ii: ["HLA-DRB1*07:01", "HLA-DRB1*13:05", "HLA-DPA1*02:01", "HLA-DPB1*17:01", "HLA-DQA1*02:02", "HLA-DQB1*03:01"]
-  pulldown_antibody: "W6/32 (class I); LB3.1 (DR), B721 (DP), SPV-L3 (DQ)"
   perturbations:
     - "IFN-gamma 50 IU/mL 48h (half of samples)"
   ms_samples:
     - type: "MDA-MB-231 (untreated)"
       condition: "unperturbed — DMEM + 10% FBS"
       mhc_class: "I"
+      ip_antibody: W6/32
     - type: "MDA-MB-231 + IFN-gamma (class I)"
       condition: "IFN-gamma 50 IU/mL 48h"
       mhc_class: "I"
+      ip_antibody: W6/32
     - type: "MDA-MB-231 + IFN-gamma (class II)"
       condition: "IFN-gamma 50 IU/mL 48h — HLA-II only expressed after IFNg"
       mhc_class: "II"
+      ip_antibody: "LB3.1 (DR), B721 (DP), SPV-L3 (DQ)"
 
 - pmid: 29242379
   label: "Chong 2018 — high-throughput immunopeptidomics ± IFNg"
@@ -1582,33 +1612,38 @@
     Mixed study: 5 B-LCLs, 1 ovarian CA cell line (UWB.1 289),
     4 primary meningioma tissues, 2 melanoma TIL samples. Cell lines
     profiled ± IFN-gamma (100 IU/mL, 24h) in quadruplicate.
-  pulldown_antibody: "W6/32 (class I); HB145/L243 (class II, anti-HLA-DR)"
   perturbations:
     - "IFN-gamma 100 IU/mL 24h (cell line experiments only)"
   ms_samples:
     - type: "B-LCLs (JY, CD165, PD42, CM467, RA957) untreated"
       condition: "unperturbed"
       mhc_class: "I+II"
+      ip_antibody: "W6/32 (I) + HB145/L243 (II)"
     - type: "B-LCLs + IFN-gamma"
       condition: "IFN-gamma 100 IU/mL 24h"
       mhc_class: "I+II"
+      ip_antibody: "W6/32 (I) + HB145/L243 (II)"
     - type: "UWB.1 289 (ovarian carcinoma) untreated"
       condition: "unperturbed"
       mhc_class: "I+II"
+      ip_antibody: "W6/32 (I) + HB145/L243 (II)"
       classification: cancer
     - type: "UWB.1 289 + IFN-gamma"
       condition: "IFN-gamma 100 IU/mL 24h"
       mhc_class: "I+II"
+      ip_antibody: "W6/32 (I) + HB145/L243 (II)"
       classification: cancer
     - type: "primary meningioma tissue"
       n: 4
       condition: "unperturbed — snap-frozen surgical resection"
       mhc_class: "I+II"
+      ip_antibody: "W6/32 (I) + HB145/L243 (II)"
       classification: cancer
     - type: "melanoma TILs (expanded)"
       n: 2
       condition: "TIL expansion protocol"
       mhc_class: "I"
+      ip_antibody: "W6/32 (I) + HB145/L243 (II)"
       classification: cancer
 
 - pmid: 34357683
@@ -1634,7 +1669,7 @@
     Patient-derived melanoma cell lines (LM-MEL panel) profiled
     ± IFN-gamma. IEDB annotation "Lymph Node" is misleading — these
     are CELL LINES, not tissue. ~6-8% of peptides are cis-spliced.
-  pulldown_antibody: "W6/32"
+  ip_antibody: W6/32
   perturbations:
     - "IFN-gamma (concentration/duration in methods)"
   ms_samples:
@@ -1674,24 +1709,26 @@
     profiled. "Skin" refers to melanoma cell lines (melanocyte origin).
     Matched normal lung is adjacent tissue (from cancer patients), not
     truly healthy. 452 non-canonical peptides identified.
-  pulldown_antibody: "W6/32 (class I); HB145/L243 (class II)"
   ms_samples:
     - type: "melanoma cell lines (0D5P, 0MM745, 0NVC, T1185B, T1015A, Me290, Me275)"
       n: 7
       condition: "unperturbed"
       mhc_class: "I+II"
+      ip_antibody: "W6/32 (I) + HB145/L243 (II)"
       classification: cancer
     - type: "lung tumor tissue (SCC + adenocarcinoma)"
       n: 2
       source: "C3N-02289 (SCC grade 2), C3N-02671 (adeno grade 2)"
       condition: "unperturbed — snap-frozen"
       mhc_class: "I+II"
+      ip_antibody: "W6/32 (I) + HB145/L243 (II)"
       classification: cancer
     - type: "matched normal lung tissue"
       n: 2
       source: "from same 2 cancer patients"
       condition: "unperturbed — snap-frozen"
       mhc_class: "I+II"
+      ip_antibody: "W6/32 (I) + HB145/L243 (II)"
       classification: adjacent
   rules:
     - condition:
@@ -1719,7 +1756,6 @@
              "HLA-DRB1*01:02", "HLA-DRB1*12:01"]
     RA: ["HLA-A*02:01", "HLA-A*24:02", "HLA-B*35:03", "HLA-B*51:01", "HLA-C*04:01", "HLA-C*14:02",
          "HLA-DRB1*04:01", "HLA-DRB1*08:01"]
-  pulldown_antibody: "HB95/W6/32 (class I); HB245/IVA12 (pan-class II)"
   perturbations:
     - "CIITA transduction (flag-CIITA plasmid, G418 selection) — forces HLA-II expression on GBM"
   ms_samples:
@@ -1727,14 +1763,17 @@
       n: 3
       condition: "unperturbed"
       mhc_class: "I"
+      ip_antibody: "HB95/W6/32"
     - type: "GBM CIITA-transduced (class I)"
       n: 3
       condition: "CIITA transduction"
       mhc_class: "I"
+      ip_antibody: "HB95/W6/32"
     - type: "GBM CIITA-transduced (class II — artificially induced)"
       n: 3
       condition: "CIITA transduction — HLA-II not naturally expressed in GBM"
       mhc_class: "II"
+      ip_antibody: "HB245/IVA12"
 
 - pmid: 30315122
   label: "Faridi 2018 — cis/trans-spliced HLA-I peptides"
@@ -1746,7 +1785,7 @@
     allotypes. IEDB annotation "Blood" is misleading — these are cell
     line expression systems. ~17 alleles, ~45K unique peptides.
     Focus on cis- and trans-spliced peptide identification.
-  pulldown_antibody: "W6/32"
+  ip_antibody: W6/32
   ms_samples:
     - type: "C1R/721.221 mono-allelic transfectants"
       n: 17
@@ -1763,7 +1802,7 @@
     IEDB metadata is correct (Blood, AML).
   hla_alleles:
     THP-1: ["HLA-A*02:01", "HLA-A*24:02", "HLA-B*15:11", "HLA-B*35:01", "HLA-C*03:03"]
-  pulldown_antibody: "W6/32"
+  ip_antibody: W6/32
   ms_samples:
     - type: "THP-1 (AML)"
       n: 1
@@ -1784,7 +1823,7 @@
     25,554 unique 7-15mer peptides total.
   perturbations:
     - "DFT1: IFN-gamma treatment to induce MHC-I expression"
-  pulldown_antibody: "anti-devil beta-2-microglobulin (hybridoma 13-34-38)"
+  ip_antibody: "anti-devil beta-2-microglobulin (hybridoma 13-34-38)"
   ms_samples:
     - type: "devil fibroblasts (healthy host)"
       n: 4
@@ -1853,7 +1892,7 @@
     BALB/c). Includes Tap1 hepatocyte-specific KO. ~42K total peptides.
   hla_alleles:
     profiled: ["H2-Kb", "H2-Kd", "H2-Kk", "H2-Db"]
-  pulldown_antibody: "K9-178 (H-2Kb-specific) + allele-specific for H-2Kd"
+  ip_antibody: "K9-178 (H-2Kb-specific) + allele-specific for H-2Kd"
   perturbations:
     - "AAV-mediated hepatocyte expression of allogeneic MHC-I (H-2Kd in C57BL/6)"
     - "Tap1 hepatocyte-specific knockout (Tap1KOHep)"
@@ -1945,6 +1984,11 @@
   note: >
     Primary B cells from ALL patients and healthy donors. TMT-labeling
     method paper. Needs rules to separate ALL from healthy.
+  ip_antibody: W6/32
+  acquisition_mode: DDA
+  fragmentation: HCD
+  labeling: TMT
+  fdr: "1%"
   ms_samples:
     - type: "primary B cells from ALL patients"
       condition: "unperturbed"
@@ -2154,6 +2198,13 @@
   note: >
     JY (EBV-LCL) and HEK293 cell lines. DIA vs DDA method comparison.
     10,000+ peptides from 100M cells.
+  ip_antibody: W6/32
+  instrument: "Q Exactive"
+  acquisition_mode: DIA
+  fragmentation: HCD
+  labeling: label-free
+  search_engine: SEQUEST
+  fdr: "1%"
   ms_samples:
     - type: "JY (EBV-LCL)"
       condition: "unperturbed"
@@ -2192,6 +2243,9 @@
   perturbations:
     - "CDK4/6 inhibitor (palbociclib)"
     - "IFN-gamma"
+  ip_antibody: W6/32
+  acquisition_mode: DDA
+  labeling: "TMT + hipMHC"
   ms_samples:
     - type: "melanoma/breast cancer cell lines (untreated)"
       condition: "unperturbed"
@@ -2817,6 +2871,9 @@
 - pmid: 24715725
   label: "Bourdetsky 2014 — SILAC DRiPs study"
   override: cell_line
+  ip_antibody: W6/32
+  acquisition_mode: DDA
+  labeling: SILAC
   ms_samples:
     - type: "hematopoietic cell lines (SILAC-labeled)"
       condition: "SILAC metabolic labeling"

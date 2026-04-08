@@ -26,6 +26,19 @@ import pandas as pd
 
 from .curation import load_pmid_overrides
 
+# MS acquisition metadata fields.  Each may appear at the PMID level
+# (study-wide default) or on individual ``ms_samples`` entries.
+# Per-sample values override PMID-level defaults.
+_ACQUISITION_FIELDS = (
+    "ip_antibody",
+    "acquisition_mode",
+    "instrument",
+    "fragmentation",
+    "labeling",
+    "search_engine",
+    "fdr",
+)
+
 
 def generate_ms_samples_table(mhc_class: str | None = None) -> pd.DataFrame:
     """Export all ms_samples entries as a flat DataFrame.
@@ -40,7 +53,8 @@ def generate_ms_samples_table(mhc_class: str | None = None) -> pd.DataFrame:
     -------
     pd.DataFrame
         Columns: species, sample, perturbation, pmid, study, mhc_class,
-        n_samples, notes.
+        n_samples, notes, ip_antibody, acquisition_mode, instrument,
+        fragmentation, labeling, search_engine, fdr.
     """
     overrides = load_pmid_overrides()
     rows: list[dict] = []
@@ -70,18 +84,19 @@ def generate_ms_samples_table(mhc_class: str | None = None) -> pd.DataFrame:
             if n == 0:
                 continue  # skip "NOT profiled" placeholder rows
 
-            rows.append(
-                {
-                    "species": species,
-                    "sample": sample.get("type", ""),
-                    "perturbation": perturbation,
-                    "pmid": pmid_int,
-                    "study": label,
-                    "mhc_class": cls,
-                    "n_samples": n if n != "" else None,
-                    "notes": sample.get("classification", sample.get("reason", "")),
-                }
-            )
+            row = {
+                "species": species,
+                "sample": sample.get("type", ""),
+                "perturbation": perturbation,
+                "pmid": pmid_int,
+                "study": label,
+                "mhc_class": cls,
+                "n_samples": n if n != "" else None,
+                "notes": sample.get("classification", sample.get("reason", "")),
+            }
+            for field in _ACQUISITION_FIELDS:
+                row[field] = sample.get(field) or entry.get(field) or ""
+            rows.append(row)
 
     return pd.DataFrame(rows)
 
