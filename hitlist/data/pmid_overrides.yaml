@@ -2999,3 +2999,119 @@
     - type: "HLA-DR15 immunopeptidome component"
       condition: "unperturbed"
       mhc_class: "II"
+
+# ── Issue #8: Non-classical HLA ───────────────────────────────────────────
+
+- pmid: 22898188
+  label: "Lampen 2013 — HLA-E*01:03 peptidome (TAP-deficient)"
+  title: "Alternative peptide repertoire of HLA-E in TAP-deficient cells"
+  override: cell_line
+  perturbations: ["TAP deficiency (inhibited/deficient cell line)"]
+  ms_samples:
+    - type: "TAP-deficient cells expressing HLA-E*01:03"
+      condition: "TAP deficiency"
+      mhc_class: "non-classical"
+
+- pmid: 31717259
+  label: "Ho 2019 — HLA-F allelic variant peptidomes"
+  title: "HLA-F peptide repertoire from soluble HLA / K562"
+  override: cell_line
+  note: >
+    Soluble HLA-F*01:01/01:03/01:04 refolded with K562 lysate.
+    8-24mer peptides, C-terminally anchored by Lys.
+    No overlap between allelic variants.
+  ms_samples:
+    - type: "sHLA-F*01:01 (K562 lysate)"
+      condition: "unperturbed — soluble HLA refolding"
+      mhc_class: "non-classical"
+    - type: "sHLA-F*01:03 (K562 lysate)"
+      condition: "unperturbed — soluble HLA refolding"
+      mhc_class: "non-classical"
+    - type: "sHLA-F*01:04 (K562 lysate)"
+      condition: "unperturbed — soluble HLA refolding"
+      mhc_class: "non-classical"
+
+- pmid: 27371725
+  label: "Nagarajan 2016 — mouse H2-Q1/Q2 ± ERAAP KO"
+  title: "ERAAP shapes the non-classical MHC-I peptidome"
+  override: ~
+  species: "Mus musculus (mouse)"
+  perturbations: ["ERAAP knockout"]
+  ms_samples:
+    - type: "WT mouse splenocytes (H2-Q1/Q2)"
+      condition: "unperturbed"
+      mhc_class: "non-classical"
+    - type: "ERAAP KO mouse splenocytes (H2-Q1/Q2)"
+      condition: "ERAAP knockout"
+      mhc_class: "non-classical"
+
+- pmid: 33020145
+  label: "Ruibal 2020 — Qa-1/HLA-E cross-species binding (NOT elution)"
+  title: "Cross-species peptide binding to HLA-E, Mamu-E, Qa-1b"
+  exclude_from_ms: true
+  override: ~
+  note: "UV peptide exchange + HPLC competition binding assay, not IP-MS elution."
+
+- pmid: 29605689
+  label: "Celik 2018 — HLA-G allelic variant peptidomes"
+  title: "HLA-G peptide repertoire from soluble HLA / K562"
+  override: cell_line
+  ms_samples:
+    - type: "sHLA-G*01:01 (K562 lysate)"
+      condition: "unperturbed — soluble HLA refolding"
+      mhc_class: "non-classical"
+    - type: "sHLA-G*01:03 (K562 lysate)"
+      condition: "unperturbed — soluble HLA refolding"
+      mhc_class: "non-classical"
+    - type: "sHLA-G*01:04 (K562 lysate)"
+      condition: "unperturbed — soluble HLA refolding"
+      mhc_class: "non-classical"
+
+- pmid: 32716529
+  label: "Walters 2020 — HLA-E binding assay (NOT elution)"
+  title: "HLA-E peptide exchange ELISA screening HIV/SIV/Mtb peptides"
+  exclude_from_ms: true
+  override: ~
+  note: "In vitro binding assay, not IP-MS elution."
+
+- pmid: 28166217
+  label: "Keller 2017 — MR1 drug/metabolite ligands (NOT standard IP)"
+  title: "Drugs and drug-like molecules as MR1 ligands"
+  override: ~
+  note: >
+    MR1 ligand identification — salicylates, diclofenac, etc. Crystal
+    structures of TCR-MR1-ligand. Not standard immunopeptidome IP but
+    identifies non-peptide MR1 ligands.
+  ms_samples:
+    - type: "MR1 ligand identification"
+      condition: "unperturbed"
+      mhc_class: "non-classical"
+
+- pmid: 26552660
+  label: "Celik 2016 — HLA-E allelic variant peptidomes"
+  title: "HLA-E peptide repertoire from soluble HLA / K562"
+  override: cell_line
+  ms_samples:
+    - type: "sHLA-E*01:01 (K562 lysate)"
+      condition: "unperturbed — soluble HLA refolding"
+      mhc_class: "non-classical"
+    - type: "sHLA-E*01:03 (K562 lysate)"
+      condition: "unperturbed — soluble HLA refolding"
+      mhc_class: "non-classical"
+
+- pmid: 21209280
+  label: "Gleimer 2011 — chimpanzee Patr-AL peptidome"
+  title: "Chimpanzee Patr-AL peptides showing A02 supertypic specificity"
+  override: cell_line
+  species: "Pan troglodytes (chimpanzee)"
+  ms_samples:
+    - type: "transfected cells expressing Patr-AL"
+      condition: "unperturbed"
+      mhc_class: "non-classical"
+
+- pmid: 33203899
+  label: "Mbiribindi 2020 — HLA-E + EBV peptides (NOT elution)"
+  title: "EBV latent protein peptides binding HLA-E"
+  exclude_from_ms: true
+  override: ~
+  note: "Functional assay for EBV peptide binding to HLA-E, not IP-MS."
