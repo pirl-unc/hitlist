@@ -12,7 +12,8 @@
 #   cancer_patient   - reclassify as cancer-derived
 #   adjacent         - reclassify as tumor-adjacent normal tissue
 #   activated_apc    - reclassify as activated APC artifact
-#   cell_line        - reclassify as cell line
+#   cell_line        - reclassify as cell line (EBV-LCLs within are NOT cancer)
+#   ebv_lcl          - EBV-transformed B-LCL (not cancer, not healthy)
 #   null             - no override, use default classification logic
 #
 # Condition fields match against IEDB columns (case-insensitive for
@@ -890,7 +891,7 @@
 - pmid: 23481700
   label: Hassan 2013 — B-LCL HLA-I ligandome
   title: The human leukocyte antigen-presented ligandome of B lymphocytes
-  override: cell_line
+  override: ebv_lcl
   note: >
     EBV-transformed B-LCLs. JY was transduced with CMV pp65 (internal control for known T cell epitopes
     — a gene modification perturbation). HHC is an obscure B-LCL not in Cellosaurus. 100 billion cells
@@ -924,7 +925,7 @@
   label: Mommen 2014 — EThcD methods / B-LCL GR
   title: Expanding the detectable HLA peptide repertoire using electron-transfer/higher-energy collision
     dissociation (EThcD)
-  override: cell_line
+  override: ebv_lcl
   note: >
     Primarily a methods paper comparing fragmentation techniques (EThcD vs CID vs HCD vs ETD). Single
     B-LCL (GR). HLA alleles at 2-digit only. >12,000 unique peptides. Only 23 epitopes curated in IEDB
@@ -1971,7 +1972,7 @@
 - pmid: 35154160
   label: "Kaabinejadian 2022 — DRB3/4/5 class II motifs"
   title: "Accurate MHC Motif Deconvolution of Immunopeptidomics Data Reveals a Significant Contribution of DRB3, 4 and 5"
-  override: cell_line
+  override: ebv_lcl
   ms_samples:
     - type: "EBV-LCLs (multiple HLA-DR genotypes)"
       condition: "unperturbed"
@@ -2216,7 +2217,7 @@
 - pmid: 25502872
   label: "Bergseng 2015 — celiac HLA-DQ motifs"
   title: "Different binding motifs of the celiac disease-associated HLA molecules DQ2.5, DQ2.2, and DQ7.5"
-  override: cell_line
+  override: ebv_lcl
   note: >
     EBV-LCLs from 9 lines expressing DQ2.5, DQ2.2, or DQ7.5. Celiac
     disease-associated HLA-DQ motif study. 12,712 endogenous peptides.
@@ -2305,7 +2306,7 @@
 - pmid: 32357974
   label: "Mei 2020 — deamidated HLA peptides from deglycosylation"
   title: "Deamidated HLA-bound peptides arise from deglycosylated precursors"
-  override: cell_line
+  override: ebv_lcl
   ms_samples:
     - type: "EBV-LCLs (healthy donors)"
       condition: "unperturbed"
@@ -2358,7 +2359,7 @@
 - pmid: 33298915
   label: "Jappe 2020 — pMHC thermostability profiling"
   title: "Thermostability profiling of MHC-bound peptides"
-  override: cell_line
+  override: ebv_lcl
   ms_samples:
     - type: "EBV-LCLs"
       condition: "unperturbed"
@@ -2367,7 +2368,7 @@
 - pmid: 27841757
   label: "Pearson 2016 — MHC-I from selective genome regions"
   title: "MHC class I peptides derived from selective genome regions"
-  override: cell_line
+  override: ebv_lcl
   note: >
     EBV-LCLs. Raw data later reanalyzed by Bassani-Sternberg 2017
     (PMID 28832583) with MaxQuant.
@@ -2727,7 +2728,7 @@
 
 - pmid: 26375851
   label: "Schellens 2015 — EBV-LCLs ± vaccinia virus"
-  override: cell_line
+  override: ebv_lcl
   perturbations: ["Vaccinia virus infection (some conditions)"]
   ms_samples:
     - type: "EBV-LCLs (uninfected)"
@@ -2897,7 +2898,7 @@
 
 - pmid: 33298915
   label: "Jappe 2020 — pMHC thermostability"
-  override: cell_line
+  override: ebv_lcl
   ms_samples:
     - type: "EBV-LCLs"
       condition: "unperturbed"
@@ -2940,7 +2941,7 @@
 
 - pmid: 26728094
   label: "Laumont 2016 — cryptic MAPs from B cells"
-  override: cell_line
+  override: ebv_lcl
   ms_samples:
     - type: "EBV-LCLs"
       condition: "unperturbed"
@@ -2981,7 +2982,7 @@
 
 - pmid: 24714562
   label: "Granados 2014 — minor histocompatibility antigens"
-  override: cell_line
+  override: ebv_lcl
   ms_samples:
     - type: "EBV-LCLs from MHC-identical siblings"
       condition: "unperturbed"
@@ -2989,7 +2990,7 @@
 
 - pmid: 34211107
   label: "Bauza-Martinez 2021 — EV immunopeptidome (JY)"
-  override: cell_line
+  override: ebv_lcl
   ms_samples:
     - type: "JY EBV-LCL (whole cell + EV fraction)"
       condition: "unperturbed"

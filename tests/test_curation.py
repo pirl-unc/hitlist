@@ -71,6 +71,80 @@ def test_pmid_override_activated_apc():
     assert flags["src_activated_apc"] is True
 
 
+def test_ebv_lcl_override():
+    """override: ebv_lcl → not cancer, not healthy, is EBV-LCL + cell line."""
+    flags = classify_ms_row(
+        "No immunization",
+        "healthy",
+        "Cell Line / Clone (EBV transformed, B-LCL)",
+        "Blood",
+        "GR",
+        pmid=24616531,
+    )
+    assert flags["src_cancer"] is False
+    assert flags["src_ebv_lcl"] is True
+    assert flags["src_cell_line"] is True
+    assert flags["src_healthy_tissue"] is False
+
+
+def test_ebv_lcl_override_forces_flags():
+    """override: ebv_lcl should force EBV-LCL even if culture_condition is wrong."""
+    flags = classify_ms_row(
+        "No immunization",
+        "healthy",
+        "Cell Line / Clone",  # NOT the EBV string
+        "Blood",
+        "GR",
+        pmid=24616531,
+    )
+    assert flags["src_ebv_lcl"] is True
+    assert flags["src_cell_line"] is True
+    assert flags["src_cancer"] is False
+
+
+def test_cell_line_override_ebv_lcl_not_cancer():
+    """cell_line override with EBV culture_condition → not cancer."""
+    # Ritz 2017 is override: cell_line (mixed study), JY is EBV-LCL
+    flags = classify_ms_row(
+        "No immunization",
+        "healthy",
+        "Cell Line / Clone (EBV transformed, B-LCL)",
+        "Blood",
+        "JY",
+        pmid=28834231,
+    )
+    assert flags["src_cancer"] is False
+    assert flags["src_ebv_lcl"] is True
+
+
+def test_cell_line_override_non_ebv_still_cancer():
+    """cell_line override with non-EBV cell line → still cancer."""
+    # Ritz 2017 also has HEK293 (non-EBV)
+    flags = classify_ms_row(
+        "No immunization",
+        "healthy",
+        "Cell Line / Clone",
+        "Blood",
+        "HEK293",
+        pmid=28834231,
+    )
+    assert flags["src_cancer"] is True
+    assert flags["src_ebv_lcl"] is False
+
+
+def test_patient_b_all_is_cancer():
+    """Patient B-ALL (not EBV-LCL) should still be cancer."""
+    flags = classify_ms_row(
+        "Occurrence of cancer",
+        "acute lymphoblastic leukemia",
+        "Direct Ex Vivo",
+        "Blood",
+        "B cell",
+    )
+    assert flags["src_cancer"] is True
+    assert flags["src_ebv_lcl"] is False
+
+
 def test_neidert_tissue_override_blood_healthy():
     flags = classify_ms_row("No immunization", "healthy", "Direct Ex Vivo", "Blood", pmid=29557506)
     assert flags["src_healthy_tissue"] is True

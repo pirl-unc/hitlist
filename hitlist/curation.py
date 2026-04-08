@@ -453,9 +453,15 @@ def classify_ms_row(
         is_adjacent = False
         is_activated_apc = True
     elif effective_override == "cell_line":
-        is_cancer = True
+        is_cancer = not is_ebv_lcl  # EBV-LCLs are not cancer
         is_adjacent = False
         is_activated_apc = False
+    elif effective_override == "ebv_lcl":
+        is_cancer = False
+        is_adjacent = False
+        is_activated_apc = False
+        is_ebv_lcl = True  # force even if IEDB culture_condition is wrong
+        is_cell_line = True
     elif effective_override == "healthy":
         is_cancer = False
         is_adjacent = False
