@@ -49,9 +49,10 @@
     \ immunotherapy"
   override: healthy
   note: >
-    21 subjects (14 autopsy + 5 living thymus + 2 living ovary), 227 samples across 29 tissues. Gold standard
-    benign reference. None of the subjects was diagnosed with any malignant disease. Paired HLA-I (198
-    samples) and HLA-II (220 samples).
+    21 subjects (14 autopsy + 5 living thymus + 2 living ovary), 227 samples across 29 tissues (abstract
+    says 227, Results section says 225 — likely 2 excluded after QC). Gold standard benign reference. None
+    of the subjects was diagnosed with any malignant disease. Paired HLA-I (198 samples) and HLA-II (220
+    samples).
   donors: 21
   tissues: 29
   samples: 227
@@ -124,7 +125,7 @@
     source: mixed surgical
     condition: unperturbed
     mhc_class: I
-    classification: fall-through (reproductive or somatic default)
+    classification: healthy
   rules:
   - condition:
       Source Tissue:
@@ -244,6 +245,7 @@
     mhc_class: I
   - type: healthy donor PBMCs
     n: 0
+    profiled: false
     condition: NOT profiled by MS — used for T cell isolation only
 - pmid: 38920720
   label: Hesnard 2024 — ovarian cancer antigen immunogenicity
@@ -277,6 +279,7 @@
     mhc_class: I
   - type: tumor tissue
     n: 0
+    profiled: false
     condition: NOT in this study — TSAs from prior Laumont 2018 study
   rules:
   - condition:
@@ -290,8 +293,10 @@
   override: activated_apc
   note: >
     Profiled 5 immune cell subsets from 7 donors (D1-D4 full profiling, D5-D7 synthetic peptide loading
-    only). DC maturation upregulates ~765 proteins. Pharmacological activation artifact, not representative
-    of healthy tissue.
+    only). Both HLA-I (HB95) and HLA-II (HB145) profiled. DC maturation upregulates ~765 proteins.
+    All cell types pharmacologically activated — not representative of healthy tissue. DCs and CD40L-activated
+    B cells are professional APCs; PMA/Ionomycin-activated T cells are not APCs per se but are similarly
+    non-physiological.
   donors: 7
   perturbations:
   - "DCs: GM-CSF (500 IU/mL) + IL-4 (250 IU/mL) 6d, then LPS (60 EU/mL) + IFN-gamma (2000 IU/mL) 24h"
@@ -307,37 +312,38 @@
     - "HLA-B*40:01"
     - "HLA-B*44:03"
     - "HLA-B*51:01"
+  ip_antibody: "HB95 (I) + HB145 (II)"
   ms_samples:
   - type: CD14+ monocytes (resting)
     n: 4
     source: donors D1-D4
     condition: unperturbed
-    mhc_class: I
+    mhc_class: I+II
   - type: immature DCs
     n: 4
     source: donors D1-D4
     condition: GM-CSF (500 IU/mL) + IL-4 (250 IU/mL) 6d
-    mhc_class: I
+    mhc_class: I+II
   - type: mature DCs
     n: 4
     source: donors D1-D4
     condition: GM-CSF + IL-4 6d → LPS (60 EU/mL) + IFN-gamma (2000 IU/mL) 24h
-    mhc_class: I
+    mhc_class: I+II
   - type: CD8+ T cells (activated)
     n: 4
     source: donors D1-D4
     condition: PMA (10 ng/mL) + Ionomycin (1 ug/mL) 48h
-    mhc_class: I
+    mhc_class: I+II
   - type: CD4+ T cells (activated)
     n: 4
     source: donors D1-D4
     condition: PMA (10 ng/mL) + Ionomycin (1 ug/mL) 48h
-    mhc_class: I
+    mhc_class: I+II
   - type: CD19+ B cells (activated)
     n: 4
     source: donors D1-D4
     condition: IL-4 (2 ng/mL) + CD40L-Tri (1 ug/mL) 48h
-    mhc_class: I
+    mhc_class: I+II
 - pmid: 35051231
   label: Nicholas 2022 — influenza-infected lung
   title: Immunopeptidomic analysis of influenza A virus infected human tissues identifies internal proteins
@@ -347,8 +353,8 @@
     Lung from 3 surgery patients ('clinical reasons') — almost certainly cancer resection. Tissue taken
     distant from resection margin, no visible abnormalities. PRIDE data (PXD022884, 149 raw files) shows
     UV-inactivated mock controls WERE profiled by MS for both lung tissue and THP-1 (but NOT for moDCs).
-    P1 has no X31 immunopeptidome despite text implying all donors received both strains. Both HLA-I and
-    HLA-II IPs for lung and THP-1. moDC had HLA-II only.
+    P1 lung X31 host immunopeptidome was profiled but no PRIDE raw files found (likely excluded after QC).
+    Both HLA-I and HLA-II IPs for lung, THP-1, and moDCs.
   donors: 3
   perturbations:
   - Influenza A/H3N2/X31 infection (22h ex vivo)
@@ -383,6 +389,7 @@
     mhc_class: I+II
   - type: P1 lung — X31-infected
     n: 0
+    profiled: false
     condition: NOT profiled (no PRIDE files despite text implying exposure)
   - type: P2 lung — UV mock (uninfected)
     n: 1
@@ -435,6 +442,7 @@
     mhc_class: I+II
   - type: moDC cross-presentation — uninfected control
     n: 0
+    profiled: false
     condition: NOT profiled by MS
 - pmid: 29786170
   label: Ternette 2018 — TNBC immunopeptidomics
@@ -442,10 +450,12 @@
     Immunotherapy Target Antigens
   override: null
   note: >
-    6 TNBC patients, paired tumor + adjacent normal breast tissue. Only HLA-A*02:01 profiled (samples
-    pre-selected by IHC with BB7.2). 5 patients had paired tumor + adjacent normal; 1 tumor only. No perturbations
-    — fresh-frozen surgical specimens processed directly.
+    6 TNBC patients, paired tumor + adjacent normal breast tissue. Patients pre-selected by IHC with BB7.2
+    (anti-HLA-A2), but actual IP used W6/32 (pan-HLA class I), capturing all HLA-I allotypes. 5 patients
+    had paired tumor + adjacent normal; 1 tumor only. No perturbations — fresh-frozen surgical specimens
+    processed directly.
   donors: 6
+  ip_antibody: W6/32
   hla_alleles:
     profiled:
     - "HLA-A*02:01"
@@ -610,7 +620,6 @@
     source: inflammatory disease controls
     condition: unperturbed — sHLA from plasma
     mhc_class: I
-    classification: "neutral (not cancer, not healthy)"
   rules:
   - condition:
       Disease: healthy
@@ -1701,7 +1710,7 @@
       mhc_class: "II"
 
 - pmid: 32157095
-  label: "Laumont 2020 — proteogenomic melanoma + lung"
+  label: "Chong 2020 — proteogenomic melanoma + lung"
   title: "Integrated proteogenomic deep sequencing and analytics accurately identify non-canonical peptides in tumor immunopeptidomes"
   override: ~
   note: >
@@ -2560,6 +2569,7 @@
 
 - pmid: 31217245
   label: "Chikata 2019 — HLA-C*12:02 + HIV-1 infection"
+  title: "Identification of Immunodominant HIV-1 Epitopes Presented by HLA-C*12:02, a Protective Allele, Using an Immunopeptidomics Approach"
   override: cell_line
   perturbations: ["HIV-1 infection of 721.221 transfectants"]
   ms_samples:
@@ -2569,6 +2579,7 @@
 
 - pmid: 33392160
   label: "Ghosh 2020 — THP-1 + biomaterials + LPS"
+  title: "The Impact of Biomaterial Cell Contact on the Immunopeptidome"
   override: cell_line
   perturbations: ["Biomaterial contact (steel, aluminum, zinc, polyethylene)", "LPS stimulation"]
   ms_samples:
@@ -2578,6 +2589,7 @@
 
 - pmid: 31530632
   label: "Lorente 2019 — HLA-B*40:02 ERAP2 KO"
+  title: "Substantial Influence of ERAP2 on the HLA-B*40:02 Peptidome: Implications for HLA-B*27-Negative Ankylosing Spondylitis"
   override: cell_line
   perturbations: ["ERAP2 CRISPR KO"]
   ms_samples:
@@ -2590,6 +2602,7 @@
 
 - pmid: 29632046
   label: "Sanz-Bravo 2018 — HLA-B*27 ERAP1 variants"
+  title: "Ranking the Contribution of Ankylosing Spondylitis-associated Endoplasmic Reticulum Aminopeptidase 1 (ERAP1) Polymorphisms to Shaping the HLA-B*27 Peptidome"
   override: cell_line
   perturbations: ["ERAP1 polymorphism variants"]
   ms_samples:
@@ -2599,6 +2612,7 @@
 
 - pmid: 29437277
   label: "Ramarathinam 2018 — HLA-B*57:01 + HIV Env"
+  title: "Identification of Native and Posttranslationally Modified HLA-B*57:01-Restricted HIV Envelope Derived Epitopes Using Immunoproteomics"
   override: cell_line
   perturbations: ["HIV envelope protein transduction"]
   ms_samples:
@@ -2608,6 +2622,7 @@
 
 - pmid: 30779550
   label: "Murphy 2019 — cancer cells + doxorubicin"
+  title: "Multiplexed Relative Quantitation with Isobaric Tagging Mass Spectrometry Reveals Class I Major Histocompatibility Complex Ligand Dynamics in Response to Doxorubicin"
   override: cell_line
   perturbations: ["Doxorubicin treatment"]
   ms_samples:
@@ -2620,6 +2635,7 @@
 
 - pmid: 30524438
   label: "Jensen 2018 — BET PROTAC immunopeptidome"
+  title: "Specific MHC-I Peptides Are Induced Using PROTACs"
   override: cell_line
   perturbations: ["PROTAC (BET-targeting degrader compounds)"]
   ms_samples:
@@ -2632,6 +2648,7 @@
 
 - pmid: 30833945
   label: "Javitt 2019 — A549 + TNFa + IFNg"
+  title: "Pro-inflammatory Cytokines Alter the Immunopeptidome Landscape by Modulation of HLA-B Expression"
   override: cell_line
   perturbations: ["TNF-alpha + IFN-gamma stimulation"]
   ms_samples:
@@ -2644,6 +2661,7 @@
 
 - pmid: 32265295
   label: "Lorente 2020 — HLA-B*27:05 ERAP2 KO"
+  title: "Modulation of Natural HLA-B*27:05 Ligandome by Ankylosing Spondylitis-associated Endoplasmic Reticulum Aminopeptidase 2 (ERAP2)"
   override: cell_line
   perturbations: ["ERAP2 CRISPR KO"]
   ms_samples:
@@ -2653,6 +2671,7 @@
 
 - pmid: 35561310
   label: "Bourne 2022 — DLBCL + EZH2i + decitabine + IFNg"
+  title: "Unmasking the suppressed immunopeptidome of EZH2-mutated diffuse large B-cell lymphomas through combination drug treatment"
   override: cell_line
   perturbations: ["EZH2 inhibitor (tazemetostat)", "Decitabine", "IFN-gamma"]
   ms_samples:
@@ -2665,6 +2684,7 @@
 
 - pmid: 25892735
   label: "Alvarez-Navarro 2015 — HLA-A*29:02 ERAP1 variants"
+  title: "Endoplasmic Reticulum Aminopeptidase 1 (ERAP1) Polymorphism Relevant to Inflammatory Disease Shapes the Peptidome of the Birdshot Chorioretinopathy-Associated HLA-A*29:02 Antigen"
   override: cell_line
   perturbations: ["ERAP1 polymorphism variants"]
   ms_samples:
@@ -2674,6 +2694,7 @@
 
 - pmid: 29769354
   label: "Sanz-Bravo 2018b — HLA-A*29:02 + ERAP2 overexpression"
+  title: "Allele-specific Alterations in the Peptidome Underlie the Joint Association of HLA-A*29:02 and Endoplasmic Reticulum Aminopeptidase 2 (ERAP2) with Birdshot Chorioretinopathy"
   override: cell_line
   perturbations: ["ERAP2 lentiviral overexpression"]
   ms_samples:
@@ -2686,6 +2707,7 @@
 
 - pmid: 28063628
   label: "Martin-Esteban 2017 — HLA-B*27 ERAP1/ERAP2 combinations"
+  title: "Separate effects of the ankylosing spondylitis associated ERAP1 and ERAP2 aminopeptidases determine the influence of their combined phenotype on the HLA-B*27 peptidome"
   override: cell_line
   perturbations: ["ERAP1/ERAP2 KO/variant combinations"]
   ms_samples:
@@ -2695,6 +2717,7 @@
 
 - pmid: 31222486
   label: "Koumantou 2019 — A375 + ERAP1 inhibitor"
+  title: "Editing the immunopeptidome of melanoma cells using a potent inhibitor of endoplasmic reticulum aminopeptidase 1 (ERAP1)"
   override: cell_line
   perturbations: ["ERAP1 pharmacological inhibitor"]
   ms_samples:
@@ -2707,6 +2730,7 @@
 
 - pmid: 30484775
   label: "Ilca 2018 — TAPBPR peptide editing"
+  title: "TAPBPR mediates peptide dissociation from MHC class I using a leucine lever"
   override: cell_line
   perturbations: ["TAPBPR overexpression/mutation"]
   ms_samples:
@@ -2716,6 +2740,7 @@
 
 - pmid: 33633747
   label: "Puig 2021 — HLA-B*57:01 + flucloxacillin"
+  title: "Alterations in the HLA-B*57:01 Immunopeptidome by Flucloxacillin and Immunogenicity of Drug-Haptenated Peptides"
   override: cell_line
   perturbations: ["Flucloxacillin (antibiotic, DILI model)"]
   ms_samples:
@@ -2728,6 +2753,7 @@
 
 - pmid: 26375851
   label: "Schellens 2015 — EBV-LCLs ± vaccinia virus"
+  title: "Comprehensive Analysis of the Naturally Processed Peptide Repertoire: Differences between HLA-A and B in the Immunopeptidome"
   override: ebv_lcl
   perturbations: ["Vaccinia virus infection (some conditions)"]
   ms_samples:
@@ -2742,6 +2768,7 @@
 
 - pmid: 29789417
   label: "Loffler 2018 — CRC + matched normal colon"
+  title: "Mapping the HLA Ligandome of Colorectal Cancer Reveals an Imprint of Malignant Cell Transformation"
   override: ~
   ms_samples:
     - type: "CRC tumor tissue"
@@ -2760,7 +2787,9 @@
 
 - pmid: 34185709
   label: "Hirama 2021 — CRC + matched normal colon"
+  title: "Proteogenomic identification of an immunogenic HLA class I neoantigen in mismatch repair-deficient colorectal cancer tissue"
   override: ~
+  donors: 6
   ms_samples:
     - type: "CRC tumor tissue"
       condition: "unperturbed"
@@ -2778,6 +2807,7 @@
 
 - pmid: 33091337
   label: "Wang 2020 — HLA-DR15 in MS brain/thymus/B cells"
+  title: "HLA-DR15 Molecules Jointly Shape an Autoreactive T Cell Repertoire in Multiple Sclerosis"
   override: ~
   note: >
     Primary healthy thymus + B cells + monocytes, plus MS brain lesions.
@@ -2801,6 +2831,7 @@
 
 - pmid: 27452731
   label: "Heyder 2016 — HLA-DR in sarcoidosis BAL + B cells"
+  title: "Approach for Identifying Human Leukocyte Antigen (HLA)-DR Bound Peptides from Scarce Clinical Samples"
   override: ~
   ms_samples:
     - type: "EBV-B cells"
@@ -2814,6 +2845,7 @@
 
 - pmid: 37938771
   label: "Yarmarkovich 2023 — neuroblastoma immunopeptidome"
+  title: "Targeting of intracellular oncoproteins with peptide-centric CARs"
   override: ~
   ms_samples:
     - type: "neuroblastoma cell lines + patient tumors"
@@ -2823,6 +2855,7 @@
 
 - pmid: 25418920
   label: "Schittenhelm 2015 — 8 HLA-B27 subtypes"
+  title: "Revisiting the arthritogenic peptide theory: quantitative not qualitative changes in the peptide repertoire of HLA-B27 allotypes"
   override: cell_line
   mono_allelic_host: "C1R"
   ms_samples:
@@ -2833,6 +2866,7 @@
 
 - pmid: 33717175
   label: "Venema 2021 — HLA-A29 uveitis ERAP2 comparison"
+  title: "ERAP2 Increases the Abundance of a Peptide Submotif Highly Selective for the Birdshot Uveitis-Associated HLA-A29"
   override: cell_line
   ms_samples:
     - type: "APCs from ERAP2+ vs ERAP2- patients"
@@ -2841,6 +2875,7 @@
 
 - pmid: 33691108
   label: "Ruiz Cuevas 2021 — DLBCL cryptic MAPs"
+  title: "Most non-canonical proteins uniquely populate the proteome or immunopeptidome"
   override: cell_line
   ms_samples:
     - type: "DLBCL cell lines (3 lines)"
@@ -2849,6 +2884,7 @@
 
 - pmid: 30573663
   label: "Nanaware 2019 — HLA-DO KO mouse class II"
+  title: "HLA-DO Modulates the Diversity of the MHC-II Self-peptidome"
   override: ~
   species: "Mus musculus (mouse)"
   perturbations: ["HLA-DO knockout"]
@@ -2862,6 +2898,7 @@
 
 - pmid: 26740625
   label: "Clement 2016 — HLA-DR1 transgenic mouse DCs"
+  title: "The Dendritic Cell Major Histocompatibility Complex II (MHC II) Peptidome Derives from a Variety of Processing Pathways and Includes Peptides with a Broad Spectrum of HLA-DM Sensitivity"
   override: ~
   species: "Mus musculus (mouse)"
   ms_samples:
@@ -2871,6 +2908,7 @@
 
 - pmid: 24715725
   label: "Bourdetsky 2014 — SILAC DRiPs study"
+  title: "The nature and extent of contributions by defective ribosome products to the HLA peptidome"
   override: cell_line
   ip_antibody: W6/32
   acquisition_mode: DDA
@@ -2880,32 +2918,9 @@
       condition: "SILAC metabolic labeling"
       mhc_class: "I"
 
-- pmid: 29632046
-  label: "Sanz-Bravo 2018a — HLA-B*27 ERAP1 polymorphisms"
-  override: cell_line
-  ms_samples:
-    - type: "C1R HLA-B*27 transfectants"
-      condition: "ERAP1 variant comparison"
-      mhc_class: "I"
-
-- pmid: 30833945
-  label: "Javitt 2019 — A549 + TNFa/IFNg"
-  override: cell_line
-  ms_samples:
-    - type: "A549 ± TNFa + IFNg"
-      condition: "TNF-alpha + IFN-gamma"
-      mhc_class: "I"
-
-- pmid: 33298915
-  label: "Jappe 2020 — pMHC thermostability"
-  override: ebv_lcl
-  ms_samples:
-    - type: "EBV-LCLs"
-      condition: "unperturbed"
-      mhc_class: "I"
-
 - pmid: 30410026
   label: "Illing 2018 — HLA-B57 micropolymorphism"
+  title: "HLA-B57 micropolymorphism defines the sequence and conformational breadth of the immunopeptidome"
   override: cell_line
   ms_samples:
     - type: "C1R B*57:01/B*57:03/B*58:01 transfectants"
@@ -2914,6 +2929,7 @@
 
 - pmid: 34561969
   label: "Khan 2022 — HLA-A*33:03 peptidome"
+  title: "Characterization of HLA-A*33:03 epitopes via immunoprecipitation and LC-MS/MS"
   override: cell_line
   mono_allelic_host: "721.221"
   ms_samples:
@@ -2923,6 +2939,7 @@
 
 - pmid: 28855257
   label: "Mobbs 2017 — HLA-C*06:02 peptidome"
+  title: "The molecular basis for peptide repertoire selection in the human leucocyte antigen (HLA) C*06:02 molecule"
   override: cell_line
   mono_allelic_host: "C1R"
   ms_samples:
@@ -2932,6 +2949,7 @@
 
 - pmid: 29331515
   label: "Rozanov 2018 — 20 breast cancer cell lines"
+  title: "MHC class I loaded ligands from breast cancer cell lines: A potential HLA-I-typed antigen collection"
   override: cell_line
   ms_samples:
     - type: "breast cancer cell lines"
@@ -2941,6 +2959,7 @@
 
 - pmid: 26728094
   label: "Laumont 2016 — cryptic MAPs from B cells"
+  title: "Global proteogenomic analysis of human MHC class I-associated peptides derived from non-canonical reading frames"
   override: ebv_lcl
   ms_samples:
     - type: "EBV-LCLs"
@@ -2949,6 +2968,7 @@
 
 - pmid: 32561536
   label: "Erhard 2020 — cryptic ORF peptides in tumors"
+  title: "Identification of the Cryptic HLA-I Immunopeptidome"
   override: ~
   ms_samples:
     - type: "tumor tissues + cell lines"
@@ -2957,6 +2977,7 @@
 
 - pmid: 35318648
   label: "Kumar 2022 — EV vs cell surface immunopeptidome"
+  title: "Tumour-associated antigenic peptides are present in the HLA class I ligandome of cancer cell line derived extracellular vesicles"
   override: cell_line
   ms_samples:
     - type: "breast cancer + melanoma + myeloma cell lines"
@@ -2965,6 +2986,7 @@
 
 - pmid: 31998317
   label: "Kemps 2020 — BRAF neoantigen targeted peptidomics"
+  title: "Apparent Lack of BRAF(V600E) Derived HLA Class I Presented Neoantigens Hampers Neoplastic Cell Targeting by CD8(+) T Cells in Langerhans Cell Histiocytosis"
   override: cell_line
   ms_samples:
     - type: "BRAF-transduced cell lines"
@@ -2973,6 +2995,7 @@
 
 - pmid: 25880248
   label: "Giam 2015 — HLA-A*01:01 peptidome"
+  title: "A comprehensive analysis of peptides presented by HLA-A1"
   override: cell_line
   mono_allelic_host: "C1R"
   ms_samples:
@@ -2982,6 +3005,7 @@
 
 - pmid: 24714562
   label: "Granados 2014 — minor histocompatibility antigens"
+  title: "Impact of genomic polymorphisms on the repertoire of human MHC class I-associated peptides"
   override: ebv_lcl
   ms_samples:
     - type: "EBV-LCLs from MHC-identical siblings"
@@ -2990,6 +3014,7 @@
 
 - pmid: 34211107
   label: "Bauza-Martinez 2021 — EV immunopeptidome (JY)"
+  title: "HLA-B and cysteinylated ligands distinguish the antigen presentation landscape of extracellular vesicles"
   override: ebv_lcl
   ms_samples:
     - type: "JY EBV-LCL (whole cell + EV fraction)"
@@ -2998,6 +3023,7 @@
 
 - pmid: 35494241
   label: "Solleder 2022 — phospho HLA-II reanalysis"
+  title: "Deciphering the landscape of phosphorylated HLA-II ligands"
   override: ~
   ms_samples:
     - type: "reanalysis of existing HLA-II datasets"
@@ -3006,6 +3032,7 @@
 
 - pmid: 30192525
   label: "Chen 2018 — HCT116 chemical derivatization"
+  title: "Chemical Derivatization Strategy for Extending the Identification of MHC Class I Immunopeptides"
   override: cell_line
   ms_samples:
     - type: "HCT116 colon cancer"
@@ -3014,27 +3041,16 @@
 
 - pmid: 31937595
   label: "Ghosh 2020b — LC-MS/MS validation pipeline"
+  title: "Guidance Document: Validation of a High-Performance Liquid Chromatography-Tandem Mass Spectrometry Immunopeptidomics Assay for the Identification of HLA Class I Ligands Suitable for Pharmaceutical Therapies"
   override: ~
   ms_samples:
     - type: "JY, PBMCs, CLL, bladder cancer (method validation)"
       condition: "unperturbed"
       mhc_class: "I"
 
-- pmid: 34932366
-  label: "Sudhir 2022 — T1D vs healthy (already partial)"
-  override: ~
-  note: "Already partially curated — extending with remaining samples."
-
-- pmid: 33633747
-  label: "Puig 2021 — flucloxacillin DILI"
-  override: cell_line
-  ms_samples:
-    - type: "cells ± flucloxacillin"
-      condition: "flucloxacillin treatment"
-      mhc_class: "I"
-
 - pmid: 34433824
   label: "Tran 2021 — HLA-DQ8 hybrid insulin peptide"
+  title: "T cell receptor recognition of hybrid insulin peptides bound to HLA-DQ8"
   override: ~
   ms_samples:
     - type: "HLA-DQ8 immunopeptidome component"
@@ -3043,6 +3059,7 @@
 
 - pmid: 29317506
   label: "Ting 2018 — citrullinated peptides HLA-DR (RA)"
+  title: "The interplay between citrullination and HLA-DRB1 polymorphism in shaping peptide binding hierarchies in rheumatoid arthritis"
   override: ~
   ms_samples:
     - type: "HLA-DR immunopeptidome (citrullinated peptides)"
@@ -3051,6 +3068,7 @@
 
 - pmid: 28467828
   label: "Ooi 2017 — Goodpasture HLA-DR15 (NOT primarily MS)"
+  title: "Dominant protection from HLA-linked autoimmunity by antigen-specific regulatory T cells"
   override: ~
   note: "Primarily immunology/structural paper, borderline IP-MS."
   ms_samples:
