@@ -1,4 +1,5 @@
 from hitlist.export import (
+    _classify_instrument,
     _extract_allele_strings,
     generate_ms_samples_table,
     generate_species_summary,
@@ -21,6 +22,7 @@ def test_ms_samples_table_columns():
         "ip_antibody",
         "acquisition_mode",
         "instrument",
+        "instrument_type",
         "fragmentation",
         "labeling",
         "search_engine",
@@ -73,6 +75,24 @@ def test_ms_samples_acquisition_metadata():
     pfammatter = df[df["pmid"] == 32502341]
     assert len(pfammatter) > 0
     assert pfammatter.iloc[0]["labeling"] == "TMT"
+
+
+def test_classify_instrument():
+    assert _classify_instrument("Q Exactive HF-X") == "Orbitrap"
+    assert _classify_instrument("Orbitrap Fusion Lumos") == "Orbitrap"
+    assert _classify_instrument("LTQ Orbitrap Elite") == "Orbitrap"
+    assert _classify_instrument("timsTOF Pro") == "timsTOF"
+    assert _classify_instrument("TripleTOF 5600") == "TOF"
+    assert _classify_instrument("") == ""
+    assert _classify_instrument("Some Novel Instrument") == "Some Novel Instrument"
+
+
+def test_ms_samples_instrument_type():
+    """instrument_type should be derived from instrument."""
+    df = generate_ms_samples_table()
+    qe = df[df["instrument"] == "Q Exactive"]
+    assert len(qe) > 0
+    assert qe.iloc[0]["instrument_type"] == "Orbitrap"
 
 
 def test_ms_samples_two_level_inheritance():

@@ -39,6 +39,44 @@ _ACQUISITION_FIELDS = (
     "fdr",
 )
 
+# Map specific instrument models → category.  Keys are matched as
+# case-insensitive substrings against the ``instrument`` field.
+_INSTRUMENT_TYPE_MAP = [
+    ("timstof", "timsTOF"),
+    ("tims tof", "timsTOF"),
+    ("lumos", "Orbitrap"),
+    ("fusion", "Orbitrap"),
+    ("exploris", "Orbitrap"),
+    ("astral", "Orbitrap"),
+    ("eclipse", "Orbitrap"),
+    ("q exactive", "Orbitrap"),
+    ("qe ", "Orbitrap"),
+    ("qe+", "Orbitrap"),
+    ("orbitrap", "Orbitrap"),
+    ("ltq", "Orbitrap"),
+    ("velos", "Orbitrap"),
+    ("elite", "Orbitrap"),
+    ("triple tof", "TOF"),
+    ("tripletof", "TOF"),
+    ("sciex", "TOF"),
+    ("synapt", "TOF"),
+    ("xevo", "TOF"),
+    ("qtof", "TOF"),
+    ("maldi", "MALDI"),
+    ("fticr", "FTICR"),
+]
+
+
+def _classify_instrument(instrument: str) -> str:
+    """Return a broad instrument category from a specific model string."""
+    if not instrument:
+        return ""
+    low = instrument.lower()
+    for pattern, category in _INSTRUMENT_TYPE_MAP:
+        if pattern in low:
+            return category
+    return instrument  # return raw value if no match
+
 
 def generate_ms_samples_table(mhc_class: str | None = None) -> pd.DataFrame:
     """Export all ms_samples entries as a flat DataFrame.
@@ -54,7 +92,7 @@ def generate_ms_samples_table(mhc_class: str | None = None) -> pd.DataFrame:
     pd.DataFrame
         Columns: species, sample, perturbation, pmid, study, mhc_class,
         n_samples, notes, mhc, ip_antibody, acquisition_mode, instrument,
-        fragmentation, labeling, search_engine, fdr.
+        instrument_type, fragmentation, labeling, search_engine, fdr.
     """
     overrides = load_pmid_overrides()
     rows: list[dict] = []
@@ -97,6 +135,7 @@ def generate_ms_samples_table(mhc_class: str | None = None) -> pd.DataFrame:
             }
             for field in _ACQUISITION_FIELDS:
                 row[field] = sample.get(field) or entry.get(field) or ""
+            row["instrument_type"] = _classify_instrument(row["instrument"])
             rows.append(row)
 
     return pd.DataFrame(rows)
