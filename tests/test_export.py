@@ -17,6 +17,7 @@ def test_ms_samples_table_columns():
         "mhc_class",
         "n_samples",
         "notes",
+        "mhc",
         "ip_antibody",
         "acquisition_mode",
         "instrument",
@@ -83,6 +84,26 @@ def test_ms_samples_two_level_inheritance():
         antibodies = set(abelin["ip_antibody"].dropna())
         # Should have at least 2 distinct ip_antibody values
         assert len(antibodies) > 1
+
+
+def test_ms_samples_mhc_per_sample():
+    """Sarkizova validation samples should have per-sample MHC alleles."""
+    df = generate_ms_samples_table()
+    sarkizova = df[df["pmid"] == 31844290]
+    cll_a = sarkizova[sarkizova["sample"].str.contains("CLL A")]
+    assert len(cll_a) == 1
+    mhc = cll_a.iloc[0]["mhc"]
+    assert "A*03:01" in mhc
+    assert "B*14:02" in mhc
+
+
+def test_ms_samples_mhc_unknown():
+    """Pat9 ccRCC has no MHC typing — mhc should be 'unknown'."""
+    df = generate_ms_samples_table()
+    sarkizova = df[df["pmid"] == 31844290]
+    pat9 = sarkizova[sarkizova["sample"].str.contains("Pat9")]
+    assert len(pat9) == 1
+    assert pat9.iloc[0]["mhc"] == "unknown"
 
 
 def test_species_summary_columns():
