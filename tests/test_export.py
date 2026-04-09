@@ -83,6 +83,7 @@ def test_classify_instrument():
     assert _classify_instrument("LTQ Orbitrap Elite") == "Orbitrap"
     assert _classify_instrument("timsTOF Pro") == "timsTOF"
     assert _classify_instrument("TripleTOF 5600") == "TOF"
+    assert _classify_instrument("TSQ Altis Plus") == "QqQ"
     assert _classify_instrument("") == ""
     assert _classify_instrument("Some Novel Instrument") == "Some Novel Instrument"
 

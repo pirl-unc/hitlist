@@ -62,6 +62,12 @@ _INSTRUMENT_TYPE_MAP = [
     ("synapt", "TOF"),
     ("xevo", "TOF"),
     ("qtof", "TOF"),
+    ("tsq", "QqQ"),
+    ("triple quad", "QqQ"),
+    ("altis", "QqQ"),
+    ("quantiva", "QqQ"),
+    ("endura", "QqQ"),
+    ("xevo tq", "QqQ"),
     ("maldi", "MALDI"),
     ("fticr", "FTICR"),
 ]
