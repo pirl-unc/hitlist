@@ -3574,6 +3574,58 @@
       mhc_class: "non-classical"
       mhc: Patr-AL
 
+- pmid: 38480730
+  label: "Gomez-Zepeda 2024 — Thunder-DDA-PASEF deep immunopeptidomics"
+  title: "Thunder-DDA-PASEF enables high-coverage immunopeptidomics and is boosted by MS2Rescore with MS2PIP timsTOF fragmentation prediction model"
+  override: cell_line
+  note: >
+    Thunder-DDA-PASEF acquisition method for deep immunopeptidomics on timsTOF Pro-2.
+    Achieved ~14,500 HLA-I peptides from 20M JY cells. MS2Rescore with MS2PIP timsTOF
+    fragmentation model boosted identifications by ~20%. Also profiled SARS-CoV-2 spike
+    peptides on Raji transfectants.
+  ip_antibody: W6/32
+  acquisition_mode: DDA-PASEF
+  instrument: "timsTOF Pro-2"
+  fragmentation: HCD
+  search_engine: "PEAKS XPro + MS2Rescore"
+  hla_alleles:
+    JY:
+    - "HLA-A*02:01"
+    - "HLA-B*07:02"
+    - "HLA-C*07:02"
+    HeLa:
+    - "HLA-A*68:02"
+    - "HLA-B*15:03"
+    - "HLA-C*12:03"
+    SK-MEL-37:
+    - "HLA-A*02:01"
+    - "HLA-A*11:01"
+    - "HLA-B*15:01"
+    - "HLA-B*56:01"
+    - "HLA-C*01:02"
+  ms_samples:
+  - type: JY (EBV-LCL, titration series)
+    n: 1
+    source: "1M, 5M, 10M, 20M cell equivalents (triplicate each)"
+    condition: unperturbed
+    mhc_class: I
+    mhc: "HLA-A*02:01 HLA-B*07:02 HLA-C*07:02"
+  - type: HeLa (cervical carcinoma)
+    n: 1
+    condition: unperturbed
+    mhc_class: I
+    mhc: "HLA-A*68:02 HLA-B*15:03 HLA-C*12:03"
+  - type: SK-MEL-37 (melanoma)
+    n: 1
+    condition: unperturbed
+    mhc_class: I
+    mhc: "HLA-A*02:01 HLA-A*11:01 HLA-B*15:01 HLA-B*56:01 HLA-C*01:02"
+  - type: Raji-spike (SARS-CoV-2 S1+S2 transfectants)
+    n: 1
+    condition: "SARS-CoV-2 spike S1+S2 segment transfection"
+    mhc_class: I
+    mhc: "unknown"
+
 - pmid: 33203899
   label: "Mbiribindi 2020 — HLA-E + EBV peptides (NOT elution)"
   title: "EBV latent protein peptides binding HLA-E"
