@@ -53,7 +53,7 @@ def generate_ms_samples_table(mhc_class: str | None = None) -> pd.DataFrame:
     -------
     pd.DataFrame
         Columns: species, sample, perturbation, pmid, study, mhc_class,
-        n_samples, notes, ip_antibody, acquisition_mode, instrument,
+        n_samples, notes, mhc, ip_antibody, acquisition_mode, instrument,
         fragmentation, labeling, search_engine, fdr.
     """
     overrides = load_pmid_overrides()
@@ -93,6 +93,7 @@ def generate_ms_samples_table(mhc_class: str | None = None) -> pd.DataFrame:
                 "mhc_class": cls,
                 "n_samples": n if n != "" else None,
                 "notes": sample.get("classification", sample.get("reason", "")),
+                "mhc": sample.get("mhc") or "",
             }
             for field in _ACQUISITION_FIELDS:
                 row[field] = sample.get(field) or entry.get(field) or ""
