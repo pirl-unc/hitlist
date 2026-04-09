@@ -10,14 +10,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Export curated study metadata as structured tables.
+"""Export curated study metadata and unified observations.
 
 Reads ``pmid_overrides.yaml`` and generates per-sample, per-species,
 and allele-validation reports from the ``ms_samples`` and ``hla_alleles``
 metadata fields.
 
-Can also scan local IEDB/CEDAR CSV files to count actual peptides
-per study, species, and MHC class.
+The main artifact is :func:`generate_observations_table`, which joins
+per-peptide observations (from IEDB/CEDAR) with per-sample metadata
+(from ``ms_samples``) to produce a single training-ready DataFrame.
 """
 
 from __future__ import annotations
@@ -145,6 +146,163 @@ def generate_ms_samples_table(mhc_class: str | None = None) -> pd.DataFrame:
             rows.append(row)
 
     return pd.DataFrame(rows)
+
+
+def generate_observations_table(
+    mhc_class: str | None = None,
+    species: str | None = None,
+    instrument_type: str | None = None,
+    acquisition_mode: str | None = None,
+    is_mono_allelic: bool | None = None,
+    min_allele_resolution: str | None = None,
+    columns: list[str] | None = None,
+) -> pd.DataFrame:
+    """Join per-peptide observations with per-sample metadata.
+
+    Loads the built ``observations.parquet`` and enriches each row with
+    sample-level metadata (instrument, conditions, sample MHC genotype)
+    from ``ms_samples`` in the YAML overrides.
+
+    The join logic matches each peptide's ``mhc_restriction`` to the
+    ``mhc`` field on ``ms_samples`` entries within the same PMID:
+
+    - Mono-allelic samples: exact allele match
+    - Multi-allelic samples: peptide allele appears in sample's genotype
+    - Fallback: PMID-only match when no allele-level match is possible
+
+    Parameters
+    ----------
+    mhc_class
+        Filter to ``"I"`` or ``"II"``.
+    species
+        Filter by MHC species (e.g. ``"Homo sapiens"``).
+    instrument_type
+        Filter by instrument category (e.g. ``"Orbitrap"``).
+    acquisition_mode
+        Filter by acquisition mode (e.g. ``"DDA"``).
+    is_mono_allelic
+        Filter to mono-allelic (True) or multi-allelic (False) samples.
+    min_allele_resolution
+        Minimum allele resolution (e.g. ``"four_digit"``).
+    columns
+        Return only these columns.
+
+    Returns
+    -------
+    pd.DataFrame
+        One row per peptide observation, enriched with sample metadata.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the observations table has not been built yet.
+    """
+    from .observations import load_observations
+
+    # --- Load observations ---
+    obs_filters: dict = {}
+    if mhc_class:
+        obs_filters["mhc_class"] = mhc_class
+    if species:
+        obs_filters["species"] = species
+    obs = load_observations(**obs_filters)
+
+    if min_allele_resolution:
+        from .curation import allele_resolution_rank, classify_allele_resolution
+
+        min_rank = allele_resolution_rank(min_allele_resolution)
+        obs = obs[
+            obs["mhc_restriction"].map(
+                lambda a: allele_resolution_rank(classify_allele_resolution(a)) <= min_rank
+            )
+        ]
+
+    # --- Load sample metadata ---
+    samples = generate_ms_samples_table(mhc_class=mhc_class)
+
+    # Build PMID-level metadata lookup (study label, quantification_method)
+    overrides = load_pmid_overrides()
+    pmid_meta = {}
+    for pmid_int, entry in overrides.items():
+        pmid_meta[pmid_int] = {
+            "quantification_method": entry.get("quantification_method", ""),
+        }
+
+    # --- Build sample index for allele-level matching ---
+    # For each PMID, build a list of (allele_set, metadata_dict) tuples
+    sample_index: dict[int, list[tuple[set[str], dict]]] = {}
+    meta_cols = [
+        "sample",
+        "perturbation",
+        "mhc",
+        "instrument",
+        "instrument_type",
+        "acquisition_mode",
+        "fragmentation",
+        "labeling",
+        "ip_antibody",
+    ]
+    for _, srow in samples.iterrows():
+        pmid = int(srow["pmid"])
+        mhc_str = srow.get("mhc", "")
+        allele_set = set(mhc_str.split()) if mhc_str and mhc_str != "unknown" else set()
+        meta = {col: srow.get(col, "") for col in meta_cols}
+        sample_index.setdefault(pmid, []).append((allele_set, meta))
+
+    # --- Join ---
+    enriched_rows: list[dict] = []
+    for _, orow in obs.iterrows():
+        record = orow.to_dict()
+        pmid = record.get("pmid")
+        if pd.isna(pmid):
+            enriched_rows.append(record)
+            continue
+        pmid = int(pmid)
+
+        # Add PMID-level metadata
+        pm = pmid_meta.get(pmid, {})
+        record["quantification_method"] = pm.get("quantification_method", "")
+
+        # Match to best sample by allele
+        allele = record.get("mhc_restriction", "")
+        candidates = sample_index.get(pmid, [])
+
+        matched_meta = None
+        if candidates:
+            # Try allele-level match first
+            for allele_set, meta in candidates:
+                if allele_set and allele in allele_set:
+                    matched_meta = meta
+                    break
+            # Fallback: if only one sample for this PMID, use it
+            if matched_meta is None and len(candidates) == 1:
+                matched_meta = candidates[0][1]
+
+        if matched_meta:
+            record.update(matched_meta)
+        else:
+            for col in meta_cols:
+                record.setdefault(col, "")
+
+        enriched_rows.append(record)
+
+    result = pd.DataFrame(enriched_rows)
+
+    # --- Post-join filters ---
+    if instrument_type:
+        result = result[result.get("instrument_type", pd.Series(dtype=str)) == instrument_type]
+    if acquisition_mode:
+        result = result[result.get("acquisition_mode", pd.Series(dtype=str)) == acquisition_mode]
+    if is_mono_allelic is not None:
+        col = "is_mono_allelic" if "is_mono_allelic" in result.columns else "src_mono_allelic"
+        if col in result.columns:
+            result = result[result[col] == is_mono_allelic]
+
+    if columns:
+        available = [c for c in columns if c in result.columns]
+        result = result[available]
+
+    return result
 
 
 def generate_species_summary(mhc_class: str | None = None) -> pd.DataFrame:

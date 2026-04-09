@@ -296,6 +296,15 @@ def main() -> None:
     )
     p_data_alleles.add_argument("--output", "-o", help="Write CSV to file")
 
+    p_obs = export_sub.add_parser(
+        "observations", help="Unified observations table: peptides + sample metadata"
+    )
+    p_obs.add_argument("--class", dest="mhc_class", help="MHC class (I or II)")
+    p_obs.add_argument("--species", help="Filter by MHC species")
+    p_obs.add_argument("--instrument-type", help="Instrument type (Orbitrap, timsTOF)")
+    p_obs.add_argument("--acquisition-mode", help="Acquisition mode (DDA, DIA, PRM)")
+    p_obs.add_argument("--output", "-o", help="Write to file (.csv or .parquet)")
+
     p_counts = export_sub.add_parser(
         "counts", help="Count peptides per study from local IEDB/CEDAR"
     )
@@ -324,6 +333,7 @@ def _export(args: argparse.Namespace) -> None:
         collect_alleles_from_data,
         count_peptides_by_study,
         generate_ms_samples_table,
+        generate_observations_table,
         generate_species_summary,
         validate_mhc_alleles,
     )
@@ -338,12 +348,22 @@ def _export(args: argparse.Namespace) -> None:
         df = collect_alleles_from_data(source=getattr(args, "source", "merged"))
     elif args.export_command == "counts":
         df = count_peptides_by_study(source=args.source)
+    elif args.export_command == "observations":
+        df = generate_observations_table(
+            mhc_class=args.mhc_class,
+            species=getattr(args, "species", None),
+            instrument_type=getattr(args, "instrument_type", None),
+            acquisition_mode=getattr(args, "acquisition_mode", None),
+        )
     else:
-        print("Usage: hitlist export {samples,summary,alleles,data-alleles,counts}")
+        print("Usage: hitlist export {samples,summary,alleles,data-alleles,counts,observations}")
         sys.exit(1)
 
     if args.output:
-        df.to_csv(args.output, index=False)
+        if args.output.endswith(".parquet"):
+            df.to_parquet(args.output, index=False)
+        else:
+            df.to_csv(args.output, index=False)
         print(f"Wrote {len(df)} rows to {args.output}")
     else:
         print(df.to_csv(index=False), end="")
