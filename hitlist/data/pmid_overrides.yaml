@@ -96,38 +96,45 @@
     source: Dept of Transfusion Medicine — healthy blood bank donors
     condition: unperturbed
     mhc_class: I
+    mhc: unknown
     classification: healthy
   - type: bone marrow
     source: hip arthroplasty — elderly non-cancer patients
     condition: unperturbed
     mhc_class: I
+    mhc: unknown
     classification: healthy
   - type: brain / cerebellum
     source: autopsy (Zurich)
     condition: unperturbed
     mhc_class: I
+    mhc: unknown
     classification: healthy
   - type: colon / stomach / liver / pancreas
     source: Visceral & Transplant Surgery
     condition: unperturbed
     mhc_class: I
+    mhc: unknown
     classification: adjacent
     reason: surgical departments where cancer resection is routine
   - type: kidney
     source: Urology
     condition: unperturbed
     mhc_class: I
+    mhc: unknown
     classification: adjacent
     reason: likely nephrectomy (RCC) adjacent
   - type: lung / breast
     source: surgical departments
     condition: unperturbed
     mhc_class: I
+    mhc: unknown
     classification: adjacent
   - type: spleen / ovary / testis
     source: mixed surgical
     condition: unperturbed
     mhc_class: I
+    mhc: unknown
     classification: healthy
   rules:
   - condition:
@@ -1911,9 +1918,11 @@
     - type: "LM-MEL melanoma cell lines (untreated)"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: unknown
     - type: "LM-MEL melanoma cell lines + IFN-gamma"
       condition: "IFN-gamma treatment"
       mhc_class: "I"
+      mhc: unknown
 
 - pmid: 32350084
   label: "van Balen 2020 — HLA-DP allelic variant immunopeptidomes"
@@ -1952,6 +1961,7 @@
       condition: "unperturbed"
       mhc_class: "I+II"
       ip_antibody: "W6/32 (I) + HB145/L243 (II)"
+      mhc: unknown
       classification: cancer
     - type: "lung tumor tissue (SCC + adenocarcinoma)"
       n: 2
@@ -1959,12 +1969,14 @@
       condition: "unperturbed — snap-frozen"
       mhc_class: "I+II"
       ip_antibody: "W6/32 (I) + HB145/L243 (II)"
+      mhc: unknown
       classification: cancer
     - type: "matched normal lung tissue"
       n: 2
       source: "from same 2 cancer patients"
       condition: "unperturbed — snap-frozen"
       mhc_class: "I+II"
+      mhc: unknown
       ip_antibody: "W6/32 (I) + HB145/L243 (II)"
       classification: adjacent
   rules:
@@ -2174,9 +2186,11 @@
     - type: "GRANTA-519 (mantle cell lymphoma, untreated)"
       condition: "unperturbed"
       mhc_class: "I+II"
+      mhc: "HLA-A*02:05 HLA-B*07:02 HLA-B*50:01 HLA-C*06:02 HLA-C*07:02"
     - type: "GRANTA-519 + IFN-gamma"
       condition: "IFN-gamma treatment"
       mhc_class: "I+II"
+      mhc: "HLA-A*02:05 HLA-B*07:02 HLA-B*50:01 HLA-C*06:02 HLA-C*07:02"
 
 - pmid: 28904123
   label: "Di Marco 2017 — HLA-C/E/G motifs on C1R"
@@ -2218,12 +2232,15 @@
     - type: "SaOS-2 (osteosarcoma, TP53-null, vector control)"
       condition: "unperturbed — empty vector"
       mhc_class: "I"
+      mhc: "HLA-A*02:01 HLA-A*24:02 HLA-B*13:02 HLA-B*44:02 HLA-C*06:02 HLA-C*07:04"
     - type: "SaOS-2 + TP53 R175H"
       condition: "TP53 R175H mutant transfection"
       mhc_class: "I"
+      mhc: "HLA-A*02:01 HLA-A*24:02 HLA-B*13:02 HLA-B*44:02 HLA-C*06:02 HLA-C*07:04"
     - type: "SaOS-2 + TP53 R273H"
       condition: "TP53 R273H mutant transfection"
       mhc_class: "I"
+      mhc: "HLA-A*02:01 HLA-A*24:02 HLA-B*13:02 HLA-B*44:02 HLA-C*06:02 HLA-C*07:04"
 
 - pmid: 35154160
   label: "Kaabinejadian 2022 — DRB3/4/5 class II motifs"
@@ -2233,6 +2250,7 @@
     - type: "EBV-LCLs (multiple HLA-DR genotypes)"
       condition: "unperturbed"
       mhc_class: "II"
+      mhc: unknown
 
 - pmid: 32502341
   label: "Pfammatter 2020 — TMT-labeled ALL + healthy B cells"
@@ -2250,10 +2268,12 @@
     - type: "primary B cells from ALL patients"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: unknown
       classification: cancer_patient
     - type: "primary B cells from healthy donors"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: unknown
       classification: healthy
   rules:
     - condition:
@@ -2276,18 +2296,23 @@
     - type: "GR-LCL (EBV-LCL)"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: "HLA-A*01 HLA-A*03 HLA-B*07 HLA-B*27 HLA-C*02 HLA-C*07"
     - type: "JY (EBV-LCL)"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: "HLA-A*02:01 HLA-B*07:02 HLA-C*07:02"
     - type: "C1R (B-lymphoblastoid)"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: unknown
     - type: "HeLa (cervical carcinoma)"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: "HLA-A*68:02 HLA-B*15:03 HLA-C*12:03"
     - type: "primary fibroblasts"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: unknown
 
 - pmid: 34171305
   label: "Weingarten-Gabbay 2021 — SARS-CoV-2 immunopeptidome"
@@ -2302,12 +2327,15 @@
     - type: "A549 (lung adenocarcinoma, SARS-CoV-2-infected)"
       condition: "SARS-CoV-2 infection"
       mhc_class: "I"
+      mhc: "HLA-A*25:01 HLA-A*30:01 HLA-B*07:02 HLA-B*44:03 HLA-C*12:03"
     - type: "HBECs (human bronchial epithelial, SARS-CoV-2-infected)"
       condition: "SARS-CoV-2 infection"
       mhc_class: "I"
+      mhc: unknown
     - type: "HEK293T (SARS-CoV-2-infected)"
       condition: "SARS-CoV-2 infection"
       mhc_class: "I"
+      mhc: "HLA-A*03:01 HLA-B*07:02 HLA-C*07:01"
 
 - pmid: 34509645
   label: "Scull 2021 — THP-1 immunopeptidogenomics"
@@ -2317,6 +2345,7 @@
     - type: "THP-1 (AML)"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: "HLA-A*02:01 HLA-A*24:02 HLA-B*15:11 HLA-B*35:01 HLA-C*03:03"
 
 - pmid: 36241641
   label: "Mayer 2022 — Listeria-infected cell lines"
@@ -2328,9 +2357,11 @@
     - type: "HeLa (cervical carcinoma, Listeria-infected)"
       condition: "Listeria monocytogenes infection"
       mhc_class: "I"
+      mhc: "HLA-A*68:02 HLA-B*15:03 HLA-C*12:03"
     - type: "HCT-116 (colon carcinoma, Listeria-infected)"
       condition: "Listeria monocytogenes infection"
       mhc_class: "I"
+      mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*18:01 HLA-B*45:01 HLA-C*05:01 HLA-C*07:01"
 
 - pmid: 26783342
   label: "Trolle 2016 — 721.221 peptide length distributions"
@@ -2361,9 +2392,11 @@
     - type: "HeLa-CIITA (control)"
       condition: "CIITA transduction only"
       mhc_class: "I+II"
+      mhc: "HLA-A*68:02 HLA-B*15:03 HLA-C*12:03"
     - type: "HeLa-CIITA + T6BP siRNA"
       condition: "CIITA transduction + T6BP/TAX1BP1 siRNA knockdown"
       mhc_class: "I+II"
+      mhc: "HLA-A*68:02 HLA-B*15:03 HLA-C*12:03"
 
 - pmid: 27920218
   label: "Alpizar 2017 — HLA-B phosphopeptidome"
@@ -2391,12 +2424,15 @@
     - type: "BV173 (B-ALL/CML blast crisis)"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: "HLA-A*02:01 HLA-A*30:01 HLA-B*15:10 HLA-B*18:01 HLA-C*03:04 HLA-C*12:03"
     - type: "MSTO-211H (biphasic mesothelioma)"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: "HLA-A*01:01 HLA-A*03:01 HLA-B*07:02 HLA-B*39:01 HLA-C*07:02"
     - type: "JY (EBV-LCL)"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: "HLA-A*02:01 HLA-B*07:02 HLA-C*07:02"
 
 - pmid: 36284347
   label: "Fujiwara 2022 — PDAC tissue immunopeptidome"
@@ -2409,6 +2445,7 @@
     - type: "PDAC tumor tissue"
       condition: "unperturbed — snap-frozen surgical resection"
       mhc_class: "I+II"
+      mhc: unknown
       classification: cancer
 
 - pmid: 29493099
@@ -2423,14 +2460,17 @@
     - type: "primary Treg (healthy donors)"
       condition: "unperturbed — direct ex vivo"
       mhc_class: "I"
+      mhc: unknown
       classification: healthy
     - type: "primary Tconv (healthy donors)"
       condition: "unperturbed — direct ex vivo"
       mhc_class: "I"
+      mhc: unknown
       classification: healthy
     - type: "primary activated T cells"
       condition: "in vitro activation"
       mhc_class: "I"
+      mhc: unknown
 
 - pmid: 29632711
   label: "Nelde 2018 — CLL ± lenalidomide"
@@ -2443,11 +2483,13 @@
       n: 3
       condition: "unperturbed — direct ex vivo"
       mhc_class: "I+II"
+      mhc: unknown
       classification: cancer_patient
     - type: "primary CLL cells + lenalidomide"
       n: 3
       condition: "lenalidomide treatment in vitro"
       mhc_class: "I+II"
+      mhc: unknown
       classification: cancer_patient
 
 - pmid: 28834231
@@ -2468,9 +2510,11 @@
     - type: "JY (EBV-LCL)"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: "HLA-A*02:01 HLA-B*07:02 HLA-C*07:02"
     - type: "HEK293 (embryonic kidney)"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: "HLA-A*03:01 HLA-B*07:02 HLA-C*07:01"
 
 - pmid: 25502872
   label: "Bergseng 2015 — celiac HLA-DQ motifs"
@@ -2484,6 +2528,7 @@
       n: 9
       condition: "unperturbed"
       mhc_class: "II"
+      mhc: unknown
 
 - pmid: 25645385
   label: "Pritchard 2015 — melanoma class I"
@@ -2494,6 +2539,7 @@
       n: 3
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: unknown
 
 - pmid: 32488085
   label: "Stopfer 2020 — CDK4/6i + IFNg on melanoma/breast"
@@ -2509,12 +2555,15 @@
     - type: "melanoma/breast cancer cell lines (untreated)"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: unknown
     - type: "melanoma/breast cancer cell lines + palbociclib"
       condition: "CDK4/6 inhibitor (palbociclib)"
       mhc_class: "I"
+      mhc: unknown
     - type: "melanoma/breast cancer cell lines + IFN-gamma"
       condition: "IFN-gamma"
       mhc_class: "I"
+      mhc: unknown
 
 # ── Batch 3: studies 31-50 by peptide count ────────────────────────────────
 
@@ -2549,10 +2598,12 @@
     - type: "pleural effusion (cancer patients)"
       condition: "unperturbed — sHLA from pleural fluid"
       mhc_class: "I"
+      mhc: unknown
       classification: cancer_patient
     - type: "pleural effusion (non-malignant disease)"
       condition: "unperturbed — sHLA from pleural fluid"
       mhc_class: "I"
+      mhc: unknown
 
 - pmid: 29393594
   label: "Yair-Sabag 2018 — HLA-B27 Lys-P2 ligands"
@@ -2572,6 +2623,7 @@
     - type: "EBV-LCLs (healthy donors)"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: unknown
 
 - pmid: 33912179
   label: "Mifsud 2021 — carbamazepine immunopeptidome"
@@ -2586,9 +2638,11 @@
     - type: "cell line (untreated)"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: "HLA-B*15:02"
     - type: "cell line + carbamazepine"
       condition: "carbamazepine exposure"
       mhc_class: "I"
+      mhc: "HLA-B*15:02"
 
 - pmid: 35251023
   label: "Laghmouchi 2022 — HLA-DP promiscuity"
@@ -2601,6 +2655,7 @@
     - type: "cell lines (multiple HLA-DP genotypes)"
       condition: "unperturbed"
       mhc_class: "II"
+      mhc: unknown
 
 - pmid: 30429286
   label: "Gfeller 2018 — HLA-I length distributions"
@@ -2612,10 +2667,12 @@
     - type: "meningioma tissue (direct ex vivo)"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: unknown
       classification: cancer
     - type: "cell lines"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: unknown
 
 - pmid: 33298915
   label: "Jappe 2020 — pMHC thermostability profiling"
@@ -2625,6 +2682,7 @@
     - type: "EBV-LCLs"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: unknown
 
 - pmid: 27841757
   label: "Pearson 2016 — MHC-I from selective genome regions"
@@ -2637,6 +2695,7 @@
     - type: "EBV-LCLs (multiple donors)"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: unknown
 
 - pmid: 31848261
   label: "Solleder 2020 — phosphorylated HLA-I ligands"
@@ -2646,10 +2705,12 @@
     - type: "adenocarcinoma tissue (direct ex vivo)"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: unknown
       classification: cancer
     - type: "cell lines"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: unknown
 
 - pmid: 26154972
   label: "Caron 2015 — digital immunopeptidome maps"
@@ -2659,6 +2720,7 @@
     - type: "multiple cell lines (JY, B721.221, etc.)"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: unknown
 
 - pmid: 34087483
   label: "Komov 2021 — IFN + DRiPs in breast cancer"
@@ -2670,9 +2732,11 @@
     - type: "breast adenocarcinoma cell line (untreated)"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: unknown
     - type: "breast adenocarcinoma cell line + IFN"
       condition: "IFN treatment"
       mhc_class: "I"
+      mhc: unknown
 
 - pmid: 29508533
   label: "Lanoix 2018 — IP method comparison (CLL + LCL)"
@@ -2682,10 +2746,12 @@
     - type: "primary CLL cells"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: unknown
       classification: cancer_patient
     - type: "EBV-LCLs"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: unknown
 
 - pmid: 29314611
   label: "Ritz 2018 — sHLA class II (NHL + cell lines)"
@@ -2710,9 +2776,11 @@
     - type: "DCs (direct ex vivo)"
       condition: "unperturbed"
       mhc_class: "II"
+      mhc: unknown
     - type: "DCs + Borrelia restimulation"
       condition: "Borrelia burgdorferi short-term restimulation"
       mhc_class: "II"
+      mhc: unknown
 
 - pmid: 32161166
   label: "Chen 2020 — HLA-B*51:01 subpeptidome / ERAP1"
@@ -2741,6 +2809,7 @@
     - type: "cell lines"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: "HLA-B*57:01"
 
 - pmid: 34932366
   label: "Sudhir 2022 — T1D vs healthy B cell immunopeptidome"
@@ -2765,6 +2834,7 @@
     - type: "monocytic leukemia cell line (likely THP-1)"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: "HLA-A*02:01 HLA-A*24:02 HLA-B*15:11 HLA-B*35:01 HLA-C*03:03"
 
 - pmid: 33981976
   label: "Becker 2021 — NMD inhibition + 5-azacytidine on CRC"
@@ -2776,9 +2846,11 @@
     - type: "colorectal carcinoma cell lines (untreated)"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*18:01 HLA-B*45:01 HLA-C*05:01 HLA-C*07:01"
     - type: "colorectal carcinoma cell lines + 5-azacytidine"
       condition: "5-azacytidine treatment"
       mhc_class: "I"
+      mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*18:01 HLA-B*45:01 HLA-C*05:01 HLA-C*07:01"
 
 # ── Issue #12: human studies 51-100 ────────────────────────────────────────
 
@@ -2841,6 +2913,7 @@
     - type: "THP-1 + biomaterial contact"
       condition: "biomaterial contact + LPS"
       mhc_class: "I+II"
+      mhc: "HLA-A*02:01 HLA-A*24:02 HLA-B*15:11 HLA-B*35:01 HLA-C*03:03"
 
 - pmid: 31530632
   label: "Lorente 2019 — HLA-B*40:02 ERAP2 KO"
@@ -2888,9 +2961,11 @@
     - type: "cancer cell lines (untreated)"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: unknown
     - type: "cancer cell lines + doxorubicin"
       condition: "doxorubicin treatment"
       mhc_class: "I"
+      mhc: unknown
 
 - pmid: 30524438
   label: "Jensen 2018 — BET PROTAC immunopeptidome"
@@ -2901,9 +2976,11 @@
     - type: "cells (untreated)"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: "HLA-A*02:01 HLA-A*30:01 HLA-B*15:10 HLA-B*18:01 HLA-C*03:04 HLA-C*12:03"
     - type: "cells + BET PROTAC"
       condition: "PROTAC BET degrader treatment"
       mhc_class: "I"
+      mhc: "HLA-A*02:01 HLA-A*30:01 HLA-B*15:10 HLA-B*18:01 HLA-C*03:04 HLA-C*12:03"
 
 - pmid: 30833945
   label: "Javitt 2019 — A549 + TNFa + IFNg"
@@ -2914,9 +2991,11 @@
     - type: "A549 lung cancer (untreated)"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: "HLA-A*25:01 HLA-A*30:01 HLA-B*07:02 HLA-B*44:03 HLA-C*12:03"
     - type: "A549 + TNFa + IFNg"
       condition: "TNF-alpha + IFN-gamma"
       mhc_class: "I"
+      mhc: "HLA-A*25:01 HLA-A*30:01 HLA-B*07:02 HLA-B*44:03 HLA-C*12:03"
 
 - pmid: 32265295
   label: "Lorente 2020 — HLA-B*27:05 ERAP2 KO"
@@ -2938,9 +3017,11 @@
     - type: "EZH2-mutant DLBCL (untreated)"
       condition: "unperturbed"
       mhc_class: "I+II"
+      mhc: unknown
     - type: "DLBCL + tazemetostat/decitabine/IFNg combinations"
       condition: "EZH2i + decitabine + IFNg (various combinations)"
       mhc_class: "I+II"
+      mhc: unknown
 
 - pmid: 25892735
   label: "Alvarez-Navarro 2015 — HLA-A*29:02 ERAP1 variants"
@@ -2962,9 +3043,11 @@
     - type: "cells (ERAP2-negative baseline)"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: "HLA-A*29:02"
     - type: "cells + ERAP2 lentiviral transduction"
       condition: "ERAP2 overexpression"
       mhc_class: "I"
+      mhc: "HLA-A*29:02"
 
 - pmid: 28063628
   label: "Martin-Esteban 2017 — HLA-B*27 ERAP1/ERAP2 combinations"
@@ -2975,6 +3058,7 @@
     - type: "cells (various ERAP1/ERAP2 genotype combinations)"
       condition: "ERAP1/ERAP2 variant combinations"
       mhc_class: "I"
+      mhc: "HLA-B*27:05"
 
 - pmid: 31222486
   label: "Koumantou 2019 — A375 + ERAP1 inhibitor"
@@ -2985,9 +3069,11 @@
     - type: "A375 melanoma (untreated)"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*44:03 HLA-B*57:01 HLA-C*06:02 HLA-C*16:01"
     - type: "A375 + ERAP1 inhibitor"
       condition: "ERAP1 pharmacological inhibition"
       mhc_class: "I"
+      mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*44:03 HLA-B*57:01 HLA-C*06:02 HLA-C*16:01"
 
 - pmid: 30484775
   label: "Ilca 2018 — TAPBPR peptide editing"
@@ -2998,6 +3084,7 @@
     - type: "cells ± TAPBPR manipulation"
       condition: "TAPBPR overexpression/mutation"
       mhc_class: "I"
+      mhc: "HLA-A*68:02 HLA-B*15:03 HLA-C*12:03"
 
 - pmid: 33633747
   label: "Puig 2021 — HLA-B*57:01 + flucloxacillin"
@@ -3008,9 +3095,11 @@
     - type: "cells (untreated)"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: "HLA-B*57:01"
     - type: "cells + flucloxacillin"
       condition: "flucloxacillin treatment"
       mhc_class: "I"
+      mhc: "HLA-B*57:01"
 
 - pmid: 26375851
   label: "Schellens 2015 — EBV-LCLs ± vaccinia virus"
@@ -3021,9 +3110,11 @@
     - type: "EBV-LCLs (uninfected)"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: unknown
     - type: "EBV-LCLs + vaccinia virus"
       condition: "vaccinia virus infection"
       mhc_class: "I"
+      mhc: unknown
 
 # --- Healthy/adjacent tissue studies ---
 
@@ -3134,6 +3225,7 @@
     - type: "APCs from ERAP2+ vs ERAP2- patients"
       condition: "unperturbed — natural ERAP2 genotype"
       mhc_class: "I"
+      mhc: unknown
 
 - pmid: 33691108
   label: "Ruiz Cuevas 2021 — DLBCL cryptic MAPs"
@@ -3143,6 +3235,7 @@
     - type: "DLBCL cell lines (3 lines)"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: unknown
 
 - pmid: 30573663
   label: "Nanaware 2019 — HLA-DO KO mouse class II"
@@ -3182,6 +3275,7 @@
     - type: "hematopoietic cell lines (SILAC-labeled)"
       condition: "SILAC metabolic labeling"
       mhc_class: "I"
+      mhc: unknown
 
 - pmid: 30410026
   label: "Illing 2018 — HLA-B57 micropolymorphism"
@@ -3224,6 +3318,7 @@
       n: 20
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: unknown
 
 - pmid: 26728094
   label: "Laumont 2016 — cryptic MAPs from B cells"
@@ -3233,6 +3328,7 @@
     - type: "EBV-LCLs"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: unknown
 
 - pmid: 32561536
   label: "Erhard 2020 — cryptic ORF peptides in tumors"
@@ -3242,6 +3338,7 @@
     - type: "tumor tissues + cell lines"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: unknown
 
 - pmid: 35318648
   label: "Kumar 2022 — EV vs cell surface immunopeptidome"
@@ -3251,6 +3348,7 @@
     - type: "breast cancer + melanoma + myeloma cell lines"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: unknown
 
 - pmid: 31998317
   label: "Kemps 2020 — BRAF neoantigen targeted peptidomics"
@@ -3260,6 +3358,7 @@
     - type: "BRAF-transduced cell lines"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: unknown
 
 - pmid: 25880248
   label: "Giam 2015 — HLA-A*01:01 peptidome"
@@ -3280,6 +3379,7 @@
     - type: "EBV-LCLs from MHC-identical siblings"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: unknown
 
 - pmid: 34211107
   label: "Bauza-Martinez 2021 — EV immunopeptidome (JY)"
@@ -3289,6 +3389,7 @@
     - type: "JY EBV-LCL (whole cell + EV fraction)"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: "HLA-A*02:01 HLA-B*07:02 HLA-C*07:02"
 
 - pmid: 35494241
   label: "Solleder 2022 — phospho HLA-II reanalysis"
@@ -3298,6 +3399,7 @@
     - type: "reanalysis of existing HLA-II datasets"
       condition: "unperturbed"
       mhc_class: "II"
+      mhc: unknown
 
 - pmid: 30192525
   label: "Chen 2018 — HCT116 chemical derivatization"
@@ -3307,6 +3409,7 @@
     - type: "HCT116 colon cancer"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*18:01 HLA-B*45:01 HLA-C*05:01 HLA-C*07:01"
 
 - pmid: 31937595
   label: "Ghosh 2020b — LC-MS/MS validation pipeline"
@@ -3316,6 +3419,7 @@
     - type: "JY, PBMCs, CLL, bladder cancer (method validation)"
       condition: "unperturbed"
       mhc_class: "I"
+      mhc: unknown
 
 - pmid: 34433824
   label: "Tran 2021 — HLA-DQ8 hybrid insulin peptide"
@@ -3325,6 +3429,7 @@
     - type: "HLA-DQ8 immunopeptidome component"
       condition: "unperturbed"
       mhc_class: "II"
+      mhc: "HLA-DQ8"
 
 - pmid: 29317506
   label: "Ting 2018 — citrullinated peptides HLA-DR (RA)"
@@ -3334,6 +3439,7 @@
     - type: "HLA-DR immunopeptidome (citrullinated peptides)"
       condition: "unperturbed"
       mhc_class: "II"
+      mhc: unknown
 
 - pmid: 28467828
   label: "Ooi 2017 — Goodpasture HLA-DR15 (NOT primarily MS)"
@@ -3344,6 +3450,7 @@
     - type: "HLA-DR15 immunopeptidome component"
       condition: "unperturbed"
       mhc_class: "II"
+      mhc: "HLA-DR15"
 
 # ── Issue #8: Non-classical HLA ───────────────────────────────────────────
 
@@ -3440,6 +3547,7 @@
     - type: "MR1 ligand identification"
       condition: "unperturbed"
       mhc_class: "non-classical"
+      mhc: "MR1"
 
 - pmid: 26552660
   label: "Celik 2016 — HLA-E allelic variant peptidomes"
