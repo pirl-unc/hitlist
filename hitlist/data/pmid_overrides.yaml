@@ -40,6 +40,8 @@
 #   labeling         - label-free, TMT, SILAC, SIL/hipMHC
 #   search_engine    - MaxQuant, PEAKS, Proteome Discoverer, Mascot, etc.
 #   fdr              - false discovery rate (e.g. "1%")
+#   quantification_method - targeted quantification approach, if any
+#                      (hipMHC, SureQuant-IsoMHC, TOMAHAQ, MRM/AQUA, optiPRM, etc.)
 
 # ── Gold-standard healthy tissue ────────────────────────────────────────────
 
@@ -2545,25 +2547,61 @@
   label: "Stopfer 2020 — CDK4/6i + IFNg on melanoma/breast"
   title: "Multiplexed relative and absolute quantitative immunopeptidomics reveals MHC I repertoire alterations induced by CDK4/6 inhibition"
   override: cell_line
+  note: >
+    hipMHC internal standards for absolute quantification of HLA-I peptides.
+    TMT 10-plex multiplexing across treatment conditions. A375 (melanoma) and
+    MDA-MB-231 (TNBC) treated with CDK4/6i (palbociclib) or IFN-gamma.
+    ~500 copies/cell for average HLA-I peptide in A375.
   perturbations:
     - "CDK4/6 inhibitor (palbociclib)"
     - "IFN-gamma"
   ip_antibody: W6/32
   acquisition_mode: DDA
+  instrument: "Orbitrap Fusion Lumos"
+  fragmentation: HCD
   labeling: "TMT + hipMHC"
+  search_engine: "Spectrum Mill"
+  quantification_method: hipMHC
+  hla_alleles:
+    A375:
+    - "HLA-A*01:01"
+    - "HLA-A*02:01"
+    - "HLA-B*44:03"
+    - "HLA-B*57:01"
+    - "HLA-C*06:02"
+    - "HLA-C*16:01"
+    MDA-MB-231:
+    - "HLA-A*02:01"
+    - "HLA-A*02:50"
+    - "HLA-B*40:01"
+    - "HLA-B*41:01"
+    - "HLA-C*02:02"
+    - "HLA-C*17:01"
   ms_samples:
-    - type: "melanoma/breast cancer cell lines (untreated)"
+    - type: "A375 melanoma (untreated)"
       condition: "unperturbed"
       mhc_class: "I"
-      mhc: unknown
-    - type: "melanoma/breast cancer cell lines + palbociclib"
+      mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*44:03 HLA-B*57:01 HLA-C*06:02 HLA-C*16:01"
+    - type: "A375 melanoma + palbociclib"
       condition: "CDK4/6 inhibitor (palbociclib)"
       mhc_class: "I"
-      mhc: unknown
-    - type: "melanoma/breast cancer cell lines + IFN-gamma"
+      mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*44:03 HLA-B*57:01 HLA-C*06:02 HLA-C*16:01"
+    - type: "A375 melanoma + IFN-gamma"
       condition: "IFN-gamma"
       mhc_class: "I"
-      mhc: unknown
+      mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*44:03 HLA-B*57:01 HLA-C*06:02 HLA-C*16:01"
+    - type: "MDA-MB-231 TNBC (untreated)"
+      condition: "unperturbed"
+      mhc_class: "I"
+      mhc: "HLA-A*02:01 HLA-A*02:50 HLA-B*40:01 HLA-B*41:01 HLA-C*02:02 HLA-C*17:01"
+    - type: "MDA-MB-231 TNBC + palbociclib"
+      condition: "CDK4/6 inhibitor (palbociclib)"
+      mhc_class: "I"
+      mhc: "HLA-A*02:01 HLA-A*02:50 HLA-B*40:01 HLA-B*41:01 HLA-C*02:02 HLA-C*17:01"
+    - type: "MDA-MB-231 TNBC + IFN-gamma"
+      condition: "IFN-gamma"
+      mhc_class: "I"
+      mhc: "HLA-A*02:01 HLA-A*02:50 HLA-B*40:01 HLA-B*41:01 HLA-C*02:02 HLA-C*17:01"
 
 # ── Batch 3: studies 31-50 by peptide count ────────────────────────────────
 
@@ -3625,6 +3663,171 @@
     condition: "SARS-CoV-2 spike S1+S2 segment transfection"
     mhc_class: I
     mhc: "unknown"
+
+# ── Quantitative targeted immunopeptidome studies ────────────────────────────
+
+- pmid: 34497125
+  label: "Stopfer 2021 — SureQuant-IsoMHC melanoma tumor antigens"
+  title: "Absolute quantification of tumor antigens using embedded MHC-I isotopologue calibrants"
+  override: ~
+  note: >
+    SureQuant-IsoMHC method for absolute quantification of tumor-associated
+    peptides. Isotopologue pMHC standards spiked into IP eluates. A375
+    melanoma cell line ± MEKi (trametinib) plus 10 patient melanoma biopsies.
+    Quantified 18 tumor antigens ranging ~1-144,000 copies/cell.
+    PRIDE: PXD024917.
+  ip_antibody: W6/32
+  acquisition_mode: "DDA + SureQuant PRM"
+  instrument: "Exploris 480"
+  fragmentation: HCD
+  labeling: "isotopologue pMHC standards"
+  search_engine: "Proteome Discoverer"
+  quantification_method: SureQuant-IsoMHC
+  hla_alleles:
+    A375:
+    - "HLA-A*01:01"
+    - "HLA-A*02:01"
+    - "HLA-B*44:03"
+    - "HLA-B*57:01"
+    - "HLA-C*06:02"
+    - "HLA-C*16:01"
+  ms_samples:
+    - type: "A375 melanoma (untreated)"
+      condition: "unperturbed"
+      mhc_class: "I"
+      mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*44:03 HLA-B*57:01 HLA-C*06:02 HLA-C*16:01"
+      override: cell_line
+    - type: "A375 melanoma + trametinib (MEKi)"
+      condition: "MEK inhibitor (trametinib)"
+      mhc_class: "I"
+      mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*44:03 HLA-B*57:01 HLA-C*06:02 HLA-C*16:01"
+      override: cell_line
+    - type: "patient melanoma biopsies"
+      n: 10
+      condition: "unperturbed — fresh tumor biopsies"
+      mhc_class: "I"
+      mhc: unknown
+      override: ~
+
+- pmid: 31253788
+  label: "Wu 2019 — influenza epitope quantification (mouse)"
+  title: "Quantification of epitope abundance reveals the effect of direct and cross-presentation on influenza CTL responses"
+  override: ~
+  species: "Mus musculus (mouse)"
+  note: >
+    LC-MRM quantification of 21 influenza epitopes on mouse APCs.
+    C57BL/6 splenocytes, DC2.4 (dendritic cell line), and LET1 (lung
+    epithelial cell line). 1-5,000 copies/cell detected. Demonstrates
+    direct vs cross-presentation hierarchy for influenza CTL epitopes.
+  ip_antibody: "Y-3 (H-2Kb) + 28-14-8s (H-2Db)"
+  acquisition_mode: SRM/MRM
+  instrument: "triple quadrupole (TSQ Altis)"
+  fragmentation: CID
+  labeling: "AQUA isotope-labeled peptides"
+  search_engine: "Skyline"
+  quantification_method: MRM/AQUA
+  ms_samples:
+    - type: "C57BL/6 splenocytes (influenza-infected)"
+      condition: "influenza infection (PR8)"
+      mhc_class: "I"
+      mhc: "H-2Kb H-2Db"
+    - type: "DC2.4 (influenza-infected)"
+      condition: "influenza infection (PR8)"
+      mhc_class: "I"
+      mhc: "H-2Kb H-2Db"
+    - type: "LET1 lung epithelial (influenza-infected)"
+      condition: "influenza infection (PR8)"
+      mhc_class: "I"
+      mhc: "H-2Kb H-2Db"
+
+- pmid: 34129938
+  label: "Pollock 2021 — TOMAHAQ neoepitope quantification"
+  title: "Sensitive and Quantitative Detection of MHC-I Displayed Neoepitopes Using a Semiautomated Workflow and TOMAHAQ Mass Spectrometry"
+  override: ~
+  note: >
+    TOMAHAQ (triggered by offset, multiplexed, accurate-mass, high-resolution,
+    absolute quantification) on Orbitrap tribrid. MC38 mouse colon carcinoma
+    (H-2Kb/Db) and GRANTA-519 human mantle cell lymphoma. TMT-based targeted
+    quantification of neoepitopes. MassIVE: MSV000086582.
+  ip_antibody: "Y-3 (H-2Kb) / W6/32 (human)"
+  acquisition_mode: "TOMAHAQ (triggered PRM)"
+  instrument: "Orbitrap Fusion Lumos"
+  fragmentation: HCD
+  labeling: TMT
+  search_engine: "Proteome Discoverer"
+  quantification_method: TOMAHAQ
+  ms_samples:
+    - type: "MC38 mouse colon carcinoma"
+      condition: "unperturbed"
+      mhc_class: "I"
+      mhc: "H-2Kb H-2Db"
+      species: "Mus musculus (mouse)"
+      override: cell_line
+    - type: "GRANTA-519 human mantle cell lymphoma"
+      condition: "unperturbed"
+      mhc_class: "I"
+      mhc: unknown
+      override: cell_line
+
+- pmid: 39111711
+  label: "Salek 2024 — optiPRM neoantigen detection"
+  title: "optiPRM: A Targeted Immunopeptidomics LC-MS Workflow With Ultra-High Sensitivity for Detection of Mutation-Derived Tumor Neoepitopes From Limited Input Material"
+  override: ~
+  note: >
+    optiPRM workflow for ultra-sensitive targeted detection of neoepitopes from
+    limited input. Patient-derived xenograft and 3 patient tumor biopsies.
+    5 neoantigens validated across samples. Optimized PRM with nanospray source
+    and micro-pillar array columns.
+  ip_antibody: W6/32
+  acquisition_mode: PRM
+  instrument: "Orbitrap Exploris 480"
+  fragmentation: HCD
+  labeling: label-free
+  search_engine: "Skyline"
+  quantification_method: optiPRM
+  ms_samples:
+    - type: "patient-derived xenograft"
+      condition: "unperturbed — PDX tumor"
+      mhc_class: "I"
+      mhc: unknown
+    - type: "patient tumor biopsies"
+      n: 3
+      condition: "unperturbed — fresh tumor biopsies"
+      mhc_class: "I"
+      mhc: unknown
+
+- pmid: 39438697
+  label: "Leddy 2025 — SureQuant protocol for antigen validation"
+  title: "Validation and quantification of peptide antigens presented on MHCs using SureQuant"
+  override: ~
+  note: >
+    SureQuant protocol paper on Exploris 480. THP-1 (human monocytic leukemia)
+    and mouse splenocytes. Validated Mtb-derived epitopes on THP-1 and Alg8
+    neoantigen on mouse splenocytes. Detailed protocol for targeted
+    immunopeptidomics with SureQuant acquisition.
+  ip_antibody: "W6/32 (human) / Y-3 (H-2Kb, mouse)"
+  acquisition_mode: SureQuant PRM
+  instrument: "Exploris 480"
+  fragmentation: HCD
+  labeling: "SIL peptide standards"
+  search_engine: "Skyline"
+  quantification_method: SureQuant
+  ms_samples:
+    - type: "THP-1 (human monocytic leukemia)"
+      condition: "unperturbed"
+      mhc_class: "I"
+      mhc: unknown
+      override: cell_line
+    - type: "THP-1 + Mtb infection"
+      condition: "Mycobacterium tuberculosis infection"
+      mhc_class: "I"
+      mhc: unknown
+      override: cell_line
+    - type: "mouse splenocytes (C57BL/6)"
+      condition: "unperturbed"
+      mhc_class: "I"
+      mhc: "H-2Kb"
+      species: "Mus musculus (mouse)"
 
 - pmid: 33203899
   label: "Mbiribindi 2020 — HLA-E + EBV peptides (NOT elution)"
