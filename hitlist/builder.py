@@ -57,10 +57,21 @@ def _source_paths() -> dict[str, Path]:
 
 def _source_fingerprints(paths: dict[str, Path]) -> dict:
     """File identity for cache invalidation."""
-    return {
+    fp = {
         name: {"path": str(p), "size": p.stat().st_size, "mtime": p.stat().st_mtime}
         for name, p in paths.items()
     }
+    # Include supplementary manifest so adding a new supplement invalidates cache
+    from .supplement import manifest_path
+
+    mp = manifest_path()
+    if mp.exists():
+        fp["supplementary_manifest"] = {
+            "path": str(mp),
+            "size": mp.stat().st_size,
+            "mtime": mp.stat().st_mtime,
+        }
+    return fp
 
 
 def _observations_path() -> Path:
@@ -152,6 +163,31 @@ def build_observations(
         raise RuntimeError("No data scanned.")
 
     obs = pd.concat(dfs, ignore_index=True)
+
+    # --- Supplementary data (peptides not in IEDB/CEDAR) ---
+    from .supplement import scan_supplementary
+
+    supp = scan_supplementary(classify_source=True)
+    if not supp.empty:
+        supp["source"] = "supplement"
+        # Deduplicate: IEDB/CEDAR rows win over supplementary
+        existing_keys = set(zip(obs["peptide"], obs["mhc_restriction"], obs["pmid"]))
+        before = len(supp)
+        supp = supp[
+            ~pd.Series(
+                [
+                    (p, a, m) in existing_keys
+                    for p, a, m in zip(supp["peptide"], supp["mhc_restriction"], supp["pmid"])
+                ],
+                index=supp.index,
+            )
+        ]
+        dupes = before - len(supp)
+        if dupes:
+            print(f"  Deduplicated {dupes:,} supplementary rows (already in IEDB/CEDAR)")
+        obs = pd.concat([obs, supp], ignore_index=True)
+        print(f"  {len(supp):,} rows from supplementary data")
+
     print(f"\nTotal: {len(obs):,} observations")
     print(f"  Unique peptides: {obs['peptide'].nunique():,}")
     print(f"  Unique alleles:  {obs['mhc_restriction'].nunique():,}")
