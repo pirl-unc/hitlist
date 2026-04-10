@@ -127,6 +127,44 @@ def test_ms_samples_mhc_unknown():
     assert pat9.iloc[0]["mhc"] == "unknown"
 
 
+def test_generate_observations_table():
+    """Observations table should join peptides with sample metadata."""
+    from hitlist.observations import is_built
+
+    if not is_built():
+        import pytest
+
+        pytest.skip("Observations table not built")
+    from hitlist.export import generate_observations_table
+
+    df = generate_observations_table()
+    assert len(df) > 0
+    # Original observation columns
+    assert "peptide" in df.columns
+    assert "mhc_restriction" in df.columns
+    # Enriched sample metadata columns
+    assert "instrument" in df.columns
+    assert "instrument_type" in df.columns
+    assert "mhc" in df.columns
+    assert "quantification_method" in df.columns
+
+
+def test_generate_observations_table_not_built():
+    """Should raise FileNotFoundError when observations not built."""
+    from hitlist.observations import is_built
+
+    if is_built():
+        import pytest
+
+        pytest.skip("Observations table is built — cannot test error path")
+    import pytest
+
+    from hitlist.export import generate_observations_table
+
+    with pytest.raises(FileNotFoundError, match="not built"):
+        generate_observations_table()
+
+
 def test_species_summary_columns():
     df = generate_species_summary()
     expected = {

@@ -303,6 +303,24 @@ def main() -> None:
     p_obs.add_argument("--species", help="Filter by MHC species")
     p_obs.add_argument("--instrument-type", help="Instrument type (Orbitrap, timsTOF)")
     p_obs.add_argument("--acquisition-mode", help="Acquisition mode (DDA, DIA, PRM)")
+    p_obs.add_argument(
+        "--mono-allelic",
+        dest="mono_allelic",
+        action="store_true",
+        default=None,
+        help="Only mono-allelic samples",
+    )
+    p_obs.add_argument(
+        "--multi-allelic",
+        dest="mono_allelic",
+        action="store_false",
+        help="Only multi-allelic samples",
+    )
+    p_obs.add_argument(
+        "--min-allele-resolution",
+        choices=["four_digit", "two_digit", "serological", "class_only"],
+        help="Minimum allele resolution",
+    )
     p_obs.add_argument("--output", "-o", help="Write to file (.csv or .parquet)")
 
     p_counts = export_sub.add_parser(
@@ -354,6 +372,8 @@ def _export(args: argparse.Namespace) -> None:
             species=getattr(args, "species", None),
             instrument_type=getattr(args, "instrument_type", None),
             acquisition_mode=getattr(args, "acquisition_mode", None),
+            is_mono_allelic=getattr(args, "mono_allelic", None),
+            min_allele_resolution=getattr(args, "min_allele_resolution", None),
         )
     else:
         print("Usage: hitlist export {samples,summary,alleles,data-alleles,counts,observations}")
