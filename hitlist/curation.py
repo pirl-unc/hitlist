@@ -129,6 +129,90 @@ def classify_mhc_species(mhc_restriction: str) -> str:
     return ""
 
 
+# ── Species normalization ─────────────────────────────────────────────────
+
+# Hardcoded fallback when mhcgnomes is not installed.
+_SPECIES_ALIASES: dict[str, str] = {
+    "human": "Homo sapiens",
+    "homo sapiens": "Homo sapiens",
+    "mouse": "Mus musculus",
+    "mus musculus": "Mus musculus",
+    "rat": "Rattus norvegicus",
+    "rattus norvegicus": "Rattus norvegicus",
+    "pig": "Sus scrofa",
+    "sus scrofa": "Sus scrofa",
+    "cattle": "Bos taurus",
+    "cow": "Bos taurus",
+    "bos taurus": "Bos taurus",
+    "dog": "Canis lupus",
+    "canis lupus": "Canis lupus",
+    "canis lupus familiaris": "Canis lupus",
+    "chicken": "Gallus gallus",
+    "gallus gallus": "Gallus gallus",
+    "rhesus macaque": "Macaca mulatta",
+    "macaca mulatta": "Macaca mulatta",
+}
+
+
+@lru_cache(maxsize=256)
+def normalize_species(raw: str) -> str:
+    """Normalize a species string to its canonical scientific name.
+
+    Accepts any common format — scientific name, common name,
+    underscore-separated, or IEDB parenthetical style — and returns
+    a consistent canonical form using ``mhcgnomes`` when available.
+
+    Examples::
+
+        normalize_species("human")                    # "Homo sapiens"
+        normalize_species("Homo sapiens (human)")     # "Homo sapiens"
+        normalize_species("homo_sapiens")             # "Homo sapiens"
+        normalize_species("Mus musculus (mouse)")     # "Mus musculus"
+
+    Parameters
+    ----------
+    raw
+        Species string in any supported format.
+
+    Returns
+    -------
+    str
+        Canonical species name, or the stripped input if unrecognized.
+        Empty string for empty input.
+    """
+    if not raw:
+        return ""
+    cleaned = raw.strip()
+    if not cleaned:
+        return ""
+
+    # Try mhcgnomes first — it handles scientific names, common names,
+    # underscores, and even parenthetical IEDB format.
+    try:
+        from mhcgnomes import Species
+
+        result = Species.get(cleaned)
+        if result is not None:
+            return result.name
+    except ImportError:
+        pass
+
+    # Fallback: normalize to lowercase with spaces for alias lookup
+    key = cleaned.lower().replace("_", " ")
+
+    # Strip parenthetical suffix: "Homo sapiens (human)" → "homo sapiens"
+    paren = key.find("(")
+    if paren > 0:
+        key = key[:paren].strip()
+
+    if key in _SPECIES_ALIASES:
+        return _SPECIES_ALIASES[key]
+
+    # Return stripped form (without parenthetical) for unrecognized species
+    paren = cleaned.find("(")
+    return cleaned[:paren].strip() if paren > 0 else cleaned
+
+
 # ── Allele resolution ──────────────────────────────────────────────────────
 
 #: Resolution tiers, ordered from most to least specific.

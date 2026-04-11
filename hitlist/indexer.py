@@ -156,7 +156,7 @@ def _index_from_observations(source: str) -> tuple[pd.DataFrame, pd.DataFrame]:
 
 def _index_from_csv(source: str, force: bool) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Legacy fallback: scan CSV directly when observations table not built."""
-    from .curation import classify_mhc_species
+    from .curation import classify_mhc_species, normalize_species
     from .scanner import _open_csv, _progress, _safe_col
 
     def _fast_species(mhc_restriction: str, _cache: dict[str, str] = {}) -> str:  # noqa: B006
@@ -213,7 +213,7 @@ def _index_from_csv(source: str, force: bool) -> tuple[pd.DataFrame, pd.DataFram
             species = _fast_species(mhc_res)
             if not species:
                 host = _safe_col(row, c["host"])
-                species = host if host else "unknown"
+                species = normalize_species(host) if host else "unknown"
 
             key = (pmid, mhc_cls, species)
             peptide_sets[key].add(pep)

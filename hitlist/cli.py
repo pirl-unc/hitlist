@@ -296,6 +296,33 @@ def main() -> None:
     )
     p_data_alleles.add_argument("--output", "-o", help="Write CSV to file")
 
+    p_obs = export_sub.add_parser(
+        "observations", help="Unified observations table: peptides + sample metadata"
+    )
+    p_obs.add_argument("--class", dest="mhc_class", help="MHC class (I or II)")
+    p_obs.add_argument("--species", help="Filter by MHC species")
+    p_obs.add_argument("--instrument-type", help="Instrument type (Orbitrap, timsTOF)")
+    p_obs.add_argument("--acquisition-mode", help="Acquisition mode (DDA, DIA, PRM)")
+    p_obs.add_argument(
+        "--mono-allelic",
+        dest="mono_allelic",
+        action="store_true",
+        default=None,
+        help="Only mono-allelic samples",
+    )
+    p_obs.add_argument(
+        "--multi-allelic",
+        dest="mono_allelic",
+        action="store_false",
+        help="Only multi-allelic samples",
+    )
+    p_obs.add_argument(
+        "--min-allele-resolution",
+        choices=["four_digit", "two_digit", "serological", "class_only"],
+        help="Minimum allele resolution",
+    )
+    p_obs.add_argument("--output", "-o", help="Write to file (.csv or .parquet)")
+
     p_counts = export_sub.add_parser(
         "counts", help="Count peptides per study from local IEDB/CEDAR"
     )
@@ -324,6 +351,7 @@ def _export(args: argparse.Namespace) -> None:
         collect_alleles_from_data,
         count_peptides_by_study,
         generate_ms_samples_table,
+        generate_observations_table,
         generate_species_summary,
         validate_mhc_alleles,
     )
@@ -338,12 +366,24 @@ def _export(args: argparse.Namespace) -> None:
         df = collect_alleles_from_data(source=getattr(args, "source", "merged"))
     elif args.export_command == "counts":
         df = count_peptides_by_study(source=args.source)
+    elif args.export_command == "observations":
+        df = generate_observations_table(
+            mhc_class=args.mhc_class,
+            species=getattr(args, "species", None),
+            instrument_type=getattr(args, "instrument_type", None),
+            acquisition_mode=getattr(args, "acquisition_mode", None),
+            is_mono_allelic=getattr(args, "mono_allelic", None),
+            min_allele_resolution=getattr(args, "min_allele_resolution", None),
+        )
     else:
-        print("Usage: hitlist export {samples,summary,alleles,data-alleles,counts}")
+        print("Usage: hitlist export {samples,summary,alleles,data-alleles,counts,observations}")
         sys.exit(1)
 
     if args.output:
-        df.to_csv(args.output, index=False)
+        if args.output.endswith(".parquet"):
+            df.to_parquet(args.output, index=False)
+        else:
+            df.to_csv(args.output, index=False)
         print(f"Wrote {len(df)} rows to {args.output}")
     else:
         print(df.to_csv(index=False), end="")

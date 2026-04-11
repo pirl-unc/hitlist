@@ -1,0 +1,31 @@
+# Supplementary peptide data not in IEDB/CEDAR.
+#
+# Each entry specifies a PMID (linking to pmid_overrides.yaml curation)
+# and a CSV file in the supplementary/ directory.  The 'defaults' dict
+# supplies IEDB-equivalent column values for source classification.
+#
+# Required CSV columns: peptide, mhc_class
+# Optional CSV columns: mhc_restriction (per-peptide allele assignment)
+#
+# When mhc_restriction is absent, the alleles from ms_samples are used
+# during the observations join (but individual peptide→allele assignment
+# is unknown).
+
+- pmid: 38480730
+  file: gomez_zepeda_2024_jy.csv
+  label: "Gomez-Zepeda 2024 — JY HLA-I peptides (Thunder-DDA-PASEF)"
+  source: "Nature Comms Supplementary Data S6+S7, jPOSTrepo JPST002044 / PXD040385"
+  note: >
+    18,156 unique 8-15aa HLA-I peptides from JY EBV-LCL (wild-type, not
+    spike-transfected) profiled with Thunder-DDA-PASEF on timsTOF Pro-2.
+    From Supplementary Data S6 (pep_all_06133b.csv).  Per-peptide allele
+    assignment for 12,977 peptides from NetMHCpan predictions in S7
+    (best EL_Rank, SB or WB binders only).  JY alleles: A*02:01, B*07:02,
+    C*07:02.  5,179 peptides have no predicted binder allele.
+  defaults:
+    host: "Homo sapiens (human)"
+    culture_condition: "Cell Line / Clone (EBV transformed, B-LCL)"
+    cell_name: "JY"
+    source_tissue: "Blood"
+    process_type: "No immunization"
+    disease: "healthy"

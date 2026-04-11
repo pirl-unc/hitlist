@@ -51,7 +51,7 @@ version = {attr = "hitlist.version.__version__"}
 include = ["hitlist*"]
 
 [tool.setuptools.package-data]
-hitlist = ["data/*.yaml"]
+hitlist = ["data/*.yaml", "data/supplementary/*.yaml", "data/supplementary/*.csv"]
 
 [tool.ruff]
 target-version = "py39"
