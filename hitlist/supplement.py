@@ -29,7 +29,7 @@ from pathlib import Path
 import pandas as pd
 import yaml
 
-from .curation import classify_ms_row
+from .curation import classify_ms_row, normalize_species
 
 _DATA_DIR = Path(__file__).parent / "data"
 _MANIFEST_PATH = _DATA_DIR / "supplementary.yaml"
@@ -156,6 +156,12 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
                 record["allele_resolution"] = classify_allele_resolution(mhc_restriction)
                 record["serotype"] = allele_to_serotype(mhc_restriction)
                 record["mhc_species"] = classify_mhc_species(mhc_restriction)
+
+            # Fallback: derive mhc_species from host when allele-based
+            # classification returns empty (e.g. supplementary peptides
+            # without per-peptide allele assignments).
+            if not record.get("mhc_species"):
+                record["mhc_species"] = normalize_species(defaults.get("host", ""))
 
             all_rows.append(record)
 

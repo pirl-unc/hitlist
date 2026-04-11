@@ -1,4 +1,7 @@
-from hitlist.supplement import load_supplementary_manifest, scan_supplementary
+from hitlist.supplement import (
+    load_supplementary_manifest,
+    scan_supplementary,
+)
 
 
 def test_load_manifest():
@@ -87,3 +90,15 @@ def test_scan_supplementary_no_classify():
     # Should have allele_resolution but not src_cancer
     assert "allele_resolution" in df.columns
     assert "src_cancer" not in df.columns
+
+
+def test_scan_supplementary_mhc_species_propagation():
+    """Supplementary rows should have mhc_species even without allele assignment."""
+    df = scan_supplementary()
+    gz = df[df["pmid"] == 38480730]
+    # Rows without mhc_restriction should still have mhc_species from host
+    no_allele = gz[gz["mhc_restriction"] == ""]
+    assert len(no_allele) > 0, "Expected some peptides without allele assignment"
+    assert (no_allele["mhc_species"] == "Homo sapiens").all(), (
+        "Peptides without allele assignment should still have mhc_species='Homo sapiens'"
+    )

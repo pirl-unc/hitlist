@@ -62,7 +62,7 @@ def _source_fingerprints(paths: dict[str, Path]) -> dict:
         for name, p in paths.items()
     }
     # Include supplementary manifest so adding a new supplement invalidates cache
-    from .supplement import manifest_path
+    from .supplement import load_supplementary_manifest, manifest_path
 
     mp = manifest_path()
     if mp.exists():
@@ -71,6 +71,17 @@ def _source_fingerprints(paths: dict[str, Path]) -> dict:
             "size": mp.stat().st_size,
             "mtime": mp.stat().st_mtime,
         }
+        # Also fingerprint each referenced CSV so edits invalidate cache
+        supp_dir = mp.parent / "supplementary"
+        for entry in load_supplementary_manifest():
+            csv_path = supp_dir / entry["file"]
+            if csv_path.exists():
+                key = f"supplementary_csv:{entry['file']}"
+                fp[key] = {
+                    "path": str(csv_path),
+                    "size": csv_path.stat().st_size,
+                    "mtime": csv_path.stat().st_mtime,
+                }
     return fp
 
 

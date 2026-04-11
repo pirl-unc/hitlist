@@ -199,8 +199,11 @@ def scan(
         allele_resolution_rank,
         classify_allele_resolution,
         classify_mhc_species,
+        normalize_species,
     )
 
+    if mhc_species is not None:
+        mhc_species = normalize_species(mhc_species)
     min_res_rank = allele_resolution_rank(min_allele_resolution) if min_allele_resolution else None
 
     rows: list[dict] = []
@@ -236,7 +239,10 @@ def scan(
                 if mhc_sp:
                     if mhc_sp != "Homo sapiens":
                         continue
-                elif "Homo sapiens" not in (host, species):
+                elif "Homo sapiens" not in (
+                    normalize_species(host),
+                    normalize_species(species),
+                ):
                     continue
             if mhc_class is not None and _safe_col(row, c["mhc_class"]) != mhc_class:
                 continue

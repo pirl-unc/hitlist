@@ -78,12 +78,14 @@ def load_observations(
     if not path.exists():
         raise FileNotFoundError("Observations table not built. Run: hitlist data build")
 
+    from .curation import normalize_species
+
     # Build parquet filters for pushdown
     filters = []
     if mhc_class is not None:
         filters.append(("mhc_class", "==", mhc_class))
     if species is not None:
-        filters.append(("mhc_species", "==", species))
+        filters.append(("mhc_species", "==", normalize_species(species)))
     if source is not None:
         filters.append(("source", "==", source))
 

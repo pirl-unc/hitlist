@@ -149,6 +149,70 @@ def test_generate_observations_table():
     assert "quantification_method" in df.columns
 
 
+def test_generate_observations_monoallelic_filter():
+    """--mono-allelic / --multi-allelic should change row counts."""
+    from hitlist.observations import is_built
+
+    if not is_built():
+        import pytest
+
+        pytest.skip("Observations table not built")
+    from hitlist.export import generate_observations_table
+
+    df_all = generate_observations_table()
+    df_mono = generate_observations_table(is_mono_allelic=True)
+    df_multi = generate_observations_table(is_mono_allelic=False)
+    # Both subsets should be non-empty and smaller than the full table
+    assert len(df_mono) > 0, "Mono-allelic filter returned no rows"
+    assert len(df_multi) > 0, "Multi-allelic filter returned no rows"
+    assert len(df_mono) < len(df_all), "Mono-allelic filter did not reduce row count"
+    assert len(df_multi) < len(df_all), "Multi-allelic filter did not reduce row count"
+
+
+def test_generate_observations_provenance_columns():
+    """Provenance columns should be present and meaningful."""
+    from hitlist.observations import is_built
+
+    if not is_built():
+        import pytest
+
+        pytest.skip("Observations table not built")
+    from hitlist.export import generate_observations_table
+
+    df = generate_observations_table()
+    assert "sample_match_type" in df.columns
+    assert "matched_sample_count" in df.columns
+    assert "has_peptide_level_allele" in df.columns
+    # Match types should only be these values
+    valid_types = {"allele_match", "single_sample_fallback", "unmatched"}
+    assert set(df["sample_match_type"].unique()).issubset(valid_types)
+    # Most rows with alleles should have allele_match
+    has_allele = df[df["has_peptide_level_allele"]]
+    if len(has_allele) > 0:
+        allele_matched = (has_allele["sample_match_type"] == "allele_match").sum()
+        assert allele_matched > 0, "No rows have allele_match despite having alleles"
+
+
+def test_generate_observations_parquet_export(tmp_path):
+    """Parquet export path should produce a readable file."""
+    from hitlist.observations import is_built
+
+    if not is_built():
+        import pytest
+
+        pytest.skip("Observations table not built")
+    from hitlist.export import generate_observations_table
+
+    df = generate_observations_table()
+    out = tmp_path / "obs.parquet"
+    df.to_parquet(out, index=False)
+    import pandas as pd
+
+    loaded = pd.read_parquet(out)
+    assert len(loaded) == len(df)
+    assert set(loaded.columns) == set(df.columns)
+
+
 def test_generate_observations_table_not_built():
     """Should raise FileNotFoundError when observations not built."""
     from hitlist.observations import is_built
@@ -163,6 +227,13 @@ def test_generate_observations_table_not_built():
 
     with pytest.raises(FileNotFoundError, match="not built"):
         generate_observations_table()
+
+
+def test_ms_samples_species_normalized():
+    """Species column should contain canonical names, not parenthetical IEDB format."""
+    df = generate_ms_samples_table()
+    for s in df["species"]:
+        assert "(" not in s, f"Species not normalized: {s}"
 
 
 def test_species_summary_columns():
@@ -215,3 +286,39 @@ def test_extract_allele_strings_dict():
 def test_extract_allele_strings_description():
     result = _extract_allele_strings("51 HLA-I allotypes (95% coverage)")
     assert result == []
+
+
+def test_observations_join_with_synthetic_fixture(tmp_path, monkeypatch):
+    """End-to-end join test using a small synthetic observations table."""
+    import pandas as pd
+
+    from hitlist.export import generate_observations_table
+
+    # Build a tiny synthetic observations parquet
+    obs_data = pd.DataFrame(
+        {
+            "peptide": ["AAAAAAAAA", "BBBBBBBBB", "CCCCCCCCC"],
+            "mhc_restriction": ["HLA-A*02:01", "HLA-B*07:02", ""],
+            "mhc_class": ["I", "I", "I"],
+            "reference_iri": ["iri:1", "iri:2", "iri:3"],
+            "pmid": pd.array([33858848, 33858848, 38480730], dtype="Int64"),
+            "source": ["iedb", "iedb", "supplement"],
+            "mhc_species": ["Homo sapiens", "Homo sapiens", "Homo sapiens"],
+            "is_monoallelic": [False, False, False],
+        }
+    )
+    obs_path = tmp_path / "observations.parquet"
+    obs_data.to_parquet(obs_path, index=False)
+
+    # Monkeypatch the observations path
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+
+    df = generate_observations_table()
+    assert len(df) == 3
+    # Provenance columns should be present
+    assert "sample_match_type" in df.columns
+    assert "matched_sample_count" in df.columns
+    assert "has_peptide_level_allele" in df.columns
+    # Third row has no allele — flag should reflect that
+    row3 = df[df["peptide"] == "CCCCCCCCC"].iloc[0]
+    assert row3["has_peptide_level_allele"] is False or row3["has_peptide_level_allele"] == False  # noqa: E712

@@ -25,7 +25,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from .curation import load_pmid_overrides
+from .curation import load_pmid_overrides, normalize_species
 
 # MS acquisition metadata fields.  Each may appear at the PMID level
 # (study-wide default) or on individual ``ms_samples`` entries.
@@ -106,7 +106,7 @@ def generate_ms_samples_table(mhc_class: str | None = None) -> pd.DataFrame:
 
     for pmid_int, entry in sorted(overrides.items()):
         label = entry.get("label", "")
-        species = entry.get("species", "Homo sapiens (human)")
+        species = normalize_species(entry.get("species", "Homo sapiens (human)"))
         ms_samples = entry.get("ms_samples", [])
 
         for sample in ms_samples:
@@ -204,7 +204,7 @@ def generate_observations_table(
     if mhc_class:
         obs_filters["mhc_class"] = mhc_class
     if species:
-        obs_filters["species"] = species
+        obs_filters["species"] = normalize_species(species)
     obs = load_observations(**obs_filters)
 
     if min_allele_resolution:
@@ -220,17 +220,6 @@ def generate_observations_table(
     # --- Load sample metadata ---
     samples = generate_ms_samples_table(mhc_class=mhc_class)
 
-    # Build PMID-level metadata lookup (study label, quantification_method)
-    overrides = load_pmid_overrides()
-    pmid_meta = {}
-    for pmid_int, entry in overrides.items():
-        pmid_meta[pmid_int] = {
-            "quantification_method": entry.get("quantification_method", ""),
-        }
-
-    # --- Build sample index for allele-level matching ---
-    # For each PMID, build a list of (allele_set, metadata_dict) tuples
-    sample_index: dict[int, list[tuple[set[str], dict]]] = {}
     meta_cols = [
         "sample",
         "perturbation",
@@ -242,61 +231,116 @@ def generate_observations_table(
         "labeling",
         "ip_antibody",
     ]
+
+    # --- PMID-level metadata (quantification_method) ---
+    overrides = load_pmid_overrides()
+    pmid_meta_df = pd.DataFrame(
+        [
+            {"_pmid_int": int(k), "quantification_method": v.get("quantification_method", "")}
+            for k, v in overrides.items()
+        ]
+    )
+
+    # --- Allele-level sample lookup ---
+    # Explode each sample's MHC alleles into one row per (pmid, allele)
+    # so we can do a vectorized merge instead of row-by-row iteration.
+    allele_rows: list[dict] = []
     for _, srow in samples.iterrows():
         pmid = int(srow["pmid"])
         mhc_str = srow.get("mhc", "")
-        allele_set = set(mhc_str.split()) if mhc_str and mhc_str != "unknown" else set()
-        meta = {col: srow.get(col, "") for col in meta_cols}
-        sample_index.setdefault(pmid, []).append((allele_set, meta))
+        if mhc_str and mhc_str != "unknown":
+            meta = {col: srow.get(col, "") for col in meta_cols}
+            meta["_pmid_int"] = pmid
+            for allele in mhc_str.split():
+                allele_rows.append({**meta, "_allele": allele})
 
-    # --- Join ---
-    enriched_rows: list[dict] = []
-    for _, orow in obs.iterrows():
-        record = orow.to_dict()
-        pmid = record.get("pmid")
-        if pd.isna(pmid):
-            enriched_rows.append(record)
-            continue
-        pmid = int(pmid)
+    allele_df = (
+        pd.DataFrame(allele_rows)
+        if allele_rows
+        else pd.DataFrame(columns=["_pmid_int", "_allele", *meta_cols])
+    )
+    # Keep first match per (pmid, allele) — matches the break-on-first
+    # behavior of the previous iterrows loop.
+    allele_df = allele_df.drop_duplicates(subset=["_pmid_int", "_allele"], keep="first")
 
-        # Add PMID-level metadata
-        pm = pmid_meta.get(pmid, {})
-        record["quantification_method"] = pm.get("quantification_method", "")
+    # --- Single-sample PMID fallback ---
+    # When no allele match is found and a PMID has exactly one sample,
+    # use that sample's metadata.
+    pmid_sample_counts = samples.groupby("pmid").size()
+    single_pmids = pmid_sample_counts[pmid_sample_counts == 1].index
+    single_df = samples[samples["pmid"].isin(single_pmids)][["pmid", *meta_cols]].copy()
+    single_df["_pmid_int"] = single_df["pmid"].astype(int)
+    single_df = single_df[["_pmid_int", *meta_cols]].rename(
+        columns={c: c + "_fb" for c in meta_cols}
+    )
 
-        # Match to best sample by allele
-        allele = record.get("mhc_restriction", "")
-        candidates = sample_index.get(pmid, [])
+    # --- Vectorized join ---
+    obs["_pmid_int"] = pd.to_numeric(obs["pmid"], errors="coerce")
 
-        matched_meta = None
-        if candidates:
-            # Try allele-level match first
-            for allele_set, meta in candidates:
-                if allele_set and allele in allele_set:
-                    matched_meta = meta
-                    break
-            # Fallback: if only one sample for this PMID, use it
-            if matched_meta is None and len(candidates) == 1:
-                matched_meta = candidates[0][1]
+    # 1) PMID-level metadata
+    obs = obs.merge(pmid_meta_df, on="_pmid_int", how="left")
+    obs["quantification_method"] = obs["quantification_method"].fillna("")
 
-        if matched_meta:
-            record.update(matched_meta)
-        else:
-            for col in meta_cols:
-                record.setdefault(col, "")
+    # 2) Allele-level match: obs.mhc_restriction == allele_df._allele within same PMID
+    obs = obs.merge(
+        allele_df.rename(columns={"_allele": "mhc_restriction"}),
+        on=["_pmid_int", "mhc_restriction"],
+        how="left",
+    )
 
-        enriched_rows.append(record)
+    # 3) Single-PMID fallback for unmatched rows
+    obs = obs.merge(single_df, on="_pmid_int", how="left")
 
-    result = pd.DataFrame(enriched_rows)
+    # Coalesce: allele match > single-PMID fallback > ""
+    fb_cols = [col + "_fb" for col in meta_cols]
+    for col, fb_col in zip(meta_cols, fb_cols):
+        obs[col] = obs[col].where(obs[col].notna(), obs[fb_col])
+    obs.drop(columns=fb_cols, inplace=True)
+    for col in meta_cols:
+        obs[col] = obs[col].fillna("")
+
+    # --- Provenance: how was each row matched? ---
+    # Count samples per PMID for context
+    _pmid_counts = samples.groupby("pmid").size().rename("matched_sample_count")
+    _pmid_counts.index = _pmid_counts.index.astype(int)
+    obs = obs.merge(_pmid_counts, left_on="_pmid_int", right_index=True, how="left")
+    obs["matched_sample_count"] = obs["matched_sample_count"].fillna(0).astype(int)
+
+    # Determine match type from which merge populated the metadata
+    has_allele_match = allele_df["_pmid_int"].nunique() > 0 if not allele_df.empty else False
+    if has_allele_match:
+        _matched_keys = (
+            set(zip(allele_df["_pmid_int"], allele_df["_allele"])) if not allele_df.empty else set()
+        )
+        obs["sample_match_type"] = "unmatched"
+        allele_matched = pd.Series(
+            [(p, a) in _matched_keys for p, a in zip(obs["_pmid_int"], obs["mhc_restriction"])],
+            index=obs.index,
+        )
+        obs.loc[allele_matched, "sample_match_type"] = "allele_match"
+        # Single-sample fallback: not allele-matched but PMID has exactly 1 sample
+        _single_pmid_set = set(single_df["_pmid_int"]) if not single_df.empty else set()
+        fallback_matched = ~allele_matched & obs["_pmid_int"].isin(_single_pmid_set)
+        obs.loc[fallback_matched, "sample_match_type"] = "single_sample_fallback"
+    else:
+        _single_set = set(single_df["_pmid_int"]) if not single_df.empty else set()
+        obs["sample_match_type"] = obs["_pmid_int"].map(
+            lambda p: "single_sample_fallback" if p in _single_set else "unmatched"
+        )
+
+    # --- Peptide-level allele evidence flag ---
+    obs["has_peptide_level_allele"] = obs["mhc_restriction"].astype(str).str.strip().ne("")
+
+    obs.drop(columns=["_pmid_int"], inplace=True)
+    result = obs
 
     # --- Post-join filters ---
-    if instrument_type:
-        result = result[result.get("instrument_type", pd.Series(dtype=str)) == instrument_type]
-    if acquisition_mode:
-        result = result[result.get("acquisition_mode", pd.Series(dtype=str)) == acquisition_mode]
-    if is_mono_allelic is not None:
-        col = "is_mono_allelic" if "is_mono_allelic" in result.columns else "src_mono_allelic"
-        if col in result.columns:
-            result = result[result[col] == is_mono_allelic]
+    if instrument_type and "instrument_type" in result.columns:
+        result = result[result["instrument_type"] == instrument_type]
+    if acquisition_mode and "acquisition_mode" in result.columns:
+        result = result[result["acquisition_mode"] == acquisition_mode]
+    if is_mono_allelic is not None and "is_monoallelic" in result.columns:
+        result = result[result["is_monoallelic"] == is_mono_allelic]
 
     if columns:
         available = [c for c in columns if c in result.columns]

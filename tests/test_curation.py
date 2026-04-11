@@ -10,6 +10,7 @@ from hitlist.curation import (
     load_monoallelic_lines,
     load_pmid_overrides,
     load_tissue_categories,
+    normalize_species,
 )
 
 
@@ -462,3 +463,37 @@ def test_pmid_mono_allelic_override_28514659():
     )
     assert flags["is_monoallelic"] is True
     assert flags["monoallelic_host"] == "721.221"
+
+
+# ── Species normalization ─────────────────────────────────────────────
+
+
+def test_normalize_species_canonical():
+    assert normalize_species("Homo sapiens") == "Homo sapiens"
+    assert normalize_species("Mus musculus") == "Mus musculus"
+
+
+def test_normalize_species_common_names():
+    assert normalize_species("human") == "Homo sapiens"
+    assert normalize_species("mouse") == "Mus musculus"
+
+
+def test_normalize_species_underscore():
+    assert normalize_species("homo_sapiens") == "Homo sapiens"
+    assert normalize_species("Homo_sapiens") == "Homo sapiens"
+    assert normalize_species("mus_musculus") == "Mus musculus"
+
+
+def test_normalize_species_parenthetical():
+    assert normalize_species("Homo sapiens (human)") == "Homo sapiens"
+    assert normalize_species("Mus musculus (mouse)") == "Mus musculus"
+    assert normalize_species("Sus scrofa (pig)") == "Sus scrofa"
+
+
+def test_normalize_species_empty():
+    assert normalize_species("") == ""
+
+
+def test_normalize_species_idempotent():
+    assert normalize_species(normalize_species("human")) == "Homo sapiens"
+    assert normalize_species(normalize_species("Homo sapiens (human)")) == "Homo sapiens"
