@@ -155,7 +155,6 @@ def generate_observations_table(
     acquisition_mode: str | None = None,
     is_mono_allelic: bool | None = None,
     min_allele_resolution: str | None = None,
-    include_binding_assays: bool = False,
     columns: list[str] | None = None,
 ) -> pd.DataFrame:
     """Join per-peptide observations with per-sample metadata.
@@ -206,7 +205,7 @@ def generate_observations_table(
         obs_filters["mhc_class"] = mhc_class
     if species:
         obs_filters["species"] = normalize_species(species)
-    obs = load_observations(**obs_filters, include_binding_assays=include_binding_assays)
+    obs = load_observations(**obs_filters)
 
     if min_allele_resolution:
         from .curation import allele_resolution_rank, classify_allele_resolution

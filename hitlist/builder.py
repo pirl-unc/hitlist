@@ -158,6 +158,14 @@ def build_observations(
         )
         df["source"] = name
 
+        # Exclude binding assay data — only keep MS-eluted immunopeptidome
+        if "is_binding_assay" in df.columns:
+            before_ba = len(df)
+            df = df[~df["is_binding_assay"]]
+            excluded = before_ba - len(df)
+            if excluded:
+                print(f"  Excluded {excluded:,} binding assay rows")
+
         # Deduplicate across sources by assay IRI
         if seen_iris:
             before = len(df)
