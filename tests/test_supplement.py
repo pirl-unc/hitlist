@@ -53,20 +53,44 @@ def test_scan_supplementary_schema():
 
 
 def test_scan_supplementary_gomez_zepeda():
-    """Gomez-Zepeda JY peptides should be classified correctly."""
+    """Gomez-Zepeda data should include multiple cell lines."""
     df = scan_supplementary()
     gz = df[df["pmid"] == 38480730]
-    assert len(gz) > 1000, f"Expected >1000 JY peptides, got {len(gz)}"
+    assert len(gz) > 50000, f"Expected >50000 GZ peptides, got {len(gz)}"
 
     # All should be class I
     assert set(gz["mhc_class"]) == {"I"}
 
-    # JY is an EBV-LCL, not cancer
-    row = gz.iloc[0]
+    # Should have multiple cell lines via different defaults
+    cell_names = set(gz["cell_name"].unique())
+    assert "JY" in cell_names
+    assert "HeLa" in cell_names
+    assert "Raji" in cell_names
+
+    # JY rows should be EBV-LCL, not cancer
+    jy = gz[gz["cell_name"] == "JY"]
+    assert len(jy) > 15000
+    row = jy.iloc[0]
     assert row["src_ebv_lcl"] is True or row["src_ebv_lcl"] == True  # noqa: E712
     assert row["src_cancer"] is False or row["src_cancer"] == False  # noqa: E712
-    assert row["src_cell_line"] is True or row["src_cell_line"] == True  # noqa: E712
-    assert row["cell_name"] == "JY" or row["cell_line_name"] == "JY"
+
+    # HeLa should be cancer
+    hela = gz[gz["cell_name"] == "HeLa"]
+    assert len(hela) > 5000
+    assert hela.iloc[0]["src_cancer"] is True or hela.iloc[0]["src_cancer"] == True  # noqa: E712
+
+
+def test_scan_supplementary_contaminant_flag():
+    """is_potential_contaminant should be present and meaningful."""
+    df = scan_supplementary()
+    assert "is_potential_contaminant" in df.columns
+    gz = df[df["pmid"] == 38480730]
+    # Should have both True and False values
+    assert gz["is_potential_contaminant"].any(), "No contaminants flagged"
+    assert not gz["is_potential_contaminant"].all(), "All flagged as contaminants"
+    # Contaminants should have empty mhc_restriction
+    contams = gz[gz["is_potential_contaminant"]]
+    assert (contams["mhc_restriction"] == "").all(), "Contaminants should have no allele"
 
 
 def test_scan_supplementary_synthetic_iri():

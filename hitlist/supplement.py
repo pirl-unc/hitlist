@@ -102,6 +102,9 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
 
             mhc_restriction = row.get("mhc_restriction", "").strip()
             mhc_class = row.get("mhc_class", "").strip()
+            # CSV may flag MS-observed peptides that lack binding predictions
+            raw_contam = str(row.get("is_potential_contaminant", "")).strip().lower()
+            is_potential_contaminant = raw_contam in ("true", "1", "yes")
 
             # Build a record matching the scanner output schema.
             # IEDB-specific columns come from manifest defaults or empty string.
@@ -132,6 +135,7 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
                 "antigen_processing_comments": "",
                 "assay_comments": "",
                 "qualitative_measurement": "",
+                "is_potential_contaminant": is_potential_contaminant,
             }
 
             if classify_source:
