@@ -199,6 +199,7 @@ def scan(
         allele_resolution_rank,
         classify_allele_resolution,
         classify_mhc_species,
+        is_binding_assay,
         normalize_species,
     )
 
@@ -286,6 +287,10 @@ def scan(
                 "antigen_processing_comments": _safe_col(row, c["antigen_processing_comments"]),
                 "assay_comments": _safe_col(row, c["assay_comments"]),
                 "qualitative_measurement": _safe_col(row, c["qualitative_measurement"]),
+                "is_binding_assay": is_binding_assay(
+                    _safe_col(row, c["qualitative_measurement"]),
+                    _safe_col(row, c["assay_comments"]),
+                ),
             }
 
             if classify_source:

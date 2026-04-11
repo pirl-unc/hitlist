@@ -31,6 +31,7 @@ Source categories (mutually exclusive priority order)::
 from __future__ import annotations
 
 import contextlib
+import re
 from functools import lru_cache
 from os.path import dirname, join
 
@@ -598,6 +599,29 @@ def classify_ms_row(
         "serotype": allele_to_serotype(mhc_restriction),
         "mhc_species": classify_mhc_species(mhc_restriction),
     }
+
+
+_BINDING_ASSAY_KEYWORDS = re.compile(
+    r"microarray|binding|refolding|MEDi|iTopia|yeast display|mammalian epitope display",
+    re.IGNORECASE,
+)
+
+
+def is_binding_assay(qualitative_measurement: str, assay_comments: str) -> bool:
+    """Classify whether an observation is from a binding assay vs MS elution.
+
+    Returns True for binding assay data (peptide microarrays, refolding
+    assays, MEDi display, etc.) which should be excluded from
+    immunopeptidome-focused analyses.
+    """
+    qm = qualitative_measurement.strip() if qualitative_measurement else ""
+    # Negative results and quantitative tiers are binding assays
+    if qm in ("Negative", "Positive-High", "Positive-Intermediate", "Positive-Low"):
+        return True
+    # "Positive" with binding assay keywords in comments
+    return bool(
+        qm == "Positive" and assay_comments and _BINDING_ASSAY_KEYWORDS.search(assay_comments)
+    )
 
 
 def is_cancer_specific(flags: dict[str, bool]) -> bool:

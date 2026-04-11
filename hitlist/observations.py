@@ -49,6 +49,7 @@ def load_observations(
     mhc_class: str | None = None,
     species: str | None = None,
     source: str | None = None,
+    include_binding_assays: bool = False,
     columns: list[str] | None = None,
 ) -> pd.DataFrame:
     """Load the built observations table with optional filters.
@@ -60,7 +61,11 @@ def load_observations(
     species
         Filter by MHC species (e.g. ``"Homo sapiens"``).
     source
-        Filter by data source (``"iedb"`` or ``"cedar"``).
+        Filter by data source (``"iedb"``, ``"cedar"``, ``"supplement"``).
+    include_binding_assays
+        Include binding assay data (peptide microarrays, refolding assays,
+        etc.).  Default ``False`` — only MS-eluted immunopeptidome
+        observations are returned.
     columns
         Load only these columns (pushed down to parquet reader).
 
@@ -88,10 +93,37 @@ def load_observations(
         filters.append(("mhc_species", "==", normalize_species(species)))
     if source is not None:
         filters.append(("source", "==", source))
+    # is_binding_assay filter requires the column to exist in the parquet.
+    # Gracefully degrade if the table was built before this column was added.
+    binding_filter_requested = not include_binding_assays
+
+    if binding_filter_requested:
+        # Check if column exists in parquet schema before adding filter
+        import pyarrow.parquet as pq
+
+        schema = pq.read_schema(path)
+        if "is_binding_assay" in schema.names:
+            filters.append(("is_binding_assay", "==", False))
+        else:
+            binding_filter_requested = False  # fall back to post-load filter
 
     df = pd.read_parquet(
         path,
         columns=columns,
         filters=filters if filters else None,
     )
+
+    # Post-load fallback: filter using qualitative_measurement if
+    # is_binding_assay column was not available in parquet
+    if (
+        not include_binding_assays
+        and not binding_filter_requested
+        and "qualitative_measurement" in df.columns
+    ):
+        df = df[
+            ~df["qualitative_measurement"].isin(
+                ["Negative", "Positive-High", "Positive-Intermediate", "Positive-Low"]
+            )
+        ]
+
     return df

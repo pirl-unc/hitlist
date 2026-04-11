@@ -155,6 +155,7 @@ def generate_observations_table(
     acquisition_mode: str | None = None,
     is_mono_allelic: bool | None = None,
     min_allele_resolution: str | None = None,
+    include_binding_assays: bool = False,
     columns: list[str] | None = None,
 ) -> pd.DataFrame:
     """Join per-peptide observations with per-sample metadata.
@@ -205,7 +206,7 @@ def generate_observations_table(
         obs_filters["mhc_class"] = mhc_class
     if species:
         obs_filters["species"] = normalize_species(species)
-    obs = load_observations(**obs_filters)
+    obs = load_observations(**obs_filters, include_binding_assays=include_binding_assays)
 
     if min_allele_resolution:
         from .curation import allele_resolution_rank, classify_allele_resolution
@@ -341,6 +342,11 @@ def generate_observations_table(
         result = result[result["acquisition_mode"] == acquisition_mode]
     if is_mono_allelic is not None and "is_monoallelic" in result.columns:
         result = result[result["is_monoallelic"] == is_mono_allelic]
+
+    # Rename 'mhc' (from ms_samples join) to 'sample_mhc' to distinguish
+    # from the IEDB mhc_restriction field (which may be "HLA class I").
+    if "mhc" in result.columns:
+        result = result.rename(columns={"mhc": "sample_mhc"})
 
     if columns:
         available = [c for c in columns if c in result.columns]

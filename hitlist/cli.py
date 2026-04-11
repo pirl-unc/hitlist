@@ -321,6 +321,12 @@ def main() -> None:
         choices=["four_digit", "two_digit", "serological", "class_only"],
         help="Minimum allele resolution",
     )
+    p_obs.add_argument(
+        "--include-binding-assays",
+        action="store_true",
+        default=False,
+        help="Include binding assay data (excluded by default)",
+    )
     p_obs.add_argument("--output", "-o", help="Write to file (.csv or .parquet)")
 
     p_counts = export_sub.add_parser(
@@ -374,6 +380,7 @@ def _export(args: argparse.Namespace) -> None:
             acquisition_mode=getattr(args, "acquisition_mode", None),
             is_mono_allelic=getattr(args, "mono_allelic", None),
             min_allele_resolution=getattr(args, "min_allele_resolution", None),
+            include_binding_assays=getattr(args, "include_binding_assays", False),
         )
     else:
         print("Usage: hitlist export {samples,summary,alleles,data-alleles,counts,observations}")

@@ -145,7 +145,7 @@ def test_generate_observations_table():
     # Enriched sample metadata columns
     assert "instrument" in df.columns
     assert "instrument_type" in df.columns
-    assert "mhc" in df.columns
+    assert "sample_mhc" in df.columns
     assert "quantification_method" in df.columns
 
 
@@ -305,6 +305,8 @@ def test_observations_join_with_synthetic_fixture(tmp_path, monkeypatch):
             "source": ["iedb", "iedb", "supplement"],
             "mhc_species": ["Homo sapiens", "Homo sapiens", "Homo sapiens"],
             "is_monoallelic": [False, False, False],
+            "is_binding_assay": [False, False, False],
+            "qualitative_measurement": ["Positive", "Positive", ""],
         }
     )
     obs_path = tmp_path / "observations.parquet"

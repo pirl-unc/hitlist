@@ -135,6 +135,7 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
                 "antigen_processing_comments": "",
                 "assay_comments": "",
                 "qualitative_measurement": "",
+                "is_binding_assay": False,
                 "is_potential_contaminant": is_potential_contaminant,
             }
 
