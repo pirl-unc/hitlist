@@ -184,7 +184,7 @@ def test_generate_observations_provenance_columns():
     assert "matched_sample_count" in df.columns
     assert "has_peptide_level_allele" in df.columns
     # Match types should only be these values
-    valid_types = {"allele_match", "single_sample_fallback", "unmatched"}
+    valid_types = {"allele_match", "single_sample_fallback", "pmid_class_pool", "unmatched"}
     assert set(df["sample_match_type"].unique()).issubset(valid_types)
     # Most rows with alleles should have allele_match
     has_allele = df[df["has_peptide_level_allele"]]

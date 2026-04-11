@@ -274,6 +274,24 @@ def generate_observations_table(
         columns={c: c + "_fb" for c in meta_cols}
     )
 
+    # --- PMID x class allele pool ---
+    # For class-only observations (mhc_restriction = "HLA class I"),
+    # collect the union of all alleles across all samples of that class.
+    # This gives "one of X, Y, Z" even when we can't pick a specific sample.
+    _class_pool: dict[tuple[int, str], str] = {}  # (pmid, mhc_class) → space-joined alleles
+    for pmid_int_s, group in samples.groupby("pmid"):
+        pmid_int_v = int(pmid_int_s)
+        for cls in ("I", "II"):
+            alleles: set[str] = set()
+            for _, srow in group.iterrows():
+                sample_cls = srow.get("mhc_class", "")
+                if cls in str(sample_cls).split("+"):
+                    mhc_str = srow.get("mhc", "")
+                    if mhc_str and mhc_str != "unknown":
+                        alleles.update(mhc_str.split())
+            if alleles:
+                _class_pool[(pmid_int_v, cls)] = " ".join(sorted(alleles))
+
     # --- Vectorized join ---
     obs["_pmid_int"] = pd.to_numeric(obs["pmid"], errors="coerce")
 
@@ -299,6 +317,18 @@ def generate_observations_table(
     for col in meta_cols:
         obs[col] = obs[col].fillna("")
 
+    # 4) Class-pool fallback: for still-unmatched rows, fill sample_mhc
+    #    with the union of all alleles from samples of the same class.
+    still_empty = obs["mhc"] == ""
+    if still_empty.any():
+        obs.loc[still_empty, "mhc"] = [
+            _class_pool.get((int(p), c), "") if not pd.isna(p) else ""
+            for p, c in zip(
+                obs.loc[still_empty, "_pmid_int"],
+                obs.loc[still_empty, "mhc_class"],
+            )
+        ]
+
     # --- Provenance: how was each row matched? ---
     # Count samples per PMID for context
     _pmid_counts = samples.groupby("pmid").size().rename("matched_sample_count")
@@ -306,27 +336,40 @@ def generate_observations_table(
     obs = obs.merge(_pmid_counts, left_on="_pmid_int", right_index=True, how="left")
     obs["matched_sample_count"] = obs["matched_sample_count"].fillna(0).astype(int)
 
-    # Determine match type from which merge populated the metadata
-    has_allele_match = allele_df["_pmid_int"].nunique() > 0 if not allele_df.empty else False
-    if has_allele_match:
-        _matched_keys = (
-            set(zip(allele_df["_pmid_int"], allele_df["_allele"])) if not allele_df.empty else set()
-        )
-        obs["sample_match_type"] = "unmatched"
+    # Determine match type
+    _matched_keys = (
+        set(zip(allele_df["_pmid_int"], allele_df["_allele"])) if not allele_df.empty else set()
+    )
+    _single_pmid_set = set(single_df["_pmid_int"]) if not single_df.empty else set()
+    _class_pool_keys = set(_class_pool.keys())
+
+    obs["sample_match_type"] = "unmatched"
+
+    if _matched_keys:
         allele_matched = pd.Series(
             [(p, a) in _matched_keys for p, a in zip(obs["_pmid_int"], obs["mhc_restriction"])],
             index=obs.index,
         )
         obs.loc[allele_matched, "sample_match_type"] = "allele_match"
-        # Single-sample fallback: not allele-matched but PMID has exactly 1 sample
-        _single_pmid_set = set(single_df["_pmid_int"]) if not single_df.empty else set()
-        fallback_matched = ~allele_matched & obs["_pmid_int"].isin(_single_pmid_set)
-        obs.loc[fallback_matched, "sample_match_type"] = "single_sample_fallback"
     else:
-        _single_set = set(single_df["_pmid_int"]) if not single_df.empty else set()
-        obs["sample_match_type"] = obs["_pmid_int"].map(
-            lambda p: "single_sample_fallback" if p in _single_set else "unmatched"
+        allele_matched = pd.Series(False, index=obs.index)
+
+    fallback_matched = ~allele_matched & obs["_pmid_int"].isin(_single_pmid_set)
+    obs.loc[fallback_matched, "sample_match_type"] = "single_sample_fallback"
+
+    # Class pool: not allele-matched, not single-sample, but has class pool alleles
+    pool_matched = (
+        ~allele_matched
+        & ~fallback_matched
+        & pd.Series(
+            [
+                (int(p), c) in _class_pool_keys if not pd.isna(p) else False
+                for p, c in zip(obs["_pmid_int"], obs["mhc_class"])
+            ],
+            index=obs.index,
         )
+    )
+    obs.loc[pool_matched, "sample_match_type"] = "pmid_class_pool"
 
     # --- Peptide-level allele evidence flag ---
     obs["has_peptide_level_allele"] = obs["mhc_restriction"].astype(str).str.strip().ne("")
