@@ -153,7 +153,111 @@ def _data_build(args: argparse.Namespace) -> None:
         with_flanking=args.with_flanking,
         proteome_release=args.proteome_release,
         force=args.force,
+        fetch_missing_proteomes=not args.no_fetch_proteomes,
     )
+
+
+def _data_fetch_proteomes(args: argparse.Namespace) -> None:
+    """Auto-fetch reference proteomes for species present in observations."""
+    import pandas as pd
+
+    from .downloads import fetch_species_proteome, lookup_proteome
+    from .observations import is_built, load_observations
+
+    if not is_built():
+        print(
+            "Observations table not built. Run: hitlist data build",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    obs = load_observations(columns=["source_organism", "mhc_species"])
+    counts = pd.Series(dtype=int)
+    if "source_organism" in obs.columns:
+        counts = obs["source_organism"].value_counts()
+
+    # Also include mhc_species entries that aren't already covered by
+    # source_organism — this captures species where source_organism is
+    # missing but the MHC allele reveals the host species.
+    mhc_counts = obs["mhc_species"].value_counts()
+    for sp, n in mhc_counts.items():
+        if sp and sp not in counts.index:
+            counts[sp] = n
+
+    if counts.empty:
+        print("No species information found in observations.")
+        sys.exit(0)
+
+    # Plan the work
+    plan: list[tuple[str, int, dict]] = []
+    skipped: list[tuple[str, int]] = []
+    for organism, n in counts.items():
+        if n < args.min_observations:
+            continue
+        entry = lookup_proteome(str(organism))
+        if entry is None:
+            skipped.append((str(organism), int(n)))
+            continue
+        plan.append((str(organism), int(n), entry))
+
+    if not plan:
+        print(
+            f"No registered proteomes for any species with >= {args.min_observations} observations."
+        )
+        if skipped:
+            print("\nUnmatched organisms (no proteome registered):")
+            for organism, n in skipped[:10]:
+                print(f"  {organism!r}: {n:,} obs")
+        sys.exit(0)
+
+    print(f"Fetching reference proteomes for {len(plan)} species/organism(s):\n")
+    for organism, n, entry in plan:
+        canonical = entry.get("canonical_species", organism)
+        kind = entry["kind"]
+        proteome_id = entry.get("proteome_id", f"ensembl-{entry.get('release')}")
+        print(f"  {organism!r}  ({n:,} obs)  → {canonical}  [{kind}:{proteome_id}]")
+    print()
+
+    fetched: list[str] = []
+    cached: list[str] = []
+    for organism, _n, _entry in plan:
+        path = fetch_species_proteome(organism, force=args.force, verbose=True)
+        if path is None:
+            cached.append(organism)  # ensembl — no local file to track
+        else:
+            if path.exists():
+                fetched.append(organism)
+
+    print(
+        f"\nDone. Fetched: {len(fetched)}, Ensembl (no download): {len(cached)}, "
+        f"Skipped unknown: {len(skipped)}"
+    )
+    if skipped:
+        print("\nUnmatched organisms (no proteome registered):")
+        for organism, n in skipped[:10]:
+            print(f"  {organism!r}: {n:,} obs")
+        if len(skipped) > 10:
+            print(f"  ... and {len(skipped) - 10} more")
+
+
+def _data_list_proteomes(args: argparse.Namespace) -> None:
+    from .downloads import list_proteomes
+
+    proteomes = list_proteomes()
+    if not proteomes:
+        print("No proteomes registered.  Run: hitlist data fetch-proteomes")
+        return
+    print(f"{len(proteomes)} proteomes registered:\n")
+    for species, meta in sorted(proteomes.items()):
+        kind = meta.get("kind", "?")
+        if kind == "ensembl":
+            print(
+                f"  {species:35s}  ensembl (species={meta.get('species')}, "
+                f"release={meta.get('release')})"
+            )
+        else:
+            size = meta.get("size_bytes", 0)
+            print(f"  {species:35s}  uniprot:{meta.get('proteome_id')}  ({size:,} bytes)")
 
 
 def _data_index(args: argparse.Namespace) -> None:
@@ -220,7 +324,27 @@ def _build_data_parser(sub: argparse._SubParsersAction) -> None:
     p.add_argument(
         "--proteome-release", type=int, default=112, help="Ensembl release (default 112)"
     )
+    p.add_argument(
+        "--no-fetch-proteomes",
+        action="store_true",
+        default=False,
+        help="Do not auto-fetch missing proteomes when --with-flanking is set",
+    )
     p.add_argument("--force", "-f", action="store_true", help="Rebuild even if cached")
+
+    p = ds.add_parser(
+        "fetch-proteomes",
+        help="Auto-fetch reference proteomes for species present in observations",
+    )
+    p.add_argument(
+        "--min-observations",
+        type=int,
+        default=100,
+        help="Only fetch proteomes for species with >= N observations (default 100)",
+    )
+    p.add_argument("--force", "-f", action="store_true", help="Re-download cached proteomes")
+
+    ds.add_parser("list-proteomes", help="List downloaded reference proteomes")
 
     p = ds.add_parser("index", help="Build/rebuild cached index of IEDB/CEDAR data")
     p.add_argument(
@@ -245,10 +369,13 @@ def _handle_data(args: argparse.Namespace) -> None:
         "remove": _data_remove,
         "build": _data_build,
         "index": _data_index,
+        "fetch-proteomes": _data_fetch_proteomes,
+        "list-proteomes": _data_list_proteomes,
     }
     if args.data_command is None:
         print(
-            "Usage: hitlist data {list,available,register,fetch,refresh,info,path,remove,build,index}"
+            "Usage: hitlist data {list,available,register,fetch,refresh,info,path,"
+            "remove,build,index,fetch-proteomes,list-proteomes}"
         )
         sys.exit(1)
     handlers[args.data_command](args)

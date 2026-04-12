@@ -195,6 +195,203 @@ MANUAL_DATASETS: dict[str, dict[str, str]] = {
 }
 
 
+# ── Species / viral proteome registry ───────────────────────────────────────
+#
+# Maps canonical species names (from normalize_species()) to reference
+# proteomes.  For "ensembl" species, callers use pyensembl directly
+# (ProteomeIndex.from_ensembl).  For "uniprot" species, we download the
+# reference proteome FASTA from UniProt's REST API and cache it locally.
+#
+# Proteome IDs: https://www.uniprot.org/proteomes/
+#
+# Keys must match the output of ``curation.normalize_species()``.
+
+_UNIPROT_PROTEOME_URL = (
+    "https://rest.uniprot.org/uniprotkb/stream"
+    "?query=proteome:{proteome_id}&format=fasta&compressed=false"
+)
+
+
+SPECIES_PROTEOMES: dict[str, dict[str, str | int]] = {
+    # Ensembl-supported (pyensembl)
+    "Homo sapiens": {"kind": "ensembl", "release": 112, "species": "human"},
+    "Mus musculus": {"kind": "ensembl", "release": 112, "species": "mouse"},
+    "Rattus norvegicus": {"kind": "ensembl", "release": 112, "species": "rat"},
+    # UniProt reference proteomes (auto-downloaded)
+    "Sarcophilus harrisii": {"kind": "uniprot", "proteome_id": "UP000007648"},
+    "Canis lupus": {"kind": "uniprot", "proteome_id": "UP000002254"},
+    "Bos taurus": {"kind": "uniprot", "proteome_id": "UP000009136"},
+    "Gallus gallus": {"kind": "uniprot", "proteome_id": "UP000000539"},
+    "Sus scrofa": {"kind": "uniprot", "proteome_id": "UP000008227"},
+    "Macaca mulatta": {"kind": "uniprot", "proteome_id": "UP000006718"},
+    "Equus caballus": {"kind": "uniprot", "proteome_id": "UP000002281"},
+    "Pan troglodytes": {"kind": "uniprot", "proteome_id": "UP000002277"},
+    "Trichosurus vulpecula": {"kind": "uniprot", "proteome_id": "UP000504604"},
+}
+
+
+# Viral proteomes keyed by the IEDB ``source_organism`` string we observe.
+# For matching, we lowercase both sides and check substring inclusion of the
+# registry key.  This tolerates IEDB variations (e.g. "Epstein-Barr virus
+# (strain B95-8)" matches "epstein-barr virus").
+VIRAL_PROTEOMES: dict[str, dict[str, str]] = {
+    "severe acute respiratory syndrome coronavirus 2": {
+        "proteome_id": "UP000464024",
+        "key": "sars-cov-2",
+    },
+    "human immunodeficiency virus 1": {"proteome_id": "UP000002241", "key": "hiv1"},
+    "epstein-barr virus": {"proteome_id": "UP000153037", "key": "ebv"},
+    "human gammaherpesvirus 4": {"proteome_id": "UP000153037", "key": "ebv"},
+    "hepatitis b virus": {"proteome_id": "UP000126453", "key": "hbv"},
+    "hepatitis c virus": {"proteome_id": "UP000000518", "key": "hcv"},
+    "human papillomavirus type 16": {"proteome_id": "UP000006729", "key": "hpv16"},
+    "human papillomavirus type 18": {"proteome_id": "UP000006728", "key": "hpv18"},
+    "influenza a virus": {"proteome_id": "UP000009255", "key": "influenza-a"},
+    "vaccinia virus": {"proteome_id": "UP000000344", "key": "vaccinia"},
+    "canine distemper virus": {"proteome_id": "UP000117312", "key": "cdv"},
+    "african swine fever virus": {"proteome_id": "UP000000624", "key": "asfv"},
+    "porcine reproductive and respiratory syndrome virus": {
+        "proteome_id": "UP000006706",
+        "key": "prrsv",
+    },
+    "wobbly possum disease virus": {"proteome_id": "UP000147130", "key": "wpdv"},
+}
+
+
+def _proteomes_dir() -> Path:
+    d = data_dir() / "proteomes"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def _safe_filename(species: str) -> str:
+    """Convert a species name to a filesystem-safe filename."""
+    return species.lower().replace(" ", "_").replace("/", "_") + ".fasta"
+
+
+def lookup_proteome(species_or_organism: str) -> dict | None:
+    """Resolve a species or IEDB source_organism string to a proteome registry entry.
+
+    Returns ``None`` if no proteome is registered for this organism.
+    Applies ``normalize_species()`` first and then falls back to
+    substring matching against ``VIRAL_PROTEOMES``.
+    """
+    if not species_or_organism:
+        return None
+
+    from .curation import normalize_species
+
+    canonical = normalize_species(species_or_organism)
+    if canonical in SPECIES_PROTEOMES:
+        entry = dict(SPECIES_PROTEOMES[canonical])
+        entry["canonical_species"] = canonical
+        return entry
+
+    # Viral fallback: substring match on raw organism string
+    lowered = species_or_organism.lower()
+    for viral_key, viral_entry in VIRAL_PROTEOMES.items():
+        if viral_key in lowered:
+            return {
+                "kind": "uniprot",
+                "proteome_id": viral_entry["proteome_id"],
+                "canonical_species": species_or_organism,
+                "key": viral_entry["key"],
+            }
+    return None
+
+
+def fetch_species_proteome(
+    species: str,
+    force: bool = False,
+    verbose: bool = True,
+) -> Path | None:
+    """Fetch (or return cached) reference proteome FASTA for a species.
+
+    Returns the local FASTA path.  For Ensembl-supported species this is
+    a sentinel (marker file) indicating the caller should use pyensembl
+    instead.  Returns ``None`` if no proteome is registered.
+
+    Parameters
+    ----------
+    species
+        Any species or source_organism string.
+    force
+        Re-download even if already cached.
+    verbose
+        Print progress messages.
+    """
+    entry = lookup_proteome(species)
+    if entry is None:
+        return None
+
+    canonical = entry.get("canonical_species", species)
+    manifest = _load_manifest()
+    proteomes = manifest.setdefault("proteomes", {})
+
+    # Ensembl species: pyensembl manages its own cache — no FASTA to download
+    if entry["kind"] == "ensembl":
+        proteomes[canonical] = {
+            "kind": "ensembl",
+            "species": entry.get("species", canonical),
+            "release": entry.get("release", 112),
+            "registered": datetime.now(timezone.utc).isoformat(),
+        }
+        _save_manifest(manifest)
+        return None  # caller should use ProteomeIndex.from_ensembl()
+
+    # UniProt species: download the FASTA
+    fname = _safe_filename(canonical)
+    dest = _proteomes_dir() / fname
+    proteome_id = entry["proteome_id"]
+    url = _UNIPROT_PROTEOME_URL.format(proteome_id=proteome_id)
+
+    if dest.exists() and not force:
+        if verbose:
+            print(f"  [{canonical}] already cached ({dest.stat().st_size:,} bytes)")
+        proteomes[canonical] = {
+            "kind": "uniprot",
+            "proteome_id": proteome_id,
+            "path": str(dest),
+            "size_bytes": dest.stat().st_size,
+            "source_url": url,
+            "registered": proteomes.get(canonical, {}).get(
+                "registered", datetime.now(timezone.utc).isoformat()
+            ),
+        }
+        _save_manifest(manifest)
+        return dest
+
+    if verbose:
+        print(f"  [{canonical}] fetching UniProt {proteome_id} ...")
+    tmp = dest.with_suffix(dest.suffix + ".tmp")
+    try:
+        urllib.request.urlretrieve(url, str(tmp))
+        shutil.move(str(tmp), str(dest))
+    finally:
+        if tmp.exists():
+            tmp.unlink()
+
+    size = dest.stat().st_size
+    if verbose:
+        print(f"  [{canonical}] downloaded {size:,} bytes → {dest}")
+
+    proteomes[canonical] = {
+        "kind": "uniprot",
+        "proteome_id": proteome_id,
+        "path": str(dest),
+        "size_bytes": size,
+        "source_url": url,
+        "registered": datetime.now(timezone.utc).isoformat(),
+    }
+    _save_manifest(manifest)
+    return dest
+
+
+def list_proteomes() -> dict:
+    """Return the proteomes section of the manifest."""
+    return _load_manifest().get("proteomes", {})
+
+
 # ── Core API ────────────────────────────────────────────────────────────────
 
 

@@ -81,6 +81,7 @@ class ProteomeIndex:
         lengths: tuple[int, ...] = (8, 9, 10, 11),
         biotype: str = "protein_coding",
         verbose: bool = True,
+        species: str = "human",
     ) -> ProteomeIndex:
         """Build index from Ensembl protein sequences.
 
@@ -94,6 +95,8 @@ class ProteomeIndex:
             Gene biotype filter (default ``"protein_coding"``).
         verbose
             Print progress messages.
+        species
+            pyensembl species key (``"human"``, ``"mouse"``, ``"rat"``, ...).
 
         Returns
         -------
@@ -101,7 +104,13 @@ class ProteomeIndex:
         """
         from pyensembl import EnsemblRelease
 
-        ensembl = EnsemblRelease(release)
+        try:
+            ensembl = EnsemblRelease(release, species=species)
+        except TypeError:
+            # Older pyensembl without species kwarg — falls back to human
+            if species != "human":
+                raise
+            ensembl = EnsemblRelease(release)
         proteins: dict[str, str] = {}
         meta: dict[str, dict] = {}
 
