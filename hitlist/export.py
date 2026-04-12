@@ -25,7 +25,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from .curation import load_pmid_overrides, normalize_species
+from .curation import load_pmid_overrides, normalize_allele, normalize_species
 
 # MS acquisition metadata fields.  Each may appear at the PMID level
 # (study-wide default) or on individual ``ms_samples`` entries.
@@ -288,7 +288,9 @@ def generate_observations_table(
                 if cls in str(sample_cls).split("+"):
                     mhc_str = srow.get("mhc", "")
                     if mhc_str and mhc_str != "unknown":
-                        alleles.update(mhc_str.split())
+                        alleles.update(normalize_allele(a) for a in mhc_str.split())
+            # Filter out empty strings from failed normalization
+            alleles.discard("")
             if alleles:
                 _class_pool[(pmid_int_v, cls)] = " ".join(sorted(alleles))
 

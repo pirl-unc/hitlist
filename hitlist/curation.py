@@ -214,6 +214,46 @@ def normalize_species(raw: str) -> str:
     return cleaned[:paren].strip() if paren > 0 else cleaned
 
 
+# ── Allele normalization ──────────────────────────────────────────────────
+
+
+@lru_cache(maxsize=4096)
+def normalize_allele(raw: str) -> str:
+    """Normalize an MHC allele string to canonical Species-Gene[*allele] form.
+
+    Uses mhcgnomes to parse and re-serialize.  Handles HLA, H-2 (mouse),
+    Saha (Tasmanian devil), Mamu (rhesus), SLA (pig), BoLA (cow), DLA
+    (dog), Patr (chimp), and any other species mhcgnomes supports.
+
+    Examples::
+
+        normalize_allele("HLA-A*02:01")        # "HLA-A*02:01"
+        normalize_allele("H-2Kb")              # "H2-K*b"
+        normalize_allele("SLA-1*0201")         # "SLA-1*02:01"
+        normalize_allele("Saha-UA")            # "Saha-UA"
+
+    Returns the input stripped for unparseable strings (e.g. "HLA class I").
+    """
+    if not raw:
+        return ""
+    cleaned = raw.strip()
+    if not cleaned:
+        return ""
+
+    try:
+        from mhcgnomes import parse
+
+        result = parse(cleaned)
+        # Only return normalized form for actual alleles/genes/pairs
+        # (not generic Species or Class-only designations like "HLA class I")
+        if result is not None and type(result).__name__ in ("Allele", "Gene", "Pair"):
+            return result.to_string()
+    except (ImportError, Exception):
+        pass
+
+    return cleaned
+
+
 # ── Allele resolution ──────────────────────────────────────────────────────
 
 #: Resolution tiers, ordered from most to least specific.

@@ -62,25 +62,44 @@
     class_i: "51 HLA-I allotypes (95% HLA-A, 74% HLA-B, 93% HLA-C population coverage)"
     class_ii: 86 HLA-II allotypes
   ms_samples:
-  - type: autopsy tissue
+  - type: autopsy tissue (class I)
     n: 14
     source: "14 subjects, snap-frozen within 72h post-mortem"
     tissues: "29 tissue types (brain, heart, liver, kidney, lung, spleen, etc.)"
     condition: unperturbed
-    mhc_class: I+II
-    mhc: unknown
-  - type: living donor thymus
+    mhc_class: I
+    mhc: "HLA-A*01:01 HLA-A*02:01 HLA-A*02:05 HLA-A*03:01 HLA-A*11:01 HLA-A*23:01 HLA-A*24:02 HLA-A*30:01 HLA-A*32:01 HLA-A*68:01 HLA-A*68:02 HLA-A*69:01 HLA-B*07:02 HLA-B*08:01 HLA-B*13:02 HLA-B*14:02 HLA-B*15:01 HLA-B*27:05 HLA-B*35:01 HLA-B*35:03 HLA-B*35:08 HLA-B*37:01 HLA-B*40:02 HLA-B*41:01 HLA-B*44:02 HLA-B*45:01 HLA-B*49:01 HLA-B*50:01 HLA-B*58:01 HLA-C*02:02 HLA-C*03:03 HLA-C*03:04 HLA-C*04:01 HLA-C*06:02 HLA-C*07:01 HLA-C*07:02 HLA-C*07:04 HLA-C*08:02 HLA-C*16:01 HLA-C*17:01"
+  - type: autopsy tissue (class II)
+    n: 14
+    source: "14 subjects, snap-frozen within 72h post-mortem"
+    tissues: "29 tissue types (brain, heart, liver, kidney, lung, spleen, etc.)"
+    condition: unperturbed
+    mhc_class: II
+    mhc: "HLA-DRB1*01:01 HLA-DRB1*03:01 HLA-DRB1*04:01 HLA-DRB1*04:05 HLA-DRB1*07:01 HLA-DRB1*08:01 HLA-DRB1*10:01 HLA-DRB1*11:01 HLA-DRB1*11:03 HLA-DRB1*12:01 HLA-DRB1*13:01 HLA-DRB1*13:02 HLA-DRB1*13:03 HLA-DRB1*14:01 HLA-DRB1*14:54 HLA-DRB1*15:01 HLA-DRB3*01:01 HLA-DRB3*02:02 HLA-DRB3*03:01 HLA-DRB4*01:01 HLA-DRB4*01:03 HLA-DRB5*01:01"
+  - type: living donor thymus (class I)
     n: 5
     source: surgical thymus from living donors
     condition: unperturbed
-    mhc_class: I+II
-    mhc: unknown
-  - type: living donor ovary
+    mhc_class: I
+    mhc: "HLA-A*01:01 HLA-A*02:01 HLA-A*03:01 HLA-A*24:02 HLA-A*25:01 HLA-A*26:08 HLA-A*29:02 HLA-B*07:02 HLA-B*07:06 HLA-B*13:02 HLA-B*15:01 HLA-B*18:01 HLA-B*39:01 HLA-B*41:01 HLA-B*44:02 HLA-B*44:03 HLA-C*03:04 HLA-C*05:01 HLA-C*06:02 HLA-C*07:02 HLA-C*12:03 HLA-C*15:05 HLA-C*16:01 HLA-C*17:01"
+  - type: living donor thymus (class II)
+    n: 5
+    source: surgical thymus from living donors
+    condition: unperturbed
+    mhc_class: II
+    mhc: "HLA-DRB1*01:01 HLA-DRB1*04:05 HLA-DRB1*10:01 HLA-DRB1*11:01 HLA-DRB1*15:01 HLA-DRB1*16:01 HLA-DRB3*02:02 HLA-DRB4*01:03 HLA-DRB5*01:01 HLA-DRB5*02:02"
+  - type: living donor ovary (class I)
     n: 2
     source: surgical ovary from living donors
     condition: unperturbed
-    mhc_class: I+II
-    mhc: unknown
+    mhc_class: I
+    mhc: "HLA-A*02:01 HLA-A*11:01 HLA-A*26:01 HLA-B*08:01 HLA-B*35:01 HLA-B*44:02 HLA-C*04:01 HLA-C*05:01 HLA-C*07:02"
+  - type: living donor ovary (class II)
+    n: 2
+    source: surgical ovary from living donors
+    condition: unperturbed
+    mhc_class: II
+    mhc: "HLA-DRB1*04:04 HLA-DRB1*11:01 HLA-DRB1*11:08 HLA-DRB1*13:01"
 - pmid: 29557506
   label: Neidert 2018 — Tübingen/Zurich biobank
   title: "The natural HLA ligandome of glioblastoma stem-like cells: antigen discovery for T cell-based\
@@ -1961,25 +1980,25 @@
     - type: "melanoma cell lines (0D5P, 0MM745, 0NVC, T1185B, T1015A, Me290, Me275)"
       n: 7
       condition: "unperturbed"
-      mhc_class: "I+II"
-      ip_antibody: "W6/32 (I) + HB145/L243 (II)"
-      mhc: unknown
+      mhc_class: "I"
+      ip_antibody: "W6/32"
+      mhc: "HLA-A*01:01 HLA-A*02:01 HLA-A*02:09 HLA-A*23:01 HLA-A*26:01 HLA-A*30:02 HLA-A*32:01 HLA-A*68:01 HLA-B*07:02 HLA-B*08:01 HLA-B*13:02 HLA-B*15:01 HLA-B*18:01 HLA-B*35:03 HLA-B*38:01 HLA-B*40:01 HLA-B*44:02 HLA-B*49:01 HLA-C*03:04 HLA-C*05:01 HLA-C*06:02 HLA-C*07:01 HLA-C*07:02 HLA-C*12:03 HLA-C*14:02"
       classification: cancer
     - type: "lung tumor tissue (SCC + adenocarcinoma)"
       n: 2
       source: "C3N-02289 (SCC grade 2), C3N-02671 (adeno grade 2)"
       condition: "unperturbed — snap-frozen"
-      mhc_class: "I+II"
-      ip_antibody: "W6/32 (I) + HB145/L243 (II)"
-      mhc: unknown
+      mhc_class: "I"
+      ip_antibody: "W6/32"
+      mhc: "HLA-A*01:01 HLA-A*02:01 HLA-A*03:01 HLA-A*26:01 HLA-B*08:01 HLA-B*15:02 HLA-B*18:01 HLA-B*44:02 HLA-C*05:01 HLA-C*07:01 HLA-C*12:03"
       classification: cancer
     - type: "matched normal lung tissue"
       n: 2
-      source: "from same 2 cancer patients"
+      source: "from same 2 cancer patients (C3N-02289, C3N-02671)"
       condition: "unperturbed — snap-frozen"
-      mhc_class: "I+II"
-      mhc: unknown
-      ip_antibody: "W6/32 (I) + HB145/L243 (II)"
+      mhc_class: "I"
+      mhc: "HLA-A*01:01 HLA-A*02:01 HLA-A*03:01 HLA-A*26:01 HLA-B*08:01 HLA-B*15:02 HLA-B*18:01 HLA-B*44:02 HLA-C*05:01 HLA-C*07:01 HLA-C*12:03"
+      ip_antibody: "W6/32"
       classification: adjacent
   rules:
     - condition:
@@ -2085,17 +2104,22 @@
       n: 4
       condition: "unperturbed"
       mhc_class: "I"
-      mhc: unknown
+      # Saha-UA=SahaI*35, Saha-UB=SahaI*90, Saha-UC=SahaI*27, Saha-UD=SahaI*32
+      # Fibroblasts also express SahaI*49/82 (unassigned locus)
+      mhc: "Saha-UA Saha-UB Saha-UC Saha-UD"
     - type: "DFT1 cell line 4906 + IFN-gamma"
       n: 4
       condition: "IFN-gamma (required to induce MHC-I expression)"
       mhc_class: "I"
-      mhc: unknown
+      # DFT1 expresses SahaI*35 (UA), SahaI*90 (UB), SahaI*32 (UD), and Saha-UK
+      mhc: "Saha-UA Saha-UB Saha-UD Saha-UK"
     - type: "DFT2 cell line Red Velvet"
       n: 4
       condition: "unperturbed — constitutively MHC-I positive"
       mhc_class: "I"
-      mhc: unknown
+      # DFT2 expresses SahaI*27 (UC), SahaI*27-1 (UC variant), SahaI*35 (UA),
+      # SahaI*90 (UB), SahaI*32 (UD), Saha-UK; SahaI*74/88 unique but unassigned locus
+      mhc: "Saha-UA Saha-UB Saha-UC Saha-UD Saha-UK"
 
 - pmid: 34535575
   label: "Wang 2021 — brushtail possum MHC-I structure (NOT cellular IP)"
@@ -2634,14 +2658,18 @@
     imprecise — source is pleural effusion specifically.
   ms_samples:
     - type: "pleural effusion (cancer patients)"
+      n: 9
+      source: "9 patients (P1-P9) with malignant pleural effusion"
       condition: "unperturbed — sHLA from pleural fluid"
       mhc_class: "I"
-      mhc: unknown
+      mhc: "HLA-A*01:01 HLA-A*02:01 HLA-A*02:05 HLA-A*03:01 HLA-A*23:01 HLA-A*26:01 HLA-A*31:01 HLA-A*33:01 HLA-A*68:01 HLA-B*08:01 HLA-B*18:01 HLA-B*35:02 HLA-B*38:01 HLA-B*39:01 HLA-B*40:01 HLA-B*41:01 HLA-B*44:02 HLA-B*49:01 HLA-B*50:01 HLA-B*53:01 HLA-C*03:04 HLA-C*04:01 HLA-C*05:01 HLA-C*06:02 HLA-C*07:01 HLA-C*07:02 HLA-C*12:03 HLA-C*17:01"
       classification: cancer_patient
     - type: "pleural effusion (non-malignant disease)"
+      n: 5
+      source: "5 patients (P10-P14) with benign pleural disease"
       condition: "unperturbed — sHLA from pleural fluid"
       mhc_class: "I"
-      mhc: unknown
+      mhc: "HLA-A*01:01 HLA-A*03:01 HLA-A*11:01 HLA-A*23:01 HLA-A*24:02 HLA-A*25:01 HLA-A*26:01 HLA-A*32:01 HLA-B*14:02 HLA-B*15:17 HLA-B*18:01 HLA-B*35:01 HLA-B*35:02 HLA-B*38:01 HLA-B*43:01 HLA-B*49:01 HLA-B*57:01 HLA-C*04:01 HLA-C*06:02 HLA-C*07:01 HLA-C*08:02 HLA-C*12:03"
 
 - pmid: 29393594
   label: "Yair-Sabag 2018 — HLA-B27 Lys-P2 ligands"

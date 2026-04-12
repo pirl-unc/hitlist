@@ -10,6 +10,7 @@ from hitlist.curation import (
     load_monoallelic_lines,
     load_pmid_overrides,
     load_tissue_categories,
+    normalize_allele,
     normalize_species,
 )
 
@@ -497,3 +498,33 @@ def test_normalize_species_empty():
 def test_normalize_species_idempotent():
     assert normalize_species(normalize_species("human")) == "Homo sapiens"
     assert normalize_species(normalize_species("Homo sapiens (human)")) == "Homo sapiens"
+
+
+# ── Allele normalization ─────────────────────────────────────────────
+
+
+def test_normalize_allele_hla():
+    assert normalize_allele("HLA-A*02:01") == "HLA-A*02:01"
+    assert normalize_allele("HLA-DRB1*04:01") == "HLA-DRB1*04:01"
+
+
+def test_normalize_allele_mouse():
+    # H-2Kb → H2-K*b (canonical mhcgnomes form)
+    assert normalize_allele("H-2Kb") == "H2-K*b"
+
+
+def test_normalize_allele_non_human_species():
+    assert normalize_allele("Saha-UA") == "Saha-UA"
+    assert normalize_allele("SLA-1*0201") == "SLA-1*02:01"
+
+
+def test_normalize_allele_preserves_class_only():
+    # "HLA class I" should pass through unchanged, not normalize to species
+    assert normalize_allele("HLA class I") == "HLA class I"
+    assert normalize_allele("HLA class II") == "HLA class II"
+
+
+def test_normalize_allele_empty_and_unparseable():
+    assert normalize_allele("") == ""
+    assert normalize_allele("unknown") == "unknown"
+    assert normalize_allele("SahaI*35") == "SahaI*35"  # unparseable, unchanged
