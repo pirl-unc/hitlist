@@ -109,6 +109,7 @@ def build_observations(
     proteome_release: int = 112,
     force: bool = False,
     fetch_missing_proteomes: bool = True,
+    use_uniprot_search: bool = False,
 ) -> Path:
     """Build the unified observations table from IEDB + CEDAR.
 
@@ -227,6 +228,7 @@ def build_observations(
             obs,
             release=proteome_release,
             fetch_missing=fetch_missing_proteomes,
+            use_uniprot=use_uniprot_search,
         )
 
     # Write parquet
@@ -263,12 +265,13 @@ def _load_species_index(
     organism: str,
     release: int,
     verbose: bool,
+    use_uniprot: bool = False,
 ):
     """Build a ProteomeIndex for a given species/organism, or None if unsupported."""
     from .downloads import lookup_proteome
     from .proteome import ProteomeIndex
 
-    entry = lookup_proteome(organism)
+    entry = lookup_proteome(organism, use_uniprot=use_uniprot)
     if entry is None:
         return None, None
 
@@ -305,7 +308,7 @@ def _load_species_index(
     # UniProt FASTA
     from .downloads import fetch_species_proteome
 
-    path = fetch_species_proteome(organism, verbose=verbose)
+    path = fetch_species_proteome(organism, verbose=verbose, use_uniprot=use_uniprot)
     if path is None or not path.exists():
         return None, None
     if verbose:
@@ -318,6 +321,7 @@ def _add_flanking(
     obs: pd.DataFrame,
     release: int = 112,
     fetch_missing: bool = True,
+    use_uniprot: bool = False,
 ) -> pd.DataFrame:
     """Map peptides to source proteins with flanking context.
 
@@ -333,6 +337,10 @@ def _add_flanking(
         Ensembl release for Ensembl-supported species.
     fetch_missing
         If True, auto-download missing UniProt proteomes.
+    use_uniprot
+        If True, fall back to UniProt REST search for organisms that
+        aren't in the curated registry.  Resolved mappings are cached
+        in the manifest.
     """
     try:
         from tqdm.auto import tqdm
@@ -346,13 +354,23 @@ def _add_flanking(
     organism = organism.where(organism != "", obs["mhc_species"].astype(str).str.strip())
     obs = obs.assign(_flanking_organism=organism)
 
-    # Group peptides by (registered) canonical proteome
+    # Group peptides by (registered) canonical proteome.  We cache lookups
+    # by raw organism string to avoid redundant UniProt queries.
+    lookup_cache: dict[str, dict | None] = {}
+
+    def _lookup(org: str) -> dict | None:
+        if org in lookup_cache:
+            return lookup_cache[org]
+        entry = lookup_proteome(org, use_uniprot=use_uniprot)
+        lookup_cache[org] = entry
+        return entry
+
     species_to_peptides: dict[str, set[str]] = {}
     unmapped_organisms: dict[str, int] = {}
     for org, pep in zip(obs["_flanking_organism"], obs["peptide"]):
         if not org:
             continue
-        entry = lookup_proteome(org)
+        entry = _lookup(org)
         if entry is None:
             unmapped_organisms[org] = unmapped_organisms.get(org, 0) + 1
             continue
@@ -369,7 +387,7 @@ def _add_flanking(
     if fetch_missing and n_species:
         print("\nEnsuring reference proteomes are available ...")
         for canonical in sorted(species_to_peptides):
-            fetch_species_proteome(canonical, verbose=True)
+            fetch_species_proteome(canonical, verbose=True, use_uniprot=use_uniprot)
 
     # Map per species; collect representative per peptide (global)
     best_rows: list[dict] = []
@@ -386,7 +404,9 @@ def _add_flanking(
         else:
             print(f"\n  [{canonical}] mapping {len(peptides):,} peptides ...")
 
-        idx, _canonical_out = _load_species_index(canonical, release=release, verbose=True)
+        idx, _canonical_out = _load_species_index(
+            canonical, release=release, verbose=True, use_uniprot=use_uniprot
+        )
         if idx is None:
             per_species_stats.append((canonical, len(peptides), 0))
             continue
@@ -429,7 +449,7 @@ def _add_flanking(
     for org in obs["_flanking_organism"].unique():
         if not org:
             continue
-        entry = lookup_proteome(org)
+        entry = _lookup(org)
         if entry is None:
             continue
         canonical_lookup[org] = entry.get("canonical_species", org)

@@ -133,10 +133,24 @@ idx = ProteomeIndex.from_ensembl_plus_fastas(
 Alternatively, build the observations table with flanking pre-computed:
 
 ```bash
-hitlist data build --with-flanking --proteome-release 112
+# Auto-fetches reference proteomes for the species in the data (12 curated species
+# + 14 curated viral proteomes).  Each peptide maps against its own organism's
+# proteome, not a pooled union.
+hitlist data build --with-flanking
+
+# For broader coverage (bacteria, parasites, rare viruses, plants) use
+# --use-uniprot — resolved organisms are cached in the manifest.
+hitlist data build --with-flanking --use-uniprot
+
+# Just fetch proteomes without rebuilding observations
+hitlist data fetch-proteomes --min-observations 100 --use-uniprot
+hitlist data list-proteomes
 ```
 
-This adds `gene_name`, `gene_id`, `protein_id`, `position`, `n_flank`, `c_flank` columns. Current limitations: only Ensembl proteomes are auto-fetched; non-human and viral sources need user-supplied FASTAs (tracked in [#39](https://github.com/pirl-unc/hitlist/issues/39)).
+This adds `gene_name`, `gene_id`, `protein_id`, `position`, `n_flank`, `c_flank`,
+and `flanking_species` columns. A peptide recorded under a strain name
+(`"Mycobacterium tuberculosis H37Rv"`) is resolved to its parent species' reference
+proteome (`UP000001584`) and cached there — repeat lookups skip the network.
 
 ## CLI reference
 

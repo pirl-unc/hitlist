@@ -266,15 +266,135 @@ def _proteomes_dir() -> Path:
 
 def _safe_filename(species: str) -> str:
     """Convert a species name to a filesystem-safe filename."""
-    return species.lower().replace(" ", "_").replace("/", "_") + ".fasta"
+    safe = species.lower().replace("/", "_").replace("\\", "_")
+    safe = "".join(c if c.isalnum() or c in "_-." else "_" for c in safe)
+    # Collapse runs of underscores
+    while "__" in safe:
+        safe = safe.replace("__", "_")
+    return safe.strip("_") + ".fasta"
 
 
-def lookup_proteome(species_or_organism: str) -> dict | None:
+_UNIPROT_PROTEOME_SEARCH_URL = "https://rest.uniprot.org/proteomes/search"
+_PROTEOME_TYPE_RANK = {
+    "reference and representative proteome": 0,
+    "reference proteome": 1,
+    "representative proteome": 2,
+    "other proteome": 3,
+    "redundant proteome": 4,
+}
+
+
+# Organism strings that are known placeholders/noise — never send to UniProt.
+_ORGANISM_DENYLIST: set[str] = {
+    "",
+    "unidentified",
+    "unknown",
+    "unclassified",
+    "mixed",
+    "various",
+    "not available",
+    "n/a",
+    "na",
+}
+
+
+def resolve_proteome_via_uniprot(
+    organism: str,
+    timeout: int = 15,
+) -> dict | None:
+    """Query UniProt REST to find the best reference proteome for an organism.
+
+    Returns a dict with ``proteome_id``, ``scientific_name``, ``taxon_id``,
+    ``proteome_type``, and ``protein_count`` fields.  Prefers "Reference
+    and representative" over plain "Representative" proteomes.  Returns
+    ``None`` if no match is found or if the organism is on the denylist
+    (e.g. ``"unidentified"``).
+
+    The raw organism string is used as a free-text query, so strain
+    suffixes like ``"(strain B95-8)"`` are tolerated.
+    """
+    import json
+    import urllib.parse
+
+    if not organism:
+        return None
+    cleaned = organism.strip()
+    if cleaned.lower() in _ORGANISM_DENYLIST:
+        return None
+    query = urllib.parse.quote(cleaned)
+    url = f"{_UNIPROT_PROTEOME_SEARCH_URL}?query={query}&format=json&size=10"
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as r:
+            payload = json.load(r)
+    except Exception:
+        return None
+
+    results = payload.get("results", [])
+    if not results:
+        return None
+
+    def sort_key(p: dict) -> tuple:
+        ptype = (p.get("proteomeType") or "").lower()
+        rank = _PROTEOME_TYPE_RANK.get(ptype, 99)
+        # Within same rank, prefer lower taxon id (parent species often
+        # has a smaller ID than strain-specific entries) and higher count
+        tax_id = int(p.get("taxonomy", {}).get("taxonId") or 1_000_000_000)
+        count = int(p.get("proteinCount") or 0)
+        return (rank, tax_id, -count)
+
+    best = min(results, key=sort_key)
+    tax = best.get("taxonomy", {})
+    return {
+        "proteome_id": best.get("id"),
+        "scientific_name": tax.get("scientificName") or organism,
+        "taxon_id": tax.get("taxonId"),
+        "proteome_type": best.get("proteomeType"),
+        "protein_count": best.get("proteinCount"),
+    }
+
+
+def _find_existing_proteome_by_upid(proteomes: dict, proteome_id: str) -> dict | None:
+    """Find a previously-downloaded proteome with the same UniProt ID."""
+    for entry in proteomes.values():
+        if (
+            entry.get("kind") == "uniprot"
+            and entry.get("proteome_id") == proteome_id
+            and entry.get("path")
+        ):
+            return entry
+    return None
+
+
+def _uniprot_cache() -> dict:
+    """Load the manifest's uniprot_resolutions section."""
+    manifest = _load_manifest()
+    return manifest.get("uniprot_resolutions", {})
+
+
+def _save_uniprot_cache_entry(organism: str, entry: dict | None) -> None:
+    manifest = _load_manifest()
+    cache = manifest.setdefault("uniprot_resolutions", {})
+    cache[organism] = {
+        "resolved_at": datetime.now(timezone.utc).isoformat(),
+        **(entry or {"not_found": True}),
+    }
+    _save_manifest(manifest)
+
+
+def lookup_proteome(
+    species_or_organism: str,
+    use_uniprot: bool = False,
+) -> dict | None:
     """Resolve a species or IEDB source_organism string to a proteome registry entry.
 
-    Returns ``None`` if no proteome is registered for this organism.
-    Applies ``normalize_species()`` first and then falls back to
-    substring matching against ``VIRAL_PROTEOMES``.
+    Applies in order:
+    1. Curated ``SPECIES_PROTEOMES`` registry (normalized via mhcgnomes)
+    2. Curated ``VIRAL_PROTEOMES`` substring match
+    3. (Optional) UniProt REST lookup — only if ``use_uniprot=True``
+       and the resolution hasn't been cached yet.  Negative results
+       (``{"not_found": True}``) are also cached to avoid re-querying.
+
+    Returns ``None`` if no proteome is registered/discoverable.
     """
     if not species_or_organism:
         return None
@@ -297,13 +417,44 @@ def lookup_proteome(species_or_organism: str) -> dict | None:
                 "canonical_species": species_or_organism,
                 "key": viral_entry["key"],
             }
-    return None
+
+    if not use_uniprot:
+        return None
+
+    # UniProt REST fallback — with manifest-cached results
+    cache = _uniprot_cache()
+    cached = cache.get(species_or_organism)
+    if cached is not None:
+        if cached.get("not_found"):
+            return None
+        return {
+            "kind": "uniprot",
+            "proteome_id": cached["proteome_id"],
+            "canonical_species": cached.get("scientific_name", species_or_organism),
+            "source": "uniprot_search",
+            "taxon_id": cached.get("taxon_id"),
+            "proteome_type": cached.get("proteome_type"),
+        }
+
+    resolved = resolve_proteome_via_uniprot(species_or_organism)
+    _save_uniprot_cache_entry(species_or_organism, resolved)
+    if resolved is None:
+        return None
+    return {
+        "kind": "uniprot",
+        "proteome_id": resolved["proteome_id"],
+        "canonical_species": resolved["scientific_name"],
+        "source": "uniprot_search",
+        "taxon_id": resolved.get("taxon_id"),
+        "proteome_type": resolved.get("proteome_type"),
+    }
 
 
 def fetch_species_proteome(
     species: str,
     force: bool = False,
     verbose: bool = True,
+    use_uniprot: bool = False,
 ) -> Path | None:
     """Fetch (or return cached) reference proteome FASTA for a species.
 
@@ -319,8 +470,12 @@ def fetch_species_proteome(
         Re-download even if already cached.
     verbose
         Print progress messages.
+    use_uniprot
+        Fall back to UniProt REST search for organisms not in the curated
+        registry.  Resolved mappings are cached in the manifest to avoid
+        re-querying.
     """
-    entry = lookup_proteome(species)
+    entry = lookup_proteome(species, use_uniprot=use_uniprot)
     if entry is None:
         return None
 
@@ -339,11 +494,33 @@ def fetch_species_proteome(
         _save_manifest(manifest)
         return None  # caller should use ProteomeIndex.from_ensembl()
 
-    # UniProt species: download the FASTA
-    fname = _safe_filename(canonical)
-    dest = _proteomes_dir() / fname
+    # UniProt species: download the FASTA (dedup by UPID — multiple strain
+    # variants often resolve to the same UniProt reference proteome)
     proteome_id = entry["proteome_id"]
     url = _UNIPROT_PROTEOME_URL.format(proteome_id=proteome_id)
+
+    existing = _find_existing_proteome_by_upid(proteomes, proteome_id)
+    if existing is not None and Path(existing["path"]).exists() and not force:
+        dest = Path(existing["path"])
+        if verbose:
+            print(
+                f"  [{canonical}] reusing cached FASTA from "
+                f"{existing.get('canonical_species', '?')} ({dest.stat().st_size:,} bytes)"
+            )
+        proteomes[canonical] = {
+            "kind": "uniprot",
+            "proteome_id": proteome_id,
+            "path": str(dest),
+            "size_bytes": dest.stat().st_size,
+            "source_url": url,
+            "canonical_species": canonical,
+            "registered": datetime.now(timezone.utc).isoformat(),
+        }
+        _save_manifest(manifest)
+        return dest
+
+    fname = _safe_filename(canonical)
+    dest = _proteomes_dir() / fname
 
     if dest.exists() and not force:
         if verbose:
@@ -354,6 +531,7 @@ def fetch_species_proteome(
             "path": str(dest),
             "size_bytes": dest.stat().st_size,
             "source_url": url,
+            "canonical_species": canonical,
             "registered": proteomes.get(canonical, {}).get(
                 "registered", datetime.now(timezone.utc).isoformat()
             ),

@@ -52,6 +52,62 @@ def test_lookup_proteome_unknown():
     assert lookup_proteome("") is None
 
 
+def test_lookup_proteome_uniprot_fallback_uses_cache(tmp_path, monkeypatch):
+    """UniProt fallback should hit the network once, then use manifest cache."""
+    from hitlist import downloads
+
+    downloads.set_data_dir(tmp_path)
+
+    calls = {"n": 0}
+
+    def fake_resolve(organism, timeout=15):
+        calls["n"] += 1
+        if organism == "Mycobacterium tuberculosis":
+            return {
+                "proteome_id": "UP000001584",
+                "scientific_name": "Mycobacterium tuberculosis (strain ATCC 25618 / H37Rv)",
+                "taxon_id": 83332,
+                "proteome_type": "Reference and representative proteome",
+                "protein_count": 3997,
+            }
+        return None
+
+    monkeypatch.setattr(downloads, "resolve_proteome_via_uniprot", fake_resolve)
+
+    # First call hits the mock
+    r1 = downloads.lookup_proteome("Mycobacterium tuberculosis", use_uniprot=True)
+    assert r1 is not None
+    assert r1["proteome_id"] == "UP000001584"
+    assert calls["n"] == 1
+
+    # Second call should use the manifest cache, not the mock
+    r2 = downloads.lookup_proteome("Mycobacterium tuberculosis", use_uniprot=True)
+    assert r2 == r1
+    assert calls["n"] == 1  # no new network call
+
+    # Negative results cached too
+    neg1 = downloads.lookup_proteome("Nonexistent organism", use_uniprot=True)
+    assert neg1 is None
+    assert calls["n"] == 2
+    neg2 = downloads.lookup_proteome("Nonexistent organism", use_uniprot=True)
+    assert neg2 is None
+    assert calls["n"] == 2  # negative also cached
+
+
+def test_lookup_proteome_no_uniprot_by_default(tmp_path, monkeypatch):
+    """Without use_uniprot=True, unknown organisms should return None without calling UniProt."""
+    from hitlist import downloads
+
+    downloads.set_data_dir(tmp_path)
+
+    def fake_resolve(organism, timeout=15):
+        raise AssertionError("Should not call UniProt without use_uniprot=True")
+
+    monkeypatch.setattr(downloads, "resolve_proteome_via_uniprot", fake_resolve)
+
+    assert downloads.lookup_proteome("Mycobacterium tuberculosis") is None
+
+
 def test_fetch_species_proteome_ensembl_no_download(tmp_path, monkeypatch):
     """Ensembl species should return None (no FASTA to download) and update manifest."""
     from hitlist.downloads import fetch_species_proteome, set_data_dir
@@ -101,7 +157,7 @@ def test_add_flanking_per_species_routing(tmp_path, monkeypatch):
     )
 
     # Monkeypatch _load_species_index to return our in-memory indices
-    def fake_load(organism, release, verbose):
+    def fake_load(organism, release, verbose, use_uniprot=False):
         if organism == "Homo sapiens":
             return human_idx, "Homo sapiens"
         if organism == "Mus musculus":

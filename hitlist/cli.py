@@ -154,6 +154,7 @@ def _data_build(args: argparse.Namespace) -> None:
         proteome_release=args.proteome_release,
         force=args.force,
         fetch_missing_proteomes=not args.no_fetch_proteomes,
+        use_uniprot_search=args.use_uniprot,
     )
 
 
@@ -188,13 +189,15 @@ def _data_fetch_proteomes(args: argparse.Namespace) -> None:
         print("No species information found in observations.")
         sys.exit(0)
 
+    use_uniprot = getattr(args, "use_uniprot", False)
+
     # Plan the work
     plan: list[tuple[str, int, dict]] = []
     skipped: list[tuple[str, int]] = []
     for organism, n in counts.items():
         if n < args.min_observations:
             continue
-        entry = lookup_proteome(str(organism))
+        entry = lookup_proteome(str(organism), use_uniprot=use_uniprot)
         if entry is None:
             skipped.append((str(organism), int(n)))
             continue
@@ -221,7 +224,9 @@ def _data_fetch_proteomes(args: argparse.Namespace) -> None:
     fetched: list[str] = []
     cached: list[str] = []
     for organism, _n, _entry in plan:
-        path = fetch_species_proteome(organism, force=args.force, verbose=True)
+        path = fetch_species_proteome(
+            organism, force=args.force, verbose=True, use_uniprot=use_uniprot
+        )
         if path is None:
             cached.append(organism)  # ensembl — no local file to track
         else:
@@ -330,6 +335,15 @@ def _build_data_parser(sub: argparse._SubParsersAction) -> None:
         default=False,
         help="Do not auto-fetch missing proteomes when --with-flanking is set",
     )
+    p.add_argument(
+        "--use-uniprot",
+        action="store_true",
+        default=False,
+        help=(
+            "Query UniProt REST for organisms not in the curated registry. "
+            "Required to map peptides from rare/pathogen source proteomes."
+        ),
+    )
     p.add_argument("--force", "-f", action="store_true", help="Rebuild even if cached")
 
     p = ds.add_parser(
@@ -341,6 +355,15 @@ def _build_data_parser(sub: argparse._SubParsersAction) -> None:
         type=int,
         default=100,
         help="Only fetch proteomes for species with >= N observations (default 100)",
+    )
+    p.add_argument(
+        "--use-uniprot",
+        action="store_true",
+        default=False,
+        help=(
+            "Query UniProt REST for organisms not in the curated registry. "
+            "Resolved mappings are cached in the manifest."
+        ),
     )
     p.add_argument("--force", "-f", action="store_true", help="Re-download cached proteomes")
 
