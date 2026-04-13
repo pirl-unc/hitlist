@@ -101,7 +101,7 @@ def test_lookup_proteome_uniprot_fallback_uses_cache(tmp_path, monkeypatch):
     """UniProt fallback should hit the network once, then use manifest cache."""
     from hitlist import downloads
 
-    downloads.set_data_dir(tmp_path)
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
 
     calls = {"n": 0}
 
@@ -143,7 +143,7 @@ def test_lookup_proteome_no_uniprot_by_default(tmp_path, monkeypatch):
     """Without use_uniprot=True, unknown organisms should return None without calling UniProt."""
     from hitlist import downloads
 
-    downloads.set_data_dir(tmp_path)
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
 
     def fake_resolve(organism, timeout=15):
         raise AssertionError("Should not call UniProt without use_uniprot=True")
@@ -155,9 +155,10 @@ def test_lookup_proteome_no_uniprot_by_default(tmp_path, monkeypatch):
 
 def test_fetch_species_proteome_ensembl_no_download(tmp_path, monkeypatch):
     """Ensembl species should return None (no FASTA to download) and update manifest."""
-    from hitlist.downloads import fetch_species_proteome, set_data_dir
+    from hitlist import downloads
+    from hitlist.downloads import fetch_species_proteome
 
-    set_data_dir(tmp_path)
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
     result = fetch_species_proteome("Homo sapiens", verbose=False)
     assert result is None
 
@@ -172,10 +173,9 @@ def test_fetch_species_proteome_ensembl_no_download(tmp_path, monkeypatch):
 
 def test_add_flanking_per_species_routing(tmp_path, monkeypatch):
     """_add_flanking should route each observation to its species' proteome."""
-    from hitlist import builder
-    from hitlist.downloads import set_data_dir
+    from hitlist import builder, downloads
 
-    set_data_dir(tmp_path)
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
 
     # Synthetic obs with 2 species
     obs = pd.DataFrame(

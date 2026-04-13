@@ -26,7 +26,10 @@ def test_cache_invalid_when_flanking_requested_but_absent(tmp_path, monkeypatch)
     """Asking for --with-flanking should invalidate a cache built without it."""
     from hitlist import builder, downloads
 
-    downloads.set_data_dir(tmp_path)
+    # Use monkeypatch for data_dir so the override is automatically
+    # cleaned up after the test — set_data_dir mutates module-global
+    # state and would leak into other tests.
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
 
     # Simulate a pre-built observations table without flanking
     fake_parquet = tmp_path / "observations.parquet"
