@@ -187,8 +187,8 @@ def _index_from_csv(source: str, force: bool) -> tuple[pd.DataFrame, pd.DataFram
     seen_iris: set[str] = set()
 
     for _label, source_path in sorted(paths.items()):
-        reader, c, p = _open_csv(source_path)
-        for row in _progress(reader, p, f"Indexing {p.name}"):
+        reader, c, p, fh = _open_csv(source_path)
+        for row in _progress(reader, p, f"Indexing {p.name}", fh=fh):
             iri = row[c["assay_iri"]] if row else ""
             if iri in seen_iris:
                 continue
@@ -244,8 +244,8 @@ def _scan_single(path, label, _fast_species, _open_csv, _progress, _safe_col):
     obs_counts: dict[tuple, int] = defaultdict(int)
     allele_counts: dict[str, int] = defaultdict(int)
 
-    reader, c, p = _open_csv(path)
-    for row in _progress(reader, p, f"Indexing {p.name}"):
+    reader, c, p, fh = _open_csv(path)
+    for row in _progress(reader, p, f"Indexing {p.name}", fh=fh):
         mhc_res = _safe_col(row, c["mhc_restriction"])
         if mhc_res:
             allele_counts[mhc_res] += 1

@@ -121,24 +121,73 @@ def _safe_col(row: list[str], idx: int) -> str:
     return row[idx] if len(row) > idx else ""
 
 
-def _open_csv(path: Path) -> tuple[csv.reader, dict[str, int], Path]:
-    fh = open(path, newline="")  # noqa: SIM115
+class _ByteCountingFile:
+    """Wrap a text file so we can track how many bytes have been read.
+
+    ``csv.reader`` disables ``tell()`` on the underlying file via its
+    buffered-read optimization, so we count bytes ourselves in
+    ``readline``.  Supports the subset of file methods ``csv.reader``
+    actually uses.
+    """
+
+    __slots__ = ("_fh", "bytes_read")
+
+    def __init__(self, fh):
+        self._fh = fh
+        self.bytes_read = 0
+
+    def readline(self, *args, **kwargs) -> str:
+        line = self._fh.readline(*args, **kwargs)
+        # bytes_read tracks encoded size; line is already str, so use
+        # its length (close enough — ASCII dominates IEDB exports).
+        self.bytes_read += len(line)
+        return line
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        line = self._fh.readline()
+        if not line:
+            raise StopIteration
+        self.bytes_read += len(line)
+        return line
+
+    def close(self) -> None:
+        self._fh.close()
+
+
+def _open_csv(path: Path) -> tuple[csv.reader, dict[str, int], Path, _ByteCountingFile]:
+    fh = _ByteCountingFile(open(path, newline=""))  # noqa: SIM115
     reader = csv.reader(fh)
     cat_header = next(reader, [])
     field_header = next(reader, [])
     cols = _resolve_columns(cat_header, field_header)
-    return reader, cols, path
+    return reader, cols, path, fh
 
 
-def _progress(reader, path: Path, desc: str):
+def _progress(reader, path: Path, desc: str, fh: _ByteCountingFile | None = None):
+    """Yield rows with a tqdm progress bar.
+
+    Updates progress in bytes every ``update_every`` rows instead of
+    per-row — avoids per-row ``sum(len(f) for f in row)`` which was
+    >50% of scan time for large files.
+    """
     if _tqdm is None:
         yield from reader
         return
     total = os.path.getsize(path)
+    update_every = 1000
     with _tqdm(total=total, unit="B", unit_scale=True, desc=desc, leave=False) as pbar:
-        for row in reader:
-            pbar.update(sum(len(f) for f in row) + len(row))
+        last_bytes = 0
+        for i, row in enumerate(reader):
             yield row
+            if fh is not None and (i + 1) % update_every == 0:
+                now = fh.bytes_read
+                pbar.update(now - last_bytes)
+                last_bytes = now
+        if fh is not None:
+            pbar.update(max(total - last_bytes, 0))
 
 
 # ── Public API ──────────────────────────────────────────────────────────────
@@ -213,8 +262,8 @@ def scan(
     for source_path in source_paths:
         if not source_path.exists():
             continue
-        reader, c, p = _open_csv(source_path)
-        for row in _progress(reader, p, f"Scanning {p.name}"):
+        reader, c, p, fh = _open_csv(source_path)
+        for row in _progress(reader, p, f"Scanning {p.name}", fh=fh):
             if peptides is not None:
                 pep = _safe_col(row, c["epitope_name"])
                 if pep not in peptides:
