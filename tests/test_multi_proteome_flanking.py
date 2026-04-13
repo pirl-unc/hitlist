@@ -52,6 +52,51 @@ def test_lookup_proteome_unknown():
     assert lookup_proteome("") is None
 
 
+def test_lookup_proteome_sars_disambiguation():
+    """SARS-CoV-1 and SARS-CoV-2 must resolve to different proteomes."""
+    cov1 = lookup_proteome("SARS-CoV1")
+    cov2 = lookup_proteome("SARS-CoV2 Omicron")
+    assert cov1 is not None
+    assert cov2 is not None
+    assert cov1["proteome_id"] == "UP000000354"
+    assert cov2["proteome_id"] == "UP000464024"
+
+    # Canonical IEDB strings should also disambiguate
+    cov2_full = lookup_proteome("Severe acute respiratory syndrome coronavirus 2")
+    cov1_full = lookup_proteome("Severe acute respiratory syndrome coronavirus")
+    assert cov2_full["proteome_id"] == "UP000464024"
+    assert cov1_full["proteome_id"] == "UP000000354"
+
+
+def test_lookup_proteome_herpesvirus_aliases():
+    """IEDB alphaherpesvirus/betaherpesvirus names resolve to correct HSV/HCMV."""
+    assert lookup_proteome("Human betaherpesvirus 5")["proteome_id"] == "UP000000938"  # HCMV
+    assert lookup_proteome("Human cytomegalovirus")["proteome_id"] == "UP000000938"
+    assert lookup_proteome("Human alphaherpesvirus 1")["proteome_id"] == "UP000009294"  # HSV-1
+    assert lookup_proteome("Human alphaherpesvirus 2")["proteome_id"] == "UP000001874"  # HSV-2
+    assert lookup_proteome("Human gammaherpesvirus 8")["proteome_id"] == "UP000009113"  # KSHV
+
+
+def test_lookup_proteome_strain_variant_substring():
+    """Strain suffixes on known species names should still resolve."""
+    assert lookup_proteome("Theileria parva strain Muguga") is not None
+    assert lookup_proteome("Theileria parva strain Muguga")["proteome_id"] == "UP000001949"
+    # Murid betaherpesvirus 1 (strain Smith) → MCMV
+    mcmv = lookup_proteome("Murine cytomegalovirus (strain Smith)")
+    assert mcmv is not None
+    assert mcmv["proteome_id"] == "UP000008774"
+
+
+def test_lookup_proteome_genus_abbreviated():
+    """IEDB's 'Sus sp.' / 'Canis sp.' should resolve to type species."""
+    sus = lookup_proteome("Sus sp.")
+    assert sus is not None
+    assert sus["proteome_id"] == "UP000008227"  # Sus scrofa
+    canis = lookup_proteome("Canis sp.")
+    assert canis is not None
+    assert canis["proteome_id"] == "UP000002254"  # Canis lupus
+
+
 def test_lookup_proteome_uniprot_fallback_uses_cache(tmp_path, monkeypatch):
     """UniProt fallback should hit the network once, then use manifest cache."""
     from hitlist import downloads

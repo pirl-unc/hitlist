@@ -227,6 +227,15 @@ SPECIES_PROTEOMES: dict[str, dict[str, str | int]] = {
     "Equus caballus": {"kind": "uniprot", "proteome_id": "UP000002281"},
     "Pan troglodytes": {"kind": "uniprot", "proteome_id": "UP000002277"},
     "Trichosurus vulpecula": {"kind": "uniprot", "proteome_id": "UP000504604"},
+    # IEDB genus-abbreviated names — treat as the type species
+    "Sus sp.": {"kind": "uniprot", "proteome_id": "UP000008227"},  # → Sus scrofa
+    "Canis sp.": {"kind": "uniprot", "proteome_id": "UP000002254"},  # → Canis lupus
+    "Bos sp.": {"kind": "uniprot", "proteome_id": "UP000009136"},  # → Bos taurus
+    "Rattus sp.": {"kind": "ensembl", "release": 112, "species": "rat"},
+    # Parasites / plants / other with curated UPIDs
+    "Theileria parva": {"kind": "uniprot", "proteome_id": "UP000001949"},
+    "Ascaris suum": {"kind": "uniprot", "proteome_id": "UP000036681"},
+    "Ascaris lumbricoides": {"kind": "uniprot", "proteome_id": "UP000036681"},
 }
 
 
@@ -235,19 +244,60 @@ SPECIES_PROTEOMES: dict[str, dict[str, str | int]] = {
 # registry key.  This tolerates IEDB variations (e.g. "Epstein-Barr virus
 # (strain B95-8)" matches "epstein-barr virus").
 VIRAL_PROTEOMES: dict[str, dict[str, str]] = {
+    # SARS coronaviruses — "sars-cov" must come before "sars-cov-2" check below
+    # but we sort by key length at lookup time to match most-specific first
     "severe acute respiratory syndrome coronavirus 2": {
         "proteome_id": "UP000464024",
         "key": "sars-cov-2",
     },
+    "sars-cov2": {"proteome_id": "UP000464024", "key": "sars-cov-2"},
+    "sars-cov-2": {"proteome_id": "UP000464024", "key": "sars-cov-2"},
+    "severe acute respiratory syndrome coronavirus": {
+        "proteome_id": "UP000000354",
+        "key": "sars-cov-1",
+    },
+    "sars-cov1": {"proteome_id": "UP000000354", "key": "sars-cov-1"},
+    "sars-cov-1": {"proteome_id": "UP000000354", "key": "sars-cov-1"},
+    "sars coronavirus": {"proteome_id": "UP000000354", "key": "sars-cov-1"},
+    # Herpes viruses
     "human immunodeficiency virus 1": {"proteome_id": "UP000002241", "key": "hiv1"},
+    "hiv-1": {"proteome_id": "UP000002241", "key": "hiv1"},
     "epstein-barr virus": {"proteome_id": "UP000153037", "key": "ebv"},
     "human gammaherpesvirus 4": {"proteome_id": "UP000153037", "key": "ebv"},
+    "human herpesvirus 4": {"proteome_id": "UP000153037", "key": "ebv"},
+    "human betaherpesvirus 5": {"proteome_id": "UP000000938", "key": "hcmv"},
+    "human cytomegalovirus": {"proteome_id": "UP000000938", "key": "hcmv"},
+    "human herpesvirus 5": {"proteome_id": "UP000000938", "key": "hcmv"},
+    "human gammaherpesvirus 8": {"proteome_id": "UP000009113", "key": "kshv"},
+    "human herpesvirus 8": {"proteome_id": "UP000009113", "key": "kshv"},
+    "kaposi": {"proteome_id": "UP000009113", "key": "kshv"},
+    "human alphaherpesvirus 1": {"proteome_id": "UP000009294", "key": "hsv-1"},
+    "herpes simplex virus type 1": {"proteome_id": "UP000009294", "key": "hsv-1"},
+    "human herpesvirus 1": {"proteome_id": "UP000009294", "key": "hsv-1"},
+    "human alphaherpesvirus 2": {"proteome_id": "UP000001874", "key": "hsv-2"},
+    "herpes simplex virus type 2": {"proteome_id": "UP000001874", "key": "hsv-2"},
+    "human herpesvirus 2": {"proteome_id": "UP000001874", "key": "hsv-2"},
+    "human betaherpesvirus 6b": {"proteome_id": "UP000006930", "key": "hhv-6b"},
+    "human herpesvirus 6b": {"proteome_id": "UP000006930", "key": "hhv-6b"},
+    "murid betaherpesvirus 1": {"proteome_id": "UP000008774", "key": "mcmv"},
+    "murid herpesvirus 1": {"proteome_id": "UP000008774", "key": "mcmv"},
+    "murine cytomegalovirus": {"proteome_id": "UP000008774", "key": "mcmv"},
+    # Hepatitis
     "hepatitis b virus": {"proteome_id": "UP000126453", "key": "hbv"},
     "hepatitis c virus": {"proteome_id": "UP000000518", "key": "hcv"},
+    "hepacivirus hominis": {"proteome_id": "UP000000518", "key": "hcv"},
+    # Papillomaviruses
     "human papillomavirus type 16": {"proteome_id": "UP000006729", "key": "hpv16"},
+    "human papillomavirus 16": {"proteome_id": "UP000006729", "key": "hpv16"},
     "human papillomavirus type 18": {"proteome_id": "UP000006728", "key": "hpv18"},
+    "human papillomavirus 18": {"proteome_id": "UP000006728", "key": "hpv18"},
+    # Influenza
     "influenza a virus": {"proteome_id": "UP000009255", "key": "influenza-a"},
+    "influenza b virus": {"proteome_id": "UP000008158", "key": "influenza-b"},
+    # Poxviruses
     "vaccinia virus": {"proteome_id": "UP000000344", "key": "vaccinia"},
+    "orf virus": {"proteome_id": "UP000000870", "key": "orf"},
+    # Animal pathogens
     "canine distemper virus": {"proteome_id": "UP000117312", "key": "cdv"},
     "african swine fever virus": {"proteome_id": "UP000000624", "key": "asfv"},
     "porcine reproductive and respiratory syndrome virus": {
@@ -255,6 +305,18 @@ VIRAL_PROTEOMES: dict[str, dict[str, str]] = {
         "key": "prrsv",
     },
     "wobbly possum disease virus": {"proteome_id": "UP000147130", "key": "wpdv"},
+    "peste-des-petits-ruminants virus": {"proteome_id": "UP000100083", "key": "pprv"},
+    # Respiratory / other human viruses
+    "human respiratory syncytial virus": {"proteome_id": "UP000002472", "key": "rsv"},
+    "human orthopneumovirus": {"proteome_id": "UP000002472", "key": "rsv"},
+    "human metapneumovirus": {"proteome_id": "UP000001398", "key": "hmpv"},
+    "zika virus": {"proteome_id": "UP000054557", "key": "zika"},
+    "rotavirus a": {"proteome_id": "UP000001119", "key": "rotavirus-a"},
+    "lymphocytic choriomeningitis virus": {"proteome_id": "UP000002474", "key": "lcmv"},
+    # Polyomaviruses
+    "betapolyomavirus hominis": {"proteome_id": "UP000008475", "key": "bkv"},
+    "bk polyomavirus": {"proteome_id": "UP000008475", "key": "bkv"},
+    "alphapolyomavirus muris": {"proteome_id": "UP000007212", "key": "mpyv"},
 }
 
 
@@ -407,16 +469,30 @@ def lookup_proteome(
         entry["canonical_species"] = canonical
         return entry
 
-    # Viral fallback: substring match on raw organism string
+    # Viral fallback: substring match on raw organism string.
+    # Longer keys are checked first so "sars-cov-2" wins over "sars-cov".
     lowered = species_or_organism.lower()
-    for viral_key, viral_entry in VIRAL_PROTEOMES.items():
+    for viral_key in sorted(VIRAL_PROTEOMES, key=len, reverse=True):
         if viral_key in lowered:
+            viral_entry = VIRAL_PROTEOMES[viral_key]
             return {
                 "kind": "uniprot",
                 "proteome_id": viral_entry["proteome_id"],
                 "canonical_species": species_or_organism,
                 "key": viral_entry["key"],
             }
+
+    # Species-name substring fallback (handles strain suffixes like
+    # "Theileria parva strain Muguga" → Theileria parva).  Skip
+    # generic genus-only entries ("Sus sp.", "Canis sp.") to avoid
+    # spurious matches.
+    for species_key in sorted(SPECIES_PROTEOMES, key=len, reverse=True):
+        if species_key.endswith(" sp."):
+            continue
+        if species_key.lower() in lowered:
+            entry = dict(SPECIES_PROTEOMES[species_key])
+            entry["canonical_species"] = species_key
+            return entry
 
     if not use_uniprot:
         return None
