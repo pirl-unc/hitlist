@@ -93,7 +93,7 @@ def _meta_path() -> Path:
     return data_dir() / "observations_meta.json"
 
 
-def _cache_is_valid(paths: dict[str, Path]) -> bool:
+def _cache_is_valid(paths: dict[str, Path], with_flanking: bool = False) -> bool:
     meta = _meta_path()
     if not meta.exists():
         return False
@@ -101,7 +101,18 @@ def _cache_is_valid(paths: dict[str, Path]) -> bool:
         return False
     stored = json.loads(meta.read_text())
     current = _source_fingerprints(paths)
-    return stored.get("sources") == current
+    if stored.get("sources") != current:
+        return False
+    # If user asked for flanking but the built table doesn't have it, rebuild.
+    return not (with_flanking and not stored.get("with_flanking"))
+
+
+def _cache_meta() -> dict:
+    """Load the observations_meta.json for user-facing info."""
+    meta = _meta_path()
+    if meta.exists():
+        return json.loads(meta.read_text())
+    return {}
 
 
 def build_observations(
@@ -144,7 +155,16 @@ def build_observations(
         )
 
     out_path = _observations_path()
-    if not force and _cache_is_valid(paths):
+    if not force and _cache_is_valid(paths, with_flanking=with_flanking):
+        meta = _cache_meta()
+        size_mb = out_path.stat().st_size / 1e6 if out_path.exists() else 0
+        print(f"Observations already built ({meta.get('n_rows', '?'):,} rows, {size_mb:.1f} MB)")
+        print(f"  Path:          {out_path}")
+        print(f"  With flanking: {meta.get('with_flanking', False)}")
+        print(f"  Peptides:      {meta.get('n_peptides', '?'):,}")
+        print(f"  Alleles:       {meta.get('n_alleles', '?'):,}")
+        print(f"  Species:       {meta.get('n_species', '?')}")
+        print("\nUse --force to rebuild.")
         return out_path
 
     from .scanner import scan
