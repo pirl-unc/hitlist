@@ -22,32 +22,34 @@ def test_source_fingerprints_includes_manifest():
     assert "supplementary_manifest" in fp
 
 
-def test_cache_invalid_when_flanking_requested_but_absent(tmp_path, monkeypatch):
-    """Asking for --with-flanking should invalidate a cache built without it."""
+def test_cache_valid_when_sources_unchanged(tmp_path, monkeypatch):
+    """Cache validity now depends on source fingerprints, not the with_flanking flag.
+
+    Under the v1.6.0 architecture, mappings live in a separate sidecar
+    (peptide_mappings.parquet), so the observations cache stays valid
+    regardless of whether mappings were built.  The with_flanking arg is
+    retained on _cache_is_valid for backward compat but no longer changes
+    the result.
+    """
     from hitlist import builder, downloads
 
-    # Use monkeypatch for data_dir so the override is automatically
-    # cleaned up after the test — set_data_dir mutates module-global
-    # state and would leak into other tests.
     monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
 
-    # Simulate a pre-built observations table without flanking
     fake_parquet = tmp_path / "observations.parquet"
     fake_parquet.write_bytes(b"fake parquet")
-    meta = {
-        "sources": {},
-        "n_rows": 100,
-        "n_peptides": 50,
-        "n_alleles": 10,
-        "n_species": 1,
-        "with_flanking": False,
-    }
-    _meta_path().write_text(json.dumps(meta))
-
-    # Patch _source_fingerprints so the source check passes
+    _meta_path().write_text(
+        json.dumps(
+            {
+                "sources": {},
+                "n_rows": 100,
+                "n_peptides": 50,
+                "n_alleles": 10,
+                "n_species": 1,
+                "with_flanking": False,
+            }
+        )
+    )
     monkeypatch.setattr(builder, "_source_fingerprints", lambda paths: {})
 
-    # Cache is valid when flanking is NOT requested
     assert _cache_is_valid({}, with_flanking=False) is True
-    # ...but invalid when flanking IS requested (forces rebuild)
-    assert _cache_is_valid({}, with_flanking=True) is False
+    assert _cache_is_valid({}, with_flanking=True) is True  # no longer invalidates

@@ -326,8 +326,8 @@ def test_observations_join_with_synthetic_fixture(tmp_path, monkeypatch):
     assert row3["has_peptide_level_allele"] is False or row3["has_peptide_level_allele"] == False  # noqa: E712
 
 
-def test_generate_observations_gene_filter_requires_flanking(tmp_path, monkeypatch):
-    """Using --gene on a non-flanking parquet should error with a clear message."""
+def test_generate_observations_gene_filter_requires_mappings(tmp_path, monkeypatch):
+    """Using --gene without a peptide_mappings sidecar should error clearly."""
     import pandas as pd
     import pytest
 
@@ -351,15 +351,23 @@ def test_generate_observations_gene_filter_requires_flanking(tmp_path, monkeypat
     obs_data.to_parquet(obs_path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
 
-    with pytest.raises(ValueError, match="flanking-built"):
+    with pytest.raises(ValueError, match="mappings-built"):
         generate_observations_table(gene="PRAME")
 
 
 def test_generate_observations_gene_filter_matches(tmp_path, monkeypatch):
-    """--gene-name on a flanking-built table filters correctly."""
+    """--gene-name should resolve via the mappings sidecar.
+
+    Two PRAME peptides + one MAGEA1 peptide.  The mappings sidecar holds
+    the long-form (peptide, gene) data; observations.parquet only carries
+    central semicolon-joined gene_names columns.
+    """
     import pandas as pd
 
+    from hitlist import downloads
     from hitlist.export import generate_observations_table
+
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
 
     obs_data = pd.DataFrame(
         {
@@ -373,15 +381,33 @@ def test_generate_observations_gene_filter_matches(tmp_path, monkeypatch):
             "is_monoallelic": [False, False, False],
             "is_binding_assay": [False, False, False],
             "qualitative_measurement": ["Positive", "Positive", "Positive"],
-            "gene_name": ["PRAME", "MAGEA1", "PRAME"],
-            "gene_id": ["ENSG00000185686", "ENSG00000198681", "ENSG00000185686"],
+            "gene_names": ["PRAME", "MAGEA1", "PRAME"],
+            "gene_ids": ["ENSG00000185686", "ENSG00000198681", "ENSG00000185686"],
+            "protein_ids": ["P_PRAME", "P_MAGEA1", "P_PRAME"],
         }
     )
     obs_path = tmp_path / "observations.parquet"
     obs_data.to_parquet(obs_path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
 
-    # By gene_name
+    # Build the long-form mappings sidecar
+    mappings_data = pd.DataFrame(
+        {
+            "peptide": ["AAAAAAAAA", "BBBBBBBBB", "CCCCCCCCC"],
+            "protein_id": ["P_PRAME", "P_MAGEA1", "P_PRAME"],
+            "gene_name": ["PRAME", "MAGEA1", "PRAME"],
+            "gene_id": ["ENSG00000185686", "ENSG00000198681", "ENSG00000185686"],
+            "position": [10, 20, 30],
+            "n_flank": ["NNNNN", "NNNNN", "NNNNN"],
+            "c_flank": ["CCCCC", "CCCCC", "CCCCC"],
+            "proteome": ["Homo sapiens", "Homo sapiens", "Homo sapiens"],
+            "proteome_source": ["species", "species", "species"],
+        }
+    )
+    mappings_path = tmp_path / "peptide_mappings.parquet"
+    mappings_data.to_parquet(mappings_path, index=False)
+
+    # By gene_name (resolved via mappings sidecar)
     df = generate_observations_table(gene_name="PRAME")
     assert len(df) == 2
     assert set(df["peptide"]) == {"AAAAAAAAA", "CCCCCCCCC"}
@@ -391,7 +417,7 @@ def test_generate_observations_gene_filter_matches(tmp_path, monkeypatch):
     assert len(df) == 1
     assert df.iloc[0]["peptide"] == "BBBBBBBBB"
 
-    # Via --gene with HGNC disabled (direct symbol match still works)
+    # Via --gene with direct symbol match
     df = generate_observations_table(gene="MAGEA1")
     assert len(df) == 1
 

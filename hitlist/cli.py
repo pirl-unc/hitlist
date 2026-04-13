@@ -155,6 +155,7 @@ def _data_build(args: argparse.Namespace) -> None:
         force=args.force,
         fetch_missing_proteomes=not args.no_fetch_proteomes,
         use_uniprot_search=args.use_uniprot,
+        build_mappings=not args.no_mappings,
     )
 
 
@@ -322,9 +323,20 @@ def _build_data_parser(sub: argparse._SubParsersAction) -> None:
 
     p = ds.add_parser("build", help="Build unified observations table from IEDB/CEDAR")
     p.add_argument(
+        "--no-mappings",
+        action="store_true",
+        default=False,
+        help=(
+            "Skip building the peptide_mappings sidecar.  By default, every "
+            "build produces multi-mapping peptide→protein attribution and "
+            "annotates observations with semicolon-joined gene_names/gene_ids/"
+            "protein_ids columns."
+        ),
+    )
+    p.add_argument(
         "--with-flanking",
         action="store_true",
-        help="Map peptides to source proteins with 10aa flanking",
+        help="Deprecated — flanks are always stored in peptide_mappings.parquet.",
     )
     p.add_argument(
         "--proteome-release", type=int, default=112, help="Ensembl release (default 112)"

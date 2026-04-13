@@ -119,22 +119,41 @@ normalize_allele("H-2Kb")            # → "H2-K*b"
 scan_supplementary()                 # DataFrame of curated paper-supplement peptides
 ```
 
-### Flanking context (cleavage models)
+### Peptide → protein attribution and flanking context
+
+`hitlist data build` always produces two parquet files (use `--no-mappings` to skip):
+
+- `~/.hitlist/observations.parquet` — one row per assay observation
+- `~/.hitlist/peptide_mappings.parquet` — one row per (peptide, protein, position)
+
+The mappings sidecar **preserves multi-mapping** so a peptide shared by MAGEA1/A4/A10/A12 keeps every paralog. Observations additionally carry semicolon-joined identity columns:
+
+| column | example |
+|---|---|
+| `gene_names` | `MAGEA4;MAGEA10` |
+| `gene_ids` | `ENSG00000147381;ENSG00000124260` |
+| `protein_ids` | `P43359;P43363` |
+| `n_source_proteins` | `2` |
+
+```python
+from hitlist.observations import load_observations
+from hitlist.mappings import load_peptide_mappings
+
+# Central columns — fast for everyday filters (uses mappings sidecar for pushdown)
+df = load_observations(gene_name="PRAME")
+
+# Long form for paralog / position / flank analysis
+mappings = load_peptide_mappings(gene_name="MAGEA4")
+# columns: peptide, protein_id, gene_name, gene_id, position, n_flank, c_flank, proteome
+```
+
+For ad-hoc queries without building the full table:
 
 ```python
 from hitlist.proteome import ProteomeIndex
 
-# Human Ensembl (release 112), 10aa flanks, O(1) per-peptide lookup
 idx = ProteomeIndex.from_ensembl(release=112, species="human")
 flanking = idx.map_peptides(["SLLMWITQC", "GILGFVFTL"], flank=10)
-
-# Mix human + custom FASTAs (e.g. viral)
-idx = ProteomeIndex.from_ensembl_plus_fastas(
-    release=112, fasta_paths=["hpv16.fasta", "ebv.fasta"]
-)
-
-# Non-Ensembl species from a FASTA
-idx = ProteomeIndex.from_fasta("~/.hitlist/proteomes/sarcophilus_harrisii.fasta")
 ```
 
 ### Proteome registry / UniProt resolution
@@ -169,7 +188,7 @@ lookup_proteome("Mycobacterium tuberculosis", use_uniprot=True)
 | `source` | `iedb`, `cedar`, or `supplement` |
 | `source_organism`, `reference_title`, `cell_name`, `source_tissue`, `disease` | IEDB sample context |
 | `instrument`, `instrument_type`, `acquisition_mode`, `fragmentation`, `labeling`, `ip_antibody` | MS acquisition from `ms_samples` curation |
-| `gene_name`, `gene_id`, `protein_id`, `position`, `n_flank`, `c_flank`, `flanking_species` | Source-protein mapping (only with `--with-flanking`) |
+| `gene_names`, `gene_ids`, `protein_ids`, `n_source_proteins` | Multi-mapping peptide → source-protein attribution (always populated; use `peptide_mappings.parquet` for long-form positions + flanks) |
 
 ### `sample_match_type` — join provenance
 
@@ -216,9 +235,10 @@ hitlist data available                                  # show all known dataset
 
 ```bash
 hitlist data build [--force]                            # ~90s full scan with tqdm progress
-hitlist data build --with-flanking                      # + source-protein mapping (auto-fetches proteomes)
-hitlist data build --with-flanking --use-uniprot        # broader flanking coverage via UniProt REST
-hitlist data build --with-flanking --no-fetch-proteomes # don't auto-download missing proteomes
+hitlist data build                                      # always builds peptide_mappings.parquet
+hitlist data build --use-uniprot                        # broader proteome coverage via UniProt REST
+hitlist data build --no-mappings                        # skip mapping step (faster, no gene attribution)
+hitlist data build --no-fetch-proteomes                 # don't auto-download missing proteomes
 hitlist data build --proteome-release 112               # Ensembl release for human/mouse/rat
 ```
 
@@ -258,7 +278,7 @@ hitlist export data-alleles                             # validate all IEDB/CEDA
 | `--acquisition-mode` | `DDA`, `DIA`, `PRM` |
 | `--min-allele-resolution` | `four_digit`, `two_digit`, `serological`, `class_only` |
 | `--mhc-allele` | Exact match on `mhc_restriction` after allele normalization. Repeatable / comma-separated. |
-| `--gene` | Symbol, Ensembl ID, or old alias (HGNC synonym lookup). Repeatable / comma-separated. Requires `--with-flanking` build. |
+| `--gene` | Symbol, Ensembl ID, or old alias (HGNC synonym lookup). Repeatable / comma-separated. Requires the mappings sidecar (default-on at build). |
 | `--gene-name` | Exact match on `gene_name` column (no HGNC lookup) |
 | `--gene-id` | Exact match on `gene_id` column (ENSG) |
 | `--output` / `-o` | `.csv` or `.parquet` |

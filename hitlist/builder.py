@@ -94,6 +94,7 @@ def _meta_path() -> Path:
 
 
 def _cache_is_valid(paths: dict[str, Path], with_flanking: bool = False) -> bool:
+    """Check if the observations cache is still valid for the requested build."""
     meta = _meta_path()
     if not meta.exists():
         return False
@@ -101,10 +102,7 @@ def _cache_is_valid(paths: dict[str, Path], with_flanking: bool = False) -> bool
         return False
     stored = json.loads(meta.read_text())
     current = _source_fingerprints(paths)
-    if stored.get("sources") != current:
-        return False
-    # If user asked for flanking but the built table doesn't have it, rebuild.
-    return not (with_flanking and not stored.get("with_flanking"))
+    return stored.get("sources") == current
 
 
 def _cache_meta() -> dict:
@@ -116,11 +114,12 @@ def _cache_meta() -> dict:
 
 
 def build_observations(
-    with_flanking: bool = False,
+    with_flanking: bool = True,
     proteome_release: int = 112,
     force: bool = False,
     fetch_missing_proteomes: bool = True,
     use_uniprot_search: bool = False,
+    build_mappings: bool = True,
 ) -> Path:
     """Build the unified observations table from IEDB + CEDAR.
 
@@ -128,20 +127,27 @@ def build_observations(
     pipeline (YAML overrides, tissue categories, mono-allelic detection),
     deduplicates by assay IRI, and writes ``observations.parquet``.
 
+    By default also builds the peptide→protein mappings sidecar
+    (``peptide_mappings.parquet``) which preserves multi-mapping so that
+    paralog attribution (MAGEA1/A4/A10/A12), repeat regions, and
+    cross-proteome hits are not collapsed.
+
     Parameters
     ----------
     with_flanking
-        Map all unique peptides to source proteins with 10aa flanking
-        context via :class:`~hitlist.proteome.ProteomeIndex`.  Uses the
-        per-observation ``source_organism`` field to route each peptide
-        to its species-specific reference proteome.
+        Deprecated.  Retained for backward compat — the mapping sidecar
+        now always includes flanking sequences.  Only disables mapping
+        entirely when set to False AND ``build_mappings`` is False.
     proteome_release
         Ensembl release for Ensembl-supported species (default 112).
     force
         Rebuild even if cache is valid.
     fetch_missing_proteomes
-        When ``with_flanking`` is True, auto-download reference proteomes
-        for any species present in the observations.  Default True.
+        Auto-download reference proteomes for any species present in
+        the observations.  Default True.
+    build_mappings
+        Build ``peptide_mappings.parquet`` sidecar (default True).  Adds
+        ~5-10 min to the build on the first run (cached after that).
 
     Returns
     -------
@@ -243,17 +249,38 @@ def build_observations(
     if "pmid" in obs.columns:
         obs["pmid"] = pd.to_numeric(obs["pmid"], errors="coerce").astype("Int64")
 
-    if with_flanking:
-        obs = _add_flanking(
-            obs,
+    # Write initial observations.parquet — the mappings build reads from it
+    obs.to_parquet(out_path, index=False)
+    print(f"\nWrote {out_path} ({out_path.stat().st_size / 1e6:.1f} MB)")
+
+    # Build the long-form peptide → protein mappings sidecar, then
+    # annotate observations with semicolon-joined gene/protein columns
+    # so the central parquet carries multi-mapping identity on every row.
+    if build_mappings:
+        from .mappings import (
+            annotate_observations_with_genes,
+            build_peptide_mappings,
+            load_peptide_mappings,
+        )
+
+        build_peptide_mappings(
             release=proteome_release,
             fetch_missing=fetch_missing_proteomes,
             use_uniprot=use_uniprot_search,
+            force=force,
         )
 
-    # Write parquet
-    obs.to_parquet(out_path, index=False)
-    print(f"\nWrote {out_path} ({out_path.stat().st_size / 1e6:.1f} MB)")
+        print("\nAnnotating observations with gene/protein columns ...")
+        mappings_df = load_peptide_mappings(
+            columns=["peptide", "gene_name", "gene_id", "protein_id"]
+        )
+        obs = annotate_observations_with_genes(obs, mappings_df)
+        obs.to_parquet(out_path, index=False)
+        n_with_gene = (obs["gene_names"] != "").sum() if "gene_names" in obs.columns else 0
+        print(
+            f"  {n_with_gene:,} / {len(obs):,} observations annotated "
+            f"({100 * n_with_gene / len(obs):.1f}%)"
+        )
 
     # Save metadata
     meta = {
@@ -263,6 +290,7 @@ def build_observations(
         "n_alleles": int(obs["mhc_restriction"].nunique()),
         "n_species": int(obs["mhc_species"].nunique()),
         "with_flanking": with_flanking,
+        "with_mappings": build_mappings,
     }
     _meta_path().write_text(json.dumps(meta, indent=2, default=str) + "\n")
 

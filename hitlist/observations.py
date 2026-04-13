@@ -54,6 +54,7 @@ def load_observations(
     mhc_restriction: str | list[str] | None = None,
     gene_name: str | list[str] | None = None,
     gene_id: str | list[str] | None = None,
+    peptide: str | list[str] | None = None,
     columns: list[str] | None = None,
 ) -> pd.DataFrame:
     """Load the built observations table with optional filters.
@@ -107,20 +108,41 @@ def load_observations(
         values = [normalize_allele(v) for v in _as_list(mhc_restriction)]
         filters.append(("mhc_restriction", "in", values))
 
-    # Gene filters require the column to exist (i.e. flanking was built)
+    if peptide is not None:
+        filters.append(("peptide", "in", _as_list(peptide)))
+
+    # Gene filters use the central semicolon-joined gene_names / gene_ids
+    # columns (always populated by build when mappings are built).  These
+    # columns are multi-valued to preserve paralog attribution; pushdown
+    # exact-equality won't work, so we push down a peptide-set derived from
+    # the peptide_mappings sidecar for efficiency.
     if gene_name is not None or gene_id is not None:
         import pyarrow.parquet as pq
 
         schema_names = set(pq.read_schema(path).names)
-        if "gene_name" not in schema_names or "gene_id" not in schema_names:
+        if "gene_names" not in schema_names:
             raise ValueError(
-                "Gene filtering requires a flanking-built observations table.\n"
-                "Run: hitlist data build --with-flanking"
+                "Gene filtering requires a mappings-built observations table.\n"
+                "Run: hitlist data build"
             )
+        # Resolve gene → peptides via the mappings sidecar (fast parquet
+        # pushdown on that table), then filter observations by peptide set.
+        from .mappings import is_mappings_built, load_peptide_mappings
+
+        if not is_mappings_built():
+            raise ValueError("Peptide mappings not built.  Run: hitlist data build")
+        mapping_filters: dict = {}
         if gene_name is not None:
-            filters.append(("gene_name", "in", _as_list(gene_name)))
+            mapping_filters["gene_name"] = _as_list(gene_name)
         if gene_id is not None:
-            filters.append(("gene_id", "in", _as_list(gene_id)))
+            mapping_filters["gene_id"] = _as_list(gene_id)
+        hits = load_peptide_mappings(columns=["peptide"], **mapping_filters)
+        matching_peptides = hits["peptide"].unique().tolist()
+        if not matching_peptides:
+            # No peptides match — return empty df with correct schema
+            df = pd.read_parquet(path, columns=columns, filters=[("peptide", "==", "__NONE__")])
+            return df
+        filters.append(("peptide", "in", matching_peptides))
 
     df = pd.read_parquet(
         path,
