@@ -471,6 +471,35 @@ def main() -> None:
         choices=["four_digit", "two_digit", "serological", "class_only"],
         help="Minimum allele resolution",
     )
+    p_obs.add_argument(
+        "--mhc-allele",
+        action="append",
+        help=(
+            "Filter to peptides whose mhc_restriction matches (after allele "
+            "normalization).  Repeatable or comma-separated, e.g. "
+            "'--mhc-allele HLA-A*02:01 --mhc-allele HLA-B*07:02'."
+        ),
+    )
+    p_obs.add_argument(
+        "--gene",
+        action="append",
+        help=(
+            "Filter to peptides from these genes.  Accepts current symbols, "
+            "Ensembl gene IDs (ENSG...), and old/alias symbols (resolved via "
+            "HGNC).  Repeatable or comma-separated.  Requires a flanking-built "
+            "observations table."
+        ),
+    )
+    p_obs.add_argument(
+        "--gene-name",
+        action="append",
+        help="Exact match on gene_name column (no HGNC synonym lookup).",
+    )
+    p_obs.add_argument(
+        "--gene-id",
+        action="append",
+        help="Exact match on gene_id column (Ensembl ENSG ID).",
+    )
     p_obs.add_argument("--output", "-o", help="Write to file (.csv or .parquet)")
 
     p_counts = export_sub.add_parser(
@@ -517,14 +546,22 @@ def _export(args: argparse.Namespace) -> None:
     elif args.export_command == "counts":
         df = count_peptides_by_study(source=args.source)
     elif args.export_command == "observations":
-        df = generate_observations_table(
-            mhc_class=args.mhc_class,
-            species=getattr(args, "species", None),
-            instrument_type=getattr(args, "instrument_type", None),
-            acquisition_mode=getattr(args, "acquisition_mode", None),
-            is_mono_allelic=getattr(args, "mono_allelic", None),
-            min_allele_resolution=getattr(args, "min_allele_resolution", None),
-        )
+        try:
+            df = generate_observations_table(
+                mhc_class=args.mhc_class,
+                species=getattr(args, "species", None),
+                instrument_type=getattr(args, "instrument_type", None),
+                acquisition_mode=getattr(args, "acquisition_mode", None),
+                is_mono_allelic=getattr(args, "mono_allelic", None),
+                min_allele_resolution=getattr(args, "min_allele_resolution", None),
+                mhc_allele=getattr(args, "mhc_allele", None),
+                gene=getattr(args, "gene", None),
+                gene_name=getattr(args, "gene_name", None),
+                gene_id=getattr(args, "gene_id", None),
+            )
+        except ValueError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            sys.exit(1)
     else:
         print("Usage: hitlist export {samples,summary,alleles,data-alleles,counts,observations}")
         sys.exit(1)

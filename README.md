@@ -257,7 +257,18 @@ hitlist export data-alleles                             # validate all IEDB/CEDA
 | `--instrument-type` | `Orbitrap`, `timsTOF`, `TOF`, `QqQ`, ... |
 | `--acquisition-mode` | `DDA`, `DIA`, `PRM` |
 | `--min-allele-resolution` | `four_digit`, `two_digit`, `serological`, `class_only` |
+| `--mhc-allele` | Exact match on `mhc_restriction` after allele normalization. Repeatable / comma-separated. |
+| `--gene` | Symbol, Ensembl ID, or old alias (HGNC synonym lookup). Repeatable / comma-separated. Requires `--with-flanking` build. |
+| `--gene-name` | Exact match on `gene_name` column (no HGNC lookup) |
+| `--gene-id` | Exact match on `gene_id` column (ENSG) |
 | `--output` / `-o` | `.csv` or `.parquet` |
+
+All filters are pushed down to the parquet reader (pyarrow), so `--gene PRAME` reads
+only the matching row groups — typically milliseconds rather than a full table scan.
+Examples:
+- `hitlist export observations --gene PRAME --class I -o prame_classI.csv`
+- `hitlist export observations --gene "MART-1"` (HGNC resolves to `MLANA`)
+- `hitlist export observations --mhc-allele HLA-A*02:01 --mono-allelic`
 
 ### Reports
 

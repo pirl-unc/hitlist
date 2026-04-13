@@ -155,6 +155,10 @@ def generate_observations_table(
     acquisition_mode: str | None = None,
     is_mono_allelic: bool | None = None,
     min_allele_resolution: str | None = None,
+    mhc_allele: str | list[str] | None = None,
+    gene: str | list[str] | None = None,
+    gene_name: str | list[str] | None = None,
+    gene_id: str | list[str] | None = None,
     columns: list[str] | None = None,
 ) -> pd.DataFrame:
     """Join per-peptide observations with per-sample metadata.
@@ -199,12 +203,33 @@ def generate_observations_table(
     """
     from .observations import load_observations
 
-    # --- Load observations ---
+    # --- Resolve gene query (may require HGNC lookup) up front ---
+    resolved_gene_names: set[str] = set()
+    resolved_gene_ids: set[str] = set()
+    if gene is not None:
+        from .genes import resolve_gene_query
+
+        for q in _to_list(gene):
+            spec = resolve_gene_query(q)
+            resolved_gene_names |= spec["names"]
+            resolved_gene_ids |= spec["ids"]
+    if gene_name is not None:
+        resolved_gene_names |= set(_to_list(gene_name))
+    if gene_id is not None:
+        resolved_gene_ids |= set(_to_list(gene_id))
+
+    # --- Load observations with as many filters pushed to parquet as possible ---
     obs_filters: dict = {}
     if mhc_class:
         obs_filters["mhc_class"] = mhc_class
     if species:
         obs_filters["species"] = normalize_species(species)
+    if mhc_allele is not None:
+        obs_filters["mhc_restriction"] = mhc_allele
+    if resolved_gene_names:
+        obs_filters["gene_name"] = sorted(resolved_gene_names)
+    if resolved_gene_ids:
+        obs_filters["gene_id"] = sorted(resolved_gene_ids)
     obs = load_observations(**obs_filters)
 
     if min_allele_resolution:
@@ -397,6 +422,13 @@ def generate_observations_table(
         result = result[available]
 
     return result
+
+
+def _to_list(v) -> list[str]:
+    """Accept a string or list; split a comma-separated string."""
+    if isinstance(v, str):
+        return [s.strip() for s in v.split(",") if s.strip()]
+    return [s for s in v if s]
 
 
 def generate_species_summary(mhc_class: str | None = None) -> pd.DataFrame:

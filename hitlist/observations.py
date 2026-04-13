@@ -51,6 +51,9 @@ def load_observations(
     mhc_class: str | None = None,
     species: str | None = None,
     source: str | None = None,
+    mhc_restriction: str | list[str] | None = None,
+    gene_name: str | list[str] | None = None,
+    gene_id: str | list[str] | None = None,
     columns: list[str] | None = None,
 ) -> pd.DataFrame:
     """Load the built observations table with optional filters.
@@ -84,9 +87,15 @@ def load_observations(
     if not path.exists():
         raise FileNotFoundError("Observations table not built. Run: hitlist data build")
 
-    from .curation import normalize_species
+    from .curation import normalize_allele, normalize_species
 
-    # Build parquet filters for pushdown
+    def _as_list(v) -> list[str]:
+        if isinstance(v, str):
+            return [s.strip() for s in v.split(",") if s.strip()]
+        return [s for s in v if s]
+
+    # Build parquet filters for pushdown (fast — pyarrow skips row groups
+    # without matching values)
     filters = []
     if mhc_class is not None:
         filters.append(("mhc_class", "==", mhc_class))
@@ -94,6 +103,24 @@ def load_observations(
         filters.append(("mhc_species", "==", normalize_species(species)))
     if source is not None:
         filters.append(("source", "==", source))
+    if mhc_restriction is not None:
+        values = [normalize_allele(v) for v in _as_list(mhc_restriction)]
+        filters.append(("mhc_restriction", "in", values))
+
+    # Gene filters require the column to exist (i.e. flanking was built)
+    if gene_name is not None or gene_id is not None:
+        import pyarrow.parquet as pq
+
+        schema_names = set(pq.read_schema(path).names)
+        if "gene_name" not in schema_names or "gene_id" not in schema_names:
+            raise ValueError(
+                "Gene filtering requires a flanking-built observations table.\n"
+                "Run: hitlist data build --with-flanking"
+            )
+        if gene_name is not None:
+            filters.append(("gene_name", "in", _as_list(gene_name)))
+        if gene_id is not None:
+            filters.append(("gene_id", "in", _as_list(gene_id)))
 
     df = pd.read_parquet(
         path,

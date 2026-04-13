@@ -324,3 +324,109 @@ def test_observations_join_with_synthetic_fixture(tmp_path, monkeypatch):
     # Third row has no allele — flag should reflect that
     row3 = df[df["peptide"] == "CCCCCCCCC"].iloc[0]
     assert row3["has_peptide_level_allele"] is False or row3["has_peptide_level_allele"] == False  # noqa: E712
+
+
+def test_generate_observations_gene_filter_requires_flanking(tmp_path, monkeypatch):
+    """Using --gene on a non-flanking parquet should error with a clear message."""
+    import pandas as pd
+    import pytest
+
+    from hitlist.export import generate_observations_table
+
+    obs_data = pd.DataFrame(
+        {
+            "peptide": ["AAAAAAAAA"],
+            "mhc_restriction": ["HLA-A*02:01"],
+            "mhc_class": ["I"],
+            "reference_iri": ["iri:1"],
+            "pmid": pd.array([33858848], dtype="Int64"),
+            "source": ["iedb"],
+            "mhc_species": ["Homo sapiens"],
+            "is_monoallelic": [False],
+            "is_binding_assay": [False],
+            "qualitative_measurement": ["Positive"],
+        }
+    )
+    obs_path = tmp_path / "observations.parquet"
+    obs_data.to_parquet(obs_path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+
+    with pytest.raises(ValueError, match="flanking-built"):
+        generate_observations_table(gene="PRAME")
+
+
+def test_generate_observations_gene_filter_matches(tmp_path, monkeypatch):
+    """--gene-name on a flanking-built table filters correctly."""
+    import pandas as pd
+
+    from hitlist.export import generate_observations_table
+
+    obs_data = pd.DataFrame(
+        {
+            "peptide": ["AAAAAAAAA", "BBBBBBBBB", "CCCCCCCCC"],
+            "mhc_restriction": ["HLA-A*02:01", "HLA-B*07:02", "HLA-A*02:01"],
+            "mhc_class": ["I", "I", "I"],
+            "reference_iri": ["iri:1", "iri:2", "iri:3"],
+            "pmid": pd.array([33858848, 33858848, 33858848], dtype="Int64"),
+            "source": ["iedb", "iedb", "iedb"],
+            "mhc_species": ["Homo sapiens", "Homo sapiens", "Homo sapiens"],
+            "is_monoallelic": [False, False, False],
+            "is_binding_assay": [False, False, False],
+            "qualitative_measurement": ["Positive", "Positive", "Positive"],
+            "gene_name": ["PRAME", "MAGEA1", "PRAME"],
+            "gene_id": ["ENSG00000185686", "ENSG00000198681", "ENSG00000185686"],
+        }
+    )
+    obs_path = tmp_path / "observations.parquet"
+    obs_data.to_parquet(obs_path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+
+    # By gene_name
+    df = generate_observations_table(gene_name="PRAME")
+    assert len(df) == 2
+    assert set(df["peptide"]) == {"AAAAAAAAA", "CCCCCCCCC"}
+
+    # By gene_id
+    df = generate_observations_table(gene_id="ENSG00000198681")
+    assert len(df) == 1
+    assert df.iloc[0]["peptide"] == "BBBBBBBBB"
+
+    # Via --gene with HGNC disabled (direct symbol match still works)
+    df = generate_observations_table(gene="MAGEA1")
+    assert len(df) == 1
+
+    # Comma-separated
+    df = generate_observations_table(gene_name="PRAME,MAGEA1")
+    assert len(df) == 3
+
+
+def test_generate_observations_mhc_allele_filter(tmp_path, monkeypatch):
+    """--mhc-allele should filter exact allele matches (after normalization)."""
+    import pandas as pd
+
+    from hitlist.export import generate_observations_table
+
+    obs_data = pd.DataFrame(
+        {
+            "peptide": ["AAA", "BBB", "CCC"],
+            "mhc_restriction": ["HLA-A*02:01", "HLA-B*07:02", "HLA-A*02:01"],
+            "mhc_class": ["I", "I", "I"],
+            "reference_iri": ["1", "2", "3"],
+            "pmid": pd.array([33858848] * 3, dtype="Int64"),
+            "source": ["iedb"] * 3,
+            "mhc_species": ["Homo sapiens"] * 3,
+            "is_monoallelic": [False] * 3,
+            "is_binding_assay": [False] * 3,
+            "qualitative_measurement": ["Positive"] * 3,
+        }
+    )
+    obs_path = tmp_path / "observations.parquet"
+    obs_data.to_parquet(obs_path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+
+    df = generate_observations_table(mhc_allele="HLA-A*02:01")
+    assert len(df) == 2
+    assert set(df["peptide"]) == {"AAA", "CCC"}
+
+    df = generate_observations_table(mhc_allele=["HLA-A*02:01", "HLA-B*07:02"])
+    assert len(df) == 3
