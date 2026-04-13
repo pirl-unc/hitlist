@@ -461,6 +461,7 @@ def _matches_condition(row_fields: dict[str, str], condition: dict) -> bool:
     return True
 
 
+@lru_cache(maxsize=16384)
 def classify_ms_row(
     process_type: str,
     disease: str,
