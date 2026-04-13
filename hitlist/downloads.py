@@ -646,6 +646,78 @@ def list_proteomes() -> dict:
     return _load_manifest().get("proteomes", {})
 
 
+def fetch_proteome_by_upid(
+    upid: str,
+    label: str | None = None,
+    force: bool = False,
+    verbose: bool = True,
+) -> Path | None:
+    """Fetch (or return cached) a UniProt reference proteome by UPID.
+
+    Unlike ``fetch_species_proteome`` which requires the organism to be
+    in the curated registry, this fetches any UPID directly.  Used by
+    the ``reference_proteomes`` override on ``ms_samples`` for per-sample
+    viral/custom proteomes.
+
+    Parameters
+    ----------
+    upid
+        UniProt proteome ID (e.g. ``"UP000153037"``).
+    label
+        Optional human-readable name for logging and the filename.
+        Defaults to the UPID.
+    force
+        Re-download even if already cached.
+    verbose
+        Print progress messages.
+    """
+    if not upid:
+        return None
+    manifest = _load_manifest()
+    proteomes = manifest.setdefault("proteomes", {})
+
+    # Dedup by UPID if we already have this proteome under another key
+    existing = _find_existing_proteome_by_upid(proteomes, upid)
+    if existing is not None and Path(existing["path"]).exists() and not force:
+        path = Path(existing["path"])
+        if verbose:
+            print(f"  [{label or upid}] reusing cached {path.name} ({path.stat().st_size:,} bytes)")
+        return path
+
+    name = label or upid
+    fname = _safe_filename(name)
+    dest = _proteomes_dir() / fname
+    url = _UNIPROT_PROTEOME_URL.format(proteome_id=upid)
+
+    if dest.exists() and not force:
+        if verbose:
+            print(f"  [{name}] already cached ({dest.stat().st_size:,} bytes)")
+    else:
+        if verbose:
+            print(f"  [{name}] fetching UniProt {upid} ...")
+        tmp = dest.with_suffix(dest.suffix + ".tmp")
+        try:
+            urllib.request.urlretrieve(url, str(tmp))
+            shutil.move(str(tmp), str(dest))
+        finally:
+            if tmp.exists():
+                tmp.unlink()
+        if verbose:
+            print(f"  [{name}] downloaded {dest.stat().st_size:,} bytes → {dest}")
+
+    proteomes[name] = {
+        "kind": "uniprot",
+        "proteome_id": upid,
+        "path": str(dest),
+        "size_bytes": dest.stat().st_size,
+        "source_url": url,
+        "canonical_species": name,
+        "registered": datetime.now(timezone.utc).isoformat(),
+    }
+    _save_manifest(manifest)
+    return dest
+
+
 # ── Core API ────────────────────────────────────────────────────────────────
 
 

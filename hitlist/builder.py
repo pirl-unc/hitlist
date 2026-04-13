@@ -337,6 +337,147 @@ def _load_species_index(
     return idx, canonical
 
 
+def _collect_pmid_extra_proteomes() -> dict[int, list[dict]]:
+    """Load per-PMID reference_proteomes overrides from pmid_overrides.yaml.
+
+    Returns a map ``{pmid_int: [{"upid": "UP...", "label": "..."}, ...]}``
+    preserving the per-sample ordering (host first, viruses after).  Entries
+    may be either dicts with a ``uniprot`` key or bare UPID strings.
+    """
+    from .curation import load_pmid_overrides
+
+    overrides = load_pmid_overrides()
+    result: dict[int, list[dict]] = {}
+    for pmid, entry in overrides.items():
+        seen: set[str] = set()
+        upids: list[dict] = []
+        for sample in entry.get("ms_samples", []):
+            for proteome in sample.get("reference_proteomes", []):
+                if isinstance(proteome, dict):
+                    upid = proteome.get("uniprot")
+                    label = proteome.get("label")
+                else:
+                    upid = str(proteome).strip()
+                    label = None
+                if not upid or upid in seen:
+                    continue
+                seen.add(upid)
+                upids.append({"upid": upid, "label": label or upid})
+        if upids:
+            try:
+                result[int(pmid)] = upids
+            except (ValueError, TypeError):
+                continue
+    return result
+
+
+def _map_extra_proteomes(obs: pd.DataFrame, release: int, use_uniprot: bool) -> pd.DataFrame:
+    """Fill in flanking for peptides unmapped by the primary species pass
+    using per-PMID ``reference_proteomes`` overrides."""
+    pmid_extras = _collect_pmid_extra_proteomes()
+    if not pmid_extras:
+        return obs
+
+    from .downloads import fetch_proteome_by_upid
+    from .proteome import ProteomeIndex
+
+    # Collect per-UPID peptides (for any PMID that references it, take only
+    # observations that didn't match in the primary pass)
+    pmid_col = obs["pmid"] if "pmid" in obs.columns else None
+    if pmid_col is None:
+        return obs
+    unmatched_mask = obs["gene_name"].isna()
+
+    upid_to_peptides: dict[str, tuple[str, set[str]]] = {}
+    pmid_priority: dict[int, list[str]] = {}
+    for pmid_int, upid_entries in pmid_extras.items():
+        sel = unmatched_mask & (pmid_col == pmid_int)
+        if not sel.any():
+            continue
+        peptides = set(obs.loc[sel, "peptide"].dropna())
+        pmid_priority[pmid_int] = [e["upid"] for e in upid_entries]
+        for e in upid_entries:
+            upid = e["upid"]
+            label = e["label"]
+            if upid not in upid_to_peptides:
+                upid_to_peptides[upid] = (label, set())
+            upid_to_peptides[upid][1].update(peptides)
+
+    if not upid_to_peptides:
+        return obs
+
+    # Map peptides against each extra proteome; store per-UPID best hits
+    upid_to_hits: dict[str, pd.DataFrame] = {}
+    print(
+        f"\n  [extras] mapping {len(upid_to_peptides)} per-PMID override proteome(s) "
+        f"for {sum(len(p) for _, p in upid_to_peptides.values()):,} unmatched peptides"
+    )
+    for upid, (label, peptides) in upid_to_peptides.items():
+        path = fetch_proteome_by_upid(upid, label=label, verbose=True)
+        if path is None or not path.exists():
+            continue
+        idx = ProteomeIndex.from_fasta(path, verbose=False)
+        flanking = idx.map_peptides(sorted(peptides), flank=10, verbose=False)
+        if flanking.empty:
+            continue
+        best = flanking.sort_values("n_sources").drop_duplicates("peptide", keep="first")
+        best = best[
+            [
+                "peptide",
+                "gene_name",
+                "gene_id",
+                "protein_id",
+                "position",
+                "n_flank",
+                "c_flank",
+                "n_sources",
+            ]
+        ].copy()
+        best = best.rename(columns={"n_sources": "n_source_proteins"})
+        best["flanking_species"] = label
+        upid_to_hits[upid] = best.set_index("peptide")
+        print(f"    [{label}] matched {len(best):,} / {len(peptides):,} peptides")
+
+    if not upid_to_hits:
+        return obs
+
+    # For each unmatched observation, try its PMID's priority list and take
+    # the first hit.  Update in place.
+    flank_cols = (
+        "gene_name",
+        "gene_id",
+        "protein_id",
+        "position",
+        "n_flank",
+        "c_flank",
+        "n_source_proteins",
+        "flanking_species",
+    )
+    for pmid_int, priority in pmid_priority.items():
+        sel = unmatched_mask & (pmid_col == pmid_int)
+        if not sel.any():
+            continue
+        for upid in priority:
+            hits = upid_to_hits.get(upid)
+            if hits is None:
+                continue
+            # Find which unmatched rows of this PMID have a hit in this UPID
+            still_unmatched = unmatched_mask & (pmid_col == pmid_int) & obs["gene_name"].isna()
+            if not still_unmatched.any():
+                break
+            peps = obs.loc[still_unmatched, "peptide"]
+            matched_peps = peps[peps.isin(hits.index)]
+            if matched_peps.empty:
+                continue
+            for col in flank_cols:
+                if col in hits.columns:
+                    obs.loc[matched_peps.index, col] = matched_peps.map(hits[col])
+            # Recompute unmatched_mask locally for subsequent priority items
+            # within this PMID
+            unmatched_mask = obs["gene_name"].isna()
+    return obs
+
+
 def _add_flanking(
     obs: pd.DataFrame,
     release: int = 112,
@@ -482,6 +623,13 @@ def _add_flanking(
     )
     obs["flanking_species"] = obs["_canonical_species"].replace("", pd.NA)
     obs.drop(columns=["_canonical_species", "_flanking_organism"], inplace=True)
+
+    # --- Per-sample reference_proteomes override ---
+    # For PMIDs whose ms_samples list additional reference_proteomes (e.g.
+    # EBV for B-LCLs, Influenza A for infected lung), try each extra
+    # proteome for the peptides of that PMID that the primary mapping
+    # didn't match.  First hit wins in user-specified order.
+    obs = _map_extra_proteomes(obs, release=release, use_uniprot=use_uniprot)
 
     # --- Coverage report ---
     print("\n  Flanking coverage by species:")

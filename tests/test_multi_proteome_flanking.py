@@ -171,6 +171,37 @@ def test_fetch_species_proteome_ensembl_no_download(tmp_path, monkeypatch):
     assert data["proteomes"]["Homo sapiens"]["kind"] == "ensembl"
 
 
+def test_collect_pmid_extra_proteomes_reads_yaml():
+    """_collect_pmid_extra_proteomes should surface reference_proteomes from ms_samples."""
+    from hitlist.builder import _collect_pmid_extra_proteomes
+
+    extras = _collect_pmid_extra_proteomes()
+    # Should have curated PMIDs with EBV / influenza / SARS-CoV-2
+    assert 38480730 in extras  # Gomez-Zepeda JY
+    upids = {e["upid"] for e in extras[38480730]}
+    assert "UP000153037" in upids  # EBV
+    assert 35051231 in extras  # Nicholas 2022 influenza
+    assert "UP000009255" in {e["upid"] for e in extras[35051231]}
+    assert 34171305 in extras  # SARS-CoV-2
+    assert "UP000464024" in {e["upid"] for e in extras[34171305]}
+
+
+def test_collect_pmid_extra_proteomes_excludes_non_lcl_samples():
+    """Samples without EBV-LCL context shouldn't get EBV added."""
+    from hitlist.curation import load_pmid_overrides
+
+    overrides = load_pmid_overrides()
+    # PMID 28832583 has EBV-LCLs AND TIL/Apher samples.  The TIL samples
+    # (non-EBV) should NOT have reference_proteomes set.
+    entry = overrides[28832583]
+    for sample in entry.get("ms_samples", []):
+        typ = sample.get("type", "")
+        if "TIL" in typ or "Apher" in typ:
+            assert "reference_proteomes" not in sample, (
+                f"Non-EBV sample should not have reference_proteomes: {typ}"
+            )
+
+
 def test_add_flanking_per_species_routing(tmp_path, monkeypatch):
     """_add_flanking should route each observation to its species' proteome."""
     from hitlist import builder, downloads
