@@ -258,14 +258,29 @@ hitlist data index [--source iedb|cedar|merged|all] [--force]
 ### Export
 
 ```bash
-hitlist export observations [filters...] -o train.csv   # primary ML training export
+hitlist export observations [filters...] -o train.csv   # MS immunopeptidome + sample metadata
 hitlist export observations -o train.parquet            # parquet output supported
+hitlist export binding [filters...] -o binding.csv      # binding-assay index (separate from MS)
 hitlist export samples [--class I|II]                   # per-sample conditions (YAML curation only)
 hitlist export summary                                  # species x class summary
 hitlist export counts [--source iedb|cedar|merged|all]  # peptide counts per PMID
 hitlist export alleles                                  # validate YAML alleles with mhcgnomes
 hitlist export data-alleles                             # validate all IEDB/CEDAR alleles
 ```
+
+### MS vs binding: two separate indexes
+
+Each `hitlist data build` writes **two** parquet files to `~/.hitlist/`:
+
+- `observations.parquet` — MS-eluted immunopeptidome (IEDB + CEDAR + curated supplementary).
+- `binding.parquet` — binding-assay rows (peptide microarray, refolding, MEDi, and
+  quantitative-tier measurements like `Positive-High/Intermediate/Low`).
+
+The two indexes are never mixed. Supplementary data is MS-only. Use
+`hitlist export observations` for immunopeptidome training data and
+`hitlist export binding` for affinity / binding-predictor work. They
+share the same schema plus the mappings-sidecar gene annotations, so the
+same filters apply to both.
 
 ### Filters on `hitlist export observations`
 
@@ -281,6 +296,7 @@ hitlist export data-alleles                             # validate all IEDB/CEDA
 | `--gene` | Symbol, Ensembl ID, or old alias (HGNC synonym lookup). Repeatable / comma-separated. Requires the mappings sidecar (default-on at build). |
 | `--gene-name` | Exact match on `gene_name` column (no HGNC lookup) |
 | `--gene-id` | Exact match on `gene_id` column (ENSG) |
+| `--serotype` | HLA serotype: locus-specific (`A24`, `B57`, `DR15`) or public epitope (`Bw4`, `Bw6`). Matches any serotype the allele belongs to, so `--serotype Bw4` returns A\*24:02, B\*27:05, B\*57:01, etc. Repeatable / comma-separated. |
 | `--output` / `-o` | `.csv` or `.parquet` |
 
 All filters are pushed down to the parquet reader (pyarrow), so `--gene PRAME` reads
@@ -289,6 +305,31 @@ Examples:
 - `hitlist export observations --gene PRAME --class I -o prame_classI.csv`
 - `hitlist export observations --gene "MART-1"` (HGNC resolves to `MLANA`)
 - `hitlist export observations --mhc-allele HLA-A*02:01 --mono-allelic`
+- `hitlist export observations --serotype A24` (locus-specific)
+- `hitlist export observations --serotype Bw4` (public epitope — A*23/24/25/32, B*13/27/44/51/52/53/57/58)
+
+### Filters on `hitlist export binding`
+
+Same shape as the observations filters minus the MS-specific ones
+(`--mono-allelic`, `--instrument-type`, `--acquisition-mode`). `--source`
+accepts only `iedb` or `cedar` — supplementary data is MS-only and never
+appears in the binding index.
+
+```bash
+hitlist export binding --gene PRAME --class I -o prame_binding.csv
+hitlist export binding --mhc-allele HLA-A*02:01 --serotype Bw4
+```
+
+### A note on mono-allelic curation
+
+Mono-allelic is a **PMID-level** flag, not a per-sample property. Curation
+lives in `pmid_overrides.yaml` (see `mono_allelic_host` and `ms_samples`).
+Rows can legitimately have `is_monoallelic=True` with an empty
+`mhc_restriction` — for example, supplementary contaminant peptides under
+a mono-allelic PMID override carry the flag but not a per-row allele. If
+your downstream pipeline needs a strict "mono-allelic AND has allele"
+subset, post-filter on
+`is_monoallelic & mhc_restriction.str.startswith("HLA-")`.
 
 ### Reports
 

@@ -23,20 +23,19 @@ def test_source_fingerprints_includes_manifest():
 
 
 def test_cache_valid_when_sources_unchanged(tmp_path, monkeypatch):
-    """Cache validity now depends on source fingerprints, not the with_flanking flag.
+    """Cache validity requires both observations.parquet and binding.parquet.
 
-    Under the v1.6.0 architecture, mappings live in a separate sidecar
-    (peptide_mappings.parquet), so the observations cache stays valid
-    regardless of whether mappings were built.  The with_flanking arg is
-    retained on _cache_is_valid for backward compat but no longer changes
-    the result.
+    Since 1.7.0 the build writes two sibling parquets; if either is
+    missing the cache is invalid so older installs rebuild once on
+    upgrade.  ``with_flanking`` is retained on the signature for
+    backward compat but no longer changes the result.
     """
     from hitlist import builder, downloads
 
     monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
 
-    fake_parquet = tmp_path / "observations.parquet"
-    fake_parquet.write_bytes(b"fake parquet")
+    (tmp_path / "observations.parquet").write_bytes(b"fake parquet")
+    (tmp_path / "binding.parquet").write_bytes(b"fake parquet")
     _meta_path().write_text(
         json.dumps(
             {
@@ -45,6 +44,7 @@ def test_cache_valid_when_sources_unchanged(tmp_path, monkeypatch):
                 "n_peptides": 50,
                 "n_alleles": 10,
                 "n_species": 1,
+                "n_binding_rows": 20,
                 "with_flanking": False,
             }
         )
@@ -53,3 +53,64 @@ def test_cache_valid_when_sources_unchanged(tmp_path, monkeypatch):
 
     assert _cache_is_valid({}, with_flanking=False) is True
     assert _cache_is_valid({}, with_flanking=True) is True  # no longer invalidates
+
+
+def test_cache_invalid_when_binding_parquet_missing(tmp_path, monkeypatch):
+    """Missing binding.parquet alone should invalidate the cache."""
+    from hitlist import builder, downloads
+
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
+
+    (tmp_path / "observations.parquet").write_bytes(b"fake parquet")
+    # Intentionally no binding.parquet
+    _meta_path().write_text(json.dumps({"sources": {}, "n_rows": 100}))
+    monkeypatch.setattr(builder, "_source_fingerprints", lambda paths: {})
+
+    assert _cache_is_valid({}, with_flanking=False) is False
+
+
+def test_cache_invalid_when_observations_parquet_missing(tmp_path, monkeypatch):
+    """Missing observations.parquet alone should also invalidate the cache."""
+    from hitlist import builder, downloads
+
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
+
+    (tmp_path / "binding.parquet").write_bytes(b"fake parquet")
+    _meta_path().write_text(json.dumps({"sources": {}, "n_rows": 0}))
+    monkeypatch.setattr(builder, "_source_fingerprints", lambda paths: {})
+
+    assert _cache_is_valid({}, with_flanking=False) is False
+
+
+def test_cache_invalid_when_parquet_fingerprint_changes(tmp_path, monkeypatch):
+    """If a parquet is replaced (size/mtime changes) after the meta was
+    written, the cache must invalidate even if source CSVs look unchanged.
+    """
+    import os
+    import time
+
+    from hitlist import builder, downloads
+
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
+
+    obs_p = tmp_path / "observations.parquet"
+    bind_p = tmp_path / "binding.parquet"
+    obs_p.write_bytes(b"original observations")
+    bind_p.write_bytes(b"original binding")
+
+    monkeypatch.setattr(builder, "_source_fingerprints", lambda paths: {})
+    _meta_path().write_text(
+        json.dumps(
+            {
+                "sources": {},
+                "parquets": builder._parquet_fingerprints(),
+            }
+        )
+    )
+    assert _cache_is_valid({}, with_flanking=False) is True
+
+    # Replace observations.parquet — bump mtime past meta's record
+    time.sleep(0.01)
+    obs_p.write_bytes(b"mutated observations content that is longer")
+    os.utime(obs_p, None)
+    assert _cache_is_valid({}, with_flanking=False) is False

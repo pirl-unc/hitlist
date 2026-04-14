@@ -22,7 +22,7 @@
 
 - pmid: 38480730
   file: gomez_zepeda_2024_jy.csv
-  label: "Gomez-Zepeda 2024 — JY HLA-I peptides"
+  study_label: "Gomez-Zepeda 2024 — JY HLA-I peptides"
   source: "Nature Comms S5+S6 (deep profiling) + S3+S4 (method comparison)"
   note: >
     20,983 unique 8-15aa HLA-I peptides from JY EBV-LCL, merged across
@@ -40,7 +40,7 @@
 
 - pmid: 38480730
   file: gomez_zepeda_2024_hela.csv
-  label: "Gomez-Zepeda 2024 — HeLa HLA-I peptides"
+  study_label: "Gomez-Zepeda 2024 — HeLa HLA-I peptides"
   source: "Nature Comms S3+S4 (method comparison)"
   note: >
     10,356 unique 8-15aa HLA-I peptides from HeLa cervical carcinoma,
@@ -56,7 +56,7 @@
 
 - pmid: 38480730
   file: gomez_zepeda_2024_skmel37.csv
-  label: "Gomez-Zepeda 2024 — SK-MEL-37 HLA-I peptides"
+  study_label: "Gomez-Zepeda 2024 — SK-MEL-37 HLA-I peptides"
   source: "Nature Comms S3+S4 (method comparison)"
   note: >
     11,491 unique 8-15aa HLA-I peptides from SK-MEL-37 melanoma,
@@ -72,7 +72,7 @@
 
 - pmid: 38480730
   file: gomez_zepeda_2024_raji.csv
-  label: "Gomez-Zepeda 2024 — Raji HLA-I peptides"
+  study_label: "Gomez-Zepeda 2024 — Raji HLA-I peptides"
   source: "Nature Comms S5+S6 (deep profiling)"
   note: >
     24,325 unique 8-15aa HLA-I peptides from Raji Burkitt's lymphoma
@@ -88,7 +88,7 @@
 
 - pmid: 38480730
   file: gomez_zepeda_2024_plasma.csv
-  label: "Gomez-Zepeda 2024 — Plasma HLA-I peptides"
+  study_label: "Gomez-Zepeda 2024 — Plasma HLA-I peptides"
   source: "Nature Comms S3+S4 (method comparison)"
   note: >
     1,397 unique 8-15aa HLA-I peptides from 5mL commercial human plasma,

@@ -97,15 +97,16 @@ def generate_ms_samples_table(mhc_class: str | None = None) -> pd.DataFrame:
     Returns
     -------
     pd.DataFrame
-        Columns: species, sample, perturbation, pmid, study, mhc_class,
-        n_samples, notes, mhc, ip_antibody, acquisition_mode, instrument,
-        instrument_type, fragmentation, labeling, search_engine, fdr.
+        Columns: species, sample_label, perturbation, pmid, study_label,
+        mhc_class, n_samples, notes, mhc, ip_antibody, acquisition_mode,
+        instrument, instrument_type, fragmentation, labeling, search_engine,
+        fdr.
     """
     overrides = load_pmid_overrides()
     rows: list[dict] = []
 
     for pmid_int, entry in sorted(overrides.items()):
-        label = entry.get("label", "")
+        study_label = entry.get("study_label", "")
         species = normalize_species(entry.get("species", "Homo sapiens (human)"))
         ms_samples = entry.get("ms_samples", [])
 
@@ -131,10 +132,10 @@ def generate_ms_samples_table(mhc_class: str | None = None) -> pd.DataFrame:
 
             row = {
                 "species": species,
-                "sample": sample.get("type", ""),
+                "sample_label": sample.get("sample_label", ""),
                 "perturbation": perturbation,
                 "pmid": pmid_int,
-                "study": label,
+                "study_label": study_label,
                 "mhc_class": cls,
                 "n_samples": n if n != "" else None,
                 "notes": sample.get("classification", sample.get("reason", "")),
@@ -159,6 +160,7 @@ def generate_observations_table(
     gene: str | list[str] | None = None,
     gene_name: str | list[str] | None = None,
     gene_id: str | list[str] | None = None,
+    serotype: str | list[str] | None = None,
     columns: list[str] | None = None,
 ) -> pd.DataFrame:
     """Join per-peptide observations with per-sample metadata.
@@ -230,6 +232,8 @@ def generate_observations_table(
         obs_filters["gene_name"] = sorted(resolved_gene_names)
     if resolved_gene_ids:
         obs_filters["gene_id"] = sorted(resolved_gene_ids)
+    if serotype is not None:
+        obs_filters["serotype"] = _to_list(serotype)
     obs = load_observations(**obs_filters)
 
     if min_allele_resolution:
@@ -246,7 +250,7 @@ def generate_observations_table(
     samples = generate_ms_samples_table(mhc_class=mhc_class)
 
     meta_cols = [
-        "sample",
+        "sample_label",
         "perturbation",
         "mhc",
         "instrument",
@@ -424,6 +428,81 @@ def generate_observations_table(
     return result
 
 
+def generate_binding_table(
+    mhc_class: str | None = None,
+    species: str | None = None,
+    min_allele_resolution: str | None = None,
+    mhc_allele: str | list[str] | None = None,
+    gene: str | list[str] | None = None,
+    gene_name: str | list[str] | None = None,
+    gene_id: str | list[str] | None = None,
+    serotype: str | list[str] | None = None,
+    source: str | None = None,
+    columns: list[str] | None = None,
+) -> pd.DataFrame:
+    """Load the binding-assay index with optional filters.
+
+    Returns binding-assay rows (peptide microarray, refolding, MEDi,
+    and quantitative-tier measurements).  No sample-metadata join is
+    performed — binding assays do not carry MS sample context
+    (instrument, acquisition mode, tissue), so the row schema is the
+    raw binding index plus gene annotations.
+
+    Filters parallel :func:`generate_observations_table` but omit the
+    MS-only options (``--mono-allelic``, ``--instrument-type``,
+    ``--acquisition-mode``).
+    """
+    from .observations import load_binding
+
+    resolved_gene_names: set[str] = set()
+    resolved_gene_ids: set[str] = set()
+    if gene is not None:
+        from .genes import resolve_gene_query
+
+        for q in _to_list(gene):
+            spec = resolve_gene_query(q)
+            resolved_gene_names |= spec["names"]
+            resolved_gene_ids |= spec["ids"]
+    if gene_name is not None:
+        resolved_gene_names |= set(_to_list(gene_name))
+    if gene_id is not None:
+        resolved_gene_ids |= set(_to_list(gene_id))
+
+    bind_filters: dict = {}
+    if mhc_class:
+        bind_filters["mhc_class"] = mhc_class
+    if species:
+        bind_filters["species"] = normalize_species(species)
+    if source:
+        bind_filters["source"] = source
+    if mhc_allele is not None:
+        bind_filters["mhc_restriction"] = mhc_allele
+    if resolved_gene_names:
+        bind_filters["gene_name"] = sorted(resolved_gene_names)
+    if resolved_gene_ids:
+        bind_filters["gene_id"] = sorted(resolved_gene_ids)
+    if serotype is not None:
+        bind_filters["serotype"] = _to_list(serotype)
+
+    df = load_binding(**bind_filters)
+
+    if min_allele_resolution:
+        from .curation import allele_resolution_rank, classify_allele_resolution
+
+        min_rank = allele_resolution_rank(min_allele_resolution)
+        df = df[
+            df["mhc_restriction"].map(
+                lambda a: allele_resolution_rank(classify_allele_resolution(a)) <= min_rank
+            )
+        ]
+
+    if columns:
+        available = [c for c in columns if c in df.columns]
+        df = df[available]
+
+    return df
+
+
 def _to_list(v) -> list[str]:
     """Accept a string or list; split a comma-separated string."""
     if isinstance(v, str):
@@ -473,7 +552,7 @@ def generate_species_summary(mhc_class: str | None = None) -> pd.DataFrame:
         expanded.groupby(["species", "mhc_class"])
         .agg(
             n_studies=("pmid", "nunique"),
-            n_sample_types=("sample", "count"),
+            n_sample_types=("sample_label", "count"),
             n_samples=("n_samples", lambda x: x.dropna().sum()),
         )
         .reset_index()
@@ -488,21 +567,29 @@ def validate_mhc_alleles() -> pd.DataFrame:
     Returns
     -------
     pd.DataFrame
-        Columns: pmid, study, allele, parsed_name, parsed_type,
+        Columns: pmid, study_label, allele, parsed_name, parsed_type,
         species, valid.
     """
     try:
         from mhcgnomes import parse
     except ImportError:
         return pd.DataFrame(
-            columns=["pmid", "study", "allele", "parsed_name", "parsed_type", "species", "valid"]
+            columns=[
+                "pmid",
+                "study_label",
+                "allele",
+                "parsed_name",
+                "parsed_type",
+                "species",
+                "valid",
+            ]
         )
 
     overrides = load_pmid_overrides()
     rows: list[dict] = []
 
     for pmid_int, entry in sorted(overrides.items()):
-        label = entry.get("label", "")
+        study_label = entry.get("study_label", "")
         hla_alleles = entry.get("hla_alleles", {})
         if not hla_alleles:
             continue
@@ -521,7 +608,7 @@ def validate_mhc_alleles() -> pd.DataFrame:
             rows.append(
                 {
                     "pmid": pmid_int,
-                    "study": label,
+                    "study_label": study_label,
                     "allele": allele_str,
                     "parsed_name": parsed_name,
                     "parsed_type": parsed_type,

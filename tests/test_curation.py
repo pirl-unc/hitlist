@@ -1,6 +1,9 @@
+import pytest
+
 from hitlist.curation import (
     ALLELE_RESOLUTION_ORDER,
     allele_resolution_rank,
+    allele_to_all_serotypes,
     allele_to_serotype,
     classify_allele_resolution,
     classify_mhc_species,
@@ -398,8 +401,68 @@ def test_classify_ms_row_includes_serotype():
         mhc_restriction="HLA-A*02:01",
     )
     assert "serotype" in flags
+    assert "serotypes" in flags
     if _HAS_MHCGNOMES:
+        # Most-specific serotype is the broader locus-specific name (A2),
+        # not the IEF sub-serotype (A2.1)
         assert flags["serotype"] == "HLA-A2"
+        assert "HLA-A2" in flags["serotypes"].split(";")
+
+
+def test_allele_to_serotype_prefers_locus_specific_over_bw4():
+    """hitlist #44: A*24:02 must resolve to HLA-A24, not HLA-Bw4."""
+    if not _HAS_MHCGNOMES:
+        return
+    assert allele_to_serotype("HLA-A*24:02") == "HLA-A24"
+    # And the full list should include Bw4 as secondary
+    all_sero = allele_to_all_serotypes("HLA-A*24:02")
+    assert "HLA-A24" in all_sero
+    assert "HLA-Bw4" in all_sero
+    assert all_sero[0] == "HLA-A24"  # locus-specific wins
+
+
+def test_allele_to_serotype_b57_prefers_b57():
+    """B*57:01 belongs to B57, B17, AND Bw4 — B57 must win."""
+    if not _HAS_MHCGNOMES:
+        return
+    assert allele_to_serotype("HLA-B*57:01") == "HLA-B57"
+    all_sero = allele_to_all_serotypes("HLA-B*57:01")
+    assert all_sero[0] == "HLA-B57"
+    assert "HLA-Bw4" in all_sero
+
+
+def test_allele_to_all_serotypes_a02_broader_first():
+    """A*02:01 has A2 (broader) and A2.1 (IEF sub-serotype).
+
+    Our ranking prefers the broader name as canonical — clinicians say "A2",
+    not "A2.1".
+    """
+    if not _HAS_MHCGNOMES:
+        return
+    all_sero = allele_to_all_serotypes("HLA-A*02:01")
+    assert all_sero[0] == "HLA-A2"
+    assert "HLA-A2" in all_sero
+
+
+def test_allele_to_all_serotypes_empty():
+    assert allele_to_all_serotypes("") == ()
+    assert allele_to_all_serotypes("HLA class I") == ()
+
+
+def test_classify_ms_row_serotypes_plural_populated():
+    """serotypes column must be semicolon-joined when multiple serotypes exist."""
+    if not _HAS_MHCGNOMES:
+        return
+    flags = classify_ms_row(
+        "No immunization",
+        "healthy",
+        "Direct Ex Vivo",
+        "Liver",
+        mhc_restriction="HLA-A*24:02",
+    )
+    assert flags["serotype"] == "HLA-A24"
+    assert "HLA-A24" in flags["serotypes"].split(";")
+    assert "HLA-Bw4" in flags["serotypes"].split(";")
 
 
 # ── MHC species classification ─────────────────────────────────────────
@@ -466,6 +529,153 @@ def test_pmid_mono_allelic_override_28514659():
     assert flags["monoallelic_host"] == "721.221"
 
 
+def test_pmid_mono_override_skipped_for_unresolved_allele():
+    """is_monoallelic is a sample-level claim — a row with no resolved
+    allele cannot be flagged mono-allelic even if the paper uses a
+    mono-allelic host.  Faridi 2018 (PMID 30315122) has samples with
+    mhc: unknown; those rows must not be claimed as mono-allelic.
+    """
+    flags_empty = classify_ms_row(
+        "No immunization",
+        "",
+        "Cell Line / Clone",
+        "Blood",
+        "B cell",
+        pmid=30315122,
+        mhc_restriction="",
+    )
+    assert flags_empty["is_monoallelic"] is False
+
+    flags_class_only = classify_ms_row(
+        "No immunization",
+        "",
+        "Cell Line / Clone",
+        "Blood",
+        "B cell",
+        pmid=30315122,
+        mhc_restriction="HLA class I",
+    )
+    assert flags_class_only["is_monoallelic"] is False
+
+
+def test_pmid_mono_override_skipped_for_validation_class_only():
+    """Sarkizova 2020 mixes 95 721.221 transfectants (mhc_restriction is a
+    specific allele) with 12 patient-derived validation samples whose
+    IEDB mhc_restriction is the class-only string ``"HLA class I"``.  The
+    allele-resolution gate catches the validation rows — they cannot
+    claim mono-allelic status without a resolved allele.
+    """
+    flags_validation = classify_ms_row(
+        "No immunization",
+        "",
+        "Cell Line / Clone",
+        "Blood",
+        "Glial cell",
+        pmid=31844290,
+        mhc_restriction="HLA class I",
+    )
+    assert flags_validation["is_monoallelic"] is False
+
+
+def test_pmid_mono_override_applies_across_cell_name_variants():
+    """The PMID override is NOT gated on cell_name — IEDB frequently
+    mis-labels the host (e.g. Trolle 2016 records 721.221 transfectants
+    as ``"HeLa cells-Epithelial cell"``).  As long as the row has a
+    resolved allele and the PMID has ``mono_allelic_host``, the row
+    flags mono-allelic.
+    """
+    # Sarkizova transfectants — IEDB label is "B cell", ambiguous
+    # Trolle   transfectants — IEDB label is "HeLa cells-Epithelial cell", specific but WRONG
+    # Splenocyte etc. — anything goes as long as allele is resolved
+    for pmid, cn in (
+        (31844290, "B cell"),
+        (26783342, "HeLa cells-Epithelial cell"),
+        (28514659, "Splenocyte"),
+        (28228285, ""),
+    ):
+        flags = classify_ms_row(
+            "No immunization",
+            "",
+            "Cell Line / Clone",
+            "Blood",
+            cn,
+            pmid=pmid,
+            mhc_restriction="HLA-A*02:01",
+        )
+        assert flags["is_monoallelic"] is True, f"override should apply for PMID={pmid} cn={cn!r}"
+
+
+def test_load_pmid_overrides_rejects_unknown_mono_host(tmp_path, monkeypatch):
+    """A PMID override with a mono_allelic_host that isn't in
+    monoallelic_lines.yaml must raise at load time — silently producing
+    rows with a bogus monoallelic_host string would leak typos into the
+    published index.
+    """
+    import yaml as _yaml
+
+    from hitlist import curation
+
+    bad_yaml = tmp_path / "pmid_overrides.yaml"
+    bad_yaml.write_text(
+        _yaml.safe_dump(
+            [
+                {
+                    "pmid": 99999999,
+                    "study_label": "Bogus",
+                    "mono_allelic_host": "NOT_A_REAL_HOST",
+                }
+            ]
+        )
+    )
+    monkeypatch.setattr(
+        curation, "_data_path", lambda fn: str(bad_yaml) if fn == "pmid_overrides.yaml" else fn
+    )
+    curation.load_pmid_overrides.cache_clear()
+    try:
+        with pytest.raises(ValueError, match="NOT_A_REAL_HOST"):
+            curation.load_pmid_overrides()
+    finally:
+        curation.load_pmid_overrides.cache_clear()
+
+
+def test_load_pmid_overrides_warns_on_legacy_keys(tmp_path, monkeypatch):
+    """Legacy keys ``label:`` / ``type:`` were renamed in v1.7.0.  Loading
+    a file with the old names must emit DeprecationWarning so users
+    catch schema drift.
+    """
+    import warnings
+
+    import yaml as _yaml
+
+    from hitlist import curation
+
+    legacy_yaml = tmp_path / "pmid_overrides.yaml"
+    legacy_yaml.write_text(
+        _yaml.safe_dump(
+            [
+                {
+                    "pmid": 42,
+                    "label": "legacy label",
+                    "ms_samples": [{"type": "legacy sample"}],
+                }
+            ]
+        )
+    )
+    monkeypatch.setattr(
+        curation, "_data_path", lambda fn: str(legacy_yaml) if fn == "pmid_overrides.yaml" else fn
+    )
+    curation.load_pmid_overrides.cache_clear()
+    try:
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always", DeprecationWarning)
+            curation.load_pmid_overrides()
+        messages = [str(x.message) for x in w if issubclass(x.category, DeprecationWarning)]
+        assert any("label:" in m for m in messages), messages
+        assert any("type:" in m for m in messages), messages
+    finally:
+        curation.load_pmid_overrides.cache_clear()
+
+
 # ── Species normalization ─────────────────────────────────────────────
 
 
@@ -527,4 +737,8 @@ def test_normalize_allele_preserves_class_only():
 def test_normalize_allele_empty_and_unparseable():
     assert normalize_allele("") == ""
     assert normalize_allele("unknown") == "unknown"
-    assert normalize_allele("SahaI*35") == "SahaI*35"  # unparseable, unchanged
+    # A truly non-allele string — behaviour should be pass-through across
+    # mhcgnomes versions (older mhcgnomes raised ParseError on the prior
+    # test string "SahaI*35"; mhcgnomes >= 3.32 parses that successfully
+    # as Saha-I*35, which invalidated the assumption).
+    assert normalize_allele("definitely not an allele") == "definitely not an allele"

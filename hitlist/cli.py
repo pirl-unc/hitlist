@@ -512,7 +512,64 @@ def main() -> None:
         action="append",
         help="Exact match on gene_id column (Ensembl ENSG ID).",
     )
+    p_obs.add_argument(
+        "--serotype",
+        action="append",
+        help=(
+            "Filter by HLA serotype.  Accepts locus-specific names (A2, A24, "
+            "B57, DR15) or public epitopes (Bw4, Bw6, C1, C2).  Matches any "
+            "serotype an allele belongs to, so --serotype Bw4 returns A*24:02, "
+            "B*27:05, B*57:01, etc.  Repeatable or comma-separated."
+        ),
+    )
     p_obs.add_argument("--output", "-o", help="Write to file (.csv or .parquet)")
+
+    p_bind = export_sub.add_parser(
+        "binding",
+        help=(
+            "Binding-assay index (peptide microarray, refolding, MEDi, "
+            "quantitative tiers).  Separate from MS observations."
+        ),
+    )
+    p_bind.add_argument("--class", dest="mhc_class", help="MHC class (I or II)")
+    p_bind.add_argument("--species", help="Filter by MHC species")
+    p_bind.add_argument(
+        "--source",
+        choices=["iedb", "cedar"],
+        help="Filter by data source (supplementary data is MS-only and never appears here)",
+    )
+    p_bind.add_argument(
+        "--min-allele-resolution",
+        choices=["four_digit", "two_digit", "serological", "class_only"],
+        help="Minimum allele resolution",
+    )
+    p_bind.add_argument(
+        "--mhc-allele",
+        action="append",
+        help=(
+            "Filter to rows whose mhc_restriction matches (after allele "
+            "normalization).  Repeatable or comma-separated."
+        ),
+    )
+    p_bind.add_argument(
+        "--gene",
+        action="append",
+        help=(
+            "Filter by gene (HGNC symbol, Ensembl ID, or old alias).  "
+            "Repeatable or comma-separated.  Requires a mappings-built index."
+        ),
+    )
+    p_bind.add_argument("--gene-name", action="append", help="Exact match on gene_name column.")
+    p_bind.add_argument("--gene-id", action="append", help="Exact match on gene_id column.")
+    p_bind.add_argument(
+        "--serotype",
+        action="append",
+        help=(
+            "Filter by HLA serotype (locus-specific A24/B57/DR15 or public "
+            "epitopes Bw4/Bw6/C1/C2).  Repeatable or comma-separated."
+        ),
+    )
+    p_bind.add_argument("--output", "-o", help="Write to file (.csv or .parquet)")
 
     p_counts = export_sub.add_parser(
         "counts", help="Count peptides per study from local IEDB/CEDAR"
@@ -541,6 +598,7 @@ def _export(args: argparse.Namespace) -> None:
     from .export import (
         collect_alleles_from_data,
         count_peptides_by_study,
+        generate_binding_table,
         generate_ms_samples_table,
         generate_observations_table,
         generate_species_summary,
@@ -570,12 +628,32 @@ def _export(args: argparse.Namespace) -> None:
                 gene=getattr(args, "gene", None),
                 gene_name=getattr(args, "gene_name", None),
                 gene_id=getattr(args, "gene_id", None),
+                serotype=getattr(args, "serotype", None),
+            )
+        except ValueError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            sys.exit(1)
+    elif args.export_command == "binding":
+        try:
+            df = generate_binding_table(
+                mhc_class=args.mhc_class,
+                species=getattr(args, "species", None),
+                source=getattr(args, "source", None),
+                min_allele_resolution=getattr(args, "min_allele_resolution", None),
+                mhc_allele=getattr(args, "mhc_allele", None),
+                gene=getattr(args, "gene", None),
+                gene_name=getattr(args, "gene_name", None),
+                gene_id=getattr(args, "gene_id", None),
+                serotype=getattr(args, "serotype", None),
             )
         except ValueError as e:
             print(f"Error: {e}", file=sys.stderr)
             sys.exit(1)
     else:
-        print("Usage: hitlist export {samples,summary,alleles,data-alleles,counts,observations}")
+        print(
+            "Usage: hitlist export "
+            "{samples,summary,alleles,data-alleles,counts,observations,binding}"
+        )
         sys.exit(1)
 
     if args.output:

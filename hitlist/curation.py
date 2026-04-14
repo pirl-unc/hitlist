@@ -47,14 +47,52 @@ def _data_path(filename: str) -> str:
 def load_pmid_overrides() -> dict[int, dict]:
     """Load PMID curation overrides from YAML.
 
+    Validates that every ``mono_allelic_host`` name resolves to an entry
+    in ``monoallelic_lines.yaml`` (typos would otherwise silently
+    produce rows with a non-existent ``monoallelic_host`` string).
+    Warns on legacy YAML keys (``type:``, ``label:``) that were renamed
+    to ``sample_label:`` / ``study_label:`` in v1.7.0.
+
     Returns
     -------
     dict[int, dict]
-        Mapping from PMID to override dict with keys: label, override,
-        note, and optionally tissue_overrides, donors, samples, tissues.
+        Mapping from PMID to override dict with keys: study_label,
+        override, note, and optionally tissue_overrides, donors,
+        ms_samples, tissues.
     """
+    import warnings
+
     with open(_data_path("pmid_overrides.yaml")) as f:
         entries = yaml.safe_load(f)
+
+    known_hosts = {e["name"] for e in load_monoallelic_lines()}
+    for e in entries:
+        host = e.get("mono_allelic_host")
+        if host and host not in known_hosts:
+            raise ValueError(
+                f"PMID {e.get('pmid')} has mono_allelic_host={host!r} but that "
+                f"name is not in monoallelic_lines.yaml (known hosts: "
+                f"{sorted(known_hosts)}).  Add the host to monoallelic_lines.yaml "
+                f"or fix the typo."
+            )
+        # Legacy key detection (v1.7.0 rename)
+        if "label" in e and "study_label" not in e:
+            warnings.warn(
+                f"PMID {e.get('pmid')}: YAML key 'label:' is deprecated, "
+                f"use 'study_label:' (v1.7.0).  Value ignored.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        for sample in e.get("ms_samples") or []:
+            if "type" in sample and "sample_label" not in sample:
+                warnings.warn(
+                    f"PMID {e.get('pmid')}: ms_samples entry uses deprecated "
+                    f"'type:' key, use 'sample_label:' (v1.7.0).  Value ignored.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+                break  # one warning per PMID is enough
+
     return {int(e["pmid"]): e for e in entries}
 
 
@@ -327,35 +365,107 @@ def allele_resolution_rank(resolution: str) -> int:
     return _RESOLUTION_RANK.get(resolution, len(ALLELE_RESOLUTION_ORDER))
 
 
-@lru_cache(maxsize=1)
-def _build_allele_to_serotype_map() -> dict[str, str]:
-    """Build a reverse map from allele compact key to serotype name.
+_LOCUS_SEROTYPE_RE = re.compile(r"^(A|B|C|DR|DQ|DP|DM|DO)\d")
 
-    Uses mhcgnomes data. Prefers broad serotypes (A2) over IEF
-    sub-serotypes (A2.1) when both map to the same allele.
-    Returns empty dict if mhcgnomes unavailable.
+
+def _serotype_specificity_rank(name: str) -> int:
+    """Lower = more specific / preferred as the canonical serotype.
+
+    0: locus-specific (A24, B57, DR15, ...) — what a clinician usually means
+    1: public epitopes (Bw4, Bw6, C1, C2, ...) — orthogonal axis, less useful
+       as the canonical answer to "what serotype is this allele?"
+    """
+    return 0 if _LOCUS_SEROTYPE_RE.match(name) else 1
+
+
+@lru_cache(maxsize=1)
+def _build_allele_to_serotypes_map() -> dict[str, tuple[str, ...]]:
+    """Build a reverse map from allele compact key to ALL its serotypes.
+
+    Returns a dict of ``{allele_key: (serotype1, serotype2, ...)}`` where
+    the tuple is ordered by specificity:
+    1. Locus-specific serotypes first (A24, B57, DR15)
+    2. Public epitopes after (Bw4, Bw6)
+    3. Within a class, broader (shorter) names first
+
+    Returns empty dict if mhcgnomes is unavailable.
     """
     try:
         from mhcgnomes.data import serotypes
-
-        reverse: dict[str, str] = {}
-        hla = serotypes["HLA"]
-        for sero_name, allele_list in hla.items():
-            for allele_str in allele_list:
-                existing = reverse.get(allele_str, "")
-                # Prefer shorter (broader) serotype: A2 over A2.1
-                if not existing or len(sero_name) < len(existing.removeprefix("HLA-")):
-                    reverse[allele_str] = f"HLA-{sero_name}"
-        return reverse
     except ImportError:
         return {}
 
+    reverse: dict[str, list[str]] = {}
+    hla = serotypes["HLA"]
+    for sero_name, allele_list in hla.items():
+        for allele_str in allele_list:
+            reverse.setdefault(allele_str, []).append(sero_name)
+
+    return {
+        allele: tuple(
+            f"HLA-{s}"
+            for s in sorted(names, key=lambda n: (_serotype_specificity_rank(n), len(n), n))
+        )
+        for allele, names in reverse.items()
+    }
+
+
+@lru_cache(maxsize=1)
+def _build_allele_to_serotype_map() -> dict[str, str]:
+    """Build a reverse map from allele compact key to its canonical serotype.
+
+    Ranks serotypes by specificity (locus-specific beats public epitopes),
+    then by broader-first (A2 over A2.1), so A\\*24:02 → HLA-A24 rather
+    than HLA-Bw4.
+    """
+    return {a: names[0] for a, names in _build_allele_to_serotypes_map().items() if names}
+
+
+@lru_cache(maxsize=8192)
+def allele_to_all_serotypes(mhc_restriction: str) -> tuple[str, ...]:
+    """All serotypes an allele belongs to, most-specific first.
+
+    Unlike :func:`allele_to_serotype`, this returns every serotype the
+    allele is a member of.  Many alleles legitimately belong to both a
+    locus-specific serotype (A24, B57) and a public epitope shared
+    across loci (Bw4 is carried by subsets of A- and B-locus alleles —
+    the axis KIR3DL1 recognizes).
+
+    Examples::
+
+        allele_to_all_serotypes("HLA-A*24:02")  # ("HLA-A24", "HLA-Bw4")
+        allele_to_all_serotypes("HLA-B*57:01")  # ("HLA-B57", "HLA-B17", "HLA-Bw4")
+        allele_to_all_serotypes("HLA-A*02:01")  # ("HLA-A2",)
+
+    Returns an empty tuple when the allele cannot be mapped or input is empty.
+    """
+    if not mhc_restriction:
+        return ()
+
+    result = _cached_parse(mhc_restriction)
+    if result is not None:
+        try:
+            from mhcgnomes.allele import Allele
+            from mhcgnomes.serotype import Serotype
+
+            if isinstance(result, Serotype):
+                return (f"HLA-{result.name}",)
+            if isinstance(result, Allele):
+                key = f"{result.gene.name}*{''.join(result.allele_fields)}"
+                return _build_allele_to_serotypes_map().get(key, ())
+        except ImportError:
+            pass
+
+    return ()
+
 
 def allele_to_serotype(mhc_restriction: str) -> str:
-    """Map an HLA allele or serotype annotation to its serotype group.
+    """Map an HLA allele or serotype annotation to its canonical serotype.
 
-    Uses mhcgnomes when available. Returns the serotype name (e.g.
-    ``"HLA-A2"``) for both ``"HLA-A*02:01"`` and ``"HLA-A2"`` input.
+    Uses mhcgnomes when available. Returns the most-specific serotype
+    (e.g. ``"HLA-A24"`` rather than ``"HLA-Bw4"`` for HLA-A*24:02).  Use
+    :func:`allele_to_all_serotypes` for the full list when an allele
+    belongs to both a locus-specific serotype and a public epitope.
 
     Parameters
     ----------
@@ -368,24 +478,8 @@ def allele_to_serotype(mhc_restriction: str) -> str:
         Serotype name (e.g. ``"HLA-A2"``), or empty string if the
         allele cannot be mapped.
     """
-    if not mhc_restriction:
-        return ""
-
-    result = _cached_parse(mhc_restriction)
-    if result is not None:
-        try:
-            from mhcgnomes.allele import Allele
-            from mhcgnomes.serotype import Serotype
-
-            if isinstance(result, Serotype):
-                return f"HLA-{result.name}"
-            if isinstance(result, Allele):
-                key = f"{result.gene.name}*{''.join(result.allele_fields)}"
-                return _build_allele_to_serotype_map().get(key, "")
-        except ImportError:
-            pass
-
-    return ""
+    all_sero = allele_to_all_serotypes(mhc_restriction)
+    return all_sero[0] if all_sero else ""
 
 
 # ── Mono-allelic cell line detection ──────────────────────────────────────
@@ -434,6 +528,20 @@ def detect_monoallelic(cell_name: str, mhc_restriction: str = "") -> tuple[bool,
                     return False, ""
                 return True, entry["name"]
     return False, ""
+
+
+def _is_resolved_allele(mhc_restriction: str) -> bool:
+    """True when the allele is specific enough to claim mono-allelic status.
+
+    Rows with empty, ``HLA class I`` / ``class_only``, or ``unresolved``
+    MHC restriction cannot be flagged mono-allelic — we do not know
+    which allele (if any) produced the peptide.  This is the sole gate
+    on the PMID-level override: cell_name is not a reliable
+    discriminator because IEDB frequently mis-annotates the host
+    (e.g., 721.221 recorded as ``"HeLa cells-Epithelial cell"`` in
+    Trolle 2016) — the PMID override exists to correct exactly that.
+    """
+    return classify_allele_resolution(mhc_restriction) in ("four_digit", "two_digit", "serological")
 
 
 def _matches_condition(row_fields: dict[str, str], condition: dict) -> bool:
@@ -617,11 +725,25 @@ def classify_ms_row(
     if is_cell_line or is_ebv_lcl:
         is_monoallelic, mono_host = detect_monoallelic(cell_name_str, mhc_restriction)
 
-    # PMID-level mono-allelic override (catches 721.221 studies where
-    # IEDB cell_name is "B cell" instead of the actual cell line name)
-    if not is_monoallelic and entry is not None and entry.get("mono_allelic_host"):
-        is_monoallelic = True
-        mono_host = entry["mono_allelic_host"]
+    # PMID-level mono-allelic override — is_monoallelic is a SAMPLE-level
+    # claim, so the override applies per-row only when the row's allele
+    # is resolved (four/two-digit or serological).  Class-only /
+    # unresolved rows cannot be mono-allelic because we don't know which
+    # allele produced the peptide — this single gate correctly de-flags
+    # validation rows in mixed papers (Sarkizova 2020's 12 patient
+    # tumors all have mhc_restriction == "HLA class I" in IEDB).  We
+    # intentionally do NOT gate on cell_name: IEDB frequently records
+    # the host under a wrong specific label (Trolle 2016's 721.221
+    # transfectants appear as "HeLa cells-Epithelial cell"), and the
+    # whole purpose of the PMID override is to correct that annotation.
+    # ``entry`` is the PMID-level override dict looked up above (not
+    # the rule-specific override), so it remains bound even when no
+    # rules matched.
+    if not is_monoallelic and entry is not None:
+        host = entry.get("mono_allelic_host")
+        if host and _is_resolved_allele(mhc_restriction):
+            is_monoallelic = True
+            mono_host = host
 
     return {
         "src_cancer": is_cancer,
@@ -638,6 +760,7 @@ def classify_ms_row(
         "monoallelic_host": mono_host,
         "allele_resolution": classify_allele_resolution(mhc_restriction),
         "serotype": allele_to_serotype(mhc_restriction),
+        "serotypes": ";".join(allele_to_all_serotypes(mhc_restriction)),
         "mhc_species": classify_mhc_species(mhc_restriction),
     }
 

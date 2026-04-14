@@ -195,10 +195,10 @@ def test_collect_pmid_extra_proteomes_excludes_non_lcl_samples():
     # (non-EBV) should NOT have reference_proteomes set.
     entry = overrides[28832583]
     for sample in entry.get("ms_samples", []):
-        typ = sample.get("type", "")
-        if "TIL" in typ or "Apher" in typ:
+        label = sample.get("sample_label", "")
+        if "TIL" in label or "Apher" in label:
             assert "reference_proteomes" not in sample, (
-                f"Non-EBV sample should not have reference_proteomes: {typ}"
+                f"Non-EBV sample should not have reference_proteomes: {label}"
             )
 
 
