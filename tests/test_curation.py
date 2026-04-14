@@ -558,16 +558,18 @@ def test_pmid_mono_override_skipped_for_unresolved_allele():
 
 def test_pmid_mono_override_skipped_for_different_cell_line():
     """Sarkizova 2020 (PMID 31844290) mixes 95 721.221 transfectants with
-    12 multi-allelic validation cell lines (HCC1937, A375, etc.).  A row
-    with a specific non-host cell_name must NOT be flagged mono-allelic
-    by the PMID override.
+    12 patient-derived validation samples (CLL/MEL/OV/GBM/ccRCC).  A row
+    whose cell_name is a specific non-host designation must NOT be
+    flagged mono-allelic by the PMID override.  (IEDB records the
+    patient-derived samples under varied cell_name strings; here we use
+    a stand-in like "MEL1" to assert the cell-name consistency rule.)
     """
     flags_validation = classify_ms_row(
         "No immunization",
         "",
         "Cell Line / Clone",
         "Blood",
-        "HCC1937",
+        "MEL1",
         pmid=31844290,
         mhc_restriction="HLA-A*01:01",
     )

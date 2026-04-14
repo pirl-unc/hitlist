@@ -37,7 +37,7 @@ explicitly.
 | 28904123 | Di Marco 2017 — HLA-C/E/G | C1R | clean | none |
 | **30315122** | **Faridi 2018 — cis/trans-spliced** | **C1R** | **unresolved** | **fix below** |
 | 31092671 | Guasp 2019 — ERAP1/2 | 721.221 | clean | none |
-| **31844290** | **Sarkizova 2020 — 95 alleles + validation** | **721.221** | **multi-allelic mix** | **fix below** |
+| **31844290** | **Sarkizova 2020 — 95 alleles + validation** | **721.221** | **multi-allelic mix¹** | **fix below** |
 | 34561969 | Khan 2022 — HLA-A\*33:03 | 721.221 | clean | none |
 
 ¹ Abelin 2017 also contains multi-allelic validation samples
@@ -61,7 +61,8 @@ without an allele.
 ### PMID 31844290 (Sarkizova 2020) — multi-allelic mix
 
 The paper profiles **95 721.221 mono-allelic transfectants** plus
-**12 multi-allelic patient-derived validation lines**:
+**12 multi-allelic patient-derived validation samples** (not
+established cell lines — patient-derived primary tumors).
 
 - **Mono-allelic transfectants (95 samples)** — each expresses a
   single transfected class I allele.  `cell_name` contains
@@ -69,13 +70,35 @@ The paper profiles **95 721.221 mono-allelic transfectants** plus
   Behavior unchanged: these rows continue to flag
   `is_monoallelic=True`.
 
-- **Validation cell lines (12 samples)** — HCC1937, A375, HCT116,
-  HEK293T, SK-MEL-5, T47D, HeLa, etc.  Their native multi-allelic
-  HLA haplotype is the restriction.  Under the old code these rows
-  were incorrectly flagged mono-allelic by the PMID override.
-  Under the new rule they resolve to `is_monoallelic=False`
-  because their `cell_name` is a specific non-host line that
-  is not in the ambiguous-placeholder set.
+- **Validation samples (12)** — patient-derived primary tumors,
+  all 12 already enumerated in `pmid_overrides.yaml::ms_samples`:
+
+  | Group | Samples | HLA-typed? |
+  |-------|---------|------------|
+  | CLL (B-cell leukemia) | DFCI-5341, DFCI-5328, DFCI-5283 | ✓ all 3 (6-locus) |
+  | Melanoma | MEL1, MEL2, MEL3, MEL15 | ✓ all 4 |
+  | Ovarian | OV1 | ✓ |
+  | Glioblastoma | GBM7, GBM9, GBM11 | ✓ all 3 |
+  | ccRCC | Pat9 | **✗ `mhc: unknown`** — paper did not HLA-type (used only for proteasomal analysis, Fig. 4; excluded from Fig. 6 allele-level validation) |
+
+  Under the old code, every one of these 12 was blanket-flagged
+  mono-allelic by the PMID override.  Under the new rule:
+  - The 11 HLA-typed validation samples resolve to
+    `is_monoallelic=False` by the cell-name consistency check when
+    IEDB's `cell_name` is a specific non-host designation, and by
+    the allele-resolution check otherwise (since their
+    `mhc_restriction` in IEDB will cite class-only or a single
+    allele from the multi-allelic genotype — in neither case is
+    "mono-allelic" a correct sample-level claim).
+  - Pat9 resolves to `is_monoallelic=False` by the
+    allele-resolution check (`mhc: unknown` → no resolved allele).
+
+¹ My initial audit listed the validation samples as
+"HCC1937, A375, HCT116, HEK293T, SK-MEL-5, T47D, HeLa" — that was
+wrong.  Those are established-cell-line names that do not appear
+in this paper.  The actual validation set is patient-derived
+primary tumors (CLL, MEL, OV, GBM, ccRCC) with curated 6-locus
+HLA for 11 of 12.
 
 ## Supplementary overlap
 
