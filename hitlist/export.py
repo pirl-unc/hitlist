@@ -97,15 +97,16 @@ def generate_ms_samples_table(mhc_class: str | None = None) -> pd.DataFrame:
     Returns
     -------
     pd.DataFrame
-        Columns: species, sample, perturbation, pmid, study, mhc_class,
-        n_samples, notes, mhc, ip_antibody, acquisition_mode, instrument,
-        instrument_type, fragmentation, labeling, search_engine, fdr.
+        Columns: species, sample_label, perturbation, pmid, study_label,
+        mhc_class, n_samples, notes, mhc, ip_antibody, acquisition_mode,
+        instrument, instrument_type, fragmentation, labeling, search_engine,
+        fdr.
     """
     overrides = load_pmid_overrides()
     rows: list[dict] = []
 
     for pmid_int, entry in sorted(overrides.items()):
-        label = entry.get("label", "")
+        study_label = entry.get("study_label", "")
         species = normalize_species(entry.get("species", "Homo sapiens (human)"))
         ms_samples = entry.get("ms_samples", [])
 
@@ -131,10 +132,10 @@ def generate_ms_samples_table(mhc_class: str | None = None) -> pd.DataFrame:
 
             row = {
                 "species": species,
-                "sample": sample.get("type", ""),
+                "sample_label": sample.get("sample_label", ""),
                 "perturbation": perturbation,
                 "pmid": pmid_int,
-                "study": label,
+                "study_label": study_label,
                 "mhc_class": cls,
                 "n_samples": n if n != "" else None,
                 "notes": sample.get("classification", sample.get("reason", "")),
@@ -249,7 +250,7 @@ def generate_observations_table(
     samples = generate_ms_samples_table(mhc_class=mhc_class)
 
     meta_cols = [
-        "sample",
+        "sample_label",
         "perturbation",
         "mhc",
         "instrument",
@@ -551,7 +552,7 @@ def generate_species_summary(mhc_class: str | None = None) -> pd.DataFrame:
         expanded.groupby(["species", "mhc_class"])
         .agg(
             n_studies=("pmid", "nunique"),
-            n_sample_types=("sample", "count"),
+            n_sample_types=("sample_label", "count"),
             n_samples=("n_samples", lambda x: x.dropna().sum()),
         )
         .reset_index()
@@ -566,21 +567,29 @@ def validate_mhc_alleles() -> pd.DataFrame:
     Returns
     -------
     pd.DataFrame
-        Columns: pmid, study, allele, parsed_name, parsed_type,
+        Columns: pmid, study_label, allele, parsed_name, parsed_type,
         species, valid.
     """
     try:
         from mhcgnomes import parse
     except ImportError:
         return pd.DataFrame(
-            columns=["pmid", "study", "allele", "parsed_name", "parsed_type", "species", "valid"]
+            columns=[
+                "pmid",
+                "study_label",
+                "allele",
+                "parsed_name",
+                "parsed_type",
+                "species",
+                "valid",
+            ]
         )
 
     overrides = load_pmid_overrides()
     rows: list[dict] = []
 
     for pmid_int, entry in sorted(overrides.items()):
-        label = entry.get("label", "")
+        study_label = entry.get("study_label", "")
         hla_alleles = entry.get("hla_alleles", {})
         if not hla_alleles:
             continue
@@ -599,7 +608,7 @@ def validate_mhc_alleles() -> pd.DataFrame:
             rows.append(
                 {
                     "pmid": pmid_int,
-                    "study": label,
+                    "study_label": study_label,
                     "allele": allele_str,
                     "parsed_name": parsed_name,
                     "parsed_type": parsed_type,

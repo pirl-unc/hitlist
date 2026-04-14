@@ -11,10 +11,10 @@ def test_ms_samples_table_columns():
     df = generate_ms_samples_table()
     expected = {
         "species",
-        "sample",
+        "sample_label",
         "perturbation",
         "pmid",
-        "study",
+        "study_label",
         "mhc_class",
         "n_samples",
         "notes",
@@ -111,7 +111,7 @@ def test_ms_samples_mhc_per_sample():
     """Sarkizova validation samples should have per-sample MHC alleles."""
     df = generate_ms_samples_table()
     sarkizova = df[df["pmid"] == 31844290]
-    cll_a = sarkizova[sarkizova["sample"].str.contains("CLL A")]
+    cll_a = sarkizova[sarkizova["sample_label"].str.contains("CLL A")]
     assert len(cll_a) == 1
     mhc = cll_a.iloc[0]["mhc"]
     assert "A*03:01" in mhc
@@ -122,7 +122,7 @@ def test_ms_samples_mhc_unknown():
     """Pat9 ccRCC has no MHC typing — mhc should be 'unknown'."""
     df = generate_ms_samples_table()
     sarkizova = df[df["pmid"] == 31844290]
-    pat9 = sarkizova[sarkizova["sample"].str.contains("Pat9")]
+    pat9 = sarkizova[sarkizova["sample_label"].str.contains("Pat9")]
     assert len(pat9) == 1
     assert pat9.iloc[0]["mhc"] == "unknown"
 
@@ -261,7 +261,15 @@ def test_species_summary_class_filter():
 
 def test_validate_alleles_columns():
     df = validate_mhc_alleles()
-    expected = {"pmid", "study", "allele", "parsed_name", "parsed_type", "species", "valid"}
+    expected = {
+        "pmid",
+        "study_label",
+        "allele",
+        "parsed_name",
+        "parsed_type",
+        "species",
+        "valid",
+    }
     assert expected == set(df.columns)
 
 
@@ -542,7 +550,7 @@ def test_generate_binding_table_returns_binding_rows(tmp_path, monkeypatch):
     assert len(df) == 4
     assert df["is_binding_assay"].all()
     # No sample-metadata join: these MS-only columns should not appear
-    for col in ("sample", "perturbation", "instrument", "instrument_type"):
+    for col in ("sample_label", "perturbation", "instrument", "instrument_type"):
         assert col not in df.columns
 
 

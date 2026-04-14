@@ -121,7 +121,7 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
                 "reference_iri": f"supplement:{pmid}:{peptide}:{mhc_restriction}",
                 "pmid": pmid,
                 "submission_id": "",
-                "reference_title": entry.get("label", ""),
+                "reference_title": entry.get("study_label", ""),
                 "source_organism": defaults.get("source_organism", ""),
                 "species": defaults.get("species", ""),
                 "host": defaults.get("host", ""),
