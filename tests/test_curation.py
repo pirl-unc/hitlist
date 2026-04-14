@@ -737,4 +737,8 @@ def test_normalize_allele_preserves_class_only():
 def test_normalize_allele_empty_and_unparseable():
     assert normalize_allele("") == ""
     assert normalize_allele("unknown") == "unknown"
-    assert normalize_allele("SahaI*35") == "SahaI*35"  # unparseable, unchanged
+    # A truly non-allele string — behaviour should be pass-through across
+    # mhcgnomes versions (older mhcgnomes raised ParseError on the prior
+    # test string "SahaI*35"; mhcgnomes >= 3.32 parses that successfully
+    # as Saha-I*35, which invalidated the assumption).
+    assert normalize_allele("definitely not an allele") == "definitely not an allele"
