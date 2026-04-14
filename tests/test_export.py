@@ -456,3 +456,107 @@ def test_generate_observations_mhc_allele_filter(tmp_path, monkeypatch):
 
     df = generate_observations_table(mhc_allele=["HLA-A*02:01", "HLA-B*07:02"])
     assert len(df) == 3
+
+
+def test_generate_observations_serotype_filter(tmp_path, monkeypatch):
+    """--serotype A24 matches rows with HLA-A24 in the serotypes column."""
+    import pandas as pd
+
+    from hitlist.export import generate_observations_table
+
+    obs_data = pd.DataFrame(
+        {
+            "peptide": ["AAA", "BBB", "CCC", "DDD"],
+            "mhc_restriction": ["HLA-A*24:02", "HLA-B*57:01", "HLA-A*02:01", "HLA-B*07:02"],
+            "mhc_class": ["I"] * 4,
+            "reference_iri": ["1", "2", "3", "4"],
+            "pmid": pd.array([33858848] * 4, dtype="Int64"),
+            "source": ["iedb"] * 4,
+            "mhc_species": ["Homo sapiens"] * 4,
+            "is_monoallelic": [False] * 4,
+            "is_binding_assay": [False] * 4,
+            "qualitative_measurement": ["Positive"] * 4,
+            "serotype": ["HLA-A24", "HLA-B57", "HLA-A2", "HLA-B7"],
+            "serotypes": ["HLA-A24;HLA-Bw4", "HLA-B57;HLA-B17;HLA-Bw4", "HLA-A2", "HLA-B7;HLA-Bw6"],
+        }
+    )
+    obs_path = tmp_path / "observations.parquet"
+    obs_data.to_parquet(obs_path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+
+    # Locus-specific match
+    df = generate_observations_table(serotype="A24")
+    assert len(df) == 1
+    assert df.iloc[0]["peptide"] == "AAA"
+
+    # Public epitope matches multiple loci
+    df = generate_observations_table(serotype="Bw4")
+    assert set(df["peptide"]) == {"AAA", "BBB"}
+
+    # Comma-separated, HLA- prefix optional
+    df = generate_observations_table(serotype="HLA-A24,B57")
+    assert set(df["peptide"]) == {"AAA", "BBB"}
+
+    # No match
+    df = generate_observations_table(serotype="A99")
+    assert len(df) == 0
+
+
+def _make_binding_fixture(tmp_path):
+    """Write a small binding.parquet fixture and return its path."""
+    import pandas as pd
+
+    bd = pd.DataFrame(
+        {
+            "peptide": ["PEP1", "PEP2", "PEP3", "PEP4"],
+            "mhc_restriction": ["HLA-A*02:01", "HLA-A*02:01", "HLA-B*07:02", "HLA-A*24:02"],
+            "mhc_class": ["I", "I", "I", "I"],
+            "reference_iri": ["b1", "b2", "b3", "b4"],
+            "pmid": pd.array([1, 2, 3, 4], dtype="Int64"),
+            "source": ["iedb", "cedar", "iedb", "iedb"],
+            "mhc_species": ["Homo sapiens"] * 4,
+            "is_binding_assay": [True] * 4,
+            "qualitative_measurement": [
+                "Positive-High",
+                "Positive-Intermediate",
+                "Negative",
+                "Positive-Low",
+            ],
+            "serotype": ["HLA-A2", "HLA-A2", "HLA-B7", "HLA-A24"],
+            "serotypes": ["HLA-A2", "HLA-A2", "HLA-B7;HLA-Bw6", "HLA-A24;HLA-Bw4"],
+        }
+    )
+    path = tmp_path / "binding.parquet"
+    bd.to_parquet(path, index=False)
+    return path
+
+
+def test_generate_binding_table_returns_binding_rows(tmp_path, monkeypatch):
+    """generate_binding_table loads from binding.parquet without MS joins."""
+    from hitlist.export import generate_binding_table
+
+    bd_path = _make_binding_fixture(tmp_path)
+    monkeypatch.setattr("hitlist.observations.binding_path", lambda: bd_path)
+
+    df = generate_binding_table()
+    assert len(df) == 4
+    assert df["is_binding_assay"].all()
+    # No sample-metadata join: these MS-only columns should not appear
+    for col in ("sample", "perturbation", "instrument", "instrument_type"):
+        assert col not in df.columns
+
+
+def test_generate_binding_table_mhc_and_serotype_filters(tmp_path, monkeypatch):
+    from hitlist.export import generate_binding_table
+
+    bd_path = _make_binding_fixture(tmp_path)
+    monkeypatch.setattr("hitlist.observations.binding_path", lambda: bd_path)
+
+    df = generate_binding_table(mhc_allele="HLA-A*02:01")
+    assert set(df["peptide"]) == {"PEP1", "PEP2"}
+
+    df = generate_binding_table(serotype="Bw4")
+    assert set(df["peptide"]) == {"PEP4"}
+
+    df = generate_binding_table(source="cedar")
+    assert list(df["peptide"]) == ["PEP2"]

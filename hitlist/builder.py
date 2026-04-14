@@ -10,12 +10,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Build the unified observations table from IEDB + CEDAR.
+"""Build the unified peptide indexes from IEDB + CEDAR.
 
 Runs the full scanner (with source classification from YAML overrides)
-on each registered data source, deduplicates by assay IRI, optionally
-maps peptides to source proteins with flanking context, and writes
-a single ``observations.parquet`` to ``~/.hitlist/``.
+on each registered data source, deduplicates by assay IRI, partitions
+rows by assay type, maps peptides to source proteins with flanking
+context, and writes TWO parquet indexes to ``~/.hitlist/``:
+
+- ``observations.parquet`` — MS-eluted immunopeptidome rows (plus
+  manually-curated supplementary data).
+- ``binding.parquet`` — binding-assay rows (peptide microarray,
+  refolding, MEDi, and quantitative-tier measurements).
+
+The two indexes are never mixed.  Supplementary data is MS-only and
+only contributes to observations.parquet.  Both indexes carry the
+same gene/protein annotations from the peptide-mappings sidecar.
 
 Usage::
 
@@ -89,16 +98,27 @@ def _observations_path() -> Path:
     return data_dir() / "observations.parquet"
 
 
+def _binding_path() -> Path:
+    return data_dir() / "binding.parquet"
+
+
 def _meta_path() -> Path:
     return data_dir() / "observations_meta.json"
 
 
 def _cache_is_valid(paths: dict[str, Path], with_flanking: bool = False) -> bool:
-    """Check if the observations cache is still valid for the requested build."""
+    """Check if the cached indexes are still valid for the requested build.
+
+    Both ``observations.parquet`` and ``binding.parquet`` must be present —
+    if either is missing the cache is invalid (binding was added in 1.7.0,
+    so older installs rebuild once on upgrade).
+    """
     meta = _meta_path()
     if not meta.exists():
         return False
     if not _observations_path().exists():
+        return False
+    if not _binding_path().exists():
         return False
     stored = json.loads(meta.read_text())
     current = _source_fingerprints(paths)
@@ -152,7 +172,8 @@ def build_observations(
     Returns
     -------
     Path
-        Path to ``observations.parquet``.
+        Path to ``observations.parquet`` (the MS index).  The binding
+        index is written alongside at ``binding.parquet``.
     """
     paths = _source_paths()
     if not paths:
@@ -161,6 +182,7 @@ def build_observations(
         )
 
     out_path = _observations_path()
+    binding_out = _binding_path()
     if not force and _cache_is_valid(paths, with_flanking=with_flanking):
         meta = _cache_meta()
         size_mb = out_path.stat().st_size / 1e6 if out_path.exists() else 0
@@ -170,13 +192,21 @@ def build_observations(
         print(f"  Peptides:      {meta.get('n_peptides', '?'):,}")
         print(f"  Alleles:       {meta.get('n_alleles', '?'):,}")
         print(f"  Species:       {meta.get('n_species', '?')}")
+        if binding_out.exists():
+            b_size = binding_out.stat().st_size / 1e6
+            print(
+                f"  Binding index: {meta.get('n_binding_rows', '?'):,} rows, "
+                f"{b_size:.1f} MB → {binding_out}"
+            )
         print("\nUse --force to rebuild.")
         return out_path
 
     from .scanner import scan
 
-    dfs: list[pd.DataFrame] = []
-    seen_iris: set[str] = set()
+    ms_dfs: list[pd.DataFrame] = []
+    binding_dfs: list[pd.DataFrame] = []
+    ms_seen_iris: set[str] = set()
+    binding_seen_iris: set[str] = set()
 
     for name in ("iedb", "cedar"):
         if name not in paths:
@@ -191,32 +221,43 @@ def build_observations(
         )
         df["source"] = name
 
-        # Exclude binding assay data — only keep MS-eluted immunopeptidome
+        # Partition into MS vs binding — the two indexes are written
+        # separately so downstream consumers cannot accidentally mix
+        # immunopeptidome elution with affinity/microarray measurements.
         if "is_binding_assay" in df.columns:
-            before_ba = len(df)
-            df = df[~df["is_binding_assay"]]
-            excluded = before_ba - len(df)
-            if excluded:
-                print(f"  Excluded {excluded:,} binding assay rows")
+            ms_df = df[~df["is_binding_assay"]].copy()
+            bd_df = df[df["is_binding_assay"]].copy()
+        else:
+            ms_df = df
+            bd_df = df.iloc[0:0].copy()
 
-        # Deduplicate across sources by assay IRI
-        if seen_iris:
-            before = len(df)
-            df = df[~df["reference_iri"].isin(seen_iris)]
-            dupes = before - len(df)
+        # Deduplicate across sources by assay IRI (per index).
+        if ms_seen_iris:
+            before = len(ms_df)
+            ms_df = ms_df[~ms_df["reference_iri"].isin(ms_seen_iris)]
+            dupes = before - len(ms_df)
             if dupes:
-                print(f"  Deduplicated {dupes:,} rows (shared IRIs with prior source)")
+                print(f"  Deduplicated {dupes:,} MS rows (shared IRIs with prior source)")
+        if binding_seen_iris:
+            before = len(bd_df)
+            bd_df = bd_df[~bd_df["reference_iri"].isin(binding_seen_iris)]
+            dupes = before - len(bd_df)
+            if dupes:
+                print(f"  Deduplicated {dupes:,} binding rows (shared IRIs with prior source)")
 
-        seen_iris.update(df["reference_iri"].values)
-        dfs.append(df)
-        print(f"  {len(df):,} rows from {name}")
+        ms_seen_iris.update(ms_df["reference_iri"].values)
+        binding_seen_iris.update(bd_df["reference_iri"].values)
+        ms_dfs.append(ms_df)
+        binding_dfs.append(bd_df)
+        print(f"  {len(ms_df):,} MS rows + {len(bd_df):,} binding rows from {name}")
 
-    if not dfs:
+    if not ms_dfs and not binding_dfs:
         raise RuntimeError("No data scanned.")
 
-    obs = pd.concat(dfs, ignore_index=True)
+    obs = pd.concat(ms_dfs, ignore_index=True) if ms_dfs else pd.DataFrame()
+    binding = pd.concat(binding_dfs, ignore_index=True) if binding_dfs else pd.DataFrame()
 
-    # --- Supplementary data (peptides not in IEDB/CEDAR) ---
+    # --- Supplementary data (MS only — manually curated from papers) ---
     from .supplement import scan_supplementary
 
     supp = scan_supplementary(classify_source=True)
@@ -238,24 +279,33 @@ def build_observations(
         if dupes:
             print(f"  Deduplicated {dupes:,} supplementary rows (already in IEDB/CEDAR)")
         obs = pd.concat([obs, supp], ignore_index=True)
-        print(f"  {len(supp):,} rows from supplementary data")
+        print(f"  {len(supp):,} rows from supplementary data (MS)")
 
-    print(f"\nTotal: {len(obs):,} observations")
-    print(f"  Unique peptides: {obs['peptide'].nunique():,}")
-    print(f"  Unique alleles:  {obs['mhc_restriction'].nunique():,}")
-    print(f"  Species:         {obs['mhc_species'].nunique()}")
+    print(f"\nMS observations: {len(obs):,} rows")
+    if len(obs):
+        print(f"  Unique peptides: {obs['peptide'].nunique():,}")
+        print(f"  Unique alleles:  {obs['mhc_restriction'].nunique():,}")
+        print(f"  Species:         {obs['mhc_species'].nunique()}")
+    print(f"Binding rows:    {len(binding):,}")
+    if len(binding):
+        print(f"  Unique peptides: {binding['peptide'].nunique():,}")
+        print(f"  Unique alleles:  {binding['mhc_restriction'].nunique():,}")
 
     # Fix mixed types for parquet compatibility
-    if "pmid" in obs.columns:
-        obs["pmid"] = pd.to_numeric(obs["pmid"], errors="coerce").astype("Int64")
+    for frame in (obs, binding):
+        if "pmid" in frame.columns:
+            frame["pmid"] = pd.to_numeric(frame["pmid"], errors="coerce").astype("Int64")
 
-    # Write initial observations.parquet — the mappings build reads from it
+    # Write both parquets — the mappings build reads from them to cover
+    # the union of peptides.
     obs.to_parquet(out_path, index=False)
     print(f"\nWrote {out_path} ({out_path.stat().st_size / 1e6:.1f} MB)")
+    binding.to_parquet(binding_out, index=False)
+    print(f"Wrote {binding_out} ({binding_out.stat().st_size / 1e6:.1f} MB)")
 
     # Build the long-form peptide → protein mappings sidecar, then
-    # annotate observations with semicolon-joined gene/protein columns
-    # so the central parquet carries multi-mapping identity on every row.
+    # annotate BOTH parquets with semicolon-joined gene/protein columns.
+    # The sidecar covers the union of peptides from observations + binding.
     if build_mappings:
         from .mappings import (
             annotate_observations_with_genes,
@@ -270,25 +320,38 @@ def build_observations(
             force=force,
         )
 
-        print("\nAnnotating observations with gene/protein columns ...")
+        print("\nAnnotating indexes with gene/protein columns ...")
         mappings_df = load_peptide_mappings(
             columns=["peptide", "gene_name", "gene_id", "protein_id"]
         )
         obs = annotate_observations_with_genes(obs, mappings_df)
         obs.to_parquet(out_path, index=False)
-        n_with_gene = (obs["gene_names"] != "").sum() if "gene_names" in obs.columns else 0
-        print(
-            f"  {n_with_gene:,} / {len(obs):,} observations annotated "
-            f"({100 * n_with_gene / len(obs):.1f}%)"
-        )
+        if len(obs):
+            n_with_gene = (obs["gene_names"] != "").sum() if "gene_names" in obs.columns else 0
+            print(
+                f"  MS:      {n_with_gene:,} / {len(obs):,} rows annotated "
+                f"({100 * n_with_gene / len(obs):.1f}%)"
+            )
+        binding = annotate_observations_with_genes(binding, mappings_df)
+        binding.to_parquet(binding_out, index=False)
+        if len(binding):
+            n_with_gene_b = (
+                (binding["gene_names"] != "").sum() if "gene_names" in binding.columns else 0
+            )
+            print(
+                f"  Binding: {n_with_gene_b:,} / {len(binding):,} rows annotated "
+                f"({100 * n_with_gene_b / len(binding):.1f}%)"
+            )
 
     # Save metadata
     meta = {
         "sources": _source_fingerprints(paths),
         "n_rows": len(obs),
-        "n_peptides": int(obs["peptide"].nunique()),
-        "n_alleles": int(obs["mhc_restriction"].nunique()),
-        "n_species": int(obs["mhc_species"].nunique()),
+        "n_peptides": int(obs["peptide"].nunique()) if len(obs) else 0,
+        "n_alleles": int(obs["mhc_restriction"].nunique()) if len(obs) else 0,
+        "n_species": int(obs["mhc_species"].nunique()) if len(obs) else 0,
+        "n_binding_rows": len(binding),
+        "n_binding_peptides": int(binding["peptide"].nunique()) if len(binding) else 0,
         "with_flanking": with_flanking,
         "with_mappings": build_mappings,
     }

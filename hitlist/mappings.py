@@ -69,14 +69,19 @@ def is_mappings_built() -> bool:
 
 
 def _obs_fingerprint() -> dict:
-    """Fingerprint the observations.parquet used to build this mapping."""
-    from .observations import observations_path
+    """Fingerprint both indexes the mappings were built from.
 
-    p = observations_path()
-    if not p.exists():
-        return {}
-    stat = p.stat()
-    return {"path": str(p), "size": stat.st_size, "mtime": stat.st_mtime}
+    The mappings sidecar covers peptides from observations.parquet AND
+    binding.parquet, so both must invalidate the cache when they change.
+    """
+    from .observations import binding_path, observations_path
+
+    fp: dict = {}
+    for label, p in (("observations", observations_path()), ("binding", binding_path())):
+        if p.exists():
+            stat = p.stat()
+            fp[label] = {"path": str(p), "size": stat.st_size, "mtime": stat.st_mtime}
+    return fp
 
 
 def _cache_is_valid() -> bool:
@@ -207,11 +212,10 @@ def build_peptide_mappings(
     """
     from .builder import _collect_pmid_extra_proteomes
     from .downloads import fetch_proteome_by_upid, lookup_proteome
-    from .observations import is_built as obs_is_built
-    from .observations import load_observations
+    from .observations import is_binding_built, is_built, load_binding, load_observations
     from .proteome import ProteomeIndex
 
-    if not obs_is_built():
+    if not is_built():
         raise FileNotFoundError("Observations table not built.  Run: hitlist data build")
 
     out = mappings_path()
@@ -220,10 +224,15 @@ def build_peptide_mappings(
             print(f"Peptide mappings already up to date: {out}")
         return out
 
-    obs = load_observations(columns=["peptide", "source_organism", "mhc_species", "pmid"])
+    cols = ["peptide", "source_organism", "mhc_species", "pmid"]
+    obs = load_observations(columns=cols)
+    if is_binding_built():
+        binding = load_binding(columns=cols)
+        if len(binding):
+            obs = pd.concat([obs, binding], ignore_index=True)
     print(
-        f"\nBuilding peptide mappings for {len(obs):,} observations "
-        f"({obs['peptide'].nunique():,} unique peptides) ..."
+        f"\nBuilding peptide mappings for {len(obs):,} rows (MS + binding, "
+        f"{obs['peptide'].nunique():,} unique peptides) ..."
     )
 
     organism = obs["source_organism"].astype(str).str.strip()

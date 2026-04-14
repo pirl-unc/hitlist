@@ -356,10 +356,12 @@ def scan(
                     )
                 )
             else:
-                from .curation import allele_to_serotype
+                from .curation import allele_to_all_serotypes
 
+                all_sero = allele_to_all_serotypes(mhc_res)
                 record["allele_resolution"] = classify_allele_resolution(mhc_res)
-                record["serotype"] = allele_to_serotype(mhc_res)
+                record["serotype"] = all_sero[0] if all_sero else ""
+                record["serotypes"] = ";".join(all_sero)
                 record["mhc_species"] = mhc_sp
 
             rows.append(record)

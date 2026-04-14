@@ -1,6 +1,7 @@
 from hitlist.curation import (
     ALLELE_RESOLUTION_ORDER,
     allele_resolution_rank,
+    allele_to_all_serotypes,
     allele_to_serotype,
     classify_allele_resolution,
     classify_mhc_species,
@@ -398,8 +399,68 @@ def test_classify_ms_row_includes_serotype():
         mhc_restriction="HLA-A*02:01",
     )
     assert "serotype" in flags
+    assert "serotypes" in flags
     if _HAS_MHCGNOMES:
+        # Most-specific serotype is the broader locus-specific name (A2),
+        # not the IEF sub-serotype (A2.1)
         assert flags["serotype"] == "HLA-A2"
+        assert "HLA-A2" in flags["serotypes"].split(";")
+
+
+def test_allele_to_serotype_prefers_locus_specific_over_bw4():
+    """hitlist #44: A*24:02 must resolve to HLA-A24, not HLA-Bw4."""
+    if not _HAS_MHCGNOMES:
+        return
+    assert allele_to_serotype("HLA-A*24:02") == "HLA-A24"
+    # And the full list should include Bw4 as secondary
+    all_sero = allele_to_all_serotypes("HLA-A*24:02")
+    assert "HLA-A24" in all_sero
+    assert "HLA-Bw4" in all_sero
+    assert all_sero[0] == "HLA-A24"  # locus-specific wins
+
+
+def test_allele_to_serotype_b57_prefers_b57():
+    """B*57:01 belongs to B57, B17, AND Bw4 — B57 must win."""
+    if not _HAS_MHCGNOMES:
+        return
+    assert allele_to_serotype("HLA-B*57:01") == "HLA-B57"
+    all_sero = allele_to_all_serotypes("HLA-B*57:01")
+    assert all_sero[0] == "HLA-B57"
+    assert "HLA-Bw4" in all_sero
+
+
+def test_allele_to_all_serotypes_a02_broader_first():
+    """A*02:01 has A2 (broader) and A2.1 (IEF sub-serotype).
+
+    Our ranking prefers the broader name as canonical — clinicians say "A2",
+    not "A2.1".
+    """
+    if not _HAS_MHCGNOMES:
+        return
+    all_sero = allele_to_all_serotypes("HLA-A*02:01")
+    assert all_sero[0] == "HLA-A2"
+    assert "HLA-A2" in all_sero
+
+
+def test_allele_to_all_serotypes_empty():
+    assert allele_to_all_serotypes("") == ()
+    assert allele_to_all_serotypes("HLA class I") == ()
+
+
+def test_classify_ms_row_serotypes_plural_populated():
+    """serotypes column must be semicolon-joined when multiple serotypes exist."""
+    if not _HAS_MHCGNOMES:
+        return
+    flags = classify_ms_row(
+        "No immunization",
+        "healthy",
+        "Direct Ex Vivo",
+        "Liver",
+        mhc_restriction="HLA-A*24:02",
+    )
+    assert flags["serotype"] == "HLA-A24"
+    assert "HLA-A24" in flags["serotypes"].split(";")
+    assert "HLA-Bw4" in flags["serotypes"].split(";")
 
 
 # ── MHC species classification ─────────────────────────────────────────
