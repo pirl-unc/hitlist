@@ -492,6 +492,67 @@ def detect_monoallelic(cell_name: str, mhc_restriction: str = "") -> tuple[bool,
     return False, ""
 
 
+# Cell-name strings IEDB uses when the actual cell line is unknown or
+# described only at the tissue level.  When the cell_name is one of
+# these, a PMID-level ``mono_allelic_host`` override can legitimately
+# apply — the row is consistent with the declared host even though
+# IEDB did not record its specific name.  A cell_name that looks like
+# a SPECIFIC cell line (e.g. "HCC1937", "A375") outside of this set is
+# treated as a validation / non-host sample and NOT overridden.
+_AMBIGUOUS_CELL_NAMES: frozenset[str] = frozenset(
+    {
+        "",
+        "b cell",
+        "b-cell",
+        "b cells",
+        "t cell",
+        "t-cell",
+        "cell line",
+        "cell lines",
+        "other",
+        "unknown",
+        "n/a",
+        "na",
+        "—",
+        "-",
+        "none",
+    }
+)
+
+
+def _row_matches_mono_host(cell_name: str, host: str) -> bool:
+    """True when the row's cell_name is consistent with a mono-allelic host.
+
+    Consistent means either (a) the cell_name string is empty /
+    ambiguous / tissue-level, or (b) contains an alias of the declared
+    host.  A specific non-matching cell line (e.g. "HCC1937") is NOT
+    consistent — those are validation samples inside mono-allelic
+    papers (Sarkizova 2020 mixes 95 721.221 transfectants with 12
+    multi-allelic patient lines).
+    """
+    cn = cell_name.strip().lower()
+    if cn in _AMBIGUOUS_CELL_NAMES:
+        return True
+
+    host_lower = host.lower()
+    for entry in load_monoallelic_lines():
+        if entry["name"].lower() != host_lower:
+            continue
+        return any(alias in cn for alias in entry["aliases"])
+    # Unknown host name in the override — fall back to substring match
+    return host_lower in cn
+
+
+def _is_resolved_allele(mhc_restriction: str) -> bool:
+    """True when the allele is specific enough to claim mono-allelic status.
+
+    Rows with empty, ``HLA class I`` / ``class_only``, or ``unresolved``
+    MHC restriction cannot be flagged mono-allelic — we do not know
+    which allele (if any) produced the peptide.
+    """
+    return classify_allele_resolution(mhc_restriction) in ("four_digit", "two_digit", "serological")
+
+
 def _matches_condition(row_fields: dict[str, str], condition: dict) -> bool:
     """Check if a row's fields match a condition dict.
 
@@ -673,11 +734,26 @@ def classify_ms_row(
     if is_cell_line or is_ebv_lcl:
         is_monoallelic, mono_host = detect_monoallelic(cell_name_str, mhc_restriction)
 
-    # PMID-level mono-allelic override (catches 721.221 studies where
-    # IEDB cell_name is "B cell" instead of the actual cell line name)
-    if not is_monoallelic and entry is not None and entry.get("mono_allelic_host"):
-        is_monoallelic = True
-        mono_host = entry["mono_allelic_host"]
+    # PMID-level mono-allelic override — is_monoallelic is a SAMPLE-level
+    # claim, so the override applies per-row only when:
+    #   1. detect_monoallelic did not already flag the row
+    #   2. The row's allele is resolved (four/two-digit or serological);
+    #      unresolved/class-only rows cannot be mono-allelic because we
+    #      don't know which allele (if any) produced the peptide.
+    #   3. The row's cell_name is consistent with the declared host
+    #      (empty, ambiguous/tissue-level like "B cell", or containing
+    #      a host alias).  Specific non-matching cell lines in the same
+    #      paper (e.g. Sarkizova 2020's HCC1937/A375 validation samples
+    #      alongside 95 721.221 transfectants) must NOT be overridden.
+    if not is_monoallelic and entry is not None:
+        host = entry.get("mono_allelic_host")
+        if (
+            host
+            and _is_resolved_allele(mhc_restriction)
+            and _row_matches_mono_host(cell_name_str, host)
+        ):
+            is_monoallelic = True
+            mono_host = host
 
     return {
         "src_cancer": is_cancer,

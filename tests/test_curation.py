@@ -527,6 +527,86 @@ def test_pmid_mono_allelic_override_28514659():
     assert flags["monoallelic_host"] == "721.221"
 
 
+def test_pmid_mono_override_skipped_for_unresolved_allele():
+    """is_monoallelic is a sample-level claim — a row with no resolved
+    allele cannot be flagged mono-allelic even if the paper uses a
+    mono-allelic host.  Faridi 2018 (PMID 30315122) has samples with
+    mhc: unknown; those rows must not be claimed as mono-allelic.
+    """
+    flags_empty = classify_ms_row(
+        "No immunization",
+        "",
+        "Cell Line / Clone",
+        "Blood",
+        "B cell",
+        pmid=30315122,
+        mhc_restriction="",
+    )
+    assert flags_empty["is_monoallelic"] is False
+
+    flags_class_only = classify_ms_row(
+        "No immunization",
+        "",
+        "Cell Line / Clone",
+        "Blood",
+        "B cell",
+        pmid=30315122,
+        mhc_restriction="HLA class I",
+    )
+    assert flags_class_only["is_monoallelic"] is False
+
+
+def test_pmid_mono_override_skipped_for_different_cell_line():
+    """Sarkizova 2020 (PMID 31844290) mixes 95 721.221 transfectants with
+    12 multi-allelic validation cell lines (HCC1937, A375, etc.).  A row
+    with a specific non-host cell_name must NOT be flagged mono-allelic
+    by the PMID override.
+    """
+    flags_validation = classify_ms_row(
+        "No immunization",
+        "",
+        "Cell Line / Clone",
+        "Blood",
+        "HCC1937",
+        pmid=31844290,
+        mhc_restriction="HLA-A*01:01",
+    )
+    assert flags_validation["is_monoallelic"] is False
+    # But the actual 721.221 transfectants still flag correctly via
+    # detect_monoallelic (cell_name alias match happens first).
+    flags_host = classify_ms_row(
+        "No immunization",
+        "",
+        "Cell Line / Clone",
+        "Blood",
+        "721.221",
+        pmid=31844290,
+        mhc_restriction="HLA-A*01:01",
+    )
+    assert flags_host["is_monoallelic"] is True
+    assert flags_host["monoallelic_host"] == "721.221"
+
+
+def test_pmid_mono_override_applies_for_ambiguous_cell_name():
+    """When cell_name is empty or a generic tissue-level placeholder and
+    the allele is resolved, the PMID override should still apply — IEDB
+    commonly records the host cell line under ambiguous labels like
+    ``"B cell"`` for mono-allelic transfectant papers.
+    """
+    for cn in ("", "B cell", "Other", "unknown"):
+        flags = classify_ms_row(
+            "No immunization",
+            "",
+            "Cell Line / Clone",
+            "Blood",
+            cn,
+            pmid=28228285,
+            mhc_restriction="HLA-A*01:01",
+        )
+        assert flags["is_monoallelic"] is True, f"override should apply for cell_name={cn!r}"
+        assert flags["monoallelic_host"] == "721.221"
+
+
 # ── Species normalization ─────────────────────────────────────────────
 
 
