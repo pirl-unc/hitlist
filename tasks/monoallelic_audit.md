@@ -7,21 +7,24 @@ PMID-level `mono_allelic_host` override as a blanket flag: every row
 in an overridden PMID got `is_monoallelic=True`.  That is wrong in
 two ways, and both occur in real curated data.
 
-The fix tightens the PMID override so it only applies when:
+The fix: the PMID override applies per-row only when **the row has a
+resolved allele** — `classify_allele_resolution` returns `four_digit`,
+`two_digit`, or `serological`.  Class-only / unresolved rows cannot
+claim mono-allelic status because we do not know which allele (if
+any) produced the peptide.
 
-1. **The row has a resolved allele** — `classify_allele_resolution` is
-   `four_digit`, `two_digit`, or `serological`.  Empty / class-only /
-   unresolved rows cannot claim mono-allelic status — we do not know
-   which allele (if any) produced the peptide.
-2. **The row's `cell_name` is consistent with the declared host** —
-   either empty, an IEDB tissue-level placeholder (`"B cell"`,
-   `"Other"`, `"unknown"`, etc.), or containing an alias of the host.
-   A different specific cell line in the same paper (validation
-   sample) is **not** overridden.
+No cell_name check.  IEDB frequently mis-labels the host cell line
+(Trolle 2016's 721.221 transfectants appear as
+`"HeLa cells-Epithelial cell"`; Sarkizova 2020's transfectants
+appear as `"B cell"`).  Gating on cell_name would silently block
+these legitimate overrides.  The allele-resolution gate alone
+handles mixed-cohort papers correctly because IEDB records their
+validation rows with `mhc_restriction == "HLA class I"`
+(class-only) — verified below against the actual built index.
 
 `detect_monoallelic()` on `cell_name` alone is unchanged; it still
 catches the primary path where IEDB records the host cell name
-explicitly.
+explicitly (e.g. `"C1R cells-B cell"` → C1R match).
 
 ## Papers currently marked mono-allelic (12)
 
@@ -61,44 +64,55 @@ without an allele.
 ### PMID 31844290 (Sarkizova 2020) — multi-allelic mix
 
 The paper profiles **95 721.221 mono-allelic transfectants** plus
-**12 multi-allelic patient-derived validation samples** (not
-established cell lines — patient-derived primary tumors).
+**12 multi-allelic patient-derived validation samples** (patient-
+derived primary tumors, all 12 enumerated in
+`pmid_overrides.yaml::ms_samples`).
 
-- **Mono-allelic transfectants (95 samples)** — each expresses a
-  single transfected class I allele.  `cell_name` contains
-  "721.221" (various suffixes for the transfected allele).
-  Behavior unchanged: these rows continue to flag
-  `is_monoallelic=True`.
+Verified against the built parquet (2026-04-14 snapshot), the IEDB
+`cell_name` / `mhc_restriction` breakdown is:
 
-- **Validation samples (12)** — patient-derived primary tumors,
-  all 12 already enumerated in `pmid_overrides.yaml::ms_samples`:
+| cell_name | rows | mhc_restriction | new `is_monoallelic` |
+|---|---:|---|---|
+| `"B cell"` | 219,893 | 95 distinct specific alleles | True (transfectants) |
+| `""` (empty) | 16 | 2 specific alleles | True (transfectants) |
+| `"Other"` | 16,642 | `"HLA class I"` only | False (class-only gate) |
+| `"Glial cell"` | 12,730 | `"HLA class I"` only | False (class-only gate) |
+| `"PBMC"` | 6,981 | `"HLA class I"` only | False (class-only gate) |
 
-  | Group | Samples | HLA-typed? |
-  |-------|---------|------------|
-  | CLL (B-cell leukemia) | DFCI-5341, DFCI-5328, DFCI-5283 | ✓ all 3 (6-locus) |
-  | Melanoma | MEL1, MEL2, MEL3, MEL15 | ✓ all 4 |
-  | Ovarian | OV1 | ✓ |
-  | Glioblastoma | GBM7, GBM9, GBM11 | ✓ all 3 |
-  | ccRCC | Pat9 | **✗ `mhc: unknown`** — paper did not HLA-type (used only for proteasomal analysis, Fig. 4; excluded from Fig. 6 allele-level validation) |
+The key observation: IEDB records every validation row with
+`mhc_restriction == "HLA class I"` (class-only).  The allele-
+resolution gate alone correctly filters them out — no cell-name
+reasoning required.
 
-  Under the old code, every one of these 12 was blanket-flagged
-  mono-allelic by the PMID override.  Under the new rule:
-  - The 11 HLA-typed validation samples resolve to
-    `is_monoallelic=False` by the cell-name consistency check when
-    IEDB's `cell_name` is a specific non-host designation, and by
-    the allele-resolution check otherwise (since their
-    `mhc_restriction` in IEDB will cite class-only or a single
-    allele from the multi-allelic genotype — in neither case is
-    "mono-allelic" a correct sample-level claim).
-  - Pat9 resolves to `is_monoallelic=False` by the
-    allele-resolution check (`mhc: unknown` → no resolved allele).
+### PMID 26783342 (Trolle 2016) — would have been broken by cell-name gating
 
-¹ My initial audit listed the validation samples as
-"HCC1937, A375, HCT116, HEK293T, SK-MEL-5, T47D, HeLa" — that was
-wrong.  Those are established-cell-line names that do not appear
-in this paper.  The actual validation set is patient-derived
-primary tumors (CLL, MEL, OV, GBM, ccRCC) with curated 6-locus
-HLA for 11 of 12.
+IEDB records Trolle's 721.221 transfectants under
+`cell_name = "HeLa cells-Epithelial cell"` (15,638 rows) — wrong,
+per the YAML note.  The paper is genuinely mono-allelic (5
+transfected class I alleles, all specific).
+
+- Under a cell-name consistency rule, the override would have been
+  silently blocked and these legitimate rows would lose their
+  mono-allelic flag.
+- Under the final rule (allele-resolution alone), all 15,638 rows
+  correctly stay `is_monoallelic=True`.
+
+This case drove the decision to drop the cell-name check.
+
+¹ An earlier draft of this audit cited "HCC1937, A375, HCT116,
+HEK293T, SK-MEL-5, T47D, HeLa" as the Sarkizova validation cell
+lines.  That was wrong — those are established cell lines that
+do not appear in the paper.  The actual validation set is
+patient-derived primary tumors (CLL, MEL, OV, GBM, ccRCC) with
+curated 6-locus HLA for 11 of 12:
+
+| Group | Samples | HLA-typed? |
+|-------|---------|------------|
+| CLL (B-cell leukemia) | DFCI-5341, DFCI-5328, DFCI-5283 | ✓ all 3 (6-locus) |
+| Melanoma | MEL1, MEL2, MEL3, MEL15 | ✓ all 4 |
+| Ovarian | OV1 | ✓ |
+| Glioblastoma | GBM7, GBM9, GBM11 | ✓ all 3 |
+| ccRCC | Pat9 | **✗ `mhc: unknown`** — paper did not HLA-type |
 
 ## Supplementary overlap
 
@@ -111,11 +125,16 @@ supplementary rows are affected by this change.
 New unit tests in `tests/test_curation.py`:
 
 - `test_pmid_mono_override_skipped_for_unresolved_allele` — empty
-  and `HLA class I` both resolve to `is_monoallelic=False` under a
-  mono-allelic PMID.
-- `test_pmid_mono_override_skipped_for_different_cell_line` —
-  `HCC1937` under PMID 31844290 is not mono-allelic; `721.221`
-  under the same PMID still is.
-- `test_pmid_mono_override_applies_for_ambiguous_cell_name` —
-  empty / `B cell` / `Other` / `unknown` under a mono-allelic PMID
-  still resolve to `is_monoallelic=True` (primary intended path).
+  and `"HLA class I"` both resolve to `is_monoallelic=False` under
+  a mono-allelic PMID.
+- `test_pmid_mono_override_skipped_for_validation_class_only` —
+  Sarkizova's Glial-cell validation rows (class-only IEDB
+  annotation) do not claim mono-allelic status.
+- `test_pmid_mono_override_applies_across_cell_name_variants` —
+  override fires for `"B cell"` (Sarkizova) AND
+  `"HeLa cells-Epithelial cell"` (Trolle, wrong IEDB label) AND
+  `"Splenocyte"` — cell_name is not a gate.
+- `test_load_pmid_overrides_rejects_unknown_mono_host` — typo
+  detection at YAML-load time.
+- `test_load_pmid_overrides_warns_on_legacy_keys` — deprecation
+  warning for old `type:` / `label:` keys.

@@ -1,3 +1,5 @@
+import pytest
+
 from hitlist.curation import (
     ALLELE_RESOLUTION_ORDER,
     allele_resolution_rank,
@@ -556,57 +558,122 @@ def test_pmid_mono_override_skipped_for_unresolved_allele():
     assert flags_class_only["is_monoallelic"] is False
 
 
-def test_pmid_mono_override_skipped_for_different_cell_line():
-    """Sarkizova 2020 (PMID 31844290) mixes 95 721.221 transfectants with
-    12 patient-derived validation samples (CLL/MEL/OV/GBM/ccRCC).  A row
-    whose cell_name is a specific non-host designation must NOT be
-    flagged mono-allelic by the PMID override.  (IEDB records the
-    patient-derived samples under varied cell_name strings; here we use
-    a stand-in like "MEL1" to assert the cell-name consistency rule.)
+def test_pmid_mono_override_skipped_for_validation_class_only():
+    """Sarkizova 2020 mixes 95 721.221 transfectants (mhc_restriction is a
+    specific allele) with 12 patient-derived validation samples whose
+    IEDB mhc_restriction is the class-only string ``"HLA class I"``.  The
+    allele-resolution gate catches the validation rows — they cannot
+    claim mono-allelic status without a resolved allele.
     """
     flags_validation = classify_ms_row(
         "No immunization",
         "",
         "Cell Line / Clone",
         "Blood",
-        "MEL1",
+        "Glial cell",
         pmid=31844290,
-        mhc_restriction="HLA-A*01:01",
+        mhc_restriction="HLA class I",
     )
     assert flags_validation["is_monoallelic"] is False
-    # But the actual 721.221 transfectants still flag correctly via
-    # detect_monoallelic (cell_name alias match happens first).
-    flags_host = classify_ms_row(
-        "No immunization",
-        "",
-        "Cell Line / Clone",
-        "Blood",
-        "721.221",
-        pmid=31844290,
-        mhc_restriction="HLA-A*01:01",
-    )
-    assert flags_host["is_monoallelic"] is True
-    assert flags_host["monoallelic_host"] == "721.221"
 
 
-def test_pmid_mono_override_applies_for_ambiguous_cell_name():
-    """When cell_name is empty or a generic tissue-level placeholder and
-    the allele is resolved, the PMID override should still apply — IEDB
-    commonly records the host cell line under ambiguous labels like
-    ``"B cell"`` for mono-allelic transfectant papers.
+def test_pmid_mono_override_applies_across_cell_name_variants():
+    """The PMID override is NOT gated on cell_name — IEDB frequently
+    mis-labels the host (e.g. Trolle 2016 records 721.221 transfectants
+    as ``"HeLa cells-Epithelial cell"``).  As long as the row has a
+    resolved allele and the PMID has ``mono_allelic_host``, the row
+    flags mono-allelic.
     """
-    for cn in ("", "B cell", "Other", "unknown"):
+    # Sarkizova transfectants — IEDB label is "B cell", ambiguous
+    # Trolle   transfectants — IEDB label is "HeLa cells-Epithelial cell", specific but WRONG
+    # Splenocyte etc. — anything goes as long as allele is resolved
+    for pmid, cn in (
+        (31844290, "B cell"),
+        (26783342, "HeLa cells-Epithelial cell"),
+        (28514659, "Splenocyte"),
+        (28228285, ""),
+    ):
         flags = classify_ms_row(
             "No immunization",
             "",
             "Cell Line / Clone",
             "Blood",
             cn,
-            pmid=28228285,
-            mhc_restriction="HLA-A*01:01",
+            pmid=pmid,
+            mhc_restriction="HLA-A*02:01",
         )
-        assert flags["is_monoallelic"] is True, f"override should apply for cell_name={cn!r}"
-        assert flags["monoallelic_host"] == "721.221"
+        assert flags["is_monoallelic"] is True, f"override should apply for PMID={pmid} cn={cn!r}"
+
+
+def test_load_pmid_overrides_rejects_unknown_mono_host(tmp_path, monkeypatch):
+    """A PMID override with a mono_allelic_host that isn't in
+    monoallelic_lines.yaml must raise at load time — silently producing
+    rows with a bogus monoallelic_host string would leak typos into the
+    published index.
+    """
+    import yaml as _yaml
+
+    from hitlist import curation
+
+    bad_yaml = tmp_path / "pmid_overrides.yaml"
+    bad_yaml.write_text(
+        _yaml.safe_dump(
+            [
+                {
+                    "pmid": 99999999,
+                    "study_label": "Bogus",
+                    "mono_allelic_host": "NOT_A_REAL_HOST",
+                }
+            ]
+        )
+    )
+    monkeypatch.setattr(
+        curation, "_data_path", lambda fn: str(bad_yaml) if fn == "pmid_overrides.yaml" else fn
+    )
+    curation.load_pmid_overrides.cache_clear()
+    try:
+        with pytest.raises(ValueError, match="NOT_A_REAL_HOST"):
+            curation.load_pmid_overrides()
+    finally:
+        curation.load_pmid_overrides.cache_clear()
+
+
+def test_load_pmid_overrides_warns_on_legacy_keys(tmp_path, monkeypatch):
+    """Legacy keys ``label:`` / ``type:`` were renamed in v1.7.0.  Loading
+    a file with the old names must emit DeprecationWarning so users
+    catch schema drift.
+    """
+    import warnings
+
+    import yaml as _yaml
+
+    from hitlist import curation
+
+    legacy_yaml = tmp_path / "pmid_overrides.yaml"
+    legacy_yaml.write_text(
+        _yaml.safe_dump(
+            [
+                {
+                    "pmid": 42,
+                    "label": "legacy label",
+                    "ms_samples": [{"type": "legacy sample"}],
+                }
+            ]
+        )
+    )
+    monkeypatch.setattr(
+        curation, "_data_path", lambda fn: str(legacy_yaml) if fn == "pmid_overrides.yaml" else fn
+    )
+    curation.load_pmid_overrides.cache_clear()
+    try:
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always", DeprecationWarning)
+            curation.load_pmid_overrides()
+        messages = [str(x.message) for x in w if issubclass(x.category, DeprecationWarning)]
+        assert any("label:" in m for m in messages), messages
+        assert any("type:" in m for m in messages), messages
+    finally:
+        curation.load_pmid_overrides.cache_clear()
 
 
 # ── Species normalization ─────────────────────────────────────────────

@@ -106,12 +106,27 @@ def _meta_path() -> Path:
     return data_dir() / "observations_meta.json"
 
 
+def _parquet_fingerprints() -> dict:
+    """Size + mtime of the two index parquets, for cache validation.
+
+    Pairs with ``_source_fingerprints`` to detect either (a) source CSV
+    changes or (b) a parquet file being manually edited / replaced
+    between builds.
+    """
+    fp: dict = {}
+    for label, p in (("observations", _observations_path()), ("binding", _binding_path())):
+        if p.exists():
+            stat = p.stat()
+            fp[label] = {"size": stat.st_size, "mtime": stat.st_mtime}
+    return fp
+
+
 def _cache_is_valid(paths: dict[str, Path], with_flanking: bool = False) -> bool:
     """Check if the cached indexes are still valid for the requested build.
 
-    Both ``observations.parquet`` and ``binding.parquet`` must be present —
-    if either is missing the cache is invalid (binding was added in 1.7.0,
-    so older installs rebuild once on upgrade).
+    Both ``observations.parquet`` and ``binding.parquet`` must be present
+    AND their fingerprints must match the stored metadata.  Binding was
+    added in 1.7.0, so older installs rebuild once on upgrade.
     """
     meta = _meta_path()
     if not meta.exists():
@@ -121,8 +136,10 @@ def _cache_is_valid(paths: dict[str, Path], with_flanking: bool = False) -> bool
     if not _binding_path().exists():
         return False
     stored = json.loads(meta.read_text())
-    current = _source_fingerprints(paths)
-    return stored.get("sources") == current
+    if stored.get("sources") != _source_fingerprints(paths):
+        return False
+    stored_parquets = stored.get("parquets")
+    return not (stored_parquets is not None and stored_parquets != _parquet_fingerprints())
 
 
 def _cache_meta() -> dict:
@@ -346,6 +363,7 @@ def build_observations(
     # Save metadata
     meta = {
         "sources": _source_fingerprints(paths),
+        "parquets": _parquet_fingerprints(),
         "n_rows": len(obs),
         "n_peptides": int(obs["peptide"].nunique()) if len(obs) else 0,
         "n_alleles": int(obs["mhc_restriction"].nunique()) if len(obs) else 0,

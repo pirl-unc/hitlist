@@ -67,3 +67,50 @@ def test_cache_invalid_when_binding_parquet_missing(tmp_path, monkeypatch):
     monkeypatch.setattr(builder, "_source_fingerprints", lambda paths: {})
 
     assert _cache_is_valid({}, with_flanking=False) is False
+
+
+def test_cache_invalid_when_observations_parquet_missing(tmp_path, monkeypatch):
+    """Missing observations.parquet alone should also invalidate the cache."""
+    from hitlist import builder, downloads
+
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
+
+    (tmp_path / "binding.parquet").write_bytes(b"fake parquet")
+    _meta_path().write_text(json.dumps({"sources": {}, "n_rows": 0}))
+    monkeypatch.setattr(builder, "_source_fingerprints", lambda paths: {})
+
+    assert _cache_is_valid({}, with_flanking=False) is False
+
+
+def test_cache_invalid_when_parquet_fingerprint_changes(tmp_path, monkeypatch):
+    """If a parquet is replaced (size/mtime changes) after the meta was
+    written, the cache must invalidate even if source CSVs look unchanged.
+    """
+    import os
+    import time
+
+    from hitlist import builder, downloads
+
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
+
+    obs_p = tmp_path / "observations.parquet"
+    bind_p = tmp_path / "binding.parquet"
+    obs_p.write_bytes(b"original observations")
+    bind_p.write_bytes(b"original binding")
+
+    monkeypatch.setattr(builder, "_source_fingerprints", lambda paths: {})
+    _meta_path().write_text(
+        json.dumps(
+            {
+                "sources": {},
+                "parquets": builder._parquet_fingerprints(),
+            }
+        )
+    )
+    assert _cache_is_valid({}, with_flanking=False) is True
+
+    # Replace observations.parquet — bump mtime past meta's record
+    time.sleep(0.01)
+    obs_p.write_bytes(b"mutated observations content that is longer")
+    os.utime(obs_p, None)
+    assert _cache_is_valid({}, with_flanking=False) is False

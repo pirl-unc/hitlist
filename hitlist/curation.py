@@ -47,14 +47,52 @@ def _data_path(filename: str) -> str:
 def load_pmid_overrides() -> dict[int, dict]:
     """Load PMID curation overrides from YAML.
 
+    Validates that every ``mono_allelic_host`` name resolves to an entry
+    in ``monoallelic_lines.yaml`` (typos would otherwise silently
+    produce rows with a non-existent ``monoallelic_host`` string).
+    Warns on legacy YAML keys (``type:``, ``label:``) that were renamed
+    to ``sample_label:`` / ``study_label:`` in v1.7.0.
+
     Returns
     -------
     dict[int, dict]
-        Mapping from PMID to override dict with keys: label, override,
-        note, and optionally tissue_overrides, donors, samples, tissues.
+        Mapping from PMID to override dict with keys: study_label,
+        override, note, and optionally tissue_overrides, donors,
+        ms_samples, tissues.
     """
+    import warnings
+
     with open(_data_path("pmid_overrides.yaml")) as f:
         entries = yaml.safe_load(f)
+
+    known_hosts = {e["name"] for e in load_monoallelic_lines()}
+    for e in entries:
+        host = e.get("mono_allelic_host")
+        if host and host not in known_hosts:
+            raise ValueError(
+                f"PMID {e.get('pmid')} has mono_allelic_host={host!r} but that "
+                f"name is not in monoallelic_lines.yaml (known hosts: "
+                f"{sorted(known_hosts)}).  Add the host to monoallelic_lines.yaml "
+                f"or fix the typo."
+            )
+        # Legacy key detection (v1.7.0 rename)
+        if "label" in e and "study_label" not in e:
+            warnings.warn(
+                f"PMID {e.get('pmid')}: YAML key 'label:' is deprecated, "
+                f"use 'study_label:' (v1.7.0).  Value ignored.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        for sample in e.get("ms_samples") or []:
+            if "type" in sample and "sample_label" not in sample:
+                warnings.warn(
+                    f"PMID {e.get('pmid')}: ms_samples entry uses deprecated "
+                    f"'type:' key, use 'sample_label:' (v1.7.0).  Value ignored.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+                break  # one warning per PMID is enough
+
     return {int(e["pmid"]): e for e in entries}
 
 
@@ -492,63 +530,16 @@ def detect_monoallelic(cell_name: str, mhc_restriction: str = "") -> tuple[bool,
     return False, ""
 
 
-# Cell-name strings IEDB uses when the actual cell line is unknown or
-# described only at the tissue level.  When the cell_name is one of
-# these, a PMID-level ``mono_allelic_host`` override can legitimately
-# apply — the row is consistent with the declared host even though
-# IEDB did not record its specific name.  A cell_name that looks like
-# a SPECIFIC cell line (e.g. "HCC1937", "A375") outside of this set is
-# treated as a validation / non-host sample and NOT overridden.
-_AMBIGUOUS_CELL_NAMES: frozenset[str] = frozenset(
-    {
-        "",
-        "b cell",
-        "b-cell",
-        "b cells",
-        "t cell",
-        "t-cell",
-        "cell line",
-        "cell lines",
-        "other",
-        "unknown",
-        "n/a",
-        "na",
-        "—",
-        "-",
-        "none",
-    }
-)
-
-
-def _row_matches_mono_host(cell_name: str, host: str) -> bool:
-    """True when the row's cell_name is consistent with a mono-allelic host.
-
-    Consistent means either (a) the cell_name string is empty /
-    ambiguous / tissue-level, or (b) contains an alias of the declared
-    host.  A specific non-matching cell line (e.g. "HCC1937") is NOT
-    consistent — those are validation samples inside mono-allelic
-    papers (Sarkizova 2020 mixes 95 721.221 transfectants with 12
-    multi-allelic patient lines).
-    """
-    cn = cell_name.strip().lower()
-    if cn in _AMBIGUOUS_CELL_NAMES:
-        return True
-
-    host_lower = host.lower()
-    for entry in load_monoallelic_lines():
-        if entry["name"].lower() != host_lower:
-            continue
-        return any(alias in cn for alias in entry["aliases"])
-    # Unknown host name in the override — fall back to substring match
-    return host_lower in cn
-
-
 def _is_resolved_allele(mhc_restriction: str) -> bool:
     """True when the allele is specific enough to claim mono-allelic status.
 
     Rows with empty, ``HLA class I`` / ``class_only``, or ``unresolved``
     MHC restriction cannot be flagged mono-allelic — we do not know
-    which allele (if any) produced the peptide.
+    which allele (if any) produced the peptide.  This is the sole gate
+    on the PMID-level override: cell_name is not a reliable
+    discriminator because IEDB frequently mis-annotates the host
+    (e.g., 721.221 recorded as ``"HeLa cells-Epithelial cell"`` in
+    Trolle 2016) — the PMID override exists to correct exactly that.
     """
     return classify_allele_resolution(mhc_restriction) in ("four_digit", "two_digit", "serological")
 
@@ -735,23 +726,22 @@ def classify_ms_row(
         is_monoallelic, mono_host = detect_monoallelic(cell_name_str, mhc_restriction)
 
     # PMID-level mono-allelic override — is_monoallelic is a SAMPLE-level
-    # claim, so the override applies per-row only when:
-    #   1. detect_monoallelic did not already flag the row
-    #   2. The row's allele is resolved (four/two-digit or serological);
-    #      unresolved/class-only rows cannot be mono-allelic because we
-    #      don't know which allele (if any) produced the peptide.
-    #   3. The row's cell_name is consistent with the declared host
-    #      (empty, ambiguous/tissue-level like "B cell", or containing
-    #      a host alias).  Specific non-matching cell lines in the same
-    #      paper (e.g. Sarkizova 2020's HCC1937/A375 validation samples
-    #      alongside 95 721.221 transfectants) must NOT be overridden.
+    # claim, so the override applies per-row only when the row's allele
+    # is resolved (four/two-digit or serological).  Class-only /
+    # unresolved rows cannot be mono-allelic because we don't know which
+    # allele produced the peptide — this single gate correctly de-flags
+    # validation rows in mixed papers (Sarkizova 2020's 12 patient
+    # tumors all have mhc_restriction == "HLA class I" in IEDB).  We
+    # intentionally do NOT gate on cell_name: IEDB frequently records
+    # the host under a wrong specific label (Trolle 2016's 721.221
+    # transfectants appear as "HeLa cells-Epithelial cell"), and the
+    # whole purpose of the PMID override is to correct that annotation.
+    # ``entry`` is the PMID-level override dict looked up above (not
+    # the rule-specific override), so it remains bound even when no
+    # rules matched.
     if not is_monoallelic and entry is not None:
         host = entry.get("mono_allelic_host")
-        if (
-            host
-            and _is_resolved_allele(mhc_restriction)
-            and _row_matches_mono_host(cell_name_str, host)
-        ):
+        if host and _is_resolved_allele(mhc_restriction):
             is_monoallelic = True
             mono_host = host
 

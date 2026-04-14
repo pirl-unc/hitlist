@@ -72,10 +72,14 @@ def test_load_observations_column_select():
     assert set(df.columns) == {"peptide", "mhc_restriction"}
 
 
-def test_load_binding_not_built():
-    if not is_binding_built():
-        with pytest.raises(FileNotFoundError, match="not built"):
-            load_binding()
+def test_load_binding_not_built(tmp_path, monkeypatch):
+    """load_binding must raise FileNotFoundError when the parquet is missing,
+    regardless of whether a sibling binding.parquet exists elsewhere on disk.
+    """
+    missing = tmp_path / "binding.parquet"
+    monkeypatch.setattr("hitlist.observations.binding_path", lambda: missing)
+    with pytest.raises(FileNotFoundError, match="not built"):
+        load_binding()
 
 
 def test_load_observations_never_contains_binding_rows(tmp_path, monkeypatch):
