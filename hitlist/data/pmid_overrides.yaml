@@ -2092,11 +2092,94 @@
       Focus on cis- and trans-spliced peptide identification.
     ip_antibody: W6/32
     ms_samples:
-      - sample_label: "C1R/721.221 mono-allelic transfectants"
-        n: 17
+      # One sample per transfected allele.  Allele list and per-allele
+      # peptide counts derived from the IEDB row-level mhc_restriction
+      # values for this PMID (sorted by peptide count, descending).
+      - sample_label: "C1R-HLA-B*57:01"
+        n: 1
         condition: "unperturbed"
         mhc_class: "I"
-        mhc: "HLA class I"
+        mhc: "HLA-B*57:01"
+      - sample_label: "C1R-HLA-B*27:05"
+        n: 1
+        condition: "unperturbed"
+        mhc_class: "I"
+        mhc: "HLA-B*27:05"
+      - sample_label: "C1R-HLA-B*08:01"
+        n: 1
+        condition: "unperturbed"
+        mhc_class: "I"
+        mhc: "HLA-B*08:01"
+      - sample_label: "C1R-HLA-B*07:02"
+        n: 1
+        condition: "unperturbed"
+        mhc_class: "I"
+        mhc: "HLA-B*07:02"
+      - sample_label: "C1R-HLA-B*57:03"
+        n: 1
+        condition: "unperturbed"
+        mhc_class: "I"
+        mhc: "HLA-B*57:03"
+      - sample_label: "C1R-HLA-B*58:01"
+        n: 1
+        condition: "unperturbed"
+        mhc_class: "I"
+        mhc: "HLA-B*58:01"
+      - sample_label: "C1R-HLA-B*15:02"
+        n: 1
+        condition: "unperturbed"
+        mhc_class: "I"
+        mhc: "HLA-B*15:02"
+      - sample_label: "C1R-HLA-A*02:04"
+        n: 1
+        condition: "unperturbed"
+        mhc_class: "I"
+        mhc: "HLA-A*02:04"
+      - sample_label: "C1R-HLA-A*24:02"
+        n: 1
+        condition: "unperturbed"
+        mhc_class: "I"
+        mhc: "HLA-A*24:02"
+      - sample_label: "C1R-HLA-A*02:07"
+        n: 1
+        condition: "unperturbed"
+        mhc_class: "I"
+        mhc: "HLA-A*02:07"
+      - sample_label: "C1R-HLA-A*03:01"
+        n: 1
+        condition: "unperturbed"
+        mhc_class: "I"
+        mhc: "HLA-A*03:01"
+      - sample_label: "C1R-HLA-A*01:01"
+        n: 1
+        condition: "unperturbed"
+        mhc_class: "I"
+        mhc: "HLA-A*01:01"
+      - sample_label: "C1R-HLA-B*51:01"
+        n: 1
+        condition: "unperturbed"
+        mhc_class: "I"
+        mhc: "HLA-B*51:01"
+      - sample_label: "C1R-HLA-A*31:01"
+        n: 1
+        condition: "unperturbed"
+        mhc_class: "I"
+        mhc: "HLA-A*31:01"
+      - sample_label: "C1R-HLA-A*68:02"
+        n: 1
+        condition: "unperturbed"
+        mhc_class: "I"
+        mhc: "HLA-A*68:02"
+      - sample_label: "C1R-HLA-B*44:02"
+        n: 1
+        condition: "unperturbed"
+        mhc_class: "I"
+        mhc: "HLA-B*44:02"
+      - sample_label: "C1R-HLA-A*02:03"
+        n: 1
+        condition: "unperturbed"
+        mhc_class: "I"
+        mhc: "HLA-A*02:03"
 
   - pmid: 32387766
     study_label: "Pandey 2020 — THP-1 deep immunopeptidome"
