@@ -277,7 +277,7 @@ def generate_observations_table(
     for _, srow in samples.iterrows():
         pmid = int(srow["pmid"])
         mhc_str = srow.get("mhc", "")
-        if mhc_str and mhc_str != "unknown":
+        if mhc_str and not _is_class_only_sentinel(mhc_str):
             meta = {col: srow.get(col, "") for col in meta_cols}
             meta["_pmid_int"] = pmid
             for allele in mhc_str.split():
@@ -316,7 +316,7 @@ def generate_observations_table(
                 sample_cls = srow.get("mhc_class", "")
                 if cls in str(sample_cls).split("+"):
                     mhc_str = srow.get("mhc", "")
-                    if mhc_str and mhc_str != "unknown":
+                    if mhc_str and not _is_class_only_sentinel(mhc_str):
                         alleles.update(normalize_allele(a) for a in mhc_str.split())
             # Filter out empty strings from failed normalization
             alleles.discard("")
@@ -508,6 +508,20 @@ def _to_list(v) -> list[str]:
     if isinstance(v, str):
         return [s.strip() for s in v.split(",") if s.strip()]
     return [s for s in v if s]
+
+
+def _is_class_only_sentinel(mhc_str: str) -> bool:
+    """True when the sample's mhc field carries no allele-level info.
+
+    Recognises the legacy ``"unknown"`` sentinel and the class-only
+    placeholders ``"HLA class I"`` / ``"HLA class II"`` (introduced
+    in 1.7.1 to replace ``"unknown"`` when the IP antibody / mhc_class
+    tells us the class but no allele genotype was reported).
+    """
+    s = mhc_str.strip().lower()
+    if s == "unknown":
+        return True
+    return s.startswith("hla class") or s.startswith("mhc class")
 
 
 def generate_species_summary(mhc_class: str | None = None) -> pd.DataFrame:

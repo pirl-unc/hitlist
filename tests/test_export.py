@@ -118,13 +118,16 @@ def test_ms_samples_mhc_per_sample():
     assert "B*14:02" in mhc
 
 
-def test_ms_samples_mhc_unknown():
-    """Pat9 ccRCC has no MHC typing — mhc should be 'unknown'."""
+def test_ms_samples_mhc_class_only():
+    """Pat9 ccRCC has no allele genotype but the IP antibody (W6/32) tells
+    us the class.  Since 1.7.1 we record ``"HLA class I"`` instead of the
+    less-informative ``"unknown"`` sentinel.
+    """
     df = generate_ms_samples_table()
     sarkizova = df[df["pmid"] == 31844290]
     pat9 = sarkizova[sarkizova["sample_label"].str.contains("Pat9")]
     assert len(pat9) == 1
-    assert pat9.iloc[0]["mhc"] == "unknown"
+    assert pat9.iloc[0]["mhc"] == "HLA class I"
 
 
 def test_generate_observations_table():

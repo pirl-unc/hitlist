@@ -115,45 +115,45 @@
         source: Dept of Transfusion Medicine — healthy blood bank donors
         condition: unperturbed
         mhc_class: I
-        mhc: unknown
+        mhc: "HLA class I"
         classification: healthy
       - sample_label: bone marrow
         source: hip arthroplasty — elderly non-cancer patients
         condition: unperturbed
         mhc_class: I
-        mhc: unknown
+        mhc: "HLA class I"
         classification: healthy
       - sample_label: brain / cerebellum
         source: autopsy (Zurich)
         condition: unperturbed
         mhc_class: I
-        mhc: unknown
+        mhc: "HLA class I"
         classification: healthy
       - sample_label: colon / stomach / liver / pancreas
         source: Visceral & Transplant Surgery
         condition: unperturbed
         mhc_class: I
-        mhc: unknown
+        mhc: "HLA class I"
         classification: adjacent
         reason: surgical departments where cancer resection is routine
       - sample_label: kidney
         source: Urology
         condition: unperturbed
         mhc_class: I
-        mhc: unknown
+        mhc: "HLA class I"
         classification: adjacent
         reason: likely nephrectomy (RCC) adjacent
       - sample_label: lung / breast
         source: surgical departments
         condition: unperturbed
         mhc_class: I
-        mhc: unknown
+        mhc: "HLA class I"
         classification: adjacent
       - sample_label: spleen / ovary / testis
         source: mixed surgical
         condition: unperturbed
         mhc_class: I
-        mhc: unknown
+        mhc: "HLA class I"
         classification: healthy
     rules:
       - condition:
@@ -213,13 +213,13 @@
         source: "9 mL whole blood, healthy volunteers"
         condition: unperturbed — sHLA immunoaffinity purification
         mhc_class: I
-        mhc: unknown
+        mhc: "HLA class I"
       - sample_label: healthy donor plasma
         n: 3
         source: "same 3 donors, EDTA plasma"
         condition: unperturbed — sHLA immunoaffinity purification
         mhc_class: I
-        mhc: unknown
+        mhc: "HLA class I"
       - sample_label: THP-1 cell line
         n: 1
         source: acute monocytic leukemia line
@@ -258,28 +258,28 @@
         n: 1
         condition: unperturbed — standard culture (IMDM + 10% FBS)
         mhc_class: I
-        mhc: unknown
+        mhc: "HLA class I"
       - sample_label: RPMI8226 (multiple myeloma)
         n: 1
         condition: unperturbed — standard culture
         mhc_class: I
-        mhc: unknown
+        mhc: "HLA class I"
       - sample_label: UM9 (multiple myeloma)
         n: 1
         condition: unperturbed — standard culture
         mhc_class: I
-        mhc: unknown
+        mhc: "HLA class I"
       - sample_label: C4-2B4 (prostate carcinoma)
         n: 1
         condition: unperturbed — standard culture
         mhc_class: I
-        mhc: unknown
+        mhc: "HLA class I"
       - sample_label: resected ovarian carcinomas
         n: 8
         source: "fresh tumor tissue, dissociated with gentleMACS"
         condition: unperturbed
         mhc_class: I
-        mhc: unknown
+        mhc: "HLA class I"
       - sample_label: healthy donor PBMCs
         n: 0
         profiled: false
@@ -313,7 +313,7 @@
         source: "CD14+ monocytes from healthy donor leukapheresis (BioIVT, Miltenyi)"
         condition: "IL-4 + GM-CSF 5d differentiation → IFN-gamma + LPS overnight maturation → synthetic peptide pulse (10 ug/mL, 2h)"
         mhc_class: I
-        mhc: unknown
+        mhc: "HLA class I"
       - sample_label: tumor tissue
         n: 0
         profiled: false
@@ -544,14 +544,14 @@
         condition: unperturbed
         mhc_class: I
         classification: cancer
-        mhc: unknown
+        mhc: "HLA class I"
       - sample_label: adjacent normal breast
         n: 5
         source: paired adjacent normal from same resection (1 failed IP)
         condition: unperturbed
         mhc_class: I
         classification: adjacent
-        mhc: unknown
+        mhc: "HLA class I"
     rules:
       - condition:
           Process Type: Occurrence of cancer
@@ -628,21 +628,21 @@
         n: 1
         condition: unperturbed — standard culture
         mhc_class: I
-        mhc: unknown
+        mhc: "HLA class I"
       - sample_label: melanoma patient sera
         n: 8
         source: Stages III-IV melanoma patients
         condition: unperturbed — sHLA from serum
         mhc_class: I
         classification: cancer_patient
-        mhc: unknown
+        mhc: "HLA class I"
       - sample_label: healthy volunteer sera
         n: 4
         source: healthy donors H1-H4
         condition: unperturbed — sHLA from serum
         mhc_class: I
         classification: healthy
-        mhc: unknown
+        mhc: "HLA class I"
     rules:
       - condition:
           Culture Condition: Direct Ex Vivo
@@ -684,34 +684,34 @@
         condition: unperturbed
         mhc_class: I
         classification: cancer
-        mhc: unknown
+        mhc: "HLA class I"
       - sample_label: GBM patient plasma (pre-surgery)
         n: 52
         source: "52 GBM patients, collected before surgery"
         condition: unperturbed — sHLA from plasma
         mhc_class: I
         classification: cancer_patient
-        mhc: unknown
+        mhc: "HLA class I"
       - sample_label: GBM patient plasma (post-surgery)
         n: 54
         source: longitudinal samples at multiple time points after surgery
         condition: unperturbed — sHLA from plasma
         mhc_class: I
         classification: cancer_patient
-        mhc: unknown
+        mhc: "HLA class I"
       - sample_label: healthy donor plasma
         n: 6
         source: healthy volunteer controls
         condition: unperturbed — sHLA from plasma
         mhc_class: I
         classification: healthy
-        mhc: unknown
+        mhc: "HLA class I"
       - sample_label: ankylosing spondylitis patient plasma
         n: 30
         source: inflammatory disease controls
         condition: unperturbed — sHLA from plasma
         mhc_class: I
-        mhc: unknown
+        mhc: "HLA class I"
     rules:
       - condition:
           Disease: healthy
@@ -791,12 +791,12 @@
         source: multi-allelic validation samples
         condition: unperturbed — standard culture
         mhc_class: I
-        mhc: "unknown"
+        mhc: "HLA class I"
       - sample_label: validation PBMCs
         source: healthy donor PBMCs
         condition: unperturbed
         mhc_class: I
-        mhc: "unknown"
+        mhc: "HLA class I"
   - pmid: 31844290
     study_label: Sarkizova 2020 — large-scale mono-allelic immunopeptidomes
     title: A large peptidome dataset improves HLA class I epitope prediction across most of the human population
@@ -901,7 +901,7 @@
         profiled: true
         condition: unperturbed + IFN-gamma (2000 U/mL, 3d)
         mhc_class: I
-        mhc: "unknown"
+        mhc: "HLA class I"
         note: "No HLA typing — used for proteasomal analysis (Fig. 4) but excluded from allele-level validation (Fig. 6)"
   - pmid: 31092671
     study_label: Guasp 2019 — ERAP1/ERAP2 antigen processing
@@ -1513,14 +1513,14 @@
         condition: unperturbed — some patients post-ipilimumab
         mhc_class: I
         ip_antibody: W6/32
-        mhc: unknown
+        mhc: "HLA class I"
       - sample_label: melanoma metastasis tissue (class II)
         n: 25
         source: "same tissue, sequential IP flow-through from W6/32 → HB-145"
         condition: unperturbed
         mhc_class: II
         ip_antibody: HB-145
-        mhc: unknown
+        mhc: "HLA class II"
   - pmid: 31495665
     study_label: Abelin 2019 — MAPTAC HLA-II + class I
     title: Defining HLA-II Ligand Processing and Binding Rules with Mass Spectrometry Enhances Cancer Epitope Prediction
@@ -1612,7 +1612,7 @@
         mhc_class: II
         ip_antibody: tal1b5
         classification: healthy
-        mhc: unknown
+        mhc: "HLA class II"
       - sample_label: SILAC DCs cross-presenting tumor antigens
         n: 4
         source: 2 donors x 2 timepoints
@@ -1620,7 +1620,7 @@
         mhc_class: II
         ip_antibody: L243
         labeling: SILAC
-        mhc: unknown
+        mhc: "HLA class II"
   - pmid: 41459947
     study_label: Xu 2026 — CyHV-2 fish MHC-II
     title: Analysis of MHC class II-bound CyHV-2 peptides in Carassius gibelio using mass spectrometry
@@ -1636,7 +1636,7 @@
         source: Carassius gibelio
         condition: CyHV-2 viral infection
         mhc_class: II
-        mhc: unknown
+        mhc: "HLA class II"
   - pmid: 36146698
     study_label: Motz 2022 — PRRSV porcine MHC-I
     title: Identification of MHC-I-Presented Porcine Respiratory and Reproductive Syndrome Virus (PRRSV) Peptides Reveals Immunogenic Epitopes within Several Non-Structural Proteins Recognized by CD8+ T Cells
@@ -1972,11 +1972,11 @@
       - sample_label: "LM-MEL melanoma cell lines (untreated)"
         condition: "unperturbed"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
       - sample_label: "LM-MEL melanoma cell lines + IFN-gamma"
         condition: "IFN-gamma treatment"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
 
   - pmid: 32350084
     study_label: "van Balen 2020 — HLA-DP allelic variant immunopeptidomes"
@@ -2096,7 +2096,7 @@
         n: 17
         condition: "unperturbed"
         mhc_class: "I"
-        mhc: "unknown"
+        mhc: "HLA class I"
 
   - pmid: 32387766
     study_label: "Pandey 2020 — THP-1 deep immunopeptidome"
@@ -2308,7 +2308,7 @@
       - sample_label: "EBV-LCLs (multiple HLA-DR genotypes)"
         condition: "unperturbed"
         mhc_class: "II"
-        mhc: unknown
+        mhc: "HLA class II"
 
         reference_proteomes:
           - uniprot: UP000153037
@@ -2329,12 +2329,12 @@
       - sample_label: "primary B cells from ALL patients"
         condition: "unperturbed"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
         classification: cancer_patient
       - sample_label: "primary B cells from healthy donors"
         condition: "unperturbed"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
         classification: healthy
     rules:
       - condition:
@@ -2371,7 +2371,7 @@
       - sample_label: "C1R (B-lymphoblastoid)"
         condition: "unperturbed"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
       - sample_label: "HeLa (cervical carcinoma)"
         condition: "unperturbed"
         mhc_class: "I"
@@ -2379,7 +2379,7 @@
       - sample_label: "primary fibroblasts"
         condition: "unperturbed"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
 
   - pmid: 34171305
     study_label: "Weingarten-Gabbay 2021 — SARS-CoV-2 immunopeptidome"
@@ -2401,7 +2401,7 @@
       - sample_label: "HBECs (human bronchial epithelial, SARS-CoV-2-infected)"
         condition: "SARS-CoV-2 infection"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
         reference_proteomes:
           - uniprot: UP000464024
             label: SARS-CoV-2
@@ -2539,17 +2539,17 @@
       - sample_label: "primary Treg (healthy donors)"
         condition: "unperturbed — direct ex vivo"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
         classification: healthy
       - sample_label: "primary Tconv (healthy donors)"
         condition: "unperturbed — direct ex vivo"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
         classification: healthy
       - sample_label: "primary activated T cells"
         condition: "in vitro activation"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
 
   - pmid: 29632711
     study_label: "Nelde 2018 — CLL ± lenalidomide"
@@ -2610,7 +2610,7 @@
         n: 9
         condition: "unperturbed"
         mhc_class: "II"
-        mhc: unknown
+        mhc: "HLA class II"
 
         reference_proteomes:
           - uniprot: UP000153037
@@ -2624,7 +2624,7 @@
         n: 3
         condition: "unperturbed"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
 
   - pmid: 32488085
     study_label: "Stopfer 2020 — CDK4/6i + IFNg on melanoma/breast"
@@ -2748,7 +2748,7 @@
       - sample_label: "EBV-LCLs (healthy donors)"
         condition: "unperturbed"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
 
         reference_proteomes:
           - uniprot: UP000153037
@@ -2783,7 +2783,7 @@
       - sample_label: "cell lines (multiple HLA-DP genotypes)"
         condition: "unperturbed"
         mhc_class: "II"
-        mhc: unknown
+        mhc: "HLA class II"
 
   - pmid: 30429286
     study_label: "Gfeller 2018 — HLA-I length distributions"
@@ -2795,12 +2795,12 @@
       - sample_label: "meningioma tissue (direct ex vivo)"
         condition: "unperturbed"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
         classification: cancer
       - sample_label: "cell lines"
         condition: "unperturbed"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
 
   - pmid: 33298915
     study_label: "Jappe 2020 — pMHC thermostability profiling"
@@ -2810,7 +2810,7 @@
       - sample_label: "EBV-LCLs"
         condition: "unperturbed"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
 
         reference_proteomes:
           - uniprot: UP000153037
@@ -2826,7 +2826,7 @@
       - sample_label: "EBV-LCLs (multiple donors)"
         condition: "unperturbed"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
 
         reference_proteomes:
           - uniprot: UP000153037
@@ -2839,12 +2839,12 @@
       - sample_label: "adenocarcinoma tissue (direct ex vivo)"
         condition: "unperturbed"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
         classification: cancer
       - sample_label: "cell lines"
         condition: "unperturbed"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
 
   - pmid: 26154972
     study_label: "Caron 2015 — digital immunopeptidome maps"
@@ -2854,7 +2854,7 @@
       - sample_label: "multiple cell lines (JY, B721.221, etc.)"
         condition: "unperturbed"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
 
   - pmid: 34087483
     study_label: "Komov 2021 — IFN + DRiPs in breast cancer"
@@ -2866,11 +2866,11 @@
       - sample_label: "breast adenocarcinoma cell line (untreated)"
         condition: "unperturbed"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
       - sample_label: "breast adenocarcinoma cell line + IFN"
         condition: "IFN treatment"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
 
   - pmid: 29508533
     study_label: "Lanoix 2018 — IP method comparison (CLL + LCL)"
@@ -2880,12 +2880,12 @@
       - sample_label: "primary CLL cells"
         condition: "unperturbed"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
         classification: cancer_patient
       - sample_label: "EBV-LCLs"
         condition: "unperturbed"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
 
         reference_proteomes:
           - uniprot: UP000153037
@@ -2913,11 +2913,11 @@
       - sample_label: "DCs (direct ex vivo)"
         condition: "unperturbed"
         mhc_class: "II"
-        mhc: unknown
+        mhc: "HLA class II"
       - sample_label: "DCs + Borrelia restimulation"
         condition: "Borrelia burgdorferi short-term restimulation"
         mhc_class: "II"
-        mhc: unknown
+        mhc: "HLA class II"
 
   - pmid: 32161166
     study_label: "Chen 2020 — HLA-B*51:01 subpeptidome / ERAP1"
@@ -3110,11 +3110,11 @@
       - sample_label: "cancer cell lines (untreated)"
         condition: "unperturbed"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
       - sample_label: "cancer cell lines + doxorubicin"
         condition: "doxorubicin treatment"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
 
   - pmid: 30524438
     study_label: "Jensen 2018 — BET PROTAC immunopeptidome"
@@ -3259,14 +3259,14 @@
       - sample_label: "EBV-LCLs (uninfected)"
         condition: "unperturbed"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
         reference_proteomes:
           - uniprot: UP000153037
             label: Epstein-Barr virus
       - sample_label: "EBV-LCLs + vaccinia virus"
         condition: "vaccinia virus infection"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
 
 # --- Healthy/adjacent tissue studies ---
 
@@ -3382,7 +3382,7 @@
       - sample_label: "APCs from ERAP2+ vs ERAP2- patients"
         condition: "unperturbed — natural ERAP2 genotype"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
 
   - pmid: 33691108
     study_label: "Ruiz Cuevas 2021 — DLBCL cryptic MAPs"
@@ -3392,7 +3392,7 @@
       - sample_label: "DLBCL cell lines (3 lines)"
         condition: "unperturbed"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
 
   - pmid: 30573663
     study_label: "Nanaware 2019 — HLA-DO KO mouse class II"
@@ -3432,7 +3432,7 @@
       - sample_label: "hematopoietic cell lines (SILAC-labeled)"
         condition: "SILAC metabolic labeling"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
 
   - pmid: 30410026
     study_label: "Illing 2018 — HLA-B57 micropolymorphism"
@@ -3475,7 +3475,7 @@
         n: 20
         condition: "unperturbed"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
 
   - pmid: 26728094
     study_label: "Laumont 2016 — cryptic MAPs from B cells"
@@ -3485,7 +3485,7 @@
       - sample_label: "EBV-LCLs"
         condition: "unperturbed"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
 
         reference_proteomes:
           - uniprot: UP000153037
@@ -3498,7 +3498,7 @@
       - sample_label: "tumor tissues + cell lines"
         condition: "unperturbed"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
 
   - pmid: 35318648
     study_label: "Kumar 2022 — EV vs cell surface immunopeptidome"
@@ -3508,7 +3508,7 @@
       - sample_label: "breast cancer + melanoma + myeloma cell lines"
         condition: "unperturbed"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
 
   - pmid: 31998317
     study_label: "Kemps 2020 — BRAF neoantigen targeted peptidomics"
@@ -3518,7 +3518,7 @@
       - sample_label: "BRAF-transduced cell lines"
         condition: "unperturbed"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
 
   - pmid: 25880248
     study_label: "Giam 2015 — HLA-A*01:01 peptidome"
@@ -3539,7 +3539,7 @@
       - sample_label: "EBV-LCLs from MHC-identical siblings"
         condition: "unperturbed"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
 
         reference_proteomes:
           - uniprot: UP000153037
@@ -3565,7 +3565,7 @@
       - sample_label: "reanalysis of existing HLA-II datasets"
         condition: "unperturbed"
         mhc_class: "II"
-        mhc: unknown
+        mhc: "HLA class II"
 
   - pmid: 30192525
     study_label: "Chen 2018 — HCT116 chemical derivatization"
@@ -3585,7 +3585,7 @@
       - sample_label: "JY, PBMCs, CLL, bladder cancer (method validation)"
         condition: "unperturbed"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
 
   - pmid: 34433824
     study_label: "Tran 2021 — HLA-DQ8 hybrid insulin peptide"
@@ -3605,7 +3605,7 @@
       - sample_label: "HLA-DR immunopeptidome (citrullinated peptides)"
         condition: "unperturbed"
         mhc_class: "II"
-        mhc: unknown
+        mhc: "HLA class II"
 
   - pmid: 28467828
     study_label: "Ooi 2017 — Goodpasture HLA-DR15 (NOT primarily MS)"
@@ -3793,7 +3793,7 @@
         n: 1
         condition: "SARS-CoV-2 spike S1+S2 segment transfection"
         mhc_class: I
-        mhc: "unknown"
+        mhc: "HLA class I"
 
 # ── Quantitative targeted immunopeptidome studies ────────────────────────────
 
@@ -3842,7 +3842,7 @@
         n: 10
         condition: "unperturbed — fresh tumor biopsies"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
         override:
 
   - pmid: 31253788
@@ -3911,7 +3911,7 @@
       - sample_label: "GRANTA-519 human mantle cell lymphoma"
         condition: "unperturbed"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
         override: cell_line
 
   - pmid: 39111711
@@ -3934,12 +3934,12 @@
       - sample_label: "patient-derived xenograft"
         condition: "unperturbed — PDX tumor"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
       - sample_label: "patient tumor biopsies"
         n: 3
         condition: "unperturbed — fresh tumor biopsies"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
 
   - pmid: 39438697
     study_label: "Leddy 2025 — SureQuant protocol for antigen validation"
@@ -3961,12 +3961,12 @@
       - sample_label: "THP-1 (human monocytic leukemia)"
         condition: "unperturbed"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
         override: cell_line
       - sample_label: "THP-1 + Mtb infection"
         condition: "Mycobacterium tuberculosis infection"
         mhc_class: "I"
-        mhc: unknown
+        mhc: "HLA class I"
         override: cell_line
       - sample_label: "mouse splenocytes (C57BL/6)"
         condition: "unperturbed"
