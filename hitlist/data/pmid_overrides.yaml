@@ -432,14 +432,14 @@
         mhc: "HLA-A*03:01 HLA-A*26:01 HLA-B*07:02"
         reference_proteomes:
           - uniprot: UP000009255
-            label: Influenza A virus
+            proteome_label: Influenza A virus
       - sample_label: P1 lung — X31-infected
         n: 0
         profiled: false
         condition: NOT profiled (no PRIDE files despite text implying exposure)
         reference_proteomes:
           - uniprot: UP000009255
-            label: Influenza A virus
+            proteome_label: Influenza A virus
       - sample_label: P2 lung — UV mock (uninfected)
         n: 1
         source: "TL1178, surgical resection"
@@ -454,7 +454,7 @@
         mhc: "HLA-A*02:01 HLA-B*15:01 HLA-B*44:27 HLA-DRB1*04:01"
         reference_proteomes:
           - uniprot: UP000009255
-            label: Influenza A virus
+            proteome_label: Influenza A virus
       - sample_label: P2 lung — X31-infected
         n: 1
         source: TL1178
@@ -463,7 +463,7 @@
         mhc: "HLA-A*02:01 HLA-B*15:01 HLA-B*44:27 HLA-DRB1*04:01"
         reference_proteomes:
           - uniprot: UP000009255
-            label: Influenza A virus
+            proteome_label: Influenza A virus
       - sample_label: P3 lung — UV mock (uninfected)
         n: 1
         source: "TL1187, surgical resection"
@@ -478,7 +478,7 @@
         mhc: "HLA-A*02:01 HLA-A*03:01 HLA-B*15:01 HLA-B*18:01"
         reference_proteomes:
           - uniprot: UP000009255
-            label: Influenza A virus
+            proteome_label: Influenza A virus
       - sample_label: P3 lung — X31-infected
         n: 1
         source: TL1187
@@ -487,7 +487,7 @@
         mhc: "HLA-A*02:01 HLA-A*03:01 HLA-B*15:01 HLA-B*18:01"
         reference_proteomes:
           - uniprot: UP000009255
-            label: Influenza A virus
+            proteome_label: Influenza A virus
       - sample_label: THP-1 macrophage — UV mock (uninfected)
         n: 3
         source: PMA-differentiated THP-1 (3 independent differentiations)
@@ -501,7 +501,7 @@
         mhc: "HLA-A*02:01 HLA-A*24:02 HLA-B*15:11 HLA-B*35:01 HLA-C*03:03"
         reference_proteomes:
           - uniprot: UP000009255
-            label: Influenza A virus
+            proteome_label: Influenza A virus
       - sample_label: THP-1 macrophage — X31-infected
         n: 3
         condition: PMA differentiation → influenza A/H3N2/X31
@@ -509,7 +509,7 @@
         mhc: "HLA-A*02:01 HLA-A*24:02 HLA-B*15:11 HLA-B*35:01 HLA-C*03:03"
         reference_proteomes:
           - uniprot: UP000009255
-            label: Influenza A virus
+            proteome_label: Influenza A virus
       - sample_label: moDC cross-presentation — Wisconsin-infected A549 feeders
         n: 1
         source: "donor P4, heterotypic HLA relative to A549"
@@ -518,7 +518,7 @@
         mhc: unknown
         reference_proteomes:
           - uniprot: UP000009255
-            label: Influenza A virus
+            proteome_label: Influenza A virus
       - sample_label: moDC cross-presentation — uninfected control
         n: 0
         profiled: false
@@ -1767,9 +1767,9 @@
         mhc: "HLA-A*02:01 HLA-B*07:02 HLA-C*07:02"
         reference_proteomes:
           - uniprot: UP000153037
-            label: Epstein-Barr virus
+            proteome_label: Epstein-Barr virus
           - uniprot: UP000000938
-            label: Human cytomegalovirus
+            proteome_label: Human cytomegalovirus
       - sample_label: HHC (EBV-LCL)
         n: 1
         source: 40 billion cells
@@ -1778,7 +1778,7 @@
         mhc: "HLA-A*02:01 HLA-B*07:02 HLA-B*44:02 HLA-C*05:01 HLA-C*07:02"
         reference_proteomes:
           - uniprot: UP000153037
-            label: Epstein-Barr virus
+            proteome_label: Epstein-Barr virus
   - pmid: 24616531
     study_label: Mommen 2014 — EThcD methods / B-LCL GR
     title: Expanding the detectable HLA peptide repertoire using electron-transfer/higher-energy collision dissociation (EThcD)
@@ -1811,7 +1811,7 @@
         mhc: "HLA-A*01 HLA-A*03 HLA-B*07 HLA-B*27 HLA-C*02 HLA-C*07"
         reference_proteomes:
           - uniprot: UP000153037
-            label: Epstein-Barr virus
+            proteome_label: Epstein-Barr virus
   - pmid: 25576301
     study_label: Bassani-Sternberg 2015 — protein abundance & HLA presentation
     title: Mass spectrometry of human leukocyte antigen class I peptidomes reveals strong effects of protein abundance and turnover on antigen presentation
@@ -1870,7 +1870,7 @@
         mhc: "HLA-A*02:01 HLA-B*07:02 HLA-C*07:02"
         reference_proteomes:
           - uniprot: UP000153037
-            label: Epstein-Barr virus
+            proteome_label: Epstein-Barr virus
       - sample_label: HCC1143 (basal-like breast cancer)
         n: 4
         condition: unperturbed — RPMI
@@ -2043,7 +2043,7 @@
         mhc: "HLA-A*02:05 HLA-A*24:02 HLA-B*15:01 HLA-B*50:01 HLA-C*03:03 HLA-C*06:02"
         reference_proteomes:
           - uniprot: UP000153037
-            label: Epstein-Barr virus
+            proteome_label: Epstein-Barr virus
       - sample_label: CM467 (EBV-LCL)
         n: 1
         condition: unperturbed
@@ -2051,7 +2051,7 @@
         mhc: "HLA-A*01:01 HLA-A*24:02 HLA-B*13:02 HLA-B*39:06 HLA-C*06:02 HLA-C*12:03"
         reference_proteomes:
           - uniprot: UP000153037
-            label: Epstein-Barr virus
+            proteome_label: Epstein-Barr virus
       - sample_label: GD149 (EBV-LCL)
         n: 1
         condition: unperturbed
@@ -2059,7 +2059,7 @@
         mhc: "HLA-A*01:01 HLA-A*24:02 HLA-B*38:01 HLA-B*44:03 HLA-C*06:02 HLA-C*12:03"
         reference_proteomes:
           - uniprot: UP000153037
-            label: Epstein-Barr virus
+            proteome_label: Epstein-Barr virus
       - sample_label: MD155 (EBV-LCL)
         n: 1
         condition: unperturbed
@@ -2067,7 +2067,7 @@
         mhc: "HLA-A*02:01 HLA-A*24:02 HLA-B*15:01 HLA-B*18:01 HLA-C*03:03 HLA-C*07:01"
         reference_proteomes:
           - uniprot: UP000153037
-            label: Epstein-Barr virus
+            proteome_label: Epstein-Barr virus
       - sample_label: PD42 (EBV-LCL)
         n: 1
         condition: unperturbed
@@ -2075,7 +2075,7 @@
         mhc: "HLA-A*02:06 HLA-A*24:02 HLA-B*07:02 HLA-B*55:01 HLA-C*01:02 HLA-C*07:02"
         reference_proteomes:
           - uniprot: UP000153037
-            label: Epstein-Barr virus
+            proteome_label: Epstein-Barr virus
       - sample_label: RA957 (EBV-LCL)
         n: 1
         condition: unperturbed
@@ -2083,7 +2083,7 @@
         mhc: "HLA-A*02:20 HLA-A*68:01 HLA-B*35:03 HLA-B*39:01 HLA-C*04:01 HLA-C*07:02"
         reference_proteomes:
           - uniprot: UP000153037
-            label: Epstein-Barr virus
+            proteome_label: Epstein-Barr virus
       - sample_label: "TIL1 (melanoma TIL, expanded)"
         n: 1
         condition: IL-2 expansion + OKT3 rapid expansion
@@ -2594,14 +2594,14 @@
         ip_antibody: "W6/32 (I) + HB145/L243 (II)"
         reference_proteomes:
           - uniprot: UP000153037
-            label: Epstein-Barr virus
+            proteome_label: Epstein-Barr virus
       - sample_label: "B-LCLs + IFN-gamma"
         condition: "IFN-gamma 100 IU/mL 24h"
         mhc_class: "I+II"
         ip_antibody: "W6/32 (I) + HB145/L243 (II)"
         reference_proteomes:
           - uniprot: UP000153037
-            label: Epstein-Barr virus
+            proteome_label: Epstein-Barr virus
       - sample_label: "UWB.1 289 (ovarian carcinoma) untreated"
         condition: "unperturbed"
         mhc_class: "I+II"
@@ -2679,7 +2679,7 @@
         mhc: "HLA-DPB1*09:01 HLA-DPB1*10:01 HLA-DPB1*17:01 HLA-DPB1*04:01 HLA-DPB1*04:02 HLA-DPB1*02:01"
         reference_proteomes:
           - uniprot: UP000153037
-            label: Epstein-Barr virus
+            proteome_label: Epstein-Barr virus
       - sample_label: "K562 DPB1 transfectants"
         condition: "unperturbed — mono-allelic expression system"
         mhc_class: "II"
@@ -3146,7 +3146,7 @@
 
         reference_proteomes:
           - uniprot: UP000153037
-            label: Epstein-Barr virus
+            proteome_label: Epstein-Barr virus
   - pmid: 32502341
     study_label: "Pfammatter 2020 — TMT-labeled ALL + healthy B cells"
     title: "Extending the Comprehensiveness of Immunopeptidome Analyses Using Isobaric Peptide Labeling"
@@ -3194,14 +3194,14 @@
         mhc: "HLA-A*01 HLA-A*03 HLA-B*07 HLA-B*27 HLA-C*02 HLA-C*07"
         reference_proteomes:
           - uniprot: UP000153037
-            label: Epstein-Barr virus
+            proteome_label: Epstein-Barr virus
       - sample_label: "JY (EBV-LCL)"
         condition: "unperturbed"
         mhc_class: "I"
         mhc: "HLA-A*02:01 HLA-B*07:02 HLA-C*07:02"
         reference_proteomes:
           - uniprot: UP000153037
-            label: Epstein-Barr virus
+            proteome_label: Epstein-Barr virus
       - sample_label: "C1R (B-lymphoblastoid)"
         condition: "unperturbed"
         mhc_class: "I"
@@ -3231,14 +3231,14 @@
         mhc: "HLA-A*25:01 HLA-A*30:01 HLA-B*07:02 HLA-B*44:03 HLA-C*12:03"
         reference_proteomes:
           - uniprot: UP000464024
-            label: SARS-CoV-2
+            proteome_label: SARS-CoV-2
       - sample_label: "HBECs (human bronchial epithelial, SARS-CoV-2-infected)"
         condition: "SARS-CoV-2 infection"
         mhc_class: "I"
         mhc: "HLA class I"
         reference_proteomes:
           - uniprot: UP000464024
-            label: SARS-CoV-2
+            proteome_label: SARS-CoV-2
       - sample_label: "HEK293T (SARS-CoV-2-infected)"
         condition: "SARS-CoV-2 infection"
         mhc_class: "I"
@@ -3246,7 +3246,7 @@
 
         reference_proteomes:
           - uniprot: UP000464024
-            label: SARS-CoV-2
+            proteome_label: SARS-CoV-2
   - pmid: 34509645
     study_label: "Scull 2021 — THP-1 immunopeptidogenomics"
     title: "Immunopeptidogenomics: Harnessing RNA-Seq to Illuminate the Dark Immunopeptidome"
@@ -3346,7 +3346,7 @@
 
         reference_proteomes:
           - uniprot: UP000153037
-            label: Epstein-Barr virus
+            proteome_label: Epstein-Barr virus
   - pmid: 36284347
     study_label: "Fujiwara 2022 — PDAC tissue immunopeptidome"
     title: "Direct identification of HLA class I and class II-restricted T cell epitopes in pancreatic cancer tissues by mass spectrometry"
@@ -3426,7 +3426,7 @@
         mhc: "HLA-A*02:01 HLA-B*07:02 HLA-C*07:02"
         reference_proteomes:
           - uniprot: UP000153037
-            label: Epstein-Barr virus
+            proteome_label: Epstein-Barr virus
       - sample_label: "HEK293 (embryonic kidney)"
         condition: "unperturbed"
         mhc_class: "I"
@@ -3448,7 +3448,7 @@
 
         reference_proteomes:
           - uniprot: UP000153037
-            label: Epstein-Barr virus
+            proteome_label: Epstein-Barr virus
   - pmid: 25645385
     study_label: "Pritchard 2015 — melanoma class I"
     title: "Exploration of peptides bound to MHC class I molecules in melanoma"
@@ -3586,7 +3586,7 @@
 
         reference_proteomes:
           - uniprot: UP000153037
-            label: Epstein-Barr virus
+            proteome_label: Epstein-Barr virus
   - pmid: 33912179
     study_label: "Mifsud 2021 — carbamazepine immunopeptidome"
     title: "Carbamazepine effect on immunopeptidome in SJS/TEN context"
@@ -3648,7 +3648,7 @@
 
         reference_proteomes:
           - uniprot: UP000153037
-            label: Epstein-Barr virus
+            proteome_label: Epstein-Barr virus
   - pmid: 27841757
     study_label: "Pearson 2016 — MHC-I from selective genome regions"
     title: "MHC class I peptides derived from selective genome regions"
@@ -3664,7 +3664,7 @@
 
         reference_proteomes:
           - uniprot: UP000153037
-            label: Epstein-Barr virus
+            proteome_label: Epstein-Barr virus
   - pmid: 31848261
     study_label: "Solleder 2020 — phosphorylated HLA-I ligands"
     title: "Phosphorylated HLA class I ligand predictions"
@@ -3723,7 +3723,7 @@
 
         reference_proteomes:
           - uniprot: UP000153037
-            label: Epstein-Barr virus
+            proteome_label: Epstein-Barr virus
   - pmid: 29314611
     study_label: "Ritz 2018 — sHLA class II (NHL + cell lines)"
     title: "Membranal and blood-soluble HLA class II peptidome using DDA and DIA"
@@ -3794,7 +3794,7 @@
         mhc_class: "I+II"
         reference_proteomes:
           - uniprot: UP000153037
-            label: Epstein-Barr virus
+            proteome_label: Epstein-Barr virus
       - sample_label: "EBV-LCLs from healthy donors"
         condition: "unperturbed"
         mhc_class: "I+II"
@@ -3802,7 +3802,7 @@
 
         reference_proteomes:
           - uniprot: UP000153037
-            label: Epstein-Barr virus
+            proteome_label: Epstein-Barr virus
   - pmid: 33141586
     study_label: "Sturm 2021 — mild acid vs IP method comparison"
     title: "Comparison of mild acid elution vs MHC immunoaffinity for HLA class I"
@@ -3883,7 +3883,7 @@
 
         reference_proteomes:
           - uniprot: UP000002241
-            label: Human immunodeficiency virus 1
+            proteome_label: Human immunodeficiency virus 1
   - pmid: 33392160
     study_label: "Ghosh 2020 — THP-1 + biomaterials + LPS"
     title: "The Impact of Biomaterial Cell Contact on the Immunopeptidome"
@@ -3934,7 +3934,7 @@
 
         reference_proteomes:
           - uniprot: UP000002241
-            label: Human immunodeficiency virus 1
+            proteome_label: Human immunodeficiency virus 1
   - pmid: 30779550
     study_label: "Murphy 2019 — cancer cells + doxorubicin"
     title: "Multiplexed Relative Quantitation with Isobaric Tagging Mass Spectrometry Reveals Class I Major Histocompatibility Complex Ligand Dynamics in Response to Doxorubicin"
@@ -4096,7 +4096,7 @@
         mhc: "HLA class I"
         reference_proteomes:
           - uniprot: UP000153037
-            label: Epstein-Barr virus
+            proteome_label: Epstein-Barr virus
       - sample_label: "EBV-LCLs + vaccinia virus"
         condition: "vaccinia virus infection"
         mhc_class: "I"
@@ -4106,9 +4106,9 @@
 
         reference_proteomes:
           - uniprot: UP000153037
-            label: Epstein-Barr virus
+            proteome_label: Epstein-Barr virus
           - uniprot: UP000000344
-            label: Vaccinia virus
+            proteome_label: Vaccinia virus
   - pmid: 29789417
     study_label: "Loffler 2018 — CRC + matched normal colon"
     title: "Mapping the HLA Ligandome of Colorectal Cancer Reveals an Imprint of Malignant Cell Transformation"
@@ -4357,7 +4357,7 @@
 
         reference_proteomes:
           - uniprot: UP000153037
-            label: Epstein-Barr virus
+            proteome_label: Epstein-Barr virus
   - pmid: 32561536
     study_label: "Erhard 2020 — cryptic ORF peptides in tumors"
     title: "Identification of the Cryptic HLA-I Immunopeptidome"
@@ -4411,7 +4411,7 @@
 
         reference_proteomes:
           - uniprot: UP000153037
-            label: Epstein-Barr virus
+            proteome_label: Epstein-Barr virus
   - pmid: 34211107
     study_label: "Bauza-Martinez 2021 — EV immunopeptidome (JY)"
     title: "HLA-B and cysteinylated ligands distinguish the antigen presentation landscape of extracellular vesicles"
@@ -4424,7 +4424,7 @@
 
         reference_proteomes:
           - uniprot: UP000153037
-            label: Epstein-Barr virus
+            proteome_label: Epstein-Barr virus
   - pmid: 35494241
     study_label: "Solleder 2022 — phospho HLA-II reanalysis"
     title: "Deciphering the landscape of phosphorylated HLA-II ligands"
@@ -4646,7 +4646,7 @@
         mhc: "HLA-A*02:01 HLA-B*07:02 HLA-C*07:02"
         reference_proteomes:
           - uniprot: UP000153037
-            label: Epstein-Barr virus
+            proteome_label: Epstein-Barr virus
       - sample_label: HeLa (cervical carcinoma)
         n: 1
         condition: unperturbed
@@ -4667,9 +4667,9 @@
 
         reference_proteomes:
           - uniprot: UP000153037
-            label: Epstein-Barr virus
+            proteome_label: Epstein-Barr virus
           - uniprot: UP000464024
-            label: SARS-CoV-2
+            proteome_label: SARS-CoV-2
   - pmid: 34497125
     study_label: "Stopfer 2021 — SureQuant-IsoMHC melanoma tumor antigens"
     title: "Absolute quantification of tumor antigens using embedded MHC-I isotopologue calibrants"
@@ -4737,14 +4737,14 @@
         mhc: "H-2Kb H-2Db"
         reference_proteomes:
           - uniprot: UP000009255
-            label: Influenza A virus
+            proteome_label: Influenza A virus
       - sample_label: "DC2.4 (influenza-infected)"
         condition: "influenza infection (PR8)"
         mhc_class: "I"
         mhc: "H-2Kb H-2Db"
         reference_proteomes:
           - uniprot: UP000009255
-            label: Influenza A virus
+            proteome_label: Influenza A virus
       - sample_label: "LET1 lung epithelial (influenza-infected)"
         condition: "influenza infection (PR8)"
         mhc_class: "I"
@@ -4752,7 +4752,7 @@
 
         reference_proteomes:
           - uniprot: UP000009255
-            label: Influenza A virus
+            proteome_label: Influenza A virus
   - pmid: 34129938
     study_label: "Pollock 2021 — TOMAHAQ neoepitope quantification"
     title: "Sensitive and Quantitative Detection of MHC-I Displayed Neoepitopes Using a Semiautomated Workflow and TOMAHAQ Mass Spectrometry"

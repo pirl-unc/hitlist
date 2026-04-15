@@ -464,7 +464,16 @@ def _collect_pmid_extra_proteomes() -> dict[int, list[dict]]:
             for proteome in sample.get("reference_proteomes", []):
                 if isinstance(proteome, dict):
                     upid = proteome.get("uniprot")
-                    label = proteome.get("label")
+                    label = proteome.get("proteome_label") or proteome.get("label")
+                    if proteome.get("label") and not proteome.get("proteome_label"):
+                        import warnings
+
+                        warnings.warn(
+                            f"PMID {pmid}: reference_proteomes uses deprecated "
+                            f"'label:' key, use 'proteome_label:' (v1.7.5).",
+                            DeprecationWarning,
+                            stacklevel=2,
+                        )
                 else:
                     upid = str(proteome).strip()
                     label = None
