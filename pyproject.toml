@@ -30,7 +30,10 @@ dependencies = [
 
 [project.optional-dependencies]
 alleles = [
-    "mhcgnomes>=3.20.0",
+    # Pin to >=3.31.0 to match the serotype/allele normalization forms
+    # the test suite asserts.  Earlier versions parsed some strings
+    # differently (e.g. "SahaI*35"), which silently broke CI.
+    "mhcgnomes>=3.31.0",
 ]
 dev = [
     "pytest",
