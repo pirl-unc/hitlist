@@ -778,15 +778,102 @@
         - "HLA-B*54:01"
         - "HLA-B*57:01"
     ms_samples:
-      - sample_label: 721.221 mono-allelic transfectants
-        n: 16
+      - sample_label: "721.221-HLA-A*01:01"
+        n: 1
         source: retroviral transduction of single HLA alleles into B721.221
         condition: unperturbed — standard culture
         mhc_class: I
-        mhc: >-
-          HLA-A*01:01 HLA-A*02:01 HLA-A*02:03 HLA-A*02:07 HLA-A*03:01 HLA-A*11:01
-          HLA-A*24:02 HLA-A*29:02 HLA-A*31:01 HLA-A*68:02 HLA-B*07:02 HLA-B*35:01
-          HLA-B*44:03 HLA-B*51:01 HLA-B*54:01 HLA-B*57:01
+        mhc: "HLA-A*01:01"
+      - sample_label: "721.221-HLA-A*02:01"
+        n: 1
+        source: retroviral transduction of single HLA alleles into B721.221
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-A*02:01"
+      - sample_label: "721.221-HLA-A*02:03"
+        n: 1
+        source: retroviral transduction of single HLA alleles into B721.221
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-A*02:03"
+      - sample_label: "721.221-HLA-A*02:07"
+        n: 1
+        source: retroviral transduction of single HLA alleles into B721.221
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-A*02:07"
+      - sample_label: "721.221-HLA-A*03:01"
+        n: 1
+        source: retroviral transduction of single HLA alleles into B721.221
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-A*03:01"
+      - sample_label: "721.221-HLA-A*11:01"
+        n: 1
+        source: retroviral transduction of single HLA alleles into B721.221
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-A*11:01"
+      - sample_label: "721.221-HLA-A*24:02"
+        n: 1
+        source: retroviral transduction of single HLA alleles into B721.221
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-A*24:02"
+      - sample_label: "721.221-HLA-A*29:02"
+        n: 1
+        source: retroviral transduction of single HLA alleles into B721.221
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-A*29:02"
+      - sample_label: "721.221-HLA-A*31:01"
+        n: 1
+        source: retroviral transduction of single HLA alleles into B721.221
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-A*31:01"
+      - sample_label: "721.221-HLA-A*68:02"
+        n: 1
+        source: retroviral transduction of single HLA alleles into B721.221
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-A*68:02"
+      - sample_label: "721.221-HLA-B*07:02"
+        n: 1
+        source: retroviral transduction of single HLA alleles into B721.221
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*07:02"
+      - sample_label: "721.221-HLA-B*35:01"
+        n: 1
+        source: retroviral transduction of single HLA alleles into B721.221
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*35:01"
+      - sample_label: "721.221-HLA-B*44:03"
+        n: 1
+        source: retroviral transduction of single HLA alleles into B721.221
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*44:03"
+      - sample_label: "721.221-HLA-B*51:01"
+        n: 1
+        source: retroviral transduction of single HLA alleles into B721.221
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*51:01"
+      - sample_label: "721.221-HLA-B*54:01"
+        n: 1
+        source: retroviral transduction of single HLA alleles into B721.221
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*54:01"
+      - sample_label: "721.221-HLA-B*57:01"
+        n: 1
+        source: retroviral transduction of single HLA alleles into B721.221
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*57:01"
       - sample_label: "validation cell lines (HCC1937, HCT116, fibroblasts, HeLa)"
         source: multi-allelic validation samples
         condition: unperturbed — standard culture
@@ -812,28 +899,576 @@
     perturbations:
       - "IFN-gamma (2000 U/mL, 3d) on 6 typed tumor lines (3 MEL + 3 GBM) + 1 untyped ccRCC — NOT on 721.221 mono-allelic data"
     ms_samples:
-      - sample_label: 721.221 mono-allelic transfectants
-        n: 95
+      - sample_label: "721.221-HLA-A*01:01"
+        n: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
         condition: unperturbed — standard culture
         mhc_class: I
-        mhc: >-
-          HLA-A*01:01 HLA-A*02:01 HLA-A*02:02 HLA-A*02:03 HLA-A*02:04 HLA-A*02:05
-          HLA-A*02:06 HLA-A*02:07 HLA-A*02:11 HLA-A*03:01 HLA-A*11:01 HLA-A*11:02
-          HLA-A*23:01 HLA-A*24:02 HLA-A*24:07 HLA-A*25:01 HLA-A*26:01 HLA-A*29:02
-          HLA-A*30:01 HLA-A*30:02 HLA-A*31:01 HLA-A*32:01 HLA-A*33:01 HLA-A*33:03
-          HLA-A*34:01 HLA-A*34:02 HLA-A*36:01 HLA-A*66:01 HLA-A*68:01 HLA-A*68:02
-          HLA-A*74:01 HLA-B*07:02 HLA-B*07:04 HLA-B*08:01 HLA-B*13:01 HLA-B*13:02
-          HLA-B*14:02 HLA-B*15:01 HLA-B*15:02 HLA-B*15:03 HLA-B*15:10 HLA-B*15:17
-          HLA-B*18:01 HLA-B*27:05 HLA-B*35:01 HLA-B*35:03 HLA-B*35:07 HLA-B*37:01
-          HLA-B*38:01 HLA-B*38:02 HLA-B*40:01 HLA-B*40:02 HLA-B*40:06 HLA-B*42:01
-          HLA-B*44:02 HLA-B*44:03 HLA-B*45:01 HLA-B*46:01 HLA-B*49:01 HLA-B*50:01
-          HLA-B*51:01 HLA-B*52:01 HLA-B*53:01 HLA-B*54:01 HLA-B*55:01 HLA-B*55:02
-          HLA-B*56:01 HLA-B*57:01 HLA-B*57:03 HLA-B*58:01 HLA-B*58:02 HLA-C*01:02
-          HLA-C*02:02 HLA-C*03:02 HLA-C*03:03 HLA-C*03:04 HLA-C*04:01 HLA-C*04:03
-          HLA-C*05:01 HLA-C*06:02 HLA-C*07:01 HLA-C*07:02 HLA-C*07:04 HLA-C*08:01
-          HLA-C*08:02 HLA-C*12:02 HLA-C*12:03 HLA-C*14:02 HLA-C*14:03 HLA-C*15:02
-          HLA-C*16:01 HLA-C*17:01 HLA-G*01:01 HLA-G*01:03 HLA-G*01:04
+        mhc: "HLA-A*01:01"
+      - sample_label: "721.221-HLA-A*02:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-A*02:01"
+      - sample_label: "721.221-HLA-A*02:02"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-A*02:02"
+      - sample_label: "721.221-HLA-A*02:03"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-A*02:03"
+      - sample_label: "721.221-HLA-A*02:04"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-A*02:04"
+      - sample_label: "721.221-HLA-A*02:05"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-A*02:05"
+      - sample_label: "721.221-HLA-A*02:06"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-A*02:06"
+      - sample_label: "721.221-HLA-A*02:07"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-A*02:07"
+      - sample_label: "721.221-HLA-A*02:11"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-A*02:11"
+      - sample_label: "721.221-HLA-A*03:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-A*03:01"
+      - sample_label: "721.221-HLA-A*11:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-A*11:01"
+      - sample_label: "721.221-HLA-A*11:02"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-A*11:02"
+      - sample_label: "721.221-HLA-A*23:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-A*23:01"
+      - sample_label: "721.221-HLA-A*24:02"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-A*24:02"
+      - sample_label: "721.221-HLA-A*24:07"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-A*24:07"
+      - sample_label: "721.221-HLA-A*25:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-A*25:01"
+      - sample_label: "721.221-HLA-A*26:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-A*26:01"
+      - sample_label: "721.221-HLA-A*29:02"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-A*29:02"
+      - sample_label: "721.221-HLA-A*30:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-A*30:01"
+      - sample_label: "721.221-HLA-A*30:02"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-A*30:02"
+      - sample_label: "721.221-HLA-A*31:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-A*31:01"
+      - sample_label: "721.221-HLA-A*32:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-A*32:01"
+      - sample_label: "721.221-HLA-A*33:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-A*33:01"
+      - sample_label: "721.221-HLA-A*33:03"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-A*33:03"
+      - sample_label: "721.221-HLA-A*34:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-A*34:01"
+      - sample_label: "721.221-HLA-A*34:02"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-A*34:02"
+      - sample_label: "721.221-HLA-A*36:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-A*36:01"
+      - sample_label: "721.221-HLA-A*66:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-A*66:01"
+      - sample_label: "721.221-HLA-A*68:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-A*68:01"
+      - sample_label: "721.221-HLA-A*68:02"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-A*68:02"
+      - sample_label: "721.221-HLA-A*74:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-A*74:01"
+      - sample_label: "721.221-HLA-B*07:02"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*07:02"
+      - sample_label: "721.221-HLA-B*07:04"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*07:04"
+      - sample_label: "721.221-HLA-B*08:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*08:01"
+      - sample_label: "721.221-HLA-B*13:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*13:01"
+      - sample_label: "721.221-HLA-B*13:02"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*13:02"
+      - sample_label: "721.221-HLA-B*14:02"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*14:02"
+      - sample_label: "721.221-HLA-B*15:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*15:01"
+      - sample_label: "721.221-HLA-B*15:02"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*15:02"
+      - sample_label: "721.221-HLA-B*15:03"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*15:03"
+      - sample_label: "721.221-HLA-B*15:10"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*15:10"
+      - sample_label: "721.221-HLA-B*15:17"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*15:17"
+      - sample_label: "721.221-HLA-B*18:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*18:01"
+      - sample_label: "721.221-HLA-B*27:05"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*27:05"
+      - sample_label: "721.221-HLA-B*35:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*35:01"
+      - sample_label: "721.221-HLA-B*35:03"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*35:03"
+      - sample_label: "721.221-HLA-B*35:07"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*35:07"
+      - sample_label: "721.221-HLA-B*37:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*37:01"
+      - sample_label: "721.221-HLA-B*38:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*38:01"
+      - sample_label: "721.221-HLA-B*38:02"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*38:02"
+      - sample_label: "721.221-HLA-B*40:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*40:01"
+      - sample_label: "721.221-HLA-B*40:02"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*40:02"
+      - sample_label: "721.221-HLA-B*40:06"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*40:06"
+      - sample_label: "721.221-HLA-B*42:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*42:01"
+      - sample_label: "721.221-HLA-B*44:02"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*44:02"
+      - sample_label: "721.221-HLA-B*44:03"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*44:03"
+      - sample_label: "721.221-HLA-B*45:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*45:01"
+      - sample_label: "721.221-HLA-B*46:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*46:01"
+      - sample_label: "721.221-HLA-B*49:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*49:01"
+      - sample_label: "721.221-HLA-B*50:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*50:01"
+      - sample_label: "721.221-HLA-B*51:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*51:01"
+      - sample_label: "721.221-HLA-B*52:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*52:01"
+      - sample_label: "721.221-HLA-B*53:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*53:01"
+      - sample_label: "721.221-HLA-B*54:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*54:01"
+      - sample_label: "721.221-HLA-B*55:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*55:01"
+      - sample_label: "721.221-HLA-B*55:02"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*55:02"
+      - sample_label: "721.221-HLA-B*56:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*56:01"
+      - sample_label: "721.221-HLA-B*57:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*57:01"
+      - sample_label: "721.221-HLA-B*57:03"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*57:03"
+      - sample_label: "721.221-HLA-B*58:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*58:01"
+      - sample_label: "721.221-HLA-B*58:02"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-B*58:02"
+      - sample_label: "721.221-HLA-C*01:02"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-C*01:02"
+      - sample_label: "721.221-HLA-C*02:02"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-C*02:02"
+      - sample_label: "721.221-HLA-C*03:02"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-C*03:02"
+      - sample_label: "721.221-HLA-C*03:03"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-C*03:03"
+      - sample_label: "721.221-HLA-C*03:04"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-C*03:04"
+      - sample_label: "721.221-HLA-C*04:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-C*04:01"
+      - sample_label: "721.221-HLA-C*04:03"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-C*04:03"
+      - sample_label: "721.221-HLA-C*05:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-C*05:01"
+      - sample_label: "721.221-HLA-C*06:02"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-C*06:02"
+      - sample_label: "721.221-HLA-C*07:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-C*07:01"
+      - sample_label: "721.221-HLA-C*07:02"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-C*07:02"
+      - sample_label: "721.221-HLA-C*07:04"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-C*07:04"
+      - sample_label: "721.221-HLA-C*08:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-C*08:01"
+      - sample_label: "721.221-HLA-C*08:02"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-C*08:02"
+      - sample_label: "721.221-HLA-C*12:02"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-C*12:02"
+      - sample_label: "721.221-HLA-C*12:03"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-C*12:03"
+      - sample_label: "721.221-HLA-C*14:02"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-C*14:02"
+      - sample_label: "721.221-HLA-C*14:03"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-C*14:03"
+      - sample_label: "721.221-HLA-C*15:02"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-C*15:02"
+      - sample_label: "721.221-HLA-C*16:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-C*16:01"
+      - sample_label: "721.221-HLA-C*17:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-C*17:01"
+      - sample_label: "721.221-HLA-G*01:01"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-G*01:01"
+      - sample_label: "721.221-HLA-G*01:03"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-G*01:03"
+      - sample_label: "721.221-HLA-G*01:04"
+        n: 1
+        source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
+        condition: unperturbed — standard culture
+        mhc_class: I
+        mhc: "HLA-G*01:04"
   # --- Validation tumor cell lines (Supplementary Data 2) ---
   # CLL (3 samples, untreated only, CD19-sorted)
       - sample_label: CLL A (DFCI-5341)
@@ -1568,13 +2203,62 @@
     fragmentation: HCD
     labeling: label-free
     ms_samples:
-      - sample_label: "MAPTAC class I mono-allelic (A375, ExpiHEK293, HEK293, HeLa mixtures)"
-        n: 8
+      - sample_label: "MAPTAC-HLA-A*02:01"
+        n: 1
         source: cell line mixtures per allele
         condition: unperturbed — 48h transfection
-        mhc_class: I
         ip_antibody: "streptavidin (MAPTAC)"
-        mhc: "HLA-A*02:01 HLA-A*11:01 HLA-A*32:01 HLA-B*07:02 HLA-B*45:01 HLA-B*52:01 HLA-C*03:03 HLA-C*06:02"
+        mhc_class: I
+        mhc: "HLA-A*02:01"
+      - sample_label: "MAPTAC-HLA-A*11:01"
+        n: 1
+        source: cell line mixtures per allele
+        condition: unperturbed — 48h transfection
+        ip_antibody: "streptavidin (MAPTAC)"
+        mhc_class: I
+        mhc: "HLA-A*11:01"
+      - sample_label: "MAPTAC-HLA-A*32:01"
+        n: 1
+        source: cell line mixtures per allele
+        condition: unperturbed — 48h transfection
+        ip_antibody: "streptavidin (MAPTAC)"
+        mhc_class: I
+        mhc: "HLA-A*32:01"
+      - sample_label: "MAPTAC-HLA-B*07:02"
+        n: 1
+        source: cell line mixtures per allele
+        condition: unperturbed — 48h transfection
+        ip_antibody: "streptavidin (MAPTAC)"
+        mhc_class: I
+        mhc: "HLA-B*07:02"
+      - sample_label: "MAPTAC-HLA-B*45:01"
+        n: 1
+        source: cell line mixtures per allele
+        condition: unperturbed — 48h transfection
+        ip_antibody: "streptavidin (MAPTAC)"
+        mhc_class: I
+        mhc: "HLA-B*45:01"
+      - sample_label: "MAPTAC-HLA-B*52:01"
+        n: 1
+        source: cell line mixtures per allele
+        condition: unperturbed — 48h transfection
+        ip_antibody: "streptavidin (MAPTAC)"
+        mhc_class: I
+        mhc: "HLA-B*52:01"
+      - sample_label: "MAPTAC-HLA-C*03:03"
+        n: 1
+        source: cell line mixtures per allele
+        condition: unperturbed — 48h transfection
+        ip_antibody: "streptavidin (MAPTAC)"
+        mhc_class: I
+        mhc: "HLA-C*03:03"
+      - sample_label: "MAPTAC-HLA-C*06:02"
+        n: 1
+        source: cell line mixtures per allele
+        condition: unperturbed — 48h transfection
+        ip_antibody: "streptavidin (MAPTAC)"
+        mhc_class: I
+        mhc: "HLA-C*06:02"
       - sample_label: MAPTAC class II dm+ (HLA-DM co-transfected)
         n: 10
         source: "ExpiHEK293, A375, K562, KG-1, B721.221 mixtures"
@@ -2343,14 +3027,81 @@
       HLA-G*01:01. IEDB may label as EBV-LCL — actually C1R (HLA-I-low).
       Includes non-classical HLA (E + G).
     ms_samples:
-      - sample_label: "C1R HLA-C transfectants (15 alleles)"
-        n: 15
+      - sample_label: "C1R-HLA-C*01:02"
+        n: 1
         condition: "unperturbed — mono-allelic"
         mhc_class: "I"
-        mhc: >-
-          HLA-C*01:02 HLA-C*02:02 HLA-C*03:03 HLA-C*03:04 HLA-C*04:01 HLA-C*05:01
-          HLA-C*06:02 HLA-C*07:01 HLA-C*07:02 HLA-C*08:02 HLA-C*12:03 HLA-C*14:02
-          HLA-C*15:02 HLA-C*16:01 HLA-C*17:01
+        mhc: "HLA-C*01:02"
+      - sample_label: "C1R-HLA-C*02:02"
+        n: 1
+        condition: "unperturbed — mono-allelic"
+        mhc_class: "I"
+        mhc: "HLA-C*02:02"
+      - sample_label: "C1R-HLA-C*03:03"
+        n: 1
+        condition: "unperturbed — mono-allelic"
+        mhc_class: "I"
+        mhc: "HLA-C*03:03"
+      - sample_label: "C1R-HLA-C*03:04"
+        n: 1
+        condition: "unperturbed — mono-allelic"
+        mhc_class: "I"
+        mhc: "HLA-C*03:04"
+      - sample_label: "C1R-HLA-C*04:01"
+        n: 1
+        condition: "unperturbed — mono-allelic"
+        mhc_class: "I"
+        mhc: "HLA-C*04:01"
+      - sample_label: "C1R-HLA-C*05:01"
+        n: 1
+        condition: "unperturbed — mono-allelic"
+        mhc_class: "I"
+        mhc: "HLA-C*05:01"
+      - sample_label: "C1R-HLA-C*06:02"
+        n: 1
+        condition: "unperturbed — mono-allelic"
+        mhc_class: "I"
+        mhc: "HLA-C*06:02"
+      - sample_label: "C1R-HLA-C*07:01"
+        n: 1
+        condition: "unperturbed — mono-allelic"
+        mhc_class: "I"
+        mhc: "HLA-C*07:01"
+      - sample_label: "C1R-HLA-C*07:02"
+        n: 1
+        condition: "unperturbed — mono-allelic"
+        mhc_class: "I"
+        mhc: "HLA-C*07:02"
+      - sample_label: "C1R-HLA-C*08:02"
+        n: 1
+        condition: "unperturbed — mono-allelic"
+        mhc_class: "I"
+        mhc: "HLA-C*08:02"
+      - sample_label: "C1R-HLA-C*12:03"
+        n: 1
+        condition: "unperturbed — mono-allelic"
+        mhc_class: "I"
+        mhc: "HLA-C*12:03"
+      - sample_label: "C1R-HLA-C*14:02"
+        n: 1
+        condition: "unperturbed — mono-allelic"
+        mhc_class: "I"
+        mhc: "HLA-C*14:02"
+      - sample_label: "C1R-HLA-C*15:02"
+        n: 1
+        condition: "unperturbed — mono-allelic"
+        mhc_class: "I"
+        mhc: "HLA-C*15:02"
+      - sample_label: "C1R-HLA-C*16:01"
+        n: 1
+        condition: "unperturbed — mono-allelic"
+        mhc_class: "I"
+        mhc: "HLA-C*16:01"
+      - sample_label: "C1R-HLA-C*17:01"
+        n: 1
+        condition: "unperturbed — mono-allelic"
+        mhc_class: "I"
+        mhc: "HLA-C*17:01"
       - sample_label: "C1R HLA-E*01:01 transfectant"
         n: 1
         condition: "unperturbed — mono-allelic"
@@ -3451,12 +4202,46 @@
     override: cell_line
     mono_allelic_host: "C1R"
     ms_samples:
-      - sample_label: "C1R B*27:02-09 transfectants (8 subtypes)"
-        n: 8
+      - sample_label: "C1R-HLA-B*27:02"
+        n: 1
         condition: "unperturbed"
         mhc_class: "I"
-        mhc: "HLA-B*27:02 HLA-B*27:03 HLA-B*27:04 HLA-B*27:05 HLA-B*27:06 HLA-B*27:07 HLA-B*27:08 HLA-B*27:09"
-
+        mhc: "HLA-B*27:02"
+      - sample_label: "C1R-HLA-B*27:03"
+        n: 1
+        condition: "unperturbed"
+        mhc_class: "I"
+        mhc: "HLA-B*27:03"
+      - sample_label: "C1R-HLA-B*27:04"
+        n: 1
+        condition: "unperturbed"
+        mhc_class: "I"
+        mhc: "HLA-B*27:04"
+      - sample_label: "C1R-HLA-B*27:05"
+        n: 1
+        condition: "unperturbed"
+        mhc_class: "I"
+        mhc: "HLA-B*27:05"
+      - sample_label: "C1R-HLA-B*27:06"
+        n: 1
+        condition: "unperturbed"
+        mhc_class: "I"
+        mhc: "HLA-B*27:06"
+      - sample_label: "C1R-HLA-B*27:07"
+        n: 1
+        condition: "unperturbed"
+        mhc_class: "I"
+        mhc: "HLA-B*27:07"
+      - sample_label: "C1R-HLA-B*27:08"
+        n: 1
+        condition: "unperturbed"
+        mhc_class: "I"
+        mhc: "HLA-B*27:08"
+      - sample_label: "C1R-HLA-B*27:09"
+        n: 1
+        condition: "unperturbed"
+        mhc_class: "I"
+        mhc: "HLA-B*27:09"
   - pmid: 33717175
     study_label: "Venema 2021 — HLA-A29 uveitis ERAP2 comparison"
     title: "ERAP2 Increases the Abundance of a Peptide Submotif Highly Selective for the Birdshot Uveitis-Associated HLA-A29"
