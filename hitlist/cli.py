@@ -582,6 +582,37 @@ def main() -> None:
     )
     p_counts.add_argument("--output", "-o", help="Write CSV to file")
 
+    p_reassign = sub.add_parser(
+        "reassign-alleles",
+        help=(
+            "Reassign class-only peptides (mhc_restriction='HLA class I') "
+            "to their best-scoring allele via MHCflurry / NetMHCpan"
+        ),
+    )
+    p_reassign.add_argument(
+        "--method",
+        choices=["mhcflurry", "netmhcpan"],
+        default="mhcflurry",
+        help="Binding predictor (default: mhcflurry)",
+    )
+    p_reassign.add_argument(
+        "--class",
+        dest="mhc_class",
+        choices=["I"],
+        default="I",
+        help="MHC class (only I supported in v1.8.0)",
+    )
+    p_reassign.add_argument(
+        "--max-alleles-per-sample",
+        type=int,
+        default=30,
+        help=(
+            "Skip samples with more alleles than this — likely pooled-donor "
+            "curation artifacts whose 'best allele' is meaningless (default: 30)"
+        ),
+    )
+    p_reassign.add_argument("--output", "-o", help="Write CSV to file")
+
     args = parser.parse_args()
     if args.command is None:
         parser.print_help()
@@ -592,6 +623,38 @@ def main() -> None:
         _report(args)
     elif args.command == "export":
         _export(args)
+    elif args.command == "reassign-alleles":
+        _reassign(args)
+
+
+def _reassign(args: argparse.Namespace) -> None:
+    from .predict import reassign_class_only_alleles
+
+    try:
+        df = reassign_class_only_alleles(
+            method=args.method,
+            mhc_class=args.mhc_class,
+            max_alleles_per_sample=args.max_alleles_per_sample,
+        )
+    except (RuntimeError, NotImplementedError) as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    print(
+        f"Scored {len(df):,} class-only peptides.  "
+        f"Strong binders: {df['is_strong_binder'].sum():,}  "
+        f"Weak binders: {df['is_weak_binder'].sum():,}",
+        file=sys.stderr,
+    )
+
+    if args.output:
+        if args.output.endswith(".parquet"):
+            df.to_parquet(args.output, index=False)
+        else:
+            df.to_csv(args.output, index=False)
+        print(f"Wrote {len(df):,} rows to {args.output}", file=sys.stderr)
+    else:
+        print(df.to_csv(index=False), end="")
 
 
 def _export(args: argparse.Namespace) -> None:
