@@ -53,7 +53,9 @@
       21 subjects (14 autopsy + 5 living thymus + 2 living ovary), 227 samples across 29 tissues (abstract
       says 227, Results section says 225 — likely 2 excluded after QC). Gold standard benign reference. None
       of the subjects was diagnosed with any malignant disease. Paired HLA-I (198 samples) and HLA-II (220
-      samples).
+      samples). Per-donor HLA from hla-ligand-atlas.org/rel/2020.12/donors.tsv.gz. Class II mhc entries
+      include only DRB alleles (not DP/DQ) to match the DRB-only resolution in the IEDB mhc_restriction
+      column for this PMID.
     donors: 21
     tissues: 29
     samples: 227
@@ -61,44 +63,262 @@
       class_i: "51 HLA-I allotypes (95% HLA-A, 74% HLA-B, 93% HLA-C population coverage)"
       class_ii: 86 HLA-II allotypes
     ms_samples:
-      - sample_label: autopsy tissue (class I)
-        n: 14
-        source: "14 subjects, snap-frozen within 72h post-mortem"
-        tissues: "29 tissue types (brain, heart, liver, kidney, lung, spleen, etc.)"
+      # Per-donor entries from hla-ligand-atlas.org/rel/2020.12/donors.tsv.gz
+      # Autopsy donors (AUT01-DN02 through DN17, 14 total)
+      - sample_label: "AUT01-DN02 autopsy (class I)"
+        n: 1
+        source: "snap-frozen within 72h post-mortem"
         condition: unperturbed
         mhc_class: I
-        mhc: "HLA-A*01:01 HLA-A*02:01 HLA-A*02:05 HLA-A*03:01 HLA-A*11:01 HLA-A*23:01 HLA-A*24:02 HLA-A*30:01 HLA-A*32:01 HLA-A*68:01 HLA-A*68:02 HLA-A*69:01 HLA-B*07:02 HLA-B*08:01 HLA-B*13:02 HLA-B*14:02 HLA-B*15:01 HLA-B*27:05 HLA-B*35:01 HLA-B*35:03 HLA-B*35:08 HLA-B*37:01 HLA-B*40:02 HLA-B*41:01 HLA-B*44:02 HLA-B*45:01 HLA-B*49:01 HLA-B*50:01 HLA-B*58:01 HLA-C*02:02 HLA-C*03:03 HLA-C*03:04 HLA-C*04:01 HLA-C*06:02 HLA-C*07:01 HLA-C*07:02 HLA-C*07:04 HLA-C*08:02 HLA-C*16:01 HLA-C*17:01"
-      - sample_label: autopsy tissue (class II)
-        n: 14
-        source: "14 subjects, snap-frozen within 72h post-mortem"
-        tissues: "29 tissue types (brain, heart, liver, kidney, lung, spleen, etc.)"
+        mhc: "HLA-A*11:01 HLA-A*68:01 HLA-B*15:01 HLA-B*35:03 HLA-C*03:03 HLA-C*04:01"
+      - sample_label: "AUT01-DN02 autopsy (class II)"
+        n: 1
+        source: "snap-frozen within 72h post-mortem"
         condition: unperturbed
         mhc_class: II
-        mhc: "HLA-DRB1*01:01 HLA-DRB1*03:01 HLA-DRB1*04:01 HLA-DRB1*04:05 HLA-DRB1*07:01 HLA-DRB1*08:01 HLA-DRB1*10:01 HLA-DRB1*11:01 HLA-DRB1*11:03 HLA-DRB1*12:01 HLA-DRB1*13:01 HLA-DRB1*13:02 HLA-DRB1*13:03 HLA-DRB1*14:01 HLA-DRB1*14:54 HLA-DRB1*15:01 HLA-DRB3*01:01 HLA-DRB3*02:02 HLA-DRB3*03:01 HLA-DRB4*01:01 HLA-DRB4*01:03 HLA-DRB5*01:01"
-      - sample_label: living donor thymus (class I)
-        n: 5
-        source: surgical thymus from living donors
+        mhc: "HLA-DRB1*04:01 HLA-DRB4*01:03"
+      - sample_label: "AUT01-DN03 autopsy (class I)"
+        n: 1
+        source: "snap-frozen within 72h post-mortem"
         condition: unperturbed
         mhc_class: I
-        mhc: "HLA-A*01:01 HLA-A*02:01 HLA-A*03:01 HLA-A*24:02 HLA-A*25:01 HLA-A*26:08 HLA-A*29:02 HLA-B*07:02 HLA-B*07:06 HLA-B*13:02 HLA-B*15:01 HLA-B*18:01 HLA-B*39:01 HLA-B*41:01 HLA-B*44:02 HLA-B*44:03 HLA-C*03:04 HLA-C*05:01 HLA-C*06:02 HLA-C*07:02 HLA-C*12:03 HLA-C*15:05 HLA-C*16:01 HLA-C*17:01"
-      - sample_label: living donor thymus (class II)
-        n: 5
-        source: surgical thymus from living donors
+        mhc: "HLA-A*01:01 HLA-A*11:01 HLA-B*15:01 HLA-B*35:01 HLA-C*03:03 HLA-C*04:01"
+      - sample_label: "AUT01-DN03 autopsy (class II)"
+        n: 1
+        source: "snap-frozen within 72h post-mortem"
         condition: unperturbed
         mhc_class: II
-        mhc: "HLA-DRB1*01:01 HLA-DRB1*04:05 HLA-DRB1*10:01 HLA-DRB1*11:01 HLA-DRB1*15:01 HLA-DRB1*16:01 HLA-DRB3*02:02 HLA-DRB4*01:03 HLA-DRB5*01:01 HLA-DRB5*02:02"
-      - sample_label: living donor ovary (class I)
-        n: 2
-        source: surgical ovary from living donors
+        mhc: "HLA-DRB1*07:01 HLA-DRB1*11:03 HLA-DRB3*02:02 HLA-DRB4*01:01"
+      - sample_label: "AUT01-DN04 autopsy (class I)"
+        n: 1
+        source: "snap-frozen within 72h post-mortem"
         condition: unperturbed
         mhc_class: I
-        mhc: "HLA-A*02:01 HLA-A*11:01 HLA-A*26:01 HLA-B*08:01 HLA-B*35:01 HLA-B*44:02 HLA-C*04:01 HLA-C*05:01 HLA-C*07:02"
-      - sample_label: living donor ovary (class II)
-        n: 2
-        source: surgical ovary from living donors
+        mhc: "HLA-A*02:01 HLA-A*23:01 HLA-B*27:05 HLA-B*50:01 HLA-C*02:02 HLA-C*06:02"
+      - sample_label: "AUT01-DN04 autopsy (class II)"
+        n: 1
+        source: "snap-frozen within 72h post-mortem"
         condition: unperturbed
         mhc_class: II
-        mhc: "HLA-DRB1*04:04 HLA-DRB1*11:01 HLA-DRB1*11:08 HLA-DRB1*13:01"
+        mhc: "HLA-DRB1*07:01 HLA-DRB1*13:01 HLA-DRB3*01:01 HLA-DRB4*01:01"
+      - sample_label: "AUT01-DN05 autopsy (class I)"
+        n: 1
+        source: "snap-frozen within 72h post-mortem"
+        condition: unperturbed
+        mhc_class: I
+        mhc: "HLA-A*01:01 HLA-A*11:01 HLA-B*07:02 HLA-B*49:01 HLA-C*07:01 HLA-C*07:02"
+      - sample_label: "AUT01-DN05 autopsy (class II)"
+        n: 1
+        source: "snap-frozen within 72h post-mortem"
+        condition: unperturbed
+        mhc_class: II
+        mhc: "HLA-DRB1*11:01 HLA-DRB1*14:54 HLA-DRB3*02:02"
+      - sample_label: "AUT01-DN06 autopsy (class I)"
+        n: 1
+        source: "snap-frozen within 72h post-mortem"
+        condition: unperturbed
+        mhc_class: I
+        mhc: "HLA-A*03:01 HLA-A*68:02 HLA-B*07:02 HLA-B*14:02 HLA-C*07:02 HLA-C*08:02"
+      - sample_label: "AUT01-DN06 autopsy (class II)"
+        n: 1
+        source: "snap-frozen within 72h post-mortem"
+        condition: unperturbed
+        mhc_class: II
+        mhc: "HLA-DRB1*08:01 HLA-DRB1*13:03 HLA-DRB3*01:01"
+      - sample_label: "AUT01-DN08 autopsy (class I)"
+        n: 1
+        source: "snap-frozen within 72h post-mortem"
+        condition: unperturbed
+        mhc_class: I
+        mhc: "HLA-A*32:01 HLA-A*68:01 HLA-B*15:01 HLA-B*44:02 HLA-C*03:03 HLA-C*07:04"
+      - sample_label: "AUT01-DN08 autopsy (class II)"
+        n: 1
+        source: "snap-frozen within 72h post-mortem"
+        condition: unperturbed
+        mhc_class: II
+        mhc: "HLA-DRB1*13:03 HLA-DRB1*14:01"
+      - sample_label: "AUT01-DN09 autopsy (class I)"
+        n: 1
+        source: "snap-frozen within 72h post-mortem"
+        condition: unperturbed
+        mhc_class: I
+        mhc: "HLA-A*24:02 HLA-A*30:01 HLA-B*13:02 HLA-B*35:08 HLA-C*04:01 HLA-C*06:02"
+      - sample_label: "AUT01-DN09 autopsy (class II)"
+        n: 1
+        source: "snap-frozen within 72h post-mortem"
+        condition: unperturbed
+        mhc_class: II
+        mhc: "HLA-DRB1*07:01 HLA-DRB4*01:03"
+      - sample_label: "AUT01-DN11 autopsy (class I)"
+        n: 1
+        source: "snap-frozen within 72h post-mortem"
+        condition: unperturbed
+        mhc_class: I
+        mhc: "HLA-A*01:01 HLA-A*69:01 HLA-B*37:01 HLA-B*49:01 HLA-C*06:02 HLA-C*07:01"
+      - sample_label: "AUT01-DN11 autopsy (class II)"
+        n: 1
+        source: "snap-frozen within 72h post-mortem"
+        condition: unperturbed
+        mhc_class: II
+        mhc: "HLA-DRB1*07:01 HLA-DRB1*13:02 HLA-DRB3*03:01 HLA-DRB4*01:03"
+      - sample_label: "AUT01-DN12 autopsy (class I)"
+        n: 1
+        source: "snap-frozen within 72h post-mortem"
+        condition: unperturbed
+        mhc_class: I
+        mhc: "HLA-A*02:01 HLA-A*11:01 HLA-B*15:01 HLA-B*35:01 HLA-C*03:04 HLA-C*04:01"
+      - sample_label: "AUT01-DN12 autopsy (class II)"
+        n: 1
+        source: "snap-frozen within 72h post-mortem"
+        condition: unperturbed
+        mhc_class: II
+        mhc: "HLA-DRB1*01:01 HLA-DRB1*12:01 HLA-DRB3*02:02"
+      - sample_label: "AUT01-DN13 autopsy (class I)"
+        n: 1
+        source: "snap-frozen within 72h post-mortem"
+        condition: unperturbed
+        mhc_class: I
+        mhc: "HLA-A*02:05 HLA-A*11:01 HLA-B*40:02 HLA-B*58:01 HLA-C*02:02 HLA-C*07:01"
+      - sample_label: "AUT01-DN13 autopsy (class II)"
+        n: 1
+        source: "snap-frozen within 72h post-mortem"
+        condition: unperturbed
+        mhc_class: II
+        mhc: "HLA-DRB1*10:01 HLA-DRB1*15:01 HLA-DRB5*01:01"
+      - sample_label: "AUT01-DN14 autopsy (class I)"
+        n: 1
+        source: "snap-frozen within 72h post-mortem"
+        condition: unperturbed
+        mhc_class: I
+        mhc: "HLA-A*02:01 HLA-A*68:02 HLA-B*14:02 HLA-B*27:05 HLA-C*02:02 HLA-C*08:02"
+      - sample_label: "AUT01-DN14 autopsy (class II)"
+        n: 1
+        source: "snap-frozen within 72h post-mortem"
+        condition: unperturbed
+        mhc_class: II
+        mhc: "HLA-DRB1*04:01 HLA-DRB1*13:03 HLA-DRB3*01:01 HLA-DRB4*01:03"
+      - sample_label: "AUT01-DN15 autopsy (class I)"
+        n: 1
+        source: "snap-frozen within 72h post-mortem"
+        condition: unperturbed
+        mhc_class: I
+        mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*08:01 HLA-B*44:02 HLA-C*07:01 HLA-C*07:04"
+      - sample_label: "AUT01-DN15 autopsy (class II)"
+        n: 1
+        source: "snap-frozen within 72h post-mortem"
+        condition: unperturbed
+        mhc_class: II
+        mhc: "HLA-DRB1*03:01 HLA-DRB1*11:01 HLA-DRB3*01:01 HLA-DRB3*02:02"
+      - sample_label: "AUT01-DN16 autopsy (class I)"
+        n: 1
+        source: "snap-frozen within 72h post-mortem"
+        condition: unperturbed
+        mhc_class: I
+        mhc: "HLA-A*01:01 HLA-A*24:02 HLA-B*08:01 HLA-B*41:01 HLA-C*07:01 HLA-C*17:01"
+      - sample_label: "AUT01-DN16 autopsy (class II)"
+        n: 1
+        source: "snap-frozen within 72h post-mortem"
+        condition: unperturbed
+        mhc_class: II
+        mhc: "HLA-DRB1*03:01 HLA-DRB1*04:05"
+      - sample_label: "AUT01-DN17 autopsy (class I)"
+        n: 1
+        source: "snap-frozen within 72h post-mortem"
+        condition: unperturbed
+        mhc_class: I
+        mhc: "HLA-A*03:01 HLA-A*24:02 HLA-B*35:03 HLA-B*45:01 HLA-C*04:01 HLA-C*16:01"
+      - sample_label: "AUT01-DN17 autopsy (class II)"
+        n: 1
+        source: "snap-frozen within 72h post-mortem"
+        condition: unperturbed
+        mhc_class: II
+        mhc: "HLA-DRB1*14:54 HLA-DRB1*15:01 HLA-DRB3*02:02 HLA-DRB5*01:01"
+      # Thymus living donors (THY01-DN1 through DN6, 5 total — DN2 absent)
+      - sample_label: "THY01-DN1 thymus (class I)"
+        n: 1
+        source: surgical thymus from living donor
+        condition: unperturbed
+        mhc_class: I
+        mhc: "HLA-A*03:01 HLA-A*29:02 HLA-B*07:02 HLA-B*44:03 HLA-C*07:02 HLA-C*16:01"
+      - sample_label: "THY01-DN1 thymus (class II)"
+        n: 1
+        source: surgical thymus from living donor
+        condition: unperturbed
+        mhc_class: II
+        mhc: "HLA-DRB1*01:01 HLA-DRB1*15:01 HLA-DRB5*01:01"
+      - sample_label: "THY01-DN3 thymus (class I)"
+        n: 1
+        source: surgical thymus from living donor
+        condition: unperturbed
+        mhc_class: I
+        mhc: "HLA-A*24:02 HLA-A*25:01 HLA-B*18:01 HLA-B*41:01 HLA-C*12:03 HLA-C*17:01"
+      - sample_label: "THY01-DN3 thymus (class II)"
+        n: 1
+        source: surgical thymus from living donor
+        condition: unperturbed
+        mhc_class: II
+        mhc: "HLA-DRB1*04:05 HLA-DRB1*15:01 HLA-DRB4*01:03 HLA-DRB5*01:01"
+      - sample_label: "THY01-DN4 thymus (class I)"
+        n: 1
+        source: surgical thymus from living donor
+        condition: unperturbed
+        mhc_class: I
+        mhc: "HLA-A*02:01 HLA-A*26:08 HLA-B*15:01 HLA-B*44:02 HLA-C*03:04 HLA-C*05:01"
+      - sample_label: "THY01-DN4 thymus (class II)"
+        n: 1
+        source: surgical thymus from living donor
+        condition: unperturbed
+        mhc_class: II
+        mhc: "HLA-DRB1*11:01 HLA-DRB1*15:01 HLA-DRB3*02:02 HLA-DRB5*01:01"
+      - sample_label: "THY01-DN5 thymus (class I)"
+        n: 1
+        source: surgical thymus from living donor
+        condition: unperturbed
+        mhc_class: I
+        mhc: "HLA-A*01:01 HLA-A*03:01 HLA-B*07:02 HLA-B*07:06 HLA-C*07:02 HLA-C*15:05"
+      - sample_label: "THY01-DN5 thymus (class II)"
+        n: 1
+        source: surgical thymus from living donor
+        condition: unperturbed
+        mhc_class: II
+        mhc: "HLA-DRB1*04:05 HLA-DRB1*15:01 HLA-DRB4*01:03 HLA-DRB5*01:01"
+      - sample_label: "THY01-DN6 thymus (class I)"
+        n: 1
+        source: surgical thymus from living donor
+        condition: unperturbed
+        mhc_class: I
+        mhc: "HLA-A*01:01 HLA-A*25:01 HLA-B*13:02 HLA-B*39:01 HLA-C*06:02 HLA-C*12:03"
+      - sample_label: "THY01-DN6 thymus (class II)"
+        n: 1
+        source: surgical thymus from living donor
+        condition: unperturbed
+        mhc_class: II
+        mhc: "HLA-DRB1*10:01 HLA-DRB1*16:01 HLA-DRB5*02:02"
+      # Ovary living donors (OVA01-DN278, OVA01-DN281)
+      - sample_label: "OVA01-DN278 ovary (class I)"
+        n: 1
+        source: surgical ovary from living donor
+        condition: unperturbed
+        mhc_class: I
+        mhc: "HLA-A*02:01 HLA-B*44:02 HLA-C*05:01"
+      - sample_label: "OVA01-DN278 ovary (class II)"
+        n: 1
+        source: surgical ovary from living donor
+        condition: unperturbed
+        mhc_class: II
+        mhc: "HLA-DRB1*11:01 HLA-DRB1*13:01"
+      - sample_label: "OVA01-DN281 ovary (class I)"
+        n: 1
+        source: surgical ovary from living donor
+        condition: unperturbed
+        mhc_class: I
+        mhc: "HLA-A*11:01 HLA-A*26:01 HLA-B*08:01 HLA-B*35:01 HLA-C*04:01 HLA-C*07:02"
+      - sample_label: "OVA01-DN281 ovary (class II)"
+        n: 1
+        source: surgical ovary from living donor
+        condition: unperturbed
+        mhc_class: II
+        mhc: "HLA-DRB1*04:04 HLA-DRB1*11:08"
   - pmid: 29557506
     study_label: Neidert 2018 — Tübingen/Zurich biobank
     title: "The natural HLA ligandome of glioblastoma stem-like cells: antigen discovery for T cell-based immunotherapy"
@@ -2695,29 +2915,96 @@
       profiled. "Skin" refers to melanoma cell lines (melanocyte origin).
       Matched normal lung is adjacent tissue (from cancer patients), not
       truly healthy. 452 non-canonical peptides identified.
+    hla_alleles:
+      0D5P: ["HLA-A*01:01", "HLA-A*23:01", "HLA-B*07:02", "HLA-B*15:01", "HLA-C*12:03", "HLA-C*14:02"]
+      0MM745: ["HLA-A*01:01", "HLA-A*30:02", "HLA-B*08:01", "HLA-B*18:01", "HLA-C*05:01", "HLA-C*07:01"]
+      0NVC: ["HLA-A*03:01", "HLA-A*26:01", "HLA-B*38:01", "HLA-B*40:01", "HLA-C*03:04", "HLA-C*12:03"]
+      Me275: ["HLA-A*02:01", "HLA-A*23:01", "HLA-B*07:02", "HLA-C*07:02"]
+      Me290: ["HLA-A*01:01", "HLA-A*02:01", "HLA-B*07:02", "HLA-B*08:01", "HLA-C*07:01", "HLA-C*07:02"]
+      T1015A: ["HLA-A*02:09", "HLA-A*32:01", "HLA-B*35:03", "HLA-B*49:01", "HLA-C*04:01", "HLA-C*07:01"]
+      T1185B: ["HLA-A*02:01", "HLA-A*68:01", "HLA-B*13:02", "HLA-B*40:01", "HLA-C*03:04", "HLA-C*06:02"]
+      C3N-02289: ["HLA-A*03:01", "HLA-A*26:01", "HLA-B*15:02", "HLA-B*18:01", "HLA-C*07:01", "HLA-C*12:03"]
+      C3N-02671: ["HLA-A*01:01", "HLA-A*02:01", "HLA-B*08:01", "HLA-B*44:02", "HLA-C*05:01", "HLA-C*07:01"]
     ms_samples:
-      - sample_label: "melanoma cell lines (0D5P, 0MM745, 0NVC, T1185B, T1015A, Me290, Me275)"
-        n: 7
+      # Per-cell-line melanoma entries (from Supplementary Data 1)
+      - sample_label: "0D5P melanoma"
+        n: 1
         condition: "unperturbed"
         mhc_class: "I"
         ip_antibody: "W6/32"
-        mhc: "HLA-A*01:01 HLA-A*02:01 HLA-A*02:09 HLA-A*23:01 HLA-A*26:01 HLA-A*30:02 HLA-A*32:01 HLA-A*68:01 HLA-B*07:02 HLA-B*08:01 HLA-B*13:02 HLA-B*15:01 HLA-B*18:01 HLA-B*35:03 HLA-B*38:01 HLA-B*40:01 HLA-B*44:02 HLA-B*49:01 HLA-C*03:04 HLA-C*05:01 HLA-C*06:02 HLA-C*07:01 HLA-C*07:02 HLA-C*12:03 HLA-C*14:02"
+        mhc: "HLA-A*01:01 HLA-A*23:01 HLA-B*07:02 HLA-B*15:01 HLA-C*12:03 HLA-C*14:02"
         classification: cancer
-      - sample_label: "lung tumor tissue (SCC + adenocarcinoma)"
-        n: 2
-        source: "C3N-02289 (SCC grade 2), C3N-02671 (adeno grade 2)"
+      - sample_label: "0MM745 melanoma"
+        n: 1
+        condition: "unperturbed"
+        mhc_class: "I"
+        ip_antibody: "W6/32"
+        mhc: "HLA-A*01:01 HLA-A*30:02 HLA-B*08:01 HLA-B*18:01 HLA-C*05:01 HLA-C*07:01"
+        classification: cancer
+      - sample_label: "0NVC melanoma"
+        n: 1
+        condition: "unperturbed"
+        mhc_class: "I"
+        ip_antibody: "W6/32"
+        mhc: "HLA-A*03:01 HLA-A*26:01 HLA-B*38:01 HLA-B*40:01 HLA-C*03:04 HLA-C*12:03"
+        classification: cancer
+      - sample_label: "Me275 melanoma"
+        n: 1
+        condition: "unperturbed"
+        mhc_class: "I"
+        ip_antibody: "W6/32"
+        mhc: "HLA-A*02:01 HLA-A*23:01 HLA-B*07:02 HLA-C*07:02"
+        classification: cancer
+      - sample_label: "Me290 melanoma"
+        n: 1
+        condition: "unperturbed"
+        mhc_class: "I"
+        ip_antibody: "W6/32"
+        mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*07:02 HLA-B*08:01 HLA-C*07:01 HLA-C*07:02"
+        classification: cancer
+      - sample_label: "T1015A melanoma"
+        n: 1
+        condition: "unperturbed"
+        mhc_class: "I"
+        ip_antibody: "W6/32"
+        mhc: "HLA-A*02:09 HLA-A*32:01 HLA-B*35:03 HLA-B*49:01 HLA-C*04:01 HLA-C*07:01"
+        classification: cancer
+      - sample_label: "T1185B melanoma"
+        n: 1
+        condition: "unperturbed"
+        mhc_class: "I"
+        ip_antibody: "W6/32"
+        mhc: "HLA-A*02:01 HLA-A*68:01 HLA-B*13:02 HLA-B*40:01 HLA-C*03:04 HLA-C*06:02"
+        classification: cancer
+      # Per-patient lung cancer entries (CPTAC patients)
+      - sample_label: "C3N-02289 lung tumor (SCC)"
+        n: 1
         condition: "unperturbed — snap-frozen"
         mhc_class: "I"
         ip_antibody: "W6/32"
-        mhc: "HLA-A*01:01 HLA-A*02:01 HLA-A*03:01 HLA-A*26:01 HLA-B*08:01 HLA-B*15:02 HLA-B*18:01 HLA-B*44:02 HLA-C*05:01 HLA-C*07:01 HLA-C*12:03"
+        mhc: "HLA-A*03:01 HLA-A*26:01 HLA-B*15:02 HLA-B*18:01 HLA-C*07:01 HLA-C*12:03"
         classification: cancer
-      - sample_label: "matched normal lung tissue"
-        n: 2
-        source: "from same 2 cancer patients (C3N-02289, C3N-02671)"
+      - sample_label: "C3N-02671 lung tumor (adenocarcinoma)"
+        n: 1
         condition: "unperturbed — snap-frozen"
         mhc_class: "I"
-        mhc: "HLA-A*01:01 HLA-A*02:01 HLA-A*03:01 HLA-A*26:01 HLA-B*08:01 HLA-B*15:02 HLA-B*18:01 HLA-B*44:02 HLA-C*05:01 HLA-C*07:01 HLA-C*12:03"
         ip_antibody: "W6/32"
+        mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*08:01 HLA-B*44:02 HLA-C*05:01 HLA-C*07:01"
+        classification: cancer
+      # Per-patient matched normal lung (same patients as tumor)
+      - sample_label: "C3N-02289 matched normal lung"
+        n: 1
+        condition: "unperturbed — snap-frozen"
+        mhc_class: "I"
+        ip_antibody: "W6/32"
+        mhc: "HLA-A*03:01 HLA-A*26:01 HLA-B*15:02 HLA-B*18:01 HLA-C*07:01 HLA-C*12:03"
+        classification: adjacent
+      - sample_label: "C3N-02671 matched normal lung"
+        n: 1
+        condition: "unperturbed — snap-frozen"
+        mhc_class: "I"
+        ip_antibody: "W6/32"
+        mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*08:01 HLA-B*44:02 HLA-C*05:01 HLA-C*07:01"
         classification: adjacent
     rules:
       - condition:
@@ -2745,24 +3032,63 @@
     perturbations:
       - "CIITA transduction (flag-CIITA plasmid, G418 selection) — forces HLA-II expression on GBM"
     ms_samples:
-      - sample_label: "GBM parental (CIITA-, class I only)"
-        n: 3
+      # Parental (CIITA-) — class I only, per cell line
+      - sample_label: "HROG02 parental (class I)"
+        n: 1
         condition: "unperturbed"
         mhc_class: "I"
         ip_antibody: "HB95/W6/32"
-        mhc: "HLA-A*01:01 HLA-A*02:01 HLA-A*11:01 HLA-A*24:02 HLA-A*66:01 HLA-B*08:01 HLA-B*13:02 HLA-B*14:02 HLA-B*35:03 HLA-B*40:02 HLA-B*51:01 HLA-C*01:02 HLA-C*04:01 HLA-C*06:02 HLA-C*07:01 HLA-C*08:02 HLA-C*14:02"
-      - sample_label: "GBM CIITA-transduced (class I)"
-        n: 3
+        mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*08:01 HLA-B*13:02 HLA-C*06:02 HLA-C*07:01"
+      - sample_label: "HROG17 parental (class I)"
+        n: 1
+        condition: "unperturbed"
+        mhc_class: "I"
+        ip_antibody: "HB95/W6/32"
+        mhc: "HLA-A*11:01 HLA-A*66:01 HLA-B*14:02 HLA-B*40:02 HLA-C*01:02 HLA-C*08:02"
+      - sample_label: "RA parental (class I)"
+        n: 1
+        condition: "unperturbed"
+        mhc_class: "I"
+        ip_antibody: "HB95/W6/32"
+        mhc: "HLA-A*02:01 HLA-A*24:02 HLA-B*35:03 HLA-B*51:01 HLA-C*04:01 HLA-C*14:02"
+      # CIITA-transduced — class I, per cell line
+      - sample_label: "HROG02 CIITA-transduced (class I)"
+        n: 1
         condition: "CIITA transduction"
         mhc_class: "I"
         ip_antibody: "HB95/W6/32"
-        mhc: "HLA-A*01:01 HLA-A*02:01 HLA-A*11:01 HLA-A*24:02 HLA-A*66:01 HLA-B*08:01 HLA-B*13:02 HLA-B*14:02 HLA-B*35:03 HLA-B*40:02 HLA-B*51:01 HLA-C*01:02 HLA-C*04:01 HLA-C*06:02 HLA-C*07:01 HLA-C*08:02 HLA-C*14:02"
-      - sample_label: "GBM CIITA-transduced (class II — artificially induced)"
-        n: 3
+        mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*08:01 HLA-B*13:02 HLA-C*06:02 HLA-C*07:01"
+      - sample_label: "HROG17 CIITA-transduced (class I)"
+        n: 1
+        condition: "CIITA transduction"
+        mhc_class: "I"
+        ip_antibody: "HB95/W6/32"
+        mhc: "HLA-A*11:01 HLA-A*66:01 HLA-B*14:02 HLA-B*40:02 HLA-C*01:02 HLA-C*08:02"
+      - sample_label: "RA CIITA-transduced (class I)"
+        n: 1
+        condition: "CIITA transduction"
+        mhc_class: "I"
+        ip_antibody: "HB95/W6/32"
+        mhc: "HLA-A*02:01 HLA-A*24:02 HLA-B*35:03 HLA-B*51:01 HLA-C*04:01 HLA-C*14:02"
+      # CIITA-transduced — class II (artificially induced), per cell line
+      - sample_label: "HROG02 CIITA-transduced (class II)"
+        n: 1
         condition: "CIITA transduction — HLA-II not naturally expressed in GBM"
         mhc_class: "II"
         ip_antibody: "HB245/IVA12"
-        mhc: "HLA-DRB1*03:01 HLA-DRB1*07:01 HLA-DRB1*01:02 HLA-DRB1*12:01 HLA-DRB1*04:01 HLA-DRB1*08:01"
+        mhc: "HLA-DRB1*03:01 HLA-DRB1*07:01"
+      - sample_label: "HROG17 CIITA-transduced (class II)"
+        n: 1
+        condition: "CIITA transduction — HLA-II not naturally expressed in GBM"
+        mhc_class: "II"
+        ip_antibody: "HB245/IVA12"
+        mhc: "HLA-DRB1*01:02 HLA-DRB1*12:01"
+      - sample_label: "RA CIITA-transduced (class II)"
+        n: 1
+        condition: "CIITA transduction — HLA-II not naturally expressed in GBM"
+        mhc_class: "II"
+        ip_antibody: "HB245/IVA12"
+        mhc: "HLA-DRB1*04:01 HLA-DRB1*08:01"
 
   - pmid: 30315122
     study_label: "Faridi 2018 — cis/trans-spliced HLA-I peptides"
@@ -3546,23 +3872,99 @@
     title: "Soluble HLA peptidome from pleural effusions"
     override:
     note: >
-      sHLA from pleural effusion fluid (not solid lung tissue). Cancer
-      patients vs non-malignant pleural disease. IEDB "Blood/Lung" is
-      imprecise — source is pleural effusion specifically.
+      sHLA from pleural effusion fluid (not solid lung tissue). 14 patients:
+      9 cancer (P2,P3,P4,P6,P10-P14) vs 5 non-malignant (P1,P5,P7,P8,P9) —
+      patients are NOT grouped sequentially. IEDB "Blood/Lung" is imprecise —
+      source is pleural effusion specifically. Per-patient HLA from Table 1.
     ms_samples:
-      - sample_label: "pleural effusion (cancer patients)"
-        n: 9
-        source: "9 patients (P1-P9) with malignant pleural effusion"
+      # Per-patient entries from Table 1. NB: patients are NOT grouped
+      # sequentially — cancer: P2,P3,P4,P6,P10-P14; non-malignant: P1,P5,P7,P8,P9.
+      # Non-malignant patients
+      - sample_label: "P1 pleural effusion (heart failure)"
+        n: 1
         condition: "unperturbed — sHLA from pleural fluid"
         mhc_class: "I"
-        mhc: "HLA-A*01:01 HLA-A*02:01 HLA-A*02:05 HLA-A*03:01 HLA-A*23:01 HLA-A*26:01 HLA-A*31:01 HLA-A*33:01 HLA-A*68:01 HLA-B*08:01 HLA-B*18:01 HLA-B*35:02 HLA-B*38:01 HLA-B*39:01 HLA-B*40:01 HLA-B*41:01 HLA-B*44:02 HLA-B*49:01 HLA-B*50:01 HLA-B*53:01 HLA-C*03:04 HLA-C*04:01 HLA-C*05:01 HLA-C*06:02 HLA-C*07:01 HLA-C*07:02 HLA-C*12:03 HLA-C*17:01"
+        mhc: "HLA-A*26:01 HLA-A*68:01 HLA-B*38:01 HLA-B*50:01 HLA-C*06:02 HLA-C*12:03"
+        classification: non_malignant
+      - sample_label: "P5 pleural effusion (heart and kidney failure)"
+        n: 1
+        condition: "unperturbed — sHLA from pleural fluid"
+        mhc_class: "I"
+        mhc: "HLA-A*02:01 HLA-B*08:01 HLA-B*39:01 HLA-C*07:02"
+        classification: non_malignant
+      - sample_label: "P7 pleural effusion (heart and kidney failure)"
+        n: 1
+        condition: "unperturbed — sHLA from pleural fluid"
+        mhc_class: "I"
+        mhc: "HLA-A*02:01 HLA-A*03:02 HLA-B*08:01 HLA-B*51:01 HLA-C*07:02"
+        classification: non_malignant
+      - sample_label: "P8 pleural effusion (heart failure)"
+        n: 1
+        condition: "unperturbed — sHLA from pleural fluid"
+        mhc_class: "I"
+        mhc: "HLA-A*01:01 HLA-B*58:01 HLA-C*07:01"
+        classification: non_malignant
+      - sample_label: "P9 pleural effusion (kidney failure)"
+        n: 1
+        condition: "unperturbed — sHLA from pleural fluid"
+        mhc_class: "I"
+        mhc: "HLA-A*23:01 HLA-A*31:01 HLA-B*35:02 HLA-B*49:01 HLA-C*04:01 HLA-C*07:01"
+        classification: non_malignant
+      # Cancer patients
+      - sample_label: "P2 pleural effusion (lung adenocarcinoma)"
+        n: 1
+        condition: "unperturbed — sHLA from pleural fluid"
+        mhc_class: "I"
+        mhc: "HLA-A*01:01 HLA-A*26:01 HLA-B*38:01 HLA-B*41:01 HLA-C*12:03 HLA-C*17:01"
         classification: cancer_patient
-      - sample_label: "pleural effusion (non-malignant disease)"
-        n: 5
-        source: "5 patients (P10-P14) with benign pleural disease"
+      - sample_label: "P3 pleural effusion (lung adenocarcinoma)"
+        n: 1
         condition: "unperturbed — sHLA from pleural fluid"
         mhc_class: "I"
-        mhc: "HLA-A*01:01 HLA-A*03:01 HLA-A*11:01 HLA-A*23:01 HLA-A*24:02 HLA-A*25:01 HLA-A*26:01 HLA-A*32:01 HLA-B*14:02 HLA-B*15:17 HLA-B*18:01 HLA-B*35:01 HLA-B*35:02 HLA-B*38:01 HLA-B*43:01 HLA-B*49:01 HLA-B*57:01 HLA-C*04:01 HLA-C*06:02 HLA-C*07:01 HLA-C*08:02 HLA-C*12:03"
+        mhc: "HLA-A*03:01 HLA-A*33:01 HLA-B*18:01 HLA-B*53:01 HLA-C*04:01 HLA-C*05:01"
+        classification: cancer_patient
+      - sample_label: "P4 pleural effusion (endometrioid carcinoma)"
+        n: 1
+        condition: "unperturbed — sHLA from pleural fluid"
+        mhc_class: "I"
+        mhc: "HLA-A*02:01 HLA-A*11:01 HLA-B*40:01 HLA-B*44:02 HLA-C*03:04 HLA-C*05:01"
+        classification: cancer_patient
+      - sample_label: "P6 pleural effusion (squamous cell carcinoma)"
+        n: 1
+        condition: "unperturbed — sHLA from pleural fluid"
+        mhc_class: "I"
+        mhc: "HLA-A*02:05 HLA-A*33:01 HLA-B*18:01 HLA-B*50:01 HLA-C*06:02 HLA-C*12:03"
+        classification: cancer_patient
+      - sample_label: "P10 pleural effusion (lung adenocarcinoma)"
+        n: 1
+        condition: "unperturbed — sHLA from pleural fluid"
+        mhc_class: "I"
+        mhc: "HLA-A*25:01 HLA-A*32:01 HLA-B*18:01 HLA-B*43:01 HLA-C*04:01 HLA-C*12:03"
+        classification: cancer_patient
+      - sample_label: "P11 pleural effusion (lung adenocarcinoma)"
+        n: 1
+        condition: "unperturbed — sHLA from pleural fluid"
+        mhc_class: "I"
+        mhc: "HLA-A*23:01 HLA-A*26:01 HLA-B*38:01 HLA-B*49:01 HLA-C*07:01 HLA-C*12:03"
+        classification: cancer_patient
+      - sample_label: "P12 pleural effusion (lung adenocarcinoma)"
+        n: 1
+        condition: "unperturbed — sHLA from pleural fluid"
+        mhc_class: "I"
+        mhc: "HLA-A*01:01 HLA-A*32:01 HLA-B*15:17 HLA-B*49:01 HLA-C*07:01"
+        classification: cancer_patient
+      - sample_label: "P13 pleural effusion (lung adenocarcinoma)"
+        n: 1
+        condition: "unperturbed — sHLA from pleural fluid"
+        mhc_class: "I"
+        mhc: "HLA-A*01:01 HLA-A*24:02 HLA-B*35:02 HLA-B*57:01 HLA-C*04:01 HLA-C*06:02"
+        classification: cancer_patient
+      - sample_label: "P14 pleural effusion (lung adenocarcinoma)"
+        n: 1
+        condition: "unperturbed — sHLA from pleural fluid"
+        mhc_class: "I"
+        mhc: "HLA-A*03:01 HLA-A*11:01 HLA-B*14:02 HLA-B*35:01 HLA-C*04:01 HLA-C*08:02"
+        classification: cancer_patient
 
   - pmid: 29393594
     study_label: "Yair-Sabag 2018 — HLA-B27 Lys-P2 ligands"
