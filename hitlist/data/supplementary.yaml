@@ -20,6 +20,74 @@
 # Source: Nature Comms Supplementary Data S4-S7,
 #         jPOSTrepo JPST002044 / PXD040385
 
+# ── Abelin 2019 MAPTAC (PMID 31495665) ──────────────────────────────
+# NOT in IEDB.  Peptides from Immunity 2019 Supplementary Table S1B.
+# MAPTAC: mono-allelic transfected-antigen presentation (tagged HLA).
+# Class I: 8 alleles, 9,954 peptide-allele pairs (9,424 unique peptides).
+# Class II: 10 alleles (DRB1, DRB3, DPB1, DQB1), 43,503 peptide-allele pairs.
+# DR tissue/PBMC: multi-allelic HLA-DR IP from 2 tissues + 4 PBMC donors.
+# Raw MS: MassIVE MSV000083991.
+#
+# Source: https://ars.els-cdn.com/content/image/1-s2.0-S1074761319303632-mmc2.xlsx
+
+- pmid: 31495665
+  file: abelin_2019_maptac_class1.csv
+  study_label: "Abelin 2019 — MAPTAC class I (8 alleles)"
+  source: "Immunity 2019 Table S1B, sheet DataS1B"
+  note: >
+    8 mono-allelic MAPTAC class I samples. Each allele expressed via tagged
+    HLA in cell-line mixtures (A375, Expi293, HEK293, HeLa). Per-peptide
+    allele assignment is direct (one allele per IP).
+  defaults:
+    host: "Homo sapiens (human)"
+    species: "Homo sapiens"
+    culture_condition: "Cell Line / Clone"
+    cell_name: "MAPTAC"
+    source_tissue: ""
+    process_type: "No immunization"
+    disease: "healthy"
+
+- pmid: 31495665
+  file: abelin_2019_maptac_class2.csv
+  study_label: "Abelin 2019 — MAPTAC class II (10 alleles)"
+  source: "Immunity 2019 Table S1B, sheet DataS1B"
+  note: >
+    10 mono-allelic MAPTAC class II alleles: 6 DRB1, 1 DRB3, 1 DPB1, 1 DQB1.
+    Some alleles profiled ± HLA-DM co-transfection (dm+ vs dm-); peptides
+    from both conditions are merged per allele.
+  defaults:
+    host: "Homo sapiens (human)"
+    species: "Homo sapiens"
+    culture_condition: "Cell Line / Clone"
+    cell_name: "MAPTAC"
+    source_tissue: ""
+    process_type: "No immunization"
+    disease: "healthy"
+
+- pmid: 31495665
+  file: abelin_2019_dr_tissue.csv
+  study_label: "Abelin 2019 — HLA-DR tissue & PBMC"
+  source: "Immunity 2019 Table S1B, sheet DataS1B"
+  note: >
+    Multi-allelic HLA-DR IPs from lung tissue, spleen tissue, and 4 PBMC
+    donors. Alleles not resolvable per-peptide (class-only mhc_restriction).
+  defaults:
+    host: "Homo sapiens (human)"
+    species: "Homo sapiens"
+    culture_condition: "Direct Ex Vivo"
+    cell_name: ""
+    source_tissue: ""
+    process_type: "No immunization"
+    disease: "healthy"
+
+# ── Gomez-Zepeda 2024 (PMID 38480730) ─────────────────────────────────
+# Thunder-DDA-PASEF on timsTOF Pro-2.  Per-peptide allele assignments
+# from NetMHCpan 4.1 (SB or WB binders).  Peptides without a predicted
+# binder allele are flagged is_potential_contaminant=True.
+#
+# Source: Nature Comms Supplementary Data S4-S7,
+#         jPOSTrepo JPST002044 / PXD040385
+
 - pmid: 38480730
   file: gomez_zepeda_2024_jy.csv
   study_label: "Gomez-Zepeda 2024 — JY HLA-I peptides"
