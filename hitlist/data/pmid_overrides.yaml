@@ -2380,7 +2380,7 @@
     study_label: Abelin 2019 — MAPTAC HLA-II + class I
     title: Defining HLA-II Ligand Processing and Binding Rules with Mass Spectrometry Enhances Cancer Epitope Prediction
     override:
-    mono_allelic_host: "MAPTAC"
+    mono_allelic_method: "MAPTAC"
     note: >
       NOT IN IEDB — peptides ingested from paper supplement (Table S1B, sheet DataS1B).
       MAPTAC (Mono-Allelic Purification with Tagged Allele Constructs) uses biotin-acceptor peptide tag

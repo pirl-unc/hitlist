@@ -605,6 +605,36 @@ def test_pmid_mono_override_applies_across_cell_name_variants():
         assert flags["is_monoallelic"] is True, f"override should apply for PMID={pmid} cn={cn!r}"
 
 
+def test_pmid_mono_allelic_method_override():
+    """mono_allelic_method (e.g. MAPTAC) sets is_monoallelic for resolved
+    alleles without requiring a cell-line entry in monoallelic_lines.yaml.
+    """
+    # PMID 31495665 has mono_allelic_method: "MAPTAC"
+    flags = classify_ms_row(
+        "No immunization",
+        "",
+        "Cell Line / Clone",
+        "",
+        "MAPTAC",
+        pmid=31495665,
+        mhc_restriction="HLA-A*02:01",
+    )
+    assert flags["is_monoallelic"] is True
+    assert flags["monoallelic_host"] == "MAPTAC"
+
+    # Class-only allele should NOT be flagged mono-allelic
+    flags_class = classify_ms_row(
+        "No immunization",
+        "",
+        "Cell Line / Clone",
+        "",
+        "MAPTAC",
+        pmid=31495665,
+        mhc_restriction="HLA class II",
+    )
+    assert flags_class["is_monoallelic"] is False
+
+
 def test_load_pmid_overrides_rejects_unknown_mono_host(tmp_path, monkeypatch):
     """A PMID override with a mono_allelic_host that isn't in
     monoallelic_lines.yaml must raise at load time — silently producing
