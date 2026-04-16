@@ -337,6 +337,13 @@ def classify_allele_resolution(mhc_restriction: str) -> str:
                 if len(result.allele_fields) >= 2:
                     return "four_digit"
                 return "two_digit"
+            if type(result).__name__ == "Pair":
+                pair_str = result.to_string()
+                if "*" in pair_str and ":" in pair_str:
+                    return "four_digit"
+                if "*" in pair_str:
+                    return "two_digit"
+                return "unresolved"
             if isinstance(result, Serotype):
                 return "serological"
             if isinstance(result, MhcClass):
@@ -350,6 +357,8 @@ def classify_allele_resolution(mhc_restriction: str) -> str:
         return "unresolved"
     if "class" in mhc_restriction.lower():
         return "class_only"
+    if ("/" in mhc_restriction or "," in mhc_restriction) and "*" in mhc_restriction:
+        return "four_digit" if ":" in mhc_restriction else "two_digit"
     if "*" in mhc_restriction and ":" in mhc_restriction:
         return "four_digit"
     if "*" in mhc_restriction:

@@ -130,6 +130,18 @@ def test_ms_samples_mhc_class_only():
     assert pat9.iloc[0]["mhc"] == "HLA class I"
 
 
+def test_ms_samples_strazar_2023():
+    """Stražar 2023 should export one class II sample row per profiled allele."""
+    df = generate_ms_samples_table()
+    st = df[df["pmid"] == 37301199]
+    assert len(st) == 42
+    assert set(st["mhc_class"]) == {"II"}
+    assert st["mhc"].nunique() == 42
+    assert (st["instrument"] == "Orbitrap Exploris 480").all()
+    assert (st["ip_antibody"] == "Strep-Tactin XT Sepharose (Strep-tag II)").all()
+    assert (st["sample_label"].str.startswith("StrepII-")).all()
+
+
 def test_generate_observations_table():
     """Observations table should join peptides with sample metadata."""
     from hitlist.observations import is_built

@@ -4590,6 +4590,373 @@
 
 # --- Standard cell line studies (no override needed, but curated for completeness) ---
 
+  - pmid: 37301199
+    study_label: "Stražar 2023 — mono-allelic HLA-II immunopeptidomes"
+    title: "HLA-II immunopeptidome profiling and deep learning reveal features of antigenicity to inform antigen discovery"
+    species: "Homo sapiens (human)"
+    override: cell_line
+    mono_allelic_method: "Strep-tag II"
+    note: >
+      NOT IN IEDB AS A STRAŽAR-SPECIFIC STUDY — ingested from the paper supplement instead.
+      Mono-allelic HLA-II profiling in Expi293F cells with HLA-DM co-expression, Strep-tag II on the
+      beta chain, and Strep-Tactin XT Sepharose purification. The published Table S2 is a compiled
+      training table that merges this work with IEDB and Abelin 2019; for hitlist we ingest only the
+      current-study subset (dataset = internal_aff_clean1and2) to avoid duplicating public sources.
+      This yields 308,418 peptide-allele pairs across 42 HLA-II heterodimers (20 DQ, 13 DP, 9 DR),
+      with 176,962 unique peptide sequences. Paper text reports 358,024 total binders and 308,182
+      additional ligands versus prior public resources. Raw MS: MassIVE MSV000089225.
+    hla_alleles:
+      class_ii_dq:
+        - "HLA-DQA1*01:01/DQB1*05:01"
+        - "HLA-DQA1*01:01/DQB1*05:02"
+        - "HLA-DQA1*01:02/DQB1*03:02"
+        - "HLA-DQA1*01:02/DQB1*05:02"
+        - "HLA-DQA1*01:02/DQB1*06:01"
+        - "HLA-DQA1*01:03/DQB1*06:01"
+        - "HLA-DQA1*01:03/DQB1*06:03"
+        - "HLA-DQA1*01:04/DQB1*05:03"
+        - "HLA-DQA1*02:01/DQB1*02:01"
+        - "HLA-DQA1*02:01/DQB1*02:02"
+        - "HLA-DQA1*02:01/DQB1*03:03"
+        - "HLA-DQA1*03:01/DQB1*03:02"
+        - "HLA-DQA1*03:01/DQB1*03:03"
+        - "HLA-DQA1*03:01/DQB1*04:01"
+        - "HLA-DQA1*03:03/DQB1*03:01"
+        - "HLA-DQA1*04:01/DQB1*04:02"
+        - "HLA-DQA1*05:01/DQB1*02:01"
+        - "HLA-DQA1*05:01/DQB1*03:01"
+        - "HLA-DQA1*05:05/DQB1*03:01"
+        - "HLA-DQA1*06:01/DQB1*03:01"
+      class_ii_dp:
+        - "HLA-DPA1*02:01/DPB1*01:01"
+        - "HLA-DPA1*02:01/DPB1*05:01"
+        - "HLA-DPA1*02:01/DPB1*09:01"
+        - "HLA-DPA1*02:01/DPB1*10:01"
+        - "HLA-DPA1*02:01/DPB1*11:01"
+        - "HLA-DPA1*02:01/DPB1*13:01"
+        - "HLA-DPA1*02:01/DPB1*14:01"
+        - "HLA-DPA1*02:01/DPB1*17:01"
+        - "HLA-DPA1*02:02/DPB1*02:01"
+        - "HLA-DPA1*02:02/DPB1*02:02"
+        - "HLA-DPA1*02:02/DPB1*03:01"
+        - "HLA-DPA1*02:02/DPB1*05:01"
+        - "HLA-DPA1*02:02/DPB1*14:01"
+      class_ii_dr:
+        - "HLA-DRB1*04:06"
+        - "HLA-DRB1*04:11"
+        - "HLA-DRB1*11:01"
+        - "HLA-DRB1*13:04"
+        - "HLA-DRB1*14:02"
+        - "HLA-DRB1*14:04"
+        - "HLA-DRB1*14:05"
+        - "HLA-DRB1*14:06"
+        - "HLA-DRB1*16:02"
+    perturbations:
+      - "HLA-DM co-expression during mono-allelic HLA-II profiling"
+      - "Merged 1h, 3h, and overnight Strep-Tactin incubations per allele"
+    ip_antibody: "Strep-Tactin XT Sepharose (Strep-tag II)"
+    acquisition_mode: DDA
+    instrument: "Orbitrap Exploris 480"
+    fragmentation: HCD
+    labeling: label-free
+    search_engine: "Spectrum Mill 7.1 pre-release"
+    fdr: "1%"
+    ms_samples:
+      - sample_label: "StrepII-HLA-DPA1*02:01/DPB1*01:01"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DPA1*02:01/DPB1*01:01"
+        peptides: 8084
+      - sample_label: "StrepII-HLA-DPA1*02:01/DPB1*05:01"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DPA1*02:01/DPB1*05:01"
+        peptides: 11188
+      - sample_label: "StrepII-HLA-DPA1*02:01/DPB1*09:01"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DPA1*02:01/DPB1*09:01"
+        peptides: 5593
+      - sample_label: "StrepII-HLA-DPA1*02:01/DPB1*10:01"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DPA1*02:01/DPB1*10:01"
+        peptides: 6668
+      - sample_label: "StrepII-HLA-DPA1*02:01/DPB1*11:01"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DPA1*02:01/DPB1*11:01"
+        peptides: 10073
+      - sample_label: "StrepII-HLA-DPA1*02:01/DPB1*13:01"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DPA1*02:01/DPB1*13:01"
+        peptides: 7277
+      - sample_label: "StrepII-HLA-DPA1*02:01/DPB1*14:01"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DPA1*02:01/DPB1*14:01"
+        peptides: 6466
+      - sample_label: "StrepII-HLA-DPA1*02:01/DPB1*17:01"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DPA1*02:01/DPB1*17:01"
+        peptides: 6974
+      - sample_label: "StrepII-HLA-DPA1*02:02/DPB1*02:01"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DPA1*02:02/DPB1*02:01"
+        peptides: 4556
+      - sample_label: "StrepII-HLA-DPA1*02:02/DPB1*02:02"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DPA1*02:02/DPB1*02:02"
+        peptides: 3961
+      - sample_label: "StrepII-HLA-DPA1*02:02/DPB1*03:01"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DPA1*02:02/DPB1*03:01"
+        peptides: 9172
+      - sample_label: "StrepII-HLA-DPA1*02:02/DPB1*05:01"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DPA1*02:02/DPB1*05:01"
+        peptides: 5104
+      - sample_label: "StrepII-HLA-DPA1*02:02/DPB1*14:01"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DPA1*02:02/DPB1*14:01"
+        peptides: 11651
+      - sample_label: "StrepII-HLA-DQA1*01:01/DQB1*05:01"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DQA1*01:01/DQB1*05:01"
+        peptides: 4257
+      - sample_label: "StrepII-HLA-DQA1*01:01/DQB1*05:02"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DQA1*01:01/DQB1*05:02"
+        peptides: 1909
+      - sample_label: "StrepII-HLA-DQA1*01:02/DQB1*03:02"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DQA1*01:02/DQB1*03:02"
+        peptides: 1402
+      - sample_label: "StrepII-HLA-DQA1*01:02/DQB1*05:02"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DQA1*01:02/DQB1*05:02"
+        peptides: 8641
+      - sample_label: "StrepII-HLA-DQA1*01:02/DQB1*06:01"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DQA1*01:02/DQB1*06:01"
+        peptides: 6819
+      - sample_label: "StrepII-HLA-DQA1*01:03/DQB1*06:01"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DQA1*01:03/DQB1*06:01"
+        peptides: 5700
+      - sample_label: "StrepII-HLA-DQA1*01:03/DQB1*06:03"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DQA1*01:03/DQB1*06:03"
+        peptides: 10673
+      - sample_label: "StrepII-HLA-DQA1*01:04/DQB1*05:03"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DQA1*01:04/DQB1*05:03"
+        peptides: 3741
+      - sample_label: "StrepII-HLA-DQA1*02:01/DQB1*02:01"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DQA1*02:01/DQB1*02:01"
+        peptides: 9305
+      - sample_label: "StrepII-HLA-DQA1*02:01/DQB1*02:02"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DQA1*02:01/DQB1*02:02"
+        peptides: 5934
+      - sample_label: "StrepII-HLA-DQA1*02:01/DQB1*03:03"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DQA1*02:01/DQB1*03:03"
+        peptides: 7378
+      - sample_label: "StrepII-HLA-DQA1*03:01/DQB1*03:02"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DQA1*03:01/DQB1*03:02"
+        peptides: 2584
+      - sample_label: "StrepII-HLA-DQA1*03:01/DQB1*03:03"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DQA1*03:01/DQB1*03:03"
+        peptides: 3103
+      - sample_label: "StrepII-HLA-DQA1*03:01/DQB1*04:01"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DQA1*03:01/DQB1*04:01"
+        peptides: 4095
+      - sample_label: "StrepII-HLA-DQA1*03:03/DQB1*03:01"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DQA1*03:03/DQB1*03:01"
+        peptides: 3232
+      - sample_label: "StrepII-HLA-DQA1*04:01/DQB1*04:02"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DQA1*04:01/DQB1*04:02"
+        peptides: 5616
+      - sample_label: "StrepII-HLA-DQA1*05:01/DQB1*02:01"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DQA1*05:01/DQB1*02:01"
+        peptides: 3507
+      - sample_label: "StrepII-HLA-DQA1*05:01/DQB1*03:01"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DQA1*05:01/DQB1*03:01"
+        peptides: 4782
+      - sample_label: "StrepII-HLA-DQA1*05:05/DQB1*03:01"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DQA1*05:05/DQB1*03:01"
+        peptides: 1744
+      - sample_label: "StrepII-HLA-DQA1*06:01/DQB1*03:01"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DQA1*06:01/DQB1*03:01"
+        peptides: 2137
+      - sample_label: "StrepII-HLA-DRB1*04:06"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DRB1*04:06"
+        peptides: 12082
+      - sample_label: "StrepII-HLA-DRB1*04:11"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DRB1*04:11"
+        peptides: 15936
+      - sample_label: "StrepII-HLA-DRB1*11:01"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DRB1*11:01"
+        peptides: 1860
+      - sample_label: "StrepII-HLA-DRB1*13:04"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DRB1*13:04"
+        peptides: 17804
+      - sample_label: "StrepII-HLA-DRB1*14:02"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DRB1*14:02"
+        peptides: 17655
+      - sample_label: "StrepII-HLA-DRB1*14:04"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DRB1*14:04"
+        peptides: 9505
+      - sample_label: "StrepII-HLA-DRB1*14:05"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DRB1*14:05"
+        peptides: 9693
+      - sample_label: "StrepII-HLA-DRB1*14:06"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DRB1*14:06"
+        peptides: 18737
+      - sample_label: "StrepII-HLA-DRB1*16:02"
+        n: 1
+        source: "Expi293F mono-allelic transient transfectant"
+        condition: "unperturbed — HLA-DM co-transfected"
+        mhc_class: II
+        mhc: "HLA-DRB1*16:02"
+        peptides: 11820
+
   - pmid: 37938771
     study_label: "Yarmarkovich 2023 — neuroblastoma immunopeptidome"
     title: "Targeting of intracellular oncoproteins with peptide-centric CARs"

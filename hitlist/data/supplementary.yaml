@@ -80,6 +80,35 @@
     process_type: "No immunization"
     disease: "healthy"
 
+# ── Stražar 2023 HLA-II mono-allelic (PMID 37301199) ────────────────
+# Table S2 (mmc3.zip) is a compiled mono-allelic dataset containing
+# rows from this work, IEDB, and Abelin 2019.  To avoid duplicating
+# public sources already present elsewhere in hitlist, we ingest only
+# the current-study subset: dataset == "internal_aff_clean1and2".
+#
+# Source: Immunity 2023 Table S2 / ST_ligands_merged.csv in mmc3.zip
+#         (filtered to the Stražar current-study subset)
+
+- pmid: 37301199
+  file: strazar_2023_hla2.csv
+  study_label: "Stražar 2023 — mono-allelic HLA-II ligands"
+  source: "Immunity 2023 Table S2 / ST_ligands_merged.csv (mmc3.zip)"
+  note: >
+    42 mono-allelic HLA-II heterodimers in Expi293F cells with HLA-DM
+    co-expression and Strep-tag II / Strep-Tactin purification. The
+    published Table S2 merges this work with IEDB and Abelin 2019, so
+    hitlist ingests only the current-study rows (dataset
+    internal_aff_clean1and2): 308,418 peptide-allele pairs across 42
+    alleles.
+  defaults:
+    host: "Homo sapiens (human)"
+    species: "Homo sapiens"
+    culture_condition: "Cell Line / Clone"
+    cell_name: "Expi293F"
+    source_tissue: "Kidney"
+    process_type: "No immunization"
+    disease: "healthy"
+
 # ── Gomez-Zepeda 2024 (PMID 38480730) ─────────────────────────────────
 # Thunder-DDA-PASEF on timsTOF Pro-2.  Per-peptide allele assignments
 # from NetMHCpan 4.1 (SB or WB binders).  Peptides without a predicted
