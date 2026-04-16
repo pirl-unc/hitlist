@@ -2380,12 +2380,14 @@
     study_label: Abelin 2019 — MAPTAC HLA-II + class I
     title: Defining HLA-II Ligand Processing and Binding Rules with Mass Spectrometry Enhances Cancer Epitope Prediction
     override:
+    mono_allelic_host: "MAPTAC"
     note: >
+      NOT IN IEDB — peptides ingested from paper supplement (Table S1B, sheet DataS1B).
       MAPTAC (Mono-Allelic Purification with Tagged Allele Constructs) uses biotin-acceptor peptide tag
       + BirA → streptavidin pulldown for mono-allelic class II profiling. dm+ = HLA-DM co-transfected (peptide
       editing), dm- = no DM (CLIP-loaded, low-affinity peptides). Also includes SILAC DC cross-presentation
       (heavy DCs + light tumor cells → distinguish cross-presented vs endogenous peptides). Lung and spleen
-      from healthy donors. PBMCs from healthy donors.
+      from healthy donors. PBMCs from healthy donors. Raw MS: MassIVE MSV000083991.
     hla_alleles:
       class_i_maptac:
         - "HLA-A*02:01"
