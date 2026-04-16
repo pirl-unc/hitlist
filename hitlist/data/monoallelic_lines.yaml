@@ -41,9 +41,3 @@
   hla_status: "TAP-deficient, expresses HLA-A*02:01"
   endogenous_alleles:
     - "HLA-A*02:01"
-
-- name: "MAPTAC"
-  aliases:
-    - "maptac"
-  hla_status: "Tagged allele construct — streptavidin pulldown of single allele"
-  endogenous_alleles: []
