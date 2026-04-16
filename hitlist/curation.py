@@ -744,12 +744,6 @@ def classify_ms_row(
         if host and _is_resolved_allele(mhc_restriction):
             is_monoallelic = True
             mono_host = host
-        # Method-based mono-allelic (e.g., MAPTAC tagged pulldown) —
-        # not a cell line, so not in monoallelic_lines.yaml.
-        method = entry.get("mono_allelic_method")
-        if not is_monoallelic and method and _is_resolved_allele(mhc_restriction):
-            is_monoallelic = True
-            mono_host = method
 
     return {
         "src_cancer": is_cancer,
