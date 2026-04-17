@@ -331,17 +331,19 @@ def classify_allele_resolution(mhc_restriction: str) -> str:
         try:
             from mhcgnomes.allele import Allele
             from mhcgnomes.mhc_class import MhcClass
+            from mhcgnomes.pair import Pair
             from mhcgnomes.serotype import Serotype
 
             if isinstance(result, Allele):
                 if len(result.allele_fields) >= 2:
                     return "four_digit"
                 return "two_digit"
-            if type(result).__name__ == "Pair":
-                pair_str = result.to_string()
-                if "*" in pair_str and ":" in pair_str:
+            if isinstance(result, Pair):
+                alpha_fields = len(result.alpha.allele_fields)
+                beta_fields = len(result.beta.allele_fields)
+                if alpha_fields >= 2 and beta_fields >= 2:
                     return "four_digit"
-                if "*" in pair_str:
+                if alpha_fields >= 1 and beta_fields >= 1:
                     return "two_digit"
                 return "unresolved"
             if isinstance(result, Serotype):

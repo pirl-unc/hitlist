@@ -4594,7 +4594,6 @@
     study_label: "Stražar 2023 — mono-allelic HLA-II immunopeptidomes"
     title: "HLA-II immunopeptidome profiling and deep learning reveal features of antigenicity to inform antigen discovery"
     species: "Homo sapiens (human)"
-    override: cell_line
     mono_allelic_method: "Strep-tag II"
     note: >
       NOT IN IEDB AS A STRAŽAR-SPECIFIC STUDY — ingested from the paper supplement instead.
