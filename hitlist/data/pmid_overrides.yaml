@@ -3607,13 +3607,42 @@
     override: cell_line
     mono_allelic_host: "721.221"
     note: >
-      721.221 mono-allelic transfectants. IEDB annotation "Uterine Cervix"
-      is WRONG — 721.221 is an EBV-transformed B cell line.
+      721.221 mono-allelic transfectants, five HLA-A/B alleles. IEDB
+      annotations "Uterine Cervix" / "HeLa cells-Epithelial cell" are
+      WRONG — 721.221 is an EBV-transformed B cell line. Per-allele
+      peptide counts (IEDB): HLA-A*01:01 (2,921), HLA-A*02:01 (4,296),
+      HLA-A*24:02 (3,915), HLA-B*07:02 (3,284), HLA-B*51:01 (1,222).
     ms_samples:
-      - sample_label: "721.221 mono-allelic transfectants"
-        condition: "unperturbed"
+      - sample_label: "721.221-HLA-A*01:01"
+        n: 1
+        source: retroviral transduction of single HLA alleles into B721.221
+        condition: "unperturbed — mono-allelic"
         mhc_class: "I"
-        mhc: "HLA-A*01:01 HLA-A*02:01 HLA-A*24:02 HLA-B*07:02 HLA-B*51:01"
+        mhc: "HLA-A*01:01"
+      - sample_label: "721.221-HLA-A*02:01"
+        n: 1
+        source: retroviral transduction of single HLA alleles into B721.221
+        condition: "unperturbed — mono-allelic"
+        mhc_class: "I"
+        mhc: "HLA-A*02:01"
+      - sample_label: "721.221-HLA-A*24:02"
+        n: 1
+        source: retroviral transduction of single HLA alleles into B721.221
+        condition: "unperturbed — mono-allelic"
+        mhc_class: "I"
+        mhc: "HLA-A*24:02"
+      - sample_label: "721.221-HLA-B*07:02"
+        n: 1
+        source: retroviral transduction of single HLA alleles into B721.221
+        condition: "unperturbed — mono-allelic"
+        mhc_class: "I"
+        mhc: "HLA-B*07:02"
+      - sample_label: "721.221-HLA-B*51:01"
+        n: 1
+        source: retroviral transduction of single HLA alleles into B721.221
+        condition: "unperturbed — mono-allelic"
+        mhc_class: "I"
+        mhc: "HLA-B*51:01"
 
   - pmid: 36215666
     study_label: "Sarango 2022 — HeLa-CIITA T6BP/autophagy"
