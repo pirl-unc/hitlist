@@ -666,6 +666,23 @@ def test_pmid_mono_allelic_method_override_strazar():
     assert flags_class["is_monoallelic"] is False
 
 
+def test_illing_2018_monoallelic_host_applies_without_cell_name():
+    """Illing 2018 rows that lack the C1R cell_name in IEDB should still be
+    flagged mono-allelic via the PMID-level ``mono_allelic_host: C1R``
+    override, as long as the allele is resolved."""
+    flags = classify_ms_row(
+        "No immunization",
+        "healthy",
+        "Cell Line / Clone",
+        "",
+        "",  # empty cell_name (the ~33 IEDB rows that lack the C1R label)
+        pmid=30410026,
+        mhc_restriction="HLA-B*57:01",
+    )
+    assert flags["is_monoallelic"] is True
+    assert flags["monoallelic_host"] == "C1R"
+
+
 def test_load_pmid_overrides_rejects_unknown_mono_host(tmp_path, monkeypatch):
     """A PMID override with a mono_allelic_host that isn't in
     monoallelic_lines.yaml must raise at load time — silently producing

@@ -5090,11 +5090,32 @@
     study_label: "Illing 2018 — HLA-B57 micropolymorphism"
     title: "HLA-B57 micropolymorphism defines the sequence and conformational breadth of the immunopeptidome"
     override: cell_line
+    mono_allelic_host: "C1R"
+    note: >
+      C1R transfectants expressing single HLA-B alleles. IEDB contains
+      three mono-allelic C1R samples: HLA-B*57:01 (3,218 peptides),
+      HLA-B*57:03 (3,852 peptides), and HLA-B*58:01 (3,095 peptides).
+      A small number of rows (~33) lack the C1R cell_name annotation in
+      IEDB; the PMID-level mono_allelic_host covers those.
     ms_samples:
-      - sample_label: "C1R B*57:01/B*57:03/B*58:01 transfectants"
-        condition: "unperturbed"
+      - sample_label: "C1R-HLA-B*57:01"
+        n: 1
+        source: "C1R cells transfected with single HLA-B allele"
+        condition: "unperturbed — mono-allelic"
         mhc_class: "I"
-        mhc: "HLA-B*57:01 HLA-B*57:03 HLA-B*58:01"
+        mhc: "HLA-B*57:01"
+      - sample_label: "C1R-HLA-B*57:03"
+        n: 1
+        source: "C1R cells transfected with single HLA-B allele"
+        condition: "unperturbed — mono-allelic"
+        mhc_class: "I"
+        mhc: "HLA-B*57:03"
+      - sample_label: "C1R-HLA-B*58:01"
+        n: 1
+        source: "C1R cells transfected with single HLA-B allele"
+        condition: "unperturbed — mono-allelic"
+        mhc_class: "I"
+        mhc: "HLA-B*58:01"
 
   - pmid: 34561969
     study_label: "Khan 2022 — HLA-A*33:03 peptidome"
