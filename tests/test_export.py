@@ -154,6 +154,20 @@ def test_ms_samples_alpizar_2017_split():
     assert set(al["mhc_class"]) == {"I"}
 
 
+def test_ms_samples_illing_2018_split():
+    """Illing 2018 should be split per HLA-B57/B58 transfectant (3 entries)."""
+    df = generate_ms_samples_table()
+    il = df[df["pmid"] == 30410026]
+    assert len(il) == 3, f"expected 3 per-transfectant entries, got {len(il)}"
+    assert set(il["mhc"]) == {"HLA-B*57:01", "HLA-B*57:03", "HLA-B*58:01"}
+    assert set(il["sample_label"]) == {
+        "C1R-HLA-B*57:01",
+        "C1R-HLA-B*57:03",
+        "C1R-HLA-B*58:01",
+    }
+    assert set(il["mhc_class"]) == {"I"}
+
+
 def test_generate_observations_table():
     """Observations table should join peptides with sample metadata."""
     from hitlist.observations import is_built
