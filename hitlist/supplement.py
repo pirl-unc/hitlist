@@ -80,7 +80,13 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
     if not entries:
         return pd.DataFrame()
 
-    all_rows: list[dict] = []
+    from .curation import (
+        allele_to_serotype,
+        classify_allele_resolution,
+        classify_mhc_species,
+    )
+
+    per_entry_frames: list[pd.DataFrame] = []
 
     for entry in entries:
         pmid = entry["pmid"]
@@ -91,34 +97,48 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
             continue
 
         df = pd.read_csv(csv_path, dtype=str).fillna("")
-
         if "peptide" not in df.columns:
             continue
 
-        for _, row in df.iterrows():
-            peptide = row["peptide"].strip()
-            if not peptide:
-                continue
+        df["peptide"] = df["peptide"].str.strip()
+        df = df[df["peptide"] != ""]
+        if df.empty:
+            continue
 
-            mhc_restriction = row.get("mhc_restriction", "").strip()
-            mhc_class = row.get("mhc_class", "").strip()
-            # CSV may flag MS-observed peptides that lack binding predictions
-            raw_contam = str(row.get("is_potential_contaminant", "")).strip().lower()
-            is_potential_contaminant = raw_contam in ("true", "1", "yes")
+        if "mhc_restriction" in df.columns:
+            df["mhc_restriction"] = df["mhc_restriction"].str.strip()
+        else:
+            df["mhc_restriction"] = ""
+        if "mhc_class" in df.columns:
+            df["mhc_class"] = df["mhc_class"].str.strip()
+        else:
+            df["mhc_class"] = ""
 
-            # Build a record matching the scanner output schema.
-            # IEDB-specific columns come from manifest defaults or empty string.
-            process_type = defaults.get("process_type", "")
-            disease = defaults.get("disease", "")
-            culture_condition = defaults.get("culture_condition", "")
-            source_tissue = defaults.get("source_tissue", "")
-            cell_name = defaults.get("cell_name", "")
+        if "is_potential_contaminant" in df.columns:
+            df["is_potential_contaminant"] = (
+                df["is_potential_contaminant"]
+                .astype(str)
+                .str.strip()
+                .str.lower()
+                .isin({"true", "1", "yes"})
+            )
+        else:
+            df["is_potential_contaminant"] = False
 
-            record: dict = {
-                "peptide": peptide,
-                "mhc_restriction": mhc_restriction,
-                "mhc_class": mhc_class,
-                "reference_iri": f"supplement:{pmid}:{peptide}:{mhc_restriction}",
+        process_type = defaults.get("process_type", "")
+        disease = defaults.get("disease", "")
+        culture_condition = defaults.get("culture_condition", "")
+        source_tissue = defaults.get("source_tissue", "")
+        cell_name = defaults.get("cell_name", "")
+
+        record = pd.DataFrame(
+            {
+                "peptide": df["peptide"].to_numpy(),
+                "mhc_restriction": df["mhc_restriction"].to_numpy(),
+                "mhc_class": df["mhc_class"].to_numpy(),
+                "reference_iri": (
+                    "supplement:" + str(pmid) + ":" + df["peptide"] + ":" + df["mhc_restriction"]
+                ).to_numpy(),
                 "pmid": pmid,
                 "submission_id": "",
                 "reference_title": entry.get("study_label", ""),
@@ -136,44 +156,59 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
                 "assay_comments": "",
                 "qualitative_measurement": "",
                 "is_binding_assay": False,
-                "is_potential_contaminant": is_potential_contaminant,
+                "is_potential_contaminant": df["is_potential_contaminant"].to_numpy(),
             }
+        )
 
-            if classify_source:
-                record.update(
-                    classify_ms_row(
+        # Classify per-unique-allele, then map back onto every row.
+        # Within a single supplementary entry the non-allele inputs are
+        # constant (from manifest defaults), so classify_ms_row varies
+        # only by mhc_restriction.
+        unique_alleles = record["mhc_restriction"].unique()
+        if classify_source:
+            flag_rows = [
+                {
+                    "mhc_restriction": a,
+                    **classify_ms_row(
                         process_type,
                         disease,
                         culture_condition,
                         source_tissue,
                         cell_name,
                         pmid,
-                        mhc_restriction=mhc_restriction,
-                    )
-                )
-            else:
-                from .curation import (
-                    allele_to_serotype,
-                    classify_allele_resolution,
-                    classify_mhc_species,
-                )
+                        mhc_restriction=a,
+                    ),
+                }
+                for a in unique_alleles
+            ]
+        else:
+            flag_rows = [
+                {
+                    "mhc_restriction": a,
+                    "allele_resolution": classify_allele_resolution(a),
+                    "serotype": allele_to_serotype(a),
+                    "mhc_species": classify_mhc_species(a),
+                }
+                for a in unique_alleles
+            ]
+        flags = pd.DataFrame(flag_rows)
+        record = record.merge(flags, on="mhc_restriction", how="left")
 
-                record["allele_resolution"] = classify_allele_resolution(mhc_restriction)
-                record["serotype"] = allele_to_serotype(mhc_restriction)
-                record["mhc_species"] = classify_mhc_species(mhc_restriction)
+        # Fallback: derive mhc_species from host when allele-based
+        # classification is empty (e.g. supplementary peptides without
+        # per-peptide allele assignments).
+        host_species = normalize_species(defaults.get("host", ""))
+        if "mhc_species" in record.columns:
+            record["mhc_species"] = record["mhc_species"].fillna("").replace("", host_species)
+        else:
+            record["mhc_species"] = host_species
 
-            # Fallback: derive mhc_species from host when allele-based
-            # classification returns empty (e.g. supplementary peptides
-            # without per-peptide allele assignments).
-            if not record.get("mhc_species"):
-                record["mhc_species"] = normalize_species(defaults.get("host", ""))
+        per_entry_frames.append(record)
 
-            all_rows.append(record)
-
-    if not all_rows:
+    if not per_entry_frames:
         return pd.DataFrame()
 
-    result = pd.DataFrame(all_rows)
+    result = pd.concat(per_entry_frames, ignore_index=True)
 
     # Deduplicate within supplementary data: one row per (peptide, mhc_restriction, pmid)
     result = result.drop_duplicates(subset=["peptide", "mhc_restriction", "pmid"])
