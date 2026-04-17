@@ -1,3 +1,42 @@
+# Stražar 2023 Ingestion Plan
+
+## Goal
+
+Ingest Stražar et al. 2023 (PMID 37301199) as supplementary HLA-II mono-allelic data, using the existing supplementary-manifest pipeline plus a curated PMID override that records the study-wide metadata and mono-allelic method.
+
+## Work Plan
+
+- [x] Confirm supplementary file contents and study structure
+  Deliverable: identify which workbook/sheet contains the peptide-level HLA-II ligand table, the allele naming format, whether peptides are already allele-restricted per row, and whether any sample splits or conditions need separate CSVs.
+  Verification: local inspection notes reflected in the curated CSV shape and manifest comments.
+  Result: the peptide payload is `mmc3.zip` → `ST_ligands_merged.csv`; hitlist ingests only the current-study `dataset == "internal_aff_clean1and2"` slice, not the merged public-training rows.
+
+- [x] Add PMID 37301199 override in `hitlist/data/pmid_overrides.yaml`
+  Deliverable: study label, title, note, allele summary, `mono_allelic_method`, acquisition metadata if recoverable from the paper/supplement, and `ms_samples` entries that enumerate the mono-allelic HLA-II panel with class II MHC strings.
+  Verification: override loads cleanly in tests and sample export surfaces the new study metadata.
+  Result: added 42 class II mono-allelic samples with exact HLA strings, peptide counts, Strep-tag II method metadata, and Orbitrap Exploris 480 / Spectrum Mill acquisition details.
+
+- [x] Add supplementary peptide payload(s) and manifest entry
+  Deliverable: one or more CSVs in `hitlist/data/supplementary/` plus `hitlist/data/supplementary.yaml` entries with correct defaults for human class II mono-allelic transfectants.
+  Verification: `scan_supplementary()` includes PMID 37301199 rows with expected class II / mono-allelic metadata.
+  Result: added `hitlist/data/supplementary/strazar_2023_hla2.csv` with 308,418 peptide-allele rows and a manifest entry that documents the source filtering.
+
+- [x] Add or extend tests for the Stražar ingestion
+  Deliverable: assertions covering manifest presence, class II row loading, mono-allelic classification via `mono_allelic_method`, and basic size / allele expectations for PMID 37301199.
+  Verification: targeted pytest coverage passes locally.
+  Result: added tests for paired class II allele resolution, Stražar method-based mono-allelic classification, supplementary load counts, and exported sample metadata.
+
+- [x] Run required repo verification
+  Deliverable: `./format.sh`, `./lint.sh`, and `./test.sh` all pass after the ingestion.
+  Verification: command exit status 0 for each script.
+  Result: all three passed; `./test.sh` finished with `186 passed, 1 skipped`.
+
+## Review
+
+- Review finding 1: the Stražar supplement does not live in the small XLSX tables; the usable peptide payload is `mmc3.zip`, and the published CSV/ZIP bundle merges current-study data with IEDB and Abelin 2019. **Handled** by ingesting only `internal_aff_clean1and2`.
+- Review finding 2: paired class II restrictions like `HLA-DQA1*01:03/DQB1*06:03` were previously classified as `unresolved`, which broke `mono_allelic_method` overrides for DQ/DP pair strings. **Fixed** in `classify_allele_resolution()`.
+- Review finding 3: the full verification path is expensive because `test.sh` scans the large supplementary CSVs and observation/export joins under coverage. **Verified** anyway per repo policy: `./format.sh`, `./lint.sh`, and `./test.sh` all passed.
+
 # PR 26 Follow-up Plan
 
 ## Goal

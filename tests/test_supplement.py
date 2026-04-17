@@ -80,6 +80,20 @@ def test_scan_supplementary_gomez_zepeda():
     assert hela.iloc[0]["src_cancer"] is True or hela.iloc[0]["src_cancer"] == True  # noqa: E712
 
 
+def test_scan_supplementary_strazar():
+    """Stražar 2023 should load as class II mono-allelic Expi293F data."""
+    df = scan_supplementary()
+    st = df[df["pmid"] == 37301199]
+    assert len(st) == 308418
+    assert set(st["mhc_class"]) == {"II"}
+    assert st["mhc_restriction"].nunique() == 42
+    assert st["peptide"].nunique() == 176962
+    assert (st["cell_name"] == "Expi293F").all()
+    assert (st["is_monoallelic"]).all()
+    assert set(st["monoallelic_host"].unique()) == {"Strep-tag II"}
+    assert (st["mhc_species"] == "Homo sapiens").all()
+
+
 def test_scan_supplementary_contaminant_flag():
     """is_potential_contaminant should be present and meaningful."""
     df = scan_supplementary()

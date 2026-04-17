@@ -331,12 +331,21 @@ def classify_allele_resolution(mhc_restriction: str) -> str:
         try:
             from mhcgnomes.allele import Allele
             from mhcgnomes.mhc_class import MhcClass
+            from mhcgnomes.pair import Pair
             from mhcgnomes.serotype import Serotype
 
             if isinstance(result, Allele):
                 if len(result.allele_fields) >= 2:
                     return "four_digit"
                 return "two_digit"
+            if isinstance(result, Pair):
+                alpha_fields = len(result.alpha.allele_fields)
+                beta_fields = len(result.beta.allele_fields)
+                if alpha_fields >= 2 and beta_fields >= 2:
+                    return "four_digit"
+                if alpha_fields >= 1 and beta_fields >= 1:
+                    return "two_digit"
+                return "unresolved"
             if isinstance(result, Serotype):
                 return "serological"
             if isinstance(result, MhcClass):
@@ -350,6 +359,8 @@ def classify_allele_resolution(mhc_restriction: str) -> str:
         return "unresolved"
     if "class" in mhc_restriction.lower():
         return "class_only"
+    if ("/" in mhc_restriction or "," in mhc_restriction) and "*" in mhc_restriction:
+        return "four_digit" if ":" in mhc_restriction else "two_digit"
     if "*" in mhc_restriction and ":" in mhc_restriction:
         return "four_digit"
     if "*" in mhc_restriction:

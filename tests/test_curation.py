@@ -306,6 +306,8 @@ def test_classify_allele_resolution_four_digit():
     assert classify_allele_resolution("HLA-A*02:01") == "four_digit"
     assert classify_allele_resolution("HLA-B*49:01") == "four_digit"
     assert classify_allele_resolution("HLA-C*07:02") == "four_digit"
+    assert classify_allele_resolution("HLA-DQA1*01:03/DQB1*06:03") == "four_digit"
+    assert classify_allele_resolution("HLA-DPA1*02:01/DPB1*05:01") == "four_digit"
 
 
 def test_classify_allele_resolution_serological():
@@ -630,6 +632,35 @@ def test_pmid_mono_allelic_method_override():
         "",
         "MAPTAC",
         pmid=31495665,
+        mhc_restriction="HLA class II",
+    )
+    assert flags_class["is_monoallelic"] is False
+
+
+def test_pmid_mono_allelic_method_override_strazar():
+    """Stražar 2023 uses a Strep-tag II tagged-allele pulldown rather than
+    a known monoallelic host cell line, so the PMID-level method override
+    should mark resolved HLA-II pairs as mono-allelic.
+    """
+    flags = classify_ms_row(
+        "No immunization",
+        "healthy",
+        "Cell Line / Clone",
+        "Kidney",
+        "Expi293F",
+        pmid=37301199,
+        mhc_restriction="HLA-DQA1*01:03/DQB1*06:03",
+    )
+    assert flags["is_monoallelic"] is True
+    assert flags["monoallelic_host"] == "Strep-tag II"
+
+    flags_class = classify_ms_row(
+        "No immunization",
+        "healthy",
+        "Cell Line / Clone",
+        "Kidney",
+        "Expi293F",
+        pmid=37301199,
         mhc_restriction="HLA class II",
     )
     assert flags_class["is_monoallelic"] is False
