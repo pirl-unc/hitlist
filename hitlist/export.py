@@ -126,7 +126,7 @@ def generate_ms_samples_table(mhc_class: str | None = None) -> pd.DataFrame:
             else:
                 perturbation = condition
 
-            n = sample.get("n", "")
+            n = sample.get("n_samples", "")
             if n == 0:
                 continue  # skip "NOT profiled" placeholder rows
 

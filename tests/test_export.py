@@ -168,6 +168,22 @@ def test_ms_samples_illing_2018_split():
     assert set(il["mhc_class"]) == {"I"}
 
 
+def test_ms_samples_trolle_2016_split():
+    """Trolle 2016 should be split per HeLa sHLA transfectant (5 entries)."""
+    df = generate_ms_samples_table()
+    tr = df[df["pmid"] == 26783342]
+    assert len(tr) == 5, f"expected 5 per-transfectant entries, got {len(tr)}"
+    assert set(tr["mhc"]) == {
+        "HLA-A*01:01",
+        "HLA-A*02:01",
+        "HLA-A*24:02",
+        "HLA-B*07:02",
+        "HLA-B*51:01",
+    }
+    assert (tr["sample_label"].str.startswith("HeLa-sHLA-HLA-")).all()
+    assert set(tr["mhc_class"]) == {"I"}
+
+
 def test_generate_observations_table():
     """Observations table should join peptides with sample metadata."""
     from hitlist.observations import is_built
