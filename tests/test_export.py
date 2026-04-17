@@ -169,7 +169,7 @@ def test_ms_samples_illing_2018_split():
 
 
 def test_ms_samples_trolle_2016_split():
-    """Trolle 2016 should be split per 721.221 HLA-A/B transfectant (5 entries)."""
+    """Trolle 2016 should be split per HeLa sHLA transfectant (5 entries)."""
     df = generate_ms_samples_table()
     tr = df[df["pmid"] == 26783342]
     assert len(tr) == 5, f"expected 5 per-transfectant entries, got {len(tr)}"
@@ -180,7 +180,7 @@ def test_ms_samples_trolle_2016_split():
         "HLA-B*07:02",
         "HLA-B*51:01",
     }
-    assert (tr["sample_label"].str.startswith("721.221-HLA-")).all()
+    assert (tr["sample_label"].str.startswith("HeLa-sHLA-HLA-")).all()
     assert set(tr["mhc_class"]) == {"I"}
 
 
