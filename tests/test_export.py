@@ -142,6 +142,18 @@ def test_ms_samples_strazar_2023():
     assert (st["sample_label"].str.startswith("StrepII-")).all()
 
 
+def test_ms_samples_alpizar_2017_split():
+    """Alpizar 2017 should be split per transfectant (B*40:02, B*39:01), not
+    pooled, and must carry the corrected B*40:02 (IEDB has no B*40:01 rows)."""
+    df = generate_ms_samples_table()
+    al = df[df["pmid"] == 27920218]
+    assert len(al) == 2, f"expected 2 per-transfectant entries, got {len(al)}"
+    assert set(al["mhc"]) == {"HLA-B*40:02", "HLA-B*39:01"}
+    assert "HLA-B*40:01" not in set(al["mhc"])
+    assert set(al["sample_label"]) == {"C1R-HLA-B*40:02", "C1R-HLA-B*39:01"}
+    assert set(al["mhc_class"]) == {"I"}
+
+
 def test_generate_observations_table():
     """Observations table should join peptides with sample metadata."""
     from hitlist.observations import is_built
