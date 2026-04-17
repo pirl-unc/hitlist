@@ -3642,13 +3642,27 @@
     override: cell_line
     mono_allelic_host: "C1R"
     note: >
-      C1R and 721.221 cells expressing single HLA-B alleles. Focus on
-      phosphopeptides (256 unique phosphopeptides identified).
+      C1R cells expressing single HLA-B alleles, profiled for phosphopeptides.
+      IEDB contains data only for the two C1R transfectants listed below:
+      HLA-B*40:02 (6,676 peptides) and HLA-B*39:01 (953 peptides), plus 515
+      class-only rows with unresolved HLA class I annotation. Paper methods
+      also list HLA-B*27:05 and HLA-B*07:02 transfectants, but IEDB has no
+      data for those; no 721.221 rows are present in IEDB for this PMID.
+      The prior pooled sample entry incorrectly labeled the B*40 transfectant
+      as B*40:01 — IEDB rows all carry B*40:02.
     ms_samples:
-      - sample_label: "C1R/721.221 HLA-B transfectants (B*40, B*27, B*39, B*07)"
+      - sample_label: "C1R-HLA-B*40:02"
+        n: 1
+        source: "C1R cells transfected with single HLA-B allele"
         condition: "unperturbed — mono-allelic"
         mhc_class: "I"
-        mhc: "HLA-B*40:01 HLA-B*27:05 HLA-B*39:01 HLA-B*07:02"
+        mhc: "HLA-B*40:02"
+      - sample_label: "C1R-HLA-B*39:01"
+        n: 1
+        source: "C1R cells transfected with single HLA-B allele"
+        condition: "unperturbed — mono-allelic"
+        mhc_class: "I"
+        mhc: "HLA-B*39:01"
 
   - pmid: 32897882
     study_label: "Klatt 2020 — hydrophobic peptide recovery method"
