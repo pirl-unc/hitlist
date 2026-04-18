@@ -3512,9 +3512,19 @@
     study_label: "Liepe 2016 — proteasome-spliced peptides"
     title: "A large fraction of HLA class I ligands are proteasome-generated spliced peptides"
     override: cell_line
+    rules:
+      # Primary fibroblasts (Direct Ex Vivo) are not cancer — they are
+      # non-malignant comparators. Without this rule the PMID-level
+      # cell_line override forces is_cancer=True on all 3,614 fibroblast
+      # rows.
+      - condition:
+          Culture Condition: "Direct Ex Vivo"
+        override: healthy
     note: >
       GR-LCL, JY, C1R, HeLa, primary fibroblasts. Demonstrates ~1/3 of
-      immunopeptidome diversity is cis-spliced. Multiple cell types.
+      immunopeptidome diversity is cis-spliced. Multiple cell types —
+      per-sample rule routes Direct Ex Vivo primary fibroblasts through
+      the healthy override so they are not mis-flagged as cancer.
     ms_samples:
       - sample_label: "GR-LCL (EBV-LCL)"
         condition: "unperturbed"
@@ -4158,9 +4168,25 @@
     study_label: "Caron 2015 — digital immunopeptidome maps"
     title: "Open-source computational resource for digital maps of immunopeptidomes"
     override: cell_line
+    rules:
+      # Primary PBMCs (Direct Ex Vivo, healthy donors) are not cancer —
+      # without this rule the PMID-level cell_line override forces
+      # is_cancer=True on all 4,617 PBMC rows.
+      - condition:
+          Culture Condition: "Direct Ex Vivo"
+        override: healthy
+    note: >
+      Digital immunopeptidome maps from multiple cell lines (JY, B721.221,
+      C1R, Jurkat) plus primary PBMCs. Per-sample rule routes Direct Ex Vivo
+      PBMC rows through the healthy override so they are not mis-flagged
+      as cancer.
     ms_samples:
       - sample_label: "multiple cell lines (JY, B721.221, etc.)"
         condition: "unperturbed"
+        mhc_class: "I"
+        mhc: "HLA class I"
+      - sample_label: "primary PBMCs (healthy donors)"
+        condition: "unperturbed — ex vivo"
         mhc_class: "I"
         mhc: "HLA class I"
 
