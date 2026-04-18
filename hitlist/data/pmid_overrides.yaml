@@ -4205,21 +4205,32 @@
         mhc: "HLA class II"
 
   - pmid: 32161166
-    study_label: "Chen 2020 — HLA-B*51:01 subpeptidome / ERAP1"
+    study_label: "Chen 2020 — HLA-B*51:01 subpeptidome / ERAP1 KD in HeLa.ABC-KO"
     title: "Unconventional subpeptidome bound to HLA-B*51:01 regulated by ERAP1"
     override: cell_line
+    mono_allelic_method: "HLA-ABC CRISPR knockout + single-allele transduction"
     note: >
-      IEDB annotation "cervical cancer" is WRONG — this is an HLA-B*51:01 /
-      Behcet's disease study. Cell line with ERAP1 variants.
+      HeLa.ABC-KO (CRISPR triple knockout of endogenous HLA-A/B/C) transduced
+      with HLA-B*51:01 (HeLa.ABC-KO.B51). ERAP1 silenced with lentiviral shRNA
+      vs control shRNA; B*51:01 peptidome compared across conditions for a
+      Behcet's disease context. Mono-allelic via host knockout + single-allele
+      transduction. IEDB's cell_name "HeLa cells-Epithelial cell" and
+      source_tissue "Uterine Cervix" are correct for the host cell line
+      (paper-verified against full text); IEDB does not distinguish the
+      ERAP1-WT and ERAP1-KD arms at the metadata level.
     perturbations:
-      - "ERAP1 variants (studying effect on B*51:01 peptidome)"
+      - "ERAP1 shRNA knockdown"
     ms_samples:
-      - sample_label: "cell line expressing HLA-B*51:01"
-        condition: "unperturbed"
+      - sample_label: "HeLa.ABC-KO-HLA-B*51:01 (control shRNA)"
+        n_samples: 1
+        source: HeLa.ABC-KO (CRISPR triple HLA-ABC KO) transduced with HLA-B*51:01, control shRNA
+        condition: "unperturbed — mono-allelic"
         mhc_class: "I"
         mhc: "HLA-B*51:01"
-      - sample_label: "cell line + ERAP1 variant"
-        condition: "ERAP1 variant effect on peptidome"
+      - sample_label: "HeLa.ABC-KO-HLA-B*51:01 (ERAP1 shRNA)"
+        n_samples: 1
+        source: HeLa.ABC-KO (CRISPR triple HLA-ABC KO) transduced with HLA-B*51:01, ERAP1 shRNA knockdown
+        condition: "ERAP1 shRNA knockdown"
         mhc_class: "I"
         mhc: "HLA-B*51:01"
 
