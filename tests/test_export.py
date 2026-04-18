@@ -194,6 +194,18 @@ def test_ms_samples_chen_2020_hela_abc_ko():
     assert set(ch["mhc_class"]) == {"I"}
 
 
+def test_ms_samples_sarango_2022_dr_allele():
+    """Sarango 2022 should include HLA-DRB1*01:02 in the mhc string (paper-verified)."""
+    df = generate_ms_samples_table()
+    sa = df[df["pmid"] == 36215666]
+    assert len(sa) == 2
+    assert set(sa["mhc_class"]) == {"I+II"}
+    assert all("HLA-DRB1*01:02" in m for m in sa["mhc"]), (
+        f"expected DRB1*01:02 in all mhc strings, got {list(sa['mhc'])}"
+    )
+    assert all("HLA-A*68:02" in m for m in sa["mhc"])
+
+
 def test_ms_samples_weingarten_gabbay_2021_no_hbec():
     """Weingarten-Gabbay 2021: only A549-ACE2-TMPRSS2 and HEK293T-ACE2-TMPRSS2; HBECs never profiled."""
     df = generate_ms_samples_table()

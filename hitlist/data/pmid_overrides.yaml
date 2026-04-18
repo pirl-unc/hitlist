@@ -3668,21 +3668,29 @@
     title: "The Autophagy Receptor TAX1BP1 (T6BP) improves antigen presentation by MHC-II molecules"
     override: cell_line
     note: >
-      HeLa-CIITA cells (cervical carcinoma + forced class II expression).
-      IEDB annotation "healthy cervix" is WRONG — HeLa is a cancer cell
-      line with CIITA transduction + T6BP siRNA knockdown.
+      HeLa-CIITA cells (cervical carcinoma + stable CIITA transduction for
+      forced class II expression). Paper profiles BOTH class I (W6/32 IP;
+      HLA-A*68:02, B*15:03, C*12:03 endogenous) and class II (TÜ39 IP;
+      HLA-DRB1*01:02 the primary DR allele driven by CIITA). IEDB source
+      annotation "healthy cervix" is misleading for disease state — HeLa is
+      cervical adenocarcinoma, not healthy tissue — though IEDB's cervix /
+      HeLa cell_name annotations are otherwise correct (paper-verified). The
+      paper uses a panel of autophagy-receptor siRNAs (NDP52, OPTN, T6BP;
+      p62 and CANX in follow-up experiments); the T6BP vs control contrast
+      is the headline MS result showing T6BP silencing reduces the MHC-II
+      immunopeptidome without affecting MHC-I.
     perturbations:
       - "CIITA transduction (forced HLA-II expression)"
-      - "T6BP/TAX1BP1 siRNA knockdown (autophagy receptor)"
+      - "siRNA knockdown panel: NDP52, OPTN, T6BP (+ p62, CANX in follow-up)"
     ms_samples:
-      - sample_label: "HeLa-CIITA (control)"
+      - sample_label: "HeLa-CIITA (control siRNA)"
         condition: "CIITA transduction only"
         mhc_class: "I+II"
-        mhc: "HLA-A*68:02 HLA-B*15:03 HLA-C*12:03"
+        mhc: "HLA-A*68:02 HLA-B*15:03 HLA-C*12:03 HLA-DRB1*01:02"
       - sample_label: "HeLa-CIITA + T6BP siRNA"
         condition: "CIITA transduction + T6BP/TAX1BP1 siRNA knockdown"
         mhc_class: "I+II"
-        mhc: "HLA-A*68:02 HLA-B*15:03 HLA-C*12:03"
+        mhc: "HLA-A*68:02 HLA-B*15:03 HLA-C*12:03 HLA-DRB1*01:02"
 
   - pmid: 27920218
     study_label: "Alpizar 2017 — HLA-B phosphopeptidome"
