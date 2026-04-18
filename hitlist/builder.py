@@ -233,7 +233,7 @@ def build_observations(
             peptides=None,
             iedb_path=paths[name] if name == "iedb" else None,
             cedar_path=paths[name] if name == "cedar" else None,
-            human_only=False,
+            mhc_species=None,  # builder indexes all species; downstream filters per-call
             classify_source=True,
         )
         df["source"] = name

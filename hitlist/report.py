@@ -327,8 +327,7 @@ def run_report(
         peptides=None,
         iedb_path=iedb_path,
         cedar_path=cedar_path,
-        human_only=True,
-        hla_only=True,
+        mhc_species="Homo sapiens",
         classify_source=True,
     )
 
