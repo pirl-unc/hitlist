@@ -155,3 +155,102 @@ def test_load_binding_filters(tmp_path, monkeypatch):
     assert len(load_binding(source="cedar")) == 1
     assert list(load_binding(mhc_restriction="HLA-A*02:01")["peptide"]) == ["AAA", "CCC"]
     assert set(load_binding(serotype="A2")["peptide"]) == {"AAA", "CCC"}
+
+
+# ── load_all_evidence (hitlist#47 union helper) ────────────────────────────
+
+
+def test_load_all_evidence_unions_ms_and_binding(tmp_path, monkeypatch):
+    """Union must tag rows with evidence_kind, apply filters symmetrically,
+    and concatenate both indexes.  Closes the gap that forced downstream
+    tools (tsarina --include-binding-assays) to silently drop binding rows."""
+    import pandas as pd
+
+    from hitlist.observations import load_all_evidence
+
+    ms = pd.DataFrame(
+        {
+            "peptide": ["MS1", "MS2"],
+            "mhc_restriction": ["HLA-A*02:01", "HLA-B*07:02"],
+            "mhc_class": ["I", "I"],
+            "reference_iri": ["m1", "m2"],
+            "pmid": pd.array([10, 11], dtype="Int64"),
+            "source": ["iedb", "iedb"],
+            "mhc_species": ["Homo sapiens"] * 2,
+            "is_binding_assay": [False, False],
+        }
+    )
+    bd = pd.DataFrame(
+        {
+            "peptide": ["BD1", "BD2"],
+            "mhc_restriction": ["HLA-A*02:01", "HLA-A*02:01"],
+            "mhc_class": ["I", "II"],
+            "reference_iri": ["b1", "b2"],
+            "pmid": pd.array([20, 21], dtype="Int64"),
+            "source": ["iedb", "cedar"],
+            "mhc_species": ["Homo sapiens"] * 2,
+            "is_binding_assay": [True, True],
+        }
+    )
+    ms_p = tmp_path / "observations.parquet"
+    bd_p = tmp_path / "binding.parquet"
+    ms.to_parquet(ms_p, index=False)
+    bd.to_parquet(bd_p, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: ms_p)
+    monkeypatch.setattr("hitlist.observations.binding_path", lambda: bd_p)
+
+    df = load_all_evidence()
+    assert set(df["peptide"]) == {"MS1", "MS2", "BD1", "BD2"}
+    assert set(df["evidence_kind"]) == {"ms", "binding"}
+    assert df[df["peptide"] == "MS1"]["evidence_kind"].iloc[0] == "ms"
+    assert df[df["peptide"] == "BD1"]["evidence_kind"].iloc[0] == "binding"
+
+    # Filters apply symmetrically.
+    f = load_all_evidence(mhc_class="I")
+    assert set(f["peptide"]) == {"MS1", "MS2", "BD1"}  # BD2 is class II — drop
+    assert set(f[f["evidence_kind"] == "ms"]["peptide"]) == {"MS1", "MS2"}
+    assert set(f[f["evidence_kind"] == "binding"]["peptide"]) == {"BD1"}
+
+
+def test_load_all_evidence_missing_indexes_is_empty(tmp_path, monkeypatch):
+    """If neither index has been built, return an empty frame with
+    evidence_kind column — don't raise FileNotFoundError (unlike
+    load_observations / load_binding, which do)."""
+    from hitlist.observations import load_all_evidence
+
+    monkeypatch.setattr(
+        "hitlist.observations.observations_path", lambda: tmp_path / "missing1.parquet"
+    )
+    monkeypatch.setattr("hitlist.observations.binding_path", lambda: tmp_path / "missing2.parquet")
+
+    df = load_all_evidence()
+    assert df.empty
+    assert "evidence_kind" in df.columns
+
+
+def test_load_all_evidence_ms_only_when_binding_missing(tmp_path, monkeypatch):
+    """If only the MS index is built, return its rows without raising."""
+    import pandas as pd
+
+    from hitlist.observations import load_all_evidence
+
+    ms = pd.DataFrame(
+        {
+            "peptide": ["X"],
+            "mhc_restriction": ["HLA-A*02:01"],
+            "mhc_class": ["I"],
+            "reference_iri": ["ms-1"],
+            "pmid": pd.array([1], dtype="Int64"),
+            "source": ["iedb"],
+            "mhc_species": ["Homo sapiens"],
+            "is_binding_assay": [False],
+        }
+    )
+    ms_p = tmp_path / "observations.parquet"
+    ms.to_parquet(ms_p, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: ms_p)
+    monkeypatch.setattr("hitlist.observations.binding_path", lambda: tmp_path / "missing.parquet")
+
+    df = load_all_evidence()
+    assert list(df["peptide"]) == ["X"]
+    assert list(df["evidence_kind"]) == ["ms"]

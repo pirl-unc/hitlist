@@ -32,6 +32,11 @@ Usage::
 
     ms = load_observations(mhc_class="I")
     bd = load_binding(mhc_class="I", mhc_restriction="HLA-A*02:01")
+
+For callers that explicitly want both — e.g. affinity-predictor training
+pipelines, or CLI flags like tsarina's ``--include-binding-assays`` —
+:func:`load_all_evidence` returns a UNION with an ``evidence_kind`` column
+(``"ms"`` / ``"binding"``).  Filters apply symmetrically to both indexes.
 """
 
 from __future__ import annotations
@@ -149,6 +154,62 @@ def load_binding(
         serotype=serotype,
         columns=columns,
     )
+
+
+def load_all_evidence(
+    mhc_class: str | None = None,
+    species: str | None = None,
+    source: str | None = None,
+    mhc_restriction: str | list[str] | None = None,
+    gene_name: str | list[str] | None = None,
+    gene_id: str | list[str] | None = None,
+    peptide: str | list[str] | None = None,
+    serotype: str | list[str] | None = None,
+    columns: list[str] | None = None,
+) -> pd.DataFrame:
+    """Union of MS observations + binding assays with an ``evidence_kind`` column.
+
+    Applies the same filters to both indexes, tags each row with
+    ``evidence_kind ∈ {"ms", "binding"}``, and concatenates.  Missing
+    indexes are silently skipped — the result is whatever has been built
+    (both, one, or empty).
+
+    Filter semantics match :func:`load_observations`.  Column projection
+    via ``columns=`` will always also include ``evidence_kind`` in the
+    output, even if not listed, so downstream consumers can always tell
+    the two row populations apart.
+
+    Returns
+    -------
+    pd.DataFrame
+        Concatenated frame.  Empty with an ``evidence_kind`` column when
+        neither index has been built.
+    """
+    kwargs = {
+        "mhc_class": mhc_class,
+        "species": species,
+        "source": source,
+        "mhc_restriction": mhc_restriction,
+        "gene_name": gene_name,
+        "gene_id": gene_id,
+        "peptide": peptide,
+        "serotype": serotype,
+        "columns": columns,
+    }
+
+    parts: list[pd.DataFrame] = []
+    if is_built():
+        obs = load_observations(**kwargs)
+        obs["evidence_kind"] = "ms"
+        parts.append(obs)
+    if is_binding_built():
+        binding = load_binding(**kwargs)
+        binding["evidence_kind"] = "binding"
+        parts.append(binding)
+
+    if not parts:
+        return pd.DataFrame({"evidence_kind": pd.Series(dtype=str)})
+    return pd.concat(parts, ignore_index=True, sort=False)
 
 
 def _load_peptide_index(
