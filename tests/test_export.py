@@ -194,6 +194,42 @@ def test_ms_samples_chen_2020_hela_abc_ko():
     assert set(ch["mhc_class"]) == {"I"}
 
 
+def test_liepe_2016_fibroblast_not_cancer():
+    """Liepe 2016 Direct Ex Vivo fibroblasts should classify as healthy, not cancer."""
+    from hitlist.curation import classify_ms_row
+
+    row = classify_ms_row(
+        process_type="No immunization",
+        disease="",
+        culture_condition="Direct Ex Vivo",
+        source_tissue="Skin",
+        cell_name="Fibroblast",
+        pmid=27846572,
+        mhc_restriction="HLA-A*02:01",
+        submission_id="",
+    )
+    assert row["src_cancer"] is False
+    assert row["src_healthy_tissue"] is True
+
+
+def test_caron_2015_pbmc_not_cancer():
+    """Caron 2015 Direct Ex Vivo PBMCs should classify as healthy, not cancer."""
+    from hitlist.curation import classify_ms_row
+
+    row = classify_ms_row(
+        process_type="No immunization",
+        disease="",
+        culture_condition="Direct Ex Vivo",
+        source_tissue="Blood",
+        cell_name="PBMC",
+        pmid=26154972,
+        mhc_restriction="HLA-A*02:01",
+        submission_id="",
+    )
+    assert row["src_cancer"] is False
+    assert row["src_healthy_tissue"] is True
+
+
 def test_ms_samples_sarango_2022_dr_allele():
     """Sarango 2022 should include HLA-DRB1*01:02 in the mhc string (paper-verified)."""
     df = generate_ms_samples_table()
