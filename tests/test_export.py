@@ -184,6 +184,16 @@ def test_ms_samples_trolle_2016_split():
     assert set(tr["mhc_class"]) == {"I"}
 
 
+def test_ms_samples_chen_2020_hela_abc_ko():
+    """Chen 2020 should encode HeLa.ABC-KO + B*51:01 with control vs ERAP1 shRNA arms."""
+    df = generate_ms_samples_table()
+    ch = df[df["pmid"] == 32161166]
+    assert len(ch) == 2, f"expected 2 ms_sample entries, got {len(ch)}"
+    assert set(ch["mhc"]) == {"HLA-B*51:01"}
+    assert (ch["sample_label"].str.startswith("HeLa.ABC-KO-HLA-B*51:01")).all()
+    assert set(ch["mhc_class"]) == {"I"}
+
+
 def test_generate_observations_table():
     """Observations table should join peptides with sample metadata."""
     from hitlist.observations import is_built
