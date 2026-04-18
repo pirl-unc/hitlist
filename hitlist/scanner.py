@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import csv
 import os
+import warnings
 from pathlib import Path
 
 import pandas as pd
@@ -34,6 +35,10 @@ except ImportError:
     _tqdm = None
 
 from .curation import classify_ms_row
+
+# Sentinel so we can tell "user didn't pass mhc_species" apart from
+# "user explicitly passed mhc_species=None (disable filter)".
+_UNSET: object = object()
 
 # ── Column name → index resolution ─────────────────────────────────────────
 
@@ -197,11 +202,12 @@ def scan(
     peptides: set[str] | None = None,
     iedb_path: str | Path | None = None,
     cedar_path: str | Path | None = None,
-    human_only: bool = True,
+    mhc_species: str | None | object = _UNSET,
+    species_fallback: bool = True,
     mhc_class: str | None = None,
     classify_source: bool = True,
     min_allele_resolution: str | None = None,
-    mhc_species: str | None = None,
+    human_only: bool | None = None,
 ) -> pd.DataFrame:
     """Scan IEDB/CEDAR for matching peptides, or profile entire dataset.
 
@@ -211,13 +217,19 @@ def scan(
         Peptide sequences to match. If None, scans ALL rows (profile mode).
     iedb_path, cedar_path
         Paths to IEDB/CEDAR exports.
-    human_only
-        Keep only rows where the MHC molecule is human (default True).
-        Uses mhcgnomes to determine species from the MHC restriction
-        annotation (e.g. "HLA-A*02:01" → Homo sapiens, "H2-Kb" →
-        Mus musculus). Falls back to the host field when mhcgnomes
-        cannot determine species from the allele name. Viral peptides
-        presented on human MHC are correctly retained.
+    mhc_species
+        Keep only rows where the MHC molecule belongs to this species
+        (e.g. ``"Homo sapiens"``, ``"Mus musculus"``).  Uses mhcgnomes on
+        the MHC restriction annotation as the authoritative species source.
+        Default ``"Homo sapiens"``.  Pass ``None`` to disable species
+        filtering entirely.
+    species_fallback
+        When mhcgnomes cannot resolve the species from the MHC restriction
+        string (e.g. bare ``"HLA class I"``), fall back to the ``host`` /
+        ``species`` text columns for the species decision.  Default ``True``
+        — matches historical behavior.  Pass ``False`` for strict
+        mhcgnomes-only filtering; rows with unparseable restrictions are
+        dropped.
     mhc_class
         Filter to ``"I"`` or ``"II"``. None = both.
     classify_source
@@ -226,11 +238,12 @@ def scan(
         Minimum allele resolution to keep. One of ``"four_digit"``,
         ``"two_digit"``, ``"serological"``, ``"class_only"``. Rows
         with coarser resolution are dropped. None = no filtering.
-    mhc_species
-        Filter to rows where the MHC molecule belongs to this species
-        (e.g. ``"Homo sapiens"``, ``"Mus musculus"``). Uses mhcgnomes
-        to determine species from the MHC restriction annotation.
-        When set, ``hla_only`` is ignored.
+    human_only
+        .. deprecated:: 1.9.0
+            Use ``mhc_species`` instead.  ``human_only=True`` maps to
+            ``mhc_species="Homo sapiens"``; ``human_only=False`` maps to
+            ``mhc_species=None``.  If both are passed, ``mhc_species`` wins.
+            Slated for removal in hitlist 2.0.
 
     Returns
     -------
@@ -238,6 +251,20 @@ def scan(
         Deduplicated by assay IRI. Includes source classification columns
         when ``classify_source=True``.
     """
+    # ── Deprecation / migration for human_only ────────────────────────────
+    if human_only is not None:
+        warnings.warn(
+            "human_only is deprecated and will be removed in hitlist 2.0; "
+            "use mhc_species='Homo sapiens' (or mhc_species=None to disable "
+            "species filtering).",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        if mhc_species is _UNSET:
+            mhc_species = "Homo sapiens" if human_only else None
+        # else: both passed — mhc_species wins silently (explicit new kwarg).
+    if mhc_species is _UNSET:
+        mhc_species = "Homo sapiens"
     source_paths: list[Path] = []
     if iedb_path is not None:
         source_paths.append(Path(iedb_path))
@@ -279,20 +306,22 @@ def scan(
             mhc_res = _safe_col(row, c["mhc_restriction"])
 
             # Species filtering: use MHC allele name (via mhcgnomes) as the
-            # authoritative species source, falling back to host field.
+            # authoritative species source; when species_fallback=True and
+            # mhcgnomes can't parse, fall back to host/species text columns.
             mhc_sp = classify_mhc_species(mhc_res)
 
             if mhc_species is not None:
-                if mhc_sp != mhc_species:
-                    continue
-            elif human_only:
                 if mhc_sp:
-                    if mhc_sp != "Homo sapiens":
+                    if mhc_sp != mhc_species:
                         continue
-                elif "Homo sapiens" not in (
-                    normalize_species(host),
-                    normalize_species(species),
-                ):
+                elif species_fallback:
+                    if mhc_species not in (
+                        normalize_species(host),
+                        normalize_species(species),
+                    ):
+                        continue
+                else:
+                    # Strict mode: unparseable MHC restriction → drop.
                     continue
             if mhc_class is not None and _safe_col(row, c["mhc_class"]) != mhc_class:
                 continue
