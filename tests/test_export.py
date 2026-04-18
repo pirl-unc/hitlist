@@ -194,6 +194,19 @@ def test_ms_samples_chen_2020_hela_abc_ko():
     assert set(ch["mhc_class"]) == {"I"}
 
 
+def test_ms_samples_weingarten_gabbay_2021_no_hbec():
+    """Weingarten-Gabbay 2021: only A549-ACE2-TMPRSS2 and HEK293T-ACE2-TMPRSS2; HBECs never profiled."""
+    df = generate_ms_samples_table()
+    wg = df[df["pmid"] == 34171305]
+    assert len(wg) == 4, f"expected 4 entries (2 cell lines x uninf/inf), got {len(wg)}"
+    labels = set(wg["sample_label"])
+    assert not any("HBEC" in label for label in labels), f"HBECs should be dropped, got: {labels}"
+    assert sum("A549" in label for label in labels) == 2
+    assert sum("HEK293T" in label for label in labels) == 2
+    assert sum("uninfected" in label for label in labels) == 2
+    assert sum("SARS-CoV-2-infected" in label for label in labels) == 2
+
+
 def test_generate_observations_table():
     """Observations table should join peptides with sample metadata."""
     from hitlist.observations import is_built

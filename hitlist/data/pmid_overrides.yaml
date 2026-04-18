@@ -3548,30 +3548,45 @@
     title: "Profiling SARS-CoV-2 HLA-I peptidome reveals T cell epitopes from out-of-frame ORFs"
     override: cell_line
     note: >
-      A549, HBECs, HEK293T infected with SARS-CoV-2. IEDB annotation
-      of "healthy" is WRONG — these are virally infected cell lines.
+      Two cell systems profiled by MS: A549-ACE2-TMPRSS2 (lung) and
+      HEK293T-ACE2-TMPRSS2 (kidney), both stably transduced to express
+      ACE2 + TMPRSS2 to enable SARS-CoV-2 entry. Each system was profiled
+      in uninfected and SARS-CoV-2-infected conditions across multiple
+      timepoints (3, 6, 12, 18, 24 hpi). Paper-verified against PMC8106687.
+      Prior entry listed HBECs as a third cell line, but the paper does
+      not profile HBECs by MS — dropped. IEDB's "healthy" annotation for
+      this PMID is accurate for the uninfected-control samples but not
+      for the infected samples; condition is captured per ms_samples entry.
     perturbations:
       - "SARS-CoV-2 infection"
     ms_samples:
-      - sample_label: "A549 (lung adenocarcinoma, SARS-CoV-2-infected)"
+      - sample_label: "A549-ACE2-TMPRSS2 (uninfected)"
+        n_samples: 1
+        source: A549 stably transduced with ACE2 + TMPRSS2 lentivirus, uninfected
+        condition: "unperturbed — baseline"
+        mhc_class: "I"
+        mhc: "HLA-A*25:01 HLA-A*30:01 HLA-B*07:02 HLA-B*44:03 HLA-C*12:03"
+      - sample_label: "A549-ACE2-TMPRSS2 (SARS-CoV-2-infected)"
+        n_samples: 1
+        source: A549-ACE2-TMPRSS2 infected with SARS-CoV-2 (3–24 hpi timecourse)
         condition: "SARS-CoV-2 infection"
         mhc_class: "I"
         mhc: "HLA-A*25:01 HLA-A*30:01 HLA-B*07:02 HLA-B*44:03 HLA-C*12:03"
         reference_proteomes:
           - uniprot: UP000464024
             proteome_label: SARS-CoV-2
-      - sample_label: "HBECs (human bronchial epithelial, SARS-CoV-2-infected)"
-        condition: "SARS-CoV-2 infection"
+      - sample_label: "HEK293T-ACE2-TMPRSS2 (uninfected)"
+        n_samples: 1
+        source: HEK293T stably transduced with ACE2 + TMPRSS2 lentivirus, uninfected
+        condition: "unperturbed — baseline"
         mhc_class: "I"
-        mhc: "HLA class I"
-        reference_proteomes:
-          - uniprot: UP000464024
-            proteome_label: SARS-CoV-2
-      - sample_label: "HEK293T (SARS-CoV-2-infected)"
+        mhc: "HLA-A*03:01 HLA-B*07:02 HLA-C*07:01"
+      - sample_label: "HEK293T-ACE2-TMPRSS2 (SARS-CoV-2-infected)"
+        n_samples: 1
+        source: HEK293T-ACE2-TMPRSS2 infected with SARS-CoV-2 (3–24 hpi timecourse)
         condition: "SARS-CoV-2 infection"
         mhc_class: "I"
         mhc: "HLA-A*03:01 HLA-B*07:02 HLA-C*07:01"
-
         reference_proteomes:
           - uniprot: UP000464024
             proteome_label: SARS-CoV-2
