@@ -5,7 +5,7 @@
 
 A curated, harmonized, **ML-training-ready** MHC ligand mass-spectrometry dataset.
 
-hitlist ingests immunopeptidome data from [IEDB](https://www.iedb.org/), [CEDAR](https://cedar.iedb.org/), and paper supplementary tables (PRIDE/jPOSTrepo); filters out binding-assay data; joins every observation to expert-curated sample metadata (HLA genotype, tissue, disease, perturbation, instrument); and ships it as a single parquet file + pandas-friendly Python API.
+hitlist ingests immunopeptidome data from [IEDB](https://www.iedb.org/), [CEDAR](https://cedar.iedb.org/), and paper supplementary tables (PRIDE/jPOSTrepo); partitions MS-eluted observations from in-vitro binding-assay measurements into two separate parquet files (so downstream consumers never silently conflate them); joins every MS observation to expert-curated sample metadata (HLA genotype, tissue, disease, perturbation, instrument); and ships both indexes as parquet + a pandas-friendly Python API.
 
 ## What's curated
 
@@ -18,9 +18,11 @@ hitlist ingests immunopeptidome data from [IEDB](https://www.iedb.org/), [CEDAR]
 | Species reference proteomes (registry) | 19 (Ensembl: 4, UniProt: 15) |
 | Viral reference proteomes (registry) | 30 distinct viruses, 54 name aliases |
 
-## What's in the observations table
+## What's in the two indexes
 
-After `hitlist data build` (v1.4.4):
+After `hitlist data build` (snapshot of the shipping 1.10.x default build):
+
+### `observations.parquet` — MS-eluted immunopeptidome
 
 | | |
 |---|---|
@@ -31,6 +33,15 @@ After `hitlist data build` (v1.4.4):
 | IEDB rows | 3,986,991 |
 | CEDAR rows | 595 |
 | Supplementary rows | 66,107 |
+
+### `binding.parquet` — in-vitro binding-assay measurements
+
+| | |
+|---|---|
+| **Total binding rows** (peptide microarray, refolding, MEDi, qualitative-tier) | **895,785** |
+| **Unique peptides** | **258,199** |
+
+The two indexes share the schema (including gene annotations from the peptide-mappings sidecar), but supplementary curation is MS-only — binding is pure IEDB/CEDAR.
 
 ### Human MHC-I breakdown
 
@@ -55,7 +66,9 @@ pip install hitlist
 # One-time: register IEDB + CEDAR downloads and build
 hitlist data register iedb /path/to/mhc_ligand_full.csv
 hitlist data register cedar /path/to/cedar-mhc-ligand-full.csv
-hitlist data build                           # ~90s, writes ~/.hitlist/observations.parquet
+hitlist data build                           # a few minutes end-to-end;
+                                             # writes observations.parquet +
+                                             # binding.parquet + peptide_mappings.parquet
 
 # Export training-ready CSVs
 hitlist export observations --class I --species "Homo sapiens" --mono-allelic \
@@ -65,7 +78,7 @@ hitlist export observations --class II --species "Homo sapiens" \
     -o multi_allelic_classII.csv
 ```
 
-Binding-assay data (peptide microarrays, refolding, MEDi display) is **excluded at build time** — the observations table contains only MS-eluted immunopeptidome data.
+Binding-assay data (peptide microarrays, refolding, MEDi display) lives in a **separate** index — `binding.parquet`, exported via `hitlist export binding`. MS-elution and in-vitro binding measurements are never mixed by default. For pipelines that explicitly want both (e.g. affinity-predictor training data), `hitlist.observations.load_all_evidence()` returns a union tagged with an `evidence_kind` column.
 
 ## Python API
 
@@ -92,13 +105,28 @@ Species filters accept any variant — `"Homo sapiens"`, `"human"`, `"homo_sapie
 ### Raw observations loading
 
 ```python
-from hitlist.observations import load_observations, is_built, observations_path
+from hitlist.observations import (
+    load_observations,        # MS-eluted immunopeptidome
+    load_binding,             # in-vitro binding-assay measurements
+    load_all_evidence,        # union, tagged with an evidence_kind column
+    is_built, is_binding_built,
+    observations_path, binding_path,
+)
 
+# MS-elution (the default training-data path)
 df = load_observations()                       # everything (MS-eluted only)
 df = load_observations(mhc_class="I")          # class I only
 df = load_observations(species="Homo sapiens") # human only
 df = load_observations(source="iedb")          # filter by source
 df = load_observations(columns=["peptide", "mhc_restriction", "src_cancer"])
+
+# Binding assays — same filter API, reads binding.parquet
+bd = load_binding(mhc_class="I", mhc_restriction="HLA-A*02:01")
+
+# Union — for affinity-predictor training, or UI flags that want both.
+# Rows are tagged with evidence_kind ∈ {"ms", "binding"}.
+both = load_all_evidence(gene_name="PRAME", mhc_class="I")
+both["evidence_kind"].value_counts()
 ```
 
 ### Building / curation
