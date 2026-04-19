@@ -11,37 +11,34 @@ hitlist ingests immunopeptidome data from [IEDB](https://www.iedb.org/), [CEDAR]
 
 | | Count |
 |---|---|
-| Curated PMIDs (`pmid_overrides.yaml`) | **155** — covers 89.5% of observations |
-| `ms_samples` entries with per-sample metadata | 359 |
-| `ms_samples` entries with 4-digit HLA typing | 237 |
-| Supplementary CSVs ingested (PRIDE/jPOSTrepo) | 5 (JY, HeLa, SK-MEL-37, Raji, plasma — Gomez-Zepeda 2024) |
+| Curated PMIDs (`pmid_overrides.yaml`) | **156** — covers ~90% of observations |
+| Supplementary CSVs ingested (PRIDE/jPOSTrepo) | 6 (JY, HeLa, SK-MEL-37, Raji, plasma — Gomez-Zepeda 2024; Stražar 2023 HLA-II, 308K rows) |
 | Species reference proteomes (registry) | 19 (Ensembl: 4, UniProt: 15) |
 | Viral reference proteomes (registry) | 30 distinct viruses, 54 name aliases |
 
 ## What's in the observations table
 
-After `hitlist data build` (v1.4.4):
+After `hitlist data build` (v1.10.4):
 
 | | |
 |---|---|
-| **Total observations** (MS-eluted, all species) | **4,053,693** |
-| **Unique peptides** | **1,285,987** |
-| Unique MHC alleles | 691 |
+| **Total observations** (MS-eluted, all species) | **4,421,724** |
+| **Unique peptides** | **1,457,276** |
+| Unique MHC alleles | 703 |
 | MHC species covered | 21 |
+| Unique PMIDs | 2,403 |
 | IEDB rows | 3,986,991 |
 | CEDAR rows | 595 |
-| Supplementary rows | 66,107 |
+| Supplementary rows | 434,138 |
 
 ### Human MHC-I breakdown
 
 | | |
 |---|---|
-| Observations | 2,672,046 |
-| Unique peptides | 748,386 |
-| Mono-allelic (exact allele) | 579,096 obs / 300K peptides / 119 alleles |
-| Multi-allelic with allele match | 450,399 obs |
-| Multi-allelic with class-pool (`N of M alleles`) | 784,370 obs |
-| Allele-resolved `sample_mhc` coverage | **74.8%** |
+| Observations | 2,490,373 |
+| Unique peptides | 650,652 |
+| Mono-allelic rows | 532,494 |
+| Four-digit allele resolution | 1,174,722 obs |
 
 ## Install
 
