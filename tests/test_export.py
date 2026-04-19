@@ -255,6 +255,39 @@ def test_ms_samples_weingarten_gabbay_2021_no_hbec():
     assert sum("SARS-CoV-2-infected" in label for label in labels) == 2
 
 
+def test_ms_samples_parquet_roundtrip(tmp_path):
+    """ms_samples_table should write to parquet and read back identically."""
+    import pandas as pd
+
+    df = generate_ms_samples_table()
+    out = tmp_path / "samples.parquet"
+    df.to_parquet(out, index=False)
+    assert out.exists()
+    rt = pd.read_parquet(out)
+    assert len(rt) == len(df)
+    assert set(rt.columns) == set(df.columns)
+    # Spot-check a known entry survives the round-trip
+    assert 32161166 in rt["pmid"].values  # Chen 2020
+
+
+def test_scan_supplementary_parquet_roundtrip(tmp_path):
+    """scan_supplementary output should survive a parquet round-trip."""
+    import pandas as pd
+
+    from hitlist.supplement import scan_supplementary
+
+    df = scan_supplementary()
+    out = tmp_path / "supp.parquet"
+    df.to_parquet(out, index=False)
+    rt = pd.read_parquet(out)
+    assert len(rt) == len(df)
+    assert "peptide" in rt.columns
+    assert "mhc_restriction" in rt.columns
+    assert "pmid" in rt.columns
+    # Every supplementary row must carry a PMID
+    assert rt["pmid"].notna().all()
+
+
 def test_generate_observations_table():
     """Observations table should join peptides with sample metadata."""
     from hitlist.observations import is_built
