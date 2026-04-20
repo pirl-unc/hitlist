@@ -324,6 +324,19 @@ def test_classify_allele_resolution_unresolved():
     assert classify_allele_resolution("") == "unresolved"
 
 
+def test_classify_allele_resolution_pair_gene_gene_does_not_crash():
+    """Regression for #87: mhcgnomes parses locus-only pair strings
+    (e.g. "HLA-DRA/DRB1" or "HLA-DPA1*01:03/DPB1") into a Pair whose legs
+    are Gene instances, not Allele.  Gene has no allele_fields; the prior
+    isinstance dispatch crashed with AttributeError. A Pair[Gene, Gene]
+    is below serological/two_digit resolution and should be "unresolved".
+    Mixed Pair[Allele, Gene] falls through to "unresolved" as well since
+    both sides need to clear the one-digit threshold."""
+    assert classify_allele_resolution("HLA-DRA/DRB1") == "unresolved"
+    # Mixed Pair — one side has allele fields, the other doesn't.
+    assert classify_allele_resolution("HLA-DPA1*01:03/DPB1") == "unresolved"
+
+
 def test_classify_allele_resolution_mouse():
     # H-2Kb is a valid mouse allele. mhcgnomes parses it as two_digit;
     # regex fallback returns unresolved (not HLA). Either is acceptable
