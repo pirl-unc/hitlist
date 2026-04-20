@@ -132,3 +132,58 @@ def test_from_fasta(tmp_path):
     df = idx.map_peptides(["ACDEF"], flank=3, verbose=False)
     assert len(df) == 1
     assert df.iloc[0]["gene_name"] == "TESTGENE"
+
+
+def test_from_fasta_caches_by_path(tmp_path):
+    """Repeated from_fasta with the same inputs returns the same instance.
+
+    This matters because hitlist.builder._add_flanking iterates canonical
+    species and many viral strain variants resolve to a single shared
+    cached FASTA — without memoization we'd rebuild the same index N
+    times per build. See issue pirl-unc/hitlist#86.
+    """
+    from hitlist.proteome import clear_fasta_index_cache
+
+    clear_fasta_index_cache()
+    fasta = tmp_path / "shared.fasta"
+    fasta.write_text(">sp|P12345|TEST_HUMAN GN=TESTGENE\nACDEFGHIKL\n")
+    idx1 = ProteomeIndex.from_fasta(fasta, lengths=(5,), verbose=False)
+    idx2 = ProteomeIndex.from_fasta(fasta, lengths=(5,), verbose=False)
+    # Same instance — memoized by (path, size, mtime, lengths, ...).
+    assert idx1 is idx2
+
+
+def test_from_fasta_cache_invalidates_on_mtime(tmp_path):
+    """Touching the FASTA (size or mtime change) rebuilds the index."""
+    from hitlist.proteome import clear_fasta_index_cache
+
+    clear_fasta_index_cache()
+    fasta = tmp_path / "drifting.fasta"
+    fasta.write_text(">sp|P12345|A\nACDEFGHIKL\n")
+    idx1 = ProteomeIndex.from_fasta(fasta, lengths=(5,), verbose=False)
+
+    # Replace with different content + bump mtime.
+    import os
+    import time
+
+    time.sleep(0.01)
+    fasta.write_text(">sp|Q99999|B\nMNPQRSTVWY\n")
+    os.utime(fasta, None)
+    idx2 = ProteomeIndex.from_fasta(fasta, lengths=(5,), verbose=False)
+    assert idx1 is not idx2
+    assert "sp|P12345|A" in idx1.proteins
+    assert "sp|Q99999|B" in idx2.proteins
+
+
+def test_from_fasta_cache_keyed_on_lengths(tmp_path):
+    """Different `lengths` kwarg → different cache entry."""
+    from hitlist.proteome import clear_fasta_index_cache
+
+    clear_fasta_index_cache()
+    fasta = tmp_path / "multi_len.fasta"
+    fasta.write_text(">sp|P1|A\nACDEFGHIKLMNPQ\n")
+    idx_5 = ProteomeIndex.from_fasta(fasta, lengths=(5,), verbose=False)
+    idx_8 = ProteomeIndex.from_fasta(fasta, lengths=(8,), verbose=False)
+    assert idx_5 is not idx_8
+    assert idx_5.lengths == (5,)
+    assert idx_8.lengths == (8,)

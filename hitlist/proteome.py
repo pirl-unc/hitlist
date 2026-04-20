@@ -20,6 +20,13 @@ The index is built once per proteome and cached. Lookups are O(1) per
 peptide via a dict-based inverted index mapping each unique k-mer to
 the set of (protein_id, position) occurrences.
 
+``ProteomeIndex.from_fasta`` additionally caches indexes by resolved
+``(path, size, mtime, lengths, gene_name, gene_id)`` across calls in the
+same process, so repeated flanking passes against FASTAs shared by
+multiple canonical species names (common for viral-strain fallbacks)
+pay the indexing cost once. Invalidates automatically when the FASTA
+on disk changes (size or mtime).
+
 Typical usage::
 
     from hitlist.proteome import ProteomeIndex
@@ -34,6 +41,24 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 import pandas as pd
+
+# Module-level cache for ``from_fasta``. Keyed on the resolved absolute path
+# plus (size, mtime) of the file, plus the index-configuration inputs
+# (``lengths``, ``gene_name``, ``gene_id``). Size + mtime invalidate the
+# entry automatically when the FASTA is replaced (e.g. by
+# ``fetch_species_proteome`` downloading a newer build).
+_FASTA_INDEX_CACHE: dict[tuple, ProteomeIndex] = {}
+
+
+def clear_fasta_index_cache() -> None:
+    """Drop all cached ``from_fasta`` indexes.
+
+    Useful in tests that write fresh FASTA files with reused filenames
+    within the same process. Production code should let the built-in
+    size/mtime invalidation handle it.
+    """
+    _FASTA_INDEX_CACHE.clear()
+
 
 try:
     from tqdm.auto import tqdm as _tqdm
@@ -153,6 +178,15 @@ class ProteomeIndex:
     ) -> ProteomeIndex:
         """Build index from a FASTA file.
 
+        Memoized by ``(resolved_path, size, mtime, lengths, gene_name,
+        gene_id)`` for the lifetime of the process. Repeated calls with
+        the same inputs return the same ``ProteomeIndex`` instance
+        without re-parsing the FASTA — important during flanking passes
+        where multiple canonical species names (e.g. several LCMV or
+        SARS-CoV-2 strain variants) fall back to one shared cached
+        FASTA. The (size, mtime) part of the key invalidates the entry
+        automatically if the on-disk file changes.
+
         Parameters
         ----------
         path
@@ -168,6 +202,30 @@ class ProteomeIndex:
         -------
         ProteomeIndex
         """
+        resolved = Path(path).resolve()
+        try:
+            stat = resolved.stat()
+            cache_key: tuple | None = (
+                str(resolved),
+                stat.st_size,
+                stat.st_mtime_ns,
+                tuple(lengths),
+                gene_name,
+                gene_id,
+            )
+        except OSError:
+            # If the FASTA moved/was deleted between resolution and stat,
+            # fall through to the uncached path — the open() below will
+            # raise with a more actionable FileNotFoundError.
+            cache_key = None
+
+        if cache_key is not None:
+            cached = _FASTA_INDEX_CACHE.get(cache_key)
+            if cached is not None:
+                if verbose:
+                    print(f"  ProteomeIndex cache hit for {resolved.name}")
+                return cached
+
         proteins: dict[str, str] = {}
         meta: dict[str, dict] = {}
         current_id = ""
@@ -190,7 +248,10 @@ class ProteomeIndex:
                     current_seq.append(line)
         if current_id:
             proteins[current_id] = "".join(current_seq)
-        return cls._build(proteins, meta, lengths, verbose)
+        idx = cls._build(proteins, meta, lengths, verbose)
+        if cache_key is not None:
+            _FASTA_INDEX_CACHE[cache_key] = idx
+        return idx
 
     @classmethod
     def _build(
