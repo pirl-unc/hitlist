@@ -102,19 +102,27 @@ def _binding_path() -> Path:
     return data_dir() / "binding.parquet"
 
 
+def _bulk_proteomics_path() -> Path:
+    return data_dir() / "bulk_proteomics.parquet"
+
+
 def _meta_path() -> Path:
     return data_dir() / "observations_meta.json"
 
 
 def _parquet_fingerprints() -> dict:
-    """Size + mtime of the two index parquets, for cache validation.
+    """Size + mtime of the three index parquets, for cache validation.
 
     Pairs with ``_source_fingerprints`` to detect either (a) source CSV
     changes or (b) a parquet file being manually edited / replaced
     between builds.
     """
     fp: dict = {}
-    for label, p in (("observations", _observations_path()), ("binding", _binding_path())):
+    for label, p in (
+        ("observations", _observations_path()),
+        ("binding", _binding_path()),
+        ("bulk_proteomics", _bulk_proteomics_path()),
+    ):
         if p.exists():
             stat = p.stat()
             fp[label] = {"size": stat.st_size, "mtime": stat.st_mtime}
@@ -124,9 +132,10 @@ def _parquet_fingerprints() -> dict:
 def _cache_is_valid(paths: dict[str, Path], with_flanking: bool = False) -> bool:
     """Check if the cached indexes are still valid for the requested build.
 
-    Both ``observations.parquet`` and ``binding.parquet`` must be present
-    AND their fingerprints must match the stored metadata.  Binding was
-    added in 1.7.0, so older installs rebuild once on upgrade.
+    All three parquets (``observations``, ``binding``, ``bulk_proteomics``)
+    must be present AND their fingerprints must match the stored metadata.
+    Binding was added in 1.7.0 and bulk_proteomics in 1.11.2, so older
+    installs rebuild once on upgrade.
     """
     meta = _meta_path()
     if not meta.exists():
@@ -134,6 +143,8 @@ def _cache_is_valid(paths: dict[str, Path], with_flanking: bool = False) -> bool
     if not _observations_path().exists():
         return False
     if not _binding_path().exists():
+        return False
+    if not _bulk_proteomics_path().exists():
         return False
     stored = json.loads(meta.read_text())
     if stored.get("sources") != _source_fingerprints(paths):
@@ -360,6 +371,10 @@ def build_observations(
                 f"({100 * n_with_gene_b / len(binding):.1f}%)"
             )
 
+    # --- Bulk proteomics index (non-MHC shotgun MS) ---
+    print("\nBuilding bulk_proteomics.parquet ...")
+    bulk_df = build_bulk_proteomics(verbose=True)
+
     # Save metadata
     meta = {
         "sources": _source_fingerprints(paths),
@@ -370,12 +385,208 @@ def build_observations(
         "n_species": int(obs["mhc_species"].nunique()) if len(obs) else 0,
         "n_binding_rows": len(binding),
         "n_binding_peptides": int(binding["peptide"].nunique()) if len(binding) else 0,
+        "n_bulk_rows": len(bulk_df),
+        "n_bulk_protein_rows": int((bulk_df["granularity"] == "protein").sum())
+        if len(bulk_df)
+        else 0,
+        "n_bulk_peptide_rows": int((bulk_df["granularity"] == "peptide").sum())
+        if len(bulk_df)
+        else 0,
         "with_flanking": with_flanking,
         "with_mappings": build_mappings,
     }
     _meta_path().write_text(json.dumps(meta, indent=2, default=str) + "\n")
 
     return out_path
+
+
+def build_bulk_proteomics(verbose: bool = False) -> pd.DataFrame:
+    """Build ``bulk_proteomics.parquet`` — long-form bulk MS index.
+
+    Emits a single parquet in ``data_dir()`` with protein- and peptide-level
+    rows (distinguished by ``granularity``), denormalizing per-source
+    acquisition metadata (instrument, digest, fragmentation, labeling,
+    fractionation, search engine, FDR) onto every row so the file is
+    self-contained for MS-bias modeling.
+
+    Acquisition column names (``instrument``, ``instrument_type``,
+    ``fragmentation``, ``acquisition_mode``, ``labeling``,
+    ``search_engine``, ``fdr``) are harmonized with the per-sample schema
+    used by :mod:`hitlist.export` so the same columns can be extracted
+    from ``observations.parquet`` (via ``generate_observations_table``)
+    and ``bulk_proteomics.parquet`` for joint MS-bias analysis.
+
+    Source data ships inside the package under
+    ``hitlist/data/bulk_proteomics/`` (CSV.gz + ``sources.yaml``). This
+    function just reshapes it into the long parquet written to
+    ``~/.hitlist/``.
+
+    Returns
+    -------
+    pd.DataFrame
+        The concatenated long-form table that was written. Empty frame
+        if the packaged CSVs are missing.
+    """
+    from .bulk_proteomics import (
+        _load_bj,
+        _load_bj_protein,
+        _load_ccle,
+        _load_sources_yaml,
+    )
+    from .export import _classify_instrument
+
+    sources_yaml = {s["source_id"]: s for s in _load_sources_yaml()}
+
+    def _study_meta(source_id: str) -> dict:
+        """Extract the harmonized acquisition/study metadata for a source."""
+        s = sources_yaml.get(source_id, {})
+        pmid = s.get("pmid")
+        instrument = s.get("instrument", "") or ""
+        return {
+            "pmid": int(pmid) if pmid else pd.NA,
+            "reference": s.get("reference", "") or "",
+            "study_label": s.get("study_label", "") or "",
+            "species": s.get("species", "") or "",
+            "instrument": instrument,
+            "instrument_type": _classify_instrument(instrument),
+            "fragmentation": s.get("fragmentation", "") or "",
+            "acquisition_mode": s.get("acquisition_mode", "") or "",
+            "labeling": s.get("labeling", "") or "",
+            "search_engine": s.get("search_engine", "") or "",
+            "fdr": s.get("fdr", "") or "",
+            "digestion": s.get("digestion", "") or "",
+            "digestion_enzyme": s.get("digestion_enzyme", "") or "",
+            "fractionation": s.get("fractionation", "") or "",
+            "n_fractions": int(s["n_fractions"]) if s.get("n_fractions") else pd.NA,
+            "quantification": s.get("quantification", "") or "",
+        }
+
+    import numpy as np
+
+    frames: list[pd.DataFrame] = []
+
+    # --- CCLE protein-level ---
+    ccle = _load_ccle().copy()
+    if len(ccle):
+        ccle["abundance_percentile"] = ccle.groupby("cell_line")["abundance_log2_normalized"].rank(
+            pct=True
+        )
+        ccle["granularity"] = "protein"
+        ccle["peptide"] = ""
+        ccle["length"] = np.nan
+        ccle["start_position"] = np.nan
+        ccle["end_position"] = np.nan
+        ccle["log2_intensity"] = np.nan
+        ccle["n_peptides"] = np.nan
+        meta = _study_meta("CCLE_Nusinow_2020")
+        for k, v in meta.items():
+            ccle[k] = v
+        frames.append(ccle)
+
+    # --- Bekker-Jensen protein-level ---
+    bj_protein = _load_bj_protein().copy()
+    if len(bj_protein):
+        bj_protein["granularity"] = "protein"
+        bj_protein["peptide"] = ""
+        bj_protein["length"] = np.nan
+        bj_protein["start_position"] = np.nan
+        bj_protein["end_position"] = np.nan
+        bj_protein["abundance_log2_normalized"] = np.nan
+        meta = _study_meta("Bekker-Jensen_2017")
+        for k, v in meta.items():
+            bj_protein[k] = v
+        frames.append(bj_protein)
+
+    # --- Bekker-Jensen peptide-level ---
+    bj_peptide = _load_bj().copy()
+    if len(bj_peptide):
+        bj_peptide["granularity"] = "peptide"
+        bj_peptide["log2_intensity"] = np.nan
+        bj_peptide["abundance_log2_normalized"] = np.nan
+        bj_peptide["abundance_percentile"] = np.nan
+        bj_peptide["n_peptides"] = np.nan
+        meta = _study_meta("Bekker-Jensen_2017")
+        for k, v in meta.items():
+            bj_peptide[k] = v
+        frames.append(bj_peptide)
+
+    if not frames:
+        out = _bulk_proteomics_path()
+        empty = pd.DataFrame()
+        empty.to_parquet(out, index=False)
+        return empty
+
+    df = pd.concat(frames, ignore_index=True, sort=False)
+
+    # Harmonize column names: cell_line -> cell_line_name to match
+    # observations.parquet; keep sample_label alias for ms_samples parity.
+    df = df.rename(columns={"cell_line": "cell_line_name"})
+    df["sample_label"] = df["cell_line_name"]
+    df["evidence_kind"] = "bulk_proteomics"
+    # perturbation is empty for all currently-indexed sources (untreated
+    # baseline cell-line proteomes); column exists so joins with
+    # observations/export stay schema-stable.
+    df["perturbation"] = ""
+
+    # Integer columns with nullable dtype so parquet round-trips cleanly.
+    for col in ("length", "start_position", "end_position", "n_peptides", "n_fractions", "pmid"):
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce").astype("Int64")
+
+    ordered_cols = [
+        # evidence + granularity
+        "evidence_kind",
+        "granularity",
+        # study identity (harmonized with observations.parquet / ms_samples)
+        "source",
+        "reference",
+        "pmid",
+        "study_label",
+        "species",
+        # sample identity (harmonized with observations.parquet)
+        "cell_line_name",
+        "sample_label",
+        "perturbation",
+        # biological target
+        "gene_symbol",
+        "uniprot_acc",
+        "peptide",
+        "length",
+        "start_position",
+        "end_position",
+        # quant
+        "log2_intensity",
+        "abundance_log2_normalized",
+        "abundance_percentile",
+        "n_peptides",
+        # acquisition metadata (harmonized with ms_samples schema)
+        "instrument",
+        "instrument_type",
+        "fragmentation",
+        "acquisition_mode",
+        "labeling",
+        "search_engine",
+        "fdr",
+        # bulk-specific prep/digest info
+        "digestion",
+        "digestion_enzyme",
+        "fractionation",
+        "n_fractions",
+        "quantification",
+    ]
+    # Drop any stray input columns (e.g. CCLE's FASTA-header protein_id
+    # which duplicates uniprot_acc) so the parquet schema is stable.
+    df = df[[c for c in ordered_cols if c in df.columns]]
+
+    out = _bulk_proteomics_path()
+    df.to_parquet(out, index=False)
+    if verbose:
+        n_prot = int((df["granularity"] == "protein").sum())
+        n_pep = int((df["granularity"] == "peptide").sum())
+        size_mb = out.stat().st_size / 1e6
+        print(f"  {len(df):,} rows ({n_prot:,} protein + {n_pep:,} peptide) → {size_mb:.1f} MB")
+        print(f"  Wrote {out}")
+    return df
 
 
 _FLANKING_COLS = (

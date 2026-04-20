@@ -1,0 +1,97 @@
+# Metadata for each bulk (non-MHC) proteomics source in hitlist.
+#
+# Purpose: callers building MS-detectability models need to know the digest
+# (determines which peptide bonds are cleavable), instrument (sensitivity /
+# fragmentation ceiling), fractionation (affects dynamic range), and
+# quantification method (label-free vs TMT; peptide-level vs protein-level)
+# for each source. These parameters change which peptides *could* have been
+# observed in principle — so they belong in the curated metadata, not
+# inferred from filenames at query time.
+#
+# Acquisition columns (instrument, instrument_type, fragmentation,
+# acquisition_mode, labeling, search_engine, fdr) are harmonized with the
+# per-sample metadata schema used by observations.parquet so the same column
+# names can be extracted from either index for joint MS-bias modeling.
+#
+# Canonical tryptic rule: cleave C-terminal to K or R, except when followed
+# by P. Sources below annotate any deviations.
+
+sources:
+  - source_id: CCLE_Nusinow_2020
+    pmid: 31978347
+    reference: "PMID:31978347"
+    study_label: "Nusinow 2020 CCLE"
+    title: "Quantitative Proteomics of the Cancer Cell Line Encyclopedia"
+    species: "Homo sapiens (human)"
+    granularity: protein
+    digestion: tryptic
+    digestion_enzyme: "Trypsin/P (cleaves K/R except before P)"
+    instrument: "Orbitrap Fusion Lumos"
+    fragmentation: "HCD"
+    acquisition_mode: "DDA"
+    labeling: "TMT 10-plex"
+    fractionation: "basic reverse-phase chromatography (12 fractions)"
+    n_fractions: 12
+    quantification: "TMT 10-plex (log2-normalized, relative to CCLE panel median)"
+    search_engine: "COMET + Mascot"
+    fdr: "1%"
+    cell_lines_covered:
+      - A549
+      - HCT116
+      - Jurkat
+      - K562
+      - MCF7
+      - MDA-MB-231
+      - THP-1
+    note: >
+      Protein-level abundance only. Individual peptide identifications NOT
+      published; the consortium released per-protein quant from 375 CCLE
+      cell lines. Good for "is this gene expressed in this sample?" but
+      not usable for intra-protein peptide-detectability modeling.
+
+  - source_id: Bekker-Jensen_2017
+    pmid: 28591648
+    reference: "PMID:28591648"
+    study_label: "Bekker-Jensen 2017"
+    title: "An Optimized Shotgun Strategy for the Rapid Generation of Comprehensive Human Proteomes"
+    species: "Homo sapiens (human)"
+    granularity: peptide_and_protein
+    digestion: tryptic
+    digestion_enzyme: "Trypsin/P (cleaves K/R except before P)"
+    instrument: "Q Exactive HF (Orbitrap)"
+    fragmentation: "HCD"
+    acquisition_mode: "DDA"
+    labeling: "label-free"
+    fractionation: "high-pH reverse-phase SPE (46 fractions, 2 biological replicates per cell line)"
+    n_fractions: 46
+    quantification: "label-free MaxQuant LFQ; peptide-level intensity + derived protein-level sum"
+    search_engine: "MaxQuant 1.5.x (Andromeda)"
+    fdr: "1% peptide and protein"
+    cell_lines_covered:
+      - A549
+      - HCT116
+      - HEK293
+      - HeLa
+      - MCF7
+    ancillary_digests:
+      # The paper also did HeLa with non-tryptic enzymes for comparison.
+      # These peptides exist in SearchResults.zip but are NOT in the
+      # tryptic-cell-line data files we ship — kept separate to avoid
+      # mixing enzyme populations.
+      - enzyme: "Chymotrypsin"
+        cleavage_rule: "C-term of F, W, Y, L (not before P)"
+        cell_line: HeLa
+        included_in_index: false
+      - enzyme: "GluC"
+        cleavage_rule: "C-term of E (not before P)"
+        cell_line: HeLa
+        included_in_index: false
+      - enzyme: "LysC"
+        cleavage_rule: "C-term of K"
+        cell_line: HeLa
+        included_in_index: false
+    note: >
+      All peptides in the hitlist bulk_peptides index are tryptic — the
+      non-tryptic digest experiments from the same study are intentionally
+      excluded to keep the enzyme population uniform for downstream
+      detectability modeling. Re-ingest is straightforward if needed.
