@@ -3621,10 +3621,16 @@
         condition: "Listeria monocytogenes infection"
         mhc_class: "I"
         mhc: "HLA-A*68:02 HLA-B*15:03 HLA-C*12:03"
+        reference_proteomes:
+          - uniprot: UP000000817
+            proteome_label: Listeria monocytogenes EGD-e
       - sample_label: "HCT-116 (colon carcinoma, Listeria-infected)"
         condition: "Listeria monocytogenes infection"
         mhc_class: "I"
         mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*18:01 HLA-B*45:01 HLA-C*05:01 HLA-C*07:01"
+        reference_proteomes:
+          - uniprot: UP000000817
+            proteome_label: Listeria monocytogenes EGD-e
 
   - pmid: 26783342
     study_label: "Trolle 2016 — HeLa sHLA peptide length distributions"
@@ -5734,6 +5740,9 @@
         mhc_class: "I"
         mhc: "HLA class I"
         override: cell_line
+        reference_proteomes:
+          - uniprot: UP000001584
+            proteome_label: Mycobacterium tuberculosis H37Rv
       - sample_label: "mouse splenocytes (C57BL/6)"
         condition: "unperturbed"
         mhc_class: "I"
