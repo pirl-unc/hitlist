@@ -465,6 +465,43 @@ def build_bulk_proteomics(verbose: bool = False) -> pd.DataFrame:
 
     frames: list[pd.DataFrame] = []
 
+    def _stamp_bj_per_row(df: pd.DataFrame, meta: dict) -> pd.DataFrame:
+        """Merge source-level meta into a Bekker-Jensen frame.
+
+        Four columns are authoritative at the ROW level (set by the
+        ingest script from the MaxQuant experiment name): ``digestion_enzyme``,
+        ``n_fractions_in_run``, ``enrichment``, ``modifications``. When
+        any of them is present on the source CSV we:
+          - skip overwriting it with the source-level default
+          - for ``digestion``: derive a coarse 'tryptic' / 'non-tryptic'
+            label from the per-row enzyme so ``df.query("digestion == 'tryptic'")``
+            still works after the ancillary arms were added
+          - for ``n_fractions``: derive from ``n_fractions_in_run`` so
+            the coarse source-level ``n_fractions`` matches the arm
+            actually indexed in each row (14/39/46/50/70/12 per the
+            Fig 1b design matrix).
+        """
+        has_per_row_enzyme = "digestion_enzyme" in df.columns
+        has_per_row_fracs = "n_fractions_in_run" in df.columns
+        for k, v in meta.items():
+            if k == "digestion_enzyme" and has_per_row_enzyme:
+                continue
+            if k == "digestion" and has_per_row_enzyme:
+                df["digestion"] = df["digestion_enzyme"].apply(
+                    lambda e: "tryptic" if str(e).startswith("Trypsin") else "non-tryptic"
+                )
+                continue
+            if k == "n_fractions" and has_per_row_fracs:
+                # Keep the coarse source-level ``n_fractions`` in sync
+                # with the authoritative per-row value. Callers filtering
+                # ``df["n_fractions"] == 46`` then get the 46-frac arm
+                # rows; callers filtering on ``n_fractions_in_run`` get
+                # the same thing explicitly.
+                df["n_fractions"] = df["n_fractions_in_run"]
+                continue
+            df[k] = v
+        return df
+
     # --- CCLE protein-level ---
     ccle = _load_ccle().copy()
     if len(ccle):
@@ -493,8 +530,7 @@ def build_bulk_proteomics(verbose: bool = False) -> pd.DataFrame:
         bj_protein["end_position"] = np.nan
         bj_protein["abundance_log2_normalized"] = np.nan
         meta = _study_meta("Bekker-Jensen_2017")
-        for k, v in meta.items():
-            bj_protein[k] = v
+        bj_protein = _stamp_bj_per_row(bj_protein, meta)
         frames.append(bj_protein)
 
     # --- Bekker-Jensen peptide-level ---
@@ -506,8 +542,7 @@ def build_bulk_proteomics(verbose: bool = False) -> pd.DataFrame:
         bj_peptide["abundance_percentile"] = np.nan
         bj_peptide["n_peptides"] = np.nan
         meta = _study_meta("Bekker-Jensen_2017")
-        for k, v in meta.items():
-            bj_peptide[k] = v
+        bj_peptide = _stamp_bj_per_row(bj_peptide, meta)
         frames.append(bj_peptide)
 
     if not frames:
@@ -529,9 +564,33 @@ def build_bulk_proteomics(verbose: bool = False) -> pd.DataFrame:
     df["perturbation"] = ""
 
     # Integer columns with nullable dtype so parquet round-trips cleanly.
-    for col in ("length", "start_position", "end_position", "n_peptides", "n_fractions", "pmid"):
+    int_cols = (
+        "length",
+        "start_position",
+        "end_position",
+        "n_peptides",
+        "n_fractions",
+        "n_fractions_in_run",
+        "n_replicates_detected",
+        "pmid",
+    )
+    for col in int_cols:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce").astype("Int64")
+
+    # For rows that don't carry per-row Fig 1b axes (CCLE protein rows),
+    # fill the columns with sensible defaults so parquet has a stable
+    # schema rather than mixed-NA dtypes. CCLE is non-enriched baseline
+    # shotgun with no modification enrichment, so ``enrichment="none"``
+    # and ``modifications=""`` are correct.
+    if "enrichment" in df.columns:
+        df["enrichment"] = df["enrichment"].fillna("none").replace("", "none")
+    else:
+        df["enrichment"] = "none"
+    if "modifications" not in df.columns:
+        df["modifications"] = ""
+    else:
+        df["modifications"] = df["modifications"].fillna("")
 
     ordered_cols = [
         # evidence + granularity
@@ -559,6 +618,7 @@ def build_bulk_proteomics(verbose: bool = False) -> pd.DataFrame:
         "abundance_log2_normalized",
         "abundance_percentile",
         "n_peptides",
+        "n_replicates_detected",
         # acquisition metadata (harmonized with ms_samples schema)
         "instrument",
         "instrument_type",
@@ -567,11 +627,16 @@ def build_bulk_proteomics(verbose: bool = False) -> pd.DataFrame:
         "labeling",
         "search_engine",
         "fdr",
-        # bulk-specific prep/digest info
+        # bulk-specific prep/digest info — per-row Fig 1b axes for
+        # Bekker-Jensen (authoritative) and source-level defaults for
+        # CCLE (all tryptic, 12-frac, no enrichment).
         "digestion",
         "digestion_enzyme",
         "fractionation",
         "n_fractions",
+        "n_fractions_in_run",
+        "enrichment",
+        "modifications",
         "quantification",
     ]
     # Drop any stray input columns (e.g. CCLE's FASTA-header protein_id

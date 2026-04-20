@@ -62,7 +62,7 @@ sources:
     fragmentation: "HCD"
     acquisition_mode: "DDA"
     labeling: "label-free"
-    fractionation: "high-pH reverse-phase SPE (46 fractions, 2 biological replicates per cell line)"
+    fractionation: "high-pH reverse-phase SPE (14 / 39 / 46 / 70 fractions; dominant arm is 46)"
     n_fractions: 46
     quantification: "label-free MaxQuant LFQ; peptide-level intensity + derived protein-level sum"
     search_engine: "MaxQuant 1.5.x (Andromeda)"
@@ -73,25 +73,66 @@ sources:
       - HEK293
       - HeLa
       - MCF7
+    # As of v1.11.3 (issue pirl-unc/hitlist#67) the peptide- AND protein-
+    # level indexes are comprehensive over the full Figure 1b design
+    # matrix: HeLa was run across four fractionation depths (14, 39, 46,
+    # 70), four enzymes (Trypsin/P + Chymotrypsin / GluC / LysC), and
+    # ± TiO2 phosphopeptide enrichment. The per-row columns listed
+    # under ``per_row_dimensions`` are authoritative for filtering; the
+    # top-level ``n_fractions`` / ``digestion`` fields describe the
+    # dominant arm.
+    per_row_dimensions:
+      - digestion_enzyme  # canonical enzyme string (same as above)
+      - n_fractions_in_run  # integer; 12 / 14 / 39 / 46 / 50 / 70 in this deposit
+      - enrichment  # "none" or "TiO2"; TiO2 = phosphopeptide enrichment
+      - modifications  # peptide-level mod set: Phospho (STY) / Oxidation (M) / Deamidation (NQ) or "Unmodified"
+    n_fractions_observed: [12, 14, 39, 46, 50, 70]  # authoritative set from peptides.txt header
+    enrichments_observed: ["none", "TiO2"]
     ancillary_digests:
-      # The paper also did HeLa with non-tryptic enzymes for comparison.
-      # These peptides exist in SearchResults.zip but are NOT in the
-      # tryptic-cell-line data files we ship — kept separate to avoid
-      # mixing enzyme populations.
+      # The paper also ran HeLa with non-tryptic enzymes for comparison.
       - enzyme: "Chymotrypsin"
-        cleavage_rule: "C-term of F, W, Y, L (not before P)"
+        digestion_enzyme: "Chymotrypsin"
+        cleavage_rule: "C-term of F, W, Y, L, M (not before P)"
+        maxquant_spec: "Chymotrypsin+"
         cell_line: HeLa
-        included_in_index: false
+        included_in_index: true
       - enzyme: "GluC"
-        cleavage_rule: "C-term of E (not before P)"
+        digestion_enzyme: "GluC"
+        # MaxQuant spec "GluC;D.P" — GluC in ammonium bicarbonate buffer
+        # cleaves C-terminal to both E and D, with no cleavage before P.
+        # In the packaged peptides ~96% of GluC C-termini are E and ~1%
+        # are D; both are biologically expected.
+        cleavage_rule: "C-term of E (and D, in bicarbonate buffer; not before P)"
+        maxquant_spec: "GluC;D.P"
         cell_line: HeLa
-        included_in_index: false
+        included_in_index: true
       - enzyme: "LysC"
-        cleavage_rule: "C-term of K"
+        digestion_enzyme: "LysC"
+        cleavage_rule: "C-term of K (not before P)"
+        maxquant_spec: "LysC/P"
         cell_line: HeLa
-        included_in_index: false
+        included_in_index: true
+    # Out-of-scope experiments in PXD004452 that we do NOT index (they
+    # are in the same peptides.txt but serve a different experimental
+    # purpose — tracked here so reviewers know we considered them):
+    excluded_experiments:
+      - name: "Colon-Pandey / Liver-Pandey-E1/E2 / Prostate-Pandey"
+        reason: "reanalysis of Kim 2014 draft proteome (PMID 24870542); not Bekker-Jensen's new data"
+      - name: "Colon-human-46fracs / Liver-human-46fracs / Prostate-Pt2/3-human-46fracs"
+        reason: "human tissue specimens (Fig 5/6 coverage comparisons); not cell lines"
+      - name: "SY5Y-46fracs-E1/E2"
+        reason: "SH-SY5Y neuroblastoma; not in Fig 1b's 5-cell-line panel"
     note: >
-      All peptides in the hitlist bulk_peptides index are tryptic — the
-      non-tryptic digest experiments from the same study are intentionally
-      excluded to keep the enzyme population uniform for downstream
-      detectability modeling. Re-ingest is straightforward if needed.
+      Comprehensive over the Figure 1b design matrix: HeLa across four
+      enzymes (Trypsin/P, Chymotrypsin, GluC, LysC), four fractionation
+      depths (14/39/46/70), and ± TiO2 phospho enrichment; plus the 46-
+      fraction tryptic panel on A549 / HCT116 / HEK293 / MCF7. Every
+      peptide- and protein-level row carries per-row ``digestion_enzyme``,
+      ``n_fractions_in_run``, and ``enrichment`` columns so MS-bias
+      models can isolate trypsin bias from fractionation depth and from
+      phospho-enrichment. A549, HCT116, HEK293, and MCF7 remain tryptic
+      + non-enriched + 46-frac only (the paper only ran the other axes
+      on HeLa). Downstream loaders default-filter to ``enrichment == "none"``
+      so baseline detectability queries do not mix in phospho-biased
+      TiO2 rows; pass ``enrichment="TiO2"`` (or ``enrichment=None`` for
+      both populations) to opt in.

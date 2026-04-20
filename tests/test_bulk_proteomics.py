@@ -35,6 +35,15 @@ _BULK_PREP_COLS = {
     "quantification",
 }
 
+# Per-row Fig 1b design-matrix axes added in v1.11.3 for Bekker-Jensen
+# (CCLE rows carry sensible defaults: enrichment="none", n_fractions_in_run=NA).
+_BJ_PER_ROW_AXES = {
+    "digestion_enzyme",
+    "n_fractions_in_run",
+    "enrichment",
+    "modifications",
+}
+
 
 def test_available_cell_lines():
     cells = available_cell_lines()
@@ -120,6 +129,156 @@ def test_load_bulk_peptides_full():
     assert set(df["source"]) == {"Bekker-Jensen_2017"}
 
 
+def test_load_bulk_peptides_mixed_digest():
+    """Peptide index now includes HeLa non-tryptic arms (Chymo/GluC/LysC)."""
+    df = load_bulk_peptides()
+    # digestion_enzyme is per-row when the parquet is built; when the
+    # loader falls back to the raw CSV the column is still present.
+    assert "digestion_enzyme" in df.columns
+    enzymes = set(df["digestion_enzyme"].dropna().unique())
+    # All four digests should appear
+    assert any(e.startswith("Trypsin") for e in enzymes)
+    assert "Chymotrypsin" in enzymes
+    assert "GluC" in enzymes
+    assert "LysC" in enzymes
+    # Non-tryptic arms are HeLa-only per the deposit design
+    hela_only = df[df["digestion_enzyme"].isin({"Chymotrypsin", "GluC", "LysC"})]
+    assert set(hela_only["cell_line_name"]) == {"HeLa"}
+    # Other cell lines are strictly tryptic
+    other_lines = df[df["cell_line_name"].isin({"A549", "HCT116", "HEK293", "MCF7"})]
+    assert (other_lines["digestion_enzyme"].str.startswith("Trypsin")).all()
+    # Enzyme-specific C-terminal residue sanity checks. Tighter bounds
+    # than the original test — we expect ~99% specificity for LysC/GluC
+    # (single-residue specificity, reflecting the MaxQuant cleavage
+    # rule) and ~92% for Chymotrypsin (F/W/Y/L/M) and ~99% K/R for
+    # Trypsin/P.
+    gluc = df[df["digestion_enzyme"] == "GluC"]
+    # GluC cleaves after E (and D, in bicarbonate buffer — both appear).
+    gluc_pct = gluc["peptide"].str[-1].isin(["E", "D"]).mean()
+    assert gluc_pct > 0.95, f"GluC C-term E/D specificity {gluc_pct:.3f} < 0.95"
+    assert (gluc["peptide"].str[-1] == "E").mean() > 0.9
+    lysc = df[df["digestion_enzyme"] == "LysC"]
+    lysc_pct = (lysc["peptide"].str[-1] == "K").mean()
+    assert lysc_pct > 0.97, f"LysC C-term K specificity {lysc_pct:.3f} < 0.97"
+    chymo = df[df["digestion_enzyme"] == "Chymotrypsin"]
+    # Chymotrypsin cleaves C-term of F/W/Y/L/M; this covers >90% of the peptides.
+    chymo_pct = chymo["peptide"].str[-1].isin(list("FWYLM")).mean()
+    assert chymo_pct > 0.9, f"Chymotrypsin C-term F/W/Y/L/M specificity {chymo_pct:.3f} < 0.9"
+    tryp = df[df["digestion_enzyme"].str.startswith("Trypsin")]
+    tryp_pct = tryp["peptide"].str[-1].isin(["K", "R"]).mean()
+    assert tryp_pct > 0.97, f"Trypsin C-term K/R specificity {tryp_pct:.3f} < 0.97"
+
+
+def test_load_bulk_peptides_fig1b_axes_complete():
+    """The Fig 1b fractionation sweep (14/39/46/70) must all be present.
+
+    Adds the 12-frac and 50-frac TiO2 arms (not part of the classical
+    Fig 1b sweep axis but present in the same deposit) when enrichment=None.
+    """
+    # Default loader is non-enriched; that covers 14/39/46/70 on HeLa.
+    df = load_bulk_peptides()
+    fracs_none = set(df["n_fractions_in_run"].dropna().unique())
+    assert {14, 39, 46, 70}.issubset(fracs_none), (
+        f"missing Fig 1b fractionation depths in non-enriched arm: got {fracs_none}"
+    )
+    # Union loader exposes the TiO2 12-frac + 50-frac phospho arms.
+    df_all = load_bulk_peptides(enrichment=None)
+    fracs_all = set(df_all["n_fractions_in_run"].dropna().unique())
+    assert fracs_all == {12, 14, 39, 46, 50, 70}, (
+        f"authoritative fractionation set from peptides.txt header = "
+        f"{{12,14,39,46,50,70}}; loader returned {fracs_all}"
+    )
+    # Both enrichment populations round-trip through the parquet.
+    enrichments = set(df_all["enrichment"].dropna().unique())
+    assert enrichments == {"none", "TiO2"}, enrichments
+
+
+def test_load_bulk_peptides_default_filters_out_tio2():
+    """Default load_bulk_peptides() excludes TiO2-enriched rows.
+
+    This is the "baseline detectability" default: callers opt into
+    TiO2 phospho rows by passing ``enrichment="TiO2"`` or ``enrichment=None``.
+    """
+    df = load_bulk_peptides()
+    # Column must be present and must carry only "none"
+    assert "enrichment" in df.columns
+    assert (df["enrichment"] == "none").all(), (
+        f"default load_bulk_peptides() must not include TiO2 rows: "
+        f"got {df['enrichment'].value_counts().to_dict()}"
+    )
+
+
+def test_load_bulk_peptides_enrichment_opt_in():
+    """Explicit enrichment="TiO2" returns only phospho rows, mostly phospho-modified."""
+    df = load_bulk_peptides(enrichment="TiO2")
+    assert len(df) > 10_000, f"expected >10K TiO2 rows, got {len(df)}"
+    assert set(df["enrichment"]) == {"TiO2"}
+    # The TiO2 enrichment step is >60% effective at retaining phospho
+    # peptides (published spec is ~75-80%; 50% is a conservative
+    # regression floor that still distinguishes the TiO2 rows from
+    # baseline where <10% carry phospho).
+    phospho_pct = df["modifications"].str.contains("Phospho", na=False).mean()
+    assert phospho_pct > 0.5, f"TiO2 rows should be >50% phospho-modified; got {phospho_pct:.2%}"
+
+
+def test_load_bulk_peptides_enrichment_union():
+    """enrichment=None returns both populations (baseline + TiO2)."""
+    default = load_bulk_peptides()
+    tio2 = load_bulk_peptides(enrichment="TiO2")
+    both = load_bulk_peptides(enrichment=None)
+    assert len(both) == len(default) + len(tio2), (
+        f"union should equal sum of partitions: "
+        f"default={len(default):,} + tio2={len(tio2):,} != both={len(both):,}"
+    )
+    assert set(both["enrichment"]) == {"none", "TiO2"}
+
+
+def test_load_bulk_peptides_filter_by_enzyme():
+    """digestion_enzyme filter narrows rows to the requested digest."""
+    lysc = load_bulk_peptides(digestion_enzyme="LysC")
+    assert len(lysc) > 50_000
+    assert set(lysc["digestion_enzyme"]) == {"LysC"}
+    # LysC is HeLa-only
+    assert set(lysc["cell_line_name"]) == {"HeLa"}
+
+
+def test_load_bulk_peptides_filter_by_fractions():
+    """n_fractions_in_run filter selects the requested fractionation depth."""
+    df70 = load_bulk_peptides(n_fractions_in_run=70)
+    assert len(df70) > 100_000
+    assert set(df70["n_fractions_in_run"]) == {70}
+    # 70-frac arm is HeLa tryptic only
+    assert set(df70["cell_line_name"]) == {"HeLa"}
+    assert set(df70["digestion_enzyme"]).issubset({"Trypsin/P (cleaves K/R except before P)"})
+
+
+def test_load_bulk_peptides_tryptic_counts_preserved():
+    """Per-cell-line tryptic counts from the prior ingest are preserved.
+
+    Regression check: when the Fig 1b comprehensive ingest added the
+    fractionation sweep and TiO2 arms it did NOT disturb the existing
+    46-fraction tryptic panel row counts on A549/HCT116/HEK293/MCF7.
+    These counts come straight from peptides.txt Intensity <Experiment>
+    columns so any change here would indicate a parser regression.
+    """
+    df = load_bulk_peptides(
+        digestion_enzyme="Trypsin/P (cleaves K/R except before P)",
+        n_fractions_in_run=46,
+    )
+    by_cell = df.groupby("cell_line_name").size().to_dict()
+    # These numbers were captured from the v1.11.2 tryptic-only CSV.
+    expected = {
+        "A549": 214925,
+        "HCT116": 237738,
+        "HEK293": 242564,
+        "MCF7": 206130,
+    }
+    for cell, count in expected.items():
+        assert by_cell.get(cell) == count, (
+            f"{cell} 46-frac tryptic count changed: expected {count:,}, got {by_cell.get(cell)!r}"
+        )
+
+
 def test_load_bulk_peptides_filter_cell_line():
     df = load_bulk_peptides(cell_line="HeLa")
     assert len(df) > 100_000
@@ -187,10 +346,20 @@ def test_load_bulk_sources_shape():
 
 
 def test_load_bulk_sources_digest_is_tryptic():
-    """Both current sources use tryptic digest — sanity check for downstream assumptions."""
+    """Both sources use tryptic digest as the DOMINANT arm.
+
+    Bekker-Jensen also carries three HeLa-only non-tryptic ancillary
+    digests (Chymotrypsin, GluC, LysC) — those are declared via the
+    ``ancillary_digests`` field, not the top-level ``digestion``.
+    """
     srcs = load_bulk_sources()
     for s in srcs:
         assert s["digestion"] == "tryptic"
+    bj = next(s for s in srcs if s["source_id"] == "Bekker-Jensen_2017")
+    ancillary = bj.get("ancillary_digests", [])
+    enzymes = {a["enzyme"] for a in ancillary}
+    assert enzymes == {"Chymotrypsin", "GluC", "LysC"}
+    assert all(a.get("included_in_index") is True for a in ancillary)
 
 
 def test_load_bulk_sources_harmonized_fields():
@@ -222,9 +391,17 @@ def test_build_bulk_proteomics_parquet():
     assert not missing, f"missing harmonized columns: {missing}"
     bulk_missing = _BULK_PREP_COLS - set(df.columns)
     assert not bulk_missing, f"missing bulk-prep columns: {bulk_missing}"
-    # Sanity: all rows have populated instrument + digestion
+    # Per-row Fig 1b axes present on the parquet schema
+    axes_missing = _BJ_PER_ROW_AXES - set(df.columns)
+    assert not axes_missing, f"missing Fig 1b per-row axes: {axes_missing}"
+    # Sanity: all rows have populated instrument + digestion.
+    # "digestion" is tryptic for the vast majority of rows; the HeLa
+    # non-tryptic ancillary arms (Chymotrypsin/GluC/LysC) contribute
+    # <25% of rows and are labeled "non-tryptic" on a per-row basis.
     assert (df["instrument"] != "").all()
-    assert (df["digestion"] == "tryptic").all()
+    digestion_values = set(df["digestion"].unique())
+    assert digestion_values.issubset({"tryptic", "non-tryptic"})
+    assert (df["digestion"] == "tryptic").mean() > 0.7
     # CCLE rows carry TMT label, BJ rows are label-free
     ccle_rows = df[df["source"] == "CCLE_Nusinow_2020"]
     bj_rows = df[df["source"] == "Bekker-Jensen_2017"]
@@ -234,6 +411,23 @@ def test_build_bulk_proteomics_parquet():
     assert set(df["pmid"].dropna().unique()) == {31978347, 28591648}
     # Evidence kind stamped so downstream can filter a unified index
     assert set(df["evidence_kind"]) == {"bulk_proteomics"}
+    # --- Fig 1b design matrix completeness assertions ---
+    bj_pep = df[(df["source"] == "Bekker-Jensen_2017") & (df["granularity"] == "peptide")]
+    bj_fracs = set(bj_pep["n_fractions_in_run"].dropna().astype(int).unique())
+    # The four canonical Fig 1b depths must appear; 12 and 50 are the
+    # two TiO2-enriched arms from the same deposit.
+    assert {14, 39, 46, 70}.issubset(bj_fracs), bj_fracs
+    assert bj_fracs == {12, 14, 39, 46, 50, 70}, bj_fracs
+    # Enrichment set includes both "none" and "TiO2"
+    assert set(bj_pep["enrichment"].dropna().unique()) == {"none", "TiO2"}
+    # All four enzymes present
+    bj_enzymes = set(bj_pep["digestion_enzyme"].dropna().unique())
+    assert bj_enzymes == {
+        "Trypsin/P (cleaves K/R except before P)",
+        "Chymotrypsin",
+        "GluC",
+        "LysC",
+    }, bj_enzymes
     # Parquet round-trips to the same shape
     from hitlist.bulk_proteomics import bulk_proteomics_path
 
