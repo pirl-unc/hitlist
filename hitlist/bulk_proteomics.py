@@ -1,20 +1,22 @@
-"""Bulk (non-MHC) proteomics detectability index.
+"""Bulk (non-MHC) proteomics detectability indices.
 
-Protein-level abundance from whole-cell / deep-proteome shotgun MS, keyed
-on cell line. Distinct from ``observations.parquet`` (MHC-restricted
-MS-elution) and ``binding.parquet`` (in-vitro binding assays). Purpose:
-provide a detectability prior per (sample, source protein) — so a peptide
-missing from the MHC immunopeptidome can be contextualized against
-whether the parent protein is even expressed in that cell line.
+All data in this module is **shotgun / whole-cell MS**, not MHC-ligand
+immunopeptidomics. It lives alongside ``observations.parquet`` (MHC
+MS-elution) and ``binding.parquet`` (in-vitro binding) as a third,
+strictly non-MHC table so downstream consumers can use it as a
+detectability prior without ever conflating it with immunopeptidomics
+data.
 
-Current source: CCLE proteome (Nusinow et al. 2020, Cell, PMID 31978347),
-filtered to cell lines with substantial hitlist MHC MS coverage. Values
-are log2-normalized TMT abundances relative to the CCLE panel median —
-positive means above median, negative means below.
+Two levels of granularity, each with its own loader:
 
-This is the pilot wiring for issue #67. Schema and API are intentionally
-small so additional sources (ProteomicsDB, CPTAC, per-study PRIDE
-deposits) can be bolted on later.
+- ``load_bulk_proteomics`` — protein-level abundance per cell line
+  (CCLE; Nusinow et al. 2020, PMID 31978347). Good for "is this gene
+  expressed in this sample?"
+
+- ``load_bulk_peptides`` — peptide-level detection per cell line
+  (Bekker-Jensen et al. 2017, PMID 28591648). Good for "within this
+  protein, which tryptic peptides are ever observable by MS?" (the
+  intra-protein detectability bias model).
 """
 
 from __future__ import annotations
@@ -34,11 +36,17 @@ def _load_ccle() -> pd.DataFrame:
     return pd.read_csv(str(path), compression="gzip")
 
 
+@lru_cache(maxsize=1)
+def _load_bj() -> pd.DataFrame:
+    path = files(_DATA_MODULE) / "bekker_jensen_2017_peptides.csv.gz"
+    return pd.read_csv(str(path), compression="gzip")
+
+
 def load_bulk_proteomics(
     cell_line: str | Iterable[str] | None = None,
     gene_name: str | Iterable[str] | None = None,
 ) -> pd.DataFrame:
-    """Load protein-level abundance from the bulk proteomics index.
+    """Protein-level bulk proteomics abundance (shotgun MS, NOT MHC ligands).
 
     Parameters
     ----------
@@ -68,6 +76,65 @@ def load_bulk_proteomics(
     return df.reset_index(drop=True)
 
 
+def load_bulk_peptides(
+    cell_line: str | Iterable[str] | None = None,
+    gene_name: str | Iterable[str] | None = None,
+    uniprot_acc: str | Iterable[str] | None = None,
+) -> pd.DataFrame:
+    """Peptide-level bulk proteomics detections (shotgun MS, NOT MHC ligands).
+
+    Identifies which tryptic peptides *within* a protein were ever
+    observed by deep shotgun MS on a given cell line — the intra-protein
+    detectability prior for MHC-ligandome analyses. Source: Bekker-Jensen
+    et al. 2017 (PMID 28591648), covering HeLa, A549, HCT116, HEK293,
+    MCF7. Tryptic digest, 46-fraction pre-fractionation, ≥2 biological
+    replicates per cell line; a peptide is included here if detected at
+    non-zero intensity in any replicate of that cell line.
+
+    Parameters
+    ----------
+    cell_line
+        Filter to one or more cell lines (case-insensitive match).
+    gene_name
+        Filter to one or more HGNC gene symbols (exact match).
+    uniprot_acc
+        Filter to one or more UniProt accessions (exact match).
+
+    Returns
+    -------
+    DataFrame with columns:
+        peptide, cell_line, uniprot_acc, gene_symbol, length,
+        start_position, end_position, source, reference.
+    """
+    df = _load_bj()
+    if cell_line is not None:
+        if isinstance(cell_line, str):
+            cell_line = [cell_line]
+        wanted = {c.casefold() for c in cell_line}
+        df = df[df["cell_line"].str.casefold().isin(wanted)]
+    if gene_name is not None:
+        if isinstance(gene_name, str):
+            gene_name = [gene_name]
+        df = df[df["gene_symbol"].isin(list(gene_name))]
+    if uniprot_acc is not None:
+        if isinstance(uniprot_acc, str):
+            uniprot_acc = [uniprot_acc]
+        df = df[df["uniprot_acc"].isin(list(uniprot_acc))]
+    return df.reset_index(drop=True)
+
+
 def available_cell_lines() -> list[str]:
-    """Return the canonical names of cell lines currently in the index."""
+    """Return the union of cell lines across all bulk proteomics indices."""
+    protein = set(_load_ccle()["cell_line"].unique())
+    peptide = set(_load_bj()["cell_line"].unique())
+    return sorted(protein | peptide)
+
+
+def available_protein_cell_lines() -> list[str]:
+    """Cell lines covered by the protein-level index (load_bulk_proteomics)."""
     return sorted(_load_ccle()["cell_line"].unique().tolist())
+
+
+def available_peptide_cell_lines() -> list[str]:
+    """Cell lines covered by the peptide-level index (load_bulk_peptides)."""
+    return sorted(_load_bj()["cell_line"].unique().tolist())
