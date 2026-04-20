@@ -339,8 +339,17 @@ def classify_allele_resolution(mhc_restriction: str) -> str:
                     return "four_digit"
                 return "two_digit"
             if isinstance(result, Pair):
-                alpha_fields = len(result.alpha.allele_fields)
-                beta_fields = len(result.beta.allele_fields)
+                # Either side can be a Gene (e.g. "HLA-DRA/DRB1",
+                # "HLA-DPA1*01:03/DPB1") — Gene has no allele_fields, so
+                # guard the attribute access. Pair resolution is the *min*
+                # of the two sides; a gene-only side means the pair is not
+                # even two-digit resolved and falls through to "unresolved".
+                alpha_fields = (
+                    len(result.alpha.allele_fields) if isinstance(result.alpha, Allele) else 0
+                )
+                beta_fields = (
+                    len(result.beta.allele_fields) if isinstance(result.beta, Allele) else 0
+                )
                 if alpha_fields >= 2 and beta_fields >= 2:
                     return "four_digit"
                 if alpha_fields >= 1 and beta_fields >= 1:
