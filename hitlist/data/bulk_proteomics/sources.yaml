@@ -73,7 +73,7 @@ sources:
       - HEK293
       - HeLa
       - MCF7
-    # As of v1.11.3 (issue pirl-unc/hitlist#67) the peptide- AND protein-
+    # As of v1.13.0 (issue pirl-unc/hitlist#67) the peptide- AND protein-
     # level indexes are comprehensive over the full Figure 1b design
     # matrix: HeLa was run across four fractionation depths (14, 39, 46,
     # 70), four enzymes (Trypsin/P + Chymotrypsin / GluC / LysC), and
