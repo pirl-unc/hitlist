@@ -165,9 +165,13 @@ def test_aggregate_per_pmhc_with_refs_missing_optional_columns():
     assert "ms_pmhc_in_cancer" not in result.columns
 
 
-def test_aggregate_per_pmhc_with_refs_filters_non_hla():
-    """Non-HLA rows (e.g. murine H2) are filtered, matching
-    aggregate_per_pmhc behavior."""
+def test_aggregate_per_pmhc_with_refs_preserves_non_hla():
+    """Non-HLA rows (e.g. murine H2) pass through unchanged.
+
+    Species filtering is the caller's responsibility at the scan /
+    load_observations layer via ``mhc_species=``; the aggregator does
+    not enforce an HLA-only policy.
+    """
     hits = pd.DataFrame(
         {
             "peptide": ["HUMAN9PEP", "MOUSE9PEP"],
@@ -175,5 +179,5 @@ def test_aggregate_per_pmhc_with_refs_filters_non_hla():
         }
     )
     result = aggregate_per_pmhc_with_refs(hits)
-    assert len(result) == 1
-    assert result.iloc[0]["peptide"] == "HUMAN9PEP"
+    assert len(result) == 2
+    assert set(result["mhc_restriction"]) == {"HLA-A*02:01", "H2-Db"}
