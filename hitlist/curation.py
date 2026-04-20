@@ -32,7 +32,7 @@ from __future__ import annotations
 
 import contextlib
 import re
-from functools import lru_cache
+from functools import cache, lru_cache
 from os.path import dirname, join
 
 import pandas as pd
@@ -119,12 +119,16 @@ def load_tissue_categories() -> dict[str, frozenset[str]]:
 # ── Cached mhcgnomes parse ─────────────────────────────────────────────────
 
 
-@lru_cache(maxsize=1024)
+@cache
 def _cached_parse(mhc_restriction: str):
     """Cache mhcgnomes parse results.
 
-    ~300 unique allele strings across millions of IEDB rows.
-    Without caching, parse() is called 6M+ times redundantly.
+    ~100k unique allele strings across millions of IEDB rows.  Uses
+    an unbounded cache: mhcgnomes parse results are small, the total
+    memory footprint for the vocabulary is well under 100 MB, and
+    eviction at 1024 was causing re-parse churn for alleles that
+    reappear later in the scan (e.g. species-specific alleles that
+    cluster by cell line).
     """
     try:
         from mhcgnomes import parse
@@ -137,10 +141,15 @@ def _cached_parse(mhc_restriction: str):
 # ── MHC species ────────────────────────────────────────────────────────────
 
 
+@cache
 def classify_mhc_species(mhc_restriction: str) -> str:
     """Determine the species of an MHC restriction annotation.
 
     Uses mhcgnomes when available, falls back to prefix matching.
+
+    Cached by input string: ~100k unique mhc_restriction values across
+    millions of IEDB rows, and the mhcgnomes parse + species lookup is
+    one of the hottest per-row calls in the scanner.
 
     Parameters
     ----------
@@ -306,11 +315,15 @@ ALLELE_RESOLUTION_ORDER: list[str] = [
 _RESOLUTION_RANK: dict[str, int] = {v: i for i, v in enumerate(ALLELE_RESOLUTION_ORDER)}
 
 
+@cache
 def classify_allele_resolution(mhc_restriction: str) -> str:
     """Classify the resolution level of an MHC restriction annotation.
 
     Uses mhcgnomes if available for authoritative parsing, otherwise
     falls back to regex patterns.
+
+    Cached by input string: same vocabulary as ``classify_mhc_species``,
+    same argument for caching at the outer layer.
 
     Parameters
     ----------
@@ -442,6 +455,7 @@ def _build_allele_to_serotype_map() -> dict[str, str]:
 
 
 @lru_cache(maxsize=8192)
+@cache
 def allele_to_all_serotypes(mhc_restriction: str) -> tuple[str, ...]:
     """All serotypes an allele belongs to, most-specific first.
 
@@ -450,6 +464,10 @@ def allele_to_all_serotypes(mhc_restriction: str) -> tuple[str, ...]:
     locus-specific serotype (A24, B57) and a public epitope shared
     across loci (Bw4 is carried by subsets of A- and B-locus alleles —
     the axis KIR3DL1 recognizes).
+
+    Cached by input string — same ~100k-vocab argument as
+    ``classify_mhc_species`` / ``classify_allele_resolution``. Returns
+    a tuple (immutable) so cache aliasing is safe.
 
     Examples::
 
@@ -590,6 +608,7 @@ def _matches_condition(row_fields: dict[str, str], condition: dict) -> bool:
 
 
 @lru_cache(maxsize=16384)
+@cache
 def classify_ms_row(
     process_type: str,
     disease: str,
@@ -603,6 +622,16 @@ def classify_ms_row(
     """Classify a public-MS row into curated source-context flags.
 
     Uses data-driven PMID overrides and tissue categories from YAML files.
+
+    Cached by the full argument tuple. In the IEDB scanner the same
+    (process_type, disease, culture_condition, source_tissue, cell_name)
+    tuple repeats across all rows of a study with at most a handful of
+    unique mhc_restriction values per sample, so the cache keeps a
+    couple tens of thousands of entries at most vs millions of row
+    classifications. The returned dict is not mutated by any known
+    caller (both scanner.py and supplement.py splat it with ``**`` or
+    ``record.update`` — no in-place edits), so sharing the cached
+    instance across rows is safe.
 
     Parameters
     ----------
@@ -797,12 +826,19 @@ _BINDING_ASSAY_KEYWORDS = re.compile(
 )
 
 
+@cache
 def is_binding_assay(qualitative_measurement: str, assay_comments: str) -> bool:
     """Classify whether an observation is from a binding assay vs MS elution.
 
     Returns True for binding assay data (peptide microarrays, refolding
     assays, MEDi display, etc.) which should be excluded from
     immunopeptidome-focused analyses.
+
+    Cached by ``(qualitative_measurement, assay_comments)`` tuple —
+    qualitative_measurement is drawn from a handful of values and
+    assay_comments is highly repetitive across IEDB rows, so the cache
+    quickly saturates at O(a few thousand) distinct keys vs millions of
+    per-row calls in the scanner.
     """
     qm = qualitative_measurement.strip() if qualitative_measurement else ""
     # Negative results and quantitative tiers are binding assays
