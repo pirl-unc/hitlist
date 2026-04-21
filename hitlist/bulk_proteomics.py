@@ -127,10 +127,42 @@ def _apply_uniprot_filter(df: pd.DataFrame, uniprot_acc) -> pd.DataFrame:
     return df[df["uniprot_acc"].isin(list(uniprot_acc))]
 
 
+def _apply_enzyme_filter(df: pd.DataFrame, digestion_enzyme) -> pd.DataFrame:
+    if digestion_enzyme is None or "digestion_enzyme" not in df.columns:
+        return df
+    if isinstance(digestion_enzyme, str):
+        digestion_enzyme = [digestion_enzyme]
+    return df[df["digestion_enzyme"].isin(list(digestion_enzyme))]
+
+
+def _apply_fractions_filter(df: pd.DataFrame, n_fractions_in_run) -> pd.DataFrame:
+    if n_fractions_in_run is None or "n_fractions_in_run" not in df.columns:
+        return df
+    if isinstance(n_fractions_in_run, int):
+        n_fractions_in_run = [n_fractions_in_run]
+    return df[df["n_fractions_in_run"].isin(list(n_fractions_in_run))]
+
+
+# ``enrichment`` filter is slightly special: we accept a sentinel
+# "__default__" string so the loader defaults can pass through "match
+# only the non-enriched rows" semantics even when the caller explicitly
+# passes ``enrichment=None`` to mean "don't filter" (both populations).
+_ENRICHMENT_DEFAULT = "__default__"
+
+
+def _apply_enrichment_filter(df: pd.DataFrame, enrichment) -> pd.DataFrame:
+    if enrichment is None or "enrichment" not in df.columns:
+        return df
+    return df[df["enrichment"] == enrichment]
+
+
 def load_bulk_proteomics(
     cell_line: str | Iterable[str] | None = None,
     gene_name: str | Iterable[str] | None = None,
     source: str | None = None,
+    digestion_enzyme: str | Iterable[str] | None = None,
+    n_fractions_in_run: int | Iterable[int] | None = None,
+    enrichment: str | None = _ENRICHMENT_DEFAULT,
 ) -> pd.DataFrame:
     """Protein-level bulk proteomics abundance (shotgun MS, NOT MHC ligands).
 
@@ -153,16 +185,41 @@ def load_bulk_proteomics(
     source
         Restrict to one source (``"CCLE_Nusinow_2020"`` or
         ``"Bekker-Jensen_2017"``). ``None`` returns the union.
+    digestion_enzyme
+        Filter Bekker-Jensen rows to one or more digestion enzymes
+        (exact match against ``digestion_enzyme`` column — canonical
+        values: ``"Trypsin/P (cleaves K/R except before P)"``,
+        ``"Chymotrypsin"``, ``"GluC"``, ``"LysC"``). CCLE rows are
+        unaffected (all CCLE is tryptic).
+    n_fractions_in_run
+        Filter Bekker-Jensen rows to one or more fractionation depths
+        (integer in ``{12, 14, 39, 46, 50, 70}`` — authoritative values
+        discovered in PXD004452). CCLE rows are unaffected.
+    enrichment
+        Filter Bekker-Jensen rows by enrichment: ``"none"`` (baseline,
+        default), ``"TiO2"`` (phosphopeptide enrichment), or ``None``
+        for both. **Defaults to ``"none"``** so baseline detectability
+        queries do not mix in phospho-biased TiO2 rows; callers opt
+        into TiO2 explicitly. CCLE is not phospho-enriched so the
+        filter is a no-op there.
 
     Returns
     -------
     DataFrame with columns: evidence_kind, granularity, cell_line_name,
-    gene_symbol, uniprot_acc, abundance_percentile (0-1 within cell line),
-    acquisition metadata (instrument, fragmentation, labeling, …), and
-    bulk-specific prep fields (digestion, fractionation, …). When the
-    parquet is built, columns match :func:`hitlist.export.generate_ms_samples_table`
-    for the acquisition fields so the same schema works across indexes.
+    gene_symbol, uniprot_acc, abundance_percentile (0-1 within arm for
+    Bekker-Jensen; within cell_line for CCLE), acquisition metadata
+    (instrument, fragmentation, labeling, ...), and bulk-specific prep
+    fields (digestion, digestion_enzyme, fractionation, n_fractions,
+    n_fractions_in_run, enrichment, ...). When the parquet is built,
+    columns match :func:`hitlist.export.generate_ms_samples_table` for
+    the acquisition fields so the same schema works across indexes.
     """
+    # Resolve the enrichment default. "__default__" means "filter to
+    # non-enriched rows" (the baseline detectability prior); explicit
+    # None means "don't filter" (both populations).
+    if enrichment == _ENRICHMENT_DEFAULT:
+        enrichment = "none"
+
     parquet = _load_parquet_or_none()
     if parquet is not None:
         df = parquet[parquet["granularity"] == "protein"].copy()
@@ -179,6 +236,16 @@ def load_bulk_proteomics(
         df = df[df["source"] == source]
     df = _apply_cell_line_filter(df, cell_line)
     df = _apply_gene_filter(df, gene_name)
+    df = _apply_enzyme_filter(df, digestion_enzyme)
+    df = _apply_fractions_filter(df, n_fractions_in_run)
+    # For CCLE rows, the `enrichment` column will not be set (or will
+    # be empty/NA) — we only apply the enrichment filter to rows that
+    # have a populated value, so CCLE passes through untouched.
+    if enrichment is not None and "enrichment" in df.columns:
+        has_enrich = df["enrichment"].notna() & (df["enrichment"] != "")
+        keep_enrich = has_enrich & (df["enrichment"] == enrichment)
+        keep_no_enrich = ~has_enrich
+        df = df[keep_enrich | keep_no_enrich]
     return df.reset_index(drop=True)
 
 
@@ -210,16 +277,28 @@ def load_bulk_peptides(
     cell_line: str | Iterable[str] | None = None,
     gene_name: str | Iterable[str] | None = None,
     uniprot_acc: str | Iterable[str] | None = None,
+    digestion_enzyme: str | Iterable[str] | None = None,
+    n_fractions_in_run: int | Iterable[int] | None = None,
+    enrichment: str | None = _ENRICHMENT_DEFAULT,
 ) -> pd.DataFrame:
     """Peptide-level bulk proteomics detections (shotgun MS, NOT MHC ligands).
 
-    Identifies which tryptic peptides *within* a protein were ever
-    observed by deep shotgun MS on a given cell line — the intra-protein
+    Identifies which peptides *within* a protein were ever observed by
+    deep shotgun MS on a given cell line — the intra-protein
     detectability prior for MHC-ligandome analyses. Source: Bekker-Jensen
-    et al. 2017 (PMID 28591648), covering HeLa, A549, HCT116, HEK293,
-    MCF7. Tryptic digest, 46-fraction pre-fractionation, ≥2 biological
-    replicates per cell line; a peptide is included here if detected at
-    non-zero intensity in any replicate of that cell line.
+    et al. 2017 (PMID 28591648) across the full Figure 1b design
+    matrix: HeLa across four enzymes (Trypsin/P + Chymotrypsin / GluC /
+    LysC), four fractionation depths (14, 39, 46, 70), and ± TiO2
+    phospho enrichment; plus the 46-fraction tryptic panel for A549,
+    HCT116, HEK293, and MCF7. A peptide is included here if detected
+    at non-zero intensity in any replicate of that arm.
+
+    Every row carries four per-row axes: ``digestion_enzyme``,
+    ``n_fractions_in_run``, ``enrichment``, and ``modifications``. The
+    default call applies ``enrichment="none"`` so baseline detectability
+    queries are not contaminated by phospho-biased TiO2 rows — pass
+    ``enrichment="TiO2"`` (or ``enrichment=None`` to see both) to opt
+    into the phospho arms.
 
     Parameters
     ----------
@@ -229,14 +308,31 @@ def load_bulk_peptides(
         Filter to one or more HGNC gene symbols (exact match).
     uniprot_acc
         Filter to one or more UniProt accessions (exact match).
+    digestion_enzyme
+        Filter to one or more canonical enzyme strings — e.g.
+        ``"Trypsin/P (cleaves K/R except before P)"``, ``"Chymotrypsin"``,
+        ``"GluC"``, ``"LysC"``. Non-tryptic arms are HeLa-only.
+    n_fractions_in_run
+        Filter to one or more fractionation depths (authoritative set
+        discovered in PXD004452: ``{12, 14, 39, 46, 50, 70}`` — 14/39/46/
+        70 are the Fig 1b tryptic sweep; 12 and 50 are the two TiO2
+        phospho arms).
+    enrichment
+        ``"none"`` (baseline, the **default**), ``"TiO2"`` (phospho
+        enrichment), or ``None`` to include both populations.
 
     Returns
     -------
     DataFrame with columns:
         peptide, cell_line_name, uniprot_acc, gene_symbol, length,
-        start_position, end_position, source, reference (plus acquisition
+        start_position, end_position, digestion_enzyme,
+        n_fractions_in_run, enrichment, modifications,
+        n_replicates_detected, source, reference (plus acquisition
         metadata when the parquet is built).
     """
+    if enrichment == _ENRICHMENT_DEFAULT:
+        enrichment = "none"
+
     parquet = _load_parquet_or_none()
     if parquet is not None:
         df = parquet[parquet["granularity"] == "peptide"].copy()
@@ -246,6 +342,9 @@ def load_bulk_peptides(
     df = _apply_cell_line_filter(df, cell_line)
     df = _apply_gene_filter(df, gene_name)
     df = _apply_uniprot_filter(df, uniprot_acc)
+    df = _apply_enzyme_filter(df, digestion_enzyme)
+    df = _apply_fractions_filter(df, n_fractions_in_run)
+    df = _apply_enrichment_filter(df, enrichment)
     return df.reset_index(drop=True)
 
 
