@@ -263,20 +263,51 @@ def build_peptide_mappings(
     all_mapping_dfs: list[pd.DataFrame] = []
     per_proteome_stats: list[tuple[str, int, int]] = []
 
+    # ── Length-on-demand: build one k-mer length at a time ─────────────────
+    # Peak RSS during the human mapping pass drops from ~10 GB (all 4
+    # MHC-I lengths held at once) to ~3 GB (one length held at a time).
+    # The 4 lengths are built sequentially and dropped between passes;
+    # numpy-packed postings keep each single-length index compact.
+    default_lengths = (8, 9, 10, 11)
+
     for canonical in sorted(species_to_peptides):
         peptides = species_to_peptides[canonical]
-        if verbose:
-            print(f"\n  [{canonical}] mapping {len(peptides):,} peptides ...")
-        idx = _build_species_index(canonical, release, use_uniprot, verbose)
-        if idx is None:
+        # Bucket this canonical's peptides by length so we can run each
+        # length's pass against an index built at that single length only.
+        peptides_by_len: dict[int, list[str]] = {}
+        for p in peptides:
+            peptides_by_len.setdefault(len(p), []).append(p)
+        lengths_in_query = tuple(sorted(L for L in peptides_by_len if L in default_lengths))
+        if not lengths_in_query:
+            # No MHC-I-compatible-length peptides for this canonical; nothing
+            # to map (MHC-II peptides at length 12+ are not indexed here —
+            # that's pre-existing behavior).
             per_proteome_stats.append((canonical, len(peptides), 0))
             continue
-        flanking = idx.map_peptides(sorted(peptides), flank=flank, verbose=verbose)
-        df = _flanking_rows_to_mapping_rows(
-            flanking, proteome_label=canonical, proteome_source="species"
-        )
-        all_mapping_dfs.append(df)
-        per_proteome_stats.append((canonical, len(peptides), int(df["peptide"].nunique())))
+
+        if verbose:
+            print(
+                f"\n  [{canonical}] mapping {len(peptides):,} peptides "
+                f"across lengths {lengths_in_query} ..."
+            )
+
+        matched_peps: set[str] = set()
+        for length in lengths_in_query:
+            length_peptides = peptides_by_len[length]
+            idx = _build_species_index(canonical, release, use_uniprot, verbose, lengths=(length,))
+            if idx is None:
+                continue
+            flanking = idx.map_peptides(sorted(length_peptides), flank=flank, verbose=verbose)
+            df = _flanking_rows_to_mapping_rows(
+                flanking, proteome_label=canonical, proteome_source="species"
+            )
+            all_mapping_dfs.append(df)
+            if len(flanking):
+                matched_peps.update(flanking["peptide"].unique())
+            # Explicit del so the single-length index is reclaimed before the
+            # next length's build allocates its own. Critical for memory.
+            del idx, flanking
+        per_proteome_stats.append((canonical, len(peptides), len(matched_peps)))
 
     # ── Extra proteomes (per-PMID reference_proteomes overrides) ─────────────
     pmid_extras = _collect_pmid_extra_proteomes()
@@ -352,8 +383,22 @@ def build_peptide_mappings(
     return out
 
 
-def _build_species_index(canonical: str, release: int, use_uniprot: bool, verbose: bool):
-    """Build a ProteomeIndex for a species.  Returns None on failure."""
+def _build_species_index(
+    canonical: str,
+    release: int,
+    use_uniprot: bool,
+    verbose: bool,
+    lengths: tuple[int, ...] = (8, 9, 10, 11),
+):
+    """Build a ProteomeIndex for a species, optionally at specific k-mer lengths.
+
+    The ``lengths`` kwarg enables length-on-demand building so callers
+    that only need one length at a time (the mapping pass) can keep
+    peak memory bounded by a single length's index (~1 GB for human
+    9-mers) rather than all four MHC-I lengths combined (~10 GB).
+
+    Returns None on failure.
+    """
     from .downloads import fetch_species_proteome, lookup_proteome
     from .proteome import ProteomeIndex
 
@@ -364,7 +409,12 @@ def _build_species_index(canonical: str, release: int, use_uniprot: bool, verbos
     if entry["kind"] == "ensembl":
         species = entry.get("species", "human")
         try:
-            return ProteomeIndex.from_ensembl(release=release, species=species, verbose=verbose)
+            return ProteomeIndex.from_ensembl(
+                release=release,
+                species=species,
+                lengths=lengths,
+                verbose=verbose,
+            )
         except Exception as e:
             if verbose:
                 print(f"    [{canonical}] pyensembl failed: {e}")
@@ -373,4 +423,4 @@ def _build_species_index(canonical: str, release: int, use_uniprot: bool, verbos
     path = fetch_species_proteome(canonical, verbose=verbose, use_uniprot=use_uniprot)
     if path is None or not path.exists():
         return None
-    return ProteomeIndex.from_fasta(path, verbose=False)
+    return ProteomeIndex.from_fasta(path, lengths=lengths, verbose=False)
