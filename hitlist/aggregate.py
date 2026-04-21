@@ -129,7 +129,7 @@ def aggregate_per_pmhc(hits_df: pd.DataFrame) -> pd.DataFrame:
         agg["ms_pmhc_has_mono_evidence"] = ("is_monoallelic", "any")
 
     result = hits_df.groupby(["peptide", "mhc_restriction"], as_index=False).agg(**agg)
-    return result[result["mhc_restriction"].str.startswith("HLA-", na=False)].reset_index(drop=True)
+    return result.reset_index(drop=True)
 
 
 def aggregate_per_pmhc_with_refs(hits_df: pd.DataFrame) -> pd.DataFrame:
@@ -173,9 +173,11 @@ def aggregate_per_pmhc_with_refs(hits_df: pd.DataFrame) -> pd.DataFrame:
         PMIDs are sorted numerically (not lexicographically), so a 9-digit
         PMID will not misrank against an 8-digit one.
 
-        Rows are filtered to those whose ``mhc_restriction`` begins with
-        ``"HLA-"`` — matches :func:`aggregate_per_pmhc` behavior.  Pass
-        non-HLA data through a different path.
+        All input rows are preserved.  Species filtering happens upstream
+        at the scan / ``load_observations`` layer via ``mhc_species=`` —
+        callers that want HLA-only results should set
+        ``mhc_species="Homo sapiens"`` there.  This aggregator does not
+        second-guess that choice.
     """
     canonical_columns = [
         "peptide",
@@ -213,4 +215,4 @@ def aggregate_per_pmhc_with_refs(hits_df: pd.DataFrame) -> pd.DataFrame:
 
     result = hits_df.groupby(["peptide", "mhc_restriction"], as_index=False).agg(**agg)
     result.insert(1, "length", result["peptide"].str.len())
-    return result[result["mhc_restriction"].str.startswith("HLA-", na=False)].reset_index(drop=True)
+    return result.reset_index(drop=True)
