@@ -1,22 +1,45 @@
 """Bulk (non-MHC) proteomics detectability indices.
 
 All data in this module is **shotgun / whole-cell MS**, not MHC-ligand
-immunopeptidomics. It lives alongside ``observations.parquet`` (MHC
-MS-elution) and ``binding.parquet`` (in-vitro binding) as a third,
+immunopeptidomics. It lives alongside ``observations.parquet`` (MS
+elution) and ``binding.parquet`` (in-vitro binding) as a third,
 strictly non-MHC table so downstream consumers can use it as a
 detectability prior without ever conflating it with immunopeptidomics
 data.
 
-Two levels of granularity, each with its own loader:
+Data flow:
 
-- ``load_bulk_proteomics`` — protein-level abundance per cell line
-  (CCLE; Nusinow et al. 2020, PMID 31978347). Good for "is this gene
-  expressed in this sample?"
+- **Source CSVs + metadata** ship inside the package under
+  ``hitlist/data/bulk_proteomics/`` (always readable, no build needed).
+- **``bulk_proteomics.parquet``** is written by
+  :func:`hitlist.builder.build_bulk_proteomics` into ``~/.hitlist/`` as
+  a long-form table with both protein- and peptide-level rows plus
+  per-source acquisition metadata (instrument, digest, fragmentation,
+  quantification, …) denormalized onto every row. The acquisition
+  column names are harmonized with the per-sample schema used by
+  ``observations.parquet`` so the same columns can be extracted from
+  either index for joint MS-bias modeling.
+
+Three loaders, each with its own granularity:
+
+- ``load_bulk_proteomics`` — protein-level abundance per cell line.
+  Union of CCLE (Nusinow et al. 2020, PMID 31978347; TMT-normalized)
+  and Bekker-Jensen (PMID 28591648; label-free sum-of-intensities).
+  Use the ``source=`` filter to pick one.
 
 - ``load_bulk_peptides`` — peptide-level detection per cell line
-  (Bekker-Jensen et al. 2017, PMID 28591648). Good for "within this
-  protein, which tryptic peptides are ever observable by MS?" (the
-  intra-protein detectability bias model).
+  (Bekker-Jensen et al. 2017). Good for "within this protein, which
+  tryptic peptides are ever observable by MS?" (the intra-protein
+  detectability bias model).
+
+- ``load_bulk_sources`` — per-source metadata (instrument, digest,
+  fractionation, quantification method, cell lines covered). Consult
+  before using intensity/abundance values across sources — CCLE is
+  TMT-normalized, Bekker-Jensen is label-free; their numbers are not
+  directly comparable.
+
+Loaders prefer the built parquet (fast, with full acquisition metadata
+columns) and fall back to the packaged CSVs when it has not been built.
 """
 
 from __future__ import annotations
@@ -24,15 +47,37 @@ from __future__ import annotations
 from collections.abc import Iterable
 from functools import lru_cache
 from importlib.resources import files
+from pathlib import Path
 
 import pandas as pd
+import yaml
 
 _DATA_MODULE = "hitlist.data.bulk_proteomics"
+
+
+def bulk_proteomics_path() -> Path:
+    """Path to the built ``bulk_proteomics.parquet`` in ``data_dir()``."""
+    from .downloads import data_dir
+
+    return data_dir() / "bulk_proteomics.parquet"
+
+
+def is_bulk_proteomics_built() -> bool:
+    """Check whether the bulk proteomics parquet has been built."""
+    return bulk_proteomics_path().exists()
 
 
 @lru_cache(maxsize=1)
 def _load_ccle() -> pd.DataFrame:
     path = files(_DATA_MODULE) / "ccle_nusinow_2020.csv.gz"
+    df = pd.read_csv(str(path), compression="gzip")
+    df["source"] = "CCLE_Nusinow_2020"
+    return df
+
+
+@lru_cache(maxsize=1)
+def _load_bj_protein() -> pd.DataFrame:
+    path = files(_DATA_MODULE) / "bekker_jensen_2017_protein_abundance.csv.gz"
     return pd.read_csv(str(path), compression="gzip")
 
 
@@ -42,38 +87,123 @@ def _load_bj() -> pd.DataFrame:
     return pd.read_csv(str(path), compression="gzip")
 
 
+@lru_cache(maxsize=1)
+def _load_sources_yaml() -> list[dict]:
+    path = files(_DATA_MODULE) / "sources.yaml"
+    data = yaml.safe_load(path.read_text())
+    return data.get("sources", [])
+
+
+def _load_parquet_or_none() -> pd.DataFrame | None:
+    """Return the built parquet if present, else None."""
+    p = bulk_proteomics_path()
+    if not p.exists():
+        return None
+    return pd.read_parquet(p)
+
+
+def _apply_cell_line_filter(df: pd.DataFrame, cell_line) -> pd.DataFrame:
+    if cell_line is None:
+        return df
+    if isinstance(cell_line, str):
+        cell_line = [cell_line]
+    wanted = {c.casefold() for c in cell_line}
+    return df[df["cell_line_name"].str.casefold().isin(wanted)]
+
+
+def _apply_gene_filter(df: pd.DataFrame, gene_name) -> pd.DataFrame:
+    if gene_name is None:
+        return df
+    if isinstance(gene_name, str):
+        gene_name = [gene_name]
+    return df[df["gene_symbol"].isin(list(gene_name))]
+
+
+def _apply_uniprot_filter(df: pd.DataFrame, uniprot_acc) -> pd.DataFrame:
+    if uniprot_acc is None:
+        return df
+    if isinstance(uniprot_acc, str):
+        uniprot_acc = [uniprot_acc]
+    return df[df["uniprot_acc"].isin(list(uniprot_acc))]
+
+
 def load_bulk_proteomics(
     cell_line: str | Iterable[str] | None = None,
     gene_name: str | Iterable[str] | None = None,
+    source: str | None = None,
 ) -> pd.DataFrame:
     """Protein-level bulk proteomics abundance (shotgun MS, NOT MHC ligands).
+
+    Union of CCLE and Bekker-Jensen protein-level abundance. The two
+    sources use different quantification schemes — CCLE is TMT log2-
+    normalized relative to the CCLE panel median; Bekker-Jensen is
+    label-free log2 sum-of-peptide-intensity. **Intensity values are
+    not directly comparable across sources.** Use ``abundance_percentile``
+    (rank within cell line) for cross-source comparisons, or filter to
+    a single source with ``source=``. See ``load_bulk_sources()`` for
+    full per-source metadata.
 
     Parameters
     ----------
     cell_line
         Filter to a single cell line (e.g. ``"MDA-MB-231"``) or iterable
-        of cell lines. Matched case-insensitively against the canonical
-        name column.
+        of cell lines. Matched case-insensitively.
     gene_name
-        Filter to one or more HGNC gene symbols (exact match, case-sensitive).
+        Filter to one or more HGNC gene symbols (exact match).
+    source
+        Restrict to one source (``"CCLE_Nusinow_2020"`` or
+        ``"Bekker-Jensen_2017"``). ``None`` returns the union.
 
     Returns
     -------
-    DataFrame with columns:
-        cell_line, gene_symbol, uniprot_acc, protein_id,
-        abundance_log2_normalized, source, reference.
+    DataFrame with columns: evidence_kind, granularity, cell_line_name,
+    gene_symbol, uniprot_acc, abundance_percentile (0-1 within cell line),
+    acquisition metadata (instrument, fragmentation, labeling, …), and
+    bulk-specific prep fields (digestion, fractionation, …). When the
+    parquet is built, columns match :func:`hitlist.export.generate_ms_samples_table`
+    for the acquisition fields so the same schema works across indexes.
     """
-    df = _load_ccle()
-    if cell_line is not None:
-        if isinstance(cell_line, str):
-            cell_line = [cell_line]
-        wanted = {c.casefold() for c in cell_line}
-        df = df[df["cell_line"].str.casefold().isin(wanted)]
-    if gene_name is not None:
-        if isinstance(gene_name, str):
-            gene_name = [gene_name]
-        df = df[df["gene_symbol"].isin(list(gene_name))]
+    parquet = _load_parquet_or_none()
+    if parquet is not None:
+        df = parquet[parquet["granularity"] == "protein"].copy()
+    else:
+        ccle = _load_ccle().copy()
+        ccle["abundance_percentile"] = ccle.groupby("cell_line")["abundance_log2_normalized"].rank(
+            pct=True
+        )
+        bj = _load_bj_protein().copy()
+        df = pd.concat([ccle, bj], ignore_index=True)
+        df = df.rename(columns={"cell_line": "cell_line_name"})
+
+    if source is not None:
+        df = df[df["source"] == source]
+    df = _apply_cell_line_filter(df, cell_line)
+    df = _apply_gene_filter(df, gene_name)
     return df.reset_index(drop=True)
+
+
+def load_bulk_sources() -> list[dict]:
+    """Per-source metadata for the bulk proteomics indices.
+
+    Returns a list of dicts with keys: ``source_id``, ``reference``,
+    ``pmid``, ``study_label``, ``species``, ``title``, ``granularity``,
+    ``digestion``, ``digestion_enzyme``, ``instrument``, ``fragmentation``,
+    ``acquisition_mode``, ``labeling``, ``fractionation``, ``n_fractions``,
+    ``quantification``, ``search_engine``, ``fdr``, ``cell_lines_covered``,
+    ``note``.
+
+    The acquisition fields (``instrument``, ``fragmentation``,
+    ``acquisition_mode``, ``labeling``, ``search_engine``, ``fdr``) use
+    the same names as the per-sample schema emitted by
+    :func:`hitlist.export.generate_ms_samples_table` for joint MS-bias
+    modeling across observations and bulk proteomics.
+
+    Use when building detectability models — the digest enzyme determines
+    which peptide bonds are cleavable (affects which theoretical peptides
+    could have been observed), and the instrument/fractionation determine
+    dynamic range and sensitivity limits.
+    """
+    return [dict(s) for s in _load_sources_yaml()]
 
 
 def load_bulk_peptides(
@@ -103,23 +233,19 @@ def load_bulk_peptides(
     Returns
     -------
     DataFrame with columns:
-        peptide, cell_line, uniprot_acc, gene_symbol, length,
-        start_position, end_position, source, reference.
+        peptide, cell_line_name, uniprot_acc, gene_symbol, length,
+        start_position, end_position, source, reference (plus acquisition
+        metadata when the parquet is built).
     """
-    df = _load_bj()
-    if cell_line is not None:
-        if isinstance(cell_line, str):
-            cell_line = [cell_line]
-        wanted = {c.casefold() for c in cell_line}
-        df = df[df["cell_line"].str.casefold().isin(wanted)]
-    if gene_name is not None:
-        if isinstance(gene_name, str):
-            gene_name = [gene_name]
-        df = df[df["gene_symbol"].isin(list(gene_name))]
-    if uniprot_acc is not None:
-        if isinstance(uniprot_acc, str):
-            uniprot_acc = [uniprot_acc]
-        df = df[df["uniprot_acc"].isin(list(uniprot_acc))]
+    parquet = _load_parquet_or_none()
+    if parquet is not None:
+        df = parquet[parquet["granularity"] == "peptide"].copy()
+    else:
+        df = _load_bj().copy().rename(columns={"cell_line": "cell_line_name"})
+
+    df = _apply_cell_line_filter(df, cell_line)
+    df = _apply_gene_filter(df, gene_name)
+    df = _apply_uniprot_filter(df, uniprot_acc)
     return df.reset_index(drop=True)
 
 
@@ -132,7 +258,9 @@ def available_cell_lines() -> list[str]:
 
 def available_protein_cell_lines() -> list[str]:
     """Cell lines covered by the protein-level index (load_bulk_proteomics)."""
-    return sorted(_load_ccle()["cell_line"].unique().tolist())
+    ccle = set(_load_ccle()["cell_line"].unique())
+    bj = set(_load_bj_protein()["cell_line"].unique())
+    return sorted(ccle | bj)
 
 
 def available_peptide_cell_lines() -> list[str]:

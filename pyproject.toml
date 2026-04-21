@@ -60,6 +60,7 @@ hitlist = [
     "data/supplementary/*.yaml",
     "data/supplementary/*.csv",
     "data/bulk_proteomics/*.csv.gz",
+    "data/bulk_proteomics/*.yaml",
 ]
 
 [tool.ruff]

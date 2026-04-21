@@ -23,12 +23,13 @@ def test_source_fingerprints_includes_manifest():
 
 
 def test_cache_valid_when_sources_unchanged(tmp_path, monkeypatch):
-    """Cache validity requires both observations.parquet and binding.parquet.
+    """Cache validity requires all three sibling parquets.
 
-    Since 1.7.0 the build writes two sibling parquets; if either is
-    missing the cache is invalid so older installs rebuild once on
-    upgrade.  ``with_flanking`` is retained on the signature for
-    backward compat but no longer changes the result.
+    Since 1.11.2 the build writes observations.parquet, binding.parquet,
+    and bulk_proteomics.parquet; if any is missing the cache is invalid
+    so older installs rebuild once on upgrade. ``with_flanking`` is
+    retained on the signature for backward compat but no longer changes
+    the result.
     """
     from hitlist import builder, downloads
 
@@ -36,6 +37,7 @@ def test_cache_valid_when_sources_unchanged(tmp_path, monkeypatch):
 
     (tmp_path / "observations.parquet").write_bytes(b"fake parquet")
     (tmp_path / "binding.parquet").write_bytes(b"fake parquet")
+    (tmp_path / "bulk_proteomics.parquet").write_bytes(b"fake parquet")
     _meta_path().write_text(
         json.dumps(
             {
@@ -45,6 +47,7 @@ def test_cache_valid_when_sources_unchanged(tmp_path, monkeypatch):
                 "n_alleles": 10,
                 "n_species": 1,
                 "n_binding_rows": 20,
+                "n_bulk_rows": 10,
                 "with_flanking": False,
             }
         )
@@ -95,8 +98,10 @@ def test_cache_invalid_when_parquet_fingerprint_changes(tmp_path, monkeypatch):
 
     obs_p = tmp_path / "observations.parquet"
     bind_p = tmp_path / "binding.parquet"
+    bulk_p = tmp_path / "bulk_proteomics.parquet"
     obs_p.write_bytes(b"original observations")
     bind_p.write_bytes(b"original binding")
+    bulk_p.write_bytes(b"original bulk")
 
     monkeypatch.setattr(builder, "_source_fingerprints", lambda paths: {})
     _meta_path().write_text(
