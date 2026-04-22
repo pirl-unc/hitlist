@@ -790,7 +790,20 @@ def _export_bulk(args: argparse.Namespace):
     return pd.concat(frames, ignore_index=True, sort=False) if frames else pd.DataFrame()
 
 
+def _export_progress(msg: str) -> None:
+    """Print a single-line progress message to stderr (not stdout).
+
+    stderr keeps the CSV output pipe-clean. Only emits when stderr is a
+    TTY (interactive terminal) so scripts piping both stdout and stderr
+    don't get spammed. See pirl-unc/hitlist#119.
+    """
+    if sys.stderr.isatty():
+        print(f"[hitlist] {msg}", file=sys.stderr, flush=True)
+
+
 def _export(args: argparse.Namespace) -> None:
+    import time as _time
+
     from .export import (
         collect_alleles_from_data,
         count_peptides_by_study,
@@ -801,17 +814,26 @@ def _export(args: argparse.Namespace) -> None:
         validate_mhc_alleles,
     )
 
-    if args.export_command == "samples":
+    cmd = args.export_command
+    t0 = _time.perf_counter()
+
+    if cmd == "samples":
+        _export_progress("Building ms_samples table from pmid_overrides.yaml ...")
         df = generate_ms_samples_table(mhc_class=args.mhc_class)
-    elif args.export_command == "summary":
+    elif cmd == "summary":
+        _export_progress("Loading observations.parquet for species summary ...")
         df = generate_species_summary(mhc_class=args.mhc_class)
-    elif args.export_command == "alleles":
+    elif cmd == "alleles":
+        _export_progress("Validating allele strings via mhcgnomes ...")
         df = validate_mhc_alleles()
-    elif args.export_command == "data-alleles":
+    elif cmd == "data-alleles":
+        _export_progress("Collecting alleles from local IEDB/CEDAR data ...")
         df = collect_alleles_from_data(source=getattr(args, "source", "merged"))
-    elif args.export_command == "counts":
+    elif cmd == "counts":
+        _export_progress("Counting peptides per study from local IEDB/CEDAR ...")
         df = count_peptides_by_study(source=args.source)
-    elif args.export_command == "observations":
+    elif cmd == "observations":
+        _export_progress("Loading observations.parquet + joining sample metadata ...")
         try:
             df = generate_observations_table(
                 mhc_class=args.mhc_class,
@@ -829,7 +851,8 @@ def _export(args: argparse.Namespace) -> None:
         except ValueError as e:
             print(f"Error: {e}", file=sys.stderr)
             sys.exit(1)
-    elif args.export_command == "binding":
+    elif cmd == "binding":
+        _export_progress("Loading binding.parquet ...")
         try:
             df = generate_binding_table(
                 mhc_class=args.mhc_class,
@@ -845,7 +868,8 @@ def _export(args: argparse.Namespace) -> None:
         except ValueError as e:
             print(f"Error: {e}", file=sys.stderr)
             sys.exit(1)
-    elif args.export_command == "bulk":
+    elif cmd == "bulk":
+        _export_progress("Loading bulk_proteomics.parquet ...")
         df = _export_bulk(args)
     else:
         print(
@@ -854,7 +878,11 @@ def _export(args: argparse.Namespace) -> None:
         )
         sys.exit(1)
 
+    elapsed = _time.perf_counter() - t0
+    _export_progress(f"Got {len(df):,} rows in {elapsed:.1f}s")
+
     if args.output:
+        _export_progress(f"Writing to {args.output} ...")
         if args.output.endswith(".parquet"):
             df.to_parquet(args.output, index=False)
         else:
