@@ -564,3 +564,113 @@ def test_load_bulk_proteomics_percentile_preserves_cell_line_filter():
     assert set(tryp_top["cell_line_name"]) == {"A549"}
     assert set(tryp_top["source"]) == {"Bekker-Jensen_2017"}
     assert (tryp_top["abundance_percentile"] >= 0.95).all()
+
+
+# ---------------------------------------------------------------------------
+# `hitlist export bulk` CLI subcommand (#106).
+# ---------------------------------------------------------------------------
+
+
+def test_export_bulk_cli_peptide_granularity():
+    """_export_bulk returns a peptide frame filtered by the CLI kwargs."""
+    import argparse
+
+    from hitlist.cli import _export_bulk
+
+    args = argparse.Namespace(
+        granularity="peptide",
+        cell_line=["HeLa"],
+        gene_name=["TP53"],
+        uniprot_acc=None,
+        source=None,
+        digestion_enzyme=["Trypsin/P (cleaves K/R except before P)"],
+        n_fractions=[46],
+        enrichment="none",
+        fractionation_ph=None,
+        length_min=None,
+        length_max=None,
+        abundance_percentile_min=None,
+        abundance_percentile_max=None,
+    )
+    df = _export_bulk(args)
+    assert len(df) > 0
+    assert set(df["gene_symbol"]) == {"TP53"}
+    assert set(df["cell_line_name"]) == {"HeLa"}
+    assert set(df["granularity"]) == {"peptide"}
+
+
+def test_export_bulk_cli_enrichment_both():
+    """--enrichment both returns TiO2 + baseline rows."""
+    import argparse
+
+    from hitlist.cli import _export_bulk
+
+    args = argparse.Namespace(
+        granularity="peptide",
+        cell_line=["HeLa"],
+        gene_name=None,
+        uniprot_acc=None,
+        source=None,
+        digestion_enzyme=None,
+        n_fractions=None,
+        enrichment="both",
+        fractionation_ph=None,
+        length_min=None,
+        length_max=None,
+        abundance_percentile_min=None,
+        abundance_percentile_max=None,
+    )
+    df = _export_bulk(args)
+    assert {"none", "TiO2"}.issubset(set(df["enrichment"].unique()))
+
+
+def test_export_bulk_cli_both_granularity_tagged():
+    """--granularity both yields peptide + protein rows tagged by column."""
+    import argparse
+
+    from hitlist.cli import _export_bulk
+
+    args = argparse.Namespace(
+        granularity="both",
+        cell_line=["HeLa"],
+        gene_name=["TP53"],
+        uniprot_acc=None,
+        source=None,
+        digestion_enzyme=None,
+        n_fractions=None,
+        enrichment="none",
+        fractionation_ph=None,
+        length_min=None,
+        length_max=None,
+        abundance_percentile_min=None,
+        abundance_percentile_max=None,
+    )
+    df = _export_bulk(args)
+    gran = set(df["granularity"])
+    assert "peptide" in gran
+    assert "protein" in gran
+
+
+def test_export_bulk_cli_bounds():
+    """--length-min/max and --abundance-percentile-min are plumbed through."""
+    import argparse
+
+    from hitlist.cli import _export_bulk
+
+    args = argparse.Namespace(
+        granularity="peptide",
+        cell_line=None,
+        gene_name=None,
+        uniprot_acc=None,
+        source=None,
+        digestion_enzyme=["Trypsin/P (cleaves K/R except before P)"],
+        n_fractions=[46],
+        enrichment="none",
+        fractionation_ph=None,
+        length_min=8,
+        length_max=11,
+        abundance_percentile_min=None,
+        abundance_percentile_max=None,
+    )
+    df = _export_bulk(args)
+    assert df["length"].between(8, 11).all()

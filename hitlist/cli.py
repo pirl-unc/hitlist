@@ -571,6 +571,83 @@ def main() -> None:
     )
     p_bind.add_argument("--output", "-o", help="Write to file (.csv or .parquet)")
 
+    p_bulk = export_sub.add_parser(
+        "bulk",
+        help=(
+            "Bulk (non-MHC) proteomics index: shotgun MS peptides + protein "
+            "abundances from CCLE and Bekker-Jensen 2017.  NOT MHC-ligand "
+            "data — see 'observations' / 'binding' for those."
+        ),
+    )
+    p_bulk.add_argument(
+        "--granularity",
+        choices=["peptide", "protein", "both"],
+        default="both",
+        help="Rows to export (default: both).",
+    )
+    p_bulk.add_argument("--cell-line", action="append", help="Filter to one or more cell lines.")
+    p_bulk.add_argument(
+        "--gene-name",
+        action="append",
+        help="Filter to one or more HGNC gene symbols (exact match).",
+    )
+    p_bulk.add_argument(
+        "--uniprot-acc",
+        action="append",
+        help="Filter peptide rows to one or more UniProt accessions (exact match).",
+    )
+    p_bulk.add_argument(
+        "--source",
+        choices=["CCLE_Nusinow_2020", "Bekker-Jensen_2017"],
+        help="Restrict to one bulk proteomics source.",
+    )
+    p_bulk.add_argument(
+        "--digestion-enzyme",
+        action="append",
+        help=(
+            "Filter to one or more enzymes: 'Trypsin/P (cleaves K/R except before P)', "
+            "'Chymotrypsin', 'GluC', 'LysC'."
+        ),
+    )
+    p_bulk.add_argument(
+        "--n-fractions",
+        action="append",
+        type=int,
+        help="Filter to one or more fractionation depths (12/14/39/46/50/70).",
+    )
+    p_bulk.add_argument(
+        "--enrichment",
+        choices=["none", "TiO2", "both"],
+        default="none",
+        help=(
+            "Enrichment filter: 'none' (baseline, default), 'TiO2' (phospho "
+            "only), or 'both' (include both populations)."
+        ),
+    )
+    p_bulk.add_argument(
+        "--fractionation-ph",
+        action="append",
+        type=float,
+        help="Filter by high-pH SPE buffer pH (8.0 or 10.0).",
+    )
+    p_bulk.add_argument(
+        "--length-min", type=int, help="Minimum peptide length (inclusive; peptide rows only)."
+    )
+    p_bulk.add_argument(
+        "--length-max", type=int, help="Maximum peptide length (inclusive; peptide rows only)."
+    )
+    p_bulk.add_argument(
+        "--abundance-percentile-min",
+        type=float,
+        help="Minimum abundance percentile (0.0-1.0; protein rows only).",
+    )
+    p_bulk.add_argument(
+        "--abundance-percentile-max",
+        type=float,
+        help="Maximum abundance percentile (0.0-1.0; protein rows only).",
+    )
+    p_bulk.add_argument("--output", "-o", help="Write to file (.csv or .parquet)")
+
     p_counts = export_sub.add_parser(
         "counts", help="Count peptides per study from local IEDB/CEDAR"
     )
@@ -657,6 +734,62 @@ def _reassign(args: argparse.Namespace) -> None:
         print(df.to_csv(index=False), end="")
 
 
+def _export_bulk(args: argparse.Namespace):
+    """Run the ``hitlist export bulk`` subcommand.
+
+    Wires argparse flags to the :mod:`hitlist.bulk_proteomics` loader kwargs.
+    Returns the concatenated peptide + protein frame (or just one, per
+    ``--granularity``) with all requested filters applied.
+    """
+    import pandas as pd
+
+    from .bulk_proteomics import load_bulk_peptides, load_bulk_proteomics
+
+    # Resolve --enrichment: CLI accepts 'none' / 'TiO2' / 'both'. 'both' maps
+    # to the loader's None sentinel (both populations).
+    enrichment = getattr(args, "enrichment", "none")
+    enrichment_kwarg = None if enrichment == "both" else enrichment
+
+    common_kwargs: dict = {
+        "cell_line": getattr(args, "cell_line", None) or None,
+        "gene_name": getattr(args, "gene_name", None) or None,
+        "digestion_enzyme": getattr(args, "digestion_enzyme", None) or None,
+        "n_fractions_in_run": getattr(args, "n_fractions", None) or None,
+        "enrichment": enrichment_kwarg,
+        "fractionation_ph": getattr(args, "fractionation_ph", None) or None,
+    }
+
+    granularity = getattr(args, "granularity", "both")
+    frames: list[pd.DataFrame] = []
+
+    if granularity in ("peptide", "both"):
+        pep = load_bulk_peptides(
+            uniprot_acc=getattr(args, "uniprot_acc", None) or None,
+            length_min=getattr(args, "length_min", None),
+            length_max=getattr(args, "length_max", None),
+            **common_kwargs,
+        )
+        # Tag granularity for the combined-output case so callers can
+        # tell peptide vs protein rows apart without schema introspection.
+        if "granularity" not in pep.columns:
+            pep = pep.assign(granularity="peptide")
+        frames.append(pep)
+
+    if granularity in ("protein", "both"):
+        prot = load_bulk_proteomics(
+            source=getattr(args, "source", None),
+            abundance_percentile_min=getattr(args, "abundance_percentile_min", None),
+            abundance_percentile_max=getattr(args, "abundance_percentile_max", None),
+            **common_kwargs,
+        )
+        if "granularity" not in prot.columns:
+            prot = prot.assign(granularity="protein")
+        frames.append(prot)
+
+    # Concat preserves both sets of columns (NaN-fill where unique).
+    return pd.concat(frames, ignore_index=True, sort=False) if frames else pd.DataFrame()
+
+
 def _export(args: argparse.Namespace) -> None:
     from .export import (
         collect_alleles_from_data,
@@ -712,10 +845,12 @@ def _export(args: argparse.Namespace) -> None:
         except ValueError as e:
             print(f"Error: {e}", file=sys.stderr)
             sys.exit(1)
+    elif args.export_command == "bulk":
+        df = _export_bulk(args)
     else:
         print(
             "Usage: hitlist export "
-            "{samples,summary,alleles,data-alleles,counts,observations,binding}"
+            "{samples,summary,alleles,data-alleles,counts,observations,binding,bulk}"
         )
         sys.exit(1)
 
