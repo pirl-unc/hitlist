@@ -32,6 +32,11 @@ sources:
     labeling: "TMT 10-plex"
     fractionation: "basic reverse-phase chromatography (12 fractions)"
     n_fractions: 12
+    # High-pH reverse-phase fractionation at pH 10 (CCLE's published
+    # protocol: 25 mM ammonium formate, pH 10). "Basic" in the
+    # ``fractionation`` string above = alkaline = high pH. Stamped onto
+    # every CCLE row via the source-level default at build time.
+    fractionation_ph: 10.0
     quantification: "TMT 10-plex (log2-normalized, relative to CCLE panel median)"
     search_engine: "COMET + Mascot"
     fdr: "1%"
@@ -64,6 +69,14 @@ sources:
     labeling: "label-free"
     fractionation: "high-pH reverse-phase SPE (14 / 39 / 46 / 70 fractions; dominant arm is 46)"
     n_fractions: 46
+    # pH 10 is the default across all Bekker-Jensen high-pH SPE runs in
+    # this deposit EXCEPT the explicit `Tryp-Phos-pH8` TiO2 arm, which is
+    # stamped pH 8.0 at the row level. The ``Tryp-Phos-pH10`` arm is the
+    # only other row where the pH matches the default but is still worth
+    # calling out explicitly because it's the phospho pH-comparison
+    # partner of pH8. See sources.yaml::per_row_dimensions.fractionation_ph
+    # and scripts/ingest_bekker_jensen_2017.py::_parse_experiment.
+    fractionation_ph: 10.0
     quantification: "label-free MaxQuant LFQ; peptide-level intensity + derived protein-level sum"
     search_engine: "MaxQuant 1.5.x (Andromeda)"
     fdr: "1% peptide and protein"
@@ -85,8 +98,10 @@ sources:
       - digestion_enzyme  # canonical enzyme string (same as above)
       - n_fractions_in_run  # integer; 12 / 14 / 39 / 46 / 50 / 70 in this deposit
       - enrichment  # "none" or "TiO2"; TiO2 = phosphopeptide enrichment
+      - fractionation_ph  # float; high-pH SPE buffer pH — 10.0 default, 8.0 for Tryp-Phos-pH8 (v1.14.1+, #98)
       - modifications  # peptide-level mod set: Phospho (STY) / Oxidation (M) / Deamidation (NQ) or "Unmodified"
     n_fractions_observed: [12, 14, 39, 46, 50, 70]  # authoritative set from peptides.txt header
+    fractionation_ph_observed: [8.0, 10.0]  # pH 8.0 only on Tryp-Phos-pH8; pH 10.0 everywhere else
     enrichments_observed: ["none", "TiO2"]
     ancillary_digests:
       # The paper also ran HeLa with non-tryptic enzymes for comparison.

@@ -94,6 +94,20 @@ def _load_sources_yaml() -> list[dict]:
     return data.get("sources", [])
 
 
+def _source_defaults(source_id: str) -> dict:
+    """Source-level metadata defaults for a given source_id.
+
+    Used by the CSV-fallback path in :func:`load_bulk_proteomics` when
+    ``hitlist data build`` hasn't been run and the CSVs don't carry all
+    the axes the parquet would have. Mirrors the stamping the builder
+    does in :func:`hitlist.builder.build_bulk_proteomics`.
+    """
+    for s in _load_sources_yaml():
+        if s.get("source_id") == source_id:
+            return dict(s)
+    return {}
+
+
 def _load_parquet_or_none() -> pd.DataFrame | None:
     """Return the built parquet if present, else None."""
     p = bulk_proteomics_path()
@@ -143,6 +157,16 @@ def _apply_fractions_filter(df: pd.DataFrame, n_fractions_in_run) -> pd.DataFram
     return df[df["n_fractions_in_run"].isin(list(n_fractions_in_run))]
 
 
+def _apply_ph_filter(df: pd.DataFrame, fractionation_ph) -> pd.DataFrame:
+    if fractionation_ph is None or "fractionation_ph" not in df.columns:
+        return df
+    if isinstance(fractionation_ph, (int, float)):
+        wanted = [float(fractionation_ph)]
+    else:
+        wanted = [float(v) for v in fractionation_ph]
+    return df[df["fractionation_ph"].isin(wanted)]
+
+
 # ``enrichment`` filter is slightly special: we accept a sentinel
 # "__default__" string so the loader defaults can pass through "match
 # only the non-enriched rows" semantics even when the caller explicitly
@@ -163,6 +187,7 @@ def load_bulk_proteomics(
     digestion_enzyme: str | Iterable[str] | None = None,
     n_fractions_in_run: int | Iterable[int] | None = None,
     enrichment: str | None = _ENRICHMENT_DEFAULT,
+    fractionation_ph: float | Iterable[float] | None = None,
 ) -> pd.DataFrame:
     """Protein-level bulk proteomics abundance (shotgun MS, NOT MHC ligands).
 
@@ -202,6 +227,13 @@ def load_bulk_proteomics(
         queries do not mix in phospho-biased TiO2 rows; callers opt
         into TiO2 explicitly. CCLE is not phospho-enriched so the
         filter is a no-op there.
+    fractionation_ph
+        Filter by the high-pH reverse-phase SPE fractionation buffer
+        pH: ``10.0`` is the default everywhere in the deposit except
+        the explicit Bekker-Jensen ``Tryp-Phos-pH8`` TiO2 arm, which is
+        stamped ``8.0``. Most queries should leave this unset (default
+        ``None`` = all pH values included). Pass a single float or an
+        iterable of floats to restrict.
 
     Returns
     -------
@@ -228,6 +260,14 @@ def load_bulk_proteomics(
         ccle["abundance_percentile"] = ccle.groupby("cell_line")["abundance_log2_normalized"].rank(
             pct=True
         )
+        # CCLE CSV doesn't carry the Fig 1b row-level axes — stamp
+        # fractionation_ph from the source-level default in sources.yaml
+        # so the column is populated even on the CSV-fallback path
+        # (no ``hitlist data build`` required). Mirror the builder's
+        # source-level stamping.
+        ccle_src = _source_defaults("CCLE_Nusinow_2020")
+        if "fractionation_ph" not in ccle.columns:
+            ccle["fractionation_ph"] = ccle_src.get("fractionation_ph")
         bj = _load_bj_protein().copy()
         df = pd.concat([ccle, bj], ignore_index=True)
         df = df.rename(columns={"cell_line": "cell_line_name"})
@@ -238,6 +278,7 @@ def load_bulk_proteomics(
     df = _apply_gene_filter(df, gene_name)
     df = _apply_enzyme_filter(df, digestion_enzyme)
     df = _apply_fractions_filter(df, n_fractions_in_run)
+    df = _apply_ph_filter(df, fractionation_ph)
     # For CCLE rows, the `enrichment` column will not be set (or will
     # be empty/NA) — we only apply the enrichment filter to rows that
     # have a populated value, so CCLE passes through untouched.
@@ -280,6 +321,7 @@ def load_bulk_peptides(
     digestion_enzyme: str | Iterable[str] | None = None,
     n_fractions_in_run: int | Iterable[int] | None = None,
     enrichment: str | None = _ENRICHMENT_DEFAULT,
+    fractionation_ph: float | Iterable[float] | None = None,
 ) -> pd.DataFrame:
     """Peptide-level bulk proteomics detections (shotgun MS, NOT MHC ligands).
 
@@ -320,13 +362,18 @@ def load_bulk_peptides(
     enrichment
         ``"none"`` (baseline, the **default**), ``"TiO2"`` (phospho
         enrichment), or ``None`` to include both populations.
+    fractionation_ph
+        Filter by high-pH SPE buffer pH. Every arm in the deposit is
+        at pH 10 except the explicit ``Tryp-Phos-pH8`` TiO2 arm, which
+        is stamped ``8.0``. Pass ``8.0`` or ``10.0`` (float) or an
+        iterable to restrict; ``None`` (default) returns all pH values.
 
     Returns
     -------
     DataFrame with columns:
         peptide, cell_line_name, uniprot_acc, gene_symbol, length,
         start_position, end_position, digestion_enzyme,
-        n_fractions_in_run, enrichment, modifications,
+        n_fractions_in_run, enrichment, fractionation_ph, modifications,
         n_replicates_detected, source, reference (plus acquisition
         metadata when the parquet is built).
     """
@@ -345,6 +392,7 @@ def load_bulk_peptides(
     df = _apply_enzyme_filter(df, digestion_enzyme)
     df = _apply_fractions_filter(df, n_fractions_in_run)
     df = _apply_enrichment_filter(df, enrichment)
+    df = _apply_ph_filter(df, fractionation_ph)
     return df.reset_index(drop=True)
 
 

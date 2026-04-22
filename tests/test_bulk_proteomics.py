@@ -37,10 +37,12 @@ _BULK_PREP_COLS = {
 
 # Per-row Fig 1b design-matrix axes added in v1.11.3 for Bekker-Jensen
 # (CCLE rows carry sensible defaults: enrichment="none", n_fractions_in_run=NA).
+# v1.14.1 (#98) added fractionation_ph.
 _BJ_PER_ROW_AXES = {
     "digestion_enzyme",
     "n_fractions_in_run",
     "enrichment",
+    "fractionation_ph",
     "modifications",
 }
 
@@ -250,6 +252,58 @@ def test_load_bulk_peptides_filter_by_fractions():
     # 70-frac arm is HeLa tryptic only
     assert set(df70["cell_line_name"]) == {"HeLa"}
     assert set(df70["digestion_enzyme"]).issubset({"Trypsin/P (cleaves K/R except before P)"})
+
+
+def test_load_bulk_peptides_fractionation_ph_axis():
+    """fractionation_ph column populated; pH 10 default, pH 8 only on Tryp-Phos-pH8."""
+    # Non-enriched rows are all pH 10.
+    df = load_bulk_peptides()
+    ph_values = set(df["fractionation_ph"].dropna().unique())
+    assert ph_values == {10.0}, f"non-enriched rows should all be pH 10, got {ph_values}"
+
+    # TiO2 arm splits pH 8 vs pH 10.
+    tio2 = load_bulk_peptides(enrichment="TiO2")
+    tio2_ph = set(tio2["fractionation_ph"].dropna().unique())
+    assert tio2_ph == {8.0, 10.0}, f"TiO2 arm should have both pH 8 and pH 10 arms, got {tio2_ph}"
+
+    # pH=8.0 filter returns only the Tryp-Phos-pH8 arm.
+    ph8 = load_bulk_peptides(enrichment="TiO2", fractionation_ph=8.0)
+    assert len(ph8) > 10_000
+    assert set(ph8["fractionation_ph"]) == {8.0}
+    # That arm is HeLa tryptic 12-frac TiO2 per the Fig 1b design.
+    assert set(ph8["cell_line_name"]) == {"HeLa"}
+    assert set(ph8["enrichment"]) == {"TiO2"}
+    assert set(ph8["n_fractions_in_run"]) == {12}
+    # Overwhelmingly phospho-modified since it's a phospho enrichment.
+    assert ph8["modifications"].str.contains("Phospho", na=False).mean() > 0.6
+
+
+def test_load_bulk_peptides_fractionation_ph_unpooled_from_v1_14_0():
+    """Tryp-Phos-pH8 and Tryp-Phos-pH10 are now distinct arms, not pooled.
+
+    Before v1.14.1 they were pooled into one (TiO2, 12-frac) arm with
+    pseudo-replicate labels. Now they're keyed on the ``fractionation_ph``
+    axis and sit as separate rows for the same peptide if it was
+    detected in both pH conditions.
+    """
+    tio2_12 = load_bulk_peptides(enrichment="TiO2", n_fractions_in_run=12)
+    # Must show both pH values.
+    assert set(tio2_12["fractionation_ph"].dropna().unique()) == {8.0, 10.0}
+    # A peptide that shows up in both pH arms will appear twice (once
+    # per pH). Assert at least one such peptide exists.
+    dup_by_pH = tio2_12.groupby("peptide")["fractionation_ph"].nunique()
+    assert (dup_by_pH == 2).sum() > 100, (
+        "Expect many peptides detected in BOTH Tryp-Phos-pH8 and pH10, "
+        "but fewer than 100 peptides have rows at both pH values. "
+        "This would indicate the unpooling broke."
+    )
+
+
+def test_load_bulk_proteomics_ccle_has_ph_10():
+    """CCLE rows get ``fractionation_ph=10.0`` from the source-level default."""
+    ccle = load_bulk_proteomics(source="CCLE_Nusinow_2020")
+    assert len(ccle) > 5_000
+    assert set(ccle["fractionation_ph"].dropna().unique()) == {10.0}
 
 
 def test_load_bulk_peptides_tryptic_counts_preserved():

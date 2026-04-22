@@ -442,6 +442,7 @@ def build_bulk_proteomics(verbose: bool = False) -> pd.DataFrame:
         s = sources_yaml.get(source_id, {})
         pmid = s.get("pmid")
         instrument = s.get("instrument", "") or ""
+        ph = s.get("fractionation_ph")
         return {
             "pmid": int(pmid) if pmid else pd.NA,
             "reference": s.get("reference", "") or "",
@@ -458,6 +459,11 @@ def build_bulk_proteomics(verbose: bool = False) -> pd.DataFrame:
             "digestion_enzyme": s.get("digestion_enzyme", "") or "",
             "fractionation": s.get("fractionation", "") or "",
             "n_fractions": int(s["n_fractions"]) if s.get("n_fractions") else pd.NA,
+            # Default high-pH RPLC buffer pH; source-level default is used
+            # for rows that don't carry a per-row value (CCLE; BJ rows at
+            # the implicit pH 10). Explicit per-row values (e.g. BJ
+            # Tryp-Phos-pH8 = 8.0) override via ``_stamp_bj_per_row``.
+            "fractionation_ph": float(ph) if ph is not None else pd.NA,
             "quantification": s.get("quantification", "") or "",
         }
 
@@ -468,10 +474,11 @@ def build_bulk_proteomics(verbose: bool = False) -> pd.DataFrame:
     def _stamp_bj_per_row(df: pd.DataFrame, meta: dict) -> pd.DataFrame:
         """Merge source-level meta into a Bekker-Jensen frame.
 
-        Four columns are authoritative at the ROW level (set by the
-        ingest script from the MaxQuant experiment name): ``digestion_enzyme``,
-        ``n_fractions_in_run``, ``enrichment``, ``modifications``. When
-        any of them is present on the source CSV we:
+        Five columns are authoritative at the ROW level (set by the
+        ingest script from the MaxQuant experiment name):
+        ``digestion_enzyme``, ``n_fractions_in_run``, ``enrichment``,
+        ``fractionation_ph``, ``modifications``. When any of them is
+        present on the source CSV we:
           - skip overwriting it with the source-level default
           - for ``digestion``: derive a coarse 'tryptic' / 'non-tryptic'
             label from the per-row enzyme so ``df.query("digestion == 'tryptic'")``
@@ -483,8 +490,13 @@ def build_bulk_proteomics(verbose: bool = False) -> pd.DataFrame:
         """
         has_per_row_enzyme = "digestion_enzyme" in df.columns
         has_per_row_fracs = "n_fractions_in_run" in df.columns
+        has_per_row_ph = "fractionation_ph" in df.columns
         for k, v in meta.items():
             if k == "digestion_enzyme" and has_per_row_enzyme:
+                continue
+            if k == "fractionation_ph" and has_per_row_ph:
+                # Per-row pH is authoritative (Tryp-Phos-pH8 = 8.0,
+                # everything else 10.0). Don't overwrite.
                 continue
             if k == "digestion" and has_per_row_enzyme:
                 df["digestion"] = df["digestion_enzyme"].apply(
@@ -578,6 +590,10 @@ def build_bulk_proteomics(verbose: bool = False) -> pd.DataFrame:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce").astype("Int64")
 
+    # fractionation_ph is continuous (float) so it gets its own cast.
+    if "fractionation_ph" in df.columns:
+        df["fractionation_ph"] = pd.to_numeric(df["fractionation_ph"], errors="coerce")
+
     # For rows that don't carry per-row Fig 1b axes (CCLE protein rows),
     # fill the columns with sensible defaults so parquet has a stable
     # schema rather than mixed-NA dtypes. CCLE is non-enriched baseline
@@ -635,6 +651,7 @@ def build_bulk_proteomics(verbose: bool = False) -> pd.DataFrame:
         "fractionation",
         "n_fractions",
         "n_fractions_in_run",
+        "fractionation_ph",
         "enrichment",
         "modifications",
         "quantification",
