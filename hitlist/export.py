@@ -525,53 +525,72 @@ def _is_class_only_sentinel(mhc_str: str) -> bool:
 
 
 def generate_species_summary(mhc_class: str | None = None) -> pd.DataFrame:
-    """Summarize sample counts by species and MHC class.
+    """Summarize MS-elution data coverage by species and MHC class.
+
+    Reads directly from ``observations.parquet`` — NOT from
+    ``pmid_overrides.yaml``. Every species present in the built index
+    appears here, including those with zero curated metadata entries.
+
+    Breaking change in v1.15.0 (#117): earlier versions sourced counts
+    from ``pmid_overrides.yaml``'s curated ``ms_samples`` entries, which
+    undercounted by orders of magnitude on non-human species (mouse had
+    2 curated PMIDs vs 388 real; most non-human species were missing
+    entirely). The old columns ``n_studies`` / ``n_sample_types`` /
+    ``n_samples`` are replaced by ``n_pmids`` / ``n_peptides`` /
+    ``n_observations`` sourced from the parquet.
 
     Parameters
     ----------
     mhc_class
-        Optional filter (``"I"`` or ``"II"``).
+        Optional filter (``"I"``, ``"II"``, or ``"non classical"``).
+        Omit for all classes.
 
     Returns
     -------
     pd.DataFrame
-        Columns: species, mhc_class, n_studies, n_sample_types,
-        n_samples.
+        One row per (species, mhc_class). Columns:
 
-    For actual peptide counts, use ``count_peptides_by_study()``
-    which scans the local IEDB/CEDAR data.
+        - ``species``: normalized MHC species from the allele
+          (``mhc_species`` column).
+        - ``mhc_class``: ``"I"`` / ``"II"`` / ``"non classical"``.
+        - ``n_pmids``: unique PMIDs with rows in this (species, class)
+          cell.
+        - ``n_peptides``: unique peptide sequences.
+        - ``n_observations``: total row count (one per assay IRI).
     """
-    df = generate_ms_samples_table(mhc_class=mhc_class)
-    if df.empty:
+    from .observations import is_built, load_observations
+
+    if not is_built():
         return pd.DataFrame(
-            columns=["species", "mhc_class", "n_studies", "n_sample_types", "n_samples"]
+            columns=["species", "mhc_class", "n_pmids", "n_peptides", "n_observations"]
         )
 
-    # Expand I+II into separate rows for grouping
-    expanded_rows: list[dict] = []
-    for _, row in df.iterrows():
-        cls = row["mhc_class"]
-        classes = []
-        parts = {p.strip() for p in cls.split("+")} if cls else {"unknown"}
-        classes = sorted(parts)
+    obs = load_observations(
+        mhc_class=mhc_class,
+        columns=["peptide", "mhc_species", "mhc_class", "pmid"],
+    )
+    if obs.empty:
+        return pd.DataFrame(
+            columns=["species", "mhc_class", "n_pmids", "n_peptides", "n_observations"]
+        )
 
-        for c in classes:
-            expanded_rows.append({**row.to_dict(), "mhc_class": c})
-
-    expanded = pd.DataFrame(expanded_rows)
-    if mhc_class:
-        expanded = expanded[expanded["mhc_class"] == mhc_class]
+    # Drop rows with an empty mhc_species — these are rows where mhcgnomes
+    # couldn't resolve the MHC restriction to a species. They'd clutter
+    # the summary with an empty-string row. Count is usually small.
+    obs = obs[obs["mhc_species"].notna() & (obs["mhc_species"] != "")]
 
     summary = (
-        expanded.groupby(["species", "mhc_class"])
+        obs.groupby(["mhc_species", "mhc_class"], dropna=False)
         .agg(
-            n_studies=("pmid", "nunique"),
-            n_sample_types=("sample_label", "count"),
-            n_samples=("n_samples", lambda x: x.dropna().sum()),
+            n_pmids=("pmid", "nunique"),
+            n_peptides=("peptide", "nunique"),
+            n_observations=("peptide", "size"),
         )
         .reset_index()
+        .rename(columns={"mhc_species": "species"})
+        .sort_values(["species", "mhc_class"])
+        .reset_index(drop=True)
     )
-    summary["n_samples"] = summary["n_samples"].astype(int)
     return summary
 
 
