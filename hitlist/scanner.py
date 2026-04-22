@@ -276,6 +276,7 @@ def scan(
         classify_allele_resolution,
         classify_mhc_species,
         is_binding_assay,
+        normalize_allele,
         normalize_species,
     )
 
@@ -303,7 +304,14 @@ def scan(
             src_org = _safe_col(row, c["source_organism"])
             species = _safe_col(row, c["species"])
             host = _safe_col(row, c["host"])
-            mhc_res = _safe_col(row, c["mhc_restriction"])
+            mhc_res_raw = _safe_col(row, c["mhc_restriction"])
+            # Canonicalize the allele string at ingest so downstream exact-
+            # match filters see a consistent representation. mhcgnomes /
+            # normalize_allele handles formats like "A*02:01" (missing
+            # HLA- prefix), different separator styles, and multi-allele
+            # pairs.  normalize_allele is already @cache'd on the unique
+            # vocabulary so the per-row cost is ~100ns.  See #121.
+            mhc_res = normalize_allele(mhc_res_raw) if mhc_res_raw else mhc_res_raw
 
             # Species filtering: use MHC allele name (via mhcgnomes) as the
             # authoritative species source; when species_fallback=True and

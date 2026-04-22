@@ -106,7 +106,16 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
             continue
 
         if "mhc_restriction" in df.columns:
-            df["mhc_restriction"] = df["mhc_restriction"].str.strip()
+            # Normalize allele strings at ingest so bare forms like "A*02:01"
+            # (missing the "HLA-" prefix) canonicalize to "HLA-A*02:01" and
+            # downstream exact-match filters (``load_observations(
+            # mhc_restriction="HLA-A*02:01")``) see the full row population.
+            # ``normalize_allele`` is already ``@cache``d in curation.py;
+            # the cost here is dominated by the one-time mhcgnomes parse
+            # per unique string, not per row.  See pirl-unc/hitlist#121.
+            from .curation import normalize_allele
+
+            df["mhc_restriction"] = df["mhc_restriction"].str.strip().map(normalize_allele)
         else:
             df["mhc_restriction"] = ""
         if "mhc_class" in df.columns:
