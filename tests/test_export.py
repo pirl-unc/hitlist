@@ -398,26 +398,103 @@ def test_ms_samples_species_normalized():
 
 
 def test_species_summary_columns():
+    """Summary sources from observations.parquet (#117, v1.15.0).
+
+    Old columns (n_studies / n_sample_types / n_samples) came from
+    pmid_overrides.yaml curation and undercounted real data coverage
+    by orders of magnitude. Replaced with parquet-derived counts.
+
+    The empty-index path still returns the canonical column set — this
+    test runs regardless of whether observations.parquet is built.
+    """
     df = generate_species_summary()
     expected = {
         "species",
         "mhc_class",
-        "n_studies",
-        "n_sample_types",
-        "n_samples",
+        "n_pmids",
+        "n_peptides",
+        "n_observations",
     }
     assert expected == set(df.columns)
 
 
 def test_species_summary_has_multiple_species():
+    from hitlist.observations import is_built
+
+    if not is_built():
+        import pytest
+
+        pytest.skip("Observations table not built")
     df = generate_species_summary()
     assert df["species"].nunique() > 1
 
 
 def test_species_summary_class_filter():
+    from hitlist.observations import is_built
+
+    if not is_built():
+        import pytest
+
+        pytest.skip("Observations table not built")
     df_i = generate_species_summary(mhc_class="I")
     assert len(df_i) > 0
     assert set(df_i["mhc_class"]) == {"I"}
+
+
+def test_species_summary_covers_non_curated_species():
+    """Mouse has hundreds of PMIDs in the parquet; the summary must reflect that.
+
+    Before #117, non-human species showed ``0`` in ``n_samples`` because
+    ``pmid_overrides.yaml`` only has a handful of curated mouse entries.
+    The parquet-derived summary must surface the full coverage.
+    """
+    from hitlist.observations import is_built
+
+    if not is_built():
+        import pytest
+
+        pytest.skip("Observations table not built")
+    df = generate_species_summary(mhc_class="I")
+    mouse = df[df["species"] == "Mus musculus"]
+    assert len(mouse) == 1, "mouse should appear exactly once for class I"
+    mouse_row = mouse.iloc[0]
+    # Real mouse data has at least 100 PMIDs (typically ~388 for class I).
+    assert int(mouse_row["n_pmids"]) > 100, (
+        f"Mus musculus I should have many PMIDs in the parquet, got {mouse_row['n_pmids']}"
+    )
+    assert int(mouse_row["n_peptides"]) > 10_000
+    assert int(mouse_row["n_observations"]) > 10_000
+
+
+def test_species_summary_counts_are_coherent():
+    """n_observations >= n_peptides >= n_pmids is a structural invariant.
+
+    Each PMID contributes at least one peptide, each peptide at least
+    one observation row, and the inequalities are non-strict when every
+    peptide happens to appear once in a single PMID.
+    """
+    from hitlist.observations import is_built
+
+    if not is_built():
+        import pytest
+
+        pytest.skip("Observations table not built")
+    df = generate_species_summary()
+    assert (df["n_observations"] >= df["n_peptides"]).all()
+    assert (df["n_peptides"] >= df["n_pmids"]).all()
+
+
+def test_species_summary_empty_when_not_built(tmp_path, monkeypatch):
+    """Unbuilt-index path returns empty frame with canonical columns."""
+    from hitlist.observations import is_built
+
+    if is_built():
+        import pytest
+
+        pytest.skip("Observations table is built — cannot test empty path")
+    df = generate_species_summary()
+    assert len(df) == 0
+    assert set(df.columns) == {"species", "mhc_class", "n_pmids", "n_peptides", "n_observations"}
 
 
 def test_validate_alleles_columns():
