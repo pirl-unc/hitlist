@@ -167,6 +167,43 @@ def _apply_ph_filter(df: pd.DataFrame, fractionation_ph) -> pd.DataFrame:
     return df[df["fractionation_ph"].isin(wanted)]
 
 
+def _apply_length_bounds(
+    df: pd.DataFrame, length_min: int | None, length_max: int | None
+) -> pd.DataFrame:
+    """Filter peptide rows by inclusive [length_min, length_max] bounds.
+
+    Silently passes through rows that lack a ``length`` column (protein
+    rows — peptide-only axis). The ``length`` column is ``Int64`` nullable
+    in the parquet; ``.between`` handles NA cleanly by excluding NaNs.
+    """
+    if length_min is None and length_max is None:
+        return df
+    if "length" not in df.columns:
+        return df
+    lo = length_min if length_min is not None else -1
+    hi = length_max if length_max is not None else 10**9
+    return df[df["length"].between(lo, hi)]
+
+
+def _apply_percentile_bounds(
+    df: pd.DataFrame,
+    percentile_min: float | None,
+    percentile_max: float | None,
+) -> pd.DataFrame:
+    """Filter protein rows by inclusive [percentile_min, percentile_max]."""
+    if percentile_min is None and percentile_max is None:
+        return df
+    if "abundance_percentile" not in df.columns:
+        return df
+    lo = percentile_min if percentile_min is not None else 0.0
+    hi = percentile_max if percentile_max is not None else 1.0
+    col = df["abundance_percentile"]
+    # Explicit notna guard — peptide-level rows carry NaN here and should
+    # be excluded whenever a bound is provided (the question "top 10%
+    # abundant" is only meaningful on protein rows).
+    return df[col.between(lo, hi) & col.notna()]
+
+
 # ``enrichment`` filter is slightly special: we accept a sentinel
 # "__default__" string so the loader defaults can pass through "match
 # only the non-enriched rows" semantics even when the caller explicitly
@@ -188,6 +225,8 @@ def load_bulk_proteomics(
     n_fractions_in_run: int | Iterable[int] | None = None,
     enrichment: str | None = _ENRICHMENT_DEFAULT,
     fractionation_ph: float | Iterable[float] | None = None,
+    abundance_percentile_min: float | None = None,
+    abundance_percentile_max: float | None = None,
 ) -> pd.DataFrame:
     """Protein-level bulk proteomics abundance (shotgun MS, NOT MHC ligands).
 
@@ -234,6 +273,12 @@ def load_bulk_proteomics(
         stamped ``8.0``. Most queries should leave this unset (default
         ``None`` = all pH values included). Pass a single float or an
         iterable of floats to restrict.
+    abundance_percentile_min, abundance_percentile_max
+        Inclusive bounds (0.0 to 1.0) on within-arm abundance rank. Useful
+        for training-set construction: ``abundance_percentile_min=0.9``
+        returns only the top decile most-abundant proteins for each
+        (cell_line, enzyme, fractions, enrichment, pH) arm. Excludes
+        rows with NaN percentile.
 
     Returns
     -------
@@ -279,6 +324,7 @@ def load_bulk_proteomics(
     df = _apply_enzyme_filter(df, digestion_enzyme)
     df = _apply_fractions_filter(df, n_fractions_in_run)
     df = _apply_ph_filter(df, fractionation_ph)
+    df = _apply_percentile_bounds(df, abundance_percentile_min, abundance_percentile_max)
     # For CCLE rows, the `enrichment` column will not be set (or will
     # be empty/NA) — we only apply the enrichment filter to rows that
     # have a populated value, so CCLE passes through untouched.
@@ -322,6 +368,8 @@ def load_bulk_peptides(
     n_fractions_in_run: int | Iterable[int] | None = None,
     enrichment: str | None = _ENRICHMENT_DEFAULT,
     fractionation_ph: float | Iterable[float] | None = None,
+    length_min: int | None = None,
+    length_max: int | None = None,
 ) -> pd.DataFrame:
     """Peptide-level bulk proteomics detections (shotgun MS, NOT MHC ligands).
 
@@ -367,6 +415,11 @@ def load_bulk_peptides(
         at pH 10 except the explicit ``Tryp-Phos-pH8`` TiO2 arm, which
         is stamped ``8.0``. Pass ``8.0`` or ``10.0`` (float) or an
         iterable to restrict; ``None`` (default) returns all pH values.
+    length_min, length_max
+        Inclusive peptide length bounds. Typical usage:
+        ``length_min=8, length_max=11`` for MHC-I-compatible peptides;
+        ``length_min=7, length_max=30`` for the detectability-training
+        input range. Leave unset for no length filter.
 
     Returns
     -------
@@ -393,6 +446,7 @@ def load_bulk_peptides(
     df = _apply_fractions_filter(df, n_fractions_in_run)
     df = _apply_enrichment_filter(df, enrichment)
     df = _apply_ph_filter(df, fractionation_ph)
+    df = _apply_length_bounds(df, length_min, length_max)
     return df.reset_index(drop=True)
 
 

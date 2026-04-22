@@ -253,3 +253,110 @@ def test_kmers_for_genes_unknown_gene():
     idx = _small_index_with_genes()
     # Gene IDs absent from the index → empty result, no crash.
     assert idx.kmers_for_genes(frozenset({"ENSG_NOSUCH"})) == frozenset()
+
+
+# ---------------------------------------------------------------------------
+# In-silico protease digest (#104).
+# ---------------------------------------------------------------------------
+
+
+def test_digest_trypsin_basic():
+    """Trypsin/P cleaves K/R, not before P."""
+    from hitlist.proteome import digest
+
+    # Layout: M(0) E(1) R(2) K(3) P(4) K(5) L(6) A(7) S(8) R(9) P(10) E(11) K(12)
+    # Cuts:
+    #   R@2 → next K, not P → cleave (cut at 3)
+    #   K@3 → next P → NO
+    #   K@5 → next L → cleave (cut at 6)
+    #   R@9 → next P → NO
+    #   K@12 → end of seq → NO
+    # Result: [0:3]=MER, [3:6]=KPK, [6:13]=LASRPEK
+    seq = "MERKPKLASRPEK"
+    peps = digest(seq, enzyme="Trypsin/P (cleaves K/R except before P)", min_len=2, max_missed=0)
+    assert peps == {"MER", "KPK", "LASRPEK"}
+
+
+def test_digest_trypsin_aliases():
+    """Short aliases resolve to the canonical form."""
+    from hitlist.proteome import digest
+
+    seq = "MERKASRLEK"
+    canonical = digest(seq, enzyme="Trypsin/P (cleaves K/R except before P)", min_len=2)
+    for alias in ("Trypsin", "Trypsin/P", "trypsin"):
+        assert digest(seq, enzyme=alias, min_len=2) == canonical
+
+
+def test_digest_chymotrypsin_plus_includes_m():
+    """MaxQuant Chymotrypsin+ cleaves F/W/Y/L/M, not before P."""
+    from hitlist.proteome import digest
+
+    seq = "AFAWAYALAMAP"
+    peps = digest(seq, enzyme="Chymotrypsin", min_len=2, max_missed=0)
+    # Interior cuts produce peptides ending in F/W/Y/L/M; the trailing
+    # fragment "AP" is the protein tail after the last M@9 cut and is
+    # allowed to end in whatever residue is at the C-terminus.
+    c_terms = {p[-1] for p in peps}
+    assert c_terms.issubset(set("FWYLMAP"))
+
+
+def test_digest_gluc_cleaves_both_e_and_d():
+    """GluC in hitlist is the bicarbonate variant ``GluC;D.P`` — cleaves E AND D."""
+    from hitlist.proteome import digest
+
+    seq = "AAEAADAAAEP"
+    peps = digest(seq, enzyme="GluC", min_len=2, max_missed=0)
+    # E@2 → cut ; D@5 → cut ; E@9 before P → NO cut → segments AAE, AAD, AAAEP
+    assert peps == {"AAE", "AAD", "AAAEP"}
+    # D-ending peptide proves bicarbonate rule (phosphate GluC would be E-only).
+    assert any(p.endswith("D") for p in peps)
+
+
+def test_digest_lysc_cleaves_k_p():
+    """LysC/P allows K-P cleavage (unlike Trypsin)."""
+    from hitlist.proteome import digest
+
+    seq = "AAAKPAAAK"
+    tryp = digest(seq, enzyme="Trypsin/P", min_len=2, max_missed=0)
+    lysc = digest(seq, enzyme="LysC", min_len=2, max_missed=0)
+    # Trypsin: K@3 before P → NO cut → one long peptide.
+    assert "AAAKPAAAK" in tryp
+    # LysC: K@3 before P → cut → AAAK + PAAAK.
+    assert lysc == {"AAAK", "PAAAK"}
+
+
+def test_digest_missed_cleavages():
+    """max_missed=2 emits peptides spanning up to 3 fully-cleaved segments."""
+    from hitlist.proteome import digest
+
+    seq = "AAKBBKCCKDDKEE"
+    zero = digest(seq, enzyme="Trypsin/P", min_len=2, max_missed=0)
+    two = digest(seq, enzyme="Trypsin/P", min_len=2, max_missed=2)
+    assert zero < two
+    assert "AAKBBK" in two  # 1-missed
+    assert "AAKBBK" not in zero
+    assert "AAKBBKCCK" in two  # 2-missed
+
+
+def test_digest_length_bounds_inclusive():
+    from hitlist.proteome import digest
+
+    # Cuts after K@1, K@3, K@5, K@7 → fully-cleaved segments
+    # AK(2), BK(2), CK(2), DK(2), EE(2). All are 2-mers.
+    seq = "AKBKCKDKEE"
+    peps = digest(seq, enzyme="Trypsin/P", min_len=2, max_len=2, max_missed=0)
+    assert peps == {"AK", "BK", "CK", "DK", "EE"}
+    # min_len=3 drops all of the above; only multi-segment peptides from
+    # missed cleavages survive.
+    peps_3 = digest(seq, enzyme="Trypsin/P", min_len=3, max_missed=2)
+    assert all(len(p) >= 3 for p in peps_3)
+    assert "AKBK" in peps_3  # 1-missed, 4 chars
+
+
+def test_digest_unknown_enzyme_raises():
+    import pytest
+
+    from hitlist.proteome import digest
+
+    with pytest.raises(ValueError, match="Unknown enzyme"):
+        digest("MKRPE", enzyme="ProteinaseK")

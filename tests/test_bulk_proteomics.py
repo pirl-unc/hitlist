@@ -502,3 +502,65 @@ def test_loaders_read_from_parquet_when_built():
         assert not missing, f"missing harmonized columns: {missing}"
         assert (df["instrument"] != "").all()
         assert (df["fragmentation"] != "").all()
+
+
+# ---------------------------------------------------------------------------
+# Length + abundance-percentile bounds (#108).
+# ---------------------------------------------------------------------------
+
+
+def test_load_bulk_peptides_length_bounds():
+    """length_min / length_max restrict to the inclusive window."""
+    df = load_bulk_peptides(length_min=8, length_max=11)
+    assert len(df) > 100_000
+    assert df["length"].between(8, 11).all()
+    # Tight single-length filter.
+    nine_mers = load_bulk_peptides(length_min=9, length_max=9)
+    assert len(nine_mers) > 10_000
+    assert (nine_mers["length"] == 9).all()
+
+
+def test_load_bulk_peptides_length_min_only():
+    """length_min alone excludes shorter peptides."""
+    df = load_bulk_peptides(length_min=15)
+    assert len(df) > 0
+    assert (df["length"] >= 15).all()
+
+
+def test_load_bulk_peptides_length_max_only():
+    """length_max alone excludes longer peptides."""
+    df = load_bulk_peptides(length_max=12)
+    assert len(df) > 0
+    assert (df["length"] <= 12).all()
+
+
+def test_load_bulk_proteomics_abundance_percentile_min():
+    """abundance_percentile_min returns only rows at or above the cutoff."""
+    top_decile = load_bulk_proteomics(cell_line="HeLa", abundance_percentile_min=0.9)
+    assert len(top_decile) > 500
+    assert (top_decile["abundance_percentile"] >= 0.9).all()
+    # NaN percentile rows are excluded when any percentile bound is set.
+    assert top_decile["abundance_percentile"].notna().all()
+
+
+def test_load_bulk_proteomics_abundance_percentile_window():
+    """Both min + max bounds work as a window."""
+    mid = load_bulk_proteomics(
+        cell_line="HeLa",
+        abundance_percentile_min=0.4,
+        abundance_percentile_max=0.6,
+    )
+    assert len(mid) > 100
+    assert mid["abundance_percentile"].between(0.4, 0.6).all()
+
+
+def test_load_bulk_proteomics_percentile_preserves_cell_line_filter():
+    """Percentile filter composes with other filters."""
+    tryp_top = load_bulk_proteomics(
+        cell_line="A549",
+        source="Bekker-Jensen_2017",
+        abundance_percentile_min=0.95,
+    )
+    assert set(tryp_top["cell_line_name"]) == {"A549"}
+    assert set(tryp_top["source"]) == {"Bekker-Jensen_2017"}
+    assert (tryp_top["abundance_percentile"] >= 0.95).all()
