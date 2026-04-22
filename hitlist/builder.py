@@ -161,6 +161,21 @@ def _cache_meta() -> dict:
     return {}
 
 
+def _atomic_write_parquet(df: pd.DataFrame, path: Path) -> None:
+    """Write ``df`` to a sibling ``.partial`` file, then rename over ``path``.
+
+    Readers calling :func:`load_observations` / :func:`load_binding`
+    during a rebuild keep seeing whatever was on ``path`` before this
+    call until the rename atomically swaps in the new file.  This closes
+    the mid-rebuild window (#105) where the canonical parquet briefly
+    lacked its ``gene_names`` column between the initial write and the
+    re-annotate step.
+    """
+    partial = path.with_suffix(path.suffix + ".partial")
+    df.to_parquet(partial, index=False)
+    partial.replace(path)
+
+
 def _drop_short_mhc2_rows(df: pd.DataFrame, label: str) -> pd.DataFrame:
     """Drop ``mhc_class == "II"`` rows with peptides shorter than 12 aa.
 
@@ -352,21 +367,19 @@ def build_observations(
         if "pmid" in frame.columns:
             frame["pmid"] = pd.to_numeric(frame["pmid"], errors="coerce").astype("Int64")
 
-    # Write both parquets — the mappings build reads from them to cover
-    # the union of peptides.
-    obs.to_parquet(out_path, index=False)
-    print(f"\nWrote {out_path} ({out_path.stat().st_size / 1e6:.1f} MB)")
-    binding.to_parquet(binding_out, index=False)
-    print(f"Wrote {binding_out} ({binding_out.stat().st_size / 1e6:.1f} MB)")
-
     # Build the long-form peptide → protein mappings sidecar, then
     # annotate BOTH parquets with semicolon-joined gene/protein columns.
-    # The sidecar covers the union of peptides from observations + binding.
+    # Hold obs/binding in memory so the canonical parquets aren't briefly
+    # missing their ``gene_names`` column mid-rebuild (#105).  The
+    # mappings build consumes the frames directly via ``obs_override`` /
+    # ``binding_override`` instead of re-reading the canonical files.
     if build_mappings:
         from .mappings import (
+            _obs_fingerprint,
             annotate_observations_with_genes,
             build_peptide_mappings,
             load_peptide_mappings,
+            mappings_meta_path,
         )
 
         build_peptide_mappings(
@@ -374,6 +387,8 @@ def build_observations(
             fetch_missing=fetch_missing_proteomes,
             use_uniprot=use_uniprot_search,
             force=force,
+            obs_override=obs,
+            binding_override=binding,
         )
 
         print("\nAnnotating indexes with gene/protein columns ...")
@@ -381,7 +396,6 @@ def build_observations(
             columns=["peptide", "gene_name", "gene_id", "protein_id"]
         )
         obs = annotate_observations_with_genes(obs, mappings_df)
-        obs.to_parquet(out_path, index=False)
         if len(obs):
             n_with_gene = (obs["gene_names"] != "").sum() if "gene_names" in obs.columns else 0
             print(
@@ -389,7 +403,6 @@ def build_observations(
                 f"({100 * n_with_gene / len(obs):.1f}%)"
             )
         binding = annotate_observations_with_genes(binding, mappings_df)
-        binding.to_parquet(binding_out, index=False)
         if len(binding):
             n_with_gene_b = (
                 (binding["gene_names"] != "").sum() if "gene_names" in binding.columns else 0
@@ -398,6 +411,25 @@ def build_observations(
                 f"  Binding: {n_with_gene_b:,} / {len(binding):,} rows annotated "
                 f"({100 * n_with_gene_b / len(binding):.1f}%)"
             )
+
+    # Atomic rename write (#105): write to a sibling .partial, then rename
+    # over the canonical path.  This keeps any prior index in place — and
+    # queryable — throughout the rebuild; readers never see a half-written
+    # or not-yet-annotated parquet.
+    _atomic_write_parquet(obs, out_path)
+    print(f"\nWrote {out_path} ({out_path.stat().st_size / 1e6:.1f} MB)")
+    _atomic_write_parquet(binding, binding_out)
+    print(f"Wrote {binding_out} ({binding_out.stat().st_size / 1e6:.1f} MB)")
+
+    if build_mappings:
+        # Rewrite mappings cache fingerprint to reflect the just-renamed
+        # canonical parquets — it was stamped from whatever was on disk
+        # before the atomic rename (empty on a fresh build, stale otherwise).
+        meta_p = mappings_meta_path()
+        if meta_p.exists():
+            stored = json.loads(meta_p.read_text())
+            stored["observations"] = _obs_fingerprint()
+            meta_p.write_text(json.dumps(stored, indent=2, default=str) + "\n")
 
     # --- Bulk proteomics index (non-MHC shotgun MS) ---
     print("\nBuilding bulk_proteomics.parquet ...")

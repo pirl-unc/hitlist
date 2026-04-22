@@ -3,6 +3,7 @@ import json
 import pandas as pd
 
 from hitlist.builder import (
+    _atomic_write_parquet,
     _cache_is_valid,
     _drop_short_mhc2_rows,
     _meta_path,
@@ -171,3 +172,32 @@ def test_drop_short_mhc2_rows_missing_columns():
     df = pd.DataFrame({"other": [1, 2, 3]})
     out = _drop_short_mhc2_rows(df, "MS observations")
     assert len(out) == 3
+
+
+def test_atomic_write_parquet_replaces_existing(tmp_path):
+    """A subsequent write overwrites the prior file in one rename."""
+    import pyarrow.parquet as pq
+
+    path = tmp_path / "observations.parquet"
+    first = pd.DataFrame({"peptide": ["AAA"], "gene_names": [""]})
+    _atomic_write_parquet(first, path)
+    assert path.exists()
+    assert "gene_names" in set(pq.read_schema(path).names)
+
+    second = pd.DataFrame(
+        {"peptide": ["AAA", "BBB"], "gene_names": ["HER2", "PRAME"], "extra": [1, 2]}
+    )
+    _atomic_write_parquet(second, path)
+
+    assert not path.with_suffix(".parquet.partial").exists()
+    back = pd.read_parquet(path)
+    assert set(back.columns) == {"peptide", "gene_names", "extra"}
+    assert len(back) == 2
+
+
+def test_atomic_write_parquet_no_partial_leftover(tmp_path):
+    """``.partial`` must not remain after a successful atomic write."""
+    path = tmp_path / "binding.parquet"
+    _atomic_write_parquet(pd.DataFrame({"peptide": ["X"]}), path)
+    assert path.exists()
+    assert not path.with_suffix(".parquet.partial").exists()
