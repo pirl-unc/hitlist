@@ -1,6 +1,13 @@
 import json
 
-from hitlist.builder import _cache_is_valid, _meta_path, _source_fingerprints
+import pandas as pd
+
+from hitlist.builder import (
+    _cache_is_valid,
+    _drop_short_mhc2_rows,
+    _meta_path,
+    _source_fingerprints,
+)
 from hitlist.supplement import load_supplementary_manifest
 
 
@@ -119,3 +126,48 @@ def test_cache_invalid_when_parquet_fingerprint_changes(tmp_path, monkeypatch):
     obs_p.write_bytes(b"mutated observations content that is longer")
     os.utime(obs_p, None)
     assert _cache_is_valid({}, with_flanking=False) is False
+
+
+def test_drop_short_mhc2_rows_removes_subset(capsys):
+    """8-11 aa peptides labeled mhc_class="II" are dropped (#122)."""
+    df = pd.DataFrame(
+        {
+            "peptide": ["SLLQHLIGL", "PKYVKQNTLKLAT", "KQNTLKL", "SAMPLEPEPTIDE"],
+            "mhc_class": ["II", "II", "II", "II"],
+            "pmid": [33858848, 12345678, 33858848, 12345678],
+        }
+    )
+    out = _drop_short_mhc2_rows(df, "MS observations")
+
+    assert list(out["peptide"]) == ["PKYVKQNTLKLAT", "SAMPLEPEPTIDE"]
+    captured = capsys.readouterr().out
+    assert "Dropped 2" in captured
+    assert "#122" in captured
+    assert "PMID 33858848" in captured
+
+
+def test_drop_short_mhc2_rows_preserves_class_i():
+    """Class-I rows (any length) and long class-II rows are untouched."""
+    df = pd.DataFrame(
+        {
+            "peptide": ["SLLQHLIGL", "AAAAAA", "LONGCLASSIIPEPTIDE"],
+            "mhc_class": ["I", "I", "II"],
+            "pmid": [1, 2, 3],
+        }
+    )
+    out = _drop_short_mhc2_rows(df, "MS observations")
+    assert len(out) == 3
+
+
+def test_drop_short_mhc2_rows_empty_frame():
+    """An empty input returns an empty output without error."""
+    df = pd.DataFrame({"peptide": [], "mhc_class": [], "pmid": []})
+    out = _drop_short_mhc2_rows(df, "MS observations")
+    assert out.empty
+
+
+def test_drop_short_mhc2_rows_missing_columns():
+    """A frame without mhc_class/peptide columns is returned unchanged."""
+    df = pd.DataFrame({"other": [1, 2, 3]})
+    out = _drop_short_mhc2_rows(df, "MS observations")
+    assert len(out) == 3

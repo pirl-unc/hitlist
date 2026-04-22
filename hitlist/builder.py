@@ -161,6 +161,29 @@ def _cache_meta() -> dict:
     return {}
 
 
+def _drop_short_mhc2_rows(df: pd.DataFrame, label: str) -> pd.DataFrame:
+    """Drop ``mhc_class == "II"`` rows with peptides shorter than 12 aa.
+
+    MHC-II binding requires ~12-25 aa peptides; 8-11 aa rows annotated
+    as class II are overwhelmingly IEDB import errors (e.g. HLA Ligand
+    Atlas PMID 33858848 attributing class-I elutions to the class-II
+    bucket).  Prints the drop count and top-5 PMIDs affected so the
+    curator can audit.  See pirl-unc/hitlist#122.
+    """
+    if df.empty or "mhc_class" not in df.columns or "peptide" not in df.columns:
+        return df
+    mask = (df["mhc_class"] == "II") & (df["peptide"].str.len() < 12)
+    n_drop = int(mask.sum())
+    if n_drop == 0:
+        return df
+    print(f"  Dropped {n_drop:,} short MHC-II rows from {label} (peptide < 12 aa, #122)")
+    if "pmid" in df.columns:
+        by_pmid = df.loc[mask, "pmid"].value_counts().head(5)
+        for pmid, n in by_pmid.items():
+            print(f"    PMID {pmid}: {n:,} rows")
+    return df[~mask].reset_index(drop=True)
+
+
 def build_observations(
     with_flanking: bool = True,
     proteome_release: int = 112,
@@ -308,6 +331,11 @@ def build_observations(
             print(f"  Deduplicated {dupes:,} supplementary rows (already in IEDB/CEDAR)")
         obs = pd.concat([obs, supp], ignore_index=True)
         print(f"  {len(supp):,} rows from supplementary data (MS)")
+
+    # Drop short MHC-II rows (#122) — biologically implausible, and
+    # overwhelmingly IEDB import errors (e.g. HLA Ligand Atlas 9-mers).
+    obs = _drop_short_mhc2_rows(obs, "MS observations")
+    binding = _drop_short_mhc2_rows(binding, "binding")
 
     print(f"\nMS observations: {len(obs):,} rows")
     if len(obs):
