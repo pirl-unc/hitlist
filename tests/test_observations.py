@@ -254,3 +254,68 @@ def test_load_all_evidence_ms_only_when_binding_missing(tmp_path, monkeypatch):
     df = load_all_evidence()
     assert list(df["peptide"]) == ["X"]
     assert list(df["evidence_kind"]) == ["ms"]
+
+
+# ---------------------------------------------------------------------------
+# length_min / length_max filters (#118, v1.15.1+).
+# ---------------------------------------------------------------------------
+
+
+def test_load_observations_length_bounds(tmp_path, monkeypatch):
+    """length_min / length_max filter peptide rows inclusively."""
+    import pandas as pd
+
+    from hitlist.observations import load_observations
+
+    ms = pd.DataFrame(
+        {
+            "peptide": ["AAAAAAAA", "AAAAAAAAA", "AAAAAAAAAA", "AAAAAAAAAAAA"],
+            "mhc_restriction": ["HLA-A*02:01"] * 4,
+            "mhc_class": ["I"] * 4,
+            "reference_iri": [f"iri-{i}" for i in range(4)],
+            "pmid": pd.array([1, 2, 3, 4], dtype="Int64"),
+            "source": ["iedb"] * 4,
+            "mhc_species": ["Homo sapiens"] * 4,
+            "is_binding_assay": [False] * 4,
+        }
+    )
+    path = tmp_path / "observations.parquet"
+    ms.to_parquet(path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
+
+    # Only the 8/9/10 mers (8-10 inclusive).
+    df = load_observations(length_min=8, length_max=10)
+    assert set(df["peptide"].str.len()) == {8, 9, 10}
+    # Only 9-mers.
+    df9 = load_observations(length_min=9, length_max=9)
+    assert (df9["peptide"].str.len() == 9).all()
+    assert len(df9) == 1
+    # Min-only excludes shorter.
+    df_min = load_observations(length_min=10)
+    assert (df_min["peptide"].str.len() >= 10).all()
+
+
+def test_load_binding_length_bounds(tmp_path, monkeypatch):
+    """length_min / length_max compose with other filters on load_binding."""
+    import pandas as pd
+
+    from hitlist.observations import load_binding
+
+    binding = pd.DataFrame(
+        {
+            "peptide": ["AAAAAAAA", "AAAAAAAAA", "AAAAAAAAAAAA"],
+            "mhc_restriction": ["HLA-A*02:01"] * 3,
+            "mhc_class": ["I"] * 3,
+            "reference_iri": [f"b-{i}" for i in range(3)],
+            "pmid": pd.array([1, 2, 3], dtype="Int64"),
+            "source": ["iedb"] * 3,
+            "mhc_species": ["Homo sapiens"] * 3,
+            "is_binding_assay": [True] * 3,
+        }
+    )
+    path = tmp_path / "binding.parquet"
+    binding.to_parquet(path, index=False)
+    monkeypatch.setattr("hitlist.observations.binding_path", lambda: path)
+
+    df = load_binding(length_min=9, length_max=11)
+    assert set(df["peptide"].str.len()) == {9}

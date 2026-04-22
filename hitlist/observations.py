@@ -77,6 +77,8 @@ def load_observations(
     gene_id: str | list[str] | None = None,
     peptide: str | list[str] | None = None,
     serotype: str | list[str] | None = None,
+    length_min: int | None = None,
+    length_max: int | None = None,
     columns: list[str] | None = None,
 ) -> pd.DataFrame:
     """Load the built MS observations table with optional filters.
@@ -97,6 +99,10 @@ def load_observations(
         Exact MHC allele filter.  Repeatable or comma-separated.
     gene_name, gene_id
         Gene filters — resolved through the peptide mappings sidecar.
+    length_min, length_max
+        Inclusive peptide length bounds. ``length_min=8, length_max=11``
+        filters to MHC-I-compatible peptides; ``length_min=12,
+        length_max=25`` to MHC-II. ``None`` (default) means no bound.
     peptide, serotype, columns
         See module docstring.
 
@@ -116,6 +122,8 @@ def load_observations(
         gene_id=gene_id,
         peptide=peptide,
         serotype=serotype,
+        length_min=length_min,
+        length_max=length_max,
         columns=columns,
     )
 
@@ -129,6 +137,8 @@ def load_binding(
     gene_id: str | list[str] | None = None,
     peptide: str | list[str] | None = None,
     serotype: str | list[str] | None = None,
+    length_min: int | None = None,
+    length_max: int | None = None,
     columns: list[str] | None = None,
 ) -> pd.DataFrame:
     """Load the built binding-assay table with optional filters.
@@ -152,6 +162,8 @@ def load_binding(
         gene_id=gene_id,
         peptide=peptide,
         serotype=serotype,
+        length_min=length_min,
+        length_max=length_max,
         columns=columns,
     )
 
@@ -165,6 +177,8 @@ def load_all_evidence(
     gene_id: str | list[str] | None = None,
     peptide: str | list[str] | None = None,
     serotype: str | list[str] | None = None,
+    length_min: int | None = None,
+    length_max: int | None = None,
     columns: list[str] | None = None,
 ) -> pd.DataFrame:
     """Union of MS observations + binding assays with an ``evidence_kind`` column.
@@ -194,6 +208,8 @@ def load_all_evidence(
         "gene_id": gene_id,
         "peptide": peptide,
         "serotype": serotype,
+        "length_min": length_min,
+        "length_max": length_max,
         "columns": columns,
     }
 
@@ -224,6 +240,8 @@ def _load_peptide_index(
     gene_id: str | list[str] | None,
     peptide: str | list[str] | None,
     serotype: str | list[str] | None,
+    length_min: int | None,
+    length_max: int | None,
     columns: list[str] | None,
 ) -> pd.DataFrame:
     """Shared loader for the observations and binding parquets.
@@ -310,6 +328,22 @@ def _load_peptide_index(
         df = df[mask]
         if columns is not None and "serotypes" not in columns:
             df = df.drop(columns=["serotypes"])
+
+    # Length bounds (#118). observations.parquet / binding.parquet don't
+    # carry an explicit length column — we compute it from the peptide
+    # string on read. Post-load filter because parquet pushdown doesn't
+    # apply to derived expressions; for the full 4.4M-row observations
+    # parquet this costs ~100 ms of str.len on the final frame, which is
+    # small relative to the read.
+    if length_min is not None or length_max is not None:
+        if "peptide" not in df.columns:
+            raise ValueError(
+                "length_min/length_max require the 'peptide' column; "
+                "include it in columns= if projecting."
+            )
+        lo = length_min if length_min is not None else -1
+        hi = length_max if length_max is not None else 10**9
+        df = df[df["peptide"].str.len().between(lo, hi)]
 
     return df
 
