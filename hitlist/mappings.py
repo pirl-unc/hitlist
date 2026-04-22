@@ -200,6 +200,8 @@ def build_peptide_mappings(
     force: bool = False,
     flank: int = 10,
     verbose: bool = True,
+    obs_override: pd.DataFrame | None = None,
+    binding_override: pd.DataFrame | None = None,
 ) -> Path:
     """Build ``peptide_mappings.parquet`` from the already-built observations table.
 
@@ -208,28 +210,40 @@ def build_peptide_mappings(
     overrides), maps each against the appropriate reference proteome, and
     writes all (peptide, protein, position) hits to the sidecar.
 
-    This replaces the old single-best ``_add_flanking`` collapse.
+    Parameters
+    ----------
+    obs_override, binding_override
+        In-memory MS / binding frames supplied by the builder during an
+        atomic rebuild (#105), letting mappings be computed before the
+        parquets are written so the canonical files aren't briefly
+        missing their ``gene_names`` column.  When None, falls back to
+        reading from disk (the standalone / cache-only path).
     """
     from .builder import _collect_pmid_extra_proteomes
     from .downloads import fetch_proteome_by_upid, lookup_proteome
     from .observations import is_binding_built, is_built, load_binding, load_observations
     from .proteome import ProteomeIndex
 
-    if not is_built():
-        raise FileNotFoundError("Observations table not built.  Run: hitlist data build")
-
     out = mappings_path()
-    if not force and _cache_is_valid():
-        if verbose:
-            print(f"Peptide mappings already up to date: {out}")
-        return out
-
-    cols = ["peptide", "source_organism", "mhc_species", "pmid"]
-    obs = load_observations(columns=cols)
-    if is_binding_built():
-        binding = load_binding(columns=cols)
-        if len(binding):
-            obs = pd.concat([obs, binding], ignore_index=True)
+    if obs_override is not None:
+        # Builder path: frames are in-memory, parquets may not exist yet.
+        cols = ["peptide", "source_organism", "mhc_species", "pmid"]
+        obs = obs_override[cols].copy()
+        if binding_override is not None and len(binding_override):
+            obs = pd.concat([obs, binding_override[cols]], ignore_index=True)
+    else:
+        if not is_built():
+            raise FileNotFoundError("Observations table not built.  Run: hitlist data build")
+        if not force and _cache_is_valid():
+            if verbose:
+                print(f"Peptide mappings already up to date: {out}")
+            return out
+        cols = ["peptide", "source_organism", "mhc_species", "pmid"]
+        obs = load_observations(columns=cols)
+        if is_binding_built():
+            binding = load_binding(columns=cols)
+            if len(binding):
+                obs = pd.concat([obs, binding], ignore_index=True)
     print(
         f"\nBuilding peptide mappings for {len(obs):,} rows (MS + binding, "
         f"{obs['peptide'].nunique():,} unique peptides) ..."
