@@ -187,3 +187,69 @@ def test_from_fasta_cache_keyed_on_lengths(tmp_path):
     assert idx_5 is not idx_8
     assert idx_5.lengths == (5,)
     assert idx_8.lengths == (8,)
+
+
+# ---------------------------------------------------------------------------
+# K-mer set primitive (#99) — shared with tsarina, perseus, topiary.
+# ---------------------------------------------------------------------------
+
+
+def _small_index_with_genes():
+    """Build a small ProteomeIndex with explicit gene_id metadata."""
+    proteins = {
+        "P1": "ACDEFGHIKL",  # 10 aa
+        "P2": "MNPQRSTVWY",  # 10 aa
+        "P3": "AAAAAACDEF",  # 10 aa — shares ACDEF with P1
+    }
+    meta = {
+        "P1": {"gene_name": "GENE_A", "gene_id": "ENSG001"},
+        "P2": {"gene_name": "GENE_B", "gene_id": "ENSG002"},
+        "P3": {"gene_name": "GENE_A", "gene_id": "ENSG001"},
+    }
+    return ProteomeIndex._build(proteins, meta, lengths=(5,), verbose=False)
+
+
+def test_all_kmers_returns_frozenset():
+    idx = _small_index_with_genes()
+    kmers = idx.all_kmers
+    assert isinstance(kmers, frozenset)
+    # Well-defined: every 5-mer in the three 10-aa proteins.
+    expected = set()
+    for seq in idx.proteins.values():
+        for i in range(len(seq) - 4):
+            expected.add(seq[i : i + 5])
+    assert kmers == frozenset(expected)
+
+
+def test_all_kmers_cached_same_instance():
+    idx = _small_index_with_genes()
+    a = idx.all_kmers
+    b = idx.all_kmers
+    # cached_property returns the same frozenset object.
+    assert a is b
+
+
+def test_kmers_for_genes_subset():
+    idx = _small_index_with_genes()
+    kmers_a = idx.kmers_for_genes(frozenset({"ENSG001"}))
+    kmers_b = idx.kmers_for_genes(frozenset({"ENSG002"}))
+    # P2's unique k-mers must not be in the A-only set.
+    assert "MNPQR" not in kmers_a
+    assert "MNPQR" in kmers_b
+    # ACDEF appears in P1 (ENSG001) and at end of P3 (ENSG001) but NOT P2.
+    assert "ACDEF" in kmers_a
+    assert "ACDEF" not in kmers_b
+    # Full-union sanity: every protein is covered by exactly one gene ID
+    # in this fixture, so the two subsets union to the full k-mer set.
+    assert (kmers_a | kmers_b) == idx.all_kmers
+
+
+def test_kmers_for_genes_empty_input():
+    idx = _small_index_with_genes()
+    assert idx.kmers_for_genes(frozenset()) == frozenset()
+
+
+def test_kmers_for_genes_unknown_gene():
+    idx = _small_index_with_genes()
+    # Gene IDs absent from the index → empty result, no crash.
+    assert idx.kmers_for_genes(frozenset({"ENSG_NOSUCH"})) == frozenset()
