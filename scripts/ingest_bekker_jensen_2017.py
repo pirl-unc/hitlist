@@ -159,13 +159,20 @@ _ENZYME_TOKENS = {
 }
 
 
+# High-pH reverse-phase SPE default (pH 10.0). Bekker-Jensen 2017 Methods
+# use pH 10 for every high-pH SPE fractionation except the two explicit
+# Tryp-Phos pH-comparison experiments. See sources.yaml for rationale and
+# the per-source default discussion.
+DEFAULT_FRACTIONATION_PH = 10.0
+
+
 def _parse_experiment(name: str) -> dict | None:
     """Return axis dict for an experiment name or None if it should be skipped.
 
     Raises ValueError on unparseable names (explicit failure, not silent drop).
 
     Output keys: ``cell_line``, ``digestion_enzyme``, ``n_fractions_in_run``,
-    ``enrichment``, ``replicate``.
+    ``enrichment``, ``fractionation_ph``, ``replicate``.
     """
     for pref in SKIP_PREFIXES:
         if name.startswith(pref):
@@ -183,6 +190,7 @@ def _parse_experiment(name: str) -> dict | None:
             "digestion_enzyme": TRYPTIC_ENZYME,
             "n_fractions_in_run": int(m.group(1)),
             "enrichment": "none",
+            "fractionation_ph": DEFAULT_FRACTIONATION_PH,
             "replicate": f"E{m.group(2)}",
         }
 
@@ -197,6 +205,7 @@ def _parse_experiment(name: str) -> dict | None:
             "digestion_enzyme": TRYPTIC_ENZYME,
             "n_fractions_in_run": int(m.group(2)),
             "enrichment": "none",
+            "fractionation_ph": DEFAULT_FRACTIONATION_PH,
             "replicate": f"E{m.group(3)}",
         }
 
@@ -213,25 +222,26 @@ def _parse_experiment(name: str) -> dict | None:
             "digestion_enzyme": TRYPTIC_ENZYME,
             "n_fractions_in_run": int(m.group(1)),
             "enrichment": "none",
+            "fractionation_ph": DEFAULT_FRACTIONATION_PH,
             "replicate": rep,
         }
 
-    # Case 4: Tryp-Phos-pH8/pH10 — HeLa TiO2 phospho-enrichment arm
-    # run at either pH8 or pH10 fractionation conditions. Treat each
-    # pH as a distinct replicate to preserve the reproducibility count.
-    m = re.fullmatch(r"Tryp-Phos-(pH\d+)", name)
+    # Case 4: Tryp-Phos-pH8 / Tryp-Phos-pH10 — HeLa TiO2 phospho-enrichment
+    # runs at two different high-pH SPE fractionation buffers. These are
+    # **two complementary separations**, NOT biological replicates of the
+    # same condition — peptides elute differently at pH 8 vs pH 10 because
+    # of side-chain charge shifts. As of v1.14.1 (#98) we treat them as
+    # distinct arms (separate rows in the output) via the
+    # ``fractionation_ph`` axis, each with replicate=E1.
+    m = re.fullmatch(r"Tryp-Phos-pH(\d+)", name)
     if m:
-        ph = m.group(1)
-        rep = f"E_{ph}"  # pseudo-replicate label; pH8 and pH10 aren't
-        # true biological replicates but it lets the aggregation count
-        # how many Tryp-Phos-* arms saw a given peptide. n_fractions_in_run
-        # for these is 12 (per summary.txt) — authoritative.
         return {
             "cell_line": "HeLa",
             "digestion_enzyme": TRYPTIC_ENZYME,
             "n_fractions_in_run": 12,
             "enrichment": "TiO2",
-            "replicate": rep,
+            "fractionation_ph": float(m.group(1)),
+            "replicate": "E1",
         }
 
     # Case 5: Phospho-50fracs — HeLa 50-fraction tryptic TiO2 phospho.
@@ -241,6 +251,7 @@ def _parse_experiment(name: str) -> dict | None:
             "digestion_enzyme": TRYPTIC_ENZYME,
             "n_fractions_in_run": 50,
             "enrichment": "TiO2",
+            "fractionation_ph": DEFAULT_FRACTIONATION_PH,
             "replicate": "E1",
         }
 
@@ -256,6 +267,7 @@ def _parse_experiment(name: str) -> dict | None:
             "digestion_enzyme": enzyme,
             "n_fractions_in_run": int(m.group(2)),
             "enrichment": "none",
+            "fractionation_ph": DEFAULT_FRACTIONATION_PH,
             "replicate": "E1",
         }
 
@@ -466,7 +478,8 @@ def extract(verbose: bool = True) -> tuple[pd.DataFrame, pd.DataFrame]:
                 f"  {exp:30s} -> cell={axes['cell_line']:6s} "
                 f"enz={axes['digestion_enzyme'][:12]:12s} "
                 f"fracs={axes['n_fractions_in_run']:3d} "
-                f"enrich={axes['enrichment']:5s} rep={axes['replicate']}"
+                f"enrich={axes['enrichment']:5s} "
+                f"pH={axes['fractionation_ph']:4.1f} rep={axes['replicate']}"
             )
         print(f"\n=== Skipped {len(skipped_experiments)} out-of-scope experiments ===")
         for exp in sorted(skipped_experiments):
@@ -572,6 +585,7 @@ def extract(verbose: bool = True) -> tuple[pd.DataFrame, pd.DataFrame]:
                 axes["digestion_enzyme"],
                 axes["n_fractions_in_run"],
                 axes["enrichment"],
+                axes["fractionation_ph"],
             )
 
             if key not in pep_rows:
@@ -586,6 +600,7 @@ def extract(verbose: bool = True) -> tuple[pd.DataFrame, pd.DataFrame]:
                     "digestion_enzyme": axes["digestion_enzyme"],
                     "n_fractions_in_run": axes["n_fractions_in_run"],
                     "enrichment": axes["enrichment"],
+                    "fractionation_ph": axes["fractionation_ph"],
                     "modifications": mod_str,
                     "_replicates": set(),
                     "source": "Bekker-Jensen_2017",
@@ -594,12 +609,15 @@ def extract(verbose: bool = True) -> tuple[pd.DataFrame, pd.DataFrame]:
                 kept_rows += 1
             pep_rows[key]["_replicates"].add(axes["replicate"])
 
-            # protein-level aggregation (same arm granularity)
+            # Protein-level aggregation — same arm granularity as peptide
+            # rows, which now includes fractionation_ph so the two
+            # Tryp-Phos arms (pH 8 vs pH 10) stay distinct.
             prot_key = (
                 axes["cell_line"],
                 axes["digestion_enzyme"],
                 axes["n_fractions_in_run"],
                 axes["enrichment"],
+                axes["fractionation_ph"],
                 uniprot,
             )
             prot_intensity[prot_key] += intensity
@@ -635,6 +653,7 @@ def extract(verbose: bool = True) -> tuple[pd.DataFrame, pd.DataFrame]:
             "digestion_enzyme",
             "n_fractions_in_run",
             "enrichment",
+            "fractionation_ph",
             "modifications",
             "n_replicates_detected",
             "source",
@@ -644,7 +663,7 @@ def extract(verbose: bool = True) -> tuple[pd.DataFrame, pd.DataFrame]:
 
     # ---- protein abundance frame --------------------------------------------
     prot_rows = []
-    for (cell, enzyme, fracs, enrich, uniprot), intensity in prot_intensity.items():
+    for (cell, enzyme, fracs, enrich, ph, uniprot), intensity in prot_intensity.items():
         if intensity <= 0 or uniprot == "":
             continue
         prot_rows.append(
@@ -655,7 +674,10 @@ def extract(verbose: bool = True) -> tuple[pd.DataFrame, pd.DataFrame]:
                 "digestion_enzyme": enzyme,
                 "n_fractions_in_run": fracs,
                 "enrichment": enrich,
-                "n_peptides": len(prot_peptides[(cell, enzyme, fracs, enrich, uniprot)]),
+                "fractionation_ph": ph,
+                "n_peptides": len(
+                    prot_peptides[(cell, enzyme, fracs, enrich, ph, uniprot)]
+                ),
                 "log2_intensity": math.log2(intensity),
                 "source": "Bekker-Jensen_2017",
                 "reference": "PMID:28591648",
@@ -663,11 +685,20 @@ def extract(verbose: bool = True) -> tuple[pd.DataFrame, pd.DataFrame]:
         )
 
     prot_df = pd.DataFrame.from_records(prot_rows)
-    # Recompute abundance_percentile PER arm -- absolute log2 intensities
-    # are only comparable within one (cell_line, enzyme, fracs, enrichment)
-    # group because different digests ionize different sets of peptides
-    # and different fractionation depths have different dynamic range.
-    grp_cols = ["cell_line", "digestion_enzyme", "n_fractions_in_run", "enrichment"]
+    # Recompute abundance_percentile PER arm — absolute log2 intensities
+    # are only comparable within one
+    # (cell_line, enzyme, fracs, enrichment, fractionation_ph) group.
+    # Different digests ionize different sets of peptides, different
+    # fractionation depths have different dynamic range, and different
+    # pH values fractionate to a different peptide population. Pooling
+    # across any of these axes for the percentile would be wrong.
+    grp_cols = [
+        "cell_line",
+        "digestion_enzyme",
+        "n_fractions_in_run",
+        "enrichment",
+        "fractionation_ph",
+    ]
     prot_df["abundance_percentile"] = prot_df.groupby(grp_cols)["log2_intensity"].rank(pct=True)
     prot_df = prot_df[
         [
@@ -677,6 +708,7 @@ def extract(verbose: bool = True) -> tuple[pd.DataFrame, pd.DataFrame]:
             "digestion_enzyme",
             "n_fractions_in_run",
             "enrichment",
+            "fractionation_ph",
             "n_peptides",
             "log2_intensity",
             "abundance_percentile",
@@ -693,18 +725,22 @@ def print_sanity_checks(pep_df: pd.DataFrame, prot_df: pd.DataFrame) -> None:
     print(f"  total peptide-arm rows: {len(pep_df):,}")
     print(f"  unique peptides: {pep_df['peptide'].nunique():,}")
 
-    print("\n-- Row counts by (enzyme, fracs, enrichment) --")
+    print("\n-- Row counts by (enzyme, fracs, enrichment, pH) --")
     grp = (
         pep_df.groupby(
-            ["digestion_enzyme", "n_fractions_in_run", "enrichment"], as_index=False
+            ["digestion_enzyme", "n_fractions_in_run", "enrichment", "fractionation_ph"],
+            as_index=False,
         )
         .size()
-        .sort_values(["digestion_enzyme", "n_fractions_in_run", "enrichment"])
+        .sort_values(
+            ["digestion_enzyme", "n_fractions_in_run", "enrichment", "fractionation_ph"]
+        )
     )
     for _, r in grp.iterrows():
         print(
             f"  {r['digestion_enzyme'][:25]:25s} fracs={r['n_fractions_in_run']:3d} "
-            f"enrich={r['enrichment']:5s}  rows={r['size']:,}"
+            f"enrich={r['enrichment']:5s} pH={r['fractionation_ph']:4.1f}  "
+            f"rows={r['size']:,}"
         )
 
     print("\n-- Row counts by cell_line --")
@@ -734,20 +770,34 @@ def print_sanity_checks(pep_df: pd.DataFrame, prot_df: pd.DataFrame) -> None:
     print("\n=== Protein abundance sanity checks ===")
     print(f"  total protein-arm rows: {len(prot_df):,}")
     print(f"  unique uniprots: {prot_df['uniprot_acc'].nunique():,}")
-    print("\n-- Row counts by (enzyme, fracs, enrichment) --")
+    print("\n-- Row counts by (enzyme, fracs, enrichment, pH) --")
     grp = (
         prot_df.groupby(
-            ["cell_line", "digestion_enzyme", "n_fractions_in_run", "enrichment"],
+            [
+                "cell_line",
+                "digestion_enzyme",
+                "n_fractions_in_run",
+                "enrichment",
+                "fractionation_ph",
+            ],
             as_index=False,
         )
         .size()
-        .sort_values(["cell_line", "digestion_enzyme", "n_fractions_in_run", "enrichment"])
+        .sort_values(
+            [
+                "cell_line",
+                "digestion_enzyme",
+                "n_fractions_in_run",
+                "enrichment",
+                "fractionation_ph",
+            ]
+        )
     )
     for _, r in grp.iterrows():
         print(
             f"  {r['cell_line']:6s} {r['digestion_enzyme'][:25]:25s} "
-            f"fracs={r['n_fractions_in_run']:3d} enrich={r['enrichment']:5s}  "
-            f"proteins={r['size']:,}"
+            f"fracs={r['n_fractions_in_run']:3d} enrich={r['enrichment']:5s} "
+            f"pH={r['fractionation_ph']:4.1f}  proteins={r['size']:,}"
         )
 
 
@@ -769,6 +819,7 @@ def main() -> int:
             "digestion_enzyme",
             "n_fractions_in_run",
             "enrichment",
+            "fractionation_ph",
             "uniprot_acc",
             "start_position",
             "peptide",
@@ -781,6 +832,7 @@ def main() -> int:
             "digestion_enzyme",
             "n_fractions_in_run",
             "enrichment",
+            "fractionation_ph",
             "uniprot_acc",
         ],
         kind="stable",
