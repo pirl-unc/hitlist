@@ -49,6 +49,7 @@ Typical usage::
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from functools import cached_property, lru_cache
 from pathlib import Path
 
 import numpy as np
@@ -411,6 +412,55 @@ class ProteomeIndex:
             idx = idx.merge(viral_idx)
         return idx
 
+    @cached_property
+    def all_kmers(self) -> frozenset[str]:
+        """Every unique k-mer (at ``self.lengths``) across all indexed proteins.
+
+        Cached on first access. Typical sizes:
+
+        - Human at (8, 9, 10, 11): ~41 M k-mers, ~1 GB as a frozenset of strings.
+        - Human at (9,): ~10 M k-mers, ~250 MB.
+
+        The primitive that downstream packages (tsarina, perseus, topiary,
+        notebook scripts) use for self-peptide subtraction. See also the
+        module-level :func:`proteome_kmer_set` if the caller doesn't need
+        the full :class:`ProteomeIndex` object.
+        """
+        return frozenset(self.index.keys())
+
+    def kmers_for_genes(self, gene_ids: frozenset[str]) -> frozenset[str]:
+        """K-mers restricted to proteins with these Ensembl gene IDs.
+
+        Walks the proteins table rather than the k-mer index because the
+        compact posting representation stores prot_idx ints, not gene_ids
+        — filtering the index directly would be slower than re-extracting
+        k-mers from the selected protein sequences.
+
+        Parameters
+        ----------
+        gene_ids
+            Set of Ensembl gene IDs to include. Must be a frozenset for
+            hashability (the module-level :func:`proteome_kmer_set` wraps
+            callers so they can pass a regular set too).
+
+        Returns
+        -------
+        frozenset[str]
+            Unique k-mers at ``self.lengths`` from proteins whose
+            ``protein_meta[...].gene_id`` is in ``gene_ids``.
+        """
+        if not gene_ids:
+            return frozenset()
+        out: set[str] = set()
+        for prot_id, seq in self.proteins.items():
+            gid = self.protein_meta.get(prot_id, {}).get("gene_id", "")
+            if gid not in gene_ids:
+                continue
+            for k in self.lengths:
+                for i in range(len(seq) - k + 1):
+                    out.add(seq[i : i + k])
+        return frozenset(out)
+
     def lookup(self, peptide: str) -> list[tuple[str, int]]:
         """Look up a peptide in the index.
 
@@ -515,3 +565,93 @@ class ProteomeIndex:
             df[unique_col] = df["peptide"].map(unique_map)
 
         return df
+
+
+# ---------------------------------------------------------------------------
+# Module-level k-mer primitive for cross-package caching (#99).
+# ---------------------------------------------------------------------------
+#
+# Shared by tsarina (self-peptide subtraction), perseus, topiary, and any
+# future consumer that wants "every protein-coding k-mer at lengths X,
+# optionally restricted to a gene subset." Delegates to ProteomeIndex
+# but caches the frozenset so repeated calls with the same arguments are
+# sub-millisecond.
+#
+# Note that the cache composes with ``ProteomeIndex.from_ensembl``'s own
+# cost: the first call to ``proteome_kmer_set(release, lengths)`` pays
+# the ProteomeIndex build (~45 s for human at all 4 MHC-I lengths),
+# subsequent identical calls return the cached frozenset in <1 ms.
+
+
+@lru_cache(maxsize=8)
+def _proteome_kmer_set_cached(
+    release: int,
+    lengths: tuple[int, ...],
+    species: str,
+    gene_ids_frozen: frozenset[str] | None,
+) -> frozenset[str]:
+    """Cache backend for :func:`proteome_kmer_set`.
+
+    ``gene_ids_frozen`` must be hashable (``frozenset`` or ``None``) so
+    the ``@lru_cache`` key is stable across callers that pass equivalent
+    sets in different orders.
+    """
+    idx = ProteomeIndex.from_ensembl(
+        release=release,
+        lengths=lengths,
+        species=species,
+        verbose=False,
+    )
+    if gene_ids_frozen is None:
+        return idx.all_kmers
+    return idx.kmers_for_genes(gene_ids_frozen)
+
+
+def proteome_kmer_set(
+    release: int = 112,
+    lengths: tuple[int, ...] = (8, 9, 10, 11),
+    gene_ids: frozenset[str] | set[str] | None = None,
+    species: str = "human",
+) -> frozenset[str]:
+    """Every protein-coding k-mer in the proteome, cached across calls.
+
+    The canonical primitive for self-peptide subtraction, vaccine /
+    neoantigen candidate filtering, and any other workflow that needs a
+    fast "is this sequence a human k-mer?" membership test. Replaces
+    per-package local implementations in tsarina, perseus, etc.
+
+    Parameters
+    ----------
+    release
+        Ensembl release. Default 112.
+    lengths
+        Peptide lengths to include. Must be a tuple (hashable) so the
+        cache key is stable. Default ``(8, 9, 10, 11)`` (MHC-I range).
+    gene_ids
+        Optional set of Ensembl gene IDs to restrict to. When ``None``
+        (default), returns the full proteome's k-mer set. Accepts ``set``
+        for convenience — internally frozen for the cache key.
+    species
+        pyensembl species key. Default ``"human"``.
+
+    Returns
+    -------
+    frozenset[str]
+        Unique peptide sequences at the specified lengths.
+
+    Notes
+    -----
+    - First call: ~10-60 s (ProteomeIndex build + iteration). Memory
+      peak during the call is bounded by the ProteomeIndex
+      representation (v1.14.0+: ~3 GB for human at all 4 lengths).
+    - Subsequent calls with identical arguments: <1 ms (cached frozenset).
+    - Gene subset calls walk protein sequences filtered by gene_id
+      rather than the k-mer index, because the compact packed-int64
+      posting representation doesn't carry gene IDs.
+    - Cache size is 8. If you need more distinct ``(release, lengths,
+      gene_ids)`` combinations live at once, call
+      :meth:`ProteomeIndex.kmers_for_genes` directly on a longer-lived
+      ProteomeIndex instance instead.
+    """
+    gene_ids_frozen = frozenset(gene_ids) if gene_ids is not None else None
+    return _proteome_kmer_set_cached(release, tuple(lengths), species, gene_ids_frozen)
