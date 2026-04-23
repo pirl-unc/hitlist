@@ -110,6 +110,7 @@ def generate_report(
     src_flags = [
         ("src_cancer", "Cancer (tumor + non-EBV cell lines)"),
         ("src_adjacent_to_tumor", "Tumor-adjacent normal tissue"),
+        ("src_apc", "APC lineage (B/DC/mono-mac/EBV-LCL)"),
         ("src_activated_apc", "Activated APCs (DC/macrophage artifact)"),
         ("src_healthy_tissue", "Healthy somatic tissue (SAFETY SIGNAL)"),
         ("src_healthy_thymus", "Healthy thymus (expected for CTAs)"),

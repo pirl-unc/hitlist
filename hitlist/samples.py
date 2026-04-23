@@ -106,6 +106,8 @@ def sample_peptidomes(
     for flag in [
         "src_cancer",
         "src_adjacent_to_tumor",
+        "src_apc",
+        "src_activated_apc",
         "src_healthy_tissue",
         "src_healthy_thymus",
         "src_healthy_reproductive",

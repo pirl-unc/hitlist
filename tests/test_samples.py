@@ -49,6 +49,7 @@ def _make_full_scan():
                 "Liver",
             ],
             "src_cancer": [False, False, False, False, False, False, False, False],
+            "src_apc": [False, False, False, False, True, True, False, False],
             "src_healthy_tissue": [True, True, True, True, True, True, True, True],
         }
     )
@@ -109,3 +110,13 @@ def test_sample_peptidomes_monoallelic():
     assert colon["has_monoallelic"] == True  # noqa: E712
     buffy = result[result["antigen_processing_comments"] == "buffy coat 5"].iloc[0]
     assert buffy["has_monoallelic"] == False  # noqa: E712
+
+
+def test_sample_peptidomes_apc_flag():
+    df = _make_full_scan()
+    result = sample_peptidomes(df)
+    assert "src_apc" in result.columns
+    buffy = result[result["antigen_processing_comments"] == "buffy coat 5"].iloc[0]
+    assert buffy["src_apc"] == True  # noqa: E712
+    colon = result[result["antigen_processing_comments"] == "colon 1"].iloc[0]
+    assert colon["src_apc"] == False  # noqa: E712

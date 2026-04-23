@@ -37,6 +37,7 @@ def _make_hits_with_mono():
             "pmid": [111, 222, 333, 444, 555],
             "is_monoallelic": [True, False, True, False, True],
             "src_cancer": [True, True, True, True, False],
+            "src_apc": [True, False, True, False, True],
             "src_healthy_tissue": [False, False, False, False, False],
             "cell_line_name": ["B721.221", "", "K562", "", "B721.221"],
         }
@@ -47,9 +48,11 @@ def test_aggregate_per_peptide_mono():
     df = _make_hits_with_mono()
     result = aggregate_per_peptide(df)
     aaa = result[result["peptide"] == "AAA"].iloc[0]
+    assert aaa["found_in_apc"] == True  # noqa: E712
     assert aaa["has_mono_allelic_evidence"] == True  # noqa: E712
     assert aaa["mono_allelic_hit_count"] == 1
     bbb = result[result["peptide"] == "BBB"].iloc[0]
+    assert bbb["found_in_apc"] == True  # noqa: E712
     assert bbb["has_mono_allelic_evidence"] == True  # noqa: E712
     assert bbb["mono_allelic_hit_count"] == 1
 
@@ -82,6 +85,7 @@ def _make_hits_with_provenance() -> pd.DataFrame:
             "disease": ["skin melanoma", "skin melanoma", ""],
             "cell_line_name": ["", "", ""],
             "src_cancer": [True, True, False],
+            "src_apc": [False, True, True],
             "src_healthy_tissue": [False, False, False],
             "is_monoallelic": [False, True, False],
         }
@@ -94,6 +98,7 @@ def test_aggregate_per_pmhc_with_refs_empty():
     assert result.empty
     # Canonical column list is returned so downstream shape is stable
     assert "ms_pmhc_tissues" in result.columns
+    assert "ms_pmhc_in_apc" in result.columns
     assert "ms_pmhc_in_cancer" in result.columns
 
 
@@ -109,6 +114,7 @@ def test_aggregate_per_pmhc_with_refs_basic():
     assert q["ms_pmhc_tissues"] == "Lymph Node;Skin"
     assert q["ms_pmhc_diseases"] == "skin melanoma"
     assert bool(q["ms_pmhc_in_cancer"]) is True
+    assert bool(q["ms_pmhc_in_apc"]) is True
     assert bool(q["ms_pmhc_in_healthy_tissue"]) is False
     assert int(q["ms_pmhc_mono_hit_count"]) == 1
 
@@ -116,6 +122,7 @@ def test_aggregate_per_pmhc_with_refs_basic():
     assert int(ly_row["length"]) == 9
     assert ly_row["ms_pmhc_pmids"] == "33858848"
     assert ly_row["ms_pmhc_tissues"] == "Thymus"
+    assert bool(ly_row["ms_pmhc_in_apc"]) is True
     assert bool(ly_row["ms_pmhc_in_cancer"]) is False
 
 

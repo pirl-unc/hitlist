@@ -16,7 +16,7 @@ Classification rules and PMID overrides are loaded from YAML data files,
 not hardcoded in Python. This makes the curation logic transparent,
 auditable, and easy to extend without code changes.
 
-Source categories (mutually exclusive priority order)::
+Primary source categories (mutually exclusive priority order)::
 
     cancer              Cancer tissue, cancer patient biofluids, non-EBV cell lines
     adjacent            Tumor-adjacent normal tissue (resection margins)
@@ -24,8 +24,12 @@ Source categories (mutually exclusive priority order)::
     healthy_tissue      Direct ex vivo healthy somatic tissue (THE SAFETY SIGNAL)
     healthy_thymus      Direct ex vivo thymus (expected for CTAs)
     healthy_reproductive Direct ex vivo reproductive tissue (expected for CTAs)
+
+Orthogonal lineage/context flags::
+
+    apc                 APC-lineage contexts (B cells, DCs, monocytes/macrophages, EBV-LCLs)
     ebv_lcl             EBV-transformed B-cell lines
-    cell_line           Other cell lines
+    cell_line           Any cultured cell line
 """
 
 from __future__ import annotations
@@ -104,7 +108,7 @@ def load_tissue_categories() -> dict[str, frozenset[str]]:
     -------
     dict[str, frozenset[str]]
         Keys: ``reproductive``, ``thymus``, ``activated_apc_cell_names``,
-        ``activated_apc_tissues``.
+        ``activated_apc_tissues``, ``apc_cell_name_fragments``.
     """
     with open(_data_path("tissue_categories.yaml")) as f:
         data = yaml.safe_load(f)
@@ -113,6 +117,7 @@ def load_tissue_categories() -> dict[str, frozenset[str]]:
         "thymus": frozenset(data.get("thymus", [])),
         "activated_apc_cell_names": frozenset(data.get("activated_apc_cell_names", [])),
         "activated_apc_tissues": frozenset(data.get("activated_apc_tissues", [])),
+        "apc_cell_name_fragments": frozenset(data.get("apc_cell_name_fragments", [])),
     }
 
 
@@ -607,6 +612,19 @@ def _matches_condition(row_fields: dict[str, str], condition: dict) -> bool:
     return True
 
 
+_APC_DC_ABBREVIATION = re.compile(r"\b(?:mo)?dcs?\b", re.IGNORECASE)
+
+
+def _is_apc_lineage(cell_name: str, categories: dict[str, frozenset[str]]) -> bool:
+    """Return True when a cell-name annotation indicates APC lineage."""
+    if not cell_name:
+        return False
+    cell_name_lower = cell_name.lower()
+    if any(fragment in cell_name_lower for fragment in categories["apc_cell_name_fragments"]):
+        return True
+    return bool(_APC_DC_ABBREVIATION.search(cell_name_lower))
+
+
 @lru_cache(maxsize=16384)
 @cache
 def classify_ms_row(
@@ -683,6 +701,9 @@ def classify_ms_row(
     is_reproductive = source_tissue_lower in categories["reproductive"]
     is_thymus = source_tissue_lower in categories["thymus"]
 
+    # Orthogonal APC-lineage flag: can overlap with cancer, healthy, or EBV-LCL.
+    is_apc = _is_apc_lineage(cell_name_str, categories) or is_ebv_lcl
+
     # Auto-detect activated APCs: DCs/macrophages from blood
     is_activated_apc = (
         cell_name_str.lower() in categories["activated_apc_cell_names"]
@@ -745,6 +766,7 @@ def classify_ms_row(
         is_activated_apc = False
         is_ebv_lcl = True  # force even if IEDB culture_condition is wrong
         is_cell_line = True
+        is_apc = True
     elif effective_override == "healthy":
         is_cancer = False
         is_adjacent = False
@@ -754,7 +776,7 @@ def classify_ms_row(
         is_cancer = process_type == "Occurrence of cancer" or (is_cell_line and not is_ebv_lcl)
         is_adjacent = False
 
-    # Healthy requires: ex vivo, no cancer/adjacent/apc, no disease.
+    # Healthy requires: ex vivo, no cancer/adjacent/activated-APC, no disease.
     # When override is "healthy", force the healthy path regardless of
     # process_type / disease fields (the override corrects bad IEDB metadata).
     is_healthy_donor = effective_override == "healthy" or (
@@ -803,6 +825,7 @@ def classify_ms_row(
     return {
         "src_cancer": is_cancer,
         "src_adjacent_to_tumor": is_adjacent,
+        "src_apc": is_apc,
         "src_activated_apc": is_activated_apc,
         "src_healthy_tissue": is_healthy_donor and not is_reproductive and not is_thymus,
         "src_healthy_thymus": is_healthy_donor and is_thymus,

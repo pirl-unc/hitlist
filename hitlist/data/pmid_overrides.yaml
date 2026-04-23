@@ -2255,6 +2255,14 @@
     ip_antibody: W6/32
     perturbations:
       - "TIL expansion: IL-2 (6000 IU/mL) 3-5 wk → irradiated feeders + OKT3 (30 ng/mL) + IL-2 (3000 IU/mL) 14d"
+    rules:
+      - condition:
+          Process Type: "No immunization"
+          Culture Condition: "Cell Line / Clone"
+          Source Tissue: "Blood"
+          Cell Name: "B cell"
+        override: ebv_lcl
+        reason: Newly generated blood/B-cell arm is donor-derived EBV-LCL, not a cancer cell line
     ms_samples:
       - sample_label: CD165 (EBV-LCL)
         n_samples: 1

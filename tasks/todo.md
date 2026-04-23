@@ -1,3 +1,37 @@
+# APC Lineage Curation Follow-up (2026-04-23)
+
+## Goal
+
+Make APC-lineage presentation queryable across all sources without breaking the existing primary source buckets, and fix the mixed PMID 28832583 study so its EBV-LCL arm is not shipped as generic cancer cell-line evidence.
+
+## Work Plan
+
+- [x] Add an orthogonal APC-lineage flag in source classification
+  Deliverable: classify B-cell, dendritic-cell, monocyte, macrophage, and EBV-LCL rows with a shared `src_apc` flag while preserving the existing primary source buckets (`src_cancer`, `src_healthy_tissue`, `src_activated_apc`, etc.).
+  Verification: targeted curation tests for healthy B cells, THP-1 monocytes, EBV-LCL rows, and activated-APC rows.
+  Result: added `src_apc` in `classify_ms_row()` with APC-lineage detection from curated cell-name fragments plus EBV-LCL context, without widening the narrower `src_activated_apc` bucket.
+
+- [x] Fix PMID 28832583 mixed-arm classification
+  Deliverable: add a scoped PMID rule so the blood/B-cell cell-line arm is curated as `ebv_lcl` while melanoma/TIL rows remain cancer.
+  Verification: regression tests for both the EBV-LCL and melanoma-side row shapes.
+  Result: PMID `28832583` now has a row-level `ebv_lcl` override for the blood/B-cell cell-line arm; direct-ex-vivo melanoma-side rows still classify as cancer.
+
+- [x] Propagate APC lineage through downstream summaries
+  Deliverable: expose APC lineage in peptide/pMHC aggregates, sample summaries, reports, and docs so the flag is usable after export/build.
+  Verification: aggregate/sample/report tests cover the new APC outputs and README language reflects the non-exclusive flag model.
+  Result: APC lineage now surfaces in peptide aggregates (`found_in_apc`), pMHC aggregates (`ms_pmhc_in_apc`), sample summaries (`src_apc`), the report source table, and README docs.
+
+- [x] Bump version and run repo verification
+  Deliverable: patch version bump plus clean `./format.sh`, `./lint.sh`, and `./test.sh`.
+  Verification: all three commands exit 0 on this branch.
+  Result: bumped `hitlist` to `1.15.6`; `./format.sh`, `./lint.sh`, and `./test.sh` all passed after rebasing onto the latest `origin/main`. `./test.sh` finished with `295 passed, 2 skipped` in about 7m 27s.
+
+## Review
+
+- Review finding 1: `src_activated_apc` was too narrow to answer the user-facing question "show me APC-lineage processing," because APC-like rows were split across healthy, cancer, EBV-LCL, and activated-APC contexts. Fixed by adding orthogonal `src_apc` instead of widening the primary buckets.
+- Review finding 2: PMID `28832583` still shipped its EBV-LCL arm as generic cancer cell-line evidence despite the paper curation already documenting donor-derived EBV-LCL samples. Fixed with a scoped row-level override and regression tests for both study arms.
+- Review finding 3: README language claiming mutually-exclusive source categories was already inaccurate for `src_cell_line`/`src_ebv_lcl` and would become more misleading after `src_apc`. Fixed by documenting primary source classes separately from orthogonal lineage/context flags.
+
 # Stražar 2023 Ingestion Plan
 
 ## Goal

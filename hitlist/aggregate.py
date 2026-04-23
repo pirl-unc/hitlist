@@ -74,6 +74,7 @@ def aggregate_per_peptide(hits_df: pd.DataFrame) -> pd.DataFrame:
     for flag in [
         "src_cancer",
         "src_adjacent_to_tumor",
+        "src_apc",
         "src_activated_apc",
         "src_healthy_tissue",
         "src_healthy_thymus",
@@ -140,7 +141,7 @@ def aggregate_per_pmhc_with_refs(hits_df: pd.DataFrame) -> pd.DataFrame:
     (per-pMHC but lean).  Keeps the (peptide, allele) granularity **and**
     surfaces the provenance columns reviewers typically want on a pMHC row:
     reference count, PMID list, distinct tissues / diseases / cell lines,
-    and the cancer / healthy-tissue source flags.
+    and the cancer / healthy-tissue / APC-lineage source flags.
 
     Intended for therapy-prioritization workflows where a reviewer evaluates
     a specific (peptide, allele) pair for vaccine / TCR use and wants to see
@@ -153,7 +154,7 @@ def aggregate_per_pmhc_with_refs(hits_df: pd.DataFrame) -> pd.DataFrame:
         DataFrame from :func:`hitlist.scanner.scan`.  Only ``peptide`` and
         ``mhc_restriction`` are required; optional columns (``pmid``,
         ``source_tissue``, ``disease``, ``cell_line_name``, ``src_cancer``,
-        ``src_healthy_tissue``, ``is_monoallelic``) are used when present
+        ``src_apc``, ``src_healthy_tissue``, ``is_monoallelic``) are used when present
         and silently skipped when absent so both the cached-observations
         fast path and the raw-scan slow path produce valid output.
 
@@ -190,6 +191,7 @@ def aggregate_per_pmhc_with_refs(hits_df: pd.DataFrame) -> pd.DataFrame:
         "ms_pmhc_diseases",
         "ms_pmhc_cell_lines",
         "ms_pmhc_in_cancer",
+        "ms_pmhc_in_apc",
         "ms_pmhc_in_healthy_tissue",
         "ms_pmhc_mono_hit_count",
     ]
@@ -208,6 +210,8 @@ def aggregate_per_pmhc_with_refs(hits_df: pd.DataFrame) -> pd.DataFrame:
         agg["ms_pmhc_cell_lines"] = ("cell_line_name", _join_unique)
     if "src_cancer" in hits_df.columns:
         agg["ms_pmhc_in_cancer"] = ("src_cancer", "any")
+    if "src_apc" in hits_df.columns:
+        agg["ms_pmhc_in_apc"] = ("src_apc", "any")
     if "src_healthy_tissue" in hits_df.columns:
         agg["ms_pmhc_in_healthy_tissue"] = ("src_healthy_tissue", "any")
     if "is_monoallelic" in hits_df.columns:
