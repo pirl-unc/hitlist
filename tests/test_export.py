@@ -1,6 +1,7 @@
 from hitlist.export import (
     _classify_instrument,
     _extract_allele_strings,
+    generate_ms_observations_table,
     generate_ms_samples_table,
     generate_species_summary,
     validate_mhc_alleles,
@@ -788,6 +789,25 @@ def test_generate_observations_serotype_filter(tmp_path, monkeypatch):
     # No match
     df = generate_observations_table(serotype="A99")
     assert len(df) == 0
+
+
+def test_generate_ms_observations_table_alias(monkeypatch):
+    import pandas as pd
+
+    captured = {}
+
+    def fake_generate_observations_table(**kwargs):
+        captured.update(kwargs)
+        return pd.DataFrame({"peptide": ["AAA"]})
+
+    monkeypatch.setattr(
+        "hitlist.export.generate_observations_table", fake_generate_observations_table
+    )
+
+    df = generate_ms_observations_table(mhc_class="I", gene=["PRAME"])
+    assert list(df["peptide"]) == ["AAA"]
+    assert captured["mhc_class"] == "I"
+    assert captured["gene"] == ["PRAME"]
 
 
 def _make_binding_fixture(tmp_path):

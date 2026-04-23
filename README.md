@@ -89,11 +89,11 @@ hitlist export training --include-evidence both --class I --species "Homo sapien
 ### Training-data export
 
 ```python
+from hitlist.export import generate_ms_observations_table
 from hitlist.export import generate_training_table
 
-# Compact mode: one row per evidence row
-mono = generate_training_table(
-    include_evidence="ms",
+# Mono-allelic human class I MS observations with ground-truth allele
+mono_ms = generate_ms_observations_table(
     mhc_class="I",
     species="Homo sapiens",
     is_mono_allelic=True,
@@ -111,13 +111,15 @@ presto = generate_training_table(
 # n_flank, c_flank, proteome, proteome_source
 ```
 
+`generate_observations_table()` remains available as a backward-compatible alias.
+
 Species filters accept any variant — `"Homo sapiens"`, `"human"`, `"homo_sapiens"`, `"Homo sapiens (human)"` all work.
 
 ### Raw observations loading
 
 ```python
 from hitlist.observations import (
-    load_observations,        # MS-eluted immunopeptidome
+    load_ms_observations,     # MS-eluted immunopeptidome
     load_binding,             # in-vitro binding-assay measurements
     load_all_evidence,        # union, tagged with an evidence_kind column
     is_built, is_binding_built,
@@ -125,11 +127,11 @@ from hitlist.observations import (
 )
 
 # MS-elution (the default training-data path)
-df = load_observations()                       # everything (MS-eluted only)
-df = load_observations(mhc_class="I")          # class I only
-df = load_observations(species="Homo sapiens") # human only
-df = load_observations(source="iedb")          # filter by source
-df = load_observations(columns=["peptide", "mhc_restriction", "src_cancer"])
+df = load_ms_observations()                       # everything (MS-eluted only)
+df = load_ms_observations(mhc_class="I")          # class I only
+df = load_ms_observations(species="Homo sapiens") # human only
+df = load_ms_observations(source="iedb")          # filter by source
+df = load_ms_observations(columns=["peptide", "mhc_restriction", "src_cancer"])
 
 # Binding assays — same filter API, reads binding.parquet
 bd = load_binding(mhc_class="I", mhc_restriction="HLA-A*02:01")
@@ -139,6 +141,8 @@ bd = load_binding(mhc_class="I", mhc_restriction="HLA-A*02:01")
 both = load_all_evidence(gene_name="PRAME", mhc_class="I")
 both["evidence_kind"].value_counts()
 ```
+
+`load_observations()` remains available as a backward-compatible alias.
 
 ### Building / curation
 
@@ -176,11 +180,11 @@ The mappings sidecar **preserves multi-mapping** so a peptide shared by MAGEA1/A
 | `n_source_proteins` | `2` |
 
 ```python
-from hitlist.observations import load_observations
+from hitlist.observations import load_ms_observations
 from hitlist.mappings import load_peptide_mappings
 
 # Central columns — fast for everyday filters (uses mappings sidecar for pushdown)
-df = load_observations(gene_name="PRAME")
+df = load_ms_observations(gene_name="PRAME")
 
 # Long form for paralog / position / flank analysis
 mappings = load_peptide_mappings(gene_name="MAGEA4")
@@ -210,7 +214,7 @@ lookup_proteome("Mycobacterium tuberculosis", use_uniprot=True)
 # → {'kind': 'uniprot', 'proteome_id': 'UP000001020', ...}
 ```
 
-## Output schema — `generate_observations_table()`
+## Output schema — `generate_ms_observations_table()`
 
 | Column | Meaning |
 |---|---|

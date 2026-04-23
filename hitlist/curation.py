@@ -825,6 +825,11 @@ _BINDING_ASSAY_KEYWORDS = re.compile(
     re.IGNORECASE,
 )
 
+_COMPETITIVE_BINDING_ASSAY_KEYWORDS = re.compile(
+    r"acid strip(?:ped)?|reference peptide|IC50|(?:human\s+)?(?:beta2m|β2m)",
+    re.IGNORECASE,
+)
+
 
 @cache
 def is_binding_assay(qualitative_measurement: str, assay_comments: str) -> bool:
@@ -844,9 +849,15 @@ def is_binding_assay(qualitative_measurement: str, assay_comments: str) -> bool:
     # Negative results and quantitative tiers are binding assays
     if qm in ("Negative", "Positive-High", "Positive-Intermediate", "Positive-Low"):
         return True
-    # "Positive" with binding assay keywords in comments
+    # "Positive" rows can still be binding assays when the comments
+    # describe the assay format explicitly.
     return bool(
-        qm == "Positive" and assay_comments and _BINDING_ASSAY_KEYWORDS.search(assay_comments)
+        qm == "Positive"
+        and assay_comments
+        and (
+            _BINDING_ASSAY_KEYWORDS.search(assay_comments)
+            or _COMPETITIVE_BINDING_ASSAY_KEYWORDS.search(assay_comments)
+        )
     )
 
 

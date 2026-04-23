@@ -5,6 +5,7 @@ from hitlist.observations import (
     is_binding_built,
     is_built,
     load_binding,
+    load_ms_observations,
     load_observations,
     observations_path,
 )
@@ -70,6 +71,30 @@ def test_load_observations_column_select():
         pytest.skip("Observations table not built")
     df = load_observations(columns=["peptide", "mhc_restriction"])
     assert set(df.columns) == {"peptide", "mhc_restriction"}
+
+
+def test_load_ms_observations_alias(tmp_path, monkeypatch):
+    """Alias should load the MS parquet with the same filter semantics."""
+    import pandas as pd
+
+    ms = pd.DataFrame(
+        {
+            "peptide": ["AAA"],
+            "mhc_restriction": ["HLA-A*02:01"],
+            "mhc_class": ["I"],
+            "reference_iri": ["ms-1"],
+            "pmid": pd.array([1], dtype="Int64"),
+            "source": ["iedb"],
+            "mhc_species": ["Homo sapiens"],
+            "is_binding_assay": [False],
+        }
+    )
+    obs_p = tmp_path / "observations.parquet"
+    ms.to_parquet(obs_p, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_p)
+
+    df = load_ms_observations(mhc_class="I")
+    assert list(df["peptide"]) == ["AAA"]
 
 
 def test_load_binding_not_built(tmp_path, monkeypatch):
