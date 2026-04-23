@@ -3708,6 +3708,27 @@
         mhc_class: "I+II"
         mhc: "HLA-A*68:02 HLA-B*15:03 HLA-C*12:03 HLA-DRB1*01:02"
 
+  - pmid: 24366607
+    study_label: "Marcilla 2014 — HLA-B*40:02 phosphopeptidome"
+    title: "Increased diversity of the HLA-B40 ligandome by the presentation of peptides phosphorylated at their main anchor residue"
+    override: cell_line
+    mono_allelic_host: "C1R"
+    note: >
+      C1R-B*40:02 transfectant profiled as a mono-allelic HLA-I ligandome
+      with targeted phosphopeptide enrichment. The source paper reports more
+      than 2,000 unique HLA-B*40:02 ligands and 85 validated phospholigands
+      after sequential IMAC + TiO2 enrichment. Current IEDB rows for this
+      PMID are cleanly allele-resolved: 2,318 class I observations, all
+      HLA-B*40:02, almost entirely annotated as C1R cells.
+    ip_antibody: W6/32
+    ms_samples:
+      - sample_label: "C1R-HLA-B*40:02"
+        n_samples: 1
+        source: "C1R cells transfected with single HLA-B*40:02 allele; ~10^10 cells"
+        condition: "unperturbed — mono-allelic phosphopeptidome (IMAC + TiO2 enrichment)"
+        mhc_class: "I"
+        mhc: "HLA-B*40:02"
+
   - pmid: 27920218
     study_label: "Alpizar 2017 — HLA-B phosphopeptidome"
     title: "A Molecular Basis for the Presentation of Phosphorylated Peptides by HLA-B Antigens"

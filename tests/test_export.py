@@ -154,6 +154,18 @@ def test_ms_samples_alpizar_2017_split():
     assert set(al["mhc_class"]) == {"I"}
 
 
+def test_ms_samples_marcilla_2014_c1r_b4002():
+    """Marcilla 2014 should export as one C1R mono-allelic B*40:02 sample."""
+    df = generate_ms_samples_table()
+    mc = df[df["pmid"] == 24366607]
+    assert len(mc) == 1, f"expected 1 Marcilla sample, got {len(mc)}"
+    row = mc.iloc[0]
+    assert row["sample_label"] == "C1R-HLA-B*40:02"
+    assert row["mhc"] == "HLA-B*40:02"
+    assert row["mhc_class"] == "I"
+    assert row["ip_antibody"] == "W6/32"
+
+
 def test_ms_samples_illing_2018_split():
     """Illing 2018 should be split per HLA-B57/B58 transfectant (3 entries)."""
     df = generate_ms_samples_table()
