@@ -2799,6 +2799,46 @@
         ip_antibody: "LB3.1 (DR), B721 (DP), SPV-L3 (DQ)"
         mhc: "HLA-DRB1*07:01 HLA-DRB1*13:05 HLA-DPA1*02:01 HLA-DPB1*17:01 HLA-DQA1*02:02 HLA-DQB1*03:01"
 
+  - pmid: 29093164
+    study_label: "Schuster 2017 — ovarian carcinoma immunopeptidome"
+    title: "The immunopeptidomic landscape of ovarian carcinomas"
+    override:
+    note: >
+      Direct-ex-vivo epithelial ovarian carcinoma (EOC) tissue immunopeptidome
+      with class I and class II arms. The source paper reports 42 EOC samples
+      for HLA-I and 30 for HLA-II, using W6/32, Tu39, and L243 IP on an LTQ
+      Orbitrap XL. Current IEDB rows split into ovarian-cancer tissue plus a
+      benign comparator arm collapsed as Source Tissue "Other" with blank
+      disease; the row-level comments identify those comparators as benign
+      tissues (peripheral blood, colon, kidney, liver) collected from ovarian
+      cancer patients during surgery. Those comparator rows are not healthy
+      donor evidence and should not count as src_healthy_tissue.
+    ip_antibody: "W6/32 (I), Tu39 (II), L243 (DR)"
+    instrument: "LTQ Orbitrap XL"
+    acquisition_mode: DDA
+    ms_samples:
+      - sample_label: "epithelial ovarian carcinoma tissue (class I)"
+        n_samples: 42
+        condition: "unperturbed — surgical resection / debulking"
+        mhc_class: "I"
+        classification: cancer
+      - sample_label: "epithelial ovarian carcinoma tissue (class II)"
+        n_samples: 30
+        condition: "unperturbed — surgical resection / debulking"
+        mhc_class: "II"
+        classification: cancer
+      - sample_label: "benign comparator tissues from ovarian cancer patients"
+        condition: "unperturbed — benign comparator tissues collected during surgery"
+        mhc_class: "I+II"
+        classification: adjacent
+    rules:
+      - condition:
+          Source Tissue: "Other"
+          Disease: ""
+          Process Type: "No immunization"
+        override: adjacent
+        reason: "IEDB comparator rows are benign tissues from ovarian cancer patients, not healthy donors."
+
   - pmid: 29242379
     study_label: "Chong 2018 — high-throughput immunopeptidomics ± IFNg"
     title: "High-throughput and Sensitive Immunopeptidomics Platform Reveals Profound Interferon-gamma-Mediated Remodeling of the Human Leukocyte Antigen (HLA) Ligandome"

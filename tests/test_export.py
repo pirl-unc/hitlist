@@ -130,6 +130,21 @@ def test_ms_samples_mhc_class_only():
     assert pat9.iloc[0]["mhc"] == "HLA class I"
 
 
+def test_ms_samples_schuster_2017_ovarian():
+    """Schuster 2017 should expose tumor + benign comparator sample arms."""
+    df = generate_ms_samples_table()
+    sc = df[df["pmid"] == 29093164]
+    assert len(sc) == 3, f"expected 3 Schuster sample rows, got {len(sc)}"
+    assert set(sc["sample_label"]) == {
+        "epithelial ovarian carcinoma tissue (class I)",
+        "epithelial ovarian carcinoma tissue (class II)",
+        "benign comparator tissues from ovarian cancer patients",
+    }
+    assert set(sc["mhc_class"]) == {"I", "II", "I+II"}
+    assert (sc["instrument"] == "LTQ Orbitrap XL").all()
+    assert (sc["ip_antibody"] == "W6/32 (I), Tu39 (II), L243 (DR)").all()
+
+
 def test_ms_samples_strazar_2023():
     """Stražar 2023 should export one class II sample row per profiled allele."""
     df = generate_ms_samples_table()
