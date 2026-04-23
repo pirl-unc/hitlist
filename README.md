@@ -71,33 +71,44 @@ hitlist data build                           # a few minutes end-to-end;
                                              # binding.parquet + peptide_mappings.parquet
 
 # Export training-ready CSVs
-hitlist export observations --class I --species "Homo sapiens" --mono-allelic \
+hitlist export training --include-evidence ms --class I --species "Homo sapiens" --mono-allelic \
     --min-allele-resolution four_digit -o mono_allelic_classI.csv
 
-hitlist export observations --class II --species "Homo sapiens" \
-    -o multi_allelic_classII.csv
+hitlist export training --include-evidence ms --class II --species "Homo sapiens" \
+    -o classII_training.csv
+
+# Presto-style flank-aware export: one row per (evidence row, peptide mapping)
+hitlist export training --include-evidence both --class I --species "Homo sapiens" \
+    --explode-mappings -o presto_training.parquet
 ```
 
-Binding-assay data (peptide microarrays, refolding, MEDi display) lives in a **separate** index — `binding.parquet`, exported via `hitlist export binding`. MS-elution and in-vitro binding measurements are never mixed by default. For pipelines that explicitly want both (e.g. affinity-predictor training data), `hitlist.observations.load_all_evidence()` returns a union tagged with an `evidence_kind` column.
+`hitlist export training` does **not** create a new canonical store. It composes the existing `observations.parquet`, `binding.parquet`, and `peptide_mappings.parquet` indexes into one training-facing export surface. The low-level indexes keep their semantic boundaries; the training export gives downstream consumers one obvious API/CLI path when they want model-ready tables.
 
 ## Python API
 
 ### Training-data export
 
 ```python
-from hitlist.export import generate_observations_table
+from hitlist.export import generate_training_table
 
-# Mono-allelic human class I: 579K observations with ground-truth allele
-mono = generate_observations_table(
+# Compact mode: one row per evidence row
+mono = generate_training_table(
+    include_evidence="ms",
     mhc_class="I",
     species="Homo sapiens",
     is_mono_allelic=True,
     min_allele_resolution="four_digit",
 )
 
-# Multi-allelic with at least allele-pool info (74.8% of all rows)
-multi = generate_observations_table(mhc_class="I", species="Homo sapiens")
-multi_with_alleles = multi[multi["sample_mhc"].str.strip() != ""]
+# Presto-style mapping-aware export: one row per (evidence row, peptide mapping)
+presto = generate_training_table(
+    include_evidence="both",
+    mhc_class="I",
+    species="Homo sapiens",
+    explode_mappings=True,
+)
+# columns now include: evidence_kind, evidence_row_id, protein_id, position,
+# n_flank, c_flank, proteome, proteome_source
 ```
 
 Species filters accept any variant — `"Homo sapiens"`, `"human"`, `"homo_sapiens"`, `"Homo sapiens (human)"` all work.
@@ -149,9 +160,10 @@ scan_supplementary()                 # DataFrame of curated paper-supplement pep
 
 ### Peptide → protein attribution and flanking context
 
-`hitlist data build` always produces two parquet files (use `--no-mappings` to skip):
+`hitlist data build` always produces three parquet files (use `--no-mappings` to skip `peptide_mappings.parquet`):
 
 - `~/.hitlist/observations.parquet` — one row per assay observation
+- `~/.hitlist/binding.parquet` — one row per binding-assay observation
 - `~/.hitlist/peptide_mappings.parquet` — one row per (peptide, protein, position)
 
 The mappings sidecar **preserves multi-mapping** so a peptide shared by MAGEA1/A4/A10/A12 keeps every paralog. Observations additionally carry semicolon-joined identity columns:
@@ -289,6 +301,7 @@ hitlist data index [--source iedb|cedar|merged|all] [--force]
 hitlist export observations [filters...] -o train.csv   # MS immunopeptidome + sample metadata
 hitlist export observations -o train.parquet            # parquet output supported
 hitlist export binding [filters...] -o binding.csv      # binding-assay index (separate from MS)
+hitlist export training [filters...] -o training.csv    # unified training export from canonical indexes
 hitlist export samples [--class I|II]                   # per-sample conditions (YAML curation only)
 hitlist export summary                                  # species x class summary
 hitlist export counts [--source iedb|cedar|merged|all]  # peptide counts per PMID
@@ -296,19 +309,21 @@ hitlist export alleles                                  # validate YAML alleles 
 hitlist export data-alleles                             # validate all IEDB/CEDAR alleles
 ```
 
-### MS vs binding: two separate indexes
+### Canonical indexes and the training export
 
-Each `hitlist data build` writes **two** parquet files to `~/.hitlist/`:
+Each `hitlist data build` writes **three** parquet files to `~/.hitlist/`:
 
 - `observations.parquet` — MS-eluted immunopeptidome (IEDB + CEDAR + curated supplementary).
 - `binding.parquet` — binding-assay rows (peptide microarray, refolding, MEDi, and
   quantitative-tier measurements like `Positive-High/Intermediate/Low`).
+- `peptide_mappings.parquet` — long-form peptide → protein/position/flank mappings.
 
-The two indexes are never mixed. Supplementary data is MS-only. Use
-`hitlist export observations` for immunopeptidome training data and
-`hitlist export binding` for affinity / binding-predictor work. They
-share the same schema plus the mappings-sidecar gene annotations, so the
-same filters apply to both.
+The canonical indexes are never silently mixed. Supplementary data is MS-only.
+Use `hitlist export observations` and `hitlist export binding` when you want
+the raw evidence families separately. Use `hitlist export training` or
+`generate_training_table(...)` when you want a composed model-facing export
+with `evidence_kind` tagging and optional mapping explosion for flank-aware
+training pipelines.
 
 ### Filters on `hitlist export observations`
 
@@ -346,6 +361,21 @@ appears in the binding index.
 ```bash
 hitlist export binding --gene PRAME --class I -o prame_binding.csv
 hitlist export binding --mhc-allele HLA-A*02:01 --serotype Bw4
+```
+
+### Filters on `hitlist export training`
+
+`hitlist export training` exposes the shared pMHC filters plus two export-shape controls:
+
+- `--include-evidence ms|binding|both` chooses which canonical evidence families to compose.
+- `--explode-mappings` expands the output to one row per `(evidence row, peptide mapping)` with `protein_id`, `position`, `n_flank`, `c_flank`, `proteome`, and `proteome_source`.
+
+MS-specific filters (`--mono-allelic`, `--instrument-type`, `--acquisition-mode`) apply only to the MS slice. Binding rows never gain fake sample context; they remain tagged as `evidence_kind="binding"` with `sample_match_type="not_applicable"`.
+
+```bash
+hitlist export training --include-evidence both --gene PRAME --class I -o prame_training.csv
+hitlist export training --include-evidence ms --mono-allelic --class I -o mono_ms.csv
+hitlist export training --include-evidence both --explode-mappings -o presto_training.parquet
 ```
 
 ### A note on mono-allelic curation

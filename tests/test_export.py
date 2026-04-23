@@ -572,6 +572,36 @@ def test_observations_join_with_synthetic_fixture(tmp_path, monkeypatch):
     assert row3["has_peptide_level_allele"] is False or row3["has_peptide_level_allele"] == False  # noqa: E712
 
 
+def test_generate_observations_has_peptide_level_allele_uses_resolution(tmp_path, monkeypatch):
+    """Class-only / serological restrictions are not allele-level evidence."""
+    import pandas as pd
+
+    from hitlist.export import generate_observations_table
+
+    obs_data = pd.DataFrame(
+        {
+            "peptide": ["AAA", "BBB", "CCC"],
+            "mhc_restriction": ["HLA-A*02:01", "HLA-A2", "HLA class I"],
+            "mhc_class": ["I", "I", "I"],
+            "reference_iri": ["1", "2", "3"],
+            "pmid": pd.array([33858848, 33858848, 33858848], dtype="Int64"),
+            "source": ["iedb", "iedb", "iedb"],
+            "mhc_species": ["Homo sapiens", "Homo sapiens", "Homo sapiens"],
+            "is_monoallelic": [False, False, False],
+            "is_binding_assay": [False, False, False],
+            "qualitative_measurement": ["Positive", "Positive", "Positive"],
+            "allele_resolution": ["four_digit", "serological", "class_only"],
+        }
+    )
+    obs_path = tmp_path / "observations.parquet"
+    obs_data.to_parquet(obs_path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+
+    df = generate_observations_table()
+    by_peptide = df.set_index("peptide")["has_peptide_level_allele"].to_dict()
+    assert by_peptide == {"AAA": True, "BBB": False, "CCC": False}
+
+
 def test_generate_observations_gene_filter_requires_mappings(tmp_path, monkeypatch):
     """Using --gene without a peptide_mappings sidecar should error clearly."""
     import pandas as pd
@@ -806,3 +836,282 @@ def test_generate_binding_table_mhc_and_serotype_filters(tmp_path, monkeypatch):
 
     df = generate_binding_table(source="cedar")
     assert list(df["peptide"]) == ["PEP2"]
+
+
+def test_generate_training_table_unifies_ms_and_binding(tmp_path, monkeypatch):
+    import pandas as pd
+
+    from hitlist.export import generate_training_table
+
+    obs_data = pd.DataFrame(
+        {
+            "peptide": ["AAAAAAAAA", "BBBBBBBBB"],
+            "mhc_restriction": ["HLA-A*02:01", ""],
+            "mhc_class": ["I", "I"],
+            "reference_iri": ["iri:1", "iri:2"],
+            "pmid": pd.array([33858848, 38480730], dtype="Int64"),
+            "source": ["iedb", "supplement"],
+            "mhc_species": ["Homo sapiens", "Homo sapiens"],
+            "is_monoallelic": [False, False],
+            "is_binding_assay": [False, False],
+            "qualitative_measurement": ["Positive", ""],
+        }
+    )
+    obs_path = tmp_path / "observations.parquet"
+    obs_data.to_parquet(obs_path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+
+    bd_path = _make_binding_fixture(tmp_path)
+    monkeypatch.setattr("hitlist.observations.binding_path", lambda: bd_path)
+
+    df = generate_training_table(include_evidence="both")
+    assert set(df["evidence_kind"]) == {"ms", "binding"}
+    assert "evidence_row_id" in df.columns
+
+    ms = df[df["evidence_kind"] == "ms"]
+    binding = df[df["evidence_kind"] == "binding"]
+
+    assert len(ms) == 2
+    assert len(binding) == 4
+    assert ms["sample_match_type"].ne("not_applicable").any()
+    assert (binding["sample_match_type"] == "not_applicable").all()
+    assert (binding["matched_sample_count"] == 0).all()
+    assert (binding["sample_mhc"] == "").all()
+
+
+def test_generate_training_table_explodes_mappings(tmp_path, monkeypatch):
+    import pandas as pd
+
+    from hitlist import downloads
+    from hitlist.export import generate_training_table
+
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
+
+    obs_data = pd.DataFrame(
+        {
+            "peptide": ["AAAAAAAAA", "BBBBBBBBB"],
+            "mhc_restriction": ["HLA-A*02:01", "HLA-B*07:02"],
+            "mhc_class": ["I", "I"],
+            "reference_iri": ["iri:1", "iri:2"],
+            "pmid": pd.array([33858848, 33858848], dtype="Int64"),
+            "source": ["iedb", "iedb"],
+            "mhc_species": ["Homo sapiens", "Homo sapiens"],
+            "is_monoallelic": [False, False],
+            "is_binding_assay": [False, False],
+            "qualitative_measurement": ["Positive", "Positive"],
+            "gene_names": ["PRAME", "MAGEA1"],
+            "gene_ids": ["ENSG00000185686", "ENSG00000198681"],
+            "protein_ids": ["P1;P2", "P3"],
+        }
+    )
+    obs_path = tmp_path / "observations.parquet"
+    obs_data.to_parquet(obs_path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+
+    mappings_data = pd.DataFrame(
+        {
+            "peptide": ["AAAAAAAAA", "AAAAAAAAA", "BBBBBBBBB"],
+            "protein_id": ["P1", "P2", "P3"],
+            "gene_name": ["PRAME", "PRAME", "MAGEA1"],
+            "gene_id": ["ENSG00000185686", "ENSG00000185686", "ENSG00000198681"],
+            "position": [10, 25, 7],
+            "n_flank": ["NNNNN", "QQQQQ", "MMMMM"],
+            "c_flank": ["CCCCC", "RRRRR", "TTTTT"],
+            "proteome": ["Homo sapiens", "Homo sapiens", "Homo sapiens"],
+            "proteome_source": ["species", "species", "species"],
+        }
+    )
+    mappings_path = tmp_path / "peptide_mappings.parquet"
+    mappings_data.to_parquet(mappings_path, index=False)
+
+    df = generate_training_table(include_evidence="ms", explode_mappings=True)
+    assert len(df) == 3
+    assert {"protein_id", "position", "n_flank", "c_flank"} <= set(df.columns)
+    assert df["evidence_row_id"].nunique() == 2
+
+    aa = df[df["peptide"] == "AAAAAAAAA"]
+    assert set(aa["protein_id"]) == {"P1", "P2"}
+    assert set(aa["n_flank"]) == {"NNNNN", "QQQQQ"}
+
+
+def test_generate_training_table_exploded_mappings_respect_gene_filter(tmp_path, monkeypatch):
+    import pandas as pd
+
+    from hitlist import downloads
+    from hitlist.export import generate_training_table
+
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
+
+    obs_data = pd.DataFrame(
+        {
+            "peptide": ["SHAREDPEP"],
+            "mhc_restriction": ["HLA-A*02:01"],
+            "mhc_class": ["I"],
+            "reference_iri": ["iri:1"],
+            "pmid": pd.array([33858848], dtype="Int64"),
+            "source": ["iedb"],
+            "mhc_species": ["Homo sapiens"],
+            "is_monoallelic": [False],
+            "is_binding_assay": [False],
+            "qualitative_measurement": ["Positive"],
+            "gene_names": ["PRAME;MAGEA1"],
+            "gene_ids": ["ENSG1;ENSG2"],
+            "protein_ids": ["P1;P2"],
+            "n_source_proteins": [2],
+        }
+    )
+    obs_path = tmp_path / "observations.parquet"
+    obs_data.to_parquet(obs_path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+
+    pd.DataFrame(columns=obs_data.columns).to_parquet(tmp_path / "binding.parquet", index=False)
+
+    mappings_data = pd.DataFrame(
+        {
+            "peptide": ["SHAREDPEP", "SHAREDPEP"],
+            "protein_id": ["P1", "P2"],
+            "gene_name": ["PRAME", "MAGEA1"],
+            "gene_id": ["ENSG1", "ENSG2"],
+            "position": [10, 20],
+            "n_flank": ["NN", "MM"],
+            "c_flank": ["CC", "TT"],
+            "proteome": ["Homo sapiens", "Homo sapiens"],
+            "proteome_source": ["species", "species"],
+        }
+    )
+    mappings_data.to_parquet(tmp_path / "peptide_mappings.parquet", index=False)
+
+    df = generate_training_table(
+        include_evidence="ms",
+        gene_name="PRAME",
+        explode_mappings=True,
+    )
+    assert len(df) == 1
+    assert df.iloc[0]["gene_name"] == "PRAME"
+    assert df.iloc[0]["protein_id"] == "P1"
+
+
+def test_generate_training_table_binding_has_peptide_level_allele_uses_resolution(
+    tmp_path, monkeypatch
+):
+    import pandas as pd
+
+    from hitlist.export import generate_training_table
+
+    binding_data = pd.DataFrame(
+        {
+            "peptide": ["P1", "P2", "P3"],
+            "mhc_restriction": ["HLA-A*02:01", "HLA-A2", "HLA class I"],
+            "mhc_class": ["I", "I", "I"],
+            "reference_iri": ["b1", "b2", "b3"],
+            "pmid": pd.array([1, 2, 3], dtype="Int64"),
+            "source": ["iedb", "iedb", "iedb"],
+            "mhc_species": ["Homo sapiens"] * 3,
+            "is_binding_assay": [True] * 3,
+            "qualitative_measurement": ["Positive", "Positive", "Positive"],
+            "allele_resolution": ["four_digit", "serological", "class_only"],
+        }
+    )
+    binding_path = tmp_path / "binding.parquet"
+    binding_data.to_parquet(binding_path, index=False)
+    monkeypatch.setattr("hitlist.observations.binding_path", lambda: binding_path)
+
+    df = generate_training_table(include_evidence="binding")
+    by_peptide = df.set_index("peptide")["has_peptide_level_allele"].to_dict()
+    assert by_peptide == {"P1": True, "P2": False, "P3": False}
+
+
+def test_generate_training_table_rejects_invalid_evidence_mode():
+    import pytest
+
+    from hitlist.export import generate_training_table
+
+    with pytest.raises(ValueError, match="include_evidence"):
+        generate_training_table(include_evidence="oops")
+
+
+def test_generate_training_table_projection_preserves_evidence_identity(tmp_path, monkeypatch):
+    import pandas as pd
+
+    from hitlist.export import generate_training_table
+
+    obs_data = pd.DataFrame(
+        {
+            "peptide": ["PEP"],
+            "mhc_restriction": ["HLA-A*02:01"],
+            "mhc_class": ["I"],
+            "reference_iri": ["iri:1"],
+            "pmid": pd.array([33858848], dtype="Int64"),
+            "source": ["iedb"],
+            "mhc_species": ["Homo sapiens"],
+            "is_monoallelic": [False],
+            "is_binding_assay": [False],
+            "qualitative_measurement": ["Positive"],
+        }
+    )
+    obs_path = tmp_path / "observations.parquet"
+    obs_data.to_parquet(obs_path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+
+    pd.DataFrame(columns=obs_data.columns).to_parquet(tmp_path / "binding.parquet", index=False)
+
+    df = generate_training_table(include_evidence="ms", columns=["peptide"])
+    assert df.columns.tolist() == ["peptide", "evidence_kind", "evidence_row_id"]
+
+
+def test_export_training_cli_helper(monkeypatch):
+    import argparse
+
+    import pandas as pd
+
+    from hitlist.cli import _export_training
+
+    captured = {}
+
+    def fake_generate_training_table(**kwargs):
+        captured.update(kwargs)
+        return pd.DataFrame({"evidence_kind": ["ms"], "peptide": ["AAAAAAAAA"]})
+
+    monkeypatch.setattr("hitlist.export.generate_training_table", fake_generate_training_table)
+
+    args = argparse.Namespace(
+        include_evidence="both",
+        mhc_class="I",
+        species="Homo sapiens",
+        source="iedb",
+        instrument_type="Orbitrap",
+        acquisition_mode="DDA",
+        mono_allelic=True,
+        min_allele_resolution="four_digit",
+        mhc_allele=["HLA-A*02:01"],
+        gene=["PRAME"],
+        gene_name=["PRAME"],
+        gene_id=["ENSG00000185686"],
+        peptide=["AAAAAAAAA"],
+        serotype=["A2"],
+        length_min=8,
+        length_max=11,
+        explode_mappings=True,
+    )
+
+    df = _export_training(args)
+    assert list(df["evidence_kind"]) == ["ms"]
+    assert captured == {
+        "include_evidence": "both",
+        "mhc_class": "I",
+        "species": "Homo sapiens",
+        "source": "iedb",
+        "instrument_type": "Orbitrap",
+        "acquisition_mode": "DDA",
+        "is_mono_allelic": True,
+        "min_allele_resolution": "four_digit",
+        "mhc_allele": ["HLA-A*02:01"],
+        "gene": ["PRAME"],
+        "gene_name": ["PRAME"],
+        "gene_id": ["ENSG00000185686"],
+        "peptide": ["AAAAAAAAA"],
+        "serotype": ["A2"],
+        "length_min": 8,
+        "length_max": 11,
+        "explode_mappings": True,
+    }

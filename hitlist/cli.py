@@ -571,6 +571,92 @@ def main() -> None:
     )
     p_bind.add_argument("--output", "-o", help="Write to file (.csv or .parquet)")
 
+    p_training = export_sub.add_parser(
+        "training",
+        help=(
+            "Unified pMHC training export composed from the canonical MS, "
+            "binding, and peptide-mappings indexes."
+        ),
+    )
+    p_training.add_argument(
+        "--include-evidence",
+        choices=["ms", "binding", "both"],
+        default="both",
+        help="Which evidence families to include (default: both).",
+    )
+    p_training.add_argument("--class", dest="mhc_class", help="MHC class (I or II)")
+    p_training.add_argument("--species", help="Filter by MHC species")
+    p_training.add_argument(
+        "--source",
+        choices=["iedb", "cedar", "supplement"],
+        help=(
+            "Filter by data source. Supplementary data is MS-only, so it "
+            "only contributes rows when --include-evidence includes ms."
+        ),
+    )
+    p_training.add_argument(
+        "--instrument-type",
+        help="MS-only filter on instrument type (Orbitrap, timsTOF).",
+    )
+    p_training.add_argument(
+        "--acquisition-mode",
+        help="MS-only filter on acquisition mode (DDA, DIA, PRM).",
+    )
+    p_training.add_argument(
+        "--mono-allelic",
+        dest="mono_allelic",
+        action="store_true",
+        default=None,
+        help="MS-only filter: keep mono-allelic rows.",
+    )
+    p_training.add_argument(
+        "--multi-allelic",
+        dest="mono_allelic",
+        action="store_false",
+        help="MS-only filter: keep multi-allelic rows.",
+    )
+    p_training.add_argument(
+        "--min-allele-resolution",
+        choices=["four_digit", "two_digit", "serological", "class_only"],
+        help="Minimum allele resolution",
+    )
+    p_training.add_argument(
+        "--mhc-allele",
+        action="append",
+        help="Exact allele filter. Repeatable or comma-separated.",
+    )
+    p_training.add_argument(
+        "--gene",
+        action="append",
+        help=(
+            "Filter by gene (HGNC symbol, Ensembl ID, or old alias). "
+            "Repeatable or comma-separated. Requires a mappings-built index."
+        ),
+    )
+    p_training.add_argument("--gene-name", action="append", help="Exact match on gene_name.")
+    p_training.add_argument("--gene-id", action="append", help="Exact match on gene_id.")
+    p_training.add_argument(
+        "--peptide",
+        action="append",
+        help="Filter to one or more peptide sequences. Repeatable or comma-separated.",
+    )
+    p_training.add_argument(
+        "--serotype",
+        action="append",
+        help="Filter by HLA serotype. Repeatable or comma-separated.",
+    )
+    p_training.add_argument("--length-min", type=int, help="Minimum peptide length (inclusive).")
+    p_training.add_argument("--length-max", type=int, help="Maximum peptide length (inclusive).")
+    p_training.add_argument(
+        "--explode-mappings",
+        action="store_true",
+        help=(
+            "Expand to one row per (evidence row, peptide mapping), adding "
+            "protein/position/flank columns for training pipelines such as Presto."
+        ),
+    )
+    p_training.add_argument("--output", "-o", help="Write to file (.csv or .parquet)")
+
     p_bulk = export_sub.add_parser(
         "bulk",
         help=(
@@ -790,6 +876,31 @@ def _export_bulk(args: argparse.Namespace):
     return pd.concat(frames, ignore_index=True, sort=False) if frames else pd.DataFrame()
 
 
+def _export_training(args: argparse.Namespace):
+    """Run the ``hitlist export training`` subcommand."""
+    from .export import generate_training_table
+
+    return generate_training_table(
+        include_evidence=getattr(args, "include_evidence", "both"),
+        mhc_class=getattr(args, "mhc_class", None),
+        species=getattr(args, "species", None),
+        source=getattr(args, "source", None),
+        instrument_type=getattr(args, "instrument_type", None),
+        acquisition_mode=getattr(args, "acquisition_mode", None),
+        is_mono_allelic=getattr(args, "mono_allelic", None),
+        min_allele_resolution=getattr(args, "min_allele_resolution", None),
+        mhc_allele=getattr(args, "mhc_allele", None),
+        gene=getattr(args, "gene", None),
+        gene_name=getattr(args, "gene_name", None),
+        gene_id=getattr(args, "gene_id", None),
+        peptide=getattr(args, "peptide", None),
+        serotype=getattr(args, "serotype", None),
+        length_min=getattr(args, "length_min", None),
+        length_max=getattr(args, "length_max", None),
+        explode_mappings=getattr(args, "explode_mappings", False),
+    )
+
+
 def _export_progress(msg: str) -> None:
     """Print a single-line progress message to stderr (not stdout).
 
@@ -838,6 +949,7 @@ def _export(args: argparse.Namespace) -> None:
             df = generate_observations_table(
                 mhc_class=args.mhc_class,
                 species=getattr(args, "species", None),
+                source=getattr(args, "source", None),
                 instrument_type=getattr(args, "instrument_type", None),
                 acquisition_mode=getattr(args, "acquisition_mode", None),
                 is_mono_allelic=getattr(args, "mono_allelic", None),
@@ -848,7 +960,7 @@ def _export(args: argparse.Namespace) -> None:
                 gene_id=getattr(args, "gene_id", None),
                 serotype=getattr(args, "serotype", None),
             )
-        except ValueError as e:
+        except (ValueError, FileNotFoundError) as e:
             print(f"Error: {e}", file=sys.stderr)
             sys.exit(1)
     elif cmd == "binding":
@@ -865,7 +977,17 @@ def _export(args: argparse.Namespace) -> None:
                 gene_id=getattr(args, "gene_id", None),
                 serotype=getattr(args, "serotype", None),
             )
-        except ValueError as e:
+        except (ValueError, FileNotFoundError) as e:
+            print(f"Error: {e}", file=sys.stderr)
+            sys.exit(1)
+    elif cmd == "training":
+        _export_progress(
+            "Composing the training export from observations.parquet, binding.parquet, "
+            "and peptide_mappings.parquet ..."
+        )
+        try:
+            df = _export_training(args)
+        except (ValueError, FileNotFoundError) as e:
             print(f"Error: {e}", file=sys.stderr)
             sys.exit(1)
     elif cmd == "bulk":
@@ -874,7 +996,7 @@ def _export(args: argparse.Namespace) -> None:
     else:
         print(
             "Usage: hitlist export "
-            "{samples,summary,alleles,data-alleles,counts,observations,binding,bulk}"
+            "{samples,summary,alleles,data-alleles,counts,observations,binding,training,bulk}"
         )
         sys.exit(1)
 
