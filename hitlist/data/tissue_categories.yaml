@@ -27,3 +27,12 @@ activated_apc_cell_names:
 
 activated_apc_tissues:
   - blood
+
+# Cell-name fragments / abbreviations that indicate APC lineage across
+# all source contexts. This is orthogonal to the narrower activated-APC
+# bucket above.
+apc_cell_name_fragments:
+  - b cell
+  - dendritic cell
+  - macrophage
+  - monocyte

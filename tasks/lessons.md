@@ -2,6 +2,9 @@
 
 ## 2026-04-23
 
+- When parallel PRs are in flight, start follow-on work from refreshed `main` in a fresh worktree and explain the path/branch choice up front.
+  Rule: if a user asks to continue after another PR is merging, do not keep stacking changes on an older feature worktree; branch from updated `main`, and if the working directory path differs from the repo root, explain that it is a separate git worktree before deep implementation starts.
+
 - When adding a composed export on top of existing indexes, test the post-filter expansion path explicitly.
   Rule: if an export filters evidence rows first and then re-expands through a secondary index, add a regression test with a shared key (for example a shared peptide) to prove the secondary expansion still respects the original filter semantics.
 

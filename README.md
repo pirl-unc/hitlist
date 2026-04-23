@@ -224,7 +224,7 @@ lookup_proteome("Mycobacterium tuberculosis", use_uniprot=True)
 | `is_potential_contaminant` | True for MS-eluted peptides that failed NetMHCpan binding prediction |
 | `sample_match_type` | How `sample_mhc` was populated (see below) |
 | `matched_sample_count` | Number of curated samples for this PMID |
-| `src_cancer`, `src_healthy_tissue`, `src_ebv_lcl`, ... | Mutually-exclusive biological source categories |
+| `src_cancer`, `src_healthy_tissue`, `src_apc`, `src_ebv_lcl`, ... | Primary source class plus orthogonal lineage/context flags |
 | `source` | `iedb`, `cedar`, or `supplement` |
 | `source_organism`, `reference_title`, `cell_name`, `source_tissue`, `disease` | IEDB sample context |
 | `instrument`, `instrument_type`, `acquisition_mode`, `fragmentation`, `labeling`, `ip_antibody` | MS acquisition from `ms_samples` curation |
@@ -241,7 +241,9 @@ lookup_proteome("Mycobacterium tuberculosis", use_uniprot=True)
 
 ## Biological source classification
 
-Every observation is classified by mutually-exclusive biological source category:
+Every observation gets one primary source classification plus optional orthogonal lineage/context flags:
+
+### Primary source classes
 
 | Category | Flag | Rule |
 |---|---|---|
@@ -251,10 +253,16 @@ Every observation is classified by mutually-exclusive biological source category
 | Healthy somatic | `src_healthy_tissue` | Direct ex vivo, healthy donor, non-reproductive, non-thymic |
 | Healthy thymus | `src_healthy_thymus` | Direct ex vivo thymus (expected for CTAs, AIRE-mediated) |
 | Healthy reproductive | `src_healthy_reproductive` | Direct ex vivo testis, ovary (expected for CTAs) |
-| EBV-LCL | `src_ebv_lcl` | EBV-transformed B-cell lines |
-| Cell line | `src_cell_line` | Any cultured cell line |
 
-**Cancer-specific** = `src_cancer AND NOT src_healthy_tissue`. Thymus, reproductive tissue, adjacent tissue, EBV-LCLs, and activated APCs do NOT disqualify a peptide from being cancer-specific.
+### Orthogonal lineage/context flags
+
+| Flag | Meaning |
+|---|---|
+| `src_apc` | APC-lineage context: B cells, dendritic cells, monocytes/macrophages, and EBV-LCLs |
+| `src_cell_line` | Any cultured cell line |
+| `src_ebv_lcl` | EBV-transformed B-cell lines |
+
+**Cancer-specific** = `src_cancer AND NOT src_healthy_tissue`. Thymus, reproductive tissue, adjacent tissue, cell-line context, EBV-LCLs, APC lineage, and activated APCs do NOT disqualify a peptide from being cancer-specific.
 
 ## CLI reference
 

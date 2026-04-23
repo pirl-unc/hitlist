@@ -29,6 +29,7 @@ def test_load_tissue_categories():
     cats = load_tissue_categories()
     assert "testis" in cats["reproductive"]
     assert "thymus" in cats["thymus"]
+    assert "b cell" in cats["apc_cell_name_fragments"]
 
 
 def test_cell_line_is_cancer():
@@ -44,12 +45,14 @@ def test_ebv_lcl_not_cancer():
     )
     assert flags["src_cancer"] is False
     assert flags["src_ebv_lcl"] is True
+    assert flags["src_apc"] is True
 
 
 def test_healthy_somatic():
     flags = classify_ms_row("No immunization", "healthy", "Direct Ex Vivo", "Liver")
     assert flags["src_healthy_tissue"] is True
     assert flags["src_cancer"] is False
+    assert flags["src_apc"] is False
 
 
 def test_healthy_thymus():
@@ -74,6 +77,7 @@ def test_pmid_override_activated_apc():
         "No immunization", "healthy", "Direct Ex Vivo", "Blood", "DC", pmid=32983136
     )
     assert flags["src_activated_apc"] is True
+    assert flags["src_apc"] is True
 
 
 def test_ebv_lcl_override():
@@ -87,6 +91,7 @@ def test_ebv_lcl_override():
         pmid=24616531,
     )
     assert flags["src_cancer"] is False
+    assert flags["src_apc"] is True
     assert flags["src_ebv_lcl"] is True
     assert flags["src_cell_line"] is True
     assert flags["src_healthy_tissue"] is False
@@ -103,6 +108,7 @@ def test_ebv_lcl_override_forces_flags():
         pmid=24616531,
     )
     assert flags["src_ebv_lcl"] is True
+    assert flags["src_apc"] is True
     assert flags["src_cell_line"] is True
     assert flags["src_cancer"] is False
 
@@ -120,6 +126,7 @@ def test_cell_line_override_ebv_lcl_not_cancer():
     )
     assert flags["src_cancer"] is False
     assert flags["src_ebv_lcl"] is True
+    assert flags["src_apc"] is True
 
 
 def test_cell_line_override_non_ebv_still_cancer():
@@ -170,8 +177,52 @@ def test_auto_detect_activated_apc():
     flags = classify_ms_row(
         "No immunization", "healthy", "Direct Ex Vivo", "Blood", "Dendritic cell"
     )
+    assert flags["src_apc"] is True
     assert flags["src_activated_apc"] is True
     assert flags["src_healthy_tissue"] is False
+
+
+def test_apc_lineage_b_cell_can_still_be_healthy():
+    flags = classify_ms_row("No immunization", "healthy", "Direct Ex Vivo", "Blood", "B cell")
+    assert flags["src_apc"] is True
+    assert flags["src_healthy_tissue"] is True
+    assert flags["src_cancer"] is False
+
+
+def test_apc_lineage_monocyte_cell_line_can_still_be_cancer():
+    flags = classify_ms_row(
+        "No immunization", "healthy", "Cell Line / Clone", "Blood", "THP-1-Monocyte"
+    )
+    assert flags["src_apc"] is True
+    assert flags["src_cancer"] is True
+    assert flags["src_healthy_tissue"] is False
+
+
+def test_pmid_28832583_blood_b_cell_is_ebv_lcl():
+    flags = classify_ms_row(
+        "No immunization",
+        "healthy",
+        "Cell Line / Clone",
+        "Blood",
+        "B cell",
+        pmid=28832583,
+    )
+    assert flags["src_ebv_lcl"] is True
+    assert flags["src_apc"] is True
+    assert flags["src_cancer"] is False
+
+
+def test_pmid_28832583_skin_lymphocyte_remains_cancer():
+    flags = classify_ms_row(
+        "Occurrence of cancer",
+        "skin melanoma",
+        "Direct Ex Vivo",
+        "Skin",
+        "Lymphocyte",
+        pmid=28832583,
+    )
+    assert flags["src_cancer"] is True
+    assert flags["src_ebv_lcl"] is False
 
 
 def test_cancer_specific_true():

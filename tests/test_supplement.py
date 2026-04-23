@@ -41,6 +41,7 @@ def test_scan_supplementary_schema():
     assert "reference_iri" in df.columns
     # Source classification columns (from classify_ms_row)
     assert "src_cancer" in df.columns
+    assert "src_apc" in df.columns
     assert "src_cell_line" in df.columns
     assert "src_ebv_lcl" in df.columns
     assert "is_monoallelic" in df.columns
@@ -71,6 +72,7 @@ def test_scan_supplementary_gomez_zepeda():
     jy = gz[gz["cell_name"] == "JY"]
     assert len(jy) > 15000
     row = jy.iloc[0]
+    assert row["src_apc"] is True or row["src_apc"] == True  # noqa: E712
     assert row["src_ebv_lcl"] is True or row["src_ebv_lcl"] == True  # noqa: E712
     assert row["src_cancer"] is False or row["src_cancer"] == False  # noqa: E712
 
