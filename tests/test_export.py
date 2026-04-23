@@ -360,7 +360,13 @@ def test_generate_observations_provenance_columns():
     assert "matched_sample_count" in df.columns
     assert "has_peptide_level_allele" in df.columns
     # Match types should only be these values
-    valid_types = {"allele_match", "single_sample_fallback", "pmid_class_pool", "unmatched"}
+    valid_types = {
+        "allele_match",
+        "single_sample_fallback",
+        "context_match",
+        "pmid_class_pool",
+        "unmatched",
+    }
     assert set(df["sample_match_type"].unique()).issubset(valid_types)
     # Most rows with alleles should have allele_match
     has_allele = df[df["has_peptide_level_allele"]]
@@ -585,6 +591,54 @@ def test_observations_join_with_synthetic_fixture(tmp_path, monkeypatch):
     # Third row has no allele — flag should reflect that
     row3 = df[df["peptide"] == "CCCCCCCCC"].iloc[0]
     assert row3["has_peptide_level_allele"] is False or row3["has_peptide_level_allele"] == False  # noqa: E712
+
+
+def test_observations_context_match_uses_curated_sample_context(tmp_path, monkeypatch):
+    """A unique (pmid, mhc_class, source-context) sample should enrich observations."""
+    import pandas as pd
+
+    from hitlist.export import generate_observations_table
+
+    obs_data = pd.DataFrame(
+        {
+            "peptide": ["AAAAAAAAA", "BBBBBBBBB", "CCCCCCCCC"],
+            "mhc_restriction": ["HLA-A*02:01", "HLA class II", "HLA class II"],
+            "mhc_class": ["I", "II", "II"],
+            "reference_iri": ["iri:tumor-i", "iri:tumor-ii", "iri:adjacent-ii"],
+            "pmid": pd.array([29093164, 29093164, 29093164], dtype="Int64"),
+            "source": ["iedb", "iedb", "iedb"],
+            "mhc_species": ["Homo sapiens", "Homo sapiens", "Homo sapiens"],
+            "is_monoallelic": [False, False, False],
+            "is_binding_assay": [False, False, False],
+            "qualitative_measurement": ["Positive", "Positive", "Positive"],
+            "src_cancer": [True, True, False],
+            "src_adjacent_to_tumor": [False, False, True],
+            "src_healthy_tissue": [False, False, False],
+            "src_healthy_thymus": [False, False, False],
+            "src_healthy_reproductive": [False, False, False],
+        }
+    )
+    obs_path = tmp_path / "observations.parquet"
+    obs_data.to_parquet(obs_path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+
+    df = generate_observations_table()
+    assert set(df["sample_match_type"]) == {"context_match"}
+    by_peptide = df.set_index("peptide")
+    assert (
+        by_peptide.loc["AAAAAAAAA", "sample_label"]
+        == "epithelial ovarian carcinoma tissue (class I)"
+    )
+    assert (
+        by_peptide.loc["BBBBBBBBB", "sample_label"]
+        == "epithelial ovarian carcinoma tissue (class II)"
+    )
+    assert (
+        by_peptide.loc["CCCCCCCCC", "sample_label"]
+        == "benign comparator tissues from ovarian cancer patients"
+    )
+    assert (df["instrument"] == "LTQ Orbitrap XL").all()
+    assert (df["ip_antibody"] == "W6/32 (I), Tu39 (II), L243 (DR)").all()
 
 
 def test_generate_observations_gene_filter_requires_mappings(tmp_path, monkeypatch):

@@ -2836,6 +2836,7 @@
           Source Tissue: "Other"
           Disease: ""
           Process Type: "No immunization"
+          Culture Condition: "Direct Ex Vivo"
         override: adjacent
         reason: "IEDB comparator rows are benign tissues from ovarian cancer patients, not healthy donors."
 
