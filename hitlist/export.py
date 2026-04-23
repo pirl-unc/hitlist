@@ -27,7 +27,13 @@ from __future__ import annotations
 
 import pandas as pd
 
-from .curation import load_pmid_overrides, normalize_allele, normalize_species
+from .curation import (
+    allele_to_all_serotypes,
+    allele_to_serotype,
+    load_pmid_overrides,
+    normalize_allele,
+    normalize_species,
+)
 
 # MS acquisition metadata fields.  Each may appear at the PMID level
 # (study-wide default) or on individual ``ms_samples`` entries.
@@ -770,6 +776,322 @@ def _is_class_only_sentinel(mhc_str: str) -> bool:
     if s == "unknown":
         return True
     return s.startswith("hla class") or s.startswith("mhc class")
+
+
+def _join_unique_text(values) -> str:
+    return ";".join(sorted({str(v) for v in values if pd.notna(v) and str(v).strip()}))
+
+
+def _join_unique_numeric(values) -> str:
+    nums: set[int] = set()
+    for v in values:
+        if pd.isna(v) or str(v).strip() == "":
+            continue
+        try:
+            nums.add(int(v))
+        except (TypeError, ValueError):
+            continue
+    return ";".join(str(x) for x in sorted(nums))
+
+
+def _truthy(value) -> bool:
+    if pd.isna(value):
+        return False
+    return bool(value)
+
+
+def _normalize_serotype_query(raw: str) -> str:
+    """Normalise a user serotype query to the ``HLA-*`` display style."""
+    q = str(raw).strip()
+    if not q:
+        return ""
+    if q.upper().startswith("HLA-"):
+        q = q[4:]
+    low = q.lower()
+    if low.startswith("bw"):
+        q = "Bw" + q[2:]
+    elif low.startswith(("dr", "dq", "dp", "dm", "do")):
+        q = low[:2].upper() + q[2:]
+    else:
+        q = q[:1].upper() + q[1:]
+    return f"HLA-{q}"
+
+
+def _serotype_key(raw: str) -> str:
+    s = str(raw).strip()
+    if s.upper().startswith("HLA-"):
+        s = s[4:]
+    return s.lower()
+
+
+def _sample_alleles(sample_mhc: str) -> list[str]:
+    if (
+        not isinstance(sample_mhc, str)
+        or not sample_mhc.strip()
+        or _is_class_only_sentinel(sample_mhc)
+    ):
+        return []
+    return [normalize_allele(a) for a in sample_mhc.split() if normalize_allele(a)]
+
+
+def _source_bucket(row: pd.Series) -> str:
+    if _truthy(row.get("src_cancer", False)):
+        return "cancer"
+    if _truthy(row.get("src_adjacent_to_tumor", False)):
+        return "adjacent"
+    if (
+        _truthy(row.get("src_healthy_tissue", False))
+        or _truthy(row.get("src_healthy_thymus", False))
+        or _truthy(row.get("src_healthy_reproductive", False))
+    ):
+        return "healthy"
+    return "other"
+
+
+def _peptide_summary_support_label(row: pd.Series) -> str:
+    if _truthy(row.get("mono_exact", False)):
+        return "mono_exact"
+    if _truthy(row.get("multi_exact", False)):
+        return "multi_exact"
+    if _truthy(row.get("mono_serotype", False)):
+        return "mono_serotype"
+    if _truthy(row.get("multi_serotype", False)):
+        return "multi_serotype"
+    if _truthy(row.get("class_only_sample_allele", False)):
+        return "class_only_sample_allele"
+    if _truthy(row.get("class_only_sample_serotype", False)):
+        return "class_only_sample_serotype"
+    if _truthy(row.get("unknown_allele", False)):
+        return "unknown_allele"
+    return ""
+
+
+def _best_support_label(summary_row: pd.Series) -> str:
+    for col, label in [
+        ("n_mono_exact_rows", "mono_exact"),
+        ("n_multi_exact_rows", "multi_exact"),
+        ("n_mono_serotype_rows", "mono_serotype"),
+        ("n_multi_serotype_rows", "multi_serotype"),
+        ("n_class_only_sample_allele_rows", "class_only_sample_allele"),
+        ("n_class_only_sample_serotype_rows", "class_only_sample_serotype"),
+        ("n_unknown_allele_rows", "unknown_allele"),
+    ]:
+        if int(summary_row.get(col, 0) or 0) > 0:
+            return label
+    return ""
+
+
+def generate_ms_peptide_summary_table(
+    mhc_class: str | None = None,
+    species: str | None = None,
+    source: str | None = None,
+    mhc_allele: str | list[str] | None = None,
+    serotype: str | list[str] | None = None,
+    gene: str | list[str] | None = None,
+    gene_name: str | list[str] | None = None,
+    gene_id: str | list[str] | None = None,
+    peptide: str | list[str] | None = None,
+    columns: list[str] | None = None,
+) -> pd.DataFrame:
+    """Summarize per-peptide MS support for one target allele or serotype.
+
+    This is aimed at questions like "which PRAME peptides might be
+    presented on A24 in cancers?" It groups relevant observations one
+    row per peptide and splits support into exact-allele, same-serotype,
+    class-only sample-genotype, and unknown-allele buckets.
+    """
+    target_alleles = _to_list(mhc_allele) if mhc_allele is not None else []
+    target_serotypes = _to_list(serotype) if serotype is not None else []
+    if not target_alleles and not target_serotypes:
+        raise ValueError("peptide-summary requires exactly one of --mhc-allele or --serotype")
+    if target_alleles and target_serotypes:
+        raise ValueError("peptide-summary accepts --mhc-allele or --serotype, not both")
+    if len(target_alleles) > 1 or len(target_serotypes) > 1:
+        raise ValueError("peptide-summary supports only one target allele or serotype at a time")
+    scoped_filters = [gene, gene_name, gene_id, peptide]
+    if not any(v is not None and _to_list(v) for v in scoped_filters):
+        raise ValueError(
+            "peptide-summary requires a gene or peptide filter to keep the export scoped"
+        )
+
+    target_allele = normalize_allele(target_alleles[0]) if target_alleles else ""
+    if target_alleles and not target_allele:
+        raise ValueError(f"Could not normalize target allele: {target_alleles[0]!r}")
+    target_serotype = (
+        _normalize_serotype_query(target_serotypes[0])
+        if target_serotypes
+        else allele_to_serotype(target_allele)
+    )
+    target_serotype_key = _serotype_key(target_serotype)
+    query_mode = "allele" if target_allele else "serotype"
+
+    df = generate_observations_table(
+        mhc_class=mhc_class,
+        species=species,
+        source=source,
+        gene=gene,
+        gene_name=gene_name,
+        gene_id=gene_id,
+        peptide=peptide,
+    )
+    canonical_columns = [
+        "query_mode",
+        "target_allele",
+        "target_serotype",
+        "peptide",
+        "n_support_rows",
+        "n_pmids",
+        "pmids",
+        "target_peptide_alleles",
+        "sample_match_types",
+        "support_labels",
+        "best_support",
+        "n_mono_exact_rows",
+        "n_mono_serotype_rows",
+        "n_multi_exact_rows",
+        "n_multi_serotype_rows",
+        "n_class_only_sample_allele_rows",
+        "n_class_only_sample_serotype_rows",
+        "n_unknown_allele_rows",
+        "n_cancer_rows",
+        "n_healthy_rows",
+        "n_adjacent_rows",
+        "n_other_rows",
+    ]
+    if df.empty:
+        result = pd.DataFrame(columns=canonical_columns)
+        return result[columns] if columns else result
+
+    work = df.copy()
+    for col, default in {
+        "sample_mhc": "",
+        "sample_match_type": "",
+        "is_monoallelic": False,
+        "src_cancer": False,
+        "src_adjacent_to_tumor": False,
+        "src_healthy_tissue": False,
+        "src_healthy_thymus": False,
+        "src_healthy_reproductive": False,
+    }.items():
+        if col not in work.columns:
+            work[col] = default
+    if "has_peptide_level_allele" not in work.columns:
+        work["has_peptide_level_allele"] = _compute_has_peptide_level_allele(
+            work["mhc_restriction"],
+            work["allele_resolution"] if "allele_resolution" in work.columns else None,
+        )
+    if "serotypes" not in work.columns:
+        work["serotypes"] = work["mhc_restriction"].map(
+            lambda a: ";".join(allele_to_all_serotypes(str(a)))
+        )
+
+    flags: list[dict] = []
+    for _, row in work.iterrows():
+        row_allele = normalize_allele(str(row.get("mhc_restriction", "")))
+        row_serotype_keys = {
+            _serotype_key(s) for s in str(row.get("serotypes", "")).split(";") if s
+        }
+        row_serotype_keys.update(_serotype_key(s) for s in allele_to_all_serotypes(row_allele))
+        sample_allele_list = _sample_alleles(str(row.get("sample_mhc", "")))
+        sample_serotype_keys = {
+            _serotype_key(s)
+            for allele in sample_allele_list
+            for s in allele_to_all_serotypes(allele)
+        }
+        has_peptide_level_allele = _truthy(row.get("has_peptide_level_allele", False))
+        mono = _truthy(row.get("is_monoallelic", False))
+
+        exact = bool(target_allele and row_allele == target_allele)
+        sero = bool(target_serotype_key and target_serotype_key in row_serotype_keys)
+        class_only_sample_allele = (
+            not has_peptide_level_allele
+            and bool(target_allele)
+            and target_allele in sample_allele_list
+        )
+        class_only_sample_serotype = (
+            not has_peptide_level_allele
+            and bool(target_serotype_key)
+            and target_serotype_key in sample_serotype_keys
+            and not class_only_sample_allele
+        )
+        unknown = (
+            not has_peptide_level_allele
+            and not class_only_sample_allele
+            and not class_only_sample_serotype
+            and not sample_allele_list
+        )
+        relevant = (
+            exact or sero or class_only_sample_allele or class_only_sample_serotype or unknown
+        )
+        source_bucket = _source_bucket(row)
+        flags.append(
+            {
+                "relevant_to_target": relevant,
+                "target_peptide_allele": row_allele
+                if relevant and has_peptide_level_allele and (exact or sero)
+                else "",
+                "mono_exact": mono and exact,
+                "mono_serotype": mono and sero and not exact,
+                "multi_exact": (not mono) and exact,
+                "multi_serotype": (not mono) and sero and not exact,
+                "class_only_sample_allele": class_only_sample_allele,
+                "class_only_sample_serotype": class_only_sample_serotype,
+                "unknown_allele": unknown,
+                "source_bucket": source_bucket if relevant else "",
+            }
+        )
+
+    flagged = pd.concat([work.reset_index(drop=True), pd.DataFrame(flags)], axis=1)
+    flagged = flagged[flagged["relevant_to_target"]].copy()
+    if flagged.empty:
+        result = pd.DataFrame(columns=canonical_columns)
+        return result[columns] if columns else result
+
+    flagged["support_label"] = flagged.apply(_peptide_summary_support_label, axis=1)
+    flagged["cancer_row"] = flagged["source_bucket"] == "cancer"
+    flagged["healthy_row"] = flagged["source_bucket"] == "healthy"
+    flagged["adjacent_row"] = flagged["source_bucket"] == "adjacent"
+    flagged["other_row"] = flagged["source_bucket"] == "other"
+
+    result = flagged.groupby("peptide", as_index=False).agg(
+        n_support_rows=("peptide", "size"),
+        n_pmids=("pmid", lambda x: len({int(v) for v in x if pd.notna(v)})),
+        pmids=("pmid", _join_unique_numeric),
+        target_peptide_alleles=("target_peptide_allele", _join_unique_text),
+        sample_match_types=("sample_match_type", _join_unique_text),
+        support_labels=("support_label", _join_unique_text),
+        n_mono_exact_rows=("mono_exact", "sum"),
+        n_mono_serotype_rows=("mono_serotype", "sum"),
+        n_multi_exact_rows=("multi_exact", "sum"),
+        n_multi_serotype_rows=("multi_serotype", "sum"),
+        n_class_only_sample_allele_rows=("class_only_sample_allele", "sum"),
+        n_class_only_sample_serotype_rows=("class_only_sample_serotype", "sum"),
+        n_unknown_allele_rows=("unknown_allele", "sum"),
+        n_cancer_rows=("cancer_row", "sum"),
+        n_healthy_rows=("healthy_row", "sum"),
+        n_adjacent_rows=("adjacent_row", "sum"),
+        n_other_rows=("other_row", "sum"),
+    )
+    result.insert(0, "target_serotype", target_serotype)
+    result.insert(0, "target_allele", target_allele)
+    result.insert(0, "query_mode", query_mode)
+    result["best_support"] = result.apply(_best_support_label, axis=1)
+    result = result.sort_values(
+        [
+            "n_mono_exact_rows",
+            "n_multi_exact_rows",
+            "n_mono_serotype_rows",
+            "n_multi_serotype_rows",
+            "n_class_only_sample_allele_rows",
+            "n_support_rows",
+            "peptide",
+        ],
+        ascending=[False, False, False, False, False, False, True],
+    ).reset_index(drop=True)
+    if columns:
+        available = [c for c in columns if c in result.columns]
+        return result[available]
+    return result
 
 
 def generate_species_summary(mhc_class: str | None = None) -> pd.DataFrame:

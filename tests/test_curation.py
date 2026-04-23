@@ -446,6 +446,16 @@ def test_allele_to_serotype_b57_prefers_b57():
     assert "HLA-Bw4" in all_sero
 
 
+def test_allele_to_all_serotypes_a2403_includes_broad_parent():
+    """Split serotypes like A2403 should also expose the broad A24 family."""
+    if not _HAS_MHCGNOMES:
+        return
+    all_sero = allele_to_all_serotypes("HLA-A*24:03")
+    assert "HLA-A24" in all_sero
+    assert "HLA-A2403" in all_sero
+    assert all_sero[0] == "HLA-A24"
+
+
 def test_allele_to_all_serotypes_a02_broader_first():
     """A*02:01 has A2 (broader) and A2.1 (IEF sub-serotype).
 

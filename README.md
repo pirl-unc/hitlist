@@ -298,10 +298,11 @@ hitlist data index [--source iedb|cedar|merged|all] [--force]
 ### Export
 
 ```bash
-hitlist export observations [filters...] -o train.csv   # MS immunopeptidome + sample metadata
-hitlist export observations -o train.parquet            # parquet output supported
+hitlist export ms [filters...] -o train.csv             # MS immunopeptidome + sample metadata
+hitlist export ms -o train.parquet                      # parquet output supported
 hitlist export binding [filters...] -o binding.csv      # binding-assay index (separate from MS)
 hitlist export training [filters...] -o training.csv    # unified training export from canonical indexes
+hitlist export peptide-summary [filters...] -o summary.csv  # one row per peptide for one target allele/serotype
 hitlist export samples [--class I|II]                   # per-sample conditions (YAML curation only)
 hitlist export summary                                  # species x class summary
 hitlist export counts [--source iedb|cedar|merged|all]  # peptide counts per PMID
@@ -319,13 +320,15 @@ Each `hitlist data build` writes **three** parquet files to `~/.hitlist/`:
 - `peptide_mappings.parquet` — long-form peptide → protein/position/flank mappings.
 
 The canonical indexes are never silently mixed. Supplementary data is MS-only.
-Use `hitlist export observations` and `hitlist export binding` when you want
+Use `hitlist export ms` and `hitlist export binding` when you want
 the raw evidence families separately. Use `hitlist export training` or
 `generate_training_table(...)` when you want a composed model-facing export
 with `evidence_kind` tagging and optional mapping explosion for flank-aware
 training pipelines.
 
-### Filters on `hitlist export observations`
+`hitlist export observations` is kept as a compatibility alias for `hitlist export ms`.
+
+### Filters on `hitlist export ms`
 
 | Flag | Values |
 |---|---|
@@ -345,11 +348,34 @@ training pipelines.
 All filters are pushed down to the parquet reader (pyarrow), so `--gene PRAME` reads
 only the matching row groups — typically milliseconds rather than a full table scan.
 Examples:
-- `hitlist export observations --gene PRAME --class I -o prame_classI.csv`
-- `hitlist export observations --gene "MART-1"` (HGNC resolves to `MLANA`)
-- `hitlist export observations --mhc-allele HLA-A*02:01 --mono-allelic`
-- `hitlist export observations --serotype A24` (locus-specific)
-- `hitlist export observations --serotype Bw4` (public epitope — A*23/24/25/32, B*13/27/44/51/52/53/57/58)
+- `hitlist export ms --gene PRAME --class I -o prame_classI.csv`
+- `hitlist export ms --gene "MART-1"` (HGNC resolves to `MLANA`)
+- `hitlist export ms --mhc-allele HLA-A*02:01 --mono-allelic`
+- `hitlist export ms --serotype A24` (locus-specific)
+- `hitlist export ms --serotype Bw4` (public epitope — A*23/24/25/32, B*13/27/44/51/52/53/57/58)
+
+### `hitlist export peptide-summary`
+
+`hitlist export peptide-summary` is for targeted review questions like
+"which PRAME peptides might be presented on A24 in cancers?" It groups
+MS observations one row per peptide and splits support into:
+
+- mono-allelic exact-allele evidence
+- mono-allelic same-serotype evidence
+- multi-allelic exact-allele evidence
+- multi-allelic same-serotype evidence
+- class-only rows where the curated sample genotype includes the target allele or serotype
+- class-only / unresolved rows with no sample genotype, reported as unknown-allele support
+
+It also reports coarse source buckets per peptide: cancer, healthy, adjacent, and other.
+
+Rules:
+- exactly one of `--mhc-allele` or `--serotype`
+- at least one `--gene`, `--gene-name`, `--gene-id`, or `--peptide` filter
+
+Examples:
+- `hitlist export peptide-summary --gene PRAME --class I --mhc-allele HLA-A*24:02 -o prame_a2402_summary.csv`
+- `hitlist export peptide-summary --gene PRAME --class I --serotype A24 -o prame_a24_summary.csv`
 
 ### Filters on `hitlist export binding`
 

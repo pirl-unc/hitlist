@@ -1,3 +1,37 @@
+# MS Export CLI Follow-up (2026-04-23)
+
+## Goal
+
+Make the MS export surface easier to use at the CLI by renaming `hitlist export observations` to `hitlist export ms` and adding a peptide-level summary export for queries like “show me PRAME peptides with A24-relevant support, split by evidence type and source context.”
+
+## Work Plan
+
+- [x] Add `hitlist export ms` as the primary MS export subcommand
+  Deliverable: `ms` becomes the canonical CLI name for the current observations export, with `observations` retained as a compatibility alias so existing scripts do not break immediately.
+  Verification: CLI dispatch covers both names and docs/examples prefer `ms`.
+  Result: `hitlist export ms` is now the canonical parser name, `observations` is retained as an alias, and the README/examples now point to `ms`.
+
+- [x] Add `hitlist export peptide-summary`
+  Deliverable: one row per peptide for a gene/allele or gene/serotype query, split into mono-allelic exact support, multi-allelic exact support, same-serotype support, class-only sample-genotype support, and unknown-allele support, plus coarse source buckets.
+  Verification: unit tests on synthetic observation rows cover exact-allele and serotype queries.
+  Result: added `generate_ms_peptide_summary_table(...)` plus CLI wiring for peptide-level allele/serotype support summaries with source-context buckets.
+
+- [x] Wire the new summary through the CLI and docs
+  Deliverable: parser/help/docs/examples show how to ask “which PRAME peptides might be presented on A24 in cancers?”
+  Verification: README examples and CLI helper tests match the implemented arguments.
+  Result: CLI helper tests cover both `export ms` and `export peptide-summary`, and the README documents usage plus the `observations` compatibility alias.
+
+- [x] Bump version and run repo verification
+  Deliverable: patch version bump plus passing `./format.sh`, `./lint.sh`, and `./test.sh`.
+  Verification: all three commands exit 0 on this branch.
+  Result: version bumped to `1.15.6`; `./format.sh`, `./lint.sh`, and `./test.sh` passed with `297 passed, 2 skipped`.
+
+## Review
+
+- Review finding 1: serotype queries were undercounting split serotypes such as `HLA-A*24:03` because mhcgnomes exposed `HLA-A2403` without the broader `HLA-A24` parent. **Fixed** by broadening locus-split serotypes in the reverse serotype map and teaching export/load filters to use derived serotypes as a fallback.
+- Review finding 2: the first peptide-summary serotype implementation only trusted stored row/sample serotype strings, so class-only rows with sample genotype `HLA-A*24:03 ...` still fell out of an `A24` query. **Fixed** by deriving sample and row serotype matches from the allele strings themselves.
+- Review finding 3: `ruff` surfaced small follow-up cleanup in the new CLI/test helpers (`pd` import and local import ordering). **Fixed** before the final verification run.
+
 # Stražar 2023 Ingestion Plan
 
 ## Goal
