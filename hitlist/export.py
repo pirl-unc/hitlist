@@ -85,25 +85,23 @@ def _classify_instrument(instrument: str) -> str:
     return instrument  # return raw value if no match
 
 
-def generate_ms_samples_table(mhc_class: str | None = None) -> pd.DataFrame:
-    """Export all ms_samples entries as a flat DataFrame.
+def _sample_classification_context(classification: str) -> str:
+    """Collapse curated sample classifications into export join contexts."""
+    if classification in ("cancer", "cancer_patient"):
+        return "cancer"
+    if classification == "adjacent":
+        return "adjacent"
+    if classification == "healthy":
+        return "healthy"
+    return ""
 
-    Parameters
-    ----------
-    mhc_class
-        Filter to ``"I"`` or ``"II"``.  Entries with ``"I+II"`` match
-        either filter.  ``None`` returns all rows.
 
-    Returns
-    -------
-    pd.DataFrame
-        Columns: species, sample_label, perturbation, pmid, study_label,
-        mhc_class, n_samples, notes, mhc, ip_antibody, acquisition_mode,
-        instrument, instrument_type, fragmentation, labeling, search_engine,
-        fdr.
-    """
+def _iter_ms_sample_rows(
+    mhc_class: str | None = None, include_internal: bool = False
+) -> list[dict[str, object]]:
+    """Materialize curated ``ms_samples`` rows with study-level inheritance."""
     overrides = load_pmid_overrides()
-    rows: list[dict] = []
+    rows: list[dict[str, object]] = []
 
     for pmid_int, entry in sorted(overrides.items()):
         study_label = entry.get("study_label", "")
@@ -130,7 +128,7 @@ def generate_ms_samples_table(mhc_class: str | None = None) -> pd.DataFrame:
             if n == 0:
                 continue  # skip "NOT profiled" placeholder rows
 
-            row = {
+            row: dict[str, object] = {
                 "species": species,
                 "sample_label": sample.get("sample_label", ""),
                 "perturbation": perturbation,
@@ -143,9 +141,32 @@ def generate_ms_samples_table(mhc_class: str | None = None) -> pd.DataFrame:
             }
             for field in _ACQUISITION_FIELDS:
                 row[field] = sample.get(field) or entry.get(field) or ""
-            row["instrument_type"] = _classify_instrument(row["instrument"])
+            row["instrument_type"] = _classify_instrument(str(row["instrument"]))
+            if include_internal:
+                row["_classification"] = sample.get("classification", "")
             rows.append(row)
 
+    return rows
+
+
+def generate_ms_samples_table(mhc_class: str | None = None) -> pd.DataFrame:
+    """Export all ms_samples entries as a flat DataFrame.
+
+    Parameters
+    ----------
+    mhc_class
+        Filter to ``"I"`` or ``"II"``.  Entries with ``"I+II"`` match
+        either filter.  ``None`` returns all rows.
+
+    Returns
+    -------
+    pd.DataFrame
+        Columns: species, sample_label, perturbation, pmid, study_label,
+        mhc_class, n_samples, notes, mhc, ip_antibody, acquisition_mode,
+        instrument, instrument_type, fragmentation, labeling, search_engine,
+        fdr.
+    """
+    rows = _iter_ms_sample_rows(mhc_class=mhc_class, include_internal=False)
     return pd.DataFrame(rows)
 
 
@@ -247,7 +268,7 @@ def generate_observations_table(
         ]
 
     # --- Load sample metadata ---
-    samples = generate_ms_samples_table(mhc_class=mhc_class)
+    samples = pd.DataFrame(_iter_ms_sample_rows(mhc_class=mhc_class, include_internal=True))
 
     meta_cols = [
         "sample_label",
@@ -303,6 +324,52 @@ def generate_observations_table(
         columns={c: c + "_fb" for c in meta_cols}
     )
 
+    # --- PMID x class x context fallback ---
+    # Some curated studies only have sample-level context (tumor vs adjacent,
+    # class I vs II) without per-sample allele lists. When exactly one sample
+    # row is compatible with (pmid, mhc_class, source-context), use that row's
+    # metadata rather than leaving the observation unmatched.
+    context_rows: list[dict] = []
+    for _, srow in samples.iterrows():
+        context = _sample_classification_context(str(srow.get("_classification", "")))
+        if not context:
+            continue
+        pmid = int(srow["pmid"])
+        meta = {col: srow.get(col, "") for col in meta_cols}
+        for cls in str(srow.get("mhc_class", "")).split("+"):
+            cls = cls.strip()
+            if cls not in {"I", "II"}:
+                continue
+            context_rows.append(
+                {
+                    "_pmid_int": pmid,
+                    "_match_mhc_class": cls,
+                    "_match_context": context,
+                    **meta,
+                }
+            )
+
+    context_df = (
+        pd.DataFrame(context_rows)
+        if context_rows
+        else pd.DataFrame(columns=["_pmid_int", "_match_mhc_class", "_match_context", *meta_cols])
+    )
+    if not context_df.empty:
+        context_df = context_df.drop_duplicates()
+        context_counts = (
+            context_df.groupby(["_pmid_int", "_match_mhc_class", "_match_context"])
+            .size()
+            .rename("_context_count")
+            .reset_index()
+        )
+        context_df = context_df.merge(
+            context_counts,
+            on=["_pmid_int", "_match_mhc_class", "_match_context"],
+            how="left",
+        )
+        context_df = context_df[context_df["_context_count"] == 1].drop(columns=["_context_count"])
+    context_df = context_df.rename(columns={c: c + "_ctx" for c in meta_cols})
+
     # --- PMID x class allele pool ---
     # For class-only observations (mhc_restriction = "HLA class I"),
     # collect the union of all alleles across all samples of that class.
@@ -348,6 +415,36 @@ def generate_observations_table(
     for col in meta_cols:
         obs[col] = obs[col].fillna("")
 
+    # 3b) PMID x class x source-context fallback
+    def _obs_flag_series(name: str) -> pd.Series:
+        if name in obs.columns:
+            return obs[name].fillna(False).astype(bool)
+        return pd.Series(False, index=obs.index)
+
+    obs["_obs_context"] = ""
+    healthy_mask = (
+        _obs_flag_series("src_healthy_tissue")
+        | _obs_flag_series("src_healthy_thymus")
+        | _obs_flag_series("src_healthy_reproductive")
+    )
+    adjacent_mask = _obs_flag_series("src_adjacent_to_tumor")
+    cancer_mask = _obs_flag_series("src_cancer")
+    obs.loc[healthy_mask, "_obs_context"] = "healthy"
+    obs.loc[adjacent_mask, "_obs_context"] = "adjacent"
+    obs.loc[cancer_mask, "_obs_context"] = "cancer"
+
+    obs = obs.merge(
+        context_df,
+        left_on=["_pmid_int", "mhc_class", "_obs_context"],
+        right_on=["_pmid_int", "_match_mhc_class", "_match_context"],
+        how="left",
+    )
+    ctx_cols = [col + "_ctx" for col in meta_cols]
+    for col, ctx_col in zip(meta_cols, ctx_cols):
+        empty_mask = obs[col].eq("")
+        obs.loc[empty_mask, col] = obs.loc[empty_mask, ctx_col].fillna("")
+    obs.drop(columns=[*ctx_cols, "_match_mhc_class", "_match_context"], inplace=True)
+
     # 4) Class-pool fallback: for still-unmatched rows, fill sample_mhc
     #    with the union of all alleles from samples of the same class.
     still_empty = obs["mhc"] == ""
@@ -372,6 +469,17 @@ def generate_observations_table(
         set(zip(allele_df["_pmid_int"], allele_df["_allele"])) if not allele_df.empty else set()
     )
     _single_pmid_set = set(single_df["_pmid_int"]) if not single_df.empty else set()
+    _context_keys = (
+        set(
+            zip(
+                context_df["_pmid_int"],
+                context_df["_match_mhc_class"],
+                context_df["_match_context"],
+            )
+        )
+        if not context_df.empty
+        else set()
+    )
     _class_pool_keys = set(_class_pool.keys())
 
     obs["sample_match_type"] = "unmatched"
@@ -388,10 +496,27 @@ def generate_observations_table(
     fallback_matched = ~allele_matched & obs["_pmid_int"].isin(_single_pmid_set)
     obs.loc[fallback_matched, "sample_match_type"] = "single_sample_fallback"
 
+    if _context_keys:
+        context_matched = (
+            ~allele_matched
+            & ~fallback_matched
+            & pd.Series(
+                [
+                    (int(p), c, ctx) in _context_keys if not pd.isna(p) and ctx else False
+                    for p, c, ctx in zip(obs["_pmid_int"], obs["mhc_class"], obs["_obs_context"])
+                ],
+                index=obs.index,
+            )
+        )
+        obs.loc[context_matched, "sample_match_type"] = "context_match"
+    else:
+        context_matched = pd.Series(False, index=obs.index)
+
     # Class pool: not allele-matched, not single-sample, but has class pool alleles
     pool_matched = (
         ~allele_matched
         & ~fallback_matched
+        & ~context_matched
         & pd.Series(
             [
                 (int(p), c) in _class_pool_keys if not pd.isna(p) else False
@@ -405,7 +530,7 @@ def generate_observations_table(
     # --- Peptide-level allele evidence flag ---
     obs["has_peptide_level_allele"] = obs["mhc_restriction"].astype(str).str.strip().ne("")
 
-    obs.drop(columns=["_pmid_int"], inplace=True)
+    obs.drop(columns=["_pmid_int", "_obs_context"], inplace=True)
     result = obs
 
     # --- Post-join filters ---

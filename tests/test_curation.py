@@ -69,6 +69,30 @@ def test_pmid_override_adjacent():
     assert flags["src_healthy_tissue"] is False
 
 
+def test_pmid_29093164_benign_comparator_is_not_healthy():
+    flags = classify_ms_row(
+        "No immunization", "", "Direct Ex Vivo", "Other", "Other", pmid=29093164
+    )
+    assert flags["src_adjacent_to_tumor"] is True
+    assert flags["src_healthy_tissue"] is False
+    assert flags["src_cancer"] is False
+
+
+def test_pmid_29093164_ovarian_cancer_rows_remain_cancer():
+    flags = classify_ms_row(
+        "Occurrence of cancer", "ovarian cancer", "Direct Ex Vivo", "Ovary", "Other", pmid=29093164
+    )
+    assert flags["src_cancer"] is True
+    assert flags["src_healthy_tissue"] is False
+
+
+def test_pmid_29093164_adjacent_rule_requires_direct_ex_vivo():
+    flags = classify_ms_row(
+        "No immunization", "", "Cell Line / Clone", "Other", "Other", pmid=29093164
+    )
+    assert flags["src_adjacent_to_tumor"] is False
+
+
 def test_pmid_override_activated_apc():
     flags = classify_ms_row(
         "No immunization", "healthy", "Direct Ex Vivo", "Blood", "DC", pmid=32983136
