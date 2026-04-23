@@ -44,6 +44,7 @@ columns) and fall back to the packaged CSVs when it has not been built.
 
 from __future__ import annotations
 
+import warnings
 from collections.abc import Iterable
 from functools import lru_cache
 from importlib.resources import files
@@ -51,6 +52,7 @@ from pathlib import Path
 
 import pandas as pd
 import yaml
+from pyarrow.lib import ArrowInvalid
 
 _DATA_MODULE = "hitlist.data.bulk_proteomics"
 
@@ -109,11 +111,25 @@ def _source_defaults(source_id: str) -> dict:
 
 
 def _load_parquet_or_none() -> pd.DataFrame | None:
-    """Return the built parquet if present, else None."""
+    """Return the built parquet if readable, else None.
+
+    The packaged CSV/YAML sources are the canonical fallback, so a stale
+    or truncated ``bulk_proteomics.parquet`` should not crash the public
+    loaders. Warn and fall back instead.
+    """
     p = bulk_proteomics_path()
     if not p.exists():
         return None
-    return pd.read_parquet(p)
+    try:
+        return pd.read_parquet(p)
+    except (ArrowInvalid, OSError, ValueError) as exc:
+        warnings.warn(
+            f"Failed to read built bulk proteomics parquet at {p}; "
+            f"falling back to packaged sources. {exc}",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        return None
 
 
 def _apply_cell_line_filter(df: pd.DataFrame, cell_line) -> pd.DataFrame:

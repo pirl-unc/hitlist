@@ -37,6 +37,37 @@ Prevent the two PMID `24366607` HLA-B*40:02 acid-strip / flow-cytometry IC50 val
 - Review finding 2: using plain `flow cytometry` as a binding keyword would have been too broad. **Avoided** by keying the new pattern to competitive-binding terms (`acid stripped`, `reference peptide`, `IC50`, `β2m`) instead.
 - Review finding 3: the Python API surface was still using MS-implicit names (`generate_observations_table`, `load_observations`) even though those functions are modality-specific. **Improved** by adding explicit `ms` aliases while retaining the existing names for compatibility.
 
+# Bulk Proteomics Fallback Bug (2026-04-23)
+
+## Goal
+
+Unblock full-suite verification by fixing the bulk-proteomics loaders so an unreadable built `bulk_proteomics.parquet` warns and falls back to packaged source data instead of crashing.
+
+Linked issue: [#144](https://github.com/pirl-unc/hitlist/issues/144)
+
+## Work Plan
+
+- [x] Confirm the failure mode
+  Deliverable: show that the failing tests die inside `_load_parquet_or_none()` on `pd.read_parquet(...)` rather than in the bulk filter logic itself.
+  Verification: full-suite traceback captured from `./test.sh`.
+  Result: `10` bulk-proteomics tests failed on rebased `main` with `pyarrow.lib.ArrowInvalid` raised from `hitlist.bulk_proteomics._load_parquet_or_none()`.
+
+- [x] Patch the loader fallback
+  Deliverable: if the built parquet exists but is unreadable, warn and return `None` so the CSV/YAML fallback path executes.
+  Verification: targeted regression tests cover both peptide and protein loaders against an invalid fake parquet file.
+  Result: `_load_parquet_or_none()` now catches unreadable-parquet exceptions, emits a `RuntimeWarning`, and falls back to packaged sources.
+
+- [x] Re-run required verification on the rebased branch
+  Deliverable: `./format.sh`, `./lint.sh`, and `./test.sh` all pass after the fallback fix.
+  Verification: zero exit status for all three commands.
+  Result: `./format.sh`, `./lint.sh`, and `./test.sh` all passed on the rebased branch; full suite result was `296 passed, 2 skipped`.
+
+## Review
+
+- Review finding 1: the original full-suite failure was not caused by the Marcilla leak fix; it was an independent bulk-proteomics loader bug on current `main` when a built parquet is unreadable. **Addressed** by making the loader honor its documented fallback contract.
+- Review finding 2: the first fallback regressions used the full packaged CSVs and pushed `pytest --cov` into an avoidable memory spike. **Fixed** by switching those regressions to small synthetic fallback fixtures that still exercise the corrupt-parquet path and filter semantics.
+- Review finding 3: required repo verification passed after the fallback fix. `./format.sh`, `./lint.sh`, and `./test.sh` all succeeded; `./test.sh` finished with `296 passed, 2 skipped`.
+
 # HLApollo PMID 24366607 Curation Plan
 
 ## Goal
