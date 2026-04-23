@@ -125,3 +125,82 @@ Make the observations export reliable enough for large-scale peptide + MHC + exp
 - Review finding 1: mono-allelic filter checks `is_mono_allelic` / `src_mono_allelic`, but current observations use `is_monoallelic`. **FIXED.**
 - Review finding 2: supplementary rows for PMID 38480730 currently produce 5,179 rows with empty `mhc_species`, which breaks `--species Homo sapiens`. **FIXED.**
 - Review finding 3: cache invalidation currently fingerprints `supplementary.yaml` but not the referenced supplementary CSVs. **FIXED.**
+
+# Unified Training Export for Presto (2026-04-23)
+
+## Goal
+
+Add a single integrated training-export surface that exposes hitlist's pMHC evidence in a form suitable for model training, including Presto, without changing curation inputs and without introducing a new persistent "training index" sidecar. The built indices should keep their current semantic boundaries, be built together through the existing build flow, and support clear export methods for different downstream use-cases.
+
+## Design Constraints
+
+- [x] Preserve current index boundaries
+  Deliverable: continue to treat `observations.parquet` as MS/elution evidence, `binding.parquet` as in-vitro binding evidence, and existing mapping/sample indices as their own canonical stores.
+  Verification: no new stored `training.parquet` or parallel index family was added to the build graph.
+
+- [x] Add one high-level unified export surface
+  Deliverable: add a single public API entry point for training-oriented exports that composes the existing indices instead of bypassing them.
+  Verification: `generate_training_table(...)` now lives in `hitlist/export.py`, composes the canonical indexes, and is covered by targeted unit tests.
+
+- [x] Keep API and CLI semantics aligned
+  Deliverable: the same conceptual export should be reachable through both Python and `hitlist export ...`, with the CLI flags mapping directly onto the API behavior.
+  Verification: `hitlist export training` and `_export_training(...)` map directly onto `generate_training_table(...)`, with CLI helper coverage for the flag mapping.
+
+## Proposed API Shape
+
+- [x] Add `generate_training_table(...)` to `hitlist/export.py`
+  Deliverable: one function that can export MS rows, binding rows, or both; preserve `evidence_kind` in the unified result; reuse existing exported columns where available.
+  Verification: added training-export tests for unified `both` mode and invalid evidence-mode rejection.
+
+- [x] Support two representation modes with one semantic contract
+  Deliverable: default compact mode keeps one row per evidence row with stable evidence/sample context plus optional aggregated mapping columns; `explode_mappings=True` returns one row per `(evidence row, peptide mapping)` for flank-aware training consumers such as Presto.
+  Verification: compact unified export keeps one row per evidence row; exploded export test confirms per-mapping row expansion plus flank columns.
+
+- [x] Join peptide mappings through the canonical mapping index
+  Deliverable: when requested, attach `protein_id`, `gene_name`, `gene_id`, `position`, `n_flank`, `c_flank`, `proteome`, and `proteome_source` from `load_peptide_mappings(...)`, filtered only to peptides present in the export.
+  Verification: exploded export joins against `peptide_mappings.parquet`; tests assert per-peptide multi-mapping survives the export.
+
+- [x] Preserve pMHC-relevant context instead of re-flattening it away
+  Deliverable: unified rows keep assay/sample metadata already present in observations and binding exports, including MHC restriction/genotype context and measurement metadata when available.
+  Verification: unified export tests confirm MS rows keep sample provenance/context while binding rows are tagged `sample_match_type="not_applicable"` instead of receiving fake sample context.
+
+## Proposed CLI Shape
+
+- [x] Add `hitlist export training`
+  Deliverable: new subcommand under the existing export CLI, not a separate script.
+  Verification: added the subcommand to `hitlist/cli.py` and CLI helper coverage for its argument wiring.
+
+- [x] Keep one build command for underlying indices
+  Deliverable: continue using the normal build path for observations/binding/mappings rather than adding a dedicated training-build command.
+  Verification: the new export reads only from `observations.parquet`, `binding.parquet`, and `peptide_mappings.parquet`; no new build target was introduced.
+
+- [x] Expose clear use-case filters
+  Deliverable: training export supports clear evidence selection (`ms`, `binding`, `both`), shared pMHC filters, and a flag for mapping explosion.
+  Verification: API + CLI helper tests cover `include_evidence`, `explode_mappings`, and shared pMHC filters.
+
+## Work Plan
+
+- [x] Implement `generate_training_table(...)` and any small export helpers needed to align observation/binding columns cleanly.
+- [x] Wire `hitlist export training` into `hitlist/cli.py` with direct, unsurprising flags.
+- [x] Add API and CLI tests for compact, exploded, and evidence-selective exports.
+- [x] Update README / docs so downstream users understand index boundaries versus export surfaces.
+- [x] Bump the package version per repo policy.
+- [x] Run `./format.sh`, `./lint.sh`, and `./test.sh`.
+
+## Review
+
+- [x] Review question 1: does the new export create a second canonical representation of the same index data, or is it clearly a composed export surface?
+  Answer: it is a composed export surface only. The canonical stored indexes remain observations, binding, and mappings.
+
+- [x] Review question 2: are the semantic boundaries between observations, binding, mappings, and training export obvious from both the Python API and CLI?
+  Answer: yes. `hitlist export observations` and `hitlist export binding` remain the evidence-family-specific exports; `hitlist export training` is the only unified training-facing surface and requires no extra index.
+
+- [x] Review question 3: can Presto consume the export directly, including a flank-aware per-mapping mode, without requiring additional ad hoc joins?
+  Answer: yes. `generate_training_table(..., explode_mappings=True)` / `hitlist export training --explode-mappings` produces one row per `(evidence row, peptide mapping)` with `evidence_kind`, `evidence_row_id`, mapping identity, and flanks.
+
+## Review
+
+- Review finding 1: the cleanest way to avoid a new sidecar was to keep the canonical storage split exactly where it already belongs (`observations.parquet`, `binding.parquet`, `peptide_mappings.parquet`) and add one composed export on top. **Implemented** via `generate_training_table(...)` and `hitlist export training`.
+- Review finding 2: a unified export still needs to make non-applicable binding fields explicit instead of silently dropping them or fabricating sample metadata. **Handled** by normalizing the mixed schema and tagging binding rows with `sample_match_type="not_applicable"`.
+- Review finding 3: full-dataset mapping explosion cannot rely on a giant parquet `IN (...)` predicate for every peptide. **Handled** by using push-down filters for small peptide sets and falling back to a full mapping scan plus in-memory peptide filtering for large exports.
+- Review finding 4: repo verification passed after the integration work. `./format.sh`, `./lint.sh`, and `./test.sh` all succeeded; `./test.sh` finished with `286 passed, 2 skipped`.

@@ -10,15 +10,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Export curated study metadata and unified observations.
+"""Export curated study metadata and model-facing pMHC tables.
 
 Reads ``pmid_overrides.yaml`` and generates per-sample, per-species,
 and allele-validation reports from the ``ms_samples`` and ``hla_alleles``
 metadata fields.
 
-The main artifact is :func:`generate_observations_table`, which joins
+The main artifacts are :func:`generate_observations_table`, which joins
 per-peptide observations (from IEDB/CEDAR) with per-sample metadata
-(from ``ms_samples``) to produce a single training-ready DataFrame.
+(from ``ms_samples``), and :func:`generate_training_table`, which
+composes the built MS, binding, and peptide-mapping indexes into a
+unified export surface for downstream training workflows.
 """
 
 from __future__ import annotations
@@ -72,6 +74,33 @@ _INSTRUMENT_TYPE_MAP = [
     ("maldi", "MALDI"),
     ("fticr", "FTICR"),
 ]
+
+_TRAINING_MAPPING_COLUMNS = (
+    "protein_id",
+    "gene_name",
+    "gene_id",
+    "position",
+    "n_flank",
+    "c_flank",
+    "proteome",
+    "proteome_source",
+)
+
+_TRAINING_DEFAULTS = {
+    "sample_label": "",
+    "perturbation": "",
+    "sample_mhc": "",
+    "instrument": "",
+    "instrument_type": "",
+    "acquisition_mode": "",
+    "fragmentation": "",
+    "labeling": "",
+    "ip_antibody": "",
+    "quantification_method": "",
+    "sample_match_type": "not_applicable",
+    "matched_sample_count": 0,
+    "has_peptide_level_allele": False,
+}
 
 
 def _classify_instrument(instrument: str) -> str:
@@ -152,6 +181,7 @@ def generate_ms_samples_table(mhc_class: str | None = None) -> pd.DataFrame:
 def generate_observations_table(
     mhc_class: str | None = None,
     species: str | None = None,
+    source: str | None = None,
     instrument_type: str | None = None,
     acquisition_mode: str | None = None,
     is_mono_allelic: bool | None = None,
@@ -160,7 +190,10 @@ def generate_observations_table(
     gene: str | list[str] | None = None,
     gene_name: str | list[str] | None = None,
     gene_id: str | list[str] | None = None,
+    peptide: str | list[str] | None = None,
     serotype: str | list[str] | None = None,
+    length_min: int | None = None,
+    length_max: int | None = None,
     columns: list[str] | None = None,
 ) -> pd.DataFrame:
     """Join per-peptide observations with per-sample metadata.
@@ -226,14 +259,22 @@ def generate_observations_table(
         obs_filters["mhc_class"] = mhc_class
     if species:
         obs_filters["species"] = normalize_species(species)
+    if source:
+        obs_filters["source"] = source
     if mhc_allele is not None:
         obs_filters["mhc_restriction"] = mhc_allele
     if resolved_gene_names:
         obs_filters["gene_name"] = sorted(resolved_gene_names)
     if resolved_gene_ids:
         obs_filters["gene_id"] = sorted(resolved_gene_ids)
+    if peptide is not None:
+        obs_filters["peptide"] = peptide
     if serotype is not None:
         obs_filters["serotype"] = _to_list(serotype)
+    if length_min is not None:
+        obs_filters["length_min"] = length_min
+    if length_max is not None:
+        obs_filters["length_max"] = length_max
     obs = load_observations(**obs_filters)
 
     if min_allele_resolution:
@@ -436,7 +477,10 @@ def generate_binding_table(
     gene: str | list[str] | None = None,
     gene_name: str | list[str] | None = None,
     gene_id: str | list[str] | None = None,
+    peptide: str | list[str] | None = None,
     serotype: str | list[str] | None = None,
+    length_min: int | None = None,
+    length_max: int | None = None,
     source: str | None = None,
     columns: list[str] | None = None,
 ) -> pd.DataFrame:
@@ -481,8 +525,14 @@ def generate_binding_table(
         bind_filters["gene_name"] = sorted(resolved_gene_names)
     if resolved_gene_ids:
         bind_filters["gene_id"] = sorted(resolved_gene_ids)
+    if peptide is not None:
+        bind_filters["peptide"] = peptide
     if serotype is not None:
         bind_filters["serotype"] = _to_list(serotype)
+    if length_min is not None:
+        bind_filters["length_min"] = length_min
+    if length_max is not None:
+        bind_filters["length_max"] = length_max
 
     df = load_binding(**bind_filters)
 
@@ -501,6 +551,160 @@ def generate_binding_table(
         df = df[available]
 
     return df
+
+
+def _apply_training_defaults(df: pd.DataFrame) -> pd.DataFrame:
+    """Normalize the mixed MS/binding export schema."""
+    result = df.copy()
+
+    if "sample_mhc" not in result.columns and "mhc" in result.columns:
+        result = result.rename(columns={"mhc": "sample_mhc"})
+
+    if "has_peptide_level_allele" not in result.columns and "mhc_restriction" in result.columns:
+        result["has_peptide_level_allele"] = (
+            result["mhc_restriction"].astype(str).str.strip().ne("")
+        )
+
+    for col, default in _TRAINING_DEFAULTS.items():
+        if col not in result.columns:
+            result[col] = default
+            continue
+        if isinstance(default, str):
+            result[col] = result[col].fillna(default)
+        elif isinstance(default, bool):
+            result[col] = result[col].astype("boolean").fillna(default).astype(bool)
+        else:
+            result[col] = result[col].fillna(default)
+
+    result["matched_sample_count"] = result["matched_sample_count"].astype(int)
+    result["has_peptide_level_allele"] = result["has_peptide_level_allele"].astype(bool)
+
+    if "reference_iri" in result.columns:
+        ref = result["reference_iri"].fillna("").astype(str)
+        result["evidence_row_id"] = [
+            f"{kind}:{ref_val}" if ref_val.strip() else f"{kind}:row:{idx}"
+            for idx, (kind, ref_val) in enumerate(zip(result["evidence_kind"], ref))
+        ]
+
+    return result
+
+
+def _load_training_mappings_for_peptides(peptides: pd.Series | list[str]) -> pd.DataFrame:
+    """Load long-form mappings for a selected peptide set.
+
+    Small peptide subsets use parquet push-down filters. Large exports fall
+    back to a full mappings scan plus an in-memory peptide filter to avoid
+    constructing a huge ``IN (...)`` predicate for pyarrow.
+    """
+    from .mappings import load_peptide_mappings
+
+    wanted = sorted({str(p).strip() for p in peptides if str(p).strip()})
+    columns = ["peptide", *_TRAINING_MAPPING_COLUMNS]
+    if not wanted:
+        return pd.DataFrame(columns=columns)
+
+    if len(wanted) <= 10_000:
+        return load_peptide_mappings(peptide=wanted, columns=columns)
+
+    mappings = load_peptide_mappings(columns=columns)
+    return mappings[mappings["peptide"].isin(set(wanted))]
+
+
+def _project_training_columns(df: pd.DataFrame, columns: list[str] | None) -> pd.DataFrame:
+    """Project the training export, always preserving evidence identity."""
+    if columns is None:
+        return df
+    requested = list(dict.fromkeys([*columns, "evidence_kind"]))
+    available = [c for c in requested if c in df.columns]
+    return df[available]
+
+
+def generate_training_table(
+    include_evidence: str = "both",
+    mhc_class: str | None = None,
+    species: str | None = None,
+    source: str | None = None,
+    instrument_type: str | None = None,
+    acquisition_mode: str | None = None,
+    is_mono_allelic: bool | None = None,
+    min_allele_resolution: str | None = None,
+    mhc_allele: str | list[str] | None = None,
+    gene: str | list[str] | None = None,
+    gene_name: str | list[str] | None = None,
+    gene_id: str | list[str] | None = None,
+    peptide: str | list[str] | None = None,
+    serotype: str | list[str] | None = None,
+    length_min: int | None = None,
+    length_max: int | None = None,
+    explode_mappings: bool = False,
+    columns: list[str] | None = None,
+) -> pd.DataFrame:
+    """Export a unified pMHC training table.
+
+    The canonical stored indexes remain unchanged:
+
+    - ``observations.parquet``: MS/elution observations
+    - ``binding.parquet``: in-vitro binding evidence
+    - ``peptide_mappings.parquet``: long-form peptide→protein mappings
+
+    This function composes those indexes into one downstream-facing export.
+    Compact mode preserves one row per evidence row. ``explode_mappings=True``
+    expands the export to one row per ``(evidence row, peptide mapping)``,
+    which is suitable for flank-aware model pipelines such as Presto.
+    """
+    mode = include_evidence.strip().lower()
+    if mode not in {"ms", "binding", "both"}:
+        raise ValueError("include_evidence must be one of: ms, binding, both")
+
+    shared_kwargs = {
+        "mhc_class": mhc_class,
+        "species": species,
+        "source": source,
+        "min_allele_resolution": min_allele_resolution,
+        "mhc_allele": mhc_allele,
+        "gene": gene,
+        "gene_name": gene_name,
+        "gene_id": gene_id,
+        "peptide": peptide,
+        "serotype": serotype,
+        "length_min": length_min,
+        "length_max": length_max,
+    }
+
+    parts: list[pd.DataFrame] = []
+
+    if mode in {"ms", "both"}:
+        ms = generate_observations_table(
+            instrument_type=instrument_type,
+            acquisition_mode=acquisition_mode,
+            is_mono_allelic=is_mono_allelic,
+            **shared_kwargs,
+        ).copy()
+        ms["evidence_kind"] = "ms"
+        parts.append(ms)
+
+    if mode in {"binding", "both"}:
+        binding = generate_binding_table(**shared_kwargs).copy()
+        binding["evidence_kind"] = "binding"
+        parts.append(binding)
+
+    if not parts:
+        result = pd.DataFrame({"evidence_kind": pd.Series(dtype=str)})
+    else:
+        result = pd.concat(parts, ignore_index=True, sort=False)
+
+    result = _apply_training_defaults(result)
+
+    if explode_mappings:
+        mappings = _load_training_mappings_for_peptides(result.get("peptide", pd.Series(dtype=str)))
+        if mappings.empty:
+            for col in _TRAINING_MAPPING_COLUMNS:
+                if col not in result.columns:
+                    result[col] = pd.Series(dtype=object)
+        else:
+            result = result.merge(mappings, on="peptide", how="left")
+
+    return _project_training_columns(result, columns)
 
 
 def _to_list(v) -> list[str]:
