@@ -204,3 +204,41 @@ Add a single integrated training-export surface that exposes hitlist's pMHC evid
 - Review finding 2: a unified export still needs to make non-applicable binding fields explicit instead of silently dropping them or fabricating sample metadata. **Handled** by normalizing the mixed schema and tagging binding rows with `sample_match_type="not_applicable"`.
 - Review finding 3: full-dataset mapping explosion cannot rely on a giant parquet `IN (...)` predicate for every peptide. **Handled** by using push-down filters for small peptide sets and falling back to a full mapping scan plus in-memory peptide filtering for large exports.
 - Review finding 4: repo verification passed after the integration work. `./format.sh`, `./lint.sh`, and `./test.sh` all succeeded; `./test.sh` finished with `286 passed, 2 skipped`.
+
+# PR 138 Review Fixes (2026-04-23)
+
+## Goal
+
+Address the review findings on the unified training export without changing its overall architecture: keep the single composed training surface, but tighten its filter semantics, allele-resolution semantics, and projected identity contract.
+
+## Work Plan
+
+- [x] Make exploded mapping exports respect gene filters
+  Issue: filtering evidence rows first is not enough; shared peptides can re-expand into unrelated mapping rows when `explode_mappings=True`.
+  Deliverable: carry resolved mapping filters into the exploded mapping load so `gene`, `gene_name`, and `gene_id` constrain the mapping rows as well as the evidence rows.
+  Verification: added a regression test where a shared peptide maps to `PRAME` and `MAGEA1`; `gene_name="PRAME"` now returns only the PRAME mapping row.
+
+- [x] Fix `has_peptide_level_allele` semantics on unified exports
+  Issue: the training export currently treats any non-empty `mhc_restriction` as allele-level, which incorrectly marks serological and class-only binding rows as resolved.
+  Deliverable: derive the flag from allele resolution where available, falling back to the non-empty heuristic only when no resolution metadata exists.
+  Verification: added regression tests for both `generate_observations_table()` and `generate_training_table()` covering `four_digit`, `serological`, and `class_only` restrictions.
+
+- [x] Preserve stable evidence identity under column projection
+  Issue: projected training exports keep `evidence_kind` but drop `evidence_row_id`, even though exploded outputs need a stable regrouping key.
+  Deliverable: projected exports keep both `evidence_kind` and `evidence_row_id` whenever the row id exists.
+  Verification: added a regression test for `generate_training_table(columns=["peptide"])` asserting that both identity columns survive projection.
+
+- [x] Capture the review correction in lessons
+  Deliverable: create/update `tasks/lessons.md` with the pattern that new composed exports need adversarial tests for post-filter expansion and projected identity.
+  Verification: created `tasks/lessons.md` and added three review-driven lessons for composed exports.
+
+- [x] Re-run required verification
+  Deliverable: `./format.sh`, `./lint.sh`, and `./test.sh` all pass after the fixes.
+  Verification: all three passed; `./test.sh` finished with `290 passed, 2 skipped`.
+
+## Review
+
+- Review finding 1: exploded mapping exports were only filtered at the evidence-row stage, so shared peptides could re-expand into unrelated genes. **Fixed** by resolving gene filters once and applying them to the mapping load as well as the evidence load.
+- Review finding 2: `has_peptide_level_allele` was using a string-presence heuristic that mislabeled serological and class-only restrictions as allele-resolved. **Fixed** by switching to resolution-aware logic with a conservative string fallback only when resolution metadata is absent.
+- Review finding 3: projected training exports dropped `evidence_row_id`, which made regrouping exploded rows impossible for narrow projections. **Fixed** by preserving both `evidence_kind` and `evidence_row_id` in projected exports.
+- Review finding 4: required repo verification passed after the fixes. `./format.sh`, `./lint.sh`, and `./test.sh` all succeeded; `./test.sh` finished with `290 passed, 2 skipped`.

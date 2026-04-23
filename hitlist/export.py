@@ -99,7 +99,6 @@ _TRAINING_DEFAULTS = {
     "quantification_method": "",
     "sample_match_type": "not_applicable",
     "matched_sample_count": 0,
-    "has_peptide_level_allele": False,
 }
 
 
@@ -239,19 +238,7 @@ def generate_observations_table(
     from .observations import load_observations
 
     # --- Resolve gene query (may require HGNC lookup) up front ---
-    resolved_gene_names: set[str] = set()
-    resolved_gene_ids: set[str] = set()
-    if gene is not None:
-        from .genes import resolve_gene_query
-
-        for q in _to_list(gene):
-            spec = resolve_gene_query(q)
-            resolved_gene_names |= spec["names"]
-            resolved_gene_ids |= spec["ids"]
-    if gene_name is not None:
-        resolved_gene_names |= set(_to_list(gene_name))
-    if gene_id is not None:
-        resolved_gene_ids |= set(_to_list(gene_id))
+    resolved_gene_names, resolved_gene_ids = _resolve_gene_filters(gene, gene_name, gene_id)
 
     # --- Load observations with as many filters pushed to parquet as possible ---
     obs_filters: dict = {}
@@ -444,7 +431,10 @@ def generate_observations_table(
     obs.loc[pool_matched, "sample_match_type"] = "pmid_class_pool"
 
     # --- Peptide-level allele evidence flag ---
-    obs["has_peptide_level_allele"] = obs["mhc_restriction"].astype(str).str.strip().ne("")
+    obs["has_peptide_level_allele"] = _compute_has_peptide_level_allele(
+        obs["mhc_restriction"],
+        obs["allele_resolution"] if "allele_resolution" in obs.columns else None,
+    )
 
     obs.drop(columns=["_pmid_int"], inplace=True)
     result = obs
@@ -498,19 +488,7 @@ def generate_binding_table(
     """
     from .observations import load_binding
 
-    resolved_gene_names: set[str] = set()
-    resolved_gene_ids: set[str] = set()
-    if gene is not None:
-        from .genes import resolve_gene_query
-
-        for q in _to_list(gene):
-            spec = resolve_gene_query(q)
-            resolved_gene_names |= spec["names"]
-            resolved_gene_ids |= spec["ids"]
-    if gene_name is not None:
-        resolved_gene_names |= set(_to_list(gene_name))
-    if gene_id is not None:
-        resolved_gene_ids |= set(_to_list(gene_id))
+    resolved_gene_names, resolved_gene_ids = _resolve_gene_filters(gene, gene_name, gene_id)
 
     bind_filters: dict = {}
     if mhc_class:
@@ -560,11 +538,6 @@ def _apply_training_defaults(df: pd.DataFrame) -> pd.DataFrame:
     if "sample_mhc" not in result.columns and "mhc" in result.columns:
         result = result.rename(columns={"mhc": "sample_mhc"})
 
-    if "has_peptide_level_allele" not in result.columns and "mhc_restriction" in result.columns:
-        result["has_peptide_level_allele"] = (
-            result["mhc_restriction"].astype(str).str.strip().ne("")
-        )
-
     for col, default in _TRAINING_DEFAULTS.items():
         if col not in result.columns:
             result[col] = default
@@ -575,6 +548,14 @@ def _apply_training_defaults(df: pd.DataFrame) -> pd.DataFrame:
             result[col] = result[col].astype("boolean").fillna(default).astype(bool)
         else:
             result[col] = result[col].fillna(default)
+
+    if "mhc_restriction" in result.columns:
+        result["has_peptide_level_allele"] = _compute_has_peptide_level_allele(
+            result["mhc_restriction"],
+            result["allele_resolution"] if "allele_resolution" in result.columns else None,
+        )
+    elif "has_peptide_level_allele" not in result.columns:
+        result["has_peptide_level_allele"] = False
 
     result["matched_sample_count"] = result["matched_sample_count"].astype(int)
     result["has_peptide_level_allele"] = result["has_peptide_level_allele"].astype(bool)
@@ -589,7 +570,11 @@ def _apply_training_defaults(df: pd.DataFrame) -> pd.DataFrame:
     return result
 
 
-def _load_training_mappings_for_peptides(peptides: pd.Series | list[str]) -> pd.DataFrame:
+def _load_training_mappings_for_peptides(
+    peptides: pd.Series | list[str],
+    gene_name: list[str] | None = None,
+    gene_id: list[str] | None = None,
+) -> pd.DataFrame:
     """Load long-form mappings for a selected peptide set.
 
     Small peptide subsets use parquet push-down filters. Large exports fall
@@ -603,10 +588,16 @@ def _load_training_mappings_for_peptides(peptides: pd.Series | list[str]) -> pd.
     if not wanted:
         return pd.DataFrame(columns=columns)
 
-    if len(wanted) <= 10_000:
-        return load_peptide_mappings(peptide=wanted, columns=columns)
+    filter_kwargs = {}
+    if gene_name:
+        filter_kwargs["gene_name"] = gene_name
+    if gene_id:
+        filter_kwargs["gene_id"] = gene_id
 
-    mappings = load_peptide_mappings(columns=columns)
+    if len(wanted) <= 10_000:
+        return load_peptide_mappings(peptide=wanted, columns=columns, **filter_kwargs)
+
+    mappings = load_peptide_mappings(columns=columns, **filter_kwargs)
     return mappings[mappings["peptide"].isin(set(wanted))]
 
 
@@ -614,7 +605,10 @@ def _project_training_columns(df: pd.DataFrame, columns: list[str] | None) -> pd
     """Project the training export, always preserving evidence identity."""
     if columns is None:
         return df
-    requested = list(dict.fromkeys([*columns, "evidence_kind"]))
+    identity_cols = ["evidence_kind"]
+    if "evidence_row_id" in df.columns:
+        identity_cols.append("evidence_row_id")
+    requested = list(dict.fromkeys([*columns, *identity_cols]))
     available = [c for c in requested if c in df.columns]
     return df[available]
 
@@ -656,6 +650,8 @@ def generate_training_table(
     if mode not in {"ms", "binding", "both"}:
         raise ValueError("include_evidence must be one of: ms, binding, both")
 
+    resolved_gene_names, resolved_gene_ids = _resolve_gene_filters(gene, gene_name, gene_id)
+
     shared_kwargs = {
         "mhc_class": mhc_class,
         "species": species,
@@ -696,7 +692,11 @@ def generate_training_table(
     result = _apply_training_defaults(result)
 
     if explode_mappings:
-        mappings = _load_training_mappings_for_peptides(result.get("peptide", pd.Series(dtype=str)))
+        mappings = _load_training_mappings_for_peptides(
+            result.get("peptide", pd.Series(dtype=str)),
+            gene_name=sorted(resolved_gene_names) or None,
+            gene_id=sorted(resolved_gene_ids) or None,
+        )
         if mappings.empty:
             for col in _TRAINING_MAPPING_COLUMNS:
                 if col not in result.columns:
@@ -712,6 +712,50 @@ def _to_list(v) -> list[str]:
     if isinstance(v, str):
         return [s.strip() for s in v.split(",") if s.strip()]
     return [s for s in v if s]
+
+
+def _resolve_gene_filters(
+    gene: str | list[str] | None,
+    gene_name: str | list[str] | None,
+    gene_id: str | list[str] | None,
+) -> tuple[set[str], set[str]]:
+    """Resolve user gene filters into exact gene_name / gene_id sets."""
+    resolved_gene_names: set[str] = set()
+    resolved_gene_ids: set[str] = set()
+    if gene is not None:
+        from .genes import resolve_gene_query
+
+        for q in _to_list(gene):
+            spec = resolve_gene_query(q)
+            resolved_gene_names |= spec["names"]
+            resolved_gene_ids |= spec["ids"]
+    if gene_name is not None:
+        resolved_gene_names |= set(_to_list(gene_name))
+    if gene_id is not None:
+        resolved_gene_ids |= set(_to_list(gene_id))
+    return resolved_gene_names, resolved_gene_ids
+
+
+def _compute_has_peptide_level_allele(
+    mhc_restriction: pd.Series,
+    allele_resolution: pd.Series | None = None,
+) -> pd.Series:
+    """True when a row carries peptide-level allele evidence.
+
+    Class-only sentinels and serological restrictions are not allele-level.
+    When resolution metadata is present, it overrides the looser string
+    heuristic so downstream exports can trust the flag.
+    """
+    restriction = mhc_restriction.fillna("").astype(str).str.strip()
+    result = (
+        restriction.ne("")
+        & ~restriction.str.lower().str.startswith(("hla class", "mhc class"))
+        & restriction.str.contains(r"\*", regex=True)
+    )
+    if allele_resolution is not None:
+        resolution = allele_resolution.fillna("").astype(str).str.strip()
+        result = result & ~resolution.isin({"class_only", "serological"})
+    return result.astype(bool)
 
 
 def _is_class_only_sentinel(mhc_str: str) -> bool:
