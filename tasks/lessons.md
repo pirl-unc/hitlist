@@ -10,3 +10,6 @@
 
 - Do not derive "allele-level" booleans from non-empty restriction strings when resolution metadata exists.
   Rule: prefer `allele_resolution` / equivalent schema fields over string-presence heuristics for any downstream flag that implies biological resolution.
+
+- Tests for "index not built" paths should not depend on the user's global data directory state.
+  Rule: when a test needs the unbuilt/empty-index branch, isolate `HITLIST_DATA_DIR` or monkeypatch the path helpers to a temp directory instead of conditionally skipping based on whatever exists in `~/.hitlist`.
