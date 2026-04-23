@@ -253,7 +253,7 @@ def _load_peptide_index(
     if not path.exists():
         raise FileNotFoundError(f"{index_name} table not built. Run: hitlist data build")
 
-    from .curation import normalize_allele, normalize_species
+    from .curation import allele_to_all_serotypes, normalize_allele, normalize_species
 
     def _as_list(v) -> list[str]:
         if isinstance(v, str):
@@ -302,10 +302,11 @@ def _load_peptide_index(
     post_serotypes: list[str] | None = None
     if serotype is not None:
         post_serotypes = [_normalize_serotype_query(s) for s in _as_list(serotype)]
-        if columns is not None and "serotypes" not in columns:
-            read_columns = [*columns, "serotypes"]
-        else:
-            read_columns = columns
+        read_columns = list(columns) if columns is not None else None
+        if read_columns is not None:
+            for required in ("serotypes", "mhc_restriction"):
+                if required not in read_columns:
+                    read_columns.append(required)
 
         import pyarrow.parquet as pq
 
@@ -322,12 +323,19 @@ def _load_peptide_index(
 
     if post_serotypes:
         wanted = set(post_serotypes)
-        mask = df["serotypes"].map(
+        stored_mask = df["serotypes"].map(
             lambda s: bool(wanted & set(s.split(";"))) if isinstance(s, str) and s else False
         )
-        df = df[mask]
-        if columns is not None and "serotypes" not in columns:
-            df = df.drop(columns=["serotypes"])
+        derived_mask = df["mhc_restriction"].map(
+            lambda s: bool(wanted & set(allele_to_all_serotypes(s)))
+            if isinstance(s, str) and s
+            else False
+        )
+        df = df[stored_mask | derived_mask]
+        if columns is not None:
+            drop_cols = [c for c in ("serotypes", "mhc_restriction") if c not in columns]
+            if drop_cols:
+                df = df.drop(columns=drop_cols)
 
     # Length bounds (#118). observations.parquet / binding.parquet don't
     # carry an explicit length column — we compute it from the peptide

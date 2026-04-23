@@ -2,6 +2,9 @@
 
 ## 2026-04-23
 
+- When the user wants work landed incrementally, keep PRs sequential instead of piling up draft branches.
+  Rule: merge or refresh one PR at a time and rebase the next branch on the newly merged `main` before opening more follow-on drafts.
+
 - When adding a composed export on top of existing indexes, test the post-filter expansion path explicitly.
   Rule: if an export filters evidence rows first and then re-expands through a secondary index, add a regression test with a shared key (for example a shared peptide) to prove the secondary expansion still respects the original filter semantics.
 
