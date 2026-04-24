@@ -102,7 +102,7 @@ sources:
     file: gm12878_encode_rnaseq_tpm.csv.gz
     cell_lines_covered:
       - GM12878
-    license: "CC0 (ENCODE)"
+    license: "ENCODE Data Use Policy (permissive; ~ CC0)"
     notes: >
       Gene-level TPM for the ENCODE Tier-1 B-LCL GM12878. Used as the
       tier-3 EBV-LCL class anchor for any donor B-LCL (JY, HHC, GR, CD165,

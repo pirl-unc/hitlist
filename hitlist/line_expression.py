@@ -135,6 +135,54 @@ def load_line_expression_sources() -> list[dict]:
     return [dict(entry) for entry in _load_sources_yaml()]
 
 
+@lru_cache(maxsize=1)
+def _alias_to_expression_key() -> dict[str, str]:
+    """Casefolded alias / canonical-name → ``expression_key`` lookup.
+
+    Used by the builder to harmonize external line identifiers (e.g. DepMap
+    ``StrippedCellLineName``) onto the stable keys the registry expects.
+    Entries with ``expression_backend == "none"`` are skipped — they carry no
+    data and shouldn't claim a ``line_key``.
+    """
+    m: dict[str, str] = {}
+    for entry in _load_anchors_yaml():
+        key = entry.get("expression_key")
+        backend = entry.get("expression_backend") or ""
+        if not key or backend == "none":
+            continue
+        for alias in entry.get("aliases") or []:
+            a = str(alias).casefold().strip()
+            if a:
+                m.setdefault(a, str(key))
+        name = entry.get("name")
+        if name:
+            m.setdefault(str(name).casefold().strip(), str(key))
+            # Also map with hyphens/dots stripped so DepMap's
+            # ``StrippedCellLineName`` (e.g. "SAOS2", "THP1") matches
+            # registry names like "SaOS-2", "THP-1".
+            stripped = "".join(c for c in str(name) if c.isalnum()).casefold()
+            if stripped:
+                m.setdefault(stripped, str(key))
+    return m
+
+
+def resolve_line_key(label: str) -> str | None:
+    """Map an external label (e.g. DepMap name) to the registry ``expression_key``.
+
+    Returns the stable ``expression_key`` when ``label`` matches a registered
+    alias, the canonical line name, or the punctuation-stripped canonical
+    name. ``None`` on no match. Case-insensitive.
+    """
+    if not label:
+        return None
+    lookup = _alias_to_expression_key()
+    low = str(label).casefold().strip()
+    if low in lookup:
+        return lookup[low]
+    stripped = "".join(c for c in low if c.isalnum())
+    return lookup.get(stripped)
+
+
 # ── Resolver ────────────────────────────────────────────────────────────────
 
 
@@ -184,8 +232,34 @@ def _anchor_by_name(name: str) -> dict | None:
     return None
 
 
+def _is_alias_boundary_ok(alias: str, label: str, pos: int) -> bool:
+    """Word-boundary check for a substring hit.
+
+    Required on the left only when the alias starts with an alphanumeric
+    character; ditto on the right for the last character.  Aliases that
+    already begin (or end) with punctuation (``.221``, ``hla-b*51:01``)
+    provide their own boundary, so forcing an additional one would break
+    matches like ``".221"`` inside ``"721.221-HLA-A*11:01"``.
+
+    This rule lets us drop the trailing-space hack from the YAML while
+    still rejecting false positives like ``"jy"`` inside ``"JYH"``.
+    """
+    first, last = alias[0], alias[-1]
+    if first.isalnum() and pos > 0 and label[pos - 1].isalnum():
+        return False
+    end = pos + len(alias)
+    return not (last.isalnum() and end < len(label) and label[end].isalnum())
+
+
 def _find_anchor_by_label(label: str) -> tuple[dict, str] | None:
-    """Return the (entry, matched_alias) for the longest alias that hits."""
+    """Return the (entry, matched_alias) for the longest alias that hits.
+
+    Matches aliases with word-boundary awareness (see
+    :func:`_is_alias_boundary_ok`): a substring hit only counts when it's
+    flanked by punctuation / whitespace / string-boundary on the side(s)
+    where the alias is alphanumeric.  Longest winning alias wins; ties
+    are resolved deterministically by YAML entry order.
+    """
     if not label:
         return None
     low = label.casefold()
@@ -193,10 +267,22 @@ def _find_anchor_by_label(label: str) -> tuple[dict, str] | None:
     best_len = -1
     for entry in _load_anchors_yaml():
         for alias in entry.get("aliases", []) or []:
-            a = str(alias).casefold()
-            if not a:
+            # Strip whitespace so the YAML doesn't need to encode word
+            # boundaries via trailing spaces.
+            a = str(alias).casefold().strip()
+            if not a or len(a) <= best_len:
                 continue
-            if a in low and len(a) > best_len:
+            idx = 0
+            hit_pos = -1
+            while True:
+                i = low.find(a, idx)
+                if i < 0:
+                    break
+                if _is_alias_boundary_ok(a, low, i):
+                    hit_pos = i
+                    break
+                idx = i + 1
+            if hit_pos >= 0:
                 best = (entry, str(alias))
                 best_len = len(a)
     return best

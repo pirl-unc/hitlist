@@ -782,10 +782,11 @@ def _parent_line_lookup() -> dict[str, str]:
 
 def _source_stamp(source: dict) -> dict:
     """Per-source defaults stamped onto every row."""
+    pmid_raw = source.get("pmid")
     return {
         "backend": source.get("backend") or "",
         "source_id": source.get("source_id") or "",
-        "pmid": int(source.get("pmid")) if source.get("pmid") else pd.NA,
+        "pmid": int(pmid_raw) if pmid_raw is not None else pd.NA,
         "reference": source.get("reference") or "",
         "study_label": source.get("study_label") or "",
         "normalization": source.get("normalization") or "",
@@ -798,15 +799,20 @@ def _source_stamp(source: dict) -> dict:
 def _read_depmap_csv(path: Path, granularity: str) -> pd.DataFrame:
     """Parse a DepMap log2(TPM+1) matrix into long-form.
 
-    DepMap ships wide CSVs keyed by ModelID; columns are labels such as
-    ``"TP53 (7157)"`` for gene files or ``"ENST00000269305 (TP53)"`` for
-    transcript files.  We melt to long form, strip the parenthesized
-    identifier, and carry the log2(TPM+1) value as ``log2_tpm`` (the
-    native DepMap normalization), reconstituting raw TPM via
-    ``tpm = 2**log2_tpm - 1``.
-    """
-    import re
+    DepMap ships wide CSVs whose **rows** are keyed by DepMap ``ModelID``
+    (e.g. ``ACH-002680``) and whose **column labels** are per-feature:
+    ``"TP53 (7157)"`` for the gene matrix (symbol + Entrez ID) or
+    ``"ENST00000269305.9 (TP53)"`` for the transcript matrix (versioned
+    Ensembl transcript ID + gene symbol). The melt below produces one row
+    per (ModelID, feature) pair.
 
+    The melt puts the ModelID into ``line_key`` — :func:`_harmonize_depmap_line_keys`
+    is responsible for mapping it onto the registry's ``expression_key``.
+
+    DepMap normalization is log2(TPM+1); raw TPM is reconstituted via
+    ``tpm = 2**log2_tpm - 1`` so downstream joins can compare across
+    sources that ship raw TPM.
+    """
     df = pd.read_csv(path)
     if df.empty:
         return pd.DataFrame()
@@ -817,10 +823,8 @@ def _read_depmap_csv(path: Path, granularity: str) -> pd.DataFrame:
     long = long.rename(columns={id_col: "line_key"})
 
     if granularity == "gene":
-        # Labels: "GENE (entrez)"
-        parsed = long["_label"].str.extract(
-            r"^(?P<gene_name>[^(]+?)\s*(?:\((?P<_ident>[^)]+)\))?\s*$"
-        )
+        # Labels: "GENE (entrez)" — Entrez ID is not used here.
+        parsed = long["_label"].str.extract(r"^(?P<gene_name>[^(]+?)\s*(?:\([^)]+\))?\s*$")
         long["gene_name"] = parsed["gene_name"].str.strip()
         long["gene_id"] = ""
         long["transcript_id"] = ""
@@ -844,22 +848,94 @@ def _read_depmap_csv(path: Path, granularity: str) -> pd.DataFrame:
     else:
         long = long[long["transcript_id"].astype(bool)]
 
-    # DepMap uses internal arxspan IDs (e.g. ACH-002680) and/or display
-    # names.  Leave line_key as-is; the caller harmonizes to registry keys.
-    _ = re  # silence lint if regex ever moves
     return long.reset_index(drop=True)
 
 
-def _harmonize_depmap_line_keys(df: pd.DataFrame) -> pd.DataFrame:
-    """Map DepMap model IDs / display names to registry ``expression_key`` values.
+def _load_depmap_model_lookup(model_csv_path: Path | None) -> dict[str, str]:
+    """Return ``{ModelID: display_name}`` from a DepMap ``Model.csv``.
 
-    Registry uses display-friendly keys (``HeLa``, ``A375``, ``SAOS2``,
-    ``THP1``, ``K562``, ``HEK293``).  DepMap CSV headers are already
-    display-name-based in recent releases (e.g. the matrix rows are
-    DepMap ModelIDs but the column labels are stripped in our melt).
-    This hook lets future releases remap if needed; today it's a no-op.
+    Empty dict when the file is missing or unreadable.  ``display_name``
+    prefers ``StrippedCellLineName`` (e.g. ``"HELA"``, ``"SAOS2"``) and
+    falls back to ``CellLineName``.
     """
-    return df
+    if not model_csv_path or not Path(model_csv_path).exists():
+        return {}
+    try:
+        df = pd.read_csv(model_csv_path)
+    except Exception as exc:
+        print(f"  warning: failed to read DepMap Model.csv ({exc}); skipping harmonization")
+        return {}
+    out: dict[str, str] = {}
+    if "ModelID" not in df.columns:
+        return {}
+    stripped = df["StrippedCellLineName"] if "StrippedCellLineName" in df.columns else None
+    fallback = df["CellLineName"] if "CellLineName" in df.columns else None
+    for i, row in df.iterrows():
+        mid = str(row.get("ModelID") or "").strip()
+        if not mid:
+            continue
+        name = ""
+        if stripped is not None:
+            v = stripped.iloc[i]
+            if isinstance(v, str) and v.strip():
+                name = v.strip()
+        if not name and fallback is not None:
+            v = fallback.iloc[i]
+            if isinstance(v, str) and v.strip():
+                name = v.strip()
+        if name:
+            out[mid] = name
+    return out
+
+
+def _harmonize_depmap_line_keys(
+    df: pd.DataFrame,
+    model_lookup: dict[str, str] | None = None,
+) -> pd.DataFrame:
+    """Harmonize DepMap ``ModelID`` (and display names) onto registry keys.
+
+    Two lookups are applied in order, then unmatched rows are dropped:
+
+    1. ``ModelID → StrippedCellLineName`` via the caller-supplied
+       ``model_lookup`` built from DepMap's ``Model.csv``.
+    2. ``StrippedCellLineName / display name → expression_key`` via
+       :func:`hitlist.line_expression.resolve_line_key` (which consults
+       the anchor YAML's aliases, canonical names, and punctuation-
+       stripped canonical names — so DepMap's ``"SAOS2"`` / ``"HELA"``
+       / ``"THP1"`` match the registry's ``"SaOS-2"`` / ``"HeLa"`` /
+       ``"THP-1"``).
+
+    Rows whose ``line_key`` doesn't resolve are dropped so the parquet
+    never carries raw DepMap IDs that the resolver can't join against.
+    A warning is printed with the number of dropped lines.
+    """
+    from .line_expression import resolve_line_key
+
+    if df.empty:
+        return df
+    model_lookup = model_lookup or {}
+
+    def _map(raw: str) -> str | None:
+        raw = str(raw)
+        # Step 1: ModelID → display name (if the caller gave us a table).
+        display = model_lookup.get(raw, raw)
+        # Step 2: display name → expression_key via registry aliases.
+        return resolve_line_key(display)
+
+    resolved = df["line_key"].astype(str).map(_map)
+    mask = resolved.notna()
+    n_dropped = int((~mask).sum())
+    if n_dropped:
+        unresolved_sample = df.loc[~mask, "line_key"].astype(str).drop_duplicates().head(5).tolist()
+        print(
+            f"  warning: dropped {n_dropped:,} DepMap rows whose line_key "
+            f"did not resolve to a registry entry "
+            f"(sample: {unresolved_sample}). Register depmap_models to map "
+            f"ModelIDs → display names."
+        )
+    out = df.loc[mask].copy()
+    out["line_key"] = resolved[mask].astype(str)
+    return out.reset_index(drop=True)
 
 
 def build_line_expression(verbose: bool = False) -> pd.DataFrame:
@@ -917,6 +993,12 @@ def build_line_expression(verbose: bool = False) -> pd.DataFrame:
         p = Path(entry["path"])
         return p if p.exists() else None
 
+    # ModelID → display-name table, shared across gene + transcript matrices.
+    model_csv = _registered_path("depmap_models")
+    model_lookup = _load_depmap_model_lookup(model_csv)
+    if verbose and model_csv is not None:
+        print(f"  Loaded DepMap Model.csv lookup ({len(model_lookup):,} ModelIDs)")
+
     for key, source_id, granularity in (
         ("depmap_rna", "DepMap_24Q4_gene", "gene"),
         ("depmap_rna_transcript", "DepMap_24Q4_transcript", "transcript"),
@@ -929,7 +1011,9 @@ def build_line_expression(verbose: bool = False) -> pd.DataFrame:
         long = _read_depmap_csv(p, granularity=granularity)
         if long.empty:
             continue
-        long = _harmonize_depmap_line_keys(long)
+        long = _harmonize_depmap_line_keys(long, model_lookup=model_lookup)
+        if long.empty:
+            continue
         meta = sources_by_id.get(source_id) or {}
         stamp = _source_stamp(meta)
         for col, val in stamp.items():

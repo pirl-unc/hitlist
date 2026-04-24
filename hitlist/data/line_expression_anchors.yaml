@@ -151,7 +151,7 @@ lines:
     notes: "721.221 single-allele transfectants (e.g. 721.221-HLA-A*11:01, 721.221-B*51:01 ERAP1 KO). Resolves to 721.221 via tier 2."
 
   - name: "T2"
-    aliases: ["174xcem.t2", "t2 cell", "t2.dr1", "t2 (174xcem)"]
+    aliases: ["174xcem.t2", "t2 cell", "t2 cells", "t2.dr1", "t2 (174xcem)", "t2"]
     parent_line: null
     line_family: mono_allelic_host
     lineage_tissue: "blood, b lymphocyte"
@@ -162,7 +162,7 @@ lines:
 
   # ── EBV-LCL donor lines ─────────────────────────────────────────────────────
   - name: "JY"
-    aliases: ["jy ebv-lcl", "jy (ebv-lcl)", "jy cell", "jy cells", "jy b-lcl", "jy "]
+    aliases: ["jy ebv-lcl", "jy (ebv-lcl)", "jy cell", "jy cells", "jy b-lcl", "jy"]
     parent_line: null
     line_family: ebv_lcl
     lineage_tissue: "blood, b lymphocyte"
@@ -194,7 +194,7 @@ lines:
     notes: "Donor EBV-LCL. No public RNA-seq located for this donor — resolves via GM12878 tier-3 EBV-LCL class anchor."
 
   - name: "CD165"
-    aliases: ["cd165 ebv-lcl", "cd165 (ebv-lcl)", "cd165 b-lcl", "cd165 "]
+    aliases: ["cd165 ebv-lcl", "cd165 (ebv-lcl)", "cd165 b-lcl", "cd165"]
     parent_line: null
     line_family: ebv_lcl
     lineage_tissue: "blood, b lymphocyte"
@@ -226,7 +226,7 @@ lines:
 
   # ── HEK / HAP1 / immortalized non-tumor lines ───────────────────────────────
   - name: "HEK293"
-    aliases: ["hek293 ", "hek-293 ", "hek293t", "hek-293t", "hek 293t", "hek 293 t", "hek-293-f", "hek 293f", "hek293f", "293t ", "293 t ", "hek293"]
+    aliases: ["hek293t", "hek-293t", "hek 293t", "hek 293 t", "hek-293-f", "hek 293f", "hek293f", "293t", "293 t", "hek293", "hek-293"]
     parent_line: null
     line_family: normal_immortalized
     lineage_tissue: "kidney"
@@ -247,7 +247,7 @@ lines:
     notes: "HEK293T engineered to express ACE2 / TMPRSS2 for SARS-CoV-2 infection studies. Resolves to HEK293 via tier 2."
 
   - name: "HAP1"
-    aliases: ["hap1 wildtype", "hap1 wt", "hap1 parental", "hap-1 ", "hap 1 "]
+    aliases: ["hap1 wildtype", "hap1 wt", "hap1 parental", "hap-1", "hap 1", "hap1"]
     parent_line: null
     line_family: normal_immortalized
     lineage_tissue: "blood, myeloid"

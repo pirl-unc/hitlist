@@ -810,42 +810,58 @@ def _attach_peptide_origin(
         transcript_lookup = _build_transcript_lookup(gene_universe, proteome_release)
 
     # ------------------------------------------------------------------
-    # 5. Compute peptide-origin per (peptide, expression_key) pair.
+    # 5. Compute peptide-origin per UNIQUE (peptide, expression_key) pair,
+    #    then merge the small result table back onto the full frame.
+    #    This keeps the per-row cost in pandas merge rather than a Python
+    #    iterrows loop — ~N-unique-pairs work instead of ~N-rows.
     # ------------------------------------------------------------------
-    scored_cache: dict[tuple[str, str], dict] = {}
+    pair_cols = df[["peptide", "expression_key"]].astype(str).fillna("")
+    unique_pairs = pair_cols.drop_duplicates().reset_index(drop=True)
 
-    def _score(peptide: str, line_key: str) -> dict:
-        key = (peptide, line_key)
-        if key in scored_cache:
-            return scored_cache[key]
+    empty_origin = {
+        "peptide_origin_gene": "",
+        "peptide_origin_gene_id": "",
+        "peptide_origin_tpm": float("nan"),
+        "peptide_origin_log2_tpm": float("nan"),
+        "peptide_origin_dominant_transcript": "",
+        "peptide_origin_n_supporting_transcripts": 0,
+        "peptide_origin_resolution": "no_anchor",
+    }
+
+    origin_rows: list[dict] = []
+    for _, pair in unique_pairs.iterrows():
+        peptide = pair["peptide"]
+        line_key = pair["expression_key"]
         if not line_key or line_key not in tpm_by_line or tpm_by_line[line_key].empty:
-            # Anchor resolved but no TPM rows — tier was ≥3 with no data too.
-            result = {
-                "peptide_origin_gene": "",
-                "peptide_origin_gene_id": "",
-                "peptide_origin_tpm": float("nan"),
-                "peptide_origin_log2_tpm": float("nan"),
-                "peptide_origin_dominant_transcript": "",
-                "peptide_origin_n_supporting_transcripts": 0,
-                "peptide_origin_resolution": "no_anchor",
-            }
+            scored = dict(empty_origin)
         else:
-            result = compute_peptide_origin(
+            scored = compute_peptide_origin(
                 peptide=peptide,
                 candidate_genes=candidates_by_peptide.get(peptide, []),
                 line_expression_df=tpm_by_line[line_key],
                 transcript_lookup=transcript_lookup,
             )
-        scored_cache[key] = result
-        return result
+        origin_rows.append({"peptide": peptide, "expression_key": line_key, **scored})
 
-    origin_cols = {col: [] for col in _PEPTIDE_ORIGIN_COLUMNS}
-    for _, row in df[["peptide", "expression_key"]].iterrows():
-        res = _score(str(row["peptide"] or ""), str(row["expression_key"] or ""))
-        for col in _PEPTIDE_ORIGIN_COLUMNS:
-            origin_cols[col].append(res.get(col))
-    for col in _PEPTIDE_ORIGIN_COLUMNS:
-        df[col] = origin_cols[col]
+    origin_df = pd.DataFrame(
+        origin_rows, columns=["peptide", "expression_key", *_PEPTIDE_ORIGIN_COLUMNS]
+    )
+
+    # Ensure merge-key dtypes line up (both sides are plain strings now).
+    df["peptide"] = df["peptide"].astype(str).fillna("")
+    df["expression_key"] = df["expression_key"].astype(str).fillna("")
+    df = df.merge(origin_df, on=["peptide", "expression_key"], how="left")
+
+    # Fill the fallback for any (peptide, key) the merge didn't cover
+    # — shouldn't happen in practice, but keeps the contract stable.
+    for col, default in empty_origin.items():
+        if col in df.columns:
+            if isinstance(default, str):
+                df[col] = df[col].fillna(default)
+            elif isinstance(default, float):
+                df[col] = df[col].astype(float)
+            elif isinstance(default, int):
+                df[col] = df[col].fillna(default).astype(int)
 
     return df
 
@@ -976,6 +992,15 @@ def generate_training_table(
     ``expression_parent_key``) are preserved so consumers can distinguish
     exact-line evidence from class / tissue / cancer-type surrogates —
     see issue pirl-unc/hitlist#140.
+
+    .. note::
+       Transcript-isoform-aware scoring needs pyensembl translations.
+       When transcript-level TPM is present for any resolved sample,
+       :func:`_build_transcript_lookup` instantiates ``EnsemblRelease``,
+       which will trigger a pyensembl cache download (~GB) on first use
+       if the requested ``proteome_release`` has not already been
+       materialized. Set ``proteome_release`` to a release you have
+       already built observations against to avoid a surprise download.
     """
     mode = include_evidence.strip().lower()
     if mode not in {"ms", "binding", "both"}:
