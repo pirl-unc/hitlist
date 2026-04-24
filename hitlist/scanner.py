@@ -58,6 +58,13 @@ _COLUMN_NAMES: dict[str, list[str]] = {
     "disease_stage": ["Disease Stage", "Host | Disease Stage"],
     "antigen_processing_comments": ["Antigen Processing Comments"],
     "qualitative_measurement": ["Qualitative Measurement"],
+    "assay_method": ["Assay | Method", "Method"],
+    "measurement_units": ["Assay | Units", "Units"],
+    "measurement_inequality": ["Assay | Measurement Inequality", "Measurement Inequality"],
+    "quantitative_measurement": [
+        "Assay | Quantitative measurement",
+        "Quantitative measurement",
+    ],
     "assay_comments": ["Assay Comments"],
     "source_tissue": ["Source Tissue", "Effector Cells | Source Tissue"],
     "cell_name": ["Cell Name", "Effector Cells | Cell Name"],
@@ -82,6 +89,10 @@ _FALLBACK_INDICES: dict[str, int] = {
     "disease_stage": 53,
     "antigen_processing_comments": 88,
     "qualitative_measurement": 94,
+    "assay_method": 90,
+    "measurement_units": 92,
+    "measurement_inequality": 95,
+    "quantitative_measurement": 96,
     "assay_comments": 101,
     "source_tissue": 102,
     "cell_name": 104,
@@ -124,6 +135,22 @@ def _resolve_columns(cat_header: list[str], field_header: list[str]) -> dict[str
 
 def _safe_col(row: list[str], idx: int) -> str:
     return row[idx] if len(row) > idx else ""
+
+
+def _parse_float(value: str) -> float:
+    """Parse a cell to ``float``; return NaN for empty or non-numeric values.
+
+    IEDB's quantitative-measurement column is mostly numeric but contains
+    stray empty strings, whitespace, and occasional free-text notes.
+    Callers downstream filter with ``value.notna()`` + ``value.between(...)``,
+    so NaN is the right sentinel.
+    """
+    if not value:
+        return float("nan")
+    try:
+        return float(str(value).strip())
+    except (TypeError, ValueError):
+        return float("nan")
 
 
 class _ByteCountingFile:
@@ -374,6 +401,18 @@ def scan(
                 "antigen_processing_comments": _safe_col(row, c["antigen_processing_comments"]),
                 "assay_comments": _safe_col(row, c["assay_comments"]),
                 "qualitative_measurement": _safe_col(row, c["qualitative_measurement"]),
+                # Structured quantitative binding-assay fields from IEDB /
+                # CEDAR (issue #148).  The raw string is preserved so
+                # consumers can audit parsing; ``quantitative_value`` is the
+                # float cast (NaN when the cell is empty / non-numeric) for
+                # downstream filtering.  ``measurement_inequality`` ("", "<",
+                # ">", "=", "<=", ">=") paired with ``quantitative_value``
+                # distinguishes exact IC50 measurements from bounded ones.
+                "assay_method": _safe_col(row, c["assay_method"]),
+                "measurement_units": _safe_col(row, c["measurement_units"]),
+                "measurement_inequality": _safe_col(row, c["measurement_inequality"]),
+                "quantitative_measurement": _safe_col(row, c["quantitative_measurement"]),
+                "quantitative_value": _parse_float(_safe_col(row, c["quantitative_measurement"])),
                 "is_binding_assay": is_binding_assay(
                     _safe_col(row, c["qualitative_measurement"]),
                     _safe_col(row, c["assay_comments"]),
