@@ -410,6 +410,200 @@ def test_ms_samples_species_normalized():
         assert "(" not in s, f"Species not normalized: {s}"
 
 
+# ── Class-II heterodimer component matching (issue #151) ───────────────────
+
+
+def test_expand_heterodimer_components_dp_pair():
+    """HLA-DP heterodimer string splits into full + beta + alpha components."""
+    from hitlist.export import _expand_heterodimer_components
+
+    out = _expand_heterodimer_components("HLA-DPB1*06:01/DPA1*01:03")
+    assert out[0] == "HLA-DPB1*06:01/DPA1*01:03"
+    assert "HLA-DPB1*06:01" in out
+    assert "HLA-DPA1*01:03" in out
+
+
+def test_expand_heterodimer_components_dq_pair():
+    from hitlist.export import _expand_heterodimer_components
+
+    out = _expand_heterodimer_components("HLA-DQB1*06:04/DQA1*01:02")
+    assert out[0] == "HLA-DQB1*06:04/DQA1*01:02"
+    assert "HLA-DQB1*06:04" in out
+    assert "HLA-DQA1*01:02" in out
+
+
+def test_expand_heterodimer_components_class_i_passthrough():
+    from hitlist.export import _expand_heterodimer_components
+
+    assert _expand_heterodimer_components("HLA-A*02:01") == ["HLA-A*02:01"]
+
+
+def test_expand_heterodimer_components_empty_and_whitespace():
+    from hitlist.export import _expand_heterodimer_components
+
+    assert _expand_heterodimer_components("") == []
+    assert _expand_heterodimer_components("   ") == []
+
+
+def test_beta_chain_only_restriction_joins_heterodimer_sample(tmp_path, monkeypatch):
+    """An observation with ``mhc_restriction="HLA-DPB1*06:01"`` must join
+    to a curated MAPTAC sample whose mhc is the heterodimer
+    ``"HLA-DPB1*06:01/DPA1*01:03"`` — issue #151.
+    """
+    import pandas as pd
+
+    from hitlist.export import generate_observations_table
+
+    # Monkeypatch load_pmid_overrides to return a single synthetic PMID
+    # with a DP heterodimer sample, so we don't depend on the real YAML.
+    def fake_overrides():
+        return {
+            99999001: {
+                "study_label": "synthetic — DP heterodimer MAPTAC",
+                "species": "Homo sapiens (human)",
+                "ms_samples": [
+                    {
+                        "sample_label": "MAPTAC DP heterodimer",
+                        "n_samples": 1,
+                        "condition": "unperturbed",
+                        "mhc_class": "II",
+                        "mhc": "HLA-DPB1*06:01/DPA1*01:03",
+                    }
+                ],
+            }
+        }
+
+    monkeypatch.setattr("hitlist.export.load_pmid_overrides", fake_overrides)
+
+    obs_data = pd.DataFrame(
+        {
+            # Beta-chain-only restriction — should still match the sample.
+            "peptide": ["BETACHAINAB"],
+            "mhc_restriction": ["HLA-DPB1*06:01"],
+            "mhc_class": ["II"],
+            "reference_iri": ["iri:1"],
+            "pmid": pd.array([99999001], dtype="Int64"),
+            "source": ["iedb"],
+            "mhc_species": ["Homo sapiens"],
+            "is_monoallelic": [False],
+            "is_binding_assay": [False],
+            "qualitative_measurement": ["Positive"],
+        }
+    )
+    obs_path = tmp_path / "observations.parquet"
+    obs_data.to_parquet(obs_path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+
+    df = generate_observations_table()
+    assert len(df) == 1
+    row = df.iloc[0]
+    assert row["sample_label"] == "MAPTAC DP heterodimer"
+    assert row["sample_match_type"] == "allele_match"
+
+
+def test_heterodimer_string_still_matches_directly(tmp_path, monkeypatch):
+    """An observation that reports the full heterodimer string must continue
+    to match — expansion adds components WITHOUT removing the original
+    full-string match.
+    """
+    import pandas as pd
+
+    from hitlist.export import generate_observations_table
+
+    def fake_overrides():
+        return {
+            99999002: {
+                "study_label": "synthetic",
+                "species": "Homo sapiens (human)",
+                "ms_samples": [
+                    {
+                        "sample_label": "DQ heterodimer sample",
+                        "n_samples": 1,
+                        "condition": "unperturbed",
+                        "mhc_class": "II",
+                        "mhc": "HLA-DQB1*06:04/DQA1*01:02",
+                    }
+                ],
+            }
+        }
+
+    monkeypatch.setattr("hitlist.export.load_pmid_overrides", fake_overrides)
+
+    obs_data = pd.DataFrame(
+        {
+            "peptide": ["FULLPAIRAB"],
+            "mhc_restriction": ["HLA-DQB1*06:04/DQA1*01:02"],
+            "mhc_class": ["II"],
+            "reference_iri": ["iri:2"],
+            "pmid": pd.array([99999002], dtype="Int64"),
+            "source": ["iedb"],
+            "mhc_species": ["Homo sapiens"],
+            "is_monoallelic": [False],
+            "is_binding_assay": [False],
+            "qualitative_measurement": ["Positive"],
+        }
+    )
+    obs_path = tmp_path / "observations.parquet"
+    obs_data.to_parquet(obs_path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+
+    df = generate_observations_table()
+    assert len(df) == 1
+    row = df.iloc[0]
+    assert row["sample_match_type"] == "allele_match"
+    assert row["sample_label"] == "DQ heterodimer sample"
+
+
+def test_alpha_chain_only_restriction_also_matches(tmp_path, monkeypatch):
+    """Rare but possible: an observation reporting only the alpha chain
+    of a curated DP heterodimer must still match its sample.
+    """
+    import pandas as pd
+
+    from hitlist.export import generate_observations_table
+
+    def fake_overrides():
+        return {
+            99999003: {
+                "study_label": "synthetic",
+                "species": "Homo sapiens (human)",
+                "ms_samples": [
+                    {
+                        "sample_label": "DP heterodimer sample",
+                        "n_samples": 1,
+                        "condition": "unperturbed",
+                        "mhc_class": "II",
+                        "mhc": "HLA-DPB1*06:01/DPA1*01:03",
+                    }
+                ],
+            }
+        }
+
+    monkeypatch.setattr("hitlist.export.load_pmid_overrides", fake_overrides)
+
+    obs_data = pd.DataFrame(
+        {
+            "peptide": ["ALPHAONLYA"],
+            "mhc_restriction": ["HLA-DPA1*01:03"],
+            "mhc_class": ["II"],
+            "reference_iri": ["iri:3"],
+            "pmid": pd.array([99999003], dtype="Int64"),
+            "source": ["iedb"],
+            "mhc_species": ["Homo sapiens"],
+            "is_monoallelic": [False],
+            "is_binding_assay": [False],
+            "qualitative_measurement": ["Positive"],
+        }
+    )
+    obs_path = tmp_path / "observations.parquet"
+    obs_data.to_parquet(obs_path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+
+    df = generate_observations_table()
+    assert len(df) == 1
+    assert df.iloc[0]["sample_match_type"] == "allele_match"
+
+
 def test_species_summary_columns():
     """Summary sources from observations.parquet (#117, v1.15.0).
 

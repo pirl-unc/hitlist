@@ -303,6 +303,11 @@ def generate_observations_table(
     # --- Allele-level sample lookup ---
     # Explode each sample's MHC alleles into one row per (pmid, allele)
     # so we can do a vectorized merge instead of row-by-row iteration.
+    # Heterodimer tokens like ``HLA-DPB1*06:01/DPA1*01:03`` are expanded
+    # into their component alleles (``HLA-DPB1*06:01`` and
+    # ``HLA-DPA1*01:03``) so an observation reporting a beta-chain-only
+    # restriction still joins to the heterodimer sample — see
+    # pirl-unc/hitlist#151 (Abelin MAPTAC DP/DQ rows).
     allele_rows: list[dict] = []
     for _, srow in samples.iterrows():
         pmid = int(srow["pmid"])
@@ -310,8 +315,9 @@ def generate_observations_table(
         if mhc_str and not _is_class_only_sentinel(mhc_str):
             meta = {col: srow.get(col, "") for col in meta_cols}
             meta["_pmid_int"] = pmid
-            for allele in mhc_str.split():
-                allele_rows.append({**meta, "_allele": allele})
+            for token in mhc_str.split():
+                for allele in _expand_heterodimer_components(token):
+                    allele_rows.append({**meta, "_allele": allele})
 
     allele_df = (
         pd.DataFrame(allele_rows)
@@ -347,7 +353,15 @@ def generate_observations_table(
                 if cls in str(sample_cls).split("+"):
                     mhc_str = srow.get("mhc", "")
                     if mhc_str and not _is_class_only_sentinel(mhc_str):
-                        alleles.update(normalize_allele(a) for a in mhc_str.split())
+                        # Same heterodimer expansion as the allele-level
+                        # join — a class pool that contains the full
+                        # heterodimer string AND its beta/alpha components
+                        # lets a class-only observation be reported with
+                        # the same pool whether the sample was curated
+                        # as a heterodimer or as a beta-chain.
+                        for token in mhc_str.split():
+                            for comp in _expand_heterodimer_components(token):
+                                alleles.add(normalize_allele(comp))
             # Filter out empty strings from failed normalization
             alleles.discard("")
             if alleles:
@@ -1196,6 +1210,38 @@ def _compute_has_peptide_level_allele(
         resolution = allele_resolution.fillna("").astype(str).str.strip()
         result = result & ~resolution.isin({"class_only", "serological"})
     return result.astype(bool)
+
+
+def _expand_heterodimer_components(allele_token: str) -> list[str]:
+    """Return the allele plus its beta/alpha components for HLA-II heterodimers.
+
+    The ``ms_samples`` curation stores DP/DQ heterodimers as paired strings
+    such as ``"HLA-DPB1*06:01/DPA1*01:03"`` or ``"HLA-DQB1*06:04/DQA1*01:02"``,
+    but many IEDB/supplementary rows report only the beta chain
+    (``"HLA-DPB1*06:01"``).  Emitting the full string *plus* each
+    component from the sample allele pool lets the vectorized merge
+    match beta-chain-only rows against heterodimer samples — see
+    pirl-unc/hitlist#151.  Class-I alleles and already-split strings
+    pass through unchanged (a single-element list).
+    """
+    token = allele_token.strip()
+    if not token or "/" not in token:
+        return [token] if token else []
+    parts = token.split("/")
+    # Preserve the HLA- prefix on component strings even when only the
+    # leading token carries it (the canonical curated form).
+    prefix = ""
+    first = parts[0]
+    if first.startswith("HLA-"):
+        prefix = "HLA-"
+        parts[0] = first[len("HLA-") :]
+    components = [prefix + p for p in parts if p]
+    # Dedupe while preserving order: full string first, then components.
+    out = [token]
+    for c in components:
+        if c and c not in out:
+            out.append(c)
+    return out
 
 
 def _is_class_only_sentinel(mhc_str: str) -> bool:
