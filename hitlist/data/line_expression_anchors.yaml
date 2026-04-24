@@ -1,0 +1,268 @@
+# Curated per-line expression anchors for ms_samples resolution.
+#
+# Used by hitlist.line_expression.resolve_sample_expression_anchor() to map a
+# free-text `sample_label` (and optional `cell_name`, `pmid`, `study_label`)
+# onto a stable expression backend + key so downstream training exports can
+# attach per-sample RNA evidence while preserving full provenance.
+#
+# Fallback hierarchy (applied top-down by the resolver):
+#   1. exact line RNA / transcript quant          → this file, expression_backend != "none"
+#   2. parent-line or engineered-derivative RNA   → this file, follow `parent_line`
+#   3. line-family stand-in                       → `line_family` → class anchor:
+#        ebv_lcl          → GM12878 (ENCODE)
+#        mono_allelic_host → K562 (DepMap) as generic null-host proxy
+#   4. cancer-type surrogate (pirlygenes)         → caller-supplied backend; uses `cancer_type`
+#   5. broad tissue / lineage surrogate           → `lineage_tissue` → HPA bucket
+#   6. no_expression_anchor                        → resolver emits tier 6
+#
+# Provenance columns written on every downstream export row:
+#   expression_backend, expression_key, expression_match_tier, expression_parent_key
+#
+# Field reference
+# ---------------
+#   name              canonical line name (stable, display-worthy)
+#   aliases           lowercase substrings matched against sample_label / cell_name;
+#                     order matters — longer, more-specific aliases first
+#   parent_line       canonical name of the parent line (null for roots);
+#                     used for tier-2 resolution of engineered derivatives
+#   line_family       ebv_lcl | mono_allelic_host | tumor_line |
+#                     normal_immortalized | null
+#   lineage_tissue    HPA-compatible tissue bucket used by tier-5 fallback
+#   cancer_type       free-text surrogate label for tier-4 (pirlygenes) fallback;
+#                     null for non-tumor lines
+#   expression_backend  depmap_rna | packaged_rnaseq | encode_rnaseq | none
+#                       `none` means no exact-line data is available — resolver
+#                       drops straight to tier 2/3/etc.
+#   expression_key    key joined against line_expression.parquet `line_key`
+#                     column. Omitted when expression_backend == "none".
+#   source_ids        list of source_id values from
+#                     hitlist/data/line_expression/sources.yaml that contribute
+#                     rows for this line (used for provenance, not resolution)
+#   notes             free-text, human-readable
+
+lines:
+  # ── Tumor / cancer cell lines with DepMap coverage ──────────────────────────
+  - name: "HeLa"
+    aliases: ["hela-s3", "hela s3", "hela"]
+    parent_line: null
+    line_family: tumor_line
+    lineage_tissue: "cervix, uterine"
+    cancer_type: "cervical adenocarcinoma"
+    expression_backend: depmap_rna
+    expression_key: "HeLa"
+    source_ids: ["DepMap_24Q4_gene", "DepMap_24Q4_transcript"]
+    notes: "Cervical adenocarcinoma (HPV18+). Parent for HeLa.ABC-KO and CIITA derivatives."
+
+  - name: "HeLa.ABC-KO"
+    aliases: ["hela.abc-ko", "hela abc-ko", "hela-abc-ko", "hela.abc ko"]
+    parent_line: "HeLa"
+    line_family: tumor_line
+    lineage_tissue: "cervix, uterine"
+    cancer_type: "cervical adenocarcinoma"
+    expression_backend: none
+    source_ids: []
+    notes: "HLA-A/B/C triple-KO HeLa used as a null background for HLA-I transfection. No exact-line RNA-seq packaged; resolves via parent HeLa (tier 2)."
+
+  - name: "A375"
+    aliases: ["a375"]
+    parent_line: null
+    line_family: tumor_line
+    lineage_tissue: "skin"
+    cancer_type: "cutaneous melanoma"
+    expression_backend: depmap_rna
+    expression_key: "A375"
+    source_ids: ["DepMap_24Q4_gene", "DepMap_24Q4_transcript"]
+    notes: "BRAF V600E cutaneous melanoma. Common expression / inhibitor context."
+
+  - name: "SaOS-2"
+    aliases: ["saos-2", "saos2", "saos 2", "raos"]
+    parent_line: null
+    line_family: tumor_line
+    lineage_tissue: "bone"
+    cancer_type: "osteosarcoma"
+    expression_backend: depmap_rna
+    expression_key: "SAOS2"
+    source_ids: ["DepMap_24Q4_gene", "DepMap_24Q4_transcript"]
+    notes: "Osteosarcoma. `RaOS` (typo in PMID curation) is normalized to SaOS-2 per issue #140."
+
+  - name: "THP-1"
+    aliases: ["thp-1", "thp1", "thp 1"]
+    parent_line: null
+    line_family: tumor_line
+    lineage_tissue: "blood, myeloid"
+    cancer_type: "acute monocytic leukemia"
+    expression_backend: depmap_rna
+    expression_key: "THP1"
+    source_ids: ["DepMap_24Q4_gene", "DepMap_24Q4_transcript"]
+    notes: "Monocytic AML (M5). MLL-rearranged; commonly used for TLR/immune work."
+
+  # ── Mono-allelic hosts ──────────────────────────────────────────────────────
+  - name: "K562"
+    aliases: ["k562"]
+    parent_line: null
+    line_family: mono_allelic_host
+    lineage_tissue: "blood, myeloid"
+    cancer_type: "chronic myeloid leukemia"
+    expression_backend: depmap_rna
+    expression_key: "K562"
+    source_ids: ["DepMap_24Q4_gene", "DepMap_24Q4_transcript"]
+    notes: "HLA class I null erythroleukemia (BCR-ABL1). Canonical mono-allelic host. Also serves as tier-3 fallback for other mono-allelic hosts without packaged RNA-seq."
+
+  - name: "C1R"
+    aliases: ["c1r", "hmy2.cir", "hmy2cir"]
+    parent_line: null
+    line_family: mono_allelic_host
+    lineage_tissue: "blood, b lymphocyte"
+    cancer_type: null
+    expression_backend: packaged_rnaseq
+    expression_key: "C1R"
+    source_ids: ["Kaabinejadian_2022_HLA_mono"]
+    notes: "HLA-A/B low Hmy2.CIR B-lymphoblastoid host; retains weak HLA-B*35:03 / HLA-C*04:01. Parent for C1R-HLA-* transfectant series."
+
+  - name: "C1R-HLA"
+    aliases: ["c1r-hla", "c1r hla", "c1r.hla"]
+    parent_line: "C1R"
+    line_family: mono_allelic_host
+    lineage_tissue: "blood, b lymphocyte"
+    cancer_type: null
+    expression_backend: none
+    source_ids: []
+    notes: "Catch-all for C1R single-allele transfectants (C1R-HLA-B*27:02, C1R-HLA-C*07:02, C1R HLA-E, etc.). Resolves to parent C1R expression (tier 2)."
+
+  - name: "721.221"
+    aliases: ["721.221", "b721.221", ".221", "hla-deficient 721"]
+    parent_line: null
+    line_family: mono_allelic_host
+    lineage_tissue: "blood, b lymphocyte"
+    cancer_type: null
+    expression_backend: packaged_rnaseq
+    expression_key: "721.221"
+    source_ids: ["Kaabinejadian_2022_HLA_mono"]
+    notes: "HLA class I null EBV-transformed B-LCL. Parent for .221-HLA-* transfectant series and .221 ERAP1 KO."
+
+  - name: "721.221-HLA"
+    aliases: ["721.221-hla", "721.221 hla", ".221-hla", ".221 hla", "hla-a*11:01-221", "hla-b*51:01-221"]
+    parent_line: "721.221"
+    line_family: mono_allelic_host
+    lineage_tissue: "blood, b lymphocyte"
+    cancer_type: null
+    expression_backend: none
+    source_ids: []
+    notes: "721.221 single-allele transfectants (e.g. 721.221-HLA-A*11:01, 721.221-B*51:01 ERAP1 KO). Resolves to 721.221 via tier 2."
+
+  - name: "T2"
+    aliases: ["174xcem.t2", "t2 cell", "t2.dr1", "t2 (174xcem)"]
+    parent_line: null
+    line_family: mono_allelic_host
+    lineage_tissue: "blood, b lymphocyte"
+    cancer_type: null
+    expression_backend: none
+    source_ids: []
+    notes: "TAP-deficient 174xCEM.T2; retains HLA-A*02:01. No public RNA-seq packaged — resolves via K562 tier-3 mono-allelic-host class anchor."
+
+  # ── EBV-LCL donor lines ─────────────────────────────────────────────────────
+  - name: "JY"
+    aliases: ["jy ebv-lcl", "jy (ebv-lcl)", "jy cell", "jy cells", "jy b-lcl", "jy "]
+    parent_line: null
+    line_family: ebv_lcl
+    lineage_tissue: "blood, b lymphocyte"
+    cancer_type: null
+    expression_backend: packaged_rnaseq
+    expression_key: "JY"
+    source_ids: ["Pearson_BLCL_panel"]
+    notes: "HLA-A*02:01 / B*07:02 / C*07:02 homozygous EBV-transformed B-LCL. Classic immunopeptidomics donor line."
+
+  - name: "HHC"
+    aliases: ["hhc ebv-lcl", "hhc (ebv-lcl)", "hhc b-lcl", "hhc cell"]
+    parent_line: null
+    line_family: ebv_lcl
+    lineage_tissue: "blood, b lymphocyte"
+    cancer_type: null
+    expression_backend: packaged_rnaseq
+    expression_key: "HHC"
+    source_ids: ["Pearson_BLCL_panel"]
+    notes: "Donor EBV-LCL profiled by the Pearson / Caron labs alongside JY."
+
+  - name: "GR"
+    aliases: ["gr ebv-lcl", "gr (ebv-lcl)", "gr b-lcl"]
+    parent_line: null
+    line_family: ebv_lcl
+    lineage_tissue: "blood, b lymphocyte"
+    cancer_type: null
+    expression_backend: none
+    source_ids: []
+    notes: "Donor EBV-LCL. No public RNA-seq located for this donor — resolves via GM12878 tier-3 EBV-LCL class anchor."
+
+  - name: "CD165"
+    aliases: ["cd165 ebv-lcl", "cd165 (ebv-lcl)", "cd165 b-lcl", "cd165 "]
+    parent_line: null
+    line_family: ebv_lcl
+    lineage_tissue: "blood, b lymphocyte"
+    cancer_type: null
+    expression_backend: none
+    source_ids: []
+    notes: "Donor EBV-LCL. No public RNA-seq located — tier-3 class anchor."
+
+  - name: "RA957"
+    aliases: ["ra957 ebv-lcl", "ra957 (ebv-lcl)", "ra957 b-lcl", "ra957"]
+    parent_line: null
+    line_family: ebv_lcl
+    lineage_tissue: "blood, b lymphocyte"
+    cancer_type: null
+    expression_backend: none
+    source_ids: []
+    notes: "Donor EBV-LCL. No public RNA-seq located — tier-3 class anchor."
+
+  - name: "GM12878"
+    aliases: ["gm12878", "gm-12878"]
+    parent_line: null
+    line_family: ebv_lcl
+    lineage_tissue: "blood, b lymphocyte"
+    cancer_type: null
+    expression_backend: encode_rnaseq
+    expression_key: "GM12878"
+    source_ids: ["ENCODE_GM12878_polyA_rnaseq"]
+    notes: "ENCODE Tier-1 B-LCL from a CEPH/Utah donor. Serves as the tier-3 EBV-LCL class anchor for JY, HHC, GR, CD165, RA957 and any other donor B-LCL without exact-line RNA-seq."
+
+  # ── HEK / HAP1 / immortalized non-tumor lines ───────────────────────────────
+  - name: "HEK293"
+    aliases: ["hek293 ", "hek-293 ", "hek293t", "hek-293t", "hek 293t", "hek 293 t", "hek-293-f", "hek 293f", "hek293f", "293t ", "293 t ", "hek293"]
+    parent_line: null
+    line_family: normal_immortalized
+    lineage_tissue: "kidney"
+    cancer_type: null
+    expression_backend: depmap_rna
+    expression_key: "HEK293"
+    source_ids: ["DepMap_24Q4_gene", "DepMap_24Q4_transcript"]
+    notes: "Immortalized embryonic kidney. Parent for HEK293T / 293F derivatives; aliases above fold those together since DepMap TPM differences are modest."
+
+  - name: "HEK293T-ACE2-TMPRSS2"
+    aliases: ["hek293t-ace2-tmprss2", "hek293-ace2-tmprss2", "hek 293t ace2 tmprss2"]
+    parent_line: "HEK293"
+    line_family: normal_immortalized
+    lineage_tissue: "kidney"
+    cancer_type: null
+    expression_backend: none
+    source_ids: []
+    notes: "HEK293T engineered to express ACE2 / TMPRSS2 for SARS-CoV-2 infection studies. Resolves to HEK293 via tier 2."
+
+  - name: "HAP1"
+    aliases: ["hap1 wildtype", "hap1 wt", "hap1 parental", "hap-1 ", "hap 1 "]
+    parent_line: null
+    line_family: normal_immortalized
+    lineage_tissue: "blood, myeloid"
+    cancer_type: "chronic myeloid leukemia"
+    expression_backend: packaged_rnaseq
+    expression_key: "HAP1"
+    source_ids: ["Essletzbichler_2014_HAP1"]
+    notes: "Near-haploid KBM7-derived line widely used for KO panels. KBM7 parent is CML-derived, so cancer_type carries CML for tier-4 fallback."
+
+  - name: "HAP1-KO"
+    aliases: ["hap1 tap1 ko", "hap1 calr ko", "hap1 b2m ko", "hap1 ganab ko", "hap1 tapbp ko", "hap1 erap1 ko", "hap1 erap2 ko", "hap1 ko"]
+    parent_line: "HAP1"
+    line_family: normal_immortalized
+    lineage_tissue: "blood, myeloid"
+    cancer_type: "chronic myeloid leukemia"
+    expression_backend: none
+    source_ids: []
+    notes: "Catch-all for HAP1 single-gene KO panel members. Resolves to HAP1 parental via tier 2."

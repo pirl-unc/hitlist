@@ -435,6 +435,10 @@ def build_observations(
     print("\nBuilding bulk_proteomics.parquet ...")
     bulk_df = build_bulk_proteomics(verbose=True)
 
+    # --- Line-expression index (per-line RNA / transcript TPM) ---
+    print("\nBuilding line_expression.parquet ...")
+    line_expr_df = build_line_expression(verbose=True)
+
     # Save metadata
     meta = {
         "sources": _source_fingerprints(paths),
@@ -451,6 +455,10 @@ def build_observations(
         else 0,
         "n_bulk_peptide_rows": int((bulk_df["granularity"] == "peptide").sum())
         if len(bulk_df)
+        else 0,
+        "n_line_expression_rows": len(line_expr_df),
+        "n_line_expression_lines": int(line_expr_df["line_key"].nunique())
+        if len(line_expr_df)
         else 0,
         "with_flanking": with_flanking,
         "with_mappings": build_mappings,
@@ -727,6 +735,245 @@ def build_bulk_proteomics(verbose: bool = False) -> pd.DataFrame:
         n_pep = int((df["granularity"] == "peptide").sum())
         size_mb = out.stat().st_size / 1e6
         print(f"  {len(df):,} rows ({n_prot:,} protein + {n_pep:,} peptide) → {size_mb:.1f} MB")
+        print(f"  Wrote {out}")
+    return df
+
+
+# ── Line-expression index ──────────────────────────────────────────────────
+
+
+_LINE_EXPRESSION_COLUMNS = (
+    "backend",
+    "source_id",
+    "pmid",
+    "reference",
+    "study_label",
+    "line_key",
+    "parent_line_key",
+    "granularity",
+    "gene_id",
+    "gene_name",
+    "transcript_id",
+    "tpm",
+    "log2_tpm",
+    "normalization",
+    "quantifier",
+    "species",
+    "license",
+)
+
+
+def _line_expression_path() -> Path:
+    from .downloads import data_dir
+
+    return data_dir() / "line_expression.parquet"
+
+
+def _parent_line_lookup() -> dict[str, str]:
+    """Map each ``expression_key`` to the registry's canonical line name."""
+    from .line_expression import load_line_expression_anchors
+
+    return {
+        str(entry.get("expression_key")): str(entry.get("name", ""))
+        for entry in load_line_expression_anchors()
+        if entry.get("expression_key")
+    }
+
+
+def _source_stamp(source: dict) -> dict:
+    """Per-source defaults stamped onto every row."""
+    return {
+        "backend": source.get("backend") or "",
+        "source_id": source.get("source_id") or "",
+        "pmid": int(source.get("pmid")) if source.get("pmid") else pd.NA,
+        "reference": source.get("reference") or "",
+        "study_label": source.get("study_label") or "",
+        "normalization": source.get("normalization") or "",
+        "quantifier": source.get("quantifier") or "",
+        "species": source.get("species") or "",
+        "license": source.get("license") or "",
+    }
+
+
+def _read_depmap_csv(path: Path, granularity: str) -> pd.DataFrame:
+    """Parse a DepMap log2(TPM+1) matrix into long-form.
+
+    DepMap ships wide CSVs keyed by ModelID; columns are labels such as
+    ``"TP53 (7157)"`` for gene files or ``"ENST00000269305 (TP53)"`` for
+    transcript files.  We melt to long form, strip the parenthesized
+    identifier, and carry the log2(TPM+1) value as ``log2_tpm`` (the
+    native DepMap normalization), reconstituting raw TPM via
+    ``tpm = 2**log2_tpm - 1``.
+    """
+    import re
+
+    df = pd.read_csv(path)
+    if df.empty:
+        return pd.DataFrame()
+
+    id_col = df.columns[0]
+    long = df.melt(id_vars=[id_col], var_name="_label", value_name="log2_tpm")
+    long = long.dropna(subset=["log2_tpm"])
+    long = long.rename(columns={id_col: "line_key"})
+
+    if granularity == "gene":
+        # Labels: "GENE (entrez)"
+        parsed = long["_label"].str.extract(
+            r"^(?P<gene_name>[^(]+?)\s*(?:\((?P<_ident>[^)]+)\))?\s*$"
+        )
+        long["gene_name"] = parsed["gene_name"].str.strip()
+        long["gene_id"] = ""
+        long["transcript_id"] = ""
+    else:
+        parsed = long["_label"].str.extract(
+            r"^(?P<transcript_id>ENST\d+)"
+            r"(?:\.\d+)?"
+            r"\s*\((?P<gene_name>[^)]+)\)\s*$"
+        )
+        long["transcript_id"] = parsed["transcript_id"].fillna("")
+        long["gene_name"] = parsed["gene_name"].fillna("").str.strip()
+        long["gene_id"] = ""
+
+    long = long.drop(columns=["_label"], errors="ignore")
+    long["tpm"] = 2.0 ** long["log2_tpm"].astype(float) - 1.0
+    long["granularity"] = granularity
+
+    # Drop rows where we couldn't parse an identifier.
+    if granularity == "gene":
+        long = long[long["gene_name"].astype(bool)]
+    else:
+        long = long[long["transcript_id"].astype(bool)]
+
+    # DepMap uses internal arxspan IDs (e.g. ACH-002680) and/or display
+    # names.  Leave line_key as-is; the caller harmonizes to registry keys.
+    _ = re  # silence lint if regex ever moves
+    return long.reset_index(drop=True)
+
+
+def _harmonize_depmap_line_keys(df: pd.DataFrame) -> pd.DataFrame:
+    """Map DepMap model IDs / display names to registry ``expression_key`` values.
+
+    Registry uses display-friendly keys (``HeLa``, ``A375``, ``SAOS2``,
+    ``THP1``, ``K562``, ``HEK293``).  DepMap CSV headers are already
+    display-name-based in recent releases (e.g. the matrix rows are
+    DepMap ModelIDs but the column labels are stripped in our melt).
+    This hook lets future releases remap if needed; today it's a no-op.
+    """
+    return df
+
+
+def build_line_expression(verbose: bool = False) -> pd.DataFrame:
+    """Build ``line_expression.parquet`` — per-line RNA / transcript TPM.
+
+    Reads:
+
+    - Every packaged CSV in ``hitlist/data/line_expression/`` that the
+      ``sources.yaml`` registry marks ``build_status: packaged``.
+    - Optional DepMap gene / transcript log2(TPM+1) matrices when the
+      ``depmap_rna`` / ``depmap_rna_transcript`` datasets are registered
+      via :mod:`hitlist.downloads`.
+
+    Writes a long-form parquet keyed by ``(line_key, source_id,
+    granularity, gene_id/transcript_id)`` with per-source metadata
+    denormalized onto every row.  Atomic-rename write so concurrent
+    readers never see a half-built file.
+
+    Returns
+    -------
+    pd.DataFrame
+        The long-form table that was written.  Empty when no sources
+        contain shippable data (packaged CSVs all missing AND no DepMap
+        dataset registered).
+    """
+    from .line_expression import _load_packaged_union, load_line_expression_sources
+
+    sources_by_id = {s.get("source_id"): s for s in load_line_expression_sources()}
+
+    frames: list[pd.DataFrame] = []
+
+    # --- Packaged CSVs (already long-form) ---
+    packaged = _load_packaged_union()
+    if len(packaged):
+        for sid, group in packaged.groupby("source_id"):
+            meta = sources_by_id.get(sid) or {}
+            stamp = _source_stamp(meta)
+            enriched = group.copy()
+            for col, val in stamp.items():
+                if col == "source_id":
+                    continue
+                enriched[col] = val
+            frames.append(enriched)
+
+    # --- Optional DepMap gene / transcript matrices ---
+    from .downloads import _load_manifest
+
+    manifest = _load_manifest()
+    registered = manifest.get("datasets", {}) or {}
+
+    def _registered_path(key: str) -> Path | None:
+        entry = registered.get(key)
+        if not entry or "path" not in entry:
+            return None
+        p = Path(entry["path"])
+        return p if p.exists() else None
+
+    for key, source_id, granularity in (
+        ("depmap_rna", "DepMap_24Q4_gene", "gene"),
+        ("depmap_rna_transcript", "DepMap_24Q4_transcript", "transcript"),
+    ):
+        p = _registered_path(key)
+        if p is None:
+            continue
+        if verbose:
+            print(f"  Reading {key} from {p}")
+        long = _read_depmap_csv(p, granularity=granularity)
+        if long.empty:
+            continue
+        long = _harmonize_depmap_line_keys(long)
+        meta = sources_by_id.get(source_id) or {}
+        stamp = _source_stamp(meta)
+        for col, val in stamp.items():
+            long[col] = val
+        frames.append(long)
+
+    if not frames:
+        empty = pd.DataFrame(columns=_LINE_EXPRESSION_COLUMNS)
+        out = _line_expression_path()
+        _atomic_write_parquet(empty, out)
+        if verbose:
+            print(f"  No line-expression sources present — wrote empty {out}")
+        return empty
+
+    df = pd.concat(frames, ignore_index=True, sort=False)
+
+    # Stamp parent_line_key from the registry so downstream callers can
+    # preserve tier-2 provenance without re-resolving.
+    parent_lookup = _parent_line_lookup()
+    df["parent_line_key"] = df["line_key"].map(parent_lookup).fillna("")
+
+    # Guarantee every canonical column exists before projection.
+    for col in _LINE_EXPRESSION_COLUMNS:
+        if col not in df.columns:
+            df[col] = "" if col not in {"pmid", "tpm", "log2_tpm"} else pd.NA
+
+    df["pmid"] = pd.to_numeric(df["pmid"], errors="coerce").astype("Int64")
+    df["tpm"] = pd.to_numeric(df["tpm"], errors="coerce").astype("float64")
+    df["log2_tpm"] = pd.to_numeric(df["log2_tpm"], errors="coerce").astype("float64")
+
+    df = df[[c for c in _LINE_EXPRESSION_COLUMNS if c in df.columns]]
+
+    out = _line_expression_path()
+    _atomic_write_parquet(df, out)
+
+    if verbose:
+        n_gene = int((df["granularity"] == "gene").sum())
+        n_tx = int((df["granularity"] == "transcript").sum())
+        n_lines = int(df["line_key"].nunique())
+        size_mb = out.stat().st_size / 1e6
+        print(
+            f"  {len(df):,} rows ({n_gene:,} gene + {n_tx:,} transcript) "
+            f"across {n_lines} lines → {size_mb:.1f} MB"
+        )
         print(f"  Wrote {out}")
     return df
 

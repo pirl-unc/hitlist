@@ -444,6 +444,16 @@ def main() -> None:
 
     p_samples = export_sub.add_parser("samples", help="Per-sample MS conditions table")
     p_samples.add_argument("--class", dest="mhc_class", help="Filter to MHC class (I or II)")
+    p_samples.add_argument(
+        "--with-expression-anchors",
+        action="store_true",
+        help=(
+            "Emit the line-expression anchor resolution for every sample "
+            "(expression_backend, expression_key, expression_match_tier, "
+            "expression_parent_key; issue #140). Replaces the default "
+            "acquisition-metadata sample table."
+        ),
+    )
     p_samples.add_argument("--output", "-o", help="Write CSV to file")
 
     p_summary = export_sub.add_parser("summary", help="Species x MHC class summary")
@@ -655,6 +665,28 @@ def main() -> None:
             "protein/position/flank columns for training pipelines such as Presto."
         ),
     )
+    p_training.add_argument(
+        "--with-peptide-origin",
+        action="store_true",
+        help=(
+            "Enrich each row with a per-sample expression anchor and "
+            "peptide-origin call (argmax-TPM gene with provenance). "
+            "Adds expression_backend / expression_key / "
+            "expression_match_tier / expression_parent_key and "
+            "peptide_origin_gene / peptide_origin_tpm / "
+            "peptide_origin_dominant_transcript columns. Issue #140."
+        ),
+    )
+    p_training.add_argument(
+        "--proteome-release",
+        type=int,
+        default=112,
+        help=(
+            "Ensembl release used for transcript-isoform lookup when "
+            "--with-peptide-origin is set and transcript-level TPM is "
+            "available (default: 112)."
+        ),
+    )
     p_training.add_argument("--output", "-o", help="Write to file (.csv or .parquet)")
 
     p_bulk = export_sub.add_parser(
@@ -733,6 +765,41 @@ def main() -> None:
         help="Maximum abundance percentile (0.0-1.0; protein rows only).",
     )
     p_bulk.add_argument("--output", "-o", help="Write to file (.csv or .parquet)")
+
+    p_line_expr = export_sub.add_parser(
+        "line-expression",
+        help=(
+            "Per-line RNA / transcript TPM with provenance (source, "
+            "normalization, license).  Emits line_expression.parquet "
+            "contents or the packaged CSVs when no build has run."
+        ),
+    )
+    p_line_expr.add_argument(
+        "--line-key",
+        action="append",
+        help="Filter to one or more line_key values (e.g. GM12878, HeLa).",
+    )
+    p_line_expr.add_argument(
+        "--gene-name",
+        action="append",
+        help="Filter to one or more HGNC gene symbols.",
+    )
+    p_line_expr.add_argument(
+        "--gene-id",
+        action="append",
+        help="Filter to one or more Ensembl gene IDs (unversioned).",
+    )
+    p_line_expr.add_argument(
+        "--granularity",
+        choices=["gene", "transcript"],
+        help="Restrict to one granularity.",
+    )
+    p_line_expr.add_argument(
+        "--source-id",
+        action="append",
+        help="Restrict to one or more source_ids from sources.yaml.",
+    )
+    p_line_expr.add_argument("--output", "-o", help="Write to file (.csv or .parquet)")
 
     p_counts = export_sub.add_parser(
         "counts", help="Count peptides per study from local IEDB/CEDAR"
@@ -898,6 +965,8 @@ def _export_training(args: argparse.Namespace):
         length_min=getattr(args, "length_min", None),
         length_max=getattr(args, "length_max", None),
         explode_mappings=getattr(args, "explode_mappings", False),
+        with_peptide_origin=getattr(args, "with_peptide_origin", False),
+        proteome_release=getattr(args, "proteome_release", 112),
     )
 
 
@@ -929,8 +998,14 @@ def _export(args: argparse.Namespace) -> None:
     t0 = _time.perf_counter()
 
     if cmd == "samples":
-        _export_progress("Building ms_samples table from pmid_overrides.yaml ...")
-        df = generate_ms_samples_table(mhc_class=args.mhc_class)
+        if getattr(args, "with_expression_anchors", False):
+            _export_progress("Resolving expression anchors for every ms_sample (issue #140) ...")
+            from .export import generate_sample_expression_table
+
+            df = generate_sample_expression_table(mhc_class=args.mhc_class)
+        else:
+            _export_progress("Building ms_samples table from pmid_overrides.yaml ...")
+            df = generate_ms_samples_table(mhc_class=args.mhc_class)
     elif cmd == "summary":
         _export_progress("Loading observations.parquet for species summary ...")
         df = generate_species_summary(mhc_class=args.mhc_class)
@@ -993,10 +1068,22 @@ def _export(args: argparse.Namespace) -> None:
     elif cmd == "bulk":
         _export_progress("Loading bulk_proteomics.parquet ...")
         df = _export_bulk(args)
+    elif cmd == "line-expression":
+        _export_progress("Loading line_expression.parquet ...")
+        from .line_expression import load_line_expression
+
+        df = load_line_expression(
+            line_key=getattr(args, "line_key", None),
+            gene_name=getattr(args, "gene_name", None),
+            gene_id=getattr(args, "gene_id", None),
+            granularity=getattr(args, "granularity", None),
+            source_id=getattr(args, "source_id", None),
+        )
     else:
         print(
             "Usage: hitlist export "
-            "{samples,summary,alleles,data-alleles,counts,observations,binding,training,bulk}"
+            "{samples,summary,alleles,data-alleles,counts,observations,"
+            "binding,training,bulk,line-expression}"
         )
         sys.exit(1)
 

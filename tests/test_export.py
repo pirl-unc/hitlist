@@ -1124,6 +1124,8 @@ def test_export_training_cli_helper(monkeypatch):
         length_min=8,
         length_max=11,
         explode_mappings=True,
+        with_peptide_origin=False,
+        proteome_release=112,
     )
 
     df = _export_training(args)
@@ -1146,4 +1148,6 @@ def test_export_training_cli_helper(monkeypatch):
         "length_min": 8,
         "length_max": 11,
         "explode_mappings": True,
+        "with_peptide_origin": False,
+        "proteome_release": 112,
     }
