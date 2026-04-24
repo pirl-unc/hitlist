@@ -192,6 +192,38 @@ MANUAL_DATASETS: dict[str, dict[str, str]] = {
         "expected_filename": "normal_tissue.tsv",
         "usage": "Protein-level tissue expression for CTA restriction analysis.",
     },
+    "depmap_rna": {
+        "download_url": "https://depmap.org/portal/data_page/?tab=allData",
+        "description": "DepMap 24Q4 protein-coding gene TPM (log2(TPM+1))",
+        "expected_filename": "OmicsExpressionProteinCodingGenesTPMLogp1.csv",
+        "usage": (
+            "Per-cell-line RNA expression anchor for tier-1 exact-line "
+            "resolution of HeLa / A375 / SaOS-2 / THP-1 / K562 / HEK293 in "
+            "hitlist.line_expression. Gene-level only. Ships as log2(TPM+1). "
+            "See the DepMap portal for the Figshare-hosted CSV; ~160MB."
+        ),
+    },
+    "depmap_rna_transcript": {
+        "download_url": "https://depmap.org/portal/data_page/?tab=allData",
+        "description": "DepMap 24Q4 transcript-level TPM (log2(TPM+1))",
+        "expected_filename": "OmicsExpressionTranscriptsTPMLogp1.csv",
+        "usage": (
+            "Optional companion to depmap_rna. When registered, enables "
+            "transcript-isoform-aware peptide-origin summation in "
+            "generate_training_table(with_peptide_origin=True). ~600MB."
+        ),
+    },
+    "depmap_models": {
+        "download_url": "https://depmap.org/portal/data_page/?tab=allData",
+        "description": "DepMap Model.csv (ModelID → StrippedCellLineName metadata)",
+        "expected_filename": "Model.csv",
+        "usage": (
+            "Required companion to depmap_rna / depmap_rna_transcript: lets "
+            "the line-expression builder map DepMap ModelIDs (ACH-xxxxxx) "
+            "onto the registry's expression_key values. Without it, most "
+            "DepMap rows are dropped with a warning. ~5MB."
+        ),
+    },
 }
 
 

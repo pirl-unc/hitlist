@@ -382,6 +382,55 @@ hitlist export training --include-evidence ms --mono-allelic --class I -o mono_m
 hitlist export training --include-evidence both --explode-mappings -o presto_training.parquet
 ```
 
+### Sample-level expression anchors (issue #140)
+
+For line-like `ms_samples` (C1R, 721.221, JY and sibling EBV-LCLs, HAP1,
+HeLa, HEK293, THP-1, SaOS-2, A375, K562, GM12878, and common engineered
+derivatives) `hitlist.line_expression` resolves every sample to a stable
+expression backend + key via a 6-tier fallback hierarchy:
+
+1. **exact-line RNA / transcript quant** (registry hit with shipped data)
+2. **parent-line / engineered-derivative RNA** (e.g. HeLa.ABC-KO → HeLa)
+3. **line-family class anchor** (EBV-LCL → GM12878; mono-allelic host → K562)
+4. **cancer-type surrogate** (caller-supplied `pirlygenes` backend)
+5. **broad tissue / lineage surrogate** (HPA)
+6. **`no_expression_anchor`**
+
+Four provenance columns — `expression_backend`, `expression_key`,
+`expression_match_tier`, `expression_parent_key` — are written on every
+row so downstream tooling can distinguish "exact JY RNA" from "generic
+EBV-LCL stand-in" from "melanoma cohort surrogate" instead of treating
+them as equally trustworthy.
+
+CLI:
+
+```bash
+hitlist export samples --with-expression-anchors -o sample_anchors.csv
+
+hitlist export training \
+    --include-evidence ms --class I --mono-allelic \
+    --with-peptide-origin \
+    -o training_with_origin.parquet
+
+hitlist export line-expression --line-key GM12878 --gene-name TP53
+```
+
+`--with-peptide-origin` attaches, per row, the argmax-TPM candidate gene
+(`peptide_origin_gene`, `peptide_origin_tpm`) for the peptide in the
+sample's resolved line. When transcript-level TPM is available the
+score is the sum across **only those transcripts whose translation
+actually contains the peptide** — isoforms that splice out the peptide
+contribute zero, and a transcript is counted once regardless of how many
+times the peptide appears in its protein.
+
+Register DepMap matrices to broaden exact-line coverage:
+
+```bash
+hitlist data register depmap_rna /path/to/OmicsExpressionProteinCodingGenesTPMLogp1.csv
+hitlist data register depmap_rna_transcript /path/to/OmicsExpressionTranscriptsTPMLogp1.csv
+hitlist data build
+```
+
 ### A note on mono-allelic curation
 
 Mono-allelic is a **PMID-level** flag, not a per-sample property. Curation

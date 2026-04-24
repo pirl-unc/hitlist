@@ -564,6 +564,310 @@ def generate_binding_table(
     return df
 
 
+def generate_sample_expression_table(
+    mhc_class: str | None = None,
+    cancer_type_backend=None,
+) -> pd.DataFrame:
+    """Per-sample expression-anchor resolution table.
+
+    For every ``ms_samples`` entry (as emitted by
+    :func:`generate_ms_samples_table`), resolves an expression anchor via
+    :func:`hitlist.line_expression.resolve_sample_expression_anchor` and
+    returns the flat provenance record downstream callers need in order
+    to distinguish "exact JY RNA" from "generic EBV-LCL stand-in" from
+    "melanoma cohort surrogate" (issue pirl-unc/hitlist#140).
+
+    Parameters
+    ----------
+    mhc_class
+        Forwarded to :func:`generate_ms_samples_table`.
+    cancer_type_backend
+        Optional callable for tier-4 cancer-type fallback (pirlygenes).
+
+    Returns
+    -------
+    pd.DataFrame
+        One row per sample with columns: ``sample_label``, ``pmid``,
+        ``study_label``, ``mhc_class``, ``expression_backend``,
+        ``expression_key``, ``expression_match_tier``,
+        ``expression_parent_key``, ``expression_source_ids`` (semicolon-
+        joined), ``expression_reason``, ``expression_matched_alias``.
+    """
+    from .line_expression import resolve_sample_expression_anchor
+
+    samples = generate_ms_samples_table(mhc_class=mhc_class)
+    if samples.empty:
+        return pd.DataFrame(
+            columns=[
+                "sample_label",
+                "pmid",
+                "study_label",
+                "mhc_class",
+                "expression_backend",
+                "expression_key",
+                "expression_match_tier",
+                "expression_parent_key",
+                "expression_source_ids",
+                "expression_reason",
+                "expression_matched_alias",
+            ]
+        )
+
+    rows: list[dict] = []
+    for _, s in samples.iterrows():
+        anchor = resolve_sample_expression_anchor(
+            str(s.get("sample_label") or ""),
+            pmid=int(s["pmid"]) if pd.notna(s.get("pmid")) else None,
+            study_label=str(s.get("study_label") or "") or None,
+            cancer_type_backend=cancer_type_backend,
+        )
+        rows.append(
+            {
+                "sample_label": s.get("sample_label", ""),
+                "pmid": int(s["pmid"]) if pd.notna(s.get("pmid")) else pd.NA,
+                "study_label": s.get("study_label", ""),
+                "mhc_class": s.get("mhc_class", ""),
+                "expression_backend": anchor.expression_backend,
+                "expression_key": anchor.expression_key,
+                "expression_match_tier": anchor.expression_match_tier,
+                "expression_parent_key": anchor.expression_parent_key or "",
+                "expression_source_ids": ";".join(anchor.source_ids),
+                "expression_reason": anchor.reason,
+                "expression_matched_alias": anchor.matched_alias or "",
+            }
+        )
+    result = pd.DataFrame(rows)
+    result["pmid"] = result["pmid"].astype("Int64")
+    return result
+
+
+_PEPTIDE_ORIGIN_COLUMNS = (
+    "peptide_origin_gene",
+    "peptide_origin_gene_id",
+    "peptide_origin_tpm",
+    "peptide_origin_log2_tpm",
+    "peptide_origin_dominant_transcript",
+    "peptide_origin_n_supporting_transcripts",
+    "peptide_origin_resolution",
+)
+
+_EXPRESSION_ANCHOR_COLUMNS = (
+    "expression_backend",
+    "expression_key",
+    "expression_match_tier",
+    "expression_parent_key",
+)
+
+
+def _build_transcript_lookup(gene_names: set[str], release: int):
+    """Return a ``gene_name -> [(transcript_id, protein_seq)]`` closure.
+
+    Built by iterating pyensembl's protein-coding transcripts for each
+    requested gene.  Returns ``None`` if pyensembl is unavailable (the
+    caller then falls back to the gene-only origin path).
+    """
+    try:
+        from pyensembl import EnsemblRelease
+    except Exception:
+        return None
+
+    try:
+        ensembl = EnsemblRelease(release)
+    except Exception:
+        return None
+
+    cache: dict[str, list[tuple[str, str]]] = {}
+
+    def _lookup(gene_name: str) -> list[tuple[str, str]]:
+        if gene_name in cache:
+            return cache[gene_name]
+        records: list[tuple[str, str]] = []
+        try:
+            genes = ensembl.genes_by_name(gene_name)
+        except Exception:
+            cache[gene_name] = records
+            return records
+        for gene in genes:
+            for t in gene.transcripts:
+                if getattr(t, "biotype", "") != "protein_coding":
+                    continue
+                try:
+                    seq = t.protein_sequence
+                except Exception:
+                    seq = None
+                if not seq:
+                    continue
+                records.append((str(t.id), str(seq)))
+        cache[gene_name] = records
+        return records
+
+    # Warm the cache lazily on first access; no eager population.
+    _ = gene_names  # accepted for signature symmetry; used for future prefetch
+    return _lookup
+
+
+def _attach_peptide_origin(
+    df: pd.DataFrame,
+    cancer_type_backend=None,
+    proteome_release: int = 112,
+) -> pd.DataFrame:
+    """Add per-(peptide, sample) expression anchor + peptide_origin columns."""
+    from .line_expression import (
+        compute_peptide_origin,
+        load_line_expression,
+        resolve_sample_expression_anchor,
+    )
+    from .mappings import load_peptide_mappings
+
+    if df.empty or "peptide" not in df.columns:
+        for col in (*_EXPRESSION_ANCHOR_COLUMNS, *_PEPTIDE_ORIGIN_COLUMNS):
+            if col not in df.columns:
+                df[col] = pd.NA
+        return df
+
+    # ------------------------------------------------------------------
+    # 1. Resolve the anchor once per unique (sample_label, pmid).
+    # ------------------------------------------------------------------
+    sample_cols = [c for c in ("sample_label", "pmid", "study_label") if c in df.columns]
+    if not sample_cols:
+        for col in (*_EXPRESSION_ANCHOR_COLUMNS, *_PEPTIDE_ORIGIN_COLUMNS):
+            df[col] = pd.NA
+        return df
+
+    unique_samples = df[sample_cols].drop_duplicates().reset_index(drop=True)
+    anchor_records: list[dict] = []
+    for _, s in unique_samples.iterrows():
+        anchor = resolve_sample_expression_anchor(
+            str(s.get("sample_label") or ""),
+            pmid=int(s["pmid"]) if "pmid" in s and pd.notna(s.get("pmid")) else None,
+            study_label=str(s.get("study_label") or "") or None,
+            cancer_type_backend=cancer_type_backend,
+        )
+        rec = {c: s.get(c, "") for c in sample_cols}
+        rec.update(
+            expression_backend=anchor.expression_backend,
+            expression_key=anchor.expression_key,
+            expression_match_tier=anchor.expression_match_tier,
+            expression_parent_key=anchor.expression_parent_key or "",
+        )
+        anchor_records.append(rec)
+    anchor_df = pd.DataFrame(anchor_records)
+    if "pmid" in anchor_df.columns:
+        anchor_df["pmid"] = anchor_df["pmid"].astype("Int64")
+
+    df = df.copy()
+    if "pmid" in df.columns:
+        df["pmid"] = df["pmid"].astype("Int64")
+    df = df.merge(anchor_df, on=sample_cols, how="left")
+
+    # ------------------------------------------------------------------
+    # 2. Preload TPM tables for every distinct line_key.
+    # ------------------------------------------------------------------
+    line_keys = sorted({str(k) for k in df["expression_key"].dropna().unique() if str(k)})
+    tpm_by_line: dict[str, pd.DataFrame] = {}
+    for lk in line_keys:
+        sub = load_line_expression(line_key=lk)
+        tpm_by_line[lk] = sub
+
+    # ------------------------------------------------------------------
+    # 3. Load mappings for every peptide we need to score (once).
+    # ------------------------------------------------------------------
+    wanted_peptides = sorted({str(p) for p in df["peptide"].dropna().unique() if str(p)})
+    if wanted_peptides:
+        mappings = load_peptide_mappings(
+            peptide=wanted_peptides,
+            columns=["peptide", "gene_name", "gene_id", "protein_id"],
+        )
+    else:
+        mappings = pd.DataFrame(columns=["peptide", "gene_name", "gene_id", "protein_id"])
+    candidates_by_peptide: dict[str, list[dict]] = {}
+    if not mappings.empty:
+        for pep, group in mappings.groupby("peptide"):
+            unique_rows = group[["gene_name", "gene_id"]].drop_duplicates()
+            candidates_by_peptide[str(pep)] = [
+                {
+                    "gene_name": str(r.get("gene_name") or ""),
+                    "gene_id": str(r.get("gene_id") or ""),
+                }
+                for _, r in unique_rows.iterrows()
+                if r.get("gene_name")
+            ]
+
+    # ------------------------------------------------------------------
+    # 4. Set up an optional transcript lookup once.
+    # ------------------------------------------------------------------
+    has_any_transcript = any(
+        (not t.empty) and "granularity" in t.columns and (t["granularity"] == "transcript").any()
+        for t in tpm_by_line.values()
+    )
+    transcript_lookup = None
+    if has_any_transcript:
+        gene_universe: set[str] = set()
+        for cands in candidates_by_peptide.values():
+            for c in cands:
+                if c["gene_name"]:
+                    gene_universe.add(c["gene_name"])
+        transcript_lookup = _build_transcript_lookup(gene_universe, proteome_release)
+
+    # ------------------------------------------------------------------
+    # 5. Compute peptide-origin per UNIQUE (peptide, expression_key) pair,
+    #    then merge the small result table back onto the full frame.
+    #    This keeps the per-row cost in pandas merge rather than a Python
+    #    iterrows loop — ~N-unique-pairs work instead of ~N-rows.
+    # ------------------------------------------------------------------
+    # Normalize the merge-key dtypes on ``df`` up front so ``unique_pairs``
+    # is derived from already-stringified columns (no double-cast).
+    df["peptide"] = df["peptide"].astype(str).fillna("")
+    df["expression_key"] = df["expression_key"].astype(str).fillna("")
+    unique_pairs = df[["peptide", "expression_key"]].drop_duplicates().reset_index(drop=True)
+
+    empty_origin = {
+        "peptide_origin_gene": "",
+        "peptide_origin_gene_id": "",
+        "peptide_origin_tpm": float("nan"),
+        "peptide_origin_log2_tpm": float("nan"),
+        "peptide_origin_dominant_transcript": "",
+        "peptide_origin_n_supporting_transcripts": 0,
+        "peptide_origin_resolution": "no_anchor",
+    }
+
+    origin_rows: list[dict] = []
+    # ``itertuples`` avoids the iterrows FutureWarning in recent pandas
+    # and is ~5x faster on the small unique-pair frame.
+    for pair in unique_pairs.itertuples(index=False):
+        peptide = pair.peptide
+        line_key = pair.expression_key
+        if not line_key or line_key not in tpm_by_line or tpm_by_line[line_key].empty:
+            scored = dict(empty_origin)
+        else:
+            scored = compute_peptide_origin(
+                peptide=peptide,
+                candidate_genes=candidates_by_peptide.get(peptide, []),
+                line_expression_df=tpm_by_line[line_key],
+                transcript_lookup=transcript_lookup,
+            )
+        origin_rows.append({"peptide": peptide, "expression_key": line_key, **scored})
+
+    origin_df = pd.DataFrame(
+        origin_rows, columns=["peptide", "expression_key", *_PEPTIDE_ORIGIN_COLUMNS]
+    )
+
+    df = df.merge(origin_df, on=["peptide", "expression_key"], how="left")
+
+    # Fill the fallback for any (peptide, key) the merge didn't cover
+    # — shouldn't happen in practice, but keeps the contract stable.
+    for col, default in empty_origin.items():
+        if col in df.columns:
+            if isinstance(default, str):
+                df[col] = df[col].fillna(default)
+            elif isinstance(default, float):
+                df[col] = df[col].astype(float)
+            elif isinstance(default, int):
+                df[col] = df[col].fillna(default).astype(int)
+
+    return df
+
+
 def _apply_training_defaults(df: pd.DataFrame) -> pd.DataFrame:
     """Normalize the mixed MS/binding export schema."""
     result = df.copy()
@@ -664,6 +968,9 @@ def generate_training_table(
     length_min: int | None = None,
     length_max: int | None = None,
     explode_mappings: bool = False,
+    with_peptide_origin: bool = False,
+    cancer_type_backend=None,
+    proteome_release: int = 112,
     columns: list[str] | None = None,
 ) -> pd.DataFrame:
     """Export a unified pMHC training table.
@@ -678,6 +985,24 @@ def generate_training_table(
     Compact mode preserves one row per evidence row. ``explode_mappings=True``
     expands the export to one row per ``(evidence row, peptide mapping)``,
     which is suitable for flank-aware model pipelines such as Presto.
+
+    When ``with_peptide_origin=True`` every MS row is additionally
+    enriched with a per-sample expression anchor and a peptide-origin
+    call (the most-likely source gene, its TPM, and the transcript that
+    dominates when the backend is transcript-level).  Provenance columns
+    (``expression_backend``, ``expression_key``, ``expression_match_tier``,
+    ``expression_parent_key``) are preserved so consumers can distinguish
+    exact-line evidence from class / tissue / cancer-type surrogates —
+    see issue pirl-unc/hitlist#140.
+
+    .. note::
+       Transcript-isoform-aware scoring needs pyensembl translations.
+       When transcript-level TPM is present for any resolved sample,
+       :func:`_build_transcript_lookup` instantiates ``EnsemblRelease``,
+       which will trigger a pyensembl cache download (~GB) on first use
+       if the requested ``proteome_release`` has not already been
+       materialized. Set ``proteome_release`` to a release you have
+       already built observations against to avoid a surprise download.
     """
     mode = include_evidence.strip().lower()
     if mode not in {"ms", "binding", "both"}:
@@ -736,6 +1061,13 @@ def generate_training_table(
                     result[col] = pd.Series(dtype=object)
         else:
             result = result.merge(mappings, on="peptide", how="left")
+
+    if with_peptide_origin:
+        result = _attach_peptide_origin(
+            result,
+            cancer_type_backend=cancer_type_backend,
+            proteome_release=proteome_release,
+        )
 
     return _project_training_columns(result, columns)
 

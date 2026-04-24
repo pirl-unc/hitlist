@@ -1,0 +1,172 @@
+# Metadata for each line-expression (RNA-seq / transcript-TPM) source used
+# by hitlist.line_expression.
+#
+# Purpose: callers joining per-peptide observations with per-sample expression
+# need to know which backend contributes each line's TPM, how the numbers
+# were normalized, at what granularity (gene vs transcript), and which
+# biological species. This metadata is denormalized onto every row of
+# ``line_expression.parquet`` so downstream tooling can reason about
+# cross-source comparability (e.g. "DepMap log2(TPM+1) is not the same scale
+# as ENCODE raw TPM").
+#
+# Field reference
+# ---------------
+#   source_id        stable key joined against line_expression_anchors.yaml
+#                    `source_ids` lists and against the parquet's `source_id`
+#                    column.
+#   pmid             primary citation (null for consortium resources).
+#   reference        free-text citation string, typically "PMID:<n>" or
+#                    "ENCODE:<accession>".
+#   study_label      display label.
+#   backend          matches `expression_backend` in the anchors YAML:
+#                    depmap_rna | packaged_rnaseq | encode_rnaseq
+#   granularity      gene | gene_and_transcript
+#   normalization    log2_tpm_plus_1 | tpm | fpkm
+#   quantifier       rsem | kallisto | salmon | star
+#   species          canonical species ("Homo sapiens (human)").
+#   build_status     packaged | downloadable | placeholder
+#                    - packaged: shipped inside the repo (CSV under
+#                      hitlist/data/line_expression/)
+#                    - downloadable: registered in downloads.py, user fetches
+#                    - placeholder: cited but no data ships yet; the builder
+#                      treats it as empty (lines listing this source_id fall
+#                      through to tier 2/3/etc. at resolve time)
+#   file             packaged CSV filename, when build_status == packaged
+#   download_key     downloads.py key, when build_status == downloadable
+#   cell_lines_covered
+#                    list of line_key values this source contributes rows for.
+#   license          usage license (so the parquet can be filtered before
+#                    re-distribution).
+#   notes            free text.
+
+sources:
+  - source_id: DepMap_24Q4_gene
+    pmid: null
+    reference: "DepMap 24Q4 (Broad Institute)"
+    study_label: "DepMap 24Q4 gene TPM"
+    backend: depmap_rna
+    granularity: gene
+    normalization: log2_tpm_plus_1
+    quantifier: rsem
+    species: "Homo sapiens (human)"
+    build_status: downloadable
+    download_key: depmap_rna
+    cell_lines_covered:
+      - HeLa
+      - A375
+      - SAOS2
+      - THP1
+      - K562
+      - HEK293
+    license: "CC BY 4.0 (Broad DepMap)"
+    notes: >
+      OmicsExpressionProteinCodingGenesTPMLogp1.csv from DepMap 24Q4. Users
+      register the download with `hitlist data register depmap_rna <path>`;
+      the builder pivots it into long-form per-line rows. Values are
+      log2(TPM+1), NOT raw TPM. Gene-level only.
+
+  - source_id: DepMap_24Q4_transcript
+    pmid: null
+    reference: "DepMap 24Q4 (Broad Institute)"
+    study_label: "DepMap 24Q4 transcript TPM"
+    backend: depmap_rna
+    granularity: gene_and_transcript
+    normalization: log2_tpm_plus_1
+    quantifier: rsem
+    species: "Homo sapiens (human)"
+    build_status: downloadable
+    download_key: depmap_rna_transcript
+    cell_lines_covered:
+      - HeLa
+      - A375
+      - SAOS2
+      - THP1
+      - K562
+      - HEK293
+    license: "CC BY 4.0 (Broad DepMap)"
+    notes: >
+      OmicsExpressionTranscriptsTPMLogp1.csv from DepMap 24Q4. Optional;
+      when registered, enables transcript-isoform-aware peptide-origin
+      summation in `generate_training_table(with_peptide_origin=True)`.
+
+  - source_id: ENCODE_GM12878_polyA_rnaseq
+    pmid: 22955616
+    reference: "PMID:22955616 / ENCODE:ENCSR000AEF"
+    study_label: "ENCODE GM12878 poly(A)+ RNA-seq"
+    backend: encode_rnaseq
+    granularity: gene
+    normalization: tpm
+    quantifier: rsem
+    species: "Homo sapiens (human)"
+    build_status: packaged
+    file: gm12878_encode_rnaseq_tpm.csv.gz
+    cell_lines_covered:
+      - GM12878
+    license: "ENCODE Data Use Policy (permissive; ~ CC0)"
+    notes: >
+      Gene-level TPM for the ENCODE Tier-1 B-LCL GM12878. Used as the
+      tier-3 EBV-LCL class anchor for any donor B-LCL (JY, HHC, GR, CD165,
+      RA957, ...) that lacks packaged exact-line RNA-seq. Derived from the
+      ENCODE processed RSEM output (gene-quantification TSV) filtered to
+      protein-coding genes.
+
+  - source_id: Pearson_BLCL_panel
+    pmid: 27412690
+    reference: "PMID:27412690"
+    study_label: "Pearson 2016 B-LCL RNA-seq (JY / HHC)"
+    backend: packaged_rnaseq
+    granularity: gene
+    normalization: tpm
+    quantifier: kallisto
+    species: "Homo sapiens (human)"
+    build_status: placeholder
+    cell_lines_covered:
+      - JY
+      - HHC
+    license: "cite the paper; data released with publication"
+    notes: >
+      RNA-seq for JY (HLA-A*02:01 / B*07:02 / C*07:02 homozygous) and HHC
+      donor B-LCLs, profiled alongside the Pearson group's immunopeptidomics
+      work. PLACEHOLDER in this PR — no CSV ships yet; builder treats this
+      source_id as empty. The anchors YAML still references this source_id
+      so that when a real CSV lands, JY / HHC resolve at tier 1 without
+      further wiring. Until then, JY / HHC fall through to GM12878 tier-3.
+
+  - source_id: Kaabinejadian_2022_HLA_mono
+    pmid: 35165356
+    reference: "PMID:35165356"
+    study_label: "Kaabinejadian 2022 mono-allelic panel"
+    backend: packaged_rnaseq
+    granularity: gene
+    normalization: tpm
+    quantifier: kallisto
+    species: "Homo sapiens (human)"
+    build_status: placeholder
+    cell_lines_covered:
+      - C1R
+      - "721.221"
+    license: "cite the paper; data released with publication"
+    notes: >
+      RNA-seq for the C1R and 721.221 mono-allelic transfection hosts used
+      in the Kaabinejadian 2022 motif-deconvolution reference panel.
+      PLACEHOLDER in this PR — see Pearson_BLCL_panel notes. Until
+      populated, C1R and 721.221 resolve via mono_allelic_host tier-3 class
+      anchor (K562 as generic null-host proxy).
+
+  - source_id: Essletzbichler_2014_HAP1
+    pmid: 25096407
+    reference: "PMID:25096407"
+    study_label: "Essletzbichler 2014 HAP1 parental"
+    backend: packaged_rnaseq
+    granularity: gene
+    normalization: tpm
+    quantifier: kallisto
+    species: "Homo sapiens (human)"
+    build_status: placeholder
+    cell_lines_covered:
+      - HAP1
+    license: "cite the paper"
+    notes: >
+      RNA-seq for the parental HAP1 near-haploid line. PLACEHOLDER in this
+      PR. When populated, HAP1 KO derivatives resolve at tier 2 against
+      this reference.
