@@ -505,6 +505,11 @@ def generate_binding_table(
     length_min: int | None = None,
     length_max: int | None = None,
     source: str | None = None,
+    assay_method: str | list[str] | None = None,
+    measurement_units: str | list[str] | None = None,
+    quantitative_value_max: float | None = None,
+    quantitative_value_min: float | None = None,
+    has_quantitative_value: bool | None = None,
     columns: list[str] | None = None,
 ) -> pd.DataFrame:
     """Load the binding-assay index with optional filters.
@@ -517,7 +522,29 @@ def generate_binding_table(
 
     Filters parallel :func:`generate_observations_table` but omit the
     MS-only options (``--mono-allelic``, ``--instrument-type``,
-    ``--acquisition-mode``).
+    ``--acquisition-mode``) and add quantitative-assay filters:
+
+    Parameters
+    ----------
+    assay_method
+        Filter to one or more IEDB/CEDAR assay methods (e.g.
+        ``"purified MHC/direct/fluorescence"``, ``"cellular MHC/direct"``).
+        Exact substring match; case-insensitive.
+    measurement_units
+        Filter to rows reporting in these units (e.g. ``"nM"``,
+        ``"log10(IC50)"``).  Useful before applying a numeric
+        threshold because IC50 at ``nM`` and ``log10(nM)`` are not
+        directly comparable.
+    quantitative_value_min, quantitative_value_max
+        Inclusive bounds on ``quantitative_value`` (the float cast of
+        IEDB's ``Quantitative measurement`` column).  Rows with NaN are
+        excluded when either bound is set.  Pair with
+        ``measurement_units`` to avoid mixing unit systems.
+    has_quantitative_value
+        When True, keep only rows with a non-NaN ``quantitative_value``
+        (a quick "give me only the IC50/EC50/Kd rows" filter).  When
+        False, keep only qualitative-tier rows.  ``None`` leaves the
+        axis unfiltered.
     """
     from .observations import load_binding
 
@@ -555,6 +582,33 @@ def generate_binding_table(
             df["mhc_restriction"].map(
                 lambda a: allele_resolution_rank(classify_allele_resolution(a)) <= min_rank
             )
+        ]
+
+    # Quantitative-assay filters (issue #148).  Applied in-memory after
+    # the parquet load because these columns are free-text / sparse and
+    # don't benefit from pyarrow push-down filters.
+    if assay_method is not None and "assay_method" in df.columns:
+        wanted = {m.casefold() for m in _to_list(assay_method)}
+        method_col = df["assay_method"].fillna("").astype(str).str.casefold()
+        df = df[method_col.apply(lambda m: any(w in m for w in wanted))]
+    if measurement_units is not None and "measurement_units" in df.columns:
+        wanted_units = {u.casefold() for u in _to_list(measurement_units)}
+        units_col = df["measurement_units"].fillna("").astype(str).str.casefold()
+        df = df[units_col.isin(wanted_units)]
+    if has_quantitative_value is not None and "quantitative_value" in df.columns:
+        if has_quantitative_value:
+            df = df[df["quantitative_value"].notna()]
+        else:
+            df = df[df["quantitative_value"].isna()]
+    if quantitative_value_min is not None and "quantitative_value" in df.columns:
+        df = df[
+            df["quantitative_value"].notna()
+            & (df["quantitative_value"] >= float(quantitative_value_min))
+        ]
+    if quantitative_value_max is not None and "quantitative_value" in df.columns:
+        df = df[
+            df["quantitative_value"].notna()
+            & (df["quantitative_value"] <= float(quantitative_value_max))
         ]
 
     if columns:

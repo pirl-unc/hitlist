@@ -171,6 +171,15 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
                 "antigen_processing_comments": "",
                 "assay_comments": "",
                 "qualitative_measurement": "",
+                # Supplementary rows are MS-only (is_binding_assay=False)
+                # and don't carry quantitative-binding-assay values, but
+                # the columns are kept so observations.parquet stays
+                # schema-compatible with scanner output (issue #148).
+                "assay_method": "",
+                "measurement_units": "",
+                "measurement_inequality": "",
+                "quantitative_measurement": "",
+                "quantitative_value": float("nan"),
                 "is_binding_assay": False,
                 "is_potential_contaminant": df["is_potential_contaminant"].to_numpy(),
             }

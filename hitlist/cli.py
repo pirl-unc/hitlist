@@ -579,6 +579,47 @@ def main() -> None:
             "epitopes Bw4/Bw6/C1/C2).  Repeatable or comma-separated."
         ),
     )
+    p_bind.add_argument(
+        "--assay-method",
+        action="append",
+        help=(
+            "Filter to rows whose IEDB/CEDAR assay_method matches (case-"
+            "insensitive substring).  Examples: 'purified MHC/direct/"
+            "fluorescence', 'cellular MHC/direct'.  Repeatable."
+        ),
+    )
+    p_bind.add_argument(
+        "--measurement-units",
+        action="append",
+        help=(
+            "Filter to rows reporting in these units (case-insensitive "
+            "exact match).  Pair with --quantitative-value-{min,max} to "
+            "avoid mixing unit systems (e.g. nM vs log10(nM))."
+        ),
+    )
+    p_bind.add_argument(
+        "--quantitative-value-min",
+        type=float,
+        help="Inclusive lower bound on quantitative_value.  Excludes NaN.",
+    )
+    p_bind.add_argument(
+        "--quantitative-value-max",
+        type=float,
+        help="Inclusive upper bound on quantitative_value.  Excludes NaN.",
+    )
+    p_bind.add_argument(
+        "--has-quantitative-value",
+        dest="has_quantitative_value",
+        action="store_true",
+        default=None,
+        help="Keep only rows with a non-NaN quantitative_value (IC50/EC50/Kd rows).",
+    )
+    p_bind.add_argument(
+        "--qualitative-only",
+        dest="has_quantitative_value",
+        action="store_false",
+        help="Keep only qualitative-tier rows (no numeric value reported).",
+    )
     p_bind.add_argument("--output", "-o", help="Write to file (.csv or .parquet)")
 
     p_training = export_sub.add_parser(
@@ -1051,6 +1092,11 @@ def _export(args: argparse.Namespace) -> None:
                 gene_name=getattr(args, "gene_name", None),
                 gene_id=getattr(args, "gene_id", None),
                 serotype=getattr(args, "serotype", None),
+                assay_method=getattr(args, "assay_method", None),
+                measurement_units=getattr(args, "measurement_units", None),
+                quantitative_value_min=getattr(args, "quantitative_value_min", None),
+                quantitative_value_max=getattr(args, "quantitative_value_max", None),
+                has_quantitative_value=getattr(args, "has_quantitative_value", None),
             )
         except (ValueError, FileNotFoundError) as e:
             print(f"Error: {e}", file=sys.stderr)

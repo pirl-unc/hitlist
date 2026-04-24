@@ -186,3 +186,131 @@ def test_scan_dedupes_by_assay_iri_within_source(tmp_path):
     df = scan(peptides=None, iedb_path=str(src), cedar_path=None)
     assert len(df) == 1
     assert df["assay_iri"].iloc[0] == "http://iedb.org/assay/7777777"
+
+
+# ── Quantitative binding-assay fields (issue #148) ─────────────────────────
+
+
+def _write_quant_iedb_csv(path, rows):
+    """Write a minimal IEDB CSV with the quantitative-assay columns populated.
+
+    Columns the scanner uses are at fixed indices 0..108; we extend to 97
+    so the Quantitative-measurement column (index 96) is writable.
+    """
+    field_header = [""] * 97
+    # Fill the relevant headers at their canonical IEDB positions.
+    field_header[0] = "Assay IRI"
+    field_header[1] = "Reference IRI"
+    field_header[2] = "PMID"
+    field_header[5] = "Epitope | Name"
+    field_header[90] = "Assay | Method"
+    field_header[92] = "Assay | Units"
+    field_header[94] = "Qualitative Measurement"
+    field_header[95] = "Assay | Measurement Inequality"
+    field_header[96] = "Assay | Quantitative measurement"
+    # Note: mhc_restriction / mhc_class are beyond index 96, but the scanner
+    # falls back to _FALLBACK_INDICES for columns we don't explicitly name,
+    # so indices 107/108 get read from row[107]/row[108].  Pad rows out.
+    field_header_full = field_header + [""] * (109 - len(field_header))
+    field_header_full[107] = "MHC Restriction | Name"
+    field_header_full[108] = "MHC Allele Class"
+    category_header = [""] * len(field_header_full)
+
+    import csv
+
+    with open(path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(category_header)
+        writer.writerow(field_header_full)
+        for row in rows:
+            # Pad each data row to match header width.
+            padded = list(row) + [""] * (len(field_header_full) - len(row))
+            writer.writerow(padded)
+
+
+def test_scan_preserves_quantitative_binding_fields(tmp_path):
+    """Scanner must emit assay_method / measurement_units /
+    measurement_inequality / quantitative_measurement / quantitative_value
+    from IEDB binding-assay rows (issue #148).  The float cast of
+    ``Quantitative measurement`` lives in ``quantitative_value`` for
+    downstream filtering.
+    """
+    src = tmp_path / "iedb.csv"
+    rows: list[list] = []
+    # Two quantitative IC50 rows + one qualitative-only row.
+    for i, (method, units, ineq, q, pep) in enumerate(
+        [
+            ("purified MHC/direct/fluorescence", "nM", "=", "12.5", "QUANTROWAB"),
+            ("cellular MHC/direct", "nM", "<", "500", "QUANTROWCD"),
+            ("purified MHC/direct", "", "", "", "QUALONLYAB"),
+        ]
+    ):
+        row = [""] * 109
+        row[0] = f"http://iedb.org/assay/{9000001 + i}"
+        row[1] = "http://iedb.org/reference/99"
+        row[2] = "33858848"
+        row[5] = pep
+        row[90] = method
+        row[92] = units
+        row[94] = "Positive"
+        row[95] = ineq
+        row[96] = q
+        row[107] = "HLA-A*02:01"
+        row[108] = "I"
+        rows.append(row)
+    _write_quant_iedb_csv(src, rows)
+
+    df = scan(peptides=None, iedb_path=str(src), cedar_path=None)
+    assert len(df) == 3
+    for col in (
+        "assay_method",
+        "measurement_units",
+        "measurement_inequality",
+        "quantitative_measurement",
+        "quantitative_value",
+    ):
+        assert col in df.columns, f"missing column: {col}"
+
+    quant = df[df["peptide"] == "QUANTROWAB"].iloc[0]
+    assert quant["assay_method"] == "purified MHC/direct/fluorescence"
+    assert quant["measurement_units"] == "nM"
+    assert quant["measurement_inequality"] == "="
+    assert quant["quantitative_measurement"] == "12.5"
+    assert quant["quantitative_value"] == pytest.approx(12.5)
+
+    bounded = df[df["peptide"] == "QUANTROWCD"].iloc[0]
+    assert bounded["measurement_inequality"] == "<"
+    assert bounded["quantitative_value"] == pytest.approx(500.0)
+
+    qual_only = df[df["peptide"] == "QUALONLYAB"].iloc[0]
+    assert qual_only["assay_method"] == "purified MHC/direct"
+    assert qual_only["measurement_units"] == ""
+    # Empty Quantitative measurement → NaN float in quantitative_value.
+    import math
+
+    assert math.isnan(qual_only["quantitative_value"])
+
+
+def test_scan_quantitative_value_handles_garbage(tmp_path):
+    """A non-numeric quantitative_measurement value must become NaN, not
+    crash the scanner.
+    """
+    src = tmp_path / "iedb.csv"
+    rows = [[""] * 109]
+    rows[0][0] = "http://iedb.org/assay/8888888"
+    rows[0][1] = "http://iedb.org/reference/99"
+    rows[0][2] = "33858848"
+    rows[0][5] = "TRASHROWAB"
+    rows[0][90] = "something"
+    rows[0][94] = "Positive"
+    rows[0][96] = "not a number"
+    rows[0][107] = "HLA-A*02:01"
+    rows[0][108] = "I"
+    _write_quant_iedb_csv(src, rows)
+
+    df = scan(peptides=None, iedb_path=str(src), cedar_path=None)
+    assert len(df) == 1
+    import math
+
+    assert df["quantitative_measurement"].iloc[0] == "not a number"
+    assert math.isnan(df["quantitative_value"].iloc[0])

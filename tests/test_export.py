@@ -870,6 +870,100 @@ def test_generate_binding_table_mhc_and_serotype_filters(tmp_path, monkeypatch):
     assert list(df["peptide"]) == ["PEP2"]
 
 
+def _make_quant_binding_fixture(tmp_path):
+    """Binding fixture with the new quantitative columns populated (#148)."""
+    import pandas as pd
+
+    bd = pd.DataFrame(
+        {
+            "peptide": ["LOWIC50", "HIGHIC50", "LOGIC50", "QUALONLY"],
+            "mhc_restriction": ["HLA-A*02:01"] * 4,
+            "mhc_class": ["I"] * 4,
+            "reference_iri": ["b1", "b2", "b3", "b4"],
+            "pmid": pd.array([1, 2, 3, 4], dtype="Int64"),
+            "source": ["iedb"] * 4,
+            "mhc_species": ["Homo sapiens"] * 4,
+            "is_binding_assay": [True] * 4,
+            "qualitative_measurement": [
+                "Positive-High",
+                "Positive-Low",
+                "Positive",
+                "Positive",
+            ],
+            "assay_method": [
+                "purified MHC/direct/fluorescence",
+                "purified MHC/direct/fluorescence",
+                "purified MHC/direct/fluorescence",
+                "cellular MHC/direct",
+            ],
+            "measurement_units": ["nM", "nM", "log10(nM)", ""],
+            "measurement_inequality": ["=", "=", "=", ""],
+            "quantitative_measurement": ["12.5", "5000", "1.1", ""],
+            "quantitative_value": [12.5, 5000.0, 1.1, float("nan")],
+        }
+    )
+    path = tmp_path / "binding.parquet"
+    bd.to_parquet(path, index=False)
+    return path
+
+
+def test_generate_binding_table_quantitative_value_min_max_filters(tmp_path, monkeypatch):
+    from hitlist.export import generate_binding_table
+
+    bd_path = _make_quant_binding_fixture(tmp_path)
+    monkeypatch.setattr("hitlist.observations.binding_path", lambda: bd_path)
+
+    # IC50 ≤ 100 nM — must not include the 5000 nM weak binder, the
+    # log10-unit row (1.1), or the qualitative-only row (NaN).
+    df = generate_binding_table(
+        measurement_units="nM",
+        quantitative_value_max=100.0,
+    )
+    assert set(df["peptide"]) == {"LOWIC50"}
+
+
+def test_generate_binding_table_has_quantitative_value_flag(tmp_path, monkeypatch):
+    from hitlist.export import generate_binding_table
+
+    bd_path = _make_quant_binding_fixture(tmp_path)
+    monkeypatch.setattr("hitlist.observations.binding_path", lambda: bd_path)
+
+    quant_rows = generate_binding_table(has_quantitative_value=True)
+    assert set(quant_rows["peptide"]) == {"LOWIC50", "HIGHIC50", "LOGIC50"}
+
+    qual_rows = generate_binding_table(has_quantitative_value=False)
+    assert set(qual_rows["peptide"]) == {"QUALONLY"}
+
+
+def test_generate_binding_table_assay_method_substring_match(tmp_path, monkeypatch):
+    from hitlist.export import generate_binding_table
+
+    bd_path = _make_quant_binding_fixture(tmp_path)
+    monkeypatch.setattr("hitlist.observations.binding_path", lambda: bd_path)
+
+    # Case-insensitive substring on assay_method.
+    df = generate_binding_table(assay_method="purified")
+    assert set(df["peptide"]) == {"LOWIC50", "HIGHIC50", "LOGIC50"}
+
+    df = generate_binding_table(assay_method="cellular")
+    assert set(df["peptide"]) == {"QUALONLY"}
+
+
+def test_generate_binding_table_units_filter_prevents_mixing(tmp_path, monkeypatch):
+    """Selecting ``measurement_units="nM"`` must drop the log10(nM) row
+    even when its numeric value happens to be in-bounds — the whole
+    point of the ``measurement_units`` filter is to prevent cross-unit
+    comparisons.
+    """
+    from hitlist.export import generate_binding_table
+
+    bd_path = _make_quant_binding_fixture(tmp_path)
+    monkeypatch.setattr("hitlist.observations.binding_path", lambda: bd_path)
+
+    df = generate_binding_table(measurement_units="nM")
+    assert set(df["peptide"]) == {"LOWIC50", "HIGHIC50"}
+
+
 def test_generate_training_table_unifies_ms_and_binding(tmp_path, monkeypatch):
     import pandas as pd
 
