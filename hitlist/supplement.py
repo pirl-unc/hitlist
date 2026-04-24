@@ -140,14 +140,21 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
         source_tissue = defaults.get("source_tissue", "")
         cell_name = defaults.get("cell_name", "")
 
+        synth_iri = (
+            "supplement:" + str(pmid) + ":" + df["peptide"] + ":" + df["mhc_restriction"]
+        ).to_numpy()
         record = pd.DataFrame(
             {
                 "peptide": df["peptide"].to_numpy(),
                 "mhc_restriction": df["mhc_restriction"].to_numpy(),
                 "mhc_class": df["mhc_class"].to_numpy(),
-                "reference_iri": (
-                    "supplement:" + str(pmid) + ":" + df["peptide"] + ":" + df["mhc_restriction"]
-                ).to_numpy(),
+                # Supplementary rows don't carry an IEDB assay IRI, but the
+                # synthesized string is already row-unique within a PMID, so
+                # reuse it as ``assay_iri`` too.  Downstream exports can then
+                # treat ``assay_iri`` as the stable evidence-row identifier
+                # (issue #146) without branching on source.
+                "assay_iri": synth_iri,
+                "reference_iri": synth_iri,
                 "pmid": pmid,
                 "submission_id": "",
                 "reference_title": entry.get("study_label", ""),

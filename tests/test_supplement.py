@@ -39,6 +39,10 @@ def test_scan_supplementary_schema():
     assert "mhc_class" in df.columns
     assert "pmid" in df.columns
     assert "reference_iri" in df.columns
+    # Issue #146: supplementary rows must carry assay_iri (synthesized
+    # from PMID + peptide + restriction, row-unique within a PMID).
+    assert "assay_iri" in df.columns
+    assert (df["assay_iri"] != "").all()
     # Source classification columns (from classify_ms_row)
     assert "src_cancer" in df.columns
     assert "src_cell_line" in df.columns

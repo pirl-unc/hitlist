@@ -897,12 +897,33 @@ def _apply_training_defaults(df: pd.DataFrame) -> pd.DataFrame:
     result["matched_sample_count"] = result["matched_sample_count"].astype(int)
     result["has_peptide_level_allele"] = result["has_peptide_level_allele"].astype(bool)
 
-    if "reference_iri" in result.columns:
-        ref = result["reference_iri"].fillna("").astype(str)
-        result["evidence_row_id"] = [
-            f"{kind}:{ref_val}" if ref_val.strip() else f"{kind}:row:{idx}"
-            for idx, (kind, ref_val) in enumerate(zip(result["evidence_kind"], ref))
-        ]
+    # Stable evidence-row identifier.  Prefer ``assay_iri`` (row-level, from
+    # IEDB/CEDAR's "Assay IRI" column or the synthesized supplement string
+    # — unique per source MS row), then fall back to ``reference_iri``
+    # (study-level for IEDB/CEDAR) for older parquets that predate #146,
+    # and finally to a positional ``row:{idx}`` sentinel for rows missing
+    # both identifiers.  See issue #146.
+    assay_series = (
+        result["assay_iri"].fillna("").astype(str)
+        if "assay_iri" in result.columns
+        else pd.Series([""] * len(result), index=result.index)
+    )
+    ref_series = (
+        result["reference_iri"].fillna("").astype(str)
+        if "reference_iri" in result.columns
+        else pd.Series([""] * len(result), index=result.index)
+    )
+    if "evidence_kind" in result.columns:
+        evidence_kind = result["evidence_kind"].fillna("").astype(str)
+        ids: list[str] = []
+        for idx, (kind, assay, ref) in enumerate(zip(evidence_kind, assay_series, ref_series)):
+            if assay.strip():
+                ids.append(f"{kind}:{assay}")
+            elif ref.strip():
+                ids.append(f"{kind}:{ref}")
+            else:
+                ids.append(f"{kind}:row:{idx}")
+        result["evidence_row_id"] = ids
 
     return result
 

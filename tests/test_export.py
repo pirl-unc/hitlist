@@ -911,6 +911,121 @@ def test_generate_training_table_unifies_ms_and_binding(tmp_path, monkeypatch):
     assert (binding["sample_mhc"] == "").all()
 
 
+def test_evidence_row_id_prefers_assay_iri_when_present(tmp_path, monkeypatch):
+    """assay_iri is row-level in IEDB/CEDAR (Reference IRI is paper-level).
+
+    Per issue #146, multiple rows from the same paper must receive distinct
+    evidence_row_ids when assay_iri is populated on the observations parquet.
+    This is the regression proving ``evidence_row_id`` is now row-unique,
+    not paper-unique, for IEDB/CEDAR-sourced rows.
+    """
+    import pandas as pd
+
+    from hitlist.export import generate_training_table
+
+    # Three distinct assay rows from the SAME paper (same reference_iri).
+    obs_data = pd.DataFrame(
+        {
+            "peptide": ["AAAAAAAAA", "BBBBBBBBB", "CCCCCCCCC"],
+            "mhc_restriction": ["HLA-A*02:01", "HLA-A*02:01", "HLA-A*02:01"],
+            "mhc_class": ["I", "I", "I"],
+            "assay_iri": [
+                "http://iedb.org/assay/1000001",
+                "http://iedb.org/assay/1000002",
+                "http://iedb.org/assay/1000003",
+            ],
+            "reference_iri": ["http://iedb.org/reference/42"] * 3,
+            "pmid": pd.array([33858848, 33858848, 33858848], dtype="Int64"),
+            "source": ["iedb"] * 3,
+            "mhc_species": ["Homo sapiens"] * 3,
+            "is_monoallelic": [False] * 3,
+            "is_binding_assay": [False] * 3,
+            "qualitative_measurement": ["Positive"] * 3,
+        }
+    )
+    obs_path = tmp_path / "observations.parquet"
+    obs_data.to_parquet(obs_path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+
+    df = generate_training_table(include_evidence="ms")
+    assert df["evidence_row_id"].nunique() == 3, (
+        f"expected 3 unique evidence_row_ids (one per assay_iri), got "
+        f"{df['evidence_row_id'].nunique()} — reference_iri is paper-level "
+        f"and should not drive evidence identity."
+    )
+    # All three should carry the assay IRI in the id.
+    assert all(df["evidence_row_id"].str.contains("assay/"))
+
+
+def test_evidence_row_id_falls_back_to_reference_iri_for_older_parquets(tmp_path, monkeypatch):
+    """Parquets built before #146 don't have an assay_iri column.
+
+    The export must fall back to reference_iri so downstream consumers
+    don't crash on older indexes.  Value stability is lost (because the
+    old parquet has no row-level identifier), but the contract of
+    "evidence_row_id is always set and always prefixed by evidence_kind"
+    must hold.
+    """
+    import pandas as pd
+
+    from hitlist.export import generate_training_table
+
+    obs_data = pd.DataFrame(
+        {
+            "peptide": ["AAAAAAAAA", "BBBBBBBBB"],
+            "mhc_restriction": ["HLA-A*02:01", "HLA-A*02:01"],
+            "mhc_class": ["I", "I"],
+            # No ``assay_iri`` column — simulates a v1.15-era parquet.
+            "reference_iri": ["iri:1", "iri:2"],
+            "pmid": pd.array([33858848, 33858848], dtype="Int64"),
+            "source": ["iedb", "iedb"],
+            "mhc_species": ["Homo sapiens", "Homo sapiens"],
+            "is_monoallelic": [False, False],
+            "is_binding_assay": [False, False],
+            "qualitative_measurement": ["Positive", "Positive"],
+        }
+    )
+    obs_path = tmp_path / "observations.parquet"
+    obs_data.to_parquet(obs_path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+
+    df = generate_training_table(include_evidence="ms")
+    assert df["evidence_row_id"].nunique() == 2
+    assert set(df["evidence_row_id"]) == {"ms:iri:1", "ms:iri:2"}
+
+
+def test_evidence_row_id_positional_fallback_for_missing_both(tmp_path, monkeypatch):
+    """When neither assay_iri nor reference_iri is populated, a positional
+    ``{kind}:row:{idx}`` sentinel is emitted — the contract stays that
+    evidence_row_id is always non-empty.
+    """
+    import pandas as pd
+
+    from hitlist.export import generate_training_table
+
+    obs_data = pd.DataFrame(
+        {
+            "peptide": ["AAAAAAAAA"],
+            "mhc_restriction": ["HLA-A*02:01"],
+            "mhc_class": ["I"],
+            "assay_iri": [""],
+            "reference_iri": [""],
+            "pmid": pd.array([33858848], dtype="Int64"),
+            "source": ["iedb"],
+            "mhc_species": ["Homo sapiens"],
+            "is_monoallelic": [False],
+            "is_binding_assay": [False],
+            "qualitative_measurement": ["Positive"],
+        }
+    )
+    obs_path = tmp_path / "observations.parquet"
+    obs_data.to_parquet(obs_path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+
+    df = generate_training_table(include_evidence="ms")
+    assert df["evidence_row_id"].iloc[0].startswith("ms:row:")
+
+
 def test_generate_training_table_explodes_mappings(tmp_path, monkeypatch):
     import pandas as pd
 
