@@ -233,6 +233,27 @@ def test_packaged_gm12878_csv_loads_without_build(tmp_path, monkeypatch):
         assert col in df.columns
 
 
+def test_packaged_gm12878_gene_symbol_query_returns_tpm(tmp_path, monkeypatch):
+    """Gene-symbol queries against GM12878 must return rows.
+
+    Regression guard against the missing-``gene_name``-column bug
+    (issue #150): if the packaged CSV stored only ``gene_id`` with
+    an empty ``gene_name`` column, ``load_line_expression(gene_name="TP53")``
+    would silently return zero rows and peptide-origin scoring via the
+    EBV-LCL fallback anchor would be useless.
+    """
+    from hitlist import downloads
+
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path, raising=False)
+    # These three house-keeping genes must be highly expressed in any
+    # healthy B-LCL; the probability of all three being zero is negligible.
+    for gene in ("TP53", "GAPDH", "HLA-A"):
+        df = load_line_expression(line_key="GM12878", gene_name=gene)
+        assert not df.empty, f"gene_name={gene!r} returned no rows — CSV gene_name column empty?"
+        assert df["gene_name"].iloc[0] == gene
+        assert df["tpm"].iloc[0] > 0
+
+
 # ── Peptide-origin ─────────────────────────────────────────────────────────
 
 
