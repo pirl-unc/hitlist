@@ -1,124 +1,109 @@
-# Stražar 2023 Ingestion Plan
+# Marcilla Validation Leak Fix (2026-04-23)
 
 ## Goal
 
-Ingest Stražar et al. 2023 (PMID 37301199) as supplementary HLA-II mono-allelic data, using the existing supplementary-manifest pipeline plus a curated PMID override that records the study-wide metadata and mono-allelic method.
+Prevent the two PMID `24366607` HLA-B*40:02 acid-strip / flow-cytometry IC50 validation rows from being exported as part of the Marcilla mono-allelic MS sample.
 
 ## Work Plan
 
-- [x] Confirm supplementary file contents and study structure
-  Deliverable: identify which workbook/sheet contains the peptide-level HLA-II ligand table, the allele naming format, whether peptides are already allele-restricted per row, and whether any sample splits or conditions need separate CSVs.
-  Verification: local inspection notes reflected in the curated CSV shape and manifest comments.
-  Result: the peptide payload is `mmc3.zip` → `ST_ligands_merged.csv`; hitlist ingests only the current-study `dataset == "internal_aff_clean1and2"` slice, not the merged public-training rows.
+- [x] Confirm the exact leakage path in the built data
+  Deliverable: identify the non-elution PMID `24366607` rows and show why they currently join onto the `C1R-HLA-B*40:02` sample.
+  Verification: local inspection isolates the offending rows and their assay-comment signature.
+  Result: confirmed that PMID `24366607` has `2318` current MS rows, of which exactly `2` (`GSFSRFYSL`, `GEFSRFYSL`) are acid-strip / reference-peptide / IC50 validation observations that would join onto the curated `C1R-HLA-B*40:02` sample by PMID + allele.
 
-- [x] Add PMID 37301199 override in `hitlist/data/pmid_overrides.yaml`
-  Deliverable: study label, title, note, allele summary, `mono_allelic_method`, acquisition metadata if recoverable from the paper/supplement, and `ms_samples` entries that enumerate the mono-allelic HLA-II panel with class II MHC strings.
-  Verification: override loads cleanly in tests and sample export surfaces the new study metadata.
-  Result: added 42 class II mono-allelic samples with exact HLA strings, peptide counts, Strep-tag II method metadata, and Orbitrap Exploris 480 / Spectrum Mill acquisition details.
+- [x] Route the validation rows to the binding-assay path
+  Deliverable: update the central binding-assay classifier so Marcilla-style acid-strip / reference-peptide / flow-cytometry IC50 rows no longer remain in the MS index.
+  Verification: targeted unit coverage proves the exact assay-comment pattern classifies as binding.
+  Result: extended `is_binding_assay()` to recognize competitive-binding validation language (`acid stripped`, `reference peptide`, `IC50`, `β2m`) so the Marcilla validation rows will rebuild into `binding.parquet` instead of `observations.parquet`.
 
-- [x] Add supplementary peptide payload(s) and manifest entry
-  Deliverable: one or more CSVs in `hitlist/data/supplementary/` plus `hitlist/data/supplementary.yaml` entries with correct defaults for human class II mono-allelic transfectants.
-  Verification: `scan_supplementary()` includes PMID 37301199 rows with expected class II / mono-allelic metadata.
-  Result: added `hitlist/data/supplementary/strazar_2023_hla2.csv` with 308,418 peptide-allele rows and a manifest entry that documents the source filtering.
+- [x] Add regression coverage for the fix
+  Deliverable: test coverage that would fail if these competitive-binding validation rows ever return to the MS path.
+  Verification: targeted pytest passes before the full suite.
+  Result: added `test_is_binding_assay_competitive_ic50_comment()` with the exact Marcilla assay-comment pattern; local spot-check against the current built PMID shows the new classifier picks out exactly the two leaking peptides.
 
-- [x] Add or extend tests for the Stražar ingestion
-  Deliverable: assertions covering manifest presence, class II row loading, mono-allelic classification via `mono_allelic_method`, and basic size / allele expectations for PMID 37301199.
-  Verification: targeted pytest coverage passes locally.
-  Result: added tests for paired class II allele resolution, Stražar method-based mono-allelic classification, supplementary load counts, and exported sample metadata.
+- [x] Add explicit `ms` names for MS-only public API entry points
+  Deliverable: additive aliases for the Python APIs that return MS-only data, so callers can choose names that make the modality obvious without breaking existing imports.
+  Verification: small regression tests cover the aliases and the README prefers the new names.
+  Result: added `hitlist.export.generate_ms_observations_table()` and `hitlist.observations.load_ms_observations()` as backward-compatible aliases; README examples now prefer the explicit `ms` names and alias tests cover both.
 
 - [x] Run required repo verification
-  Deliverable: `./format.sh`, `./lint.sh`, and `./test.sh` all pass after the ingestion.
-  Verification: command exit status 0 for each script.
-  Result: all three passed; `./test.sh` finished with `186 passed, 1 skipped`.
+  Deliverable: `./format.sh`, `./lint.sh`, and `./test.sh` all pass on this branch after the fix.
+  Verification: zero exit status for all three commands.
+  Result: `./format.sh`, `./lint.sh`, and `./test.sh` all passed; full suite result was `286 passed, 2 skipped`.
 
 ## Review
 
-- Review finding 1: the Stražar supplement does not live in the small XLSX tables; the usable peptide payload is `mmc3.zip`, and the published CSV/ZIP bundle merges current-study data with IEDB and Abelin 2019. **Handled** by ingesting only `internal_aff_clean1and2`.
-- Review finding 2: paired class II restrictions like `HLA-DQA1*01:03/DQB1*06:03` were previously classified as `unresolved`, which broke `mono_allelic_method` overrides for DQ/DP pair strings. **Fixed** in `classify_allele_resolution()`.
-- Review finding 3: the full verification path is expensive because `test.sh` scans the large supplementary CSVs and observation/export joins under coverage. **Verified** anyway per repo policy: `./format.sh`, `./lint.sh`, and `./test.sh` all passed.
+- Review finding 1: the Marcilla curation itself was not the real bug; the leak came from the global assay classifier missing competitive-binding validation language in otherwise elution-oriented PMIDs. **Fixed** in `is_binding_assay()`.
+- Review finding 2: using plain `flow cytometry` as a binding keyword would have been too broad. **Avoided** by keying the new pattern to competitive-binding terms (`acid stripped`, `reference peptide`, `IC50`, `β2m`) instead.
+- Review finding 3: the Python API surface was still using MS-implicit names (`generate_observations_table`, `load_observations`) even though those functions are modality-specific. **Improved** by adding explicit `ms` aliases while retaining the existing names for compatibility.
 
-# PR 26 Follow-up Plan
+# Bulk Proteomics Fallback Bug (2026-04-23)
 
 ## Goal
 
-Make the observations export reliable enough for large-scale peptide + MHC + experimental-metadata extraction, with explicit fixes for current correctness gaps and a path to higher-confidence sample joins.
+Unblock full-suite verification by fixing the bulk-proteomics loaders so an unreadable built `bulk_proteomics.parquet` warns and falls back to packaged source data instead of crashing.
+
+Linked issue: [#144](https://github.com/pirl-unc/hitlist/issues/144)
 
 ## Work Plan
 
-- [ ] Fix mono-allelic filtering in `generate_observations_table()`
-  Issue: `--mono-allelic` / `--multi-allelic` currently checks the wrong column name, so filtering is inert.
-  Deliverable: normalize on one boolean field name (`is_monoallelic` or an exported alias) and add API + CLI coverage that proves row counts change as expected.
-  Verification: targeted unit test for both flags and one CLI test covering `hitlist export observations --mono-allelic`.
+- [x] Confirm the failure mode
+  Deliverable: show that the failing tests die inside `_load_parquet_or_none()` on `pd.read_parquet(...)` rather than in the bulk filter logic itself.
+  Verification: full-suite traceback captured from `./test.sh`.
+  Result: `10` bulk-proteomics tests failed on rebased `main` with `pyarrow.lib.ArrowInvalid` raised from `hitlist.bulk_proteomics._load_parquet_or_none()`.
 
-- [ ] Fix supplementary species propagation
-  Issue: supplementary rows currently default `species` to empty string, and rows without explicit allele assignments also end up with empty `mhc_species`, causing them to disappear under species filters.
-  Deliverable: derive species consistently from manifest defaults and/or host metadata so all JY rows remain human even when `mhc_restriction` is blank.
-  Verification: test that `scan_supplementary()` returns human species for PMID 38480730 and that species-filtered observations retain the expected supplementary rows.
+- [x] Patch the loader fallback
+  Deliverable: if the built parquet exists but is unreadable, warn and return `None` so the CSV/YAML fallback path executes.
+  Verification: targeted regression tests cover both peptide and protein loaders against an invalid fake parquet file.
+  Result: `_load_parquet_or_none()` now catches unreadable-parquet exceptions, emits a `RuntimeWarning`, and falls back to packaged sources.
 
-- [ ] Expand cache invalidation to supplementary payload files
-  Issue: `build_observations()` fingerprints the supplementary manifest but not the CSV payloads, so edited supplementary data can leave a stale cache in place.
-  Deliverable: include every referenced supplementary file in the cache fingerprint.
-  Verification: unit test for fingerprint contents plus a cache-validity test that flips when a supplementary CSV fingerprint changes.
+- [x] Re-run required verification on the rebased branch
+  Deliverable: `./format.sh`, `./lint.sh`, and `./test.sh` all pass after the fallback fix.
+  Verification: zero exit status for all three commands.
+  Result: `./format.sh`, `./lint.sh`, and `./test.sh` all passed on the rebased branch; full suite result was `296 passed, 2 skipped`.
 
-- [ ] Make the observations join explicit about match quality
-  Issue: the current join is best-effort and silently falls back from allele match to PMID-only match, which makes downstream consumers over-trust sample-level metadata.
-  Deliverable: add join provenance columns such as `sample_match_type`, `matched_sample_count`, and optionally `matched_sample_index` or `sample_id`.
-  Verification: tests covering exact allele match, genotype containment match, single-sample fallback, and unmatched rows.
+## Review
 
-- [ ] Tighten sample matching for multi-sample PMIDs
-  Issue: matching by `mhc_restriction in sample.mhc.split()` is not enough when one PMID contains multiple samples with overlapping genotypes, shared alleles, or mixed class I/class II arms.
-  Deliverable: rank candidates deterministically using additional evidence already present in metadata, such as MHC class, mono-allelic status, sample type, and curated sample identifiers where available.
-  Verification: fixture-based tests for at least one ambiguous multi-sample PMID and one mono-allelic PMID.
+- Review finding 1: the original full-suite failure was not caused by the Marcilla leak fix; it was an independent bulk-proteomics loader bug on current `main` when a built parquet is unreadable. **Addressed** by making the loader honor its documented fallback contract.
+- Review finding 2: the first fallback regressions used the full packaged CSVs and pushed `pytest --cov` into an avoidable memory spike. **Fixed** by switching those regressions to small synthetic fallback fixtures that still exercise the corrupt-parquet path and filter semantics.
+- Review finding 3: required repo verification passed after the fallback fix. `./format.sh`, `./lint.sh`, and `./test.sh` all succeeded; `./test.sh` finished with `296 passed, 2 skipped`.
 
-- [ ] Add a stable sample identifier to exported sample metadata
-  Issue: joined rows currently inherit free-text sample labels, which are not ideal for downstream joins or debugging.
-  Deliverable: assign a reproducible `sample_id` in `generate_ms_samples_table()` and carry it into the observations export.
-  Verification: tests asserting uniqueness within PMID and persistence across repeated exports.
+# HLApollo PMID 24366607 Curation Plan
 
-- [ ] Separate observation-level allele assignment from sample-level genotype
-  Issue: supplementary peptides with blank `mhc_restriction` still belong to a human sample, but they do not have peptide-level allele evidence; downstream users need that distinction made explicit.
-  Deliverable: add fields such as `has_peptide_level_allele`, `sample_mhc`, and possibly `allele_assignment_source`.
-  Verification: tests for blank-allele supplementary rows showing retained sample metadata but false/empty peptide-level assignment fields.
+## Goal
 
-- [ ] Broaden packaging and runtime tests for parquet export
-  Issue: `hitlist export observations -o *.parquet` adds a parquet dependency path that should be exercised explicitly.
-  Deliverable: add CLI or unit coverage for parquet output and document the engine dependency expectations.
-  Verification: test writing a parquet export in CI or, if that is too heavy, a narrower unit test for the output branch plus dependency note in docs.
+Curate missing HLApollo study PMID `24366607` (`Marcilla_C1R_B4002_2014`) in `pmid_overrides.yaml`, add regression coverage, bump the patch version, and open a PR for the change.
 
-- [ ] Add end-to-end supplementary build coverage
-  Issue: the current tests mostly validate `scan_supplementary()` in isolation, not that supplementary rows survive the full build and export flow.
-  Deliverable: add an integration-style test around `build_observations()` with a small synthetic supplementary fixture.
-  Verification: assert that the built observations table contains supplementary rows, dedupes against scanner data correctly, and preserves provenance columns.
+## Work Plan
 
-- [ ] Document trust levels for downstream users
-  Issue: the new export looks training-ready, but some rows are still heuristic joins rather than assay-resolved sample assignments.
-  Deliverable: update docs to distinguish high-confidence rows (mono-allelic exact match, unique sample fallback with curated genotype) from heuristic rows.
-  Verification: README or task doc update reviewed alongside code changes.
+- [ ] Confirm the exact upstream shape of PMID `24366607`
+  Deliverable: verify the built hitlist observations for this PMID line up with the source paper's `C1R-B*40:02` mono-allelic phosphopeptidome.
+  Verification: local query of `~/.hitlist/observations.parquet` confirms row count, allele, MHC class, and source fields.
 
-## Recommended Order
+- [ ] Add PMID `24366607` to `hitlist/data/pmid_overrides.yaml`
+  Deliverable: study label, title, note, `override`, `mono_allelic_host`, and one `ms_samples` entry for the `C1R-HLA-B*40:02` transfectant.
+  Verification: `load_pmid_overrides()` loads the new PMID and exported sample metadata shows the expected mono-allelic sample.
 
-1. Fix correctness bugs that make current output wrong: mono-allelic filtering, supplementary species propagation, cache invalidation.
-2. Add join provenance so the current heuristic behavior becomes inspectable.
-3. Improve ambiguous multi-sample matching and stable sample identifiers.
-4. Extend integration coverage and document trust levels.
+- [ ] Add regression coverage
+  Deliverable: test(s) proving PMID `24366607` exports as a single class I mono-allelic `HLA-B*40:02` sample and does not regress to an ambiguous / pooled representation.
+  Verification: targeted pytest coverage passes locally and remains green in the full suite.
 
-## Completed
+- [ ] Bump patch version for the PR
+  Deliverable: increment `hitlist.version.__version__`.
+  Verification: version file diff shows a patch bump only.
 
-- [x] Fix mono-allelic filtering in `generate_observations_table()`
-  - Fixed column name: `is_mono_allelic` → `is_monoallelic` in export.py
-- [x] Fix supplementary species propagation
-  - Added `normalize_species()` to curation.py using mhcgnomes Species.get()
-  - Replaced ad-hoc `_species_from_host()` in supplement.py with `normalize_species()`
-  - JY peptides without allele assignment now correctly get `mhc_species="Homo sapiens"`
-- [x] Expand cache invalidation to supplementary payload files
-  - `_source_fingerprints()` now fingerprints every CSV referenced in supplementary.yaml
-- [x] Species normalization across codebase
-  - `normalize_species()` handles: "human", "homo_sapiens", "Homo sapiens (human)", etc.
-  - Applied at: export.py, observations.py, scanner.py, indexer.py, supplement.py
-  - `--species human` now works identically to `--species "Homo sapiens"`
-- [x] Vectorize `generate_observations_table()` join
-  - Replaced `iterrows()` over 4.9M rows with pandas merge operations
-  - Test suite: 20+ minutes → under 2 minutes
+- [ ] Run required repo verification
+  Deliverable: `./format.sh`, `./lint.sh`, and `./test.sh` all pass.
+  Verification: zero exit status for all three commands.
+
+- [ ] Publish the change as a PR
+  Deliverable: commit, push, and open a draft PR linked to issue `#127`.
+  Verification: branch, commit, and PR URL recorded below.
+
+## Notes
+
+- Built observations already show PMID `24366607` as `2318` IEDB rows / `2317` unique peptides, all `HLA-B*40:02`, almost entirely labeled `C1R cells-B cell`, which matches the intended single-sample curation shape.
+- The closest local precedent is PMID `27920218` (`Alpizar 2017 — HLA-B phosphopeptidome`), which already uses `override: cell_line` and `mono_allelic_host: "C1R"` for `C1R-HLA-B*40:02`.
 
 ## Review
 

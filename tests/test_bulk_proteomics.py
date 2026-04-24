@@ -1,3 +1,6 @@
+import pandas as pd
+import pytest
+
 from hitlist.bulk_proteomics import (
     available_cell_lines,
     available_peptide_cell_lines,
@@ -502,6 +505,88 @@ def test_loaders_read_from_parquet_when_built():
         assert not missing, f"missing harmonized columns: {missing}"
         assert (df["instrument"] != "").all()
         assert (df["fragmentation"] != "").all()
+
+
+def test_load_bulk_peptides_falls_back_when_parquet_unreadable(tmp_path, monkeypatch):
+    """Unreadable built parquet should warn and fall back to packaged CSVs."""
+    bad = tmp_path / "bulk_proteomics.parquet"
+    bad.write_text("not a parquet file")
+    monkeypatch.setattr("hitlist.bulk_proteomics.bulk_proteomics_path", lambda: bad)
+    monkeypatch.setattr(
+        "hitlist.bulk_proteomics._load_bj",
+        lambda: pd.DataFrame(
+            [
+                {
+                    "cell_line": "HeLa",
+                    "peptide": "PEPTIDER",
+                    "gene_symbol": "TP53",
+                    "uniprot_acc": "P04637",
+                    "length": 8,
+                },
+                {
+                    "cell_line": "HeLa",
+                    "peptide": "LONGPEPTIDESEQ",
+                    "gene_symbol": "TP53",
+                    "uniprot_acc": "P04637",
+                    "length": 14,
+                },
+            ]
+        ),
+    )
+
+    with pytest.warns(RuntimeWarning, match="falling back to packaged sources"):
+        df = load_bulk_peptides(length_min=8, length_max=11)
+
+    assert df["peptide"].tolist() == ["PEPTIDER"]
+    assert df["length"].tolist() == [8]
+
+
+def test_load_bulk_proteomics_falls_back_when_parquet_unreadable(tmp_path, monkeypatch):
+    """Protein-level loader should also survive an unreadable built parquet."""
+    bad = tmp_path / "bulk_proteomics.parquet"
+    bad.write_text("not a parquet file")
+    monkeypatch.setattr("hitlist.bulk_proteomics.bulk_proteomics_path", lambda: bad)
+    monkeypatch.setattr(
+        "hitlist.bulk_proteomics._load_ccle",
+        lambda: pd.DataFrame(
+            columns=[
+                "cell_line",
+                "gene_symbol",
+                "uniprot_acc",
+                "source",
+                "abundance_log2_normalized",
+            ]
+        ),
+    )
+    monkeypatch.setattr(
+        "hitlist.bulk_proteomics._load_bj_protein",
+        lambda: pd.DataFrame(
+            [
+                {
+                    "cell_line": "HeLa",
+                    "gene_symbol": "TP53",
+                    "uniprot_acc": "P04637",
+                    "source": "Bekker-Jensen_2017",
+                    "abundance_percentile": 0.95,
+                },
+                {
+                    "cell_line": "HeLa",
+                    "gene_symbol": "MDM2",
+                    "uniprot_acc": "Q00987",
+                    "source": "Bekker-Jensen_2017",
+                    "abundance_percentile": 0.50,
+                },
+            ]
+        ),
+    )
+
+    with pytest.warns(RuntimeWarning, match="falling back to packaged sources"):
+        df = load_bulk_proteomics(cell_line="HeLa", abundance_percentile_min=0.9)
+
+    assert len(df) == 1
+    assert set(df["cell_line_name"]) == {"HeLa"}
+    assert set(df["gene_symbol"]) == {"TP53"}
+    assert (df["abundance_percentile"] >= 0.9).all()
 
 
 # ---------------------------------------------------------------------------

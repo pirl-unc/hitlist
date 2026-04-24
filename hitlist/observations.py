@@ -16,7 +16,8 @@ Two parallel parquet indexes are built by
 :func:`hitlist.builder.build_observations`:
 
 - ``observations.parquet`` — MS-eluted immunopeptidome rows (IEDB +
-  CEDAR + supplementary).  Load with :func:`load_observations`.
+  CEDAR + supplementary).  Load with :func:`load_ms_observations`
+  (or the older alias :func:`load_observations`).
 - ``binding.parquet`` — binding-assay rows (refolding, MEDi, peptide
   microarray, quantitative-tier measurements).  Load with
   :func:`load_binding`.
@@ -28,9 +29,9 @@ data and sample-level metadata joins (see :mod:`hitlist.export`).
 
 Usage::
 
-    from hitlist.observations import load_observations, load_binding
+    from hitlist.observations import load_ms_observations, load_binding
 
-    ms = load_observations(mhc_class="I")
+    ms = load_ms_observations(mhc_class="I")
     bd = load_binding(mhc_class="I", mhc_restriction="HLA-A*02:01")
 
 For callers that explicitly want both — e.g. affinity-predictor training
@@ -114,6 +115,35 @@ def load_observations(
     return _load_peptide_index(
         observations_path(),
         index_name="Observations",
+        mhc_class=mhc_class,
+        species=species,
+        source=source,
+        mhc_restriction=mhc_restriction,
+        gene_name=gene_name,
+        gene_id=gene_id,
+        peptide=peptide,
+        serotype=serotype,
+        length_min=length_min,
+        length_max=length_max,
+        columns=columns,
+    )
+
+
+def load_ms_observations(
+    mhc_class: str | None = None,
+    species: str | None = None,
+    source: str | None = None,
+    mhc_restriction: str | list[str] | None = None,
+    gene_name: str | list[str] | None = None,
+    gene_id: str | list[str] | None = None,
+    peptide: str | list[str] | None = None,
+    serotype: str | list[str] | None = None,
+    length_min: int | None = None,
+    length_max: int | None = None,
+    columns: list[str] | None = None,
+) -> pd.DataFrame:
+    """Alias for :func:`load_observations` with modality explicit in the name."""
+    return load_observations(
         mhc_class=mhc_class,
         species=species,
         source=source,

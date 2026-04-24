@@ -9,6 +9,7 @@ from hitlist.curation import (
     classify_mhc_species,
     classify_ms_row,
     detect_monoallelic,
+    is_binding_assay,
     is_cancer_specific,
     load_monoallelic_lines,
     load_pmid_overrides,
@@ -478,6 +479,18 @@ def test_classify_ms_row_serotypes_plural_populated():
     assert flags["serotype"] == "HLA-A24"
     assert "HLA-A24" in flags["serotypes"].split(";")
     assert "HLA-Bw4" in flags["serotypes"].split(";")
+
+
+def test_is_binding_assay_competitive_ic50_comment():
+    """Marcilla-style acid-strip / flow-cytometry IC50 rows are binding assays."""
+    comments = (
+        "C1R-B*40:02 cells were acid stripped to dissociate surface HLA class I complexes. "
+        "Then, a reference peptide that bound specifically to HLA-B*40:02 was added to the "
+        "cells together with human β2m and different concentrations of the test peptides. "
+        "Fluorescence was measured by flow cytometry. Experimental data were fitted to "
+        "sigmoid curves to allow the estimation of the IC50 values."
+    )
+    assert is_binding_assay("Positive", comments) is True
 
 
 # ── MHC species classification ─────────────────────────────────────────

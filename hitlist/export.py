@@ -16,7 +16,9 @@ Reads ``pmid_overrides.yaml`` and generates per-sample, per-species,
 and allele-validation reports from the ``ms_samples`` and ``hla_alleles``
 metadata fields.
 
-The main artifacts are :func:`generate_observations_table`, which joins
+The main MS artifact is :func:`generate_ms_observations_table`, with
+:func:`generate_observations_table` retained as a backward-compatible alias.
+That join
 per-peptide observations (from IEDB/CEDAR) with per-sample metadata
 (from ``ms_samples``), and :func:`generate_training_table`, which
 composes the built MS, binding, and peptide-mapping indexes into a
@@ -457,6 +459,37 @@ def generate_observations_table(
         result = result[available]
 
     return result
+
+
+def generate_ms_observations_table(
+    mhc_class: str | None = None,
+    species: str | None = None,
+    instrument_type: str | None = None,
+    acquisition_mode: str | None = None,
+    is_mono_allelic: bool | None = None,
+    min_allele_resolution: str | None = None,
+    mhc_allele: str | list[str] | None = None,
+    gene: str | list[str] | None = None,
+    gene_name: str | list[str] | None = None,
+    gene_id: str | list[str] | None = None,
+    serotype: str | list[str] | None = None,
+    columns: list[str] | None = None,
+) -> pd.DataFrame:
+    """Alias for :func:`generate_observations_table` with explicit MS naming."""
+    return generate_observations_table(
+        mhc_class=mhc_class,
+        species=species,
+        instrument_type=instrument_type,
+        acquisition_mode=acquisition_mode,
+        is_mono_allelic=is_mono_allelic,
+        min_allele_resolution=min_allele_resolution,
+        mhc_allele=mhc_allele,
+        gene=gene,
+        gene_name=gene_name,
+        gene_id=gene_id,
+        serotype=serotype,
+        columns=columns,
+    )
 
 
 def generate_binding_table(
