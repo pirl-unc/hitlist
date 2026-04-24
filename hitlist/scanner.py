@@ -356,6 +356,7 @@ def scan(
                 "peptide": _safe_col(row, c["epitope_name"]),
                 "mhc_restriction": mhc_res,
                 "mhc_class": _safe_col(row, c["mhc_class"]),
+                "assay_iri": iri,
                 "reference_iri": _safe_col(row, c["ref_iri"]),
                 "pmid": pmid,
                 "submission_id": _safe_col(row, c["submission_id"]),

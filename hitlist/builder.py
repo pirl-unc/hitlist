@@ -297,22 +297,37 @@ def build_observations(
             ms_df = df
             bd_df = df.iloc[0:0].copy()
 
-        # Deduplicate across sources by assay IRI (per index).
+        # Deduplicate across sources by assay IRI (per index).  Pre-#146
+        # this dedup used ``reference_iri`` (study-level) by mistake, which
+        # would have dropped CEDAR assays whose paper was already seen in
+        # IEDB.  With #146 the scanner now stores ``assay_iri`` on every
+        # row; we dedupe on that (row-level) and fall back to
+        # ``reference_iri`` for any row missing ``assay_iri`` (e.g. during
+        # a partial rebuild from an older intermediate).
+        def _iri_series(frame: pd.DataFrame) -> pd.Series:
+            if "assay_iri" in frame.columns:
+                primary = frame["assay_iri"].fillna("").astype(str)
+                if "reference_iri" in frame.columns:
+                    ref = frame["reference_iri"].fillna("").astype(str)
+                    return primary.where(primary.ne(""), ref)
+                return primary
+            return frame["reference_iri"].fillna("").astype(str)
+
         if ms_seen_iris:
             before = len(ms_df)
-            ms_df = ms_df[~ms_df["reference_iri"].isin(ms_seen_iris)]
+            ms_df = ms_df[~_iri_series(ms_df).isin(ms_seen_iris)]
             dupes = before - len(ms_df)
             if dupes:
                 print(f"  Deduplicated {dupes:,} MS rows (shared IRIs with prior source)")
         if binding_seen_iris:
             before = len(bd_df)
-            bd_df = bd_df[~bd_df["reference_iri"].isin(binding_seen_iris)]
+            bd_df = bd_df[~_iri_series(bd_df).isin(binding_seen_iris)]
             dupes = before - len(bd_df)
             if dupes:
                 print(f"  Deduplicated {dupes:,} binding rows (shared IRIs with prior source)")
 
-        ms_seen_iris.update(ms_df["reference_iri"].values)
-        binding_seen_iris.update(bd_df["reference_iri"].values)
+        ms_seen_iris.update(_iri_series(ms_df).values)
+        binding_seen_iris.update(_iri_series(bd_df).values)
         ms_dfs.append(ms_df)
         binding_dfs.append(bd_df)
         print(f"  {len(ms_df):,} MS rows + {len(bd_df):,} binding rows from {name}")
