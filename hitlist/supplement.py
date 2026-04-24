@@ -140,8 +140,21 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
         source_tissue = defaults.get("source_tissue", "")
         cell_name = defaults.get("cell_name", "")
 
+        # Include the supplementary filename in the synthesized IRI so the
+        # same peptide / allele seen in, e.g. ``gomez_zepeda_2024_jy.csv`` and
+        # ``gomez_zepeda_2024_raji.csv`` yields distinct row identifiers
+        # and doesn't get collapsed by the ``drop_duplicates`` below (issue
+        # #147).  The filename doubles as a per-sample provenance column.
+        supp_file = entry["file"]
         synth_iri = (
-            "supplement:" + str(pmid) + ":" + df["peptide"] + ":" + df["mhc_restriction"]
+            "supplement:"
+            + str(pmid)
+            + ":"
+            + supp_file
+            + ":"
+            + df["peptide"]
+            + ":"
+            + df["mhc_restriction"]
         ).to_numpy()
         record = pd.DataFrame(
             {
@@ -149,12 +162,13 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
                 "mhc_restriction": df["mhc_restriction"].to_numpy(),
                 "mhc_class": df["mhc_class"].to_numpy(),
                 # Supplementary rows don't carry an IEDB assay IRI, but the
-                # synthesized string is already row-unique within a PMID, so
-                # reuse it as ``assay_iri`` too.  Downstream exports can then
+                # synthesized string is already row-unique within a PMID + file,
+                # so reuse it as ``assay_iri`` too.  Downstream exports can then
                 # treat ``assay_iri`` as the stable evidence-row identifier
                 # (issue #146) without branching on source.
                 "assay_iri": synth_iri,
                 "reference_iri": synth_iri,
+                "supplementary_file": supp_file,
                 "pmid": pmid,
                 "submission_id": "",
                 "reference_title": entry.get("study_label", ""),
@@ -235,7 +249,16 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
 
     result = pd.concat(per_entry_frames, ignore_index=True)
 
-    # Deduplicate within supplementary data: one row per (peptide, mhc_restriction, pmid)
-    result = result.drop_duplicates(subset=["peptide", "mhc_restriction", "pmid"])
+    # Deduplicate within supplementary data.  Before #147 the key was
+    # ``(peptide, mhc_restriction, pmid)`` which collapsed the same
+    # peptide / allele seen in multiple sample CSVs from a single paper
+    # (e.g. a peptide presented by both JY and Raji in Gomez-Zepeda 2024)
+    # onto one arbitrary sample context.  Including ``supplementary_file``
+    # preserves per-sample evidence while still de-duplicating within one
+    # CSV — file-level duplicates still collapse correctly.
+    dedupe_cols = ["peptide", "mhc_restriction", "pmid"]
+    if "supplementary_file" in result.columns:
+        dedupe_cols.append("supplementary_file")
+    result = result.drop_duplicates(subset=dedupe_cols)
 
     return result
