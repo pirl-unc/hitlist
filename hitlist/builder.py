@@ -865,24 +865,35 @@ def _load_depmap_model_lookup(model_csv_path: Path | None) -> dict[str, str]:
     except Exception as exc:
         print(f"  warning: failed to read DepMap Model.csv ({exc}); skipping harmonization")
         return {}
-    out: dict[str, str] = {}
     if "ModelID" not in df.columns:
         return {}
-    stripped = df["StrippedCellLineName"] if "StrippedCellLineName" in df.columns else None
-    fallback = df["CellLineName"] if "CellLineName" in df.columns else None
-    for i, row in df.iterrows():
-        mid = str(row.get("ModelID") or "").strip()
+
+    # Walk the columns as Python lists rather than pandas rows so the
+    # ``isinstance(v, str)`` checks on the display-name candidates stay
+    # cheap and we don't invoke ``iterrows()``.  ``str(m) if m else ""``
+    # matches the original ``str(row.get("ModelID") or "").strip()``
+    # — including the quirk that a NaN ModelID is coerced to the string
+    # ``"nan"`` (harmless: ``resolve_line_key("nan")`` returns None so the
+    # row is later dropped by ``_harmonize_depmap_line_keys``).
+    mids = [(str(m) if m else "").strip() for m in df["ModelID"].tolist()]
+    stripped_list = (
+        df["StrippedCellLineName"].tolist()
+        if "StrippedCellLineName" in df.columns
+        else [None] * len(df)
+    )
+    fallback_list = (
+        df["CellLineName"].tolist() if "CellLineName" in df.columns else [None] * len(df)
+    )
+
+    out: dict[str, str] = {}
+    for mid, s, f in zip(mids, stripped_list, fallback_list):
         if not mid:
             continue
         name = ""
-        if stripped is not None:
-            v = stripped.iloc[i]
-            if isinstance(v, str) and v.strip():
-                name = v.strip()
-        if not name and fallback is not None:
-            v = fallback.iloc[i]
-            if isinstance(v, str) and v.strip():
-                name = v.strip()
+        if isinstance(s, str) and s.strip():
+            name = s.strip()
+        elif isinstance(f, str) and f.strip():
+            name = f.strip()
         if name:
             out[mid] = name
     return out
@@ -907,7 +918,7 @@ def _harmonize_depmap_line_keys(
 
     Rows whose ``line_key`` doesn't resolve are dropped so the parquet
     never carries raw DepMap IDs that the resolver can't join against.
-    A warning is printed with the number of dropped lines.
+    A warning is printed with the number of dropped rows.
     """
     from .line_expression import resolve_line_key
 

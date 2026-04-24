@@ -843,5 +843,6 @@ __all__ = [
     "load_line_expression",
     "load_line_expression_anchors",
     "load_line_expression_sources",
+    "resolve_line_key",
     "resolve_sample_expression_anchor",
 ]

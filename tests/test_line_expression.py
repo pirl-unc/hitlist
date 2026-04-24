@@ -1237,3 +1237,173 @@ def test_source_stamp_missing_pmid_is_na():
 
     s = _source_stamp({"source_id": "x"})
     assert pd.isna(s["pmid"])
+
+
+# ── CLI dispatch smoke tests ───────────────────────────────────────────────
+
+
+def test_cli_export_samples_with_expression_anchors_calls_new_function(
+    monkeypatch, tmp_path, capsys
+):
+    """`hitlist export samples --with-expression-anchors` must route to
+    ``generate_sample_expression_table`` (not the default acquisition-metadata
+    table).  Stub both candidate functions and assert only the new one fires.
+    """
+    import argparse
+
+    import hitlist.cli as cli
+    import hitlist.export as export
+
+    called: dict[str, bool] = {"anchor": False, "plain": False}
+
+    def fake_anchor(mhc_class=None, cancer_type_backend=None):
+        called["anchor"] = True
+        return pd.DataFrame({"sample_label": ["X"], "expression_backend": ["depmap_rna"]})
+
+    def fake_plain(mhc_class=None):
+        called["plain"] = True
+        return pd.DataFrame({"sample_label": ["Y"]})
+
+    # Both symbols are re-imported into ``_export``'s local scope from
+    # ``hitlist.export`` at call time, so patching the source module is what
+    # the dispatcher actually sees.
+    monkeypatch.setattr(export, "generate_sample_expression_table", fake_anchor)
+    monkeypatch.setattr(export, "generate_ms_samples_table", fake_plain)
+
+    args = argparse.Namespace(
+        command="export",
+        export_command="samples",
+        mhc_class="I",
+        with_expression_anchors=True,
+        output=str(tmp_path / "out.csv"),
+    )
+    cli._export(args)
+    assert called == {"anchor": True, "plain": False}
+    assert (tmp_path / "out.csv").exists()
+
+
+def test_cli_export_samples_default_routes_to_ms_samples_table(monkeypatch, tmp_path):
+    """Without --with-expression-anchors, the dispatcher keeps the original
+    ``generate_ms_samples_table`` behavior.
+    """
+    import argparse
+
+    import hitlist.cli as cli
+    import hitlist.export as export
+
+    called: dict[str, bool] = {"anchor": False, "plain": False}
+
+    def fake_anchor(mhc_class=None, cancer_type_backend=None):
+        called["anchor"] = True
+        return pd.DataFrame({"sample_label": ["X"]})
+
+    def fake_plain(mhc_class=None):
+        called["plain"] = True
+        return pd.DataFrame({"sample_label": ["Y"]})
+
+    monkeypatch.setattr(export, "generate_sample_expression_table", fake_anchor)
+    monkeypatch.setattr(export, "generate_ms_samples_table", fake_plain)
+
+    args = argparse.Namespace(
+        command="export",
+        export_command="samples",
+        mhc_class=None,
+        with_expression_anchors=False,
+        output=str(tmp_path / "out.csv"),
+    )
+    cli._export(args)
+    assert called == {"anchor": False, "plain": True}
+
+
+def test_cli_export_line_expression_passes_filters_through(monkeypatch, tmp_path):
+    """`hitlist export line-expression` must forward --line-key / --gene-name /
+    --granularity / --source-id to :func:`load_line_expression`.
+    """
+    import argparse
+
+    import hitlist.cli as cli
+    import hitlist.line_expression as le
+
+    captured: dict = {}
+
+    def fake_load(
+        line_key=None,
+        gene_name=None,
+        gene_id=None,
+        granularity=None,
+        source_id=None,
+        columns=None,
+        transcript_id=None,
+    ):
+        captured.update(
+            line_key=line_key,
+            gene_name=gene_name,
+            gene_id=gene_id,
+            granularity=granularity,
+            source_id=source_id,
+        )
+        return pd.DataFrame({"line_key": ["HeLa"], "gene_name": ["TP53"], "tpm": [10.0]})
+
+    monkeypatch.setattr(le, "load_line_expression", fake_load)
+
+    args = argparse.Namespace(
+        command="export",
+        export_command="line-expression",
+        line_key=["HeLa"],
+        gene_name=["TP53"],
+        gene_id=None,
+        granularity="gene",
+        source_id=None,
+        output=str(tmp_path / "out.csv"),
+    )
+    cli._export(args)
+    assert captured == {
+        "line_key": ["HeLa"],
+        "gene_name": ["TP53"],
+        "gene_id": None,
+        "granularity": "gene",
+        "source_id": None,
+    }
+    assert (tmp_path / "out.csv").exists()
+
+
+def test_cli_export_training_with_peptide_origin_flag_threads_through(monkeypatch):
+    """`hitlist export training --with-peptide-origin --proteome-release N`
+    must forward both flags to :func:`generate_training_table`.
+    """
+    import argparse
+
+    from hitlist.cli import _export_training
+
+    captured: dict = {}
+
+    def fake(**kwargs):
+        captured.update(kwargs)
+        return pd.DataFrame({"evidence_kind": ["ms"], "peptide": ["AAAAAAAAA"]})
+
+    monkeypatch.setattr("hitlist.export.generate_training_table", fake)
+
+    args = argparse.Namespace(
+        include_evidence="ms",
+        mhc_class="I",
+        species=None,
+        source=None,
+        instrument_type=None,
+        acquisition_mode=None,
+        mono_allelic=None,
+        min_allele_resolution=None,
+        mhc_allele=None,
+        gene=None,
+        gene_name=None,
+        gene_id=None,
+        peptide=None,
+        serotype=None,
+        length_min=None,
+        length_max=None,
+        explode_mappings=False,
+        with_peptide_origin=True,
+        proteome_release=114,
+    )
+    _export_training(args)
+    assert captured["with_peptide_origin"] is True
+    assert captured["proteome_release"] == 114

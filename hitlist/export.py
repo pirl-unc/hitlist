@@ -815,8 +815,11 @@ def _attach_peptide_origin(
     #    This keeps the per-row cost in pandas merge rather than a Python
     #    iterrows loop — ~N-unique-pairs work instead of ~N-rows.
     # ------------------------------------------------------------------
-    pair_cols = df[["peptide", "expression_key"]].astype(str).fillna("")
-    unique_pairs = pair_cols.drop_duplicates().reset_index(drop=True)
+    # Normalize the merge-key dtypes on ``df`` up front so ``unique_pairs``
+    # is derived from already-stringified columns (no double-cast).
+    df["peptide"] = df["peptide"].astype(str).fillna("")
+    df["expression_key"] = df["expression_key"].astype(str).fillna("")
+    unique_pairs = df[["peptide", "expression_key"]].drop_duplicates().reset_index(drop=True)
 
     empty_origin = {
         "peptide_origin_gene": "",
@@ -829,9 +832,11 @@ def _attach_peptide_origin(
     }
 
     origin_rows: list[dict] = []
-    for _, pair in unique_pairs.iterrows():
-        peptide = pair["peptide"]
-        line_key = pair["expression_key"]
+    # ``itertuples`` avoids the iterrows FutureWarning in recent pandas
+    # and is ~5x faster on the small unique-pair frame.
+    for pair in unique_pairs.itertuples(index=False):
+        peptide = pair.peptide
+        line_key = pair.expression_key
         if not line_key or line_key not in tpm_by_line or tpm_by_line[line_key].empty:
             scored = dict(empty_origin)
         else:
@@ -847,9 +852,6 @@ def _attach_peptide_origin(
         origin_rows, columns=["peptide", "expression_key", *_PEPTIDE_ORIGIN_COLUMNS]
     )
 
-    # Ensure merge-key dtypes line up (both sides are plain strings now).
-    df["peptide"] = df["peptide"].astype(str).fillna("")
-    df["expression_key"] = df["expression_key"].astype(str).fillna("")
     df = df.merge(origin_df, on=["peptide", "expression_key"], how="left")
 
     # Fill the fallback for any (peptide, key) the merge didn't cover
