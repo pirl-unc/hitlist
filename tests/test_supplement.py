@@ -71,14 +71,97 @@ def test_scan_supplementary_gomez_zepeda():
     assert "HeLa" in cell_names
     assert "Raji" in cell_names
 
-    # JY rows should be EBV-LCL, not cancer
+
+def test_supplementary_file_column_is_populated():
+    """Every supplementary row carries the originating CSV filename (issue #147).
+
+    Needed so peptides seen in multiple sample CSVs from one paper don't
+    collapse onto one arbitrary sample context at dedupe time.
+    """
+    df = scan_supplementary()
+    assert "supplementary_file" in df.columns
+    assert (df["supplementary_file"] != "").all()
+
+
+def test_gomez_zepeda_shared_peptide_survives_in_all_sample_files():
+    """Peptides presented by multiple Gomez-Zepeda cell lines must keep
+    one row per CSV after dedupe (issue #147).  Pre-fix the key was
+    (peptide, mhc_restriction, pmid) so shared (peptide, allele) pairs
+    across JY / HeLa / Raji collapsed to a single arbitrary row.
+    """
+    df = scan_supplementary()
+    gz = df[df["pmid"] == 38480730]
+    assert not gz.empty
+
+    # Group by peptide + restriction; any shared peptide that exists in
+    # multiple supplementary files must have N rows, not 1.
+    per_pep = gz.groupby(["peptide", "mhc_restriction"])["supplementary_file"].nunique()
+    shared = per_pep[per_pep > 1]
+    assert not shared.empty, (
+        "expected at least one (peptide, allele) to appear in multiple "
+        "Gomez-Zepeda supplementary files; if that is no longer true the "
+        "dedupe fix cannot be regression-tested here"
+    )
+
+    # Pick the most-shared pair and confirm each file contributes a row.
+    top_pep, top_allele = shared.idxmax()
+    rows = gz[(gz["peptide"] == top_pep) & (gz["mhc_restriction"] == top_allele)]
+    assert rows["supplementary_file"].nunique() == rows.shape[0], (
+        "expected one row per (peptide, allele, file) — dedupe collapsed "
+        "rows that belong to distinct samples"
+    )
+    # assay_iri must be row-unique now, even with same peptide+allele.
+    assert rows["assay_iri"].nunique() == rows.shape[0]
+
+
+def test_gomez_zepeda_raji_sample_has_exact_alleles():
+    """PMID 38480730 Raji sample entry should carry the curated HLA genotype
+    (A*03:01 / B*15:10 / C*03:04 / C*04:01) so Raji supplementary rows
+    with those exact alleles join to a real sample instead of the class
+    pool (issue #147).
+    """
+    from hitlist.curation import load_pmid_overrides
+
+    gz = load_pmid_overrides()[38480730]
+    raji_samples = [
+        s
+        for s in gz["ms_samples"]
+        if "Raji" in s["sample_label"] and "spike" not in s["sample_label"].lower()
+    ]
+    assert len(raji_samples) == 1
+    mhc = raji_samples[0]["mhc"]
+    for allele in ("HLA-A*03:01", "HLA-B*15:10", "HLA-C*03:04", "HLA-C*04:01"):
+        assert allele in mhc, f"missing {allele} in Raji sample mhc"
+
+
+def test_gomez_zepeda_plasma_sample_exists():
+    """PMID 38480730 must carry a plasma sample entry so the 973 predicted-
+    allele rows in the plasma supplementary CSV can attach sample context
+    (even if donor HLA is unknown → class-only restriction).
+    """
+    from hitlist.curation import load_pmid_overrides
+
+    gz = load_pmid_overrides()[38480730]
+    plasma = [s for s in gz["ms_samples"] if "plasma" in s["sample_label"].lower()]
+    assert len(plasma) == 1
+    assert plasma[0]["mhc_class"] == "I"
+
+
+def test_gomez_zepeda_src_flags_by_cell_line():
+    """Existing src_ebv_lcl / src_cancer flags must still be set correctly
+    after the #147 dedupe + curation changes.
+    """
+    df = scan_supplementary()
+    gz = df[df["pmid"] == 38480730]
+
+    # JY rows should be EBV-LCL, not cancer.
     jy = gz[gz["cell_name"] == "JY"]
     assert len(jy) > 15000
     row = jy.iloc[0]
     assert row["src_ebv_lcl"] is True or row["src_ebv_lcl"] == True  # noqa: E712
     assert row["src_cancer"] is False or row["src_cancer"] == False  # noqa: E712
 
-    # HeLa should be cancer
+    # HeLa should be cancer.
     hela = gz[gz["cell_name"] == "HeLa"]
     assert len(hela) > 5000
     assert hela.iloc[0]["src_cancer"] is True or hela.iloc[0]["src_cancer"] == True  # noqa: E712
@@ -119,10 +202,17 @@ def test_scan_supplementary_synthetic_iri():
 
 
 def test_scan_supplementary_dedup_within():
-    """No duplicate (peptide, mhc_restriction, pmid) within supplementary data."""
+    """No duplicate rows within a single supplementary file.
+
+    Issue #147: the dedupe key used to be ``(peptide, mhc_restriction, pmid)``,
+    which collapsed the same peptide / allele seen in multiple sample CSVs
+    under one PMID.  Now the key includes ``supplementary_file``, so
+    within one CSV no duplicates remain but the *same* pair can still
+    appear in distinct CSVs (one row per sample).
+    """
     df = scan_supplementary()
-    dupes = df.duplicated(subset=["peptide", "mhc_restriction", "pmid"])
-    assert not dupes.any(), f"Found {dupes.sum()} duplicate rows"
+    dupes = df.duplicated(subset=["peptide", "mhc_restriction", "pmid", "supplementary_file"])
+    assert not dupes.any(), f"Found {dupes.sum()} within-file duplicate rows"
 
 
 def test_scan_supplementary_no_classify():

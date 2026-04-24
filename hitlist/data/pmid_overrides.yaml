@@ -5582,19 +5582,41 @@
         condition: unperturbed
         mhc_class: I
         mhc: "HLA-A*02:01 HLA-A*11:01 HLA-B*15:01 HLA-B*56:01 HLA-C*01:02"
+      - sample_label: Raji (Burkitt's lymphoma EBV-LCL)
+        n_samples: 1
+        source: "3 bio-reps, WT condition (paired with spike transfectants below)"
+        condition: unperturbed
+        mhc_class: I
+        # Raji HLA typing from the paper's supplementary methods (issue #147).
+        mhc: "HLA-A*03:01 HLA-B*15:10 HLA-C*03:04 HLA-C*04:01"
+        reference_proteomes:
+          - uniprot: UP000153037
+            proteome_label: Epstein-Barr virus
       - sample_label: Raji-spike (SARS-CoV-2 S1+S2 transfectants)
         n_samples: 1
         condition: "SARS-CoV-2 spike S1+S2 segment transfection"
         mhc_class: I
-        mhc: "HLA class I"
-
-# ── Quantitative targeted immunopeptidome studies ────────────────────────────
-
+        # Spike transfectants keep the Raji HLA class I genotype; carry the
+        # exact alleles through so supplementary rows join here instead of
+        # falling back to the PMID class pool (issue #147).
+        mhc: "HLA-A*03:01 HLA-B*15:10 HLA-C*03:04 HLA-C*04:01"
         reference_proteomes:
           - uniprot: UP000153037
             proteome_label: Epstein-Barr virus
           - uniprot: UP000464024
             proteome_label: SARS-CoV-2
+      - sample_label: Human plasma (commercial pool)
+        n_samples: 1
+        source: "5 mL commercial human plasma (method-comparison arm)"
+        condition: unperturbed
+        mhc_class: I
+        # Donor HLA typing not reported; supplementary CSV carries per-peptide
+        # NetMHCpan predictions (973 rows) against a pan-HLA-I background.
+        # Keep the sample class-only here; per-row restrictions in the
+        # supplementary CSV still attach allele evidence where it exists.
+        mhc: "HLA class I"
+
+# ── Quantitative targeted immunopeptidome studies ────────────────────────────
   - pmid: 34497125
     study_label: "Stopfer 2021 — SureQuant-IsoMHC melanoma tumor antigens"
     title: "Absolute quantification of tumor antigens using embedded MHC-I isotopologue calibrants"
