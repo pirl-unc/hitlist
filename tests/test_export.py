@@ -1527,6 +1527,11 @@ def test_generate_training_table_explodes_mappings(tmp_path, monkeypatch):
             "protein_id": ["P1", "P2", "P3"],
             "gene_name": ["PRAME", "PRAME", "MAGEA1"],
             "gene_id": ["ENSG00000185686", "ENSG00000185686", "ENSG00000198681"],
+            # Issue #141 added these as first-class mapping columns; the
+            # synthetic fixture has to declare them for the training-export
+            # column-projection request to succeed against pyarrow.
+            "transcript_id": ["ENST_T1", "ENST_T2", "ENST_T3"],
+            "is_canonical_transcript": [True, False, True],
             "position": [10, 25, 7],
             "n_flank": ["NNNNN", "QQQQQ", "MMMMM"],
             "c_flank": ["CCCCC", "RRRRR", "TTTTT"],
@@ -1541,6 +1546,9 @@ def test_generate_training_table_explodes_mappings(tmp_path, monkeypatch):
     assert len(df) == 3
     assert {"protein_id", "position", "n_flank", "c_flank"} <= set(df.columns)
     assert df["evidence_row_id"].nunique() == 2
+    # transcript_id and is_canonical_transcript flow through to the export.
+    assert "transcript_id" in df.columns
+    assert "is_canonical_transcript" in df.columns
 
     aa = df[df["peptide"] == "AAAAAAAAA"]
     assert set(aa["protein_id"]) == {"P1", "P2"}
@@ -1585,6 +1593,9 @@ def test_generate_training_table_exploded_mappings_respect_gene_filter(tmp_path,
             "protein_id": ["P1", "P2"],
             "gene_name": ["PRAME", "MAGEA1"],
             "gene_id": ["ENSG1", "ENSG2"],
+            # Issue #141: required schema columns.
+            "transcript_id": ["ENST_T1", "ENST_T2"],
+            "is_canonical_transcript": [True, True],
             "position": [10, 20],
             "n_flank": ["NN", "MM"],
             "c_flank": ["CC", "TT"],

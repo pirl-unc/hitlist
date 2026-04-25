@@ -45,6 +45,13 @@ _MAPPING_COLUMNS = (
     "protein_id",
     "gene_name",
     "gene_id",
+    # Issue #141: transcript_id is a first-class column distinct from
+    # protein_id (which now carries ENSP for Ensembl-backed indexes
+    # rather than ENST).  is_canonical_transcript flags the longest
+    # protein-coding transcript per gene as the canonical proxy.
+    # FASTA-backed indexes leave transcript_id="" and the flag False.
+    "transcript_id",
+    "is_canonical_transcript",
     "position",
     "n_flank",
     "c_flank",
@@ -100,6 +107,8 @@ def load_peptide_mappings(
     gene_name: str | list[str] | None = None,
     gene_id: str | list[str] | None = None,
     protein_id: str | list[str] | None = None,
+    transcript_id: str | list[str] | None = None,
+    is_canonical_transcript: bool | None = None,
     proteome: str | list[str] | None = None,
     columns: list[str] | None = None,
 ) -> pd.DataFrame:
@@ -107,6 +116,11 @@ def load_peptide_mappings(
 
     Filters are pushed down to pyarrow, so a query like ``gene_name="PRAME"``
     reads only the matching row groups.
+
+    Issue #141 added ``transcript_id`` and ``is_canonical_transcript`` so
+    callers can ask "give me only the canonical-transcript mapping rows
+    for this peptide" or "give me every mapping row that came from
+    ENST00000269305" without an in-memory post-filter.
     """
     path = mappings_path()
     if not path.exists():
@@ -126,6 +140,10 @@ def load_peptide_mappings(
         filters.append(("gene_id", "in", _as_list(gene_id)))
     if protein_id is not None:
         filters.append(("protein_id", "in", _as_list(protein_id)))
+    if transcript_id is not None:
+        filters.append(("transcript_id", "in", _as_list(transcript_id)))
+    if is_canonical_transcript is not None:
+        filters.append(("is_canonical_transcript", "=", bool(is_canonical_transcript)))
     if proteome is not None:
         filters.append(("proteome", "in", _as_list(proteome)))
 
@@ -142,17 +160,28 @@ def _flanking_rows_to_mapping_rows(
     """
     if flanking.empty:
         return pd.DataFrame(columns=_MAPPING_COLUMNS)
-    df = flanking[
-        [
-            "peptide",
-            "protein_id",
-            "gene_name",
-            "gene_id",
-            "position",
-            "n_flank",
-            "c_flank",
-        ]
-    ].copy()
+    base_cols = [
+        "peptide",
+        "protein_id",
+        "gene_name",
+        "gene_id",
+        "position",
+        "n_flank",
+        "c_flank",
+    ]
+    df = flanking[base_cols].copy()
+    # Issue #141: ProteomeIndex.map_peptides emits transcript_id and
+    # is_canonical_transcript on Ensembl-backed indexes; older fixtures
+    # / older proteome-index instances without those columns get safe
+    # defaults so the parquet schema stays uniform across backends.
+    if "transcript_id" in flanking.columns:
+        df["transcript_id"] = flanking["transcript_id"].fillna("").astype(str)
+    else:
+        df["transcript_id"] = ""
+    if "is_canonical_transcript" in flanking.columns:
+        df["is_canonical_transcript"] = flanking["is_canonical_transcript"].astype(bool)
+    else:
+        df["is_canonical_transcript"] = False
     df["proteome"] = proteome_label
     df["proteome_source"] = proteome_source
     return df[list(_MAPPING_COLUMNS)]
