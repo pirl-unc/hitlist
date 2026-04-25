@@ -115,6 +115,35 @@ def _classify_instrument(instrument: str) -> str:
     return instrument  # return raw value if no match
 
 
+def _serialize_reference_proteomes(proteomes) -> str:
+    """Serialize a list of ``reference_proteomes`` entries as a stable string.
+
+    Format: ``"<uniprot_id>:<label>;..."`` with empty labels rendered as
+    just the UniProt ID.  Tolerates entries that are already strings (older
+    YAML curation) or that omit either field.
+    """
+    if not proteomes:
+        return ""
+    if isinstance(proteomes, str):
+        return proteomes
+    out: list[str] = []
+    for p in proteomes:
+        if isinstance(p, str):
+            out.append(p)
+            continue
+        if not isinstance(p, dict):
+            continue
+        upid = str(p.get("uniprot") or "").strip()
+        label = str(p.get("proteome_label") or "").strip()
+        if upid and label:
+            out.append(f"{upid}:{label}")
+        elif upid:
+            out.append(upid)
+        elif label:
+            out.append(label)
+    return ";".join(out)
+
+
 def generate_ms_samples_table(mhc_class: str | None = None) -> pd.DataFrame:
     """Export all ms_samples entries as a flat DataFrame.
 
@@ -127,10 +156,17 @@ def generate_ms_samples_table(mhc_class: str | None = None) -> pd.DataFrame:
     Returns
     -------
     pd.DataFrame
-        Columns: species, sample_label, perturbation, pmid, study_label,
-        mhc_class, n_samples, notes, mhc, ip_antibody, acquisition_mode,
-        instrument, instrument_type, fragmentation, labeling, search_engine,
-        fdr.
+        Provenance columns now preserved in addition to the legacy ones
+        (issue pirl-unc/hitlist#149):
+        - ``condition`` — original ``condition`` string from the YAML.
+        - ``perturbation`` — the simplified non-unperturbed condition.
+        - ``source`` — original ``source`` field (e.g. tissue source,
+          biopsy notes, donor description).
+        - ``profiled`` — explicit profiled flag when present (``""``
+          when not curated; ``"false"`` for ``n_samples == 0`` placeholders).
+        - ``peptides`` — curated peptide count when present.
+        - ``reference_proteomes`` — semicolon-joined ``UPID:label`` pairs
+          for any per-sample viral / parasite proteome references.
     """
     overrides = load_pmid_overrides()
     rows: list[dict] = []
@@ -145,7 +181,7 @@ def generate_ms_samples_table(mhc_class: str | None = None) -> pd.DataFrame:
             if mhc_class and not _mhc_class_matches(cls, mhc_class):
                 continue
 
-            condition = sample.get("condition", "")
+            condition = sample.get("condition", "") or ""
             if (
                 not condition
                 or condition.startswith("unperturbed")
@@ -158,16 +194,35 @@ def generate_ms_samples_table(mhc_class: str | None = None) -> pd.DataFrame:
 
             n = sample.get("n_samples", "")
             if n == 0:
-                continue  # skip "NOT profiled" placeholder rows
+                # NOT-profiled placeholder rows are still dropped here to
+                # match v1.18-and-earlier export behavior; consumers that
+                # need to distinguish "curated, not profiled" from
+                # "uncurated" can iterate the YAML directly.  Issue #149
+                # remains partially open on this point.
+                continue
+            profiled_field = sample.get("profiled")
+            profiled = "" if profiled_field is None else ("true" if profiled_field else "false")
 
             row = {
                 "species": species,
                 "sample_label": sample.get("sample_label", ""),
+                # Issue #149: keep the simplified ``perturbation`` for
+                # backward compat AND the raw ``condition`` for audit.
+                "condition": condition,
                 "perturbation": perturbation,
                 "pmid": pmid_int,
                 "study_label": study_label,
                 "mhc_class": cls,
                 "n_samples": n if n != "" else None,
+                "profiled": profiled,
+                "source": sample.get("source", "") or "",
+                # Cast peptides count to str so the column dtype stays
+                # ``object``-uniform across rows where it's present (int)
+                # vs absent (""); pyarrow rejects mixed int/str otherwise.
+                "peptides": str(sample.get("peptides", "") or ""),
+                "reference_proteomes": _serialize_reference_proteomes(
+                    sample.get("reference_proteomes") or entry.get("reference_proteomes")
+                ),
                 "notes": sample.get("classification", sample.get("reason", "")),
                 "mhc": sample.get("mhc") or "",
             }
@@ -632,18 +687,36 @@ def generate_binding_table(
     return df
 
 
+_SAMPLE_PROVENANCE_COLUMNS = (
+    "sample_label",
+    "pmid",
+    "study_label",
+    "mhc_class",
+    "condition",
+    "perturbation",
+    "source",
+    "profiled",
+    "peptides",
+    "n_samples",
+    "reference_proteomes",
+    "mhc",
+)
+
+
 def generate_sample_expression_table(
     mhc_class: str | None = None,
     cancer_type_backend=None,
 ) -> pd.DataFrame:
     """Per-sample expression-anchor resolution table.
 
-    For every ``ms_samples`` entry (as emitted by
-    :func:`generate_ms_samples_table`), resolves an expression anchor via
-    :func:`hitlist.line_expression.resolve_sample_expression_anchor` and
-    returns the flat provenance record downstream callers need in order
-    to distinguish "exact JY RNA" from "generic EBV-LCL stand-in" from
-    "melanoma cohort surrogate" (issue pirl-unc/hitlist#140).
+    Now includes the same sample-provenance columns as
+    :func:`generate_ms_samples_table` (issue #149) so a single export
+    captures sample identity + acquisition context + expression anchor
+    in one row.  Resolves an expression anchor for every sample via
+    :func:`hitlist.line_expression.resolve_sample_expression_anchor`
+    and emits the flat provenance record downstream callers need to
+    distinguish "exact JY RNA" from "generic EBV-LCL stand-in" from
+    "melanoma cohort surrogate" (issue #140).
 
     Parameters
     ----------
@@ -655,31 +728,27 @@ def generate_sample_expression_table(
     Returns
     -------
     pd.DataFrame
-        One row per sample with columns: ``sample_label``, ``pmid``,
-        ``study_label``, ``mhc_class``, ``expression_backend``,
-        ``expression_key``, ``expression_match_tier``,
-        ``expression_parent_key``, ``expression_source_ids`` (semicolon-
-        joined), ``expression_reason``, ``expression_matched_alias``.
+        One row per sample carrying: every column of
+        :func:`generate_ms_samples_table` plus
+        ``expression_backend``, ``expression_key``,
+        ``expression_match_tier``, ``expression_parent_key``,
+        ``expression_source_ids`` (semicolon-joined), ``expression_reason``,
+        ``expression_matched_alias``.
     """
     from .line_expression import resolve_sample_expression_anchor
 
     samples = generate_ms_samples_table(mhc_class=mhc_class)
+    expression_cols = [
+        "expression_backend",
+        "expression_key",
+        "expression_match_tier",
+        "expression_parent_key",
+        "expression_source_ids",
+        "expression_reason",
+        "expression_matched_alias",
+    ]
     if samples.empty:
-        return pd.DataFrame(
-            columns=[
-                "sample_label",
-                "pmid",
-                "study_label",
-                "mhc_class",
-                "expression_backend",
-                "expression_key",
-                "expression_match_tier",
-                "expression_parent_key",
-                "expression_source_ids",
-                "expression_reason",
-                "expression_matched_alias",
-            ]
-        )
+        return pd.DataFrame(columns=[*_SAMPLE_PROVENANCE_COLUMNS, *expression_cols])
 
     rows: list[dict] = []
     for _, s in samples.iterrows():
@@ -689,21 +758,20 @@ def generate_sample_expression_table(
             study_label=str(s.get("study_label") or "") or None,
             cancer_type_backend=cancer_type_backend,
         )
-        rows.append(
-            {
-                "sample_label": s.get("sample_label", ""),
-                "pmid": int(s["pmid"]) if pd.notna(s.get("pmid")) else pd.NA,
-                "study_label": s.get("study_label", ""),
-                "mhc_class": s.get("mhc_class", ""),
-                "expression_backend": anchor.expression_backend,
-                "expression_key": anchor.expression_key,
-                "expression_match_tier": anchor.expression_match_tier,
-                "expression_parent_key": anchor.expression_parent_key or "",
-                "expression_source_ids": ";".join(anchor.source_ids),
-                "expression_reason": anchor.reason,
-                "expression_matched_alias": anchor.matched_alias or "",
-            }
+        # Carry the full sample-provenance row through, plus the resolved
+        # anchor columns.  pmid stays nullable Int64 at the end.
+        row = {col: s.get(col, "") for col in _SAMPLE_PROVENANCE_COLUMNS}
+        row["pmid"] = int(s["pmid"]) if pd.notna(s.get("pmid")) else pd.NA
+        row.update(
+            expression_backend=anchor.expression_backend,
+            expression_key=anchor.expression_key,
+            expression_match_tier=anchor.expression_match_tier,
+            expression_parent_key=anchor.expression_parent_key or "",
+            expression_source_ids=";".join(anchor.source_ids),
+            expression_reason=anchor.reason,
+            expression_matched_alias=anchor.matched_alias or "",
         )
+        rows.append(row)
     result = pd.DataFrame(rows)
     result["pmid"] = result["pmid"].astype("Int64")
     return result
@@ -795,23 +863,32 @@ def _attach_peptide_origin(
 
     # ------------------------------------------------------------------
     # 1. Resolve the anchor once per unique (sample_label, pmid).
+    #
+    # Issue #149: pass row-level ``cell_name`` and ``source_tissue`` (when
+    # the observations parquet carries them) into the resolver so labels
+    # like a bare "JY" with cell_name="EBV-LCL JY" or "tumor biopsy" with
+    # source_tissue="lung" can resolve through the anchor registry instead
+    # of falling straight to tier 6.  Both fields are optional.
     # ------------------------------------------------------------------
     sample_cols = [c for c in ("sample_label", "pmid", "study_label") if c in df.columns]
     if not sample_cols:
         for col in (*_EXPRESSION_ANCHOR_COLUMNS, *_PEPTIDE_ORIGIN_COLUMNS):
             df[col] = pd.NA
         return df
-
-    unique_samples = df[sample_cols].drop_duplicates().reset_index(drop=True)
+    extra_resolver_cols = [c for c in ("cell_name", "source_tissue") if c in df.columns]
+    grouping_cols = [*sample_cols, *extra_resolver_cols]
+    unique_samples = df[grouping_cols].drop_duplicates().reset_index(drop=True)
     anchor_records: list[dict] = []
     for _, s in unique_samples.iterrows():
         anchor = resolve_sample_expression_anchor(
             str(s.get("sample_label") or ""),
+            cell_name=str(s.get("cell_name") or "") or None,
             pmid=int(s["pmid"]) if "pmid" in s and pd.notna(s.get("pmid")) else None,
             study_label=str(s.get("study_label") or "") or None,
+            lineage_tissue=str(s.get("source_tissue") or "") or None,
             cancer_type_backend=cancer_type_backend,
         )
-        rec = {c: s.get(c, "") for c in sample_cols}
+        rec = {c: s.get(c, "") for c in grouping_cols}
         rec.update(
             expression_backend=anchor.expression_backend,
             expression_key=anchor.expression_key,
@@ -826,7 +903,7 @@ def _attach_peptide_origin(
     df = df.copy()
     if "pmid" in df.columns:
         df["pmid"] = df["pmid"].astype("Int64")
-    df = df.merge(anchor_df, on=sample_cols, how="left")
+    df = df.merge(anchor_df, on=grouping_cols, how="left")
 
     # ------------------------------------------------------------------
     # 2. Preload TPM tables for every distinct line_key.
