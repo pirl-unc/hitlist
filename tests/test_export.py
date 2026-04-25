@@ -10,7 +10,10 @@ from hitlist.export import (
 
 def test_ms_samples_table_columns():
     df = generate_ms_samples_table()
-    expected = {
+    # Columns split into legacy (always-present) and provenance (added by
+    # issue #149).  Asserted via subset rather than equality so future
+    # additions don't break the test.
+    legacy = {
         "species",
         "sample_label",
         "perturbation",
@@ -29,7 +32,16 @@ def test_ms_samples_table_columns():
         "search_engine",
         "fdr",
     }
-    assert expected == set(df.columns)
+    provenance = {
+        "condition",
+        "source",
+        "profiled",
+        "peptides",
+        "reference_proteomes",
+    }
+    cols = set(df.columns)
+    assert legacy <= cols, f"missing legacy columns: {legacy - cols}"
+    assert provenance <= cols, f"missing provenance columns: {provenance - cols}"
 
 
 def test_ms_samples_table_not_empty():
@@ -408,6 +420,172 @@ def test_ms_samples_species_normalized():
     df = generate_ms_samples_table()
     for s in df["species"]:
         assert "(" not in s, f"Species not normalized: {s}"
+
+
+# ── Sample provenance preservation (issue #149) ────────────────────────────
+
+
+def test_ms_samples_preserves_original_condition():
+    """Original ``condition`` is preserved alongside the simplified
+    ``perturbation`` (issue #149).  For unperturbed samples the condition
+    is non-empty (e.g. ``"unperturbed"``) but perturbation is empty.
+    """
+    df = generate_ms_samples_table()
+    # At least some rows have unperturbed samples — verify they retain the
+    # original condition while perturbation is blank.
+    unperturbed = df[df["perturbation"] == ""]
+    assert not unperturbed.empty
+    # Some unperturbed rows must have a non-empty condition string.
+    assert (unperturbed["condition"].astype(str).str.len() > 0).any(), (
+        "expected at least one unperturbed sample to carry a non-empty "
+        "raw condition string after issue #149"
+    )
+
+
+def test_ms_samples_preserves_reference_proteomes():
+    """``reference_proteomes`` is serialized as ``UPID:label;...``"""
+    df = generate_ms_samples_table()
+    assert "reference_proteomes" in df.columns
+    # The Gomez-Zepeda Raji entries (#147) carry EBV reference proteomes;
+    # at least one row should have a non-empty serialized string.
+    has_proteome = df["reference_proteomes"].astype(str).str.contains("UP")
+    assert has_proteome.any(), (
+        "expected at least one ms_samples row with a serialized reference_proteomes UniProt ID"
+    )
+
+
+def test_ms_samples_preserves_source_field():
+    """The original ``source`` field (e.g. tissue source notes) is exported."""
+    df = generate_ms_samples_table()
+    assert "source" in df.columns
+    assert (df["source"].astype(str).str.len() > 0).any()
+
+
+def test_serialize_reference_proteomes_handles_dict_list():
+    from hitlist.export import _serialize_reference_proteomes
+
+    result = _serialize_reference_proteomes(
+        [
+            {"uniprot": "UP000153037", "proteome_label": "Epstein-Barr virus"},
+            {"uniprot": "UP000464024", "proteome_label": "SARS-CoV-2"},
+        ]
+    )
+    assert result == "UP000153037:Epstein-Barr virus;UP000464024:SARS-CoV-2"
+
+
+def test_serialize_reference_proteomes_handles_partial_entries():
+    from hitlist.export import _serialize_reference_proteomes
+
+    # Only UPID, no label.
+    assert _serialize_reference_proteomes([{"uniprot": "UP000005640"}]) == "UP000005640"
+    # Only label, no UPID.
+    assert _serialize_reference_proteomes([{"proteome_label": "human"}]) == "human"
+    # Empty / None inputs.
+    assert _serialize_reference_proteomes(None) == ""
+    assert _serialize_reference_proteomes([]) == ""
+    # Already-serialized string passes through.
+    assert _serialize_reference_proteomes("UP000005640:human") == "UP000005640:human"
+
+
+def test_generate_sample_expression_table_carries_provenance():
+    """Sample-expression export must include the same provenance columns
+    as ``generate_ms_samples_table`` plus the expression-anchor columns
+    (issue #149).
+    """
+    from hitlist.export import generate_sample_expression_table
+
+    df = generate_sample_expression_table()
+    assert not df.empty
+    for col in (
+        "sample_label",
+        "pmid",
+        "study_label",
+        "mhc_class",
+        "condition",
+        "perturbation",
+        "source",
+        "profiled",
+        "peptides",
+        "reference_proteomes",
+        "mhc",
+        "expression_backend",
+        "expression_key",
+        "expression_match_tier",
+        "expression_parent_key",
+    ):
+        assert col in df.columns, f"missing column: {col}"
+
+
+def test_attach_peptide_origin_passes_cell_name_and_tissue_to_resolver(tmp_path, monkeypatch):
+    """When the observations frame carries ``cell_name`` / ``source_tissue``,
+    those values are passed into the expression-anchor resolver so a bare
+    ``sample_label`` like ``"donor 42"`` can still resolve via the
+    cell_name (issue #149).
+    """
+    import pandas as pd
+
+    from hitlist.export import _attach_peptide_origin
+
+    captured: list[dict] = []
+
+    # Stub the resolver in line_expression so we can observe the kwargs.
+    def fake_resolver(sample_label, **kwargs):
+        captured.append({"sample_label": sample_label, **kwargs})
+
+        class _Anchor:
+            expression_backend = "depmap_rna"
+            expression_key = "HeLa"
+            expression_match_tier = 1
+            expression_parent_key = None
+            source_ids = ()
+            reason = "fake"
+            matched_alias = "hela"
+
+        return _Anchor
+
+    monkeypatch.setattr("hitlist.line_expression.resolve_sample_expression_anchor", fake_resolver)
+
+    # Stub mappings + line_expression load so the rest of the pipeline runs.
+    monkeypatch.setattr(
+        "hitlist.mappings.load_peptide_mappings",
+        lambda peptide=None, columns=None, **_: pd.DataFrame(
+            [{"peptide": "P", "gene_name": "TP53", "gene_id": "", "protein_id": ""}]
+            if peptide
+            else []
+        ),
+    )
+    monkeypatch.setattr(
+        "hitlist.line_expression.load_line_expression",
+        lambda line_key=None, **_: pd.DataFrame(
+            {
+                "line_key": [line_key or "HeLa"],
+                "source_id": ["mock"],
+                "granularity": ["gene"],
+                "gene_id": [""],
+                "gene_name": ["TP53"],
+                "transcript_id": [""],
+                "tpm": [10.0],
+                "log2_tpm": [3.0],
+            }
+        ),
+    )
+
+    df = pd.DataFrame(
+        {
+            "peptide": ["P"],
+            "sample_label": ["donor 42"],
+            "pmid": [12345],
+            "study_label": ["S"],
+            "cell_name": ["HeLa cells"],
+            "source_tissue": ["cervix, uterine"],
+        }
+    )
+    _attach_peptide_origin(df)
+
+    assert captured, "resolver was not called"
+    call = captured[0]
+    assert call["cell_name"] == "HeLa cells"
+    assert call["lineage_tissue"] == "cervix, uterine"
 
 
 # ── Class-II heterodimer component matching (issue #151) ───────────────────
