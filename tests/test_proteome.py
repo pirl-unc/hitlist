@@ -294,6 +294,151 @@ def test_from_fasta_cache_maxsize_negative_rejected():
         set_fasta_index_cache_maxsize(-1)
 
 
+# ── Transcript-aware mapping output (issue #141) ───────────────────────────
+
+
+def test_from_fasta_meta_includes_transcript_columns(tmp_path):
+    """FASTA-backed indexes carry empty transcript_id + canonical=False so
+    the schema is uniform with the Ensembl path (issue #141).
+    """
+    fasta = tmp_path / "test.fasta"
+    fasta.write_text(">sp|P1|A GN=GENA\nACDEFGHIKLMN\n")
+    idx = ProteomeIndex.from_fasta(fasta, lengths=(5,), verbose=False)
+    meta = idx.protein_meta["sp|P1|A"]
+    assert meta["transcript_id"] == ""
+    assert meta["is_canonical_transcript"] is False
+    assert meta["gene_name"] == "GENA"
+
+
+def test_map_peptides_emits_transcript_columns(tmp_path):
+    """``map_peptides`` output now carries ``transcript_id`` and
+    ``is_canonical_transcript`` (issue #141).  Both default to empty /
+    False on FASTA-backed indexes; the columns are always present.
+    """
+    fasta = tmp_path / "tx.fasta"
+    fasta.write_text(">sp|P1|A GN=GENA\nACDEFGHIKL\n")
+    idx = ProteomeIndex.from_fasta(fasta, lengths=(5,), verbose=False)
+    df = idx.map_peptides(["ACDEF"], flank=2, verbose=False)
+    assert "transcript_id" in df.columns
+    assert "is_canonical_transcript" in df.columns
+    assert (df["transcript_id"] == "").all()
+    assert (df["is_canonical_transcript"] == False).all()  # noqa: E712
+
+
+def test_map_peptides_empty_emits_transcript_columns(tmp_path):
+    """The empty-result schema also carries the new columns (issue #141)."""
+    fasta = tmp_path / "tx.fasta"
+    fasta.write_text(">sp|P1|A\nACDEFGHIKL\n")
+    idx = ProteomeIndex.from_fasta(fasta, lengths=(5,), verbose=False)
+    df = idx.map_peptides(["ZZZZZ"], verbose=False)
+    assert "transcript_id" in df.columns
+    assert "is_canonical_transcript" in df.columns
+
+
+def test_from_ensembl_keeps_all_protein_coding_transcripts():
+    """Issue #141: ``from_ensembl`` must NOT collapse each gene to its
+    longest transcript.  We verify the new behavior by stubbing
+    pyensembl with a synthetic gene that has 3 protein-coding transcripts
+    with distinct sequences, then asserting the index carries all three
+    proteins and tags exactly the longest as canonical.
+    """
+    import sys
+    import types
+
+    # Build a fake pyensembl module + EnsemblRelease that yields one gene
+    # with three protein-coding transcripts.
+    fake_module = types.ModuleType("pyensembl")
+
+    class _FakeTranscript:
+        def __init__(self, tid, protein_id, seq):
+            self.id = tid
+            self.protein_id = protein_id
+            self.protein_sequence = seq
+            self.biotype = "protein_coding"
+
+    class _FakeGene:
+        def __init__(self):
+            self.name = "FAKEGENE"
+            self.id = "ENSG00000FAKE"
+            self.biotype = "protein_coding"
+            self.transcripts = [
+                _FakeTranscript("ENST_T1", "ENSP_T1", "ACDEFGHIKL"),  # 10aa
+                _FakeTranscript("ENST_T2", "ENSP_T2", "MNPQRSTVWYACD"),  # 13aa (longest)
+                _FakeTranscript("ENST_T3", "ENSP_T3", "MMMMMMM"),  # 7aa
+            ]
+
+    class _FakeEnsembl:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def genes(self):
+            return [_FakeGene()]
+
+    fake_module.EnsemblRelease = _FakeEnsembl
+    sys.modules["pyensembl"] = fake_module
+    try:
+        idx = ProteomeIndex.from_ensembl(release=999, lengths=(5,), verbose=False)
+
+        assert set(idx.proteins.keys()) == {"ENSP_T1", "ENSP_T2", "ENSP_T3"}, (
+            "expected one entry per protein-coding transcript, not just the longest"
+        )
+        # The longest (T2 / 13aa) is canonical; the others are not.
+        assert idx.protein_meta["ENSP_T2"]["is_canonical_transcript"] is True
+        assert idx.protein_meta["ENSP_T1"]["is_canonical_transcript"] is False
+        assert idx.protein_meta["ENSP_T3"]["is_canonical_transcript"] is False
+        # transcript_id flows through as the ENST.
+        assert idx.protein_meta["ENSP_T1"]["transcript_id"] == "ENST_T1"
+        assert idx.protein_meta["ENSP_T2"]["transcript_id"] == "ENST_T2"
+        # gene_name / gene_id propagate from the gene record.
+        assert idx.protein_meta["ENSP_T1"]["gene_name"] == "FAKEGENE"
+        assert idx.protein_meta["ENSP_T1"]["gene_id"] == "ENSG00000FAKE"
+    finally:
+        del sys.modules["pyensembl"]
+
+
+def test_from_ensembl_falls_back_to_transcript_id_when_protein_id_missing():
+    """Older pyensembl releases or some species don't expose ``t.protein_id``.
+    The index must still build by falling back to the transcript ID, with
+    transcript_id set correctly so downstream code can still distinguish
+    the transcript even when protein_id collides with it.
+    """
+    import sys
+    import types
+
+    fake_module = types.ModuleType("pyensembl")
+
+    class _FakeTranscriptNoProteinId:
+        def __init__(self, tid, seq):
+            self.id = tid
+            # protein_id intentionally absent
+            self.protein_sequence = seq
+            self.biotype = "protein_coding"
+
+    class _FakeGene:
+        def __init__(self):
+            self.name = "GENB"
+            self.id = "ENSG00000B"
+            self.biotype = "protein_coding"
+            self.transcripts = [_FakeTranscriptNoProteinId("ENST_B1", "AAAAAAAA")]
+
+    class _FakeEnsembl:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def genes(self):
+            return [_FakeGene()]
+
+    fake_module.EnsemblRelease = _FakeEnsembl
+    sys.modules["pyensembl"] = fake_module
+    try:
+        idx = ProteomeIndex.from_ensembl(release=999, lengths=(5,), verbose=False)
+        assert "ENST_B1" in idx.proteins
+        assert idx.protein_meta["ENST_B1"]["transcript_id"] == "ENST_B1"
+        assert idx.protein_meta["ENST_B1"]["is_canonical_transcript"] is True
+    finally:
+        del sys.modules["pyensembl"]
+
+
 def test_set_fasta_index_cache_maxsize_shrinks_existing_cache(tmp_path):
     """Calling set_fasta_index_cache_maxsize with a smaller bound evicts
     existing entries down to the new bound (so tests / scripts that

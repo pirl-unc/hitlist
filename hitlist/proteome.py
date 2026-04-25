@@ -212,23 +212,50 @@ class ProteomeIndex:
         for gene in gene_iter:
             if gene.biotype != biotype:
                 continue
-            # Pick canonical (longest) transcript
-            best_t = None
-            best_len = 0
+            # Issue #141: index every protein-coding transcript per gene
+            # rather than collapsing each gene to its longest transcript.
+            # The canonical transcript is identified post-hoc as the
+            # longest valid translation (a stable, pyensembl-version-
+            # independent definition), and every transcript is recorded
+            # with its own ``transcript_id`` so downstream consumers can
+            # distinguish gene-level ambiguity from transcript-isoform
+            # ambiguity in mapping rows.
+            transcript_records: list[tuple[str, str, str]] = []
             for t in gene.transcripts:
-                if t.biotype != "protein_coding":
+                if getattr(t, "biotype", "") != "protein_coding":
                     continue
                 try:
                     seq = t.protein_sequence
                 except Exception:
                     continue
-                if seq and len(seq) > best_len:
-                    best_t = t
-                    best_len = len(seq)
-            if best_t is None:
+                if not seq:
+                    continue
+                # Prefer the stable Ensembl protein/translation ID (ENSP)
+                # as the index key.  When pyensembl can't surface it,
+                # fall back to the transcript ID (ENST) so the proteome
+                # still indexes — but the ``transcript_id`` meta column
+                # always carries the ENST.
+                protein_key = getattr(t, "protein_id", None) or t.id
+                transcript_records.append((protein_key, t.id, seq))
+
+            if not transcript_records:
                 continue
-            proteins[best_t.id] = best_t.protein_sequence
-            meta[best_t.id] = {"gene_name": gene.name, "gene_id": gene.id}
+
+            canonical_protein_key = max(transcript_records, key=lambda r: len(r[2]))[0]
+
+            for protein_key, transcript_id, seq in transcript_records:
+                if protein_key in proteins:
+                    # Same ENSP shared by multiple transcripts (rare but
+                    # possible when alternative ENSTs translate identically).
+                    # Skip duplicates — the meta we already have is correct.
+                    continue
+                proteins[protein_key] = seq
+                meta[protein_key] = {
+                    "gene_name": gene.name,
+                    "gene_id": gene.id,
+                    "transcript_id": transcript_id,
+                    "is_canonical_transcript": protein_key == canonical_protein_key,
+                }
 
         return cls._build(proteins, meta, lengths, verbose)
 
@@ -309,7 +336,16 @@ class ProteomeIndex:
                     gn = gene_name
                     if "GN=" in header:
                         gn = header.split("GN=")[1].split()[0]
-                    meta[current_id] = {"gene_name": gn, "gene_id": gene_id}
+                    # FASTA-backed entries don't carry transcript identity,
+                    # but emitting the keys keeps the meta schema uniform
+                    # with the Ensembl path so map_peptides output has
+                    # consistent columns regardless of backend (#141).
+                    meta[current_id] = {
+                        "gene_name": gn,
+                        "gene_id": gene_id,
+                        "transcript_id": "",
+                        "is_canonical_transcript": False,
+                    }
                     current_seq = []
                 else:
                     current_seq.append(line)
@@ -566,6 +602,14 @@ class ProteomeIndex:
                         "protein_id": prot_id,
                         "gene_name": m.get("gene_name", ""),
                         "gene_id": m.get("gene_id", ""),
+                        # Issue #141: transcript_id is now a first-class
+                        # column distinct from protein_id.  For Ensembl-
+                        # backed indexes it carries the ENST; for FASTA-
+                        # backed indexes it's "".  is_canonical_transcript
+                        # marks the longest protein-coding transcript per
+                        # gene (the Ensembl-canonical proxy).
+                        "transcript_id": m.get("transcript_id", ""),
+                        "is_canonical_transcript": bool(m.get("is_canonical_transcript", False)),
                         "position": pos,
                         "n_flank": n_flank,
                         "c_flank": c_flank,
@@ -579,6 +623,8 @@ class ProteomeIndex:
                     "protein_id",
                     "gene_name",
                     "gene_id",
+                    "transcript_id",
+                    "is_canonical_transcript",
                     "position",
                     "n_flank",
                     "c_flank",

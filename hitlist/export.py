@@ -81,6 +81,12 @@ _TRAINING_MAPPING_COLUMNS = (
     "protein_id",
     "gene_name",
     "gene_id",
+    # Issue #141: transcript identity is now a first-class training-export
+    # column.  ``protein_id`` carries the ENSP for Ensembl-backed mappings
+    # (was ENST pre-#141); ``transcript_id`` is the ENST.  FASTA-backed
+    # rows have ``transcript_id=""`` and ``is_canonical_transcript=False``.
+    "transcript_id",
+    "is_canonical_transcript",
     "position",
     "n_flank",
     "c_flank",
