@@ -1,4 +1,5 @@
 import pandas as pd
+import pytest
 
 from hitlist.proteome import ProteomeIndex
 
@@ -187,6 +188,138 @@ def test_from_fasta_cache_keyed_on_lengths(tmp_path):
     assert idx_5 is not idx_8
     assert idx_5.lengths == (5,)
     assert idx_8.lengths == (8,)
+
+
+# ── Bounded LRU cache (issue #109 regression guard) ────────────────────────
+
+
+def test_from_fasta_cache_is_bounded_after_many_distinct_fastas(tmp_path):
+    """Indexing N > maxsize distinct FASTAs in sequence must NOT accumulate
+    every ProteomeIndex in memory.  Pre-#109 the cache was unbounded and
+    the human proteome alone (~10 GB resident) would persist for the rest
+    of the build.  The bounded LRU caps live entries at ``maxsize``.
+    """
+    from hitlist.proteome import (
+        _FASTA_INDEX_CACHE,
+        clear_fasta_index_cache,
+        set_fasta_index_cache_maxsize,
+    )
+
+    clear_fasta_index_cache()
+    set_fasta_index_cache_maxsize(3)
+    try:
+        for i in range(10):
+            fasta = tmp_path / f"distinct_{i}.fasta"
+            fasta.write_text(f">sp|P{i:05d}|A\nACDEFGHIKLMN\n")
+            ProteomeIndex.from_fasta(fasta, lengths=(5,), verbose=False)
+        assert len(_FASTA_INDEX_CACHE) == 3, (
+            f"expected ≤3 cached entries with maxsize=3, got "
+            f"{len(_FASTA_INDEX_CACHE)} — LRU eviction is broken"
+        )
+    finally:
+        # Restore the production default so subsequent tests aren't affected.
+        set_fasta_index_cache_maxsize(4)
+        clear_fasta_index_cache()
+
+
+def test_from_fasta_cache_evicts_least_recently_used(tmp_path):
+    """The LRU eviction order must be true-LRU: the oldest UNTOUCHED entry
+    is evicted, while a recent re-fetch of an old entry keeps it warm.
+    """
+    from hitlist.proteome import (
+        _FASTA_INDEX_CACHE,
+        clear_fasta_index_cache,
+        set_fasta_index_cache_maxsize,
+    )
+
+    clear_fasta_index_cache()
+    set_fasta_index_cache_maxsize(2)
+    try:
+        a = tmp_path / "a.fasta"
+        b = tmp_path / "b.fasta"
+        c = tmp_path / "c.fasta"
+        for f, sym in ((a, "A"), (b, "B"), (c, "C")):
+            f.write_text(f">sp|P|{sym}\nACDEFGHIKLMN\n")
+
+        idx_a = ProteomeIndex.from_fasta(a, lengths=(5,), verbose=False)
+        idx_b = ProteomeIndex.from_fasta(b, lengths=(5,), verbose=False)
+        # Touch A so it becomes most-recently-used; B should now be the
+        # eviction target when C arrives.
+        idx_a_again = ProteomeIndex.from_fasta(a, lengths=(5,), verbose=False)
+        assert idx_a_again is idx_a
+
+        ProteomeIndex.from_fasta(c, lengths=(5,), verbose=False)
+        assert len(_FASTA_INDEX_CACHE) == 2
+
+        # A and C remain; B was evicted, so re-fetching B builds a fresh
+        # instance (different identity from idx_b).
+        idx_b_after = ProteomeIndex.from_fasta(b, lengths=(5,), verbose=False)
+        assert idx_b_after is not idx_b
+    finally:
+        set_fasta_index_cache_maxsize(4)
+        clear_fasta_index_cache()
+
+
+def test_from_fasta_cache_maxsize_zero_disables_caching(tmp_path):
+    """``set_fasta_index_cache_maxsize(0)`` disables the cache entirely.
+
+    Useful as an escape hatch for pipelines that explicitly want every
+    FASTA re-indexed (e.g. when an external process is rewriting them
+    with stable mtimes).
+    """
+    from hitlist.proteome import (
+        _FASTA_INDEX_CACHE,
+        clear_fasta_index_cache,
+        set_fasta_index_cache_maxsize,
+    )
+
+    clear_fasta_index_cache()
+    set_fasta_index_cache_maxsize(0)
+    try:
+        fasta = tmp_path / "no_cache.fasta"
+        fasta.write_text(">sp|P|A\nACDEFGHIKLMN\n")
+        idx1 = ProteomeIndex.from_fasta(fasta, lengths=(5,), verbose=False)
+        idx2 = ProteomeIndex.from_fasta(fasta, lengths=(5,), verbose=False)
+        assert idx1 is not idx2
+        assert len(_FASTA_INDEX_CACHE) == 0
+    finally:
+        set_fasta_index_cache_maxsize(4)
+        clear_fasta_index_cache()
+
+
+def test_from_fasta_cache_maxsize_negative_rejected():
+    from hitlist.proteome import set_fasta_index_cache_maxsize
+
+    with pytest.raises(ValueError, match="non-negative"):
+        set_fasta_index_cache_maxsize(-1)
+
+
+def test_set_fasta_index_cache_maxsize_shrinks_existing_cache(tmp_path):
+    """Calling set_fasta_index_cache_maxsize with a smaller bound evicts
+    existing entries down to the new bound (so tests / scripts that
+    discover memory pressure mid-run can shed cached proteomes without
+    wiping the whole cache).
+    """
+    from hitlist.proteome import (
+        _FASTA_INDEX_CACHE,
+        clear_fasta_index_cache,
+        set_fasta_index_cache_maxsize,
+    )
+
+    clear_fasta_index_cache()
+    set_fasta_index_cache_maxsize(4)
+    try:
+        for i in range(4):
+            f = tmp_path / f"shrink_{i}.fasta"
+            f.write_text(f">sp|P{i}|A\nACDEFGHIKLMN\n")
+            ProteomeIndex.from_fasta(f, lengths=(5,), verbose=False)
+        assert len(_FASTA_INDEX_CACHE) == 4
+
+        set_fasta_index_cache_maxsize(2)
+        assert len(_FASTA_INDEX_CACHE) == 2
+    finally:
+        set_fasta_index_cache_maxsize(4)
+        clear_fasta_index_cache()
 
 
 # ---------------------------------------------------------------------------

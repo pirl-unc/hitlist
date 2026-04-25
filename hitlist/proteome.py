@@ -48,6 +48,7 @@ Typical usage::
 
 from __future__ import annotations
 
+from collections import OrderedDict
 from dataclasses import dataclass, field
 from functools import cached_property, lru_cache
 from pathlib import Path
@@ -70,12 +71,41 @@ def _unpack(packed: int) -> tuple[int, int]:
     return (packed >> _PROT_BITS, packed & _POS_MASK)
 
 
-# Module-level cache for ``from_fasta``. Keyed on the resolved absolute path
-# plus (size, mtime) of the file, plus the index-configuration inputs
-# (``lengths``, ``gene_name``, ``gene_id``). Size + mtime invalidate the
+# Bounded LRU cache for ``from_fasta``.  Keyed on the resolved absolute
+# path plus (size, mtime) of the file, plus the index-configuration inputs
+# (``lengths``, ``gene_name``, ``gene_id``).  Size + mtime invalidate the
 # entry automatically when the FASTA is replaced (e.g. by
 # ``fetch_species_proteome`` downloading a newer build).
-_FASTA_INDEX_CACHE: dict[tuple, ProteomeIndex] = {}
+#
+# Issue #109: prior to v1.19.2 this was an *unbounded* dict, which made
+# the full-build flanking pass accumulate every species' ProteomeIndex
+# in RAM (the human index alone is ~10 GB; ~525 canonicals iterated by
+# ``_add_flanking`` push peak RSS into 16-32 GB territory and the OS
+# starts OOM-killing the build).  An ``OrderedDict``-backed LRU caps
+# resident size while still capturing the common case — strain-variant
+# canonicals appear close together in the build order, so an LRU of 4
+# keeps every cache-hit path that motivated #86.
+_FASTA_INDEX_CACHE_MAXSIZE: int = 4
+_FASTA_INDEX_CACHE: OrderedDict[tuple, ProteomeIndex] = OrderedDict()
+
+
+def set_fasta_index_cache_maxsize(maxsize: int) -> None:
+    """Adjust the bounded cache size used by :meth:`ProteomeIndex.from_fasta`.
+
+    The default ``4`` is enough to capture the strain-variant cache hits
+    motivating #86 (e.g. multiple SARS-CoV-2 / EBV canonicals resolve to
+    the same FASTA in close succession).  Tests use this to drive the
+    LRU eviction path with a small chain of distinct FASTAs.
+
+    Reducing ``maxsize`` evicts entries beyond the new bound immediately.
+    Setting it to ``0`` disables caching entirely (every call re-indexes).
+    """
+    global _FASTA_INDEX_CACHE_MAXSIZE
+    if maxsize < 0:
+        raise ValueError("maxsize must be non-negative")
+    _FASTA_INDEX_CACHE_MAXSIZE = int(maxsize)
+    while len(_FASTA_INDEX_CACHE) > _FASTA_INDEX_CACHE_MAXSIZE:
+        _FASTA_INDEX_CACHE.popitem(last=False)
 
 
 def clear_fasta_index_cache() -> None:
@@ -257,6 +287,8 @@ class ProteomeIndex:
         if cache_key is not None:
             cached = _FASTA_INDEX_CACHE.get(cache_key)
             if cached is not None:
+                # Touch the entry so LRU order tracks recency-of-use.
+                _FASTA_INDEX_CACHE.move_to_end(cache_key)
                 if verbose:
                     print(f"  ProteomeIndex cache hit for {resolved.name}")
                 return cached
@@ -284,8 +316,15 @@ class ProteomeIndex:
         if current_id:
             proteins[current_id] = "".join(current_seq)
         idx = cls._build(proteins, meta, lengths, verbose)
-        if cache_key is not None:
+        if cache_key is not None and _FASTA_INDEX_CACHE_MAXSIZE > 0:
             _FASTA_INDEX_CACHE[cache_key] = idx
+            _FASTA_INDEX_CACHE.move_to_end(cache_key)
+            # Evict the least-recently-used entry when over capacity.  Each
+            # eviction releases the proteome's ~GB-scale arrays so the build
+            # loop's peak RSS stays bounded by `maxsize x largest proteome`
+            # rather than the sum of all proteomes seen so far (issue #109).
+            while len(_FASTA_INDEX_CACHE) > _FASTA_INDEX_CACHE_MAXSIZE:
+                _FASTA_INDEX_CACHE.popitem(last=False)
         return idx
 
     @classmethod
