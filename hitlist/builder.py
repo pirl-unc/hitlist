@@ -64,33 +64,67 @@ def _source_paths() -> dict[str, Path]:
     return sources
 
 
+def _stat_fingerprint(path: Path) -> dict:
+    """Standard size + mtime + path fingerprint."""
+    stat = path.stat()
+    return {
+        "path": str(path),
+        "size": stat.st_size,
+        "mtime": stat.st_mtime,
+    }
+
+
 def _source_fingerprints(paths: dict[str, Path]) -> dict:
     """File identity for cache invalidation."""
-    fp = {
-        name: {"path": str(p), "size": p.stat().st_size, "mtime": p.stat().st_mtime}
-        for name, p in paths.items()
-    }
+    fp = {name: _stat_fingerprint(p) for name, p in paths.items()}
     # Include supplementary manifest so adding a new supplement invalidates cache
     from .supplement import load_supplementary_manifest, manifest_path
 
     mp = manifest_path()
     if mp.exists():
-        fp["supplementary_manifest"] = {
-            "path": str(mp),
-            "size": mp.stat().st_size,
-            "mtime": mp.stat().st_mtime,
-        }
+        fp["supplementary_manifest"] = _stat_fingerprint(mp)
         # Also fingerprint each referenced CSV so edits invalidate cache
         supp_dir = mp.parent / "supplementary"
         for entry in load_supplementary_manifest():
             csv_path = supp_dir / entry["file"]
             if csv_path.exists():
-                key = f"supplementary_csv:{entry['file']}"
-                fp[key] = {
-                    "path": str(csv_path),
-                    "size": csv_path.stat().st_size,
-                    "mtime": csv_path.stat().st_mtime,
-                }
+                fp[f"supplementary_csv:{entry['file']}"] = _stat_fingerprint(csv_path)
+
+    # ── Line-expression cache fingerprints (issue #150) ─────────────────
+    # Anchor + sources YAML and every packaged CSV go in so edits to
+    # curation invalidate the build cache.  Optional DepMap files registered
+    # via the downloads manifest are fingerprinted by their on-disk path
+    # too, so a re-registered DepMap export forces a rebuild.
+    data_root = Path(__file__).parent / "data"
+    anchors_yaml = data_root / "line_expression_anchors.yaml"
+    if anchors_yaml.exists():
+        fp["line_expression_anchors"] = _stat_fingerprint(anchors_yaml)
+    line_dir = data_root / "line_expression"
+    if line_dir.exists():
+        sources_yaml = line_dir / "sources.yaml"
+        if sources_yaml.exists():
+            fp["line_expression_sources"] = _stat_fingerprint(sources_yaml)
+        for csv in sorted(line_dir.glob("*.csv.gz")):
+            fp[f"line_expression_csv:{csv.name}"] = _stat_fingerprint(csv)
+
+    # DepMap inputs are registered via downloads.py and live outside the
+    # repo; fingerprint by registered path so a re-register / re-download
+    # forces a line-expression rebuild.
+    from .downloads import _load_manifest
+
+    manifest = _load_manifest()
+    registered = manifest.get("datasets", {}) or {}
+    for key in ("depmap_rna", "depmap_rna_transcript", "depmap_models"):
+        entry = registered.get(key)
+        if not entry:
+            continue
+        path_str = entry.get("path")
+        if not path_str:
+            continue
+        p = Path(path_str)
+        if p.exists():
+            fp[f"line_expression_input:{key}"] = _stat_fingerprint(p)
+
     return fp
 
 
@@ -111,17 +145,22 @@ def _meta_path() -> Path:
 
 
 def _parquet_fingerprints() -> dict:
-    """Size + mtime of the three index parquets, for cache validation.
+    """Size + mtime of the four index parquets, for cache validation.
 
     Pairs with ``_source_fingerprints`` to detect either (a) source CSV
     changes or (b) a parquet file being manually edited / replaced
-    between builds.
+    between builds.  Issue #150: ``line_expression`` joined the
+    fingerprint set so a manually-rewritten ``line_expression.parquet``
+    (or a registered DepMap input replaced after the last build) forces
+    the next ``hitlist data build`` to rebuild the line-expression
+    index instead of trusting the stale parquet.
     """
     fp: dict = {}
     for label, p in (
         ("observations", _observations_path()),
         ("binding", _binding_path()),
         ("bulk_proteomics", _bulk_proteomics_path()),
+        ("line_expression", _line_expression_path()),
     ):
         if p.exists():
             stat = p.stat()
@@ -132,9 +171,10 @@ def _parquet_fingerprints() -> dict:
 def _cache_is_valid(paths: dict[str, Path], with_flanking: bool = False) -> bool:
     """Check if the cached indexes are still valid for the requested build.
 
-    All three parquets (``observations``, ``binding``, ``bulk_proteomics``)
-    must be present AND their fingerprints must match the stored metadata.
-    Binding was added in 1.7.0 and bulk_proteomics in 1.11.2, so older
+    All four parquets (``observations``, ``binding``, ``bulk_proteomics``,
+    ``line_expression``) must be present AND their fingerprints must
+    match the stored metadata.  Binding was added in 1.7.0,
+    bulk_proteomics in 1.11.2, and line_expression in 1.16.0, so older
     installs rebuild once on upgrade.
     """
     meta = _meta_path()
@@ -145,6 +185,8 @@ def _cache_is_valid(paths: dict[str, Path], with_flanking: bool = False) -> bool
     if not _binding_path().exists():
         return False
     if not _bulk_proteomics_path().exists():
+        return False
+    if not _line_expression_path().exists():
         return False
     stored = json.loads(meta.read_text())
     if stored.get("sources") != _source_fingerprints(paths):
