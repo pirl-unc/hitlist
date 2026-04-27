@@ -1278,6 +1278,22 @@ def _make_quant_binding_fixture(tmp_path):
             "measurement_inequality": ["=", "=", "=", ""],
             "quantitative_measurement": ["12.5", "5000", "1.1", ""],
             "quantitative_value": [12.5, 5000.0, 1.1, float("nan")],
+            # Issue #137: bag-expansion columns.  LOWIC50 / HIGHIC50 / LOGIC50
+            # are exact 4-digit; QUALONLY is a class-only row whose donor
+            # genotype carries multiple alleles → sample_allele_match.
+            "mhc_allele_set": [
+                "HLA-A*02:01",
+                "HLA-A*02:01",
+                "HLA-A*02:01",
+                "HLA-A*02:01;HLA-B*07:02",
+            ],
+            "mhc_allele_provenance": [
+                "exact",
+                "exact",
+                "exact",
+                "sample_allele_match",
+            ],
+            "mhc_allele_bag_size": [1, 1, 1, 2],
         }
     )
     path = tmp_path / "binding.parquet"
@@ -1325,6 +1341,33 @@ def test_generate_binding_table_assay_method_substring_match(tmp_path, monkeypat
 
     df = generate_binding_table(assay_method="cellular")
     assert set(df["peptide"]) == {"QUALONLY"}
+
+
+def test_generate_binding_table_allele_bag_filters(tmp_path, monkeypatch):
+    """Issue #137: ``mhc_allele_in_bag`` matches both literal 4-digit rows
+    and class-only rows whose expanded bag contains the allele.
+    ``mhc_allele_provenance`` provides a strict-vs-MIL training filter."""
+    from hitlist.export import generate_binding_table
+
+    bd_path = _make_quant_binding_fixture(tmp_path)
+    monkeypatch.setattr("hitlist.observations.binding_path", lambda: bd_path)
+
+    # Filter to bag-contains HLA-A*02:01 — both exact rows AND the
+    # sample_allele_match row (whose bag is "HLA-A*02:01;HLA-B*07:02") match.
+    df = generate_binding_table(mhc_allele_in_bag="HLA-A*02:01")
+    assert set(df["peptide"]) == {"LOWIC50", "HIGHIC50", "LOGIC50", "QUALONLY"}
+
+    # Filter to bag-contains HLA-B*07:02 — only the sample_allele_match row.
+    df = generate_binding_table(mhc_allele_in_bag="HLA-B*07:02")
+    assert set(df["peptide"]) == {"QUALONLY"}
+
+    # Strict-resolution training: only "exact" rows.
+    df = generate_binding_table(mhc_allele_provenance="exact")
+    assert set(df["peptide"]) == {"LOWIC50", "HIGHIC50", "LOGIC50"}
+
+    # MIL-friendly: exact + sample_allele_match (small trusted bags).
+    df = generate_binding_table(mhc_allele_provenance=["exact", "sample_allele_match"])
+    assert set(df["peptide"]) == {"LOWIC50", "HIGHIC50", "LOGIC50", "QUALONLY"}
 
 
 def test_generate_binding_table_response_measured_filter(tmp_path, monkeypatch):

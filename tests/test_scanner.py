@@ -354,3 +354,107 @@ def test_scan_quantitative_value_handles_garbage(tmp_path):
 
     assert df["quantitative_measurement"].iloc[0] == "not a number"
     assert math.isnan(df["quantitative_value"].iloc[0])
+
+
+# ── Allele-bag expansion (issue #137) ──────────────────────────────────────
+
+
+def _write_bag_iedb_csv(path, rows):
+    """Variant of _write_quant_iedb_csv that also names the
+    ``Host | MHC Types Present`` column at index 49 so the scanner can
+    drive bag expansion off it.
+    """
+    field_header = [""] * 112
+    field_header[0] = "Assay IRI"
+    field_header[1] = "Reference IRI"
+    field_header[2] = "PMID"
+    field_header[5] = "Epitope | Name"
+    field_header[49] = "Host | MHC Types Present"
+    field_header[107] = "MHC Restriction | Name"
+    field_header[108] = "MHC Allele Class"
+    category_header = [""] * len(field_header)
+
+    import csv
+
+    with open(path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(category_header)
+        writer.writerow(field_header)
+        for row in rows:
+            padded = list(row) + [""] * (len(field_header) - len(row))
+            writer.writerow(padded)
+
+
+def test_scan_emits_allele_bag_columns_with_provenance(tmp_path):
+    """Issue #137: every scanner row must carry mhc_allele_set /
+    mhc_allele_provenance / mhc_allele_bag_size.  Cover the three
+    populated provenance buckets (exact / sample_allele_match /
+    pmid_class_pool) plus the unmatched fall-through.
+    """
+    src = tmp_path / "iedb.csv"
+    rows: list[list] = []
+
+    # Row A: exact 4-digit (most common case).
+    a = [""] * 112
+    a[0] = "http://iedb.org/assay/100001"
+    a[1] = "http://iedb.org/reference/1"
+    a[2] = "33858848"
+    a[5] = "EXACTROWAB"
+    a[107] = "HLA-A*02:01"
+    a[108] = "I"
+    rows.append(a)
+
+    # Row B: class_only with donor's MHC Types Present populated → sample_allele_match.
+    b = [""] * 112
+    b[0] = "http://iedb.org/assay/100002"
+    b[1] = "http://iedb.org/reference/2"
+    b[2] = "33858848"
+    b[5] = "SAMPLEROWAB"
+    b[49] = "HLA-A*01:01;HLA-A*02:01;HLA-B*07:02"
+    b[107] = "HLA class I"
+    b[108] = "I"
+    rows.append(b)
+
+    # Row C: class_only with no donor MHC, but PMID 28832583 has a curated
+    # hla_alleles pool → pmid_class_pool.
+    c = [""] * 112
+    c[0] = "http://iedb.org/assay/100003"
+    c[1] = "http://iedb.org/reference/3"
+    c[2] = "28832583"
+    c[5] = "POOLROWABCD"
+    c[107] = "HLA class I"
+    c[108] = "I"
+    rows.append(c)
+
+    # Row D: class_only with no donor MHC, no PMID curation → unmatched.
+    d = [""] * 112
+    d[0] = "http://iedb.org/assay/100004"
+    d[1] = "http://iedb.org/reference/4"
+    d[2] = "99999999"
+    d[5] = "UNMATCHEDAB"
+    d[107] = "HLA class I"
+    d[108] = "I"
+    rows.append(d)
+
+    _write_bag_iedb_csv(src, rows)
+    df = scan(peptides=None, iedb_path=str(src), cedar_path=None)
+    assert len(df) == 4
+    for col in ("mhc_allele_set", "mhc_allele_provenance", "mhc_allele_bag_size"):
+        assert col in df.columns
+
+    by_pep = df.set_index("peptide")
+    assert by_pep.loc["EXACTROWAB", "mhc_allele_provenance"] == "exact"
+    assert by_pep.loc["EXACTROWAB", "mhc_allele_set"] == "HLA-A*02:01"
+    assert by_pep.loc["EXACTROWAB", "mhc_allele_bag_size"] == 1
+
+    assert by_pep.loc["SAMPLEROWAB", "mhc_allele_provenance"] == "sample_allele_match"
+    assert by_pep.loc["SAMPLEROWAB", "mhc_allele_bag_size"] == 3
+    assert "HLA-A*02:01" in by_pep.loc["SAMPLEROWAB", "mhc_allele_set"]
+
+    assert by_pep.loc["POOLROWABCD", "mhc_allele_provenance"] == "pmid_class_pool"
+    assert by_pep.loc["POOLROWABCD", "mhc_allele_bag_size"] > 1
+    assert "HLA-A*02:05" in by_pep.loc["POOLROWABCD", "mhc_allele_set"]  # CD165
+
+    assert by_pep.loc["UNMATCHEDAB", "mhc_allele_provenance"] == "unmatched"
+    assert by_pep.loc["UNMATCHEDAB", "mhc_allele_set"] == ""
+    assert by_pep.loc["UNMATCHEDAB", "mhc_allele_bag_size"] == 0

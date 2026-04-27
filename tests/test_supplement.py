@@ -70,6 +70,25 @@ def test_scan_supplementary_schema():
     assert (df["response_measured"] == "").all()
     assert df["quantitative_value"].isna().all()
 
+    # Allele-bag columns (issue #137).  All three must be populated on
+    # every supplementary row.  Most supplementary alleles are 4-digit so
+    # provenance should be predominantly "exact".  Empty mhc_allele_set
+    # is acceptable for "unmatched" rows but bag_size must always be an
+    # int so consumers can groupby on it without NaN handling.
+    for col in ("mhc_allele_set", "mhc_allele_provenance", "mhc_allele_bag_size"):
+        assert col in df.columns, f"missing column: {col}"
+    assert (
+        df["mhc_allele_provenance"]
+        .isin({"exact", "sample_allele_match", "pmid_class_pool", "unmatched"})
+        .all()
+    )
+    assert df["mhc_allele_bag_size"].notna().all()
+    # On "exact" rows, the bag is just the row's mhc_restriction.
+    exact_mask = df["mhc_allele_provenance"] == "exact"
+    if exact_mask.any():
+        assert (df.loc[exact_mask, "mhc_allele_set"] == df.loc[exact_mask, "mhc_restriction"]).all()
+        assert (df.loc[exact_mask, "mhc_allele_bag_size"] == 1).all()
+
 
 def test_scan_supplementary_gomez_zepeda():
     """Gomez-Zepeda data should include multiple cell lines."""

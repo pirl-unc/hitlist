@@ -9,6 +9,7 @@ from hitlist.curation import (
     classify_mhc_species,
     classify_ms_row,
     detect_monoallelic,
+    expand_allele_bag,
     is_binding_assay,
     is_cancer_specific,
     load_monoallelic_lines,
@@ -1056,3 +1057,93 @@ def test_normalize_allele_empty_and_unparseable():
     # test string "SahaI*35"; mhcgnomes >= 3.32 parses that successfully
     # as Saha-I*35, which invalidated the assumption).
     assert normalize_allele("definitely not an allele") == "definitely not an allele"
+
+
+# ── Exact-allele bag expansion (issue #137) ─────────────────────────────
+
+
+def test_expand_allele_bag_exact_four_digit():
+    """A row already at four-digit resolution returns itself with provenance ``exact``."""
+    bag, prov, n = expand_allele_bag("HLA-A*02:01")
+    assert bag == "HLA-A*02:01"
+    assert prov == "exact"
+    assert n == 1
+
+
+def test_expand_allele_bag_class_only_with_sample_mhc():
+    """class_only + Host | MHC Types Present yields ``sample_allele_match``
+    with the donor's typed alleles, filtered to the row's class.
+    """
+    host = "HLA-A*01:01;HLA-B*13:02;HLA-B*39:06;HLA-C*12:03"
+    bag, prov, n = expand_allele_bag("HLA class I", host, mhc_class="I")
+    assert prov == "sample_allele_match"
+    assert n == 4
+    assert bag == "HLA-A*01:01;HLA-B*13:02;HLA-B*39:06;HLA-C*12:03"
+
+
+def test_expand_allele_bag_class_only_with_sample_mhc_class_filter():
+    """Sample's typed alleles include both class I and class II; the row's
+    class filter must drop the wrong-class entries."""
+    host = "HLA-A*02:01;HLA-DRB1*15:01"
+    bag_i, _, n_i = expand_allele_bag("HLA class I", host, mhc_class="I")
+    assert bag_i == "HLA-A*02:01"
+    assert n_i == 1
+    bag_ii, _, n_ii = expand_allele_bag("HLA class II", host, mhc_class="II")
+    assert bag_ii == "HLA-DRB1*15:01"
+    assert n_ii == 1
+
+
+def test_expand_allele_bag_class_only_falls_back_to_pmid_pool():
+    """No sample mhc → PMID pool from curated hla_alleles.  Uses PMID
+    28832583 (Bassani-Sternberg 2017) which has dict-of-lists hla_alleles."""
+    bag, prov, n = expand_allele_bag("HLA class I", host_mhc_types="", pmid=28832583, mhc_class="I")
+    assert prov == "pmid_class_pool"
+    assert n > 0
+    # All alleles in the bag are class I (no HLA-D*).
+    assert all(not a.startswith("HLA-D") for a in bag.split(";"))
+    # Spot-check: CD165's alleles should be in the pool.
+    assert "HLA-A*02:05" in bag
+    assert "HLA-B*15:01" in bag
+
+
+def test_expand_allele_bag_class_only_no_curation_is_unmatched():
+    """class_only with neither sample MHC nor PMID curation → unmatched."""
+    bag, prov, n = expand_allele_bag("HLA class I", host_mhc_types="", pmid=99999999, mhc_class="I")
+    assert bag == ""
+    assert prov == "unmatched"
+    assert n == 0
+
+
+def test_expand_allele_bag_two_digit_is_unmatched():
+    """Two-digit / serological / unresolved restrictions are emitted as
+    unmatched until catalog-based expansion lands (planned follow-up)."""
+    for restriction in ("HLA-A*02", "HLA-A2", ""):
+        bag, prov, n = expand_allele_bag(restriction)
+        assert bag == ""
+        assert prov == "unmatched"
+        assert n == 0
+
+
+def test_expand_allele_bag_pmid_with_only_free_text_alleles():
+    """PMID 33858848 (HLA Ligand Atlas) has hla_alleles as dict-of-strings
+    free-text descriptions ('51 HLA-I allotypes') with no parseable allele
+    strings.  The flatten helper must return an empty pool, and a class_only
+    row falls through to unmatched rather than crashing."""
+    bag, prov, n = expand_allele_bag("HLA class I", host_mhc_types="", pmid=33858848, mhc_class="I")
+    assert bag == ""
+    assert prov == "unmatched"
+    assert n == 0
+
+
+def test_expand_allele_bag_sample_match_wins_over_pmid_pool():
+    """When both sample MHC and PMID pool are available, sample wins
+    (more specific provenance)."""
+    bag, prov, n = expand_allele_bag(
+        "HLA class I",
+        host_mhc_types="HLA-A*02:01",
+        pmid=28832583,  # has a 32-allele PMID pool
+        mhc_class="I",
+    )
+    assert prov == "sample_allele_match"
+    assert bag == "HLA-A*02:01"
+    assert n == 1

@@ -582,6 +582,168 @@ def _is_resolved_allele(mhc_restriction: str) -> bool:
     return classify_allele_resolution(mhc_restriction) in ("four_digit", "two_digit", "serological")
 
 
+# ── Exact-allele bag expansion (issue #137) ────────────────────────────────
+
+
+_BAG_PROVENANCE_VALUES = (
+    "exact",
+    "sample_allele_match",
+    "pmid_class_pool",
+    "unmatched",
+)
+
+
+def _looks_like_four_digit_allele(s: str) -> bool:
+    """Quick syntactic check that a string is a 4-digit-ish HLA allele.
+
+    Used to filter free-text descriptions out of YAML ``hla_alleles`` blocks
+    (e.g. PMID 33858848 has ``class_i: "51 HLA-I allotypes (...)"`` that we
+    never want to treat as an allele).  We only require the obvious
+    structural markers ``HLA-`` + ``*`` + ``:``; mhcgnomes parses the
+    string for downstream allele logic.
+    """
+    if not isinstance(s, str):
+        return False
+    s = s.strip()
+    return s.startswith("HLA-") and "*" in s and ":" in s
+
+
+def _flatten_hla_alleles(value) -> set[str]:
+    """Recursively collect 4-digit allele strings from a curated ``hla_alleles`` value.
+
+    Tolerates the three shapes seen in pmid_overrides.yaml:
+    flat list, dict-of-lists keyed by donor / cell line, and
+    dict-of-strings (free-text descriptions are filtered out by the
+    syntactic check).
+    """
+    out: set[str] = set()
+    if value is None:
+        return out
+    if isinstance(value, str):
+        if _looks_like_four_digit_allele(value):
+            out.add(value.strip())
+    elif isinstance(value, list):
+        for v in value:
+            out |= _flatten_hla_alleles(v)
+    elif isinstance(value, dict):
+        for v in value.values():
+            out |= _flatten_hla_alleles(v)
+    return out
+
+
+@lru_cache(maxsize=512)
+def _pmid_allele_pool(pmid_int: int) -> frozenset[str]:
+    """All curated 4-digit alleles for a PMID, flattened across the
+    ``hla_alleles`` block regardless of nested shape.
+
+    Returns an empty frozenset if no override exists or the override has
+    no ``hla_alleles`` curation.
+    """
+    overrides = load_pmid_overrides()
+    entry = overrides.get(pmid_int)
+    if entry is None:
+        return frozenset()
+    return frozenset(_flatten_hla_alleles(entry.get("hla_alleles")))
+
+
+_HOST_MHC_SPLIT_RE = re.compile(r"[;,]")
+
+
+def _parse_host_mhc_types(host_mhc_types: str) -> frozenset[str]:
+    """Parse IEDB ``Host | MHC Types Present`` into a set of 4-digit alleles.
+
+    IEDB uses ``;``-separated ``HLA-A*01:01;HLA-B*13:02;...`` strings.
+    Free-text or non-allele tokens are dropped.
+    """
+    if not host_mhc_types:
+        return frozenset()
+    parts = _HOST_MHC_SPLIT_RE.split(host_mhc_types)
+    return frozenset(p.strip() for p in parts if _looks_like_four_digit_allele(p))
+
+
+def _filter_alleles_by_class(alleles: frozenset[str], mhc_class: str) -> set[str]:
+    """Filter a candidate allele set to those matching the row's MHC class.
+
+    ``mhc_class`` is the IEDB ``Class`` field (``"I"``, ``"II"``, ``"non
+    classical"``, or ``""``).  Classical class I = HLA-A/B/C; class II =
+    any HLA-D*.  Non-classical class I (E/F/G) is treated as class I for
+    bag expansion since restrictions like ``"HLA class I"`` could legitimately
+    map to those.  Empty ``mhc_class`` disables filtering.
+    """
+    if not mhc_class or mhc_class == "non classical":
+        return set(alleles)
+    if mhc_class == "I":
+        return {
+            a for a in alleles if a[:5] in ("HLA-A", "HLA-B", "HLA-C", "HLA-E", "HLA-F", "HLA-G")
+        }
+    if mhc_class == "II":
+        return {a for a in alleles if a.startswith("HLA-D")}
+    return set(alleles)
+
+
+@lru_cache(maxsize=16384)
+def expand_allele_bag(
+    mhc_restriction: str,
+    host_mhc_types: str = "",
+    pmid: int | str = "",
+    mhc_class: str = "",
+) -> tuple[str, str, int]:
+    """Expand a (possibly coarse) MHC restriction to a candidate exact-allele
+    bag with provenance.
+
+    Issue #137: downstream training pipelines need to know which exact
+    4-digit alleles a row's restriction could plausibly map to, plus how
+    that mapping was obtained, so they can do MIL / noisy-OR training over
+    allele bags instead of silently collapsing or dropping coarse
+    restrictions.
+
+    Logic:
+
+    - ``four_digit`` rows are returned as-is with provenance ``exact``.
+    - ``class_only`` rows (e.g. ``"HLA class I"``) are expanded against
+      first the row's ``Host | MHC Types Present`` (the donor's typed
+      alleles, when IEDB carries them) and otherwise the per-PMID
+      ``hla_alleles`` block; provenance is ``sample_allele_match`` or
+      ``pmid_class_pool`` accordingly.  In both cases the candidate set
+      is filtered to the row's MHC class.
+    - All other resolutions (``two_digit``, ``serological``,
+      ``unresolved``) are returned as ``unmatched``.  Two-digit and
+      serotype expansion against an external IPD-IMGT/HLA catalog is a
+      planned follow-up.
+
+    Returns
+    -------
+    tuple[str, str, int]
+        ``(mhc_allele_set, mhc_allele_provenance, mhc_allele_bag_size)``
+        where the set is ``;``-joined (parquet-friendly, consistent with
+        existing ``serotypes`` / ``gene_names`` columns).
+    """
+    resolution = classify_allele_resolution(mhc_restriction)
+    if resolution == "four_digit":
+        return mhc_restriction.strip(), "exact", 1
+
+    if resolution != "class_only":
+        return "", "unmatched", 0
+
+    sample_alleles = _parse_host_mhc_types(host_mhc_types)
+    pmid_int: int | None = None
+    if pmid:
+        with contextlib.suppress(ValueError, TypeError):
+            pmid_int = int(pmid)
+    pool = _pmid_allele_pool(pmid_int) if pmid_int is not None else frozenset()
+
+    candidates = sample_alleles or pool
+    if not candidates:
+        return "", "unmatched", 0
+
+    candidates = _filter_alleles_by_class(candidates, mhc_class)
+    if not candidates:
+        return "", "unmatched", 0
+
+    provenance = "sample_allele_match" if sample_alleles else "pmid_class_pool"
+    return ";".join(sorted(candidates)), provenance, len(candidates)
+
+
 def _matches_condition(row_fields: dict[str, str], condition: dict) -> bool:
     """Check if a row's fields match a condition dict.
 
