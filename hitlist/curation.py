@@ -588,10 +588,25 @@ def _matches_condition(row_fields: dict[str, str], condition: dict) -> bool:
     Each condition key is an IEDB field name, value is either a string
     or a list of strings. All conditions must match (AND logic).
     String matching is case-insensitive for Source Tissue.
+
+    Field-specific matching:
+      - "Source Tissue" — case-insensitive equality.
+      - "Assay Comments" — case-insensitive substring match. IEDB sometimes
+        concatenates per-arm provenance into a single Assay Comments cell
+        (e.g. "eluted from CRC tissue. eluted from NMC tissue") so substring
+        match is the only way to recognize an arm in a combined row.
+      - All other fields — exact equality (case-sensitive).
     """
     for field, expected in condition.items():
         actual = row_fields.get(field, "")
-        if isinstance(expected, list):
+        if field == "Assay Comments":
+            actual_lower = actual.lower()
+            if isinstance(expected, list):
+                if not any(str(v).lower() in actual_lower for v in expected):
+                    return False
+            elif str(expected).lower() not in actual_lower:
+                return False
+        elif isinstance(expected, list):
             # Any of the listed values matches
             if field == "Source Tissue":
                 if actual.lower() not in {v.lower() for v in expected}:
@@ -618,6 +633,7 @@ def classify_ms_row(
     pmid: int | str = "",
     mhc_restriction: str = "",
     submission_id: str = "",
+    assay_comments: str = "",
 ) -> dict[str, bool | str]:
     """Classify a public-MS row into curated source-context flags.
 
@@ -650,6 +666,11 @@ def classify_ms_row(
     mhc_restriction
         IEDB "MHC Restriction" field value. Used to check whether
         the reported allele is endogenous to a mono-allelic host.
+    assay_comments
+        IEDB "Assay Comments" field. Some studies (e.g. PMID 29789417,
+        Löffler 2018 CRC) tag per-row arm provenance only in the
+        free-text Assay Comments column, so PMID rules can match on it
+        via substring search.
 
     Returns
     -------
@@ -662,6 +683,7 @@ def classify_ms_row(
     source_tissue_str = str(source_tissue).strip() if pd.notna(source_tissue) else ""
     source_tissue_lower = source_tissue_str.lower()
     cell_name_str = str(cell_name).strip() if pd.notna(cell_name) else ""
+    assay_comments_str = str(assay_comments).strip() if pd.notna(assay_comments) else ""
 
     categories = load_tissue_categories()
     overrides = load_pmid_overrides()
@@ -709,6 +731,7 @@ def classify_ms_row(
             "Cell Name": cell_name_str,
             "Disease": disease,
             "Process Type": process_type,
+            "Assay Comments": assay_comments_str,
         }
 
         # Level 1: check conditional rules
