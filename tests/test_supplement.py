@@ -54,6 +54,21 @@ def test_scan_supplementary_schema():
     assert "process_type" in df.columns
     assert "culture_condition" in df.columns
     assert "cell_name" in df.columns
+    # Quantitative-binding-assay parity columns (issue #148, #135).  Supp
+    # rows are MS-only so all of these must be present-but-empty so the
+    # schema lines up with scanner output and the merged observations
+    # parquet stays single-typed.
+    for col in (
+        "assay_method",
+        "response_measured",
+        "measurement_units",
+        "measurement_inequality",
+        "quantitative_measurement",
+        "quantitative_value",
+    ):
+        assert col in df.columns, f"missing column: {col}"
+    assert (df["response_measured"] == "").all()
+    assert df["quantitative_value"].isna().all()
 
 
 def test_scan_supplementary_gomez_zepeda():
