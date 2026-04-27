@@ -204,6 +204,7 @@ def _write_quant_iedb_csv(path, rows):
     field_header[2] = "PMID"
     field_header[5] = "Epitope | Name"
     field_header[90] = "Assay | Method"
+    field_header[91] = "Assay | Response measured"
     field_header[92] = "Assay | Units"
     field_header[94] = "Qualitative Measurement"
     field_header[95] = "Assay | Measurement Inequality"
@@ -237,20 +238,50 @@ def test_scan_preserves_quantitative_binding_fields(tmp_path):
     """
     src = tmp_path / "iedb.csv"
     rows: list[list] = []
-    # Two quantitative IC50 rows + one qualitative-only row.
-    for i, (method, units, ineq, q, pep) in enumerate(
+    # IC50 (competitive binding), Kd (direct dissociation), t_half (kinetic),
+    # plus a qualitative-only row.  Each carries a different ``Response measured``
+    # so consumers can stratify by readout type.  The Response-measured strings
+    # used here are the canonical IEDB values (``df['response_measured']
+    # .value_counts()`` shows ``"half maximal inhibitory concentration (IC50)"``,
+    # ``"dissociation constant KD"``, ``"half life"``, ``"qualitative binding"``,
+    # ``"ligand presentation"`` etc.) so consumers can reproduce these tests
+    # against a real build.
+    for i, (method, response, units, ineq, q, pep) in enumerate(
         [
-            ("purified MHC/direct/fluorescence", "nM", "=", "12.5", "QUANTROWAB"),
-            ("cellular MHC/direct", "nM", "<", "500", "QUANTROWCD"),
-            ("purified MHC/direct", "", "", "", "QUALONLYAB"),
+            (
+                "purified MHC/competitive/fluorescence",
+                "half maximal inhibitory concentration (IC50)",
+                "nM",
+                "=",
+                "12.5",
+                "QUANTROWAB",
+            ),
+            (
+                "purified MHC/direct/fluorescence",
+                "dissociation constant KD",
+                "nM",
+                "<",
+                "500",
+                "QUANTROWCD",
+            ),
+            (
+                "cellular MHC/direct/fluorescence",
+                "half life",
+                "min",
+                "=",
+                "42",
+                "KINETICAB",
+            ),
+            ("purified MHC/direct", "qualitative binding", "", "", "", "QUALONLYAB"),
         ]
     ):
-        row = [""] * 109
+        row = [""] * 112
         row[0] = f"http://iedb.org/assay/{9000001 + i}"
         row[1] = "http://iedb.org/reference/99"
         row[2] = "33858848"
         row[5] = pep
         row[90] = method
+        row[91] = response
         row[92] = units
         row[94] = "Positive"
         row[95] = ineq
@@ -261,9 +292,10 @@ def test_scan_preserves_quantitative_binding_fields(tmp_path):
     _write_quant_iedb_csv(src, rows)
 
     df = scan(peptides=None, iedb_path=str(src), cedar_path=None)
-    assert len(df) == 3
+    assert len(df) == 4
     for col in (
         "assay_method",
+        "response_measured",
         "measurement_units",
         "measurement_inequality",
         "quantitative_measurement",
@@ -272,18 +304,26 @@ def test_scan_preserves_quantitative_binding_fields(tmp_path):
         assert col in df.columns, f"missing column: {col}"
 
     quant = df[df["peptide"] == "QUANTROWAB"].iloc[0]
-    assert quant["assay_method"] == "purified MHC/direct/fluorescence"
+    assert quant["assay_method"] == "purified MHC/competitive/fluorescence"
+    assert quant["response_measured"] == "half maximal inhibitory concentration (IC50)"
     assert quant["measurement_units"] == "nM"
     assert quant["measurement_inequality"] == "="
     assert quant["quantitative_measurement"] == "12.5"
     assert quant["quantitative_value"] == pytest.approx(12.5)
 
-    bounded = df[df["peptide"] == "QUANTROWCD"].iloc[0]
-    assert bounded["measurement_inequality"] == "<"
-    assert bounded["quantitative_value"] == pytest.approx(500.0)
+    kd = df[df["peptide"] == "QUANTROWCD"].iloc[0]
+    assert kd["measurement_inequality"] == "<"
+    assert kd["response_measured"] == "dissociation constant KD"
+    assert kd["quantitative_value"] == pytest.approx(500.0)
+
+    kinetic = df[df["peptide"] == "KINETICAB"].iloc[0]
+    assert kinetic["response_measured"] == "half life"
+    assert kinetic["measurement_units"] == "min"
+    assert kinetic["quantitative_value"] == pytest.approx(42.0)
 
     qual_only = df[df["peptide"] == "QUALONLYAB"].iloc[0]
     assert qual_only["assay_method"] == "purified MHC/direct"
+    assert qual_only["response_measured"] == "qualitative binding"
     assert qual_only["measurement_units"] == ""
     # Empty Quantitative measurement → NaN float in quantitative_value.
     import math

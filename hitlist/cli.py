@@ -589,6 +589,18 @@ def main() -> None:
         ),
     )
     p_bind.add_argument(
+        "--response-measured",
+        action="append",
+        help=(
+            "Filter to rows whose IEDB/CEDAR Response-measured matches "
+            "(case-insensitive exact match).  Examples: 'qualitative "
+            "binding', 'dissociation constant KD', 'half life', 'ligand "
+            "presentation'.  Combine with --assay-method and "
+            "--measurement-units to disambiguate IC50 vs Kd vs t_half. "
+            "Repeatable."
+        ),
+    )
+    p_bind.add_argument(
         "--measurement-units",
         action="append",
         help=(
@@ -1093,6 +1105,7 @@ def _export(args: argparse.Namespace) -> None:
                 gene_id=getattr(args, "gene_id", None),
                 serotype=getattr(args, "serotype", None),
                 assay_method=getattr(args, "assay_method", None),
+                response_measured=getattr(args, "response_measured", None),
                 measurement_units=getattr(args, "measurement_units", None),
                 quantitative_value_min=getattr(args, "quantitative_value_min", None),
                 quantitative_value_max=getattr(args, "quantitative_value_max", None),

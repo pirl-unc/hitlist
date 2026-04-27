@@ -581,6 +581,7 @@ def generate_binding_table(
     length_max: int | None = None,
     source: str | None = None,
     assay_method: str | list[str] | None = None,
+    response_measured: str | list[str] | None = None,
     measurement_units: str | list[str] | None = None,
     quantitative_value_max: float | None = None,
     quantitative_value_min: float | None = None,
@@ -604,7 +605,40 @@ def generate_binding_table(
     assay_method
         Filter to one or more IEDB/CEDAR assay methods (e.g.
         ``"purified MHC/direct/fluorescence"``, ``"cellular MHC/direct"``).
-        Exact substring match; case-insensitive.
+        Case-insensitive **substring** match (matches "purified" against
+        "purified MHC/direct/fluorescence").
+    response_measured
+        Filter to one or more IEDB/CEDAR ``Assay | Response measured``
+        values.  Case-insensitive **exact** match — unlike
+        ``assay_method`` (which is substring), Response-measured values
+        are short and standardized so exact matching catches typos.
+
+        The actual IEDB vocabulary as of this build (descending row
+        count) is::
+
+            'ligand presentation'                          (MS elution)
+            'MHC binding'                                  (broad bucket)
+            'qualitative binding'
+            'dissociation constant KD (~IC50)'
+            'half maximal inhibitory concentration (IC50)'
+            'dissociation constant KD (~EC50)'
+            'dissociation constant KD'
+            'half life'
+            'half maximal effective concentration (EC50)'
+            '3D structure'
+            '50% dissociation temperature'
+            'off rate' / 'on rate' / 'association constant KA'
+
+        Inspect ``df['response_measured'].value_counts()`` on a real
+        build before relying on a specific string — IEDB curators
+        occasionally introduce new values.
+
+        Combine ``response_measured`` with ``assay_method`` and
+        ``measurement_units`` to identify a measurement type — e.g.
+        ``"half maximal inhibitory concentration (IC50)"`` + ``"nM"``
+        is an IC50; ``"dissociation constant KD"`` + ``"nM"`` is a Kd;
+        ``"half life"`` + ``"min"`` is t_half; ``"50% dissociation
+        temperature"`` + ``"celsius"`` is a Tm.
     measurement_units
         Filter to rows reporting in these units (e.g. ``"nM"``,
         ``"log10(IC50)"``).  Useful before applying a numeric
@@ -659,13 +693,17 @@ def generate_binding_table(
             )
         ]
 
-    # Quantitative-assay filters (issue #148).  Applied in-memory after
-    # the parquet load because these columns are free-text / sparse and
-    # don't benefit from pyarrow push-down filters.
+    # Quantitative-assay filters (issue #148, issue #135).  Applied
+    # in-memory after the parquet load because these columns are free-text /
+    # sparse and don't benefit from pyarrow push-down filters.
     if assay_method is not None and "assay_method" in df.columns:
         wanted = {m.casefold() for m in _to_list(assay_method)}
         method_col = df["assay_method"].fillna("").astype(str).str.casefold()
         df = df[method_col.apply(lambda m: any(w in m for w in wanted))]
+    if response_measured is not None and "response_measured" in df.columns:
+        wanted_responses = {r.casefold() for r in _to_list(response_measured)}
+        response_col = df["response_measured"].fillna("").astype(str).str.casefold()
+        df = df[response_col.isin(wanted_responses)]
     if measurement_units is not None and "measurement_units" in df.columns:
         wanted_units = {u.casefold() for u in _to_list(measurement_units)}
         units_col = df["measurement_units"].fillna("").astype(str).str.casefold()
