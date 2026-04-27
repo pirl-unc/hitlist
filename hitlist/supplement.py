@@ -188,8 +188,9 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
                 # Supplementary rows are MS-only (is_binding_assay=False)
                 # and don't carry quantitative-binding-assay values, but
                 # the columns are kept so observations.parquet stays
-                # schema-compatible with scanner output (issue #148).
+                # schema-compatible with scanner output (issue #148, #135).
                 "assay_method": "",
+                "response_measured": "",
                 "measurement_units": "",
                 "measurement_inequality": "",
                 "quantitative_measurement": "",

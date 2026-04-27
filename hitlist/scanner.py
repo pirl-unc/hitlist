@@ -59,6 +59,7 @@ _COLUMN_NAMES: dict[str, list[str]] = {
     "antigen_processing_comments": ["Antigen Processing Comments"],
     "qualitative_measurement": ["Qualitative Measurement"],
     "assay_method": ["Assay | Method", "Method"],
+    "response_measured": ["Assay | Response measured", "Response measured"],
     "measurement_units": ["Assay | Units", "Units"],
     "measurement_inequality": ["Assay | Measurement Inequality", "Measurement Inequality"],
     "quantitative_measurement": [
@@ -90,6 +91,7 @@ _FALLBACK_INDICES: dict[str, int] = {
     "antigen_processing_comments": 88,
     "qualitative_measurement": 94,
     "assay_method": 90,
+    "response_measured": 91,
     "measurement_units": 92,
     "measurement_inequality": 95,
     "quantitative_measurement": 96,
@@ -402,13 +404,19 @@ def scan(
                 "assay_comments": _safe_col(row, c["assay_comments"]),
                 "qualitative_measurement": _safe_col(row, c["qualitative_measurement"]),
                 # Structured quantitative binding-assay fields from IEDB /
-                # CEDAR (issue #148).  The raw string is preserved so
-                # consumers can audit parsing; ``quantitative_value`` is the
+                # CEDAR (issue #148, issue #135).  The raw string is preserved
+                # so consumers can audit parsing; ``quantitative_value`` is the
                 # float cast (NaN when the cell is empty / non-numeric) for
                 # downstream filtering.  ``measurement_inequality`` ("", "<",
                 # ">", "=", "<=", ">=") paired with ``quantitative_value``
                 # distinguishes exact IC50 measurements from bounded ones.
+                # ``response_measured`` (e.g. "qualitative binding",
+                # "half life", "ligand presentation", "dissociation constant
+                # KD") is the readout type — combined with ``assay_method``
+                # and ``measurement_units`` it tells consumers whether a
+                # numeric value is IC50 vs Kd vs t_half vs Tm.
                 "assay_method": _safe_col(row, c["assay_method"]),
+                "response_measured": _safe_col(row, c["response_measured"]),
                 "measurement_units": _safe_col(row, c["measurement_units"]),
                 "measurement_inequality": _safe_col(row, c["measurement_inequality"]),
                 "quantitative_measurement": _safe_col(row, c["quantitative_measurement"]),
