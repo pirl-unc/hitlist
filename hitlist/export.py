@@ -605,17 +605,40 @@ def generate_binding_table(
     assay_method
         Filter to one or more IEDB/CEDAR assay methods (e.g.
         ``"purified MHC/direct/fluorescence"``, ``"cellular MHC/direct"``).
-        Exact substring match; case-insensitive.
+        Case-insensitive **substring** match (matches "purified" against
+        "purified MHC/direct/fluorescence").
     response_measured
         Filter to one or more IEDB/CEDAR ``Assay | Response measured``
-        values (e.g. ``"qualitative binding"``, ``"dissociation constant
-        KD"``, ``"half life"``, ``"ligand presentation"``).  Combine with
-        ``assay_method`` and ``measurement_units`` to disambiguate which
-        readout a quantitative value represents — e.g. ``"qualitative
-        binding"`` + ``"purified MHC/competitive/fluorescence"`` + ``"nM"``
-        means an IC50, while ``"dissociation constant KD"`` + ``"purified
-        MHC/direct/fluorescence"`` + ``"nM"`` means a Kd.  Exact match
-        (case-insensitive).
+        values.  Case-insensitive **exact** match — unlike
+        ``assay_method`` (which is substring), Response-measured values
+        are short and standardized so exact matching catches typos.
+
+        The actual IEDB vocabulary as of this build (descending row
+        count) is::
+
+            'ligand presentation'                          (MS elution)
+            'MHC binding'                                  (broad bucket)
+            'qualitative binding'
+            'dissociation constant KD (~IC50)'
+            'half maximal inhibitory concentration (IC50)'
+            'dissociation constant KD (~EC50)'
+            'dissociation constant KD'
+            'half life'
+            'half maximal effective concentration (EC50)'
+            '3D structure'
+            '50% dissociation temperature'
+            'off rate' / 'on rate' / 'association constant KA'
+
+        Inspect ``df['response_measured'].value_counts()`` on a real
+        build before relying on a specific string — IEDB curators
+        occasionally introduce new values.
+
+        Combine ``response_measured`` with ``assay_method`` and
+        ``measurement_units`` to identify a measurement type — e.g.
+        ``"half maximal inhibitory concentration (IC50)"`` + ``"nM"``
+        is an IC50; ``"dissociation constant KD"`` + ``"nM"`` is a Kd;
+        ``"half life"`` + ``"min"`` is t_half; ``"50% dissociation
+        temperature"`` + ``"celsius"`` is a Tm.
     measurement_units
         Filter to rows reporting in these units (e.g. ``"nM"``,
         ``"log10(IC50)"``).  Useful before applying a numeric

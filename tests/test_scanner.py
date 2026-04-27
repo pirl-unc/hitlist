@@ -240,12 +240,17 @@ def test_scan_preserves_quantitative_binding_fields(tmp_path):
     rows: list[list] = []
     # IC50 (competitive binding), Kd (direct dissociation), t_half (kinetic),
     # plus a qualitative-only row.  Each carries a different ``Response measured``
-    # so consumers can stratify by readout type.
+    # so consumers can stratify by readout type.  The Response-measured strings
+    # used here are the canonical IEDB values (``df['response_measured']
+    # .value_counts()`` shows ``"half maximal inhibitory concentration (IC50)"``,
+    # ``"dissociation constant KD"``, ``"half life"``, ``"qualitative binding"``,
+    # ``"ligand presentation"`` etc.) so consumers can reproduce these tests
+    # against a real build.
     for i, (method, response, units, ineq, q, pep) in enumerate(
         [
             (
                 "purified MHC/competitive/fluorescence",
-                "qualitative binding",
+                "half maximal inhibitory concentration (IC50)",
                 "nM",
                 "=",
                 "12.5",
@@ -300,7 +305,7 @@ def test_scan_preserves_quantitative_binding_fields(tmp_path):
 
     quant = df[df["peptide"] == "QUANTROWAB"].iloc[0]
     assert quant["assay_method"] == "purified MHC/competitive/fluorescence"
-    assert quant["response_measured"] == "qualitative binding"
+    assert quant["response_measured"] == "half maximal inhibitory concentration (IC50)"
     assert quant["measurement_units"] == "nM"
     assert quant["measurement_inequality"] == "="
     assert quant["quantitative_measurement"] == "12.5"
