@@ -1421,7 +1421,7 @@ def test_cli_export_training_with_peptide_origin_flag_threads_through(monkeypatc
         serotype=None,
         length_min=None,
         length_max=None,
-        explode_mappings=False,
+        map_source_proteins=False,
         with_peptide_origin=True,
         proteome_release=114,
     )

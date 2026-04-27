@@ -1711,7 +1711,7 @@ def test_generate_training_table_explodes_mappings(tmp_path, monkeypatch):
     mappings_path = tmp_path / "peptide_mappings.parquet"
     mappings_data.to_parquet(mappings_path, index=False)
 
-    df = generate_training_table(include_evidence="ms", explode_mappings=True)
+    df = generate_training_table(include_evidence="ms", map_source_proteins=True)
     assert len(df) == 3
     assert {"protein_id", "position", "n_flank", "c_flank"} <= set(df.columns)
     assert df["evidence_row_id"].nunique() == 2
@@ -1722,6 +1722,17 @@ def test_generate_training_table_explodes_mappings(tmp_path, monkeypatch):
     aa = df[df["peptide"] == "AAAAAAAAA"]
     assert set(aa["protein_id"]) == {"P1", "P2"}
     assert set(aa["n_flank"]) == {"NNNNN", "QQQQQ"}
+
+    # Deprecated alias still works but emits DeprecationWarning.  Same input
+    # parquets, same expected expansion.
+    import warnings
+
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        df_alias = generate_training_table(include_evidence="ms", explode_mappings=True)
+    assert any(issubclass(rec.category, DeprecationWarning) for rec in w)
+    assert len(df_alias) == len(df)
+    assert {"protein_id", "n_flank", "c_flank"} <= set(df_alias.columns)
 
 
 def test_generate_training_table_exploded_mappings_respect_gene_filter(tmp_path, monkeypatch):
@@ -1777,7 +1788,7 @@ def test_generate_training_table_exploded_mappings_respect_gene_filter(tmp_path,
     df = generate_training_table(
         include_evidence="ms",
         gene_name="PRAME",
-        explode_mappings=True,
+        map_source_proteins=True,
     )
     assert len(df) == 1
     assert df.iloc[0]["gene_name"] == "PRAME"
@@ -1886,7 +1897,7 @@ def test_export_training_cli_helper(monkeypatch):
         serotype=["A2"],
         length_min=8,
         length_max=11,
-        explode_mappings=True,
+        map_source_proteins=True,
         with_peptide_origin=False,
         proteome_release=112,
     )
@@ -1912,7 +1923,7 @@ def test_export_training_cli_helper(monkeypatch):
         "serotype": ["A2"],
         "length_min": 8,
         "length_max": 11,
-        "explode_mappings": True,
+        "map_source_proteins": True,
         "with_peptide_origin": False,
         "proteome_release": 112,
     }

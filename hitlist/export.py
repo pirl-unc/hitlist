@@ -1226,11 +1226,12 @@ def generate_training_table(
     serotype: str | list[str] | None = None,
     length_min: int | None = None,
     length_max: int | None = None,
-    explode_mappings: bool = False,
+    map_source_proteins: bool = False,
     with_peptide_origin: bool = False,
     cancer_type_backend=None,
     proteome_release: int = 112,
     columns: list[str] | None = None,
+    explode_mappings: bool | None = None,
 ) -> pd.DataFrame:
     """Export a unified pMHC training table.
 
@@ -1241,9 +1242,16 @@ def generate_training_table(
     - ``peptide_mappings.parquet``: long-form peptide→protein mappings
 
     This function composes those indexes into one downstream-facing export.
-    Compact mode preserves one row per evidence row. ``explode_mappings=True``
-    expands the export to one row per ``(evidence row, peptide mapping)``,
-    which is suitable for flank-aware model pipelines such as Presto.
+    Compact mode preserves one row per evidence row. ``map_source_proteins=True``
+    expands the export to one row per ``(evidence row, source-protein mapping)``,
+    adding ``protein_id`` / ``gene_name`` / ``gene_id`` / ``transcript_id`` /
+    ``position`` / ``n_flank`` / ``c_flank`` from ``peptide_mappings.parquet``.
+    Suitable for flank-aware model pipelines such as Presto.
+
+    .. deprecated:: 1.24.1
+       The ``explode_mappings`` kwarg is the previous name for
+       ``map_source_proteins`` and emits a ``DeprecationWarning``.  Will
+       be removed in 2.0.
 
     When ``with_peptide_origin=True`` every MS row is additionally
     enriched with a per-sample expression anchor and a peptide-origin
@@ -1263,6 +1271,16 @@ def generate_training_table(
        materialized. Set ``proteome_release`` to a release you have
        already built observations against to avoid a surprise download.
     """
+    if explode_mappings is not None:
+        import warnings
+
+        warnings.warn(
+            "explode_mappings= is deprecated; use map_source_proteins= instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        map_source_proteins = bool(explode_mappings) or map_source_proteins
+
     mode = include_evidence.strip().lower()
     if mode not in {"ms", "binding", "both"}:
         raise ValueError("include_evidence must be one of: ms, binding, both")
@@ -1310,7 +1328,7 @@ def generate_training_table(
 
     result = _apply_training_defaults(result)
 
-    if explode_mappings:
+    if map_source_proteins:
         mappings = _load_training_mappings_for_peptides(
             result.get("peptide", pd.Series(dtype=str)),
             gene_name=sorted(resolved_gene_names) or None,
