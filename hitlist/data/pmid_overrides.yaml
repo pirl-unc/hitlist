@@ -29,6 +29,13 @@
 #   ms_samples       - per-sample-type enumeration of what was profiled
 #                      by mass spectrometry and under what conditions
 #   mhc_class on ms_samples: "I", "II", or "I+II" for easy filtering
+#   aliases          - free-form dict for citation provenance / cross-references
+#                      (e.g. withdrawn_pmid, withdrawn_doi, corrected_doi,
+#                      hlapollo_dataset_name).  Use when the canonical PMID
+#                      does not match how the study is cited elsewhere — for
+#                      retractions, republications, or HLApollo / SHERPA
+#                      benchmark dataset names.  Keys are arbitrary strings
+#                      keyed by the *external* convention; values are scalars.
 #
 # MS acquisition metadata (two-level inheritance):
 #   These fields may appear at the PMID level (study-wide default) or on
@@ -2185,6 +2192,16 @@
       10 newly generated immunopeptidomes + reanalysis of PMID 27841757 (Pearson 2016 B-LCLs). New data
       in PRIDE (PXD005231). TILs expanded from melanoma with high IL-2 (6000 IU/mL) 3-5 weeks then rapid
       expansion with irradiated feeders + OKT3 + IL-2.
+
+      IEDB tags every row of this study with Culture Condition "Cell Line / Clone" (NOT the EBV-LCL
+      variant) and only carries Source Tissue + Cell Name to distinguish arms. Without the rules below,
+      the 6 EBV-LCLs would default to cancer/cell_line. Issue #131.
+
+      Caveat: IEDB collapses the 6 donor B-LCLs (CD165, CM467, GD149, MD155, PD42, RA957) and the
+      2 healthy-donor leukapheresis samples (Apher1, Apher6) into a single Source Tissue=Blood +
+      Cell Name=B cell pool, with no per-row distinguisher. We classify the whole pool as ebv_lcl
+      because it dominates and ebv_lcl is non-cancer (closer to truth than cancer/cell_line for the
+      apheresis fraction).  An ms-sample-aware fix would need supplement-level peptide ingestion.
     hla_alleles:
       CD165:
         - "HLA-A*02:05"
@@ -2326,6 +2343,20 @@
         mhc_class: I
         mhc: "HLA-A*02:01 HLA-A*03:01 HLA-B*07:02 HLA-C*07:02"
         classification: healthy
+    rules:
+      - condition:
+          Source Tissue: Blood
+          Cell Name: B cell
+        override: ebv_lcl
+        reason: >
+          6 EBV-transformed B-LCLs (and 2 leukapheresis controls, indistinguishable in IEDB) — without
+          this rule they default to cancer/cell_line because IEDB tags Culture Condition as the generic
+          "Cell Line / Clone" rather than the EBV-LCL variant.  Issue #131.
+      - condition:
+          Source Tissue: Skin
+          Cell Name: Lymphocyte
+        override: cancer_patient
+        reason: TILs expanded from melanoma metastases (TIL1, TIL3) — explicitly cancer-derived.
   - pmid: 27869121
     study_label: Bassani-Sternberg 2016 — melanoma neoepitope discovery
     title: Direct identification of clinically relevant neoepitopes presented on native human melanoma tissue by mass spectrometry
@@ -4651,6 +4682,35 @@
     study_label: "Loffler 2018 — CRC + matched normal colon"
     title: "Mapping the HLA Ligandome of Colorectal Cancer Reveals an Imprint of Malignant Cell Transformation"
     override:
+    note: >
+      Source paper: 30 CRC tumor (HLA-I) + 19 (HLA-II), 35 matched non-malignant colon (HLA-I) +
+      20 (HLA-II).  IEDB lumps every row under Disease="colonic benign neoplasm",
+      Process Type="Occurrence of cancer", Source Tissue="Gastrointestinal Tract" — there is no
+      structured per-row arm provenance.  The only per-row signal is the free-text Assay Comments
+      column ("eluted from colorectal carcinoma (CRC) tissue" vs "eluted from nonmalignant colon (NMC)
+      tissue"), so the rules below match on substring of Assay Comments.  Issue #128.
+
+      Caveat: ~183 IEDB rows carry combined-arm provenance ("eluted from CRC and corresponding NMC
+      tissue"). We classify those as cancer_patient because the typical reading is that the peptide
+      was detected in tumor (and additionally in matched normal); peptides that only appear in
+      matched normal will already be captured by the NMC-only rows for the same peptide *when present*.
+      For the small minority of peptides reported only via combined-arm rows (no separate NMC row in
+      IEDB), the adjacent signal is lost in this build.
+    rules:
+      - condition:
+          Assay Comments: "eluted from colorectal carcinoma (CRC) tissue."
+        override: cancer_patient
+        reason: CRC tumor arm — per-row provenance carried in Assay Comments only.
+      - condition:
+          Assay Comments: "and corresponding nonmalignant colon (NMC) tissue"
+        override: cancer_patient
+        reason: >
+          Combined-arm rows ("eluted from CRC and corresponding NMC tissue") — peptide present in
+          tumor and the matched-normal counterpart is captured by NMC-only rows.
+      - condition:
+          Assay Comments: "eluted from nonmalignant colon (NMC) tissue."
+        override: adjacent
+        reason: Matched non-malignant colon mucosa from CRC patients — adjacent normal.
     ms_samples:
       - sample_label: "CRC tumor tissue"
         condition: "unperturbed"
@@ -4660,11 +4720,6 @@
         condition: "unperturbed"
         mhc_class: "I+II"
         classification: adjacent
-    rules:
-      - condition:
-          Disease: "colonic benign neoplasm"
-        override: adjacent
-        reason: "Matched normal colon from cancer patient"
 
   - pmid: 34185709
     study_label: "Hirama 2021 — CRC + matched normal colon"
@@ -5263,9 +5318,27 @@
     study_label: "Rozanov 2018 — 20 breast cancer cell lines"
     title: "MHC class I loaded ligands from breast cancer cell lines: A potential HLA-I-typed antigen collection"
     override: cell_line
+    note: >
+      Source paper: 20 breast cancer cell lines, ~3,196 eluted peptides (~2,740 unique). Source data
+      PXD006406. Issue #130.
+
+      Caveat: ~39 of the IEDB rows tagged with this PMID carry non-breast cell names (e.g. MeWo
+      melanoma, Daudi lymphoblast) with single-row counts each. Their Assay Comments field reads
+      "Eluted peptide sequences were analyzed for the presence of antigenic mutations, suggesting the
+      elution of a neo-epitope." — these are IEDB-curator cross-references where the SAME peptide is
+      reported as also presented by other cell lines from other studies, not actual MS-elution
+      evidence from those non-breast lines for THIS PMID.  All rows still classify as cell_line / cancer
+      (which is the right answer because the peptides were genuinely eluted from breast cancer
+      cell lines), but readers should not interpret cell_name on those 39 rows as the source line.
+      A proper fix would require IEDB-side cleanup or a hitlist mechanism to override cell_name
+      from a PMID rule (out of scope for this audit).
     ms_samples:
-      - sample_label: "breast cancer cell lines"
+      - sample_label: "breast cancer cell lines (BCC panel)"
         n_samples: 20
+        source: >
+          HCC1187, HCC1395, HCC1419, HCC1428, HCC1500, HCC1569, HCC1806, HCC70, BT-549, CAMA1,
+          MCF-7/LY2, MCF12A, MDA-MB-231, MDA-MB-361, MDA-MB-468, SUM159PT, SUM185PE, T-47D,
+          UACC-812, CAL-120
         condition: "unperturbed"
         mhc_class: "I"
         mhc: "HLA class I"
@@ -5798,3 +5871,104 @@
     exclude_from_ms: true
     override:
     note: "Functional assay for EBV peptide binding to HLA-E, not IP-MS."
+
+  - pmid: 29093164
+    study_label: "Schuster 2017 — ovarian carcinoma immunopeptidome"
+    title: "The immunopeptidomic landscape of ovarian carcinomas"
+    override:
+    note: >
+      HLApollo benchmark study (HLApollo Sup. Table 2, dataset name "Schuster_ovarian_2017").
+      Source paper: 42 epithelial ovarian cancer (EOC) tissues for HLA-I and 30 for HLA-II,
+      plus matched benign / non-malignant ovarian comparator tissues. 34,177 unique HLA-I
+      peptides + 17,334 HLA-II peptides. Source data PXD007635, matched RNA-seq PRJNA398141.
+      Issue #129.
+
+      IEDB exposes 1,011 rows for this PMID:
+        - 862 rows tagged Process Type="Occurrence of cancer", Disease="ovarian cancer",
+          Source Tissue="Ovary"  → ovarian carcinoma arm.
+        - 149 rows tagged Process Type="No immunization", Disease="" (empty),
+          Source Tissue="Other" → matched benign comparator arm.  Without the rule below
+          these would default to healthy_donor=True even though they are matched-normal
+          tissue from cancer patients (paper Methods describe them as benign /
+          non-malignant comparator tissue, not healthy-donor controls).
+    ip_antibody: W6/32
+    ms_samples:
+      - sample_label: "ovarian carcinoma tissue (class I)"
+        n_samples: 42
+        source: "primary epithelial ovarian carcinoma resections"
+        condition: "unperturbed"
+        mhc_class: "I"
+        classification: cancer
+        mhc: "HLA class I"
+      - sample_label: "ovarian carcinoma tissue (class II)"
+        n_samples: 30
+        source: "primary epithelial ovarian carcinoma resections (subset of class-I cohort)"
+        condition: "unperturbed"
+        mhc_class: "II"
+        classification: cancer
+        mhc: "HLA class II"
+      - sample_label: "matched benign ovarian comparator tissue"
+        # n_samples not specified in the source paper — Methods describe these
+        # as benign / non-malignant comparator tissue from cancer patients
+        # without a separate cohort count.
+        condition: "unperturbed — matched non-malignant tissue from cancer patients"
+        mhc_class: "I+II"
+        classification: adjacent
+    rules:
+      - condition:
+          Process Type: "No immunization"
+          Disease: ""
+        override: adjacent
+        reason: >
+          Matched non-malignant ovarian comparator from cancer patients — not healthy-donor
+          tissue.  Within this PMID, "No immunization" + empty Disease distinguishes the
+          benign comparator arm from the "Occurrence of cancer" / "ovarian cancer" tumor arm.
+
+  - pmid: 36796642
+    study_label: "Pyke / SHERPA 2023 — large-scale immunopeptidome (corrected republication)"
+    title: "Precision Neoantigen Discovery Using Large-Scale Immunopeptidomes and Composite Modeling of MHC Peptide Presentation"
+    mono_allelic_method: "K562 mono-allelic transfection (W6/32)"
+    note: >
+      HLApollo Sup. Table 2 dataset name "personalis_pyke_mhcI_2021" was originally cited as
+      PMID 34126241 (the 2021 MCP article).  That article was later WITHDRAWN by the journal
+      and replaced with this 2023 republication (PMID 36796642, doi:10.1016/j.mcpro.2023.100506).
+      Both PMIDs describe the same underlying immunopeptidomics dataset; we record the
+      corrected publication as the canonical PMID and preserve the withdrawn citation
+      provenance here.  Issue #132.
+
+      Underlying study-generated immunopeptidomics:
+        - 25 mono-allelic K562 transfectants spanning frequent HLA-I alleles
+        - 12 lung and colorectal tumor tissue samples (multi-allelic validation cohort)
+
+      Caveat: the 2023 paper reports much larger model-training totals (~2.15M peptides
+      across 167 alleles), but those totals include public immunopeptidomics + binding
+      data merged in for SHERPA model training.  Per-study curation here covers only the
+      study-generated 25 mono-allelic + 12 tumor-tissue peptides.
+
+      NOT IN IEDB under either PMID at the time of curation (verified 2026-04-26).  Source
+      MS data is in PRIDE PXD023064.  This entry exists for citation provenance and study
+      metadata; ingesting peptides would require a supplement-based pipeline.
+    hla_alleles:
+      class_i_monoallelic_k562: "25 K562 transfectants spanning common HLA-A/B/C alleles"
+      class_i_tumor_tissue: "12 lung and colorectal tumor tissues, multi-allelic"
+    ip_antibody: W6/32
+    ms_samples:
+      - sample_label: "K562 mono-allelic transfectants (HLA-I)"
+        n_samples: 25
+        source: "K562 cells transfected with single HLA-A/B/C alleles"
+        condition: "unperturbed — mono-allelic"
+        mhc_class: "I"
+        mhc: "HLA class I"
+        classification: cell_line
+      - sample_label: "lung and colorectal tumor tissue (HLA-I, multi-allelic)"
+        n_samples: 12
+        source: "primary lung and colorectal tumor resections"
+        condition: "unperturbed"
+        mhc_class: "I"
+        mhc: "HLA class I"
+        classification: cancer
+    aliases:
+      withdrawn_pmid: 34126241
+      withdrawn_doi: "10.1016/j.mcpro.2021.100110"
+      corrected_doi: "10.1016/j.mcpro.2023.100506"
+      hlapollo_dataset_name: "personalis_pyke_mhcI_2021"

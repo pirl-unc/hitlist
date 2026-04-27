@@ -300,6 +300,216 @@ def test_healthy_override_conditional_rule():
     assert flags["src_cancer"] is False
 
 
+# ── PMID curation audits (issues #128 / #129 / #130 / #131) ───────────
+
+
+def test_pmid_28832583_blood_b_cell_classifies_as_ebv_lcl():
+    """Issue #131: IEDB tags Bassani-Sternberg 2017 EBV-LCL rows as
+    Culture Condition="Cell Line / Clone" (not the EBV-LCL variant), so a
+    PMID rule on Source Tissue=Blood + Cell Name=B cell is required to
+    classify them as ebv_lcl rather than cancer/cell_line."""
+    flags = classify_ms_row(
+        "No immunization",
+        "",
+        "Cell Line / Clone",
+        source_tissue="Blood",
+        cell_name="B cell",
+        pmid=28832583,
+    )
+    assert flags["src_ebv_lcl"] is True
+    assert flags["src_cancer"] is False
+    assert flags["src_cell_line"] is True
+
+
+def test_pmid_28832583_skin_lymphocyte_classifies_as_cancer():
+    """Issue #131: melanoma TIL rows (Source Tissue=Skin + Cell Name=Lymphocyte)
+    in Bassani-Sternberg 2017 should remain cancer-derived under the
+    cancer_patient override."""
+    flags = classify_ms_row(
+        "Occurrence of cancer",
+        "skin melanoma",
+        "Cell Line / Clone",
+        source_tissue="Skin",
+        cell_name="Lymphocyte",
+        pmid=28832583,
+    )
+    assert flags["src_cancer"] is True
+    assert flags["src_ebv_lcl"] is False
+
+
+def test_pmid_29789417_crc_arm_assay_comments():
+    """Issue #128: Löffler 2018 CRC paper — IEDB has no per-row structured
+    arm provenance; the only signal is Assay Comments substring. A row tagged
+    "eluted from colorectal carcinoma (CRC) tissue." must classify as cancer."""
+    flags = classify_ms_row(
+        "Occurrence of cancer",
+        "colonic benign neoplasm",
+        "Direct Ex Vivo",
+        source_tissue="Gastrointestinal Tract",
+        cell_name="Unknown/Unspecified",
+        pmid=29789417,
+        assay_comments="The epitope was eluted from colorectal carcinoma (CRC) tissue.",
+    )
+    assert flags["src_cancer"] is True
+    assert flags["src_adjacent_to_tumor"] is False
+
+
+def test_pmid_29789417_nmc_arm_assay_comments():
+    """Issue #128: Löffler 2018 — NMC-only rows must classify as adjacent."""
+    flags = classify_ms_row(
+        "Occurrence of cancer",
+        "colonic benign neoplasm",
+        "Direct Ex Vivo",
+        source_tissue="Gastrointestinal Tract",
+        cell_name="Unknown/Unspecified",
+        pmid=29789417,
+        assay_comments="The epitope was eluted from nonmalignant colon (NMC) tissue.",
+    )
+    assert flags["src_cancer"] is False
+    assert flags["src_adjacent_to_tumor"] is True
+
+
+def test_pmid_29789417_combined_arm_keeps_cancer_signal():
+    """Issue #128: combined "CRC and NMC" rows preserve the cancer signal —
+    NMC-only evidence is captured separately by NMC-only rows for the same
+    peptide."""
+    flags = classify_ms_row(
+        "Occurrence of cancer",
+        "colonic benign neoplasm",
+        "Direct Ex Vivo",
+        source_tissue="Gastrointestinal Tract",
+        cell_name="Unknown/Unspecified",
+        pmid=29789417,
+        assay_comments=(
+            "The epitope was eluted from colorectal carcinoma (CRC) and "
+            "corresponding nonmalignant colon (NMC) tissue."
+        ),
+    )
+    assert flags["src_cancer"] is True
+    assert flags["src_adjacent_to_tumor"] is False
+
+
+def test_pmid_29789417_combined_then_crc_restatement_classifies_as_cancer():
+    """Issue #128 rule-order: when IEDB concatenates the combined-arm
+    sentence with an explicit CRC-only restatement (3 rows in shipped data),
+    the trailing "(CRC) tissue." substring trips the CRC rule and the row
+    classifies as cancer.  Locks first-match-wins ordering: the CRC rule must
+    win over the combined-arm rule for these compound comments."""
+    flags = classify_ms_row(
+        "Occurrence of cancer",
+        "colonic benign neoplasm",
+        "Direct Ex Vivo",
+        source_tissue="Gastrointestinal Tract",
+        cell_name="Unknown/Unspecified",
+        pmid=29789417,
+        assay_comments=(
+            "The epitope was eluted from colorectal carcinoma (CRC) and "
+            "corresponding nonmalignant colon (NMC) tissue. "
+            "The epitope was eluted from colorectal carcinoma (CRC) tissue."
+        ),
+    )
+    assert flags["src_cancer"] is True
+    assert flags["src_adjacent_to_tumor"] is False
+
+
+def test_pmid_29789417_combined_then_nmc_restatement_classifies_as_cancer():
+    """Issue #128 rule-order + caveat: when the combined-arm sentence is
+    followed by an explicit NMC-only restatement (5 rows in shipped data),
+    the combined-arm rule fires first and the row classifies as cancer
+    even though the peptide also has explicit NMC-only evidence in its row.
+    The trade-off is documented in the PMID 29789417 note: peptides that
+    only appear in NMC will be captured separately by NMC-only rows when
+    such rows exist."""
+    flags = classify_ms_row(
+        "Occurrence of cancer",
+        "colonic benign neoplasm",
+        "Direct Ex Vivo",
+        source_tissue="Gastrointestinal Tract",
+        cell_name="Unknown/Unspecified",
+        pmid=29789417,
+        assay_comments=(
+            "The epitope was eluted from colorectal carcinoma (CRC) and "
+            "corresponding nonmalignant colon (NMC) tissue. "
+            "The epitope was eluted from nonmalignant colon (NMC) tissue."
+        ),
+    )
+    assert flags["src_cancer"] is True
+    assert flags["src_adjacent_to_tumor"] is False
+
+
+def test_pmid_29093164_ovarian_carcinoma_arm_classifies_as_cancer():
+    """Issue #129: Schuster 2017 ovarian carcinoma rows."""
+    flags = classify_ms_row(
+        "Occurrence of cancer",
+        "ovarian cancer",
+        "Direct Ex Vivo",
+        source_tissue="Ovary",
+        cell_name="Other",
+        pmid=29093164,
+    )
+    assert flags["src_cancer"] is True
+    assert flags["src_adjacent_to_tumor"] is False
+
+
+def test_pmid_29093164_benign_comparator_classifies_as_adjacent():
+    """Issue #129: matched benign ovarian comparator from cancer patients
+    must classify as adjacent, not healthy_tissue (default would make
+    No-immunization + empty disease + ex vivo into healthy_donor)."""
+    flags = classify_ms_row(
+        "No immunization",
+        "",
+        "Direct Ex Vivo",
+        source_tissue="Other",
+        cell_name="Other",
+        pmid=29093164,
+    )
+    assert flags["src_adjacent_to_tumor"] is True
+    assert flags["src_cancer"] is False
+    assert flags["src_healthy_tissue"] is False
+
+
+def test_pmid_29331515_breast_cancer_panel_remains_cell_line():
+    """Issue #130: Rozanov 2018 — every IEDB row for this PMID should
+    classify as cell_line / cancer regardless of which Cell Name string IEDB
+    has stamped on it (some rows carry non-breast cell names from
+    cross-reference annotations rather than actual MS-elution evidence)."""
+    flags = classify_ms_row(
+        "No immunization",
+        "",
+        "Cell Line / Clone",
+        source_tissue="Breast",
+        cell_name="HCC1187-Epithelial cell",
+        pmid=29331515,
+    )
+    assert flags["src_cell_line"] is True
+    assert flags["src_cancer"] is True
+    assert flags["src_ebv_lcl"] is False
+    # Same classification even when IEDB has tagged a non-breast cell name.
+    flags = classify_ms_row(
+        "No immunization",
+        "",
+        "Cell Line / Clone",
+        source_tissue="Skin",
+        cell_name="MeWo-Fibroblast",
+        pmid=29331515,
+    )
+    assert flags["src_cell_line"] is True
+    assert flags["src_cancer"] is True
+
+
+def test_pmid_36796642_sherpa_pyke_entry_present():
+    """Issue #132: SHERPA / Pyke study (HLApollo "personalis_pyke_mhcI_2021")
+    citation history. The withdrawn 2021 PMID 34126241 is recorded in the
+    aliases of the corrected 2023 PMID 36796642 entry."""
+    overrides = load_pmid_overrides()
+    assert 36796642 in overrides
+    entry = overrides[36796642]
+    assert "Pyke" in entry["study_label"] or "SHERPA" in entry["study_label"]
+    aliases = entry.get("aliases") or {}
+    assert aliases.get("withdrawn_pmid") == 34126241
+    assert aliases.get("hlapollo_dataset_name") == "personalis_pyke_mhcI_2021"
+
+
 # ── Allele resolution ──────────────────────────────────────────────────
 
 

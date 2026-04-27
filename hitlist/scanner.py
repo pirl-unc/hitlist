@@ -430,6 +430,7 @@ def scan(
                         pmid,
                         mhc_restriction=mhc_res,
                         submission_id=record.get("submission_id", ""),
+                        assay_comments=record.get("assay_comments", ""),
                     )
                 )
             else:
