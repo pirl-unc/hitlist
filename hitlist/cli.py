@@ -765,11 +765,16 @@ def main() -> None:
     p_training.add_argument("--length-min", type=int, help="Minimum peptide length (inclusive).")
     p_training.add_argument("--length-max", type=int, help="Maximum peptide length (inclusive).")
     p_training.add_argument(
+        "--map-source-proteins",
         "--explode-mappings",
+        dest="map_source_proteins",
         action="store_true",
         help=(
-            "Expand to one row per (evidence row, peptide mapping), adding "
-            "protein/position/flank columns for training pipelines such as Presto."
+            "Expand to one row per (evidence row, source-protein mapping), "
+            "adding protein_id / gene_name / gene_id / transcript_id / "
+            "position / n_flank / c_flank from peptide_mappings.parquet. "
+            "Suitable for flank-aware training pipelines such as Presto. "
+            "(--explode-mappings is a deprecated alias.)"
         ),
     )
     p_training.add_argument(
@@ -1073,7 +1078,7 @@ def _export_training(args: argparse.Namespace):
         serotype=getattr(args, "serotype", None),
         length_min=getattr(args, "length_min", None),
         length_max=getattr(args, "length_max", None),
-        explode_mappings=getattr(args, "explode_mappings", False),
+        map_source_proteins=getattr(args, "map_source_proteins", False),
         with_peptide_origin=getattr(args, "with_peptide_origin", False),
         proteome_release=getattr(args, "proteome_release", 112),
     )
