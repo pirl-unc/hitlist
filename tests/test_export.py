@@ -1446,6 +1446,106 @@ def test_generate_training_table_unifies_ms_and_binding(tmp_path, monkeypatch):
     assert (binding["sample_mhc"] == "").all()
 
 
+def test_generate_training_table_threads_allele_bag_filters(tmp_path, monkeypatch):
+    """Issue #136 + #137: bag columns survive concat and filters reach both
+    sides of the union (ms + binding).  Without this wiring, MIL-style
+    training filters (``provenance=["exact","sample_allele_match"]``) only
+    work via ``generate_observations_table`` / ``generate_binding_table``
+    and silently no-op on ``generate_training_table``.
+    """
+    import pandas as pd
+
+    from hitlist.export import generate_training_table
+
+    # MS fixture: 2 exact rows, 1 sample_allele_match (multi-allelic).
+    obs_data = pd.DataFrame(
+        {
+            "peptide": ["MS_EXACT1", "MS_EXACT2", "MS_BAG"],
+            "mhc_restriction": ["HLA-A*02:01", "HLA-A*02:01", "HLA-A*02:01"],
+            "mhc_class": ["I", "I", "I"],
+            "assay_iri": ["a:1", "a:2", "a:3"],
+            "reference_iri": ["iri:1", "iri:2", "iri:3"],
+            "pmid": pd.array([1, 2, 3], dtype="Int64"),
+            "source": ["iedb", "iedb", "iedb"],
+            "mhc_species": ["Homo sapiens"] * 3,
+            "is_monoallelic": [False, False, False],
+            "is_binding_assay": [False, False, False],
+            "qualitative_measurement": ["Positive"] * 3,
+            "mhc_allele_set": [
+                "HLA-A*02:01",
+                "HLA-A*02:01",
+                "HLA-A*02:01;HLA-B*07:02",
+            ],
+            "mhc_allele_provenance": ["exact", "exact", "sample_allele_match"],
+            "mhc_allele_bag_size": [1, 1, 2],
+        }
+    )
+    obs_path = tmp_path / "observations.parquet"
+    obs_data.to_parquet(obs_path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+
+    # Binding fixture: 3 exact rows + 1 sample_allele_match (matches the
+    # _make_quant_binding_fixture shape but inlined for clarity).
+    bd_data = pd.DataFrame(
+        {
+            "peptide": ["BD_EXACT", "BD_EXACT2", "BD_EXACT3", "BD_BAG"],
+            "mhc_restriction": ["HLA-A*02:01"] * 4,
+            "mhc_class": ["I"] * 4,
+            "reference_iri": ["b1", "b2", "b3", "b4"],
+            "pmid": pd.array([10, 11, 12, 13], dtype="Int64"),
+            "source": ["iedb"] * 4,
+            "mhc_species": ["Homo sapiens"] * 4,
+            "is_binding_assay": [True] * 4,
+            "qualitative_measurement": ["Positive"] * 4,
+            "mhc_allele_set": [
+                "HLA-A*02:01",
+                "HLA-A*02:01",
+                "HLA-A*02:01",
+                "HLA-A*02:01;HLA-B*07:02",
+            ],
+            "mhc_allele_provenance": [
+                "exact",
+                "exact",
+                "exact",
+                "sample_allele_match",
+            ],
+            "mhc_allele_bag_size": [1, 1, 1, 2],
+        }
+    )
+    bd_path = tmp_path / "binding.parquet"
+    bd_data.to_parquet(bd_path, index=False)
+    monkeypatch.setattr("hitlist.observations.binding_path", lambda: bd_path)
+
+    # No filter — all 7 rows survive and bag columns are present on both sides.
+    df = generate_training_table(include_evidence="both")
+    assert set(df["evidence_kind"]) == {"ms", "binding"}
+    for col in ("mhc_allele_set", "mhc_allele_provenance", "mhc_allele_bag_size"):
+        assert col in df.columns, f"bag column {col} dropped by training export"
+    assert df["mhc_allele_provenance"].notna().all()
+
+    # Strict point-label training: only "exact" rows from both sides.
+    df_exact = generate_training_table(include_evidence="both", mhc_allele_provenance="exact")
+    assert set(df_exact["peptide"]) == {
+        "MS_EXACT1",
+        "MS_EXACT2",
+        "BD_EXACT",
+        "BD_EXACT2",
+        "BD_EXACT3",
+    }
+
+    # MIL-friendly: exact + sample_allele_match.
+    df_mil = generate_training_table(
+        include_evidence="both",
+        mhc_allele_provenance=["exact", "sample_allele_match"],
+    )
+    assert len(df_mil) == 7  # all rows
+
+    # Bag-contains: rows whose mhc_allele_set lists HLA-B*07:02 (the two
+    # multi-allelic donor-typed rows, one ms + one binding).
+    df_b7 = generate_training_table(include_evidence="both", mhc_allele_in_bag="HLA-B*07:02")
+    assert set(df_b7["peptide"]) == {"MS_BAG", "BD_BAG"}
+
+
 def test_evidence_row_id_prefers_assay_iri_when_present(tmp_path, monkeypatch):
     """assay_iri is row-level in IEDB/CEDAR (Reference IRI is paper-level).
 
@@ -1777,6 +1877,8 @@ def test_export_training_cli_helper(monkeypatch):
         mono_allelic=True,
         min_allele_resolution="four_digit",
         mhc_allele=["HLA-A*02:01"],
+        mhc_allele_in_bag=["HLA-A*02:01"],
+        mhc_allele_provenance=["exact"],
         gene=["PRAME"],
         gene_name=["PRAME"],
         gene_id=["ENSG00000185686"],
@@ -1801,6 +1903,8 @@ def test_export_training_cli_helper(monkeypatch):
         "is_mono_allelic": True,
         "min_allele_resolution": "four_digit",
         "mhc_allele": ["HLA-A*02:01"],
+        "mhc_allele_in_bag": ["HLA-A*02:01"],
+        "mhc_allele_provenance": ["exact"],
         "gene": ["PRAME"],
         "gene_name": ["PRAME"],
         "gene_id": ["ENSG00000185686"],
