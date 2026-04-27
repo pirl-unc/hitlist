@@ -389,6 +389,54 @@ def test_pmid_29789417_combined_arm_keeps_cancer_signal():
     assert flags["src_adjacent_to_tumor"] is False
 
 
+def test_pmid_29789417_combined_then_crc_restatement_classifies_as_cancer():
+    """Issue #128 rule-order: when IEDB concatenates the combined-arm
+    sentence with an explicit CRC-only restatement (3 rows in shipped data),
+    the trailing "(CRC) tissue." substring trips the CRC rule and the row
+    classifies as cancer.  Locks first-match-wins ordering: the CRC rule must
+    win over the combined-arm rule for these compound comments."""
+    flags = classify_ms_row(
+        "Occurrence of cancer",
+        "colonic benign neoplasm",
+        "Direct Ex Vivo",
+        source_tissue="Gastrointestinal Tract",
+        cell_name="Unknown/Unspecified",
+        pmid=29789417,
+        assay_comments=(
+            "The epitope was eluted from colorectal carcinoma (CRC) and "
+            "corresponding nonmalignant colon (NMC) tissue. "
+            "The epitope was eluted from colorectal carcinoma (CRC) tissue."
+        ),
+    )
+    assert flags["src_cancer"] is True
+    assert flags["src_adjacent_to_tumor"] is False
+
+
+def test_pmid_29789417_combined_then_nmc_restatement_classifies_as_cancer():
+    """Issue #128 rule-order + caveat: when the combined-arm sentence is
+    followed by an explicit NMC-only restatement (5 rows in shipped data),
+    the combined-arm rule fires first and the row classifies as cancer
+    even though the peptide also has explicit NMC-only evidence in its row.
+    The trade-off is documented in the PMID 29789417 note: peptides that
+    only appear in NMC will be captured separately by NMC-only rows when
+    such rows exist."""
+    flags = classify_ms_row(
+        "Occurrence of cancer",
+        "colonic benign neoplasm",
+        "Direct Ex Vivo",
+        source_tissue="Gastrointestinal Tract",
+        cell_name="Unknown/Unspecified",
+        pmid=29789417,
+        assay_comments=(
+            "The epitope was eluted from colorectal carcinoma (CRC) and "
+            "corresponding nonmalignant colon (NMC) tissue. "
+            "The epitope was eluted from nonmalignant colon (NMC) tissue."
+        ),
+    )
+    assert flags["src_cancer"] is True
+    assert flags["src_adjacent_to_tumor"] is False
+
+
 def test_pmid_29093164_ovarian_carcinoma_arm_classifies_as_cancer():
     """Issue #129: Schuster 2017 ovarian carcinoma rows."""
     flags = classify_ms_row(

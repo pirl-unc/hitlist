@@ -29,6 +29,13 @@
 #   ms_samples       - per-sample-type enumeration of what was profiled
 #                      by mass spectrometry and under what conditions
 #   mhc_class on ms_samples: "I", "II", or "I+II" for easy filtering
+#   aliases          - free-form dict for citation provenance / cross-references
+#                      (e.g. withdrawn_pmid, withdrawn_doi, corrected_doi,
+#                      hlapollo_dataset_name).  Use when the canonical PMID
+#                      does not match how the study is cited elsewhere — for
+#                      retractions, republications, or HLApollo / SHERPA
+#                      benchmark dataset names.  Keys are arbitrary strings
+#                      keyed by the *external* convention; values are scalars.
 #
 # MS acquisition metadata (two-level inheritance):
 #   These fields may appear at the PMID level (study-wide default) or on
@@ -4686,7 +4693,9 @@
       Caveat: ~183 IEDB rows carry combined-arm provenance ("eluted from CRC and corresponding NMC
       tissue"). We classify those as cancer_patient because the typical reading is that the peptide
       was detected in tumor (and additionally in matched normal); peptides that only appear in
-      matched normal will already be captured by the NMC-only rows.
+      matched normal will already be captured by the NMC-only rows for the same peptide *when present*.
+      For the small minority of peptides reported only via combined-arm rows (no separate NMC row in
+      IEDB), the adjacent signal is lost in this build.
     rules:
       - condition:
           Assay Comments: "eluted from colorectal carcinoma (CRC) tissue."
@@ -5899,6 +5908,9 @@
         classification: cancer
         mhc: "HLA class II"
       - sample_label: "matched benign ovarian comparator tissue"
+        # n_samples not specified in the source paper — Methods describe these
+        # as benign / non-malignant comparator tissue from cancer patients
+        # without a separate cohort count.
         condition: "unperturbed — matched non-malignant tissue from cancer patients"
         mhc_class: "I+II"
         classification: adjacent
