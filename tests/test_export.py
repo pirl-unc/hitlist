@@ -1243,7 +1243,7 @@ def test_generate_binding_table_mhc_and_serotype_filters(tmp_path, monkeypatch):
 
 
 def _make_quant_binding_fixture(tmp_path):
-    """Binding fixture with the new quantitative columns populated (#148)."""
+    """Binding fixture with the new quantitative columns populated (#148, #135)."""
     import pandas as pd
 
     bd = pd.DataFrame(
@@ -1267,6 +1267,12 @@ def _make_quant_binding_fixture(tmp_path):
                 "purified MHC/direct/fluorescence",
                 "purified MHC/direct/fluorescence",
                 "cellular MHC/direct",
+            ],
+            "response_measured": [
+                "qualitative binding",
+                "qualitative binding",
+                "qualitative binding",
+                "half life",
             ],
             "measurement_units": ["nM", "nM", "log10(nM)", ""],
             "measurement_inequality": ["=", "=", "=", ""],
@@ -1319,6 +1325,26 @@ def test_generate_binding_table_assay_method_substring_match(tmp_path, monkeypat
 
     df = generate_binding_table(assay_method="cellular")
     assert set(df["peptide"]) == {"QUALONLY"}
+
+
+def test_generate_binding_table_response_measured_filter(tmp_path, monkeypatch):
+    """Issue #135: ``response_measured`` filter discriminates IC50/Kd
+    binding rows from kinetic / stability rows even when other axes
+    (assay_method, units) overlap."""
+    from hitlist.export import generate_binding_table
+
+    bd_path = _make_quant_binding_fixture(tmp_path)
+    monkeypatch.setattr("hitlist.observations.binding_path", lambda: bd_path)
+
+    binders = generate_binding_table(response_measured="qualitative binding")
+    assert set(binders["peptide"]) == {"LOWIC50", "HIGHIC50", "LOGIC50"}
+
+    kinetics = generate_binding_table(response_measured="half life")
+    assert set(kinetics["peptide"]) == {"QUALONLY"}
+
+    # Multi-value (case-insensitive) filter.
+    multi = generate_binding_table(response_measured=["Qualitative Binding", "HALF LIFE"])
+    assert len(multi) == 4
 
 
 def test_generate_binding_table_units_filter_prevents_mixing(tmp_path, monkeypatch):

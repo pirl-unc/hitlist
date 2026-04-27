@@ -581,6 +581,7 @@ def generate_binding_table(
     length_max: int | None = None,
     source: str | None = None,
     assay_method: str | list[str] | None = None,
+    response_measured: str | list[str] | None = None,
     measurement_units: str | list[str] | None = None,
     quantitative_value_max: float | None = None,
     quantitative_value_min: float | None = None,
@@ -605,6 +606,16 @@ def generate_binding_table(
         Filter to one or more IEDB/CEDAR assay methods (e.g.
         ``"purified MHC/direct/fluorescence"``, ``"cellular MHC/direct"``).
         Exact substring match; case-insensitive.
+    response_measured
+        Filter to one or more IEDB/CEDAR ``Assay | Response measured``
+        values (e.g. ``"qualitative binding"``, ``"dissociation constant
+        KD"``, ``"half life"``, ``"ligand presentation"``).  Combine with
+        ``assay_method`` and ``measurement_units`` to disambiguate which
+        readout a quantitative value represents — e.g. ``"qualitative
+        binding"`` + ``"purified MHC/competitive/fluorescence"`` + ``"nM"``
+        means an IC50, while ``"dissociation constant KD"`` + ``"purified
+        MHC/direct/fluorescence"`` + ``"nM"`` means a Kd.  Exact match
+        (case-insensitive).
     measurement_units
         Filter to rows reporting in these units (e.g. ``"nM"``,
         ``"log10(IC50)"``).  Useful before applying a numeric
@@ -659,13 +670,17 @@ def generate_binding_table(
             )
         ]
 
-    # Quantitative-assay filters (issue #148).  Applied in-memory after
-    # the parquet load because these columns are free-text / sparse and
-    # don't benefit from pyarrow push-down filters.
+    # Quantitative-assay filters (issue #148, issue #135).  Applied
+    # in-memory after the parquet load because these columns are free-text /
+    # sparse and don't benefit from pyarrow push-down filters.
     if assay_method is not None and "assay_method" in df.columns:
         wanted = {m.casefold() for m in _to_list(assay_method)}
         method_col = df["assay_method"].fillna("").astype(str).str.casefold()
         df = df[method_col.apply(lambda m: any(w in m for w in wanted))]
+    if response_measured is not None and "response_measured" in df.columns:
+        wanted_responses = {r.casefold() for r in _to_list(response_measured)}
+        response_col = df["response_measured"].fillna("").astype(str).str.casefold()
+        df = df[response_col.isin(wanted_responses)]
     if measurement_units is not None and "measurement_units" in df.columns:
         wanted_units = {u.casefold() for u in _to_list(measurement_units)}
         units_col = df["measurement_units"].fillna("").astype(str).str.casefold()
