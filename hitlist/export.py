@@ -249,6 +249,8 @@ def generate_observations_table(
     is_mono_allelic: bool | None = None,
     min_allele_resolution: str | None = None,
     mhc_allele: str | list[str] | None = None,
+    mhc_allele_in_bag: str | list[str] | None = None,
+    mhc_allele_provenance: str | list[str] | None = None,
     gene: str | list[str] | None = None,
     gene_name: str | list[str] | None = None,
     gene_id: str | list[str] | None = None,
@@ -336,6 +338,16 @@ def generate_observations_table(
                 lambda a: allele_resolution_rank(classify_allele_resolution(a)) <= min_rank
             )
         ]
+
+    # Allele-bag filters (issue #137).  Degrade gracefully on pre-v1.23.0
+    # builds where the column is absent.
+    if mhc_allele_provenance is not None and "mhc_allele_provenance" in obs.columns:
+        wanted_prov = set(_to_list(mhc_allele_provenance))
+        obs = obs[obs["mhc_allele_provenance"].isin(wanted_prov)]
+    if mhc_allele_in_bag is not None and "mhc_allele_set" in obs.columns:
+        wanted_bag = {a.strip() for a in _to_list(mhc_allele_in_bag)}
+        bag_col = obs["mhc_allele_set"].fillna("").astype(str)
+        obs = obs[bag_col.apply(lambda s: any(a in s.split(";") for a in wanted_bag))]
 
     # --- Load sample metadata ---
     samples = generate_ms_samples_table(mhc_class=mhc_class)
@@ -544,6 +556,8 @@ def generate_ms_observations_table(
     is_mono_allelic: bool | None = None,
     min_allele_resolution: str | None = None,
     mhc_allele: str | list[str] | None = None,
+    mhc_allele_in_bag: str | list[str] | None = None,
+    mhc_allele_provenance: str | list[str] | None = None,
     gene: str | list[str] | None = None,
     gene_name: str | list[str] | None = None,
     gene_id: str | list[str] | None = None,
@@ -559,6 +573,8 @@ def generate_ms_observations_table(
         is_mono_allelic=is_mono_allelic,
         min_allele_resolution=min_allele_resolution,
         mhc_allele=mhc_allele,
+        mhc_allele_in_bag=mhc_allele_in_bag,
+        mhc_allele_provenance=mhc_allele_provenance,
         gene=gene,
         gene_name=gene_name,
         gene_id=gene_id,
@@ -572,6 +588,8 @@ def generate_binding_table(
     species: str | None = None,
     min_allele_resolution: str | None = None,
     mhc_allele: str | list[str] | None = None,
+    mhc_allele_in_bag: str | list[str] | None = None,
+    mhc_allele_provenance: str | list[str] | None = None,
     gene: str | list[str] | None = None,
     gene_name: str | list[str] | None = None,
     gene_id: str | list[str] | None = None,
@@ -654,6 +672,24 @@ def generate_binding_table(
         (a quick "give me only the IC50/EC50/Kd rows" filter).  When
         False, keep only qualitative-tier rows.  ``None`` leaves the
         axis unfiltered.
+    mhc_allele_in_bag
+        Filter to rows whose ``mhc_allele_set`` (issue #137 expanded
+        candidate-allele bag) contains any of the listed alleles.  Use
+        this when you want to recover coarse / class-only restrictions
+        that the curated PMID pool or donor's MHC types resolve to a
+        specific allele of interest, e.g. ``mhc_allele_in_bag="HLA-A*02:01"``
+        captures both four-digit ``HLA-A*02:01`` rows AND multi-allele
+        rows whose donor genotype includes A*02:01.  ``mhc_allele=`` (the
+        existing arg) only matches the literal ``mhc_restriction`` value.
+    mhc_allele_provenance
+        Filter by how a row's allele bag was obtained: ``"exact"`` (4-digit
+        passthrough), ``"sample_allele_match"`` (donor's MHC Types Present
+        carried the typed alleles), ``"pmid_class_pool"`` (fell back to
+        per-PMID curated ``hla_alleles``), or ``"unmatched"`` (no
+        expansion possible — class-only with no curation, or two-digit /
+        serological / unresolved).  Use ``"exact"`` for strict-resolution
+        training; use ``["exact", "sample_allele_match"]`` for MIL /
+        noisy-OR training where the bag is small and trusted.
     """
     from .observations import load_binding
 
@@ -723,6 +759,17 @@ def generate_binding_table(
             df["quantitative_value"].notna()
             & (df["quantitative_value"] <= float(quantitative_value_max))
         ]
+
+    # Allele-bag filters (issue #137).  Both filters degrade gracefully
+    # when the columns are absent (pre-v1.23.0 builds) — the row passes
+    # through unaffected.
+    if mhc_allele_provenance is not None and "mhc_allele_provenance" in df.columns:
+        wanted_prov = set(_to_list(mhc_allele_provenance))
+        df = df[df["mhc_allele_provenance"].isin(wanted_prov)]
+    if mhc_allele_in_bag is not None and "mhc_allele_set" in df.columns:
+        wanted_bag = {a.strip() for a in _to_list(mhc_allele_in_bag)}
+        bag_col = df["mhc_allele_set"].fillna("").astype(str)
+        df = df[bag_col.apply(lambda s: any(a in s.split(";") for a in wanted_bag))]
 
     if columns:
         available = [c for c in columns if c in df.columns]

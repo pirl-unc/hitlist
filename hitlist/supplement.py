@@ -29,7 +29,7 @@ from pathlib import Path
 import pandas as pd
 import yaml
 
-from .curation import classify_ms_row, normalize_species
+from .curation import classify_ms_row, expand_allele_bag, normalize_species
 
 _DATA_DIR = Path(__file__).parent / "data"
 _MANIFEST_PATH = _DATA_DIR / "supplementary.yaml"
@@ -176,6 +176,11 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
                 "species": defaults.get("species", ""),
                 "host": defaults.get("host", ""),
                 "host_age": "",
+                # Supplementary rows don't carry IEDB's per-row "Host | MHC
+                # Types Present"; bag expansion will fall back to the
+                # per-PMID curated allele pool when the row's
+                # mhc_restriction is class-only (issue #137).
+                "host_mhc_types": "",
                 "process_type": process_type,
                 "disease": disease,
                 "disease_stage": "",
@@ -203,8 +208,29 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
         # Classify per-unique-allele, then map back onto every row.
         # Within a single supplementary entry the non-allele inputs are
         # constant (from manifest defaults), so classify_ms_row varies
-        # only by mhc_restriction.
+        # only by mhc_restriction.  Bag expansion (issue #137) is also
+        # per-allele since host_mhc_types is empty for supplements and
+        # pmid + mhc_class don't vary within an entry.
         unique_alleles = record["mhc_restriction"].unique()
+
+        def _bag_for(allele: str, _record=record, _pmid=pmid) -> dict:
+            mhc_class_for_bag = ""
+            # Pull per-allele class from the just-built ``record`` if the
+            # supplement CSV carries one; otherwise let bag expansion
+            # skip the class filter (returns the unfiltered candidate
+            # set, which is fine because supplements rarely mix class I
+            # and class II in one entry).
+            if "mhc_class" in _record.columns:
+                cls_match = _record.loc[_record["mhc_restriction"] == allele, "mhc_class"]
+                if len(cls_match):
+                    mhc_class_for_bag = str(cls_match.iloc[0])
+            bag_set, prov, size = expand_allele_bag(allele, "", _pmid, mhc_class_for_bag)
+            return {
+                "mhc_allele_set": bag_set,
+                "mhc_allele_provenance": prov,
+                "mhc_allele_bag_size": size,
+            }
+
         if classify_source:
             flag_rows = [
                 {
@@ -218,6 +244,7 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
                         pmid,
                         mhc_restriction=a,
                     ),
+                    **_bag_for(a),
                 }
                 for a in unique_alleles
             ]
@@ -228,6 +255,7 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
                     "allele_resolution": classify_allele_resolution(a),
                     "serotype": allele_to_serotype(a),
                     "mhc_species": classify_mhc_species(a),
+                    **_bag_for(a),
                 }
                 for a in unique_alleles
             ]

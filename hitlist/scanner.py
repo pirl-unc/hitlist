@@ -34,7 +34,7 @@ try:
 except ImportError:
     _tqdm = None
 
-from .curation import classify_ms_row
+from .curation import classify_ms_row, expand_allele_bag
 
 # Sentinel so we can tell "user didn't pass mhc_species" apart from
 # "user explicitly passed mhc_species=None (disable filter)".
@@ -53,6 +53,7 @@ _COLUMN_NAMES: dict[str, list[str]] = {
     "species": ["Epitope | Species", "Species"],
     "host": ["Host", "Host | Name"],
     "host_age": ["Host Age", "Host | Age"],
+    "host_mhc_types": ["Host | MHC Types Present", "MHC Types Present"],
     "process_type": ["Process Type", "Host | Process Type"],
     "disease": ["Disease", "Host | Disease"],
     "disease_stage": ["Disease Stage", "Host | Disease Stage"],
@@ -85,6 +86,7 @@ _FALLBACK_INDICES: dict[str, int] = {
     "species": 25,
     "host": 43,
     "host_age": 48,
+    "host_mhc_types": 49,
     "process_type": 50,
     "disease": 51,
     "disease_stage": 53,
@@ -394,6 +396,7 @@ def scan(
                 "species": species,
                 "host": _safe_col(row, c["host"]),
                 "host_age": _safe_col(row, c["host_age"]),
+                "host_mhc_types": _safe_col(row, c["host_mhc_types"]),
                 "process_type": process_type,
                 "disease": disease,
                 "disease_stage": _safe_col(row, c["disease_stage"]),
@@ -449,6 +452,23 @@ def scan(
                 record["serotype"] = all_sero[0] if all_sero else ""
                 record["serotypes"] = ";".join(all_sero)
                 record["mhc_species"] = mhc_sp
+
+            # Exact-allele bag expansion (issue #137).  Computed off the
+            # row's MHC restriction + the donor's typed alleles (Host |
+            # MHC Types Present, when IEDB carries them) + the per-PMID
+            # ``hla_alleles`` curation pool.  Provenance disambiguates
+            # ``exact`` (already 4-digit) / ``sample_allele_match`` /
+            # ``pmid_class_pool`` / ``unmatched``.  Always emitted so the
+            # parquet schema is uniform across modalities.
+            bag_set, bag_provenance, bag_size = expand_allele_bag(
+                mhc_res,
+                record.get("host_mhc_types", ""),
+                pmid,
+                record.get("mhc_class", ""),
+            )
+            record["mhc_allele_set"] = bag_set
+            record["mhc_allele_provenance"] = bag_provenance
+            record["mhc_allele_bag_size"] = bag_size
 
             rows.append(record)
 
