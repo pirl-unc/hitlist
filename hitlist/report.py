@@ -251,14 +251,19 @@ def generate_report(
 
     overrides = load_pmid_overrides()
     override_pmids = set(overrides.keys())
-    matched = df[df["pmid"].apply(lambda x: _safe_int(x) in override_pmids)]
-    if len(matched) > 0:
+    # Compute the integer PMID once, then use vectorized ``isin`` and
+    # ``value_counts`` instead of nesting ``.apply(lambda)`` in a loop —
+    # the previous code was O(overrides x matched_rows) ~= 200 x 1.5M
+    # python-level lambdas, which hung on the production index.
+    pmid_int_col = pd.to_numeric(df["pmid"], errors="coerce").astype("Int64")
+    matched_mask = pmid_int_col.isin(override_pmids)
+    if matched_mask.any():
+        per_pmid_count = pmid_int_col[matched_mask].value_counts()
         p("── Curated Study Overrides Applied ──")
         p()
         for pmid_int, entry in sorted(overrides.items()):
-            target_pmid = pmid_int
-            pmid_rows = matched[matched["pmid"].apply(lambda x, t=target_pmid: _safe_int(x) == t)]
-            if len(pmid_rows) > 0:
+            n_rows = int(per_pmid_count.get(pmid_int, 0))
+            if n_rows > 0:
                 # ``label`` was renamed to ``study_label`` in v1.7.0; the
                 # YAML schema only carries the new key now. Fall back to
                 # the empty string for entries that omit it (the override
@@ -266,7 +271,7 @@ def generate_report(
                 study_label = entry.get("study_label", "")
                 override_kind = entry.get("override", "")
                 p(f"  PMID {pmid_int}: {study_label}")
-                p(f"    Override: {override_kind}  |  Rows: {len(pmid_rows):,}")
+                p(f"    Override: {override_kind}  |  Rows: {n_rows:,}")
                 if entry.get("tissue_overrides"):
                     p(f"    Tissue overrides: {len(entry['tissue_overrides'])} tissues")
         p()
@@ -353,10 +358,12 @@ def run_report(
         )
         return ""
 
+    print("Loading observations.parquet...", file=sys.stderr, flush=True)
     df = load_observations(
         species="Homo sapiens",
         columns=list(_REPORT_COLUMNS),
     )
+    print(f"  {len(df):,} rows loaded; generating report...", file=sys.stderr, flush=True)
     return generate_report(df, mhc_class_filter=mhc_class, output=output)
 
 

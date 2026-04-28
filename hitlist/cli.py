@@ -1237,40 +1237,34 @@ def main() -> None:
     # ── pmhc subcommand ────────────────────────────────────────────────
     p_pmhc = sub.add_parser(
         "pmhc",
-        help="Per-protein x allele pMHC evidence query with optional NetMHCpan/MHCflurry scoring.",
+        help=(
+            "Per-protein x allele pMHC evidence: MS-attested peptides grouped "
+            "by (gene, allele), with optional NetMHCpan/MHCflurry scoring."
+        ),
         description=(
             "Per-protein x allele pMHC evidence query.\n\n"
-            "Run `hitlist pmhc query --protein <gene> --mhc-allele <allele>` "
-            "to fetch every MS-attested peptide for the requested combination, "
-            "grouped by (gene, allele) with PMID sources. Pass `--predictor "
-            "{mhcflurry,netmhcpan}` to add binding-affinity scoring."
+            "Both --protein and --mhc-allele are optional; pass neither to "
+            "scan the whole corpus, just one to fix that axis. Pass "
+            "--predictor {mhcflurry,netmhcpan} to add binding-affinity scoring."
         ),
     )
-    p_pmhc.set_defaults(_subgroup_parser=p_pmhc)
-    pmhc_sub = p_pmhc.add_subparsers(dest="pmhc_command")
-    p_pmhc_q = pmhc_sub.add_parser(
-        "query",
-        help=(
-            "For (proteins x alleles), report MS-attested peptides grouped "
-            "by (gene, allele) with PMID sources and optional binding-affinity "
-            "prediction.  Output is one row per (gene, allele, peptide)."
-        ),
-    )
-    p_pmhc_q.add_argument(
+    p_pmhc.add_argument(
         "--protein",
+        "--gene",
         action="extend",
         nargs="+",
-        required=True,
-        help="One or more proteins: HGNC symbol, Ensembl ENSG, or alias.",
+        help=("One or more proteins: HGNC symbol, Ensembl ENSG, or alias. Omit to scan all genes."),
     )
-    p_pmhc_q.add_argument(
+    p_pmhc.add_argument(
         "--mhc-allele",
         action="extend",
         nargs="+",
-        required=True,
-        help="One or more 4-digit MHC alleles (HLA-A*02:01, HLA-B*07:02, ...).",
+        help=(
+            "One or more 4-digit MHC alleles (HLA-A*02:01, HLA-B*07:02, ...). "
+            "Omit to scan all alleles."
+        ),
     )
-    p_pmhc_q.add_argument(
+    p_pmhc.add_argument(
         "--predictor",
         choices=["mhcflurry", "netmhcpan"],
         help=(
@@ -1278,7 +1272,7 @@ def main() -> None:
             "is reported (no affinity column)."
         ),
     )
-    p_pmhc_q.add_argument(
+    p_pmhc.add_argument(
         "--format",
         choices=["table", "csv", "json"],
         default="table",
@@ -1287,7 +1281,7 @@ def main() -> None:
             "headers with peptide rows in an aligned table beneath each allele)."
         ),
     )
-    p_pmhc_q.add_argument("--output", "-o", help="Write to file (.csv / .json / .txt)")
+    p_pmhc.add_argument("--output", "-o", help="Write to file (.csv / .json / .txt)")
 
     # ── samples subcommand (promoted from `export samples`) ────────────
     p_samples = sub.add_parser(
@@ -1418,16 +1412,12 @@ def _qc(args: argparse.Namespace) -> None:
 
 
 def _pmhc(args: argparse.Namespace) -> None:
-    """Run a pmhc subcommand."""
-    from . import pmhc_query
+    """Run the pmhc evidence query.
 
-    cmd = getattr(args, "pmhc_command", None)
-    if cmd is None:
-        _print_subgroup_help(args._subgroup_parser)
-        sys.exit(1)
-    if cmd != "query":
-        print(f"Unknown pmhc subcommand: {cmd}", file=sys.stderr)
-        sys.exit(1)
+    ``--protein`` and ``--mhc-allele`` are both optional now (v1.29.6);
+    omit either to scan that axis fully.
+    """
+    from . import pmhc_query
 
     proteins = getattr(args, "protein", []) or []
     alleles = getattr(args, "mhc_allele", []) or []
@@ -1436,7 +1426,7 @@ def _pmhc(args: argparse.Namespace) -> None:
     output = getattr(args, "output", None)
 
     try:
-        df = pmhc_query.query(proteins=proteins, alleles=alleles, predictor=predictor)
+        df = pmhc_query.query(proteins=proteins, alleles=alleles, predictor=predictor, verbose=True)
     except (FileNotFoundError, RuntimeError) as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)

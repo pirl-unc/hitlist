@@ -12,7 +12,7 @@
 
 """Per-protein x allele pMHC evidence lookup.
 
-The ``hitlist pmhc query`` CLI command (and the underlying :func:`query`
+The ``hitlist pmhc`` CLI command (and the underlying :func:`query`
 function) answers the most common downstream question: *for these
 proteins and these MHC alleles, what peptides has mass-spec
 immunopeptidomics actually surfaced, and how strongly does the
@@ -26,28 +26,51 @@ evidence count.
 
 from __future__ import annotations
 
+import re
+import sys
+import time
+
 import pandas as pd
 
 from .genes import resolve_gene_query
 
 
+def _progress(msg: str, verbose: bool) -> None:
+    """Print a stderr progress hint when running interactively.
+
+    The query can take 5-30s when no allele filter is given (full parquet
+    load), so users get easily worried it's hung — see user reports
+    against v1.29.6. Stderr lines are unobtrusive (don't pollute stdout
+    pipes) but answer the "is it doing anything?" question.
+    """
+    if verbose:
+        print(f"[pmhc] {msg}", file=sys.stderr, flush=True)
+
+
 def query(
-    proteins: list[str],
-    alleles: list[str],
+    proteins: list[str] | None = None,
+    alleles: list[str] | None = None,
     *,
     predictor: str | None = None,
     use_hgnc: bool = True,
+    verbose: bool = False,
 ) -> pd.DataFrame:
-    """Find pMHC MS evidence for the cross-product of proteins x alleles.
+    """Find pMHC MS evidence, optionally filtered by proteins and/or alleles.
+
+    Both filters are independent: pass neither to scan the whole corpus,
+    just one to fix that axis, or both for the original cross-product
+    behavior.
 
     Parameters
     ----------
     proteins
         List of gene symbols, Ensembl gene IDs, or HGNC aliases. Each is
-        resolved via :func:`hitlist.genes.resolve_gene_query`.
+        resolved via :func:`hitlist.genes.resolve_gene_query`. Pass
+        ``None`` (or empty list) to scan all genes.
     alleles
         List of 4-digit MHC allele strings (``"HLA-A*02:01"``).  Filter
-        is exact-match against ``mhc_restriction``.
+        is exact-match against ``mhc_restriction``. Pass ``None`` (or
+        empty list) to scan all alleles.
     predictor
         ``"mhcflurry"``, ``"netmhcpan"``, or ``None`` (skip prediction).
         If set, attaches ``affinity_nM`` / ``presentation_percentile`` /
@@ -72,31 +95,34 @@ def query(
             "observations.parquet has not been built. Run `hitlist build observations` first."
         )
 
-    if not proteins or not alleles:
-        return _empty_result(predictor is not None)
+    t_start = time.perf_counter()
 
-    # 1. Resolve every protein query to gene_name / gene_id sets.
+    # 1. Resolve every protein query to gene_name / gene_id sets — only if
+    #    the user asked for one. Empty / None means "all genes".
     names: set[str] = set()
     ids: set[str] = set()
-    for q in proteins:
-        spec = resolve_gene_query(q, use_hgnc=use_hgnc)
-        names |= spec["names"]
-        ids |= spec["ids"]
-    if not names and not ids:
-        return _empty_result(predictor is not None)
+    if proteins:
+        _progress(
+            f"resolving {len(proteins)} protein quer{'y' if len(proteins) == 1 else 'ies'}...",
+            verbose,
+        )
+        for q in proteins:
+            spec = resolve_gene_query(q, use_hgnc=use_hgnc)
+            names |= spec["names"]
+            ids |= spec["ids"]
+        _progress(f"resolved to {len(names)} gene names + {len(ids)} gene IDs", verbose)
+        if not names and not ids:
+            return _empty_result(predictor is not None)
 
-    # 2. Load observations filtered by gene + allele list.  ``load_observations``
-    #    accepts singular ``gene_name``/``gene_id`` filters for ergonomics, but
-    #    the parquet itself stores semicolon-joined ``gene_names`` / ``gene_ids``
-    #    columns (one peptide can map to multiple genes).
-    # We post-filter on the parquet's ``gene_names`` / ``gene_ids`` columns
-    # ourselves rather than passing ``gene_name=`` to ``load_observations``,
-    # which would route through ``peptide_mappings.parquet`` and require it
-    # to be built.  Allele-pushdown alone already cuts the corpus 10-50x for
-    # typical (HLA-A*02:01, HLA-B*07:02) queries.
-    df = load_observations(
-        mhc_restriction=alleles,
-        columns=[
+    # 2. Load observations. The allele filter pushes down to parquet only
+    #    when given; otherwise we read the whole corpus. ``load_observations``
+    #    accepts singular ``gene_name``/``gene_id`` filters for ergonomics,
+    #    but the parquet stores semicolon-joined ``gene_names`` /
+    #    ``gene_ids`` (one peptide can map to multiple genes), so we
+    #    post-filter on those columns instead — that also avoids routing
+    #    through ``peptide_mappings.parquet`` (which may not be built).
+    load_kwargs: dict = {
+        "columns": [
             "peptide",
             "pmid",
             "mhc_class",
@@ -104,15 +130,50 @@ def query(
             "gene_names",
             "gene_ids",
         ],
-    )
+    }
+    if alleles:
+        load_kwargs["mhc_restriction"] = alleles
+        _progress(
+            f"loading observations.parquet (allele pushdown: {len(alleles)} alleles)...", verbose
+        )
+    else:
+        _progress("loading observations.parquet (no allele filter, ~3-5s)...", verbose)
+    df = load_observations(**load_kwargs)
+    _progress(f"loaded {len(df):,} rows in {time.perf_counter() - t_start:.1f}s", verbose)
     if df.empty:
         return _empty_result(predictor is not None)
 
-    # 3. Explode the parallel ``gene_names`` / ``gene_ids`` lists into one
-    #    row per (gene_name, gene_id) so we can group cleanly.  Pad the
-    #    shorter list with empties so the pairs stay aligned.
+    # 3. Pre-filter to candidate rows BEFORE the explode so we don't
+    #    pointlessly explode the entire 4.4M-row corpus when the user
+    #    asked for a single gene. ``gene_names`` / ``gene_ids`` are
+    #    semicolon-joined strings, so a substring match finds candidate
+    #    rows; the explode + post-filter step still filters precisely.
     for col in ("gene_names", "gene_ids"):
         df[col] = df[col].fillna("").astype(str)
+    if names or ids:
+        _progress("narrowing to candidate rows for requested protein(s)...", verbose)
+        candidate_mask = pd.Series(False, index=df.index)
+        if names:
+            name_pat = "|".join(re.escape(n) for n in names if n)
+            if name_pat:
+                candidate_mask = candidate_mask | df["gene_names"].str.contains(
+                    name_pat, regex=True, na=False
+                )
+        if ids:
+            id_pat = "|".join(re.escape(i) for i in ids if i)
+            if id_pat:
+                candidate_mask = candidate_mask | df["gene_ids"].str.contains(
+                    id_pat, regex=True, na=False
+                )
+        df = df[candidate_mask]
+        _progress(f"  {len(df):,} candidate rows", verbose)
+        if df.empty:
+            return _empty_result(predictor is not None)
+
+    # 4. Explode the parallel ``gene_names`` / ``gene_ids`` lists into one
+    #    row per (gene_name, gene_id) so we can group cleanly.  Pad the
+    #    shorter list with empties so the pairs stay aligned.
+    _progress("exploding gene-list columns...", verbose)
     df["_gene_name"] = df["gene_names"].str.split(";")
     df["_gene_id"] = df["gene_ids"].str.split(";")
     pad_lens = [max(len(a), len(b)) for a, b in zip(df["_gene_name"], df["_gene_id"])]
@@ -124,16 +185,18 @@ def query(
     df["gene_name"] = df["_gene_name"].astype(str).str.strip()
     df["gene_id"] = df["_gene_id"].astype(str).str.strip()
     df = df.drop(columns=["_gene_name", "_gene_id", "gene_names", "gene_ids"])
-    # Filter to the genes the user actually asked about (multi-mapping rows
-    # surface sibling genes during the explode).
-    keep_mask = pd.Series(False, index=df.index)
-    if names:
-        keep_mask = keep_mask | df["gene_name"].isin(names)
-    if ids:
-        keep_mask = keep_mask | df["gene_id"].isin(ids)
-    df = df[keep_mask].reset_index(drop=True)
-    if df.empty:
-        return _empty_result(predictor is not None)
+    _progress(f"  {len(df):,} rows after explode", verbose)
+    # Final precise gene filter — the substring pre-filter above can
+    # surface sibling genes from the same multi-mapping cell.
+    if names or ids:
+        keep_mask = pd.Series(False, index=df.index)
+        if names:
+            keep_mask = keep_mask | df["gene_name"].isin(names)
+        if ids:
+            keep_mask = keep_mask | df["gene_id"].isin(ids)
+        df = df[keep_mask].reset_index(drop=True)
+        if df.empty:
+            return _empty_result(predictor is not None)
 
     # 4. Aggregate to (gene_name, gene_id, mhc_restriction, peptide):
     #    n_observations = row count, pmids = sorted unique semicolon-joined.
