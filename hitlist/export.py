@@ -468,14 +468,23 @@ def generate_observations_table(
     # 4) Class-pool fallback: for still-unmatched rows, fill sample_mhc
     #    with the union of all alleles from samples of the same class.
     still_empty = obs["mhc"] == ""
-    if still_empty.any():
-        obs.loc[still_empty, "mhc"] = [
-            _class_pool.get((int(p), c), "") if not pd.isna(p) else ""
-            for p, c in zip(
-                obs.loc[still_empty, "_pmid_int"],
-                obs.loc[still_empty, "mhc_class"],
-            )
-        ]
+    if still_empty.any() and _class_pool:
+        # Vectorized lookup via MultiIndex.reindex (issue #173). The
+        # `_class_pool` keys store ``_pmid_int`` as Python int while
+        # ``obs["_pmid_int"]`` is float64 (NaN for unparseable PMIDs);
+        # cast pool keys to float so the MultiIndex matcher pairs them
+        # correctly and NaN keys naturally fall through to "".
+        pool_lookup = pd.Series(
+            list(_class_pool.values()),
+            index=pd.MultiIndex.from_tuples(
+                [(float(p), c) for p, c in _class_pool],
+                names=["_pmid_int", "mhc_class"],
+            ),
+        )
+        sub_idx = pd.MultiIndex.from_arrays(
+            [obs.loc[still_empty, "_pmid_int"], obs.loc[still_empty, "mhc_class"]]
+        )
+        obs.loc[still_empty, "mhc"] = pool_lookup.reindex(sub_idx).fillna("").to_numpy()
 
     # --- Provenance: how was each row matched? ---
     # Count samples per PMID for context
@@ -484,39 +493,37 @@ def generate_observations_table(
     obs = obs.merge(_pmid_counts, left_on="_pmid_int", right_index=True, how="left")
     obs["matched_sample_count"] = obs["matched_sample_count"].fillna(0).astype(int)
 
-    # Determine match type
-    _matched_keys = (
-        set(zip(allele_df["_pmid_int"], allele_df["_allele"])) if not allele_df.empty else set()
-    )
-    _single_pmid_set = set(single_df["_pmid_int"]) if not single_df.empty else set()
-    _class_pool_keys = set(_class_pool.keys())
-
+    # Determine match type — all three membership checks use vectorized
+    # MultiIndex.isin so the per-row Python loops they replaced (issue #173)
+    # don't scale linearly with the index size. ``_pmid_int`` in the lookup
+    # sets is Python int but the ``obs`` column is float64; cast lookup
+    # keys to float so dtype mismatch doesn't silently miss matches.
     obs["sample_match_type"] = "unmatched"
 
-    if _matched_keys:
-        allele_matched = pd.Series(
-            [(p, a) in _matched_keys for p, a in zip(obs["_pmid_int"], obs["mhc_restriction"])],
-            index=obs.index,
+    obs_pmid_allele_idx = pd.MultiIndex.from_arrays([obs["_pmid_int"], obs["mhc_restriction"]])
+    if not allele_df.empty:
+        matched_idx = pd.MultiIndex.from_arrays(
+            [allele_df["_pmid_int"].astype(float), allele_df["_allele"]]
         )
+        allele_matched = pd.Series(obs_pmid_allele_idx.isin(matched_idx), index=obs.index)
         obs.loc[allele_matched, "sample_match_type"] = "allele_match"
     else:
         allele_matched = pd.Series(False, index=obs.index)
 
-    fallback_matched = ~allele_matched & obs["_pmid_int"].isin(_single_pmid_set)
+    _single_pmid_floats = (
+        {float(p) for p in single_df["_pmid_int"]} if not single_df.empty else set()
+    )
+    fallback_matched = ~allele_matched & obs["_pmid_int"].isin(_single_pmid_floats)
     obs.loc[fallback_matched, "sample_match_type"] = "single_sample_fallback"
 
     # Class pool: not allele-matched, not single-sample, but has class pool alleles
-    pool_matched = (
-        ~allele_matched
-        & ~fallback_matched
-        & pd.Series(
-            [
-                (int(p), c) in _class_pool_keys if not pd.isna(p) else False
-                for p, c in zip(obs["_pmid_int"], obs["mhc_class"])
-            ],
-            index=obs.index,
-        )
-    )
+    if _class_pool:
+        class_pool_idx = pd.MultiIndex.from_tuples([(float(p), c) for p, c in _class_pool])
+        obs_pmid_class_idx = pd.MultiIndex.from_arrays([obs["_pmid_int"], obs["mhc_class"]])
+        in_pool = pd.Series(obs_pmid_class_idx.isin(class_pool_idx), index=obs.index)
+    else:
+        in_pool = pd.Series(False, index=obs.index)
+    pool_matched = ~allele_matched & ~fallback_matched & in_pool
     obs.loc[pool_matched, "sample_match_type"] = "pmid_class_pool"
 
     # --- Peptide-level allele evidence flag ---

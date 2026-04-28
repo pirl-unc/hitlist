@@ -670,10 +670,13 @@ def _report(args: argparse.Namespace) -> None:
 
 
 def main() -> None:
+    from .version import __version__
+
     parser = argparse.ArgumentParser(
         prog="hitlist",
         description="hitlist: curated mass spectrometry evidence for MHC ligand data",
     )
+    parser.add_argument("--version", action="version", version=f"hitlist {__version__}")
     sub = parser.add_subparsers(dest="command")
     _build_data_parser(sub)
     _build_top_level_build_parser(sub)
