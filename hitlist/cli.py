@@ -527,6 +527,56 @@ def _add_peptide_counts_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("--output", "-o", help="Write CSV to file")
 
 
+def _add_samples_args(p: argparse.ArgumentParser) -> None:
+    """Argparse setup for `hitlist samples` (== legacy `export samples`)."""
+    p.add_argument("--class", dest="mhc_class", help="Filter to MHC class (I or II)")
+    p.add_argument(
+        "--with-expression-anchors",
+        action="store_true",
+        help=(
+            "Emit the line-expression anchor resolution for every sample "
+            "(expression_backend, expression_key, expression_match_tier, "
+            "expression_parent_key; issue #140). Replaces the default "
+            "acquisition-metadata sample table."
+        ),
+    )
+    p.add_argument("--output", "-o", help="Write CSV to file")
+
+
+def _add_line_expression_args(p: argparse.ArgumentParser) -> None:
+    """Argparse setup for `hitlist expression` (== legacy `export line-expression`)."""
+    p.add_argument(
+        "--line-key",
+        action="extend",
+        nargs="+",
+        help="Filter to one or more line_key values (e.g. GM12878, HeLa).",
+    )
+    p.add_argument(
+        "--gene-name",
+        action="extend",
+        nargs="+",
+        help="Filter to one or more HGNC gene symbols.",
+    )
+    p.add_argument(
+        "--gene-id",
+        action="extend",
+        nargs="+",
+        help="Filter to one or more Ensembl gene IDs (unversioned).",
+    )
+    p.add_argument(
+        "--granularity",
+        choices=["gene", "transcript"],
+        help="Restrict to one granularity.",
+    )
+    p.add_argument(
+        "--source-id",
+        action="extend",
+        nargs="+",
+        help="Restrict to one or more source_ids from sources.yaml.",
+    )
+    p.add_argument("--output", "-o", help="Write to file (.csv or .parquet)")
+
+
 def _build_top_level_build_parser(sub: argparse._SubParsersAction) -> None:
     """Register the canonical ``hitlist build`` group."""
     p_build = sub.add_parser(
@@ -650,19 +700,11 @@ def main() -> None:
     p_export = sub.add_parser("export", help="Export curated study metadata as CSV")
     export_sub = p_export.add_subparsers(dest="export_command")
 
-    p_samples = export_sub.add_parser("samples", help="Per-sample MS conditions table")
-    p_samples.add_argument("--class", dest="mhc_class", help="Filter to MHC class (I or II)")
-    p_samples.add_argument(
-        "--with-expression-anchors",
-        action="store_true",
-        help=(
-            "Emit the line-expression anchor resolution for every sample "
-            "(expression_backend, expression_key, expression_match_tier, "
-            "expression_parent_key; issue #140). Replaces the default "
-            "acquisition-metadata sample table."
-        ),
+    p_samples = export_sub.add_parser(
+        "samples",
+        help="DEPRECATED — use `hitlist samples`. Per-sample MS conditions table.",
     )
-    p_samples.add_argument("--output", "-o", help="Write CSV to file")
+    _add_samples_args(p_samples)
 
     # ── canonical: peptide-counts (was: summary + counts) ──────────────
     p_pc = export_sub.add_parser(
@@ -1068,42 +1110,9 @@ def main() -> None:
 
     p_line_expr = export_sub.add_parser(
         "line-expression",
-        help=(
-            "Per-line RNA / transcript TPM with provenance (source, "
-            "normalization, license).  Emits line_expression.parquet "
-            "contents or the packaged CSVs when no build has run."
-        ),
+        help="DEPRECATED — use `hitlist expression`. Per-line RNA/transcript TPM.",
     )
-    p_line_expr.add_argument(
-        "--line-key",
-        action="extend",
-        nargs="+",
-        help="Filter to one or more line_key values (e.g. GM12878, HeLa).",
-    )
-    p_line_expr.add_argument(
-        "--gene-name",
-        action="extend",
-        nargs="+",
-        help="Filter to one or more HGNC gene symbols.",
-    )
-    p_line_expr.add_argument(
-        "--gene-id",
-        action="extend",
-        nargs="+",
-        help="Filter to one or more Ensembl gene IDs (unversioned).",
-    )
-    p_line_expr.add_argument(
-        "--granularity",
-        choices=["gene", "transcript"],
-        help="Restrict to one granularity.",
-    )
-    p_line_expr.add_argument(
-        "--source-id",
-        action="extend",
-        nargs="+",
-        help="Restrict to one or more source_ids from sources.yaml.",
-    )
-    p_line_expr.add_argument("--output", "-o", help="Write to file (.csv or .parquet)")
+    _add_line_expression_args(p_line_expr)
 
     p_counts = export_sub.add_parser(
         "counts",
@@ -1192,6 +1201,81 @@ def main() -> None:
     )
     p_qc_xref.add_argument("--output", "-o", help="Write CSV to file")
 
+    # ── pmhc subcommand ────────────────────────────────────────────────
+    p_pmhc = sub.add_parser(
+        "pmhc",
+        help="Per-protein x allele pMHC evidence query with optional NetMHCpan/MHCflurry scoring.",
+    )
+    pmhc_sub = p_pmhc.add_subparsers(dest="pmhc_command")
+    p_pmhc_q = pmhc_sub.add_parser(
+        "query",
+        help=(
+            "For (proteins x alleles), report MS-attested peptides grouped "
+            "by (gene, allele) with PMID sources and optional binding-affinity "
+            "prediction.  Output is one row per (gene, allele, peptide)."
+        ),
+    )
+    p_pmhc_q.add_argument(
+        "--protein",
+        action="extend",
+        nargs="+",
+        required=True,
+        help="One or more proteins: HGNC symbol, Ensembl ENSG, or alias.",
+    )
+    p_pmhc_q.add_argument(
+        "--mhc-allele",
+        action="extend",
+        nargs="+",
+        required=True,
+        help="One or more 4-digit MHC alleles (HLA-A*02:01, HLA-B*07:02, ...).",
+    )
+    p_pmhc_q.add_argument(
+        "--predictor",
+        choices=["mhcflurry", "netmhcpan"],
+        help=(
+            "Optional binding-affinity predictor.  If omitted, only MS evidence "
+            "is reported (no affinity column)."
+        ),
+    )
+    p_pmhc_q.add_argument(
+        "--format",
+        choices=["table", "csv", "json"],
+        default="table",
+        help=(
+            "Output shape (default: table — protein > allele section "
+            "headers with peptide rows in an aligned table beneath each allele)."
+        ),
+    )
+    p_pmhc_q.add_argument("--output", "-o", help="Write to file (.csv / .json / .txt)")
+
+    # ── samples subcommand (promoted from `export samples`) ────────────
+    p_samples = sub.add_parser(
+        "samples",
+        help=(
+            "Per-sample MS conditions table (cell line, donor, instrument, "
+            "perturbation, etc.).  Replaces `export samples`."
+        ),
+    )
+    _add_samples_args(p_samples)
+
+    # ── proteomics (promoted from `export bulk-proteomics`) ────────────
+    p_prot = sub.add_parser(
+        "proteomics",
+        help=(
+            "Bulk (non-MHC) proteomics index: shotgun MS peptides + protein "
+            "abundances from CCLE and Bekker-Jensen 2017.  Replaces "
+            "`export bulk-proteomics`."
+        ),
+    )
+    _add_export_bulk_proteomics_args(p_prot)
+
+    # ── expression (promoted from `export line-expression`) ────────────
+    p_expr = sub.add_parser(
+        "expression",
+        help=("Per-line RNA / transcript TPM with provenance.  Replaces `export line-expression`."),
+    )
+    _add_line_expression_args(p_expr)
+
     args = parser.parse_args()
     if args.command is None:
         parser.print_help()
@@ -1208,6 +1292,17 @@ def main() -> None:
         _reassign(args)
     elif args.command == "qc":
         _qc(args)
+    elif args.command == "pmhc":
+        _pmhc(args)
+    elif args.command == "samples":
+        _handle_samples(args)
+    elif args.command == "proteomics":
+        # Reuse the same handler the legacy export bulk-proteomics path uses.
+        args.export_command = "bulk-proteomics"
+        _export(args)
+    elif args.command == "expression":
+        args.export_command = "line-expression"
+        _export(args)
 
 
 def _reassign(args: argparse.Namespace) -> None:
@@ -1279,6 +1374,53 @@ def _qc(args: argparse.Namespace) -> None:
         print(f"Wrote {len(df):,} rows to {output}", file=sys.stderr)
     else:
         print(df.to_csv(index=False), end="")
+
+
+def _pmhc(args: argparse.Namespace) -> None:
+    """Run a pmhc subcommand."""
+    from . import pmhc_query
+
+    cmd = getattr(args, "pmhc_command", None)
+    if cmd is None:
+        print("Usage: hitlist pmhc {query}", file=sys.stderr)
+        sys.exit(1)
+    if cmd != "query":
+        print(f"Unknown pmhc subcommand: {cmd}", file=sys.stderr)
+        sys.exit(1)
+
+    proteins = getattr(args, "protein", []) or []
+    alleles = getattr(args, "mhc_allele", []) or []
+    predictor = getattr(args, "predictor", None)
+    fmt = getattr(args, "format", "table")
+    output = getattr(args, "output", None)
+
+    try:
+        df = pmhc_query.query(proteins=proteins, alleles=alleles, predictor=predictor)
+    except (FileNotFoundError, RuntimeError) as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    if fmt == "csv":
+        text = df.to_csv(index=False)
+    elif fmt == "json":
+        text = df.to_json(orient="records", indent=2)
+    else:  # table
+        text = pmhc_query.format_table(df)
+
+    if output:
+        from pathlib import Path
+
+        Path(output).write_text(text)
+        print(f"Wrote {output}", file=sys.stderr)
+    else:
+        print(text)
+
+
+def _handle_samples(args: argparse.Namespace) -> None:
+    """Run ``hitlist samples`` — same backing logic as the legacy
+    ``hitlist export samples``."""
+    args.export_command = "samples"
+    _export(args)
 
 
 def _export_bulk(args: argparse.Namespace):
@@ -1402,6 +1544,9 @@ def _export(args: argparse.Namespace) -> None:
         "alleles": "hitlist qc normalization",
         "data-alleles": "hitlist qc resolution",
         "bulk": "hitlist export bulk-proteomics",
+        "samples": "hitlist samples",
+        "bulk-proteomics": "hitlist proteomics",
+        "line-expression": "hitlist expression",
     }
     if cmd in _deprecated_export:
         print(
