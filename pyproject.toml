@@ -38,6 +38,7 @@ alleles = [
 dev = [
     "pytest",
     "pytest-cov",
+    "pytest-xdist",
     "ruff",
 ]
 
