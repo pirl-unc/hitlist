@@ -415,6 +415,118 @@ def _add_build_index_args(p: argparse.ArgumentParser) -> None:
     )
 
 
+def _add_export_bulk_proteomics_args(p: argparse.ArgumentParser) -> None:
+    """Argparse setup for `hitlist export bulk-proteomics` (== legacy `bulk`).
+
+    Bulk (non-MHC) shotgun proteomics index — CCLE + Bekker-Jensen 2017.
+    Renamed in v1.27.0 because the legacy ``bulk`` name read like part of the
+    MHC-ligand family it lives next to; ``bulk-proteomics`` makes the scope
+    explicit.
+    """
+    p.add_argument(
+        "--granularity",
+        choices=["peptide", "protein", "both"],
+        default="both",
+        help="Rows to export (default: both).",
+    )
+    p.add_argument(
+        "--cell-line", action="extend", nargs="+", help="Filter to one or more cell lines."
+    )
+    p.add_argument(
+        "--gene-name",
+        action="extend",
+        nargs="+",
+        help="Filter to one or more HGNC gene symbols (exact match).",
+    )
+    p.add_argument(
+        "--uniprot-acc",
+        action="extend",
+        nargs="+",
+        help="Filter peptide rows to one or more UniProt accessions (exact match).",
+    )
+    p.add_argument(
+        "--source",
+        choices=["CCLE_Nusinow_2020", "Bekker-Jensen_2017"],
+        help="Restrict to one bulk proteomics source.",
+    )
+    p.add_argument(
+        "--digestion-enzyme",
+        action="extend",
+        nargs="+",
+        help=(
+            "Filter to one or more enzymes: 'Trypsin/P (cleaves K/R except before P)', "
+            "'Chymotrypsin', 'GluC', 'LysC'."
+        ),
+    )
+    p.add_argument(
+        "--n-fractions",
+        action="extend",
+        nargs="+",
+        type=int,
+        help="Filter to one or more fractionation depths (12/14/39/46/50/70).",
+    )
+    p.add_argument(
+        "--enrichment",
+        choices=["none", "TiO2", "both"],
+        default="none",
+        help=(
+            "Enrichment filter: 'none' (baseline, default), 'TiO2' (phospho "
+            "only), or 'both' (include both populations)."
+        ),
+    )
+    p.add_argument(
+        "--fractionation-ph",
+        action="extend",
+        nargs="+",
+        type=float,
+        help="Filter by high-pH SPE buffer pH (8.0 or 10.0).",
+    )
+    p.add_argument(
+        "--length-min", type=int, help="Minimum peptide length (inclusive; peptide rows only)."
+    )
+    p.add_argument(
+        "--length-max", type=int, help="Maximum peptide length (inclusive; peptide rows only)."
+    )
+    p.add_argument(
+        "--abundance-percentile-min",
+        type=float,
+        help="Minimum abundance percentile (0.0-1.0; protein rows only).",
+    )
+    p.add_argument(
+        "--abundance-percentile-max",
+        type=float,
+        help="Maximum abundance percentile (0.0-1.0; protein rows only).",
+    )
+    p.add_argument("--output", "-o", help="Write to file (.csv or .parquet)")
+
+
+def _add_peptide_counts_args(p: argparse.ArgumentParser) -> None:
+    """Argparse setup for `hitlist export peptide-counts` (merges legacy
+    ``summary`` and ``counts`` into one command differentiated by ``--by``)."""
+    p.add_argument(
+        "--by",
+        choices=["class", "study"],
+        default="class",
+        help=(
+            "Aggregation level: 'class' (one row per species x mhc_class, "
+            "default — was `export summary`), 'study' (one row per "
+            "PMID x class x species — was `export counts`)."
+        ),
+    )
+    p.add_argument(
+        "--class",
+        dest="mhc_class",
+        help="Filter to MHC class (I or II). Applies to --by class.",
+    )
+    p.add_argument(
+        "--source",
+        choices=["iedb", "cedar", "merged", "all"],
+        default="merged",
+        help="Data source for --by study (default: merged).",
+    )
+    p.add_argument("--output", "-o", help="Write CSV to file")
+
+
 def _build_top_level_build_parser(sub: argparse._SubParsersAction) -> None:
     """Register the canonical ``hitlist build`` group."""
     p_build = sub.add_parser(
@@ -536,15 +648,30 @@ def main() -> None:
     )
     p_samples.add_argument("--output", "-o", help="Write CSV to file")
 
-    p_summary = export_sub.add_parser("summary", help="Species x MHC class summary")
+    # ── canonical: peptide-counts (was: summary + counts) ──────────────
+    p_pc = export_sub.add_parser(
+        "peptide-counts",
+        help="Count peptides per (species x class) or per (study x class x species).",
+    )
+    _add_peptide_counts_args(p_pc)
+
+    # Legacy aliases — kept for one release with a deprecation notice.
+    p_summary = export_sub.add_parser(
+        "summary",
+        help="DEPRECATED — use `hitlist export peptide-counts --by class`.",
+    )
     p_summary.add_argument("--class", dest="mhc_class", help="Filter to MHC class (I or II)")
     p_summary.add_argument("--output", "-o", help="Write CSV to file")
 
-    p_alleles = export_sub.add_parser("alleles", help="Validate MHC alleles with mhcgnomes")
+    p_alleles = export_sub.add_parser(
+        "alleles",
+        help="DEPRECATED — use `hitlist qc normalization` for actionable allele drift.",
+    )
     p_alleles.add_argument("--output", "-o", help="Write CSV to file")
 
     p_data_alleles = export_sub.add_parser(
-        "data-alleles", help="Validate all MHC alleles in local IEDB/CEDAR with mhcgnomes"
+        "data-alleles",
+        help="DEPRECATED — use `hitlist qc resolution` for an actionable allele histogram.",
     )
     p_data_alleles.add_argument("--output", "-o", help="Write CSV to file")
 
@@ -908,89 +1035,20 @@ def main() -> None:
     )
     p_training.add_argument("--output", "-o", help="Write to file (.csv or .parquet)")
 
-    p_bulk = export_sub.add_parser(
-        "bulk",
+    p_bulk_prot = export_sub.add_parser(
+        "bulk-proteomics",
         help=(
             "Bulk (non-MHC) proteomics index: shotgun MS peptides + protein "
             "abundances from CCLE and Bekker-Jensen 2017.  NOT MHC-ligand "
             "data — see 'observations' / 'binding' for those."
         ),
     )
-    p_bulk.add_argument(
-        "--granularity",
-        choices=["peptide", "protein", "both"],
-        default="both",
-        help="Rows to export (default: both).",
+    _add_export_bulk_proteomics_args(p_bulk_prot)
+
+    p_bulk = export_sub.add_parser(
+        "bulk", help="DEPRECATED — use `hitlist export bulk-proteomics`."
     )
-    p_bulk.add_argument(
-        "--cell-line", action="extend", nargs="+", help="Filter to one or more cell lines."
-    )
-    p_bulk.add_argument(
-        "--gene-name",
-        action="extend",
-        nargs="+",
-        help="Filter to one or more HGNC gene symbols (exact match).",
-    )
-    p_bulk.add_argument(
-        "--uniprot-acc",
-        action="extend",
-        nargs="+",
-        help="Filter peptide rows to one or more UniProt accessions (exact match).",
-    )
-    p_bulk.add_argument(
-        "--source",
-        choices=["CCLE_Nusinow_2020", "Bekker-Jensen_2017"],
-        help="Restrict to one bulk proteomics source.",
-    )
-    p_bulk.add_argument(
-        "--digestion-enzyme",
-        action="extend",
-        nargs="+",
-        help=(
-            "Filter to one or more enzymes: 'Trypsin/P (cleaves K/R except before P)', "
-            "'Chymotrypsin', 'GluC', 'LysC'."
-        ),
-    )
-    p_bulk.add_argument(
-        "--n-fractions",
-        action="extend",
-        nargs="+",
-        type=int,
-        help="Filter to one or more fractionation depths (12/14/39/46/50/70).",
-    )
-    p_bulk.add_argument(
-        "--enrichment",
-        choices=["none", "TiO2", "both"],
-        default="none",
-        help=(
-            "Enrichment filter: 'none' (baseline, default), 'TiO2' (phospho "
-            "only), or 'both' (include both populations)."
-        ),
-    )
-    p_bulk.add_argument(
-        "--fractionation-ph",
-        action="extend",
-        nargs="+",
-        type=float,
-        help="Filter by high-pH SPE buffer pH (8.0 or 10.0).",
-    )
-    p_bulk.add_argument(
-        "--length-min", type=int, help="Minimum peptide length (inclusive; peptide rows only)."
-    )
-    p_bulk.add_argument(
-        "--length-max", type=int, help="Maximum peptide length (inclusive; peptide rows only)."
-    )
-    p_bulk.add_argument(
-        "--abundance-percentile-min",
-        type=float,
-        help="Minimum abundance percentile (0.0-1.0; protein rows only).",
-    )
-    p_bulk.add_argument(
-        "--abundance-percentile-max",
-        type=float,
-        help="Maximum abundance percentile (0.0-1.0; protein rows only).",
-    )
-    p_bulk.add_argument("--output", "-o", help="Write to file (.csv or .parquet)")
+    _add_export_bulk_proteomics_args(p_bulk)
 
     p_line_expr = export_sub.add_parser(
         "line-expression",
@@ -1032,7 +1090,8 @@ def main() -> None:
     p_line_expr.add_argument("--output", "-o", help="Write to file (.csv or .parquet)")
 
     p_counts = export_sub.add_parser(
-        "counts", help="Count peptides per study from local IEDB/CEDAR"
+        "counts",
+        help="DEPRECATED — use `hitlist export peptide-counts --by study`.",
     )
     p_counts.add_argument(
         "--source",
@@ -1318,6 +1377,23 @@ def _export(args: argparse.Namespace) -> None:
     cmd = args.export_command
     t0 = _time.perf_counter()
 
+    # Deprecation notices for legacy export subcommands.  Behavior is
+    # preserved for one release; these notices steer users at the
+    # canonical replacement before removal in v2.0.
+    _deprecated_export = {
+        "summary": "hitlist export peptide-counts --by class",
+        "counts": "hitlist export peptide-counts --by study",
+        "alleles": "hitlist qc normalization",
+        "data-alleles": "hitlist qc resolution",
+        "bulk": "hitlist export bulk-proteomics",
+    }
+    if cmd in _deprecated_export:
+        print(
+            f"Note: `hitlist export {cmd}` is deprecated; use "
+            f"`{_deprecated_export[cmd]}` instead.  Will be removed in v2.0.",
+            file=sys.stderr,
+        )
+
     if cmd == "samples":
         if getattr(args, "with_expression_anchors", False):
             _export_progress("Resolving expression anchors for every ms_sample (issue #140) ...")
@@ -1327,6 +1403,16 @@ def _export(args: argparse.Namespace) -> None:
         else:
             _export_progress("Building ms_samples table from pmid_overrides.yaml ...")
             df = generate_ms_samples_table(mhc_class=args.mhc_class)
+    elif cmd == "peptide-counts":
+        by = getattr(args, "by", "class")
+        if by == "class":
+            _export_progress(
+                "Loading observations.parquet for per-(class, species) peptide counts ..."
+            )
+            df = generate_species_summary(mhc_class=args.mhc_class)
+        else:
+            _export_progress("Counting peptides per study from local IEDB/CEDAR ...")
+            df = count_peptides_by_study(source=args.source)
     elif cmd == "summary":
         _export_progress("Loading observations.parquet for species summary ...")
         df = generate_species_summary(mhc_class=args.mhc_class)
@@ -1396,7 +1482,7 @@ def _export(args: argparse.Namespace) -> None:
         except (ValueError, FileNotFoundError) as e:
             print(f"Error: {e}", file=sys.stderr)
             sys.exit(1)
-    elif cmd == "bulk":
+    elif cmd in ("bulk", "bulk-proteomics"):
         _export_progress("Loading bulk_proteomics.parquet ...")
         df = _export_bulk(args)
     elif cmd == "line-expression":
