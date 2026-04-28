@@ -323,3 +323,76 @@ def test_pmhc_query_format_table_renders_grouped_table(tmp_path, monkeypatch):
     a02_idx = text.find("HLA-A*02:01")
     pep_idx = text.find("KLVVVGAGGV")
     assert nras_idx < a02_idx < pep_idx
+
+
+# ── Serotype handling (v1.30.2) ───────────────────────────────────────
+
+
+def _write_serotype_obs_fixture(tmp_path):
+    """Fixture mixing 4-digit and serotype-resolution rows for the same gene."""
+    df = pd.DataFrame(
+        {
+            "peptide": ["KLVVVGAGGV", "ILDTAGREEY", "FLPNKQRTV"],
+            "pmid": [9263005, 33858848, 33298915],
+            "mhc_class": ["I", "I", "I"],
+            "mhc_restriction": ["HLA-A*02:01", "HLA-A*02:02", "HLA-A2"],
+            "gene_names": ["NRAS", "NRAS", "NRAS"],
+            "gene_ids": ["ENSG00000213281"] * 3,
+            "species": ["Homo sapiens"] * 3,
+            "mhc_species": ["Homo sapiens"] * 3,
+            "source": ["iedb"] * 3,
+        }
+    )
+    path = tmp_path / "observations.parquet"
+    df.to_parquet(path, index=False)
+    return path
+
+
+def test_pmhc_query_input_serotype_expands_to_4digit_members(tmp_path, monkeypatch):
+    """v1.30.2: querying ``--allele HLA-A2`` returns evidence on A*02:01,
+    A*02:02, AND literal HLA-A2 rows. Without expansion the parquet
+    pushdown would only match the literal "HLA-A2" string."""
+    from hitlist import pmhc_query
+
+    obs_path = _write_serotype_obs_fixture(tmp_path)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+
+    df = pmhc_query.query(proteins=["NRAS"], alleles=["HLA-A2"], use_hgnc=False)
+    # All three rows from the fixture are A2-related and must come back.
+    assert set(df["mhc_allele"]) == {"HLA-A*02:01", "HLA-A*02:02", "HLA-A2"}
+
+
+def test_pmhc_query_best_guess_allele_for_serotype_rows(tmp_path, monkeypatch):
+    """v1.30.2: rows whose stored allele is a serotype get a
+    ``best_guess_allele`` column filled with the most-likely 4-digit
+    member. Already-4-digit rows preserve their value."""
+    from hitlist import pmhc_query
+
+    obs_path = _write_serotype_obs_fixture(tmp_path)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+
+    df = pmhc_query.query(proteins=["NRAS"], alleles=["HLA-A2"], use_hgnc=False)
+    by_allele = df.set_index("mhc_allele")["best_guess_allele"].to_dict()
+    # 4-digit rows: best_guess_allele equals the stored allele.
+    assert by_allele["HLA-A*02:01"] == "HLA-A*02:01"
+    assert by_allele["HLA-A*02:02"] == "HLA-A*02:02"
+    # Serotype row gets the most-likely 4-digit guess.
+    assert by_allele["HLA-A2"] == "HLA-A*02:01"
+
+
+def test_pmhc_query_format_table_shows_best_guess_for_serotype(tmp_path, monkeypatch):
+    """v1.30.2: the grouped-table allele header annotates serotype
+    rows with the best 4-digit guess so the user sees what the predictor
+    will (or would) score under."""
+    from hitlist import pmhc_query
+
+    obs_path = _write_serotype_obs_fixture(tmp_path)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+
+    df = pmhc_query.query(proteins=["NRAS"], alleles=["HLA-A2"], use_hgnc=False)
+    text = pmhc_query.format_table(df)
+    # The HLA-A2 section gets a "(best guess: HLA-A*02:01)" annotation;
+    # the 4-digit sections do not.
+    assert "HLA-A2  (best guess: HLA-A*02:01)" in text
+    # 4-digit allele headers are unannotated.
+    assert "HLA-A*02:01\n" in text or "HLA-A*02:01 " in text  # header line bare
