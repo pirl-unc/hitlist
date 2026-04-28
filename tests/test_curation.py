@@ -5,6 +5,7 @@ from hitlist.curation import (
     allele_resolution_rank,
     allele_to_all_serotypes,
     allele_to_serotype,
+    best_4digit_for_serotype,
     classify_allele_resolution,
     classify_mhc_species,
     classify_ms_row,
@@ -17,6 +18,7 @@ from hitlist.curation import (
     load_tissue_categories,
     normalize_allele,
     normalize_species,
+    serotype_to_alleles,
 )
 
 
@@ -674,6 +676,63 @@ def test_allele_to_all_serotypes_a02_broader_first():
 def test_allele_to_all_serotypes_empty():
     assert allele_to_all_serotypes("") == ()
     assert allele_to_all_serotypes("HLA class I") == ()
+
+
+# ── Forward serotype expansion (v1.30.2) ──────────────────────────────
+
+
+def test_serotype_to_alleles_a2_includes_canonical_member():
+    """v1.30.2: HLA-A2 expands to its 4-digit members; A*02:01 must be one
+    of them and must be first (lowest-numbered = best-guess heuristic)."""
+    if not _HAS_MHCGNOMES:
+        return
+    members = serotype_to_alleles("HLA-A2")
+    assert len(members) >= 10  # A2 has dozens of members in IPD-IMGT/HLA
+    assert "HLA-A*02:01" in members
+    assert members[0] == "HLA-A*02:01"  # sorted-ascending → lowest-numbered first
+
+
+def test_serotype_to_alleles_b7_dominated_by_b07_02():
+    """v1.30.2: HLA-B7 → B*07:02 as the lowest-numbered member."""
+    if not _HAS_MHCGNOMES:
+        return
+    members = serotype_to_alleles("HLA-B7")
+    assert "HLA-B*07:02" in members
+    # B*07:02 is the most common B7 in nearly all populations.
+    assert members[0] == "HLA-B*07:02"
+
+
+def test_serotype_to_alleles_no_op_on_4digit_input():
+    """v1.30.2: passing a 4-digit allele in returns ``()`` — only true
+    serotypes expand."""
+    if not _HAS_MHCGNOMES:
+        return
+    assert serotype_to_alleles("HLA-A*02:01") == ()
+
+
+def test_serotype_to_alleles_empty_and_unknown():
+    """v1.30.2: empty / unknown / class-only inputs return ``()``."""
+    assert serotype_to_alleles("") == ()
+    if not _HAS_MHCGNOMES:
+        return
+    assert serotype_to_alleles("HLA class I") == ()
+    assert serotype_to_alleles("HLA-A99") == ()  # not a real serotype
+
+
+def test_best_4digit_for_serotype_a2_a0201():
+    """v1.30.2: HLA-A2's best 4-digit guess is HLA-A*02:01."""
+    if not _HAS_MHCGNOMES:
+        return
+    assert best_4digit_for_serotype("HLA-A2") == "HLA-A*02:01"
+
+
+def test_best_4digit_for_serotype_returns_empty_for_non_serotype():
+    """v1.30.2: 4-digit input or unknown serotype → empty string (caller
+    decides the fallback)."""
+    if not _HAS_MHCGNOMES:
+        return
+    assert best_4digit_for_serotype("HLA-A*02:01") == ""
+    assert best_4digit_for_serotype("") == ""
 
 
 def test_classify_ms_row_serotypes_plural_populated():

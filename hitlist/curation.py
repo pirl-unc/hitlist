@@ -520,6 +520,85 @@ def allele_to_serotype(mhc_restriction: str) -> str:
     return all_sero[0] if all_sero else ""
 
 
+@lru_cache(maxsize=1)
+def _build_serotype_to_alleles_map() -> dict[str, tuple[str, ...]]:
+    """Forward map from canonical serotype name to its 4-digit members.
+
+    Reads ``mhcgnomes.data.serotypes["HLA"]`` directly so the values come
+    from the same IPD-IMGT/HLA table mhcgnomes ships with. The shipped
+    table stores alleles in compact form (``A*0201``) — we canonicalize
+    each via ``normalize_allele`` to the colon-separated 4-digit form
+    (``HLA-A*02:01``) so callers can match against the parquet's
+    normalized strings. Members are sorted lexicographically; for typical
+    locus-specific serotypes that puts the lowest-numbered allele first,
+    which is also (by IPD's discovery-order numbering) usually the
+    population-dominant allele (A2 → A*02:01, B7 → B*07:02, DR4 →
+    DRB1*04:01).
+
+    Keys are HLA-prefixed (``"HLA-A2"``). Returns empty dict if
+    mhcgnomes is unavailable.
+    """
+    try:
+        from mhcgnomes.data import serotypes
+    except ImportError:
+        return {}
+
+    out: dict[str, tuple[str, ...]] = {}
+    for sero_name, allele_list in serotypes["HLA"].items():
+        canon: list[str] = []
+        for compact in allele_list:
+            # ``compact`` is the IPD-style "A*0201" — prefix with HLA-
+            # and let normalize_allele insert the colon and validate.
+            normalized = normalize_allele(f"HLA-{compact}")
+            if normalized:
+                canon.append(normalized)
+        out[f"HLA-{sero_name}"] = tuple(sorted(set(canon)))
+    return out
+
+
+@lru_cache(maxsize=8192)
+@cache
+def serotype_to_alleles(serotype: str) -> tuple[str, ...]:
+    """Enumerate the 4-digit alleles that belong to a serotype.
+
+    Inverse of :func:`allele_to_serotype`. Used to expand a user-supplied
+    serotype query (``HLA-A2``) into the candidate 4-digit alleles
+    (``HLA-A*02:01``, ``HLA-A*02:02``, ...) so the parquet pushdown finds
+    the matching rows.
+
+    Returns an empty tuple when the input is empty, not a serotype, or
+    not in the IPD-IMGT/HLA serotype catalog.
+
+    Examples::
+
+        serotype_to_alleles("HLA-A2")   # ("HLA-A*02:01", "HLA-A*02:02", ...)
+        serotype_to_alleles("HLA-A*02:01")  # () — already 4-digit
+    """
+    if not serotype:
+        return ()
+    norm = normalize_allele(serotype)
+    return _build_serotype_to_alleles_map().get(norm, ())
+
+
+@lru_cache(maxsize=8192)
+@cache
+def best_4digit_for_serotype(serotype: str) -> str:
+    """Pick the most-likely 4-digit allele for a serotype.
+
+    Heuristic: lowest-numbered member. By IPD-IMGT/HLA convention, the
+    earliest-discovered alleles get the lowest numbers, and these are
+    almost always the population-dominant ones (A2 → A*02:01 is ~50%
+    of A2 carriers; B7 → B*07:02 is ~95% of B7). The guess is wrong for
+    a handful of serotypes (notably A24, where A*24:02 dominates over
+    A*24:01), so callers should treat the answer as a best-effort
+    default, not ground truth.
+
+    Returns ``""`` when the input is empty or not a known serotype.
+    """
+    members = serotype_to_alleles(serotype)
+    return members[0] if members else ""
+
+
 # ── Mono-allelic cell line detection ──────────────────────────────────────
 
 

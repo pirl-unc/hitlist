@@ -132,10 +132,38 @@ def query(
         ],
     }
     if alleles:
-        load_kwargs["mhc_restriction"] = alleles
-        _progress(
-            f"loading observations.parquet (allele pushdown: {len(alleles)} alleles)...", verbose
-        )
+        # Serotype inputs (e.g. "HLA-A2") are expanded to their 4-digit
+        # members before pushdown so HLA-A*02:01 / A*02:02 / ... rows
+        # show up alongside any literal "HLA-A2" rows.  Keep the original
+        # serotype string in the filter — some sources store at serotype
+        # resolution and we want both kinds of evidence.
+        from .curation import serotype_to_alleles
+
+        expanded: list[str] = []
+        n_expanded_serotypes = 0
+        for a in alleles:
+            expanded.append(a)
+            members = serotype_to_alleles(a)
+            if members:
+                expanded.extend(members)
+                n_expanded_serotypes += 1
+        # Dedup while preserving order — order isn't load-correctness, but
+        # tidier in verbose progress.
+        seen: set[str] = set()
+        load_kwargs["mhc_restriction"] = [x for x in expanded if not (x in seen or seen.add(x))]
+        if n_expanded_serotypes:
+            _progress(
+                f"loading observations.parquet (allele pushdown: "
+                f"{len(load_kwargs['mhc_restriction'])} alleles after expanding "
+                f"{n_expanded_serotypes} serotype{'s' if n_expanded_serotypes != 1 else ''})...",
+                verbose,
+            )
+        else:
+            _progress(
+                f"loading observations.parquet (allele pushdown: "
+                f"{len(load_kwargs['mhc_restriction'])} alleles)...",
+                verbose,
+            )
     else:
         _progress("loading observations.parquet (no allele filter, ~3-5s)...", verbose)
     df = load_observations(**load_kwargs)
@@ -177,11 +205,23 @@ def query(
     #     across two unrelated buckets. ``normalize_allele`` is mhcgnomes-
     #     backed and idempotent on canonical inputs; the LRU cache keeps
     #     the per-row cost negligible (~hundreds of unique values).
-    from .curation import normalize_allele
+    from .curation import best_4digit_for_serotype, normalize_allele
 
     df["mhc_restriction"] = (
         df["mhc_restriction"].fillna("").map(lambda s: normalize_allele(s) if s else s)
     )
+
+    # 3c. For rows whose stored allele is a serotype (HLA-A2, HLA-DR4, ...),
+    #     fill ``best_guess_allele`` with the most likely 4-digit member.
+    #     Binding predictors can't operate on serotypes, and downstream
+    #     consumers want a usable 4-digit handle. The guess is a heuristic
+    #     (lowest-numbered member ≈ population-dominant); see
+    #     ``best_4digit_for_serotype``.
+    def _best_guess(s: str) -> str:
+        guess = best_4digit_for_serotype(s)
+        return guess or s
+
+    df["best_guess_allele"] = df["mhc_restriction"].map(_best_guess)
 
     # 4. Split the parallel ``gene_names`` / ``gene_ids`` semicolon-joined
     #    strings into one row per (gene_name, gene_id) so we can group
@@ -214,9 +254,19 @@ def query(
 
     # 4. Aggregate to (gene_name, gene_id, mhc_restriction, peptide):
     #    n_observations = row count, pmids = sorted unique semicolon-joined.
+    #    ``best_guess_allele`` is functionally dependent on ``mhc_restriction``
+    #    (one-to-one map), so include it in the group key — that lets us
+    #    keep the column without an extra merge.
     grouped = (
         df.groupby(
-            ["gene_name", "gene_id", "mhc_restriction", "peptide", "mhc_class"],
+            [
+                "gene_name",
+                "gene_id",
+                "mhc_restriction",
+                "best_guess_allele",
+                "peptide",
+                "mhc_class",
+            ],
             dropna=False,
         )
         .agg(
@@ -244,9 +294,16 @@ def query(
 
 
 def _attach_predictions(df: pd.DataFrame, predictor: str) -> pd.DataFrame:
-    """Score each (peptide, mhc_allele) row with MHCflurry or NetMHCpan and
-    append ``affinity_nM`` / ``presentation_percentile`` / ``binder_class``."""
-    pairs = df[["peptide", "mhc_allele"]].rename(columns={"mhc_allele": "allele"})
+    """Score each (peptide, allele) row with MHCflurry or NetMHCpan and
+    append ``affinity_nM`` / ``presentation_percentile`` / ``binder_class``.
+
+    Uses ``best_guess_allele`` as the prediction input — predictors only
+    accept 4-digit alleles, so serotype rows (HLA-A2, HLA-DR4) need the
+    heuristic 4-digit substitute. Where ``best_guess_allele`` falls back
+    to the original serotype string (no expansion available), the
+    predictor will return NaN and the row stays unscored.
+    """
+    pairs = df[["peptide", "best_guess_allele"]].rename(columns={"best_guess_allele": "allele"})
     if predictor == "mhcflurry":
         from .predict import _predict_mhcflurry
 
@@ -260,10 +317,10 @@ def _attach_predictions(df: pd.DataFrame, predictor: str) -> pd.DataFrame:
 
     # NetMHCpan path returns its own DataFrame keyed on (peptide, allele);
     # MHCflurry preserves caller index.  Merge defensively.
-    scored = scored.rename(columns={"allele": "mhc_allele"})
+    scored = scored.rename(columns={"allele": "best_guess_allele"})
     df = df.merge(
-        scored[["peptide", "mhc_allele", "affinity_nM", "presentation_percentile"]],
-        on=["peptide", "mhc_allele"],
+        scored[["peptide", "best_guess_allele", "affinity_nM", "presentation_percentile"]],
+        on=["peptide", "best_guess_allele"],
         how="left",
     )
     df["binder_class"] = [
@@ -336,6 +393,7 @@ def _empty_result(with_predictions: bool) -> pd.DataFrame:
         "gene_name",
         "gene_id",
         "mhc_allele",
+        "best_guess_allele",
         "peptide",
         "n_observations",
         "pmids",
@@ -430,7 +488,19 @@ def format_table(df: pd.DataFrame) -> str:
         )
         for allele in allele_totals.index:
             allele_df = gene_df[gene_df["mhc_allele"] == allele]
-            out.append(f"  {allele}")
+            # When the stored value is a serotype, the best-guess 4-digit
+            # member is a *heuristic* (lowest-numbered ≈ most common). Show
+            # it in the header so the user can see which allele the
+            # predictor scored under for serotype-resolution rows.
+            best_guess = ""
+            if "best_guess_allele" in allele_df.columns:
+                guesses = allele_df["best_guess_allele"].dropna().astype(str).unique()
+                if len(guesses) == 1 and guesses[0] and guesses[0] != allele:
+                    best_guess = guesses[0]
+            header = f"  {allele}"
+            if best_guess:
+                header += f"  (best guess: {best_guess})"
+            out.append(header)
             for _, row in allele_df.iterrows():
                 cells = [_fmt(pep_headers[i], row[k]) for i, k in enumerate(pep_keys)]
                 out.append(indent + sep.join(cells[i].ljust(widths[i]) for i in range(len(cells))))
