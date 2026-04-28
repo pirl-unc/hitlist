@@ -443,9 +443,14 @@ def generate_observations_table(
     # --- Vectorized join ---
     obs["_pmid_int"] = pd.to_numeric(obs["pmid"], errors="coerce")
 
-    # 1) PMID-level metadata
-    obs = obs.merge(pmid_meta_df, on="_pmid_int", how="left")
-    obs["quantification_method"] = obs["quantification_method"].fillna("")
+    # 1) PMID-level metadata. Use .map() instead of merge — pmid_meta_df
+    #    only contributes a single column, so the merge's block-manager
+    #    consolidation pass is pure overhead.
+    if not pmid_meta_df.empty:
+        quant_lookup = pmid_meta_df.set_index("_pmid_int")["quantification_method"]
+        obs["quantification_method"] = obs["_pmid_int"].map(quant_lookup).fillna("")
+    else:
+        obs["quantification_method"] = ""
 
     # 2) Allele-level match: obs.mhc_restriction == allele_df._allele within same PMID
     obs = obs.merge(
@@ -487,11 +492,11 @@ def generate_observations_table(
         obs.loc[still_empty, "mhc"] = pool_lookup.reindex(sub_idx).fillna("").to_numpy()
 
     # --- Provenance: how was each row matched? ---
-    # Count samples per PMID for context
-    _pmid_counts = samples.groupby("pmid").size().rename("matched_sample_count")
+    # Count samples per PMID for context. Single-column join → use .map()
+    # to skip the merge's block-manager consolidation overhead.
+    _pmid_counts = samples.groupby("pmid").size()
     _pmid_counts.index = _pmid_counts.index.astype(int)
-    obs = obs.merge(_pmid_counts, left_on="_pmid_int", right_index=True, how="left")
-    obs["matched_sample_count"] = obs["matched_sample_count"].fillna(0).astype(int)
+    obs["matched_sample_count"] = obs["_pmid_int"].map(_pmid_counts).fillna(0).astype(int)
 
     # Determine match type — all three membership checks use vectorized
     # MultiIndex.isin so the per-row Python loops they replaced (issue #173)
@@ -1324,7 +1329,12 @@ def generate_training_table(
         parts.append(ms)
 
     if mode in {"binding", "both"}:
-        binding = generate_binding_table(**shared_kwargs).copy()
+        # No defensive .copy() here — generate_binding_table returns a
+        # fresh frame already, and on the 5.3M-row training export the
+        # extra copy is unnecessary churn. The earlier ms.copy() above
+        # is kept since generate_observations_table can return a view
+        # of obs from upstream filter chains.
+        binding = generate_binding_table(**shared_kwargs)
         binding["evidence_kind"] = "binding"
         parts.append(binding)
 
