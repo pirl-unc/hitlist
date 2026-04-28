@@ -375,6 +375,38 @@ def _load_peptide_index(
         hi = length_max if length_max is not None else 10**9
         df = df[df["peptide"].str.len().between(lo, hi)]
 
+    # ── Backstop: normalize ``mhc_restriction`` strings (#181) ────────────
+    # Stale parquets built before the supplement-side ``normalize_allele``
+    # call (supplement.py:118) carry unprefixed forms like ``A*02:01``
+    # alongside canonical ``HLA-A*02:01`` for the same allele. Normalizing
+    # at load time guarantees downstream groupbys / filters / sample-allele
+    # joins see one canonical string per allele without forcing every
+    # consumer to rebuild the parquet. Unique-map over ~hundreds of unique
+    # values keeps the per-call cost sub-second on the full 4.4M-row index.
+    if "mhc_restriction" in df.columns and len(df) > 0:
+        uniq = df["mhc_restriction"].dropna().unique()
+        if len(uniq) > 0:
+            norm_map = {str(a): normalize_allele(a) for a in uniq}
+            df["mhc_restriction"] = (
+                df["mhc_restriction"].map(norm_map).fillna(df["mhc_restriction"])
+            )
+
+    # ── MHC class-label sanity flag (#182) ───────────────────────────────
+    # IEDB occasionally labels short peptides as ``HLA class II`` when the
+    # length / binding biology disagrees — e.g. 35K rows in Marcu 2021
+    # alone are ≤10aa under a class II label. Class II peptides almost
+    # universally need ≥11-13aa because of the open-ended binding groove.
+    # Symmetrically, class I peptides binding canonical class-I MHC are
+    # almost always ≤14aa. Flag rows that fall outside the biologically
+    # plausible window so downstream consumers can opt out without
+    # rolling their own length-vs-class check.
+    if "mhc_class" in df.columns and "peptide" in df.columns and len(df) > 0:
+        plen = df["peptide"].str.len()
+        cls = df["mhc_class"].fillna("")
+        df["mhc_class_label_suspect"] = ((cls == "II") & (plen <= 10)) | (
+            (cls == "I") & (plen >= 18)
+        )
+
     return df
 
 
