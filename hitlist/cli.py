@@ -993,6 +993,50 @@ def main() -> None:
     )
     p_reassign.add_argument("--output", "-o", help="Write CSV to file")
 
+    # ── qc subcommand ──────────────────────────────────────────────────
+    p_qc = sub.add_parser(
+        "qc",
+        help=(
+            "Audit corpus + curation: allele-resolution histogram, "
+            "normalization drift in pmid_overrides, YAML/data allele "
+            "cross-reference."
+        ),
+    )
+    qc_sub = p_qc.add_subparsers(dest="qc_command")
+
+    p_qc_res = qc_sub.add_parser(
+        "resolution",
+        help="Histogram of (mhc_class, source, allele_resolution) buckets",
+    )
+    p_qc_res.add_argument("--class", dest="mhc_class", help="MHC class (I or II)")
+    p_qc_res.add_argument("--species", help="Filter by MHC species")
+    p_qc_res.add_argument(
+        "--source", choices=["iedb", "cedar", "supplement"], help="Filter by data source"
+    )
+    p_qc_res.add_argument("--output", "-o", help="Write CSV to file")
+
+    p_qc_norm = qc_sub.add_parser(
+        "normalization",
+        help="Alleles in pmid_overrides whose normalize_allele() output differs from input",
+    )
+    p_qc_norm.add_argument("--output", "-o", help="Write CSV to file")
+
+    p_qc_xref = qc_sub.add_parser(
+        "cross-reference",
+        help=(
+            "Alleles listed in YAML samples but absent from observation rows "
+            "(yaml_only), or vice versa (data_only)"
+        ),
+    )
+    p_qc_xref.add_argument("--class", dest="mhc_class", help="MHC class (I or II)")
+    p_qc_xref.add_argument(
+        "--direction",
+        choices=["yaml_only", "data_only", "both"],
+        default="both",
+        help="Which divergence to report (default: both)",
+    )
+    p_qc_xref.add_argument("--output", "-o", help="Write CSV to file")
+
     args = parser.parse_args()
     if args.command is None:
         parser.print_help()
@@ -1005,6 +1049,8 @@ def main() -> None:
         _export(args)
     elif args.command == "reassign-alleles":
         _reassign(args)
+    elif args.command == "qc":
+        _qc(args)
 
 
 def _reassign(args: argparse.Namespace) -> None:
@@ -1033,6 +1079,47 @@ def _reassign(args: argparse.Namespace) -> None:
         else:
             df.to_csv(args.output, index=False)
         print(f"Wrote {len(df):,} rows to {args.output}", file=sys.stderr)
+    else:
+        print(df.to_csv(index=False), end="")
+
+
+def _qc(args: argparse.Namespace) -> None:
+    """Run a qc subcommand and emit CSV (or write to --output)."""
+    from . import qc
+
+    cmd = getattr(args, "qc_command", None)
+    output = getattr(args, "output", None)
+
+    if cmd is None:
+        # Bare ``hitlist qc`` runs all three checks and prints a summary.
+        results = qc.run_all(mhc_class=getattr(args, "mhc_class", None))
+        for name, df in results.items():
+            print(f"# {name}: {len(df):,} rows", file=sys.stderr)
+            if not df.empty:
+                print(df.to_csv(index=False), end="")
+                print()
+        return
+
+    if cmd == "resolution":
+        df = qc.resolution_histogram(
+            mhc_class=getattr(args, "mhc_class", None),
+            species=getattr(args, "species", None),
+            source=getattr(args, "source", None),
+        )
+    elif cmd == "normalization":
+        df = qc.normalization_drift()
+    elif cmd == "cross-reference":
+        df = qc.cross_reference(mhc_class=getattr(args, "mhc_class", None))
+        direction = getattr(args, "direction", "both")
+        if direction != "both" and not df.empty:
+            df = df[df["direction"] == direction].reset_index(drop=True)
+    else:
+        print(f"Unknown qc subcommand: {cmd}", file=sys.stderr)
+        sys.exit(1)
+
+    if output:
+        df.to_csv(output, index=False)
+        print(f"Wrote {len(df):,} rows to {output}", file=sys.stderr)
     else:
         print(df.to_csv(index=False), end="")
 
