@@ -344,3 +344,71 @@ def test_load_binding_length_bounds(tmp_path, monkeypatch):
 
     df = load_binding(length_min=9, length_max=11)
     assert set(df["peptide"].str.len()) == {9}
+
+
+def test_load_observations_normalizes_unprefixed_alleles_at_load_time(tmp_path, monkeypatch):
+    """v1.30.0 / #181: stale parquets carry unprefixed allele forms
+    (``A*02:01``) from supplements that predate the
+    ``normalize_allele`` call in ``supplement.py``. ``load_observations``
+    canonicalizes them at load time so downstream groupbys / exact-match
+    filters see one canonical string per allele."""
+    import pandas as pd
+
+    from hitlist.observations import load_observations
+
+    df = pd.DataFrame(
+        {
+            "peptide": ["AAAAAAAAA", "BBBBBBBBB", "CCCCCCCCC"],
+            "mhc_restriction": ["A*02:01", "HLA-A*02:01", "B*15:03"],
+            "mhc_class": ["I", "I", "I"],
+            "reference_iri": [f"r-{i}" for i in range(3)],
+            "pmid": pd.array([1, 2, 3], dtype="Int64"),
+            "source": ["supplement", "iedb", "supplement"],
+            "mhc_species": ["Homo sapiens"] * 3,
+        }
+    )
+    path = tmp_path / "observations.parquet"
+    df.to_parquet(path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
+
+    out = load_observations()
+    # All three rows should report canonical, prefixed allele strings.
+    assert set(out["mhc_restriction"]) == {"HLA-A*02:01", "HLA-B*15:03"}
+
+
+def test_load_observations_flags_short_class_ii_as_suspect(tmp_path, monkeypatch):
+    """v1.30.0 / #182: short peptides (≤10aa) labeled class II are
+    flagged ``mhc_class_label_suspect=True`` so consumers can opt out
+    of biologically-improbable rows. Class I peptides ≥18aa get the
+    same flag in the symmetric direction."""
+    import pandas as pd
+
+    from hitlist.observations import load_observations
+
+    df = pd.DataFrame(
+        {
+            "peptide": [
+                "SLLQHLIGL",  # 9aa class II — suspect
+                "AAAAAAAAAAAAAAA",  # 15aa class II — plausible
+                "AAAAAAAAA",  # 9aa class I — plausible
+                "AAAAAAAAAAAAAAAAAA",  # 18aa class I — suspect
+            ],
+            "mhc_restriction": ["HLA class II", "HLA-DRB1*15:01", "HLA-A*02:01", "HLA-A*02:01"],
+            "mhc_class": ["II", "II", "I", "I"],
+            "reference_iri": [f"r-{i}" for i in range(4)],
+            "pmid": pd.array([1, 2, 3, 4], dtype="Int64"),
+            "source": ["iedb"] * 4,
+            "mhc_species": ["Homo sapiens"] * 4,
+        }
+    )
+    path = tmp_path / "observations.parquet"
+    df.to_parquet(path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
+
+    out = load_observations()
+    assert "mhc_class_label_suspect" in out.columns
+    suspect = dict(zip(out["peptide"], out["mhc_class_label_suspect"]))
+    assert suspect["SLLQHLIGL"]  # 9aa class II
+    assert not suspect["AAAAAAAAAAAAAAA"]  # 15aa class II
+    assert not suspect["AAAAAAAAA"]  # 9aa class I
+    assert suspect["AAAAAAAAAAAAAAAAAA"]  # 18aa class I
