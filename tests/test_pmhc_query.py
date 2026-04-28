@@ -163,6 +163,85 @@ def test_pmhc_query_no_filters_returns_everything(tmp_path, monkeypatch):
     assert set(df["mhc_allele"]) == {"HLA-A*02:01", "HLA-B*07:02"}
 
 
+def test_pmhc_query_normalizes_unprefixed_alleles(tmp_path, monkeypatch):
+    """v1.29.8: ``A*02:01`` and ``HLA-A*02:01`` are the same allele in
+    different sources — the parquet stores both forms because curators
+    aren't consistent. Normalize before grouping so peptides don't get
+    split across two unrelated buckets."""
+    from hitlist import pmhc_query
+
+    df = pd.DataFrame(
+        {
+            "peptide": ["SLLQHLIGL", "SLLQHLIGL"],
+            "pmid": [38480730, 22424782],
+            "mhc_class": ["I", "I"],
+            "mhc_restriction": ["A*02:01", "HLA-A*02:01"],
+            "gene_names": ["PRAME", "PRAME"],
+            "gene_ids": ["ENSG00000185686", "ENSG00000185686"],
+            "species": ["Homo sapiens"] * 2,
+            "mhc_species": ["Homo sapiens"] * 2,
+            "source": ["iedb"] * 2,
+        }
+    )
+    obs_path = tmp_path / "observations.parquet"
+    df.to_parquet(obs_path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+
+    result = pmhc_query.query(proteins=["PRAME"], use_hgnc=False)
+    # Both rows should collapse to a single canonical HLA-A*02:01 bucket.
+    assert set(result["mhc_allele"]) == {"HLA-A*02:01"}
+    row = result.iloc[0]
+    assert row["n_observations"] == 2
+    assert "38480730" in row["pmids"] and "22424782" in row["pmids"]
+
+
+def test_pmhc_query_format_table_sorts_alleles_by_evidence_count(tmp_path, monkeypatch):
+    """v1.29.8: alleles within a gene are ordered by total evidence count
+    descending — the most-attested allele appears first, not the
+    alphabetically-first one."""
+    from hitlist import pmhc_query
+
+    obs_path = _write_obs_fixture(tmp_path)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+
+    df = pmhc_query.query(proteins=["NRAS"], use_hgnc=False)
+    text = pmhc_query.format_table(df)
+    # NRAS has 3 obs on A*02:01 and 1 obs on B*07:02 — A*02:01 should
+    # appear first.
+    a02_idx = text.find("HLA-A*02:01")
+    b07_idx = text.find("HLA-B*07:02")
+    assert 0 < a02_idx < b07_idx
+
+
+def test_pmhc_query_format_table_prints_headers_once_per_gene(tmp_path, monkeypatch):
+    """v1.29.8: column headers are printed once per gene, not per allele.
+    A two-allele gene should have exactly one ``peptide  n_obs  pmids``
+    header line, not two."""
+    from hitlist import pmhc_query
+
+    obs_path = _write_obs_fixture(tmp_path)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+
+    df = pmhc_query.query(proteins=["NRAS"], use_hgnc=False)
+    text = pmhc_query.format_table(df)
+    # The header column word "n_obs" should appear exactly once per gene.
+    assert text.count("n_obs") == 1
+
+
+def test_pmhc_query_format_table_appends_predictor_tip_when_unscored(tmp_path, monkeypatch):
+    """v1.29.8: when no ``--predictor`` was passed, the table footer
+    points users at ``--predictor netmhcpan`` so they don't have to
+    rediscover the option from --help."""
+    from hitlist import pmhc_query
+
+    obs_path = _write_obs_fixture(tmp_path)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+
+    df = pmhc_query.query(proteins=["NRAS"], use_hgnc=False)
+    text = pmhc_query.format_table(df)
+    assert "--predictor netmhcpan" in text
+
+
 def test_pmhc_query_format_table_renders_grouped_table(tmp_path, monkeypatch):
     """The table formatter renders protein > allele as section headers with
     peptide rows in a column-aligned table beneath each allele.  The shape

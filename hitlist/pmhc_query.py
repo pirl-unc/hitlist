@@ -170,6 +170,19 @@ def query(
         if df.empty:
             return _empty_result(predictor is not None)
 
+    # 3b. Normalize MHC restriction strings before grouping. The parquet
+    #     stores both ``A*02:01`` and ``HLA-A*02:01`` for the same allele
+    #     because different sources used different conventions; passing
+    #     the raw strings through to groupby would split the peptides
+    #     across two unrelated buckets. ``normalize_allele`` is mhcgnomes-
+    #     backed and idempotent on canonical inputs; the LRU cache keeps
+    #     the per-row cost negligible (~hundreds of unique values).
+    from .curation import normalize_allele
+
+    df["mhc_restriction"] = (
+        df["mhc_restriction"].fillna("").map(lambda s: normalize_allele(s) if s else s)
+    )
+
     # 4. Split the parallel ``gene_names`` / ``gene_ids`` semicolon-joined
     #    strings into one row per (gene_name, gene_id) so we can group
     #    cleanly. Pad the shorter list with empties so the pairs stay
@@ -295,15 +308,18 @@ def format_table(df: pd.DataFrame) -> str:
     Layout::
 
         GENE_NAME (GENE_ID)
-          MHC_ALLELE
             peptide        n_obs  pmids               [affinity_nM  binder]
             -------------  -----  -----------------   -------------------
+          MHC_ALLELE
             PEPTIDE_SEQ        N  pmid1;pmid2          ...
             ...
           MHC_ALLELE
             ...
 
-    Each peptide row is column-aligned so values line up vertically.
+    Column headers are printed **once per gene** (not per allele) so the
+    output stays scannable; alleles within a gene are ordered by total
+    observation count, descending. If ``--predictor`` was not used, a
+    one-line tip mentioning ``--predictor netmhcpan`` is appended.
     Empty result yields a one-line "(no evidence)" message.
     """
     if df.empty:
@@ -353,15 +369,29 @@ def format_table(df: pd.DataFrame) -> str:
         gene_id = gene_df["gene_id"].dropna().astype(str)
         gene_id = gene_id.iloc[0] if len(gene_id) else ""
         out.append(f"{gene_name} ({gene_id})" if gene_id else gene_name)
-        for allele in sorted(gene_df["mhc_allele"].unique()):
+        # One header per gene, not per allele — peptide rows beneath each
+        # allele line up under the same column rule.
+        out.append(header_line)
+        out.append(rule_line)
+        # Order alleles within the gene by total evidence count descending
+        # so the most-attested allele is at the top.
+        allele_totals = (
+            gene_df.groupby("mhc_allele")["n_observations"]
+            .sum()
+            .sort_values(ascending=False, kind="stable")
+        )
+        for allele in allele_totals.index:
             allele_df = gene_df[gene_df["mhc_allele"] == allele]
             out.append(f"  {allele}")
-            out.append(header_line)
-            out.append(rule_line)
             for _, row in allele_df.iterrows():
                 cells = [_fmt(pep_headers[i], row[k]) for i, k in enumerate(pep_keys)]
                 out.append(indent + sep.join(cells[i].ljust(widths[i]) for i in range(len(cells))))
         out.append("")
+
+    if not has_pred:
+        out.append(
+            "Tip: pass `--predictor netmhcpan` (or mhcflurry) to add binding-affinity columns."
+        )
     return "\n".join(out).rstrip() + "\n"
 
 
