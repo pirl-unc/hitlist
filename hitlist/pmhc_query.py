@@ -170,10 +170,11 @@ def query(
         if df.empty:
             return _empty_result(predictor is not None)
 
-    # 4. Explode the parallel ``gene_names`` / ``gene_ids`` lists into one
-    #    row per (gene_name, gene_id) so we can group cleanly.  Pad the
-    #    shorter list with empties so the pairs stay aligned.
-    _progress("exploding gene-list columns...", verbose)
+    # 4. Split the parallel ``gene_names`` / ``gene_ids`` semicolon-joined
+    #    strings into one row per (gene_name, gene_id) so we can group
+    #    cleanly. Pad the shorter list with empties so the pairs stay
+    #    aligned. (This is what pandas calls ``DataFrame.explode``.)
+    _progress("splitting multi-gene rows (one row per gene)...", verbose)
     df["_gene_name"] = df["gene_names"].str.split(";")
     df["_gene_id"] = df["gene_ids"].str.split(";")
     pad_lens = [max(len(a), len(b)) for a, b in zip(df["_gene_name"], df["_gene_id"])]
@@ -185,7 +186,7 @@ def query(
     df["gene_name"] = df["_gene_name"].astype(str).str.strip()
     df["gene_id"] = df["_gene_id"].astype(str).str.strip()
     df = df.drop(columns=["_gene_name", "_gene_id", "gene_names", "gene_ids"])
-    _progress(f"  {len(df):,} rows after explode", verbose)
+    _progress(f"  {len(df):,} rows after split", verbose)
     # Final precise gene filter — the substring pre-filter above can
     # surface sibling genes from the same multi-mapping cell.
     if names or ids:
