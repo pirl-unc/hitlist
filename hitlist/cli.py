@@ -54,6 +54,38 @@ def _fmt_size(size: int) -> str:
     return f"{size} B"
 
 
+def _print_banner(stream=sys.stderr) -> None:
+    """One-line version + observations-build status banner.
+
+    Shown above subgroup help so users get quick orientation: which
+    version they're on, and whether the canonical artifact downstream
+    commands depend on has been built yet.
+    """
+    from .version import __version__
+
+    print(f"hitlist v{__version__}", file=stream)
+    try:
+        from .observations import is_built
+
+        built = is_built()
+    except Exception:
+        built = False
+    state = "built" if built else "NOT BUILT — run `hitlist build observations`"
+    print(f"observations.parquet: {state}", file=stream)
+    print(file=stream)
+
+
+def _print_subgroup_help(parser: argparse.ArgumentParser) -> None:
+    """Banner + full help for a subgroup parser.
+
+    Used when a user runs e.g. ``hitlist pmhc`` with no subcommand —
+    instead of a one-line "Usage: hitlist pmhc {query}" string, show
+    what each subcommand actually does and the args it takes.
+    """
+    _print_banner()
+    parser.print_help(sys.stderr)
+
+
 def _data_list(args: argparse.Namespace) -> None:
     datasets = list_datasets()
     if not datasets:
@@ -294,6 +326,7 @@ def _data_index(args: argparse.Namespace) -> None:
 
 def _build_data_parser(sub: argparse._SubParsersAction) -> None:
     dp = sub.add_parser("data", help="Manage external datasets")
+    dp.set_defaults(_subgroup_parser=dp)
     ds = dp.add_subparsers(dest="data_command")
 
     ds.add_parser("list", help="Show registered datasets")
@@ -586,6 +619,7 @@ def _build_top_level_build_parser(sub: argparse._SubParsersAction) -> None:
             "cached scan index, reference proteomes."
         ),
     )
+    p_build.set_defaults(_subgroup_parser=p_build)
     bs = p_build.add_subparsers(dest="build_command")
 
     p = bs.add_parser("observations", help="Build unified observations table from IEDB/CEDAR")
@@ -606,10 +640,7 @@ def _handle_build(args: argparse.Namespace) -> None:
     legacy ``hitlist data {build,index,fetch-proteomes}`` entry points."""
     cmd = getattr(args, "build_command", None)
     if cmd is None:
-        print(
-            "Usage: hitlist build {observations,index,proteomes}",
-            file=sys.stderr,
-        )
+        _print_subgroup_help(args._subgroup_parser)
         sys.exit(1)
     handlers = {
         "observations": _data_build,
@@ -642,10 +673,7 @@ def _handle_data(args: argparse.Namespace) -> None:
         "list-proteomes": _data_list_proteomes,
     }
     if args.data_command is None:
-        print(
-            "Usage: hitlist data {list,available,register,fetch,refresh,info,path,"
-            "remove,build,index,fetch-proteomes,list-proteomes}"
-        )
+        _print_subgroup_help(args._subgroup_parser)
         sys.exit(1)
     if args.data_command in _DEPRECATED_DATA_SUBCOMMANDS:
         new_path = _DEPRECATED_DATA_SUBCOMMANDS[args.data_command]
@@ -701,6 +729,7 @@ def main() -> None:
 
     # ── export subcommand ──────────────────────────────────────────────
     p_export = sub.add_parser("export", help="Export curated study metadata as CSV")
+    p_export.set_defaults(_subgroup_parser=p_export)
     export_sub = p_export.add_subparsers(dest="export_command")
 
     p_samples = export_sub.add_parser(
@@ -1169,6 +1198,7 @@ def main() -> None:
             "cross-reference."
         ),
     )
+    p_qc.set_defaults(_subgroup_parser=p_qc)
     qc_sub = p_qc.add_subparsers(dest="qc_command")
 
     p_qc_res = qc_sub.add_parser(
@@ -1208,7 +1238,15 @@ def main() -> None:
     p_pmhc = sub.add_parser(
         "pmhc",
         help="Per-protein x allele pMHC evidence query with optional NetMHCpan/MHCflurry scoring.",
+        description=(
+            "Per-protein x allele pMHC evidence query.\n\n"
+            "Run `hitlist pmhc query --protein <gene> --mhc-allele <allele>` "
+            "to fetch every MS-attested peptide for the requested combination, "
+            "grouped by (gene, allele) with PMID sources. Pass `--predictor "
+            "{mhcflurry,netmhcpan}` to add binding-affinity scoring."
+        ),
     )
+    p_pmhc.set_defaults(_subgroup_parser=p_pmhc)
     pmhc_sub = p_pmhc.add_subparsers(dest="pmhc_command")
     p_pmhc_q = pmhc_sub.add_parser(
         "query",
@@ -1281,7 +1319,7 @@ def main() -> None:
 
     args = parser.parse_args()
     if args.command is None:
-        parser.print_help()
+        _print_subgroup_help(parser)
         sys.exit(1)
     if args.command == "data":
         _handle_data(args)
@@ -1385,7 +1423,7 @@ def _pmhc(args: argparse.Namespace) -> None:
 
     cmd = getattr(args, "pmhc_command", None)
     if cmd is None:
-        print("Usage: hitlist pmhc {query}", file=sys.stderr)
+        _print_subgroup_help(args._subgroup_parser)
         sys.exit(1)
     if cmd != "query":
         print(f"Unknown pmhc subcommand: {cmd}", file=sys.stderr)
@@ -1661,11 +1699,7 @@ def _export(args: argparse.Namespace) -> None:
             source_id=getattr(args, "source_id", None),
         )
     else:
-        print(
-            "Usage: hitlist export "
-            "{samples,summary,alleles,data-alleles,counts,observations,"
-            "binding,training,bulk,line-expression}"
-        )
+        _print_subgroup_help(args._subgroup_parser)
         sys.exit(1)
 
     elapsed = _time.perf_counter() - t0
