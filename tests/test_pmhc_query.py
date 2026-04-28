@@ -118,6 +118,51 @@ def test_pmhc_query_empty_when_no_match(tmp_path, monkeypatch):
         assert col in df.columns
 
 
+def test_pmhc_query_no_proteins_returns_all_genes(tmp_path, monkeypatch):
+    """v1.29.6: ``proteins=None`` (or empty) is no longer an error — it
+    means "all genes". Filtering by allele alone returns every gene that
+    presents on that allele."""
+    from hitlist import pmhc_query
+
+    obs_path = _write_obs_fixture(tmp_path)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+
+    df = pmhc_query.query(alleles=["HLA-A*02:01"], use_hgnc=False)
+    # The fixture has KLVVVGAGGV (NRAS+KRAS), ILDTAGREEY (NRAS), FLPNKQRTV (BRAF) on A*02:01.
+    assert set(df["gene_name"]) == {"NRAS", "KRAS", "BRAF"}
+    assert set(df["mhc_allele"]) == {"HLA-A*02:01"}
+
+
+def test_pmhc_query_no_alleles_returns_all_alleles(tmp_path, monkeypatch):
+    """v1.29.6: ``alleles=None`` (or empty) is no longer an error — it
+    means "all alleles". Filtering by protein alone returns every allele
+    that presents the requested gene's peptides."""
+    from hitlist import pmhc_query
+
+    obs_path = _write_obs_fixture(tmp_path)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+
+    df = pmhc_query.query(proteins=["NRAS"], use_hgnc=False)
+    assert set(df["gene_name"]) == {"NRAS"}
+    # NRAS peptides span both A*02:01 and B*07:02 in the fixture.
+    assert set(df["mhc_allele"]) == {"HLA-A*02:01", "HLA-B*07:02"}
+
+
+def test_pmhc_query_no_filters_returns_everything(tmp_path, monkeypatch):
+    """v1.29.6: ``query()`` with no filters returns the full corpus
+    aggregated to (gene, allele, peptide). Useful as a "show me all
+    pMHC evidence" command."""
+    from hitlist import pmhc_query
+
+    obs_path = _write_obs_fixture(tmp_path)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+
+    df = pmhc_query.query(use_hgnc=False)
+    # All 3 genes from the fixture, both alleles.
+    assert set(df["gene_name"]) == {"NRAS", "KRAS", "BRAF"}
+    assert set(df["mhc_allele"]) == {"HLA-A*02:01", "HLA-B*07:02"}
+
+
 def test_pmhc_query_format_table_renders_grouped_table(tmp_path, monkeypatch):
     """The table formatter renders protein > allele as section headers with
     peptide rows in a column-aligned table beneath each allele.  The shape
