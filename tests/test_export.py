@@ -1927,3 +1927,48 @@ def test_export_training_cli_helper(monkeypatch):
         "with_peptide_origin": False,
         "proteome_release": 112,
     }
+
+
+def test_to_list_flattens_all_three_input_shapes():
+    """List filters must accept repeated, space-separated, and
+    comma-separated input identically.  Pre-fix, comma-separated values
+    inside list elements (from ``--gene NRAS,KRAS``) were left as a single
+    string ``"NRAS,KRAS"`` and silently failed to match anything.
+    """
+    from hitlist.export import _to_list
+
+    # Bare string with commas (legacy single-flag form).
+    assert _to_list("NRAS,KRAS") == ["NRAS", "KRAS"]
+    assert _to_list("  NRAS , KRAS ") == ["NRAS", "KRAS"]
+    # List of single tokens (repeated --flag X --flag Y → ["X","Y"]
+    # or space-separated nargs="+" --flag X Y → ["X","Y"]).
+    assert _to_list(["NRAS", "KRAS"]) == ["NRAS", "KRAS"]
+    # List with comma-bearing elements (mixed: --flag NRAS,KRAS HRAS).
+    assert _to_list(["NRAS,KRAS", "HRAS"]) == ["NRAS", "KRAS", "HRAS"]
+    # Empties drop, whitespace strips.
+    assert _to_list(["", "NRAS", " "]) == ["NRAS"]
+    assert _to_list("") == []
+
+
+def test_cli_list_args_accept_space_and_comma_and_repeated_forms():
+    """argparse must produce the same flat list for all three input shapes
+    so users don't need to remember which form a given flag accepts.
+    """
+    # No public CLI parser-builder helper, so reproduce the action/nargs
+    # combination the real flags use and exercise argparse directly.
+    import argparse
+
+    p = argparse.ArgumentParser()
+    p.add_argument("--gene", action="extend", nargs="+")
+    p.add_argument("--mhc-allele", action="extend", nargs="+")
+
+    # Repeated.
+    a = p.parse_args(["--gene", "NRAS", "--gene", "KRAS"])
+    assert a.gene == ["NRAS", "KRAS"]
+    # Space-separated (the case that used to fail).
+    a = p.parse_args(["--gene", "NRAS", "KRAS"])
+    assert a.gene == ["NRAS", "KRAS"]
+    # Multiple flags interleaved with space-separated values.
+    a = p.parse_args(["--mhc-allele", "HLA-A*02:01", "HLA-B*07:02", "--gene", "NRAS"])
+    assert a.mhc_allele == ["HLA-A*02:01", "HLA-B*07:02"]
+    assert a.gene == ["NRAS"]

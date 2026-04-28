@@ -495,16 +495,18 @@ def main() -> None:
     )
     p_obs.add_argument(
         "--mhc-allele",
-        action="append",
+        action="extend",
+        nargs="+",
         help=(
             "Filter to peptides whose mhc_restriction matches (after allele "
-            "normalization).  Repeatable or comma-separated, e.g. "
+            "normalization).  Space-separated, comma-separated, or repeated, e.g. "
             "'--mhc-allele HLA-A*02:01 --mhc-allele HLA-B*07:02'."
         ),
     )
     p_obs.add_argument(
         "--mhc-allele-in-bag",
-        action="append",
+        action="extend",
+        nargs="+",
         help=(
             "Filter to rows whose mhc_allele_set (issue #137 expanded "
             "candidate-allele bag) contains any of the listed alleles. "
@@ -514,7 +516,8 @@ def main() -> None:
     )
     p_obs.add_argument(
         "--mhc-allele-provenance",
-        action="append",
+        action="extend",
+        nargs="+",
         choices=["exact", "sample_allele_match", "pmid_class_pool", "unmatched"],
         help=(
             "Filter by how the allele bag was obtained.  Use 'exact' for "
@@ -524,32 +527,36 @@ def main() -> None:
     )
     p_obs.add_argument(
         "--gene",
-        action="append",
+        action="extend",
+        nargs="+",
         help=(
             "Filter to peptides from these genes.  Accepts current symbols, "
             "Ensembl gene IDs (ENSG...), and old/alias symbols (resolved via "
-            "HGNC).  Repeatable or comma-separated.  Requires a flanking-built "
+            "HGNC).  Space-separated, comma-separated, or repeated.  Requires a flanking-built "
             "observations table."
         ),
     )
     p_obs.add_argument(
         "--gene-name",
-        action="append",
+        action="extend",
+        nargs="+",
         help="Exact match on gene_name column (no HGNC synonym lookup).",
     )
     p_obs.add_argument(
         "--gene-id",
-        action="append",
+        action="extend",
+        nargs="+",
         help="Exact match on gene_id column (Ensembl ENSG ID).",
     )
     p_obs.add_argument(
         "--serotype",
-        action="append",
+        action="extend",
+        nargs="+",
         help=(
             "Filter by HLA serotype.  Accepts locus-specific names (A2, A24, "
             "B57, DR15) or public epitopes (Bw4, Bw6, C1, C2).  Matches any "
             "serotype an allele belongs to, so --serotype Bw4 returns A*24:02, "
-            "B*27:05, B*57:01, etc.  Repeatable or comma-separated."
+            "B*27:05, B*57:01, etc.  Space-separated, comma-separated, or repeated."
         ),
     )
     p_obs.add_argument("--output", "-o", help="Write to file (.csv or .parquet)")
@@ -575,15 +582,17 @@ def main() -> None:
     )
     p_bind.add_argument(
         "--mhc-allele",
-        action="append",
+        action="extend",
+        nargs="+",
         help=(
             "Filter to rows whose mhc_restriction matches (after allele "
-            "normalization).  Repeatable or comma-separated."
+            "normalization).  Space-separated, comma-separated, or repeated."
         ),
     )
     p_bind.add_argument(
         "--mhc-allele-in-bag",
-        action="append",
+        action="extend",
+        nargs="+",
         help=(
             "Filter to rows whose mhc_allele_set (issue #137 candidate-allele "
             "bag) contains any of the listed alleles.  Repeatable."
@@ -591,31 +600,39 @@ def main() -> None:
     )
     p_bind.add_argument(
         "--mhc-allele-provenance",
-        action="append",
+        action="extend",
+        nargs="+",
         choices=["exact", "sample_allele_match", "pmid_class_pool", "unmatched"],
         help="Filter by how the allele bag was obtained (issue #137).",
     )
     p_bind.add_argument(
         "--gene",
-        action="append",
+        action="extend",
+        nargs="+",
         help=(
             "Filter by gene (HGNC symbol, Ensembl ID, or old alias).  "
-            "Repeatable or comma-separated.  Requires a mappings-built index."
+            "Space-separated, comma-separated, or repeated.  Requires a mappings-built index."
         ),
     )
-    p_bind.add_argument("--gene-name", action="append", help="Exact match on gene_name column.")
-    p_bind.add_argument("--gene-id", action="append", help="Exact match on gene_id column.")
+    p_bind.add_argument(
+        "--gene-name", action="extend", nargs="+", help="Exact match on gene_name column."
+    )
+    p_bind.add_argument(
+        "--gene-id", action="extend", nargs="+", help="Exact match on gene_id column."
+    )
     p_bind.add_argument(
         "--serotype",
-        action="append",
+        action="extend",
+        nargs="+",
         help=(
             "Filter by HLA serotype (locus-specific A24/B57/DR15 or public "
-            "epitopes Bw4/Bw6/C1/C2).  Repeatable or comma-separated."
+            "epitopes Bw4/Bw6/C1/C2).  Space-separated, comma-separated, or repeated."
         ),
     )
     p_bind.add_argument(
         "--assay-method",
-        action="append",
+        action="extend",
+        nargs="+",
         help=(
             "Filter to rows whose IEDB/CEDAR assay_method matches (case-"
             "insensitive substring).  Examples: 'purified MHC/direct/"
@@ -624,7 +641,8 @@ def main() -> None:
     )
     p_bind.add_argument(
         "--response-measured",
-        action="append",
+        action="extend",
+        nargs="+",
         help=(
             "Filter to rows whose IEDB/CEDAR Response-measured matches "
             "(case-insensitive exact match).  Examples: 'qualitative "
@@ -636,7 +654,8 @@ def main() -> None:
     )
     p_bind.add_argument(
         "--measurement-units",
-        action="append",
+        action="extend",
+        nargs="+",
         help=(
             "Filter to rows reporting in these units (case-insensitive "
             "exact match).  Pair with --quantitative-value-{min,max} to "
@@ -719,12 +738,14 @@ def main() -> None:
     )
     p_training.add_argument(
         "--mhc-allele",
-        action="append",
-        help="Exact allele filter. Repeatable or comma-separated.",
+        action="extend",
+        nargs="+",
+        help="Exact allele filter. Space-separated, comma-separated, or repeated.",
     )
     p_training.add_argument(
         "--mhc-allele-in-bag",
-        action="append",
+        action="extend",
+        nargs="+",
         help=(
             "Filter to rows whose mhc_allele_set (issue #137 expanded "
             "candidate-allele bag) contains any of the listed alleles. "
@@ -734,7 +755,8 @@ def main() -> None:
     )
     p_training.add_argument(
         "--mhc-allele-provenance",
-        action="append",
+        action="extend",
+        nargs="+",
         choices=["exact", "sample_allele_match", "pmid_class_pool", "unmatched"],
         help=(
             "Filter by how the allele bag was obtained.  Use 'exact' for "
@@ -744,23 +766,28 @@ def main() -> None:
     )
     p_training.add_argument(
         "--gene",
-        action="append",
+        action="extend",
+        nargs="+",
         help=(
             "Filter by gene (HGNC symbol, Ensembl ID, or old alias). "
-            "Repeatable or comma-separated. Requires a mappings-built index."
+            "Space-separated, comma-separated, or repeated. Requires a mappings-built index."
         ),
     )
-    p_training.add_argument("--gene-name", action="append", help="Exact match on gene_name.")
-    p_training.add_argument("--gene-id", action="append", help="Exact match on gene_id.")
+    p_training.add_argument(
+        "--gene-name", action="extend", nargs="+", help="Exact match on gene_name."
+    )
+    p_training.add_argument("--gene-id", action="extend", nargs="+", help="Exact match on gene_id.")
     p_training.add_argument(
         "--peptide",
-        action="append",
-        help="Filter to one or more peptide sequences. Repeatable or comma-separated.",
+        action="extend",
+        nargs="+",
+        help="Filter to one or more peptide sequences. Space-separated, comma-separated, or repeated.",
     )
     p_training.add_argument(
         "--serotype",
-        action="append",
-        help="Filter by HLA serotype. Repeatable or comma-separated.",
+        action="extend",
+        nargs="+",
+        help="Filter by HLA serotype. Space-separated, comma-separated, or repeated.",
     )
     p_training.add_argument("--length-min", type=int, help="Minimum peptide length (inclusive).")
     p_training.add_argument("--length-max", type=int, help="Maximum peptide length (inclusive).")
@@ -815,15 +842,19 @@ def main() -> None:
         default="both",
         help="Rows to export (default: both).",
     )
-    p_bulk.add_argument("--cell-line", action="append", help="Filter to one or more cell lines.")
+    p_bulk.add_argument(
+        "--cell-line", action="extend", nargs="+", help="Filter to one or more cell lines."
+    )
     p_bulk.add_argument(
         "--gene-name",
-        action="append",
+        action="extend",
+        nargs="+",
         help="Filter to one or more HGNC gene symbols (exact match).",
     )
     p_bulk.add_argument(
         "--uniprot-acc",
-        action="append",
+        action="extend",
+        nargs="+",
         help="Filter peptide rows to one or more UniProt accessions (exact match).",
     )
     p_bulk.add_argument(
@@ -833,7 +864,8 @@ def main() -> None:
     )
     p_bulk.add_argument(
         "--digestion-enzyme",
-        action="append",
+        action="extend",
+        nargs="+",
         help=(
             "Filter to one or more enzymes: 'Trypsin/P (cleaves K/R except before P)', "
             "'Chymotrypsin', 'GluC', 'LysC'."
@@ -841,7 +873,8 @@ def main() -> None:
     )
     p_bulk.add_argument(
         "--n-fractions",
-        action="append",
+        action="extend",
+        nargs="+",
         type=int,
         help="Filter to one or more fractionation depths (12/14/39/46/50/70).",
     )
@@ -856,7 +889,8 @@ def main() -> None:
     )
     p_bulk.add_argument(
         "--fractionation-ph",
-        action="append",
+        action="extend",
+        nargs="+",
         type=float,
         help="Filter by high-pH SPE buffer pH (8.0 or 10.0).",
     )
@@ -888,17 +922,20 @@ def main() -> None:
     )
     p_line_expr.add_argument(
         "--line-key",
-        action="append",
+        action="extend",
+        nargs="+",
         help="Filter to one or more line_key values (e.g. GM12878, HeLa).",
     )
     p_line_expr.add_argument(
         "--gene-name",
-        action="append",
+        action="extend",
+        nargs="+",
         help="Filter to one or more HGNC gene symbols.",
     )
     p_line_expr.add_argument(
         "--gene-id",
-        action="append",
+        action="extend",
+        nargs="+",
         help="Filter to one or more Ensembl gene IDs (unversioned).",
     )
     p_line_expr.add_argument(
@@ -908,7 +945,8 @@ def main() -> None:
     )
     p_line_expr.add_argument(
         "--source-id",
-        action="append",
+        action="extend",
+        nargs="+",
         help="Restrict to one or more source_ids from sources.yaml.",
     )
     p_line_expr.add_argument("--output", "-o", help="Write to file (.csv or .parquet)")
