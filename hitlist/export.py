@@ -1352,10 +1352,28 @@ def generate_training_table(
 
 
 def _to_list(v) -> list[str]:
-    """Accept a string or list; split a comma-separated string."""
+    """Accept a string or list; split commas in any element so all three
+    CLI input shapes flatten to the same flat list:
+
+    - repeated flags:        --gene NRAS --gene KRAS         -> ["NRAS", "KRAS"]
+    - space-separated:       --gene NRAS KRAS                -> ["NRAS", "KRAS"]
+    - comma-separated:       --gene NRAS,KRAS                -> ["NRAS", "KRAS"]
+    - mixed:                 --gene "NRAS,KRAS" HRAS         -> ["NRAS", "KRAS", "HRAS"]
+    """
     if isinstance(v, str):
         return [s.strip() for s in v.split(",") if s.strip()]
-    return [s for s in v if s]
+    out: list[str] = []
+    for elem in v:
+        if elem is None:
+            continue
+        if isinstance(elem, str):
+            for s in elem.split(","):
+                s = s.strip()
+                if s:
+                    out.append(s)
+        elif elem:
+            out.append(elem)
+    return out
 
 
 def _resolve_gene_filters(
