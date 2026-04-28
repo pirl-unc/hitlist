@@ -321,7 +321,31 @@ def _build_data_parser(sub: argparse._SubParsersAction) -> None:
     p.add_argument("name", help="Dataset name")
     p.add_argument("--delete", action="store_true", help="Also delete the file")
 
-    p = ds.add_parser("build", help="Build unified observations table from IEDB/CEDAR")
+    p = ds.add_parser(
+        "build",
+        help="DEPRECATED — use `hitlist build observations`. Builds observations.parquet.",
+    )
+    _add_build_observations_args(p)
+
+    p = ds.add_parser(
+        "fetch-proteomes",
+        help="DEPRECATED — use `hitlist build proteomes`. Auto-fetch reference proteomes.",
+    )
+    _add_build_proteomes_args(p)
+
+    ds.add_parser("list-proteomes", help="List downloaded reference proteomes")
+
+    p = ds.add_parser(
+        "index",
+        help="DEPRECATED — use `hitlist build index`. Build cached IEDB/CEDAR scan index.",
+    )
+    _add_build_index_args(p)
+
+
+def _add_build_observations_args(p: argparse.ArgumentParser) -> None:
+    """Argparse setup for the `hitlist build observations` (== legacy `data build`)
+    command.  Shared between the canonical and deprecated entry points so the
+    flag set never drifts between them."""
     p.add_argument(
         "--no-mappings",
         action="store_true",
@@ -358,10 +382,9 @@ def _build_data_parser(sub: argparse._SubParsersAction) -> None:
     )
     p.add_argument("--force", "-f", action="store_true", help="Rebuild even if cached")
 
-    p = ds.add_parser(
-        "fetch-proteomes",
-        help="Auto-fetch reference proteomes for species present in observations",
-    )
+
+def _add_build_proteomes_args(p: argparse.ArgumentParser) -> None:
+    """Argparse setup for `hitlist build proteomes` (== legacy `data fetch-proteomes`)."""
     p.add_argument(
         "--min-observations",
         type=int,
@@ -379,9 +402,9 @@ def _build_data_parser(sub: argparse._SubParsersAction) -> None:
     )
     p.add_argument("--force", "-f", action="store_true", help="Re-download cached proteomes")
 
-    ds.add_parser("list-proteomes", help="List downloaded reference proteomes")
 
-    p = ds.add_parser("index", help="Build/rebuild cached index of IEDB/CEDAR data")
+def _add_build_index_args(p: argparse.ArgumentParser) -> None:
+    """Argparse setup for `hitlist build index` (== legacy `data index`)."""
     p.add_argument(
         "--source",
         choices=["iedb", "cedar", "merged", "all"],
@@ -390,6 +413,55 @@ def _build_data_parser(sub: argparse._SubParsersAction) -> None:
     p.add_argument(
         "--force", "-f", action="store_true", help="Force re-index even if cache is valid"
     )
+
+
+def _build_top_level_build_parser(sub: argparse._SubParsersAction) -> None:
+    """Register the canonical ``hitlist build`` group."""
+    p_build = sub.add_parser(
+        "build",
+        help=(
+            "Build canonical artifacts: observations.parquet (from IEDB/CEDAR), "
+            "cached scan index, reference proteomes."
+        ),
+    )
+    bs = p_build.add_subparsers(dest="build_command")
+
+    p = bs.add_parser("observations", help="Build unified observations table from IEDB/CEDAR")
+    _add_build_observations_args(p)
+
+    p = bs.add_parser("index", help="Build/rebuild cached scan index of IEDB/CEDAR data")
+    _add_build_index_args(p)
+
+    p = bs.add_parser(
+        "proteomes",
+        help="Auto-fetch reference proteomes for species present in observations",
+    )
+    _add_build_proteomes_args(p)
+
+
+def _handle_build(args: argparse.Namespace) -> None:
+    """Dispatch ``hitlist build <subcommand>`` to the same handlers as the
+    legacy ``hitlist data {build,index,fetch-proteomes}`` entry points."""
+    cmd = getattr(args, "build_command", None)
+    if cmd is None:
+        print(
+            "Usage: hitlist build {observations,index,proteomes}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    handlers = {
+        "observations": _data_build,
+        "index": _data_index,
+        "proteomes": _data_fetch_proteomes,
+    }
+    handlers[cmd](args)
+
+
+_DEPRECATED_DATA_SUBCOMMANDS = {
+    "build": "hitlist build observations",
+    "index": "hitlist build index",
+    "fetch-proteomes": "hitlist build proteomes",
+}
 
 
 def _handle_data(args: argparse.Namespace) -> None:
@@ -413,6 +485,13 @@ def _handle_data(args: argparse.Namespace) -> None:
             "remove,build,index,fetch-proteomes,list-proteomes}"
         )
         sys.exit(1)
+    if args.data_command in _DEPRECATED_DATA_SUBCOMMANDS:
+        new_path = _DEPRECATED_DATA_SUBCOMMANDS[args.data_command]
+        print(
+            f"Note: `hitlist data {args.data_command}` is deprecated; use "
+            f"`{new_path}` instead.  Will be removed in v2.0.",
+            file=sys.stderr,
+        )
     handlers[args.data_command](args)
 
 
@@ -431,6 +510,7 @@ def main() -> None:
     )
     sub = parser.add_subparsers(dest="command")
     _build_data_parser(sub)
+    _build_top_level_build_parser(sub)
 
     p_report = sub.add_parser(
         "report", help="Generate data quality report from registered IEDB/CEDAR"
@@ -1043,6 +1123,8 @@ def main() -> None:
         sys.exit(1)
     if args.command == "data":
         _handle_data(args)
+    elif args.command == "build":
+        _handle_build(args)
     elif args.command == "report":
         _report(args)
     elif args.command == "export":
