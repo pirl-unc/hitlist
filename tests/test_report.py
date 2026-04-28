@@ -112,3 +112,34 @@ def test_run_report_no_observations_parquet_prints_hint(tmp_path, monkeypatch, c
     captured = capsys.readouterr()
     assert "hitlist build observations" in captured.err
     assert "--from-csv" in captured.err
+
+
+def test_generate_report_handles_pmid_overrides_without_legacy_label_key():
+    """Regression for v1.29.5: ``label`` was renamed to ``study_label`` in
+    v1.7.0 but the report still indexed ``entry['label']``, so any call
+    against a built parquet whose first row had a curated PMID raised
+    ``KeyError: 'label'``."""
+    import pandas as pd
+
+    from hitlist import report as report_mod
+
+    # Pick a PMID that's in pmid_overrides.yaml so the override block
+    # is exercised. Marcu 2021 (33858848) has been curated since v1.0.
+    df = pd.DataFrame(
+        {
+            "peptide": ["AAAAAAAAA"],
+            "pmid": [33858848],
+            "mhc_class": ["I"],
+            "mhc_restriction": ["HLA-A*02:01"],
+            "is_monoallelic": [False],
+            "monoallelic_host": [""],
+            "cell_line_name": [""],
+            "source_tissue": [""],
+            "disease": [""],
+            "src_cancer": [False],
+            "src_healthy_tissue": [True],
+        }
+    )
+    text = report_mod.generate_report(df)
+    assert "Curated Study Overrides Applied" in text
+    assert "PMID 33858848" in text

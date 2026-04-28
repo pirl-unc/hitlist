@@ -259,8 +259,14 @@ def generate_report(
             target_pmid = pmid_int
             pmid_rows = matched[matched["pmid"].apply(lambda x, t=target_pmid: _safe_int(x) == t)]
             if len(pmid_rows) > 0:
-                p(f"  PMID {pmid_int}: {entry['label']}")
-                p(f"    Override: {entry['override']}  |  Rows: {len(pmid_rows):,}")
+                # ``label`` was renamed to ``study_label`` in v1.7.0; the
+                # YAML schema only carries the new key now. Fall back to
+                # the empty string for entries that omit it (the override
+                # itself is the load-bearing field for the report).
+                study_label = entry.get("study_label", "")
+                override_kind = entry.get("override", "")
+                p(f"  PMID {pmid_int}: {study_label}")
+                p(f"    Override: {override_kind}  |  Rows: {len(pmid_rows):,}")
                 if entry.get("tissue_overrides"):
                     p(f"    Tissue overrides: {len(entry['tissue_overrides'])} tissues")
         p()
