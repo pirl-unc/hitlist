@@ -282,28 +282,87 @@ def _safe_int(v) -> int:
         return -1
 
 
+_REPORT_COLUMNS = (
+    "peptide",
+    "pmid",
+    "mhc_class",
+    "mhc_restriction",
+    "is_monoallelic",
+    "monoallelic_host",
+    "cell_line_name",
+    "source_tissue",
+    "disease",
+    "src_cancer",
+    "src_healthy_tissue",
+)
+
+
 def run_report(
     iedb_path: str | Path | None = None,
     cedar_path: str | Path | None = None,
     mhc_class: str | None = None,
     output: str | Path | None = None,
+    from_csv: bool = False,
 ) -> str:
-    """Convenience function: scan + report in one call.
+    """Convenience function: load + report in one call.
+
+    By default reads ``observations.parquet`` (instant on a built corpus).
+    Pass ``from_csv=True`` to fall back to live raw-CSV scanning, useful
+    on a fresh download before ``hitlist build observations`` has run.
 
     Parameters
     ----------
     iedb_path, cedar_path
-        Paths to IEDB/CEDAR exports. If None, tries to resolve from registry.
+        Only used when ``from_csv=True``.  Paths to IEDB/CEDAR exports;
+        ``None`` resolves from the dataset registry.
     mhc_class
         MHC class filter for the report.
     output
         Optional output file path.
+    from_csv
+        If True, scan the raw IEDB/CEDAR CSVs every call (legacy behavior;
+        slow).  Default False reads ``observations.parquet``.
 
     Returns
     -------
     str
         The report text.
     """
+    if from_csv:
+        return _run_report_from_csv(
+            iedb_path=iedb_path,
+            cedar_path=cedar_path,
+            mhc_class=mhc_class,
+            output=output,
+        )
+
+    from .observations import is_built, load_observations
+
+    if not is_built():
+        print(
+            "observations.parquet has not been built. Run "
+            "`hitlist build observations` first, or pass --from-csv to scan "
+            "the raw IEDB/CEDAR CSVs.",
+            file=sys.stderr,
+        )
+        return ""
+
+    df = load_observations(
+        species="Homo sapiens",
+        columns=list(_REPORT_COLUMNS),
+    )
+    return generate_report(df, mhc_class_filter=mhc_class, output=output)
+
+
+def _run_report_from_csv(
+    iedb_path: str | Path | None = None,
+    cedar_path: str | Path | None = None,
+    mhc_class: str | None = None,
+    output: str | Path | None = None,
+) -> str:
+    """Legacy live-scan path.  Reads raw IEDB/CEDAR CSVs every invocation;
+    minutes-slow on a full corpus.  Kept for users who want a sanity check
+    on a fresh download before ``hitlist build observations`` has run."""
     import contextlib
 
     from .downloads import get_path
@@ -330,5 +389,4 @@ def run_report(
         mhc_species="Homo sapiens",
         classify_source=True,
     )
-
     return generate_report(df, mhc_class_filter=mhc_class, output=output)

@@ -610,7 +610,11 @@ def _handle_data(args: argparse.Namespace) -> None:
 def _report(args: argparse.Namespace) -> None:
     from .report import run_report
 
-    text = run_report(mhc_class=args.mhc_class, output=args.output)
+    text = run_report(
+        mhc_class=args.mhc_class,
+        output=args.output,
+        from_csv=getattr(args, "from_csv", False),
+    )
     if not args.output:
         print(text)
 
@@ -625,9 +629,21 @@ def main() -> None:
     _build_top_level_build_parser(sub)
 
     p_report = sub.add_parser(
-        "report", help="Generate data quality report from registered IEDB/CEDAR"
+        "report",
+        help=(
+            "Data quality report.  Reads observations.parquet by default "
+            "(instant); pass --from-csv to fall back to a live raw-CSV scan."
+        ),
     )
     p_report.add_argument("--class", dest="mhc_class", help="MHC class filter (I or II)")
+    p_report.add_argument(
+        "--from-csv",
+        action="store_true",
+        help=(
+            "Scan the raw IEDB/CEDAR CSVs instead of reading observations.parquet. "
+            "Slow (minutes); useful before `hitlist build observations` has run."
+        ),
+    )
     p_report.add_argument("--output", "-o", help="Save report to file")
 
     # ── export subcommand ──────────────────────────────────────────────
