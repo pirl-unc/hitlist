@@ -313,17 +313,9 @@ def test_scan_supplementary_parquet_roundtrip(tmp_path):
     assert rt["pmid"].notna().all()
 
 
-def test_generate_observations_table():
+def test_generate_observations_table(full_observations_df):
     """Observations table should join peptides with sample metadata."""
-    from hitlist.observations import is_built
-
-    if not is_built():
-        import pytest
-
-        pytest.skip("Observations table not built")
-    from hitlist.export import generate_observations_table
-
-    df = generate_observations_table()
+    df = full_observations_df
     assert len(df) > 0
     # Original observation columns
     assert "peptide" in df.columns
@@ -335,19 +327,11 @@ def test_generate_observations_table():
     assert "quantification_method" in df.columns
 
 
-def test_generate_observations_monoallelic_filter():
+def test_generate_observations_monoallelic_filter(full_observations_df):
     """--mono-allelic / --multi-allelic should change row counts."""
-    from hitlist.observations import is_built
-
-    if not is_built():
-        import pytest
-
-        pytest.skip("Observations table not built")
-    from hitlist.export import generate_observations_table
-
-    df_all = generate_observations_table()
-    df_mono = generate_observations_table(is_mono_allelic=True)
-    df_multi = generate_observations_table(is_mono_allelic=False)
+    df_all = full_observations_df
+    df_mono = df_all[df_all["is_monoallelic"]]
+    df_multi = df_all[~df_all["is_monoallelic"]]
     # Both subsets should be non-empty and smaller than the full table
     assert len(df_mono) > 0, "Mono-allelic filter returned no rows"
     assert len(df_multi) > 0, "Multi-allelic filter returned no rows"
@@ -355,17 +339,9 @@ def test_generate_observations_monoallelic_filter():
     assert len(df_multi) < len(df_all), "Multi-allelic filter did not reduce row count"
 
 
-def test_generate_observations_provenance_columns():
+def test_generate_observations_provenance_columns(full_observations_df):
     """Provenance columns should be present and meaningful."""
-    from hitlist.observations import is_built
-
-    if not is_built():
-        import pytest
-
-        pytest.skip("Observations table not built")
-    from hitlist.export import generate_observations_table
-
-    df = generate_observations_table()
+    df = full_observations_df
     assert "sample_match_type" in df.columns
     assert "matched_sample_count" in df.columns
     assert "has_peptide_level_allele" in df.columns
@@ -379,17 +355,9 @@ def test_generate_observations_provenance_columns():
         assert allele_matched > 0, "No rows have allele_match despite having alleles"
 
 
-def test_generate_observations_parquet_export(tmp_path):
+def test_generate_observations_parquet_export(tmp_path, full_observations_df):
     """Parquet export path should produce a readable file."""
-    from hitlist.observations import is_built
-
-    if not is_built():
-        import pytest
-
-        pytest.skip("Observations table not built")
-    from hitlist.export import generate_observations_table
-
-    df = generate_observations_table()
+    df = full_observations_df
     out = tmp_path / "obs.parquet"
     df.to_parquet(out, index=False)
     import pandas as pd

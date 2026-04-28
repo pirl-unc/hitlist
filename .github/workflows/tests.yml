@@ -52,9 +52,15 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev,alleles]"
 
-      - name: Run unit tests
+      - name: Run unit tests (with coverage)
+        if: matrix.python-version == '3.11'
         run: |
-          pytest tests/ -v --cov=hitlist --cov-report=xml
+          pytest tests/ -n auto --cov=hitlist --cov-report=xml
+
+      - name: Run unit tests (no coverage)
+        if: matrix.python-version != '3.11'
+        run: |
+          pytest tests/ -n auto
 
       - name: Upload coverage to Coveralls
         if: matrix.python-version == '3.11'
