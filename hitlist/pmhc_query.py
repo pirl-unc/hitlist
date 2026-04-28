@@ -266,24 +266,69 @@ def _attach_predictions(df: pd.DataFrame, predictor: str) -> pd.DataFrame:
         on=["peptide", "mhc_allele"],
         how="left",
     )
-    df["binder_class"] = df["affinity_nM"].apply(_classify_binder)
+    df["binder_class"] = [
+        _classify_binder(a, p) for a, p in zip(df["affinity_nM"], df["presentation_percentile"])
+    ]
     return df
 
 
-def _classify_binder(affinity_nM: float | None) -> str:
-    """Standard community thresholds.
+# Tier ordering for taking the strongest call across affinity / percentile.
+_BINDER_RANK = {"non-binder": 0, "weak": 1, "medium": 2, "strong": 3}
 
-    - strong: <= 50 nM
-    - weak:   <= 500 nM
-    - non:    > 500 nM
-    """
+
+def _classify_by_affinity(affinity_nM: float | None) -> str | None:
+    """Classify by predicted IC50 (nM); ``None`` when affinity is missing."""
     if affinity_nM is None or pd.isna(affinity_nM):
-        return ""
-    if affinity_nM <= 50:
+        return None
+    if affinity_nM <= 100:
         return "strong"
     if affinity_nM <= 500:
+        return "medium"
+    if affinity_nM <= 2000:
         return "weak"
-    return "non"
+    return "non-binder"
+
+
+def _classify_by_percentile(percentile: float | None) -> str | None:
+    """Classify by predicted-rank percentile; ``None`` when missing."""
+    if percentile is None or pd.isna(percentile):
+        return None
+    if percentile <= 0.5:
+        return "strong"
+    if percentile <= 1.0:
+        return "medium"
+    if percentile <= 2.0:
+        return "weak"
+    return "non-binder"
+
+
+def _classify_binder(affinity_nM: float | None, percentile: float | None = None) -> str:
+    """Combine affinity and percentile classifications, taking the stronger.
+
+    Affinity tiers (IC50, nM):
+        strong:     ≤ 100
+        medium:     ≤ 500
+        weak:       ≤ 2000
+        non-binder: > 2000
+
+    Percentile tiers (predicted rank, %):
+        strong:     ≤ 0.5
+        medium:     ≤ 1.0
+        weak:       ≤ 2.0
+        non-binder: > 2.0
+
+    Returns the strongest tier from either signal — a peptide that scores
+    "strong" by percentile but only "weak" by affinity is reported as
+    strong, since predictors disagree more about absolute IC50 than about
+    the rank against the allele's per-length background.
+    Empty string if both inputs are missing.
+    """
+    by_aff = _classify_by_affinity(affinity_nM)
+    by_pct = _classify_by_percentile(percentile)
+    if by_aff is None and by_pct is None:
+        return ""
+    candidates = [c for c in (by_aff, by_pct) if c is not None]
+    return max(candidates, key=lambda c: _BINDER_RANK[c])
 
 
 def _empty_result(with_predictions: bool) -> pd.DataFrame:
@@ -335,6 +380,7 @@ def format_table(df: pd.DataFrame) -> str:
     if has_pred:
         pep_columns += [
             ("affinity_nM", "affinity_nM"),
+            ("pct_rank", "presentation_percentile"),
             ("binder", "binder_class"),
         ]
 
@@ -345,6 +391,8 @@ def format_table(df: pd.DataFrame) -> str:
             return f"{int(value)}"
         if header == "affinity_nM":
             return f"{float(value):.1f}"
+        if header == "pct_rank":
+            return f"{float(value):.2f}"
         return str(value)
 
     pep_headers = [h for h, _ in pep_columns]

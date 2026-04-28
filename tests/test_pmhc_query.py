@@ -163,6 +163,56 @@ def test_pmhc_query_no_filters_returns_everything(tmp_path, monkeypatch):
     assert set(df["mhc_allele"]) == {"HLA-A*02:01", "HLA-B*07:02"}
 
 
+def test_classify_by_affinity_tiers():
+    """v1.30.1: affinity tiers are strong ≤100nM / medium ≤500nM /
+    weak ≤2000nM / non > 2000nM."""
+    from hitlist.pmhc_query import _classify_by_affinity
+
+    assert _classify_by_affinity(50) == "strong"
+    assert _classify_by_affinity(100) == "strong"
+    assert _classify_by_affinity(101) == "medium"
+    assert _classify_by_affinity(500) == "medium"
+    assert _classify_by_affinity(501) == "weak"
+    assert _classify_by_affinity(2000) == "weak"
+    assert _classify_by_affinity(2001) == "non-binder"
+    assert _classify_by_affinity(None) is None
+
+
+def test_classify_by_percentile_tiers():
+    """v1.30.1: percentile tiers are strong ≤0.5% / medium ≤1% /
+    weak ≤2% / non > 2%."""
+    from hitlist.pmhc_query import _classify_by_percentile
+
+    assert _classify_by_percentile(0.5) == "strong"
+    assert _classify_by_percentile(0.6) == "medium"
+    assert _classify_by_percentile(1.0) == "medium"
+    assert _classify_by_percentile(1.01) == "weak"
+    assert _classify_by_percentile(2.0) == "weak"
+    assert _classify_by_percentile(2.01) == "non-binder"
+    assert _classify_by_percentile(None) is None
+
+
+def test_classify_binder_takes_strongest_tier():
+    """v1.30.1: ``_classify_binder`` returns the strongest call across
+    affinity and percentile signals — predictors disagree more about
+    absolute IC50 than about per-allele rank, so a "strong by percentile"
+    peptide should not be downgraded by a weak-IC50 prediction."""
+    from hitlist.pmhc_query import _classify_binder
+
+    # Both signals agree
+    assert _classify_binder(50, 0.4) == "strong"
+    assert _classify_binder(3000, 5.0) == "non-binder"
+    # Disagreement → take the stronger
+    assert _classify_binder(800, 0.4) == "strong"  # weak aff, strong pct
+    assert _classify_binder(50, 5.0) == "strong"  # strong aff, non pct
+    assert _classify_binder(800, 1.5) == "weak"
+    # Missing signal is ignored
+    assert _classify_binder(50, None) == "strong"
+    assert _classify_binder(None, 0.4) == "strong"
+    # Both missing → empty
+    assert _classify_binder(None, None) == ""
+
+
 def test_pmhc_query_normalizes_unprefixed_alleles(tmp_path, monkeypatch):
     """v1.29.8: ``A*02:01`` and ``HLA-A*02:01`` are the same allele in
     different sources — the parquet stores both forms because curators
