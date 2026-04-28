@@ -387,21 +387,32 @@ class ProteomeIndex:
         prot_to_idx: dict[str, int] = {pid: i for i, pid in enumerate(protein_ids)}
 
         # Phase 1: collect raw packed postings per k-mer.
+        #
+        # Hot loop: cProfile (#176) showed 1.13B ``_pack`` calls dominating
+        # runtime — pure Python function-call overhead since ``_pack`` does
+        # only a shift+OR. We inline the pack op and hoist the per-protein
+        # shift out of the inner loop; the per-kmer cost drops to a string
+        # slice + dict lookup + OR + list op. Tried ``setdefault`` here and
+        # it benchmarked ~10% slower because the default ``[]`` is built
+        # on every call even on the common existing-key path.
         raw: dict[str, list[int]] = {}
         items = list(proteins.items())
         prot_iter = (
             _tqdm(items, desc="Building index", leave=False) if (_tqdm and verbose) else items
         )
         for prot_id, seq in prot_iter:
-            pi = prot_to_idx[prot_id]
+            pi_shifted = prot_to_idx[prot_id] << _PROT_BITS
+            seq_len = len(seq)
             for k in lengths:
-                for i in range(len(seq) - k + 1):
+                end = seq_len - k + 1
+                for i in range(end):
                     kmer = seq[i : i + k]
-                    packed = _pack(pi, i)
-                    if kmer in raw:
-                        raw[kmer].append(packed)
-                    else:
+                    packed = pi_shifted | i
+                    posting = raw.get(kmer)
+                    if posting is None:
                         raw[kmer] = [packed]
+                    else:
+                        posting.append(packed)
 
         # Phase 2: compact — singletons → scalar int, multis → np.ndarray.
         index: dict[str, int | np.ndarray] = {}
