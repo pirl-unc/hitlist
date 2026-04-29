@@ -412,3 +412,45 @@ def test_load_observations_flags_short_class_ii_as_suspect(tmp_path, monkeypatch
     assert not suspect["AAAAAAAAAAAAAAA"]  # 15aa class II
     assert not suspect["AAAAAAAAA"]  # 9aa class I
     assert suspect["AAAAAAAAAAAAAAAAAA"]  # 18aa class I
+
+
+def test_load_observations_projects_derived_column_without_pyarrow_failure(tmp_path, monkeypatch):
+    """v1.30.4: ``mhc_class_label_suspect`` is computed at load time, not
+    stored in the parquet. Projecting it via ``columns=[...]`` used to
+    fail because the request was pushed straight to pyarrow which
+    raised ``No match for FieldRef.Name(mhc_class_label_suspect)``. The
+    loader now strips derived columns from the pushdown, reads their
+    deps instead, and trims back to the requested projection."""
+    import pandas as pd
+
+    from hitlist.observations import load_observations
+
+    df = pd.DataFrame(
+        {
+            "peptide": ["SLLQHLIGL", "AAAAAAAAAAAAAAA"],
+            "mhc_restriction": ["HLA class II", "HLA-DRB1*15:01"],
+            "mhc_class": ["II", "II"],
+            "reference_iri": ["r-0", "r-1"],
+            "pmid": pd.array([1, 2], dtype="Int64"),
+            "source": ["iedb"] * 2,
+            "mhc_species": ["Homo sapiens"] * 2,
+        }
+    )
+    path = tmp_path / "observations.parquet"
+    df.to_parquet(path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
+
+    # 1. Project the derived column alone — used to error out.
+    out1 = load_observations(columns=["mhc_class_label_suspect"])
+    assert list(out1.columns) == ["mhc_class_label_suspect"]
+    assert len(out1) == 2
+    assert out1["mhc_class_label_suspect"].tolist() == [True, False]
+
+    # 2. Project derived + a regular stored column. Order preserved.
+    out2 = load_observations(columns=["peptide", "mhc_class_label_suspect"])
+    assert list(out2.columns) == ["peptide", "mhc_class_label_suspect"]
+
+    # 3. Projecting a stored column without the derived one keeps working
+    #    (no regression on the common case).
+    out3 = load_observations(columns=["peptide"])
+    assert list(out3.columns) == ["peptide"]
