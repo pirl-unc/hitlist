@@ -258,6 +258,15 @@ def load_all_evidence(
     return pd.concat(parts, ignore_index=True, sort=False)
 
 
+# Columns added at load time, not stored in the parquet. The map records
+# which underlying parquet columns each derived column depends on so a
+# caller-supplied ``columns=[...]`` projection can pull the deps in
+# (otherwise pyarrow rejects the pushdown with "No match for FieldRef").
+_DERIVED_COLUMN_DEPS: dict[str, tuple[str, ...]] = {
+    "mhc_class_label_suspect": ("mhc_class", "peptide"),
+}
+
+
 def _load_peptide_index(
     path: Path,
     *,
@@ -348,6 +357,24 @@ def _load_peptide_index(
     else:
         read_columns = columns
 
+    # Derived columns (computed at load time, not stored in the parquet) need
+    # special handling when the caller projects with ``columns=[...]``: they
+    # must be stripped from the pushdown list (else pyarrow raises "No match
+    # for FieldRef.Name(...)") and replaced with their underlying inputs so
+    # the post-load step can compute them.
+    requested_derived: list[str] = []
+    if read_columns is not None:
+        kept: list[str] = []
+        for c in read_columns:
+            if c in _DERIVED_COLUMN_DEPS:
+                requested_derived.append(c)
+                for dep in _DERIVED_COLUMN_DEPS[c]:
+                    if dep not in kept:
+                        kept.append(dep)
+            elif c not in kept:
+                kept.append(c)
+        read_columns = kept
+
     df = pd.read_parquet(path, columns=read_columns, filters=filters if filters else None)
 
     if post_serotypes:
@@ -406,6 +433,12 @@ def _load_peptide_index(
         df["mhc_class_label_suspect"] = ((cls == "II") & (plen <= 10)) | (
             (cls == "I") & (plen >= 18)
         )
+
+    # If the caller explicitly projected, trim back to that exact list now
+    # — derived columns pulled extra dependency columns into the read above
+    # and the caller doesn't want those leaking into the result.
+    if columns is not None:
+        df = df[[c for c in columns if c in df.columns]]
 
     return df
 
