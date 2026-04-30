@@ -573,6 +573,17 @@ def _add_samples_args(p: argparse.ArgumentParser) -> None:
             "acquisition-metadata sample table."
         ),
     )
+    p.add_argument(
+        "--apm-only",
+        action="store_true",
+        help=(
+            "Filter to samples where any antigen-processing-machinery "
+            "gene was perturbed (B2M, TAP1, TAP2, TAPBP, ERAP1/2, PDIA3, "
+            "CALR, CANX, IRF2, GANAB, SPPL3, NLRC5, CIITA, HLA-DM, "
+            "HLA-DO, CD74, cathepsin, RFX, bare-lymphocyte-syndrome). "
+            "See apm_perturbed and apm_genes_perturbed output columns."
+        ),
+    )
     p.add_argument("--output", "-o", help="Write CSV to file")
 
 
@@ -863,6 +874,14 @@ def main() -> None:
             "Drop rows whose curated MHC class disagrees with the bimodal "
             "peptide-length distribution (class II ≤10aa, class I ≥18aa). "
             "Useful for model training pipelines (#182)."
+        ),
+    )
+    p_obs.add_argument(
+        "--apm-only",
+        action="store_true",
+        help=(
+            "Filter to peptide rows from samples where any APM gene was "
+            "perturbed (#202). Joins on pmid + sample condition."
         ),
     )
     p_obs.add_argument("--output", "-o", help="Write to file (.csv or .parquet)")
@@ -1813,7 +1832,10 @@ def _export(args: argparse.Namespace) -> None:
             df = generate_sample_expression_table(mhc_class=args.mhc_class)
         else:
             _export_progress("Building ms_samples table from pmid_overrides.yaml ...")
-            df = generate_ms_samples_table(mhc_class=args.mhc_class)
+            df = generate_ms_samples_table(
+                mhc_class=args.mhc_class,
+                apm_only=getattr(args, "apm_only", False),
+            )
     elif cmd == "peptide-counts":
         by = getattr(args, "by", "class")
         if by == "class":
@@ -1855,6 +1877,7 @@ def _export(args: argparse.Namespace) -> None:
                 gene_id=getattr(args, "gene_id", None),
                 serotype=getattr(args, "serotype", None),
                 exclude_class_label_suspect=getattr(args, "exclude_class_label_suspect", False),
+                apm_only=getattr(args, "apm_only", False),
             )
         except (ValueError, FileNotFoundError) as e:
             print(f"Error: {e}", file=sys.stderr)

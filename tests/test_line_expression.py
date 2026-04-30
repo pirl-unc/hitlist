@@ -1281,7 +1281,7 @@ def test_cli_export_samples_with_expression_anchors_calls_new_function(
         called["anchor"] = True
         return pd.DataFrame({"sample_label": ["X"], "expression_backend": ["depmap_rna"]})
 
-    def fake_plain(mhc_class=None):
+    def fake_plain(mhc_class=None, apm_only=False):
         called["plain"] = True
         return pd.DataFrame({"sample_label": ["Y"]})
 
@@ -1318,7 +1318,7 @@ def test_cli_export_samples_default_routes_to_ms_samples_table(monkeypatch, tmp_
         called["anchor"] = True
         return pd.DataFrame({"sample_label": ["X"]})
 
-    def fake_plain(mhc_class=None):
+    def fake_plain(mhc_class=None, apm_only=False):
         called["plain"] = True
         return pd.DataFrame({"sample_label": ["Y"]})
 

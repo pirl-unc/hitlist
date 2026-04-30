@@ -150,7 +150,10 @@ def _serialize_reference_proteomes(proteomes) -> str:
     return ";".join(out)
 
 
-def generate_ms_samples_table(mhc_class: str | None = None) -> pd.DataFrame:
+def generate_ms_samples_table(
+    mhc_class: str | None = None,
+    apm_only: bool = False,
+) -> pd.DataFrame:
     """Export all ms_samples entries as a flat DataFrame.
 
     Parameters
@@ -158,6 +161,10 @@ def generate_ms_samples_table(mhc_class: str | None = None) -> pd.DataFrame:
     mhc_class
         Filter to ``"I"`` or ``"II"``.  Entries with ``"I+II"`` match
         either filter.  ``None`` returns all rows.
+    apm_only
+        Filter to rows where any antigen-processing-machinery gene
+        was perturbed (``apm_perturbed=True``).  See
+        :mod:`hitlist.apm` for the gene vocabulary.
 
     Returns
     -------
@@ -173,7 +180,16 @@ def generate_ms_samples_table(mhc_class: str | None = None) -> pd.DataFrame:
         - ``peptides`` — curated peptide count when present.
         - ``reference_proteomes`` — semicolon-joined ``UPID:label`` pairs
           for any per-sample viral / parasite proteome references.
+
+        Plus one ``apm_<gene>_perturbed`` boolean column per APM gene
+        (B2M, TAP1, TAP2, TAPBP, ERAP1/2, PDIA3, CALR, CANX, IRF2,
+        GANAB, SPPL3, NLRC5, CIITA, HLA-DM, HLA-DO, CD74, cathepsin,
+        RFX, bare-lymphocyte-syndrome), an ``apm_perturbed`` union
+        flag, and ``apm_genes_perturbed`` semicolon-joined list of
+        matched genes (#202).
     """
+    from .apm import apm_columns_for_sample
+
     overrides = load_pmid_overrides()
     rows: list[dict] = []
 
@@ -181,6 +197,7 @@ def generate_ms_samples_table(mhc_class: str | None = None) -> pd.DataFrame:
         study_label = entry.get("study_label", "")
         species = normalize_species(entry.get("species", "Homo sapiens (human)"))
         ms_samples = entry.get("ms_samples", [])
+        study_perturbations = entry.get("perturbations") or []
 
         for sample in ms_samples:
             cls = sample.get("mhc_class", "")
@@ -235,9 +252,19 @@ def generate_ms_samples_table(mhc_class: str | None = None) -> pd.DataFrame:
             for field in _ACQUISITION_FIELDS:
                 row[field] = sample.get(field) or entry.get(field) or ""
             row["instrument_type"] = _classify_instrument(row["instrument"])
+            # APM perturbation block — one boolean per gene + union (#202).
+            row.update(
+                apm_columns_for_sample(
+                    condition=condition,
+                    perturbations=study_perturbations,
+                )
+            )
             rows.append(row)
 
-    return pd.DataFrame(rows)
+    df = pd.DataFrame(rows)
+    if apm_only and not df.empty:
+        df = df[df["apm_perturbed"]].reset_index(drop=True)
+    return df
 
 
 def generate_observations_table(
@@ -259,6 +286,7 @@ def generate_observations_table(
     length_min: int | None = None,
     length_max: int | None = None,
     exclude_class_label_suspect: bool = False,
+    apm_only: bool = False,
     columns: list[str] | None = None,
 ) -> pd.DataFrame:
     """Join per-peptide observations with per-sample metadata.
@@ -365,6 +393,10 @@ def generate_observations_table(
         "fragmentation",
         "labeling",
         "ip_antibody",
+        # APM perturbation block (#202) — propagated through the join
+        # so consumers can filter / pivot on individual genes.
+        "apm_perturbed",
+        "apm_genes_perturbed",
     ]
 
     # --- PMID-level metadata (quantification_method) ---
@@ -470,8 +502,17 @@ def generate_observations_table(
     for col, fb_col in zip(meta_cols, fb_cols):
         obs[col] = obs[col].where(obs[col].notna(), obs[fb_col])
     obs.drop(columns=fb_cols, inplace=True)
+    # Per-column dtype-aware fill: bool columns (e.g. apm_perturbed)
+    # need ``False`` not ``""``, otherwise pyarrow rejects the mixed
+    # bool/str column on parquet write.
+    _bool_meta_cols = {"apm_perturbed"}
     for col in meta_cols:
-        obs[col] = obs[col].fillna("")
+        if col in _bool_meta_cols:
+            # Cast first to suppress the pandas downcast FutureWarning,
+            # then fill — bool dtype's NaN policy treats NaN as False.
+            obs[col] = obs[col].astype("boolean").fillna(False).astype(bool)
+        else:
+            obs[col] = obs[col].fillna("")
 
     # 4) Class-pool fallback: for still-unmatched rows, fill sample_mhc
     #    with the union of all alleles from samples of the same class.
@@ -550,6 +591,8 @@ def generate_observations_table(
         result = result[result["acquisition_mode"] == acquisition_mode]
     if is_mono_allelic is not None and "is_monoallelic" in result.columns:
         result = result[result["is_monoallelic"] == is_mono_allelic]
+    if apm_only and "apm_perturbed" in result.columns:
+        result = result[result["apm_perturbed"].fillna(False).astype(bool)]
 
     # Rename 'mhc' (from ms_samples join) to 'sample_mhc' to distinguish
     # from the IEDB mhc_restriction field (which may be "HLA class I").
@@ -578,6 +621,7 @@ def generate_ms_observations_table(
     gene_id: str | list[str] | None = None,
     serotype: str | list[str] | None = None,
     exclude_class_label_suspect: bool = False,
+    apm_only: bool = False,
     columns: list[str] | None = None,
 ) -> pd.DataFrame:
     """Alias for :func:`generate_observations_table` with explicit MS naming."""
@@ -596,6 +640,7 @@ def generate_ms_observations_table(
         gene_id=gene_id,
         serotype=serotype,
         exclude_class_label_suspect=exclude_class_label_suspect,
+        apm_only=apm_only,
         columns=columns,
     )
 
