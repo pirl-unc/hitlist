@@ -1206,3 +1206,45 @@ def test_expand_allele_bag_sample_match_wins_over_pmid_pool():
     assert prov == "sample_allele_match"
     assert bag == "HLA-A*02:01"
     assert n == 1
+
+
+# ── v1.30.14: _flatten_hla_alleles tokenizes space-separated genotypes ──
+
+
+def test_flatten_hla_alleles_splits_space_separated_genotype_string():
+    """v1.30.14: ~32% of ms_samples in pmid_overrides.yaml encode a
+    donor's full genotype as one space-separated string in the
+    ``mhc:`` field. ``_flatten_hla_alleles`` must split these into
+    individual alleles so qc cross_reference / curation_plan don't
+    report the whole genotype as a single phantom 'allele'."""
+    from hitlist.curation import _flatten_hla_alleles
+
+    out = _flatten_hla_alleles(
+        "HLA-A*01:01 HLA-A*23:01 HLA-B*07:02 HLA-B*15:01 HLA-C*12:03 HLA-C*14:02"
+    )
+    assert out == {
+        "HLA-A*01:01",
+        "HLA-A*23:01",
+        "HLA-B*07:02",
+        "HLA-B*15:01",
+        "HLA-C*12:03",
+        "HLA-C*14:02",
+    }
+
+
+def test_flatten_hla_alleles_single_allele_string_still_works():
+    """Don't regress the single-allele string case while fixing the
+    multi-allele case."""
+    from hitlist.curation import _flatten_hla_alleles
+
+    assert _flatten_hla_alleles("HLA-A*02:01") == {"HLA-A*02:01"}
+
+
+def test_flatten_hla_alleles_multi_allele_drops_noise_tokens():
+    """Free-text noise tokens (e.g. ``or``, commas) inside a
+    multi-allele string fail the syntactic check and are dropped
+    rather than mistaken for alleles."""
+    from hitlist.curation import _flatten_hla_alleles
+
+    out = _flatten_hla_alleles("HLA-A*02:01 or HLA-B*07:02")
+    assert out == {"HLA-A*02:01", "HLA-B*07:02"}
