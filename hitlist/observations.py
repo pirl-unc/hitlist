@@ -81,6 +81,7 @@ def load_observations(
     length_min: int | None = None,
     length_max: int | None = None,
     exclude_class_label_suspect: bool = False,
+    exclude_class_label_implausible: bool = False,
     columns: list[str] | None = None,
 ) -> pd.DataFrame:
     """Load the built MS observations table with optional filters.
@@ -132,6 +133,7 @@ def load_observations(
         length_min=length_min,
         length_max=length_max,
         exclude_class_label_suspect=exclude_class_label_suspect,
+        exclude_class_label_implausible=exclude_class_label_implausible,
         columns=columns,
     )
 
@@ -148,6 +150,7 @@ def load_ms_observations(
     length_min: int | None = None,
     length_max: int | None = None,
     exclude_class_label_suspect: bool = False,
+    exclude_class_label_implausible: bool = False,
     columns: list[str] | None = None,
 ) -> pd.DataFrame:
     """Alias for :func:`load_observations` with modality explicit in the name."""
@@ -163,6 +166,7 @@ def load_ms_observations(
         length_min=length_min,
         length_max=length_max,
         exclude_class_label_suspect=exclude_class_label_suspect,
+        exclude_class_label_implausible=exclude_class_label_implausible,
         columns=columns,
     )
 
@@ -179,6 +183,7 @@ def load_binding(
     length_min: int | None = None,
     length_max: int | None = None,
     exclude_class_label_suspect: bool = False,
+    exclude_class_label_implausible: bool = False,
     columns: list[str] | None = None,
 ) -> pd.DataFrame:
     """Load the built binding-assay table with optional filters.
@@ -205,6 +210,7 @@ def load_binding(
         length_min=length_min,
         length_max=length_max,
         exclude_class_label_suspect=exclude_class_label_suspect,
+        exclude_class_label_implausible=exclude_class_label_implausible,
         columns=columns,
     )
 
@@ -221,6 +227,7 @@ def load_all_evidence(
     length_min: int | None = None,
     length_max: int | None = None,
     exclude_class_label_suspect: bool = False,
+    exclude_class_label_implausible: bool = False,
     columns: list[str] | None = None,
 ) -> pd.DataFrame:
     """Union of MS observations + binding assays with an ``evidence_kind`` column.
@@ -253,6 +260,7 @@ def load_all_evidence(
         "length_min": length_min,
         "length_max": length_max,
         "exclude_class_label_suspect": exclude_class_label_suspect,
+        "exclude_class_label_implausible": exclude_class_label_implausible,
         "columns": columns,
     }
 
@@ -277,6 +285,7 @@ def load_all_evidence(
 # (otherwise pyarrow rejects the pushdown with "No match for FieldRef").
 _DERIVED_COLUMN_DEPS: dict[str, tuple[str, ...]] = {
     "mhc_class_label_suspect": ("mhc_class", "peptide"),
+    "mhc_class_label_severity": ("mhc_class", "peptide"),
 }
 
 
@@ -295,6 +304,7 @@ def _load_peptide_index(
     length_min: int | None,
     length_max: int | None,
     exclude_class_label_suspect: bool,
+    exclude_class_label_implausible: bool,
     columns: list[str] | None,
 ) -> pd.DataFrame:
     """Shared loader for the observations and binding parquets.
@@ -387,9 +397,9 @@ def _load_peptide_index(
                         kept.append(dep)
             elif c not in kept:
                 kept.append(c)
-        # The exclude_class_label_suspect filter needs the same deps
-        # whether or not the caller explicitly projected the flag.
-        if exclude_class_label_suspect:
+        # The exclude_class_label_* filters need the same deps whether
+        # or not the caller explicitly projected the derived flags.
+        if exclude_class_label_suspect or exclude_class_label_implausible:
             for dep in _DERIVED_COLUMN_DEPS["mhc_class_label_suspect"]:
                 if dep not in kept:
                     kept.append(dep)
@@ -438,21 +448,52 @@ def _load_peptide_index(
                 df["mhc_restriction"].map(norm_map).fillna(df["mhc_restriction"])
             )
 
-    # ── MHC class-label sanity flag (#182) ───────────────────────────────
-    # IEDB occasionally labels short peptides as ``HLA class II`` when the
-    # length / binding biology disagrees — e.g. 35K rows in Marcu 2021
-    # alone are ≤10aa under a class II label. Class II peptides almost
-    # universally need ≥11-13aa because of the open-ended binding groove.
-    # Symmetrically, class I peptides binding canonical class-I MHC are
-    # almost always ≤14aa. Flag rows that fall outside the biologically
-    # plausible window so downstream consumers can opt out without
-    # rolling their own length-vs-class check.
+    # ── MHC class-label severity tiers (#182, #201) ──────────────────────
+    # v1.30.17 splits the previously-binary ``mhc_class_label_suspect``
+    # flag into a four-tier severity column — the binary cutoff at
+    # ≥18 aa for class I was too aggressive (bulged class-I peptides
+    # extend to ~14-17 aa in the literature), and ≤10 aa for class II
+    # similarly conflated genuinely short class-II ligands with
+    # class-I-mislabeled rows.
+    #
+    # Tiers (per row):
+    #   "ok"          — within the canonical length window for the class
+    #   "borderline"  — at the documented edge (bulged class-I 13-14 aa,
+    #                   class II 8-10 aa); unusual but biologically real
+    #   "suspect"     — outside the documented edge but possible (class I
+    #                   15-17 aa, class II 5-7 aa)
+    #   "implausible" — beyond plausibility (class I ≥18 aa, class II
+    #                   ≤4 aa or ≥31 aa); almost always curation drift
+    #
+    # ``mhc_class_label_suspect`` (boolean) is preserved for backwards
+    # compat — equals ``severity in {"suspect", "implausible"}``.
+    # Consumers wanting strict cleaning can use the new
+    # ``exclude_class_label_implausible`` parameter.
     if "mhc_class" in df.columns and "peptide" in df.columns and len(df) > 0:
         plen = df["peptide"].str.len()
         cls = df["mhc_class"].fillna("")
-        df["mhc_class_label_suspect"] = ((cls == "II") & (plen <= 10)) | (
-            (cls == "I") & (plen >= 18)
-        )
+
+        # Default everything to "ok"; refine downward.
+        severity = pd.Series("ok", index=df.index, dtype="object")
+
+        # Class I tiers (canonical 8-12).
+        cls_i = cls == "I"
+        severity[cls_i & (plen.between(13, 14))] = "borderline"
+        severity[cls_i & (plen.between(15, 17))] = "suspect"
+        severity[cls_i & (plen >= 18)] = "implausible"
+        severity[cls_i & (plen <= 7)] = "implausible"
+
+        # Class II tiers (canonical 11-30).
+        cls_ii = cls == "II"
+        severity[cls_ii & (plen.between(8, 10))] = "borderline"
+        severity[cls_ii & (plen.between(5, 7))] = "suspect"
+        severity[cls_ii & (plen <= 4)] = "implausible"
+        severity[cls_ii & (plen >= 31)] = "implausible"
+
+        df["mhc_class_label_severity"] = severity
+        # Backwards-compatible binary flag — same semantics as v1.30.0:
+        # any row that's worse than "borderline".
+        df["mhc_class_label_suspect"] = severity.isin({"suspect", "implausible"})
 
     # Drop rows whose curated class disagrees with the bimodal length
     # distribution (#182). One-line opt-in for training pipelines that
@@ -460,6 +501,8 @@ def _load_peptide_index(
     # check.
     if exclude_class_label_suspect and "mhc_class_label_suspect" in df.columns:
         df = df[~df["mhc_class_label_suspect"]]
+    if exclude_class_label_implausible and "mhc_class_label_severity" in df.columns:
+        df = df[df["mhc_class_label_severity"] != "implausible"]
 
     # If the caller explicitly projected, trim back to that exact list now
     # — derived columns pulled extra dependency columns into the read above
