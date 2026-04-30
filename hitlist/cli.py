@@ -1267,7 +1267,18 @@ def main() -> None:
         "--top",
         type=int,
         default=None,
-        help="Show only the top N PMIDs by suspect score (default: all).",
+        help="Show only the top N buckets by suspect score (default: all).",
+    )
+    p_qc_disc.add_argument(
+        "--by",
+        choices=["pmid", "sample"],
+        default="pmid",
+        help=(
+            "Aggregation level: 'pmid' (default) groups per study/class; "
+            "'sample' groups per (pmid, mhc_class, cell_name) so a curator "
+            "can spot per-sample issues like 'this transfectant has 30%% "
+            "suspect rows but its sibling has 0%%'."
+        ),
     )
     p_qc_disc.add_argument("--output", "-o", help="Write CSV to file")
 
@@ -1465,6 +1476,7 @@ def _qc(args: argparse.Namespace) -> None:
         df = qc.discrepancies(
             mhc_class=getattr(args, "mhc_class", None),
             min_rows=getattr(args, "min_rows", 50),
+            by=getattr(args, "by", "pmid"),
         )
         top = getattr(args, "top", None)
         if top is not None and not df.empty:
