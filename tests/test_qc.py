@@ -824,6 +824,13 @@ def test_curation_plan_combines_all_qc_signals(tmp_path, monkeypatch):
     assert plan.iloc[0]["pmid"] == 100
     pmid_100 = plan[plan["pmid"] == 100].iloc[0]
     assert pmid_100["suspect_class_label_n"] == 12
+    # v1.30.19 / #201: severity tiers propagate through the plan.
+    # 18-aa class-I peptides fall in the "implausible" tier (which
+    # also fires the suspect flag).
+    assert "implausible_class_label_n" in plan.columns
+    assert "borderline_class_label_n" in plan.columns
+    assert pmid_100["implausible_class_label_n"] == 12
+    assert pmid_100["borderline_class_label_n"] == 0
     assert pmid_100["normalization_drifts_n"] >= 1  # HLA-Cw*04:01 drift
     assert pmid_100["yaml_only_alleles_n"] >= 1  # HLA-D*99:99 not in data
     assert pmid_100["severity"] == "warn"
