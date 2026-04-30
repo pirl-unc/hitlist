@@ -222,6 +222,34 @@ def annotate_observations_with_genes(obs: pd.DataFrame, mappings: pd.DataFrame) 
     )
 
 
+def _proteome_group_key(entry: dict) -> str:
+    """Cluster key for ordering canonicals so same-FASTA neighbors land
+    adjacently (#107).
+
+    Two canonicals that resolve to the same on-disk FASTA share a key,
+    which means the ``from_fasta`` LRU cache hits on the second through
+    Nth member of the group. Returned strings are sortable so callers can
+    use the key directly in ``sorted(..., key=...)``.
+
+    Bucketing rules:
+      * ``kind="ensembl"`` — keyed by species. The ensembl path uses
+        ``from_ensembl`` (not ``from_fasta``) so ordering doesn't help its
+        cache, but we still cluster by species for build-log readability.
+      * ``kind="uniprot"`` — keyed by ``proteome_id``. Strain variants
+        sharing one UniProt proteome (multiple LCMV / SARS-CoV-2 lines)
+        end up in one bucket, which is the whole point.
+      * Other / missing — keyed by canonical name (essentially keeps
+        original alphabetical order for the unrecognised tail).
+    """
+    kind = entry.get("kind", "")
+    if kind == "ensembl":
+        return f"0:ensembl:{entry.get('species', '')}"
+    if kind == "uniprot":
+        pid = entry.get("proteome_id", "") or ""
+        return f"1:uniprot:{pid}"
+    return f"2:other:{entry.get('canonical_species', '')}"
+
+
 def build_peptide_mappings(
     release: int = 112,
     fetch_missing: bool = True,
@@ -292,6 +320,7 @@ def build_peptide_mappings(
         return entry
 
     species_to_peptides: dict[str, set[str]] = {}
+    canonical_to_entry: dict[str, dict] = {}
     unmapped_organisms: dict[str, int] = {}
     for org, pep in zip(organism, obs["peptide"]):
         if not org:
@@ -302,6 +331,9 @@ def build_peptide_mappings(
             continue
         canonical = entry.get("canonical_species", org)
         species_to_peptides.setdefault(canonical, set()).add(pep)
+        # First lookup wins — canonicals are stable across organism
+        # spellings (mhcgnomes-normalized).
+        canonical_to_entry.setdefault(canonical, entry)
 
     all_mapping_dfs: list[pd.DataFrame] = []
     per_proteome_stats: list[tuple[str, int, int]] = []
@@ -313,7 +345,20 @@ def build_peptide_mappings(
     # numpy-packed postings keep each single-length index compact.
     default_lengths = (8, 9, 10, 11)
 
-    for canonical in sorted(species_to_peptides):
+    # ── Build order: cluster canonicals by FASTA so the LRU cache hits ──
+    # The from_fasta LRU cache (size=4) holds (path, lengths)-keyed entries.
+    # Strain-variant canonicals (e.g. multiple SARS-CoV-2 / LCMV) often
+    # share one underlying FASTA via their UniProt proteome_id; iterating
+    # alphabetically scatters them and forces re-builds. Sorting by
+    # (group_key, canonical) clusters same-FASTA canonicals adjacently so
+    # the second/third/... canonical in a group hits the cache for all 4
+    # lengths in a row. See #107.
+    ordered_canonicals = sorted(
+        species_to_peptides,
+        key=lambda c: (_proteome_group_key(canonical_to_entry.get(c, {})), c),
+    )
+
+    for canonical in ordered_canonicals:
         peptides = species_to_peptides[canonical]
         # Bucket this canonical's peptides by length so we can run each
         # length's pass against an index built at that single length only.
