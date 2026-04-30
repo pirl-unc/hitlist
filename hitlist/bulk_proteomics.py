@@ -201,6 +201,76 @@ def _apply_length_bounds(
     return df[df["length"].between(lo, hi)]
 
 
+# Arm-defining axes for the Bekker-Jensen 2017 design matrix. Two rows
+# share an arm when these five values match — i.e. they came from the
+# same biological sample (cell line) processed under the same enzyme,
+# fractionation depth, enrichment regime, and high-pH SPE buffer pH.
+# Replicates within an arm are then independent runs of that arm.
+_BJ_ARM_KEYS = (
+    "cell_line_name",
+    "digestion_enzyme",
+    "n_fractions_in_run",
+    "enrichment",
+    "fractionation_ph",
+)
+
+
+def _add_n_replicates_possible(df: pd.DataFrame) -> pd.DataFrame:
+    """Add a per-arm ``n_replicates_possible`` column derived from the
+    existing ``n_replicates_detected`` column (#97).
+
+    Compute strategy: for every arm (group of rows sharing the five
+    ``_BJ_ARM_KEYS``), ``n_replicates_possible`` is the **max** of
+    ``n_replicates_detected`` across the arm's peptides. This relies
+    on the empirical property of deep shotgun MS that housekeeping
+    proteins are detected in every replicate of an arm — so within
+    any arm there is at least one peptide whose detected count equals
+    the true total. Bekker-Jensen 2017's depth (12-70 fractions,
+    ~10K-90K peptides per arm) makes this hold by orders of magnitude.
+
+    With both columns present, callers can compute
+    ``reproducibility_fraction = n_replicates_detected / n_replicates_possible``
+    and gate sensibly. The single-replicate arms (Tryp-39/46/70 fracs
+    and the non-tryptic 39-frac arms) end up with
+    ``n_replicates_possible == 1``, so a "≥2 replicates" filter
+    correctly excludes them rather than excluding their highly-confident
+    single-replicate detections.
+
+    Skipped silently when ``n_replicates_detected`` is absent (e.g. on
+    pre-#94 parquets or on the protein-level granularity).
+    """
+    if "n_replicates_detected" not in df.columns:
+        return df
+    available_keys = [k for k in _BJ_ARM_KEYS if k in df.columns]
+    if not available_keys:
+        return df
+    df = df.copy()
+    df["n_replicates_possible"] = df.groupby(available_keys, dropna=False)[
+        "n_replicates_detected"
+    ].transform("max")
+    return df
+
+
+def _apply_reproducibility_filter(
+    df: pd.DataFrame, min_reproducibility: float | None
+) -> pd.DataFrame:
+    """Keep rows where ``n_replicates_detected / n_replicates_possible >=
+    min_reproducibility`` (#97).
+
+    Silently passes through when either denominator/numerator column is
+    missing, or when ``min_reproducibility`` is ``None``. Division-by-zero
+    is impossible because every arm is required to have at least one
+    detection (otherwise the row wouldn't be in the index at all), so
+    ``n_replicates_possible >= 1`` everywhere.
+    """
+    if min_reproducibility is None:
+        return df
+    if "n_replicates_detected" not in df.columns or "n_replicates_possible" not in df.columns:
+        return df
+    fraction = df["n_replicates_detected"] / df["n_replicates_possible"]
+    return df[fraction >= min_reproducibility]
+
+
 def _apply_percentile_bounds(
     df: pd.DataFrame,
     percentile_min: float | None,
@@ -386,6 +456,7 @@ def load_bulk_peptides(
     fractionation_ph: float | Iterable[float] | None = None,
     length_min: int | None = None,
     length_max: int | None = None,
+    min_reproducibility: float | None = None,
 ) -> pd.DataFrame:
     """Peptide-level bulk proteomics detections (shotgun MS, NOT MHC ligands).
 
@@ -436,6 +507,15 @@ def load_bulk_peptides(
         ``length_min=8, length_max=11`` for MHC-I-compatible peptides;
         ``length_min=7, length_max=30`` for the detectability-training
         input range. Leave unset for no length filter.
+    min_reproducibility
+        Keep peptides whose detected-replicate fraction
+        (``n_replicates_detected / n_replicates_possible``) is at
+        least this value. ``0.5`` keeps "≥ half the replicates";
+        ``1.0`` keeps "every replicate". The denominator is computed
+        per-arm before any other filters (#97), so single-replicate
+        arms have denominator 1 and a ``min_reproducibility=1.0``
+        filter still keeps their detections rather than dropping the
+        whole arm.
 
     Returns
     -------
@@ -443,8 +523,8 @@ def load_bulk_peptides(
         peptide, cell_line_name, uniprot_acc, gene_symbol, length,
         start_position, end_position, digestion_enzyme,
         n_fractions_in_run, enrichment, fractionation_ph, modifications,
-        n_replicates_detected, source, reference (plus acquisition
-        metadata when the parquet is built).
+        n_replicates_detected, n_replicates_possible (#97), source,
+        reference (plus acquisition metadata when the parquet is built).
     """
     if enrichment == _ENRICHMENT_DEFAULT:
         enrichment = "none"
@@ -455,6 +535,13 @@ def load_bulk_peptides(
     else:
         df = _load_bj().copy().rename(columns={"cell_line": "cell_line_name"})
 
+    # Compute n_replicates_possible BEFORE the user filters narrow the
+    # frame — the per-arm denominator is a property of the experimental
+    # design, not of the row subset the user happens to be asking about.
+    # If the parquet build later starts emitting this column directly,
+    # the recompute here is idempotent.
+    df = _add_n_replicates_possible(df)
+
     df = _apply_cell_line_filter(df, cell_line)
     df = _apply_gene_filter(df, gene_name)
     df = _apply_uniprot_filter(df, uniprot_acc)
@@ -463,6 +550,7 @@ def load_bulk_peptides(
     df = _apply_enrichment_filter(df, enrichment)
     df = _apply_ph_filter(df, fractionation_ph)
     df = _apply_length_bounds(df, length_min, length_max)
+    df = _apply_reproducibility_filter(df, min_reproducibility)
     return df.reset_index(drop=True)
 
 
