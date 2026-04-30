@@ -267,6 +267,7 @@ def _disc_fixture_row(
     is_monoallelic: bool = False,
     mhc_class_label_suspect: bool = False,
     mhc_allele_provenance: str = "exact",
+    cell_name: str = "",
 ):
     """Build a single fixture row with all columns ``discrepancies`` projects."""
     return {
@@ -276,6 +277,7 @@ def _disc_fixture_row(
         "is_monoallelic": is_monoallelic,
         "mhc_class_label_suspect": mhc_class_label_suspect,
         "mhc_allele_provenance": mhc_allele_provenance,
+        "cell_name": cell_name,
         "pmid": pmid,
         "reference_iri": f"r-{pmid}-{peptide}",
         "source": "iedb",
@@ -484,3 +486,100 @@ def test_discrepancies_attaches_study_label_from_overrides(tmp_path, monkeypatch
 
     df = qc.discrepancies(min_rows=10)
     assert df.iloc[0]["study_label"] == "Pretty Study Name 2026"
+
+
+# ── v1.30.12: by="sample" rollup ──────────────────────────────────────
+
+
+def test_discrepancies_by_sample_groups_per_cell_name(tmp_path, monkeypatch):
+    """v1.30.12: ``by='sample'`` groups by (pmid, mhc_class, cell_name).
+    A study with a clean transfectant and a problematic transfectant
+    should produce two rows where the dirty one has higher
+    suspect_class_label_n than the clean one — exactly the per-sample
+    visibility the user asked for ('one transfectant has 30%% suspect
+    rows but its sibling has 0%%')."""
+    from hitlist import qc
+
+    # Suspect flag is recomputed from peptide length + class at load
+    # time, so test fixtures must encode the suspicion in the peptide
+    # length itself: class I ≥18aa or class II ≤10aa flags as suspect.
+    rows = (
+        # K562-A0201: 30 normal 9-aa class-I rows, none suspect.
+        [
+            _disc_fixture_row(
+                "AAAAAAAAA",
+                "I",
+                7,
+                mhc_restriction="HLA-A*02:01",
+                cell_name="K562-A0201",
+            )
+            for _ in range(30)
+        ]
+        # K562-B0702: 30 clean 9-aa class-I rows + 12 suspect 18-aa rows.
+        + [
+            _disc_fixture_row(
+                "BBBBBBBBB",
+                "I",
+                7,
+                mhc_restriction="HLA-B*07:02",
+                cell_name="K562-B0702",
+            )
+            for _ in range(30)
+        ]
+        + [
+            _disc_fixture_row(
+                "CCCCCCCCCCCCCCCCCC",
+                "I",
+                7,
+                mhc_restriction="HLA-B*07:02",
+                cell_name="K562-B0702",
+            )
+            for _ in range(12)
+        ]
+    )
+    obs_path = tmp_path / "observations.parquet"
+    pd.DataFrame(rows).to_parquet(obs_path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+    monkeypatch.setattr("hitlist.curation.load_pmid_overrides", lambda: {})
+    monkeypatch.setattr("hitlist.qc.load_pmid_overrides", lambda: {})
+
+    df = qc.discrepancies(by="sample", min_rows=10)
+    # Two output rows — one per cell_name.
+    assert "cell_name" in df.columns
+    assert set(df["cell_name"]) == {"K562-A0201", "K562-B0702"}
+    dirty = df[df["cell_name"] == "K562-B0702"].iloc[0]
+    clean = df[df["cell_name"] == "K562-A0201"].iloc[0]
+    assert dirty["suspect_class_label_n"] == 12
+    assert clean["suspect_class_label_n"] == 0
+    # Dirty sample should sort first by score.
+    assert df.iloc[0]["cell_name"] == "K562-B0702"
+
+
+def test_discrepancies_by_sample_no_cell_name_falls_back_to_placeholder(tmp_path, monkeypatch):
+    """Rows without a cell_name (patient cohorts, raw IEDB without
+    sample identifier) should bucket under '(no cell_name)' rather
+    than collapsing into NaN groups that pandas may drop."""
+    from hitlist import qc
+
+    rows = [
+        _disc_fixture_row(f"P{i:09d}", "I", 9, mhc_restriction="HLA-A*02:01") for i in range(60)
+    ]
+    obs_path = tmp_path / "observations.parquet"
+    pd.DataFrame(rows).to_parquet(obs_path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+    monkeypatch.setattr("hitlist.curation.load_pmid_overrides", lambda: {})
+    monkeypatch.setattr("hitlist.qc.load_pmid_overrides", lambda: {})
+
+    df = qc.discrepancies(by="sample", min_rows=10)
+    assert df.iloc[0]["cell_name"] == "(no cell_name)"
+    assert df.iloc[0]["n_rows"] == 60
+
+
+def test_discrepancies_by_invalid_value_raises():
+    """Defensive: only 'pmid' or 'sample' are accepted."""
+    import pytest
+
+    from hitlist import qc
+
+    with pytest.raises(ValueError, match="must be 'pmid' or 'sample'"):
+        qc.discrepancies(by="study")

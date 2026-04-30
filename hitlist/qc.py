@@ -239,13 +239,14 @@ def cross_reference(mhc_class: str | None = None) -> pd.DataFrame:
 def discrepancies(
     mhc_class: str | None = None,
     min_rows: int = 50,
+    by: str = "pmid",
 ) -> pd.DataFrame:
-    """Per-PMID rate of biologically suspicious patterns in the corpus.
+    """Per-PMID (or per-sample) rate of biologically suspicious patterns.
 
     A scan over ``observations.parquet`` that surfaces curation issues
     visible from the data alone — without re-reading any papers. One
-    output row per (pmid, mhc_class) bucket, with columns sized to be
-    sortable as a triage list.
+    output row per bucket, sorted by suspect-row score so a curator
+    picks targets from the top.
 
     Detected patterns:
 
@@ -254,8 +255,8 @@ def discrepancies(
       (class II ≤10aa or class I ≥18aa). Pinned by the
       ``mhc_class_label_suspect`` flag added in v1.30.0 / #182.
     - **length_p50 / _p99** — peptide length median + 99th percentile
-      per (pmid, class). Class I should have p50 ≈ 9 and a thin upper
-      tail (p99 ≤ 12); class II should have p50 ≈ 14-15. Outliers on
+      per bucket. Class I should have p50 ≈ 9 and a thin upper tail
+      (p99 ≤ 12); class II should have p50 ≈ 14-15. Outliers on
       either tail are usually IEDB curation drift.
     - **monoallelic_class_only_n** — mono-allelic rows whose
       ``mhc_restriction`` is the class sentinel ("HLA class I/II")
@@ -273,13 +274,20 @@ def discrepancies(
     mhc_class
         Optional class filter.
     min_rows
-        Drop PMID buckets with fewer than this many rows — small
-        buckets produce noisy length percentiles. Default 50.
+        Drop buckets with fewer than this many rows — small buckets
+        produce noisy length percentiles. Default 50.
+    by
+        Aggregation level. ``"pmid"`` (default) groups by
+        (pmid, mhc_class) — one row per study/class. ``"sample"``
+        groups by (pmid, mhc_class, cell_name) so a curator can spot
+        per-sample issues like "the K562-A0201 transfectant has 30%
+        suspect rows but K562-B0702 has 0%". Falls back to
+        ``"(no cell_name)"`` for rows without a sample identifier.
 
     Returns
     -------
     pd.DataFrame
-        One row per (pmid, mhc_class). Sorted descending by
+        One row per bucket. Sorted descending by
         ``suspect_class_label_n + monoallelic_class_only_n +
         nonstandard_aa_n`` — the rougher cuts, useful for picking a
         triage target.
@@ -287,6 +295,9 @@ def discrepancies(
     import re
 
     from .observations import is_built, load_observations
+
+    if by not in ("pmid", "sample"):
+        raise ValueError(f"by must be 'pmid' or 'sample', got {by!r}")
 
     if not is_built():
         raise FileNotFoundError(
@@ -301,6 +312,8 @@ def discrepancies(
         "is_monoallelic",
         "mhc_class_label_suspect",
     ]
+    if by == "sample":
+        cols.append("cell_name")
     # mhc_allele_provenance is only present in indexes built since #137
     # (v1.23.0); degrade gracefully on older parquets.
     try:
@@ -311,24 +324,29 @@ def discrepancies(
         pass
 
     df = load_observations(mhc_class=mhc_class, columns=cols)
+    output_cols = [
+        "pmid",
+        "study_label",
+        "mhc_class",
+    ]
+    if by == "sample":
+        output_cols.append("cell_name")
+    output_cols.extend(
+        [
+            "n_rows",
+            "suspect_class_label_n",
+            "suspect_class_label_rate",
+            "length_p50",
+            "length_p99",
+            "monoallelic_class_only_n",
+            "class_pool_n",
+            "class_pool_rate",
+            "nonstandard_aa_n",
+            "severity",
+        ]
+    )
     if df.empty:
-        return pd.DataFrame(
-            columns=[
-                "pmid",
-                "study_label",
-                "mhc_class",
-                "n_rows",
-                "suspect_class_label_n",
-                "suspect_class_label_rate",
-                "length_p50",
-                "length_p99",
-                "monoallelic_class_only_n",
-                "class_pool_n",
-                "class_pool_rate",
-                "nonstandard_aa_n",
-                "severity",
-            ]
-        )
+        return pd.DataFrame(columns=output_cols)
 
     # Compute per-row diagnostics in one pass to avoid groupby overhead
     # on the 4.4M-row corpus.
@@ -343,8 +361,13 @@ def discrepancies(
     else:
         df["_class_pool"] = False
 
-    # Aggregate per (pmid, mhc_class).
-    grouped = df.groupby(["pmid", "mhc_class"], dropna=False)
+    if by == "sample":
+        df["cell_name"] = df["cell_name"].fillna("").replace("", "(no cell_name)")
+        group_keys = ["pmid", "mhc_class", "cell_name"]
+    else:
+        group_keys = ["pmid", "mhc_class"]
+
+    grouped = df.groupby(group_keys, dropna=False)
     out = grouped.agg(
         n_rows=("peptide", "size"),
         suspect_class_label_n=("mhc_class_label_suspect", "sum"),
@@ -384,24 +407,7 @@ def discrepancies(
         columns=["_score"]
     )
 
-    # Final column order.
-    return out[
-        [
-            "pmid",
-            "study_label",
-            "mhc_class",
-            "n_rows",
-            "suspect_class_label_n",
-            "suspect_class_label_rate",
-            "length_p50",
-            "length_p99",
-            "monoallelic_class_only_n",
-            "class_pool_n",
-            "class_pool_rate",
-            "nonstandard_aa_n",
-            "severity",
-        ]
-    ].reset_index(drop=True)
+    return out[output_cols].reset_index(drop=True)
 
 
 def run_all(mhc_class: str | None = None) -> dict[str, pd.DataFrame]:
