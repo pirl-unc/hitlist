@@ -221,7 +221,7 @@ def test_cross_reference_yaml_only_and_data_only(tmp_path, monkeypatch):
     assert "HLA-A*02:01" not in df["allele"].values
 
 
-def test_run_all_returns_three_named_dataframes(tmp_path, monkeypatch):
+def test_run_all_returns_named_dataframes(tmp_path, monkeypatch):
     """The dispatcher returns the expected keys regardless of contents."""
     from hitlist import qc
 
@@ -235,6 +235,9 @@ def test_run_all_returns_three_named_dataframes(tmp_path, monkeypatch):
                 "allele_resolution": "four_digit",
                 "mhc_restriction": "HLA-A*02:01",
                 "pmid": 1,
+                "is_monoallelic": False,
+                "mhc_class_label_suspect": False,
+                "mhc_allele_provenance": "exact",
             },
         ],
     )
@@ -242,6 +245,242 @@ def test_run_all_returns_three_named_dataframes(tmp_path, monkeypatch):
     monkeypatch.setattr("hitlist.qc.load_pmid_overrides", lambda: {})
 
     results = qc.run_all()
-    assert set(results.keys()) == {"resolution", "normalization", "cross_reference"}
+    assert set(results.keys()) == {
+        "resolution",
+        "normalization",
+        "cross_reference",
+        "discrepancies",
+    }
     for v in results.values():
         assert isinstance(v, pd.DataFrame)
+
+
+# ── #182 / #45 / #37 / v1.30.9: discrepancies report ──────────────────
+
+
+def _disc_fixture_row(
+    peptide: str,
+    mhc_class: str,
+    pmid: int,
+    *,
+    mhc_restriction: str = "",
+    is_monoallelic: bool = False,
+    mhc_class_label_suspect: bool = False,
+    mhc_allele_provenance: str = "exact",
+):
+    """Build a single fixture row with all columns ``discrepancies`` projects."""
+    return {
+        "peptide": peptide,
+        "mhc_class": mhc_class,
+        "mhc_restriction": mhc_restriction,
+        "is_monoallelic": is_monoallelic,
+        "mhc_class_label_suspect": mhc_class_label_suspect,
+        "mhc_allele_provenance": mhc_allele_provenance,
+        "pmid": pmid,
+        "reference_iri": f"r-{pmid}-{peptide}",
+        "source": "iedb",
+        "mhc_species": "Homo sapiens",
+        "allele_resolution": (
+            "four_digit"
+            if mhc_restriction.startswith("HLA-") and "*" in mhc_restriction
+            else "class_only"
+            if mhc_restriction.startswith("HLA class")
+            else "unresolved"
+        ),
+    }
+
+
+def test_discrepancies_surfaces_class_label_mismatches(tmp_path, monkeypatch):
+    """v1.30.9 / #182: per-PMID rate of ``mhc_class_label_suspect``
+    rows is reported. A PMID with many class-II 9-mers (the Marcu 2021
+    pattern) sorts to the top of the discrepancy report."""
+    from hitlist import qc
+
+    rows = []
+    # 60 valid class-I rows on PMID 1 (clean).
+    for i in range(60):
+        rows.append(_disc_fixture_row(f"P{i:09d}", "I", 1, mhc_restriction="HLA-A*02:01"))
+    # 60 rows on PMID 2: 50 valid class-II 14-mers + 10 suspect 9-mers
+    # labeled class II.
+    for i in range(50):
+        rows.append(
+            _disc_fixture_row(
+                f"Q{i:013d}",
+                "II",
+                2,
+                mhc_restriction="HLA-DRB1*15:01",
+            )
+        )
+    for i in range(10):
+        rows.append(
+            _disc_fixture_row(
+                f"R{i:08d}",
+                "II",
+                2,
+                mhc_restriction="HLA-DRB1*15:01",
+                mhc_class_label_suspect=True,
+            )
+        )
+    obs_path = _write_obs_fixture(tmp_path, rows)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+    monkeypatch.setattr("hitlist.curation.load_pmid_overrides", lambda: {})
+    monkeypatch.setattr("hitlist.qc.load_pmid_overrides", lambda: {})
+
+    df = qc.discrepancies(min_rows=10)
+    # PMID 2 (with 10 suspects) sorts above PMID 1 (with 0).
+    assert df.iloc[0]["pmid"] == 2
+    assert df.iloc[0]["suspect_class_label_n"] == 10
+    assert abs(df.iloc[0]["suspect_class_label_rate"] - 10 / 60) < 1e-6
+    pmid1_row = df[df["pmid"] == 1].iloc[0]
+    assert pmid1_row["suspect_class_label_n"] == 0
+
+
+def test_discrepancies_flags_monoallelic_class_only(tmp_path, monkeypatch):
+    """v1.30.9 / #45: rows that are mono-allelic but carry
+    ``HLA class I`` instead of a 4-digit allele are surfaced — IEDB
+    lost the per-peptide allele attribution but the paper knows it.
+    These appear in the ``monoallelic_class_only_n`` column so a
+    curator can prioritize them."""
+    from hitlist import qc
+
+    rows = (
+        # 5 mono-allelic rows on PMID 99: 3 with proper 4-digit, 2 with class sentinel.
+        [
+            _disc_fixture_row(
+                f"M{i:09d}",
+                "I",
+                99,
+                mhc_restriction="HLA-A*02:01",
+                is_monoallelic=True,
+            )
+            for i in range(3)
+        ]
+        + [
+            _disc_fixture_row(
+                f"S{i:09d}",
+                "I",
+                99,
+                mhc_restriction="HLA class I",
+                is_monoallelic=True,
+            )
+            for i in range(2)
+        ]
+        + [
+            # Padding so the bucket clears the min_rows floor.
+            _disc_fixture_row(
+                f"X{i:09d}",
+                "I",
+                99,
+                mhc_restriction="HLA-A*02:01",
+                is_monoallelic=True,
+            )
+            for i in range(50)
+        ]
+    )
+    obs_path = _write_obs_fixture(tmp_path, rows)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+    monkeypatch.setattr("hitlist.curation.load_pmid_overrides", lambda: {})
+    monkeypatch.setattr("hitlist.qc.load_pmid_overrides", lambda: {})
+
+    df = qc.discrepancies(min_rows=10)
+    pmid_99 = df[df["pmid"] == 99].iloc[0]
+    assert pmid_99["monoallelic_class_only_n"] == 2
+    # severity is "warn" because monoallelic_class_only_n > 0.
+    assert pmid_99["severity"] == "warn"
+
+
+def test_discrepancies_flags_class_pool_rate(tmp_path, monkeypatch):
+    """v1.30.9 / #37: per-PMID rate of ``pmid_class_pool`` provenance
+    is surfaced. A study where IEDB only stored ``HLA class I`` for
+    every peptide ends up with class_pool_rate = 1.0; that's the
+    deconvolution-target signal."""
+    from hitlist import qc
+
+    rows = [
+        _disc_fixture_row(
+            f"C{i:09d}",
+            "I",
+            7,
+            mhc_restriction="HLA class I",
+            mhc_allele_provenance="pmid_class_pool",
+        )
+        for i in range(60)
+    ]
+    obs_path = _write_obs_fixture(tmp_path, rows)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+    monkeypatch.setattr("hitlist.curation.load_pmid_overrides", lambda: {})
+    monkeypatch.setattr("hitlist.qc.load_pmid_overrides", lambda: {})
+
+    df = qc.discrepancies(min_rows=10)
+    pmid_7 = df[df["pmid"] == 7].iloc[0]
+    assert pmid_7["class_pool_n"] == 60
+    assert pmid_7["class_pool_rate"] == 1.0
+
+
+def test_discrepancies_flags_nonstandard_amino_acids(tmp_path, monkeypatch):
+    """v1.30.9: peptides with X / B / Z / U / lowercase / digits get
+    counted in ``nonstandard_aa_n``. Catches ambiguous PSM hits and
+    upstream string corruption that would otherwise corrupt model
+    training inputs."""
+    from hitlist import qc
+
+    # All-AA padding (digits in peptide strings would themselves match the
+    # nonstandard regex). Use a fixed valid 9-mer for the 58 padding rows.
+    rows = [
+        _disc_fixture_row("VALIDPEPT", "I", 5, mhc_restriction="HLA-A*02:01") for _ in range(58)
+    ] + [
+        # Two non-standard peptides — one with X (ambiguous AA), one
+        # lowercase (modification carryover).
+        _disc_fixture_row("PXPTIDEX", "I", 5, mhc_restriction="HLA-A*02:01"),
+        _disc_fixture_row("ppeptidea", "I", 5, mhc_restriction="HLA-A*02:01"),
+    ]
+    obs_path = _write_obs_fixture(tmp_path, rows)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+    monkeypatch.setattr("hitlist.curation.load_pmid_overrides", lambda: {})
+    monkeypatch.setattr("hitlist.qc.load_pmid_overrides", lambda: {})
+
+    df = qc.discrepancies(min_rows=10)
+    pmid_5 = df[df["pmid"] == 5].iloc[0]
+    assert pmid_5["nonstandard_aa_n"] == 2
+    assert pmid_5["severity"] == "warn"
+
+
+def test_discrepancies_drops_small_pmid_buckets(tmp_path, monkeypatch):
+    """v1.30.9: ``min_rows`` filters out PMID buckets whose row count
+    is below the threshold. Length percentiles on tiny buckets (3-5
+    rows) are noise; the filter keeps the report focused on real
+    cohorts."""
+    from hitlist import qc
+
+    rows = (
+        # 3 rows on PMID 1 — should be dropped under min_rows=10.
+        [_disc_fixture_row(f"A{i:09d}", "I", 1, mhc_restriction="HLA-A*02:01") for i in range(3)]
+        # 60 rows on PMID 2 — should survive.
+        + [_disc_fixture_row(f"B{i:09d}", "I", 2, mhc_restriction="HLA-A*02:01") for i in range(60)]
+    )
+    obs_path = _write_obs_fixture(tmp_path, rows)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+    monkeypatch.setattr("hitlist.curation.load_pmid_overrides", lambda: {})
+    monkeypatch.setattr("hitlist.qc.load_pmid_overrides", lambda: {})
+
+    df = qc.discrepancies(min_rows=10)
+    assert set(df["pmid"]) == {2}
+
+
+def test_discrepancies_attaches_study_label_from_overrides(tmp_path, monkeypatch):
+    """v1.30.9: the report attaches each PMID's ``study_label`` from
+    ``pmid_overrides.yaml`` so the triage list is human-readable
+    without a second YAML lookup."""
+    from hitlist import qc
+
+    rows = [
+        _disc_fixture_row(f"P{i:09d}", "I", 42, mhc_restriction="HLA-A*02:01") for i in range(60)
+    ]
+    obs_path = _write_obs_fixture(tmp_path, rows)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+    overrides = {42: {"study_label": "Pretty Study Name 2026"}}
+    monkeypatch.setattr("hitlist.curation.load_pmid_overrides", lambda: overrides)
+    monkeypatch.setattr("hitlist.qc.load_pmid_overrides", lambda: overrides)
+
+    df = qc.discrepancies(min_rows=10)
+    assert df.iloc[0]["study_label"] == "Pretty Study Name 2026"

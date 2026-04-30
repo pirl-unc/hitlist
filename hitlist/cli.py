@@ -1234,6 +1234,34 @@ def main() -> None:
     )
     p_qc_xref.add_argument("--output", "-o", help="Write CSV to file")
 
+    p_qc_disc = qc_sub.add_parser(
+        "discrepancies",
+        help=(
+            "Per-PMID rate of biologically suspicious patterns "
+            "(class-label/length mismatches, mono-allelic class-only "
+            "rows, class-pool fallback, non-standard amino acids). "
+            "Triage list for curation work — sorted by total suspect "
+            "count, descending."
+        ),
+    )
+    p_qc_disc.add_argument("--class", dest="mhc_class", help="MHC class (I or II)")
+    p_qc_disc.add_argument(
+        "--min-rows",
+        type=int,
+        default=50,
+        help=(
+            "Drop PMID buckets with fewer than this many rows; small "
+            "buckets give noisy length percentiles. Default 50."
+        ),
+    )
+    p_qc_disc.add_argument(
+        "--top",
+        type=int,
+        default=None,
+        help="Show only the top N PMIDs by suspect score (default: all).",
+    )
+    p_qc_disc.add_argument("--output", "-o", help="Write CSV to file")
+
     # ── pmhc subcommand ────────────────────────────────────────────────
     p_pmhc = sub.add_parser(
         "pmhc",
@@ -1424,6 +1452,14 @@ def _qc(args: argparse.Namespace) -> None:
         direction = getattr(args, "direction", "both")
         if direction != "both" and not df.empty:
             df = df[df["direction"] == direction].reset_index(drop=True)
+    elif cmd == "discrepancies":
+        df = qc.discrepancies(
+            mhc_class=getattr(args, "mhc_class", None),
+            min_rows=getattr(args, "min_rows", 50),
+        )
+        top = getattr(args, "top", None)
+        if top is not None and not df.empty:
+            df = df.head(top).reset_index(drop=True)
     else:
         print(f"Unknown qc subcommand: {cmd}", file=sys.stderr)
         sys.exit(1)
