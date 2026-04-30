@@ -80,6 +80,7 @@ def load_observations(
     serotype: str | list[str] | None = None,
     length_min: int | None = None,
     length_max: int | None = None,
+    exclude_class_label_suspect: bool = False,
     columns: list[str] | None = None,
 ) -> pd.DataFrame:
     """Load the built MS observations table with optional filters.
@@ -104,6 +105,11 @@ def load_observations(
         Inclusive peptide length bounds. ``length_min=8, length_max=11``
         filters to MHC-I-compatible peptides; ``length_min=12,
         length_max=25`` to MHC-II. ``None`` (default) means no bound.
+    exclude_class_label_suspect
+        When True, drop rows where the peptide length disagrees with
+        the curated MHC class (class II ≤ 10 aa, or class I ≥ 18 aa).
+        See ``mhc_class_label_suspect`` flag (#182). Useful for model
+        training pipelines that should not see IEDB class-label drift.
     peptide, serotype, columns
         See module docstring.
 
@@ -125,6 +131,7 @@ def load_observations(
         serotype=serotype,
         length_min=length_min,
         length_max=length_max,
+        exclude_class_label_suspect=exclude_class_label_suspect,
         columns=columns,
     )
 
@@ -140,6 +147,7 @@ def load_ms_observations(
     serotype: str | list[str] | None = None,
     length_min: int | None = None,
     length_max: int | None = None,
+    exclude_class_label_suspect: bool = False,
     columns: list[str] | None = None,
 ) -> pd.DataFrame:
     """Alias for :func:`load_observations` with modality explicit in the name."""
@@ -154,6 +162,7 @@ def load_ms_observations(
         serotype=serotype,
         length_min=length_min,
         length_max=length_max,
+        exclude_class_label_suspect=exclude_class_label_suspect,
         columns=columns,
     )
 
@@ -169,6 +178,7 @@ def load_binding(
     serotype: str | list[str] | None = None,
     length_min: int | None = None,
     length_max: int | None = None,
+    exclude_class_label_suspect: bool = False,
     columns: list[str] | None = None,
 ) -> pd.DataFrame:
     """Load the built binding-assay table with optional filters.
@@ -194,6 +204,7 @@ def load_binding(
         serotype=serotype,
         length_min=length_min,
         length_max=length_max,
+        exclude_class_label_suspect=exclude_class_label_suspect,
         columns=columns,
     )
 
@@ -209,6 +220,7 @@ def load_all_evidence(
     serotype: str | list[str] | None = None,
     length_min: int | None = None,
     length_max: int | None = None,
+    exclude_class_label_suspect: bool = False,
     columns: list[str] | None = None,
 ) -> pd.DataFrame:
     """Union of MS observations + binding assays with an ``evidence_kind`` column.
@@ -240,6 +252,7 @@ def load_all_evidence(
         "serotype": serotype,
         "length_min": length_min,
         "length_max": length_max,
+        "exclude_class_label_suspect": exclude_class_label_suspect,
         "columns": columns,
     }
 
@@ -281,6 +294,7 @@ def _load_peptide_index(
     serotype: str | list[str] | None,
     length_min: int | None,
     length_max: int | None,
+    exclude_class_label_suspect: bool,
     columns: list[str] | None,
 ) -> pd.DataFrame:
     """Shared loader for the observations and binding parquets.
@@ -373,6 +387,12 @@ def _load_peptide_index(
                         kept.append(dep)
             elif c not in kept:
                 kept.append(c)
+        # The exclude_class_label_suspect filter needs the same deps
+        # whether or not the caller explicitly projected the flag.
+        if exclude_class_label_suspect:
+            for dep in _DERIVED_COLUMN_DEPS["mhc_class_label_suspect"]:
+                if dep not in kept:
+                    kept.append(dep)
         read_columns = kept
 
     df = pd.read_parquet(path, columns=read_columns, filters=filters if filters else None)
@@ -433,6 +453,13 @@ def _load_peptide_index(
         df["mhc_class_label_suspect"] = ((cls == "II") & (plen <= 10)) | (
             (cls == "I") & (plen >= 18)
         )
+
+    # Drop rows whose curated class disagrees with the bimodal length
+    # distribution (#182). One-line opt-in for training pipelines that
+    # want clean class-conditioned inputs without re-deriving the same
+    # check.
+    if exclude_class_label_suspect and "mhc_class_label_suspect" in df.columns:
+        df = df[~df["mhc_class_label_suspect"]]
 
     # If the caller explicitly projected, trim back to that exact list now
     # — derived columns pulled extra dependency columns into the read above

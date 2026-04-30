@@ -454,3 +454,73 @@ def test_load_observations_projects_derived_column_without_pyarrow_failure(tmp_p
     #    (no regression on the common case).
     out3 = load_observations(columns=["peptide"])
     assert list(out3.columns) == ["peptide"]
+
+
+def test_exclude_class_label_suspect_drops_short_class_ii_and_long_class_i(tmp_path, monkeypatch):
+    """v1.30.11 / #182: ``exclude_class_label_suspect=True`` drops the
+    rows the suspect flag would mark — model training pipelines can
+    opt out of class-label drift in one line."""
+    import pandas as pd
+
+    from hitlist.observations import load_observations
+
+    df = pd.DataFrame(
+        {
+            "peptide": [
+                "SLLQHLIGL",  # 9aa class II — suspect, dropped
+                "AAAAAAAAAAAAAAA",  # 15aa class II — kept
+                "AAAAAAAAA",  # 9aa class I — kept
+                "AAAAAAAAAAAAAAAAAA",  # 18aa class I — suspect, dropped
+            ],
+            "mhc_restriction": ["HLA class II", "HLA-DRB1*15:01", "HLA-A*02:01", "HLA-A*02:01"],
+            "mhc_class": ["II", "II", "I", "I"],
+            "reference_iri": [f"r-{i}" for i in range(4)],
+            "pmid": pd.array([1, 2, 3, 4], dtype="Int64"),
+            "source": ["iedb"] * 4,
+            "mhc_species": ["Homo sapiens"] * 4,
+        }
+    )
+    path = tmp_path / "observations.parquet"
+    df.to_parquet(path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
+
+    # Default: all 4 rows.
+    out_all = load_observations()
+    assert len(out_all) == 4
+
+    # Filter on: 2 rows survive.
+    out_filtered = load_observations(exclude_class_label_suspect=True)
+    assert len(out_filtered) == 2
+    survivors = set(out_filtered["peptide"])
+    assert survivors == {"AAAAAAAAAAAAAAA", "AAAAAAAAA"}
+
+
+def test_exclude_class_label_suspect_works_with_explicit_projection(tmp_path, monkeypatch):
+    """The filter must also work when the caller projects with
+    ``columns=[...]`` that doesn't include ``mhc_class`` or ``peptide``
+    — those are the deps the suspect flag is computed from, so the
+    loader must read them anyway and trim afterward."""
+    import pandas as pd
+
+    from hitlist.observations import load_observations
+
+    df = pd.DataFrame(
+        {
+            "peptide": ["SLLQHLIGL", "AAAAAAAAAAAAAAA"],
+            "mhc_restriction": ["HLA class II", "HLA-DRB1*15:01"],
+            "mhc_class": ["II", "II"],
+            "reference_iri": ["r-0", "r-1"],
+            "pmid": pd.array([1, 2], dtype="Int64"),
+            "source": ["iedb"] * 2,
+            "mhc_species": ["Homo sapiens"] * 2,
+        }
+    )
+    path = tmp_path / "observations.parquet"
+    df.to_parquet(path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
+
+    # Caller projects only `pmid` — no mhc_class, no peptide. The filter
+    # still has to drop the 9-aa class-II row (PMID 1) and keep PMID 2.
+    out = load_observations(columns=["pmid"], exclude_class_label_suspect=True)
+    assert list(out.columns) == ["pmid"]
+    assert out["pmid"].tolist() == [2]

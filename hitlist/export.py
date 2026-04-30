@@ -258,6 +258,7 @@ def generate_observations_table(
     serotype: str | list[str] | None = None,
     length_min: int | None = None,
     length_max: int | None = None,
+    exclude_class_label_suspect: bool = False,
     columns: list[str] | None = None,
 ) -> pd.DataFrame:
     """Join per-peptide observations with per-sample metadata.
@@ -327,6 +328,8 @@ def generate_observations_table(
         obs_filters["length_min"] = length_min
     if length_max is not None:
         obs_filters["length_max"] = length_max
+    if exclude_class_label_suspect:
+        obs_filters["exclude_class_label_suspect"] = True
     obs = load_observations(**obs_filters)
 
     if min_allele_resolution:
@@ -574,6 +577,7 @@ def generate_ms_observations_table(
     gene_name: str | list[str] | None = None,
     gene_id: str | list[str] | None = None,
     serotype: str | list[str] | None = None,
+    exclude_class_label_suspect: bool = False,
     columns: list[str] | None = None,
 ) -> pd.DataFrame:
     """Alias for :func:`generate_observations_table` with explicit MS naming."""
@@ -591,6 +595,7 @@ def generate_ms_observations_table(
         gene_name=gene_name,
         gene_id=gene_id,
         serotype=serotype,
+        exclude_class_label_suspect=exclude_class_label_suspect,
         columns=columns,
     )
 

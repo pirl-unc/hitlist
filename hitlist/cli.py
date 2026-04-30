@@ -856,6 +856,15 @@ def main() -> None:
             "B*27:05, B*57:01, etc.  Space-separated, comma-separated, or repeated."
         ),
     )
+    p_obs.add_argument(
+        "--exclude-class-label-suspect",
+        action="store_true",
+        help=(
+            "Drop rows whose curated MHC class disagrees with the bimodal "
+            "peptide-length distribution (class II ≤10aa, class I ≥18aa). "
+            "Useful for model training pipelines (#182)."
+        ),
+    )
     p_obs.add_argument("--output", "-o", help="Write to file (.csv or .parquet)")
 
     p_bind = export_sub.add_parser(
@@ -1793,6 +1802,7 @@ def _export(args: argparse.Namespace) -> None:
                 gene_name=getattr(args, "gene_name", None),
                 gene_id=getattr(args, "gene_id", None),
                 serotype=getattr(args, "serotype", None),
+                exclude_class_label_suspect=getattr(args, "exclude_class_label_suspect", False),
             )
         except (ValueError, FileNotFoundError) as e:
             print(f"Error: {e}", file=sys.stderr)
