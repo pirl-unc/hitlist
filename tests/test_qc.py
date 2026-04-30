@@ -457,6 +457,63 @@ def test_discrepancies_surfaces_class_label_mismatches(tmp_path, monkeypatch):
     assert pmid1_row["suspect_class_label_n"] == 0
 
 
+def test_discrepancies_breaks_down_borderline_vs_implausible(tmp_path, monkeypatch):
+    """v1.30.18 / #201: discrepancies surfaces separate
+    ``borderline_class_label_n`` and ``implausible_class_label_n``
+    columns so a curator can distinguish bulged class-I peptides
+    (uncommon but real, 13-14aa) from clear curation drift (≥18aa
+    class I). Both feed the binary suspect flag — but only when
+    severity is suspect or implausible, not borderline."""
+    from hitlist import qc
+
+    rows = []
+    # PMID 99: 50 valid class-I 9-mers + 10 borderline 13-mers
+    # (bulged class-I, real biology) + 5 implausible 18-mers
+    # (class-I should never be 18aa).
+    for i in range(50):
+        rows.append(
+            _disc_fixture_row(
+                f"P{i:09d}",
+                "I",
+                99,
+                mhc_restriction="HLA-A*02:01",
+            )
+        )
+    for i in range(10):
+        rows.append(
+            _disc_fixture_row(
+                f"B{i:013d}",  # 14-char placeholder peptide column; class I
+                "I",
+                99,
+                mhc_restriction="HLA-A*02:01",
+            )
+        )
+    for i in range(5):
+        rows.append(
+            _disc_fixture_row(
+                f"I{i:018d}",  # 19-char placeholder; under v1.30.17 this is implausible
+                "I",
+                99,
+                mhc_restriction="HLA-A*02:01",
+            )
+        )
+    obs_path = _write_obs_fixture(tmp_path, rows)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+    monkeypatch.setattr("hitlist.curation.load_pmid_overrides", lambda: {})
+    monkeypatch.setattr("hitlist.qc.load_pmid_overrides", lambda: {})
+
+    df = qc.discrepancies(min_rows=10)
+    row = df[df["pmid"] == 99].iloc[0]
+
+    # Borderline (13-14aa class I): uncommon but real, NOT suspect.
+    assert row["borderline_class_label_n"] == 10
+    # Implausible (≥18aa class I): clearly miscurated.
+    assert row["implausible_class_label_n"] == 5
+    # Backwards-compat: suspect_class_label_n only counts implausible
+    # (no rows in the suspect 15-17 tier in this fixture).
+    assert row["suspect_class_label_n"] == 5
+
+
 def test_discrepancies_flags_monoallelic_class_only(tmp_path, monkeypatch):
     """v1.30.9 / #45: rows that are mono-allelic but carry
     ``HLA class I`` instead of a 4-digit allele are surfaced — IEDB

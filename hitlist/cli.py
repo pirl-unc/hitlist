@@ -871,9 +871,21 @@ def main() -> None:
         "--exclude-class-label-suspect",
         action="store_true",
         help=(
-            "Drop rows whose curated MHC class disagrees with the bimodal "
-            "peptide-length distribution (class II ≤10aa, class I ≥18aa). "
-            "Useful for model training pipelines (#182)."
+            "Drop rows where the curated MHC class disagrees with peptide "
+            "length severely enough to be flagged 'suspect' or 'implausible' "
+            "by mhc_class_label_severity (#182, #201). The strict variant — "
+            "drops bulged class-I peptides 15-17aa as well."
+        ),
+    )
+    p_obs.add_argument(
+        "--exclude-class-label-implausible",
+        action="store_true",
+        help=(
+            "Drop only rows flagged 'implausible' by mhc_class_label_severity "
+            "(class-I ≥18aa or ≤7aa, class-II ≤4 or ≥31aa). Keeps borderline "
+            "(13-14aa class-I, 8-10aa class-II) and suspect (15-17aa class-I, "
+            "5-7aa class-II) rows. Useful when bulged class-I peptides should "
+            "be retained (#201)."
         ),
     )
     p_obs.add_argument(
@@ -1877,6 +1889,9 @@ def _export(args: argparse.Namespace) -> None:
                 gene_id=getattr(args, "gene_id", None),
                 serotype=getattr(args, "serotype", None),
                 exclude_class_label_suspect=getattr(args, "exclude_class_label_suspect", False),
+                exclude_class_label_implausible=getattr(
+                    args, "exclude_class_label_implausible", False
+                ),
                 apm_only=getattr(args, "apm_only", False),
             )
         except (ValueError, FileNotFoundError) as e:
