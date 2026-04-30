@@ -470,7 +470,17 @@ def _load_peptide_index(
     # Consumers wanting strict cleaning can use the new
     # ``exclude_class_label_implausible`` parameter.
     if "mhc_class" in df.columns and "peptide" in df.columns and len(df) > 0:
-        plen = df["peptide"].str.len()
+        # v1.30.20: compute length on the bare AA sequence. Pre-v1.30.10
+        # parquets may carry IEDB's inline PTM annotation in the peptide
+        # column ("LQPFPQPQLPY + DEAM(Q8)"); the " + " split strips that
+        # tail without affecting v1.30.10+ rows where ``peptide`` is
+        # already bare. Misclassified ~36k Sarkizova 2020 rows (#205
+        # follow-up) — modified peptides like ``CGPSGLVREL + METH(C1)``
+        # were measuring 21 chars instead of the bare 10 and getting
+        # tagged "implausible" purely on PTM-suffix length.
+        # ``regex=False`` is critical — pandas otherwise treats ``+`` as
+        # a regex one-or-more quantifier and the split silently no-ops.
+        plen = df["peptide"].astype(str).str.split(" + ", n=1, regex=False).str[0].str.len()
         cls = df["mhc_class"].fillna("")
 
         # Default everything to "ok"; refine downward.

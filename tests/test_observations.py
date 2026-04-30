@@ -642,3 +642,52 @@ def test_exclude_class_label_implausible_keeps_borderline_and_suspect(tmp_path, 
         "AAAAAAAAAAAAA",
         "AAAAAAAAAAAAAAA",
     }
+
+
+def test_severity_tier_strips_ptm_annotation_when_computing_length(tmp_path, monkeypatch):
+    """v1.30.20: pre-v1.30.10 parquets may carry IEDB's inline PTM
+    annotation in the peptide column (e.g. ``"CGPSGLVREL + METH(C1)"``
+    instead of the bare ``"CGPSGLVREL"``). The severity tier
+    classifier must compute length on the bare AA sequence — otherwise
+    the 6-char ``" + METH(C1)"`` suffix pushes a 10-aa class-I
+    peptide past the 18-aa implausibility cutoff. Misclassified ~36k
+    Sarkizova 2020 rows in production parquets."""
+    import pandas as pd
+
+    from hitlist.observations import load_observations
+
+    df = pd.DataFrame(
+        {
+            "peptide": [
+                # bare 10 aa class-I — should be ok, NOT implausible
+                "CGPSGLVREL + METH(C1)",
+                # bare 11 aa class-I + deamidation — should be ok
+                "AIDHNQMFQYK + DEAM(N4)",
+                # bare 9 aa, no PTM — should be ok
+                "AAAAAAAAA",
+                # bare 18 aa, no PTM — genuinely implausible class I
+                "AAAAAAAAAAAAAAAAAA",
+                # malformed PTM annotation: " + " present but parse fails;
+                # bare-len fallback should still split on " + " and
+                # measure the 9 aa prefix as ok.
+                "AAAAAAAAA + ???",
+            ],
+            "mhc_restriction": ["HLA-A*02:01"] * 5,
+            "mhc_class": ["I"] * 5,
+            "reference_iri": [f"r-{i}" for i in range(5)],
+            "pmid": pd.array([1, 2, 3, 4, 5], dtype="Int64"),
+            "source": ["iedb"] * 5,
+            "mhc_species": ["Homo sapiens"] * 5,
+        }
+    )
+    path = tmp_path / "observations.parquet"
+    df.to_parquet(path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
+
+    out = load_observations()
+    sev = dict(zip(out["peptide"], out["mhc_class_label_severity"]))
+    assert sev["CGPSGLVREL + METH(C1)"] == "ok"
+    assert sev["AIDHNQMFQYK + DEAM(N4)"] == "ok"
+    assert sev["AAAAAAAAA"] == "ok"
+    assert sev["AAAAAAAAAAAAAAAAAA"] == "implausible"
+    assert sev["AAAAAAAAA + ???"] == "ok"

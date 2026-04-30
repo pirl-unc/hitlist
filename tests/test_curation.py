@@ -1035,10 +1035,21 @@ def test_load_pmid_overrides_warns_on_legacy_keys(tmp_path, monkeypatch):
             ]
         )
     )
+    # Route only the pmid_overrides.yaml lookup to the temp fixture; the
+    # other data files (e.g. monoallelic_lines.yaml that
+    # load_pmid_overrides validates against) must continue to resolve to
+    # the real package data dir. The previous monkeypatch returned a
+    # bare filename for non-pmid-overrides paths, which silently worked
+    # only when the lru_cache was already warmed by an earlier test
+    # (test-order-dependent flake).
+    real_data_path = curation._data_path
     monkeypatch.setattr(
-        curation, "_data_path", lambda fn: str(legacy_yaml) if fn == "pmid_overrides.yaml" else fn
+        curation,
+        "_data_path",
+        lambda fn: str(legacy_yaml) if fn == "pmid_overrides.yaml" else real_data_path(fn),
     )
     curation.load_pmid_overrides.cache_clear()
+    curation.load_monoallelic_lines.cache_clear()
     try:
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always", DeprecationWarning)
@@ -1048,6 +1059,7 @@ def test_load_pmid_overrides_warns_on_legacy_keys(tmp_path, monkeypatch):
         assert any("type:" in m for m in messages), messages
     finally:
         curation.load_pmid_overrides.cache_clear()
+        curation.load_monoallelic_lines.cache_clear()
 
 
 # ── Species normalization ─────────────────────────────────────────────
