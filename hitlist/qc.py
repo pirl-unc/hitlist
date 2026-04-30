@@ -157,7 +157,7 @@ def normalization_drift() -> pd.DataFrame:
 def cross_reference(mhc_class: str | None = None) -> pd.DataFrame:
     """Find allele/data mismatches between curation YAML and observations.
 
-    Two divergence directions:
+    Three divergence directions:
 
     - **yaml_only**: an allele is listed in a YAML sample's ``mhc`` block
       but no observation row for that PMID has that ``mhc_restriction``.
@@ -166,6 +166,14 @@ def cross_reference(mhc_class: str | None = None) -> pd.DataFrame:
     - **data_only**: a 4-digit allele appears as ``mhc_restriction`` for
       a PMID but no YAML sample for that PMID lists it.  Likely a curation
       gap (sample present in data but not yet added to YAML).
+    - **needs_deconvolution**: PMID has YAML alleles but ZERO 4-digit
+      observation rows (data is 100% class-only / serotype). Emitted as
+      a single row per PMID rather than per-allele — the gap is
+      structural (paper says class-I, IEDB lost the per-peptide allele)
+      so listing every YAML allele under ``yaml_only`` would balloon
+      the report with non-actionable rows. The discrepancies report's
+      ``class_pool_n`` and ``monoallelic_class_only_n`` columns surface
+      the same studies with row counts attached.
 
     Parameters
     ----------
@@ -176,7 +184,8 @@ def cross_reference(mhc_class: str | None = None) -> pd.DataFrame:
     -------
     pd.DataFrame
         Columns: ``pmid``, ``study_label``, ``allele``, ``direction``,
-        ``severity``.  ``direction`` is ``"yaml_only"`` or ``"data_only"``.
+        ``severity``. ``direction`` is one of ``"yaml_only"``,
+        ``"data_only"``, or ``"needs_deconvolution"``.
     """
     from .observations import is_built, load_observations
 
@@ -196,6 +205,11 @@ def cross_reference(mhc_class: str | None = None) -> pd.DataFrame:
         .apply(lambda s: set(s.dropna().astype(str)))
         .to_dict()
     )
+    # PMIDs whose data exists but has zero 4-digit alleles (100% class-
+    # only / serotype). Cached so we can route those into the
+    # needs_deconvolution bucket rather than spamming yaml_only.
+    pmids_with_any_data = set(obs["pmid"].dropna().astype(int).unique().tolist())
+    pmids_with_4digit_data = {int(p) for p in data_by_pmid if pd.notna(p)}
 
     overrides = load_pmid_overrides()
     rows: list[dict] = []
@@ -208,6 +222,26 @@ def cross_reference(mhc_class: str | None = None) -> pd.DataFrame:
             yaml_alleles |= _flatten_hla_alleles(sample.get("mhc", []))
 
         data_alleles = data_by_pmid.get(pmid_int, set())
+
+        # Special case: data exists for the PMID but it's 100% class-
+        # only. Per-allele yaml_only rows aren't actionable here — emit
+        # a single needs_deconvolution sentinel instead.
+        if (
+            yaml_alleles
+            and not data_alleles
+            and int(pmid_int) in pmids_with_any_data
+            and int(pmid_int) not in pmids_with_4digit_data
+        ):
+            rows.append(
+                {
+                    "pmid": pmid_int,
+                    "study_label": study_label,
+                    "allele": f"({len(yaml_alleles)} YAML alleles)",
+                    "direction": "needs_deconvolution",
+                    "severity": "info",
+                }
+            )
+            continue
 
         for allele in sorted(yaml_alleles - data_alleles):
             rows.append(
