@@ -422,3 +422,219 @@ def run_all(mhc_class: str | None = None) -> dict[str, pd.DataFrame]:
         "cross_reference": cross_reference(mhc_class=mhc_class),
         "discrepancies": discrepancies(mhc_class=mhc_class),
     }
+
+
+def curation_plan(
+    mhc_class: str | None = None,
+    min_rows: int = 50,
+) -> pd.DataFrame:
+    """Per-PMID curation roadmap — joins every other qc signal.
+
+    Combines :func:`discrepancies`, :func:`cross_reference`, and
+    :func:`normalization_drift` into one ranked table answering
+    "which study should I curate next?". One row per PMID with
+    columns:
+
+    - ``study_label`` — friendly study name from
+      ``pmid_overrides.yaml``.
+    - ``n_rows`` — total observation rows in the corpus for this PMID
+      (sum across class I/II buckets).
+    - ``suspect_class_label_n`` / ``suspect_class_label_rate`` —
+      summed across class buckets (#182).
+    - ``monoallelic_class_only_n`` — rows where the paper knows the
+      allele but IEDB lost it (#45 candidates).
+    - ``class_pool_n`` — rows that fell back to per-PMID class pool
+      (#37 deconvolution candidates).
+    - ``nonstandard_aa_n`` — peptides with X / B / Z / lowercase /
+      digits.
+    - ``yaml_only_alleles_n`` — alleles in YAML samples but not in
+      data — likely curation typo or unmeasured allele.
+    - ``data_only_alleles_n`` — 4-digit alleles in data but not in
+      any YAML sample — gap in YAML curation.
+    - ``normalization_drifts_n`` — alleles in YAML whose
+      ``normalize_allele`` output differs from the curated string.
+    - ``priority_score`` — sum of the action signals weighted by
+      curator-time-cost; higher = more impactful to fix.
+    - ``severity`` — propagated worst severity across all signals.
+
+    Sort: descending by ``priority_score``. Use this to pick the
+    next study to curate without bouncing between three reports.
+
+    Parameters
+    ----------
+    mhc_class
+        Optional class filter (passed through to ``discrepancies``
+        and ``cross_reference``). YAML signals are class-agnostic.
+    min_rows
+        Drop PMID buckets with fewer than this many rows in the
+        discrepancies pass — small buckets give noisy
+        percentile-based metrics.
+    """
+    disc = discrepancies(mhc_class=mhc_class, min_rows=min_rows)
+    xref = cross_reference(mhc_class=mhc_class)
+    drift = normalization_drift()
+
+    # ── Discrepancies: roll up across class I/II per PMID ────────────
+    if not disc.empty:
+        disc_pmid = (
+            disc.groupby("pmid", as_index=False)
+            .agg(
+                study_label=("study_label", "first"),
+                n_rows=("n_rows", "sum"),
+                suspect_class_label_n=("suspect_class_label_n", "sum"),
+                monoallelic_class_only_n=("monoallelic_class_only_n", "sum"),
+                class_pool_n=("class_pool_n", "sum"),
+                nonstandard_aa_n=("nonstandard_aa_n", "sum"),
+            )
+            .copy()
+        )
+        disc_pmid["suspect_class_label_rate"] = disc_pmid["suspect_class_label_n"] / disc_pmid[
+            "n_rows"
+        ].clip(lower=1)
+    else:
+        disc_pmid = pd.DataFrame(
+            columns=[
+                "pmid",
+                "study_label",
+                "n_rows",
+                "suspect_class_label_n",
+                "monoallelic_class_only_n",
+                "class_pool_n",
+                "nonstandard_aa_n",
+                "suspect_class_label_rate",
+            ]
+        )
+
+    # ── Cross-reference: per-PMID counts of yaml_only / data_only ────
+    if not xref.empty:
+        xref_pmid = (
+            xref.assign(
+                _yaml_only=(xref["direction"] == "yaml_only").astype(int),
+                _data_only=(xref["direction"] == "data_only").astype(int),
+            )
+            .groupby("pmid", as_index=False)
+            .agg(
+                yaml_only_alleles_n=("_yaml_only", "sum"),
+                data_only_alleles_n=("_data_only", "sum"),
+            )
+        )
+    else:
+        xref_pmid = pd.DataFrame(columns=["pmid", "yaml_only_alleles_n", "data_only_alleles_n"])
+
+    # ── Normalization drift: per-PMID drift count ────────────────────
+    if not drift.empty:
+        drift_pmid = (
+            drift.groupby("pmid", as_index=False)
+            .size()
+            .rename(columns={"size": "normalization_drifts_n"})
+        )
+    else:
+        drift_pmid = pd.DataFrame(columns=["pmid", "normalization_drifts_n"])
+
+    # ── Outer-merge on pmid ──────────────────────────────────────────
+    plan = disc_pmid.merge(xref_pmid, on="pmid", how="outer").merge(
+        drift_pmid, on="pmid", how="outer"
+    )
+    if plan.empty:
+        return pd.DataFrame(
+            columns=[
+                "pmid",
+                "study_label",
+                "n_rows",
+                "suspect_class_label_n",
+                "suspect_class_label_rate",
+                "monoallelic_class_only_n",
+                "class_pool_n",
+                "nonstandard_aa_n",
+                "yaml_only_alleles_n",
+                "data_only_alleles_n",
+                "normalization_drifts_n",
+                "priority_score",
+                "severity",
+            ]
+        )
+
+    # Backfill study_label for PMIDs that came in via xref/drift only.
+    overrides = load_pmid_overrides()
+    needs_label = plan["study_label"].isna() | (plan["study_label"] == "")
+    plan.loc[needs_label, "study_label"] = plan.loc[needs_label, "pmid"].map(
+        lambda p: overrides.get(int(p), {}).get("study_label", "") if pd.notna(p) else ""
+    )
+
+    fill_cols = [
+        "n_rows",
+        "suspect_class_label_n",
+        "suspect_class_label_rate",
+        "monoallelic_class_only_n",
+        "class_pool_n",
+        "nonstandard_aa_n",
+        "yaml_only_alleles_n",
+        "data_only_alleles_n",
+        "normalization_drifts_n",
+    ]
+    for c in fill_cols:
+        if c in plan.columns:
+            plan[c] = plan[c].fillna(0)
+
+    # Priority score — weights chosen so each signal contributes a
+    # comparable share when present at typical scale (rows per study
+    # are O(10-100K), allele divergences O(1-10), so multiplying allele
+    # counts by a constant aligns them with rate-style row signals).
+    plan["priority_score"] = (
+        plan["suspect_class_label_n"]
+        + plan["monoallelic_class_only_n"]
+        + plan["nonstandard_aa_n"]
+        + 1000 * plan["yaml_only_alleles_n"]
+        + 100 * plan["data_only_alleles_n"]
+        + 10000 * plan["normalization_drifts_n"]
+    )
+
+    def _severity(row) -> str:
+        if (
+            row["normalization_drifts_n"] > 0
+            or row["yaml_only_alleles_n"] > 0
+            or (row["suspect_class_label_rate"] >= 0.05 and row["suspect_class_label_n"] > 0)
+            or row["monoallelic_class_only_n"] > 0
+            or row["nonstandard_aa_n"] > 0
+        ):
+            return "warn"
+        if row["data_only_alleles_n"] > 0 or row["class_pool_n"] > 0:
+            return "info"
+        return "info"
+
+    plan["severity"] = plan.apply(_severity, axis=1)
+    plan = plan.sort_values(["priority_score", "n_rows"], ascending=[False, False], kind="stable")
+
+    # Cast counts to int (groupby + outer merge may have promoted them
+    # to float64 via NaN fills).
+    int_cols = [
+        "n_rows",
+        "suspect_class_label_n",
+        "monoallelic_class_only_n",
+        "class_pool_n",
+        "nonstandard_aa_n",
+        "yaml_only_alleles_n",
+        "data_only_alleles_n",
+        "normalization_drifts_n",
+    ]
+    for c in int_cols:
+        if c in plan.columns:
+            plan[c] = plan[c].astype(int)
+
+    return plan[
+        [
+            "pmid",
+            "study_label",
+            "n_rows",
+            "suspect_class_label_n",
+            "suspect_class_label_rate",
+            "monoallelic_class_only_n",
+            "class_pool_n",
+            "nonstandard_aa_n",
+            "yaml_only_alleles_n",
+            "data_only_alleles_n",
+            "normalization_drifts_n",
+            "priority_score",
+            "severity",
+        ]
+    ].reset_index(drop=True)
