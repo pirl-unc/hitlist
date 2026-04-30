@@ -583,3 +583,139 @@ def test_discrepancies_by_invalid_value_raises():
 
     with pytest.raises(ValueError, match="must be 'pmid' or 'sample'"):
         qc.discrepancies(by="study")
+
+
+# ── v1.30.13: curation_plan / qc plan ──────────────────────────────────
+
+
+def test_curation_plan_combines_all_qc_signals(tmp_path, monkeypatch):
+    """v1.30.13: ``curation_plan`` joins discrepancies, cross_reference,
+    and normalization_drift into one PMID-priority list. A PMID with
+    drift + suspect rows + a yaml-only allele should sort above a PMID
+    with only weak signals."""
+    from hitlist import qc
+
+    rows = (
+        # PMID 100: 60 valid 9-aa class-I rows + 12 long (suspect) rows.
+        [
+            _disc_fixture_row(
+                "AAAAAAAAA",
+                "I",
+                100,
+                mhc_restriction="HLA-A*02:01",
+            )
+            for _ in range(60)
+        ]
+        + [
+            _disc_fixture_row(
+                "BBBBBBBBBBBBBBBBBB",
+                "I",
+                100,
+                mhc_restriction="HLA-A*02:01",
+            )
+            for _ in range(12)
+        ]
+        # PMID 200: 60 clean rows, no signals.
+        + [
+            _disc_fixture_row(
+                "CCCCCCCCC",
+                "I",
+                200,
+                mhc_restriction="HLA-B*07:02",
+            )
+            for _ in range(60)
+        ]
+    )
+    obs_path = _write_obs_fixture(tmp_path, rows)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+    overrides = {
+        100: {
+            "study_label": "Study With Issues",
+            "hla_alleles": ["HLA-Cw*04:01"],  # drifts to HLA-C*04:01
+            "ms_samples": [
+                {"sample_label": "donor1", "mhc": ["HLA-A*02:01", "HLA-D*99:99"]},
+            ],
+        },
+        200: {"study_label": "Clean Study", "ms_samples": []},
+    }
+    monkeypatch.setattr("hitlist.qc.load_pmid_overrides", lambda: overrides)
+    monkeypatch.setattr("hitlist.curation.load_pmid_overrides", lambda: overrides)
+
+    plan = qc.curation_plan(min_rows=10)
+    assert not plan.empty
+    # PMID 100 has signals from all three reports; PMID 200 is clean.
+    assert plan.iloc[0]["pmid"] == 100
+    pmid_100 = plan[plan["pmid"] == 100].iloc[0]
+    assert pmid_100["suspect_class_label_n"] == 12
+    assert pmid_100["normalization_drifts_n"] >= 1  # HLA-Cw*04:01 drift
+    assert pmid_100["yaml_only_alleles_n"] >= 1  # HLA-D*99:99 not in data
+    assert pmid_100["severity"] == "warn"
+
+
+def test_curation_plan_ranks_by_priority_score(tmp_path, monkeypatch):
+    """A study with normalization drift should beat one with just
+    in-data discrepancies — drift means the YAML itself needs editing,
+    which is higher-leverage than re-running a length filter."""
+    from hitlist import qc
+
+    rows = (
+        # PMID 1: 100 suspect-class-label rows. Big number but no drift.
+        [
+            _disc_fixture_row(
+                "BBBBBBBBBBBBBBBBBB",
+                "I",
+                1,
+                mhc_restriction="HLA-A*02:01",
+            )
+            for _ in range(100)
+        ]
+        # PMID 2: 60 clean rows. Drift hits.
+        + [
+            _disc_fixture_row(
+                "AAAAAAAAA",
+                "I",
+                2,
+                mhc_restriction="HLA-A*02:01",
+            )
+            for _ in range(60)
+        ]
+    )
+    obs_path = _write_obs_fixture(tmp_path, rows)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+    overrides = {
+        1: {"study_label": "PMID 1"},
+        2: {
+            "study_label": "PMID 2",
+            "hla_alleles": ["HLA-Cw*04:01"],  # drifts
+        },
+    }
+    monkeypatch.setattr("hitlist.qc.load_pmid_overrides", lambda: overrides)
+    monkeypatch.setattr("hitlist.curation.load_pmid_overrides", lambda: overrides)
+
+    plan = qc.curation_plan(min_rows=10)
+    # Drift-weighted score (x10000) should put PMID 2 ahead even with
+    # only 1 drift vs PMID 1's 100 suspect rows.
+    assert plan.iloc[0]["pmid"] == 2
+
+
+def test_curation_plan_handles_no_signals(tmp_path, monkeypatch):
+    """When every input report is empty (no signals at all), the
+    plan returns an empty DataFrame with the expected columns rather
+    than crashing on the outer-merge."""
+    from hitlist import qc
+
+    # A schema-valid but tiny fixture (1 row, no signals worth
+    # surfacing — and below min_rows so discrepancies drops it).
+    obs_path = _write_obs_fixture(
+        tmp_path, [_disc_fixture_row("AAAAAAAAA", "I", 1, mhc_restriction="HLA-A*02:01")]
+    )
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+    monkeypatch.setattr("hitlist.qc.load_pmid_overrides", lambda: {})
+    monkeypatch.setattr("hitlist.curation.load_pmid_overrides", lambda: {})
+
+    plan = qc.curation_plan(min_rows=1000)  # forces all PMIDs to drop
+    assert plan.empty
+    # Schema must still include priority + severity so consumers can
+    # read .columns even when nothing is wrong.
+    assert "priority_score" in plan.columns
+    assert "severity" in plan.columns

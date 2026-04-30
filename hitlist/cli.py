@@ -1282,6 +1282,35 @@ def main() -> None:
     )
     p_qc_disc.add_argument("--output", "-o", help="Write CSV to file")
 
+    p_qc_plan = qc_sub.add_parser(
+        "plan",
+        help=(
+            "Curation roadmap: per-PMID priority queue combining "
+            "discrepancies, cross_reference, and normalization_drift "
+            "into one ranked table — answers 'which study should I "
+            "curate next?' without bouncing between three reports."
+        ),
+    )
+    p_qc_plan.add_argument("--class", dest="mhc_class", help="MHC class (I or II)")
+    p_qc_plan.add_argument(
+        "--min-rows",
+        type=int,
+        default=50,
+        help="Drop PMID buckets with fewer than this many rows (default 50).",
+    )
+    p_qc_plan.add_argument(
+        "--top",
+        type=int,
+        default=None,
+        help="Show only the top N PMIDs by priority score (default: all).",
+    )
+    p_qc_plan.add_argument(
+        "--severity",
+        choices=["info", "warn"],
+        help="Filter to one severity level (default: all).",
+    )
+    p_qc_plan.add_argument("--output", "-o", help="Write CSV to file")
+
     # ── pmhc subcommand ────────────────────────────────────────────────
     p_pmhc = sub.add_parser(
         "pmhc",
@@ -1478,6 +1507,17 @@ def _qc(args: argparse.Namespace) -> None:
             min_rows=getattr(args, "min_rows", 50),
             by=getattr(args, "by", "pmid"),
         )
+        top = getattr(args, "top", None)
+        if top is not None and not df.empty:
+            df = df.head(top).reset_index(drop=True)
+    elif cmd == "plan":
+        df = qc.curation_plan(
+            mhc_class=getattr(args, "mhc_class", None),
+            min_rows=getattr(args, "min_rows", 50),
+        )
+        sev = getattr(args, "severity", None)
+        if sev is not None and not df.empty:
+            df = df[df["severity"] == sev].reset_index(drop=True)
         top = getattr(args, "top", None)
         if top is not None and not df.empty:
             df = df.head(top).reset_index(drop=True)
