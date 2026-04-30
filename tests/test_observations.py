@@ -377,10 +377,13 @@ def test_load_observations_normalizes_unprefixed_alleles_at_load_time(tmp_path, 
 
 
 def test_load_observations_flags_short_class_ii_as_suspect(tmp_path, monkeypatch):
-    """v1.30.0 / #182: short peptides (≤10aa) labeled class II are
-    flagged ``mhc_class_label_suspect=True`` so consumers can opt out
-    of biologically-improbable rows. Class I peptides ≥18aa get the
-    same flag in the symmetric direction."""
+    """v1.30.0 / #182 + v1.30.17 / #201: rows whose class label
+    disagrees with the bimodal length distribution flag
+    ``mhc_class_label_suspect=True``. v1.30.17 narrowed the
+    definition: the 8-10 aa class II range and 13-14 aa class I
+    range are now ``borderline`` (uncommon but real), so the
+    binary suspect flag fires only when severity is ``suspect`` or
+    ``implausible``."""
     import pandas as pd
 
     from hitlist.observations import load_observations
@@ -388,10 +391,10 @@ def test_load_observations_flags_short_class_ii_as_suspect(tmp_path, monkeypatch
     df = pd.DataFrame(
         {
             "peptide": [
-                "SLLQHLIGL",  # 9aa class II — suspect
+                "SLLQHLI",  # 7aa class II — suspect (post-v1.30.17)
                 "AAAAAAAAAAAAAAA",  # 15aa class II — plausible
                 "AAAAAAAAA",  # 9aa class I — plausible
-                "AAAAAAAAAAAAAAAAAA",  # 18aa class I — suspect
+                "AAAAAAAAAAAAAAAAAA",  # 18aa class I — implausible
             ],
             "mhc_restriction": ["HLA class II", "HLA-DRB1*15:01", "HLA-A*02:01", "HLA-A*02:01"],
             "mhc_class": ["II", "II", "I", "I"],
@@ -408,10 +411,10 @@ def test_load_observations_flags_short_class_ii_as_suspect(tmp_path, monkeypatch
     out = load_observations()
     assert "mhc_class_label_suspect" in out.columns
     suspect = dict(zip(out["peptide"], out["mhc_class_label_suspect"]))
-    assert suspect["SLLQHLIGL"]  # 9aa class II
-    assert not suspect["AAAAAAAAAAAAAAA"]  # 15aa class II
-    assert not suspect["AAAAAAAAA"]  # 9aa class I
-    assert suspect["AAAAAAAAAAAAAAAAAA"]  # 18aa class I
+    assert suspect["SLLQHLI"]  # 7aa class II — clearly suspect
+    assert not suspect["AAAAAAAAAAAAAAA"]  # 15aa class II — canonical
+    assert not suspect["AAAAAAAAA"]  # 9aa class I — canonical
+    assert suspect["AAAAAAAAAAAAAAAAAA"]  # 18aa class I — implausible
 
 
 def test_load_observations_projects_derived_column_without_pyarrow_failure(tmp_path, monkeypatch):
@@ -427,7 +430,9 @@ def test_load_observations_projects_derived_column_without_pyarrow_failure(tmp_p
 
     df = pd.DataFrame(
         {
-            "peptide": ["SLLQHLIGL", "AAAAAAAAAAAAAAA"],
+            # 7aa class II → suspect under v1.30.17 tiering;
+            # 15aa class II → ok.
+            "peptide": ["SLLQHLI", "AAAAAAAAAAAAAAA"],
             "mhc_restriction": ["HLA class II", "HLA-DRB1*15:01"],
             "mhc_class": ["II", "II"],
             "reference_iri": ["r-0", "r-1"],
@@ -467,10 +472,10 @@ def test_exclude_class_label_suspect_drops_short_class_ii_and_long_class_i(tmp_p
     df = pd.DataFrame(
         {
             "peptide": [
-                "SLLQHLIGL",  # 9aa class II — suspect, dropped
+                "SLLQHLI",  # 7aa class II — suspect (post-v1.30.17), dropped
                 "AAAAAAAAAAAAAAA",  # 15aa class II — kept
                 "AAAAAAAAA",  # 9aa class I — kept
-                "AAAAAAAAAAAAAAAAAA",  # 18aa class I — suspect, dropped
+                "AAAAAAAAAAAAAAAAAA",  # 18aa class I — implausible, dropped
             ],
             "mhc_restriction": ["HLA class II", "HLA-DRB1*15:01", "HLA-A*02:01", "HLA-A*02:01"],
             "mhc_class": ["II", "II", "I", "I"],
@@ -506,7 +511,9 @@ def test_exclude_class_label_suspect_works_with_explicit_projection(tmp_path, mo
 
     df = pd.DataFrame(
         {
-            "peptide": ["SLLQHLIGL", "AAAAAAAAAAAAAAA"],
+            # PMID 1: 7aa class II → suspect tier (post-v1.30.17), dropped.
+            # PMID 2: 15aa class II → ok, kept.
+            "peptide": ["SLLQHLI", "AAAAAAAAAAAAAAA"],
             "mhc_restriction": ["HLA class II", "HLA-DRB1*15:01"],
             "mhc_class": ["II", "II"],
             "reference_iri": ["r-0", "r-1"],
@@ -520,7 +527,118 @@ def test_exclude_class_label_suspect_works_with_explicit_projection(tmp_path, mo
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
 
     # Caller projects only `pmid` — no mhc_class, no peptide. The filter
-    # still has to drop the 9-aa class-II row (PMID 1) and keep PMID 2.
+    # still has to drop the 7-aa class-II row (PMID 1) and keep PMID 2.
     out = load_observations(columns=["pmid"], exclude_class_label_suspect=True)
     assert list(out.columns) == ["pmid"]
     assert out["pmid"].tolist() == [2]
+
+
+def test_load_observations_emits_severity_tiers(tmp_path, monkeypatch):
+    """v1.30.17 / #201: ``mhc_class_label_severity`` returns one of
+    {ok, borderline, suspect, implausible} per row.
+
+    Class I tiers:
+      8-12 → ok          (canonical)
+      13-14 → borderline (bulged class-I)
+      15-17 → suspect    (very unusual but documented)
+      ≥18 → implausible  (curation drift)
+      ≤7 → implausible
+
+    Class II tiers:
+      11-30 → ok         (canonical)
+      8-10 → borderline  (genuinely short class-II ligands)
+      5-7 → suspect
+      ≤4 or ≥31 → implausible
+    """
+    import pandas as pd
+
+    from hitlist.observations import load_observations
+
+    df = pd.DataFrame(
+        {
+            "peptide": [
+                "AAAAAAAAA",  # 9aa class I — ok
+                "AAAAAAAAAAAAA",  # 13aa class I — borderline
+                "AAAAAAAAAAAAAAA",  # 15aa class I — suspect
+                "AAAAAAAAAAAAAAAAAA",  # 18aa class I — implausible
+                "EEEEEEEEEEEEE",  # 13aa class II — ok
+                "EEEEEEEEE",  # 9aa class II — borderline
+                "EEEEEEE",  # 7aa class II — suspect
+                "EEEE",  # 4aa class II — implausible
+            ],
+            "mhc_restriction": (["HLA-A*02:01"] * 4) + (["HLA-DRB1*15:01"] * 4),
+            "mhc_class": (["I"] * 4) + (["II"] * 4),
+            "reference_iri": [f"r-{i}" for i in range(8)],
+            "pmid": pd.array([1, 2, 3, 4, 5, 6, 7, 8], dtype="Int64"),
+            "source": ["iedb"] * 8,
+            "mhc_species": ["Homo sapiens"] * 8,
+        }
+    )
+    path = tmp_path / "observations.parquet"
+    df.to_parquet(path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
+
+    out = load_observations()
+    sev = dict(zip(out["peptide"], out["mhc_class_label_severity"]))
+    # Class I.
+    assert sev["AAAAAAAAA"] == "ok"
+    assert sev["AAAAAAAAAAAAA"] == "borderline"
+    assert sev["AAAAAAAAAAAAAAA"] == "suspect"
+    assert sev["AAAAAAAAAAAAAAAAAA"] == "implausible"
+    # Class II.
+    assert sev["EEEEEEEEEEEEE"] == "ok"
+    assert sev["EEEEEEEEE"] == "borderline"
+    assert sev["EEEEEEE"] == "suspect"
+    assert sev["EEEE"] == "implausible"
+
+    # Backwards-compat: suspect+implausible → mhc_class_label_suspect=True;
+    # ok+borderline → False.
+    susp = dict(zip(out["peptide"], out["mhc_class_label_suspect"]))
+    assert susp["AAAAAAAAA"] is False  # ok
+    assert susp["AAAAAAAAAAAAA"] is False  # borderline (NOT suspect)
+    assert susp["AAAAAAAAAAAAAAA"] is True  # suspect
+    assert susp["AAAAAAAAAAAAAAAAAA"] is True  # implausible
+    assert susp["EEEEEEEEE"] is False  # borderline (NOT suspect)
+    assert susp["EEEE"] is True  # implausible
+
+
+def test_exclude_class_label_implausible_keeps_borderline_and_suspect(tmp_path, monkeypatch):
+    """v1.30.17: stricter variant of exclude_class_label_suspect that
+    keeps borderline and suspect rows but drops implausible. Useful
+    for analyses that want to retain bulged class-I peptides
+    (15-17 aa) while still filtering out clear curation drift."""
+    import pandas as pd
+
+    from hitlist.observations import load_observations
+
+    df = pd.DataFrame(
+        {
+            "peptide": [
+                "AAAAAAAAA",  # 9aa class I — ok, kept
+                "AAAAAAAAAAAAA",  # 13aa class I — borderline, kept
+                "AAAAAAAAAAAAAAA",  # 15aa class I — suspect, kept
+                "AAAAAAAAAAAAAAAAAA",  # 18aa class I — implausible, dropped
+            ],
+            "mhc_restriction": ["HLA-A*02:01"] * 4,
+            "mhc_class": ["I"] * 4,
+            "reference_iri": [f"r-{i}" for i in range(4)],
+            "pmid": pd.array([1, 2, 3, 4], dtype="Int64"),
+            "source": ["iedb"] * 4,
+            "mhc_species": ["Homo sapiens"] * 4,
+        }
+    )
+    path = tmp_path / "observations.parquet"
+    df.to_parquet(path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
+
+    # Strict (legacy): drops both suspect and implausible.
+    strict = load_observations(exclude_class_label_suspect=True)
+    assert set(strict["peptide"]) == {"AAAAAAAAA", "AAAAAAAAAAAAA"}
+
+    # Implausible-only: keeps suspect, drops only implausible.
+    relaxed = load_observations(exclude_class_label_implausible=True)
+    assert set(relaxed["peptide"]) == {
+        "AAAAAAAAA",
+        "AAAAAAAAAAAAA",
+        "AAAAAAAAAAAAAAA",
+    }

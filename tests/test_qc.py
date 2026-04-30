@@ -420,8 +420,10 @@ def test_discrepancies_surfaces_class_label_mismatches(tmp_path, monkeypatch):
     # 60 valid class-I rows on PMID 1 (clean).
     for i in range(60):
         rows.append(_disc_fixture_row(f"P{i:09d}", "I", 1, mhc_restriction="HLA-A*02:01"))
-    # 60 rows on PMID 2: 50 valid class-II 14-mers + 10 suspect 9-mers
-    # labeled class II.
+    # 60 rows on PMID 2: 50 valid class-II 14-mers + 10 suspect 7-mers
+    # labeled class II. v1.30.17: the suspect tier for class-II is now
+    # 5-7 aa (not 8-10 aa, which is borderline) so the test peptides
+    # must be 7 aa or shorter to fire the suspect flag.
     for i in range(50):
         rows.append(
             _disc_fixture_row(
@@ -434,7 +436,7 @@ def test_discrepancies_surfaces_class_label_mismatches(tmp_path, monkeypatch):
     for i in range(10):
         rows.append(
             _disc_fixture_row(
-                f"R{i:08d}",
+                f"R{i:06d}",
                 "II",
                 2,
                 mhc_restriction="HLA-DRB1*15:01",
