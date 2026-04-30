@@ -690,17 +690,30 @@ def _looks_like_four_digit_allele(s: str) -> bool:
 def _flatten_hla_alleles(value) -> set[str]:
     """Recursively collect 4-digit allele strings from a curated ``hla_alleles`` value.
 
-    Tolerates the three shapes seen in pmid_overrides.yaml:
-    flat list, dict-of-lists keyed by donor / cell line, and
-    dict-of-strings (free-text descriptions are filtered out by the
-    syntactic check).
+    Tolerates the four shapes seen in pmid_overrides.yaml:
+    flat list, dict-of-lists keyed by donor / cell line, dict-of-strings
+    (free-text descriptions are filtered out by the syntactic check),
+    and **space-separated multi-allele genotype strings** like
+    ``"HLA-A*01:01 HLA-B*07:02 HLA-C*12:03"`` — used in ~32% of
+    ms_samples to encode a donor's genotype as one field. Without
+    this split, downstream qc reports report the whole genotype as a
+    single phantom "allele".
     """
     out: set[str] = set()
     if value is None:
         return out
     if isinstance(value, str):
-        if _looks_like_four_digit_allele(value):
-            out.add(value.strip())
+        s = value.strip()
+        tokens = s.split()
+        if len(tokens) > 1:
+            # Multi-allele genotype string: keep only the tokens that
+            # look like real alleles (drops noise like 'or' / commas
+            # in free-text fields that happened to have HLA in them).
+            for tok in tokens:
+                if _looks_like_four_digit_allele(tok):
+                    out.add(tok)
+        elif _looks_like_four_digit_allele(s):
+            out.add(s)
     elif isinstance(value, list):
         for v in value:
             out |= _flatten_hla_alleles(v)

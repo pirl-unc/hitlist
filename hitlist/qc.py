@@ -574,7 +574,9 @@ def curation_plan(
     ]
     for c in fill_cols:
         if c in plan.columns:
-            plan[c] = plan[c].fillna(0)
+            # Avoid the pandas 3.0 FutureWarning about implicit
+            # downcast-on-fillna by going through numeric coercion.
+            plan[c] = pd.to_numeric(plan[c], errors="coerce").fillna(0)
 
     # Priority score — weights chosen so each signal contributes a
     # comparable share when present at typical scale (rows per study
