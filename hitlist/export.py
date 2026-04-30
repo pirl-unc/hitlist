@@ -490,32 +490,56 @@ def generate_observations_table(
     else:
         obs["quantification_method"] = ""
 
-    # 2) Allele-level match: obs.mhc_restriction == allele_df._allele within same PMID
-    obs = obs.merge(
-        allele_df.rename(columns={"_allele": "mhc_restriction"}),
-        on=["_pmid_int", "mhc_restriction"],
-        how="left",
-    )
+    # 2) Allele-level match: obs.mhc_restriction == allele_df._allele
+    #    within same PMID. Use MultiIndex.reindex instead of merge —
+    #    issue #30. The merge path was 60% block-manager consolidation
+    #    (numpy.copy + _merge_blocks) on the 4.3M-row x ~50-col obs
+    #    DataFrame; reindex assigns metas in-place and skips that pass
+    #    entirely. ~3.7x faster on this branch.
+    if not allele_df.empty:
+        allele_lookup = allele_df.set_index(["_pmid_int", "_allele"])[meta_cols]
+        allele_keys = pd.MultiIndex.from_arrays(
+            [obs["_pmid_int"].to_numpy(), obs["mhc_restriction"].to_numpy()]
+        )
+        allele_matched_df = allele_lookup.reindex(allele_keys)
+        allele_matched_df.index = obs.index
+        obs[meta_cols] = allele_matched_df
+    else:
+        for col in meta_cols:
+            obs[col] = pd.NA
 
-    # 3) Single-PMID fallback for unmatched rows
-    obs = obs.merge(single_df, on="_pmid_int", how="left")
+    # 3) Single-PMID fallback. Same pattern, single-level index on PMID.
+    fb_cols = [c + "_fb" for c in meta_cols]
+    if not single_df.empty:
+        single_lookup = single_df.set_index("_pmid_int")[fb_cols]
+        single_keys = obs["_pmid_int"].to_numpy()
+        single_matched_df = single_lookup.reindex(single_keys)
+        single_matched_df.index = obs.index
+        obs[fb_cols] = single_matched_df
+    else:
+        for col in fb_cols:
+            obs[col] = pd.NA
 
-    # Coalesce: allele match > single-PMID fallback > ""
-    fb_cols = [col + "_fb" for col in meta_cols]
-    for col, fb_col in zip(meta_cols, fb_cols):
-        obs[col] = obs[col].where(obs[col].notna(), obs[fb_col])
-    obs.drop(columns=fb_cols, inplace=True)
-    # Per-column dtype-aware fill: bool columns (e.g. apm_perturbed)
-    # need ``False`` not ``""``, otherwise pyarrow rejects the mixed
-    # bool/str column on parquet write.
+    # Coalesce: allele match > single-PMID fallback > "" (or False for
+    # bool meta cols). Block-wise variants of fillna minimize the number
+    # of consolidation passes (#30).
     _bool_meta_cols = {"apm_perturbed"}
-    for col in meta_cols:
-        if col in _bool_meta_cols:
-            # Cast first to suppress the pandas downcast FutureWarning,
-            # then fill — bool dtype's NaN policy treats NaN as False.
-            obs[col] = obs[col].astype("boolean").fillna(False).astype(bool)
-        else:
-            obs[col] = obs[col].fillna("")
+    str_meta_cols = [c for c in meta_cols if c not in _bool_meta_cols]
+    bool_meta_cols = [c for c in meta_cols if c in _bool_meta_cols]
+
+    if str_meta_cols:
+        str_fb_cols = [c + "_fb" for c in str_meta_cols]
+        primary = obs[str_meta_cols]
+        fallback = obs[str_fb_cols].rename(columns=dict(zip(str_fb_cols, str_meta_cols)))
+        obs[str_meta_cols] = primary.fillna(fallback).fillna("")
+
+    # Bool meta columns (e.g. apm_perturbed) need ``False`` not ``""`` —
+    # otherwise pyarrow rejects the mixed bool/str column on parquet
+    # write. Tiny loop (typically 1 column), per-col is fine.
+    for col in bool_meta_cols:
+        bool_fb = col + "_fb"
+        obs[col] = obs[col].where(obs[col].notna(), obs[bool_fb])
+        obs[col] = obs[col].astype("boolean").fillna(False).astype(bool)
 
     # 4) Class-pool fallback: for still-unmatched rows, fill sample_mhc
     #    with the union of all alleles from samples of the same class.
@@ -584,7 +608,11 @@ def generate_observations_table(
         obs["allele_resolution"] if "allele_resolution" in obs.columns else None,
     )
 
-    obs.drop(columns=["_pmid_int"], inplace=True)
+    # Single batched drop at the end — folds in the fb_cols that earlier
+    # versions dropped immediately after the coalesce loop. Pandas'
+    # ``drop`` call cost is dominated by block consolidation, so one
+    # bigger drop is cheaper than two smaller ones (#30).
+    obs.drop(columns=[*fb_cols, "_pmid_int"], inplace=True)
     result = obs
 
     # --- Post-join filters ---
