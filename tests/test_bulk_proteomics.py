@@ -759,3 +759,121 @@ def test_export_bulk_cli_bounds():
     )
     df = _export_bulk(args)
     assert df["length"].between(8, 11).all()
+
+
+# ── #97 / v1.30.8: n_replicates_possible + min_reproducibility filter ───
+
+
+def _bulk_peptides_fixture():
+    """Synthetic bulk peptide rows covering one multi-replicate arm
+    (3-replicate Tryp-14frac) and one single-replicate arm (Tryp-46frac)."""
+    return pd.DataFrame(
+        {
+            "peptide": [
+                # Multi-replicate arm: max(n_replicates_detected) == 3
+                "PEP_3_OF_3",  # detected in all 3
+                "PEP_2_OF_3",  # detected in 2/3
+                "PEP_1_OF_3",  # detected in 1/3
+                # Single-replicate arm: max == 1
+                "PEP_1_OF_1",  # the only thing that can exist here
+            ],
+            "cell_line_name": ["HeLa"] * 4,
+            "uniprot_acc": ["P0"] * 4,
+            "gene_symbol": ["G0"] * 4,
+            "length": [10, 10, 10, 10],
+            "start_position": [1, 2, 3, 4],
+            "end_position": [10, 11, 12, 13],
+            "digestion_enzyme": ["Trypsin/P"] * 4,
+            "n_fractions_in_run": [14, 14, 14, 46],
+            "enrichment": ["none"] * 4,
+            "fractionation_ph": [10.0] * 4,
+            "modifications": [""] * 4,
+            "n_replicates_detected": [3, 2, 1, 1],
+            "source": ["Bekker-Jensen_2017"] * 4,
+            "reference": ["28591648"] * 4,
+        }
+    )
+
+
+def test_load_bulk_peptides_adds_n_replicates_possible(monkeypatch):
+    """v1.30.8 / #97: ``n_replicates_possible`` is computed per-arm as
+    the max of ``n_replicates_detected``. The single-replicate arm
+    (Tryp-46frac) gets ``n_replicates_possible == 1``; the
+    multi-replicate arm (Tryp-14frac with 3 replicates in the data)
+    gets ``n_replicates_possible == 3`` for every row."""
+    monkeypatch.setattr("hitlist.bulk_proteomics._load_bj", _bulk_peptides_fixture)
+    monkeypatch.setattr("hitlist.bulk_proteomics._load_parquet_or_none", lambda: None)
+
+    df = load_bulk_peptides()
+    assert "n_replicates_possible" in df.columns
+    by_pep = df.set_index("peptide")["n_replicates_possible"].to_dict()
+    assert by_pep["PEP_3_OF_3"] == 3
+    assert by_pep["PEP_2_OF_3"] == 3
+    assert by_pep["PEP_1_OF_3"] == 3
+    assert by_pep["PEP_1_OF_1"] == 1
+    # n_replicates_detected <= n_replicates_possible everywhere (the
+    # invariant that makes the reproducibility ratio a valid fraction).
+    assert (df["n_replicates_detected"] <= df["n_replicates_possible"]).all()
+
+
+def test_load_bulk_peptides_min_reproducibility_filter_keeps_majority_observed(
+    monkeypatch,
+):
+    """v1.30.8 / #97: ``min_reproducibility=0.5`` keeps only peptides
+    detected in ≥ half of their arm's replicates. In the fixture this
+    keeps PEP_3_OF_3 (3/3=1.0), PEP_2_OF_3 (2/3≈0.67), and PEP_1_OF_1
+    (1/1=1.0); drops PEP_1_OF_3 (1/3≈0.33)."""
+    monkeypatch.setattr("hitlist.bulk_proteomics._load_bj", _bulk_peptides_fixture)
+    monkeypatch.setattr("hitlist.bulk_proteomics._load_parquet_or_none", lambda: None)
+
+    df = load_bulk_peptides(min_reproducibility=0.5)
+    assert set(df["peptide"]) == {"PEP_3_OF_3", "PEP_2_OF_3", "PEP_1_OF_1"}
+
+
+def test_load_bulk_peptides_min_reproducibility_one_keeps_full_replicates(
+    monkeypatch,
+):
+    """v1.30.8 / #97: ``min_reproducibility=1.0`` keeps only peptides
+    detected in EVERY replicate of their arm. Critically, this
+    does NOT exclude the single-replicate arm — the only peptide in
+    that arm IS the full set, so it stays. Without
+    ``n_replicates_possible``, a fixed ``n_replicates_detected >= 2``
+    threshold would silently drop every single-replicate arm."""
+    monkeypatch.setattr("hitlist.bulk_proteomics._load_bj", _bulk_peptides_fixture)
+    monkeypatch.setattr("hitlist.bulk_proteomics._load_parquet_or_none", lambda: None)
+
+    df = load_bulk_peptides(min_reproducibility=1.0)
+    # PEP_3_OF_3 (3/3) and PEP_1_OF_1 (1/1) qualify.
+    assert set(df["peptide"]) == {"PEP_3_OF_3", "PEP_1_OF_1"}
+
+
+def test_load_bulk_peptides_min_reproducibility_zero_passthrough(monkeypatch):
+    """v1.30.8 / #97: ``min_reproducibility=None`` (the default) is a
+    pass-through — every peptide survives regardless of replicate count.
+    Pin this so the filter doesn't accidentally fire when the caller
+    omits the kwarg."""
+    monkeypatch.setattr("hitlist.bulk_proteomics._load_bj", _bulk_peptides_fixture)
+    monkeypatch.setattr("hitlist.bulk_proteomics._load_parquet_or_none", lambda: None)
+
+    df_default = load_bulk_peptides()
+    df_explicit_none = load_bulk_peptides(min_reproducibility=None)
+    assert len(df_default) == 4
+    assert len(df_explicit_none) == 4
+
+
+def test_load_bulk_peptides_n_replicates_possible_invariant_under_filters(
+    monkeypatch,
+):
+    """v1.30.8 / #97: ``n_replicates_possible`` is computed BEFORE any
+    user filters are applied, so the per-arm denominator reflects the
+    true arm size — not just the rows that survived a gene/cell-line
+    filter. Otherwise filtering to one peptide would produce a denominator
+    of 1 and trivially pass any reproducibility threshold."""
+    monkeypatch.setattr("hitlist.bulk_proteomics._load_bj", _bulk_peptides_fixture)
+    monkeypatch.setattr("hitlist.bulk_proteomics._load_parquet_or_none", lambda: None)
+
+    # Filter to a single peptide — the surviving row's denominator
+    # should still be 3 (the arm's true total), not 1.
+    df = load_bulk_peptides(gene_name="G0")  # all 4 rows
+    df_single = df[df["peptide"] == "PEP_2_OF_3"]
+    assert df_single["n_replicates_possible"].iloc[0] == 3
