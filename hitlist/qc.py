@@ -236,6 +236,174 @@ def cross_reference(mhc_class: str | None = None) -> pd.DataFrame:
     )
 
 
+def discrepancies(
+    mhc_class: str | None = None,
+    min_rows: int = 50,
+) -> pd.DataFrame:
+    """Per-PMID rate of biologically suspicious patterns in the corpus.
+
+    A scan over ``observations.parquet`` that surfaces curation issues
+    visible from the data alone — without re-reading any papers. One
+    output row per (pmid, mhc_class) bucket, with columns sized to be
+    sortable as a triage list.
+
+    Detected patterns:
+
+    - **suspect_class_label_n / _rate** — count of rows where the
+      bimodal length distribution disagrees with the curated class
+      (class II ≤10aa or class I ≥18aa). Pinned by the
+      ``mhc_class_label_suspect`` flag added in v1.30.0 / #182.
+    - **length_p50 / _p99** — peptide length median + 99th percentile
+      per (pmid, class). Class I should have p50 ≈ 9 and a thin upper
+      tail (p99 ≤ 12); class II should have p50 ≈ 14-15. Outliers on
+      either tail are usually IEDB curation drift.
+    - **monoallelic_class_only_n** — mono-allelic rows whose
+      ``mhc_restriction`` is the class sentinel ("HLA class I/II")
+      rather than a 4-digit allele. These are #45 candidates: the
+      paper knows the allele, IEDB lost it.
+    - **class_pool_n / _rate** — rows whose ``mhc_allele_provenance``
+      came down the pmid_class_pool fallback (no per-peptide allele
+      resolution, the #37 problem).
+    - **nonstandard_aa_n** — peptides containing ``X`` / ``B`` /
+      ``Z`` / ``U`` / ``O`` / ``*`` / lowercase / digits. Either
+      ambiguous IDs from MS or upstream string corruption.
+
+    Parameters
+    ----------
+    mhc_class
+        Optional class filter.
+    min_rows
+        Drop PMID buckets with fewer than this many rows — small
+        buckets produce noisy length percentiles. Default 50.
+
+    Returns
+    -------
+    pd.DataFrame
+        One row per (pmid, mhc_class). Sorted descending by
+        ``suspect_class_label_n + monoallelic_class_only_n +
+        nonstandard_aa_n`` — the rougher cuts, useful for picking a
+        triage target.
+    """
+    import re
+
+    from .observations import is_built, load_observations
+
+    if not is_built():
+        raise FileNotFoundError(
+            "observations.parquet has not been built. Run 'hitlist data build' first."
+        )
+
+    cols = [
+        "pmid",
+        "peptide",
+        "mhc_class",
+        "mhc_restriction",
+        "is_monoallelic",
+        "mhc_class_label_suspect",
+    ]
+    # mhc_allele_provenance is only present in indexes built since #137
+    # (v1.23.0); degrade gracefully on older parquets.
+    try:
+        sample = load_observations(columns=["mhc_allele_provenance"])
+        if "mhc_allele_provenance" in sample.columns:
+            cols.append("mhc_allele_provenance")
+    except Exception:
+        pass
+
+    df = load_observations(mhc_class=mhc_class, columns=cols)
+    if df.empty:
+        return pd.DataFrame(
+            columns=[
+                "pmid",
+                "study_label",
+                "mhc_class",
+                "n_rows",
+                "suspect_class_label_n",
+                "suspect_class_label_rate",
+                "length_p50",
+                "length_p99",
+                "monoallelic_class_only_n",
+                "class_pool_n",
+                "class_pool_rate",
+                "nonstandard_aa_n",
+                "severity",
+            ]
+        )
+
+    # Compute per-row diagnostics in one pass to avoid groupby overhead
+    # on the 4.4M-row corpus.
+    df = df.copy()
+    df["_len"] = df["peptide"].str.len()
+    nonstandard_re = re.compile(r"[^ACDEFGHIKLMNPQRSTVWY]")
+    df["_nonstandard"] = df["peptide"].astype(str).str.contains(nonstandard_re)
+    df["_class_only"] = df["mhc_restriction"].fillna("").str.startswith("HLA class")
+    df["_mono_class_only"] = df["is_monoallelic"].fillna(False) & df["_class_only"]
+    if "mhc_allele_provenance" in df.columns:
+        df["_class_pool"] = df["mhc_allele_provenance"] == "pmid_class_pool"
+    else:
+        df["_class_pool"] = False
+
+    # Aggregate per (pmid, mhc_class).
+    grouped = df.groupby(["pmid", "mhc_class"], dropna=False)
+    out = grouped.agg(
+        n_rows=("peptide", "size"),
+        suspect_class_label_n=("mhc_class_label_suspect", "sum"),
+        length_p50=("_len", lambda s: int(s.median()) if len(s) else 0),
+        length_p99=("_len", lambda s: int(s.quantile(0.99)) if len(s) else 0),
+        monoallelic_class_only_n=("_mono_class_only", "sum"),
+        class_pool_n=("_class_pool", "sum"),
+        nonstandard_aa_n=("_nonstandard", "sum"),
+    ).reset_index()
+    out = out[out["n_rows"] >= min_rows].copy()
+    out["suspect_class_label_rate"] = out["suspect_class_label_n"] / out["n_rows"]
+    out["class_pool_rate"] = out["class_pool_n"] / out["n_rows"]
+
+    # Attach study labels from pmid_overrides.yaml.
+    overrides = load_pmid_overrides()
+    out["study_label"] = out["pmid"].map(
+        lambda p: overrides.get(int(p), {}).get("study_label", "") if pd.notna(p) else ""
+    )
+
+    # Severity heuristic — pick the worst signal per row.
+    def _severity(row) -> str:
+        if (
+            row["suspect_class_label_rate"] >= 0.05
+            or row["monoallelic_class_only_n"] > 0
+            or row["nonstandard_aa_n"] > 0
+        ):
+            return "warn"
+        if row["class_pool_rate"] >= 0.5:
+            return "info"
+        return "info"
+
+    out["severity"] = out.apply(_severity, axis=1)
+    out["_score"] = (
+        out["suspect_class_label_n"] + out["monoallelic_class_only_n"] + out["nonstandard_aa_n"]
+    )
+    out = out.sort_values(["_score", "n_rows"], ascending=[False, False], kind="stable").drop(
+        columns=["_score"]
+    )
+
+    # Final column order.
+    return out[
+        [
+            "pmid",
+            "study_label",
+            "mhc_class",
+            "n_rows",
+            "suspect_class_label_n",
+            "suspect_class_label_rate",
+            "length_p50",
+            "length_p99",
+            "monoallelic_class_only_n",
+            "class_pool_n",
+            "class_pool_rate",
+            "nonstandard_aa_n",
+            "severity",
+        ]
+    ].reset_index(drop=True)
+
+
 def run_all(mhc_class: str | None = None) -> dict[str, pd.DataFrame]:
     """Run every QC check and return a name → DataFrame mapping.
 
@@ -246,4 +414,5 @@ def run_all(mhc_class: str | None = None) -> dict[str, pd.DataFrame]:
         "resolution": resolution_histogram(mhc_class=mhc_class),
         "normalization": normalization_drift(),
         "cross_reference": cross_reference(mhc_class=mhc_class),
+        "discrepancies": discrepancies(mhc_class=mhc_class),
     }
