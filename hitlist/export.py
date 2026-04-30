@@ -286,6 +286,7 @@ def generate_observations_table(
     length_min: int | None = None,
     length_max: int | None = None,
     exclude_class_label_suspect: bool = False,
+    exclude_class_label_implausible: bool = False,
     apm_only: bool = False,
     columns: list[str] | None = None,
 ) -> pd.DataFrame:
@@ -358,6 +359,8 @@ def generate_observations_table(
         obs_filters["length_max"] = length_max
     if exclude_class_label_suspect:
         obs_filters["exclude_class_label_suspect"] = True
+    if exclude_class_label_implausible:
+        obs_filters["exclude_class_label_implausible"] = True
     obs = load_observations(**obs_filters)
 
     if min_allele_resolution:

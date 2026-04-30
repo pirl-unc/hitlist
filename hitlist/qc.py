@@ -285,9 +285,17 @@ def discrepancies(
     Detected patterns:
 
     - **suspect_class_label_n / _rate** — count of rows where the
-      bimodal length distribution disagrees with the curated class
-      (class II ≤10aa or class I ≥18aa). Pinned by the
-      ``mhc_class_label_suspect`` flag added in v1.30.0 / #182.
+      bimodal length distribution disagrees with the curated class.
+      Pinned by the ``mhc_class_label_suspect`` flag added in
+      v1.30.0 / #182. v1.30.17 narrowed the definition to rows with
+      ``mhc_class_label_severity in {suspect, implausible}``.
+    - **borderline_class_label_n / _implausible_class_label_n** —
+      finer-grained breakdown using the v1.30.17 severity tiers
+      (#201). Borderline = bulged class-I (13-14aa) or short
+      class-II (8-10aa); implausible = clearly outside biological
+      plausibility (class-I ≥18aa or ≤7aa, class-II ≤4 or ≥31aa).
+      Implausible rows are almost always curation drift; borderline
+      rows are uncommon-but-real and often legitimate.
     - **length_p50 / _p99** — peptide length median + 99th percentile
       per bucket. Class I should have p50 ≈ 9 and a thin upper tail
       (p99 ≤ 12); class II should have p50 ≈ 14-15. Outliers on
@@ -345,6 +353,7 @@ def discrepancies(
         "mhc_restriction",
         "is_monoallelic",
         "mhc_class_label_suspect",
+        "mhc_class_label_severity",
     ]
     if by == "sample":
         cols.append("cell_name")
@@ -370,6 +379,8 @@ def discrepancies(
             "n_rows",
             "suspect_class_label_n",
             "suspect_class_label_rate",
+            "borderline_class_label_n",
+            "implausible_class_label_n",
             "length_p50",
             "length_p99",
             "monoallelic_class_only_n",
@@ -390,6 +401,17 @@ def discrepancies(
     df["_nonstandard"] = df["peptide"].astype(str).str.contains(nonstandard_re)
     df["_class_only"] = df["mhc_restriction"].fillna("").str.startswith("HLA class")
     df["_mono_class_only"] = df["is_monoallelic"].fillna(False) & df["_class_only"]
+    # v1.30.17 / #201 severity tiers — borderline (bulged class-I 13-14aa
+    # or short class-II 8-10aa) is uncommon-but-real and shouldn't fire
+    # the binary suspect flag, but is still worth surfacing per-bucket
+    # so curators can spot studies dominated by borderline rows.
+    if "mhc_class_label_severity" in df.columns:
+        sev = df["mhc_class_label_severity"].fillna("ok")
+        df["_borderline"] = sev == "borderline"
+        df["_implausible"] = sev == "implausible"
+    else:
+        df["_borderline"] = False
+        df["_implausible"] = False
     if "mhc_allele_provenance" in df.columns:
         df["_class_pool"] = df["mhc_allele_provenance"] == "pmid_class_pool"
     else:
@@ -405,6 +427,8 @@ def discrepancies(
     out = grouped.agg(
         n_rows=("peptide", "size"),
         suspect_class_label_n=("mhc_class_label_suspect", "sum"),
+        borderline_class_label_n=("_borderline", "sum"),
+        implausible_class_label_n=("_implausible", "sum"),
         length_p50=("_len", lambda s: int(s.median()) if len(s) else 0),
         length_p99=("_len", lambda s: int(s.quantile(0.99)) if len(s) else 0),
         monoallelic_class_only_n=("_mono_class_only", "sum"),
