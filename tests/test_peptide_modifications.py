@@ -50,7 +50,7 @@ def test_multi_position_methylation():
 
 def test_positions_with_whitespace():
     """IEDB sometimes embeds whitespace inside the position list."""
-    bare, mods, has_ptm, ext = parse_peptide_modifications("EVLYLKPLAGVYRSLKKQLE + MCM(K6, P7)")
+    bare, mods, has_ptm, _ext = parse_peptide_modifications("EVLYLKPLAGVYRSLKKQLE + MCM(K6, P7)")
     assert bare == "EVLYLKPLAGVYRSLKKQLE"
     assert "MCM:K6" in mods and "MCM:P7" in mods
     assert has_ptm is True
@@ -58,7 +58,7 @@ def test_positions_with_whitespace():
 
 def test_trailing_space_inside_parens():
     """``MCM(F7, A8 )`` — trailing whitespace inside the position group."""
-    bare, mods, has_ptm, ext = parse_peptide_modifications("GILGFVFTL + MCM(F7, A8 )")
+    bare, mods, has_ptm, _ext = parse_peptide_modifications("GILGFVFTL + MCM(F7, A8 )")
     assert bare == "GILGFVFTL"
     assert "MCM:F7" in mods and "MCM:A8" in mods
     assert has_ptm is True
