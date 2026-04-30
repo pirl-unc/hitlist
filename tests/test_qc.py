@@ -221,6 +221,124 @@ def test_cross_reference_yaml_only_and_data_only(tmp_path, monkeypatch):
     assert "HLA-A*02:01" not in df["allele"].values
 
 
+def test_cross_reference_emits_needs_deconvolution_for_class_only_pmids(tmp_path, monkeypatch):
+    """v1.30.15: PMIDs with YAML alleles but ZERO 4-digit data rows
+    (data is 100% class-only) used to dump every YAML allele under
+    ``yaml_only`` — non-actionable noise that inflated curation_plan
+    priorities. Now collapsed into a single ``needs_deconvolution``
+    sentinel row per PMID.
+    """
+    from hitlist import qc
+
+    # PMID 200: 3 rows, all class-only (no 4-digit allele in data).
+    obs_path = _write_obs_fixture(
+        tmp_path,
+        [
+            {
+                "peptide": "AAAAAAAAA",
+                "mhc_class": "I",
+                "source": "iedb",
+                "allele_resolution": "class_only",
+                "mhc_restriction": "HLA class I",
+                "pmid": 200,
+            },
+            {
+                "peptide": "BBBBBBBBB",
+                "mhc_class": "I",
+                "source": "iedb",
+                "allele_resolution": "class_only",
+                "mhc_restriction": "HLA class I",
+                "pmid": 200,
+            },
+            {
+                "peptide": "CCCCCCCCC",
+                "mhc_class": "I",
+                "source": "iedb",
+                "allele_resolution": "class_only",
+                "mhc_restriction": "HLA class I",
+                "pmid": 200,
+            },
+        ],
+    )
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+    # YAML lists 5 alleles but data has 0 four-digit rows.
+    fake_overrides = {
+        200: {
+            "study_label": "All Class-Only Study",
+            "ms_samples": [
+                {
+                    "sample_label": "donor1",
+                    "mhc": ["HLA-A*02:01", "HLA-B*07:02", "HLA-C*04:01"],
+                },
+                {
+                    "sample_label": "donor2",
+                    "mhc": ["HLA-A*03:01", "HLA-B*15:01"],
+                },
+            ],
+        },
+    }
+    monkeypatch.setattr("hitlist.qc.load_pmid_overrides", lambda: fake_overrides)
+
+    df = qc.cross_reference()
+    # Exactly ONE needs_deconvolution row, no per-allele yaml_only spam.
+    needs_decon = df[df["direction"] == "needs_deconvolution"]
+    yaml_only = df[df["direction"] == "yaml_only"]
+    assert len(needs_decon) == 1
+    assert needs_decon.iloc[0]["pmid"] == 200
+    assert "5 YAML alleles" in needs_decon.iloc[0]["allele"]
+    # No per-allele yaml_only rows for this PMID.
+    assert (yaml_only["pmid"] != 200).all() if not yaml_only.empty else True
+
+
+def test_cross_reference_yaml_only_still_fires_when_some_data_is_4digit(tmp_path, monkeypatch):
+    """Don't regress the yaml_only path: as long as ANY 4-digit data
+    exists for the PMID, the per-allele yaml_only emission still
+    runs (because deconvolution isn't structurally blocked)."""
+    from hitlist import qc
+
+    obs_path = _write_obs_fixture(
+        tmp_path,
+        [
+            # Mixed: 1 four-digit row + 5 class-only rows.
+            {
+                "peptide": "AAAAAAAAA",
+                "mhc_class": "I",
+                "source": "iedb",
+                "allele_resolution": "four_digit",
+                "mhc_restriction": "HLA-A*02:01",
+                "pmid": 300,
+            },
+            *[
+                {
+                    "peptide": f"X{i:08d}",
+                    "mhc_class": "I",
+                    "source": "iedb",
+                    "allele_resolution": "class_only",
+                    "mhc_restriction": "HLA class I",
+                    "pmid": 300,
+                }
+                for i in range(5)
+            ],
+        ],
+    )
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+    fake_overrides = {
+        300: {
+            "study_label": "Mixed Study",
+            "ms_samples": [
+                {"sample_label": "donor1", "mhc": ["HLA-A*02:01", "HLA-C*04:01"]},
+            ],
+        },
+    }
+    monkeypatch.setattr("hitlist.qc.load_pmid_overrides", lambda: fake_overrides)
+
+    df = qc.cross_reference()
+    # C*04:01 still fires as yaml_only — A*02:01 has data, so this PMID
+    # is NOT structurally class-only.
+    assert "HLA-C*04:01" in df[df["direction"] == "yaml_only"]["allele"].values
+    assert df[df["direction"] == "needs_deconvolution"].empty
+
+
 def test_run_all_returns_named_dataframes(tmp_path, monkeypatch):
     """The dispatcher returns the expected keys regardless of contents."""
     from hitlist import qc
