@@ -35,6 +35,7 @@ except ImportError:
     _tqdm = None
 
 from .curation import classify_ms_row, expand_allele_bag
+from .peptide_modifications import parse_peptide_modifications
 
 # Sentinel so we can tell "user didn't pass mhc_species" apart from
 # "user explicitly passed mhc_species=None (disable filter)".
@@ -324,9 +325,15 @@ def scan(
         reader, c, p, fh = _open_csv(source_path)
         for row in _progress(reader, p, f"Scanning {p.name}", fh=fh):
             if peptides is not None:
-                pep = _safe_col(row, c["epitope_name"])
-                if pep not in peptides:
-                    continue
+                pep_raw = _safe_col(row, c["epitope_name"])
+                # Match the targeted-peptide filter against either the
+                # raw string (back-compat) or the bare PTM-stripped form
+                # (so callers passing bare AA sequences still match
+                # rows that IEDB has annotated with PTMs).
+                if pep_raw not in peptides:
+                    bare = parse_peptide_modifications(pep_raw)[0]
+                    if bare not in peptides:
+                        continue
             iri = row[c["assay_iri"]] if row else ""
             if iri in seen:
                 continue
@@ -383,8 +390,23 @@ def scan(
             source_tissue = _safe_col(row, c["source_tissue"])
             cell_name = _safe_col(row, c["cell_name"])
 
+            # IEDB embeds PTMs inline in the Epitope|Name column
+            # (e.g. "LQPFPQPQLPY + DEAM(Q8)"). Pull them into structured
+            # columns so length filters, AA validation, and model
+            # training inputs see clean sequences while PTM information
+            # is preserved alongside (#194).
+            (
+                bare_peptide,
+                peptide_modifications_str,
+                has_ptm,
+                peptide_extended,
+            ) = parse_peptide_modifications(_safe_col(row, c["epitope_name"]))
+
             record: dict = {
-                "peptide": _safe_col(row, c["epitope_name"]),
+                "peptide": bare_peptide,
+                "peptide_modifications": peptide_modifications_str,
+                "has_ptm": has_ptm,
+                "peptide_extended": peptide_extended,
                 "mhc_restriction": mhc_res,
                 "mhc_class": _safe_col(row, c["mhc_class"]),
                 "assay_iri": iri,
