@@ -396,3 +396,122 @@ def test_pmhc_query_format_table_shows_best_guess_for_serotype(tmp_path, monkeyp
     assert "HLA-A2  (best guess: HLA-A*02:01)" in text
     # 4-digit allele headers are unannotated.
     assert "HLA-A*02:01\n" in text or "HLA-A*02:01 " in text  # header line bare
+
+
+# ── Per-sample paired query (v1.30.5) ─────────────────────────────────
+
+
+def test_query_by_samples_returns_per_sample_rows(tmp_path, monkeypatch):
+    """v1.30.5: ``query_by_samples`` calls ``query`` once per sample with
+    that sample's allele list and tags every output row with
+    ``sample_name``. Each sample sees only its own alleles, not the union
+    (which is the cross-product behavior of plain ``--mhc-allele``)."""
+    from hitlist import pmhc_query
+
+    obs_path = _write_obs_fixture(tmp_path)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+
+    df = pmhc_query.query_by_samples(
+        samples_to_alleles={
+            "patient1": ["HLA-A*02:01"],
+            "patient2": ["HLA-B*07:02"],
+        },
+        proteins=["NRAS"],
+        use_hgnc=False,
+    )
+    assert "sample_name" in df.columns
+    # Each sample only sees the allele it asked for.
+    p1 = df[df["sample_name"] == "patient1"]
+    p2 = df[df["sample_name"] == "patient2"]
+    assert set(p1["mhc_allele"]) == {"HLA-A*02:01"}
+    assert set(p2["mhc_allele"]) == {"HLA-B*07:02"}
+    # Both samples are present in the output.
+    assert set(df["sample_name"]) == {"patient1", "patient2"}
+
+
+def test_query_by_samples_empty_input_returns_empty_with_schema():
+    """v1.30.5: empty ``samples_to_alleles`` returns an empty DataFrame
+    that still carries the expected columns (incl. ``sample_name``) so
+    downstream consumers can iterate the groupby without exploding."""
+    from hitlist import pmhc_query
+
+    df = pmhc_query.query_by_samples(samples_to_alleles={})
+    assert df.empty
+    assert "sample_name" in df.columns
+    assert "mhc_allele" in df.columns
+
+
+def test_query_by_samples_empty_per_sample_allele_list_raises(tmp_path, monkeypatch):
+    """v1.30.5 / #188: a per-sample empty allele list would silently
+    fan out to "all alleles" inside ``query``, which is not the
+    paired-API contract. Raise ``ValueError`` so the caller fixes it."""
+    import pytest
+
+    from hitlist import pmhc_query
+
+    obs_path = _write_obs_fixture(tmp_path)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+
+    with pytest.raises(ValueError, match="empty allele lists"):
+        pmhc_query.query_by_samples(
+            samples_to_alleles={"p1": ["HLA-A*02:01"], "p2": []},
+            proteins=["NRAS"],
+            use_hgnc=False,
+        )
+
+
+def test_format_table_groups_by_sample_when_sample_name_present(tmp_path, monkeypatch):
+    """v1.30.5: when ``sample_name`` is present in the input, the grouped
+    text output emits one outer ``=== sample: NAME ===`` section per
+    sample, with the existing gene/allele/peptide structure nested
+    inside."""
+    from hitlist import pmhc_query
+
+    obs_path = _write_obs_fixture(tmp_path)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+
+    df = pmhc_query.query_by_samples(
+        samples_to_alleles={
+            "patient1": ["HLA-A*02:01"],
+            "patient2": ["HLA-B*07:02"],
+        },
+        proteins=["NRAS"],
+        use_hgnc=False,
+    )
+    text = pmhc_query.format_table(df)
+    # Outer per-sample sections in stable (alphabetical) order.
+    p1_idx = text.find("=== sample: patient1 ===")
+    p2_idx = text.find("=== sample: patient2 ===")
+    assert 0 <= p1_idx < p2_idx
+    # The gene block under each sample is indented (nested).
+    # Each sample's allele appears inside its own section.
+    p1_block = text[p1_idx:p2_idx]
+    p2_block = text[p2_idx:]
+    assert "HLA-A*02:01" in p1_block
+    assert "HLA-A*02:01" not in p2_block  # patient2 didn't ask for A*02:01
+
+
+def test_query_by_samples_empty_sample_section_has_placeholder(tmp_path, monkeypatch):
+    """v1.30.5: a sample whose alleles match nothing in the corpus still
+    appears in the output, with a one-line ``(no pMHC evidence ...)``
+    placeholder so the user can see which samples returned nothing."""
+    from hitlist import pmhc_query
+
+    obs_path = _write_obs_fixture(tmp_path)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+
+    df = pmhc_query.query_by_samples(
+        samples_to_alleles={
+            "real": ["HLA-A*02:01"],  # matches NRAS rows
+            "miss": ["HLA-C*07:02"],  # no rows in fixture
+        },
+        proteins=["NRAS"],
+        use_hgnc=False,
+    )
+    assert set(df["sample_name"]) == {"real", "miss"}  # both present
+    text = pmhc_query.format_table(df)
+    # The empty sample gets a placeholder line.
+    miss_idx = text.find("=== sample: miss ===")
+    assert miss_idx >= 0
+    miss_block = text[miss_idx:]
+    assert "(no pMHC evidence on this sample's alleles)" in miss_block

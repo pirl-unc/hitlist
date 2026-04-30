@@ -1261,7 +1261,31 @@ def main() -> None:
         nargs="+",
         help=(
             "One or more 4-digit MHC alleles (HLA-A*02:01, HLA-B*07:02, ...). "
-            "Omit to scan all alleles."
+            "Omit to scan all alleles. Mutually exclusive with --sample / --samples — "
+            "use those when each sample has its own allele set instead of a "
+            "cross-product across all of them."
+        ),
+    )
+    p_pmhc.add_argument(
+        "--sample",
+        action="append",
+        metavar="NAME:ALLELE[,ALLELE,...]",
+        help=(
+            "Per-sample paired (name, allele set). Repeatable; "
+            "alleles are comma-separated after the colon. "
+            "Example: --sample patient1:HLA-A*02:01,HLA-A*24:02 "
+            "--sample patient2:HLA-A*01:01,HLA-A*24:02. "
+            "Each sample is queried independently against the protein "
+            "list — results are sectioned by sample in the output."
+        ),
+    )
+    p_pmhc.add_argument(
+        "--samples",
+        metavar="PATH.tsv",
+        help=(
+            "Batch form of --sample: path to a TSV with one row per sample, "
+            "two columns 'name' and 'alleles' (alleles comma-separated). "
+            "Header row optional. Mutually exclusive with --mhc-allele."
         ),
     )
     p_pmhc.add_argument(
@@ -1411,23 +1435,121 @@ def _qc(args: argparse.Namespace) -> None:
         print(df.to_csv(index=False), end="")
 
 
+def _parse_pmhc_samples(inline_specs: list[str], tsv_path: str | None) -> dict[str, list[str]]:
+    """Parse ``--sample`` / ``--samples`` into ``{name: [allele, ...]}``.
+
+    Inline form: ``"patient1:HLA-A*02:01,HLA-A*24:02"`` — colon splits the
+    name from the allele list, commas split alleles. Whitespace around the
+    name and alleles is stripped.
+
+    TSV form: two columns, ``name`` and ``alleles`` (alleles comma-separated
+    in the second column). Header row optional — if the first row's first
+    cell is exactly ``name`` we skip it. Lines starting with ``#`` are
+    ignored as comments.
+
+    Raises ``ValueError`` on malformed input — the CLI catches and prints.
+    """
+    out: dict[str, list[str]] = {}
+
+    for spec in inline_specs:
+        if ":" not in spec:
+            raise ValueError(
+                f"--sample {spec!r} is missing the ':' separator; expected NAME:ALLELE[,ALLELE,...]"
+            )
+        name, _, allele_csv = spec.partition(":")
+        name = name.strip()
+        if not name:
+            raise ValueError(f"--sample {spec!r} has an empty name")
+        alleles = [a.strip() for a in allele_csv.split(",") if a.strip()]
+        if not alleles:
+            raise ValueError(f"--sample {name!r} has no alleles after the ':'")
+        if name in out:
+            raise ValueError(f"--sample {name!r} given more than once")
+        out[name] = alleles
+
+    if tsv_path:
+        from pathlib import Path
+
+        path = Path(tsv_path)
+        if not path.exists():
+            raise ValueError(f"--samples file not found: {tsv_path}")
+        for lineno, raw in enumerate(path.read_text().splitlines(), start=1):
+            line = raw.strip()
+            if not line or line.startswith("#"):
+                continue
+            parts = line.split("\t")
+            if len(parts) < 2:
+                raise ValueError(
+                    f"{tsv_path}:{lineno} expected two tab-separated columns "
+                    f"(name, alleles); got {len(parts)} column(s)"
+                )
+            name = parts[0].strip()
+            allele_field = parts[1].strip()
+            # Skip the optional header row.
+            if lineno == 1 and name.lower() == "name":
+                continue
+            if not name:
+                raise ValueError(f"{tsv_path}:{lineno} has an empty name")
+            alleles = [a.strip() for a in allele_field.split(",") if a.strip()]
+            if not alleles:
+                raise ValueError(f"{tsv_path}:{lineno} sample {name!r} has no alleles")
+            if name in out:
+                raise ValueError(
+                    f"sample {name!r} given more than once (--sample inline + {tsv_path}:{lineno})"
+                )
+            out[name] = alleles
+
+    if not out:
+        raise ValueError("no samples parsed from --sample / --samples input")
+    return out
+
+
 def _pmhc(args: argparse.Namespace) -> None:
     """Run the pmhc evidence query.
 
-    ``--protein`` and ``--mhc-allele`` are both optional now (v1.29.6);
-    omit either to scan that axis fully.
+    ``--protein`` / ``--mhc-allele`` / ``--sample`` / ``--samples`` are
+    all optional. ``--sample``/``--samples`` (paired sample-to-allele
+    input) are mutually exclusive with ``--mhc-allele`` (cross-product
+    input).
     """
     from . import pmhc_query
 
     proteins = getattr(args, "protein", []) or []
     alleles = getattr(args, "mhc_allele", []) or []
+    inline_samples = getattr(args, "sample", None) or []
+    samples_path = getattr(args, "samples", None)
     predictor = getattr(args, "predictor", None)
     fmt = getattr(args, "format", "table")
     output = getattr(args, "output", None)
 
+    has_sample_input = bool(inline_samples) or bool(samples_path)
+    if has_sample_input and alleles:
+        print(
+            "Error: --mhc-allele cannot be combined with --sample / --samples; "
+            "drop one. Use --mhc-allele for a cross-product (every protein x "
+            "every allele); use --sample/--samples when each sample has its "
+            "own allele set.",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+
     try:
-        df = pmhc_query.query(proteins=proteins, alleles=alleles, predictor=predictor, verbose=True)
-    except (FileNotFoundError, RuntimeError) as e:
+        if has_sample_input:
+            samples_to_alleles = _parse_pmhc_samples(inline_samples, samples_path)
+            df = pmhc_query.query_by_samples(
+                samples_to_alleles=samples_to_alleles,
+                proteins=proteins,
+                predictor=predictor,
+                verbose=True,
+            )
+        else:
+            df = pmhc_query.query(
+                proteins=proteins,
+                alleles=alleles,
+                predictor=predictor,
+                verbose=True,
+            )
+    except (FileNotFoundError, RuntimeError, ValueError) as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
 

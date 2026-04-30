@@ -293,6 +293,84 @@ def query(
     return grouped
 
 
+def query_by_samples(
+    samples_to_alleles: dict[str, list[str]],
+    proteins: list[str] | None = None,
+    *,
+    predictor: str | None = None,
+    use_hgnc: bool = True,
+    verbose: bool = False,
+) -> pd.DataFrame:
+    """Per-sample pMHC evidence — call ``query`` once per sample with that
+    sample's allele list, and return the union with a leading ``sample_name``
+    column.
+
+    Replaces the cross-product behavior of ``--mhc-allele`` when the user
+    has paired (sample, allele-set) data — e.g. a cohort of patients each
+    with their own HLA typing. Each sample is queried independently
+    against the same protein list (or the whole corpus if ``proteins`` is
+    empty); rows are tagged with ``sample_name`` so the output can be
+    grouped per sample.
+
+    Parameters
+    ----------
+    samples_to_alleles
+        ``{sample_name: [allele1, allele2, ...]}``. Allele lists are
+        passed through verbatim to ``query``, so serotype expansion
+        (#185) still applies — ``"HLA-A2"`` pulls in the 4-digit members.
+    proteins, predictor, use_hgnc, verbose
+        Same as :func:`query`; passed through unchanged.
+
+    Returns
+    -------
+    pd.DataFrame
+        One row per (sample, gene, allele, peptide). Columns: same as
+        ``query`` plus a leading ``sample_name``. Empty DataFrame with
+        the expected schema if no sample matched anything.
+    """
+    if not samples_to_alleles:
+        empty = _empty_result(predictor is not None)
+        empty.insert(0, "sample_name", pd.Series(dtype="string"))
+        return empty
+
+    # #188: validate up-front. ``query(alleles=[])`` silently scans every
+    # allele in the corpus, which is not what a paired API should do —
+    # an empty per-sample allele list is a caller bug, surface it loudly
+    # rather than blowing up the result with the cross-product fallback.
+    bad = [name for name, alleles in samples_to_alleles.items() if not alleles]
+    if bad:
+        raise ValueError(
+            f"sample(s) {bad!r} have empty allele lists; pass at least one "
+            "allele per sample (an empty list would otherwise silently expand "
+            "to the whole corpus)"
+        )
+
+    pieces: list[pd.DataFrame] = []
+    for sample_name, alleles in samples_to_alleles.items():
+        if verbose:
+            _progress(f"sample {sample_name!r}: querying {len(alleles)} allele(s)...", verbose)
+        sub = query(
+            proteins=proteins,
+            alleles=alleles,
+            predictor=predictor,
+            use_hgnc=use_hgnc,
+            verbose=verbose,
+        )
+        if sub.empty:
+            # #188: ``concat`` of an empty sub-frame yields zero rows for the
+            # sample, dropping it from any downstream groupby. Emit one
+            # placeholder row tagged with the sample name (other columns
+            # NaN) so the sample stays visible. ``format_table`` detects
+            # the all-NaN row and prints a "(no pMHC evidence on this
+            # sample's alleles)" line.
+            sub = _empty_result(predictor is not None)
+            sub.loc[0] = pd.NA
+        sub.insert(0, "sample_name", sample_name)
+        pieces.append(sub)
+
+    return pd.concat(pieces, ignore_index=True)
+
+
 def _attach_predictions(df: pd.DataFrame, predictor: str) -> pd.DataFrame:
     """Score each (peptide, allele) row with MHCflurry or NetMHCpan and
     append ``affinity_nM`` / ``presentation_percentile`` / ``binder_class``.
@@ -470,17 +548,21 @@ def format_table(df: pd.DataFrame) -> str:
     header_line = indent + sep.join(h.ljust(widths[i]) for i, h in enumerate(pep_headers))
     rule_line = indent + sep.join("-" * widths[i] for i in range(len(pep_headers)))
 
-    out: list[str] = []
-    for gene_name, gene_df in df.groupby("gene_name", sort=True):
+    def _render_gene_block(gene_df: pd.DataFrame, gene_indent: str = "") -> list[str]:
+        """Render one gene's section (gene header + per-allele peptide rows).
+
+        ``gene_indent`` lets callers nest the block under an outer (e.g.
+        per-sample) section without re-flowing the column widths.
+        """
+        block: list[str] = []
+        gene_name = gene_df["gene_name"].iloc[0]
         gene_id = gene_df["gene_id"].dropna().astype(str)
         gene_id = gene_id.iloc[0] if len(gene_id) else ""
-        out.append(f"{gene_name} ({gene_id})" if gene_id else gene_name)
-        # One header per gene, not per allele — peptide rows beneath each
-        # allele line up under the same column rule.
-        out.append(header_line)
-        out.append(rule_line)
-        # Order alleles within the gene by total evidence count descending
-        # so the most-attested allele is at the top.
+        block.append(
+            f"{gene_indent}{gene_name} ({gene_id})" if gene_id else f"{gene_indent}{gene_name}"
+        )
+        block.append(gene_indent + header_line)
+        block.append(gene_indent + rule_line)
         allele_totals = (
             gene_df.groupby("mhc_allele")["n_observations"]
             .sum()
@@ -488,23 +570,46 @@ def format_table(df: pd.DataFrame) -> str:
         )
         for allele in allele_totals.index:
             allele_df = gene_df[gene_df["mhc_allele"] == allele]
-            # When the stored value is a serotype, the best-guess 4-digit
-            # member is a *heuristic* (lowest-numbered ≈ most common). Show
-            # it in the header so the user can see which allele the
-            # predictor scored under for serotype-resolution rows.
+            # Serotype rows get the best-guess 4-digit member annotated in
+            # the header (heuristic: lowest-numbered ≈ population-dominant).
             best_guess = ""
             if "best_guess_allele" in allele_df.columns:
                 guesses = allele_df["best_guess_allele"].dropna().astype(str).unique()
                 if len(guesses) == 1 and guesses[0] and guesses[0] != allele:
                     best_guess = guesses[0]
-            header = f"  {allele}"
+            header = f"{gene_indent}  {allele}"
             if best_guess:
                 header += f"  (best guess: {best_guess})"
-            out.append(header)
+            block.append(header)
             for _, row in allele_df.iterrows():
                 cells = [_fmt(pep_headers[i], row[k]) for i, k in enumerate(pep_keys)]
-                out.append(indent + sep.join(cells[i].ljust(widths[i]) for i in range(len(cells))))
-        out.append("")
+                block.append(
+                    gene_indent
+                    + indent
+                    + sep.join(cells[i].ljust(widths[i]) for i in range(len(cells)))
+                )
+        return block
+
+    out: list[str] = []
+    has_sample = "sample_name" in df.columns
+    if has_sample:
+        # Per-sample sections: one outer block per sample, nested gene
+        # blocks beneath. Empty samples (no evidence on their alleles) get a
+        # placeholder line so the user can see which samples returned nothing.
+        for sample_name, sample_df in df.groupby("sample_name", sort=True):
+            out.append(f"=== sample: {sample_name} ===")
+            non_empty = sample_df.dropna(subset=["gene_name"])
+            if non_empty.empty:
+                out.append("  (no pMHC evidence on this sample's alleles)")
+                out.append("")
+                continue
+            for _, gene_df in non_empty.groupby("gene_name", sort=True):
+                out.extend(_render_gene_block(gene_df, gene_indent="  "))
+            out.append("")
+    else:
+        for _, gene_df in df.groupby("gene_name", sort=True):
+            out.extend(_render_gene_block(gene_df))
+            out.append("")
 
     if not has_pred:
         out.append(
