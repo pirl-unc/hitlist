@@ -498,7 +498,13 @@ def curation_plan(
     - ``n_rows`` — total observation rows in the corpus for this PMID
       (sum across class I/II buckets).
     - ``suspect_class_label_n`` / ``suspect_class_label_rate`` —
-      summed across class buckets (#182).
+      summed across class buckets (#182). Counts rows whose
+      ``mhc_class_label_severity`` is ``suspect`` or ``implausible``.
+    - ``borderline_class_label_n`` / ``implausible_class_label_n`` —
+      v1.30.18 / #201 finer-grained breakdown. Borderline (bulged
+      class-I 13-14aa, short class-II 8-10aa) is uncommon-but-real
+      biology and does NOT count toward suspect; implausible is
+      almost always curation drift and DOES.
     - ``monoallelic_class_only_n`` — rows where the paper knows the
       allele but IEDB lost it (#45 candidates).
     - ``class_pool_n`` — rows that fell back to per-PMID class pool
@@ -533,35 +539,44 @@ def curation_plan(
     drift = normalization_drift()
 
     # ── Discrepancies: roll up across class I/II per PMID ────────────
+    # The borderline / implausible columns landed in v1.30.18 so older
+    # callers (or tests) that fixture a DataFrame from an older
+    # discrepancies output still need to work — guard with .get.
+    has_borderline = "borderline_class_label_n" in disc.columns
+    has_implausible = "implausible_class_label_n" in disc.columns
     if not disc.empty:
-        disc_pmid = (
-            disc.groupby("pmid", as_index=False)
-            .agg(
-                study_label=("study_label", "first"),
-                n_rows=("n_rows", "sum"),
-                suspect_class_label_n=("suspect_class_label_n", "sum"),
-                monoallelic_class_only_n=("monoallelic_class_only_n", "sum"),
-                class_pool_n=("class_pool_n", "sum"),
-                nonstandard_aa_n=("nonstandard_aa_n", "sum"),
-            )
-            .copy()
-        )
+        agg_kwargs: dict = {
+            "study_label": ("study_label", "first"),
+            "n_rows": ("n_rows", "sum"),
+            "suspect_class_label_n": ("suspect_class_label_n", "sum"),
+            "monoallelic_class_only_n": ("monoallelic_class_only_n", "sum"),
+            "class_pool_n": ("class_pool_n", "sum"),
+            "nonstandard_aa_n": ("nonstandard_aa_n", "sum"),
+        }
+        if has_borderline:
+            agg_kwargs["borderline_class_label_n"] = ("borderline_class_label_n", "sum")
+        if has_implausible:
+            agg_kwargs["implausible_class_label_n"] = ("implausible_class_label_n", "sum")
+        disc_pmid = disc.groupby("pmid", as_index=False).agg(**agg_kwargs).copy()
         disc_pmid["suspect_class_label_rate"] = disc_pmid["suspect_class_label_n"] / disc_pmid[
             "n_rows"
         ].clip(lower=1)
     else:
-        disc_pmid = pd.DataFrame(
-            columns=[
-                "pmid",
-                "study_label",
-                "n_rows",
-                "suspect_class_label_n",
-                "monoallelic_class_only_n",
-                "class_pool_n",
-                "nonstandard_aa_n",
-                "suspect_class_label_rate",
-            ]
-        )
+        disc_cols = [
+            "pmid",
+            "study_label",
+            "n_rows",
+            "suspect_class_label_n",
+            "monoallelic_class_only_n",
+            "class_pool_n",
+            "nonstandard_aa_n",
+            "suspect_class_label_rate",
+        ]
+        if has_borderline:
+            disc_cols.append("borderline_class_label_n")
+        if has_implausible:
+            disc_cols.append("implausible_class_label_n")
+        disc_pmid = pd.DataFrame(columns=disc_cols)
 
     # ── Cross-reference: per-PMID counts of yaml_only / data_only ────
     if not xref.empty:
@@ -594,13 +609,19 @@ def curation_plan(
         drift_pmid, on="pmid", how="outer"
     )
     if plan.empty:
-        return pd.DataFrame(
-            columns=[
-                "pmid",
-                "study_label",
-                "n_rows",
-                "suspect_class_label_n",
-                "suspect_class_label_rate",
+        empty_cols = [
+            "pmid",
+            "study_label",
+            "n_rows",
+            "suspect_class_label_n",
+            "suspect_class_label_rate",
+        ]
+        if has_borderline:
+            empty_cols.append("borderline_class_label_n")
+        if has_implausible:
+            empty_cols.append("implausible_class_label_n")
+        empty_cols.extend(
+            [
                 "monoallelic_class_only_n",
                 "class_pool_n",
                 "nonstandard_aa_n",
@@ -611,6 +632,7 @@ def curation_plan(
                 "severity",
             ]
         )
+        return pd.DataFrame(columns=empty_cols)
 
     # Backfill study_label for PMIDs that came in via xref/drift only.
     overrides = load_pmid_overrides()
@@ -623,6 +645,8 @@ def curation_plan(
         "n_rows",
         "suspect_class_label_n",
         "suspect_class_label_rate",
+        "borderline_class_label_n",
+        "implausible_class_label_n",
         "monoallelic_class_only_n",
         "class_pool_n",
         "nonstandard_aa_n",
@@ -670,6 +694,8 @@ def curation_plan(
     int_cols = [
         "n_rows",
         "suspect_class_label_n",
+        "borderline_class_label_n",
+        "implausible_class_label_n",
         "monoallelic_class_only_n",
         "class_pool_n",
         "nonstandard_aa_n",
@@ -681,13 +707,19 @@ def curation_plan(
         if c in plan.columns:
             plan[c] = plan[c].astype(int)
 
-    return plan[
+    output_cols = [
+        "pmid",
+        "study_label",
+        "n_rows",
+        "suspect_class_label_n",
+        "suspect_class_label_rate",
+    ]
+    if "borderline_class_label_n" in plan.columns:
+        output_cols.append("borderline_class_label_n")
+    if "implausible_class_label_n" in plan.columns:
+        output_cols.append("implausible_class_label_n")
+    output_cols.extend(
         [
-            "pmid",
-            "study_label",
-            "n_rows",
-            "suspect_class_label_n",
-            "suspect_class_label_rate",
             "monoallelic_class_only_n",
             "class_pool_n",
             "nonstandard_aa_n",
@@ -697,4 +729,5 @@ def curation_plan(
             "priority_score",
             "severity",
         ]
-    ].reset_index(drop=True)
+    )
+    return plan[output_cols].reset_index(drop=True)
