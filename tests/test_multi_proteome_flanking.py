@@ -72,6 +72,34 @@ def test_lookup_proteome_plasmodium_falciparum():
     assert entry["proteome_id"] == "UP000001450"
 
 
+def test_lookup_proteome_aav_serotypes():
+    """v1.30.25: AAV2/6/8 registered (#213). The AAV6 path also has to
+    handle IEDB's hyphen-space-hyphen variant ('Adeno-associated virus
+    - 6') which the substring matcher would otherwise miss against the
+    canonical 'virus 6' key. AAV1 and AAV9 stay unregistered until
+    UniProt publishes clean serotype-specific proteomes for them."""
+    aav2 = lookup_proteome("adeno-associated virus 2")
+    assert aav2 is not None
+    assert aav2["proteome_id"] == "UP000180764"
+    assert aav2.get("key") == "aav-2"
+
+    aav6_canonical = lookup_proteome("adeno-associated virus 6")
+    assert aav6_canonical is not None
+    assert aav6_canonical["proteome_id"] == "UP000119472"
+
+    # IEDB-style hyphen variant — same UPID.
+    aav6_iedb = lookup_proteome("Adeno-associated virus - 6")
+    assert aav6_iedb is not None
+    assert aav6_iedb["proteome_id"] == "UP000119472"
+
+    aav8 = lookup_proteome("adeno-associated virus 8")
+    assert aav8 is not None
+    assert aav8["proteome_id"] == "UP000201958"
+
+    # AAV9 deliberately stays unresolved — no UniProt reference proteome.
+    assert lookup_proteome("Adeno-associated virus 9") is None
+
+
 def test_lookup_proteome_sars_disambiguation():
     """SARS-CoV-1 and SARS-CoV-2 must resolve to different proteomes."""
     cov1 = lookup_proteome("SARS-CoV1")

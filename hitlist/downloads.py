@@ -359,6 +359,20 @@ VIRAL_PROTEOMES: dict[str, dict[str, str]] = {
     "betapolyomavirus hominis": {"proteome_id": "UP000008475", "key": "bkv"},
     "bk polyomavirus": {"proteome_id": "UP000008475", "key": "bkv"},
     "alphapolyomavirus muris": {"proteome_id": "UP000007212", "key": "mpyv"},
+    # Adeno-associated viruses (gene-therapy capsid context — #213).
+    # Each AAV serotype has a distinct UniProt reference proteome.
+    # The "virus - 6" key handles IEDB's hyphen-space-hyphen variant
+    # ("Adeno-associated virus - 6") which the substring matcher would
+    # otherwise miss against the canonical "virus 6" key. AAV1 and
+    # AAV9 are intentionally NOT registered: UniProt has no clean
+    # serotype-9 reference proteome (a UniProt-side gap), and its
+    # AAV1 hit (UP000232962) resolves to "California sea lion AAV1"
+    # which is the wrong organism for the human gene-therapy /
+    # immunopeptidome context the IEDB rows come from.
+    "adeno-associated virus 2": {"proteome_id": "UP000180764", "key": "aav-2"},
+    "adeno-associated virus 6": {"proteome_id": "UP000119472", "key": "aav-6"},
+    "adeno-associated virus - 6": {"proteome_id": "UP000119472", "key": "aav-6"},
+    "adeno-associated virus 8": {"proteome_id": "UP000201958", "key": "aav-8"},
 }
 
 
