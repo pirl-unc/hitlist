@@ -548,7 +548,7 @@ def test_load_observations_emits_severity_tiers(tmp_path, monkeypatch):
       11-30 → ok         (canonical)
       8-10 → borderline  (genuinely short class-II ligands)
       5-7 → suspect
-      ≤4 or ≥31 → implausible
+      ≤4 or ≥40 → implausible (v1.30.22: was ≥31)
     """
     import pandas as pd
 
@@ -565,13 +565,20 @@ def test_load_observations_emits_severity_tiers(tmp_path, monkeypatch):
                 "EEEEEEEEE",  # 9aa class II — borderline
                 "EEEEEEE",  # 7aa class II — suspect
                 "EEEE",  # 4aa class II — implausible
+                # v1.30.22 (#209): a 35aa class-II peptide is now "ok"
+                # (was "implausible" before). Stražar 2023 contains
+                # ~13K legitimate class-II ligands in the 31-39aa range.
+                "E" * 35,
+                # v1.30.22: 40aa class-II remains implausible — empirical
+                # break in the length distribution sits ~40aa.
+                "E" * 40,
             ],
-            "mhc_restriction": (["HLA-A*02:01"] * 4) + (["HLA-DRB1*15:01"] * 4),
-            "mhc_class": (["I"] * 4) + (["II"] * 4),
-            "reference_iri": [f"r-{i}" for i in range(8)],
-            "pmid": pd.array([1, 2, 3, 4, 5, 6, 7, 8], dtype="Int64"),
-            "source": ["iedb"] * 8,
-            "mhc_species": ["Homo sapiens"] * 8,
+            "mhc_restriction": (["HLA-A*02:01"] * 4) + (["HLA-DRB1*15:01"] * 6),
+            "mhc_class": (["I"] * 4) + (["II"] * 6),
+            "reference_iri": [f"r-{i}" for i in range(10)],
+            "pmid": pd.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], dtype="Int64"),
+            "source": ["iedb"] * 10,
+            "mhc_species": ["Homo sapiens"] * 10,
         }
     )
     path = tmp_path / "observations.parquet"
@@ -590,6 +597,9 @@ def test_load_observations_emits_severity_tiers(tmp_path, monkeypatch):
     assert sev["EEEEEEEEE"] == "borderline"
     assert sev["EEEEEEE"] == "suspect"
     assert sev["EEEE"] == "implausible"
+    # v1.30.22: extended class-II ligands.
+    assert sev["E" * 35] == "ok"  # 35aa — was implausible pre-1.30.22
+    assert sev["E" * 40] == "implausible"  # ≥40aa is the new cutoff
 
     # Backwards-compat: suspect+implausible → mhc_class_label_suspect=True;
     # ok+borderline → False.
@@ -600,6 +610,8 @@ def test_load_observations_emits_severity_tiers(tmp_path, monkeypatch):
     assert susp["AAAAAAAAAAAAAAAAAA"] is True  # implausible
     assert susp["EEEEEEEEE"] is False  # borderline (NOT suspect)
     assert susp["EEEE"] is True  # implausible
+    assert susp["E" * 35] is False  # ok per v1.30.22
+    assert susp["E" * 40] is True  # implausible
 
 
 def test_exclude_class_label_implausible_keeps_borderline_and_suspect(tmp_path, monkeypatch):
