@@ -731,3 +731,112 @@ def curation_plan(
         ]
     )
     return plan[output_cols].reset_index(drop=True)
+
+
+def proteome_coverage(
+    min_rows: int = 1,
+    use_uniprot: bool = False,
+) -> pd.DataFrame:
+    """Per-source-organism proteome registry coverage.
+
+    Buckets observation rows by ``source_organism`` and reports whether
+    a reference proteome is registered in
+    :data:`hitlist.downloads.SPECIES_PROTEOMES` /
+    :data:`hitlist.downloads.VIRAL_PROTEOMES`. Surfaces the gap that
+    blocks downstream features needing a per-organism proteome — flank
+    extraction, gene-name lookup, source-protein audits — without
+    actually fetching anything (#39).
+
+    Parameters
+    ----------
+    min_rows
+        Drop organisms with fewer than this many rows (default ``1``;
+        the long-tail of singleton organisms is uninteresting for
+        coverage decisions).
+    use_uniprot
+        Forwarded to :func:`hitlist.downloads.lookup_proteome`. When
+        ``True``, the resolver will hit UniProt's REST endpoint for
+        organisms not in the curated registry — slower but more
+        permissive. Default ``False`` so this report is offline.
+
+    Returns
+    -------
+    pd.DataFrame
+        Sorted descending by ``n_rows``. Columns:
+
+        - ``source_organism`` — IEDB / supplement organism string
+        - ``n_rows`` — observation rows for that organism
+        - ``n_pmids`` — distinct PMIDs in that bucket
+        - ``has_proteome`` — ``True`` iff
+          :func:`lookup_proteome` resolves it
+        - ``proteome_kind`` — ``"ensembl"`` / ``"uniprot"`` / ``""``
+        - ``proteome_id`` — UPID or Ensembl species name
+        - ``severity`` — ``"warn"`` if no proteome and ``n_rows >= 100``
+          (curation-priority cluster), ``"info"`` otherwise
+
+    Examples
+    --------
+    >>> from hitlist.qc import proteome_coverage
+    >>> df = proteome_coverage(min_rows=100)
+    >>> df[~df.has_proteome].head()
+    """
+    from .downloads import lookup_proteome
+    from .observations import is_built, load_observations
+
+    if not is_built():
+        raise FileNotFoundError(
+            "observations.parquet has not been built. Run 'hitlist data build' first."
+        )
+
+    df = load_observations(columns=["source_organism", "pmid"])
+    if df.empty:
+        return pd.DataFrame(
+            columns=[
+                "source_organism",
+                "n_rows",
+                "n_pmids",
+                "has_proteome",
+                "proteome_kind",
+                "proteome_id",
+                "severity",
+            ]
+        )
+
+    df["source_organism"] = df["source_organism"].fillna("")
+    grouped = df.groupby("source_organism", as_index=False).agg(
+        n_rows=("source_organism", "size"),
+        n_pmids=("pmid", "nunique"),
+    )
+    grouped = grouped[grouped["n_rows"] >= min_rows].copy()
+
+    # Resolve each unique organism string once (lookup is @cache'd at
+    # the species-name layer but the substring fallback is not, so
+    # hoisting per-row to per-unique avoids re-scanning VIRAL_PROTEOMES
+    # for every row).
+    def _resolve(org: str) -> tuple[bool, str, str]:
+        if not org:
+            return (False, "", "")
+        entry = lookup_proteome(org, use_uniprot=use_uniprot)
+        if entry is None:
+            return (False, "", "")
+        kind = str(entry.get("kind", ""))
+        if kind == "ensembl":
+            pid = str(entry.get("species", ""))
+        else:
+            pid = str(entry.get("proteome_id", ""))
+        return (True, kind, pid)
+
+    resolved = grouped["source_organism"].map(_resolve)
+    grouped["has_proteome"] = [r[0] for r in resolved]
+    grouped["proteome_kind"] = [r[1] for r in resolved]
+    grouped["proteome_id"] = [r[2] for r in resolved]
+
+    # Curation-priority severity: a missing-proteome organism with >=100
+    # rows is a real gap; <100 rows is the long tail and not worth
+    # registering one-at-a-time.
+    grouped["severity"] = "info"
+    warn_mask = (~grouped["has_proteome"]) & (grouped["n_rows"] >= 100)
+    grouped.loc[warn_mask, "severity"] = "warn"
+
+    grouped = grouped.sort_values(["n_rows", "source_organism"], ascending=[False, True])
+    return grouped.reset_index(drop=True)

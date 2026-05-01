@@ -903,3 +903,135 @@ def test_curation_plan_handles_no_signals(tmp_path, monkeypatch):
     # read .columns even when nothing is wrong.
     assert "priority_score" in plan.columns
     assert "severity" in plan.columns
+
+
+def test_proteome_coverage_resolves_registered_and_flags_missing(tmp_path, monkeypatch):
+    """v1.30.23 / #39: proteome_coverage groups rows by source_organism
+    and flags species without a registered reference proteome. Severity
+    is ``warn`` when a missing-proteome organism exceeds 100 rows
+    (curation-priority cluster) and ``info`` otherwise."""
+    from hitlist import qc
+
+    rows = []
+    # 200 Homo sapiens rows (registered → has_proteome=True, severity=info).
+    for i in range(200):
+        rows.append(
+            {
+                "peptide": f"P{i:08d}",
+                "mhc_class": "I",
+                "mhc_restriction": "HLA-A*02:01",
+                "is_monoallelic": False,
+                "mhc_class_label_suspect": False,
+                "mhc_allele_provenance": "exact",
+                "cell_name": "",
+                "pmid": 1,
+                "reference_iri": f"r-{i}",
+                "source": "iedb",
+                "mhc_species": "Homo sapiens",
+                "source_organism": "Homo sapiens",
+            }
+        )
+    # 150 Felis catus rows (NOT registered, ≥100 rows → severity=warn).
+    for i in range(150):
+        rows.append(
+            {
+                "peptide": f"Q{i:08d}",
+                "mhc_class": "I",
+                "mhc_restriction": "HLA-A*02:01",
+                "is_monoallelic": False,
+                "mhc_class_label_suspect": False,
+                "mhc_allele_provenance": "exact",
+                "cell_name": "",
+                "pmid": 2,
+                "reference_iri": f"q-{i}",
+                "source": "iedb",
+                "mhc_species": "Felis catus",
+                "source_organism": "Felis catus",
+            }
+        )
+    # 30 'unidentified' rows (NOT registered, <100 → severity=info).
+    for i in range(30):
+        rows.append(
+            {
+                "peptide": f"U{i:08d}",
+                "mhc_class": "I",
+                "mhc_restriction": "HLA-A*02:01",
+                "is_monoallelic": False,
+                "mhc_class_label_suspect": False,
+                "mhc_allele_provenance": "exact",
+                "cell_name": "",
+                "pmid": 3,
+                "reference_iri": f"u-{i}",
+                "source": "iedb",
+                "mhc_species": "Homo sapiens",
+                "source_organism": "unidentified",
+            }
+        )
+
+    obs_path = _write_obs_fixture(tmp_path, rows)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+
+    df = qc.proteome_coverage()
+
+    homo = df[df["source_organism"] == "Homo sapiens"].iloc[0]
+    assert homo["n_rows"] == 200
+    assert homo["n_pmids"] == 1
+    assert bool(homo["has_proteome"])
+    assert homo["proteome_kind"] == "ensembl"
+    assert homo["severity"] == "info"
+
+    cat = df[df["source_organism"] == "Felis catus"].iloc[0]
+    assert cat["n_rows"] == 150
+    assert not bool(cat["has_proteome"])
+    assert cat["proteome_kind"] == ""
+    assert cat["severity"] == "warn"  # missing proteome AND >=100 rows
+
+    unid = df[df["source_organism"] == "unidentified"].iloc[0]
+    assert unid["n_rows"] == 30
+    assert not bool(unid["has_proteome"])
+    assert unid["severity"] == "info"  # missing but <100 rows → long tail
+
+    # Sort order: highest n_rows first.
+    assert df.iloc[0]["source_organism"] == "Homo sapiens"
+
+
+def test_proteome_coverage_empty_observations_returns_schema(tmp_path, monkeypatch):
+    """When the corpus is empty (or filtered to nothing), proteome_coverage
+    returns an empty DataFrame with the expected schema so callers can
+    introspect ``.columns`` without crashing."""
+    from hitlist import qc
+
+    obs_path = _write_obs_fixture(
+        tmp_path,
+        [
+            {
+                "peptide": "AAAAAAAAA",
+                "mhc_class": "I",
+                "mhc_restriction": "HLA-A*02:01",
+                "is_monoallelic": False,
+                "mhc_class_label_suspect": False,
+                "mhc_allele_provenance": "exact",
+                "cell_name": "",
+                "pmid": 1,
+                "reference_iri": "r-1",
+                "source": "iedb",
+                "mhc_species": "Homo sapiens",
+                "source_organism": "Homo sapiens",
+            }
+        ],
+    )
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+
+    # min_rows above the row count → empty result
+    df = qc.proteome_coverage(min_rows=1000)
+    assert df.empty
+    for col in (
+        "source_organism",
+        "n_rows",
+        "n_pmids",
+        "has_proteome",
+        "proteome_kind",
+        "proteome_id",
+        "severity",
+    ):
+        assert col in df.columns
