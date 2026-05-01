@@ -493,5 +493,10 @@ def scan(
             record["mhc_allele_bag_size"] = bag_size
 
             rows.append(record)
+        # Close the wrapped file handle explicitly — relying on garbage
+        # collection produced ResourceWarnings under pytest's strict-
+        # warning filters (the noqa: SIM115 in _open_csv signals the
+        # close lives at the call site).
+        fh.close()
 
     return pd.DataFrame(rows)
