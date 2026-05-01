@@ -463,7 +463,15 @@ def _load_peptide_index(
     #   "suspect"     — outside the documented edge but possible (class I
     #                   15-17 aa, class II 5-7 aa)
     #   "implausible" — beyond plausibility (class I ≥18 aa, class II
-    #                   ≤4 aa or ≥31 aa); almost always curation drift
+    #                   ≤4 aa or ≥40 aa); almost always curation drift
+    #
+    # v1.30.22 raised the class-II upper cutoff from ≥31 to ≥40 (#209).
+    # The empirical break in real-data length distributions sits around
+    # 40 aa: the published Stražar 2023 mono-allelic HLA-II
+    # immunopeptidome has 13K bona-fide ligands in 31-39 aa
+    # (proteasome-edited / DM-extended) and only ~50 above 40, while
+    # rows ≥40 in other curated supplements reliably trace back to
+    # class label drift. The class-I cutoff (≥18 aa) is unchanged.
     #
     # ``mhc_class_label_suspect`` (boolean) is preserved for backwards
     # compat — equals ``severity in {"suspect", "implausible"}``.
@@ -498,7 +506,7 @@ def _load_peptide_index(
         severity[cls_ii & (plen.between(8, 10))] = "borderline"
         severity[cls_ii & (plen.between(5, 7))] = "suspect"
         severity[cls_ii & (plen <= 4)] = "implausible"
-        severity[cls_ii & (plen >= 31)] = "implausible"
+        severity[cls_ii & (plen >= 40)] = "implausible"
 
         df["mhc_class_label_severity"] = severity
         # Backwards-compatible binary flag — same semantics as v1.30.0:
