@@ -52,6 +52,26 @@ def test_lookup_proteome_unknown():
     assert lookup_proteome("") is None
 
 
+def test_lookup_proteome_mtb_h37rv():
+    """v1.30.24: M. tuberculosis registered to H37Rv reference proteome
+    (UP000001584). Both the bare species string and the strain-suffixed
+    string resolve to the same UPID — IEDB carries both forms (#39)."""
+    for variant in ("Mycobacterium tuberculosis", "Mycobacterium tuberculosis H37Rv"):
+        entry = lookup_proteome(variant)
+        assert entry is not None, f"failed for {variant!r}"
+        assert entry["kind"] == "uniprot"
+        assert entry["proteome_id"] == "UP000001584"
+
+
+def test_lookup_proteome_plasmodium_falciparum():
+    """v1.30.24: P. falciparum registered to 3D7 reference proteome
+    (UP000001450) — canonical antimalarial epitope reference (#39)."""
+    entry = lookup_proteome("Plasmodium falciparum")
+    assert entry is not None
+    assert entry["kind"] == "uniprot"
+    assert entry["proteome_id"] == "UP000001450"
+
+
 def test_lookup_proteome_sars_disambiguation():
     """SARS-CoV-1 and SARS-CoV-2 must resolve to different proteomes."""
     cov1 = lookup_proteome("SARS-CoV1")
@@ -105,28 +125,34 @@ def test_lookup_proteome_uniprot_fallback_uses_cache(tmp_path, monkeypatch):
 
     calls = {"n": 0}
 
+    # NOTE: organism here must be one we don't statically register in
+    # SPECIES_PROTEOMES — otherwise the static registry short-circuits
+    # before ever reaching the UniProt fallback path this test is
+    # exercising. Pteropus alecto (black flying fox) has IEDB rows but
+    # no curated UPID. v1.30.24 added Mtb to the static registry, which
+    # is why this used to use Mtb but no longer can.
     def fake_resolve(organism, timeout=15):
         calls["n"] += 1
-        if organism == "Mycobacterium tuberculosis":
+        if organism == "Pteropus alecto":
             return {
-                "proteome_id": "UP000001584",
-                "scientific_name": "Mycobacterium tuberculosis (strain ATCC 25618 / H37Rv)",
-                "taxon_id": 83332,
-                "proteome_type": "Reference and representative proteome",
-                "protein_count": 3997,
+                "proteome_id": "UP000688127",
+                "scientific_name": "Pteropus alecto",
+                "taxon_id": 9402,
+                "proteome_type": "Reference proteome",
+                "protein_count": 20000,
             }
         return None
 
     monkeypatch.setattr(downloads, "resolve_proteome_via_uniprot", fake_resolve)
 
     # First call hits the mock
-    r1 = downloads.lookup_proteome("Mycobacterium tuberculosis", use_uniprot=True)
+    r1 = downloads.lookup_proteome("Pteropus alecto", use_uniprot=True)
     assert r1 is not None
-    assert r1["proteome_id"] == "UP000001584"
+    assert r1["proteome_id"] == "UP000688127"
     assert calls["n"] == 1
 
     # Second call should use the manifest cache, not the mock
-    r2 = downloads.lookup_proteome("Mycobacterium tuberculosis", use_uniprot=True)
+    r2 = downloads.lookup_proteome("Pteropus alecto", use_uniprot=True)
     assert r2 == r1
     assert calls["n"] == 1  # no new network call
 
@@ -150,7 +176,8 @@ def test_lookup_proteome_no_uniprot_by_default(tmp_path, monkeypatch):
 
     monkeypatch.setattr(downloads, "resolve_proteome_via_uniprot", fake_resolve)
 
-    assert downloads.lookup_proteome("Mycobacterium tuberculosis") is None
+    # Same caveat as the cache test above — has to be unregistered.
+    assert downloads.lookup_proteome("Pteropus alecto") is None
 
 
 def test_fetch_species_proteome_ensembl_no_download(tmp_path, monkeypatch):
