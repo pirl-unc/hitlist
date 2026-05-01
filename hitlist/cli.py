@@ -1342,6 +1342,42 @@ def main() -> None:
     )
     p_qc_plan.add_argument("--output", "-o", help="Write CSV to file")
 
+    p_qc_pc = qc_sub.add_parser(
+        "proteome-coverage",
+        help=(
+            "Per-source-organism proteome registry coverage. Surfaces "
+            "the species gap that blocks downstream features needing a "
+            "per-organism proteome (flank extraction, gene-name lookup, "
+            "source-protein audits) without fetching anything (#39)."
+        ),
+    )
+    p_qc_pc.add_argument(
+        "--min-rows",
+        type=int,
+        default=1,
+        help="Drop organism buckets with fewer than this many rows (default 1).",
+    )
+    p_qc_pc.add_argument(
+        "--missing-only",
+        action="store_true",
+        help="Show only organisms WITHOUT a registered proteome.",
+    )
+    p_qc_pc.add_argument(
+        "--severity",
+        choices=["info", "warn"],
+        help="Filter to one severity level (default: all).",
+    )
+    p_qc_pc.add_argument(
+        "--use-uniprot",
+        action="store_true",
+        help=(
+            "Fall back to the UniProt REST endpoint for organisms not "
+            "in the curated registry. Slower (network) and offline runs "
+            "should leave this off."
+        ),
+    )
+    p_qc_pc.add_argument("--output", "-o", help="Write CSV to file")
+
     # ── pmhc subcommand ────────────────────────────────────────────────
     p_pmhc = sub.add_parser(
         "pmhc",
@@ -1552,6 +1588,17 @@ def _qc(args: argparse.Namespace) -> None:
         top = getattr(args, "top", None)
         if top is not None and not df.empty:
             df = df.head(top).reset_index(drop=True)
+    elif cmd == "proteome-coverage":
+        df = qc.proteome_coverage(
+            min_rows=getattr(args, "min_rows", 1),
+            use_uniprot=getattr(args, "use_uniprot", False),
+        )
+        sev = getattr(args, "severity", None)
+        if sev is not None and not df.empty:
+            df = df[df["severity"] == sev].reset_index(drop=True)
+        missing_only = getattr(args, "missing_only", False)
+        if missing_only and not df.empty:
+            df = df[~df["has_proteome"]].reset_index(drop=True)
     else:
         print(f"Unknown qc subcommand: {cmd}", file=sys.stderr)
         sys.exit(1)
