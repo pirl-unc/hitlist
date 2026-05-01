@@ -356,6 +356,8 @@ def test_run_all_returns_named_dataframes(tmp_path, monkeypatch):
                 "is_monoallelic": False,
                 "mhc_class_label_suspect": False,
                 "mhc_allele_provenance": "exact",
+                # v1.30.26: proteome_coverage projects source_organism.
+                "source_organism": "Homo sapiens",
             },
         ],
     )
@@ -368,6 +370,10 @@ def test_run_all_returns_named_dataframes(tmp_path, monkeypatch):
         "normalization",
         "cross_reference",
         "discrepancies",
+        # v1.30.26: proteome_coverage joined the run_all aggregator
+        # (#39 follow-up — proteome registry coverage is its own
+        # diagnostic axis, not a rollup of the others).
+        "proteome_coverage",
     }
     for v in results.values():
         assert isinstance(v, pd.DataFrame)

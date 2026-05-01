@@ -472,13 +472,16 @@ def run_all(mhc_class: str | None = None) -> dict[str, pd.DataFrame]:
     """Run every QC check and return a name → DataFrame mapping.
 
     The CLI ``hitlist qc`` (no subcommand) calls this and prints a summary
-    table per check.
+    table per check. ``curation_plan`` is intentionally absent — it's a
+    pure rollup of the other checks, so including it would double-count
+    every signal in the summary.
     """
     return {
         "resolution": resolution_histogram(mhc_class=mhc_class),
         "normalization": normalization_drift(),
         "cross_reference": cross_reference(mhc_class=mhc_class),
         "discrepancies": discrepancies(mhc_class=mhc_class),
+        "proteome_coverage": proteome_coverage(),
     }
 
 
