@@ -449,44 +449,31 @@ def _load_peptide_index(
             )
 
     # ── MHC class-label severity tiers (#182, #201) ──────────────────────
-    # v1.30.17 splits the previously-binary ``mhc_class_label_suspect``
-    # flag into a four-tier severity column — the binary cutoff at
-    # ≥18 aa for class I was too aggressive (bulged class-I peptides
-    # extend to ~14-17 aa in the literature), and ≤10 aa for class II
-    # similarly conflated genuinely short class-II ligands with
-    # class-I-mislabeled rows.
+    # Flags rows whose curated ``mhc_class`` disagrees with the
+    # peptide's length, since IEDB occasionally mislabels class. Four
+    # tiers per row, computed off the bare peptide length:
     #
-    # Tiers (per row):
-    #   "ok"          — within the canonical length window for the class
-    #   "borderline"  — at the documented edge (bulged class-I 13-14 aa,
-    #                   class II 8-10 aa); unusual but biologically real
-    #   "suspect"     — outside the documented edge but possible (class I
-    #                   15-17 aa, class II 5-7 aa)
-    #   "implausible" — beyond plausibility (class I ≥18 aa, class II
-    #                   ≤4 aa or ≥45 aa); almost always curation drift
+    #             ok            borderline    suspect     implausible
+    #   class I   8-12          13-14         15-17       ≥18 or ≤7
+    #   class II  11-44         8-10          5-7         ≥45 or ≤4
     #
-    # v1.30.22 raised the class-II upper cutoff from ≥31 to ≥40 (#209)
-    # to keep ~13K legitimate Stražar 2023 mono-allelic HLA-II ligands
-    # in the 31-39 aa range. v1.30.28 bumped it again to ≥45 — the
-    # 40-44 aa tail is sparse but still genuine class-II biology
-    # across multiple curated supplements (Stražar's tail extends to
-    # 51 aa). The class-I cutoff (≥18 aa) is unchanged.
+    # Borderline = uncommon-but-real biology (bulged class-I, short
+    # class-II). Implausible = almost certainly curation drift; cutoffs
+    # set off the empirical break in Stražar 2023's HLA-II
+    # immunopeptidome which extends to ~51 aa.
     #
-    # ``mhc_class_label_suspect`` (boolean) is preserved for backwards
-    # compat — equals ``severity in {"suspect", "implausible"}``.
-    # Consumers wanting strict cleaning can use the new
-    # ``exclude_class_label_implausible`` parameter.
+    # ``mhc_class_label_suspect`` is the backwards-compatible binary
+    # flag — equals ``severity in {"suspect", "implausible"}``.
+    # Callers wanting only the strict drift filter use the
+    # ``exclude_class_label_implausible`` loader parameter.
     if "mhc_class" in df.columns and "peptide" in df.columns and len(df) > 0:
-        # v1.30.20: compute length on the bare AA sequence. Pre-v1.30.10
-        # parquets may carry IEDB's inline PTM annotation in the peptide
-        # column ("LQPFPQPQLPY + DEAM(Q8)"); the " + " split strips that
-        # tail without affecting v1.30.10+ rows where ``peptide`` is
-        # already bare. Misclassified ~36k Sarkizova 2020 rows (#205
-        # follow-up) — modified peptides like ``CGPSGLVREL + METH(C1)``
-        # were measuring 21 chars instead of the bare 10 and getting
-        # tagged "implausible" purely on PTM-suffix length.
-        # ``regex=False`` is critical — pandas otherwise treats ``+`` as
-        # a regex one-or-more quantifier and the split silently no-ops.
+        # Strip IEDB inline PTM annotation before measuring length.
+        # Pre-v1.30.10 parquets may carry "LQPFPQPQLPY + DEAM(Q8)" in the
+        # peptide column; the bare-length split keeps the severity tier
+        # honest on those without affecting v1.30.10+ rows where
+        # ``peptide`` is already the bare sequence. ``regex=False`` is
+        # required — pandas otherwise reads ``+`` as a regex quantifier
+        # and the split silently no-ops.
         plen = df["peptide"].astype(str).str.split(" + ", n=1, regex=False).str[0].str.len()
         cls = df["mhc_class"].fillna("")
 

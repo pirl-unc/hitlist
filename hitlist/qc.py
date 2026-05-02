@@ -284,18 +284,16 @@ def discrepancies(
 
     Detected patterns:
 
-    - **suspect_class_label_n / _rate** — count of rows where the
-      bimodal length distribution disagrees with the curated class.
-      Pinned by the ``mhc_class_label_suspect`` flag added in
-      v1.30.0 / #182. v1.30.17 narrowed the definition to rows with
-      ``mhc_class_label_severity in {suspect, implausible}``.
-    - **borderline_class_label_n / _implausible_class_label_n** —
-      finer-grained breakdown using the v1.30.17 severity tiers
-      (#201). Borderline = bulged class-I (13-14aa) or short
-      class-II (8-10aa); implausible = clearly outside biological
-      plausibility (class-I ≥18aa or ≤7aa, class-II ≤4 or ≥31aa).
-      Implausible rows are almost always curation drift; borderline
-      rows are uncommon-but-real and often legitimate.
+    - **suspect_class_label_n / _rate** — rows where the curated
+      class disagrees with the peptide length. Equivalent to the
+      ``mhc_class_label_suspect`` boolean flag (severity in
+      {suspect, implausible}).
+    - **borderline_class_label_n / implausible_class_label_n** —
+      finer-grained breakdown of the same signal using
+      ``mhc_class_label_severity``. Borderline = bulged class-I
+      (13-14aa) or short class-II (8-10aa) — uncommon-but-real
+      biology, often legitimate. Implausible = class-I ≥18aa or
+      ≤7aa, class-II ≤4 or ≥45aa — almost always curation drift.
     - **length_p50 / _p99** — peptide length median + 99th percentile
       per bucket. Class I should have p50 ≈ 9 and a thin upper tail
       (p99 ≤ 12); class II should have p50 ≈ 14-15. Outliers on
@@ -401,10 +399,10 @@ def discrepancies(
     df["_nonstandard"] = df["peptide"].astype(str).str.contains(nonstandard_re)
     df["_class_only"] = df["mhc_restriction"].fillna("").str.startswith("HLA class")
     df["_mono_class_only"] = df["is_monoallelic"].fillna(False) & df["_class_only"]
-    # v1.30.17 / #201 severity tiers — borderline (bulged class-I 13-14aa
-    # or short class-II 8-10aa) is uncommon-but-real and shouldn't fire
-    # the binary suspect flag, but is still worth surfacing per-bucket
-    # so curators can spot studies dominated by borderline rows.
+    # Borderline (bulged class-I 13-14aa or short class-II 8-10aa) is
+    # uncommon-but-real biology and doesn't fire the binary suspect
+    # flag, but it's still worth a per-bucket count so curators can
+    # spot studies dominated by borderline rows.
     if "mhc_class_label_severity" in df.columns:
         sev = df["mhc_class_label_severity"].fillna("ok")
         df["_borderline"] = sev == "borderline"
@@ -504,7 +502,7 @@ def curation_plan(
       summed across class buckets (#182). Counts rows whose
       ``mhc_class_label_severity`` is ``suspect`` or ``implausible``.
     - ``borderline_class_label_n`` / ``implausible_class_label_n`` —
-      v1.30.18 / #201 finer-grained breakdown. Borderline (bulged
+      finer-grained breakdown of the same signal. Borderline (bulged
       class-I 13-14aa, short class-II 8-10aa) is uncommon-but-real
       biology and does NOT count toward suspect; implausible is
       almost always curation drift and DOES.
@@ -542,9 +540,9 @@ def curation_plan(
     drift = normalization_drift()
 
     # ── Discrepancies: roll up across class I/II per PMID ────────────
-    # The borderline / implausible columns landed in v1.30.18 so older
-    # callers (or tests) that fixture a DataFrame from an older
-    # discrepancies output still need to work — guard with .get.
+    # Guard the borderline / implausible columns so callers fixturing
+    # an older discrepancies DataFrame (without those columns) still
+    # work without raising.
     has_borderline = "borderline_class_label_n" in disc.columns
     has_implausible = "implausible_class_label_n" in disc.columns
     if not disc.empty:
