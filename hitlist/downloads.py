@@ -268,10 +268,7 @@ SPECIES_PROTEOMES: dict[str, dict[str, str | int]] = {
     "Theileria parva": {"kind": "uniprot", "proteome_id": "UP000001949"},
     "Ascaris suum": {"kind": "uniprot", "proteome_id": "UP000036681"},
     "Ascaris lumbricoides": {"kind": "uniprot", "proteome_id": "UP000036681"},
-    # Bacteria — canonical reference strains. (#39, surfaced via
-    # qc.proteome_coverage in v1.30.23: Mtb is the largest non-host
-    # bacterial source organism in IEDB at ~1.3K rows / 56 PMIDs across
-    # the unstrained and H37Rv entries combined.)
+    # Bacteria — canonical reference strains.
     "Mycobacterium tuberculosis": {"kind": "uniprot", "proteome_id": "UP000001584"},  # H37Rv
     "Mycobacterium tuberculosis H37Rv": {"kind": "uniprot", "proteome_id": "UP000001584"},
     # Apicomplexan parasites — 3D7 is the canonical P. falciparum

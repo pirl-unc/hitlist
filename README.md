@@ -11,12 +11,12 @@ hitlist ingests immunopeptidome data from [IEDB](https://www.iedb.org/), [CEDAR]
 
 | | Count |
 |---|---|
-| Curated PMIDs (`pmid_overrides.yaml`) | **155** — covers 89.5% of observations |
-| `ms_samples` entries with per-sample metadata | 359 |
-| `ms_samples` entries with 4-digit HLA typing | 237 |
-| Supplementary CSVs ingested (PRIDE/jPOSTrepo) | 5 (JY, HeLa, SK-MEL-37, Raji, plasma — Gomez-Zepeda 2024) |
-| Species reference proteomes (registry) | 19 (Ensembl: 4, UniProt: 15) |
-| Viral reference proteomes (registry) | 30 distinct viruses, 54 name aliases |
+| Curated PMIDs (`pmid_overrides.yaml`) | **159** — covers 89.5% of observations |
+| `ms_samples` entries with per-sample metadata | 633 |
+| `ms_samples` entries with 4-digit HLA typing | 446 |
+| Supplementary CSVs ingested (PRIDE/jPOSTrepo) | 9 (Abelin 2019 MAPTAC class I/II + DR-tissue, Gomez-Zepeda 2024 JY/HeLa/Raji/SK-MEL-37/plasma, Stražar 2023 HLA-II) |
+| Species reference proteomes (registry) | 22 (Ensembl: 4, UniProt: 18) |
+| Viral reference proteomes (registry) | 33 distinct viruses, 58 name aliases |
 
 ## What's in the two indexes
 
@@ -210,8 +210,8 @@ from hitlist.downloads import (
     list_proteomes,            # manifest section
 )
 
-lookup_proteome("Mycobacterium tuberculosis", use_uniprot=True)
-# → {'kind': 'uniprot', 'proteome_id': 'UP000001020', ...}
+lookup_proteome("Mycobacterium tuberculosis")
+# → {'kind': 'uniprot', 'proteome_id': 'UP000001584', ...}  # H37Rv reference
 ```
 
 ## Output schema — `generate_ms_observations_table()`
@@ -344,6 +344,9 @@ training pipelines.
 | `--gene-name` | Exact match on `gene_name` column (no HGNC lookup) |
 | `--gene-id` | Exact match on `gene_id` column (ENSG) |
 | `--serotype` | HLA serotype: locus-specific (`A24`, `B57`, `DR15`) or public epitope (`Bw4`, `Bw6`). Matches any serotype the allele belongs to, so `--serotype Bw4` returns A\*24:02, B\*27:05, B\*57:01, etc. Repeatable / comma-separated. |
+| `--exclude-class-label-suspect` | Drop rows where the curated class disagrees with peptide length severely enough to be flagged `suspect` or `implausible` (`mhc_class_label_severity`). |
+| `--exclude-class-label-implausible` | Strict-cleaning variant — drops only `implausible` rows (class-I ≥18aa or ≤7aa, class-II ≤4 or ≥45aa). Keeps borderline + suspect tiers, useful when bulged class-I 15-17aa peptides should be retained. |
+| `--apm-only` | Filter to peptide rows from samples where any APM gene was perturbed (`apm_perturbed=True`). |
 | `--output` / `-o` | `.csv` or `.parquet` |
 
 All filters are pushed down to the parquet reader (pyarrow), so `--gene PRAME` reads
@@ -446,6 +449,19 @@ subset, post-filter on
 
 ```bash
 hitlist report [--class I|II] [--output report.txt]
+```
+
+### QC diagnostics
+
+```bash
+hitlist qc                                 # run all checks, print summary
+hitlist qc resolution                      # allele-resolution histogram
+hitlist qc normalization                   # YAML alleles whose normalize_allele output drifts
+hitlist qc cross-reference                 # alleles in YAML but not data, and reverse
+hitlist qc discrepancies [--by sample]     # per-PMID curation drift signals
+hitlist qc plan [--top 10]                 # ranked next-PMID-to-curate roadmap
+hitlist qc proteome-coverage               # per-source-organism proteome registry coverage
+hitlist qc proteome-coverage --missing-only --min-rows 100
 ```
 
 ## Development
