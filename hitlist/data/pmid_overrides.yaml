@@ -3571,10 +3571,21 @@
         reference_proteomes:
           - uniprot: UP000153037
             proteome_label: Epstein-Barr virus
-      - sample_label: "C1R (B-lymphoblastoid)"
+      - sample_label: "C1R parental (B-lymphoblastoid)"
         condition: "unperturbed"
         mhc_class: "I"
-        mhc: "HLA class I"
+        # Parental (un-transfected) C1R retains low endogenous
+        # expression of HLA-B*35:03 and HLA-Cw*04:01; HLA-A is silenced.
+        # Issue #207: previously carried the placeholder "HLA class I"
+        # which left ~3.2K rows unattributed.
+        mhc: "HLA-B*35:03 HLA-C*04:01"
+        note: >
+          Parental C1R — no HLA transfection. C1R is the canonical
+          HLA-class-I-deficient B-LCL host: HLA-A is silenced; HLA-B*35:03
+          and HLA-Cw*04:01 are expressed at low residual levels. Liepe
+          2016 used the parental line (data sourced from Bassani-Sternberg
+          2015, PMID 25576301) alongside transfected LCLs for the
+          proteasome-spliced-peptide analysis.
       - sample_label: "HeLa (cervical carcinoma)"
         condition: "unperturbed"
         mhc_class: "I"
@@ -3769,11 +3780,13 @@
       C1R cells expressing single HLA-B alleles, profiled for phosphopeptides.
       IEDB contains data only for the two C1R transfectants listed below:
       HLA-B*40:02 (6,676 peptides) and HLA-B*39:01 (953 peptides), plus 515
-      class-only rows with unresolved HLA class I annotation. Paper methods
-      also list HLA-B*27:05 and HLA-B*07:02 transfectants, but IEDB has no
-      data for those; no 721.221 rows are present in IEDB for this PMID.
-      The prior pooled sample entry incorrectly labeled the B*40 transfectant
-      as B*40:01 — IEDB rows all carry B*40:02.
+      class-only rows that the submitter tagged "HLA class I". Paper
+      Methods (PMC5294207) confirm only B*40:02 and B*39:01 transfectants
+      were used for MS; the unresolved 515 rows are pooled across those
+      two transfectants. Methods also list HLA-B*27:05 and HLA-B*07:02
+      transfectants but those were profiled on GR-LCL, not C1R, and have
+      no IEDB rows for this PMID. The prior pooled sample entry incorrectly
+      labeled the B*40 transfectant as B*40:01 — IEDB rows all carry B*40:02.
     ms_samples:
       - sample_label: "C1R-HLA-B*40:02"
         n_samples: 1
@@ -3787,6 +3800,19 @@
         condition: "unperturbed — mono-allelic"
         mhc_class: "I"
         mhc: "HLA-B*39:01"
+      - sample_label: "C1R-HLA-B (pooled B*40:02 / B*39:01)"
+        n_samples: 1
+        source: "C1R-HLA-B*40:02 and C1R-HLA-B*39:01 transfectants pooled"
+        condition: "unperturbed — pooled mono-allelic"
+        mhc_class: "I"
+        # Issue #207: the 515 IEDB rows annotated "HLA class I" on
+        # C1R cells come from the same two C1R-B transfectants used
+        # elsewhere in the paper; the submitter just didn't split
+        # allele attribution. Listing both alleles preserves the
+        # paper-confirmed candidate set without claiming per-row
+        # attribution. The class-pool tie-break (v1.30.30) routes
+        # these rows here via the cell_name match.
+        mhc: "HLA-B*40:02 HLA-B*39:01"
 
   - pmid: 32897882
     study_label: "Klatt 2020 — hydrophobic peptide recovery method"
@@ -5972,3 +5998,75 @@
       withdrawn_doi: "10.1016/j.mcpro.2021.100110"
       corrected_doi: "10.1016/j.mcpro.2023.100506"
       hlapollo_dataset_name: "personalis_pyke_mhcI_2021"
+
+  - pmid: 30778243
+    study_label: "Koutsakos 2019 — influenza A/B/C cross-reactive T cells"
+    title: "Human CD8+ T cell cross-reactivity across influenza A, B and C viruses"
+    override: cell_line
+    note: >
+      C1R parental + C1R.A*02:01 transfectant, both class I and class II
+      profiled. Methods (PMID 30778243, doi:10.1038/s41590-019-0320-6):
+      "lysates were generated from C1R parental or C1R.A*02:01 cells
+      and the transfected HLA-A*02:01, endogenous (parental) class I
+      and class II molecules immunoaffinity purified sequentially
+      using BB7.2 (HLA-A2 specific), w6/32 (pan class I) and a mixture
+      of LB3.1 (HLA-DR), SPV-L3 (HLA-DQ) and B721 (HLA-DP)." Class-II
+      rows are real LCL endogenous expression, not mislabeled.
+      Issue #207.
+    perturbations:
+      - "influenza A/B/C antigen presentation"
+    ms_samples:
+      - sample_label: "C1R-HLA-A*02:01 transfectant (class I, BB7.2-pulled)"
+        condition: "unperturbed — mono-allelic transfectant"
+        mhc_class: "I"
+        ip_antibody: "BB7.2 (HLA-A2-specific)"
+        mhc: "HLA-A*02:01"
+      - sample_label: "C1R parental (class I endogenous, w6/32-pulled)"
+        condition: "unperturbed — endogenous low expression"
+        mhc_class: "I"
+        ip_antibody: "w6/32 (pan-class-I)"
+        # Endogenous low expression on parental C1R; the 9 IEDB rows
+        # tagged "HLA class I" on C1R cells in this PMID fall here
+        # via the v1.30.30 class-pool tie-break.
+        mhc: "HLA-B*35:03 HLA-C*04:01"
+      - sample_label: "C1R class II (LCL endogenous DR/DQ/DP)"
+        condition: "unperturbed — LCL endogenous"
+        mhc_class: "II"
+        ip_antibody: "LB3.1 (HLA-DR) + SPV-L3 (HLA-DQ) + B721 (HLA-DP)"
+        # C1R is EBV-transformed and expresses endogenous class II from
+        # the parental B-LCL background. The exact class-II type matches
+        # the C1R parental clone profiled by Hensen 2021 (PMID 34006841):
+        # HLA-DRB1*12, HLA-DPB1*04:01/04:02, HLA-DQB1*03:01 (DQ7).
+        mhc: "HLA-DRB1*12:01 HLA-DPB1*04:01 HLA-DPB1*04:02 HLA-DQB1*03:01"
+
+  - pmid: 34006841
+    study_label: "Hensen / Habel 2021 — HLA-A*24:02 in Indigenous populations"
+    title: "CD8+ T cell landscape in Indigenous and non-Indigenous people restricted by influenza mortality-associated HLA-A*24:02 allomorph"
+    override: cell_line
+    note: >
+      C1R.A*24:02 transfectant ("C1R.A24"), profiled for both class I
+      and class II. Methods (PMID 34006841, doi:10.1038/s41467-021-23212-x,
+      PMC8132304): "an HLA-A*24:02-transfected C1R cell line (C1R.A24)"
+      with "2 data sets for endogenous HLA-II (C1R.A24: HLA-DR12,
+      -DPB1*04:01, 04:02 and -DQ7" — class II is real LCL endogenous
+      expression. Issue #207.
+    ms_samples:
+      - sample_label: "C1R-HLA-A*24:02 transfectant (class I)"
+        condition: "unperturbed — mono-allelic transfectant"
+        mhc_class: "I"
+        # Captures the 112 mono-allelic + 10 unannotated-cell HLA-A*24:02
+        # rows in IEDB. The 1 row tagged HLA-C*04:01 falls to the
+        # parental C1R-endogenous bucket below.
+        mhc: "HLA-A*24:02"
+      - sample_label: "C1R parental endogenous (class I)"
+        condition: "unperturbed — endogenous low expression"
+        mhc_class: "I"
+        # 1 IEDB row tagged HLA-C*04:01 reflects the residual C1R
+        # parental expression (HLA-B*35:03 + HLA-Cw*04:01).
+        mhc: "HLA-B*35:03 HLA-C*04:01"
+      - sample_label: "C1R class II (LCL endogenous DR/DQ/DP)"
+        condition: "unperturbed — LCL endogenous"
+        mhc_class: "II"
+        # Per Methods: "HLA-DR12, -DPB1*04:01, 04:02 and -DQ7" (DQ7
+        # corresponds to HLA-DQB1*03:01).
+        mhc: "HLA-DRB1*12:01 HLA-DPB1*04:01 HLA-DPB1*04:02 HLA-DQB1*03:01"
