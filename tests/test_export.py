@@ -1940,3 +1940,158 @@ def test_cli_list_args_accept_space_and_comma_and_repeated_forms():
     a = p.parse_args(["--mhc-allele", "HLA-A*02:01", "HLA-B*07:02", "--gene", "NRAS"])
     assert a.mhc_allele == ["HLA-A*02:01", "HLA-B*07:02"]
     assert a.gene == ["NRAS"]
+
+
+# ── Sample resolver tie-break (cell_name / assay-comments) ────────────────
+
+
+def test_select_best_candidate_prefers_unique_cell_name_token():
+    """When two samples share an allele but differ in cell type, the
+    obs row's ``cell_name`` should select the matching sample.
+    """
+    from hitlist.export import _select_best_candidate
+
+    candidates = [
+        ("C57BL/6 hepatocytes (AAV-HC-Kd)", "", {"sample_label": "hepatocytes"}),
+        ("spleen (178.3 and B6.Kd)", "", {"sample_label": "spleen"}),
+    ]
+    pick = _select_best_candidate(candidates, "Splenocyte", "", "", "")
+    assert pick == {"sample_label": "spleen"}, (
+        "Splenocyte obs row should match the spleen sample, not hepatocytes"
+    )
+
+    pick = _select_best_candidate(candidates, "Hepatocyte", "", "", "")
+    assert pick == {"sample_label": "hepatocytes"}, (
+        "Hepatocyte obs row should match the hepatocytes sample"
+    )
+
+
+def test_select_best_candidate_rarity_weights_unique_tokens():
+    """When candidates share generic tokens but differ in identifying
+    ones, the rarity weight should prefer the sample whose unique
+    token (e.g. cell-line ID 4906) appears in the obs cell_name.
+    """
+    from hitlist.export import _select_best_candidate
+
+    candidates = [
+        ("DFT1 cell line 4906 + IFN-gamma", "", {"sample_label": "dft1"}),
+        ("DFT2 cell line Red Velvet", "", {"sample_label": "dft2"}),
+        ("devil fibroblasts (healthy host)", "", {"sample_label": "fb"}),
+    ]
+    # Both DFT samples share "cell" + "line" tokens; only DFT1 carries
+    # 4906 — the cell_name's "4906" must outweigh the shared "cell".
+    pick = _select_best_candidate(candidates, "4906-Glial cell", "", "", "")
+    assert pick == {"sample_label": "dft1"}
+
+    # Same logic in the other direction.
+    pick = _select_best_candidate(candidates, "DFT2.RV-Glial cell", "", "", "")
+    assert pick == {"sample_label": "dft2"}
+
+    # Fibroblast-token case: only the fibroblasts candidate has the
+    # "fibroblast" stem.
+    pick = _select_best_candidate(candidates, "Fibroblast", "", "", "")
+    assert pick == {"sample_label": "fb"}
+
+
+def test_select_best_candidate_word_boundary_substring():
+    """The substring tie-break must respect word boundaries — "treated"
+    appearing as a suffix of "untreated" must not falsely pick the
+    untreated candidate when the obs row says "IFNg-treated".
+    """
+    from hitlist.export import _select_best_candidate
+
+    candidates = [
+        ("MDA-MB-231 (untreated)", "", {"label": "untreated"}),
+        (
+            "MDA-MB-231 + IFN-gamma (class I)",
+            "IFN-gamma 50 IU/mL 48h",
+            {"label": "ifn"},
+        ),
+    ]
+    pick = _select_best_candidate(
+        candidates,
+        cell_name="",
+        source_tissue="",
+        antigen_processing_comments="",
+        assay_comments="The peptide was eluted from the following experimental conditions: IFNg-treated.",
+    )
+    assert pick == {"label": "ifn"}
+
+    pick = _select_best_candidate(
+        candidates,
+        cell_name="",
+        source_tissue="",
+        antigen_processing_comments="",
+        assay_comments="The peptide was eluted from the following experimental conditions: untreated.",
+    )
+    assert pick == {"label": "untreated"}
+
+
+def test_select_best_candidate_empty_obs_returns_none():
+    """No metadata to score against → no winner; caller falls back."""
+    from hitlist.export import _select_best_candidate
+
+    candidates = [
+        ("foo sample", "", {"x": 1}),
+        ("bar sample", "", {"x": 2}),
+    ]
+    assert _select_best_candidate(candidates, "", "", "", "") is None
+
+
+def test_select_best_candidate_single_candidate_returns_none_without_overlap():
+    """Single candidate with no overlap → None (caller may still
+    propagate single-candidate meta from a higher level).
+    """
+    from hitlist.export import _select_best_candidate
+
+    pick = _select_best_candidate([("foo", "", {"x": 1})], "unrelated", "", "", "")
+    assert pick is None
+
+
+def test_resolver_normalizes_mouse_alleles(full_observations_df):
+    """Mouse alleles like ``H-2Kb`` written by curators in YAML must
+    join against IEDB's canonical form ``H2-K*b`` after mhcgnomes
+    normalization. Regression for the silent allele-bag mismatch on
+    PMID 34428180 (Son 2021 transplant tolerance) — pre-fix, all
+    ~70K rows fell through to ``pmid_class_pool`` because the YAML
+    token never matched.
+    """
+    df = full_observations_df
+    sub = df[df["pmid"] == 34428180]
+    if sub.empty:
+        import pytest
+
+        pytest.skip("Son 2021 not present in this build")
+    # The bulk of rows should now allele-match; if normalization
+    # regressed, every row would land in ``pmid_class_pool`` again.
+    n_allele = (sub["sample_match_type"] == "allele_match").sum()
+    assert n_allele > 0.5 * len(sub), (
+        f"expected most Son 2021 rows to allele-match after H2 normalization; "
+        f"got {n_allele} / {len(sub)}"
+    )
+
+
+def test_resolver_disambiguates_mouse_hepatocyte_vs_spleen(full_observations_df):
+    """Multiple mouse samples in PMID 34428180 share H-2Kd. The
+    resolver must split splenocyte rows from hepatocyte rows by
+    matching obs ``cell_name`` against each sample's label.
+    """
+    df = full_observations_df
+    sub = df[df["pmid"] == 34428180]
+    if sub.empty:
+        import pytest
+
+        pytest.skip("Son 2021 not present in this build")
+    spleen_rows = sub[sub["cell_name"].str.contains("Splenocyte", na=False)]
+    if spleen_rows.empty:
+        import pytest
+
+        pytest.skip("no splenocyte rows in this build")
+    # The spleen ms_sample carries the word "spleen" in its sample_label;
+    # the resolver should pick that over the hepatocyte sample for at
+    # least the bulk of splenocyte rows.
+    pick_spleen = spleen_rows["sample_label"].str.contains("spleen", case=False, na=False).sum()
+    assert pick_spleen > 0.4 * len(spleen_rows), (
+        f"expected majority of splenocyte rows to resolve to a 'spleen'-named "
+        f"ms_sample after the cell_name tie-break; got {pick_spleen} / {len(spleen_rows)}"
+    )
