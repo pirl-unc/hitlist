@@ -428,16 +428,32 @@ def generate_observations_table(
             meta["_pmid_int"] = pmid
             for token in mhc_str.split():
                 for allele in _expand_heterodimer_components(token):
-                    allele_rows.append({**meta, "_allele": allele})
+                    # Canonicalize via mhcgnomes so YAML tokens like
+                    # ``H-2Kb`` match IEDB's already-normalized
+                    # ``mhc_restriction`` values like ``H2-K*b``. Without
+                    # this the join silently misses every mouse / non-
+                    # human-syntax allele the curator wrote in the
+                    # paper's notation.
+                    allele_rows.append({**meta, "_allele": normalize_allele(allele) or allele})
 
-    allele_df = (
+    allele_df_full = (
         pd.DataFrame(allele_rows)
         if allele_rows
         else pd.DataFrame(columns=["_pmid_int", "_allele", *meta_cols])
     )
-    # Keep first match per (pmid, allele) — matches the break-on-first
-    # behavior of the previous iterrows loop.
-    allele_df = allele_df.drop_duplicates(subset=["_pmid_int", "_allele"], keep="first")
+    # Identify (pmid, allele) keys hit by multiple curated samples — these
+    # need per-obs-row tie-breaking on cell_name / source_tissue / assay
+    # comments rather than the arbitrary first-pick the de-duplicated
+    # ``allele_df`` would otherwise force.
+    if not allele_df_full.empty:
+        _ambig_counts = allele_df_full.groupby(["_pmid_int", "_allele"]).size()
+        _ambig_keys = set(map(tuple, _ambig_counts[_ambig_counts > 1].index.tolist()))
+    else:
+        _ambig_keys = set()
+    # Fast-path lookup keeps first-pick for unambiguous keys; the
+    # ambiguous-key tie-break overwrites those rows in a separate pass
+    # below.
+    allele_df = allele_df_full.drop_duplicates(subset=["_pmid_int", "_allele"], keep="first")
 
     # --- Single-sample PMID fallback ---
     # When no allele match is found and a PMID has exactly one sample,
@@ -508,6 +524,104 @@ def generate_observations_table(
         for col in meta_cols:
             obs[col] = pd.NA
 
+    # 2b) Tie-break ambiguous (pmid, allele) keys per obs row.
+    #
+    # When the curated YAML has multiple samples sharing an (pmid, allele)
+    # — e.g. WT vs KO of the same cell line, or hepatocyte / spleen / skin
+    # samples in a mouse study that all carry H-2Kb — the first-pick
+    # ``allele_df`` above arbitrarily collapses them onto one sample.
+    # This pass rescues IEDB metadata: cell_name, source_tissue, and the
+    # assay-comment fields commonly carry the discriminator (e.g.
+    # "Hepatocyte" vs "Splenocyte"; "IFNg-treated" vs untreated).
+    # We score each candidate against those obs fields and pick the
+    # highest-scoring sample per row. Ties fall back to the first-pick
+    # already in place.
+    if _ambig_keys and not allele_df_full.empty:
+        # Build per-key candidate list once: (pmid, allele) → list of
+        # (sample_label, perturbation, meta_dict) tuples.
+        _candidates_by_key: dict[tuple, list[tuple[str, str, dict]]] = {}
+        for (pmid_v, allele_v), grp in allele_df_full.groupby(["_pmid_int", "_allele"]):
+            if (pmid_v, allele_v) not in _ambig_keys:
+                continue
+            cands: list[tuple[str, str, dict]] = []
+            for _, r in grp.iterrows():
+                cands.append(
+                    (
+                        str(r.get("sample_label", "") or ""),
+                        str(r.get("perturbation", "") or ""),
+                        {c: r.get(c, "") for c in meta_cols},
+                    )
+                )
+            _candidates_by_key[(pmid_v, allele_v)] = cands
+
+        # Identify obs rows whose key is ambiguous.
+        _ambig_index = pd.MultiIndex.from_tuples(_ambig_keys)
+        _obs_keys_idx = pd.MultiIndex.from_arrays([obs["_pmid_int"], obs["mhc_restriction"]])
+        _ambig_mask = pd.Series(_obs_keys_idx.isin(_ambig_index), index=obs.index)
+
+        if _ambig_mask.any():
+            # Cache per (pmid, allele, cell_name, source_tissue,
+            # antigen_processing_comments, assay_comments) — distinct
+            # tuples are bounded by IEDB's annotation cardinality, so
+            # caching keeps the per-row Python work bounded.
+            _tiebreak_cols = [
+                "_pmid_int",
+                "mhc_restriction",
+                "cell_name",
+                "source_tissue",
+                "antigen_processing_comments",
+                "assay_comments",
+            ]
+            for col in (
+                "cell_name",
+                "source_tissue",
+                "antigen_processing_comments",
+                "assay_comments",
+            ):
+                if col not in obs.columns:
+                    obs[col] = ""
+            _ambig_obs = obs.loc[_ambig_mask, _tiebreak_cols].fillna("")
+            _unique_ambig = _ambig_obs.drop_duplicates()
+
+            _winner_meta: dict[tuple, dict] = {}
+            for _, r in _unique_ambig.iterrows():
+                key = (r["_pmid_int"], r["mhc_restriction"])
+                cands = _candidates_by_key.get(key)
+                if not cands:
+                    continue
+                best = _select_best_candidate(
+                    cands,
+                    r["cell_name"],
+                    r["source_tissue"],
+                    r["antigen_processing_comments"],
+                    r["assay_comments"],
+                )
+                # When no candidate scores, keep the existing first-pick
+                # meta — that's what the unambiguous fast path already
+                # wrote into obs.
+                if best is None:
+                    best = cands[0][2]
+                _winner_meta[
+                    (
+                        r["_pmid_int"],
+                        r["mhc_restriction"],
+                        r["cell_name"],
+                        r["source_tissue"],
+                        r["antigen_processing_comments"],
+                        r["assay_comments"],
+                    )
+                ] = best
+
+            # Apply winners back to obs.
+            if _winner_meta:
+                _ambig_full = obs.loc[_ambig_mask, _tiebreak_cols].fillna("")
+                _winner_keys = list(zip(*[_ambig_full[c] for c in _tiebreak_cols]))
+                for col in meta_cols:
+                    obs.loc[_ambig_mask, col] = [
+                        _winner_meta.get(k, {}).get(col, obs.at[idx, col])
+                        for k, idx in zip(_winner_keys, _ambig_full.index)
+                    ]
+
     # 3) Single-PMID fallback. Same pattern, single-level index on PMID.
     fb_cols = [c + "_fb" for c in meta_cols]
     if not single_df.empty:
@@ -540,6 +654,135 @@ def generate_observations_table(
         bool_fb = col + "_fb"
         obs[col] = obs[col].where(obs[col].notna(), obs[bool_fb])
         obs[col] = obs[col].astype("boolean").fillna(False).astype(bool)
+
+    # 3b) Class-pool tie-break: for obs rows whose mhc_restriction is a
+    # class-only sentinel ("HLA class I" / "Saha class I" / etc.) or
+    # otherwise didn't allele-match, try to assign a specific sample by
+    # scoring each candidate sample (within the same PMID + class)
+    # against the obs row's cell_name / source_tissue / assay comments.
+    # When a candidate scores >0, propagate its full meta block —
+    # otherwise leave the row for the existing class-pool sample_mhc
+    # fill below.
+    still_empty_pre_pool = obs["mhc"] == ""
+    if still_empty_pre_pool.any() and len(samples) > 0:
+        # Build per-(pmid, class) candidate sample list once.
+        _class_candidates: dict[tuple[int, str], list[tuple[str, str, dict]]] = {}
+        for _pmid_v_s, _grp in samples.groupby("pmid"):
+            _pmid_v = int(_pmid_v_s)
+            for _cls in ("I", "II"):
+                _cands_cls: list[tuple[str, str, dict]] = []
+                for _, _r in _grp.iterrows():
+                    _scls = str(_r.get("mhc_class", "") or "")
+                    if _cls in _scls.split("+"):
+                        _meta = {c: _r.get(c, "") for c in meta_cols}
+                        _cands_cls.append(
+                            (
+                                str(_r.get("sample_label", "") or ""),
+                                str(_r.get("perturbation", "") or ""),
+                                _meta,
+                            )
+                        )
+                # Register the class-pool candidates whenever the PMID
+                # has at least one sample matching this class.  Multi-
+                # sample groups need tie-breaking; single-sample groups
+                # still benefit from this path so a class-II obs row in
+                # a study with mixed class-I+II samples still picks up
+                # the matching class-II sample's metadata (the
+                # single_PMID_fallback above only fires when the PMID
+                # has exactly one sample total).
+                if _cands_cls:
+                    _class_candidates[(_pmid_v, _cls)] = _cands_cls
+
+        if _class_candidates:
+            # Restrict obs to the rows whose (pmid, mhc_class) has a
+            # multi-sample candidate pool — this is where the previous
+            # logic gave up and left sample_label empty.
+            _eligible_keys = {(float(p), c) for p, c in _class_candidates}
+            _obs_pc_idx = pd.MultiIndex.from_arrays([obs["_pmid_int"], obs["mhc_class"]])
+            _obs_pc_in_pool = pd.Series(
+                _obs_pc_idx.isin(pd.MultiIndex.from_tuples(_eligible_keys)),
+                index=obs.index,
+            )
+            _eligible_mask = still_empty_pre_pool & _obs_pc_in_pool
+            if _eligible_mask.any():
+                # The four IEDB metadata columns we score against.
+                # Antigen-processing-comments are usually a study-level
+                # note (constant across all rows of the PMID), so only
+                # "varying" fields actually discriminate samples — see
+                # the per-(pmid, class) variance check below. cell_name
+                # and assay_comments tend to be per-row discriminators
+                # in the studies that need this fix.
+                _disc_cols_all = [
+                    "cell_name",
+                    "source_tissue",
+                    "antigen_processing_comments",
+                    "assay_comments",
+                ]
+                for col in _disc_cols_all:
+                    if col not in obs.columns:
+                        obs[col] = ""
+                _tb_cols = ["_pmid_int", "mhc_class", *_disc_cols_all]
+                _eligible_df = obs.loc[_eligible_mask, _tb_cols].fillna("")
+                # Per (pmid, class), drop discriminator columns whose
+                # value is identical across all eligible rows — those
+                # can't differentiate samples and would otherwise inflate
+                # rarity-weighted scores with study-level boilerplate.
+                _varying_cols_per_key: dict[tuple, list[str]] = {}
+                for (_pmid_v_g, _cls_g), _grp in _eligible_df.groupby(["_pmid_int", "mhc_class"]):
+                    _varying = [c for c in _disc_cols_all if _grp[c].nunique() > 1]
+                    _varying_cols_per_key[(_pmid_v_g, _cls_g)] = _varying
+                _unique_tb = _eligible_df.drop_duplicates()
+
+                _tb_winner: dict[tuple, dict] = {}
+                for _, _r in _unique_tb.iterrows():
+                    _key = (int(_r["_pmid_int"]), str(_r["mhc_class"]))
+                    _cands = _class_candidates.get(_key)
+                    if not _cands:
+                        continue
+                    if len(_cands) == 1:
+                        # Single-class candidate inside a multi-sample
+                        # PMID — assign without scoring (no ambiguity).
+                        _best_meta: dict | None = _cands[0][2]
+                    else:
+                        _varying = _varying_cols_per_key.get(
+                            (_r["_pmid_int"], _r["mhc_class"]), _disc_cols_all
+                        )
+                        # Pass only varying columns to the scorer —
+                        # constant study-level fields would otherwise
+                        # dominate the rarity-weighted overlap and pin
+                        # every row to the first candidate that mentions
+                        # the cell line.
+                        _best_meta = _select_best_candidate(
+                            _cands,
+                            _r["cell_name"] if "cell_name" in _varying else "",
+                            _r["source_tissue"] if "source_tissue" in _varying else "",
+                            _r["antigen_processing_comments"]
+                            if "antigen_processing_comments" in _varying
+                            else "",
+                            _r["assay_comments"] if "assay_comments" in _varying else "",
+                        )
+                    if _best_meta is not None:
+                        _tb_winner[
+                            (
+                                _r["_pmid_int"],
+                                _r["mhc_class"],
+                                _r["cell_name"],
+                                _r["source_tissue"],
+                                _r["antigen_processing_comments"],
+                                _r["assay_comments"],
+                            )
+                        ] = _best_meta
+
+                if _tb_winner:
+                    _winner_keys = list(zip(*[_eligible_df[c] for c in _tb_cols]))
+                    for col in meta_cols:
+                        _new_vals = [
+                            _tb_winner[k].get(col, obs.at[idx, col])
+                            if k in _tb_winner
+                            else obs.at[idx, col]
+                            for k, idx in zip(_winner_keys, _eligible_df.index)
+                        ]
+                        obs.loc[_eligible_mask, col] = _new_vals
 
     # 4) Class-pool fallback: for still-unmatched rows, fill sample_mhc
     #    with the union of all alleles from samples of the same class.
@@ -1560,6 +1803,170 @@ def _expand_heterodimer_components(allele_token: str) -> list[str]:
         if c and c not in out:
             out.append(c)
     return out
+
+
+_TIEBREAK_TOKEN_RE = __import__("re").compile(r"[^a-z0-9]+")
+
+
+def _label_tokens(s: str, min_len: int = 3) -> set[str]:
+    """Return lowercase alphanumeric tokens of length ≥``min_len``.
+
+    Used by the sample resolver to score how well a candidate
+    ms_sample matches an obs row when multiple samples share an
+    ``(pmid, allele)`` key.
+    """
+    if not s:
+        return set()
+    return {t for t in _TIEBREAK_TOKEN_RE.split(s.lower()) if len(t) >= min_len}
+
+
+def _candidate_obs_overlap(
+    sample_label: str,
+    sample_perturbation: str,
+    cell_name: str,
+    source_tissue: str,
+    antigen_processing_comments: str,
+    assay_comments: str,
+) -> tuple[set[str], str]:
+    """Build the (token_set, joined_text) view of a candidate sample for
+    use by :func:`_select_best_candidate`.
+    """
+    sample_text = f"{sample_label or ''} {sample_perturbation or ''}".strip().lower()
+    return _label_tokens(sample_text), sample_text
+
+
+def _select_best_candidate(
+    candidates: list[tuple[str, str, dict]],
+    cell_name: str,
+    source_tissue: str,
+    antigen_processing_comments: str,
+    assay_comments: str,
+) -> dict | None:
+    """Pick the ms_sample whose label/perturbation tokens best match obs metadata.
+
+    Tokens unique to one candidate (not shared by any other candidate
+    in the same group) weight the most: a "Hepatocyte" obs row picks
+    the hepatocyte sample over the splenocyte sample, and a "4906-Glial
+    cell" row picks the DFT1-4906 sample over the DFT2 sample, even
+    though both share the generic "cell" token.
+
+    Returns the candidate's full meta dict, or ``None`` when no
+    candidate has any positive overlap (so callers can fall back to
+    the existing first-pick / class-pool behavior).
+    """
+    if not candidates:
+        return None
+    obs_text = " ".join(
+        s for s in (cell_name, source_tissue, antigen_processing_comments, assay_comments) if s
+    ).lower()
+    obs_tokens = _label_tokens(obs_text)
+    if not obs_tokens:
+        return None
+
+    import re as _re
+
+    # Per-candidate token sets and concatenated lowercase text.
+    cand_views: list[tuple[set[str], str]] = [
+        _candidate_obs_overlap(slabel, sperturb, "", "", "", "")
+        for slabel, sperturb, _ in candidates
+    ]
+    n_cands = len(candidates)
+    union = set().union(*(ct for ct, _ in cand_views))
+    if not union:
+        return None
+    # Per-token frequency across candidates — tokens unique to one
+    # candidate get weight 1.0; tokens shared by every candidate get
+    # weight 1/n. (Same-named cell line will be in every candidate;
+    # the actual KO label / treatment marker only appears in one.)
+    token_freq = {t: sum(1 for ct, _ in cand_views if t in ct) for t in union}
+
+    def _matches_obs_token(cand_tok: str) -> int:
+        """Return longest common-prefix length between cand_tok and any
+        obs token, or 0 if no prefix ≥3 chars matches.
+        """
+        best = 0
+        for ot in obs_tokens:
+            common = 0
+            while common < len(cand_tok) and common < len(ot) and cand_tok[common] == ot[common]:
+                common += 1
+            if common >= 3 and common > best:
+                best = common
+        return best
+
+    def _wb_contains(piece: str, text: str) -> bool:
+        """Word-boundary containment: ``piece`` appears in ``text`` as a
+        whole alphanumeric run (so "treated" doesn't match the "treated"
+        suffix of "untreated").
+        """
+        if len(piece) < 4 or not piece:
+            return False
+        pat = rf"(?:^|[^a-z0-9]){_re.escape(piece)}(?:[^a-z0-9]|$)"
+        return bool(_re.search(pat, text))
+
+    best_score = (0, 0, 0)  # (rarity_weighted_overlap, prefix_match_count, sub_match_count)
+    best_idx = -1
+    for i, (cand_tokens, cand_text) in enumerate(cand_views):
+        if not cand_tokens:
+            continue
+        overlap = 0.0
+        prefix_matches = 0
+        for ct in cand_tokens:
+            common = _matches_obs_token(ct)
+            if common == 0:
+                continue
+            prefix_matches += 1
+            freq = token_freq[ct]
+            # Rarity weight x match length.
+            overlap += (n_cands - freq + 1) / n_cands * common
+        # Word-boundary substring matches (handles hyphenated cell-line
+        # names like "MDA-MB-231"). Give half-weight relative to token
+        # overlap so it tie-breaks rather than dominates.
+        sub_score = 0
+        for piece in _TIEBREAK_TOKEN_RE.split(cand_text):
+            if _wb_contains(piece, obs_text):
+                sub_score += 1
+        score = (overlap, prefix_matches, sub_score)
+        if score > best_score:
+            best_score = score
+            best_idx = i
+
+    if best_idx < 0 or best_score == (0, 0, 0):
+        return None
+    return candidates[best_idx][2]
+
+
+def _tiebreak_score(
+    sample_label: str,
+    sample_perturbation: str,
+    cell_name: str,
+    source_tissue: str,
+    antigen_processing_comments: str,
+    assay_comments: str,
+) -> int:
+    """Rough single-candidate score; kept for tests/diagnostics.
+
+    Returns the longest common token-prefix length between the sample's
+    label/perturbation and the obs row's metadata, with word-boundary
+    substring bonuses for hyphenated cell-line names. The actual
+    resolver uses :func:`_select_best_candidate`, which compares all
+    candidates jointly with rarity weighting.
+    """
+    cand_tokens, _ = _candidate_obs_overlap(sample_label, sample_perturbation, "", "", "", "")
+    obs_text = " ".join(
+        s for s in (cell_name, source_tissue, antigen_processing_comments, assay_comments) if s
+    ).lower()
+    obs_tokens = _label_tokens(obs_text)
+    if not cand_tokens or not obs_tokens:
+        return 0
+    best = 0
+    for ct in cand_tokens:
+        for ot in obs_tokens:
+            common = 0
+            while common < len(ct) and common < len(ot) and ct[common] == ot[common]:
+                common += 1
+            if common >= 3 and common > best:
+                best = common
+    return best
 
 
 def _is_class_only_sentinel(mhc_str: str) -> bool:
