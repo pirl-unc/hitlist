@@ -747,20 +747,52 @@ def generate_observations_table(
                         _varying = _varying_cols_per_key.get(
                             (_r["_pmid_int"], _r["mhc_class"]), _disc_cols_all
                         )
-                        # Pass only varying columns to the scorer —
-                        # constant study-level fields would otherwise
-                        # dominate the rarity-weighted overlap and pin
-                        # every row to the first candidate that mentions
-                        # the cell line.
+                        # Two-pass scoring:
+                        # Pass 1: cell_name + source_tissue only — these
+                        # are reliable per-row discriminators when they
+                        # vary across the group.
+                        # Pass 2: fall back to APC + AC only if pass 1
+                        # produces no winner. APC / AC are narrative
+                        # fields that often mention the cell line being
+                        # processed even on rows from a *different*
+                        # sample (e.g. Liepe 2016 GR-LCL rows whose AC
+                        # describes "GR lymphoblastoid cell line"
+                        # otherwise pulled "lymphoblastoid" matches that
+                        # belong to the C1R-parental sample). Only use
+                        # them when cell_name doesn't differentiate.
                         _best_meta = _select_best_candidate(
                             _cands,
                             _r["cell_name"] if "cell_name" in _varying else "",
                             _r["source_tissue"] if "source_tissue" in _varying else "",
-                            _r["antigen_processing_comments"]
-                            if "antigen_processing_comments" in _varying
-                            else "",
-                            _r["assay_comments"] if "assay_comments" in _varying else "",
+                            "",
+                            "",
                         )
+                        if (
+                            _best_meta is None
+                            and "cell_name" not in _varying
+                            and (
+                                "antigen_processing_comments" in _varying
+                                or "assay_comments" in _varying
+                            )
+                        ):
+                            # Only fall back to APC / AC when cell_name
+                            # itself was constant across the group — if
+                            # cell_name varied but no candidate's label
+                            # matched the obs cell_name, that's a real
+                            # gap (e.g. Liepe 2016 has "B cell" / "T2"
+                            # cell_names that no curated sample names);
+                            # adding APC / AC there would cherry-pick
+                            # via narrative cell-line mentions rather
+                            # than per-row truth.
+                            _best_meta = _select_best_candidate(
+                                _cands,
+                                "",
+                                _r["source_tissue"] if "source_tissue" in _varying else "",
+                                _r["antigen_processing_comments"]
+                                if "antigen_processing_comments" in _varying
+                                else "",
+                                _r["assay_comments"] if "assay_comments" in _varying else "",
+                            )
                     if _best_meta is not None:
                         _tb_winner[
                             (
@@ -1903,7 +1935,7 @@ def _select_best_candidate(
         pat = rf"(?:^|[^a-z0-9]){_re.escape(piece)}(?:[^a-z0-9]|$)"
         return bool(_re.search(pat, text))
 
-    best_score = (0, 0, 0)  # (rarity_weighted_overlap, prefix_match_count, sub_match_count)
+    best_score = (0, 0, 0, 0)
     best_idx = -1
     for i, (cand_tokens, cand_text) in enumerate(cand_views):
         if not cand_tokens:
@@ -1925,12 +1957,28 @@ def _select_best_candidate(
         for piece in _TIEBREAK_TOKEN_RE.split(cand_text):
             if _wb_contains(piece, obs_text):
                 sub_score += 1
-        score = (overlap, prefix_matches, sub_score)
+        # Allele-token substring contains: short locus+number tokens
+        # like "b*40" / "B*39" never tokenize past the min_len=3 cutoff
+        # (the regex split yields {hla, b, 40, 02} — all sub-3 except
+        # "hla", which all class-I HLA samples share). Extract the
+        # post-locus suffix from each candidate's curated ``mhc`` field
+        # and test for raw-substring hits in obs_text. Catches Alpizar
+        # 2017's APC-driven B*40 vs B*39 split.
+        allele_score = 0
+        cand_mhc = (candidates[i][2] or {}).get("mhc", "")
+        if cand_mhc and obs_text:
+            for tok in str(cand_mhc).lower().split():
+                # Strip the "hla-" prefix, keep the rest including '*'
+                # and ':' so the substring is locus-specific.
+                stripped = tok.split("-", 1)[1] if tok.startswith("hla-") else tok
+                if len(stripped) >= 3 and stripped in obs_text:
+                    allele_score += 1
+        score = (overlap, prefix_matches, sub_score, allele_score)
         if score > best_score:
             best_score = score
             best_idx = i
 
-    if best_idx < 0 or best_score == (0, 0, 0):
+    if best_idx < 0 or best_score == (0, 0, 0, 0):
         return None
     return candidates[best_idx][2]
 

@@ -156,14 +156,18 @@ def test_ms_samples_strazar_2023():
 
 
 def test_ms_samples_alpizar_2017_split():
-    """Alpizar 2017 should be split per transfectant (B*40:02, B*39:01), not
-    pooled, and must carry the corrected B*40:02 (IEDB has no B*40:01 rows)."""
+    """Alpizar 2017 should split per transfectant (B*40:02, B*39:01) plus
+    a pooled entry that owns the 515 IEDB rows whose APC mentions both
+    transfectants. None should carry the legacy B*40:01 (issue #207).
+    """
     df = generate_ms_samples_table()
     al = df[df["pmid"] == 27920218]
-    assert len(al) == 2, f"expected 2 per-transfectant entries, got {len(al)}"
-    assert set(al["mhc"]) == {"HLA-B*40:02", "HLA-B*39:01"}
+    assert len(al) == 3, f"expected 3 entries (2 transfectants + pooled), got {len(al)}"
     assert "HLA-B*40:01" not in set(al["mhc"])
-    assert set(al["sample_label"]) == {"C1R-HLA-B*40:02", "C1R-HLA-B*39:01"}
+    labels = set(al["sample_label"])
+    assert "C1R-HLA-B*40:02" in labels
+    assert "C1R-HLA-B*39:01" in labels
+    assert any("pooled" in lbl.lower() for lbl in labels)
     assert set(al["mhc_class"]) == {"I"}
 
 
@@ -2095,3 +2099,72 @@ def test_resolver_disambiguates_mouse_hepatocyte_vs_spleen(full_observations_df)
         f"expected majority of splenocyte rows to resolve to a 'spleen'-named "
         f"ms_sample after the cell_name tie-break; got {pick_spleen} / {len(spleen_rows)}"
     )
+
+
+def test_resolver_alpizar_apc_substring_splits_b40_b39(full_observations_df):
+    """Alpizar 2017 (PMID 27920218) has 515 IEDB rows tagged "HLA class I"
+    on C1R cells whose ``antigen_processing_comments`` mention either
+    ``HLA-B*40:02 (C1R-B*40)`` or ``HLA-B*39:01 (C1R-B*39)``. The
+    resolver's allele-substring tie-break should split them onto the
+    matching C1R-HLA-B transfectant. Issue #207.
+    """
+    df = full_observations_df
+    sub = df[(df["pmid"] == 27920218) & (df["mhc_restriction"] == "HLA class I")]
+    if sub.empty:
+        import pytest
+
+        pytest.skip("Alpizar 2017 not present in this build")
+    # The exact split depends on per-row APC counts (~408 + 99 + a few
+    # pooled), but at minimum the resolver should attribute most rows
+    # to one of the two single-allele C1R-HLA-B samples (not a class-
+    # only blank).
+    n_resolved = sub["sample_label"].str.contains("C1R-HLA-B", case=False, na=False).sum()
+    assert n_resolved > 0.9 * len(sub), (
+        f"expected most of the 515 unattributed Alpizar rows to resolve "
+        f"to a C1R-HLA-B sample via APC substring match; got {n_resolved}/{len(sub)}"
+    )
+    # Most rows mention B*40:02 in the APC; sanity check that neither
+    # pole gets every row (the APC really does discriminate).
+    n_b40 = sub["sample_label"].str.contains(r"B\*40:02", case=False, na=False).sum()
+    n_b39 = sub["sample_label"].str.contains(r"B\*39:01", case=False, na=False).sum()
+    assert n_b40 > 0 and n_b39 > 0, (
+        f"expected both B*40:02 and B*39:01 to win for some rows; got n_b40={n_b40}, n_b39={n_b39}"
+    )
+
+
+def test_resolver_skips_apc_when_cell_name_varies(full_observations_df):
+    """Liepe 2016 (PMID 27846572) class-I obs have varying ``cell_name``
+    (B cell / Fibroblast / C1R cells-B cell / T2). Some assay_comments
+    text mentions "GR lymphoblastoid cell line" referring to the
+    GR-LCL sample. Without the cell_name-varies guard, the C1R
+    parental sample's "lymphoblastoid" token would falsely win those
+    rows via APC narrative. Verify B cell rows stay unassigned (no
+    GR-LCL/JY-specific identifier in the obs metadata to discriminate
+    those two samples) — and that the C1R-cell-name rows correctly
+    resolve to the C1R parental sample.
+    """
+    df = full_observations_df
+    sub = df[df["pmid"] == 27846572]
+    if sub.empty:
+        import pytest
+
+        pytest.skip("Liepe 2016 not present in this build")
+    # B cell rows must NOT be assigned to C1R parental (GR-LCL / JY
+    # are the two B-LCL candidates and neither has a unique-and-matching
+    # token, so the right answer is to leave them unassigned).
+    b_cell = sub[sub["cell_name"] == "B cell"]
+    if not b_cell.empty:
+        c1r_b_cell = b_cell["sample_label"].str.contains("C1R", na=False).sum()
+        assert c1r_b_cell == 0, (
+            f"Liepe 'B cell' rows should not be assigned to a C1R sample "
+            f"(those are GR-LCL/JY rows); got {c1r_b_cell}/{len(b_cell)} "
+            f"misassigned to C1R parental"
+        )
+    # C1R cells-B cell rows MUST resolve to the C1R parental sample.
+    c1r_rows = sub[sub["cell_name"] == "C1R cells-B cell"]
+    if not c1r_rows.empty:
+        c1r_to_c1r = c1r_rows["sample_label"].str.contains("C1R", na=False).sum()
+        assert c1r_to_c1r > 0.95 * len(c1r_rows), (
+            f"Liepe 'C1R cells-B cell' rows should resolve to C1R parental; "
+            f"got {c1r_to_c1r}/{len(c1r_rows)}"
+        )
