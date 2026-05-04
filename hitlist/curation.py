@@ -261,6 +261,96 @@ def normalize_species(raw: str) -> str:
     return cleaned[:paren].strip() if paren > 0 else cleaned
 
 
+# Vertebrate host genera that bear classical MHC molecules. The chimeric
+# flag is only meaningful when BOTH the source proteome and the MHC come
+# from this set — otherwise we have either ordinary pathogen-on-host
+# biology (bacterium/virus/parasite source) or an unrecognized species,
+# neither of which constitutes an engineered cross-species system.
+#
+# This whitelist is small and stable by design: the closed set of
+# vertebrate species seen as ``mhc_species`` in the curated index is
+# enumerated explicitly so the rule is robust against the long tail of
+# bacterial / viral source names that no pattern-based pathogen filter
+# can fully cover.
+_MHC_BEARING_HOST_GENERA = frozenset(
+    {
+        "homo",
+        "mus",
+        "rattus",
+        "canis",
+        "felis",
+        "sus",
+        "bos",
+        "equus",
+        "gallus",
+        "anas",
+        "macaca",
+        "pan",
+        "xenopus",
+        "sarcophilus",
+        "trichosurus",
+        "danio",
+        "ovis",
+        "capra",
+        "oryctolagus",
+        "mesocricetus",
+        "cricetulus",
+        "cavia",
+    }
+)
+
+_UNKNOWN_SOURCE_TOKENS = frozenset({"unidentified", "unknown", "n/a", "na", "-"})
+
+
+@cache
+def is_chimeric_system(source_organism: str, mhc_species: str) -> bool:
+    """True iff source proteome and MHC come from different vertebrate-host genera.
+
+    Engineered chimeric systems deliberately decouple the proteome species
+    from the MHC species: HLA-transgenic rats / mice, mono-allelic mouse-MHC
+    transfectants in human cells, NetH2pan binding-prediction training data
+    (human peptides on mouse MHC), AAV-transduced allogeneic HLA expression,
+    etc. Downstream consumers want to filter these out (or keep only these,
+    for chimeric-aware training).
+
+    Returns ``False`` when:
+
+    - either side is empty / ``"unidentified"`` — chimerism cannot be
+      asserted without both halves resolved.
+    - either side resolves to a genus outside the MHC-bearing vertebrate
+      host whitelist — viral / bacterial / parasite source on a host MHC
+      is normal infection biology, not an engineered cross-species system.
+    - normalized genus tokens match — substrains and subspecies
+      (``"Mus musculus C57BL/6"`` vs ``"Mus musculus"``;
+      ``"Canis lupus familiaris"`` vs ``"Canis sp."``) are not chimeric.
+
+    Cached because the (source_organism, mhc_species) tuple repeats heavily
+    across an observations index of millions of rows but resolves to only a
+    couple hundred unique pairs.
+    """
+    if not source_organism or not mhc_species:
+        return False
+    src = str(source_organism).strip()
+    mhc = str(mhc_species).strip()
+    if not src or not mhc:
+        return False
+    if src.lower() in _UNKNOWN_SOURCE_TOKENS or mhc.lower() in _UNKNOWN_SOURCE_TOKENS:
+        return False
+    src_norm = normalize_species(src)
+    mhc_norm = normalize_species(mhc)
+    if not src_norm or not mhc_norm:
+        return False
+    src_genus = src_norm.split()[0].lower() if src_norm else ""
+    mhc_genus = mhc_norm.split()[0].lower() if mhc_norm else ""
+    if not src_genus or not mhc_genus:
+        return False
+    if src_genus not in _MHC_BEARING_HOST_GENERA:
+        return False
+    if mhc_genus not in _MHC_BEARING_HOST_GENERA:
+        return False
+    return src_genus != mhc_genus
+
+
 # ── Allele normalization ──────────────────────────────────────────────────
 
 

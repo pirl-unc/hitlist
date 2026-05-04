@@ -107,6 +107,7 @@ _TRAINING_DEFAULTS = {
     "quantification_method": "",
     "sample_match_type": "not_applicable",
     "matched_sample_count": 0,
+    "is_chimeric": False,
 }
 
 
@@ -892,6 +893,12 @@ def generate_observations_table(
         obs["allele_resolution"] if "allele_resolution" in obs.columns else None,
     )
 
+    # --- Chimeric experimental system flag (#46 down-payment) ---
+    if "source_organism" in obs.columns and "mhc_species" in obs.columns:
+        obs["is_chimeric"] = _compute_is_chimeric(obs["source_organism"], obs["mhc_species"])
+    else:
+        obs["is_chimeric"] = False
+
     # Single batched drop at the end — folds in the fb_cols that earlier
     # versions dropped immediately after the coalesce loop. Pandas'
     # ``drop`` call cost is dominated by block consolidation, so one
@@ -1507,8 +1514,16 @@ def _apply_training_defaults(df: pd.DataFrame) -> pd.DataFrame:
     elif "has_peptide_level_allele" not in result.columns:
         result["has_peptide_level_allele"] = False
 
+    if "source_organism" in result.columns and "mhc_species" in result.columns:
+        result["is_chimeric"] = _compute_is_chimeric(
+            result["source_organism"], result["mhc_species"]
+        )
+    elif "is_chimeric" not in result.columns:
+        result["is_chimeric"] = False
+
     result["matched_sample_count"] = result["matched_sample_count"].astype(int)
     result["has_peptide_level_allele"] = result["has_peptide_level_allele"].astype(bool)
+    result["is_chimeric"] = result["is_chimeric"].astype(bool)
 
     # Stable evidence-row identifier.  Prefer ``assay_iri`` (row-level, from
     # IEDB/CEDAR's "Assay IRI" column or the synthesized supplement string
@@ -1812,6 +1827,33 @@ def _compute_has_peptide_level_allele(
         # full-series ``isin`` is already cheap — skip the unique-map dance.
         result = result & ~allele_resolution.fillna("").isin({"class_only", "serological"})
     return result.astype(bool)
+
+
+def _compute_is_chimeric(
+    source_organism: pd.Series,
+    mhc_species: pd.Series,
+) -> pd.Series:
+    """True when source proteome and MHC come from different vertebrate genera.
+
+    Engineered cross-species systems (HLA-Tg rats, humanized mice, allogeneic
+    transduction, NetH2pan-style training data) decouple the proteome species
+    from the MHC species. Pathogen-on-host (viral / bacterial peptide on
+    human MHC) is ordinary infection biology and is NOT flagged. See
+    :func:`hitlist.curation.is_chimeric_system` for the full rule.
+
+    The (source_organism, mhc_species) pair has ~hundreds of unique values
+    over millions of rows, so we evaluate the per-pair classifier once on
+    the unique pairs and map the result back — same trick as
+    :func:`_compute_has_peptide_level_allele`.
+    """
+    from .curation import is_chimeric_system
+
+    src = source_organism.fillna("").astype(str)
+    mhc = mhc_species.fillna("").astype(str)
+    pairs = pd.Series(list(zip(src, mhc)), index=source_organism.index)
+    unique_pairs = pairs.unique()
+    decisions = {pair: is_chimeric_system(pair[0], pair[1]) for pair in unique_pairs}
+    return pairs.map(decisions).fillna(False).astype(bool)
 
 
 def _expand_heterodimer_components(allele_token: str) -> list[str]:

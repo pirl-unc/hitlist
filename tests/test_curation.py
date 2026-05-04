@@ -1260,3 +1260,92 @@ def test_flatten_hla_alleles_multi_allele_drops_noise_tokens():
 
     out = _flatten_hla_alleles("HLA-A*02:01 or HLA-B*07:02")
     assert out == {"HLA-A*02:01", "HLA-B*07:02"}
+
+
+# ── is_chimeric_system ───────────────────────────────────────────────────
+
+
+def test_is_chimeric_hla_transgenic_rat():
+    """HLA-B27-transgenic Lewis rat (PMID 28188227) is the canonical
+    engineered chimeric system: rat proteome, human MHC."""
+    from hitlist.curation import is_chimeric_system
+
+    assert is_chimeric_system("Rattus norvegicus", "Homo sapiens") is True
+
+
+def test_is_chimeric_human_peptides_on_mouse_mhc():
+    """NetH2pan-style training data (PMID 29615400) — synthetic human
+    peptides tested against mouse MHC. Different genus → chimeric."""
+    from hitlist.curation import is_chimeric_system
+
+    assert is_chimeric_system("Homo sapiens", "Mus musculus") is True
+
+
+def test_is_chimeric_substrain_collapses_to_species():
+    """``Mus musculus C57BL/6`` is the same species as ``Mus musculus``.
+    Substrain labels must NOT trigger the flag."""
+    from hitlist.curation import is_chimeric_system
+
+    assert is_chimeric_system("Mus musculus C57BL/6", "Mus musculus") is False
+    assert is_chimeric_system("Canis lupus familiaris", "Canis sp.") is False
+    assert is_chimeric_system("Sus scrofa", "Sus sp.") is False
+
+
+def test_is_chimeric_pathogen_source_is_not_chimeric():
+    """Viral / bacterial / parasite peptides on a host MHC are
+    ordinary infection biology, not engineered cross-species systems.
+    Returning ``True`` here would silently misroute every infection
+    study into the chimeric bucket."""
+    from hitlist.curation import is_chimeric_system
+
+    for src in (
+        "Severe acute respiratory syndrome coronavirus 2",
+        "Hepatitis B virus",
+        "Mycobacterium tuberculosis",
+        "Mycobacterium tuberculosis H37Rv",
+        "Influenza A virus",
+        "Human betaherpesvirus 5",
+        "human gammaherpesvirus 4",
+        "Fusobacterium nucleatum",
+        "Hepacivirus hominis",
+        "Eikenella corrodens",
+        "Plasmodium falciparum",
+        "adeno-associated virus 2",
+        "Vaccinia virus WR",
+        "SARS-CoV1",
+    ):
+        assert is_chimeric_system(src, "Homo sapiens") is False, (
+            f"pathogen source {src!r} flagged as chimeric"
+        )
+
+
+def test_is_chimeric_unknown_or_empty_is_not_chimeric():
+    """Chimerism is a positive claim — if we don't have both halves
+    of the proteome/MHC pair, the flag stays False rather than
+    guessing."""
+    from hitlist.curation import is_chimeric_system
+
+    assert is_chimeric_system("", "Homo sapiens") is False
+    assert is_chimeric_system("Homo sapiens", "") is False
+    assert is_chimeric_system("unidentified", "Homo sapiens") is False
+    assert is_chimeric_system("   ", "Homo sapiens") is False
+
+
+def test_is_chimeric_same_species_is_not_chimeric():
+    """The vast majority of rows: human peptides on human MHC, mouse
+    on mouse, etc. Flag must stay False."""
+    from hitlist.curation import is_chimeric_system
+
+    assert is_chimeric_system("Homo sapiens", "Homo sapiens") is False
+    assert is_chimeric_system("Mus musculus", "Mus musculus") is False
+
+
+def test_is_chimeric_xenogeneic_animal_systems():
+    """Comparative-immunopeptidomics studies that put human peptides
+    onto a non-human MHC (canine, primate, equine) — engineered
+    cross-species, must flag True."""
+    from hitlist.curation import is_chimeric_system
+
+    assert is_chimeric_system("Homo sapiens", "Macaca mulatta") is True
+    assert is_chimeric_system("Homo sapiens", "Canis sp.") is True
+    assert is_chimeric_system("Mus musculus", "Equus caballus") is True

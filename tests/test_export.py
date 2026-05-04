@@ -359,6 +359,26 @@ def test_generate_observations_provenance_columns(full_observations_df):
         assert allele_matched > 0, "No rows have allele_match despite having alleles"
 
 
+def test_generate_observations_is_chimeric_column(full_observations_df):
+    """``is_chimeric`` flags rows where source proteome and MHC come from
+    different vertebrate-host genera (HLA-Tg rats, NetH2pan-style human-on-mouse
+    training data, etc.)."""
+    df = full_observations_df
+    assert "is_chimeric" in df.columns
+    assert df["is_chimeric"].dtype == bool
+    # The vast majority of curated rows are not chimeric (same-species).
+    chimeric_rate = df["is_chimeric"].mean()
+    assert 0.0 < chimeric_rate < 0.1, (
+        f"chimeric rate {chimeric_rate:.4f} outside expected (0, 0.1) band"
+    )
+    # Spot-check: rows flagged chimeric must have both fields populated and
+    # different from each other (the function never flags pathogen sources
+    # or unidentified rows).
+    flagged = df[df["is_chimeric"]]
+    assert (flagged["source_organism"].fillna("").str.strip() != "").all()
+    assert (flagged["mhc_species"].fillna("").str.strip() != "").all()
+
+
 def test_generate_observations_parquet_export(tmp_path, full_observations_df):
     """Parquet export path should produce a readable file."""
     df = full_observations_df
