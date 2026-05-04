@@ -2132,6 +2132,55 @@ def test_resolver_alpizar_apc_substring_splits_b40_b39(full_observations_df):
     )
 
 
+def test_select_best_candidate_rejects_short_family_root_match():
+    """``tap1`` and ``tapasin`` share the family root ``tap`` — but
+    that's a 3-char overlap on neither-side-complete prefixes, which
+    must NOT count as a match. Otherwise Shapiro 2025's TAPBP sample
+    (with "tapasin" in its perturbation field) wins TAP1-KO obs rows
+    via the spurious "tap" overlap.
+    """
+    from hitlist.export import _select_best_candidate
+
+    candidates = [
+        ("HAP1 TAP1 KO", "TAP1 CRISPR/Cas9 knockout", {"label": "tap1"}),
+        ("HAP1 TAPBP KO", "TAPBP CRISPR/Cas9 knockout (tapasin)", {"label": "tapbp"}),
+        ("HAP1 TAP2 KO", "TAP2 CRISPR/Cas9 knockout", {"label": "tap2"}),
+    ]
+    pick = _select_best_candidate(candidates, "HAP1 TAP1 KO", "", "", "")
+    assert pick == {"label": "tap1"}, (
+        f"expected TAP1 KO sample for TAP1 obs (full token match), got {pick}"
+    )
+
+    pick = _select_best_candidate(candidates, "HAP1 TAPBP KO", "", "", "")
+    assert pick == {"label": "tapbp"}
+
+
+def test_resolver_shapiro_2025_routes_per_ko_sample(full_observations_df):
+    """Shapiro 2025 (PMID 40113210) — 12 HAP1 samples sharing one
+    allele bag (A*02:01 + B*40:01 + C*03:04). The supplementary CSVs
+    set ``cell_name`` to the KO label (e.g. "HAP1 B2M KO"); the
+    resolver must route every CSV's peptides to its matching
+    ms_sample. Issue #54.
+    """
+    df = full_observations_df
+    sub = df[df["pmid"] == 40113210]
+    if sub.empty:
+        import pytest
+
+        pytest.skip("Shapiro 2025 not present in this build")
+    mismatches = (
+        sub[sub["cell_name"].notna() & (sub["cell_name"] != "")]
+        .groupby(["cell_name", "sample_label"])
+        .size()
+        .reset_index(name="n")
+    )
+    bad = mismatches[mismatches["cell_name"] != mismatches["sample_label"]]
+    assert bad.empty, (
+        f"Shapiro per-KO supplementary CSVs should route to the "
+        f"matching sample_label; got {len(bad)} mismatches"
+    )
+
+
 def test_resolver_skips_apc_when_cell_name_varies(full_observations_df):
     """Liepe 2016 (PMID 27846572) class-I obs have varying ``cell_name``
     (B cell / Fibroblast / C1R cells-B cell / T2). Some assay_comments

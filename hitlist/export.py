@@ -1913,15 +1913,32 @@ def _select_best_candidate(
     token_freq = {t: sum(1 for ct, _ in cand_views if t in ct) for t in union}
 
     def _matches_obs_token(cand_tok: str) -> int:
-        """Return longest common-prefix length between cand_tok and any
-        obs token, or 0 if no prefix ≥3 chars matches.
+        """Return longest common-prefix length between ``cand_tok`` and
+        any obs token, or 0 if no qualifying match.
+
+        A match qualifies when:
+        - one token is a complete prefix of the other AND that shared
+          prefix is ≥3 chars (catches "ifn" vs "ifng", "spleen" vs
+          "splenocytes", "hepatocytes" vs "hepatocyte"); OR
+        - the two tokens share a common prefix of ≥4 chars even
+          though neither is a complete prefix of the other (catches
+          "lymphoblast" vs "lymphoblastoid").
+
+        Without the prefix-completeness rail, pairs like "tapasin" vs
+        "tap1" — which share only the 3-char family root "tap" — would
+        score the same as "tap1" vs "tap1", routing TAPBP-perturbation
+        rows to the TAP1 sample.
         """
         best = 0
         for ot in obs_tokens:
             common = 0
             while common < len(cand_tok) and common < len(ot) and cand_tok[common] == ot[common]:
                 common += 1
-            if common >= 3 and common > best:
+            if common == 0:
+                continue
+            is_full_prefix = common == len(cand_tok) or common == len(ot)
+            qualifies = (is_full_prefix and common >= 3) or common >= 4
+            if qualifies and common > best:
                 best = common
         return best
 

@@ -198,3 +198,179 @@
     source_tissue: "Blood"
     process_type: "No immunization"
     disease: "healthy"
+
+# ── Shapiro 2025 HAP1 HLA-I APM CRISPR KO panel (PMID 40113210) ─────
+# Per-sample peptide tables from MCP supplementary mmc6.csv (Europe
+# PMC PMC12090245).  Each CSV here is the union of peptides observed
+# in ≥1 of 3 biological replicates for that condition.  Per-peptide
+# allele attribution is not provided in mmc6 (the table is sample x
+# peptide sampling density); the YAML ms_samples entries provide the
+# multi-allelic context (HLA-A*02:01 + HLA-B*40:01 + HLA-C*03:04).
+# Issues #54.
+#
+# Source: MCP 2025, doi:10.1016/j.mcpro.2025.100951
+#         Europe PMC supplementary bundle for PMC12090245
+
+# Per-CSV ``cell_name`` carries the KO label (e.g. "HAP1 B2M KO")
+# rather than just "HAP1".  This lets the v1.30.30 sample resolver's
+# cell_name tie-break route each CSV's peptides to the matching
+# ms_sample in the Shapiro 2025 PMID 40113210 entry: all 12 samples
+# share the same allele bag (HLA-A*02:01 + HLA-B*40:01 + HLA-C*03:04)
+# and supplementary rows carry no per-peptide allele attribution, so
+# cell_name is the only discriminator between samples.
+
+- pmid: 40113210
+  file: shapiro_2025_hap1_wildtype.csv
+  study_label: "Shapiro 2025 — HAP1 wildtype"
+  source: "MCP supplementary mmc6.csv (PMC12090245)"
+  defaults:
+    host: "Homo sapiens (human)"
+    species: "Homo sapiens"
+    culture_condition: "Cell Line / Clone"
+    source_tissue: "Blood"
+    process_type: "No immunization"
+    disease: "chronic myelogenous leukemia"
+    cell_name: "HAP1 wildtype"
+
+- pmid: 40113210
+  file: shapiro_2025_hap1_b2m_ko.csv
+  study_label: "Shapiro 2025 — HAP1 B2M KO"
+  source: "MCP supplementary mmc6.csv (PMC12090245)"
+  defaults:
+    host: "Homo sapiens (human)"
+    species: "Homo sapiens"
+    culture_condition: "Cell Line / Clone"
+    source_tissue: "Blood"
+    process_type: "No immunization"
+    disease: "chronic myelogenous leukemia"
+    cell_name: "HAP1 B2M KO"
+
+- pmid: 40113210
+  file: shapiro_2025_hap1_calr_ko.csv
+  study_label: "Shapiro 2025 — HAP1 CALR KO"
+  source: "MCP supplementary mmc6.csv (PMC12090245)"
+  defaults:
+    host: "Homo sapiens (human)"
+    species: "Homo sapiens"
+    culture_condition: "Cell Line / Clone"
+    source_tissue: "Blood"
+    process_type: "No immunization"
+    disease: "chronic myelogenous leukemia"
+    cell_name: "HAP1 CALR KO"
+
+- pmid: 40113210
+  file: shapiro_2025_hap1_canx_ko.csv
+  study_label: "Shapiro 2025 — HAP1 CANX KO"
+  source: "MCP supplementary mmc6.csv (PMC12090245)"
+  defaults:
+    host: "Homo sapiens (human)"
+    species: "Homo sapiens"
+    culture_condition: "Cell Line / Clone"
+    source_tissue: "Blood"
+    process_type: "No immunization"
+    disease: "chronic myelogenous leukemia"
+    cell_name: "HAP1 CANX KO"
+
+- pmid: 40113210
+  file: shapiro_2025_hap1_erap1_ko.csv
+  study_label: "Shapiro 2025 — HAP1 ERAP1 KO"
+  source: "MCP supplementary mmc6.csv (PMC12090245)"
+  defaults:
+    host: "Homo sapiens (human)"
+    species: "Homo sapiens"
+    culture_condition: "Cell Line / Clone"
+    source_tissue: "Blood"
+    process_type: "No immunization"
+    disease: "chronic myelogenous leukemia"
+    cell_name: "HAP1 ERAP1 KO"
+
+- pmid: 40113210
+  file: shapiro_2025_hap1_ganab_ko.csv
+  study_label: "Shapiro 2025 — HAP1 GANAB KO"
+  source: "MCP supplementary mmc6.csv (PMC12090245)"
+  defaults:
+    host: "Homo sapiens (human)"
+    species: "Homo sapiens"
+    culture_condition: "Cell Line / Clone"
+    source_tissue: "Blood"
+    process_type: "No immunization"
+    disease: "chronic myelogenous leukemia"
+    cell_name: "HAP1 GANAB KO"
+
+- pmid: 40113210
+  file: shapiro_2025_hap1_irf2_ko.csv
+  study_label: "Shapiro 2025 — HAP1 IRF2 KO"
+  source: "MCP supplementary mmc6.csv (PMC12090245)"
+  defaults:
+    host: "Homo sapiens (human)"
+    species: "Homo sapiens"
+    culture_condition: "Cell Line / Clone"
+    source_tissue: "Blood"
+    process_type: "No immunization"
+    disease: "chronic myelogenous leukemia"
+    cell_name: "HAP1 IRF2 KO"
+
+- pmid: 40113210
+  file: shapiro_2025_hap1_pdia3_ko.csv
+  study_label: "Shapiro 2025 — HAP1 PDIA3 KO"
+  source: "MCP supplementary mmc6.csv (PMC12090245)"
+  defaults:
+    host: "Homo sapiens (human)"
+    species: "Homo sapiens"
+    culture_condition: "Cell Line / Clone"
+    source_tissue: "Blood"
+    process_type: "No immunization"
+    disease: "chronic myelogenous leukemia"
+    cell_name: "HAP1 PDIA3 KO"
+
+- pmid: 40113210
+  file: shapiro_2025_hap1_sppl3_ko.csv
+  study_label: "Shapiro 2025 — HAP1 SPPL3 KO"
+  source: "MCP supplementary mmc6.csv (PMC12090245)"
+  defaults:
+    host: "Homo sapiens (human)"
+    species: "Homo sapiens"
+    culture_condition: "Cell Line / Clone"
+    source_tissue: "Blood"
+    process_type: "No immunization"
+    disease: "chronic myelogenous leukemia"
+    cell_name: "HAP1 SPPL3 KO"
+
+- pmid: 40113210
+  file: shapiro_2025_hap1_tap1_ko.csv
+  study_label: "Shapiro 2025 — HAP1 TAP1 KO"
+  source: "MCP supplementary mmc6.csv (PMC12090245)"
+  defaults:
+    host: "Homo sapiens (human)"
+    species: "Homo sapiens"
+    culture_condition: "Cell Line / Clone"
+    source_tissue: "Blood"
+    process_type: "No immunization"
+    disease: "chronic myelogenous leukemia"
+    cell_name: "HAP1 TAP1 KO"
+
+- pmid: 40113210
+  file: shapiro_2025_hap1_tap2_ko.csv
+  study_label: "Shapiro 2025 — HAP1 TAP2 KO"
+  source: "MCP supplementary mmc6.csv (PMC12090245)"
+  defaults:
+    host: "Homo sapiens (human)"
+    species: "Homo sapiens"
+    culture_condition: "Cell Line / Clone"
+    source_tissue: "Blood"
+    process_type: "No immunization"
+    disease: "chronic myelogenous leukemia"
+    cell_name: "HAP1 TAP2 KO"
+
+- pmid: 40113210
+  file: shapiro_2025_hap1_tapbp_ko.csv
+  study_label: "Shapiro 2025 — HAP1 TAPBP KO"
+  source: "MCP supplementary mmc6.csv (PMC12090245)"
+  defaults:
+    host: "Homo sapiens (human)"
+    species: "Homo sapiens"
+    culture_condition: "Cell Line / Clone"
+    source_tissue: "Blood"
+    process_type: "No immunization"
+    disease: "chronic myelogenous leukemia"
+    cell_name: "HAP1 TAPBP KO"
