@@ -299,8 +299,6 @@ _MHC_BEARING_HOST_GENERA = frozenset(
     }
 )
 
-_UNKNOWN_SOURCE_TOKENS = frozenset({"unidentified", "unknown", "n/a", "na", "-"})
-
 
 @cache
 def is_chimeric_system(source_organism: str, mhc_species: str) -> bool:
@@ -315,11 +313,13 @@ def is_chimeric_system(source_organism: str, mhc_species: str) -> bool:
 
     Returns ``False`` when:
 
-    - either side is empty / ``"unidentified"`` — chimerism cannot be
-      asserted without both halves resolved.
+    - either side normalizes to empty (``normalize_species`` already
+      handles None / empty / whitespace).
     - either side resolves to a genus outside the MHC-bearing vertebrate
       host whitelist — viral / bacterial / parasite source on a host MHC
-      is normal infection biology, not an engineered cross-species system.
+      is normal infection biology, not an engineered cross-species system,
+      and IEDB sentinels like ``"unidentified"`` / ``"unknown"`` fall
+      through to the same rejection without an explicit allowlist.
     - normalized genus tokens match — substrains and subspecies
       (``"Mus musculus C57BL/6"`` vs ``"Mus musculus"``;
       ``"Canis lupus familiaris"`` vs ``"Canis sp."``) are not chimeric.
@@ -328,25 +328,17 @@ def is_chimeric_system(source_organism: str, mhc_species: str) -> bool:
     across an observations index of millions of rows but resolves to only a
     couple hundred unique pairs.
     """
-    if not source_organism or not mhc_species:
-        return False
-    src = str(source_organism).strip()
-    mhc = str(mhc_species).strip()
-    if not src or not mhc:
-        return False
-    if src.lower() in _UNKNOWN_SOURCE_TOKENS or mhc.lower() in _UNKNOWN_SOURCE_TOKENS:
-        return False
-    src_norm = normalize_species(src)
-    mhc_norm = normalize_species(mhc)
+    src_norm = normalize_species(source_organism)
+    mhc_norm = normalize_species(mhc_species)
     if not src_norm or not mhc_norm:
         return False
     src_genus = src_norm.split()[0].lower()
     mhc_genus = mhc_norm.split()[0].lower()
-    if src_genus not in _MHC_BEARING_HOST_GENERA:
-        return False
-    if mhc_genus not in _MHC_BEARING_HOST_GENERA:
-        return False
-    return src_genus != mhc_genus
+    return (
+        src_genus in _MHC_BEARING_HOST_GENERA
+        and mhc_genus in _MHC_BEARING_HOST_GENERA
+        and src_genus != mhc_genus
+    )
 
 
 # ── Allele normalization ──────────────────────────────────────────────────

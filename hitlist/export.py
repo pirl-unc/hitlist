@@ -1841,19 +1841,27 @@ def _compute_is_chimeric(
     human MHC) is ordinary infection biology and is NOT flagged. See
     :func:`hitlist.curation.is_chimeric_system` for the full rule.
 
-    The (source_organism, mhc_species) pair has ~hundreds of unique values
-    over millions of rows, so we evaluate the per-pair classifier once on
-    the unique pairs and map the result back — same trick as
-    :func:`_compute_has_peptide_level_allele`.
+    The (source_organism, mhc_species) pair has only a couple hundred unique
+    values over millions of rows. We evaluate the per-pair classifier once
+    on the unique pairs and broadcast back via ``MultiIndex.reindex`` —
+    a C-level lookup that avoids materializing 4.4M Python tuples.
     """
     from .curation import is_chimeric_system
 
-    src = source_organism.fillna("").astype(str)
-    mhc = mhc_species.fillna("").astype(str)
-    pairs = pd.Series(list(zip(src, mhc)), index=source_organism.index)
+    src = source_organism.fillna("").astype(str).to_numpy()
+    mhc = mhc_species.fillna("").astype(str).to_numpy()
+    pairs = pd.MultiIndex.from_arrays([src, mhc])
     unique_pairs = pairs.unique()
-    decisions = {pair: is_chimeric_system(pair[0], pair[1]) for pair in unique_pairs}
-    return pairs.map(decisions).fillna(False).astype(bool)
+    decisions = pd.Series(
+        [is_chimeric_system(s, m) for s, m in unique_pairs],
+        index=unique_pairs,
+        dtype=bool,
+    )
+    return pd.Series(
+        decisions.reindex(pairs).to_numpy(),
+        index=source_organism.index,
+        dtype=bool,
+    )
 
 
 def _expand_heterodimer_components(allele_token: str) -> list[str]:
