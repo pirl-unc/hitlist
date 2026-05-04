@@ -7,16 +7,14 @@
 
 set -e
 
-MARKER_FILTER='-m "not integration"'
+filter=(-m "not integration")
+extra=()
 for arg in "$@"; do
-    case "$arg" in
-        --all)
-            MARKER_FILTER=''
-            shift
-            ;;
-        *)
-            ;;
-    esac
+    if [[ "$arg" == "--all" ]]; then
+        filter=()
+    else
+        extra+=("$arg")
+    fi
 done
 
-eval pytest -n auto $MARKER_FILTER --cov=hitlist/ --cov-report=term-missing tests "$@"
+exec pytest -n auto "${filter[@]}" --cov=hitlist/ --cov-report=term-missing tests "${extra[@]}"
