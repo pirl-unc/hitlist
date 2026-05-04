@@ -259,6 +259,14 @@ def generate_ms_samples_table(
                     perturbations=study_perturbations,
                 )
             )
+            # Coarse condition category for downstream model training:
+            # "ERAP1 deletion" / "ERAP1 CRISPR/Cas9 knockout" / "ERAP1
+            # shRNA knockdown" all collapse to "ERAP1_perturbation"
+            # so a single one-hot covers the biology regardless of
+            # phrasing. See hitlist.condition_categories.
+            from .condition_categories import categorize_condition
+
+            row["condition_category"] = categorize_condition(perturbation)
             rows.append(row)
 
     df = pd.DataFrame(rows)
@@ -389,6 +397,7 @@ def generate_observations_table(
     meta_cols = [
         "sample_label",
         "perturbation",
+        "condition_category",
         "mhc",
         "instrument",
         "instrument_type",
