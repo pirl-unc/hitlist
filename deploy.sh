@@ -10,8 +10,8 @@ echo "==> Running lint checks..."
 ./lint.sh
 
 echo ""
-echo "==> Running tests..."
-./test.sh
+echo "==> Running tests (--all, including integration corpus tests)..."
+./test.sh --all
 
 echo ""
 echo "==> Cleaning old builds..."

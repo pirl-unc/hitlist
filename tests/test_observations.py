@@ -38,6 +38,7 @@ def test_load_observations_not_built():
             load_observations()
 
 
+@pytest.mark.integration
 def test_load_observations_if_built():
     if not is_built():
         pytest.skip("Observations table not built")
@@ -50,6 +51,7 @@ def test_load_observations_if_built():
     assert "source" in df.columns
 
 
+@pytest.mark.integration
 def test_load_observations_class_filter():
     if not is_built():
         pytest.skip("Observations table not built")
@@ -58,6 +60,7 @@ def test_load_observations_class_filter():
     assert (df["mhc_class"] == "I").all()
 
 
+@pytest.mark.integration
 def test_load_observations_species_filter():
     if not is_built():
         pytest.skip("Observations table not built")
@@ -66,6 +69,7 @@ def test_load_observations_species_filter():
     assert (df["mhc_species"] == "Homo sapiens").all()
 
 
+@pytest.mark.integration
 def test_load_observations_column_select():
     if not is_built():
         pytest.skip("Observations table not built")

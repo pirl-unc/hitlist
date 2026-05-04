@@ -1,3 +1,5 @@
+import pytest
+
 from hitlist.export import (
     _classify_instrument,
     _extract_allele_strings,
@@ -798,29 +800,28 @@ def test_species_summary_columns():
     assert expected == set(df.columns)
 
 
+@pytest.mark.integration
 def test_species_summary_has_multiple_species():
     from hitlist.observations import is_built
 
     if not is_built():
-        import pytest
-
         pytest.skip("Observations table not built")
     df = generate_species_summary()
     assert df["species"].nunique() > 1
 
 
+@pytest.mark.integration
 def test_species_summary_class_filter():
     from hitlist.observations import is_built
 
     if not is_built():
-        import pytest
-
         pytest.skip("Observations table not built")
     df_i = generate_species_summary(mhc_class="I")
     assert len(df_i) > 0
     assert set(df_i["mhc_class"]) == {"I"}
 
 
+@pytest.mark.integration
 def test_species_summary_covers_non_curated_species():
     """Mouse has hundreds of PMIDs in the parquet; the summary must reflect that.
 
@@ -831,8 +832,6 @@ def test_species_summary_covers_non_curated_species():
     from hitlist.observations import is_built
 
     if not is_built():
-        import pytest
-
         pytest.skip("Observations table not built")
     df = generate_species_summary(mhc_class="I")
     mouse = df[df["species"] == "Mus musculus"]
@@ -846,6 +845,7 @@ def test_species_summary_covers_non_curated_species():
     assert int(mouse_row["n_observations"]) > 10_000
 
 
+@pytest.mark.integration
 def test_species_summary_counts_are_coherent():
     """n_observations >= n_peptides >= n_pmids is a structural invariant.
 
@@ -856,8 +856,6 @@ def test_species_summary_counts_are_coherent():
     from hitlist.observations import is_built
 
     if not is_built():
-        import pytest
-
         pytest.skip("Observations table not built")
     df = generate_species_summary()
     assert (df["n_observations"] >= df["n_peptides"]).all()

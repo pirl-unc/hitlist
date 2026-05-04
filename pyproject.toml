@@ -85,6 +85,9 @@ known-first-party = ["hitlist"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-v --tb=short"
+markers = [
+    "integration: tests that exercise the built observations.parquet corpus (skipped by default in ./test.sh; included by ./test.sh --all and ./deploy.sh)",
+]
 
 [tool.coverage.run]
 source = ["hitlist"]
