@@ -340,10 +340,8 @@ def is_chimeric_system(source_organism: str, mhc_species: str) -> bool:
     mhc_norm = normalize_species(mhc)
     if not src_norm or not mhc_norm:
         return False
-    src_genus = src_norm.split()[0].lower() if src_norm else ""
-    mhc_genus = mhc_norm.split()[0].lower() if mhc_norm else ""
-    if not src_genus or not mhc_genus:
-        return False
+    src_genus = src_norm.split()[0].lower()
+    mhc_genus = mhc_norm.split()[0].lower()
     if src_genus not in _MHC_BEARING_HOST_GENERA:
         return False
     if mhc_genus not in _MHC_BEARING_HOST_GENERA:

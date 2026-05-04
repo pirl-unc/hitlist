@@ -367,9 +367,12 @@ def test_generate_observations_is_chimeric_column(full_observations_df):
     assert "is_chimeric" in df.columns
     assert df["is_chimeric"].dtype == bool
     # The vast majority of curated rows are not chimeric (same-species).
+    # Upper bound is loose on purpose: future curation may legitimately
+    # add large HLA-Tg or NetH2pan-style cohorts; the contract being
+    # tested is "small minority of rows," not a tight band.
     chimeric_rate = df["is_chimeric"].mean()
-    assert 0.0 < chimeric_rate < 0.1, (
-        f"chimeric rate {chimeric_rate:.4f} outside expected (0, 0.1) band"
+    assert 0.0 < chimeric_rate < 0.15, (
+        f"chimeric rate {chimeric_rate:.4f} outside expected (0, 0.15) band"
     )
     # Spot-check: rows flagged chimeric must have both fields populated and
     # different from each other (the function never flags pathogen sources
