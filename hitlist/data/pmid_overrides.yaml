@@ -1812,9 +1812,14 @@
     title: Deleterious KOs in the HLA Class I Antigen Processing and Presentation Machinery Induce Distinct Changes in the Immunopeptidome
     override: cell_line
     note: >
-      Isogenic panel of 11 single-gene CRISPR KOs in HAP1 (near-haploid CML-derived cell line). Most comprehensive
-      antigen processing perturbation study to date. Data in PRIDE (PXD056426), not yet in IEDB. Should
-      be curated proactively for when it enters IEDB.
+      Isogenic panel of 11 single-gene CRISPR KOs in HAP1 (near-haploid CML-derived cell line).
+      Most comprehensive HLA-I antigen-processing-machinery perturbation study to date.
+      Raw MS in PRIDE PXD056426; per-sample peptide tables in MCP supplementary mmc6.csv
+      (Europe PMC PMC12090245). Hitlist ingests mmc6.csv as 12 supplementary CSVs (one per
+      condition) — see hitlist/data/supplementary/shapiro_2025_hap1_*.csv. Per-replicate
+      sampling-density columns are collapsed: a peptide is included for a condition if it
+      was observed in at least one of the three biological replicates.
+      Issues #54, #207-style APM gap.
     hla_alleles:
       profiled:
         - "HLA-A*02:01"
@@ -1834,62 +1839,62 @@
       - CALR CRISPR KO (calreticulin — chaperone/PLC)
     ms_samples:
       - sample_label: HAP1 wildtype
-        n_samples: 1
+        n_samples: 3
         condition: unperturbed
         mhc_class: I
         mhc: "HLA-A*02:01 HLA-B*40:01 HLA-C*03:04"
       - sample_label: HAP1 B2M KO
-        n_samples: 1
+        n_samples: 3
         condition: B2M CRISPR/Cas9 knockout
         mhc_class: I
         mhc: "HLA-A*02:01 HLA-B*40:01 HLA-C*03:04"
       - sample_label: HAP1 TAP1 KO
-        n_samples: 1
+        n_samples: 3
         condition: TAP1 CRISPR/Cas9 knockout
         mhc_class: I
         mhc: "HLA-A*02:01 HLA-B*40:01 HLA-C*03:04"
       - sample_label: HAP1 TAP2 KO
-        n_samples: 1
+        n_samples: 3
         condition: TAP2 CRISPR/Cas9 knockout
         mhc_class: I
         mhc: "HLA-A*02:01 HLA-B*40:01 HLA-C*03:04"
       - sample_label: HAP1 TAPBP KO
-        n_samples: 1
+        n_samples: 3
         condition: TAPBP CRISPR/Cas9 knockout (tapasin)
         mhc_class: I
         mhc: "HLA-A*02:01 HLA-B*40:01 HLA-C*03:04"
       - sample_label: HAP1 IRF2 KO
-        n_samples: 1
+        n_samples: 3
         condition: IRF2 CRISPR/Cas9 knockout
         mhc_class: I
         mhc: "HLA-A*02:01 HLA-B*40:01 HLA-C*03:04"
       - sample_label: HAP1 PDIA3 KO
-        n_samples: 1
+        n_samples: 3
         condition: PDIA3 CRISPR/Cas9 knockout (ERp57)
         mhc_class: I
         mhc: "HLA-A*02:01 HLA-B*40:01 HLA-C*03:04"
       - sample_label: HAP1 ERAP1 KO
-        n_samples: 1
+        n_samples: 3
         condition: ERAP1 CRISPR/Cas9 knockout
         mhc_class: I
         mhc: "HLA-A*02:01 HLA-B*40:01 HLA-C*03:04"
       - sample_label: HAP1 GANAB KO
-        n_samples: 1
+        n_samples: 3
         condition: GANAB CRISPR/Cas9 knockout (glucosidase II alpha)
         mhc_class: I
         mhc: "HLA-A*02:01 HLA-B*40:01 HLA-C*03:04"
       - sample_label: HAP1 SPPL3 KO
-        n_samples: 1
+        n_samples: 3
         condition: SPPL3 CRISPR/Cas9 knockout
         mhc_class: I
         mhc: "HLA-A*02:01 HLA-B*40:01 HLA-C*03:04"
       - sample_label: HAP1 CANX KO
-        n_samples: 1
+        n_samples: 3
         condition: CANX CRISPR/Cas9 knockout (calnexin)
         mhc_class: I
         mhc: "HLA-A*02:01 HLA-B*40:01 HLA-C*03:04"
       - sample_label: HAP1 CALR KO
-        n_samples: 1
+        n_samples: 3
         condition: CALR CRISPR/Cas9 knockout (calreticulin)
         mhc_class: I
         mhc: "HLA-A*02:01 HLA-B*40:01 HLA-C*03:04"
