@@ -535,24 +535,12 @@ def _load_peptide_index(
 
     # ── Non-peptide-presenting MHC molecules (#228) ───────────────────────
     # CD1 / MR1 / MIC / ULBP / RAET1 / NKG2[A-C] / HFE present lipids,
-    # metabolites, or stress ligands rather than peptides; IEDB stores
-    # chemical names or compound IDs in the ``peptide`` column for these
-    # rows. Default-exclude (``exclude_non_peptide_ligand=True``) keeps
-    # peptide-prediction / motif / length consumers from silently
-    # ingesting non-amino-acid strings.
-    #
-    # Always materialize the column when ``mhc_restriction`` is available
-    # — both so consumers can introspect it, and as a backstop for
-    # parquets built before the column was added at scan time.
-    #
-    # NB: ``is_non_peptide_ligand`` is derived in three places by design,
-    # NOT by accident — at scan time (writes to parquet, fast for fresh
-    # builds), here at load time (backstop + materialization for
-    # ``columns=`` projections), and in :func:`_apply_training_defaults`
-    # (mixed-export safety net). All three converge on the same regex,
-    # cost is O(unique alleles) ≈ a few hundred values, and the
-    # redundancy is what makes stale-parquet recovery transparent to
-    # consumers.
+    # metabolites, or stress ligands rather than peptides; default-exclude
+    # so peptide consumers don't ingest IEDB's chemical-name / compound-id
+    # strings. Always materialize the column (cheap unique-allele map) so
+    # ``columns=`` projections work and stale parquets stay correct.
+    # Derived again at scan time and in :func:`_apply_training_defaults`
+    # — same regex everywhere, redundancy is intentional.
     if "mhc_restriction" in df.columns and len(df) > 0:
         from .curation import is_non_peptide_ligand
 

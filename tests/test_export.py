@@ -423,20 +423,28 @@ def test_generate_observations_excludes_non_peptide_ligand_by_default(full_obser
     )
 
 
+@pytest.mark.integration
 def test_generate_observations_is_non_peptide_ligand_opt_in():
     """Opting in via ``exclude_non_peptide_ligand=False`` returns the
     CD1/MR1/MIC/etc. rows so consumers studying lipid antigens (CD1d
     glycolipid panels, MAIT-cell metabolite ligands) can still reach
-    them. The flagged rows must be a small minority of the corpus."""
-    from hitlist.export import generate_observations_table
-    from hitlist.observations import is_built
+    them. The flagged rows must be a small minority of the corpus.
+
+    Uses ``load_observations`` with a narrow column projection rather
+    than ``generate_observations_table()`` — we only need the corpus
+    contract on the flag column, not the per-sample metadata join,
+    so this avoids the multi-minute sample-join build on every test
+    run.
+    """
+    from hitlist.observations import is_built, load_observations
 
     if not is_built():
-        import pytest
-
         pytest.skip("Observations table not built")
 
-    df = generate_observations_table(exclude_non_peptide_ligand=False)
+    df = load_observations(
+        exclude_non_peptide_ligand=False,
+        columns=["mhc_restriction", "is_non_peptide_ligand"],
+    )
     assert "is_non_peptide_ligand" in df.columns
     flagged = df[df["is_non_peptide_ligand"]]
     assert len(flagged) > 0, "No CD1/MR1/MIC rows surfaced — regex may be too tight"
