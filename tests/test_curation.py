@@ -1349,3 +1349,92 @@ def test_is_chimeric_xenogeneic_animal_systems():
     assert is_chimeric_system("Homo sapiens", "Macaca mulatta") is True
     assert is_chimeric_system("Homo sapiens", "Canis sp.") is True
     assert is_chimeric_system("Mus musculus", "Equus caballus") is True
+
+
+# ── is_engineered_mhc ────────────────────────────────────────────────────
+
+
+def test_is_engineered_mhc_hla_transgenic_rat():
+    """HLA-B27-Tg rat: rat tissue, rat host, human HLA transgene.
+    Host genus matches source genus, MHC is heterologous → engineered."""
+    from hitlist.curation import is_engineered_mhc
+
+    assert (
+        is_engineered_mhc("Rattus norvegicus", "Homo sapiens", "Rattus norvegicus (brown rat)")
+        is True
+    )
+    # Lewis-strain host string must collapse to rat genus.
+    assert is_engineered_mhc("Rattus norvegicus", "Homo sapiens", "Rattus norvegicus Lewis") is True
+
+
+def test_is_engineered_mhc_neth2pan_training():
+    """NetH2pan (PMID 29615400): synthetic human peptides bound by
+    mouse MHC, recorded with human host. The MHC is non-native to
+    the host → engineered."""
+    from hitlist.curation import is_engineered_mhc
+
+    assert is_engineered_mhc("Homo sapiens", "Mus musculus", "Homo sapiens (human)") is True
+
+
+def test_is_engineered_mhc_lewis_rat_eae_with_gp_mbp_is_not_engineered():
+    """The 4 GP-MBP / Lewis-rat EAE rows are heterologous-antigen, NOT
+    engineered-MHC. Lewis rats present guinea-pig MBP on their own
+    native RT1.B^L MHC. Host genus matches the MHC, not the source —
+    the entire point of the engineered-vs-heterologous split (#226)."""
+    from hitlist.curation import is_engineered_mhc
+
+    assert (
+        is_engineered_mhc("Cavia porcellus", "Rattus sp.", "Rattus norvegicus (brown rat)") is False
+    )
+
+
+def test_is_engineered_mhc_heterologous_allergens_are_not_engineered():
+    """Allergen / heterologous-antigen studies (horse Equ c 1 on HLA,
+    bovine antigens on human / mouse MHC) present a foreign protein
+    on the host's native MHC — must NOT collide with engineered_mhc."""
+    from hitlist.curation import is_engineered_mhc
+
+    # PMID 17517108: horse allergen on HLA, human host
+    assert is_engineered_mhc("Equus caballus", "Homo sapiens", "Homo sapiens (human)") is False
+    # PMID 30573663: bovine antigen on HLA-DO, human host
+    assert is_engineered_mhc("Bos taurus", "Homo sapiens", "Homo sapiens (human)") is False
+    # PMID 26495903: bovine antigen on mouse MHC-II, mouse host
+    assert is_engineered_mhc("Bos taurus", "Mus musculus", "Mus musculus BALB/cAnN") is False
+
+
+def test_is_engineered_mhc_requires_chimerism():
+    """Same-species rows (Hsap/Hsap/Hsap, Mmus/Mmus/Mmus) are not
+    chimeric and therefore never engineered_mhc. The function must
+    short-circuit cheaply on the common case."""
+    from hitlist.curation import is_engineered_mhc
+
+    assert is_engineered_mhc("Homo sapiens", "Homo sapiens", "Homo sapiens (human)") is False
+    assert is_engineered_mhc("Mus musculus", "Mus musculus", "Mus musculus C57BL/6") is False
+
+
+def test_is_engineered_mhc_missing_host_is_conservative_false():
+    """Without a host signal the engineered-vs-heterologous distinction
+    cannot be made. Default to False rather than guess — the broader
+    is_chimeric flag still surfaces these rows for downstream consumers
+    that want the union."""
+    from hitlist.curation import is_engineered_mhc
+
+    assert is_engineered_mhc("Rattus norvegicus", "Homo sapiens", "") is False
+    assert is_engineered_mhc("Rattus norvegicus", "Homo sapiens", "   ") is False
+    assert is_engineered_mhc("Rattus norvegicus", "Homo sapiens", "unidentified") is False
+
+
+def test_is_engineered_mhc_pathogen_source_is_not_engineered():
+    """Pathogen sources are never chimeric (gated by the host-genus
+    whitelist) and therefore never engineered_mhc, regardless of what
+    host is recorded."""
+    from hitlist.curation import is_engineered_mhc
+
+    assert (
+        is_engineered_mhc(
+            "Severe acute respiratory syndrome coronavirus 2",
+            "Homo sapiens",
+            "Homo sapiens (human)",
+        )
+        is False
+    )

@@ -384,6 +384,31 @@ def test_generate_observations_is_chimeric_column(full_observations_df):
     assert (flagged["mhc_species"].fillna("").str.strip() != "").all()
 
 
+def test_generate_observations_is_engineered_mhc_column(full_observations_df):
+    """``is_engineered_mhc`` narrows ``is_chimeric`` to rows where the host
+    cells use a heterologous MHC (HLA-Tg rat, NetH2pan, allogeneic
+    transduction). Heterologous-antigen rows (foreign protein on host's
+    native MHC) flag is_chimeric but NOT is_engineered_mhc — see #226."""
+    df = full_observations_df
+    assert "is_engineered_mhc" in df.columns
+    assert df["is_engineered_mhc"].dtype == bool
+    # Engineered-MHC must be a strict subset of is_chimeric.
+    engineered = df["is_engineered_mhc"]
+    chimeric = df["is_chimeric"]
+    assert ((~engineered) | chimeric).all(), (
+        "is_engineered_mhc rows must always be flagged is_chimeric"
+    )
+    # Engineered-MHC must dominate the chimeric pool (HLA-Tg rat alone
+    # is ~47K rows out of ~73K chimeric on the v1.30.35 corpus). The
+    # heterologous-antigen residual sits in the (chimeric & ~engineered)
+    # bucket and is the smaller share.
+    engineered_share_of_chimeric = engineered.sum() / max(int(chimeric.sum()), 1)
+    assert engineered_share_of_chimeric > 0.5, (
+        f"engineered_mhc share of chimeric is {engineered_share_of_chimeric:.3f}, "
+        "expected > 0.5 (HLA-Tg / NetH2pan dominate)"
+    )
+
+
 def test_generate_observations_parquet_export(tmp_path, full_observations_df):
     """Parquet export path should produce a readable file."""
     df = full_observations_df

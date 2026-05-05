@@ -108,6 +108,7 @@ _TRAINING_DEFAULTS = {
     "sample_match_type": "not_applicable",
     "matched_sample_count": 0,
     "is_chimeric": False,
+    "is_engineered_mhc": False,
 }
 
 
@@ -899,6 +900,16 @@ def generate_observations_table(
     else:
         obs["is_chimeric"] = False
 
+    # --- Engineered-MHC flag (#226): narrows is_chimeric to rows where the
+    # MHC is heterologous to the host cells, vs heterologous-antigen rows
+    # that present a foreign protein on the host's native MHC. ---
+    if "source_organism" in obs.columns and "mhc_species" in obs.columns and "host" in obs.columns:
+        obs["is_engineered_mhc"] = _compute_is_engineered_mhc(
+            obs["source_organism"], obs["mhc_species"], obs["host"]
+        )
+    else:
+        obs["is_engineered_mhc"] = False
+
     # Single batched drop at the end — folds in the fb_cols that earlier
     # versions dropped immediately after the coalesce loop. Pandas'
     # ``drop`` call cost is dominated by block consolidation, so one
@@ -1521,9 +1532,21 @@ def _apply_training_defaults(df: pd.DataFrame) -> pd.DataFrame:
     elif "is_chimeric" not in result.columns:
         result["is_chimeric"] = False
 
+    if (
+        "source_organism" in result.columns
+        and "mhc_species" in result.columns
+        and "host" in result.columns
+    ):
+        result["is_engineered_mhc"] = _compute_is_engineered_mhc(
+            result["source_organism"], result["mhc_species"], result["host"]
+        )
+    elif "is_engineered_mhc" not in result.columns:
+        result["is_engineered_mhc"] = False
+
     result["matched_sample_count"] = result["matched_sample_count"].astype(int)
     result["has_peptide_level_allele"] = result["has_peptide_level_allele"].astype(bool)
     result["is_chimeric"] = result["is_chimeric"].astype(bool)
+    result["is_engineered_mhc"] = result["is_engineered_mhc"].astype(bool)
 
     # Stable evidence-row identifier.  Prefer ``assay_iri`` (row-level, from
     # IEDB/CEDAR's "Assay IRI" column or the synthesized supplement string
@@ -1859,6 +1882,43 @@ def _compute_is_chimeric(
     )
     return pd.Series(
         decisions.reindex(pairs).to_numpy(),
+        index=source_organism.index,
+        dtype=bool,
+    )
+
+
+def _compute_is_engineered_mhc(
+    source_organism: pd.Series,
+    mhc_species: pd.Series,
+    host: pd.Series,
+) -> pd.Series:
+    """True when the MHC is heterologous to the host cells / tissue.
+
+    Narrows :func:`_compute_is_chimeric` to rows where the host genus
+    matches the source organism but differs from the MHC species — the
+    HLA-Tg-rat / NetH2pan / allogeneic-transfectant pattern. Heterologous-
+    antigen rows (foreign protein on host's native MHC) flag is_chimeric
+    but NOT is_engineered_mhc. See
+    :func:`hitlist.curation.is_engineered_mhc` for the rule.
+
+    The (source, mhc, host) triple has only a couple thousand unique
+    values in the corpus; same vectorized broadcast as
+    :func:`_compute_is_chimeric`.
+    """
+    from .curation import is_engineered_mhc
+
+    src = source_organism.fillna("").astype(str).to_numpy()
+    mhc = mhc_species.fillna("").astype(str).to_numpy()
+    hst = host.fillna("").astype(str).to_numpy()
+    triples = pd.MultiIndex.from_arrays([src, mhc, hst])
+    unique_triples = triples.unique()
+    decisions = pd.Series(
+        [is_engineered_mhc(s, m, h) for s, m, h in unique_triples],
+        index=unique_triples,
+        dtype=bool,
+    )
+    return pd.Series(
+        decisions.reindex(triples).to_numpy(),
         index=source_organism.index,
         dtype=bool,
     )
