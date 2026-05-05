@@ -74,6 +74,8 @@ def load_observations(
     species: str | None = None,
     source: str | None = None,
     mhc_restriction: str | list[str] | None = None,
+    mhc_allele_in_bag: str | list[str] | None = None,
+    mhc_allele_provenance: str | list[str] | None = None,
     gene_name: str | list[str] | None = None,
     gene_id: str | list[str] | None = None,
     peptide: str | list[str] | None = None,
@@ -100,7 +102,34 @@ def load_observations(
     source
         Filter by data source (``"iedb"``, ``"cedar"``, ``"supplement"``).
     mhc_restriction
-        Exact MHC allele filter.  Repeatable or comma-separated.
+        **Exact** MHC allele filter on the row's recorded restriction
+        (e.g. ``"HLA-A*02:01"``).  Misses class-only rows where the
+        donor is multi-allelic — for those, use ``mhc_allele_in_bag``.
+    mhc_allele_in_bag
+        Bag-membership filter: keep rows whose ``mhc_allele_set``
+        (the candidate-allele bag from ``expand_allele_bag`` — see #137,
+        #45) contains any of the listed alleles.  This is the right
+        knob for queries like *"show me HLA-A*02:01 melanoma peptides"*
+        that need to recover **multi-allelic patient tumor cohorts**
+        where IEDB stored only the class label.  Strict subset of
+        ``mhc_restriction``: a 4-digit row passes both filters; a
+        class-only row with a curated bag passes only ``mhc_allele_in_bag``.
+    mhc_allele_provenance
+        Filter by how a row's allele bag was obtained:
+
+        - ``"exact"`` — restriction was already 4-digit, bag = {restriction}
+        - ``"peptide_attribution"`` — bag narrowed via per-peptide
+          attribution from the paper supplement (#45, e.g. Sarkizova 2020
+          patient tumor cohort)
+        - ``"sample_allele_match"`` — bag = donor's typed alleles from
+          IEDB ``Host | MHC Types Present``
+        - ``"pmid_class_pool"`` — bag = curated per-PMID pool when no
+          per-row donor typing was recorded
+        - ``"unmatched"`` — bag empty (no donor typing or pool curation)
+
+        Use ``"exact"`` for strict allele-resolved training data;
+        ``"peptide_attribution"`` for sample-narrowed multi-allelic
+        cohorts; the others depending on tolerance for bag noise.
     gene_name, gene_id
         Gene filters — resolved through the peptide mappings sidecar.
     length_min, length_max
@@ -136,6 +165,8 @@ def load_observations(
         species=species,
         source=source,
         mhc_restriction=mhc_restriction,
+        mhc_allele_in_bag=mhc_allele_in_bag,
+        mhc_allele_provenance=mhc_allele_provenance,
         gene_name=gene_name,
         gene_id=gene_id,
         peptide=peptide,
@@ -154,6 +185,8 @@ def load_ms_observations(
     species: str | None = None,
     source: str | None = None,
     mhc_restriction: str | list[str] | None = None,
+    mhc_allele_in_bag: str | list[str] | None = None,
+    mhc_allele_provenance: str | list[str] | None = None,
     gene_name: str | list[str] | None = None,
     gene_id: str | list[str] | None = None,
     peptide: str | list[str] | None = None,
@@ -171,6 +204,8 @@ def load_ms_observations(
         species=species,
         source=source,
         mhc_restriction=mhc_restriction,
+        mhc_allele_in_bag=mhc_allele_in_bag,
+        mhc_allele_provenance=mhc_allele_provenance,
         gene_name=gene_name,
         gene_id=gene_id,
         peptide=peptide,
@@ -189,6 +224,8 @@ def load_binding(
     species: str | None = None,
     source: str | None = None,
     mhc_restriction: str | list[str] | None = None,
+    mhc_allele_in_bag: str | list[str] | None = None,
+    mhc_allele_provenance: str | list[str] | None = None,
     gene_name: str | list[str] | None = None,
     gene_id: str | list[str] | None = None,
     peptide: str | list[str] | None = None,
@@ -217,6 +254,8 @@ def load_binding(
         species=species,
         source=source,
         mhc_restriction=mhc_restriction,
+        mhc_allele_in_bag=mhc_allele_in_bag,
+        mhc_allele_provenance=mhc_allele_provenance,
         gene_name=gene_name,
         gene_id=gene_id,
         peptide=peptide,
@@ -235,6 +274,8 @@ def load_all_evidence(
     species: str | None = None,
     source: str | None = None,
     mhc_restriction: str | list[str] | None = None,
+    mhc_allele_in_bag: str | list[str] | None = None,
+    mhc_allele_provenance: str | list[str] | None = None,
     gene_name: str | list[str] | None = None,
     gene_id: str | list[str] | None = None,
     peptide: str | list[str] | None = None,
@@ -269,6 +310,8 @@ def load_all_evidence(
         "species": species,
         "source": source,
         "mhc_restriction": mhc_restriction,
+        "mhc_allele_in_bag": mhc_allele_in_bag,
+        "mhc_allele_provenance": mhc_allele_provenance,
         "gene_name": gene_name,
         "gene_id": gene_id,
         "peptide": peptide,
@@ -317,6 +360,8 @@ def _load_peptide_index(
     species: str | None,
     source: str | None,
     mhc_restriction: str | list[str] | None,
+    mhc_allele_in_bag: str | list[str] | None,
+    mhc_allele_provenance: str | list[str] | None,
     gene_name: str | list[str] | None,
     gene_id: str | list[str] | None,
     peptide: str | list[str] | None,
@@ -352,10 +397,35 @@ def _load_peptide_index(
     if source is not None:
         filters.append(("source", "==", source))
     if mhc_restriction is not None:
-        values = [normalize_allele(v) for v in _as_list(mhc_restriction)]
-        filters.append(("mhc_restriction", "in", values))
+        # Bag-membership match (#45): post-#45, ``mhc_restriction`` may
+        # be a single 4-digit allele OR a semicolon-joined multi-allele
+        # bag (the donor's typed alleles when the per-peptide attribution
+        # is multi-allelic).  A query for ``"HLA-A*02:01"`` should match
+        # both.  We expand the wanted values to all stored restriction
+        # strings whose ``;``-split tokens contain any wanted allele,
+        # then push down the expanded list — keeps pyarrow's IN
+        # predicate fast while honoring bag-membership semantics.
+        wanted = {normalize_allele(v) for v in _as_list(mhc_restriction)}
+        import pyarrow.parquet as pq
+
+        all_restrictions = (
+            pq.read_table(path, columns=["mhc_restriction"])
+            .column("mhc_restriction")
+            .unique()
+            .to_pylist()
+        )
+        matching = [
+            r
+            for r in all_restrictions
+            if r and (r in wanted or any(a in r.split(";") for a in wanted))
+        ]
+        if not matching:
+            return pd.read_parquet(path, columns=columns, filters=[("peptide", "==", "__NONE__")])
+        filters.append(("mhc_restriction", "in", matching))
     if peptide is not None:
         filters.append(("peptide", "in", _as_list(peptide)))
+    if mhc_allele_provenance is not None:
+        filters.append(("mhc_allele_provenance", "in", _as_list(mhc_allele_provenance)))
 
     if gene_name is not None or gene_id is not None:
         import pyarrow.parquet as pq
@@ -440,6 +510,15 @@ def _load_peptide_index(
         df = df[mask]
         if columns is not None and "serotypes" not in columns:
             df = df.drop(columns=["serotypes"])
+
+    # Bag-membership filter (#45 / #137).  ``mhc_allele_set`` is a
+    # ``;``-joined string so parquet pushdown can't express the filter;
+    # apply post-load.  Cheap on a filtered frame (the heavy filters
+    # above already shrunk the row count).
+    if mhc_allele_in_bag is not None and "mhc_allele_set" in df.columns:
+        wanted_bag = {normalize_allele(a.strip()) for a in _as_list(mhc_allele_in_bag)}
+        bag_col = df["mhc_allele_set"].fillna("").astype(str)
+        df = df[bag_col.apply(lambda s: any(a in s.split(";") for a in wanted_bag))]
 
     # Length bounds (#118). observations.parquet / binding.parquet don't
     # carry an explicit length column — we compute it from the peptide

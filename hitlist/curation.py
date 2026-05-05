@@ -484,8 +484,14 @@ def normalize_allele(raw: str) -> str:
 # ── Allele resolution ──────────────────────────────────────────────────────
 
 #: Resolution tiers, ordered from most to least specific.
+#: ``donor_bag`` is the multi-allele restriction emitted post-#45 when
+#: a row's actual presenting MHC narrows to the donor's typed alleles
+#: (or a specific subset via per-peptide attribution) — strictly more
+#: specific than ``class_only`` (which is "any allele in this class")
+#: but less specific than ``four_digit`` (which is "this exact allele").
 ALLELE_RESOLUTION_ORDER: list[str] = [
     "four_digit",
+    "donor_bag",
     "two_digit",
     "serological",
     "class_only",
@@ -508,16 +514,24 @@ def classify_allele_resolution(mhc_restriction: str) -> str:
     Parameters
     ----------
     mhc_restriction
-        IEDB "MHC Restriction" field value.
+        IEDB "MHC Restriction" field value, or a semicolon-joined
+        multi-allele bag emitted post-#45 (``"HLA-A*02:01;HLA-A*03:01;..."``).
 
     Returns
     -------
     str
-        One of: ``"four_digit"``, ``"two_digit"``, ``"serological"``,
-        ``"class_only"``, ``"unresolved"``.
+        One of ``"four_digit"``, ``"donor_bag"``, ``"two_digit"``,
+        ``"serological"``, ``"class_only"``, ``"unresolved"``.
     """
     if not mhc_restriction:
         return "unresolved"
+
+    # Multi-allele bag (#45): semicolon-joined 4-digit alleles. Each
+    # token must parse as a 4-digit allele; otherwise we fall through.
+    if ";" in mhc_restriction:
+        tokens = [t.strip() for t in mhc_restriction.split(";") if t.strip()]
+        if len(tokens) > 1 and all(_looks_like_four_digit_allele(t) for t in tokens):
+            return "donor_bag"
 
     result = _cached_parse(mhc_restriction)
     if result is not None:
@@ -918,6 +932,131 @@ def _pmid_allele_pool(pmid_int: int) -> frozenset[str]:
     return frozenset(_flatten_hla_alleles(entry.get("hla_alleles")))
 
 
+_SAMPLE_ALLELE_TOKEN_RE = re.compile(r"(?:HLA-)?[A-Z]+\d*\*\d{2,3}:\d{2,3}[A-Z]?")
+
+
+def _parse_sample_mhc_field(mhc_field) -> frozenset[str]:
+    """Parse a ``ms_samples[].mhc`` value into a normalized 4-digit-allele set.
+
+    ms_samples curators use mixed formats — some entries are
+    ``"HLA-A*01:01"`` (HLA-prefixed) and others are ``"A*02:01 A*24:02
+    B*15:01 ..."`` (bare, space-joined).  Both shapes carry valid donor
+    genotypes; we normalize through :func:`normalize_allele` (mhcgnomes)
+    so the per-sample bag matches the canonical form used elsewhere
+    (``HLA-A*02:01``).
+    """
+    if mhc_field is None:
+        return frozenset()
+    if isinstance(mhc_field, list):
+        out: set[str] = set()
+        for item in mhc_field:
+            out |= _parse_sample_mhc_field(item)
+        return frozenset(out)
+    if not isinstance(mhc_field, str):
+        return frozenset()
+    out = set()
+    for tok in _SAMPLE_ALLELE_TOKEN_RE.findall(mhc_field):
+        canonical = normalize_allele(tok)
+        if canonical and _looks_like_four_digit_allele(canonical):
+            out.add(canonical)
+    return frozenset(out)
+
+
+@lru_cache(maxsize=512)
+def _pmid_sample_alleles(pmid_int: int) -> dict[str, frozenset[str]]:
+    """Map ``sample_label → frozenset(4-digit alleles)`` for a PMID's ms_samples.
+
+    Many studies curate the donor / patient genotype on each
+    ``ms_samples`` entry as the ``mhc:`` value — either as
+    ``"HLA-A*01:01"`` or as a bare space-joined string like
+    ``"A*02:01 A*24:02 B*15:01 ..."``.  Both shapes are accepted (see
+    :func:`_parse_sample_mhc_field`) and normalized to canonical
+    ``HLA-A*02:01`` form.  Per-peptide attribution overrides (#45) use
+    this map to narrow a row's candidate-allele set from the
+    disease-wide union down to the specific donor(s) the peptide was
+    observed in.
+
+    Empty mapping if no override or no ms_samples entries are present.
+    """
+    overrides = load_pmid_overrides()
+    entry = overrides.get(pmid_int)
+    if entry is None:
+        return {}
+    out: dict[str, frozenset[str]] = {}
+    for sample in entry.get("ms_samples") or []:
+        label = sample.get("sample_label", "")
+        if not label:
+            continue
+        alleles = _parse_sample_mhc_field(sample.get("mhc"))
+        if alleles:
+            out[label] = alleles
+    return out
+
+
+@lru_cache(maxsize=512)
+def _pmid_peptide_attributions(pmid_int: int) -> dict[str, frozenset[str]]:
+    """Map ``peptide → frozenset(sample_label)`` for a PMID's per-peptide
+    attribution CSV (#45).
+
+    Some studies (Sarkizova 2020, etc.) deposit per-peptide → patient
+    sample mappings in their supplementary tables, but IEDB ingests the
+    rows with a class-only ``mhc_restriction`` and the union of donor
+    HLAs in ``Host | MHC Types Present``.  Curators register the
+    paper's per-peptide attribution via a CSV referenced from the
+    PMID's ``peptide_attributions:`` key in pmid_overrides.yaml.
+
+    The CSV must have columns ``peptide`` and ``sample_label`` (semicolon-
+    joined when a peptide was observed in multiple samples).
+
+    Returns an empty mapping when no attribution CSV is registered.
+    """
+    overrides = load_pmid_overrides()
+    entry = overrides.get(pmid_int)
+    if entry is None:
+        return {}
+    rel_path = entry.get("peptide_attributions")
+    if not rel_path:
+        return {}
+    csv_path = _data_path(rel_path)
+    table = pd.read_csv(csv_path, usecols=["peptide", "sample_label"])
+    out: dict[str, frozenset[str]] = {}
+    for pep, labels in zip(table["peptide"].astype(str), table["sample_label"].astype(str)):
+        sample_set = frozenset(s for s in labels.split(";") if s)
+        if pep and sample_set:
+            out[pep] = sample_set
+    return out
+
+
+def attribute_peptide_to_sample_alleles(pmid: int | str, peptide: str) -> frozenset[str]:
+    """Return the union of typed alleles across the samples a peptide was
+    observed in within this PMID's curated cohort (#45), or an empty
+    frozenset when no attribution is registered or the peptide is not
+    in the map.
+
+    Used at scan time to narrow ``host_mhc_types`` for class-only rows
+    from the disease-wide union (e.g. all 14 alleles across GBM7+9+11)
+    down to the matched donor's specific 6-allele genotype — turning
+    14-18-allele candidate bags into 6-12-allele bags for
+    bag-membership / mhc_allele_in_bag queries.
+    """
+    if not peptide:
+        return frozenset()
+    pmid_int: int | None = None
+    if pmid:
+        with contextlib.suppress(ValueError, TypeError):
+            pmid_int = int(pmid)
+    if pmid_int is None:
+        return frozenset()
+    attribution = _pmid_peptide_attributions(pmid_int).get(peptide)
+    if not attribution:
+        return frozenset()
+    sample_alleles = _pmid_sample_alleles(pmid_int)
+    out: set[str] = set()
+    for label in attribution:
+        out |= sample_alleles.get(label, frozenset())
+    return frozenset(out)
+
+
 _HOST_MHC_SPLIT_RE = re.compile(r"[;,]")
 
 
@@ -959,6 +1098,7 @@ def expand_allele_bag(
     host_mhc_types: str = "",
     pmid: int | str = "",
     mhc_class: str = "",
+    attributed_alleles: frozenset[str] = frozenset(),
 ) -> tuple[str, str, int]:
     """Expand a (possibly coarse) MHC restriction to a candidate exact-allele
     bag with provenance.
@@ -972,16 +1112,30 @@ def expand_allele_bag(
     Logic:
 
     - ``four_digit`` rows are returned as-is with provenance ``exact``.
-    - ``class_only`` rows (e.g. ``"HLA class I"``) are expanded against
-      first the row's ``Host | MHC Types Present`` (the donor's typed
-      alleles, when IEDB carries them) and otherwise the per-PMID
-      ``hla_alleles`` block; provenance is ``sample_allele_match`` or
-      ``pmid_class_pool`` accordingly.  In both cases the candidate set
-      is filtered to the row's MHC class.
+    - ``class_only`` rows (e.g. ``"HLA class I"``) are expanded against,
+      in priority order:
+
+      1. ``attributed_alleles`` — a per-peptide attribution from the
+         paper supplement (#45), passed in by the caller after looking
+         up the peptide in :func:`attribute_peptide_to_sample_alleles`.
+         Provenance: ``peptide_attribution``.
+      2. The row's ``Host | MHC Types Present`` (the donor's typed
+         alleles, when IEDB carries them). Provenance: ``sample_allele_match``.
+      3. The per-PMID ``hla_alleles`` block. Provenance: ``pmid_class_pool``.
+
+      In all cases the candidate set is filtered to the row's MHC class.
     - All other resolutions (``two_digit``, ``serological``,
       ``unresolved``) are returned as ``unmatched``.  Two-digit and
       serotype expansion against an external IPD-IMGT/HLA catalog is a
       planned follow-up.
+
+    Note: ``attributed_alleles`` is taken as a hashable ``frozenset`` so the
+    lru_cache key stays cheap. Pass ``frozenset()`` (the default) when no
+    per-peptide attribution applies; otherwise the caller looks the
+    peptide up against :func:`attribute_peptide_to_sample_alleles` once
+    per row.  The ``frozenset`` shape gives identical bags from different
+    peptides the same cache key, so peptides that map to the same
+    sample union still share a cache slot.
 
     Returns
     -------
@@ -994,6 +1148,14 @@ def expand_allele_bag(
     if resolution == "four_digit":
         return mhc_restriction.strip(), "exact", 1
 
+    # Already a multi-allele bag (e.g. a row that's been re-scanned post-#45):
+    # accept it as-is. Provenance can't be inferred from the string alone, so
+    # we tag it ``donor_bag_passthrough`` — callers that need the original
+    # provenance should preserve it before re-calling.
+    if resolution == "donor_bag":
+        tokens = sorted({t.strip() for t in mhc_restriction.split(";") if t.strip()})
+        return ";".join(tokens), "donor_bag_passthrough", len(tokens)
+
     if resolution != "class_only":
         return "", "unmatched", 0
 
@@ -1004,7 +1166,7 @@ def expand_allele_bag(
             pmid_int = int(pmid)
     pool = _pmid_allele_pool(pmid_int) if pmid_int is not None else frozenset()
 
-    candidates = sample_alleles or pool
+    candidates = attributed_alleles or sample_alleles or pool
     if not candidates:
         return "", "unmatched", 0
 
@@ -1012,7 +1174,12 @@ def expand_allele_bag(
     if not candidates:
         return "", "unmatched", 0
 
-    provenance = "sample_allele_match" if sample_alleles else "pmid_class_pool"
+    if attributed_alleles:
+        provenance = "peptide_attribution"
+    elif sample_alleles:
+        provenance = "sample_allele_match"
+    else:
+        provenance = "pmid_class_pool"
     return ";".join(sorted(candidates)), provenance, len(candidates)
 
 

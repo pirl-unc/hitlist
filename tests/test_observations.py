@@ -631,6 +631,122 @@ def test_exclude_non_peptide_ligand_works_with_projection(tmp_path, monkeypatch)
     assert out["peptide"].tolist() == ["SIINFEKL"]
 
 
+# ── #45 multi-allele restriction / bag-membership filters ──────────────
+
+
+def test_mhc_restriction_filter_matches_donor_bag_member(tmp_path, monkeypatch):
+    """#45: ``mhc_restriction`` post-#45 may be a single 4-digit allele
+    OR a semicolon-joined donor bag.  A query for a single allele must
+    match BOTH single-allele rows and donor-bag rows that contain that
+    allele as a token.  Pre-#45 the filter was strict equality which
+    silently excluded multi-allelic donor cohorts."""
+    import pandas as pd
+
+    from hitlist.observations import load_observations
+
+    df = pd.DataFrame(
+        {
+            "peptide": ["SIINFEKL", "GLCTLVAML", "DONOR_BAG_PEP", "OTHER_DONOR"],
+            "mhc_restriction": [
+                "HLA-A*02:01",  # exact A*02:01 — matches
+                "HLA-A*11:01",  # exact A*11:01 — does not match
+                # MEL3 donor bag: contains A*02:01 → matches
+                "HLA-A*02:01;HLA-A*03:01;HLA-B*27:05;HLA-C*06:02",
+                # MEL2 donor bag: no A*02:01 → does not match
+                "HLA-A*01:01;HLA-B*38:01;HLA-C*01:02",
+            ],
+            "mhc_class": ["I"] * 4,
+            "reference_iri": [f"r-{i}" for i in range(4)],
+            "pmid": pd.array([1, 2, 3, 4], dtype="Int64"),
+            "source": ["iedb"] * 4,
+            "mhc_species": ["Homo sapiens"] * 4,
+        }
+    )
+    path = tmp_path / "observations.parquet"
+    df.to_parquet(path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
+
+    out = load_observations(mhc_restriction="HLA-A*02:01")
+    assert set(out["peptide"]) == {"SIINFEKL", "DONOR_BAG_PEP"}
+
+
+def test_mhc_allele_in_bag_filter_post_load(tmp_path, monkeypatch):
+    """``mhc_allele_in_bag`` filters on ``mhc_allele_set`` membership
+    (semicolon-joined).  Equivalent semantics to ``mhc_restriction``
+    filter post-#45 but operates on the dedicated bag column — kept
+    available for callers who want the explicit knob."""
+    import pandas as pd
+
+    from hitlist.observations import load_observations
+
+    df = pd.DataFrame(
+        {
+            "peptide": ["P1", "P2", "P3"],
+            "mhc_restriction": ["HLA class I"] * 3,
+            "mhc_class": ["I"] * 3,
+            "mhc_allele_set": [
+                "HLA-A*02:01;HLA-A*03:01;HLA-B*15:01",  # has A*02:01
+                "HLA-A*11:01;HLA-B*44:02",  # no A*02:01
+                "HLA-A*02:01;HLA-B*07:02",  # has A*02:01
+            ],
+            "reference_iri": [f"r-{i}" for i in range(3)],
+            "pmid": pd.array([1, 2, 3], dtype="Int64"),
+            "source": ["iedb"] * 3,
+            "mhc_species": ["Homo sapiens"] * 3,
+        }
+    )
+    path = tmp_path / "observations.parquet"
+    df.to_parquet(path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
+
+    out = load_observations(mhc_allele_in_bag="HLA-A*02:01")
+    assert set(out["peptide"]) == {"P1", "P3"}
+
+
+def test_mhc_allele_provenance_filter(tmp_path, monkeypatch):
+    """``mhc_allele_provenance`` selects rows by how their bag was
+    obtained.  Useful for strict-allele training (``"exact"``) vs.
+    sample-narrowed multi-allele (``"peptide_attribution"``) vs. donor
+    bag (``"sample_allele_match"``)."""
+    import pandas as pd
+
+    from hitlist.observations import load_observations
+
+    df = pd.DataFrame(
+        {
+            "peptide": ["P_EXACT", "P_ATTR", "P_SAMPLE", "P_POOL"],
+            "mhc_restriction": [
+                "HLA-A*02:01",
+                "HLA-A*02:01;HLA-B*38:01",
+                "HLA-A*01:01;HLA-A*02:01;HLA-B*38:01",
+                "HLA-A*02:01;HLA-A*03:01",
+            ],
+            "mhc_class": ["I"] * 4,
+            "mhc_allele_provenance": [
+                "exact",
+                "peptide_attribution",
+                "sample_allele_match",
+                "pmid_class_pool",
+            ],
+            "reference_iri": [f"r-{i}" for i in range(4)],
+            "pmid": pd.array([1, 2, 3, 4], dtype="Int64"),
+            "source": ["iedb"] * 4,
+            "mhc_species": ["Homo sapiens"] * 4,
+        }
+    )
+    path = tmp_path / "observations.parquet"
+    df.to_parquet(path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
+
+    # Strict allele-resolved only.
+    out = load_observations(mhc_allele_provenance="exact")
+    assert set(out["peptide"]) == {"P_EXACT"}
+
+    # Strict + per-peptide attribution: drop the loose pool case.
+    out = load_observations(mhc_allele_provenance=["exact", "peptide_attribution"])
+    assert set(out["peptide"]) == {"P_EXACT", "P_ATTR"}
+
+
 def test_load_observations_emits_severity_tiers(tmp_path, monkeypatch):
     """v1.30.17 / #201: ``mhc_class_label_severity`` returns one of
     {ok, borderline, suspect, implausible} per row.

@@ -1529,3 +1529,156 @@ def test_is_non_peptide_ligand_empty_input():
 
     assert is_non_peptide_ligand("") is False
     assert is_non_peptide_ligand(None) is False  # type: ignore[arg-type]
+
+
+# ── Per-sample attribution / donor-bag promotion (#45) ───────────────────
+
+
+def test_parse_sample_mhc_field_bare_format():
+    """Patient ms_samples entries store the donor genotype as a bare
+    space-joined string (``"A*02:01 A*24:02 ..."``).  The parser must
+    canonicalize each token to ``"HLA-A*02:01"`` form via mhcgnomes
+    so the bag matches what bag-expansion expects."""
+    from hitlist.curation import _parse_sample_mhc_field
+
+    out = _parse_sample_mhc_field("A*02:01 A*24:02 B*15:01 B*44:02 C*05:01 C*07:02")
+    assert out == frozenset(
+        {
+            "HLA-A*02:01",
+            "HLA-A*24:02",
+            "HLA-B*15:01",
+            "HLA-B*44:02",
+            "HLA-C*05:01",
+            "HLA-C*07:02",
+        }
+    )
+
+
+def test_parse_sample_mhc_field_prefixed_format():
+    """ms_samples on the 721.221 mono-allelic entries store HLA-prefixed
+    single alleles. Same parser must accept both shapes interchangeably."""
+    from hitlist.curation import _parse_sample_mhc_field
+
+    assert _parse_sample_mhc_field("HLA-A*02:01") == frozenset({"HLA-A*02:01"})
+    assert _parse_sample_mhc_field("") == frozenset()
+    assert _parse_sample_mhc_field(None) == frozenset()
+
+
+def test_parse_sample_mhc_field_homozygous():
+    """Homozygous donor (e.g. MEL2: A*01:01 / A*01:01) collapses to a
+    single allele in the bag — ``frozenset`` deduplicates by design."""
+    from hitlist.curation import _parse_sample_mhc_field
+
+    out = _parse_sample_mhc_field("A*01:01 A*01:01 B*38:01 B*56:01 C*01:02 C*06:02")
+    # A*01:01 collapses; bag size 5 (not 6).
+    assert "HLA-A*01:01" in out
+    assert len(out) == 5
+
+
+def test_classify_allele_resolution_donor_bag():
+    """Multi-allele bag strings (semicolon-joined 4-digit alleles) classify
+    as ``donor_bag`` — strictly more specific than ``class_only``, less
+    specific than ``four_digit``.  Order in ALLELE_RESOLUTION_ORDER puts
+    ``donor_bag`` between ``four_digit`` and ``two_digit``."""
+    from hitlist.curation import (
+        ALLELE_RESOLUTION_ORDER,
+        allele_resolution_rank,
+        classify_allele_resolution,
+    )
+
+    assert classify_allele_resolution("HLA-A*02:01;HLA-A*03:01") == "donor_bag"
+    assert (
+        classify_allele_resolution("HLA-A*01:01;HLA-A*32:01;HLA-B*15:01;HLA-C*03:03;HLA-C*03:04")
+        == "donor_bag"
+    )
+    # Single allele still resolves to four_digit.
+    assert classify_allele_resolution("HLA-A*02:01") == "four_digit"
+    # Class label still resolves to class_only.
+    assert classify_allele_resolution("HLA class I") == "class_only"
+    # Trailing semicolon with single allele isn't a bag.
+    assert classify_allele_resolution("HLA-A*02:01;") != "donor_bag"
+    # Rank ordering: donor_bag is between four_digit and two_digit.
+    assert (
+        allele_resolution_rank("four_digit")
+        < allele_resolution_rank("donor_bag")
+        < allele_resolution_rank("two_digit")
+        < allele_resolution_rank("class_only")
+    )
+    assert "donor_bag" in ALLELE_RESOLUTION_ORDER
+
+
+def test_expand_allele_bag_donor_bag_passthrough():
+    """When the input restriction is already a multi-allele bag (e.g. a
+    re-scanned post-#45 row), expand_allele_bag passes the parsed set
+    through with provenance ``donor_bag_passthrough`` — no further
+    expansion against host_mhc_types or pmid pool."""
+    from hitlist.curation import expand_allele_bag
+
+    bag_str = "HLA-A*02:01;HLA-A*03:01;HLA-B*27:05;HLA-B*47:01;HLA-C*01:02;HLA-C*06:02"
+    out_set, prov, size = expand_allele_bag(bag_str, "", "", "I", frozenset())
+    assert out_set == bag_str  # already sorted in input order
+    assert prov == "donor_bag_passthrough"
+    assert size == 6
+
+
+def test_expand_allele_bag_attributed_alleles_narrows():
+    """``attributed_alleles`` (per-peptide attribution from #45) takes
+    priority over ``host_mhc_types`` and the PMID pool, narrowing the
+    bag to that specific subset of donor alleles.  Provenance becomes
+    ``peptide_attribution``."""
+    from hitlist.curation import expand_allele_bag
+
+    # Disease-wide host_mhc_types (18-allele MEL union)
+    disease_union = (
+        "HLA-A*01:01;HLA-A*02:01;HLA-A*02:02;HLA-A*03:01;HLA-A*24:02;"
+        "HLA-B*13:02;HLA-B*15:01;HLA-B*27:05;HLA-B*38:01;HLA-B*40:02;"
+        "HLA-B*44:02;HLA-B*47:01;HLA-B*56:01;HLA-C*01:02;HLA-C*02:02;"
+        "HLA-C*05:01;HLA-C*06:02;HLA-C*07:02"
+    )
+    # Per-peptide attribution narrows to MEL2's 5-allele genotype.
+    mel2 = frozenset({"HLA-A*01:01", "HLA-B*38:01", "HLA-B*56:01", "HLA-C*01:02", "HLA-C*06:02"})
+
+    out_set, prov, size = expand_allele_bag("HLA class I", disease_union, 31844290, "I", mel2)
+    assert prov == "peptide_attribution"
+    assert size == 5
+    assert set(out_set.split(";")) == set(mel2)
+
+
+def test_expand_allele_bag_no_attribution_falls_back_to_sample_match():
+    """Without attribution, a class-only row falls back to the
+    ``sample_allele_match`` path (donor's typed alleles from
+    ``host_mhc_types``).  Same row, different provenance and broader bag."""
+    from hitlist.curation import expand_allele_bag
+
+    disease_union = "HLA-A*01:01;HLA-A*02:01;HLA-B*38:01;HLA-B*56:01;HLA-C*01:02;HLA-C*06:02"
+    out_set, prov, size = expand_allele_bag(
+        "HLA class I", disease_union, 31844290, "I", frozenset()
+    )
+    assert prov == "sample_allele_match"
+    assert size == 6
+
+
+def test_attribute_peptide_to_sample_alleles_known_sarkizova_peptide():
+    """End-to-end: a known Sarkizova MEL2 peptide pulls back MEL2's
+    typed-allele bag (from the ms_samples mhc field via
+    _pmid_sample_alleles, after the bare-format normalization fix)."""
+    from hitlist.curation import attribute_peptide_to_sample_alleles
+
+    # AAAAAAAAAAAAAAPAP is uniquely attributed to MEL2 in the Sup_Data2 CSV
+    out = attribute_peptide_to_sample_alleles(31844290, "AAAAAAAAAAAAAAPAP")
+    # MEL2 genotype is A*01:01 / A*01:01 / B*38:01 / B*56:01 / C*01:02 / C*06:02
+    # — 5 alleles after homozygous-A collapse.
+    assert out == frozenset(
+        {"HLA-A*01:01", "HLA-B*38:01", "HLA-B*56:01", "HLA-C*01:02", "HLA-C*06:02"}
+    )
+
+
+def test_attribute_peptide_to_sample_alleles_unknown_peptide_returns_empty():
+    """Peptides not in the attribution CSV (or PMIDs without an
+    attribution registered) return the empty frozenset — caller falls
+    back to ``host_mhc_types`` / pmid pool via expand_allele_bag."""
+    from hitlist.curation import attribute_peptide_to_sample_alleles
+
+    assert attribute_peptide_to_sample_alleles(31844290, "ZZZZZZZZZZ") == frozenset()
+    assert attribute_peptide_to_sample_alleles(0, "ANYTHING") == frozenset()
+    assert attribute_peptide_to_sample_alleles(31844290, "") == frozenset()

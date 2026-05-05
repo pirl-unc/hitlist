@@ -305,6 +305,7 @@ def scan(
 
     from .curation import (
         allele_resolution_rank,
+        attribute_peptide_to_sample_alleles,
         classify_allele_resolution,
         classify_mhc_species,
         is_binding_assay,
@@ -489,15 +490,41 @@ def scan(
             # ``exact`` (already 4-digit) / ``sample_allele_match`` /
             # ``pmid_class_pool`` / ``unmatched``.  Always emitted so the
             # parquet schema is uniform across modalities.
+            # Per-peptide attribution lookup (#45).  Only meaningful for
+            # class-only rows in PMIDs that registered an attribution
+            # CSV — for everything else this returns an empty frozenset
+            # and bag expansion falls through to its IEDB / pmid-pool
+            # paths unchanged.  Doing the lookup here (not inside
+            # expand_allele_bag) keeps the bag-expansion lru_cache key
+            # to a small hashable frozenset rather than the full peptide
+            # vocabulary.
+            attributed_alleles: frozenset[str] = frozenset()
+            if bare_peptide and classify_allele_resolution(mhc_res) == "class_only":
+                attributed_alleles = attribute_peptide_to_sample_alleles(pmid, bare_peptide)
+
             bag_set, bag_provenance, bag_size = expand_allele_bag(
                 mhc_res,
                 record.get("host_mhc_types", ""),
                 pmid,
                 record.get("mhc_class", ""),
+                attributed_alleles,
             )
             record["mhc_allele_set"] = bag_set
             record["mhc_allele_provenance"] = bag_provenance
             record["mhc_allele_bag_size"] = bag_size
+
+            # Promote bag to ``mhc_restriction`` (#45).  ``mhc_restriction``
+            # is the actual presenting MHC for the row — when we have a
+            # tighter upper bound from the donor's typed alleles or a
+            # per-peptide attribution, that bound IS the restriction.
+            # The class label ("HLA class I") is reserved for rows where
+            # no donor typing AND no curated PMID pool exists, i.e. the
+            # presenter genuinely is unknown.  Bag size 1 → single
+            # 4-digit allele (row is allele-resolved).  Bag size > 1 →
+            # semicolon-joined (multi-allele attribution like
+            # ``gene_names``).  See #45 for the design rationale.
+            if bag_size > 0 and bag_provenance != "exact":
+                record["mhc_restriction"] = bag_set
 
             rows.append(record)
         # Close the wrapped file handle explicitly — relying on garbage

@@ -265,6 +265,24 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
         flags = pd.DataFrame(flag_rows)
         record = record.merge(flags, on="mhc_restriction", how="left")
 
+        # Promote bag → mhc_restriction (#45) for class-only supplement
+        # rows where PMID-pool expansion produced a tightened bag.  When
+        # bag_provenance is "exact" the row was already 4-digit and the
+        # restriction is unchanged; for "pmid_class_pool" / "sample_*"
+        # the multi-allele bag IS the actual presenting MHC.  See the
+        # parallel block in scanner.py for the IEDB path.
+        if "mhc_allele_set" in record.columns and "mhc_allele_provenance" in record.columns:
+            promote_mask = (
+                (record["mhc_allele_bag_size"].fillna(0) > 0)
+                & (record["mhc_allele_provenance"] != "exact")
+                & record["mhc_allele_set"].notna()
+                & (record["mhc_allele_set"] != "")
+            )
+            if promote_mask.any():
+                record.loc[promote_mask, "mhc_restriction"] = record.loc[
+                    promote_mask, "mhc_allele_set"
+                ]
+
         # Fallback: derive mhc_species from host when allele-based
         # classification is empty (e.g. supplementary peptides without
         # per-peptide allele assignments).
