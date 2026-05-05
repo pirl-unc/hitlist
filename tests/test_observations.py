@@ -537,6 +537,100 @@ def test_exclude_class_label_suspect_works_with_explicit_projection(tmp_path, mo
     assert out["pmid"].tolist() == [2]
 
 
+def test_exclude_non_peptide_ligand_default_drops_cd1_mr1_mic_rows(tmp_path, monkeypatch):
+    """#228: by default, ``load_observations`` drops rows whose MHC
+    molecule presents lipids/metabolites/stress-ligands rather than
+    peptides. Opting in via ``exclude_non_peptide_ligand=False`` keeps
+    them. The flag is also materialized as a column so consumers can
+    inspect it."""
+    import pandas as pd
+
+    from hitlist.observations import load_observations
+
+    df = pd.DataFrame(
+        {
+            # 4 non-peptide-MHC rows — all must be dropped by default.
+            # 1 H2-M3 row — class Ib peptide presenter, MUST survive.
+            # 1 plain HLA-A*02:01 row — must survive.
+            "peptide": [
+                "lipid-A",
+                "5-OP-RU",
+                "stress-ligand-X",
+                "phosphoantigen-Y",
+                "FAPGNYPAL",  # real N-formyl peptide on H2-M3
+                "SIINFEKL",
+            ],
+            # MICA is left in canonical "HLA-MICA" form because the
+            # loader's #181 backstop normalization (mhcgnomes) expands a
+            # bare "MICA" to "HLA-MICA"; either form must flag the same way.
+            "mhc_restriction": [
+                "human-CD1d",
+                "human-MR1",
+                "HLA-MICA",
+                "cattle-CD1b3",
+                "H2-M3",
+                "HLA-A*02:01",
+            ],
+            "mhc_class": ["non classical"] * 5 + ["I"],
+            "reference_iri": [f"r-{i}" for i in range(6)],
+            "pmid": pd.array(range(6), dtype="Int64"),
+            "source": ["iedb"] * 6,
+            "mhc_species": ["Homo sapiens"] * 6,
+        }
+    )
+    path = tmp_path / "observations.parquet"
+    df.to_parquet(path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
+
+    # Default: 4 non-peptide rows dropped, H2-M3 + classical kept.
+    default = load_observations()
+    assert "is_non_peptide_ligand" in default.columns
+    assert default["is_non_peptide_ligand"].dtype == bool
+    assert not default["is_non_peptide_ligand"].any()
+    assert set(default["mhc_restriction"]) == {"H2-M3", "HLA-A*02:01"}
+
+    # Opt-in: all 6 rows surface; 4 carry the flag, 2 don't.
+    optin = load_observations(exclude_non_peptide_ligand=False)
+    assert len(optin) == 6
+    flagged = dict(zip(optin["mhc_restriction"], optin["is_non_peptide_ligand"]))
+    assert flagged == {
+        "human-CD1d": True,
+        "human-MR1": True,
+        "HLA-MICA": True,
+        "cattle-CD1b3": True,
+        "H2-M3": False,
+        "HLA-A*02:01": False,
+    }
+
+
+def test_exclude_non_peptide_ligand_works_with_projection(tmp_path, monkeypatch):
+    """The filter must also work when the caller projects with
+    ``columns=[...]`` that omits ``mhc_restriction`` (the dep). The
+    loader pulls the dep in for the filter, then trims back."""
+    import pandas as pd
+
+    from hitlist.observations import load_observations
+
+    df = pd.DataFrame(
+        {
+            "peptide": ["GPI-mannoside", "SIINFEKL"],
+            "mhc_restriction": ["mouse-CD1d", "HLA-A*02:01"],
+            "mhc_class": ["non classical", "I"],
+            "reference_iri": ["r-0", "r-1"],
+            "pmid": pd.array([1, 2], dtype="Int64"),
+            "source": ["iedb"] * 2,
+            "mhc_species": ["Mus musculus", "Homo sapiens"],
+        }
+    )
+    path = tmp_path / "observations.parquet"
+    df.to_parquet(path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
+
+    out = load_observations(columns=["peptide"])
+    assert list(out.columns) == ["peptide"]
+    assert out["peptide"].tolist() == ["SIINFEKL"]
+
+
 def test_load_observations_emits_severity_tiers(tmp_path, monkeypatch):
     """v1.30.17 / #201: ``mhc_class_label_severity`` returns one of
     {ok, borderline, suspect, implausible} per row.

@@ -29,7 +29,7 @@ from pathlib import Path
 import pandas as pd
 import yaml
 
-from .curation import classify_ms_row, expand_allele_bag, normalize_species
+from .curation import classify_ms_row, expand_allele_bag, is_non_peptide_ligand, normalize_species
 
 _DATA_DIR = Path(__file__).parent / "data"
 _MANIFEST_PATH = _DATA_DIR / "supplementary.yaml"
@@ -201,6 +201,9 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
                 "quantitative_measurement": "",
                 "quantitative_value": float("nan"),
                 "is_binding_assay": False,
+                "is_non_peptide_ligand": [
+                    is_non_peptide_ligand(a) for a in df["mhc_restriction"].to_numpy()
+                ],
                 "is_potential_contaminant": df["is_potential_contaminant"].to_numpy(),
             }
         )

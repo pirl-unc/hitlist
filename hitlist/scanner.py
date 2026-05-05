@@ -308,6 +308,7 @@ def scan(
         classify_allele_resolution,
         classify_mhc_species,
         is_binding_assay,
+        is_non_peptide_ligand,
         normalize_allele,
         normalize_species,
     )
@@ -450,6 +451,12 @@ def scan(
                     _safe_col(row, c["qualitative_measurement"]),
                     _safe_col(row, c["assay_comments"]),
                 ),
+                # Flags rows whose MHC molecule presents lipids / metabolites
+                # rather than peptides (CD1, MR1, MIC, ULBP, etc. — see #228).
+                # IEDB curates these alongside peptide-MHC and stores chemical
+                # names or compound IDs in the peptide column; downstream
+                # peptide consumers should filter these out.
+                "is_non_peptide_ligand": is_non_peptide_ligand(mhc_res),
             }
 
             if classify_source:

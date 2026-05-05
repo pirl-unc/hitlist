@@ -409,6 +409,57 @@ def test_generate_observations_is_engineered_mhc_column(full_observations_df):
     )
 
 
+def test_generate_observations_excludes_non_peptide_ligand_by_default(full_observations_df):
+    """``generate_observations_table`` defaults to excluding CD1/MR1/MIC
+    rows (#228) so callers iterating the result for peptide-level work
+    don't silently treat lipid/metabolite identifiers as amino-acid
+    sequences. The column is still materialized — it should be all
+    False after the default filter."""
+    df = full_observations_df
+    assert "is_non_peptide_ligand" in df.columns
+    assert df["is_non_peptide_ligand"].dtype == bool
+    assert not df["is_non_peptide_ligand"].any(), (
+        "default generate_observations_table must filter out CD1/MR1/MIC rows"
+    )
+
+
+@pytest.mark.integration
+def test_generate_observations_is_non_peptide_ligand_opt_in():
+    """Opting in via ``exclude_non_peptide_ligand=False`` returns the
+    CD1/MR1/MIC/etc. rows so consumers studying lipid antigens (CD1d
+    glycolipid panels, MAIT-cell metabolite ligands) can still reach
+    them. The flagged rows must be a small minority of the corpus.
+
+    Uses ``load_observations`` with a narrow column projection rather
+    than ``generate_observations_table()`` — we only need the corpus
+    contract on the flag column, not the per-sample metadata join,
+    so this avoids the multi-minute sample-join build on every test
+    run.
+    """
+    from hitlist.observations import is_built, load_observations
+
+    if not is_built():
+        pytest.skip("Observations table not built")
+
+    df = load_observations(
+        exclude_non_peptide_ligand=False,
+        columns=["mhc_restriction", "is_non_peptide_ligand"],
+    )
+    assert "is_non_peptide_ligand" in df.columns
+    flagged = df[df["is_non_peptide_ligand"]]
+    assert len(flagged) > 0, "No CD1/MR1/MIC rows surfaced — regex may be too tight"
+    # CD1/MR1 rows are a small slice of a multi-million-row corpus.
+    assert df["is_non_peptide_ligand"].mean() < 0.01
+    # Every flagged row must have an MHC molecule from the non-peptide
+    # whitelist — sanity check on the regex (no spurious classical hits).
+    flagged_alleles = set(flagged["mhc_restriction"].astype(str))
+    for a in flagged_alleles:
+        token = a.lower()
+        assert any(
+            t in token for t in ("cd1", "mr1", "mica", "micb", "raet1", "ulbp", "nkg2", "hfe")
+        ), f"flagged allele {a!r} doesn't match any non-peptide MHC family"
+
+
 def test_generate_observations_parquet_export(tmp_path, full_observations_df):
     """Parquet export path should produce a readable file."""
     df = full_observations_df

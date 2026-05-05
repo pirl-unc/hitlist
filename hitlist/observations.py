@@ -82,6 +82,7 @@ def load_observations(
     length_max: int | None = None,
     exclude_class_label_suspect: bool = False,
     exclude_class_label_implausible: bool = False,
+    exclude_non_peptide_ligand: bool = True,
     columns: list[str] | None = None,
 ) -> pd.DataFrame:
     """Load the built MS observations table with optional filters.
@@ -111,6 +112,15 @@ def load_observations(
         the curated MHC class (class II ≤ 10 aa, or class I ≥ 18 aa).
         See ``mhc_class_label_suspect`` flag (#182). Useful for model
         training pipelines that should not see IEDB class-label drift.
+    exclude_non_peptide_ligand
+        When True (default), drop rows whose MHC molecule presents
+        lipids/glycolipids/metabolites rather than peptides — CD1
+        family, MR1, MIC{A,B}, RAET1*, ULBP*, NKG2[A-C], HFE (#228).
+        These rows carry chemical names or compound identifiers in the
+        ``peptide`` column, not amino-acid sequences, and silently
+        pollute peptide-prediction models, motif analyses, and length
+        distributions. Pass ``False`` to retain them (e.g. for CD1 /
+        MR1 lipid-antigen analyses).
     peptide, serotype, columns
         See module docstring.
 
@@ -134,6 +144,7 @@ def load_observations(
         length_max=length_max,
         exclude_class_label_suspect=exclude_class_label_suspect,
         exclude_class_label_implausible=exclude_class_label_implausible,
+        exclude_non_peptide_ligand=exclude_non_peptide_ligand,
         columns=columns,
     )
 
@@ -151,6 +162,7 @@ def load_ms_observations(
     length_max: int | None = None,
     exclude_class_label_suspect: bool = False,
     exclude_class_label_implausible: bool = False,
+    exclude_non_peptide_ligand: bool = True,
     columns: list[str] | None = None,
 ) -> pd.DataFrame:
     """Alias for :func:`load_observations` with modality explicit in the name."""
@@ -167,6 +179,7 @@ def load_ms_observations(
         length_max=length_max,
         exclude_class_label_suspect=exclude_class_label_suspect,
         exclude_class_label_implausible=exclude_class_label_implausible,
+        exclude_non_peptide_ligand=exclude_non_peptide_ligand,
         columns=columns,
     )
 
@@ -184,6 +197,7 @@ def load_binding(
     length_max: int | None = None,
     exclude_class_label_suspect: bool = False,
     exclude_class_label_implausible: bool = False,
+    exclude_non_peptide_ligand: bool = True,
     columns: list[str] | None = None,
 ) -> pd.DataFrame:
     """Load the built binding-assay table with optional filters.
@@ -211,6 +225,7 @@ def load_binding(
         length_max=length_max,
         exclude_class_label_suspect=exclude_class_label_suspect,
         exclude_class_label_implausible=exclude_class_label_implausible,
+        exclude_non_peptide_ligand=exclude_non_peptide_ligand,
         columns=columns,
     )
 
@@ -228,6 +243,7 @@ def load_all_evidence(
     length_max: int | None = None,
     exclude_class_label_suspect: bool = False,
     exclude_class_label_implausible: bool = False,
+    exclude_non_peptide_ligand: bool = True,
     columns: list[str] | None = None,
 ) -> pd.DataFrame:
     """Union of MS observations + binding assays with an ``evidence_kind`` column.
@@ -261,6 +277,7 @@ def load_all_evidence(
         "length_max": length_max,
         "exclude_class_label_suspect": exclude_class_label_suspect,
         "exclude_class_label_implausible": exclude_class_label_implausible,
+        "exclude_non_peptide_ligand": exclude_non_peptide_ligand,
         "columns": columns,
     }
 
@@ -286,6 +303,9 @@ def load_all_evidence(
 _DERIVED_COLUMN_DEPS: dict[str, tuple[str, ...]] = {
     "mhc_class_label_suspect": ("mhc_class", "peptide"),
     "mhc_class_label_severity": ("mhc_class", "peptide"),
+    # Stored at scan time post-#228, but recomputable from
+    # ``mhc_restriction`` so caller projections work on stale parquets.
+    "is_non_peptide_ligand": ("mhc_restriction",),
 }
 
 
@@ -305,6 +325,7 @@ def _load_peptide_index(
     length_max: int | None,
     exclude_class_label_suspect: bool,
     exclude_class_label_implausible: bool,
+    exclude_non_peptide_ligand: bool,
     columns: list[str] | None,
 ) -> pd.DataFrame:
     """Shared loader for the observations and binding parquets.
@@ -401,6 +422,10 @@ def _load_peptide_index(
         # or not the caller explicitly projected the derived flags.
         if exclude_class_label_suspect or exclude_class_label_implausible:
             for dep in _DERIVED_COLUMN_DEPS["mhc_class_label_suspect"]:
+                if dep not in kept:
+                    kept.append(dep)
+        if exclude_non_peptide_ligand:
+            for dep in _DERIVED_COLUMN_DEPS["is_non_peptide_ligand"]:
                 if dep not in kept:
                     kept.append(dep)
         read_columns = kept
@@ -507,6 +532,28 @@ def _load_peptide_index(
         df = df[~df["mhc_class_label_suspect"]]
     if exclude_class_label_implausible and "mhc_class_label_severity" in df.columns:
         df = df[df["mhc_class_label_severity"] != "implausible"]
+
+    # ── Non-peptide-presenting MHC molecules (#228) ───────────────────────
+    # CD1 / MR1 / MIC / ULBP / RAET1 / NKG2[A-C] / HFE present lipids,
+    # metabolites, or stress ligands rather than peptides; default-exclude
+    # so peptide consumers don't ingest IEDB's chemical-name / compound-id
+    # strings. Always materialize the column (cheap unique-allele map) so
+    # ``columns=`` projections work and stale parquets stay correct.
+    # Derived again at scan time and in :func:`_apply_training_defaults`
+    # — same regex everywhere, redundancy is intentional.
+    if "mhc_restriction" in df.columns and len(df) > 0:
+        from .curation import is_non_peptide_ligand
+
+        if "is_non_peptide_ligand" not in df.columns:
+            uniq = df["mhc_restriction"].dropna().unique()
+            flag_map = {str(a): is_non_peptide_ligand(a) for a in uniq}
+            df["is_non_peptide_ligand"] = (
+                df["mhc_restriction"].map(flag_map).fillna(False).astype(bool)
+            )
+        else:
+            df["is_non_peptide_ligand"] = df["is_non_peptide_ligand"].astype(bool)
+        if exclude_non_peptide_ligand:
+            df = df[~df["is_non_peptide_ligand"]]
 
     # If the caller explicitly projected, trim back to that exact list now
     # — derived columns pulled extra dependency columns into the read above

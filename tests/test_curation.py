@@ -1438,3 +1438,94 @@ def test_is_engineered_mhc_pathogen_source_is_not_engineered():
         )
         is False
     )
+
+
+# ── is_non_peptide_ligand (#228) ─────────────────────────────────────────
+
+
+def test_is_non_peptide_ligand_cd1_family():
+    """CD1a/b/c/d/e present lipids and glycolipids to NKT and CD1-restricted
+    T cells. IEDB curates these rows with chemical names in the peptide
+    column (e.g. sulfatide, mycolic acid) — must flag True."""
+    from hitlist.curation import is_non_peptide_ligand
+
+    for s in (
+        "human-CD1a",
+        "human-CD1b",
+        "human-CD1c",
+        "human-CD1d",
+        "mouse-CD1d",
+        "cattle-CD1d",
+    ):
+        assert is_non_peptide_ligand(s) is True, f"{s!r} should flag"
+
+
+def test_is_non_peptide_ligand_cd1_subtype_digits_and_dash():
+    """IEDB curates a few CD1 paralogues with numeric subtype suffixes
+    (mouse-CD1d1, mouse-CD1d2, cattle-CD1b3) and chicken-CD1-2 in
+    dash-numeric form. The naive ``\\bCD1[abcd]?\\b`` regex from the
+    issue would miss these — the implemented regex must catch them all."""
+    from hitlist.curation import is_non_peptide_ligand
+
+    for s in ("mouse-CD1d1", "mouse-CD1d2", "cattle-CD1b3", "chicken-CD1-2"):
+        assert is_non_peptide_ligand(s) is True, f"{s!r} should flag"
+
+
+def test_is_non_peptide_ligand_mr1_and_mutants():
+    """MR1 presents riboflavin-derived metabolites to MAIT cells.
+    Mutant strings (``human-MR1 K43A mutant``) must still flag —
+    regex anchors on the gene token, not the trailing annotation."""
+    from hitlist.curation import is_non_peptide_ligand
+
+    assert is_non_peptide_ligand("human-MR1") is True
+    assert is_non_peptide_ligand("cattle-MR1") is True
+    assert is_non_peptide_ligand("human-MR1 K43A mutant") is True
+    assert is_non_peptide_ligand("human-MR1 R9H mutant") is True
+    assert is_non_peptide_ligand("mouse-CD1d Y73H mutant") is True
+
+
+def test_is_non_peptide_ligand_mic_ulbp_raet1_nkg2_hfe():
+    """MIC{A,B}, RAET1*, ULBP* are stress ligands for the NKG2D NK
+    receptor — not peptide presenters. NKG2[A-C] and HFE round out the
+    non-peptide-presenting whitelist from the issue."""
+    from hitlist.curation import is_non_peptide_ligand
+
+    for s in ("MICA", "MICB", "RAET1L", "ULBP1", "ULBP3", "NKG2A", "NKG2C", "HFE"):
+        assert is_non_peptide_ligand(s) is True, f"{s!r} should flag"
+
+
+def test_is_non_peptide_ligand_classical_mhc_does_not_flag():
+    """Classical class I/II and class-Ib peptide presenters (HLA-A/B/C/E/F/G,
+    H2-K/D/L/Q/T, Patr-AL, BoLA-*, SLA-*, DLA-*) all present peptides —
+    none must be flagged. H2-M3 is class Ib but presents N-formyl peptides
+    and is intentionally excluded from the non-peptide regex (see #228)."""
+    from hitlist.curation import is_non_peptide_ligand
+
+    for s in (
+        "HLA-A*02:01",
+        "HLA-B*07:02",
+        "HLA-C*07:01",
+        "HLA-DRB1*04:01",
+        "HLA-DPB1*04:01",
+        "HLA-E*01:03",
+        "HLA-F*01:01",
+        "HLA-G*01:01",
+        "H2-Kb",
+        "H2-Db",
+        "H2-Q1",
+        "H2-T23*a",
+        "H2-M3",  # class Ib, N-formyl peptides — NOT a non-peptide presenter
+        "Patr-AL",
+        "BoLA-1*02301",
+        "SLA-1*02:01",
+    ):
+        assert is_non_peptide_ligand(s) is False, f"{s!r} must not flag"
+
+
+def test_is_non_peptide_ligand_empty_input():
+    """Empty / missing restriction strings cannot be classified — return
+    False rather than guessing (matches is_chimeric_system convention)."""
+    from hitlist.curation import is_non_peptide_ligand
+
+    assert is_non_peptide_ligand("") is False
+    assert is_non_peptide_ligand(None) is False  # type: ignore[arg-type]
