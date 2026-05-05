@@ -341,6 +341,49 @@ def is_chimeric_system(source_organism: str, mhc_species: str) -> bool:
     )
 
 
+@cache
+def is_engineered_mhc(source_organism: str, mhc_species: str, host: str) -> bool:
+    """True iff the MHC molecule is heterologous to the host cells / tissue.
+
+    Distinguishes engineered-MHC systems (HLA-transgenic rats, NetH2pan
+    training, allogeneic HLA transfectants — where the cells live in one
+    species but display the MHC of another) from heterologous-antigen
+    studies (Lewis-rat EAE with guinea-pig MBP, bovine-allergen on HLA —
+    where the cells use their *native* MHC but present a foreign protein).
+
+    Both scenarios trigger :func:`is_chimeric_system` because in both
+    ``source_organism != mhc_species``. The discriminator is the IEDB
+    ``host`` field: in an engineered-MHC system the host genus matches
+    the source proteome (the cells are native, the MHC is transgenic);
+    in a heterologous-antigen system the host genus matches the MHC
+    species (the cells are native, the antigen is foreign).
+
+    Returns ``False`` when:
+
+    - the row is not chimeric (same source / MHC genus → no question of
+      engineered MHC).
+    - ``host`` is empty / unrecognized (chimerism cannot be classified
+      without the host axis; conservative default).
+    - host genus matches the MHC genus (heterologous antigen, not
+      engineered MHC).
+
+    Cached on the (source, mhc, host) triple — same call shape and
+    cardinality as :func:`is_chimeric_system`.
+    """
+    if not is_chimeric_system(source_organism, mhc_species):
+        return False
+    host_norm = normalize_species(host)
+    if not host_norm:
+        return False
+    host_genus = host_norm.split()[0].lower()
+    if host_genus not in _MHC_BEARING_HOST_GENERA:
+        return False
+    src_genus = normalize_species(source_organism).split()[0].lower()
+    mhc_genus = normalize_species(mhc_species).split()[0].lower()
+    # Engineered MHC: cells are from the source species, MHC differs.
+    return host_genus == src_genus and host_genus != mhc_genus
+
+
 # ── Allele normalization ──────────────────────────────────────────────────
 
 
