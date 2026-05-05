@@ -1550,8 +1550,12 @@ def _apply_training_defaults(df: pd.DataFrame) -> pd.DataFrame:
 
     # Derive ``is_non_peptide_ligand`` from ``mhc_restriction`` (#228).  Both
     # observations.parquet and binding.parquet carry this column post-#228,
-    # but recompute here as a backstop so stale parquets / mixed exports
-    # don't silently lose CD1/MR1/MIC flagging.
+    # and :func:`_load_peptide_index` already materializes it at load time;
+    # this third derivation is the deliberate safety net for mixed exports
+    # (MS + binding concat) and for any caller that hands us a frame
+    # assembled outside the loader path. All three sites share the same
+    # ``is_non_peptide_ligand`` helper, so the result is invariant — see
+    # the load-time comment in ``observations.py`` for the full rationale.
     if "mhc_restriction" in result.columns:
         from .curation import is_non_peptide_ligand
 

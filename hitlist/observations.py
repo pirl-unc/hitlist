@@ -544,6 +544,15 @@ def _load_peptide_index(
     # Always materialize the column when ``mhc_restriction`` is available
     # — both so consumers can introspect it, and as a backstop for
     # parquets built before the column was added at scan time.
+    #
+    # NB: ``is_non_peptide_ligand`` is derived in three places by design,
+    # NOT by accident — at scan time (writes to parquet, fast for fresh
+    # builds), here at load time (backstop + materialization for
+    # ``columns=`` projections), and in :func:`_apply_training_defaults`
+    # (mixed-export safety net). All three converge on the same regex,
+    # cost is O(unique alleles) ≈ a few hundred values, and the
+    # redundancy is what makes stale-parquet recovery transparent to
+    # consumers.
     if "mhc_restriction" in df.columns and len(df) > 0:
         from .curation import is_non_peptide_ligand
 

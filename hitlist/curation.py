@@ -408,6 +408,10 @@ _NON_PEPTIDE_MHC_RE = re.compile(
     r"|\bMICA\b|\bMICB\b"
     r"|\bRAET1[A-Z]?\b"
     r"|\bULBP\d?\b"
+    # NKG2 is a NK-cell *receptor* family, not an MHC molecule — it
+    # should never appear in IEDB's MHC-restriction column. Kept
+    # defensive in case future curation drift puts it there; matches
+    # the issue's stated whitelist.
     r"|\bNKG2[A-C]\b"
     r"|\bHFE\b",
     re.IGNORECASE,
