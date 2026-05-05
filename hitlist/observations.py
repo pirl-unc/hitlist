@@ -54,10 +54,12 @@ from .downloads import data_dir
 
 
 @lru_cache(maxsize=8)
-def _unique_restrictions(path_str: str, mtime: float) -> tuple[str, ...]:
+def _unique_restrictions(path_str: str, mtime_ns: int, size: int) -> tuple[str, ...]:
     """Cached unique values of the ``mhc_restriction`` column for a parquet
-    file, keyed by ``(path, mtime)`` so a rebuild invalidates.
+    file, keyed by ``(path, mtime_ns, size)`` so a rebuild invalidates.
 
+    Nanosecond mtime + size guards against same-second rebuild collisions
+    on filesystems with 1s mtime resolution (HFS+, some network mounts).
     The set of distinct restriction strings is small (~hundreds) and
     changes only when the parquet rebuilds, but we use it on every
     bag-aware ``mhc_restriction`` filter call — caching avoids re-reading
@@ -65,6 +67,12 @@ def _unique_restrictions(path_str: str, mtime: float) -> tuple[str, ...]:
     """
     table = pq.read_table(path_str, columns=["mhc_restriction"])
     return tuple(table.column("mhc_restriction").unique().to_pylist())
+
+
+def _unique_restrictions_for(path: Path) -> tuple[str, ...]:
+    """``_unique_restrictions`` keyed by the file's stat tuple."""
+    st = os.stat(path)
+    return _unique_restrictions(str(path), st.st_mtime_ns, st.st_size)
 
 
 def observations_path() -> Path:
@@ -425,8 +433,14 @@ def _load_peptide_index(
         # predicate fast while honoring bag-membership semantics.  The
         # unique-restriction set is cached per ``(path, mtime)`` so we
         # don't re-read the column on every call.
-        wanted = {normalize_allele(v) for v in _as_list(mhc_restriction)}
-        all_restrictions = _unique_restrictions(str(path), os.path.getmtime(path))
+        wanted = {normalize_allele(v) for v in _as_list(mhc_restriction) if v}
+        wanted.discard("")
+        if not wanted:
+            raise ValueError(
+                "mhc_restriction filter received no usable allele values "
+                "after normalization; pass at least one non-empty allele."
+            )
+        all_restrictions = _unique_restrictions_for(path)
         matching = [
             r
             for r in all_restrictions
@@ -530,7 +544,13 @@ def _load_peptide_index(
         # ``HLA-A*02`` from matching ``HLA-A*02:01``.  ``str.contains`` runs
         # in C; one pass per wanted allele beats a per-row Python apply
         # for low-selectivity queries on millions of rows.
-        wanted_bag = {normalize_allele(a.strip()) for a in _as_list(mhc_allele_in_set)}
+        wanted_bag = {normalize_allele(a.strip()) for a in _as_list(mhc_allele_in_set) if a}
+        wanted_bag.discard("")
+        if not wanted_bag:
+            raise ValueError(
+                "mhc_allele_in_set filter received no usable allele values "
+                "after normalization; pass at least one non-empty allele."
+            )
         padded = ";" + df["mhc_allele_set"].fillna("").astype(str) + ";"
         mask = pd.Series(False, index=df.index)
         for allele in wanted_bag:

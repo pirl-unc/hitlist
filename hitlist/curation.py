@@ -1035,7 +1035,7 @@ def _pmid_peptide_alleles(pmid_int: int) -> dict[str, frozenset[str]]:
     (``peptide → samples`` then ``sample → alleles``) into a single
     cached map so the per-row scan path is a dict lookup, not a set
     union.  Computed once per PMID (lru_cached); empty when the PMID
-    has no attribution CSV.
+    has no attribution CSV.  Treat the returned dict as read-only.
     """
     attributions = _pmid_peptide_attributions(pmid_int)
     if not attributions:

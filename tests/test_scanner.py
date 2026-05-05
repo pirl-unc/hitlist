@@ -458,3 +458,46 @@ def test_scan_emits_allele_bag_columns_with_provenance(tmp_path):
     assert by_pep.loc["UNMATCHEDAB", "mhc_allele_provenance"] == "unmatched"
     assert by_pep.loc["UNMATCHEDAB", "mhc_allele_set"] == ""
     assert by_pep.loc["UNMATCHEDAB", "mhc_allele_bag_size"] == 0
+
+
+def test_scan_promotes_bag_to_mhc_restriction_via_peptide_attribution(tmp_path):
+    """End-to-end (#45): a class-only IEDB row whose peptide appears in
+    the registered ``peptide_attributions`` CSV (Sarkizova 2020 / PMID
+    31844290) gets its bag narrowed to the matched donor's typed
+    alleles AND its ``mhc_restriction`` promoted to that bag.
+
+    ``AAAAAAAAAAAAAAPAP`` is uniquely attributed to MEL2 (13240-005),
+    whose ``ms_samples[].mhc`` lists 5 alleles after homozygous-A
+    collapse: A*01:01 / B*38:01 / B*56:01 / C*01:02 / C*06:02.  We assert
+    the scanner produces exactly that bag and that the row's
+    ``mhc_restriction`` is no longer ``"HLA class I"``.
+    """
+    src = tmp_path / "iedb.csv"
+    row = [""] * 112
+    row[0] = "http://iedb.org/assay/9000001"
+    row[1] = "http://iedb.org/reference/sarkizova"
+    row[2] = "31844290"
+    row[5] = "AAAAAAAAAAAAAAPAP"
+    row[49] = "HLA-A*01:01;HLA-B*38:01;HLA-B*56:01;HLA-C*01:02;HLA-C*06:02"
+    row[107] = "HLA class I"
+    row[108] = "I"
+    _write_bag_iedb_csv(src, [row])
+
+    df = scan(peptides=None, iedb_path=str(src), cedar_path=None)
+    assert len(df) == 1
+    r = df.iloc[0]
+
+    assert r["mhc_allele_provenance"] == "peptide_attribution"
+    assert r["mhc_allele_bag_size"] == 5
+    expected = {
+        "HLA-A*01:01",
+        "HLA-B*38:01",
+        "HLA-B*56:01",
+        "HLA-C*01:02",
+        "HLA-C*06:02",
+    }
+    assert set(r["mhc_allele_set"].split(";")) == expected
+    # Bag promoted to mhc_restriction — class label replaced by the actual
+    # presenting-MHC bag.
+    assert r["mhc_restriction"] != "HLA class I"
+    assert set(r["mhc_restriction"].split(";")) == expected
