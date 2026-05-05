@@ -384,6 +384,59 @@ def is_engineered_mhc(source_organism: str, mhc_species: str, host: str) -> bool
     return host_genus == src_genus and host_genus != mhc_genus
 
 
+# ── Non-peptide-presenting MHC molecules (#228) ──────────────────────────
+#
+# CD1, MR1, MIC, ULBP, RAET1, NKG2, and HFE are not peptide presenters.
+# CD1 (a/b/c/d/e) presents lipids and glycolipids to NKT and CD1-restricted
+# T cells; MR1 presents riboflavin-derived small-molecule metabolites to MAIT
+# cells; MICA/MICB/RAET1/ULBP are stress-induced ligands for the NKG2D
+# activating receptor on NK cells; HFE is involved in iron regulation.
+#
+# IEDB curates these alongside peptide-MHC rows but populates the
+# ``peptide`` column with chemical names ("L-idopyranose 6-monomycolate")
+# or compound identifiers ("HS44") rather than amino-acid sequences.
+# Downstream consumers iterating ``observations.parquet`` for peptide-level
+# work (motif analyses, length distributions, source-protein mapping,
+# peptide-prediction models) silently produce nonsense on these rows.
+#
+# H2-M3 is intentionally excluded — it IS a class Ib peptide presenter
+# (N-formyl peptides), so its single row in the corpus carries a real
+# peptide sequence.
+_NON_PEPTIDE_MHC_RE = re.compile(
+    r"\bCD1(?:[a-eA-E]\d?|-\d)?\b"  # CD1, CD1a..e, CD1d2, CD1-2
+    r"|\bMR1\b"
+    r"|\bMICA\b|\bMICB\b"
+    r"|\bRAET1[A-Z]?\b"
+    r"|\bULBP\d?\b"
+    r"|\bNKG2[A-C]\b"
+    r"|\bHFE\b",
+    re.IGNORECASE,
+)
+
+
+@cache
+def is_non_peptide_ligand(mhc_restriction: str) -> bool:
+    """True iff ``mhc_restriction`` names a non-peptide-presenting MHC molecule.
+
+    Detects CD1 family, MR1, MIC{A,B}, RAET1*, ULBP*, NKG2[A-C], and HFE
+    in any normalized restriction string ("mouse-CD1d", "human-MR1",
+    "cattle-CD1b3", "chicken-CD1-2", "human-MR1 K43A mutant", etc.).
+    Classical and class-Ib peptide presenters (HLA-A/B/C/E/F/G, H2-K/D/L,
+    H2-Q*, H2-T*, H2-M3, Patr-AL, BoLA-*) are not flagged.
+
+    Rows flagged here carry lipid, glycolipid, or small-molecule
+    identifiers in the ``peptide`` column, not amino-acid sequences.
+    Default ``load_observations`` behavior excludes them; opt-in via
+    ``exclude_non_peptide_ligand=False``.
+
+    Cached on the unique mhc_restriction vocabulary (~hundreds of values
+    across millions of rows).
+    """
+    if not mhc_restriction:
+        return False
+    return bool(_NON_PEPTIDE_MHC_RE.search(mhc_restriction))
+
+
 # ── Allele normalization ──────────────────────────────────────────────────
 
 

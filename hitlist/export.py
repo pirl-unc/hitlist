@@ -109,6 +109,7 @@ _TRAINING_DEFAULTS = {
     "matched_sample_count": 0,
     "is_chimeric": False,
     "is_engineered_mhc": False,
+    "is_non_peptide_ligand": False,
 }
 
 
@@ -297,6 +298,7 @@ def generate_observations_table(
     length_max: int | None = None,
     exclude_class_label_suspect: bool = False,
     exclude_class_label_implausible: bool = False,
+    exclude_non_peptide_ligand: bool = True,
     apm_only: bool = False,
     columns: list[str] | None = None,
 ) -> pd.DataFrame:
@@ -371,6 +373,7 @@ def generate_observations_table(
         obs_filters["exclude_class_label_suspect"] = True
     if exclude_class_label_implausible:
         obs_filters["exclude_class_label_implausible"] = True
+    obs_filters["exclude_non_peptide_ligand"] = exclude_non_peptide_ligand
     obs = load_observations(**obs_filters)
 
     if min_allele_resolution:
@@ -999,6 +1002,7 @@ def generate_binding_table(
     quantitative_value_max: float | None = None,
     quantitative_value_min: float | None = None,
     has_quantitative_value: bool | None = None,
+    exclude_non_peptide_ligand: bool = True,
     columns: list[str] | None = None,
 ) -> pd.DataFrame:
     """Load the binding-assay index with optional filters.
@@ -1111,6 +1115,7 @@ def generate_binding_table(
         bind_filters["length_min"] = length_min
     if length_max is not None:
         bind_filters["length_max"] = length_max
+    bind_filters["exclude_non_peptide_ligand"] = exclude_non_peptide_ligand
 
     df = load_binding(**bind_filters)
 
@@ -1543,10 +1548,27 @@ def _apply_training_defaults(df: pd.DataFrame) -> pd.DataFrame:
     elif "is_engineered_mhc" not in result.columns:
         result["is_engineered_mhc"] = False
 
+    # Derive ``is_non_peptide_ligand`` from ``mhc_restriction`` (#228).  Both
+    # observations.parquet and binding.parquet carry this column post-#228,
+    # but recompute here as a backstop so stale parquets / mixed exports
+    # don't silently lose CD1/MR1/MIC flagging.
+    if "mhc_restriction" in result.columns:
+        from .curation import is_non_peptide_ligand
+
+        uniq = result["mhc_restriction"].dropna().unique()
+        if len(uniq):
+            flag_map = {str(a): is_non_peptide_ligand(a) for a in uniq}
+            result["is_non_peptide_ligand"] = result["mhc_restriction"].map(flag_map).fillna(False)
+        else:
+            result["is_non_peptide_ligand"] = False
+    elif "is_non_peptide_ligand" not in result.columns:
+        result["is_non_peptide_ligand"] = False
+
     result["matched_sample_count"] = result["matched_sample_count"].astype(int)
     result["has_peptide_level_allele"] = result["has_peptide_level_allele"].astype(bool)
     result["is_chimeric"] = result["is_chimeric"].astype(bool)
     result["is_engineered_mhc"] = result["is_engineered_mhc"].astype(bool)
+    result["is_non_peptide_ligand"] = result["is_non_peptide_ligand"].astype(bool)
 
     # Stable evidence-row identifier.  Prefer ``assay_iri`` (row-level, from
     # IEDB/CEDAR's "Assay IRI" column or the synthesized supplement string
