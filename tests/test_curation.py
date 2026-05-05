@@ -1607,20 +1607,6 @@ def test_classify_allele_resolution_donor_bag():
     assert "donor_bag" in ALLELE_RESOLUTION_ORDER
 
 
-def test_expand_allele_bag_donor_bag_passthrough():
-    """When the input restriction is already a multi-allele bag (e.g. a
-    re-scanned post-#45 row), expand_allele_bag passes the parsed set
-    through with provenance ``donor_bag_passthrough`` — no further
-    expansion against host_mhc_types or pmid pool."""
-    from hitlist.curation import expand_allele_bag
-
-    bag_str = "HLA-A*02:01;HLA-A*03:01;HLA-B*27:05;HLA-B*47:01;HLA-C*01:02;HLA-C*06:02"
-    out_set, prov, size = expand_allele_bag(bag_str, "", "", "I", frozenset())
-    assert out_set == bag_str  # already sorted in input order
-    assert prov == "donor_bag_passthrough"
-    assert size == 6
-
-
 def test_expand_allele_bag_attributed_alleles_narrows():
     """``attributed_alleles`` (per-peptide attribution from #45) takes
     priority over ``host_mhc_types`` and the PMID pool, narrowing the

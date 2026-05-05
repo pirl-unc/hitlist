@@ -670,8 +670,8 @@ def test_mhc_restriction_filter_matches_donor_bag_member(tmp_path, monkeypatch):
     assert set(out["peptide"]) == {"SIINFEKL", "DONOR_BAG_PEP"}
 
 
-def test_mhc_allele_in_bag_filter_post_load(tmp_path, monkeypatch):
-    """``mhc_allele_in_bag`` filters on ``mhc_allele_set`` membership
+def test_mhc_allele_in_set_filter_post_load(tmp_path, monkeypatch):
+    """``mhc_allele_in_set`` filters on ``mhc_allele_set`` membership
     (semicolon-joined).  Equivalent semantics to ``mhc_restriction``
     filter post-#45 but operates on the dedicated bag column — kept
     available for callers who want the explicit knob."""
@@ -699,7 +699,7 @@ def test_mhc_allele_in_bag_filter_post_load(tmp_path, monkeypatch):
     df.to_parquet(path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
 
-    out = load_observations(mhc_allele_in_bag="HLA-A*02:01")
+    out = load_observations(mhc_allele_in_set="HLA-A*02:01")
     assert set(out["peptide"]) == {"P1", "P3"}
 
 

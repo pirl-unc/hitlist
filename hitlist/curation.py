@@ -932,7 +932,7 @@ def _pmid_allele_pool(pmid_int: int) -> frozenset[str]:
     return frozenset(_flatten_hla_alleles(entry.get("hla_alleles")))
 
 
-_SAMPLE_ALLELE_TOKEN_RE = re.compile(r"(?:HLA-)?[A-Z]+\d*\*\d{2,3}:\d{2,3}[A-Z]?")
+_SAMPLE_ALLELE_TOKEN_RE = re.compile(r"(?:HLA-)?[A-Z]+\d*\*\d{2,4}:\d{2,4}[A-Z]?")
 
 
 def _parse_sample_mhc_field(mhc_field) -> frozenset[str]:
@@ -1027,6 +1027,30 @@ def _pmid_peptide_attributions(pmid_int: int) -> dict[str, frozenset[str]]:
     return out
 
 
+@lru_cache(maxsize=512)
+def _pmid_peptide_alleles(pmid_int: int) -> dict[str, frozenset[str]]:
+    """Pre-merged ``peptide → frozenset(allele)`` for a PMID.
+
+    Folds the two-step lookup
+    (``peptide → samples`` then ``sample → alleles``) into a single
+    cached map so the per-row scan path is a dict lookup, not a set
+    union.  Computed once per PMID (lru_cached); empty when the PMID
+    has no attribution CSV.
+    """
+    attributions = _pmid_peptide_attributions(pmid_int)
+    if not attributions:
+        return {}
+    sample_alleles = _pmid_sample_alleles(pmid_int)
+    out: dict[str, frozenset[str]] = {}
+    for pep, samples in attributions.items():
+        merged: set[str] = set()
+        for label in samples:
+            merged |= sample_alleles.get(label, frozenset())
+        if merged:
+            out[pep] = frozenset(merged)
+    return out
+
+
 def attribute_peptide_to_sample_alleles(pmid: int | str, peptide: str) -> frozenset[str]:
     """Return the union of typed alleles across the samples a peptide was
     observed in within this PMID's curated cohort (#45), or an empty
@@ -1037,7 +1061,11 @@ def attribute_peptide_to_sample_alleles(pmid: int | str, peptide: str) -> frozen
     from the disease-wide union (e.g. all 14 alleles across GBM7+9+11)
     down to the matched donor's specific 6-allele genotype — turning
     14-18-allele candidate bags into 6-12-allele bags for
-    bag-membership / mhc_allele_in_bag queries.
+    bag-membership / mhc_allele_in_set queries.
+
+    Implemented as a single dict lookup against
+    :func:`_pmid_peptide_alleles` (the peptide-to-alleles map is
+    pre-merged once per PMID).
     """
     if not peptide:
         return frozenset()
@@ -1047,14 +1075,7 @@ def attribute_peptide_to_sample_alleles(pmid: int | str, peptide: str) -> frozen
             pmid_int = int(pmid)
     if pmid_int is None:
         return frozenset()
-    attribution = _pmid_peptide_attributions(pmid_int).get(peptide)
-    if not attribution:
-        return frozenset()
-    sample_alleles = _pmid_sample_alleles(pmid_int)
-    out: set[str] = set()
-    for label in attribution:
-        out |= sample_alleles.get(label, frozenset())
-    return frozenset(out)
+    return _pmid_peptide_alleles(pmid_int).get(peptide, frozenset())
 
 
 _HOST_MHC_SPLIT_RE = re.compile(r"[;,]")
@@ -1147,14 +1168,6 @@ def expand_allele_bag(
     resolution = classify_allele_resolution(mhc_restriction)
     if resolution == "four_digit":
         return mhc_restriction.strip(), "exact", 1
-
-    # Already a multi-allele bag (e.g. a row that's been re-scanned post-#45):
-    # accept it as-is. Provenance can't be inferred from the string alone, so
-    # we tag it ``donor_bag_passthrough`` — callers that need the original
-    # provenance should preserve it before re-calling.
-    if resolution == "donor_bag":
-        tokens = sorted({t.strip() for t in mhc_restriction.split(";") if t.strip()})
-        return ";".join(tokens), "donor_bag_passthrough", len(tokens)
 
     if resolution != "class_only":
         return "", "unmatched", 0
