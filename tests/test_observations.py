@@ -923,3 +923,51 @@ def test_severity_tier_strips_ptm_annotation_when_computing_length(tmp_path, mon
     assert sev["AAAAAAAAA"] == "ok"
     assert sev["AAAAAAAAAAAAAAAAAA"] == "implausible"
     assert sev["AAAAAAAAA + ???"] == "ok"
+
+
+def _write_minimal_observations_parquet(path):
+    import pandas as pd
+
+    pd.DataFrame(
+        {
+            "peptide": ["P1"],
+            "mhc_restriction": ["HLA-A*02:01"],
+            "mhc_class": ["I"],
+            "mhc_allele_set": ["HLA-A*02:01"],
+            "reference_iri": ["r-1"],
+            "pmid": pd.array([1], dtype="Int64"),
+            "source": ["iedb"],
+            "mhc_species": ["Homo sapiens"],
+        }
+    ).to_parquet(path, index=False)
+
+
+def test_mhc_restriction_filter_empty_string_raises(tmp_path, monkeypatch):
+    """Empty ``mhc_restriction`` filter values surface a ``ValueError``
+    instead of silently returning an empty frame — guards against
+    callers passing an unset variable by accident."""
+    from hitlist.observations import load_observations
+
+    path = tmp_path / "observations.parquet"
+    _write_minimal_observations_parquet(path)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
+
+    with pytest.raises(ValueError, match="mhc_restriction filter received no usable"):
+        load_observations(mhc_restriction="")
+    with pytest.raises(ValueError, match="mhc_restriction filter received no usable"):
+        load_observations(mhc_restriction=[""])
+
+
+def test_mhc_allele_in_set_filter_empty_string_raises(tmp_path, monkeypatch):
+    """Empty ``mhc_allele_in_set`` filter values surface a ``ValueError``
+    same as ``mhc_restriction``."""
+    from hitlist.observations import load_observations
+
+    path = tmp_path / "observations.parquet"
+    _write_minimal_observations_parquet(path)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
+
+    with pytest.raises(ValueError, match="mhc_allele_in_set filter received no usable"):
+        load_observations(mhc_allele_in_set="")
+    with pytest.raises(ValueError, match="mhc_allele_in_set filter received no usable"):
+        load_observations(mhc_allele_in_set=[""])

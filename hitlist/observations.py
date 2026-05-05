@@ -431,10 +431,9 @@ def _load_peptide_index(
         # strings whose ``;``-split tokens contain any wanted allele,
         # then push down the expanded list — keeps pyarrow's IN
         # predicate fast while honoring bag-membership semantics.  The
-        # unique-restriction set is cached per ``(path, mtime)`` so we
-        # don't re-read the column on every call.
-        wanted = {normalize_allele(v) for v in _as_list(mhc_restriction) if v}
-        wanted.discard("")
+        # unique-restriction set is cached per ``(path, mtime_ns, size)``
+        # so we don't re-read the column on every call.
+        wanted = {normalize_allele(v) for v in _as_list(mhc_restriction)} - {""}
         if not wanted:
             raise ValueError(
                 "mhc_restriction filter received no usable allele values "
@@ -544,8 +543,7 @@ def _load_peptide_index(
         # ``HLA-A*02`` from matching ``HLA-A*02:01``.  ``str.contains`` runs
         # in C; one pass per wanted allele beats a per-row Python apply
         # for low-selectivity queries on millions of rows.
-        wanted_bag = {normalize_allele(a.strip()) for a in _as_list(mhc_allele_in_set) if a}
-        wanted_bag.discard("")
+        wanted_bag = {normalize_allele(a.strip()) for a in _as_list(mhc_allele_in_set)} - {""}
         if not wanted_bag:
             raise ValueError(
                 "mhc_allele_in_set filter received no usable allele values "

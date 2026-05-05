@@ -501,3 +501,28 @@ def test_scan_promotes_bag_to_mhc_restriction_via_peptide_attribution(tmp_path):
     # presenting-MHC bag.
     assert r["mhc_restriction"] != "HLA class I"
     assert set(r["mhc_restriction"].split(";")) == expected
+
+
+def test_scan_falls_back_to_sample_allele_match_when_peptide_unattributed(tmp_path):
+    """If a class-only row's PMID has an attribution CSV registered but
+    the peptide is NOT in that CSV, scanner falls back to the row's
+    ``host_mhc_types`` (provenance ``sample_allele_match``).  Guards
+    against the silent-failure mode where ``attribute_peptide_to_sample_alleles``
+    might wrongly return non-empty for unattributed peptides."""
+    src = tmp_path / "iedb.csv"
+    row = [""] * 112
+    row[0] = "http://iedb.org/assay/9000002"
+    row[1] = "http://iedb.org/reference/sarkizova"
+    row[2] = "31844290"
+    row[5] = "ZZZZZZZZZZ"  # not in the Sarkizova attribution CSV
+    row[49] = "HLA-A*02:01;HLA-B*07:02"  # donor-typed alleles on this row
+    row[107] = "HLA class I"
+    row[108] = "I"
+    _write_bag_iedb_csv(src, [row])
+
+    df = scan(peptides=None, iedb_path=str(src), cedar_path=None)
+    assert len(df) == 1
+    r = df.iloc[0]
+    assert r["mhc_allele_provenance"] == "sample_allele_match"
+    assert set(r["mhc_allele_set"].split(";")) == {"HLA-A*02:01", "HLA-B*07:02"}
+    assert set(r["mhc_restriction"].split(";")) == {"HLA-A*02:01", "HLA-B*07:02"}
