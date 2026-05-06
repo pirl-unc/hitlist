@@ -227,6 +227,18 @@ def _atomic_write_parquet(df: pd.DataFrame, path: Path) -> None:
 #: compression brings the peak down to single-digit GB without changing the
 #: written parquet (pyarrow stores categoricals as dictionary-encoded columns
 #: regardless, so the on-disk artifact is byte-identical).
+#:
+#: Excluded by design:
+#:
+#: - ``peptide`` — millions of distinct values, no repetition. Categorical
+#:   would *increase* memory (codes + dictionary > raw strings).
+#: - ``assay_iri`` / ``reference_iri`` — unique-per-row IRIs; same as above.
+#: - ``pmid`` — already stored as ``Int64`` (8 bytes / row); ~38 MB on a
+#:   4.4 M-row frame, no further compression worthwhile.
+#: - ``mhc_allele_set`` / ``serotypes`` / ``gene_names`` etc. —
+#:   semicolon-joined multi-value columns; cardinality is high (every donor
+#:   set is roughly distinct), and the consumer code splits on ``;`` which
+#:   doesn't benefit from categorical lookup.
 _CATEGORICAL_BUILD_COLUMNS: tuple[str, ...] = (
     "source",
     "mhc_class",
@@ -253,16 +265,68 @@ _CATEGORICAL_BUILD_COLUMNS: tuple[str, ...] = (
 )
 
 
-def _compress_categoricals(df: pd.DataFrame) -> None:
+def _compress_categoricals(df: pd.DataFrame, *, strict: bool = False) -> None:
     """In-place ``object → category`` for low-cardinality string columns.
 
-    No-op for columns not present or already non-object.  Mutates the frame.
+    No-op for columns not present (unless ``strict=True``) or already
+    non-object.  Mutates the frame.
+
+    Parameters
+    ----------
+    strict
+        Raise ``KeyError`` if any column listed in
+        :data:`_CATEGORICAL_BUILD_COLUMNS` is missing from ``df``.  Use
+        on the full post-concat observations frame so a typo in the
+        allowlist (e.g. ``"mhc_clas"``) fails loudly instead of silently
+        no-op'ing.  Default ``False`` to keep the helper safe to call on
+        per-source partitions where some columns may be absent.
     """
     if df.empty:
         return
+    if strict:
+        missing = [c for c in _CATEGORICAL_BUILD_COLUMNS if c not in df.columns]
+        if missing:
+            raise KeyError(
+                f"_compress_categoricals(strict=True): missing columns {missing}; "
+                "either fix the typo in _CATEGORICAL_BUILD_COLUMNS or call with strict=False."
+            )
     for col in _CATEGORICAL_BUILD_COLUMNS:
         if col in df.columns and df[col].dtype == "object":
             df[col] = df[col].astype("category")
+
+
+def _drop_duplicate_iris(df: pd.DataFrame, label: str) -> pd.DataFrame:
+    """Drop cross-source duplicates by ``assay_iri`` (#146).
+
+    Replaces the prior per-source-loop ``ms_seen_iris: set[str]`` Python
+    set, which held all ~4 M IRIs as ``str`` objects (~300 MB).  Doing
+    the dedup post-concat with ``drop_duplicates(keep="first")`` is
+    pandas-vectorized and uses an ephemeral hash table; the concat
+    order (IEDB before CEDAR) preserves the prior "IEDB wins" tie-break.
+
+    Falls back to ``reference_iri`` for rows missing ``assay_iri``,
+    which is unusual but possible during partial rebuilds from older
+    intermediates.
+    """
+    if df.empty:
+        return df
+    if "assay_iri" in df.columns:
+        primary = df["assay_iri"].fillna("").astype(str)
+        if "reference_iri" in df.columns:
+            ref = df["reference_iri"].fillna("").astype(str)
+            primary = primary.where(primary.ne(""), ref)
+        key = primary
+    elif "reference_iri" in df.columns:
+        key = df["reference_iri"].fillna("").astype(str)
+    else:
+        return df
+    before = len(df)
+    df = df.assign(_iri_key=key.values).drop_duplicates(subset="_iri_key", keep="first")
+    df = df.drop(columns="_iri_key").reset_index(drop=True)
+    dropped = before - len(df)
+    if dropped:
+        print(f"  Deduplicated {dropped:,} {label} rows by assay_iri (cross-source overlap)")
+    return df
 
 
 def _drop_short_mhc2_rows(df: pd.DataFrame, label: str) -> pd.DataFrame:
@@ -356,12 +420,27 @@ def build_observations(
         print("\nUse --force to rebuild.")
         return out_path
 
+    import pyarrow as pa
+
     from .scanner import scan
 
-    ms_dfs: list[pd.DataFrame] = []
-    binding_dfs: list[pd.DataFrame] = []
-    ms_seen_iris: set[str] = set()
-    binding_seen_iris: set[str] = set()
+    # Buffer per-source partitions as pyarrow Tables, not pandas frames.
+    # Two reasons:
+    #
+    # 1. Arrow's string array uses an offset+char-buffer layout (~10 bytes /
+    #    cell) instead of pandas' object dtype (~50-100 bytes / cell with
+    #    full Python ``str`` overhead).  Holding 4 partitions as Arrow
+    #    saves ~5-10x vs holding them as pandas DataFrames.
+    # 2. ``pa.concat_tables`` is zero-copy when schemas match — it just
+    #    chains the input chunk arrays.  Replaces the ``pd.concat`` 2x
+    #    transient peak that allocated a fresh union frame.
+    #
+    # We only convert back to pandas at the very end of the merge phase
+    # (post-supplementary, before the gene-annotation merge), since
+    # downstream pandas consumers (mappings build, supplement dedup) need
+    # a DataFrame.  Categorical compression is applied at that boundary.
+    ms_tables: list[pa.Table] = []
+    binding_tables: list[pa.Table] = []
 
     for name in ("iedb", "cedar"):
         if name not in paths:
@@ -386,61 +465,54 @@ def build_observations(
             ms_df = df
             bd_df = df.iloc[0:0].copy()
         del df  # free the source scan's frame before the next source's scan
-
-        # Deduplicate across sources by assay IRI (per index).  Pre-#146
-        # this dedup used ``reference_iri`` (study-level) by mistake, which
-        # would have dropped CEDAR assays whose paper was already seen in
-        # IEDB.  With #146 the scanner now stores ``assay_iri`` on every
-        # row; we dedupe on that (row-level) and fall back to
-        # ``reference_iri`` for any row missing ``assay_iri`` (e.g. during
-        # a partial rebuild from an older intermediate).
-        def _iri_series(frame: pd.DataFrame) -> pd.Series:
-            if "assay_iri" in frame.columns:
-                primary = frame["assay_iri"].fillna("").astype(str)
-                if "reference_iri" in frame.columns:
-                    ref = frame["reference_iri"].fillna("").astype(str)
-                    return primary.where(primary.ne(""), ref)
-                return primary
-            return frame["reference_iri"].fillna("").astype(str)
-
-        if ms_seen_iris:
-            before = len(ms_df)
-            ms_df = ms_df[~_iri_series(ms_df).isin(ms_seen_iris)]
-            dupes = before - len(ms_df)
-            if dupes:
-                print(f"  Deduplicated {dupes:,} MS rows (shared IRIs with prior source)")
-        if binding_seen_iris:
-            before = len(bd_df)
-            bd_df = bd_df[~_iri_series(bd_df).isin(binding_seen_iris)]
-            dupes = before - len(bd_df)
-            if dupes:
-                print(f"  Deduplicated {dupes:,} binding rows (shared IRIs with prior source)")
-
-        ms_seen_iris.update(_iri_series(ms_df).values)
-        binding_seen_iris.update(_iri_series(bd_df).values)
         n_ms, n_bd = len(ms_df), len(bd_df)
-        # Compress before append so concat downstream operates on
-        # already-categorized frames (5-10x memory reduction during the
-        # subsequent gene-annotation merge / mappings build).
+
+        # Compress per-partition before Arrow conversion so dictionary-encoded
+        # categories survive the round-trip (Arrow ``DictionaryArray`` ↔
+        # pandas ``category`` is preserved by ``pa.Table.from_pandas`` /
+        # ``Table.to_pandas``).
         _compress_categoricals(ms_df)
         _compress_categoricals(bd_df)
-        ms_dfs.append(ms_df)
-        binding_dfs.append(bd_df)
+
+        # Convert to Arrow eagerly and free the pandas frame.  Holding the
+        # accumulated partitions as Arrow keeps the per-source memory cost
+        # ~5x lower than pandas.
+        if n_ms:
+            ms_tables.append(pa.Table.from_pandas(ms_df, preserve_index=False))
+        if n_bd:
+            binding_tables.append(pa.Table.from_pandas(bd_df, preserve_index=False))
         del ms_df, bd_df
         print(f"  {n_ms:,} MS rows + {n_bd:,} binding rows from {name}")
 
-    if not ms_dfs and not binding_dfs:
+    if not ms_tables and not binding_tables:
         raise RuntimeError("No data scanned.")
 
-    obs = pd.concat(ms_dfs, ignore_index=True) if ms_dfs else pd.DataFrame()
-    ms_dfs.clear()  # free the per-source frames; concat returned a fresh copy
-    binding = pd.concat(binding_dfs, ignore_index=True) if binding_dfs else pd.DataFrame()
-    binding_dfs.clear()
-    # Concat broadens categoricals (their union dictionary may be larger),
-    # but the dtype itself is preserved; re-assert for any columns that
-    # came in with mixed dtypes across sources.
-    _compress_categoricals(obs)
-    _compress_categoricals(binding)
+    # ``pa.concat_tables`` is zero-copy when schemas match (which they do,
+    # since both sources came through the same scanner).  ``promote_options``
+    # widens to a common type if any column dtype diverged across sources.
+    if ms_tables:
+        ms_table = pa.concat_tables(ms_tables, promote_options="default")
+        ms_tables.clear()
+        # Cross-source dedup by assay IRI (#146): pyarrow doesn't expose a
+        # direct ``drop_duplicates`` so we materialize as pandas here, then
+        # compress.  This is the FIRST pandas allocation — peak memory is
+        # bounded by the post-dedup obs frame size.
+        obs = ms_table.to_pandas()
+        del ms_table
+        obs = _drop_duplicate_iris(obs, label="MS")
+        _compress_categoricals(obs, strict=True)
+    else:
+        obs = pd.DataFrame()
+
+    if binding_tables:
+        binding_table = pa.concat_tables(binding_tables, promote_options="default")
+        binding_tables.clear()
+        binding = binding_table.to_pandas()
+        del binding_table
+        binding = _drop_duplicate_iris(binding, label="binding")
+        _compress_categoricals(binding, strict=True)
+    else:
+        binding = pd.DataFrame()
 
     # --- Supplementary data (MS only — manually curated from papers) ---
     from .supplement import scan_supplementary
@@ -448,18 +520,27 @@ def build_observations(
     supp = scan_supplementary(classify_source=True)
     if not supp.empty:
         supp["source"] = "supplement"
-        # Deduplicate: IEDB/CEDAR rows win over supplementary
-        existing_keys = set(zip(obs["peptide"], obs["mhc_restriction"], obs["pmid"]))
+        # Deduplicate against IEDB/CEDAR (which "win" over supplements) via
+        # vectorized anti-join on (peptide, mhc_restriction, pmid).  Replaces
+        # an earlier ``set(zip(...))`` Python set that held ~4 M tuples
+        # (~800 MB) — pandas' merge with indicator runs entirely in C and
+        # uses a hash table internally.
         before = len(supp)
-        supp = supp[
-            ~pd.Series(
-                [
-                    (p, a, m) in existing_keys
-                    for p, a, m in zip(supp["peptide"], supp["mhc_restriction"], supp["pmid"])
-                ],
-                index=supp.index,
-            )
-        ]
+        join_cols = ["peptide", "mhc_restriction", "pmid"]
+        # ``drop_duplicates`` on the obs key columns shrinks the right side
+        # of the join (~4 M rows → distinct keys).  Casting to a common
+        # dtype guards against categorical / object mismatch on join.
+        obs_keys = obs[join_cols].drop_duplicates()
+        for col in ("peptide", "mhc_restriction"):
+            obs_keys[col] = obs_keys[col].astype(str)
+            supp[col] = supp[col].astype(str)
+        supp = (
+            supp.merge(obs_keys, on=join_cols, how="left", indicator=True)
+            .query("_merge == 'left_only'")
+            .drop(columns="_merge")
+            .reset_index(drop=True)
+        )
+        del obs_keys
         dupes = before - len(supp)
         if dupes:
             print(f"  Deduplicated {dupes:,} supplementary rows (already in IEDB/CEDAR)")
