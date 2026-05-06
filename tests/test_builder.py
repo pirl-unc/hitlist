@@ -388,6 +388,23 @@ def test_compress_categoricals_partial_frame_default_does_not_raise():
     assert df["source"].dtype.name == "category"
 
 
+def test_hitlist_import_enables_pandas_infer_string():
+    """Importing hitlist must enable ``pd.options.future.infer_string``
+    process-wide.  Without this, the build pipeline holds string columns
+    as ``object`` (Python str overhead, ~50-100 bytes/cell) instead of
+    ``StringDtype`` (Arrow-backed, ~10 bytes/cell) — a 5x base-cost
+    inflation that the categorical compression can only partially
+    recover.  Locking this in via test guards against an accidental
+    revert in ``hitlist/__init__.py``."""
+    import hitlist  # noqa: F401  -- side effect: sets the option
+
+    assert pd.options.future.infer_string is True
+    # New string DataFrames default to StringDtype, not object.
+    df = pd.DataFrame({"x": ["a", "b"]})
+    assert pd.api.types.is_string_dtype(df["x"])
+    assert df["x"].dtype.name != "object"
+
+
 def test_compress_categoricals_handles_pandas_str_dtype():
     """Regression: pandas 2.2+ may default string columns to ``StringDtype``
     (``"str"``) rather than ``object``.  An ``== "object"`` check would

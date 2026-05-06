@@ -12,6 +12,17 @@
 
 """hitlist: curated and harmonized MHC ligand mass spectrometry data for pMHC target selection and model training."""
 
-from .version import __version__
+import pandas as _pd
+
+# Opt every hitlist process into pandas' pyarrow-backed ``StringDtype``
+# (pandas 3.0 default, available in 2.1+ as a future flag).  Cuts string-
+# column memory ~5x at every layer — scanner output, parquet reads, the
+# build pipeline.  Downstream consumers that import hitlist inherit the
+# behavior, which is forward-compatible (pandas 3.0 will set this by
+# default anyway).  Set BEFORE any DataFrame construction so the
+# inference applies from process start.
+_pd.options.future.infer_string = True
+
+from .version import __version__  # noqa: E402  -- after option set
 
 __all__ = ["__version__"]
