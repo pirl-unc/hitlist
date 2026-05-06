@@ -217,7 +217,7 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
         unique_alleles = record["mhc_restriction"].unique()
 
         def _set_for(allele: str, _record=record, _pmid=pmid) -> dict:
-            mhc_class_for_set = ""
+            mhc_class_filter = ""
             # Pull per-allele class from the just-built ``record`` if the
             # supplement CSV carries one; otherwise let set expansion
             # skip the class filter (returns the unfiltered candidate
@@ -226,8 +226,8 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
             if "mhc_class" in _record.columns:
                 cls_match = _record.loc[_record["mhc_restriction"] == allele, "mhc_class"]
                 if len(cls_match):
-                    mhc_class_for_set = str(cls_match.iloc[0])
-            allele_set, prov, size = expand_allele_set(allele, "", _pmid, mhc_class_for_set)
+                    mhc_class_filter = str(cls_match.iloc[0])
+            allele_set, prov, size = expand_allele_set(allele, "", _pmid, mhc_class_filter)
             return {
                 "mhc_allele_set": allele_set,
                 "mhc_allele_provenance": prov,

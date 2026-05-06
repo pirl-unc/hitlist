@@ -646,7 +646,7 @@ def test_mhc_restriction_filter_matches_donor_set_member(tmp_path, monkeypatch):
 
     df = pd.DataFrame(
         {
-            "peptide": ["SIINFEKL", "GLCTLVAML", "DONOR_SET_PEP", "OTHER_DONOR"],
+            "peptide": ["SIINFEKL", "GLCTLVAML", "MEL3_DONOR_SET_PEPTIDE", "OTHER_DONOR"],
             "mhc_restriction": [
                 "HLA-A*02:01",  # exact A*02:01 — matches
                 "HLA-A*11:01",  # exact A*11:01 — does not match
@@ -667,7 +667,7 @@ def test_mhc_restriction_filter_matches_donor_set_member(tmp_path, monkeypatch):
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
 
     out = load_observations(mhc_restriction="HLA-A*02:01")
-    assert set(out["peptide"]) == {"SIINFEKL", "DONOR_SET_PEP"}
+    assert set(out["peptide"]) == {"SIINFEKL", "MEL3_DONOR_SET_PEPTIDE"}
 
 
 def test_mhc_allele_in_set_filter_post_load(tmp_path, monkeypatch):

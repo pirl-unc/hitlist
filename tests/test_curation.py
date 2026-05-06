@@ -1643,9 +1643,7 @@ def test_expand_allele_set_no_attribution_falls_back_to_sample_match():
     from hitlist.curation import expand_allele_set
 
     disease_union = "HLA-A*01:01;HLA-A*02:01;HLA-B*38:01;HLA-B*56:01;HLA-C*01:02;HLA-C*06:02"
-    out_set, prov, size = expand_allele_set(
-        "HLA class I", disease_union, 31844290, "I", frozenset()
-    )
+    _, prov, size = expand_allele_set("HLA class I", disease_union, 31844290, "I", frozenset())
     assert prov == "sample_allele_match"
     assert size == 6
 

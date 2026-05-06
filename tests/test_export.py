@@ -1529,7 +1529,7 @@ def test_generate_training_table_threads_allele_set_filters(tmp_path, monkeypatc
     # MS fixture: 2 exact rows, 1 sample_allele_match (multi-allelic).
     obs_data = pd.DataFrame(
         {
-            "peptide": ["MS_EXACT1", "MS_EXACT2", "MS_SET"],
+            "peptide": ["MS_EXACT1", "MS_EXACT2", "MS_DONOR_SET_PEPTIDE"],
             "mhc_restriction": ["HLA-A*02:01", "HLA-A*02:01", "HLA-A*02:01"],
             "mhc_class": ["I", "I", "I"],
             "assay_iri": ["a:1", "a:2", "a:3"],
@@ -1557,7 +1557,7 @@ def test_generate_training_table_threads_allele_set_filters(tmp_path, monkeypatc
     # _make_quant_binding_fixture shape but inlined for clarity).
     bd_data = pd.DataFrame(
         {
-            "peptide": ["BD_EXACT", "BD_EXACT2", "BD_EXACT3", "BD_SET"],
+            "peptide": ["BD_EXACT", "BD_EXACT2", "BD_EXACT3", "BD_DONOR_SET_PEPTIDE"],
             "mhc_restriction": ["HLA-A*02:01"] * 4,
             "mhc_class": ["I"] * 4,
             "reference_iri": ["b1", "b2", "b3", "b4"],
@@ -1612,7 +1612,7 @@ def test_generate_training_table_threads_allele_set_filters(tmp_path, monkeypatc
     # Set-contains: rows whose mhc_allele_set lists HLA-B*07:02 (the two
     # multi-allelic donor-typed rows, one ms + one binding).
     df_b7 = generate_training_table(include_evidence="both", mhc_allele_in_set="HLA-B*07:02")
-    assert set(df_b7["peptide"]) == {"MS_SET", "BD_SET"}
+    assert set(df_b7["peptide"]) == {"MS_DONOR_SET_PEPTIDE", "BD_DONOR_SET_PEPTIDE"}
 
 
 def test_evidence_row_id_prefers_assay_iri_when_present(tmp_path, monkeypatch):
