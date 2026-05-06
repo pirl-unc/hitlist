@@ -10,6 +10,7 @@ from hitlist.builder import (
     _compress_categoricals,
     _drop_duplicate_iris,
     _drop_short_mhc2_rows,
+    _drop_supplementary_duplicates,
     _meta_path,
     _source_fingerprints,
 )
@@ -480,11 +481,9 @@ def test_pyarrow_concat_preserves_categoricals_round_trip():
     assert list(out["mhc_class"]) == ["I", "II", "I", "I"]
 
 
-def test_supplement_dedup_anti_join_drops_existing_rows():
-    """Vectorized anti-join replaces the prior ``set(zip(obs[3 cols]))``
-    Python set: supp rows with a (peptide, mhc_restriction, pmid) triple
-    that already exists in IEDB/CEDAR are dropped; novel triples kept.
-    """
+def test_drop_supplementary_duplicates_drops_existing_triples():
+    """Supp rows with a ``(peptide, mhc_restriction, pmid)`` triple that
+    already exists in IEDB/CEDAR are dropped; novel triples kept."""
     obs = pd.DataFrame(
         {
             "peptide": ["P1", "P2", "P3"],
@@ -499,17 +498,87 @@ def test_supplement_dedup_anti_join_drops_existing_rows():
             "pmid": pd.array([1, 99, 3], dtype="Int64"),
         }
     )
-    join_cols = ["peptide", "mhc_restriction", "pmid"]
-    obs_keys = obs[join_cols].drop_duplicates()
-    for col in ("peptide", "mhc_restriction"):
-        obs_keys[col] = obs_keys[col].astype(str)
-        supp[col] = supp[col].astype(str)
-    out = (
-        supp.merge(obs_keys, on=join_cols, how="left", indicator=True)
-        .query("_merge == 'left_only'")
-        .drop(columns="_merge")
-        .reset_index(drop=True)
-    )
+    out = _drop_supplementary_duplicates(supp, obs)
     # Only P4 (novel triple) survives.
     assert list(out["peptide"]) == ["P4"]
     assert list(out["mhc_restriction"]) == ["HLA-A*11:01"]
+    assert list(out["pmid"]) == [99]
+
+
+def test_drop_supplementary_duplicates_handles_pmid_dtype_mismatch():
+    """Regression: supp PMID stored as Python ``int`` must still match obs
+    PMID stored as ``Int64`` (and vice versa).  Without an explicit dtype
+    cast pandas merge silently misses these — a row with PMID ``1`` (int)
+    on supp wouldn't dedup against PMID ``1`` (Int64) on obs and the
+    duplicate would leak through to the parquet."""
+    obs = pd.DataFrame(
+        {
+            "peptide": ["P1"],
+            "mhc_restriction": ["HLA-A*02:01"],
+            "pmid": pd.array([12345], dtype="Int64"),
+        }
+    )
+    # supp emits pmid as object/python-int (the legacy supplement.py path
+    # didn't always normalize) — must still dedup.
+    supp = pd.DataFrame(
+        {
+            "peptide": ["P1"],
+            "mhc_restriction": ["HLA-A*02:01"],
+            "pmid": [12345],  # plain Python int, dtype int64
+        }
+    )
+    out = _drop_supplementary_duplicates(supp, obs)
+    assert out.empty, "supp row should have been dedup'd despite int vs Int64 dtype gap"
+
+
+def test_drop_supplementary_duplicates_handles_categorical_obs_keys():
+    """Regression: obs columns are categorical post-strict-compress; supp
+    columns are object.  The helper must reconcile dtypes before merge so
+    matching keys actually match."""
+    obs = pd.DataFrame(
+        {
+            "peptide": ["P1"],
+            "mhc_restriction": pd.Categorical(["HLA-A*02:01"]),
+            "pmid": pd.array([1], dtype="Int64"),
+        }
+    )
+    supp = pd.DataFrame(
+        {
+            "peptide": ["P1"],
+            "mhc_restriction": ["HLA-A*02:01"],  # object
+            "pmid": pd.array([1], dtype="Int64"),
+        }
+    )
+    out = _drop_supplementary_duplicates(supp, obs)
+    assert out.empty
+
+
+def test_drop_supplementary_duplicates_empty_obs_returns_supp_unchanged():
+    """Regression: when both IEDB and CEDAR scan zero MS rows, ``obs`` is
+    an empty ``pd.DataFrame()`` with NO columns.  The prior
+    ``set(zip(obs["peptide"], ...))`` raised ``KeyError``; the helper
+    must synthesize empty keys and return supp unchanged."""
+    obs = pd.DataFrame()
+    supp = pd.DataFrame(
+        {
+            "peptide": ["P1", "P2"],
+            "mhc_restriction": ["HLA-A*02:01", "HLA-A*02:01"],
+            "pmid": pd.array([1, 2], dtype="Int64"),
+        }
+    )
+    out = _drop_supplementary_duplicates(supp, obs)
+    assert len(out) == 2
+    assert list(out["peptide"]) == ["P1", "P2"]
+
+
+def test_drop_supplementary_duplicates_empty_supp_is_noop():
+    """Empty supp short-circuits — no merge attempted, returns empty."""
+    obs = pd.DataFrame(
+        {
+            "peptide": ["P1"],
+            "mhc_restriction": ["HLA-A*02:01"],
+            "pmid": pd.array([1], dtype="Int64"),
+        }
+    )
+    out = _drop_supplementary_duplicates(pd.DataFrame(), obs)
+    assert out.empty

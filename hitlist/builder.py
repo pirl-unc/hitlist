@@ -321,12 +321,68 @@ def _drop_duplicate_iris(df: pd.DataFrame, label: str) -> pd.DataFrame:
     else:
         return df
     before = len(df)
-    df = df.assign(_iri_key=key.values).drop_duplicates(subset="_iri_key", keep="first")
-    df = df.drop(columns="_iri_key").reset_index(drop=True)
+    # ``Series.duplicated`` is the boolean-mask analog of ``drop_duplicates``;
+    # avoids round-tripping through a temporary ``_iri_key`` column.
+    df = df[~key.duplicated(keep="first")].reset_index(drop=True)
     dropped = before - len(df)
     if dropped:
         print(f"  Deduplicated {dropped:,} {label} rows by assay_iri (cross-source overlap)")
     return df
+
+
+def _drop_supplementary_duplicates(supp: pd.DataFrame, obs: pd.DataFrame) -> pd.DataFrame:
+    """Anti-join supplementary rows against IEDB/CEDAR rows on
+    ``(peptide, mhc_restriction, pmid)`` — IEDB/CEDAR wins when the
+    triple is shared (#45 supplements are intentionally redundant
+    when the paper is also in IEDB).
+
+    Replaces an earlier ``set(zip(...))`` Python set that held ~4 M
+    tuples (~800 MB).  ``pandas.merge(indicator=True)`` runs the same
+    hash-join in C without materializing a Python set.
+
+    Three correctness guards baked in:
+
+    1. Empty ``obs`` (no IEDB/CEDAR rows scanned) → synthesize an
+       empty key frame so ``.merge`` returns ``supp`` unchanged
+       instead of raising ``KeyError`` on missing columns.
+    2. ``peptide`` / ``mhc_restriction`` may be categorical on obs and
+       object on supp → cast both to ``str`` so the join keys share
+       dtype.
+    3. ``pmid`` may be ``Int64`` on one side and Python ``int`` /
+       object on the other → normalize to ``Int64`` on both sides
+       so ``1`` (int) doesn't silently miss ``1`` (Int64).  The
+       full-frame ``pmid → Int64`` cast in :func:`build_observations`
+       happens AFTER this dedup, so we align dtypes locally here.
+
+    Returns
+    -------
+    pd.DataFrame
+        Filtered ``supp`` with the merge indicator column dropped and
+        the index reset.
+    """
+    if supp.empty:
+        return supp
+    join_cols = ["peptide", "mhc_restriction", "pmid"]
+    if obs.empty:
+        obs_keys = pd.DataFrame({c: pd.Series(dtype="object") for c in join_cols})
+    else:
+        obs_keys = (
+            obs[join_cols]
+            .drop_duplicates()
+            .assign(
+                peptide=lambda d: d["peptide"].astype(str),
+                mhc_restriction=lambda d: d["mhc_restriction"].astype(str),
+                pmid=lambda d: pd.to_numeric(d["pmid"], errors="coerce").astype("Int64"),
+            )
+        )
+    supp = supp.astype({"peptide": str, "mhc_restriction": str})
+    supp["pmid"] = pd.to_numeric(supp["pmid"], errors="coerce").astype("Int64")
+    return (
+        supp.merge(obs_keys, on=join_cols, how="left", indicator=True)
+        .query("_merge == 'left_only'")
+        .drop(columns="_merge")
+        .reset_index(drop=True)
+    )
 
 
 def _drop_short_mhc2_rows(df: pd.DataFrame, label: str) -> pd.DataFrame:
@@ -520,27 +576,8 @@ def build_observations(
     supp = scan_supplementary(classify_source=True)
     if not supp.empty:
         supp["source"] = "supplement"
-        # Deduplicate against IEDB/CEDAR (which "win" over supplements) via
-        # vectorized anti-join on (peptide, mhc_restriction, pmid).  Replaces
-        # an earlier ``set(zip(...))`` Python set that held ~4 M tuples
-        # (~800 MB) — pandas' merge with indicator runs entirely in C and
-        # uses a hash table internally.
         before = len(supp)
-        join_cols = ["peptide", "mhc_restriction", "pmid"]
-        # ``drop_duplicates`` on the obs key columns shrinks the right side
-        # of the join (~4 M rows → distinct keys).  Casting to a common
-        # dtype guards against categorical / object mismatch on join.
-        obs_keys = obs[join_cols].drop_duplicates()
-        for col in ("peptide", "mhc_restriction"):
-            obs_keys[col] = obs_keys[col].astype(str)
-            supp[col] = supp[col].astype(str)
-        supp = (
-            supp.merge(obs_keys, on=join_cols, how="left", indicator=True)
-            .query("_merge == 'left_only'")
-            .drop(columns="_merge")
-            .reset_index(drop=True)
-        )
-        del obs_keys
+        supp = _drop_supplementary_duplicates(supp, obs)
         dupes = before - len(supp)
         if dupes:
             print(f"  Deduplicated {dupes:,} supplementary rows (already in IEDB/CEDAR)")
