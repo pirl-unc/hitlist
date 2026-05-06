@@ -29,7 +29,7 @@ from pathlib import Path
 import pandas as pd
 import yaml
 
-from .curation import classify_ms_row, expand_allele_bag, is_non_peptide_ligand, normalize_species
+from .curation import classify_ms_row, expand_allele_set, is_non_peptide_ligand, normalize_species
 
 _DATA_DIR = Path(__file__).parent / "data"
 _MANIFEST_PATH = _DATA_DIR / "supplementary.yaml"
@@ -177,7 +177,7 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
                 "host": defaults.get("host", ""),
                 "host_age": "",
                 # Supplementary rows don't carry IEDB's per-row "Host | MHC
-                # Types Present"; bag expansion will fall back to the
+                # Types Present"; set expansion will fall back to the
                 # per-PMID curated allele pool when the row's
                 # mhc_restriction is class-only (issue #137).
                 "host_mhc_types": "",
@@ -211,27 +211,27 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
         # Classify per-unique-allele, then map back onto every row.
         # Within a single supplementary entry the non-allele inputs are
         # constant (from manifest defaults), so classify_ms_row varies
-        # only by mhc_restriction.  Bag expansion (issue #137) is also
+        # only by mhc_restriction.  Set expansion (issue #137) is also
         # per-allele since host_mhc_types is empty for supplements and
         # pmid + mhc_class don't vary within an entry.
         unique_alleles = record["mhc_restriction"].unique()
 
-        def _bag_for(allele: str, _record=record, _pmid=pmid) -> dict:
-            mhc_class_for_bag = ""
+        def _set_for(allele: str, _record=record, _pmid=pmid) -> dict:
+            mhc_class_filter = ""
             # Pull per-allele class from the just-built ``record`` if the
-            # supplement CSV carries one; otherwise let bag expansion
+            # supplement CSV carries one; otherwise let set expansion
             # skip the class filter (returns the unfiltered candidate
             # set, which is fine because supplements rarely mix class I
             # and class II in one entry).
             if "mhc_class" in _record.columns:
                 cls_match = _record.loc[_record["mhc_restriction"] == allele, "mhc_class"]
                 if len(cls_match):
-                    mhc_class_for_bag = str(cls_match.iloc[0])
-            bag_set, prov, size = expand_allele_bag(allele, "", _pmid, mhc_class_for_bag)
+                    mhc_class_filter = str(cls_match.iloc[0])
+            allele_set, prov, size = expand_allele_set(allele, "", _pmid, mhc_class_filter)
             return {
-                "mhc_allele_set": bag_set,
+                "mhc_allele_set": allele_set,
                 "mhc_allele_provenance": prov,
-                "mhc_allele_bag_size": size,
+                "mhc_allele_set_size": size,
             }
 
         if classify_source:
@@ -247,7 +247,7 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
                         pmid,
                         mhc_restriction=a,
                     ),
-                    **_bag_for(a),
+                    **_set_for(a),
                 }
                 for a in unique_alleles
             ]
@@ -258,12 +258,30 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
                     "allele_resolution": classify_allele_resolution(a),
                     "serotype": allele_to_serotype(a),
                     "mhc_species": classify_mhc_species(a),
-                    **_bag_for(a),
+                    **_set_for(a),
                 }
                 for a in unique_alleles
             ]
         flags = pd.DataFrame(flag_rows)
         record = record.merge(flags, on="mhc_restriction", how="left")
+
+        # Promote set → mhc_restriction (#45) for class-only supplement
+        # rows where PMID-pool expansion produced a tightened set.  When
+        # provenance is "exact" the row was already 4-digit and the
+        # restriction is unchanged; for "pmid_class_pool" / "sample_*"
+        # the multi-allele set IS the actual presenting MHC.  See the
+        # parallel block in scanner.py for the IEDB path.
+        if "mhc_allele_set" in record.columns and "mhc_allele_provenance" in record.columns:
+            promote_mask = (
+                (record["mhc_allele_set_size"].fillna(0) > 0)
+                & (record["mhc_allele_provenance"] != "exact")
+                & record["mhc_allele_set"].notna()
+                & (record["mhc_allele_set"] != "")
+            )
+            if promote_mask.any():
+                record.loc[promote_mask, "mhc_restriction"] = record.loc[
+                    promote_mask, "mhc_allele_set"
+                ]
 
         # Fallback: derive mhc_species from host when allele-based
         # classification is empty (e.g. supplementary peptides without

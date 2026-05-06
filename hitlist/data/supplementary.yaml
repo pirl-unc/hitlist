@@ -215,7 +215,7 @@
 # rather than just "HAP1".  This lets the v1.30.30 sample resolver's
 # cell_name tie-break route each CSV's peptides to the matching
 # ms_sample in the Shapiro 2025 PMID 40113210 entry: all 12 samples
-# share the same allele bag (HLA-A*02:01 + HLA-B*40:01 + HLA-C*03:04)
+# share the same allele set (HLA-A*02:01 + HLA-B*40:01 + HLA-C*03:04)
 # and supplementary rows carry no per-peptide allele attribution, so
 # cell_name is the only discriminator between samples.
 

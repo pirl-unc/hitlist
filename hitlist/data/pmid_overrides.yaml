@@ -1122,6 +1122,17 @@
       is "B cell" not "721.221". Additionally, 12 patient-derived tumor cell lines profiled for validation
       (11 with HLA typing + 1 ccRCC without). MEL1 has no IFN-gamma condition; Pat9 (ccRCC) has no HLA typing.
       Alleles prefixed '-' in Supp. Table are NOT in the 95 monoallelic panel.
+    # Per-peptide attribution to specific patient samples for the
+    # patient-tumor cohort, derived from the paper's Sup_Data2 (MOESM4)
+    # — peptide → list of samples it was observed in. IEDB stores these
+    # rows with ``mhc_restriction="HLA class I"`` and ``host_mhc_types``
+    # = the disease-wide union (e.g. all 14 alleles across GBM7+9+11),
+    # which over-broadens the candidate-allele set.  At scan time, when
+    # the row is class-only AND its peptide appears in this CSV, the
+    # set is narrowed to the union of the matched samples' typed alleles
+    # (so a unique-attribution peptide ends up with that one donor's 6
+    # alleles instead of 14-18 disease-wide).
+    peptide_attributions: peptide_attributions/sarkizova_2020_patient_cohort.csv
     ip_antibody: W6/32
     perturbations:
       - "IFN-gamma (2000 U/mL, 3d) on 6 typed tumor lines (3 MEL + 3 GBM) + 1 untyped ccRCC — NOT on 721.221 mono-allelic data"

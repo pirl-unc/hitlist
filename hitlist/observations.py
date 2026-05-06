@@ -42,11 +42,37 @@ pipelines, or CLI flags like tsarina's ``--include-binding-assays`` —
 
 from __future__ import annotations
 
+import os
+import re
+from functools import lru_cache
 from pathlib import Path
 
 import pandas as pd
+import pyarrow.parquet as pq
 
 from .downloads import data_dir
+
+
+@lru_cache(maxsize=8)
+def _unique_restrictions(path_str: str, mtime_ns: int, size: int) -> tuple[str, ...]:
+    """Cached unique values of the ``mhc_restriction`` column for a parquet
+    file, keyed by ``(path, mtime_ns, size)`` so a rebuild invalidates.
+
+    Nanosecond mtime + size guards against same-second rebuild collisions
+    on filesystems with 1s mtime resolution (HFS+, some network mounts).
+    The set of distinct restriction strings is small (~hundreds) and
+    changes only when the parquet rebuilds, but we use it on every
+    set-aware ``mhc_restriction`` filter call — caching avoids re-reading
+    the full column off disk for each query.
+    """
+    table = pq.read_table(path_str, columns=["mhc_restriction"])
+    return tuple(table.column("mhc_restriction").unique().to_pylist())
+
+
+def _unique_restrictions_for(path: Path) -> tuple[str, ...]:
+    """``_unique_restrictions`` keyed by the file's stat tuple."""
+    st = os.stat(path)
+    return _unique_restrictions(str(path), st.st_mtime_ns, st.st_size)
 
 
 def observations_path() -> Path:
@@ -74,6 +100,8 @@ def load_observations(
     species: str | None = None,
     source: str | None = None,
     mhc_restriction: str | list[str] | None = None,
+    mhc_allele_in_set: str | list[str] | None = None,
+    mhc_allele_provenance: str | list[str] | None = None,
     gene_name: str | list[str] | None = None,
     gene_id: str | list[str] | None = None,
     peptide: str | list[str] | None = None,
@@ -100,7 +128,34 @@ def load_observations(
     source
         Filter by data source (``"iedb"``, ``"cedar"``, ``"supplement"``).
     mhc_restriction
-        Exact MHC allele filter.  Repeatable or comma-separated.
+        **Exact** MHC allele filter on the row's recorded restriction
+        (e.g. ``"HLA-A*02:01"``).  Misses class-only rows where the
+        donor is multi-allelic — for those, use ``mhc_allele_in_set``.
+    mhc_allele_in_set
+        Set-membership filter: keep rows whose ``mhc_allele_set``
+        (the candidate-allele set from ``expand_allele_set`` — see #137,
+        #45) contains any of the listed alleles.  This is the right
+        knob for queries like *"show me HLA-A*02:01 melanoma peptides"*
+        that need to recover **multi-allelic patient tumor cohorts**
+        where IEDB stored only the class label.  Strict subset of
+        ``mhc_restriction``: a 4-digit row passes both filters; a
+        class-only row with a curated set passes only ``mhc_allele_in_set``.
+    mhc_allele_provenance
+        Filter by how a row's allele set was obtained:
+
+        - ``"exact"`` — restriction was already 4-digit, set = {restriction}
+        - ``"peptide_attribution"`` — set narrowed via per-peptide
+          attribution from the paper supplement (#45, e.g. Sarkizova 2020
+          patient tumor cohort)
+        - ``"sample_allele_match"`` — set = donor's typed alleles from
+          IEDB ``Host | MHC Types Present``
+        - ``"pmid_class_pool"`` — set = curated per-PMID pool when no
+          per-row donor typing was recorded
+        - ``"unmatched"`` — set empty (no donor typing or pool curation)
+
+        Use ``"exact"`` for strict allele-resolved training data;
+        ``"peptide_attribution"`` for sample-narrowed multi-allelic
+        cohorts; the others depending on tolerance for set noise.
     gene_name, gene_id
         Gene filters — resolved through the peptide mappings sidecar.
     length_min, length_max
@@ -136,6 +191,8 @@ def load_observations(
         species=species,
         source=source,
         mhc_restriction=mhc_restriction,
+        mhc_allele_in_set=mhc_allele_in_set,
+        mhc_allele_provenance=mhc_allele_provenance,
         gene_name=gene_name,
         gene_id=gene_id,
         peptide=peptide,
@@ -154,6 +211,8 @@ def load_ms_observations(
     species: str | None = None,
     source: str | None = None,
     mhc_restriction: str | list[str] | None = None,
+    mhc_allele_in_set: str | list[str] | None = None,
+    mhc_allele_provenance: str | list[str] | None = None,
     gene_name: str | list[str] | None = None,
     gene_id: str | list[str] | None = None,
     peptide: str | list[str] | None = None,
@@ -171,6 +230,8 @@ def load_ms_observations(
         species=species,
         source=source,
         mhc_restriction=mhc_restriction,
+        mhc_allele_in_set=mhc_allele_in_set,
+        mhc_allele_provenance=mhc_allele_provenance,
         gene_name=gene_name,
         gene_id=gene_id,
         peptide=peptide,
@@ -189,6 +250,8 @@ def load_binding(
     species: str | None = None,
     source: str | None = None,
     mhc_restriction: str | list[str] | None = None,
+    mhc_allele_in_set: str | list[str] | None = None,
+    mhc_allele_provenance: str | list[str] | None = None,
     gene_name: str | list[str] | None = None,
     gene_id: str | list[str] | None = None,
     peptide: str | list[str] | None = None,
@@ -217,6 +280,8 @@ def load_binding(
         species=species,
         source=source,
         mhc_restriction=mhc_restriction,
+        mhc_allele_in_set=mhc_allele_in_set,
+        mhc_allele_provenance=mhc_allele_provenance,
         gene_name=gene_name,
         gene_id=gene_id,
         peptide=peptide,
@@ -235,6 +300,8 @@ def load_all_evidence(
     species: str | None = None,
     source: str | None = None,
     mhc_restriction: str | list[str] | None = None,
+    mhc_allele_in_set: str | list[str] | None = None,
+    mhc_allele_provenance: str | list[str] | None = None,
     gene_name: str | list[str] | None = None,
     gene_id: str | list[str] | None = None,
     peptide: str | list[str] | None = None,
@@ -269,6 +336,8 @@ def load_all_evidence(
         "species": species,
         "source": source,
         "mhc_restriction": mhc_restriction,
+        "mhc_allele_in_set": mhc_allele_in_set,
+        "mhc_allele_provenance": mhc_allele_provenance,
         "gene_name": gene_name,
         "gene_id": gene_id,
         "peptide": peptide,
@@ -317,6 +386,8 @@ def _load_peptide_index(
     species: str | None,
     source: str | None,
     mhc_restriction: str | list[str] | None,
+    mhc_allele_in_set: str | list[str] | None,
+    mhc_allele_provenance: str | list[str] | None,
     gene_name: str | list[str] | None,
     gene_id: str | list[str] | None,
     peptide: str | list[str] | None,
@@ -352,14 +423,37 @@ def _load_peptide_index(
     if source is not None:
         filters.append(("source", "==", source))
     if mhc_restriction is not None:
-        values = [normalize_allele(v) for v in _as_list(mhc_restriction)]
-        filters.append(("mhc_restriction", "in", values))
+        # Set-membership match (#45): post-#45, ``mhc_restriction`` may
+        # be a single 4-digit allele OR a semicolon-joined multi-allele
+        # set (the donor's typed alleles when the per-peptide attribution
+        # is multi-allelic).  A query for ``"HLA-A*02:01"`` should match
+        # both.  We expand the wanted values to all stored restriction
+        # strings whose ``;``-split tokens contain any wanted allele,
+        # then push down the expanded list — keeps pyarrow's IN
+        # predicate fast while honoring set-membership semantics.  The
+        # unique-restriction set is cached per ``(path, mtime_ns, size)``
+        # so we don't re-read the column on every call.
+        wanted = {normalize_allele(v) for v in _as_list(mhc_restriction)} - {""}
+        if not wanted:
+            raise ValueError(
+                "mhc_restriction filter received no usable allele values "
+                "after normalization; pass at least one non-empty allele."
+            )
+        all_restrictions = _unique_restrictions_for(path)
+        matching = [
+            r
+            for r in all_restrictions
+            if r and (r in wanted or any(a in r.split(";") for a in wanted))
+        ]
+        if not matching:
+            return pd.read_parquet(path, columns=columns, filters=[("peptide", "==", "__NONE__")])
+        filters.append(("mhc_restriction", "in", matching))
     if peptide is not None:
         filters.append(("peptide", "in", _as_list(peptide)))
+    if mhc_allele_provenance is not None:
+        filters.append(("mhc_allele_provenance", "in", _as_list(mhc_allele_provenance)))
 
     if gene_name is not None or gene_id is not None:
-        import pyarrow.parquet as pq
-
         schema_names = set(pq.read_schema(path).names)
         if "gene_names" not in schema_names:
             raise ValueError(
@@ -390,8 +484,6 @@ def _load_peptide_index(
             read_columns = [*columns, "serotypes"]
         else:
             read_columns = columns
-
-        import pyarrow.parquet as pq
 
         schema_names = set(pq.read_schema(path).names)
         if "serotypes" not in schema_names:
@@ -440,6 +532,28 @@ def _load_peptide_index(
         df = df[mask]
         if columns is not None and "serotypes" not in columns:
             df = df.drop(columns=["serotypes"])
+
+    # Set-membership filter (#45 / #137).  ``mhc_allele_set`` is a
+    # ``;``-joined string so parquet pushdown can't express the filter;
+    # apply post-load.  Cheap on a filtered frame (the heavy filters
+    # above already shrunk the row count).
+    if mhc_allele_in_set is not None and "mhc_allele_set" in df.columns:
+        # Vectorized set-membership: pad each cell with leading/trailing
+        # ``;`` and substring-match ``;<allele>;``.  Anchors prevent
+        # ``HLA-A*02`` from matching ``HLA-A*02:01``.  ``str.contains`` runs
+        # in C; one pass per wanted allele beats a per-row Python apply
+        # for low-selectivity queries on millions of rows.
+        wanted_set = {normalize_allele(a.strip()) for a in _as_list(mhc_allele_in_set)} - {""}
+        if not wanted_set:
+            raise ValueError(
+                "mhc_allele_in_set filter received no usable allele values "
+                "after normalization; pass at least one non-empty allele."
+            )
+        padded = ";" + df["mhc_allele_set"].fillna("").astype(str) + ";"
+        mask = pd.Series(False, index=df.index)
+        for allele in wanted_set:
+            mask |= padded.str.contains(f";{re.escape(allele)};", regex=True)
+        df = df[mask]
 
     # Length bounds (#118). observations.parquet / binding.parquet don't
     # carry an explicit length column — we compute it from the peptide
