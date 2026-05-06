@@ -34,7 +34,7 @@ try:
 except ImportError:
     _tqdm = None
 
-from .curation import classify_ms_row, expand_allele_bag
+from .curation import classify_ms_row, expand_allele_set
 from .peptide_modifications import parse_peptide_modifications
 
 # Sentinel so we can tell "user didn't pass mhc_species" apart from
@@ -483,7 +483,7 @@ def scan(
                 record["serotypes"] = ";".join(all_sero)
                 record["mhc_species"] = mhc_sp
 
-            # Exact-allele bag expansion (issue #137).  Computed off the
+            # Exact-allele set expansion (issue #137).  Computed off the
             # row's MHC restriction + the donor's typed alleles (Host |
             # MHC Types Present, when IEDB carries them) + the per-PMID
             # ``hla_alleles`` curation pool.  Provenance disambiguates
@@ -493,38 +493,38 @@ def scan(
             # Per-peptide attribution lookup (#45).  Only meaningful for
             # class-only rows in PMIDs that registered an attribution
             # CSV — for everything else this returns an empty frozenset
-            # and bag expansion falls through to its IEDB / pmid-pool
+            # and set expansion falls through to its IEDB / pmid-pool
             # paths unchanged.  Doing the lookup here (not inside
-            # expand_allele_bag) keeps the bag-expansion lru_cache key
+            # expand_allele_set) keeps the set-expansion lru_cache key
             # to a small hashable frozenset rather than the full peptide
             # vocabulary.
             attributed_alleles: frozenset[str] = frozenset()
             if bare_peptide and classify_allele_resolution(mhc_res) == "class_only":
                 attributed_alleles = attribute_peptide_to_sample_alleles(pmid, bare_peptide)
 
-            bag_set, bag_provenance, bag_size = expand_allele_bag(
+            allele_set, set_provenance, set_size = expand_allele_set(
                 mhc_res,
                 record.get("host_mhc_types", ""),
                 pmid,
                 record.get("mhc_class", ""),
                 attributed_alleles,
             )
-            record["mhc_allele_set"] = bag_set
-            record["mhc_allele_provenance"] = bag_provenance
-            record["mhc_allele_bag_size"] = bag_size
+            record["mhc_allele_set"] = allele_set
+            record["mhc_allele_provenance"] = set_provenance
+            record["mhc_allele_set_size"] = set_size
 
-            # Promote bag to ``mhc_restriction`` (#45).  ``mhc_restriction``
+            # Promote set to ``mhc_restriction`` (#45).  ``mhc_restriction``
             # is the actual presenting MHC for the row — when we have a
             # tighter upper bound from the donor's typed alleles or a
             # per-peptide attribution, that bound IS the restriction.
             # The class label ("HLA class I") is reserved for rows where
             # no donor typing AND no curated PMID pool exists, i.e. the
-            # presenter genuinely is unknown.  Bag size 1 → single
-            # 4-digit allele (row is allele-resolved).  Bag size > 1 →
+            # presenter genuinely is unknown.  Set size 1 → single
+            # 4-digit allele (row is allele-resolved).  Set size > 1 →
             # semicolon-joined (multi-allele attribution like
             # ``gene_names``).  See #45 for the design rationale.
-            if bag_size > 0 and bag_provenance != "exact":
-                record["mhc_restriction"] = bag_set
+            if set_size > 0 and set_provenance != "exact":
+                record["mhc_restriction"] = allele_set
 
             rows.append(record)
         # Close the wrapped file handle explicitly — relying on garbage

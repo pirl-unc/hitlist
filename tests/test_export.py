@@ -1347,7 +1347,7 @@ def _make_quant_binding_fixture(tmp_path):
             "measurement_inequality": ["=", "=", "=", ""],
             "quantitative_measurement": ["12.5", "5000", "1.1", ""],
             "quantitative_value": [12.5, 5000.0, 1.1, float("nan")],
-            # Issue #137: bag-expansion columns.  LOWIC50 / HIGHIC50 / LOGIC50
+            # Issue #137: set expansion columns.  LOWIC50 / HIGHIC50 / LOGIC50
             # are exact 4-digit; QUALONLY is a class-only row whose donor
             # genotype carries multiple alleles → sample_allele_match.
             "mhc_allele_set": [
@@ -1362,7 +1362,7 @@ def _make_quant_binding_fixture(tmp_path):
                 "exact",
                 "sample_allele_match",
             ],
-            "mhc_allele_bag_size": [1, 1, 1, 2],
+            "mhc_allele_set_size": [1, 1, 1, 2],
         }
     )
     path = tmp_path / "binding.parquet"
@@ -1412,29 +1412,29 @@ def test_generate_binding_table_assay_method_substring_match(tmp_path, monkeypat
     assert set(df["peptide"]) == {"QUALONLY"}
 
 
-def test_generate_binding_table_allele_bag_filters(tmp_path, monkeypatch):
-    """Issue #137: ``mhc_allele_in_bag`` matches both literal 4-digit rows
-    and class-only rows whose expanded bag contains the allele.
+def test_generate_binding_table_allele_set_filters(tmp_path, monkeypatch):
+    """Issue #137: ``mhc_allele_in_set`` matches both literal 4-digit rows
+    and class-only rows whose expanded set contains the allele.
     ``mhc_allele_provenance`` provides a strict-vs-MIL training filter."""
     from hitlist.export import generate_binding_table
 
     bd_path = _make_quant_binding_fixture(tmp_path)
     monkeypatch.setattr("hitlist.observations.binding_path", lambda: bd_path)
 
-    # Filter to bag-contains HLA-A*02:01 — both exact rows AND the
-    # sample_allele_match row (whose bag is "HLA-A*02:01;HLA-B*07:02") match.
-    df = generate_binding_table(mhc_allele_in_bag="HLA-A*02:01")
+    # Filter to set-contains HLA-A*02:01 — both exact rows AND the
+    # sample_allele_match row (whose set is "HLA-A*02:01;HLA-B*07:02") match.
+    df = generate_binding_table(mhc_allele_in_set="HLA-A*02:01")
     assert set(df["peptide"]) == {"LOWIC50", "HIGHIC50", "LOGIC50", "QUALONLY"}
 
-    # Filter to bag-contains HLA-B*07:02 — only the sample_allele_match row.
-    df = generate_binding_table(mhc_allele_in_bag="HLA-B*07:02")
+    # Filter to set-contains HLA-B*07:02 — only the sample_allele_match row.
+    df = generate_binding_table(mhc_allele_in_set="HLA-B*07:02")
     assert set(df["peptide"]) == {"QUALONLY"}
 
     # Strict-resolution training: only "exact" rows.
     df = generate_binding_table(mhc_allele_provenance="exact")
     assert set(df["peptide"]) == {"LOWIC50", "HIGHIC50", "LOGIC50"}
 
-    # MIL-friendly: exact + sample_allele_match (small trusted bags).
+    # MIL-friendly: exact + sample_allele_match (small trusted sets).
     df = generate_binding_table(mhc_allele_provenance=["exact", "sample_allele_match"])
     assert set(df["peptide"]) == {"LOWIC50", "HIGHIC50", "LOGIC50", "QUALONLY"}
 
@@ -1515,8 +1515,8 @@ def test_generate_training_table_unifies_ms_and_binding(tmp_path, monkeypatch):
     assert (binding["sample_mhc"] == "").all()
 
 
-def test_generate_training_table_threads_allele_bag_filters(tmp_path, monkeypatch):
-    """Issue #136 + #137: bag columns survive concat and filters reach both
+def test_generate_training_table_threads_allele_set_filters(tmp_path, monkeypatch):
+    """Issue #136 + #137: set columns survive concat and filters reach both
     sides of the union (ms + binding).  Without this wiring, MIL-style
     training filters (``provenance=["exact","sample_allele_match"]``) only
     work via ``generate_observations_table`` / ``generate_binding_table``
@@ -1529,7 +1529,7 @@ def test_generate_training_table_threads_allele_bag_filters(tmp_path, monkeypatc
     # MS fixture: 2 exact rows, 1 sample_allele_match (multi-allelic).
     obs_data = pd.DataFrame(
         {
-            "peptide": ["MS_EXACT1", "MS_EXACT2", "MS_BAG"],
+            "peptide": ["MS_EXACT1", "MS_EXACT2", "MS_SET"],
             "mhc_restriction": ["HLA-A*02:01", "HLA-A*02:01", "HLA-A*02:01"],
             "mhc_class": ["I", "I", "I"],
             "assay_iri": ["a:1", "a:2", "a:3"],
@@ -1546,7 +1546,7 @@ def test_generate_training_table_threads_allele_bag_filters(tmp_path, monkeypatc
                 "HLA-A*02:01;HLA-B*07:02",
             ],
             "mhc_allele_provenance": ["exact", "exact", "sample_allele_match"],
-            "mhc_allele_bag_size": [1, 1, 2],
+            "mhc_allele_set_size": [1, 1, 2],
         }
     )
     obs_path = tmp_path / "observations.parquet"
@@ -1557,7 +1557,7 @@ def test_generate_training_table_threads_allele_bag_filters(tmp_path, monkeypatc
     # _make_quant_binding_fixture shape but inlined for clarity).
     bd_data = pd.DataFrame(
         {
-            "peptide": ["BD_EXACT", "BD_EXACT2", "BD_EXACT3", "BD_BAG"],
+            "peptide": ["BD_EXACT", "BD_EXACT2", "BD_EXACT3", "BD_SET"],
             "mhc_restriction": ["HLA-A*02:01"] * 4,
             "mhc_class": ["I"] * 4,
             "reference_iri": ["b1", "b2", "b3", "b4"],
@@ -1578,18 +1578,18 @@ def test_generate_training_table_threads_allele_bag_filters(tmp_path, monkeypatc
                 "exact",
                 "sample_allele_match",
             ],
-            "mhc_allele_bag_size": [1, 1, 1, 2],
+            "mhc_allele_set_size": [1, 1, 1, 2],
         }
     )
     bd_path = tmp_path / "binding.parquet"
     bd_data.to_parquet(bd_path, index=False)
     monkeypatch.setattr("hitlist.observations.binding_path", lambda: bd_path)
 
-    # No filter — all 7 rows survive and bag columns are present on both sides.
+    # No filter — all 7 rows survive and set columns are present on both sides.
     df = generate_training_table(include_evidence="both")
     assert set(df["evidence_kind"]) == {"ms", "binding"}
-    for col in ("mhc_allele_set", "mhc_allele_provenance", "mhc_allele_bag_size"):
-        assert col in df.columns, f"bag column {col} dropped by training export"
+    for col in ("mhc_allele_set", "mhc_allele_provenance", "mhc_allele_set_size"):
+        assert col in df.columns, f"set column {col} dropped by training export"
     assert df["mhc_allele_provenance"].notna().all()
 
     # Strict point-label training: only "exact" rows from both sides.
@@ -1609,10 +1609,10 @@ def test_generate_training_table_threads_allele_bag_filters(tmp_path, monkeypatc
     )
     assert len(df_mil) == 7  # all rows
 
-    # Bag-contains: rows whose mhc_allele_set lists HLA-B*07:02 (the two
+    # Set-contains: rows whose mhc_allele_set lists HLA-B*07:02 (the two
     # multi-allelic donor-typed rows, one ms + one binding).
-    df_b7 = generate_training_table(include_evidence="both", mhc_allele_in_bag="HLA-B*07:02")
-    assert set(df_b7["peptide"]) == {"MS_BAG", "BD_BAG"}
+    df_b7 = generate_training_table(include_evidence="both", mhc_allele_in_set="HLA-B*07:02")
+    assert set(df_b7["peptide"]) == {"MS_SET", "BD_SET"}
 
 
 def test_evidence_row_id_prefers_assay_iri_when_present(tmp_path, monkeypatch):
@@ -1957,7 +1957,7 @@ def test_export_training_cli_helper(monkeypatch):
         mono_allelic=True,
         min_allele_resolution="four_digit",
         mhc_allele=["HLA-A*02:01"],
-        mhc_allele_in_bag=["HLA-A*02:01"],
+        mhc_allele_in_set=["HLA-A*02:01"],
         mhc_allele_provenance=["exact"],
         gene=["PRAME"],
         gene_name=["PRAME"],
@@ -1983,7 +1983,7 @@ def test_export_training_cli_helper(monkeypatch):
         "is_mono_allelic": True,
         "min_allele_resolution": "four_digit",
         "mhc_allele": ["HLA-A*02:01"],
-        "mhc_allele_in_bag": ["HLA-A*02:01"],
+        "mhc_allele_in_set": ["HLA-A*02:01"],
         "mhc_allele_provenance": ["exact"],
         "gene": ["PRAME"],
         "gene_name": ["PRAME"],
@@ -2152,7 +2152,7 @@ def test_select_best_candidate_single_candidate_returns_none_without_overlap():
 def test_resolver_normalizes_mouse_alleles(full_observations_df):
     """Mouse alleles like ``H-2Kb`` written by curators in YAML must
     join against IEDB's canonical form ``H2-K*b`` after mhcgnomes
-    normalization. Regression for the silent allele-bag mismatch on
+    normalization. Regression for the silent allele-set mismatch on
     PMID 34428180 (Son 2021 transplant tolerance) — pre-fix, all
     ~70K rows fell through to ``pmid_class_pool`` because the YAML
     token never matched.
@@ -2254,7 +2254,7 @@ def test_select_best_candidate_rejects_short_family_root_match():
 
 def test_resolver_shapiro_2025_routes_per_ko_sample(full_observations_df):
     """Shapiro 2025 (PMID 40113210) — 12 HAP1 samples sharing one
-    allele bag (A*02:01 + B*40:01 + C*03:04). The supplementary CSVs
+    allele set (A*02:01 + B*40:01 + C*03:04). The supplementary CSVs
     set ``cell_name`` to the KO label (e.g. "HAP1 B2M KO"); the
     resolver must route every CSV's peptides to its matching
     ms_sample. Issue #54.

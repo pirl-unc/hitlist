@@ -356,13 +356,13 @@ def test_scan_quantitative_value_handles_garbage(tmp_path):
     assert math.isnan(df["quantitative_value"].iloc[0])
 
 
-# ── Allele-bag expansion (issue #137) ──────────────────────────────────────
+# ── Allele-set expansion (issue #137) ──────────────────────────────────────
 
 
-def _write_bag_iedb_csv(path, rows):
+def _write_set_iedb_csv(path, rows):
     """Variant of _write_quant_iedb_csv that also names the
     ``Host | MHC Types Present`` column at index 49 so the scanner can
-    drive bag expansion off it.
+    drive set expansion off it.
     """
     field_header = [""] * 112
     field_header[0] = "Assay IRI"
@@ -385,9 +385,9 @@ def _write_bag_iedb_csv(path, rows):
             writer.writerow(padded)
 
 
-def test_scan_emits_allele_bag_columns_with_provenance(tmp_path):
+def test_scan_emits_allele_set_columns_with_provenance(tmp_path):
     """Issue #137: every scanner row must carry mhc_allele_set /
-    mhc_allele_provenance / mhc_allele_bag_size.  Cover the three
+    mhc_allele_provenance / mhc_allele_set_size.  Cover the three
     populated provenance buckets (exact / sample_allele_match /
     pmid_class_pool) plus the unmatched fall-through.
     """
@@ -436,40 +436,40 @@ def test_scan_emits_allele_bag_columns_with_provenance(tmp_path):
     d[108] = "I"
     rows.append(d)
 
-    _write_bag_iedb_csv(src, rows)
+    _write_set_iedb_csv(src, rows)
     df = scan(peptides=None, iedb_path=str(src), cedar_path=None)
     assert len(df) == 4
-    for col in ("mhc_allele_set", "mhc_allele_provenance", "mhc_allele_bag_size"):
+    for col in ("mhc_allele_set", "mhc_allele_provenance", "mhc_allele_set_size"):
         assert col in df.columns
 
     by_pep = df.set_index("peptide")
     assert by_pep.loc["EXACTROWAB", "mhc_allele_provenance"] == "exact"
     assert by_pep.loc["EXACTROWAB", "mhc_allele_set"] == "HLA-A*02:01"
-    assert by_pep.loc["EXACTROWAB", "mhc_allele_bag_size"] == 1
+    assert by_pep.loc["EXACTROWAB", "mhc_allele_set_size"] == 1
 
     assert by_pep.loc["SAMPLEROWAB", "mhc_allele_provenance"] == "sample_allele_match"
-    assert by_pep.loc["SAMPLEROWAB", "mhc_allele_bag_size"] == 3
+    assert by_pep.loc["SAMPLEROWAB", "mhc_allele_set_size"] == 3
     assert "HLA-A*02:01" in by_pep.loc["SAMPLEROWAB", "mhc_allele_set"]
 
     assert by_pep.loc["POOLROWABCD", "mhc_allele_provenance"] == "pmid_class_pool"
-    assert by_pep.loc["POOLROWABCD", "mhc_allele_bag_size"] > 1
+    assert by_pep.loc["POOLROWABCD", "mhc_allele_set_size"] > 1
     assert "HLA-A*02:05" in by_pep.loc["POOLROWABCD", "mhc_allele_set"]  # CD165
 
     assert by_pep.loc["UNMATCHEDAB", "mhc_allele_provenance"] == "unmatched"
     assert by_pep.loc["UNMATCHEDAB", "mhc_allele_set"] == ""
-    assert by_pep.loc["UNMATCHEDAB", "mhc_allele_bag_size"] == 0
+    assert by_pep.loc["UNMATCHEDAB", "mhc_allele_set_size"] == 0
 
 
-def test_scan_promotes_bag_to_mhc_restriction_via_peptide_attribution(tmp_path):
+def test_scan_promotes_set_to_mhc_restriction_via_peptide_attribution(tmp_path):
     """End-to-end (#45): a class-only IEDB row whose peptide appears in
     the registered ``peptide_attributions`` CSV (Sarkizova 2020 / PMID
-    31844290) gets its bag narrowed to the matched donor's typed
-    alleles AND its ``mhc_restriction`` promoted to that bag.
+    31844290) gets its set narrowed to the matched donor's typed
+    alleles AND its ``mhc_restriction`` promoted to that set.
 
     ``AAAAAAAAAAAAAAPAP`` is uniquely attributed to MEL2 (13240-005),
     whose ``ms_samples[].mhc`` lists 5 alleles after homozygous-A
     collapse: A*01:01 / B*38:01 / B*56:01 / C*01:02 / C*06:02.  We assert
-    the scanner produces exactly that bag and that the row's
+    the scanner produces exactly that set and that the row's
     ``mhc_restriction`` is no longer ``"HLA class I"``.
     """
     src = tmp_path / "iedb.csv"
@@ -481,14 +481,14 @@ def test_scan_promotes_bag_to_mhc_restriction_via_peptide_attribution(tmp_path):
     row[49] = "HLA-A*01:01;HLA-B*38:01;HLA-B*56:01;HLA-C*01:02;HLA-C*06:02"
     row[107] = "HLA class I"
     row[108] = "I"
-    _write_bag_iedb_csv(src, [row])
+    _write_set_iedb_csv(src, [row])
 
     df = scan(peptides=None, iedb_path=str(src), cedar_path=None)
     assert len(df) == 1
     r = df.iloc[0]
 
     assert r["mhc_allele_provenance"] == "peptide_attribution"
-    assert r["mhc_allele_bag_size"] == 5
+    assert r["mhc_allele_set_size"] == 5
     expected = {
         "HLA-A*01:01",
         "HLA-B*38:01",
@@ -497,8 +497,8 @@ def test_scan_promotes_bag_to_mhc_restriction_via_peptide_attribution(tmp_path):
         "HLA-C*06:02",
     }
     assert set(r["mhc_allele_set"].split(";")) == expected
-    # Bag promoted to mhc_restriction — class label replaced by the actual
-    # presenting-MHC bag.
+    # Set promoted to mhc_restriction — class label replaced by the actual
+    # presenting-MHC set.
     assert r["mhc_restriction"] != "HLA class I"
     assert set(r["mhc_restriction"].split(";")) == expected
 
@@ -518,12 +518,12 @@ def test_scan_falls_back_to_sample_allele_match_when_peptide_unattributed(tmp_pa
     row[49] = "HLA-A*02:01;HLA-B*07:02"  # donor-typed alleles on this row
     row[107] = "HLA class I"
     row[108] = "I"
-    _write_bag_iedb_csv(src, [row])
+    _write_set_iedb_csv(src, [row])
 
     df = scan(peptides=None, iedb_path=str(src), cedar_path=None)
     assert len(df) == 1
     r = df.iloc[0]
     assert r["mhc_allele_provenance"] == "sample_allele_match"
-    assert r["mhc_allele_bag_size"] == 2
+    assert r["mhc_allele_set_size"] == 2
     assert set(r["mhc_allele_set"].split(";")) == {"HLA-A*02:01", "HLA-B*07:02"}
     assert set(r["mhc_restriction"].split(";")) == {"HLA-A*02:01", "HLA-B*07:02"}

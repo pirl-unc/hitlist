@@ -812,12 +812,12 @@ def main() -> None:
         ),
     )
     p_obs.add_argument(
-        "--mhc-allele-in-bag",
+        "--mhc-allele-in-set",
         action="extend",
         nargs="+",
         help=(
             "Filter to rows whose mhc_allele_set (issue #137 expanded "
-            "candidate-allele bag) contains any of the listed alleles. "
+            "candidate-allele set) contains any of the listed alleles. "
             "Captures both 4-digit rows AND multi-allele class-only rows whose "
             "donor genotype includes the allele.  Repeatable."
         ),
@@ -828,9 +828,9 @@ def main() -> None:
         nargs="+",
         choices=["exact", "sample_allele_match", "pmid_class_pool", "unmatched"],
         help=(
-            "Filter by how the allele bag was obtained.  Use 'exact' for "
+            "Filter by how the allele set was obtained.  Use 'exact' for "
             "strict-resolution training; ['exact', 'sample_allele_match'] for "
-            "MIL / noisy-OR over small trusted bags."
+            "MIL / noisy-OR over small trusted sets."
         ),
     )
     p_obs.add_argument(
@@ -927,12 +927,12 @@ def main() -> None:
         ),
     )
     p_bind.add_argument(
-        "--mhc-allele-in-bag",
+        "--mhc-allele-in-set",
         action="extend",
         nargs="+",
         help=(
             "Filter to rows whose mhc_allele_set (issue #137 candidate-allele "
-            "bag) contains any of the listed alleles.  Repeatable."
+            "set) contains any of the listed alleles.  Repeatable."
         ),
     )
     p_bind.add_argument(
@@ -940,7 +940,7 @@ def main() -> None:
         action="extend",
         nargs="+",
         choices=["exact", "sample_allele_match", "pmid_class_pool", "unmatched"],
-        help="Filter by how the allele bag was obtained (issue #137).",
+        help="Filter by how the allele set was obtained (issue #137).",
     )
     p_bind.add_argument(
         "--gene",
@@ -1080,12 +1080,12 @@ def main() -> None:
         help="Exact allele filter. Space-separated, comma-separated, or repeated.",
     )
     p_training.add_argument(
-        "--mhc-allele-in-bag",
+        "--mhc-allele-in-set",
         action="extend",
         nargs="+",
         help=(
             "Filter to rows whose mhc_allele_set (issue #137 expanded "
-            "candidate-allele bag) contains any of the listed alleles. "
+            "candidate-allele set) contains any of the listed alleles. "
             "Captures both 4-digit rows AND multi-allele class-only rows whose "
             "donor genotype includes the allele.  Repeatable."
         ),
@@ -1096,9 +1096,9 @@ def main() -> None:
         nargs="+",
         choices=["exact", "sample_allele_match", "pmid_class_pool", "unmatched"],
         help=(
-            "Filter by how the allele bag was obtained.  Use 'exact' for "
+            "Filter by how the allele set was obtained.  Use 'exact' for "
             "strict-resolution training; ['exact', 'sample_allele_match'] for "
-            "MIL / noisy-OR over small trusted bags."
+            "MIL / noisy-OR over small trusted sets."
         ),
     )
     p_training.add_argument(
@@ -1821,7 +1821,7 @@ def _export_training(args: argparse.Namespace):
         is_mono_allelic=getattr(args, "mono_allelic", None),
         min_allele_resolution=getattr(args, "min_allele_resolution", None),
         mhc_allele=getattr(args, "mhc_allele", None),
-        mhc_allele_in_bag=getattr(args, "mhc_allele_in_bag", None),
+        mhc_allele_in_set=getattr(args, "mhc_allele_in_set", None),
         mhc_allele_provenance=getattr(args, "mhc_allele_provenance", None),
         gene=getattr(args, "gene", None),
         gene_name=getattr(args, "gene_name", None),
@@ -1929,7 +1929,7 @@ def _export(args: argparse.Namespace) -> None:
                 is_mono_allelic=getattr(args, "mono_allelic", None),
                 min_allele_resolution=getattr(args, "min_allele_resolution", None),
                 mhc_allele=getattr(args, "mhc_allele", None),
-                mhc_allele_in_bag=getattr(args, "mhc_allele_in_bag", None),
+                mhc_allele_in_set=getattr(args, "mhc_allele_in_set", None),
                 mhc_allele_provenance=getattr(args, "mhc_allele_provenance", None),
                 gene=getattr(args, "gene", None),
                 gene_name=getattr(args, "gene_name", None),
@@ -1953,7 +1953,7 @@ def _export(args: argparse.Namespace) -> None:
                 source=getattr(args, "source", None),
                 min_allele_resolution=getattr(args, "min_allele_resolution", None),
                 mhc_allele=getattr(args, "mhc_allele", None),
-                mhc_allele_in_bag=getattr(args, "mhc_allele_in_bag", None),
+                mhc_allele_in_set=getattr(args, "mhc_allele_in_set", None),
                 mhc_allele_provenance=getattr(args, "mhc_allele_provenance", None),
                 gene=getattr(args, "gene", None),
                 gene_name=getattr(args, "gene_name", None),

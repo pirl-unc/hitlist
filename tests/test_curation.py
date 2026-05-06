@@ -10,7 +10,7 @@ from hitlist.curation import (
     classify_mhc_species,
     classify_ms_row,
     detect_monoallelic,
-    expand_allele_bag,
+    expand_allele_set,
     is_binding_assay,
     is_cancer_specific,
     load_monoallelic_lines,
@@ -1130,93 +1130,99 @@ def test_normalize_allele_empty_and_unparseable():
     assert normalize_allele("definitely not an allele") == "definitely not an allele"
 
 
-# ── Exact-allele bag expansion (issue #137) ─────────────────────────────
+# ── Exact-allele set expansion (issue #137) ─────────────────────────────
 
 
-def test_expand_allele_bag_exact_four_digit():
+def test_expand_allele_set_exact_four_digit():
     """A row already at four-digit resolution returns itself with provenance ``exact``."""
-    bag, prov, n = expand_allele_bag("HLA-A*02:01")
-    assert bag == "HLA-A*02:01"
+    allele_set, prov, n = expand_allele_set("HLA-A*02:01")
+    assert allele_set == "HLA-A*02:01"
     assert prov == "exact"
     assert n == 1
 
 
-def test_expand_allele_bag_class_only_with_sample_mhc():
+def test_expand_allele_set_class_only_with_sample_mhc():
     """class_only + Host | MHC Types Present yields ``sample_allele_match``
     with the donor's typed alleles, filtered to the row's class.
     """
     host = "HLA-A*01:01;HLA-B*13:02;HLA-B*39:06;HLA-C*12:03"
-    bag, prov, n = expand_allele_bag("HLA class I", host, mhc_class="I")
+    allele_set, prov, n = expand_allele_set("HLA class I", host, mhc_class="I")
     assert prov == "sample_allele_match"
     assert n == 4
-    assert bag == "HLA-A*01:01;HLA-B*13:02;HLA-B*39:06;HLA-C*12:03"
+    assert allele_set == "HLA-A*01:01;HLA-B*13:02;HLA-B*39:06;HLA-C*12:03"
 
 
-def test_expand_allele_bag_class_only_with_sample_mhc_class_filter():
+def test_expand_allele_set_class_only_with_sample_mhc_class_filter():
     """Sample's typed alleles include both class I and class II; the row's
     class filter must drop the wrong-class entries."""
     host = "HLA-A*02:01;HLA-DRB1*15:01"
-    bag_i, _, n_i = expand_allele_bag("HLA class I", host, mhc_class="I")
-    assert bag_i == "HLA-A*02:01"
+    set_i, _, n_i = expand_allele_set("HLA class I", host, mhc_class="I")
+    assert set_i == "HLA-A*02:01"
     assert n_i == 1
-    bag_ii, _, n_ii = expand_allele_bag("HLA class II", host, mhc_class="II")
-    assert bag_ii == "HLA-DRB1*15:01"
+    set_ii, _, n_ii = expand_allele_set("HLA class II", host, mhc_class="II")
+    assert set_ii == "HLA-DRB1*15:01"
     assert n_ii == 1
 
 
-def test_expand_allele_bag_class_only_falls_back_to_pmid_pool():
+def test_expand_allele_set_class_only_falls_back_to_pmid_pool():
     """No sample mhc → PMID pool from curated hla_alleles.  Uses PMID
     28832583 (Bassani-Sternberg 2017) which has dict-of-lists hla_alleles."""
-    bag, prov, n = expand_allele_bag("HLA class I", host_mhc_types="", pmid=28832583, mhc_class="I")
+    allele_set, prov, n = expand_allele_set(
+        "HLA class I", host_mhc_types="", pmid=28832583, mhc_class="I"
+    )
     assert prov == "pmid_class_pool"
     assert n > 0
-    # All alleles in the bag are class I (no HLA-D*).
-    assert all(not a.startswith("HLA-D") for a in bag.split(";"))
+    # All alleles in the set are class I (no HLA-D*).
+    assert all(not a.startswith("HLA-D") for a in allele_set.split(";"))
     # Spot-check: CD165's alleles should be in the pool.
-    assert "HLA-A*02:05" in bag
-    assert "HLA-B*15:01" in bag
+    assert "HLA-A*02:05" in allele_set
+    assert "HLA-B*15:01" in allele_set
 
 
-def test_expand_allele_bag_class_only_no_curation_is_unmatched():
+def test_expand_allele_set_class_only_no_curation_is_unmatched():
     """class_only with neither sample MHC nor PMID curation → unmatched."""
-    bag, prov, n = expand_allele_bag("HLA class I", host_mhc_types="", pmid=99999999, mhc_class="I")
-    assert bag == ""
+    allele_set, prov, n = expand_allele_set(
+        "HLA class I", host_mhc_types="", pmid=99999999, mhc_class="I"
+    )
+    assert allele_set == ""
     assert prov == "unmatched"
     assert n == 0
 
 
-def test_expand_allele_bag_two_digit_is_unmatched():
+def test_expand_allele_set_two_digit_is_unmatched():
     """Two-digit / serological / unresolved restrictions are emitted as
     unmatched until catalog-based expansion lands (planned follow-up)."""
     for restriction in ("HLA-A*02", "HLA-A2", ""):
-        bag, prov, n = expand_allele_bag(restriction)
-        assert bag == ""
+        allele_set, prov, n = expand_allele_set(restriction)
+        assert allele_set == ""
         assert prov == "unmatched"
         assert n == 0
 
 
-def test_expand_allele_bag_pmid_with_only_free_text_alleles():
+def test_expand_allele_set_pmid_with_only_free_text_alleles():
     """PMID 33858848 (HLA Ligand Atlas) has hla_alleles as dict-of-strings
     free-text descriptions ('51 HLA-I allotypes') with no parseable allele
     strings.  The flatten helper must return an empty pool, and a class_only
     row falls through to unmatched rather than crashing."""
-    bag, prov, n = expand_allele_bag("HLA class I", host_mhc_types="", pmid=33858848, mhc_class="I")
-    assert bag == ""
+    allele_set, prov, n = expand_allele_set(
+        "HLA class I", host_mhc_types="", pmid=33858848, mhc_class="I"
+    )
+    assert allele_set == ""
     assert prov == "unmatched"
     assert n == 0
 
 
-def test_expand_allele_bag_sample_match_wins_over_pmid_pool():
+def test_expand_allele_set_sample_match_wins_over_pmid_pool():
     """When both sample MHC and PMID pool are available, sample wins
     (more specific provenance)."""
-    bag, prov, n = expand_allele_bag(
+    allele_set, prov, n = expand_allele_set(
         "HLA class I",
         host_mhc_types="HLA-A*02:01",
         pmid=28832583,  # has a 32-allele PMID pool
         mhc_class="I",
     )
     assert prov == "sample_allele_match"
-    assert bag == "HLA-A*02:01"
+    assert allele_set == "HLA-A*02:01"
     assert n == 1
 
 
@@ -1531,14 +1537,14 @@ def test_is_non_peptide_ligand_empty_input():
     assert is_non_peptide_ligand(None) is False  # type: ignore[arg-type]
 
 
-# ── Per-sample attribution / donor-bag promotion (#45) ───────────────────
+# ── Per-sample attribution / donor-set promotion (#45) ───────────────────
 
 
 def test_parse_sample_mhc_field_bare_format():
     """Patient ms_samples entries store the donor genotype as a bare
     space-joined string (``"A*02:01 A*24:02 ..."``).  The parser must
     canonicalize each token to ``"HLA-A*02:01"`` form via mhcgnomes
-    so the bag matches what bag-expansion expects."""
+    so the set matches what set expansion expects."""
     from hitlist.curation import _parse_sample_mhc_field
 
     out = _parse_sample_mhc_field("A*02:01 A*24:02 B*15:01 B*44:02 C*05:01 C*07:02")
@@ -1566,53 +1572,53 @@ def test_parse_sample_mhc_field_prefixed_format():
 
 def test_parse_sample_mhc_field_homozygous():
     """Homozygous donor (e.g. MEL2: A*01:01 / A*01:01) collapses to a
-    single allele in the bag — ``frozenset`` deduplicates by design."""
+    single allele in the set — ``frozenset`` deduplicates by design."""
     from hitlist.curation import _parse_sample_mhc_field
 
     out = _parse_sample_mhc_field("A*01:01 A*01:01 B*38:01 B*56:01 C*01:02 C*06:02")
-    # A*01:01 collapses; bag size 5 (not 6).
+    # A*01:01 collapses; set size 5 (not 6).
     assert "HLA-A*01:01" in out
     assert len(out) == 5
 
 
-def test_classify_allele_resolution_donor_bag():
-    """Multi-allele bag strings (semicolon-joined 4-digit alleles) classify
-    as ``donor_bag`` — strictly more specific than ``class_only``, less
+def test_classify_allele_resolution_donor_set():
+    """Multi-allele set strings (semicolon-joined 4-digit alleles) classify
+    as ``donor_set`` — strictly more specific than ``class_only``, less
     specific than ``four_digit``.  Order in ALLELE_RESOLUTION_ORDER puts
-    ``donor_bag`` between ``four_digit`` and ``two_digit``."""
+    ``donor_set`` between ``four_digit`` and ``two_digit``."""
     from hitlist.curation import (
         ALLELE_RESOLUTION_ORDER,
         allele_resolution_rank,
         classify_allele_resolution,
     )
 
-    assert classify_allele_resolution("HLA-A*02:01;HLA-A*03:01") == "donor_bag"
+    assert classify_allele_resolution("HLA-A*02:01;HLA-A*03:01") == "donor_set"
     assert (
         classify_allele_resolution("HLA-A*01:01;HLA-A*32:01;HLA-B*15:01;HLA-C*03:03;HLA-C*03:04")
-        == "donor_bag"
+        == "donor_set"
     )
     # Single allele still resolves to four_digit.
     assert classify_allele_resolution("HLA-A*02:01") == "four_digit"
     # Class label still resolves to class_only.
     assert classify_allele_resolution("HLA class I") == "class_only"
-    # Trailing semicolon with single allele isn't a bag.
-    assert classify_allele_resolution("HLA-A*02:01;") != "donor_bag"
-    # Rank ordering: donor_bag is between four_digit and two_digit.
+    # Trailing semicolon with single allele is not a set.
+    assert classify_allele_resolution("HLA-A*02:01;") != "donor_set"
+    # Rank ordering: donor_set is between four_digit and two_digit.
     assert (
         allele_resolution_rank("four_digit")
-        < allele_resolution_rank("donor_bag")
+        < allele_resolution_rank("donor_set")
         < allele_resolution_rank("two_digit")
         < allele_resolution_rank("class_only")
     )
-    assert "donor_bag" in ALLELE_RESOLUTION_ORDER
+    assert "donor_set" in ALLELE_RESOLUTION_ORDER
 
 
-def test_expand_allele_bag_attributed_alleles_narrows():
+def test_expand_allele_set_attributed_alleles_narrows():
     """``attributed_alleles`` (per-peptide attribution from #45) takes
     priority over ``host_mhc_types`` and the PMID pool, narrowing the
-    bag to that specific subset of donor alleles.  Provenance becomes
+    set to that specific subset of donor alleles.  Provenance becomes
     ``peptide_attribution``."""
-    from hitlist.curation import expand_allele_bag
+    from hitlist.curation import expand_allele_set
 
     # Disease-wide host_mhc_types (18-allele MEL union)
     disease_union = (
@@ -1624,20 +1630,20 @@ def test_expand_allele_bag_attributed_alleles_narrows():
     # Per-peptide attribution narrows to MEL2's 5-allele genotype.
     mel2 = frozenset({"HLA-A*01:01", "HLA-B*38:01", "HLA-B*56:01", "HLA-C*01:02", "HLA-C*06:02"})
 
-    out_set, prov, size = expand_allele_bag("HLA class I", disease_union, 31844290, "I", mel2)
+    out_set, prov, size = expand_allele_set("HLA class I", disease_union, 31844290, "I", mel2)
     assert prov == "peptide_attribution"
     assert size == 5
     assert set(out_set.split(";")) == set(mel2)
 
 
-def test_expand_allele_bag_no_attribution_falls_back_to_sample_match():
+def test_expand_allele_set_no_attribution_falls_back_to_sample_match():
     """Without attribution, a class-only row falls back to the
     ``sample_allele_match`` path (donor's typed alleles from
-    ``host_mhc_types``).  Same row, different provenance and broader bag."""
-    from hitlist.curation import expand_allele_bag
+    ``host_mhc_types``).  Same row, different provenance and broader set."""
+    from hitlist.curation import expand_allele_set
 
     disease_union = "HLA-A*01:01;HLA-A*02:01;HLA-B*38:01;HLA-B*56:01;HLA-C*01:02;HLA-C*06:02"
-    out_set, prov, size = expand_allele_bag(
+    out_set, prov, size = expand_allele_set(
         "HLA class I", disease_union, 31844290, "I", frozenset()
     )
     assert prov == "sample_allele_match"
@@ -1646,7 +1652,7 @@ def test_expand_allele_bag_no_attribution_falls_back_to_sample_match():
 
 def test_attribute_peptide_to_sample_alleles_known_sarkizova_peptide():
     """End-to-end: a known Sarkizova MEL2 peptide pulls back MEL2's
-    typed-allele bag (from the ms_samples mhc field via
+    typed-allele set (from the ms_samples mhc field via
     _pmid_sample_alleles, after the bare-format normalization fix)."""
     from hitlist.curation import attribute_peptide_to_sample_alleles
 
@@ -1662,7 +1668,7 @@ def test_attribute_peptide_to_sample_alleles_known_sarkizova_peptide():
 def test_attribute_peptide_to_sample_alleles_unknown_peptide_returns_empty():
     """Peptides not in the attribution CSV (or PMIDs without an
     attribution registered) return the empty frozenset — caller falls
-    back to ``host_mhc_types`` / pmid pool via expand_allele_bag."""
+    back to ``host_mhc_types`` / pmid pool via expand_allele_set."""
     from hitlist.curation import attribute_peptide_to_sample_alleles
 
     assert attribute_peptide_to_sample_alleles(31844290, "ZZZZZZZZZZ") == frozenset()

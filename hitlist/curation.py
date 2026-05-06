@@ -484,14 +484,14 @@ def normalize_allele(raw: str) -> str:
 # ── Allele resolution ──────────────────────────────────────────────────────
 
 #: Resolution tiers, ordered from most to least specific.
-#: ``donor_bag`` is the multi-allele restriction emitted post-#45 when
+#: ``donor_set`` is the multi-allele restriction emitted post-#45 when
 #: a row's actual presenting MHC narrows to the donor's typed alleles
 #: (or a specific subset via per-peptide attribution) — strictly more
 #: specific than ``class_only`` (which is "any allele in this class")
 #: but less specific than ``four_digit`` (which is "this exact allele").
 ALLELE_RESOLUTION_ORDER: list[str] = [
     "four_digit",
-    "donor_bag",
+    "donor_set",
     "two_digit",
     "serological",
     "class_only",
@@ -515,23 +515,23 @@ def classify_allele_resolution(mhc_restriction: str) -> str:
     ----------
     mhc_restriction
         IEDB "MHC Restriction" field value, or a semicolon-joined
-        multi-allele bag emitted post-#45 (``"HLA-A*02:01;HLA-A*03:01;..."``).
+        multi-allele set emitted post-#45 (``"HLA-A*02:01;HLA-A*03:01;..."``).
 
     Returns
     -------
     str
-        One of ``"four_digit"``, ``"donor_bag"``, ``"two_digit"``,
+        One of ``"four_digit"``, ``"donor_set"``, ``"two_digit"``,
         ``"serological"``, ``"class_only"``, ``"unresolved"``.
     """
     if not mhc_restriction:
         return "unresolved"
 
-    # Multi-allele bag (#45): semicolon-joined 4-digit alleles. Each
+    # Multi-allele set (#45): semicolon-joined 4-digit alleles. Each
     # token must parse as a 4-digit allele; otherwise we fall through.
     if ";" in mhc_restriction:
         tokens = [t.strip() for t in mhc_restriction.split(";") if t.strip()]
         if len(tokens) > 1 and all(_looks_like_four_digit_allele(t) for t in tokens):
-            return "donor_bag"
+            return "donor_set"
 
     result = _cached_parse(mhc_restriction)
     if result is not None:
@@ -855,11 +855,12 @@ def _is_resolved_allele(mhc_restriction: str) -> bool:
     return classify_allele_resolution(mhc_restriction) in ("four_digit", "two_digit", "serological")
 
 
-# ── Exact-allele bag expansion (issue #137) ────────────────────────────────
+# ── Exact-allele set expansion (issue #137) ────────────────────────────────
 
 
-_BAG_PROVENANCE_VALUES = (
+_SET_PROVENANCE_VALUES = (
     "exact",
+    "peptide_attribution",
     "sample_allele_match",
     "pmid_class_pool",
     "unmatched",
@@ -942,7 +943,7 @@ def _parse_sample_mhc_field(mhc_field) -> frozenset[str]:
     ``"HLA-A*01:01"`` (HLA-prefixed) and others are ``"A*02:01 A*24:02
     B*15:01 ..."`` (bare, space-joined).  Both shapes carry valid donor
     genotypes; we normalize through :func:`normalize_allele` (mhcgnomes)
-    so the per-sample bag matches the canonical form used elsewhere
+    so the per-sample set matches the canonical form used elsewhere
     (``HLA-A*02:01``).
     """
     if mhc_field is None:
@@ -1060,8 +1061,8 @@ def attribute_peptide_to_sample_alleles(pmid: int | str, peptide: str) -> frozen
     Used at scan time to narrow ``host_mhc_types`` for class-only rows
     from the disease-wide union (e.g. all 14 alleles across GBM7+9+11)
     down to the matched donor's specific 6-allele genotype — turning
-    14-18-allele candidate bags into 6-12-allele bags for
-    bag-membership / mhc_allele_in_set queries.
+    14-18-allele candidate sets into 6-12-allele sets for
+    set-membership / mhc_allele_in_set queries.
 
     Implemented as a single dict lookup against
     :func:`_pmid_peptide_alleles` (the peptide-to-alleles map is
@@ -1099,7 +1100,7 @@ def _filter_alleles_by_class(alleles: frozenset[str], mhc_class: str) -> set[str
     ``mhc_class`` is the IEDB ``Class`` field (``"I"``, ``"II"``, ``"non
     classical"``, or ``""``).  Classical class I = HLA-A/B/C; class II =
     any HLA-D*.  Non-classical class I (E/F/G) is treated as class I for
-    bag expansion since restrictions like ``"HLA class I"`` could legitimately
+    set expansion since restrictions like ``"HLA class I"`` could legitimately
     map to those.  Empty ``mhc_class`` disables filtering.
     """
     if not mhc_class or mhc_class == "non classical":
@@ -1114,7 +1115,7 @@ def _filter_alleles_by_class(alleles: frozenset[str], mhc_class: str) -> set[str
 
 
 @lru_cache(maxsize=16384)
-def expand_allele_bag(
+def expand_allele_set(
     mhc_restriction: str,
     host_mhc_types: str = "",
     pmid: int | str = "",
@@ -1122,12 +1123,12 @@ def expand_allele_bag(
     attributed_alleles: frozenset[str] = frozenset(),
 ) -> tuple[str, str, int]:
     """Expand a (possibly coarse) MHC restriction to a candidate exact-allele
-    bag with provenance.
+    set with provenance.
 
     Issue #137: downstream training pipelines need to know which exact
     4-digit alleles a row's restriction could plausibly map to, plus how
     that mapping was obtained, so they can do MIL / noisy-OR training over
-    allele bags instead of silently collapsing or dropping coarse
+    allele sets instead of silently collapsing or dropping coarse
     restrictions.
 
     Logic:
@@ -1154,14 +1155,14 @@ def expand_allele_bag(
     lru_cache key stays cheap. Pass ``frozenset()`` (the default) when no
     per-peptide attribution applies; otherwise the caller looks the
     peptide up against :func:`attribute_peptide_to_sample_alleles` once
-    per row.  The ``frozenset`` shape gives identical bags from different
+    per row.  The ``frozenset`` shape gives identical sets from different
     peptides the same cache key, so peptides that map to the same
     sample union still share a cache slot.
 
     Returns
     -------
     tuple[str, str, int]
-        ``(mhc_allele_set, mhc_allele_provenance, mhc_allele_bag_size)``
+        ``(mhc_allele_set, mhc_allele_provenance, mhc_allele_set_size)``
         where the set is ``;``-joined (parquet-friendly, consistent with
         existing ``serotypes`` / ``gene_names`` columns).
     """

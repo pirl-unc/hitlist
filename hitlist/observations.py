@@ -62,7 +62,7 @@ def _unique_restrictions(path_str: str, mtime_ns: int, size: int) -> tuple[str, 
     on filesystems with 1s mtime resolution (HFS+, some network mounts).
     The set of distinct restriction strings is small (~hundreds) and
     changes only when the parquet rebuilds, but we use it on every
-    bag-aware ``mhc_restriction`` filter call — caching avoids re-reading
+    set-aware ``mhc_restriction`` filter call — caching avoids re-reading
     the full column off disk for each query.
     """
     table = pq.read_table(path_str, columns=["mhc_restriction"])
@@ -132,30 +132,30 @@ def load_observations(
         (e.g. ``"HLA-A*02:01"``).  Misses class-only rows where the
         donor is multi-allelic — for those, use ``mhc_allele_in_set``.
     mhc_allele_in_set
-        Bag-membership filter: keep rows whose ``mhc_allele_set``
-        (the candidate-allele bag from ``expand_allele_bag`` — see #137,
+        Set-membership filter: keep rows whose ``mhc_allele_set``
+        (the candidate-allele set from ``expand_allele_set`` — see #137,
         #45) contains any of the listed alleles.  This is the right
         knob for queries like *"show me HLA-A*02:01 melanoma peptides"*
         that need to recover **multi-allelic patient tumor cohorts**
         where IEDB stored only the class label.  Strict subset of
         ``mhc_restriction``: a 4-digit row passes both filters; a
-        class-only row with a curated bag passes only ``mhc_allele_in_set``.
+        class-only row with a curated set passes only ``mhc_allele_in_set``.
     mhc_allele_provenance
-        Filter by how a row's allele bag was obtained:
+        Filter by how a row's allele set was obtained:
 
-        - ``"exact"`` — restriction was already 4-digit, bag = {restriction}
-        - ``"peptide_attribution"`` — bag narrowed via per-peptide
+        - ``"exact"`` — restriction was already 4-digit, set = {restriction}
+        - ``"peptide_attribution"`` — set narrowed via per-peptide
           attribution from the paper supplement (#45, e.g. Sarkizova 2020
           patient tumor cohort)
-        - ``"sample_allele_match"`` — bag = donor's typed alleles from
+        - ``"sample_allele_match"`` — set = donor's typed alleles from
           IEDB ``Host | MHC Types Present``
-        - ``"pmid_class_pool"`` — bag = curated per-PMID pool when no
+        - ``"pmid_class_pool"`` — set = curated per-PMID pool when no
           per-row donor typing was recorded
-        - ``"unmatched"`` — bag empty (no donor typing or pool curation)
+        - ``"unmatched"`` — set empty (no donor typing or pool curation)
 
         Use ``"exact"`` for strict allele-resolved training data;
         ``"peptide_attribution"`` for sample-narrowed multi-allelic
-        cohorts; the others depending on tolerance for bag noise.
+        cohorts; the others depending on tolerance for set noise.
     gene_name, gene_id
         Gene filters — resolved through the peptide mappings sidecar.
     length_min, length_max
@@ -423,14 +423,14 @@ def _load_peptide_index(
     if source is not None:
         filters.append(("source", "==", source))
     if mhc_restriction is not None:
-        # Bag-membership match (#45): post-#45, ``mhc_restriction`` may
+        # Set-membership match (#45): post-#45, ``mhc_restriction`` may
         # be a single 4-digit allele OR a semicolon-joined multi-allele
-        # bag (the donor's typed alleles when the per-peptide attribution
+        # set (the donor's typed alleles when the per-peptide attribution
         # is multi-allelic).  A query for ``"HLA-A*02:01"`` should match
         # both.  We expand the wanted values to all stored restriction
         # strings whose ``;``-split tokens contain any wanted allele,
         # then push down the expanded list — keeps pyarrow's IN
-        # predicate fast while honoring bag-membership semantics.  The
+        # predicate fast while honoring set-membership semantics.  The
         # unique-restriction set is cached per ``(path, mtime_ns, size)``
         # so we don't re-read the column on every call.
         wanted = {normalize_allele(v) for v in _as_list(mhc_restriction)} - {""}
@@ -533,25 +533,25 @@ def _load_peptide_index(
         if columns is not None and "serotypes" not in columns:
             df = df.drop(columns=["serotypes"])
 
-    # Bag-membership filter (#45 / #137).  ``mhc_allele_set`` is a
+    # Set-membership filter (#45 / #137).  ``mhc_allele_set`` is a
     # ``;``-joined string so parquet pushdown can't express the filter;
     # apply post-load.  Cheap on a filtered frame (the heavy filters
     # above already shrunk the row count).
     if mhc_allele_in_set is not None and "mhc_allele_set" in df.columns:
-        # Vectorized bag-membership: pad each cell with leading/trailing
+        # Vectorized set-membership: pad each cell with leading/trailing
         # ``;`` and substring-match ``;<allele>;``.  Anchors prevent
         # ``HLA-A*02`` from matching ``HLA-A*02:01``.  ``str.contains`` runs
         # in C; one pass per wanted allele beats a per-row Python apply
         # for low-selectivity queries on millions of rows.
-        wanted_bag = {normalize_allele(a.strip()) for a in _as_list(mhc_allele_in_set)} - {""}
-        if not wanted_bag:
+        wanted_set = {normalize_allele(a.strip()) for a in _as_list(mhc_allele_in_set)} - {""}
+        if not wanted_set:
             raise ValueError(
                 "mhc_allele_in_set filter received no usable allele values "
                 "after normalization; pass at least one non-empty allele."
             )
         padded = ";" + df["mhc_allele_set"].fillna("").astype(str) + ";"
         mask = pd.Series(False, index=df.index)
-        for allele in wanted_bag:
+        for allele in wanted_set:
             mask |= padded.str.contains(f";{re.escape(allele)};", regex=True)
         df = df[mask]
 

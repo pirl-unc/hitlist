@@ -1127,9 +1127,9 @@
     # — peptide → list of samples it was observed in. IEDB stores these
     # rows with ``mhc_restriction="HLA class I"`` and ``host_mhc_types``
     # = the disease-wide union (e.g. all 14 alleles across GBM7+9+11),
-    # which over-broadens the candidate-allele bag.  At scan time, when
+    # which over-broadens the candidate-allele set.  At scan time, when
     # the row is class-only AND its peptide appears in this CSV, the
-    # bag is narrowed to the union of the matched samples' typed alleles
+    # set is narrowed to the union of the matched samples' typed alleles
     # (so a unique-attribution peptide ends up with that one donor's 6
     # alleles instead of 14-18 disease-wide).
     peptide_attributions: peptide_attributions/sarkizova_2020_patient_cohort.csv

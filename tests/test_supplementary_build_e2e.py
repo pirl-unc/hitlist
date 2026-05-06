@@ -248,7 +248,7 @@ def test_generate_observations_table_joins_mono_and_multi_allelic(tmp_path, monk
     assert mono["sample_label"] == "Mono-HeLa-1"
     assert mono["instrument_type"] == "Orbitrap"
 
-    # Multi-allelic row's allele appears in the sample's bag.
+    # Multi-allelic row's allele appears in the sample's set.
     multi = df[df["peptide"] == "MULTIPEP01"].iloc[0]
     assert multi["sample_match_type"] == "allele_match"
     assert multi["sample_label"] == "Multi-donor-A"

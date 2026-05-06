@@ -631,13 +631,13 @@ def test_exclude_non_peptide_ligand_works_with_projection(tmp_path, monkeypatch)
     assert out["peptide"].tolist() == ["SIINFEKL"]
 
 
-# ── #45 multi-allele restriction / bag-membership filters ──────────────
+# ── #45 multi-allele restriction / set-membership filters ──────────────
 
 
-def test_mhc_restriction_filter_matches_donor_bag_member(tmp_path, monkeypatch):
+def test_mhc_restriction_filter_matches_donor_set_member(tmp_path, monkeypatch):
     """#45: ``mhc_restriction`` post-#45 may be a single 4-digit allele
-    OR a semicolon-joined donor bag.  A query for a single allele must
-    match BOTH single-allele rows and donor-bag rows that contain that
+    OR a semicolon-joined donor set.  A query for a single allele must
+    match BOTH single-allele rows and donor-set rows that contain that
     allele as a token.  Pre-#45 the filter was strict equality which
     silently excluded multi-allelic donor cohorts."""
     import pandas as pd
@@ -646,13 +646,13 @@ def test_mhc_restriction_filter_matches_donor_bag_member(tmp_path, monkeypatch):
 
     df = pd.DataFrame(
         {
-            "peptide": ["SIINFEKL", "GLCTLVAML", "DONOR_BAG_PEP", "OTHER_DONOR"],
+            "peptide": ["SIINFEKL", "GLCTLVAML", "DONOR_SET_PEP", "OTHER_DONOR"],
             "mhc_restriction": [
                 "HLA-A*02:01",  # exact A*02:01 — matches
                 "HLA-A*11:01",  # exact A*11:01 — does not match
-                # MEL3 donor bag: contains A*02:01 → matches
+                # MEL3 donor set: contains A*02:01 → matches
                 "HLA-A*02:01;HLA-A*03:01;HLA-B*27:05;HLA-C*06:02",
-                # MEL2 donor bag: no A*02:01 → does not match
+                # MEL2 donor set: no A*02:01 → does not match
                 "HLA-A*01:01;HLA-B*38:01;HLA-C*01:02",
             ],
             "mhc_class": ["I"] * 4,
@@ -667,13 +667,13 @@ def test_mhc_restriction_filter_matches_donor_bag_member(tmp_path, monkeypatch):
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
 
     out = load_observations(mhc_restriction="HLA-A*02:01")
-    assert set(out["peptide"]) == {"SIINFEKL", "DONOR_BAG_PEP"}
+    assert set(out["peptide"]) == {"SIINFEKL", "DONOR_SET_PEP"}
 
 
 def test_mhc_allele_in_set_filter_post_load(tmp_path, monkeypatch):
     """``mhc_allele_in_set`` filters on ``mhc_allele_set`` membership
     (semicolon-joined).  Equivalent semantics to ``mhc_restriction``
-    filter post-#45 but operates on the dedicated bag column — kept
+    filter post-#45 but operates on the dedicated set column — kept
     available for callers who want the explicit knob."""
     import pandas as pd
 
@@ -704,10 +704,10 @@ def test_mhc_allele_in_set_filter_post_load(tmp_path, monkeypatch):
 
 
 def test_mhc_allele_provenance_filter(tmp_path, monkeypatch):
-    """``mhc_allele_provenance`` selects rows by how their bag was
+    """``mhc_allele_provenance`` selects rows by how their set was
     obtained.  Useful for strict-allele training (``"exact"``) vs.
     sample-narrowed multi-allele (``"peptide_attribution"``) vs. donor
-    bag (``"sample_allele_match"``)."""
+    set (``"sample_allele_match"``)."""
     import pandas as pd
 
     from hitlist.observations import load_observations
