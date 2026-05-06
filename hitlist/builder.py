@@ -291,7 +291,15 @@ def _compress_categoricals(df: pd.DataFrame, *, strict: bool = False) -> None:
                 "either fix the typo in _CATEGORICAL_BUILD_COLUMNS or call with strict=False."
             )
     for col in _CATEGORICAL_BUILD_COLUMNS:
-        if col in df.columns and df[col].dtype == "object":
+        if col not in df.columns:
+            continue
+        # ``is_string_dtype`` covers ``object``, pandas ``StringDtype``,
+        # and Arrow-backed string dtypes — newer pandas versions infer
+        # ``str`` dtype by default for plain string columns, so an
+        # ``== "object"`` check would silently skip them.  Already-
+        # categorical columns return False (they're a separate dtype),
+        # which is what we want for idempotence.
+        if pd.api.types.is_string_dtype(df[col]) and df[col].dtype.name != "category":
             df[col] = df[col].astype("category")
 
 

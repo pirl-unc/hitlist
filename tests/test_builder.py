@@ -380,6 +380,25 @@ def test_compress_categoricals_partial_frame_default_does_not_raise():
     assert df["source"].dtype.name == "category"
 
 
+def test_compress_categoricals_handles_pandas_str_dtype():
+    """Regression: pandas 2.2+ may default string columns to ``StringDtype``
+    (``"str"``) rather than ``object``.  An ``== "object"`` check would
+    silently skip these — the helper must use ``is_string_dtype`` to cover
+    both representations.  Without this, the categorical compression no-ops
+    in CI environments where pandas infers ``str`` dtype by default and the
+    full-build memory blow-up returns."""
+    df = pd.DataFrame(
+        {
+            "mhc_class": pd.array(["I", "II", "I"], dtype="string"),
+            "source": pd.array(["iedb", "iedb", "cedar"], dtype="string"),
+        }
+    )
+    assert pd.api.types.is_string_dtype(df["mhc_class"])
+    _compress_categoricals(df)
+    assert df["mhc_class"].dtype.name == "category"
+    assert df["source"].dtype.name == "category"
+
+
 def test_compress_categoricals_reduces_memory_at_scale():
     """Realistic-cardinality fixture: helper cuts memory ~5x or more.
 
