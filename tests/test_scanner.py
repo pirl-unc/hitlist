@@ -524,5 +524,6 @@ def test_scan_falls_back_to_sample_allele_match_when_peptide_unattributed(tmp_pa
     assert len(df) == 1
     r = df.iloc[0]
     assert r["mhc_allele_provenance"] == "sample_allele_match"
+    assert r["mhc_allele_bag_size"] == 2
     assert set(r["mhc_allele_set"].split(";")) == {"HLA-A*02:01", "HLA-B*07:02"}
     assert set(r["mhc_restriction"].split(";")) == {"HLA-A*02:01", "HLA-B*07:02"}
