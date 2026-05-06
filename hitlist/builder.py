@@ -218,6 +218,53 @@ def _atomic_write_parquet(df: pd.DataFrame, path: Path) -> None:
     partial.replace(path)
 
 
+#: Columns whose distinct-value cardinality is small relative to row count —
+#: converting to ``category`` dtype before concat / write cuts the in-memory
+#: footprint of the observations frame ~5-10x (Python ``str`` overhead is
+#: 50-100 bytes per cell vs. 1-4 bytes for a category code on a small
+#: dictionary).  Holding the full obs + binding frames in RAM during the
+#: ``build_peptide_mappings`` step previously peaked at ~40 GB; categorical
+#: compression brings the peak down to single-digit GB without changing the
+#: written parquet (pyarrow stores categoricals as dictionary-encoded columns
+#: regardless, so the on-disk artifact is byte-identical).
+_CATEGORICAL_BUILD_COLUMNS: tuple[str, ...] = (
+    "source",
+    "mhc_class",
+    "mhc_species",
+    "mhc_restriction",
+    "mhc_allele_provenance",
+    "allele_resolution",
+    "serotype",
+    "host",
+    "host_age",
+    "process_type",
+    "disease",
+    "disease_stage",
+    "source_tissue",
+    "cell_name",
+    "culture_condition",
+    "assay_method",
+    "response_measured",
+    "measurement_units",
+    "measurement_inequality",
+    "qualitative_measurement",
+    "species",
+    "source_organism",
+)
+
+
+def _compress_categoricals(df: pd.DataFrame) -> None:
+    """In-place ``object → category`` for low-cardinality string columns.
+
+    No-op for columns not present or already non-object.  Mutates the frame.
+    """
+    if df.empty:
+        return
+    for col in _CATEGORICAL_BUILD_COLUMNS:
+        if col in df.columns and df[col].dtype == "object":
+            df[col] = df[col].astype("category")
+
+
 def _drop_short_mhc2_rows(df: pd.DataFrame, label: str) -> pd.DataFrame:
     """Drop ``mhc_class == "II"`` rows with peptides shorter than 12 aa.
 
@@ -338,6 +385,7 @@ def build_observations(
         else:
             ms_df = df
             bd_df = df.iloc[0:0].copy()
+        del df  # free the source scan's frame before the next source's scan
 
         # Deduplicate across sources by assay IRI (per index).  Pre-#146
         # this dedup used ``reference_iri`` (study-level) by mistake, which
@@ -370,15 +418,29 @@ def build_observations(
 
         ms_seen_iris.update(_iri_series(ms_df).values)
         binding_seen_iris.update(_iri_series(bd_df).values)
+        n_ms, n_bd = len(ms_df), len(bd_df)
+        # Compress before append so concat downstream operates on
+        # already-categorized frames (5-10x memory reduction during the
+        # subsequent gene-annotation merge / mappings build).
+        _compress_categoricals(ms_df)
+        _compress_categoricals(bd_df)
         ms_dfs.append(ms_df)
         binding_dfs.append(bd_df)
-        print(f"  {len(ms_df):,} MS rows + {len(bd_df):,} binding rows from {name}")
+        del ms_df, bd_df
+        print(f"  {n_ms:,} MS rows + {n_bd:,} binding rows from {name}")
 
     if not ms_dfs and not binding_dfs:
         raise RuntimeError("No data scanned.")
 
     obs = pd.concat(ms_dfs, ignore_index=True) if ms_dfs else pd.DataFrame()
+    ms_dfs.clear()  # free the per-source frames; concat returned a fresh copy
     binding = pd.concat(binding_dfs, ignore_index=True) if binding_dfs else pd.DataFrame()
+    binding_dfs.clear()
+    # Concat broadens categoricals (their union dictionary may be larger),
+    # but the dtype itself is preserved; re-assert for any columns that
+    # came in with mixed dtypes across sources.
+    _compress_categoricals(obs)
+    _compress_categoricals(binding)
 
     # --- Supplementary data (MS only — manually curated from papers) ---
     from .supplement import scan_supplementary
@@ -401,8 +463,11 @@ def build_observations(
         dupes = before - len(supp)
         if dupes:
             print(f"  Deduplicated {dupes:,} supplementary rows (already in IEDB/CEDAR)")
+        n_supp_added = len(supp)
         obs = pd.concat([obs, supp], ignore_index=True)
-        print(f"  {len(supp):,} rows from supplementary data (MS)")
+        del supp
+        _compress_categoricals(obs)
+        print(f"  {n_supp_added:,} rows from supplementary data (MS)")
 
     # Drop short MHC-II rows (#122) — biologically implausible, and
     # overwhelmingly IEDB import errors (e.g. HLA Ligand Atlas 9-mers).
@@ -453,6 +518,9 @@ def build_observations(
             columns=["peptide", "gene_name", "gene_id", "protein_id"]
         )
         obs = annotate_observations_with_genes(obs, mappings_df)
+        # Pandas merge can revert categoricals to object on the joined
+        # frame; re-assert before holding obs through the binding pass.
+        _compress_categoricals(obs)
         if len(obs):
             n_with_gene = (obs["gene_names"] != "").sum() if "gene_names" in obs.columns else 0
             print(
@@ -460,6 +528,8 @@ def build_observations(
                 f"({100 * n_with_gene / len(obs):.1f}%)"
             )
         binding = annotate_observations_with_genes(binding, mappings_df)
+        _compress_categoricals(binding)
+        del mappings_df
         if len(binding):
             n_with_gene_b = (
                 (binding["gene_names"] != "").sum() if "gene_names" in binding.columns else 0
