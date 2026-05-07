@@ -93,27 +93,15 @@ def _data_list(args: argparse.Namespace) -> None:
         print(f"Data directory: {data_dir()}")
         print("Run 'hitlist data available' to see known datasets.")
         return
-    print(f"{'Name':<12} {'Size':>12}  {'Date':<12} {'Index':<8} Description")
-    print("-" * 85)
-
-    from .indexer import _cache_is_valid
+    print(f"{'Name':<12} {'Size':>12}  {'Date':<12} Description")
+    print("-" * 75)
 
     for name, ds in sorted(datasets.items()):
         size_str = _fmt_size(ds.get("size_bytes", 0))
         date = ds.get("registered", "")[:10]
         desc = ds.get("description", "")
-        idx_status = ""
-        if name in ("iedb", "cedar"):
-            from pathlib import Path
-
-            p = Path(ds.get("path", ""))
-            if p.exists():
-                idx_status = "cached" if _cache_is_valid(name, p) else "stale"
-            else:
-                idx_status = "missing"
-        print(f"{name:<12} {size_str:>12}  {date:<12} {idx_status:<8} {desc}")
+        print(f"{name:<12} {size_str:>12}  {date:<12} {desc}")
     print(f"\nData directory: {data_dir()}")
-    print("Run 'hitlist data index' to build/rebuild the search index.")
 
 
 def _data_available(args: argparse.Namespace) -> None:
@@ -299,29 +287,22 @@ def _data_list_proteomes(args: argparse.Namespace) -> None:
 
 
 def _data_index(args: argparse.Namespace) -> None:
-    from .indexer import _cache_dir, _cache_is_valid, _resolve_source_paths, get_index
+    """Print summary index counts.
 
-    paths = _resolve_source_paths()
-    if not paths:
-        print("No IEDB/CEDAR data registered. Nothing to index.")
-        sys.exit(1)
+    Pre-v1.30.41 this command also wrote a per-source CSV-scan cache to
+    ``~/.hitlist/index/`` — that cache is gone (the index is always
+    derived from ``observations.parquet``).  The command is preserved
+    because shell scripts and notebooks may still call it; behavior is
+    now print-only.
+    """
+    from .indexer import get_index
 
     source = args.source or "merged"
-    force = args.force
-
-    # Show cache status before indexing
-    if not force:
-        for label, path in sorted(paths.items()):
-            valid = _cache_is_valid(label, path)
-            status = "cached" if valid else "stale/missing"
-            print(f"  {label}: {status}")
-
-    study_df, allele_df = get_index(source=source, force=force)
-    print(f"\nIndex ({source}):")
+    study_df, allele_df = get_index(source=source)
+    print(f"Index ({source}):")
     print(f"  Studies:  {len(study_df):,}")
     print(f"  Alleles:  {len(allele_df):,}")
     print(f"  Species:  {study_df['mhc_species'].nunique()}")
-    print(f"  Cache:    {_cache_dir()}")
 
 
 def _build_data_parser(sub: argparse._SubParsersAction) -> None:
@@ -437,14 +418,23 @@ def _add_build_proteomes_args(p: argparse.ArgumentParser) -> None:
 
 
 def _add_build_index_args(p: argparse.ArgumentParser) -> None:
-    """Argparse setup for `hitlist build index` (== legacy `data index`)."""
+    """Argparse setup for `hitlist build index` (== legacy `data index`).
+
+    Pre-v1.30.41 this command wrote a per-source CSV-scan cache; the cache
+    has been obliterated so the command now just prints summary counts
+    derived from ``observations.parquet``.  ``--force`` is retained as a
+    no-op accepted flag for backward compatibility with shell scripts.
+    """
     p.add_argument(
         "--source",
         choices=["iedb", "cedar", "merged", "all"],
-        help="Source to index (default: all registered sources independently + merged)",
+        help="Source to summarize (default: merged)",
     )
     p.add_argument(
-        "--force", "-f", action="store_true", help="Force re-index even if cache is valid"
+        "--force",
+        "-f",
+        action="store_true",
+        help="Accepted for backward compat; no-op since v1.30.41 (no cache to refresh).",
     )
 
 

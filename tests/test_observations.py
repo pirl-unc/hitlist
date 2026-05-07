@@ -971,3 +971,71 @@ def test_mhc_allele_in_set_filter_empty_string_raises(tmp_path, monkeypatch):
         load_observations(mhc_allele_in_set="")
     with pytest.raises(ValueError, match="mhc_allele_in_set filter received no usable"):
         load_observations(mhc_allele_in_set=[""])
+
+
+def test_load_observations_handles_categorical_mhc_class_with_nan(tmp_path, monkeypatch):
+    """Regression for v1.30.40 load crash:
+
+        TypeError: Cannot setitem on a Categorical with a new category (),
+        set the categories first
+
+    Triggered by ``df["mhc_class"].fillna("")`` inside ``_load_peptide_index``
+    when ``mhc_class`` is post-#137 categorical and ``""`` isn't in its
+    category set (categories are usually ``{"I", "II", "non classical"}``).
+    pandas refuses to ``fillna`` with an out-of-category value.
+
+    Surfaced by ``tsarina hits --gene PRAME`` against today's rebuilt corpus.
+    Fix: cast to ``StringDtype`` before ``fillna``."""
+    import pandas as pd
+
+    from hitlist.observations import load_observations
+
+    df = pd.DataFrame(
+        {
+            "peptide": ["P1", "P2", "P3"],
+            # Categorical with a NA cell — "" is not a category.
+            "mhc_class": pd.Categorical(["I", "II", None]),
+            "mhc_restriction": ["HLA-A*02:01", "HLA-DRB1*15:01", ""],
+            "mhc_allele_set": ["HLA-A*02:01", "HLA-DRB1*15:01", ""],
+            "reference_iri": ["r-1", "r-2", "r-3"],
+            "pmid": pd.array([1, 2, 3], dtype="Int64"),
+            "source": ["iedb"] * 3,
+            "mhc_species": ["Homo sapiens"] * 3,
+        }
+    )
+    path = tmp_path / "observations.parquet"
+    df.to_parquet(path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
+
+    out = load_observations()
+    assert len(out) == 3
+    assert "mhc_class_label_severity" in out.columns
+
+
+def test_load_observations_normalizes_categorical_mhc_restriction(tmp_path, monkeypatch):
+    """Regression: the per-load ``mhc_restriction`` normalization path
+    (``df["mhc_restriction"].map(norm_map).fillna(...)``) hit the same
+    ``setitem on Categorical with new category`` failure when fed a
+    categorical column.  Cast-to-string-first is the fix."""
+    import pandas as pd
+
+    from hitlist.observations import load_observations
+
+    df = pd.DataFrame(
+        {
+            "peptide": ["P1", "P2"],
+            "mhc_restriction": pd.Categorical(["HLA-A*02:01", "HLA-A*02:01"]),
+            "mhc_class": ["I", "I"],
+            "mhc_allele_set": ["HLA-A*02:01", "HLA-A*02:01"],
+            "reference_iri": ["r-1", "r-2"],
+            "pmid": pd.array([1, 2], dtype="Int64"),
+            "source": ["iedb"] * 2,
+            "mhc_species": ["Homo sapiens"] * 2,
+        }
+    )
+    path = tmp_path / "observations.parquet"
+    df.to_parquet(path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
+
+    out = load_observations()
+    assert len(out) == 2

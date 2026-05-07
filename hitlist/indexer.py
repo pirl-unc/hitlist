@@ -13,8 +13,12 @@
 """Summary index derived from the unified observations table.
 
 Provides aggregated study counts and allele counts from
-:func:`hitlist.observations.load_observations`. Falls back to
-direct CSV scanning if the observations table has not been built.
+:func:`hitlist.observations.load_observations`.  The legacy CSV-scan
+fallback (which wrote a per-source allele-counts cache to
+``~/.hitlist/index/``) was removed in v1.30.41 — the index is always
+derived from ``observations.parquet`` so it reflects the full curated
+corpus (IEDB + CEDAR + supplements + curation overrides + per-peptide
+attribution) rather than the raw IEDB/CEDAR CSVs alone.
 
 Usage::
 
@@ -26,82 +30,38 @@ Usage::
 
 from __future__ import annotations
 
-import contextlib
-import json
-from collections import defaultdict
-from pathlib import Path
-
 import pandas as pd
 
 
-def _resolve_source_paths() -> dict[str, Path]:
-    """Resolve registered IEDB/CEDAR paths."""
-    from .downloads import get_path
-
-    sources: dict[str, Path] = {}
-    for name in ("iedb", "cedar"):
-        with contextlib.suppress(KeyError, FileNotFoundError):
-            p = get_path(name)
-            if p.exists():
-                sources[name] = p
-    return sources
-
-
-def _cache_dir() -> Path:
-    from .downloads import data_dir
-
-    d = data_dir() / "index"
-    d.mkdir(exist_ok=True)
-    return d
-
-
-def _cache_key(source_path: Path) -> dict:
-    stat = source_path.stat()
-    return {"path": str(source_path), "size": stat.st_size, "mtime": stat.st_mtime}
-
-
-def _cache_is_valid(label: str, source_path: Path) -> bool:
-    meta_path = _cache_dir() / f"{label}_meta.json"
-    if not meta_path.exists():
-        return False
-    stored = json.loads(meta_path.read_text())
-    current = _cache_key(source_path)
-    return stored.get("size") == current["size"] and stored.get("mtime") == current["mtime"]
-
-
-def get_index(
-    source: str = "merged",
-    force: bool = False,
-) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Get study counts and allele counts.
-
-    Reads from the built observations table if available (fast).
-    Falls back to direct CSV scanning if not built.
+def get_index(source: str = "merged") -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Get study counts and allele counts from the built observations table.
 
     Parameters
     ----------
     source
         ``"iedb"``, ``"cedar"``, ``"merged"`` (default), or ``"all"``.
-    force
-        Ignored when reading from observations.parquet.
+        ``"merged"`` returns one row per (pmid, mhc_class, mhc_species)
+        across all sources; ``"all"`` splits per-source.
 
     Returns
     -------
     tuple[pd.DataFrame, pd.DataFrame]
-        ``(study_counts, allele_counts)``
+        ``(study_counts, allele_counts)``.  Counts include curated
+        supplements + per-PMID overrides + per-peptide attribution
+        because they're derived from ``observations.parquet``.
+
+    Raises
+    ------
+    FileNotFoundError
+        ``observations.parquet`` is not built.  Run
+        ``hitlist build observations`` first.
     """
-    from .observations import is_built
+    from .observations import is_built, load_observations
 
-    if is_built():
-        return _index_from_observations(source)
-
-    # Fallback: direct CSV scan (legacy path)
-    return _index_from_csv(source, force)
-
-
-def _index_from_observations(source: str) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Derive index from the built observations table."""
-    from .observations import load_observations
+    if not is_built():
+        raise FileNotFoundError(
+            "observations.parquet is not built.  Run: hitlist build observations"
+        )
 
     if source in ("iedb", "cedar"):
         obs = load_observations(source=source)
@@ -152,138 +112,6 @@ def _index_from_observations(source: str) -> tuple[pd.DataFrame, pd.DataFrame]:
         study_df = pd.DataFrame(study_dfs)
 
     return study_df, allele_df
-
-
-def _index_from_csv(source: str, force: bool) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Legacy fallback: scan CSV directly when observations table not built."""
-    from .curation import classify_mhc_species, normalize_species
-    from .scanner import _open_csv, _progress, _safe_col
-
-    def _fast_species(mhc_restriction: str, _cache: dict[str, str] = {}) -> str:  # noqa: B006
-        if not mhc_restriction:
-            return ""
-        cached = _cache.get(mhc_restriction)
-        if cached is not None:
-            return cached
-        result = classify_mhc_species(mhc_restriction)
-        _cache[mhc_restriction] = result
-        return result
-
-    paths = _resolve_source_paths()
-    if not paths:
-        raise FileNotFoundError(
-            "No IEDB/CEDAR data found. Register with: hitlist data register iedb /path/to/file.csv"
-        )
-
-    if source in ("iedb", "cedar"):
-        if source not in paths:
-            raise FileNotFoundError(f"'{source}' not registered.")
-        return _scan_single(paths[source], source, _fast_species, _open_csv, _progress, _safe_col)
-
-    # Merged or all
-    peptide_sets: dict[tuple, set[str]] = defaultdict(set)
-    obs_counts: dict[tuple, int] = defaultdict(int)
-    allele_counts: dict[str, int] = defaultdict(int)
-    seen_iris: set[str] = set()
-
-    for _label, source_path in sorted(paths.items()):
-        reader, c, p, fh = _open_csv(source_path)
-        for row in _progress(reader, p, f"Indexing {p.name}", fh=fh):
-            iri = row[c["assay_iri"]] if row else ""
-            if iri in seen_iris:
-                continue
-            seen_iris.add(iri)
-
-            mhc_res = _safe_col(row, c["mhc_restriction"])
-            if mhc_res:
-                allele_counts[mhc_res] += 1
-
-            pep = _safe_col(row, c["epitope_name"])
-            if not pep:
-                continue
-            raw_pmid = _safe_col(row, c["pmid"]).strip()
-            if not raw_pmid:
-                continue
-            try:
-                pmid = int(raw_pmid)
-            except ValueError:
-                continue
-
-            mhc_cls = _safe_col(row, c["mhc_class"])
-            species = _fast_species(mhc_res)
-            if not species:
-                host = _safe_col(row, c["host"])
-                species = normalize_species(host) if host else "unknown"
-
-            key = (pmid, mhc_cls, species)
-            peptide_sets[key].add(pep)
-            obs_counts[key] += 1
-
-    study_rows = [
-        {
-            "source": "iedb+cedar",
-            "pmid": pmid,
-            "mhc_class": mhc_cls,
-            "mhc_species": species,
-            "n_peptides": len(peps),
-            "n_observations": obs_counts[(pmid, mhc_cls, species)],
-        }
-        for (pmid, mhc_cls, species), peps in sorted(peptide_sets.items())
-    ]
-    allele_rows = [
-        {"allele": a, "n_occurrences": n}
-        for a, n in sorted(allele_counts.items(), key=lambda x: -x[1])
-    ]
-
-    return pd.DataFrame(study_rows), pd.DataFrame(allele_rows)
-
-
-def _scan_single(path, label, _fast_species, _open_csv, _progress, _safe_col):
-    """Scan a single CSV source."""
-    peptide_sets: dict[tuple, set[str]] = defaultdict(set)
-    obs_counts: dict[tuple, int] = defaultdict(int)
-    allele_counts: dict[str, int] = defaultdict(int)
-
-    reader, c, p, fh = _open_csv(path)
-    for row in _progress(reader, p, f"Indexing {p.name}", fh=fh):
-        mhc_res = _safe_col(row, c["mhc_restriction"])
-        if mhc_res:
-            allele_counts[mhc_res] += 1
-        pep = _safe_col(row, c["epitope_name"])
-        if not pep:
-            continue
-        raw_pmid = _safe_col(row, c["pmid"]).strip()
-        if not raw_pmid:
-            continue
-        try:
-            pmid = int(raw_pmid)
-        except ValueError:
-            continue
-        mhc_cls = _safe_col(row, c["mhc_class"])
-        species = _fast_species(mhc_res)
-        if not species:
-            host = _safe_col(row, c["host"])
-            species = host if host else "unknown"
-        key = (pmid, mhc_cls, species)
-        peptide_sets[key].add(pep)
-        obs_counts[key] += 1
-
-    study_rows = [
-        {
-            "source": label,
-            "pmid": pmid,
-            "mhc_class": mhc_cls,
-            "mhc_species": species,
-            "n_peptides": len(peps),
-            "n_observations": obs_counts[(pmid, mhc_cls, species)],
-        }
-        for (pmid, mhc_cls, species), peps in sorted(peptide_sets.items())
-    ]
-    allele_rows = [
-        {"allele": a, "n_occurrences": n}
-        for a, n in sorted(allele_counts.items(), key=lambda x: -x[1])
-    ]
-    return pd.DataFrame(study_rows), pd.DataFrame(allele_rows)
 
 
 def validate_alleles_from_index(allele_df: pd.DataFrame) -> pd.DataFrame:
