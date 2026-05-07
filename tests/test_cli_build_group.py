@@ -11,8 +11,11 @@
 # limitations under the License.
 
 """Tests for the canonical ``hitlist build`` top-level group and the
-deprecation notice on the legacy ``hitlist data {build,index,fetch-proteomes}``
-entry points."""
+deprecation notice on the legacy ``hitlist data {build,fetch-proteomes}``
+entry points.  The legacy ``index`` subcommand was removed in v1.30.41
+when the per-source CSV-scan cache was obliterated; ``get_index()`` now
+derives counts from ``observations.parquet`` directly so there's nothing
+to "build" anymore."""
 
 from __future__ import annotations
 
@@ -48,15 +51,6 @@ def test_build_group_routes_observations_args_into_namespace():
     assert args.use_uniprot is True
     assert args.no_mappings is False
     assert args.force is False
-
-
-def test_build_group_routes_index_args():
-    parser = _build_full_parser()
-    args = parser.parse_args(["build", "index", "--source", "iedb", "--force"])
-    assert args.command == "build"
-    assert args.build_command == "index"
-    assert args.source == "iedb"
-    assert args.force is True
 
 
 def test_build_group_routes_proteomes_args():

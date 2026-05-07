@@ -285,6 +285,30 @@ def test_cache_invalid_when_line_expression_parquet_missing(tmp_path, monkeypatc
     assert _cache_is_valid({}, with_flanking=False) is False
 
 
+def test_cleanup_legacy_index_dir_removes_obsolete_cache(tmp_path, monkeypatch):
+    """v1.30.41: hitlist's package ``__init__.py`` runs a one-shot cleanup
+    of the obsolete ``~/.hitlist/index/`` directory.  Pre-v1.30.41 that
+    directory held per-source CSV-scan caches; ``get_index()`` now
+    derives all counts from ``observations.parquet`` directly.  This
+    test verifies the cleanup helper actually removes the directory
+    when present, and is a no-op when absent."""
+    from hitlist import _cleanup_legacy_index_dir, downloads
+
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
+    legacy = tmp_path / "index"
+    legacy.mkdir()
+    # Plant a few inert files matching the pre-v1.30.41 layout.
+    (legacy / "iedb_meta.json").write_text("{}")
+    (legacy / "iedb_allele_counts.parquet").write_bytes(b"fake parquet")
+    assert legacy.exists()
+
+    _cleanup_legacy_index_dir()
+    assert not legacy.exists(), "legacy index dir should be removed"
+
+    # Idempotent: second call on already-clean state must not raise.
+    _cleanup_legacy_index_dir()
+
+
 # ── _compress_categoricals (memory reduction in build_observations) ──────
 
 

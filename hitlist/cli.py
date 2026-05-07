@@ -286,25 +286,6 @@ def _data_list_proteomes(args: argparse.Namespace) -> None:
             print(f"  {species:35s}  uniprot:{meta.get('proteome_id')}  ({size:,} bytes)")
 
 
-def _data_index(args: argparse.Namespace) -> None:
-    """Print summary index counts.
-
-    Pre-v1.30.41 this command also wrote a per-source CSV-scan cache to
-    ``~/.hitlist/index/`` — that cache is gone (the index is always
-    derived from ``observations.parquet``).  The command is preserved
-    because shell scripts and notebooks may still call it; behavior is
-    now print-only.
-    """
-    from .indexer import get_index
-
-    source = args.source or "merged"
-    study_df, allele_df = get_index(source=source)
-    print(f"Index ({source}):")
-    print(f"  Studies:  {len(study_df):,}")
-    print(f"  Alleles:  {len(allele_df):,}")
-    print(f"  Species:  {study_df['mhc_species'].nunique()}")
-
-
 def _build_data_parser(sub: argparse._SubParsersAction) -> None:
     dp = sub.add_parser("data", help="Manage external datasets")
     dp.set_defaults(_subgroup_parser=dp)
@@ -348,12 +329,6 @@ def _build_data_parser(sub: argparse._SubParsersAction) -> None:
     _add_build_proteomes_args(p)
 
     ds.add_parser("list-proteomes", help="List downloaded reference proteomes")
-
-    p = ds.add_parser(
-        "index",
-        help="DEPRECATED — use `hitlist build index`. Build cached IEDB/CEDAR scan index.",
-    )
-    _add_build_index_args(p)
 
 
 def _add_build_observations_args(p: argparse.ArgumentParser) -> None:
@@ -415,27 +390,6 @@ def _add_build_proteomes_args(p: argparse.ArgumentParser) -> None:
         ),
     )
     p.add_argument("--force", "-f", action="store_true", help="Re-download cached proteomes")
-
-
-def _add_build_index_args(p: argparse.ArgumentParser) -> None:
-    """Argparse setup for `hitlist build index` (== legacy `data index`).
-
-    Pre-v1.30.41 this command wrote a per-source CSV-scan cache; the cache
-    has been obliterated so the command now just prints summary counts
-    derived from ``observations.parquet``.  ``--force`` is retained as a
-    no-op accepted flag for backward compatibility with shell scripts.
-    """
-    p.add_argument(
-        "--source",
-        choices=["iedb", "cedar", "merged", "all"],
-        help="Source to summarize (default: merged)",
-    )
-    p.add_argument(
-        "--force",
-        "-f",
-        action="store_true",
-        help="Accepted for backward compat; no-op since v1.30.41 (no cache to refresh).",
-    )
 
 
 def _add_export_bulk_proteomics_args(p: argparse.ArgumentParser) -> None:
@@ -626,9 +580,6 @@ def _build_top_level_build_parser(sub: argparse._SubParsersAction) -> None:
     p = bs.add_parser("observations", help="Build unified observations table from IEDB/CEDAR")
     _add_build_observations_args(p)
 
-    p = bs.add_parser("index", help="Build/rebuild cached scan index of IEDB/CEDAR data")
-    _add_build_index_args(p)
-
     p = bs.add_parser(
         "proteomes",
         help="Auto-fetch reference proteomes for species present in observations",
@@ -638,14 +589,13 @@ def _build_top_level_build_parser(sub: argparse._SubParsersAction) -> None:
 
 def _handle_build(args: argparse.Namespace) -> None:
     """Dispatch ``hitlist build <subcommand>`` to the same handlers as the
-    legacy ``hitlist data {build,index,fetch-proteomes}`` entry points."""
+    legacy ``hitlist data {build,fetch-proteomes}`` entry points."""
     cmd = getattr(args, "build_command", None)
     if cmd is None:
         _print_subgroup_help(args._subgroup_parser)
         sys.exit(1)
     handlers = {
         "observations": _data_build,
-        "index": _data_index,
         "proteomes": _data_fetch_proteomes,
     }
     handlers[cmd](args)
@@ -653,7 +603,6 @@ def _handle_build(args: argparse.Namespace) -> None:
 
 _DEPRECATED_DATA_SUBCOMMANDS = {
     "build": "hitlist build observations",
-    "index": "hitlist build index",
     "fetch-proteomes": "hitlist build proteomes",
 }
 
@@ -669,7 +618,6 @@ def _handle_data(args: argparse.Namespace) -> None:
         "path": _data_path,
         "remove": _data_remove,
         "build": _data_build,
-        "index": _data_index,
         "fetch-proteomes": _data_fetch_proteomes,
         "list-proteomes": _data_list_proteomes,
     }
