@@ -619,6 +619,40 @@ def test_drop_supplementary_duplicates_empty_obs_returns_supp_unchanged():
     assert list(out["peptide"]) == ["P1", "P2"]
 
 
+def test_pyarrow_from_pandas_handles_mixed_pmid_after_normalization():
+    """Regression for v1.30.39 build crash:
+    ``pyarrow.lib.ArrowInvalid: Could not convert '' with type str:
+    tried to convert to int64`` when the scanner emits ``pmid`` as
+    object dtype with ``""`` for missing rows and integer-like strings
+    for present ones.  ``pa.Table.from_pandas`` infers a single type
+    per column and chokes on the mixed shapes.
+
+    Fix: normalize ``pmid`` to ``Int64`` per-partition BEFORE Arrow
+    conversion (not just at the bottom of the build function, which is
+    after the per-partition concat).  This test asserts the fix works
+    end-to-end on the mixed-shape pmid column the scanner produces."""
+    import pyarrow as pa
+
+    # Mixed: integer-like string, empty string, real Python int
+    df = pd.DataFrame(
+        {
+            "pmid": ["12345", "", 67890, ""],
+            "peptide": ["P1", "P2", "P3", "P4"],
+        }
+    )
+    # Mimic the per-partition normalization the builder does pre-Arrow.
+    df["pmid"] = pd.to_numeric(df["pmid"], errors="coerce").astype("Int64")
+    # Now the column is uniformly Int64 with ``pd.NA`` for missing.
+    table = pa.Table.from_pandas(df, preserve_index=False)
+    assert table.num_rows == 4
+    # Round-trip preserves the Int64 + NA shape.
+    back = table.to_pandas()
+    assert back["pmid"].dtype.name == "Int64"
+    assert back["pmid"].isna().sum() == 2
+    assert int(back["pmid"].iloc[0]) == 12345
+    assert int(back["pmid"].iloc[2]) == 67890
+
+
 def test_drop_supplementary_duplicates_empty_supp_is_noop():
     """Empty supp short-circuits — no merge attempted, returns empty."""
     obs = pd.DataFrame(

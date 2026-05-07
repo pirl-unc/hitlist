@@ -531,6 +531,17 @@ def build_observations(
         del df  # free the source scan's frame before the next source's scan
         n_ms, n_bd = len(ms_df), len(bd_df)
 
+        # Normalize ``pmid`` to ``Int64`` *per-partition* before the
+        # Arrow conversion.  The scanner emits ``pmid`` as object dtype
+        # with ``""`` for missing rows and integer-like strings for
+        # present ones; pyarrow's ``Table.from_pandas`` infers a single
+        # type per column and chokes on the mixed shapes (#232).  The
+        # full-frame normalization at the bottom of this function is
+        # kept as defensive scaffolding but is now a no-op.
+        for frame in (ms_df, bd_df):
+            if "pmid" in frame.columns:
+                frame["pmid"] = pd.to_numeric(frame["pmid"], errors="coerce").astype("Int64")
+
         # Compress per-partition before Arrow conversion so dictionary-encoded
         # categories survive the round-trip (Arrow ``DictionaryArray`` ↔
         # pandas ``category`` is preserved by ``pa.Table.from_pandas`` /
