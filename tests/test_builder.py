@@ -1,11 +1,16 @@
 import json
 
 import pandas as pd
+import pytest
 
 from hitlist.builder import (
+    _CATEGORICAL_BUILD_COLUMNS,
     _atomic_write_parquet,
     _cache_is_valid,
+    _compress_categoricals,
+    _drop_duplicate_iris,
     _drop_short_mhc2_rows,
+    _drop_supplementary_duplicates,
     _meta_path,
     _source_fingerprints,
 )
@@ -278,3 +283,350 @@ def test_cache_invalid_when_line_expression_parquet_missing(tmp_path, monkeypatc
     monkeypatch.setattr(builder, "_source_fingerprints", lambda paths: {})
 
     assert _cache_is_valid({}, with_flanking=False) is False
+
+
+# ── _compress_categoricals (memory reduction in build_observations) ──────
+
+
+def _full_obs_fixture(n_rows: int = 50) -> pd.DataFrame:
+    """Synthetic obs frame containing every column ``_compress_categoricals``
+    targets, plus high-cardinality / numeric columns it must NOT touch."""
+    return pd.DataFrame(
+        {
+            "source": ["iedb"] * n_rows,
+            "mhc_class": (["I"] * (n_rows // 2)) + (["II"] * (n_rows - n_rows // 2)),
+            "mhc_species": ["Homo sapiens"] * n_rows,
+            "mhc_restriction": ["HLA-A*02:01"] * n_rows,
+            "mhc_allele_provenance": ["exact"] * n_rows,
+            "allele_resolution": ["four_digit"] * n_rows,
+            "serotype": ["A2"] * n_rows,
+            "host": ["Donor-1"] * n_rows,
+            "host_age": [""] * n_rows,
+            "process_type": ["natural"] * n_rows,
+            "disease": ["healthy"] * n_rows,
+            "disease_stage": [""] * n_rows,
+            "source_tissue": ["PBMC"] * n_rows,
+            "cell_name": ["Line-1"] * n_rows,
+            "culture_condition": ["unperturbed"] * n_rows,
+            "assay_method": ["mass spectrometry"] * n_rows,
+            "response_measured": [""] * n_rows,
+            "measurement_units": [""] * n_rows,
+            "measurement_inequality": [""] * n_rows,
+            "qualitative_measurement": [""] * n_rows,
+            "species": ["Homo sapiens"] * n_rows,
+            "source_organism": ["Homo sapiens"] * n_rows,
+            # NOT in the categorical allowlist — must stay object / numeric:
+            "peptide": [f"PEP{i:08d}" for i in range(n_rows)],
+            "assay_iri": [f"iedb:{i}" for i in range(n_rows)],
+            "pmid": pd.array(list(range(n_rows)), dtype="Int64"),
+            "mhc_allele_set_size": list(range(n_rows)),
+        }
+    )
+
+
+def test_compress_categoricals_targets_low_cardinality_only():
+    """Every column in the allowlist becomes ``category``; high-cardinality
+    (peptide, assay_iri) and numeric (pmid, mhc_allele_set_size) preserved.
+
+    The peptide / assay_iri assertions check ``not category`` rather than
+    ``== "object"`` because pandas 2.2+ may default plain string columns
+    to ``StringDtype`` instead of object — both representations are valid
+    here; what matters is that the helper didn't convert them."""
+    df = _full_obs_fixture()
+    _compress_categoricals(df)
+    for col in _CATEGORICAL_BUILD_COLUMNS:
+        assert df[col].dtype.name == "category", f"{col} not categorical"
+    # High-cardinality unique-per-row columns: not categorical (still
+    # object or StringDtype, depending on pandas defaults).
+    assert df["peptide"].dtype.name != "category"
+    assert df["assay_iri"].dtype.name != "category"
+    assert pd.api.types.is_string_dtype(df["peptide"])
+    assert pd.api.types.is_string_dtype(df["assay_iri"])
+    # Numeric: untouched.
+    assert df["pmid"].dtype.name == "Int64"
+    assert df["mhc_allele_set_size"].dtype.kind in "iuf"
+
+
+def test_compress_categoricals_is_idempotent():
+    """Re-applying the helper is a no-op (already-categorical columns are
+    skipped, not re-converted)."""
+    df = _full_obs_fixture()
+    _compress_categoricals(df)
+    snapshot = {col: df[col].dtype for col in df.columns}
+    _compress_categoricals(df)
+    for col, dt in snapshot.items():
+        assert df[col].dtype == dt
+
+
+def test_compress_categoricals_empty_frame_is_noop():
+    """Empty input must not raise (and must not invent columns)."""
+    df = pd.DataFrame()
+    _compress_categoricals(df)
+    assert df.empty
+    assert list(df.columns) == []
+
+
+def test_compress_categoricals_strict_raises_on_missing_column():
+    """``strict=True`` catches typos in the allowlist by failing loudly
+    when a listed column is missing from the frame.  Default ``strict=False``
+    silently skips so the helper can run on per-source partitions."""
+    df = pd.DataFrame({"mhc_class": ["I"] * 5, "peptide": list("abcde")})
+    # default mode: silently skip missing columns
+    _compress_categoricals(df)
+    assert df["mhc_class"].dtype.name == "category"
+    # strict mode: raise when columns are missing
+    df2 = pd.DataFrame({"mhc_class": ["I"] * 5})
+    with pytest.raises(KeyError, match="missing columns"):
+        _compress_categoricals(df2, strict=True)
+
+
+def test_compress_categoricals_partial_frame_default_does_not_raise():
+    """Default ``strict=False`` works on a partial frame (per-source partitions
+    may not have every column the full obs frame eventually carries)."""
+    df = pd.DataFrame({"source": ["iedb"] * 5, "peptide": list("abcde")})
+    _compress_categoricals(df)
+    assert df["source"].dtype.name == "category"
+
+
+def test_hitlist_import_enables_pandas_infer_string():
+    """Importing hitlist must enable ``pd.options.future.infer_string``
+    process-wide.  Without this, the build pipeline holds string columns
+    as ``object`` (Python str overhead, ~50-100 bytes/cell) instead of
+    ``StringDtype`` (Arrow-backed, ~10 bytes/cell) — a 5x base-cost
+    inflation that the categorical compression can only partially
+    recover.  Locking this in via test guards against an accidental
+    revert in ``hitlist/__init__.py``."""
+    import hitlist  # noqa: F401  -- side effect: sets the option
+
+    assert pd.options.future.infer_string is True
+    # New string DataFrames default to StringDtype, not object.
+    df = pd.DataFrame({"x": ["a", "b"]})
+    assert pd.api.types.is_string_dtype(df["x"])
+    assert df["x"].dtype.name != "object"
+
+
+def test_compress_categoricals_handles_pandas_str_dtype():
+    """Regression: pandas 2.2+ may default string columns to ``StringDtype``
+    (``"str"``) rather than ``object``.  An ``== "object"`` check would
+    silently skip these — the helper must use ``is_string_dtype`` to cover
+    both representations.  Without this, the categorical compression no-ops
+    in CI environments where pandas infers ``str`` dtype by default and the
+    full-build memory blow-up returns."""
+    df = pd.DataFrame(
+        {
+            "mhc_class": pd.array(["I", "II", "I"], dtype="string"),
+            "source": pd.array(["iedb", "iedb", "cedar"], dtype="string"),
+        }
+    )
+    assert pd.api.types.is_string_dtype(df["mhc_class"])
+    _compress_categoricals(df)
+    assert df["mhc_class"].dtype.name == "category"
+    assert df["source"].dtype.name == "category"
+
+
+def test_compress_categoricals_reduces_memory_at_scale():
+    """Realistic-cardinality fixture: helper cuts memory ~5x or more.
+
+    Lower bound is conservative (CI variance, pandas version differences).
+    The actual production reduction on the 4.4 M-row corpus is ~7-10x.
+    """
+    import numpy as np
+
+    rng = np.random.default_rng(0)
+    n = 100_000
+    df = pd.DataFrame(
+        {
+            "mhc_class": rng.choice(["I", "II"], n),
+            "source": rng.choice(["iedb", "cedar"], n),
+            "mhc_species": rng.choice(["Homo sapiens", "Mus musculus"], n),
+            "mhc_restriction": rng.choice(["HLA-A*02:01", "HLA-B*07:02", "HLA-DRB1*15:01"], n),
+            "host": rng.choice([f"Donor-{i}" for i in range(50)], n),
+            "disease": rng.choice([f"D-{i}" for i in range(80)], n),
+            "cell_name": rng.choice([f"L-{i}" for i in range(200)], n),
+            "peptide": [f"P{i:08d}" for i in range(n)],  # unique
+        }
+    )
+    before = df.memory_usage(deep=True).sum()
+    _compress_categoricals(df)
+    after = df.memory_usage(deep=True).sum()
+    # 4x is a conservative floor that holds across pandas object-string
+    # vs StringDtype defaults.  Production reduction on the 4.4 M-row
+    # corpus is ~7-10x; the smaller fixture sees less because the
+    # high-cardinality ``peptide`` column dominates the residual.
+    assert before / after >= 4.0, f"only {before / after:.2f}x reduction (expected >= 4x)"
+
+
+# ── _drop_duplicate_iris (replaces ms_seen_iris Python set) ──────────────
+
+
+def test_drop_duplicate_iris_keeps_first_occurrence():
+    """Duplicate ``assay_iri`` values are dropped, first occurrence wins —
+    preserves the prior 'IEDB beats CEDAR' tie-break (since IEDB is
+    concat'd first)."""
+    df = pd.DataFrame(
+        {
+            "assay_iri": ["a:1", "a:2", "a:1", "a:3"],
+            "source": ["iedb", "iedb", "cedar", "cedar"],
+            "peptide": ["P1", "P2", "P3", "P4"],
+        }
+    )
+    out = _drop_duplicate_iris(df, label="MS")
+    assert len(out) == 3
+    assert list(out["assay_iri"]) == ["a:1", "a:2", "a:3"]
+    # First-wins semantics: the iedb row for a:1 survives, not the cedar one.
+    assert out.loc[out["assay_iri"] == "a:1", "source"].iloc[0] == "iedb"
+
+
+def test_drop_duplicate_iris_falls_back_to_reference_iri():
+    """Rows missing ``assay_iri`` (older intermediates) dedup on
+    ``reference_iri`` instead."""
+    df = pd.DataFrame(
+        {
+            "assay_iri": ["", "a:2", "", "a:3"],
+            "reference_iri": ["r:1", "r:2", "r:1", "r:3"],
+            "peptide": list("abcd"),
+        }
+    )
+    out = _drop_duplicate_iris(df, label="MS")
+    # The two empty-iri rows share reference_iri r:1 → second is dropped.
+    assert len(out) == 3
+
+
+def test_drop_duplicate_iris_empty_returns_empty():
+    out = _drop_duplicate_iris(pd.DataFrame(), label="MS")
+    assert out.empty
+
+
+def test_drop_duplicate_iris_no_iri_column_returns_unchanged():
+    df = pd.DataFrame({"peptide": ["P1", "P2"]})
+    out = _drop_duplicate_iris(df, label="MS")
+    assert len(out) == 2
+
+
+# ── pyarrow concat + supplement anti-join (replaces Python set dedup) ────
+
+
+def test_pyarrow_concat_preserves_categoricals_round_trip():
+    """``pa.Table.from_pandas`` → ``concat_tables`` → ``to_pandas`` must
+    preserve categorical dtypes (Arrow ``DictionaryArray`` ↔ pandas
+    ``category``).  This is the path the builder relies on so the
+    post-concat ``obs`` frame keeps the categorical compression applied
+    upstream.
+    """
+    import pyarrow as pa
+
+    a = pd.DataFrame({"mhc_class": pd.Categorical(["I", "II"]), "peptide": ["P1", "P2"]})
+    b = pd.DataFrame({"mhc_class": pd.Categorical(["I", "I"]), "peptide": ["P3", "P4"]})
+    t = pa.concat_tables(
+        [
+            pa.Table.from_pandas(a, preserve_index=False),
+            pa.Table.from_pandas(b, preserve_index=False),
+        ],
+        promote_options="default",
+    )
+    out = t.to_pandas()
+    assert out["mhc_class"].dtype.name == "category"
+    assert list(out["mhc_class"]) == ["I", "II", "I", "I"]
+
+
+def test_drop_supplementary_duplicates_drops_existing_triples():
+    """Supp rows with a ``(peptide, mhc_restriction, pmid)`` triple that
+    already exists in IEDB/CEDAR are dropped; novel triples kept."""
+    obs = pd.DataFrame(
+        {
+            "peptide": ["P1", "P2", "P3"],
+            "mhc_restriction": ["HLA-A*02:01", "HLA-A*02:01", "HLA-B*07:02"],
+            "pmid": pd.array([1, 2, 3], dtype="Int64"),
+        }
+    )
+    supp = pd.DataFrame(
+        {
+            "peptide": ["P1", "P4", "P3"],
+            "mhc_restriction": ["HLA-A*02:01", "HLA-A*11:01", "HLA-B*07:02"],
+            "pmid": pd.array([1, 99, 3], dtype="Int64"),
+        }
+    )
+    out = _drop_supplementary_duplicates(supp, obs)
+    # Only P4 (novel triple) survives.
+    assert list(out["peptide"]) == ["P4"]
+    assert list(out["mhc_restriction"]) == ["HLA-A*11:01"]
+    assert list(out["pmid"]) == [99]
+
+
+def test_drop_supplementary_duplicates_handles_pmid_dtype_mismatch():
+    """Regression: supp PMID stored as Python ``int`` must still match obs
+    PMID stored as ``Int64`` (and vice versa).  Without an explicit dtype
+    cast pandas merge silently misses these — a row with PMID ``1`` (int)
+    on supp wouldn't dedup against PMID ``1`` (Int64) on obs and the
+    duplicate would leak through to the parquet."""
+    obs = pd.DataFrame(
+        {
+            "peptide": ["P1"],
+            "mhc_restriction": ["HLA-A*02:01"],
+            "pmid": pd.array([12345], dtype="Int64"),
+        }
+    )
+    # supp emits pmid as object/python-int (the legacy supplement.py path
+    # didn't always normalize) — must still dedup.
+    supp = pd.DataFrame(
+        {
+            "peptide": ["P1"],
+            "mhc_restriction": ["HLA-A*02:01"],
+            "pmid": [12345],  # plain Python int, dtype int64
+        }
+    )
+    out = _drop_supplementary_duplicates(supp, obs)
+    assert out.empty, "supp row should have been dedup'd despite int vs Int64 dtype gap"
+
+
+def test_drop_supplementary_duplicates_handles_categorical_obs_keys():
+    """Regression: obs columns are categorical post-strict-compress; supp
+    columns are object.  The helper must reconcile dtypes before merge so
+    matching keys actually match."""
+    obs = pd.DataFrame(
+        {
+            "peptide": ["P1"],
+            "mhc_restriction": pd.Categorical(["HLA-A*02:01"]),
+            "pmid": pd.array([1], dtype="Int64"),
+        }
+    )
+    supp = pd.DataFrame(
+        {
+            "peptide": ["P1"],
+            "mhc_restriction": ["HLA-A*02:01"],  # object
+            "pmid": pd.array([1], dtype="Int64"),
+        }
+    )
+    out = _drop_supplementary_duplicates(supp, obs)
+    assert out.empty
+
+
+def test_drop_supplementary_duplicates_empty_obs_returns_supp_unchanged():
+    """Regression: when both IEDB and CEDAR scan zero MS rows, ``obs`` is
+    an empty ``pd.DataFrame()`` with NO columns.  The prior
+    ``set(zip(obs["peptide"], ...))`` raised ``KeyError``; the helper
+    must synthesize empty keys and return supp unchanged."""
+    obs = pd.DataFrame()
+    supp = pd.DataFrame(
+        {
+            "peptide": ["P1", "P2"],
+            "mhc_restriction": ["HLA-A*02:01", "HLA-A*02:01"],
+            "pmid": pd.array([1, 2], dtype="Int64"),
+        }
+    )
+    out = _drop_supplementary_duplicates(supp, obs)
+    assert len(out) == 2
+    assert list(out["peptide"]) == ["P1", "P2"]
+
+
+def test_drop_supplementary_duplicates_empty_supp_is_noop():
+    """Empty supp short-circuits — no merge attempted, returns empty."""
+    obs = pd.DataFrame(
+        {
+            "peptide": ["P1"],
+            "mhc_restriction": ["HLA-A*02:01"],
+            "pmid": pd.array([1], dtype="Int64"),
+        }
+    )
+    out = _drop_supplementary_duplicates(pd.DataFrame(), obs)
+    assert out.empty

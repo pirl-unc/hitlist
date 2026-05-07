@@ -527,3 +527,58 @@ def test_scan_falls_back_to_sample_allele_match_when_peptide_unattributed(tmp_pa
     assert r["mhc_allele_set_size"] == 2
     assert set(r["mhc_allele_set"].split(";")) == {"HLA-A*02:01", "HLA-B*07:02"}
     assert set(r["mhc_restriction"].split(";")) == {"HLA-A*02:01", "HLA-B*07:02"}
+
+
+# ── StringDtype propagation through the build pipeline ─────────────────────
+
+
+def test_scanner_output_uses_stringdtype(tmp_path):
+    """End-to-end check that the scanner's output frame carries pandas
+    ``StringDtype`` for string columns, not legacy ``object`` dtype.
+
+    Hitlist sets ``pd.options.future.infer_string = True`` at package
+    import (matching the pandas 3.0 default).  Without this, the scanner
+    builds DataFrames from ``list[dict]`` that default to ``object``
+    dtype — Python ``str`` references with ~50-100 bytes / cell of
+    overhead.  The build pipeline holds the full obs + binding frames
+    through gene annotation + mappings, so the per-cell cost compounds
+    into the ~40 GB peak this PR was written to fix.
+
+    A future pandas API change (or an accidental revert in
+    ``hitlist/__init__.py``) could quietly drop us back to ``object``
+    dtype.  The lock-in test
+    ``test_hitlist_import_enables_pandas_infer_string`` catches the
+    option flip; this test catches the case where the option is set but
+    something downstream silently coerces back to ``object`` (e.g. an
+    intermediate ``.astype(str)`` that returns object on some pandas
+    versions).
+    """
+    src = tmp_path / "iedb.csv"
+    rows = []
+    for i in range(5):
+        row = [""] * 21
+        row[0] = f"http://iedb.org/assay/{2000001 + i}"
+        row[1] = "http://iedb.org/reference/string-dtype-test"
+        row[2] = "33858848"
+        row[5] = f"PEPTIDE{i}AB"
+        row[19] = "HLA-A*02:01"
+        row[20] = "I"
+        rows.append(row)
+    _write_tiny_iedb_csv(src, rows)
+
+    df = scan(peptides=None, iedb_path=str(src), cedar_path=None)
+    assert not df.empty
+
+    for col in ("peptide", "mhc_restriction", "mhc_class"):
+        if col in df.columns:
+            assert pd.api.types.is_string_dtype(df[col]), (
+                f"{col!r} dtype is {df[col].dtype}; expected string-like "
+                "(check that pd.options.future.infer_string is still True)"
+            )
+            # Specifically not legacy object dtype — that's the regression
+            # we're guarding against.
+            assert df[col].dtype.name != "object", (
+                f"{col!r} fell back to legacy object dtype; the ~5x base-cost "
+                "memory inflation is back.  Verify hitlist/__init__.py still "
+                "sets pd.options.future.infer_string = True."
+            )
