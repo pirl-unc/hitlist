@@ -288,7 +288,14 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
         # per-peptide allele assignments).
         host_species = normalize_species(defaults.get("host", ""))
         if "mhc_species" in record.columns:
-            record["mhc_species"] = record["mhc_species"].fillna("").replace("", host_species)
+            # Cast to ``StringDtype`` before fillna/replace — ``mhc_species``
+            # may be a post-#137 categorical whose category set excludes
+            # ``""`` and ``host_species``, in which case the in-place
+            # assignment would raise ``TypeError``.  StringDtype accepts
+            # any string fill.
+            record["mhc_species"] = (
+                record["mhc_species"].astype("string").fillna("").replace("", host_species)
+            )
         else:
             record["mhc_species"] = host_species
 

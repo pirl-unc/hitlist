@@ -93,27 +93,15 @@ def _data_list(args: argparse.Namespace) -> None:
         print(f"Data directory: {data_dir()}")
         print("Run 'hitlist data available' to see known datasets.")
         return
-    print(f"{'Name':<12} {'Size':>12}  {'Date':<12} {'Index':<8} Description")
-    print("-" * 85)
-
-    from .indexer import _cache_is_valid
+    print(f"{'Name':<12} {'Size':>12}  {'Date':<12} Description")
+    print("-" * 75)
 
     for name, ds in sorted(datasets.items()):
         size_str = _fmt_size(ds.get("size_bytes", 0))
         date = ds.get("registered", "")[:10]
         desc = ds.get("description", "")
-        idx_status = ""
-        if name in ("iedb", "cedar"):
-            from pathlib import Path
-
-            p = Path(ds.get("path", ""))
-            if p.exists():
-                idx_status = "cached" if _cache_is_valid(name, p) else "stale"
-            else:
-                idx_status = "missing"
-        print(f"{name:<12} {size_str:>12}  {date:<12} {idx_status:<8} {desc}")
+        print(f"{name:<12} {size_str:>12}  {date:<12} {desc}")
     print(f"\nData directory: {data_dir()}")
-    print("Run 'hitlist data index' to build/rebuild the search index.")
 
 
 def _data_available(args: argparse.Namespace) -> None:
@@ -298,32 +286,6 @@ def _data_list_proteomes(args: argparse.Namespace) -> None:
             print(f"  {species:35s}  uniprot:{meta.get('proteome_id')}  ({size:,} bytes)")
 
 
-def _data_index(args: argparse.Namespace) -> None:
-    from .indexer import _cache_dir, _cache_is_valid, _resolve_source_paths, get_index
-
-    paths = _resolve_source_paths()
-    if not paths:
-        print("No IEDB/CEDAR data registered. Nothing to index.")
-        sys.exit(1)
-
-    source = args.source or "merged"
-    force = args.force
-
-    # Show cache status before indexing
-    if not force:
-        for label, path in sorted(paths.items()):
-            valid = _cache_is_valid(label, path)
-            status = "cached" if valid else "stale/missing"
-            print(f"  {label}: {status}")
-
-    study_df, allele_df = get_index(source=source, force=force)
-    print(f"\nIndex ({source}):")
-    print(f"  Studies:  {len(study_df):,}")
-    print(f"  Alleles:  {len(allele_df):,}")
-    print(f"  Species:  {study_df['mhc_species'].nunique()}")
-    print(f"  Cache:    {_cache_dir()}")
-
-
 def _build_data_parser(sub: argparse._SubParsersAction) -> None:
     dp = sub.add_parser("data", help="Manage external datasets")
     dp.set_defaults(_subgroup_parser=dp)
@@ -367,12 +329,6 @@ def _build_data_parser(sub: argparse._SubParsersAction) -> None:
     _add_build_proteomes_args(p)
 
     ds.add_parser("list-proteomes", help="List downloaded reference proteomes")
-
-    p = ds.add_parser(
-        "index",
-        help="DEPRECATED — use `hitlist build index`. Build cached IEDB/CEDAR scan index.",
-    )
-    _add_build_index_args(p)
 
 
 def _add_build_observations_args(p: argparse.ArgumentParser) -> None:
@@ -434,18 +390,6 @@ def _add_build_proteomes_args(p: argparse.ArgumentParser) -> None:
         ),
     )
     p.add_argument("--force", "-f", action="store_true", help="Re-download cached proteomes")
-
-
-def _add_build_index_args(p: argparse.ArgumentParser) -> None:
-    """Argparse setup for `hitlist build index` (== legacy `data index`)."""
-    p.add_argument(
-        "--source",
-        choices=["iedb", "cedar", "merged", "all"],
-        help="Source to index (default: all registered sources independently + merged)",
-    )
-    p.add_argument(
-        "--force", "-f", action="store_true", help="Force re-index even if cache is valid"
-    )
 
 
 def _add_export_bulk_proteomics_args(p: argparse.ArgumentParser) -> None:
@@ -636,9 +580,6 @@ def _build_top_level_build_parser(sub: argparse._SubParsersAction) -> None:
     p = bs.add_parser("observations", help="Build unified observations table from IEDB/CEDAR")
     _add_build_observations_args(p)
 
-    p = bs.add_parser("index", help="Build/rebuild cached scan index of IEDB/CEDAR data")
-    _add_build_index_args(p)
-
     p = bs.add_parser(
         "proteomes",
         help="Auto-fetch reference proteomes for species present in observations",
@@ -648,14 +589,13 @@ def _build_top_level_build_parser(sub: argparse._SubParsersAction) -> None:
 
 def _handle_build(args: argparse.Namespace) -> None:
     """Dispatch ``hitlist build <subcommand>`` to the same handlers as the
-    legacy ``hitlist data {build,index,fetch-proteomes}`` entry points."""
+    legacy ``hitlist data {build,fetch-proteomes}`` entry points."""
     cmd = getattr(args, "build_command", None)
     if cmd is None:
         _print_subgroup_help(args._subgroup_parser)
         sys.exit(1)
     handlers = {
         "observations": _data_build,
-        "index": _data_index,
         "proteomes": _data_fetch_proteomes,
     }
     handlers[cmd](args)
@@ -663,7 +603,6 @@ def _handle_build(args: argparse.Namespace) -> None:
 
 _DEPRECATED_DATA_SUBCOMMANDS = {
     "build": "hitlist build observations",
-    "index": "hitlist build index",
     "fetch-proteomes": "hitlist build proteomes",
 }
 
@@ -679,7 +618,6 @@ def _handle_data(args: argparse.Namespace) -> None:
         "path": _data_path,
         "remove": _data_remove,
         "build": _data_build,
-        "index": _data_index,
         "fetch-proteomes": _data_fetch_proteomes,
         "list-proteomes": _data_list_proteomes,
     }

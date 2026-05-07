@@ -268,3 +268,43 @@ def test_scan_supplementary_mhc_species_propagation():
     assert (no_allele["mhc_species"] == "Homo sapiens").all(), (
         "Peptides without allele assignment should still have mhc_species='Homo sapiens'"
     )
+
+
+def test_supplement_mhc_species_fallback_pattern_handles_categorical():
+    """Regression for the v1.30.41 categorical-fillna fix in
+    ``hitlist/supplement.py``.  ``scan_supplementary`` runs::
+
+        record["mhc_species"] = (
+            record["mhc_species"].astype("string").fillna("").replace("", host_species)
+        )
+
+    on a column that may be categorical post-#137 if the input frame
+    was compressed upstream.  Without the ``astype("string")`` cast,
+    fillna with ``""`` fails when ``""`` isn't already in the
+    category set::
+
+        TypeError: Cannot setitem on a Categorical with a new category (),
+        set the categories first
+
+    The current production path doesn't compress before this fillna
+    runs, but the fix is defensive — if categorical compression ever
+    moves earlier in the pipeline (or a pre-compressed parquet is
+    supplied), the cast keeps the fallback working.
+
+    This is a unit test of the idiom used in supplement.py:291."""
+    import pandas as pd
+
+    record = pd.DataFrame(
+        {
+            "peptide": ["P1", "P2"],
+            # Categorical with a NA cell — neither "" nor "Homo sapiens"
+            # is in the existing category set.
+            "mhc_species": pd.Categorical(["", None]),
+        }
+    )
+    host_species = "Homo sapiens"
+    # The exact idiom from supplement.py:
+    record["mhc_species"] = (
+        record["mhc_species"].astype("string").fillna("").replace("", host_species)
+    )
+    assert list(record["mhc_species"]) == ["Homo sapiens", "Homo sapiens"]

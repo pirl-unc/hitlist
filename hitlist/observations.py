@@ -583,9 +583,13 @@ def _load_peptide_index(
         uniq = df["mhc_restriction"].dropna().unique()
         if len(uniq) > 0:
             norm_map = {str(a): normalize_allele(a) for a in uniq}
-            df["mhc_restriction"] = (
-                df["mhc_restriction"].map(norm_map).fillna(df["mhc_restriction"])
-            )
+            # Cast to ``StringDtype`` before map/fillna — categorical
+            # ``mhc_restriction`` (post-#137) rejects assignments outside
+            # its category set, which would silently break this normalization
+            # path on old-schema parquets.  Round-trip back to whatever
+            # dtype pandas chooses for the assigned column.
+            normalized = df["mhc_restriction"].astype("string")
+            df["mhc_restriction"] = normalized.map(norm_map).fillna(normalized)
 
     # ── MHC class-label severity tiers (#182, #201) ──────────────────────
     # Flags rows whose curated ``mhc_class`` disagrees with the
@@ -614,7 +618,11 @@ def _load_peptide_index(
         # required — pandas otherwise reads ``+`` as a regex quantifier
         # and the split silently no-ops.
         plen = df["peptide"].astype(str).str.split(" + ", n=1, regex=False).str[0].str.len()
-        cls = df["mhc_class"].fillna("")
+        # ``mhc_class`` is post-#137 categorical; fillna with ``""`` requires
+        # the value to already be in the category set, which it generally
+        # isn't (categories are usually ``{"I", "II", "non classical"}``).
+        # Cast to plain ``StringDtype`` first — accepts any string fill.
+        cls = df["mhc_class"].astype("string").fillna("")
 
         # Default everything to "ok"; refine downward.
         severity = pd.Series("ok", index=df.index, dtype="object")
