@@ -638,6 +638,90 @@ def test_scan_non_attributed_pmid_unaffected_by_per_donor_split(tmp_path):
     assert set(r["mhc_allele_set"].split(";")) == {"HLA-A*02:01", "HLA-B*07:02", "HLA-C*07:02"}
 
 
+def test_scan_per_donor_split_class_mismatch_emits_unmatched_per_donor(tmp_path):
+    """Edge case: if an attributed peptide's row has an mhc_class that
+    doesn't match the matched donors' allele class, ``expand_allele_set``
+    filters every donor's typing to empty → each emitted per-donor row
+    gets ``provenance=\"unmatched\"`` and ``mhc_allele_set_size=0``,
+    while still carrying the donor's ``attributed_sample_label`` and
+    leaving the original ``mhc_restriction`` (e.g. \"HLA class II\") in
+    place.
+
+    Today this never fires in real data — the only attributed PMID
+    (Sarkizova 2020) is class-I only.  Test locks in the documented
+    edge-case behavior so a future class-II attribution CSV would
+    behave predictably.
+    """
+    src = tmp_path / "iedb.csv"
+    row = [""] * 112
+    row[0] = "http://iedb.org/assay/9000005"
+    row[1] = "http://iedb.org/reference/sarkizova"
+    row[2] = "31844290"
+    row[5] = "AAAAAAAAAAAAAAPAP"  # attributed only to MEL2
+    row[107] = "HLA class II"  # synthetic class mismatch — MEL2 has class-I alleles
+    row[108] = "II"
+    _write_set_iedb_csv(src, [row])
+
+    df = scan(peptides=None, iedb_path=str(src), cedar_path=None)
+    assert len(df) == 1
+    r = df.iloc[0]
+    assert r["attributed_sample_label"] == "MEL2 (13240-005)"
+    assert r["mhc_allele_provenance"] == "unmatched"
+    assert r["mhc_allele_set_size"] == 0
+    assert r["mhc_allele_set"] == ""
+    # Set-size 0 → mhc_restriction not promoted; original class label survives.
+    assert r["mhc_restriction"] == "HLA class II"
+
+
+def test_scan_mixed_attribution_within_same_pmid(tmp_path):
+    """A single scan over an attributed PMID must route each row by its
+    own peptide's attribution status: attributed peptides take the
+    per-donor split path; unattributed peptides take the standard
+    sample_allele_match / pool / unmatched fallback.  Same PMID, same
+    file, two different code paths in one call.
+    """
+    src = tmp_path / "iedb.csv"
+    rows = []
+
+    # Row A: peptide IS in the Sarkizova attribution CSV (MEL2 only).
+    a = [""] * 112
+    a[0] = "http://iedb.org/assay/9000006"
+    a[1] = "http://iedb.org/reference/sarkizova"
+    a[2] = "31844290"
+    a[5] = "AAAAAAAAAAAAAAPAP"
+    a[49] = "HLA-A*01:01;HLA-B*38:01"  # ignored — attribution wins for class-only rows
+    a[107] = "HLA class I"
+    a[108] = "I"
+    rows.append(a)
+
+    # Row B: peptide is NOT in the attribution CSV → standard fallback to host_mhc_types.
+    b = [""] * 112
+    b[0] = "http://iedb.org/assay/9000007"
+    b[1] = "http://iedb.org/reference/sarkizova"
+    b[2] = "31844290"
+    b[5] = "ZZZZZZZZZZ"
+    b[49] = "HLA-A*02:01;HLA-B*07:02"
+    b[107] = "HLA class I"
+    b[108] = "I"
+    rows.append(b)
+
+    _write_set_iedb_csv(src, rows)
+    df = scan(peptides=None, iedb_path=str(src), cedar_path=None)
+    assert len(df) == 2
+    by_pep = df.set_index("peptide")
+
+    # Attributed peptide: per-donor row carries the donor label.
+    attributed = by_pep.loc["AAAAAAAAAAAAAAPAP"]
+    assert attributed["attributed_sample_label"] == "MEL2 (13240-005)"
+    assert attributed["mhc_allele_provenance"] == "peptide_attribution"
+
+    # Unattributed peptide in the same PMID: standard fallback, no donor label.
+    unattributed = by_pep.loc["ZZZZZZZZZZ"]
+    assert unattributed["attributed_sample_label"] == ""
+    assert unattributed["mhc_allele_provenance"] == "sample_allele_match"
+    assert set(unattributed["mhc_allele_set"].split(";")) == {"HLA-A*02:01", "HLA-B*07:02"}
+
+
 # ── StringDtype propagation through the build pipeline ─────────────────────
 
 

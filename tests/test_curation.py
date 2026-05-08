@@ -1730,3 +1730,28 @@ def test_attribute_peptide_to_per_sample_typings_empty_cases():
     assert attribute_peptide_to_per_sample_typings(31844290, "ZZZZZZZZZZ") == ()
     assert attribute_peptide_to_per_sample_typings(0, "ANYTHING") == ()
     assert attribute_peptide_to_per_sample_typings(31844290, "") == ()
+
+
+def test_attribute_peptide_to_per_sample_typings_all_donors_lack_typing(monkeypatch):
+    """If a peptide is attributed to N donors but ALL of them have empty
+    curated typings (e.g. partially-curated pmid_overrides entry), the
+    helper drops the peptide entirely and returns ``()`` — the scanner
+    then falls through to the standard non-attributed single-row path
+    instead of emitting zero rows."""
+    from hitlist import curation
+
+    monkeypatch.setattr(
+        curation,
+        "_pmid_peptide_attributions",
+        lambda pmid_int: {"FAKEPEP": frozenset({"ghost_donor_a", "ghost_donor_b"})},
+    )
+    monkeypatch.setattr(
+        curation,
+        "_pmid_sample_alleles",
+        lambda pmid_int: {},  # neither ghost donor has a typing
+    )
+    curation._pmid_peptide_per_sample_typings.cache_clear()
+    try:
+        assert curation.attribute_peptide_to_per_sample_typings(99999, "FAKEPEP") == ()
+    finally:
+        curation._pmid_peptide_per_sample_typings.cache_clear()

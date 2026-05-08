@@ -527,6 +527,66 @@ def test_drop_duplicate_iris_no_iri_column_returns_unchanged():
     assert len(out) == 2
 
 
+def test_drop_duplicate_iris_preserves_per_donor_split_rows():
+    """Regression for #236: per-donor split rows from a single IEDB row
+    share the same ``assay_iri`` but differ in ``attributed_sample_label``.
+    Folding the label into the dedup key prevents the iri-only dedup
+    from silently collapsing 3 per-donor rows back to 1.
+
+    Without the label-aware key, only 1 of N matched-donor rows (the
+    alphabetically-first label) survived the build for every attributed
+    peptide.
+    """
+    df = pd.DataFrame(
+        {
+            "assay_iri": ["a:1", "a:1", "a:1", "a:2"],
+            "attributed_sample_label": [
+                "MEL3 (13240-006)",
+                "MEL15 (13240-015)",
+                "OV1 (CP-594_v1)",
+                "",
+            ],
+            "peptide": ["SLLQHLIGL", "SLLQHLIGL", "SLLQHLIGL", "OTHERPEP"],
+        }
+    )
+    out = _drop_duplicate_iris(df, label="MS")
+    # All 4 input rows survive: the 3 SLLQHLIGL per-donor rows have
+    # distinct (assay_iri, attributed_sample_label) keys, and the
+    # OTHERPEP row has its own assay_iri.
+    assert len(out) == 4
+    assert set(out["attributed_sample_label"]) == {
+        "MEL3 (13240-006)",
+        "MEL15 (13240-015)",
+        "OV1 (CP-594_v1)",
+        "",
+    }
+
+
+def test_drop_duplicate_iris_dedups_cross_source_within_same_donor():
+    """Cross-source dedup still works for per-donor rows: if both IEDB
+    and CEDAR scan the same assay and emit the same per-donor split,
+    the (assay_iri, attributed_sample_label) key collapses cross-source
+    duplicates exactly as the iri-only key did pre-#236.
+    """
+    df = pd.DataFrame(
+        {
+            "assay_iri": ["a:1", "a:1", "a:1", "a:1"],
+            "attributed_sample_label": [
+                "MEL3 (13240-006)",
+                "MEL15 (13240-015)",
+                "MEL3 (13240-006)",  # cross-source duplicate
+                "MEL15 (13240-015)",  # cross-source duplicate
+            ],
+            "source": ["iedb", "iedb", "cedar", "cedar"],
+            "peptide": ["SLLQHLIGL"] * 4,
+        }
+    )
+    out = _drop_duplicate_iris(df, label="MS")
+    assert len(out) == 2
+    # IEDB-first concat order preserved: both surviving rows are from iedb.
+    assert set(out["source"]) == {"iedb"}
+
+
 # ── pyarrow concat + supplement anti-join (replaces Python set dedup) ────
 
 
