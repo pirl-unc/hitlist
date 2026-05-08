@@ -113,6 +113,21 @@ _TRAINING_DEFAULTS = {
 }
 
 
+def _fillna_safe_for_categoricals(df: pd.DataFrame, value: str = "") -> pd.DataFrame:
+    """Cast categorical columns to ``StringDtype`` before ``fillna(value)``.
+
+    Categorical fillna with an out-of-category value raises ``TypeError``.
+    Post-#137 several string columns in the observations frame are stored
+    as ``category`` for memory; this helper lets the export pipeline keep
+    its ``fillna("")`` idiom without crashing when those columns are in
+    the slice.  Returns a new frame (input is not mutated).
+    """
+    cat_cols = [c for c in df.columns if isinstance(df[c].dtype, pd.CategoricalDtype)]
+    if cat_cols:
+        df = df.astype(dict.fromkeys(cat_cols, "string"))
+    return df.fillna(value)
+
+
 def _classify_instrument(instrument: str) -> str:
     """Return a broad instrument category from a specific model string."""
     if not instrument:
@@ -594,7 +609,7 @@ def generate_observations_table(
             ):
                 if col not in obs.columns:
                     obs[col] = ""
-            _ambig_obs = obs.loc[_ambig_mask, _tiebreak_cols].fillna("")
+            _ambig_obs = _fillna_safe_for_categoricals(obs.loc[_ambig_mask, _tiebreak_cols])
             _unique_ambig = _ambig_obs.drop_duplicates()
 
             _winner_meta: dict[tuple, dict] = {}
@@ -628,7 +643,7 @@ def generate_observations_table(
 
             # Apply winners back to obs.
             if _winner_meta:
-                _ambig_full = obs.loc[_ambig_mask, _tiebreak_cols].fillna("")
+                _ambig_full = _fillna_safe_for_categoricals(obs.loc[_ambig_mask, _tiebreak_cols])
                 _winner_keys = list(zip(*[_ambig_full[c] for c in _tiebreak_cols]))
                 for col in meta_cols:
                     obs.loc[_ambig_mask, col] = [
@@ -736,7 +751,7 @@ def generate_observations_table(
                     if col not in obs.columns:
                         obs[col] = ""
                 _tb_cols = ["_pmid_int", "mhc_class", *_disc_cols_all]
-                _eligible_df = obs.loc[_eligible_mask, _tb_cols].fillna("")
+                _eligible_df = _fillna_safe_for_categoricals(obs.loc[_eligible_mask, _tb_cols])
                 # Per (pmid, class), drop discriminator columns whose
                 # value is identical across all eligible rows — those
                 # can't differentiate samples and would otherwise inflate
@@ -2249,7 +2264,7 @@ def generate_species_summary(mhc_class: str | None = None) -> pd.DataFrame:
     obs = obs[obs["mhc_species"].notna() & (obs["mhc_species"] != "")]
 
     summary = (
-        obs.groupby(["mhc_species", "mhc_class"], dropna=False)
+        obs.groupby(["mhc_species", "mhc_class"], dropna=False, observed=True)
         .agg(
             n_pmids=("pmid", "nunique"),
             n_peptides=("peptide", "nunique"),
