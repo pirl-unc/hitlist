@@ -373,39 +373,146 @@ def query_by_samples(
 
 
 def _attach_predictions(df: pd.DataFrame, predictor: str) -> pd.DataFrame:
-    """Score each (peptide, allele) row with MHCflurry or NetMHCpan and
-    append ``affinity_nM`` / ``presentation_percentile`` / ``binder_class``.
+    """Score each row's (peptide, allele-set) and narrow multi-allele rows
+    to the single best-binding allele within their candidate set (#239).
 
-    Uses ``best_guess_allele`` as the prediction input — predictors only
-    accept 4-digit alleles, so serotype rows (HLA-A2, HLA-DR4) need the
-    heuristic 4-digit substitute. Where ``best_guess_allele`` falls back
-    to the original serotype string (no expansion available), the
-    predictor will return NaN and the row stays unscored.
+    For rows where ``mhc_allele`` is a single 4-digit allele, the
+    predictor scores that one pair and the row is unchanged apart from
+    the new score columns.  For multi-allele rows (semicolon-joined
+    typings — every per-donor row from #236, every IEDB
+    ``sample_allele_match`` row carrying the donor's full HLA typing),
+    the function:
+
+    1. Expands the row to one ``(peptide, allele)`` prediction call per
+       individual allele in the set.
+    2. Scores each pair via MHCflurry or NetMHCpan.
+    3. Picks the best binder by ``presentation_percentile`` (with
+       ``affinity_nM`` as the tiebreaker).
+    4. Narrows ``mhc_allele`` and ``best_guess_allele`` to that single
+       allele, records the choice in ``best_predicted_allele``.
+    5. Re-aggregates rows that now share the same narrowed allele
+       (e.g. SLLQHLIGL was attributed to MEL3 / MEL15 / OV1, all narrow
+       to A\\*02:01 — the three rows collapse into one with summed
+       ``n_observations`` and unioned ``pmids``).
+
+    Rows where every allele in the set returns NaN (predictor failure
+    or peptide-length mismatch) keep their original multi-allele
+    ``mhc_allele`` and have empty ``best_predicted_allele``.
     """
-    pairs = df[["peptide", "best_guess_allele"]].rename(columns={"best_guess_allele": "allele"})
+    if df.empty:
+        df = df.copy()
+        df["affinity_nM"] = pd.Series(dtype="float64")
+        df["presentation_percentile"] = pd.Series(dtype="float64")
+        df["binder_class"] = pd.Series(dtype="string")
+        df["best_predicted_allele"] = pd.Series(dtype="string")
+        return df
+
+    # Build a long frame: one (peptide, allele) candidate per individual
+    # allele in each row's best_guess_allele set, tagged with the
+    # source row's positional index so we can map results back.
+    candidates: list[dict] = []
+    for pos, (_, row) in enumerate(df.iterrows()):
+        peptide = str(row["peptide"])
+        allele_str = str(row.get("best_guess_allele") or "")
+        for allele in allele_str.split(";"):
+            allele = allele.strip()
+            if allele:
+                candidates.append({"_row_pos": pos, "peptide": peptide, "allele": allele})
+
+    if not candidates:
+        df = df.copy()
+        df["affinity_nM"] = pd.NA
+        df["presentation_percentile"] = pd.NA
+        df["binder_class"] = "non-binder"
+        df["best_predicted_allele"] = ""
+        return df
+
+    cand_df = pd.DataFrame(candidates)
+
+    # Score the unique (peptide, allele) pairs only — many rows share
+    # the same pair after the per-donor split (every Sarkizova patient
+    # carries A\*02:01, every B*07:02-only row asks the same question).
+    unique_pairs = cand_df[["peptide", "allele"]].drop_duplicates().reset_index(drop=True)
     if predictor == "mhcflurry":
         from .predict import _predict_mhcflurry
 
-        scored = _predict_mhcflurry(pairs.copy())
+        scored = _predict_mhcflurry(unique_pairs.copy())
     elif predictor == "netmhcpan":
         from .predict import _predict_netmhcpan
 
-        scored = _predict_netmhcpan(pairs.copy())
+        scored = _predict_netmhcpan(unique_pairs.copy())
     else:
         raise ValueError(f"Unknown predictor {predictor!r}; use 'mhcflurry' or 'netmhcpan'")
 
-    # NetMHCpan path returns its own DataFrame keyed on (peptide, allele);
-    # MHCflurry preserves caller index.  Merge defensively.
-    scored = scored.rename(columns={"allele": "best_guess_allele"})
-    df = df.merge(
-        scored[["peptide", "best_guess_allele", "affinity_nM", "presentation_percentile"]],
-        on=["peptide", "best_guess_allele"],
+    cand_df = cand_df.merge(
+        scored[["peptide", "allele", "affinity_nM", "presentation_percentile"]],
+        on=["peptide", "allele"],
         how="left",
     )
+
+    # Best per row: lowest presentation_percentile, then lowest affinity_nM.
+    # ``na_position="last"`` keeps unscored alleles out of the way so they
+    # only "win" when nothing in the set scored.
+    best = (
+        cand_df.sort_values(
+            ["_row_pos", "presentation_percentile", "affinity_nM"], na_position="last"
+        )
+        .drop_duplicates("_row_pos", keep="first")
+        .set_index("_row_pos")
+    )
+
+    df = df.reset_index(drop=True).copy()
+    df["affinity_nM"] = best["affinity_nM"].reindex(df.index)
+    df["presentation_percentile"] = best["presentation_percentile"].reindex(df.index)
+
+    # Narrow mhc_allele / best_guess_allele only when at least one allele
+    # in the set produced a real prediction.  ``best_predicted_allele``
+    # records the choice (empty string when no allele scored).
+    has_score = df["presentation_percentile"].notna()
+    df["best_predicted_allele"] = ""
+    df.loc[has_score, "best_predicted_allele"] = best.loc[has_score, "allele"].values
+    df.loc[has_score, "mhc_allele"] = best.loc[has_score, "allele"].values
+    df.loc[has_score, "best_guess_allele"] = best.loc[has_score, "allele"].values
+
     df["binder_class"] = [
         _classify_binder(a, p) for a, p in zip(df["affinity_nM"], df["presentation_percentile"])
     ]
-    return df
+
+    # After narrowing, the per-donor rows from #236 (3 rows for SLLQHLIGL,
+    # all of whose donor typings contain A\*02:01) collapse to a single
+    # mhc_allele.  Re-aggregate so the user sees one consolidated row
+    # per (gene, narrowed allele, peptide, class) instead of N redundant
+    # per-donor rows that all point at the same allele.
+    return _consolidate_after_narrowing(df)
+
+
+def _consolidate_after_narrowing(df: pd.DataFrame) -> pd.DataFrame:
+    """Sum ``n_observations`` and union ``pmids`` for rows that share
+    ``(gene_name, gene_id, mhc_allele, peptide, mhc_class)`` post-#239
+    narrowing.  Score columns are taken from the first row (all rows in
+    a group have the same peptide-allele pair → same prediction)."""
+    if df.empty:
+        return df
+
+    def _union_pmids(values: pd.Series) -> str:
+        seen: set[str] = set()
+        for v in values.dropna():
+            for p in str(v).split(";"):
+                if p:
+                    seen.add(p)
+        return ";".join(sorted(seen, key=int))
+
+    score_cols = ["affinity_nM", "presentation_percentile", "binder_class", "best_predicted_allele"]
+    group_cols = ["gene_name", "gene_id", "mhc_allele", "best_guess_allele", "peptide", "mhc_class"]
+    agg_spec: dict = {
+        "n_observations": "sum",
+        "pmids": _union_pmids,
+    }
+    for col in score_cols:
+        if col in df.columns:
+            agg_spec[col] = "first"
+
+    return df.groupby(group_cols, dropna=False, observed=True).agg(agg_spec).reset_index()
 
 
 # Tier ordering for taking the strongest call across affinity / percentile.
