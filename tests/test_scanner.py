@@ -501,6 +501,9 @@ def test_scan_promotes_set_to_mhc_restriction_via_peptide_attribution(tmp_path):
     # presenting-MHC set.
     assert r["mhc_restriction"] != "HLA class I"
     assert set(r["mhc_restriction"].split(";")) == expected
+    # Single-donor attribution (#236): one emitted row tagged with the
+    # matched donor's sample_label.
+    assert r["attributed_sample_label"] == "MEL2 (13240-005)"
 
 
 def test_scan_falls_back_to_sample_allele_match_when_peptide_unattributed(tmp_path):
@@ -527,6 +530,112 @@ def test_scan_falls_back_to_sample_allele_match_when_peptide_unattributed(tmp_pa
     assert r["mhc_allele_set_size"] == 2
     assert set(r["mhc_allele_set"].split(";")) == {"HLA-A*02:01", "HLA-B*07:02"}
     assert set(r["mhc_restriction"].split(";")) == {"HLA-A*02:01", "HLA-B*07:02"}
+    # Non-attributed row → empty attributed_sample_label.
+    assert r["attributed_sample_label"] == ""
+
+
+def test_scan_per_donor_split_for_multi_donor_attributed_peptide(tmp_path):
+    """Issue #236: when the per-peptide attribution CSV maps a peptide
+    to N matched donors, the scanner emits N observation rows (one per
+    donor with that donor's typing) instead of one row carrying the
+    union of donor typings.
+
+    SLLQHLIGL is attributed to 3 Sarkizova patient samples — MEL3,
+    MEL15, OV1.  The pre-#236 behavior was a single row with a 15-
+    allele union; post-#236 we expect 3 rows, each carrying that
+    donor's 6-allele typing in ``mhc_restriction`` and the donor's
+    label in the new ``attributed_sample_label`` column.
+    """
+    src = tmp_path / "iedb.csv"
+    row = [""] * 112
+    row[0] = "http://iedb.org/assay/9000003"
+    row[1] = "http://iedb.org/reference/sarkizova"
+    row[2] = "31844290"
+    row[5] = "SLLQHLIGL"
+    # IEDB stores the disease-wide union here (not used when attribution applies).
+    row[49] = "HLA-A*02:01;HLA-A*02:02;HLA-A*03:01;HLA-A*24:02;HLA-B*13:02;HLA-B*27:05"
+    row[107] = "HLA class I"
+    row[108] = "I"
+    _write_set_iedb_csv(src, [row])
+
+    df = scan(peptides=None, iedb_path=str(src), cedar_path=None)
+    assert len(df) == 3
+
+    by_label = df.set_index("attributed_sample_label")
+    assert set(by_label.index) == {"MEL3 (13240-006)", "MEL15 (13240-015)", "OV1 (CP-594_v1)"}
+
+    # Each emitted row carries that donor's typing as both
+    # mhc_allele_set AND (post-promotion) mhc_restriction.
+    for label, expected_alleles in [
+        (
+            "MEL3 (13240-006)",
+            {
+                "HLA-A*02:01",
+                "HLA-A*03:01",
+                "HLA-B*27:05",
+                "HLA-B*47:01",
+                "HLA-C*01:02",
+                "HLA-C*06:02",
+            },
+        ),
+        (
+            "MEL15 (13240-015)",
+            {
+                "HLA-A*02:01",
+                "HLA-A*02:02",
+                "HLA-B*13:02",
+                "HLA-B*40:02",
+                "HLA-C*02:02",
+                "HLA-C*06:02",
+            },
+        ),
+        (
+            "OV1 (CP-594_v1)",
+            {
+                "HLA-A*02:01",
+                "HLA-A*24:02",
+                "HLA-B*35:03",
+                "HLA-B*44:02",
+                "HLA-C*05:01",
+                "HLA-C*12:03",
+            },
+        ),
+    ]:
+        r = by_label.loc[label]
+        assert r["mhc_allele_provenance"] == "peptide_attribution"
+        assert r["mhc_allele_set_size"] == len(expected_alleles)
+        assert set(r["mhc_allele_set"].split(";")) == expected_alleles
+        assert set(r["mhc_restriction"].split(";")) == expected_alleles
+
+
+def test_scan_non_attributed_pmid_unaffected_by_per_donor_split(tmp_path):
+    """Regression for #236: cohorts WITHOUT a peptide_attributions CSV
+    registered must produce exactly one row per IEDB row, with an empty
+    ``attributed_sample_label``.  The per-donor split must only fire
+    for PMIDs explicitly opted in via ``peptide_attributions:`` in
+    pmid_overrides.yaml — never for arbitrary class-only rows.
+
+    PMID 99999999 (not in pmid_overrides) with a class-only restriction
+    + donor-typed alleles should fall through to ``sample_allele_match``
+    as a single row, just like pre-#236.
+    """
+    src = tmp_path / "iedb.csv"
+    row = [""] * 112
+    row[0] = "http://iedb.org/assay/9000004"
+    row[1] = "http://iedb.org/reference/other"
+    row[2] = "99999999"
+    row[5] = "OTHERPEP"
+    row[49] = "HLA-A*02:01;HLA-B*07:02;HLA-C*07:02"
+    row[107] = "HLA class I"
+    row[108] = "I"
+    _write_set_iedb_csv(src, [row])
+
+    df = scan(peptides=None, iedb_path=str(src), cedar_path=None)
+    assert len(df) == 1
+    r = df.iloc[0]
+    assert r["attributed_sample_label"] == ""
+    assert r["mhc_allele_provenance"] == "sample_allele_match"
+    assert set(r["mhc_allele_set"].split(";")) == {"HLA-A*02:01", "HLA-B*07:02", "HLA-C*07:02"}
 
 
 # ── StringDtype propagation through the build pipeline ─────────────────────

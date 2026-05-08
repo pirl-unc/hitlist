@@ -1001,8 +1001,15 @@ def test_load_pmid_overrides_rejects_unknown_mono_host(tmp_path, monkeypatch):
             ]
         )
     )
+    # Resolve other data paths to their real locations — monkeypatch only
+    # redirects pmid_overrides.yaml.  Without this, load_monoallelic_lines
+    # (called from load_pmid_overrides) would receive the bare filename
+    # when its lru_cache happens to be cold.
+    real_data_path = curation._data_path
     monkeypatch.setattr(
-        curation, "_data_path", lambda fn: str(bad_yaml) if fn == "pmid_overrides.yaml" else fn
+        curation,
+        "_data_path",
+        lambda fn: str(bad_yaml) if fn == "pmid_overrides.yaml" else real_data_path(fn),
     )
     curation.load_pmid_overrides.cache_clear()
     try:
@@ -1672,3 +1679,54 @@ def test_attribute_peptide_to_sample_alleles_unknown_peptide_returns_empty():
     assert attribute_peptide_to_sample_alleles(31844290, "ZZZZZZZZZZ") == frozenset()
     assert attribute_peptide_to_sample_alleles(0, "ANYTHING") == frozenset()
     assert attribute_peptide_to_sample_alleles(31844290, "") == frozenset()
+
+
+def test_attribute_peptide_to_per_sample_typings_single_donor():
+    """Single-donor attribution returns one (label, alleles) pair."""
+    from hitlist.curation import attribute_peptide_to_per_sample_typings
+
+    out = attribute_peptide_to_per_sample_typings(31844290, "AAAAAAAAAAAAAAPAP")
+    assert len(out) == 1
+    label, alleles = out[0]
+    assert label == "MEL2 (13240-005)"
+    assert alleles == frozenset(
+        {"HLA-A*01:01", "HLA-B*38:01", "HLA-B*56:01", "HLA-C*01:02", "HLA-C*06:02"}
+    )
+
+
+def test_attribute_peptide_to_per_sample_typings_multi_donor():
+    """SLLQHLIGL is attributed to 3 Sarkizova patient samples (MEL3,
+    MEL15, OV1).  The new helper preserves per-donor identity instead
+    of merging into a 15-allele union (issue #236), so the scanner can
+    emit one observation row per matched donor.
+
+    Returned tuples are sorted by ``sample_label`` for deterministic
+    emission order.
+    """
+    from hitlist.curation import attribute_peptide_to_per_sample_typings
+
+    out = attribute_peptide_to_per_sample_typings(31844290, "SLLQHLIGL")
+    assert len(out) == 3
+    labels = [label for label, _ in out]
+    assert labels == sorted(labels)
+    assert set(labels) == {"MEL3 (13240-006)", "MEL15 (13240-015)", "OV1 (CP-594_v1)"}
+
+    by_label = dict(out)
+    assert by_label["MEL3 (13240-006)"] == frozenset(
+        {"HLA-A*02:01", "HLA-A*03:01", "HLA-B*27:05", "HLA-B*47:01", "HLA-C*01:02", "HLA-C*06:02"}
+    )
+    assert by_label["MEL15 (13240-015)"] == frozenset(
+        {"HLA-A*02:01", "HLA-A*02:02", "HLA-B*13:02", "HLA-B*40:02", "HLA-C*02:02", "HLA-C*06:02"}
+    )
+    assert by_label["OV1 (CP-594_v1)"] == frozenset(
+        {"HLA-A*02:01", "HLA-A*24:02", "HLA-B*35:03", "HLA-B*44:02", "HLA-C*05:01", "HLA-C*12:03"}
+    )
+
+
+def test_attribute_peptide_to_per_sample_typings_empty_cases():
+    """Unknown peptide / unknown PMID / empty peptide → empty tuple."""
+    from hitlist.curation import attribute_peptide_to_per_sample_typings
+
+    assert attribute_peptide_to_per_sample_typings(31844290, "ZZZZZZZZZZ") == ()
+    assert attribute_peptide_to_per_sample_typings(0, "ANYTHING") == ()
+    assert attribute_peptide_to_per_sample_typings(31844290, "") == ()

@@ -305,7 +305,7 @@ def scan(
 
     from .curation import (
         allele_resolution_rank,
-        attribute_peptide_to_sample_alleles,
+        attribute_peptide_to_per_sample_typings,
         classify_allele_resolution,
         classify_mhc_species,
         is_binding_assay,
@@ -490,28 +490,59 @@ def scan(
             # ``exact`` (already 4-digit) / ``sample_allele_match`` /
             # ``pmid_class_pool`` / ``unmatched``.  Always emitted so the
             # parquet schema is uniform across modalities.
-            # Per-peptide attribution lookup (#45).  Only meaningful for
-            # class-only rows in PMIDs that registered an attribution
-            # CSV — for everything else this returns an empty frozenset
-            # and set expansion falls through to its IEDB / pmid-pool
-            # paths unchanged.  Doing the lookup here (not inside
-            # expand_allele_set) keeps the set-expansion lru_cache key
-            # to a small hashable frozenset rather than the full peptide
-            # vocabulary.
-            attributed_alleles: frozenset[str] = frozenset()
+            #
+            # Per-peptide attribution lookup (#45 / #236): for class-only
+            # rows in PMIDs that registered a ``peptide_attributions:``
+            # CSV, the helper returns one ``(sample_label, alleles)`` pair
+            # per matched donor.  We then emit one record per donor with
+            # that donor's specific 6-allele typing — instead of one row
+            # carrying the union of all matched donors' alleles — so
+            # downstream consumers can attribute observations to specific
+            # samples.  For non-attributed rows (every other PMID, plus
+            # attributed PMIDs whose row is not class-only or whose
+            # peptide is not in the CSV) the helper returns ``()`` and
+            # the original single-record path runs unchanged.
+            per_sample_typings: tuple[tuple[str, frozenset[str]], ...] = ()
             if bare_peptide and classify_allele_resolution(mhc_res) == "class_only":
-                attributed_alleles = attribute_peptide_to_sample_alleles(pmid, bare_peptide)
+                per_sample_typings = attribute_peptide_to_per_sample_typings(pmid, bare_peptide)
+
+            host_mhc_types = record.get("host_mhc_types", "")
+            row_mhc_class = record.get("mhc_class", "")
+
+            if per_sample_typings:
+                # Multi-donor split: one emitted record per matched donor.
+                for sample_label, donor_alleles in per_sample_typings:
+                    donor_allele_set, donor_prov, donor_size = expand_allele_set(
+                        mhc_res,
+                        host_mhc_types,
+                        pmid,
+                        row_mhc_class,
+                        donor_alleles,
+                    )
+                    donor_record = dict(record)
+                    donor_record["mhc_allele_set"] = donor_allele_set
+                    donor_record["mhc_allele_provenance"] = donor_prov
+                    donor_record["mhc_allele_set_size"] = donor_size
+                    donor_record["attributed_sample_label"] = sample_label
+                    # Promote set to ``mhc_restriction`` (#45).  Same logic
+                    # as the single-record path below — this donor's typed
+                    # alleles ARE the restriction for this attributed row.
+                    if donor_size > 0 and donor_prov != "exact":
+                        donor_record["mhc_restriction"] = donor_allele_set
+                    rows.append(donor_record)
+                continue
 
             allele_set, set_provenance, set_size = expand_allele_set(
                 mhc_res,
-                record.get("host_mhc_types", ""),
+                host_mhc_types,
                 pmid,
-                record.get("mhc_class", ""),
-                attributed_alleles,
+                row_mhc_class,
+                frozenset(),
             )
             record["mhc_allele_set"] = allele_set
             record["mhc_allele_provenance"] = set_provenance
             record["mhc_allele_set_size"] = set_size
+            record["attributed_sample_label"] = ""
 
             # Promote set to ``mhc_restriction`` (#45).  ``mhc_restriction``
             # is the actual presenting MHC for the row — when we have a
