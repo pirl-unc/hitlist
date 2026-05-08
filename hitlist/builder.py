@@ -323,11 +323,19 @@ def _drop_duplicate_iris(df: pd.DataFrame, label: str) -> pd.DataFrame:
         if "reference_iri" in df.columns:
             ref = df["reference_iri"].fillna("").astype(str)
             primary = primary.where(primary.ne(""), ref)
-        key = primary
     elif "reference_iri" in df.columns:
-        key = df["reference_iri"].fillna("").astype(str)
+        primary = df["reference_iri"].fillna("").astype(str)
     else:
         return df
+    # Per-donor split rows (#236) share assay_iri but differ in
+    # ``attributed_sample_label`` — fold the label into the dedup key so
+    # the split survives.  Empty label (non-attributed rows) preserves
+    # the original behavior.
+    if "attributed_sample_label" in df.columns:
+        label = df["attributed_sample_label"].fillna("").astype(str)
+        key = primary.str.cat(label, sep="\x1f")
+    else:
+        key = primary
     before = len(df)
     # ``Series.duplicated`` is the boolean-mask analog of ``drop_duplicates``;
     # avoids round-tripping through a temporary ``_iri_key`` column.

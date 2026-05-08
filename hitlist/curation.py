@@ -1052,6 +1052,64 @@ def _pmid_peptide_alleles(pmid_int: int) -> dict[str, frozenset[str]]:
     return out
 
 
+@lru_cache(maxsize=512)
+def _pmid_peptide_per_sample_typings(
+    pmid_int: int,
+) -> dict[str, tuple[tuple[str, frozenset[str]], ...]]:
+    """``peptide → ((sample_label, frozenset(alleles)), ...)`` for a PMID.
+
+    Like :func:`_pmid_peptide_alleles` but preserves per-sample identity
+    instead of merging alleles into one union.  Used by the scanner to
+    emit one observation row per matched donor (issue #236), so each
+    row carries that donor's ``sample_label`` and 6-allele typing
+    rather than collapsing into a multi-donor union.
+
+    Samples whose curated typing is empty are dropped — emitting a row
+    with no allele set would just become an ``unmatched`` row downstream.
+    Result is sorted by ``sample_label`` for deterministic emission
+    order.  Empty mapping when the PMID has no attribution CSV.
+    """
+    attributions = _pmid_peptide_attributions(pmid_int)
+    if not attributions:
+        return {}
+    sample_alleles = _pmid_sample_alleles(pmid_int)
+    out: dict[str, tuple[tuple[str, frozenset[str]], ...]] = {}
+    for pep, samples in attributions.items():
+        per_sample = []
+        for label in sorted(samples):
+            alleles = sample_alleles.get(label, frozenset())
+            if alleles:
+                per_sample.append((label, alleles))
+        if per_sample:
+            out[pep] = tuple(per_sample)
+    return out
+
+
+def attribute_peptide_to_per_sample_typings(
+    pmid: int | str, peptide: str
+) -> tuple[tuple[str, frozenset[str]], ...]:
+    """Per-donor view of :func:`attribute_peptide_to_sample_alleles`.
+
+    Returns a tuple of ``(sample_label, frozenset(alleles))`` pairs for
+    each matched donor that observed the peptide, instead of merging
+    them into one allele union.  Empty tuple when no attribution applies.
+
+    The scanner uses this to emit one observation row per matched donor
+    (issue #236), so polyspecific cohort rows decompose cleanly into
+    per-sample rows with that donor's specific typing — instead of one
+    row carrying the union of (e.g.) 15 alleles across 3 donors.
+    """
+    if not peptide:
+        return ()
+    pmid_int: int | None = None
+    if pmid:
+        with contextlib.suppress(ValueError, TypeError):
+            pmid_int = int(pmid)
+    if pmid_int is None:
+        return ()
+    return _pmid_peptide_per_sample_typings(pmid_int).get(peptide, ())
+
+
 def attribute_peptide_to_sample_alleles(pmid: int | str, peptide: str) -> frozenset[str]:
     """Return the union of typed alleles across the samples a peptide was
     observed in within this PMID's curated cohort (#45), or an empty
