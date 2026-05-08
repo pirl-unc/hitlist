@@ -560,6 +560,87 @@ def test_serialize_reference_proteomes_handles_partial_entries():
     assert _serialize_reference_proteomes("UP000005640:human") == "UP000005640:human"
 
 
+def test_fillna_safe_for_categoricals_handles_categorical_columns_with_na():
+    """Regression for v1.30.42: ``_fillna_safe_for_categoricals`` must
+    accept a frame with a categorical column whose category set does NOT
+    include the fill value, and return a frame where NA cells are filled
+    with the fill value as plain strings.
+
+    The bug it guards against is the same categorical-fillna ``TypeError``
+    fixed in observations.py / supplement.py during v1.30.41 — but for
+    the ``loc[mask, cols].fillna("")`` pattern in the per-PMID
+    discriminator-scoring path of ``generate_ms_observations_table``
+    (export.py).  Without the cast, ``./deploy.sh`` (which runs
+    ``./test.sh --all``) fails on the integration tests that build the
+    full observations table.
+    """
+    import pandas as pd
+
+    from hitlist.export import _fillna_safe_for_categoricals
+
+    # Categorical with a NA cell — the fill value "" is NOT in the
+    # category set, which is exactly what triggers the upstream crash.
+    df = pd.DataFrame(
+        {
+            "_pmid_int": [1, 2, 3],
+            "mhc_class": pd.Categorical(["I", None, "II"]),
+            "cell_name": pd.Categorical([None, "C1R", "K562"]),
+            "free_text": ["alpha", None, ""],
+        }
+    )
+    out = _fillna_safe_for_categoricals(df)
+    assert list(out["mhc_class"]) == ["I", "", "II"]
+    assert list(out["cell_name"]) == ["", "C1R", "K562"]
+    assert list(out["free_text"]) == ["alpha", "", ""]
+    # Integer column must pass through untouched.
+    assert list(out["_pmid_int"]) == [1, 2, 3]
+
+
+def test_species_summary_does_not_emit_empty_categorical_bins():
+    """Regression for v1.30.42: filtering ``load_observations`` by
+    ``mhc_class="I"`` leaves the ``mhc_class`` column as a categorical
+    that still *carries* "II" / "non classical" in its category set.
+    Without ``observed=True``, ``groupby(dropna=False)`` then emits one
+    zero-row entry per dropped category per species — which made
+    ``test_species_summary_class_filter`` fail because the result set
+    contained ``{"I", "II", "non classical"}`` instead of ``{"I"}``.
+
+    This test exercises the production helper end-to-end against a
+    synthetic frame so the fix is locked in without depending on the
+    full integration corpus.
+    """
+    from unittest.mock import patch
+
+    import pandas as pd
+
+    import hitlist.observations as observations
+    from hitlist.export import generate_species_summary
+
+    # Categorical with the post-#137 category set, but only class-I rows.
+    obs = pd.DataFrame(
+        {
+            "peptide": ["AAAAAAAAA", "CCCCCCCCC", "GGGGGGGGG"],
+            "mhc_species": ["Homo sapiens", "Homo sapiens", "Mus musculus"],
+            "mhc_class": pd.Categorical(
+                ["I", "I", "I"],
+                categories=["I", "II", "non classical"],
+            ),
+            "pmid": [1, 1, 2],
+        }
+    )
+
+    with (
+        patch.object(observations, "is_built", return_value=True),
+        patch.object(observations, "load_observations", return_value=obs),
+    ):
+        summary = generate_species_summary(mhc_class="I")
+
+    assert set(summary["mhc_class"]) == {"I"}
+    # No phantom zero-row entries for "II" or "non classical".
+    assert len(summary) == 2
+    assert (summary["n_observations"] > 0).all()
+
+
 def test_generate_sample_expression_table_carries_provenance():
     """Sample-expression export must include the same provenance columns
     as ``generate_ms_samples_table`` plus the expression-anchor columns

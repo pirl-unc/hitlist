@@ -268,6 +268,7 @@ def query(
                 "mhc_class",
             ],
             dropna=False,
+            observed=True,
         )
         .agg(
             n_observations=("pmid", "size"),
@@ -564,7 +565,7 @@ def format_table(df: pd.DataFrame) -> str:
         block.append(gene_indent + header_line)
         block.append(gene_indent + rule_line)
         allele_totals = (
-            gene_df.groupby("mhc_allele")["n_observations"]
+            gene_df.groupby("mhc_allele", observed=True)["n_observations"]
             .sum()
             .sort_values(ascending=False, kind="stable")
         )
@@ -596,18 +597,18 @@ def format_table(df: pd.DataFrame) -> str:
         # Per-sample sections: one outer block per sample, nested gene
         # blocks beneath. Empty samples (no evidence on their alleles) get a
         # placeholder line so the user can see which samples returned nothing.
-        for sample_name, sample_df in df.groupby("sample_name", sort=True):
+        for sample_name, sample_df in df.groupby("sample_name", sort=True, observed=True):
             out.append(f"=== sample: {sample_name} ===")
             non_empty = sample_df.dropna(subset=["gene_name"])
             if non_empty.empty:
                 out.append("  (no pMHC evidence on this sample's alleles)")
                 out.append("")
                 continue
-            for _, gene_df in non_empty.groupby("gene_name", sort=True):
+            for _, gene_df in non_empty.groupby("gene_name", sort=True, observed=True):
                 out.extend(_render_gene_block(gene_df, gene_indent="  "))
             out.append("")
     else:
-        for _, gene_df in df.groupby("gene_name", sort=True):
+        for _, gene_df in df.groupby("gene_name", sort=True, observed=True):
             out.extend(_render_gene_block(gene_df))
             out.append("")
 
