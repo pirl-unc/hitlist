@@ -652,9 +652,7 @@ def build_observations(
     if build_mappings:
         from .mappings import (
             _obs_fingerprint,
-            annotate_observations_with_genes,
             build_peptide_mappings,
-            load_peptide_mappings,
             mappings_meta_path,
         )
 
@@ -667,31 +665,23 @@ def build_observations(
             binding_override=binding,
         )
 
-        print("\nAnnotating indexes with gene/protein columns ...")
-        mappings_df = load_peptide_mappings(
-            columns=["peptide", "gene_name", "gene_id", "protein_id"]
-        )
-        obs = annotate_observations_with_genes(obs, mappings_df)
-        # Pandas merge can revert categoricals to object on the joined
-        # frame; re-assert before holding obs through the binding pass.
-        _compress_categoricals(obs)
-        if len(obs):
-            n_with_gene = (obs["gene_names"] != "").sum() if "gene_names" in obs.columns else 0
-            print(
-                f"  MS:      {n_with_gene:,} / {len(obs):,} rows annotated "
-                f"({100 * n_with_gene / len(obs):.1f}%)"
-            )
-        binding = annotate_observations_with_genes(binding, mappings_df)
-        _compress_categoricals(binding)
-        del mappings_df
-        if len(binding):
-            n_with_gene_b = (
-                (binding["gene_names"] != "").sum() if "gene_names" in binding.columns else 0
-            )
-            print(
-                f"  Binding: {n_with_gene_b:,} / {len(binding):,} rows annotated "
-                f"({100 * n_with_gene_b / len(binding):.1f}%)"
-            )
+        # Issue #238: gene/protein columns are NO LONGER attached to
+        # observations.parquet / binding.parquet at build time.  The same
+        # information is the authoritative content of peptide_mappings.parquet
+        # (one row per peptide x protein); duplicating it onto every obs row
+        # cost ~71 MB on the parquet (38.8% of total bytes pre-v1.30.46) and
+        # forced a full-frame merge during build that pinned ~1-2 GB of
+        # transient memory.
+        #
+        # Consumers that need ``gene_names`` / ``gene_ids`` / ``protein_ids`` /
+        # ``n_source_proteins`` columns now get them via a query-time join:
+        # ``load_observations`` auto-attaches them when requested in
+        # ``columns=`` but absent from the parquet (post-v1.30.46), routing
+        # through ``annotate_observations_with_genes`` against the matched-
+        # peptides slice of peptide_mappings.parquet.
+        print("\nGene/protein columns elided from observations + binding parquets (#238).")
+        print("  Source-of-truth: peptide_mappings.parquet")
+        print("  Consumers that need gene_names/etc get them via on-demand join at load time.")
 
     # Atomic rename write (#105): write to a sibling .partial, then rename
     # over the canonical path.  This keeps any prior index in place — and

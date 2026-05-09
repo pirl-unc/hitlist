@@ -26,7 +26,6 @@ evidence count.
 
 from __future__ import annotations
 
-import re
 import sys
 import time
 
@@ -114,13 +113,14 @@ def query(
         if not names and not ids:
             return _empty_result(predictor is not None)
 
-    # 2. Load observations. The allele filter pushes down to parquet only
-    #    when given; otherwise we read the whole corpus. ``load_observations``
-    #    accepts singular ``gene_name``/``gene_id`` filters for ergonomics,
-    #    but the parquet stores semicolon-joined ``gene_names`` /
-    #    ``gene_ids`` (one peptide can map to multiple genes), so we
-    #    post-filter on those columns instead — that also avoids routing
-    #    through ``peptide_mappings.parquet`` (which may not be built).
+    # 2. Load observations.  Post-#238 ``gene_names`` / ``gene_ids`` are
+    #    no longer stored on observations.parquet — ``load_observations``
+    #    auto-attaches them from peptide_mappings.parquet when requested.
+    #    For the gene filter we resolve the gene → peptide mapping
+    #    manually (OR semantics across names and ids) and push the
+    #    peptide list down to obs as a parquet filter.  This is
+    #    dramatically cheaper than the pre-#238 approach of loading the
+    #    full 4.4M-row corpus and substring-matching gene_names.
     load_kwargs: dict = {
         "columns": [
             "peptide",
@@ -131,6 +131,24 @@ def query(
             "gene_ids",
         ],
     }
+    if names or ids:
+        from .mappings import load_peptide_mappings
+
+        _progress("resolving gene → peptide mapping (peptide_mappings.parquet)...", verbose)
+        pep_sets: list = []
+        if names:
+            pep_sets.append(
+                load_peptide_mappings(gene_name=sorted(names), columns=["peptide"])["peptide"]
+            )
+        if ids:
+            pep_sets.append(
+                load_peptide_mappings(gene_id=sorted(ids), columns=["peptide"])["peptide"]
+            )
+        matching_peptides = sorted({p for s in pep_sets for p in s.dropna().unique()})
+        _progress(f"  {len(matching_peptides):,} candidate peptides", verbose)
+        if not matching_peptides:
+            return _empty_result(predictor is not None)
+        load_kwargs["peptide"] = matching_peptides
     if alleles:
         # Serotype inputs (e.g. "HLA-A2") are expanded to their 4-digit
         # members before pushdown so HLA-A*02:01 / A*02:02 / ... rows
@@ -171,32 +189,14 @@ def query(
     if df.empty:
         return _empty_result(predictor is not None)
 
-    # 3. Pre-filter to candidate rows BEFORE the explode so we don't
-    #    pointlessly explode the entire 4.4M-row corpus when the user
-    #    asked for a single gene. ``gene_names`` / ``gene_ids`` are
-    #    semicolon-joined strings, so a substring match finds candidate
-    #    rows; the explode + post-filter step still filters precisely.
+    # 3. Normalize the auto-attached gene columns to strings (the merge
+    #    in load_observations leaves them as object dtype).  The
+    #    candidate-row pre-filter that pre-#238 lived here is no longer
+    #    needed — the parquet-side peptide pushdown above already
+    #    narrowed obs to the matched peptides.
     for col in ("gene_names", "gene_ids"):
-        df[col] = df[col].fillna("").astype(str)
-    if names or ids:
-        _progress("narrowing to candidate rows for requested protein(s)...", verbose)
-        candidate_mask = pd.Series(False, index=df.index)
-        if names:
-            name_pat = "|".join(re.escape(n) for n in names if n)
-            if name_pat:
-                candidate_mask = candidate_mask | df["gene_names"].str.contains(
-                    name_pat, regex=True, na=False
-                )
-        if ids:
-            id_pat = "|".join(re.escape(i) for i in ids if i)
-            if id_pat:
-                candidate_mask = candidate_mask | df["gene_ids"].str.contains(
-                    id_pat, regex=True, na=False
-                )
-        df = df[candidate_mask]
-        _progress(f"  {len(df):,} candidate rows", verbose)
-        if df.empty:
-            return _empty_result(predictor is not None)
+        if col in df.columns:
+            df[col] = df[col].fillna("").astype(str)
 
     # 3b. Normalize MHC restriction strings before grouping. The parquet
     #     stores both ``A*02:01`` and ``HLA-A*02:01`` for the same allele
@@ -240,8 +240,10 @@ def query(
     df["gene_id"] = df["_gene_id"].astype(str).str.strip()
     df = df.drop(columns=["_gene_name", "_gene_id", "gene_names", "gene_ids"])
     _progress(f"  {len(df):,} rows after split", verbose)
-    # Final precise gene filter — the substring pre-filter above can
-    # surface sibling genes from the same multi-mapping cell.
+    # Final precise gene filter — the parquet-side peptide pushdown
+    # above can surface sibling genes when a peptide multi-maps
+    # (e.g. KRAS-attributed peptide that also matches NRAS).  Drop
+    # those sibling-gene rows so the user sees only the genes they asked for.
     if names or ids:
         keep_mask = pd.Series(False, index=df.index)
         if names:

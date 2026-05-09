@@ -1199,8 +1199,14 @@ def test_generate_observations_gene_filter_requires_mappings(tmp_path, monkeypat
     obs_path = tmp_path / "observations.parquet"
     obs_data.to_parquet(obs_path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+    # Also redirect mappings_path to a non-existent file so the test
+    # exercises the missing-mappings error path instead of accidentally
+    # finding the user's real ~/.hitlist/peptide_mappings.parquet.
+    monkeypatch.setattr(
+        "hitlist.mappings.mappings_path", lambda: tmp_path / "peptide_mappings.parquet"
+    )
 
-    with pytest.raises(ValueError, match="mappings-built"):
+    with pytest.raises(FileNotFoundError, match=r"peptide_mappings\.parquet"):
         generate_observations_table(gene="PRAME")
 
 

@@ -18,11 +18,15 @@ import pandas as pd
 
 
 def _write_obs_fixture(tmp_path):
-    """Tiny observations.parquet fixture covering:
+    """Tiny observations.parquet + peptide_mappings.parquet fixture covering:
     - one peptide that multi-maps to NRAS+KRAS (semicolon-joined gene_names)
     - one peptide unique to NRAS
     - one peptide on a different allele
     - one peptide on a different gene (BRAF)
+
+    Post-#238, gene_names/gene_ids are no longer stored on the obs parquet
+    by build_observations — pmhc_query resolves gene→peptide via the
+    mappings sidecar, so the fixture must write both files.
     """
     df = pd.DataFrame(
         {
@@ -36,22 +40,72 @@ def _write_obs_fixture(tmp_path):
                 "HLA-B*07:02",
                 "HLA-A*02:01",
             ],
-            "gene_names": ["NRAS;KRAS", "NRAS;KRAS", "NRAS", "NRAS", "BRAF"],
-            "gene_ids": [
+            "species": ["Homo sapiens"] * 5,
+            "mhc_species": ["Homo sapiens"] * 5,
+            "source": ["iedb"] * 5,
+        }
+    )
+    obs_path = tmp_path / "observations.parquet"
+    df.to_parquet(obs_path, index=False)
+
+    # Sidecar peptide_mappings.parquet — long-form (one row per peptide x
+    # protein).  Schema must include the columns load_peptide_mappings
+    # uses for filtering and the agg in annotate_observations_with_genes.
+    mappings = pd.DataFrame(
+        {
+            "peptide": [
+                "KLVVVGAGGV",
+                "KLVVVGAGGV",
+                "ILDTAGREEY",
+                "ALAVLGFFV",
+                "FLPNKQRTV",
+            ],
+            "gene_name": ["NRAS;KRAS", "NRAS;KRAS", "NRAS", "NRAS", "BRAF"],
+            "gene_id": [
                 "ENSG00000213281;ENSG00000133703",
                 "ENSG00000213281;ENSG00000133703",
                 "ENSG00000213281",
                 "ENSG00000213281",
                 "ENSG00000157764",
             ],
-            "species": ["Homo sapiens"] * 5,
-            "mhc_species": ["Homo sapiens"] * 5,
-            "source": ["iedb"] * 5,
+            "protein_id": [
+                "ENSP00000358548;ENSP00000308495",
+                "ENSP00000358548;ENSP00000308495",
+                "ENSP00000358548",
+                "ENSP00000358548",
+                "ENSP00000288602",
+            ],
         }
     )
-    path = tmp_path / "observations.parquet"
-    df.to_parquet(path, index=False)
-    return path
+    # Explode the multi-mapping rows so the sidecar is one-row-per-protein
+    # (matches the shape produced by build_peptide_mappings).
+    expanded = []
+    for _, row in mappings.iterrows():
+        for gene_name, gene_id, protein_id in zip(
+            row["gene_name"].split(";"),
+            row["gene_id"].split(";"),
+            row["protein_id"].split(";"),
+        ):
+            expanded.append(
+                {
+                    "peptide": row["peptide"],
+                    "gene_name": gene_name,
+                    "gene_id": gene_id,
+                    "protein_id": protein_id,
+                }
+            )
+    mappings_long = pd.DataFrame(expanded)
+    mappings_path = tmp_path / "peptide_mappings.parquet"
+    mappings_long.to_parquet(mappings_path, index=False)
+    return obs_path, mappings_path
+
+
+def _patch_paths(monkeypatch, obs_path, mappings_path):
+    """Helper: monkeypatch both observations_path and mappings_path so
+    pmhc_query's gene→peptide resolution finds the test fixture's
+    sidecar instead of ~/.hitlist/peptide_mappings.parquet."""
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+    monkeypatch.setattr("hitlist.mappings.mappings_path", lambda: mappings_path)
 
 
 def test_pmhc_query_groups_by_gene_and_allele(tmp_path, monkeypatch):
@@ -59,8 +113,8 @@ def test_pmhc_query_groups_by_gene_and_allele(tmp_path, monkeypatch):
     aggregate observation counts + PMID lists per peptide."""
     from hitlist import pmhc_query
 
-    obs_path = _write_obs_fixture(tmp_path)
-    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+    obs_path, mappings_path = _write_obs_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
 
     df = pmhc_query.query(proteins=["NRAS"], alleles=["HLA-A*02:01", "HLA-B*07:02"], use_hgnc=False)
     # NRAS rows only: KLVVVGAGGV (x2 obs), ILDTAGREEY, and ALAVLGFFV (the
@@ -81,8 +135,8 @@ def test_pmhc_query_multi_mapping_peptide_appears_under_each_gene(tmp_path, monk
     the peptide once per gene, not just once."""
     from hitlist import pmhc_query
 
-    obs_path = _write_obs_fixture(tmp_path)
-    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+    obs_path, mappings_path = _write_obs_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
 
     df = pmhc_query.query(proteins=["NRAS", "KRAS"], alleles=["HLA-A*02:01"], use_hgnc=False)
     # KLVVVGAGGV should appear under both NRAS and KRAS rows.
@@ -95,8 +149,8 @@ def test_pmhc_query_filters_to_requested_proteins(tmp_path, monkeypatch):
     KLVVVGAGGV multi-maps to both."""
     from hitlist import pmhc_query
 
-    obs_path = _write_obs_fixture(tmp_path)
-    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+    obs_path, mappings_path = _write_obs_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
 
     df = pmhc_query.query(proteins=["NRAS"], alleles=["HLA-A*02:01"], use_hgnc=False)
     assert set(df["gene_name"]) == {"NRAS"}
@@ -108,8 +162,8 @@ def test_pmhc_query_empty_when_no_match(tmp_path, monkeypatch):
     DataFrame."""
     from hitlist import pmhc_query
 
-    obs_path = _write_obs_fixture(tmp_path)
-    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+    obs_path, mappings_path = _write_obs_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
 
     df = pmhc_query.query(proteins=["TP53"], alleles=["HLA-A*02:01"], use_hgnc=False)
     assert df.empty
@@ -124,8 +178,8 @@ def test_pmhc_query_no_proteins_returns_all_genes(tmp_path, monkeypatch):
     presents on that allele."""
     from hitlist import pmhc_query
 
-    obs_path = _write_obs_fixture(tmp_path)
-    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+    obs_path, mappings_path = _write_obs_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
 
     df = pmhc_query.query(alleles=["HLA-A*02:01"], use_hgnc=False)
     # The fixture has KLVVVGAGGV (NRAS+KRAS), ILDTAGREEY (NRAS), FLPNKQRTV (BRAF) on A*02:01.
@@ -139,8 +193,8 @@ def test_pmhc_query_no_alleles_returns_all_alleles(tmp_path, monkeypatch):
     that presents the requested gene's peptides."""
     from hitlist import pmhc_query
 
-    obs_path = _write_obs_fixture(tmp_path)
-    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+    obs_path, mappings_path = _write_obs_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
 
     df = pmhc_query.query(proteins=["NRAS"], use_hgnc=False)
     assert set(df["gene_name"]) == {"NRAS"}
@@ -154,8 +208,8 @@ def test_pmhc_query_no_filters_returns_everything(tmp_path, monkeypatch):
     pMHC evidence" command."""
     from hitlist import pmhc_query
 
-    obs_path = _write_obs_fixture(tmp_path)
-    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+    obs_path, mappings_path = _write_obs_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
 
     df = pmhc_query.query(use_hgnc=False)
     # All 3 genes from the fixture, both alleles.
@@ -226,8 +280,6 @@ def test_pmhc_query_normalizes_unprefixed_alleles(tmp_path, monkeypatch):
             "pmid": [38480730, 22424782],
             "mhc_class": ["I", "I"],
             "mhc_restriction": ["A*02:01", "HLA-A*02:01"],
-            "gene_names": ["PRAME", "PRAME"],
-            "gene_ids": ["ENSG00000185686", "ENSG00000185686"],
             "species": ["Homo sapiens"] * 2,
             "mhc_species": ["Homo sapiens"] * 2,
             "source": ["iedb"] * 2,
@@ -235,7 +287,19 @@ def test_pmhc_query_normalizes_unprefixed_alleles(tmp_path, monkeypatch):
     )
     obs_path = tmp_path / "observations.parquet"
     df.to_parquet(obs_path, index=False)
-    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+    # Sidecar peptide_mappings.parquet — needed post-#238 for pmhc_query
+    # to resolve the gene → peptide filter.
+    mappings = pd.DataFrame(
+        {
+            "peptide": ["SLLQHLIGL"],
+            "gene_name": ["PRAME"],
+            "gene_id": ["ENSG00000185686"],
+            "protein_id": ["ENSP00000312790"],
+        }
+    )
+    mappings_path = tmp_path / "peptide_mappings.parquet"
+    mappings.to_parquet(mappings_path, index=False)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
 
     result = pmhc_query.query(proteins=["PRAME"], use_hgnc=False)
     # Both rows should collapse to a single canonical HLA-A*02:01 bucket.
@@ -251,8 +315,8 @@ def test_pmhc_query_format_table_sorts_alleles_by_evidence_count(tmp_path, monke
     alphabetically-first one."""
     from hitlist import pmhc_query
 
-    obs_path = _write_obs_fixture(tmp_path)
-    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+    obs_path, mappings_path = _write_obs_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
 
     df = pmhc_query.query(proteins=["NRAS"], use_hgnc=False)
     text = pmhc_query.format_table(df)
@@ -269,8 +333,8 @@ def test_pmhc_query_format_table_prints_headers_once_per_gene(tmp_path, monkeypa
     header line, not two."""
     from hitlist import pmhc_query
 
-    obs_path = _write_obs_fixture(tmp_path)
-    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+    obs_path, mappings_path = _write_obs_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
 
     df = pmhc_query.query(proteins=["NRAS"], use_hgnc=False)
     text = pmhc_query.format_table(df)
@@ -284,8 +348,8 @@ def test_pmhc_query_format_table_appends_predictor_tip_when_unscored(tmp_path, m
     rediscover the option from --help."""
     from hitlist import pmhc_query
 
-    obs_path = _write_obs_fixture(tmp_path)
-    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+    obs_path, mappings_path = _write_obs_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
 
     df = pmhc_query.query(proteins=["NRAS"], use_hgnc=False)
     text = pmhc_query.format_table(df)
@@ -300,8 +364,8 @@ def test_pmhc_query_format_table_renders_grouped_table(tmp_path, monkeypatch):
     """
     from hitlist import pmhc_query
 
-    obs_path = _write_obs_fixture(tmp_path)
-    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+    obs_path, mappings_path = _write_obs_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
 
     df = pmhc_query.query(proteins=["NRAS"], alleles=["HLA-A*02:01", "HLA-B*07:02"], use_hgnc=False)
     text = pmhc_query.format_table(df)
@@ -329,23 +393,37 @@ def test_pmhc_query_format_table_renders_grouped_table(tmp_path, monkeypatch):
 
 
 def _write_serotype_obs_fixture(tmp_path):
-    """Fixture mixing 4-digit and serotype-resolution rows for the same gene."""
+    """Fixture mixing 4-digit and serotype-resolution rows for the same gene.
+
+    Writes both observations.parquet and the peptide_mappings.parquet
+    sidecar (post-#238 the obs parquet no longer carries gene columns;
+    pmhc_query resolves gene→peptide via the mappings sidecar).
+    """
     df = pd.DataFrame(
         {
             "peptide": ["KLVVVGAGGV", "ILDTAGREEY", "FLPNKQRTV"],
             "pmid": [9263005, 33858848, 33298915],
             "mhc_class": ["I", "I", "I"],
             "mhc_restriction": ["HLA-A*02:01", "HLA-A*02:02", "HLA-A2"],
-            "gene_names": ["NRAS", "NRAS", "NRAS"],
-            "gene_ids": ["ENSG00000213281"] * 3,
             "species": ["Homo sapiens"] * 3,
             "mhc_species": ["Homo sapiens"] * 3,
             "source": ["iedb"] * 3,
         }
     )
-    path = tmp_path / "observations.parquet"
-    df.to_parquet(path, index=False)
-    return path
+    obs_path = tmp_path / "observations.parquet"
+    df.to_parquet(obs_path, index=False)
+
+    mappings = pd.DataFrame(
+        {
+            "peptide": ["KLVVVGAGGV", "ILDTAGREEY", "FLPNKQRTV"],
+            "gene_name": ["NRAS"] * 3,
+            "gene_id": ["ENSG00000213281"] * 3,
+            "protein_id": ["ENSP00000358548"] * 3,
+        }
+    )
+    mappings_path = tmp_path / "peptide_mappings.parquet"
+    mappings.to_parquet(mappings_path, index=False)
+    return obs_path, mappings_path
 
 
 def test_pmhc_query_input_serotype_expands_to_4digit_members(tmp_path, monkeypatch):
@@ -354,8 +432,8 @@ def test_pmhc_query_input_serotype_expands_to_4digit_members(tmp_path, monkeypat
     pushdown would only match the literal "HLA-A2" string."""
     from hitlist import pmhc_query
 
-    obs_path = _write_serotype_obs_fixture(tmp_path)
-    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+    obs_path, mappings_path = _write_serotype_obs_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
 
     df = pmhc_query.query(proteins=["NRAS"], alleles=["HLA-A2"], use_hgnc=False)
     # All three rows from the fixture are A2-related and must come back.
@@ -368,8 +446,8 @@ def test_pmhc_query_best_guess_allele_for_serotype_rows(tmp_path, monkeypatch):
     member. Already-4-digit rows preserve their value."""
     from hitlist import pmhc_query
 
-    obs_path = _write_serotype_obs_fixture(tmp_path)
-    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+    obs_path, mappings_path = _write_serotype_obs_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
 
     df = pmhc_query.query(proteins=["NRAS"], alleles=["HLA-A2"], use_hgnc=False)
     by_allele = df.set_index("mhc_allele")["best_guess_allele"].to_dict()
@@ -386,8 +464,8 @@ def test_pmhc_query_format_table_shows_best_guess_for_serotype(tmp_path, monkeyp
     will (or would) score under."""
     from hitlist import pmhc_query
 
-    obs_path = _write_serotype_obs_fixture(tmp_path)
-    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+    obs_path, mappings_path = _write_serotype_obs_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
 
     df = pmhc_query.query(proteins=["NRAS"], alleles=["HLA-A2"], use_hgnc=False)
     text = pmhc_query.format_table(df)
@@ -408,8 +486,8 @@ def test_query_by_samples_returns_per_sample_rows(tmp_path, monkeypatch):
     (which is the cross-product behavior of plain ``--mhc-allele``)."""
     from hitlist import pmhc_query
 
-    obs_path = _write_obs_fixture(tmp_path)
-    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+    obs_path, mappings_path = _write_obs_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
 
     df = pmhc_query.query_by_samples(
         samples_to_alleles={
@@ -449,8 +527,8 @@ def test_query_by_samples_empty_per_sample_allele_list_raises(tmp_path, monkeypa
 
     from hitlist import pmhc_query
 
-    obs_path = _write_obs_fixture(tmp_path)
-    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+    obs_path, mappings_path = _write_obs_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
 
     with pytest.raises(ValueError, match="empty allele lists"):
         pmhc_query.query_by_samples(
@@ -467,8 +545,8 @@ def test_format_table_groups_by_sample_when_sample_name_present(tmp_path, monkey
     inside."""
     from hitlist import pmhc_query
 
-    obs_path = _write_obs_fixture(tmp_path)
-    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+    obs_path, mappings_path = _write_obs_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
 
     df = pmhc_query.query_by_samples(
         samples_to_alleles={
@@ -672,8 +750,8 @@ def test_query_by_samples_empty_sample_section_has_placeholder(tmp_path, monkeyp
     placeholder so the user can see which samples returned nothing."""
     from hitlist import pmhc_query
 
-    obs_path = _write_obs_fixture(tmp_path)
-    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+    obs_path, mappings_path = _write_obs_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
 
     df = pmhc_query.query_by_samples(
         samples_to_alleles={
