@@ -491,6 +491,181 @@ def test_format_table_groups_by_sample_when_sample_name_present(tmp_path, monkey
     assert "HLA-A*02:01" not in p2_block  # patient2 didn't ask for A*02:01
 
 
+# ── Predictor-driven multi-allele narrowing (issue #239) ──────────────────
+
+
+def _make_grouped(rows: list[dict]) -> pd.DataFrame:
+    """Build the post-aggregation frame _attach_predictions consumes."""
+    base_cols = {
+        "gene_name": "PRAME",
+        "gene_id": "ENSG00000185686",
+        "mhc_class": "I",
+        "n_observations": 1,
+        "pmids": "31844290",
+    }
+    return pd.DataFrame([{**base_cols, **r} for r in rows])
+
+
+def test_attach_predictions_narrows_multi_allele_to_best_binder(monkeypatch):
+    """Issue #239: a multi-allele row gets expanded to per-allele
+    predictions; the lowest-percentile allele wins; mhc_allele +
+    best_guess_allele are narrowed; best_predicted_allele records the
+    choice.
+    """
+    from hitlist import pmhc_query
+
+    df = _make_grouped(
+        [
+            {
+                "peptide": "SLLQHLIGL",
+                "mhc_allele": "HLA-A*02:01;HLA-A*03:01;HLA-B*27:05",
+                "best_guess_allele": "HLA-A*02:01;HLA-A*03:01;HLA-B*27:05",
+            }
+        ]
+    )
+
+    def fake_predict(pairs: pd.DataFrame) -> pd.DataFrame:
+        # A*02:01 wins (lowest percentile); A*03:01 weak; B*27:05 non-binder.
+        scores = {
+            "HLA-A*02:01": (12.0, 0.05),
+            "HLA-A*03:01": (1500.0, 1.8),
+            "HLA-B*27:05": (8000.0, 5.5),
+        }
+        out = pairs.copy()
+        out["affinity_nM"] = [scores[a][0] for a in out["allele"]]
+        out["presentation_percentile"] = [scores[a][1] for a in out["allele"]]
+        return out
+
+    monkeypatch.setattr("hitlist.predict._predict_mhcflurry", fake_predict)
+
+    out = pmhc_query._attach_predictions(df, "mhcflurry")
+    assert len(out) == 1
+    r = out.iloc[0]
+    assert r["mhc_allele"] == "HLA-A*02:01"
+    assert r["best_guess_allele"] == "HLA-A*02:01"
+    assert r["best_predicted_allele"] == "HLA-A*02:01"
+    assert r["affinity_nM"] == 12.0
+    assert r["presentation_percentile"] == 0.05
+    assert r["binder_class"] == "strong"
+
+
+def test_attach_predictions_consolidates_per_donor_rows_after_narrowing(monkeypatch):
+    """Issue #239 + #236 interaction: three per-donor rows for SLLQHLIGL
+    (MEL3 / MEL15 / OV1, each with their own 6-allele typing) all
+    contain A*02:01.  After predictor narrowing, all three collapse to
+    a single ``HLA-A*02:01`` row with summed n_observations and the
+    union of pmids — the user sees one consolidated allele-resolved row
+    instead of three redundant per-donor rows pointing at the same
+    allele.
+    """
+    from hitlist import pmhc_query
+
+    rows = [
+        {
+            "peptide": "SLLQHLIGL",
+            "mhc_allele": "HLA-A*02:01;HLA-A*03:01;HLA-B*27:05;HLA-B*47:01;HLA-C*01:02;HLA-C*06:02",
+            "best_guess_allele": "HLA-A*02:01;HLA-A*03:01;HLA-B*27:05;HLA-B*47:01;HLA-C*01:02;HLA-C*06:02",
+            "n_observations": 2,
+            "pmids": "31844290",
+        },
+        {
+            "peptide": "SLLQHLIGL",
+            "mhc_allele": "HLA-A*02:01;HLA-A*02:02;HLA-B*13:02;HLA-B*40:02;HLA-C*02:02;HLA-C*06:02",
+            "best_guess_allele": "HLA-A*02:01;HLA-A*02:02;HLA-B*13:02;HLA-B*40:02;HLA-C*02:02;HLA-C*06:02",
+            "n_observations": 2,
+            "pmids": "31844290",
+        },
+        {
+            "peptide": "SLLQHLIGL",
+            "mhc_allele": "HLA-A*02:01;HLA-A*24:02;HLA-B*35:03;HLA-B*44:02;HLA-C*05:01;HLA-C*12:03",
+            "best_guess_allele": "HLA-A*02:01;HLA-A*24:02;HLA-B*35:03;HLA-B*44:02;HLA-C*05:01;HLA-C*12:03",
+            "n_observations": 2,
+            "pmids": "31844290",
+        },
+    ]
+    df = _make_grouped(rows)
+
+    def fake_predict(pairs: pd.DataFrame) -> pd.DataFrame:
+        # Only A*02:01 binds well; everything else is a non-binder.
+        out = pairs.copy()
+        out["affinity_nM"] = [12.0 if a == "HLA-A*02:01" else 8000.0 for a in out["allele"]]
+        out["presentation_percentile"] = [
+            0.05 if a == "HLA-A*02:01" else 5.5 for a in out["allele"]
+        ]
+        return out
+
+    monkeypatch.setattr("hitlist.predict._predict_mhcflurry", fake_predict)
+    out = pmhc_query._attach_predictions(df, "mhcflurry")
+
+    assert len(out) == 1
+    r = out.iloc[0]
+    assert r["mhc_allele"] == "HLA-A*02:01"
+    assert r["best_predicted_allele"] == "HLA-A*02:01"
+    assert r["n_observations"] == 6  # 2 + 2 + 2
+    assert r["pmids"] == "31844290"  # union of identical PMIDs
+
+
+def test_attach_predictions_keeps_single_allele_rows_unchanged(monkeypatch):
+    """Single-allele rows pass through with score columns added but no
+    structural change — mhc_allele isn't rewritten, no row collapse."""
+    from hitlist import pmhc_query
+
+    df = _make_grouped(
+        [
+            {
+                "peptide": "GILGFVFTL",
+                "mhc_allele": "HLA-A*02:01",
+                "best_guess_allele": "HLA-A*02:01",
+            }
+        ]
+    )
+
+    def fake_predict(pairs: pd.DataFrame) -> pd.DataFrame:
+        out = pairs.copy()
+        out["affinity_nM"] = [10.0]
+        out["presentation_percentile"] = [0.02]
+        return out
+
+    monkeypatch.setattr("hitlist.predict._predict_mhcflurry", fake_predict)
+    out = pmhc_query._attach_predictions(df, "mhcflurry")
+
+    assert len(out) == 1
+    r = out.iloc[0]
+    assert r["mhc_allele"] == "HLA-A*02:01"
+    assert r["best_predicted_allele"] == "HLA-A*02:01"
+    assert r["affinity_nM"] == 10.0
+    assert r["binder_class"] == "strong"
+
+
+def test_attach_predictions_keeps_multi_allele_when_no_predictions(monkeypatch):
+    """If every allele in the set returns NaN (predictor failure / length
+    mismatch / unknown allele), the multi-allele mhc_allele is preserved
+    and best_predicted_allele is empty.  Avoids wrongly committing to a
+    non-binding allele just because it sorted first."""
+    from hitlist import pmhc_query
+
+    multi = "HLA-A*02:01;HLA-A*03:01;HLA-B*27:05"
+    df = _make_grouped(
+        [{"peptide": "WEIRDPEPTIDE", "mhc_allele": multi, "best_guess_allele": multi}]
+    )
+
+    def fake_predict(pairs: pd.DataFrame) -> pd.DataFrame:
+        out = pairs.copy()
+        out["affinity_nM"] = pd.NA
+        out["presentation_percentile"] = pd.NA
+        return out
+
+    monkeypatch.setattr("hitlist.predict._predict_mhcflurry", fake_predict)
+    out = pmhc_query._attach_predictions(df, "mhcflurry")
+
+    assert len(out) == 1
+    r = out.iloc[0]
+    assert r["mhc_allele"] == multi  # unchanged
+    assert r["best_predicted_allele"] == ""
+    assert pd.isna(r["affinity_nM"])
+    assert pd.isna(r["presentation_percentile"])
+
+
 def test_query_by_samples_empty_sample_section_has_placeholder(tmp_path, monkeypatch):
     """v1.30.5: a sample whose alleles match nothing in the corpus still
     appears in the output, with a one-line ``(no pMHC evidence ...)``
