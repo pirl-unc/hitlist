@@ -391,6 +391,21 @@ def generate_observations_table(
     obs_filters["exclude_non_peptide_ligand"] = exclude_non_peptide_ligand
     obs = load_observations(**obs_filters)
 
+    # ── Backstop: ensure ``""`` is a valid category on every categorical
+    # column (#236-followup, v1.30.44).  The build pipeline now pre-adds
+    # ``""`` via ``_compress_categoricals``, but parquets built before
+    # v1.30.44 lack that, and several downstream paths in this function
+    # use the ``fillna("")`` idiom on these columns (the
+    # ``_compute_is_chimeric`` / ``_compute_has_peptide_level_allele``
+    # pair, and the per-PMID discriminator path's ``_tiebreak_cols``
+    # slice).  Without this, those calls raise ``TypeError: Cannot
+    # setitem on a Categorical with a new category ()`` against any
+    # parquet that hasn't been rebuilt since the systemic build-side fix.
+    for _col in obs.columns:
+        _dtype = obs[_col].dtype
+        if isinstance(_dtype, pd.CategoricalDtype) and "" not in _dtype.categories:
+            obs[_col] = obs[_col].cat.add_categories([""])
+
     if min_allele_resolution:
         from .curation import allele_resolution_rank, classify_allele_resolution
 
@@ -1889,6 +1904,9 @@ def _compute_has_peptide_level_allele(
     if allele_resolution is not None:
         # ``allele_resolution`` is a small categorical (~5 values), so the
         # full-series ``isin`` is already cheap — skip the unique-map dance.
+        # Note: post-v1.30.44, ``_compress_categoricals`` pre-adds ``""`` to
+        # every compressed column's categories so this ``fillna("")`` works
+        # against the categorical without an out-of-category TypeError.
         result = result & ~allele_resolution.fillna("").isin({"class_only", "serological"})
     return result.astype(bool)
 
