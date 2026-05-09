@@ -375,6 +375,14 @@ _DERIVED_COLUMN_DEPS: dict[str, tuple[str, ...]] = {
     # Stored at scan time post-#228, but recomputable from
     # ``mhc_restriction`` so caller projections work on stale parquets.
     "is_non_peptide_ligand": ("mhc_restriction",),
+    # Post-#238 these columns are NO LONGER stored on observations.parquet.
+    # ``load_observations`` joins them on demand from peptide_mappings.parquet
+    # using ``peptide`` as the join key.  Pre-#238 parquets that still carry
+    # the columns pass through unchanged.
+    "gene_names": ("peptide",),
+    "gene_ids": ("peptide",),
+    "protein_ids": ("peptide",),
+    "n_source_proteins": ("peptide",),
 }
 
 
@@ -415,6 +423,18 @@ def _load_peptide_index(
             return [s.strip() for s in v.split(",") if s.strip()]
         return [s for s in v if s]
 
+    # Determine which of the caller's requested columns actually live in
+    # the parquet vs are derived (computed at load time, e.g. post-#238
+    # gene_names / gene_ids / protein_ids / n_source_proteins, or the
+    # mhc_class_label_* family).  Use this to filter the read-side columns
+    # list — passing a derived column to ``pd.read_parquet(columns=...)``
+    # raises ``ArrowInvalid: No match for FieldRef.Name(...)``.
+    parquet_columns = set(pq.read_schema(path).names)
+    if columns is not None:
+        columns_for_read = [c for c in columns if c in parquet_columns]
+    else:
+        columns_for_read = None
+
     filters: list = []
     if mhc_class is not None:
         filters.append(("mhc_class", "==", mhc_class))
@@ -446,7 +466,9 @@ def _load_peptide_index(
             if r and (r in wanted or any(a in r.split(";") for a in wanted))
         ]
         if not matching:
-            return pd.read_parquet(path, columns=columns, filters=[("peptide", "==", "__NONE__")])
+            return pd.read_parquet(
+                path, columns=columns_for_read, filters=[("peptide", "==", "__NONE__")]
+            )
         filters.append(("mhc_restriction", "in", matching))
     if peptide is not None:
         filters.append(("peptide", "in", _as_list(peptide)))
@@ -454,15 +476,18 @@ def _load_peptide_index(
         filters.append(("mhc_allele_provenance", "in", _as_list(mhc_allele_provenance)))
 
     if gene_name is not None or gene_id is not None:
-        schema_names = set(pq.read_schema(path).names)
-        if "gene_names" not in schema_names:
-            raise ValueError(
-                "Gene filtering requires a mappings-built index.\nRun: hitlist data build"
-            )
+        # Gene filters resolve to a peptide list via peptide_mappings.parquet,
+        # then push down on the obs frame.  Post-#238, the obs parquet itself
+        # no longer carries gene_names / gene_ids — peptide_mappings is the
+        # authoritative source for both filtering AND for the auto-attached
+        # gene_names / gene_ids columns at the bottom of this function.
         from .mappings import is_mappings_built, load_peptide_mappings
 
         if not is_mappings_built():
-            raise ValueError("Peptide mappings not built.  Run: hitlist data build")
+            raise FileNotFoundError(
+                "Gene filtering requires peptide_mappings.parquet, which has not been built.\n"
+                "Run: hitlist build observations"
+            )
         mapping_filters: dict = {}
         if gene_name is not None:
             mapping_filters["gene_name"] = _as_list(gene_name)
@@ -471,7 +496,9 @@ def _load_peptide_index(
         hits = load_peptide_mappings(columns=["peptide"], **mapping_filters)
         matching_peptides = hits["peptide"].unique().tolist()
         if not matching_peptides:
-            return pd.read_parquet(path, columns=columns, filters=[("peptide", "==", "__NONE__")])
+            return pd.read_parquet(
+                path, columns=columns_for_read, filters=[("peptide", "==", "__NONE__")]
+            )
         filters.append(("peptide", "in", matching_peptides))
 
     # Serotype filter runs after load — `serotypes` is a semicolon-joined
@@ -498,12 +525,16 @@ def _load_peptide_index(
     # special handling when the caller projects with ``columns=[...]``: they
     # must be stripped from the pushdown list (else pyarrow raises "No match
     # for FieldRef.Name(...)") and replaced with their underlying inputs so
-    # the post-load step can compute them.
+    # the post-load step can compute them.  ``gene_names`` and friends are
+    # in ``_DERIVED_COLUMN_DEPS`` post-#238 BUT pre-#238 parquets still
+    # carry them on disk — read them directly when present, treat as
+    # derived only when absent.  ``parquet_columns`` was computed at the
+    # top of the function for the early-return paths.
     requested_derived: list[str] = []
     if read_columns is not None:
         kept: list[str] = []
         for c in read_columns:
-            if c in _DERIVED_COLUMN_DEPS:
+            if c in _DERIVED_COLUMN_DEPS and c not in parquet_columns:
                 requested_derived.append(c)
                 for dep in _DERIVED_COLUMN_DEPS[c]:
                     if dep not in kept:
@@ -676,6 +707,50 @@ def _load_peptide_index(
             df["is_non_peptide_ligand"] = df["is_non_peptide_ligand"].astype(bool)
         if exclude_non_peptide_ligand:
             df = df[~df["is_non_peptide_ligand"]]
+
+    # ── Auto-attach gene/protein columns from peptide_mappings (#238) ────
+    # Post-v1.30.46 builds elide ``gene_names`` / ``gene_ids`` /
+    # ``protein_ids`` / ``n_source_proteins`` from observations.parquet —
+    # the same data lives in peptide_mappings.parquet (one row per
+    # peptide x protein) and was previously denormalized at build time.
+    # When a caller EXPLICITLY requests one of those four columns via
+    # ``columns=[...]`` and the parquet doesn't carry it (post-v1.30.46),
+    # join on demand against the matched-peptides slice of peptide_mappings.
+    # Pre-v1.30.46 parquets that still carry the columns pass through
+    # unchanged — no double-join.
+    #
+    # Auto-attach only fires when the caller named the column in
+    # ``columns=[...]``.  No-projection loads (``columns=None``) get the
+    # parquet columns as-is — avoids forcing a peptide_mappings dependency
+    # on every full load (which would break test fixtures and any consumer
+    # that doesn't actually need the gene columns).  Callers that DO need
+    # the gene columns post-#238 must list them explicitly in ``columns=``.
+    _GENE_DERIVED = {"gene_names", "gene_ids", "protein_ids", "n_source_proteins"}
+    requested_gene_cols = _GENE_DERIVED & set(columns) if columns is not None else set()
+    missing_gene_cols = requested_gene_cols - set(df.columns)
+    if missing_gene_cols and "peptide" in df.columns and len(df) > 0:
+        from .mappings import (
+            annotate_observations_with_genes,
+            is_mappings_built,
+            load_peptide_mappings,
+        )
+
+        if not is_mappings_built():
+            raise FileNotFoundError(
+                f"Loading {sorted(missing_gene_cols)} requires peptide_mappings.parquet, "
+                "which has not been built.  Run: hitlist build observations"
+            )
+        unique_peptides = df["peptide"].dropna().unique().tolist()
+        if unique_peptides:
+            mappings = load_peptide_mappings(
+                peptide=unique_peptides,
+                columns=["peptide", "gene_name", "gene_id", "protein_id"],
+            )
+            df = annotate_observations_with_genes(df, mappings)
+        else:
+            for col in ("gene_names", "gene_ids", "protein_ids"):
+                df[col] = ""
+            df["n_source_proteins"] = 0
 
     # If the caller explicitly projected, trim back to that exact list now
     # — derived columns pulled extra dependency columns into the read above
