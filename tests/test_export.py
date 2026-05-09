@@ -1137,6 +1137,44 @@ def test_generate_observations_has_peptide_level_allele_uses_resolution(tmp_path
     assert by_peptide == {"AAA": True, "BBB": False, "CCC": False}
 
 
+def test_compute_has_peptide_level_allele_handles_categorical_resolution():
+    """Regression for v1.30.44: ``_compute_has_peptide_level_allele`` must
+    accept a categorical ``allele_resolution`` whose category set does
+    not initially include ``""``.  Same bug class as v1.30.41 / v1.30.43;
+    fixed systemically in v1.30.44 by having ``_compress_categoricals``
+    pre-add ``""`` to the categories.
+
+    Surfaces under ``./test.sh --all`` because the real
+    ``observations.parquet`` carries categorical-compressed string
+    columns (post-#232), but the synthetic-frame unit tests above
+    don't trigger compression.  Regression locks in the systemic fix
+    so the deploy gate stays green.
+    """
+    import pandas as pd
+
+    from hitlist.builder import _compress_categoricals
+    from hitlist.export import _compute_has_peptide_level_allele
+
+    df = pd.DataFrame(
+        {
+            "allele_resolution": pd.Series(
+                ["four_digit", "serological", "class_only"], dtype="string"
+            ),
+        }
+    )
+    _compress_categoricals(df)
+    # Confirm the systemic fix kicked in: the column is now categorical AND
+    # carries ``""`` as a category (so ``fillna("")`` won't TypeError).
+    assert df["allele_resolution"].dtype.name == "category"
+    assert "" in df["allele_resolution"].cat.categories
+
+    mhc_restriction = pd.Series(
+        ["HLA-A*02:01", "HLA-A2", "HLA class I"], dtype="string", name="mhc_restriction"
+    )
+    out = _compute_has_peptide_level_allele(mhc_restriction, df["allele_resolution"])
+    assert list(out) == [True, False, False]
+
+
 def test_generate_observations_gene_filter_requires_mappings(tmp_path, monkeypatch):
     """Using --gene without a peptide_mappings sidecar should error clearly."""
     import pandas as pd
@@ -2348,7 +2386,7 @@ def test_resolver_shapiro_2025_routes_per_ko_sample(full_observations_df):
         pytest.skip("Shapiro 2025 not present in this build")
     mismatches = (
         sub[sub["cell_name"].notna() & (sub["cell_name"] != "")]
-        .groupby(["cell_name", "sample_label"])
+        .groupby(["cell_name", "sample_label"], observed=True)
         .size()
         .reset_index(name="n")
     )

@@ -300,7 +300,16 @@ def _compress_categoricals(df: pd.DataFrame, *, strict: bool = False) -> None:
         # categorical columns return False (they're a separate dtype),
         # which is what we want for idempotence.
         if pd.api.types.is_string_dtype(df[col]) and df[col].dtype.name != "category":
-            df[col] = df[col].astype("category")
+            series = df[col].astype("category")
+            # Pre-add ``""`` to the category set so downstream ``fillna("")``
+            # idioms (export.py, supplement.py, scanner.py) don't raise the
+            # categorical out-of-category ``TypeError`` when the column had
+            # no empty strings in source data.  Same bug class as v1.30.41 /
+            # v1.30.43; fixing systemically here avoids the whack-a-mole of
+            # patching every individual fillna site.
+            if "" not in series.cat.categories:
+                series = series.cat.add_categories([""])
+            df[col] = series
 
 
 def _drop_duplicate_iris(df: pd.DataFrame, label: str) -> pd.DataFrame:
