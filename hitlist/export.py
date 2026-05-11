@@ -128,6 +128,68 @@ def _fillna_safe_for_categoricals(df: pd.DataFrame, value: str = "") -> pd.DataF
     return df.fillna(value)
 
 
+def _apply_winners_vectorized(
+    obs: pd.DataFrame,
+    mask: pd.Series,
+    tiebreak_cols: list[str],
+    winners: dict[tuple, dict],
+    meta_cols: list[str],
+) -> None:
+    """Vectorized replacement for the per-row ``obs.at[idx, col]`` update
+    pattern used by the per-PMID discriminator-scoring path (#244).
+
+    For each row in ``obs[mask]`` whose tuple-of-``tiebreak_cols`` is a
+    key in ``winners``, overwrite each ``meta_col`` with the corresponding
+    value from the winner.  Rows whose key is not in ``winners`` (or
+    whose winner dict lacks a particular ``col``) keep their existing
+    ``obs[col]`` value.
+
+    Same semantics as the prior loop:
+
+        obs.loc[mask, col] = [
+            winners.get(k, {}).get(col, obs.at[idx, col])
+            for k, idx in zip(zipped_keys, sub.index)
+        ]
+
+    Replaces ~13M Python-level ``obs.at`` lookups with one vectorized
+    ``MultiIndex.reindex`` per call.  Mutates ``obs`` in place.
+    """
+    if not winners:
+        return
+    # Build a winners DataFrame keyed by the tiebreak tuple, with one
+    # column per meta_col (NaN when a winner dict didn't carry the col).
+    winners_df = pd.DataFrame.from_dict(winners, orient="index")
+    for col in meta_cols:
+        if col not in winners_df.columns:
+            winners_df[col] = pd.NA
+    winners_df = winners_df[meta_cols]
+    winners_df.index = pd.MultiIndex.from_tuples(winners_df.index, names=tiebreak_cols)
+
+    # Build the join key from obs[mask] (cast categoricals so missing
+    # entries don't blow up).  Reindex returns NaN for sub-keys not in
+    # winners_df — those rows fall back to the existing obs value below.
+    sub = _fillna_safe_for_categoricals(obs.loc[mask, tiebreak_cols])
+    sub_idx = pd.MultiIndex.from_arrays([sub[c] for c in tiebreak_cols], names=tiebreak_cols)
+    matched = winners_df.reindex(sub_idx)
+    matched.index = sub.index
+
+    # Per-col fill at NumPy level: copy current obs values for the masked
+    # slice, overwrite positions where the winner had a non-null value,
+    # assign back in one pass.  Staying in NumPy preserves the destination
+    # column's dtype (avoids the pandas "Setting an item of incompatible
+    # dtype" FutureWarning that ``.where()`` triggers on bool / numeric
+    # meta_cols when the intermediate falls through object dtype).
+    for col in meta_cols:
+        win_arr = matched[col].to_numpy()
+        # ``isna`` handles NaN, NaT, and pd.NA uniformly.
+        filled_mask = ~pd.isna(win_arr)
+        if not filled_mask.any():
+            continue
+        cur_arr = obs.loc[mask, col].to_numpy().copy()
+        cur_arr[filled_mask] = win_arr[filled_mask]
+        obs.loc[mask, col] = cur_arr
+
+
 def _classify_instrument(instrument: str) -> str:
     """Return a broad instrument category from a specific model string."""
     if not instrument:
@@ -656,15 +718,8 @@ def generate_observations_table(
                     )
                 ] = best
 
-            # Apply winners back to obs.
-            if _winner_meta:
-                _ambig_full = _fillna_safe_for_categoricals(obs.loc[_ambig_mask, _tiebreak_cols])
-                _winner_keys = list(zip(*[_ambig_full[c] for c in _tiebreak_cols]))
-                for col in meta_cols:
-                    obs.loc[_ambig_mask, col] = [
-                        _winner_meta.get(k, {}).get(col, obs.at[idx, col])
-                        for k, idx in zip(_winner_keys, _ambig_full.index)
-                    ]
+            # Apply winners back to obs (vectorized — see #244).
+            _apply_winners_vectorized(obs, _ambig_mask, _tiebreak_cols, _winner_meta, meta_cols)
 
     # 3) Single-PMID fallback. Same pattern, single-level index on PMID.
     fb_cols = [c + "_fb" for c in meta_cols]
@@ -850,15 +905,9 @@ def generate_observations_table(
                         ] = _best_meta
 
                 if _tb_winner:
-                    _winner_keys = list(zip(*[_eligible_df[c] for c in _tb_cols]))
-                    for col in meta_cols:
-                        _new_vals = [
-                            _tb_winner[k].get(col, obs.at[idx, col])
-                            if k in _tb_winner
-                            else obs.at[idx, col]
-                            for k, idx in zip(_winner_keys, _eligible_df.index)
-                        ]
-                        obs.loc[_eligible_mask, col] = _new_vals
+                    # Vectorized winner application (#244) — same shape as
+                    # the per-PMID discriminator path above.
+                    _apply_winners_vectorized(obs, _eligible_mask, _tb_cols, _tb_winner, meta_cols)
 
     # 4) Class-pool fallback: for still-unmatched rows, fill sample_mhc
     #    with the union of all alleles from samples of the same class.
