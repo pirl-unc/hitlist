@@ -16,48 +16,22 @@ is shared by all workers within a single pytest invocation).  The first
 worker to acquire the file lock builds and writes the pickle; later
 workers find the cache populated and read it.  One build + N cheap loads
 instead of N builds.
+
+The cache helper itself lives in ``tests.xdist_cache`` so it has a
+public surface that can be unit-tested independently of the fixture.
 """
 
 from __future__ import annotations
 
-import fcntl
-import os
-import pickle
-from pathlib import Path
-
 import pytest
+
+from tests.xdist_cache import load_or_build_pickled
 
 
 def _build_full_observations_df():
     from hitlist.export import generate_observations_table
 
     return generate_observations_table()
-
-
-def _load_or_build_shared(cache_path: Path):
-    """Build the table on cache miss, otherwise read the cached pickle.
-
-    Serializes all workers on a POSIX exclusive ``flock``.  The first
-    arrival pays the build cost; the rest read the pickle.  The lock is
-    held for the whole critical section (build + write *or* read) — read
-    parallelism would shave a few seconds but isn't worth the
-    shared/exclusive complexity given the build dominates.
-    """
-    lock_path = cache_path.with_suffix(cache_path.suffix + ".lock")
-    cache_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(lock_path, "w") as lock_f:
-        fcntl.flock(lock_f.fileno(), fcntl.LOCK_EX)
-        if cache_path.is_file():
-            with open(cache_path, "rb") as f:
-                return pickle.load(f)
-        df = _build_full_observations_df()
-        # Atomic write: pickle to .tmp, then rename.  Avoids leaving a
-        # half-written cache file if the build process is killed mid-dump.
-        tmp_path = cache_path.with_suffix(cache_path.suffix + ".tmp")
-        with open(tmp_path, "wb") as f:
-            pickle.dump(df, f, protocol=pickle.HIGHEST_PROTOCOL)
-        os.replace(tmp_path, cache_path)
-        return df
 
 
 @pytest.fixture(scope="session")
@@ -77,16 +51,26 @@ def full_observations_df(tmp_path_factory, worker_id):
         pytest.skip("Observations table not built")
 
     if worker_id == "master":
-        # Serial run (no xdist) — just build once via pytest's own
+        # Serial run (no xdist) — build inline via pytest's own
         # session-scoped fixture caching.
+        #
+        # NOTE: this branch must NOT fall through to the xdist cache
+        # path below.  Under xdist, ``tmp_path_factory.getbasetemp()``
+        # is the *per-worker* basetemp (e.g. ``.../pytest-N/popen-gw0/``)
+        # and ``.parent`` is the per-invocation session root
+        # (``.../pytest-N/``) — safe.  Under "master" (no xdist),
+        # ``getbasetemp()`` IS the per-invocation root, so ``.parent``
+        # would resolve to the persistent ``/tmp/pytest-of-<user>/`` dir
+        # that pytest reuses across runs — an inappropriate place to
+        # cache, since stale entries from earlier invocations could
+        # poison the current run.
         return _build_full_observations_df()
 
-    # ``getbasetemp().parent`` is the session-wide tmp dir shared by all
-    # xdist workers within a single pytest invocation.  Per-invocation
-    # (not persistent across runs) so we never read a stale cache from a
-    # previous test run.
+    # xdist: share the build across workers via on-disk pickle.  The
+    # session-shared root is per-invocation (see comment above), so
+    # there's no stale-cache concern from previous runs.
     cache_path = tmp_path_factory.getbasetemp().parent / "full_observations_df.pkl"
-    return _load_or_build_shared(cache_path)
+    return load_or_build_pickled(cache_path, _build_full_observations_df)
 
 
 def pytest_collection_modifyitems(config, items):
