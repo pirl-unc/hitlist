@@ -128,6 +128,99 @@ def _fillna_safe_for_categoricals(df: pd.DataFrame, value: str = "") -> pd.DataF
     return df.fillna(value)
 
 
+def apply_winners_vectorized(
+    obs: pd.DataFrame,
+    mask: pd.Series,
+    tiebreak_cols: list[str],
+    winners: dict[tuple, dict],
+    meta_cols: list[str],
+) -> None:
+    """Apply per-key winner metadata back onto rows of ``obs``.
+
+    Vectorized replacement (#244) for the per-row ``obs.at[idx, col]``
+    update pattern that the per-PMID discriminator-scoring path used to
+    drive.  Mutates ``obs`` in place.
+
+    Semantics — strictly equivalent to the prior loop:
+
+        obs.loc[mask, col] = [
+            winners.get(k, {}).get(col, obs.at[idx, col])
+            for k, idx in zip(keys, sub.index)
+        ]
+
+    For each row in ``obs[mask]`` whose ``tiebreak_cols`` tuple is a key
+    in ``winners``:
+
+    * If the winner dict has ``col`` as an explicit key, overwrite
+      ``obs[col]`` with the winner's value — *including* when that
+      value is ``None`` / ``NaN`` / ``""``.  This matches the prior
+      loop's ``dict.get(col, fallback)`` behavior, which only fell
+      back when the key was missing entirely, not when its value was
+      null.
+    * If the winner dict is missing ``col``, ``obs[col]`` is preserved.
+
+    Rows whose key is not in ``winners`` are likewise preserved.
+
+    The strict-equivalence guarantee requires a parallel **presence**
+    DataFrame alongside the values — ``~pd.isna(matched[col])`` would
+    conflate "key absent" with "key present, value is NaN" and silently
+    skip the latter.  See PR #245 review.
+
+    Replaces ~13M Python-level ``obs.at`` lookups with two vectorized
+    ``MultiIndex.reindex`` calls (values + presence) per invocation.
+    """
+    if not winners:
+        return
+
+    # Values DataFrame keyed by tiebreak tuple.  NaN-fill any meta_col
+    # that no winner dict carried (so the column exists for the reindex
+    # below; presence_df below tracks which entries are real).
+    winners_df = pd.DataFrame.from_dict(winners, orient="index")
+    for col in meta_cols:
+        if col not in winners_df.columns:
+            winners_df[col] = pd.NA
+    winners_df = winners_df[meta_cols]
+    winners_df.index = pd.MultiIndex.from_tuples(winners_df.index, names=tiebreak_cols)
+
+    # Per-(key, col) presence.  ``True`` iff that winner dict had ``col``
+    # as an explicit key.  Distinguishes "winner had col=NaN" (write
+    # NaN through) from "winner didn't carry col at all" (keep obs).
+    presence_df = pd.DataFrame.from_dict(
+        {k: {col: col in v for col in meta_cols} for k, v in winners.items()},
+        orient="index",
+    )
+    presence_df = presence_df[meta_cols]
+    presence_df.index = winners_df.index
+
+    # Build the join key from obs[mask].  Categorical-safe fillna so
+    # missing entries don't blow up index construction.
+    sub = _fillna_safe_for_categoricals(obs.loc[mask, tiebreak_cols])
+    sub_idx = pd.MultiIndex.from_arrays([sub[c] for c in tiebreak_cols], names=tiebreak_cols)
+
+    matched_vals = winners_df.reindex(sub_idx)
+    # ``fill_value=False`` for unmatched keys: those rows get presence=False
+    # for every col → preserved.
+    matched_pres = presence_df.reindex(sub_idx, fill_value=False)
+    matched_vals.index = sub.index
+    matched_pres.index = sub.index
+
+    # Per-col fill at NumPy level: copy current obs values for the masked
+    # slice, overwrite at positions where the winner had ``col``
+    # explicitly set, assign back in one pass.  Staying in NumPy
+    # preserves the destination column's dtype (avoids the pandas
+    # "Setting an item of incompatible dtype" FutureWarning that
+    # ``.where()`` triggers on bool / numeric meta_cols when the
+    # intermediate falls through object dtype).
+    for col in meta_cols:
+        present_arr = matched_pres[col].to_numpy().astype(bool, copy=False)
+        if not present_arr.any():
+            continue
+        win_arr = matched_vals[col].to_numpy()
+        cur_arr = obs.loc[mask, col].to_numpy().copy()
+        cur_arr[present_arr] = win_arr[present_arr]
+        obs.loc[mask, col] = cur_arr
+
+
 def _classify_instrument(instrument: str) -> str:
     """Return a broad instrument category from a specific model string."""
     if not instrument:
@@ -656,15 +749,8 @@ def generate_observations_table(
                     )
                 ] = best
 
-            # Apply winners back to obs.
-            if _winner_meta:
-                _ambig_full = _fillna_safe_for_categoricals(obs.loc[_ambig_mask, _tiebreak_cols])
-                _winner_keys = list(zip(*[_ambig_full[c] for c in _tiebreak_cols]))
-                for col in meta_cols:
-                    obs.loc[_ambig_mask, col] = [
-                        _winner_meta.get(k, {}).get(col, obs.at[idx, col])
-                        for k, idx in zip(_winner_keys, _ambig_full.index)
-                    ]
+            # Apply winners back to obs (vectorized — see #244).
+            apply_winners_vectorized(obs, _ambig_mask, _tiebreak_cols, _winner_meta, meta_cols)
 
     # 3) Single-PMID fallback. Same pattern, single-level index on PMID.
     fb_cols = [c + "_fb" for c in meta_cols]
@@ -850,15 +936,9 @@ def generate_observations_table(
                         ] = _best_meta
 
                 if _tb_winner:
-                    _winner_keys = list(zip(*[_eligible_df[c] for c in _tb_cols]))
-                    for col in meta_cols:
-                        _new_vals = [
-                            _tb_winner[k].get(col, obs.at[idx, col])
-                            if k in _tb_winner
-                            else obs.at[idx, col]
-                            for k, idx in zip(_winner_keys, _eligible_df.index)
-                        ]
-                        obs.loc[_eligible_mask, col] = _new_vals
+                    # Vectorized winner application (#244) — same shape as
+                    # the per-PMID discriminator path above.
+                    apply_winners_vectorized(obs, _eligible_mask, _tb_cols, _tb_winner, meta_cols)
 
     # 4) Class-pool fallback: for still-unmatched rows, fill sample_mhc
     #    with the union of all alleles from samples of the same class.
