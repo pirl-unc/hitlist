@@ -48,6 +48,12 @@ Typical usage::
 
 from __future__ import annotations
 
+import contextlib
+import hashlib
+import os
+import pickle
+import tempfile
+import warnings
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from functools import cached_property, lru_cache
@@ -116,6 +122,185 @@ def clear_fasta_index_cache() -> None:
     size/mtime invalidation handle it.
     """
     _FASTA_INDEX_CACHE.clear()
+
+
+# ── On-disk persistent cache for built ProteomeIndexes (#246) ─────────────
+#
+# Built indexes are pickled to a per-host cache directory keyed by the
+# same shape used by the in-memory ``_FASTA_INDEX_CACHE`` plus a format
+# version.  Subsequent runs that see the same FASTA on disk (size +
+# mtime unchanged) skip the ~minute-scale ``_build`` k-mer pass and load
+# the pickle in ~1-3s on SSD.
+#
+# The dominant build-time stage on cold machines is ``peptide_mappings``
+# (#176): cProfile shows 159 ``_build`` calls (40 species x 4 lengths)
+# adding to ~67% of total wall.  When IEDB CSVs change but FASTAs don't
+# (the common deploy pattern), this cache turns subsequent rebuilds
+# into near-no-ops for the mappings stage.
+
+# Bump on any breaking change to ``_build``'s output schema (the dict
+# layout, the int64 packing, etc.).  Stale-format files are skipped
+# (treated as cache misses) and eventually evicted by the cap policy.
+_INDEX_FORMAT_VERSION: int = 1
+
+_PROTEOME_INDEX_DISK_CACHE_DIR: Path = Path.home() / ".hitlist" / "proteome_index_cache"
+
+
+def _resolve_disk_cache_max_gb() -> float:
+    """Read the disk-cache cap (GB) from ``HITLIST_PROTEOME_INDEX_CACHE_GB``
+    each call so tests can override via :func:`os.environ`.
+
+    Returns ``0.0`` to disable caching entirely.  Default 50 GB caps the
+    cache below typical free-space watermarks while accommodating the
+    full Homo sapiens index (~12 GB across 4 lengths) plus the largest
+    non-human proteomes (mouse, dog, chimp, macaque, pig, cow each
+    ~5-10 GB across 4 lengths).
+    """
+    raw = os.environ.get("HITLIST_PROTEOME_INDEX_CACHE_GB", "50")
+    try:
+        return max(0.0, float(raw))
+    except ValueError:
+        return 50.0
+
+
+def set_disk_cache_dir(path: Path | str | None) -> None:
+    """Override the on-disk proteome-index cache directory.
+
+    Pass ``None`` to revert to the default (~/.hitlist/proteome_index_cache).
+    Tests use this to point at a tmp_path so they don't pollute the
+    real cache and aren't affected by it.
+    """
+    global _PROTEOME_INDEX_DISK_CACHE_DIR
+    if path is None:
+        _PROTEOME_INDEX_DISK_CACHE_DIR = Path.home() / ".hitlist" / "proteome_index_cache"
+    else:
+        _PROTEOME_INDEX_DISK_CACHE_DIR = Path(path)
+
+
+def clear_disk_cache() -> None:
+    """Delete every cached index on disk.  Useful for tests + manual reset.
+
+    No-op when the cache dir doesn't exist yet.
+    """
+    if _PROTEOME_INDEX_DISK_CACHE_DIR.exists():
+        for f in _PROTEOME_INDEX_DISK_CACHE_DIR.glob("*.pkl"):
+            with contextlib.suppress(FileNotFoundError):
+                f.unlink()
+
+
+def _disk_cache_filename(cache_key: tuple) -> str:
+    """Deterministic filename for a cache key.
+
+    The first 16 hex chars of a sha256 of ``repr(cache_key)`` give us a
+    collision-proof handle; we prefix with the FASTA basename + lengths
+    so files are human-debuggable from ``ls``.  The format-version
+    prefix lets us evolve ``_build``'s output shape without
+    contaminating new builds with stale-format pickles.
+    """
+    path_str, _size, _mtime, lengths, _gn, _gid = cache_key
+    basename = Path(path_str).stem.lower().replace(" ", "_")
+    lengths_str = "-".join(str(L) for L in lengths)
+    h = hashlib.sha256(repr(cache_key).encode()).hexdigest()[:16]
+    return f"v{_INDEX_FORMAT_VERSION}_{basename}_L{lengths_str}_{h}.pkl"
+
+
+def _load_index_from_disk(cache_key: tuple) -> ProteomeIndex | None:
+    """Return a cached index if a fresh-format pickle exists, else None.
+
+    On hit, touches the file's mtime so the LRU eviction sees recent use.
+    On any I/O / unpickling failure (corrupt file, partial write, schema
+    drift slipping past the version prefix), returns None and removes
+    the bad file so the caller can rebuild + re-cache.
+    """
+    if _resolve_disk_cache_max_gb() <= 0:
+        return None
+    cache_path = _PROTEOME_INDEX_DISK_CACHE_DIR / _disk_cache_filename(cache_key)
+    if not cache_path.is_file():
+        return None
+    try:
+        with open(cache_path, "rb") as f:
+            idx = pickle.load(f)
+    except Exception:
+        # Corrupt / partial / wrong-format cache file — drop it so the
+        # rebuild path runs and writes a fresh pickle.
+        with contextlib.suppress(FileNotFoundError):
+            cache_path.unlink()
+        return None
+    # Touch the file so this hit promotes it in the LRU.  Skip ENOENT
+    # races (file evicted between load and touch).
+    with contextlib.suppress(FileNotFoundError):
+        os.utime(cache_path, None)
+    return idx
+
+
+def _write_index_to_disk(cache_key: tuple, idx: ProteomeIndex) -> None:
+    """Persist an index to disk via atomic ``.tmp + rename``.
+
+    Failures are logged via ``warnings.warn`` and otherwise swallowed —
+    the in-memory cache + a future cold rebuild are sufficient
+    fallbacks; we'd rather not crash a multi-hour build because the
+    cache dir filled up.
+    """
+    if _resolve_disk_cache_max_gb() <= 0:
+        return
+    cache_path = _PROTEOME_INDEX_DISK_CACHE_DIR / _disk_cache_filename(cache_key)
+    try:
+        _PROTEOME_INDEX_DISK_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        # NamedTemporaryFile in same dir → ``os.replace`` is atomic on
+        # POSIX (same filesystem guaranteed).  Don't use ``delete=True``
+        # because we want the rename, not auto-cleanup.
+        with tempfile.NamedTemporaryFile(
+            dir=_PROTEOME_INDEX_DISK_CACHE_DIR,
+            prefix=cache_path.name + ".",
+            suffix=".tmp",
+            delete=False,
+        ) as tmp:
+            tmp_path = Path(tmp.name)
+            pickle.dump(idx, tmp, protocol=pickle.HIGHEST_PROTOCOL)
+        os.replace(tmp_path, cache_path)
+    except Exception as exc:  # pragma: no cover — best-effort persistence
+        warnings.warn(
+            f"Failed to write proteome index cache {cache_path}: {exc}",
+            stacklevel=2,
+        )
+        with contextlib.suppress(FileNotFoundError):
+            tmp_path.unlink()
+        return
+    _evict_disk_cache_if_over_cap()
+
+
+def _evict_disk_cache_if_over_cap() -> None:
+    """Evict oldest-mtime cache files until total size ≤ cap.
+
+    Called after every successful write.  Uses file mtime as the LRU
+    proxy — ``_load_index_from_disk`` touches mtime on every hit, so
+    it's a recency-of-use signal even though it doubles as the
+    last-modified timestamp.
+    """
+    cap_bytes = int(_resolve_disk_cache_max_gb() * 1024**3)
+    if cap_bytes <= 0:
+        return
+    if not _PROTEOME_INDEX_DISK_CACHE_DIR.is_dir():
+        return
+    files = []
+    total = 0
+    for f in _PROTEOME_INDEX_DISK_CACHE_DIR.glob("*.pkl"):
+        try:
+            stat = f.stat()
+        except FileNotFoundError:
+            continue
+        files.append((stat.st_mtime, stat.st_size, f))
+        total += stat.st_size
+    if total <= cap_bytes:
+        return
+    # Oldest first.
+    files.sort(key=lambda t: t[0])
+    for _mtime, size, f in files:
+        if total <= cap_bytes:
+            break
+        with contextlib.suppress(FileNotFoundError):
+            f.unlink()
+            total -= size
 
 
 try:
@@ -319,6 +504,22 @@ class ProteomeIndex:
                 if verbose:
                     print(f"  ProteomeIndex cache hit for {resolved.name}")
                 return cached
+            # In-memory miss → check the on-disk cache (#246).  Skips
+            # the ~minute-scale ``_build`` k-mer pass when this same
+            # FASTA was indexed in a previous run (size + mtime
+            # unchanged).  Promotes the loaded index into the in-memory
+            # cache so subsequent calls within this run hit the fast
+            # path.
+            disk_cached = _load_index_from_disk(cache_key)
+            if disk_cached is not None:
+                if verbose:
+                    print(f"  ProteomeIndex disk-cache hit for {resolved.name}")
+                if _FASTA_INDEX_CACHE_MAXSIZE > 0:
+                    _FASTA_INDEX_CACHE[cache_key] = disk_cached
+                    _FASTA_INDEX_CACHE.move_to_end(cache_key)
+                    while len(_FASTA_INDEX_CACHE) > _FASTA_INDEX_CACHE_MAXSIZE:
+                        _FASTA_INDEX_CACHE.popitem(last=False)
+                return disk_cached
 
         proteins: dict[str, str] = {}
         meta: dict[str, dict] = {}
@@ -361,6 +562,12 @@ class ProteomeIndex:
             # rather than the sum of all proteomes seen so far (issue #109).
             while len(_FASTA_INDEX_CACHE) > _FASTA_INDEX_CACHE_MAXSIZE:
                 _FASTA_INDEX_CACHE.popitem(last=False)
+        # Persist to the on-disk cache so subsequent runs (when the
+        # FASTA size + mtime are unchanged) skip the expensive _build
+        # k-mer pass entirely.  Best-effort: failures here are warned
+        # but don't break the build (#246).
+        if cache_key is not None:
+            _write_index_to_disk(cache_key, idx)
         return idx
 
     @classmethod
