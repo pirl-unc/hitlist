@@ -550,13 +550,7 @@ class ProteomeIndex:
         """
         from pyensembl import EnsemblRelease
 
-        try:
-            ensembl = EnsemblRelease(release, species=species)
-        except TypeError:
-            # Older pyensembl without species kwarg — falls back to human
-            if species != "human":
-                raise
-            ensembl = EnsemblRelease(release)
+        ensembl = EnsemblRelease(release, species=species)
 
         # Build the cache key off pyensembl's local GTF (size + mtime).
         # When unresolvable (test fakes, missing local GTF), skip caching.
