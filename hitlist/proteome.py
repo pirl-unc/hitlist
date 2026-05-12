@@ -178,14 +178,18 @@ def set_disk_cache_dir(path: Path | str | None) -> None:
 
 
 def clear_disk_cache() -> None:
-    """Delete every cached index on disk.  Useful for tests + manual reset.
+    """Delete every cached index + leftover ``.tmp`` partial-write on disk.
 
-    No-op when the cache dir doesn't exist yet.
+    Cleans both ``*.pkl`` (cached indexes) and ``*.tmp`` (in-flight or
+    crashed atomic-write tempfiles) so the cache dir comes back to a
+    clean state for tests + manual reset.  No-op when the cache dir
+    doesn't exist yet.
     """
     if _PROTEOME_INDEX_DISK_CACHE_DIR.exists():
-        for f in _PROTEOME_INDEX_DISK_CACHE_DIR.glob("*.pkl"):
-            with contextlib.suppress(FileNotFoundError):
-                f.unlink()
+        for pattern in ("*.pkl", "*.tmp"):
+            for f in _PROTEOME_INDEX_DISK_CACHE_DIR.glob(pattern):
+                with contextlib.suppress(FileNotFoundError):
+                    f.unlink()
 
 
 def _disk_cache_filename(cache_key: tuple) -> str:
@@ -196,6 +200,11 @@ def _disk_cache_filename(cache_key: tuple) -> str:
     so files are human-debuggable from ``ls``.  The format-version
     prefix lets us evolve ``_build``'s output shape without
     contaminating new builds with stale-format pickles.
+
+    Coupling note: this positionally decomposes the ``cache_key`` tuple
+    built in :meth:`ProteomeIndex.from_fasta`.  Adding/reordering fields
+    in that tuple requires updating this unpacking too — the hash
+    suffix would silently change for the same logical key otherwise.
     """
     path_str, _size, _mtime, lengths, _gn, _gid = cache_key
     basename = Path(path_str).stem.lower().replace(" ", "_")
@@ -244,6 +253,12 @@ def _write_index_to_disk(cache_key: tuple, idx: ProteomeIndex) -> None:
     if _resolve_disk_cache_max_gb() <= 0:
         return
     cache_path = _PROTEOME_INDEX_DISK_CACHE_DIR / _disk_cache_filename(cache_key)
+    # Bind tmp_path before the try so the failure path's cleanup can
+    # safely reference it.  Without this, an exception raised by
+    # ``mkdir()`` (permission denied, disk full) before the
+    # NamedTemporaryFile ever opens would NameError out of the except
+    # clause and crash the build.
+    tmp_path: Path | None = None
     try:
         _PROTEOME_INDEX_DISK_CACHE_DIR.mkdir(parents=True, exist_ok=True)
         # NamedTemporaryFile in same dir → ``os.replace`` is atomic on
@@ -258,13 +273,14 @@ def _write_index_to_disk(cache_key: tuple, idx: ProteomeIndex) -> None:
             tmp_path = Path(tmp.name)
             pickle.dump(idx, tmp, protocol=pickle.HIGHEST_PROTOCOL)
         os.replace(tmp_path, cache_path)
-    except Exception as exc:  # pragma: no cover — best-effort persistence
+    except Exception as exc:
         warnings.warn(
             f"Failed to write proteome index cache {cache_path}: {exc}",
             stacklevel=2,
         )
-        with contextlib.suppress(FileNotFoundError):
-            tmp_path.unlink()
+        if tmp_path is not None:
+            with contextlib.suppress(FileNotFoundError):
+                tmp_path.unlink()
         return
     _evict_disk_cache_if_over_cap()
 
@@ -276,6 +292,13 @@ def _evict_disk_cache_if_over_cap() -> None:
     proxy — ``_load_index_from_disk`` touches mtime on every hit, so
     it's a recency-of-use signal even though it doubles as the
     last-modified timestamp.
+
+    Caveat: when a single newly-written entry alone exceeds the cap,
+    we may end up slightly over.  The eviction loop walks oldest-first
+    and stops once under cap; it never deletes the entry it just
+    wrote (that would defeat the purpose of writing it).  Practically
+    this only matters if the user sets the cap below their largest
+    proteome's index size — at which point caching is moot anyway.
     """
     cap_bytes = int(_resolve_disk_cache_max_gb() * 1024**3)
     if cap_bytes <= 0:
