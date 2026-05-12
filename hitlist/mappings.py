@@ -339,21 +339,18 @@ def build_peptide_mappings(
     all_mapping_dfs: list[pd.DataFrame] = []
     per_proteome_stats: list[tuple[str, int, int]] = []
 
-    # ── Length-on-demand: build one k-mer length at a time ─────────────────
-    # Peak RSS during the human mapping pass drops from ~10 GB (all 4
-    # MHC-I lengths held at once) to ~3 GB (one length held at a time).
-    # The 4 lengths are built sequentially and dropped between passes;
-    # numpy-packed postings keep each single-length index compact.
+    # MHC-I peptide lengths.  Length-on-demand happens per-worker inside
+    # _per_canonical_mapping_worker so peak per-worker RSS stays bounded
+    # by ONE single-length index (preserves the #109 invariant).
     default_lengths = (8, 9, 10, 11)
 
-    # ── Build order: cluster canonicals by FASTA so the LRU cache hits ──
-    # The from_fasta LRU cache (size=4) holds (path, lengths)-keyed entries.
+    # ── Build order: cluster canonicals by FASTA so adjacent tasks share an index ──
     # Strain-variant canonicals (e.g. multiple SARS-CoV-2 / LCMV) often
-    # share one underlying FASTA via their UniProt proteome_id; iterating
-    # alphabetically scatters them and forces re-builds. Sorting by
-    # (group_key, canonical) clusters same-FASTA canonicals adjacently so
-    # the second/third/... canonical in a group hits the cache for all 4
-    # lengths in a row. See #107.
+    # share one underlying FASTA via their UniProt proteome_id.  Sorting
+    # by (group_key, canonical) clusters same-FASTA canonicals adjacently
+    # so the from_fasta in-memory cache hits on the 2nd/3rd member of a
+    # group.  Combined with chunksize=2 below, this keeps clustered
+    # neighbors on the same worker (#107 + #249).
     ordered_canonicals = sorted(
         species_to_peptides,
         key=lambda c: (_proteome_group_key(canonical_to_entry.get(c, {})), c),
@@ -381,6 +378,16 @@ def build_peptide_mappings(
     n_workers = _build_workers()
     # Cap workers at task count — more processes than work just adds fork overhead.
     effective_workers = min(n_workers, max(1, len(mapping_tasks)))
+
+    # Pre-fetch all proteomes in the parent so workers don't race on
+    # FASTA / GTF downloads.  No-op when caches are warm (the common case).
+    if mapping_tasks and effective_workers > 1:
+        _prefetch_proteomes_for_workers(
+            [canonical_to_entry[t[0]] for t in mapping_tasks],
+            release=release,
+            verbose=verbose,
+        )
+
     if verbose and mapping_tasks:
         print(
             f"\n  Mapping {len(mapping_tasks)} canonical proteome(s) "
@@ -390,22 +397,29 @@ def build_peptide_mappings(
     if effective_workers == 1:
         # Sequential fallback — identical to pre-#249 behavior.  Useful for
         # debugging, deterministic profiling, and HITLIST_BUILD_WORKERS=1.
-        results_iter = (_per_canonical_mapping_worker(t) for t in mapping_tasks)
-    else:
-        from concurrent.futures import ProcessPoolExecutor
-
-        pool = ProcessPoolExecutor(max_workers=effective_workers)
-        results_iter = pool.map(_per_canonical_mapping_worker, mapping_tasks)
-
-    try:
-        for canonical, dfs, n_matched, n_total in results_iter:
+        for canonical, dfs, n_matched, n_total in (
+            _per_canonical_mapping_worker(t) for t in mapping_tasks
+        ):
             all_mapping_dfs.extend(dfs)
             per_proteome_stats.append((canonical, n_total, n_matched))
             if verbose:
                 print(f"    [{canonical}] matched {n_matched:,} / {n_total:,} peptides")
-    finally:
-        if effective_workers > 1:
-            pool.shutdown(wait=True)
+    else:
+        from concurrent.futures import ProcessPoolExecutor
+
+        # chunksize=2 keeps adjacent FASTA-clustered tasks on the same
+        # worker, recovering some of #107's in-memory LRU benefit that a
+        # default chunksize=1 round-robin would scatter.  Strain-variant
+        # clusters of size ≥ 2 (the common case) get the 2nd member's
+        # index from the same-process cache rather than rebuilding.
+        with ProcessPoolExecutor(max_workers=effective_workers) as pool:
+            for canonical, dfs, n_matched, n_total in pool.map(
+                _per_canonical_mapping_worker, mapping_tasks, chunksize=2
+            ):
+                all_mapping_dfs.extend(dfs)
+                per_proteome_stats.append((canonical, n_total, n_matched))
+                if verbose:
+                    print(f"    [{canonical}] matched {n_matched:,} / {n_total:,} peptides")
 
     # ── Extra proteomes (per-PMID reference_proteomes overrides) ─────────────
     pmid_extras = _collect_pmid_extra_proteomes()
@@ -508,6 +522,10 @@ def _build_workers() -> int:
     bounded by ``workers x largest-single-length-index``.  Override via
     ``HITLIST_BUILD_WORKERS=N``.  Set to ``1`` for the sequential
     fallback (identical behavior to pre-#249).
+
+    The override is NOT capped at ``cpu_count``: a value of 16 on an
+    8-core box will spawn 16 workers and likely OOM on the human pass.
+    Treat this as a power-user knob — the default is the safe choice.
     """
     raw = os.environ.get("HITLIST_BUILD_WORKERS")
     if raw is not None:
@@ -518,6 +536,80 @@ def _build_workers() -> int:
         except ValueError:
             pass
     return min(4, max(1, (os.cpu_count() or 1) // 2))
+
+
+def _prefetch_proteomes_for_workers(
+    entries: list[dict],
+    release: int,
+    verbose: bool,
+) -> None:
+    """Eagerly download/index every proteome the workers will need (#249).
+
+    Workers run in fresh processes (``ProcessPoolExecutor`` defaults to
+    spawn on macOS, fork on Linux) and don't share download locks.  On
+    a first-ever cold build, two workers needing the SAME UniProt FASTA
+    could race on the ``.tmp`` file (``fetch_species_proteome`` writes
+    via ``urllib.request.urlretrieve`` to a non-unique tmp path).  Two
+    workers needing the SAME pyensembl GTF could race on its download +
+    SQLite index build.  We avoid both races by warming the on-disk
+    caches sequentially in the parent before dispatching tasks.
+
+    No-op when caches are warm (the typical case): each call is
+    idempotent and exits in milliseconds when the file/db is already
+    present.  Failures are tolerated — the worker will hit the same
+    code path and surface the error there.
+    """
+    from .downloads import fetch_species_proteome
+
+    # UniProt FASTAs: dedup by canonical species; fetch_species_proteome
+    # dedupes further by UPID inside (multiple strain canonicals → one
+    # download).
+    uniprot_canonicals = sorted(
+        {e.get("canonical_species") or "" for e in entries if e.get("kind") != "ensembl"}
+    )
+    uniprot_canonicals = [c for c in uniprot_canonicals if c]
+    if uniprot_canonicals and verbose:
+        print(
+            f"  Pre-fetching {len(uniprot_canonicals)} UniProt FASTA(s) "
+            f"in parent (avoids worker download races) ..."
+        )
+    for canonical in uniprot_canonicals:
+        try:
+            fetch_species_proteome(canonical, verbose=False, use_uniprot=False)
+        except Exception as e:
+            if verbose:
+                print(f"    [{canonical}] pre-fetch skipped: {e}")
+
+    # Ensembl species: pre-trigger pyensembl download + SQLite index build
+    # once per (release, species) so workers find the local cache populated
+    # rather than racing on it.  download() / index() are idempotent.
+    ensembl_species = sorted(
+        {e.get("species", "human") for e in entries if e.get("kind") == "ensembl"}
+    )
+    if ensembl_species:
+        if verbose:
+            print(
+                f"  Pre-warming {len(ensembl_species)} Ensembl release(s) "
+                f"in parent (avoids worker GTF races) ..."
+            )
+        try:
+            from pyensembl import EnsemblRelease
+        except ImportError:
+            return
+        for species in ensembl_species:
+            try:
+                try:
+                    ensembl = EnsemblRelease(release, species=species)
+                except TypeError:
+                    if species != "human":
+                        continue
+                    ensembl = EnsemblRelease(release)
+                # download() then index() — both idempotent, cheap when warm.
+                ensembl.download()
+                ensembl.index()
+            except Exception as e:
+                if verbose:
+                    print(f"    [{species}] pre-warm skipped: {e}")
 
 
 def _per_canonical_mapping_worker(
