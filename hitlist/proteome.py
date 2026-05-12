@@ -291,7 +291,10 @@ def _resolve_ensembl_gtf_path(ensembl) -> Path | None:
     for attr in ("gtf_path", "_gtf_path", "gtf"):
         try:
             val = getattr(ensembl, attr)
-        except (AttributeError, Exception):
+        except Exception:
+            # Includes AttributeError (attr missing) plus property-getter
+            # exceptions like OSError when the local GTF hasn't been
+            # downloaded yet.  Either way, skip this attr and try the next.
             continue
         if val is None:
             continue
