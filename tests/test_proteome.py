@@ -638,3 +638,400 @@ def test_digest_unknown_enzyme_raises():
 
     with pytest.raises(ValueError, match="Unknown enzyme"):
         digest("MKRPE", enzyme="ProteinaseK")
+
+
+# ── On-disk persistent cache (#246) ───────────────────────────────────────
+
+
+@pytest.fixture
+def isolated_disk_cache(tmp_path, monkeypatch):
+    """Point the proteome-index disk cache at tmp_path for the duration
+    of the test, and reset to default afterward.
+
+    Also clears the in-memory cache so tests assert disk-cache behavior
+    rather than getting in-memory hits.
+    """
+    from hitlist.proteome import (
+        clear_disk_cache,
+        clear_fasta_index_cache,
+        set_disk_cache_dir,
+    )
+
+    set_disk_cache_dir(tmp_path / "proteome_idx_cache")
+    clear_fasta_index_cache()
+    # Make sure the default cap is sane for tests that don't set their own.
+    monkeypatch.setenv("HITLIST_PROTEOME_INDEX_CACHE_GB", "1")
+    yield
+    clear_disk_cache()
+    set_disk_cache_dir(None)
+    clear_fasta_index_cache()
+
+
+def test_disk_cache_persists_index_across_in_memory_eviction(tmp_path, isolated_disk_cache):
+    """Build the index once, drop the in-memory cache, build again — the
+    second build must hit the disk cache instead of re-running _build.
+    """
+    from unittest.mock import patch
+
+    from hitlist.proteome import clear_fasta_index_cache
+
+    fasta = tmp_path / "p.fasta"
+    fasta.write_text(">sp|P|A\nACDEFGHIKLMNPQRSTVWY\n")
+
+    # First call: cold build, writes to disk cache.
+    idx1 = ProteomeIndex.from_fasta(fasta, lengths=(5,), verbose=False)
+    assert len(idx1.proteins) == 1
+
+    # Drop the in-memory cache so the next call can't hit it.
+    clear_fasta_index_cache()
+
+    # Second call: must NOT call _build — disk cache should serve it.
+    real_build = ProteomeIndex._build
+    with patch.object(ProteomeIndex, "_build", side_effect=AssertionError("_build called")):
+        idx2 = ProteomeIndex.from_fasta(fasta, lengths=(5,), verbose=False)
+
+    # Same content, different instance (pickle round-trip).
+    assert idx1.proteins == idx2.proteins
+    assert idx1 is not idx2
+
+    # Sanity: confirm we restored _build.
+    assert ProteomeIndex._build is real_build or callable(ProteomeIndex._build)
+
+
+def test_disk_cache_invalidates_on_fasta_mtime_change(tmp_path, isolated_disk_cache):
+    """Editing the FASTA bumps mtime → cache key changes → fresh build.
+
+    The stale on-disk pickle remains until cap-eviction collects it,
+    which is fine — it just won't be loaded for any future key.
+    """
+    import time
+
+    fasta = tmp_path / "p.fasta"
+    fasta.write_text(">sp|P|A\nACDEFGHIKLMNPQ\n")
+    idx1 = ProteomeIndex.from_fasta(fasta, lengths=(5,), verbose=False)
+    assert "sp|P|A" in idx1.proteins
+
+    time.sleep(0.01)
+    fasta.write_text(">sp|Q|B\nMNPQRSTVWY\n")
+    import os
+
+    os.utime(fasta, None)
+
+    idx2 = ProteomeIndex.from_fasta(fasta, lengths=(5,), verbose=False)
+    # Different FASTA → different content; the new build should reflect
+    # the new content, not return the stale cached pickle.
+    assert "sp|Q|B" in idx2.proteins
+    assert "sp|P|A" not in idx2.proteins
+
+
+def test_disk_cache_keyed_on_lengths(tmp_path, isolated_disk_cache):
+    """Different `lengths` → different cache filename → independent entries."""
+    from hitlist.proteome import _PROTEOME_INDEX_DISK_CACHE_DIR
+
+    fasta = tmp_path / "p.fasta"
+    fasta.write_text(">sp|P|A\nACDEFGHIKLMNPQ\n")
+
+    idx_5 = ProteomeIndex.from_fasta(fasta, lengths=(5,), verbose=False)
+    idx_8 = ProteomeIndex.from_fasta(fasta, lengths=(8,), verbose=False)
+    assert idx_5.lengths == (5,)
+    assert idx_8.lengths == (8,)
+
+    files = sorted(_PROTEOME_INDEX_DISK_CACHE_DIR.glob("*.pkl"))
+    # Two distinct cache files — one per length tuple.
+    assert len(files) == 2
+
+
+def test_disk_cache_format_version_in_filename(tmp_path, isolated_disk_cache):
+    """Cache filenames carry the format-version prefix so a future
+    schema bump doesn't load stale-format pickles silently.
+    """
+    from hitlist.proteome import _INDEX_FORMAT_VERSION, _PROTEOME_INDEX_DISK_CACHE_DIR
+
+    fasta = tmp_path / "p.fasta"
+    fasta.write_text(">sp|P|A\nACDEFGHIKLMNPQ\n")
+    ProteomeIndex.from_fasta(fasta, lengths=(5,), verbose=False)
+
+    files = list(_PROTEOME_INDEX_DISK_CACHE_DIR.glob("*.pkl"))
+    assert len(files) == 1
+    assert files[0].name.startswith(f"v{_INDEX_FORMAT_VERSION}_")
+
+
+def test_disk_cache_corrupt_pickle_falls_back_to_rebuild(tmp_path, isolated_disk_cache):
+    """A truncated / garbage cache file must NOT crash — the loader
+    drops it and the rebuild path takes over (then writes a fresh
+    pickle).
+    """
+    from hitlist.proteome import _PROTEOME_INDEX_DISK_CACHE_DIR, clear_fasta_index_cache
+
+    fasta = tmp_path / "p.fasta"
+    fasta.write_text(">sp|P|A\nACDEFGHIKLMNPQ\n")
+
+    # Cold build to populate the cache.
+    ProteomeIndex.from_fasta(fasta, lengths=(5,), verbose=False)
+    cache_files = list(_PROTEOME_INDEX_DISK_CACHE_DIR.glob("*.pkl"))
+    assert len(cache_files) == 1
+    cache_files[0].write_bytes(b"\x00\x01\x02not-a-valid-pickle")
+
+    clear_fasta_index_cache()
+
+    # Should rebuild without raising.
+    idx = ProteomeIndex.from_fasta(fasta, lengths=(5,), verbose=False)
+    assert "sp|P|A" in idx.proteins
+
+    # Corrupt file was unlinked + replaced with a fresh, valid pickle.
+    cache_files = list(_PROTEOME_INDEX_DISK_CACHE_DIR.glob("*.pkl"))
+    assert len(cache_files) == 1
+    # And it loads cleanly now.
+    import pickle as _pkl
+
+    with open(cache_files[0], "rb") as f:
+        loaded = _pkl.load(f)
+    assert "sp|P|A" in loaded.proteins
+
+
+def test_disk_cache_eviction_under_cap(tmp_path, isolated_disk_cache, monkeypatch):
+    """Total cache size > cap → oldest-mtime files are evicted on next write."""
+    from hitlist.proteome import _PROTEOME_INDEX_DISK_CACHE_DIR, clear_fasta_index_cache
+
+    # Tiny cap so the second write triggers eviction.
+    monkeypatch.setenv("HITLIST_PROTEOME_INDEX_CACHE_GB", str(1 / 1024 / 1024))  # 1 MB cap
+
+    # Write a series of distinct FASTAs so each produces its own cache file.
+    fastas = []
+    for i in range(4):
+        f = tmp_path / f"f_{i}.fasta"
+        f.write_text(f">sp|P{i:05d}|A\n{'ACDEFGHIKLMNPQRSTVWY' * 200}\n")
+        fastas.append(f)
+        clear_fasta_index_cache()
+        ProteomeIndex.from_fasta(f, lengths=(5,), verbose=False)
+
+    cache_files = list(_PROTEOME_INDEX_DISK_CACHE_DIR.glob("*.pkl"))
+    total = sum(p.stat().st_size for p in cache_files)
+    cap_bytes = int((1 / 1024 / 1024) * 1024**3)
+    # Eviction may leave us slightly over cap if a single index exceeds
+    # the cap on its own (we never delete the file we just wrote since
+    # the eviction loop touches oldest-first and stops once under cap).
+    # The strict invariant: total ≤ cap + size of newest entry.
+    if cache_files:
+        newest = max(cache_files, key=lambda p: p.stat().st_mtime)
+        assert total <= cap_bytes + newest.stat().st_size
+
+
+def test_disk_cache_disabled_when_cap_zero(tmp_path, isolated_disk_cache, monkeypatch):
+    """Setting the cap to 0 GB skips both reads and writes."""
+    from hitlist.proteome import _PROTEOME_INDEX_DISK_CACHE_DIR
+
+    monkeypatch.setenv("HITLIST_PROTEOME_INDEX_CACHE_GB", "0")
+
+    fasta = tmp_path / "p.fasta"
+    fasta.write_text(">sp|P|A\nACDEFGHIKLMNPQ\n")
+    ProteomeIndex.from_fasta(fasta, lengths=(5,), verbose=False)
+
+    # No cache files written.
+    assert (
+        not list(_PROTEOME_INDEX_DISK_CACHE_DIR.glob("*.pkl"))
+        or not _PROTEOME_INDEX_DISK_CACHE_DIR.exists()
+    )
+
+
+def test_disk_cache_promotes_into_in_memory_cache(tmp_path, isolated_disk_cache):
+    """A disk-cache hit should populate the in-memory cache so subsequent
+    same-process calls hit the fast path."""
+    from hitlist.proteome import _FASTA_INDEX_CACHE, clear_fasta_index_cache
+
+    fasta = tmp_path / "p.fasta"
+    fasta.write_text(">sp|P|A\nACDEFGHIKLMNPQ\n")
+
+    # Cold build + in-memory eviction.
+    ProteomeIndex.from_fasta(fasta, lengths=(5,), verbose=False)
+    clear_fasta_index_cache()
+    assert len(_FASTA_INDEX_CACHE) == 0
+
+    # Disk hit re-populates in-memory cache.
+    idx_disk = ProteomeIndex.from_fasta(fasta, lengths=(5,), verbose=False)
+    assert len(_FASTA_INDEX_CACHE) == 1
+
+    # And subsequent call returns the same instance.
+    idx_mem = ProteomeIndex.from_fasta(fasta, lengths=(5,), verbose=False)
+    assert idx_mem is idx_disk
+
+
+def test_disk_cache_write_failure_does_not_crash_build(tmp_path, isolated_disk_cache, monkeypatch):
+    """If the disk write fails (e.g. pickle.dump raises), the build
+    must complete successfully and the failure is surfaced via
+    ``warnings.warn`` — never crash the caller.
+
+    Catches the ``tmp_path`` NameError that previously hid behind a
+    `# pragma: no cover` in the except clause.
+    """
+    import pickle as _pkl
+    import warnings as _w
+
+    from hitlist.proteome import _PROTEOME_INDEX_DISK_CACHE_DIR
+
+    fasta = tmp_path / "p.fasta"
+    fasta.write_text(">sp|P|A\nACDEFGHIKLMNPQ\n")
+
+    # Force the pickle.dump inside _write_index_to_disk to raise.
+    def _boom(*a, **kw):
+        raise OSError("simulated disk-full")
+
+    monkeypatch.setattr("hitlist.proteome.pickle.dump", _boom)
+
+    with _w.catch_warnings(record=True) as caught:
+        _w.simplefilter("always")
+        # Build must succeed despite the cache-write failure.
+        idx = ProteomeIndex.from_fasta(fasta, lengths=(5,), verbose=False)
+    assert "sp|P|A" in idx.proteins
+    assert any("Failed to write proteome index cache" in str(w.message) for w in caught)
+
+    # No half-written .tmp left behind in the cache dir.
+    if _PROTEOME_INDEX_DISK_CACHE_DIR.exists():
+        leftovers = list(_PROTEOME_INDEX_DISK_CACHE_DIR.glob("*.tmp"))
+        assert not leftovers, f"expected no .tmp leftovers, got {leftovers}"
+
+    # Sanity: the genuine pickle path still works after we restore it.
+    monkeypatch.undo()
+    # Subsequent build should write a real cache file.
+    from hitlist.proteome import clear_fasta_index_cache
+
+    clear_fasta_index_cache()
+    ProteomeIndex.from_fasta(fasta, lengths=(5,), verbose=False)
+    files = list(_PROTEOME_INDEX_DISK_CACHE_DIR.glob("*.pkl"))
+    assert len(files) == 1
+    with open(files[0], "rb") as f:
+        loaded = _pkl.load(f)
+    assert "sp|P|A" in loaded.proteins
+
+
+def test_disk_cache_write_failure_before_tmp_open_does_not_crash(tmp_path, monkeypatch):
+    """The failure path must also handle the case where the exception
+    fires BEFORE ``tempfile.NamedTemporaryFile`` ever opens — i.e.
+    ``tmp_path`` was never assigned.  Previously this NameError'd in
+    the except clause.
+    """
+    import warnings as _w
+
+    from hitlist.proteome import (
+        clear_disk_cache,
+        clear_fasta_index_cache,
+        set_disk_cache_dir,
+    )
+
+    set_disk_cache_dir(tmp_path / "idx_cache")
+    clear_fasta_index_cache()
+    monkeypatch.setenv("HITLIST_PROTEOME_INDEX_CACHE_GB", "1")
+    try:
+        # Make _PROTEOME_INDEX_DISK_CACHE_DIR.mkdir() raise — fires
+        # before tmp_path is ever bound in _write_index_to_disk.
+        from pathlib import Path as _Path
+
+        original_mkdir = _Path.mkdir
+
+        def _mkdir_boom(self, *a, **kw):
+            if "idx_cache" in str(self):
+                raise PermissionError("simulated denied mkdir")
+            return original_mkdir(self, *a, **kw)
+
+        monkeypatch.setattr(_Path, "mkdir", _mkdir_boom)
+
+        fasta = tmp_path / "p.fasta"
+        fasta.write_text(">sp|P|A\nACDEFGHIKLMNPQ\n")
+
+        with _w.catch_warnings(record=True) as caught:
+            _w.simplefilter("always")
+            # Must not raise NameError or PermissionError.
+            idx = ProteomeIndex.from_fasta(fasta, lengths=(5,), verbose=False)
+        assert "sp|P|A" in idx.proteins
+        assert any("Failed to write proteome index cache" in str(w.message) for w in caught)
+    finally:
+        clear_disk_cache()
+        set_disk_cache_dir(None)
+        clear_fasta_index_cache()
+
+
+def test_disk_cache_concurrent_writes_are_safe(tmp_path, isolated_disk_cache):
+    """Two processes that race to build the same FASTA must not corrupt
+    each other's cache file.  The atomic ``.tmp + os.replace`` pattern
+    guarantees the final ``*.pkl`` is always a complete, valid pickle.
+
+    Uses multiprocessing (forked workers each rebuild + write) and
+    asserts post-hoc that the cache file loads cleanly and matches
+    in-process content.
+    """
+    import multiprocessing as mp
+
+    from hitlist.proteome import _PROTEOME_INDEX_DISK_CACHE_DIR, set_disk_cache_dir
+
+    fasta = tmp_path / "p.fasta"
+    fasta.write_text(">sp|P|A\nACDEFGHIKLMNPQRSTVWY\n")
+
+    # The fork target needs its own setup since process state isn't
+    # inherited cleanly under spawn (the default on macOS).
+    cache_dir = str(_PROTEOME_INDEX_DISK_CACHE_DIR)
+
+    def _worker(fasta_str, cache_dir_str, return_dict, idx):
+        from hitlist.proteome import (
+            ProteomeIndex,
+            clear_fasta_index_cache,
+            set_disk_cache_dir,
+        )
+
+        set_disk_cache_dir(cache_dir_str)
+        clear_fasta_index_cache()
+        idx_obj = ProteomeIndex.from_fasta(fasta_str, lengths=(5,), verbose=False)
+        return_dict[idx] = len(idx_obj.proteins)
+
+    ctx = mp.get_context("fork") if hasattr(mp, "get_context") else mp
+    manager = ctx.Manager()
+    return_dict = manager.dict()
+    procs = [
+        ctx.Process(target=_worker, args=(str(fasta), cache_dir, return_dict, i)) for i in range(4)
+    ]
+    for p in procs:
+        p.start()
+    for p in procs:
+        p.join(timeout=30)
+        assert p.exitcode == 0, f"worker {p.pid} exited {p.exitcode}"
+
+    # All workers built the same content.
+    assert dict(return_dict) == {0: 1, 1: 1, 2: 1, 3: 1}
+
+    # Exactly one cache file (atomic rename means the final entry is
+    # whichever winner finished last; previous writes' .tmp files don't
+    # survive past their rename).
+    cache_files = list(_PROTEOME_INDEX_DISK_CACHE_DIR.glob("*.pkl"))
+    assert len(cache_files) == 1, f"expected 1 cache file, got {cache_files}"
+
+    # And it loads cleanly (no half-written corruption).
+    set_disk_cache_dir(cache_dir)
+    from hitlist.proteome import clear_fasta_index_cache
+
+    clear_fasta_index_cache()
+    idx = ProteomeIndex.from_fasta(fasta, lengths=(5,), verbose=False)
+    assert "sp|P|A" in idx.proteins
+
+    # No leftover .tmp files (each worker's tempfile was atomically renamed).
+    leftovers = list(_PROTEOME_INDEX_DISK_CACHE_DIR.glob("*.tmp"))
+    assert not leftovers, f"expected no .tmp leftovers, got {leftovers}"
+
+
+def test_clear_disk_cache_removes_tmp_files_too(tmp_path, isolated_disk_cache):
+    """``clear_disk_cache`` should reap leftover ``.tmp`` partial-write
+    files alongside the ``.pkl`` cache files.
+    """
+    from hitlist.proteome import (
+        _PROTEOME_INDEX_DISK_CACHE_DIR,
+        clear_disk_cache,
+    )
+
+    _PROTEOME_INDEX_DISK_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    pkl = _PROTEOME_INDEX_DISK_CACHE_DIR / "v1_x_L5_deadbeef.pkl"
+    tmp = _PROTEOME_INDEX_DISK_CACHE_DIR / "v1_x_L5_deadbeef.pkl.tmpABC.tmp"
+    pkl.write_bytes(b"not actually a pickle")
+    tmp.write_bytes(b"half-written garbage")
+    assert pkl.exists() and tmp.exists()
+
+    clear_disk_cache()
+    assert not pkl.exists()
+    assert not tmp.exists()
