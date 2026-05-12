@@ -13,7 +13,9 @@ import pytest
 
 from hitlist.mappings import (
     _MAPPING_COLUMNS,
+    _build_workers,
     _flanking_rows_to_mapping_rows,
+    _per_canonical_mapping_worker,
     _proteome_group_key,
     load_peptide_mappings,
 )
@@ -220,3 +222,108 @@ def test_proteome_group_key_sorts_canonicals_by_fasta_adjacency():
     assert abs(apple_idx - zebra_idx) == 1, ordered
     # Banana (different proteome_id) is not sandwiched between them.
     assert not (apple_idx < banana_idx < zebra_idx), ordered
+
+
+# ── Parallel mapping helpers (#249) ──────────────────────────────────────
+
+
+def test_build_workers_default_is_capped_at_four(monkeypatch):
+    """Default worker count is min(4, cpu_count // 2) — bounded so peak
+    RSS stays under workers x largest-single-length-index."""
+    monkeypatch.delenv("HITLIST_BUILD_WORKERS", raising=False)
+    n = _build_workers()
+    assert 1 <= n <= 4
+
+
+def test_build_workers_env_override_is_respected(monkeypatch):
+    monkeypatch.setenv("HITLIST_BUILD_WORKERS", "7")
+    assert _build_workers() == 7
+
+
+def test_build_workers_env_override_zero_falls_back_to_default(monkeypatch):
+    """0 / negative are nonsense and silently fall back to the default."""
+    monkeypatch.setenv("HITLIST_BUILD_WORKERS", "0")
+    assert _build_workers() >= 1
+    monkeypatch.setenv("HITLIST_BUILD_WORKERS", "-3")
+    assert _build_workers() >= 1
+
+
+def test_build_workers_env_override_garbage_falls_back_to_default(monkeypatch):
+    monkeypatch.setenv("HITLIST_BUILD_WORKERS", "all-of-them")
+    n = _build_workers()
+    assert 1 <= n <= 4
+
+
+def test_build_workers_explicit_one_returns_one(monkeypatch):
+    """HITLIST_BUILD_WORKERS=1 forces the sequential fallback."""
+    monkeypatch.setenv("HITLIST_BUILD_WORKERS", "1")
+    assert _build_workers() == 1
+
+
+class _FakeFlanking:
+    """Stand-in for ProteomeIndex with the methods the worker calls."""
+
+    def __init__(self, label: str):
+        self._label = label
+
+    def map_peptides(self, peptides, flank, verbose):
+        # One row per input peptide, all "matched" against this proteome.
+        return pd.DataFrame(
+            {
+                "peptide": list(peptides),
+                "protein_id": [f"{self._label}_PROT"] * len(peptides),
+                "gene_name": [self._label] * len(peptides),
+                "gene_id": [f"{self._label}_GENE"] * len(peptides),
+                "transcript_id": [f"{self._label}_TX"] * len(peptides),
+                "is_canonical_transcript": [True] * len(peptides),
+                "position": list(range(len(peptides))),
+                "n_flank": ["NNNNN"] * len(peptides),
+                "c_flank": ["CCCCC"] * len(peptides),
+            }
+        )
+
+
+def test_per_canonical_worker_returns_expected_shape(monkeypatch):
+    """The worker must return (canonical, dfs, n_matched, n_total) so
+    the orchestrator can aggregate and log uniformly."""
+    monkeypatch.setattr(
+        "hitlist.mappings._build_species_index",
+        lambda *a, **kw: _FakeFlanking("Homo sapiens"),
+    )
+    peptides_by_len = {
+        9: ["ABCDEFGHI", "JKLMNOPQR"],
+        10: ["ABCDEFGHIJ"],
+        12: ["ZZZZZZZZZZZZ"],  # not in lengths_in_query — should be ignored
+    }
+    canonical, dfs, n_matched, n_total = _per_canonical_mapping_worker(
+        ("Homo sapiens", peptides_by_len, (9, 10), 112, False, 10)
+    )
+    assert canonical == "Homo sapiens"
+    # Two length passes → two non-empty dfs.
+    assert len(dfs) == 2
+    # 3 distinct peptides matched (the 12-mer was outside lengths_in_query).
+    assert n_matched == 3
+    # n_total counts ALL peptides for this canonical (including non-MHC-I lengths).
+    assert n_total == 4
+
+
+def test_per_canonical_worker_skips_unbuildable_lengths(monkeypatch):
+    """When _build_species_index returns None for a length, the worker
+    skips that length silently — same as the pre-#249 sequential code."""
+    calls = {"n": 0}
+
+    def fake_build(*a, **kw):
+        calls["n"] += 1
+        # Length 9 builds; length 10 fails.
+        return _FakeFlanking("X") if kw.get("lengths") == (9,) else None
+
+    monkeypatch.setattr("hitlist.mappings._build_species_index", fake_build)
+
+    canonical, dfs, n_matched, n_total = _per_canonical_mapping_worker(
+        ("X", {9: ["ABCDEFGHI"], 10: ["ABCDEFGHIJ"]}, (9, 10), 112, False, 10)
+    )
+    assert canonical == "X"
+    assert calls["n"] == 2  # both lengths attempted
+    assert len(dfs) == 1  # only length 9 produced rows
+    assert n_matched == 1
+    assert n_total == 2

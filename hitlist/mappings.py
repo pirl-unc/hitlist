@@ -33,6 +33,7 @@ pyarrow push-down filters on ``peptide``, ``gene_name``, ``gene_id``,
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -358,44 +359,53 @@ def build_peptide_mappings(
         key=lambda c: (_proteome_group_key(canonical_to_entry.get(c, {})), c),
     )
 
+    # Bucket peptides per canonical, filter out canonicals with no
+    # MHC-I-compatible lengths, and build a flat task list for the worker
+    # pool (#249).  Empty-length canonicals are recorded synchronously so
+    # they don't take a worker slot for a no-op.
+    mapping_tasks: list[tuple] = []
     for canonical in ordered_canonicals:
         peptides = species_to_peptides[canonical]
-        # Bucket this canonical's peptides by length so we can run each
-        # length's pass against an index built at that single length only.
         peptides_by_len: dict[int, list[str]] = {}
         for p in peptides:
             peptides_by_len.setdefault(len(p), []).append(p)
         lengths_in_query = tuple(sorted(L for L in peptides_by_len if L in default_lengths))
         if not lengths_in_query:
-            # No MHC-I-compatible-length peptides for this canonical; nothing
-            # to map (MHC-II peptides at length 12+ are not indexed here —
-            # that's pre-existing behavior).
+            # MHC-II peptides at length 12+ aren't indexed here — pre-#249 behavior.
             per_proteome_stats.append((canonical, len(peptides), 0))
             continue
+        mapping_tasks.append(
+            (canonical, peptides_by_len, lengths_in_query, release, use_uniprot, flank)
+        )
 
-        if verbose:
-            print(
-                f"\n  [{canonical}] mapping {len(peptides):,} peptides "
-                f"across lengths {lengths_in_query} ..."
-            )
+    n_workers = _build_workers()
+    # Cap workers at task count — more processes than work just adds fork overhead.
+    effective_workers = min(n_workers, max(1, len(mapping_tasks)))
+    if verbose and mapping_tasks:
+        print(
+            f"\n  Mapping {len(mapping_tasks)} canonical proteome(s) "
+            f"across {effective_workers} worker(s) ..."
+        )
 
-        matched_peps: set[str] = set()
-        for length in lengths_in_query:
-            length_peptides = peptides_by_len[length]
-            idx = _build_species_index(canonical, release, use_uniprot, verbose, lengths=(length,))
-            if idx is None:
-                continue
-            flanking = idx.map_peptides(sorted(length_peptides), flank=flank, verbose=verbose)
-            df = _flanking_rows_to_mapping_rows(
-                flanking, proteome_label=canonical, proteome_source="species"
-            )
-            all_mapping_dfs.append(df)
-            if len(flanking):
-                matched_peps.update(flanking["peptide"].unique())
-            # Explicit del so the single-length index is reclaimed before the
-            # next length's build allocates its own. Critical for memory.
-            del idx, flanking
-        per_proteome_stats.append((canonical, len(peptides), len(matched_peps)))
+    if effective_workers == 1:
+        # Sequential fallback — identical to pre-#249 behavior.  Useful for
+        # debugging, deterministic profiling, and HITLIST_BUILD_WORKERS=1.
+        results_iter = (_per_canonical_mapping_worker(t) for t in mapping_tasks)
+    else:
+        from concurrent.futures import ProcessPoolExecutor
+
+        pool = ProcessPoolExecutor(max_workers=effective_workers)
+        results_iter = pool.map(_per_canonical_mapping_worker, mapping_tasks)
+
+    try:
+        for canonical, dfs, n_matched, n_total in results_iter:
+            all_mapping_dfs.extend(dfs)
+            per_proteome_stats.append((canonical, n_total, n_matched))
+            if verbose:
+                print(f"    [{canonical}] matched {n_matched:,} / {n_total:,} peptides")
+    finally:
+        if effective_workers > 1:
+            pool.shutdown(wait=True)
 
     # ── Extra proteomes (per-PMID reference_proteomes overrides) ─────────────
     pmid_extras = _collect_pmid_extra_proteomes()
@@ -469,6 +479,96 @@ def build_peptide_mappings(
         print(f"  Unique peptides: {meta['n_peptides']:,}")
         print(f"  Proteomes:       {meta['n_proteomes']}")
     return out
+
+
+# ── Parallel mapping execution (#249) ─────────────────────────────────────
+#
+# Per-species index builds are CPU-bound and embarrassingly parallel —
+# each canonical's mapping pass is independent of every other.  cProfile
+# of a cold full build (#176) showed ~67% of total wall time spent in
+# the per-species mapping block; running 4 canonicals concurrently on a
+# 10-core machine cuts that block roughly in proportion to the worker
+# count.
+#
+# The on-disk cache shipped in #246 / #251 means warm builds barely
+# touch this code path (loads from pickle), so the parallelism win is
+# concentrated on the cold-build path.
+#
+# Memory ceiling: each worker holds at most one single-length
+# ProteomeIndex at a time (matches the sequential code's "length-on-demand"
+# pattern at lines 341-345).  With the default of 4 workers, peak
+# resident is ~ 4x largest-single-length-index ~ 4 x 3 GB = 12 GB —
+# safely under the 16 GB / 32 GB host class targets.
+
+
+def _build_workers() -> int:
+    """Worker count for :func:`build_peptide_mappings` parallelism (#249).
+
+    Defaults to ``min(4, cpu_count // 2)`` so peak resident stays
+    bounded by ``workers x largest-single-length-index``.  Override via
+    ``HITLIST_BUILD_WORKERS=N``.  Set to ``1`` for the sequential
+    fallback (identical behavior to pre-#249).
+    """
+    raw = os.environ.get("HITLIST_BUILD_WORKERS")
+    if raw is not None:
+        try:
+            n = int(raw)
+            if n >= 1:
+                return n
+        except ValueError:
+            pass
+    return min(4, max(1, (os.cpu_count() or 1) // 2))
+
+
+def _per_canonical_mapping_worker(
+    args: tuple,
+) -> tuple[str, list[pd.DataFrame], int, int]:
+    """Build + map for one canonical species across its requested lengths.
+
+    Module-level so :class:`concurrent.futures.ProcessPoolExecutor` can
+    pickle and dispatch it across workers.  Logically equivalent to the
+    inner loop body of the pre-#249 sequential code:
+
+        for length in lengths_in_query:
+            idx = _build_species_index(canonical, ..., lengths=(length,))
+            flanking = idx.map_peptides(...)
+            df = _flanking_rows_to_mapping_rows(...)
+            del idx, flanking
+
+    Returns ``(canonical, dfs, n_matched_peptides, n_input_peptides)``.
+
+    Workers run with ``verbose=False`` to avoid interleaved progress
+    spam in the parent terminal — the orchestrator emits one summary
+    line per canonical on completion if it wants progress output.
+
+    On a per-length build failure (proteome not registered, FASTA
+    download failure, pyensembl missing GTF), the length is silently
+    skipped — same behavior as the sequential code.
+    """
+    canonical, peptides_by_len, lengths_in_query, release, use_uniprot, flank = args
+
+    matched_peps: set[str] = set()
+    dfs: list[pd.DataFrame] = []
+    n_input = sum(len(v) for v in peptides_by_len.values())
+
+    for length in lengths_in_query:
+        idx = _build_species_index(canonical, release, use_uniprot, False, lengths=(length,))
+        if idx is None:
+            continue
+        length_peptides = peptides_by_len[length]
+        flanking = idx.map_peptides(sorted(length_peptides), flank=flank, verbose=False)
+        df = _flanking_rows_to_mapping_rows(
+            flanking, proteome_label=canonical, proteome_source="species"
+        )
+        dfs.append(df)
+        if len(flanking):
+            matched_peps.update(flanking["peptide"].unique())
+        # Drop the index before the next length builds so per-worker
+        # peak RSS stays bounded by ONE single-length index, not
+        # all-lengths-at-once (issue #109's invariant).
+        del idx, flanking
+
+    return canonical, dfs, len(matched_peps), n_input
 
 
 def _build_species_index(
