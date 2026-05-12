@@ -366,23 +366,23 @@ def test_per_canonical_worker_return_value_is_picklable(monkeypatch):
 
 def test_prefetch_dedupes_uniprot_canonicals(monkeypatch):
     """Pre-fetch must call fetch_species_proteome ONCE per unique canonical
-    even if the same entry shows up multiple times in the input list."""
-    fetched: list[str] = []
+    KEY even if the same canonical shows up multiple times in the input."""
+    fetched: list[tuple[str, bool]] = []
 
     def fake_fetch(canonical, verbose, use_uniprot):
-        fetched.append(canonical)
+        fetched.append((canonical, use_uniprot))
         return None
 
     monkeypatch.setattr("hitlist.downloads.fetch_species_proteome", fake_fetch)
 
-    entries = [
-        {"kind": "uniprot", "canonical_species": "Mus musculus"},
-        {"kind": "uniprot", "canonical_species": "Mus musculus"},  # dup
-        {"kind": "uniprot", "canonical_species": "SARS-CoV-2 wuhan"},
+    pairs = [
+        ("Mus musculus", {"kind": "uniprot", "canonical_species": "Mus musculus"}),
+        ("Mus musculus", {"kind": "uniprot", "canonical_species": "Mus musculus"}),  # dup
+        ("SARS-CoV-2 wuhan", {"kind": "uniprot"}),
     ]
-    _prefetch_proteomes_for_workers(entries, release=112, verbose=False)
+    _prefetch_proteomes_for_workers(pairs, release=112, use_uniprot=False, verbose=False)
 
-    assert sorted(fetched) == ["Mus musculus", "SARS-CoV-2 wuhan"]
+    assert sorted(c for c, _ in fetched) == ["Mus musculus", "SARS-CoV-2 wuhan"]
 
 
 def test_prefetch_skips_ensembl_in_uniprot_loop(monkeypatch):
@@ -395,13 +395,14 @@ def test_prefetch_skips_ensembl_in_uniprot_loop(monkeypatch):
         return None
 
     monkeypatch.setattr("hitlist.downloads.fetch_species_proteome", fake_fetch)
-    # No pyensembl warm-up should happen either, since we set kind="ensembl"
-    # but with no pyensembl import patched the function will swallow ImportError.
-    entries = [
-        {"kind": "ensembl", "species": "human"},
-        {"kind": "uniprot", "canonical_species": "Mycobacterium tuberculosis"},
+    pairs = [
+        ("Homo sapiens", {"kind": "ensembl", "species": "human"}),
+        (
+            "Mycobacterium tuberculosis",
+            {"kind": "uniprot", "canonical_species": "Mycobacterium tuberculosis"},
+        ),
     ]
-    _prefetch_proteomes_for_workers(entries, release=112, verbose=False)
+    _prefetch_proteomes_for_workers(pairs, release=112, use_uniprot=False, verbose=False)
 
     assert fetched == ["Mycobacterium tuberculosis"]
 
@@ -418,19 +419,61 @@ def test_prefetch_swallows_per_canonical_failures(monkeypatch):
         return None
 
     monkeypatch.setattr("hitlist.downloads.fetch_species_proteome", flaky_fetch)
-    entries = [
-        {"kind": "uniprot", "canonical_species": "BadSpecies"},
-        {"kind": "uniprot", "canonical_species": "GoodSpecies"},
+    pairs = [
+        ("BadSpecies", {"kind": "uniprot"}),
+        ("GoodSpecies", {"kind": "uniprot"}),
     ]
     # Must NOT raise.
-    _prefetch_proteomes_for_workers(entries, release=112, verbose=False)
+    _prefetch_proteomes_for_workers(pairs, release=112, use_uniprot=False, verbose=False)
     # Both canonicals were attempted (Bad first because alphabetical).
     assert sorted(calls) == ["BadSpecies", "GoodSpecies"]
 
 
 def test_prefetch_handles_empty_input():
     """Zero entries → no work, no crash."""
-    _prefetch_proteomes_for_workers([], release=112, verbose=False)
+    _prefetch_proteomes_for_workers([], release=112, use_uniprot=False, verbose=False)
+
+
+def test_prefetch_threads_use_uniprot_to_fetch(monkeypatch):
+    """Regression: pre-fetch must pass the orchestrator's use_uniprot
+    value through to fetch_species_proteome.  Otherwise the pre-fetch
+    resolves canonicals via a different registry path than the workers
+    and may silently miss species the workers DO need (re-introducing
+    the very download race we're trying to avoid)."""
+    captured: list[bool] = []
+
+    def fake_fetch(canonical, verbose, use_uniprot):
+        captured.append(use_uniprot)
+        return None
+
+    monkeypatch.setattr("hitlist.downloads.fetch_species_proteome", fake_fetch)
+    pairs = [("SomeOrganism", {"kind": "uniprot"})]
+
+    _prefetch_proteomes_for_workers(pairs, release=112, use_uniprot=True, verbose=False)
+    assert captured == [True]
+
+    captured.clear()
+    _prefetch_proteomes_for_workers(pairs, release=112, use_uniprot=False, verbose=False)
+    assert captured == [False]
+
+
+def test_prefetch_uses_canonical_key_not_entry_field(monkeypatch):
+    """Regression: pre-fetch dedupes/feeds via the canonical KEY, not
+    entry.canonical_species.  The orchestrator's dict key falls back to
+    the source organism string when entry.canonical_species is absent;
+    earlier code keyed off the field and silently dropped these entries.
+    """
+    fetched: list[str] = []
+
+    def fake_fetch(canonical, verbose, use_uniprot):
+        fetched.append(canonical)
+        return None
+
+    monkeypatch.setattr("hitlist.downloads.fetch_species_proteome", fake_fetch)
+    # Entry has NO canonical_species field — earlier code would skip this.
+    pairs = [("Strange organism sp. ABC123", {"kind": "uniprot", "proteome_id": "UP000000001"})]
+    _prefetch_proteomes_for_workers(pairs, release=112, use_uniprot=False, verbose=False)
+    assert fetched == ["Strange organism sp. ABC123"]
 
 
 # ── End-to-end orchestrator dispatch (#249) ────────────────────────────

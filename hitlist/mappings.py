@@ -381,10 +381,15 @@ def build_peptide_mappings(
 
     # Pre-fetch all proteomes in the parent so workers don't race on
     # FASTA / GTF downloads.  No-op when caches are warm (the common case).
+    # We pass (canonical_key, entry) pairs because the canonical KEY
+    # (which is what the worker hands to fetch_species_proteome via
+    # _build_species_index) is what must be deduped — entries don't
+    # always carry an explicit `canonical_species` field.
     if mapping_tasks and effective_workers > 1:
         _prefetch_proteomes_for_workers(
-            [canonical_to_entry[t[0]] for t in mapping_tasks],
+            [(t[0], canonical_to_entry[t[0]]) for t in mapping_tasks],
             release=release,
+            use_uniprot=use_uniprot,
             verbose=verbose,
         )
 
@@ -509,10 +514,11 @@ def build_peptide_mappings(
 # concentrated on the cold-build path.
 #
 # Memory ceiling: each worker holds at most one single-length
-# ProteomeIndex at a time (matches the sequential code's "length-on-demand"
-# pattern at lines 341-345).  With the default of 4 workers, peak
-# resident is ~ 4x largest-single-length-index ~ 4 x 3 GB = 12 GB —
-# safely under the 16 GB / 32 GB host class targets.
+# ProteomeIndex at a time — the per-length build / drop loop lives
+# inside _per_canonical_mapping_worker below, preserving #109's
+# invariant.  With the default of 4 workers, peak resident is ~ 4x
+# largest-single-length-index ~ 4 x 3 GB = 12 GB — safely under the
+# 16 GB / 32 GB host class targets.
 
 
 def _build_workers() -> int:
@@ -539,8 +545,9 @@ def _build_workers() -> int:
 
 
 def _prefetch_proteomes_for_workers(
-    entries: list[dict],
+    canonicals_and_entries: list[tuple[str, dict]],
     release: int,
+    use_uniprot: bool,
     verbose: bool,
 ) -> None:
     """Eagerly download/index every proteome the workers will need (#249).
@@ -554,20 +561,39 @@ def _prefetch_proteomes_for_workers(
     SQLite index build.  We avoid both races by warming the on-disk
     caches sequentially in the parent before dispatching tasks.
 
+    Takes ``(canonical_key, entry)`` pairs because the canonical KEY
+    (the dict key the worker eventually passes to
+    :func:`fetch_species_proteome` via :func:`_build_species_index`) is
+    what must be deduped — the entry's internal ``canonical_species``
+    field isn't always set (the orchestrator falls back to the source
+    organism string when missing).
+
+    ``use_uniprot`` mirrors :func:`build_peptide_mappings`'s parameter
+    so the pre-fetch resolves canonicals against the same registry path
+    the workers will use; otherwise the pre-fetch could silently miss
+    species that workers DO need.
+
     No-op when caches are warm (the typical case): each call is
     idempotent and exits in milliseconds when the file/db is already
     present.  Failures are tolerated — the worker will hit the same
     code path and surface the error there.
+
+    Note: this warms the FASTA / GTF on disk only — it does NOT pre-build
+    the on-disk pickle index from #246/#251.  When the pickle cache is
+    cold, multiple workers may redundantly rebuild the same index;
+    ``_write_index_to_disk`` uses an atomic ``os.replace`` so concurrent
+    writes don't corrupt, just waste CPU.  Pre-building serially in the
+    parent would defeat the parallelism this PR adds.
     """
     from .downloads import fetch_species_proteome
 
-    # UniProt FASTAs: dedup by canonical species; fetch_species_proteome
-    # dedupes further by UPID inside (multiple strain canonicals → one
-    # download).
+    # UniProt FASTAs: dedup by canonical KEY (not entry.canonical_species
+    # — that field may be absent when the orchestrator's dict key fell
+    # back to the source organism).  fetch_species_proteome dedupes
+    # further by UPID inside (multiple strain canonicals → one download).
     uniprot_canonicals = sorted(
-        {e.get("canonical_species") or "" for e in entries if e.get("kind") != "ensembl"}
+        {canonical for canonical, entry in canonicals_and_entries if entry.get("kind") != "ensembl"}
     )
-    uniprot_canonicals = [c for c in uniprot_canonicals if c]
     if uniprot_canonicals and verbose:
         print(
             f"  Pre-fetching {len(uniprot_canonicals)} UniProt FASTA(s) "
@@ -575,7 +601,7 @@ def _prefetch_proteomes_for_workers(
         )
     for canonical in uniprot_canonicals:
         try:
-            fetch_species_proteome(canonical, verbose=False, use_uniprot=False)
+            fetch_species_proteome(canonical, verbose=False, use_uniprot=use_uniprot)
         except Exception as e:
             if verbose:
                 print(f"    [{canonical}] pre-fetch skipped: {e}")
@@ -584,7 +610,11 @@ def _prefetch_proteomes_for_workers(
     # once per (release, species) so workers find the local cache populated
     # rather than racing on it.  download() / index() are idempotent.
     ensembl_species = sorted(
-        {e.get("species", "human") for e in entries if e.get("kind") == "ensembl"}
+        {
+            entry.get("species", "human")
+            for _canonical, entry in canonicals_and_entries
+            if entry.get("kind") == "ensembl"
+        }
     )
     if ensembl_species:
         if verbose:
