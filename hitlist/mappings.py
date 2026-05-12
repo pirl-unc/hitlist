@@ -33,6 +33,7 @@ pyarrow push-down filters on ``peptide``, ``gene_name``, ``gene_id``,
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -338,64 +339,92 @@ def build_peptide_mappings(
     all_mapping_dfs: list[pd.DataFrame] = []
     per_proteome_stats: list[tuple[str, int, int]] = []
 
-    # ── Length-on-demand: build one k-mer length at a time ─────────────────
-    # Peak RSS during the human mapping pass drops from ~10 GB (all 4
-    # MHC-I lengths held at once) to ~3 GB (one length held at a time).
-    # The 4 lengths are built sequentially and dropped between passes;
-    # numpy-packed postings keep each single-length index compact.
+    # MHC-I peptide lengths.  Length-on-demand happens per-worker inside
+    # _per_canonical_mapping_worker so peak per-worker RSS stays bounded
+    # by ONE single-length index (preserves the #109 invariant).
     default_lengths = (8, 9, 10, 11)
 
-    # ── Build order: cluster canonicals by FASTA so the LRU cache hits ──
-    # The from_fasta LRU cache (size=4) holds (path, lengths)-keyed entries.
+    # ── Build order: cluster canonicals by FASTA so adjacent tasks share an index ──
     # Strain-variant canonicals (e.g. multiple SARS-CoV-2 / LCMV) often
-    # share one underlying FASTA via their UniProt proteome_id; iterating
-    # alphabetically scatters them and forces re-builds. Sorting by
-    # (group_key, canonical) clusters same-FASTA canonicals adjacently so
-    # the second/third/... canonical in a group hits the cache for all 4
-    # lengths in a row. See #107.
+    # share one underlying FASTA via their UniProt proteome_id.  Sorting
+    # by (group_key, canonical) clusters same-FASTA canonicals adjacently
+    # so the from_fasta in-memory cache hits on the 2nd/3rd member of a
+    # group.  Combined with chunksize=2 below, this keeps clustered
+    # neighbors on the same worker (#107 + #249).
     ordered_canonicals = sorted(
         species_to_peptides,
         key=lambda c: (_proteome_group_key(canonical_to_entry.get(c, {})), c),
     )
 
+    # Bucket peptides per canonical, filter out canonicals with no
+    # MHC-I-compatible lengths, and build a flat task list for the worker
+    # pool (#249).  Empty-length canonicals are recorded synchronously so
+    # they don't take a worker slot for a no-op.
+    mapping_tasks: list[tuple] = []
     for canonical in ordered_canonicals:
         peptides = species_to_peptides[canonical]
-        # Bucket this canonical's peptides by length so we can run each
-        # length's pass against an index built at that single length only.
         peptides_by_len: dict[int, list[str]] = {}
         for p in peptides:
             peptides_by_len.setdefault(len(p), []).append(p)
         lengths_in_query = tuple(sorted(L for L in peptides_by_len if L in default_lengths))
         if not lengths_in_query:
-            # No MHC-I-compatible-length peptides for this canonical; nothing
-            # to map (MHC-II peptides at length 12+ are not indexed here —
-            # that's pre-existing behavior).
+            # MHC-II peptides at length 12+ aren't indexed here — pre-#249 behavior.
             per_proteome_stats.append((canonical, len(peptides), 0))
             continue
+        mapping_tasks.append(
+            (canonical, peptides_by_len, lengths_in_query, release, use_uniprot, flank)
+        )
 
-        if verbose:
-            print(
-                f"\n  [{canonical}] mapping {len(peptides):,} peptides "
-                f"across lengths {lengths_in_query} ..."
-            )
+    n_workers = _build_workers()
+    # Cap workers at task count — more processes than work just adds fork overhead.
+    effective_workers = min(n_workers, max(1, len(mapping_tasks)))
 
-        matched_peps: set[str] = set()
-        for length in lengths_in_query:
-            length_peptides = peptides_by_len[length]
-            idx = _build_species_index(canonical, release, use_uniprot, verbose, lengths=(length,))
-            if idx is None:
-                continue
-            flanking = idx.map_peptides(sorted(length_peptides), flank=flank, verbose=verbose)
-            df = _flanking_rows_to_mapping_rows(
-                flanking, proteome_label=canonical, proteome_source="species"
-            )
-            all_mapping_dfs.append(df)
-            if len(flanking):
-                matched_peps.update(flanking["peptide"].unique())
-            # Explicit del so the single-length index is reclaimed before the
-            # next length's build allocates its own. Critical for memory.
-            del idx, flanking
-        per_proteome_stats.append((canonical, len(peptides), len(matched_peps)))
+    # Pre-fetch all proteomes in the parent so workers don't race on
+    # FASTA / GTF downloads.  No-op when caches are warm (the common case).
+    # We pass (canonical_key, entry) pairs because the canonical KEY
+    # (which is what the worker hands to fetch_species_proteome via
+    # _build_species_index) is what must be deduped — entries don't
+    # always carry an explicit `canonical_species` field.
+    if mapping_tasks and effective_workers > 1:
+        _prefetch_proteomes_for_workers(
+            [(t[0], canonical_to_entry[t[0]]) for t in mapping_tasks],
+            release=release,
+            use_uniprot=use_uniprot,
+            verbose=verbose,
+        )
+
+    if verbose and mapping_tasks:
+        print(
+            f"\n  Mapping {len(mapping_tasks)} canonical proteome(s) "
+            f"across {effective_workers} worker(s) ..."
+        )
+
+    if effective_workers == 1:
+        # Sequential fallback — identical to pre-#249 behavior.  Useful for
+        # debugging, deterministic profiling, and HITLIST_BUILD_WORKERS=1.
+        for canonical, dfs, n_matched, n_total in (
+            _per_canonical_mapping_worker(t) for t in mapping_tasks
+        ):
+            all_mapping_dfs.extend(dfs)
+            per_proteome_stats.append((canonical, n_total, n_matched))
+            if verbose:
+                print(f"    [{canonical}] matched {n_matched:,} / {n_total:,} peptides")
+    else:
+        from concurrent.futures import ProcessPoolExecutor
+
+        # chunksize=2 keeps adjacent FASTA-clustered tasks on the same
+        # worker, recovering some of #107's in-memory LRU benefit that a
+        # default chunksize=1 round-robin would scatter.  Strain-variant
+        # clusters of size ≥ 2 (the common case) get the 2nd member's
+        # index from the same-process cache rather than rebuilding.
+        with ProcessPoolExecutor(max_workers=effective_workers) as pool:
+            for canonical, dfs, n_matched, n_total in pool.map(
+                _per_canonical_mapping_worker, mapping_tasks, chunksize=2
+            ):
+                all_mapping_dfs.extend(dfs)
+                per_proteome_stats.append((canonical, n_total, n_matched))
+                if verbose:
+                    print(f"    [{canonical}] matched {n_matched:,} / {n_total:,} peptides")
 
     # ── Extra proteomes (per-PMID reference_proteomes overrides) ─────────────
     pmid_extras = _collect_pmid_extra_proteomes()
@@ -469,6 +498,194 @@ def build_peptide_mappings(
         print(f"  Unique peptides: {meta['n_peptides']:,}")
         print(f"  Proteomes:       {meta['n_proteomes']}")
     return out
+
+
+# ── Parallel mapping execution (#249) ─────────────────────────────────────
+#
+# Per-species index builds are CPU-bound and embarrassingly parallel —
+# each canonical's mapping pass is independent of every other.  cProfile
+# of a cold full build (#176) showed ~67% of total wall time spent in
+# the per-species mapping block; running 4 canonicals concurrently on a
+# 10-core machine cuts that block roughly in proportion to the worker
+# count.
+#
+# The on-disk cache shipped in #246 / #251 means warm builds barely
+# touch this code path (loads from pickle), so the parallelism win is
+# concentrated on the cold-build path.
+#
+# Memory ceiling: each worker holds at most one single-length
+# ProteomeIndex at a time — the per-length build / drop loop lives
+# inside _per_canonical_mapping_worker below, preserving #109's
+# invariant.  With the default of 4 workers, peak resident is ~ 4x
+# largest-single-length-index ~ 4 x 3 GB = 12 GB — safely under the
+# 16 GB / 32 GB host class targets.
+
+
+def _build_workers() -> int:
+    """Worker count for :func:`build_peptide_mappings` parallelism (#249).
+
+    Defaults to ``min(4, cpu_count // 2)`` so peak resident stays
+    bounded by ``workers x largest-single-length-index``.  Override via
+    ``HITLIST_BUILD_WORKERS=N``.  Set to ``1`` for the sequential
+    fallback (identical behavior to pre-#249).
+
+    The override is NOT capped at ``cpu_count``: a value of 16 on an
+    8-core box will spawn 16 workers and likely OOM on the human pass.
+    Treat this as a power-user knob — the default is the safe choice.
+    """
+    raw = os.environ.get("HITLIST_BUILD_WORKERS")
+    if raw is not None:
+        try:
+            n = int(raw)
+            if n >= 1:
+                return n
+        except ValueError:
+            pass
+    return min(4, max(1, (os.cpu_count() or 1) // 2))
+
+
+def _prefetch_proteomes_for_workers(
+    canonicals_and_entries: list[tuple[str, dict]],
+    release: int,
+    use_uniprot: bool,
+    verbose: bool,
+) -> None:
+    """Eagerly download/index every proteome the workers will need (#249).
+
+    Workers run in fresh processes (``ProcessPoolExecutor`` defaults to
+    spawn on macOS, fork on Linux) and don't share download locks.  On
+    a first-ever cold build, two workers needing the SAME UniProt FASTA
+    could race on the ``.tmp`` file (``fetch_species_proteome`` writes
+    via ``urllib.request.urlretrieve`` to a non-unique tmp path).  Two
+    workers needing the SAME pyensembl GTF could race on its download +
+    SQLite index build.  We avoid both races by warming the on-disk
+    caches sequentially in the parent before dispatching tasks.
+
+    Takes ``(canonical_key, entry)`` pairs because the canonical KEY
+    (the dict key the worker eventually passes to
+    :func:`fetch_species_proteome` via :func:`_build_species_index`) is
+    what must be deduped — the entry's internal ``canonical_species``
+    field isn't always set (the orchestrator falls back to the source
+    organism string when missing).
+
+    ``use_uniprot`` mirrors :func:`build_peptide_mappings`'s parameter
+    so the pre-fetch resolves canonicals against the same registry path
+    the workers will use; otherwise the pre-fetch could silently miss
+    species that workers DO need.
+
+    No-op when caches are warm (the typical case): each call is
+    idempotent and exits in milliseconds when the file/db is already
+    present.  Failures are tolerated — the worker will hit the same
+    code path and surface the error there.
+
+    Note: this warms the FASTA / GTF on disk only — it does NOT pre-build
+    the on-disk pickle index from #246/#251.  When the pickle cache is
+    cold, multiple workers may redundantly rebuild the same index;
+    ``_write_index_to_disk`` uses an atomic ``os.replace`` so concurrent
+    writes don't corrupt, just waste CPU.  Pre-building serially in the
+    parent would defeat the parallelism this PR adds.
+    """
+    from .downloads import fetch_species_proteome
+
+    # UniProt FASTAs: dedup by canonical KEY (not entry.canonical_species
+    # — that field may be absent when the orchestrator's dict key fell
+    # back to the source organism).  fetch_species_proteome dedupes
+    # further by UPID inside (multiple strain canonicals → one download).
+    uniprot_canonicals = sorted(
+        {canonical for canonical, entry in canonicals_and_entries if entry.get("kind") != "ensembl"}
+    )
+    if uniprot_canonicals and verbose:
+        print(
+            f"  Pre-fetching {len(uniprot_canonicals)} UniProt FASTA(s) "
+            f"in parent (avoids worker download races) ..."
+        )
+    for canonical in uniprot_canonicals:
+        try:
+            fetch_species_proteome(canonical, verbose=False, use_uniprot=use_uniprot)
+        except Exception as e:
+            if verbose:
+                print(f"    [{canonical}] pre-fetch skipped: {e}")
+
+    # Ensembl species: pre-trigger pyensembl download + SQLite index build
+    # once per (release, species) so workers find the local cache populated
+    # rather than racing on it.  download() / index() are idempotent.
+    ensembl_species = sorted(
+        {
+            entry.get("species", "human")
+            for _canonical, entry in canonicals_and_entries
+            if entry.get("kind") == "ensembl"
+        }
+    )
+    if ensembl_species:
+        if verbose:
+            print(
+                f"  Pre-warming {len(ensembl_species)} Ensembl release(s) "
+                f"in parent (avoids worker GTF races) ..."
+            )
+        try:
+            from pyensembl import EnsemblRelease
+        except ImportError:
+            return
+        for species in ensembl_species:
+            try:
+                ensembl = EnsemblRelease(release, species=species)
+                # download() then index() — both idempotent, cheap when warm.
+                ensembl.download()
+                ensembl.index()
+            except Exception as e:
+                if verbose:
+                    print(f"    [{species}] pre-warm skipped: {e}")
+
+
+def _per_canonical_mapping_worker(
+    args: tuple,
+) -> tuple[str, list[pd.DataFrame], int, int]:
+    """Build + map for one canonical species across its requested lengths.
+
+    Module-level so :class:`concurrent.futures.ProcessPoolExecutor` can
+    pickle and dispatch it across workers.  Logically equivalent to the
+    inner loop body of the pre-#249 sequential code:
+
+        for length in lengths_in_query:
+            idx = _build_species_index(canonical, ..., lengths=(length,))
+            flanking = idx.map_peptides(...)
+            df = _flanking_rows_to_mapping_rows(...)
+            del idx, flanking
+
+    Returns ``(canonical, dfs, n_matched_peptides, n_input_peptides)``.
+
+    Workers run with ``verbose=False`` to avoid interleaved progress
+    spam in the parent terminal — the orchestrator emits one summary
+    line per canonical on completion if it wants progress output.
+
+    On a per-length build failure (proteome not registered, FASTA
+    download failure, pyensembl missing GTF), the length is silently
+    skipped — same behavior as the sequential code.
+    """
+    canonical, peptides_by_len, lengths_in_query, release, use_uniprot, flank = args
+
+    matched_peps: set[str] = set()
+    dfs: list[pd.DataFrame] = []
+    n_input = sum(len(v) for v in peptides_by_len.values())
+
+    for length in lengths_in_query:
+        idx = _build_species_index(canonical, release, use_uniprot, False, lengths=(length,))
+        if idx is None:
+            continue
+        length_peptides = peptides_by_len[length]
+        flanking = idx.map_peptides(sorted(length_peptides), flank=flank, verbose=False)
+        df = _flanking_rows_to_mapping_rows(
+            flanking, proteome_label=canonical, proteome_source="species"
+        )
+        dfs.append(df)
+        if len(flanking):
+            matched_peps.update(flanking["peptide"].unique())
+        # Drop the index before the next length builds so per-worker
+        # peak RSS stays bounded by ONE single-length index, not
+        # all-lengths-at-once (issue #109's invariant).
+        del idx, flanking
+
+    return canonical, dfs, len(matched_peps), n_input
 
 
 def _build_species_index(

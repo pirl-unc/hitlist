@@ -13,7 +13,10 @@ import pytest
 
 from hitlist.mappings import (
     _MAPPING_COLUMNS,
+    _build_workers,
     _flanking_rows_to_mapping_rows,
+    _per_canonical_mapping_worker,
+    _prefetch_proteomes_for_workers,
     _proteome_group_key,
     load_peptide_mappings,
 )
@@ -220,3 +223,341 @@ def test_proteome_group_key_sorts_canonicals_by_fasta_adjacency():
     assert abs(apple_idx - zebra_idx) == 1, ordered
     # Banana (different proteome_id) is not sandwiched between them.
     assert not (apple_idx < banana_idx < zebra_idx), ordered
+
+
+# ── Parallel mapping helpers (#249) ──────────────────────────────────────
+
+
+def test_build_workers_default_is_capped_at_four(monkeypatch):
+    """Default worker count is min(4, cpu_count // 2) — bounded so peak
+    RSS stays under workers x largest-single-length-index."""
+    monkeypatch.delenv("HITLIST_BUILD_WORKERS", raising=False)
+    n = _build_workers()
+    assert 1 <= n <= 4
+
+
+def test_build_workers_env_override_is_respected(monkeypatch):
+    monkeypatch.setenv("HITLIST_BUILD_WORKERS", "7")
+    assert _build_workers() == 7
+
+
+def test_build_workers_env_override_zero_falls_back_to_default(monkeypatch):
+    """0 / negative are nonsense and silently fall back to the default."""
+    monkeypatch.setenv("HITLIST_BUILD_WORKERS", "0")
+    assert _build_workers() >= 1
+    monkeypatch.setenv("HITLIST_BUILD_WORKERS", "-3")
+    assert _build_workers() >= 1
+
+
+def test_build_workers_env_override_garbage_falls_back_to_default(monkeypatch):
+    monkeypatch.setenv("HITLIST_BUILD_WORKERS", "all-of-them")
+    n = _build_workers()
+    assert 1 <= n <= 4
+
+
+def test_build_workers_explicit_one_returns_one(monkeypatch):
+    """HITLIST_BUILD_WORKERS=1 forces the sequential fallback."""
+    monkeypatch.setenv("HITLIST_BUILD_WORKERS", "1")
+    assert _build_workers() == 1
+
+
+class _FakeFlanking:
+    """Stand-in for ProteomeIndex with the methods the worker calls."""
+
+    def __init__(self, label: str):
+        self._label = label
+
+    def map_peptides(self, peptides, flank, verbose):
+        # One row per input peptide, all "matched" against this proteome.
+        return pd.DataFrame(
+            {
+                "peptide": list(peptides),
+                "protein_id": [f"{self._label}_PROT"] * len(peptides),
+                "gene_name": [self._label] * len(peptides),
+                "gene_id": [f"{self._label}_GENE"] * len(peptides),
+                "transcript_id": [f"{self._label}_TX"] * len(peptides),
+                "is_canonical_transcript": [True] * len(peptides),
+                "position": list(range(len(peptides))),
+                "n_flank": ["NNNNN"] * len(peptides),
+                "c_flank": ["CCCCC"] * len(peptides),
+            }
+        )
+
+
+def test_per_canonical_worker_returns_expected_shape(monkeypatch):
+    """The worker must return (canonical, dfs, n_matched, n_total) so
+    the orchestrator can aggregate and log uniformly."""
+    monkeypatch.setattr(
+        "hitlist.mappings._build_species_index",
+        lambda *a, **kw: _FakeFlanking("Homo sapiens"),
+    )
+    peptides_by_len = {
+        9: ["ABCDEFGHI", "JKLMNOPQR"],
+        10: ["ABCDEFGHIJ"],
+        12: ["ZZZZZZZZZZZZ"],  # not in lengths_in_query — should be ignored
+    }
+    canonical, dfs, n_matched, n_total = _per_canonical_mapping_worker(
+        ("Homo sapiens", peptides_by_len, (9, 10), 112, False, 10)
+    )
+    assert canonical == "Homo sapiens"
+    # Two length passes → two non-empty dfs.
+    assert len(dfs) == 2
+    # 3 distinct peptides matched (the 12-mer was outside lengths_in_query).
+    assert n_matched == 3
+    # n_total counts ALL peptides for this canonical (including non-MHC-I lengths).
+    assert n_total == 4
+
+
+def test_per_canonical_worker_skips_unbuildable_lengths(monkeypatch):
+    """When _build_species_index returns None for a length, the worker
+    skips that length silently — same as the pre-#249 sequential code."""
+    calls = {"n": 0}
+
+    def fake_build(*a, **kw):
+        calls["n"] += 1
+        # Length 9 builds; length 10 fails.
+        return _FakeFlanking("X") if kw.get("lengths") == (9,) else None
+
+    monkeypatch.setattr("hitlist.mappings._build_species_index", fake_build)
+
+    canonical, dfs, n_matched, n_total = _per_canonical_mapping_worker(
+        ("X", {9: ["ABCDEFGHI"], 10: ["ABCDEFGHIJ"]}, (9, 10), 112, False, 10)
+    )
+    assert canonical == "X"
+    assert calls["n"] == 2  # both lengths attempted
+    assert len(dfs) == 1  # only length 9 produced rows
+    assert n_matched == 1
+    assert n_total == 2
+
+
+def test_per_canonical_worker_args_are_picklable():
+    """ProcessPoolExecutor.map dispatches via pickle — args MUST round-trip."""
+    import pickle
+
+    args = (
+        "Homo sapiens",
+        {9: ["ABCDEFGHI", "JKLMNOPQR"], 10: ["ABCDEFGHIJ"]},
+        (9, 10),
+        112,
+        False,
+        10,
+    )
+    assert pickle.loads(pickle.dumps(args)) == args
+
+
+def test_per_canonical_worker_return_value_is_picklable(monkeypatch):
+    """And so must the return value — list[DataFrame] is picklable."""
+    import pickle
+
+    monkeypatch.setattr(
+        "hitlist.mappings._build_species_index",
+        lambda *a, **kw: _FakeFlanking("Z"),
+    )
+    result = _per_canonical_mapping_worker(("Z", {9: ["ABCDEFGHI"]}, (9,), 112, False, 10))
+    round_tripped = pickle.loads(pickle.dumps(result))
+    assert round_tripped[0] == "Z"
+    assert len(round_tripped[1]) == 1
+    assert round_tripped[2] == 1
+    assert round_tripped[3] == 1
+
+
+# ── _prefetch_proteomes_for_workers (#249) ──────────────────────────────
+
+
+def test_prefetch_dedupes_uniprot_canonicals(monkeypatch):
+    """Pre-fetch must call fetch_species_proteome ONCE per unique canonical
+    KEY even if the same canonical shows up multiple times in the input."""
+    fetched: list[tuple[str, bool]] = []
+
+    def fake_fetch(canonical, verbose, use_uniprot):
+        fetched.append((canonical, use_uniprot))
+        return None
+
+    monkeypatch.setattr("hitlist.downloads.fetch_species_proteome", fake_fetch)
+
+    pairs = [
+        ("Mus musculus", {"kind": "uniprot", "canonical_species": "Mus musculus"}),
+        ("Mus musculus", {"kind": "uniprot", "canonical_species": "Mus musculus"}),  # dup
+        ("SARS-CoV-2 wuhan", {"kind": "uniprot"}),
+    ]
+    _prefetch_proteomes_for_workers(pairs, release=112, use_uniprot=False, verbose=False)
+
+    assert sorted(c for c, _ in fetched) == ["Mus musculus", "SARS-CoV-2 wuhan"]
+
+
+def test_prefetch_skips_ensembl_in_uniprot_loop(monkeypatch):
+    """Ensembl entries must not be fed to fetch_species_proteome — they
+    have no FASTA to download (pyensembl manages its own cache).
+
+    Mocks the ``pyensembl`` module so the test doesn't trigger a real
+    ``EnsemblRelease(112).download() / .index()`` against ftp.ensembl.org
+    on machines without ``~/.pyensembl/release-112/`` already cached.
+    """
+    import sys
+    import types
+
+    fetched: list[str] = []
+
+    def fake_fetch(canonical, verbose, use_uniprot):
+        fetched.append(canonical)
+        return None
+
+    # Record pyensembl interactions so we can assert the Ensembl warm-up
+    # branch was actually reached (the whole point of this test).
+    ensembl_calls: list[str] = []
+
+    class _FakeEnsembl:
+        def __init__(self, release, species=None):
+            self.release = release
+            self.species = species
+
+        def download(self):
+            ensembl_calls.append(f"download({self.release},{self.species})")
+
+        def index(self):
+            ensembl_calls.append(f"index({self.release},{self.species})")
+
+    fake_pyensembl = types.SimpleNamespace(EnsemblRelease=_FakeEnsembl)
+    monkeypatch.setitem(sys.modules, "pyensembl", fake_pyensembl)
+    monkeypatch.setattr("hitlist.downloads.fetch_species_proteome", fake_fetch)
+
+    pairs = [
+        ("Homo sapiens", {"kind": "ensembl", "species": "human"}),
+        (
+            "Mycobacterium tuberculosis",
+            {"kind": "uniprot", "canonical_species": "Mycobacterium tuberculosis"},
+        ),
+    ]
+    _prefetch_proteomes_for_workers(pairs, release=112, use_uniprot=False, verbose=False)
+
+    # Only the UniProt entry was fed to fetch_species_proteome.
+    assert fetched == ["Mycobacterium tuberculosis"]
+    # The Ensembl branch DID run — both download() and index() called once.
+    assert ensembl_calls == ["download(112,human)", "index(112,human)"]
+
+
+def test_prefetch_ensembl_branch_handles_missing_pyensembl(monkeypatch):
+    """When pyensembl is unavailable, the helper exits cleanly without
+    propagating the ImportError to the caller."""
+    import sys
+
+    monkeypatch.setitem(sys.modules, "pyensembl", None)
+    pairs = [("Homo sapiens", {"kind": "ensembl", "species": "human"})]
+    # Must NOT raise.  Setting sys.modules["pyensembl"] = None causes
+    # `import pyensembl` to ImportError, which the helper swallows.
+    _prefetch_proteomes_for_workers(pairs, release=112, use_uniprot=False, verbose=False)
+
+
+def test_prefetch_swallows_per_canonical_failures(monkeypatch):
+    """A failed fetch on one canonical must not crash the pre-fetch pass —
+    workers will hit the same failure and surface it there."""
+    calls: list[str] = []
+
+    def flaky_fetch(canonical, verbose, use_uniprot):
+        calls.append(canonical)
+        if canonical == "BadSpecies":
+            raise RuntimeError("simulated download failure")
+        return None
+
+    monkeypatch.setattr("hitlist.downloads.fetch_species_proteome", flaky_fetch)
+    pairs = [
+        ("BadSpecies", {"kind": "uniprot"}),
+        ("GoodSpecies", {"kind": "uniprot"}),
+    ]
+    # Must NOT raise.
+    _prefetch_proteomes_for_workers(pairs, release=112, use_uniprot=False, verbose=False)
+    # Both canonicals were attempted (Bad first because alphabetical).
+    assert sorted(calls) == ["BadSpecies", "GoodSpecies"]
+
+
+def test_prefetch_handles_empty_input():
+    """Zero entries → no work, no crash."""
+    _prefetch_proteomes_for_workers([], release=112, use_uniprot=False, verbose=False)
+
+
+def test_prefetch_threads_use_uniprot_to_fetch(monkeypatch):
+    """Regression: pre-fetch must pass the orchestrator's use_uniprot
+    value through to fetch_species_proteome.  Otherwise the pre-fetch
+    resolves canonicals via a different registry path than the workers
+    and may silently miss species the workers DO need (re-introducing
+    the very download race we're trying to avoid)."""
+    captured: list[bool] = []
+
+    def fake_fetch(canonical, verbose, use_uniprot):
+        captured.append(use_uniprot)
+        return None
+
+    monkeypatch.setattr("hitlist.downloads.fetch_species_proteome", fake_fetch)
+    pairs = [("SomeOrganism", {"kind": "uniprot"})]
+
+    _prefetch_proteomes_for_workers(pairs, release=112, use_uniprot=True, verbose=False)
+    assert captured == [True]
+
+    captured.clear()
+    _prefetch_proteomes_for_workers(pairs, release=112, use_uniprot=False, verbose=False)
+    assert captured == [False]
+
+
+def test_prefetch_uses_canonical_key_not_entry_field(monkeypatch):
+    """Regression: pre-fetch dedupes/feeds via the canonical KEY, not
+    entry.canonical_species.  The orchestrator's dict key falls back to
+    the source organism string when entry.canonical_species is absent;
+    earlier code keyed off the field and silently dropped these entries.
+    """
+    fetched: list[str] = []
+
+    def fake_fetch(canonical, verbose, use_uniprot):
+        fetched.append(canonical)
+        return None
+
+    monkeypatch.setattr("hitlist.downloads.fetch_species_proteome", fake_fetch)
+    # Entry has NO canonical_species field — earlier code would skip this.
+    pairs = [("Strange organism sp. ABC123", {"kind": "uniprot", "proteome_id": "UP000000001"})]
+    _prefetch_proteomes_for_workers(pairs, release=112, use_uniprot=False, verbose=False)
+    assert fetched == ["Strange organism sp. ABC123"]
+
+
+# ── End-to-end orchestrator dispatch (#249) ────────────────────────────
+
+
+def _e2e_worker_for_pool_test(args):
+    """Module-level (picklable) double of _per_canonical_mapping_worker for
+    end-to-end ProcessPoolExecutor dispatch tests.  Returns the same shape
+    so the orchestrator's aggregation can be exercised without needing a
+    real proteome.  Defined at module scope so spawn-based pools can pickle.
+    """
+    canonical, peptides_by_len, lengths_in_query, _release, _use_uniprot, _flank = args
+    n_input = sum(len(v) for v in peptides_by_len.values())
+    n_matched = sum(len(peptides_by_len.get(L, [])) for L in lengths_in_query)
+    df = pd.DataFrame(
+        {
+            "peptide": ["FAKEPEP"],
+            "protein_id": [f"{canonical}_PROT"],
+            "gene_name": [canonical],
+            "gene_id": [f"{canonical}_GENE"],
+            "transcript_id": [""],
+            "is_canonical_transcript": [False],
+            "position": [0],
+            "n_flank": [""],
+            "c_flank": [""],
+            "proteome": [canonical],
+            "proteome_source": ["species"],
+        }
+    )
+    return canonical, [df], n_matched, n_input
+
+
+def test_pool_map_dispatch_preserves_order_and_aggregates_results():
+    """Verify ProcessPoolExecutor.map round-trips our worker contract end-to-end:
+    pickle args/results, preserve task order, return all canonicals."""
+    from concurrent.futures import ProcessPoolExecutor
+
+    tasks = [(f"species_{i}", {9: [f"PEP{i:05d}"]}, (9,), 112, False, 10) for i in range(6)]
+    with ProcessPoolExecutor(max_workers=2) as pool:
+        results = list(pool.map(_e2e_worker_for_pool_test, tasks, chunksize=2))
+    # Order is preserved by pool.map (matches submission order).
+    assert [r[0] for r in results] == [t[0] for t in tasks]
+    # Each task produced exactly one DataFrame.
+    assert all(len(r[1]) == 1 for r in results)
+    # n_matched == n_total == 1 in all cases.
+    assert all(r[2] == 1 and r[3] == 1 for r in results)

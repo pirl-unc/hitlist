@@ -1384,17 +1384,6 @@ def _load_species_index(
                 verbose=verbose,
             )
             return idx, canonical
-        except TypeError:
-            # Older signature without species kwarg — only human works then
-            if species == "human":
-                idx = ProteomeIndex.from_ensembl(release=release, verbose=verbose)
-                return idx, canonical
-            if verbose:
-                print(
-                    f"  [{canonical}] pyensembl species={species} not supported "
-                    "by installed ProteomeIndex; skipping"
-                )
-            return None, None
         except Exception as e:
             if verbose:
                 print(f"  [{canonical}] pyensembl failed: {e}")
