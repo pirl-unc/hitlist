@@ -1035,3 +1035,202 @@ def test_clear_disk_cache_removes_tmp_files_too(tmp_path, isolated_disk_cache):
     clear_disk_cache()
     assert not pkl.exists()
     assert not tmp.exists()
+
+
+# ── from_ensembl on-disk cache (#251) ─────────────────────────────────────
+
+
+def _install_fake_ensembl(tmp_path, monkeypatch, gtf_size_marker: bytes = b"v1"):
+    """Install a synthetic ``pyensembl`` module + matching GTF file.
+
+    The fake ``EnsemblRelease.gtf_path`` returns a real on-disk file in
+    ``tmp_path`` so the cache invalidator (size + mtime) works.  Tweak
+    ``gtf_size_marker`` between calls to simulate a GTF re-download.
+    """
+    import sys
+    import types
+
+    gtf = tmp_path / "fake.gtf"
+    gtf.write_bytes(gtf_size_marker)
+
+    fake_module = types.ModuleType("pyensembl")
+
+    class _FakeTranscript:
+        def __init__(self, tid, protein_id, seq):
+            self.id = tid
+            self.protein_id = protein_id
+            self.protein_sequence = seq
+            self.biotype = "protein_coding"
+
+    class _FakeGene:
+        def __init__(self):
+            self.name = "FAKEGENE"
+            self.id = "ENSG00000FAKE"
+            self.biotype = "protein_coding"
+            self.transcripts = [
+                _FakeTranscript("ENST_T1", "ENSP_T1", "ACDEFGHIKLMNPQ"),
+            ]
+
+    class _FakeEnsembl:
+        def __init__(self, *args, **kwargs):
+            self.gtf_path = str(gtf)
+
+        def genes(self):
+            return [_FakeGene()]
+
+    fake_module.EnsemblRelease = _FakeEnsembl
+    monkeypatch.setitem(sys.modules, "pyensembl", fake_module)
+    return gtf
+
+
+def test_from_ensembl_disk_cache_persists_across_in_memory_eviction(
+    tmp_path, isolated_disk_cache, monkeypatch
+):
+    """Build via from_ensembl, drop the in-memory cache, build again —
+    the second build must hit the on-disk cache instead of re-running
+    ``_build`` (or even re-iterating the pyensembl genes list).
+    """
+    from unittest.mock import patch
+
+    from hitlist.proteome import clear_fasta_index_cache
+
+    _install_fake_ensembl(tmp_path, monkeypatch)
+
+    idx1 = ProteomeIndex.from_ensembl(release=999, lengths=(5,), verbose=False)
+    assert "ENSP_T1" in idx1.proteins
+
+    clear_fasta_index_cache()
+
+    # Second call must NOT call _build.  If pyensembl's genes() is called
+    # again that's also wasted work but tolerable; the critical assertion
+    # is that the expensive k-mer pass is skipped.
+    with patch.object(ProteomeIndex, "_build", side_effect=AssertionError("_build called")):
+        idx2 = ProteomeIndex.from_ensembl(release=999, lengths=(5,), verbose=False)
+
+    assert idx1.proteins == idx2.proteins
+    assert idx1.protein_meta == idx2.protein_meta
+    # Pickle round-trip → different instance.
+    assert idx1 is not idx2
+
+
+def test_from_ensembl_cache_invalidates_on_gtf_change(tmp_path, isolated_disk_cache, monkeypatch):
+    """Editing the local GTF (size or mtime change) must produce a
+    different cache key → fresh build with the new gene set.
+    """
+    import time
+
+    from hitlist.proteome import clear_fasta_index_cache
+
+    gtf = _install_fake_ensembl(tmp_path, monkeypatch, gtf_size_marker=b"v1")
+    idx1 = ProteomeIndex.from_ensembl(release=999, lengths=(5,), verbose=False)
+    assert "ENSP_T1" in idx1.proteins
+    n_before = len(idx1.proteins)
+
+    # Simulate a GTF re-download: bump size + mtime.
+    time.sleep(0.01)
+    gtf.write_bytes(b"v2_with_more_bytes" * 8)
+    import os as _os
+
+    _os.utime(gtf, None)
+
+    clear_fasta_index_cache()
+    # Same fake genes list, but different cache key → fresh _build.
+    idx2 = ProteomeIndex.from_ensembl(release=999, lengths=(5,), verbose=False)
+    assert "ENSP_T1" in idx2.proteins
+    assert len(idx2.proteins) == n_before
+    # Distinct cache files on disk (one per (release, gtf-fingerprint)).
+    from hitlist.proteome import _PROTEOME_INDEX_DISK_CACHE_DIR
+
+    files = list(_PROTEOME_INDEX_DISK_CACHE_DIR.glob("v*ensembl*.pkl"))
+    assert len(files) == 2, f"expected 2 cache files (one per GTF version), got {files}"
+
+
+def test_from_ensembl_cache_keyed_on_release_and_species(
+    tmp_path, isolated_disk_cache, monkeypatch
+):
+    """Different (release, species, biotype, lengths) → independent cache
+    files."""
+    from hitlist.proteome import _PROTEOME_INDEX_DISK_CACHE_DIR, clear_fasta_index_cache
+
+    _install_fake_ensembl(tmp_path, monkeypatch)
+
+    ProteomeIndex.from_ensembl(release=111, species="human", lengths=(5,), verbose=False)
+    clear_fasta_index_cache()
+    ProteomeIndex.from_ensembl(release=112, species="human", lengths=(5,), verbose=False)
+    clear_fasta_index_cache()
+    ProteomeIndex.from_ensembl(release=112, species="mouse", lengths=(5,), verbose=False)
+    clear_fasta_index_cache()
+    ProteomeIndex.from_ensembl(release=112, species="human", lengths=(8,), verbose=False)
+
+    files = sorted(_PROTEOME_INDEX_DISK_CACHE_DIR.glob("v*ensembl*.pkl"))
+    # 4 distinct keys → 4 distinct files.
+    assert len(files) == 4, f"expected 4 cache files, got {[f.name for f in files]}"
+
+
+def test_from_ensembl_cache_disabled_when_gtf_unresolvable(
+    tmp_path, isolated_disk_cache, monkeypatch
+):
+    """When pyensembl's release can't expose a usable GTF path (synthetic
+    test fakes, missing local data), caching is silently skipped and the
+    cold path runs as before.  Backwards-compatible: the existing
+    ``test_from_ensembl_*`` tests with no gtf_path attribute keep working.
+    """
+    import sys
+    import types
+
+    from hitlist.proteome import _PROTEOME_INDEX_DISK_CACHE_DIR
+
+    fake_module = types.ModuleType("pyensembl")
+
+    class _FakeTranscriptNoProteinId:
+        def __init__(self, tid, seq):
+            self.id = tid
+            self.protein_sequence = seq
+            self.biotype = "protein_coding"
+
+    class _FakeGene:
+        def __init__(self):
+            self.name = "G"
+            self.id = "ENSG00000X"
+            self.biotype = "protein_coding"
+            self.transcripts = [_FakeTranscriptNoProteinId("ENST_X1", "AAAAAAAA")]
+
+    class _FakeEnsembl:
+        # No gtf_path attribute at all.
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def genes(self):
+            return [_FakeGene()]
+
+    fake_module.EnsemblRelease = _FakeEnsembl
+    monkeypatch.setitem(sys.modules, "pyensembl", fake_module)
+
+    idx = ProteomeIndex.from_ensembl(release=999, lengths=(5,), verbose=False)
+    assert "ENST_X1" in idx.proteins
+    # No cache files written when caching is disabled.
+    files = list(_PROTEOME_INDEX_DISK_CACHE_DIR.glob("v*ensembl*.pkl"))
+    assert files == [], f"expected no cache files when gtf_path is unresolvable, got {files}"
+
+
+def test_from_ensembl_disk_hit_promotes_into_in_memory_cache(
+    tmp_path, isolated_disk_cache, monkeypatch
+):
+    """Same promotion semantics as from_fasta: on a disk-cache hit, the
+    in-memory cache gets populated so subsequent calls hit the fast
+    path."""
+    from hitlist.proteome import _FASTA_INDEX_CACHE, clear_fasta_index_cache
+
+    _install_fake_ensembl(tmp_path, monkeypatch)
+
+    ProteomeIndex.from_ensembl(release=999, lengths=(5,), verbose=False)
+    clear_fasta_index_cache()
+    assert len(_FASTA_INDEX_CACHE) == 0
+
+    # Disk-cache hit populates in-memory cache.
+    idx_disk = ProteomeIndex.from_ensembl(release=999, lengths=(5,), verbose=False)
+    assert len(_FASTA_INDEX_CACHE) == 1
+
+    # Subsequent call returns the same instance.
+    idx_mem = ProteomeIndex.from_ensembl(release=999, lengths=(5,), verbose=False)
+    assert idx_mem is idx_disk
