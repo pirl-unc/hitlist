@@ -628,12 +628,7 @@ def _prefetch_proteomes_for_workers(
             return
         for species in ensembl_species:
             try:
-                try:
-                    ensembl = EnsemblRelease(release, species=species)
-                except TypeError:
-                    if species != "human":
-                        continue
-                    ensembl = EnsemblRelease(release)
+                ensembl = EnsemblRelease(release, species=species)
                 # download() then index() — both idempotent, cheap when warm.
                 ensembl.download()
                 ensembl.index()
