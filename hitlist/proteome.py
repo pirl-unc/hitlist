@@ -201,16 +201,147 @@ def _disk_cache_filename(cache_key: tuple) -> str:
     prefix lets us evolve ``_build``'s output shape without
     contaminating new builds with stale-format pickles.
 
-    Coupling note: this positionally decomposes the ``cache_key`` tuple
-    built in :meth:`ProteomeIndex.from_fasta`.  Adding/reordering fields
-    in that tuple requires updating this unpacking too — the hash
+    Two cache-key shapes are recognized via the first-element discriminant:
+
+    * ``("ensembl", release, species, biotype, lengths, gtf_size, gtf_mtime)``
+      — emitted by :meth:`ProteomeIndex.from_ensembl` (#251).
+    * ``(path_str, size, mtime, lengths, gene_name, gene_id)`` — emitted by
+      :meth:`ProteomeIndex.from_fasta` (#246).  This is the legacy shape;
+      no leading discriminant tag.
+
+    Coupling note: adding/reordering fields in either tuple shape
+    requires updating the matching unpacking branch below — the hash
     suffix would silently change for the same logical key otherwise.
     """
-    path_str, _size, _mtime, lengths, _gn, _gid = cache_key
-    basename = Path(path_str).stem.lower().replace(" ", "_")
+    if len(cache_key) > 0 and cache_key[0] == "ensembl":
+        _tag, release, species, biotype, lengths, _size, _mtime = cache_key
+        species_slug = str(species).lower().replace(" ", "_")
+        basename = f"ensembl_{species_slug}_r{release}_{biotype}"
+    else:
+        path_str, _size, _mtime, lengths, _gn, _gid = cache_key
+        basename = Path(path_str).stem.lower().replace(" ", "_")
     lengths_str = "-".join(str(L) for L in lengths)
     h = hashlib.sha256(repr(cache_key).encode()).hexdigest()[:16]
     return f"v{_INDEX_FORMAT_VERSION}_{basename}_L{lengths_str}_{h}.pkl"
+
+
+def _hit_in_memory_cache(cache_key: tuple, label: str, verbose: bool) -> ProteomeIndex | None:
+    """Return the in-memory cached entry (if any) and update LRU position."""
+    cached = _FASTA_INDEX_CACHE.get(cache_key)
+    if cached is None:
+        return None
+    _FASTA_INDEX_CACHE.move_to_end(cache_key)
+    if verbose:
+        print(f"  ProteomeIndex cache hit for {label}")
+    return cached
+
+
+def _hit_disk_cache(cache_key: tuple, label: str, verbose: bool) -> ProteomeIndex | None:
+    """Return the on-disk cached entry (if any) and promote it into the
+    in-memory cache so subsequent same-process calls hit the fast path.
+    """
+    disk_cached = _load_index_from_disk(cache_key)
+    if disk_cached is None:
+        return None
+    if verbose:
+        print(f"  ProteomeIndex disk-cache hit for {label}")
+    _populate_in_memory_cache(cache_key, disk_cached)
+    return disk_cached
+
+
+def _populate_in_memory_cache(cache_key: tuple, idx: ProteomeIndex) -> None:
+    """Insert (or refresh) an entry in the in-memory LRU and evict overflow.
+
+    Each eviction releases the evicted proteome's ~GB-scale arrays so the
+    build loop's peak RSS stays bounded by ``maxsize x largest proteome``
+    rather than the sum of all proteomes seen so far (issue #109).
+    """
+    if _FASTA_INDEX_CACHE_MAXSIZE <= 0:
+        return
+    _FASTA_INDEX_CACHE[cache_key] = idx
+    _FASTA_INDEX_CACHE.move_to_end(cache_key)
+    while len(_FASTA_INDEX_CACHE) > _FASTA_INDEX_CACHE_MAXSIZE:
+        _FASTA_INDEX_CACHE.popitem(last=False)
+
+
+def _populate_caches(cache_key: tuple, idx: ProteomeIndex) -> None:
+    """Populate both caches with a freshly-built index.
+
+    Used by ``from_fasta`` / ``from_ensembl`` after a cold ``_build``
+    completes.  Disk-cache writes are best-effort (warns + returns on
+    failure rather than crashing the build).
+    """
+    _populate_in_memory_cache(cache_key, idx)
+    _write_index_to_disk(cache_key, idx)
+
+
+def _resolve_ensembl_gtf_path(ensembl) -> Path | None:
+    """Find the local GTF file for a pyensembl release, or return None.
+
+    pyensembl's public surface for this is a moving target across
+    versions — newer releases expose ``gtf_path``; older ones nest it
+    under ``Genome.requires_gtf`` / ``GenomeSource``.  We probe a small
+    sequence of common attribute names and fall back to ``None`` (which
+    disables caching for that release) rather than crash.
+
+    Tests with synthetic ``EnsemblRelease`` fakes naturally land here —
+    they don't expose any of these attributes — so caching is silently
+    skipped and the existing cold-path behavior is preserved.
+    """
+    for attr in ("gtf_path", "_gtf_path", "gtf"):
+        try:
+            val = getattr(ensembl, attr)
+        except Exception:
+            # Includes AttributeError (attr missing) plus property-getter
+            # exceptions like OSError when the local GTF hasn't been
+            # downloaded yet.  Either way, skip this attr and try the next.
+            continue
+        if val is None:
+            continue
+        # Some attrs are properties returning a path string; others are
+        # bound methods.  Try call-then-fall-back.
+        if callable(val):
+            try:
+                val = val()
+            except Exception:
+                continue
+        try:
+            p = Path(str(val))
+        except Exception:
+            continue
+        if p.is_file():
+            return p
+    return None
+
+
+def _build_ensembl_cache_key(
+    ensembl,
+    release: int,
+    species: str,
+    biotype: str,
+    lengths: tuple[int, ...],
+) -> tuple | None:
+    """Construct the cache key tuple used by ``from_ensembl``.
+
+    Returns ``None`` when pyensembl can't expose a usable GTF path
+    (signals "skip caching for this release").
+    """
+    gtf_path = _resolve_ensembl_gtf_path(ensembl)
+    if gtf_path is None:
+        return None
+    try:
+        stat = gtf_path.stat()
+    except OSError:
+        return None
+    return (
+        "ensembl",
+        int(release),
+        str(species),
+        str(biotype),
+        tuple(lengths),
+        stat.st_size,
+        stat.st_mtime_ns,
+    )
 
 
 def _load_index_from_disk(cache_key: tuple) -> ProteomeIndex | None:
@@ -399,6 +530,23 @@ class ProteomeIndex:
         Returns
         -------
         ProteomeIndex
+
+        Notes
+        -----
+        Caching (#251): both the in-memory ``_FASTA_INDEX_CACHE`` and the
+        on-disk pickle cache from ``from_fasta`` are reused here.  The
+        cache key is keyed off pyensembl's local GTF file size + mtime —
+        when pyensembl's release data hasn't changed, repeated calls
+        skip the multi-second per-gene iteration + ``_build`` k-mer pass.
+
+        This matters most for downstream invokers (e.g. tsarina) that
+        spawn a fresh process per patient.  hitlist's process-wide
+        ``lru_cache`` is irrelevant across process boundaries; the disk
+        cache amortizes there.
+
+        When pyensembl can't expose a usable GTF path (synthetic mocks
+        in tests, or patched releases without a local GTF), caching is
+        silently disabled and the cold path runs as before.
         """
         from pyensembl import EnsemblRelease
 
@@ -409,6 +557,18 @@ class ProteomeIndex:
             if species != "human":
                 raise
             ensembl = EnsemblRelease(release)
+
+        # Build the cache key off pyensembl's local GTF (size + mtime).
+        # When unresolvable (test fakes, missing local GTF), skip caching.
+        cache_key = _build_ensembl_cache_key(ensembl, release, species, biotype, lengths)
+        if cache_key is not None:
+            label = f"ensembl {species} r{release}"
+            hit = _hit_in_memory_cache(cache_key, label, verbose)
+            if hit is None:
+                hit = _hit_disk_cache(cache_key, label, verbose)
+            if hit is not None:
+                return hit
+
         proteins: dict[str, str] = {}
         meta: dict[str, dict] = {}
 
@@ -465,7 +625,10 @@ class ProteomeIndex:
                     "is_canonical_transcript": protein_key == canonical_protein_key,
                 }
 
-        return cls._build(proteins, meta, lengths, verbose)
+        idx = cls._build(proteins, meta, lengths, verbose)
+        if cache_key is not None:
+            _populate_caches(cache_key, idx)
+        return idx
 
     @classmethod
     def from_fasta(
@@ -520,29 +683,13 @@ class ProteomeIndex:
             cache_key = None
 
         if cache_key is not None:
-            cached = _FASTA_INDEX_CACHE.get(cache_key)
-            if cached is not None:
-                # Touch the entry so LRU order tracks recency-of-use.
-                _FASTA_INDEX_CACHE.move_to_end(cache_key)
-                if verbose:
-                    print(f"  ProteomeIndex cache hit for {resolved.name}")
-                return cached
-            # In-memory miss → check the on-disk cache (#246).  Skips
-            # the ~minute-scale ``_build`` k-mer pass when this same
-            # FASTA was indexed in a previous run (size + mtime
-            # unchanged).  Promotes the loaded index into the in-memory
-            # cache so subsequent calls within this run hit the fast
-            # path.
-            disk_cached = _load_index_from_disk(cache_key)
-            if disk_cached is not None:
-                if verbose:
-                    print(f"  ProteomeIndex disk-cache hit for {resolved.name}")
-                if _FASTA_INDEX_CACHE_MAXSIZE > 0:
-                    _FASTA_INDEX_CACHE[cache_key] = disk_cached
-                    _FASTA_INDEX_CACHE.move_to_end(cache_key)
-                    while len(_FASTA_INDEX_CACHE) > _FASTA_INDEX_CACHE_MAXSIZE:
-                        _FASTA_INDEX_CACHE.popitem(last=False)
-                return disk_cached
+            label = resolved.name
+            hit = _hit_in_memory_cache(cache_key, label, verbose)
+            if hit is None:
+                # In-memory miss → check the on-disk cache (#246).
+                hit = _hit_disk_cache(cache_key, label, verbose)
+            if hit is not None:
+                return hit
 
         proteins: dict[str, str] = {}
         meta: dict[str, dict] = {}
@@ -576,21 +723,8 @@ class ProteomeIndex:
         if current_id:
             proteins[current_id] = "".join(current_seq)
         idx = cls._build(proteins, meta, lengths, verbose)
-        if cache_key is not None and _FASTA_INDEX_CACHE_MAXSIZE > 0:
-            _FASTA_INDEX_CACHE[cache_key] = idx
-            _FASTA_INDEX_CACHE.move_to_end(cache_key)
-            # Evict the least-recently-used entry when over capacity.  Each
-            # eviction releases the proteome's ~GB-scale arrays so the build
-            # loop's peak RSS stays bounded by `maxsize x largest proteome`
-            # rather than the sum of all proteomes seen so far (issue #109).
-            while len(_FASTA_INDEX_CACHE) > _FASTA_INDEX_CACHE_MAXSIZE:
-                _FASTA_INDEX_CACHE.popitem(last=False)
-        # Persist to the on-disk cache so subsequent runs (when the
-        # FASTA size + mtime are unchanged) skip the expensive _build
-        # k-mer pass entirely.  Best-effort: failures here are warned
-        # but don't break the build (#246).
         if cache_key is not None:
-            _write_index_to_disk(cache_key, idx)
+            _populate_caches(cache_key, idx)
         return idx
 
     @classmethod
