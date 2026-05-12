@@ -387,14 +387,40 @@ def test_prefetch_dedupes_uniprot_canonicals(monkeypatch):
 
 def test_prefetch_skips_ensembl_in_uniprot_loop(monkeypatch):
     """Ensembl entries must not be fed to fetch_species_proteome — they
-    have no FASTA to download (pyensembl manages its own cache)."""
+    have no FASTA to download (pyensembl manages its own cache).
+
+    Mocks the ``pyensembl`` module so the test doesn't trigger a real
+    ``EnsemblRelease(112).download() / .index()`` against ftp.ensembl.org
+    on machines without ``~/.pyensembl/release-112/`` already cached.
+    """
+    import sys
+    import types
+
     fetched: list[str] = []
 
     def fake_fetch(canonical, verbose, use_uniprot):
         fetched.append(canonical)
         return None
 
+    # Record pyensembl interactions so we can assert the Ensembl warm-up
+    # branch was actually reached (the whole point of this test).
+    ensembl_calls: list[str] = []
+
+    class _FakeEnsembl:
+        def __init__(self, release, species=None):
+            self.release = release
+            self.species = species
+
+        def download(self):
+            ensembl_calls.append(f"download({self.release},{self.species})")
+
+        def index(self):
+            ensembl_calls.append(f"index({self.release},{self.species})")
+
+    fake_pyensembl = types.SimpleNamespace(EnsemblRelease=_FakeEnsembl)
+    monkeypatch.setitem(sys.modules, "pyensembl", fake_pyensembl)
     monkeypatch.setattr("hitlist.downloads.fetch_species_proteome", fake_fetch)
+
     pairs = [
         ("Homo sapiens", {"kind": "ensembl", "species": "human"}),
         (
@@ -404,7 +430,22 @@ def test_prefetch_skips_ensembl_in_uniprot_loop(monkeypatch):
     ]
     _prefetch_proteomes_for_workers(pairs, release=112, use_uniprot=False, verbose=False)
 
+    # Only the UniProt entry was fed to fetch_species_proteome.
     assert fetched == ["Mycobacterium tuberculosis"]
+    # The Ensembl branch DID run — both download() and index() called once.
+    assert ensembl_calls == ["download(112,human)", "index(112,human)"]
+
+
+def test_prefetch_ensembl_branch_handles_missing_pyensembl(monkeypatch):
+    """When pyensembl is unavailable, the helper exits cleanly without
+    propagating the ImportError to the caller."""
+    import sys
+
+    monkeypatch.setitem(sys.modules, "pyensembl", None)
+    pairs = [("Homo sapiens", {"kind": "ensembl", "species": "human"})]
+    # Must NOT raise.  Setting sys.modules["pyensembl"] = None causes
+    # `import pyensembl` to ImportError, which the helper swallows.
+    _prefetch_proteomes_for_workers(pairs, release=112, use_uniprot=False, verbose=False)
 
 
 def test_prefetch_swallows_per_canonical_failures(monkeypatch):
