@@ -389,6 +389,367 @@ def test_pmhc_query_format_table_renders_grouped_table(tmp_path, monkeypatch):
     assert nras_idx < a02_idx < pep_idx
 
 
+# ── Species inference + multi-species output sectioning (#256) ──────
+
+
+def test_pmhc_query_attaches_mhc_species_column(tmp_path, monkeypatch):
+    """The result frame carries an mhc_species column derived from each
+    row's mhc_allele.  HLA rows resolve to ``Homo sapiens``."""
+    from hitlist import pmhc_query
+
+    obs_path, mappings_path = _write_obs_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
+
+    df = pmhc_query.query(proteins=["NRAS"], use_hgnc=False)
+    assert "mhc_species" in df.columns
+    assert set(df["mhc_species"].unique()) == {"Homo sapiens"}
+
+
+def test_pmhc_query_uses_obs_mhc_species_column_not_reparses_allele(tmp_path, monkeypatch):
+    """The mhc_species column comes from the authoritative obs.parquet
+    column (populated by the scanner at build time), NOT from
+    re-parsing mhc_restriction at query time.  This catches the
+    failure mode where someone re-introduces an _infer_species_column
+    helper that would drift from the canonical scanner classification.
+    """
+    from hitlist import pmhc_query
+
+    obs_path, mappings_path = _write_obs_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
+
+    # Reach into curation to verify we DON'T call it during query() —
+    # the obs column is the source of truth.
+    n_classify_calls = {"n": 0}
+    import hitlist.curation as curation
+
+    real_classify = curation.classify_mhc_species
+
+    def counting_classify(*a, **kw):
+        n_classify_calls["n"] += 1
+        return real_classify(*a, **kw)
+
+    monkeypatch.setattr("hitlist.curation.classify_mhc_species", counting_classify)
+
+    df = pmhc_query.query(proteins=["NRAS"], use_hgnc=False)
+    assert "mhc_species" in df.columns
+    assert set(df["mhc_species"].unique()) == {"Homo sapiens"}
+    # Zero re-classification calls during query — the obs column already
+    # has the answer.  Non-zero means a regression to per-row reparsing.
+    assert n_classify_calls["n"] == 0
+
+
+def test_pmhc_query_warns_on_unresolved_source_organism(tmp_path, monkeypatch, capsys):
+    """Verbose mode emits a WARNING line when rows have unresolved
+    source organism (``species`` is empty or literal "unidentified" in
+    IEDB metadata).  Both upstream sentinels fold into the same
+    "unknown" bucket in the normalized result.  Goal is curation —
+    these rows should ideally go to zero.
+    """
+    import pandas as pd
+
+    from hitlist import pmhc_query
+
+    obs = pd.DataFrame(
+        {
+            "peptide": ["KLVVVGAGGV", "KLVVVGAGGV", "KLVVVGAGGV"],
+            "pmid": [1, 2, 3],
+            "mhc_class": ["I"] * 3,
+            "mhc_restriction": ["HLA-A*02:01"] * 3,
+            "species": ["Homo sapiens", "", "unidentified"],
+            "mhc_species": ["Homo sapiens"] * 3,
+            "source": ["iedb"] * 3,
+        }
+    )
+    mappings = pd.DataFrame(
+        {
+            "peptide": ["KLVVVGAGGV"],
+            "gene_name": ["NRAS"],
+            "gene_id": ["ENSG00000213281"],
+            "protein_id": ["ENSP00000358548"],
+        }
+    )
+    obs_path = tmp_path / "observations.parquet"
+    obs.to_parquet(obs_path, index=False)
+    mappings_path = tmp_path / "peptide_mappings.parquet"
+    mappings.to_parquet(mappings_path, index=False)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
+
+    pmhc_query.query(proteins=["NRAS"], use_hgnc=False, verbose=True)
+    err = capsys.readouterr().err
+    assert "WARNING" in err
+    # Both the "" and "unidentified" rows fold into "unknown" → 2.
+    assert "2 row(s) have unresolved source organism" in err
+
+
+def test_normalize_species_column_folds_empty_and_unidentified_to_unknown():
+    """Direct contract test on the normalization helper — pins the
+    exact mapping ``"" / NaN / "unidentified" → "unknown"`` without
+    going through the query path (where the column gets dropped at
+    aggregation and we can only verify normalization indirectly).
+    """
+    import numpy as np
+    import pandas as pd
+
+    from hitlist.pmhc_query import _normalize_species_column
+
+    s = pd.Series(["Homo sapiens", "", np.nan, "unidentified", "Mus musculus"])
+    out = _normalize_species_column(s)
+    assert list(out) == [
+        "Homo sapiens",
+        "unknown",
+        "unknown",
+        "unknown",
+        "Mus musculus",
+    ]
+
+
+def test_normalize_species_column_handles_categorical_dtype():
+    """Regression: obs.parquet columns come back as ``Categorical`` from
+    pyarrow's dictionary-encoded read.  ``Series.replace({...})`` on a
+    Categorical without all target values pre-declared as categories
+    can raise / warn on newer pandas.  The helper's ``.astype(str)``
+    cast must move us off Categorical before the replace.
+    """
+    import pandas as pd
+
+    from hitlist.pmhc_query import _normalize_species_column
+
+    cat = pd.Series(
+        ["Homo sapiens", "unidentified", "", "Mus musculus"],
+        dtype="category",
+    )
+    out = _normalize_species_column(cat)
+    # All upstream sentinels folded to "unknown".
+    assert sorted(out.unique()) == ["Homo sapiens", "Mus musculus", "unknown"]
+    # Result is NOT Categorical — downstream consumers won't run into
+    # category-constraint failures on subsequent replace / merge calls.
+    # (Could be object or StringDtype depending on pandas version.)
+    assert not isinstance(out.dtype, pd.CategoricalDtype)
+
+
+def test_species_sort_key_order_human_first():
+    """Output ordering: human leads, mouse / rat as standard models, then
+    everything else alphabetical, ``unknown`` sinks to the bottom."""
+    from hitlist.pmhc_query import _species_sort_key
+
+    species = ["Macaca mulatta", "Mus musculus", "unknown", "Homo sapiens", "Canis lupus"]
+    sorted_species = sorted(species, key=_species_sort_key)
+    assert sorted_species[0] == "Homo sapiens"
+    assert sorted_species[1] == "Mus musculus"
+    assert sorted_species[-1] == "unknown"
+    # Canis (C) sorts before Macaca (M) in the alphabetical tail.
+    assert sorted_species.index("Canis lupus") < sorted_species.index("Macaca mulatta")
+
+
+# ── Output formatting cleanup (#256 review) ──────────────────────────
+
+
+def test_format_table_truncates_long_pmid_lists():
+    """PMID lists with >3 references render as ``a;b;c; +N more`` so the
+    table doesn't get visually dominated by a 50-char-wide pmids column.
+    Full list is still on the underlying frame for CSV/JSON consumers."""
+    from hitlist import pmhc_query
+
+    df = pd.DataFrame(
+        {
+            "gene_name": ["NRAS"],
+            "gene_id": ["ENSG00000213281"],
+            "mhc_allele": ["HLA-A*02:01"],
+            "best_guess_allele": [None],
+            "peptide": ["KLVVVGAGGV"],
+            "n_observations": [6],
+            "pmids": ["111;222;333;444;555;666"],
+            "mhc_class": ["I"],
+            "mhc_species": ["Homo sapiens"],
+        }
+    )
+    text = pmhc_query.format_table(df)
+    assert "111;222;333; +3 more" in text
+    # First three PMIDs are shown; the 4th is not in the rendered table.
+    assert "444" not in text
+
+
+def test_format_table_short_pmid_lists_not_truncated():
+    """PMID lists with <= 3 entries pass through verbatim."""
+    from hitlist import pmhc_query
+
+    df = pd.DataFrame(
+        {
+            "gene_name": ["NRAS"],
+            "gene_id": ["ENSG00000213281"],
+            "mhc_allele": ["HLA-A*02:01"],
+            "best_guess_allele": [None],
+            "peptide": ["KLVVVGAGGV"],
+            "n_observations": [3],
+            "pmids": ["111;222;333"],
+            "mhc_class": ["I"],
+            "mhc_species": ["Homo sapiens"],
+        }
+    )
+    text = pmhc_query.format_table(df)
+    assert "111;222;333" in text
+    assert "+0 more" not in text  # don't tag short lists
+
+
+def test_format_table_renders_empty_allele_as_synthetic_header():
+    """A row with empty ``mhc_allele`` (IEDB didn't record a specific
+    allele) used to render under a phantom blank-line header, looking
+    like a layout bug.  Now it gets a clear "(allele not specified)"
+    label."""
+    from hitlist import pmhc_query
+
+    df = pd.DataFrame(
+        {
+            "gene_name": ["NRAS", "NRAS"],
+            "gene_id": ["ENSG00000213281", "ENSG00000213281"],
+            "mhc_allele": ["HLA-A*02:01", ""],
+            "best_guess_allele": [None, None],
+            "peptide": ["KLVVVGAGGV", "PLACEHOLDER"],
+            "n_observations": [3, 1],
+            "pmids": ["111", "222"],
+            "mhc_class": ["I", "I"],
+            "mhc_species": ["Homo sapiens", "Homo sapiens"],
+        }
+    )
+    text = pmhc_query.format_table(df)
+    assert "(allele not specified)" in text
+    # The placeholder peptide still renders — we labeled the section,
+    # didn't drop the row.
+    assert "PLACEHOLDER" in text
+
+
+def test_format_table_orders_specific_alleles_before_class_only():
+    """4-digit alleles (containing ``*``) appear before class-only
+    placeholders like ``HLA class I``, so the high-evidence specific
+    sections lead and the catch-all lands at the bottom."""
+    from hitlist import pmhc_query
+
+    df = pd.DataFrame(
+        {
+            "gene_name": ["NRAS"] * 3,
+            "gene_id": ["ENSG00000213281"] * 3,
+            "mhc_allele": ["HLA class I", "HLA-A*02:01", ""],
+            "best_guess_allele": [None] * 3,
+            "peptide": ["PEPTIDE_A", "PEPTIDE_B", "PEPTIDE_C"],
+            # Class-only and empty rows have higher n_observations so we
+            # know specifc-allele ordering isn't accidentally happening
+            # via the existing evidence-count sort.
+            "n_observations": [99, 1, 50],
+            "pmids": ["111"] * 3,
+            "mhc_class": ["I"] * 3,
+            "mhc_species": ["Homo sapiens"] * 3,
+        }
+    )
+    text = pmhc_query.format_table(df)
+    a02_idx = text.find("HLA-A*02:01")
+    class_i_idx = text.find("HLA class I")
+    unspec_idx = text.find("(allele not specified)")
+    assert 0 < a02_idx < class_i_idx
+    assert 0 < a02_idx < unspec_idx
+
+
+def test_format_table_strips_trailing_whitespace_per_row():
+    """No rendered line ends with trailing spaces — keeps the right edge
+    clean without affecting inter-column alignment."""
+    from hitlist import pmhc_query
+
+    df = pd.DataFrame(
+        {
+            "gene_name": ["NRAS"],
+            "gene_id": ["ENSG00000213281"],
+            "mhc_allele": ["HLA-A*02:01"],
+            "best_guess_allele": [None],
+            "peptide": ["KLVVVGAGGV"],
+            "n_observations": [3],
+            "pmids": ["111;222"],
+            "mhc_class": ["I"],
+            "mhc_species": ["Homo sapiens"],
+        }
+    )
+    text = pmhc_query.format_table(df)
+    for line in text.splitlines():
+        assert line == line.rstrip(), f"trailing whitespace in line: {line!r}"
+
+
+def _multispecies_table_input() -> pd.DataFrame:
+    """Hand-rolled multi-species result frame for format_table tests.
+    Avoids the parquet fixture so the test pins the formatter behavior
+    in isolation from the query path.
+    """
+    return pd.DataFrame(
+        {
+            "gene_name": ["PRAME", "PRAME", "PRAME"],
+            "gene_id": ["ENSG00000185686", "ENSG00000185686", "ENSG00000185686"],
+            "mhc_allele": ["HLA-A*02:01", "DLA-88*501:01", "HLA-A*02:01"],
+            "best_guess_allele": [None, None, None],
+            "peptide": ["SLLQHLIGL", "YIAQFTSQFL", "ALYVDSLFFL"],
+            "n_observations": [42, 1, 7],
+            "pmids": ["12345", "27893789", "34567"],
+            "mhc_class": ["I", "I", "I"],
+            "mhc_species": ["Homo sapiens", "Canis lupus", "Homo sapiens"],
+        }
+    )
+
+
+def test_format_table_inserts_species_section_when_multi_species():
+    """Multi-species result gets ``=== species: X ===`` outer headers,
+    human-first by sort order."""
+    from hitlist import pmhc_query
+
+    text = pmhc_query.format_table(_multispecies_table_input())
+    assert "=== species: Homo sapiens ===" in text
+    assert "=== species: Canis lupus ===" in text
+    # Human section comes before canine.
+    assert text.find("Homo sapiens") < text.find("Canis lupus")
+    # The dog peptide still appears, just under its own section.
+    assert "YIAQFTSQFL" in text
+    assert "DLA-88*501:01" in text
+
+
+def test_format_table_omits_species_section_when_single_species(tmp_path, monkeypatch):
+    """Single-species result (the typical human-only case) keeps the
+    pre-#256 layout — no ``=== species:`` header line."""
+    from hitlist import pmhc_query
+
+    obs_path, mappings_path = _write_obs_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
+
+    df = pmhc_query.query(proteins=["NRAS"], use_hgnc=False)
+    text = pmhc_query.format_table(df)
+    assert "=== species:" not in text
+    # The existing gene > allele structure is unchanged.
+    assert "NRAS" in text
+    assert "HLA-A*02:01" in text
+
+
+def test_mhc_species_survives_predictor_path(tmp_path, monkeypatch):
+    """Regression: mhc_species was previously dropped by
+    ``_consolidate_after_narrowing`` (whose group_cols don't include it)
+    when the user passed ``--predictor``.  The fix re-derives the column
+    AFTER ``_attach_predictions`` so it survives consolidation AND
+    reflects the post-narrowing single-allele string.
+    """
+    from hitlist import pmhc_query
+
+    # Stub the actual predictor so we don't shell out to NetMHCpan in tests.
+    def fake_predict(pairs):
+        return pairs.assign(affinity_nM=100.0, presentation_percentile=0.5)
+
+    monkeypatch.setattr("hitlist.predict._predict_netmhcpan", fake_predict)
+
+    obs_path, mappings_path = _write_obs_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
+
+    df = pmhc_query.query(proteins=["NRAS"], predictor="netmhcpan", use_hgnc=False)
+    assert "mhc_species" in df.columns
+    assert df["mhc_species"].notna().all()
+    assert set(df["mhc_species"].unique()) == {"Homo sapiens"}
+    # Predictor columns also present — confirms _attach_predictions
+    # actually ran (vs. a stub fall-through).
+    assert "affinity_nM" in df.columns
+    assert "presentation_percentile" in df.columns
+
+
 # ── Serotype handling (v1.30.2) ───────────────────────────────────────
 
 

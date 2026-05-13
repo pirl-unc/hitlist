@@ -121,12 +121,21 @@ def query(
     #    peptide list down to obs as a parquet filter.  This is
     #    dramatically cheaper than the pre-#238 approach of loading the
     #    full 4.4M-row corpus and substring-matching gene_names.
+    # ``mhc_species`` and ``species`` are first-class columns on
+    # observations.parquet (scanner populates them at build time via
+    # ``classify_mhc_species`` + ``normalize_species``).  Loading them
+    # here is cheaper and more authoritative than re-deriving from
+    # ``mhc_restriction`` at query time, and ``species`` lets us flag
+    # chimeric rows (HLA-transgenic mouse etc., where the source
+    # organism differs from the MHC system).
     load_kwargs: dict = {
         "columns": [
             "peptide",
             "pmid",
             "mhc_class",
             "mhc_restriction",
+            "mhc_species",
+            "species",
             "gene_names",
             "gene_ids",
         ],
@@ -259,12 +268,50 @@ def query(
     #    ``best_guess_allele`` is functionally dependent on ``mhc_restriction``
     #    (one-to-one map), so include it in the group key — that lets us
     #    keep the column without an extra merge.
+    # 3c. Normalize mhc_species / species sentinels.  See
+    #     _normalize_species_column for the rules — extracted so tests
+    #     can pin the contract directly instead of inferring it from
+    #     downstream behavior.
+    for col in ("mhc_species", "species"):
+        if col in df.columns:
+            df[col] = _normalize_species_column(df[col])
+
+    # 3d. Surface unresolved source-organism rows (#256 review).
+    #     mhc_species is always derivable from the allele prefix
+    #     (HLA, H-2, DLA, ...) so it never lands in "unknown" today.
+    #     species is unresolved on ~4% of the IEDB corpus due to
+    #     missing / "unidentified" source_organism metadata; goal is
+    #     to drive that to 0 via curation, so warn loudly here.
+    #
+    #     (A previous draft also warned on species != mhc_species, but
+    #     that warning would fire 100K+ times on a broad query
+    #     dominated by legitimate viral / bacterial peptides presented
+    #     on host MHC — the basic question of pathogen
+    #     immunopeptidomics.  Low signal, removed.)
+    if "species" in df.columns:
+        unknown_mask = df["species"] == "unknown"
+        n_unknown = int(unknown_mask.sum())
+        if n_unknown and verbose:
+            _progress(
+                f"WARNING: {n_unknown:,} row(s) have unresolved source organism "
+                '(empty source_organism field or literal "unidentified" in IEDB '
+                "metadata).  These should ideally be curated — file a follow-up "
+                "if you see this in a query you care about.",
+                verbose,
+            )
+
+    # 4. Aggregate to (gene_name, gene_id, mhc_restriction, peptide, mhc_class):
+    #    mhc_species is included in the group key — it's functionally
+    #    dependent on mhc_restriction (one species per allele string)
+    #    so it doesn't change cardinality but flows through aggregation
+    #    without an extra merge.
     grouped = (
         df.groupby(
             [
                 "gene_name",
                 "gene_id",
                 "mhc_restriction",
+                "mhc_species",
                 "best_guess_allele",
                 "peptide",
                 "mhc_class",
@@ -283,15 +330,19 @@ def query(
         .rename(columns={"mhc_restriction": "mhc_allele"})
     )
 
-    # 5. Optional binding-affinity prediction.
+    # 5. Optional binding-affinity prediction.  _consolidate_after_narrowing
+    #    (inside _attach_predictions) preserves mhc_species — see its
+    #    group_cols below.
     if predictor is not None:
         grouped = _attach_predictions(grouped, predictor)
 
-    # 6. Order: by gene then allele then evidence count desc.
+    # 6. Order: species first (humans top of the page when present, then
+    #    alphabetical), then by gene → allele → evidence count desc.
     grouped = grouped.sort_values(
-        ["gene_name", "mhc_allele", "n_observations"],
-        ascending=[True, True, False],
+        ["mhc_species", "gene_name", "mhc_allele", "n_observations"],
+        ascending=[True, True, True, False],
         kind="stable",
+        key=lambda col: col.map(_species_sort_key) if col.name == "mhc_species" else col,
     ).reset_index(drop=True)
     return grouped
 
@@ -505,7 +556,19 @@ def _consolidate_after_narrowing(df: pd.DataFrame) -> pd.DataFrame:
         return ";".join(sorted(seen, key=int))
 
     score_cols = ["affinity_nM", "presentation_percentile", "binder_class", "best_predicted_allele"]
-    group_cols = ["gene_name", "gene_id", "mhc_allele", "best_guess_allele", "peptide", "mhc_class"]
+    # mhc_species is FD on mhc_allele (one species per allele string) so
+    # including it doesn't change cardinality — but it MUST be in the
+    # group_cols or .agg() silently drops it from the result frame.
+    group_cols = [
+        "gene_name",
+        "gene_id",
+        "mhc_allele",
+        "best_guess_allele",
+        "peptide",
+        "mhc_class",
+    ]
+    if "mhc_species" in df.columns:
+        group_cols.append("mhc_species")
     agg_spec: dict = {
         "n_observations": "sum",
         "pmids": _union_pmids,
@@ -586,10 +649,56 @@ def _empty_result(with_predictions: bool) -> pd.DataFrame:
         "n_observations",
         "pmids",
         "mhc_class",
+        "mhc_species",
     ]
     if with_predictions:
         cols += ["affinity_nM", "presentation_percentile", "binder_class"]
     return pd.DataFrame(columns=cols)
+
+
+# ── Species normalization + ordering for output grouping (#256) ────────
+#
+# The ``mhc_species`` column is loaded from observations.parquet (the
+# scanner populates it at build time via classify_mhc_species), so
+# pmhc_query doesn't need to re-derive it from the allele string.
+
+
+def _normalize_species_column(s: pd.Series) -> pd.Series:
+    """Fold empty / NaN / literal "unidentified" upstream sentinels into
+    the single ``"unknown"`` bucket.
+
+    The scanner writes ``""`` for rows where classify_mhc_species or
+    normalize_species couldn't resolve their input.  IEDB also has a
+    literal ``"unidentified"`` source_organism value with the same
+    semantics.  Downstream consumers (formatter, sort key, warning
+    logic) should only need to handle one sentinel.
+
+    The ``.astype(str)`` step is load-bearing: obs.parquet columns come
+    back as ``Categorical`` after pyarrow's dictionary-encoded read,
+    and ``Series.replace({...})`` on a Categorical without all the
+    target values pre-declared as categories raises (or warns) on
+    newer pandas.  Casting to object first makes the replace safe.
+    """
+    return s.fillna("").astype(str).replace({"": "unknown", "unidentified": "unknown"})
+
+
+# Order species sections so the most common case (human) leads, mouse/rat
+# follow as the standard model organisms, then everything else
+# alphabetical.  "unknown" sinks to the bottom — those rows have missing
+# upstream metadata that should be curated separately.
+_SPECIES_SORT_ORDER = {
+    "Homo sapiens": "0",
+    "Mus musculus": "1",
+    "Rattus norvegicus": "2",
+}
+
+
+def _species_sort_key(species: str) -> str:
+    if species in _SPECIES_SORT_ORDER:
+        return _SPECIES_SORT_ORDER[species]
+    if species == "unknown":
+        return "z"
+    return f"5:{species}"
 
 
 def format_table(df: pd.DataFrame) -> str:
@@ -639,6 +748,14 @@ def format_table(df: pd.DataFrame) -> str:
             return f"{float(value):.1f}"
         if header == "pct_rank":
             return f"{float(value):.2f}"
+        if header == "pmids":
+            # Truncate long PMID lists.  Full list is still in the CSV/JSON
+            # output via the ``pmids`` column; the table view just shows
+            # the first 3 + a count so the column doesn't dominate the page.
+            parts = str(value).split(";")
+            if len(parts) > 3:
+                return f"{';'.join(parts[:3])}; +{len(parts) - 3} more"
+            return str(value)
         return str(value)
 
     pep_headers = [h for h, _ in pep_columns]
@@ -663,6 +780,12 @@ def format_table(df: pd.DataFrame) -> str:
 
         ``gene_indent`` lets callers nest the block under an outer (e.g.
         per-sample) section without re-flowing the column widths.
+
+        Allele ordering: specific 4-digit alleles (with ``*`` in the name)
+        first, by total evidence count; then class-only / empty alleles
+        (``"HLA class I"`` / ``""`` — rows where IEDB didn't record an
+        allele) at the bottom under a clear synthetic header so they don't
+        masquerade as a missing-data blank line.
         """
         block: list[str] = []
         gene_name = gene_df["gene_name"].iloc[0]
@@ -671,14 +794,25 @@ def format_table(df: pd.DataFrame) -> str:
         block.append(
             f"{gene_indent}{gene_name} ({gene_id})" if gene_id else f"{gene_indent}{gene_name}"
         )
-        block.append(gene_indent + header_line)
-        block.append(gene_indent + rule_line)
+        block.append((gene_indent + header_line).rstrip())
+        block.append((gene_indent + rule_line).rstrip())
         allele_totals = (
             gene_df.groupby("mhc_allele", observed=True)["n_observations"]
             .sum()
             .sort_values(ascending=False, kind="stable")
         )
-        for allele in allele_totals.index:
+
+        def _is_specific(allele: str) -> bool:
+            # 4-digit / fully-specified allele has a "*" (HLA-A*02:01,
+            # DLA-88*501:01, ...).  H-2-* and Mamu rows also use "*".
+            # Class-only ("HLA class I") and empty strings → not specific.
+            return bool(allele) and "*" in str(allele)
+
+        specific = [a for a in allele_totals.index if _is_specific(a)]
+        unspecific = [a for a in allele_totals.index if not _is_specific(a)]
+        ordered_alleles = specific + unspecific
+
+        for allele in ordered_alleles:
             allele_df = gene_df[gene_df["mhc_allele"] == allele]
             # Serotype rows get the best-guess 4-digit member annotated in
             # the header (heuristic: lowest-numbered ≈ population-dominant).
@@ -687,21 +821,64 @@ def format_table(df: pd.DataFrame) -> str:
                 guesses = allele_df["best_guess_allele"].dropna().astype(str).unique()
                 if len(guesses) == 1 and guesses[0] and guesses[0] != allele:
                     best_guess = guesses[0]
-            header = f"{gene_indent}  {allele}"
+            # Render class-only / empty alleles with a clear synthetic
+            # header — otherwise an empty allele renders as a phantom
+            # blank line that looks like a layout bug.
+            allele_label = allele if allele else "(allele not specified)"
+            header = f"{gene_indent}  {allele_label}"
             if best_guess:
                 header += f"  (best guess: {best_guess})"
             block.append(header)
             for _, row in allele_df.iterrows():
                 cells = [_fmt(pep_headers[i], row[k]) for i, k in enumerate(pep_keys)]
-                block.append(
+                line = (
                     gene_indent
                     + indent
                     + sep.join(cells[i].ljust(widths[i]) for i in range(len(cells)))
                 )
+                # Strip trailing pad — keeps the right edge tidy without
+                # disturbing inter-column alignment (the rstrip only nukes
+                # padding past the last column's content).
+                block.append(line.rstrip())
         return block
 
     out: list[str] = []
     has_sample = "sample_name" in df.columns
+
+    # Multi-species results get an outer "=== species: X ===" header.
+    # Single-species results (the typical human-only case) skip the
+    # header so output stays compact and unchanged from pre-#256.
+    multi_species = (
+        "mhc_species" in df.columns and df["mhc_species"].dropna().astype(str).nunique() > 1
+    )
+
+    def _render_genes(scope_df: pd.DataFrame, indent: str, blank_between: bool) -> None:
+        first = True
+        for _, gene_df in scope_df.groupby("gene_name", sort=True, observed=True):
+            if blank_between and not first:
+                out.append("")
+            out.extend(_render_gene_block(gene_df, gene_indent=indent))
+            first = False
+
+    def _render_species_partition(scope_df: pd.DataFrame, base_indent: str) -> None:
+        if not multi_species:
+            _render_genes(scope_df, base_indent, blank_between=not has_sample)
+            return
+        species_iter = sorted(
+            scope_df["mhc_species"].dropna().astype(str).unique(),
+            key=_species_sort_key,
+        )
+        first = True
+        for sp in species_iter:
+            sp_df = scope_df[scope_df["mhc_species"].astype(str) == sp]
+            if sp_df.empty:
+                continue
+            if not first:
+                out.append("")
+            out.append(f"{base_indent}=== species: {sp} ===")
+            _render_genes(sp_df, base_indent + ("  " if base_indent else ""), blank_between=True)
+            first = False
+
     if has_sample:
         # Per-sample sections: one outer block per sample, nested gene
         # blocks beneath. Empty samples (no evidence on their alleles) get a
@@ -713,13 +890,11 @@ def format_table(df: pd.DataFrame) -> str:
                 out.append("  (no pMHC evidence on this sample's alleles)")
                 out.append("")
                 continue
-            for _, gene_df in non_empty.groupby("gene_name", sort=True, observed=True):
-                out.extend(_render_gene_block(gene_df, gene_indent="  "))
+            _render_species_partition(non_empty, base_indent="  ")
             out.append("")
     else:
-        for _, gene_df in df.groupby("gene_name", sort=True, observed=True):
-            out.extend(_render_gene_block(gene_df))
-            out.append("")
+        _render_species_partition(df, base_indent="")
+        out.append("")
 
     if not has_pred:
         out.append(
