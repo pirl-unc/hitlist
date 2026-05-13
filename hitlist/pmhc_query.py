@@ -162,12 +162,20 @@ def query(
     # chimeric rows (HLA-transgenic mouse etc., where the source
     # organism differs from the MHC system).
     # #259: n_samples and --min-samples need a per-row distinct-sample
-    # identifier.  attributed_sample_label is populated on only 1.2% of
-    # rows; cell_name (98.5%) + monoallelic_host (21.4%) carry the rest
-    # of the per-sample signal across the corpus.  We compose all three
-    # plus pmid into a synthetic _sample_id below (cell_name is a strict
-    # superset of cell_line_name — same value when both populated, so
-    # we don't need to load cell_line_name separately).
+    # identifier.  We load three columns to compose it (#260 audit):
+    #
+    #   attributed_sample_label   1.2%, 11 distinct  per-donor patient ID
+    #   cell_line_name           58.3%, 184 distinct cell-line name; gated
+    #                                                on src_cell_line=True
+    #                                                so it's a CLEAN cell-line
+    #                                                signal (cell_name would
+    #                                                also include cell-type
+    #                                                categories like "B cell"
+    #                                                / "Other" — those aren't
+    #                                                per-sample and would
+    #                                                over-split the count).
+    #   monoallelic_host         21.4%,  7 distinct  engineering host platform
+    #                                                (C1R, 721.221, K562, ...)
     load_kwargs: dict = {
         "columns": [
             "peptide",
@@ -177,7 +185,7 @@ def query(
             "mhc_species",
             "species",
             "attributed_sample_label",
-            "cell_name",
+            "cell_line_name",
             "monoallelic_host",
             "gene_names",
             "gene_ids",
@@ -348,32 +356,32 @@ def query(
     #    dependent on mhc_restriction (one species per allele string)
     #    so it doesn't change cardinality but flows through aggregation
     #    without an extra merge.
-    # Synthesize a per-row sample identifier from a COMPOSITE of all
-    # the available sample-distinguishing columns.  Any one alone
-    # underspecifies the corpus:
+    # Synthesize a per-row sample identifier from a COMPOSITE of the
+    # three sample-distinguishing fields + pmid.  The fields are
+    # SEMANTICALLY DISTINCT (audit in #260 review):
     #
-    #   attributed_sample_label:  1.2% populated, 11 distinct values
-    #                             (Sarkizova-style per-donor patient IDs)
-    #   cell_name:               98.5% populated, 192 distinct values
-    #                             (cell-line / cell-type — superset of
-    #                              cell_line_name; mixes real line names
-    #                              with coarse types like "B cell" /
-    #                              "Other" so it's only partly per-sample)
-    #   monoallelic_host:        21.4% populated, 7 distinct values
-    #                             (mono-allelic engineering host: C1R,
-    #                              721.221, K562, Strep-tag II, ...)
+    #   attributed_sample_label: real per-donor patient label, when
+    #     populated.  NEVER agrees with cell_line_name in the corpus
+    #     (0 of 54,682 overlapping rows) — adds orthogonal signal.
     #
-    # Composing pmid + the three labels means a peptide observed in one
-    # paper across N cell lines counts as N samples (not 1).  Two rows
-    # with the same composite are the same sample by every signal we
-    # have; differing on any field → different sample.
+    #   cell_line_name: real cell-line name only, gated on
+    #     src_cell_line=True at build time.  Crucially, this is
+    #     NOT the same as ``cell_name`` (which mixes real lines
+    #     with cell-type categories — "B cell", "Glial cell",
+    #     "Other"; using cell_name would over-split because two
+    #     rows with cell_name="B cell" from different donors
+    #     would falsely look like the same sample-set).
+    #     cell_line_name is empty for primary-cell / tissue data
+    #     so those rows fall back to pmid + attributed_sample_label.
     #
-    # Caveats: coarse cell_name values ("B cell", "Other") collapse
-    # patients within a cell type when attributed_sample_label is empty
-    # → can undercount.  Same experiment recorded at two metadata
-    # granularities ("C1R cells-B cell" vs "C1R") splits → can
-    # overcount.  Net: best-effort given the metadata.  Real precision
-    # requires upstream curation work.
+    #   monoallelic_host: engineering host platform (C1R, 721.221,
+    #     K562, Strep-tag II, MAPTAC, ...).  Not strictly per-sample,
+    #     but adds signal for the ~9K rows where it's the only
+    #     distinguishing field.
+    #
+    # Two rows with the same composite are the same sample by every
+    # signal we have; differing on any field → different sample.
+    # Worst case (no labels at all): n_samples == n_references.
     def _str_col(name: str) -> pd.Series:
         if name in df.columns:
             return df[name].astype(object).fillna("").astype(str)
@@ -383,7 +391,7 @@ def query(
         "pmid:"
         + df["pmid"].astype("Int64").astype(str)
         + "|"
-        + _str_col("cell_name")
+        + _str_col("cell_line_name")
         + "|"
         + _str_col("monoallelic_host")
         + "|"

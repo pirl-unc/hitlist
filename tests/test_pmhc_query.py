@@ -49,7 +49,7 @@ def _write_obs_fixture(tmp_path):
                 "sample_c",
                 "sample_a",
             ],
-            "cell_name": [""] * 5,
+            "cell_line_name": [""] * 5,
             "monoallelic_host": [""] * 5,
             "source": ["iedb"] * 5,
         }
@@ -292,7 +292,7 @@ def test_pmhc_query_normalizes_unprefixed_alleles(tmp_path, monkeypatch):
             "species": ["Homo sapiens"] * 2,
             "mhc_species": ["Homo sapiens"] * 2,
             "attributed_sample_label": ["sample_a", "sample_b"],
-            "cell_name": ["", ""],
+            "cell_line_name": ["", ""],
             "monoallelic_host": ["", ""],
             "source": ["iedb"] * 2,
         }
@@ -470,7 +470,7 @@ def test_pmhc_query_warns_on_unresolved_source_organism(tmp_path, monkeypatch, c
             "species": ["Homo sapiens", "", "unidentified"],
             "mhc_species": ["Homo sapiens"] * 3,
             "attributed_sample_label": ["sample_a", "sample_b", "sample_c"],
-            "cell_name": [""] * 3,
+            "cell_line_name": [""] * 3,
             "monoallelic_host": [""] * 3,
             "source": ["iedb"] * 3,
         }
@@ -796,7 +796,7 @@ def _write_serotype_obs_fixture(tmp_path):
             "species": ["Homo sapiens"] * 3,
             "mhc_species": ["Homo sapiens"] * 3,
             "attributed_sample_label": ["sample_a", "sample_b", "sample_c"],
-            "cell_name": [""] * 3,
+            "cell_line_name": [""] * 3,
             "monoallelic_host": [""] * 3,
             "source": ["iedb"] * 3,
         }
@@ -1197,7 +1197,7 @@ def test_query_n_samples_distinct_from_n_references(tmp_path, monkeypatch):
             "mhc_species": ["Homo sapiens"] * 3,
             # Three distinct donors in one cohort paper.
             "attributed_sample_label": ["donor1", "donor2", "donor3"],
-            "cell_name": [""] * 3,
+            "cell_line_name": [""] * 3,
             "monoallelic_host": [""] * 3,
             "source": ["iedb"] * 3,
         }
@@ -1249,18 +1249,23 @@ def test_query_min_samples_filter_drops_singletons(tmp_path, monkeypatch):
     assert set(df["peptide"]) == {"KLVVVGAGGV"}
 
 
-def test_query_n_samples_uses_composite_of_cell_name_and_host(tmp_path, monkeypatch):
+def test_query_n_samples_uses_composite_of_cell_line_and_host(tmp_path, monkeypatch):
     """Regression for the #260 audit: a single PMID with multiple
-    distinct ``cell_name`` values must count as MULTIPLE samples — not 1.
+    distinct ``cell_line_name`` values must count as MULTIPLE samples — not 1.
     attributed_sample_label is empty on 98.8% of IEDB rows; the
-    sample-id synthesis must compose pmid + cell_name + monoallelic_host
-    + attributed_sample_label so n_samples reflects the per-cell-line
-    granularity that 58% of the corpus actually carries."""
+    sample-id synthesis composes pmid + cell_line_name +
+    monoallelic_host + attributed_sample_label so n_samples reflects
+    the per-cell-line granularity that 58% of the corpus carries.
+
+    Note: uses cell_line_name (not cell_name) because cell_name mixes
+    real lines with coarse cell-type categories like "B cell" /
+    "Other" — including those would over-split.  cell_line_name is
+    gated on src_cell_line=True at build time so it's clean."""
     from hitlist import pmhc_query
 
     # 4 rows from ONE pmid, four DIFFERENT cell lines, NO attributed_sample_label.
-    # Pre-#260 logic would call this 1 sample (the PMID).  Composite synthesis
-    # correctly identifies 4 distinct (pmid, cell_name) pairs.
+    # Pre-composite logic would call this 1 sample (the PMID).
+    # Composite synthesis correctly identifies 4 distinct (pmid, cell_line_name) pairs.
     obs = pd.DataFrame(
         {
             "peptide": ["KLVVVGAGGV"] * 4,
@@ -1270,7 +1275,7 @@ def test_query_n_samples_uses_composite_of_cell_name_and_host(tmp_path, monkeypa
             "species": ["Homo sapiens"] * 4,
             "mhc_species": ["Homo sapiens"] * 4,
             "attributed_sample_label": [""] * 4,
-            "cell_name": ["MEL2", "MEL3", "MEL5", "OV1"],
+            "cell_line_name": ["MEL2", "MEL3", "MEL5", "OV1"],
             "monoallelic_host": [""] * 4,
             "source": ["iedb"] * 4,
         }
@@ -1297,6 +1302,58 @@ def test_query_n_samples_uses_composite_of_cell_name_and_host(tmp_path, monkeypa
     assert int(row["n_samples"]) == 4  # four distinct cell lines
 
 
+def test_query_n_samples_ignores_cell_type_only_signal(tmp_path, monkeypatch):
+    """``cell_name`` mixes real cell-line names with coarse cell-type
+    categories ("B cell", "Glial cell").  The composite uses
+    ``cell_line_name`` (gated on src_cell_line=True) instead so two
+    rows differing ONLY in cell_name's cell-type field don't falsely
+    inflate the sample count.
+
+    Fixture has 3 rows on one PMID with empty cell_line_name (i.e.
+    src_cell_line was False at build time, so these are primary-cell
+    rows where cell_name would have been "B cell" / "Other" etc.).
+    Without an attributed_sample_label they collapse to 1 sample,
+    which is the right answer given the metadata can't actually
+    distinguish them."""
+    from hitlist import pmhc_query
+
+    obs = pd.DataFrame(
+        {
+            "peptide": ["KLVVVGAGGV"] * 3,
+            "pmid": [42] * 3,
+            "mhc_class": ["I"] * 3,
+            "mhc_restriction": ["HLA-A*02:01"] * 3,
+            "species": ["Homo sapiens"] * 3,
+            "mhc_species": ["Homo sapiens"] * 3,
+            "attributed_sample_label": [""] * 3,
+            "cell_line_name": [""] * 3,  # primary-cell, no real line
+            "monoallelic_host": [""] * 3,
+            "source": ["iedb"] * 3,
+        }
+    )
+    mappings = pd.DataFrame(
+        {
+            "peptide": ["KLVVVGAGGV"],
+            "gene_name": ["NRAS"],
+            "gene_id": ["ENSG00000213281"],
+            "protein_id": ["ENSP00000358548"],
+        }
+    )
+    obs.to_parquet(tmp_path / "observations.parquet", index=False)
+    mappings.to_parquet(tmp_path / "peptide_mappings.parquet", index=False)
+    _patch_paths(
+        monkeypatch,
+        tmp_path / "observations.parquet",
+        tmp_path / "peptide_mappings.parquet",
+    )
+
+    df = pmhc_query.query(proteins=["NRAS"], use_hgnc=False)
+    row = df.iloc[0]
+    # All three rows share the same (pmid, "", "", "") composite → 1 sample.
+    # Conservative under-count: we can't tell them apart from metadata.
+    assert int(row["n_samples"]) == 1
+
+
 def test_query_n_samples_uses_monoallelic_host_when_cell_name_empty(tmp_path, monkeypatch):
     """monoallelic_host is the only sample-distinguishing field on
     ~9K corpus rows.  Verify it's pulled into the composite."""
@@ -1311,7 +1368,7 @@ def test_query_n_samples_uses_monoallelic_host_when_cell_name_empty(tmp_path, mo
             "species": ["Homo sapiens"] * 3,
             "mhc_species": ["Homo sapiens"] * 3,
             "attributed_sample_label": ["", "", ""],
-            "cell_name": ["", "", ""],
+            "cell_line_name": ["", "", ""],
             "monoallelic_host": ["host_A", "host_B", "host_C"],
             "source": ["iedb"] * 3,
         }
