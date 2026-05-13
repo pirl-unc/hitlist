@@ -405,21 +405,79 @@ def test_pmhc_query_attaches_mhc_species_column(tmp_path, monkeypatch):
     assert set(df["mhc_species"].unique()) == {"Homo sapiens"}
 
 
-def test_infer_species_column_handles_dla_and_unknown():
-    """Direct unit test on the species inference helper — covers the
-    canine + the fall-through cases without needing a parquet fixture."""
-    from hitlist.pmhc_query import _infer_species_column
+def test_pmhc_query_uses_obs_mhc_species_column_not_reparses_allele(tmp_path, monkeypatch):
+    """The mhc_species column comes from the authoritative obs.parquet
+    column (populated by the scanner at build time), NOT from
+    re-parsing mhc_restriction at query time.  This catches the
+    failure mode where someone re-introduces an _infer_species_column
+    helper that would drift from the canonical scanner classification.
+    """
+    from hitlist import pmhc_query
 
-    out = _infer_species_column(
-        pd.Series(["HLA-A*02:01", "DLA-88*501:01", "H-2-Kb", "", "garbage"])
+    obs_path, mappings_path = _write_obs_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
+
+    # Reach into curation to verify we DON'T call it during query() —
+    # the obs column is the source of truth.
+    n_classify_calls = {"n": 0}
+    import hitlist.curation as curation
+
+    real_classify = curation.classify_mhc_species
+
+    def counting_classify(*a, **kw):
+        n_classify_calls["n"] += 1
+        return real_classify(*a, **kw)
+
+    monkeypatch.setattr("hitlist.curation.classify_mhc_species", counting_classify)
+
+    df = pmhc_query.query(proteins=["NRAS"], use_hgnc=False)
+    assert "mhc_species" in df.columns
+    assert set(df["mhc_species"].unique()) == {"Homo sapiens"}
+    # Zero re-classification calls during query — the obs column already
+    # has the answer.  Non-zero means a regression to per-row reparsing.
+    assert n_classify_calls["n"] == 0
+
+
+def test_pmhc_query_flags_chimeric_rows_in_verbose_mode(tmp_path, monkeypatch, capsys):
+    """When source species != MHC species (HLA-transgenic mouse, etc.)
+    verbose mode emits a `[pmhc] note: N chimeric row(s) ...` line.
+    Rows are preserved — legitimate xeno-experimental data isn't dropped.
+    """
+    import pandas as pd
+
+    from hitlist import pmhc_query
+
+    # Hand-rolled fixture: one human-on-HLA row + one mouse-on-HLA
+    # (HLA-transgenic mouse).  Same allele, different source organism.
+    obs = pd.DataFrame(
+        {
+            "peptide": ["KLVVVGAGGV", "KLVVVGAGGV"],
+            "pmid": [12345, 67890],
+            "mhc_class": ["I", "I"],
+            "mhc_restriction": ["HLA-A*02:01", "HLA-A*02:01"],
+            "species": ["Homo sapiens", "Mus musculus"],  # chimeric: mouse cell
+            "mhc_species": ["Homo sapiens", "Homo sapiens"],  # ... on human MHC
+            "source": ["iedb"] * 2,
+        }
     )
-    assert out.iloc[0] == "Homo sapiens"
-    assert "Canis" in out.iloc[1] or out.iloc[1] != "other"
-    assert out.iloc[2] == "Mus musculus"
-    assert out.iloc[3] == "other"  # empty string
-    # "garbage" may parse as "other" or get a fallback species — pin only
-    # that we don't crash.
-    assert isinstance(out.iloc[4], str)
+    mappings = pd.DataFrame(
+        {
+            "peptide": ["KLVVVGAGGV"],
+            "gene_name": ["NRAS"],
+            "gene_id": ["ENSG00000213281"],
+            "protein_id": ["ENSP00000358548"],
+        }
+    )
+    obs_path = tmp_path / "observations.parquet"
+    obs.to_parquet(obs_path, index=False)
+    mappings_path = tmp_path / "peptide_mappings.parquet"
+    mappings.to_parquet(mappings_path, index=False)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
+
+    pmhc_query.query(proteins=["NRAS"], use_hgnc=False, verbose=True)
+    err = capsys.readouterr().err
+    assert "chimeric" in err
+    assert "Mus musculus → Homo sapiens" in err
 
 
 def test_species_sort_key_order_human_first():

@@ -121,12 +121,21 @@ def query(
     #    peptide list down to obs as a parquet filter.  This is
     #    dramatically cheaper than the pre-#238 approach of loading the
     #    full 4.4M-row corpus and substring-matching gene_names.
+    # ``mhc_species`` and ``species`` are first-class columns on
+    # observations.parquet (scanner populates them at build time via
+    # ``classify_mhc_species`` + ``normalize_species``).  Loading them
+    # here is cheaper and more authoritative than re-deriving from
+    # ``mhc_restriction`` at query time, and ``species`` lets us flag
+    # chimeric rows (HLA-transgenic mouse etc., where the source
+    # organism differs from the MHC system).
     load_kwargs: dict = {
         "columns": [
             "peptide",
             "pmid",
             "mhc_class",
             "mhc_restriction",
+            "mhc_species",
+            "species",
             "gene_names",
             "gene_ids",
         ],
@@ -259,12 +268,48 @@ def query(
     #    ``best_guess_allele`` is functionally dependent on ``mhc_restriction``
     #    (one-to-one map), so include it in the group key — that lets us
     #    keep the column without an extra merge.
+    # 3c. Normalize mhc_species / species to non-empty strings so they
+    #     groupby cleanly and the formatter has a stable "other" bucket
+    #     for unparseable allele strings.
+    for col in ("mhc_species", "species"):
+        if col in df.columns:
+            df[col] = df[col].fillna("").astype(str).replace("", "other")
+
+    # 3d. Chimeric sanity check (#256 review): MHC system species and
+    #     source organism species should agree unless the system is
+    #     genuinely chimeric (HLA-transgenic mouse, etc.).  Surface a
+    #     count for verbose-mode users without suppressing the rows —
+    #     legitimate chimeric data is a real research artifact.
+    if "species" in df.columns and "mhc_species" in df.columns:
+        chimeric_mask = (df["species"] != df["mhc_species"]) & (df["mhc_species"] != "other")
+        n_chimeric = int(chimeric_mask.sum())
+        if n_chimeric and verbose:
+            mismatch_examples = (
+                df.loc[chimeric_mask, ["species", "mhc_species"]]
+                .drop_duplicates()
+                .head(3)
+                .apply(lambda r: f"{r['species']} → {r['mhc_species']}", axis=1)
+                .tolist()
+            )
+            _progress(
+                f"note: {n_chimeric:,} chimeric row(s) where source species "
+                f"!= MHC species — e.g. {'; '.join(mismatch_examples)} "
+                "(legitimate for HLA-transgenic / xeno experiments)",
+                verbose,
+            )
+
+    # 4. Aggregate to (gene_name, gene_id, mhc_restriction, peptide, mhc_class):
+    #    mhc_species is included in the group key — it's functionally
+    #    dependent on mhc_restriction (one species per allele string)
+    #    so it doesn't change cardinality but flows through aggregation
+    #    without an extra merge.
     grouped = (
         df.groupby(
             [
                 "gene_name",
                 "gene_id",
                 "mhc_restriction",
+                "mhc_species",
                 "best_guess_allele",
                 "peptide",
                 "mhc_class",
@@ -283,20 +328,11 @@ def query(
         .rename(columns={"mhc_restriction": "mhc_allele"})
     )
 
-    # 5. Optional binding-affinity prediction.
+    # 5. Optional binding-affinity prediction.  _consolidate_after_narrowing
+    #    (inside _attach_predictions) preserves mhc_species — see its
+    #    group_cols below.
     if predictor is not None:
         grouped = _attach_predictions(grouped, predictor)
-
-    # 5b. Tag each row with its inferred MHC species (#256).  Done AFTER
-    #     _attach_predictions because:
-    #     (a) _consolidate_after_narrowing groups by a fixed column list
-    #         and silently drops anything not in it — adding species
-    #         before would lose the column on the predictor path.
-    #     (b) _attach_predictions narrows multi-allele rows
-    #         ("HLA-A*02:01;HLA-B*07:02;...") to a single allele, so
-    #         species inferred from the FINAL mhc_allele resolves
-    #         cleanly instead of falling through to "other".
-    grouped["mhc_species"] = _infer_species_column(grouped["mhc_allele"])
 
     # 6. Order: species first (humans top of the page when present, then
     #    alphabetical), then by gene → allele → evidence count desc.
@@ -518,7 +554,19 @@ def _consolidate_after_narrowing(df: pd.DataFrame) -> pd.DataFrame:
         return ";".join(sorted(seen, key=int))
 
     score_cols = ["affinity_nM", "presentation_percentile", "binder_class", "best_predicted_allele"]
-    group_cols = ["gene_name", "gene_id", "mhc_allele", "best_guess_allele", "peptide", "mhc_class"]
+    # mhc_species is FD on mhc_allele (one species per allele string) so
+    # including it doesn't change cardinality — but it MUST be in the
+    # group_cols or .agg() silently drops it from the result frame.
+    group_cols = [
+        "gene_name",
+        "gene_id",
+        "mhc_allele",
+        "best_guess_allele",
+        "peptide",
+        "mhc_class",
+    ]
+    if "mhc_species" in df.columns:
+        group_cols.append("mhc_species")
     agg_spec: dict = {
         "n_observations": "sum",
         "pmids": _union_pmids,
@@ -606,29 +654,13 @@ def _empty_result(with_predictions: bool) -> pd.DataFrame:
     return pd.DataFrame(columns=cols)
 
 
-# ── Species inference for output grouping (#256) ────────────────────────
-
-
-def _infer_species_column(alleles: pd.Series) -> pd.Series:
-    """Map each MHC allele string to a species label via mhcgnomes
-    (with a regex fallback), reusing :func:`hitlist.curation.classify_mhc_species`.
-
-    Empty / unparseable allele strings get ``"other"`` so the formatter
-    has a stable section to file them under rather than dropping them.
-    """
-    from .curation import classify_mhc_species
-
-    cache: dict[str, str] = {}
-
-    def _one(allele: str) -> str:
-        if not isinstance(allele, str) or not allele:
-            return "other"
-        if allele not in cache:
-            cache[allele] = classify_mhc_species(allele) or "other"
-        return cache[allele]
-
-    return alleles.map(_one)
-
+# ── Species ordering for output grouping (#256) ────────────────────────
+#
+# The ``mhc_species`` column is loaded from observations.parquet (the
+# scanner populates it at build time via classify_mhc_species), so
+# pmhc_query doesn't need to re-derive it from the allele string.  This
+# also lets us flag chimeric rows (HLA-transgenic mouse etc.) where
+# the source organism's ``species`` disagrees with ``mhc_species``.
 
 # Order species sections so the most common case (human) leads, mouse/rat
 # follow as the standard model organisms, then everything else
