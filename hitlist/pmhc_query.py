@@ -283,15 +283,23 @@ def query(
         .rename(columns={"mhc_restriction": "mhc_allele"})
     )
 
+    # 4b. Tag each row with its inferred MHC species (#256).  Lets the
+    #     formatter section the output (HLA vs DLA vs H-2 ...) and gives
+    #     CSV/JSON consumers an explicit column instead of asking them
+    #     to re-derive it from the allele prefix.
+    grouped["mhc_species"] = _infer_species_column(grouped["mhc_allele"])
+
     # 5. Optional binding-affinity prediction.
     if predictor is not None:
         grouped = _attach_predictions(grouped, predictor)
 
-    # 6. Order: by gene then allele then evidence count desc.
+    # 6. Order: species first (humans top of the page when present, then
+    #    alphabetical), then by gene → allele → evidence count desc.
     grouped = grouped.sort_values(
-        ["gene_name", "mhc_allele", "n_observations"],
-        ascending=[True, True, False],
+        ["mhc_species", "gene_name", "mhc_allele", "n_observations"],
+        ascending=[True, True, True, False],
         kind="stable",
+        key=lambda col: col.map(_species_sort_key) if col.name == "mhc_species" else col,
     ).reset_index(drop=True)
     return grouped
 
@@ -586,10 +594,53 @@ def _empty_result(with_predictions: bool) -> pd.DataFrame:
         "n_observations",
         "pmids",
         "mhc_class",
+        "mhc_species",
     ]
     if with_predictions:
         cols += ["affinity_nM", "presentation_percentile", "binder_class"]
     return pd.DataFrame(columns=cols)
+
+
+# ── Species inference for output grouping (#256) ────────────────────────
+
+
+def _infer_species_column(alleles: pd.Series) -> pd.Series:
+    """Map each MHC allele string to a species label via mhcgnomes
+    (with a regex fallback), reusing :func:`hitlist.curation.classify_mhc_species`.
+
+    Empty / unparseable allele strings get ``"other"`` so the formatter
+    has a stable section to file them under rather than dropping them.
+    """
+    from .curation import classify_mhc_species
+
+    cache: dict[str, str] = {}
+
+    def _one(allele: str) -> str:
+        if not isinstance(allele, str) or not allele:
+            return "other"
+        if allele not in cache:
+            cache[allele] = classify_mhc_species(allele) or "other"
+        return cache[allele]
+
+    return alleles.map(_one)
+
+
+# Order species sections so the most common case (human) leads, mouse/rat
+# follow as the standard model organisms, then everything else
+# alphabetical.  "other" sinks to the bottom.
+_SPECIES_SORT_ORDER = {
+    "Homo sapiens": "0",
+    "Mus musculus": "1",
+    "Rattus norvegicus": "2",
+}
+
+
+def _species_sort_key(species: str) -> str:
+    if species in _SPECIES_SORT_ORDER:
+        return _SPECIES_SORT_ORDER[species]
+    if species == "other":
+        return "z"
+    return f"5:{species}"
 
 
 def format_table(df: pd.DataFrame) -> str:
@@ -702,6 +753,41 @@ def format_table(df: pd.DataFrame) -> str:
 
     out: list[str] = []
     has_sample = "sample_name" in df.columns
+
+    # Multi-species results get an outer "=== species: X ===" header.
+    # Single-species results (the typical human-only case) skip the
+    # header so output stays compact and unchanged from pre-#256.
+    multi_species = (
+        "mhc_species" in df.columns and df["mhc_species"].dropna().astype(str).nunique() > 1
+    )
+
+    def _render_genes(scope_df: pd.DataFrame, indent: str, blank_between: bool) -> None:
+        first = True
+        for _, gene_df in scope_df.groupby("gene_name", sort=True, observed=True):
+            if blank_between and not first:
+                out.append("")
+            out.extend(_render_gene_block(gene_df, gene_indent=indent))
+            first = False
+
+    def _render_species_partition(scope_df: pd.DataFrame, base_indent: str) -> None:
+        if not multi_species:
+            _render_genes(scope_df, base_indent, blank_between=not has_sample)
+            return
+        species_iter = sorted(
+            scope_df["mhc_species"].dropna().astype(str).unique(),
+            key=_species_sort_key,
+        )
+        first = True
+        for sp in species_iter:
+            sp_df = scope_df[scope_df["mhc_species"].astype(str) == sp]
+            if sp_df.empty:
+                continue
+            if not first:
+                out.append("")
+            out.append(f"{base_indent}=== species: {sp} ===")
+            _render_genes(sp_df, base_indent + ("  " if base_indent else ""), blank_between=True)
+            first = False
+
     if has_sample:
         # Per-sample sections: one outer block per sample, nested gene
         # blocks beneath. Empty samples (no evidence on their alleles) get a
@@ -713,13 +799,11 @@ def format_table(df: pd.DataFrame) -> str:
                 out.append("  (no pMHC evidence on this sample's alleles)")
                 out.append("")
                 continue
-            for _, gene_df in non_empty.groupby("gene_name", sort=True, observed=True):
-                out.extend(_render_gene_block(gene_df, gene_indent="  "))
+            _render_species_partition(non_empty, base_indent="  ")
             out.append("")
     else:
-        for _, gene_df in df.groupby("gene_name", sort=True, observed=True):
-            out.extend(_render_gene_block(gene_df))
-            out.append("")
+        _render_species_partition(df, base_indent="")
+        out.append("")
 
     if not has_pred:
         out.append(

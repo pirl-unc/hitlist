@@ -389,6 +389,104 @@ def test_pmhc_query_format_table_renders_grouped_table(tmp_path, monkeypatch):
     assert nras_idx < a02_idx < pep_idx
 
 
+# ── Species inference + multi-species output sectioning (#256) ──────
+
+
+def test_pmhc_query_attaches_mhc_species_column(tmp_path, monkeypatch):
+    """The result frame carries an mhc_species column derived from each
+    row's mhc_allele.  HLA rows resolve to ``Homo sapiens``."""
+    from hitlist import pmhc_query
+
+    obs_path, mappings_path = _write_obs_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
+
+    df = pmhc_query.query(proteins=["NRAS"], use_hgnc=False)
+    assert "mhc_species" in df.columns
+    assert set(df["mhc_species"].unique()) == {"Homo sapiens"}
+
+
+def test_infer_species_column_handles_dla_and_unknown():
+    """Direct unit test on the species inference helper — covers the
+    canine + the fall-through cases without needing a parquet fixture."""
+    from hitlist.pmhc_query import _infer_species_column
+
+    out = _infer_species_column(
+        pd.Series(["HLA-A*02:01", "DLA-88*501:01", "H-2-Kb", "", "garbage"])
+    )
+    assert out.iloc[0] == "Homo sapiens"
+    assert "Canis" in out.iloc[1] or out.iloc[1] != "other"
+    assert out.iloc[2] == "Mus musculus"
+    assert out.iloc[3] == "other"  # empty string
+    # "garbage" may parse as "other" or get a fallback species — pin only
+    # that we don't crash.
+    assert isinstance(out.iloc[4], str)
+
+
+def test_species_sort_key_order_human_first():
+    """Output ordering: human leads, mouse / rat as standard models, then
+    everything else alphabetical, ``other`` sinks to the bottom."""
+    from hitlist.pmhc_query import _species_sort_key
+
+    species = ["Macaca mulatta", "Mus musculus", "other", "Homo sapiens", "Canis lupus"]
+    sorted_species = sorted(species, key=_species_sort_key)
+    assert sorted_species[0] == "Homo sapiens"
+    assert sorted_species[1] == "Mus musculus"
+    assert sorted_species[-1] == "other"
+    # Canis (C) sorts before Macaca (M) in the alphabetical tail.
+    assert sorted_species.index("Canis lupus") < sorted_species.index("Macaca mulatta")
+
+
+def _multispecies_table_input() -> pd.DataFrame:
+    """Hand-rolled multi-species result frame for format_table tests.
+    Avoids the parquet fixture so the test pins the formatter behavior
+    in isolation from the query path.
+    """
+    return pd.DataFrame(
+        {
+            "gene_name": ["PRAME", "PRAME", "PRAME"],
+            "gene_id": ["ENSG00000185686", "ENSG00000185686", "ENSG00000185686"],
+            "mhc_allele": ["HLA-A*02:01", "DLA-88*501:01", "HLA-A*02:01"],
+            "best_guess_allele": [None, None, None],
+            "peptide": ["SLLQHLIGL", "YIAQFTSQFL", "ALYVDSLFFL"],
+            "n_observations": [42, 1, 7],
+            "pmids": ["12345", "27893789", "34567"],
+            "mhc_class": ["I", "I", "I"],
+            "mhc_species": ["Homo sapiens", "Canis lupus", "Homo sapiens"],
+        }
+    )
+
+
+def test_format_table_inserts_species_section_when_multi_species():
+    """Multi-species result gets ``=== species: X ===`` outer headers,
+    human-first by sort order."""
+    from hitlist import pmhc_query
+
+    text = pmhc_query.format_table(_multispecies_table_input())
+    assert "=== species: Homo sapiens ===" in text
+    assert "=== species: Canis lupus ===" in text
+    # Human section comes before canine.
+    assert text.find("Homo sapiens") < text.find("Canis lupus")
+    # The dog peptide still appears, just under its own section.
+    assert "YIAQFTSQFL" in text
+    assert "DLA-88*501:01" in text
+
+
+def test_format_table_omits_species_section_when_single_species(tmp_path, monkeypatch):
+    """Single-species result (the typical human-only case) keeps the
+    pre-#256 layout — no ``=== species:`` header line."""
+    from hitlist import pmhc_query
+
+    obs_path, mappings_path = _write_obs_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
+
+    df = pmhc_query.query(proteins=["NRAS"], use_hgnc=False)
+    text = pmhc_query.format_table(df)
+    assert "=== species:" not in text
+    # The existing gene > allele structure is unchanged.
+    assert "NRAS" in text
+    assert "HLA-A*02:01" in text
+
+
 # ── Serotype handling (v1.30.2) ───────────────────────────────────────
 
 
