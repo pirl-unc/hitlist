@@ -49,8 +49,10 @@ def _write_obs_fixture(tmp_path):
                 "sample_c",
                 "sample_a",
             ],
+            "cell_name": [""] * 5,
             "cell_line_name": [""] * 5,
             "monoallelic_host": [""] * 5,
+            "src_cell_line": [False] * 5,
             "source": ["iedb"] * 5,
         }
     )
@@ -292,8 +294,10 @@ def test_pmhc_query_normalizes_unprefixed_alleles(tmp_path, monkeypatch):
             "species": ["Homo sapiens"] * 2,
             "mhc_species": ["Homo sapiens"] * 2,
             "attributed_sample_label": ["sample_a", "sample_b"],
+            "cell_name": ["", ""],
             "cell_line_name": ["", ""],
             "monoallelic_host": ["", ""],
+            "src_cell_line": [False, False],
             "source": ["iedb"] * 2,
         }
     )
@@ -470,8 +474,10 @@ def test_pmhc_query_warns_on_unresolved_source_organism(tmp_path, monkeypatch, c
             "species": ["Homo sapiens", "", "unidentified"],
             "mhc_species": ["Homo sapiens"] * 3,
             "attributed_sample_label": ["sample_a", "sample_b", "sample_c"],
+            "cell_name": [""] * 3,
             "cell_line_name": [""] * 3,
             "monoallelic_host": [""] * 3,
+            "src_cell_line": [False] * 3,
             "source": ["iedb"] * 3,
         }
     )
@@ -574,6 +580,9 @@ def test_format_table_truncates_long_pmid_lists():
             "peptide": ["KLVVVGAGGV"],
             "n_observations": [6],
             "n_references": [6],
+            "n_cell_lines": [0],
+            "n_donors": [0],
+            "n_donor_cell_types": [0],
             "n_samples": [6],
             "pmids": ["111;222;333;444;555;666"],
             "mhc_class": ["I"],
@@ -599,6 +608,9 @@ def test_format_table_short_pmid_lists_not_truncated():
             "peptide": ["KLVVVGAGGV"],
             "n_observations": [3],
             "n_references": [3],
+            "n_cell_lines": [0],
+            "n_donors": [0],
+            "n_donor_cell_types": [0],
             "n_samples": [3],
             "pmids": ["111;222;333"],
             "mhc_class": ["I"],
@@ -626,6 +638,9 @@ def test_format_table_renders_empty_allele_as_synthetic_header():
             "peptide": ["KLVVVGAGGV", "PLACEHOLDER"],
             "n_observations": [3, 1],
             "n_references": [3, 1],
+            "n_cell_lines": [0, 0],
+            "n_donors": [0, 0],
+            "n_donor_cell_types": [0, 0],
             "n_samples": [3, 1],
             "pmids": ["111", "222"],
             "mhc_class": ["I", "I"],
@@ -657,6 +672,9 @@ def test_format_table_orders_specific_alleles_before_class_only():
             # via the existing evidence-count sort.
             "n_observations": [99, 1, 50],
             "n_references": [1, 1, 1],
+            "n_cell_lines": [0, 0, 0],
+            "n_donors": [0, 0, 0],
+            "n_donor_cell_types": [0, 0, 0],
             "n_samples": [1, 1, 1],
             "pmids": ["111"] * 3,
             "mhc_class": ["I"] * 3,
@@ -685,6 +703,9 @@ def test_format_table_strips_trailing_whitespace_per_row():
             "peptide": ["KLVVVGAGGV"],
             "n_observations": [3],
             "n_references": [2],
+            "n_cell_lines": [0],
+            "n_donors": [0],
+            "n_donor_cell_types": [0],
             "n_samples": [3],
             "pmids": ["111;222"],
             "mhc_class": ["I"],
@@ -710,6 +731,9 @@ def _multispecies_table_input() -> pd.DataFrame:
             "peptide": ["SLLQHLIGL", "YIAQFTSQFL", "ALYVDSLFFL"],
             "n_observations": [42, 1, 7],
             "n_references": [1, 1, 1],
+            "n_cell_lines": [0, 0, 0],
+            "n_donors": [0, 0, 0],
+            "n_donor_cell_types": [0, 0, 0],
             "n_samples": [42, 1, 7],
             "pmids": ["12345", "27893789", "34567"],
             "mhc_class": ["I", "I", "I"],
@@ -796,8 +820,10 @@ def _write_serotype_obs_fixture(tmp_path):
             "species": ["Homo sapiens"] * 3,
             "mhc_species": ["Homo sapiens"] * 3,
             "attributed_sample_label": ["sample_a", "sample_b", "sample_c"],
+            "cell_name": [""] * 3,
             "cell_line_name": [""] * 3,
             "monoallelic_host": [""] * 3,
+            "src_cell_line": [False] * 3,
             "source": ["iedb"] * 3,
         }
     )
@@ -1197,8 +1223,10 @@ def test_query_n_samples_distinct_from_n_references(tmp_path, monkeypatch):
             "mhc_species": ["Homo sapiens"] * 3,
             # Three distinct donors in one cohort paper.
             "attributed_sample_label": ["donor1", "donor2", "donor3"],
+            "cell_name": [""] * 3,
             "cell_line_name": [""] * 3,
             "monoallelic_host": [""] * 3,
+            "src_cell_line": [False] * 3,
             "source": ["iedb"] * 3,
         }
     )
@@ -1275,8 +1303,10 @@ def test_query_n_samples_uses_composite_of_cell_line_and_host(tmp_path, monkeypa
             "species": ["Homo sapiens"] * 4,
             "mhc_species": ["Homo sapiens"] * 4,
             "attributed_sample_label": [""] * 4,
+            "cell_name": ["MEL2", "MEL3", "MEL5", "OV1"],
             "cell_line_name": ["MEL2", "MEL3", "MEL5", "OV1"],
             "monoallelic_host": [""] * 4,
+            "src_cell_line": [True] * 4,
             "source": ["iedb"] * 4,
         }
     )
@@ -1302,19 +1332,12 @@ def test_query_n_samples_uses_composite_of_cell_line_and_host(tmp_path, monkeypa
     assert int(row["n_samples"]) == 4  # four distinct cell lines
 
 
-def test_query_n_samples_ignores_cell_type_only_signal(tmp_path, monkeypatch):
-    """``cell_name`` mixes real cell-line names with coarse cell-type
-    categories ("B cell", "Glial cell").  The composite uses
-    ``cell_line_name`` (gated on src_cell_line=True) instead so two
-    rows differing ONLY in cell_name's cell-type field don't falsely
-    inflate the sample count.
-
-    Fixture has 3 rows on one PMID with empty cell_line_name (i.e.
-    src_cell_line was False at build time, so these are primary-cell
-    rows where cell_name would have been "B cell" / "Other" etc.).
-    Without an attributed_sample_label they collapse to 1 sample,
-    which is the right answer given the metadata can't actually
-    distinguish them."""
+def test_query_n_samples_falls_back_to_pmid_when_no_metadata(tmp_path, monkeypatch):
+    """Fixture has 3 primary-cell rows on one PMID with empty
+    attributed_sample_label, empty cell_name, and src_cell_line=False.
+    Nothing distinguishes them → 1 donor / 1 (donor, cell-type) combo
+    / 0 cell lines → n_samples=1.  This is the conservative fallback
+    when curation lost the per-sample dimension upstream."""
     from hitlist import pmhc_query
 
     obs = pd.DataFrame(
@@ -1326,8 +1349,10 @@ def test_query_n_samples_ignores_cell_type_only_signal(tmp_path, monkeypatch):
             "species": ["Homo sapiens"] * 3,
             "mhc_species": ["Homo sapiens"] * 3,
             "attributed_sample_label": [""] * 3,
-            "cell_line_name": [""] * 3,  # primary-cell, no real line
+            "cell_name": [""] * 3,
+            "cell_line_name": [""] * 3,
             "monoallelic_host": [""] * 3,
+            "src_cell_line": [False] * 3,
             "source": ["iedb"] * 3,
         }
     )
@@ -1349,14 +1374,64 @@ def test_query_n_samples_ignores_cell_type_only_signal(tmp_path, monkeypatch):
 
     df = pmhc_query.query(proteins=["NRAS"], use_hgnc=False)
     row = df.iloc[0]
-    # All three rows share the same (pmid, "", "", "") composite → 1 sample.
-    # Conservative under-count: we can't tell them apart from metadata.
+    assert int(row["n_cell_lines"]) == 0
+    assert int(row["n_donors"]) == 1  # all 3 rows fall back to "pmid:42"
+    assert int(row["n_donor_cell_types"]) == 1
     assert int(row["n_samples"]) == 1
 
 
-def test_query_n_samples_uses_monoallelic_host_when_cell_name_empty(tmp_path, monkeypatch):
+def test_query_n_samples_counts_distinct_cell_types_from_one_donor(tmp_path, monkeypatch):
+    """Per the #260 review: a study profiling MULTIPLE cell types from
+    the same donor counts as MULTIPLE samples (n_donor_cell_types > 1),
+    not 1.  Different cell populations = different MS runs = different
+    sample preps = different presentation.  n_donors stays at 1."""
+    from hitlist import pmhc_query
+
+    obs = pd.DataFrame(
+        {
+            "peptide": ["KLVVVGAGGV"] * 3,
+            "pmid": [42] * 3,
+            "mhc_class": ["I"] * 3,
+            "mhc_restriction": ["HLA-A*02:01"] * 3,
+            "species": ["Homo sapiens"] * 3,
+            "mhc_species": ["Homo sapiens"] * 3,
+            "attributed_sample_label": ["donor1"] * 3,  # one donor
+            "cell_name": ["B cell", "T cell", "NK cell"],  # three cell types
+            "cell_line_name": [""] * 3,
+            "monoallelic_host": [""] * 3,
+            "src_cell_line": [False] * 3,
+            "source": ["iedb"] * 3,
+        }
+    )
+    mappings = pd.DataFrame(
+        {
+            "peptide": ["KLVVVGAGGV"],
+            "gene_name": ["NRAS"],
+            "gene_id": ["ENSG00000213281"],
+            "protein_id": ["ENSP00000358548"],
+        }
+    )
+    obs.to_parquet(tmp_path / "observations.parquet", index=False)
+    mappings.to_parquet(tmp_path / "peptide_mappings.parquet", index=False)
+    _patch_paths(
+        monkeypatch,
+        tmp_path / "observations.parquet",
+        tmp_path / "peptide_mappings.parquet",
+    )
+
+    df = pmhc_query.query(proteins=["NRAS"], use_hgnc=False)
+    row = df.iloc[0]
+    assert int(row["n_cell_lines"]) == 0
+    assert int(row["n_donors"]) == 1  # one donor
+    assert int(row["n_donor_cell_types"]) == 3  # three cell types from that donor
+    assert int(row["n_samples"]) == 3
+
+
+def test_query_n_samples_uses_monoallelic_host_when_cell_line_name_empty(tmp_path, monkeypatch):
     """monoallelic_host is the only sample-distinguishing field on
-    ~9K corpus rows.  Verify it's pulled into the composite."""
+    ~9K corpus rows.  Verify it counts as a distinct line when
+    cell_line_name is empty (which it occasionally is despite
+    src_cell_line=True — IEDB curation gap)."""
     from hitlist import pmhc_query
 
     obs = pd.DataFrame(
@@ -1368,8 +1443,10 @@ def test_query_n_samples_uses_monoallelic_host_when_cell_name_empty(tmp_path, mo
             "species": ["Homo sapiens"] * 3,
             "mhc_species": ["Homo sapiens"] * 3,
             "attributed_sample_label": ["", "", ""],
+            "cell_name": ["", "", ""],
             "cell_line_name": ["", "", ""],
             "monoallelic_host": ["host_A", "host_B", "host_C"],
+            "src_cell_line": [True, True, True],
             "source": ["iedb"] * 3,
         }
     )
@@ -1391,6 +1468,8 @@ def test_query_n_samples_uses_monoallelic_host_when_cell_name_empty(tmp_path, mo
 
     df = pmhc_query.query(proteins=["NRAS"], use_hgnc=False)
     row = df.iloc[0]
+    assert int(row["n_cell_lines"]) == 3
+    assert int(row["n_donors"]) == 0  # no primary-cell rows
     assert int(row["n_samples"]) == 3
 
 

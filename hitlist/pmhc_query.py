@@ -165,15 +165,25 @@ def query(
     # identifier.  We load three columns to compose it (#260 audit):
     #
     #   attributed_sample_label   1.2%, 11 distinct  per-donor patient ID
-    #   cell_line_name           58.3%, 184 distinct cell-line name; gated
-    #                                                on src_cell_line=True
-    #                                                so it's a CLEAN cell-line
-    #                                                signal (cell_name would
-    #                                                also include cell-type
-    #                                                categories like "B cell"
-    #                                                / "Other" — those aren't
-    #                                                per-sample and would
-    #                                                over-split the count).
+    #   cell_name                98.5%, 192 distinct IEDB's catch-all
+    #                                                "Cell Name" field
+    #                                                (covers both cell
+    #                                                lines AND cell types
+    #                                                — strict superset of
+    #                                                cell_line_name, with
+    #                                                100% agreement when
+    #                                                both populated.  Two
+    #                                                different cell types
+    #                                                in one study ARE
+    #                                                different samples
+    #                                                — different MS runs,
+    #                                                different sample
+    #                                                preps — so cell_name
+    #                                                belongs in the
+    #                                                composite even when
+    #                                                the values are
+    #                                                cell-type categories
+    #                                                like "B cell".)
     #   monoallelic_host         21.4%,  7 distinct  engineering host platform
     #                                                (C1R, 721.221, K562, ...)
     load_kwargs: dict = {
@@ -185,7 +195,9 @@ def query(
             "mhc_species",
             "species",
             "attributed_sample_label",
+            "cell_name",
             "cell_line_name",
+            "src_cell_line",
             "monoallelic_host",
             "gene_names",
             "gene_ids",
@@ -356,53 +368,64 @@ def query(
     #    dependent on mhc_restriction (one species per allele string)
     #    so it doesn't change cardinality but flows through aggregation
     #    without an extra merge.
-    # Synthesize a per-row sample identifier from a COMPOSITE of the
-    # three sample-distinguishing fields + pmid.  The fields are
-    # SEMANTICALLY DISTINCT (audit in #260 review):
+    # ── Sample-identity decomposition (#260 review) ──────────────────
     #
-    #   attributed_sample_label: real per-donor patient label, when
-    #     populated.  NEVER agrees with cell_line_name in the corpus
-    #     (0 of 54,682 overlapping rows) — adds orthogonal signal.
+    # n_samples splits into two orthogonal sample categories that
+    # shouldn't be conflated:
     #
-    #   cell_line_name: real cell-line name only, gated on
-    #     src_cell_line=True at build time.  Crucially, this is
-    #     NOT the same as ``cell_name`` (which mixes real lines
-    #     with cell-type categories — "B cell", "Glial cell",
-    #     "Other"; using cell_name would over-split because two
-    #     rows with cell_name="B cell" from different donors
-    #     would falsely look like the same sample-set).
-    #     cell_line_name is empty for primary-cell / tissue data
-    #     so those rows fall back to pmid + attributed_sample_label.
+    #   n_cell_lines        = distinct cell lines profiled
+    #                         (src_cell_line=True rows; identified by
+    #                          cell_line_name + monoallelic_host)
     #
-    #   monoallelic_host: engineering host platform (C1R, 721.221,
-    #     K562, Strep-tag II, MAPTAC, ...).  Not strictly per-sample,
-    #     but adds signal for the ~9K rows where it's the only
-    #     distinguishing field.
+    #   n_donor_cell_types  = distinct (donor, cell-type) combos for
+    #                         primary-cell / tissue rows
+    #                         (src_cell_line=False rows; identified by
+    #                          donor_id + cell_name where donor_id =
+    #                          attributed_sample_label or fallback to
+    #                          pmid when curation didn't record the donor)
     #
-    # Two rows with the same composite are the same sample by every
-    # signal we have; differing on any field → different sample.
-    # Worst case (no labels at all): n_samples == n_references.
+    #   n_donors            = distinct donors (always ≤ n_donor_cell_types
+    #                         because one donor can yield multiple
+    #                         tissue / cell-type profiles)
+    #
+    #   n_samples           = n_cell_lines + n_donor_cell_types
+    #
+    # We carry three internal semicolon-joined ID columns through the
+    # groupby so _consolidate_after_narrowing can union them; the final
+    # counts are derived from them after consolidation.
     def _str_col(name: str) -> pd.Series:
         if name in df.columns:
             return df[name].astype(object).fillna("").astype(str)
         return pd.Series([""] * len(df), index=df.index)
 
-    df["_sample_id"] = (
-        "pmid:"
-        + df["pmid"].astype("Int64").astype(str)
-        + "|"
-        + _str_col("cell_line_name")
-        + "|"
-        + _str_col("monoallelic_host")
-        + "|"
-        + _str_col("attributed_sample_label")
+    src_cell_line = (
+        df["src_cell_line"].astype("boolean").fillna(False)
+        if "src_cell_line" in df.columns
+        else pd.Series([False] * len(df), index=df.index)
     )
+    cell_line_name = _str_col("cell_line_name")
+    cell_name = _str_col("cell_name")
+    monoallelic_host = _str_col("monoallelic_host")
+    asl = _str_col("attributed_sample_label")
+    pmid_str = df["pmid"].astype("Int64").astype(str)
 
-    # ``_sample_labels`` is an internal semicolon-joined list of distinct
-    # synthesized sample IDs, kept on the row so
-    # _consolidate_after_narrowing can union them after multi-allele
-    # narrowing.  Dropped before returning — only the count (n_samples)
-    # is surfaced.
+    # Cell-line ID per row (empty for non-cell-line rows).  Set when
+    # src_cell_line=True AND at least one of cell_line_name /
+    # monoallelic_host is populated — the latter catches the ~9K
+    # mono-allelic rows where the host platform is the only line ID.
+    df["_line_id"] = (cell_line_name + "|" + monoallelic_host).where(
+        src_cell_line & ((cell_line_name != "") | (monoallelic_host != "")),
+        "",
+    )
+    # Donor ID per row (empty for cell-line rows).
+    donor_id = asl.where(asl != "", "pmid:" + pmid_str)
+    df["_donor_id"] = donor_id.where(~src_cell_line, "")
+    # (donor, cell-type) per row (empty for cell-line rows).
+    df["_donor_type_id"] = (donor_id + "|" + cell_name).where(~src_cell_line, "")
+
+    def _join_distinct_nonempty(s: pd.Series) -> str:
+        return ";".join(sorted({str(x) for x in s.dropna() if str(x)}))
+
     grouped = (
         df.groupby(
             [
@@ -423,28 +446,36 @@ def query(
                 "pmid",
                 lambda s: ";".join(str(int(p)) for p in sorted(set(s.dropna()))),
             ),
-            _sample_labels=(
-                "_sample_id",
-                lambda s: ";".join(sorted({str(x) for x in s.dropna() if str(x)})),
-            ),
+            _line_ids=("_line_id", _join_distinct_nonempty),
+            _donor_ids=("_donor_id", _join_distinct_nonempty),
+            _donor_type_ids=("_donor_type_id", _join_distinct_nonempty),
         )
         .reset_index()
         .rename(columns={"mhc_restriction": "mhc_allele"})
     )
 
     # 5. Optional binding-affinity prediction.  _consolidate_after_narrowing
-    #    (inside _attach_predictions) preserves mhc_species AND
-    #    _sample_labels via its group_cols / agg_spec — see below.
+    #    (inside _attach_predictions) preserves mhc_species AND the
+    #    three internal ID columns via its group_cols / agg_spec.
     if predictor is not None:
         grouped = _attach_predictions(grouped, predictor)
 
-    # 5b. Surface n_references + n_samples as user-facing count columns.
-    #     Drop _sample_labels — internal-only.
+    # 5b. Derive the user-facing count columns from the joined-ID columns,
+    #     then drop the internals.
+    def _count_distinct(s: str) -> int:
+        if not s:
+            return 0
+        return len([x for x in str(s).split(";") if x])
+
     grouped["n_references"] = grouped["pmids"].apply(lambda s: len(str(s).split(";")) if s else 0)
-    grouped["n_samples"] = grouped["_sample_labels"].apply(
-        lambda s: len([x for x in str(s).split(";") if x]) if s else 0
-    )
-    grouped = grouped.drop(columns=["_sample_labels"])
+    grouped["n_cell_lines"] = grouped["_line_ids"].apply(_count_distinct)
+    grouped["n_donors"] = grouped["_donor_ids"].apply(_count_distinct)
+    grouped["n_donor_cell_types"] = grouped["_donor_type_ids"].apply(_count_distinct)
+    # n_samples is the headline total: one count per cell-line profiled +
+    # one count per (donor, cell-type) combo profiled.  A donor with N
+    # cell types contributes N samples; a donor with 1 cell type → 1.
+    grouped["n_samples"] = grouped["n_cell_lines"] + grouped["n_donor_cell_types"]
+    grouped = grouped.drop(columns=["_line_ids", "_donor_ids", "_donor_type_ids"])
 
     # 5c. Apply user-supplied filters (#259).
     if min_binder_class is not None:
@@ -681,7 +712,7 @@ def _consolidate_after_narrowing(df: pd.DataFrame) -> pd.DataFrame:
                     seen.add(p)
         return ";".join(sorted(seen, key=int))
 
-    def _union_sample_labels(values: pd.Series) -> str:
+    def _union_semicolon_set(values: pd.Series) -> str:
         seen: set[str] = set()
         for v in values.dropna():
             for label in str(v).split(";"):
@@ -707,13 +738,14 @@ def _consolidate_after_narrowing(df: pd.DataFrame) -> pd.DataFrame:
         "n_observations": "sum",
         "pmids": _union_pmids,
     }
-    # _sample_labels carries the per-row distinct-sample list as
-    # semicolon-joined strings; union them on consolidation so n_samples
-    # post-narrowing reflects the true distinct-sample count.  Same
-    # silently-dropped-on-groupby gotcha as mhc_species — must be in
-    # agg_spec.
-    if "_sample_labels" in df.columns:
-        agg_spec["_sample_labels"] = _union_sample_labels
+    # _line_ids / _donor_ids / _donor_type_ids carry the per-row
+    # distinct-sample lists as semicolon-joined strings; union them on
+    # consolidation so the post-narrowing counts reflect the true
+    # distinct-sample sets.  Same silently-dropped-on-groupby gotcha as
+    # mhc_species — must be in agg_spec.
+    for col in ("_line_ids", "_donor_ids", "_donor_type_ids"):
+        if col in df.columns:
+            agg_spec[col] = _union_semicolon_set
     for col in score_cols:
         if col in df.columns:
             agg_spec[col] = "first"
@@ -789,6 +821,9 @@ def _empty_result(with_predictions: bool) -> pd.DataFrame:
         "peptide",
         "n_observations",
         "n_references",
+        "n_cell_lines",
+        "n_donors",
+        "n_donor_cell_types",
         "n_samples",
         "pmids",
         "mhc_class",
@@ -874,6 +909,8 @@ def format_table(df: pd.DataFrame) -> str:
         ("peptide", "peptide"),
         ("n_obs", "n_observations"),
         ("n_refs", "n_references"),
+        ("n_lines", "n_cell_lines"),
+        ("n_donors", "n_donors"),
         ("n_samples", "n_samples"),
         ("pmids", "pmids"),
     ]
@@ -887,7 +924,7 @@ def format_table(df: pd.DataFrame) -> str:
     def _fmt(header: str, value) -> str:
         if pd.isna(value):
             return ""
-        if header in ("n_obs", "n_refs", "n_samples"):
+        if header in ("n_obs", "n_refs", "n_lines", "n_donors", "n_samples"):
             return f"{int(value)}"
         if header == "affinity_nM":
             return f"{float(value):.1f}"
