@@ -1379,6 +1379,38 @@ def main() -> None:
         ),
     )
     p_pmhc.add_argument(
+        "--min-binder-class",
+        choices=["strong", "medium", "weak"],
+        default=None,
+        help=(
+            "Drop rows whose predicted binder tier is below this threshold.  "
+            "'strong' keeps only strong; 'medium' keeps strong+medium; 'weak' "
+            "drops only non-binders.  Requires --predictor."
+        ),
+    )
+    p_pmhc.add_argument(
+        "--min-references",
+        type=int,
+        default=1,
+        metavar="N",
+        help=(
+            "Drop rows backed by fewer than N distinct PMIDs.  Default 1 "
+            "(no filter).  Use 2+ to require independently re-observed peptides."
+        ),
+    )
+    p_pmhc.add_argument(
+        "--min-samples",
+        type=int,
+        default=1,
+        metavar="N",
+        help=(
+            "Drop rows backed by fewer than N distinct samples (donors / "
+            "cell lines / runs).  Default 1 (no filter).  A single PMID often "
+            "contributes many samples — --min-samples is usually a stronger "
+            "evidence signal than --min-references."
+        ),
+    )
+    p_pmhc.add_argument(
         "--format",
         choices=["table", "csv", "json"],
         default="table",
@@ -1632,6 +1664,9 @@ def _pmhc(args: argparse.Namespace) -> None:
     inline_samples = getattr(args, "sample", None) or []
     samples_path = getattr(args, "samples", None)
     predictor = getattr(args, "predictor", None)
+    min_binder_class = getattr(args, "min_binder_class", None)
+    min_references = getattr(args, "min_references", 1)
+    min_samples = getattr(args, "min_samples", 1)
     fmt = getattr(args, "format", "table")
     output = getattr(args, "output", None)
 
@@ -1653,6 +1688,9 @@ def _pmhc(args: argparse.Namespace) -> None:
                 samples_to_alleles=samples_to_alleles,
                 proteins=proteins,
                 predictor=predictor,
+                min_binder_class=min_binder_class,
+                min_references=min_references,
+                min_samples=min_samples,
                 verbose=True,
             )
         else:
@@ -1660,6 +1698,9 @@ def _pmhc(args: argparse.Namespace) -> None:
                 proteins=proteins,
                 alleles=alleles,
                 predictor=predictor,
+                min_binder_class=min_binder_class,
+                min_references=min_references,
+                min_samples=min_samples,
                 verbose=True,
             )
     except (FileNotFoundError, RuntimeError, ValueError) as e:

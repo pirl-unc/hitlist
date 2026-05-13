@@ -42,6 +42,17 @@ def _write_obs_fixture(tmp_path):
             ],
             "species": ["Homo sapiens"] * 5,
             "mhc_species": ["Homo sapiens"] * 5,
+            "attributed_sample_label": [
+                "sample_a",
+                "sample_b",  # second KLVVVGAGGV row → different sample
+                "sample_a",
+                "sample_c",
+                "sample_a",
+            ],
+            "cell_name": [""] * 5,
+            "cell_line_name": [""] * 5,
+            "monoallelic_host": [""] * 5,
+            "src_cell_line": [False] * 5,
             "source": ["iedb"] * 5,
         }
     )
@@ -282,6 +293,11 @@ def test_pmhc_query_normalizes_unprefixed_alleles(tmp_path, monkeypatch):
             "mhc_restriction": ["A*02:01", "HLA-A*02:01"],
             "species": ["Homo sapiens"] * 2,
             "mhc_species": ["Homo sapiens"] * 2,
+            "attributed_sample_label": ["sample_a", "sample_b"],
+            "cell_name": ["", ""],
+            "cell_line_name": ["", ""],
+            "monoallelic_host": ["", ""],
+            "src_cell_line": [False, False],
             "source": ["iedb"] * 2,
         }
     )
@@ -457,6 +473,11 @@ def test_pmhc_query_warns_on_unresolved_source_organism(tmp_path, monkeypatch, c
             "mhc_restriction": ["HLA-A*02:01"] * 3,
             "species": ["Homo sapiens", "", "unidentified"],
             "mhc_species": ["Homo sapiens"] * 3,
+            "attributed_sample_label": ["sample_a", "sample_b", "sample_c"],
+            "cell_name": [""] * 3,
+            "cell_line_name": [""] * 3,
+            "monoallelic_host": [""] * 3,
+            "src_cell_line": [False] * 3,
             "source": ["iedb"] * 3,
         }
     )
@@ -558,6 +579,11 @@ def test_format_table_truncates_long_pmid_lists():
             "best_guess_allele": [None],
             "peptide": ["KLVVVGAGGV"],
             "n_observations": [6],
+            "n_references": [6],
+            "n_cell_lines": [0],
+            "n_donors": [0],
+            "n_donor_cell_types": [0],
+            "n_samples": [6],
             "pmids": ["111;222;333;444;555;666"],
             "mhc_class": ["I"],
             "mhc_species": ["Homo sapiens"],
@@ -581,6 +607,11 @@ def test_format_table_short_pmid_lists_not_truncated():
             "best_guess_allele": [None],
             "peptide": ["KLVVVGAGGV"],
             "n_observations": [3],
+            "n_references": [3],
+            "n_cell_lines": [0],
+            "n_donors": [0],
+            "n_donor_cell_types": [0],
+            "n_samples": [3],
             "pmids": ["111;222;333"],
             "mhc_class": ["I"],
             "mhc_species": ["Homo sapiens"],
@@ -606,6 +637,11 @@ def test_format_table_renders_empty_allele_as_synthetic_header():
             "best_guess_allele": [None, None],
             "peptide": ["KLVVVGAGGV", "PLACEHOLDER"],
             "n_observations": [3, 1],
+            "n_references": [3, 1],
+            "n_cell_lines": [0, 0],
+            "n_donors": [0, 0],
+            "n_donor_cell_types": [0, 0],
+            "n_samples": [3, 1],
             "pmids": ["111", "222"],
             "mhc_class": ["I", "I"],
             "mhc_species": ["Homo sapiens", "Homo sapiens"],
@@ -635,6 +671,11 @@ def test_format_table_orders_specific_alleles_before_class_only():
             # know specifc-allele ordering isn't accidentally happening
             # via the existing evidence-count sort.
             "n_observations": [99, 1, 50],
+            "n_references": [1, 1, 1],
+            "n_cell_lines": [0, 0, 0],
+            "n_donors": [0, 0, 0],
+            "n_donor_cell_types": [0, 0, 0],
+            "n_samples": [1, 1, 1],
             "pmids": ["111"] * 3,
             "mhc_class": ["I"] * 3,
             "mhc_species": ["Homo sapiens"] * 3,
@@ -661,6 +702,11 @@ def test_format_table_strips_trailing_whitespace_per_row():
             "best_guess_allele": [None],
             "peptide": ["KLVVVGAGGV"],
             "n_observations": [3],
+            "n_references": [2],
+            "n_cell_lines": [0],
+            "n_donors": [0],
+            "n_donor_cell_types": [0],
+            "n_samples": [3],
             "pmids": ["111;222"],
             "mhc_class": ["I"],
             "mhc_species": ["Homo sapiens"],
@@ -684,6 +730,11 @@ def _multispecies_table_input() -> pd.DataFrame:
             "best_guess_allele": [None, None, None],
             "peptide": ["SLLQHLIGL", "YIAQFTSQFL", "ALYVDSLFFL"],
             "n_observations": [42, 1, 7],
+            "n_references": [1, 1, 1],
+            "n_cell_lines": [0, 0, 0],
+            "n_donors": [0, 0, 0],
+            "n_donor_cell_types": [0, 0, 0],
+            "n_samples": [42, 1, 7],
             "pmids": ["12345", "27893789", "34567"],
             "mhc_class": ["I", "I", "I"],
             "mhc_species": ["Homo sapiens", "Canis lupus", "Homo sapiens"],
@@ -768,6 +819,11 @@ def _write_serotype_obs_fixture(tmp_path):
             "mhc_restriction": ["HLA-A*02:01", "HLA-A*02:02", "HLA-A2"],
             "species": ["Homo sapiens"] * 3,
             "mhc_species": ["Homo sapiens"] * 3,
+            "attributed_sample_label": ["sample_a", "sample_b", "sample_c"],
+            "cell_name": [""] * 3,
+            "cell_line_name": [""] * 3,
+            "monoallelic_host": [""] * 3,
+            "src_cell_line": [False] * 3,
             "source": ["iedb"] * 3,
         }
     )
@@ -1129,3 +1185,335 @@ def test_query_by_samples_empty_sample_section_has_placeholder(tmp_path, monkeyp
     assert miss_idx >= 0
     miss_block = text[miss_idx:]
     assert "(no pMHC evidence on this sample's alleles)" in miss_block
+
+
+# ── #259: filter flags + n_samples / n_references columns ──────────────
+
+
+def test_query_attaches_n_references_and_n_samples_columns(tmp_path, monkeypatch):
+    """Result frame always has n_references (distinct PMIDs) and
+    n_samples (distinct attributed_sample_label) columns."""
+    from hitlist import pmhc_query
+
+    obs_path, mappings_path = _write_obs_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
+
+    df = pmhc_query.query(proteins=["NRAS"], use_hgnc=False)
+    assert "n_references" in df.columns
+    assert "n_samples" in df.columns
+    klvv = df[df["peptide"] == "KLVVVGAGGV"].iloc[0]
+    # KLVVVGAGGV has 2 obs from 2 PMIDs in 2 samples (sample_a, sample_b).
+    assert int(klvv["n_observations"]) == 2
+    assert int(klvv["n_references"]) == 2
+    assert int(klvv["n_samples"]) == 2
+
+
+def test_query_n_samples_distinct_from_n_references(tmp_path, monkeypatch):
+    """A single PMID with multiple samples → n_references=1 but n_samples=N.
+    This is the whole reason n_samples exists separately."""
+    from hitlist import pmhc_query
+
+    obs = pd.DataFrame(
+        {
+            "peptide": ["KLVVVGAGGV"] * 3,
+            "pmid": [100, 100, 100],  # same PMID
+            "mhc_class": ["I"] * 3,
+            "mhc_restriction": ["HLA-A*02:01"] * 3,
+            "species": ["Homo sapiens"] * 3,
+            "mhc_species": ["Homo sapiens"] * 3,
+            # Three distinct donors in one cohort paper.
+            "attributed_sample_label": ["donor1", "donor2", "donor3"],
+            "cell_name": [""] * 3,
+            "cell_line_name": [""] * 3,
+            "monoallelic_host": [""] * 3,
+            "src_cell_line": [False] * 3,
+            "source": ["iedb"] * 3,
+        }
+    )
+    mappings = pd.DataFrame(
+        {
+            "peptide": ["KLVVVGAGGV"],
+            "gene_name": ["NRAS"],
+            "gene_id": ["ENSG00000213281"],
+            "protein_id": ["ENSP00000358548"],
+        }
+    )
+    obs.to_parquet(tmp_path / "observations.parquet", index=False)
+    mappings.to_parquet(tmp_path / "peptide_mappings.parquet", index=False)
+    _patch_paths(
+        monkeypatch, tmp_path / "observations.parquet", tmp_path / "peptide_mappings.parquet"
+    )
+
+    df = pmhc_query.query(proteins=["NRAS"], use_hgnc=False)
+    row = df.iloc[0]
+    assert int(row["n_observations"]) == 3
+    assert int(row["n_references"]) == 1  # single PMID
+    assert int(row["n_samples"]) == 3  # three distinct samples
+
+
+def test_query_min_references_filter_drops_singletons(tmp_path, monkeypatch):
+    """min_references=2 drops singleton-PMID rows."""
+    from hitlist import pmhc_query
+
+    obs_path, mappings_path = _write_obs_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
+
+    df_all = pmhc_query.query(proteins=["NRAS"], use_hgnc=False)
+    df_filtered = pmhc_query.query(proteins=["NRAS"], min_references=2, use_hgnc=False)
+    # KLVVVGAGGV has 2 PMIDs and survives; others have 1 and are dropped.
+    assert set(df_filtered["peptide"]) == {"KLVVVGAGGV"}
+    assert len(df_filtered) < len(df_all)
+
+
+def test_query_min_samples_filter_drops_singletons(tmp_path, monkeypatch):
+    """min_samples=2 drops rows backed by only one sample."""
+    from hitlist import pmhc_query
+
+    obs_path, mappings_path = _write_obs_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
+
+    df = pmhc_query.query(proteins=["NRAS"], min_samples=2, use_hgnc=False)
+    # Only KLVVVGAGGV has 2 distinct samples in the fixture.
+    assert set(df["peptide"]) == {"KLVVVGAGGV"}
+
+
+def test_query_n_samples_uses_composite_of_cell_line_and_host(tmp_path, monkeypatch):
+    """Regression for the #260 audit: a single PMID with multiple
+    distinct ``cell_line_name`` values must count as MULTIPLE samples — not 1.
+    attributed_sample_label is empty on 98.8% of IEDB rows; the
+    sample-id synthesis composes pmid + cell_line_name +
+    monoallelic_host + attributed_sample_label so n_samples reflects
+    the per-cell-line granularity that 58% of the corpus carries.
+
+    Note: uses cell_line_name (not cell_name) because cell_name mixes
+    real lines with coarse cell-type categories like "B cell" /
+    "Other" — including those would over-split.  cell_line_name is
+    gated on src_cell_line=True at build time so it's clean."""
+    from hitlist import pmhc_query
+
+    # 4 rows from ONE pmid, four DIFFERENT cell lines, NO attributed_sample_label.
+    # Pre-composite logic would call this 1 sample (the PMID).
+    # Composite synthesis correctly identifies 4 distinct (pmid, cell_line_name) pairs.
+    obs = pd.DataFrame(
+        {
+            "peptide": ["KLVVVGAGGV"] * 4,
+            "pmid": [42] * 4,
+            "mhc_class": ["I"] * 4,
+            "mhc_restriction": ["HLA-A*02:01"] * 4,
+            "species": ["Homo sapiens"] * 4,
+            "mhc_species": ["Homo sapiens"] * 4,
+            "attributed_sample_label": [""] * 4,
+            "cell_name": ["MEL2", "MEL3", "MEL5", "OV1"],
+            "cell_line_name": ["MEL2", "MEL3", "MEL5", "OV1"],
+            "monoallelic_host": [""] * 4,
+            "src_cell_line": [True] * 4,
+            "source": ["iedb"] * 4,
+        }
+    )
+    mappings = pd.DataFrame(
+        {
+            "peptide": ["KLVVVGAGGV"],
+            "gene_name": ["NRAS"],
+            "gene_id": ["ENSG00000213281"],
+            "protein_id": ["ENSP00000358548"],
+        }
+    )
+    obs.to_parquet(tmp_path / "observations.parquet", index=False)
+    mappings.to_parquet(tmp_path / "peptide_mappings.parquet", index=False)
+    _patch_paths(
+        monkeypatch,
+        tmp_path / "observations.parquet",
+        tmp_path / "peptide_mappings.parquet",
+    )
+
+    df = pmhc_query.query(proteins=["NRAS"], use_hgnc=False)
+    row = df.iloc[0]
+    assert int(row["n_references"]) == 1  # one PMID
+    assert int(row["n_samples"]) == 4  # four distinct cell lines
+
+
+def test_query_n_samples_falls_back_to_pmid_when_no_metadata(tmp_path, monkeypatch):
+    """Fixture has 3 primary-cell rows on one PMID with empty
+    attributed_sample_label, empty cell_name, and src_cell_line=False.
+    Nothing distinguishes them → 1 donor / 1 (donor, cell-type) combo
+    / 0 cell lines → n_samples=1.  This is the conservative fallback
+    when curation lost the per-sample dimension upstream."""
+    from hitlist import pmhc_query
+
+    obs = pd.DataFrame(
+        {
+            "peptide": ["KLVVVGAGGV"] * 3,
+            "pmid": [42] * 3,
+            "mhc_class": ["I"] * 3,
+            "mhc_restriction": ["HLA-A*02:01"] * 3,
+            "species": ["Homo sapiens"] * 3,
+            "mhc_species": ["Homo sapiens"] * 3,
+            "attributed_sample_label": [""] * 3,
+            "cell_name": [""] * 3,
+            "cell_line_name": [""] * 3,
+            "monoallelic_host": [""] * 3,
+            "src_cell_line": [False] * 3,
+            "source": ["iedb"] * 3,
+        }
+    )
+    mappings = pd.DataFrame(
+        {
+            "peptide": ["KLVVVGAGGV"],
+            "gene_name": ["NRAS"],
+            "gene_id": ["ENSG00000213281"],
+            "protein_id": ["ENSP00000358548"],
+        }
+    )
+    obs.to_parquet(tmp_path / "observations.parquet", index=False)
+    mappings.to_parquet(tmp_path / "peptide_mappings.parquet", index=False)
+    _patch_paths(
+        monkeypatch,
+        tmp_path / "observations.parquet",
+        tmp_path / "peptide_mappings.parquet",
+    )
+
+    df = pmhc_query.query(proteins=["NRAS"], use_hgnc=False)
+    row = df.iloc[0]
+    assert int(row["n_cell_lines"]) == 0
+    assert int(row["n_donors"]) == 1  # all 3 rows fall back to "pmid:42"
+    assert int(row["n_donor_cell_types"]) == 1
+    assert int(row["n_samples"]) == 1
+
+
+def test_query_n_samples_counts_distinct_cell_types_from_one_donor(tmp_path, monkeypatch):
+    """Per the #260 review: a study profiling MULTIPLE cell types from
+    the same donor counts as MULTIPLE samples (n_donor_cell_types > 1),
+    not 1.  Different cell populations = different MS runs = different
+    sample preps = different presentation.  n_donors stays at 1."""
+    from hitlist import pmhc_query
+
+    obs = pd.DataFrame(
+        {
+            "peptide": ["KLVVVGAGGV"] * 3,
+            "pmid": [42] * 3,
+            "mhc_class": ["I"] * 3,
+            "mhc_restriction": ["HLA-A*02:01"] * 3,
+            "species": ["Homo sapiens"] * 3,
+            "mhc_species": ["Homo sapiens"] * 3,
+            "attributed_sample_label": ["donor1"] * 3,  # one donor
+            "cell_name": ["B cell", "T cell", "NK cell"],  # three cell types
+            "cell_line_name": [""] * 3,
+            "monoallelic_host": [""] * 3,
+            "src_cell_line": [False] * 3,
+            "source": ["iedb"] * 3,
+        }
+    )
+    mappings = pd.DataFrame(
+        {
+            "peptide": ["KLVVVGAGGV"],
+            "gene_name": ["NRAS"],
+            "gene_id": ["ENSG00000213281"],
+            "protein_id": ["ENSP00000358548"],
+        }
+    )
+    obs.to_parquet(tmp_path / "observations.parquet", index=False)
+    mappings.to_parquet(tmp_path / "peptide_mappings.parquet", index=False)
+    _patch_paths(
+        monkeypatch,
+        tmp_path / "observations.parquet",
+        tmp_path / "peptide_mappings.parquet",
+    )
+
+    df = pmhc_query.query(proteins=["NRAS"], use_hgnc=False)
+    row = df.iloc[0]
+    assert int(row["n_cell_lines"]) == 0
+    assert int(row["n_donors"]) == 1  # one donor
+    assert int(row["n_donor_cell_types"]) == 3  # three cell types from that donor
+    assert int(row["n_samples"]) == 3
+
+
+def test_query_n_samples_uses_monoallelic_host_when_cell_line_name_empty(tmp_path, monkeypatch):
+    """monoallelic_host is the only sample-distinguishing field on
+    ~9K corpus rows.  Verify it counts as a distinct line when
+    cell_line_name is empty (which it occasionally is despite
+    src_cell_line=True — IEDB curation gap)."""
+    from hitlist import pmhc_query
+
+    obs = pd.DataFrame(
+        {
+            "peptide": ["KLVVVGAGGV"] * 3,
+            "pmid": [42, 42, 42],
+            "mhc_class": ["I"] * 3,
+            "mhc_restriction": ["HLA-A*02:01"] * 3,
+            "species": ["Homo sapiens"] * 3,
+            "mhc_species": ["Homo sapiens"] * 3,
+            "attributed_sample_label": ["", "", ""],
+            "cell_name": ["", "", ""],
+            "cell_line_name": ["", "", ""],
+            "monoallelic_host": ["host_A", "host_B", "host_C"],
+            "src_cell_line": [True, True, True],
+            "source": ["iedb"] * 3,
+        }
+    )
+    mappings = pd.DataFrame(
+        {
+            "peptide": ["KLVVVGAGGV"],
+            "gene_name": ["NRAS"],
+            "gene_id": ["ENSG00000213281"],
+            "protein_id": ["ENSP00000358548"],
+        }
+    )
+    obs.to_parquet(tmp_path / "observations.parquet", index=False)
+    mappings.to_parquet(tmp_path / "peptide_mappings.parquet", index=False)
+    _patch_paths(
+        monkeypatch,
+        tmp_path / "observations.parquet",
+        tmp_path / "peptide_mappings.parquet",
+    )
+
+    df = pmhc_query.query(proteins=["NRAS"], use_hgnc=False)
+    row = df.iloc[0]
+    assert int(row["n_cell_lines"]) == 3
+    assert int(row["n_donors"]) == 0  # no primary-cell rows
+    assert int(row["n_samples"]) == 3
+
+
+def test_query_min_binder_class_filter_requires_predictor():
+    """--min-binder-class without --predictor raises a clear error."""
+    import pytest
+
+    from hitlist import pmhc_query
+
+    with pytest.raises(ValueError, match="requires --predictor"):
+        pmhc_query.query(min_binder_class="strong")
+
+
+def test_query_min_binder_class_rejects_unknown_tier():
+    """Validation: only strong/medium/weak are accepted."""
+    import pytest
+
+    from hitlist import pmhc_query
+
+    with pytest.raises(ValueError, match="must be one of"):
+        pmhc_query.query(min_binder_class="bogus", predictor="netmhcpan")
+
+
+def test_query_min_binder_class_filters_predictor_path(tmp_path, monkeypatch):
+    """When predictor is set, min_binder_class drops rows below the tier.
+    Stubs the predictor so we don't shell out."""
+    from hitlist import pmhc_query
+
+    obs_path, mappings_path = _write_obs_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
+
+    # Stub predictor: alternate strong / non-binder by peptide so we
+    # can verify the threshold filter actually drops rows.
+    def fake_predict(pairs):
+        out = pairs.copy()
+        out["affinity_nM"] = [10.0 if i % 2 == 0 else 50000.0 for i in range(len(pairs))]
+        out["presentation_percentile"] = [0.01 if i % 2 == 0 else 99.9 for i in range(len(pairs))]
+        return out
+
+    monkeypatch.setattr("hitlist.predict._predict_netmhcpan", fake_predict)
+
+    df_all = pmhc_query.query(proteins=["NRAS"], predictor="netmhcpan", use_hgnc=False)
+    df_strong = pmhc_query.query(
+        proteins=["NRAS"], predictor="netmhcpan", min_binder_class="strong", use_hgnc=False
+    )
+    assert len(df_strong) < len(df_all)
+    assert set(df_strong["binder_class"]) == {"strong"}
