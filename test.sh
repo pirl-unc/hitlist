@@ -1,54 +1,112 @@
 #!/usr/bin/env bash
+# Run the hitlist test suite with a memory- and CPU-aware pytest-xdist
+# worker count.
+#
 # Default: skip integration tests (those that exercise the built
 # ``observations.parquet`` corpus). Pass ``--all`` to include them.
 # ``./deploy.sh`` always runs the full set so deploys remain safe.
 #
-# Worker count is memory-aware, not CPU-bound: pytest-xdist's
-# ``-n auto`` spawns one worker per core, but the integration tier's
-# ``full_observations_df`` fixture costs ~2 GB per worker (#244, #262).
-# On a 32 GB Mac with 10 cores, ``-n auto`` blows memory and thrashes.
-# We pick the smaller of (cores, available_RAM / per_worker_gb).
+# See ~/code/trufflepig/test.sh for the worker-cap rationale: running
+# several sibling repos' suites concurrently can fork-bomb the laptop,
+# so we cap workers at min(cpu_reserve, available_RAM / PER_WORKER_GB).
+# Hitlist's integration ``full_observations_df`` fixture costs ~2 GB
+# per worker (#244, #262), so the default per-worker budget is bumped
+# up. xdist is optional — fall back to serial pytest when it isn't
+# installed.
 #
 # See issues #223, #244, #262.
+#
+# Tunables (env vars):
+#   PER_WORKER_GB    per-worker memory budget in GB (default: 2.5)
+#   TEST_SH_MIN      floor on workers (default: 1)
+#   TEST_SH_MAX      hard ceiling on workers (default: unset)
 
-set -e
+set -eo pipefail
 
-# Per-worker memory budget. A soft heuristic, not a hard cap — tune as
-# the fixture footprint changes (#262 will shrink it materially).
-readonly PER_WORKER_GB=2.5
+PER_WORKER_GB="${PER_WORKER_GB:-2.5}"
+TEST_SH_MIN="${TEST_SH_MIN:-1}"
+TEST_SH_MAX="${TEST_SH_MAX:-0}"
 
-# macOS available-RAM heuristic: free + inactive + speculative pages
-# are reclaimable on demand, so they count as headroom.
-macos_available_bytes() {
-    local page_size pages
-    page_size=$(sysctl -n hw.pagesize)
-    pages=$(vm_stat | awk '
+log() { printf '[test.sh] %s\n' "$*" >&2; }
+
+case "$(uname -s)" in
+    Darwin) OS=macos ;;
+    Linux)  OS=linux ;;
+    *)      OS=unknown ;;
+esac
+
+cpu_count() {
+    local n=""
+    if command -v getconf >/dev/null 2>&1; then
+        n=$(getconf _NPROCESSORS_ONLN 2>/dev/null || true)
+    fi
+    if [[ -z "$n" && "$OS" == "macos" ]]; then
+        n=$(sysctl -n hw.logicalcpu 2>/dev/null || true)
+    fi
+    if [[ -z "$n" && -r /proc/cpuinfo ]]; then
+        n=$(grep -c '^processor' /proc/cpuinfo 2>/dev/null || true)
+    fi
+    if [[ -z "$n" || "$n" -lt 1 ]]; then n=1; fi
+    echo "$n"
+}
+
+cpu_cap() {
+    local c="$1"
+    if   (( c <= 1 )); then echo 1
+    elif (( c <= 3 )); then echo $(( c - 1 ))
+    else                    echo $(( c - 2 ))
+    fi
+}
+
+mac_available_bytes() {
+    local page_size
+    page_size=$(sysctl -n hw.pagesize 2>/dev/null) || return 1
+    vm_stat 2>/dev/null | awk -v ps="$page_size" '
         /Pages free/        { gsub(/\./, "", $3); free     = $3 }
         /Pages inactive/    { gsub(/\./, "", $3); inactive = $3 }
         /Pages speculative/ { gsub(/\./, "", $3); spec     = $3 }
-        END                 { print free + inactive + spec }
-    ')
-    echo $(( pages * page_size ))
-}
-
-# Pick a pytest -n value that respects both CPU and available RAM.
-pytest_workers() {
-    local cpus avail_bytes
-    cpus=$(getconf _NPROCESSORS_ONLN 2>/dev/null || sysctl -n hw.logicalcpu)
-    if [[ "$(uname)" == "Darwin" ]]; then
-        avail_bytes=$(macos_available_bytes)
-    else
-        avail_bytes=$(awk '/MemAvailable/ { print $2 * 1024 }' /proc/meminfo)
-    fi
-    awk -v cpus="$cpus" -v bytes="$avail_bytes" -v budget="$PER_WORKER_GB" '
-        BEGIN {
-            by_memory = int(bytes / 1024^3 / budget)
-            n = (cpus < by_memory ? cpus : by_memory)
-            print (n < 1 ? 1 : n)
-        }
+        END { print (free + inactive + spec) * ps }
     '
 }
 
+linux_available_bytes() {
+    [[ -r /proc/meminfo ]] || return 1
+    awk '
+        /^MemAvailable:/ { print $2 * 1024; found=1; exit }
+        END              { if (!found) exit 1 }
+    ' /proc/meminfo
+}
+
+available_bytes() {
+    case "$OS" in
+        macos) mac_available_bytes ;;
+        linux) linux_available_bytes ;;
+        *)     return 1 ;;
+    esac
+}
+
+CPUS=$(cpu_count)
+CPU_CAP=$(cpu_cap "$CPUS")
+
+avail=""
+if avail=$(available_bytes 2>/dev/null) && [[ -n "$avail" ]]; then
+    MEM_CAP=$(awk -v b="$avail" -v g="$PER_WORKER_GB" 'BEGIN {
+        n = int(b / 1024^3 / g)
+        if (n < 1) n = 1
+        print n
+    }')
+    AVAIL_GB=$(awk -v b="$avail" 'BEGIN { printf "%.1f", b / 1024^3 }')
+    mem_note="ram_free=${AVAIL_GB}GB mem_cap=${MEM_CAP}"
+else
+    MEM_CAP=$CPU_CAP
+    mem_note="ram_free=? (probe unavailable) mem_cap=cpu_cap"
+fi
+
+if (( CPU_CAP < MEM_CAP )); then WORKERS=$CPU_CAP; else WORKERS=$MEM_CAP; fi
+if (( TEST_SH_MAX > 0 && WORKERS > TEST_SH_MAX )); then WORKERS=$TEST_SH_MAX; fi
+if (( WORKERS < TEST_SH_MIN )); then WORKERS=$TEST_SH_MIN; fi
+
+# Argument parsing: --all expands to include integration tests.
 filter=(-m "not integration")
 extra=()
 for arg in "$@"; do
@@ -59,6 +117,17 @@ for arg in "$@"; do
     fi
 done
 
-workers=$(pytest_workers)
-echo "Running pytest with -n ${workers} (per-worker budget ≈ ${PER_WORKER_GB} GB)"
-exec pytest -n "$workers" "${filter[@]}" --cov=hitlist/ --cov-report=term-missing tests "${extra[@]}"
+XDIST_FLAGS=()
+if python -c "import xdist" 2>/dev/null; then
+    XDIST_FLAGS=(-n "$WORKERS")
+    log "platform=${OS} cpus=${CPUS} cpu_cap=${CPU_CAP} ${mem_note} per_worker=${PER_WORKER_GB}GB"
+    if (( ${#filter[@]} )); then
+        log "workers=${WORKERS} → exec pytest -n ${WORKERS} ${filter[*]} --cov=hitlist/ --cov-report=term-missing tests ${extra[*]:-}"
+    else
+        log "workers=${WORKERS} → exec pytest -n ${WORKERS} --cov=hitlist/ --cov-report=term-missing tests ${extra[*]:-} (--all: integration tests included)"
+    fi
+else
+    log "platform=${OS} cpus=${CPUS} (pytest-xdist not installed; running serial)"
+fi
+
+exec pytest "${XDIST_FLAGS[@]}" "${filter[@]}" --cov=hitlist/ --cov-report=term-missing tests "${extra[@]}"
