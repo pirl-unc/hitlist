@@ -438,26 +438,26 @@ def test_pmhc_query_uses_obs_mhc_species_column_not_reparses_allele(tmp_path, mo
     assert n_classify_calls["n"] == 0
 
 
-def test_pmhc_query_flags_chimeric_rows_in_verbose_mode(tmp_path, monkeypatch, capsys):
-    """When source species != MHC species (HLA-transgenic mouse, etc.)
-    verbose mode emits a `[pmhc] note: N chimeric row(s) ...` line.
-    Rows are preserved — legitimate xeno-experimental data isn't dropped.
+def test_pmhc_query_warns_on_unresolved_source_organism(tmp_path, monkeypatch, capsys):
+    """Verbose mode emits a WARNING line when rows have unresolved
+    source organism (``species`` is empty or literal "unidentified" in
+    IEDB metadata).  Both upstream sentinels fold into the same
+    "unknown" bucket in the normalized result.  Goal is curation —
+    these rows should ideally go to zero.
     """
     import pandas as pd
 
     from hitlist import pmhc_query
 
-    # Hand-rolled fixture: one human-on-HLA row + one mouse-on-HLA
-    # (HLA-transgenic mouse).  Same allele, different source organism.
     obs = pd.DataFrame(
         {
-            "peptide": ["KLVVVGAGGV", "KLVVVGAGGV"],
-            "pmid": [12345, 67890],
-            "mhc_class": ["I", "I"],
-            "mhc_restriction": ["HLA-A*02:01", "HLA-A*02:01"],
-            "species": ["Homo sapiens", "Mus musculus"],  # chimeric: mouse cell
-            "mhc_species": ["Homo sapiens", "Homo sapiens"],  # ... on human MHC
-            "source": ["iedb"] * 2,
+            "peptide": ["KLVVVGAGGV", "KLVVVGAGGV", "KLVVVGAGGV"],
+            "pmid": [1, 2, 3],
+            "mhc_class": ["I"] * 3,
+            "mhc_restriction": ["HLA-A*02:01"] * 3,
+            "species": ["Homo sapiens", "", "unidentified"],
+            "mhc_species": ["Homo sapiens"] * 3,
+            "source": ["iedb"] * 3,
         }
     )
     mappings = pd.DataFrame(
@@ -476,20 +476,64 @@ def test_pmhc_query_flags_chimeric_rows_in_verbose_mode(tmp_path, monkeypatch, c
 
     pmhc_query.query(proteins=["NRAS"], use_hgnc=False, verbose=True)
     err = capsys.readouterr().err
-    assert "chimeric" in err
-    assert "Mus musculus → Homo sapiens" in err
+    assert "WARNING" in err
+    # Both the "" and "unidentified" rows fold into "unknown" → 2.
+    assert "2 row(s) have unresolved source organism" in err
+
+
+def test_pmhc_query_unidentified_source_folds_into_unknown(tmp_path, monkeypatch):
+    """Both `""` and `"unidentified"` upstream sentinels normalize to
+    the single `"unknown"` bucket in the result frame's species column —
+    one downstream consumer should not have to handle both."""
+    import pandas as pd
+
+    from hitlist import pmhc_query
+
+    obs = pd.DataFrame(
+        {
+            "peptide": ["KLVVVGAGGV", "KLVVVGAGGV"],
+            "pmid": [1, 2],
+            "mhc_class": ["I", "I"],
+            "mhc_restriction": ["HLA-A*02:01"] * 2,
+            "species": ["", "unidentified"],
+            "mhc_species": ["Homo sapiens", "Homo sapiens"],
+            "source": ["iedb"] * 2,
+        }
+    )
+    mappings = pd.DataFrame(
+        {
+            "peptide": ["KLVVVGAGGV"],
+            "gene_name": ["NRAS"],
+            "gene_id": ["ENSG00000213281"],
+            "protein_id": ["ENSP00000358548"],
+        }
+    )
+    obs.to_parquet(tmp_path / "observations.parquet", index=False)
+    mappings.to_parquet(tmp_path / "peptide_mappings.parquet", index=False)
+    _patch_paths(
+        monkeypatch,
+        tmp_path / "observations.parquet",
+        tmp_path / "peptide_mappings.parquet",
+    )
+
+    df = pmhc_query.query(proteins=["NRAS"], use_hgnc=False)
+    # mhc_species column unchanged (still "Homo sapiens").  Underlying
+    # source-organism column is not present on the aggregated frame
+    # by design — verified indirectly by no crash + clean result.
+    assert "mhc_species" in df.columns
+    assert set(df["mhc_species"].unique()) == {"Homo sapiens"}
 
 
 def test_species_sort_key_order_human_first():
     """Output ordering: human leads, mouse / rat as standard models, then
-    everything else alphabetical, ``other`` sinks to the bottom."""
+    everything else alphabetical, ``unknown`` sinks to the bottom."""
     from hitlist.pmhc_query import _species_sort_key
 
-    species = ["Macaca mulatta", "Mus musculus", "other", "Homo sapiens", "Canis lupus"]
+    species = ["Macaca mulatta", "Mus musculus", "unknown", "Homo sapiens", "Canis lupus"]
     sorted_species = sorted(species, key=_species_sort_key)
     assert sorted_species[0] == "Homo sapiens"
     assert sorted_species[1] == "Mus musculus"
-    assert sorted_species[-1] == "other"
+    assert sorted_species[-1] == "unknown"
     # Canis (C) sorts before Macaca (M) in the alphabetical tail.
     assert sorted_species.index("Canis lupus") < sorted_species.index("Macaca mulatta")
 

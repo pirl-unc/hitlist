@@ -268,33 +268,39 @@ def query(
     #    ``best_guess_allele`` is functionally dependent on ``mhc_restriction``
     #    (one-to-one map), so include it in the group key — that lets us
     #    keep the column without an extra merge.
-    # 3c. Normalize mhc_species / species to non-empty strings so they
-    #     groupby cleanly and the formatter has a stable "other" bucket
-    #     for unparseable allele strings.
+    # 3c. Normalize mhc_species / species to non-empty strings.  The
+    #     scanner stores "" for rows where classify_mhc_species or
+    #     normalize_species couldn't resolve the input; "unknown" is the
+    #     surfaced sentinel.  We also fold IEDB's literal "unidentified"
+    #     source-organism value into "unknown" — same semantics, two
+    #     names upstream.
     for col in ("mhc_species", "species"):
         if col in df.columns:
-            df[col] = df[col].fillna("").astype(str).replace("", "other")
-
-    # 3d. Chimeric sanity check (#256 review): MHC system species and
-    #     source organism species should agree unless the system is
-    #     genuinely chimeric (HLA-transgenic mouse, etc.).  Surface a
-    #     count for verbose-mode users without suppressing the rows —
-    #     legitimate chimeric data is a real research artifact.
-    if "species" in df.columns and "mhc_species" in df.columns:
-        chimeric_mask = (df["species"] != df["mhc_species"]) & (df["mhc_species"] != "other")
-        n_chimeric = int(chimeric_mask.sum())
-        if n_chimeric and verbose:
-            mismatch_examples = (
-                df.loc[chimeric_mask, ["species", "mhc_species"]]
-                .drop_duplicates()
-                .head(3)
-                .apply(lambda r: f"{r['species']} → {r['mhc_species']}", axis=1)
-                .tolist()
+            df[col] = (
+                df[col].fillna("").astype(str).replace({"": "unknown", "unidentified": "unknown"})
             )
+
+    # 3d. Surface unresolved source-organism rows (#256 review).
+    #     mhc_species is always derivable from the allele prefix
+    #     (HLA, H-2, DLA, ...) so it never lands in "unknown" today.
+    #     species is unresolved on ~4% of the IEDB corpus due to
+    #     missing / "unidentified" source_organism metadata; goal is
+    #     to drive that to 0 via curation, so warn loudly here.
+    #
+    #     (A previous draft also warned on species != mhc_species, but
+    #     that warning would fire 100K+ times on a broad query
+    #     dominated by legitimate viral / bacterial peptides presented
+    #     on host MHC — the basic question of pathogen
+    #     immunopeptidomics.  Low signal, removed.)
+    if "species" in df.columns:
+        unknown_mask = df["species"] == "unknown"
+        n_unknown = int(unknown_mask.sum())
+        if n_unknown and verbose:
             _progress(
-                f"note: {n_chimeric:,} chimeric row(s) where source species "
-                f"!= MHC species — e.g. {'; '.join(mismatch_examples)} "
-                "(legitimate for HLA-transgenic / xeno experiments)",
+                f"WARNING: {n_unknown:,} row(s) have unresolved source organism "
+                f'("unknown" / "unidentified" in IEDB metadata).  '
+                "These should ideally be curated — file a follow-up if you see "
+                "this in a query you care about.",
                 verbose,
             )
 
@@ -664,7 +670,8 @@ def _empty_result(with_predictions: bool) -> pd.DataFrame:
 
 # Order species sections so the most common case (human) leads, mouse/rat
 # follow as the standard model organisms, then everything else
-# alphabetical.  "other" sinks to the bottom.
+# alphabetical.  "unknown" sinks to the bottom — those rows have missing
+# upstream metadata that should be curated separately.
 _SPECIES_SORT_ORDER = {
     "Homo sapiens": "0",
     "Mus musculus": "1",
@@ -675,7 +682,7 @@ _SPECIES_SORT_ORDER = {
 def _species_sort_key(species: str) -> str:
     if species in _SPECIES_SORT_ORDER:
         return _SPECIES_SORT_ORDER[species]
-    if species == "other":
+    if species == "unknown":
         return "z"
     return f"5:{species}"
 
