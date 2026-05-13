@@ -283,15 +283,20 @@ def query(
         .rename(columns={"mhc_restriction": "mhc_allele"})
     )
 
-    # 4b. Tag each row with its inferred MHC species (#256).  Lets the
-    #     formatter section the output (HLA vs DLA vs H-2 ...) and gives
-    #     CSV/JSON consumers an explicit column instead of asking them
-    #     to re-derive it from the allele prefix.
-    grouped["mhc_species"] = _infer_species_column(grouped["mhc_allele"])
-
     # 5. Optional binding-affinity prediction.
     if predictor is not None:
         grouped = _attach_predictions(grouped, predictor)
+
+    # 5b. Tag each row with its inferred MHC species (#256).  Done AFTER
+    #     _attach_predictions because:
+    #     (a) _consolidate_after_narrowing groups by a fixed column list
+    #         and silently drops anything not in it — adding species
+    #         before would lose the column on the predictor path.
+    #     (b) _attach_predictions narrows multi-allele rows
+    #         ("HLA-A*02:01;HLA-B*07:02;...") to a single allele, so
+    #         species inferred from the FINAL mhc_allele resolves
+    #         cleanly instead of falling through to "other".
+    grouped["mhc_species"] = _infer_species_column(grouped["mhc_allele"])
 
     # 6. Order: species first (humans top of the page when present, then
     #    alphabetical), then by gene → allele → evidence count desc.

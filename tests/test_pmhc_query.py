@@ -487,6 +487,34 @@ def test_format_table_omits_species_section_when_single_species(tmp_path, monkey
     assert "HLA-A*02:01" in text
 
 
+def test_mhc_species_survives_predictor_path(tmp_path, monkeypatch):
+    """Regression: mhc_species was previously dropped by
+    ``_consolidate_after_narrowing`` (whose group_cols don't include it)
+    when the user passed ``--predictor``.  The fix re-derives the column
+    AFTER ``_attach_predictions`` so it survives consolidation AND
+    reflects the post-narrowing single-allele string.
+    """
+    from hitlist import pmhc_query
+
+    # Stub the actual predictor so we don't shell out to NetMHCpan in tests.
+    def fake_predict(pairs):
+        return pairs.assign(affinity_nM=100.0, presentation_percentile=0.5)
+
+    monkeypatch.setattr("hitlist.predict._predict_netmhcpan", fake_predict)
+
+    obs_path, mappings_path = _write_obs_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
+
+    df = pmhc_query.query(proteins=["NRAS"], predictor="netmhcpan", use_hgnc=False)
+    assert "mhc_species" in df.columns
+    assert df["mhc_species"].notna().all()
+    assert set(df["mhc_species"].unique()) == {"Homo sapiens"}
+    # Predictor columns also present — confirms _attach_predictions
+    # actually ran (vs. a stub fall-through).
+    assert "affinity_nM" in df.columns
+    assert "presentation_percentile" in df.columns
+
+
 # ── Serotype handling (v1.30.2) ───────────────────────────────────────
 
 
