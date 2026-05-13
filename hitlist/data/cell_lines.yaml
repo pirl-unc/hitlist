@@ -1,0 +1,150 @@
+# Cell-line registry for hitlist.cell_name_parser.
+#
+# Maps known cell-line synonyms to a canonical name + tissue / cell type
+# of origin so the parser can normalize "293-T", "293T", "HEK 293T" to
+# one canonical "HEK293T" and tag each with the right cell_type.
+#
+# Schema per entry:
+#   name:        canonical name (the dict key)
+#   synonyms:    list of strings the parser should recognize as the same line.
+#                Match is case-insensitive after stripping "cells" / "cell"
+#                trailing tokens.  Include any "-" / " " / "_" variants
+#                you've actually seen — the parser does NOT auto-generate
+#                punctuation variants.
+#   cell_type:   the cell-type / tissue-of-origin label.  Use the same
+#                vocabulary as IEDB's cell-type strings ("B cell",
+#                "Myeloid cell", "Epithelial cell", etc.) so downstream
+#                consumers can group lines by lineage.
+#   tissue:      free-text tissue of origin (kidney, blood, lung, ...).
+#                Optional — informational, not used in matching.
+#   notes:       free-text comments (engineering parent, disease, etc.).
+#                Optional.
+#
+# Seed list = top cell lines observed in the IEDB / CEDAR / PRIDE corpus.
+# Add entries as new lines appear in production curations.
+
+cell_lines:
+  HAP1:
+    synonyms: [HAP1, HAP-1, hap1]
+    cell_type: Myeloid cell
+    tissue: Bone marrow
+    notes: Near-haploid human; CML-derived (KBM-7 sub-clone).  HAP1 KO
+      panels (CALR KO, CANX KO, SPPL3 KO, ...) are common — the
+      ``genetic_modification`` field on the parser output carries the
+      specific knock-out.
+  K562:
+    synonyms: [K562, K-562]
+    cell_type: Myeloid cell
+    tissue: Bone marrow
+    notes: Chronic myelogenous leukemia line; common host for mono-allelic
+      HLA panels (Sarkizova et al.).
+  THP-1:
+    synonyms: [THP-1, THP1, THP 1]
+    cell_type: Monocyte
+    tissue: Blood
+    notes: Acute monocytic leukemia.
+  HEK293T:
+    synonyms: [HEK293T, 293T, 293-T, HEK 293T, HEK293-T, 293/T]
+    cell_type: Epithelial cell
+    tissue: Kidney
+    notes: SV40 large-T-transformed HEK293; transfection workhorse.
+  HEK293:
+    synonyms: [HEK293, HEK 293, 293]
+    cell_type: Epithelial cell
+    tissue: Kidney
+  Expi293F:
+    synonyms: [Expi293F]
+    cell_type: Epithelial cell
+    tissue: Kidney
+    notes: Suspension HEK293 derivative; used for soluble-HLA secretion.
+  HeLa:
+    synonyms: [HeLa, hela, Hela]
+    cell_type: Epithelial cell
+    tissue: Cervix
+    notes: Cervical adenocarcinoma.
+  MDA-MB-231:
+    synonyms: [MDA-MB-231, MDA MB 231, MDAMB231]
+    cell_type: Epithelial cell
+    tissue: Breast
+    notes: Triple-negative breast adenocarcinoma.
+  MCF-7:
+    synonyms: [MCF-7, MCF7]
+    cell_type: Epithelial cell
+    tissue: Breast
+  HCT 116:
+    synonyms: [HCT 116, HCT116, HCT-116]
+    cell_type: Epithelial cell
+    tissue: Colon
+  A549:
+    synonyms: [A549, A-549]
+    cell_type: Epithelial cell
+    tissue: Lung
+    notes: Lung adenocarcinoma.
+  C1R:
+    synonyms: [C1R, C1R cells, C1R-cells]
+    cell_type: B cell
+    tissue: Blood
+    notes: HLA-class-I-deficient B-LCL; common host for mono-allelic HLA panels.
+  "721.221":
+    synonyms: ["721.221", "721221", "HLA-null", "HLA null"]
+    cell_type: B cell
+    tissue: Blood
+    notes: HLA-class-I-deficient B-LCL; common host for mono-allelic HLA panels.
+  JY:
+    synonyms: [JY, JY cells]
+    cell_type: B cell
+    tissue: Blood
+    notes: Epstein-Barr-virus-transformed B-LCL.
+  Raji:
+    synonyms: [Raji]
+    cell_type: B cell
+    tissue: Blood
+    notes: Burkitt lymphoma line; EBV+.
+  MAVER-1:
+    synonyms: [MAVER-1, MAVER1]
+    cell_type: Lymphoblast
+    tissue: Blood
+    notes: Mantle cell lymphoma line.
+  LM-MEL-44:
+    synonyms: [LM-MEL-44, LMMEL44]
+    cell_type: Melanocyte
+    tissue: Skin
+    notes: Ludwig Melbourne melanoma panel.
+  LM-MEL-33:
+    synonyms: [LM-MEL-33, LMMEL33]
+    cell_type: Melanocyte
+    tissue: Skin
+    notes: Ludwig Melbourne melanoma panel.
+  HROG17:
+    synonyms: [HROG17, HROG-17]
+    cell_type: Glial cell
+    tissue: Brain
+    notes: Rostock glioma panel.
+  HROG02:
+    synonyms: [HROG02, HROG-02]
+    cell_type: Glial cell
+    tissue: Brain
+    notes: Rostock glioma panel.
+  MCF-7/LY2:
+    synonyms: [MCF-7/LY2, MCF7/LY2, MCF7-LY2]
+    cell_type: Epithelial cell
+    tissue: Breast
+    notes: Tamoxifen-resistant MCF-7 derivative.
+
+# Engineering systems that appear as ``monoallelic_host`` values but
+# aren't conventional cell lines.  Listed so the parser can flag them
+# distinctly (``is_cell_line=True`` AND a separate construct label,
+# vs. a bare line name).
+engineering_systems:
+  MAPTAC:
+    synonyms: [MAPTAC]
+    notes: Sarkizova-style mono-allelic HLA engineering with affinity tag.
+  Strep-tag II:
+    synonyms: [Strep-tag II, Strep tag II, StrepII, Strep-II]
+    notes: Affinity-purification tag for soluble HLA.
+  sHLA:
+    synonyms: [sHLA, "sHLA (VLDLr-tagged, secreted)"]
+    notes: Soluble HLA construct (VLDLr-tagged, secreted).
+  HLA-ABC-CRISPR-KO:
+    synonyms: ["HLA-ABC CRISPR knockout + single-allele transduction"]
+    notes: Endogenous HLA-A/B/C knockout followed by single-allele transgene.
