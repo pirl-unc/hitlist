@@ -51,6 +51,9 @@ def query(
     alleles: list[str] | None = None,
     *,
     predictor: str | None = None,
+    min_binder_class: str | None = None,
+    min_references: int = 1,
+    min_samples: int = 1,
     use_hgnc: bool = True,
     verbose: bool = False,
 ) -> pd.DataFrame:
@@ -74,6 +77,21 @@ def query(
         ``"mhcflurry"``, ``"netmhcpan"``, or ``None`` (skip prediction).
         If set, attaches ``affinity_nM`` / ``presentation_percentile`` /
         ``binder_class`` columns per (peptide, allele) row.
+    min_binder_class
+        Drop rows whose ``binder_class`` tier is below this threshold.
+        One of ``"strong" | "medium" | "weak"``.  Requires ``predictor``.
+        ``None`` (default) skips this filter.  ``"weak"`` drops only
+        ``"non-binder"`` rows; ``"medium"`` also drops ``"weak"``; etc.
+    min_references
+        Drop rows with fewer than this many distinct PMIDs.  Defaults to
+        1 (no filter).  Use ``2`` to drop singleton-PMID rows when
+        looking for independently re-observed peptides.
+    min_samples
+        Drop rows with fewer than this many distinct sample labels
+        (``attributed_sample_label``).  Defaults to 1 (no filter).  A
+        single PMID often contributes many samples (cohort papers,
+        mono-allelic cell-line panels), so ``min_samples`` is usually
+        a stronger evidence signal than ``min_references``.
     use_hgnc
         Pass through to ``resolve_gene_query`` — set False to disable
         the HGNC alias REST lookup (offline use).
@@ -82,9 +100,10 @@ def query(
     -------
     pd.DataFrame
         Columns: ``gene_name``, ``gene_id``, ``mhc_allele``,
-        ``peptide``, ``n_observations``, ``pmids``, ``mhc_class``.
-        Plus the affinity columns when ``predictor`` is set.
-        Sorted by (gene_name, mhc_allele, -n_observations).
+        ``peptide``, ``n_observations``, ``n_references``,
+        ``n_samples``, ``pmids``, ``mhc_class``.  Plus the affinity
+        columns when ``predictor`` is set.
+        Sorted by (mhc_species, gene_name, mhc_allele, -n_observations).
         Empty DataFrame with these columns if nothing matched.
     """
     from .observations import is_built, load_observations
@@ -93,6 +112,17 @@ def query(
         raise FileNotFoundError(
             "observations.parquet has not been built. Run `hitlist build observations` first."
         )
+
+    if min_binder_class is not None:
+        if predictor is None:
+            raise ValueError(
+                "--min-binder-class requires --predictor; binder_class is only "
+                "computed when a predictor is attached."
+            )
+        if min_binder_class not in _BINDER_RANK:
+            raise ValueError(
+                f"min_binder_class must be one of {sorted(_BINDER_RANK)}, got {min_binder_class!r}"
+            )
 
     t_start = time.perf_counter()
 
@@ -136,6 +166,7 @@ def query(
             "mhc_restriction",
             "mhc_species",
             "species",
+            "attributed_sample_label",  # for n_samples + --min-samples (#259)
             "gene_names",
             "gene_ids",
         ],
@@ -305,6 +336,30 @@ def query(
     #    dependent on mhc_restriction (one species per allele string)
     #    so it doesn't change cardinality but flows through aggregation
     #    without an extra merge.
+    # Synthesize a per-row sample identifier.  attributed_sample_label
+    # is populated on only ~1.2% of IEDB rows (the Sarkizova-style
+    # per-donor papers).  When it's empty, fall back to f"pmid:{pmid}"
+    # — coarser than a true per-donor label, but it lets n_samples be
+    # a meaningful "distinct experimental units" count for the rest of
+    # the corpus, where it'd otherwise always be 0.
+    #
+    # Worst case (IEDB rows with no per-donor labels): n_samples ==
+    # n_references.  Best case (Sarkizova-style data): n_samples >
+    # n_references because one PMID contributed many donors.
+    label_col = (
+        df["attributed_sample_label"].astype(object).fillna("").astype(str)
+        if "attributed_sample_label" in df.columns
+        else pd.Series([""] * len(df), index=df.index)
+    )
+    df["_sample_id"] = label_col.where(
+        label_col != "", "pmid:" + df["pmid"].astype("Int64").astype(str)
+    )
+
+    # ``_sample_labels`` is an internal semicolon-joined list of distinct
+    # synthesized sample IDs, kept on the row so
+    # _consolidate_after_narrowing can union them after multi-allele
+    # narrowing.  Dropped before returning — only the count (n_samples)
+    # is surfaced.
     grouped = (
         df.groupby(
             [
@@ -325,16 +380,38 @@ def query(
                 "pmid",
                 lambda s: ";".join(str(int(p)) for p in sorted(set(s.dropna()))),
             ),
+            _sample_labels=(
+                "_sample_id",
+                lambda s: ";".join(sorted({str(x) for x in s.dropna() if str(x)})),
+            ),
         )
         .reset_index()
         .rename(columns={"mhc_restriction": "mhc_allele"})
     )
 
     # 5. Optional binding-affinity prediction.  _consolidate_after_narrowing
-    #    (inside _attach_predictions) preserves mhc_species — see its
-    #    group_cols below.
+    #    (inside _attach_predictions) preserves mhc_species AND
+    #    _sample_labels via its group_cols / agg_spec — see below.
     if predictor is not None:
         grouped = _attach_predictions(grouped, predictor)
+
+    # 5b. Surface n_references + n_samples as user-facing count columns.
+    #     Drop _sample_labels — internal-only.
+    grouped["n_references"] = grouped["pmids"].apply(lambda s: len(str(s).split(";")) if s else 0)
+    grouped["n_samples"] = grouped["_sample_labels"].apply(
+        lambda s: len([x for x in str(s).split(";") if x]) if s else 0
+    )
+    grouped = grouped.drop(columns=["_sample_labels"])
+
+    # 5c. Apply user-supplied filters (#259).
+    if min_binder_class is not None:
+        threshold = _BINDER_RANK[min_binder_class]
+        binder_rank = grouped["binder_class"].map(_BINDER_RANK).fillna(-1)
+        grouped = grouped[binder_rank >= threshold].reset_index(drop=True)
+    if min_references > 1:
+        grouped = grouped[grouped["n_references"] >= min_references].reset_index(drop=True)
+    if min_samples > 1:
+        grouped = grouped[grouped["n_samples"] >= min_samples].reset_index(drop=True)
 
     # 6. Order: species first (humans top of the page when present, then
     #    alphabetical), then by gene → allele → evidence count desc.
@@ -352,6 +429,9 @@ def query_by_samples(
     proteins: list[str] | None = None,
     *,
     predictor: str | None = None,
+    min_binder_class: str | None = None,
+    min_references: int = 1,
+    min_samples: int = 1,
     use_hgnc: bool = True,
     verbose: bool = False,
 ) -> pd.DataFrame:
@@ -407,6 +487,9 @@ def query_by_samples(
             proteins=proteins,
             alleles=alleles,
             predictor=predictor,
+            min_binder_class=min_binder_class,
+            min_references=min_references,
+            min_samples=min_samples,
             use_hgnc=use_hgnc,
             verbose=verbose,
         )
@@ -555,6 +638,14 @@ def _consolidate_after_narrowing(df: pd.DataFrame) -> pd.DataFrame:
                     seen.add(p)
         return ";".join(sorted(seen, key=int))
 
+    def _union_sample_labels(values: pd.Series) -> str:
+        seen: set[str] = set()
+        for v in values.dropna():
+            for label in str(v).split(";"):
+                if label:
+                    seen.add(label)
+        return ";".join(sorted(seen))
+
     score_cols = ["affinity_nM", "presentation_percentile", "binder_class", "best_predicted_allele"]
     # mhc_species is FD on mhc_allele (one species per allele string) so
     # including it doesn't change cardinality — but it MUST be in the
@@ -573,6 +664,13 @@ def _consolidate_after_narrowing(df: pd.DataFrame) -> pd.DataFrame:
         "n_observations": "sum",
         "pmids": _union_pmids,
     }
+    # _sample_labels carries the per-row distinct-sample list as
+    # semicolon-joined strings; union them on consolidation so n_samples
+    # post-narrowing reflects the true distinct-sample count.  Same
+    # silently-dropped-on-groupby gotcha as mhc_species — must be in
+    # agg_spec.
+    if "_sample_labels" in df.columns:
+        agg_spec["_sample_labels"] = _union_sample_labels
     for col in score_cols:
         if col in df.columns:
             agg_spec[col] = "first"
@@ -647,6 +745,8 @@ def _empty_result(with_predictions: bool) -> pd.DataFrame:
         "best_guess_allele",
         "peptide",
         "n_observations",
+        "n_references",
+        "n_samples",
         "pmids",
         "mhc_class",
         "mhc_species",
@@ -730,6 +830,8 @@ def format_table(df: pd.DataFrame) -> str:
     pep_columns: list[tuple[str, str]] = [
         ("peptide", "peptide"),
         ("n_obs", "n_observations"),
+        ("n_refs", "n_references"),
+        ("n_samples", "n_samples"),
         ("pmids", "pmids"),
     ]
     if has_pred:
@@ -742,7 +844,7 @@ def format_table(df: pd.DataFrame) -> str:
     def _fmt(header: str, value) -> str:
         if pd.isna(value):
             return ""
-        if header == "n_obs":
+        if header in ("n_obs", "n_refs", "n_samples"):
             return f"{int(value)}"
         if header == "affinity_nM":
             return f"{float(value):.1f}"
