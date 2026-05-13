@@ -481,47 +481,50 @@ def test_pmhc_query_warns_on_unresolved_source_organism(tmp_path, monkeypatch, c
     assert "2 row(s) have unresolved source organism" in err
 
 
-def test_pmhc_query_unidentified_source_folds_into_unknown(tmp_path, monkeypatch):
-    """Both `""` and `"unidentified"` upstream sentinels normalize to
-    the single `"unknown"` bucket in the result frame's species column —
-    one downstream consumer should not have to handle both."""
+def test_normalize_species_column_folds_empty_and_unidentified_to_unknown():
+    """Direct contract test on the normalization helper — pins the
+    exact mapping ``"" / NaN / "unidentified" → "unknown"`` without
+    going through the query path (where the column gets dropped at
+    aggregation and we can only verify normalization indirectly).
+    """
+    import numpy as np
     import pandas as pd
 
-    from hitlist import pmhc_query
+    from hitlist.pmhc_query import _normalize_species_column
 
-    obs = pd.DataFrame(
-        {
-            "peptide": ["KLVVVGAGGV", "KLVVVGAGGV"],
-            "pmid": [1, 2],
-            "mhc_class": ["I", "I"],
-            "mhc_restriction": ["HLA-A*02:01"] * 2,
-            "species": ["", "unidentified"],
-            "mhc_species": ["Homo sapiens", "Homo sapiens"],
-            "source": ["iedb"] * 2,
-        }
-    )
-    mappings = pd.DataFrame(
-        {
-            "peptide": ["KLVVVGAGGV"],
-            "gene_name": ["NRAS"],
-            "gene_id": ["ENSG00000213281"],
-            "protein_id": ["ENSP00000358548"],
-        }
-    )
-    obs.to_parquet(tmp_path / "observations.parquet", index=False)
-    mappings.to_parquet(tmp_path / "peptide_mappings.parquet", index=False)
-    _patch_paths(
-        monkeypatch,
-        tmp_path / "observations.parquet",
-        tmp_path / "peptide_mappings.parquet",
-    )
+    s = pd.Series(["Homo sapiens", "", np.nan, "unidentified", "Mus musculus"])
+    out = _normalize_species_column(s)
+    assert list(out) == [
+        "Homo sapiens",
+        "unknown",
+        "unknown",
+        "unknown",
+        "Mus musculus",
+    ]
 
-    df = pmhc_query.query(proteins=["NRAS"], use_hgnc=False)
-    # mhc_species column unchanged (still "Homo sapiens").  Underlying
-    # source-organism column is not present on the aggregated frame
-    # by design — verified indirectly by no crash + clean result.
-    assert "mhc_species" in df.columns
-    assert set(df["mhc_species"].unique()) == {"Homo sapiens"}
+
+def test_normalize_species_column_handles_categorical_dtype():
+    """Regression: obs.parquet columns come back as ``Categorical`` from
+    pyarrow's dictionary-encoded read.  ``Series.replace({...})`` on a
+    Categorical without all target values pre-declared as categories
+    can raise / warn on newer pandas.  The helper's ``.astype(str)``
+    cast must move us off Categorical before the replace.
+    """
+    import pandas as pd
+
+    from hitlist.pmhc_query import _normalize_species_column
+
+    cat = pd.Series(
+        ["Homo sapiens", "unidentified", "", "Mus musculus"],
+        dtype="category",
+    )
+    out = _normalize_species_column(cat)
+    # All upstream sentinels folded to "unknown".
+    assert sorted(out.unique()) == ["Homo sapiens", "Mus musculus", "unknown"]
+    # Result is NOT Categorical — downstream consumers won't run into
+    # category-constraint failures on subsequent replace / merge calls.
+    # (Could be object or StringDtype depending on pandas version.)
+    assert not isinstance(out.dtype, pd.CategoricalDtype)
 
 
 def test_species_sort_key_order_human_first():
@@ -536,6 +539,136 @@ def test_species_sort_key_order_human_first():
     assert sorted_species[-1] == "unknown"
     # Canis (C) sorts before Macaca (M) in the alphabetical tail.
     assert sorted_species.index("Canis lupus") < sorted_species.index("Macaca mulatta")
+
+
+# ── Output formatting cleanup (#256 review) ──────────────────────────
+
+
+def test_format_table_truncates_long_pmid_lists():
+    """PMID lists with >3 references render as ``a;b;c; +N more`` so the
+    table doesn't get visually dominated by a 50-char-wide pmids column.
+    Full list is still on the underlying frame for CSV/JSON consumers."""
+    from hitlist import pmhc_query
+
+    df = pd.DataFrame(
+        {
+            "gene_name": ["NRAS"],
+            "gene_id": ["ENSG00000213281"],
+            "mhc_allele": ["HLA-A*02:01"],
+            "best_guess_allele": [None],
+            "peptide": ["KLVVVGAGGV"],
+            "n_observations": [6],
+            "pmids": ["111;222;333;444;555;666"],
+            "mhc_class": ["I"],
+            "mhc_species": ["Homo sapiens"],
+        }
+    )
+    text = pmhc_query.format_table(df)
+    assert "111;222;333; +3 more" in text
+    # First three PMIDs are shown; the 4th is not in the rendered table.
+    assert "444" not in text
+
+
+def test_format_table_short_pmid_lists_not_truncated():
+    """PMID lists with <= 3 entries pass through verbatim."""
+    from hitlist import pmhc_query
+
+    df = pd.DataFrame(
+        {
+            "gene_name": ["NRAS"],
+            "gene_id": ["ENSG00000213281"],
+            "mhc_allele": ["HLA-A*02:01"],
+            "best_guess_allele": [None],
+            "peptide": ["KLVVVGAGGV"],
+            "n_observations": [3],
+            "pmids": ["111;222;333"],
+            "mhc_class": ["I"],
+            "mhc_species": ["Homo sapiens"],
+        }
+    )
+    text = pmhc_query.format_table(df)
+    assert "111;222;333" in text
+    assert "+0 more" not in text  # don't tag short lists
+
+
+def test_format_table_renders_empty_allele_as_synthetic_header():
+    """A row with empty ``mhc_allele`` (IEDB didn't record a specific
+    allele) used to render under a phantom blank-line header, looking
+    like a layout bug.  Now it gets a clear "(allele not specified)"
+    label."""
+    from hitlist import pmhc_query
+
+    df = pd.DataFrame(
+        {
+            "gene_name": ["NRAS", "NRAS"],
+            "gene_id": ["ENSG00000213281", "ENSG00000213281"],
+            "mhc_allele": ["HLA-A*02:01", ""],
+            "best_guess_allele": [None, None],
+            "peptide": ["KLVVVGAGGV", "PLACEHOLDER"],
+            "n_observations": [3, 1],
+            "pmids": ["111", "222"],
+            "mhc_class": ["I", "I"],
+            "mhc_species": ["Homo sapiens", "Homo sapiens"],
+        }
+    )
+    text = pmhc_query.format_table(df)
+    assert "(allele not specified)" in text
+    # The placeholder peptide still renders — we labeled the section,
+    # didn't drop the row.
+    assert "PLACEHOLDER" in text
+
+
+def test_format_table_orders_specific_alleles_before_class_only():
+    """4-digit alleles (containing ``*``) appear before class-only
+    placeholders like ``HLA class I``, so the high-evidence specific
+    sections lead and the catch-all lands at the bottom."""
+    from hitlist import pmhc_query
+
+    df = pd.DataFrame(
+        {
+            "gene_name": ["NRAS"] * 3,
+            "gene_id": ["ENSG00000213281"] * 3,
+            "mhc_allele": ["HLA class I", "HLA-A*02:01", ""],
+            "best_guess_allele": [None] * 3,
+            "peptide": ["PEPTIDE_A", "PEPTIDE_B", "PEPTIDE_C"],
+            # Class-only and empty rows have higher n_observations so we
+            # know specifc-allele ordering isn't accidentally happening
+            # via the existing evidence-count sort.
+            "n_observations": [99, 1, 50],
+            "pmids": ["111"] * 3,
+            "mhc_class": ["I"] * 3,
+            "mhc_species": ["Homo sapiens"] * 3,
+        }
+    )
+    text = pmhc_query.format_table(df)
+    a02_idx = text.find("HLA-A*02:01")
+    class_i_idx = text.find("HLA class I")
+    unspec_idx = text.find("(allele not specified)")
+    assert 0 < a02_idx < class_i_idx
+    assert 0 < a02_idx < unspec_idx
+
+
+def test_format_table_strips_trailing_whitespace_per_row():
+    """No rendered line ends with trailing spaces — keeps the right edge
+    clean without affecting inter-column alignment."""
+    from hitlist import pmhc_query
+
+    df = pd.DataFrame(
+        {
+            "gene_name": ["NRAS"],
+            "gene_id": ["ENSG00000213281"],
+            "mhc_allele": ["HLA-A*02:01"],
+            "best_guess_allele": [None],
+            "peptide": ["KLVVVGAGGV"],
+            "n_observations": [3],
+            "pmids": ["111;222"],
+            "mhc_class": ["I"],
+            "mhc_species": ["Homo sapiens"],
+        }
+    )
+    text = pmhc_query.format_table(df)
+    for line in text.splitlines():
+        assert line == line.rstrip(), f"trailing whitespace in line: {line!r}"
 
 
 def _multispecies_table_input() -> pd.DataFrame:
