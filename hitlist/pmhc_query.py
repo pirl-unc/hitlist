@@ -106,13 +106,9 @@ def query(
         Sorted by (mhc_species, gene_name, mhc_allele, -n_observations).
         Empty DataFrame with these columns if nothing matched.
     """
-    from .observations import is_built, load_observations
-
-    if not is_built():
-        raise FileNotFoundError(
-            "observations.parquet has not been built. Run `hitlist build observations` first."
-        )
-
+    # Argument validation runs BEFORE is_built() so callers passing bad
+    # flags get a clear ValueError regardless of whether observations
+    # have been built yet (tests + fresh-install error paths).
     if min_binder_class is not None:
         if predictor is None:
             raise ValueError(
@@ -123,6 +119,13 @@ def query(
             raise ValueError(
                 f"min_binder_class must be one of {sorted(_BINDER_RANK)}, got {min_binder_class!r}"
             )
+
+    from .observations import is_built, load_observations
+
+    if not is_built():
+        raise FileNotFoundError(
+            "observations.parquet has not been built. Run `hitlist build observations` first."
+        )
 
     t_start = time.perf_counter()
 
@@ -158,6 +161,13 @@ def query(
     # ``mhc_restriction`` at query time, and ``species`` lets us flag
     # chimeric rows (HLA-transgenic mouse etc., where the source
     # organism differs from the MHC system).
+    # #259: n_samples and --min-samples need a per-row distinct-sample
+    # identifier.  attributed_sample_label is populated on only 1.2% of
+    # rows; cell_name (98.5%) + monoallelic_host (21.4%) carry the rest
+    # of the per-sample signal across the corpus.  We compose all three
+    # plus pmid into a synthetic _sample_id below (cell_name is a strict
+    # superset of cell_line_name — same value when both populated, so
+    # we don't need to load cell_line_name separately).
     load_kwargs: dict = {
         "columns": [
             "peptide",
@@ -166,7 +176,9 @@ def query(
             "mhc_restriction",
             "mhc_species",
             "species",
-            "attributed_sample_label",  # for n_samples + --min-samples (#259)
+            "attributed_sample_label",
+            "cell_name",
+            "monoallelic_host",
             "gene_names",
             "gene_ids",
         ],
@@ -336,23 +348,46 @@ def query(
     #    dependent on mhc_restriction (one species per allele string)
     #    so it doesn't change cardinality but flows through aggregation
     #    without an extra merge.
-    # Synthesize a per-row sample identifier.  attributed_sample_label
-    # is populated on only ~1.2% of IEDB rows (the Sarkizova-style
-    # per-donor papers).  When it's empty, fall back to f"pmid:{pmid}"
-    # — coarser than a true per-donor label, but it lets n_samples be
-    # a meaningful "distinct experimental units" count for the rest of
-    # the corpus, where it'd otherwise always be 0.
+    # Synthesize a per-row sample identifier from a COMPOSITE of all
+    # the available sample-distinguishing columns.  Any one alone
+    # underspecifies the corpus:
     #
-    # Worst case (IEDB rows with no per-donor labels): n_samples ==
-    # n_references.  Best case (Sarkizova-style data): n_samples >
-    # n_references because one PMID contributed many donors.
-    label_col = (
-        df["attributed_sample_label"].astype(object).fillna("").astype(str)
-        if "attributed_sample_label" in df.columns
-        else pd.Series([""] * len(df), index=df.index)
-    )
-    df["_sample_id"] = label_col.where(
-        label_col != "", "pmid:" + df["pmid"].astype("Int64").astype(str)
+    #   attributed_sample_label:  1.2% populated, 11 distinct values
+    #                             (Sarkizova-style per-donor patient IDs)
+    #   cell_name:               98.5% populated, 192 distinct values
+    #                             (cell-line / cell-type — superset of
+    #                              cell_line_name; mixes real line names
+    #                              with coarse types like "B cell" /
+    #                              "Other" so it's only partly per-sample)
+    #   monoallelic_host:        21.4% populated, 7 distinct values
+    #                             (mono-allelic engineering host: C1R,
+    #                              721.221, K562, Strep-tag II, ...)
+    #
+    # Composing pmid + the three labels means a peptide observed in one
+    # paper across N cell lines counts as N samples (not 1).  Two rows
+    # with the same composite are the same sample by every signal we
+    # have; differing on any field → different sample.
+    #
+    # Caveats: coarse cell_name values ("B cell", "Other") collapse
+    # patients within a cell type when attributed_sample_label is empty
+    # → can undercount.  Same experiment recorded at two metadata
+    # granularities ("C1R cells-B cell" vs "C1R") splits → can
+    # overcount.  Net: best-effort given the metadata.  Real precision
+    # requires upstream curation work.
+    def _str_col(name: str) -> pd.Series:
+        if name in df.columns:
+            return df[name].astype(object).fillna("").astype(str)
+        return pd.Series([""] * len(df), index=df.index)
+
+    df["_sample_id"] = (
+        "pmid:"
+        + df["pmid"].astype("Int64").astype(str)
+        + "|"
+        + _str_col("cell_name")
+        + "|"
+        + _str_col("monoallelic_host")
+        + "|"
+        + _str_col("attributed_sample_label")
     )
 
     # ``_sample_labels`` is an internal semicolon-joined list of distinct
