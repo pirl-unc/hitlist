@@ -775,9 +775,9 @@ def test_format_table_omits_species_section_when_single_species(tmp_path, monkey
 
 def test_mhc_species_survives_predictor_path(tmp_path, monkeypatch):
     """Regression: mhc_species was previously dropped by
-    ``_consolidate_after_narrowing`` (whose group_cols don't include it)
+    ``_collapse_rows_sharing_narrowed_allele`` (whose group_cols don't include it)
     when the user passed ``--predictor``.  The fix re-derives the column
-    AFTER ``_attach_predictions`` so it survives consolidation AND
+    AFTER ``_score_and_narrow_to_best_allele`` so it survives consolidation AND
     reflects the post-narrowing single-allele string.
     """
     from hitlist import pmhc_query
@@ -795,7 +795,7 @@ def test_mhc_species_survives_predictor_path(tmp_path, monkeypatch):
     assert "mhc_species" in df.columns
     assert df["mhc_species"].notna().all()
     assert set(df["mhc_species"].unique()) == {"Homo sapiens"}
-    # Predictor columns also present — confirms _attach_predictions
+    # Predictor columns also present — confirms _score_and_narrow_to_best_allele
     # actually ran (vs. a stub fall-through).
     assert "affinity_nM" in df.columns
     assert "presentation_percentile" in df.columns
@@ -990,7 +990,7 @@ def test_format_table_groups_by_sample_when_sample_name_present(tmp_path, monkey
 
 
 def _make_grouped(rows: list[dict]) -> pd.DataFrame:
-    """Build the post-aggregation frame _attach_predictions consumes."""
+    """Build the post-aggregation frame _score_and_narrow_to_best_allele consumes."""
     base_cols = {
         "gene_name": "PRAME",
         "gene_id": "ENSG00000185686",
@@ -1001,7 +1001,7 @@ def _make_grouped(rows: list[dict]) -> pd.DataFrame:
     return pd.DataFrame([{**base_cols, **r} for r in rows])
 
 
-def test_attach_predictions_narrows_multi_allele_to_best_binder(monkeypatch):
+def test_score_and_narrow_to_best_allele_narrows_multi_allele_to_best_binder(monkeypatch):
     """Issue #239: a multi-allele row gets expanded to per-allele
     predictions; the lowest-percentile allele wins; mhc_allele +
     best_guess_allele are narrowed; best_predicted_allele records the
@@ -1033,7 +1033,7 @@ def test_attach_predictions_narrows_multi_allele_to_best_binder(monkeypatch):
 
     monkeypatch.setattr("hitlist.predict._predict_mhcflurry", fake_predict)
 
-    out = pmhc_query._attach_predictions(df, "mhcflurry")
+    out = pmhc_query._score_and_narrow_to_best_allele(df, "mhcflurry")
     assert len(out) == 1
     r = out.iloc[0]
     assert r["mhc_allele"] == "HLA-A*02:01"
@@ -1044,7 +1044,7 @@ def test_attach_predictions_narrows_multi_allele_to_best_binder(monkeypatch):
     assert r["binder_class"] == "strong"
 
 
-def test_attach_predictions_consolidates_per_donor_rows_after_narrowing(monkeypatch):
+def test_score_and_narrow_to_best_allele_consolidates_per_donor_rows_after_narrowing(monkeypatch):
     """Issue #239 + #236 interaction: three per-donor rows for SLLQHLIGL
     (MEL3 / MEL15 / OV1, each with their own 6-allele typing) all
     contain A*02:01.  After predictor narrowing, all three collapse to
@@ -1090,7 +1090,7 @@ def test_attach_predictions_consolidates_per_donor_rows_after_narrowing(monkeypa
         return out
 
     monkeypatch.setattr("hitlist.predict._predict_mhcflurry", fake_predict)
-    out = pmhc_query._attach_predictions(df, "mhcflurry")
+    out = pmhc_query._score_and_narrow_to_best_allele(df, "mhcflurry")
 
     assert len(out) == 1
     r = out.iloc[0]
@@ -1100,7 +1100,7 @@ def test_attach_predictions_consolidates_per_donor_rows_after_narrowing(monkeypa
     assert r["pmids"] == "31844290"  # union of identical PMIDs
 
 
-def test_attach_predictions_keeps_single_allele_rows_unchanged(monkeypatch):
+def test_score_and_narrow_to_best_allele_keeps_single_allele_rows_unchanged(monkeypatch):
     """Single-allele rows pass through with score columns added but no
     structural change — mhc_allele isn't rewritten, no row collapse."""
     from hitlist import pmhc_query
@@ -1122,7 +1122,7 @@ def test_attach_predictions_keeps_single_allele_rows_unchanged(monkeypatch):
         return out
 
     monkeypatch.setattr("hitlist.predict._predict_mhcflurry", fake_predict)
-    out = pmhc_query._attach_predictions(df, "mhcflurry")
+    out = pmhc_query._score_and_narrow_to_best_allele(df, "mhcflurry")
 
     assert len(out) == 1
     r = out.iloc[0]
@@ -1132,7 +1132,7 @@ def test_attach_predictions_keeps_single_allele_rows_unchanged(monkeypatch):
     assert r["binder_class"] == "strong"
 
 
-def test_attach_predictions_keeps_multi_allele_when_no_predictions(monkeypatch):
+def test_score_and_narrow_to_best_allele_keeps_multi_allele_when_no_predictions(monkeypatch):
     """If every allele in the set returns NaN (predictor failure / length
     mismatch / unknown allele), the multi-allele mhc_allele is preserved
     and best_predicted_allele is empty.  Avoids wrongly committing to a
@@ -1151,7 +1151,7 @@ def test_attach_predictions_keeps_multi_allele_when_no_predictions(monkeypatch):
         return out
 
     monkeypatch.setattr("hitlist.predict._predict_mhcflurry", fake_predict)
-    out = pmhc_query._attach_predictions(df, "mhcflurry")
+    out = pmhc_query._score_and_narrow_to_best_allele(df, "mhcflurry")
 
     assert len(out) == 1
     r = out.iloc[0]
