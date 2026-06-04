@@ -42,6 +42,33 @@ def test_cell_line_is_cancer():
     assert flags["cell_line_name"] == "HeLa"
 
 
+def test_cell_type_split_hybrid():
+    """#261: a hybrid ``<line>-<cell_type>`` Cell Name is split into a clean
+    line name plus a separate cell_type."""
+    flags = classify_ms_row(
+        "", "", "Cell Line / Clone", cell_name="K562-Myeloid cell", mhc_restriction="HLA-A*02:01"
+    )
+    assert flags["cell_line_name"] == "K562"
+    assert flags["cell_type"] == "Myeloid cell"
+
+
+def test_cell_type_pure_type_is_not_a_line():
+    """A pure cell-type Cell Name (primary-cell sample) yields cell_type but
+    no cell_line_name."""
+    flags = classify_ms_row("No immunization", "healthy", "Direct Ex Vivo", cell_name="B cell")
+    assert flags["src_cell_line"] is False
+    assert flags["cell_line_name"] == ""
+    assert flags["cell_type"] == "B cell"
+
+
+def test_cell_type_unknown_line_keeps_identifier():
+    """A cell-line row whose line isn't in the registry must keep its raw
+    identifier (no empty cell_line_name regression for #260 counting)."""
+    flags = classify_ms_row("", "", "Cell Line / Clone", cell_name="LCL1")
+    assert flags["cell_line_name"] == "LCL1"
+    assert flags["cell_type"] == ""
+
+
 def test_ebv_lcl_not_cancer():
     flags = classify_ms_row(
         "No immunization", "healthy", "Cell Line / Clone (EBV transformed, B-LCL)", cell_name="LCL1"

@@ -38,6 +38,8 @@ from os.path import dirname, join
 import pandas as pd
 import yaml
 
+from .cell_name_parser import parse_cell_name
+
 
 def _data_path(filename: str) -> str:
     return join(dirname(__file__), "data", filename)
@@ -1348,7 +1350,9 @@ def classify_ms_row(
     Returns
     -------
     dict[str, bool | str]
-        Source flags plus ``cell_line_name``.
+        Source flags plus ``cell_line_name`` (the line, with any
+        ``<line>-<cell_type>`` hybrid suffix stripped) and ``cell_type``
+        (the tissue / cell-type part, ``""`` when unknown) — see #261.
     """
     process_type = str(process_type).strip() if pd.notna(process_type) else ""
     disease = str(disease).strip() if pd.notna(disease) else ""
@@ -1496,6 +1500,23 @@ def classify_ms_row(
             is_monoallelic = True
             mono_host = method
 
+    # Decompose IEDB's catch-all ``Cell Name`` into a clean line name plus a
+    # separate ``cell_type`` (#261 stage 2).  ``parse_cell_name`` strips the
+    # ``<line>-<cell_type>`` hybrid suffix ("K562-Myeloid cell" → line
+    # "K562", type "Myeloid cell") and canonicalizes known synonyms
+    # ("HeLa cells" → "HeLa").  We only overwrite ``cl_name`` when this row
+    # already had a line name, and fall back to the parser's raw line input
+    # (then the original string) so a cell-line row whose line isn't in the
+    # registry never loses its identifier.
+    cell_info = parse_cell_name(
+        cell_name_str,
+        monoallelic_host=mono_host,
+        src_cell_line=(is_cell_line or is_ebv_lcl),
+    )
+    cell_type = cell_info.cell_type
+    if cl_name:
+        cl_name = cell_info.cell_line_name or cell_info.cell_line_input or cl_name
+
     return {
         "src_cancer": is_cancer,
         "src_adjacent_to_tumor": is_adjacent,
@@ -1507,6 +1528,7 @@ def classify_ms_row(
         "src_ebv_lcl": is_ebv_lcl,
         "src_ex_vivo": is_ex_vivo,
         "cell_line_name": cl_name,
+        "cell_type": cell_type,
         "is_monoallelic": is_monoallelic,
         "monoallelic_host": mono_host,
         "allele_resolution": classify_allele_resolution(mhc_restriction),

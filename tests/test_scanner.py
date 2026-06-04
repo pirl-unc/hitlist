@@ -385,6 +385,50 @@ def _write_set_iedb_csv(path, rows):
             writer.writerow(padded)
 
 
+def test_scan_emits_cell_type_column(tmp_path):
+    """#261 stage 2: the scanner must emit a ``cell_type`` column and clean
+    the ``<line>-<cell_type>`` hybrid suffix out of ``cell_line_name``."""
+    src = tmp_path / "iedb.csv"
+    rows = []
+
+    # Hybrid cell-line row: "K562-Myeloid cell" → line "K562", type "Myeloid cell".
+    hybrid = [""] * 21
+    hybrid[0] = "http://iedb.org/assay/200001"
+    hybrid[1] = "http://iedb.org/reference/1"
+    hybrid[2] = "33858848"
+    hybrid[5] = "HYBRIDROWAB"
+    hybrid[17] = "K562-Myeloid cell"  # Cell Name
+    hybrid[18] = "Cell Line / Clone"  # Culture Condition
+    hybrid[19] = "HLA-A*02:01"
+    hybrid[20] = "I"
+    rows.append(hybrid)
+
+    # Pure cell-type primary row: "B cell" → no line, type "B cell".
+    primary = [""] * 21
+    primary[0] = "http://iedb.org/assay/200002"
+    primary[1] = "http://iedb.org/reference/2"
+    primary[2] = "33858848"
+    primary[5] = "PRIMARYROWAB"
+    primary[17] = "B cell"  # Cell Name
+    primary[18] = "Direct Ex Vivo"  # Culture Condition
+    primary[19] = "HLA-A*02:01"
+    primary[20] = "I"
+    rows.append(primary)
+
+    _write_tiny_iedb_csv(src, rows)
+
+    df = scan(peptides=None, iedb_path=str(src), cedar_path=None)
+    assert "cell_type" in df.columns
+
+    hybrid_row = df[df["cell_name"] == "K562-Myeloid cell"].iloc[0]
+    assert hybrid_row["cell_line_name"] == "K562"
+    assert hybrid_row["cell_type"] == "Myeloid cell"
+
+    primary_row = df[df["cell_name"] == "B cell"].iloc[0]
+    assert primary_row["cell_line_name"] == ""
+    assert primary_row["cell_type"] == "B cell"
+
+
 def test_scan_emits_allele_set_columns_with_provenance(tmp_path):
     """Issue #137: every scanner row must carry mhc_allele_set /
     mhc_allele_provenance / mhc_allele_set_size.  Cover the three
