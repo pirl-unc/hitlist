@@ -84,7 +84,10 @@ known-first-party = ["hitlist"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-v --tb=short"
+# No -v: the verbose per-test line listing adds noise (and a little I/O) to
+# every local + CI run without aiding triage — --tb=short already gives
+# concise failure context.  Use `pytest -v` ad hoc when bisecting.
+addopts = "--tb=short"
 markers = [
     "integration: tests that exercise the built observations.parquet corpus (skipped by default in ./test.sh; included by ./test.sh --all and ./deploy.sh)",
 ]

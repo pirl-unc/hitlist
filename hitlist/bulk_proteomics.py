@@ -110,6 +110,22 @@ def _source_defaults(source_id: str) -> dict:
     return {}
 
 
+@lru_cache(maxsize=2)
+def _read_parquet_cached(path_str: str, mtime_ns: int, size: int) -> pd.DataFrame:
+    """Read + memoize a parquet keyed on its file signature.
+
+    Every ``load_bulk_peptides`` / ``load_bulk_proteomics`` call previously
+    re-read the full ``bulk_proteomics.parquet`` from disk; a suite that
+    calls the loaders dozens of times (and ``deploy.sh --all``) paid that
+    I/O each time.  Keying on ``(path, mtime_ns, size)`` makes repeated
+    reads within a process free while a rebuild (atomic temp+rename → fresh
+    mtime) busts the cache automatically.  The public loaders all ``.copy()``
+    the returned frame before filtering, so sharing the cached object is
+    safe.
+    """
+    return pd.read_parquet(path_str)
+
+
 def _load_parquet_or_none() -> pd.DataFrame | None:
     """Return the built parquet if readable, else None.
 
@@ -121,7 +137,8 @@ def _load_parquet_or_none() -> pd.DataFrame | None:
     if not p.exists():
         return None
     try:
-        return pd.read_parquet(p)
+        st = p.stat()
+        return _read_parquet_cached(str(p), st.st_mtime_ns, st.st_size)
     except (ArrowInvalid, OSError, ValueError) as exc:
         warnings.warn(
             f"Failed to read built bulk proteomics parquet at {p}; "
