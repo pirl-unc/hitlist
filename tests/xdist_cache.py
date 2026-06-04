@@ -99,6 +99,20 @@ def load_or_build_mmapped_arrow(
 
     ``builder`` must return a ``pandas.DataFrame``.
 
+    The returned frame is effectively **read-only**: its zero-copy columns
+    wrap shared mmap pages, so in-place column mutation raises
+    ``ValueError: assignment destination is read-only``.  Tests must copy /
+    mask before mutating (they already do — that's the fixture contract).
+
+    Every xdist worker — including the one that builds — returns through
+    the same ``memory_map`` read path, so all workers get an *identical*
+    frame (same dtypes, same read-only buffers).  Returning the builder's
+    own in-memory frame instead would make a test behave differently
+    depending on which worker it landed on (writable RangeIndex on the
+    builder vs read-only Int64 index on readers) — a nondeterministic
+    footgun under ``-n auto``.  The single redundant read on the builder
+    worker is negligible next to the build it just paid for.
+
     Lifetime note: the returned frame's zero-copy columns keep the
     underlying mmap alive via pyarrow's buffer refcounting, so the local
     ``source`` handle going out of scope here does not invalidate them.
@@ -106,14 +120,17 @@ def load_or_build_mmapped_arrow(
     import pyarrow as pa
     import pyarrow.ipc as ipc
 
+    def _read_mmapped() -> pd.DataFrame:
+        source = pa.memory_map(str(cache_path), "r")
+        table = ipc.open_file(source).read_all()
+        return table.to_pandas(split_blocks=True, zero_copy_only=False)
+
     lock_path = cache_path.with_suffix(cache_path.suffix + ".lock")
     cache_path.parent.mkdir(parents=True, exist_ok=True)
     with open(lock_path, "w") as lock_f:
         fcntl.flock(lock_f.fileno(), fcntl.LOCK_EX)
         if cache_path.is_file():
-            source = pa.memory_map(str(cache_path), "r")
-            table = ipc.open_file(source).read_all()
-            return table.to_pandas(split_blocks=True, zero_copy_only=False)
+            return _read_mmapped()
 
         df = builder()
         table = pa.Table.from_pandas(df, preserve_index=True)
@@ -128,7 +145,6 @@ def load_or_build_mmapped_arrow(
             with contextlib.suppress(FileNotFoundError):
                 tmp_path.unlink()
             raise
-        # The builder worker already holds the frame in memory; return it
-        # directly rather than paying a redundant mmap read.  The N-1 reader
-        # workers get the shared-memory benefit.
-        return df
+        # Read back through mmap too, so the builder worker returns the same
+        # read-only, mmap-backed frame every reader worker sees.
+        return _read_mmapped()
