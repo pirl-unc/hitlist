@@ -100,10 +100,10 @@ def _download_to_file(url: str, dest: Path, *, label: str = "", verbose: bool = 
     try:
         for attempt in range(attempts):
             try:
-                with (
-                    urllib.request.urlopen(url, timeout=timeout) as resp,
-                    open(tmp, "wb") as fh,
-                ):
+                # Note: comma form, not parenthesized — parenthesized context
+                # managers are a SyntaxError on Python 3.9, which we still
+                # support.
+                with urllib.request.urlopen(url, timeout=timeout) as resp, open(tmp, "wb") as fh:
                     shutil.copyfileobj(resp, fh)
                 shutil.move(str(tmp), str(dest))
                 return
@@ -113,20 +113,24 @@ def _download_to_file(url: str, dest: Path, *, label: str = "", verbose: bool = 
                 last_err = err
                 if tmp.exists():
                     tmp.unlink()
-                if attempt < len(_DOWNLOAD_RETRY_BACKOFF):
-                    backoff = _DOWNLOAD_RETRY_BACKOFF[attempt]
-                    if verbose:
-                        print(
-                            f"  [{what}] download failed ({err}); retrying in "
-                            f"{backoff:g}s ({attempt + 1}/{len(_DOWNLOAD_RETRY_BACKOFF)})"
-                        )
-                    time.sleep(backoff)
+                # A 4xx is a permanent client error (bad/withdrawn proteome
+                # ID, wrong URL) — retrying just wastes the backoff window, so
+                # fail fast.  Timeouts, connection resets, and 5xx are
+                # transient and worth retrying.
+                permanent = isinstance(err, urllib.error.HTTPError) and 400 <= err.code < 500
+                if permanent or attempt >= len(_DOWNLOAD_RETRY_BACKOFF):
+                    break
+                backoff = _DOWNLOAD_RETRY_BACKOFF[attempt]
+                if verbose:
+                    print(
+                        f"  [{what}] download failed ({err}); retrying in "
+                        f"{backoff:g}s ({attempt + 1}/{len(_DOWNLOAD_RETRY_BACKOFF)})"
+                    )
+                time.sleep(backoff)
     finally:
         if tmp.exists():
             tmp.unlink()
-    raise RuntimeError(
-        f"Failed to download {url} after {attempts} attempt(s): {last_err}"
-    ) from last_err
+    raise RuntimeError(f"Failed to download {url}: {last_err}") from last_err
 
 
 # ── Data directory ──────────────────────────────────────────────────────────

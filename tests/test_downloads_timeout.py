@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import io
 import socket
+import urllib.error
 from contextlib import contextmanager
 
 import pytest
@@ -78,12 +79,52 @@ def test_download_to_file_exhausts_retries(tmp_path, monkeypatch):
 
     monkeypatch.setattr(downloads.urllib.request, "urlopen", always_timeout)
 
-    with pytest.raises(RuntimeError, match="after 3 attempt"):
+    with pytest.raises(RuntimeError, match="Failed to download"):
         downloads._download_to_file("http://example/x", dest, verbose=False)
 
     # A failed download must not leave a partial file or temp behind.
     assert not dest.exists()
     assert not dest.with_suffix(dest.suffix + ".tmp").exists()
+
+
+def test_download_to_file_does_not_retry_on_404(tmp_path, monkeypatch):
+    """A permanent 4xx must fail fast — no retries, no backoff sleeps."""
+    dest = tmp_path / "out.fasta"
+    monkeypatch.setattr(downloads, "_DOWNLOAD_RETRY_BACKOFF", (0.0, 0.0))
+    sleeps: list[float] = []
+    monkeypatch.setattr(downloads.time, "sleep", lambda s: sleeps.append(s))
+    attempts = {"n": 0}
+
+    def not_found(url, timeout=None):
+        attempts["n"] += 1
+        raise urllib.error.HTTPError(url, 404, "Not Found", {}, None)
+
+    monkeypatch.setattr(downloads.urllib.request, "urlopen", not_found)
+
+    with pytest.raises(RuntimeError, match="Failed to download"):
+        downloads._download_to_file("http://example/x", dest, verbose=False)
+
+    assert attempts["n"] == 1  # single attempt, no retry
+    assert sleeps == []  # never slept
+
+
+def test_download_to_file_retries_on_500(tmp_path, monkeypatch):
+    """A 5xx is transient and should be retried."""
+    dest = tmp_path / "out.fasta"
+    monkeypatch.setattr(downloads, "_DOWNLOAD_RETRY_BACKOFF", (0.0,))
+    attempts = {"n": 0}
+
+    def flaky(url, timeout=None):
+        attempts["n"] += 1
+        if attempts["n"] == 1:
+            raise urllib.error.HTTPError(url, 503, "Service Unavailable", {}, None)
+        return _fake_response(b"OK")
+
+    monkeypatch.setattr(downloads.urllib.request, "urlopen", flaky)
+
+    downloads._download_to_file("http://example/x", dest, verbose=False)
+    assert attempts["n"] == 2
+    assert dest.read_bytes() == b"OK"
 
 
 def test_download_passes_timeout_from_env(tmp_path, monkeypatch):
