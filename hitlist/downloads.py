@@ -45,9 +45,93 @@ from __future__ import annotations
 import json
 import os
 import shutil
+import time
+import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
+
+# ── Download helper (timeout + retry) ────────────────────────────────────────
+#
+# UniProt / HPA / IEDB FASTAs and TSVs are fetched over plain HTTP.  We use
+# ``urlopen(timeout=...)`` + ``shutil.copyfileobj`` rather than
+# ``urlretrieve`` (which takes no timeout) so a stalled TCP connection raises
+# ``socket.timeout`` instead of blocking forever — important now that the
+# parallel mapping pre-fetch (#254) downloads serially in the orchestrator,
+# where one hung connection would stall every worker.  See issue #255.
+
+# Connect+read timeout for a single download attempt, in seconds.  Long
+# enough for a ~200 MB UniProt FASTA on a slow link, short enough to detect a
+# real stall.  Override with ``HITLIST_DOWNLOAD_TIMEOUT``.
+_DEFAULT_DOWNLOAD_TIMEOUT = 300.0
+
+# Backoff (seconds) before each retry.  Its length is the retry count, so the
+# total number of attempts is ``len(_DOWNLOAD_RETRY_BACKOFF) + 1``.  Tests
+# monkeypatch this to disable sleeping.
+_DOWNLOAD_RETRY_BACKOFF: tuple[float, ...] = (5.0, 30.0)
+
+
+def _download_timeout() -> float:
+    """Per-attempt download timeout in seconds (``HITLIST_DOWNLOAD_TIMEOUT``)."""
+    raw = os.environ.get("HITLIST_DOWNLOAD_TIMEOUT")
+    if raw:
+        try:
+            return float(raw)
+        except ValueError:
+            pass
+    return _DEFAULT_DOWNLOAD_TIMEOUT
+
+
+def _download_to_file(url: str, dest: Path, *, label: str = "", verbose: bool = True) -> None:
+    """Download ``url`` to ``dest`` atomically, with a timeout and retries.
+
+    Streams the response into a sibling ``.tmp`` file and ``shutil.move``s it
+    into place only on success, so a partial download never clobbers a good
+    cached file.  Transient failures (timeouts, connection resets, transient
+    HTTP errors) are retried with the backoff schedule in
+    ``_DOWNLOAD_RETRY_BACKOFF``.  Raises ``RuntimeError`` if every attempt
+    fails.
+    """
+    timeout = _download_timeout()
+    tmp = dest.with_suffix(dest.suffix + ".tmp")
+    what = label or url
+    last_err: Exception | None = None
+    attempts = len(_DOWNLOAD_RETRY_BACKOFF) + 1
+    try:
+        for attempt in range(attempts):
+            try:
+                # Note: comma form, not parenthesized — parenthesized context
+                # managers are a SyntaxError on Python 3.9, which we still
+                # support.
+                with urllib.request.urlopen(url, timeout=timeout) as resp, open(tmp, "wb") as fh:
+                    shutil.copyfileobj(resp, fh)
+                shutil.move(str(tmp), str(dest))
+                return
+            except (urllib.error.URLError, OSError) as err:
+                # socket.timeout is an OSError subclass, so a stalled
+                # connection lands here instead of hanging forever.
+                last_err = err
+                if tmp.exists():
+                    tmp.unlink()
+                # A 4xx is a permanent client error (bad/withdrawn proteome
+                # ID, wrong URL) — retrying just wastes the backoff window, so
+                # fail fast.  Timeouts, connection resets, and 5xx are
+                # transient and worth retrying.
+                permanent = isinstance(err, urllib.error.HTTPError) and 400 <= err.code < 500
+                if permanent or attempt >= len(_DOWNLOAD_RETRY_BACKOFF):
+                    break
+                backoff = _DOWNLOAD_RETRY_BACKOFF[attempt]
+                if verbose:
+                    print(
+                        f"  [{what}] download failed ({err}); retrying in "
+                        f"{backoff:g}s ({attempt + 1}/{len(_DOWNLOAD_RETRY_BACKOFF)})"
+                    )
+                time.sleep(backoff)
+    finally:
+        if tmp.exists():
+            tmp.unlink()
+    raise RuntimeError(f"Failed to download {url}: {last_err}") from last_err
+
 
 # ── Data directory ──────────────────────────────────────────────────────────
 
@@ -670,13 +754,7 @@ def fetch_species_proteome(
 
     if verbose:
         print(f"  [{canonical}] fetching UniProt {proteome_id} ...")
-    tmp = dest.with_suffix(dest.suffix + ".tmp")
-    try:
-        urllib.request.urlretrieve(url, str(tmp))
-        shutil.move(str(tmp), str(dest))
-    finally:
-        if tmp.exists():
-            tmp.unlink()
+    _download_to_file(url, dest, label=canonical, verbose=verbose)
 
     size = dest.stat().st_size
     if verbose:
@@ -748,13 +826,7 @@ def fetch_proteome_by_upid(
     else:
         if verbose:
             print(f"  [{name}] fetching UniProt {upid} ...")
-        tmp = dest.with_suffix(dest.suffix + ".tmp")
-        try:
-            urllib.request.urlretrieve(url, str(tmp))
-            shutil.move(str(tmp), str(dest))
-        finally:
-            if tmp.exists():
-                tmp.unlink()
+        _download_to_file(url, dest, label=name, verbose=verbose)
         if verbose:
             print(f"  [{name}] downloaded {dest.stat().st_size:,} bytes → {dest}")
 
@@ -821,13 +893,7 @@ def fetch(name: str, force: bool = False) -> Path:
         return dest
 
     print(f"Downloading {ds['description']}...")
-    tmp = dest.with_suffix(dest.suffix + ".tmp")
-    try:
-        urllib.request.urlretrieve(ds["url"], str(tmp))
-        shutil.move(str(tmp), str(dest))
-    finally:
-        if tmp.exists():
-            tmp.unlink()
+    _download_to_file(ds["url"], dest, label=name)
 
     manifest = _load_manifest()
     manifest["datasets"][name] = {
