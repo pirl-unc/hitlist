@@ -330,7 +330,20 @@ def _full_obs_fixture(n_rows: int = 50) -> pd.DataFrame:
             "disease": ["healthy"] * n_rows,
             "disease_stage": [""] * n_rows,
             "source_tissue": ["PBMC"] * n_rows,
-            "cell_name": ["Line-1"] * n_rows,
+            # Three distinct cell fields (see classify_ms_row / cell_name_parser):
+            #   cell_name      — IEDB's raw catch-all "Cell Name" string,
+            #                    preserved verbatim for traceability. Conflates
+            #                    lines, types, and "<line>-<type>" hybrids
+            #                    (e.g. "Expi293F", "B cell", "K562-Myeloid cell").
+            #   cell_line_name — the cell LINE part only (canonicalized, hybrid
+            #                    suffix stripped). "" for primary-cell/tissue rows.
+            #   cell_type      — the tissue / cell-TYPE part ("B cell",
+            #                    "Myeloid cell"). "" when unknown.
+            # The synthetic values below are arbitrary low-cardinality strings —
+            # this fixture only exercises categorical compression, not parsing.
+            "cell_name": ["Line-1-B cell"] * n_rows,
+            "cell_line_name": ["Line-1"] * n_rows,
+            "cell_type": ["B cell"] * n_rows,
             "culture_condition": ["unperturbed"] * n_rows,
             "assay_method": ["mass spectrometry"] * n_rows,
             "response_measured": [""] * n_rows,

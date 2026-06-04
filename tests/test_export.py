@@ -1,13 +1,37 @@
+import pandas as pd
 import pytest
 
 from hitlist.export import (
     _classify_instrument,
     _extract_allele_strings,
+    _fillna_scalar_safe,
     generate_ms_observations_table,
     generate_ms_samples_table,
     generate_species_summary,
     validate_mhc_alleles,
 )
+
+
+def test_fillna_scalar_safe_widens_categorical():
+    """#263: filling a Categorical with an out-of-category sentinel must
+    widen the category set instead of raising TypeError."""
+    s = pd.Series(["a", "b", None], dtype="category")
+    out = _fillna_scalar_safe(s, "not_applicable")
+    assert isinstance(out.dtype, pd.CategoricalDtype)
+    assert list(out) == ["a", "b", "not_applicable"]
+    assert "not_applicable" in out.cat.categories
+
+
+def test_fillna_scalar_safe_noop_when_value_present():
+    s = pd.Series(["a", "", None], dtype="category")
+    out = _fillna_scalar_safe(s, "")
+    assert list(out) == ["a", "", ""]
+
+
+def test_fillna_scalar_safe_non_categorical_passthrough():
+    s = pd.Series(["a", None])
+    out = _fillna_scalar_safe(s, "x")
+    assert list(out) == ["a", "x"]
 
 
 def test_ms_samples_table_columns():

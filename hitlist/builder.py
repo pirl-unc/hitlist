@@ -254,6 +254,8 @@ _CATEGORICAL_BUILD_COLUMNS: tuple[str, ...] = (
     "disease_stage",
     "source_tissue",
     "cell_name",
+    "cell_line_name",
+    "cell_type",
     "culture_condition",
     "assay_method",
     "response_measured",
