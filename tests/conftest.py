@@ -25,7 +25,7 @@ from __future__ import annotations
 
 import pytest
 
-from tests.xdist_cache import load_or_build_pickled
+from tests.xdist_cache import load_or_build_mmapped_arrow
 
 
 def _build_full_observations_df():
@@ -42,8 +42,10 @@ def full_observations_df(tmp_path_factory, worker_id):
     rather than calling ``generate_observations_table()`` again.
 
     Under pytest-xdist this fixture is shared across workers via an
-    on-disk pickle (see module docstring) — one worker pays the build
-    cost, the rest read the cache.
+    on-disk Arrow IPC file read with ``memory_map`` (see module
+    docstring) — one worker pays the build cost, the rest mmap the
+    cache so numeric / categorical columns share one copy across all
+    workers instead of N private heap copies (#262).
     """
     from hitlist.observations import is_built
 
@@ -66,11 +68,11 @@ def full_observations_df(tmp_path_factory, worker_id):
         # poison the current run.
         return _build_full_observations_df()
 
-    # xdist: share the build across workers via on-disk pickle.  The
-    # session-shared root is per-invocation (see comment above), so
+    # xdist: share the build across workers via an mmap'd Arrow IPC file.
+    # The session-shared root is per-invocation (see comment above), so
     # there's no stale-cache concern from previous runs.
-    cache_path = tmp_path_factory.getbasetemp().parent / "full_observations_df.pkl"
-    return load_or_build_pickled(cache_path, _build_full_observations_df)
+    cache_path = tmp_path_factory.getbasetemp().parent / "full_observations_df.arrow"
+    return load_or_build_mmapped_arrow(cache_path, _build_full_observations_df)
 
 
 def pytest_collection_modifyitems(config, items):
