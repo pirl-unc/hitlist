@@ -44,6 +44,53 @@ _ACQUISITION_FIELDS = (
     "fdr",
 )
 
+# Low-cardinality metadata columns that ``generate_observations_table``
+# brings in via the ``ms_samples`` join / PMID dict-lookups (so they arrive
+# as plain object/string dtype, not via the dictionary-encoded parquet read
+# path).  On a ~4.4M-row table each costs hundreds of MB of per-worker
+# Python ``str`` overhead; as Categoricals they shrink ~30x and round-trip
+# through Arrow IPC as dictionary-encoded columns that pytest-xdist workers
+# can mmap-share zero-copy (companion to #262).  See #263.
+#
+# Names are the *pre-rename* obs column names ("mhc", not "sample_mhc") —
+# the conversion runs before the mhc→sample_mhc rename, which preserves the
+# categorical dtype.  Genuinely high-cardinality columns (peptide,
+# peptide_extended, *_iri, free-text comments) and semicolon-joined
+# multi-value columns (serotypes, mhc_allele_set, host_mhc_types,
+# apm_genes_perturbed) are intentionally excluded — mirrors
+# ``builder._CATEGORICAL_BUILD_COLUMNS``.  Audited cardinalities are all
+# < 0.03% of rows; the biggest memory wins are mhc (479 MB),
+# mhc_class_label_severity (227 MB) and mhc_restriction (224 MB).
+_CATEGORICAL_EXPORT_METADATA_COLS: tuple[str, ...] = (
+    # ms_samples join metadata
+    "mhc",  # → sample_mhc after rename
+    "instrument",
+    "instrument_type",
+    "acquisition_mode",
+    "fragmentation",
+    "labeling",
+    "ip_antibody",
+    # NB: ``sample_label`` is deliberately NOT categoricalized — it's a
+    # sample-identity column that consumers compare element-wise against
+    # ``cell_name`` (itself already categorical), and two categoricals with
+    # different category sets cannot be compared.  Keeping it string-typed
+    # preserves categorical-vs-string value comparison.
+    "sample_match_type",
+    "perturbation",
+    "condition_category",
+    # PMID-level / derived low-cardinality metadata
+    "quantification_method",
+    "mhc_class_label_severity",
+    "monoallelic_host",
+    "attributed_sample_label",
+    "submission_id",
+    "supplementary_file",
+    # parquet columns that *should* be categorical but arrive as string on
+    # this load path
+    "mhc_restriction",
+    "cell_line_name",
+)
+
 # Map specific instrument models → category.  Keys are matched as
 # case-insensitive substrings against the ``instrument`` field.
 _INSTRUMENT_TYPE_MAP = [
@@ -111,6 +158,19 @@ _TRAINING_DEFAULTS = {
     "is_engineered_mhc": False,
     "is_non_peptide_ligand": False,
 }
+
+
+def _fillna_scalar_safe(series: pd.Series, value) -> pd.Series:
+    """``series.fillna(value)`` that tolerates Categorical dtype.
+
+    Filling a Categorical with a value not already in its category set
+    raises ``TypeError``; widening the categories first keeps the fill
+    working without dropping the memory-saving categorical encoding (#263).
+    No-op widening for non-categorical columns.
+    """
+    if isinstance(series.dtype, pd.CategoricalDtype) and value not in series.cat.categories:
+        series = series.cat.add_categories([value])
+    return series.fillna(value)
 
 
 def _fillna_safe_for_categoricals(df: pd.DataFrame, value: str = "") -> pd.DataFrame:
@@ -1030,6 +1090,23 @@ def generate_observations_table(
     obs.drop(columns=[*fb_cols, "_pmid_int"], inplace=True)
     result = obs
 
+    # --- Tighten dtypes: low-cardinality metadata → categorical (#263) ---
+    # Done on ``obs`` (the owned frame, pre-rename) so the assignment never
+    # hits a SettingWithCopy slice.  ``""`` is pre-added to the category set
+    # so the export pipeline's ``fillna("")`` idioms don't raise the
+    # out-of-category ``TypeError`` (same pattern as builder._compress_categoricals).
+    for col in _CATEGORICAL_EXPORT_METADATA_COLS:
+        if col not in obs.columns:
+            continue
+        if isinstance(obs[col].dtype, pd.CategoricalDtype):
+            continue
+        if not pd.api.types.is_string_dtype(obs[col]):
+            continue
+        cat = obs[col].astype("category")
+        if "" not in cat.cat.categories:
+            cat = cat.cat.add_categories([""])
+        obs[col] = cat
+
     # --- Post-join filters ---
     if instrument_type and "instrument_type" in result.columns:
         result = result[result["instrument_type"] == instrument_type]
@@ -1626,7 +1703,10 @@ def _apply_training_defaults(df: pd.DataFrame) -> pd.DataFrame:
             result[col] = default
             continue
         if isinstance(default, str):
-            result[col] = result[col].fillna(default)
+            # Categorical-safe: #263 makes several of these columns
+            # category dtype, and a sentinel default like "not_applicable"
+            # is an out-of-category value.
+            result[col] = _fillna_scalar_safe(result[col], default)
         elif isinstance(default, bool):
             result[col] = result[col].astype("boolean").fillna(default).astype(bool)
         else:

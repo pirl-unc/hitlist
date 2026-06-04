@@ -331,6 +331,8 @@ def _full_obs_fixture(n_rows: int = 50) -> pd.DataFrame:
             "disease_stage": [""] * n_rows,
             "source_tissue": ["PBMC"] * n_rows,
             "cell_name": ["Line-1"] * n_rows,
+            "cell_line_name": ["Line-1"] * n_rows,
+            "cell_type": ["B cell"] * n_rows,
             "culture_condition": ["unperturbed"] * n_rows,
             "assay_method": ["mass spectrometry"] * n_rows,
             "response_measured": [""] * n_rows,
