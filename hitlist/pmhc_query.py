@@ -391,7 +391,7 @@ def query(
     #   n_samples           = n_cell_lines + n_donor_cell_types
     #
     # We carry three internal semicolon-joined ID columns through the
-    # groupby so _consolidate_after_narrowing can union them; the final
+    # groupby so _collapse_rows_sharing_narrowed_allele can union them; the final
     # counts are derived from them after consolidation.
     def _str_col(name: str) -> pd.Series:
         if name in df.columns:
@@ -454,11 +454,11 @@ def query(
         .rename(columns={"mhc_restriction": "mhc_allele"})
     )
 
-    # 5. Optional binding-affinity prediction.  _consolidate_after_narrowing
-    #    (inside _attach_predictions) preserves mhc_species AND the
+    # 5. Optional binding-affinity prediction.  _collapse_rows_sharing_narrowed_allele
+    #    (inside _score_and_narrow_to_best_allele) preserves mhc_species AND the
     #    three internal ID columns via its group_cols / agg_spec.
     if predictor is not None:
-        grouped = _attach_predictions(grouped, predictor)
+        grouped = _score_and_narrow_to_best_allele(grouped, predictor)
 
     # 5b. Derive the user-facing count columns from the joined-ID columns,
     #     then drop the internals.
@@ -582,7 +582,7 @@ def query_by_samples(
     return pd.concat(pieces, ignore_index=True)
 
 
-def _attach_predictions(df: pd.DataFrame, predictor: str) -> pd.DataFrame:
+def _score_and_narrow_to_best_allele(df: pd.DataFrame, predictor: str) -> pd.DataFrame:
     """Score each row's (peptide, allele-set) and narrow multi-allele rows
     to the single best-binding allele within their candidate set (#239).
 
@@ -693,10 +693,10 @@ def _attach_predictions(df: pd.DataFrame, predictor: str) -> pd.DataFrame:
     # mhc_allele.  Re-aggregate so the user sees one consolidated row
     # per (gene, narrowed allele, peptide, class) instead of N redundant
     # per-donor rows that all point at the same allele.
-    return _consolidate_after_narrowing(df)
+    return _collapse_rows_sharing_narrowed_allele(df)
 
 
-def _consolidate_after_narrowing(df: pd.DataFrame) -> pd.DataFrame:
+def _collapse_rows_sharing_narrowed_allele(df: pd.DataFrame) -> pd.DataFrame:
     """Sum ``n_observations`` and union ``pmids`` for rows that share
     ``(gene_name, gene_id, mhc_allele, peptide, mhc_class)`` post-#239
     narrowing.  Score columns are taken from the first row (all rows in
