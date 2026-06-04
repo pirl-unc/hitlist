@@ -1,6 +1,7 @@
 import pandas as pd
 import pytest
 
+from hitlist import bulk_proteomics as _bp
 from hitlist.bulk_proteomics import (
     available_cell_lines,
     available_peptide_cell_lines,
@@ -10,6 +11,25 @@ from hitlist.bulk_proteomics import (
     load_bulk_proteomics,
     load_bulk_sources,
 )
+
+
+def test_read_parquet_cached_memoizes_and_invalidates_on_rebuild(tmp_path):
+    """The parquet read is memoized by (path, mtime, size) so repeated loads
+    are free, but a rebuild (new signature) returns a fresh frame."""
+    p = tmp_path / "x.parquet"
+    pd.DataFrame({"a": [1, 2]}).to_parquet(p)
+    st = p.stat()
+    first = _bp._read_parquet_cached(str(p), st.st_mtime_ns, st.st_size)
+    again = _bp._read_parquet_cached(str(p), st.st_mtime_ns, st.st_size)
+    assert again is first  # same signature → cached identity, no re-read
+
+    # Rebuild with different content/size → new signature → fresh frame.
+    pd.DataFrame({"a": [1, 2, 3, 4, 5]}).to_parquet(p)
+    st2 = p.stat()
+    rebuilt = _bp._read_parquet_cached(str(p), st2.st_mtime_ns, st2.st_size)
+    assert rebuilt is not first
+    assert len(rebuilt) == 5
+
 
 # Harmonized acquisition metadata columns — same names appear in the
 # ms_samples schema emitted by hitlist.export for observations.parquet,
