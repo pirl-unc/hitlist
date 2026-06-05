@@ -77,6 +77,203 @@ def _unpack(packed: int) -> tuple[int, int]:
     return (packed >> _PROT_BITS, packed & _POS_MASK)
 
 
+# ── Int-encoded columnar k-mer index (#250 / #248 / #176) ────────────────────
+#
+# Replaces the ``dict[str, int | np.ndarray]`` k-mer index.  Each k-mer is
+# packed into a single uint64 *code* (``bits`` per residue), so the index can
+# be stored as code-sorted numpy arrays per length and queried with
+# ``np.searchsorted`` — no Python str dict to build on warm load (#248) and no
+# 100M-iteration ``dict.get`` hot loop on cold build (#176/#250; build is
+# vectorized + one sort instead).
+#
+# ``bits`` is the residue budget; a k-mer of length k needs ``bits*k`` bits, so
+# this exact encoding only applies while ``bits*max(lengths) <= 63``.  For the
+# shipped config (alphabet ≤ 32 residues → 5 bits, lengths 8..11 → ≤ 55 bits)
+# it always does; anything outside that budget falls back to the legacy dict.
+_KMER_CODE_BITS = 63
+
+
+@dataclass
+class _PackedIndex:
+    """Per-length columnar k-mer index (code-sorted uint64 arrays).
+
+    For each indexed length ``k``:
+      ``codes[k]``   uint64[n]   unique k-mer codes, ascending
+      ``offsets[k]`` int64[n+1]  postings slice bounds
+      ``values[k]``  int64[m]    packed ``(prot_idx<<32)|pos``, grouped by code
+
+    ``alphabet`` maps residue → small int (a residue's code is its index in the
+    string); ``bits`` per residue.  A k-mer's code is
+    ``Σ alphabet.index(c_i) << bits*(k-1-i)``.
+    """
+
+    codes: dict[int, np.ndarray] = field(repr=False)
+    offsets: dict[int, np.ndarray] = field(repr=False)
+    values: dict[int, np.ndarray] = field(repr=False)
+    alphabet: str
+    bits: int
+    lengths: tuple[int, ...]
+
+    @staticmethod
+    def encodable(alphabet_size: int, lengths: tuple[int, ...]) -> tuple[bool, int]:
+        """``(can_encode, bits)`` for an alphabet size + lengths under the budget."""
+        if alphabet_size <= 0 or not lengths:
+            return False, 0
+        bits = max(1, (alphabet_size - 1).bit_length())
+        return bits * max(lengths) <= _KMER_CODE_BITS, bits
+
+    @classmethod
+    def build(
+        cls,
+        proteins: dict[str, str],
+        prot_to_idx: dict[str, int],
+        lengths: tuple[int, ...],
+    ) -> _PackedIndex | None:
+        """Vectorized columnar build, or ``None`` if the data can't be encoded.
+
+        Returns ``None`` (→ caller uses the legacy dict build) when the
+        alphabet x max-length exceeds the uint64 budget, or a sequence
+        contains a non-ASCII residue.  For real proteomes (≤32 residues,
+        k ≤ 11) the fast path always applies.
+        """
+        alpha = set()
+        for seq in proteins.values():
+            alpha.update(seq)
+        alphabet = "".join(sorted(alpha))
+        ok, bits = cls.encodable(len(alphabet), lengths)
+        if not alphabet or not ok:
+            return None
+
+        # 256-entry residue LUT; 255 marks out-of-alphabet (alphabet ≤ 32, so
+        # 255 is never a valid code).
+        lut = np.full(256, 255, dtype=np.uint64)
+        for code, ch in enumerate(alphabet):
+            o = ord(ch)
+            if o > 255:
+                return None  # non-ASCII residue → legacy path
+            lut[o] = code
+
+        bits_u = np.uint64(bits)
+        prot_shift = np.uint64(_PROT_BITS)
+        code_chunks: dict[int, list[np.ndarray]] = {k: [] for k in lengths}
+        val_chunks: dict[int, list[np.ndarray]] = {k: [] for k in lengths}
+
+        for prot_id, seq in proteins.items():
+            b = np.frombuffer(seq.encode("ascii", "replace"), dtype=np.uint8)
+            c = lut[b]  # per-residue codes (uint64); out-of-alphabet → 255
+            if (c == 255).any():
+                return None  # unexpected residue → legacy path
+            length = c.size
+            pidx = np.uint64(prot_to_idx[prot_id])
+            for k in lengths:
+                if length < k:
+                    continue
+                m = length - k + 1
+                # Rolling pack: k vectorized shifts over the window array.
+                kc = np.zeros(m, dtype=np.uint64)
+                for j in range(k):
+                    kc = (kc << bits_u) | c[j : j + m]
+                packed = (pidx << prot_shift) | np.arange(m, dtype=np.uint64)
+                code_chunks[k].append(kc)
+                val_chunks[k].append(packed.astype(np.int64))
+
+        codes: dict[int, np.ndarray] = {}
+        offsets: dict[int, np.ndarray] = {}
+        values: dict[int, np.ndarray] = {}
+        for k in lengths:
+            if not code_chunks[k]:
+                codes[k] = np.empty(0, dtype=np.uint64)
+                offsets[k] = np.zeros(1, dtype=np.int64)
+                values[k] = np.empty(0, dtype=np.int64)
+                continue
+            all_c = np.concatenate(code_chunks[k])
+            all_v = np.concatenate(val_chunks[k])
+            order = np.argsort(all_c, kind="stable")
+            all_c = all_c[order]
+            all_v = all_v[order]
+            # ``all_c`` is now sorted; find group boundaries directly instead
+            # of ``np.unique(return_counts=True)``, which would redundantly
+            # re-sort (~30% of the grouping cost — #250).  Group i occupies
+            # ``all_v[start[i]:start[i+1]]``.
+            boundary = np.ones(all_c.size, dtype=bool)
+            np.not_equal(all_c[1:], all_c[:-1], out=boundary[1:])
+            start = np.flatnonzero(boundary)
+            off = np.empty(start.size + 1, dtype=np.int64)
+            off[:-1] = start
+            off[-1] = all_c.size
+            codes[k] = all_c[start]
+            offsets[k] = off
+            values[k] = all_v
+
+        return cls(
+            codes=codes,
+            offsets=offsets,
+            values=values,
+            alphabet=alphabet,
+            bits=bits,
+            lengths=tuple(lengths),
+        )
+
+    @cached_property
+    def _char_to_code(self) -> dict[str, int]:
+        return {ch: i for i, ch in enumerate(self.alphabet)}
+
+    def encode(self, kmer: str) -> int | None:
+        """Pack a k-mer into its uint64 code, or ``None`` if any residue is
+        outside the index's alphabet (→ guaranteed absent)."""
+        lut = self._char_to_code
+        bits = self.bits
+        code = 0
+        for ch in kmer:
+            c = lut.get(ch)
+            if c is None:
+                return None
+            code = (code << bits) | c
+        return code
+
+    def get_postings(self, peptide: str) -> np.ndarray | None:
+        """Packed-int64 postings for ``peptide`` (code-matched), or ``None``."""
+        codes = self.codes.get(len(peptide))
+        if codes is None or codes.size == 0:
+            return None
+        code = self.encode(peptide)
+        if code is None:
+            return None
+        code = np.uint64(code)
+        i = int(np.searchsorted(codes, code))
+        if i >= codes.size or codes[i] != code:
+            return None
+        off = self.offsets[len(peptide)]
+        return self.values[len(peptide)][off[i] : off[i + 1]]
+
+    def iter_kmers(self):
+        """Yield every indexed k-mer string (decode each code). Rare/cold path."""
+        alphabet = self.alphabet
+        bits = self.bits
+        mask = (1 << bits) - 1
+        for k in self.lengths:
+            codes = self.codes.get(k)
+            if codes is None:
+                continue
+            for code in codes.tolist():
+                chars = []
+                for _ in range(k):
+                    chars.append(alphabet[code & mask])
+                    code >>= bits
+                yield "".join(reversed(chars))
+
+    @property
+    def n_kmers(self) -> int:
+        return sum(int(c.size) for c in self.codes.values())
+
+    def __len__(self) -> int:
+        """Number of unique k-mers — matches ``len()`` of the legacy dict."""
+        return self.n_kmers
+
+    def __contains__(self, kmer: str) -> bool:
+        return self.get_postings(kmer) is not None
+
+
 # Bounded LRU cache for ``from_fasta``.  Keyed on the resolved absolute
 # path plus (size, mtime) of the file, plus the index-configuration inputs
 # (``lengths``, ``gene_name``, ``gene_id``).  Size + mtime invalidate the
@@ -485,19 +682,20 @@ class ProteomeIndex:
         Mapping from protein_id to amino acid sequence.
     protein_meta : dict[str, dict]
         Mapping from protein_id to metadata (gene_name, gene_id).
-    index : dict[str, int | np.ndarray]
-        Inverted index: peptide -> packed postings. For single-hit k-mers
-        the value is an ``int`` packing ``(prot_idx << 32) | pos``; for
-        multi-hit k-mers the value is a ``numpy.ndarray`` of int64 packed
-        values. Use :meth:`lookup` or :meth:`map_peptides` — do not
-        decode ``self.index`` directly in callers.
+    index : _PackedIndex | dict[str, int | np.ndarray]
+        Inverted index: peptide -> packed postings. Normally a
+        :class:`_PackedIndex` (int-encoded columnar arrays, #250); a legacy
+        ``dict[str, int | np.ndarray]`` only for inputs the encoding can't
+        represent. Either way, packed postings encode ``(prot_idx<<32)|pos``.
+        Use :meth:`lookup` or :meth:`map_peptides` — do not decode
+        ``self.index`` directly in callers.
     lengths : tuple[int, ...]
         Peptide lengths that were indexed.
     """
 
     proteins: dict[str, str] = field(repr=False)
     protein_meta: dict[str, dict] = field(repr=False)
-    index: dict[str, int | np.ndarray] = field(repr=False)
+    index: _PackedIndex | dict[str, int | np.ndarray] = field(repr=False)
     lengths: tuple[int, ...]
     # Internal reverse lookup: int prot_idx → protein_id string.
     # Populated in _build; kept in insertion order matching ``proteins``.
@@ -729,21 +927,48 @@ class ProteomeIndex:
         lengths: tuple[int, ...],
         verbose: bool,
     ) -> ProteomeIndex:
-        """Build the compact packed-int64 k-mer index.
+        """Build the k-mer index.
 
-        Two-phase build:
-          1. Collect raw postings in ``dict[str, list[int64]]``.
-          2. Compact to ``dict[str, int | np.ndarray]`` — scalar for
-             singletons (most k-mers), np.ndarray for multis.
-
-        The compact step cuts the index footprint from ~195 bytes/k-mer
-        (str key + list-of-tuple value) to ~80 bytes/k-mer for
-        singletons (str key + scalar int value). On human (41.7M
-        k-mers) this drops the index from ~8.2 GB to ~3 GB.
+        Fast path (#250): vectorized int-encoded columnar build via
+        :meth:`_PackedIndex.build` — k-mers pack into uint64 codes, so the
+        inner work is numpy shifts + one sort per length instead of ~100M
+        Python ``dict.get`` ops.  Falls back to the legacy string-dict build
+        when the data can't be encoded (alphabet x length over budget, or a
+        non-standard residue).
         """
         protein_ids: list[str] = list(proteins.keys())
         prot_to_idx: dict[str, int] = {pid: i for i, pid in enumerate(protein_ids)}
 
+        packed = _PackedIndex.build(proteins, prot_to_idx, lengths)
+        if packed is not None:
+            if verbose:
+                n_single = sum(int((np.diff(packed.offsets[k]) == 1).sum()) for k in packed.lengths)
+                print(
+                    f"ProteomeIndex: {len(proteins):,} proteins, "
+                    f"{packed.n_kmers:,} unique k-mers ({'/'.join(str(k) for k in lengths)}-mers, "
+                    f"{n_single:,} single-hit / {packed.n_kmers - n_single:,} multi-hit)"
+                )
+            return cls(
+                proteins=proteins,
+                protein_meta=meta,
+                index=packed,
+                lengths=tuple(lengths),
+                _protein_ids=protein_ids,
+            )
+        return cls._build_legacy(proteins, meta, lengths, verbose, protein_ids, prot_to_idx)
+
+    @classmethod
+    def _build_legacy(
+        cls,
+        proteins: dict[str, str],
+        meta: dict[str, dict],
+        lengths: tuple[int, ...],
+        verbose: bool,
+        protein_ids: list[str],
+        prot_to_idx: dict[str, int],
+    ) -> ProteomeIndex:
+        """Legacy string-keyed dict build — correctness fallback for inputs
+        the int encoding can't represent (see :meth:`_PackedIndex.build`)."""
         # Phase 1: collect raw packed postings per k-mer.
         #
         # Hot loop: cProfile (#176) showed 1.13B ``_pack`` calls dominating
@@ -870,6 +1095,8 @@ class ProteomeIndex:
         module-level :func:`proteome_kmer_set` if the caller doesn't need
         the full :class:`ProteomeIndex` object.
         """
+        if isinstance(self.index, _PackedIndex):
+            return frozenset(self.index.iter_kmers())
         return frozenset(self.index.keys())
 
     def kmers_for_genes(self, gene_ids: frozenset[str]) -> frozenset[str]:
@@ -910,7 +1137,10 @@ class ProteomeIndex:
 
         Returns list of (protein_id, position) tuples.
         """
-        v = self.index.get(peptide)
+        if isinstance(self.index, _PackedIndex):
+            v = self.index.get_postings(peptide)
+        else:
+            v = self.index.get(peptide)
         if v is None:
             return []
         if isinstance(v, (int, np.integer)):
