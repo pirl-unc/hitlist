@@ -129,3 +129,58 @@ def test_build_observations_from_packaged_data(tmp_path, monkeypatch):
     # #263: low-cardinality columns are categorical on the built parquet.
     assert isinstance(df["mhc_restriction"].dtype, pd.CategoricalDtype)
     assert isinstance(df["cell_type"].dtype, pd.CategoricalDtype)
+
+
+# Two tiny proteins for a UniProt-registry species (Sarcophilus harrisii →
+# UP000007648). The test peptides below are substrings of these.
+_FASTA_PROT1 = "MKTAYIAKQRSLYNTVATLPEPTIDEGILGFVFTLKQWERTY"
+_FASTA_PROT2 = "ACDEFGHIKLMNPQRSTVWYSLLQHLIGLAAAAA"
+
+
+@pytest.mark.integration
+def test_build_peptide_mappings_offline(tmp_path, monkeypatch):
+    """The proteome-dependent ``peptide_mappings`` build runs offline in CI.
+
+    Normally the mapping pass fetches a reference proteome per species
+    (pyensembl GTF or a UniProt FASTA download). ``fetch_species_proteome``
+    uses an already-cached FASTA if one is on disk, so pre-placing a tiny
+    synthetic FASTA at a UniProt-registry species' cache path lets the full
+    pipeline — proteome resolution → ``from_fasta`` → the int-encoded
+    ``ProteomeIndex`` (#250/#273) → ``map_peptides`` — run with no network.
+    ``HITLIST_BUILD_WORKERS=1`` forces the sequential path (no
+    ProcessPoolExecutor in the test).
+    """
+    from hitlist.mappings import build_peptide_mappings
+
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
+    monkeypatch.setenv("HITLIST_BUILD_WORKERS", "1")
+
+    # Pre-place the FASTA where fetch_species_proteome("Sarcophilus harrisii")
+    # looks for it → no download.
+    proteomes_dir = tmp_path / "proteomes"
+    proteomes_dir.mkdir(parents=True, exist_ok=True)
+    (proteomes_dir / "sarcophilus_harrisii.fasta").write_text(
+        f">sp|T1|prot1\n{_FASTA_PROT1}\n>sp|T2|prot2\n{_FASTA_PROT2}\n"
+    )
+
+    obs = pd.DataFrame(
+        {
+            "peptide": ["SLYNTVATL", "GILGFVFTL", "SLLQHLIGL", "NOTINPROT"],
+            "source_organism": ["Sarcophilus harrisii"] * 4,
+            "mhc_species": ["Sarcophilus harrisii"] * 4,
+            "pmid": [1, 1, 2, 2],
+        }
+    )
+
+    out = build_peptide_mappings(obs_override=obs, fetch_missing=False, verbose=False, force=True)
+
+    m = pd.read_parquet(out)
+    # Only the three peptides present in the FASTA map; NOTINPROT is dropped.
+    assert set(m["peptide"]) == {"SLYNTVATL", "GILGFVFTL", "SLLQHLIGL"}
+    assert {"protein_id", "position", "n_flank", "c_flank", "gene_name"}.issubset(m.columns)
+
+    # Positions are correct against the source protein (validates the
+    # int-encoded index end-to-end, not just presence).
+    row = m[m["peptide"] == "SLYNTVATL"].iloc[0]
+    pos = int(row["position"])
+    assert _FASTA_PROT1[pos : pos + len("SLYNTVATL")] == "SLYNTVATL"
