@@ -32,6 +32,8 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    # Fail fast on a hang/OOM instead of burning the default 360-minute budget.
+    timeout-minutes: 25
     strategy:
       fail-fast: true
       matrix:
@@ -104,7 +106,15 @@ jobs:
       - name: Run unit tests (with coverage)
         if: matrix.python-version == '3.11'
         run: |
-          pytest tests/ -n auto --cov=hitlist --cov-report=xml
+          # Two passes so the memory-heavy integration tests don't OOM the
+          # 16 GB runner: each loads the full ~4.4M-row observations table, and
+          # the Arrow xdist fixture only shares numeric/categorical columns
+          # zero-copy — string columns still materialize per worker, so 4
+          # workers blow past RAM. Run non-integration with full parallelism,
+          # then integration capped at 2 workers (still exercises the
+          # cross-worker mmap fixture). Coverage accumulates via --cov-append.
+          pytest tests/ -m "not integration" -n auto --cov=hitlist
+          pytest tests/ -m integration -n 2 --cov=hitlist --cov-append --cov-report=xml
 
       - name: Run unit tests (no coverage)
         if: matrix.python-version != '3.11'
