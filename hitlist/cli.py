@@ -1411,6 +1411,17 @@ def main() -> None:
         ),
     )
     p_pmhc.add_argument(
+        "--cell-type",
+        action="append",
+        metavar="TYPE",
+        help=(
+            "Keep only observations from this cell type (the tissue/cell-type "
+            'half of IEDB\'s Cell Name, e.g. "Melanocyte", "B cell"). '
+            "Case-insensitive; repeat the flag to allow several types. "
+            "Requires a corpus built with hitlist >= 1.30.57."
+        ),
+    )
+    p_pmhc.add_argument(
         "--format",
         choices=["table", "csv", "json"],
         default="table",
@@ -1667,6 +1678,7 @@ def _pmhc(args: argparse.Namespace) -> None:
     min_binder_class = getattr(args, "min_binder_class", None)
     min_references = getattr(args, "min_references", 1)
     min_samples = getattr(args, "min_samples", 1)
+    cell_type = getattr(args, "cell_type", None)
     fmt = getattr(args, "format", "table")
     output = getattr(args, "output", None)
 
@@ -1691,6 +1703,7 @@ def _pmhc(args: argparse.Namespace) -> None:
                 min_binder_class=min_binder_class,
                 min_references=min_references,
                 min_samples=min_samples,
+                cell_type=cell_type,
                 verbose=True,
             )
         else:
@@ -1701,6 +1714,7 @@ def _pmhc(args: argparse.Namespace) -> None:
                 min_binder_class=min_binder_class,
                 min_references=min_references,
                 min_samples=min_samples,
+                cell_type=cell_type,
                 verbose=True,
             )
     except (FileNotFoundError, RuntimeError, ValueError) as e:

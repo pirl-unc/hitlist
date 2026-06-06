@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import pandas as pd
+import pytest
 
 
 def _write_obs_fixture(tmp_path):
@@ -1517,3 +1518,87 @@ def test_query_min_binder_class_filters_predictor_path(tmp_path, monkeypatch):
     )
     assert len(df_strong) < len(df_all)
     assert set(df_strong["binder_class"]) == {"strong"}
+
+
+# ── #261 stage 3: --cell-type filter ────────────────────────────────────────
+
+
+def _write_obs_fixture_with_cell_type(tmp_path):
+    """Obs + mappings fixture carrying a ``cell_type`` column (two NRAS
+    peptides from Melanocyte samples, one from a B cell sample)."""
+    obs = pd.DataFrame(
+        {
+            "peptide": ["KLVVVGAGGV", "ILDTAGREEY", "ALAVLGFFV"],
+            "pmid": [9263005, 33858848, 38480730],
+            "mhc_class": ["I"] * 3,
+            "mhc_restriction": ["HLA-A*02:01"] * 3,
+            "species": ["Homo sapiens"] * 3,
+            "mhc_species": ["Homo sapiens"] * 3,
+            "attributed_sample_label": ["s1", "s2", "s3"],
+            "cell_name": ["MEL-1-Melanocyte", "MEL-2-Melanocyte", "JY-B cell"],
+            "cell_line_name": ["MEL-1", "MEL-2", "JY"],
+            "cell_type": ["Melanocyte", "Melanocyte", "B cell"],
+            "monoallelic_host": [""] * 3,
+            "src_cell_line": [True] * 3,
+            "source": ["iedb"] * 3,
+        }
+    )
+    obs_path = tmp_path / "observations.parquet"
+    obs.to_parquet(obs_path, index=False)
+
+    mappings = pd.DataFrame(
+        {
+            "peptide": ["KLVVVGAGGV", "ILDTAGREEY", "ALAVLGFFV"],
+            "gene_name": ["NRAS"] * 3,
+            "gene_id": ["ENSG00000213281"] * 3,
+            "protein_id": ["ENSP00000358548"] * 3,
+        }
+    )
+    mappings_path = tmp_path / "peptide_mappings.parquet"
+    mappings.to_parquet(mappings_path, index=False)
+    return obs_path, mappings_path
+
+
+def test_pmhc_query_cell_type_filter(tmp_path, monkeypatch):
+    from hitlist import pmhc_query
+
+    obs_path, mappings_path = _write_obs_fixture_with_cell_type(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
+
+    mel = pmhc_query.query(proteins=["NRAS"], cell_type="Melanocyte", use_hgnc=False)
+    assert set(mel["peptide"]) == {"KLVVVGAGGV", "ILDTAGREEY"}
+
+    bcell = pmhc_query.query(proteins=["NRAS"], cell_type="B cell", use_hgnc=False)
+    assert set(bcell["peptide"]) == {"ALAVLGFFV"}
+
+
+def test_pmhc_query_cell_type_filter_is_case_insensitive(tmp_path, monkeypatch):
+    from hitlist import pmhc_query
+
+    obs_path, mappings_path = _write_obs_fixture_with_cell_type(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
+
+    out = pmhc_query.query(proteins=["NRAS"], cell_type="  melanocyte ", use_hgnc=False)
+    assert set(out["peptide"]) == {"KLVVVGAGGV", "ILDTAGREEY"}
+
+
+def test_pmhc_query_cell_type_filter_accepts_list(tmp_path, monkeypatch):
+    from hitlist import pmhc_query
+
+    obs_path, mappings_path = _write_obs_fixture_with_cell_type(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
+
+    out = pmhc_query.query(proteins=["NRAS"], cell_type=["Melanocyte", "B cell"], use_hgnc=False)
+    assert set(out["peptide"]) == {"KLVVVGAGGV", "ILDTAGREEY", "ALAVLGFFV"}
+
+
+def test_pmhc_query_cell_type_filter_requires_column(tmp_path, monkeypatch):
+    """A parquet built before v1.30.57 has no cell_type column → clear error."""
+    from hitlist import pmhc_query
+
+    # The shared fixture deliberately omits cell_type.
+    obs_path, mappings_path = _write_obs_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
+
+    with pytest.raises(ValueError, match="cell_type"):
+        pmhc_query.query(proteins=["NRAS"], cell_type="Melanocyte", use_hgnc=False)

@@ -54,6 +54,7 @@ def query(
     min_binder_class: str | None = None,
     min_references: int = 1,
     min_samples: int = 1,
+    cell_type: str | list[str] | None = None,
     use_hgnc: bool = True,
     verbose: bool = False,
 ) -> pd.DataFrame:
@@ -92,6 +93,13 @@ def query(
         single PMID often contributes many samples (cohort papers,
         mono-allelic cell-line panels), so ``min_samples`` is usually
         a stronger evidence signal than ``min_references``.
+    cell_type
+        Keep only observations whose build-time ``cell_type`` (the tissue /
+        cell-type half of IEDB's Cell Name, e.g. ``"Melanocyte"``,
+        ``"B cell"``; see #261) matches.  A single string or a list;
+        matching is case-insensitive.  ``None`` (default) applies no
+        filter.  Requires an ``observations.parquet`` built with hitlist
+        ≥ 1.30.57 (raises a clear error otherwise).
     use_hgnc
         Pass through to ``resolve_gene_query`` — set False to disable
         the HGNC alias REST lookup (offline use).
@@ -197,6 +205,7 @@ def query(
             "attributed_sample_label",
             "cell_name",
             "cell_line_name",
+            "cell_type",
             "src_cell_line",
             "monoallelic_host",
             "gene_names",
@@ -260,6 +269,26 @@ def query(
     _progress(f"loaded {len(df):,} rows in {time.perf_counter() - t_start:.1f}s", verbose)
     if df.empty:
         return _empty_result(predictor is not None)
+
+    # 2b. Cell-type filter (#261 stage 3).  ``cell_type`` is build-time-
+    #     derived (the ``<line>-<type>`` Cell Name split); parquets built
+    #     before v1.30.57 don't carry it, so fail loudly rather than
+    #     silently returning everything.  Row-level filter applied before
+    #     the gene explode so it's cheap.
+    if cell_type is not None:
+        if "cell_type" not in df.columns:
+            raise ValueError(
+                "--cell-type filtering requires an observations.parquet built with "
+                "hitlist >= 1.30.57 (the build that adds the cell_type column). "
+                "Rebuild with `hitlist build`."
+            )
+        wanted = [cell_type] if isinstance(cell_type, str) else list(cell_type)
+        wanted_lower = {w.strip().lower() for w in wanted if w and w.strip()}
+        ct = df["cell_type"].astype(str).str.strip().str.lower()
+        df = df[ct.isin(wanted_lower)]
+        _progress(f"  {len(df):,} rows after cell_type filter", verbose)
+        if df.empty:
+            return _empty_result(predictor is not None)
 
     # 3. Normalize the auto-attached gene columns to strings (the merge
     #    in load_observations leaves them as object dtype).  The
@@ -506,6 +535,7 @@ def query_by_samples(
     min_binder_class: str | None = None,
     min_references: int = 1,
     min_samples: int = 1,
+    cell_type: str | list[str] | None = None,
     use_hgnc: bool = True,
     verbose: bool = False,
 ) -> pd.DataFrame:
@@ -564,6 +594,7 @@ def query_by_samples(
             min_binder_class=min_binder_class,
             min_references=min_references,
             min_samples=min_samples,
+            cell_type=cell_type,
             use_hgnc=use_hgnc,
             verbose=verbose,
         )

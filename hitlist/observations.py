@@ -551,7 +551,13 @@ def _load_peptide_index(
             for dep in _DERIVED_COLUMN_DEPS["is_non_peptide_ligand"]:
                 if dep not in kept:
                     kept.append(dep)
-        read_columns = kept
+        # Drop any requested column that isn't on this parquet (e.g.
+        # ``cell_type`` / ``sample_match_type`` on a pre-v1.30.57 build).
+        # Projecting a missing column into a *filtered* pyarrow scan raises
+        # "No match for FieldRef.Name(...)"; absent columns simply won't
+        # appear in the result, and callers that require one check
+        # ``df.columns`` themselves (mirrors the no-filter path above).
+        read_columns = [c for c in kept if c in parquet_columns]
 
     df = pd.read_parquet(path, columns=read_columns, filters=filters if filters else None)
 
