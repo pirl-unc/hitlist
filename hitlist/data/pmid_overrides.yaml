@@ -6327,3 +6327,37 @@
         condition: unperturbed
         mhc_class: "I"
         mhc: "HLA-A*02:01 HLA-B*07:02 HLA-B*44:02 HLA-C*05:01 HLA-C*07:02"
+
+  # ── #33b / #35 batch 4 — cancer cell-line studies under perturbation ───────
+  - pmid: 34405274
+    study_label: "Miyata 2022 — UM-UC-3 bladder cancer (GRIK2) ligandome"
+    title: "GRIK2 is a target for bladder cancer stem-like cell-targeting immunotherapy"
+    override: cell_line
+    note: >
+      HLA-I ligandome of the UM-UC-3 bladder carcinoma cell line (and its
+      stem-like-cell subline).  IEDB records the serotype "HLA-A2"; UM-UC-3 is
+      HLA-A*02:01 (Cellosaurus CVCL_1783), the HLA-A2 the study is restricted
+      to.  IEDB cell_name "Epithelial cell".  #33b/#35.
+    ms_samples:
+      - sample_label: "UM-UC-3 (bladder carcinoma)"
+        n_samples: 1
+        source: "UM-UC-3 bladder carcinoma cell line"
+        condition: unperturbed
+        mhc_class: "I"
+        mhc: "HLA-A*02:01"
+  - pmid: 31020640
+    study_label: "Becerra-Artiles 2019 — HHV-6B HLA-DR3 peptidome (SUP-T1)"
+    title: "Naturally processed HLA-DR3-restricted HHV-6B peptides are recognized broadly with polyfunctional and cytotoxic CD4 T-cell responses"
+    override: cell_line
+    note: >
+      Class-II HLA-DR ligandome eluted from HHV-6B-infected SUP-T1 (a T-cell
+      lymphoblastic-lymphoma line), HLA-DR3-restricted.  DR typing from IEDB's
+      recorded mhc_restriction in our corpus.  IEDB cell_name "SUP-T1-
+      Lymphoblast".  #33b/#35.
+    ms_samples:
+      - sample_label: "SUP-T1 + HHV-6B (HLA-DR)"
+        n_samples: 1
+        source: "SUP-T1 T-lymphoblastic lymphoma line, HHV-6B infected"
+        condition: "HHV-6B infection"
+        mhc_class: "II"
+        mhc: "HLA-DRB1*03:01 HLA-DRB1*13:02 HLA-DRB3*01:01 HLA-DRB3*02:02"
