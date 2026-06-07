@@ -6361,3 +6361,58 @@
         condition: "HHV-6B infection"
         mhc_class: "II"
         mhc: "HLA-DRB1*03:01 HLA-DRB1*13:02 HLA-DRB3*01:01 HLA-DRB3*02:02"
+
+  # ── #33c / #36 batch 5 — single-allele medium studies (100-1000 peptides) ──
+  - pmid: 19748539
+    study_label: "Wahl 2010 — HeLa ± influenza A self-peptidome (HLA-A*02:01)"
+    title: "HLA class I molecules reflect an altered host proteome after influenza virus infection"
+    override: cell_line
+    note: >
+      HLA-A*02:01 self-peptidome from HeLa cells, naive vs influenza A
+      (PR8/7485/309) infected — altered presentation after infection.  HeLa is
+      a cervical-carcinoma line.  IEDB cell_name "HeLa cells-Epithelial cell".
+      #33c/#36.
+    ms_samples:
+      - sample_label: "HeLa naive (HLA-A*02:01)"
+        n_samples: 1
+        source: "HeLa cervical carcinoma cell line"
+        condition: unperturbed
+        mhc_class: "I"
+        mhc: "HLA-A*02:01"
+      - sample_label: "HeLa + influenza A (HLA-A*02:01)"
+        n_samples: 1
+        source: "HeLa cervical carcinoma cell line, influenza A infected"
+        condition: "influenza A infection"
+        mhc_class: "I"
+        mhc: "HLA-A*02:01"
+  - pmid: 35255101
+    study_label: "Habel 2022 — C1R HLA-A*11:01 influenza ligandome"
+    title: "HLA-A*11:01-restricted CD8+ T cell immunity against influenza A and influenza B viruses in Indigenous and non-Indigenous people"
+    override: cell_line
+    mono_allelic_host: 'C1R'
+    note: >
+      HLA-A*11:01-restricted influenza peptides from C1R transfectants
+      (C1R = EBV-LCL host → ebv_lcl via the host registry, see v1.31.3).
+      Mono-allelic.  IEDB cell_name "C1R cells-B cell".  #33c/#36.
+    ms_samples:
+      - sample_label: "C1R transfectant (HLA-A*11:01)"
+        n_samples: 1
+        condition: "unperturbed — mono-allelic transfectant"
+        mhc_class: "I"
+        mhc: "HLA-A*11:01"
+  - pmid: 17697703
+    study_label: "Yang 2007 — HLA-B*15:02 peptidome (carbamazepine/SJS)"
+    title: "HLA-B*1502-bound peptides: implications for the pathogenesis of carbamazepine-induced Stevens-Johnson syndrome"
+    override: cell_line
+    mono_allelic_host: 'C1R'
+    note: >
+      Mono-allelic HLA-B*15:02 peptidome (soluble HLA via the C1R host;
+      carbamazepine-induced Stevens-Johnson syndrome risk allele).  C1R is an
+      EBV-LCL host → ebv_lcl via the host registry (v1.31.3).  IEDB cell_name
+      "C1R cells-B cell".  #33c/#36.
+    ms_samples:
+      - sample_label: "C1R / soluble HLA-B*15:02"
+        n_samples: 1
+        condition: "unperturbed — mono-allelic"
+        mhc_class: "I"
+        mhc: "HLA-B*15:02"
