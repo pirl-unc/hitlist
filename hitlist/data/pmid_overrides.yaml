@@ -6488,3 +6488,55 @@
         condition: "Toxoplasma gondii infection"
         mhc_class: "I"
         mhc: "HLA-A*02:01"
+
+  # ── #33c / #36 batch 8 — named cell-line studies (line from IEDB cell_name) ─
+  - pmid: 30784271
+    study_label: "Demmers 2019 — JY HLA-I ligandome (pre-fractionation)"
+    title: "Pre-fractionation Extends but also Creates a Bias in the Detectable HLA Class I Ligandome"
+    override: ebv_lcl
+    note: >
+      Native HLA class I ligandome of JY, a classic EBV-transformed
+      B-lymphoblastoid cell line (not a tumor).  Typing from IEDB's recorded
+      mhc_restriction in our corpus.  IEDB cell_name "JY cells-B cell".
+      #33c/#36.
+    ms_samples:
+      - sample_label: "JY (EBV-LCL)"
+        n_samples: 1
+        source: "JY EBV-transformed B-lymphoblastoid cell line"
+        condition: unperturbed
+        mhc_class: "I"
+        mhc: "HLA-A*02:01 HLA-B*07:02 HLA-C*07:02"
+  - pmid: 23543059
+    study_label: "Gilchuk 2013 — HeLa-sClass I + vaccinia ligandome"
+    title: "Discovering naturally processed antigenic determinants that confer protective T cell immunity"
+    override: cell_line
+    note: >
+      HLA class I ligandome from HeLa cells engineered to secrete soluble
+      HLA (HeLa-sClass I, HLA-A*02:01 + B*07:02), inoculated with vaccinia
+      virus (VACV).  HeLa is a cervical-carcinoma line.  Typing from IEDB's
+      recorded mhc_restriction in our corpus.  IEDB cell_name
+      "HeLa cells-Epithelial cell".  #33c/#36.
+    ms_samples:
+      - sample_label: "HeLa-sClass I + vaccinia (VACV)"
+        n_samples: 1
+        source: "HeLa cervical carcinoma (soluble-HLA), vaccinia virus infected"
+        condition: "vaccinia (VACV) infection"
+        mhc_class: "I"
+        mhc: "HLA-A*02:01 HLA-B*07:02"
+  - pmid: 35623660
+    study_label: "Kato 2022 — HCT-15 spliced-peptide ligandome"
+    title: "Characterization of Proteasome-Generated Spliced Peptides Detected by Mass Spectrometry"
+    override: cell_line
+    note: >
+      HLA class I (incl. proteasome-spliced) peptides from HCT-15, a
+      microsatellite-unstable colorectal carcinoma line.  IEDB recorded
+      HLA-A*24:02 (plus class-only rows) for this study; the line's full
+      typing is in PMID 33537174.  IEDB cell_name "HCT 15-Epithelial cell".
+      #33c/#36.
+    ms_samples:
+      - sample_label: "HCT-15 (colorectal carcinoma)"
+        n_samples: 1
+        source: "HCT-15 microsatellite-unstable colorectal carcinoma line"
+        condition: unperturbed
+        mhc_class: "I"
+        mhc: "HLA-A*24:02"
