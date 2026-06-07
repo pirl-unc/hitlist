@@ -11,6 +11,14 @@
 #   hla_status:           endogenous HLA expression profile
 #   endogenous_alleles:   residual HLA alleles (if reported allele matches,
 #                         the assignment is NOT mono-allelic)
+#   ebv_lcl:              true if the host is an EBV-transformed B-lymphoblastoid
+#                         line (not a tumor).  Peptidomes on such a host classify
+#                         as ebv_lcl (never src_cancer), independent of IEDB's
+#                         culture-condition tagging — which is inconsistent for
+#                         these hosts (some 721.221/C1R rows tagged "EBV
+#                         transformed, B-LCL", others plain "Cell Line / Clone").
+#                         Omit / false for genuinely malignant hosts
+#                         (K562 = CML leukemia).
 
 - name: "721.221"
   aliases:
@@ -19,6 +27,8 @@
     - ".221"
   hla_status: "HLA class I null"
   endogenous_alleles: []
+  # Cellosaurus CVCL_6263 — EBV-transformed B-LCL from normal blood.
+  ebv_lcl: true
 
 - name: "C1R"
   aliases:
@@ -28,6 +38,8 @@
   endogenous_alleles:
     - "HLA-B*35:03"
     - "HLA-C*04:01"
+  # Cellosaurus CVCL_3714 (HMy2.C1R) — EBV-transformed B-LCL.
+  ebv_lcl: true
 
 - name: "K562"
   aliases:
