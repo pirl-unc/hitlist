@@ -6196,3 +6196,66 @@
         condition: "unperturbed — mono-allelic transfectant (protective)"
         mhc_class: "I"
         mhc: "HLA-B*27:09"
+
+  # ── #33b / #35 batch 2 — cell-line studies (HLA typing taken from IEDB's
+  # recorded mhc_restriction in our corpus; study type verified per paper) ──
+  - pmid: 28649982
+    study_label: "Kaur 2017 — HLA-C expression diversity (721.221 transfectants)"
+    title: "Structural and regulatory diversity shape HLA-C protein expression levels"
+    override: cell_line
+    mono_allelic_host: '721.221'
+    note: >
+      HLA-C*05:01 and HLA-C*07:02 each expressed as a separate mono-allelic
+      721.221 transfectant (genomic constructs).  IEDB records the two alleles
+      in mhc_restriction under cell_name "B cell" (imprecise — the host is the
+      721.221 lymphoblastoid line, not primary B cells).  #33b/#35.
+    ms_samples:
+      - sample_label: "721.221 transfectant (HLA-C*05:01)"
+        n_samples: 1
+        condition: "unperturbed — mono-allelic transfectant"
+        mhc_class: "I"
+        mhc: "HLA-C*05:01"
+      - sample_label: "721.221 transfectant (HLA-C*07:02)"
+        n_samples: 1
+        condition: "unperturbed — mono-allelic transfectant"
+        mhc_class: "I"
+        mhc: "HLA-C*07:02"
+  - pmid: 33537174
+    study_label: "Shinkawa 2021 — HCT-15 MSI colorectal neoantigen ligandome"
+    title: "Characterization of CD8+ T-cell responses to non-anchor-type HLA class I neoantigens with single amino-acid substitutions"
+    override: cell_line
+    note: >
+      Proteogenomic HLA-I ligandome of the HCT-15/β2m microsatellite-unstable
+      colorectal carcinoma cell line (cancer).  Multi-allele endogenous HLA;
+      typing taken from IEDB's recorded mhc_restriction in our corpus.  IEDB
+      cell_name "HCT 15-Epithelial cell".  #33b/#35.
+    ms_samples:
+      - sample_label: "HCT-15/β2m (colorectal carcinoma)"
+        n_samples: 1
+        source: "HCT-15/β2m colorectal carcinoma cell line"
+        condition: unperturbed
+        mhc_class: "I"
+        mhc: "HLA-A*02:01 HLA-A*24:02 HLA-B*08:01 HLA-B*35:01 HLA-C*04:01 HLA-C*07:06"
+  - pmid: 26768311
+    study_label: "Spencer 2015 — HeLa ± vaccinia self-peptidome shift"
+    title: "Viral infection causes a shift in the self peptide repertoire presented by human MHC class I molecules"
+    override: cell_line
+    note: >
+      HeLa self-peptidome presented by five HLA-I allotypes, profiled before
+      and after vaccinia virus (VACV) infection (the "self peptidome shift").
+      HeLa is a cervical-carcinoma line.  Typing from IEDB's recorded
+      mhc_restriction in our corpus; IEDB cell_name "HeLa cells-Epithelial
+      cell".  #33b/#35.
+    ms_samples:
+      - sample_label: "HeLa uninfected"
+        n_samples: 1
+        source: "HeLa cervical carcinoma cell line"
+        condition: unperturbed
+        mhc_class: "I"
+        mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*07:02 HLA-B*35:01 HLA-B*45:01"
+      - sample_label: "HeLa + vaccinia (VACV) infection"
+        n_samples: 1
+        source: "HeLa cervical carcinoma cell line, vaccinia virus (WR) infected"
+        condition: "vaccinia (VACV) infection"
+        mhc_class: "I"
+        mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*07:02 HLA-B*35:01 HLA-B*45:01"
