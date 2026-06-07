@@ -6259,3 +6259,71 @@
         condition: "vaccinia (VACV) infection"
         mhc_class: "I"
         mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*07:02 HLA-B*35:01 HLA-B*45:01"
+
+  # ── #33b / #35 batch 3 — multi-allele patient-tumor / cell-line / EBV-LCL
+  # studies (HLA typing taken from IEDB's recorded mhc_restriction; sample type
+  # + cancer/EBV-LCL status verified per paper) ──────────────────────────────
+  - pmid: 33123756
+    study_label: "Dao 2021 — ovarian cancer patient neoantigen ligandome"
+    title: "Impact of tumor heterogeneity and microenvironment in identifying neoantigens in a patient with ovarian cancer"
+    override: cancer_patient
+    note: >
+      Single high-grade serous ovarian carcinoma patient; HLA-I ligandome from
+      tumor / ascites tumor-infiltrating material.  Patient germline typing
+      from IEDB's recorded mhc_restriction in our corpus.  IEDB cell_name
+      "Other".  #33b/#35.
+    ms_samples:
+      - sample_label: "ovarian carcinoma patient (tumor)"
+        n_samples: 1
+        source: "high-grade serous ovarian carcinoma tumor / ascites"
+        condition: tumor
+        mhc_class: "I"
+        mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*07:05 HLA-B*57:01 HLA-C*06:02 HLA-C*15:05"
+  - pmid: 27397612
+    study_label: "Löffler 2016 — cholangiocarcinoma patient vaccine ligandome"
+    title: "Personalized peptide vaccine-induced immune response associated with long-term survival of a metastatic cholangiocarcinoma patient"
+    override: cancer_patient
+    note: >
+      Metastatic intrahepatic cholangiocarcinoma patient; HLA ligandome from
+      resected tumor used to design a personalized peptide vaccine.  Patient
+      germline typing from IEDB's recorded mhc_restriction in our corpus.  IEDB
+      cell_name "Epithelial cell" (the carcinoma).  #33b/#35.
+    ms_samples:
+      - sample_label: "cholangiocarcinoma patient (tumor)"
+        n_samples: 1
+        source: "resected metastatic intrahepatic cholangiocarcinoma tumor"
+        condition: tumor
+        mhc_class: "I"
+        mhc: "HLA-A*03:01 HLA-A*29:01 HLA-B*07:05 HLA-B*35:01 HLA-C*04:01 HLA-C*15:05"
+  - pmid: 25810538
+    study_label: "Ternette 2015 — Jurkat MVA.HIVconsv peptidome kinetics"
+    title: "Early Kinetics of the HLA Class I-Associated Peptidome of MVA.HIVconsv-Infected Cells"
+    override: cell_line
+    note: >
+      Jurkat (acute T-cell leukemia line) infected with the vaccine candidate
+      MVA.HIVconsv (modified vaccinia Ankara vector).  Cell-line typing from
+      IEDB's recorded mhc_restriction in our corpus.  IEDB cell_name
+      "Lymphoblast".  #33b/#35.
+    ms_samples:
+      - sample_label: "Jurkat + MVA.HIVconsv"
+        n_samples: 1
+        source: "Jurkat T-cell leukemia line, MVA.HIVconsv (modified vaccinia Ankara) infected"
+        condition: "MVA.HIVconsv (modified vaccinia Ankara) infection"
+        mhc_class: "I"
+        mhc: "HLA-A*03:01 HLA-B*07:02 HLA-B*35:03 HLA-C*04:01 HLA-C*07:02"
+  - pmid: 25505266
+    study_label: "Hassan 2015 — non-canonical HLA-A*02:01 peptides (EBV-LCL)"
+    title: "Naturally processed non-canonical HLA-A*02:01 presented peptides"
+    override: ebv_lcl
+    note: >
+      Lengthy / non-canonical HLA-I peptides eluted from EBV-transformed
+      lymphoblastoid cell lines (EBV-LCL), focused on HLA-A*02:01 (also
+      B*07:02 / B*44:02).  Donor-LCL typing from IEDB's recorded mhc_restriction
+      in our corpus.  IEDB cell_name "B cell".  #33b/#35.
+    ms_samples:
+      - sample_label: "EBV-LCL (HLA-A*02:01 donor)"
+        n_samples: 1
+        source: "EBV-transformed lymphoblastoid cell line"
+        condition: unperturbed
+        mhc_class: "I"
+        mhc: "HLA-A*02:01 HLA-B*07:02 HLA-B*44:02 HLA-C*05:01 HLA-C*07:02"
