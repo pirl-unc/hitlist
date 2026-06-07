@@ -1,21 +1,45 @@
 # IEDB Source Tissue → category mappings.
-# Categories: reproductive, thymus, somatic (default if not listed).
+# Categories: reproductive, reproductive_female, reproductive_male, thymus,
+#             somatic (default if not listed).
 # Tissue names are lowercased for matching.
+#
+# Reproductive tissue is split into three tiers by what actually makes a
+# cancer-testis-antigen target safe:
+#
+#   reproductive          Immune-privileged / fetally tolerized tissue
+#                         (testis behind the blood-testis barrier, placenta via
+#                         HLA-G fetal tolerance). CTA-safe regardless of patient
+#                         sex — privilege, not sex, is the safety basis. testis
+#                         lives here (NOT in reproductive_male) for that reason.
+#   reproductive_female   Female reproductive tract / breast. Presents antigen
+#   reproductive_male     Male reproductive tract.
+#                         normally, so a safety signal only in patients who have
+#                         the tissue. Patient sex therefore adds an extra safety
+#                         stratum (applied downstream); hitlist only tags the
+#                         tissue's sex. Default (sex unknown) = permissive, i.e.
+#                         NOT counted as a somatic safety signal (src_healthy_tissue).
 
 reproductive:
   - testis
-  - ovary
+  - epididymis
   - placenta
+  - embryo
+
+reproductive_female:
+  - breast
+  - mammary gland
+  - lactating breast
+  - ovary
   - uterus
   - uterine cervix
-  - embryo
   - cervix
   - endometrium
   - fallopian tube
-  - prostate
-  - epididymis
-  - seminal vesicle
   - vagina
+
+reproductive_male:
+  - prostate
+  - seminal vesicle
 
 thymus:
   - thymus

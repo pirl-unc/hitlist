@@ -109,6 +109,8 @@ def sample_peptidomes(
         "src_healthy_tissue",
         "src_healthy_thymus",
         "src_healthy_reproductive",
+        "src_healthy_reproductive_female",
+        "src_healthy_reproductive_male",
     ]:
         if flag in df.columns:
             agg[flag] = (flag, "any")

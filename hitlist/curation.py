@@ -23,7 +23,12 @@ Source categories (mutually exclusive priority order)::
     activated_apc       Monocyte-derived DCs, macrophages with activation
     healthy_tissue      Direct ex vivo healthy somatic tissue (THE SAFETY SIGNAL)
     healthy_thymus      Direct ex vivo thymus (expected for CTAs)
-    healthy_reproductive Direct ex vivo reproductive tissue (expected for CTAs)
+    healthy_reproductive Direct ex vivo immune-privileged reproductive tissue
+                        (testis, epididymis, placenta, embryo; CTA-safe in either sex)
+    healthy_reproductive_female Direct ex vivo female reproductive tract / breast
+                        (sex-stratified: a safety signal only in female patients)
+    healthy_reproductive_male Direct ex vivo male reproductive tract
+                        (sex-stratified: a safety signal only in male patients)
     ebv_lcl             EBV-transformed B-cell lines
     cell_line           Other cell lines
 """
@@ -105,13 +110,15 @@ def load_tissue_categories() -> dict[str, frozenset[str]]:
     Returns
     -------
     dict[str, frozenset[str]]
-        Keys: ``reproductive``, ``thymus``, ``activated_apc_cell_names``,
-        ``activated_apc_tissues``.
+        Keys: ``reproductive``, ``reproductive_female``, ``reproductive_male``,
+        ``thymus``, ``activated_apc_cell_names``, ``activated_apc_tissues``.
     """
     with open(_data_path("tissue_categories.yaml")) as f:
         data = yaml.safe_load(f)
     return {
         "reproductive": frozenset(data.get("reproductive", [])),
+        "reproductive_female": frozenset(data.get("reproductive_female", [])),
+        "reproductive_male": frozenset(data.get("reproductive_male", [])),
         "thymus": frozenset(data.get("thymus", [])),
         "activated_apc_cell_names": frozenset(data.get("activated_apc_cell_names", [])),
         "activated_apc_tissues": frozenset(data.get("activated_apc_tissues", [])),
@@ -1392,6 +1399,8 @@ def classify_ms_row(
     )
     is_ebv_lcl = culture_condition == "Cell Line / Clone (EBV transformed, B-LCL)"
     is_reproductive = source_tissue_lower in categories["reproductive"]
+    is_reproductive_female = source_tissue_lower in categories["reproductive_female"]
+    is_reproductive_male = source_tissue_lower in categories["reproductive_male"]
     is_thymus = source_tissue_lower in categories["thymus"]
 
     # Auto-detect activated APCs: DCs/macrophages from blood
@@ -1546,9 +1555,17 @@ def classify_ms_row(
         "src_cancer": is_cancer,
         "src_adjacent_to_tumor": is_adjacent,
         "src_activated_apc": is_activated_apc,
-        "src_healthy_tissue": is_healthy_donor and not is_reproductive and not is_thymus,
+        "src_healthy_tissue": (
+            is_healthy_donor
+            and not is_reproductive
+            and not is_reproductive_female
+            and not is_reproductive_male
+            and not is_thymus
+        ),
         "src_healthy_thymus": is_healthy_donor and is_thymus,
         "src_healthy_reproductive": is_healthy_donor and is_reproductive,
+        "src_healthy_reproductive_female": is_healthy_donor and is_reproductive_female,
+        "src_healthy_reproductive_male": is_healthy_donor and is_reproductive_male,
         "src_cell_line": is_cell_line,
         "src_ebv_lcl": is_ebv_lcl,
         "src_ex_vivo": is_ex_vivo,
