@@ -6086,3 +6086,113 @@
         # Per Methods: "HLA-DR12, -DPB1*04:01, 04:02 and -DQ7" (DQ7
         # corresponds to HLA-DQB1*03:01).
         mhc: "HLA-DRB1*12:01 HLA-DPB1*04:01 HLA-DPB1*04:02 HLA-DQB1*03:01"
+
+  # ── #33b / #35: top uncurated human immunopeptidome PMIDs ──────────────────
+  # Batch 1 — rigorously paper-verified mono-allelic cell-line / soluble-HLA
+  # studies (override: cell_line).  Per-sample HLA typing cross-checked against
+  # BOTH the source paper and IEDB's recorded mhc_restriction in our corpus.
+  - pmid: 26360328
+    study_label: "Guasp 2016 — Behçet's HLA-B*51:01 peptidome (721.221)"
+    title: "The Peptidome of Behçet's Disease-Associated HLA-B*51:01 Includes Two Subpeptidomes Differentially Shaped by Endoplasmic Reticulum Aminopeptidase 1"
+    override: cell_line
+    mono_allelic_host: '721.221'
+    note: >
+      Mono-allelic HLA-B*51:01 peptidome from 721.221 transfectant cells (the
+      HLA-class-I-null line), via affinity chromatography + acid extraction +
+      LC-MS/MS.  Behçet's-disease-associated allele.  IEDB records
+      mhc_restriction HLA-B*51:01 under cell_name "B cell"; the true host is
+      the 721.221 transfectant.  #33b/#35.
+    ms_samples:
+      - sample_label: "721.221 transfectant (HLA-B*51:01)"
+        n_samples: 1
+        source: "721.221 transfectant (affinity chromatography + acid extraction)"
+        condition: "unperturbed — mono-allelic transfectant"
+        mhc_class: "I"
+        mhc: "HLA-B*51:01"
+  - pmid: 22424782
+    study_label: "Scull 2012 — secreted HLA-A*02:01 immunopeptidome"
+    title: "Secreted HLA recapitulates the immunopeptidome and allows in-depth coverage of HLA A*02:01 ligands"
+    override: cell_line
+    mono_allelic_method: "soluble HLA (sHLA)"
+    note: >
+      Mono-allelic HLA-A*02:01 ligandome from secreted-HLA (sHLA) technology —
+      large-scale production of soluble A*02:01, not a multi-allele donor.
+      IEDB records mhc_restriction HLA-A*02:01 under cell_name "B cell".
+      #33b/#35.
+    ms_samples:
+      - sample_label: "secreted HLA-A*02:01 (sHLA)"
+        n_samples: 1
+        source: "secreted soluble HLA-A*02:01"
+        condition: "unperturbed — mono-allelic soluble HLA"
+        mhc_class: "I"
+        mhc: "HLA-A*02:01"
+  - pmid: 20112406
+    study_label: "Ben Dror 2010 — HLA-B*27:05 peptidome (soluble HLA)"
+    title: "The HLA-B*2705 peptidome"
+    override: cell_line
+    mono_allelic_method: "soluble HLA (sHLA)"
+    note: >
+      Mono-allelic HLA-B*27:05 peptidome recovered from soluble HLA-B27
+      secreted by cultured chondrocytic and HeLa cells (~1268 B27 peptides);
+      spondyloarthritis molecular-mimicry study.  IEDB records mhc_restriction
+      HLA-B*27:05 under cell_name "Epithelial cell" (the HeLa / chondrocyte
+      producer).  #33b/#35.
+    ms_samples:
+      - sample_label: "soluble HLA-B*27:05 (chondrocytic / HeLa producer)"
+        n_samples: 1
+        source: "soluble HLA-B27 secreted from chondrocytic / HeLa cells"
+        condition: "unperturbed — mono-allelic soluble HLA"
+        mhc_class: "I"
+        mhc: "HLA-B*27:05"
+  - pmid: 26929215
+    study_label: "Schittenhelm 2016 — HLA-B27 allotype panel (C1R, DIA-MS)"
+    title: "Human Leukocyte Antigen (HLA) B27 Allotype-Specific Binding and Candidate Arthritogenic Peptides Revealed through Heuristic Clustering of Data-independent Acquisition Mass Spectrometry (DIA-MS) Data"
+    override: cell_line
+    mono_allelic_host: 'C1R'
+    note: >
+      Eight HLA-B27 subtypes (B*27:02–B*27:09) profiled as mono-allelic C1R
+      transfectants by DIA-MS; 1646 B27-restricted peptides.  Protective
+      subtypes B*27:06 / B*27:09 vs disease-associated alleles.  IEDB records
+      each subtype in mhc_restriction under cell_name "C1R cells-B cell".
+      #33b/#35.
+    ms_samples:
+      - sample_label: "C1R transfectant (HLA-B*27:02)"
+        n_samples: 1
+        condition: "unperturbed — mono-allelic transfectant"
+        mhc_class: "I"
+        mhc: "HLA-B*27:02"
+      - sample_label: "C1R transfectant (HLA-B*27:03)"
+        n_samples: 1
+        condition: "unperturbed — mono-allelic transfectant"
+        mhc_class: "I"
+        mhc: "HLA-B*27:03"
+      - sample_label: "C1R transfectant (HLA-B*27:04)"
+        n_samples: 1
+        condition: "unperturbed — mono-allelic transfectant"
+        mhc_class: "I"
+        mhc: "HLA-B*27:04"
+      - sample_label: "C1R transfectant (HLA-B*27:05)"
+        n_samples: 1
+        condition: "unperturbed — mono-allelic transfectant"
+        mhc_class: "I"
+        mhc: "HLA-B*27:05"
+      - sample_label: "C1R transfectant (HLA-B*27:06)"
+        n_samples: 1
+        condition: "unperturbed — mono-allelic transfectant (protective)"
+        mhc_class: "I"
+        mhc: "HLA-B*27:06"
+      - sample_label: "C1R transfectant (HLA-B*27:07)"
+        n_samples: 1
+        condition: "unperturbed — mono-allelic transfectant"
+        mhc_class: "I"
+        mhc: "HLA-B*27:07"
+      - sample_label: "C1R transfectant (HLA-B*27:08)"
+        n_samples: 1
+        condition: "unperturbed — mono-allelic transfectant"
+        mhc_class: "I"
+        mhc: "HLA-B*27:08"
+      - sample_label: "C1R transfectant (HLA-B*27:09)"
+        n_samples: 1
+        condition: "unperturbed — mono-allelic transfectant (protective)"
+        mhc_class: "I"
+        mhc: "HLA-B*27:09"
