@@ -6416,3 +6416,36 @@
         condition: "unperturbed — mono-allelic"
         mhc_class: "I"
         mhc: "HLA-B*15:02"
+
+  # ── #33c / #36 batch 6 — mono-allelic EBV-LCL-host transfectants ───────────
+  - pmid: 26024233
+    study_label: "Metushi 2015 — C1R HLA-B*57:01 peptidome (acyclovir)"
+    title: "Acyclovir Has Low but Detectable Influence on HLA-B*57:01 Specificity without Inducing Hypersensitivity"
+    override: cell_line
+    mono_allelic_host: 'C1R'
+    note: >
+      Mono-allelic HLA-B*57:01 peptidome from C1R.B57 transfectants (acyclovir
+      vs abacavir drug-specificity comparison).  C1R is an EBV-LCL host →
+      ebv_lcl via the host registry (v1.31.3).  IEDB cell_name "B cell".
+      #33c/#36.
+    ms_samples:
+      - sample_label: "C1R.B57 transfectant (HLA-B*57:01)"
+        n_samples: 1
+        condition: "unperturbed — mono-allelic transfectant"
+        mhc_class: "I"
+        mhc: "HLA-B*57:01"
+  - pmid: 22706990
+    study_label: "Huyton 2012 — 721.221 HLA-B*44:09 peptidome"
+    title: "Residue 81 confers a restricted C-terminal peptide binding motif in HLA-B*44:09"
+    override: cell_line
+    mono_allelic_host: '721.221'
+    note: >
+      Mono-allelic HLA-B*44:09 peptidome from LCL 721.221 transfectants
+      (C-terminal binding-motif study).  721.221 is an EBV-LCL host → ebv_lcl
+      via the host registry (v1.31.3).  IEDB cell_name "B cell".  #33c/#36.
+    ms_samples:
+      - sample_label: "721.221 transfectant (HLA-B*44:09)"
+        n_samples: 1
+        condition: "unperturbed — mono-allelic transfectant"
+        mhc_class: "I"
+        mhc: "HLA-B*44:09"
