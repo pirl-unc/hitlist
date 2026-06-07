@@ -78,6 +78,8 @@ def aggregate_per_peptide(hits_df: pd.DataFrame) -> pd.DataFrame:
         "src_healthy_tissue",
         "src_healthy_thymus",
         "src_healthy_reproductive",
+        "src_healthy_reproductive_female",
+        "src_healthy_reproductive_male",
         "src_cell_line",
         "src_ebv_lcl",
     ]:

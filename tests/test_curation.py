@@ -33,6 +33,13 @@ def test_load_tissue_categories():
     cats = load_tissue_categories()
     assert "testis" in cats["reproductive"]
     assert "thymus" in cats["thymus"]
+    # Sex-stratified medium reproductive tiers (#286).
+    assert "breast" in cats["reproductive_female"]
+    assert "ovary" in cats["reproductive_female"]
+    assert "prostate" in cats["reproductive_male"]
+    # Privileged tier stays sex-agnostic; medium tissues are NOT in it.
+    assert "breast" not in cats["reproductive"]
+    assert "prostate" not in cats["reproductive"]
 
 
 def test_cell_line_is_cancer():
@@ -90,8 +97,31 @@ def test_healthy_thymus():
 
 
 def test_healthy_reproductive():
+    # Testis is immune-privileged → CTA-safe regardless of patient sex, so it
+    # lands in the privileged tier and NOT the sex-stratified male tier.
     flags = classify_ms_row("No immunization", "healthy", "Direct Ex Vivo", "Testis")
     assert flags["src_healthy_reproductive"] is True
+    assert flags["src_healthy_reproductive_female"] is False
+    assert flags["src_healthy_reproductive_male"] is False
+    assert flags["src_healthy_tissue"] is False
+
+
+def test_healthy_reproductive_female_breast():
+    """Issue #286: healthy ex-vivo breast is a sex-stratified female-reproductive
+    tissue, NOT a somatic safety signal (src_healthy_tissue)."""
+    flags = classify_ms_row("No immunization", "healthy", "Direct Ex Vivo", "Breast")
+    assert flags["src_healthy_reproductive_female"] is True
+    assert flags["src_healthy_tissue"] is False
+    assert flags["src_healthy_reproductive"] is False
+    assert flags["src_healthy_reproductive_male"] is False
+
+
+def test_healthy_reproductive_male_prostate():
+    flags = classify_ms_row("No immunization", "healthy", "Direct Ex Vivo", "Prostate")
+    assert flags["src_healthy_reproductive_male"] is True
+    assert flags["src_healthy_tissue"] is False
+    assert flags["src_healthy_reproductive"] is False
+    assert flags["src_healthy_reproductive_female"] is False
 
 
 def test_pmid_override_adjacent():
