@@ -6449,3 +6449,42 @@
         condition: "unperturbed — mono-allelic transfectant"
         mhc_class: "I"
         mhc: "HLA-B*44:09"
+
+  # ── #33c / #36 batch 7 — LCL + cancer-line studies under perturbation ──────
+  - pmid: 28446606
+    study_label: "Guasp 2017 — HLA-B*51:08 peptidome (BCH-30 LCL, ERAP1 Hap10)"
+    title: "The Behçet's disease-associated variant of the aminopeptidase ERAP1 shapes a low-affinity HLA-B*51 peptidome by differential subpeptidome processing"
+    override: ebv_lcl
+    note: >
+      HLA-B*51:08 (Behçet's-disease-associated) peptidome from the BCH-30
+      B-lymphoblastoid cell line.  BCH-30 naturally co-expresses HLA-B*51:08
+      AND the ERAP1 Hap10 (low-activity) haplotype — both germline-encoded —
+      which proves the line is patient-derived (a Behçet's patient), not a
+      transfectant.  As a patient B-lymphoblastoid line it is EBV-immortalized
+      (the standard way patient LCLs are established), hence ebv_lcl and not a
+      tumor.  Not in Cellosaurus (a lab-specific patient LCL), so EBV
+      transformation is by the definition of "B-LCL" rather than an explicit
+      Cellosaurus record.  IEDB records mhc_restriction HLA-B*51:08 under
+      cell_name "Lymphoblast".  #33c/#36.
+    ms_samples:
+      - sample_label: "BCH-30 LCL (HLA-B*51:08, Hap10 ERAP1)"
+        n_samples: 1
+        source: "BCH-30 B-lymphoblastoid cell line"
+        condition: "unperturbed — Hap10 (low-activity) ERAP1 background"
+        mhc_class: "I"
+        mhc: "HLA-B*51:08"
+  - pmid: 26824387
+    study_label: "McMurtrey 2016 — THP-1 + Toxoplasma gondii (HLA-A*02:01)"
+    title: "Toxoplasma gondii peptide ligands open the gate of the HLA class I binding groove"
+    override: cell_line
+    note: >
+      HLA-A*02:01 ligandome of the THP-1 acute monocytic leukemia line infected
+      with Toxoplasma gondii (parasite-derived + host peptides).  THP-1 is a
+      cancer line.  IEDB cell_name "Mononuclear cell".  #33c/#36.
+    ms_samples:
+      - sample_label: "THP-1 + Toxoplasma gondii (HLA-A*02:01)"
+        n_samples: 1
+        source: "THP-1 acute monocytic leukemia line, Toxoplasma gondii infected"
+        condition: "Toxoplasma gondii infection"
+        mhc_class: "I"
+        mhc: "HLA-A*02:01"
