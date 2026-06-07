@@ -6457,8 +6457,14 @@
     override: ebv_lcl
     note: >
       HLA-B*51:08 (Behçet's-disease-associated) peptidome from the BCH-30
-      B-lymphoblastoid cell line (Hap10 low-activity ERAP1 background).  Patient
-      B-LCL, not a tumor.  IEDB records mhc_restriction HLA-B*51:08 under
+      B-lymphoblastoid cell line.  BCH-30 naturally co-expresses HLA-B*51:08
+      AND the ERAP1 Hap10 (low-activity) haplotype — both germline-encoded —
+      which proves the line is patient-derived (a Behçet's patient), not a
+      transfectant.  As a patient B-lymphoblastoid line it is EBV-immortalized
+      (the standard way patient LCLs are established), hence ebv_lcl and not a
+      tumor.  Not in Cellosaurus (a lab-specific patient LCL), so EBV
+      transformation is by the definition of "B-LCL" rather than an explicit
+      Cellosaurus record.  IEDB records mhc_restriction HLA-B*51:08 under
       cell_name "Lymphoblast".  #33c/#36.
     ms_samples:
       - sample_label: "BCH-30 LCL (HLA-B*51:08, Hap10 ERAP1)"
