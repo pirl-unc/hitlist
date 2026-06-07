@@ -1782,3 +1782,21 @@ def test_attribute_peptide_to_per_sample_typings_all_donors_lack_typing(monkeypa
         assert curation.attribute_peptide_to_per_sample_typings(99999, "FAKEPEP") == ()
     finally:
         curation._pmid_peptide_per_sample_typings.cache_clear()
+
+
+def test_curated_monoallelic_batch1_33b():
+    """#33b/#35 batch 1: four mono-allelic cell-line / soluble-HLA studies
+    classify as mono-allelic cell-line samples with the expected host."""
+    cases = [
+        (26360328, "B cell", "HLA-B*51:01", "721.221"),
+        (20112406, "Epithelial cell", "HLA-B*27:05", None),  # soluble HLA (method)
+        (26929215, "C1R cells-B cell", "HLA-B*27:09", "C1R"),
+    ]
+    for pmid, cell_name, allele, host in cases:
+        flags = classify_ms_row(
+            "", "", "Cell Line / Clone", cell_name=cell_name, pmid=pmid, mhc_restriction=allele
+        )
+        assert flags["src_cell_line"] is True, pmid
+        assert flags["is_monoallelic"] is True, pmid
+        if host is not None:
+            assert flags["monoallelic_host"] == host, pmid
