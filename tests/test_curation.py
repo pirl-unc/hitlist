@@ -1800,3 +1800,38 @@ def test_curated_monoallelic_batch1_33b():
         assert flags["is_monoallelic"] is True, pmid
         if host is not None:
             assert flags["monoallelic_host"] == host, pmid
+
+
+def test_ebv_lcl_mono_host_is_not_cancer():
+    """Systemic fix: mono-allelic data on a known EBV-LCL host (721.221, C1R)
+    classifies as ebv_lcl (src_cancer=False) regardless of how IEDB tagged the
+    culture condition — auto-correcting all 721.221/C1R studies without
+    per-PMID overrides.  Host resolved either from cell_name directly or via a
+    PMID mono_allelic_host override."""
+    cases = [
+        # cell_name resolves the host directly (no PMID needed → systemic).
+        ("721.221", "", "HLA-A*02:01"),
+        ("C1R cells-B cell", "", "HLA-B*27:05"),
+        # PMID mono_allelic_host override resolves the host (marquee studies
+        # whose IEDB cell_name is the imprecise "B cell").
+        ("B cell", 31844290, "HLA-A*02:01"),  # Sarkizova 2020 (721.221)
+        ("B cell", 28228285, "HLA-A*02:01"),  # Abelin 2017 (721.221)
+    ]
+    for cell_name, pmid, allele in cases:
+        flags = classify_ms_row(
+            "", "", "Cell Line / Clone", cell_name=cell_name, pmid=pmid, mhc_restriction=allele
+        )
+        assert flags["is_monoallelic"] is True, (cell_name, pmid)
+        assert flags["src_ebv_lcl"] is True, (cell_name, pmid)
+        assert flags["src_cancer"] is False, (cell_name, pmid)
+
+
+def test_k562_mono_host_stays_cancer():
+    """K562 is a CML leukemia line (genuinely malignant) used as a mono-allelic
+    host — it must NOT be swept into the ebv_lcl reclassification."""
+    flags = classify_ms_row(
+        "", "", "Cell Line / Clone", cell_name="K562 cells", mhc_restriction="HLA-A*24:02"
+    )
+    assert flags["is_monoallelic"] is True
+    assert flags["src_ebv_lcl"] is False
+    assert flags["src_cancer"] is True

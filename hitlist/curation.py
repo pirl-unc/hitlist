@@ -812,6 +812,18 @@ def load_monoallelic_lines() -> list[dict]:
         return yaml.safe_load(f)
 
 
+@lru_cache(maxsize=1)
+def _ebv_lcl_mono_hosts() -> frozenset:
+    """Canonical names of mono-allelic hosts that are EBV-transformed B-LCLs.
+
+    Peptidomes produced on these hosts (721.221, C1R) are EBV-immortalized
+    B-cell material, not tumors, so they classify as ``ebv_lcl`` (never
+    ``src_cancer``) regardless of IEDB's inconsistent culture-condition
+    tagging.  Flagged via ``ebv_lcl: true`` in ``monoallelic_lines.yaml``.
+    """
+    return frozenset(e["name"] for e in load_monoallelic_lines() if e.get("ebv_lcl"))
+
+
 def detect_monoallelic(cell_name: str, mhc_restriction: str = "") -> tuple[bool, str]:
     """Detect if a row comes from a known mono-allelic cell line system.
 
@@ -1499,6 +1511,19 @@ def classify_ms_row(
         if not is_monoallelic and method and _is_resolved_allele(mhc_restriction):
             is_monoallelic = True
             mono_host = method
+
+    # A mono-allelic peptidome produced on a known EBV-LCL transfection host
+    # (721.221, C1R) is EBV-immortalized B-cell material, not a tumor — so it
+    # classifies as ebv_lcl and never src_cancer, regardless of how IEDB tagged
+    # the culture condition (which is inconsistent for these hosts).  This is
+    # the single source of truth: it auto-corrects ~313K observations across
+    # all 721.221/C1R studies (Sarkizova 2020, Abelin 2017, ...) that were
+    # previously mislabeled src_cancer because IEDB tagged them plain
+    # "Cell Line / Clone".  Genuinely malignant hosts (K562 = CML) are not
+    # flagged ebv_lcl in monoallelic_lines.yaml and keep src_cancer.
+    if is_monoallelic and mono_host in _ebv_lcl_mono_hosts():
+        is_ebv_lcl = True
+        is_cancer = False
 
     # Decompose IEDB's catch-all ``Cell Name`` into a clean line name plus a
     # separate ``cell_type`` (#261 stage 2).  ``parse_cell_name`` strips the
