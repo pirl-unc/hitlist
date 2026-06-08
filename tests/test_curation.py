@@ -124,6 +124,26 @@ def test_healthy_reproductive_male_prostate():
     assert flags["src_healthy_reproductive_female"] is False
 
 
+def test_pmid_28871256_bls_lcl_not_cancer():
+    """#33c/#36 batch 9: Scholz 2017 BLS EBV-LCL DR transfectants are tagged
+    "B cell" / "Cell Line / Clone" by IEDB (no EBV flag), which would default to
+    src_cancer. The ebv_lcl override must clear the false cancer flag."""
+    flags = classify_ms_row(
+        "No immunization", "", "Cell Line / Clone", "Blood", "B cell", pmid=28871256
+    )
+    assert flags["src_cancer"] is False
+    assert flags["src_ebv_lcl"] is True
+
+
+def test_pmid_21654843_dr8_lcl_not_cancer():
+    """#33c/#36 batch 9: Muixí 2011 DR8-homozygous EBV-LCL, same mislabel."""
+    flags = classify_ms_row(
+        "No immunization", "", "Cell Line / Clone", "Blood", "B cell", pmid=21654843
+    )
+    assert flags["src_cancer"] is False
+    assert flags["src_ebv_lcl"] is True
+
+
 def test_pmid_override_adjacent():
     flags = classify_ms_row("No immunization", "healthy", "Direct Ex Vivo", "Lung", pmid=35051231)
     assert flags["src_adjacent_to_tumor"] is True
