@@ -164,6 +164,39 @@ def test_pmid_18512783_ben_dr10_lcl_not_cancer():
     assert flags["src_ebv_lcl"] is True
 
 
+def test_pmid_18507432_lg2_lcl_not_cancer():
+    """#33c/#36 batch 11: Strug 2008 LG2 EBV-LCL (DR1) tagged "B cell" / "Cell
+    Line / Clone" by IEDB (no EBV flag), which would default to src_cancer. The
+    ebv_lcl override must clear the false cancer flag — including the
+    vaccinia-MVA-infected arm, which is still the LG2 EBV-LCL host."""
+    flags = classify_ms_row(
+        "No immunization", "", "Cell Line / Clone", "Blood", "B cell", pmid=18507432
+    )
+    assert flags["src_cancer"] is False
+    assert flags["src_ebv_lcl"] is True
+    # the vaccinia-exposed arm must also be EBV-LCL, not cancer
+    infected = classify_ms_row(
+        "Exposure without evidence for disease",
+        "",
+        "Cell Line / Clone",
+        "Blood",
+        "B cell",
+        pmid=18507432,
+    )
+    assert infected["src_cancer"] is False
+    assert infected["src_ebv_lcl"] is True
+
+
+def test_pmid_23739916_bls_lcl_not_cancer():
+    """#33c/#36 batch 11: Wang/Sospedra 2013 BLS DR15 transfectants, same BLS
+    EBV-LCL system as Scholz 2017 (batch 9); same mislabel."""
+    flags = classify_ms_row(
+        "No immunization", "", "Cell Line / Clone", "Blood", "B cell", pmid=23739916
+    )
+    assert flags["src_cancer"] is False
+    assert flags["src_ebv_lcl"] is True
+
+
 def test_pmid_override_adjacent():
     flags = classify_ms_row("No immunization", "healthy", "Direct Ex Vivo", "Lung", pmid=35051231)
     assert flags["src_adjacent_to_tumor"] is True
