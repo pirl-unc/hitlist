@@ -6637,8 +6637,10 @@
   # Same inconsistent-tagging bug as batches 6-10: IEDB tagged these single-line
   # HLA-DR elution studies "B cell" / "Cell Line / Clone" (no EBV-transformed
   # flag), so the default rule made them src_cancer.  Both are EBV-transformed
-  # B-lymphoblastoid lines (not tumors), confirmed by IEDB's own assay_comments.
-  # ebv_lcl override clears the false cancer flag; one arm of 18507432 is a
+  # B-lymphoblastoid lines (not tumors): IEDB's own assay_comments pin the source
+  # cells (LG2 / bare-lymphocyte-syndrome cells) and Cellosaurus confirms the
+  # EBV-transformed B-LCL provenance.  The ebv_lcl override clears the false
+  # cancer flag; one arm of 18507432 is a
   # vaccinia-MVA-infected perturbation of the same LG2 EBV-LCL host.  #33c/#36.
   - pmid: 18507432
     study_label: "Strug 2008 — vaccinia peptides on HLA-DR1 from LG2 EBV-LCL"
@@ -6646,7 +6648,7 @@
     override: ebv_lcl
     note: >
       HLA-DR1 (DRB1*01:01) ligands eluted from LG2, a DR1+ EBV-transformed
-      B-lymphoblastoid line (Cellosaurus LG-2 CVCL_7184, EBV-transformed).  IEDB
+      B-lymphoblastoid line (Cellosaurus LG-2 CVCL_C5UW, EBV-transformed).  IEDB
       assay_comments confirm the source directly: "eluted from HLA-DR1 isolated
       from LG2 cells" (self repertoire) and "...LG2 cells that were infected with
       Vaccinia virus MVA" (3 viral ligands).  IEDB tagged the 164 rows "B cell" /
