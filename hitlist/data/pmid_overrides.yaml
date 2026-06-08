@@ -6591,3 +6591,45 @@
         condition: unperturbed
         mhc_class: "II"
         mhc: "HLA-DRB1*08:01"
+  # ── #33c / #36 batch 10 — named single-line EBV-LCLs mislabeled cancer ──────
+  # Same inconsistent-tagging bug as batches 6-9: IEDB tagged these single-line
+  # HLA elution studies "B cell" / "Cell Line / Clone" (no EBV-transformed flag),
+  # so the default rule made them src_cancer.  Both are named, literature-
+  # confirmed EBV-transformed B-lymphoblastoid lines (not tumors).  Paper-
+  # verified (Methods).  ebv_lcl override clears the false cancer flag.
+  - pmid: 27503676
+    study_label: "Marcilla 2017 — Arg-(di)methylated HLA-I peptides on JY (HLA-B*07)"
+    title: "Arginine (Di)methylated Human Leukocyte Antigen Class I Peptides Are Favorably Presented by HLA-B*07"
+    override: ebv_lcl
+    note: >
+      HLA class I peptides (including mono-/di-methyl-arginine ligands) eluted
+      from JY, the canonical EBV-transformed B-lymphoblastoid line homozygous at
+      every class I locus (HLA-A*02:01, HLA-B*07:02, HLA-C*07:02; Cellosaurus JY
+      CVCL_0108, EBV-transformed).  JY is already curated as ebv_lcl elsewhere in
+      this corpus.  IEDB tagged 125 rows "B cell" / "Cell Line / Clone", which
+      otherwise default to src_cancer.  JY is an EBV-LCL, not a tumor.  #33c/#36.
+    ms_samples:
+      - sample_label: "JY (EBV-LCL)"
+        n_samples: 1
+        source: "JY EBV-transformed B-lymphoblastoid line (class-I homozygous)"
+        condition: unperturbed
+        mhc_class: "I"
+        mhc: "HLA-A*02:01 HLA-B*07:02 HLA-C*07:02"
+  - pmid: 18512783
+    study_label: "Alvarez 2008 — BEN-DR10 EBV-LCL class-II ligandome (DRB1*10:01)"
+    title: "The rheumatoid arthritis-associated allele HLA-DR10 (DRB1*1001) shares part of its repertoire with HLA-DR1 (DRB1*0101) and HLA-DR4 (DRB*0401)"
+    override: ebv_lcl
+    note: >
+      Natural HLA-DR10 ligands eluted from BEN-DR10, an HLA-DR10 (DRA*0101,
+      DRB1*10:01) homozygous lymphoblastoid line the paper Methods explicitly
+      describe as "derived by Epstein-Barr virus (EBV) transformation of B
+      lymphocytes from fresh peripheral blood mononuclear cells" — an EBV-LCL,
+      not a tumor.  IEDB tagged 236 rows "B cell" / "Cell Line / Clone",
+      defaulting to src_cancer.  ebv_lcl override corrects this.  #33c/#36.
+    ms_samples:
+      - sample_label: "BEN-DR10 (EBV-LCL)"
+        n_samples: 1
+        source: "BEN-DR10 DR10-homozygous EBV-transformed B-lymphoblastoid line"
+        condition: unperturbed
+        mhc_class: "II"
+        mhc: "HLA-DRB1*10:01"
