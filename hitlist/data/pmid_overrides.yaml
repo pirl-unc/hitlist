@@ -6540,3 +6540,54 @@
         condition: unperturbed
         mhc_class: "I"
         mhc: "HLA-A*24:02"
+  # ── #33c / #36 batch 9 — EBV-LCL class-II studies mislabeled cancer ─────────
+  # IEDB tagged these single-line HLA class-II elution studies "B cell" /
+  # "Cell Line / Clone" (no EBV-transformed flag), so the default rule made them
+  # src_cancer.  Both are EBV-transformed B-lymphoblastoid lines (not tumors) —
+  # the same inconsistent-tagging bug fixed systemically for 721.221/C1R in
+  # v1.31.3.  Paper-verified (Methods).  ebv_lcl override clears the false cancer
+  # flag.
+  - pmid: 28871256
+    study_label: "Scholz 2017 — BLS EBV-LCL DR2 transfectants (DRB1*15:01 / DRB5*01:01)"
+    title: "Human Leukocyte Antigen (HLA)-DRB1*15:01 and HLA-DRB5*01:01 Present Complementary Peptide Repertoires"
+    override: ebv_lcl
+    note: >
+      HLA class II self-peptide repertoires eluted from HLA-DR transfectants of
+      the BLS (Bare Lymphocyte Syndrome) line — an EBV-transformed, MHC-class-II-
+      null B-lymphoblastoid line (Cellosaurus BLS-1 CVCL_9W20, "Transformed cell
+      line", EBV-transformed; RFXANK-deficient).  BLS-DR2b carries DRB1*15:01,
+      BLS-DR2a carries DRB5*01:01 on the same EBV-LCL parent, so the whole study
+      is EBV-LCL — not cancer.  IEDB tagged 697 rows "B cell" / "Cell Line /
+      Clone", which otherwise default to src_cancer.  #33c/#36.
+    ms_samples:
+      - sample_label: "BLS-DR2b (DRB1*15:01)"
+        n_samples: 1
+        source: "BLS EBV-LCL (MHC-II-null) transfected with HLA-DRB1*15:01"
+        condition: unperturbed
+        mhc_class: "II"
+        mhc: "HLA-DRB1*15:01"
+      - sample_label: "BLS-DR2a (DRB5*01:01)"
+        n_samples: 1
+        source: "BLS EBV-LCL (MHC-II-null) transfected with HLA-DRB5*01:01"
+        condition: unperturbed
+        mhc_class: "II"
+        mhc: "HLA-DRB5*01:01"
+  - pmid: 21654843
+    study_label: "Muixí 2011 — DR8-homozygous EBV-LCL class-II ligandome"
+    title: "The peptide-binding motif of HLA-DR8 shares important structural features with other type 1 diabetes-associated alleles"
+    override: ebv_lcl
+    note: >
+      Natural HLA-DR8 (DRB1*08:01) ligands eluted from a single HLA-DR-homozygous
+      EBV-transformed B-lymphoblastoid line (the Jaraquemada/Alvarez group's
+      homozygous typing-LCL panel; B-LCLs are EBV-transformed, not malignant).
+      IEDB tagged 473 rows "B cell" / "Cell Line / Clone", defaulting to
+      src_cancer.  ebv_lcl override corrects this.  Exact CVCL not pinned (Methods
+      paywalled) but the cancer-vs-LCL call is unambiguous from the published
+      "HLA-DR homozygous lymphoblastoid cell line" source description.  #33c/#36.
+    ms_samples:
+      - sample_label: "DR8-homozygous EBV-LCL"
+        n_samples: 1
+        source: "HLA-DR8-homozygous EBV-transformed B-lymphoblastoid cell line"
+        condition: unperturbed
+        mhc_class: "II"
+        mhc: "HLA-DRB1*08:01"
