@@ -144,6 +144,26 @@ def test_pmid_21654843_dr8_lcl_not_cancer():
     assert flags["src_ebv_lcl"] is True
 
 
+def test_pmid_27503676_jy_lcl_not_cancer():
+    """#33c/#36 batch 10: Marcilla 2017 JY (class-I-homozygous EBV-LCL) tagged
+    "B cell" / "Cell Line / Clone" by IEDB (no EBV flag), which would default to
+    src_cancer. The ebv_lcl override must clear the false cancer flag."""
+    flags = classify_ms_row(
+        "No immunization", "", "Cell Line / Clone", "Blood", "B cell", pmid=27503676
+    )
+    assert flags["src_cancer"] is False
+    assert flags["src_ebv_lcl"] is True
+
+
+def test_pmid_18512783_ben_dr10_lcl_not_cancer():
+    """#33c/#36 batch 10: Alvarez 2008 BEN-DR10 EBV-LCL, same mislabel."""
+    flags = classify_ms_row(
+        "No immunization", "", "Cell Line / Clone", "Blood", "B cell", pmid=18512783
+    )
+    assert flags["src_cancer"] is False
+    assert flags["src_ebv_lcl"] is True
+
+
 def test_pmid_override_adjacent():
     flags = classify_ms_row("No immunization", "healthy", "Direct Ex Vivo", "Lung", pmid=35051231)
     assert flags["src_adjacent_to_tumor"] is True
