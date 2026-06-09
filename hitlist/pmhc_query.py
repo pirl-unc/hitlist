@@ -623,7 +623,16 @@ def tissue_distribution(
     """
     from .observations import load_observations
 
-    out_cols = ["source_tissue", "n_peptides", "n_observations", "n_pmids"]
+    # Each tissue row reports total peptides plus a cancer / healthy split (the
+    # two source contexts a downstream antigen-selection workflow cares about).
+    out_cols = [
+        "source_tissue",
+        "n_peptides",
+        "n_cancer",
+        "n_healthy",
+        "n_observations",
+        "n_pmids",
+    ]
     names: set[str] = set()
     ids: set[str] = set()
     if proteins:
@@ -634,7 +643,8 @@ def tissue_distribution(
         if not names and not ids:
             return pd.DataFrame(columns=out_cols)
 
-    cols = ["peptide", "pmid", "source_tissue", "mhc_class"]
+    healthy_flags = list(SOURCE_CONTEXTS["healthy"])
+    cols = ["peptide", "pmid", "source_tissue", "mhc_class", "src_cancer", *healthy_flags]
     if source_context is not None:
         if source_context not in SOURCE_CONTEXTS:
             raise ValueError(
@@ -658,14 +668,28 @@ def tissue_distribution(
 
     df = df.copy()
     df["source_tissue"] = df["source_tissue"].astype(str).replace("", "(unspecified)")
+    cancer_mask = df["src_cancer"].fillna(False).astype(bool) if "src_cancer" in df else False
+    present_healthy = [c for c in healthy_flags if c in df.columns]
+    healthy_mask = (
+        df[present_healthy].fillna(False).astype(bool).any(axis=1)
+        if present_healthy
+        else pd.Series(False, index=df.index)
+    )
+
+    def _peptides_per_tissue(mask) -> pd.Series:
+        sub = df[mask] if mask is not False else df.iloc[0:0]
+        return sub.groupby("source_tissue", observed=True)["peptide"].nunique()
+
+    base = df.groupby("source_tissue", observed=True).agg(
+        n_peptides=("peptide", "nunique"),
+        n_observations=("peptide", "size"),
+        n_pmids=("pmid", "nunique"),
+    )
+    base["n_cancer"] = _peptides_per_tissue(cancer_mask)
+    base["n_healthy"] = _peptides_per_tissue(healthy_mask)
+    base[["n_cancer", "n_healthy"]] = base[["n_cancer", "n_healthy"]].fillna(0).astype(int)
     grp = (
-        df.groupby("source_tissue", observed=True)
-        .agg(
-            n_peptides=("peptide", "nunique"),
-            n_observations=("peptide", "size"),
-            n_pmids=("pmid", "nunique"),
-        )
-        .reset_index()
+        base.reset_index()
         .sort_values(["n_peptides", "source_tissue"], ascending=[False, True])
         .reset_index(drop=True)
     )
