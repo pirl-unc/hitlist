@@ -265,6 +265,36 @@ def test_pmid_29371260_sw480_is_cancer():
     assert flags["src_cell_line"] is True
 
 
+def test_noncancer_cell_line_override_is_cell_line_not_cancer():
+    """#36: the noncancer_cell_line override marks a non-malignant immortalized
+    line (hTERT/SV40-LT) as a cell line that is NOT cancer (and not healthy
+    ex-vivo donor tissue, and not EBV-LCL)."""
+    # ECN90 line arm (30078552): Culture Condition "Cell Line / Clone" rule.
+    line = classify_ms_row(
+        "No immunization",
+        "",
+        "Cell Line / Clone",
+        "Pancreas",
+        "Pancreatic beta cell",
+        pmid=30078552,
+    )
+    assert line["src_cancer"] is False
+    assert line["src_cell_line"] is True
+    assert line["src_ebv_lcl"] is False
+    assert line["src_healthy_tissue"] is False
+
+
+def test_pmid_30078552_primary_islet_arm_is_healthy():
+    """#36: the Direct-Ex-Vivo primary-islet arm of the ECN90 study routes to
+    healthy (non-cancer primary tissue), NOT the noncancer_cell_line arm."""
+    islet = classify_ms_row(
+        "No immunization", "", "Direct Ex Vivo", "Pancreas", "Pancreatic beta cell", pmid=30078552
+    )
+    assert islet["src_cancer"] is False
+    assert islet["src_cell_line"] is False
+    assert islet["src_healthy_tissue"] is True
+
+
 def test_pmid_override_adjacent():
     flags = classify_ms_row("No immunization", "healthy", "Direct Ex Vivo", "Lung", pmid=35051231)
     assert flags["src_adjacent_to_tumor"] is True

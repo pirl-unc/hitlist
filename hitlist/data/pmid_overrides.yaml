@@ -6857,3 +6857,43 @@
         condition: unperturbed
         mhc_class: "I"
         mhc: "HLA-A*24:02"
+  # ── #36 — non-malignant immortalized line category + ECN90 (mixed study) ────
+  # 30078552 elutes class I peptides from TWO compartments: the ECN90 beta-cell
+  # line (a NON-cancerous hTERT/SV40-LT immortalized line, Cellosaurus CVCL_VJ07
+  # — not a tumor) and primary human islet cells (direct ex vivo, healthy + T1D
+  # donors).  IEDB's default makes the line src_cancer, which is wrong.  Split by
+  # culture_condition: the line arm -> noncancer_cell_line (cell line, not
+  # cancer); the ex-vivo islet arm -> healthy (non-cancer primary tissue).
+  - pmid: 30078552
+    study_label: "Gonzalez-Duque 2018 — ECN90 beta-cell line + primary islets class-I"
+    title: "Conventional and Neo-antigenic Peptides Presented by Beta Cells Are Targeted by Circulating Naive CD8+ T Cells in Type 1 Diabetic and Healthy Donors"
+    rules:
+      - condition:
+          Culture Condition: "Cell Line / Clone"
+        override: noncancer_cell_line
+        reason: "ECN90 is a non-malignant hTERT/SV40-LT immortalized beta-cell line (CVCL_VJ07), not a tumor"
+      - condition:
+          Culture Condition: "Direct Ex Vivo"
+        override: healthy
+        reason: "Primary human islet cells, direct ex vivo (healthy + T1D donors); non-cancer primary tissue"
+    note: >
+      Class I ligands from beta cells.  ECN90 (CVCL_VJ07) is a non-cancerous
+      immortalized human beta-cell line (hTERT + SV40 large-T) — IEDB defaults it
+      to src_cancer, corrected here to noncancer_cell_line (cell line, not
+      cancer).  The 44 Direct-Ex-Vivo rows are primary human islet cells from
+      healthy and type-1-diabetic donors (multi-donor; per-donor alleles not
+      pinned) and route to healthy.  ECN90 genotype A*02:01, A*03:01, B*40:01,
+      B*49:01, C*03:04, C*07:01 (IEDB-resolved, Cellosaurus-consistent).  #36.
+    ms_samples:
+      - sample_label: "ECN90 (non-malignant beta-cell line)"
+        n_samples: 1
+        source: "ECN90 hTERT/SV40-LT immortalized human beta-cell line (CVCL_VJ07)"
+        condition: unperturbed
+        mhc_class: "I"
+        mhc: "HLA-A*02:01 HLA-A*03:01 HLA-B*40:01 HLA-B*49:01 HLA-C*03:04 HLA-C*07:01"
+      - sample_label: "Primary human islet cells (ex vivo, healthy + T1D donors)"
+        n_samples: 1
+        source: "Primary human pancreatic islet cells, direct ex vivo (multi-donor)"
+        condition: unperturbed
+        mhc_class: "I"
+        mhc: ""
