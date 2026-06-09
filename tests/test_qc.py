@@ -1041,3 +1041,103 @@ def test_proteome_coverage_empty_observations_returns_schema(tmp_path, monkeypat
         "severity",
     ):
         assert col in df.columns
+
+
+def test_species_axis_audit_flags_chimeric_and_suspicious(tmp_path, monkeypatch):
+    """species_axis_audit surfaces chimeric systems grouped by axis triple,
+    marks engineered/xenograft rows 'info', and flags chimeric rows with a
+    populated host that are neither (likely data errors) 'review'."""
+    from hitlist import qc
+
+    obs_path = _write_obs_fixture(
+        tmp_path,
+        [
+            # native human — not chimeric, excluded from audit
+            {
+                "peptide": "AAAAAAAAA",
+                "mhc_class": "I",
+                "source": "iedb",
+                "mhc_restriction": "HLA-A*02:01",
+                "pmid": 1,
+                "mhc_species": "Homo sapiens",
+                "source_organism": "Homo sapiens",
+                "host": "Homo sapiens (human)",
+            },
+            # HLA-tg rat — engineered MHC -> info
+            {
+                "peptide": "CCCCCCCCC",
+                "mhc_class": "I",
+                "source": "iedb",
+                "mhc_restriction": "HLA-A*02:01",
+                "pmid": 2,
+                "mhc_species": "Homo sapiens",
+                "source_organism": "Rattus norvegicus",
+                "host": "Rattus norvegicus (brown rat)",
+            },
+            # bovine allergen on native human cells — chimeric by source but
+            # NOT engineered (host != source) and NOT xenograft (host == MHC,
+            # native cells); heterologous antigen -> review
+            {
+                "peptide": "DDDDDDDDD",
+                "mhc_class": "I",
+                "source": "iedb",
+                "mhc_restriction": "HLA-A*02:01",
+                "pmid": 3,
+                "mhc_species": "Homo sapiens",
+                "source_organism": "Bos taurus",
+                "host": "Homo sapiens (human)",
+            },
+        ],
+    )
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+
+    audit = qc.species_axis_audit()
+    # Only the two chimeric rows appear; the native-human row is excluded.
+    assert set(audit["n_rows"]) == {1}
+    assert len(audit) == 2
+
+    engineered = audit[audit["is_engineered_mhc"]]
+    assert len(engineered) == 1
+    assert engineered.iloc[0]["severity"] == "info"
+    assert engineered.iloc[0]["source_species"] == "Rattus norvegicus"
+
+    review = audit[audit["severity"] == "review"]
+    assert len(review) == 1
+    assert review.iloc[0]["host_organism"] == "Homo sapiens"
+    assert review.iloc[0]["source_species"] == "Bos taurus"
+    assert bool(review.iloc[0]["is_engineered_mhc"]) is False
+    assert bool(review.iloc[0]["xenograft"]) is False
+
+
+def test_species_axis_audit_empty_when_no_chimeric(tmp_path, monkeypatch):
+    from hitlist import qc
+
+    obs_path = _write_obs_fixture(
+        tmp_path,
+        [
+            {
+                "peptide": "AAAAAAAAA",
+                "mhc_class": "I",
+                "source": "iedb",
+                "mhc_restriction": "HLA-A*02:01",
+                "pmid": 1,
+                "mhc_species": "Homo sapiens",
+                "source_organism": "Homo sapiens",
+                "host": "Homo sapiens (human)",
+            },
+        ],
+    )
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+    audit = qc.species_axis_audit()
+    assert audit.empty
+    assert list(audit.columns) == [
+        "host_organism",
+        "source_species",
+        "mhc_species",
+        "is_engineered_mhc",
+        "xenograft",
+        "n_rows",
+        "n_pmids",
+        "example_pmids",
+        "severity",
+    ]

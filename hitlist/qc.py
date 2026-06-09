@@ -154,6 +154,97 @@ def normalization_drift() -> pd.DataFrame:
     )
 
 
+def species_axis_audit() -> pd.DataFrame:
+    """Audit the #46 multi-axis species columns for chimeric / suspicious rows.
+
+    Loads the observations index with the load-time-derived axis columns
+    (``host_organism``, ``source_species``, ``mhc_species``, ``is_chimeric``,
+    ``is_engineered_mhc``, ``xenograft``), keeps the chimeric rows, and groups
+    them by the (host, source, MHC) triple so each distinct cross-species
+    system surfaces once with its row/PMID counts.
+
+    A ``severity`` column flags combinations that warrant manual review or a
+    per-PMID override:
+
+    - ``review`` — host species is populated but the MHC genus differs from
+      the host genus *and* the source genus also differs from the host
+      (neither the engineered-MHC nor the native-MHC reading is obvious;
+      e.g. a human-host row carrying a mouse MHC, often a data-entry error).
+    - ``info`` — a recognized engineered-MHC system (host genus == source
+      genus, MHC heterologous: HLA-transgenic rat, allogeneic transfectant).
+
+    Returns
+    -------
+    pd.DataFrame
+        Columns: ``host_organism``, ``source_species``, ``mhc_species``,
+        ``is_engineered_mhc``, ``xenograft``, ``n_rows``, ``n_pmids``,
+        ``example_pmids``, ``severity``. Empty if the index has no chimeric
+        rows. Sorted by ``n_rows`` descending.
+    """
+    from .observations import load_observations
+
+    cols = [
+        "pmid",
+        "host_organism",
+        "source_species",
+        "mhc_species",
+        "is_chimeric",
+        "is_engineered_mhc",
+        "xenograft",
+    ]
+    df = load_observations(columns=cols)
+    df = df[df["is_chimeric"]]
+    out_columns = [
+        "host_organism",
+        "source_species",
+        "mhc_species",
+        "is_engineered_mhc",
+        "xenograft",
+        "n_rows",
+        "n_pmids",
+        "example_pmids",
+        "severity",
+    ]
+    if df.empty:
+        return pd.DataFrame(columns=out_columns)
+
+    rows: list[dict] = []
+    group_keys = [
+        "host_organism",
+        "source_species",
+        "mhc_species",
+        "is_engineered_mhc",
+        "xenograft",
+    ]
+    for key, grp in df.groupby(group_keys, dropna=False):
+        host_org, src_sp, mhc_sp, engineered, xeno = key
+        pmids = sorted({int(p) for p in grp["pmid"].dropna().unique()})
+        # ``review`` = chimeric with a populated host whose genus matches
+        # neither a clean engineered-MHC nor a native-MHC reading.
+        if host_org and not engineered and not xeno:
+            severity = "review"
+        else:
+            severity = "info"
+        rows.append(
+            {
+                "host_organism": host_org,
+                "source_species": src_sp,
+                "mhc_species": mhc_sp,
+                "is_engineered_mhc": bool(engineered),
+                "xenograft": bool(xeno),
+                "n_rows": len(grp),
+                "n_pmids": len(pmids),
+                "example_pmids": ";".join(str(p) for p in pmids[:5]),
+                "severity": severity,
+            }
+        )
+    return (
+        pd.DataFrame(rows, columns=out_columns)
+        .sort_values("n_rows", ascending=False)
+        .reset_index(drop=True)
+    )
+
+
 def cross_reference(mhc_class: str | None = None) -> pd.DataFrame:
     """Find allele/data mismatches between curation YAML and observations.
 

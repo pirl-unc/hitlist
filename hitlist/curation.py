@@ -393,6 +393,50 @@ def is_engineered_mhc(source_organism: str, mhc_species: str, host: str) -> bool
     return host_genus == src_genus and host_genus != mhc_genus
 
 
+@cache
+def is_xenograft(source_organism: str, host: str, mhc_species: str) -> bool:
+    """True iff the eluted cells are a different vertebrate genus than the host.
+
+    A xenograft decouples the **proteome species** (the cells the peptide was
+    sequenced from) from the **host species** the cells lived in at MS sampling
+    — e.g. a human or dog tumor grown in an NSG mouse. This is the host-axis
+    counterpart of :func:`is_engineered_mhc`.
+
+    The discriminator that separates a true xenograft from a *heterologous
+    antigen* study (a foreign protein presented by the host's own native
+    cells — e.g. bovine allergen on a human-MHC human cell) is the same as in
+    :func:`is_engineered_mhc`: the IEDB ``host`` field. In a xenograft the
+    grafted cells are NOT the host's own, so the displayed MHC is not the
+    host's native MHC (``host`` genus differs from both the proteome and the
+    MHC). In a heterologous-antigen study the cells are native (``host`` genus
+    matches the ``mhc_species`` genus) and only the antigen is foreign.
+
+    Returns ``False`` when any side normalizes to empty, any genus is outside
+    the MHC-bearing vertebrate whitelist (a viral / bacterial *antigen* source
+    on an animal host is ordinary infection biology, not a xenograft), the
+    proteome and host genera match (native cells / substrains), or the host
+    genus matches the MHC genus (heterologous antigen on native cells).
+
+    Cached on the (source, host, mhc) triple — same call shape and cardinality
+    as :func:`is_engineered_mhc`.
+    """
+    src_norm = normalize_species(source_organism)
+    host_norm = normalize_species(host)
+    mhc_norm = normalize_species(mhc_species)
+    if not src_norm or not host_norm or not mhc_norm:
+        return False
+    src_genus = src_norm.split()[0].lower()
+    host_genus = host_norm.split()[0].lower()
+    mhc_genus = mhc_norm.split()[0].lower()
+    return (
+        src_genus in _MHC_BEARING_HOST_GENERA
+        and host_genus in _MHC_BEARING_HOST_GENERA
+        and mhc_genus in _MHC_BEARING_HOST_GENERA
+        and src_genus != host_genus
+        and host_genus != mhc_genus
+    )
+
+
 # ── Non-peptide-presenting MHC molecules (#228) ──────────────────────────
 #
 # CD1, MR1, MIC, ULBP, RAET1, NKG2, and HFE are not peptide presenters.

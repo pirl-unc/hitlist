@@ -1039,3 +1039,143 @@ def test_load_observations_normalizes_categorical_mhc_restriction(tmp_path, monk
 
     out = load_observations()
     assert len(out) == 2
+
+
+# ── Multi-axis species columns + filters (#46) ───────────────────────────
+
+
+def _species_axis_fixture(tmp_path, monkeypatch):
+    """Write a tiny obs parquet spanning the chimeric/xenograft cases and
+    point ``observations_path`` at it. Columns mirror the real schema's
+    host / source_organism / mhc_species (the axis columns are derived)."""
+    import pandas as pd
+
+    df = pd.DataFrame(
+        {
+            # 0 native human; 1 HLA-tg rat (engineered MHC); 2 dog tumor in
+            # mouse (xenograft, not engineered); 3 SARS antigen on human
+            # (pathogen, not chimeric); 4 mouse substrain (not chimeric).
+            "peptide": ["AAAAAAAAA", "CCCCCCCCC", "DDDDDDDDD", "EEEEEEEEE", "FFFFFFFFF"],
+            "mhc_restriction": ["HLA-A*02:01"] * 5,
+            "mhc_class": ["I"] * 5,
+            "reference_iri": [f"ms-{i}" for i in range(5)],
+            "pmid": pd.array([10, 11, 12, 13, 14], dtype="Int64"),
+            "source": ["iedb"] * 5,
+            "is_binding_assay": [False] * 5,
+            "mhc_species": [
+                "Homo sapiens",
+                "Homo sapiens",
+                "Homo sapiens",
+                "Homo sapiens",
+                "Mus musculus",
+            ],
+            "source_organism": [
+                "Homo sapiens",
+                "Rattus norvegicus",
+                "Canis lupus familiaris",
+                "Severe acute respiratory syndrome coronavirus 2",
+                "Mus musculus",
+            ],
+            "host": [
+                "Homo sapiens (human)",
+                "Rattus norvegicus (brown rat)",
+                "Mus musculus (mouse)",
+                "Homo sapiens (human)",
+                "Mus musculus C57BL/6",
+            ],
+        }
+    )
+    path = tmp_path / "observations.parquet"
+    df.to_parquet(path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
+    return path
+
+
+def test_species_axis_derived_columns(tmp_path, monkeypatch):
+    """The derived axis columns are projectable and computed from the stored
+    host / source_organism / mhc_species (works on parquets without them)."""
+    _species_axis_fixture(tmp_path, monkeypatch)
+    df = load_observations(
+        columns=[
+            "peptide",
+            "host_organism",
+            "source_species",
+            "is_chimeric",
+            "is_engineered_mhc",
+            "xenograft",
+        ]
+    ).set_index("peptide")
+
+    # Normalized binomials, parentheticals/substrains stripped.
+    assert df.loc["AAAAAAAAA", "host_organism"] == "Homo sapiens"
+    assert df.loc["FFFFFFFFF", "host_organism"] == "Mus musculus"
+    # normalize_species canonicalizes the subspecies to the species binomial.
+    assert df.loc["DDDDDDDDD", "source_species"] == "Canis lupus"
+
+    # HLA-tg rat: chimeric + engineered MHC, not xenograft.
+    assert bool(df.loc["CCCCCCCCC", "is_chimeric"]) is True
+    assert bool(df.loc["CCCCCCCCC", "is_engineered_mhc"]) is True
+    assert bool(df.loc["CCCCCCCCC", "xenograft"]) is False
+
+    # Dog tumor in mouse: chimeric + xenograft, NOT engineered MHC.
+    assert bool(df.loc["DDDDDDDDD", "is_chimeric"]) is True
+    assert bool(df.loc["DDDDDDDDD", "xenograft"]) is True
+    assert bool(df.loc["DDDDDDDDD", "is_engineered_mhc"]) is False
+
+    # Native human + pathogen-on-human + mouse substrain: never chimeric.
+    for pep in ("AAAAAAAAA", "EEEEEEEEE", "FFFFFFFFF"):
+        assert bool(df.loc[pep, "is_chimeric"]) is False
+        assert bool(df.loc[pep, "xenograft"]) is False
+
+
+def test_exclude_chimeric_filter(tmp_path, monkeypatch):
+    _species_axis_fixture(tmp_path, monkeypatch)
+    kept = set(load_observations(exclude_chimeric=True, columns=["peptide"])["peptide"])
+    # The HLA-tg rat and dog-in-mouse rows are dropped; the rest survive.
+    assert kept == {"AAAAAAAAA", "EEEEEEEEE", "FFFFFFFFF"}
+
+
+def test_source_species_filter(tmp_path, monkeypatch):
+    """source_species filters on the PROTEOME species, independent of MHC."""
+    _species_axis_fixture(tmp_path, monkeypatch)
+    human = set(load_observations(source_species="Homo sapiens", columns=["peptide"])["peptide"])
+    assert human == {"AAAAAAAAA"}
+    canine = set(
+        load_observations(source_species="Canis lupus familiaris", columns=["peptide"])["peptide"]
+    )
+    assert canine == {"DDDDDDDDD"}
+
+
+def test_host_species_filter(tmp_path, monkeypatch):
+    """host_species filters on the HOST organism, distinguishing a native
+    human sample from a xenograft grown in a mouse."""
+    _species_axis_fixture(tmp_path, monkeypatch)
+    human_host = set(load_observations(host_species="Homo sapiens", columns=["peptide"])["peptide"])
+    assert human_host == {"AAAAAAAAA", "EEEEEEEEE"}
+    mouse_host = set(load_observations(host_species="Mus musculus", columns=["peptide"])["peptide"])
+    # Dog tumor grown in mouse + mouse substrain.
+    assert mouse_host == {"DDDDDDDDD", "FFFFFFFFF"}
+
+
+def test_species_axes_distinguish_three_axes(tmp_path, monkeypatch):
+    """The three axes are independent: a row can be human-MHC, dog-source,
+    mouse-host all at once (the dog-tumor-in-mouse case)."""
+    _species_axis_fixture(tmp_path, monkeypatch)
+    on_human_mhc = set(load_observations(species="Homo sapiens", columns=["peptide"])["peptide"])
+    from_human = set(
+        load_observations(source_species="Homo sapiens", columns=["peptide"])["peptide"]
+    )
+    in_human = set(load_observations(host_species="Homo sapiens", columns=["peptide"])["peptide"])
+    # The dog-tumor-in-mouse row is on human MHC but neither human-source nor
+    # human-host — the exact conflation #46 fixes.
+    assert "DDDDDDDDD" in on_human_mhc
+    assert "DDDDDDDDD" not in from_human
+    assert "DDDDDDDDD" not in in_human
+
+
+def test_axis_columns_not_attached_when_unrequested(tmp_path, monkeypatch):
+    """Axis columns must not leak into a default projection (no columns=)."""
+    _species_axis_fixture(tmp_path, monkeypatch)
+    df = load_observations()
+    for c in ("is_chimeric", "is_engineered_mhc", "xenograft", "host_organism", "source_species"):
+        assert c not in df.columns

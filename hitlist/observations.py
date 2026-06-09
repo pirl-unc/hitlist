@@ -98,6 +98,9 @@ def is_binding_built() -> bool:
 def load_observations(
     mhc_class: str | None = None,
     species: str | None = None,
+    source_species: str | list[str] | None = None,
+    host_species: str | list[str] | None = None,
+    exclude_chimeric: bool = False,
     source: str | None = None,
     mhc_restriction: str | list[str] | None = None,
     mhc_allele_in_set: str | list[str] | None = None,
@@ -124,7 +127,26 @@ def load_observations(
     mhc_class
         Filter to ``"I"``, ``"II"``, or ``"non classical"``.
     species
-        Filter by MHC species (e.g. ``"Homo sapiens"``).
+        Filter by **MHC** species (e.g. ``"Homo sapiens"``) — peptides on a
+        human MHC molecule, engineered or native. One of the three species
+        axes (#46) that the legacy single ``species`` flag conflated; pair
+        with ``source_species`` / ``host_species`` to disambiguate.
+    source_species
+        Filter by **proteome** species — peptides sequenced from a given
+        organism's proteins (``source_organism``), regardless of MHC. In a
+        chimeric system (e.g. dog tumor expressing human HLA) this is the dog,
+        while ``species`` is human. Accepts a string or list.
+    host_species
+        Filter by **host** species — the organism the cells/tissue lived in at
+        MS sampling (``host``). Distinguishes a native human sample from a
+        human-tumor xenograft grown in a mouse. Accepts a string or list.
+    exclude_chimeric
+        When True, drop rows where the source proteome and the MHC come from
+        different vertebrate-host genera (engineered-MHC / xenograft systems —
+        HLA-transgenic rats, allogeneic-HLA transfectants, NetH2pan training).
+        Use for high-confidence fully-isogenic training data. Default False.
+        See ``is_chimeric`` / ``is_engineered_mhc`` / ``xenograft`` (the
+        load-time-derived axis columns, projectable via ``columns=``).
     source
         Filter by data source (``"iedb"``, ``"cedar"``, ``"supplement"``).
     mhc_restriction
@@ -189,6 +211,9 @@ def load_observations(
         index_name="Observations",
         mhc_class=mhc_class,
         species=species,
+        source_species=source_species,
+        host_species=host_species,
+        exclude_chimeric=exclude_chimeric,
         source=source,
         mhc_restriction=mhc_restriction,
         mhc_allele_in_set=mhc_allele_in_set,
@@ -209,6 +234,9 @@ def load_observations(
 def load_ms_observations(
     mhc_class: str | None = None,
     species: str | None = None,
+    source_species: str | list[str] | None = None,
+    host_species: str | list[str] | None = None,
+    exclude_chimeric: bool = False,
     source: str | None = None,
     mhc_restriction: str | list[str] | None = None,
     mhc_allele_in_set: str | list[str] | None = None,
@@ -228,6 +256,9 @@ def load_ms_observations(
     return load_observations(
         mhc_class=mhc_class,
         species=species,
+        source_species=source_species,
+        host_species=host_species,
+        exclude_chimeric=exclude_chimeric,
         source=source,
         mhc_restriction=mhc_restriction,
         mhc_allele_in_set=mhc_allele_in_set,
@@ -248,6 +279,9 @@ def load_ms_observations(
 def load_binding(
     mhc_class: str | None = None,
     species: str | None = None,
+    source_species: str | list[str] | None = None,
+    host_species: str | list[str] | None = None,
+    exclude_chimeric: bool = False,
     source: str | None = None,
     mhc_restriction: str | list[str] | None = None,
     mhc_allele_in_set: str | list[str] | None = None,
@@ -278,6 +312,9 @@ def load_binding(
         index_name="Binding",
         mhc_class=mhc_class,
         species=species,
+        source_species=source_species,
+        host_species=host_species,
+        exclude_chimeric=exclude_chimeric,
         source=source,
         mhc_restriction=mhc_restriction,
         mhc_allele_in_set=mhc_allele_in_set,
@@ -298,6 +335,9 @@ def load_binding(
 def load_all_evidence(
     mhc_class: str | None = None,
     species: str | None = None,
+    source_species: str | list[str] | None = None,
+    host_species: str | list[str] | None = None,
+    exclude_chimeric: bool = False,
     source: str | None = None,
     mhc_restriction: str | list[str] | None = None,
     mhc_allele_in_set: str | list[str] | None = None,
@@ -334,6 +374,9 @@ def load_all_evidence(
     kwargs = {
         "mhc_class": mhc_class,
         "species": species,
+        "source_species": source_species,
+        "host_species": host_species,
+        "exclude_chimeric": exclude_chimeric,
         "source": source,
         "mhc_restriction": mhc_restriction,
         "mhc_allele_in_set": mhc_allele_in_set,
@@ -383,7 +426,80 @@ _DERIVED_COLUMN_DEPS: dict[str, tuple[str, ...]] = {
     "gene_ids": ("peptide",),
     "protein_ids": ("peptide",),
     "n_source_proteins": ("peptide",),
+    # Multi-axis species columns (#46). Derived at load time from the
+    # already-stored host / source_organism / mhc_species so they work on
+    # parquets built before this schema, mirroring is_non_peptide_ligand.
+    "host_organism": ("host",),
+    "source_species": ("source_organism",),
+    "is_chimeric": ("source_organism", "mhc_species"),
+    "is_engineered_mhc": ("source_organism", "mhc_species", "host"),
+    "xenograft": ("source_organism", "host", "mhc_species"),
 }
+
+#: The #46 species-axis columns derived together by ``_attach_species_axes``.
+_SPECIES_AXIS_COLUMNS: tuple[str, ...] = (
+    "host_organism",
+    "source_species",
+    "is_chimeric",
+    "is_engineered_mhc",
+    "xenograft",
+)
+
+
+def _attach_species_axes(df: pd.DataFrame) -> pd.DataFrame:
+    """Add the #46 multi-axis species columns to ``df`` in place.
+
+    Derives, when absent, the normalized ``host_organism`` / ``source_species``
+    binomials and the ``is_chimeric`` / ``is_engineered_mhc`` / ``xenograft``
+    booleans from the stored ``host`` / ``source_organism`` / ``mhc_species``
+    columns. Uses unique-value maps so the per-call cost stays sub-second on
+    the full index (only a few hundred distinct organism tuples). Columns that
+    already exist (e.g. on a future parquet that materializes them) are left
+    untouched. Missing input columns yield empty / ``False`` axis columns.
+    """
+    from .curation import (
+        is_chimeric_system,
+        is_engineered_mhc,
+        is_xenograft,
+        normalize_species,
+    )
+
+    host = df["host"].astype(str) if "host" in df.columns else pd.Series("", index=df.index)
+    src = (
+        df["source_organism"].astype(str)
+        if "source_organism" in df.columns
+        else pd.Series("", index=df.index)
+    )
+    mhc = (
+        df["mhc_species"].astype(str)
+        if "mhc_species" in df.columns
+        else pd.Series("", index=df.index)
+    )
+
+    if "host_organism" not in df.columns:
+        uniq = host.dropna().unique()
+        m = {h: normalize_species(h) for h in uniq}
+        df["host_organism"] = host.map(m).fillna("")
+    if "source_species" not in df.columns:
+        uniq = src.dropna().unique()
+        m = {s: normalize_species(s) for s in uniq}
+        df["source_species"] = src.map(m).fillna("")
+    if "is_chimeric" not in df.columns:
+        pairs = {(s, m) for s, m in zip(src, mhc)}
+        flag = {p: is_chimeric_system(*p) for p in pairs}
+        df["is_chimeric"] = [flag[(s, m)] for s, m in zip(src, mhc)]
+    if "is_engineered_mhc" not in df.columns:
+        triples = {(s, m, h) for s, m, h in zip(src, mhc, host)}
+        flag = {t: is_engineered_mhc(*t) for t in triples}
+        df["is_engineered_mhc"] = [flag[(s, m, h)] for s, m, h in zip(src, mhc, host)]
+    if "xenograft" not in df.columns:
+        triples = {(s, h, m) for s, h, m in zip(src, host, mhc)}
+        flag = {t: is_xenograft(*t) for t in triples}
+        df["xenograft"] = [flag[(s, h, m)] for s, h, m in zip(src, host, mhc)]
+
+    for col in ("is_chimeric", "is_engineered_mhc", "xenograft"):
+        df[col] = df[col].astype(bool)
+    return df
 
 
 def _load_peptide_index(
@@ -392,6 +508,9 @@ def _load_peptide_index(
     index_name: str,
     mhc_class: str | None,
     species: str | None,
+    source_species: str | list[str] | None = None,
+    host_species: str | list[str] | None = None,
+    exclude_chimeric: bool = False,
     source: str | None,
     mhc_restriction: str | list[str] | None,
     mhc_allele_in_set: str | list[str] | None,
@@ -551,6 +670,12 @@ def _load_peptide_index(
             for dep in _DERIVED_COLUMN_DEPS["is_non_peptide_ligand"]:
                 if dep not in kept:
                     kept.append(dep)
+        # The #46 species-axis filters need host / source_organism /
+        # mhc_species read even when the derived axis columns aren't projected.
+        if exclude_chimeric or source_species is not None or host_species is not None:
+            for col in ("host", "source_organism", "mhc_species"):
+                if col not in kept:
+                    kept.append(col)
         # Drop any requested column that isn't on this parquet (e.g.
         # ``cell_type`` / ``sample_match_type`` on a pre-v1.30.57 build).
         # Projecting a missing column into a *filtered* pyarrow scan raises
@@ -713,6 +838,35 @@ def _load_peptide_index(
             df["is_non_peptide_ligand"] = df["is_non_peptide_ligand"].astype(bool)
         if exclude_non_peptide_ligand:
             df = df[~df["is_non_peptide_ligand"]]
+
+    # ── Multi-axis species columns + filters (#46) ───────────────────────
+    # Disambiguate the three species axes that the legacy single ``species``
+    # (== mhc_species) filter conflated:
+    #   species=        peptides on a given MHC species  (existing)
+    #   source_species= peptides from a given proteome species
+    #   host_species=   peptides observed in a given host species
+    #   exclude_chimeric=True  drop engineered-MHC / xenograft rows
+    # Materialize the derived axis columns when filtering OR when the caller
+    # projected any of them; compute from host / source_organism / mhc_species
+    # so the filters work on parquets built before this schema.
+    want_axis_cols = columns is not None and any(c in columns for c in _SPECIES_AXIS_COLUMNS)
+    if (
+        exclude_chimeric or source_species is not None or host_species is not None or want_axis_cols
+    ) and len(df) > 0:
+        _attach_species_axes(df)
+        if source_species is not None:
+            wanted = {normalize_species(s) for s in _as_list(source_species)} - {""}
+            df = df[df["source_species"].isin(wanted)]
+        if host_species is not None:
+            wanted = {normalize_species(s) for s in _as_list(host_species)} - {""}
+            df = df[df["host_organism"].isin(wanted)]
+        if exclude_chimeric:
+            df = df[~df["is_chimeric"]]
+        # Drop axis columns the caller didn't explicitly request.
+        if columns is not None:
+            drop = [c for c in _SPECIES_AXIS_COLUMNS if c not in columns and c in df.columns]
+            if drop:
+                df = df.drop(columns=drop)
 
     # ── Auto-attach gene/protein columns from peptide_mappings (#238) ────
     # Post-v1.30.46 builds elide ``gene_names`` / ``gene_ids`` /

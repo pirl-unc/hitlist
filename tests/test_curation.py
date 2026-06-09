@@ -1529,6 +1529,61 @@ def test_is_chimeric_xenogeneic_animal_systems():
     assert is_chimeric_system("Mus musculus", "Equus caballus") is True
 
 
+# ── is_xenograft (#46) ───────────────────────────────────────────────────
+
+
+def test_is_xenograft_tumor_in_foreign_host():
+    """A human or dog tumor grown in a mouse host, displaying its own (non-host)
+    MHC, decouples proteome from host species — a xenograft."""
+    from hitlist.curation import is_xenograft
+
+    # human tumor in mouse, human (engineered) HLA on the grafted cells
+    assert is_xenograft("Homo sapiens", "Mus musculus (mouse)", "Homo sapiens") is True
+    # dog tumor in mouse, human HLA
+    assert is_xenograft("Canis lupus familiaris", "Mus musculus", "Homo sapiens") is True
+
+
+def test_is_xenograft_native_host_is_not_xenograft():
+    """Same-genus source/host (incl. substrains) is not a xenograft."""
+    from hitlist.curation import is_xenograft
+
+    assert is_xenograft("Homo sapiens", "Homo sapiens (human)", "Homo sapiens") is False
+    assert is_xenograft("Mus musculus", "Mus musculus C57BL/6", "Mus musculus") is False
+
+
+def test_is_xenograft_heterologous_antigen_on_native_cells_is_not_xenograft():
+    """A foreign antigen presented by the host's OWN native cells (host genus
+    == MHC genus) is a heterologous-antigen study, not a xenograft — e.g.
+    bovine allergen on a human-MHC human cell."""
+    from hitlist.curation import is_xenograft
+
+    assert is_xenograft("Bos taurus", "Homo sapiens (human)", "Homo sapiens") is False
+    assert is_xenograft("Equus caballus", "Homo sapiens", "Homo sapiens") is False
+
+
+def test_is_xenograft_pathogen_source_is_not_xenograft():
+    """A viral/bacterial antigen source on an animal host is ordinary
+    infection biology (the cells are the host's own), not a xenograft."""
+    from hitlist.curation import is_xenograft
+
+    assert (
+        is_xenograft(
+            "Severe acute respiratory syndrome coronavirus 2", "Homo sapiens", "Homo sapiens"
+        )
+        is False
+    )
+    assert is_xenograft("Mycobacterium tuberculosis", "Homo sapiens", "Homo sapiens") is False
+
+
+def test_is_xenograft_empty_is_false():
+    from hitlist.curation import is_xenograft
+
+    assert is_xenograft("", "Mus musculus", "Homo sapiens") is False
+    assert is_xenograft("Homo sapiens", "", "Homo sapiens") is False
+    assert is_xenograft("Homo sapiens", "Mus musculus", "") is False
+    assert is_xenograft("unidentified", "Mus musculus", "Homo sapiens") is False
+
+
 # ── is_engineered_mhc ────────────────────────────────────────────────────
 
 
