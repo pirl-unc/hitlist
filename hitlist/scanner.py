@@ -386,6 +386,19 @@ def scan(
                 except ValueError:
                     pmid = raw_pmid
 
+            # Per-PMID source-organism curation (#307): fill the source proteome
+            # for self-peptidome datasets IEDB left blank / "unidentified".  Only
+            # fills genuinely-unresolved rows, and only for PMIDs explicitly
+            # curated in pmid_overrides.yaml (NOT a blanket source=host rule).
+            if not src_org or src_org.strip().lower() == "unidentified":
+                from .curation import pmid_source_organism
+
+                curated_src, curated_spc = pmid_source_organism(pmid)
+                if curated_src:
+                    src_org = curated_src
+                    if not species or species.strip().lower() == "unidentified":
+                        species = curated_spc
+
             process_type = _safe_col(row, c["process_type"])
             disease = _safe_col(row, c["disease"])
             culture_condition = _safe_col(row, c["culture_condition"])

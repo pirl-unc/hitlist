@@ -131,6 +131,36 @@ def load_tissue_categories() -> dict[str, frozenset[str]]:
     }
 
 
+@cache
+def pmid_source_organism(pmid) -> tuple[str, str]:
+    """Per-PMID curated ``(source_organism, species)`` for the source proteome.
+
+    Some IEDB self-peptidome datasets leave the source-organism field blank or
+    ``"unidentified"`` even though the eluted peptides come from a known host's
+    own proteome (e.g. the Tasmanian-devil B2M-IP immunopeptidome, the HLA-B27
+    transgenic-rat peptidome). A ``source_organism:`` key on the PMID's entry in
+    ``pmid_overrides.yaml`` curates that PER PAPER — the scanner fills it in only
+    where the row's value is unresolved (#307).  This is explicit curation, NOT
+    a blanket "source = host" heuristic: random-peptide-library refolding assays
+    (pig SLA-I, possum) deliberately get NO entry, so their synthetic source
+    stays blank rather than being mislabeled as the host proteome.
+
+    Returns ``("", "")`` when the PMID has no entry or no ``source_organism``.
+    """
+    if not pmid:
+        return "", ""
+    try:
+        key = int(pmid)
+    except (TypeError, ValueError):
+        return "", ""
+    entry = load_pmid_overrides().get(key)
+    if not entry:
+        return "", ""
+    src = str(entry.get("source_organism", "") or "")
+    spc = str(entry.get("species", "") or "") or src
+    return src, spc
+
+
 # ── Cached mhcgnomes parse ─────────────────────────────────────────────────
 
 
