@@ -94,7 +94,15 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
         defaults = entry.get("defaults", {})
 
         if not csv_path.exists():
-            continue
+            # Large supplementary CSVs are externalized from the wheel (#303);
+            # fetch them on demand via datacache. Files that are neither packaged
+            # nor externalized are genuinely absent — skip as before.
+            from .downloads import EXTERNAL_DATA_ASSETS, fetch_data_asset
+
+            if entry["file"] in EXTERNAL_DATA_ASSETS:
+                csv_path = fetch_data_asset(entry["file"])
+            else:
+                continue
 
         df = pd.read_csv(csv_path, dtype=str).fillna("")
         if "peptide" not in df.columns:

@@ -1,2 +1,11 @@
 include LICENSE
 include README.md
+
+# Large paper-derived data files (#303) are fetched on demand via datacache,
+# not shipped in the sdist (they blew the PyPI project size quota).  Kept in
+# git for development; hosted on the GitHub "data-assets-v1" release.
+exclude hitlist/data/bulk_proteomics/bekker_jensen_2017_peptides.csv.gz
+exclude hitlist/data/bulk_proteomics/bekker_jensen_2017_protein_abundance.csv.gz
+exclude hitlist/data/bulk_proteomics/ccle_nusinow_2020.csv.gz
+exclude hitlist/data/supplementary/strazar_2023_hla2.csv
+exclude hitlist/data/supplementary/abelin_2019_maptac_class2.csv

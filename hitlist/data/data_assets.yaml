@@ -1,0 +1,137 @@
+# Registry of important data files mirrored to the GitHub "data-assets-v1"
+# release for backup + high availability (#303). Fetched on demand via datacache
+# (hitlist.downloads.fetch_data_asset). Files with bundled: false are excluded
+# from the PyPI wheel/sdist and ALWAYS fetched; bundled: true ship in the wheel
+# for out-of-box use and are mirrored here only for backup / `data fetch-all`.
+base_url: https://github.com/pirl-unc/hitlist/releases/download/data-assets-v1
+assets:
+  - filename: bekker_jensen_2017_peptides.csv.gz
+    sha256: 3ec65dd05e8ec58c3293e0fb5720570197a8b152cd14778130bae4224106e3d3
+    size_bytes: 35074080
+    bundled: false
+    source: 'Bekker-Jensen et al. 2017, Cell Syst — deep HeLa proteome'
+  - filename: bekker_jensen_2017_protein_abundance.csv.gz
+    sha256: 17628f1a9c3ed5e3ee1ad7aab4480008000a6beb2c042928f3fbdf699366bc45
+    size_bytes: 4410669
+    bundled: false
+    source: 'Bekker-Jensen et al. 2017, Cell Syst — deep HeLa proteome'
+  - filename: ccle_nusinow_2020.csv.gz
+    sha256: 1cd9bdd7b40e1a22593c0045f5ba1d785004b64943c4845d4311bc44e7f97d82
+    size_bytes: 1671535
+    bundled: false
+    source: 'Nusinow et al. 2020, Cell — CCLE proteomics'
+  - filename: gm12878_encode_rnaseq_tpm.csv.gz
+    sha256: b3d605f3426d283ecf166bd6a38006dc40d4d3aa9c4050c40f7f2101ff60d8ab
+    size_bytes: 271557
+    bundled: true
+    source: 'ENCODE GM12878 lymphoblastoid RNA-seq (TPM)'
+  - filename: sarkizova_2020_patient_cohort.csv
+    sha256: f37af217074c08f23a9521c791bba5230a4cf849bf2871bfc20bed1aaaef0729
+    size_bytes: 1073141
+    bundled: true
+    source: 'Sarkizova et al. 2020, Nat Biotechnol — per-peptide patient attribution'
+  - filename: abelin_2019_dr_tissue.csv
+    sha256: f95bb24097fc26a3272b3fb9942ae7dc8e4800b5a6cea2d9a6d92530d33b073c
+    size_bytes: 210368
+    bundled: true
+    source: 'Abelin et al. 2019, Immunity — MAPTAC immunopeptidome'
+  - filename: abelin_2019_maptac_class1.csv
+    sha256: 74ec46e105ae406d89971fe2c87d3e03b36c8f650f8d78695425dd467bca9c42
+    size_bytes: 246822
+    bundled: true
+    source: 'Abelin et al. 2019, Immunity — MAPTAC immunopeptidome'
+  - filename: abelin_2019_maptac_class2.csv
+    sha256: a9b6454f05c24c11113bde92d35f3222d60eb0746ef8e6ac34ed2b0b6daa1c47
+    size_bytes: 1638237
+    bundled: false
+    source: 'Abelin et al. 2019, Immunity — MAPTAC immunopeptidome'
+  - filename: gomez_zepeda_2024_hela.csv
+    sha256: 56ea133ccd210f4267b366756d2693279349b962b95087e787f2c00cdc8f6709
+    size_bytes: 261764
+    bundled: true
+    source: 'Gomez-Zepeda et al. 2024 — immunopeptidome'
+  - filename: gomez_zepeda_2024_jy.csv
+    sha256: 9eecfa2a8deeb75dc504caecfe659fb8cbbb58625180046ab2a68782d7cfa8b2
+    size_bytes: 577082
+    bundled: true
+    source: 'Gomez-Zepeda et al. 2024 — immunopeptidome'
+  - filename: gomez_zepeda_2024_plasma.csv
+    sha256: 133fa549b65cd962a10648e72c4185dd5be1e2706b1f6388067d7ffbc6048718
+    size_bytes: 33847
+    bundled: true
+    source: 'Gomez-Zepeda et al. 2024 — immunopeptidome'
+  - filename: gomez_zepeda_2024_raji.csv
+    sha256: 6e9b2d322aec33ff69a20050c842ce97111521576d0b012c206ec5507110c672
+    size_bytes: 668528
+    bundled: true
+    source: 'Gomez-Zepeda et al. 2024 — immunopeptidome'
+  - filename: gomez_zepeda_2024_skmel37.csv
+    sha256: c2d04f556f1bc39cee8856fc753a03739b5baf344e478cd973c7339496a1d207
+    size_bytes: 286030
+    bundled: true
+    source: 'Gomez-Zepeda et al. 2024 — immunopeptidome'
+  - filename: shapiro_2025_hap1_b2m_ko.csv
+    sha256: 5d32d27ba14100925f3647644e6cb8c9ee2024e2dd4512b5e03b685c451c4364
+    size_bytes: 7650
+    bundled: true
+    source: 'Shapiro et al. 2025 — HAP1 antigen-processing KO immunopeptidome'
+  - filename: shapiro_2025_hap1_calr_ko.csv
+    sha256: 6246a14486388806dc20f0bc7150be19653498f1fedffb6e7e45a51e4a4a0a69
+    size_bytes: 232191
+    bundled: true
+    source: 'Shapiro et al. 2025 — HAP1 antigen-processing KO immunopeptidome'
+  - filename: shapiro_2025_hap1_canx_ko.csv
+    sha256: 8672e8c0d7bc0fd637a22a5b9d19f5b3020ff5d9c5d4f8fa1eecfbe36186d96b
+    size_bytes: 217182
+    bundled: true
+    source: 'Shapiro et al. 2025 — HAP1 antigen-processing KO immunopeptidome'
+  - filename: shapiro_2025_hap1_erap1_ko.csv
+    sha256: 596a10f1eadeee71d2c24f4fa1b512862775672b2bc4999b5a726624d1d8a170
+    size_bytes: 125926
+    bundled: true
+    source: 'Shapiro et al. 2025 — HAP1 antigen-processing KO immunopeptidome'
+  - filename: shapiro_2025_hap1_ganab_ko.csv
+    sha256: 5b6cec7cafafe17e823ca9789d5859ac2877f9120fdbe18c7621a330605bf2d2
+    size_bytes: 151604
+    bundled: true
+    source: 'Shapiro et al. 2025 — HAP1 antigen-processing KO immunopeptidome'
+  - filename: shapiro_2025_hap1_irf2_ko.csv
+    sha256: 91836f74a6868cac49b5638add348792d1920521b2e701be66ced1d5adfbdab5
+    size_bytes: 70407
+    bundled: true
+    source: 'Shapiro et al. 2025 — HAP1 antigen-processing KO immunopeptidome'
+  - filename: shapiro_2025_hap1_pdia3_ko.csv
+    sha256: a24382e88da5dc06c877a5e1027db6ab26a765911840ffc173613fc2560ab608
+    size_bytes: 95826
+    bundled: true
+    source: 'Shapiro et al. 2025 — HAP1 antigen-processing KO immunopeptidome'
+  - filename: shapiro_2025_hap1_sppl3_ko.csv
+    sha256: 38d66d6ca3dd12f1e13e0e448cf06cac6b9c229ccf2682f440fe8a8fb74da4a8
+    size_bytes: 199225
+    bundled: true
+    source: 'Shapiro et al. 2025 — HAP1 antigen-processing KO immunopeptidome'
+  - filename: shapiro_2025_hap1_tap1_ko.csv
+    sha256: babd57cb0fad48365369bbcb64f6c4fcb8a372f7bce6fd1e08e9d987c0e5bb38
+    size_bytes: 120243
+    bundled: true
+    source: 'Shapiro et al. 2025 — HAP1 antigen-processing KO immunopeptidome'
+  - filename: shapiro_2025_hap1_tap2_ko.csv
+    sha256: d0163b980196dd24fbb6f8a24d026d410f049a2cd9bf7e572c97d1896ed33867
+    size_bytes: 42720
+    bundled: true
+    source: 'Shapiro et al. 2025 — HAP1 antigen-processing KO immunopeptidome'
+  - filename: shapiro_2025_hap1_tapbp_ko.csv
+    sha256: 86773579291c8fa0d51e8b5b0dbc57a2bf07646695f2eb21449f27bdcc154766
+    size_bytes: 59337
+    bundled: true
+    source: 'Shapiro et al. 2025 — HAP1 antigen-processing KO immunopeptidome'
+  - filename: shapiro_2025_hap1_wildtype.csv
+    sha256: ee2fe18ad0b10382d400670e3d2215c71714aad9234ac95b89bb9410055bdafb
+    size_bytes: 250548
+    bundled: true
+    source: 'Shapiro et al. 2025 — HAP1 antigen-processing KO immunopeptidome'
+  - filename: strazar_2023_hla2.csv
+    sha256: 3dc547ae7cd4cfd735794e30c52430bb33f52d3960644d24bf07e44d6496e085
+    size_bytes: 13932615
+    bundled: false
+    source: 'Strazar et al. 2023, Immunity — HLA-II immunopeptidome'
