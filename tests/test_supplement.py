@@ -308,3 +308,25 @@ def test_supplement_mhc_species_fallback_pattern_handles_categorical():
         record["mhc_species"].astype("string").fillna("").replace("", host_species)
     )
     assert list(record["mhc_species"]) == ["Homo sapiens", "Homo sapiens"]
+
+
+def test_every_supplementary_entry_curates_species():
+    """Per-paper species curation guard (#46 / pmhc warning): every
+    supplementary entry must declare BOTH source_organism and species in its
+    defaults, so the proteome species is never silently assumed. A new entry
+    that forgets (or that is genuinely non-human and must say so) fails here."""
+    import yaml
+
+    from hitlist.supplement import _MANIFEST_PATH
+
+    entries = yaml.safe_load(_MANIFEST_PATH.read_text())
+    for e in entries:
+        defaults = e.get("defaults", {})
+        assert defaults.get("source_organism"), (
+            f"supplementary entry {e.get('file')!r} (PMID {e.get('pmid')}) is missing "
+            "a curated 'source_organism' in defaults"
+        )
+        assert defaults.get("species"), (
+            f"supplementary entry {e.get('file')!r} (PMID {e.get('pmid')}) is missing "
+            "a curated 'species' in defaults"
+        )
