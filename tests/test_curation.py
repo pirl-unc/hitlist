@@ -199,6 +199,39 @@ def test_pmid_23739916_bls_lcl_not_cancer():
     assert flags["src_ebv_lcl"] is True
 
 
+def test_pmid_23328677_raji_is_cancer_not_ebv_lcl():
+    """#33c/#36 batch 12: Raji is an EBV-genome+ but MALIGNANT Burkitt lymphoma
+    (CVCL_0511). The cell_line override must keep it src_cancer and must NOT
+    force-fit it to ebv_lcl (it is not an EBV-immortalized normal B-LCL)."""
+    flags = classify_ms_row(
+        "No immunization", "", "Cell Line / Clone", "Blood", "B cell", pmid=23328677
+    )
+    assert flags["src_cancer"] is True
+    assert flags["src_ebv_lcl"] is False
+    assert flags["src_cell_line"] is True
+
+
+def test_pmid_29774024_t2_is_cancer_not_ebv_lcl():
+    """#33c/#36 batch 12: T2 (CVCL_2211) is a cancer-derived TAP-deficient
+    T-ALL x B-LCL hybrid; cell_line override keeps src_cancer, not ebv_lcl."""
+    flags = classify_ms_row(
+        "No immunization", "", "Cell Line / Clone", "Blood", "T2 cells-Lymphoblast", pmid=29774024
+    )
+    assert flags["src_cancer"] is True
+    assert flags["src_ebv_lcl"] is False
+    assert flags["src_cell_line"] is True
+
+
+def test_pmid_23555621_t2_is_cancer_not_ebv_lcl():
+    """#33c/#36 batch 12: same T2 hybrid line, class I (A*02:01 / B*27:05)."""
+    flags = classify_ms_row(
+        "No immunization", "", "Cell Line / Clone", "Blood", "T2 cells-Lymphoblast", pmid=23555621
+    )
+    assert flags["src_cancer"] is True
+    assert flags["src_ebv_lcl"] is False
+    assert flags["src_cell_line"] is True
+
+
 def test_pmid_override_adjacent():
     flags = classify_ms_row("No immunization", "healthy", "Direct Ex Vivo", "Lung", pmid=35051231)
     assert flags["src_adjacent_to_tumor"] is True
