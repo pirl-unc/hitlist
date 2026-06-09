@@ -6552,13 +6552,16 @@
     title: "Human Leukocyte Antigen (HLA)-DRB1*15:01 and HLA-DRB5*01:01 Present Complementary Peptide Repertoires"
     override: ebv_lcl
     note: >
-      HLA class II self-peptide repertoires eluted from HLA-DR transfectants of
-      the BLS (Bare Lymphocyte Syndrome) line — an EBV-transformed, MHC-class-II-
-      null B-lymphoblastoid line (Cellosaurus BLS-1 CVCL_9W20, "Transformed cell
-      line", EBV-transformed; RFXANK-deficient).  BLS-DR2b carries DRB1*15:01,
-      BLS-DR2a carries DRB5*01:01 on the same EBV-LCL parent, so the whole study
-      is EBV-LCL — not cancer.  IEDB tagged 697 rows "B cell" / "Cell Line /
-      Clone", which otherwise default to src_cancer.  #33c/#36.
+      HLA class II self-peptide repertoires from two EBV-LCL systems (875 IEDB
+      rows total).  (1) 697 rows eluted from HLA-DR transfectants of the BLS
+      (Bare Lymphocyte Syndrome) line — an EBV-transformed, MHC-class-II-null
+      B-lymphoblastoid line (Cellosaurus BLS-1 CVCL_9W20, EBV-transformed;
+      RFXANK-deficient); BLS-DR2b carries DRB1*15:01, BLS-DR2a carries DRB5*01:01
+      on the same EBV-LCL parent.  (2) 175 rows eluted from the MGAR wild-type
+      DR15 lymphoblastoid line (Cellosaurus MGAR CVCL_E775, EBV-transformed;
+      DRB1*15:01 + DRB5*01:01 homozygous), tagged "HLA-DR2" by IEDB.  All three
+      arms are EBV-LCLs — not cancer.  IEDB tagged the rows "B cell" / "Cell Line
+      / Clone", which otherwise default to src_cancer.  #33c/#36.
     ms_samples:
       - sample_label: "BLS-DR2b (DRB1*15:01)"
         n_samples: 1
@@ -6572,6 +6575,12 @@
         condition: unperturbed
         mhc_class: "II"
         mhc: "HLA-DRB5*01:01"
+      - sample_label: "MGAR (DR15 EBV-LCL, wild-type)"
+        n_samples: 1
+        source: "MGAR DR15-homozygous EBV-transformed B-lymphoblastoid line"
+        condition: unperturbed
+        mhc_class: "II"
+        mhc: "HLA-DRB1*15:01 HLA-DRB5*01:01"
   - pmid: 21654843
     study_label: "Muixí 2011 — DR8-homozygous EBV-LCL class-II ligandome"
     title: "The peptide-binding motif of HLA-DR8 shares important structural features with other type 1 diabetes-associated alleles"
@@ -6598,23 +6607,27 @@
   # confirmed EBV-transformed B-lymphoblastoid lines (not tumors).  Paper-
   # verified (Methods).  ebv_lcl override clears the false cancer flag.
   - pmid: 27503676
-    study_label: "Marcilla 2017 — Arg-(di)methylated HLA-I peptides on JY (HLA-B*07)"
+    study_label: "Marcilla 2017 — Arg-(di)methylated HLA-I peptides on GR EBV-LCL (HLA-B*07)"
     title: "Arginine (Di)methylated Human Leukocyte Antigen Class I Peptides Are Favorably Presented by HLA-B*07"
     override: ebv_lcl
     note: >
-      HLA class I peptides (including mono-/di-methyl-arginine ligands) eluted
-      from JY, the canonical EBV-transformed B-lymphoblastoid line homozygous at
-      every class I locus (HLA-A*02:01, HLA-B*07:02, HLA-C*07:02; Cellosaurus JY
-      CVCL_0108, EBV-transformed).  JY is already curated as ebv_lcl elsewhere in
-      this corpus.  IEDB tagged 125 rows "B cell" / "Cell Line / Clone", which
-      otherwise default to src_cancer.  JY is an EBV-LCL, not a tumor.  #33c/#36.
+      HLA class I peptides (including mono-/di-methyl-arginine ligands) eluted by
+      pan-class-I (W6/32) immunoprecipitation from GR, an EBV-transformed
+      B-lymphoblastoid line (Cellosaurus GR CVCL_C5VZ, EBV-transformed; the entry
+      cross-references this study's PRIDE deposit PXD004233).  GR is HLA-typed
+      A*01:01, A*03:01, B*07:02, B*27:05, C*02:02, C*07:02 — IEDB's assay_comment
+      records exactly this typing, and the methyl-Arg ligands map preferentially
+      to the B*07:02 allele.  IEDB tagged the 125 rows "B cell" / "Cell Line /
+      Clone", which otherwise default to src_cancer.  GR is an EBV-LCL, not a
+      tumor.  (Earlier draft mis-named this line "JY"; corrected to GR per the
+      PRIDE/Cellosaurus typing.)  #33c/#36.
     ms_samples:
-      - sample_label: "JY (EBV-LCL)"
+      - sample_label: "GR (EBV-LCL)"
         n_samples: 1
-        source: "JY EBV-transformed B-lymphoblastoid line (class-I homozygous)"
+        source: "GR EBV-transformed B-lymphoblastoid line (W6/32 pan-class-I IP)"
         condition: unperturbed
         mhc_class: "I"
-        mhc: "HLA-A*02:01 HLA-B*07:02 HLA-C*07:02"
+        mhc: "HLA-A*01:01 HLA-A*03:01 HLA-B*07:02 HLA-B*27:05 HLA-C*02:02 HLA-C*07:02"
   - pmid: 18512783
     study_label: "Alvarez 2008 — BEN-DR10 EBV-LCL class-II ligandome (DRB1*10:01)"
     title: "The rheumatoid arthritis-associated allele HLA-DR10 (DRB1*1001) shares part of its repertoire with HLA-DR1 (DRB1*0101) and HLA-DR4 (DRB*0401)"
