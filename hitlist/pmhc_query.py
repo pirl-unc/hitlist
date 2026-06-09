@@ -1206,10 +1206,9 @@ def format_tissue_table(df: pd.DataFrame, *, cell_group_label: str = "cell type"
                 if i > 0:
                     out.append("  │  " if head[i] == "n_unique_peptides" else "  ")
                 out.append(cell)
-            return "".join(out)
+            return "    " + "".join(out)
 
-        rule = "─" * len(_line(head))
-        return "\n".join([_line(head), rule, *(_line(r) for r in rows)])
+        return "\n".join([_line(head), *(_line(r) for r in rows)])
 
     blocks: list[str] = []
     for section, key in _SOURCE_SECTIONS:
@@ -1217,7 +1216,7 @@ def format_tissue_table(df: pd.DataFrame, *, cell_group_label: str = "cell type"
         if sub.empty:
             continue
         label = "tissue" if key == "source_tissue" else cell_group_label
-        blocks.append(f"━━ {section} ━━\n{_render(label, sub)}")
+        blocks.append(f"▌ {section.upper()}\n{_render(label, sub)}")
     return "\n\n".join(blocks) if blocks else "(no matching observations)"
 
 
