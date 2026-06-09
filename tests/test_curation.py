@@ -311,6 +311,57 @@ def test_pmid_30078552_primary_islet_arm_is_healthy():
     assert islet["src_healthy_tissue"] is True
 
 
+def test_pmid_22299025_tcell_clones_not_cancer():
+    """#36 mixed-cohort split: Costantino 2012 activated CD4+ T-cell clones are
+    not a tumor (noncancer_cell_line); the B-LCL arm stays ebv_lcl."""
+    tcell = classify_ms_row(
+        "No immunization", "", "Cell Line / Clone", "Blood", "T cell CD4+", pmid=22299025
+    )
+    assert tcell["src_cancer"] is False
+    assert tcell["src_cell_line"] is True
+    blcl = classify_ms_row(
+        "No immunization",
+        "",
+        "Cell Line / Clone (EBV transformed, B-LCL)",
+        "Blood",
+        "B cell",
+        pmid=22299025,
+    )
+    assert blcl["src_cancer"] is False
+    assert blcl["src_ebv_lcl"] is True
+
+
+def test_pmid_33731925_exvivo_melanoma_is_cancer_not_healthy():
+    """#36 mixed-cohort split: Kalaora 2021 ex-vivo melanoma metastases carry a
+    blank IEDB disease field and default to healthy_tissue — a FALSE safety
+    signal. The cancer_patient override flips them to src_cancer. The APC arm
+    routes to activated_apc; the EBV-LCL arm stays ebv_lcl."""
+    tumor = classify_ms_row(
+        "No immunization", "", "Direct Ex Vivo", "Skin", "Melanocyte", pmid=33731925
+    )
+    assert tumor["src_cancer"] is True
+    assert tumor["src_healthy_tissue"] is False
+    apc = classify_ms_row(
+        "No immunization", "", "Cell Line / Clone", "Blood", "Macrophage", pmid=33731925
+    )
+    assert apc["src_activated_apc"] is True
+    assert apc["src_cancer"] is False
+
+
+def test_pmid_31291378_aml_lines_tagged_cell_line():
+    """#36 mixed-cohort split: Narayan 2019 AML — primary blasts (cancer_patient)
+    vs named leukemia lines (cell_line); all stay src_cancer (no flag flips)."""
+    line = classify_ms_row(
+        "No immunization", "", "Cell Line / Clone", "Blood", "MV411-Myeloblast", pmid=31291378
+    )
+    assert line["src_cancer"] is True
+    assert line["src_cell_line"] is True
+    blasts = classify_ms_row(
+        "No immunization", "", "Direct Ex Vivo", "Blood", "PBMC", pmid=31291378
+    )
+    assert blasts["src_cancer"] is True
+
+
 def test_pmid_override_adjacent():
     flags = classify_ms_row("No immunization", "healthy", "Direct Ex Vivo", "Lung", pmid=35051231)
     assert flags["src_adjacent_to_tumor"] is True

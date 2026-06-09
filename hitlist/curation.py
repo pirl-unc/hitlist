@@ -31,9 +31,12 @@ Source categories (mutually exclusive priority order)::
                         (sex-stratified: a safety signal only in male patients)
     ebv_lcl             EBV-transformed B-cell lines
     cell_line           Other cell lines (tumor / malignant-derived)
-    noncancer_cell_line Non-malignant immortalized lines (hTERT / SV40-LT /
-                        otherwise engineered from normal cells — e.g. the ECN90
-                        beta-cell line). A cell line, but NOT cancer.
+    noncancer_cell_line Non-malignant cell lines / clones derived from normal
+                        cells — immortalized (hTERT / SV40-LT / engineered, e.g.
+                        the ECN90 beta-cell line) or in-vitro-expanded primary
+                        clones (e.g. activated CD4+ T-cell clones). IEDB tags
+                        these "Cell Line / Clone"; they are a line/clone but NOT
+                        cancer.
 """
 
 from __future__ import annotations
