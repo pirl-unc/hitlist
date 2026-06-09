@@ -30,7 +30,10 @@ Source categories (mutually exclusive priority order)::
     healthy_reproductive_male Direct ex vivo male reproductive tract
                         (sex-stratified: a safety signal only in male patients)
     ebv_lcl             EBV-transformed B-cell lines
-    cell_line           Other cell lines
+    cell_line           Other cell lines (tumor / malignant-derived)
+    noncancer_cell_line Non-malignant immortalized lines (hTERT / SV40-LT /
+                        otherwise engineered from normal cells — e.g. the ECN90
+                        beta-cell line). A cell line, but NOT cancer.
 """
 
 from __future__ import annotations
@@ -1504,6 +1507,15 @@ def classify_ms_row(
         is_cancer = not is_ebv_lcl  # EBV-LCLs are not cancer
         is_adjacent = False
         is_activated_apc = False
+    elif effective_override == "noncancer_cell_line":
+        # Non-malignant immortalized line (hTERT / SV40-LT / engineered from
+        # normal cells). A cell line, but not a tumor — so src_cell_line stays
+        # True while src_cancer is forced False. Force is_cell_line even when
+        # IEDB's culture_condition is missing/wrong (same as ebv_lcl).
+        is_cancer = False
+        is_adjacent = False
+        is_activated_apc = False
+        is_cell_line = True
     elif effective_override == "ebv_lcl":
         is_cancer = False
         is_adjacent = False
