@@ -610,6 +610,12 @@ _TISSUE_ABBREV: dict[str, str] = {
     "Gastrointestinal Tract": "GI tract",
 }
 
+#: source_tissue values too vague to use as a cell-line fallback label (lower-cased;
+#: ``""`` already became ``"(unspecified)"`` upstream).
+_UNINFORMATIVE_TISSUES: frozenset[str] = frozenset(
+    {"", "(unspecified)", "other", "unknown", "n/a", "na", "not determined", "not applicable"}
+)
+
 
 #: --by-tissue sections, in display order, with the column each groups by.
 #: Healthy / cancer primary material groups by anatomical ``source_tissue``;
@@ -720,12 +726,27 @@ def tissue_distribution(
         type_map[raw] = parsed.cell_type or ""
         line_map[raw] = parsed.cell_line_name or ""
     ebv = _flag("src_ebv_lcl")
+    # When the cell TYPE is unknown (IEDB logged "Other"/blank) but the row still
+    # records a real source TISSUE, fall back to the tissue name (e.g. "Skin")
+    # rather than collapsing every such line into one opaque "(unspecified type)"
+    # bucket — this keeps heterogeneous patient-derived cohorts (e.g. one study's
+    # skin + ovary tumor lines) split by what we do know.  The section banner
+    # ("▌ CANCER CELL LINES") already says these are lines, so no suffix is
+    # needed.  Only fires for genuinely informative tissues.
+    tissue_str = df["source_tissue"].astype(str)
+    informative_tissue = ~tissue_str.str.strip().str.lower().isin(_UNINFORMATIVE_TISSUES)
+    tissue_fallback = tissue_str
     if expand_lines:
         cell_group = cn.map(line_map)
-        cell_group = cell_group.mask((cell_group.str.strip() == "") & ebv, "EBV-LCL (unnamed)")
+        empty = cell_group.str.strip() == ""
+        cell_group = cell_group.mask(empty & ebv, "EBV-LCL (unnamed)")
+        empty = cell_group.str.strip() == ""
+        cell_group = cell_group.mask(empty & informative_tissue, tissue_fallback)
         cell_group = cell_group.replace("", "(unnamed line)")
     else:
         cell_group = cn.map(type_map)
+        empty = cell_group.str.strip() == ""
+        cell_group = cell_group.mask(empty & ~ebv & informative_tissue, tissue_fallback)
         cell_group = cell_group.where(cell_group.str.strip().ne(""), "(unspecified type)")
         cell_group = cell_group.mask(ebv, "EBV-LCL")
     df["cell_group"] = cell_group
@@ -1176,28 +1197,36 @@ def _species_sort_key(species: str) -> str:
     return f"5:{species}"
 
 
-def format_tissue_table(df: pd.DataFrame, *, cell_group_label: str = "cell type") -> str:
+def format_tissue_table(df: pd.DataFrame) -> str:
     """Render a sectioned :func:`tissue_distribution` frame as text.
 
     One block per section (healthy tissues / cancer tissues / cancer cell lines
     / non-cancer cell lines), each an aligned table with the group column
     left-justified and a vertical rule before the ``n_unique_peptides`` /
-    ``n_references`` summaries.  Empty sections are omitted.  ``cell_group_label``
-    names the cell-line sections' group column (``"cell type"`` by default,
-    ``"cell line"`` when the caller grouped by individual line).
+    ``n_references`` summaries.  Empty sections are omitted.  The group column
+    carries no header word — the section banner (``▌ CANCER CELL LINES`` …)
+    already names what each row is.
     """
     if df is None or df.empty:
         return "(no matching observations)"
 
     num_cols = ["n_observations", "n_unique_peptides", "n_references"]
 
-    def _render(label: str, sub: pd.DataFrame) -> str:
-        head = [label, *num_cols]
+    # Column widths are computed ACROSS ALL sections so every block lines up:
+    # the group column (and each numeric column) is the same width in every
+    # table, regardless of which section's values are widest.  The group column
+    # has no header label, so its width is just the widest group value.
+    group_strs = [str(g) for g in df["group"]]
+    first_w = max(len(s) for s in group_strs)
+    num_w = {c: max(len(c), *(len(str(v)) for v in df[c])) for c in num_cols}
+    widths = [first_w, *(num_w[c] for c in num_cols)]
+
+    def _render(sub: pd.DataFrame) -> str:
+        head = ["", *num_cols]
         rows = [
             [str(g), *(str(v) for v in r)]
             for g, *r in sub[["group", *num_cols]].itertuples(index=False)
         ]
-        widths = [max(len(head[i]), *(len(row[i]) for row in rows)) for i in range(len(head))]
 
         def _line(vals: list[str]) -> str:
             out: list[str] = []
@@ -1211,12 +1240,11 @@ def format_tissue_table(df: pd.DataFrame, *, cell_group_label: str = "cell type"
         return "\n".join([_line(head), *(_line(r) for r in rows)])
 
     blocks: list[str] = []
-    for section, key in _SOURCE_SECTIONS:
+    for section, _key in _SOURCE_SECTIONS:
         sub = df[df["section"] == section]
         if sub.empty:
             continue
-        label = "tissue" if key == "source_tissue" else cell_group_label
-        blocks.append(f"▌ {section.upper()}\n{_render(label, sub)}")
+        blocks.append(f"▌ {section.upper()}\n{_render(sub)}")
     return "\n\n".join(blocks) if blocks else "(no matching observations)"
 
 
