@@ -33,6 +33,32 @@ import pandas as pd
 
 from .genes import resolve_gene_query
 
+#: Named source-context filters for ``--source-context`` / ``query(source_context=)``.
+#: Each maps a context name to the ``src_*`` classification columns on
+#: observations.parquet; a row matches the context if ANY of its columns is True.
+#: The classification is the curated source provenance of the eluting material
+#: (see :func:`hitlist.curation.classify_ms_row`), independent of the MHC species.
+SOURCE_CONTEXTS: dict[str, tuple[str, ...]] = {
+    "healthy": ("src_healthy_tissue", "src_healthy_thymus", "src_healthy_reproductive"),
+    "cancer": ("src_cancer",),
+    "cell_line": ("src_cell_line",),
+    "ebv_lcl": ("src_ebv_lcl",),
+    "adjacent": ("src_adjacent_to_tumor",),
+    "activated_apc": ("src_activated_apc",),
+    "ex_vivo": ("src_ex_vivo",),
+}
+
+#: One-line descriptions for ``--list-source-contexts``.
+SOURCE_CONTEXT_DESCRIPTIONS: dict[str, str] = {
+    "healthy": "Direct-ex-vivo healthy tissue (somatic, thymus, or reproductive) — the safety signal",
+    "cancer": "Tumor / malignant-derived material (patient tumor or cancer cell line)",
+    "cell_line": "Any cell line / clone (malignant OR non-malignant immortalized)",
+    "ebv_lcl": "EBV-transformed B-lymphoblastoid lines",
+    "adjacent": "Tumor-adjacent normal tissue (resection margins)",
+    "activated_apc": "Activated antigen-presenting cells (dendritic cells, macrophages)",
+    "ex_vivo": "Any direct-ex-vivo material (modifier; not mutually exclusive with the above)",
+}
+
 
 def _progress(msg: str, verbose: bool) -> None:
     """Print a stderr progress hint when running interactively.
@@ -50,6 +76,8 @@ def query(
     proteins: list[str] | None = None,
     alleles: list[str] | None = None,
     *,
+    species: str | None = None,
+    source_context: str | None = None,
     predictor: str | None = None,
     min_binder_class: str | None = None,
     min_references: int = 1,
@@ -74,6 +102,17 @@ def query(
         List of 4-digit MHC allele strings (``"HLA-A*02:01"``).  Filter
         is exact-match against ``mhc_restriction``. Pass ``None`` (or
         empty list) to scan all alleles.
+    species
+        Filter to one **MHC** species (e.g. ``"human"`` / ``"Homo sapiens"``;
+        normalized via ``normalize_species``).  Without it the query reports
+        every species the gene's peptides were observed on, sectioned with
+        human first.  ``None`` (default) applies no filter.
+    source_context
+        Keep only observations whose curated **source classification** matches
+        one of :data:`SOURCE_CONTEXTS` (``"healthy"``, ``"cancer"``,
+        ``"cell_line"``, ``"ebv_lcl"``, ``"adjacent"``, ``"activated_apc"``,
+        ``"ex_vivo"``).  A row matches if any of the context's ``src_*`` flags
+        is True.  ``None`` (default) applies no filter.
     predictor
         ``"mhcflurry"``, ``"netmhcpan"``, or ``None`` (skip prediction).
         If set, attaches ``affinity_nM`` / ``presentation_percentile`` /
@@ -212,6 +251,19 @@ def query(
             "gene_ids",
         ],
     }
+    if species is not None:
+        # MHC-species pushdown (load_observations normalizes "human" etc.).
+        load_kwargs["species"] = species
+    if source_context is not None:
+        if source_context not in SOURCE_CONTEXTS:
+            raise ValueError(
+                f"unknown source_context {source_context!r}; choose from {sorted(SOURCE_CONTEXTS)}"
+            )
+        # Load the src_* flag columns this context needs (idempotent — some,
+        # e.g. src_cell_line, are already requested above).
+        for col in SOURCE_CONTEXTS[source_context]:
+            if col not in load_kwargs["columns"]:
+                load_kwargs["columns"].append(col)
     if names or ids:
         from .mappings import load_peptide_mappings
 
@@ -287,6 +339,23 @@ def query(
         ct = df["cell_type"].astype(str).str.strip().str.lower()
         df = df[ct.isin(wanted_lower)]
         _progress(f"  {len(df):,} rows after cell_type filter", verbose)
+        if df.empty:
+            return _empty_result(predictor is not None)
+
+    # 2c. Source-context filter (cancer / healthy / cell_line / ...).  Keep
+    #     rows where ANY of the context's curated src_* flags is True.  Row-
+    #     level, applied before the gene explode so it's cheap.
+    if source_context is not None:
+        flag_cols = [c for c in SOURCE_CONTEXTS[source_context] if c in df.columns]
+        missing = [c for c in SOURCE_CONTEXTS[source_context] if c not in df.columns]
+        if not flag_cols:
+            raise ValueError(
+                f"--source-context {source_context!r} requires the {missing} column(s), "
+                "absent from this observations.parquet. Rebuild with `hitlist build`."
+            )
+        mask = df[flag_cols].fillna(False).astype(bool).any(axis=1)
+        df = df[mask]
+        _progress(f"  {len(df):,} rows after source-context filter ({source_context})", verbose)
         if df.empty:
             return _empty_result(predictor is not None)
 
@@ -531,6 +600,8 @@ def query_by_samples(
     samples_to_alleles: dict[str, list[str]],
     proteins: list[str] | None = None,
     *,
+    species: str | None = None,
+    source_context: str | None = None,
     predictor: str | None = None,
     min_binder_class: str | None = None,
     min_references: int = 1,
@@ -590,6 +661,8 @@ def query_by_samples(
         sub = query(
             proteins=proteins,
             alleles=alleles,
+            species=species,
+            source_context=source_context,
             predictor=predictor,
             min_binder_class=min_binder_class,
             min_references=min_references,

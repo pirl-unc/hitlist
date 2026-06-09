@@ -1602,3 +1602,93 @@ def test_pmhc_query_cell_type_filter_requires_column(tmp_path, monkeypatch):
 
     with pytest.raises(ValueError, match="cell_type"):
         pmhc_query.query(proteins=["NRAS"], cell_type="Melanocyte", use_hgnc=False)
+
+
+def _write_context_fixture(tmp_path):
+    """Fixture for --species / --source-context: 4 peptides on gene NRAS, one
+    on a mouse MHC, with distinct src_* source-classification flags."""
+    df = pd.DataFrame(
+        {
+            "peptide": ["AAAAAAAAA", "CCCCCCCCC", "DDDDDDDDD", "EEEEEEEEE"],
+            "pmid": [1, 2, 3, 4],
+            "mhc_class": ["I"] * 4,
+            "mhc_restriction": ["HLA-A*02:01", "HLA-A*02:01", "HLA-A*02:01", "H2-Kb"],
+            "species": ["Homo sapiens"] * 4,
+            "mhc_species": ["Homo sapiens", "Homo sapiens", "Homo sapiens", "Mus musculus"],
+            "attributed_sample_label": ["s1", "s2", "s3", "s4"],
+            "cell_name": [""] * 4,
+            "cell_line_name": [""] * 4,
+            "monoallelic_host": [""] * 4,
+            "src_cell_line": [True, False, False, False],
+            "src_cancer": [True, False, False, True],
+            "src_healthy_tissue": [False, True, False, False],
+            "src_healthy_thymus": [False] * 4,
+            "src_healthy_reproductive": [False] * 4,
+            "src_ebv_lcl": [False] * 4,
+            "src_adjacent_to_tumor": [False] * 4,
+            "src_activated_apc": [False] * 4,
+            "src_ex_vivo": [False, True, False, False],
+            "source": ["iedb"] * 4,
+        }
+    )
+    obs_path = tmp_path / "observations.parquet"
+    df.to_parquet(obs_path, index=False)
+    mappings = pd.DataFrame(
+        {
+            "peptide": ["AAAAAAAAA", "CCCCCCCCC", "DDDDDDDDD", "EEEEEEEEE"],
+            "gene_name": ["NRAS"] * 4,
+            "gene_id": ["ENSG00000213281"] * 4,
+            "protein_id": ["ENSP00000358548"] * 4,
+        }
+    )
+    mappings_path = tmp_path / "peptide_mappings.parquet"
+    mappings.to_parquet(mappings_path, index=False)
+    return obs_path, mappings_path
+
+
+def test_pmhc_query_species_filter(tmp_path, monkeypatch):
+    """--species filters by MHC species; the mouse-MHC row is dropped."""
+    from hitlist import pmhc_query
+
+    obs_path, mappings_path = _write_context_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
+
+    allsp = pmhc_query.query(proteins=["NRAS"], use_hgnc=False)
+    assert set(allsp["peptide"]) == {"AAAAAAAAA", "CCCCCCCCC", "DDDDDDDDD", "EEEEEEEEE"}
+    human = pmhc_query.query(proteins=["NRAS"], species="human", use_hgnc=False)
+    # "human" normalizes to Homo sapiens; the H2-Kb (mouse) row drops.
+    assert "EEEEEEEEE" not in set(human["peptide"])
+    assert (human["mhc_species"] == "Homo sapiens").all()
+
+
+def test_pmhc_query_source_context_healthy_and_cancer(tmp_path, monkeypatch):
+    """--source-context keeps rows whose mapped src_* flags are True."""
+    from hitlist import pmhc_query
+
+    obs_path, mappings_path = _write_context_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
+
+    healthy = pmhc_query.query(proteins=["NRAS"], source_context="healthy", use_hgnc=False)
+    assert set(healthy["peptide"]) == {"CCCCCCCCC"}  # only src_healthy_tissue row
+    cancer = pmhc_query.query(proteins=["NRAS"], source_context="cancer", use_hgnc=False)
+    assert set(cancer["peptide"]) == {"AAAAAAAAA", "EEEEEEEEE"}  # both src_cancer rows
+    cell_line = pmhc_query.query(proteins=["NRAS"], source_context="cell_line", use_hgnc=False)
+    assert set(cell_line["peptide"]) == {"AAAAAAAAA"}
+
+
+def test_pmhc_query_unknown_source_context_raises(tmp_path, monkeypatch):
+    from hitlist import pmhc_query
+
+    obs_path, mappings_path = _write_context_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
+    with pytest.raises(ValueError, match="unknown source_context"):
+        pmhc_query.query(proteins=["NRAS"], source_context="bogus", use_hgnc=False)
+
+
+def test_source_contexts_catalog_well_formed():
+    """Every SOURCE_CONTEXTS entry has a description and maps to src_* columns."""
+    from hitlist.pmhc_query import SOURCE_CONTEXT_DESCRIPTIONS, SOURCE_CONTEXTS
+
+    assert set(SOURCE_CONTEXTS) == set(SOURCE_CONTEXT_DESCRIPTIONS)
+    for cols in SOURCE_CONTEXTS.values():
+        assert cols and all(c.startswith("src_") for c in cols)
