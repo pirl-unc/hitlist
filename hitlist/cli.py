@@ -1757,10 +1757,8 @@ def _pmhc(args: argparse.Namespace) -> None:
             text = dist.to_csv(index=False)
         elif fmt == "json":
             text = dist.to_json(orient="records", indent=2)
-        elif dist.empty:
-            text = "(no matching observations)"
         else:
-            text = dist.to_string(index=False)
+            text = pmhc_query.format_tissue_table(dist)
         if out:
             from pathlib import Path
 
