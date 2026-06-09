@@ -611,48 +611,44 @@ _TISSUE_ABBREV: dict[str, str] = {
 }
 
 
+#: --by-tissue sections, in display order, with the column each groups by.
+#: Healthy / cancer primary material groups by anatomical ``source_tissue``;
+#: cell lines group by the actual cell-line name (a THP-1 leukemia line is
+#: "THP-1", not "Blood").
+_SOURCE_SECTIONS: list[tuple[str, str]] = [
+    ("healthy tissues", "source_tissue"),
+    ("cancer tissues", "source_tissue"),
+    ("cancer cell lines", "cell_line"),
+    ("non-cancer cell lines", "cell_line"),
+]
+
+
 def tissue_distribution(
     proteins: list[str] | None = None,
     *,
     species: str | None = None,
     source_context: str | None = None,
+    show_empty: bool = False,
     use_hgnc: bool = True,
     verbose: bool = False,
 ) -> pd.DataFrame:
-    """Distribution of a gene's MS-attested peptides across source tissues.
+    """Sectioned distribution of a gene's MS-attested peptides by source.
 
-    Answers *"which tissues are <gene>'s peptides detected in?"* — and, with
-    ``source_context="healthy"``, *"which HEALTHY tissues"* (a candidate
-    antigen's safety profile). One row per ``source_tissue`` with distinct
-    peptide / observation / PMID counts, sorted by peptide count descending.
+    Splits the evidence into four sections — **healthy tissues** and **cancer
+    tissues** (grouped by anatomical ``source_tissue``) and **cancer cell
+    lines** / **non-cancer cell lines** (grouped by the actual cell line, so a
+    THP-1 leukemia line shows as "THP-1", not "Blood"). Answers *"which healthy
+    tissues / which tumors / which lines is <gene> presented in?"* — the safety
+    profile of a candidate antigen.
 
-    Parameters mirror :func:`query` (``proteins``, ``species``,
-    ``source_context``, ``use_hgnc``). Returns an empty frame with the column
-    schema if nothing matched.
+    Returns a long frame with columns ``section``, ``group`` (tissue or cell-line
+    name), ``n_observations`` (rows), ``n_unique_peptides``, ``n_references``;
+    each section sorted by ``n_observations`` descending.  Empty sections are
+    elided unless ``show_empty``.  Parameters otherwise mirror :func:`query`.
     """
     from .observations import load_observations
 
-    # Per tissue: total OBSERVATIONS (rows), then a healthy / cancer x
-    # tissue-vs-cell-line breakdown also in OBSERVATIONS, then the summary
-    # totals.  UNIT NOTE: ``n_observations`` and every ``n_healthy*`` /
-    # ``n_cancer*`` / ``n_cell_lines`` column count ROWS (observations) — so the
-    # split reads against n_observations (a row that is both cancer and a cell
-    # line counts in n_cancer_cell_lines AND n_cell_lines, so they don't
-    # partition).  ``n_unique_peptides`` is distinct peptides; ``n_references``
-    # distinct PMIDs — both summary totals, drawn to the right of a separator.
-    split_cols = [
-        "n_healthy_tissue",
-        "n_cancer_tissue",
-        "n_cancer_cell_lines",
-        "n_cell_lines",
-    ]
-    out_cols = [
-        "source_tissue",
-        "n_observations",
-        *split_cols,
-        "n_unique_peptides",
-        "n_references",
-    ]
+    out_cols = ["section", "group", "n_observations", "n_unique_peptides", "n_references"]
     names: set[str] = set()
     ids: set[str] = set()
     if proteins:
@@ -668,7 +664,8 @@ def tissue_distribution(
         "peptide",
         "pmid",
         "source_tissue",
-        "mhc_class",
+        "cell_name",
+        "cell_line_name",
         "src_cancer",
         "src_cell_line",
         *healthy_flags,
@@ -680,7 +677,7 @@ def tissue_distribution(
             )
         cols += [c for c in SOURCE_CONTEXTS[source_context] if c not in cols]
 
-    _progress("loading observations for tissue distribution...", verbose)
+    _progress("loading observations for source distribution...", verbose)
     df = load_observations(
         gene_name=sorted(names) or None,
         gene_id=sorted(ids) or None,
@@ -698,6 +695,15 @@ def tissue_distribution(
     df["source_tissue"] = (
         df["source_tissue"].astype(str).replace("", "(unspecified)").replace(_TISSUE_ABBREV)
     )
+    # Cell-line display name: prefer the clean cell_line_name, fall back to the
+    # catch-all cell_name (which carries a ``-<type>`` suffix), else a sentinel.
+    cl = (
+        df["cell_line_name"].astype(str)
+        if "cell_line_name" in df
+        else pd.Series("", index=df.index)
+    )
+    cn = df["cell_name"].astype(str) if "cell_name" in df else pd.Series("", index=df.index)
+    df["cell_line"] = cl.where(cl.str.strip().ne(""), cn).replace("", "(unnamed line)")
 
     def _flag(name: str) -> pd.Series:
         return (
@@ -714,28 +720,55 @@ def tissue_distribution(
     )
     cancer = _flag("src_cancer")
     line = _flag("src_cell_line")
-    # Observation (row) masks for each split column.
-    masks = {
-        "n_healthy_tissue": healthy,
-        "n_cancer_tissue": cancer & ~line,
-        "n_cancer_cell_lines": cancer & line,
-        "n_cell_lines": line,
+    section_masks = {
+        "healthy tissues": healthy & ~line,
+        "cancer tissues": cancer & ~line,
+        "cancer cell lines": cancer & line,
+        "non-cancer cell lines": line & ~cancer,
     }
 
-    base = df.groupby("source_tissue", observed=True).agg(
-        n_observations=("peptide", "size"),
-        n_unique_peptides=("peptide", "nunique"),
-        n_references=("pmid", "nunique"),
-    )
-    for col, mask in masks.items():
-        base[col] = df[mask].groupby("source_tissue", observed=True).size()
-    base[split_cols] = base[split_cols].fillna(0).astype(int)
-    grp = (
-        base.reset_index()
-        .sort_values(["n_observations", "source_tissue"], ascending=[False, True])
+    frames: list[pd.DataFrame] = []
+    for order, (section, key) in enumerate(_SOURCE_SECTIONS):
+        sub = df[section_masks[section]]
+        if sub.empty:
+            if show_empty:
+                frames.append(
+                    pd.DataFrame(
+                        [
+                            {
+                                "section": section,
+                                "group": "(none)",
+                                "n_observations": 0,
+                                "n_unique_peptides": 0,
+                                "n_references": 0,
+                                "_o": order,
+                            }
+                        ]
+                    )
+                )
+            continue
+        g = (
+            sub.groupby(key, observed=True)
+            .agg(
+                n_observations=("peptide", "size"),
+                n_unique_peptides=("peptide", "nunique"),
+                n_references=("pmid", "nunique"),
+            )
+            .reset_index()
+            .rename(columns={key: "group"})
+        )
+        g["section"] = section
+        g["_o"] = order
+        frames.append(g)
+
+    if not frames:
+        return pd.DataFrame(columns=out_cols)
+    res = (
+        pd.concat(frames, ignore_index=True)
+        .sort_values(["_o", "n_observations", "group"], ascending=[True, False, True])
         .reset_index(drop=True)
     )
-    return grp[out_cols]
+    return res[out_cols]
 
 
 def query_by_samples(
@@ -1126,33 +1159,46 @@ def _species_sort_key(species: str) -> str:
 
 
 def format_tissue_table(df: pd.DataFrame) -> str:
-    """Render a :func:`tissue_distribution` frame as an aligned text table.
+    """Render a sectioned :func:`tissue_distribution` frame as text.
 
-    Left-justifies ``source_tissue``, right-justifies the numeric columns, and
-    draws a vertical rule before the ``n_unique_peptides`` / ``n_references``
-    summary totals so the observation breakdown (everything to its left) reads
-    apart from those distinct-peptide / reference summaries.
+    One block per section (healthy tissues / cancer tissues / cancer cell lines
+    / non-cancer cell lines), each an aligned table with the group column
+    left-justified and a vertical rule before the ``n_unique_peptides`` /
+    ``n_references`` summaries.  Empty sections are omitted.
     """
     if df is None or df.empty:
         return "(no matching observations)"
-    cols = list(df.columns)
-    cells = {c: [str(v) for v in df[c].tolist()] for c in cols}
-    widths = {c: max(len(c), *(len(x) for x in cells[c])) if cells[c] else len(c) for c in cols}
 
-    def _line(get) -> str:
-        out: list[str] = []
-        for i, c in enumerate(cols):
-            v = get(c)
-            cell = v.ljust(widths[c]) if c == "source_tissue" else v.rjust(widths[c])
-            if i > 0:
-                out.append("  │  " if c == "n_unique_peptides" else "  ")
-            out.append(cell)
-        return "".join(out)
+    num_cols = ["n_observations", "n_unique_peptides", "n_references"]
 
-    header = _line(lambda c: c)
-    rule = "─" * len(header)
-    body = [_line(lambda c, i=i: cells[c][i]) for i in range(len(df))]
-    return "\n".join([header, rule, *body])
+    def _render(label: str, sub: pd.DataFrame) -> str:
+        head = [label, *num_cols]
+        rows = [
+            [str(g), *(str(v) for v in r)]
+            for g, *r in sub[["group", *num_cols]].itertuples(index=False)
+        ]
+        widths = [max(len(head[i]), *(len(row[i]) for row in rows)) for i in range(len(head))]
+
+        def _line(vals: list[str]) -> str:
+            out: list[str] = []
+            for i, v in enumerate(vals):
+                cell = v.ljust(widths[i]) if i == 0 else v.rjust(widths[i])
+                if i > 0:
+                    out.append("  │  " if head[i] == "n_unique_peptides" else "  ")
+                out.append(cell)
+            return "".join(out)
+
+        rule = "─" * len(_line(head))
+        return "\n".join([_line(head), rule, *(_line(r) for r in rows)])
+
+    blocks: list[str] = []
+    for section, key in _SOURCE_SECTIONS:
+        sub = df[df["section"] == section]
+        if sub.empty:
+            continue
+        label = "tissue" if key == "source_tissue" else "cell_line"
+        blocks.append(f"━━ {section} ━━\n{_render(label, sub)}")
+    return "\n\n".join(blocks) if blocks else "(no matching observations)"
 
 
 def format_table(df: pd.DataFrame) -> str:

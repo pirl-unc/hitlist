@@ -1415,12 +1415,18 @@ def main() -> None:
         "--by-tissue",
         action="store_true",
         help=(
-            "Summarize WHICH source tissues the gene's peptides are detected in "
-            "(one row per tissue: distinct peptides / observations / PMIDs) "
-            "instead of the per-peptide table. Combine with --source-context "
-            "healthy for the healthy-tissue safety profile, and --species. "
-            "Ignores --mhc-allele / --sample / --predictor."
+            "Summarize WHERE the gene's peptides come from, in four sections: "
+            "healthy tissues / cancer tissues (by source tissue) and cancer / "
+            "non-cancer cell lines (by cell line). Each section shows "
+            "observations, unique peptides, references; sorted by observations. "
+            "Combine with --source-context and --species. Ignores "
+            "--mhc-allele / --sample / --predictor."
         ),
+    )
+    p_pmhc.add_argument(
+        "--show-zeros",
+        action="store_true",
+        help="With --by-tissue, show empty sections (as '(none)') instead of eliding them.",
     )
     p_pmhc.add_argument(
         "--predictor",
@@ -1746,6 +1752,7 @@ def _pmhc(args: argparse.Namespace) -> None:
                 proteins=proteins,
                 species=species,
                 source_context=source_context,
+                show_empty=getattr(args, "show_zeros", False),
                 verbose=True,
             )
         except (FileNotFoundError, RuntimeError, ValueError) as e:
