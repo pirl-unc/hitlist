@@ -1705,8 +1705,8 @@ def test_tissue_distribution(tmp_path, monkeypatch):
     df = pd.DataFrame(
         {
             # 0 Thymus healthy tissue; 1 Ovary healthy (reproductive); 2 Skin
-            # primary tumor; 3 THP-1 cancer cell line (Blood tissue, but a line);
-            # 4 HEK293 non-cancer cell line; 5 second THP-1 cancer-line obs.
+            # primary tumor; 3 THP-1 cancer cell line (Monocyte); 4 EBV-LCL
+            # non-cancer line; 5 second THP-1 cancer-line obs.
             "peptide": peps,
             "pmid": [1, 2, 3, 4, 5, 6],
             "mhc_class": ["I"] * 6,
@@ -1714,15 +1714,16 @@ def test_tissue_distribution(tmp_path, monkeypatch):
             "mhc_species": ["Homo sapiens"] * 6,
             "source": ["iedb"] * 6,
             "attributed_sample_label": [f"s{i}" for i in range(6)],
-            "cell_name": ["", "", "", "THP-1", "HEK293", "THP-1"],
-            "cell_line_name": ["", "", "", "THP-1", "HEK293", "THP-1"],
+            "cell_name": ["", "", "", "THP-1-Monocyte", "C1R cells-B cell", "THP-1-Monocyte"],
+            "cell_line_name": ["", "", "", "THP-1", "C1R", "THP-1"],
             "monoallelic_host": [""] * 6,
-            "source_tissue": ["Thymus", "Ovary", "Skin", "Blood", "Kidney", "Blood"],
+            "source_tissue": ["Thymus", "Ovary", "Skin", "Blood", "Blood", "Blood"],
             "src_healthy_tissue": [False] * 6,
             "src_healthy_thymus": [True, False, False, False, False, False],
             "src_healthy_reproductive": [False, True, False, False, False, False],
             "src_cancer": [False, False, True, True, False, True],
             "src_cell_line": [False, False, False, True, True, True],
+            "src_ebv_lcl": [False, False, False, False, True, False],
         }
     )
     obs_path = tmp_path / "observations.parquet"
@@ -1753,20 +1754,25 @@ def test_tissue_distribution(tmp_path, monkeypatch):
         return sub.iloc[0] if len(sub) else None
 
     # Healthy tissues — by source_tissue.
-    assert {(r["group"]) for _, r in res[res.section == "healthy tissues"].iterrows()} == {
+    assert {r["group"] for _, r in res[res.section == "healthy tissues"].iterrows()} == {
         "Thymus",
         "Ovary",
     }
     # Cancer tissues — Skin (primary tumor), NOT the THP-1 Blood line.
     assert {r["group"] for _, r in res[res.section == "cancer tissues"].iterrows()} == {"Skin"}
-    # THP-1 is a cancer CELL LINE (grouped as THP-1, not "Blood"), 2 observations.
-    thp1 = grp("cancer cell lines", "THP-1")
-    assert thp1 is not None and thp1["n_observations"] == 2 and thp1["n_unique_peptides"] == 2
-    # HEK293 is a non-cancer cell line.
-    assert grp("non-cancer cell lines", "HEK293") is not None
-    # No tissue section ever contains a cell-line group.
-    tissue_groups = res[res.section.str.endswith("tissues")]["group"]
-    assert "THP-1" not in set(tissue_groups) and "HEK293" not in set(tissue_groups)
+    # DEFAULT: cancer cell lines grouped by cell TYPE — THP-1 -> "Monocyte" (2 obs).
+    mono = grp("cancer cell lines", "Monocyte")
+    assert mono is not None and mono["n_observations"] == 2 and mono["n_unique_peptides"] == 2
+    # EBV-transformed B-LCL gets its own category in non-cancer cell lines.
+    assert grp("non-cancer cell lines", "EBV-LCL") is not None
+    # No tissue section contains a cell group.
+    tissue_groups = set(res[res.section.str.endswith("tissues")]["group"])
+    assert "Monocyte" not in tissue_groups and "EBV-LCL" not in tissue_groups
+
+    # --expand-lines: group cell-line sections by individual line name.
+    exp = pmhc_query.tissue_distribution(proteins=["NRAS"], use_hgnc=False, expand_lines=True)
+    thp1 = exp[(exp.section == "cancer cell lines") & (exp.group == "THP-1")]
+    assert len(thp1) == 1 and thp1.iloc[0]["n_observations"] == 2
 
 
 def test_tissue_distribution_show_empty(tmp_path, monkeypatch):
