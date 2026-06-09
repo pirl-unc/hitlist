@@ -596,6 +596,76 @@ def query(
     return grouped
 
 
+def tissue_distribution(
+    proteins: list[str] | None = None,
+    *,
+    species: str | None = None,
+    source_context: str | None = None,
+    use_hgnc: bool = True,
+    verbose: bool = False,
+) -> pd.DataFrame:
+    """Distribution of a gene's MS-attested peptides across source tissues.
+
+    Answers *"which tissues are <gene>'s peptides detected in?"* — and, with
+    ``source_context="healthy"``, *"which HEALTHY tissues"* (a candidate
+    antigen's safety profile). One row per ``source_tissue`` with distinct
+    peptide / observation / PMID counts, sorted by peptide count descending.
+
+    Parameters mirror :func:`query` (``proteins``, ``species``,
+    ``source_context``, ``use_hgnc``). Returns an empty frame with the column
+    schema if nothing matched.
+    """
+    from .observations import load_observations
+
+    out_cols = ["source_tissue", "n_peptides", "n_observations", "n_pmids"]
+    names: set[str] = set()
+    ids: set[str] = set()
+    if proteins:
+        for q in proteins:
+            spec = resolve_gene_query(q, use_hgnc=use_hgnc)
+            names |= spec["names"]
+            ids |= spec["ids"]
+        if not names and not ids:
+            return pd.DataFrame(columns=out_cols)
+
+    cols = ["peptide", "pmid", "source_tissue", "mhc_class"]
+    if source_context is not None:
+        if source_context not in SOURCE_CONTEXTS:
+            raise ValueError(
+                f"unknown source_context {source_context!r}; choose from {sorted(SOURCE_CONTEXTS)}"
+            )
+        cols += [c for c in SOURCE_CONTEXTS[source_context] if c not in cols]
+
+    _progress("loading observations for tissue distribution...", verbose)
+    df = load_observations(
+        gene_name=sorted(names) or None,
+        gene_id=sorted(ids) or None,
+        species=species,
+        columns=cols,
+    )
+    if source_context is not None and not df.empty:
+        flag_cols = [c for c in SOURCE_CONTEXTS[source_context] if c in df.columns]
+        if flag_cols:
+            df = df[df[flag_cols].fillna(False).astype(bool).any(axis=1)]
+    if df.empty:
+        return pd.DataFrame(columns=out_cols)
+
+    df = df.copy()
+    df["source_tissue"] = df["source_tissue"].astype(str).replace("", "(unspecified)")
+    grp = (
+        df.groupby("source_tissue", observed=True)
+        .agg(
+            n_peptides=("peptide", "nunique"),
+            n_observations=("peptide", "size"),
+            n_pmids=("pmid", "nunique"),
+        )
+        .reset_index()
+        .sort_values(["n_peptides", "source_tissue"], ascending=[False, True])
+        .reset_index(drop=True)
+    )
+    return grp[out_cols]
+
+
 def query_by_samples(
     samples_to_alleles: dict[str, list[str]],
     proteins: list[str] | None = None,
