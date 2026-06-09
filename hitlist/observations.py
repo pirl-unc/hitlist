@@ -430,7 +430,7 @@ _DERIVED_COLUMN_DEPS: dict[str, tuple[str, ...]] = {
     # already-stored host / source_organism / mhc_species so they work on
     # parquets built before this schema, mirroring is_non_peptide_ligand.
     "host_organism": ("host",),
-    "source_species": ("source_organism",),
+    "source_species": ("source_organism", "species"),
     "is_chimeric": ("source_organism", "mhc_species"),
     "is_engineered_mhc": ("source_organism", "mhc_species", "host"),
     "xenograft": ("source_organism", "host", "mhc_species"),
@@ -475,15 +475,23 @@ def _attach_species_axes(df: pd.DataFrame) -> pd.DataFrame:
         if "mhc_species" in df.columns
         else pd.Series("", index=df.index)
     )
+    # The source-proteome axis lives in two IEDB columns (#306): source_organism
+    # (strain-level) and species (species-rank).  Coalesce so source_species is
+    # resolved when EITHER is populated.
+    spc = df["species"].astype(str) if "species" in df.columns else pd.Series("", index=df.index)
 
     if "host_organism" not in df.columns:
         uniq = host.dropna().unique()
         m = {h: normalize_species(h) for h in uniq}
         df["host_organism"] = host.map(m).fillna("")
     if "source_species" not in df.columns:
-        uniq = src.dropna().unique()
+        uniq = set(src.dropna().unique()) | set(spc.dropna().unique())
         m = {s: normalize_species(s) for s in uniq}
-        df["source_species"] = src.map(m).fillna("")
+        # Prefer source_organism's normalized form; fall back to species when
+        # source_organism is blank/unresolved (#306 coalesce).
+        from_src = src.map(m).fillna("")
+        from_spc = spc.map(m).fillna("")
+        df["source_species"] = from_src.where(from_src != "", from_spc)
     if "is_chimeric" not in df.columns:
         pairs = {(s, m) for s, m in zip(src, mhc)}
         flag = {p: is_chimeric_system(*p) for p in pairs}
