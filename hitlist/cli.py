@@ -1371,6 +1371,30 @@ def main() -> None:
         ),
     )
     p_pmhc.add_argument(
+        "--species",
+        help=(
+            "Filter to one MHC species (e.g. 'human' / 'Homo sapiens'). Without "
+            "it, results include every species the peptides were observed on, "
+            "sectioned with human first."
+        ),
+    )
+    from .pmhc_query import SOURCE_CONTEXTS
+
+    p_pmhc.add_argument(
+        "--source-context",
+        choices=sorted(SOURCE_CONTEXTS),
+        help=(
+            "Keep only observations from this curated source context: "
+            "healthy, cancer, cell_line, ebv_lcl, adjacent, activated_apc, "
+            "ex_vivo. Run --list-source-contexts to see what each means."
+        ),
+    )
+    p_pmhc.add_argument(
+        "--list-source-contexts",
+        action="store_true",
+        help="Print the available --source-context values (with descriptions) and exit.",
+    )
+    p_pmhc.add_argument(
         "--predictor",
         choices=["mhcflurry", "netmhcpan"],
         help=(
@@ -1670,10 +1694,22 @@ def _pmhc(args: argparse.Namespace) -> None:
     """
     from . import pmhc_query
 
+    # --list-source-contexts: print the catalog and exit (no query).
+    if getattr(args, "list_source_contexts", False):
+        print("Available --source-context values:\n")
+        width = max(len(k) for k in pmhc_query.SOURCE_CONTEXTS)
+        for name, cols in pmhc_query.SOURCE_CONTEXTS.items():
+            desc = pmhc_query.SOURCE_CONTEXT_DESCRIPTIONS.get(name, "")
+            print(f"  {name:<{width}}  {desc}")
+            print(f"  {'':<{width}}  flags: {', '.join(cols)}")
+        return
+
     proteins = getattr(args, "protein", []) or []
     alleles = getattr(args, "mhc_allele", []) or []
     inline_samples = getattr(args, "sample", None) or []
     samples_path = getattr(args, "samples", None)
+    species = getattr(args, "species", None)
+    source_context = getattr(args, "source_context", None)
     predictor = getattr(args, "predictor", None)
     min_binder_class = getattr(args, "min_binder_class", None)
     min_references = getattr(args, "min_references", 1)
@@ -1699,6 +1735,8 @@ def _pmhc(args: argparse.Namespace) -> None:
             df = pmhc_query.query_by_samples(
                 samples_to_alleles=samples_to_alleles,
                 proteins=proteins,
+                species=species,
+                source_context=source_context,
                 predictor=predictor,
                 min_binder_class=min_binder_class,
                 min_references=min_references,
@@ -1710,6 +1748,8 @@ def _pmhc(args: argparse.Namespace) -> None:
             df = pmhc_query.query(
                 proteins=proteins,
                 alleles=alleles,
+                species=species,
+                source_context=source_context,
                 predictor=predictor,
                 min_binder_class=min_binder_class,
                 min_references=min_references,
