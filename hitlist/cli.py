@@ -1727,6 +1727,28 @@ def _parse_pmhc_samples(inline_specs: list[str], tsv_path: str | None) -> dict[s
     return out
 
 
+def _warn_unrecognized_genes(proteins: list[str]) -> None:
+    """Print a stderr hint when a ``--gene`` query matched nothing because the
+    symbol isn't in the corpus (likely a typo), vs. a real gene with no evidence.
+
+    Kept distinct from the empty-result body so CSV/JSON output stays clean — the
+    note goes to stderr only.  Silent when the symbol IS recognized (the empty
+    result then genuinely means "no MS evidence under these filters").
+    """
+    from . import pmhc_query
+
+    unknown = pmhc_query.unrecognized_genes(proteins)
+    if not unknown:
+        return
+    pretty = ", ".join(repr(g) for g in unknown)
+    print(
+        f"Note: {pretty} matched no gene in the hitlist corpus. If unexpected, "
+        f"check the spelling — current HGNC symbols, aliases, and Ensembl gene "
+        f"IDs are accepted (e.g. 'XAGE1A', not 'XAGE12').",
+        file=sys.stderr,
+    )
+
+
 def _pmhc(args: argparse.Namespace) -> None:
     """Run the pmhc evidence query.
 
@@ -1769,6 +1791,8 @@ def _pmhc(args: argparse.Namespace) -> None:
         except (FileNotFoundError, RuntimeError, ValueError) as e:
             print(f"Error: {e}", file=sys.stderr)
             sys.exit(1)
+        if dist.empty and proteins:
+            _warn_unrecognized_genes(proteins)
         out = getattr(args, "output", None)
         fmt = getattr(args, "format", "table")
         if fmt == "csv":
@@ -1835,6 +1859,9 @@ def _pmhc(args: argparse.Namespace) -> None:
     except (FileNotFoundError, RuntimeError, ValueError) as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
+
+    if df.empty and proteins:
+        _warn_unrecognized_genes(proteins)
 
     if fmt == "csv":
         text = df.to_csv(index=False)

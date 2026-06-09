@@ -35,6 +35,7 @@ from __future__ import annotations
 import json
 import os
 from datetime import datetime, timezone
+from functools import lru_cache
 from pathlib import Path
 
 import pandas as pd
@@ -74,6 +75,34 @@ def mappings_meta_path() -> Path:
 def is_mappings_built() -> bool:
     """Return True if peptide_mappings.parquet exists on disk."""
     return mappings_path().exists()
+
+
+@lru_cache(maxsize=4)
+def _known_gene_identifiers(_key: tuple) -> frozenset[str]:
+    import pyarrow.parquet as pq
+
+    t = pq.read_table(mappings_path(), columns=["gene_name", "gene_id"])
+    out: set[str] = set()
+    for col in ("gene_name", "gene_id"):
+        for v in t.column(col).to_pylist():
+            if v:
+                out.add(str(v).upper())
+    return frozenset(out)
+
+
+def known_gene_identifiers() -> frozenset[str]:
+    """Uppercased ``gene_name`` and ``gene_id`` values in peptide_mappings.parquet.
+
+    The universe of genes the corpus has any peptide evidence for — used to tell
+    an unrecognized gene symbol (likely a typo / not in our proteome) apart from
+    a recognized gene that simply has no matching observations.  Empty frozenset
+    if mappings have not been built.  Keyed on the parquet's size+mtime so a
+    rebuild invalidates the cache.
+    """
+    if not is_mappings_built():
+        return frozenset()
+    st = mappings_path().stat()
+    return _known_gene_identifiers((st.st_size, st.st_mtime_ns))
 
 
 def _obs_fingerprint() -> dict:

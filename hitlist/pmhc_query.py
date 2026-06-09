@@ -807,7 +807,22 @@ def tissue_distribution(
         .sort_values(["_o", "n_observations", "group"], ascending=[True, False, True])
         .reset_index(drop=True)
     )
-    return res[out_cols]
+    res = res[out_cols]
+    # Grand total ACROSS all four sub-categories: observations summed, but
+    # peptides / references the UNION over every displayed row (a peptide or PMID
+    # shared by, say, a healthy tissue and a cancer line counts once).  Computed
+    # from the union of the section masks, so rows in no displayed section (e.g.
+    # tumor-adjacent only) are excluded.
+    any_mask = pd.Series(False, index=df.index)
+    for m in section_masks.values():
+        any_mask = any_mask | m
+    shown = df[any_mask]
+    res.attrs["grand_total"] = {
+        "n_observations": len(shown),
+        "n_unique_peptides": int(shown["peptide"].nunique()),
+        "n_references": int(shown["pmid"].nunique()),
+    }
+    return res
 
 
 def query_by_samples(
@@ -1197,47 +1212,78 @@ def _species_sort_key(species: str) -> str:
     return f"5:{species}"
 
 
+def unrecognized_genes(proteins: list[str], *, use_hgnc: bool = True) -> list[str]:
+    """Of the requested gene queries, those that resolve to NO identifier present
+    in the corpus (``peptide_mappings.parquet``).
+
+    A query lands here when neither its symbol/aliases nor an Ensembl ID match
+    any gene the corpus has peptide evidence for — usually a typo (e.g. ``XAGE12``
+    vs the real ``XAGE1A``), occasionally a real gene with no MS evidence.
+    Ensembl IDs are accepted; matching is case-insensitive.  Returns ``[]`` when
+    the mappings aren't built (can't validate) so callers never warn spuriously.
+    """
+    from .mappings import known_gene_identifiers
+
+    universe = known_gene_identifiers()
+    if not universe:
+        return []
+    unknown: list[str] = []
+    for q in proteins:
+        spec = resolve_gene_query(q, use_hgnc=use_hgnc)
+        candidates = {s.upper() for s in spec["names"] | spec["ids"]}
+        if not (candidates & universe):
+            unknown.append(q)
+    return unknown
+
+
 def format_tissue_table(df: pd.DataFrame) -> str:
     """Render a sectioned :func:`tissue_distribution` frame as text.
 
     One block per section (healthy tissues / cancer tissues / cancer cell lines
     / non-cancer cell lines), each an aligned table with the group column
     left-justified and a vertical rule before the ``n_unique_peptides`` /
-    ``n_references`` summaries.  Empty sections are omitted.  The group column
-    carries no header word — the section banner (``▌ CANCER CELL LINES`` …)
-    already names what each row is.
+    ``n_references`` summaries.  A final ``▌ TOTAL`` block sums observations
+    across every sub-category but reports unique-peptides / references as the
+    UNION across all of them (a peptide or PMID shared by, say, a healthy tissue
+    and a cancer line counts once), read from ``df.attrs["grand_total"]``.  Empty
+    sections are omitted.  The group column carries no header word — the section
+    banner (``▌ CANCER CELL LINES`` …) already names what each row is.
     """
     if df is None or df.empty:
         return "(no matching observations)"
 
     num_cols = ["n_observations", "n_unique_peptides", "n_references"]
+    grand: dict[str, int] | None = df.attrs.get("grand_total")
 
-    # Column widths are computed ACROSS ALL sections so every block lines up:
-    # the group column (and each numeric column) is the same width in every
-    # table, regardless of which section's values are widest.  The group column
-    # has no header label, so its width is just the widest group value.
+    # Column widths are computed ACROSS ALL sections so every block lines up: the
+    # group column (and each numeric column) is the same width in every table,
+    # regardless of which section's values are widest.  The grand-total values
+    # are folded in too (a summed total can be wider than any single group).
     group_strs = [str(g) for g in df["group"]]
-    first_w = max(len(s) for s in group_strs)
-    num_w = {c: max(len(c), *(len(str(v)) for v in df[c])) for c in num_cols}
+    first_w = max(len("total"), *(len(s) for s in group_strs))
+    grand_vals = {c: [grand[c]] if grand else [] for c in num_cols}
+    num_w = {
+        c: max(len(c), *(len(str(v)) for v in df[c]), *(len(str(v)) for v in grand_vals[c]))
+        for c in num_cols
+    }
     widths = [first_w, *(num_w[c] for c in num_cols)]
 
+    def _line(vals: list[str]) -> str:
+        out: list[str] = []
+        for i, v in enumerate(vals):
+            cell = v.ljust(widths[i]) if i == 0 else v.rjust(widths[i])
+            if i > 0:
+                out.append("  │  " if num_cols[i - 1] == "n_unique_peptides" else "  ")
+            out.append(cell)
+        return "    " + "".join(out)
+
     def _render(sub: pd.DataFrame) -> str:
-        head = ["", *num_cols]
-        rows = [
-            [str(g), *(str(v) for v in r)]
+        lines = [_line(["", *num_cols])]
+        lines += [
+            _line([str(g), *(str(v) for v in r)])
             for g, *r in sub[["group", *num_cols]].itertuples(index=False)
         ]
-
-        def _line(vals: list[str]) -> str:
-            out: list[str] = []
-            for i, v in enumerate(vals):
-                cell = v.ljust(widths[i]) if i == 0 else v.rjust(widths[i])
-                if i > 0:
-                    out.append("  │  " if head[i] == "n_unique_peptides" else "  ")
-                out.append(cell)
-            return "    " + "".join(out)
-
-        return "\n".join([_line(head), *(_line(r) for r in rows)])
+        return "\n".join(lines)
 
     blocks: list[str] = []
     for section, _key in _SOURCE_SECTIONS:
@@ -1245,7 +1291,18 @@ def format_tissue_table(df: pd.DataFrame) -> str:
         if sub.empty:
             continue
         blocks.append(f"▌ {section.upper()}\n{_render(sub)}")
-    return "\n\n".join(blocks) if blocks else "(no matching observations)"
+    if not blocks:
+        return "(no matching observations)"
+    if grand is not None:
+        # Grand total across every sub-category above (union of peptides / refs).
+        total_block = "\n".join(
+            [
+                _line(["", *num_cols]),
+                _line(["all sources", *(str(grand[c]) for c in num_cols)]),
+            ]
+        )
+        blocks.append(f"▌ TOTAL (across all sub-categories)\n{total_block}")
+    return "\n\n".join(blocks)
 
 
 def format_table(df: pd.DataFrame) -> str:

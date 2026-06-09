@@ -169,6 +169,21 @@ def test_pmhc_query_filters_to_requested_proteins(tmp_path, monkeypatch):
     assert "KRAS" not in df["gene_name"].values
 
 
+def test_unrecognized_genes_flags_only_absent_symbols(tmp_path, monkeypatch):
+    """unrecognized_genes returns the queries that match NO gene in the corpus
+    (peptide_mappings), so the CLI can tell a typo from a real empty result.
+    A symbol present in the mappings is recognized; a bogus one is flagged."""
+    from hitlist import pmhc_query
+
+    obs_path, mappings_path = _write_obs_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
+
+    # The fixture's mappings carry NRAS/KRAS — those resolve; XAGE12 does not.
+    assert pmhc_query.unrecognized_genes(["NRAS"], use_hgnc=False) == []
+    assert pmhc_query.unrecognized_genes(["XAGE12"], use_hgnc=False) == ["XAGE12"]
+    assert pmhc_query.unrecognized_genes(["NRAS", "XAGE12"], use_hgnc=False) == ["XAGE12"]
+
+
 def test_pmhc_query_empty_when_no_match(tmp_path, monkeypatch):
     """A protein with no MS evidence returns an empty (but well-shaped)
     DataFrame."""
@@ -1773,6 +1788,65 @@ def test_tissue_distribution(tmp_path, monkeypatch):
     exp = pmhc_query.tissue_distribution(proteins=["NRAS"], use_hgnc=False, expand_lines=True)
     thp1 = exp[(exp.section == "cancer cell lines") & (exp.group == "THP-1")]
     assert len(thp1) == 1 and thp1.iloc[0]["n_observations"] == 2
+
+    # Grand total across all sub-categories: all 6 rows are in some section, with
+    # distinct peptides + distinct PMIDs, so the union counts are 6/6/6.
+    grand = res.attrs["grand_total"]
+    assert grand == {"n_observations": 6, "n_unique_peptides": 6, "n_references": 6}
+
+
+def test_tissue_distribution_grand_total_unions_across_sections(tmp_path, monkeypatch):
+    """The grand total SUMS observations but UNIONS peptides / references across
+    sub-categories: a peptide (or PMID) seen in two sections counts once."""
+    import pandas as pd
+
+    from hitlist import pmhc_query
+
+    # Same peptide P + same PMID 1 appear in BOTH a healthy tissue and a cancer
+    # cell line.  Observations = 2, but the peptide union = 1 and the ref union = 1.
+    df = pd.DataFrame(
+        {
+            "peptide": ["PPPPPPPPP", "PPPPPPPPP"],
+            "pmid": [1, 1],
+            "mhc_class": ["I", "I"],
+            "mhc_restriction": ["HLA-A*02:01", "HLA-A*02:01"],
+            "mhc_species": ["Homo sapiens", "Homo sapiens"],
+            "source": ["iedb", "iedb"],
+            "attributed_sample_label": ["s0", "s1"],
+            "cell_name": ["", "THP-1-Monocyte"],
+            "cell_line_name": ["", "THP-1"],
+            "monoallelic_host": ["", ""],
+            "source_tissue": ["Thymus", "Blood"],
+            "src_healthy_thymus": [True, False],
+            "src_cancer": [False, True],
+            "src_cell_line": [False, True],
+            "src_ebv_lcl": [False, False],
+        }
+    )
+    obs_path = tmp_path / "observations.parquet"
+    df.to_parquet(obs_path, index=False)
+    mappings = pd.DataFrame(
+        {
+            "peptide": ["PPPPPPPPP"],
+            "gene_name": ["NRAS"],
+            "gene_id": ["ENSG00000213281"],
+            "protein_id": ["ENSP00000358548"],
+        }
+    )
+    mappings_path = tmp_path / "peptide_mappings.parquet"
+    mappings.to_parquet(mappings_path, index=False)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
+
+    res = pmhc_query.tissue_distribution(proteins=["NRAS"], use_hgnc=False)
+    assert res.attrs["grand_total"] == {
+        "n_observations": 2,
+        "n_unique_peptides": 1,
+        "n_references": 1,
+    }
+    # The grand-total block renders the union, not the column sum.
+    text = pmhc_query.format_tissue_table(res)
+    assert "▌ TOTAL (across all sub-categories)" in text
+    assert "all sources" in text
 
 
 def test_tissue_distribution_show_empty(tmp_path, monkeypatch):
