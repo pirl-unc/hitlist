@@ -265,6 +265,22 @@ def test_pmid_29371260_sw480_is_cancer():
     assert flags["src_cell_line"] is True
 
 
+def test_pmid_29930882_hct116_is_cancer():
+    """#36: Gravett 2018 HCT 116 colon carcinoma (± gemcitabine) — cell_line
+    override keeps src_cancer (genuine tumor line)."""
+    flags = classify_ms_row(
+        "No immunization",
+        "",
+        "Cell Line / Clone",
+        "Large Intestine",
+        "HCT 116-Epithelial cell",
+        pmid=29930882,
+    )
+    assert flags["src_cancer"] is True
+    assert flags["src_ebv_lcl"] is False
+    assert flags["src_cell_line"] is True
+
+
 def test_noncancer_cell_line_override_is_cell_line_not_cancer():
     """#36: the noncancer_cell_line override marks a non-malignant immortalized
     line (hTERT/SV40-LT) as a cell line that is NOT cancer (and not healthy
