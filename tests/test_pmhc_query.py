@@ -1742,6 +1742,19 @@ def test_tissue_distribution(tmp_path, monkeypatch):
     )
     assert set(healthy["source_tissue"]) == {"Blood", "Thymus", "Ovary"}
     assert (healthy["n_peptides"] == 1).all()
-    # no context → all 4 tissues incl. Skin
-    allt = pmhc_query.tissue_distribution(proteins=["NRAS"], use_hgnc=False)
-    assert set(allt["source_tissue"]) == {"Blood", "Thymus", "Ovary", "Skin"}
+    # no context → all 4 tissues incl. Skin, with the cancer/healthy split.
+    allt = pmhc_query.tissue_distribution(proteins=["NRAS"], use_hgnc=False).set_index(
+        "source_tissue"
+    )
+    assert set(allt.index) == {"Blood", "Thymus", "Ovary", "Skin"}
+    # Skin row is the cancer one; Blood/Thymus/Ovary are healthy.
+    assert allt.loc["Skin", "n_cancer"] == 1 and allt.loc["Skin", "n_healthy"] == 0
+    assert allt.loc["Thymus", "n_healthy"] == 1 and allt.loc["Thymus", "n_cancer"] == 0
+    assert allt.loc["Blood", "n_healthy"] == 1
+    assert list(allt.columns) == [
+        "n_peptides",
+        "n_cancer",
+        "n_healthy",
+        "n_observations",
+        "n_pmids",
+    ]
