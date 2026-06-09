@@ -6707,3 +6707,77 @@
         condition: unperturbed
         mhc_class: "II"
         mhc: "HLA-DRB5*01:01"
+  # ── #33c / #36 batch 12 — uncurated immortal-line studies (cell_line) ───────
+  # The clean EBV-LCL mislabels are exhausted; these are genuine cancer-derived
+  # immortal lines IEDB already (correctly) fires src_cancer on, but leaves with
+  # serotype-only / no resolved alleles and no curated conditions.  cell_line
+  # override keeps src_cancer (these ARE malignant/cancer-derived — NOT ebv_lcl)
+  # while attaching resolved alleles, cell-line identity, and treatment arms.
+  # Cell-line HLA types verified against Cellosaurus and IEDB's own records.
+  - pmid: 23328677
+    study_label: "Cronin 2013 — Raji Burkitt lymphoma HLA-DR ligandome ± HDAC inhibitor"
+    title: "Regulation of HLA-DR peptide occupancy by histone deacetylase inhibitors"
+    override: cell_line
+    note: >
+      HLA-DR class II ligandome of Raji, an EBV-genome-positive but malignant
+      Burkitt lymphoma B-cell line (Cellosaurus Raji CVCL_0511; DRB1*03:01 /
+      DRB1*10:01).  Raji is a tumor line, so src_cancer is correct — it is NOT an
+      EBV-immortalized normal B-LCL and must not be force-fit to ebv_lcl.  IEDB
+      records only the "HLA-DR" serotype (no allele); this override resolves the
+      DRB1 type and captures the HDAC-inhibitor perturbation.  Two arms compared:
+      DMSO vehicle control vs Entinostat (MS-275, HDAC inhibitor) treatment.
+      #33c/#36.
+    ms_samples:
+      - sample_label: "Raji — DMSO (vehicle control)"
+        n_samples: 1
+        source: "Raji Burkitt lymphoma B-cell line, anti-HLA-DR elution"
+        condition: unperturbed
+        mhc_class: "II"
+        mhc: "HLA-DRB1*03:01 HLA-DRB1*10:01"
+      - sample_label: "Raji — Entinostat (HDAC inhibitor)"
+        n_samples: 1
+        source: "Raji Burkitt lymphoma B-cell line, anti-HLA-DR elution"
+        condition: "Entinostat (MS-275, HDAC inhibitor)"
+        mhc_class: "II"
+        mhc: "HLA-DRB1*03:01 HLA-DRB1*10:01"
+  - pmid: 29774024
+    study_label: "Álvaro-Benito 2018 — HLA-DR3-transduced T2, HLA-DM-dependent class-II immunopeptidome"
+    title: "Quantification of HLA-DM-Dependent Major Histocompatibility Complex of Class II Immunopeptidomes by the PLAtEAU Algorithm"
+    override: cell_line
+    note: >
+      HLA class II (HLA-DR3 = DRB1*03:01) ligandome eluted from T2, the
+      TAP-deficient hybrid line (Cellosaurus T2 CVCL_2211; CEM T-lymphoblastic
+      leukemia x 721.174 B-LCL fusion) stably transduced with HLA-DR3.  T2 is
+      cancer-derived, so src_cancer is correct (cell_line, not ebv_lcl).  IEDB
+      records the "HLA-DR3" serotype; this override resolves it to DRB1*03:01 and
+      pins the transductant identity.  #33c/#36.
+    ms_samples:
+      - sample_label: "T2.DR3 (HLA-DR3-transduced)"
+        n_samples: 1
+        source: "T2 TAP-deficient hybrid line stably transduced with HLA-DR3"
+        condition: unperturbed
+        mhc_class: "II"
+        mhc: "HLA-DRB1*03:01"
+  - pmid: 23555621
+    study_label: "Lorente 2013 — TAP-deficient T2 class-I self-ligands (A*02:01 vs B*27:05)"
+    title: "Diversity of natural self-derived ligands presented by different HLA class I molecules in transporter antigen processing-deficient cells"
+    override: cell_line
+    note: >
+      HLA class I self-ligands eluted from the TAP-deficient hybrid line T2
+      (Cellosaurus T2 CVCL_2211; CEM T-ALL x 721.174 B-LCL fusion), comparing the
+      native HLA-A*02:01 with a transfected HLA-B*27:05.  T2 is cancer-derived, so
+      src_cancer is correct (cell_line, not ebv_lcl).  IEDB records exactly these
+      two four-digit restrictions (A*02:01, 111 rows; B*27:05, 79 rows).  #33c/#36.
+    ms_samples:
+      - sample_label: "T2 — HLA-A*02:01 (native)"
+        n_samples: 1
+        source: "T2 TAP-deficient hybrid line, native HLA-A*02:01"
+        condition: unperturbed
+        mhc_class: "I"
+        mhc: "HLA-A*02:01"
+      - sample_label: "T2 — HLA-B*27:05 (transfectant)"
+        n_samples: 1
+        source: "T2 TAP-deficient hybrid line transfected with HLA-B*27:05"
+        condition: unperturbed
+        mhc_class: "I"
+        mhc: "HLA-B*27:05"
