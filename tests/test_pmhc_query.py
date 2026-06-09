@@ -1692,3 +1692,56 @@ def test_source_contexts_catalog_well_formed():
     assert set(SOURCE_CONTEXTS) == set(SOURCE_CONTEXT_DESCRIPTIONS)
     for cols in SOURCE_CONTEXTS.values():
         assert cols and all(c.startswith("src_") for c in cols)
+
+
+def test_tissue_distribution(tmp_path, monkeypatch):
+    """tissue_distribution groups a gene's peptides by source tissue and honors
+    the source_context filter (healthy spans all src_healthy_* flags)."""
+    import pandas as pd
+
+    from hitlist import pmhc_query
+
+    df = pd.DataFrame(
+        {
+            "peptide": ["AAAAAAAAA", "CCCCCCCCC", "DDDDDDDDD", "EEEEEEEEE"],
+            "pmid": [1, 2, 3, 4],
+            "mhc_class": ["I"] * 4,
+            "mhc_restriction": ["HLA-A*02:01"] * 4,
+            "mhc_species": ["Homo sapiens"] * 4,
+            "source": ["iedb"] * 4,
+            "attributed_sample_label": ["s1", "s2", "s3", "s4"],
+            "cell_name": [""] * 4,
+            "cell_line_name": [""] * 4,
+            "monoallelic_host": [""] * 4,
+            "src_cell_line": [False] * 4,
+            "source_tissue": ["Blood", "Thymus", "Ovary", "Skin"],
+            "src_healthy_tissue": [True, False, False, False],
+            "src_healthy_thymus": [False, True, False, False],
+            "src_healthy_reproductive": [False, False, True, False],
+            "src_cancer": [False, False, False, True],
+        }
+    )
+    obs_path = tmp_path / "observations.parquet"
+    df.to_parquet(obs_path, index=False)
+    mappings = pd.DataFrame(
+        {
+            "peptide": ["AAAAAAAAA", "CCCCCCCCC", "DDDDDDDDD", "EEEEEEEEE"],
+            "gene_name": ["NRAS"] * 4,
+            "gene_id": ["ENSG00000213281"] * 4,
+            "protein_id": ["ENSP00000358548"] * 4,
+        }
+    )
+    mappings_path = tmp_path / "peptide_mappings.parquet"
+    mappings.to_parquet(mappings_path, index=False)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
+
+    # healthy context spans tissue + thymus + reproductive (Blood/Thymus/Ovary),
+    # excludes the cancer Skin row.
+    healthy = pmhc_query.tissue_distribution(
+        proteins=["NRAS"], source_context="healthy", use_hgnc=False
+    )
+    assert set(healthy["source_tissue"]) == {"Blood", "Thymus", "Ovary"}
+    assert (healthy["n_peptides"] == 1).all()
+    # no context → all 4 tissues incl. Skin
+    allt = pmhc_query.tissue_distribution(proteins=["NRAS"], use_hgnc=False)
+    assert set(allt["source_tissue"]) == {"Blood", "Thymus", "Ovary", "Skin"}

@@ -1412,6 +1412,17 @@ def main() -> None:
         help="Print the available --source-context values (with descriptions) and exit.",
     )
     p_pmhc.add_argument(
+        "--by-tissue",
+        action="store_true",
+        help=(
+            "Summarize WHICH source tissues the gene's peptides are detected in "
+            "(one row per tissue: distinct peptides / observations / PMIDs) "
+            "instead of the per-peptide table. Combine with --source-context "
+            "healthy for the healthy-tissue safety profile, and --species. "
+            "Ignores --mhc-allele / --sample / --predictor."
+        ),
+    )
+    p_pmhc.add_argument(
         "--predictor",
         choices=["mhcflurry", "netmhcpan"],
         help=(
@@ -1727,6 +1738,37 @@ def _pmhc(args: argparse.Namespace) -> None:
     samples_path = getattr(args, "samples", None)
     species = getattr(args, "species", None)
     source_context = getattr(args, "source_context", None)
+
+    # --by-tissue: which tissues are the gene's peptides detected in?
+    if getattr(args, "by_tissue", False):
+        try:
+            dist = pmhc_query.tissue_distribution(
+                proteins=proteins,
+                species=species,
+                source_context=source_context,
+                verbose=True,
+            )
+        except (FileNotFoundError, RuntimeError, ValueError) as e:
+            print(f"Error: {e}", file=sys.stderr)
+            sys.exit(1)
+        out = getattr(args, "output", None)
+        fmt = getattr(args, "format", "table")
+        if fmt == "csv":
+            text = dist.to_csv(index=False)
+        elif fmt == "json":
+            text = dist.to_json(orient="records", indent=2)
+        elif dist.empty:
+            text = "(no matching observations)"
+        else:
+            text = dist.to_string(index=False)
+        if out:
+            from pathlib import Path
+
+            Path(out).write_text(text + "\n")
+            print(f"Wrote {out}")
+        else:
+            print(text)
+        return
     predictor = getattr(args, "predictor", None)
     min_binder_class = getattr(args, "min_binder_class", None)
     min_references = getattr(args, "min_references", 1)
