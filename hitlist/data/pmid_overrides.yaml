@@ -6927,3 +6927,79 @@
         condition: "Gemcitabine (alters proteasome composition)"
         mhc_class: "I"
         mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*18:01 HLA-B*45:01 HLA-C*05:01 HLA-C*07:01"
+  # ── #36 — mixed-cohort per-arm splits (conditional rules) ───────────────────
+  # 22299025: B-LCL arm (correctly ebv_lcl via culture_condition) + a CD4+
+  # T-cell-clone arm IEDB defaults to src_cancer.  The clones are chronically
+  # activated primary CD4+ T-cell clones (not a tumor) — route to
+  # noncancer_cell_line.  Donor DR types match across arms (no disjoint alleles).
+  - pmid: 22299025
+    study_label: "Costantino 2012 — B-LCL + activated CD4+ T-cell clones (class II)"
+    title: "Class II MHC self-antigen presentation in human B and T lymphocytes"
+    rules:
+      - condition:
+          Cell Name: "T cell CD4+"
+        override: noncancer_cell_line
+        reason: "Chronically activated primary CD4+ T-cell clones (expanded in vitro), not a tumor"
+    note: >
+      Class II self-peptides eluted from genetically identical donors' B and T
+      compartments.  The B-cell arm is an EBV-LCL (already classified ebv_lcl by
+      its culture_condition).  The 348-row CD4+ T-cell arm is chronically
+      activated primary T-cell clones — IEDB tags them "Cell Line / Clone" and
+      the default makes them src_cancer, which is wrong; the rule routes them to
+      noncancer_cell_line (a clone, not cancer).  #36.
+  # 33731925: 9-patient melanoma study (17 metastases) + melanoma cell lines +
+  # minor APC/B-LCL arms.  515 "Melanocyte / Direct Ex Vivo" rows carry a blank
+  # disease field and currently mis-classify as src_healthy_tissue — a FALSE
+  # safety signal (Kalaora 2021 used only melanoma tumors/lines, no healthy skin
+  # controls; verified from the paper).  Default cancer_patient fixes that;
+  # rules preserve the EBV-LCL arm and tag the APC and melanoma-line arms.
+  - pmid: 33731925
+    study_label: "Kalaora 2021 — bacteria-derived HLA peptides in melanoma (tumors + lines)"
+    title: "Identification of bacteria-derived HLA-bound peptides in melanoma"
+    override: cancer_patient
+    rules:
+      - condition:
+          Culture Condition: "Cell Line / Clone (EBV transformed, B-LCL)"
+        override: ebv_lcl
+        reason: "Donor EBV-LCL accessory arm (9 rows)"
+      - condition:
+          Cell Name: "Macrophage"
+        override: activated_apc
+        reason: "Monocyte/macrophage APC arm (25 rows)"
+      - condition:
+          Cell Name: "Melanocyte"
+          Culture Condition: "Cell Line / Clone"
+        override: cell_line
+        reason: "Patient-derived melanoma cell lines (548 rows)"
+    note: >
+      Melanoma immunopeptidome (17 metastases from 9 patients) plus
+      patient-derived melanoma cell lines and minor macrophage/B-LCL accessory
+      arms.  The 515 "Melanocyte / Direct Ex Vivo" rows have a blank IEDB disease
+      field and default to src_healthy_tissue — a false safety signal, since the
+      study used only melanoma tumors and tumor-derived lines (no healthy skin /
+      normal-melanocyte controls; paper-verified).  Default cancer_patient flips
+      the ex-vivo tumor rows to src_cancer; rules keep the EBV-LCL arm (ebv_lcl),
+      tag the APC arm (activated_apc), and the melanoma lines (cell_line).  Per-
+      patient genotypes vary (host_mhc_types), not pinned here.  #36.
+  # 31291378: AML study — all arms already correctly src_cancer.  Override only
+  # tags the named leukemia lines (cell_line) vs primary patient blasts
+  # (cancer_patient); no classification flag changes.
+  - pmid: 31291378
+    study_label: "Narayan 2019 — AML immunopeptidome (primary blasts + MV4-11/OCI-AML3)"
+    title: "Acute Myeloid Leukemia Immunopeptidome Reveals HLA Presentation of Mutated Nucleophosmin"
+    override: cancer_patient
+    rules:
+      - condition:
+          Cell Name: "MV411-Myeloblast"
+        override: cell_line
+        reason: "MV4-11 acute monocytic leukemia line (CVCL_0064)"
+      - condition:
+          Cell Name: "OCI-AML3-Myeloid cell"
+        override: cell_line
+        reason: "OCI-AML3 AML line (CVCL_1844)"
+    note: >
+      AML class I + II immunopeptidome from primary patient leukemic blasts
+      (PBMC, direct ex vivo) and two AML lines, MV4-11 (CVCL_0064) and OCI-AML3
+      (CVCL_1844).  All arms are malignant and already classify src_cancer; this
+      override changes no flags — it tags the named leukemia lines (cell_line)
+      vs primary patient material (cancer_patient) for downstream consumers.  #36.
