@@ -6781,3 +6781,51 @@
         condition: unperturbed
         mhc_class: "I"
         mhc: "HLA-B*27:05"
+  # ── #33c / #36 batch 13 — uncurated carcinoma-line immunopeptidomes ─────────
+  # Genuine cancer cell lines IEDB classifies src_cancer but leaves uncurated.
+  # cell_line override keeps src_cancer while attaching cell-line identity +
+  # resolved alleles.  Alleles here are IEDB-recorded (resolved per row) and
+  # cross-checked against Cellosaurus — declared only where consistent.
+  - pmid: 19615748
+    study_label: "Antwi 2009 — PANC-1 + MCF-7 carcinoma class-I peptidomes"
+    title: "Proteomic identification of an MHC-binding peptidome from pancreas and breast cancer cell lines"
+    override: cell_line
+    note: >
+      HLA class I ligands eluted from two carcinoma lines.  IEDB resolved the
+      per-row restrictions and the assay_comments split them by line: 135 rows
+      from PANC-1 (pancreatic ductal adenocarcinoma, Cellosaurus CVCL_0480;
+      A*02:01, A*11:01, B*38:01, C*12:03) and 99 from MCF-7 (breast carcinoma,
+      Cellosaurus CVCL_0031; A*02:01, B*18:01, B*44:02, C*05:01); 15 rows shared.
+      Both are tumor lines, so src_cancer is correct (cell_line, not ebv_lcl).
+      #33c/#36.
+    ms_samples:
+      - sample_label: "PANC-1 (pancreatic carcinoma)"
+        n_samples: 1
+        source: "PANC-1 pancreatic ductal adenocarcinoma line (CVCL_0480)"
+        condition: unperturbed
+        mhc_class: "I"
+        mhc: "HLA-A*02:01 HLA-A*11:01 HLA-B*38:01 HLA-C*12:03"
+      - sample_label: "MCF-7 (breast carcinoma)"
+        n_samples: 1
+        source: "MCF-7 breast carcinoma line (CVCL_0031)"
+        condition: unperturbed
+        mhc_class: "I"
+        mhc: "HLA-A*02:01 HLA-B*18:01 HLA-B*44:02 HLA-C*05:01"
+  - pmid: 21136679
+    study_label: "Alvarez 2007 — SK-HEP-1 class-I ligandome"
+    title: "Analysis of the HLA class I associated peptide repertoire in a hepatocellular carcinoma cell line using a microflow LC-MS/MS approach"
+    override: cell_line
+    note: >
+      HLA class I ligands eluted from SK-HEP-1 (Cellosaurus CVCL_0525).  IEDB
+      resolved the restrictions to A*02:01, A*24:02, B*35:02, B*44:03 — declared
+      as-is.  Historically described as a hepatocellular carcinoma line, SK-HEP-1
+      is now regarded as endothelial-origin (hence IEDB cell_name "Endothelial
+      cell"); it remains a malignant immortal line, so src_cancer is correct.
+      #33c/#36.
+    ms_samples:
+      - sample_label: "SK-HEP-1 (liver neoplasm, endothelial-origin)"
+        n_samples: 1
+        source: "SK-HEP-1 line (CVCL_0525; historically HCC, endothelial-origin)"
+        condition: unperturbed
+        mhc_class: "I"
+        mhc: "HLA-A*02:01 HLA-A*24:02 HLA-B*35:02 HLA-B*44:03"

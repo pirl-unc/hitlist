@@ -232,6 +232,28 @@ def test_pmid_23555621_t2_is_cancer_not_ebv_lcl():
     assert flags["src_cell_line"] is True
 
 
+def test_pmid_19615748_panc1_mcf7_are_cancer():
+    """#33c/#36 batch 13: Antwi 2009 PANC-1 + MCF-7 carcinoma lines — cell_line
+    override keeps src_cancer (genuine tumor lines), not ebv_lcl."""
+    flags = classify_ms_row(
+        "No immunization", "", "Cell Line / Clone", "Blood", "Epithelial cell", pmid=19615748
+    )
+    assert flags["src_cancer"] is True
+    assert flags["src_ebv_lcl"] is False
+    assert flags["src_cell_line"] is True
+
+
+def test_pmid_21136679_skhep1_is_cancer():
+    """#33c/#36 batch 13: Alvarez 2007 SK-HEP-1 (endothelial-origin malignant
+    line) — cell_line override keeps src_cancer."""
+    flags = classify_ms_row(
+        "No immunization", "", "Cell Line / Clone", "Blood", "Endothelial cell", pmid=21136679
+    )
+    assert flags["src_cancer"] is True
+    assert flags["src_ebv_lcl"] is False
+    assert flags["src_cell_line"] is True
+
+
 def test_pmid_override_adjacent():
     flags = classify_ms_row("No immunization", "healthy", "Direct Ex Vivo", "Lung", pmid=35051231)
     assert flags["src_adjacent_to_tumor"] is True
