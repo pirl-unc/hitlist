@@ -131,34 +131,55 @@ def load_tissue_categories() -> dict[str, frozenset[str]]:
     }
 
 
+#: Provenance fields a PMID override may curate; the scanner fills each ONLY
+#: where the IEDB/CEDAR row left it blank/"unidentified" (#307, #314).
+_PROVENANCE_FIELDS = (
+    "source_organism",
+    "species",
+    "source_tissue",
+    "cell_name",
+    "disease",
+    "culture_condition",
+)
+
+
 @cache
-def pmid_source_organism(pmid) -> tuple[str, str]:
-    """Per-PMID curated ``(source_organism, species)`` for the source proteome.
+def pmid_provenance(pmid) -> dict:
+    """Per-PMID curated provenance fills for fields IEDB/CEDAR left blank.
 
-    Some IEDB self-peptidome datasets leave the source-organism field blank or
-    ``"unidentified"`` even though the eluted peptides come from a known host's
-    own proteome (e.g. the Tasmanian-devil B2M-IP immunopeptidome, the HLA-B27
-    transgenic-rat peptidome). A ``source_organism:`` key on the PMID's entry in
-    ``pmid_overrides.yaml`` curates that PER PAPER — the scanner fills it in only
-    where the row's value is unresolved (#307).  This is explicit curation, NOT
-    a blanket "source = host" heuristic: random-peptide-library refolding assays
-    (pig SLA-I, possum) deliberately get NO entry, so their synthetic source
-    stays blank rather than being mislabeled as the host proteome.
+    Some datasets omit the source proteome, source tissue, cell line, or disease
+    even when the paper states them (self-peptidomes with blank source organism;
+    epitope-identification papers with no recorded tissue/cell line). A PMID
+    entry in ``pmid_overrides.yaml`` may carry any of ``source_organism`` /
+    ``species`` / ``source_tissue`` / ``cell_name`` / ``disease``; the scanner
+    fills each PER PAPER, ONLY where the row's value is unresolved (#307, #314).
 
-    Returns ``("", "")`` when the PMID has no entry or no ``source_organism``.
+    This is explicit per-paper curation, never a heuristic — e.g. random-library
+    refolding assays (pig SLA-I, possum) deliberately get no ``source_organism``
+    so their synthetic source stays blank rather than being mislabeled.
+
+    Returns a dict of the curated fields present (empty if no entry / no fields).
     """
     if not pmid:
-        return "", ""
+        return {}
     try:
         key = int(pmid)
     except (TypeError, ValueError):
-        return "", ""
+        return {}
     entry = load_pmid_overrides().get(key)
     if not entry:
-        return "", ""
-    src = str(entry.get("source_organism", "") or "")
-    spc = str(entry.get("species", "") or "") or src
-    return src, spc
+        return {}
+    out = {f: str(entry[f]) for f in _PROVENANCE_FIELDS if entry.get(f)}
+    if "source_organism" in out and "species" not in out:
+        out["species"] = out["source_organism"]
+    return out
+
+
+def pmid_source_organism(pmid) -> tuple[str, str]:
+    """Per-PMID curated ``(source_organism, species)`` (#307). Thin wrapper over
+    :func:`pmid_provenance`; the scanner fills these where the row is blank."""
+    p = pmid_provenance(pmid)
+    return p.get("source_organism", ""), p.get("species", "") or p.get("source_organism", "")
 
 
 # ── Cached mhcgnomes parse ─────────────────────────────────────────────────

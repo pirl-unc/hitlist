@@ -7031,3 +7031,24 @@
       peptides are the rat proteome).  IEDB left 12,494 rows
       source_organism="unidentified"; fills them to Rattus norvegicus, leaving
       the 51 explicitly human-sourced rows untouched.  #307.
+  # ── #314 — per-PMID provenance curation for blank-source epitope studies ────
+  # IEDB left source_tissue/cell_name/disease blank on these.  Per-paper research
+  # (see #314) found only 31575892 is a genuine elution-from-cell-line study;
+  # the others are an antibody/proteasome study (28628042), a meta-analysis
+  # (29712860), in-silico prediction validated on PBMC (40008881), and a 9-line
+  # MAPTAC transfectant system (31495665, already cell_name="MAPTAC") — none has
+  # a single curatable elution source, so they are deliberately NOT force-fit.
+  - pmid: 31575892
+    study_label: "Nyambura 2019 — myeloid leukemia HLA-I immunopeptidome (MUTZ-3 + THP-1)"
+    source_tissue: "Blood"
+    disease: "acute myeloid leukemia"
+    culture_condition: "Cell Line / Clone"
+    note: >
+      HLA-I peptides immunoaffinity-eluted from two peripheral-blood-derived
+      acute-myeloid-leukemia lines: MUTZ-3 (Cellosaurus CVCL_1433, DC-
+      differentiated) and THP-1 (CVCL_0006, macrophage-differentiated).  IEDB
+      left source_tissue/disease/cell_name blank; curated to Blood / acute
+      myeloid leukemia as cancer-derived cell lines.  Title is *myeloid
+      leukemia*, not multiple myeloma.  Per-row split between the two lines is
+      not recoverable, so cell_name is left unset (groups as an unspecified-type
+      cancer cell line).  #314.

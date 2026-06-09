@@ -2186,3 +2186,26 @@ def test_source_organism_override_no_classification_side_effects():
     assert flags["src_cancer"] is False
     assert flags["src_ebv_lcl"] is False
     assert flags["src_cell_line"] is False
+
+
+def test_pmid_provenance_31575892_blood_aml_cell_line():
+    """#314: per-PMID provenance fills source_tissue / disease / culture_condition
+    for the Nyambura 2019 myeloid-leukemia study (MUTZ-3 + THP-1) that IEDB left
+    blank.  With culture_condition filled, the rows classify as a cancer cell
+    line rather than landing in the '(unspecified)' bucket."""
+    from hitlist.curation import classify_ms_row, pmid_provenance
+
+    prov = pmid_provenance(31575892)
+    assert prov["source_tissue"] == "Blood"
+    assert prov["disease"] == "acute myeloid leukemia"
+    assert prov["culture_condition"] == "Cell Line / Clone"
+    flags = classify_ms_row(
+        "No immunization",
+        prov["disease"],
+        prov["culture_condition"],
+        prov["source_tissue"],
+        "",
+        pmid=31575892,
+    )
+    assert flags["src_cancer"] is True
+    assert flags["src_cell_line"] is True

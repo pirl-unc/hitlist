@@ -405,6 +405,21 @@ def scan(
             source_tissue = _safe_col(row, c["source_tissue"])
             cell_name = _safe_col(row, c["cell_name"])
 
+            # Per-PMID provenance curation (#314): fill blank source_tissue /
+            # cell_name / disease / culture_condition for epitope-ID papers IEDB
+            # left unlabeled, from the PMID's pmid_overrides entry.  Fills before
+            # classification so a curated cell line classifies correctly.  Only
+            # fills blanks.
+            if not (source_tissue and cell_name and disease and culture_condition):
+                from .curation import pmid_provenance
+
+                _prov = pmid_provenance(pmid)
+                if _prov:
+                    source_tissue = source_tissue or _prov.get("source_tissue", "")
+                    cell_name = cell_name or _prov.get("cell_name", "")
+                    disease = disease or _prov.get("disease", "")
+                    culture_condition = culture_condition or _prov.get("culture_condition", "")
+
             # IEDB embeds PTMs inline in the Epitope|Name column
             # (e.g. "LQPFPQPQLPY + DEAM(Q8)"). Pull them into structured
             # columns so length filters, AA validation, and model
