@@ -147,6 +147,13 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
         culture_condition = defaults.get("culture_condition", "")
         source_tissue = defaults.get("source_tissue", "")
         cell_name = defaults.get("cell_name", "")
+        # source_organism / species are curated PER PAPER in each entry's
+        # ``defaults`` — never assumed.  A blank here surfaces as "unresolved
+        # source organism" downstream (the pmhc warning) and is excluded by the
+        # source_species filter (#46), which is the correct, loud behavior for a
+        # genuinely uncurated entry rather than a silent species assumption.
+        source_organism = defaults.get("source_organism", "")
+        species_default = defaults.get("species", "")
 
         # Include the supplementary filename in the synthesized IRI so the
         # same peptide / allele seen in, e.g. ``gomez_zepeda_2024_jy.csv`` and
@@ -180,8 +187,8 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
                 "pmid": pmid,
                 "submission_id": "",
                 "reference_title": entry.get("study_label", ""),
-                "source_organism": defaults.get("source_organism", ""),
-                "species": defaults.get("species", ""),
+                "source_organism": source_organism,
+                "species": species_default,
                 "host": defaults.get("host", ""),
                 "host_age": "",
                 # Supplementary rows don't carry IEDB's per-row "Host | MHC

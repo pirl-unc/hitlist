@@ -41,6 +41,7 @@
   defaults:
     host: "Homo sapiens (human)"
     species: "Homo sapiens"
+    source_organism: "Homo sapiens"
     culture_condition: "Cell Line / Clone"
     cell_name: "MAPTAC"
     source_tissue: ""
@@ -58,6 +59,7 @@
   defaults:
     host: "Homo sapiens (human)"
     species: "Homo sapiens"
+    source_organism: "Homo sapiens"
     culture_condition: "Cell Line / Clone"
     cell_name: "MAPTAC"
     source_tissue: ""
@@ -74,6 +76,7 @@
   defaults:
     host: "Homo sapiens (human)"
     species: "Homo sapiens"
+    source_organism: "Homo sapiens"
     culture_condition: "Direct Ex Vivo"
     cell_name: ""
     source_tissue: ""
@@ -103,6 +106,7 @@
   defaults:
     host: "Homo sapiens (human)"
     species: "Homo sapiens"
+    source_organism: "Homo sapiens"
     culture_condition: "Cell Line / Clone"
     cell_name: "Expi293F"
     source_tissue: "Kidney"
@@ -129,6 +133,8 @@
     JY alleles: A*02:01, B*07:02, C*07:02.
   defaults:
     host: "Homo sapiens (human)"
+    species: "Homo sapiens"
+    source_organism: "Homo sapiens"
     culture_condition: "Cell Line / Clone (EBV transformed, B-LCL)"
     cell_name: "JY"
     source_tissue: "Blood"
@@ -145,6 +151,8 @@
     HeLa alleles: A*68:02, B*15:03, C*12:03.
   defaults:
     host: "Homo sapiens (human)"
+    species: "Homo sapiens"
+    source_organism: "Homo sapiens"
     culture_condition: "Cell Line / Clone"
     cell_name: "HeLa"
     source_tissue: "Cervix"
@@ -161,6 +169,8 @@
     SK-MEL-37 alleles: A*02:01, A*11:01, B*15:01, B*56:01, C*01:02.
   defaults:
     host: "Homo sapiens (human)"
+    species: "Homo sapiens"
+    source_organism: "Homo sapiens"
     culture_condition: "Cell Line / Clone"
     cell_name: "SK-MEL-37"
     source_tissue: "Skin"
@@ -177,6 +187,8 @@
     allele assignments.  Raji alleles: A*03:01, B*15:10, C*03:04, C*04:01.
   defaults:
     host: "Homo sapiens (human)"
+    species: "Homo sapiens"
+    source_organism: "Homo sapiens"
     culture_condition: "Cell Line / Clone (EBV transformed, B-LCL)"
     cell_name: "Raji"
     source_tissue: "Blood"
@@ -193,6 +205,8 @@
     Donor HLA typing unknown.
   defaults:
     host: "Homo sapiens (human)"
+    species: "Homo sapiens"
+    source_organism: "Homo sapiens"
     culture_condition: "Direct Ex Vivo"
     cell_name: ""
     source_tissue: "Blood"
@@ -226,6 +240,7 @@
   defaults:
     host: "Homo sapiens (human)"
     species: "Homo sapiens"
+    source_organism: "Homo sapiens"
     culture_condition: "Cell Line / Clone"
     source_tissue: "Blood"
     process_type: "No immunization"
@@ -239,6 +254,7 @@
   defaults:
     host: "Homo sapiens (human)"
     species: "Homo sapiens"
+    source_organism: "Homo sapiens"
     culture_condition: "Cell Line / Clone"
     source_tissue: "Blood"
     process_type: "No immunization"
@@ -252,6 +268,7 @@
   defaults:
     host: "Homo sapiens (human)"
     species: "Homo sapiens"
+    source_organism: "Homo sapiens"
     culture_condition: "Cell Line / Clone"
     source_tissue: "Blood"
     process_type: "No immunization"
@@ -265,6 +282,7 @@
   defaults:
     host: "Homo sapiens (human)"
     species: "Homo sapiens"
+    source_organism: "Homo sapiens"
     culture_condition: "Cell Line / Clone"
     source_tissue: "Blood"
     process_type: "No immunization"
@@ -278,6 +296,7 @@
   defaults:
     host: "Homo sapiens (human)"
     species: "Homo sapiens"
+    source_organism: "Homo sapiens"
     culture_condition: "Cell Line / Clone"
     source_tissue: "Blood"
     process_type: "No immunization"
@@ -291,6 +310,7 @@
   defaults:
     host: "Homo sapiens (human)"
     species: "Homo sapiens"
+    source_organism: "Homo sapiens"
     culture_condition: "Cell Line / Clone"
     source_tissue: "Blood"
     process_type: "No immunization"
@@ -304,6 +324,7 @@
   defaults:
     host: "Homo sapiens (human)"
     species: "Homo sapiens"
+    source_organism: "Homo sapiens"
     culture_condition: "Cell Line / Clone"
     source_tissue: "Blood"
     process_type: "No immunization"
@@ -317,6 +338,7 @@
   defaults:
     host: "Homo sapiens (human)"
     species: "Homo sapiens"
+    source_organism: "Homo sapiens"
     culture_condition: "Cell Line / Clone"
     source_tissue: "Blood"
     process_type: "No immunization"
@@ -330,6 +352,7 @@
   defaults:
     host: "Homo sapiens (human)"
     species: "Homo sapiens"
+    source_organism: "Homo sapiens"
     culture_condition: "Cell Line / Clone"
     source_tissue: "Blood"
     process_type: "No immunization"
@@ -343,6 +366,7 @@
   defaults:
     host: "Homo sapiens (human)"
     species: "Homo sapiens"
+    source_organism: "Homo sapiens"
     culture_condition: "Cell Line / Clone"
     source_tissue: "Blood"
     process_type: "No immunization"
@@ -356,6 +380,7 @@
   defaults:
     host: "Homo sapiens (human)"
     species: "Homo sapiens"
+    source_organism: "Homo sapiens"
     culture_condition: "Cell Line / Clone"
     source_tissue: "Blood"
     process_type: "No immunization"
@@ -369,6 +394,7 @@
   defaults:
     host: "Homo sapiens (human)"
     species: "Homo sapiens"
+    source_organism: "Homo sapiens"
     culture_condition: "Cell Line / Clone"
     source_tissue: "Blood"
     process_type: "No immunization"
