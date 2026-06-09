@@ -38,6 +38,33 @@ For callers that explicitly want both — e.g. affinity-predictor training
 pipelines, or CLI flags like tsarina's ``--include-binding-assays`` —
 :func:`load_all_evidence` returns a UNION with an ``evidence_kind`` column
 (``"ms"`` / ``"binding"``).  Filters apply symmetrically to both indexes.
+
+Species axes (#46 / #306)
+-------------------------
+A pMHC observation has THREE independent species axes — keep them straight:
+
+================  =========================================================
+``mhc_species``   Species of the MHC molecule, derived authoritatively from
+                  the allele string (``HLA-*`` → Homo sapiens, ``H2-*`` →
+                  Mus musculus, ``DLA-*`` → Canis, ...).  Filter: ``species=``.
+``source_species``  **Canonical** species of the source proteome the peptide
+                  was sequenced from.  Normalized; coalesces the two raw IEDB
+                  inputs below.  Filter: ``source_species=``.  PREFER THIS.
+``host_organism`` Species the cells/tissue lived in at MS sampling (normalized
+                  from raw ``host``).  Filter: ``host_species=``.
+================  =========================================================
+
+The source-proteome axis has two **raw** IEDB inputs that ``source_species``
+normalizes over: ``source_organism`` ("Source Organism", strain-level, e.g.
+``Mus musculus C57BL/6``) and ``species`` ("Epitope | Species", species-rank,
+e.g. ``Mus musculus``).  They describe the *same* axis at different
+granularity.  **``species`` is a deprecated/legacy column name** — it collides
+with the English "which species" and is kept only for backward compatibility
+(the species-summary export still emits it).  New code should read
+``source_species`` (or the raw ``source_organism``), never bare ``species``.
+When the source proteome and the MHC come from different vertebrate genera the
+row is *chimeric* — see ``is_chimeric`` / ``is_engineered_mhc`` / ``xenograft``
+and ``exclude_chimeric=``.
 """
 
 from __future__ import annotations
