@@ -27,3 +27,11 @@
 
 - Don't paper over review-identified cruft by tagging it "minor, won't file" — confront it.
   Rule: in the v4 self-review I called out an uncovered TypeError-fallback branch and concluded "skip, version too old for it to matter." The right move was to delete the unreachable branch, not document the gap. If a branch can't be exercised by any in-support configuration, it's dead code; the test gap is a symptom, not the bug.
+
+## 2026-06-08
+
+- For cell-line IDENTITY in curation, trust IEDB's own `assay_comments` / the deposited PRIDE metadata over web-search summary snippets.
+  Rule: in #36 batch 10 I labeled PMID 27503676 as the "JY" cell line (A*02:01/B*07:02/C*07:02, CVCL_0108) based on a WebSearch summary. IEDB's assay_comment for that PMID explicitly recorded a *different* full typing — "eluted from the HLA-A*01:01, -A*03:01, -B*07:02, -B*27:05, -C*02:02, and -C*07:02" line — which is GR (CVCL_C5VZ), not JY. The classification (ebv_lcl) was still right, but the line name, HLA typing, and Cellosaurus accession were all wrong. When curating a single-line PMID, read the per-row `assay_comments` and `mhc_restriction` FIRST; if a search snippet names a line whose HLA type contradicts IEDB's recorded type, the snippet is wrong. A fast cross-check: declared ms_sample alleles should be a superset-or-overlap of IEDB's recorded alleles for that PMID, never disjoint.
+
+- When a single PMID has multiple `assay_comments` source descriptions, curate ALL of them — don't stop at the first/largest arm.
+  Rule: #36 batch 9 PMID 28871256 has 875 rows: 697 from BLS DR transfectants AND 175 from the MGAR wild-type DR15 LCL. The original entry documented only the 697 BLS rows and cited "697 rows" as the total. Always `value_counts()` the `assay_comments` for a PMID before writing ms_samples, and reconcile the row-count claim against `len(df[df.pmid==...])`.

@@ -144,10 +144,12 @@ def test_pmid_21654843_dr8_lcl_not_cancer():
     assert flags["src_ebv_lcl"] is True
 
 
-def test_pmid_27503676_jy_lcl_not_cancer():
-    """#33c/#36 batch 10: Marcilla 2017 JY (class-I-homozygous EBV-LCL) tagged
-    "B cell" / "Cell Line / Clone" by IEDB (no EBV flag), which would default to
-    src_cancer. The ebv_lcl override must clear the false cancer flag."""
+def test_pmid_27503676_gr_lcl_not_cancer():
+    """#33c/#36 batch 10: Marcilla 2017 GR EBV-LCL (A*01:01/A*03:01/B*07:02/
+    B*27:05/C*02:02/C*07:02; Cellosaurus CVCL_C5VZ) tagged "B cell" / "Cell Line
+    / Clone" by IEDB (no EBV flag), which would default to src_cancer. The
+    ebv_lcl override must clear the false cancer flag.  (Line was mis-named "JY"
+    in the original draft; GR is the correct line per PRIDE PXD004233.)"""
     flags = classify_ms_row(
         "No immunization", "", "Cell Line / Clone", "Blood", "B cell", pmid=27503676
     )
