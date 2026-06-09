@@ -1701,60 +1701,72 @@ def test_tissue_distribution(tmp_path, monkeypatch):
 
     from hitlist import pmhc_query
 
+    peps = ["AAAAAAAAA", "CCCCCCCCC", "DDDDDDDDD", "EEEEEEEEE", "FFFFFFFFF"]
     df = pd.DataFrame(
         {
-            "peptide": ["AAAAAAAAA", "CCCCCCCCC", "DDDDDDDDD", "EEEEEEEEE"],
-            "pmid": [1, 2, 3, 4],
-            "mhc_class": ["I"] * 4,
-            "mhc_restriction": ["HLA-A*02:01"] * 4,
-            "mhc_species": ["Homo sapiens"] * 4,
-            "source": ["iedb"] * 4,
-            "attributed_sample_label": ["s1", "s2", "s3", "s4"],
-            "cell_name": [""] * 4,
-            "cell_line_name": [""] * 4,
-            "monoallelic_host": [""] * 4,
-            "src_cell_line": [False] * 4,
-            "source_tissue": ["Blood", "Thymus", "Ovary", "Skin"],
-            "src_healthy_tissue": [True, False, False, False],
-            "src_healthy_thymus": [False, True, False, False],
-            "src_healthy_reproductive": [False, False, True, False],
-            "src_cancer": [False, False, False, True],
+            # Blood healthy, Thymus healthy, Ovary healthy (reproductive),
+            # Skin primary tumor (cancer, NOT a line), Colon cancer CELL LINE.
+            "peptide": peps,
+            "pmid": [1, 2, 3, 4, 5],
+            "mhc_class": ["I"] * 5,
+            "mhc_restriction": ["HLA-A*02:01"] * 5,
+            "mhc_species": ["Homo sapiens"] * 5,
+            "source": ["iedb"] * 5,
+            "attributed_sample_label": [f"s{i}" for i in range(5)],
+            "cell_name": [""] * 5,
+            "cell_line_name": [""] * 5,
+            "monoallelic_host": [""] * 5,
+            "source_tissue": ["Blood", "Thymus", "Ovary", "Skin", "Colon"],
+            "src_healthy_tissue": [True, False, False, False, False],
+            "src_healthy_thymus": [False, True, False, False, False],
+            "src_healthy_reproductive": [False, False, True, False, False],
+            "src_cancer": [False, False, False, True, True],
+            "src_cell_line": [False, False, False, False, True],
         }
     )
     obs_path = tmp_path / "observations.parquet"
     df.to_parquet(obs_path, index=False)
     mappings = pd.DataFrame(
         {
-            "peptide": ["AAAAAAAAA", "CCCCCCCCC", "DDDDDDDDD", "EEEEEEEEE"],
-            "gene_name": ["NRAS"] * 4,
-            "gene_id": ["ENSG00000213281"] * 4,
-            "protein_id": ["ENSP00000358548"] * 4,
+            "peptide": peps,
+            "gene_name": ["NRAS"] * 5,
+            "gene_id": ["ENSG00000213281"] * 5,
+            "protein_id": ["ENSP00000358548"] * 5,
         }
     )
     mappings_path = tmp_path / "peptide_mappings.parquet"
     mappings.to_parquet(mappings_path, index=False)
     _patch_paths(monkeypatch, obs_path, mappings_path)
 
-    # healthy context spans tissue + thymus + reproductive (Blood/Thymus/Ovary),
-    # excludes the cancer Skin row.
+    # healthy context spans tissue + thymus + reproductive (Blood/Thymus/Ovary).
     healthy = pmhc_query.tissue_distribution(
         proteins=["NRAS"], source_context="healthy", use_hgnc=False
     )
     assert set(healthy["source_tissue"]) == {"Blood", "Thymus", "Ovary"}
-    assert (healthy["n_peptides"] == 1).all()
-    # no context → all 4 tissues incl. Skin, with the cancer/healthy split.
+    assert (healthy["n_unique_peptides"] == 1).all()
+    # no context → all 5 tissues, with the observation-based healthy/cancer x line
+    # breakdown (each fixture peptide is 1 observation, so counts match).
     allt = pmhc_query.tissue_distribution(proteins=["NRAS"], use_hgnc=False).set_index(
         "source_tissue"
     )
-    assert set(allt.index) == {"Blood", "Thymus", "Ovary", "Skin"}
-    # Skin row is the cancer one; Blood/Thymus/Ovary are healthy.
-    assert allt.loc["Skin", "n_cancer"] == 1 and allt.loc["Skin", "n_healthy"] == 0
-    assert allt.loc["Thymus", "n_healthy"] == 1 and allt.loc["Thymus", "n_cancer"] == 0
-    assert allt.loc["Blood", "n_healthy"] == 1
+    assert set(allt.index) == {"Blood", "Thymus", "Ovary", "Skin", "Colon"}
+    assert allt.loc["Thymus", "n_healthy_tissue"] == 1
+    assert allt.loc["Blood", "n_healthy_tissue"] == 1
+    # Skin = primary tumor → cancer_tissue, not a cell line.
+    assert allt.loc["Skin", "n_cancer_tissue"] == 1
+    assert allt.loc["Skin", "n_cancer_cell_lines"] == 0
+    assert allt.loc["Skin", "n_cell_lines"] == 0
+    # Colon = cancer cell line → cancer_cell_lines + cell_lines, not cancer_tissue.
+    assert allt.loc["Colon", "n_cancer_cell_lines"] == 1
+    assert allt.loc["Colon", "n_cancer_tissue"] == 0
+    assert allt.loc["Colon", "n_cell_lines"] == 1
+    assert allt.loc["Colon", "n_observations"] == 1
     assert list(allt.columns) == [
-        "n_peptides",
-        "n_cancer",
-        "n_healthy",
         "n_observations",
-        "n_pmids",
+        "n_healthy_tissue",
+        "n_cancer_tissue",
+        "n_cancer_cell_lines",
+        "n_cell_lines",
+        "n_unique_peptides",
+        "n_references",
     ]

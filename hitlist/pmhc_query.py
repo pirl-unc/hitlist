@@ -602,6 +602,15 @@ def query(
     return grouped
 
 
+#: Display abbreviations for verbose IEDB source-tissue names (--by-tissue).
+_TISSUE_ABBREV: dict[str, str] = {
+    "Central nervous system (CNS)": "CNS",
+    "Peripheral Nervous System": "PNS",
+    "Bronchial Aveolar Lavage (BAL)": "BAL",
+    "Gastrointestinal Tract": "GI tract",
+}
+
+
 def tissue_distribution(
     proteins: list[str] | None = None,
     *,
@@ -623,15 +632,26 @@ def tissue_distribution(
     """
     from .observations import load_observations
 
-    # Each tissue row reports total peptides plus a cancer / healthy split (the
-    # two source contexts a downstream antigen-selection workflow cares about).
+    # Per tissue: total OBSERVATIONS (rows), then a healthy / cancer x
+    # tissue-vs-cell-line breakdown also in OBSERVATIONS, then the summary
+    # totals.  UNIT NOTE: ``n_observations`` and every ``n_healthy*`` /
+    # ``n_cancer*`` / ``n_cell_lines`` column count ROWS (observations) — so the
+    # split reads against n_observations (a row that is both cancer and a cell
+    # line counts in n_cancer_cell_lines AND n_cell_lines, so they don't
+    # partition).  ``n_unique_peptides`` is distinct peptides; ``n_references``
+    # distinct PMIDs — both summary totals, drawn to the right of a separator.
+    split_cols = [
+        "n_healthy_tissue",
+        "n_cancer_tissue",
+        "n_cancer_cell_lines",
+        "n_cell_lines",
+    ]
     out_cols = [
         "source_tissue",
-        "n_peptides",
-        "n_cancer",
-        "n_healthy",
         "n_observations",
-        "n_pmids",
+        *split_cols,
+        "n_unique_peptides",
+        "n_references",
     ]
     names: set[str] = set()
     ids: set[str] = set()
@@ -644,7 +664,15 @@ def tissue_distribution(
             return pd.DataFrame(columns=out_cols)
 
     healthy_flags = list(SOURCE_CONTEXTS["healthy"])
-    cols = ["peptide", "pmid", "source_tissue", "mhc_class", "src_cancer", *healthy_flags]
+    cols = [
+        "peptide",
+        "pmid",
+        "source_tissue",
+        "mhc_class",
+        "src_cancer",
+        "src_cell_line",
+        *healthy_flags,
+    ]
     if source_context is not None:
         if source_context not in SOURCE_CONTEXTS:
             raise ValueError(
@@ -667,30 +695,44 @@ def tissue_distribution(
         return pd.DataFrame(columns=out_cols)
 
     df = df.copy()
-    df["source_tissue"] = df["source_tissue"].astype(str).replace("", "(unspecified)")
-    cancer_mask = df["src_cancer"].fillna(False).astype(bool) if "src_cancer" in df else False
+    df["source_tissue"] = (
+        df["source_tissue"].astype(str).replace("", "(unspecified)").replace(_TISSUE_ABBREV)
+    )
+
+    def _flag(name: str) -> pd.Series:
+        return (
+            df[name].fillna(False).astype(bool)
+            if name in df.columns
+            else pd.Series(False, index=df.index)
+        )
+
     present_healthy = [c for c in healthy_flags if c in df.columns]
-    healthy_mask = (
+    healthy = (
         df[present_healthy].fillna(False).astype(bool).any(axis=1)
         if present_healthy
         else pd.Series(False, index=df.index)
     )
-
-    def _peptides_per_tissue(mask) -> pd.Series:
-        sub = df[mask] if mask is not False else df.iloc[0:0]
-        return sub.groupby("source_tissue", observed=True)["peptide"].nunique()
+    cancer = _flag("src_cancer")
+    line = _flag("src_cell_line")
+    # Observation (row) masks for each split column.
+    masks = {
+        "n_healthy_tissue": healthy,
+        "n_cancer_tissue": cancer & ~line,
+        "n_cancer_cell_lines": cancer & line,
+        "n_cell_lines": line,
+    }
 
     base = df.groupby("source_tissue", observed=True).agg(
-        n_peptides=("peptide", "nunique"),
         n_observations=("peptide", "size"),
-        n_pmids=("pmid", "nunique"),
+        n_unique_peptides=("peptide", "nunique"),
+        n_references=("pmid", "nunique"),
     )
-    base["n_cancer"] = _peptides_per_tissue(cancer_mask)
-    base["n_healthy"] = _peptides_per_tissue(healthy_mask)
-    base[["n_cancer", "n_healthy"]] = base[["n_cancer", "n_healthy"]].fillna(0).astype(int)
+    for col, mask in masks.items():
+        base[col] = df[mask].groupby("source_tissue", observed=True).size()
+    base[split_cols] = base[split_cols].fillna(0).astype(int)
     grp = (
         base.reset_index()
-        .sort_values(["n_peptides", "source_tissue"], ascending=[False, True])
+        .sort_values(["n_observations", "source_tissue"], ascending=[False, True])
         .reset_index(drop=True)
     )
     return grp[out_cols]
@@ -1081,6 +1123,36 @@ def _species_sort_key(species: str) -> str:
     if species == "unknown":
         return "z"
     return f"5:{species}"
+
+
+def format_tissue_table(df: pd.DataFrame) -> str:
+    """Render a :func:`tissue_distribution` frame as an aligned text table.
+
+    Left-justifies ``source_tissue``, right-justifies the numeric columns, and
+    draws a vertical rule before the ``n_unique_peptides`` / ``n_references``
+    summary totals so the observation breakdown (everything to its left) reads
+    apart from those distinct-peptide / reference summaries.
+    """
+    if df is None or df.empty:
+        return "(no matching observations)"
+    cols = list(df.columns)
+    cells = {c: [str(v) for v in df[c].tolist()] for c in cols}
+    widths = {c: max(len(c), *(len(x) for x in cells[c])) if cells[c] else len(c) for c in cols}
+
+    def _line(get) -> str:
+        out: list[str] = []
+        for i, c in enumerate(cols):
+            v = get(c)
+            cell = v.ljust(widths[c]) if c == "source_tissue" else v.rjust(widths[c])
+            if i > 0:
+                out.append("  │  " if c == "n_unique_peptides" else "  ")
+            out.append(cell)
+        return "".join(out)
+
+    header = _line(lambda c: c)
+    rule = "─" * len(header)
+    body = [_line(lambda c, i=i: cells[c][i]) for i in range(len(df))]
+    return "\n".join([header, rule, *body])
 
 
 def format_table(df: pd.DataFrame) -> str:
