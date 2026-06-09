@@ -6829,3 +6829,31 @@
         condition: unperturbed
         mhc_class: "I"
         mhc: "HLA-A*02:01 HLA-A*24:02 HLA-B*35:02 HLA-B*44:03"
+  # ── #33c / #36 batch 14 — uncurated carcinoma-line immunopeptidome ──────────
+  - pmid: 29371260
+    study_label: "Miyamoto 2018 — SW480 colon carcinoma HLA-A24 ligandome (bulk vs CSC)"
+    title: "The Antigen ASB4 on Cancer Stem Cells Serves as a Target for CTL Immunotherapy of Colorectal Cancer"
+    override: cell_line
+    note: >
+      HLA-A24-restricted class I ligands eluted from SW480, a colon
+      adenocarcinoma line (Cellosaurus CVCL_0546; full genotype A*02:01,
+      A*24:02, B*07:02, B*15:18, C*07:04).  IEDB recorded every row as HLA-A24
+      (the study profiled the A*24:02 ligandome to find the ASB4 CTL epitope),
+      so A*24:02 is declared as the restriction of the reported peptides.  Two
+      arms compared via assay_comments: bulk SW480 (142 rows) and a
+      cancer-stem-cell-like subpopulation sorted from SW480 (91 rows; 56 shared).
+      SW480 is a tumor line, so src_cancer is correct (cell_line, not ebv_lcl).
+      #33c/#36.
+    ms_samples:
+      - sample_label: "SW480 (colon carcinoma, bulk)"
+        n_samples: 1
+        source: "SW480 colon adenocarcinoma line (CVCL_0546)"
+        condition: unperturbed
+        mhc_class: "I"
+        mhc: "HLA-A*24:02"
+      - sample_label: "SW480 cancer-stem-cell-like subpopulation"
+        n_samples: 1
+        source: "Cancer-stem-cell-like subpopulation sorted from SW480 (CVCL_0546)"
+        condition: unperturbed
+        mhc_class: "I"
+        mhc: "HLA-A*24:02"

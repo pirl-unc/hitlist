@@ -254,6 +254,17 @@ def test_pmid_21136679_skhep1_is_cancer():
     assert flags["src_cell_line"] is True
 
 
+def test_pmid_29371260_sw480_is_cancer():
+    """#33c/#36 batch 14: Miyamoto 2018 SW480 colon carcinoma (bulk + CSC
+    subpopulation) — cell_line override keeps src_cancer, not ebv_lcl."""
+    flags = classify_ms_row(
+        "No immunization", "", "Cell Line / Clone", "Blood", "Epithelial cell", pmid=29371260
+    )
+    assert flags["src_cancer"] is True
+    assert flags["src_ebv_lcl"] is False
+    assert flags["src_cell_line"] is True
+
+
 def test_pmid_override_adjacent():
     flags = classify_ms_row("No immunization", "healthy", "Direct Ex Vivo", "Lung", pmid=35051231)
     assert flags["src_adjacent_to_tumor"] is True
