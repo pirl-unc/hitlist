@@ -618,8 +618,8 @@ _TISSUE_ABBREV: dict[str, str] = {
 _SOURCE_SECTIONS: list[tuple[str, str]] = [
     ("healthy tissues", "source_tissue"),
     ("cancer tissues", "source_tissue"),
-    ("cancer cell lines", "cell_line"),
-    ("non-cancer cell lines", "cell_line"),
+    ("cancer cell lines", "cell_group"),
+    ("non-cancer cell lines", "cell_group"),
 ]
 
 
@@ -629,6 +629,7 @@ def tissue_distribution(
     species: str | None = None,
     source_context: str | None = None,
     show_empty: bool = False,
+    expand_lines: bool = False,
     use_hgnc: bool = True,
     verbose: bool = False,
 ) -> pd.DataFrame:
@@ -636,13 +637,15 @@ def tissue_distribution(
 
     Splits the evidence into four sections — **healthy tissues** and **cancer
     tissues** (grouped by anatomical ``source_tissue``) and **cancer cell
-    lines** / **non-cancer cell lines** (grouped by the actual cell line, so a
-    THP-1 leukemia line shows as "THP-1", not "Blood"). Answers *"which healthy
-    tissues / which tumors / which lines is <gene> presented in?"* — the safety
-    profile of a candidate antigen.
+    lines** / **non-cancer cell lines**.  By default the cell-line sections
+    group by the **cell TYPE** of origin (``Melanocyte``, ``Monocyte``, ``B
+    cell``, ``Epithelial cell``, ...) with EBV-transformed B-LCLs as their own
+    ``EBV-LCL`` category; pass ``expand_lines=True`` to group by the individual
+    line name (``THP-1``, ``HeLa``, ...).  Answers *"which healthy tissues /
+    tumors / cell types is <gene> presented in?"* — an antigen's safety profile.
 
-    Returns a long frame with columns ``section``, ``group`` (tissue or cell-line
-    name), ``n_observations`` (rows), ``n_unique_peptides``, ``n_references``;
+    Returns a long frame with columns ``section``, ``group`` (tissue / cell type
+    / line), ``n_observations`` (rows), ``n_unique_peptides``, ``n_references``;
     each section sorted by ``n_observations`` descending.  Empty sections are
     elided unless ``show_empty``.  Parameters otherwise mirror :func:`query`.
     """
@@ -668,6 +671,7 @@ def tissue_distribution(
         "cell_line_name",
         "src_cancer",
         "src_cell_line",
+        "src_ebv_lcl",
         *healthy_flags,
     ]
     if source_context is not None:
@@ -695,15 +699,6 @@ def tissue_distribution(
     df["source_tissue"] = (
         df["source_tissue"].astype(str).replace("", "(unspecified)").replace(_TISSUE_ABBREV)
     )
-    # Cell-line display name: prefer the clean cell_line_name, fall back to the
-    # catch-all cell_name (which carries a ``-<type>`` suffix), else a sentinel.
-    cl = (
-        df["cell_line_name"].astype(str)
-        if "cell_line_name" in df
-        else pd.Series("", index=df.index)
-    )
-    cn = df["cell_name"].astype(str) if "cell_name" in df else pd.Series("", index=df.index)
-    df["cell_line"] = cl.where(cl.str.strip().ne(""), cn).replace("", "(unnamed line)")
 
     def _flag(name: str) -> pd.Series:
         return (
@@ -711,6 +706,29 @@ def tissue_distribution(
             if name in df.columns
             else pd.Series(False, index=df.index)
         )
+
+    # Cell-line grouping: by default the CELL TYPE of origin (Melanocyte,
+    # Monocyte, B cell, ...) with EBV-LCLs as their own category; ``expand_lines``
+    # switches to the individual line name.  Parse once per unique cell_name.
+    from .cell_name_parser import parse_cell_name
+
+    cn = df["cell_name"].astype(str) if "cell_name" in df else pd.Series("", index=df.index)
+    type_map: dict[str, str] = {}
+    line_map: dict[str, str] = {}
+    for raw in cn.unique():
+        parsed = parse_cell_name(raw)
+        type_map[raw] = parsed.cell_type or ""
+        line_map[raw] = parsed.cell_line_name or ""
+    ebv = _flag("src_ebv_lcl")
+    if expand_lines:
+        cell_group = cn.map(line_map)
+        cell_group = cell_group.mask((cell_group.str.strip() == "") & ebv, "EBV-LCL (unnamed)")
+        cell_group = cell_group.replace("", "(unnamed line)")
+    else:
+        cell_group = cn.map(type_map)
+        cell_group = cell_group.where(cell_group.str.strip().ne(""), "(unspecified type)")
+        cell_group = cell_group.mask(ebv, "EBV-LCL")
+    df["cell_group"] = cell_group
 
     present_healthy = [c for c in healthy_flags if c in df.columns]
     healthy = (
@@ -1158,13 +1176,15 @@ def _species_sort_key(species: str) -> str:
     return f"5:{species}"
 
 
-def format_tissue_table(df: pd.DataFrame) -> str:
+def format_tissue_table(df: pd.DataFrame, *, cell_group_label: str = "cell type") -> str:
     """Render a sectioned :func:`tissue_distribution` frame as text.
 
     One block per section (healthy tissues / cancer tissues / cancer cell lines
     / non-cancer cell lines), each an aligned table with the group column
     left-justified and a vertical rule before the ``n_unique_peptides`` /
-    ``n_references`` summaries.  Empty sections are omitted.
+    ``n_references`` summaries.  Empty sections are omitted.  ``cell_group_label``
+    names the cell-line sections' group column (``"cell type"`` by default,
+    ``"cell line"`` when the caller grouped by individual line).
     """
     if df is None or df.empty:
         return "(no matching observations)"
@@ -1196,7 +1216,7 @@ def format_tissue_table(df: pd.DataFrame) -> str:
         sub = df[df["section"] == section]
         if sub.empty:
             continue
-        label = "tissue" if key == "source_tissue" else "cell_line"
+        label = "tissue" if key == "source_tissue" else cell_group_label
         blocks.append(f"━━ {section} ━━\n{_render(label, sub)}")
     return "\n\n".join(blocks) if blocks else "(no matching observations)"
 

@@ -1429,6 +1429,15 @@ def main() -> None:
         help="With --by-tissue, show empty sections (as '(none)') instead of eliding them.",
     )
     p_pmhc.add_argument(
+        "--expand-lines",
+        action="store_true",
+        help=(
+            "With --by-tissue, group the cell-line sections by individual line "
+            "name (THP-1, HeLa, ...) instead of the default cell TYPE of origin "
+            "(Monocyte, Melanocyte, B cell, ..., EBV-LCL)."
+        ),
+    )
+    p_pmhc.add_argument(
         "--predictor",
         choices=["mhcflurry", "netmhcpan"],
         help=(
@@ -1745,14 +1754,16 @@ def _pmhc(args: argparse.Namespace) -> None:
     species = getattr(args, "species", None)
     source_context = getattr(args, "source_context", None)
 
-    # --by-tissue: which tissues are the gene's peptides detected in?
+    # --by-tissue: where (tissues / cell types) are the gene's peptides from?
     if getattr(args, "by_tissue", False):
+        expand_lines = getattr(args, "expand_lines", False)
         try:
             dist = pmhc_query.tissue_distribution(
                 proteins=proteins,
                 species=species,
                 source_context=source_context,
                 show_empty=getattr(args, "show_zeros", False),
+                expand_lines=expand_lines,
                 verbose=True,
             )
         except (FileNotFoundError, RuntimeError, ValueError) as e:
@@ -1765,7 +1776,9 @@ def _pmhc(args: argparse.Namespace) -> None:
         elif fmt == "json":
             text = dist.to_json(orient="records", indent=2)
         else:
-            text = pmhc_query.format_tissue_table(dist)
+            text = pmhc_query.format_tissue_table(
+                dist, cell_group_label="cell line" if expand_lines else "cell type"
+            )
         if out:
             from pathlib import Path
 
