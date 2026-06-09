@@ -2158,3 +2158,31 @@ def test_k562_mono_host_stays_cancer():
     assert flags["is_monoallelic"] is True
     assert flags["src_ebv_lcl"] is False
     assert flags["src_cancer"] is True
+
+
+def test_pmid_source_organism_curation():
+    """#307: per-PMID source-organism curation returns (source_organism, species)
+    for explicitly-curated self-peptidome PMIDs, and ('', '') otherwise."""
+    from hitlist.curation import pmid_source_organism
+
+    # Curated animal self-peptidomes.
+    assert pmid_source_organism(33460454) == ("Sarcophilus harrisii", "Sarcophilus harrisii")
+    assert pmid_source_organism(28188227) == ("Rattus norvegicus", "Rattus norvegicus")
+    # No source_organism key -> no backfill (the scanner gates on the first
+    # element, so a random-library assay like the pig SLA-I study stays blank).
+    assert pmid_source_organism(35296092)[0] == ""
+    # Unknown / empty PMID.
+    assert pmid_source_organism(999999999) == ("", "")
+    assert pmid_source_organism("") == ("", "")
+
+
+def test_source_organism_override_no_classification_side_effects():
+    """#307: the source-organism-only override entries (33460454 devil, 28188227
+    transgenic rat) carry no `override`/`rules`, so they must NOT change
+    classification — a row from those PMIDs classifies as if it had no entry."""
+    from hitlist.curation import classify_ms_row
+
+    flags = classify_ms_row("No immunization", "", "", "", "", pmid=33460454)
+    assert flags["src_cancer"] is False
+    assert flags["src_ebv_lcl"] is False
+    assert flags["src_cell_line"] is False

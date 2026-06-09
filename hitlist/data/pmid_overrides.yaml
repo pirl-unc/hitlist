@@ -7003,3 +7003,31 @@
       (CVCL_1844).  All arms are malignant and already classify src_cancer; this
       override changes no flags — it tags the named leukemia lines (cell_line)
       vs primary patient material (cancer_patient) for downstream consumers.  #36.
+  # ── #307 — per-PMID source-organism curation for animal self-peptidomes ─────
+  # IEDB left source_organism blank / "unidentified" on these self-peptidome
+  # datasets even though the eluted peptides come from the host's own proteome.
+  # Curated PER PAPER (verified self-peptidome, not a synthetic/random-library
+  # assay): the scanner fills source_organism/species only where unresolved.
+  # NOTE deliberately NOT curated: 35296092 (pig SLA-I) and 34535575 (possum)
+  # are random-peptide-library REFOLDING assays — synthetic source, not the host
+  # proteome — so they keep a blank source rather than being mislabeled.
+  - pmid: 33460454
+    study_label: "Owen 2021 — Tasmanian devil immunopeptidome (DFTD/DFT2 + host)"
+    source_organism: "Sarcophilus harrisii"
+    species: "Sarcophilus harrisii"
+    note: >
+      B2M-IP immunopeptidome of two transmissible devil facial tumours and their
+      host — a genuine self-peptidome from Tasmanian devil (Sarcophilus harrisii)
+      cells.  IEDB left 2,276 rows source_organism="unidentified"; the rest are
+      already Sarcophilus harrisii.  Fills the unresolved rows to match.  #307.
+  - pmid: 28188227
+    study_label: "Alvarez-Navarro 2018 — HLA-B27 transgenic rat peptidome (spondyloarthritis)"
+    source_organism: "Rattus norvegicus"
+    species: "Rattus norvegicus"
+    note: >
+      In-vivo HLA-B27 immunopeptidome from spondyloarthritis-susceptible
+      HLA-B27/human-beta2m TRANSGENIC RAT tissue — a rat self-peptidome presented
+      on transgenic human HLA (host=rat, mhc=engineered human; the eluted
+      peptides are the rat proteome).  IEDB left 12,494 rows
+      source_organism="unidentified"; fills them to Rattus norvegicus, leaving
+      the 51 explicitly human-sourced rows untouched.  #307.
