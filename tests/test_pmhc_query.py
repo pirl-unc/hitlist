@@ -1695,33 +1695,34 @@ def test_source_contexts_catalog_well_formed():
 
 
 def test_tissue_distribution(tmp_path, monkeypatch):
-    """tissue_distribution groups a gene's peptides by source tissue and honors
-    the source_context filter (healthy spans all src_healthy_* flags)."""
+    """tissue_distribution splits evidence into 4 sections: healthy/cancer
+    TISSUES (by source_tissue) and cancer/non-cancer CELL LINES (by line)."""
     import pandas as pd
 
     from hitlist import pmhc_query
 
-    peps = ["AAAAAAAAA", "CCCCCCCCC", "DDDDDDDDD", "EEEEEEEEE", "FFFFFFFFF"]
+    peps = ["AAAAAAAAA", "CCCCCCCCC", "DDDDDDDDD", "EEEEEEEEE", "FFFFFFFFF", "GGGGGGGGG"]
     df = pd.DataFrame(
         {
-            # Blood healthy, Thymus healthy, Ovary healthy (reproductive),
-            # Skin primary tumor (cancer, NOT a line), Colon cancer CELL LINE.
+            # 0 Thymus healthy tissue; 1 Ovary healthy (reproductive); 2 Skin
+            # primary tumor; 3 THP-1 cancer cell line (Blood tissue, but a line);
+            # 4 HEK293 non-cancer cell line; 5 second THP-1 cancer-line obs.
             "peptide": peps,
-            "pmid": [1, 2, 3, 4, 5],
-            "mhc_class": ["I"] * 5,
-            "mhc_restriction": ["HLA-A*02:01"] * 5,
-            "mhc_species": ["Homo sapiens"] * 5,
-            "source": ["iedb"] * 5,
-            "attributed_sample_label": [f"s{i}" for i in range(5)],
-            "cell_name": [""] * 5,
-            "cell_line_name": [""] * 5,
-            "monoallelic_host": [""] * 5,
-            "source_tissue": ["Blood", "Thymus", "Ovary", "Skin", "Colon"],
-            "src_healthy_tissue": [True, False, False, False, False],
-            "src_healthy_thymus": [False, True, False, False, False],
-            "src_healthy_reproductive": [False, False, True, False, False],
-            "src_cancer": [False, False, False, True, True],
-            "src_cell_line": [False, False, False, False, True],
+            "pmid": [1, 2, 3, 4, 5, 6],
+            "mhc_class": ["I"] * 6,
+            "mhc_restriction": ["HLA-A*02:01"] * 6,
+            "mhc_species": ["Homo sapiens"] * 6,
+            "source": ["iedb"] * 6,
+            "attributed_sample_label": [f"s{i}" for i in range(6)],
+            "cell_name": ["", "", "", "THP-1", "HEK293", "THP-1"],
+            "cell_line_name": ["", "", "", "THP-1", "HEK293", "THP-1"],
+            "monoallelic_host": [""] * 6,
+            "source_tissue": ["Thymus", "Ovary", "Skin", "Blood", "Kidney", "Blood"],
+            "src_healthy_tissue": [False] * 6,
+            "src_healthy_thymus": [True, False, False, False, False, False],
+            "src_healthy_reproductive": [False, True, False, False, False, False],
+            "src_cancer": [False, False, True, True, False, True],
+            "src_cell_line": [False, False, False, True, True, True],
         }
     )
     obs_path = tmp_path / "observations.parquet"
@@ -1729,44 +1730,84 @@ def test_tissue_distribution(tmp_path, monkeypatch):
     mappings = pd.DataFrame(
         {
             "peptide": peps,
-            "gene_name": ["NRAS"] * 5,
-            "gene_id": ["ENSG00000213281"] * 5,
-            "protein_id": ["ENSP00000358548"] * 5,
+            "gene_name": ["NRAS"] * 6,
+            "gene_id": ["ENSG00000213281"] * 6,
+            "protein_id": ["ENSP00000358548"] * 6,
         }
     )
     mappings_path = tmp_path / "peptide_mappings.parquet"
     mappings.to_parquet(mappings_path, index=False)
     _patch_paths(monkeypatch, obs_path, mappings_path)
 
-    # healthy context spans tissue + thymus + reproductive (Blood/Thymus/Ovary).
-    healthy = pmhc_query.tissue_distribution(
-        proteins=["NRAS"], source_context="healthy", use_hgnc=False
-    )
-    assert set(healthy["source_tissue"]) == {"Blood", "Thymus", "Ovary"}
-    assert (healthy["n_unique_peptides"] == 1).all()
-    # no context → all 5 tissues, with the observation-based healthy/cancer x line
-    # breakdown (each fixture peptide is 1 observation, so counts match).
-    allt = pmhc_query.tissue_distribution(proteins=["NRAS"], use_hgnc=False).set_index(
-        "source_tissue"
-    )
-    assert set(allt.index) == {"Blood", "Thymus", "Ovary", "Skin", "Colon"}
-    assert allt.loc["Thymus", "n_healthy_tissue"] == 1
-    assert allt.loc["Blood", "n_healthy_tissue"] == 1
-    # Skin = primary tumor → cancer_tissue, not a cell line.
-    assert allt.loc["Skin", "n_cancer_tissue"] == 1
-    assert allt.loc["Skin", "n_cancer_cell_lines"] == 0
-    assert allt.loc["Skin", "n_cell_lines"] == 0
-    # Colon = cancer cell line → cancer_cell_lines + cell_lines, not cancer_tissue.
-    assert allt.loc["Colon", "n_cancer_cell_lines"] == 1
-    assert allt.loc["Colon", "n_cancer_tissue"] == 0
-    assert allt.loc["Colon", "n_cell_lines"] == 1
-    assert allt.loc["Colon", "n_observations"] == 1
-    assert list(allt.columns) == [
+    res = pmhc_query.tissue_distribution(proteins=["NRAS"], use_hgnc=False)
+    assert list(res.columns) == [
+        "section",
+        "group",
         "n_observations",
-        "n_healthy_tissue",
-        "n_cancer_tissue",
-        "n_cancer_cell_lines",
-        "n_cell_lines",
         "n_unique_peptides",
         "n_references",
     ]
+
+    def grp(section, group):
+        sub = res[(res["section"] == section) & (res["group"] == group)]
+        return sub.iloc[0] if len(sub) else None
+
+    # Healthy tissues — by source_tissue.
+    assert {(r["group"]) for _, r in res[res.section == "healthy tissues"].iterrows()} == {
+        "Thymus",
+        "Ovary",
+    }
+    # Cancer tissues — Skin (primary tumor), NOT the THP-1 Blood line.
+    assert {r["group"] for _, r in res[res.section == "cancer tissues"].iterrows()} == {"Skin"}
+    # THP-1 is a cancer CELL LINE (grouped as THP-1, not "Blood"), 2 observations.
+    thp1 = grp("cancer cell lines", "THP-1")
+    assert thp1 is not None and thp1["n_observations"] == 2 and thp1["n_unique_peptides"] == 2
+    # HEK293 is a non-cancer cell line.
+    assert grp("non-cancer cell lines", "HEK293") is not None
+    # No tissue section ever contains a cell-line group.
+    tissue_groups = res[res.section.str.endswith("tissues")]["group"]
+    assert "THP-1" not in set(tissue_groups) and "HEK293" not in set(tissue_groups)
+
+
+def test_tissue_distribution_show_empty(tmp_path, monkeypatch):
+    """show_empty surfaces sections with no rows as a '(none)' placeholder."""
+    import pandas as pd
+
+    from hitlist import pmhc_query
+
+    df = pd.DataFrame(
+        {
+            "peptide": ["AAAAAAAAA"],
+            "pmid": [1],
+            "mhc_class": ["I"],
+            "mhc_restriction": ["HLA-A*02:01"],
+            "mhc_species": ["Homo sapiens"],
+            "source": ["iedb"],
+            "attributed_sample_label": ["s0"],
+            "cell_name": [""],
+            "cell_line_name": [""],
+            "monoallelic_host": [""],
+            "source_tissue": ["Thymus"],
+            "src_healthy_thymus": [True],
+            "src_cancer": [False],
+            "src_cell_line": [False],
+        }
+    )
+    obs_path = tmp_path / "observations.parquet"
+    df.to_parquet(obs_path, index=False)
+    mappings = pd.DataFrame(
+        {
+            "peptide": ["AAAAAAAAA"],
+            "gene_name": ["NRAS"],
+            "gene_id": ["ENSG00000213281"],
+            "protein_id": ["ENSP00000358548"],
+        }
+    )
+    mappings_path = tmp_path / "peptide_mappings.parquet"
+    mappings.to_parquet(mappings_path, index=False)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
+
+    full = pmhc_query.tissue_distribution(proteins=["NRAS"], use_hgnc=False, show_empty=True)
+    # Only healthy tissues has data; the other three appear as (none).
+    nones = full[full["group"] == "(none)"]["section"].tolist()
+    assert set(nones) == {"cancer tissues", "cancer cell lines", "non-cancer cell lines"}
