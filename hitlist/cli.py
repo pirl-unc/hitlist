@@ -132,6 +132,16 @@ def _data_fetch(args: argparse.Namespace) -> None:
         sys.exit(1)
 
 
+def _data_fetch_all(args: argparse.Namespace) -> None:
+    from .downloads import fetch_all_data_assets
+
+    try:
+        fetch_all_data_assets(force=args.force)
+    except (RuntimeError, OSError) as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
 def _data_refresh(args: argparse.Namespace) -> None:
     try:
         p = refresh(args.name)
@@ -302,6 +312,12 @@ def _build_data_parser(sub: argparse._SubParsersAction) -> None:
     p = ds.add_parser("fetch", help="Download a fetchable dataset")
     p.add_argument("name", help="Dataset name")
     p.add_argument("--force", "-f", action="store_true", help="Re-download")
+
+    p = ds.add_parser(
+        "fetch-all",
+        help="Fetch ALL mirrored data-asset CSVs (paper-derived) into the cache dir",
+    )
+    p.add_argument("--force", "-f", action="store_true", help="Re-download even if cached")
 
     p = ds.add_parser("refresh", help="Re-download a fetchable dataset")
     p.add_argument("name", help="Dataset name")
@@ -613,6 +629,7 @@ def _handle_data(args: argparse.Namespace) -> None:
         "available": _data_available,
         "register": _data_register,
         "fetch": _data_fetch,
+        "fetch-all": _data_fetch_all,
         "refresh": _data_refresh,
         "info": _data_info,
         "path": _data_path,

@@ -69,24 +69,31 @@ def is_bulk_proteomics_built() -> bool:
     return bulk_proteomics_path().exists()
 
 
+def _bulk_data_path(filename: str) -> str:
+    """Resolve a bulk-proteomics CSV: the packaged copy if present (source /
+    editable install), else fetch the externalized copy via datacache (#303)."""
+    from .downloads import packaged_or_fetched
+
+    return str(packaged_or_fetched(files(_DATA_MODULE) / filename, filename))
+
+
 @lru_cache(maxsize=1)
 def _load_ccle() -> pd.DataFrame:
-    path = files(_DATA_MODULE) / "ccle_nusinow_2020.csv.gz"
-    df = pd.read_csv(str(path), compression="gzip")
+    df = pd.read_csv(_bulk_data_path("ccle_nusinow_2020.csv.gz"), compression="gzip")
     df["source"] = "CCLE_Nusinow_2020"
     return df
 
 
 @lru_cache(maxsize=1)
 def _load_bj_protein() -> pd.DataFrame:
-    path = files(_DATA_MODULE) / "bekker_jensen_2017_protein_abundance.csv.gz"
-    return pd.read_csv(str(path), compression="gzip")
+    return pd.read_csv(
+        _bulk_data_path("bekker_jensen_2017_protein_abundance.csv.gz"), compression="gzip"
+    )
 
 
 @lru_cache(maxsize=1)
 def _load_bj() -> pd.DataFrame:
-    path = files(_DATA_MODULE) / "bekker_jensen_2017_peptides.csv.gz"
-    return pd.read_csv(str(path), compression="gzip")
+    return pd.read_csv(_bulk_data_path("bekker_jensen_2017_peptides.csv.gz"), compression="gzip")
 
 
 @lru_cache(maxsize=1)

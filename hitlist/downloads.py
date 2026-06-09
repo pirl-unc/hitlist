@@ -49,6 +49,7 @@ import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
+from functools import lru_cache
 from pathlib import Path
 
 # ── Download helper (timeout + retry) ────────────────────────────────────────
@@ -841,6 +842,133 @@ def fetch_proteome_by_upid(
     }
     _save_manifest(manifest)
     return dest
+
+
+# ── Mirrored data assets (issue #303) ───────────────────────────────────────
+# Every important data CSV is mirrored to the GitHub "data-assets-v1" release
+# for backup + high availability, and fetched on demand into the datacache cache
+# dir (datacache.get_data_dir('hitlist'); openvax ecosystem, #291).  The registry
+# lives in hitlist/data/data_assets.yaml.  Large files (``bundled: false``) are
+# excluded from the PyPI wheel and ALWAYS fetched; small files ship in the wheel
+# for out-of-box use and are mirrored only for backup / ``data fetch-all``.
+
+
+@lru_cache(maxsize=1)
+def _data_assets_registry() -> dict:
+    """Load the data-assets manifest (base_url + per-file sha256/source)."""
+    from importlib.resources import files as _ir_files
+
+    import yaml
+
+    text = (_ir_files("hitlist.data") / "data_assets.yaml").read_text()
+    doc = yaml.safe_load(text) or {}
+    base_url = doc.get("base_url", "")
+    assets = {
+        a["filename"]: {
+            "sha256": a["sha256"],
+            "source": a.get("source", ""),
+            "bundled": bool(a.get("bundled", True)),
+            "url": f"{base_url}/{a['filename']}",
+        }
+        for a in doc.get("assets", [])
+    }
+    return {"base_url": base_url, "assets": assets}
+
+
+def data_assets() -> dict[str, dict]:
+    """Return the full mirrored-data-asset registry, keyed by filename."""
+    return dict(_data_assets_registry()["assets"])
+
+
+# Backwards-compatible alias for callers that imported the dict form.
+class _ExternalDataAssetsView:
+    def __contains__(self, key: object) -> bool:
+        return key in _data_assets_registry()["assets"]
+
+    def __getitem__(self, key: str) -> dict:
+        return _data_assets_registry()["assets"][key]
+
+    def __iter__(self):
+        return iter(_data_assets_registry()["assets"])
+
+    def keys(self):
+        return _data_assets_registry()["assets"].keys()
+
+
+EXTERNAL_DATA_ASSETS = _ExternalDataAssetsView()
+
+
+def _sha256(path: Path) -> str:
+    import hashlib
+
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def fetch_data_asset(filename: str, *, force: bool = False, verbose: bool = True) -> Path:
+    """Fetch a mirrored data asset into the datacache cache dir (#303).
+
+    Uses ``datacache.fetch_file`` (openvax ecosystem cache; #291) so the file is
+    stored under ``datacache.get_data_dir('hitlist')`` and reused across runs.
+    Verifies the sha256 and re-fetches once on mismatch (partial/corrupt cache).
+    """
+    assets = _data_assets_registry()["assets"]
+    if filename not in assets:
+        raise KeyError(f"unknown data asset {filename!r}; known: {sorted(assets)}")
+    import datacache
+
+    meta = assets[filename]
+    if verbose:
+        print(f"Fetching {filename} ({meta['source']}) via datacache...")
+    path = Path(datacache.fetch_file(meta["url"], filename=filename, subdir="hitlist", force=force))
+    if _sha256(path) != meta["sha256"]:
+        if verbose:
+            print(f"  checksum mismatch for {filename}; re-fetching...")
+        path = Path(
+            datacache.fetch_file(meta["url"], filename=filename, subdir="hitlist", force=True)
+        )
+        if _sha256(path) != meta["sha256"]:
+            raise RuntimeError(
+                f"checksum mismatch for {filename} after re-fetch "
+                f"(expected {meta['sha256'][:12]}...); the data-assets release may have changed."
+            )
+    return path
+
+
+def fetch_all_data_assets(*, force: bool = False, verbose: bool = True) -> dict[str, Path]:
+    """Fetch (and checksum-verify) EVERY mirrored data asset into the cache dir.
+
+    Backs the ``hitlist data fetch-all`` command — one call to pull the complete
+    set of paper-derived CSVs from the GitHub data-assets release. Returns a
+    ``{filename: cached_path}`` map. Re-uses cached copies unless ``force``.
+    """
+    assets = _data_assets_registry()["assets"]
+    out: dict[str, Path] = {}
+    for i, filename in enumerate(sorted(assets), 1):
+        if verbose:
+            print(f"[{i}/{len(assets)}] {filename}")
+        out[filename] = fetch_data_asset(filename, force=force, verbose=verbose)
+    if verbose and out:
+        total = sum(p.stat().st_size for p in out.values())
+        cache_dir = next(iter(out.values())).parent
+        print(f"Done — {len(out)} assets cached in {cache_dir} ({total / 1e6:.1f} MB).")
+    return out
+
+
+def packaged_or_fetched(packaged_path, filename: str) -> Path:
+    """Return the packaged data file if it exists locally (source / editable
+    install), otherwise fetch the externalized copy via :func:`fetch_data_asset`.
+
+    ``packaged_path`` may be a ``pathlib.Path`` or an ``importlib.resources``
+    Traversable; only its string form is used for the existence check.
+    """
+    p = Path(str(packaged_path))
+    if p.is_file():
+        return p
+    return fetch_data_asset(filename)
 
 
 # ── Core API ────────────────────────────────────────────────────────────────

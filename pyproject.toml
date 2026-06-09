@@ -26,6 +26,9 @@ dependencies = [
     "pyarrow",
     "PyYAML",
     "tqdm",
+    # On-demand caching of large externalized data assets (#303) into the
+    # openvax-ecosystem cache dir (datacache.get_data_dir; #291).
+    "datacache",
 ]
 
 [project.optional-dependencies]
@@ -64,6 +67,20 @@ hitlist = [
     "data/bulk_proteomics/*.yaml",
     "data/line_expression/*.yaml",
     "data/line_expression/*.csv.gz",
+]
+
+# Large paper-derived data files (#303) are NOT shipped in the wheel — together
+# they blew the PyPI project size quota.  They are hosted on the GitHub
+# "data-assets-v1" release and fetched on demand via datacache (see
+# hitlist.downloads.EXTERNAL_DATA_ASSETS).  Kept in the git tree for development;
+# the matching MANIFEST.in `exclude` lines drop them from the sdist too.
+[tool.setuptools.exclude-package-data]
+hitlist = [
+    "data/bulk_proteomics/bekker_jensen_2017_peptides.csv.gz",
+    "data/bulk_proteomics/bekker_jensen_2017_protein_abundance.csv.gz",
+    "data/bulk_proteomics/ccle_nusinow_2020.csv.gz",
+    "data/supplementary/strazar_2023_hla2.csv",
+    "data/supplementary/abelin_2019_maptac_class2.csv",
 ]
 
 [tool.ruff]
