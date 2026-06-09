@@ -440,17 +440,23 @@ def query(
     # 3d. Surface unresolved source-organism rows (#256 review).
     #     mhc_species is always derivable from the allele prefix
     #     (HLA, H-2, DLA, ...) so it never lands in "unknown" today.
-    #     species is unresolved on ~4% of the IEDB corpus due to
-    #     missing / "unidentified" source_organism metadata; goal is
-    #     to drive that to 0 via curation, so warn loudly here.
+    #     The source-proteome axis is stored in TWO IEDB columns at
+    #     different granularity — ``source_organism`` (strain-level) and
+    #     ``species`` (species-rank).  They describe the same axis (#306),
+    #     so a row is only genuinely *unresolved* when BOTH are missing.
+    #     Warn on the canonical coalesce so we don't spuriously flag rows
+    #     where one field is curated but the other happens to be blank
+    #     (the inconsistency that surfaced the Gomez-Zepeda warning).
     #
     #     (A previous draft also warned on species != mhc_species, but
-    #     that warning would fire 100K+ times on a broad query
-    #     dominated by legitimate viral / bacterial peptides presented
-    #     on host MHC — the basic question of pathogen
-    #     immunopeptidomics.  Low signal, removed.)
-    if "species" in df.columns:
-        unknown_mask = df["species"] == "unknown"
+    #     that warning would fire 100K+ times on a broad query dominated
+    #     by legitimate viral / bacterial peptides presented on host MHC.
+    #     Low signal, removed.)
+    src_cols = [c for c in ("species", "source_organism") if c in df.columns]
+    if src_cols:
+        unknown_mask = pd.Series(True, index=df.index)
+        for c in src_cols:
+            unknown_mask &= _normalize_species_column(df[c]) == "unknown"
         n_unknown = int(unknown_mask.sum())
         if n_unknown and verbose:
             _progress(

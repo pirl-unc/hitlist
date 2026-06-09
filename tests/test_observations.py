@@ -1179,3 +1179,34 @@ def test_axis_columns_not_attached_when_unrequested(tmp_path, monkeypatch):
     df = load_observations()
     for c in ("is_chimeric", "is_engineered_mhc", "xenograft", "host_organism", "source_species"):
         assert c not in df.columns
+
+
+def test_source_species_coalesces_species_when_source_organism_blank(tmp_path, monkeypatch):
+    """#306: the source-proteome axis lives in two columns (source_organism,
+    species). source_species must resolve when EITHER is populated."""
+    import pandas as pd
+
+    df = pd.DataFrame(
+        {
+            "peptide": ["AAAAAAAAA", "CCCCCCCCC", "DDDDDDDDD"],
+            "mhc_restriction": ["HLA-A*02:01"] * 3,
+            "mhc_class": ["I"] * 3,
+            "reference_iri": [f"ms-{i}" for i in range(3)],
+            "pmid": pd.array([1, 2, 3], dtype="Int64"),
+            "source": ["iedb"] * 3,
+            "is_binding_assay": [False] * 3,
+            "mhc_species": ["Homo sapiens"] * 3,
+            # row 0: only source_organism; row 1: only species; row 2: neither
+            "source_organism": ["Homo sapiens", "", ""],
+            "species": ["", "Mus musculus", ""],
+            "host": [""] * 3,
+        }
+    )
+    path = tmp_path / "observations.parquet"
+    df.to_parquet(path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
+
+    out = load_observations(columns=["peptide", "source_species"]).set_index("peptide")
+    assert out.loc["AAAAAAAAA", "source_species"] == "Homo sapiens"  # from source_organism
+    assert out.loc["CCCCCCCCC", "source_species"] == "Mus musculus"  # coalesced from species
+    assert out.loc["DDDDDDDDD", "source_species"] == ""  # genuinely unresolved
