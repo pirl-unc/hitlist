@@ -2209,3 +2209,23 @@ def test_pmid_provenance_31575892_blood_aml_cell_line():
     )
     assert flags["src_cancer"] is True
     assert flags["src_cell_line"] is True
+
+
+def test_pmid_provenance_other_coded_cell_lines_get_cell_name():
+    """#36 "Other": IEDB logged these papers' cells as the "Other" sentinel.
+    Per-PMID provenance curates a real cell_name so they no longer roll up into
+    the "(unspecified type)" bucket — melanoma lines to the Melanocyte lineage,
+    SaOS-2 to its named osteosarcoma line."""
+    from hitlist.curation import pmid_provenance
+
+    assert pmid_provenance(25645385)["cell_name"] == "Melanocyte"  # Pritchard 3 melanoma lines
+    assert pmid_provenance(34290406)["cell_name"] == "Melanocyte"  # Oliveira pdMel-CLs
+    assert pmid_provenance(36010968)["cell_name"] == "SaOS-2"  # Vadakekolathu osteosarcoma
+
+
+def test_scanner_treats_other_cell_name_as_fillable():
+    """The scanner counts IEDB's "Other"/"unknown"/blank sentinels as unresolved
+    so a curated cell_name replaces them (not just truly-empty values)."""
+    from hitlist.cell_name_parser import _UNINFORMATIVE_CELL_NAMES
+
+    assert {"", "other", "unknown"} <= _UNINFORMATIVE_CELL_NAMES

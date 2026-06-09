@@ -1776,9 +1776,7 @@ def _pmhc(args: argparse.Namespace) -> None:
         elif fmt == "json":
             text = dist.to_json(orient="records", indent=2)
         else:
-            text = pmhc_query.format_tissue_table(
-                dist, cell_group_label="cell line" if expand_lines else "cell type"
-            )
+            text = pmhc_query.format_tissue_table(dist)
         if out:
             from pathlib import Path
 

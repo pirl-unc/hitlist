@@ -1817,3 +1817,80 @@ def test_tissue_distribution_show_empty(tmp_path, monkeypatch):
     # Only healthy tissues has data; the other three appear as (none).
     nones = full[full["group"] == "(none)"]["section"].tolist()
     assert set(nones) == {"cancer tissues", "cancer cell lines", "non-cancer cell lines"}
+
+
+def test_tissue_distribution_unknown_type_falls_back_to_tissue(tmp_path, monkeypatch):
+    """A cancer cell line whose cell TYPE is unknown (IEDB "Other"/blank cell_name)
+    but whose source TISSUE is known is labelled by the bare tissue name (e.g.
+    "Skin") rather than collapsed into the opaque "(unspecified type)" bucket — so
+    a heterogeneous patient-derived cohort stays split by what we do know."""
+    import pandas as pd
+
+    from hitlist import pmhc_query
+
+    peps = ["AAAAAAAAA", "CCCCCCCCC", "DDDDDDDDD"]
+    df = pd.DataFrame(
+        {
+            # 0 skin tumor line, unknown type; 1 ovary tumor line, unknown type;
+            # 2 cell line with no tissue at all -> stays "(unspecified type)".
+            "peptide": peps,
+            "pmid": [1, 2, 3],
+            "mhc_class": ["I"] * 3,
+            "mhc_restriction": ["HLA-A*02:01"] * 3,
+            "mhc_species": ["Homo sapiens"] * 3,
+            "source": ["iedb"] * 3,
+            "attributed_sample_label": [f"s{i}" for i in range(3)],
+            "cell_name": ["Other", "Other", "Other"],
+            "cell_line_name": ["", "", ""],
+            "monoallelic_host": [""] * 3,
+            "source_tissue": ["Skin", "Ovary", ""],
+            "src_cancer": [True, True, True],
+            "src_cell_line": [True, True, True],
+            "src_ebv_lcl": [False, False, False],
+        }
+    )
+    obs_path = tmp_path / "observations.parquet"
+    df.to_parquet(obs_path, index=False)
+    mappings = pd.DataFrame(
+        {
+            "peptide": peps,
+            "gene_name": ["NRAS"] * 3,
+            "gene_id": ["ENSG00000213281"] * 3,
+            "protein_id": ["ENSP00000358548"] * 3,
+        }
+    )
+    mappings_path = tmp_path / "peptide_mappings.parquet"
+    mappings.to_parquet(mappings_path, index=False)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
+
+    res = pmhc_query.tissue_distribution(proteins=["NRAS"], use_hgnc=False)
+    ccl = set(res[res.section == "cancer cell lines"]["group"])
+    # Cell TYPE unknown but tissue known -> grouped by the bare tissue name
+    # (the section banner already says these are lines).
+    assert "Skin" in ccl
+    assert "Ovary" in ccl
+    # No tissue -> still the opaque bucket (honest: we know nothing).
+    assert "(unspecified type)" in ccl
+
+
+def test_format_tissue_table_columns_align_across_sections(tmp_path, monkeypatch):
+    """format_tissue_table computes column widths GLOBALLY so every section's
+    table lines up — the group column is one fixed width across all blocks."""
+    import pandas as pd
+
+    from hitlist import pmhc_query
+
+    df = pd.DataFrame(
+        {
+            "section": ["healthy tissues", "cancer cell lines"],
+            "group": ["Thymus", "a-very-wide-cell-type-label"],
+            "n_observations": [6, 1],
+            "n_unique_peptides": [6, 1],
+            "n_references": [1, 1],
+        }
+    )
+    out = pmhc_query.format_tissue_table(df)
+    lines = [ln for ln in out.splitlines() if "n_observations" in ln]
+    # Every header row places "n_observations" at the same column offset.
+    offsets = {ln.index("n_observations") for ln in lines}
+    assert len(offsets) == 1, out

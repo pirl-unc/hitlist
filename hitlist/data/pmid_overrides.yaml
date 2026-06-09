@@ -3492,6 +3492,10 @@
     study_label: "Vadakekolathu 2022 — SaOS-2 p53 mutant immunopeptidome"
     title: "Multi-Omic Analysis of Two Common P53 Mutations"
     override: cell_line
+    # IEDB logged the cell as "Other"; the single source line is SaOS-2
+    # (human osteosarcoma, TP53-null, CVCL_0548) in vector / R175H / R273H
+    # conditions.  Curate the real line name (#36 "Other").
+    cell_name: SaOS-2
     perturbations:
       - "TP53 R175H mutant transfection"
       - "TP53 R273H mutant transfection"
@@ -3508,6 +3512,17 @@
         condition: "TP53 R273H mutant transfection"
         mhc_class: "I"
         mhc: "HLA-A*02:01 HLA-A*24:02 HLA-B*13:02 HLA-B*44:02 HLA-C*06:02 HLA-C*07:04"
+
+  - pmid: 34290406
+    study_label: "Oliveira 2021 — melanoma TIL antigen immunopeptidome"
+    title: "Phenotype, specificity and avidity of antitumour CD8+ T cells in melanoma"
+    override: cell_line
+    # IEDB logged the cell as "Other".  The HLA-I immunopeptidome was eluted from
+    # four PATIENT-DERIVED melanoma cell lines (pdMel-CLs, Pt-A..Pt-D) — bespoke
+    # per-patient lines, not catalogued/named lines.  All melanoma, so curate the
+    # melanocyte LINEAGE (merges into "Melanocyte"), not a fabricated line name
+    # (#36 "Other").
+    cell_name: Melanocyte
 
   - pmid: 35154160
     study_label: "Kaabinejadian 2022 — DRB3/4/5 class II motifs"
@@ -3961,6 +3976,12 @@
     study_label: "Pritchard 2015 — melanoma class I"
     title: "Exploration of peptides bound to MHC class I molecules in melanoma"
     override: cell_line
+    # IEDB logged the cell as "Other" (ref 1030473 carries no cell-line record).
+    # All three sources are cutaneous-melanoma lines (in-house QIMR Berghofer
+    # collection; exact line designations are behind the Wiley paywall), so
+    # curate the melanocyte LINEAGE (merges into the "Melanocyte" group), not a
+    # fabricated single line name (#36 "Other").
+    cell_name: Melanocyte
     ms_samples:
       - sample_label: "melanoma cell lines (3 lines)"
         n_samples: 3
