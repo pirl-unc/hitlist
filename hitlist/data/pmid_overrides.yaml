@@ -6897,3 +6897,33 @@
         condition: unperturbed
         mhc_class: "I"
         mhc: ""
+  # ── #36 — HCT 116 colon carcinoma + gemcitabine (type now resolved) ─────────
+  - pmid: 29930882
+    study_label: "Gravett 2018 — HCT 116 colon carcinoma class-I ligandome ± gemcitabine"
+    title: "Gemcitabine alters the proteasome composition and immunopeptidome of tumour cells"
+    override: cell_line
+    note: >
+      HLA class I ligandome of HCT 116, a colon carcinoma line (Cellosaurus
+      CVCL_0291 / ATCC CCL-247).  IEDB recorded only "HLA class I" (pan-class-I
+      W6/32 IP); the full genotype A*01:01, A*02:01, B*18:01, B*45:01, C*05:01,
+      C*07:01 is the high-confidence consensus from sequence-based NCI-60 typing
+      (Adams 2005, PMID 15748285) corroborated by two NGS cell-line HLA catalogues
+      (Boegel 2015, Scholtalbers 2015) and HCT 116 ligandome data — the second B
+      allele is B*45:01 (an earlier "B*21:01" string was obsolete broad-serotype
+      nomenclature, not a molecular type).  Two arms via assay_comments: ligands
+      eluted constitutively (± gemcitabine) vs eluted exclusively after
+      gemcitabine (GEM) treatment, which alters proteasome composition.  HCT 116
+      is a tumor line, so src_cancer is correct (cell_line).  #36.
+    ms_samples:
+      - sample_label: "HCT 116 — untreated (constitutive)"
+        n_samples: 1
+        source: "HCT 116 colon carcinoma line (CVCL_0291)"
+        condition: unperturbed
+        mhc_class: "I"
+        mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*18:01 HLA-B*45:01 HLA-C*05:01 HLA-C*07:01"
+      - sample_label: "HCT 116 — gemcitabine-treated"
+        n_samples: 1
+        source: "HCT 116 colon carcinoma line (CVCL_0291)"
+        condition: "Gemcitabine (alters proteasome composition)"
+        mhc_class: "I"
+        mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*18:01 HLA-B*45:01 HLA-C*05:01 HLA-C*07:01"
