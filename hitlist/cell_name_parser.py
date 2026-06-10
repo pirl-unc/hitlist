@@ -78,11 +78,28 @@ CELL_TYPES: tuple[str, ...] = (
     "Thymocyte",
     "Splenocyte",
     "Monocyte",
+    # Blast / haematopoietic lineages seen as "<Line>-<lineage>" suffixes in the
+    # corpus (BV-173-Myeloblast, SK-N-AS-Neuroblast, ...).  "Mast cell" MUST
+    # precede "T cell" below — "mast cell" ends in "t cell", so an earlier
+    # "T cell" entry would mis-split it.
+    "Myeloblast",
+    "Neuroblast",
+    "Mast cell",
     "B cell",
     "T cell",
     "NK cell",
     "PBMC",
 )
+
+#: Output normalization: lymphocyte lineages render in the hyphenated house
+#: style.  Applied once in :meth:`CellNameInfo.__post_init__` so every parse
+#: path agrees; "B cell"/"T cell" stay in CELL_TYPES above for raw-string
+#: suffix matching, but the parsed cell_type is always the hyphenated form.
+_CELL_TYPE_DISPLAY: dict[str, str] = {
+    "B cell": "B-cell",
+    "T cell": "T-cell",
+    "NK cell": "NK-cell",
+}
 
 # Words that genericize a name without changing identity — strip them
 # before dictionary lookup so "JY cells" matches "JY".
@@ -147,6 +164,15 @@ class CellNameInfo:
     donor_id: str
     genetic_modification: str
     raw_cell_name: str
+
+    def __post_init__(self) -> None:
+        # Standardize lymphocyte lineage labels to the hyphenated house style
+        # ("B cell" -> "B-cell", ...) at the single output chokepoint, so every
+        # parse path and the registry agree regardless of how the raw string
+        # spelled it.  frozen=True -> assign via object.__setattr__.
+        norm = _CELL_TYPE_DISPLAY.get(self.cell_type)
+        if norm is not None:
+            object.__setattr__(self, "cell_type", norm)
 
 
 # ── Registry loader ──────────────────────────────────────────────────────

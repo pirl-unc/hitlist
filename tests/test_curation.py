@@ -56,7 +56,9 @@ def test_cell_type_split_hybrid():
         "", "", "Cell Line / Clone", cell_name="K562-Myeloid cell", mhc_restriction="HLA-A*02:01"
     )
     assert flags["cell_line_name"] == "K562"
-    assert flags["cell_type"] == "Myeloid cell"
+    # K562's lineage is curated as Myeloblast (CML blast phase) in the registry,
+    # which overrides IEDB's coarse "Myeloid cell" suffix.
+    assert flags["cell_type"] == "Myeloblast"
 
 
 def test_cell_type_pure_type_is_not_a_line():
@@ -65,7 +67,7 @@ def test_cell_type_pure_type_is_not_a_line():
     flags = classify_ms_row("No immunization", "healthy", "Direct Ex Vivo", cell_name="B cell")
     assert flags["src_cell_line"] is False
     assert flags["cell_line_name"] == ""
-    assert flags["cell_type"] == "B cell"
+    assert flags["cell_type"] == "B-cell"  # normalized to the hyphenated house style
 
 
 def test_cell_type_unknown_line_keeps_identifier():

@@ -391,7 +391,8 @@ def test_scan_emits_cell_type_column(tmp_path):
     src = tmp_path / "iedb.csv"
     rows = []
 
-    # Hybrid cell-line row: "K562-Myeloid cell" → line "K562", type "Myeloid cell".
+    # Hybrid cell-line row: "K562-Myeloid cell" → line "K562", type "Myeloblast"
+    # (registry lineage overrides the coarse IEDB suffix).
     hybrid = [""] * 21
     hybrid[0] = "http://iedb.org/assay/200001"
     hybrid[1] = "http://iedb.org/reference/1"
@@ -403,7 +404,7 @@ def test_scan_emits_cell_type_column(tmp_path):
     hybrid[20] = "I"
     rows.append(hybrid)
 
-    # Pure cell-type primary row: "B cell" → no line, type "B cell".
+    # Pure cell-type primary row: "B cell" → no line, type "B-cell" (normalized).
     primary = [""] * 21
     primary[0] = "http://iedb.org/assay/200002"
     primary[1] = "http://iedb.org/reference/2"
@@ -422,11 +423,12 @@ def test_scan_emits_cell_type_column(tmp_path):
 
     hybrid_row = df[df["cell_name"] == "K562-Myeloid cell"].iloc[0]
     assert hybrid_row["cell_line_name"] == "K562"
-    assert hybrid_row["cell_type"] == "Myeloid cell"
+    # K562's registry lineage (Myeloblast) overrides IEDB's coarse suffix.
+    assert hybrid_row["cell_type"] == "Myeloblast"
 
     primary_row = df[df["cell_name"] == "B cell"].iloc[0]
     assert primary_row["cell_line_name"] == ""
-    assert primary_row["cell_type"] == "B cell"
+    assert primary_row["cell_type"] == "B-cell"  # hyphenated house style
 
 
 def test_scan_emits_allele_set_columns_with_provenance(tmp_path):
