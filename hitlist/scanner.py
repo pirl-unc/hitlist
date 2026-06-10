@@ -41,6 +41,12 @@ from .peptide_modifications import parse_peptide_modifications
 # "user explicitly passed mhc_species=None (disable filter)".
 _UNSET: object = object()
 
+#: source_tissue values that mean "no anatomical site recorded" — treated as
+#: unresolved so a curated per-PMID source_tissue can replace them (#307/#314).
+_UNRESOLVED_TISSUE: frozenset[str] = frozenset(
+    {"", "other", "unidentified", "unknown", "n/a", "na"}
+)
+
 # ── Column name → index resolution ─────────────────────────────────────────
 
 _COLUMN_NAMES: dict[str, list[str]] = {
@@ -414,7 +420,6 @@ def scan(
             # the real value replaces them (#36 / "Other"-tissue papers).
             from .cell_name_parser import _UNINFORMATIVE_CELL_NAMES
 
-            _UNRESOLVED_TISSUE = {"", "other", "unidentified", "unknown", "n/a", "na"}
             _cell_unresolved = cell_name.strip().lower() in _UNINFORMATIVE_CELL_NAMES
             _tissue_unresolved = source_tissue.strip().lower() in _UNRESOLVED_TISSUE
             if not (
