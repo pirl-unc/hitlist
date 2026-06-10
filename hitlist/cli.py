@@ -1461,6 +1461,16 @@ def main() -> None:
         ),
     )
     p_pmhc.add_argument(
+        "--expand-tissues",
+        action="store_true",
+        help=(
+            "With --by-tissue, split anatomical roll-up groups into their specific "
+            "organs (GI tract -> Esophagus/Stomach/Colon/...; CNS -> Brain/"
+            "Cerebellum/Spinal Cord). Rows a study labelled only with the umbrella "
+            "term show as '<group> (region unspecified)'. Default rolls them up."
+        ),
+    )
+    p_pmhc.add_argument(
         "--predictor",
         choices=["mhcflurry", "netmhcpan"],
         help=(
@@ -1863,6 +1873,7 @@ def _pmhc(args: argparse.Namespace) -> None:
                 source_context=source_context,
                 show_empty=getattr(args, "show_zeros", False),
                 expand_lines=expand_lines,
+                expand_tissues=getattr(args, "expand_tissues", False),
                 verbose=True,
             )
         except (FileNotFoundError, RuntimeError, ValueError) as e:

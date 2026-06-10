@@ -636,6 +636,7 @@ def tissue_distribution(
     source_context: str | None = None,
     show_empty: bool = False,
     expand_lines: bool = False,
+    expand_tissues: bool = False,
     use_hgnc: bool = True,
     verbose: bool = False,
 ) -> pd.DataFrame:
@@ -705,6 +706,31 @@ def tissue_distribution(
     df["source_tissue"] = (
         df["source_tissue"].astype(str).replace("", "(unspecified)").replace(_TISSUE_ABBREV)
     )
+
+    # Anatomical roll-up: by default collapse specific organs into their umbrella
+    # (Colon/Esophagus/... -> "GI tract"; Brain/Cerebellum/... -> "CNS"), since
+    # source studies label the same region at different granularity.  With
+    # ``expand_tissues`` keep the organs and mark umbrella-LABELED rows (studies
+    # that only gave the coarse term) "(region unspecified)" so they aren't read
+    # as a distinct organ.
+    from .curation import load_tissue_groups
+
+    _groups = load_tissue_groups()
+    if _groups:
+        _member_to_umbrella = {}
+        for _umb, _members in _groups.items():
+            _member_to_umbrella[_umb.lower()] = _umb
+            for _m in _members:
+                _member_to_umbrella[_m.lower()] = _umb
+        if expand_tissues:
+            _umbrella_terms = {u.lower() for u in _groups}
+            df["source_tissue"] = df["source_tissue"].map(
+                lambda t: f"{t} (region unspecified)" if t.lower() in _umbrella_terms else t
+            )
+        else:
+            df["source_tissue"] = df["source_tissue"].map(
+                lambda t: _member_to_umbrella.get(t.lower(), t)
+            )
 
     def _flag(name: str) -> pd.Series:
         return (

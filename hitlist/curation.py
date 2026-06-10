@@ -131,6 +131,19 @@ def load_tissue_categories() -> dict[str, frozenset[str]]:
     }
 
 
+@lru_cache(maxsize=1)
+def load_tissue_groups() -> dict[str, tuple[str, ...]]:
+    """Anatomical roll-up groups for the ``--by-tissue`` display: ``{umbrella:
+    (member organs, ...)}`` (e.g. ``"GI tract" -> ("Esophagus", "Colon", ...)``).
+
+    Display-only; not used for classification.  Member organs (and the umbrella
+    term itself) collapse to the umbrella by default.  See ``tissue_categories``.
+    """
+    with open(_data_path("tissue_categories.yaml")) as f:
+        data = yaml.safe_load(f)
+    return {umb: tuple(members or []) for umb, members in (data.get("tissue_groups") or {}).items()}
+
+
 #: Provenance fields a PMID override may curate; the scanner fills each ONLY
 #: where the IEDB/CEDAR row left it blank/"unidentified" (#307, #314).
 _PROVENANCE_FIELDS = (
