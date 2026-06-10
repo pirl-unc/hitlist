@@ -97,6 +97,38 @@ def resolve_hgnc_symbol(query: str) -> tuple[str, ...]:
     return symbols
 
 
+def _gene_sets_path() -> Path:
+    return Path(__file__).resolve().parent / "data" / "gene_sets.yaml"
+
+
+@lru_cache(maxsize=1)
+def _load_gene_sets() -> dict[str, dict]:
+    import yaml
+
+    data = yaml.safe_load(_gene_sets_path().read_text()) or {}
+    return data.get("gene_sets", {}) or {}
+
+
+def list_gene_sets() -> list[tuple[str, str]]:
+    """Available named gene sets as ``(name, description)`` pairs (sorted)."""
+    sets = _load_gene_sets()
+    return sorted((name, (e.get("description") or "").strip()) for name, e in sets.items())
+
+
+def load_gene_set(name: str) -> list[str]:
+    """Expand a named gene set (e.g. ``"CTA"``) to its list of HGNC symbols.
+
+    Case-insensitive on the set name.  Raises ``KeyError`` (with the available
+    names) when the set is unknown, so the CLI can report a clear error.
+    """
+    sets = _load_gene_sets()
+    by_lower = {k.lower(): k for k in sets}
+    key = by_lower.get(name.strip().lower())
+    if key is None:
+        raise KeyError(f"unknown gene set {name!r}; available: {sorted(sets)}")
+    return list(sets[key].get("genes", []) or [])
+
+
 def _is_ensembl_gene_id(s: str) -> bool:
     return s.startswith("ENSG") and s[4:].replace(".", "").isdigit()
 

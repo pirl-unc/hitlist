@@ -1429,6 +1429,29 @@ def main() -> None:
         help="With --by-tissue, show empty sections (as '(none)') instead of eliding them.",
     )
     p_pmhc.add_argument(
+        "--by-gene",
+        action="store_true",
+        help=(
+            "Per-GENE rollup: one row per gene with n_observations / "
+            "n_unique_peptides / n_references / n_samples, sorted by observations. "
+            "Pair with --gene-set CTA (or --gene) to summarize a panel. Honors "
+            "--source-context and --species; ignores --mhc-allele / --predictor."
+        ),
+    )
+    p_pmhc.add_argument(
+        "--gene-set",
+        dest="gene_set",
+        help=(
+            "Expand a named gene set into the --gene filter (e.g. 'CTA' for the "
+            "cancer-testis-antigen panel). See --list-gene-sets."
+        ),
+    )
+    p_pmhc.add_argument(
+        "--list-gene-sets",
+        action="store_true",
+        help="Print the available --gene-set names (with descriptions) and exit.",
+    )
+    p_pmhc.add_argument(
         "--expand-lines",
         action="store_true",
         help=(
@@ -1769,12 +1792,66 @@ def _pmhc(args: argparse.Namespace) -> None:
             print(f"  {'':<{width}}  flags: {', '.join(cols)}")
         return
 
+    # --list-gene-sets: print the named gene sets and exit.
+    if getattr(args, "list_gene_sets", False):
+        from .genes import list_gene_sets
+
+        sets = list_gene_sets()
+        if not sets:
+            print("No gene sets defined.")
+            return
+        print("Available --gene-set values:\n")
+        for name, desc in sets:
+            print(f"  {name}  {desc}")
+        return
+
     proteins = getattr(args, "protein", []) or []
+    # --gene-set NAME expands into the gene filter (composes with --gene).
+    gene_set = getattr(args, "gene_set", None)
+    if gene_set:
+        from .genes import load_gene_set
+
+        try:
+            proteins = list(proteins) + load_gene_set(gene_set)
+        except KeyError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            sys.exit(2)
     alleles = getattr(args, "mhc_allele", []) or []
     inline_samples = getattr(args, "sample", None) or []
     samples_path = getattr(args, "samples", None)
     species = getattr(args, "species", None)
     source_context = getattr(args, "source_context", None)
+
+    # --by-gene: per-gene rollup (one row per gene with evidence totals).
+    if getattr(args, "by_gene", False):
+        try:
+            dist = pmhc_query.gene_distribution(
+                proteins=proteins,
+                species=species,
+                source_context=source_context,
+                verbose=True,
+            )
+        except (FileNotFoundError, RuntimeError, ValueError) as e:
+            print(f"Error: {e}", file=sys.stderr)
+            sys.exit(1)
+        if dist.empty and proteins:
+            _warn_unrecognized_genes(proteins)
+        fmt = getattr(args, "format", "table")
+        if fmt == "csv":
+            text = dist.to_csv(index=False)
+        elif fmt == "json":
+            text = dist.to_json(orient="records", indent=2)
+        else:
+            text = pmhc_query.format_gene_table(dist)
+        out = getattr(args, "output", None)
+        if out:
+            from pathlib import Path
+
+            Path(out).write_text(text + "\n")
+            print(f"Wrote {out}")
+        else:
+            print(text)
+        return
 
     # --by-tissue: where (tissues / cell types) are the gene's peptides from?
     if getattr(args, "by_tissue", False):

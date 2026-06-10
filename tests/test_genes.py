@@ -2,7 +2,41 @@
 
 from __future__ import annotations
 
-from hitlist.genes import _is_ensembl_gene_id, resolve_gene_query
+import pytest
+
+from hitlist.genes import (
+    _is_ensembl_gene_id,
+    list_gene_sets,
+    load_gene_set,
+    resolve_gene_query,
+)
+
+
+def test_load_gene_set_cta_expands_to_symbols():
+    """The CTA gene set expands to a panel of current HGNC symbols."""
+    genes = load_gene_set("CTA")
+    assert len(genes) > 40
+    for expected in ("PRAME", "MAGEA4", "CTAG1B", "XAGE1A", "SSX2"):
+        assert expected in genes
+    # MAGE-D subfamily is broadly expressed, not testis-restricted — excluded.
+    assert "MAGED1" not in genes and "MAGED2" not in genes
+    # No accidental duplicates; all uppercase-ish current symbols.
+    assert len(genes) == len(set(genes))
+
+
+def test_load_gene_set_is_case_insensitive():
+    assert load_gene_set("cta") == load_gene_set("CTA")
+
+
+def test_load_gene_set_unknown_raises():
+    with pytest.raises(KeyError, match="unknown gene set"):
+        load_gene_set("NOPE")
+
+
+def test_list_gene_sets_includes_cta():
+    sets = dict(list_gene_sets())
+    assert "CTA" in sets
+    assert "cancer-testis" in sets["CTA"].lower()
 
 
 def test_ensembl_id_detection():

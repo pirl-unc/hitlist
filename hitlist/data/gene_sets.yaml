@@ -1,0 +1,94 @@
+# Named gene sets for hitlist (e.g. `pmhc --gene-set CTA`).
+#
+# Each set maps a short name to a curated list of current HGNC symbols.  The
+# resolver (hitlist.genes.load_gene_set) expands the name into that list, which
+# then flows through the normal --gene path (HGNC aliases / Ensembl IDs still
+# resolve).  Symbols that aren't in the corpus simply contribute zero rows.
+#
+# Add sets here; keep symbols as CURRENT HGNC gene symbols so they resolve.
+
+gene_sets:
+  # Cancer-testis antigens (CTAs / CT antigens): germline-restricted genes
+  # aberrantly re-expressed in tumors — prime shared-neoantigen / vaccine
+  # targets.  Core panel drawn from the canonical CT families (CTdatabase /
+  # Almeida 2009; Wang 2016 Cancer Immunol Res).  Not exhaustive — extend as
+  # needed.
+  CTA:
+    description: >
+      Cancer-testis antigens — germline/testis-restricted genes re-expressed in
+      cancer (MAGE / GAGE / XAGE / SSX / PRAME / CTAG / SPANX families + others).
+    source: "CTdatabase (Almeida et al. 2009, NAR); Wang et al. 2016 Cancer Immunol Res"
+    genes:
+      # MAGE family
+      - MAGEA1
+      - MAGEA2
+      - MAGEA3
+      - MAGEA4
+      - MAGEA6
+      - MAGEA8
+      - MAGEA9
+      - MAGEA10
+      - MAGEA11
+      - MAGEA12
+      - MAGEB1
+      - MAGEB2
+      - MAGEC1
+      - MAGEC2
+      - MAGEC3
+      # (MAGE-D subfamily — MAGED1/2/4 — is broadly expressed, NOT testis-
+      # restricted, so deliberately excluded from the CTA panel.)
+      # GAGE / PAGE / XAGE
+      - GAGE1
+      - GAGE2A
+      - PAGE1
+      - PAGE4
+      - PAGE5
+      - XAGE1A
+      - XAGE1B
+      - XAGE2
+      - XAGE3
+      - XAGE5
+      # SSX family
+      - SSX1
+      - SSX2
+      - SSX3
+      - SSX4
+      - SSX5
+      - SSX7
+      # CTAG (NY-ESO-1 / LAGE-1) + PRAME + BAGE
+      - CTAG1B
+      - CTAG2
+      - PRAME
+      - BAGE
+      - BAGE2
+      # SPANX
+      - SPANXA1
+      - SPANXB1
+      - SPANXC
+      - SPANXD
+      - SPANXN1
+      # CT45 / CT47 / SAGE / others widely cited
+      - CT45A1
+      - CT47A1
+      - SAGE1
+      - CTCFL
+      - SPA17
+      - SYCP1
+      - ACRBP
+      - OIP5
+      - TDRD1
+      - PIWIL2
+      - DDX43
+      - LDHC
+      - FATE1
+      - IL13RA2
+      - ROPN1
+      - CABYR
+      - PASD1
+      - TEX14
+      - MORC1
+      - ODF2
+      - SPO11
+      - TPTE
+      - LUZP4
+      - CT83  # = KK-LC-1 / CXorf61 (current HGNC symbol)
