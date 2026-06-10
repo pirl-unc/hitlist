@@ -44,13 +44,13 @@ from hitlist.cell_name_parser import (
     [
         ("Expi293F", "Expi293F", "Epithelial cell"),
         ("HeLa", "HeLa", "Epithelial cell"),
-        ("Raji", "Raji", "B cell"),
-        ("JY", "JY", "B cell"),
+        ("Raji", "Raji", "B-cell"),
+        ("JY", "JY", "B-cell"),
         ("MDA-MB-231", "MDA-MB-231", "Epithelial cell"),
         ("HCT 116", "HCT 116", "Epithelial cell"),
         ("A549", "A549", "Epithelial cell"),
-        ("K562", "K562", "Myeloid cell"),
-        ("HAP1", "HAP1", "Myeloid cell"),
+        ("K562", "K562", "Myeloblast"),
+        ("HAP1", "HAP1", "Myeloblast"),
         # Melanoma / osteosarcoma lines that were leaking as their own "type"
         # (#by-tissue): now fold into Melanocyte / Osteoblast lineage.
         ("SK-MEL-37", "SK-MEL-37", "Melanocyte"),
@@ -146,7 +146,9 @@ def test_pure_cell_type_string_is_primary_cell(raw):
     out = parse_cell_name(raw)
     assert out.is_cell_line is False
     assert out.cell_line_name == ""
-    assert out.cell_type == raw
+    # Lymphocyte lineages are normalized to the hyphenated house style.
+    expected = {"B cell": "B-cell", "T cell": "T-cell", "NK cell": "NK-cell"}.get(raw, raw)
+    assert out.cell_type == expected
     assert out.genetic_modification == ""
 
 
@@ -156,17 +158,17 @@ def test_pure_cell_type_string_is_primary_cell(raw):
 @pytest.mark.parametrize(
     "raw, canonical, cell_type",
     [
-        ("K562-Myeloid cell", "K562", "Myeloid cell"),
-        ("C1R cells-B cell", "C1R", "B cell"),
+        ("K562-Myeloid cell", "K562", "Myeloblast"),
+        ("C1R cells-B cell", "C1R", "B-cell"),
         ("HeLa cells-Epithelial cell", "HeLa", "Epithelial cell"),
         ("MDA-MB-231-Epithelial cell", "MDA-MB-231", "Epithelial cell"),
         ("HCT 116-Epithelial cell", "HCT 116", "Epithelial cell"),
         ("A549-Epithelial cell", "A549", "Epithelial cell"),
-        ("JY cells-B cell", "JY", "B cell"),
+        ("JY cells-B cell", "JY", "B-cell"),
         ("THP-1-Monocyte", "THP-1", "Monocyte"),
         ("LM-MEL-44-Melanocyte", "LM-MEL-44", "Melanocyte"),
         ("LM-MEL-33-Melanocyte", "LM-MEL-33", "Melanocyte"),
-        ("MAVER-1-Lymphoblast", "MAVER-1", "Lymphoblast"),
+        ("MAVER-1-Lymphoblast", "MAVER-1", "B-cell"),
         ("MCF-7/LY2-Epithelial cell", "MCF-7/LY2", "Epithelial cell"),
     ],
 )
@@ -243,7 +245,7 @@ def test_monoallelic_host_resolves_to_real_line_when_applicable():
 def test_monoallelic_host_721_221():
     out = parse_cell_name("", monoallelic_host="721.221")
     assert out.cell_line_name == "721.221"
-    assert out.cell_type == "B cell"
+    assert out.cell_type == "B-cell"
 
 
 # ── Donor ID extraction ───────────────────────────────────────────────
@@ -329,6 +331,40 @@ def test_known_cell_types_includes_common_categories():
         assert expected in types
 
 
+def test_cell_line_catalog_is_well_formed():
+    """The cell_lines.yaml catalog (registry + Cellosaurus metadata) must stay
+    internally consistent: every entry has a lineage and synonyms, no synonym
+    routes to two different lines, CVCLs are well-formed, and lymphocyte
+    lineages use the hyphenated house style."""
+    import re
+    from collections import defaultdict
+
+    import yaml
+
+    from hitlist.cell_name_parser import _registry_path
+
+    doc = yaml.safe_load(_registry_path().read_text())
+    cl = doc["cell_lines"]
+    assert len(cl) > 100, "catalog should cover the full observed line set"
+
+    syn_to_lines = defaultdict(set)
+    for name, entry in cl.items():
+        assert entry.get("cell_type"), f"{name}: missing cell_type"
+        assert entry.get("synonyms"), f"{name}: missing synonyms"
+        # No bare lymphocyte labels — must be hyphenated.
+        assert entry["cell_type"] not in ("B cell", "T cell", "NK cell"), (
+            f"{name}: cell_type {entry['cell_type']!r} should be hyphenated"
+        )
+        cvcl = entry.get("cvcl")
+        if cvcl:
+            assert re.fullmatch(r"CVCL_[A-Z0-9]+", cvcl), f"{name}: bad CVCL {cvcl!r}"
+        for s in entry["synonyms"]:
+            syn_to_lines[str(s).lower()].add(name)
+
+    collisions = {s: v for s, v in syn_to_lines.items() if len(v) > 1}
+    assert not collisions, f"synonyms route to >1 line: {collisions}"
+
+
 # ── End-to-end: real corpus top-N strings ────────────────────────────
 
 
@@ -338,11 +374,11 @@ def test_real_corpus_top_strings_decompose_correctly():
     cases: list[tuple[str, dict]] = [
         (
             "C1R cells-B cell",
-            {"is_cell_line": True, "cell_line_name": "C1R", "cell_type": "B cell"},
+            {"is_cell_line": True, "cell_line_name": "C1R", "cell_type": "B-cell"},
         ),
         (
             "K562-Myeloid cell",
-            {"is_cell_line": True, "cell_line_name": "K562", "cell_type": "Myeloid cell"},
+            {"is_cell_line": True, "cell_line_name": "K562", "cell_type": "Myeloblast"},
         ),
         (
             "HAP1 wildtype",
@@ -358,7 +394,7 @@ def test_real_corpus_top_strings_decompose_correctly():
         ),
         (
             "B cell",
-            {"is_cell_line": False, "cell_type": "B cell"},
+            {"is_cell_line": False, "cell_type": "B-cell"},
         ),
         (
             "Other",
