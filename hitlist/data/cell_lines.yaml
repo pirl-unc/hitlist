@@ -115,6 +115,17 @@ cell_lines:
     cell_type: Melanocyte
     tissue: Skin
     notes: Ludwig Melbourne melanoma panel.
+  SK-MEL-37:
+    synonyms: [SK-MEL-37, SKMEL37, SK-Mel-37, SkMel37]
+    cell_type: Melanocyte
+    tissue: Skin
+    notes: Memorial Sloan Kettering cutaneous melanoma line; cancer-testis-antigen
+      high (NY-ESO-1, MAGE, PRAME). CVCL_1348.
+  SaOS-2:
+    synonyms: [SaOS-2, Saos-2, SAOS-2, SAOS2, Saos2]
+    cell_type: Osteoblast
+    tissue: Bone
+    notes: Human osteosarcoma, TP53-null (CVCL_0548). Osteoblast-like lineage.
   HROG17:
     synonyms: [HROG17, HROG-17]
     cell_type: Glial cell
