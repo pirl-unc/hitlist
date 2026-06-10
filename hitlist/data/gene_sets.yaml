@@ -1,133 +1,28 @@
 # Named gene sets for hitlist (e.g. `pmhc --gene-set CTA`).
 #
-# Each set maps a short name to a curated list of current HGNC symbols.  The
-# resolver (hitlist.genes.load_gene_set) expands the name into that list, which
-# then flows through the normal --gene path (HGNC aliases / Ensembl IDs still
-# resolve).  Symbols that aren't in the corpus simply contribute zero rows.
-#
-# Add sets here; keep symbols as CURRENT HGNC gene symbols so they resolve.
+# Each set either lists `genes:` statically (current HGNC symbols) OR names a
+# `provider:` that computes the membership from another package (single source
+# of truth).  The resolver (hitlist.genes.load_gene_set) expands the name into a
+# symbol list, which then flows through the normal --gene path (HGNC aliases /
+# Ensembl IDs still resolve).  Symbols absent from the corpus contribute zero rows.
 
 gene_sets:
-  # ── Cancer-testis antigens (CTAs) ──────────────────────────────────────
-  # Germline/reproductive-restricted genes aberrantly re-expressed in tumors —
-  # prime shared-neoantigen / vaccine targets.
+  # Cancer-testis antigens — germline/reproductive-restricted genes re-expressed
+  # in cancer.  NOT hand-maintained here: sourced from the `cancerdata` package,
+  # which holds the authoritative candidate list (CTpedia + daSilva2017; ~359
+  # genes) and applies the HPA reproductive/thymus tissue-restriction filter
+  # (protein + RNA modalities, with confidence tiers).  load_gene_set("CTA") ->
+  # cancerdata.cta.CTA_gene_names() = the restriction-PASSING, expressed panel
+  # (~263 genes).  cancerdata is an optional dependency (not yet on PyPI; install
+  # from git — see the error message in genes._genes_from_provider).
   #
-  # CURATION: canonical CT families (CTdatabase / Almeida 2009; Wang 2016) were
-  # VETTED against the Human Protein Atlas (HPA RNA tissue specificity +
-  # distribution + enriched tissue; data asset `hpa_bulk`).  A gene is kept only
-  # if it is germline/reproductive-RESTRICTED:
-  #   * RNA tissue specificity = "Tissue enriched" or "Group enriched", AND
-  #   * the enriched tissue is testis (or placenta/epididymis/ovary), AND
-  #   * RNA tissue distribution = "Detected in single" or "Detected in some"
-  #     (NOT "many"/"all" — broadly expressed genes are excluded).
-  #
-  # EXCLUDED as HPA false positives (broadly expressed, NOT germline-restricted),
-  # despite historical CTdatabase membership:
-  #   MAGED1, MAGED2  — "Low tissue specificity / Detected in all"
-  #   ODF2            — testis-enriched but "Detected in all" (ubiquitous cenexin)
-  #   ACRBP, CABYR, PIWIL2, DDX43  — testis-high but "Detected in many"
-  #   OIP5, SPA17     — "Tissue enhanced / Detected in many"
-  #   IL13RA2         — receptor, "enhanced", blood-vessel/many (not germline)
-  #   MAGEC3          — "enhanced", brain/blood-vessel (not germline)
-  #   GAGE1, GAGE10   — only "Tissue enhanced", very low testis nTPM
-  #   PAGE4           — germline but "Detected in many"
-  #   BAGE, BAGE2     — "Not detected" in HPA (unverifiable)
-  # Re-run: the vetting query hits the HPA search_download API per gene.
+  # To change the filtering (candidates, restriction thresholds, manual
+  # overrides), edit `cancerdata`, not this file — that's where the
+  # candidate->filter->override pipeline lives.
   CTA:
     description: >
-      Cancer-testis antigens — germline/reproductive-restricted genes re-expressed
-      in cancer (MAGE / GAGE / XAGE / SSX / PRAME / CTAG / SPANX / PAGE families +
-      individual CT genes). HPA-vetted for germline restriction.
-    source: "CTdatabase (Almeida 2009, NAR) + Human Protein Atlas tissue-specificity vetting"
-    genes:
-      # MAGE-A / -B / -C
-      - MAGEA1
-      - MAGEA2
-      - MAGEA2B
-      - MAGEA3
-      - MAGEA4
-      - MAGEA6
-      - MAGEA8   # placenta-restricted
-      - MAGEA9
-      - MAGEA9B
-      - MAGEA10
-      - MAGEA11  # epididymis-restricted
-      - MAGEA12
-      - MAGEB1
-      - MAGEB2
-      - MAGEB3
-      - MAGEB4
-      - MAGEB6
-      - MAGEB10
-      - MAGEB16
-      - MAGEB17
-      - MAGEC1
-      - MAGEC2
-      # GAGE family (testis-enriched paralogs)
-      - GAGE2A
-      - GAGE2E
-      - GAGE12B
-      - GAGE12C
-      - GAGE12D
-      - GAGE12E
-      - GAGE12F
-      - GAGE12G
-      - GAGE12H
-      - GAGE12J
-      - GAGE13
-      # XAGE (CT-X; XAGE2/3 are placenta-restricted)
-      - XAGE1A
-      - XAGE1B
-      - XAGE2
-      - XAGE3
-      - XAGE5
-      # SSX family
-      - SSX1
-      - SSX2
-      - SSX2B
-      - SSX3
-      - SSX4
-      - SSX4B
-      # CTAG (NY-ESO-1 / LAGE-1) + PRAME + SAGE + CT45/CT47
-      - CTAG1A
-      - CTAG1B
-      - CTAG2   # LAGE-1; HPA "enhanced" heart+testis — kept (canonical NY-ESO sibling)
-      - PRAME
-      - SAGE1
-      - CT45A1
-      - CT45A3
-      - CT45A10
-      - CT47A12
-      - CT83    # = KK-LC-1 / CXorf61
-      # SPANX
-      - SPANXA1
-      - SPANXA2
-      - SPANXB1
-      - SPANXC
-      - SPANXD
-      - SPANXN1
-      - SPANXN2
-      - SPANXN3
-      - SPANXN4
-      - SPANXN5
-      # PAGE
-      - PAGE1
-      - PAGE2
-      - PAGE2B
-      - PAGE3
-      - PAGE5
-      # Individual CT genes (CTdatabase CT-numbered, HPA testis-restricted)
-      - ADAM2
-      - CTCFL
-      - FATE1
-      - LDHC
-      - LUZP4
-      - MORC1
-      - PASD1
-      - ROPN1
-      - SPO11
-      - SYCP1
-      - TDRD1
-      - TEX14
-      - TPTE
-      - TSSK6
+      Cancer-testis antigens — germline-restricted genes re-expressed in cancer.
+      Sourced from cancerdata (CTpedia + daSilva2017 candidates, HPA
+      reproductive/thymus restriction filter).
+    source: "cancerdata.cta.CTA_gene_names()"
+    provider: cancerdata

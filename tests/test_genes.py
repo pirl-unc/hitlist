@@ -12,26 +12,34 @@ from hitlist.genes import (
 )
 
 
-def test_load_gene_set_cta_expands_to_symbols():
-    """The CTA gene set is an HPA-vetted panel of current HGNC symbols."""
+def test_load_gene_set_cta_sourced_from_cancerdata():
+    """The CTA set delegates to the cancerdata package (its CTpedia/daSilva2017
+    candidates filtered by HPA reproductive/thymus restriction) — a single
+    source of truth, not a hand-maintained duplicate."""
+    cta = pytest.importorskip("cancerdata.cta")
     genes = load_gene_set("CTA")
-    assert len(genes) > 60
-    for expected in ("PRAME", "MAGEA4", "CTAG1B", "XAGE1A", "SSX2", "GAGE12B", "GAGE13"):
+    assert set(genes) == set(cta.CTA_gene_names())
+    assert len(genes) > 200  # the full restriction-filtered panel, not a subset
+    for expected in ("PRAME", "MAGEA4", "CAGE1", "BRDT"):
         assert expected in genes
-    # HPA false positives (broadly expressed, NOT germline-restricted) are excluded.
-    for fp in ("MAGED1", "MAGED2", "ODF2", "ACRBP", "CABYR", "OIP5", "SPA17", "IL13RA2"):
-        assert fp not in genes, f"{fp} is a broadly-expressed false positive"
-    # No accidental duplicates.
     assert len(genes) == len(set(genes))
 
 
 def test_load_gene_set_is_case_insensitive():
+    pytest.importorskip("cancerdata.cta")
     assert load_gene_set("cta") == load_gene_set("CTA")
 
 
 def test_load_gene_set_unknown_raises():
     with pytest.raises(KeyError, match="unknown gene set"):
         load_gene_set("NOPE")
+
+
+def test_unknown_provider_raises():
+    from hitlist.genes import _genes_from_provider
+
+    with pytest.raises(RuntimeError, match="unknown provider"):
+        _genes_from_provider("not_a_real_provider", set_name="X")
 
 
 def test_list_gene_sets_includes_cta():
