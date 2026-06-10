@@ -7052,6 +7052,16 @@
       peptides are the rat proteome).  IEDB left 12,494 rows
       source_organism="unidentified"; fills them to Rattus norvegicus, leaving
       the 51 explicitly human-sourced rows untouched.  #307.
+  - pmid: 31887370
+    study_label: "Chen 2019 — multifocal hepatocellular carcinoma HLA-I immunopeptidome"
+    source_organism: "Homo sapiens"
+    species: "Homo sapiens"
+    note: >
+      HLA class I immunopeptidome eluted from human multifocal hepatocellular
+      carcinoma liver tissue (mhc_species=Homo sapiens, disease=hepatocellular
+      carcinoma) — human tumour self-peptidome (e.g. ACTB / beta-actin).  IEDB
+      left 4 of 5 rows source_organism blank; 1 is already Homo sapiens.  Fills
+      the blanks to match.  #307.
   # ── #314 — per-PMID provenance curation for blank-source epitope studies ────
   # IEDB left source_tissue/cell_name/disease blank on these.  Per-paper research
   # (see #314) found only 31575892 is a genuine elution-from-cell-line study;

@@ -2170,6 +2170,8 @@ def test_pmid_source_organism_curation():
     # Curated animal self-peptidomes.
     assert pmid_source_organism(33460454) == ("Sarcophilus harrisii", "Sarcophilus harrisii")
     assert pmid_source_organism(28188227) == ("Rattus norvegicus", "Rattus norvegicus")
+    # Human HCC tumour self-peptidome (IEDB left source_organism blank on 4/5 rows).
+    assert pmid_source_organism(31887370) == ("Homo sapiens", "Homo sapiens")
     # No source_organism key -> no backfill (the scanner gates on the first
     # element, so a random-library assay like the pig SLA-I study stays blank).
     assert pmid_source_organism(35296092)[0] == ""
