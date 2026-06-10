@@ -51,3 +51,28 @@ activated_apc_cell_names:
 
 activated_apc_tissues:
   - blood
+
+# Anatomical roll-up groups for the `pmhc --by-tissue` display (display-only,
+# not classification).  Specific organs (and the umbrella label itself) collapse
+# to the umbrella by DEFAULT; `--expand-tissues` keeps the organs and marks
+# umbrella-LABELED rows "(region unspecified)".  Matching is case-insensitive;
+# names are in the DISPLAY vocabulary (post-abbreviation, e.g. "GI tract", "CNS").
+# Note: Peripheral Nervous System (PNS) is deliberately NOT under CNS.
+tissue_groups:
+  "GI tract":
+    - Esophagus
+    - Stomach
+    - Small Intestine
+    - Large Intestine
+    - Colon
+    - Duodenum
+    - Jejunum
+    - Ileum
+    - Cecum
+    - Rectum
+  "CNS":
+    - Brain
+    - Cerebellum
+    - Cerebral Cortex
+    - Cerebrum
+    - Spinal Cord

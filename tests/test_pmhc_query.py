@@ -1907,6 +1907,65 @@ def test_gene_distribution_rolls_up_per_gene_with_panel_total(tmp_path, monkeypa
     assert "total" in text and "GENEA" in text
 
 
+def test_tissue_distribution_anatomical_rollup(tmp_path, monkeypatch):
+    """By default, specific GI/CNS organs roll up to their umbrella (GI tract /
+    CNS); --expand-tissues splits them out and marks umbrella-LABELED rows
+    '(region unspecified)'."""
+    import pandas as pd
+
+    from hitlist import pmhc_query
+
+    peps = ["AAAAAAAAA", "CCCCCCCCC", "DDDDDDDDD", "EEEEEEEEE"]
+    df = pd.DataFrame(
+        {
+            # Colon + Esophagus (specific GI organs); the coarse umbrella
+            # "Gastrointestinal Tract"; and Brain (specific CNS organ).
+            "peptide": peps,
+            "pmid": [1, 2, 3, 4],
+            "mhc_class": ["I"] * 4,
+            "mhc_restriction": ["HLA-A*02:01"] * 4,
+            "mhc_species": ["Homo sapiens"] * 4,
+            "source": ["iedb"] * 4,
+            "attributed_sample_label": [f"s{i}" for i in range(4)],
+            "cell_name": [""] * 4,
+            "cell_line_name": [""] * 4,
+            "monoallelic_host": [""] * 4,
+            "source_tissue": ["Colon", "Esophagus", "Gastrointestinal Tract", "Brain"],
+            "src_healthy_tissue": [True] * 4,
+            "src_cancer": [False] * 4,
+            "src_cell_line": [False] * 4,
+        }
+    )
+    obs_path = tmp_path / "observations.parquet"
+    df.to_parquet(obs_path, index=False)
+    mappings = pd.DataFrame(
+        {
+            "peptide": peps,
+            "gene_name": ["NRAS"] * 4,
+            "gene_id": ["ENSG00000213281"] * 4,
+            "protein_id": ["ENSP00000358548"] * 4,
+        }
+    )
+    mappings_path = tmp_path / "peptide_mappings.parquet"
+    mappings.to_parquet(mappings_path, index=False)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
+
+    # Default: Colon + Esophagus + the umbrella roll up to one "GI tract" (3 obs);
+    # Brain -> "CNS".
+    rolled = pmhc_query.tissue_distribution(proteins=["NRAS"], use_hgnc=False)
+    healthy = {r["group"]: r for _, r in rolled[rolled.section == "healthy tissues"].iterrows()}
+    assert healthy["GI tract"]["n_observations"] == 3
+    assert "CNS" in healthy
+    assert "Colon" not in healthy and "Esophagus" not in healthy
+
+    # Split: specific organs surface; the umbrella-labelled row is marked.
+    split = pmhc_query.tissue_distribution(proteins=["NRAS"], use_hgnc=False, expand_tissues=True)
+    groups = set(split[split.section == "healthy tissues"]["group"])
+    assert {"Colon", "Esophagus", "Brain"} <= groups
+    assert "GI tract (region unspecified)" in groups
+    assert "GI tract" not in groups  # the umbrella alone never appears unmarked
+
+
 def test_tissue_distribution_show_empty(tmp_path, monkeypatch):
     """show_empty surfaces sections with no rows as a '(none)' placeholder."""
     import pandas as pd
