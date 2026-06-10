@@ -2192,6 +2192,26 @@ def test_source_organism_override_no_classification_side_effects():
     assert flags["src_cell_line"] is False
 
 
+def test_pmid_provenance_other_celltype_lineage_fills():
+    """Per-paper-verified lineage fills for IEDB "Other"-cell_name cell lines
+    (so they group by cell type instead of "(unspecified type)"), including
+    corrections of IEDB mislabels (18991276 is B-LCLs, not the recorded melanoma)."""
+    from hitlist.curation import pmid_provenance
+
+    expect = {
+        22872234: "Pancreatic beta cell",
+        22869377: "Melanocyte",
+        25428507: "Fibroblast",
+        29475511: "Macrophage",
+        18991276: "B-cell",  # IEDB "skin melanoma" label is wrong — B-LCLs
+        31921104: "Melanocyte",
+        33372950: "Epithelial cell",
+        29176828: "Glial cell",
+    }
+    for pmid, cell_type in expect.items():
+        assert pmid_provenance(pmid).get("cell_name") == cell_type, pmid
+
+
 def test_pmid_provenance_31575892_blood_aml_cell_line():
     """#314: per-PMID provenance fills source_tissue / disease / culture_condition
     for the Nyambura 2019 myeloid-leukemia study (MUTZ-3 + THP-1) that IEDB left
@@ -2232,4 +2252,4 @@ def test_scanner_treats_other_cell_name_as_fillable():
     so a curated cell_name replaces them (not just truly-empty values)."""
     from hitlist.cell_name_parser import _UNINFORMATIVE_CELL_NAMES
 
-    assert {"", "other", "unknown"} <= _UNINFORMATIVE_CELL_NAMES
+    assert {"", "other", "unknown", "unknown/unspecified"} <= _UNINFORMATIVE_CELL_NAMES
