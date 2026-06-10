@@ -13,14 +13,15 @@ from hitlist.genes import (
 
 
 def test_load_gene_set_cta_expands_to_symbols():
-    """The CTA gene set expands to a panel of current HGNC symbols."""
+    """The CTA gene set is an HPA-vetted panel of current HGNC symbols."""
     genes = load_gene_set("CTA")
-    assert len(genes) > 40
-    for expected in ("PRAME", "MAGEA4", "CTAG1B", "XAGE1A", "SSX2"):
+    assert len(genes) > 60
+    for expected in ("PRAME", "MAGEA4", "CTAG1B", "XAGE1A", "SSX2", "GAGE12B", "GAGE13"):
         assert expected in genes
-    # MAGE-D subfamily is broadly expressed, not testis-restricted — excluded.
-    assert "MAGED1" not in genes and "MAGED2" not in genes
-    # No accidental duplicates; all uppercase-ish current symbols.
+    # HPA false positives (broadly expressed, NOT germline-restricted) are excluded.
+    for fp in ("MAGED1", "MAGED2", "ODF2", "ACRBP", "CABYR", "OIP5", "SPA17", "IL13RA2"):
+        assert fp not in genes, f"{fp} is a broadly-expressed false positive"
+    # No accidental duplicates.
     assert len(genes) == len(set(genes))
 
 

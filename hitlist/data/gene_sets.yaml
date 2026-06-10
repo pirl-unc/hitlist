@@ -8,41 +8,74 @@
 # Add sets here; keep symbols as CURRENT HGNC gene symbols so they resolve.
 
 gene_sets:
-  # Cancer-testis antigens (CTAs / CT antigens): germline-restricted genes
-  # aberrantly re-expressed in tumors — prime shared-neoantigen / vaccine
-  # targets.  Core panel drawn from the canonical CT families (CTdatabase /
-  # Almeida 2009; Wang 2016 Cancer Immunol Res).  Not exhaustive — extend as
-  # needed.
+  # ── Cancer-testis antigens (CTAs) ──────────────────────────────────────
+  # Germline/reproductive-restricted genes aberrantly re-expressed in tumors —
+  # prime shared-neoantigen / vaccine targets.
+  #
+  # CURATION: canonical CT families (CTdatabase / Almeida 2009; Wang 2016) were
+  # VETTED against the Human Protein Atlas (HPA RNA tissue specificity +
+  # distribution + enriched tissue; data asset `hpa_bulk`).  A gene is kept only
+  # if it is germline/reproductive-RESTRICTED:
+  #   * RNA tissue specificity = "Tissue enriched" or "Group enriched", AND
+  #   * the enriched tissue is testis (or placenta/epididymis/ovary), AND
+  #   * RNA tissue distribution = "Detected in single" or "Detected in some"
+  #     (NOT "many"/"all" — broadly expressed genes are excluded).
+  #
+  # EXCLUDED as HPA false positives (broadly expressed, NOT germline-restricted),
+  # despite historical CTdatabase membership:
+  #   MAGED1, MAGED2  — "Low tissue specificity / Detected in all"
+  #   ODF2            — testis-enriched but "Detected in all" (ubiquitous cenexin)
+  #   ACRBP, CABYR, PIWIL2, DDX43  — testis-high but "Detected in many"
+  #   OIP5, SPA17     — "Tissue enhanced / Detected in many"
+  #   IL13RA2         — receptor, "enhanced", blood-vessel/many (not germline)
+  #   MAGEC3          — "enhanced", brain/blood-vessel (not germline)
+  #   GAGE1, GAGE10   — only "Tissue enhanced", very low testis nTPM
+  #   PAGE4           — germline but "Detected in many"
+  #   BAGE, BAGE2     — "Not detected" in HPA (unverifiable)
+  # Re-run: the vetting query hits the HPA search_download API per gene.
   CTA:
     description: >
-      Cancer-testis antigens — germline/testis-restricted genes re-expressed in
-      cancer (MAGE / GAGE / XAGE / SSX / PRAME / CTAG / SPANX families + others).
-    source: "CTdatabase (Almeida et al. 2009, NAR); Wang et al. 2016 Cancer Immunol Res"
+      Cancer-testis antigens — germline/reproductive-restricted genes re-expressed
+      in cancer (MAGE / GAGE / XAGE / SSX / PRAME / CTAG / SPANX / PAGE families +
+      individual CT genes). HPA-vetted for germline restriction.
+    source: "CTdatabase (Almeida 2009, NAR) + Human Protein Atlas tissue-specificity vetting"
     genes:
-      # MAGE family
+      # MAGE-A / -B / -C
       - MAGEA1
       - MAGEA2
+      - MAGEA2B
       - MAGEA3
       - MAGEA4
       - MAGEA6
-      - MAGEA8
+      - MAGEA8   # placenta-restricted
       - MAGEA9
+      - MAGEA9B
       - MAGEA10
-      - MAGEA11
+      - MAGEA11  # epididymis-restricted
       - MAGEA12
       - MAGEB1
       - MAGEB2
+      - MAGEB3
+      - MAGEB4
+      - MAGEB6
+      - MAGEB10
+      - MAGEB16
+      - MAGEB17
       - MAGEC1
       - MAGEC2
-      - MAGEC3
-      # (MAGE-D subfamily — MAGED1/2/4 — is broadly expressed, NOT testis-
-      # restricted, so deliberately excluded from the CTA panel.)
-      # GAGE / PAGE / XAGE
-      - GAGE1
+      # GAGE family (testis-enriched paralogs)
       - GAGE2A
-      - PAGE1
-      - PAGE4
-      - PAGE5
+      - GAGE2E
+      - GAGE12B
+      - GAGE12C
+      - GAGE12D
+      - GAGE12E
+      - GAGE12F
+      - GAGE12G
+      - GAGE12H
+      - GAGE12J
+      - GAGE13
+      # XAGE (CT-X; XAGE2/3 are placenta-restricted)
       - XAGE1A
       - XAGE1B
       - XAGE2
@@ -51,44 +84,50 @@ gene_sets:
       # SSX family
       - SSX1
       - SSX2
+      - SSX2B
       - SSX3
       - SSX4
-      - SSX5
-      - SSX7
-      # CTAG (NY-ESO-1 / LAGE-1) + PRAME + BAGE
+      - SSX4B
+      # CTAG (NY-ESO-1 / LAGE-1) + PRAME + SAGE + CT45/CT47
+      - CTAG1A
       - CTAG1B
-      - CTAG2
+      - CTAG2   # LAGE-1; HPA "enhanced" heart+testis — kept (canonical NY-ESO sibling)
       - PRAME
-      - BAGE
-      - BAGE2
+      - SAGE1
+      - CT45A1
+      - CT45A3
+      - CT45A10
+      - CT47A12
+      - CT83    # = KK-LC-1 / CXorf61
       # SPANX
       - SPANXA1
+      - SPANXA2
       - SPANXB1
       - SPANXC
       - SPANXD
       - SPANXN1
-      # CT45 / CT47 / SAGE / others widely cited
-      - CT45A1
-      - CT47A1
-      - SAGE1
+      - SPANXN2
+      - SPANXN3
+      - SPANXN4
+      - SPANXN5
+      # PAGE
+      - PAGE1
+      - PAGE2
+      - PAGE2B
+      - PAGE3
+      - PAGE5
+      # Individual CT genes (CTdatabase CT-numbered, HPA testis-restricted)
+      - ADAM2
       - CTCFL
-      - SPA17
-      - SYCP1
-      - ACRBP
-      - OIP5
-      - TDRD1
-      - PIWIL2
-      - DDX43
-      - LDHC
       - FATE1
-      - IL13RA2
-      - ROPN1
-      - CABYR
-      - PASD1
-      - TEX14
-      - MORC1
-      - ODF2
-      - SPO11
-      - TPTE
+      - LDHC
       - LUZP4
-      - CT83  # = KK-LC-1 / CXorf61 (current HGNC symbol)
+      - MORC1
+      - PASD1
+      - ROPN1
+      - SPO11
+      - SYCP1
+      - TDRD1
+      - TEX14
+      - TPTE
+      - TSSK6

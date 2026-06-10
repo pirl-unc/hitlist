@@ -515,14 +515,14 @@ cell_lines:
     - COG-N-471nb
     cell_type: Neuroblast
     species: Homo sapiens
+    cvcl: CVCL_LF60
     disease: Neuroblastoma
     category: Cancer cell line
     is_cancer: true
     is_ebv_lcl: false
-    notes: '[Cellosaurus low] Not found in Cellosaurus (search returns only fuzzy unrelated leukemia matches).
-      ''COG-N-471'' is a Children''s Oncology Group neuroblastoma patient-derived line; ''nb'' suffix
-      = neuroblastoma. Hint (Neuroblast, PMID 37938771) internally consistent. Cancer, neuroblastic lineage;
-      sex/tissue/CVCL unconfirmed.'
+    notes: Children's Oncology Group pediatric neuroblastoma line (Childhood Cancer Repository).
+      Catalogued in Cellosaurus under the full name 'COG-N-471nb' (CVCL_LF60); origin ref Harenza
+      et al. 2017 Sci Data (PMID 28350380). Sex/derived-from site not recorded in Cellosaurus.
   COV362.4:
     synonyms:
     - COV-362.4
