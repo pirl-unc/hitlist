@@ -51,6 +51,10 @@ from hitlist.cell_name_parser import (
         ("A549", "A549", "Epithelial cell"),
         ("K562", "K562", "Myeloid cell"),
         ("HAP1", "HAP1", "Myeloid cell"),
+        # Melanoma / osteosarcoma lines that were leaking as their own "type"
+        # (#by-tissue): now fold into Melanocyte / Osteoblast lineage.
+        ("SK-MEL-37", "SK-MEL-37", "Melanocyte"),
+        ("SaOS-2", "SaOS-2", "Osteoblast"),
     ],
 )
 def test_pure_cell_line_resolves_to_registry_canonical(raw, expected_canonical, expected_type):
@@ -81,6 +85,9 @@ def test_pure_cell_line_resolves_to_registry_canonical(raw, expected_canonical, 
         ("K-562", "K562"),
         ("HAP-1", "HAP1"),
         ("HROG-17", "HROG17"),
+        ("SKMEL37", "SK-MEL-37"),
+        ("Saos-2", "SaOS-2"),
+        ("SAOS2", "SaOS-2"),
     ],
 )
 def test_synonyms_normalize_to_canonical(synonym, canonical):
