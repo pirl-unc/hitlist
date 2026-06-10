@@ -169,6 +169,36 @@ def test_pmhc_query_filters_to_requested_proteins(tmp_path, monkeypatch):
     assert "KRAS" not in df["gene_name"].values
 
 
+def test_pmhc_forwards_source_and_host_species_filters(monkeypatch):
+    """query / tissue_distribution / gene_distribution forward the source- and
+    host-species axes to load_observations (so e.g. --source-species human drops
+    a SARS-CoV-2 viral epitope whose MHC + host are human)."""
+    import pandas as pd
+
+    import hitlist.observations as obs_mod
+    from hitlist import pmhc_query
+
+    captured: list[dict] = []
+
+    def fake_load(**kwargs):
+        captured.append(kwargs)
+        # Empty (but column-bearing) frame -> callers return early.
+        return pd.DataFrame(columns=["peptide", "pmid", "mhc_restriction"])
+
+    monkeypatch.setattr(obs_mod, "load_observations", fake_load)
+    monkeypatch.setattr(
+        "hitlist.mappings.load_peptide_mappings",
+        lambda **k: pd.DataFrame({"peptide": ["X"], "gene_name": ["G"], "gene_id": ["E"]}),
+    )
+
+    pmhc_query.query(alleles=["HLA-A*02:01"], source_species="human", host_species="mouse")
+    pmhc_query.gene_distribution(proteins=["G"], source_species="human", host_species="mouse")
+    for cap in captured:
+        assert cap.get("source_species") == "human"
+        assert cap.get("host_species") == "mouse"
+    assert captured  # both calls actually hit load_observations
+
+
 def test_unrecognized_genes_flags_only_absent_symbols(tmp_path, monkeypatch):
     """unrecognized_genes returns the queries that match NO gene in the corpus
     (peptide_mappings), so the CLI can tell a typo from a real empty result.

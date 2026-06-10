@@ -77,6 +77,8 @@ def query(
     alleles: list[str] | None = None,
     *,
     species: str | None = None,
+    source_species: str | None = None,
+    host_species: str | None = None,
     source_context: str | None = None,
     predictor: str | None = None,
     min_binder_class: str | None = None,
@@ -254,6 +256,10 @@ def query(
     if species is not None:
         # MHC-species pushdown (load_observations normalizes "human" etc.).
         load_kwargs["species"] = species
+    if source_species is not None:
+        load_kwargs["source_species"] = source_species
+    if host_species is not None:
+        load_kwargs["host_species"] = host_species
     if source_context is not None:
         if source_context not in SOURCE_CONTEXTS:
             raise ValueError(
@@ -633,6 +639,8 @@ def tissue_distribution(
     proteins: list[str] | None = None,
     *,
     species: str | None = None,
+    source_species: str | None = None,
+    host_species: str | None = None,
     source_context: str | None = None,
     show_empty: bool = False,
     expand_lines: bool = False,
@@ -693,6 +701,8 @@ def tissue_distribution(
         gene_name=sorted(names) or None,
         gene_id=sorted(ids) or None,
         species=species,
+        source_species=source_species,
+        host_species=host_species,
         columns=cols,
     )
     if source_context is not None and not df.empty:
@@ -1335,6 +1345,8 @@ def gene_distribution(
     proteins: list[str] | None = None,
     *,
     species: str | None = None,
+    source_species: str | None = None,
+    host_species: str | None = None,
     source_context: str | None = None,
     use_hgnc: bool = True,
     verbose: bool = False,
@@ -1392,6 +1404,8 @@ def gene_distribution(
         gene_name=sorted(names) or None,
         gene_id=sorted(ids) or None,
         species=species,
+        source_species=source_species,
+        host_species=host_species,
         columns=cols,
     )
     if source_context is not None and not obs.empty:

@@ -1389,10 +1389,30 @@ def main() -> None:
     )
     p_pmhc.add_argument(
         "--species",
+        "--mhc-species",
+        dest="species",
         help=(
-            "Filter to one MHC species (e.g. 'human' / 'Homo sapiens'). Without "
-            "it, results include every species the peptides were observed on, "
-            "sectioned with human first."
+            "Filter by MHC species (the species of the HLA/MHC molecule, e.g. "
+            "'human' / 'Homo sapiens'). Without it, results include every species "
+            "the peptides were observed on, sectioned with human first. The three "
+            "species axes are independent — see --source-species / --host-species."
+        ),
+    )
+    p_pmhc.add_argument(
+        "--source-species",
+        dest="source_species",
+        help=(
+            "Filter by SOURCE species — the organism whose proteome the peptide "
+            "comes from (e.g. 'human' drops a SARS-CoV-2 viral epitope even though "
+            "its MHC and host cell are human)."
+        ),
+    )
+    p_pmhc.add_argument(
+        "--host-species",
+        dest="host_species",
+        help=(
+            "Filter by HOST species — the organism of the cell the peptide was "
+            "expressed/eluted in (e.g. a human gene presented in a mouse line)."
         ),
     )
     from .pmhc_query import SOURCE_CONTEXTS
@@ -1830,6 +1850,8 @@ def _pmhc(args: argparse.Namespace) -> None:
     inline_samples = getattr(args, "sample", None) or []
     samples_path = getattr(args, "samples", None)
     species = getattr(args, "species", None)
+    source_species = getattr(args, "source_species", None)
+    host_species = getattr(args, "host_species", None)
     source_context = getattr(args, "source_context", None)
 
     # --by-gene: per-gene rollup (one row per gene with evidence totals).
@@ -1838,6 +1860,8 @@ def _pmhc(args: argparse.Namespace) -> None:
             dist = pmhc_query.gene_distribution(
                 proteins=proteins,
                 species=species,
+                source_species=source_species,
+                host_species=host_species,
                 source_context=source_context,
                 verbose=True,
             )
@@ -1870,6 +1894,8 @@ def _pmhc(args: argparse.Namespace) -> None:
             dist = pmhc_query.tissue_distribution(
                 proteins=proteins,
                 species=species,
+                source_species=source_species,
+                host_species=host_species,
                 source_context=source_context,
                 show_empty=getattr(args, "show_zeros", False),
                 expand_lines=expand_lines,
@@ -1936,6 +1962,8 @@ def _pmhc(args: argparse.Namespace) -> None:
                 proteins=proteins,
                 alleles=alleles,
                 species=species,
+                source_species=source_species,
+                host_species=host_species,
                 source_context=source_context,
                 predictor=predictor,
                 min_binder_class=min_binder_class,
