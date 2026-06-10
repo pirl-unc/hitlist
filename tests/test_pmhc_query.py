@@ -1849,6 +1849,64 @@ def test_tissue_distribution_grand_total_unions_across_sections(tmp_path, monkey
     assert "all sources" in text
 
 
+def test_gene_distribution_rolls_up_per_gene_with_panel_total(tmp_path, monkeypatch):
+    """gene_distribution attributes each observation to its gene(s) via the
+    long-form mappings and rolls up per-gene totals; a peptide multi-mapping to
+    two genes counts for both, and the panel total unions peptides/refs."""
+    import pandas as pd
+
+    from hitlist import pmhc_query
+
+    # P1 -> GENEA (2 obs, pmids 1+2); P2 -> GENEA & GENEB (1 obs, pmid 3);
+    # P3 -> GENEB (1 obs, pmid 1).
+    obs = pd.DataFrame(
+        {
+            "peptide": ["AAAAAAAAA", "AAAAAAAAA", "CCCCCCCCC", "DDDDDDDDD"],
+            "pmid": [1, 2, 3, 1],
+            "mhc_class": ["I"] * 4,
+            "mhc_restriction": ["HLA-A*02:01"] * 4,
+            "mhc_species": ["Homo sapiens"] * 4,
+            "species": ["Homo sapiens"] * 4,
+            "attributed_sample_label": ["s1", "s2", "s3", "s1"],
+            "cell_name": [""] * 4,
+            "cell_line_name": [""] * 4,
+            "monoallelic_host": [""] * 4,
+            "src_cell_line": [False] * 4,
+            "source": ["iedb"] * 4,
+        }
+    )
+    obs_path = tmp_path / "observations.parquet"
+    obs.to_parquet(obs_path, index=False)
+    # Long-form mappings: one row per peptide x gene (matches the real parquet).
+    mappings = pd.DataFrame(
+        {
+            "peptide": ["AAAAAAAAA", "CCCCCCCCC", "CCCCCCCCC", "DDDDDDDDD"],
+            "gene_name": ["GENEA", "GENEA", "GENEB", "GENEB"],
+            "gene_id": ["ENSG_A", "ENSG_A", "ENSG_B", "ENSG_B"],
+            "protein_id": ["ENSP_A", "ENSP_A", "ENSP_B", "ENSP_B"],
+        }
+    )
+    mappings_path = tmp_path / "peptide_mappings.parquet"
+    mappings.to_parquet(mappings_path, index=False)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
+
+    res = pmhc_query.gene_distribution(proteins=["GENEA", "GENEB"], use_hgnc=False)
+    by = {r.gene_name: r for r in res.itertuples(index=False)}
+    # GENEA: peptides P1(2 obs)+P2(1 obs) = 3 obs, 2 unique, refs {1,2,3}=3.
+    assert by["GENEA"].n_observations == 3
+    assert by["GENEA"].n_unique_peptides == 2
+    assert by["GENEA"].n_references == 3
+    # GENEB: P2(1)+P3(1) = 2 obs, 2 unique, refs {3,1}=2.
+    assert by["GENEB"].n_observations == 2
+    assert by["GENEB"].n_unique_peptides == 2
+    # Panel total: 5 attributed rows, 3 distinct peptides, 3 distinct PMIDs.
+    assert res.attrs["panel_total"]["n_observations"] == 5
+    assert res.attrs["panel_total"]["n_unique_peptides"] == 3
+    assert res.attrs["panel_total"]["n_references"] == 3
+    text = pmhc_query.format_gene_table(res)
+    assert "total" in text and "GENEA" in text
+
+
 def test_tissue_distribution_show_empty(tmp_path, monkeypatch):
     """show_empty surfaces sections with no rows as a '(none)' placeholder."""
     import pandas as pd

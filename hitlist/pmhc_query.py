@@ -1305,6 +1305,133 @@ def format_tissue_table(df: pd.DataFrame) -> str:
     return "\n\n".join(blocks)
 
 
+def gene_distribution(
+    proteins: list[str] | None = None,
+    *,
+    species: str | None = None,
+    source_context: str | None = None,
+    use_hgnc: bool = True,
+    verbose: bool = False,
+) -> pd.DataFrame:
+    """Per-GENE rollup of MS evidence — one row per gene with totals.
+
+    Answers *"across this set of genes (e.g. a CTA panel), how much evidence does
+    each have?"*  Returns columns ``gene_name``, ``gene_id``, ``n_observations``
+    (rows), ``n_unique_peptides``, ``n_references`` (distinct PMIDs),
+    ``n_samples`` (distinct sample labels), sorted by ``n_observations`` desc.
+    A peptide that multi-maps to several requested genes counts for each (it is
+    real evidence for each).  ``species`` / ``source_context`` filter exactly as
+    in :func:`tissue_distribution`.
+    """
+    from .mappings import load_peptide_mappings
+    from .observations import load_observations
+
+    out_cols = [
+        "gene_name",
+        "gene_id",
+        "n_observations",
+        "n_unique_peptides",
+        "n_references",
+        "n_samples",
+    ]
+    names: set[str] = set()
+    ids: set[str] = set()
+    if proteins:
+        for q in proteins:
+            spec = resolve_gene_query(q, use_hgnc=use_hgnc)
+            names |= spec["names"]
+            ids |= spec["ids"]
+        if not names and not ids:
+            return pd.DataFrame(columns=out_cols)
+
+    _progress("loading peptide→gene mapping...", verbose)
+    mp = load_peptide_mappings(
+        gene_name=sorted(names) or None,
+        gene_id=sorted(ids) or None,
+        columns=["peptide", "gene_name", "gene_id"],
+    ).drop_duplicates()
+    if mp.empty:
+        return pd.DataFrame(columns=out_cols)
+
+    cols = ["peptide", "pmid", "attributed_sample_label"]
+    if source_context is not None:
+        if source_context not in SOURCE_CONTEXTS:
+            raise ValueError(
+                f"unknown source_context {source_context!r}; choose from {sorted(SOURCE_CONTEXTS)}"
+            )
+        cols += [c for c in SOURCE_CONTEXTS[source_context] if c not in cols]
+
+    _progress("loading observations for gene rollup...", verbose)
+    obs = load_observations(
+        gene_name=sorted(names) or None,
+        gene_id=sorted(ids) or None,
+        species=species,
+        columns=cols,
+    )
+    if source_context is not None and not obs.empty:
+        flag_cols = [c for c in SOURCE_CONTEXTS[source_context] if c in obs.columns]
+        if flag_cols:
+            obs = obs[obs[flag_cols].fillna(False).astype(bool).any(axis=1)]
+    if obs.empty:
+        return pd.DataFrame(columns=out_cols)
+
+    merged = obs.merge(mp, on="peptide", how="inner")
+    if merged.empty:
+        return pd.DataFrame(columns=out_cols)
+    g = (
+        merged.groupby(["gene_name", "gene_id"], observed=True)
+        .agg(
+            n_observations=("peptide", "size"),
+            n_unique_peptides=("peptide", "nunique"),
+            n_references=("pmid", "nunique"),
+            n_samples=("attributed_sample_label", "nunique"),
+        )
+        .reset_index()
+        .sort_values(["n_observations", "gene_name"], ascending=[False, True])
+        .reset_index(drop=True)
+    )
+    g = g[out_cols]
+    # Panel total: observations SUMMED; unique-peptides / references / samples
+    # the UNION across the whole panel (a peptide multi-mapping to two genes,
+    # or a PMID shared by several, counts once).
+    g.attrs["panel_total"] = {
+        "n_observations": len(merged),
+        "n_unique_peptides": int(merged["peptide"].nunique()),
+        "n_references": int(merged["pmid"].nunique()),
+        "n_samples": int(merged["attributed_sample_label"].nunique()),
+    }
+    return g
+
+
+def format_gene_table(df: pd.DataFrame) -> str:
+    """Render a :func:`gene_distribution` frame as an aligned per-gene table,
+    ending in a ``total`` row (observations summed, the rest unioned across the
+    panel)."""
+    if df is None or df.empty:
+        return "(no matching observations)"
+    num_cols = ["n_observations", "n_unique_peptides", "n_references", "n_samples"]
+    total = df.attrs.get("panel_total")
+    head = ["gene", *num_cols]
+    rows = [
+        [str(r.gene_name), *(str(getattr(r, c)) for c in num_cols)]
+        for r in df.itertuples(index=False)
+    ]
+    total_row = ["total", *(str(total[c]) for c in num_cols)] if total else None
+    pool = [head, *rows] + ([total_row] if total_row else [])
+    widths = [max(len(r[i]) for r in pool) for i in range(len(head))]
+
+    def _line(vals: list[str]) -> str:
+        cells = [vals[0].ljust(widths[0])]
+        cells += [vals[i].rjust(widths[i]) for i in range(1, len(vals))]
+        return "    " + "  ".join(cells)
+
+    out = [_line(head), *(_line(r) for r in rows)]
+    if total_row:
+        out.append("    " + "  ".join("-" * widths[i] for i in range(len(head))))
+        out.append(_line(total_row))
+    return "\n".join(out)
+
+
 def format_table(df: pd.DataFrame) -> str:
     """Render a query result with protein > allele as section headers and
     peptide rows as an aligned table beneath each allele.
