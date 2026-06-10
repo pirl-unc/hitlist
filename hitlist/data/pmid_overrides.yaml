@@ -2377,6 +2377,9 @@
     study_label: Bassani-Sternberg 2016 — melanoma neoepitope discovery
     title: Direct identification of clinically relevant neoepitopes presented on native human melanoma tissue by mass spectrometry
     override: cancer_patient
+    # IEDB left source_tissue="Other"; native melanoma surgical tissue (primary +
+    # metastatic deposits) — filed under Skin (cutaneous melanoma).
+    source_tissue: "Skin"
     note: >
       25 melanoma metastasis patients, 5 analyzed in depth. 78,605 HLA-I peptides + 15,009 HLA-II peptides.
       Sequential class I (W6/32) then class II (HB-145) IP from same lysate. Snap-frozen surgical tissue.
@@ -4228,6 +4231,9 @@
     study_label: "Gfeller 2018 — HLA-I length distributions"
     title: "Length distribution and multiple specificity of naturally presented HLA-I ligands"
     override:
+    # IEDB left source_tissue="Other"; the tissue samples are human meningioma
+    # (arises from the meninges/CNS), filed under Brain in HLA-Ligand-Atlas vocab.
+    source_tissue: "Brain"
     note: >
       Reanalysis of meningioma tissues (direct ex vivo) + cell lines.
     ms_samples:
@@ -7062,6 +7068,37 @@
       carcinoma) — human tumour self-peptidome (e.g. ACTB / beta-actin).  IEDB
       left 4 of 5 rows source_organism blank; 1 is already Homo sapiens.  Fills
       the blanks to match.  #307.
+  # ── source_tissue fills for IEDB "Other"-tissue studies (verified per-paper) ──
+  # Each was confirmed from the paper's Methods to elute from a single anatomical
+  # site.  Multi-tumour cohorts (31848261, 32561536, 39111711), the site-
+  # unrecorded neuroblastoma cohort (37938771), and the SARS-CoV-2 viral-epitope
+  # study (34312620, already source_organism=SARS-CoV-2) are deliberately NOT
+  # filled — no single tissue applies.
+  - pmid: 29308320
+    study_label: "Dutoit 2012 — IMA950 glioblastoma vaccine antigens"
+    source_tissue: "Brain"
+    note: >
+      HLA-eluted peptides from human glioblastoma (CNS/brain tumour) tissue.
+      IEDB left source_tissue="Other"; fills Brain.
+  - pmid: 27467910
+    study_label: "Peper 2016 — ovarian carcinoma HLA ligandomics (HDAC1)"
+    source_tissue: "Ovary"
+    note: >
+      HLA ligandomics directly on high-grade serous ovarian carcinoma patient
+      tumour tissue.  IEDB left source_tissue="Other"; fills Ovary.
+  - pmid: 32217358
+    study_label: "Wang 2020 — obesity visceral-fat MHC-I immunopeptidome (mouse)"
+    source_tissue: "Adipose Tissue"
+    note: >
+      H2-Kb peptides eluted from MOUSE epididymal/visceral adipose tissue
+      (mhc_species/source already murine).  IEDB left source_tissue="Other";
+      fills Adipose Tissue.
+  - pmid: 22544926
+    study_label: "Dao 2013 — vascular endothelial cell HLA peptidome"
+    source_tissue: "Blood Vessel"
+    note: >
+      HLA-A*02 peptides from human vascular endothelial cells (HUVEC-type).
+      IEDB left source_tissue="Other"; fills Blood Vessel (endothelium).
   # ── #314 — per-PMID provenance curation for blank-source epitope studies ────
   # IEDB left source_tissue/cell_name/disease blank on these.  Per-paper research
   # (see #314) found only 31575892 is a genuine elution-from-cell-line study;

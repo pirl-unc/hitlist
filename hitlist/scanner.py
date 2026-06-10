@@ -409,18 +409,23 @@ def scan(
             # cell_name / disease / culture_condition for epitope-ID papers IEDB
             # left unlabeled, from the PMID's pmid_overrides entry.  Fills before
             # classification so a curated cell line classifies correctly.  Only
-            # fills unresolved values.  A cell_name of IEDB's "Other" sentinel (or
-            # "unknown"/blank) counts as unresolved, so curating a real line name
-            # replaces it (#36 "Other"-coded papers).
+            # fills unresolved values.  IEDB's "Other"/"unidentified" sentinels
+            # (for source_tissue or cell_name) count as unresolved, so curating
+            # the real value replaces them (#36 / "Other"-tissue papers).
             from .cell_name_parser import _UNINFORMATIVE_CELL_NAMES
 
+            _UNRESOLVED_TISSUE = {"", "other", "unidentified", "unknown", "n/a", "na"}
             _cell_unresolved = cell_name.strip().lower() in _UNINFORMATIVE_CELL_NAMES
-            if not (source_tissue and not _cell_unresolved and disease and culture_condition):
+            _tissue_unresolved = source_tissue.strip().lower() in _UNRESOLVED_TISSUE
+            if not (
+                not _tissue_unresolved and not _cell_unresolved and disease and culture_condition
+            ):
                 from .curation import pmid_provenance
 
                 _prov = pmid_provenance(pmid)
                 if _prov:
-                    source_tissue = source_tissue or _prov.get("source_tissue", "")
+                    if _tissue_unresolved and _prov.get("source_tissue"):
+                        source_tissue = _prov["source_tissue"]
                     if _cell_unresolved and _prov.get("cell_name"):
                         cell_name = _prov["cell_name"]
                     disease = disease or _prov.get("disease", "")
