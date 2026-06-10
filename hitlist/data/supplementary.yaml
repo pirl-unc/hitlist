@@ -36,14 +36,17 @@
   source: "Immunity 2019 Table S1B, sheet DataS1B"
   note: >
     8 mono-allelic MAPTAC class I samples. Each allele expressed via tagged
-    HLA in cell-line mixtures (A375, Expi293, HEK293, HeLa). Per-peptide
-    allele assignment is direct (one allele per IP).
+    HLA in a CELL-LINE MIXTURE (A375 melanoma + Expi293 + HEK293 + HeLa
+    epithelial); mono-allelic pulldowns pool peptides across all hosts, so the
+    source is the mixture, not a single line. (A gene-specific peptide derives
+    from whichever host expresses it — e.g. PRAME from the A375 melanoma.)
+    Per-peptide allele assignment is direct (one allele per IP).
   defaults:
     host: "Homo sapiens (human)"
     species: "Homo sapiens"
     source_organism: "Homo sapiens"
     culture_condition: "Cell Line / Clone"
-    cell_name: "MAPTAC"
+    cell_name: "cell-line mixture"
     source_tissue: ""
     process_type: "No immunization"
     disease: "healthy"
@@ -55,13 +58,15 @@
   note: >
     10 mono-allelic MAPTAC class II alleles: 6 DRB1, 1 DRB3, 1 DPB1, 1 DQB1.
     Some alleles profiled ± HLA-DM co-transfection (dm+ vs dm-); peptides
-    from both conditions are merged per allele.
+    from both conditions are merged per allele. Expressed via tagged HLA-II in
+    the MAPTAC cell-line host(s); peptides reflect the host mixture, not a
+    single named line.
   defaults:
     host: "Homo sapiens (human)"
     species: "Homo sapiens"
     source_organism: "Homo sapiens"
     culture_condition: "Cell Line / Clone"
-    cell_name: "MAPTAC"
+    cell_name: "cell-line mixture"
     source_tissue: ""
     process_type: "No immunization"
     disease: "healthy"
