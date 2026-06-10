@@ -322,7 +322,7 @@ def _extract_donor_id(attributed_sample_label: str) -> str:
 
 # Cell-name values that explicitly mean "no per-sample info recorded".
 _UNINFORMATIVE_CELL_NAMES: frozenset[str] = frozenset(
-    {"", "other", "cell found in tissue", "n/a", "na", "unknown"}
+    {"", "other", "cell found in tissue", "n/a", "na", "unknown", "unknown/unspecified"}
 )
 
 

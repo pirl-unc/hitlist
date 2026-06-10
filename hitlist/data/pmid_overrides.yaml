@@ -2697,6 +2697,9 @@
     title: "The canine MHC class Ia allele DLA-88*508:01 presents diverse self- and canine distemper virus-origin peptides of varying length that have a conserved binding motif"
     override:
     species: Canis lupus familiaris (dog)
+    # DH82 = canine histiocytic sarcoma (monocyte/macrophage/histiocyte lineage);
+    # IEDB cell_name="Other".
+    cell_name: "Macrophage"
     note: >
       FLAG-tagged DLA-88*508:01 in canine histiocytic cell line. Both uninfected self-peptidome and CDV-infected
       samples profiled. 22 CDV-derived peptides identified. In IEDB.
@@ -7099,6 +7102,55 @@
     note: >
       HLA-A*02 peptides from human vascular endothelial cells (HUVEC-type).
       IEDB left source_tissue="Other"; fills Blood Vessel (endothelium).
+  # ── cell_name lineage fills for IEDB "Other"-cell_name cell lines (verified) ──
+  # IEDB recorded the cell as "Other" (line unnamed) on these homogeneous-lineage
+  # cell-line studies; per-paper research assigns the cell-of-origin lineage so
+  # they group correctly instead of "(unspecified type)".  Mixed-lineage panels
+  # (16479539 P815+RMA-S, 30114007 5-line, 25428506 MC-38+TRAMP) and the
+  # synthetic-peptide study (24108701) are deliberately left.
+  - pmid: 22872234
+    study_label: "Vomund 2013 — NIT-1 pancreatic beta-cell immunopeptidome"
+    cell_name: "Pancreatic beta cell"
+    note: >
+      H-2 peptidome from NIT-1 (immortalized NOD-mouse pancreatic beta-cell line),
+      ± IFN-gamma.  IEDB cell_name="Other".
+  - pmid: 22869377
+    study_label: "Kuznetsov 2017 — melanoma HLA peptidome immunogenicity"
+    cell_name: "Melanocyte"
+    note: >
+      Four human melanoma lines (ChaMel100/41/84/105) — melanocyte lineage.
+      IEDB cell_name="Other".
+  - pmid: 25428507
+    study_label: "Gubin 2014 — d42m1-T3 sarcoma neoantigens"
+    cell_name: "Fibroblast"
+    note: >
+      Single mouse methylcholanthrene-induced fibrosarcoma line d42m1-T3
+      (mesenchymal/fibroblast lineage).  IEDB cell_name="Other".
+  - pmid: 18991276
+    study_label: "Hillen 2008 — HLA-B44 supertype B-LCL peptidome"
+    cell_name: "B-cell"
+    note: >
+      Ligands eluted from B-lymphoblastoid lines (EMJ, Awells, BM15, ...).  IEDB's
+      "skin melanoma" disease label is WRONG — these are B-cell lines.
+  - pmid: 31921104
+    study_label: "Bartok 2020 — melanoma neoepitope discovery"
+    cell_name: "Melanocyte"
+    note: >
+      Patient-derived melanoma lines (KADA, ANRU) — melanocyte lineage.  IEDB
+      cell_name="Other".
+  - pmid: 33372950
+    study_label: "Pollock 2021 — HaCaT keratinocyte hapten immunopeptidome"
+    cell_name: "Epithelial cell"
+    note: >
+      HaCaT (immortalized human keratinocyte, epithelial) ± HLA-A2, after DNCB
+      hapten exposure.  IEDB cell_name="Other".
+  - pmid: 29176828
+    study_label: "Caccamo 2018 — U373 HLA-E Mtb-peptide elution"
+    cell_name: "Glial cell"
+    note: >
+      Soluble HLA-E peptides eluted from U373 glioblastoma cells (glial lineage)
+      infected with M. tuberculosis — a genuine cell-line elution.  IEDB
+      cell_name="Other".
   # ── #314 — per-PMID provenance curation for blank-source epitope studies ────
   # IEDB left source_tissue/cell_name/disease blank on these.  Per-paper research
   # (see #314) found only 31575892 is a genuine elution-from-cell-line study;
