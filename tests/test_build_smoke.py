@@ -120,11 +120,12 @@ def test_build_observations_from_packaged_data(tmp_path, monkeypatch):
     )
 
     # #261: the synthetic hybrid "K562-Myeloid cell" row survives the full
-    # build and is split into a clean line + cell type.
+    # build and is split into a clean line + cell type.  K562's registry lineage
+    # (Myeloblast, CML blast phase) overrides IEDB's coarse "Myeloid cell" suffix.
     hybrid = df[df["cell_name"] == "K562-Myeloid cell"]
     assert not hybrid.empty
     assert set(hybrid["cell_line_name"]) == {"K562"}
-    assert set(hybrid["cell_type"]) == {"Myeloid cell"}
+    assert set(hybrid["cell_type"]) == {"Myeloblast"}
 
     # #263: low-cardinality columns are categorical on the built parquet.
     assert isinstance(df["mhc_restriction"].dtype, pd.CategoricalDtype)
