@@ -6,8 +6,9 @@ repo_name: pirl-unc/hitlist
 
 nav:
   - Home: index.md
+  - How Curation Works: curation-process.md
   - Source Classification: source-classification.md
-  - PMID Curation: pmid-curation.md
+  - PMID Curation Overrides: pmid-curation.md
 
 theme:
   name: readthedocs
