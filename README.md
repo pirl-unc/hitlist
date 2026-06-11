@@ -7,17 +7,6 @@ A curated, harmonized, **ML-training-ready** MHC ligand mass-spectrometry datase
 
 hitlist ingests immunopeptidome data from [IEDB](https://www.iedb.org/), [CEDAR](https://cedar.iedb.org/), and paper supplementary tables (PRIDE/jPOSTrepo); partitions MS-eluted observations from in-vitro binding-assay measurements into two separate parquet files (so downstream consumers never silently conflate them); joins every MS observation to expert-curated sample metadata (HLA genotype, tissue, disease, perturbation, instrument); and ships both indexes as parquet + a pandas-friendly Python API.
 
-## What's curated
-
-| | Count |
-|---|---|
-| Curated PMIDs (`pmid_overrides.yaml`) | **159** — covers 89.5% of observations |
-| `ms_samples` entries with per-sample metadata | 633 |
-| `ms_samples` entries with 4-digit HLA typing | 446 |
-| Supplementary CSVs ingested (PRIDE/jPOSTrepo) | 9 (Abelin 2019 MAPTAC class I/II + DR-tissue, Gomez-Zepeda 2024 JY/HeLa/Raji/SK-MEL-37/plasma, Stražar 2023 HLA-II) |
-| Species reference proteomes (registry) | 22 (Ensembl: 4, UniProt: 18) |
-| Viral reference proteomes (registry) | 33 distinct viruses, 58 name aliases |
-
 ## What's in the two indexes
 
 After `hitlist data build` (snapshot of the shipping 1.10.x default build):
@@ -53,6 +42,34 @@ The two indexes share the schema (including gene annotations from the peptide-ma
 | Multi-allelic with allele match | 450,399 obs |
 | Multi-allelic with class-pool (`N of M alleles`) | 784,370 obs |
 | Allele-resolved `sample_mhc` coverage | **74.8%** |
+
+## What's curated
+
+Those numbers rest on per-study human curation. Rather than trust the raw
+IEDB/CEDAR `cell_name`, `disease`, and `tissue` fields — which carry mislabels,
+free-text placeholders, and `Other`/`Unknown` sentinels — hitlist annotates each
+study (keyed by PMID) in `pmid_overrides.yaml`. Known mislabels are corrected,
+and every MS sample is tagged with the metadata a training pipeline actually
+needs (HLA genotype, tissue, disease, perturbation, instrument) plus a reference
+proteome for flanking and source-protein attribution. A few papers whose peptides
+never reached IEDB are ingested directly from their PRIDE / jPOSTrepo
+supplementary tables.
+
+| What's curated | Count | Detail |
+|---|---|---|
+| Curated PMIDs (`pmid_overrides.yaml`) | **159** | Cover **89.5%** of all observations |
+| ↳ `ms_samples` with per-sample metadata | 633 | HLA genotype, tissue, disease, perturbation, instrument |
+| ↳ `ms_samples` with 4-digit HLA typing | 446 | The subset with allele-level genotype |
+| Supplementary CSVs ingested (PRIDE / jPOSTrepo) | 9 | 3 papers — listed below |
+| Species reference proteomes | 22 | Ensembl ×4, UniProt ×18 |
+| Viral reference proteomes | 33 viruses | 58 name aliases |
+
+**Supplementary papers ingested** (data not in IEDB, read straight from
+PRIDE/jPOSTrepo — 9 CSVs total):
+
+- **Abelin 2019** — MAPTAC mono-allelic class I, class II, and DR-tissue (3)
+- **Gómez-Zepeda 2024** — JY, HeLa, Raji, SK-MEL-37, and plasma (5)
+- **Stražar 2023** — HLA-II (1)
 
 ## Install
 
