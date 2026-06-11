@@ -6,6 +6,7 @@ from hitlist.export import (
     _extract_allele_strings,
     _fillna_scalar_safe,
     generate_ms_observations_table,
+    generate_ms_peptide_summary_table,
     generate_ms_samples_table,
     generate_species_summary,
     validate_mhc_alleles,
@@ -2420,3 +2421,223 @@ def test_resolver_skips_apc_when_cell_name_varies(full_observations_df):
             f"Liepe 'C1R cells-B cell' rows should resolve to C1R parental; "
             f"got {c1r_to_c1r}/{len(c1r_rows)}"
         )
+
+
+# ── peptide-summary export (per-peptide MS support for one allele/serotype) ──
+
+
+def _peptide_summary_fixture():
+    """Synthetic observations covering every support bucket for target A24.
+
+    P1 carries: a mono-allelic exact A*24:02 elution, a multi-allelic
+    split-serotype (A*24:03 → A24) elution, a class-only row whose sample
+    genotype includes A*24:02 (class_only_sample_allele), and an
+    unknown-allele class-only row.  P2 is a single multi-allelic exact hit.
+    """
+    return pd.DataFrame(
+        {
+            "peptide": ["P1", "P1", "P1", "P1", "P2", "P2"],
+            "mhc_restriction": [
+                "HLA-A*24:02",
+                "HLA-A*24:03",
+                "HLA class I",
+                "HLA class I",
+                "HLA-A*24:02",
+                "HLA-A*02:01",
+            ],
+            "pmid": pd.array([1, 2, 3, 4, 5, 6], dtype="Int64"),
+            "sample_mhc": [
+                "HLA-A*24:02",
+                "HLA-A*24:03 HLA-B*07:02",
+                "HLA-A*24:02 HLA-B*07:02",
+                "",
+                "HLA-A*02:01 HLA-A*24:02",
+                "HLA-A*02:01",
+            ],
+            "sample_match_type": [
+                "allele_match",
+                "allele_match",
+                "single_sample_fallback",
+                "unmatched",
+                "allele_match",
+                "allele_match",
+            ],
+            "is_monoallelic": [True, False, False, False, False, False],
+            "has_peptide_level_allele": [True, True, False, False, True, True],
+            "serotypes": [
+                "HLA-A24;HLA-Bw4",
+                "HLA-A2403",
+                "",
+                "",
+                "HLA-A24;HLA-Bw4",
+                "HLA-A2",
+            ],
+            "src_cancer": [True, False, False, True, True, True],
+            "src_adjacent_to_tumor": [False, False, True, False, False, False],
+            "src_healthy_tissue": [False, True, False, False, False, False],
+            "src_healthy_thymus": [False, False, False, False, False, False],
+            "src_healthy_reproductive": [False, False, False, False, False, False],
+        }
+    )
+
+
+def test_generate_ms_peptide_summary_exact_allele(monkeypatch):
+    monkeypatch.setattr(
+        "hitlist.export.generate_observations_table",
+        lambda **_: _peptide_summary_fixture(),
+    )
+
+    df = generate_ms_peptide_summary_table(gene=["PRAME"], mhc_allele=["HLA-A*24:02"])
+    assert list(df["peptide"]) == ["P1", "P2"]
+
+    p1 = df[df["peptide"] == "P1"].iloc[0]
+    assert p1["target_allele"] == "HLA-A*24:02"
+    assert p1["target_serotype"] == "HLA-A24"
+    assert p1["n_mono_exact_rows"] == 1
+    assert p1["n_multi_serotype_rows"] == 1
+    assert p1["n_class_only_sample_allele_rows"] == 1
+    assert p1["n_unknown_allele_rows"] == 1
+    assert p1["n_cancer_rows"] == 2
+    assert p1["n_healthy_rows"] == 1
+    assert p1["n_adjacent_rows"] == 1
+    assert p1["best_support"] == "mono_exact"
+    assert p1["target_peptide_alleles"] == "HLA-A*24:02;HLA-A*24:03"
+
+    p2 = df[df["peptide"] == "P2"].iloc[0]
+    assert p2["n_multi_exact_rows"] == 1
+    assert p2["n_support_rows"] == 1
+    assert p2["n_cancer_rows"] == 1
+
+
+def test_generate_ms_peptide_summary_serotype_query(monkeypatch):
+    monkeypatch.setattr(
+        "hitlist.export.generate_observations_table",
+        lambda **_: _peptide_summary_fixture().iloc[:4].copy(),
+    )
+
+    df = generate_ms_peptide_summary_table(gene=["PRAME"], serotype=["A24"])
+    p1 = df[df["peptide"] == "P1"].iloc[0]
+    assert p1["target_allele"] == ""
+    assert p1["target_serotype"] == "HLA-A24"
+    assert p1["n_mono_exact_rows"] == 0
+    assert p1["n_mono_serotype_rows"] == 1  # the A*24:02 mono row, matched by serotype
+    assert p1["n_multi_serotype_rows"] == 1  # the A*24:03 split-serotype row
+    assert p1["n_class_only_sample_serotype_rows"] == 1
+    assert p1["best_support"] == "mono_serotype"
+
+
+def test_generate_ms_peptide_summary_requires_single_target(monkeypatch):
+    monkeypatch.setattr(
+        "hitlist.export.generate_observations_table",
+        lambda **_: pd.DataFrame({"peptide": []}),
+    )
+
+    with pytest.raises(ValueError, match="exactly one of --mhc-allele or --serotype"):
+        generate_ms_peptide_summary_table(gene=["PRAME"])
+
+    with pytest.raises(ValueError, match="not both"):
+        generate_ms_peptide_summary_table(
+            gene=["PRAME"], mhc_allele=["HLA-A*02:01"], serotype=["A24"]
+        )
+
+    with pytest.raises(ValueError, match="supports only one target allele or serotype"):
+        generate_ms_peptide_summary_table(gene=["PRAME"], mhc_allele=["HLA-A*02:01", "HLA-A*24:02"])
+
+
+def test_generate_ms_peptide_summary_requires_scope(monkeypatch):
+    monkeypatch.setattr(
+        "hitlist.export.generate_observations_table",
+        lambda **_: _peptide_summary_fixture(),
+    )
+    with pytest.raises(ValueError, match="requires a gene or peptide filter"):
+        generate_ms_peptide_summary_table(mhc_allele=["HLA-A*24:02"])
+
+
+def test_generate_ms_peptide_summary_empty_when_no_observations(monkeypatch):
+    monkeypatch.setattr(
+        "hitlist.export.generate_observations_table",
+        lambda **_: pd.DataFrame(columns=["peptide", "mhc_restriction"]),
+    )
+    df = generate_ms_peptide_summary_table(gene=["PRAME"], mhc_allele=["HLA-A*24:02"])
+    assert df.empty
+    assert "best_support" in df.columns  # schema preserved
+
+
+def test_export_ms_cli_helper(monkeypatch):
+    import argparse
+
+    from hitlist.cli import _export_ms
+
+    captured = {}
+
+    def fake_generate_observations_table(**kwargs):
+        captured.update(kwargs)
+        return pd.DataFrame({"peptide": ["AAAAAAAAA"]})
+
+    monkeypatch.setattr(
+        "hitlist.export.generate_observations_table", fake_generate_observations_table
+    )
+
+    args = argparse.Namespace(
+        mhc_class="I",
+        species="Homo sapiens",
+        source="iedb",
+        instrument_type="Orbitrap",
+        acquisition_mode="DDA",
+        mono_allelic=False,
+        min_allele_resolution="four_digit",
+        mhc_allele=["HLA-A*24:02"],
+        gene=["PRAME"],
+        gene_name=["PRAME"],
+        gene_id=["ENSG00000185686"],
+        peptide=["ALYVDSLFFL"],
+        serotype=["A24"],
+    )
+
+    df = _export_ms(args)
+    assert list(df["peptide"]) == ["AAAAAAAAA"]
+    assert captured["peptide"] == ["ALYVDSLFFL"]
+    assert captured["mhc_allele"] == ["HLA-A*24:02"]
+
+
+def test_export_peptide_summary_cli_helper(monkeypatch):
+    import argparse
+
+    from hitlist.cli import _export_peptide_summary
+
+    captured = {}
+
+    def fake_generate_ms_peptide_summary_table(**kwargs):
+        captured.update(kwargs)
+        return pd.DataFrame({"peptide": ["ALYVDSLFFL"]})
+
+    monkeypatch.setattr(
+        "hitlist.export.generate_ms_peptide_summary_table",
+        fake_generate_ms_peptide_summary_table,
+    )
+
+    args = argparse.Namespace(
+        mhc_class="I",
+        species="Homo sapiens",
+        source="iedb",
+        mhc_allele=["HLA-A*24:02"],
+        serotype=None,
+        gene=["PRAME"],
+        gene_name=["PRAME"],
+        gene_id=["ENSG00000185686"],
+        peptide=["ALYVDSLFFL"],
+    )
+
+    df = _export_peptide_summary(args)
+    assert list(df["peptide"]) == ["ALYVDSLFFL"]
+    assert captured == {
+        "mhc_class": "I",
+        "species": "Homo sapiens",
+        "source": "iedb",
+        "mhc_allele": ["HLA-A*24:02"],
+        "serotype": None,
+        "gene": ["PRAME"],
+        "gene_name": ["PRAME"],
+        "gene_id": ["ENSG00000185686"],
+        "peptide": ["ALYVDSLFFL"],
+    }

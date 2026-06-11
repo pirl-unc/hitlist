@@ -716,6 +716,7 @@ def allele_resolution_rank(resolution: str) -> int:
 
 
 _LOCUS_SEROTYPE_RE = re.compile(r"^(A|B|C|DR|DQ|DP|DM|DO)\d")
+_LOCUS_SEROTYPE_NAME_RE = re.compile(r"^(A|B|C|DR|DQ|DP|DM|DO)(\d+)$")
 
 
 def _serotype_specificity_rank(name: str) -> int:
@@ -726,6 +727,29 @@ def _serotype_specificity_rank(name: str) -> int:
        as the canonical answer to "what serotype is this allele?"
     """
     return 0 if _LOCUS_SEROTYPE_RE.match(name) else 1
+
+
+def _broader_locus_serotype_name(name: str, known_names: set[str]) -> str:
+    """Return the nearest broader locus-specific serotype, if one exists.
+
+    Some mhcgnomes entries are split serotypes like ``A2403`` or ``DR1404``.
+    A query for the broad family (``A24`` / ``DR14``) should also match those
+    split members — so when a broader parent serotype is itself present in the
+    reference table, an allele carrying the split serotype is tagged with the
+    parent too.  Returns ``""`` when there is no broader parent (``A2`` has no
+    shorter form; ``A24`` is already two digits)."""
+    match = _LOCUS_SEROTYPE_NAME_RE.match(name)
+    if not match:
+        return ""
+    locus, digits = match.groups()
+    if len(digits) <= 2:
+        return ""
+    for cut in range(len(digits) - 1, 0, -1):
+        prefix = str(int(digits[:cut]))
+        candidate = f"{locus}{prefix}"
+        if candidate != name and candidate in known_names:
+            return candidate
+    return ""
 
 
 @lru_cache(maxsize=1)
@@ -747,14 +771,20 @@ def _build_allele_to_serotypes_map() -> dict[str, tuple[str, ...]]:
 
     reverse: dict[str, list[str]] = {}
     hla = serotypes["HLA"]
+    known_names = set(hla)
     for sero_name, allele_list in hla.items():
+        # A split serotype (A2403) also implies its broad parent (A24) when
+        # that parent serotype exists in the table, so broad queries match
+        # split members.
+        broader_name = _broader_locus_serotype_name(sero_name, known_names)
+        names_for_sero = [sero_name] if not broader_name else [sero_name, broader_name]
         for allele_str in allele_list:
-            reverse.setdefault(allele_str, []).append(sero_name)
+            reverse.setdefault(allele_str, []).extend(names_for_sero)
 
     return {
         allele: tuple(
             f"HLA-{s}"
-            for s in sorted(names, key=lambda n: (_serotype_specificity_rank(n), len(n), n))
+            for s in sorted(set(names), key=lambda n: (_serotype_specificity_rank(n), len(n), n))
         )
         for allele, names in reverse.items()
     }

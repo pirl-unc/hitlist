@@ -964,6 +964,17 @@ def test_allele_to_all_serotypes_a02_broader_first():
     assert "HLA-A2" in all_sero
 
 
+def test_allele_to_all_serotypes_split_includes_broad_parent():
+    """A split serotype like A2403 implies its broad parent A24, so a broad
+    A24 query matches A*24:03.  The broad parent ranks first (broader-first)."""
+    if not _HAS_MHCGNOMES:
+        return
+    all_sero = allele_to_all_serotypes("HLA-A*24:03")
+    assert "HLA-A24" in all_sero
+    assert "HLA-A2403" in all_sero
+    assert all_sero[0] == "HLA-A24"  # broader name is canonical
+
+
 def test_allele_to_all_serotypes_empty():
     assert allele_to_all_serotypes("") == ()
     assert allele_to_all_serotypes("HLA class I") == ()
