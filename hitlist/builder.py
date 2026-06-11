@@ -1222,6 +1222,51 @@ def _harmonize_depmap_line_keys(
     return out.reset_index(drop=True)
 
 
+#: Packaged ENSG → HGNC symbol map used as the *primary* gene_name fill source.
+#: Pre-resolved offline (Ensembl 75 → 112 → 90, mygene.info for the tail) so the
+#: build doesn't need any pyensembl release data installed to fill ~98% of the
+#: blank symbols.  pyensembl is only a fallback for IDs absent from this file.
+_GENE_NAME_MAP_CSV = (
+    Path(__file__).parent / "data" / "line_expression" / "ensembl_gene_id_symbol.csv"
+)
+
+
+def _load_gene_name_map() -> dict[str, str]:
+    """Load the packaged ENSG (version-stripped) → HGNC symbol map.
+
+    Returns an empty dict when the CSV is absent so the build degrades to the
+    pyensembl path rather than hard-failing.
+    """
+    if not _GENE_NAME_MAP_CSV.exists():
+        return {}
+    m = pd.read_csv(_GENE_NAME_MAP_CSV, dtype=str).fillna("")
+    return {gid.split(".")[0]: nm for gid, nm in zip(m["gene_id"], m["gene_name"]) if gid and nm}
+
+
+def _fill_gene_names_from_csv(df: pd.DataFrame, *, verbose: bool = False) -> pd.DataFrame:
+    """Fill empty ``gene_name`` from the packaged ENSG → symbol CSV.
+
+    Primary fill source: portable, needs no pyensembl release data.  Leaves IDs
+    absent from the map blank for :func:`_fill_gene_names_via_ensembl` to retry.
+    """
+    if "gene_name" not in df.columns or "gene_id" not in df.columns:
+        return df
+    gn = df["gene_name"].astype("string").fillna("")
+    gid = df["gene_id"].astype("string").fillna("")
+    need = (gn.str.strip() == "") & gid.str.startswith("ENSG")
+    if not need.any():
+        return df
+    id2name = _load_gene_name_map()
+    if not id2name:
+        return df
+    filled = gid[need].map(lambda g: id2name.get(g.split(".")[0], ""))
+    df.loc[need, "gene_name"] = filled.to_numpy()
+    if verbose:
+        n_filled = int((filled != "").sum())
+        print(f"  Filled {n_filled:,} blank gene_names from packaged ENSG→symbol CSV")
+    return df
+
+
 #: Ensembl releases to consult (in order) when filling gene_name from gene_id.
 #: The packaged line-expression union is GRCh37/Ensembl-75-based (release 75
 #: resolves ~81% of the blanks); 112 (GRCh38, the proteome release) backfills a
@@ -1392,7 +1437,10 @@ def build_line_expression(verbose: bool = False) -> pd.DataFrame:
     df["parent_line_key"] = df["line_key"].map(parent_lookup).fillna("")
 
     # Fill blank gene_name from the Ensembl gene ID (packaged-union rows carry
-    # ENSG but no HGNC symbol) so gene_name filters reach them.
+    # ENSG but no HGNC symbol) so gene_name filters reach them.  Try the packaged
+    # ENSG→symbol CSV first (portable, ~98% coverage), then fall back to a live
+    # pyensembl lookup for any IDs the CSV doesn't cover (e.g. newly-added genes).
+    df = _fill_gene_names_from_csv(df, verbose=verbose)
     df = _fill_gene_names_via_ensembl(df, verbose=verbose)
 
     # Guarantee every canonical column exists before projection.
