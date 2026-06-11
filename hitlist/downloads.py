@@ -42,9 +42,11 @@ CLI::
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import shutil
+import tempfile
 import time
 import urllib.error
 import urllib.request
@@ -176,14 +178,34 @@ def _manifest_path() -> Path:
 
 def _load_manifest() -> dict:
     p = _manifest_path()
-    if p.exists():
+    if not p.exists():
+        return {"datasets": {}}
+    try:
         return json.loads(p.read_text())
-    return {"datasets": {}}
+    except (json.JSONDecodeError, ValueError, OSError):
+        # The manifest is a regenerable cache.  Tolerate a transient empty/partial
+        # read (another build worker mid-write) or a pre-existing corrupt file
+        # rather than crashing the build — missing entries just get re-fetched.
+        # See #331.
+        return {"datasets": {}}
 
 
 def _save_manifest(manifest: dict) -> None:
+    # Atomic write: serialize to a unique temp file in the same dir, then
+    # os.replace() into place.  os.replace is atomic on POSIX/Windows, so a
+    # concurrent _load_manifest() reader always sees a COMPLETE file (old or new),
+    # never a half-written/empty one — fixes the parallel-build race (#331).
     p = _manifest_path()
-    p.write_text(json.dumps(manifest, indent=2, default=str) + "\n")
+    p.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=str(p.parent), prefix=".manifest-", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w") as f:
+            f.write(json.dumps(manifest, indent=2, default=str) + "\n")
+        os.replace(tmp, p)
+    except BaseException:
+        with contextlib.suppress(OSError):
+            os.unlink(tmp)
+        raise
 
 
 # ── Known datasets ──────────────────────────────────────────────────────────
