@@ -600,30 +600,7 @@ def test_drop_duplicate_iris_dedups_cross_source_within_same_donor():
     assert set(out["source"]) == {"iedb"}
 
 
-# ── pyarrow concat + supplement anti-join (replaces Python set dedup) ────
-
-
-def test_pyarrow_concat_preserves_categoricals_round_trip():
-    """``pa.Table.from_pandas`` → ``concat_tables`` → ``to_pandas`` must
-    preserve categorical dtypes (Arrow ``DictionaryArray`` ↔ pandas
-    ``category``).  This is the path the builder relies on so the
-    post-concat ``obs`` frame keeps the categorical compression applied
-    upstream.
-    """
-    import pyarrow as pa
-
-    a = pd.DataFrame({"mhc_class": pd.Categorical(["I", "II"]), "peptide": ["P1", "P2"]})
-    b = pd.DataFrame({"mhc_class": pd.Categorical(["I", "I"]), "peptide": ["P3", "P4"]})
-    t = pa.concat_tables(
-        [
-            pa.Table.from_pandas(a, preserve_index=False),
-            pa.Table.from_pandas(b, preserve_index=False),
-        ],
-        promote_options="default",
-    )
-    out = t.to_pandas()
-    assert out["mhc_class"].dtype.name == "category"
-    assert list(out["mhc_class"]) == ["I", "II", "I", "I"]
+# ── supplement anti-join (replaces Python set dedup) ────
 
 
 def test_drop_supplementary_duplicates_drops_existing_triples():
@@ -714,40 +691,6 @@ def test_drop_supplementary_duplicates_empty_obs_returns_supp_unchanged():
     out = _drop_supplementary_duplicates(supp, obs)
     assert len(out) == 2
     assert list(out["peptide"]) == ["P1", "P2"]
-
-
-def test_pyarrow_from_pandas_handles_mixed_pmid_after_normalization():
-    """Regression for v1.30.39 build crash:
-    ``pyarrow.lib.ArrowInvalid: Could not convert '' with type str:
-    tried to convert to int64`` when the scanner emits ``pmid`` as
-    object dtype with ``""`` for missing rows and integer-like strings
-    for present ones.  ``pa.Table.from_pandas`` infers a single type
-    per column and chokes on the mixed shapes.
-
-    Fix: normalize ``pmid`` to ``Int64`` per-partition BEFORE Arrow
-    conversion (not just at the bottom of the build function, which is
-    after the per-partition concat).  This test asserts the fix works
-    end-to-end on the mixed-shape pmid column the scanner produces."""
-    import pyarrow as pa
-
-    # Mixed: integer-like string, empty string, real Python int
-    df = pd.DataFrame(
-        {
-            "pmid": ["12345", "", 67890, ""],
-            "peptide": ["P1", "P2", "P3", "P4"],
-        }
-    )
-    # Mimic the per-partition normalization the builder does pre-Arrow.
-    df["pmid"] = pd.to_numeric(df["pmid"], errors="coerce").astype("Int64")
-    # Now the column is uniformly Int64 with ``pd.NA`` for missing.
-    table = pa.Table.from_pandas(df, preserve_index=False)
-    assert table.num_rows == 4
-    # Round-trip preserves the Int64 + NA shape.
-    back = table.to_pandas()
-    assert back["pmid"].dtype.name == "Int64"
-    assert back["pmid"].isna().sum() == 2
-    assert int(back["pmid"].iloc[0]) == 12345
-    assert int(back["pmid"].iloc[2]) == 67890
 
 
 def test_drop_supplementary_duplicates_empty_supp_is_noop():

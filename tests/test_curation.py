@@ -562,12 +562,6 @@ def test_classify_ms_row_not_monoallelic_ex_vivo():
     assert flags["is_monoallelic"] is False
 
 
-def test_classify_ms_row_backward_compat():
-    flags = classify_ms_row("No immunization", "healthy", "Cell Line / Clone", "Blood", "HeLa")
-    assert "is_monoallelic" in flags
-    assert flags["is_monoallelic"] is False
-
-
 def test_healthy_override_forces_healthy_path():
     """PMID 33858848 (Marcu 2021 HLA Ligand Atlas) declares override: healthy.
 

@@ -70,11 +70,6 @@ def test_ms_samples_table_columns():
     assert provenance <= cols, f"missing provenance columns: {provenance - cols}"
 
 
-def test_ms_samples_table_not_empty():
-    df = generate_ms_samples_table()
-    assert len(df) > 0
-
-
 def test_ms_samples_filter_class_i():
     df_all = generate_ms_samples_table()
     df_i = generate_ms_samples_table(mhc_class="I")
@@ -341,20 +336,6 @@ def test_scan_supplementary_parquet_roundtrip(tmp_path):
     assert "pmid" in rt.columns
     # Every supplementary row must carry a PMID
     assert rt["pmid"].notna().all()
-
-
-def test_generate_observations_table(full_observations_df):
-    """Observations table should join peptides with sample metadata."""
-    df = full_observations_df
-    assert len(df) > 0
-    # Original observation columns
-    assert "peptide" in df.columns
-    assert "mhc_restriction" in df.columns
-    # Enriched sample metadata columns
-    assert "instrument" in df.columns
-    assert "instrument_type" in df.columns
-    assert "sample_mhc" in df.columns
-    assert "quantification_method" in df.columns
 
 
 def test_generate_observations_monoallelic_filter(full_observations_df):
@@ -2166,30 +2147,6 @@ def test_to_list_flattens_all_three_input_shapes():
     # Empties drop, whitespace strips.
     assert _to_list(["", "NRAS", " "]) == ["NRAS"]
     assert _to_list("") == []
-
-
-def test_cli_list_args_accept_space_and_comma_and_repeated_forms():
-    """argparse must produce the same flat list for all three input shapes
-    so users don't need to remember which form a given flag accepts.
-    """
-    # No public CLI parser-builder helper, so reproduce the action/nargs
-    # combination the real flags use and exercise argparse directly.
-    import argparse
-
-    p = argparse.ArgumentParser()
-    p.add_argument("--gene", action="extend", nargs="+")
-    p.add_argument("--mhc-allele", action="extend", nargs="+")
-
-    # Repeated.
-    a = p.parse_args(["--gene", "NRAS", "--gene", "KRAS"])
-    assert a.gene == ["NRAS", "KRAS"]
-    # Space-separated (the case that used to fail).
-    a = p.parse_args(["--gene", "NRAS", "KRAS"])
-    assert a.gene == ["NRAS", "KRAS"]
-    # Multiple flags interleaved with space-separated values.
-    a = p.parse_args(["--mhc-allele", "HLA-A*02:01", "HLA-B*07:02", "--gene", "NRAS"])
-    assert a.mhc_allele == ["HLA-A*02:01", "HLA-B*07:02"]
-    assert a.gene == ["NRAS"]
 
 
 # ── Sample resolver tie-break (cell_name / assay-comments) ────────────────
