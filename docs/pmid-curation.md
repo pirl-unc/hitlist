@@ -1,197 +1,152 @@
-# PMID Curation Overrides
+# PMID curation overrides
 
-hitlist applies expert per-study overrides to correct IEDB annotations that don't reflect the true biological context of each sample. Overrides are stored in `hitlist/data/pmid_overrides.yaml` as data, not hardcoded Python.
+hitlist applies expert per-study overrides to correct IEDB/CEDAR annotations that
+don't reflect the true biological context of a sample, and to attach the
+per-sample metadata (HLA genotype, perturbation, instrument) that MS pipelines
+need. Overrides live in `hitlist/data/pmid_overrides.yaml` as data, loaded at
+runtime by `curation.load_pmid_overrides()` — no code changes to add a study.
 
-**34 studies curated** across 7 species, with per-sample MHC class and perturbation conditions.
+Each entry is keyed by `pmid` (or `submission_id` for unpublished IEDB
+submissions) and curated against the paper's Methods. The file currently covers
+**159 PMIDs**, accounting for ~89.5% of all observations.
 
-## Species x MHC class summary (from local IEDB index)
+## Entry schema
 
-Actual unique peptide counts from `hitlist export counts`:
-
-| Species | Class | Studies | Peptides | Observations |
-|---------|-------|---------|----------|-------------|
-| **Homo sapiens** | **I** | **1,412** | **1,879,622** | **2,690,053** |
-| **Homo sapiens** | **II** | **800** | **789,540** | **1,699,554** |
-| Homo sapiens | non-classical | 103 | 5,881 | 7,595 |
-| Mus musculus | I | 520 | 94,438 | 161,565 |
-| Mus musculus | II | 293 | 39,093 | 44,779 |
-| Sarcophilus harrisii | I | 1 | 26,455 | 33,959 |
-| Sus sp. | I | 25 | 13,175 | 13,530 |
-| Trichosurus vulpecula | I | 1 | 5,614 | 5,615 |
-| Canis sp. | I | 6 | 2,446 | 2,465 |
-| Macaca mulatta | I | 19 | 1,637 | 1,724 |
-| Equus caballus | I | 4 | 776 | 887 |
-| Pan troglodytes | I | 5 | 360 | 431 |
-| Bos sp. | I | 10 | 319 | 404 |
-| Gallus gallus | I | 12 | 266 | 318 |
-| Rattus sp. | II | 27 | 248 | 633 |
-| Macaca mulatta | II | 2 | 106 | 207 |
-| Pteropus alecto | I | 3 | 85 | 95 |
-| + 20 more species | | | | |
-
-Regenerate: `hitlist export counts --source iedb` then group by species/class.
-
-## Curated vs uncurated
-
-Of the 37 species in IEDB, hitlist currently has YAML overrides for 34 PMIDs across 7 species. Many species with data in IEDB are not yet curated — see GitHub issues for planned additions.
-
-## Exporting data
-
-```bash
-hitlist export samples                    # all ms_samples as CSV
-hitlist export samples --class I          # MHC class I only
-hitlist export samples --class II -o c2.csv
-hitlist export summary                    # species x class totals
-hitlist export alleles                    # validate alleles with mhcgnomes
-```
-
-Each ms_sample entry includes: species, sample type, perturbation condition, PMID, study label, MHC class, estimated peptide count, and whether the count is from the paper or estimated.
-
-## Override types
-
-| Override | Meaning |
-|---|---|
-| `healthy` | Confirmed healthy tissue (default classification is correct) |
-| `cancer_patient` | Reclassify all rows as cancer-derived |
-| `adjacent` | Reclassify as tumor-adjacent normal tissue |
-| `activated_apc` | Reclassify as activated APC artifact |
-| `cell_line` | Reclassify as cell line (when IEDB annotation is wrong) |
-
-## Per-tissue refinement
-
-Some studies (e.g. Neidert biobank) have mixed sample sources. The `rules` field allows conditional classification within a single study:
+A representative entry:
 
 ```yaml
-- pmid: 29557506
-  label: "Neidert 2018 — Tübingen/Zurich biobank"
-  override: healthy
-  rules:
-    - condition:
-        Source Tissue:
-          - Blood
-          - Bone Marrow
-          - Cerebellum
-      override: healthy
-      reason: "Blood bank donors and autopsy CNS material"
-    - condition:
-        Source Tissue:
-          - Colon
-          - Kidney
-          - Liver
-      override: adjacent
-      reason: "Visceral Surgery — likely cancer resection margins"
-```
-
-Conditional rules are checked first (in order); the PMID-level override is the fallback.
-
-## Per-sample metadata
-
-Each study has an `ms_samples` list with structured per-sample-type entries:
-
-```yaml
-ms_samples:
-  - type: "721.221-B*51:01 (WT)"
-    n: 3
-    condition: "unperturbed"
-    mhc_class: "I"
-    peptides: 3000
-    peptides_estimated: true
-  - type: "721.221-B*51:01 ERAP1 KO"
-    n: 3
-    condition: "ERAP1 CRISPR/Cas9 knockout"
-    mhc_class: "I"
-    peptides: 2500
-    peptides_estimated: true
-```
-
-Fields: `type` (sample description), `n` (sample count), `source`, `condition` (perturbation or "unperturbed"), `mhc_class` ("I", "II", or "I+II"), `peptides` (unique peptide count), `peptides_estimated` (true if estimated rather than from paper).
-
-## Perturbation categories
-
-| Category | Studies |
-|----------|---------|
-| CRISPR gene KO (ERAP1, ERAP2, B2M, TAP1/2, TAPBP, IRF2, PDIA3, GANAB, SPPL3, CANX, CALR) | 31092671, 40113210 |
-| shRNA knockdown (ERAP1) | 31092671 |
-| DNMT inhibitor (decitabine 1 uM 72h) | 27412690 |
-| TKI resistance (imatinib 1 uM) | 25576301 |
-| IFN-gamma stimulation | 31844290 |
-| DC differentiation + maturation (GM-CSF + IL-4 → LPS + IFN-gamma) | 32983136, 38920720 |
-| T cell activation (PMA + Ionomycin) | 32983136 |
-| B cell activation (IL-4 + CD40L) | 32983136 |
-| Influenza A/H3N2 infection | 35051231 |
-| Canine distemper virus (CDV) | 29475511 |
-| Marek's disease virus (MDV) | 33901176 |
-| PRRSV (porcine) | 36146698, 32796065 |
-| *Theileria parva* (bovine) | 36423003 |
-| CyHV-2 (fish) | 41459947 |
-| Synthetic peptide pulsing | 38920720 |
-| HLA-DM editing (dm+/dm-) | 31495665 |
-| SILAC cross-presentation | 31495665 |
-| CMV pp65 transgene | 23481700 |
-| TIL expansion (IL-2 + OKT3) | 28832583 |
-| Macrophage differentiation (PMA) | 35051231 |
-
-## Peptide-to-protein mapping
-
-Use `ProteomeIndex.from_ensembl_plus_fastas()` to map peptides back to source proteins with flanking context:
-
-```python
-from hitlist.proteome import ProteomeIndex
-
-idx = ProteomeIndex.from_ensembl_plus_fastas(
-    release=112,
-    fastas=["influenza_a.fasta", "cmv.fasta"],  # viral proteomes
-    lengths=(8, 25),  # peptide length range
-)
-hits = idx.map_peptides(peptides, flank=10)  # 10aa flanking on each side
-```
-
-This handles human + viral source proteins in a single index, returning position, N-terminal flank, C-terminal flank, gene name, and protein ID for each peptide.
-
-## Adding new overrides
-
-Edit `hitlist/data/pmid_overrides.yaml`:
-
-```yaml
-- pmid: 12345678
-  label: "Author Year — short description"
+- pmid: 31495665
+  study_label: "Author 2019 — short description"
   title: "Exact PubMed title"
-  override: adjacent  # or healthy, cancer_patient, activated_apc, cell_line, ~
-  note: "Why this override is needed."
-  donors: 10
-  hla_alleles:
-    profiled: ["HLA-A*02:01"]
+  override: cell_line          # study-wide default classification (optional)
+  note: "Why curation is needed — cite the Methods."
+  source_organism: "Homo sapiens"   # provenance fills (only used where IEDB is blank)
+  donors: 4
+  hla_alleles:                 # alleles profiled in the study (allele pool)
+    - "HLA-A*02:01"
+    - "HLA-B*07:02"
   perturbations:
-    - "IFN-gamma stimulation (100 IU/mL, 48h)"
+    - "HLA-DM editing (dm+/dm-)"
   ms_samples:
-    - type: "sample description"
-      n: 3
-      condition: "unperturbed"
+    - sample_label: "721.221-B*51:01 (WT)"
+      n_samples: 3
+      mhc: "HLA-B*51:01"
       mhc_class: "I"
-      peptides: 3000
-      peptides_estimated: true
+      condition: "unperturbed"
+    - sample_label: "721.221-B*51:01 ERAP1 KO"
+      n_samples: 3
+      mhc: "HLA-B*51:01"
+      mhc_class: "I"
+      condition: "ERAP1 CRISPR/Cas9 knockout"
   rules:
-    - condition:
-        Culture Condition: "Direct Ex Vivo"
+    - condition: { Source Tissue: "Blood" }
       override: healthy
-      reason: "Healthy donor controls"
+      reason: "Blood-bank donors"
 ```
 
-No code changes needed. The YAML is loaded at runtime by `hitlist.curation.load_pmid_overrides()`.
+### Top-level keys
 
-## MHC allele validation
+| Key | Purpose |
+|---|---|
+| `pmid` / `submission_id` | The entry key (int PMID, or string submission id). |
+| `study_label`, `title`, `note` | Human-facing provenance. (`label:` is the **deprecated** name for `study_label`.) |
+| `override` | Study-wide default classification — see vocabulary below. |
+| `rules` | Conditional, per-row overrides (checked before `override`). |
+| `source_organism`, `species`, `source_tissue`, `cell_name`, `disease`, `culture_condition` | **Provenance fills** — used only where the IEDB row is blank/`Other`/`unknown`; never overwrite real IEDB data. |
+| `hla_alleles` | Alleles profiled in the study; the fallback pool for class-only allele expansion. |
+| `mono_allelic_host` | HLA-null/low host name (must exist in `monoallelic_lines.yaml`); flags resolved-allele rows mono-allelic. |
+| `mono_allelic_method` | Tagged-pulldown mono-allelic method (e.g. MAPTAC) — not a cell line. |
+| `ms_samples` | Per-sample-type metadata (below). |
+| `peptide_attributions` | Path to a CSV mapping `peptide` → `sample_label` for per-donor attribution. |
+| `exclude_from_ms` | Exclude this study/sample from the MS index. |
+| `donors`, `samples`, `tissues` | Counts. |
+| `ip_antibody`, `acquisition_mode`, `instrument`, `fragmentation`, `labeling`, `search_engine`, `fdr`, `quantification_method` | MS-acquisition metadata (study-wide defaults; overridable per `ms_samples` entry). |
+| `perturbations` | Non-standard processing (gene KO, cytokines, infection, …). |
 
-All 233 MHC alleles in the YAML parse correctly with mhcgnomes 3.20.0. Validate with:
+### `override` vocabulary
+
+| Override | Effect |
+|---|---|
+| `cell_line` | Force cell-line → cancer-derived (unless EBV-LCL). |
+| `ebv_lcl` | Force EBV-LCL; not cancer. |
+| `noncancer_cell_line` | Force cell line **without** `src_cancer` (rare non-malignant lines). |
+| `cancer_patient` | Reclassify all rows as cancer-derived. |
+| `adjacent` | Reclassify as tumor-adjacent normal tissue. |
+| `healthy` | Confirmed healthy tissue (force the healthy path). |
+| `activated_apc` | Reclassify as activated-APC artifact. |
+
+### `ms_samples` fields
+
+| Field | Meaning |
+|---|---|
+| `sample_label` | Sample description. (`type:` is the **deprecated** name.) |
+| `n_samples` | Number of samples/replicates. (Use the `_samples` suffix — never a bare `n`.) |
+| `mhc` | Donor genotype (`HLA-A*…` or a space-joined allele list). |
+| `mhc_class` | `"I"`, `"II"`, or `"I+II"`. |
+| `condition` | Perturbation or `"unperturbed"`. |
+| `classification`, `override`, `reason` | Per-sample classification override + rationale. |
+| `source`, `species`, `reference_proteomes` | Per-sample provenance. |
+
+## The `rules` mechanism
+
+Many studies mix sample sources under one PMID (e.g. tumor tissue and adjacent
+normal in the same submission). The `rules` list applies conditional overrides
+**before** the study-wide `override`:
+
+```yaml
+rules:
+  - condition:
+      Source Tissue: [Blood, Bone Marrow, Cerebellum]
+    override: healthy
+    reason: "Blood-bank donors and autopsy CNS material"
+  - condition:
+      Source Tissue: [Colon, Kidney, Liver]
+    override: adjacent
+    reason: "Visceral Surgery / Urology — likely cancer resection margins"
+```
+
+Matching semantics (`_matches_condition`):
+
+- **all** keys in a `condition` must match (AND); the first matching rule wins.
+- A value may be a single string or a list (any-match).
+- `Source Tissue`, `Cell Name`, `Culture Condition`, `Disease`, `Process Type`
+  match by equality; `Assay Comments` matches by **case-insensitive substring**
+  (IEDB concatenates per-arm provenance into one cell, e.g.
+  `"eluted from CRC tissue. eluted from nonmalignant colon tissue."`), which lets
+  one rule target a single arm of a multi-arm study.
+
+If no rule matches, the study-wide `override` applies; if there's no override
+either, the row falls through to structured-field classification.
+
+## Per-donor attribution
+
+The IEDB **Antigen Processing Comments** field sometimes carries per-sample
+identifiers ("buffy coat 25", "colon 32"). For studies with a
+`peptide_attributions` CSV, hitlist splits each class-only row into one row per
+matched donor, each tagged with that donor's HLA typing and an explicit
+`mhc_allele_provenance` (`exact` / `peptide_attribution` / `sample_allele_match`
+/ `pmid_class_pool` / `unmatched`). This narrows a peptide's candidate alleles
+from a disease-wide union down to the specific donors it was actually found in.
+
+## Adding a new override
+
+1. Read the paper's Methods — confirm tissue, disease, cell lines, HLA typing,
+   and any perturbation. Don't trust the IEDB free-text fields blindly.
+2. Add an entry to `pmid_overrides.yaml` with `study_label`, `title`, the
+   appropriate `override`/`rules`, provenance fills for anything IEDB left blank,
+   and `ms_samples` for per-sample structure.
+3. If the study uses an HLA-null host or MAPTAC, set `mono_allelic_host` /
+   `mono_allelic_method` (and add the host to `monoallelic_lines.yaml` if new).
+4. Validate: `hitlist export alleles` parses every allele through mhcgnomes;
+   `hitlist qc` flags normalization and cross-reference issues.
+
+No code changes are needed — the YAML is loaded at runtime.
+
+## Exporting curated metadata
 
 ```bash
-hitlist export alleles
+hitlist export samples              # every ms_samples entry as CSV
+hitlist export samples --class I    # MHC class I only
+hitlist export summary              # species × class totals
+hitlist export alleles              # validate alleles with mhcgnomes
 ```
-
-## Per-donor analysis
-
-The IEDB **Antigen Processing Comments** field (column 88) contains sample identifiers in some studies (e.g. "buffy coat 25", "colon 32"). hitlist preserves this field and the `hitlist.samples` module uses it for per-donor peptidome analysis.
-
-Key finding from Neidert (PMID 29557506):
-- 20/22 samples with CTA peptides have exactly 1 CTA peptide
-- Zero MAGE co-expression in any sample
-- Pattern rules out occult cancer → consistent with stochastic low-level expression
