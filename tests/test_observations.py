@@ -2,7 +2,6 @@ import pytest
 
 from hitlist.observations import (
     binding_path,
-    is_binding_built,
     is_built,
     load_binding,
     load_ms_observations,
@@ -20,16 +19,6 @@ def test_binding_path():
     p = binding_path()
     assert p.name == "binding.parquet"
     assert p.parent == observations_path().parent
-
-
-def test_is_binding_built_bool():
-    assert isinstance(is_binding_built(), bool)
-
-
-def test_is_built_false_initially():
-    # May or may not be built depending on test environment
-    # Just verify the function returns a bool
-    assert isinstance(is_built(), bool)
 
 
 def test_load_observations_not_built():
