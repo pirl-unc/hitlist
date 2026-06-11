@@ -761,3 +761,44 @@ def test_drop_supplementary_duplicates_empty_supp_is_noop():
     )
     out = _drop_supplementary_duplicates(pd.DataFrame(), obs)
     assert out.empty
+
+
+def test_fill_gene_names_via_ensembl_fills_blank_from_ensg():
+    """Empty gene_name on an ENSG-keyed row is filled from pyensembl; rows that
+    already have a symbol, or lack an ENSG id, are untouched."""
+    from hitlist.builder import _fill_gene_names_via_ensembl
+
+    df = pd.DataFrame(
+        {
+            "gene_id": ["ENSG00000141510", "ENSG00000006327", "", "ENSG00000141510"],
+            "gene_name": ["", "", "", "TP53"],  # row 0/1 blank+ENSG; 2 no id; 3 already named
+        }
+    )
+    pytest.importorskip("pyensembl")
+    out = _fill_gene_names_via_ensembl(df.copy())  # default release chain (75, 112)
+    if out.loc[0, "gene_name"] == "":
+        pytest.skip("pyensembl Ensembl release data not installed")
+    assert out.loc[0, "gene_name"] == "TP53"
+    assert out.loc[1, "gene_name"] == "TNFRSF12A"
+    assert out.loc[2, "gene_name"] == ""  # no ENSG id -> left blank
+    assert out.loc[3, "gene_name"] == "TP53"  # already named -> untouched
+
+
+def test_fill_gene_names_via_ensembl_noop_when_pyensembl_missing(monkeypatch):
+    """The fill degrades gracefully (no crash) when pyensembl/its data is
+    unavailable — the build must never hard-fail on it."""
+    import builtins
+
+    from hitlist.builder import _fill_gene_names_via_ensembl
+
+    real_import = builtins.__import__
+
+    def boom(name, *args, **kwargs):
+        if name == "pyensembl":
+            raise ImportError("pyensembl not installed")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", boom)
+    df = pd.DataFrame({"gene_id": ["ENSG00000141510"], "gene_name": [""]})
+    out = _fill_gene_names_via_ensembl(df.copy())
+    assert out.loc[0, "gene_name"] == ""  # unchanged, no exception

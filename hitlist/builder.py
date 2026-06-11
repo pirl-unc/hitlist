@@ -1222,6 +1222,78 @@ def _harmonize_depmap_line_keys(
     return out.reset_index(drop=True)
 
 
+#: Ensembl releases to consult (in order) when filling gene_name from gene_id.
+#: The packaged line-expression union is GRCh37/Ensembl-75-based (release 75
+#: resolves ~81% of the blanks); 112 (GRCh38, the proteome release) backfills a
+#: few hundred recently-added IDs that 75 predates.  Together ~85%.
+_GENE_NAME_FILL_RELEASES: tuple[int, ...] = (75, 112)
+
+
+def _fill_gene_names_via_ensembl(
+    df: pd.DataFrame,
+    *,
+    releases: tuple[int, ...] = _GENE_NAME_FILL_RELEASES,
+    verbose: bool = False,
+) -> pd.DataFrame:
+    """Fill empty ``gene_name`` from the Ensembl gene ID via pyensembl.
+
+    The packaged line-expression union carries human ``ENSG`` gene IDs but no
+    HGNC symbol for ~9k genes (the symbol lives only on the DepMap rows).  Map
+    ``gene_id`` → symbol so ``gene_name`` queries reach those rows too, trying
+    each ``release`` in order per ID (the IDs are GRCh37-based, so older 75
+    covers most; newer releases backfill recent additions).  A missing pyensembl
+    install no-ops with a note; an individual release whose data isn't installed
+    is skipped — the build never hard-fails on this (symbols just stay blank).
+    """
+    if "gene_name" not in df.columns or "gene_id" not in df.columns:
+        return df
+    gn = df["gene_name"].astype("string").fillna("")
+    gid = df["gene_id"].astype("string").fillna("")
+    need = (gn.str.strip() == "") & gid.str.startswith("ENSG")  # human Ensembl IDs only
+    if not need.any():
+        return df
+    want = sorted({g.split(".")[0] for g in gid[need]})
+
+    id2name: dict[str, str] = {}
+    for release in releases:
+        remaining = [i for i in want if i not in id2name]
+        if not remaining:
+            break
+        try:
+            from pyensembl import EnsemblRelease
+        except ImportError as e:  # pyensembl not installed at all
+            if verbose:
+                print(f"  gene_name fill skipped — pyensembl unavailable ({e})")
+            return df
+        try:
+            data = EnsemblRelease(release)
+            present = set(data.gene_ids())  # raises if this release's DB isn't built
+        except Exception:  # this release's data not installed/indexed — try the next
+            continue
+        for i in remaining:
+            if i not in present:  # absent from this release — a later one may have it
+                continue
+            try:
+                nm = data.gene_name_of_gene_id(i)
+            except Exception:
+                continue
+            if nm:
+                id2name[i] = nm
+
+    if not id2name:
+        if verbose:
+            print(f"  gene_name fill: no usable Ensembl release; {len(want):,} kept blank")
+        return df
+    filled = gid[need].map(lambda g: id2name.get(g.split(".")[0], ""))
+    df.loc[need, "gene_name"] = filled.to_numpy()
+    if verbose:
+        print(
+            f"  Filled {int((filled != '').sum()):,}/{len(want):,} blank gene_names "
+            f"from Ensembl IDs (releases {','.join(map(str, releases))})"
+        )
+    return df
+
+
 def build_line_expression(verbose: bool = False) -> pd.DataFrame:
     """Build ``line_expression.parquet`` — per-line RNA / transcript TPM.
 
@@ -1318,6 +1390,10 @@ def build_line_expression(verbose: bool = False) -> pd.DataFrame:
     # preserve tier-2 provenance without re-resolving.
     parent_lookup = _parent_line_lookup()
     df["parent_line_key"] = df["line_key"].map(parent_lookup).fillna("")
+
+    # Fill blank gene_name from the Ensembl gene ID (packaged-union rows carry
+    # ENSG but no HGNC symbol) so gene_name filters reach them.
+    df = _fill_gene_names_via_ensembl(df, verbose=verbose)
 
     # Guarantee every canonical column exists before projection.
     for col in _LINE_EXPRESSION_COLUMNS:

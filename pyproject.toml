@@ -29,6 +29,11 @@ dependencies = [
     # On-demand caching of large externalized data assets (#303) into the
     # openvax-ecosystem cache dir (datacache.get_data_dir; #291).
     "datacache",
+    # Ensembl gene/transcript annotation: proteome indexing + ENSG→HGNC symbol
+    # fill for line_expression. Release data is installed separately
+    # (`pyensembl install --release 112 --species homo_sapiens`); the build
+    # degrades gracefully when it isn't present.
+    "pyensembl",
 ]
 
 [project.optional-dependencies]
