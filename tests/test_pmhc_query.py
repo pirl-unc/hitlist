@@ -186,6 +186,10 @@ def test_pmhc_forwards_source_and_host_species_filters(monkeypatch):
         return pd.DataFrame(columns=["peptide", "pmid", "mhc_restriction"])
 
     monkeypatch.setattr(obs_mod, "load_observations", fake_load)
+    # query() guards on is_built() before loading; stub it so the test doesn't
+    # require a built observations.parquet on disk (CI builds the corpus only on
+    # one Python version — see .github/workflows/tests.yml).
+    monkeypatch.setattr(obs_mod, "is_built", lambda: True)
     monkeypatch.setattr(
         "hitlist.mappings.load_peptide_mappings",
         lambda **k: pd.DataFrame({"peptide": ["X"], "gene_name": ["G"], "gene_id": ["E"]}),

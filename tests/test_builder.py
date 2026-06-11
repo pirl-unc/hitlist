@@ -802,3 +802,33 @@ def test_fill_gene_names_via_ensembl_noop_when_pyensembl_missing(monkeypatch):
     df = pd.DataFrame({"gene_id": ["ENSG00000141510"], "gene_name": [""]})
     out = _fill_gene_names_via_ensembl(df.copy())
     assert out.loc[0, "gene_name"] == ""  # unchanged, no exception
+
+
+def test_fill_gene_names_from_csv_fills_blank_from_ensg():
+    """The packaged ENSG→symbol CSV fills blank gene_names without pyensembl;
+    rows already named, or lacking an ENSG id, are untouched."""
+    from hitlist.builder import _fill_gene_names_from_csv
+
+    df = pd.DataFrame(
+        {
+            "gene_id": ["ENSG00000006327", "ENSG00000018607", "", "ENSG00000006327"],
+            "gene_name": ["", "", "", "ALREADY"],  # 0/1 blank+ENSG; 2 no id; 3 named
+        }
+    )
+    out = _fill_gene_names_from_csv(df.copy())
+    assert out.loc[0, "gene_name"] == "TNFRSF12A"
+    assert out.loc[1, "gene_name"] == "ZNF806"
+    assert out.loc[2, "gene_name"] == ""  # no ENSG id -> left blank
+    assert out.loc[3, "gene_name"] == "ALREADY"  # already named -> untouched
+
+
+def test_gene_name_map_csv_is_packaged_and_well_formed():
+    """The shipped CSV exists, has the right header, and version-stripped keys."""
+    from hitlist.builder import _GENE_NAME_MAP_CSV, _load_gene_name_map
+
+    assert _GENE_NAME_MAP_CSV.exists()
+    id2name = _load_gene_name_map()
+    assert len(id2name) > 9000  # ~9,127 resolved IDs
+    assert id2name["ENSG00000006327"] == "TNFRSF12A"
+    assert all(k.startswith("ENSG") and "." not in k for k in id2name)  # version-stripped
+    assert all(v for v in id2name.values())  # no blank symbols
