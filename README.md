@@ -302,8 +302,9 @@ hitlist data index [--source iedb|cedar|merged|all] [--force]
 ### Export
 
 ```bash
-hitlist export observations [filters...] -o train.csv   # MS immunopeptidome + sample metadata
-hitlist export observations -o train.parquet            # parquet output supported
+hitlist export ms [filters...] -o train.csv             # MS immunopeptidome + sample metadata
+hitlist export ms -o train.parquet                      # parquet output supported
+hitlist export peptide-summary --gene PRAME --serotype A24   # per-peptide support for one allele/serotype
 hitlist export binding [filters...] -o binding.csv      # binding-assay index (separate from MS)
 hitlist export training [filters...] -o training.csv    # unified training export from canonical indexes
 hitlist export samples [--class I|II]                   # per-sample conditions (YAML curation only)
@@ -312,6 +313,9 @@ hitlist export counts [--source iedb|cedar|merged|all]  # peptide counts per PMI
 hitlist export alleles                                  # validate YAML alleles with mhcgnomes
 hitlist export data-alleles                             # validate all IEDB/CEDAR alleles
 ```
+
+`hitlist export ms` is the canonical name for the MS observations export; `hitlist
+export observations` remains as a backward-compatible alias.
 
 ### Canonical indexes and the training export
 
@@ -343,7 +347,8 @@ training pipelines.
 | `--gene` | Symbol, Ensembl ID, or old alias (HGNC synonym lookup). Repeatable / comma-separated. Requires the mappings sidecar (default-on at build). |
 | `--gene-name` | Exact match on `gene_name` column (no HGNC lookup) |
 | `--gene-id` | Exact match on `gene_id` column (ENSG) |
-| `--serotype` | HLA serotype: locus-specific (`A24`, `B57`, `DR15`) or public epitope (`Bw4`, `Bw6`). Matches any serotype the allele belongs to, so `--serotype Bw4` returns A\*24:02, B\*27:05, B\*57:01, etc. Repeatable / comma-separated. |
+| `--peptide` | Exact match on `peptide` sequence. Repeatable / comma-separated. |
+| `--serotype` | HLA serotype: locus-specific (`A24`, `B57`, `DR15`) or public epitope (`Bw4`, `Bw6`). Matches any serotype the allele belongs to, so `--serotype Bw4` returns A\*24:02, B\*27:05, B\*57:01, etc. Split serotypes are rolled into their broad parent, so `--serotype A24` also matches A\*24:03 (serotype `A2403`). Repeatable / comma-separated. |
 | `--exclude-class-label-suspect` | Drop rows where the curated class disagrees with peptide length severely enough to be flagged `suspect` or `implausible` (`mhc_class_label_severity`). |
 | `--exclude-class-label-implausible` | Strict-cleaning variant — drops only `implausible` rows (class-I ≥18aa or ≤7aa, class-II ≤4 or ≥45aa). Keeps borderline + suspect tiers, useful when bulged class-I 15-17aa peptides should be retained. |
 | `--apm-only` | Filter to peptide rows from samples where any APM gene was perturbed (`apm_perturbed=True`). |
@@ -352,11 +357,39 @@ training pipelines.
 All filters are pushed down to the parquet reader (pyarrow), so `--gene PRAME` reads
 only the matching row groups — typically milliseconds rather than a full table scan.
 Examples:
-- `hitlist export observations --gene PRAME --class I -o prame_classI.csv`
-- `hitlist export observations --gene "MART-1"` (HGNC resolves to `MLANA`)
-- `hitlist export observations --mhc-allele HLA-A*02:01 --mono-allelic`
-- `hitlist export observations --serotype A24` (locus-specific)
-- `hitlist export observations --serotype Bw4` (public epitope — A*23/24/25/32, B*13/27/44/51/52/53/57/58)
+- `hitlist export ms --gene PRAME --class I -o prame_classI.csv`
+- `hitlist export ms --gene "MART-1"` (HGNC resolves to `MLANA`)
+- `hitlist export ms --mhc-allele HLA-A*02:01 --mono-allelic`
+- `hitlist export ms --serotype A24` (locus-specific)
+- `hitlist export ms --serotype Bw4` (public epitope — A*23/24/25/32, B*13/27/44/51/52/53/57/58)
+
+### `hitlist export peptide-summary`
+
+Collapses the MS observations to **one row per peptide**, scoring how strongly
+each peptide is supported on a single target allele or serotype. Answers
+questions like *"which PRAME peptides might be presented on A24 in cancers?"*
+
+```bash
+hitlist export peptide-summary --gene PRAME --serotype A24 -o prame_a24.csv
+hitlist export peptide-summary --gene PRAME --mhc-allele HLA-A*24:02
+```
+
+Requires exactly one of `--mhc-allele` / `--serotype` (a single value) plus a
+gene/peptide scope filter. Each peptide's support is split into ranked tiers,
+strongest first:
+
+| Bucket column | Meaning |
+|---|---|
+| `n_mono_exact_rows` | Mono-allelic elution on the exact target allele (strongest) |
+| `n_multi_exact_rows` | Multi-allelic elution including the exact target allele |
+| `n_mono_serotype_rows` / `n_multi_serotype_rows` | Elution on a same-serotype allele |
+| `n_class_only_sample_allele_rows` | Class-only row whose sample genotype carries the target allele |
+| `n_class_only_sample_serotype_rows` | Class-only row whose sample genotype carries a same-serotype allele |
+| `n_unknown_allele_rows` | Class-only row with no usable sample genotype (weakest) |
+
+`best_support` names the strongest tier with any rows. A `cancer` / `healthy` /
+`adjacent` / `other` source breakdown (`n_cancer_rows`, ...) comes along for free,
+so you can prioritize peptides seen in tumors over healthy tissue.
 
 ### Filters on `hitlist export binding`
 

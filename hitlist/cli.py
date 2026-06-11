@@ -732,7 +732,9 @@ def main() -> None:
     p_data_alleles.add_argument("--output", "-o", help="Write CSV to file")
 
     p_obs = export_sub.add_parser(
-        "observations", help="Unified observations table: peptides + sample metadata"
+        "ms",
+        aliases=["observations"],
+        help="MS observations table: peptides + sample metadata",
     )
     p_obs.add_argument("--class", dest="mhc_class", help="MHC class (I or II)")
     p_obs.add_argument("--species", help="Filter by MHC species")
@@ -851,7 +853,62 @@ def main() -> None:
             "perturbed (#202). Joins on pmid + sample condition."
         ),
     )
+    p_obs.add_argument(
+        "--peptide",
+        action="extend",
+        nargs="+",
+        help=(
+            "Filter to one or more peptide sequences. Space-separated, "
+            "comma-separated, or repeated."
+        ),
+    )
     p_obs.add_argument("--output", "-o", help="Write to file (.csv or .parquet)")
+
+    p_pep_summary = export_sub.add_parser(
+        "peptide-summary",
+        help="Per-peptide MS support summary for one target allele or serotype",
+    )
+    p_pep_summary.add_argument("--class", dest="mhc_class", help="MHC class (I or II)")
+    p_pep_summary.add_argument("--species", help="Filter by MHC species")
+    p_pep_summary.add_argument(
+        "--source",
+        choices=["iedb", "cedar", "supplement"],
+        help="Filter by data source",
+    )
+    p_pep_summary.add_argument(
+        "--mhc-allele",
+        action="extend",
+        nargs="+",
+        help="Exactly one target allele, e.g. HLA-A*24:02.",
+    )
+    p_pep_summary.add_argument(
+        "--serotype",
+        action="extend",
+        nargs="+",
+        help="Exactly one target serotype, e.g. A24 or Bw4.",
+    )
+    p_pep_summary.add_argument(
+        "--gene",
+        action="extend",
+        nargs="+",
+        help=(
+            "Filter by gene (HGNC symbol, Ensembl ID, or old alias). "
+            "Space-separated, comma-separated, or repeated."
+        ),
+    )
+    p_pep_summary.add_argument(
+        "--gene-name", action="extend", nargs="+", help="Exact match on gene_name."
+    )
+    p_pep_summary.add_argument(
+        "--gene-id", action="extend", nargs="+", help="Exact match on gene_id."
+    )
+    p_pep_summary.add_argument(
+        "--peptide",
+        action="extend",
+        nargs="+",
+        help="Restrict to one or more peptides. Space-separated, comma-separated, or repeated.",
+    )
+    p_pep_summary.add_argument("--output", "-o", help="Write to file (.csv or .parquet)")
 
     p_bind = export_sub.add_parser(
         "binding",
@@ -2098,6 +2155,49 @@ def _export_progress(msg: str) -> None:
         print(f"[hitlist] {msg}", file=sys.stderr, flush=True)
 
 
+def _export_ms(args: argparse.Namespace):
+    """Build the MS observations table from parsed ``export ms`` args."""
+    from .export import generate_observations_table
+
+    return generate_observations_table(
+        mhc_class=args.mhc_class,
+        species=getattr(args, "species", None),
+        source=getattr(args, "source", None),
+        instrument_type=getattr(args, "instrument_type", None),
+        acquisition_mode=getattr(args, "acquisition_mode", None),
+        is_mono_allelic=getattr(args, "mono_allelic", None),
+        min_allele_resolution=getattr(args, "min_allele_resolution", None),
+        mhc_allele=getattr(args, "mhc_allele", None),
+        mhc_allele_in_set=getattr(args, "mhc_allele_in_set", None),
+        mhc_allele_provenance=getattr(args, "mhc_allele_provenance", None),
+        gene=getattr(args, "gene", None),
+        gene_name=getattr(args, "gene_name", None),
+        gene_id=getattr(args, "gene_id", None),
+        peptide=getattr(args, "peptide", None),
+        serotype=getattr(args, "serotype", None),
+        exclude_class_label_suspect=getattr(args, "exclude_class_label_suspect", False),
+        exclude_class_label_implausible=getattr(args, "exclude_class_label_implausible", False),
+        apm_only=getattr(args, "apm_only", False),
+    )
+
+
+def _export_peptide_summary(args: argparse.Namespace):
+    """Build the per-peptide MS support summary from parsed args."""
+    from .export import generate_ms_peptide_summary_table
+
+    return generate_ms_peptide_summary_table(
+        mhc_class=args.mhc_class,
+        species=getattr(args, "species", None),
+        source=getattr(args, "source", None),
+        mhc_allele=getattr(args, "mhc_allele", None),
+        serotype=getattr(args, "serotype", None),
+        gene=getattr(args, "gene", None),
+        gene_name=getattr(args, "gene_name", None),
+        gene_id=getattr(args, "gene_id", None),
+        peptide=getattr(args, "peptide", None),
+    )
+
+
 def _export(args: argparse.Namespace) -> None:
     import time as _time
 
@@ -2106,7 +2206,6 @@ def _export(args: argparse.Namespace) -> None:
         count_peptides_by_study,
         generate_binding_table,
         generate_ms_samples_table,
-        generate_observations_table,
         generate_species_summary,
         validate_mhc_alleles,
     )
@@ -2168,30 +2267,17 @@ def _export(args: argparse.Namespace) -> None:
     elif cmd == "counts":
         _export_progress("Counting peptides per study from local IEDB/CEDAR ...")
         df = count_peptides_by_study(source=args.source)
-    elif cmd == "observations":
+    elif cmd in {"ms", "observations"}:
         _export_progress("Loading observations.parquet + joining sample metadata ...")
         try:
-            df = generate_observations_table(
-                mhc_class=args.mhc_class,
-                species=getattr(args, "species", None),
-                source=getattr(args, "source", None),
-                instrument_type=getattr(args, "instrument_type", None),
-                acquisition_mode=getattr(args, "acquisition_mode", None),
-                is_mono_allelic=getattr(args, "mono_allelic", None),
-                min_allele_resolution=getattr(args, "min_allele_resolution", None),
-                mhc_allele=getattr(args, "mhc_allele", None),
-                mhc_allele_in_set=getattr(args, "mhc_allele_in_set", None),
-                mhc_allele_provenance=getattr(args, "mhc_allele_provenance", None),
-                gene=getattr(args, "gene", None),
-                gene_name=getattr(args, "gene_name", None),
-                gene_id=getattr(args, "gene_id", None),
-                serotype=getattr(args, "serotype", None),
-                exclude_class_label_suspect=getattr(args, "exclude_class_label_suspect", False),
-                exclude_class_label_implausible=getattr(
-                    args, "exclude_class_label_implausible", False
-                ),
-                apm_only=getattr(args, "apm_only", False),
-            )
+            df = _export_ms(args)
+        except (ValueError, FileNotFoundError) as e:
+            print(f"Error: {e}", file=sys.stderr)
+            sys.exit(1)
+    elif cmd == "peptide-summary":
+        _export_progress("Loading MS observations and grouping target-support per peptide ...")
+        try:
+            df = _export_peptide_summary(args)
         except (ValueError, FileNotFoundError) as e:
             print(f"Error: {e}", file=sys.stderr)
             sys.exit(1)
