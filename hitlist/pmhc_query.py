@@ -920,6 +920,7 @@ def query_by_samples(
         )
 
     pieces: list[pd.DataFrame] = []
+    empty_samples: list[str] = []
     for sample_name, alleles in samples_to_alleles.items():
         if verbose:
             _progress(f"sample {sample_name!r}: querying {len(alleles)} allele(s)...", verbose)
@@ -937,18 +938,24 @@ def query_by_samples(
             verbose=verbose,
         )
         if sub.empty:
-            # #188: ``concat`` of an empty sub-frame yields zero rows for the
-            # sample, dropping it from any downstream groupby. Emit one
-            # placeholder row tagged with the sample name (other columns
-            # NaN) so the sample stays visible. ``format_table`` detects
-            # the all-NaN row and prints a "(no pMHC evidence on this
-            # sample's alleles)" line.
-            sub = _empty_result(predictor is not None)
-            sub.loc[0] = pd.NA
+            # #188: a sample with no evidence on its alleles must stay visible.
+            # Record its NAME (rendered by format_table) instead of concatenating
+            # an all-NaN placeholder row — that keeps the result frame clean and
+            # avoids pandas' concat-of-all-NA dtype-inference deprecation.
+            empty_samples.append(sample_name)
+            continue
         sub.insert(0, "sample_name", sample_name)
         pieces.append(sub)
 
-    return pd.concat(pieces, ignore_index=True)
+    if pieces:
+        result = pd.concat(pieces, ignore_index=True)
+    else:
+        result = _empty_result(predictor is not None)
+        result.insert(0, "sample_name", pd.Series(dtype="string"))
+    # Empty samples carried as metadata (survives to format_table; CSV/JSON omit
+    # them, which is correct — no evidence means no rows).
+    result.attrs["empty_samples"] = empty_samples
+    return result
 
 
 def _score_and_narrow_to_best_allele(df: pd.DataFrame, predictor: str) -> pd.DataFrame:
@@ -1656,16 +1663,21 @@ def format_table(df: pd.DataFrame) -> str:
 
     if has_sample:
         # Per-sample sections: one outer block per sample, nested gene
-        # blocks beneath. Empty samples (no evidence on their alleles) get a
+        # blocks beneath. Samples with no evidence on their alleles are carried
+        # by name in ``df.attrs["empty_samples"]`` (query_by_samples) and get a
         # placeholder line so the user can see which samples returned nothing.
-        for sample_name, sample_df in df.groupby("sample_name", sort=True, observed=True):
+        with_evidence: dict = {}
+        for _name, _sdf in df.groupby("sample_name", sort=False, observed=True):
+            with_evidence[_name] = _sdf
+        empty_samples = set(df.attrs.get("empty_samples", []))
+        for sample_name in sorted(set(with_evidence) | empty_samples):
             out.append(f"=== sample: {sample_name} ===")
-            non_empty = sample_df.dropna(subset=["gene_name"])
-            if non_empty.empty:
+            sample_df = with_evidence.get(sample_name)
+            if sample_df is None or sample_df.empty:
                 out.append("  (no pMHC evidence on this sample's alleles)")
                 out.append("")
                 continue
-            _render_species_partition(non_empty, base_indent="  ")
+            _render_species_partition(sample_df, base_indent="  ")
             out.append("")
     else:
         _render_species_partition(df, base_indent="")
