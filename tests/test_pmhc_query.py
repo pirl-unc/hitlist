@@ -1208,9 +1208,10 @@ def test_score_and_narrow_to_best_allele_keeps_multi_allele_when_no_predictions(
 
 
 def test_query_by_samples_empty_sample_section_has_placeholder(tmp_path, monkeypatch):
-    """v1.30.5: a sample whose alleles match nothing in the corpus still
-    appears in the output, with a one-line ``(no pMHC evidence ...)``
-    placeholder so the user can see which samples returned nothing."""
+    """v1.30.5: a sample whose alleles match nothing in the corpus still appears
+    in the output with a ``(no pMHC evidence ...)`` line.  The empty sample is
+    carried by NAME in ``df.attrs["empty_samples"]`` (no all-NaN placeholder row),
+    and format_table renders it."""
     from hitlist import pmhc_query
 
     obs_path, mappings_path = _write_obs_fixture(tmp_path)
@@ -1224,13 +1225,17 @@ def test_query_by_samples_empty_sample_section_has_placeholder(tmp_path, monkeyp
         proteins=["NRAS"],
         use_hgnc=False,
     )
-    assert set(df["sample_name"]) == {"real", "miss"}  # both present
+    # Only the sample WITH evidence has rows; the empty one is metadata, not an
+    # all-NaN row (so no NaN rows pollute the frame / CSV).
+    assert set(df["sample_name"]) == {"real"}
+    assert df["gene_name"].notna().all()
+    assert df.attrs["empty_samples"] == ["miss"]
     text = pmhc_query.format_table(df)
-    # The empty sample gets a placeholder line.
+    # Both samples render; the empty one gets the placeholder line.
+    assert "=== sample: real ===" in text
     miss_idx = text.find("=== sample: miss ===")
     assert miss_idx >= 0
-    miss_block = text[miss_idx:]
-    assert "(no pMHC evidence on this sample's alleles)" in miss_block
+    assert "(no pMHC evidence on this sample's alleles)" in text[miss_idx:]
 
 
 # ── #259: filter flags + n_samples / n_references columns ──────────────
