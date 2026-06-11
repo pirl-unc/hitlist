@@ -1752,7 +1752,12 @@ def _apply_training_defaults(df: pd.DataFrame) -> pd.DataFrame:
         uniq = result["mhc_restriction"].dropna().unique()
         if len(uniq):
             flag_map = {str(a): is_non_peptide_ligand(a) for a in uniq}
-            result["is_non_peptide_ligand"] = result["mhc_restriction"].map(flag_map).fillna(False)
+            # Opt into pandas' future no-silent-downcast behavior so fillna()
+            # doesn't emit a FutureWarning; the explicit astype keeps the bool dtype.
+            with pd.option_context("future.no_silent_downcasting", True):
+                result["is_non_peptide_ligand"] = (
+                    result["mhc_restriction"].map(flag_map).fillna(False).astype(bool)
+                )
         else:
             result["is_non_peptide_ligand"] = False
     elif "is_non_peptide_ligand" not in result.columns:
@@ -2060,7 +2065,8 @@ def _compute_has_peptide_level_allele(
             & stripped.str.contains(r"\*", regex=True)
         )
         per_unique.index = uniq
-    result = mhc_restriction.map(per_unique).fillna(False).astype(bool)
+    with pd.option_context("future.no_silent_downcasting", True):
+        result = mhc_restriction.map(per_unique).fillna(False).astype(bool)
     if allele_resolution is not None:
         # ``allele_resolution`` is a small categorical (~5 values), so the
         # full-series ``isin`` is already cheap — skip the unique-map dance.
