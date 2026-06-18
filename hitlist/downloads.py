@@ -31,6 +31,10 @@ Python API::
     list_datasets()
     # progress bar + cache reporting + optional .zip/.gz decompression:
     download_to_file(url, dest, label="hpa", decompress=True)
+    # version-pinned datasets with a provenance manifest (see tsarina's
+    # reference data) -- consumers register their own defs + cache dir:
+    reg = VersionedDatasetRegistry(MY_DATASETS, cache_dir=my_cache_dir)
+    reg.ensure("hpa_rna_consensus", version="v23")
 
 CLI::
 
@@ -47,6 +51,7 @@ from __future__ import annotations
 
 import contextlib
 import gzip
+import hashlib
 import json
 import os
 import shutil
@@ -394,21 +399,27 @@ FETCHABLE_DATASETS: dict[str, dict[str, str]] = {
         "description": "HIV-1 proteome (UniProt UP000002241)",
         "usage": "Peptide generation for Kaposi sarcoma, lymphoma (indirect)",
     },
+    # IEDB / CEDAR MHC-ligand exports. The downloader.php endpoints serve the
+    # zip directly (no enforced login), so fetch() streams + unzips them like
+    # any other fetchable dataset. The `terms` URL drives a usage/citation
+    # notice on fetch, since these are terms-of-use-governed sources.
+    "iedb": {
+        "url": "https://www.iedb.org/downloader.php?file_name=doc/mhc_ligand_full_single_file.zip",
+        "filename": "mhc_ligand_full.csv",
+        "description": "IEDB MHC ligand full export",
+        "usage": "Mass spec evidence for peptide-MHC presentation.",
+        "terms": "https://www.iedb.org/",
+    },
+    "cedar": {
+        "url": "https://cedar.iedb.org/downloader.php?file_name=doc/cedar_mhc_ligand_full.zip",
+        "filename": "cedar-mhc-ligand-full.csv",
+        "description": "CEDAR MHC ligand full export",
+        "usage": "Additional mass spec evidence (companion to IEDB).",
+        "terms": "https://cedar.iedb.org/",
+    },
 }
 
 MANUAL_DATASETS: dict[str, dict[str, str]] = {
-    "iedb": {
-        "download_url": "https://www.iedb.org/downloader.php?file_name=doc/mhc_ligand_full_single_file.zip",
-        "description": "IEDB MHC ligand full export",
-        "expected_filename": "mhc_ligand_full.csv",
-        "usage": "Mass spec evidence for peptide-MHC presentation. Requires IEDB terms acceptance.",
-    },
-    "cedar": {
-        "download_url": "https://cedar.iedb.org/downloader.php?file_name=doc/cedar_mhc_ligand_full.zip",
-        "description": "CEDAR MHC ligand full export",
-        "expected_filename": "cedar-mhc-ligand-full.csv",
-        "usage": "Additional mass spec evidence (companion to IEDB).",
-    },
     "hpa_bulk": {
         "download_url": "https://www.proteinatlas.org/download/proteinatlas.tsv.zip",
         "description": "HPA proteinatlas.tsv bulk summary",
@@ -1171,7 +1182,16 @@ def fetch(name: str, force: bool = False) -> Path:
         return dest
 
     print(f"Downloading {ds['description']}...")
-    _download_to_file(ds["url"], dest, label=name)
+    # decompress=True unzips/gunzips the IEDB/CEDAR archives into their CSV; it
+    # is a no-op for the plain-FASTA viral proteomes (download_to_file only
+    # decompresses when the URL is a .zip/.gz the dest filename doesn't carry).
+    download_to_file(ds["url"], dest, label=name, force=force, decompress=True)
+    if ds.get("terms"):
+        print(
+            f"  [{name}] from a terms-of-use-governed source — please review "
+            f"usage/citation terms: {ds['terms']}",
+            file=sys.stderr,
+        )
 
     manifest = _load_manifest()
     manifest["datasets"][name] = {
@@ -1270,3 +1290,162 @@ def remove(name: str, delete_file: bool = False) -> None:
         if p.exists():
             p.unlink()
             print(f"Deleted {p}")
+
+
+# ── Versioned dataset registry ───────────────────────────────────────────────
+#
+# A reusable layer over ``download_to_file`` for datasets that are pinned to an
+# explicit version (e.g. a particular upstream release). Adds a name->spec
+# registry, per-version URLs with a pinned default, a JSON provenance manifest
+# (sha256/bytes/url/downloaded_at), and a caller-supplied cache directory.
+#
+# Consumers register their own dataset definitions and point it at their own
+# cache namespace, so the machinery lives in one place instead of being
+# re-implemented per package. (tsarina's HPA/NCBI reference data uses this.)
+
+
+class VersionedDatasetError(RuntimeError):
+    """Unknown dataset/version, or a download failure, in a registry."""
+
+
+class VersionedDatasetRegistry:
+    """Download + cache for versioned, version-pinned external datasets.
+
+    Parameters
+    ----------
+    datasets
+        Mapping of ``name -> spec`` where each spec has::
+
+            {
+                "filename": "local_name.tsv",      # name on disk (post-decompress)
+                "urls": {"v23": "https://...zip", "latest": "https://..."},
+                "default_version": "v23",          # used when caller passes version=None
+                "description": "...",              # optional, for status()
+            }
+
+    cache_dir
+        Zero-arg callable returning the cache root :class:`~pathlib.Path`
+        (created on demand by the caller). The on-disk layout is
+        ``<cache>/<name>/<version>/<filename>`` plus a ``<cache>/manifest.json``
+        provenance file.
+    error_cls
+        Exception type raised for unknown datasets/versions and download
+        failures. Defaults to :class:`VersionedDatasetError`; consumers may pass
+        their own subclass to preserve their public error type.
+    """
+
+    def __init__(self, datasets, *, cache_dir, error_cls=VersionedDatasetError):
+        self._datasets = datasets
+        self._cache_dir = cache_dir
+        self._error_cls = error_cls
+
+    # -- dataset / version resolution --
+
+    def _dataset(self, name: str) -> dict:
+        try:
+            return self._datasets[name]
+        except KeyError:
+            known = ", ".join(sorted(self._datasets))
+            raise self._error_cls(f"unknown dataset {name!r}; known: {known}") from None
+
+    def resolve_version(self, name: str, version: str | None = None) -> str:
+        """Return the concrete version for *name*, applying its default."""
+        spec = self._dataset(name)
+        if version is None:
+            version = spec["default_version"]
+        if version not in spec["urls"]:
+            avail = ", ".join(sorted(spec["urls"]))
+            raise self._error_cls(f"{name!r} has no version {version!r}; available: {avail}")
+        return version
+
+    # -- cache paths / manifest --
+
+    def _manifest_path(self) -> Path:
+        return self._cache_dir() / "manifest.json"
+
+    def _read_manifest(self) -> dict:
+        path = self._manifest_path()
+        if not path.exists():
+            return {}
+        try:
+            return json.loads(path.read_text())
+        except (json.JSONDecodeError, OSError):
+            return {}
+
+    def _write_manifest(self, manifest: dict) -> None:
+        self._manifest_path().write_text(json.dumps(manifest, indent=2, sort_keys=True))
+
+    def local_path(self, name: str, version: str | None = None) -> Path:
+        """Expected cache path for *name*/*version* (may not exist yet)."""
+        version = self.resolve_version(name, version)
+        spec = self._dataset(name)
+        return self._cache_dir() / name / version / spec["filename"]
+
+    def is_cached(self, name: str, version: str | None = None) -> bool:
+        return self.local_path(name, version).exists()
+
+    # -- fetch --
+
+    def download(
+        self, name: str, version: str | None = None, *, force: bool = False, verbose: bool = True
+    ) -> Path:
+        """Download *name*/*version* into the cache and record it in the manifest.
+
+        A cached copy is reused unless ``force``. The transfer + ``.zip``/``.gz``
+        decompression are delegated to :func:`download_to_file`.
+        """
+        version = self.resolve_version(name, version)
+        spec = self._dataset(name)
+        dest = self.local_path(name, version)
+        url = spec["urls"][version]
+
+        was_cached = dest.exists() and not force
+        try:
+            download_to_file(url, dest, label=name, verbose=verbose, force=force, decompress=True)
+        except Exception as e:  # surface network/HTTP/decompress failures uniformly
+            raise self._error_cls(f"failed to download {name} ({url}): {e}") from e
+
+        # A cache hit needs no manifest churn (and no fresh sha256 of a large
+        # file); download_to_file already printed the cache-status line.
+        if was_cached:
+            return dest
+
+        manifest = self._read_manifest()
+        manifest[name] = {
+            "version": version,
+            "url": url,
+            "path": str(dest),
+            "bytes": dest.stat().st_size,
+            "sha256": hashlib.sha256(dest.read_bytes()).hexdigest(),
+            "downloaded_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        }
+        self._write_manifest(manifest)
+        return dest
+
+    def ensure(self, name: str, version: str | None = None) -> Path:
+        """Return a local path to *name*/*version*, downloading if absent."""
+        path = self.local_path(name, version)
+        return path if path.exists() else self.download(name, version)
+
+    def status(self) -> list[dict]:
+        """Return one status row per dataset (for a ``... list`` CLI command)."""
+        manifest = self._read_manifest()
+        rows = []
+        for name, spec in sorted(self._datasets.items()):
+            default_v = spec["default_version"]
+            path = self._cache_dir() / name / default_v / spec["filename"]
+            record = manifest.get(name, {})
+            rows.append(
+                {
+                    "name": name,
+                    "description": spec.get("description", ""),
+                    "default_version": default_v,
+                    "available_versions": sorted(spec["urls"]),
+                    "cached": path.exists(),
+                    "cached_version": record.get("version") if record else None,
+                    "bytes": record.get("bytes") if path.exists() else None,
+                    "downloaded_at": record.get("downloaded_at") if path.exists() else None,
+                    "path": str(path),
+                }
+            )
+        return rows
