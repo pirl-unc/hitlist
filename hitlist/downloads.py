@@ -22,12 +22,15 @@ Storage location: ``~/.hitlist/`` (override with ``HITLIST_DATA_DIR`` env var).
 Python API::
 
     from hitlist.downloads import register, get_path, fetch, info, list_datasets
+    from hitlist.downloads import download_to_file
 
     register("iedb", "/data/mhc_ligand_full.csv")
     path = get_path("iedb")
     fetch("hpv16")
     info("iedb")  # detailed metadata
     list_datasets()
+    # progress bar + cache reporting + optional .zip/.gz decompression:
+    download_to_file(url, dest, label="hpa", decompress=True)
 
 CLI::
 
@@ -43,16 +46,21 @@ CLI::
 from __future__ import annotations
 
 import contextlib
+import gzip
 import json
 import os
 import shutil
+import sys
 import tempfile
 import time
 import urllib.error
 import urllib.request
+import zipfile
 from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
+
+from tqdm.auto import tqdm
 
 # ── Download helper (timeout + retry) ────────────────────────────────────────
 #
@@ -72,6 +80,10 @@ _DEFAULT_DOWNLOAD_TIMEOUT = 300.0
 # total number of attempts is ``len(_DOWNLOAD_RETRY_BACKOFF) + 1``.  Tests
 # monkeypatch this to disable sleeping.
 _DOWNLOAD_RETRY_BACKOFF: tuple[float, ...] = (5.0, 30.0)
+
+# Streaming read size for downloads — caps memory at one chunk (vs reading the
+# whole response) and gives the progress bar a smooth update cadence.
+_DOWNLOAD_CHUNK_SIZE = 1 << 16  # 64 KiB
 
 
 def _download_timeout() -> float:
@@ -107,7 +119,26 @@ def _download_to_file(url: str, dest: Path, *, label: str = "", verbose: bool = 
                 # managers are a SyntaxError on Python 3.9, which we still
                 # support.
                 with urllib.request.urlopen(url, timeout=timeout) as resp, open(tmp, "wb") as fh:
-                    shutil.copyfileobj(resp, fh)
+                    # Real HTTP responses expose Content-Length via .headers;
+                    # fall back to an indeterminate bar when it's absent.
+                    headers = getattr(resp, "headers", None)
+                    raw = headers.get("Content-Length") if headers is not None else None
+                    total = int(raw) if raw and str(raw).isdigit() else None
+                    with tqdm(
+                        total=total,
+                        unit="B",
+                        unit_scale=True,
+                        unit_divisor=1024,
+                        desc=what,
+                        leave=False,
+                        # Quiet under verbose=False and on non-TTYs (CI, pipes,
+                        # the pytest capture) — tqdm with disable=True is a cheap
+                        # pass-through, so the chunked copy stays the hot path.
+                        disable=not verbose or not sys.stderr.isatty(),
+                    ) as bar:
+                        for chunk in iter(lambda: resp.read(_DOWNLOAD_CHUNK_SIZE), b""):
+                            fh.write(chunk)
+                            bar.update(len(chunk))
                 shutil.move(str(tmp), str(dest))
                 return
             except (urllib.error.URLError, OSError) as err:
@@ -134,6 +165,103 @@ def _download_to_file(url: str, dest: Path, *, label: str = "", verbose: bool = 
         if tmp.exists():
             tmp.unlink()
     raise RuntimeError(f"Failed to download {url}: {last_err}") from last_err
+
+
+def _is_compressed(url: str, dest: Path) -> bool:
+    """True if *url* is a ``.zip``/``.gz`` archive to expand into *dest*.
+
+    Mirrors datacache's heuristic: only decompress when *dest* doesn't itself
+    carry the archive suffix, so a deliberately-kept ``foo.gz`` cache file is
+    left compressed.
+    """
+    u = url.lower()
+    name = dest.name.lower()
+    return (u.endswith(".zip") and not name.endswith(".zip")) or (
+        u.endswith(".gz") and not name.endswith(".gz")
+    )
+
+
+def _decompress_to(src: Path, dest: Path) -> None:
+    """Expand a downloaded ``.zip``/``.gz`` *src* into *dest* atomically.
+
+    Streams into a sibling ``.tmp`` then ``shutil.move``s it into place, so a
+    partial/failed decompress never clobbers a good cached file.  ``.zip``
+    archives extract the member matching ``dest.name`` if present, else the
+    largest member (matching datacache's behaviour).  The compression kind is
+    inferred from *src*'s suffix.
+    """
+    tmp = dest.with_suffix(dest.suffix + ".tmp")
+    try:
+        if src.name.lower().endswith(".zip"):
+            with zipfile.ZipFile(src) as z:
+                names = z.namelist()
+                if not names:
+                    raise RuntimeError(f"empty zip archive: {src}")
+                member = (
+                    dest.name
+                    if dest.name in names
+                    else max(z.infolist(), key=lambda i: i.file_size).filename
+                )
+                with z.open(member) as zf, open(tmp, "wb") as fh:
+                    shutil.copyfileobj(zf, fh)
+        else:  # .gz
+            with gzip.open(src, "rb") as gz, open(tmp, "wb") as fh:
+                shutil.copyfileobj(gz, fh)
+        shutil.move(str(tmp), str(dest))
+    finally:
+        if tmp.exists():
+            tmp.unlink()
+
+
+def download_to_file(
+    url: str,
+    dest: Path | str,
+    *,
+    label: str = "",
+    verbose: bool = True,
+    force: bool = False,
+    decompress: bool = False,
+) -> Path:
+    """Download *url* to *dest* with a progress bar and cache reporting.
+
+    The reusable entry point behind hitlist's (and tsarina's) fetch commands —
+    bundles cache reuse, status messaging, a streaming ``tqdm`` progress bar,
+    and optional decompression.  Returns the local path.
+
+    - Reuses a cached *dest* unless ``force``, printing a one-line cache-status
+      message when ``verbose``.
+    - Streams the transfer (chunked, never buffering the whole file in memory)
+      with the timeout + retry + atomic-move semantics of the underlying
+      downloader; the progress bar is suppressed on non-TTYs / ``verbose=False``.
+    - When ``decompress`` and *url* is a ``.zip``/``.gz`` archive whose suffix
+      *dest* doesn't carry, expands it into *dest* (streamed to disk).
+    """
+    dest = Path(dest)
+    name = label or dest.name
+    if dest.exists() and not force:
+        if verbose:
+            print(f"  [{name}] already cached ({dest.stat().st_size:,} bytes)")
+        return dest
+
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    if verbose:
+        print(f"  [{name}] downloading from {url}")
+
+    if decompress and _is_compressed(url, dest):
+        # Fetch the archive alongside dest, then expand it in.  Both the
+        # download and the decompress write through their own .tmp + move, so a
+        # failure at either step leaves the prior cache (if any) intact.
+        suffix = ".zip" if url.lower().endswith(".zip") else ".gz"
+        archive = dest.with_name(dest.name + suffix)
+        try:
+            _download_to_file(url, archive, label=name, verbose=verbose)
+            _decompress_to(archive, dest)
+        finally:
+            if archive.exists():
+                archive.unlink()
+    else:
+        _download_to_file(url, dest, label=name, verbose=verbose)
+    return dest
 
 
 # ── Data directory ──────────────────────────────────────────────────────────
