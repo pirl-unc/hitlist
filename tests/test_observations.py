@@ -66,6 +66,48 @@ def test_load_observations_column_select():
     assert set(df.columns) == {"peptide", "mhc_restriction"}
 
 
+def test_mhc_allele_in_set_filter_applies_under_projection(tmp_path, monkeypatch):
+    """Regression: mhc_allele_in_set must filter even when the caller's
+    ``columns=`` omits mhc_allele_set. Previously the column wasn't read, the
+    ``... in df.columns`` guard was False, and the filter silently no-op'd —
+    returning the full, unfiltered table."""
+    import pandas as pd
+
+    ms = pd.DataFrame(
+        {
+            "peptide": ["AAA", "BBB"],
+            "mhc_allele_set": ["HLA-A*02:01;HLA-B*07:02", "HLA-C*03:04"],
+            "mhc_class": ["I", "I"],
+            "reference_iri": ["r1", "r2"],
+            "pmid": pd.array([1, 2], dtype="Int64"),
+            "source": ["iedb", "iedb"],
+            "mhc_species": ["Homo sapiens", "Homo sapiens"],
+            "is_binding_assay": [False, False],
+        }
+    )
+    obs_p = tmp_path / "observations.parquet"
+    ms.to_parquet(obs_p, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_p)
+
+    df = load_observations(columns=["peptide"], mhc_allele_in_set=["HLA-A*02:01"])
+    assert list(df["peptide"]) == ["AAA"]  # filtered, not the full table
+    assert set(df.columns) == {"peptide"}  # helper column not leaked
+
+
+def test_attach_species_axes_blanks_nan_host(tmp_path):
+    """Regression: a NaN host must derive host_organism == "" (blank), not the
+    phantom species "nan"/"None" that a bare astype(str) produced."""
+    import numpy as np
+    import pandas as pd
+
+    from hitlist.observations import _attach_species_axes
+
+    df = pd.DataFrame({"host": [np.nan, "Homo sapiens"], "peptide": ["AAA", "BBB"]})
+    out = _attach_species_axes(df)
+    assert out["host_organism"].iloc[0] == ""
+    assert out["host_organism"].iloc[0] not in ("nan", "None")
+
+
 def test_load_ms_observations_alias(tmp_path, monkeypatch):
     """Alias should load the MS parquet with the same filter semantics."""
     import pandas as pd

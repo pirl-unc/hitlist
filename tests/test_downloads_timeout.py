@@ -127,6 +127,39 @@ def test_download_to_file_retries_on_500(tmp_path, monkeypatch):
     assert dest.read_bytes() == b"OK"
 
 
+def test_download_rejects_empty_body(tmp_path, monkeypatch):
+    """A clean 200 with an empty body (e.g. a withdrawn proteome) must NOT be
+    cached as a valid 0-byte file — it should fail (after retries) instead."""
+    dest = tmp_path / "out.fasta"
+    monkeypatch.setattr(downloads, "_DOWNLOAD_RETRY_BACKOFF", (0.0,))
+    monkeypatch.setattr(
+        downloads.urllib.request, "urlopen", lambda url, timeout=None: _fake_response(b"")
+    )
+    with pytest.raises(RuntimeError, match="Failed to download"):
+        downloads._download_to_file("http://example/x", dest, verbose=False)
+    assert not dest.exists()
+    assert not dest.with_suffix(dest.suffix + ".tmp").exists()
+
+
+def test_uniprot_transient_error_does_not_cache_negative(monkeypatch):
+    """A transient UniProt failure must not be cached as a permanent
+    ``not_found`` — otherwise the organism is excluded from every later build."""
+    saved: list = []
+    monkeypatch.setattr(downloads, "_uniprot_cache", lambda: {})
+    monkeypatch.setattr(
+        downloads, "_save_uniprot_cache_entry", lambda org, entry: saved.append((org, entry))
+    )
+
+    def boom(org, timeout=15):
+        raise OSError("uniprot down")
+
+    monkeypatch.setattr(downloads, "resolve_proteome_via_uniprot", boom)
+
+    out = downloads.lookup_proteome("Nonexistent rare organism xyz", use_uniprot=True)
+    assert out is None
+    assert saved == []  # no negative cached -> a later run retries
+
+
 def test_download_passes_timeout_from_env(tmp_path, monkeypatch):
     dest = tmp_path / "out.fasta"
     monkeypatch.setenv("HITLIST_DOWNLOAD_TIMEOUT", "12.5")

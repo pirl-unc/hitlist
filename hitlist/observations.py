@@ -491,21 +491,30 @@ def _attach_species_axes(df: pd.DataFrame) -> pd.DataFrame:
         normalize_species,
     )
 
-    host = df["host"].astype(str) if "host" in df.columns else pd.Series("", index=df.index)
+    # fillna("") BEFORE astype(str): a bare .astype(str) turns NaN into the
+    # literal "nan"/"None", which then survives the .dropna()/.fillna("") below
+    # and gets normalized into a phantom species value instead of blank.
+    host = (
+        df["host"].fillna("").astype(str) if "host" in df.columns else pd.Series("", index=df.index)
+    )
     src = (
-        df["source_organism"].astype(str)
+        df["source_organism"].fillna("").astype(str)
         if "source_organism" in df.columns
         else pd.Series("", index=df.index)
     )
     mhc = (
-        df["mhc_species"].astype(str)
+        df["mhc_species"].fillna("").astype(str)
         if "mhc_species" in df.columns
         else pd.Series("", index=df.index)
     )
     # The source-proteome axis lives in two IEDB columns (#306): source_organism
     # (strain-level) and species (species-rank).  Coalesce so source_species is
     # resolved when EITHER is populated.
-    spc = df["species"].astype(str) if "species" in df.columns else pd.Series("", index=df.index)
+    spc = (
+        df["species"].fillna("").astype(str)
+        if "species" in df.columns
+        else pd.Series("", index=df.index)
+    )
 
     if "host_organism" not in df.columns:
         uniq = host.dropna().unique()
@@ -711,6 +720,11 @@ def _load_peptide_index(
             for col in ("host", "source_organism", "mhc_species"):
                 if col not in kept:
                     kept.append(col)
+        # The mhc_allele_in_set filter reads mhc_allele_set post-load; without
+        # this the column may be unprojected and the filter SILENTLY skipped
+        # (the guard below is `... in df.columns`), returning the full table.
+        if mhc_allele_in_set is not None and "mhc_allele_set" not in kept:
+            kept.append("mhc_allele_set")
         # Drop any requested column that isn't on this parquet (e.g.
         # ``cell_type`` / ``sample_match_type`` on a pre-v1.30.57 build).
         # Projecting a missing column into a *filtered* pyarrow scan raises
@@ -751,6 +765,10 @@ def _load_peptide_index(
         for allele in wanted_set:
             mask |= padded.str.contains(f";{re.escape(allele)};", regex=True)
         df = df[mask]
+        # Don't leak the helper column when the caller didn't project it
+        # (mirrors the serotypes post-filter drop above).
+        if columns is not None and "mhc_allele_set" not in columns:
+            df = df.drop(columns=["mhc_allele_set"])
 
     # Length bounds (#118). observations.parquet / binding.parquet don't
     # carry an explicit length column — we compute it from the peptide

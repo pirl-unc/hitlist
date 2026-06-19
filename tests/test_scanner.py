@@ -188,6 +188,27 @@ def test_scan_dedupes_by_assay_iri_within_source(tmp_path):
     assert df["assay_iri"].iloc[0] == "http://iedb.org/assay/7777777"
 
 
+def test_scan_keeps_distinct_rows_with_blank_assay_iri(tmp_path):
+    """Regression: rows with a *blank* Assay IRI are distinct observations and
+    must not collapse. Previously the first blank-IRI row seeded "" into the
+    dedupe set and every later blank-IRI row was silently dropped."""
+    src = tmp_path / "iedb.csv"
+    rows = []
+    for i in range(3):
+        row = [""] * 21
+        row[0] = ""  # blank Assay IRI (the bug trigger)
+        row[1] = "http://iedb.org/reference/99"
+        row[2] = "33858848"
+        row[5] = f"PEPTIDE{i}AB"  # distinct peptides
+        row[19] = "HLA-A*02:01"
+        row[20] = "I"
+        rows.append(row)
+    _write_tiny_iedb_csv(src, rows)
+
+    df = scan(peptides=None, iedb_path=str(src), cedar_path=None)
+    assert len(df) == 3  # all three kept, not collapsed to one
+
+
 # ── Quantitative binding-assay fields (issue #148) ─────────────────────────
 
 
