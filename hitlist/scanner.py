@@ -342,10 +342,14 @@ def scan(
                     bare = parse_peptide_modifications(pep_raw)[0]
                     if bare not in peptides:
                         continue
-            iri = row[c["assay_iri"]] if row else ""
-            if iri in seen:
-                continue
-            seen.add(iri)
+            # Dedup only on a *present* Assay IRI. A blank IRI is not an
+            # identity — deduping on "" would collapse every blank-IRI row
+            # (distinct observations) into one. _safe_col guards short rows.
+            iri = _safe_col(row, c["assay_iri"])
+            if iri:
+                if iri in seen:
+                    continue
+                seen.add(iri)
 
             src_org = _safe_col(row, c["source_organism"])
             species = _safe_col(row, c["species"])

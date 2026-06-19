@@ -144,6 +144,12 @@ def _download_to_file(url: str, dest: Path, *, label: str = "", verbose: bool = 
                         for chunk in iter(lambda: resp.read(_DOWNLOAD_CHUNK_SIZE), b""):
                             fh.write(chunk)
                             bar.update(len(chunk))
+                # A clean 200 with an empty body (e.g. a withdrawn UniProt
+                # proteome ID) would otherwise be moved into place and cached
+                # as a permanent "valid" 0-byte file. Treat it as a retryable
+                # OSError instead of silently succeeding.
+                if tmp.stat().st_size == 0:
+                    raise OSError(f"empty response body from {url}")
                 shutil.move(str(tmp), str(dest))
                 return
             except (urllib.error.URLError, OSError) as err:
@@ -673,6 +679,11 @@ def resolve_proteome_via_uniprot(
 
     The raw organism string is used as a free-text query, so strain
     suffixes like ``"(strain B95-8)"`` are tolerated.
+
+    Raises on a transient transport failure (timeout / 5xx / DNS) so the caller
+    can tell "UniProt is down" apart from "no such proteome" and avoid caching a
+    permanent negative for what is really a temporary outage. Returns ``None``
+    only for a *genuine* empty/denylisted result.
     """
     import json
     import urllib.parse
@@ -684,11 +695,9 @@ def resolve_proteome_via_uniprot(
         return None
     query = urllib.parse.quote(cleaned)
     url = f"{_UNIPROT_PROTEOME_SEARCH_URL}?query={query}&format=json&size=10"
-    try:
-        with urllib.request.urlopen(url, timeout=timeout) as r:
-            payload = json.load(r)
-    except Exception:
-        return None
+    # NB: transport/parse errors deliberately propagate (see docstring).
+    with urllib.request.urlopen(url, timeout=timeout) as r:
+        payload = json.load(r)
 
     results = payload.get("results", [])
     if not results:
@@ -811,7 +820,12 @@ def lookup_proteome(
             "proteome_type": cached.get("proteome_type"),
         }
 
-    resolved = resolve_proteome_via_uniprot(species_or_organism)
+    try:
+        resolved = resolve_proteome_via_uniprot(species_or_organism)
+    except Exception:
+        # Transient UniProt failure: return None WITHOUT caching a negative, so
+        # a later run retries instead of permanently excluding this organism.
+        return None
     _save_uniprot_cache_entry(species_or_organism, resolved)
     if resolved is None:
         return None
@@ -1373,7 +1387,21 @@ class VersionedDatasetRegistry:
             return {}
 
     def _write_manifest(self, manifest: dict) -> None:
-        self._manifest_path().write_text(json.dumps(manifest, indent=2, sort_keys=True))
+        # Atomic write (temp + os.replace), same as the module-level
+        # _save_manifest (#331): an interrupted/concurrent write must never
+        # truncate manifest.json, or _read_manifest silently returns {} and all
+        # provenance (sha256/bytes/url) vanishes.
+        p = self._manifest_path()
+        p.parent.mkdir(parents=True, exist_ok=True)
+        fd, tmp = tempfile.mkstemp(dir=str(p.parent), prefix=".manifest-", suffix=".tmp")
+        try:
+            with os.fdopen(fd, "w") as f:
+                f.write(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+            os.replace(tmp, str(p))
+        except BaseException:
+            if os.path.exists(tmp):
+                os.remove(tmp)
+            raise
 
     def local_path(self, name: str, version: str | None = None) -> Path:
         """Expected cache path for *name*/*version* (may not exist yet)."""

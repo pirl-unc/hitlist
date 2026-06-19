@@ -128,6 +128,21 @@ def test_download_writes_file_and_manifest(tmp_path, monkeypatch):
     assert rec["url"].endswith("thing.v1.tsv")
 
 
+def test_manifest_write_is_atomic(tmp_path, monkeypatch):
+    """The registry manifest must be written atomically (temp + os.replace) like
+    the module-level _save_manifest — no stray temp file, and a clean round-trip.
+    A direct write_text would risk truncating manifest.json and losing all
+    provenance on an interrupted/concurrent write."""
+    import json
+
+    _stub_dl(monkeypatch)
+    reg = VersionedDatasetRegistry(_datasets(), cache_dir=lambda: tmp_path)
+    reg.download("thing")
+
+    assert json.loads((tmp_path / "manifest.json").read_text())["thing"]["version"] == "v2"
+    assert not list(tmp_path.glob(".manifest-*.tmp")), "atomic write left a stray temp file"
+
+
 def test_cache_hit_skips_redownload(tmp_path, monkeypatch):
     counter = {"n": 0}
     _stub_dl(monkeypatch, counter=counter)
