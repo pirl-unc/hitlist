@@ -169,7 +169,9 @@ def _data_path(args: argparse.Namespace) -> None:
 
 
 def _data_remove(args: argparse.Namespace) -> None:
-    remove(args.name, delete_file=args.delete)
+    if not remove(args.name, delete_file=args.delete):
+        print(f"No dataset '{args.name}' was registered (nothing to do).", file=sys.stderr)
+        sys.exit(1)
     if args.delete:
         print(f"Unregistered and deleted '{args.name}'.")
     else:
@@ -198,7 +200,7 @@ def _data_fetch_proteomes(args: argparse.Namespace) -> None:
 
     if not is_built():
         print(
-            "Observations table not built. Run: hitlist data build",
+            "Observations table not built. Run: hitlist build observations",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -281,7 +283,7 @@ def _data_list_proteomes(args: argparse.Namespace) -> None:
 
     proteomes = list_proteomes()
     if not proteomes:
-        print("No proteomes registered.  Run: hitlist data fetch-proteomes")
+        print("No proteomes registered.  Run: hitlist build proteomes")
         return
     print(f"{len(proteomes)} proteomes registered:\n")
     for species, meta in sorted(proteomes.items()):

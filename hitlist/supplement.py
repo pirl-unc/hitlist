@@ -47,7 +47,7 @@ def load_supplementary_manifest() -> list[dict]:
     Returns
     -------
     list[dict]
-        Each entry has ``pmid``, ``file``, ``label``, and ``defaults``.
+        Each entry has ``pmid``, ``file``, ``study_label``, and ``defaults``.
         Returns an empty list if the manifest does not exist.
     """
     if not _MANIFEST_PATH.exists():

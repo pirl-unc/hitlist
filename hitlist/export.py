@@ -1138,6 +1138,7 @@ def generate_observations_table(
 def generate_ms_observations_table(
     mhc_class: str | None = None,
     species: str | None = None,
+    source: str | None = None,
     instrument_type: str | None = None,
     acquisition_mode: str | None = None,
     is_mono_allelic: bool | None = None,
@@ -1148,15 +1149,29 @@ def generate_ms_observations_table(
     gene: str | list[str] | None = None,
     gene_name: str | list[str] | None = None,
     gene_id: str | list[str] | None = None,
+    peptide: str | list[str] | None = None,
     serotype: str | list[str] | None = None,
+    length_min: int | None = None,
+    length_max: int | None = None,
     exclude_class_label_suspect: bool = False,
+    exclude_class_label_implausible: bool = False,
+    exclude_non_peptide_ligand: bool = True,
     apm_only: bool = False,
     columns: list[str] | None = None,
 ) -> pd.DataFrame:
-    """Alias for :func:`generate_observations_table` with explicit MS naming."""
+    """MS observations table: per-peptide rows joined with per-sample metadata.
+
+    The canonical MS-export entry point (the name disambiguates MS from
+    binding). Loads ``observations.parquet``, applies the filters below, and
+    enriches each row with sample-level metadata. This is a thin pass-through to
+    :func:`generate_observations_table` — see that function for the full
+    parameter reference (``source``, ``peptide``, ``length_min``/``length_max``,
+    and the ``exclude_*`` flags are all forwarded).
+    """
     return generate_observations_table(
         mhc_class=mhc_class,
         species=species,
+        source=source,
         instrument_type=instrument_type,
         acquisition_mode=acquisition_mode,
         is_mono_allelic=is_mono_allelic,
@@ -1167,8 +1182,13 @@ def generate_ms_observations_table(
         gene=gene,
         gene_name=gene_name,
         gene_id=gene_id,
+        peptide=peptide,
         serotype=serotype,
+        length_min=length_min,
+        length_max=length_max,
         exclude_class_label_suspect=exclude_class_label_suspect,
+        exclude_class_label_implausible=exclude_class_label_implausible,
+        exclude_non_peptide_ligand=exclude_non_peptide_ligand,
         apm_only=apm_only,
         columns=columns,
     )

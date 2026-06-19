@@ -9,7 +9,7 @@ hitlist ingests immunopeptidome data from [IEDB](https://www.iedb.org/), [CEDAR]
 
 ## What's in the two indexes
 
-After `hitlist data build` (snapshot of the shipping 1.10.x default build):
+After `hitlist build observations` (snapshot of the shipping 1.10.x default build):
 
 ### `observations.parquet` — MS-eluted immunopeptidome
 
@@ -83,7 +83,7 @@ pip install hitlist
 # One-time: register IEDB + CEDAR downloads and build
 hitlist data register iedb /path/to/mhc_ligand_full.csv
 hitlist data register cedar /path/to/cedar-mhc-ligand-full.csv
-hitlist data build                           # a few minutes end-to-end;
+hitlist build observations                           # a few minutes end-to-end;
                                              # writes observations.parquet +
                                              # binding.parquet + peptide_mappings.parquet
 
@@ -122,7 +122,7 @@ presto = generate_training_table(
     include_evidence="both",
     mhc_class="I",
     species="Homo sapiens",
-    explode_mappings=True,
+    map_source_proteins=True,
 )
 # columns now include: evidence_kind, evidence_row_id, protein_id, position,
 # n_flank, c_flank, proteome, proteome_source
@@ -181,7 +181,7 @@ scan_supplementary()                 # DataFrame of curated paper-supplement pep
 
 ### Peptide → protein attribution and flanking context
 
-`hitlist data build` always produces three parquet files (use `--no-mappings` to skip `peptide_mappings.parquet`):
+`hitlist build observations` always produces three parquet files (use `--no-mappings` to skip `peptide_mappings.parquet`):
 
 - `~/.hitlist/observations.parquet` — one row per assay observation
 - `~/.hitlist/binding.parquet` — one row per binding-assay observation
@@ -295,12 +295,12 @@ hitlist data available                                  # show all known dataset
 ### Build the observations table
 
 ```bash
-hitlist data build [--force]                            # ~90s full scan with tqdm progress
-hitlist data build                                      # always builds peptide_mappings.parquet
-hitlist data build --use-uniprot                        # broader proteome coverage via UniProt REST
-hitlist data build --no-mappings                        # skip mapping step (faster, no gene attribution)
-hitlist data build --no-fetch-proteomes                 # don't auto-download missing proteomes
-hitlist data build --proteome-release 112               # Ensembl release for human/mouse/rat
+hitlist build observations [--force]                            # ~90s full scan with tqdm progress
+hitlist build observations                                      # always builds peptide_mappings.parquet
+hitlist build observations --use-uniprot                        # broader proteome coverage via UniProt REST
+hitlist build observations --no-mappings                        # skip mapping step (faster, no gene attribution)
+hitlist build observations --no-fetch-proteomes                 # don't auto-download missing proteomes
+hitlist build observations --proteome-release 112               # Ensembl release for human/mouse/rat
 ```
 
 ### Proteome management
@@ -308,12 +308,6 @@ hitlist data build --proteome-release 112               # Ensembl release for hu
 ```bash
 hitlist data fetch-proteomes [--min-observations N] [--use-uniprot] [--force]
 hitlist data list-proteomes
-```
-
-### Index (for raw peptide counts)
-
-```bash
-hitlist data index [--source iedb|cedar|merged|all] [--force]
 ```
 
 ### Export
@@ -324,11 +318,11 @@ hitlist export ms -o train.parquet                      # parquet output support
 hitlist export peptide-summary --gene PRAME --serotype A24   # per-peptide support for one allele/serotype
 hitlist export binding [filters...] -o binding.csv      # binding-assay index (separate from MS)
 hitlist export training [filters...] -o training.csv    # unified training export from canonical indexes
-hitlist export samples [--class I|II]                   # per-sample conditions (YAML curation only)
-hitlist export summary                                  # species x class summary
-hitlist export counts [--source iedb|cedar|merged|all]  # peptide counts per PMID
-hitlist export alleles                                  # validate YAML alleles with mhcgnomes
-hitlist export data-alleles                             # validate all IEDB/CEDAR alleles
+hitlist export peptide-counts --by class                # species x class peptide counts
+hitlist export peptide-counts --by study                # peptide counts per study/PMID
+hitlist samples [--class I|II]                          # per-sample conditions (promoted from `export samples`)
+hitlist qc normalization                                # validate YAML alleles with mhcgnomes
+hitlist qc resolution                                   # allele-resolution histogram for IEDB/CEDAR
 ```
 
 `hitlist export ms` is the canonical name for the MS observations export; `hitlist
@@ -336,7 +330,7 @@ export observations` remains as a backward-compatible alias.
 
 ### Canonical indexes and the training export
 
-Each `hitlist data build` writes **three** parquet files to `~/.hitlist/`:
+Each `hitlist build observations` writes **three** parquet files to `~/.hitlist/`:
 
 - `observations.parquet` — MS-eluted immunopeptidome (IEDB + CEDAR + curated supplementary).
 - `binding.parquet` — binding-assay rows (peptide microarray, refolding, MEDi, and
@@ -481,7 +475,7 @@ Register DepMap matrices to broaden exact-line coverage:
 ```bash
 hitlist data register depmap_rna /path/to/OmicsExpressionProteinCodingGenesTPMLogp1.csv
 hitlist data register depmap_rna_transcript /path/to/OmicsExpressionTranscriptsTPMLogp1.csv
-hitlist data build
+hitlist build observations
 ```
 
 ### A note on mono-allelic curation

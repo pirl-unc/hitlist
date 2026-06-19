@@ -73,4 +73,51 @@ with _contextlib.suppress(Exception):
 
 from .version import __version__  # noqa: E402  -- after side-effect setup
 
-__all__ = ["__version__"]
+# ── Curated public API ───────────────────────────────────────────────────────
+#
+# Resolved lazily (PEP 562) so ``import hitlist`` stays fast and free of import
+# cycles — the heavy submodules (builder/export/proteome pull in pyensembl etc.)
+# are only imported on first attribute access. Listed in ``__all__`` so the API
+# is discoverable via ``dir(hitlist)`` / autocomplete and stable across refactors.
+_PUBLIC_API: dict[str, str] = {
+    # Build the cached indexes.
+    "build_observations": ".builder",
+    # Load the built indexes (filters documented on each function).
+    "load_ms_observations": ".observations",
+    "load_observations": ".observations",
+    "load_binding": ".observations",
+    "load_all_evidence": ".observations",
+    # Generate derived tables.
+    "generate_ms_observations_table": ".export",
+    "generate_training_table": ".export",
+    # Proteome enumeration + gene sets.
+    "ProteomeIndex": ".proteome",
+    "load_gene_set": ".genes",
+    "list_gene_sets": ".genes",
+    # Dataset registry (download / register / resolve).
+    "fetch": ".downloads",
+    "refresh": ".downloads",
+    "register": ".downloads",
+    "remove": ".downloads",
+    "get_path": ".downloads",
+    "info": ".downloads",
+    "list_datasets": ".downloads",
+    "available_datasets": ".downloads",
+    "download_to_file": ".downloads",
+    "VersionedDatasetRegistry": ".downloads",
+}
+
+__all__ = ["__version__", *sorted(_PUBLIC_API)]
+
+
+def __getattr__(name: str):
+    module = _PUBLIC_API.get(name)
+    if module is None:
+        raise AttributeError(f"module 'hitlist' has no attribute {name!r}")
+    import importlib
+
+    return getattr(importlib.import_module(module, __name__), name)
+
+
+def __dir__() -> list[str]:
+    return sorted(__all__)
