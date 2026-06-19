@@ -1286,7 +1286,7 @@ def refresh(name: str) -> Path:
     return fetch(name, force=True)
 
 
-def remove(name: str, delete_file: bool = False) -> None:
+def remove(name: str, delete_file: bool = False) -> bool:
     """Remove a dataset from the registry. Optionally delete the file.
 
     Parameters
@@ -1295,15 +1295,25 @@ def remove(name: str, delete_file: bool = False) -> None:
         Dataset name to unregister.
     delete_file
         If True, also delete the file on disk.
+
+    Returns
+    -------
+    bool
+        ``True`` if a dataset was registered under *name* and removed,
+        ``False`` if no such dataset existed (so callers can distinguish a real
+        removal from a typo instead of silently reporting success).
     """
     manifest = _load_manifest()
     entry = manifest.get("datasets", {}).pop(name, None)
+    if entry is None:
+        return False
     _save_manifest(manifest)
-    if delete_file and entry:
+    if delete_file:
         p = Path(entry["path"])
         if p.exists():
             p.unlink()
             print(f"Deleted {p}")
+    return True
 
 
 # ── Versioned dataset registry ───────────────────────────────────────────────

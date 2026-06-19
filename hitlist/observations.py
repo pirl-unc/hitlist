@@ -577,7 +577,7 @@ def _load_peptide_index(
     semicolon-joined ``serotypes`` post-filter.
     """
     if not path.exists():
-        raise FileNotFoundError(f"{index_name} table not built. Run: hitlist data build")
+        raise FileNotFoundError(f"{index_name} table not built. Run: hitlist build observations")
 
     from .curation import normalize_allele, normalize_species
 
@@ -679,7 +679,7 @@ def _load_peptide_index(
         if "serotypes" not in schema_names:
             raise ValueError(
                 "Serotype filtering requires an index built with\n"
-                "hitlist >= 1.7.0.  Run: hitlist data build --force"
+                "hitlist >= 1.7.0.  Run: hitlist build observations --force"
             )
     else:
         read_columns = columns

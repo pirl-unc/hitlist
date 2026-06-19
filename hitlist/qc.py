@@ -65,7 +65,7 @@ def resolution_histogram(
 
     if not is_built():
         raise FileNotFoundError(
-            "observations.parquet has not been built. Run 'hitlist data build' first."
+            "observations.parquet has not been built. Run 'hitlist build observations' first."
         )
 
     df = load_observations(
@@ -282,7 +282,7 @@ def cross_reference(mhc_class: str | None = None) -> pd.DataFrame:
 
     if not is_built():
         raise FileNotFoundError(
-            "observations.parquet has not been built. Run 'hitlist data build' first."
+            "observations.parquet has not been built. Run 'hitlist build observations' first."
         )
 
     obs = load_observations(
@@ -432,7 +432,7 @@ def discrepancies(
 
     if not is_built():
         raise FileNotFoundError(
-            "observations.parquet has not been built. Run 'hitlist data build' first."
+            "observations.parquet has not been built. Run 'hitlist build observations' first."
         )
 
     cols = [
@@ -877,7 +877,7 @@ def proteome_coverage(
 
     if not is_built():
         raise FileNotFoundError(
-            "observations.parquet has not been built. Run 'hitlist data build' first."
+            "observations.parquet has not been built. Run 'hitlist build observations' first."
         )
 
     df = load_observations(columns=["source_organism", "pmid"])

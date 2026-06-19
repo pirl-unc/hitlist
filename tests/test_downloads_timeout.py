@@ -141,6 +141,22 @@ def test_download_rejects_empty_body(tmp_path, monkeypatch):
     assert not dest.with_suffix(dest.suffix + ".tmp").exists()
 
 
+def test_remove_reports_whether_dataset_existed(tmp_path):
+    """remove() must return False for an unregistered name so the CLI can warn
+    on a typo instead of falsely reporting a successful removal."""
+    downloads.set_data_dir(tmp_path)
+    try:
+        assert downloads.remove("never-registered-xyz") is False
+
+        f = tmp_path / "d.csv"
+        f.write_text("x")
+        downloads.register("d", f, "desc")
+        assert downloads.remove("d") is True
+        assert downloads.remove("d") is False  # already gone
+    finally:
+        downloads._override_data_dir = None
+
+
 def test_uniprot_transient_error_does_not_cache_negative(monkeypatch):
     """A transient UniProt failure must not be cached as a permanent
     ``not_found`` — otherwise the organism is excluded from every later build."""

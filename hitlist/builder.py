@@ -35,9 +35,9 @@ Usage::
 
 CLI::
 
-    hitlist data build
-    hitlist data build --with-flanking
-    hitlist data build --force
+    hitlist build observations
+    hitlist build observations --with-flanking
+    hitlist build observations --force
 """
 
 from __future__ import annotations
@@ -152,7 +152,7 @@ def _parquet_fingerprints() -> dict:
     between builds.  Issue #150: ``line_expression`` joined the
     fingerprint set so a manually-rewritten ``line_expression.parquet``
     (or a registered DepMap input replaced after the last build) forces
-    the next ``hitlist data build`` to rebuild the line-expression
+    the next ``hitlist build observations`` to rebuild the line-expression
     index instead of trusting the stale parquet.
     """
     fp: dict = {}

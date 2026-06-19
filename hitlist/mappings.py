@@ -154,7 +154,7 @@ def load_peptide_mappings(
     """
     path = mappings_path()
     if not path.exists():
-        raise FileNotFoundError("Peptide mappings not built.  Run: hitlist data build")
+        raise FileNotFoundError("Peptide mappings not built.  Run: hitlist build observations")
 
     def _as_list(v) -> list[str]:
         if isinstance(v, str):
@@ -320,7 +320,9 @@ def build_peptide_mappings(
             obs = pd.concat([obs, binding_override[cols]], ignore_index=True)
     else:
         if not is_built():
-            raise FileNotFoundError("Observations table not built.  Run: hitlist data build")
+            raise FileNotFoundError(
+                "Observations table not built.  Run: hitlist build observations"
+            )
         if not force and _cache_is_valid():
             if verbose:
                 print(f"Peptide mappings already up to date: {out}")

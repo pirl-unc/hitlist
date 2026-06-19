@@ -107,7 +107,7 @@ def _source_defaults(source_id: str) -> dict:
     """Source-level metadata defaults for a given source_id.
 
     Used by the CSV-fallback path in :func:`load_bulk_proteomics` when
-    ``hitlist data build`` hasn't been run and the CSVs don't carry all
+    ``hitlist build observations`` hasn't been run and the CSVs don't carry all
     the axes the parquet would have. Mirrors the stamping the builder
     does in :func:`hitlist.builder.build_bulk_proteomics`.
     """
@@ -418,7 +418,7 @@ def load_bulk_proteomics(
         # CCLE CSV doesn't carry the Fig 1b row-level axes — stamp
         # fractionation_ph from the source-level default in sources.yaml
         # so the column is populated even on the CSV-fallback path
-        # (no ``hitlist data build`` required). Mirror the builder's
+        # (no ``hitlist build observations`` required). Mirror the builder's
         # source-level stamping.
         ccle_src = _source_defaults("CCLE_Nusinow_2020")
         if "fractionation_ph" not in ccle.columns:
