@@ -31,6 +31,7 @@ import argparse
 import json
 import sys
 
+from .cli_help import ColorArgumentParser
 from .downloads import (
     available_datasets,
     data_dir,
@@ -668,7 +669,7 @@ def _report(args: argparse.Namespace) -> None:
 def main() -> None:
     from .version import __version__
 
-    parser = argparse.ArgumentParser(
+    parser = ColorArgumentParser(
         prog="hitlist",
         description="hitlist: curated mass spectrometry evidence for MHC ligand data",
     )
