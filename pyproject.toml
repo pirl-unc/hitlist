@@ -73,6 +73,7 @@ hitlist = [
     "data/line_expression/*.yaml",
     "data/line_expression/*.csv",
     "data/line_expression/*.csv.gz",
+    "data/peptide_attributions/*.csv",
 ]
 
 # Large paper-derived data files (#303) are NOT shipped in the wheel — together

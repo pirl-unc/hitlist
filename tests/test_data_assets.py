@@ -105,3 +105,60 @@ def test_fetch_all_iterates_every_asset(monkeypatch, tmp_path):
     out = downloads.fetch_all_data_assets(verbose=False)
     assert set(fetched) == set(downloads.data_assets())
     assert set(out) == set(downloads.data_assets())
+
+
+def _packaging_config():
+    """Parse the package-data include/exclude globs out of pyproject.toml."""
+    try:
+        import tomllib
+    except ModuleNotFoundError:  # Python < 3.11
+        tomli = pytest.importorskip("tomli", reason="need tomllib/tomli to read pyproject.toml")
+        loads = tomli.loads
+    else:
+        loads = tomllib.loads
+    cfg = loads((Path(__file__).resolve().parent.parent / "pyproject.toml").read_text())
+    setuptools_cfg = cfg["tool"]["setuptools"]
+    return (
+        setuptools_cfg["package-data"]["hitlist"],
+        setuptools_cfg.get("exclude-package-data", {}).get("hitlist", []),
+    )
+
+
+def _shipped_paths():
+    """Paths setuptools would install, per the pyproject globs.
+
+    Uses ``Path.glob`` rather than ``fnmatch`` so ``*`` does not cross a
+    directory separator -- otherwise ``data/*.yaml`` would appear to cover
+    files in every subdirectory.
+    """
+    include, exclude = _packaging_config()
+    pkg_root = _PKG_DATA.parent
+    included = {p for g in include for p in pkg_root.glob(g)}
+    excluded = {p for g in exclude for p in pkg_root.glob(g)}
+    return included - excluded
+
+
+def test_bundled_flag_matches_packaging_globs():
+    """Every ``bundled: true`` asset must actually be shipped, and every
+    ``bundled: false`` asset must not be.
+
+    Regression test for the packaging gap that dropped
+    ``data/peptide_attributions/`` from the wheel and sdist: the directory had
+    no ``package-data`` glob, so a file the registry advertised as bundled was
+    absent from both published artifacts, and every peptide-level call that
+    touched PMID 31844290 raised ``FileNotFoundError`` on a clean install.
+
+    The existing sha256 test cannot catch this -- it globs the source tree,
+    where the file is always present.
+    """
+    shipped = _shipped_paths()
+    checked = 0
+    for name, meta in downloads.data_assets().items():
+        matches = list(_PKG_DATA.rglob(name))
+        assert len(matches) == 1, f"expected exactly one {name} under {_PKG_DATA}, got {matches}"
+        assert (matches[0] in shipped) is bool(meta["bundled"]), (
+            f"{name}: bundled={meta['bundled']} but "
+            f"{'not ' if meta['bundled'] else ''}shipped by the pyproject globs"
+        )
+        checked += 1
+    assert checked >= 26
