@@ -44,7 +44,7 @@ from __future__ import annotations
 import contextlib
 import re
 from functools import cache, lru_cache
-from os.path import dirname, join
+from os.path import basename, dirname, join
 
 import pandas as pd
 import yaml
@@ -54,6 +54,18 @@ from .cell_name_parser import parse_cell_name
 
 def _data_path(filename: str) -> str:
     return join(dirname(__file__), "data", filename)
+
+
+def _asset_path(rel_path: str) -> str:
+    """Resolve a *mirrored* data asset: the packaged copy if present (source /
+    editable install), else fetch the externalized copy via datacache (#303).
+
+    Use this for files registered in ``data/data_assets.yaml``; plain
+    :func:`_data_path` is for bundled YAML config that is never externalized.
+    """
+    from .downloads import packaged_or_fetched
+
+    return str(packaged_or_fetched(_data_path(rel_path), basename(rel_path)))
 
 
 @lru_cache(maxsize=1)
@@ -1183,7 +1195,7 @@ def _pmid_peptide_attributions(pmid_int: int) -> dict[str, frozenset[str]]:
     rel_path = entry.get("peptide_attributions")
     if not rel_path:
         return {}
-    csv_path = _data_path(rel_path)
+    csv_path = _asset_path(rel_path)
     table = pd.read_csv(csv_path, usecols=["peptide", "sample_label"])
     out: dict[str, frozenset[str]] = {}
     for pep, labels in zip(table["peptide"].astype(str), table["sample_label"].astype(str)):
