@@ -48,6 +48,9 @@ dev = [
     "pytest-cov",
     "pytest-xdist",
     "ruff",
+    # Lets test_bundled_flag_matches_packaging_globs read pyproject.toml on the
+    # 3.9/3.10 matrix legs, where tomllib is not in the stdlib.
+    "tomli; python_version < '3.11'",
 ]
 
 [project.scripts]
