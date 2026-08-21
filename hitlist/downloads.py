@@ -417,7 +417,7 @@ FETCHABLE_DATASETS: dict[str, dict[str, str]] = {
         "terms": "https://www.iedb.org/",
     },
     "cedar": {
-        "url": "https://cedar.iedb.org/downloader.php?file_name=doc/cedar_mhc_ligand_full.zip",
+        "url": "https://cedar.iedb.org/downloader.php?file_name=doc/mhc_ligand_full_single_file.zip",
         "filename": "cedar-mhc-ligand-full.csv",
         "description": "CEDAR MHC ligand full export",
         "usage": "Additional mass spec evidence (companion to IEDB).",
