@@ -44,7 +44,7 @@ from __future__ import annotations
 import contextlib
 import re
 from functools import cache, lru_cache
-from os.path import dirname, join
+from os.path import basename, dirname, join
 
 import pandas as pd
 import yaml
@@ -54,6 +54,24 @@ from .cell_name_parser import parse_cell_name
 
 def _data_path(filename: str) -> str:
     return join(dirname(__file__), "data", filename)
+
+
+def _asset_path(rel_path: str) -> str:
+    """Resolve a *registry* data asset, fetching it if it is not installed.
+
+    Mirrors :func:`hitlist.bulk_proteomics._bulk_data_path`.  ``_data_path``
+    is a bare join with no fallback, so a registry-known file missing from
+    the install raised ``FileNotFoundError`` out of ``pd.read_csv`` instead
+    of being fetched from the ``data-assets-v1`` mirror (#348).
+
+    Only for files listed in ``data_assets.yaml``.  The bundled YAML config
+    (``pmid_overrides.yaml``, ``tissue_categories.yaml``,
+    ``monoallelic_lines.yaml``) is never externalized and keeps using
+    :func:`_data_path`.
+    """
+    from .downloads import packaged_or_fetched
+
+    return str(packaged_or_fetched(_data_path(rel_path), basename(rel_path)))
 
 
 @lru_cache(maxsize=1)
@@ -1334,7 +1352,7 @@ def _pmid_peptide_attributions(pmid_int: int) -> dict[str, frozenset[str]]:
     rel_path = entry.get("peptide_attributions")
     if not rel_path:
         return {}
-    csv_path = _data_path(rel_path)
+    csv_path = _asset_path(rel_path)
     table = pd.read_csv(csv_path, usecols=["peptide", "sample_label"])
     out: dict[str, frozenset[str]] = {}
     for pep, labels in zip(table["peptide"].astype(str), table["sample_label"].astype(str)):
