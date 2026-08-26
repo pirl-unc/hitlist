@@ -2258,3 +2258,83 @@ def test_scanner_treats_other_cell_name_as_fillable():
     from hitlist.cell_name_parser import _UNINFORMATIVE_CELL_NAMES
 
     assert {"", "other", "unknown", "unknown/unspecified"} <= _UNINFORMATIVE_CELL_NAMES
+
+
+# ── mhcgnomes-derived MHC class / allele parsing (#363) ────────────────
+
+
+def test_mhc_class_of_separates_classical_from_non_classical():
+    """mhcgnomes' fine taxonomy (Ia / Ib / Id / IIa) maps onto the three
+    tokens the corpus uses.  Folding Ib into I would make --mhc-class I
+    silently sweep up HLA-E rows."""
+    from hitlist.curation import mhc_class_of
+
+    assert mhc_class_of("HLA-A*02:01") == "I"
+    assert mhc_class_of("H2-K*b") == "I"
+    assert mhc_class_of("HLA-DRB1*15:01") == "II"
+    assert mhc_class_of("HLA-E*01:03") == "non-classical"
+    assert mhc_class_of("HLA-G*01:01") == "non-classical"
+    assert mhc_class_of("H2-Q1") == "non-classical"
+    assert mhc_class_of("MR1") == "non-classical"
+    assert mhc_class_of("") == ""
+
+
+def test_mhc_class_of_resolves_donor_sets_only_when_consistent():
+    """Semicolon-joined donor sets (#45) resolve from their components,
+    and stay unknown when the components disagree."""
+    from hitlist.curation import mhc_class_of
+
+    assert mhc_class_of("HLA-DQB1*03:01;HLA-DRB1*15:01") == "II"
+    assert mhc_class_of("HLA-A*02:01;HLA-B*15:01") == "I"
+    assert mhc_class_of("HLA-A*02:01;HLA-DRB1*15:01") == ""
+
+
+def test_normalize_mhc_class_token_bridges_the_spelling_split():
+    """The YAML writes 'non-classical', the IEDB export writes 'non
+    classical'; they could never compare equal (#363)."""
+    from hitlist.curation import normalize_mhc_class_token
+
+    assert normalize_mhc_class_token("non classical") == "non-classical"
+    assert normalize_mhc_class_token("non-classical") == "non-classical"
+    assert normalize_mhc_class_token("I+II") == "I+II"
+    assert normalize_mhc_class_token("") == ""
+
+
+def test_extract_allele_tokens_is_species_agnostic():
+    """The old regex encoded HLA's digit syntax and returned nothing for
+    every non-human genotype."""
+    from hitlist.curation import extract_allele_tokens
+
+    assert extract_allele_tokens("H-2Kb H-2Db") == ["H2-K*b", "H2-D*b"]
+    assert extract_allele_tokens("A*02:01 B*15:01") == ["HLA-A*02:01", "HLA-B*15:01"]
+    assert extract_allele_tokens("Patr-AL") == ["Patr-AL"]
+
+
+def test_extract_allele_tokens_rejects_free_text():
+    """mhcgnomes resolves 'n/a' to the rat haplotype RT1-n/A, so accepting
+    anything that merely parses would inject junk from prose fields."""
+    from hitlist.curation import extract_allele_tokens
+
+    assert extract_allele_tokens("51 HLA-I allotypes (see paper)") == []
+    assert extract_allele_tokens("n/a") == []
+    assert extract_allele_tokens("not typed") == []
+
+
+def test_expand_allele_components_splits_pairs_via_mhcgnomes():
+    from hitlist.curation import expand_allele_components
+
+    out = expand_allele_components("HLA-DPB1*06:01/DPA1*01:03")
+    assert out[0] == "HLA-DPB1*06:01/DPA1*01:03"
+    assert "HLA-DPB1*06:01" in out
+    assert "HLA-DPA1*01:03" in out
+    # Class-I alleles pass through unchanged.
+    assert expand_allele_components("HLA-A*02:01") == ["HLA-A*02:01"]
+
+
+def test_is_class_only_token_recognizes_sentinels():
+    from hitlist.curation import is_class_only_token
+
+    assert is_class_only_token("HLA class I") is True
+    assert is_class_only_token("MHC class II") is True
+    assert is_class_only_token("unknown") is True
+    assert is_class_only_token("HLA-A*02:01") is False
