@@ -1241,6 +1241,49 @@ def generate_observations_table(
                     # the per-PMID discriminator path above.
                     apply_winners_vectorized(obs, _eligible_mask, _tb_cols, _tb_winner, meta_cols)
 
+    # 3c) Curated per-row sample label — the highest-confidence
+    # evidence there is, so it overrides every heuristic above.
+    #
+    # Some IEDB rows carry ``attributed_sample_label``, a curated
+    # per-observation donor / sample identifier.  For PMID 31844290 all
+    # 11 of its labels ("MEL15 (13240-015)", "GBM11 (H4512 BT145)",
+    # "CLL C (DFCI-5283)", ...) match a curated ``ms_samples`` entry
+    # exactly, yet the join ignored the column entirely and left those
+    # 54,682 rows unattributed while heuristics fought over the
+    # study's 107 mono-allelic transfectant samples.
+    if "attributed_sample_label" in obs.columns and len(samples) > 0:
+        _label_rows: list[dict] = []
+        for _, _srow in samples.iterrows():
+            _lbl = str(_srow.get("sample_label", "") or "").strip()
+            if not _lbl:
+                continue
+            _lmeta = {c: _srow.get(c, "") for c in meta_cols}
+            _lmeta["sample_attribution"] = "curated_sample_label"
+            _label_rows.append({"_pmid_int": float(_srow["pmid"]), "_label": _lbl, **_lmeta})
+        if _label_rows:
+            _label_df = pd.DataFrame(_label_rows).drop_duplicates(
+                subset=["_pmid_int", "_label"], keep="first"
+            )
+            _obs_label = obs["attributed_sample_label"].astype(str).str.strip()
+            _obs_label = _obs_label.where(~_obs_label.isin(("nan", "None")), "")
+            if _obs_label.ne("").any():
+                _label_matched = _label_df.set_index(["_pmid_int", "_label"])[meta_cols].reindex(
+                    pd.MultiIndex.from_arrays([obs["_pmid_int"].to_numpy(), _obs_label.to_numpy()])
+                )
+                _label_matched.index = obs.index
+                _label_hit = _label_matched["sample_label"].notna()
+                if _label_hit.any():
+                    # Column-wise so the bool meta columns keep their
+                    # dtype — a bulk .loc assignment pushes object/NaN
+                    # into them and pandas warns (soon errors).
+                    for _lcol in meta_cols:
+                        _lvals = _label_matched[_lcol]
+                        if _lcol in _BOOL_META_COLS:
+                            _lvals = _lvals.astype("boolean").fillna(False).astype(bool)
+                        else:
+                            _lvals = _lvals.fillna("")
+                        obs[_lcol] = obs[_lcol].where(~_label_hit, _lvals)
+
     # 4) Class-pool fallback: for still-unmatched rows, fill sample_mhc
     #    with the union of all alleles from samples of the same class.
     still_empty = obs["mhc"] == ""
