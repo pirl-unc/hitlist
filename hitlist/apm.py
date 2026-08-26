@@ -51,7 +51,16 @@ APM_GENES: dict[str, tuple[str, ...]] = {
     "tap1": (r"\bTAP1\b",),
     "tap2": (r"\bTAP2\b",),
     "tapbp": (r"\bTAPBP\b", r"\btapasin\b"),
-    "erap1": (r"\bERAP1\b",),
+    # TAPBPR / TAPBPL is a tapasin homolog that edits peptide cargo
+    # independently of the peptide-loading complex, so it gets its own
+    # key rather than folding into ``tapbp``.  The ``\bTAPBP\b``
+    # pattern above already declines to match it (the trailing "R" is a
+    # word character), which is why it went uncaptured entirely.
+    "tapbpr": (r"\bTAPBPR\b", r"\bTAPBPL\b"),
+    # ERAAP is the mouse ortholog of ERAP1 — the murine literature uses
+    # it exclusively, so a mouse ERAP1 knockout was landing in
+    # ``other_perturbation`` instead of ``ERAP1_perturbation``.
+    "erap1": (r"\bERAP1\b", r"\bERAAP\b"),
     "erap2": (r"\bERAP2\b",),
     "pdia3": (r"\bPDIA3\b", r"\bERp57\b"),
     "calr": (r"\bCALR\b", r"\bcalreticulin\b"),

@@ -69,6 +69,7 @@ _APM_TO_CATEGORY: dict[str, str] = {
     "tap2": "TAP_perturbation",
     # Tapasin / TAPBPR.
     "tapbp": "tapasin_perturbation",
+    "tapbpr": "TAPBPR_perturbation",
     # ER aminopeptidases.
     "erap1": "ERAP1_perturbation",
     "erap2": "ERAP2_perturbation",
