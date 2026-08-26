@@ -79,6 +79,13 @@ hitlist = [
     "data/line_expression/*.yaml",
     "data/line_expression/*.csv",
     "data/line_expression/*.csv.gz",
+    # #347: without this glob setuptools drops peptide_attributions/ from
+    # both the wheel and the sdist, so a clean install raises
+    # FileNotFoundError on every peptide-level call touching PMID
+    # 31844290.  It is ~1.0 MB and marked ``bundled: true`` in
+    # data_assets.yaml, so the omission was an oversight rather than one
+    # of the deliberate size exclusions below.
+    "data/peptide_attributions/*.csv",
 ]
 
 # Large paper-derived data files (#303) are NOT shipped in the wheel — together

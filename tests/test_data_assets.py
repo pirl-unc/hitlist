@@ -105,3 +105,77 @@ def test_fetch_all_iterates_every_asset(monkeypatch, tmp_path):
     out = downloads.fetch_all_data_assets(verbose=False)
     assert set(fetched) == set(downloads.data_assets())
     assert set(out) == set(downloads.data_assets())
+
+
+# ── Packaging + loader fallback for peptide_attributions (#347, #348) ──
+
+
+def test_bundled_registry_assets_have_a_package_data_glob():
+    """#347: setuptools drops any data subdirectory with no ``package-data``
+    glob, so ``peptide_attributions/`` was absent from both the wheel and
+    the sdist and a clean install raised FileNotFoundError on PMID
+    31844290.  Every bundled registry asset needs a matching glob."""
+    from pathlib import Path
+
+    import pytest
+
+    import hitlist
+
+    tomllib = pytest.importorskip(
+        "tomllib", reason="stdlib tomllib is 3.11+; the glob is verified on newer runners"
+    )
+
+    root = Path(hitlist.__file__).resolve().parent.parent
+    pyproject = root / "pyproject.toml"
+    if not pyproject.is_file():  # installed (non-source) checkout
+        pytest.skip("pyproject.toml not present in this install")
+
+    cfg = tomllib.loads(pyproject.read_text())
+    globs = cfg["tool"]["setuptools"]["package-data"]["hitlist"]
+    excluded = set(cfg["tool"]["setuptools"]["exclude-package-data"]["hitlist"])
+
+    data_dir = Path(hitlist.__file__).resolve().parent / "data"
+    for asset in data_dir.rglob("*"):
+        if not asset.is_file() or asset.suffix not in (".csv", ".gz", ".yaml"):
+            continue
+        rel = asset.relative_to(data_dir.parent).as_posix()
+        if rel.removeprefix("hitlist/") in excluded or rel in excluded:
+            continue
+        covered = any(
+            Path(rel).match(g) or Path(rel.removeprefix("hitlist/")).match(g) for g in globs
+        )
+        assert covered, f"{rel} has no package-data glob — it will be dropped from the wheel"
+
+
+def test_asset_path_falls_back_to_the_mirror(monkeypatch, tmp_path):
+    """#348: curation._data_path is a bare join with no fallback, so a
+    registry asset missing from the install raised FileNotFoundError out
+    of pd.read_csv instead of being fetched, unlike bulk_proteomics."""
+    from hitlist import curation
+
+    fetched = tmp_path / "sarkizova_2020_patient_cohort.csv"
+    fetched.write_text("peptide,sample_label\n")
+
+    calls = []
+
+    def fake_fetch(filename):
+        calls.append(filename)
+        return fetched
+
+    monkeypatch.setattr("hitlist.downloads.fetch_data_asset", fake_fetch)
+    monkeypatch.setattr(
+        "hitlist.curation._data_path", lambda rel: str(tmp_path / "definitely-absent" / rel)
+    )
+
+    out = curation._asset_path("peptide_attributions/sarkizova_2020_patient_cohort.csv")
+    assert out == str(fetched)
+    # The registry is keyed by bare filename, not by the relative path.
+    assert calls == ["sarkizova_2020_patient_cohort.csv"]
+
+
+def test_asset_path_prefers_the_installed_copy(tmp_path):
+    """When the file ships with the install, no fetch is attempted."""
+    from hitlist import curation
+
+    real = curation._asset_path("peptide_attributions/sarkizova_2020_patient_cohort.csv")
+    assert real.endswith("sarkizova_2020_patient_cohort.csv")
