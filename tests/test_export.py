@@ -2641,3 +2641,143 @@ def test_export_peptide_summary_cli_helper(monkeypatch):
         "gene_id": ["ENSG00000185686"],
         "peptide": ["ALYVDSLFFL"],
     }
+
+
+# ── Arm attribution and condition normalization (#354, #355) ──────────
+
+
+def test_simplify_condition_keeps_applied_treatment():
+    """#355: 'unperturbed + X' means X *was* applied.  Blanking it
+    labelled 7 IFN-gamma-treated tumor samples as controls."""
+    from hitlist.export import simplify_condition
+
+    assert simplify_condition("unperturbed + IFN-gamma (2000 U/mL, 3d)") == (
+        "IFN-gamma (2000 U/mL, 3d)"
+    )
+
+
+def test_simplify_condition_drops_baseline_annotation():
+    """#355: 'unperturbed — X' annotates the baseline rather than
+    naming a treatment, so the perturbation is empty.  A germline
+    genotype is not a perturbation."""
+    from hitlist.export import simplify_condition
+
+    assert simplify_condition("unperturbed — natural ERAP2 genotype") == ""
+    assert simplify_condition("unperturbed — RPMI-1640") == ""
+    assert simplify_condition("unperturbed") == ""
+    assert simplify_condition("unperturbed (3 biological replicates)") == ""
+
+
+def test_simplify_condition_passes_through_real_perturbations():
+    from hitlist.export import simplify_condition
+
+    assert simplify_condition("ERAP1 CRISPR/Cas9 knockout") == "ERAP1 CRISPR/Cas9 knockout"
+    assert simplify_condition("—") == ""
+    assert simplify_condition("NOT profiled") == ""
+    assert simplify_condition(None) == ""
+
+
+def test_condition_category_and_apm_flags_never_disagree():
+    """#355: both derive from the same normalized string, so no sample
+    can be 'unperturbed' and APM-perturbed at once."""
+    from hitlist.export import generate_ms_samples_table
+
+    samples = generate_ms_samples_table()
+    contradictory = samples[
+        samples["apm_perturbed"] & (samples["condition_category"] == "unperturbed")
+    ]
+    assert len(contradictory) == 0, sorted(contradictory["sample_label"].tolist())
+
+
+def test_arms_in_elution_conditions_parses_iedb_enumeration():
+    """#354: IEDB's per-peptide condition list is the one reliable arm
+    discriminator it offers."""
+    from hitlist.export import _arms_in_elution_conditions
+
+    base = "The epitope was eluted from the following experimental conditions(s): "
+    assert _arms_in_elution_conditions(base + "treated LM-MEL-44.") == {"perturbed"}
+    assert _arms_in_elution_conditions(base + "Untreated.") == {"control"}
+    assert _arms_in_elution_conditions(base + "Untreated; FLX-Treated.") == {
+        "control",
+        "perturbed",
+    }
+    assert _arms_in_elution_conditions(base + "uninfected cells; 24 hpi.") == {
+        "control",
+        "perturbed",
+    }
+
+
+def test_arms_in_elution_conditions_untreated_is_not_treated():
+    """The two differ by a word boundary; matching 'treated' inside
+    'untreated' would flip every control peptide to the treated arm."""
+    from hitlist.export import _arms_in_elution_conditions
+
+    base = "The peptide was eluted from the following experimental conditions: "
+    assert _arms_in_elution_conditions(base + "untreated.") == {"control"}
+
+
+def test_arms_in_elution_conditions_ignores_free_prose():
+    """Narrative that merely *mentions* both arms is not an
+    enumeration — PMID 31530632 opens every one of its rows this way."""
+    from hitlist.export import _arms_in_elution_conditions
+
+    assert (
+        _arms_in_elution_conditions(
+            "The HLA-B*40:02 peptidomes from wild-type and ERAP2-KO cells were compared."
+        )
+        == set()
+    )
+    assert _arms_in_elution_conditions("") == set()
+
+
+def test_consensus_meta_blanks_only_disagreeing_fields():
+    """#354: an undetermined arm keeps what every candidate agrees on
+    and refuses to assert what distinguishes them."""
+    from hitlist.export import _consensus_meta
+
+    candidates = [
+        ("WT", "", {"sample_label": "WT", "perturbation": "", "instrument": "Fusion"}),
+        (
+            "KO",
+            "ERAP1 KO",
+            {"sample_label": "KO", "perturbation": "ERAP1 KO", "instrument": "Fusion"},
+        ),
+    ]
+    meta = _consensus_meta(candidates, ["sample_label", "perturbation", "instrument"])
+    assert meta["instrument"] == "Fusion"  # agreed → kept
+    assert meta["sample_label"] == ""  # disagreed → blanked
+    assert meta["perturbation"] == ""
+    assert meta["sample_attribution"] == "pmid_ambiguous"
+
+
+def test_candidates_disagree_on_arm():
+    """Perturbation arms count as disagreement; two samples of one
+    untreated study do not."""
+    from hitlist.export import _candidates_disagree_on_arm
+
+    ko_vs_wt = [
+        ("a", "", {"condition_category": "unperturbed"}),
+        ("b", "", {"condition_category": "ERAP1_perturbation"}),
+    ]
+    two_tissues = [
+        ("a", "", {"condition_category": "unperturbed"}),
+        ("b", "", {"condition_category": "unperturbed"}),
+    ]
+    assert _candidates_disagree_on_arm(ko_vs_wt) is True
+    assert _candidates_disagree_on_arm(two_tissues) is False
+
+
+def test_select_by_elution_conditions_picks_the_named_arm():
+    from hitlist.export import _select_by_elution_conditions
+
+    cands = [
+        ("untreated", "", {"condition_category": "unperturbed", "sample_label": "untreated"}),
+        ("treated", "IFNg", {"condition_category": "IFN_gamma_treatment", "sample_label": "tr"}),
+    ]
+    base = "The peptide was eluted from the following experimental conditions: "
+    assert _select_by_elution_conditions(cands, base + "IFNg-treated.")["sample_label"] == "tr"
+    assert _select_by_elution_conditions(cands, base + "untreated.")["sample_label"] == "untreated"
+    # Found in both arms → genuinely ambiguous, assert nothing.
+    assert _select_by_elution_conditions(cands, base + "IFNg-treated, untreated.") is None
+    # No enumeration at all → nothing to go on.
+    assert _select_by_elution_conditions(cands, "some narrative text") is None

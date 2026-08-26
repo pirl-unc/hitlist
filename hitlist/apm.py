@@ -157,22 +157,43 @@ def classify_apm_perturbations(*texts: str | None) -> dict[str, bool]:
 
 def apm_columns_for_sample(
     condition: str | None,
-    perturbations: Iterable[str] | None = None,
+    study_perturbations: Iterable[str] | None = None,
 ) -> dict[str, object]:
     """Build the per-sample APM column block for the ms_samples table.
+
+    The per-gene flags describe **this sample only** and are derived
+    from its own ``condition`` string.  The parent study's
+    ``perturbations`` list is reported separately.
+
+    That separation is the whole point (issue #353).  Folding the
+    study-level list into the per-gene flags meant any study curating
+    a *panel* of perturbations marked every one of its arms — the
+    untreated control included — as perturbed for every gene in the
+    panel.  The Shapiro HAP1 CRISPR panel (PMID 40113210) made all 12
+    arms claim the same 11 genes, so ``HAP1 wildtype`` reported
+    ``apm_erap1_perturbed=True`` and per-gene filtering selected whole
+    studies instead of perturbed samples.
 
     Returns a dict with one ``apm_<gene>_perturbed`` boolean per gene,
     plus:
 
-    - ``apm_perturbed`` — union flag (``True`` iff any gene matched).
+    - ``apm_perturbed`` — union flag (``True`` iff any gene matched
+      this sample's own condition).
     - ``apm_genes_perturbed`` — semicolon-joined list of matching
       gene names (lowercase keys from :data:`APM_GENES`), empty when
       none match. Lets consumers filter to specific genes via a
       string-contains check without re-parsing.
+    - ``study_apm_perturbed`` / ``study_apm_genes`` — the same union
+      over the parent study's ``perturbations`` list, so the panel
+      context stays queryable without being mistaken for a
+      sample-level fact.
     """
-    perts = list(perturbations or [])
-    flags = classify_apm_perturbations(condition, *perts)
+    flags = classify_apm_perturbations(condition)
     out: dict[str, object] = {f"apm_{gene}_perturbed": v for gene, v in flags.items()}
     out["apm_perturbed"] = any(flags.values())
     out["apm_genes_perturbed"] = ";".join(g for g, v in flags.items() if v)
+
+    study_flags = classify_apm_perturbations(*(study_perturbations or []))
+    out["study_apm_perturbed"] = any(study_flags.values())
+    out["study_apm_genes"] = ";".join(g for g, v in study_flags.items() if v)
     return out
