@@ -201,3 +201,23 @@ def test_apm_columns_propagate_through_ms_samples_table(monkeypatch):
     df_apm = export.generate_ms_samples_table(apm_only=True)
     assert len(df_apm) == 1
     assert df_apm.iloc[0]["sample_label"] == "erap1_ko"
+
+
+def test_classify_apm_eraap_is_mouse_erap1():
+    """ERAAP is the murine ortholog of ERAP1 and is what the mouse
+    literature uses.  Without the alias a mouse ERAP1 knockout landed in
+    other_perturbation instead of being featurized as ERAP1."""
+    assert classify_apm_perturbations("ERAAP knockout")["erap1"] is True
+    assert classify_apm_perturbations("ERAAP-deficient mice")["erap1"] is True
+
+
+def test_classify_apm_tapbpr_is_distinct_from_tapasin():
+    """TAPBPR / TAPBPL edits peptide cargo independently of the PLC, so
+    it gets its own key.  \\bTAPBP\\b must not swallow it, and TAPBPR must
+    not fire the tapasin flag."""
+    tapbpr = classify_apm_perturbations("TAPBPR overexpression/mutation")
+    assert tapbpr["tapbpr"] is True
+    assert tapbpr["tapbp"] is False
+    tapbp = classify_apm_perturbations("TAPBP CRISPR/Cas9 knockout (tapasin)")
+    assert tapbp["tapbp"] is True
+    assert tapbp["tapbpr"] is False

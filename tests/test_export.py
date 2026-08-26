@@ -2781,3 +2781,109 @@ def test_select_by_elution_conditions_picks_the_named_arm():
     assert _select_by_elution_conditions(cands, base + "IFNg-treated, untreated.") is None
     # No enumeration at all → nothing to go on.
     assert _select_by_elution_conditions(cands, "some narrative text") is None
+
+
+def _write_obs(tmp_path, monkeypatch, rows):
+    import pandas as pd
+
+    obs_path = tmp_path / "observations.parquet"
+    pd.DataFrame(rows).to_parquet(obs_path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+    return obs_path
+
+
+def _two_arm_overrides():
+    """One PMID, two same-allele arms — unresolvable without a label."""
+    return {
+        99999101: {
+            "study_label": "synthetic — donor cohort",
+            "species": "Homo sapiens (human)",
+            "ms_samples": [
+                {
+                    "sample_label": "MEL15 (13240-015)",
+                    "n_samples": 1,
+                    "condition": "unperturbed",
+                    "mhc_class": "I",
+                    "mhc": "HLA-A*02:01",
+                },
+                {
+                    "sample_label": "GBM11 (H4512 BT145)",
+                    "n_samples": 1,
+                    "condition": "ERAP1 CRISPR/Cas9 knockout",
+                    "mhc_class": "I",
+                    "mhc": "HLA-A*02:01",
+                },
+            ],
+        }
+    }
+
+
+def _obs_row(peptide, label):
+    import pandas as pd
+
+    return {
+        "peptide": peptide,
+        "mhc_restriction": "HLA-A*02:01",
+        "mhc_class": "I",
+        "reference_iri": f"iri:{peptide}",
+        "pmid": pd.array([99999101], dtype="Int64")[0],
+        "source": "iedb",
+        "mhc_species": "Homo sapiens",
+        "is_monoallelic": False,
+        "is_binding_assay": False,
+        "qualitative_measurement": "Positive",
+        "attributed_sample_label": label,
+    }
+
+
+def test_curated_sample_label_resolves_an_otherwise_ambiguous_arm(tmp_path, monkeypatch):
+    """A per-row ``attributed_sample_label`` that names a curated sample
+    is exact evidence and outranks every heuristic.  Both arms share
+    HLA-A*02:01, so without the label the join cannot separate them."""
+    from hitlist.export import generate_observations_table
+
+    monkeypatch.setattr("hitlist.export.load_pmid_overrides", _two_arm_overrides)
+    _write_obs(
+        tmp_path,
+        monkeypatch,
+        [
+            _obs_row("PEPTIDEAAA", "MEL15 (13240-015)"),
+            _obs_row("PEPTIDEBBB", "GBM11 (H4512 BT145)"),
+        ],
+    )
+
+    df = generate_observations_table().set_index("peptide")
+    assert df.loc["PEPTIDEAAA", "sample_label"] == "MEL15 (13240-015)"
+    assert df.loc["PEPTIDEAAA", "sample_attribution"] == "curated_sample_label"
+    assert df.loc["PEPTIDEAAA", "is_control_arm"] == "true"
+    assert df.loc["PEPTIDEBBB", "sample_label"] == "GBM11 (H4512 BT145)"
+    assert df.loc["PEPTIDEBBB", "apm_genes_perturbed"] == "erap1"
+    assert df.loc["PEPTIDEBBB", "is_control_arm"] == "false"
+
+
+def test_unmatched_curated_label_does_not_assert_an_arm(tmp_path, monkeypatch):
+    """A label naming no curated sample must fall through to the normal
+    heuristics rather than attributing arbitrarily."""
+    from hitlist.export import generate_observations_table
+
+    monkeypatch.setattr("hitlist.export.load_pmid_overrides", _two_arm_overrides)
+    _write_obs(tmp_path, monkeypatch, [_obs_row("PEPTIDECCC", "SOME OTHER DONOR")])
+
+    row = generate_observations_table().iloc[0]
+    assert row["sample_attribution"] != "curated_sample_label"
+    assert row["sample_label"] == ""
+    assert row["is_control_arm"] == ""
+
+
+def test_curated_label_keeps_bool_apm_columns_boolean(tmp_path, monkeypatch):
+    """The label override assigns column-wise so apm_perturbed stays a
+    real bool — a bulk .loc assignment pushes object/NaN in and pandas
+    warns (and will later raise)."""
+    from hitlist.export import generate_observations_table
+
+    monkeypatch.setattr("hitlist.export.load_pmid_overrides", _two_arm_overrides)
+    _write_obs(tmp_path, monkeypatch, [_obs_row("PEPTIDEBBB", "GBM11 (H4512 BT145)")])
+
+    df = generate_observations_table()
+    assert df["apm_perturbed"].dtype == bool
+    assert bool(df["apm_perturbed"].iloc[0]) is True
