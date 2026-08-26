@@ -240,7 +240,7 @@ def scan(
     peptides: set[str] | None = None,
     iedb_path: str | Path | None = None,
     cedar_path: str | Path | None = None,
-    mhc_species: str | None | object = _UNSET,
+    mhc_species: str | object | None = _UNSET,
     species_fallback: bool = True,
     mhc_class: str | None = None,
     classify_source: bool = True,

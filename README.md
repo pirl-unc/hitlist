@@ -362,7 +362,7 @@ training pipelines.
 | `--serotype` | HLA serotype: locus-specific (`A24`, `B57`, `DR15`) or public epitope (`Bw4`, `Bw6`). Matches any serotype the allele belongs to, so `--serotype Bw4` returns A\*24:02, B\*27:05, B\*57:01, etc. Split serotypes are rolled into their broad parent, so `--serotype A24` also matches A\*24:03 (serotype `A2403`). Repeatable / comma-separated. |
 | `--exclude-class-label-suspect` | Drop rows where the curated class disagrees with peptide length severely enough to be flagged `suspect` or `implausible` (`mhc_class_label_severity`). |
 | `--exclude-class-label-implausible` | Strict-cleaning variant — drops only `implausible` rows (class-I ≥18aa or ≤7aa, class-II ≤4 or ≥45aa). Keeps borderline + suspect tiers, useful when bulged class-I 15-17aa peptides should be retained. |
-| `--apm-only` | Filter to peptide rows from samples where any APM gene was perturbed (`apm_perturbed=True`). |
+| `--apm-only` | Filter to peptide rows from samples where any APM gene was perturbed (`apm_perturbed=True`). Reflects the sample's *own* condition; the parent study's perturbation panel is carried separately in `study_apm_perturbed` / `study_apm_genes`. |
 | `--output` / `-o` | `.csv` or `.parquet` |
 
 All filters are pushed down to the parquet reader (pyarrow), so `--gene PRAME` reads

@@ -117,16 +117,46 @@ def test_apm_columns_for_sample_unperturbed_returns_all_false():
 
 
 def test_apm_columns_for_sample_multi_gene_concatenates():
-    """A study perturbing several genes lists them all in
+    """A sample perturbing several genes lists them all in
     apm_genes_perturbed (semicolon-joined, lowercase, sorted by the
     APM_GENES dict order — convenient for grep + group-by)."""
-    cols = apm_columns_for_sample(
-        condition="B2M + TAP1 double knockout",
-        perturbations=["B2M CRISPR/Cas9 knockout", "TAP1 CRISPR/Cas9 knockout"],
-    )
+    cols = apm_columns_for_sample(condition="B2M + TAP1 double knockout")
     assert cols["apm_perturbed"] is True
     assert "b2m" in cols["apm_genes_perturbed"]
     assert "tap1" in cols["apm_genes_perturbed"]
+
+
+def test_apm_columns_ignore_study_panel_for_per_gene_flags():
+    """#353: a study-level perturbation panel must not mark this
+    sample's own genes.  The control arm of a CRISPR KO panel used to
+    come out flagged for every gene in the panel."""
+    cols = apm_columns_for_sample(
+        condition="",
+        study_perturbations=[
+            "B2M CRISPR/Cas9 knockout",
+            "TAP1 CRISPR/Cas9 knockout",
+            "ERAP1 CRISPR/Cas9 knockout",
+        ],
+    )
+    assert cols["apm_perturbed"] is False
+    assert cols["apm_genes_perturbed"] == ""
+    assert cols["apm_erap1_perturbed"] is False
+    # ...but the panel context is still reachable, just not as a
+    # per-sample fact.
+    assert cols["study_apm_perturbed"] is True
+    assert "erap1" in cols["study_apm_genes"]
+
+
+def test_apm_columns_one_arm_of_a_panel_claims_only_its_own_gene():
+    """#353: the ERAP1 arm of a 12-arm panel is ERAP1-perturbed and
+    nothing else."""
+    cols = apm_columns_for_sample(
+        condition="ERAP1 CRISPR/Cas9 knockout",
+        study_perturbations=["B2M CRISPR/Cas9 knockout", "TAP1 CRISPR/Cas9 knockout"],
+    )
+    assert cols["apm_genes_perturbed"] == "erap1"
+    assert cols["apm_b2m_perturbed"] is False
+    assert cols["apm_tap1_perturbed"] is False
 
 
 def test_apm_columns_propagate_through_ms_samples_table(monkeypatch):

@@ -27,6 +27,8 @@ unified export surface for downstream training workflows.
 
 from __future__ import annotations
 
+import re
+
 import pandas as pd
 
 from .curation import (
@@ -194,6 +196,127 @@ def _fillna_safe_for_categoricals(df: pd.DataFrame, value: str = "") -> pd.DataF
     return df.fillna(value)
 
 
+# Meta columns that carry booleans rather than strings.  They need
+# ``False`` (not ``""``) as their blank, otherwise pyarrow rejects the
+# mixed bool/str column on parquet write.
+_BOOL_META_COLS = frozenset({"apm_perturbed", "study_apm_perturbed"})
+
+
+# IEDB records, on some studies, exactly which experimental conditions a
+# peptide was eluted from: "The epitope was eluted from the following
+# experimental condition(s): untreated LM-MEL-44; treated LM-MEL-44."
+# Unlike the surrounding narrative that names every arm of the study on
+# every row, this is a per-peptide enumeration and is the one reliable
+# arm discriminator IEDB offers.  168k observation rows carry it.
+_ELUTION_CONDITIONS_RE = re.compile(
+    r"eluted (?:from|with|in) the following experimental conditions?\(?s?\)?\s*:\s*(.+)",
+    re.IGNORECASE,
+)
+
+# Markers identifying a *control* condition inside that enumeration.
+# Word-boundary anchored so "treated" does not match inside
+# "untreated" — the two differ by exactly that boundary, and getting it
+# wrong flips every control peptide into the treated arm.
+_CONTROL_CONDITION_RE = re.compile(
+    r"\b(?:untreated|uninfected|unperturbed|unstimulated|mock|control|parental|naive)\b"
+    r"|\bwild[- ]?type\b|\bWT\b",
+    re.IGNORECASE,
+)
+
+
+def _arms_in_elution_conditions(assay_comments: str) -> set[str]:
+    """Which arms an IEDB elution-condition enumeration names.
+
+    Returns a subset of ``{"control", "perturbed"}`` — empty when the
+    row does not carry the construct at all.  A peptide listed under
+    both arms yields both, which is genuine ambiguity rather than a
+    failure to parse: it really was eluted from each.
+    """
+    if not assay_comments:
+        return set()
+    match = _ELUTION_CONDITIONS_RE.search(str(assay_comments))
+    if not match:
+        return set()
+    arms: set[str] = set()
+    for fragment in re.split(r"[;,]", match.group(1)):
+        fragment = fragment.strip(" .")
+        if not fragment:
+            continue
+        arms.add("control" if _CONTROL_CONDITION_RE.search(fragment) else "perturbed")
+    return arms
+
+
+def _select_by_elution_conditions(
+    candidates: list[tuple[str, str, dict]],
+    assay_comments: str,
+) -> dict | None:
+    """Resolve an arm from IEDB's elution-condition enumeration.
+
+    Returns the matching candidate's meta dict, or ``None`` when the
+    construct is absent, names more than one arm, or does not single
+    out exactly one curated candidate.
+    """
+    arms = _arms_in_elution_conditions(assay_comments)
+    if len(arms) != 1:
+        return None
+    want_control = arms == {"control"}
+    matching = [
+        c
+        for c in candidates
+        if (str((c[2] or {}).get("condition_category", "")) == "unperturbed") == want_control
+    ]
+    if len(matching) != 1:
+        return None
+    return matching[0][2]
+
+
+def _candidates_disagree_on_arm(candidates: list[tuple[str, str, dict]]) -> bool:
+    """True when the candidates span more than one experimental arm.
+
+    "Arm" is ``condition_category`` — the coarse perturbation bucket —
+    so KO-vs-WT and treated-vs-untreated count as disagreement while
+    two tissue samples of one untreated study do not.  Callers use this
+    to withhold the narrative IEDB fields from the scorer (see
+    :func:`_select_best_candidate`) and to refuse first-picking a tie.
+    """
+    return len({str((c[2] or {}).get("condition_category", "")) for c in candidates}) > 1
+
+
+def _consensus_meta(
+    candidates: list[tuple[str, str, dict]],
+    meta_cols: list[str],
+) -> dict:
+    """Metadata every candidate arm agrees on; disagreements blanked.
+
+    Used when several curated ``ms_samples`` share a join key and no
+    observation-level discriminator separates them (issue #354).  The
+    previous behavior picked ``candidates[0]`` arbitrarily, which
+    silently routed an entire multi-arm study onto one arm — e.g. all
+    10,319 rows of PMID 31530632 landed on ``C1R HLA-B*40:02 (ERAP2
+    KO)`` and none on the WT arm, with no column marking the guess.
+
+    Keeping only the consensus preserves what is genuinely known (the
+    arms usually share instrument, acquisition mode and MHC genotype)
+    while refusing to assert the fields that distinguish them
+    (``sample_label``, ``perturbation``, ``condition_category``, the
+    APM block).  A filter on ``perturbation`` then excludes these rows
+    instead of silently returning the wrong half of the study.
+
+    When the arms happen to agree on a field it is kept — several KO
+    arms of different genes still share ``is_control_arm == "false"``,
+    so "not a control" survives even when "which knockout" does not.
+    """
+    out: dict = {}
+    for col in meta_cols:
+        values = {c[2].get(col, "") for c in candidates}
+        if len(values) == 1:
+            out[col] = next(iter(values))
+        else:
+            out[col] = False if col in _BOOL_META_COLS else ""
+    out["sample_attribution"] = "pmid_ambiguous"
+    return out
+
+
 def apply_winners_vectorized(
     obs: pd.DataFrame,
     mask: pd.Series,
@@ -327,6 +450,44 @@ def _serialize_reference_proteomes(proteomes) -> str:
     return ";".join(out)
 
 
+_UNPERTURBED_PREFIX = "unperturbed"
+
+
+def simplify_condition(condition: str | None) -> str:
+    """Reduce a curated ``condition`` string to its perturbation, or ``""``.
+
+    This is the single normalization behind ``perturbation``,
+    ``condition_category`` and the ``apm_*`` block.  They used to be
+    derived from two different strings — ``condition_category`` from
+    the simplified condition, the APM flags from the raw one — which
+    let a sample report ``condition_category == "unperturbed"`` and
+    ``apm_erap2_perturbed == True`` at the same time (issue #355).
+
+    Curator convention for ``unperturbed``-prefixed conditions:
+
+    * ``unperturbed + X`` — a treatment *was* applied on top of the
+      otherwise-unperturbed baseline, so ``X`` is the perturbation.
+      Blanking these mislabelled the 7 ``unperturbed + IFN-gamma
+      (2000 U/mL, 3d)`` tumor samples as controls.
+    * ``unperturbed — X`` / ``unperturbed (X)`` — ``X`` annotates the
+      baseline (culture medium, IP antibody, ``natural ERAP2
+      genotype``, ``direct ex vivo``) rather than naming a treatment,
+      so the perturbation is empty.  314 samples use this form.
+
+    The raw ``condition`` column is exported unchanged, so the
+    annotation text stays available for audit.
+    """
+    text = (condition or "").strip()
+    if not text or text == "—" or text.startswith("NOT "):
+        return ""
+    if text.startswith(_UNPERTURBED_PREFIX):
+        rest = text[len(_UNPERTURBED_PREFIX) :].strip()
+        if rest.startswith("+"):
+            return rest[1:].strip()
+        return ""
+    return text
+
+
 def generate_ms_samples_table(
     mhc_class: str | None = None,
     apm_only: bool = False,
@@ -363,7 +524,12 @@ def generate_ms_samples_table(
         GANAB, SPPL3, NLRC5, CIITA, HLA-DM, HLA-DO, CD74, cathepsin,
         RFX, bare-lymphocyte-syndrome), an ``apm_perturbed`` union
         flag, and ``apm_genes_perturbed`` semicolon-joined list of
-        matched genes (#202).
+        matched genes (#202).  These describe the sample's **own**
+        condition; ``study_apm_perturbed`` / ``study_apm_genes`` carry
+        the parent study's panel-level perturbation list (#353).
+
+        ``is_control_arm`` is ``"true"`` for unperturbed arms and
+        ``"false"`` otherwise (#354).
     """
     from .apm import apm_columns_for_sample
 
@@ -382,15 +548,7 @@ def generate_ms_samples_table(
                 continue
 
             condition = sample.get("condition", "") or ""
-            if (
-                not condition
-                or condition.startswith("unperturbed")
-                or condition == "—"
-                or condition.startswith("NOT ")
-            ):
-                perturbation = ""
-            else:
-                perturbation = condition
+            perturbation = simplify_condition(condition)
 
             n = sample.get("n_samples", "")
             if n == 0:
@@ -429,11 +587,14 @@ def generate_ms_samples_table(
             for field in _ACQUISITION_FIELDS:
                 row[field] = sample.get(field) or entry.get(field) or ""
             row["instrument_type"] = _classify_instrument(row["instrument"])
-            # APM perturbation block — one boolean per gene + union (#202).
+            # APM perturbation block — one boolean per gene + union
+            # (#202).  Per-gene flags come from this sample's own
+            # condition; the study's panel-level list is reported in the
+            # separate ``study_apm_*`` columns (#353).
             row.update(
                 apm_columns_for_sample(
-                    condition=condition,
-                    perturbations=study_perturbations,
+                    condition=perturbation,
+                    study_perturbations=study_perturbations,
                 )
             )
             # Coarse condition category for downstream model training:
@@ -444,6 +605,13 @@ def generate_ms_samples_table(
             from .condition_categories import categorize_condition
 
             row["condition_category"] = categorize_condition(perturbation)
+            # Explicit control-arm flag so the KO-vs-WT contrast is a
+            # first-class query (#354).  Tri-state string (matching the
+            # ``profiled`` convention) because the observation-level
+            # join leaves it ``""`` when the arm can't be determined.
+            row["is_control_arm"] = (
+                "true" if row["condition_category"] == "unperturbed" else "false"
+            )
             rows.append(row)
 
     df = pd.DataFrame(rows)
@@ -510,6 +678,24 @@ def generate_observations_table(
     -------
     pd.DataFrame
         One row per peptide observation, enriched with sample metadata.
+
+        Arm provenance (#354):
+
+        - ``sample_attribution`` — how the row reached its sample:
+          ``allele_exact`` (unique pmid+allele), ``elution_conditions``
+          (IEDB named the exact condition the peptide was eluted
+          from), ``discriminated`` (resolved by scoring the row's
+          ``cell_name`` / ``source_tissue``), ``class_pool``,
+          ``single_sample_pmid``, ``pmid_ambiguous`` (arm undetermined)
+          or ``""`` (no sample matched).
+        - ``is_control_arm`` — ``"true"`` / ``"false"``, or ``""``
+          when the arm could not be determined.
+
+        On ``pmid_ambiguous`` rows the fields that distinguish the
+        candidate arms (``sample_label``, ``perturbation``,
+        ``condition_category``, the ``apm_*`` block) are blank rather
+        than guessed, so filtering on them never returns rows from an
+        undetermined arm.  Fields the arms agree on are preserved.
 
     Raises
     ------
@@ -600,10 +786,25 @@ def generate_observations_table(
         "labeling",
         "ip_antibody",
         # APM perturbation block (#202) — propagated through the join
-        # so consumers can filter / pivot on individual genes.
+        # so consumers can filter / pivot on individual genes.  These
+        # describe the matched sample's own condition; the study-level
+        # panel context rides along separately (#353).
         "apm_perturbed",
         "apm_genes_perturbed",
+        "study_apm_perturbed",
+        "study_apm_genes",
+        # Arm provenance (#354): whether this row's sample is a control
+        # arm, and how confidently the row was attributed to a sample.
+        "is_control_arm",
+        "sample_attribution",
     ]
+
+    # ``sample_attribution`` is synthesized by the join rather than read
+    # off a sample row, so seed it on the samples frame before the meta
+    # dicts are built.  Each join path overwrites it with how that row
+    # was actually matched; rows no path reaches keep "" (unattributed).
+    samples = samples.copy()
+    samples["sample_attribution"] = "allele_exact"
 
     # --- PMID-level metadata (quantification_method) ---
     overrides = load_pmid_overrides()
@@ -668,6 +869,8 @@ def generate_observations_table(
     single_df = single_df[["_pmid_int", *meta_cols]].rename(
         columns={c: c + "_fb" for c in meta_cols}
     )
+    if not single_df.empty:
+        single_df["sample_attribution_fb"] = "single_sample_pmid"
 
     # --- PMID x class allele pool ---
     # For class-only observations (mhc_restriction = "HLA class I"),
@@ -792,18 +995,41 @@ def generate_observations_table(
                 cands = _candidates_by_key.get(key)
                 if not cands:
                     continue
-                best = _select_best_candidate(
-                    cands,
-                    r["cell_name"],
-                    r["source_tissue"],
-                    r["antigen_processing_comments"],
-                    r["assay_comments"],
-                )
-                # When no candidate scores, keep the existing first-pick
-                # meta — that's what the unambiguous fast path already
-                # wrote into obs.
+                # When the candidates span different arms, score only
+                # the per-row factual fields.  ``antigen_processing_
+                # comments`` / ``assay_comments`` are narrative and
+                # describe the study as a whole, so they name *every*
+                # arm on *every* row — PMID 31530632 opens all 10,319
+                # of its rows with "The HLA-B*40:02 peptidomes from
+                # wild-type and ERAP2-KO cells were compared...", and
+                # PMID 33633747 says "Cells were either untreated, or
+                # treated with Flucloxacillin".  Scoring that prose
+                # handed one arm a win on every row of the study,
+                # including peptides found only in the other arm
+                # (#354).  Absence of evidence in a narrative field is
+                # not evidence, so those fields never decide an arm.
+                _arm_split = _candidates_disagree_on_arm(cands)
+                # IEDB's per-peptide elution-condition enumeration is
+                # the one reliable arm discriminator it offers, so it
+                # outranks token scoring when present.
+                best = _select_by_elution_conditions(cands, r["assay_comments"])
+                _attr = "elution_conditions"
                 if best is None:
-                    best = cands[0][2]
+                    _attr = "discriminated"
+                    best = _select_best_candidate(
+                        cands,
+                        r["cell_name"],
+                        r["source_tissue"],
+                        "" if _arm_split else r["antigen_processing_comments"],
+                        "" if _arm_split else r["assay_comments"],
+                    )
+                # When no candidate scores, the arm is genuinely
+                # undetermined.  Fall back to what every candidate
+                # agrees on rather than first-picking one arm (#354).
+                if best is None:
+                    best = _consensus_meta(cands, meta_cols)
+                else:
+                    best = {**best, "sample_attribution": _attr}
                 _winner_meta[
                     (
                         r["_pmid_int"],
@@ -833,9 +1059,8 @@ def generate_observations_table(
     # Coalesce: allele match > single-PMID fallback > "" (or False for
     # bool meta cols). Block-wise variants of fillna minimize the number
     # of consolidation passes (#30).
-    _bool_meta_cols = {"apm_perturbed"}
-    str_meta_cols = [c for c in meta_cols if c not in _bool_meta_cols]
-    bool_meta_cols = [c for c in meta_cols if c in _bool_meta_cols]
+    str_meta_cols = [c for c in meta_cols if c not in _BOOL_META_COLS]
+    bool_meta_cols = [c for c in meta_cols if c in _BOOL_META_COLS]
 
     if str_meta_cols:
         str_fb_cols = [c + "_fb" for c in str_meta_cols]
@@ -935,10 +1160,18 @@ def generate_observations_table(
                     _cands = _class_candidates.get(_key)
                     if not _cands:
                         continue
+                    _pool_attr = "class_pool"
                     if len(_cands) == 1:
                         # Single-class candidate inside a multi-sample
                         # PMID — assign without scoring (no ambiguity).
                         _best_meta: dict | None = _cands[0][2]
+                    elif (
+                        _elution := _select_by_elution_conditions(_cands, _r["assay_comments"])
+                    ) is not None:
+                        # Same per-peptide arm evidence as the
+                        # allele-level path above.
+                        _best_meta = _elution
+                        _pool_attr = "elution_conditions"
                     else:
                         _varying = _varying_cols_per_key.get(
                             (_r["_pmid_int"], _r["mhc_class"]), _disc_cols_all
@@ -966,6 +1199,7 @@ def generate_observations_table(
                         if (
                             _best_meta is None
                             and "cell_name" not in _varying
+                            and not _candidates_disagree_on_arm(_cands)
                             and (
                                 "antigen_processing_comments" in _varying
                                 or "assay_comments" in _varying
@@ -990,6 +1224,7 @@ def generate_observations_table(
                                 _r["assay_comments"] if "assay_comments" in _varying else "",
                             )
                     if _best_meta is not None:
+                        _best_meta = {**_best_meta, "sample_attribution": _pool_attr}
                         _tb_winner[
                             (
                                 _r["_pmid_int"],
@@ -2254,7 +2489,10 @@ def _select_best_candidate(
 
     Returns the candidate's full meta dict, or ``None`` when no
     candidate has any positive overlap (so callers can fall back to
-    the existing first-pick / class-pool behavior).
+    the existing first-pick / class-pool behavior), and also when the
+    top score is a tie between candidates from *different* arms — a
+    tie is not a discrimination, and silently taking the first one is
+    how whole studies used to collapse onto a single arm.
     """
     if not candidates:
         return None
@@ -2273,6 +2511,7 @@ def _select_best_candidate(
         for slabel, sperturb, _ in candidates
     ]
     n_cands = len(candidates)
+    all_scores: list[tuple] = []
     union = set().union(*(ct for ct, _ in cand_views))
     if not union:
         return None
@@ -2361,12 +2600,22 @@ def _select_best_candidate(
                 if len(stripped) >= 3 and stripped in obs_text:
                     allele_score += 1
         score = (overlap, prefix_matches, sub_score, allele_score)
+        all_scores.append(score)
         if score > best_score:
             best_score = score
             best_idx = i
 
     if best_idx < 0 or best_score == (0, 0, 0, 0):
         return None
+    # A tie at the top is only a discrimination if the tied candidates
+    # belong to the same arm.  When they disagree on
+    # ``condition_category`` the row genuinely cannot be placed, and
+    # first-picking would reintroduce the silent collapse (#354).
+    tied = [i for i, sc in enumerate(all_scores) if sc == best_score]
+    if len(tied) > 1:
+        arms = {str((candidates[i][2] or {}).get("condition_category", "")) for i in tied}
+        if len(arms) > 1:
+            return None
     return candidates[best_idx][2]
 
 
