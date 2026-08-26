@@ -872,6 +872,16 @@ def generate_observations_table(
     if not single_df.empty:
         single_df["sample_attribution_fb"] = "single_sample_pmid"
 
+    # --- Canonical class token per obs row ---
+    # The YAML writes ``non-classical``; the IEDB export writes ``non
+    # classical``.  They never compared equal, so non-classical samples
+    # were unreachable from every class-keyed path below (#363).
+    from .curation import normalize_mhc_class_token
+
+    obs["_mhc_class_norm"] = (
+        obs["mhc_class"].astype(str).map(normalize_mhc_class_token).astype("object")
+    )
+
     # --- PMID x class allele pool ---
     # For class-only observations (mhc_restriction = "HLA class I"),
     # collect the union of all alleles across all samples of that class.
@@ -879,11 +889,11 @@ def generate_observations_table(
     _class_pool: dict[tuple[int, str], str] = {}  # (pmid, mhc_class) → space-joined alleles
     for pmid_int_s, group in samples.groupby("pmid"):
         pmid_int_v = int(pmid_int_s)
-        for cls in ("I", "II"):
+        _classes_here = set().union(*(_sample_class_tokens(r) for _, r in group.iterrows()))
+        for cls in sorted(_classes_here):
             alleles: set[str] = set()
             for _, srow in group.iterrows():
-                sample_cls = srow.get("mhc_class", "")
-                if cls in str(sample_cls).split("+"):
+                if cls in _sample_class_tokens(srow):
                     mhc_str = srow.get("mhc", "")
                     if mhc_str and not _is_class_only_sentinel(mhc_str):
                         # Same heterodimer expansion as the allele-level
@@ -1090,11 +1100,11 @@ def generate_observations_table(
         _class_candidates: dict[tuple[int, str], list[tuple[str, str, dict]]] = {}
         for _pmid_v_s, _grp in samples.groupby("pmid"):
             _pmid_v = int(_pmid_v_s)
-            for _cls in ("I", "II"):
+            _grp_classes = set().union(*(_sample_class_tokens(r) for _, r in _grp.iterrows()))
+            for _cls in sorted(_grp_classes):
                 _cands_cls: list[tuple[str, str, dict]] = []
                 for _, _r in _grp.iterrows():
-                    _scls = str(_r.get("mhc_class", "") or "")
-                    if _cls in _scls.split("+"):
+                    if _cls in _sample_class_tokens(_r):
                         _meta = {c: _r.get(c, "") for c in meta_cols}
                         _cands_cls.append(
                             (
@@ -1119,7 +1129,7 @@ def generate_observations_table(
             # multi-sample candidate pool — this is where the previous
             # logic gave up and left sample_label empty.
             _eligible_keys = {(float(p), c) for p, c in _class_candidates}
-            _obs_pc_idx = pd.MultiIndex.from_arrays([obs["_pmid_int"], obs["mhc_class"]])
+            _obs_pc_idx = pd.MultiIndex.from_arrays([obs["_pmid_int"], obs["_mhc_class_norm"]])
             _obs_pc_in_pool = pd.Series(
                 _obs_pc_idx.isin(pd.MultiIndex.from_tuples(_eligible_keys)),
                 index=obs.index,
@@ -1142,21 +1152,23 @@ def generate_observations_table(
                 for col in _disc_cols_all:
                     if col not in obs.columns:
                         obs[col] = ""
-                _tb_cols = ["_pmid_int", "mhc_class", *_disc_cols_all]
+                _tb_cols = ["_pmid_int", "_mhc_class_norm", *_disc_cols_all]
                 _eligible_df = _fillna_safe_for_categoricals(obs.loc[_eligible_mask, _tb_cols])
                 # Per (pmid, class), drop discriminator columns whose
                 # value is identical across all eligible rows — those
                 # can't differentiate samples and would otherwise inflate
                 # rarity-weighted scores with study-level boilerplate.
                 _varying_cols_per_key: dict[tuple, list[str]] = {}
-                for (_pmid_v_g, _cls_g), _grp in _eligible_df.groupby(["_pmid_int", "mhc_class"]):
+                for (_pmid_v_g, _cls_g), _grp in _eligible_df.groupby(
+                    ["_pmid_int", "_mhc_class_norm"]
+                ):
                     _varying = [c for c in _disc_cols_all if _grp[c].nunique() > 1]
                     _varying_cols_per_key[(_pmid_v_g, _cls_g)] = _varying
                 _unique_tb = _eligible_df.drop_duplicates()
 
                 _tb_winner: dict[tuple, dict] = {}
                 for _, _r in _unique_tb.iterrows():
-                    _key = (int(_r["_pmid_int"]), str(_r["mhc_class"]))
+                    _key = (int(_r["_pmid_int"]), str(_r["_mhc_class_norm"]))
                     _cands = _class_candidates.get(_key)
                     if not _cands:
                         continue
@@ -1174,7 +1186,7 @@ def generate_observations_table(
                         _pool_attr = "elution_conditions"
                     else:
                         _varying = _varying_cols_per_key.get(
-                            (_r["_pmid_int"], _r["mhc_class"]), _disc_cols_all
+                            (_r["_pmid_int"], _r["_mhc_class_norm"]), _disc_cols_all
                         )
                         # Two-pass scoring:
                         # Pass 1: cell_name + source_tissue only — these
@@ -1228,7 +1240,7 @@ def generate_observations_table(
                         _tb_winner[
                             (
                                 _r["_pmid_int"],
-                                _r["mhc_class"],
+                                _r["_mhc_class_norm"],
                                 _r["cell_name"],
                                 _r["source_tissue"],
                                 _r["antigen_processing_comments"],
@@ -1301,7 +1313,7 @@ def generate_observations_table(
             ),
         )
         sub_idx = pd.MultiIndex.from_arrays(
-            [obs.loc[still_empty, "_pmid_int"], obs.loc[still_empty, "mhc_class"]]
+            [obs.loc[still_empty, "_pmid_int"], obs.loc[still_empty, "_mhc_class_norm"]]
         )
         obs.loc[still_empty, "mhc"] = pool_lookup.reindex(sub_idx).fillna("").to_numpy()
 
@@ -1338,7 +1350,7 @@ def generate_observations_table(
     # Class pool: not allele-matched, not single-sample, but has class pool alleles
     if _class_pool:
         class_pool_idx = pd.MultiIndex.from_tuples([(float(p), c) for p, c in _class_pool])
-        obs_pmid_class_idx = pd.MultiIndex.from_arrays([obs["_pmid_int"], obs["mhc_class"]])
+        obs_pmid_class_idx = pd.MultiIndex.from_arrays([obs["_pmid_int"], obs["_mhc_class_norm"]])
         in_pool = pd.Series(obs_pmid_class_idx.isin(class_pool_idx), index=obs.index)
     else:
         in_pool = pd.Series(False, index=obs.index)
@@ -1371,7 +1383,7 @@ def generate_observations_table(
     # versions dropped immediately after the coalesce loop. Pandas'
     # ``drop`` call cost is dominated by block consolidation, so one
     # bigger drop is cheaper than two smaller ones (#30).
-    obs.drop(columns=[*fb_cols, "_pmid_int"], inplace=True)
+    obs.drop(columns=[*fb_cols, "_pmid_int", "_mhc_class_norm"], inplace=True)
     result = obs
 
     # --- Tighten dtypes: low-cardinality metadata → categorical (#263) ---
@@ -2454,38 +2466,20 @@ def _compute_is_engineered_mhc(
 
 
 def _expand_heterodimer_components(allele_token: str) -> list[str]:
-    """Return the allele plus its beta/alpha components for HLA-II heterodimers.
+    """Return the allele plus its alpha/beta components for class-II pairs.
 
-    The ``ms_samples`` curation stores DP/DQ heterodimers as paired strings
-    such as ``"HLA-DPB1*06:01/DPA1*01:03"`` or ``"HLA-DQB1*06:04/DQA1*01:02"``,
-    but many IEDB/supplementary rows report only the beta chain
-    (``"HLA-DPB1*06:01"``).  Emitting the full string *plus* each
-    component from the sample allele pool lets the vectorized merge
-    match beta-chain-only rows against heterodimer samples — see
-    pirl-unc/hitlist#151.  Class-I alleles and already-split strings
-    pass through unchanged (a single-element list).
+    Thin wrapper over :func:`hitlist.curation.expand_allele_components`,
+    which splits the pair with mhcgnomes instead of string-splitting on
+    ``"/"`` and re-attaching whichever prefix the curator happened to
+    write.  See pirl-unc/hitlist#151 for why single-chain observations
+    need to reach heterodimer samples.
     """
-    token = allele_token.strip()
-    if not token or "/" not in token:
-        return [token] if token else []
-    parts = token.split("/")
-    # Preserve the HLA- prefix on component strings even when only the
-    # leading token carries it (the canonical curated form).
-    prefix = ""
-    first = parts[0]
-    if first.startswith("HLA-"):
-        prefix = "HLA-"
-        parts[0] = first[len("HLA-") :]
-    components = [prefix + p for p in parts if p]
-    # Dedupe while preserving order: full string first, then components.
-    out = [token]
-    for c in components:
-        if c and c not in out:
-            out.append(c)
-    return out
+    from .curation import expand_allele_components
+
+    return expand_allele_components(allele_token)
 
 
-_TIEBREAK_TOKEN_RE = __import__("re").compile(r"[^a-z0-9]+")
+_TIEBREAK_TOKEN_RE = re.compile(r"[^a-z0-9]+")
 
 
 def _label_tokens(s: str, min_len: int = 3) -> set[str]:
@@ -2699,15 +2693,14 @@ def _tiebreak_score(
 def _is_class_only_sentinel(mhc_str: str) -> bool:
     """True when the sample's mhc field carries no allele-level info.
 
-    Recognises the legacy ``"unknown"`` sentinel and the class-only
-    placeholders ``"HLA class I"`` / ``"HLA class II"`` (introduced
-    in 1.7.1 to replace ``"unknown"`` when the IP antibody / mhc_class
-    tells us the class but no allele genotype was reported).
+    Delegates to :func:`hitlist.curation.is_class_only_token`, which asks
+    mhcgnomes whether the string names a *class* rather than a molecule —
+    so ``"HLA class I"``, ``"MHC class II"`` and any other species'
+    notation are recognised without prefix matching.
     """
-    s = mhc_str.strip().lower()
-    if s == "unknown":
-        return True
-    return s.startswith("hla class") or s.startswith("mhc class")
+    from .curation import is_class_only_token
+
+    return is_class_only_token(mhc_str)
 
 
 def _join_unique_text(values) -> str:
@@ -3163,6 +3156,28 @@ def validate_mhc_alleles() -> pd.DataFrame:
             )
 
     return pd.DataFrame(rows)
+
+
+def _sample_class_tokens(sample_row) -> set[str]:
+    """Canonical MHC class tokens a curated sample belongs to.
+
+    Reads the declared ``mhc_class`` (normalizing the ``non-classical`` /
+    ``non classical`` spelling split) and falls back to deriving the class
+    from the sample's own alleles via mhcgnomes when it is blank.
+
+    Returning a set rather than testing against a hardcoded ``("I", "II")``
+    is what lets non-classical samples participate in the class pool at
+    all — HLA-E / HLA-G / HLA-F / MR1 / H2-Q samples were previously
+    invisible to it (#363).
+    """
+    from .curation import mhc_class_of, normalize_mhc_class_token
+
+    declared = normalize_mhc_class_token(str(sample_row.get("mhc_class", "") or ""))
+    if declared:
+        return {p.strip() for p in declared.split("+") if p.strip()}
+    derived = {mhc_class_of(tok) for tok in str(sample_row.get("mhc", "") or "").split() if tok}
+    derived.discard("")
+    return derived
 
 
 def _mhc_class_matches(sample_class: str, filter_class: str) -> bool:

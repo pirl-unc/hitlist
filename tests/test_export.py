@@ -2887,3 +2887,79 @@ def test_curated_label_keeps_bool_apm_columns_boolean(tmp_path, monkeypatch):
     df = generate_observations_table()
     assert df["apm_perturbed"].dtype == bool
     assert bool(df["apm_perturbed"].iloc[0]) is True
+
+
+# ── Non-classical MHC class handling (#363) ───────────────────────────
+
+
+def _nonclassical_overrides():
+    return {
+        99999201: {
+            "study_label": "synthetic — HLA-E transfectants",
+            "species": "Homo sapiens (human)",
+            "ms_samples": [
+                {
+                    "sample_label": "sHLA-E*01:01 (K562 lysate)",
+                    "n_samples": 1,
+                    "condition": "unperturbed",
+                    "mhc_class": "non-classical",
+                    "mhc": "HLA-E*01:01",
+                },
+                {
+                    "sample_label": "sHLA-E*01:03 (K562 lysate)",
+                    "n_samples": 1,
+                    "condition": "unperturbed",
+                    "mhc_class": "non-classical",
+                    "mhc": "HLA-E*01:03",
+                },
+            ],
+        }
+    }
+
+
+def test_non_classical_samples_reach_the_class_pool(tmp_path, monkeypatch):
+    """#363: the pool used to iterate a hardcoded ``("I", "II")`` and to
+    compare the YAML's ``non-classical`` against IEDB's ``non classical``,
+    so a non-classical row could never pick up its study's allele pool."""
+    import pandas as pd
+
+    from hitlist.export import generate_observations_table
+
+    monkeypatch.setattr("hitlist.export.load_pmid_overrides", _nonclassical_overrides)
+    obs_path = tmp_path / "observations.parquet"
+    pd.DataFrame(
+        {
+            # Class-only restriction: cannot allele-match, so the row can
+            # only be resolved through the class pool.
+            "peptide": ["NONCLASSIC"],
+            "mhc_restriction": ["HLA class I"],
+            # IEDB's spelling, with a space.
+            "mhc_class": ["non classical"],
+            "reference_iri": ["iri:nc"],
+            "pmid": pd.array([99999201], dtype="Int64"),
+            "source": ["iedb"],
+            "mhc_species": ["Homo sapiens"],
+            "is_monoallelic": [False],
+            "is_binding_assay": [False],
+            "qualitative_measurement": ["Positive"],
+        }
+    ).to_parquet(obs_path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+
+    row = generate_observations_table().iloc[0]
+    assert row["sample_match_type"] == "pmid_class_pool"
+    # Both non-classical samples of the PMID contribute to the pool.
+    assert "HLA-E*01:01" in row["sample_mhc"]
+    assert "HLA-E*01:03" in row["sample_mhc"]
+
+
+def test_sample_class_tokens_normalizes_and_derives():
+    """Declared class wins (with the spelling normalized); a blank class
+    falls back to deriving it from the sample's own alleles."""
+    from hitlist.export import _sample_class_tokens
+
+    assert _sample_class_tokens({"mhc_class": "non classical", "mhc": ""}) == {"non-classical"}
+    assert _sample_class_tokens({"mhc_class": "I+II", "mhc": ""}) == {"I", "II"}
+    # Blank declared class -> derived from alleles via mhcgnomes.
+    assert _sample_class_tokens({"mhc_class": "", "mhc": "HLA-E*01:03"}) == {"non-classical"}
+    assert _sample_class_tokens({"mhc_class": "", "mhc": "HLA-A*02:01 HLA-B*07:02"}) == {"I"}

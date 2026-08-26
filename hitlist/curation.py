@@ -604,6 +604,159 @@ def normalize_allele(raw: str) -> str:
     return cleaned
 
 
+# ── MHC class (mhcgnomes-derived) ──────────────────────────────────────────
+
+#: mhcgnomes reports a fine-grained class taxonomy.  Map it onto the three
+#: tokens this corpus uses.  ``Ib`` / ``Ic`` / ``Id`` are the non-classical
+#: class-I families (HLA-E/F/G, H2-Q/T/M, CD1, MR1); folding them into ``I``
+#: would make ``--mhc-class I`` silently sweep up HLA-E rows, so they keep
+#: their own token.
+_FINE_MHC_CLASS_TO_TOKEN: dict[str, str] = {
+    "Ia": "I",
+    "Ib": "non-classical",
+    "Ic": "non-classical",
+    "Id": "non-classical",
+    "IIa": "II",
+    "IIb": "II",
+    "I": "I",
+    "II": "II",
+}
+
+#: mhcgnomes result types that name an actual MHC molecule.  Everything else
+#: (``Species``, ``MhcClass``, ``Haplotype``) is either too coarse or a false
+#: positive — notably ``parse("n/a")`` returns a *rat haplotype* ``RT1-n/A``,
+#: so free-text fields must never be accepted on "it parsed" alone.
+_MHC_MOLECULE_TYPES = frozenset({"Allele", "Gene", "Pair"})
+
+#: Curators write ``non-classical``; IEDB exports write ``non classical``.
+_MHC_CLASS_TOKEN_ALIASES: dict[str, str] = {
+    "i": "I",
+    "ii": "II",
+    "non classical": "non-classical",
+    "non-classical": "non-classical",
+    "nonclassical": "non-classical",
+}
+
+
+def normalize_mhc_class_token(value: str) -> str:
+    """Canonicalize a curated / IEDB ``mhc_class`` spelling.
+
+    The YAML and the IEDB export disagree on the non-classical token —
+    ``non-classical`` vs ``non classical`` — which meant the two could
+    never compare equal and non-classical samples were unreachable from
+    the observation join (issue #363).  Compound ``I+II`` values are
+    normalized component-wise and rejoined.
+    """
+    text = (value or "").strip()
+    if not text:
+        return ""
+    parts = [p.strip() for p in text.split("+") if p.strip()]
+    out = [_MHC_CLASS_TOKEN_ALIASES.get(p.lower(), p) for p in parts]
+    return "+".join(out)
+
+
+@cache
+def mhc_class_of(mhc_restriction: str) -> str:
+    """Canonical MHC class for an allele / gene / pair, via mhcgnomes.
+
+    Returns ``"I"``, ``"II"``, ``"non-classical"`` or ``""`` (unknown).
+
+    Derived rather than string-matched, so it works for every species
+    mhcgnomes knows without a per-species table.  Validated against the
+    built corpus: it reproduces the curated class on 2,922,227 observation
+    rows and differs on 72, all of which are curation errors in the other
+    direction (``Caja-E`` and ``Mamu-E*02:11`` are the marmoset / rhesus
+    MHC-E genes and are non-classical, not classical).
+
+    Semicolon-joined donor sets (the ``donor_set`` resolution emitted by
+    #45, e.g. ``"HLA-DQB1*03:01;HLA-DRB1*15:01"``) are resolved from their
+    components and return a class only when the components agree.
+    """
+    text = (mhc_restriction or "").strip()
+    if not text:
+        return ""
+    if ";" in text:
+        classes = {mhc_class_of(part) for part in text.split(";") if part.strip()}
+        classes.discard("")
+        return classes.pop() if len(classes) == 1 else ""
+    parsed = _cached_parse(text)
+    if parsed is None:
+        return ""
+    return _FINE_MHC_CLASS_TO_TOKEN.get(str(getattr(parsed, "mhc_class", "")), "")
+
+
+@cache
+def is_class_only_token(value: str) -> bool:
+    """True when a string names a *class* rather than a specific molecule.
+
+    Replaces prefix matching on ``"hla class"`` / ``"mhc class"``: mhcgnomes
+    returns an ``MhcClass`` for exactly these, in any species' notation.
+    The legacy ``"unknown"`` sentinel is still recognised explicitly since
+    it carries the same meaning but does not parse.
+    """
+    text = (value or "").strip()
+    if not text:
+        return False
+    if text.lower() in ("unknown", "not typed", "n/a", "na"):
+        return True
+    return type(_cached_parse(text)).__name__ == "MhcClass"
+
+
+def expand_allele_components(allele_token: str) -> list[str]:
+    """Return an allele plus, for a class-II pair, its alpha/beta chains.
+
+    ``ms_samples`` curate DP/DQ heterodimers as a paired string
+    (``"HLA-DPB1*06:01/DPA1*01:03"``) while many IEDB rows report only one
+    chain (``"HLA-DPB1*06:01"``).  Emitting the pair *plus* each chain lets
+    a single-chain observation match a heterodimer sample (#151).
+
+    mhcgnomes splits the pair, so the chain strings come back canonical for
+    any species rather than depending on where the ``HLA-`` prefix happened
+    to sit in the curated text.  Non-pairs pass through unchanged.
+    """
+    token = (allele_token or "").strip()
+    if not token:
+        return []
+    out = [token]
+    parsed = _cached_parse(token)
+    if type(parsed).__name__ == "Pair":
+        for chain in (parsed.alpha, parsed.beta):
+            text = chain.to_string()
+            if text and text not in out:
+                out.append(text)
+    return out
+
+
+def extract_allele_tokens(text: str) -> list[str]:
+    """Pull MHC molecule tokens out of a free-text ``mhc`` field.
+
+    Replaces an ``(?:HLA-)?[A-Z]+\\d*\\*\\d{2,4}:\\d{2,4}`` regex that
+    encoded HLA's digit syntax and therefore silently dropped every
+    non-human allele — ``H-2Kb``, ``H2-K*b``, ``H-2Q1`` and ``Patr-AL`` all
+    returned nothing.  Splitting on separators and asking mhcgnomes what
+    each token is works for every species it knows.
+
+    Only ``Allele`` / ``Gene`` / ``Pair`` results are accepted.  That
+    matters: mhcgnomes resolves ``"n/a"`` to the rat haplotype ``RT1-n/A``,
+    so accepting anything that merely parses would inject junk from
+    free-text curation fields.
+    """
+    if not text:
+        return []
+    out: list[str] = []
+    for raw in re.split(r"[\s;,]+", str(text)):
+        token = raw.strip()
+        if not token:
+            continue
+        parsed = _cached_parse(token)
+        if type(parsed).__name__ not in _MHC_MOLECULE_TYPES:
+            continue
+        canonical = parsed.to_string()
+        if canonical and canonical not in out:
+            out.append(canonical)
+    return out
+
+
 # ── Allele resolution ──────────────────────────────────────────────────────
 
 #: Resolution tiers, ordered from most to least specific.
@@ -1098,18 +1251,21 @@ def _pmid_allele_pool(pmid_int: int) -> frozenset[str]:
     return frozenset(_flatten_hla_alleles(entry.get("hla_alleles")))
 
 
-_SAMPLE_ALLELE_TOKEN_RE = re.compile(r"(?:HLA-)?[A-Z]+\d*\*\d{2,4}:\d{2,4}[A-Z]?")
-
-
 def _parse_sample_mhc_field(mhc_field) -> frozenset[str]:
     """Parse a ``ms_samples[].mhc`` value into a normalized 4-digit-allele set.
 
     ms_samples curators use mixed formats — some entries are
     ``"HLA-A*01:01"`` (HLA-prefixed) and others are ``"A*02:01 A*24:02
     B*15:01 ..."`` (bare, space-joined).  Both shapes carry valid donor
-    genotypes; we normalize through :func:`normalize_allele` (mhcgnomes)
-    so the per-sample set matches the canonical form used elsewhere
-    (``HLA-A*02:01``).
+    genotypes; :func:`extract_allele_tokens` normalizes either through
+    mhcgnomes so the per-sample set matches the canonical form used
+    elsewhere (``HLA-A*02:01``).
+
+    Previously an HLA-shaped regex did the extraction, which silently
+    returned nothing for every non-human genotype — ``"H-2Kb H-2Db"``,
+    ``"H-2Q1 H-2Q2"`` and ``"Patr-AL"`` all parsed to the empty set, so
+    per-peptide attribution could never narrow a mouse sample's candidate
+    alleles.
     """
     if mhc_field is None:
         return frozenset()
@@ -1120,12 +1276,7 @@ def _parse_sample_mhc_field(mhc_field) -> frozenset[str]:
         return frozenset(out)
     if not isinstance(mhc_field, str):
         return frozenset()
-    out = set()
-    for tok in _SAMPLE_ALLELE_TOKEN_RE.findall(mhc_field):
-        canonical = normalize_allele(tok)
-        if canonical and _looks_like_four_digit_allele(canonical):
-            out.add(canonical)
-    return frozenset(out)
+    return frozenset(extract_allele_tokens(mhc_field))
 
 
 @lru_cache(maxsize=512)
