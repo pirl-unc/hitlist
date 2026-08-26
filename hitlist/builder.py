@@ -314,6 +314,11 @@ def _compress_categoricals(df: pd.DataFrame, *, strict: bool = False) -> None:
             df[col] = series
 
 
+#: Scheme + host of an IRI.  Stripped before the dedup comparison so the
+#: same assay matches whichever database served it.
+_IRI_ORIGIN_RE = r"^https?://[^/]+"
+
+
 def _drop_duplicate_iris(df: pd.DataFrame, label: str) -> pd.DataFrame:
     """Drop cross-source duplicates by ``assay_iri`` (#146).
 
@@ -326,6 +331,13 @@ def _drop_duplicate_iris(df: pd.DataFrame, label: str) -> pd.DataFrame:
     Falls back to ``reference_iri`` for rows missing ``assay_iri``,
     which is unusual but possible during partial rebuilds from older
     intermediates.
+
+    IRIs are compared by path, not raw string.  IEDB and CEDAR publish
+    the same assay under different scheme *and* host —
+    ``http://www.iedb.org/assay/25034276`` vs
+    ``https://cedar.iedb.org/assay/25034276`` — so the raw strings never
+    collided and every shared assay was counted twice (#351).  Stripping
+    the origin is a no-op when both sources already agree on a host.
     """
     if df.empty:
         return df
@@ -338,13 +350,16 @@ def _drop_duplicate_iris(df: pd.DataFrame, label: str) -> pd.DataFrame:
         primary = df["reference_iri"].fillna("").astype(str)
     else:
         return df
+    # Compare by path so the same assay matches across IEDB / CEDAR
+    # hosts (#351).  Non-IRI values are left untouched.
+    primary = primary.str.replace(_IRI_ORIGIN_RE, "", regex=True)
     # Per-donor split rows (#236) share assay_iri but differ in
     # ``attributed_sample_label`` — fold the label into the dedup key so
     # the split survives.  Empty label (non-attributed rows) preserves
     # the original behavior.
     if "attributed_sample_label" in df.columns:
-        label = df["attributed_sample_label"].fillna("").astype(str)
-        key = primary.str.cat(label, sep="\x1f")
+        sample_label = df["attributed_sample_label"].fillna("").astype(str)
+        key = primary.str.cat(sample_label, sep="\x1f")
     else:
         key = primary
     before = len(df)

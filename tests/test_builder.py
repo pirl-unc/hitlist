@@ -775,3 +775,106 @@ def test_gene_name_map_csv_is_packaged_and_well_formed():
     assert id2name["ENSG00000006327"] == "TNFRSF12A"
     assert all(k.startswith("ENSG") and "." not in k for k in id2name)  # version-stripped
     assert all(v for v in id2name.values())  # no blank symbols
+
+
+# ── Cross-source IRI dedup (#351) ─────────────────────────────────────
+
+
+def test_drop_duplicate_iris_matches_across_iedb_and_cedar_hosts():
+    """#351: IEDB and CEDAR publish the same assay under different scheme
+    *and* host, so the raw strings never collided and every shared assay
+    was counted twice."""
+    import pandas as pd
+
+    from hitlist.builder import _drop_duplicate_iris
+
+    df = pd.DataFrame(
+        {
+            "assay_iri": [
+                "http://www.iedb.org/assay/25034276",
+                "https://cedar.iedb.org/assay/25034276",
+            ],
+            "source": ["iedb", "cedar"],
+            "peptide": ["AAAAAAAAA", "AAAAAAAAA"],
+        }
+    )
+    out = _drop_duplicate_iris(df.copy(), "ms")
+    assert len(out) == 1
+    # Concat order is IEDB-before-CEDAR, so IEDB wins the tie-break.
+    assert out.iloc[0]["source"] == "iedb"
+
+
+def test_drop_duplicate_iris_keeps_distinct_assays():
+    """Different assay ids under different hosts are not duplicates."""
+    import pandas as pd
+
+    from hitlist.builder import _drop_duplicate_iris
+
+    df = pd.DataFrame(
+        {
+            "assay_iri": [
+                "http://www.iedb.org/assay/999",
+                "https://cedar.iedb.org/assay/1000",
+            ],
+            "source": ["iedb", "cedar"],
+            "peptide": ["BBBBBBBBB", "CCCCCCCCC"],
+        }
+    )
+    assert len(_drop_duplicate_iris(df.copy(), "ms")) == 2
+
+
+def test_drop_duplicate_iris_preserves_per_donor_split():
+    """#236's per-donor rows share an assay_iri and must survive the
+    cross-host normalization."""
+    import pandas as pd
+
+    from hitlist.builder import _drop_duplicate_iris
+
+    df = pd.DataFrame(
+        {
+            "assay_iri": [
+                "http://www.iedb.org/assay/1",
+                "https://cedar.iedb.org/assay/1",
+                "http://www.iedb.org/assay/1",
+            ],
+            "attributed_sample_label": ["MEL15", "MEL15", "GBM11"],
+            "peptide": ["AAAAAAAAA"] * 3,
+        }
+    )
+    out = _drop_duplicate_iris(df.copy(), "ms")
+    assert sorted(out["attributed_sample_label"]) == ["GBM11", "MEL15"]
+
+
+def test_drop_duplicate_iris_reports_the_table_label(capsys):
+    """The ``label`` parameter was shadowed by the attributed-sample-label
+    Series, so the summary line printed a whole Series instead of "ms".
+    Latent until #351 made the message fire at all."""
+    import pandas as pd
+
+    from hitlist.builder import _drop_duplicate_iris
+
+    df = pd.DataFrame(
+        {
+            "assay_iri": [
+                "http://www.iedb.org/assay/7",
+                "https://cedar.iedb.org/assay/7",
+            ],
+            "attributed_sample_label": ["", ""],
+            "peptide": ["AAAAAAAAA", "AAAAAAAAA"],
+        }
+    )
+    _drop_duplicate_iris(df.copy(), "ms")
+    out = capsys.readouterr().out
+    assert "Deduplicated 1 ms rows" in out
+
+
+def test_cedar_download_url_points_at_a_served_filename():
+    """#350: ``doc/cedar_mhc_ligand_full.zip`` is not a name CEDAR serves,
+    and downloader.php answers 200 with an empty body for unknown names
+    rather than 404 — so the fetch failed like an outage."""
+    from hitlist.downloads import FETCHABLE_DATASETS
+
+    url = FETCHABLE_DATASETS["cedar"]["url"]
+    assert "mhc_ligand_full_single_file.zip" in url
+    assert "cedar_mhc_ligand_full.zip" not in url
+    assert url.startswith("https://cedar.iedb.org/")
