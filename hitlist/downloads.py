@@ -417,7 +417,13 @@ FETCHABLE_DATASETS: dict[str, dict[str, str]] = {
         "terms": "https://www.iedb.org/",
     },
     "cedar": {
-        "url": "https://cedar.iedb.org/downloader.php?file_name=doc/cedar_mhc_ligand_full.zip",
+        # CEDAR serves the export under the same member name IEDB uses,
+        # on the CEDAR host.  ``doc/cedar_mhc_ligand_full.zip`` is not a
+        # filename CEDAR serves, and ``downloader.php`` answers HTTP 200
+        # with a zero-length body for any unrecognized name rather than
+        # 404 — so the old URL failed identically to a server outage and
+        # the retry loop could not tell the difference (#350).
+        "url": "https://cedar.iedb.org/downloader.php?file_name=doc/mhc_ligand_full_single_file.zip",
         "filename": "cedar-mhc-ligand-full.csv",
         "description": "CEDAR MHC ligand full export",
         "usage": "Additional mass spec evidence (companion to IEDB).",
