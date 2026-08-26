@@ -47,7 +47,13 @@ dev = [
     "pytest",
     "pytest-cov",
     "pytest-xdist",
-    "ruff",
+    # Pinned to a minor range: ruff enables new rules in the default set
+    # on minor releases, so an unpinned spec makes ./lint.sh start
+    # failing on an unchanged main whenever a developer happens to
+    # upgrade.  That gate also guards ./deploy.sh, so a ruff release
+    # could block a deploy with no source change.  Bump this
+    # deliberately, in a PR that fixes whatever the new rules flag.
+    "ruff>=0.16,<0.17",
 ]
 
 [project.scripts]
