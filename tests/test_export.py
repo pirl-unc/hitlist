@@ -3001,3 +3001,43 @@ def test_per_sample_species_override_is_honored(monkeypatch):
     assert df.loc["mouse splenocytes", "species"] == "Mus musculus"
     # Samples without the key still inherit the study-level default.
     assert df.loc["human line", "species"] == "Homo sapiens"
+
+
+def test_real_mixed_species_studies_keep_their_per_sample_species():
+    """#372 on the actual curated data, not a synthetic stand-in.
+
+    Both studies have no study-level ``species:`` and rely entirely on
+    the per-sample key; deleting it silently reverts them to human.
+    """
+    from hitlist.export import generate_ms_samples_table
+
+    samples = generate_ms_samples_table().set_index(["pmid", "sample_label"])
+    assert samples.loc[(34129938, "MC38 mouse colon carcinoma"), "species"] == "Mus musculus"
+    assert samples.loc[(39438697, "mouse splenocytes (C57BL/6)"), "species"] == "Mus musculus"
+    # Their human co-samples in the same studies still resolve to human.
+    assert (
+        samples.loc[(34129938, "GRANTA-519 human mantle cell lymphoma"), "species"]
+        == "Homo sapiens"
+    )
+    assert samples.loc[(39438697, "THP-1 (human monocytic leukemia)"), "species"] == "Homo sapiens"
+
+
+def test_non_classical_filter_works_in_both_spellings():
+    """The YAML writes 'non-classical' and the parquet stores 'non
+    classical', and normalization was applied inside the join but at
+    neither filter boundary — so both spellings returned nothing joined.
+    """
+    from hitlist.export import generate_ms_samples_table, generate_observations_table
+
+    for spelling in ("non-classical", "non classical"):
+        assert len(generate_ms_samples_table(mhc_class=spelling)) > 0, spelling
+        assert len(generate_observations_table(mhc_class=spelling)) > 0, spelling
+
+
+def test_zero_match_class_filter_returns_empty_not_keyerror():
+    """A filter matching no samples produced a column-less frame, and
+    every downstream ``samples.groupby("pmid")`` raised KeyError."""
+    from hitlist.export import generate_ms_samples_table, generate_observations_table
+
+    assert len(generate_ms_samples_table(mhc_class="III")) == 0
+    assert len(generate_observations_table(mhc_class="III")) == 0

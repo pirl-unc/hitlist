@@ -488,6 +488,35 @@ def simplify_condition(condition: str | None) -> str:
     return text
 
 
+def _empty_ms_samples_columns() -> list[str]:
+    """Column list for an ms_samples table that matched nothing.
+
+    Mirrors the row dict built in :func:`generate_ms_samples_table`, so a
+    zero-match filter returns an empty-but-well-formed frame.
+    """
+    from .apm import apm_columns_for_sample
+
+    base = [
+        "species",
+        "sample_label",
+        "condition",
+        "perturbation",
+        "pmid",
+        "study_label",
+        "mhc_class",
+        "n_samples",
+        "profiled",
+        "source",
+        "peptides",
+        "reference_proteomes",
+        "notes",
+        "mhc",
+        *_ACQUISITION_FIELDS,
+        "instrument_type",
+    ]
+    return [*base, *apm_columns_for_sample(""), "condition_category", "is_control_arm"]
+
+
 def generate_ms_samples_table(
     mhc_class: str | None = None,
     apm_only: bool = False,
@@ -538,7 +567,9 @@ def generate_ms_samples_table(
 
     for pmid_int, entry in sorted(overrides.items()):
         study_label = entry.get("study_label", "")
-        study_species = entry.get("species") or "Homo sapiens (human)"
+        # ``.get(key, default)`` semantics: an explicitly null / blank
+        # ``species:`` means "unknown" and must not silently become human.
+        study_species = entry.get("species", "Homo sapiens (human)")
         ms_samples = entry.get("ms_samples", [])
         study_perturbations = entry.get("perturbations") or []
 
@@ -622,6 +653,11 @@ def generate_ms_samples_table(
             rows.append(row)
 
     df = pd.DataFrame(rows)
+    if df.empty:
+        # A filter matching zero samples used to produce a column-less
+        # frame, so every downstream ``samples.groupby("pmid")`` raised
+        # KeyError instead of simply returning nothing.
+        df = pd.DataFrame(columns=_empty_ms_samples_columns())
     if apm_only and not df.empty:
         df = df[df["apm_perturbed"]].reset_index(drop=True)
     return df
@@ -3182,7 +3218,16 @@ def _sample_class_tokens(sample_row) -> set[str]:
     declared = normalize_mhc_class_token(str(sample_row.get("mhc_class", "") or ""))
     if declared:
         return {p.strip() for p in declared.split("+") if p.strip()}
-    derived = {mhc_class_of(tok) for tok in str(sample_row.get("mhc", "") or "").split() if tok}
+    mhc = str(sample_row.get("mhc", "") or "").strip()
+    if not mhc:
+        return set()
+    # Class-only values are multi-word ("Bos taurus class I"), so try the
+    # whole string before splitting — per-token derivation returns nothing
+    # for every individual word of them.
+    whole = mhc_class_of(mhc)
+    if whole:
+        return {whole}
+    derived = {mhc_class_of(tok) for tok in mhc.split() if tok}
     derived.discard("")
     return derived
 
@@ -3195,8 +3240,10 @@ def _mhc_class_matches(sample_class: str, filter_class: str) -> bool:
     """
     if not sample_class:
         return False
-    parts = {p.strip() for p in sample_class.split("+")}
-    return filter_class in parts
+    from .curation import normalize_mhc_class_token
+
+    parts = {p.strip() for p in normalize_mhc_class_token(sample_class).split("+")}
+    return normalize_mhc_class_token(filter_class) in parts
 
 
 def count_peptides_by_study(

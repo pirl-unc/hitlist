@@ -2608,7 +2608,7 @@
         n_samples: 1
         condition: PRRSV infection
         mhc_class: I
-        mhc: SLA class I
+        mhc: Sus scrofa class I
   - pmid: 32796065
     study_label: Wu 2020 — PRRSV porcine MHC-II
     title: Porcine Reproductive and Respiratory Syndrome Virus Promotes SLA-DR-Mediated Antigen Presentation of Nonstructural Proteins To Evoke a Nonneutralizing Antibody Response In Vivo

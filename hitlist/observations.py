@@ -600,7 +600,15 @@ def _load_peptide_index(
 
     filters: list = []
     if mhc_class is not None:
-        filters.append(("mhc_class", "==", mhc_class))
+        # The parquet stores IEDB's spelling ("non classical") while the
+        # canonical token is hyphenated, so an exact predicate on either
+        # spelling returned nothing.  Match every stored spelling that
+        # normalizes to the requested class (#363 follow-up).
+        from .curation import normalize_mhc_class_token
+
+        wanted = normalize_mhc_class_token(mhc_class)
+        spellings = sorted({mhc_class, wanted, wanted.replace("-", " ")})
+        filters.append(("mhc_class", "in", spellings))
     if species is not None:
         filters.append(("mhc_species", "==", normalize_species(species)))
     if source is not None:
