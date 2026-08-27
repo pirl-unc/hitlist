@@ -720,6 +720,41 @@ def is_class_only_token(value: str) -> bool:
     return type(_cached_parse(text)).__name__ == "MhcClass"
 
 
+@cache
+def species_compatible(declared: str, derived: str) -> bool:
+    """True when two species names can describe the same sample.
+
+    Uses mhcgnomes' own species ontology rather than string shape: two
+    names are compatible when they are equal, or when one is a direct
+    ancestor of the other.  ``BoLA`` is declared by the genus-level
+    ``Bos sp.``, so an allele-derived ``Bos sp.`` is compatible with a
+    curated ``Bos taurus`` — it is less specific, not contradictory.
+
+    Comparing genus strings instead (the first word) is both too weak
+    and too strong.  Too weak: it accepts ``Macaca mulatta`` against a
+    ``Macaca fascicularis`` allele, which is a real mislabel.  Too
+    strong: mhcgnomes has clade-level entries above genus
+    (``Galliformes sp.``, ``Crocodylia sp.``, ``Primata sp.``) whose
+    first word matches nothing below them.
+
+    Note every species roots at ``Gnathostomata sp.``, so "shares an
+    ancestor" would make everything compatible — only a direct
+    ancestor/descendant relationship counts.
+    """
+    if not declared or not derived:
+        return False
+    if declared == derived:
+        return True
+    try:
+        from mhcgnomes import Species
+    except ImportError:  # pragma: no cover - mhcgnomes is a hard dependency
+        return False
+    a, b = Species.get(declared), Species.get(derived)
+    if a is None or b is None:
+        return False
+    return a.is_ancestor_of(b) or b.is_ancestor_of(a)
+
+
 def expand_allele_components(allele_token: str) -> list[str]:
     """Return an allele plus, for a class-II pair, its alpha/beta chains.
 
