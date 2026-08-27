@@ -2347,7 +2347,14 @@ def test_is_class_only_token_recognizes_sentinels():
 
 #: Samples whose declared mhc_class still contradicts their own alleles.
 #: Tracked in #374; pinned here so *new* contradictions fail the build.
-#:   - Patr-AL: classical-vs-non-classical status genuinely unsettled.
+#:   - Patr-AL: our "non-classical" is correct and mhcgnomes' "Ia" is
+#:     wrong.  Adams et al., J Immunol 2001;167(7):3858-64 (PMID
+#:     11564803) is titled "A Novel, Nonclassical MHC Class I Molecule
+#:     Specific to the Common Chimpanzee": oligomorphic (3 allotypes),
+#:     low expression, present on only ~50% of haplotypes, diverged from
+#:     the classical A locus >20 Mya.  IEDB annotates it non-classical
+#:     too.  Reported upstream as pirl-unc/mhcgnomes#107; this entry
+#:     goes away when that lands.
 #:   - The "I+II" entries list only class-I alleles; their class-II
 #:     genotype has to be read out of each paper's Methods.
 _KNOWN_CLASS_MISMATCHES = {
