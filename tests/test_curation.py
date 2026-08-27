@@ -2586,9 +2586,21 @@ def test_species_compatible_uses_the_ontology_not_string_shape():
     assert species_compatible("Bos taurus", "Bos sp.")
     assert species_compatible("Sus scrofa", "Sus sp.")
     assert species_compatible("Coturnix japonica", "Galliformes sp.")  # above genus
-    # Sibling species within a genus is a real mislabel.
+    # Siblings are rejected — deliberately.  These DO share an internal
+    # node (Macaca mulatta and M. fascicularis are both children of
+    # "Macaca sp."), but Mamu and Mafa are distinct MHC systems with
+    # distinct prefixes and non-interchangeable allele sets, so an allele
+    # from one on a sample curated as the other is a mislabel, not a
+    # coarser description.  Only a direct ancestor/descendant relation
+    # counts as compatible.
     assert not species_compatible("Macaca mulatta", "Macaca fascicularis")
+    # Same rule, but note the tree here is itself wrong: mhcgnomes makes
+    # Bubalus bubalis a child of "Bos sp." though it is a separate genus
+    # (pirl-unc/mhcgnomes#115).  These two are still correctly rejected
+    # as siblings; a curated "Bos sp." against a Bubu allele would not be.
     assert not species_compatible("Bos taurus", "Bubalus bubalis")
+    # Cross-clade: the PMID 41459947 curation error, a fish study whose
+    # sample carried the human class-II sentinel.
     assert not species_compatible("Carassius gibelio", "Homo sapiens")
     # Every species roots at Gnathostomata sp., so a shared root must not
     # make everything compatible.
