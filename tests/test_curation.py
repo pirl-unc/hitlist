@@ -2413,3 +2413,70 @@ def test_hla_g_transfectants_are_non_classical():
     hla_g = samples[samples["sample_label"].astype(str).str.startswith("721.221-HLA-G")]
     assert len(hla_g) == 3
     assert set(hla_g["mhc_class"]) == {"non-classical"}
+
+
+#: Samples where the MHC species deliberately differs from the source
+#: proteome species — engineered chimeric systems (#46), not errors.
+_KNOWN_CHIMERIC_SAMPLES = {
+    (26740625, "DCs from lymph nodes (HLA-DR1 transgenic mouse)"),
+    (26811146, "cell line expressing HLA-B*27:05"),
+}
+
+
+def test_sample_mhc_species_matches_its_source_species():
+    """Per-sample species validation.
+
+    ``species`` is the *source proteome* axis and ``mhc_species`` is
+    derived from the allele, so the two legitimately differ for
+    engineered chimeras (a human HLA transgene in a mouse).  Everywhere
+    else they must agree — PMID 41459947 is a Prussian carp study whose
+    sample carried ``mhc: HLA class II``, i.e. human MHC on a fish, and
+    nothing flagged it.
+    """
+    from hitlist.curation import (
+        _cached_parse,
+        classify_mhc_species,
+        is_class_only_token,
+        normalize_species,
+    )
+    from hitlist.export import generate_ms_samples_table
+
+    def genus(name: str) -> str:
+        return name.split()[0].lower() if name else ""
+
+    mismatches = []
+    for _, row in generate_ms_samples_table().iterrows():
+        mhc = str(row.get("mhc") or "").strip()
+        source = normalize_species(str(row.get("species") or ""))
+        if not mhc or not source:
+            continue
+        if is_class_only_token(mhc):
+            mhc_species = {classify_mhc_species(mhc)}
+        else:
+            mhc_species = {classify_mhc_species(t) for t in mhc.split() if _cached_parse(t)}
+        mhc_species.discard("")
+        if not mhc_species:
+            continue
+        if any(genus(source) == genus(m) for m in mhc_species):
+            continue
+        key = (int(row["pmid"]), str(row["sample_label"]))
+        if key not in _KNOWN_CHIMERIC_SAMPLES:
+            mismatches.append((*key, source, sorted(mhc_species)))
+    assert not mismatches, f"MHC species does not match source species: {mismatches}"
+
+
+def test_curated_mhc_tokens_resolve_to_the_intended_species():
+    """Species-inference traps that bit us while fixing #375.
+
+    mhcgnomes infers a species for unprefixed input, and the inference is
+    not always the common one — so a curated token has to be written in a
+    form that pins the species (pirl-unc/mhcgnomes#103, #105).
+    """
+    from hitlist.curation import classify_mhc_species
+
+    # Bare BLB2*02 resolves to Japanese quail, not chicken.
+    assert classify_mhc_species("Gaga-BLB2*02") == "Gallus gallus"
+    # "BoLA class I" resolves to water buffalo, not cattle.
+    assert classify_mhc_species("Bos taurus class I") == "Bos taurus"
+    # "HLA class II" is human — wrong for a fish study.
+    assert classify_mhc_species("Carassius gibelio class II") == "Carassius gibelio"

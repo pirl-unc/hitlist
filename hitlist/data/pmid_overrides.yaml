@@ -2592,7 +2592,7 @@
         source: Carassius gibelio
         condition: CyHV-2 viral infection
         mhc_class: II
-        mhc: "HLA class II"
+        mhc: "Carassius gibelio class II"
   - pmid: 36146698
     study_label: Motz 2022 — PRRSV porcine MHC-I
     title: Identification of MHC-I-Presented Porcine Respiratory and Reproductive Syndrome Virus (PRRSV) Peptides Reveals Immunogenic Epitopes within Several Non-Structural Proteins Recognized by CD8+ T Cells
@@ -2652,7 +2652,7 @@
         source: "parasitized lymphocyte cell lines, multiple BoLA genotypes"
         condition: T. parva infection
         mhc_class: I
-        mhc: BoLA class I
+        mhc: Bos taurus class I
       - sample_label: T. parva-infected bovine lymphocyte lines (BoLA-DR)
         n_samples: 6
         source: "same cell lines, class II IP"
@@ -2750,11 +2750,11 @@
       - sample_label: B2 chicken cells (uninfected)
         condition: unperturbed — self-peptidome
         mhc_class: II
-        mhc: "BLB2*02"
+        mhc: "Gaga-BLB2*02"
       - sample_label: B2 chicken cells (MDV-infected)
         condition: "Marek's disease virus infection"
         mhc_class: II
-        mhc: "BLB2*02"
+        mhc: "Gaga-BLB2*02"
   - pmid: 36695776
     study_label: Han 2023 — chicken BF2 class I (B15 vs B19)
     title: "A Wider and Deeper Peptide-Binding Groove for the Class I Molecules from B15 Compared with B19 Chickens Correlates with Relative Resistance to Marek's Disease"
