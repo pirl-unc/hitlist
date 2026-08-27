@@ -3022,22 +3022,44 @@ def test_real_mixed_species_studies_keep_their_per_sample_species():
     assert samples.loc[(39438697, "THP-1 (human monocytic leukemia)"), "species"] == "Homo sapiens"
 
 
-def test_non_classical_filter_works_in_both_spellings():
+def test_non_classical_filter_matches_samples_in_both_spellings():
     """The YAML writes 'non-classical' and the parquet stores 'non
-    classical', and normalization was applied inside the join but at
-    neither filter boundary — so both spellings returned nothing joined.
-    """
-    from hitlist.export import generate_ms_samples_table, generate_observations_table
+    classical'.  The samples half needs no built corpus."""
+    from hitlist.export import generate_ms_samples_table
 
     for spelling in ("non-classical", "non classical"):
         assert len(generate_ms_samples_table(mhc_class=spelling)) > 0, spelling
+
+
+@pytest.mark.integration
+def test_non_classical_filter_reaches_observations_in_both_spellings():
+    """Normalization was applied inside the join but at neither filter
+    boundary, so both spellings returned nothing joined."""
+    from hitlist.export import generate_observations_table
+    from hitlist.observations import is_built
+
+    if not is_built():
+        pytest.skip("Observations table not built")
+    for spelling in ("non-classical", "non classical"):
         assert len(generate_observations_table(mhc_class=spelling)) > 0, spelling
 
 
-def test_zero_match_class_filter_returns_empty_not_keyerror():
+def test_zero_match_class_filter_returns_empty_samples_frame():
     """A filter matching no samples produced a column-less frame, and
     every downstream ``samples.groupby("pmid")`` raised KeyError."""
-    from hitlist.export import generate_ms_samples_table, generate_observations_table
+    from hitlist.export import generate_ms_samples_table
 
-    assert len(generate_ms_samples_table(mhc_class="III")) == 0
+    empty = generate_ms_samples_table(mhc_class="III")
+    assert len(empty) == 0
+    # Must keep its columns, or the downstream groupby raises KeyError.
+    assert "pmid" in empty.columns
+
+
+@pytest.mark.integration
+def test_zero_match_class_filter_returns_empty_observations():
+    from hitlist.export import generate_observations_table
+    from hitlist.observations import is_built
+
+    if not is_built():
+        pytest.skip("Observations table not built")
     assert len(generate_observations_table(mhc_class="III")) == 0
