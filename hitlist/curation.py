@@ -724,11 +724,25 @@ def is_class_only_token(value: str) -> bool:
 def species_compatible(declared: str, derived: str) -> bool:
     """True when two species names can describe the same sample.
 
-    Uses mhcgnomes' own species ontology rather than string shape: two
-    names are compatible when they are equal, or when one is a direct
-    ancestor of the other.  ``BoLA`` is declared by the genus-level
-    ``Bos sp.``, so an allele-derived ``Bos sp.`` is compatible with a
-    curated ``Bos taurus`` — it is less specific, not contradictory.
+    Uses mhcgnomes' own species tree rather than string shape: two names
+    are compatible when they are equal, or when one is a direct ancestor
+    of the other.
+
+    Note what that tree encodes.  It is a **prefix-scope hierarchy, not
+    a phylogeny** — each node carries an ``mhc_prefix`` and the parent
+    relation says "this species may be named with the ancestor's
+    umbrella prefix".  ``Homo sapiens`` is deliberately *not* under
+    ``Primata sp.[NHP]`` (human alleles are never written ``NHP-*``),
+    while ``Bubalus bubalis[Bubu]`` *is* under ``Bos sp.[BoLA]``,
+    because buffalo alleles are assigned to BoLA loci via trans-species
+    polymorphism.
+
+    For our purpose that is the right relation anyway: an allele-derived
+    ``Bos sp.`` on a curated ``Bos taurus`` sample shares a naming scope
+    and is a coarser description, not a contradiction.  But it is not a
+    statement about relatedness, so do not read it as one — a ``Bubu-*``
+    allele would be accepted against a curated ``Bos sp.``.  No corpus
+    sample hits that today; pinned by a test.
 
     Comparing genus strings instead (the first word) is both too weak
     and too strong.  Too weak: it accepts ``Macaca mulatta`` against a

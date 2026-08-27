@@ -2612,3 +2612,30 @@ def test_species_compatible_uses_the_ontology_not_string_shape():
     # Every species roots at Gnathostomata sp., so a shared root must not
     # make everything compatible.
     assert not species_compatible("Homo sapiens", "Gallus gallus")
+
+
+def test_species_tree_is_prefix_scope_not_phylogeny():
+    """Pin the two facts that make ``species_compatible`` interpretable.
+
+    mhcgnomes' species tree encodes which umbrella MHC prefix may name a
+    species, not descent.  Reading it as taxonomy is what led us to file
+    pirl-unc/mhcgnomes#115 against a placement that is actually correct.
+    """
+    import mhcgnomes
+
+    from hitlist.curation import species_compatible
+
+    # Humans are primates, but human alleles are never written NHP-*, so
+    # Homo sapiens sits outside Primata sp.[NHP].
+    assert mhcgnomes.Species.get("Homo sapiens").parent.name == "Gnathostomata sp."
+    assert not species_compatible("Homo sapiens", "Primata sp.")
+
+    # Bubalus is a different genus from Bos (different subtribe, even),
+    # yet sits under Bos sp.[BoLA] because buffalo alleles are assigned
+    # to BoLA loci by trans-species polymorphism.  Consequence: a Bubu
+    # allele IS accepted against a curated "Bos sp.".  No corpus sample
+    # hits this; pinned so the behaviour is deliberate, not a surprise.
+    assert mhcgnomes.Species.get("Bubalus bubalis").parent.name == "Bos sp."
+    assert species_compatible("Bos sp.", "Bubalus bubalis")
+    # The specific-vs-specific comparison is still correctly rejected.
+    assert not species_compatible("Bos taurus", "Bubalus bubalis")
