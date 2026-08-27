@@ -2338,3 +2338,78 @@ def test_is_class_only_token_recognizes_sentinels():
     assert is_class_only_token("MHC class II") is True
     assert is_class_only_token("unknown") is True
     assert is_class_only_token("HLA-A*02:01") is False
+
+
+# ── Curated ms_samples self-consistency guards (#372, #374, #375) ──────
+
+
+#: Samples whose declared mhc_class still contradicts their own alleles.
+#: Tracked in #374; pinned here so *new* contradictions fail the build.
+#:   - Patr-AL: classical-vs-non-classical status genuinely unsettled.
+#:   - The "I+II" entries list only class-I alleles; their class-II
+#:     genotype has to be read out of each paper's Methods.
+_KNOWN_CLASS_MISMATCHES = {
+    (21209280, "transfected cells expressing Patr-AL"),
+    (33392160, "THP-1 + biomaterial contact"),
+    (33936100, "GRANTA-519 (mantle cell lymphoma, untreated)"),
+    (33936100, "GRANTA-519 + IFN-gamma"),
+    (35051231, "P1 lung — UV mock (uninfected)"),
+    (35051231, "P1 lung — Wisconsin-infected"),
+    (35051231, "P3 lung — UV mock (uninfected)"),
+    (35051231, "P3 lung — Wisconsin-infected"),
+    (35051231, "P3 lung — X31-infected"),
+    (35051231, "THP-1 macrophage — UV mock (uninfected)"),
+    (35051231, "THP-1 macrophage — Wisconsin-infected"),
+    (35051231, "THP-1 macrophage — X31-infected"),
+}
+
+
+def test_every_curated_mhc_field_yields_at_least_one_allele():
+    """#375: a typo in a curated ``mhc`` value silently produced an empty
+    allele set — the sample then dropped out of the allele-level join and
+    of _pmid_sample_alleles with no warning.  ``BL2*02`` (should be
+    ``BLB2*02``), ``SLA-I`` and ``BoLA-I`` all did this."""
+    from hitlist.curation import _cached_parse, is_class_only_token
+    from hitlist.export import generate_ms_samples_table
+
+    empty = []
+    for _, row in generate_ms_samples_table().iterrows():
+        mhc = str(row.get("mhc") or "").strip()
+        if not mhc or is_class_only_token(mhc):
+            continue
+        for token in mhc.split():
+            if _cached_parse(token) is None:
+                empty.append((row["pmid"], row["sample_label"], token))
+    assert not empty, f"curated mhc tokens that mhcgnomes cannot parse: {empty}"
+
+
+def test_declared_mhc_class_agrees_with_the_sample_alleles():
+    """#374: a sample's declared class must not contradict the class of
+    its own alleles — three HLA-G transfectants were declared classical
+    ``I`` and so were returned by ``--mhc-class I``."""
+    from hitlist.curation import extract_allele_tokens, mhc_class_of, normalize_mhc_class_token
+    from hitlist.export import generate_ms_samples_table
+
+    unexpected = []
+    for _, row in generate_ms_samples_table().iterrows():
+        declared = normalize_mhc_class_token(str(row.get("mhc_class") or ""))
+        tokens = extract_allele_tokens(str(row.get("mhc") or ""))
+        if not declared or not tokens:
+            continue
+        derived = {mhc_class_of(t) for t in tokens} - {""}
+        if derived and derived != set(declared.split("+")):
+            key = (int(row["pmid"]), str(row["sample_label"]))
+            if key not in _KNOWN_CLASS_MISMATCHES:
+                unexpected.append((*key, declared, "+".join(sorted(derived))))
+    assert not unexpected, f"new declared-vs-derived class contradictions: {unexpected}"
+
+
+def test_hla_g_transfectants_are_non_classical():
+    """Pin the #374 fix: HLA-G is class Ib, and the corpus already
+    curates the sibling HLA-E / HLA-F / C1R HLA-G samples that way."""
+    from hitlist.export import generate_ms_samples_table
+
+    samples = generate_ms_samples_table()
+    hla_g = samples[samples["sample_label"].astype(str).str.startswith("721.221-HLA-G")]
+    assert len(hla_g) == 3
+    assert set(hla_g["mhc_class"]) == {"non-classical"}

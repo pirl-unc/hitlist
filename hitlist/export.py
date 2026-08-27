@@ -538,7 +538,7 @@ def generate_ms_samples_table(
 
     for pmid_int, entry in sorted(overrides.items()):
         study_label = entry.get("study_label", "")
-        species = normalize_species(entry.get("species", "Homo sapiens (human)"))
+        study_species = entry.get("species") or "Homo sapiens (human)"
         ms_samples = entry.get("ms_samples", [])
         study_perturbations = entry.get("perturbations") or []
 
@@ -546,6 +546,13 @@ def generate_ms_samples_table(
             cls = sample.get("mhc_class", "")
             if mhc_class and not _mhc_class_matches(cls, mhc_class):
                 continue
+
+            # Species is resolved per sample, not per study (#372).  It
+            # used to be computed once outside this loop, so a mixed-
+            # species study silently exported its mouse arms as human —
+            # the sample-level key existed in the YAML and nothing read
+            # it.
+            species = normalize_species(sample.get("species") or study_species)
 
             condition = sample.get("condition", "") or ""
             perturbation = simplify_condition(condition)

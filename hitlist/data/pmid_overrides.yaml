@@ -1693,19 +1693,19 @@
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
         condition: unperturbed — standard culture
-        mhc_class: I
+        mhc_class: non-classical
         mhc: "HLA-G*01:01"
       - sample_label: "721.221-HLA-G*01:03"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
         condition: unperturbed — standard culture
-        mhc_class: I
+        mhc_class: non-classical
         mhc: "HLA-G*01:03"
       - sample_label: "721.221-HLA-G*01:04"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
         condition: unperturbed — standard culture
-        mhc_class: I
+        mhc_class: non-classical
         mhc: "HLA-G*01:04"
   # --- Validation tumor cell lines (Supplementary Data 2) ---
   # CLL (3 samples, untreated only, CD19-sorted)
@@ -2608,7 +2608,7 @@
         n_samples: 1
         condition: PRRSV infection
         mhc_class: I
-        mhc: SLA-I
+        mhc: SLA class I
   - pmid: 32796065
     study_label: Wu 2020 — PRRSV porcine MHC-II
     title: Porcine Reproductive and Respiratory Syndrome Virus Promotes SLA-DR-Mediated Antigen Presentation of Nonstructural Proteins To Evoke a Nonneutralizing Antibody Response In Vivo
@@ -2652,7 +2652,7 @@
         source: "parasitized lymphocyte cell lines, multiple BoLA genotypes"
         condition: T. parva infection
         mhc_class: I
-        mhc: BoLA-I
+        mhc: BoLA class I
       - sample_label: T. parva-infected bovine lymphocyte lines (BoLA-DR)
         n_samples: 6
         source: "same cell lines, class II IP"
@@ -2750,11 +2750,11 @@
       - sample_label: B2 chicken cells (uninfected)
         condition: unperturbed — self-peptidome
         mhc_class: II
-        mhc: "BL2*02"
+        mhc: "BLB2*02"
       - sample_label: B2 chicken cells (MDV-infected)
         condition: "Marek's disease virus infection"
         mhc_class: II
-        mhc: "BL2*02"
+        mhc: "BLB2*02"
   - pmid: 36695776
     study_label: Han 2023 — chicken BF2 class I (B15 vs B19)
     title: "A Wider and Deeper Peptide-Binding Groove for the Class I Molecules from B15 Compared with B19 Chickens Correlates with Relative Resistance to Marek's Disease"

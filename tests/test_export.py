@@ -2963,3 +2963,41 @@ def test_sample_class_tokens_normalizes_and_derives():
     # Blank declared class -> derived from alleles via mhcgnomes.
     assert _sample_class_tokens({"mhc_class": "", "mhc": "HLA-E*01:03"}) == {"non-classical"}
     assert _sample_class_tokens({"mhc_class": "", "mhc": "HLA-A*02:01 HLA-B*07:02"}) == {"I"}
+
+
+def test_per_sample_species_override_is_honored(monkeypatch):
+    """#372: species was resolved once per study, outside the sample loop,
+    so a mixed-species study exported its mouse arms as human — the
+    sample-level key existed in the YAML and nothing read it."""
+    from hitlist import export
+
+    def fake_overrides():
+        return {
+            99999301: {
+                "study_label": "synthetic — mixed-species study",
+                # No study-level species: the old code defaulted to human.
+                "ms_samples": [
+                    {
+                        "sample_label": "human line",
+                        "n_samples": 1,
+                        "condition": "unperturbed",
+                        "mhc_class": "I",
+                        "mhc": "HLA-A*02:01",
+                    },
+                    {
+                        "sample_label": "mouse splenocytes",
+                        "n_samples": 1,
+                        "condition": "unperturbed",
+                        "mhc_class": "I",
+                        "mhc": "H-2Kb",
+                        "species": "Mus musculus (mouse)",
+                    },
+                ],
+            }
+        }
+
+    monkeypatch.setattr("hitlist.export.load_pmid_overrides", fake_overrides)
+    df = export.generate_ms_samples_table().set_index("sample_label")
+    assert df.loc["mouse splenocytes", "species"] == "Mus musculus"
+    # Samples without the key still inherit the study-level default.
+    assert df.loc["human line", "species"] == "Homo sapiens"
