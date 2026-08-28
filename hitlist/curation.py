@@ -48,6 +48,7 @@ from os.path import basename, dirname, join
 
 import pandas as pd
 import yaml
+from mhcgnomes import Species
 
 from .cell_name_parser import parse_cell_name
 
@@ -656,6 +657,7 @@ _MHC_CLASS_TOKEN_ALIASES: dict[str, str] = {
 }
 
 
+@cache
 def normalize_mhc_class_token(value: str) -> str:
     """Canonicalize a curated / IEDB ``mhc_class`` spelling.
 
@@ -671,6 +673,24 @@ def normalize_mhc_class_token(value: str) -> str:
     parts = [p.strip() for p in text.split("+") if p.strip()]
     out = [_MHC_CLASS_TOKEN_ALIASES.get(p.lower(), p) for p in parts]
     return "+".join(out)
+
+
+@cache
+def mhc_class_spellings(mhc_class: str) -> tuple[str, ...]:
+    """Every stored spelling of a class token, for a parquet predicate.
+
+    The corpus and the YAML disagree on the non-classical token, so an
+    exact predicate on either one silently returns nothing (#363).
+    Derived from :data:`_MHC_CLASS_TOKEN_ALIASES` rather than patched up
+    per-case, so a spelling the normalizer already understands cannot be
+    missed by the filter.
+    """
+    wanted = normalize_mhc_class_token(mhc_class)
+    out = {mhc_class, wanted}
+    out.update(
+        alias for alias, canonical in _MHC_CLASS_TOKEN_ALIASES.items() if canonical == wanted
+    )
+    return tuple(sorted(out))
 
 
 @cache
@@ -766,15 +786,17 @@ def species_compatible(declared: str, derived: str) -> bool:
     """
     if not declared or not derived:
         return False
-    if declared == derived:
-        return True
-    try:
-        from mhcgnomes import Species
-    except ImportError:  # pragma: no cover - mhcgnomes is a hard dependency
-        return False
+    # Resolve *before* comparing.  The curated form carries a common
+    # name — ``"Gallus gallus (chicken)"``, ``"Homo sapiens (human)"`` —
+    # so a raw string comparison reports a mismatch between two
+    # spellings of one species.  mhcgnomes resolves both to the same
+    # object, and a node is not its own ancestor, so the equality check
+    # has to happen after resolution.
     a, b = Species.get(declared), Species.get(derived)
     if a is None or b is None:
         return False
+    if a == b:
+        return True
     return a.is_ancestor_of(b) or b.is_ancestor_of(a)
 
 

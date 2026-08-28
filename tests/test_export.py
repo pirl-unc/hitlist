@@ -3063,3 +3063,14 @@ def test_zero_match_class_filter_returns_empty_observations():
     if not is_built():
         pytest.skip("Observations table not built")
     assert len(generate_observations_table(mhc_class="III")) == 0
+
+
+def test_empty_ms_samples_columns_match_the_real_table():
+    """``_empty_ms_samples_columns`` hand-mirrors the row dict built in
+    ``generate_ms_samples_table``.  Adding a key to that dict without
+    touching the list reintroduces the KeyError the empty-frame fix was
+    for, on the zero-match path where nobody looks.
+    """
+    from hitlist.export import _empty_ms_samples_columns, generate_ms_samples_table
+
+    assert list(generate_ms_samples_table().columns) == _empty_ms_samples_columns()

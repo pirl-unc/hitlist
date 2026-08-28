@@ -575,7 +575,7 @@ def generate_ms_samples_table(
 
         for sample in ms_samples:
             cls = sample.get("mhc_class", "")
-            if mhc_class and not _mhc_class_matches(cls, mhc_class):
+            if mhc_class and not _mhc_class_matches(cls, mhc_class, sample_row=sample):
                 continue
 
             # Species is resolved per sample, not per study (#372).  It
@@ -3232,17 +3232,28 @@ def _sample_class_tokens(sample_row) -> set[str]:
     return derived
 
 
-def _mhc_class_matches(sample_class: str, filter_class: str) -> bool:
+def _mhc_class_matches(sample_class: str, filter_class: str, sample_row=None) -> bool:
     """Check if a sample's mhc_class matches a filter.
 
-    ``"I"`` matches ``"I"`` and ``"I+II"`` but NOT ``"II"``.
-    ``"II"`` matches ``"II"`` and ``"I+II"`` but NOT ``"I"``.
+    ``"I"`` matches ``"I"`` and ``"I+II"`` but NOT ``"II"``.  Spellings
+    are normalized on both sides, so the YAML's ``non-classical`` and
+    the IEDB export's ``non classical`` compare equal (#363).
+
+    When ``sample_row`` is given the class is resolved through
+    :func:`_sample_class_tokens`, which falls back to deriving it from
+    the sample's own alleles.  Without that, a sample with a blank
+    ``mhc_class`` but an unambiguous ``mhc`` was dropped by every class
+    filter while the class-pool path in this same module happily derived
+    it — two class-resolution paths disagreeing.
     """
-    if not sample_class:
-        return False
     from .curation import normalize_mhc_class_token
 
-    parts = {p.strip() for p in normalize_mhc_class_token(sample_class).split("+")}
+    if sample_row is not None:
+        parts = _sample_class_tokens(sample_row)
+    elif sample_class:
+        parts = {p.strip() for p in normalize_mhc_class_token(sample_class).split("+")}
+    else:
+        return False
     return normalize_mhc_class_token(filter_class) in parts
 
 

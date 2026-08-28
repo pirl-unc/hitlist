@@ -2376,12 +2376,15 @@ _KNOWN_CLASS_MISMATCHES = {
 #: mhcgnomes result types that name a real MHC designation.  Alleles,
 #: genes and pairs reach the allele join; serotypes and class-II loci are
 #: valid curation but do not (#380).
+#: ``Haplotype`` is deliberately absent: ``parse("I")`` resolves to one,
+#: so admitting it would let a bare roman numeral pass as a curated
+#: genotype.  ``Species`` is absent for the same reason (``parse("-")``).
 _MHC_DESIGNATION_TYPES = frozenset(
-    {"Allele", "Gene", "Pair", "Serotype", "Class2Locus", "MhcClass", "Haplotype"}
-) - {"Haplotype"}
+    {"Allele", "Gene", "Pair", "Serotype", "Class2Locus", "MhcClass"}
+)
 
 
-def test_every_curated_mhc_field_yields_at_least_one_allele():
+def test_every_curated_mhc_token_names_an_mhc_designation():
     """#375: a typo in a curated ``mhc`` value silently produced an empty
     allele set — the sample then dropped out of the allele-level join and
     of _pmid_sample_alleles with no warning.  ``BL2*02`` (should be
@@ -2601,10 +2604,11 @@ def test_species_compatible_uses_the_ontology_not_string_shape():
     # coarser description.  Only a direct ancestor/descendant relation
     # counts as compatible.
     assert not species_compatible("Macaca mulatta", "Macaca fascicularis")
-    # Same rule, but note the tree here is itself wrong: mhcgnomes makes
-    # Bubalus bubalis a child of "Bos sp." though it is a separate genus
-    # (pirl-unc/mhcgnomes#115).  These two are still correctly rejected
-    # as siblings; a curated "Bos sp." against a Bubu allele would not be.
+    # Same rule.  Bubalus sits under Bos sp.[BoLA] because that node is
+    # an MHC-nomenclature grouping rather than a clade — see
+    # test_species_tree_is_prefix_scope_not_phylogeny.  These two are
+    # still correctly rejected as siblings; a curated "Bos sp." against
+    # a Bubu allele would not be.
     assert not species_compatible("Bos taurus", "Bubalus bubalis")
     # Cross-clade: the PMID 41459947 curation error, a fish study whose
     # sample carried the human class-II sentinel.
@@ -2650,3 +2654,26 @@ def test_species_tree_is_prefix_scope_not_phylogeny():
     assert species_compatible("Bos sp.", "Bubalus bubalis")
     # The specific-vs-specific comparison is still correctly rejected.
     assert not species_compatible("Bos taurus", "Bubalus bubalis")
+
+
+def test_class_only_typed_samples_are_declared_not_incidental():
+    """A class-only ``mhc`` skips the allele-join guard, so switching a
+    sample to a sentinel silently removes it from that check.
+
+    Rather than enumerate all 88 class-only samples, pin the two that
+    #375 converted, so the conversion stays deliberate.  PMID 36423003
+    is a genuine downgrade — IEDB carries real 4-digit BoLA alleles for
+    it (#381) — and is recorded here until those are curated.
+    """
+    from hitlist.curation import extract_allele_tokens, is_class_only_token
+    from hitlist.export import generate_ms_samples_table
+
+    samples = generate_ms_samples_table().set_index(["pmid", "sample_label"])
+    for key, mhc in (
+        ((36146698, "SLA-I Lr-Hp 35.0/24 mod (porcine cell line, PRRSV-infected)"), "SLA class I"),
+        ((36423003, "T. parva-infected bovine lymphocyte lines (BoLA-I)"), "Bos taurus class I"),
+    ):
+        value = str(samples.loc[key, "mhc"])
+        assert value == mhc, f"{key} mhc changed: {value!r}"
+        assert is_class_only_token(value), key
+        assert extract_allele_tokens(value) == [], key

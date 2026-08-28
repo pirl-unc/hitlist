@@ -512,7 +512,7 @@ def _add_peptide_counts_args(p: argparse.ArgumentParser) -> None:
     p.add_argument(
         "--class",
         dest="mhc_class",
-        help="Filter to MHC class (I or II). Applies to --by class.",
+        help="Filter to MHC class (I, II, or non-classical). Applies to --by class.",
     )
     p.add_argument(
         "--source",
@@ -525,7 +525,9 @@ def _add_peptide_counts_args(p: argparse.ArgumentParser) -> None:
 
 def _add_samples_args(p: argparse.ArgumentParser) -> None:
     """Argparse setup for `hitlist samples` (== legacy `export samples`)."""
-    p.add_argument("--class", dest="mhc_class", help="Filter to MHC class (I or II)")
+    p.add_argument(
+        "--class", dest="mhc_class", help="Filter to MHC class (I, II, or non-classical)"
+    )
     p.add_argument(
         "--with-expression-anchors",
         action="store_true",
@@ -685,7 +687,9 @@ def main() -> None:
             "(instant); pass --from-csv to fall back to a live raw-CSV scan."
         ),
     )
-    p_report.add_argument("--class", dest="mhc_class", help="MHC class filter (I or II)")
+    p_report.add_argument(
+        "--class", dest="mhc_class", help="MHC class filter (I, II, or non-classical)"
+    )
     p_report.add_argument(
         "--from-csv",
         action="store_true",
@@ -719,7 +723,9 @@ def main() -> None:
         "summary",
         help="DEPRECATED — use `hitlist export peptide-counts --by class`.",
     )
-    p_summary.add_argument("--class", dest="mhc_class", help="Filter to MHC class (I or II)")
+    p_summary.add_argument(
+        "--class", dest="mhc_class", help="Filter to MHC class (I, II, or non-classical)"
+    )
     p_summary.add_argument("--output", "-o", help="Write CSV to file")
 
     p_alleles = export_sub.add_parser(
@@ -739,7 +745,7 @@ def main() -> None:
         aliases=["observations"],
         help="MS observations table: peptides + sample metadata",
     )
-    p_obs.add_argument("--class", dest="mhc_class", help="MHC class (I or II)")
+    p_obs.add_argument("--class", dest="mhc_class", help="MHC class (I, II, or non-classical)")
     p_obs.add_argument("--species", help="Filter by MHC species")
     p_obs.add_argument("--instrument-type", help="Instrument type (Orbitrap, timsTOF)")
     p_obs.add_argument("--acquisition-mode", help="Acquisition mode (DDA, DIA, PRM)")
@@ -871,7 +877,9 @@ def main() -> None:
         "peptide-summary",
         help="Per-peptide MS support summary for one target allele or serotype",
     )
-    p_pep_summary.add_argument("--class", dest="mhc_class", help="MHC class (I or II)")
+    p_pep_summary.add_argument(
+        "--class", dest="mhc_class", help="MHC class (I, II, or non-classical)"
+    )
     p_pep_summary.add_argument("--species", help="Filter by MHC species")
     p_pep_summary.add_argument(
         "--source",
@@ -920,7 +928,7 @@ def main() -> None:
             "quantitative tiers).  Separate from MS observations."
         ),
     )
-    p_bind.add_argument("--class", dest="mhc_class", help="MHC class (I or II)")
+    p_bind.add_argument("--class", dest="mhc_class", help="MHC class (I, II, or non-classical)")
     p_bind.add_argument("--species", help="Filter by MHC species")
     p_bind.add_argument(
         "--source",
@@ -1052,7 +1060,7 @@ def main() -> None:
         default="both",
         help="Which evidence families to include (default: both).",
     )
-    p_training.add_argument("--class", dest="mhc_class", help="MHC class (I or II)")
+    p_training.add_argument("--class", dest="mhc_class", help="MHC class (I, II, or non-classical)")
     p_training.add_argument("--species", help="Filter by MHC species")
     p_training.add_argument(
         "--source",
@@ -1260,7 +1268,7 @@ def main() -> None:
         "resolution",
         help="Histogram of (mhc_class, source, allele_resolution) buckets",
     )
-    p_qc_res.add_argument("--class", dest="mhc_class", help="MHC class (I or II)")
+    p_qc_res.add_argument("--class", dest="mhc_class", help="MHC class (I, II, or non-classical)")
     p_qc_res.add_argument("--species", help="Filter by MHC species")
     p_qc_res.add_argument(
         "--source", choices=["iedb", "cedar", "supplement"], help="Filter by data source"
@@ -1280,7 +1288,7 @@ def main() -> None:
             "(yaml_only), or vice versa (data_only)"
         ),
     )
-    p_qc_xref.add_argument("--class", dest="mhc_class", help="MHC class (I or II)")
+    p_qc_xref.add_argument("--class", dest="mhc_class", help="MHC class (I, II, or non-classical)")
     p_qc_xref.add_argument(
         "--direction",
         choices=["yaml_only", "data_only", "both"],
@@ -1299,7 +1307,7 @@ def main() -> None:
             "count, descending."
         ),
     )
-    p_qc_disc.add_argument("--class", dest="mhc_class", help="MHC class (I or II)")
+    p_qc_disc.add_argument("--class", dest="mhc_class", help="MHC class (I, II, or non-classical)")
     p_qc_disc.add_argument(
         "--min-rows",
         type=int,
@@ -1337,7 +1345,7 @@ def main() -> None:
             "curate next?' without bouncing between three reports."
         ),
     )
-    p_qc_plan.add_argument("--class", dest="mhc_class", help="MHC class (I or II)")
+    p_qc_plan.add_argument("--class", dest="mhc_class", help="MHC class (I, II, or non-classical)")
     p_qc_plan.add_argument(
         "--min-rows",
         type=int,

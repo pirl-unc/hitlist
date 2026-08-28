@@ -604,11 +604,9 @@ def _load_peptide_index(
         # canonical token is hyphenated, so an exact predicate on either
         # spelling returned nothing.  Match every stored spelling that
         # normalizes to the requested class (#363 follow-up).
-        from .curation import normalize_mhc_class_token
+        from .curation import mhc_class_spellings
 
-        wanted = normalize_mhc_class_token(mhc_class)
-        spellings = sorted({mhc_class, wanted, wanted.replace("-", " ")})
-        filters.append(("mhc_class", "in", spellings))
+        filters.append(("mhc_class", "in", mhc_class_spellings(mhc_class)))
     if species is not None:
         filters.append(("mhc_species", "==", normalize_species(species)))
     if source is not None:

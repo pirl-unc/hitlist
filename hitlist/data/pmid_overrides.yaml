@@ -2737,12 +2737,12 @@
         mhc_class: I
         mhc: "BF2*1301"
   - pmid: 33901176
-    study_label: Halabi 2021 — chicken BL2 class II + MDV
+    study_label: Halabi 2021 — chicken BLB2 class II + MDV
     title: "The dominantly expressed class II molecule from a resistant MHC haplotype presents only a few Marek's disease virus peptides by using an unprecedented binding motif"
     override:
     species: Gallus gallus (chicken)
     note: >
-      BL2*02 (B2 haplotype class II) immunopeptidomics + in vitro MDV infection. Unprecedented decamer binding
+      BLB2*02 (B2 haplotype class II) immunopeptidomics + in vitro MDV infection. Unprecedented decamer binding
       motif. Only ~4 MDV proteins give rise to most presented epitopes. Not in IEDB.
     perturbations:
       - "Marek's disease virus (MDV, oncogenic herpesvirus) infection"
