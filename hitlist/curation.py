@@ -728,21 +728,30 @@ def species_compatible(declared: str, derived: str) -> bool:
     are compatible when they are equal, or when one is a direct ancestor
     of the other.
 
-    Note what that tree encodes.  It is a **prefix-scope hierarchy, not
-    a phylogeny** — each node carries an ``mhc_prefix`` and the parent
-    relation says "this species may be named with the ancestor's
-    umbrella prefix".  ``Homo sapiens`` is deliberately *not* under
-    ``Primata sp.[NHP]`` (human alleles are never written ``NHP-*``),
-    while ``Bubalus bubalis[Bubu]`` *is* under ``Bos sp.[BoLA]``,
-    because buffalo alleles are assigned to BoLA loci via trans-species
-    polymorphism.
+    Note what that tree encodes.  It is **mostly taxonomic** — 18 of the
+    22 largest internal nodes have ``prefix == taxon name``
+    (``Aves sp.[Aves]``, ``Cyprinidae sp.[Cyprinidae]``, ...) — but a
+    handful of nodes are MHC-nomenclature groupings instead, carrying a
+    legacy prefix: ``Bos sp.[BoLA]``, ``Primata sp.[NHP]``,
+    ``Cetacea sp.[CELA]``, ``Mus sp.[MusSp]``, ``Rattus sp.[RT1]``.
+    Inside those, membership follows naming practice rather than strict
+    taxonomy.
 
-    For our purpose that is the right relation anyway: an allele-derived
-    ``Bos sp.`` on a curated ``Bos taurus`` sample shares a naming scope
-    and is a coarser description, not a contradiction.  But it is not a
-    statement about relatedness, so do not read it as one — a ``Bubu-*``
-    allele would be accepted against a curated ``Bos sp.``.  No corpus
-    sample hits that today; pinned by a test.
+    Two consequences worth knowing, both pinned by tests:
+
+    * ``Bubalus bubalis[Bubu]`` sits under ``Bos sp.[BoLA]`` — a
+      different genus, grouped there because buffalo alleles are
+      assigned to BoLA loci by trans-species polymorphism.  So a
+      ``Bubu-*`` allele is accepted against a curated ``Bos sp.``.
+    * ``Primata sp.`` carries the *exclusionary* ``NHP`` prefix, so
+      ``Homo sapiens`` is not under it and a curated ``Primata sp.``
+      would be flagged against a human allele
+      (pirl-unc/mhcgnomes#122).
+
+    Neither is hit by any corpus sample today.  For our purpose the
+    relation is still the right one: an allele-derived ``Bos sp.`` on a
+    curated ``Bos taurus`` sample is a coarser description, not a
+    contradiction.
 
     Comparing genus strings instead (the first word) is both too weak
     and too strong.  Too weak: it accepts ``Macaca mulatta`` against a

@@ -2617,16 +2617,27 @@ def test_species_compatible_uses_the_ontology_not_string_shape():
 def test_species_tree_is_prefix_scope_not_phylogeny():
     """Pin the two facts that make ``species_compatible`` interpretable.
 
-    mhcgnomes' species tree encodes which umbrella MHC prefix may name a
-    species, not descent.  Reading it as taxonomy is what led us to file
-    pirl-unc/mhcgnomes#115 against a placement that is actually correct.
+    The tree is mostly taxonomic — 18 of the 22 largest internal nodes
+    have ``prefix == taxon name`` — but a few are MHC-nomenclature
+    groupings carrying a legacy prefix (``Bos sp.[BoLA]``,
+    ``Primata sp.[NHP]``, ``Cetacea sp.[CELA]``, ``Rattus sp.[RT1]``,
+    ``Mus sp.[MusSp]``).  Membership inside those follows naming
+    practice, which is why ``species_compatible`` behaves as it does at
+    those two nodes.
     """
     import mhcgnomes
 
     from hitlist.curation import species_compatible
 
-    # Humans are primates, but human alleles are never written NHP-*, so
-    # Homo sapiens sits outside Primata sp.[NHP].
+    # Genuine clade nodes are taxonomic and behave as expected — this is
+    # the common case, and it is what makes the tree usable here.
+    assert mhcgnomes.Species.get("Carassius gibelio").parent.name == "Cyprinidae sp."
+    assert species_compatible("Carassius gibelio", "Cyprinidae sp.")
+
+    # Primata sp. is the exception: it carries the exclusionary NHP
+    # prefix, so Homo sapiens is not under it even though humans are
+    # primates.  Reported as pirl-unc/mhcgnomes#122; pinned so the
+    # surprising answer is deliberate.
     assert mhcgnomes.Species.get("Homo sapiens").parent.name == "Gnathostomata sp."
     assert not species_compatible("Homo sapiens", "Primata sp.")
 
