@@ -2347,18 +2347,9 @@ def test_is_class_only_token_recognizes_sentinels():
 
 #: Samples whose declared mhc_class still contradicts their own alleles.
 #: Tracked in #374; pinned here so *new* contradictions fail the build.
-#:   - Patr-AL: our "non-classical" is correct and mhcgnomes' "Ia" is
-#:     wrong.  Adams et al., J Immunol 2001;167(7):3858-64 (PMID
-#:     11564803) is titled "A Novel, Nonclassical MHC Class I Molecule
-#:     Specific to the Common Chimpanzee": oligomorphic (3 allotypes),
-#:     low expression, present on only ~50% of haplotypes, diverged from
-#:     the classical A locus >20 Mya.  IEDB annotates it non-classical
-#:     too.  Reported upstream as pirl-unc/mhcgnomes#107; this entry
-#:     goes away when that lands.
 #:   - The "I+II" entries list only class-I alleles; their class-II
 #:     genotype has to be read out of each paper's Methods.
 _KNOWN_CLASS_MISMATCHES = {
-    (21209280, "transfected cells expressing Patr-AL"),
     (33392160, "THP-1 + biomaterial contact"),
     (33936100, "GRANTA-519 (mantle cell lymphoma, untreated)"),
     (33936100, "GRANTA-519 + IFN-gamma"),
@@ -2522,18 +2513,15 @@ def test_curated_mhc_tokens_resolve_to_the_intended_species():
     """
     from hitlist.curation import classify_mhc_species, species_compatible
 
-    # Each pair pins the workaround *and* the trap it works around, so
-    # this fails loudly if either the curation or upstream changes.
-    # Upstream: pirl-unc/mhcgnomes#103, #105, #106.
+    # mhcgnomes 3.39.0 fixed the inference traps these tokens worked
+    # around (#103/#105/#106), so the bare forms are now correct too.
+    # The explicit forms are kept in curation regardless: pinning the
+    # species in the token is robust to future inference changes, and
+    # costs nothing.
     assert classify_mhc_species("Gaga-BLB2*02") == "Gallus gallus"
-    assert classify_mhc_species("BLB2*02") == "Coturnix japonica", (
-        "mhcgnomes#105 fixed upstream — bare BLB2*02 now resolves correctly, "
-        "so the Gaga- prefix workaround can be revisited"
-    )
+    assert classify_mhc_species("BLB2*02") == "Gallus gallus"
     assert classify_mhc_species("Bos taurus class I") == "Bos taurus"
-    assert classify_mhc_species("BoLA class I") == "Bubalus bubalis", (
-        "mhcgnomes#103/#106 fixed upstream — BoLA class I now resolves to cattle"
-    )
+    assert classify_mhc_species("BoLA class I") == "Bos sp."
     # SLA is deliberately NOT worked around: "SLA class I" resolves to
     # the genus-level "Sus sp.", which is a direct ancestor of the
     # curated "Sus scrofa" and therefore compatible.  Pinned so nobody
