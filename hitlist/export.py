@@ -35,8 +35,10 @@ from .curation import (
     allele_to_all_serotypes,
     allele_to_serotype,
     load_pmid_overrides,
+    mhc_species_of,
     normalize_allele,
     normalize_species,
+    species_axes_agreement,
 )
 
 # MS acquisition metadata fields.  Each may appear at the PMID level
@@ -520,7 +522,7 @@ def _empty_ms_samples_columns() -> list[str]:
         "condition_category",
         "is_control_arm",
         "mhc_species",
-        "species_axes_agree",
+        "species_axes_agreement",
     ]
 
 
@@ -568,14 +570,13 @@ def generate_ms_samples_table(
         ``"false"`` otherwise (#354).
 
         ``mhc_species`` is derived from the sample's own alleles and
-        ``species_axes_agree`` compares it against the curated
+        ``species_axes_agreement`` compares it against the curated
         ``species`` (the source proteome).  ``"false"`` is not
         automatically an error — engineered chimeras legitimately differ
         (#46) — but it is the signal that caught a Prussian carp sample
         curated with human MHC.
     """
     from .apm import apm_columns_for_sample
-    from .curation import mhc_species_of, species_axes_agree
 
     overrides = load_pmid_overrides()
     rows: list[dict] = []
@@ -671,7 +672,9 @@ def generate_ms_samples_table(
             # — PMID 41459947's Prussian carp sample carrying human MHC —
             # is visible in the exported table instead of only to a test.
             row["mhc_species"] = mhc_species_of(row["mhc"])
-            row["species_axes_agree"] = species_axes_agree(row["species"], row["mhc_species"])
+            row["species_axes_agreement"] = species_axes_agreement(
+                row["species"], row["mhc_species"]
+            )
             rows.append(row)
 
     df = pd.DataFrame(rows)
@@ -1759,6 +1762,14 @@ _SAMPLE_PROVENANCE_COLUMNS = (
     "n_samples",
     "reference_proteomes",
     "mhc",
+    # Species axes (#4 from review).  The anchors variant of the samples
+    # export is one CLI flag away from the plain one, so it needs the
+    # same flag; without these it silently dropped them.
+    "species",
+    "mhc_species",
+    "species_axes_agreement",
+    "condition_category",
+    "is_control_arm",
 )
 
 
@@ -1768,10 +1779,12 @@ def generate_sample_expression_table(
 ) -> pd.DataFrame:
     """Per-sample expression-anchor resolution table.
 
-    Now includes the same sample-provenance columns as
-    :func:`generate_ms_samples_table` (issue #149) so a single export
+    Carries the sample-provenance columns listed in
+    :data:`_SAMPLE_PROVENANCE_COLUMNS` (issue #149) so a single export
     captures sample identity + acquisition context + expression anchor
-    in one row.  Resolves an expression anchor for every sample via
+    in one row.  That is a curated subset of
+    :func:`generate_ms_samples_table`, not every column of it — the
+    acquisition and APM blocks are deliberately omitted.  Resolves an expression anchor for every sample via
     :func:`hitlist.line_expression.resolve_sample_expression_anchor`
     and emits the flat provenance record downstream callers need to
     distinguish "exact JY RNA" from "generic EBV-LCL stand-in" from

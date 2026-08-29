@@ -3081,20 +3081,27 @@ def test_samples_table_exposes_both_species_axes():
     the test suite, so a consumer reading the exported table saw no flag.
 
     ``mhc_species`` is derived from the sample's alleles and
-    ``species_axes_agree`` compares it with the curated ``species``.
+    ``species_axes_agreement`` compares it with the curated ``species``.
     """
     from hitlist.export import generate_ms_samples_table
 
     samples = generate_ms_samples_table()
-    assert {"mhc_species", "species_axes_agree"} <= set(samples.columns)
-    assert set(samples["species_axes_agree"]) <= {"true", "false", ""}
+    assert {"mhc_species", "species_axes_agreement"} <= set(samples.columns)
+    assert set(samples["species_axes_agreement"]) <= {"true", "false", ""}
 
-    # The only disagreements are the two engineered chimeras (#46), which
-    # are correct as curated — a human transgene in a non-human host.
-    disagree = samples[samples["species_axes_agree"] == "false"]
-    assert sorted(disagree["pmid"].tolist()) == [26740625, 26811146]
+    # The only disagreements are the engineered chimeras (#46), which are
+    # correct as curated — a human transgene in a non-human host.  Keyed
+    # off the single allowlist so adding a chimera means editing one
+    # place, not two.
+    from tests.test_curation import _KNOWN_CHIMERIC_SAMPLES
+
+    disagree = {
+        (int(r["pmid"]), str(r["sample_label"]))
+        for _, r in samples[samples["species_axes_agreement"] == "false"].iterrows()
+    }
+    assert disagree == _KNOWN_CHIMERIC_SAMPLES
 
     # The Prussian carp sample, which is what motivated surfacing this.
     carp = samples[samples["pmid"] == 41459947].iloc[0]
     assert carp["mhc_species"] == "Carassius gibelio"
-    assert carp["species_axes_agree"] == "true"
+    assert carp["species_axes_agreement"] == "true"

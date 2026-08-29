@@ -79,6 +79,24 @@ has real BoLA alleles in IEDB but is curated class-only; #382 species inference 
 curated YAML, the ingest path still misclassifies; #374 remainder (11 `I+II` samples need their
 class-II genotypes read out of the papers).
 
-Next: mhcgnomes 3.39.0 upgrade — `Species.compatible_with` replaces our `species_compatible`,
-`species_source` replaces the tests that pin wrong answers, and Patr-AL is now `Ib` so its
-allow-list entry goes away.
+## v1.51.0 — adopt mhcgnomes' species API (#383)
+
+Shipped: floored `mhcgnomes>=3.39.0` (CI installs latest, so an unpinned floor is what let a green
+local run ship a red CI); deleted `curation.species_compatible` in favour of
+`Species.compatible_with`; replaced the trap-pinning tests with the real invariant — no curated
+`mhc` token may resolve with `species_source == "inferred"`. That guard found 4 chicken `BF2*`
+tokens resolving by cross-species inference (PMIDs 18612635, 36695776), now pinned with `Gaga-`;
+inferred tokens 4 → 0. Patr-AL is `Ib` upstream so its allow-list entry is gone (contradictions
+12 → 11).
+
+Review finding #4: the source-vs-MHC species invariant reached only the test suite. The samples
+table now exports `mhc_species` and `species_axes_agreement`, and the guard test asserts on the
+column rather than re-deriving it — they were briefly two implementations and disagreed on 19
+serotype/locus rows. `_SAMPLE_PROVENANCE_COLUMNS` extended so the `--with-expression-anchors`
+variant carries them too. Corpus: 651 agree, 35 undeterminable (12 of them `mhc: unknown`), 2
+disagree — both engineered chimeras (#46), correct as curated and now visible.
+
+Next: #380 (serotype/locus values never reach the allele join), #381 (PMID 36423003 has real BoLA
+alleles in IEDB but is curated class-only), #382 (species inference pinned only in curated YAML;
+the ingest path still misclassifies), #374 remainder (11 `I+II` samples need class-II genotypes
+read out of the papers).

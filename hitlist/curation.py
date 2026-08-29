@@ -742,46 +742,69 @@ def is_class_only_token(value: str) -> bool:
 
 @cache
 def mhc_species_of(mhc_field: str) -> str:
-    """Species of a curated ``mhc`` value, derived from its alleles.
+    """Species named by a curated ``mhc`` value, semicolon-joined.
 
     This is the ``mhc_species`` axis from docs/source-classification.md —
     the MHC molecule's species, as distinct from ``source_species`` (the
-    proteome the peptide came from) and ``host_organism``.  Returns ``""``
-    when the field is empty, unparseable, or names more than one species.
+    proteome the peptide came from) and ``host_organism``.
+
+    Resolves every token through :func:`classify_mhc_species`, not just
+    the ones that are alleles.  ``HLA-DR15`` is a Serotype and
+    ``BoLA-DR`` a Class2Locus; both name a species perfectly well, and
+    filtering to Allele/Gene/Pair would report ``""`` for 19 curated
+    rows whose species is not in doubt (#380 is about them not reaching
+    the *allele* join, which is a different question).
+
+    A genotype spanning several species — an engineered chimera — is
+    joined rather than collapsed, so the signal survives on exactly the
+    rows it matters for.  Returns ``""`` only when nothing resolves.
     """
     text = (mhc_field or "").strip()
     if not text:
         return ""
     if is_class_only_token(text):
         return classify_mhc_species(text)
-    species = {classify_mhc_species(tok) for tok in extract_allele_tokens(text)}
+    species = {classify_mhc_species(tok) for tok in re.split(r"[\s;,]+", text) if tok}
     species.discard("")
-    return species.pop() if len(species) == 1 else ""
+    return ";".join(sorted(species))
 
 
-def species_axes_agree(source_species: str, mhc_species: str) -> str:
+@cache
+def species_axes_agreement(source_species: str, mhc_species: str) -> str:
     """Do a sample's source and MHC species axes describe one system?
 
     Returns ``"true"`` / ``"false"`` / ``""`` (undeterminable), matching
     the tri-state string convention used by ``profiled`` and
-    ``is_control_arm``.
+    ``is_control_arm``.  Deliberately *not* named as a predicate: it
+    returns a string, and ``bool("false")`` is ``True``, so a
+    question-shaped name would invert the first caller's branch.
 
-    ``"false"`` is not automatically an error — an engineered chimera
-    legitimately has a human HLA transgene in a mouse (#46).  It means
-    the two axes differ and the row deserves a look, which is exactly
-    how PMID 41459947 shipped a Prussian carp sample carrying human MHC.
+    ``mhc_species`` may name several species (semicolon-joined); the
+    axes agree when *any* of them is compatible with the source, which
+    is what an engineered chimera looks like from the source side.
+
+    ``"false"`` is not automatically an error — a human HLA transgene in
+    a mouse legitimately disagrees (#46).  It means the two axes differ
+    and the row deserves a look, which is how PMID 41459947 shipped a
+    Prussian carp sample carrying human MHC.
 
     Compatibility is :meth:`mhcgnomes.Species.compatible_with`: same
-    species, or one a direct ancestor of the other, so the genus-level
-    ``Bos sp.`` a ``BoLA`` allele resolves to agrees with a curated
-    ``Bos taurus``.
+    species, or one a direct ancestor of the other.  Both sides are
+    resolved first — that method returns ``False`` both for "these
+    differ" and for "the other name is not a species at all", so
+    without the guard an unresolvable name would be reported as a
+    contradiction rather than as unknown.
     """
     if not source_species or not mhc_species:
         return ""
-    a = Species.get(source_species)
-    if a is None:
+    source = Species.get(source_species)
+    if source is None:
         return ""
-    return "true" if a.compatible_with(mhc_species) else "false"
+    derived = [Species.get(part) for part in mhc_species.split(";") if part]
+    derived = [d for d in derived if d is not None]
+    if not derived:
+        return ""
+    return "true" if any(source.compatible_with(d) for d in derived) else "false"
 
 
 def expand_allele_components(allele_token: str) -> list[str]:
