@@ -2963,3 +2963,114 @@ def test_sample_class_tokens_normalizes_and_derives():
     # Blank declared class -> derived from alleles via mhcgnomes.
     assert _sample_class_tokens({"mhc_class": "", "mhc": "HLA-E*01:03"}) == {"non-classical"}
     assert _sample_class_tokens({"mhc_class": "", "mhc": "HLA-A*02:01 HLA-B*07:02"}) == {"I"}
+
+
+def test_per_sample_species_override_is_honored(monkeypatch):
+    """#372: species was resolved once per study, outside the sample loop,
+    so a mixed-species study exported its mouse arms as human — the
+    sample-level key existed in the YAML and nothing read it."""
+    from hitlist import export
+
+    def fake_overrides():
+        return {
+            99999301: {
+                "study_label": "synthetic — mixed-species study",
+                # No study-level species: the old code defaulted to human.
+                "ms_samples": [
+                    {
+                        "sample_label": "human line",
+                        "n_samples": 1,
+                        "condition": "unperturbed",
+                        "mhc_class": "I",
+                        "mhc": "HLA-A*02:01",
+                    },
+                    {
+                        "sample_label": "mouse splenocytes",
+                        "n_samples": 1,
+                        "condition": "unperturbed",
+                        "mhc_class": "I",
+                        "mhc": "H-2Kb",
+                        "species": "Mus musculus (mouse)",
+                    },
+                ],
+            }
+        }
+
+    monkeypatch.setattr("hitlist.export.load_pmid_overrides", fake_overrides)
+    df = export.generate_ms_samples_table().set_index("sample_label")
+    assert df.loc["mouse splenocytes", "species"] == "Mus musculus"
+    # Samples without the key still inherit the study-level default.
+    assert df.loc["human line", "species"] == "Homo sapiens"
+
+
+def test_real_mixed_species_studies_keep_their_per_sample_species():
+    """#372 on the actual curated data, not a synthetic stand-in.
+
+    Both studies have no study-level ``species:`` and rely entirely on
+    the per-sample key; deleting it silently reverts them to human.
+    """
+    from hitlist.export import generate_ms_samples_table
+
+    samples = generate_ms_samples_table().set_index(["pmid", "sample_label"])
+    assert samples.loc[(34129938, "MC38 mouse colon carcinoma"), "species"] == "Mus musculus"
+    assert samples.loc[(39438697, "mouse splenocytes (C57BL/6)"), "species"] == "Mus musculus"
+    # Their human co-samples in the same studies still resolve to human.
+    assert (
+        samples.loc[(34129938, "GRANTA-519 human mantle cell lymphoma"), "species"]
+        == "Homo sapiens"
+    )
+    assert samples.loc[(39438697, "THP-1 (human monocytic leukemia)"), "species"] == "Homo sapiens"
+
+
+def test_non_classical_filter_matches_samples_in_both_spellings():
+    """The YAML writes 'non-classical' and the parquet stores 'non
+    classical'.  The samples half needs no built corpus."""
+    from hitlist.export import generate_ms_samples_table
+
+    for spelling in ("non-classical", "non classical"):
+        assert len(generate_ms_samples_table(mhc_class=spelling)) > 0, spelling
+
+
+@pytest.mark.integration
+def test_non_classical_filter_reaches_observations_in_both_spellings():
+    """Normalization was applied inside the join but at neither filter
+    boundary, so both spellings returned nothing joined."""
+    from hitlist.export import generate_observations_table
+    from hitlist.observations import is_built
+
+    if not is_built():
+        pytest.skip("Observations table not built")
+    for spelling in ("non-classical", "non classical"):
+        assert len(generate_observations_table(mhc_class=spelling)) > 0, spelling
+
+
+def test_zero_match_class_filter_returns_empty_samples_frame():
+    """A filter matching no samples produced a column-less frame, and
+    every downstream ``samples.groupby("pmid")`` raised KeyError."""
+    from hitlist.export import generate_ms_samples_table
+
+    empty = generate_ms_samples_table(mhc_class="III")
+    assert len(empty) == 0
+    # Must keep its columns, or the downstream groupby raises KeyError.
+    assert "pmid" in empty.columns
+
+
+@pytest.mark.integration
+def test_zero_match_class_filter_returns_empty_observations():
+    from hitlist.export import generate_observations_table
+    from hitlist.observations import is_built
+
+    if not is_built():
+        pytest.skip("Observations table not built")
+    assert len(generate_observations_table(mhc_class="III")) == 0
+
+
+def test_empty_ms_samples_columns_match_the_real_table():
+    """``_empty_ms_samples_columns`` hand-mirrors the row dict built in
+    ``generate_ms_samples_table``.  Adding a key to that dict without
+    touching the list reintroduces the KeyError the empty-frame fix was
+    for, on the zero-match path where nobody looks.
+    """
+    from hitlist.export import _empty_ms_samples_columns, generate_ms_samples_table
+
+    assert list(generate_ms_samples_table().columns) == _empty_ms_samples_columns()

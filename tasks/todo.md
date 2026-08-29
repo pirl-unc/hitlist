@@ -58,3 +58,27 @@ xenograft 0.32%; exclude_chimeric drops 72,813 / 4.44M rows. host-human (4.12M) 
 Deferred (noted in PR): effector_organism, mhc_donor_individual, build-time materialization +
 axis validation, per-PMID chimeric override curation, adding `xenograft` to the export schema.
 897 passed, 2 skipped. lint/format clean.
+
+## v1.49.x — curated sample metadata self-consistency (#372/#374/#375/#379)
+
+Shipped: per-sample `species` honored (2 mouse samples were exporting as human); HLA-G
+transfectants moved to non-classical; 3 unparseable `mhc` tokens fixed; species-inference traps
+pinned to explicit forms; class filters normalized at both boundaries so `non-classical` is
+reachable end-to-end (was 18 samples / 0 observations); zero-match filters return an empty frame
+instead of raising KeyError; `_mhc_class_matches` unified with `_sample_class_tokens`.
+
+Review round: fixed a real bug in `species_compatible` (compared raw strings before resolving, so
+`"Gallus gallus (chicken)"` vs `"Gallus gallus"` was False), removed a dead `try/except ImportError`
+on a hard dependency, derived the parquet spelling set from the alias table, cached
+`normalize_mhc_class_token`, split the typo guard from the allele-join guard, added staleness
+assertions to both allow-lists, and updated the CLI help + curation doc for the non-classical
+vocabulary.
+
+Deferred (filed): #380 serotype/locus `mhc` values never reach the allele join; #381 PMID 36423003
+has real BoLA alleles in IEDB but is curated class-only; #382 species inference is pinned only in
+curated YAML, the ingest path still misclassifies; #374 remainder (11 `I+II` samples need their
+class-II genotypes read out of the papers).
+
+Next: mhcgnomes 3.39.0 upgrade — `Species.compatible_with` replaces our `species_compatible`,
+`species_source` replaces the tests that pin wrong answers, and Patr-AL is now `Ib` so its
+allow-list entry goes away.

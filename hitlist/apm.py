@@ -51,14 +51,19 @@ APM_GENES: dict[str, tuple[str, ...]] = {
     "tap1": (r"\bTAP1\b",),
     "tap2": (r"\bTAP2\b",),
     "tapbp": (r"\bTAPBP\b", r"\btapasin\b"),
-    # TAPBPR / TAPBPL is a tapasin homolog that edits peptide cargo
-    # independently of the peptide-loading complex, so it gets its own
-    # key rather than folding into ``tapbp``.  The ``\bTAPBP\b``
+    # TAPBPR is a widely expressed tapasin homolog that is *not* part of
+    # the peptide-loading complex — a second, independent peptide editor
+    # performing exchange outside the PLC (Hermann et al., PMID 26869717;
+    # Thomas & Tampe, Science 2017).  So it gets its own key rather than
+    # folding into ``tapbp``.  The ``\bTAPBP\b``
     # pattern above already declines to match it (the trailing "R" is a
     # word character), which is why it went uncaptured entirely.
     "tapbpr": (r"\bTAPBPR\b", r"\bTAPBPL\b"),
-    # ERAAP is the mouse ortholog of ERAP1 — the murine literature uses
-    # it exclusively, so a mouse ERAP1 knockout was landing in
+    # ERAAP ("ER aminopeptidase associated with antigen processing") is
+    # an established alternate name for ERAP1, used throughout the murine
+    # literature — Hammer et al., Nat Immunol 2006 ("The aminopeptidase
+    # ERAAP shapes the peptide repertoire displayed by MHC class I
+    # molecules").  Without the alias a mouse ERAP1 knockout landed in
     # ``other_perturbation`` instead of ``ERAP1_perturbation``.
     "erap1": (r"\bERAP1\b", r"\bERAAP\b"),
     "erap2": (r"\bERAP2\b",),

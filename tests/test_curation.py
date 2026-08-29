@@ -1,3 +1,5 @@
+import re
+
 import pytest
 
 from hitlist.curation import (
@@ -2338,3 +2340,328 @@ def test_is_class_only_token_recognizes_sentinels():
     assert is_class_only_token("MHC class II") is True
     assert is_class_only_token("unknown") is True
     assert is_class_only_token("HLA-A*02:01") is False
+
+
+# ── Curated ms_samples self-consistency guards (#372, #374, #375) ──────
+
+
+#: Samples whose declared mhc_class still contradicts their own alleles.
+#: Tracked in #374; pinned here so *new* contradictions fail the build.
+#:   - The "I+II" entries list only class-I alleles; their class-II
+#:     genotype has to be read out of each paper's Methods.
+_KNOWN_CLASS_MISMATCHES = {
+    (33392160, "THP-1 + biomaterial contact"),
+    (33936100, "GRANTA-519 (mantle cell lymphoma, untreated)"),
+    (33936100, "GRANTA-519 + IFN-gamma"),
+    (35051231, "P1 lung — UV mock (uninfected)"),
+    (35051231, "P1 lung — Wisconsin-infected"),
+    (35051231, "P3 lung — UV mock (uninfected)"),
+    (35051231, "P3 lung — Wisconsin-infected"),
+    (35051231, "P3 lung — X31-infected"),
+    (35051231, "THP-1 macrophage — UV mock (uninfected)"),
+    (35051231, "THP-1 macrophage — Wisconsin-infected"),
+    (35051231, "THP-1 macrophage — X31-infected"),
+}
+
+
+#: mhcgnomes result types that name a real MHC designation.  Alleles,
+#: genes and pairs reach the allele join; serotypes and class-II loci are
+#: valid curation but do not (#380).
+#: ``Haplotype`` is deliberately absent: ``parse("I")`` resolves to one,
+#: so admitting it would let a bare roman numeral pass as a curated
+#: genotype.  ``Species`` is absent for the same reason (``parse("-")``).
+_MHC_DESIGNATION_TYPES = frozenset(
+    {"Allele", "Gene", "Pair", "Serotype", "Class2Locus", "MhcClass"}
+)
+
+
+def test_every_curated_mhc_token_names_an_mhc_designation():
+    """#375: a typo in a curated ``mhc`` value silently produced an empty
+    allele set — the sample then dropped out of the allele-level join and
+    of _pmid_sample_alleles with no warning.  ``BL2*02`` (should be
+    ``BLB2*02``), ``SLA-I`` and ``BoLA-I`` all did this.
+
+    This is the *typo* half of that invariant; whether a well-formed
+    value actually reaches the allele join is checked separately by
+    :func:`test_curated_mhc_values_reach_the_allele_join`."""
+    from hitlist.curation import _cached_parse, is_class_only_token
+    from hitlist.export import generate_ms_samples_table
+
+    empty = []
+    for _, row in generate_ms_samples_table().iterrows():
+        mhc = str(row.get("mhc") or "").strip()
+        if not mhc or is_class_only_token(mhc):
+            continue
+        # Typo guard only.  ``_cached_parse(tok) is not None`` alone is
+        # too weak — ``parse("I")`` yields a Haplotype and ``parse("SLA")``
+        # a Species, neither of which is an MHC designation — so require
+        # a real designation.  Whether the sample reaches the *allele*
+        # join is a separate invariant, checked below.
+        for token in re.split(r"[\s;,]+", mhc):
+            if not token:
+                continue
+            parsed = _cached_parse(token)
+            if type(parsed).__name__ not in _MHC_DESIGNATION_TYPES:
+                empty.append((row["pmid"], row["sample_label"], token))
+    assert not empty, f"curated mhc tokens that name nothing in the MHC ontology: {empty}"
+
+
+def test_declared_mhc_class_agrees_with_the_sample_alleles():
+    """#374: a sample's declared class must not contradict the class of
+    its own alleles — three HLA-G transfectants were declared classical
+    ``I`` and so were returned by ``--mhc-class I``."""
+    from hitlist.curation import extract_allele_tokens, mhc_class_of, normalize_mhc_class_token
+    from hitlist.export import generate_ms_samples_table
+
+    unexpected: list = []
+    flagged: set = set()
+    for _, row in generate_ms_samples_table().iterrows():
+        declared = normalize_mhc_class_token(str(row.get("mhc_class") or ""))
+        tokens = extract_allele_tokens(str(row.get("mhc") or ""))
+        if not declared or not tokens:
+            continue
+        derived = {mhc_class_of(t) for t in tokens} - {""}
+        if derived and derived != set(declared.split("+")):
+            key = (int(row["pmid"]), str(row["sample_label"]))
+            flagged.add(key)
+            if key not in _KNOWN_CLASS_MISMATCHES:
+                unexpected.append((*key, declared, "+".join(sorted(derived))))
+    assert not unexpected, f"new declared-vs-derived class contradictions: {unexpected}"
+    # An allowlist entry that no longer contradicts must be removed, or it
+    # becomes a permanent blanket exemption for that sample.
+    stale = _KNOWN_CLASS_MISMATCHES - flagged
+    assert not stale, f"resolved contradictions still allowlisted — remove them: {sorted(stale)}"
+
+
+def test_hla_g_transfectants_are_non_classical():
+    """Pin the #374 fix: HLA-G is class Ib, and the corpus already
+    curates the sibling HLA-E / HLA-F / C1R HLA-G samples that way."""
+    from hitlist.export import generate_ms_samples_table
+
+    samples = generate_ms_samples_table()
+    hla_g = samples[samples["sample_label"].astype(str).str.startswith("721.221-HLA-G")]
+    assert len(hla_g) >= 3
+    assert set(hla_g["mhc_class"]) == {"non-classical"}
+
+
+#: Samples where the MHC species deliberately differs from the source
+#: proteome species — engineered chimeric systems (#46), not errors.
+_KNOWN_CHIMERIC_SAMPLES = {
+    (26740625, "DCs from lymph nodes (HLA-DR1 transgenic mouse)"),
+    (26811146, "cell line expressing HLA-B*27:05"),
+}
+
+
+def test_sample_mhc_species_matches_its_source_species():
+    """Per-sample species validation.
+
+    ``species`` is the *source proteome* axis and ``mhc_species`` is
+    derived from the allele, so the two legitimately differ for
+    engineered chimeras (a human HLA transgene in a mouse).  Everywhere
+    else they must be compatible — PMID 41459947 is a Prussian carp
+    study whose sample carried ``mhc: HLA class II``, i.e. human MHC on
+    a fish, and nothing flagged it.
+
+    "Compatible" is decided by mhcgnomes' species ontology, not by
+    string shape: ``Bos sp.`` (what the ``BoLA`` prefix resolves to) is
+    a direct ancestor of a curated ``Bos taurus`` and so is less
+    specific rather than contradictory.  See
+    :func:`hitlist.curation.species_compatible`.
+    """
+    from hitlist.curation import (
+        _cached_parse,
+        classify_mhc_species,
+        is_class_only_token,
+        normalize_species,
+        species_compatible,
+    )
+    from hitlist.export import generate_ms_samples_table
+
+    mismatches: list = []
+    flagged: set = set()
+    for _, row in generate_ms_samples_table().iterrows():
+        mhc = str(row.get("mhc") or "").strip()
+        source = normalize_species(str(row.get("species") or ""))
+        if not mhc or not source:
+            continue
+        if is_class_only_token(mhc):
+            mhc_species = {classify_mhc_species(mhc)}
+        else:
+            mhc_species = {
+                classify_mhc_species(t) for t in re.split(r"[\s;,]+", mhc) if t and _cached_parse(t)
+            }
+        mhc_species.discard("")
+        if not mhc_species:
+            continue
+        if any(species_compatible(source, m) for m in mhc_species):
+            continue
+        key = (int(row["pmid"]), str(row["sample_label"]))
+        flagged.add(key)
+        if key not in _KNOWN_CHIMERIC_SAMPLES:
+            mismatches.append((*key, source, sorted(mhc_species)))
+    assert not mismatches, f"MHC species does not match source species: {mismatches}"
+    stale = _KNOWN_CHIMERIC_SAMPLES - flagged
+    assert not stale, f"samples no longer chimeric but still allowlisted: {sorted(stale)}"
+
+
+def test_curated_mhc_tokens_resolve_to_the_intended_species():
+    """Species-inference traps that bit us while fixing #375.
+
+    mhcgnomes infers a species for unprefixed input, and the inference is
+    not always the common one — so a curated token has to be written in a
+    form that pins the species (pirl-unc/mhcgnomes#103, #105).
+    """
+    from hitlist.curation import classify_mhc_species, species_compatible
+
+    # mhcgnomes 3.39.0 fixed the inference traps these tokens worked
+    # around (#103/#105/#106), so the bare forms are now correct too.
+    # The explicit forms are kept in curation regardless: pinning the
+    # species in the token is robust to future inference changes, and
+    # costs nothing.
+    assert classify_mhc_species("Gaga-BLB2*02") == "Gallus gallus"
+    assert classify_mhc_species("BLB2*02") == "Gallus gallus"
+    assert classify_mhc_species("Bos taurus class I") == "Bos taurus"
+    assert classify_mhc_species("BoLA class I") == "Bos sp."
+    # SLA is deliberately NOT worked around: "SLA class I" resolves to
+    # the genus-level "Sus sp.", which is a direct ancestor of the
+    # curated "Sus scrofa" and therefore compatible.  Pinned so nobody
+    # "fixes" it into needless churn.
+    assert classify_mhc_species("SLA class I") == "Sus sp."
+    assert species_compatible("Sus scrofa", "Sus sp.")
+    assert classify_mhc_species("Carassius gibelio class II") == "Carassius gibelio"
+    # The generic form is human by design; it is wrong only for a fish study.
+    assert classify_mhc_species("HLA class II") == "Homo sapiens"
+
+
+#: Samples whose curated ``mhc`` names a real MHC designation but not an
+#: allele, so they never reach the allele-level join.  Serotypes
+#: (``HLA-DR15``, ``HLA-DQ8``) and class-II loci (``SLA-DR``,
+#: ``BoLA-DR``) are legitimate curation; tracked in #380.
+_KNOWN_NON_ALLELE_SAMPLES = {
+    (28467828, "HLA-DR15 immunopeptidome component"),
+    (32796065, "BMDCs (PRRSV-infected)"),
+    (32796065, "PAMs (PRRSV-infected)"),
+    (32796065, "hilar lymph node (PRRSV-infected piglets)"),
+    (33789985, "bovine cell lines (BoLA-DR)"),
+    (34433824, "HLA-DQ8 immunopeptidome component"),
+    (36423003, "T. parva-infected bovine lymphocyte lines (BoLA-DR)"),
+}
+
+
+def test_curated_mhc_values_reach_the_allele_join():
+    """The #375 failure mode proper: a sample that yields no alleles drops
+    out of ``_pmid_sample_alleles`` and the allele-level join silently.
+
+    Distinct from the typo guard above — ``HLA-DR15`` parses perfectly
+    well and still yields nothing.  Known non-participants are listed
+    explicitly so the gap is visible rather than absorbed by a widened
+    type filter.
+    """
+    from hitlist.curation import extract_allele_tokens, is_class_only_token
+    from hitlist.export import generate_ms_samples_table
+
+    no_alleles, flagged = [], set()
+    for _, row in generate_ms_samples_table().iterrows():
+        mhc = str(row.get("mhc") or "").strip()
+        if not mhc or is_class_only_token(mhc):
+            continue
+        if extract_allele_tokens(mhc):
+            continue
+        key = (int(row["pmid"]), str(row["sample_label"]))
+        flagged.add(key)
+        if key not in _KNOWN_NON_ALLELE_SAMPLES:
+            no_alleles.append((*key, mhc))
+    assert not no_alleles, f"samples that silently yield no alleles: {no_alleles}"
+    stale = _KNOWN_NON_ALLELE_SAMPLES - flagged
+    assert not stale, f"samples now reaching the join but still allowlisted: {sorted(stale)}"
+
+
+def test_species_compatible_uses_the_ontology_not_string_shape():
+    """Genus-string comparison is both too weak and too strong."""
+    from hitlist.curation import species_compatible
+
+    # Less specific, not contradictory — a direct ancestor.
+    assert species_compatible("Bos taurus", "Bos sp.")
+    assert species_compatible("Sus scrofa", "Sus sp.")
+    assert species_compatible("Coturnix japonica", "Galliformes sp.")  # above genus
+    # Siblings are rejected — deliberately.  These DO share an internal
+    # node (Macaca mulatta and M. fascicularis are both children of
+    # "Macaca sp."), but Mamu and Mafa are distinct MHC systems with
+    # distinct prefixes and non-interchangeable allele sets, so an allele
+    # from one on a sample curated as the other is a mislabel, not a
+    # coarser description.  Only a direct ancestor/descendant relation
+    # counts as compatible.
+    assert not species_compatible("Macaca mulatta", "Macaca fascicularis")
+    # Same rule.  Bubalus sits under Bos sp.[BoLA] because that node is
+    # an MHC-nomenclature grouping rather than a clade — see
+    # test_species_tree_is_prefix_scope_not_phylogeny.  These two are
+    # still correctly rejected as siblings; a curated "Bos sp." against
+    # a Bubu allele would not be.
+    assert not species_compatible("Bos taurus", "Bubalus bubalis")
+    # Cross-clade: the PMID 41459947 curation error, a fish study whose
+    # sample carried the human class-II sentinel.
+    assert not species_compatible("Carassius gibelio", "Homo sapiens")
+    # Every species roots at Gnathostomata sp., so a shared root must not
+    # make everything compatible.
+    assert not species_compatible("Homo sapiens", "Gallus gallus")
+
+
+def test_species_tree_is_prefix_scope_not_phylogeny():
+    """Pin the two facts that make ``species_compatible`` interpretable.
+
+    The tree is mostly taxonomic — 18 of the 22 largest internal nodes
+    have ``prefix == taxon name`` — but a few are MHC-nomenclature
+    groupings carrying a legacy prefix (``Bos sp.[BoLA]``,
+    ``Primata sp.[NHP]``, ``Cetacea sp.[CELA]``, ``Rattus sp.[RT1]``,
+    ``Mus sp.[MusSp]``).  Membership inside those follows naming
+    practice, which is why ``species_compatible`` behaves as it does at
+    those two nodes.
+    """
+    import mhcgnomes
+
+    from hitlist.curation import species_compatible
+
+    # Genuine clade nodes are taxonomic and behave as expected — this is
+    # the common case, and it is what makes the tree usable here.
+    assert mhcgnomes.Species.get("Carassius gibelio").parent.name == "Cyprinidae sp."
+    assert species_compatible("Carassius gibelio", "Cyprinidae sp.")
+
+    # Primata sp. is the exception: it carries the exclusionary NHP
+    # prefix, so Homo sapiens is not under it even though humans are
+    # primates.  Reported as pirl-unc/mhcgnomes#122; pinned so the
+    # surprising answer is deliberate.
+    assert mhcgnomes.Species.get("Homo sapiens").parent.name == "Gnathostomata sp."
+    assert not species_compatible("Homo sapiens", "Primata sp.")
+
+    # Bubalus is a different genus from Bos (different subtribe, even),
+    # yet sits under Bos sp.[BoLA] because buffalo alleles are assigned
+    # to BoLA loci by trans-species polymorphism.  Consequence: a Bubu
+    # allele IS accepted against a curated "Bos sp.".  No corpus sample
+    # hits this; pinned so the behaviour is deliberate, not a surprise.
+    assert mhcgnomes.Species.get("Bubalus bubalis").parent.name == "Bos sp."
+    assert species_compatible("Bos sp.", "Bubalus bubalis")
+    # The specific-vs-specific comparison is still correctly rejected.
+    assert not species_compatible("Bos taurus", "Bubalus bubalis")
+
+
+def test_class_only_typed_samples_are_declared_not_incidental():
+    """A class-only ``mhc`` skips the allele-join guard, so switching a
+    sample to a sentinel silently removes it from that check.
+
+    Rather than enumerate all 88 class-only samples, pin the two that
+    #375 converted, so the conversion stays deliberate.  PMID 36423003
+    is a genuine downgrade — IEDB carries real 4-digit BoLA alleles for
+    it (#381) — and is recorded here until those are curated.
+    """
+    from hitlist.curation import extract_allele_tokens, is_class_only_token
+    from hitlist.export import generate_ms_samples_table
+
+    samples = generate_ms_samples_table().set_index(["pmid", "sample_label"])
+    for key, mhc in (
+        ((36146698, "SLA-I Lr-Hp 35.0/24 mod (porcine cell line, PRRSV-infected)"), "SLA class I"),
+        ((36423003, "T. parva-infected bovine lymphocyte lines (BoLA-I)"), "Bos taurus class I"),
+    ):
+        value = str(samples.loc[key, "mhc"])
+        assert value == mhc, f"{key} mhc changed: {value!r}"
+        assert is_class_only_token(value), key
+        assert extract_allele_tokens(value) == [], key

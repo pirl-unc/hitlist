@@ -35,3 +35,23 @@
 
 - When a single PMID has multiple `assay_comments` source descriptions, curate ALL of them — don't stop at the first/largest arm.
   Rule: #36 batch 9 PMID 28871256 has 875 rows: 697 from BLS DR transfectants AND 175 from the MGAR wild-type DR15 LCL. The original entry documented only the 697 BLS rows and cited "697 rows" as the total. Always `value_counts()` the `assay_comments` for a PMID before writing ms_samples, and reconcile the row-count claim against `len(df[df.pmid==...])`.
+
+## 2026-08-28
+
+- "Tests pass" means CI passes, not that they passed on my machine.
+  Rule: in #378 I reported "1025 tests pass" while CI was red on all four Python legs. Two new tests called `generate_observations_table()` directly, which needs the built `observations.parquet` — present locally, absent in CI. The repo already documents the fix in `tests/conftest.py`: an `is_built()` skip plus an explicit `@pytest.mark.integration`. Note the marker alone is insufficient — one CI job runs the whole suite without the `-m` filter, so the in-test skip is what keeps it green. Before claiming a PR is ready, check `gh pr checks`, not just `./test.sh`.
+
+- Read the data table before inferring a mechanism from output shape.
+  Rule: I characterised `parse("RT1-B") -> RT1-Bb` twice from the output alone — first as "invents a haplotype letter", then as "narrows a locus to one chain". Both wrong; it is a curated entry in `mhcgnomes.data.gene_aliases["RT1"]["B"] == "Bb"`, one call away. Same pattern on the species tree: I revised the model three times (taxonomy -> prefix scope -> taxonomy-with-nomenclature-nodes) because each version came from one or two examples instead of enumerating all 641 nodes. When the library ships the table, read the table.
+
+- Don't generalise "verified equivalent" from a subset to the population.
+  Rule: I told the user a `required_result_types` swap was "verified equivalent — 344 curated values, 0 differences", then found 1 difference across the full 1,174-string corpus vocabulary (`RT1-B`). State the population the check covered, and check the widest one available before saying "equivalent".
+
+- Verify claims about our own code before asserting them in another repo's issue tracker.
+  Rule: I commented on pirl-unc/mhcgnomes#102 that "that is what we switched to" about a change we had not made. Filing upstream is outward-facing; a maintainer acting on it is acting on our word. Read the call site, then write the comment.
+
+- Prefer the dependency's own ontology/API over string-shape heuristics.
+  Rule: comparing species by genus string was both too weak (accepted `Macaca mulatta` vs `Macaca fascicularis`) and too strong (rejected clade-level nodes like `Galliformes sp.`). `Species.is_ancestor_of` answers it directly. Corollary from the same fix: every species descends from `Gnathostomata sp.`, so "shares an ancestor" is trivially true and fails open — only a direct ancestor/descendant relation is meaningful.
+
+- When an allow-list is the honest answer, add a staleness assertion with it.
+  Rule: the reviewer asked for `assert not (_KNOWN_MISMATCHES - flagged)` alongside the allow-list. It immediately earned its keep: mhcgnomes 3.39.0 fixed Patr-AL to `Ib`, and the staleness check is what surfaced that the entry was now obsolete. An allow-list without one is a permanent blanket exemption for that key.

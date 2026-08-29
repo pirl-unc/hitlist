@@ -48,6 +48,7 @@ from os.path import basename, dirname, join
 
 import pandas as pd
 import yaml
+from mhcgnomes import Species
 
 from .cell_name_parser import parse_cell_name
 
@@ -656,6 +657,7 @@ _MHC_CLASS_TOKEN_ALIASES: dict[str, str] = {
 }
 
 
+@cache
 def normalize_mhc_class_token(value: str) -> str:
     """Canonicalize a curated / IEDB ``mhc_class`` spelling.
 
@@ -671,6 +673,24 @@ def normalize_mhc_class_token(value: str) -> str:
     parts = [p.strip() for p in text.split("+") if p.strip()]
     out = [_MHC_CLASS_TOKEN_ALIASES.get(p.lower(), p) for p in parts]
     return "+".join(out)
+
+
+@cache
+def mhc_class_spellings(mhc_class: str) -> tuple[str, ...]:
+    """Every stored spelling of a class token, for a parquet predicate.
+
+    The corpus and the YAML disagree on the non-classical token, so an
+    exact predicate on either one silently returns nothing (#363).
+    Derived from :data:`_MHC_CLASS_TOKEN_ALIASES` rather than patched up
+    per-case, so a spelling the normalizer already understands cannot be
+    missed by the filter.
+    """
+    wanted = normalize_mhc_class_token(mhc_class)
+    out = {mhc_class, wanted}
+    out.update(
+        alias for alias, canonical in _MHC_CLASS_TOKEN_ALIASES.items() if canonical == wanted
+    )
+    return tuple(sorted(out))
 
 
 @cache
@@ -718,6 +738,66 @@ def is_class_only_token(value: str) -> bool:
     if text.lower() in ("unknown", "not typed", "n/a", "na"):
         return True
     return type(_cached_parse(text)).__name__ == "MhcClass"
+
+
+@cache
+def species_compatible(declared: str, derived: str) -> bool:
+    """True when two species names can describe the same sample.
+
+    Uses mhcgnomes' own species tree rather than string shape: two names
+    are compatible when they are equal, or when one is a direct ancestor
+    of the other.
+
+    Note what that tree encodes.  It is **mostly taxonomic** — 18 of the
+    22 largest internal nodes have ``prefix == taxon name``
+    (``Aves sp.[Aves]``, ``Cyprinidae sp.[Cyprinidae]``, ...) — but a
+    handful of nodes are MHC-nomenclature groupings instead, carrying a
+    legacy prefix: ``Bos sp.[BoLA]``, ``Primata sp.[NHP]``,
+    ``Cetacea sp.[CELA]``, ``Mus sp.[MusSp]``, ``Rattus sp.[RT1]``.
+    Inside those, membership follows naming practice rather than strict
+    taxonomy.
+
+    Two consequences worth knowing, both pinned by tests:
+
+    * ``Bubalus bubalis[Bubu]`` sits under ``Bos sp.[BoLA]`` — a
+      different genus, grouped there because buffalo alleles are
+      assigned to BoLA loci by trans-species polymorphism.  So a
+      ``Bubu-*`` allele is accepted against a curated ``Bos sp.``.
+    * ``Primata sp.`` carries the *exclusionary* ``NHP`` prefix, so
+      ``Homo sapiens`` is not under it and a curated ``Primata sp.``
+      would be flagged against a human allele
+      (pirl-unc/mhcgnomes#122).
+
+    Neither is hit by any corpus sample today.  For our purpose the
+    relation is still the right one: an allele-derived ``Bos sp.`` on a
+    curated ``Bos taurus`` sample is a coarser description, not a
+    contradiction.
+
+    Comparing genus strings instead (the first word) is both too weak
+    and too strong.  Too weak: it accepts ``Macaca mulatta`` against a
+    ``Macaca fascicularis`` allele, which is a real mislabel.  Too
+    strong: mhcgnomes has clade-level entries above genus
+    (``Galliformes sp.``, ``Crocodylia sp.``, ``Primata sp.``) whose
+    first word matches nothing below them.
+
+    Note every species roots at ``Gnathostomata sp.``, so "shares an
+    ancestor" would make everything compatible — only a direct
+    ancestor/descendant relationship counts.
+    """
+    if not declared or not derived:
+        return False
+    # Resolve *before* comparing.  The curated form carries a common
+    # name — ``"Gallus gallus (chicken)"``, ``"Homo sapiens (human)"`` —
+    # so a raw string comparison reports a mismatch between two
+    # spellings of one species.  mhcgnomes resolves both to the same
+    # object, and a node is not its own ancestor, so the equality check
+    # has to happen after resolution.
+    a, b = Species.get(declared), Species.get(derived)
+    if a is None or b is None:
+        return False
+    if a == b:
+        return True
+    return a.is_ancestor_of(b) or b.is_ancestor_of(a)
 
 
 def expand_allele_components(allele_token: str) -> list[str]:

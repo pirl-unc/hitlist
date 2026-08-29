@@ -82,7 +82,7 @@ A representative entry:
 | `sample_label` | Sample description. (`type:` is the **deprecated** name.) |
 | `n_samples` | Number of samples/replicates. (Use the `_samples` suffix — never a bare `n`.) |
 | `mhc` | Donor genotype (`HLA-A*…` or a space-joined allele list). |
-| `mhc_class` | `"I"`, `"II"`, or `"I+II"`. |
+| `mhc_class` | `"I"`, `"II"`, `"I+II"`, or `"non-classical"`. Use `non-classical` for class Ib / MHC-Ib molecules — HLA-E, HLA-F, HLA-G, MR1, CD1, H2-Q — so `--class I` does not return them. A declared class that contradicts the sample's own alleles fails CI. |
 | `condition` | Perturbation or `"unperturbed"`. |
 | `classification`, `override`, `reason` | Per-sample classification override + rationale. |
 | `source`, `species`, `reference_proteomes` | Per-sample provenance. |

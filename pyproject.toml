@@ -41,7 +41,11 @@ alleles = [
     # Pin to >=3.31.0 to match the serotype/allele normalization forms
     # the test suite asserts.  Earlier versions parsed some strings
     # differently (e.g. "SahaI*35"), which silently broke CI.
-    "mhcgnomes>=3.31.0",
+    # >=3.39.0: needs Species.compatible_with and species_source, and the
+    # species-inference fixes (mhcgnomes #102/#105/#106/#107).  An older
+    # floor let CI install a newer mhcgnomes than a developer had locally,
+    # which is how a green local run shipped a red CI.
+    "mhcgnomes>=3.39.0",
 ]
 dev = [
     "pytest",
