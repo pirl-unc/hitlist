@@ -2466,14 +2466,15 @@ def test_sample_mhc_species_matches_its_source_species():
     string shape: ``Bos sp.`` (what the ``BoLA`` prefix resolves to) is
     a direct ancestor of a curated ``Bos taurus`` and so is less
     specific rather than contradictory.  See
-    :func:`hitlist.curation.species_compatible`.
+    :meth:`mhcgnomes.Species.compatible_with`.
     """
+    from mhcgnomes import Species
+
     from hitlist.curation import (
         _cached_parse,
         classify_mhc_species,
         is_class_only_token,
         normalize_species,
-        species_compatible,
     )
     from hitlist.export import generate_ms_samples_table
 
@@ -2493,7 +2494,8 @@ def test_sample_mhc_species_matches_its_source_species():
         mhc_species.discard("")
         if not mhc_species:
             continue
-        if any(species_compatible(source, m) for m in mhc_species):
+        resolved = Species.get(source)
+        if resolved is not None and any(resolved.compatible_with(m) for m in mhc_species):
             continue
         key = (int(row["pmid"]), str(row["sample_label"]))
         flagged.add(key)
@@ -2504,33 +2506,44 @@ def test_sample_mhc_species_matches_its_source_species():
     assert not stale, f"samples no longer chimeric but still allowlisted: {sorted(stale)}"
 
 
-def test_curated_mhc_tokens_resolve_to_the_intended_species():
-    """Species-inference traps that bit us while fixing #375.
+def test_no_curated_mhc_token_has_an_inferred_species():
+    """Curated genotypes must name their species, not let it be guessed.
 
-    mhcgnomes infers a species for unprefixed input, and the inference is
-    not always the common one — so a curated token has to be written in a
-    form that pins the species (pirl-unc/mhcgnomes#103, #105).
+    mhcgnomes reports how it decided (#116): ``explicit`` when the input
+    named the species, ``default`` when it fell back to HLA for a bare
+    human allele, ``inferred`` when it picked one by ranking candidates
+    across species.  Only ``inferred`` is a hazard — it is what silently
+    resolved ``BLB2*02`` to Japanese quail before mhcgnomes 3.39.0, and
+    it would do the same for any future ambiguous symbol.
+
+    ``default`` is fine and conventional: a bare ``A*03:01`` means the
+    human allele, and 69 curated tokens rely on that.
+
+    This replaces a set of assertions that pinned the *wrong* answers
+    (``assert classify_mhc_species("BLB2*02") == "Coturnix japonica"``)
+    purely so an upstream fix would fail loudly.  Now the rule is stated
+    directly and does not need revisiting when upstream changes.
     """
-    from hitlist.curation import classify_mhc_species, species_compatible
+    import re
 
-    # mhcgnomes 3.39.0 fixed the inference traps these tokens worked
-    # around (#103/#105/#106), so the bare forms are now correct too.
-    # The explicit forms are kept in curation regardless: pinning the
-    # species in the token is robust to future inference changes, and
-    # costs nothing.
-    assert classify_mhc_species("Gaga-BLB2*02") == "Gallus gallus"
-    assert classify_mhc_species("BLB2*02") == "Gallus gallus"
-    assert classify_mhc_species("Bos taurus class I") == "Bos taurus"
-    assert classify_mhc_species("BoLA class I") == "Bos sp."
-    # SLA is deliberately NOT worked around: "SLA class I" resolves to
-    # the genus-level "Sus sp.", which is a direct ancestor of the
-    # curated "Sus scrofa" and therefore compatible.  Pinned so nobody
-    # "fixes" it into needless churn.
-    assert classify_mhc_species("SLA class I") == "Sus sp."
-    assert species_compatible("Sus scrofa", "Sus sp.")
-    assert classify_mhc_species("Carassius gibelio class II") == "Carassius gibelio"
-    # The generic form is human by design; it is wrong only for a fish study.
-    assert classify_mhc_species("HLA class II") == "Homo sapiens"
+    import mhcgnomes
+
+    from hitlist.curation import is_class_only_token
+    from hitlist.export import generate_ms_samples_table
+
+    inferred = []
+    for _, row in generate_ms_samples_table().iterrows():
+        mhc = str(row.get("mhc") or "").strip()
+        if not mhc:
+            continue
+        tokens = [mhc] if is_class_only_token(mhc) else re.split(r"[\s;,]+", mhc)
+        for token in tokens:
+            if not token:
+                continue
+            parsed = mhcgnomes.parse(token, raise_on_error=False)
+            if parsed is not None and getattr(parsed, "species_source", None) == "inferred":
+                inferred.append((int(row["pmid"]), str(row["sample_label"]), token))
+    assert not inferred, f"curated mhc tokens whose species was guessed: {inferred}"
 
 
 #: Samples whose curated ``mhc`` names a real MHC designation but not an
@@ -2576,9 +2589,13 @@ def test_curated_mhc_values_reach_the_allele_join():
     assert not stale, f"samples now reaching the join but still allowlisted: {sorted(stale)}"
 
 
-def test_species_compatible_uses_the_ontology_not_string_shape():
+def test_mhcgnomes_species_compatibility_semantics():
     """Genus-string comparison is both too weak and too strong."""
-    from hitlist.curation import species_compatible
+    from mhcgnomes import Species
+
+    def species_compatible(a, b):
+        resolved = Species.get(a)
+        return resolved is not None and resolved.compatible_with(b)
 
     # Less specific, not contradictory — a direct ancestor.
     assert species_compatible("Bos taurus", "Bos sp.")
@@ -2619,7 +2636,9 @@ def test_species_tree_is_prefix_scope_not_phylogeny():
     """
     import mhcgnomes
 
-    from hitlist.curation import species_compatible
+    def species_compatible(a, b):
+        resolved = mhcgnomes.Species.get(a)
+        return resolved is not None and resolved.compatible_with(b)
 
     # Genuine clade nodes are taxonomic and behave as expected — this is
     # the common case, and it is what makes the tree usable here.

@@ -514,7 +514,14 @@ def _empty_ms_samples_columns() -> list[str]:
         *_ACQUISITION_FIELDS,
         "instrument_type",
     ]
-    return [*base, *apm_columns_for_sample(""), "condition_category", "is_control_arm"]
+    return [
+        *base,
+        *apm_columns_for_sample(""),
+        "condition_category",
+        "is_control_arm",
+        "mhc_species",
+        "species_axes_agree",
+    ]
 
 
 def generate_ms_samples_table(
@@ -559,8 +566,16 @@ def generate_ms_samples_table(
 
         ``is_control_arm`` is ``"true"`` for unperturbed arms and
         ``"false"`` otherwise (#354).
+
+        ``mhc_species`` is derived from the sample's own alleles and
+        ``species_axes_agree`` compares it against the curated
+        ``species`` (the source proteome).  ``"false"`` is not
+        automatically an error — engineered chimeras legitimately differ
+        (#46) — but it is the signal that caught a Prussian carp sample
+        curated with human MHC.
     """
     from .apm import apm_columns_for_sample
+    from .curation import mhc_species_of, species_axes_agree
 
     overrides = load_pmid_overrides()
     rows: list[dict] = []
@@ -650,6 +665,13 @@ def generate_ms_samples_table(
             row["is_control_arm"] = (
                 "true" if row["condition_category"] == "unperturbed" else "false"
             )
+            # Species axes (docs/source-classification.md).  ``species``
+            # is the source proteome; ``mhc_species`` is derived from the
+            # sample's own alleles.  Exposing both means a contradiction
+            # — PMID 41459947's Prussian carp sample carrying human MHC —
+            # is visible in the exported table instead of only to a test.
+            row["mhc_species"] = mhc_species_of(row["mhc"])
+            row["species_axes_agree"] = species_axes_agree(row["species"], row["mhc_species"])
             rows.append(row)
 
     df = pd.DataFrame(rows)

@@ -741,63 +741,47 @@ def is_class_only_token(value: str) -> bool:
 
 
 @cache
-def species_compatible(declared: str, derived: str) -> bool:
-    """True when two species names can describe the same sample.
+def mhc_species_of(mhc_field: str) -> str:
+    """Species of a curated ``mhc`` value, derived from its alleles.
 
-    Uses mhcgnomes' own species tree rather than string shape: two names
-    are compatible when they are equal, or when one is a direct ancestor
-    of the other.
-
-    Note what that tree encodes.  It is **mostly taxonomic** — 18 of the
-    22 largest internal nodes have ``prefix == taxon name``
-    (``Aves sp.[Aves]``, ``Cyprinidae sp.[Cyprinidae]``, ...) — but a
-    handful of nodes are MHC-nomenclature groupings instead, carrying a
-    legacy prefix: ``Bos sp.[BoLA]``, ``Primata sp.[NHP]``,
-    ``Cetacea sp.[CELA]``, ``Mus sp.[MusSp]``, ``Rattus sp.[RT1]``.
-    Inside those, membership follows naming practice rather than strict
-    taxonomy.
-
-    Two consequences worth knowing, both pinned by tests:
-
-    * ``Bubalus bubalis[Bubu]`` sits under ``Bos sp.[BoLA]`` — a
-      different genus, grouped there because buffalo alleles are
-      assigned to BoLA loci by trans-species polymorphism.  So a
-      ``Bubu-*`` allele is accepted against a curated ``Bos sp.``.
-    * ``Primata sp.`` carries the *exclusionary* ``NHP`` prefix, so
-      ``Homo sapiens`` is not under it and a curated ``Primata sp.``
-      would be flagged against a human allele
-      (pirl-unc/mhcgnomes#122).
-
-    Neither is hit by any corpus sample today.  For our purpose the
-    relation is still the right one: an allele-derived ``Bos sp.`` on a
-    curated ``Bos taurus`` sample is a coarser description, not a
-    contradiction.
-
-    Comparing genus strings instead (the first word) is both too weak
-    and too strong.  Too weak: it accepts ``Macaca mulatta`` against a
-    ``Macaca fascicularis`` allele, which is a real mislabel.  Too
-    strong: mhcgnomes has clade-level entries above genus
-    (``Galliformes sp.``, ``Crocodylia sp.``, ``Primata sp.``) whose
-    first word matches nothing below them.
-
-    Note every species roots at ``Gnathostomata sp.``, so "shares an
-    ancestor" would make everything compatible — only a direct
-    ancestor/descendant relationship counts.
+    This is the ``mhc_species`` axis from docs/source-classification.md —
+    the MHC molecule's species, as distinct from ``source_species`` (the
+    proteome the peptide came from) and ``host_organism``.  Returns ``""``
+    when the field is empty, unparseable, or names more than one species.
     """
-    if not declared or not derived:
-        return False
-    # Resolve *before* comparing.  The curated form carries a common
-    # name — ``"Gallus gallus (chicken)"``, ``"Homo sapiens (human)"`` —
-    # so a raw string comparison reports a mismatch between two
-    # spellings of one species.  mhcgnomes resolves both to the same
-    # object, and a node is not its own ancestor, so the equality check
-    # has to happen after resolution.
-    a, b = Species.get(declared), Species.get(derived)
-    if a is None or b is None:
-        return False
-    if a == b:
-        return True
-    return a.is_ancestor_of(b) or b.is_ancestor_of(a)
+    text = (mhc_field or "").strip()
+    if not text:
+        return ""
+    if is_class_only_token(text):
+        return classify_mhc_species(text)
+    species = {classify_mhc_species(tok) for tok in extract_allele_tokens(text)}
+    species.discard("")
+    return species.pop() if len(species) == 1 else ""
+
+
+def species_axes_agree(source_species: str, mhc_species: str) -> str:
+    """Do a sample's source and MHC species axes describe one system?
+
+    Returns ``"true"`` / ``"false"`` / ``""`` (undeterminable), matching
+    the tri-state string convention used by ``profiled`` and
+    ``is_control_arm``.
+
+    ``"false"`` is not automatically an error — an engineered chimera
+    legitimately has a human HLA transgene in a mouse (#46).  It means
+    the two axes differ and the row deserves a look, which is exactly
+    how PMID 41459947 shipped a Prussian carp sample carrying human MHC.
+
+    Compatibility is :meth:`mhcgnomes.Species.compatible_with`: same
+    species, or one a direct ancestor of the other, so the genus-level
+    ``Bos sp.`` a ``BoLA`` allele resolves to agrees with a curated
+    ``Bos taurus``.
+    """
+    if not source_species or not mhc_species:
+        return ""
+    a = Species.get(source_species)
+    if a is None:
+        return ""
+    return "true" if a.compatible_with(mhc_species) else "false"
 
 
 def expand_allele_components(allele_token: str) -> list[str]:

@@ -2730,12 +2730,12 @@
         source: chicken lymphoblastoid cell line
         condition: unperturbed
         mhc_class: I
-        mhc: "BF2*2101"
+        mhc: "Gaga-BF2*2101"
       - sample_label: RP9 transduced with BF2*1301 (B13 haplotype)
         source: chicken lymphoblastoid cell line
         condition: unperturbed
         mhc_class: I
-        mhc: "BF2*1301"
+        mhc: "Gaga-BF2*1301"
   - pmid: 33901176
     study_label: Halabi 2021 — chicken BLB2 class II + MDV
     title: "The dominantly expressed class II molecule from a resistant MHC haplotype presents only a few Marek's disease virus peptides by using an unprecedented binding motif"
@@ -2767,11 +2767,11 @@
       - sample_label: B15 chicken cells (BF2*1501)
         condition: unperturbed
         mhc_class: I
-        mhc: "BF2*1501"
+        mhc: "Gaga-BF2*1501"
       - sample_label: B19 chicken cells (BF2*1901)
         condition: unperturbed
         mhc_class: I
-        mhc: "BF2*1901"
+        mhc: "Gaga-BF2*1901"
   - pmid: 15972670
     study_label: Hickman-Miller 2005 — Mamu class I (6 alleles)
     title: Rhesus macaque MHC class I molecules present HLA-B-like peptides
