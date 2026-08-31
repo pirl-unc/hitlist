@@ -2648,7 +2648,7 @@ def test_class_only_typed_samples_are_declared_not_incidental():
     """A class-only ``mhc`` skips the allele-join guard, so switching a
     sample to a sentinel silently removes it from that check.
 
-    Rather than enumerate all 88 class-only samples, pin the two that
+    Rather than enumerate all 100 class-only samples, pin the two that
     #375 converted, so the conversion stays deliberate.  PMID 36423003
     is a genuine downgrade — IEDB carries real 4-digit BoLA alleles for
     it (#381) — and is recorded here until those are curated.
@@ -2715,3 +2715,52 @@ def test_species_axes_agreement_is_not_predicate_shaped():
 
     assert not hasattr(curation, "species_axes_agree")
     assert curation.species_axes_agreement("Mus musculus", "Homo sapiens") == "false"
+
+
+#: Samples whose curated ``mhc`` is knowingly a cross-donor union rather
+#: than one genotype.  Empty, and it should stay that way: the audit in
+#: tasks/per_sample_allele_curation_audit.md calls attributing peptides
+#: against a pooled allele set "a meaningless operation", and its fix is
+#: to split the entry into one per donor / transfectant — which is how
+#: Sarkizova's 95, Abelin's 16, Di Marco's 15 and Abelin MAPTAC's 8 were
+#: resolved in 1.7.3.
+_KNOWN_POOLED_ALLELE_SAMPLES: set = set()
+
+#: Limits from that audit for a real per-sample genotype.
+_MAX_ALLELES_PER_SAMPLE = {"I": 6, "II": 10}
+
+
+def test_no_sample_carries_a_pooled_allele_union():
+    """A per-sample ``mhc`` must be one donor's genotype, not a pool.
+
+    tasks/per_sample_allele_curation_audit.md fixes the limits: 6 alleles
+    for class I (heterozygous A/B/C), 10 for class II.  Above that the
+    value is a union across donors, the sample-metadata join attributes
+    every peptide against alleles no single animal carries, and
+    ``predict.max_alleles_per_sample`` exists to skip such samples as
+    "misleading best-allele calls".
+
+    The corpus was at zero violations and nothing enforced it, so a
+    13-allele bovine union passed the whole suite.  This is that guard.
+    """
+    from hitlist.curation import extract_allele_tokens
+    from hitlist.export import generate_ms_samples_table
+
+    pooled, flagged = [], set()
+    for _, row in generate_ms_samples_table().iterrows():
+        limit = _MAX_ALLELES_PER_SAMPLE.get(str(row.get("mhc_class") or ""))
+        if limit is None:
+            continue
+        n_alleles = len(extract_allele_tokens(str(row.get("mhc") or "")))
+        if n_alleles <= limit:
+            continue
+        key = (int(row["pmid"]), str(row["sample_label"]))
+        flagged.add(key)
+        if key not in _KNOWN_POOLED_ALLELE_SAMPLES:
+            pooled.append((*key, row["mhc_class"], n_alleles, limit))
+    assert not pooled, (
+        "curated mhc is a pooled union, not a genotype — split it per donor "
+        f"(see tasks/per_sample_allele_curation_audit.md): {pooled}"
+    )
+    stale = _KNOWN_POOLED_ALLELE_SAMPLES - flagged
+    assert not stale, f"no longer pooled but still allowlisted: {sorted(stale)}"
