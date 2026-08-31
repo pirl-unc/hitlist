@@ -16,8 +16,8 @@ Two parallel parquet indexes are built by
 :func:`hitlist.builder.build_observations`:
 
 - ``observations.parquet`` — MS-eluted immunopeptidome rows (IEDB +
-  CEDAR + supplementary).  Load with :func:`load_ms_observations`
-  (or the older alias :func:`load_observations`).
+  CEDAR + supplementary).  Load with :func:`load_observations`, or the
+  modality-explicit alias :func:`load_ms_observations`.
 - ``binding.parquet`` — binding-assay rows (refolding, MEDi, peptide
   microarray, quantitative-tier measurements).  Load with
   :func:`load_binding`.
@@ -71,7 +71,7 @@ from __future__ import annotations
 
 import os
 import re
-from functools import lru_cache
+from functools import WRAPPER_ASSIGNMENTS, lru_cache, wraps
 from pathlib import Path
 
 import pandas as pd
@@ -258,49 +258,27 @@ def load_observations(
     )
 
 
-def load_ms_observations(
-    mhc_class: str | None = None,
-    species: str | None = None,
-    source_species: str | list[str] | None = None,
-    host_species: str | list[str] | None = None,
-    exclude_chimeric: bool = False,
-    source: str | None = None,
-    mhc_restriction: str | list[str] | None = None,
-    mhc_allele_in_set: str | list[str] | None = None,
-    mhc_allele_provenance: str | list[str] | None = None,
-    gene_name: str | list[str] | None = None,
-    gene_id: str | list[str] | None = None,
-    peptide: str | list[str] | None = None,
-    serotype: str | list[str] | None = None,
-    length_min: int | None = None,
-    length_max: int | None = None,
-    exclude_class_label_suspect: bool = False,
-    exclude_class_label_implausible: bool = False,
-    exclude_non_peptide_ligand: bool = True,
-    columns: list[str] | None = None,
-) -> pd.DataFrame:
-    """Alias for :func:`load_observations` with modality explicit in the name."""
-    return load_observations(
-        mhc_class=mhc_class,
-        species=species,
-        source_species=source_species,
-        host_species=host_species,
-        exclude_chimeric=exclude_chimeric,
-        source=source,
-        mhc_restriction=mhc_restriction,
-        mhc_allele_in_set=mhc_allele_in_set,
-        mhc_allele_provenance=mhc_allele_provenance,
-        gene_name=gene_name,
-        gene_id=gene_id,
-        peptide=peptide,
-        serotype=serotype,
-        length_min=length_min,
-        length_max=length_max,
-        exclude_class_label_suspect=exclude_class_label_suspect,
-        exclude_class_label_implausible=exclude_class_label_implausible,
-        exclude_non_peptide_ligand=exclude_non_peptide_ligand,
-        columns=columns,
-    )
+#: Everything ``wraps`` normally copies except the identity fields: the
+#: alias must keep reporting its own name, or ``help()``, tracebacks,
+#: profiler rows and Sphinx all label it ``load_observations``.
+_ALIAS_ASSIGNMENTS = tuple(
+    a for a in WRAPPER_ASSIGNMENTS if a not in ("__name__", "__qualname__", "__doc__")
+)
+
+
+@wraps(load_observations, assigned=_ALIAS_ASSIGNMENTS, updated=())
+def load_ms_observations(*args, **kwargs) -> pd.DataFrame:
+    return load_observations(*args, **kwargs)
+
+
+load_ms_observations.__doc__ = (
+    "Alias for :func:`load_observations` with the modality explicit in "
+    "the name.\n\n    Delegates rather than restating the signature: it "
+    "previously re-declared all 20 filter parameters and hand-forwarded "
+    "each one, so adding a filter to ``load_observations`` and forgetting "
+    "this copy would silently drop it. ``functools.wraps`` keeps the full "
+    "signature visible to ``inspect.signature`` and to IDEs.\n    "
+)
 
 
 def load_binding(

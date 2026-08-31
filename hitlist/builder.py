@@ -1540,14 +1540,27 @@ def build_line_expression(verbose: bool = False) -> pd.DataFrame:
     return df
 
 
-_FLANKING_COLS = (
+#: Columns selected from ``ProteomeIndex.map_peptides`` output, in its
+#: own naming.  ``n_sources`` is renamed to ``n_source_proteins`` on the
+#: way out, so this is the *pre-rename* view.
+_FLANKING_SOURCE_COLS = (
     "gene_name",
     "gene_id",
     "protein_id",
     "position",
     "n_flank",
     "c_flank",
-    "n_source_proteins",
+    "n_sources",
+)
+
+#: Rename applied between the mapper's naming and ours.
+_FLANKING_RENAME = {"n_sources": "n_source_proteins"}
+
+#: The flanking schema as it appears on observations — derived from the
+#: source columns rather than restated, so adding a column to the select
+#: cannot leave this behind.
+_FLANKING_COLS = (
+    *(_FLANKING_RENAME.get(c, c) for c in _FLANKING_SOURCE_COLS),
     "flanking_species",
 )
 
@@ -1690,19 +1703,8 @@ def _map_extra_proteomes(obs: pd.DataFrame, release: int, use_uniprot: bool) -> 
         if flanking.empty:
             continue
         best = flanking.sort_values("n_sources").drop_duplicates("peptide", keep="first")
-        best = best[
-            [
-                "peptide",
-                "gene_name",
-                "gene_id",
-                "protein_id",
-                "position",
-                "n_flank",
-                "c_flank",
-                "n_sources",
-            ]
-        ].copy()
-        best = best.rename(columns={"n_sources": "n_source_proteins"})
+        best = best[["peptide", *_FLANKING_SOURCE_COLS]].copy()
+        best = best.rename(columns=_FLANKING_RENAME)
         best["flanking_species"] = label
         upid_to_hits[upid] = best.set_index("peptide")
         print(f"    [{label}] matched {len(best):,} / {len(peptides):,} peptides")
@@ -1712,16 +1714,6 @@ def _map_extra_proteomes(obs: pd.DataFrame, release: int, use_uniprot: bool) -> 
 
     # For each unmatched observation, try its PMID's priority list and take
     # the first hit.  Update in place.
-    flank_cols = (
-        "gene_name",
-        "gene_id",
-        "protein_id",
-        "position",
-        "n_flank",
-        "c_flank",
-        "n_source_proteins",
-        "flanking_species",
-    )
     for pmid_int, priority in pmid_priority.items():
         sel = unmatched_mask & (pmid_col == pmid_int)
         if not sel.any():
@@ -1738,7 +1730,7 @@ def _map_extra_proteomes(obs: pd.DataFrame, release: int, use_uniprot: bool) -> 
             matched_peps = peps[peps.isin(hits.index)]
             if matched_peps.empty:
                 continue
-            for col in flank_cols:
+            for col in _FLANKING_COLS:
                 if col in hits.columns:
                     obs.loc[matched_peps.index, col] = matched_peps.map(hits[col])
             # Recompute unmatched_mask locally for subsequent priority items
@@ -1847,19 +1839,8 @@ def _add_flanking(
             continue
 
         best = flanking.sort_values("n_sources").drop_duplicates("peptide", keep="first")
-        best = best[
-            [
-                "peptide",
-                "gene_name",
-                "gene_id",
-                "protein_id",
-                "position",
-                "n_flank",
-                "c_flank",
-                "n_sources",
-            ]
-        ].copy()
-        best = best.rename(columns={"n_sources": "n_source_proteins"})
+        best = best[["peptide", *_FLANKING_SOURCE_COLS]].copy()
+        best = best.rename(columns=_FLANKING_RENAME)
         best["flanking_species"] = canonical
 
         best_rows.append(best)
@@ -1872,7 +1853,12 @@ def _add_flanking(
     if best_rows:
         best_all = pd.concat(best_rows, ignore_index=True)
     else:
-        best_all = pd.DataFrame(columns=["peptide", "flanking_species", *_FLANKING_COLS])
+        # _FLANKING_COLS already ends with flanking_species; listing it
+        # again produced a duplicate column whose rename yielded two
+        # _canonical_species keys and made the merge below raise
+        # "column label is not unique" — on the path where no proteome
+        # maps anything, i.e. a fresh machine with no pyensembl cache.
+        best_all = pd.DataFrame(columns=["peptide", *_FLANKING_COLS])
 
     # Attach canonical species to each obs row for the join key
     canonical_lookup: dict[str, str] = {}
@@ -1902,10 +1888,8 @@ def _add_flanking(
 
     # --- Coverage report ---
     print("\n  Flanking coverage by species:")
-    mapped_total = 0
     for canonical, n_peps, n_mapped in sorted(per_species_stats):
         n_obs = int((obs["flanking_species"] == canonical).sum())
-        mapped_total += n_obs
         print(f"    {canonical:40s}  peptides: {n_mapped:>8,} / {n_peps:<8,}  rows: {n_obs:>10,}")
 
     if unmapped_organisms:

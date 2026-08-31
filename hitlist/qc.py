@@ -574,6 +574,79 @@ def run_all(mhc_class: str | None = None) -> dict[str, pd.DataFrame]:
     }
 
 
+#: Numeric metric columns of the curation plan, in report order.
+#:
+#: Listed once.  Three consumers derive from it: the column list built
+#: by :func:`_curation_plan_columns`, the numeric-fill loop, and the
+#: int-cast loop.  They used to be four hand-maintained copies, so a new
+#: metric had to be added in four places and missing one produced a
+#: dropped column, an unfilled NaN, or a float truncated to int.
+_CURATION_PLAN_METRIC_COLUMNS = (
+    "n_rows",
+    "suspect_class_label_n",
+    "suspect_class_label_rate",
+    "borderline_class_label_n",
+    "implausible_class_label_n",
+    "monoallelic_class_only_n",
+    "class_pool_n",
+    "nonstandard_aa_n",
+    "yaml_only_alleles_n",
+    "data_only_alleles_n",
+    "normalization_drifts_n",
+)
+
+#: Metrics an older ``discrepancies`` frame may simply not have.  Every
+#: other metric column is always produced, so "is it available?" is a
+#: question only these two can answer.
+_OPTIONAL_METRIC_COLUMNS = (
+    "borderline_class_label_n",
+    "implausible_class_label_n",
+)
+
+#: Metrics that are ratios, not counts.  Declared rather than inferred
+#: from the column name: an int-cast driven by a ``_rate`` suffix would
+#: silently truncate a future ``*_fraction`` / ``*_pct`` metric to zero.
+_CURATION_PLAN_FLOAT_METRICS = frozenset({"suspect_class_label_rate"})
+
+
+def _available_optional_metrics(source_columns) -> list[str]:
+    """Which optional metric columns this run actually has.
+
+    ``curation_plan`` asks this same question in three places — when
+    building the aggregation, the empty-frame schema and the report
+    column list — and used to answer it with a pair of booleans named
+    ``has_borderline`` / ``has_implausible``, threaded through a
+    string-keyed flag mapping.  Naming the question once removes the
+    flags, the mapping and the possibility of a new optional metric
+    silently inheriting another tier's answer.
+    """
+    present = set(source_columns)
+    return [c for c in _OPTIONAL_METRIC_COLUMNS if c in present]
+
+
+def _curation_plan_columns(available_optional: list[str]) -> list[str]:
+    """Full curation-plan column list, in report order.
+
+    ``curation_plan`` built this list four separate times — the
+    empty-frame schema, the numeric-fill loop, the int-cast loop and the
+    final output projection.  This helper serves the two that need the
+    *full* list; the fill and cast loops iterate
+    :data:`_CURATION_PLAN_METRIC_COLUMNS` directly.
+    """
+    included = set(available_optional)
+    return [
+        "pmid",
+        "study_label",
+        *(
+            c
+            for c in _CURATION_PLAN_METRIC_COLUMNS
+            if c not in _OPTIONAL_METRIC_COLUMNS or c in included
+        ),
+        "priority_score",
+        "severity",
+    ]
+
+
 def curation_plan(
     mhc_class: str | None = None,
     min_rows: int = 50,
@@ -631,44 +704,39 @@ def curation_plan(
     drift = normalization_drift()
 
     # ── Discrepancies: roll up across class I/II per PMID ────────────
-    # Guard the borderline / implausible columns so callers fixturing
-    # an older discrepancies DataFrame (without those columns) still
-    # work without raising.
-    has_borderline = "borderline_class_label_n" in disc.columns
-    has_implausible = "implausible_class_label_n" in disc.columns
+    # A caller fixturing an older discrepancies DataFrame may not have
+    # the severity-tier columns, so ask once which of them are here and
+    # carry that answer through the three places that need it.
+    available_optional = _available_optional_metrics(disc.columns)
     if not disc.empty:
-        agg_kwargs: dict = {
-            "study_label": ("study_label", "first"),
-            "n_rows": ("n_rows", "sum"),
-            "suspect_class_label_n": ("suspect_class_label_n", "sum"),
-            "monoallelic_class_only_n": ("monoallelic_class_only_n", "sum"),
-            "class_pool_n": ("class_pool_n", "sum"),
-            "nonstandard_aa_n": ("nonstandard_aa_n", "sum"),
-        }
-        if has_borderline:
-            agg_kwargs["borderline_class_label_n"] = ("borderline_class_label_n", "sum")
-        if has_implausible:
-            agg_kwargs["implausible_class_label_n"] = ("implausible_class_label_n", "sum")
-        disc_pmid = disc.groupby("pmid", as_index=False).agg(**agg_kwargs).copy()
-        disc_pmid["suspect_class_label_rate"] = disc_pmid["suspect_class_label_n"] / disc_pmid[
-            "n_rows"
-        ].clip(lower=1)
-    else:
-        disc_cols = [
-            "pmid",
-            "study_label",
+        summed = [
             "n_rows",
             "suspect_class_label_n",
             "monoallelic_class_only_n",
             "class_pool_n",
             "nonstandard_aa_n",
-            "suspect_class_label_rate",
+            *available_optional,
         ]
-        if has_borderline:
-            disc_cols.append("borderline_class_label_n")
-        if has_implausible:
-            disc_cols.append("implausible_class_label_n")
-        disc_pmid = pd.DataFrame(columns=disc_cols)
+        agg_kwargs: dict = {"study_label": ("study_label", "first")}
+        agg_kwargs.update({col: (col, "sum") for col in summed})
+        disc_pmid = disc.groupby("pmid", as_index=False).agg(**agg_kwargs).copy()
+        disc_pmid["suspect_class_label_rate"] = disc_pmid["suspect_class_label_n"] / disc_pmid[
+            "n_rows"
+        ].clip(lower=1)
+    else:
+        disc_pmid = pd.DataFrame(
+            columns=[
+                "pmid",
+                "study_label",
+                "n_rows",
+                "suspect_class_label_n",
+                "monoallelic_class_only_n",
+                "class_pool_n",
+                "nonstandard_aa_n",
+                "suspect_class_label_rate",
+                *available_optional,
+            ]
+        )
 
     # ── Cross-reference: per-PMID counts of yaml_only / data_only ────
     if not xref.empty:
@@ -701,30 +769,7 @@ def curation_plan(
         drift_pmid, on="pmid", how="outer"
     )
     if plan.empty:
-        empty_cols = [
-            "pmid",
-            "study_label",
-            "n_rows",
-            "suspect_class_label_n",
-            "suspect_class_label_rate",
-        ]
-        if has_borderline:
-            empty_cols.append("borderline_class_label_n")
-        if has_implausible:
-            empty_cols.append("implausible_class_label_n")
-        empty_cols.extend(
-            [
-                "monoallelic_class_only_n",
-                "class_pool_n",
-                "nonstandard_aa_n",
-                "yaml_only_alleles_n",
-                "data_only_alleles_n",
-                "normalization_drifts_n",
-                "priority_score",
-                "severity",
-            ]
-        )
-        return pd.DataFrame(columns=empty_cols)
+        return pd.DataFrame(columns=_curation_plan_columns(available_optional))
 
     # Backfill study_label for PMIDs that came in via xref/drift only.
     overrides = load_pmid_overrides()
@@ -733,20 +778,7 @@ def curation_plan(
         lambda p: overrides.get(int(p), {}).get("study_label", "") if pd.notna(p) else ""
     )
 
-    fill_cols = [
-        "n_rows",
-        "suspect_class_label_n",
-        "suspect_class_label_rate",
-        "borderline_class_label_n",
-        "implausible_class_label_n",
-        "monoallelic_class_only_n",
-        "class_pool_n",
-        "nonstandard_aa_n",
-        "yaml_only_alleles_n",
-        "data_only_alleles_n",
-        "normalization_drifts_n",
-    ]
-    for c in fill_cols:
+    for c in _CURATION_PLAN_METRIC_COLUMNS:
         if c in plan.columns:
             # Avoid the pandas 3.0 FutureWarning about implicit
             # downcast-on-fillna by going through numeric coercion.
@@ -784,44 +816,15 @@ def curation_plan(
     # Cast counts to int (groupby + outer merge may have promoted them
     # to float64 via NaN fills).
     int_cols = [
-        "n_rows",
-        "suspect_class_label_n",
-        "borderline_class_label_n",
-        "implausible_class_label_n",
-        "monoallelic_class_only_n",
-        "class_pool_n",
-        "nonstandard_aa_n",
-        "yaml_only_alleles_n",
-        "data_only_alleles_n",
-        "normalization_drifts_n",
+        c
+        for c in _curation_plan_columns(available_optional)
+        if c in _CURATION_PLAN_METRIC_COLUMNS and c not in _CURATION_PLAN_FLOAT_METRICS
     ]
     for c in int_cols:
         if c in plan.columns:
             plan[c] = plan[c].astype(int)
 
-    output_cols = [
-        "pmid",
-        "study_label",
-        "n_rows",
-        "suspect_class_label_n",
-        "suspect_class_label_rate",
-    ]
-    if "borderline_class_label_n" in plan.columns:
-        output_cols.append("borderline_class_label_n")
-    if "implausible_class_label_n" in plan.columns:
-        output_cols.append("implausible_class_label_n")
-    output_cols.extend(
-        [
-            "monoallelic_class_only_n",
-            "class_pool_n",
-            "nonstandard_aa_n",
-            "yaml_only_alleles_n",
-            "data_only_alleles_n",
-            "normalization_drifts_n",
-            "priority_score",
-            "severity",
-        ]
-    )
+    output_cols = _curation_plan_columns(available_optional)
     return plan[output_cols].reset_index(drop=True)
 
 

@@ -1575,6 +1575,9 @@ def generate_binding_table(
     has_quantitative_value: bool | None = None,
     exclude_non_peptide_ligand: bool = True,
     columns: list[str] | None = None,
+    *,
+    exclude_class_label_suspect: bool = False,
+    exclude_class_label_implausible: bool = False,
 ) -> pd.DataFrame:
     """Load the binding-assay index with optional filters.
 
@@ -1660,6 +1663,14 @@ def generate_binding_table(
         serological / unresolved).  Use ``"exact"`` for strict-resolution
         training; use ``["exact", "sample_allele_match"]`` for MIL /
         noisy-OR training where the set is small and trusted.
+    exclude_class_label_suspect
+        Drop rows whose curated MHC class disagrees with the peptide
+        length severely enough to be flagged ``suspect`` — the strict
+        superset, which includes the ``implausible`` tier.
+    exclude_class_label_implausible
+        Strict-cleaning variant: drop only the ``implausible`` tier
+        (class-I >=18aa or <=7aa, class-II <=4aa or >=45aa), keeping
+        borderline and suspect rows.
     """
     from .observations import load_binding
 
@@ -1686,6 +1697,13 @@ def generate_binding_table(
         bind_filters["length_min"] = length_min
     if length_max is not None:
         bind_filters["length_max"] = length_max
+    # load_binding has supported these all along; generate_binding_table
+    # simply never exposed them, so neither it nor generate_training_table
+    # could apply a class-label filter to binding evidence.
+    if exclude_class_label_suspect:
+        bind_filters["exclude_class_label_suspect"] = True
+    if exclude_class_label_implausible:
+        bind_filters["exclude_class_label_implausible"] = True
     bind_filters["exclude_non_peptide_ligand"] = exclude_non_peptide_ligand
 
     df = load_binding(**bind_filters)
@@ -2262,6 +2280,10 @@ def generate_training_table(
     proteome_release: int = 112,
     columns: list[str] | None = None,
     explode_mappings: bool | None = None,
+    *,
+    exclude_class_label_suspect: bool = False,
+    exclude_class_label_implausible: bool = False,
+    exclude_non_peptide_ligand: bool = True,
 ) -> pd.DataFrame:
     """Export a unified pMHC training table.
 
@@ -2300,6 +2322,24 @@ def generate_training_table(
        if the requested ``proteome_release`` has not already been
        materialized. Set ``proteome_release`` to a release you have
        already built observations against to avoid a surprise download.
+
+    Parameters
+    ----------
+    exclude_class_label_suspect
+        Drop rows whose curated MHC class disagrees with the peptide
+        length severely enough to be flagged ``suspect`` — the strict
+        superset, which includes the ``implausible`` tier.
+    exclude_class_label_implausible
+        Strict-cleaning variant: drop only the ``implausible`` tier
+        (class-I >=18aa or <=7aa, class-II <=4aa or >=45aa), keeping
+        borderline and suspect rows.
+    exclude_non_peptide_ligand
+        Exclude CD1 / MR1 / MIC rows whose "peptide" is a chemical name
+        rather than a sequence.  Defaults to True.
+
+    All other filter parameters are forwarded unchanged to
+    :func:`generate_observations_table` and :func:`generate_binding_table`;
+    see those for their meaning.
     """
     if explode_mappings is not None:
         import warnings
@@ -2332,6 +2372,13 @@ def generate_training_table(
         "serotype": serotype,
         "length_min": length_min,
         "length_max": length_max,
+        # Both evidence paths support these; generate_training_table
+        # simply never forwarded them, so a caller could not exclude
+        # suspect class labels or non-peptide ligands from a training
+        # export at all.  Found by the signature-parity test.
+        "exclude_class_label_suspect": exclude_class_label_suspect,
+        "exclude_class_label_implausible": exclude_class_label_implausible,
+        "exclude_non_peptide_ligand": exclude_non_peptide_ligand,
     }
 
     parts: list[pd.DataFrame] = []
