@@ -424,7 +424,12 @@ def load_bulk_proteomics(
         if "fractionation_ph" not in ccle.columns:
             ccle["fractionation_ph"] = ccle_src.get("fractionation_ph")
         bj = _load_bj_protein().copy()
-        df = pd.concat([ccle, bj], ignore_index=True)
+        from .builder import _concat_non_empty
+
+        # Same deprecation as the line-expression build: an empty or
+        # all-NA frame must not drive result dtypes.  Either side can be
+        # empty on the CSV-fallback path.
+        df = _concat_non_empty([ccle, bj], set(ccle.columns) | set(bj.columns))
         df = df.rename(columns={"cell_line": "cell_line_name"})
 
     if source is not None:

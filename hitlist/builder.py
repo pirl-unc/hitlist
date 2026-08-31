@@ -319,6 +319,61 @@ def _compress_categoricals(df: pd.DataFrame, *, strict: bool = False) -> None:
 _IRI_ORIGIN_RE = r"^https?://[^/]+"
 
 
+def _union_columns(frames) -> list[str]:
+    """Ordered union of the columns across ``frames``."""
+    out: list[str] = []
+    for frame in frames:
+        for col in frame.columns:
+            if col not in out:
+                out.append(col)
+    return out
+
+
+def _concat_non_empty(frames, columns, *, sort: bool = True) -> pd.DataFrame:
+    """Concatenate frames without letting empty / all-NA entries pick dtypes.
+
+    pandas deprecated inferring result dtypes from empty or all-NA
+    entries: when the default flips, a concat where one frame contributes
+    only NA for a column will infer ``object`` where a typed column is
+    expected today.  Both call sites feed a parquet write, and an
+    ``object`` column either changes the on-disk schema or makes pyarrow
+    reject the write outright.
+
+    Dropping whole frames is not enough — the deprecation is about
+    all-NA *columns*, and a frame can be perfectly good apart from one.
+    So instead of excluding data, this removes the ambiguity: for every
+    column, the dtype is taken from the first frame that actually has
+    values for it, and any frame contributing only NA is cast to that
+    dtype before the concat. The result is identical to today's
+    behaviour and stays identical when pandas changes.
+
+    ``columns`` shapes the empty frame returned when every input is
+    empty, so callers keep their column contract.
+    """
+    usable = [f for f in frames if f is not None and not f.empty]
+    if not usable:
+        return pd.DataFrame(columns=list(columns))
+
+    # Authoritative dtype per column: the first frame with real values.
+    authoritative: dict = {}
+    for frame in usable:
+        for col in frame.columns:
+            if col not in authoritative and not frame[col].isna().all():
+                authoritative[col] = frame[col].dtype
+
+    aligned = []
+    for frame in usable:
+        frame = frame.copy()
+        for col, dtype in authoritative.items():
+            if col in frame.columns and frame[col].isna().all():
+                # A dtype that cannot represent NA (e.g. plain int) is
+                # left alone; pandas' own promotion is correct there.
+                with contextlib.suppress(TypeError, ValueError):
+                    frame[col] = frame[col].astype(dtype)
+        aligned.append(frame)
+    return pd.concat(aligned, ignore_index=True, sort=sort)
+
+
 def _drop_duplicate_iris(df: pd.DataFrame, label: str) -> pd.DataFrame:
     """Drop cross-source duplicates by ``assay_iri`` (#146).
 
@@ -919,7 +974,7 @@ def build_bulk_proteomics(verbose: bool = False) -> pd.DataFrame:
         empty.to_parquet(out, index=False)
         return empty
 
-    df = pd.concat(frames, ignore_index=True, sort=False)
+    df = _concat_non_empty(frames, _union_columns(frames), sort=False)
 
     # Harmonize column names: cell_line -> cell_line_name to match
     # observations.parquet; keep sample_label alias for ms_samples parity.
@@ -1444,7 +1499,7 @@ def build_line_expression(verbose: bool = False) -> pd.DataFrame:
             print(f"  No line-expression sources present — wrote empty {out}")
         return empty
 
-    df = pd.concat(frames, ignore_index=True, sort=False)
+    df = _concat_non_empty(frames, _LINE_EXPRESSION_COLUMNS, sort=False)
 
     # Stamp parent_line_key from the registry so downstream callers can
     # preserve tier-2 provenance without re-resolving.
