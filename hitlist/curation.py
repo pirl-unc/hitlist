@@ -1450,19 +1450,54 @@ def _pmid_peptide_attributions(pmid_int: int) -> dict[str, frozenset[str]]:
 
 
 @lru_cache(maxsize=512)
-def _pmid_peptide_alleles(pmid_int: int) -> dict[str, frozenset[str]]:
-    """Pre-merged ``peptide → frozenset(allele)`` for a PMID.
+def peptide_alleles_for_pmid(pmid: int) -> dict[str, frozenset[str]]:
+    """Per-peptide candidate alleles for one study, from curated attributions.
 
-    Folds the two-step lookup
-    (``peptide → samples`` then ``sample → alleles``) into a single
-    cached map so the per-row scan path is a dict lookup, not a set
-    union.  Computed once per PMID (lru_cached); empty when the PMID
-    has no attribution CSV.  Treat the returned dict as read-only.
+    Some studies deposit which donor each peptide was observed in.  Where
+    that exists, a peptide's presenting allele narrows from "any allele in
+    this study" to "the alleles of the donors it was actually seen in" —
+    the per-peptide attribution overrides of #45.  This folds the two-step
+    lookup (``peptide → samples``, then ``sample → alleles``) into one
+    cached map.
+
+    Parameters
+    ----------
+    pmid
+        PubMed ID of the study.
+
+    Returns
+    -------
+    dict[str, frozenset[str]]
+        ``peptide → candidate alleles``, in canonical form
+        (``"HLA-A*02:01"``).  Peptides whose donors have no curated
+        genotype are omitted rather than mapped to an empty set.
+
+    **Empty for most studies, and that is not an error.**  It requires a
+    ``peptide_attributions`` CSV, which only a handful of PMIDs have — as
+    of writing, PMID 31844290 is the only one.  Every other study returns
+    ``{}``, so a caller must treat "no entry" as "not narrowed", never as
+    "no alleles".  This is worth stating because it is easy to reach for
+    this function to explain an attribution result and conclude the wrong
+    thing from an empty answer.
+
+    The result is cached per PMID and shared; treat it as read-only.
+
+    Examples
+    --------
+    >>> alleles = peptide_alleles_for_pmid(31844290)   # doctest: +SKIP
+    >>> sorted(alleles["SLYNTVATL"])                    # doctest: +SKIP
+    ['HLA-A*02:01']
+
+    See Also
+    --------
+    peptide_typings_for_pmid : the same evidence kept per-donor rather
+        than merged, for callers that need to know which donor
+        contributed which alleles.
     """
-    attributions = _pmid_peptide_attributions(pmid_int)
+    attributions = _pmid_peptide_attributions(pmid)
     if not attributions:
         return {}
-    sample_alleles = _pmid_sample_alleles(pmid_int)
+    sample_alleles = _pmid_sample_alleles(pmid)
     out: dict[str, frozenset[str]] = {}
     for pep, samples in attributions.items():
         merged: set[str] = set()
@@ -1474,26 +1509,39 @@ def _pmid_peptide_alleles(pmid_int: int) -> dict[str, frozenset[str]]:
 
 
 @lru_cache(maxsize=512)
-def _pmid_peptide_per_sample_typings(
-    pmid_int: int,
+def peptide_typings_for_pmid(
+    pmid: int,
 ) -> dict[str, tuple[tuple[str, frozenset[str]], ...]]:
-    """``peptide → ((sample_label, frozenset(alleles)), ...)`` for a PMID.
+    """Per-peptide donor typings for one study, kept per-donor.
 
-    Like :func:`_pmid_peptide_alleles` but preserves per-sample identity
-    instead of merging alleles into one union.  Used by the scanner to
-    emit one observation row per matched donor (issue #236), so each
-    row carries that donor's ``sample_label`` and 6-allele typing
-    rather than collapsing into a multi-donor union.
+    The same curated evidence as :func:`peptide_alleles_for_pmid`, but
+    preserving which donor contributed which alleles instead of merging
+    them into one union.  The scanner uses this to emit one observation
+    row per matched donor (#236), so each row carries that donor's
+    ``sample_label`` and its own typing.
+
+    Parameters
+    ----------
+    pmid
+        PubMed ID of the study.
+
+    Returns
+    -------
+    dict[str, tuple[tuple[str, frozenset[str]], ...]]
+        ``peptide → ((sample_label, alleles), ...)``, sorted by
+        ``sample_label`` so emission order is deterministic.
+
+    Carries the same caveat as :func:`peptide_alleles_for_pmid`: it needs
+    a ``peptide_attributions`` CSV, which only a handful of studies have,
+    so ``{}`` means "not narrowed", not "no donors".
 
     Samples whose curated typing is empty are dropped — emitting a row
     with no allele set would just become an ``unmatched`` row downstream.
-    Result is sorted by ``sample_label`` for deterministic emission
-    order.  Empty mapping when the PMID has no attribution CSV.
     """
-    attributions = _pmid_peptide_attributions(pmid_int)
+    attributions = _pmid_peptide_attributions(pmid)
     if not attributions:
         return {}
-    sample_alleles = _pmid_sample_alleles(pmid_int)
+    sample_alleles = _pmid_sample_alleles(pmid)
     out: dict[str, tuple[tuple[str, frozenset[str]], ...]] = {}
     for pep, samples in attributions.items():
         per_sample = []
@@ -1528,7 +1576,7 @@ def attribute_peptide_to_per_sample_typings(
             pmid_int = int(pmid)
     if pmid_int is None:
         return ()
-    return _pmid_peptide_per_sample_typings(pmid_int).get(peptide, ())
+    return peptide_typings_for_pmid(pmid_int).get(peptide, ())
 
 
 def attribute_peptide_to_sample_alleles(pmid: int | str, peptide: str) -> frozenset[str]:
@@ -1544,7 +1592,7 @@ def attribute_peptide_to_sample_alleles(pmid: int | str, peptide: str) -> frozen
     set-membership / mhc_allele_in_set queries.
 
     Implemented as a single dict lookup against
-    :func:`_pmid_peptide_alleles` (the peptide-to-alleles map is
+    :func:`peptide_alleles_for_pmid` (the peptide-to-alleles map is
     pre-merged once per PMID).
     """
     if not peptide:
@@ -1555,7 +1603,7 @@ def attribute_peptide_to_sample_alleles(pmid: int | str, peptide: str) -> frozen
             pmid_int = int(pmid)
     if pmid_int is None:
         return frozenset()
-    return _pmid_peptide_alleles(pmid_int).get(peptide, frozenset())
+    return peptide_alleles_for_pmid(pmid_int).get(peptide, frozenset())
 
 
 _HOST_MHC_SPLIT_RE = re.compile(r"[;,]")

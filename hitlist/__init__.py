@@ -87,6 +87,9 @@ _PUBLIC_API: dict[str, str] = {
     "load_observations": ".observations",
     "load_binding": ".observations",
     "load_all_evidence": ".observations",
+    # Curated per-peptide donor evidence, where a study deposited it.
+    "peptide_alleles_for_pmid": ".curation",
+    "peptide_typings_for_pmid": ".curation",
     # Generate derived tables.
     "generate_ms_observations_table": ".export",
     "generate_training_table": ".export",
