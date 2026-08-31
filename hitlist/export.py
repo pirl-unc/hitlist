@@ -1573,6 +1573,8 @@ def generate_binding_table(
     quantitative_value_max: float | None = None,
     quantitative_value_min: float | None = None,
     has_quantitative_value: bool | None = None,
+    exclude_class_label_suspect: bool = False,
+    exclude_class_label_implausible: bool = False,
     exclude_non_peptide_ligand: bool = True,
     columns: list[str] | None = None,
 ) -> pd.DataFrame:
@@ -1686,6 +1688,13 @@ def generate_binding_table(
         bind_filters["length_min"] = length_min
     if length_max is not None:
         bind_filters["length_max"] = length_max
+    # load_binding has supported these all along; generate_binding_table
+    # simply never exposed them, so neither it nor generate_training_table
+    # could apply a class-label filter to binding evidence.
+    if exclude_class_label_suspect:
+        bind_filters["exclude_class_label_suspect"] = True
+    if exclude_class_label_implausible:
+        bind_filters["exclude_class_label_implausible"] = True
     bind_filters["exclude_non_peptide_ligand"] = exclude_non_peptide_ligand
 
     df = load_binding(**bind_filters)
@@ -2241,6 +2250,9 @@ def generate_training_table(
     include_evidence: str = "both",
     mhc_class: str | None = None,
     species: str | None = None,
+    exclude_class_label_suspect: bool = False,
+    exclude_class_label_implausible: bool = False,
+    exclude_non_peptide_ligand: bool = True,
     source: str | None = None,
     instrument_type: str | None = None,
     acquisition_mode: str | None = None,
@@ -2332,6 +2344,13 @@ def generate_training_table(
         "serotype": serotype,
         "length_min": length_min,
         "length_max": length_max,
+        # Both evidence paths support these; generate_training_table
+        # simply never forwarded them, so a caller could not exclude
+        # suspect class labels or non-peptide ligands from a training
+        # export at all.  Found by the signature-parity test.
+        "exclude_class_label_suspect": exclude_class_label_suspect,
+        "exclude_class_label_implausible": exclude_class_label_implausible,
+        "exclude_non_peptide_ligand": exclude_non_peptide_ligand,
     }
 
     parts: list[pd.DataFrame] = []

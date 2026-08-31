@@ -574,6 +574,42 @@ def run_all(mhc_class: str | None = None) -> dict[str, pd.DataFrame]:
     }
 
 
+#: Numeric metric columns of the curation plan, in report order.
+#:
+#: Listed once: the empty-frame column list and the numeric-fill loop
+#: below both derive from this.  They used to be two hand-maintained
+#: copies, so a new metric had to be added in both places and adding it
+#: to only one produced either a missing column or an unfilled NaN.
+_CURATION_PLAN_METRIC_COLUMNS = (
+    "n_rows",
+    "suspect_class_label_n",
+    "suspect_class_label_rate",
+    "borderline_class_label_n",
+    "implausible_class_label_n",
+    "monoallelic_class_only_n",
+    "class_pool_n",
+    "nonstandard_aa_n",
+    "yaml_only_alleles_n",
+    "data_only_alleles_n",
+    "normalization_drifts_n",
+)
+
+#: The two metrics that are only present when their severity tier was
+#: computed (see ``has_borderline`` / ``has_implausible``).
+_CURATION_PLAN_OPTIONAL_METRICS = {
+    "borderline_class_label_n": "has_borderline",
+    "implausible_class_label_n": "has_implausible",
+}
+
+
+def _metric_applies(column: str, has_borderline: bool, has_implausible: bool) -> bool:
+    """Whether an optional metric column is present for this run."""
+    flag = _CURATION_PLAN_OPTIONAL_METRICS.get(column)
+    if flag is None:
+        return True
+    return has_borderline if flag == "has_borderline" else has_implausible
+
+
 def curation_plan(
     mhc_class: str | None = None,
     min_rows: int = 50,
@@ -704,26 +740,14 @@ def curation_plan(
         empty_cols = [
             "pmid",
             "study_label",
-            "n_rows",
-            "suspect_class_label_n",
-            "suspect_class_label_rate",
+            *(
+                c
+                for c in _CURATION_PLAN_METRIC_COLUMNS
+                if _metric_applies(c, has_borderline, has_implausible)
+            ),
+            "priority_score",
+            "severity",
         ]
-        if has_borderline:
-            empty_cols.append("borderline_class_label_n")
-        if has_implausible:
-            empty_cols.append("implausible_class_label_n")
-        empty_cols.extend(
-            [
-                "monoallelic_class_only_n",
-                "class_pool_n",
-                "nonstandard_aa_n",
-                "yaml_only_alleles_n",
-                "data_only_alleles_n",
-                "normalization_drifts_n",
-                "priority_score",
-                "severity",
-            ]
-        )
         return pd.DataFrame(columns=empty_cols)
 
     # Backfill study_label for PMIDs that came in via xref/drift only.
@@ -733,20 +757,7 @@ def curation_plan(
         lambda p: overrides.get(int(p), {}).get("study_label", "") if pd.notna(p) else ""
     )
 
-    fill_cols = [
-        "n_rows",
-        "suspect_class_label_n",
-        "suspect_class_label_rate",
-        "borderline_class_label_n",
-        "implausible_class_label_n",
-        "monoallelic_class_only_n",
-        "class_pool_n",
-        "nonstandard_aa_n",
-        "yaml_only_alleles_n",
-        "data_only_alleles_n",
-        "normalization_drifts_n",
-    ]
-    for c in fill_cols:
+    for c in _CURATION_PLAN_METRIC_COLUMNS:
         if c in plan.columns:
             # Avoid the pandas 3.0 FutureWarning about implicit
             # downcast-on-fillna by going through numeric coercion.

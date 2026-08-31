@@ -945,3 +945,17 @@ def test_build_paths_raise_no_concat_futurewarning():
             ],
             ["x", "s"],
         )
+
+
+def test_flanking_schema_is_derived_not_restated():
+    """The pre-rename select list and the post-rename schema were two
+    hand-maintained lists with an implicit relationship."""
+    from hitlist.builder import _FLANKING_COLS, _FLANKING_RENAME, _FLANKING_SOURCE_COLS
+
+    expected = (
+        *(_FLANKING_RENAME.get(c, c) for c in _FLANKING_SOURCE_COLS),
+        "flanking_species",
+    )
+    assert expected == _FLANKING_COLS
+    assert "n_sources" not in _FLANKING_COLS
+    assert "n_source_proteins" in _FLANKING_COLS

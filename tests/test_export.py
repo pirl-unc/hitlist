@@ -3105,3 +3105,74 @@ def test_samples_table_exposes_both_species_axes():
     carp = samples[samples["pmid"] == 41459947].iloc[0]
     assert carp["mhc_species"] == "Carassius gibelio"
     assert carp["species_axes_agreement"] == "true"
+
+
+# ── Guards against re-introduced duplication ──────────────────────────
+
+
+def test_sample_provenance_columns_are_a_real_subset():
+    """`_SAMPLE_PROVENANCE_COLUMNS` is the third hand-written enumeration
+    of sample columns, and the only one nothing checked.
+
+    It is deliberately a *subset* of the samples table, so it cannot be
+    asserted equal — but every name in it must exist, or the anchors
+    export silently drops a column that was renamed elsewhere.
+    """
+    from hitlist.export import _SAMPLE_PROVENANCE_COLUMNS, generate_ms_samples_table
+
+    actual = set(generate_ms_samples_table().columns)
+    missing = [c for c in _SAMPLE_PROVENANCE_COLUMNS if c not in actual]
+    assert not missing, f"provenance columns that no longer exist: {missing}"
+
+
+def test_observation_filter_signatures_stay_in_sync():
+    """Four public functions share ~20 filter parameters, declared
+    separately in each.
+
+    Centralizing them behind ``**kwargs`` would cost the explicit
+    signature that ``inspect``, IDEs and the CLI help all read, so the
+    duplication is deliberate — but nothing enforced that the copies
+    agree, and a filter added to one silently does not exist on the
+    others.
+    """
+    import inspect
+
+    from hitlist import export
+    from hitlist.observations import load_observations
+
+    shared = {
+        "mhc_class",
+        "species",
+        "source",
+        "mhc_allele_in_set",
+        "mhc_allele_provenance",
+        "gene_name",
+        "gene_id",
+        "peptide",
+        "serotype",
+        "length_min",
+        "length_max",
+        "exclude_class_label_suspect",
+        "exclude_class_label_implausible",
+        "exclude_non_peptide_ligand",
+    }
+    targets = [
+        load_observations,
+        export.generate_observations_table,
+        export.generate_training_table,
+    ]
+    for fn in targets:
+        params = set(inspect.signature(fn).parameters)
+        missing = shared - params
+        assert not missing, f"{fn.__name__} is missing shared filters: {sorted(missing)}"
+
+
+def test_load_ms_observations_delegates_rather_than_restating():
+    """The alias used to re-declare all 20 parameters and hand-forward
+    each one, so a new filter had to be added in two places."""
+    import inspect
+
+    from hitlist.observations import load_ms_observations, load_observations
+
+    assert inspect.signature(load_ms_observations) == inspect.signature(load_observations)
+    assert load_ms_observations.__wrapped__ is load_observations
