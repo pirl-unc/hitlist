@@ -737,7 +737,13 @@ def is_class_only_token(value: str) -> bool:
         return False
     if text.lower() in ("unknown", "not typed", "n/a", "na"):
         return True
-    return type(_cached_parse(text)).__name__ == "MhcClass"
+    # A class-II locus (``SLA-DR``, ``BoLA-DR``) names a locus and no
+    # allele, so it carries exactly as much genotype information as
+    # ``SLA class II`` does.  Counting it here routes those samples to
+    # the class pool instead of leaving them unattributable, and stops
+    # ``_sample_alleles`` from handing the literal string "BoLA-DR"
+    # downstream as though it were an allele (#380).
+    return type(_cached_parse(text)).__name__ in ("MhcClass", "Class2Locus")
 
 
 @cache
@@ -805,6 +811,40 @@ def species_axes_agreement(source_species: str, mhc_species: str) -> str:
     if not derived:
         return ""
     return "true" if any(source.compatible_with(d) for d in derived) else "false"
+
+
+@lru_cache(maxsize=1)
+def _serotype_to_member_alleles() -> dict[str, tuple[str, ...]]:
+    """Reverse of :func:`_build_allele_to_serotypes_map`: serotype → alleles."""
+    members: dict[str, set[str]] = {}
+    for allele, serotypes in _build_allele_to_serotypes_map().items():
+        canonical = normalize_allele(allele)
+        if not canonical:
+            continue
+        for serotype in serotypes:
+            members.setdefault(serotype, set()).add(canonical)
+    return {s: tuple(sorted(a)) for s, a in members.items()}
+
+
+@cache
+def expand_serotype_to_alleles(token: str) -> tuple[str, ...]:
+    """Member alleles of a serotype, or ``()`` if it is not one.
+
+    A sample typed only to serotype — ``HLA-DR15``, ``HLA-DQ8`` — names a
+    real MHC designation but no allele, so it contributed nothing to the
+    allele-level join and dropped out of ``_pmid_sample_alleles``
+    entirely (#380).
+
+    The members are a *candidate set*, not a genotype: ``HLA-DR15``
+    covers ``HLA-DRB1*15:01`` through ``*15:07``, and the paper typed the
+    donor to the serotype precisely because it did not resolve further.
+    Callers should treat the result the way they treat a ``donor_set``
+    restriction — narrower than "any class-II allele", wider than one.
+    """
+    parsed = _cached_parse(token)
+    if type(parsed).__name__ != "Serotype":
+        return ()
+    return _serotype_to_member_alleles().get(parsed.to_string(), ())
 
 
 def expand_allele_components(allele_token: str) -> list[str]:
@@ -1381,7 +1421,16 @@ def _parse_sample_mhc_field(mhc_field) -> frozenset[str]:
         return frozenset(out)
     if not isinstance(mhc_field, str):
         return frozenset()
-    return frozenset(extract_allele_tokens(mhc_field))
+    alleles = set(extract_allele_tokens(mhc_field))
+    # A serotype-typed sample names no allele, so it used to contribute
+    # nothing here and dropped out of the allele-level join entirely
+    # (#380).  Its member alleles are a candidate set — narrower than
+    # "any class-II allele", wider than one — which is exactly what this
+    # map is used for.
+    for token in re.split(r"[\s;,]+", mhc_field):
+        if token:
+            alleles.update(expand_serotype_to_alleles(token))
+    return frozenset(alleles)
 
 
 @lru_cache(maxsize=512)

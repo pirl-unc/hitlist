@@ -2876,13 +2876,27 @@ def _serotype_key(raw: str) -> str:
 
 
 def _sample_alleles(sample_mhc: str) -> list[str]:
+    """Alleles named by a curated ``mhc`` value.
+
+    Uses :func:`hitlist.curation.extract_allele_tokens` rather than
+    normalizing every whitespace-separated word, because
+    ``normalize_allele`` returns its input unchanged for anything it
+    cannot parse — so a serotype-typed sample used to yield the literal
+    ``"HLA-DR15"`` here and downstream serotype lookup treated it as an
+    allele.  Serotypes contribute their member alleles instead (#380).
+    """
+    from .curation import expand_serotype_to_alleles, extract_allele_tokens
+
     if (
         not isinstance(sample_mhc, str)
         or not sample_mhc.strip()
         or _is_class_only_sentinel(sample_mhc)
     ):
         return []
-    return [normalize_allele(a) for a in sample_mhc.split() if normalize_allele(a)]
+    alleles = list(extract_allele_tokens(sample_mhc))
+    for token in sample_mhc.split():
+        alleles.extend(a for a in expand_serotype_to_alleles(token) if a not in alleles)
+    return alleles
 
 
 def _source_bucket(row: pd.Series) -> str:

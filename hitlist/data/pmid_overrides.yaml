@@ -2652,13 +2652,22 @@
         source: "parasitized lymphocyte cell lines, multiple BoLA genotypes"
         condition: T. parva infection
         mhc_class: I
-        mhc: Bos taurus class I
+        # Union of the BoLA-I restrictions IEDB records for this study —
+        # a pooled donor set across the 13 lines, not one animal's
+        # genotype.  Curated from the data rather than left as a
+        # class-only sentinel so the rows attribute at allele level
+        # instead of falling to the class pool (#381).
+        mhc: BoLA-1*009:01 BoLA-1*019:01 BoLA-1*023:01 BoLA-2*012:01 BoLA-2*016:01
+          BoLA-2*025:01 BoLA-2*026:01 BoLA-3*002:01 BoLA-3*027:01 BoLA-4*024:01
+          BoLA-6*013:01 BoLA-6*014:01 BoLA-6*040:01
       - sample_label: T. parva-infected bovine lymphocyte lines (BoLA-DR)
         n_samples: 6
         source: "same cell lines, class II IP"
         condition: T. parva infection
         mhc_class: II
-        mhc: BoLA-DR
+        # As above: the BoLA-DRB3 restrictions IEDB records for this
+        # study, pooled across the lines (#381).
+        mhc: BoLA-DRB3*011:01 BoLA-DRB3*015:01 BoLA-DRB3*016:01
   - pmid: 33789985
     study_label: Fisch 2021 — BoLA-DR class II
     title: Integral Use of Immunopeptidomics and Immunoinformatics for the Characterization of Antigen Presentation and Rational Identification of BoLA-DR-Presented Peptides and Epitopes

@@ -2537,19 +2537,12 @@ def test_no_curated_mhc_token_has_an_inferred_species():
     assert "explicit" in seen_sources, f"species_source never reported 'explicit': {seen_sources}"
 
 
-#: Samples whose curated ``mhc`` names a real MHC designation but not an
-#: allele, so they never reach the allele-level join.  Serotypes
-#: (``HLA-DR15``, ``HLA-DQ8``) and class-II loci (``SLA-DR``,
-#: ``BoLA-DR``) are legitimate curation; tracked in #380.
-_KNOWN_NON_ALLELE_SAMPLES = {
-    (28467828, "HLA-DR15 immunopeptidome component"),
-    (32796065, "BMDCs (PRRSV-infected)"),
-    (32796065, "PAMs (PRRSV-infected)"),
-    (32796065, "hilar lymph node (PRRSV-infected piglets)"),
-    (33789985, "bovine cell lines (BoLA-DR)"),
-    (34433824, "HLA-DQ8 immunopeptidome component"),
-    (36423003, "T. parva-infected bovine lymphocyte lines (BoLA-DR)"),
-}
+#: Samples whose curated ``mhc`` names a real MHC designation but yields
+#: no alleles.  Empty since #380: serotypes expand to their member
+#: alleles, and class-II loci are treated as class-only so they reach the
+#: class pool instead.  Kept, with its staleness assertion, so a future
+#: designation kind that yields nothing has to be declared here.
+_KNOWN_NON_ALLELE_SAMPLES: set = set()
 
 
 def test_curated_mhc_values_reach_the_allele_join():
@@ -2561,7 +2554,7 @@ def test_curated_mhc_values_reach_the_allele_join():
     explicitly so the gap is visible rather than absorbed by a widened
     type filter.
     """
-    from hitlist.curation import extract_allele_tokens, is_class_only_token
+    from hitlist.curation import _parse_sample_mhc_field, is_class_only_token
     from hitlist.export import generate_ms_samples_table
 
     no_alleles, flagged = [], set()
@@ -2569,7 +2562,9 @@ def test_curated_mhc_values_reach_the_allele_join():
         mhc = str(row.get("mhc") or "").strip()
         if not mhc or is_class_only_token(mhc):
             continue
-        if extract_allele_tokens(mhc):
+        # Ask the function that actually builds the sample allele set —
+        # ``extract_allele_tokens`` alone misses serotype expansion.
+        if _parse_sample_mhc_field(mhc):
             continue
         key = (int(row["pmid"]), str(row["sample_label"]))
         flagged.add(key)
@@ -2648,10 +2643,10 @@ def test_class_only_typed_samples_are_declared_not_incidental():
     """A class-only ``mhc`` skips the allele-join guard, so switching a
     sample to a sentinel silently removes it from that check.
 
-    Rather than enumerate all 88 class-only samples, pin the two that
-    #375 converted, so the conversion stays deliberate.  PMID 36423003
-    is a genuine downgrade — IEDB carries real 4-digit BoLA alleles for
-    it (#381) — and is recorded here until those are curated.
+    Rather than enumerate all 88 class-only samples, pin the one that
+    #375 converted and still is, so the conversion stays deliberate.
+    PMID 36423003 used to be here too; #381 curated its real BoLA
+    alleles, so it now attributes at allele level instead.
     """
     from hitlist.curation import extract_allele_tokens, is_class_only_token
     from hitlist.export import generate_ms_samples_table
@@ -2659,7 +2654,6 @@ def test_class_only_typed_samples_are_declared_not_incidental():
     samples = generate_ms_samples_table().set_index(["pmid", "sample_label"])
     for key, mhc in (
         ((36146698, "SLA-I Lr-Hp 35.0/24 mod (porcine cell line, PRRSV-infected)"), "SLA class I"),
-        ((36423003, "T. parva-infected bovine lymphocyte lines (BoLA-I)"), "Bos taurus class I"),
     ):
         value = str(samples.loc[key, "mhc"])
         assert value == mhc, f"{key} mhc changed: {value!r}"
@@ -2715,3 +2709,45 @@ def test_species_axes_agreement_is_not_predicate_shaped():
 
     assert not hasattr(curation, "species_axes_agree")
     assert curation.species_axes_agreement("Mus musculus", "Homo sapiens") == "false"
+
+
+def test_serotype_typed_samples_expand_to_member_alleles():
+    """#380: a serotype names a real designation but no allele, so those
+    samples contributed nothing to the allele set and dropped out of the
+    join.  The members are a candidate set, not a genotype."""
+    from hitlist.curation import _parse_sample_mhc_field, expand_serotype_to_alleles
+
+    assert expand_serotype_to_alleles("HLA-DR15") == (
+        "HLA-DRB1*15:01",
+        "HLA-DRB1*15:02",
+        "HLA-DRB1*15:03",
+        "HLA-DRB1*15:04",
+        "HLA-DRB1*15:05",
+        "HLA-DRB1*15:06",
+        "HLA-DRB1*15:07",
+    )
+    assert expand_serotype_to_alleles("HLA-DQ8") == (
+        "HLA-DQB1*03:02",
+        "HLA-DQB1*03:05",
+        "HLA-DQB1*03:10",
+    )
+    # Not a serotype -> nothing, so allele genotypes are unaffected.
+    assert expand_serotype_to_alleles("HLA-A*02:01") == ()
+    assert expand_serotype_to_alleles("SLA-DR") == ()
+    assert len(_parse_sample_mhc_field("HLA-DR15")) == 7
+
+
+def test_class_ii_locus_counts_as_class_only():
+    """A locus names no allele, so it carries the same information as
+    ``SLA class II``.  Treating it as class-only routes those samples to
+    the class pool and stops the literal string being handed downstream
+    as though it were an allele."""
+    from hitlist.curation import is_class_only_token
+    from hitlist.export import _sample_alleles
+
+    for locus in ("SLA-DR", "BoLA-DR"):
+        assert is_class_only_token(locus)
+        assert _sample_alleles(locus) == []
+    # A serotype is NOT class-only — it resolves to real alleles.
+    assert not is_class_only_token("HLA-DR15")
+    assert len(_sample_alleles("HLA-DR15")) == 7
