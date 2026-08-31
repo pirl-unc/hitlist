@@ -1494,15 +1494,10 @@ def peptide_alleles_for_pmid(pmid: int) -> dict[str, frozenset[str]]:
         than merged, for callers that need to know which donor
         contributed which alleles.
     """
-    return _peptide_alleles_for_pmid(pmid)
-
-
-def _peptide_alleles_for_pmid(pmid_int: int) -> dict[str, frozenset[str]]:
-    """Implementation of :func:`peptide_alleles_for_pmid`."""
-    attributions = _pmid_peptide_attributions(pmid_int)
+    attributions = _pmid_peptide_attributions(pmid)
     if not attributions:
         return {}
-    sample_alleles = _pmid_sample_alleles(pmid_int)
+    sample_alleles = _pmid_sample_alleles(pmid)
     out: dict[str, frozenset[str]] = {}
     for pep, samples in attributions.items():
         merged: set[str] = set()
