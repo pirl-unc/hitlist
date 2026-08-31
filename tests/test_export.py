@@ -3216,3 +3216,25 @@ def test_load_ms_observations_delegates_and_keeps_its_identity():
     # It really delegates rather than reimplementing.
     assert load_ms_observations.__wrapped__ is load_observations
     assert load_ms_observations.__code__ is not load_observations.__code__
+
+
+@pytest.mark.integration
+def test_bola_study_attributes_at_allele_level():
+    """#381: PMID 36423003 was curated with a class-only sentinel while
+    IEDB carried real 4-digit BoLA alleles, so all 156 of its rows fell
+    to the class pool instead of matching at allele level.
+
+    The curated value is a pooled union across the study's 13 lines, not
+    one animal's genotype — the same shape as PMID 31495665's MAPTAC
+    sample, which carries a 10-allele union for ``n_samples: 10``.
+    """
+    from hitlist.export import generate_observations_table
+    from hitlist.observations import is_built
+
+    if not is_built():
+        pytest.skip("Observations table not built")
+    rows = generate_observations_table()
+    sub = rows[rows["pmid"].astype(str) == "36423003"]
+    assert len(sub) > 0
+    counts = sub["sample_attribution"].astype(str).value_counts().to_dict()
+    assert counts.get("allele_exact", 0) >= 150, counts

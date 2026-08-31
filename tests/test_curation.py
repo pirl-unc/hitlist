@@ -2548,7 +2548,6 @@ _KNOWN_NON_ALLELE_SAMPLES = {
     (32796065, "hilar lymph node (PRRSV-infected piglets)"),
     (33789985, "bovine cell lines (BoLA-DR)"),
     (34433824, "HLA-DQ8 immunopeptidome component"),
-    (36423003, "T. parva-infected bovine lymphocyte lines (BoLA-DR)"),
 }
 
 
@@ -2648,10 +2647,10 @@ def test_class_only_typed_samples_are_declared_not_incidental():
     """A class-only ``mhc`` skips the allele-join guard, so switching a
     sample to a sentinel silently removes it from that check.
 
-    Rather than enumerate all 88 class-only samples, pin the two that
-    #375 converted, so the conversion stays deliberate.  PMID 36423003
-    is a genuine downgrade — IEDB carries real 4-digit BoLA alleles for
-    it (#381) — and is recorded here until those are curated.
+    Rather than enumerate all 88 class-only samples, pin the one that
+    #375 converted and that is still a sentinel.  PMID 36423003 used to
+    be here too; #381 curated its real BoLA alleles, so it now
+    attributes at allele level instead.
     """
     from hitlist.curation import extract_allele_tokens, is_class_only_token
     from hitlist.export import generate_ms_samples_table
@@ -2659,7 +2658,6 @@ def test_class_only_typed_samples_are_declared_not_incidental():
     samples = generate_ms_samples_table().set_index(["pmid", "sample_label"])
     for key, mhc in (
         ((36146698, "SLA-I Lr-Hp 35.0/24 mod (porcine cell line, PRRSV-infected)"), "SLA class I"),
-        ((36423003, "T. parva-infected bovine lymphocyte lines (BoLA-I)"), "Bos taurus class I"),
     ):
         value = str(samples.loc[key, "mhc"])
         assert value == mhc, f"{key} mhc changed: {value!r}"
