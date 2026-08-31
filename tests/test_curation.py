@@ -2626,24 +2626,15 @@ def test_species_tree_is_prefix_scope_not_phylogeny():
     assert mhcgnomes.Species.get("Carassius gibelio").parent.name == "Cyprinidae sp."
     assert species_compatible("Carassius gibelio", "Cyprinidae sp.")
 
-    # Primata sp. is the exception, and where it lives moved in
-    # mhcgnomes 3.40.0.  The tree was corrected there (#122): Homo
-    # sapiens is now a child of Primata sp., as taxonomy says.
+    # Primata sp. was the exception, and upstream resolved it across two
+    # releases.  3.40.0 corrected the tree (#122) so Homo sapiens is a
+    # child of Primata sp., but simultaneously reimplemented
+    # compatible_with in terms of naming scope, which kept the pair
+    # incompatible (#125).  3.41.0 restored the ancestry relation
+    # (#126), so a curated coarser taxon is now compatible with a more
+    # specific allele, as it already was for Bos taurus / Bos sp.
     assert mhcgnomes.Species.get("Homo sapiens").parent.name == "Primata sp."
-
-    # But the answer is unchanged, for a different reason.  3.40.0 also
-    # reimplemented compatible_with in terms of ``can_name`` (prefix
-    # scope) rather than ``is_ancestor_of``, and Primata sp. carries the
-    # exclusionary NHP prefix — human alleles are never written NHP-*.
-    # So a curated "Primata sp." is still rejected against a human
-    # allele even though it is now a genuine ancestor.  That
-    # contradicts compatible_with's own docstring, which still describes
-    # ancestry; reported as pirl-unc/mhcgnomes#125.  Pinned both ways so
-    # whichever side upstream settles on, this fails and gets revisited.
-    assert mhcgnomes.Species.get("Primata sp.").is_ancestor_of(
-        mhcgnomes.Species.get("Homo sapiens")
-    )
-    assert not species_compatible("Homo sapiens", "Primata sp.")
+    assert species_compatible("Homo sapiens", "Primata sp.")
 
     # Bubalus is a different genus from Bos (different subtribe, even),
     # yet sits under Bos sp.[BoLA] because buffalo alleles are assigned
