@@ -2626,12 +2626,15 @@ def test_species_tree_is_prefix_scope_not_phylogeny():
     assert mhcgnomes.Species.get("Carassius gibelio").parent.name == "Cyprinidae sp."
     assert species_compatible("Carassius gibelio", "Cyprinidae sp.")
 
-    # Primata sp. is the exception: it carries the exclusionary NHP
-    # prefix, so Homo sapiens is not under it even though humans are
-    # primates.  Reported as pirl-unc/mhcgnomes#122; pinned so the
-    # surprising answer is deliberate.
-    assert mhcgnomes.Species.get("Homo sapiens").parent.name == "Gnathostomata sp."
-    assert not species_compatible("Homo sapiens", "Primata sp.")
+    # Primata sp. was the exception, and upstream resolved it across two
+    # releases.  3.40.0 corrected the tree (#122) so Homo sapiens is a
+    # child of Primata sp., but simultaneously reimplemented
+    # compatible_with in terms of naming scope, which kept the pair
+    # incompatible (#125).  3.41.0 restored the ancestry relation
+    # (#126), so a curated coarser taxon is now compatible with a more
+    # specific allele, as it already was for Bos taurus / Bos sp.
+    assert mhcgnomes.Species.get("Homo sapiens").parent.name == "Primata sp."
+    assert species_compatible("Homo sapiens", "Primata sp.")
 
     # Bubalus is a different genus from Bos (different subtribe, even),
     # yet sits under Bos sp.[BoLA] because buffalo alleles are assigned
