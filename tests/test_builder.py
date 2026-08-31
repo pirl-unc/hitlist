@@ -878,3 +878,70 @@ def test_cedar_download_url_points_at_a_served_filename():
     assert "mhc_ligand_full_single_file.zip" in url
     assert "cedar_mhc_ligand_full.zip" not in url
     assert url.startswith("https://cedar.iedb.org/")
+
+
+# ── concat dtype stability (#377) ─────────────────────────────────────
+
+
+def test_concat_non_empty_takes_dtypes_from_frames_with_values():
+    """#377: pandas will stop letting all-NA entries drive result dtypes.
+
+    A frame contributing only NA for a column must not turn a typed
+    column into object — both call sites feed a parquet write, where an
+    object column changes the on-disk schema or is rejected outright.
+    """
+    import numpy as np
+    import pandas as pd
+
+    from hitlist.builder import _concat_non_empty
+
+    typed = pd.DataFrame({"line_key": ["HeLa"], "tpm": [1.5], "gene": ["ACTB"]})
+    all_na = pd.DataFrame({"line_key": ["K562"], "tpm": [np.nan], "gene": [None]})
+    out = _concat_non_empty([typed, all_na], ["line_key", "tpm", "gene"])
+    assert len(out) == 2
+    assert out["tpm"].dtype == typed["tpm"].dtype
+    assert out["line_key"].tolist() == ["HeLa", "K562"]
+
+
+def test_concat_non_empty_does_not_drop_partially_na_frames():
+    """Excluding whole frames would lose data: the deprecation is about
+    all-NA *columns*, and a frame can be good apart from one."""
+    import numpy as np
+    import pandas as pd
+
+    from hitlist.builder import _concat_non_empty
+
+    good = pd.DataFrame({"a": [1.0], "b": ["x"]})
+    partial = pd.DataFrame({"a": [2.0], "b": [np.nan]})  # 'b' all-NA, 'a' fine
+    out = _concat_non_empty([good, partial], ["a", "b"])
+    assert out["a"].tolist() == [1.0, 2.0], "the partially-NA frame must survive"
+
+
+def test_concat_non_empty_keeps_the_column_contract_when_all_empty():
+    import pandas as pd
+
+    from hitlist.builder import _concat_non_empty
+
+    out = _concat_non_empty([pd.DataFrame(), pd.DataFrame()], ["a", "b", "c"])
+    assert out.empty
+    assert list(out.columns) == ["a", "b", "c"]
+
+
+def test_build_paths_raise_no_concat_futurewarning():
+    """Guard the deprecation itself, so a new concat site is caught."""
+    import warnings
+
+    import numpy as np
+    import pandas as pd
+
+    from hitlist.builder import _concat_non_empty
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", FutureWarning)
+        _concat_non_empty(
+            [
+                pd.DataFrame({"x": [1.0], "s": ["a"]}),
+                pd.DataFrame({"x": [np.nan], "s": [None]}),
+            ],
+            ["x", "s"],
+        )
