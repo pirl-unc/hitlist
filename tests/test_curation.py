@@ -2109,11 +2109,11 @@ def test_attribute_peptide_to_per_sample_typings_all_donors_lack_typing(monkeypa
         "_pmid_sample_alleles",
         lambda pmid_int: {},  # neither ghost donor has a typing
     )
-    curation._pmid_peptide_per_sample_typings.cache_clear()
+    curation.peptide_typings_for_pmid.cache_clear()
     try:
         assert curation.attribute_peptide_to_per_sample_typings(99999, "FAKEPEP") == ()
     finally:
-        curation._pmid_peptide_per_sample_typings.cache_clear()
+        curation.peptide_typings_for_pmid.cache_clear()
 
 
 def test_curated_monoallelic_batch1_33b():
@@ -2767,3 +2767,53 @@ def test_no_sample_carries_a_pooled_allele_union():
     )
     stale = _KNOWN_POOLED_ALLELE_SAMPLES - flagged
     assert not stale, f"no longer pooled but still allowlisted: {sorted(stale)}"
+
+
+# ── Public per-peptide donor evidence API ─────────────────────────────
+
+
+def test_peptide_alleles_for_pmid_is_public_and_narrows():
+    """The curated per-peptide attributions (#45) are the only thing that
+    narrows a peptide's candidate alleles below the study-wide set, so
+    the lookup is worth exposing rather than leaving private."""
+    import hitlist
+    from hitlist.curation import peptide_alleles_for_pmid
+
+    assert hitlist.peptide_alleles_for_pmid is peptide_alleles_for_pmid
+
+    alleles = peptide_alleles_for_pmid(31844290)
+    assert len(alleles) > 1000
+    _, sample_alleles = next(iter(alleles.items()))
+    assert isinstance(sample_alleles, frozenset)
+    assert all(a.startswith("HLA-") for a in sample_alleles), sample_alleles
+
+
+def test_peptide_alleles_for_pmid_is_empty_without_attributions():
+    """Empty is the normal answer, not an error: it needs a
+    peptide_attributions CSV, which only a handful of studies have.  A
+    caller must read ``{}`` as "not narrowed", never as "no alleles"."""
+    from hitlist.curation import peptide_alleles_for_pmid
+
+    # Two serotype-typed studies with no attribution CSV.
+    assert peptide_alleles_for_pmid(28467828) == {}
+    assert peptide_alleles_for_pmid(34433824) == {}
+
+
+def test_peptide_typings_for_pmid_keeps_donor_identity():
+    """Same evidence as peptide_alleles_for_pmid, unmerged, so the
+    scanner can emit one row per donor (#236)."""
+    import hitlist
+    from hitlist.curation import peptide_alleles_for_pmid, peptide_typings_for_pmid
+
+    assert hitlist.peptide_typings_for_pmid is peptide_typings_for_pmid
+
+    typings = peptide_typings_for_pmid(31844290)
+    merged = peptide_alleles_for_pmid(31844290)
+    assert set(typings) == set(merged)
+
+    peptide, per_donor = next(iter(typings.items()))
+    labels = [label for label, _ in per_donor]
+    assert labels == sorted(labels), "emission order must be deterministic"
+    # Merging the per-donor sets reproduces the merged view.
+    union = frozenset().union(*(alleles for _, alleles in per_donor))
+    assert union == merged[peptide]
