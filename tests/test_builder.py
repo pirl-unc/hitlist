@@ -947,15 +947,49 @@ def test_build_paths_raise_no_concat_futurewarning():
         )
 
 
-def test_flanking_schema_is_derived_not_restated():
-    """The pre-rename select list and the post-rename schema were two
-    hand-maintained lists with an implicit relationship."""
-    from hitlist.builder import _FLANKING_COLS, _FLANKING_RENAME, _FLANKING_SOURCE_COLS
+def test_flanking_schema_matches_the_literal_contract():
+    """Pin the schema literally.
 
-    expected = (
-        *(_FLANKING_RENAME.get(c, c) for c in _FLANKING_SOURCE_COLS),
+    A previous version recomputed ``expected`` with the same expression
+    that defines ``_FLANKING_COLS``, so both sides moved together and
+    the assertion could not fail for any content.
+    """
+    from hitlist.builder import _FLANKING_COLS, _FLANKING_SOURCE_COLS
+
+    assert _FLANKING_SOURCE_COLS == (
+        "gene_name",
+        "gene_id",
+        "protein_id",
+        "position",
+        "n_flank",
+        "c_flank",
+        "n_sources",
+    )
+    assert _FLANKING_COLS == (
+        "gene_name",
+        "gene_id",
+        "protein_id",
+        "position",
+        "n_flank",
+        "c_flank",
+        "n_source_proteins",
         "flanking_species",
     )
-    assert expected == _FLANKING_COLS
-    assert "n_sources" not in _FLANKING_COLS
-    assert "n_source_proteins" in _FLANKING_COLS
+
+
+def test_flanking_empty_frame_has_no_duplicate_column():
+    """``_FLANKING_COLS`` already ends with ``flanking_species``; listing
+    it again made the rename produce two ``_canonical_species`` keys and
+    the merge raise "column label is not unique" — on the path where no
+    proteome maps anything."""
+    import pandas as pd
+
+    from hitlist.builder import _FLANKING_COLS
+
+    cols = ["peptide", *_FLANKING_COLS]
+    assert len(cols) == len(set(cols)), f"duplicate column in the empty frame: {cols}"
+    renamed = pd.DataFrame(columns=cols).rename(columns={"flanking_species": "_canonical_species"})
+    # The merge below is what used to blow up.
+    pd.DataFrame({"peptide": ["A"], "_canonical_species": ["x"]}).merge(
+        renamed, on=["peptide", "_canonical_species"], how="left"
+    )

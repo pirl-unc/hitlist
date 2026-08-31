@@ -16,8 +16,8 @@ Two parallel parquet indexes are built by
 :func:`hitlist.builder.build_observations`:
 
 - ``observations.parquet`` — MS-eluted immunopeptidome rows (IEDB +
-  CEDAR + supplementary).  Load with :func:`load_ms_observations`
-  (or the older alias :func:`load_observations`).
+  CEDAR + supplementary).  Load with :func:`load_observations`, or the
+  modality-explicit alias :func:`load_ms_observations`.
 - ``binding.parquet`` — binding-assay rows (refolding, MEDi, peptide
   microarray, quantitative-tier measurements).  Load with
   :func:`load_binding`.
@@ -69,10 +69,9 @@ and ``exclude_chimeric=``.
 
 from __future__ import annotations
 
-import functools
 import os
 import re
-from functools import lru_cache
+from functools import WRAPPER_ASSIGNMENTS, lru_cache, wraps
 from pathlib import Path
 
 import pandas as pd
@@ -259,7 +258,15 @@ def load_observations(
     )
 
 
-@functools.wraps(load_observations)
+#: Everything ``wraps`` normally copies except the identity fields: the
+#: alias must keep reporting its own name, or ``help()``, tracebacks,
+#: profiler rows and Sphinx all label it ``load_observations``.
+_ALIAS_ASSIGNMENTS = tuple(
+    a for a in WRAPPER_ASSIGNMENTS if a not in ("__name__", "__qualname__", "__doc__")
+)
+
+
+@wraps(load_observations, assigned=_ALIAS_ASSIGNMENTS, updated=())
 def load_ms_observations(*args, **kwargs) -> pd.DataFrame:
     return load_observations(*args, **kwargs)
 

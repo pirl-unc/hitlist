@@ -3125,8 +3125,27 @@ def test_sample_provenance_columns_are_a_real_subset():
     assert not missing, f"provenance columns that no longer exist: {missing}"
 
 
+#: Loader filters the export layer deliberately does not expose, or
+#: exposes under another name.  Everything else must be present on every
+#: export entry point.
+_LOADER_ONLY_FILTERS = {
+    "columns",  # export builds its own projection
+    "mhc_restriction",  # exposed as ``mhc_allele`` on the export layer
+}
+
+#: Loader filters genuinely missing from the export layer, so a caller
+#: cannot filter by species axis or exclude chimeric rows from an export.
+#: Tracked in #386 — listed here so the gap is visible rather than
+#: quietly absent from the parity set.
+_EXPORT_MISSING_FILTERS = {
+    "source_species",
+    "host_species",
+    "exclude_chimeric",
+}
+
+
 def test_observation_filter_signatures_stay_in_sync():
-    """Four public functions share ~20 filter parameters, declared
+    """Several public functions share ~20 filter parameters, declared
     separately in each.
 
     Centralizing them behind ``**kwargs`` would cost the explicit
@@ -3134,31 +3153,25 @@ def test_observation_filter_signatures_stay_in_sync():
     duplication is deliberate — but nothing enforced that the copies
     agree, and a filter added to one silently does not exist on the
     others.
+
+    ``shared`` is derived from ``load_observations`` rather than
+    hand-written: a hand-written set is a fifth copy of the same list,
+    and the previous one had been curated to omit exactly the filters
+    that are missing, so it certified a parity that did not exist.
     """
     import inspect
 
     from hitlist import export
     from hitlist.observations import load_observations
 
-    shared = {
-        "mhc_class",
-        "species",
-        "source",
-        "mhc_allele_in_set",
-        "mhc_allele_provenance",
-        "gene_name",
-        "gene_id",
-        "peptide",
-        "serotype",
-        "length_min",
-        "length_max",
-        "exclude_class_label_suspect",
-        "exclude_class_label_implausible",
-        "exclude_non_peptide_ligand",
-    }
+    shared = (
+        set(inspect.signature(load_observations).parameters)
+        - _LOADER_ONLY_FILTERS
+        - _EXPORT_MISSING_FILTERS
+    )
     targets = [
-        load_observations,
         export.generate_observations_table,
+        export.generate_binding_table,
         export.generate_training_table,
     ]
     for fn in targets:
@@ -3167,12 +3180,39 @@ def test_observation_filter_signatures_stay_in_sync():
         assert not missing, f"{fn.__name__} is missing shared filters: {sorted(missing)}"
 
 
-def test_load_ms_observations_delegates_rather_than_restating():
+def test_export_missing_filters_allowlist_is_not_stale():
+    """If an allowlisted gap gets closed, the entry must go — otherwise
+    it is a permanent blanket exemption."""
+    import inspect
+
+    from hitlist import export
+
+    for name in _EXPORT_MISSING_FILTERS:
+        present = [
+            fn.__name__
+            for fn in (
+                export.generate_observations_table,
+                export.generate_binding_table,
+                export.generate_training_table,
+            )
+            if name in inspect.signature(fn).parameters
+        ]
+        assert not present, f"{name} now exists on {present} — remove it from the allowlist"
+
+
+def test_load_ms_observations_delegates_and_keeps_its_identity():
     """The alias used to re-declare all 20 parameters and hand-forward
-    each one, so a new filter had to be added in two places."""
+    each one.  It must delegate, keep the full signature, and still
+    report its own name — ``functools.wraps`` overwrites ``__name__`` by
+    default, which would mislabel it in help(), tracebacks and profiles.
+    """
     import inspect
 
     from hitlist.observations import load_ms_observations, load_observations
 
     assert inspect.signature(load_ms_observations) == inspect.signature(load_observations)
+    assert load_ms_observations.__name__ == "load_ms_observations"
+    assert load_ms_observations.__qualname__ == "load_ms_observations"
+    # It really delegates rather than reimplementing.
     assert load_ms_observations.__wrapped__ is load_observations
+    assert load_ms_observations.__code__ is not load_observations.__code__

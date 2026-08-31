@@ -576,10 +576,11 @@ def run_all(mhc_class: str | None = None) -> dict[str, pd.DataFrame]:
 
 #: Numeric metric columns of the curation plan, in report order.
 #:
-#: Listed once: the empty-frame column list and the numeric-fill loop
-#: below both derive from this.  They used to be two hand-maintained
-#: copies, so a new metric had to be added in both places and adding it
-#: to only one produced either a missing column or an unfilled NaN.
+#: Listed once.  Three consumers derive from it: the column list built
+#: by :func:`_curation_plan_columns`, the numeric-fill loop, and the
+#: int-cast loop.  They used to be four hand-maintained copies, so a new
+#: metric had to be added in four places and missing one produced a
+#: dropped column, an unfilled NaN, or a float truncated to int.
 _CURATION_PLAN_METRIC_COLUMNS = (
     "n_rows",
     "suspect_class_label_n",
@@ -594,23 +595,30 @@ _CURATION_PLAN_METRIC_COLUMNS = (
     "normalization_drifts_n",
 )
 
-#: The two metrics that are only present when their severity tier was
-#: computed (see ``has_borderline`` / ``has_implausible``).
+#: Metrics present only when their severity tier was computed.  Values
+#: are the keyword used in the flag mapping passed to
+#: :func:`_curation_plan_columns`; a name not in that mapping is a
+#: KeyError rather than silently resolving to another tier's flag.
 _CURATION_PLAN_OPTIONAL_METRICS = {
-    "borderline_class_label_n": "has_borderline",
-    "implausible_class_label_n": "has_implausible",
+    "borderline_class_label_n": "borderline",
+    "implausible_class_label_n": "implausible",
 }
 
+#: Metrics that are ratios, not counts.  Declared rather than inferred
+#: from the column name: an int-cast driven by a ``_rate`` suffix would
+#: silently truncate a future ``*_fraction`` / ``*_pct`` metric to zero.
+_CURATION_PLAN_FLOAT_METRICS = frozenset({"suspect_class_label_rate"})
 
-def _curation_plan_columns(has_borderline: bool, has_implausible: bool) -> list[str]:
+
+def _curation_plan_columns(*, borderline: bool, implausible: bool) -> list[str]:
     """Full curation-plan column list, in report order.
 
     ``curation_plan`` built this list four separate times — the
     empty-frame schema, the numeric-fill loop, the int-cast loop and the
-    final output projection — each repeating the same
-    ``has_borderline`` / ``has_implausible`` branching.  Adding a metric
-    meant editing four places; missing one produced a dropped column, an
-    unfilled NaN, or a float where an int was expected.
+    final output projection — each repeating the same severity-tier
+    branching.  This helper serves the two that need the *full* column
+    list; the fill and cast loops iterate
+    :data:`_CURATION_PLAN_METRIC_COLUMNS` directly.
     """
     return [
         "pmid",
@@ -618,19 +626,22 @@ def _curation_plan_columns(has_borderline: bool, has_implausible: bool) -> list[
         *(
             c
             for c in _CURATION_PLAN_METRIC_COLUMNS
-            if _metric_applies(c, has_borderline, has_implausible)
+            if _metric_applies(c, {"borderline": borderline, "implausible": implausible})
         ),
         "priority_score",
         "severity",
     ]
 
 
-def _metric_applies(column: str, has_borderline: bool, has_implausible: bool) -> bool:
-    """Whether an optional metric column is present for this run."""
-    flag = _CURATION_PLAN_OPTIONAL_METRICS.get(column)
-    if flag is None:
-        return True
-    return has_borderline if flag == "has_borderline" else has_implausible
+def _metric_applies(column: str, flags: dict[str, bool]) -> bool:
+    """Whether an optional metric column is present for this run.
+
+    Indexes ``flags`` directly, so registering a new optional metric
+    without supplying its flag raises KeyError instead of silently
+    inheriting another tier's answer.
+    """
+    key = _CURATION_PLAN_OPTIONAL_METRICS.get(column)
+    return True if key is None else flags[key]
 
 
 def curation_plan(
@@ -760,7 +771,9 @@ def curation_plan(
         drift_pmid, on="pmid", how="outer"
     )
     if plan.empty:
-        return pd.DataFrame(columns=_curation_plan_columns(has_borderline, has_implausible))
+        return pd.DataFrame(
+            columns=_curation_plan_columns(borderline=has_borderline, implausible=has_implausible)
+        )
 
     # Backfill study_label for PMIDs that came in via xref/drift only.
     overrides = load_pmid_overrides()
@@ -806,16 +819,17 @@ def curation_plan(
 
     # Cast counts to int (groupby + outer merge may have promoted them
     # to float64 via NaN fills).
+    _flags = {"borderline": has_borderline, "implausible": has_implausible}
     int_cols = [
         c
         for c in _CURATION_PLAN_METRIC_COLUMNS
-        if not c.endswith("_rate") and _metric_applies(c, has_borderline, has_implausible)
+        if c not in _CURATION_PLAN_FLOAT_METRICS and _metric_applies(c, _flags)
     ]
     for c in int_cols:
         if c in plan.columns:
             plan[c] = plan[c].astype(int)
 
-    output_cols = _curation_plan_columns(has_borderline, has_implausible)
+    output_cols = _curation_plan_columns(borderline=has_borderline, implausible=has_implausible)
     return plan[output_cols].reset_index(drop=True)
 
 
