@@ -45,7 +45,7 @@ alleles = [
     # species-inference fixes (mhcgnomes #102/#105/#106/#107).  An older
     # floor let CI install a newer mhcgnomes than a developer had locally,
     # which is how a green local run shipped a red CI.
-    "mhcgnomes>=3.39.0",
+    "mhcgnomes>=3.40.0",
 ]
 dev = [
     "pytest",
