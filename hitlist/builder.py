@@ -1849,19 +1849,8 @@ def _add_flanking(
             continue
 
         best = flanking.sort_values("n_sources").drop_duplicates("peptide", keep="first")
-        best = best[
-            [
-                "peptide",
-                "gene_name",
-                "gene_id",
-                "protein_id",
-                "position",
-                "n_flank",
-                "c_flank",
-                "n_sources",
-            ]
-        ].copy()
-        best = best.rename(columns={"n_sources": "n_source_proteins"})
+        best = best[["peptide", *_FLANKING_SOURCE_COLS]].copy()
+        best = best.rename(columns=_FLANKING_RENAME)
         best["flanking_species"] = canonical
 
         best_rows.append(best)

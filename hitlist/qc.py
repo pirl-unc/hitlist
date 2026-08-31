@@ -602,6 +602,29 @@ _CURATION_PLAN_OPTIONAL_METRICS = {
 }
 
 
+def _curation_plan_columns(has_borderline: bool, has_implausible: bool) -> list[str]:
+    """Full curation-plan column list, in report order.
+
+    ``curation_plan`` built this list four separate times — the
+    empty-frame schema, the numeric-fill loop, the int-cast loop and the
+    final output projection — each repeating the same
+    ``has_borderline`` / ``has_implausible`` branching.  Adding a metric
+    meant editing four places; missing one produced a dropped column, an
+    unfilled NaN, or a float where an int was expected.
+    """
+    return [
+        "pmid",
+        "study_label",
+        *(
+            c
+            for c in _CURATION_PLAN_METRIC_COLUMNS
+            if _metric_applies(c, has_borderline, has_implausible)
+        ),
+        "priority_score",
+        "severity",
+    ]
+
+
 def _metric_applies(column: str, has_borderline: bool, has_implausible: bool) -> bool:
     """Whether an optional metric column is present for this run."""
     flag = _CURATION_PLAN_OPTIONAL_METRICS.get(column)
@@ -737,18 +760,7 @@ def curation_plan(
         drift_pmid, on="pmid", how="outer"
     )
     if plan.empty:
-        empty_cols = [
-            "pmid",
-            "study_label",
-            *(
-                c
-                for c in _CURATION_PLAN_METRIC_COLUMNS
-                if _metric_applies(c, has_borderline, has_implausible)
-            ),
-            "priority_score",
-            "severity",
-        ]
-        return pd.DataFrame(columns=empty_cols)
+        return pd.DataFrame(columns=_curation_plan_columns(has_borderline, has_implausible))
 
     # Backfill study_label for PMIDs that came in via xref/drift only.
     overrides = load_pmid_overrides()
@@ -795,44 +807,15 @@ def curation_plan(
     # Cast counts to int (groupby + outer merge may have promoted them
     # to float64 via NaN fills).
     int_cols = [
-        "n_rows",
-        "suspect_class_label_n",
-        "borderline_class_label_n",
-        "implausible_class_label_n",
-        "monoallelic_class_only_n",
-        "class_pool_n",
-        "nonstandard_aa_n",
-        "yaml_only_alleles_n",
-        "data_only_alleles_n",
-        "normalization_drifts_n",
+        c
+        for c in _CURATION_PLAN_METRIC_COLUMNS
+        if not c.endswith("_rate") and _metric_applies(c, has_borderline, has_implausible)
     ]
     for c in int_cols:
         if c in plan.columns:
             plan[c] = plan[c].astype(int)
 
-    output_cols = [
-        "pmid",
-        "study_label",
-        "n_rows",
-        "suspect_class_label_n",
-        "suspect_class_label_rate",
-    ]
-    if "borderline_class_label_n" in plan.columns:
-        output_cols.append("borderline_class_label_n")
-    if "implausible_class_label_n" in plan.columns:
-        output_cols.append("implausible_class_label_n")
-    output_cols.extend(
-        [
-            "monoallelic_class_only_n",
-            "class_pool_n",
-            "nonstandard_aa_n",
-            "yaml_only_alleles_n",
-            "data_only_alleles_n",
-            "normalization_drifts_n",
-            "priority_score",
-            "severity",
-        ]
-    )
+    output_cols = _curation_plan_columns(has_borderline, has_implausible)
     return plan[output_cols].reset_index(drop=True)
 
 
