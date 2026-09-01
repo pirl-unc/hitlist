@@ -2684,7 +2684,7 @@ def test_condition_category_and_apm_flags_never_disagree():
 
     samples = generate_ms_samples_table()
     contradictory = samples[
-        samples["apm_perturbed"] & (samples["condition_category"] == "unperturbed")
+        (samples["apm_perturbed"] == "true") & (samples["condition_category"] == "unperturbed")
     ]
     assert len(contradictory) == 0, sorted(contradictory["sample_label"].tolist())
 
@@ -2875,18 +2875,26 @@ def test_unmatched_curated_label_does_not_assert_an_arm(tmp_path, monkeypatch):
     assert row["is_control_arm"] == ""
 
 
-def test_curated_label_keeps_bool_apm_columns_boolean(tmp_path, monkeypatch):
-    """The label override assigns column-wise so apm_perturbed stays a
-    real bool — a bulk .loc assignment pushes object/NaN in and pandas
-    warns (and will later raise)."""
+def test_curated_label_keeps_apm_columns_clean(tmp_path, monkeypatch):
+    """The label override assigns column-wise, so the APM columns keep a
+    clean dtype instead of collecting object/NaN.
+
+    A bulk ``.loc`` assignment pushes NaN in and pandas warns (and will
+    later raise).  ``apm_perturbed`` became a tri-state string in #392,
+    so the invariant is now that its values stay inside that vocabulary
+    rather than that the column is a bool.
+    """
     from hitlist.export import generate_observations_table
 
     monkeypatch.setattr("hitlist.export.load_pmid_overrides", _two_arm_overrides)
     _write_obs(tmp_path, monkeypatch, [_obs_row("PEPTIDEBBB", "GBM11 (H4512 BT145)")])
 
     df = generate_observations_table()
-    assert df["apm_perturbed"].dtype == bool
-    assert bool(df["apm_perturbed"].iloc[0]) is True
+    assert set(df["apm_perturbed"]) <= {"true", "false", ""}
+    assert not df["apm_perturbed"].isna().any()
+    assert df["apm_perturbed"].iloc[0] == "true"
+    # The study-level flag joins on PMID, so it stays a real bool (#392).
+    assert df["study_apm_perturbed"].dtype == bool
 
 
 # ── Non-classical MHC class handling (#363) ───────────────────────────

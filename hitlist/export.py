@@ -201,7 +201,14 @@ def _fillna_safe_for_categoricals(df: pd.DataFrame, value: str = "") -> pd.DataF
 # Meta columns that carry booleans rather than strings.  They need
 # ``False`` (not ``""``) as their blank, otherwise pyarrow rejects the
 # mixed bool/str column on parquet write.
-_BOOL_META_COLS = frozenset({"apm_perturbed", "study_apm_perturbed"})
+#
+# Empty since #392: ``apm_perturbed`` became a tri-state string so an
+# unresolved arm reads as unknown rather than as a WT control, and
+# ``study_apm_perturbed`` moved to the PMID-level join where it is
+# always known.  Kept as the seam rather than deleted — the coalesce
+# below still needs to know which meta columns are not strings, and the
+# next bool one should not have to rediscover the pyarrow constraint.
+_BOOL_META_COLS: frozenset[str] = frozenset()
 
 
 # IEDB records, on some studies, exactly which experimental conditions a
@@ -566,6 +573,12 @@ def generate_ms_samples_table(
         condition; ``study_apm_perturbed`` / ``study_apm_genes`` carry
         the parent study's panel-level perturbation list (#353).
 
+        ``apm_perturbed`` is a tri-state string (``"true"`` /
+        ``"false"`` / ``""``) rather than a bool, so that the
+        observation-level export can say "arm unresolved" instead of
+        asserting a WT control (#392).  Every row of *this* table is a
+        sample, so it is never blank here.
+
         ``is_control_arm`` is ``"true"`` for unperturbed arms and
         ``"false"`` otherwise (#354).
 
@@ -684,7 +697,7 @@ def generate_ms_samples_table(
         # KeyError instead of simply returning nothing.
         df = pd.DataFrame(columns=_empty_ms_samples_columns())
     if apm_only and not df.empty:
-        df = df[df["apm_perturbed"]].reset_index(drop=True)
+        df = df[df["apm_perturbed"] == "true"].reset_index(drop=True)
     return df
 
 
@@ -855,12 +868,12 @@ def generate_observations_table(
         "ip_antibody",
         # APM perturbation block (#202) — propagated through the join
         # so consumers can filter / pivot on individual genes.  These
-        # describe the matched sample's own condition; the study-level
-        # panel context rides along separately (#353).
+        # describe the matched sample's own condition, so they are only
+        # knowable where the row reached a sample.  The study-level pair
+        # (#353) is deliberately *not* here: it is a property of the
+        # deposit, so it joins on PMID instead (#392).
         "apm_perturbed",
         "apm_genes_perturbed",
-        "study_apm_perturbed",
-        "study_apm_genes",
         # Arm provenance (#354): whether this row's sample is a control
         # arm, and how confidently the row was attributed to a sample.
         "is_control_arm",
@@ -874,14 +887,28 @@ def generate_observations_table(
     samples = samples.copy()
     samples["sample_attribution"] = "allele_exact"
 
-    # --- PMID-level metadata (quantification_method) ---
+    from .apm import study_apm_columns
+
+    # --- PMID-level metadata ---
+    # Facts about the deposit, not about any one sample, so they are
+    # knowable for every row of the study whether or not that row could
+    # be attributed to an arm.  Routing them through the sample join
+    # instead made 221,930 observations inside the 24 APM-perturbed
+    # studies report ``study_apm_perturbed=False`` purely because their
+    # arm was ambiguous — stating the study ran no perturbation when the
+    # deposit plainly says otherwise (#392).
     overrides = load_pmid_overrides()
     pmid_meta_df = pd.DataFrame(
         [
-            {"_pmid_int": int(k), "quantification_method": v.get("quantification_method", "")}
+            {
+                "_pmid_int": int(k),
+                "quantification_method": v.get("quantification_method", ""),
+                **study_apm_columns(v.get("perturbations")),
+            }
             for k, v in overrides.items()
         ]
     )
+    _PMID_LEVEL_COLS = ["quantification_method", "study_apm_perturbed", "study_apm_genes"]
 
     # --- Allele-level sample lookup ---
     # Explode each sample's MHC alleles into one row per (pmid, allele)
@@ -985,10 +1012,20 @@ def generate_observations_table(
     #    only contributes a single column, so the merge's block-manager
     #    consolidation pass is pure overhead.
     if not pmid_meta_df.empty:
-        quant_lookup = pmid_meta_df.set_index("_pmid_int")["quantification_method"]
-        obs["quantification_method"] = obs["_pmid_int"].map(quant_lookup).fillna("")
+        pmid_lookup = pmid_meta_df.set_index("_pmid_int")
+        for col in _PMID_LEVEL_COLS:
+            # ``.map`` yields object dtype with NaN for PMIDs absent from
+            # the overrides.  Resolve through the nullable dtype rather
+            # than ``.fillna`` on the object column, which downcasts
+            # silently and is deprecated (#377).
+            mapped = obs["_pmid_int"].map(pmid_lookup[col])
+            if col == "study_apm_perturbed":
+                obs[col] = mapped.astype("boolean").fillna(False).astype(bool)
+            else:
+                obs[col] = mapped.astype("string").fillna("").astype(str)
     else:
-        obs["quantification_method"] = ""
+        for col in _PMID_LEVEL_COLS:
+            obs[col] = False if col == "study_apm_perturbed" else ""
 
     # 2) Allele-level match: obs.mhc_restriction == allele_df._allele
     #    within same PMID. Use MultiIndex.reindex instead of merge —
@@ -1479,7 +1516,9 @@ def generate_observations_table(
     if is_mono_allelic is not None and "is_monoallelic" in result.columns:
         result = result[result["is_monoallelic"] == is_mono_allelic]
     if apm_only and "apm_perturbed" in result.columns:
-        result = result[result["apm_perturbed"].fillna(False).astype(bool)]
+        # Only ``"true"`` selects.  ``""`` means the arm was never
+        # resolved, which is not evidence of a perturbation (#392).
+        result = result[result["apm_perturbed"] == "true"]
 
     # Rename 'mhc' (from ms_samples join) to 'sample_mhc' to distinguish
     # from the IEDB mhc_restriction field (which may be "HLA class I").

@@ -191,23 +191,53 @@ def apm_columns_for_sample(
     Returns a dict with one ``apm_<gene>_perturbed`` boolean per gene,
     plus:
 
-    - ``apm_perturbed`` — union flag (``True`` iff any gene matched
-      this sample's own condition).
+    - ``apm_perturbed`` — union flag, ``"true"`` iff any gene matched
+      this sample's own condition.  A **tri-state string**, matching
+      ``is_control_arm``: on ``ms_samples`` every row is a sample so it
+      is never blank, but the observation-level join leaves it ``""``
+      where no arm could be resolved.  It was a plain ``bool`` until
+      #392, which meant an unresolved arm was reported as a positive
+      claim that nothing was perturbed — indistinguishable from a real
+      WT control, and mislabeled toward the control class, which is the
+      one direction that cancels the KO-vs-WT contrast rather than just
+      adding noise.
     - ``apm_genes_perturbed`` — semicolon-joined list of matching
       gene names (lowercase keys from :data:`APM_GENES`), empty when
       none match. Lets consumers filter to specific genes via a
-      string-contains check without re-parsing.
+      string-contains check without re-parsing.  Its ``""`` is
+      ambiguous in the same way for the same reason, so read
+      ``apm_perturbed`` to tell "no genes" from "no arm".
     - ``study_apm_perturbed`` / ``study_apm_genes`` — the same union
       over the parent study's ``perturbations`` list, so the panel
       context stays queryable without being mistaken for a
-      sample-level fact.
+      sample-level fact.  See :func:`study_apm_columns`.
     """
     flags = classify_apm_perturbations(condition)
     out: dict[str, object] = {f"apm_{gene}_perturbed": v for gene, v in flags.items()}
-    out["apm_perturbed"] = any(flags.values())
+    out["apm_perturbed"] = "true" if any(flags.values()) else "false"
     out["apm_genes_perturbed"] = ";".join(g for g, v in flags.items() if v)
-
-    study_flags = classify_apm_perturbations(*(study_perturbations or []))
-    out["study_apm_perturbed"] = any(study_flags.values())
-    out["study_apm_genes"] = ";".join(g for g, v in study_flags.items() if v)
+    out.update(study_apm_columns(study_perturbations))
     return out
+
+
+def study_apm_columns(
+    study_perturbations: Iterable[str] | None,
+) -> dict[str, object]:
+    """The study-level APM block, from a deposit's ``perturbations`` list.
+
+    Split out from :func:`apm_columns_for_sample` because these two
+    columns are a property of the *study*, not of any sample in it.  The
+    export layer joins them on PMID for exactly that reason: routing
+    them through the sample join made every row whose arm was ambiguous
+    report ``study_apm_perturbed=False``, denying a perturbation the
+    deposit plainly records (#392).
+
+    Unlike the per-sample block there is no unknown state — a PMID's
+    ``perturbations`` list is either present or absent — so
+    ``study_apm_perturbed`` stays a plain ``bool``.
+    """
+    flags = classify_apm_perturbations(*(study_perturbations or []))
+    return {
+        "study_apm_perturbed": any(flags.values()),
+        "study_apm_genes": ";".join(g for g, v in flags.items() if v),
+    }
