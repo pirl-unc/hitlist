@@ -104,7 +104,7 @@ def test_classify_apm_cytokines():
 def test_apm_columns_for_sample_union_flag():
     """The union flag is True iff any individual gene flag is True."""
     cols = apm_columns_for_sample("ERAP1 CRISPR KO", ["ERAP1 CRISPR/Cas9 knockout"])
-    assert cols["apm_perturbed"] is True
+    assert cols["apm_perturbed"] == "true"
     assert cols["apm_genes_perturbed"] == "erap1"
     assert cols["apm_erap1_perturbed"] is True
 
@@ -112,7 +112,7 @@ def test_apm_columns_for_sample_union_flag():
 def test_apm_columns_for_sample_unperturbed_returns_all_false():
     """Clean unperturbed sample → union False, genes string empty."""
     cols = apm_columns_for_sample("unperturbed — standard culture", [])
-    assert cols["apm_perturbed"] is False
+    assert cols["apm_perturbed"] == "false"
     assert cols["apm_genes_perturbed"] == ""
 
 
@@ -121,7 +121,7 @@ def test_apm_columns_for_sample_multi_gene_concatenates():
     apm_genes_perturbed (semicolon-joined, lowercase, sorted by the
     APM_GENES dict order — convenient for grep + group-by)."""
     cols = apm_columns_for_sample(condition="B2M + TAP1 double knockout")
-    assert cols["apm_perturbed"] is True
+    assert cols["apm_perturbed"] == "true"
     assert "b2m" in cols["apm_genes_perturbed"]
     assert "tap1" in cols["apm_genes_perturbed"]
 
@@ -138,7 +138,7 @@ def test_apm_columns_ignore_study_panel_for_per_gene_flags():
             "ERAP1 CRISPR/Cas9 knockout",
         ],
     )
-    assert cols["apm_perturbed"] is False
+    assert cols["apm_perturbed"] == "false"
     assert cols["apm_genes_perturbed"] == ""
     assert cols["apm_erap1_perturbed"] is False
     # ...but the panel context is still reachable, just not as a
@@ -192,7 +192,7 @@ def test_apm_columns_propagate_through_ms_samples_table(monkeypatch):
     assert "apm_erap1_perturbed" in df.columns
     assert "apm_genes_perturbed" in df.columns
 
-    perturbed = df[df["apm_perturbed"]]
+    perturbed = df[df["apm_perturbed"] == "true"]
     assert len(perturbed) == 1
     assert perturbed.iloc[0]["sample_label"] == "erap1_ko"
     assert perturbed.iloc[0]["apm_genes_perturbed"] == "erap1"
