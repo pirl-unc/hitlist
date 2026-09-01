@@ -1136,7 +1136,14 @@ class ProteomeIndex:
         """Look up a peptide in the index.
 
         Returns list of (protein_id, position) tuples.
+
+        Peptides longer than any indexed k-mer length are resolved by
+        **prefix-and-verify**: look up the first ``k`` residues, then keep only
+        the hits whose protein actually continues with the rest of the peptide.
+        See :meth:`_lookup_long`.
         """
+        if peptide and self.lengths and len(peptide) > max(self.lengths):
+            return self._lookup_long(peptide)
         if isinstance(self.index, _PackedIndex):
             v = self.index.get_postings(peptide)
         else:
@@ -1151,6 +1158,48 @@ class ProteomeIndex:
         for packed in v:
             prot_idx, pos = _unpack(int(packed))
             out.append((self._protein_ids[prot_idx], pos))
+        return out
+
+    def _lookup_long(self, peptide: str) -> list[tuple[str, int]]:
+        """Locate a peptide longer than any indexed k-mer length.
+
+        The packed index encodes each k-mer into one 63-bit integer, so it can
+        only carry lengths where ``bits * k <= 63`` -- about 12 residues at 5
+        bits. That is why the mapping pass indexed 8..11 and skipped everything
+        above it, which silently excluded **every** class II peptide: they run
+        12-25 residues, so none were ever mapped and none received flanks,
+        position, gene or protein annotation (hitlist#394).
+
+        Widening the indexed lengths is not the fix. Above the bit budget
+        ``_PackedIndex.build`` returns ``None`` and the caller falls back to the
+        legacy dict index, which is the ~10 GB-per-length build that #109
+        removed.
+
+        Instead, reuse the index already built. A peptide of length L > k is
+        found by looking up its first k residues and keeping the hits where the
+        protein really does continue with the remaining L - k residues. Exact,
+        needs no new index, and costs no extra memory -- the only work is one
+        string comparison per candidate, and protein k-mers at k >= 8 are
+        near-unique so there are very few.
+        """
+        k = max(L for L in self.lengths if L <= len(peptide))
+        prefix = peptide[:k]
+        if isinstance(self.index, _PackedIndex):
+            postings = self.index.get_postings(prefix)
+        else:
+            postings = self.index.get(prefix)
+        if postings is None:
+            return []
+        if isinstance(postings, (int, np.integer)):
+            postings = [postings]
+        out: list[tuple[str, int]] = []
+        span = len(peptide)
+        for packed in postings:
+            prot_idx, pos = _unpack(int(packed))
+            prot_id = self._protein_ids[prot_idx]
+            # Verification is what makes this exact rather than a prefix match.
+            if self.proteins[prot_id][pos : pos + span] == peptide:
+                out.append((prot_id, pos))
         return out
 
     def map_peptides(

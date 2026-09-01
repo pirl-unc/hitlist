@@ -370,9 +370,21 @@ def build_peptide_mappings(
     all_mapping_dfs: list[pd.DataFrame] = []
     per_proteome_stats: list[tuple[str, int, int]] = []
 
-    # MHC-I peptide lengths.  Length-on-demand happens per-worker inside
+    # k-mer index lengths.  Length-on-demand happens per-worker inside
     # _per_canonical_mapping_worker so peak per-worker RSS stays bounded
     # by ONE single-length index (preserves the #109 invariant).
+    #
+    # These are the lengths an index is *built* at, not the peptide lengths
+    # that can be mapped. Anything longer is resolved against the longest of
+    # these by prefix-and-verify (`ProteomeIndex._lookup_long`), so class II
+    # peptides at 12-25 residues map through the length-11 index at no extra
+    # memory cost.
+    #
+    # The set stays at MHC-I lengths deliberately: the packed index encodes a
+    # k-mer into one 63-bit integer, so ~12 residues is the ceiling before
+    # `_PackedIndex.build` falls back to the legacy dict index -- the ~10 GB
+    # per-length build that #109 removed. Adding longer lengths here would
+    # reintroduce it; prefix-and-verify does not.
     default_lengths = (8, 9, 10, 11)
 
     # ── Build order: cluster canonicals by FASTA so adjacent tasks share an index ──
@@ -387,19 +399,31 @@ def build_peptide_mappings(
         key=lambda c: (_proteome_group_key(canonical_to_entry.get(c, {})), c),
     )
 
-    # Bucket peptides per canonical, filter out canonicals with no
-    # MHC-I-compatible lengths, and build a flat task list for the worker
-    # pool (#249).  Empty-length canonicals are recorded synchronously so
-    # they don't take a worker slot for a no-op.
+    # Bucket peptides per canonical and build a flat task list for the worker
+    # pool (#249).
+    #
+    # Peptides longer than the indexed lengths are grouped under the longest
+    # index that can serve them, and the worker resolves them by
+    # prefix-and-verify. Before hitlist#394 they were dropped here instead --
+    # `lengths_in_query` kept only lengths in `default_lengths`, so a canonical
+    # whose peptides were all 12+ took the `continue` below and every class II
+    # peptide in the corpus (1,395,872 rows, 569,670 unique) was silently
+    # unmapped: no flanks, no position, no gene, no protein.
+    longest_index = max(default_lengths)
     mapping_tasks: list[tuple] = []
     for canonical in ordered_canonicals:
         peptides = species_to_peptides[canonical]
         peptides_by_len: dict[int, list[str]] = {}
         for p in peptides:
-            peptides_by_len.setdefault(len(p), []).append(p)
-        lengths_in_query = tuple(sorted(L for L in peptides_by_len if L in default_lengths))
+            # Too short for any index: genuinely unmappable, not a class issue.
+            if len(p) < min(default_lengths):
+                continue
+            # Bucket by the index that will serve this peptide, which for a
+            # long peptide is the longest one available.
+            served_by = len(p) if len(p) in default_lengths else longest_index
+            peptides_by_len.setdefault(served_by, []).append(p)
+        lengths_in_query = tuple(sorted(peptides_by_len))
         if not lengths_in_query:
-            # MHC-II peptides at length 12+ aren't indexed here — pre-#249 behavior.
             per_proteome_stats.append((canonical, len(peptides), 0))
             continue
         mapping_tasks.append(
