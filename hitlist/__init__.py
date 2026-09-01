@@ -88,8 +88,12 @@ _PUBLIC_API: dict[str, str] = {
     "load_binding": ".observations",
     "load_all_evidence": ".observations",
     # Curated per-peptide donor evidence, where a study deposited it.
+    # The `*_for_pmid` pair returns whole read-only maps; the `attribute_*`
+    # pair answers for one peptide without materializing them.
     "peptide_alleles_for_pmid": ".curation",
     "peptide_typings_for_pmid": ".curation",
+    "attribute_peptide_to_sample_alleles": ".curation",
+    "attribute_peptide_to_per_sample_typings": ".curation",
     # Generate derived tables.
     "generate_ms_observations_table": ".export",
     "generate_training_table": ".export",

@@ -43,8 +43,10 @@ from __future__ import annotations
 
 import contextlib
 import re
+from collections.abc import Mapping
 from functools import cache, lru_cache
 from os.path import basename, dirname, join
+from types import MappingProxyType
 
 import pandas as pd
 import yaml
@@ -1449,8 +1451,64 @@ def _pmid_peptide_attributions(pmid_int: int) -> dict[str, frozenset[str]]:
     return out
 
 
+def _coerce_pmid(pmid: int | str) -> int | None:
+    """PMID as an int, or None if it is not one.
+
+    PMIDs arrive as ints from YAML and as strings from dataframe columns.
+    ``load_pmid_overrides`` is keyed by int, so a string lookup silently
+    misses — and for these functions a miss is indistinguishable from
+    "this study deposited no attributions", which is the one confusion
+    their docstrings warn against.  Every public entry point coerces here.
+    """
+    with contextlib.suppress(ValueError, TypeError):
+        return int(pmid)
+    return None
+
+
 @lru_cache(maxsize=512)
-def peptide_alleles_for_pmid(pmid: int) -> dict[str, frozenset[str]]:
+def _peptide_typings_by_pmid(
+    pmid: int,
+) -> Mapping[str, tuple[tuple[str, frozenset[str]], ...]]:
+    """Build (and cache) the per-donor typing map for one study.
+
+    Cached on the coerced int so ``31844290`` and ``"31844290"`` share one
+    entry instead of building the 28k-peptide map twice.  Returned as a
+    read-only view: the value is shared with every other caller and with
+    the scanner, so a caller pruning it in place would silently change
+    which observation rows the next build emits.
+    """
+    attributions = _pmid_peptide_attributions(pmid)
+    if not attributions:
+        return MappingProxyType({})
+    sample_alleles = _pmid_sample_alleles(pmid)
+    out: dict[str, tuple[tuple[str, frozenset[str]], ...]] = {}
+    for pep, samples in attributions.items():
+        per_sample = []
+        for label in sorted(samples):
+            alleles = sample_alleles.get(label, frozenset())
+            if alleles:
+                per_sample.append((label, alleles))
+        if per_sample:
+            out[pep] = tuple(per_sample)
+    return MappingProxyType(out)
+
+
+@lru_cache(maxsize=512)
+def _peptide_alleles_by_pmid(pmid: int) -> Mapping[str, frozenset[str]]:
+    """Merged view of :func:`_peptide_typings_by_pmid`, cached separately.
+
+    Derived rather than rebuilt from the CSV, so the two public maps
+    cannot disagree about which peptides survive the drop-empty filter.
+    """
+    return MappingProxyType(
+        {
+            peptide: frozenset().union(*(alleles for _, alleles in per_donor))
+            for peptide, per_donor in _peptide_typings_by_pmid(pmid).items()
+        }
+    )
+
+
+def peptide_alleles_for_pmid(pmid: int | str) -> Mapping[str, frozenset[str]]:
     """Per-peptide candidate alleles for one study, from curated attributions.
 
     Some studies deposit which donor each peptide was observed in.  Where
@@ -1463,55 +1521,65 @@ def peptide_alleles_for_pmid(pmid: int) -> dict[str, frozenset[str]]:
     Parameters
     ----------
     pmid
-        PubMed ID of the study.
+        PubMed ID of the study, as an int or a string of digits.
 
     Returns
     -------
-    dict[str, frozenset[str]]
-        ``peptide → candidate alleles``, in canonical form
-        (``"HLA-A*02:01"``).  Peptides whose donors have no curated
-        genotype are omitted rather than mapped to an empty set.
+    Mapping[str, frozenset[str]]
+        ``peptide → candidate alleles``.  Peptides whose donors have no
+        curated genotype are omitted rather than mapped to an empty set.
 
+    Notes
+    -----
     **Empty for most studies, and that is not an error.**  It requires a
     ``peptide_attributions`` CSV, which only a handful of PMIDs have — as
-    of writing, PMID 31844290 is the only one.  Every other study returns
-    ``{}``, so a caller must treat "no entry" as "not narrowed", never as
-    "no alleles".  This is worth stating because it is easy to reach for
-    this function to explain an attribution result and conclude the wrong
-    thing from an empty answer.
+    of writing, PMID 31844290 is the only one, which
+    ``test_only_one_pmid_has_peptide_attributions`` pins so this sentence
+    fails loudly rather than going quietly stale.  Every other study
+    returns an empty map, so a caller must treat "no entry" as "not
+    narrowed", never as "no alleles".  This is worth stating because it is
+    easy to reach for this function to explain an attribution result and
+    conclude the wrong thing from an empty answer.
 
-    The result is cached per PMID and shared; treat it as read-only.
+    Allele names are whatever the curated genotype uses, which is not
+    always HLA: :func:`_parse_sample_mhc_field` deliberately handles
+    non-human genotypes (``H2-K*b``, ``Patr-AL``), because restricting it
+    to HLA-shaped names is the bug that stopped mouse studies from ever
+    narrowing.  Do not assume an ``HLA-`` prefix.
+
+    The value is a read-only view of a shared cache, so it cannot be
+    mutated by accident; copy it if you need to modify it.
 
     Examples
     --------
-    >>> alleles = peptide_alleles_for_pmid(31844290)   # doctest: +SKIP
-    >>> sorted(alleles["SLYNTVATL"])                    # doctest: +SKIP
-    ['HLA-A*02:01']
+    >>> alleles = peptide_alleles_for_pmid(31844290)
+    >>> len(alleles)
+    28031
+    >>> sorted(alleles["AAAAAAAAAAAAAAPAP"])
+    ['HLA-A*01:01', 'HLA-B*38:01', 'HLA-B*56:01', 'HLA-C*01:02', 'HLA-C*06:02']
+
+    Those five are one donor's whole class-I genotype, not one presenting
+    allele: the value is the union over every donor the peptide was seen
+    in, so it narrows the candidates rather than identifying the restriction.
+    Use :func:`peptide_typings_for_pmid` to see which donor supplied what.
 
     See Also
     --------
     peptide_typings_for_pmid : the same evidence kept per-donor rather
         than merged, for callers that need to know which donor
         contributed which alleles.
+    attribute_peptide_to_sample_alleles : the same answer for a single
+        peptide, without materializing the map.
     """
-    attributions = _pmid_peptide_attributions(pmid)
-    if not attributions:
-        return {}
-    sample_alleles = _pmid_sample_alleles(pmid)
-    out: dict[str, frozenset[str]] = {}
-    for pep, samples in attributions.items():
-        merged: set[str] = set()
-        for label in samples:
-            merged |= sample_alleles.get(label, frozenset())
-        if merged:
-            out[pep] = frozenset(merged)
-    return out
+    pmid_int = _coerce_pmid(pmid)
+    if pmid_int is None:
+        return MappingProxyType({})
+    return _peptide_alleles_by_pmid(pmid_int)
 
 
-@lru_cache(maxsize=512)
 def peptide_typings_for_pmid(
-    pmid: int,
-) -> dict[str, tuple[tuple[str, frozenset[str]], ...]]:
+    pmid: int | str,
+) -> Mapping[str, tuple[tuple[str, frozenset[str]], ...]]:
     """Per-peptide donor typings for one study, kept per-donor.
 
     The same curated evidence as :func:`peptide_alleles_for_pmid`, but
@@ -1523,35 +1591,61 @@ def peptide_typings_for_pmid(
     Parameters
     ----------
     pmid
-        PubMed ID of the study.
+        PubMed ID of the study, as an int or a string of digits.
 
     Returns
     -------
-    dict[str, tuple[tuple[str, frozenset[str]], ...]]
+    Mapping[str, tuple[tuple[str, frozenset[str]], ...]]
         ``peptide → ((sample_label, alleles), ...)``, sorted by
         ``sample_label`` so emission order is deterministic.
 
-    Carries the same caveat as :func:`peptide_alleles_for_pmid`: it needs
+    Notes
+    -----
+    Carries the same caveats as :func:`peptide_alleles_for_pmid`: it needs
     a ``peptide_attributions`` CSV, which only a handful of studies have,
-    so ``{}`` means "not narrowed", not "no donors".
+    so an empty map means "not narrowed", not "no donors"; allele names
+    are not necessarily HLA; and the result is a read-only shared view.
 
     Samples whose curated typing is empty are dropped — emitting a row
     with no allele set would just become an ``unmatched`` row downstream.
+
+    Examples
+    --------
+    >>> typings = peptide_typings_for_pmid(31844290)
+    >>> [(label, len(alleles)) for label, alleles in typings["AAAAAAAAAAAAAAPAP"]]
+    [('MEL2 (13240-005)', 5)]
+
+    See Also
+    --------
+    peptide_alleles_for_pmid : the same evidence merged into one candidate
+        set per peptide.
+    attribute_peptide_to_per_sample_typings : the same answer for a single
+        peptide, without materializing the map.
     """
-    attributions = _pmid_peptide_attributions(pmid)
-    if not attributions:
-        return {}
-    sample_alleles = _pmid_sample_alleles(pmid)
-    out: dict[str, tuple[tuple[str, frozenset[str]], ...]] = {}
-    for pep, samples in attributions.items():
-        per_sample = []
-        for label in sorted(samples):
-            alleles = sample_alleles.get(label, frozenset())
-            if alleles:
-                per_sample.append((label, alleles))
-        if per_sample:
-            out[pep] = tuple(per_sample)
-    return out
+    pmid_int = _coerce_pmid(pmid)
+    if pmid_int is None:
+        return MappingProxyType({})
+    return _peptide_typings_by_pmid(pmid_int)
+
+
+def _clear_peptide_attribution_caches() -> None:
+    """Drop both cached maps.
+
+    The merged map is derived from the per-donor one, so clearing either
+    alone leaves a stale layer behind.  Tests that monkeypatch
+    ``_pmid_peptide_attributions`` or ``_pmid_sample_alleles`` need the
+    whole chain gone, and previously had to know to clear two caches --
+    which is the kind of thing a test forgets exactly once.
+    """
+    _peptide_typings_by_pmid.cache_clear()
+    _peptide_alleles_by_pmid.cache_clear()
+
+
+# `cache_clear` was reachable on these names while they were themselves
+# `lru_cache`d.  Keep it working now that the cache sits one layer down, so
+# existing callers do not silently lose the ability to invalidate.
+peptide_alleles_for_pmid.cache_clear = _clear_peptide_attribution_caches
+peptide_typings_for_pmid.cache_clear = _clear_peptide_attribution_caches
 
 
 def attribute_peptide_to_per_sample_typings(
@@ -1570,13 +1664,7 @@ def attribute_peptide_to_per_sample_typings(
     """
     if not peptide:
         return ()
-    pmid_int: int | None = None
-    if pmid:
-        with contextlib.suppress(ValueError, TypeError):
-            pmid_int = int(pmid)
-    if pmid_int is None:
-        return ()
-    return peptide_typings_for_pmid(pmid_int).get(peptide, ())
+    return peptide_typings_for_pmid(pmid).get(peptide, ())
 
 
 def attribute_peptide_to_sample_alleles(pmid: int | str, peptide: str) -> frozenset[str]:
@@ -1597,13 +1685,7 @@ def attribute_peptide_to_sample_alleles(pmid: int | str, peptide: str) -> frozen
     """
     if not peptide:
         return frozenset()
-    pmid_int: int | None = None
-    if pmid:
-        with contextlib.suppress(ValueError, TypeError):
-            pmid_int = int(pmid)
-    if pmid_int is None:
-        return frozenset()
-    return peptide_alleles_for_pmid(pmid_int).get(peptide, frozenset())
+    return peptide_alleles_for_pmid(pmid).get(peptide, frozenset())
 
 
 _HOST_MHC_SPLIT_RE = re.compile(r"[;,]")
