@@ -1661,7 +1661,7 @@ def _map_extra_proteomes(obs: pd.DataFrame, release: int, use_uniprot: bool) -> 
         return obs
 
     from .downloads import fetch_proteome_by_upid
-    from .proteome import ProteomeIndex
+    from .proteome import DEFAULT_FLANK, ProteomeIndex
 
     # Collect per-UPID peptides (for any PMID that references it, take only
     # observations that didn't match in the primary pass)
@@ -1699,7 +1699,7 @@ def _map_extra_proteomes(obs: pd.DataFrame, release: int, use_uniprot: bool) -> 
         if path is None or not path.exists():
             continue
         idx = ProteomeIndex.from_fasta(path, verbose=False)
-        flanking = idx.map_peptides(sorted(peptides), flank=10, verbose=False)
+        flanking = idx.map_peptides(sorted(peptides), flank=DEFAULT_FLANK, verbose=False)
         if flanking.empty:
             continue
         best = flanking.sort_values("n_sources").drop_duplicates("peptide", keep="first")
@@ -1751,6 +1751,9 @@ def _add_flanking(
     based on ``source_organism`` (with ``mhc_species`` as a fallback).
     Reports per-species and overall progress.
 
+    Flanks are stored at :data:`~hitlist.proteome.DEFAULT_FLANK` residues per
+    side, truncated at protein termini.
+
     Parameters
     ----------
     obs
@@ -1764,6 +1767,8 @@ def _add_flanking(
         aren't in the curated registry.  Resolved mappings are cached
         in the manifest.
     """
+    from .proteome import DEFAULT_FLANK
+
     try:
         from tqdm.auto import tqdm
     except ImportError:
@@ -1833,7 +1838,7 @@ def _add_flanking(
             per_species_stats.append((canonical, len(peptides), 0))
             continue
 
-        flanking = idx.map_peptides(sorted(peptides), flank=10, verbose=True)
+        flanking = idx.map_peptides(sorted(peptides), flank=DEFAULT_FLANK, verbose=True)
         if flanking.empty:
             per_species_stats.append((canonical, len(peptides), 0))
             continue
