@@ -92,6 +92,34 @@ def _unpack(packed: int) -> tuple[int, int]:
 # it always does; anything outside that budget falls back to the legacy dict.
 _KMER_CODE_BITS = 63
 
+# ── Seed length + flank width (#398) ─────────────────────────────────────────
+#
+# The index stores k-mers at ONE length -- the *seed*.  Any peptide of length
+# >= SEED_KMER_LENGTH is found by looking up its first ``k`` residues and
+# verifying that the protein continues with the rest, so peptide length and
+# index length are no longer the same knob.  Indexing four lengths bought
+# nothing: measured on Ensembl 112 human (89,610 proteins, 40.2 M residues),
+# seed selectivity is essentially flat in k because multiplicity is driven by
+# *isoforms*, not by sequence repetition --
+#
+#     k=7   mean 3.74 hits/seed   p99 20   28.6% unique
+#     k=8   mean 3.60             p99 19   29.6% unique
+#     k=11  mean 3.49             p99 19   30.4% unique
+#
+# -- while each indexed length costs the same ~492 MB (39.5 M postings
+# regardless of k).  So four lengths cost ~1.97 GB to buy a 3% improvement in
+# mean candidate count and nothing at all at p99.
+#
+# 7 rather than 8 because it is the shortest seed that is still selective
+# (k=6 mean 4.76, k=5 mean 16.63 / max 10,022 -- a cliff), and it makes
+# length-7 peptides mappable: 14,459 corpus rows that no 8-mer seed can reach.
+SEED_KMER_LENGTH = 7
+
+# Residues of flanking context stored on each side of a mapped peptide.
+# Flanks are sliced from the source sequence after the position is known, so
+# this is independent of the index; the cost is output size only.
+DEFAULT_FLANK = 15
+
 
 @dataclass
 class _PackedIndex:
@@ -705,7 +733,7 @@ class ProteomeIndex:
     def from_ensembl(
         cls,
         release: int = 112,
-        lengths: tuple[int, ...] = (8, 9, 10, 11),
+        lengths: tuple[int, ...] = (SEED_KMER_LENGTH,),
         biotype: str = "protein_coding",
         verbose: bool = True,
         species: str = "human",
@@ -826,7 +854,7 @@ class ProteomeIndex:
     def from_fasta(
         cls,
         path: str | Path,
-        lengths: tuple[int, ...] = (8, 9, 10, 11),
+        lengths: tuple[int, ...] = (SEED_KMER_LENGTH,),
         gene_name: str = "",
         gene_id: str = "",
         verbose: bool = True,
@@ -1054,7 +1082,7 @@ class ProteomeIndex:
         cls,
         fasta_paths: list[str | Path] | None = None,
         release: int = 112,
-        lengths: tuple[int, ...] = (8, 9, 10, 11),
+        lengths: tuple[int, ...] = (SEED_KMER_LENGTH,),
         verbose: bool = True,
     ) -> ProteomeIndex:
         """Build a combined human + viral/custom proteome index.
@@ -1087,7 +1115,7 @@ class ProteomeIndex:
 
         Cached on first access. Typical sizes:
 
-        - Human at (8, 9, 10, 11): ~41 M k-mers, ~1 GB as a frozenset of strings.
+        - Human at one seed length: ~11 M k-mers, ~492 MB packed.
         - Human at (9,): ~10 M k-mers, ~250 MB.
 
         The primitive that downstream packages (tsarina, perseus, topiary,
@@ -1133,30 +1161,67 @@ class ProteomeIndex:
         return frozenset(out)
 
     def lookup(self, peptide: str) -> list[tuple[str, int]]:
-        """Look up a peptide in the index.
+        """Locate a peptide, at any length at or above the seed.
 
-        Returns list of (protein_id, position) tuples.
+        Returns a list of ``(protein_id, position)`` tuples.
+
+        **Seed and verify.**  The packed index encodes each k-mer into one
+        63-bit integer, so it can only carry lengths where ``bits * k <= 63``
+        -- 12 residues at 5 bits.  Treating that ceiling as the set of
+        *peptide* lengths we could map is what silently excluded every class
+        II peptide: they run 12-25 residues, so none were ever mapped and none
+        received flanks, position, gene or protein annotation (#394).
+
+        Widening the indexed lengths is not the fix, and was never going to
+        be.  Above the bit budget :meth:`_PackedIndex.build` returns ``None``
+        and the caller falls back to the legacy dict index -- the ~10 GB per
+        length build that #109 removed -- and even at the ceiling of 12 it
+        would reach only 12% of class II rows.
+
+        Instead the index stores one *seed* length and the peptide's own
+        length stops mattering: look up the first ``k`` residues, then keep
+        only the hits where the protein really does continue with the
+        remaining ``L - k``.  Exact, because every candidate is checked
+        against the source sequence; cheap, because a protein k-mer at
+        ``k >= 7`` is near-unique (mean 3.7 candidates, p99 20 on human), so
+        verification is a handful of string comparisons.
+
+        A peptide shorter than the seed cannot be seeded and returns ``[]``.
+        With ``SEED_KMER_LENGTH = 7`` that is only length 2-6 -- 2,826 corpus
+        rows, none of them plausible MHC ligands.  Lowering the seed to cover
+        them is not worth it: at k=5 the mean candidate count is 16.6 and the
+        worst seed hits 10,022 positions.
         """
-        if isinstance(self.index, _PackedIndex):
-            v = self.index.get_postings(peptide)
-        else:
-            v = self.index.get(peptide)
-        if v is None:
+        if not peptide or not self.lengths:
             return []
-        if isinstance(v, (int, np.integer)):
-            prot_idx, pos = _unpack(int(v))
-            return [(self._protein_ids[prot_idx], pos)]
-        # np.ndarray of int64 packed postings.
+        seeds = [L for L in self.lengths if len(peptide) >= L]
+        if not seeds:
+            return []
+        k = max(seeds)
+        if isinstance(self.index, _PackedIndex):
+            postings = self.index.get_postings(peptide[:k])
+        else:
+            postings = self.index.get(peptide[:k])
+        if postings is None:
+            return []
+        if isinstance(postings, (int, np.integer)):
+            postings = [postings]
         out: list[tuple[str, int]] = []
-        for packed in v:
+        span = len(peptide)
+        for packed in postings:
             prot_idx, pos = _unpack(int(packed))
-            out.append((self._protein_ids[prot_idx], pos))
+            prot_id = self._protein_ids[prot_idx]
+            # Verification is what makes this exact rather than a prefix
+            # match.  For an exact-length peptide (L == k) it is trivially
+            # true, so one code path serves both cases.
+            if self.proteins[prot_id][pos : pos + span] == peptide:
+                out.append((prot_id, pos))
         return out
 
     def map_peptides(
         self,
         peptides: list[str] | set[str],
-        flank: int = 5,
+        flank: int = DEFAULT_FLANK,
         verbose: bool = True,
     ) -> pd.DataFrame:
         """Map peptides to source proteins with flanking context.
@@ -1166,7 +1231,11 @@ class ProteomeIndex:
         peptides
             Peptide sequences to map.
         flank
-            Number of flanking residues to extract on each side (default 5).
+            Number of flanking residues to extract on each side
+            (default :data:`DEFAULT_FLANK`).  Flanks are truncated at protein
+            termini, so a flank shorter than this means the peptide sits
+            within ``flank`` residues of an end -- not that context is
+            missing.  Every row in the returned frame is a real mapping.
         verbose
             Show progress bar.
 
@@ -1293,7 +1362,7 @@ def _proteome_kmer_set_cached(
 
 def proteome_kmer_set(
     release: int = 112,
-    lengths: tuple[int, ...] = (8, 9, 10, 11),
+    lengths: tuple[int, ...] = (SEED_KMER_LENGTH,),
     gene_ids: frozenset[str] | set[str] | None = None,
     species: str = "human",
 ) -> frozenset[str]:
@@ -1310,7 +1379,8 @@ def proteome_kmer_set(
         Ensembl release. Default 112.
     lengths
         Peptide lengths to include. Must be a tuple (hashable) so the
-        cache key is stable. Default ``(8, 9, 10, 11)`` (MHC-I range).
+        cache key is stable. Default ``(SEED_KMER_LENGTH,)`` -- one seed
+        length; peptides of any length >= it are found by seed-and-verify.
     gene_ids
         Optional set of Ensembl gene IDs to restrict to. When ``None``
         (default), returns the full proteome's k-mer set. Accepts ``set``

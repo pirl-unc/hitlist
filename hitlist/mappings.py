@@ -41,6 +41,7 @@ from pathlib import Path
 import pandas as pd
 
 from .downloads import data_dir
+from .proteome import SEED_KMER_LENGTH
 
 _MAPPING_COLUMNS = (
     "peptide",
@@ -370,10 +371,18 @@ def build_peptide_mappings(
     all_mapping_dfs: list[pd.DataFrame] = []
     per_proteome_stats: list[tuple[str, int, int]] = []
 
-    # MHC-I peptide lengths.  Length-on-demand happens per-worker inside
-    # _per_canonical_mapping_worker so peak per-worker RSS stays bounded
-    # by ONE single-length index (preserves the #109 invariant).
-    default_lengths = (8, 9, 10, 11)
+    # The index is built at ONE seed length; peptide length is no longer the
+    # same knob.  Any peptide at or above the seed is located by looking up
+    # its first `k` residues and verifying the protein continues with the
+    # rest (`ProteomeIndex.lookup`), so class II at 12-25 residues maps
+    # through the same index class I does, at no extra memory cost.
+    #
+    # Indexing 8/9/10/11 separately bought nothing measurable: seed
+    # selectivity is flat in k because multiplicity comes from isoforms
+    # rather than sequence repetition (k=7 mean 3.74 hits, k=11 mean 3.49,
+    # identical p99), while each length costs the same ~492 MB.  See
+    # `hitlist.proteome.SEED_KMER_LENGTH` for the measurements.
+    seed_lengths = (SEED_KMER_LENGTH,)
 
     # ── Build order: cluster canonicals by FASTA so adjacent tasks share an index ──
     # Strain-variant canonicals (e.g. multiple SARS-CoV-2 / LCMV) often
@@ -387,24 +396,23 @@ def build_peptide_mappings(
         key=lambda c: (_proteome_group_key(canonical_to_entry.get(c, {})), c),
     )
 
-    # Bucket peptides per canonical, filter out canonicals with no
-    # MHC-I-compatible lengths, and build a flat task list for the worker
-    # pool (#249).  Empty-length canonicals are recorded synchronously so
-    # they don't take a worker slot for a no-op.
+    # Build a flat task list for the worker pool (#249).  One task per
+    # canonical -- no bucketing by length, because one index serves every
+    # length.
+    #
+    # Before #394 this filtered peptides to `default_lengths` and took a
+    # `continue`, so every class II peptide in the corpus (1,395,872 rows,
+    # 569,670 unique) was silently unmapped: no flanks, no position, no gene,
+    # no protein. The only peptides dropped now are those below the seed --
+    # length 2-6, 2,826 rows, which are not plausible MHC ligands.
     mapping_tasks: list[tuple] = []
     for canonical in ordered_canonicals:
         peptides = species_to_peptides[canonical]
-        peptides_by_len: dict[int, list[str]] = {}
-        for p in peptides:
-            peptides_by_len.setdefault(len(p), []).append(p)
-        lengths_in_query = tuple(sorted(L for L in peptides_by_len if L in default_lengths))
-        if not lengths_in_query:
-            # MHC-II peptides at length 12+ aren't indexed here — pre-#249 behavior.
+        mappable = [p for p in peptides if len(p) >= SEED_KMER_LENGTH]
+        if not mappable:
             per_proteome_stats.append((canonical, len(peptides), 0))
             continue
-        mapping_tasks.append(
-            (canonical, peptides_by_len, lengths_in_query, release, use_uniprot, flank)
-        )
+        mapping_tasks.append((canonical, mappable, seed_lengths, release, use_uniprot, flank))
 
     n_workers = _build_workers()
     # Cap workers at task count — more processes than work just adds fork overhead.
@@ -693,30 +701,26 @@ def _per_canonical_mapping_worker(
     download failure, pyensembl missing GTF), the length is silently
     skipped — same behavior as the sequential code.
     """
-    canonical, peptides_by_len, lengths_in_query, release, use_uniprot, flank = args
+    canonical, peptides, seed_lengths, release, use_uniprot, flank = args
 
-    matched_peps: set[str] = set()
-    dfs: list[pd.DataFrame] = []
-    n_input = sum(len(v) for v in peptides_by_len.values())
+    n_input = len(peptides)
+    idx = _build_species_index(canonical, release, use_uniprot, False, lengths=seed_lengths)
+    if idx is None:
+        return canonical, [], 0, n_input
 
-    for length in lengths_in_query:
-        idx = _build_species_index(canonical, release, use_uniprot, False, lengths=(length,))
-        if idx is None:
-            continue
-        length_peptides = peptides_by_len[length]
-        flanking = idx.map_peptides(sorted(length_peptides), flank=flank, verbose=False)
-        df = _flanking_rows_to_mapping_rows(
-            flanking, proteome_label=canonical, proteome_source="species"
-        )
-        dfs.append(df)
-        if len(flanking):
-            matched_peps.update(flanking["peptide"].unique())
-        # Drop the index before the next length builds so per-worker
-        # peak RSS stays bounded by ONE single-length index, not
-        # all-lengths-at-once (issue #109's invariant).
-        del idx, flanking
+    # One index, one pass, every length.  This used to loop over lengths and
+    # rebuild the index each time -- four builds per canonical to answer what
+    # one seed index answers in a single pass.  Peak per-worker RSS is still
+    # bounded by a single index, so #109's invariant holds by construction
+    # rather than by remembering to `del` between iterations.
+    flanking = idx.map_peptides(sorted(peptides), flank=flank, verbose=False)
+    df = _flanking_rows_to_mapping_rows(
+        flanking, proteome_label=canonical, proteome_source="species"
+    )
+    matched = set(flanking["peptide"].unique()) if len(flanking) else set()
+    del idx, flanking
 
-    return canonical, dfs, len(matched_peps), n_input
+    return canonical, [df], len(matched), n_input
 
 
 def _build_species_index(
@@ -724,7 +728,7 @@ def _build_species_index(
     release: int,
     use_uniprot: bool,
     verbose: bool,
-    lengths: tuple[int, ...] = (8, 9, 10, 11),
+    lengths: tuple[int, ...] = (SEED_KMER_LENGTH,),
 ):
     """Build a ProteomeIndex for a species, optionally at specific k-mer lengths.
 

@@ -291,42 +291,53 @@ def test_per_canonical_worker_returns_expected_shape(monkeypatch):
         "hitlist.mappings._build_species_index",
         lambda *a, **kw: _FakeFlanking("Homo sapiens"),
     )
-    peptides_by_len = {
-        9: ["ABCDEFGHI", "JKLMNOPQR"],
-        10: ["ABCDEFGHIJ"],
-        12: ["ZZZZZZZZZZZZ"],  # not in lengths_in_query — should be ignored
-    }
+    peptides = ["ABCDEFGHI", "JKLMNOPQR", "ABCDEFGHIJ", "ZZZZZZZZZZZZ"]
     canonical, dfs, n_matched, n_total = _per_canonical_mapping_worker(
-        ("Homo sapiens", peptides_by_len, (9, 10), 112, False, 10)
+        ("Homo sapiens", peptides, (7,), 112, False, 15)
     )
     assert canonical == "Homo sapiens"
-    # Two length passes → two non-empty dfs.
-    assert len(dfs) == 2
-    # 3 distinct peptides matched (the 12-mer was outside lengths_in_query).
-    assert n_matched == 3
-    # n_total counts ALL peptides for this canonical (including non-MHC-I lengths).
+    # One index, one pass, one frame -- regardless of how many lengths the
+    # peptides span (#398).
+    assert len(dfs) == 1
+    # Including the 12-mer, which one seed index serves like any other length.
+    assert n_matched == 4
     assert n_total == 4
 
 
-def test_per_canonical_worker_skips_unbuildable_lengths(monkeypatch):
-    """When _build_species_index returns None for a length, the worker
-    skips that length silently — same as the pre-#249 sequential code."""
-    calls = {"n": 0}
+def test_per_canonical_worker_builds_one_index_for_all_lengths(monkeypatch):
+    """#398: one seed index serves every peptide length.
 
-    def fake_build(*a, **kw):
-        calls["n"] += 1
-        # Length 9 builds; length 10 fails.
-        return _FakeFlanking("X") if kw.get("lengths") == (9,) else None
+    This used to rebuild the index once per length in `lengths_in_query`,
+    so a canonical spanning 8/9/10/11 paid four full builds to answer what
+    one seed index answers in a single pass.
+    """
+    builds = {"n": 0}
 
-    monkeypatch.setattr("hitlist.mappings._build_species_index", fake_build)
+    def counting_build(*a, **kw):
+        builds["n"] += 1
+        return _FakeFlanking("X")
+
+    monkeypatch.setattr("hitlist.mappings._build_species_index", counting_build)
+    _per_canonical_mapping_worker(
+        ("X", ["ABCDEFGH", "ABCDEFGHI", "ABCDEFGHIJ", "A" * 20], (7,), 112, False, 15)
+    )
+    assert builds["n"] == 1
+
+
+def test_per_canonical_worker_survives_an_unbuildable_index(monkeypatch):
+    """When _build_species_index returns None the worker degrades to a
+    no-op rather than raising -- a missing FASTA or GTF must not take down
+    the whole mapping pass."""
+    monkeypatch.setattr("hitlist.mappings._build_species_index", lambda *a, **kw: None)
 
     canonical, dfs, n_matched, n_total = _per_canonical_mapping_worker(
-        ("X", {9: ["ABCDEFGHI"], 10: ["ABCDEFGHIJ"]}, (9, 10), 112, False, 10)
+        ("X", ["ABCDEFGHI", "ABCDEFGHIJ"], (7,), 112, False, 15)
     )
     assert canonical == "X"
-    assert calls["n"] == 2  # both lengths attempted
-    assert len(dfs) == 1  # only length 9 produced rows
-    assert n_matched == 1
+    assert dfs == []
+    assert n_matched == 0
+    # n_total still reports what was asked for, so the stats line is honest
+    # about coverage rather than silently shrinking the denominator.
     assert n_total == 2
 
 
@@ -336,11 +347,11 @@ def test_per_canonical_worker_args_are_picklable():
 
     args = (
         "Homo sapiens",
-        {9: ["ABCDEFGHI", "JKLMNOPQR"], 10: ["ABCDEFGHIJ"]},
-        (9, 10),
+        ["ABCDEFGHI", "JKLMNOPQR", "ABCDEFGHIJ"],
+        (7,),
         112,
         False,
-        10,
+        15,
     )
     assert pickle.loads(pickle.dumps(args)) == args
 
