@@ -15,6 +15,7 @@
 import pytest
 
 import hitlist
+from hitlist import _PUBLIC_API
 
 
 def test_top_level_entry_points_importable():
@@ -41,3 +42,24 @@ def test_unknown_attribute_raises_attributeerror():
     missing = "this_does_not_exist"
     with pytest.raises(AttributeError):
         getattr(hitlist, missing)
+
+
+@pytest.mark.parametrize("name", sorted(_PUBLIC_API))
+def test_every_public_api_entry_resolves(name):
+    """Every `_PUBLIC_API` key must import from the module it names.
+
+    The lazy `__getattr__` means a typo'd module path or a renamed
+    function is not an import error at startup -- it is an AttributeError
+    the first time some user touches that name, which may be never in our
+    own test suite.  Resolving all of them here is the only thing that
+    makes the dict self-checking, and it replaces the per-function
+    `assert hitlist.x is x` assertions that were accumulating in
+    `test_curation.py`, a file about curation logic rather than wiring.
+    """
+    import importlib
+
+    attribute = getattr(hitlist, name)
+    module = importlib.import_module(_PUBLIC_API[name], package="hitlist")
+    assert attribute is getattr(module, name)
+    assert name in hitlist.__all__
+    assert name in dir(hitlist)

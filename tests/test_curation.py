@@ -2772,20 +2772,97 @@ def test_no_sample_carries_a_pooled_allele_union():
 # ── Public per-peptide donor evidence API ─────────────────────────────
 
 
-def test_peptide_alleles_for_pmid_is_public_and_narrows():
+def test_peptide_alleles_for_pmid_narrows_below_the_cohort_union():
     """The curated per-peptide attributions (#45) are the only thing that
-    narrows a peptide's candidate alleles below the study-wide set, so
-    the lookup is worth exposing rather than leaving private."""
-    import hitlist
+    narrows a peptide's candidate alleles below the study-wide set.
+
+    Asserting the map is merely large does not test that: a regression
+    mapping all 28,031 peptides to the full cohort union would keep the
+    size and lose the entire point.  So compare against the union.
+    """
     from hitlist.curation import peptide_alleles_for_pmid
 
-    assert hitlist.peptide_alleles_for_pmid is peptide_alleles_for_pmid
-
     alleles = peptide_alleles_for_pmid(31844290)
-    assert len(alleles) > 1000
-    _, sample_alleles = next(iter(alleles.items()))
-    assert isinstance(sample_alleles, frozenset)
-    assert all(a.startswith("HLA-") for a in sample_alleles), sample_alleles
+    assert len(alleles) == 28031
+
+    cohort_union = frozenset().union(*alleles.values())
+    widest = max(len(candidates) for candidates in alleles.values())
+    typical = sorted(len(candidates) for candidates in alleles.values())[len(alleles) // 2]
+    assert widest < len(cohort_union), "no peptide may span the whole cohort"
+    assert typical <= 8, (
+        f"median candidate set is {typical} alleles; narrowing has regressed "
+        f"toward the {len(cohort_union)}-allele cohort union"
+    )
+
+    candidates = alleles["AAAAAAAAAAAAAAPAP"]
+    assert isinstance(candidates, frozenset)
+    # One donor's whole class-I genotype -- not one presenting allele.
+    assert sorted(candidates) == [
+        "HLA-A*01:01",
+        "HLA-B*38:01",
+        "HLA-B*56:01",
+        "HLA-C*01:02",
+        "HLA-C*06:02",
+    ]
+
+
+def test_peptide_maps_are_read_only():
+    """The map is a shared cache entry, and `peptide_typings_for_pmid`
+    feeds the scanner's per-donor row emission (#236).
+
+    A caller pruning it in place would silently change which observation
+    rows the next build emits, with no error anywhere -- so the returned
+    view refuses mutation rather than relying on a docstring asking
+    nicely.
+    """
+    from hitlist.curation import peptide_alleles_for_pmid, peptide_typings_for_pmid
+
+    for lookup in (peptide_alleles_for_pmid, peptide_typings_for_pmid):
+        view = lookup(31844290)
+        with pytest.raises(TypeError):
+            view["AAAAAAAAAAAAAAPAP"] = frozenset()
+        with pytest.raises(AttributeError):
+            view.pop("AAAAAAAAAAAAAAPAP")
+
+
+def test_peptide_lookups_accept_a_string_pmid():
+    """PMIDs arrive as ints from YAML and as strings from dataframes.
+
+    Returning an empty map for the string form would be read, correctly
+    per the docstring, as "this study deposited no attributions" -- the
+    exact wrong conclusion these functions warn against.
+    """
+    from hitlist.curation import (
+        attribute_peptide_to_sample_alleles,
+        peptide_alleles_for_pmid,
+        peptide_typings_for_pmid,
+    )
+
+    assert dict(peptide_alleles_for_pmid("31844290")) == dict(peptide_alleles_for_pmid(31844290))
+    assert dict(peptide_typings_for_pmid("31844290")) == dict(peptide_typings_for_pmid(31844290))
+    assert attribute_peptide_to_sample_alleles(
+        "31844290", "AAAAAAAAAAAAAAPAP"
+    ) == attribute_peptide_to_sample_alleles(31844290, "AAAAAAAAAAAAAAPAP")
+    # A PMID that is not a number at all is "no attributions", not a crash.
+    assert peptide_alleles_for_pmid("not-a-pmid") == {}
+
+
+def test_only_one_pmid_has_peptide_attributions():
+    """`peptide_alleles_for_pmid`'s docstring states that PMID 31844290 is
+    the only study with a peptide_attributions CSV.
+
+    The mechanism is generic, so a curator can add a second at any time.
+    This pins the claim so the docstring fails loudly instead of quietly
+    becoming false to everyone reading `help()`.
+    """
+    from hitlist.curation import load_pmid_overrides
+
+    with_attributions = {
+        pmid for pmid, entry in load_pmid_overrides().items() if entry.get("peptide_attributions")
+    }
+    assert with_attributions == {31844290}, (
+        "update the caveat in peptide_alleles_for_pmid / peptide_typings_for_pmid"
+    )
 
 
 def test_peptide_alleles_for_pmid_is_empty_without_attributions():
@@ -2802,10 +2879,7 @@ def test_peptide_alleles_for_pmid_is_empty_without_attributions():
 def test_peptide_typings_for_pmid_keeps_donor_identity():
     """Same evidence as peptide_alleles_for_pmid, unmerged, so the
     scanner can emit one row per donor (#236)."""
-    import hitlist
     from hitlist.curation import peptide_alleles_for_pmid, peptide_typings_for_pmid
-
-    assert hitlist.peptide_typings_for_pmid is peptide_typings_for_pmid
 
     typings = peptide_typings_for_pmid(31844290)
     merged = peptide_alleles_for_pmid(31844290)
@@ -2817,3 +2891,27 @@ def test_peptide_typings_for_pmid_keeps_donor_identity():
     # Merging the per-donor sets reproduces the merged view.
     union = frozenset().union(*(alleles for _, alleles in per_donor))
     assert union == merged[peptide]
+
+
+def test_cache_clear_drops_the_whole_derived_chain():
+    """`peptide_alleles_for_pmid` is derived from `peptide_typings_for_pmid`,
+    so clearing one layer alone leaves the other stale.
+
+    Tests that monkeypatch the underlying loaders rely on `cache_clear`
+    to isolate themselves; a partial clear reintroduces exactly the
+    cross-test contamination it is called to prevent.
+    """
+    from hitlist import curation
+
+    # Other tests share these caches, so assert the transition rather than
+    # an absolute size.
+    curation.peptide_typings_for_pmid.cache_clear()
+    curation.peptide_alleles_for_pmid(31844290)
+    curation.peptide_typings_for_pmid(31844290)
+    assert curation._peptide_alleles_by_pmid.cache_info().currsize > 0
+    assert curation._peptide_typings_by_pmid.cache_info().currsize > 0
+
+    # Reachable from either public name, and clears both either way.
+    curation.peptide_alleles_for_pmid.cache_clear()
+    assert curation._peptide_alleles_by_pmid.cache_info().currsize == 0
+    assert curation._peptide_typings_by_pmid.cache_info().currsize == 0
