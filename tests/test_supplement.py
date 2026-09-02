@@ -50,6 +50,14 @@ def test_scan_supplementary_schema():
     assert "is_monoallelic" in df.columns
     assert "allele_resolution" in df.columns
     assert "mhc_species" in df.columns
+    for col in (
+        "mhc_class_reported",
+        "mhc_class_source",
+        "mhc_class_corrected",
+        "mhc_species_source",
+        "mhc_species_context_disagrees",
+    ):
+        assert col in df.columns
     # IEDB-equivalent metadata columns
     assert "process_type" in df.columns
     assert "culture_condition" in df.columns

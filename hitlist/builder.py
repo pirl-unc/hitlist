@@ -50,6 +50,10 @@ import pandas as pd
 
 from .downloads import data_dir
 
+#: Schema/semantic contract for observations + binding artifacts. Metadata
+#: without this exact value is legacy and must rebuild once on upgrade.
+_OBSERVATIONS_ARTIFACT_VERSION = 1
+
 
 def _source_paths() -> dict[str, Path]:
     """Resolve registered IEDB/CEDAR paths."""
@@ -189,6 +193,8 @@ def _cache_is_valid(paths: dict[str, Path], with_flanking: bool = False) -> bool
     if not _line_expression_path().exists():
         return False
     stored = json.loads(meta.read_text())
+    if stored.get("artifact_version") != _OBSERVATIONS_ARTIFACT_VERSION:
+        return False
     if stored.get("sources") != _source_fingerprints(paths):
         return False
     stored_parquets = stored.get("parquets")
@@ -242,7 +248,10 @@ def _atomic_write_parquet(df: pd.DataFrame, path: Path) -> None:
 _CATEGORICAL_BUILD_COLUMNS: tuple[str, ...] = (
     "source",
     "mhc_class",
+    "mhc_class_reported",
+    "mhc_class_source",
     "mhc_species",
+    "mhc_species_source",
     "mhc_restriction",
     "mhc_allele_provenance",
     "allele_resolution",
@@ -505,6 +514,59 @@ def _drop_short_mhc2_rows(df: pd.DataFrame, label: str) -> pd.DataFrame:
     return df[~mask].reset_index(drop=True)
 
 
+def _report_mhc_identity_summary(df: pd.DataFrame, label: str) -> None:
+    """Print high-signal MHC corrections made by the shared resolver."""
+    if df.empty:
+        return
+    corrected = (
+        int(df["mhc_class_corrected"].fillna(False).astype(bool).sum())
+        if "mhc_class_corrected" in df.columns
+        else 0
+    )
+    conflicts = (
+        int(df["mhc_species_context_disagrees"].fillna(False).astype(bool).sum())
+        if "mhc_species_context_disagrees" in df.columns
+        else 0
+    )
+    print(
+        f"  {label} MHC identity: {corrected:,} class corrections; {conflicts:,} context conflicts"
+    )
+    if corrected:
+        corrected_rows = df[df["mhc_class_corrected"].fillna(False).astype(bool)]
+        for restriction, n_records in (
+            corrected_rows["mhc_restriction"].value_counts().head(5).items()
+        ):
+            print(f"    class corrected {restriction}: {n_records:,} rows")
+    if conflicts:
+        conflict_rows = df[df["mhc_species_context_disagrees"].fillna(False).astype(bool)]
+        for restriction, n_records in (
+            conflict_rows["mhc_restriction"].value_counts().head(5).items()
+        ):
+            print(f"    context conflict {restriction}: {n_records:,} rows")
+
+
+def _validate_mhc_tokens(obs: pd.DataFrame, binding: pd.DataFrame) -> pd.DataFrame:
+    """Audit all MHC token surfaces and reject newly unrecognized values."""
+    from .qc import mhc_token_audit
+
+    audit = mhc_token_audit(evidence_frames={"ms": obs, "binding": binding})
+    if audit.empty:
+        print("  MHC token audit: no findings")
+        return audit
+    status_counts = audit.groupby("status", observed=True)["n_records"].sum().sort_index()
+    summary = "; ".join(f"{status}={int(count):,}" for status, count in status_counts.items())
+    print(f"  MHC token audit: {summary}")
+    unknown = audit[audit["status"] == "unrecognized"]
+    if not unknown.empty:
+        tokens = ", ".join(sorted(unknown["token"].astype(str).unique()))
+        raise RuntimeError(
+            "Unrecognized MHC tokens found across evidence and curation: "
+            f"{tokens}. Run 'hitlist qc mhc-tokens' for provenance and either fix the source "
+            "or add a reviewed, documented classification."
+        )
+    return audit
+
+
 def build_observations(
     with_flanking: bool = True,
     proteome_release: int = 112,
@@ -713,6 +775,10 @@ def build_observations(
     obs = _drop_short_mhc2_rows(obs, "MS observations")
     binding = _drop_short_mhc2_rows(binding, "binding")
 
+    _report_mhc_identity_summary(obs, "MS")
+    _report_mhc_identity_summary(binding, "binding")
+    _validate_mhc_tokens(obs, binding)
+
     print(f"\nMS observations: {len(obs):,} rows")
     if len(obs):
         print(f"  Unique peptides: {obs['peptide'].nunique():,}")
@@ -797,6 +863,7 @@ def build_observations(
 
     # Save metadata
     meta = {
+        "artifact_version": _OBSERVATIONS_ARTIFACT_VERSION,
         "sources": _source_fingerprints(paths),
         "parquets": _parquet_fingerprints(),
         "n_rows": len(obs),

@@ -5,6 +5,7 @@ import pytest
 
 from hitlist.builder import (
     _CATEGORICAL_BUILD_COLUMNS,
+    _OBSERVATIONS_ARTIFACT_VERSION,
     _atomic_write_parquet,
     _cache_is_valid,
     _compress_categoricals,
@@ -12,7 +13,9 @@ from hitlist.builder import (
     _drop_short_mhc2_rows,
     _drop_supplementary_duplicates,
     _meta_path,
+    _report_mhc_identity_summary,
     _source_fingerprints,
+    _validate_mhc_tokens,
 )
 from hitlist.supplement import load_supplementary_manifest
 
@@ -54,6 +57,7 @@ def test_cache_valid_when_sources_unchanged(tmp_path, monkeypatch):
     _meta_path().write_text(
         json.dumps(
             {
+                "artifact_version": _OBSERVATIONS_ARTIFACT_VERSION,
                 "sources": {},
                 "n_rows": 100,
                 "n_peptides": 50,
@@ -173,6 +177,7 @@ def test_cache_invalid_when_parquet_fingerprint_changes(tmp_path, monkeypatch):
     _meta_path().write_text(
         json.dumps(
             {
+                "artifact_version": _OBSERVATIONS_ARTIFACT_VERSION,
                 "sources": {},
                 "parquets": builder._parquet_fingerprints(),
             }
@@ -184,6 +189,26 @@ def test_cache_invalid_when_parquet_fingerprint_changes(tmp_path, monkeypatch):
     time.sleep(0.01)
     obs_p.write_bytes(b"mutated observations content that is longer")
     os.utime(obs_p, None)
+    assert _cache_is_valid({}, with_flanking=False) is False
+
+
+def test_cache_invalidates_legacy_observations_artifact(tmp_path, monkeypatch):
+    """A pre-contract artifact must rebuild even when every file fingerprint matches."""
+    from hitlist import builder, downloads
+
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
+    for filename in (
+        "observations.parquet",
+        "binding.parquet",
+        "bulk_proteomics.parquet",
+        "line_expression.parquet",
+    ):
+        (tmp_path / filename).write_bytes(b"artifact")
+    monkeypatch.setattr(builder, "_source_fingerprints", lambda paths: {})
+    _meta_path().write_text(
+        json.dumps({"sources": {}, "parquets": builder._parquet_fingerprints()})
+    )
+
     assert _cache_is_valid({}, with_flanking=False) is False
 
 
@@ -230,6 +255,41 @@ def test_drop_short_mhc2_rows_missing_columns():
     df = pd.DataFrame({"other": [1, 2, 3]})
     out = _drop_short_mhc2_rows(df, "MS observations")
     assert len(out) == 3
+
+
+def test_report_mhc_identity_summary_names_corrected_restrictions(capsys):
+    df = pd.DataFrame(
+        {
+            "mhc_restriction": ["Caja-E", "Mamu-E*02:11", "HLA-A*02:01"],
+            "mhc_class_corrected": [True, True, False],
+            "mhc_species_context_disagrees": [False, True, False],
+        }
+    )
+
+    _report_mhc_identity_summary(df, "MS")
+
+    output = capsys.readouterr().out
+    assert "2 class corrections" in output
+    assert "1 context conflicts" in output
+    assert "Caja-E" in output
+    assert "Mamu-E*02:11" in output
+
+
+def test_validate_mhc_tokens_rejects_only_new_unknowns(monkeypatch):
+    known = pd.DataFrame(
+        {
+            "status": ["invalid_source", "parser_gap"],
+            "n_records": [2, 1],
+            "token": ["HLA-B23", "HLA-Cw16"],
+        }
+    )
+    monkeypatch.setattr("hitlist.qc.mhc_token_audit", lambda **_kwargs: known)
+    assert _validate_mhc_tokens(pd.DataFrame(), pd.DataFrame()).equals(known)
+
+    unknown = pd.DataFrame({"status": ["unrecognized"], "n_records": [1], "token": ["BAD-MHC"]})
+    monkeypatch.setattr("hitlist.qc.mhc_token_audit", lambda **_kwargs: unknown)
+    with pytest.raises(RuntimeError, match="BAD-MHC"):
+        _validate_mhc_tokens(pd.DataFrame(), pd.DataFrame())
 
 
 def test_atomic_write_parquet_replaces_existing(tmp_path):
@@ -370,7 +430,10 @@ def _full_obs_fixture(n_rows: int = 50) -> pd.DataFrame:
         {
             "source": ["iedb"] * n_rows,
             "mhc_class": (["I"] * (n_rows // 2)) + (["II"] * (n_rows - n_rows // 2)),
+            "mhc_class_reported": (["I"] * (n_rows // 2)) + (["II"] * (n_rows - n_rows // 2)),
+            "mhc_class_source": ["derived"] * n_rows,
             "mhc_species": ["Homo sapiens"] * n_rows,
+            "mhc_species_source": ["explicit"] * n_rows,
             "mhc_restriction": ["HLA-A*02:01"] * n_rows,
             "mhc_allele_provenance": ["exact"] * n_rows,
             "allele_resolution": ["four_digit"] * n_rows,

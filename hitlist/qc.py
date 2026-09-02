@@ -12,7 +12,7 @@
 
 """Corpus + curation QC checks.
 
-Three independent diagnostics, each returning a DataFrame so consumers can
+Independent diagnostics, each returning a DataFrame so consumers can
 print, write to CSV, or feed into a notebook:
 
 - :func:`resolution_histogram` — count rows per (mhc_class, source,
@@ -25,6 +25,9 @@ print, write to CSV, or feed into a notebook:
   never appear as ``mhc_restriction`` in the data for that PMID, and the
   reverse: data alleles for a PMID never listed in any sample.  Catches
   curation/data divergence.
+- :func:`mhc_token_audit` — unparseable restriction, host-typing, serotype,
+  and curated-sample tokens across MS and binding, classified as source
+  defects, known parser gaps, or new unrecognized values.
 
 Each function returns the same shape: a DataFrame with one row per
 finding plus a ``severity`` column (``info`` / ``warn`` / ``error``) so
@@ -33,13 +36,229 @@ finding plus a ``severity`` column (``info`` / ``warn`` / ``error``) so
 
 from __future__ import annotations
 
+import re
+from collections.abc import Mapping
+
 import pandas as pd
 
 from .curation import (
+    _cached_parse,
     _flatten_hla_alleles,
+    is_class_only_token,
     load_pmid_overrides,
     normalize_allele,
 )
+
+_MHC_AUDIT_COLUMNS = [
+    "evidence_kind",
+    "field",
+    "token",
+    "status",
+    "reason",
+    "pmid",
+    "n_records",
+    "severity",
+]
+
+# These are source-data defects, not parser failures. Keep them visible even
+# if a future mhcgnomes release becomes permissive enough to parse them.
+_KNOWN_INVALID_MHC_TOKENS: dict[str, str] = {
+    "HLA-B23": "not a recognized HLA-B serological specificity; source intent is unrecoverable",
+    "HLA-DR7A": "IEDB token is not a valid HLA gene, allele, serotype, or class designation",
+    "HLA-DR3A": "IEDB token is not a valid HLA gene, allele, serotype, or class designation",
+    "HLA-DR1B": "IEDB token is not a valid HLA gene, allele, serotype, or class designation",
+}
+
+# A valid historical HLA-C serotype spelling that mhcgnomes does not yet
+# recognize. If the parser learns it, the normal parse path wins and this
+# finding disappears, making the allowlist self-expiring.
+_KNOWN_MHC_PARSER_GAPS: dict[str, str] = {
+    "HLA-Cw16": "valid HLA-Cw16 serotype spelling not recognized by mhcgnomes",
+}
+
+_MHC_TOKEN_SENTINELS = frozenset({"", "unknown", "mutant", "not typed", "n/a", "na"})
+_MHC_DESIGNATION_TYPES = frozenset(
+    {"Allele", "Gene", "Pair", "Serotype", "Class2Locus", "MhcClass", "Haplotype"}
+)
+
+
+def _split_mhc_audit_tokens(value: object, *, curated: bool = False) -> list[str]:
+    """Split one MHC field without breaking multi-word class designations."""
+    if value is None or pd.isna(value):
+        return []
+    text = str(value).strip()
+    if not text or text.lower() in _MHC_TOKEN_SENTINELS:
+        return []
+    if is_class_only_token(text):
+        return [text]
+    separator = r"[\s;,]+" if curated else r"[;,]+"
+    return [token.strip() for token in re.split(separator, text) if token.strip()]
+
+
+def _default_mhc_audit_frames() -> dict[str, pd.DataFrame]:
+    """Read only audit columns that exist in each built evidence parquet."""
+    import pyarrow.parquet as pq
+
+    from .observations import binding_path, observations_path
+
+    wanted = ["pmid", "mhc_restriction", "host_mhc_types", "serotype", "serotypes"]
+    frames: dict[str, pd.DataFrame] = {}
+    for evidence_kind, path in (("ms", observations_path()), ("binding", binding_path())):
+        if not path.exists():
+            continue
+        available = set(pq.read_schema(path).names)
+        columns = [column for column in wanted if column in available]
+        frames[evidence_kind] = pd.read_parquet(path, columns=columns)
+    return frames
+
+
+def _default_curated_mhc_samples() -> pd.DataFrame:
+    """Flatten PMID ``ms_samples`` into the fields needed by the token audit."""
+    rows = []
+    for pmid, entry in load_pmid_overrides().items():
+        for sample in entry.get("ms_samples", []) or []:
+            rows.append(
+                {
+                    "pmid": pmid,
+                    "sample_label": sample.get("sample_label", ""),
+                    "mhc": sample.get("mhc", ""),
+                }
+            )
+    return pd.DataFrame(rows, columns=["pmid", "sample_label", "mhc"])
+
+
+def mhc_token_audit(
+    evidence_frames: Mapping[str, pd.DataFrame] | None = None,
+    curated_samples: pd.DataFrame | None = None,
+) -> pd.DataFrame:
+    """Report unparseable MHC tokens across every catalogued modality.
+
+    Parameters
+    ----------
+    evidence_frames
+        Optional mapping such as ``{"ms": observations, "binding": binding}``.
+        Each frame may contain ``mhc_restriction``, ``host_mhc_types``,
+        ``serotype``, and ``serotypes`` plus ``pmid``. When omitted, the
+        corresponding columns are read from whichever built artifacts exist.
+    curated_samples
+        Optional frame containing curated ``pmid``, ``sample_label``, and
+        free-text ``mhc`` fields. When omitted, these are flattened from
+        ``pmid_overrides.yaml``.
+
+    Returns
+    -------
+    pd.DataFrame
+        One row per modality/field/token/PMID finding. ``status`` distinguishes
+        upstream-invalid source values, known parser gaps, and wholly new
+        unrecognized tokens. Valid designations and exact sentinel values are
+        omitted. ``n_records`` records repeated evidence without hiding its
+        provenance.
+    """
+    if evidence_frames is None:
+        evidence_frames = _default_mhc_audit_frames()
+    if curated_samples is None:
+        curated_samples = _default_curated_mhc_samples()
+
+    findings: list[dict] = []
+
+    def inspect(
+        evidence_kind: str,
+        field: str,
+        token: str,
+        pmid: object,
+        n_records: int,
+    ) -> None:
+        if token.lower() in _MHC_TOKEN_SENTINELS:
+            return
+        if token in _KNOWN_INVALID_MHC_TOKENS:
+            status = "invalid_source"
+            reason = _KNOWN_INVALID_MHC_TOKENS[token]
+            severity = "error"
+        else:
+            parsed = _cached_parse(token)
+            if type(parsed).__name__ in _MHC_DESIGNATION_TYPES:
+                return
+            if token in _KNOWN_MHC_PARSER_GAPS:
+                status = "parser_gap"
+                reason = _KNOWN_MHC_PARSER_GAPS[token]
+                severity = "warn"
+            else:
+                status = "unrecognized"
+                reason = "not recognized as an MHC designation and not in the reviewed allowlist"
+                severity = "error"
+        findings.append(
+            {
+                "evidence_kind": evidence_kind,
+                "field": field,
+                "token": token,
+                "status": status,
+                "reason": reason,
+                "pmid": pmid,
+                "n_records": n_records,
+                "severity": severity,
+            }
+        )
+
+    def inspect_series(
+        evidence_kind: str,
+        field: str,
+        frame: pd.DataFrame,
+        *,
+        curated: bool = False,
+    ) -> None:
+        if field not in frame.columns:
+            return
+        values = frame[[field]].copy()
+        values["pmid"] = frame["pmid"] if "pmid" in frame.columns else ""
+        values["token"] = (
+            values[field]
+            .astype("object")
+            .map(lambda value: _split_mhc_audit_tokens(value, curated=curated))
+        )
+        counts = (
+            values[["pmid", "token"]]
+            .explode("token")
+            .dropna(subset=["token"])
+            .groupby(["pmid", "token"], dropna=False, observed=True)
+            .size()
+            .reset_index(name="n_records")
+        )
+        for row in counts.itertuples(index=False):
+            inspect(evidence_kind, field, row.token, row.pmid, int(row.n_records))
+
+    evidence_fields = ("mhc_restriction", "host_mhc_types", "serotype", "serotypes")
+    for evidence_kind, frame in evidence_frames.items():
+        for field in evidence_fields:
+            inspect_series(evidence_kind, field, frame)
+
+    if not curated_samples.empty and "mhc" in curated_samples.columns:
+        inspect_series("curation", "mhc", curated_samples, curated=True)
+        for finding in findings:
+            if finding["evidence_kind"] == "curation" and finding["field"] == "mhc":
+                finding["field"] = "sample_mhc"
+
+    if not findings:
+        return pd.DataFrame(columns=_MHC_AUDIT_COLUMNS)
+    return (
+        pd.DataFrame(findings)
+        .groupby(
+            [
+                "evidence_kind",
+                "field",
+                "token",
+                "status",
+                "reason",
+                "pmid",
+                "severity",
+            ],
+            dropna=False,
+            as_index=False,
+        )["n_records"]
+        .sum()
+        .reset_index()[_MHC_AUDIT_COLUMNS]
+        .sort_values(["severity", "status", "token", "evidence_kind", "pmid"], kind="stable")
+        .reset_index(drop=True)
+    )
 
 
 def resolution_histogram(
@@ -568,6 +787,7 @@ def run_all(mhc_class: str | None = None) -> dict[str, pd.DataFrame]:
     return {
         "resolution": resolution_histogram(mhc_class=mhc_class),
         "normalization": normalization_drift(),
+        "mhc_tokens": mhc_token_audit(),
         "cross_reference": cross_reference(mhc_class=mhc_class),
         "discrepancies": discrepancies(mhc_class=mhc_class),
         "proteome_coverage": proteome_coverage(),

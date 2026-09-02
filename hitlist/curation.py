@@ -44,6 +44,7 @@ from __future__ import annotations
 import contextlib
 import re
 from collections.abc import Mapping
+from dataclasses import dataclass
 from functools import cache, lru_cache
 from os.path import basename, dirname, join
 from types import MappingProxyType
@@ -216,33 +217,237 @@ def pmid_source_organism(pmid) -> tuple[str, str]:
     return p.get("source_organism", ""), p.get("species", "") or p.get("source_organism", "")
 
 
+@cache
+def pmid_mhc_species_context(pmid) -> str:
+    """Canonical curated species context for parsing an observation's MHC.
+
+    The context is deliberately limited to explicit PMID curation. Raw source
+    organism and host strings are separate biological axes and must not be
+    guessed into an MHC species. Explicitly prefixed restrictions still win
+    when they describe a legitimate engineered-MHC system.
+    """
+    provenance = pmid_provenance(pmid)
+    return normalize_species(provenance.get("species", ""))
+
+
 # ── Cached mhcgnomes parse ─────────────────────────────────────────────────
 
 
 @cache
-def _cached_parse(mhc_restriction: str):
+def _cached_parse(mhc_restriction: str, species_context: str = ""):
     """Cache mhcgnomes parse results.
 
-    ~100k unique allele strings across millions of IEDB rows.  Uses
-    an unbounded cache: mhcgnomes parse results are small, the total
-    memory footprint for the vocabulary is well under 100 MB, and
-    eviction at 1024 was causing re-parse churn for alleles that
-    reappear later in the scan (e.g. species-specific alleles that
-    cluster by cell line).
+    The cache key includes ``species_context``: a bare or ambiguous MHC
+    designation can resolve differently in cattle, chicken, or the default
+    human namespace. Uses an unbounded cache because the distinct
+    ``(designation, context)`` vocabulary is small relative to the corpus.
     """
     try:
         from mhcgnomes import parse
 
+        if species_context:
+            return parse(mhc_restriction, species=species_context)
         return parse(mhc_restriction)
-    except (ImportError, Exception):
+    except Exception:
         return None
+
+
+@cache
+def species_compatible(a: str, b: str) -> bool:
+    """Whether two mhcgnomes species are equal or ancestor-compatible.
+
+    Compatibility is directional only in the ontology implementation, so ask
+    both ways. Sibling species remain incompatible even when they share a
+    genus-level ancestor; this prevents a specific cattle context from
+    accepting a specific buffalo result.
+    """
+    if not a or not b:
+        return False
+    left = Species.get(a)
+    right = Species.get(b)
+    if left is None or right is None:
+        return False
+    return bool(left.compatible_with(right) or right.compatible_with(left))
+
+
+@cache
+def _parse_with_context(mhc_restriction: str, species_context: str = ""):
+    """Return ``(result, used_context, incompatible_guess_replaced)``.
+
+    Parse without context first so an explicit HLA/BoLA/etc. designation can
+    survive a legitimate cross-species experiment. If a context is available
+    and differs from that result, try the constrained parse. A successful
+    constrained result refines generic or inferred nomenclature; a failed one
+    falls back to the explicit unconstrained result.
+    """
+    text = (mhc_restriction or "").strip()
+    context = normalize_species(species_context)
+    unconstrained = _cached_parse(text)
+    if not context:
+        return unconstrained, False, False
+
+    unconstrained_species = str(getattr(getattr(unconstrained, "species", None), "name", ""))
+    if unconstrained_species == context:
+        return unconstrained, False, False
+
+    contextual = _cached_parse(text, context)
+    if contextual is None:
+        return unconstrained, False, False
+
+    incompatible = bool(
+        unconstrained_species and not species_compatible(unconstrained_species, context)
+    )
+    return contextual, True, incompatible
+
+
+@dataclass(frozen=True)
+class MhcAnnotation:
+    """Resolved identity and provenance for one MHC restriction.
+
+    ``mhc_class_source`` is ``derived`` for one molecule, ``donor_set``
+    for a consistent semicolon-separated molecule set, or ``export`` when
+    the source-reported class must be retained. ``mhc_species_source`` uses
+    mhcgnomes' ``explicit``/``default``/``inferred`` vocabulary plus
+    ``context``, ``mixed``, and ``unresolved``. Resolution and serotype
+    fields come from the same final restriction, so callers can persist
+    :meth:`as_record_fields` atomically without metadata drift.
+    """
+
+    restriction: str
+    mhc_species: str
+    mhc_species_source: str
+    mhc_species_context_disagrees: bool
+    mhc_class: str
+    mhc_class_reported: str
+    mhc_class_source: str
+    mhc_class_corrected: bool
+    allele_resolution: str
+    serotype: str
+    serotypes: str
+
+    def as_record_fields(self) -> dict[str, bool | str]:
+        """Return the persisted scanner columns for this annotation."""
+        return {
+            "mhc_restriction": self.restriction,
+            "mhc_species": self.mhc_species,
+            "mhc_species_source": self.mhc_species_source,
+            "mhc_species_context_disagrees": self.mhc_species_context_disagrees,
+            "mhc_class": self.mhc_class,
+            "mhc_class_reported": self.mhc_class_reported,
+            "mhc_class_source": self.mhc_class_source,
+            "mhc_class_corrected": self.mhc_class_corrected,
+            "allele_resolution": self.allele_resolution,
+            "serotype": self.serotype,
+            "serotypes": self.serotypes,
+        }
+
+
+def _molecule_class(parsed) -> str:
+    if type(parsed).__name__ not in _MHC_MOLECULE_TYPES:
+        return ""
+    return _FINE_MHC_CLASS_TO_TOKEN.get(str(getattr(parsed, "mhc_class", "")), "")
+
+
+@cache
+def resolve_mhc_annotation(
+    mhc_restriction: str,
+    reported_mhc_class: str = "",
+    species_context: str = "",
+) -> MhcAnnotation:
+    """Resolve a restriction's normalized identity, class, and provenance.
+
+    Parameters
+    ----------
+    mhc_restriction
+        Source restriction or a semicolon-separated donor candidate set.
+    reported_mhc_class
+        Source-reported class. Preserved verbatim in ``mhc_class_reported``
+        and used only when molecule-level derivation is unavailable.
+    species_context
+        Optional curated study species. It constrains ambiguous parsing but
+        never erases an explicit cross-species MHC designation that cannot be
+        parsed in that context.
+
+    Returns
+    -------
+    MhcAnnotation
+        Immutable normalized identity, provenance, allele resolution, and
+        serotype projection. :meth:`MhcAnnotation.as_record_fields` returns
+        the complete set of scanner columns owned by this resolver.
+    """
+    text = (mhc_restriction or "").strip()
+    reported_raw = (reported_mhc_class or "").strip()
+    reported = normalize_mhc_class_token(reported_raw)
+    parts = [part.strip() for part in text.split(";") if part.strip()] if ";" in text else [text]
+
+    normalized_parts: list[str] = []
+    parsed_parts: list = []
+    species: set[str] = set()
+    species_sources: set[str] = set()
+    context_disagrees = False
+    for part in parts:
+        parsed, used_context, incompatible = _parse_with_context(part, species_context)
+        parsed_parts.append(parsed)
+        if type(parsed).__name__ in _MHC_MOLECULE_TYPES:
+            normalized_parts.append(parsed.to_string())
+        else:
+            normalized_parts.append(part)
+        parsed_species = str(getattr(getattr(parsed, "species", None), "name", ""))
+        if parsed_species:
+            species.add(parsed_species)
+        source = "context" if used_context else str(getattr(parsed, "species_source", "") or "")
+        if source:
+            species_sources.add(source)
+        context_disagrees = context_disagrees or incompatible
+
+    normalized = ";".join(normalized_parts) if len(parts) > 1 else normalized_parts[0]
+    resolved_species = ";".join(sorted(species))
+    if not species_sources:
+        species_source = "unresolved"
+    elif len(species_sources) == 1:
+        species_source = next(iter(species_sources))
+    else:
+        species_source = "mixed"
+
+    derived_class = ""
+    class_source = "export"
+    if len(parts) > 1:
+        component_classes = [_molecule_class(parsed) for parsed in parsed_parts]
+        if all(component_classes) and len(set(component_classes)) == 1:
+            derived_class = component_classes[0]
+            class_source = "donor_set"
+    elif parsed_parts:
+        derived_class = _molecule_class(parsed_parts[0])
+        if derived_class:
+            class_source = "derived"
+
+    resolved_class = derived_class or reported
+    corrected = bool(derived_class and reported and derived_class != reported)
+    component_serotypes = tuple(
+        dict.fromkeys(
+            serotype for part in normalized_parts for serotype in allele_to_all_serotypes(part)
+        )
+    )
+    return MhcAnnotation(
+        restriction=normalized,
+        mhc_species=resolved_species,
+        mhc_species_source=species_source,
+        mhc_species_context_disagrees=context_disagrees,
+        mhc_class=resolved_class,
+        mhc_class_reported=reported_raw,
+        mhc_class_source=class_source,
+        mhc_class_corrected=corrected,
+        allele_resolution=classify_allele_resolution(normalized),
+        serotype=component_serotypes[0] if component_serotypes else "",
+        serotypes=";".join(component_serotypes),
+    )
 
 
 # ── MHC species ────────────────────────────────────────────────────────────
 
 
 @cache
-def classify_mhc_species(mhc_restriction: str) -> str:
+def classify_mhc_species(mhc_restriction: str, species_context: str = "") -> str:
     """Determine the species of an MHC restriction annotation.
 
     Uses mhcgnomes when available, falls back to prefix matching.
@@ -265,7 +470,7 @@ def classify_mhc_species(mhc_restriction: str) -> str:
     if not mhc_restriction:
         return ""
 
-    result = _cached_parse(mhc_restriction)
+    result, _, _ = _parse_with_context(mhc_restriction, species_context)
     if result is not None and hasattr(result, "species"):
         return result.species.name
 
@@ -589,7 +794,7 @@ def is_non_peptide_ligand(mhc_restriction: str) -> bool:
 
 
 @lru_cache(maxsize=4096)
-def normalize_allele(raw: str) -> str:
+def normalize_allele(raw: str, species_context: str = "") -> str:
     """Normalize an MHC allele string to canonical Species-Gene[*allele] form.
 
     Uses mhcgnomes to parse and re-serialize.  Handles HLA, H-2 (mouse),
@@ -611,16 +816,11 @@ def normalize_allele(raw: str) -> str:
     if not cleaned:
         return ""
 
-    try:
-        from mhcgnomes import parse
-
-        result = parse(cleaned)
-        # Only return normalized form for actual alleles/genes/pairs
-        # (not generic Species or Class-only designations like "HLA class I")
-        if result is not None and type(result).__name__ in ("Allele", "Gene", "Pair"):
-            return result.to_string()
-    except (ImportError, Exception):
-        pass
+    result, _, _ = _parse_with_context(cleaned, species_context)
+    # Only return normalized form for actual alleles/genes/pairs
+    # (not generic Species or Class-only designations like "HLA class I")
+    if result is not None and type(result).__name__ in _MHC_MOLECULE_TYPES:
+        return result.to_string()
 
     return cleaned
 
@@ -696,7 +896,7 @@ def mhc_class_spellings(mhc_class: str) -> tuple[str, ...]:
 
 
 @cache
-def mhc_class_of(mhc_restriction: str) -> str:
+def mhc_class_of(mhc_restriction: str, species_context: str = "") -> str:
     """Canonical MHC class for an allele / gene / pair, via mhcgnomes.
 
     Returns ``"I"``, ``"II"``, ``"non-classical"`` or ``""`` (unknown).
@@ -716,13 +916,10 @@ def mhc_class_of(mhc_restriction: str) -> str:
     if not text:
         return ""
     if ";" in text:
-        classes = {mhc_class_of(part) for part in text.split(";") if part.strip()}
-        classes.discard("")
-        return classes.pop() if len(classes) == 1 else ""
-    parsed = _cached_parse(text)
-    if parsed is None:
-        return ""
-    return _FINE_MHC_CLASS_TO_TOKEN.get(str(getattr(parsed, "mhc_class", "")), "")
+        classes = [mhc_class_of(part, species_context) for part in text.split(";") if part.strip()]
+        return classes[0] if classes and all(classes) and len(set(classes)) == 1 else ""
+    parsed, _, _ = _parse_with_context(text, species_context)
+    return _molecule_class(parsed)
 
 
 @cache
@@ -1856,6 +2053,7 @@ def classify_ms_row(
     cell_name: str = "",
     pmid: int | str = "",
     mhc_restriction: str = "",
+    mhc_species_context: str = "",
     submission_id: str = "",
     assay_comments: str = "",
 ) -> dict[str, bool | str]:
@@ -1890,6 +2088,9 @@ def classify_ms_row(
     mhc_restriction
         IEDB "MHC Restriction" field value. Used to check whether
         the reported allele is endogenous to a mono-allelic host.
+    mhc_species_context
+        Optional curated study species used to resolve ambiguous MHC
+        nomenclature. Explicit cross-species designations still win.
     assay_comments
         IEDB "Assay Comments" field. Some studies (e.g. PMID 29789417,
         Löffler 2018 CRC) tag per-row arm provenance only in the
@@ -2115,7 +2316,7 @@ def classify_ms_row(
         "allele_resolution": classify_allele_resolution(mhc_restriction),
         "serotype": allele_to_serotype(mhc_restriction),
         "serotypes": ";".join(allele_to_all_serotypes(mhc_restriction)),
-        "mhc_species": classify_mhc_species(mhc_restriction),
+        "mhc_species": classify_mhc_species(mhc_restriction, mhc_species_context),
     }
 
 

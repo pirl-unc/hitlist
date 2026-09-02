@@ -29,7 +29,14 @@ from pathlib import Path
 import pandas as pd
 import yaml
 
-from .curation import classify_ms_row, expand_allele_set, is_non_peptide_ligand, normalize_species
+from .curation import (
+    classify_ms_row,
+    expand_allele_set,
+    is_non_peptide_ligand,
+    normalize_species,
+    pmid_mhc_species_context,
+    resolve_mhc_annotation,
+)
 
 _DATA_DIR = Path(__file__).parent / "data"
 _MANIFEST_PATH = _DATA_DIR / "supplementary.yaml"
@@ -80,12 +87,6 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
     if not entries:
         return pd.DataFrame()
 
-    from .curation import (
-        allele_to_serotype,
-        classify_allele_resolution,
-        classify_mhc_species,
-    )
-
     per_entry_frames: list[pd.DataFrame] = []
 
     for entry in entries:
@@ -114,16 +115,7 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
             continue
 
         if "mhc_restriction" in df.columns:
-            # Normalize allele strings at ingest so bare forms like "A*02:01"
-            # (missing the "HLA-" prefix) canonicalize to "HLA-A*02:01" and
-            # downstream exact-match filters (``load_observations(
-            # mhc_restriction="HLA-A*02:01")``) see the full row population.
-            # ``normalize_allele`` is already ``@cache``d in curation.py;
-            # the cost here is dominated by the one-time mhcgnomes parse
-            # per unique string, not per row.  See pirl-unc/hitlist#121.
-            from .curation import normalize_allele
-
-            df["mhc_restriction"] = df["mhc_restriction"].str.strip().map(normalize_allele)
+            df["mhc_restriction"] = df["mhc_restriction"].str.strip()
         else:
             df["mhc_restriction"] = ""
         if "mhc_class" in df.columns:
@@ -154,6 +146,15 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
         # genuinely uncurated entry rather than a silent species assumption.
         source_organism = defaults.get("source_organism", "")
         species_default = defaults.get("species", "")
+        mhc_species_context = pmid_mhc_species_context(pmid) or normalize_species(species_default)
+
+        annotations = [
+            resolve_mhc_annotation(restriction, reported_class, mhc_species_context)
+            for restriction, reported_class in zip(
+                df["mhc_restriction"], df["mhc_class"], strict=True
+            )
+        ]
+        identity = pd.DataFrame([annotation.as_record_fields() for annotation in annotations])
 
         # Include the supplementary filename in the synthesized IRI so the
         # same peptide / allele seen in, e.g. ``gomez_zepeda_2024_jy.csv`` and
@@ -174,8 +175,7 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
         record = pd.DataFrame(
             {
                 "peptide": df["peptide"].to_numpy(),
-                "mhc_restriction": df["mhc_restriction"].to_numpy(),
-                "mhc_class": df["mhc_class"].to_numpy(),
+                **{column: identity[column].to_numpy() for column in identity.columns},
                 # Supplementary rows don't carry an IEDB assay IRI, but the
                 # synthesized string is already row-unique within a PMID + file,
                 # so reuse it as ``assay_iri`` too.  Downstream exports can then
@@ -249,19 +249,39 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
                 "mhc_allele_set_size": size,
             }
 
+        def _classification_for(
+            allele: str,
+            _process_type=process_type,
+            _disease=disease,
+            _culture_condition=culture_condition,
+            _source_tissue=source_tissue,
+            _cell_name=cell_name,
+            _pmid=pmid,
+            _mhc_species_context=mhc_species_context,
+        ) -> dict:
+            classification = dict(
+                classify_ms_row(
+                    _process_type,
+                    _disease,
+                    _culture_condition,
+                    _source_tissue,
+                    _cell_name,
+                    _pmid,
+                    mhc_restriction=allele,
+                    mhc_species_context=_mhc_species_context,
+                )
+            )
+            # Identity is owned by resolve_mhc_annotation above; avoid a
+            # duplicate merge column from classify_ms_row's compatibility API.
+            for identity_column in ("mhc_species", "allele_resolution", "serotype", "serotypes"):
+                classification.pop(identity_column, None)
+            return classification
+
         if classify_source:
             flag_rows = [
                 {
                     "mhc_restriction": a,
-                    **classify_ms_row(
-                        process_type,
-                        disease,
-                        culture_condition,
-                        source_tissue,
-                        cell_name,
-                        pmid,
-                        mhc_restriction=a,
-                    ),
+                    **_classification_for(a),
                     **_set_for(a),
                 }
                 for a in unique_alleles
@@ -270,9 +290,6 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
             flag_rows = [
                 {
                     "mhc_restriction": a,
-                    "allele_resolution": classify_allele_resolution(a),
-                    "serotype": allele_to_serotype(a),
-                    "mhc_species": classify_mhc_species(a),
                     **_set_for(a),
                 }
                 for a in unique_alleles
@@ -297,6 +314,20 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
                 record.loc[promote_mask, "mhc_restriction"] = record.loc[
                     promote_mask, "mhc_allele_set"
                 ]
+                promoted = [
+                    resolve_mhc_annotation(
+                        row["mhc_restriction"],
+                        row["mhc_class_reported"],
+                        mhc_species_context,
+                    )
+                    for _, row in record.loc[promote_mask].iterrows()
+                ]
+                promoted_identity = pd.DataFrame(
+                    [annotation.as_record_fields() for annotation in promoted],
+                    index=record.index[promote_mask],
+                )
+                for column in promoted_identity.columns:
+                    record.loc[promote_mask, column] = promoted_identity[column]
 
         # Fallback: derive mhc_species from host when allele-based
         # classification is empty (e.g. supplementary peptides without
@@ -308,9 +339,10 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
             # ``""`` and ``host_species``, in which case the in-place
             # assignment would raise ``TypeError``.  StringDtype accepts
             # any string fill.
-            record["mhc_species"] = (
-                record["mhc_species"].astype("string").fillna("").replace("", host_species)
-            )
+            record["mhc_species"] = record["mhc_species"].astype("string").fillna("")
+            host_fallback = (record["mhc_species"] == "") & bool(host_species)
+            record.loc[host_fallback, "mhc_species"] = host_species
+            record.loc[host_fallback, "mhc_species_source"] = "host_fallback"
         else:
             record["mhc_species"] = host_species
 

@@ -238,8 +238,11 @@ lookup_proteome("Mycobacterium tuberculosis")
 | `peptide` | Amino acid sequence |
 | `mhc_restriction` | Allele from IEDB (may be `"HLA class I"` for multi-allelic studies) |
 | `sample_mhc` | Allele(s) known for the source sample — the **useful** field for training |
-| `mhc_class` | `I`, `II`, or `non classical` |
-| `mhc_species` | Canonical species (normalized via mhcgnomes) |
+| `mhc_class` | Canonical `I`, `II`, or `non-classical`; molecule-derived when possible |
+| `mhc_class_reported` | Source-reported class, retained verbatim for auditability |
+| `mhc_class_source`, `mhc_class_corrected` | Whether class came from one molecule, a consistent donor set, or source fallback; whether it corrected the source |
+| `mhc_species` | Canonical MHC species (mhcgnomes plus explicit per-study context for ambiguous names) |
+| `mhc_species_source`, `mhc_species_context_disagrees` | Species-resolution provenance and explicit context-conflict signal |
 | `is_monoallelic` | True if sample has a single transfected allele (721.221, C1R, K562, MAPTAC…) |
 | `has_peptide_level_allele` | True if `mhc_restriction` is a specific allele (not `"HLA class I"`) |
 | `is_potential_contaminant` | True for MS-eluted peptides that failed NetMHCpan binding prediction |
@@ -322,6 +325,7 @@ hitlist export peptide-counts --by class                # species x class peptid
 hitlist export peptide-counts --by study                # peptide counts per study/PMID
 hitlist samples [--class I|II]                          # per-sample conditions (promoted from `export samples`)
 hitlist qc normalization                                # validate YAML alleles with mhcgnomes
+hitlist qc mhc-tokens                                   # unparseable MHC tokens across all modalities
 hitlist qc resolution                                   # allele-resolution histogram for IEDB/CEDAR
 ```
 
@@ -501,6 +505,7 @@ hitlist report [--class I|II] [--output report.txt]
 hitlist qc                                 # run all checks, print summary
 hitlist qc resolution                      # allele-resolution histogram
 hitlist qc normalization                   # YAML alleles whose normalize_allele output drifts
+hitlist qc mhc-tokens                      # invalid/parser-gap/unknown MHC tokens across modalities
 hitlist qc cross-reference                 # alleles in YAML but not data, and reverse
 hitlist qc discrepancies [--by sample]     # per-PMID curation drift signals
 hitlist qc plan [--top 10]                 # ranked next-PMID-to-curate roadmap
