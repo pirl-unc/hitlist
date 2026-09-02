@@ -78,6 +78,10 @@ reported separately; any new unrecognized token fails the build instead of being
 silently treated as data.
 Gene/protein annotations are **not** copied onto every row; they live in the
 `peptide_mappings.parquet` sidecar and are joined on demand at query time.
+Ensembl-backed mappings cover conventional protein-coding genes and the eight
+coding IG/TR germline biotypes, preserve the source `gene_biotype`, and exclude
+pseudogenes. This is germline attribution only: donor-specific recombined
+receptors and peptides spanning V(D)J junctions are not represented by Ensembl.
 
 ## Supplementary ingestion
 

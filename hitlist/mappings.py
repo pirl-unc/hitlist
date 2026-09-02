@@ -44,17 +44,21 @@ from pathlib import Path
 import pandas as pd
 
 from .downloads import data_dir
-from .proteome import DEFAULT_FLANK, SEED_KMER_LENGTH
+from .proteome import DEFAULT_FLANK, ENSEMBL_CODING_GENE_BIOTYPES, SEED_KMER_LENGTH
 
 _MAPPING_COLUMNS = (
     "peptide",
     "protein_id",
     "gene_name",
     "gene_id",
+    # Ensembl gene biotype distinguishes ordinary protein-coding sources from
+    # germline IG/TR segments. FASTA-backed mappings leave it empty because
+    # UniProt/custom headers do not provide the equivalent ontology (#399).
+    "gene_biotype",
     # Issue #141: transcript_id is a first-class column distinct from
     # protein_id (which now carries ENSP for Ensembl-backed indexes
     # rather than ENST).  is_canonical_transcript flags the longest
-    # protein-coding transcript per gene as the canonical proxy.
+    # translated selected transcript per gene as the canonical proxy.
     # FASTA-backed indexes leave transcript_id="" and the flag False.
     "transcript_id",
     "is_canonical_transcript",
@@ -68,7 +72,7 @@ _MAPPING_COLUMNS = (
 # Increment when mapping semantics change in a way not already represented by
 # `_mapping_artifact_contract` parameters. Metadata without this version is a
 # legacy artifact and must rebuild once on upgrade (#404).
-_MAPPING_ARTIFACT_VERSION = 1
+_MAPPING_ARTIFACT_VERSION = 2
 
 # Hard wall-clock deadline for the complete parent-side cache warm-up. This is
 # an internal safety invariant rather than an environment-variable tuning knob:
@@ -105,6 +109,10 @@ class MappingTask:
         Ensembl release used for Ensembl-backed entries.
     flank
         Number of source-protein residues retained on each side of a hit.
+    ensembl_gene_biotypes
+        Complete translated-gene inclusion policy for Ensembl-backed tasks.
+        It is explicit in the process boundary so a worker cannot silently
+        fall back to the historical protein-coding-only index.
     """
 
     canonical: str
@@ -113,6 +121,7 @@ class MappingTask:
     seed_lengths: tuple[int, ...]
     release: int
     flank: int
+    ensembl_gene_biotypes: tuple[str, ...]
 
 
 @dataclass
@@ -160,6 +169,7 @@ def _mapping_artifact_contract(
         "fetch_missing": bool(fetch_missing),
         "flank": int(flank),
         "seed_kmer_length": SEED_KMER_LENGTH,
+        "ensembl_gene_biotypes": list(ENSEMBL_CODING_GENE_BIOTYPES),
         "columns": list(_MAPPING_COLUMNS),
     }
 
@@ -244,6 +254,7 @@ def load_peptide_mappings(
     peptide: str | list[str] | None = None,
     gene_name: str | list[str] | None = None,
     gene_id: str | list[str] | None = None,
+    gene_biotype: str | list[str] | None = None,
     protein_id: str | list[str] | None = None,
     transcript_id: str | list[str] | None = None,
     is_canonical_transcript: bool | None = None,
@@ -255,7 +266,9 @@ def load_peptide_mappings(
     Filters are pushed down to pyarrow, so a query like ``gene_name="PRAME"``
     reads only the matching row groups.
 
-    Issue #141 added ``transcript_id`` and ``is_canonical_transcript`` so
+    ``gene_biotype`` distinguishes conventional ``protein_coding`` mappings
+    from germline IG/TR sources; FASTA-backed rows carry ``""``. Issue #141
+    added ``transcript_id`` and ``is_canonical_transcript`` so
     callers can ask "give me only the canonical-transcript mapping rows
     for this peptide" or "give me every mapping row that came from
     ENST00000269305" without an in-memory post-filter.
@@ -276,6 +289,8 @@ def load_peptide_mappings(
         filters.append(("gene_name", "in", _as_list(gene_name)))
     if gene_id is not None:
         filters.append(("gene_id", "in", _as_list(gene_id)))
+    if gene_biotype is not None:
+        filters.append(("gene_biotype", "in", _as_list(gene_biotype)))
     if protein_id is not None:
         filters.append(("protein_id", "in", _as_list(protein_id)))
     if transcript_id is not None:
@@ -316,6 +331,10 @@ def _flanking_rows_to_mapping_rows(
         df["transcript_id"] = flanking["transcript_id"].fillna("").astype(str)
     else:
         df["transcript_id"] = ""
+    if "gene_biotype" in flanking.columns:
+        df["gene_biotype"] = flanking["gene_biotype"].fillna("").astype(str)
+    else:
+        df["gene_biotype"] = ""
     if "is_canonical_transcript" in flanking.columns:
         df["is_canonical_transcript"] = flanking["is_canonical_transcript"].astype(bool)
     else:
@@ -562,6 +581,7 @@ def build_peptide_mappings(
                 seed_lengths=seed_lengths,
                 release=release,
                 flank=flank,
+                ensembl_gene_biotypes=ENSEMBL_CODING_GENE_BIOTYPES,
             )
         )
 
@@ -1051,6 +1071,7 @@ def _per_canonical_mapping_worker(task: MappingTask) -> MappingResult:
         verbose=False,
         lengths=task.seed_lengths,
         entry=task.entry,
+        gene_biotypes=task.ensembl_gene_biotypes,
         # Network work belongs exclusively to the supervised warm-up. Keeping
         # mapping workers cache-only prevents a vanished/inconsistent cache
         # from turning into an unbounded retry outside the phase deadline.
@@ -1098,14 +1119,17 @@ def _build_species_index(
     lengths: tuple[int, ...] = (SEED_KMER_LENGTH,),
     entry: dict | None = None,
     fetch_missing: bool = True,
+    gene_biotypes: tuple[str, ...] = ENSEMBL_CODING_GENE_BIOTYPES,
 ):
     """Build a proteome index from a resolved entry or canonical species.
 
     ``entry`` lets callers separate registry/network resolution from index
     construction. When it is omitted, ``use_uniprot`` controls dynamic
     resolution and ``fetch_missing`` controls both resolution and FASTA
-    downloads. Passing a resolved entry with ``fetch_missing=False`` is the
-    mapping worker's strictly cache-only path.
+    downloads. ``gene_biotypes`` is forwarded only to Ensembl indexes and
+    makes the translated-gene policy part of the worker's explicit contract.
+    Passing a resolved entry with ``fetch_missing=False`` is the mapping
+    worker's strictly cache-only path.
 
     Returns ``None`` if resolution, cache access, or index construction fails.
     """
@@ -1129,6 +1153,7 @@ def _build_species_index(
                 species=species,
                 lengths=lengths,
                 verbose=verbose,
+                gene_biotypes=gene_biotypes,
             )
         except Exception as e:
             if verbose:

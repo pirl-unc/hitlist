@@ -1158,8 +1158,9 @@ def main() -> None:
         action="store_true",
         help=(
             "Expand to one row per (evidence row, source-protein mapping), "
-            "adding protein_id / gene_name / gene_id / transcript_id / "
-            "position / n_flank / c_flank from peptide_mappings.parquet. "
+            "adding protein_id / gene_name / gene_id / gene_biotype / "
+            "transcript_id / position / n_flank / c_flank from "
+            "peptide_mappings.parquet. "
             "Suitable for flank-aware training pipelines such as Presto. "
             "(--explode-mappings is a deprecated alias.)"
         ),

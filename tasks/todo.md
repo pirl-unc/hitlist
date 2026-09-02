@@ -42,7 +42,7 @@ coverage and provenance.
       binding, and curated sample inputs; add a real-corpus staleness/new-token guard.
 - [x] Test artifact-version invalidation, schema columns, build summaries, CLI routing, and docs.
 - [x] Bump the patch version; run targeted tests, format, lint, and the complete test suite.
-- [ ] Open a PR closing #382, #376, and #396; require all CI jobs, merge, deploy, and verify PyPI.
+- [x] Open a PR closing #382, #376, and #396; require all CI jobs, merge, deploy, and verify PyPI.
 
 ## Phase 2 — immunoglobulin/TCR mapping coverage (#399)
 
@@ -53,14 +53,16 @@ coverage and provenance.
 - Carry source-gene biotype through `ProteomeIndex`, long-form peptide mappings, mapping schema,
   filters/exports, and artifact-version metadata so IG/TR attribution is distinguishable from a
   conventional protein-coding match.
+- Keep `ProteomeIndex.from_ensembl(biotype="protein_coding")` as an explicit compatibility mode;
+  make the new plural `gene_biotypes=` API and the mapping worker's task contract explicit.
 - Test index construction and mapping with protein-coding, IG, TR, pseudogene, duplicate-sequence,
   cache round-trip, process-worker, and legacy-artifact cases. Quantify recovered current-corpus
   mappings before release.
 
 ### Verification
 
-- [ ] Implement and verify the expanded Ensembl index contract and mapping provenance.
-- [ ] Bump the patch version; run all required gates and corpus coverage comparisons.
+- [x] Implement and verify the expanded Ensembl index contract and mapping provenance.
+- [x] Bump the patch version; run all required gates and corpus coverage comparisons.
 - [ ] Open a PR closing #399; require all CI jobs, merge, deploy, and verify PyPI.
 
 ## Review section
@@ -77,6 +79,17 @@ coverage and provenance.
 - Verification: 338 affected non-integration tests passed; the dedicated corpus audit passed;
   the supplementary suite also passes under Python 3.9; format and lint passed; full
   `./test.sh --all -rs` passed 1,170 tests with zero skips and one expected warning.
+- Phase 1 shipped in PR #412 as v1.55.7; every CI job passed and the wheel and sdist were
+  verified on PyPI.
+- Phase 2 centralizes the translated Ensembl policy as conventional `protein_coding` plus the
+  eight coding IG/TR gene biotypes. Both gene and transcript records must satisfy the policy;
+  pseudogenes remain excluded. `gene_biotype` now survives index metadata, worker normalization,
+  sidecar filtering, and exploded training exports. Mapping artifact v2 forces a clean rebuild.
+- The Ensembl 112 audit finds 420 translated IG/TR proteins. Against the current registered human
+  corpus they produce 15,808 long-form mappings and recover 4,451 unique peptides with no prior
+  human-proteome match (MS: 1,745 class I and 2,836 class II unique peptides).
+- Phase 2 verification: targeted proteome/mapping/export tests passed 220 tests; format and lint
+  passed; `./test.sh --all -rs` passed 1,175 tests with zero skips and one expected warning.
 
 ---
 
@@ -110,7 +123,7 @@ than depending on whichever IEDB snapshot happens to be registered on the develo
 - [x] Correct and test class-pool discriminator provenance.
 - [x] Update the Alpizar curation note and bump the patch version.
 - [x] Run targeted tests, `./format.sh`, `./lint.sh`, and `./test.sh --all -rs`.
-- [ ] Review the diff, open a PR closing #410, merge, deploy, and verify PyPI.
+- [x] Review the diff, open a PR closing #410, merge, deploy, and verify PyPI.
 
 ## Review section
 
@@ -140,7 +153,7 @@ corpus-dependent skips.
 - [x] Scope `_prefetch_worker` test doubles and data-directory mutation to a monkeypatch context.
 - [x] Add a regression assertion that the parent test process state is restored.
 - [x] Bump to 1.55.5; run format, lint, targeted mixed-order tests, and `./test.sh --all -rs`.
-- [ ] Ship a follow-up PR, merge, deploy, and verify PyPI.
+- [x] Ship a follow-up PR, merge, deploy, and verify PyPI.
 
 ## Review section
 
@@ -203,8 +216,8 @@ caller choices remain explicit function/CLI arguments.
 - [x] Run `./format.sh`, `./lint.sh`, and `./test.sh`; inspect the diff and test behavior.
 - [x] Isolate the unrelated default-suite cache/multiprocessing flake found during final
       high-concurrency verification (#406), then rerun all required gates.
-- [ ] Push a PR linking #402, #404, and #405; check every CI job.
-- [ ] Merge, update clean `main`, run `./deploy.sh`, and verify the released version on PyPI.
+- [x] Push a PR linking #402, #404, and #405; check every CI job.
+- [x] Merge, update clean `main`, run `./deploy.sh`, and verify the released version on PyPI.
 
 ## Review section
 
