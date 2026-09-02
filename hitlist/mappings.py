@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
@@ -638,7 +639,36 @@ def _prefetch_proteomes_for_workers(
             f"  Pre-fetching {len(uniprot_canonicals)} UniProt FASTA(s) "
             f"in parent (avoids worker download races) ..."
         )
-    for canonical in uniprot_canonicals:
+    budget = _prefetch_budget()
+    started = time.monotonic()
+    for i, canonical in enumerate(uniprot_canonicals, 1):
+        elapsed = time.monotonic() - started
+        if elapsed > budget:
+            # Pre-fetch is an optimization, not a requirement: the docstring
+            # above already promises that failures are tolerated because the
+            # worker hits the same code path.  A *stall* has to be tolerated
+            # the same way, or the phase that exists to save time becomes the
+            # phase that prevents the build from ever finishing.
+            #
+            # A real build wedged here for 2h29m at 0% CPU with no output and
+            # no artifact, after 80 consecutive UniProt failures (#402).  The
+            # blocking call was never identified, because nothing named what
+            # was in flight -- see the progress line below, which is the other
+            # half of this fix.
+            if verbose:
+                remaining = len(uniprot_canonicals) - i + 1
+                print(
+                    f"    pre-fetch budget of {budget:.0f}s exhausted after "
+                    f"{elapsed:.0f}s; skipping the remaining {remaining} "
+                    f"proteome(s).  Workers will fetch them on demand."
+                )
+            break
+        # Printed BEFORE the call, not only on failure.  The old loop logged
+        # only in the `except`, so a call that blocked printed nothing at all
+        # and the last line in the log was the last *successful failure* --
+        # naming a proteome that had already completed.
+        if verbose:
+            print(f"    [{i}/{len(uniprot_canonicals)}] {canonical} ...", flush=True)
         try:
             fetch_species_proteome(canonical, verbose=False, use_uniprot=use_uniprot)
         except Exception as e:
@@ -674,6 +704,24 @@ def _prefetch_proteomes_for_workers(
             except Exception as e:
                 if verbose:
                     print(f"    [{species}] pre-warm skipped: {e}")
+
+
+#: Wall-clock budget for the parent-side UniProt pre-fetch phase, in seconds.
+#: Override with ``HITLIST_PREFETCH_BUDGET``.  Generous by default -- the
+#: phase is normally a no-op on warm caches and this only has to bound the
+#: pathological case, not tune the healthy one.
+_DEFAULT_PREFETCH_BUDGET = 900.0
+
+
+def _prefetch_budget() -> float:
+    """Seconds the UniProt pre-fetch phase may spend before giving up."""
+    raw = os.environ.get("HITLIST_PREFETCH_BUDGET")
+    if raw:
+        try:
+            return float(raw)
+        except ValueError:
+            pass
+    return _DEFAULT_PREFETCH_BUDGET
 
 
 def _per_canonical_mapping_worker(
