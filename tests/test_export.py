@@ -2296,35 +2296,105 @@ def test_resolver_disambiguates_mouse_hepatocyte_vs_spleen(full_observations_df)
     )
 
 
-def test_resolver_alpizar_apc_substring_splits_b40_b39(full_observations_df):
-    """Alpizar 2017 (PMID 27920218) has 515 IEDB rows tagged "HLA class I"
-    on C1R cells whose ``antigen_processing_comments`` mention either
-    ``HLA-B*40:02 (C1R-B*40)`` or ``HLA-B*39:01 (C1R-B*39)``. The
-    resolver's allele-substring tie-break should split them onto the
-    matching C1R-HLA-B transfectant. Issue #207.
-    """
-    df = full_observations_df
-    sub = df[(df["pmid"] == 27920218) & (df["mhc_restriction"] == "HLA class I")]
-    if sub.empty:
-        import pytest
+def test_resolver_alpizar_apc_substring_splits_b40_b39(tmp_path, monkeypatch):
+    """Alpizar routing is stable across historical and current IEDB schemas.
 
-        pytest.skip("Alpizar 2017 not present in this build")
-    # The exact split depends on per-row APC counts (~408 + 99 + a few
-    # pooled), but at minimum the resolver should attribute most rows
-    # to one of the two single-allele C1R-HLA-B samples (not a class-
-    # only blank).
-    n_resolved = sub["sample_label"].str.contains("C1R-HLA-B", case=False, na=False).sum()
-    assert n_resolved > 0.9 * len(sub), (
-        f"expected most of the 515 unattributed Alpizar rows to resolve "
-        f"to a C1R-HLA-B sample via APC substring match; got {n_resolved}/{len(sub)}"
+    IEDB historically represented the 515 ambiguous C1R rows as ``HLA
+    class I``.  Its current export supplies semicolon-separated candidate
+    allele sets instead.  Neither representation exactly matches a curated
+    sample, so the antigen-processing text must select B*40:02, B*39:01, or
+    the pooled sample.  Keep this regression independent of the installed
+    IEDB snapshot so a source-schema update cannot turn it into a skip.
+    """
+    import pandas as pd
+
+    from hitlist.export import generate_observations_table
+
+    monkeypatch.setattr(
+        "hitlist.export.load_pmid_overrides",
+        lambda: {
+            27920218: {
+                "study_label": "Alpizar-shaped resolver fixture",
+                "species": "Homo sapiens (human)",
+                "mono_allelic_host": "C1R",
+                "ms_samples": [
+                    {
+                        "sample_label": "C1R-HLA-B*40:02",
+                        "condition": "unperturbed — mono-allelic",
+                        "mhc_class": "I",
+                        "mhc": "HLA-B*40:02",
+                    },
+                    {
+                        "sample_label": "C1R-HLA-B*39:01",
+                        "condition": "unperturbed — mono-allelic",
+                        "mhc_class": "I",
+                        "mhc": "HLA-B*39:01",
+                    },
+                    {
+                        "sample_label": "C1R-HLA-B (pooled B*40:02 / B*39:01)",
+                        "condition": "unperturbed — pooled mono-allelic",
+                        "mhc_class": "I",
+                        "mhc": "HLA-B*40:02 HLA-B*39:01",
+                    },
+                ],
+            }
+        },
     )
-    # Most rows mention B*40:02 in the APC; sanity check that neither
-    # pole gets every row (the APC really does discriminate).
-    n_b40 = sub["sample_label"].str.contains(r"B\*40:02", case=False, na=False).sum()
-    n_b39 = sub["sample_label"].str.contains(r"B\*39:01", case=False, na=False).sum()
-    assert n_b40 > 0 and n_b39 > 0, (
-        f"expected both B*40:02 and B*39:01 to win for some rows; got n_b40={n_b40}, n_b39={n_b39}"
+
+    def obs_row(peptide, restriction, apc):
+        return {
+            "peptide": peptide,
+            "mhc_restriction": restriction,
+            "mhc_class": "I",
+            "reference_iri": f"iri:{peptide}",
+            "pmid": pd.array([27920218], dtype="Int64")[0],
+            "source": "iedb",
+            "mhc_species": "Homo sapiens",
+            "is_monoallelic": False,
+            "is_binding_assay": False,
+            "qualitative_measurement": "Positive",
+            "cell_name": "C1R cells-B cell",
+            "source_tissue": "Blood",
+            "antigen_processing_comments": apc,
+            "assay_comments": "The epitope was eluted from HLA class I expressed on C1R cells.",
+        }
+
+    _write_obs(
+        tmp_path,
+        monkeypatch,
+        [
+            obs_row(
+                "HISTORICAL",
+                "HLA class I",
+                "C1R cells stably transfected with HLA-B*40:02 (C1R-B*40).",
+            ),
+            obs_row(
+                "CURRENT40",
+                "HLA-B*35:03;HLA-B*40:02;HLA-C*04:01",
+                "C1R cells stably transfected with HLA-B*40:02 (C1R-B*40).",
+            ),
+            obs_row(
+                "CURRENT39",
+                "HLA-B*35:03;HLA-B*39:01;HLA-C*04:01",
+                "C1R cells stably transfected with HLA-B*39:01 (C1R-B*39).",
+            ),
+            obs_row(
+                "CURRENTPOOLED",
+                "HLA-B*35:03;HLA-B*39:01;HLA-B*40:02;HLA-C*04:01",
+                "C1R cells stably transfected with HLA-B*39:01 or HLA-B*40:02.",
+            ),
+        ],
     )
+
+    resolved = generate_observations_table().set_index("peptide")
+    assert resolved["sample_label"].to_dict() == {
+        "HISTORICAL": "C1R-HLA-B*40:02",
+        "CURRENT40": "C1R-HLA-B*40:02",
+        "CURRENT39": "C1R-HLA-B*39:01",
+        "CURRENTPOOLED": "C1R-HLA-B (pooled B*40:02 / B*39:01)",
+    }
+    assert set(resolved["sample_match_type"]) == {"pmid_class_pool"}
+    assert set(resolved["sample_attribution"]) == {"discriminated"}
 
 
 def test_select_best_candidate_rejects_short_family_root_match():

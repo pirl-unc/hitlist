@@ -1340,6 +1340,13 @@ def generate_observations_table(
                                 else "",
                                 _r["assay_comments"] if "assay_comments" in _varying else "",
                             )
+                        if _best_meta is not None:
+                            # A row-level discriminator selected one sample
+                            # from the class pool.  Keep ``sample_match_type``
+                            # as ``pmid_class_pool`` (the restriction itself
+                            # was not an exact allele match), but report how
+                            # the sample metadata was actually attributed.
+                            _pool_attr = "discriminated"
                     if _best_meta is not None:
                         _best_meta = {**_best_meta, "sample_attribution": _pool_attr}
                         _tb_winner[
