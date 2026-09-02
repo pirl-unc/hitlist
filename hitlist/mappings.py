@@ -33,8 +33,10 @@ pyarrow push-down filters on ``peptide``, ``gene_name``, ``gene_id``,
 from __future__ import annotations
 
 import json
+import math
 import os
 import time
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
@@ -63,6 +65,75 @@ _MAPPING_COLUMNS = (
     "proteome_source",
 )
 
+# Increment when mapping semantics change in a way not already represented by
+# `_mapping_artifact_contract` parameters. Metadata without this version is a
+# legacy artifact and must rebuild once on upgrade (#404).
+_MAPPING_ARTIFACT_VERSION = 1
+
+# Hard wall-clock deadline for the complete parent-side cache warm-up. This is
+# an internal safety invariant rather than an environment-variable tuning knob:
+# NaN/inf/negative overrides made the purported deadline unsafe (#402).
+_PROTEOME_WARMUP_DEADLINE_SECONDS = 900.0
+
+
+@dataclass(frozen=True)
+class MappingTask:
+    """Complete, picklable input contract for one canonical mapping pass.
+
+    A task maps every supplied peptide using ``seed_lengths`` against one
+    already-resolved proteome registry entry. Carrying the registry ``entry``
+    explicitly prevents worker processes from repeating a UniProt lookup. The
+    worker is deliberately cache-only: all permitted downloads happen in the
+    supervised warm-up phase before mapping begins.
+
+    ``peptides`` is a tuple rather than a length-keyed mapping: one seed index
+    serves all peptide lengths, and preserving that fact in the task shape
+    prevents the pre-#398 per-length rebuild design from creeping back in.
+
+    Attributes
+    ----------
+    canonical
+        Stable label written to mapping rows and progress output.
+    entry
+        Already-resolved registry entry (Ensembl species or UniProt UPID).
+    peptides
+        Unique peptide sequences to map in one pass.
+    seed_lengths
+        K-mer lengths used to construct the index, normally the single
+        :data:`~hitlist.proteome.SEED_KMER_LENGTH` value.
+    release
+        Ensembl release used for Ensembl-backed entries.
+    flank
+        Number of source-protein residues retained on each side of a hit.
+    """
+
+    canonical: str
+    entry: dict
+    peptides: tuple[str, ...]
+    seed_lengths: tuple[int, ...]
+    release: int
+    flank: int
+
+
+@dataclass
+class MappingResult:
+    """Named output contract for one :class:`MappingTask` execution.
+
+    ``mapping_frame`` is ``None`` only when the requested proteome was not
+    available. A successfully searched proteome with zero hits returns an empty
+    frame, keeping "not searched" distinct from "searched, no matches".
+    """
+
+    canonical: str
+    mapping_frame: pd.DataFrame | None
+    n_matched_peptides: int
+    n_input_peptides: int
+
+    @property
+    def proteome_available(self) -> bool:
+        """Whether the proteome was searched, including a zero-hit search."""
+        return self.mapping_frame is not None
+
 
 def mappings_path() -> Path:
     """Path to the peptide mappings sidecar."""
@@ -72,6 +143,25 @@ def mappings_path() -> Path:
 def mappings_meta_path() -> Path:
     """Path to the mappings metadata JSON."""
     return data_dir() / "peptide_mappings_meta.json"
+
+
+def _mapping_artifact_contract(
+    *,
+    release: int,
+    use_uniprot: bool,
+    fetch_missing: bool,
+    flank: int,
+) -> dict:
+    """Behavior-defining contract stamped into every mappings sidecar."""
+    return {
+        "artifact_version": _MAPPING_ARTIFACT_VERSION,
+        "release": int(release),
+        "use_uniprot": bool(use_uniprot),
+        "fetch_missing": bool(fetch_missing),
+        "flank": int(flank),
+        "seed_kmer_length": SEED_KMER_LENGTH,
+        "columns": list(_MAPPING_COLUMNS),
+    }
 
 
 def is_mappings_built() -> bool:
@@ -123,7 +213,13 @@ def _obs_fingerprint() -> dict:
     return fp
 
 
-def _cache_is_valid() -> bool:
+def _cache_is_valid(
+    *,
+    release: int,
+    use_uniprot: bool,
+    fetch_missing: bool,
+    flank: int,
+) -> bool:
     meta_path = mappings_meta_path()
     if not meta_path.exists() or not mappings_path().exists():
         return False
@@ -131,7 +227,17 @@ def _cache_is_valid() -> bool:
         stored = json.loads(meta_path.read_text())
     except json.JSONDecodeError:
         return False
-    return stored.get("observations") == _obs_fingerprint()
+    expected_contract = _mapping_artifact_contract(
+        release=release,
+        use_uniprot=use_uniprot,
+        fetch_missing=fetch_missing,
+        flank=flank,
+    )
+    return (
+        stored.get("observations") == _obs_fingerprint()
+        and stored.get("contract") == expected_contract
+        and not stored.get("unavailable_proteomes")
+    )
 
 
 def load_peptide_mappings(
@@ -325,7 +431,12 @@ def build_peptide_mappings(
             raise FileNotFoundError(
                 "Observations table not built.  Run: hitlist build observations"
             )
-        if not force and _cache_is_valid():
+        if not force and _cache_is_valid(
+            release=release,
+            use_uniprot=use_uniprot,
+            fetch_missing=fetch_missing,
+            flank=flank,
+        ):
             if verbose:
                 print(f"Peptide mappings already up to date: {out}")
             return out
@@ -344,14 +455,44 @@ def build_peptide_mappings(
     organism = organism.where(organism != "", obs["mhc_species"].astype(str).str.strip())
 
     # ── Primary pass: group peptides by canonical source proteome ────────────
-    lookup_cache: dict[str, dict | None] = {}
-
-    def _lookup(org: str) -> dict | None:
-        if org in lookup_cache:
-            return lookup_cache[org]
-        entry = lookup_proteome(org, use_uniprot=use_uniprot)
-        lookup_cache[org] = entry
-        return entry
+    # Registry resolution itself can contact UniProt for rare organisms. Keep
+    # that network work inside the same supervised deadline as FASTA/GTF cache
+    # warm-up; the parent and mapping workers only perform offline lookups.
+    warmup_started = time.monotonic()
+    unavailable_proteomes: set[str] = set()
+    unique_organisms = sorted({org for org in organism if org})
+    lookup_cache: dict[str, dict | None] = {
+        org: lookup_proteome(
+            org,
+            use_uniprot=use_uniprot,
+            allow_network=False,
+        )
+        for org in unique_organisms
+    }
+    unresolved = [org for org, entry in lookup_cache.items() if entry is None]
+    if unresolved and use_uniprot and fetch_missing:
+        resolution_tasks = [
+            (
+                f"Resolve {org}",
+                (org,),
+                {"kind": "resolve", "organism": org},
+            )
+            for org in unresolved
+        ]
+        unavailable_resolutions = _supervise_prefetch_tasks(
+            resolution_tasks,
+            release=release,
+            verbose=verbose,
+            deadline_seconds=_PROTEOME_WARMUP_DEADLINE_SECONDS,
+        )
+        unavailable_proteomes.update(unavailable_resolutions)
+        for org in unresolved:
+            if org not in unavailable_resolutions:
+                lookup_cache[org] = lookup_proteome(
+                    org,
+                    use_uniprot=True,
+                    allow_network=False,
+                )
 
     species_to_peptides: dict[str, set[str]] = {}
     canonical_to_entry: dict[str, dict] = {}
@@ -359,7 +500,7 @@ def build_peptide_mappings(
     for org, pep in zip(organism, obs["peptide"]):
         if not org:
             continue
-        entry = _lookup(org)
+        entry = lookup_cache.get(org)
         if entry is None:
             unmapped_organisms[org] = unmapped_organisms.get(org, 0) + 1
             continue
@@ -406,32 +547,86 @@ def build_peptide_mappings(
     # 569,670 unique) was silently unmapped: no flanks, no position, no gene,
     # no protein. The only peptides dropped now are those below the seed --
     # length 2-6, 2,826 rows, which are not plausible MHC ligands.
-    mapping_tasks: list[tuple] = []
+    mapping_tasks: list[MappingTask] = []
     for canonical in ordered_canonicals:
         peptides = species_to_peptides[canonical]
         mappable = [p for p in peptides if len(p) >= SEED_KMER_LENGTH]
         if not mappable:
             per_proteome_stats.append((canonical, len(peptides), 0))
             continue
-        mapping_tasks.append((canonical, mappable, seed_lengths, release, use_uniprot, flank))
+        mapping_tasks.append(
+            MappingTask(
+                canonical=canonical,
+                entry=canonical_to_entry[canonical],
+                peptides=tuple(mappable),
+                seed_lengths=seed_lengths,
+                release=release,
+                flank=flank,
+            )
+        )
+
+    # Per-PMID reference-proteome overrides participate in the same supervised
+    # cache warm-up as primary species. Their mapping still runs after the
+    # primary worker pool, but it is cache-only by then.
+    upid_to_peptides: dict[str, tuple[str, set[str]]] = {}
+    pmid_extras = _collect_pmid_extra_proteomes()
+    if pmid_extras:
+        pmid_col = obs["pmid"]
+        for pmid_int, upid_entries in pmid_extras.items():
+            selected = pmid_col == pmid_int
+            if not selected.any():
+                continue
+            peptides = set(obs.loc[selected, "peptide"].dropna())
+            for extra_entry in upid_entries:
+                upid = extra_entry["upid"]
+                label = extra_entry["label"]
+                if upid not in upid_to_peptides:
+                    upid_to_peptides[upid] = (label, set())
+                upid_to_peptides[upid][1].update(peptides)
+
+    extra_cache_keys = {
+        upid: f"{label} [{upid}]" for upid, (label, _peptides) in upid_to_peptides.items()
+    }
 
     n_workers = _build_workers()
     # Cap workers at task count — more processes than work just adds fork overhead.
     effective_workers = min(n_workers, max(1, len(mapping_tasks)))
 
-    # Pre-fetch all proteomes in the parent so workers don't race on
-    # FASTA / GTF downloads.  No-op when caches are warm (the common case).
+    # Pre-fetch all missing proteomes in a supervised child so workers don't
+    # race on FASTA / GTF downloads and a blocked network/dependency call can
+    # be terminated at the hard phase deadline (#402).
     # We pass (canonical_key, entry) pairs because the canonical KEY
-    # (which is what the worker hands to fetch_species_proteome via
-    # _build_species_index) is what must be deduped — entries don't
-    # always carry an explicit `canonical_species` field.
-    if mapping_tasks and effective_workers > 1:
-        _prefetch_proteomes_for_workers(
-            [(t[0], canonical_to_entry[t[0]]) for t in mapping_tasks],
-            release=release,
-            use_uniprot=use_uniprot,
-            verbose=verbose,
+    # labels output and results, while the resolved entry lets both the
+    # prefetch child and mapping worker avoid repeating registry/network
+    # resolution. Entries don't always carry `canonical_species`.
+    if (mapping_tasks or upid_to_peptides) and fetch_missing:
+        prefetch_entries = [(task.canonical, task.entry) for task in mapping_tasks]
+        prefetch_entries.extend(
+            (
+                extra_cache_keys[upid],
+                {"kind": "uniprot", "proteome_id": upid, "label": label},
+            )
+            for upid, (label, _peptides) in upid_to_peptides.items()
         )
+        remaining_warmup_seconds = _PROTEOME_WARMUP_DEADLINE_SECONDS - (
+            time.monotonic() - warmup_started
+        )
+        unavailable = _prefetch_proteomes_for_workers(
+            prefetch_entries,
+            release=release,
+            verbose=verbose,
+            deadline_seconds=remaining_warmup_seconds,
+        )
+        if unavailable:
+            unavailable_proteomes.update(unavailable)
+            retained_tasks: list[MappingTask] = []
+            for task in mapping_tasks:
+                if task.canonical in unavailable:
+                    per_proteome_stats.append((task.canonical, len(task.peptides), 0))
+                else:
+                    retained_tasks.append(task)
+            mapping_tasks = retained_tasks
+            effective_workers = min(n_workers, max(1, len(mapping_tasks)))
 
     if verbose and mapping_tasks:
         print(
@@ -442,13 +637,24 @@ def build_peptide_mappings(
     if effective_workers == 1:
         # Sequential fallback — identical to pre-#249 behavior.  Useful for
         # debugging, deterministic profiling, and HITLIST_BUILD_WORKERS=1.
-        for canonical, dfs, n_matched, n_total in (
-            _per_canonical_mapping_worker(t) for t in mapping_tasks
-        ):
-            all_mapping_dfs.extend(dfs)
-            per_proteome_stats.append((canonical, n_total, n_matched))
+        for result in (_per_canonical_mapping_worker(task) for task in mapping_tasks):
+            if not result.proteome_available:
+                unavailable_proteomes.add(result.canonical)
+            if result.mapping_frame is not None:
+                all_mapping_dfs.append(result.mapping_frame)
+            per_proteome_stats.append(
+                (
+                    result.canonical,
+                    result.n_input_peptides,
+                    result.n_matched_peptides,
+                )
+            )
             if verbose:
-                print(f"    [{canonical}] matched {n_matched:,} / {n_total:,} peptides")
+                print(
+                    f"    [{result.canonical}] matched "
+                    f"{result.n_matched_peptides:,} / "
+                    f"{result.n_input_peptides:,} peptides"
+                )
     else:
         from concurrent.futures import ProcessPoolExecutor
 
@@ -458,32 +664,28 @@ def build_peptide_mappings(
         # clusters of size ≥ 2 (the common case) get the 2nd member's
         # index from the same-process cache rather than rebuilding.
         with ProcessPoolExecutor(max_workers=effective_workers) as pool:
-            for canonical, dfs, n_matched, n_total in pool.map(
-                _per_canonical_mapping_worker, mapping_tasks, chunksize=2
-            ):
-                all_mapping_dfs.extend(dfs)
-                per_proteome_stats.append((canonical, n_total, n_matched))
+            for result in pool.map(_per_canonical_mapping_worker, mapping_tasks, chunksize=2):
+                if not result.proteome_available:
+                    unavailable_proteomes.add(result.canonical)
+                if result.mapping_frame is not None:
+                    all_mapping_dfs.append(result.mapping_frame)
+                per_proteome_stats.append(
+                    (
+                        result.canonical,
+                        result.n_input_peptides,
+                        result.n_matched_peptides,
+                    )
+                )
                 if verbose:
-                    print(f"    [{canonical}] matched {n_matched:,} / {n_total:,} peptides")
+                    print(
+                        f"    [{result.canonical}] matched "
+                        f"{result.n_matched_peptides:,} / "
+                        f"{result.n_input_peptides:,} peptides"
+                    )
 
     # ── Extra proteomes (per-PMID reference_proteomes overrides) ─────────────
-    pmid_extras = _collect_pmid_extra_proteomes()
-    if pmid_extras:
-        pmid_col = obs["pmid"]
-        upid_to_peptides: dict[str, tuple[str, set[str]]] = {}
-        for pmid_int, upid_entries in pmid_extras.items():
-            sel = pmid_col == pmid_int
-            if not sel.any():
-                continue
-            peptides = set(obs.loc[sel, "peptide"].dropna())
-            for e in upid_entries:
-                upid = e["upid"]
-                label = e["label"]
-                if upid not in upid_to_peptides:
-                    upid_to_peptides[upid] = (label, set())
-                upid_to_peptides[upid][1].update(peptides)
-
-        if upid_to_peptides and verbose:
+    if upid_to_peptides:
+        if verbose:
             n_extra_peps = sum(len(p) for _, p in upid_to_peptides.values())
             print(
                 f"\n  [extras] mapping {len(upid_to_peptides)} per-PMID override "
@@ -491,8 +693,22 @@ def build_peptide_mappings(
                 "PMIDs sharing proteomes)"
             )
         for upid, (label, peptides) in upid_to_peptides.items():
-            path = fetch_proteome_by_upid(upid, label=label, verbose=verbose)
+            cache_key = extra_cache_keys[upid]
+            if cache_key in unavailable_proteomes:
+                per_proteome_stats.append((label, len(peptides), 0))
+                continue
+            path = fetch_proteome_by_upid(
+                upid,
+                label=label,
+                verbose=verbose,
+                # All network fetches ran under the supervised phase deadline
+                # above. This path is deliberately cache-only so a second
+                # unbounded attempt cannot escape into the mapping phase.
+                fetch_missing=False,
+            )
             if path is None or not path.exists():
+                unavailable_proteomes.add(cache_key)
+                per_proteome_stats.append((label, len(peptides), 0))
                 continue
             idx = ProteomeIndex.from_fasta(path, verbose=False)
             flanking = idx.map_peptides(sorted(peptides), flank=flank, verbose=False)
@@ -520,6 +736,16 @@ def build_peptide_mappings(
 
     meta = {
         "observations": _obs_fingerprint(),
+        "contract": _mapping_artifact_contract(
+            release=release,
+            use_uniprot=use_uniprot,
+            fetch_missing=fetch_missing,
+            flank=flank,
+        ),
+        # A transient fetch/prewarm failure must not become a permanently
+        # "valid" incomplete artifact. Any unavailable input makes the next
+        # invocation retry cache validation/build (#402/#404).
+        "unavailable_proteomes": sorted(unavailable_proteomes),
         "n_rows": len(mappings),
         "n_peptides": int(mappings["peptide"].nunique()) if len(mappings) else 0,
         "n_proteomes": int(mappings["proteome"].nunique()) if len(mappings) else 0,
@@ -553,10 +779,9 @@ def build_peptide_mappings(
 # touch this code path (loads from pickle), so the parallelism win is
 # concentrated on the cold-build path.
 #
-# Memory ceiling: each worker holds at most one single-length
-# ProteomeIndex at a time — the per-length build / drop loop lives
-# inside _per_canonical_mapping_worker below, preserving #109's
-# invariant.  With the default of 4 workers, peak resident is ~ 4x
+# Memory ceiling: each worker builds exactly one seed ProteomeIndex and maps
+# every peptide length through it, preserving #109's one-index-per-worker
+# invariant. With the default of 4 workers, peak resident is ~ 4x
 # largest-single-length-index ~ 4 x 3 GB = 12 GB — safely under the
 # 16 GB / 32 GB host class targets.
 
@@ -587,36 +812,31 @@ def _build_workers() -> int:
 def _prefetch_proteomes_for_workers(
     canonicals_and_entries: list[tuple[str, dict]],
     release: int,
-    use_uniprot: bool,
     verbose: bool,
-) -> None:
+    deadline_seconds: float = _PROTEOME_WARMUP_DEADLINE_SECONDS,
+) -> set[str]:
     """Eagerly download/index every proteome the workers will need (#249).
 
-    Workers run in fresh processes (``ProcessPoolExecutor`` defaults to
-    spawn on macOS, fork on Linux) and don't share download locks.  On
-    a first-ever cold build, two workers needing the SAME UniProt FASTA
-    could race on the ``.tmp`` file (``fetch_species_proteome`` writes
-    via ``urllib.request.urlretrieve`` to a non-unique tmp path).  Two
-    workers needing the SAME pyensembl GTF could race on its download +
-    SQLite index build.  We avoid both races by warming the on-disk
-    caches sequentially in the parent before dispatching tasks.
+    Workers run in fresh processes (``ProcessPoolExecutor`` defaults to spawn
+    on macOS, fork on Linux) and don't share download locks. On a first-ever
+    cold build, two workers needing the same UniProt FASTA or pyensembl GTF
+    could race on the shared download/index paths. We avoid both races by
+    warming the on-disk caches sequentially in one supervised child before
+    dispatching mapping tasks.
 
-    Takes ``(canonical_key, entry)`` pairs because the canonical KEY
-    (the dict key the worker eventually passes to
-    :func:`fetch_species_proteome` via :func:`_build_species_index`) is
-    what must be deduped — the entry's internal ``canonical_species``
-    field isn't always set (the orchestrator falls back to the source
-    organism string when missing).
+    Takes ``(canonical_key, entry)`` pairs because the key is the stable label
+    for logs/results, while the explicit resolved entry prevents child/worker
+    processes from repeating UniProt REST resolution. The entry's internal
+    ``canonical_species`` field is not always set.
 
-    ``use_uniprot`` mirrors :func:`build_peptide_mappings`'s parameter
-    so the pre-fetch resolves canonicals against the same registry path
-    the workers will use; otherwise the pre-fetch could silently miss
-    species that workers DO need.
+    No-op when caches are warm (the typical case): each call is idempotent and
+    exits in milliseconds when the file/db is already present. The warm-up runs
+    in a supervised child process with one absolute wall-clock deadline. A
+    blocked call can therefore be terminated rather than wedging the parent.
 
-    No-op when caches are warm (the typical case): each call is
-    idempotent and exits in milliseconds when the file/db is already
-    present.  Failures are tolerated — the worker will hit the same
-    code path and surface the error there.
+    Returns the canonical keys whose cache warm-up failed, timed out, or was
+    left unattempted after the deadline. Callers must skip those tasks rather
+    than retrying the same operation silently inside a mapping worker.
 
     Note: this warms the FASTA / GTF on disk only — it does NOT pre-build
     the on-disk pickle index from #246/#251.  When the pickle cache is
@@ -625,150 +845,249 @@ def _prefetch_proteomes_for_workers(
     writes don't corrupt, just waste CPU.  Pre-building serially in the
     parent would defeat the parallelism this PR adds.
     """
-    from .downloads import fetch_species_proteome
+    # Deduplicate UniProt inputs by UPID and Ensembl inputs by species. One
+    # successful cache write serves every canonical alias in the group.
+    unique = dict(canonicals_and_entries)
+    tasks: list[tuple[str, tuple[str, ...], dict]] = []
+    uniprot_groups: dict[str, list[str]] = {}
+    for canonical, entry in unique.items():
+        if entry.get("kind") != "ensembl":
+            group_key = entry.get("proteome_id") or f"canonical:{canonical}"
+            uniprot_groups.setdefault(group_key, []).append(canonical)
+    for _group_key, canonicals in sorted(uniprot_groups.items()):
+        aliases = tuple(sorted(canonicals))
+        entry = unique[aliases[0]]
+        label = entry.get("label") or aliases[0]
+        tasks.append((label, aliases, entry))
 
-    # UniProt FASTAs: dedup by canonical KEY (not entry.canonical_species
-    # — that field may be absent when the orchestrator's dict key fell
-    # back to the source organism).  fetch_species_proteome dedupes
-    # further by UPID inside (multiple strain canonicals → one download).
-    uniprot_canonicals = sorted(
-        {canonical for canonical, entry in canonicals_and_entries if entry.get("kind") != "ensembl"}
-    )
-    if uniprot_canonicals and verbose:
-        print(
-            f"  Pre-fetching {len(uniprot_canonicals)} UniProt FASTA(s) "
-            f"in parent (avoids worker download races) ..."
-        )
-    budget = _prefetch_budget()
-    started = time.monotonic()
-    for i, canonical in enumerate(uniprot_canonicals, 1):
-        elapsed = time.monotonic() - started
-        if elapsed > budget:
-            # Pre-fetch is an optimization, not a requirement: the docstring
-            # above already promises that failures are tolerated because the
-            # worker hits the same code path.  A *stall* has to be tolerated
-            # the same way, or the phase that exists to save time becomes the
-            # phase that prevents the build from ever finishing.
-            #
-            # A real build wedged here for 2h29m at 0% CPU with no output and
-            # no artifact, after 80 consecutive UniProt failures (#402).  The
-            # blocking call was never identified, because nothing named what
-            # was in flight -- see the progress line below, which is the other
-            # half of this fix.
-            if verbose:
-                remaining = len(uniprot_canonicals) - i + 1
-                print(
-                    f"    pre-fetch budget of {budget:.0f}s exhausted after "
-                    f"{elapsed:.0f}s; skipping the remaining {remaining} "
-                    f"proteome(s).  Workers will fetch them on demand."
-                )
-            break
-        # Printed BEFORE the call, not only on failure.  The old loop logged
-        # only in the `except`, so a call that blocked printed nothing at all
-        # and the last line in the log was the last *successful failure* --
-        # naming a proteome that had already completed.
-        if verbose:
-            print(f"    [{i}/{len(uniprot_canonicals)}] {canonical} ...", flush=True)
-        try:
-            fetch_species_proteome(canonical, verbose=False, use_uniprot=use_uniprot)
-        except Exception as e:
-            if verbose:
-                print(f"    [{canonical}] pre-fetch skipped: {e}")
-
-    # Ensembl species: pre-trigger pyensembl download + SQLite index build
-    # once per (release, species) so workers find the local cache populated
-    # rather than racing on it.  download() / index() are idempotent.
-    ensembl_species = sorted(
-        {
-            entry.get("species", "human")
-            for _canonical, entry in canonicals_and_entries
-            if entry.get("kind") == "ensembl"
-        }
-    )
-    if ensembl_species:
-        if verbose:
-            print(
-                f"  Pre-warming {len(ensembl_species)} Ensembl release(s) "
-                f"in parent (avoids worker GTF races) ..."
+    ensembl_groups: dict[str, list[str]] = {}
+    for canonical, entry in unique.items():
+        if entry.get("kind") == "ensembl":
+            ensembl_groups.setdefault(entry.get("species", "human"), []).append(canonical)
+    for species, canonicals in sorted(ensembl_groups.items()):
+        tasks.append(
+            (
+                f"Ensembl {species} r{release}",
+                tuple(sorted(canonicals)),
+                {"kind": "ensembl", "species": species},
             )
-        try:
+        )
+
+    if verbose and tasks:
+        print(
+            f"  Pre-warming {len(tasks)} proteome cache entr{'y' if len(tasks) == 1 else 'ies'} "
+            "in a supervised process ..."
+        )
+    return _supervise_prefetch_tasks(
+        tasks,
+        release=release,
+        verbose=verbose,
+        deadline_seconds=deadline_seconds,
+    )
+
+
+def _prefetch_worker(
+    label: str,
+    entry: dict,
+    cache_dir: str,
+    release: int,
+) -> tuple[str, bool, str]:
+    """Perform one cache warm-up in a child process and report its outcome."""
+    from .downloads import fetch_proteome_by_upid, set_data_dir
+
+    set_data_dir(cache_dir)
+    try:
+        if entry.get("kind") == "resolve":
+            from .downloads import _uniprot_cache, lookup_proteome
+
+            organism = entry["organism"]
+            resolved = lookup_proteome(
+                organism,
+                use_uniprot=True,
+                allow_network=True,
+            )
+            # A genuine empty result is cached negatively and is a successful
+            # resolution. A transport failure deliberately leaves no cache
+            # entry, so the build must remain retryable.
+            if resolved is None and organism not in _uniprot_cache():
+                raise RuntimeError("UniProt resolution failed transiently")
+        elif entry.get("kind") == "ensembl":
             from pyensembl import EnsemblRelease
-        except ImportError:
-            return
-        for species in ensembl_species:
+
+            ensembl = EnsemblRelease(release, species=entry.get("species", "human"))
+            ensembl.download()
+            ensembl.index()
+        else:
+            path = fetch_proteome_by_upid(
+                entry["proteome_id"],
+                label=label,
+                verbose=False,
+                fetch_missing=True,
+            )
+            if path is None or not path.exists():
+                raise RuntimeError("proteome FASTA was not cached")
+        return label, True, ""
+    except Exception as error:
+        return label, False, f"{type(error).__name__}: {error}"
+
+
+def _supervise_prefetch_tasks(
+    tasks: list[tuple[str, tuple[str, ...], dict]],
+    *,
+    release: int,
+    verbose: bool,
+    deadline_seconds: float = _PROTEOME_WARMUP_DEADLINE_SECONDS,
+    worker_target=None,
+) -> set[str]:
+    """Run cache warm-ups behind a killable absolute wall-clock deadline."""
+    if not tasks:
+        return set()
+    if not math.isfinite(deadline_seconds) or deadline_seconds <= 0:
+        unavailable = {canonical for _, canonicals, _ in tasks for canonical in canonicals}
+        print(
+            "    proteome warm-up deadline is invalid or already exhausted; skipping "
+            f"{len(unavailable)} proteome(s).",
+            flush=True,
+        )
+        return unavailable
+
+    import multiprocessing as mp
+
+    from .downloads import data_dir
+
+    target = worker_target or _prefetch_worker
+    context = mp.get_context("spawn")
+    unavailable: set[str] = set()
+    started = time.monotonic()
+    pool = None
+    aborted = False
+
+    try:
+        pool = context.Pool(processes=1)
+        for i, (label, canonicals, entry) in enumerate(tasks, 1):
+            elapsed = time.monotonic() - started
+            remaining_seconds = deadline_seconds - elapsed
+            if remaining_seconds <= 0:
+                unavailable.update(c for _, keys, _ in tasks[i - 1 :] for c in keys)
+                print(
+                    f"    prefetch deadline of {deadline_seconds:.0f}s exhausted; "
+                    f"skipping {len(unavailable)} proteome(s).",
+                    flush=True,
+                )
+                aborted = True
+                break
+
+            if verbose:
+                print(f"    [{i}/{len(tasks)}] {label} ...", flush=True)
             try:
-                ensembl = EnsemblRelease(release, species=species)
-                # download() then index() — both idempotent, cheap when warm.
-                ensembl.download()
-                ensembl.index()
-            except Exception as e:
-                if verbose:
-                    print(f"    [{species}] pre-warm skipped: {e}")
+                result = pool.apply_async(
+                    target,
+                    (label, entry, str(data_dir()), release),
+                )
+                returned_label, succeeded, error_text = result.get(timeout=remaining_seconds)
+            except mp.TimeoutError:
+                unavailable.update(c for _, keys, _ in tasks[i - 1 :] for c in keys)
+                print(
+                    f"    [{label}] prefetch timed out at the {deadline_seconds:.0f}s "
+                    f"phase deadline; skipping it and {len(tasks) - i} remaining "
+                    "cache request(s).",
+                    flush=True,
+                )
+                aborted = True
+                break
+            except Exception as error:
+                unavailable.update(canonicals)
+                print(
+                    f"    [{label}] prefetch worker failed ({error}); skipped.",
+                    flush=True,
+                )
+                continue
+            if returned_label != label:
+                unavailable.update(canonicals)
+                print(
+                    f"    [{label}] prefetch protocol mismatch ({returned_label!r}); skipped.",
+                    flush=True,
+                )
+            elif not succeeded:
+                unavailable.update(canonicals)
+                print(f"    [{label}] prefetch skipped: {error_text}", flush=True)
+    except (OSError, RuntimeError) as error:
+        unavailable.update(c for _, canonicals, _ in tasks for c in canonicals)
+        print(f"    prefetch worker could not start: {error}; skipping all proteomes.", flush=True)
+        aborted = True
+    finally:
+        if pool is not None:
+            if aborted:
+                pool.terminate()
+            else:
+                pool.close()
+            pool.join()
+
+    return unavailable
 
 
-#: Wall-clock budget for the parent-side UniProt pre-fetch phase, in seconds.
-#: Override with ``HITLIST_PREFETCH_BUDGET``.  Generous by default -- the
-#: phase is normally a no-op on warm caches and this only has to bound the
-#: pathological case, not tune the healthy one.
-_DEFAULT_PREFETCH_BUDGET = 900.0
-
-
-def _prefetch_budget() -> float:
-    """Seconds the UniProt pre-fetch phase may spend before giving up."""
-    raw = os.environ.get("HITLIST_PREFETCH_BUDGET")
-    if raw:
-        try:
-            return float(raw)
-        except ValueError:
-            pass
-    return _DEFAULT_PREFETCH_BUDGET
-
-
-def _per_canonical_mapping_worker(
-    args: tuple,
-) -> tuple[str, list[pd.DataFrame], int, int]:
-    """Build + map for one canonical species across its requested lengths.
+def _per_canonical_mapping_worker(task: MappingTask) -> MappingResult:
+    """Execute one canonical proteome mapping task.
 
     Module-level so :class:`concurrent.futures.ProcessPoolExecutor` can
-    pickle and dispatch it across workers.  Logically equivalent to the
-    inner loop body of the pre-#249 sequential code:
-
-        for length in lengths_in_query:
-            idx = _build_species_index(canonical, ..., lengths=(length,))
-            flanking = idx.map_peptides(...)
-            df = _flanking_rows_to_mapping_rows(...)
-            del idx, flanking
-
-    Returns ``(canonical, dfs, n_matched_peptides, n_input_peptides)``.
+    pickle and dispatch it across workers. This is the single implementation
+    used by both sequential and process-pool execution: build/load one seed
+    index, map every peptide length through it, normalize the long-form rows,
+    and report coverage against the original input denominator.
 
     Workers run with ``verbose=False`` to avoid interleaved progress
     spam in the parent terminal — the orchestrator emits one summary
     line per canonical on completion if it wants progress output.
 
-    On a per-length build failure (proteome not registered, FASTA
-    download failure, pyensembl missing GTF), the length is silently
-    skipped — same behavior as the sequential code.
+    If the already-resolved proteome cannot be loaded (missing offline FASTA,
+    unavailable pyensembl data, corrupt cache), the task returns an empty
+    result with the full input count preserved as its coverage denominator.
     """
-    canonical, peptides, seed_lengths, release, use_uniprot, flank = args
-
-    n_input = len(peptides)
-    idx = _build_species_index(canonical, release, use_uniprot, False, lengths=seed_lengths)
+    n_input_peptides = len(task.peptides)
+    idx = _build_species_index(
+        canonical=task.canonical,
+        release=task.release,
+        use_uniprot=False,
+        verbose=False,
+        lengths=task.seed_lengths,
+        entry=task.entry,
+        # Network work belongs exclusively to the supervised warm-up. Keeping
+        # mapping workers cache-only prevents a vanished/inconsistent cache
+        # from turning into an unbounded retry outside the phase deadline.
+        fetch_missing=False,
+    )
     if idx is None:
-        return canonical, [], 0, n_input
+        return MappingResult(
+            canonical=task.canonical,
+            mapping_frame=None,
+            n_matched_peptides=0,
+            n_input_peptides=n_input_peptides,
+        )
 
     # One index, one pass, every length.  This used to loop over lengths and
     # rebuild the index each time -- four builds per canonical to answer what
     # one seed index answers in a single pass.  Peak per-worker RSS is still
     # bounded by a single index, so #109's invariant holds by construction
     # rather than by remembering to `del` between iterations.
-    flanking = idx.map_peptides(sorted(peptides), flank=flank, verbose=False)
+    flanking = idx.map_peptides(
+        sorted(task.peptides),
+        flank=task.flank,
+        verbose=False,
+    )
     df = _flanking_rows_to_mapping_rows(
-        flanking, proteome_label=canonical, proteome_source="species"
+        flanking,
+        proteome_label=task.canonical,
+        proteome_source="species",
     )
     matched = set(flanking["peptide"].unique()) if len(flanking) else set()
     del idx, flanking
 
-    return canonical, [df], len(matched), n_input
+    return MappingResult(
+        canonical=task.canonical,
+        mapping_frame=df,
+        n_matched_peptides=len(matched),
+        n_input_peptides=n_input_peptides,
+    )
 
 
 def _build_species_index(
@@ -777,20 +1096,28 @@ def _build_species_index(
     use_uniprot: bool,
     verbose: bool,
     lengths: tuple[int, ...] = (SEED_KMER_LENGTH,),
+    entry: dict | None = None,
+    fetch_missing: bool = True,
 ):
-    """Build a ProteomeIndex for a species, optionally at specific k-mer lengths.
+    """Build a proteome index from a resolved entry or canonical species.
 
-    The ``lengths`` kwarg enables length-on-demand building so callers
-    that only need one length at a time (the mapping pass) can keep
-    peak memory bounded by a single length's index (~1 GB for human
-    9-mers) rather than all four MHC-I lengths combined (~10 GB).
+    ``entry`` lets callers separate registry/network resolution from index
+    construction. When it is omitted, ``use_uniprot`` controls dynamic
+    resolution and ``fetch_missing`` controls both resolution and FASTA
+    downloads. Passing a resolved entry with ``fetch_missing=False`` is the
+    mapping worker's strictly cache-only path.
 
-    Returns None on failure.
+    Returns ``None`` if resolution, cache access, or index construction fails.
     """
-    from .downloads import fetch_species_proteome, lookup_proteome
+    from .downloads import fetch_proteome_by_upid, lookup_proteome
     from .proteome import ProteomeIndex
 
-    entry = lookup_proteome(canonical, use_uniprot=use_uniprot)
+    if entry is None:
+        entry = lookup_proteome(
+            canonical,
+            use_uniprot=use_uniprot,
+            allow_network=fetch_missing,
+        )
     if entry is None:
         return None
 
@@ -808,7 +1135,17 @@ def _build_species_index(
                 print(f"    [{canonical}] pyensembl failed: {e}")
             return None
 
-    path = fetch_species_proteome(canonical, verbose=verbose, use_uniprot=use_uniprot)
-    if path is None or not path.exists():
+    try:
+        path = fetch_proteome_by_upid(
+            entry["proteome_id"],
+            label=canonical,
+            verbose=verbose,
+            fetch_missing=fetch_missing,
+        )
+        if path is None or not path.exists():
+            return None
+        return ProteomeIndex.from_fasta(path, lengths=lengths, verbose=False)
+    except Exception as error:
+        if verbose:
+            print(f"    [{canonical}] UniProt proteome failed: {error}")
         return None
-    return ProteomeIndex.from_fasta(path, lengths=lengths, verbose=False)

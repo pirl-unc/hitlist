@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import sys
+import types
+
 import pytest
 
 from hitlist.genes import (
@@ -12,22 +15,53 @@ from hitlist.genes import (
 )
 
 
-def test_load_gene_set_cta_sourced_from_cancerdata():
+@pytest.fixture
+def fake_cancerdata(monkeypatch):
+    expected = ["PRAME", "MAGEA4", "CAGE1", "BRDT", *[f"CTA{i}" for i in range(201)]]
+    package = types.ModuleType("cancerdata")
+    cta = types.ModuleType("cancerdata.cta")
+    cta.CTA_gene_names = lambda: list(expected)
+    package.cta = cta
+    monkeypatch.setitem(sys.modules, "cancerdata", package)
+    monkeypatch.setitem(sys.modules, "cancerdata.cta", cta)
+    return expected
+
+
+def test_load_gene_set_cta_sourced_from_cancerdata(fake_cancerdata):
     """The CTA set delegates to the cancerdata package (its CTpedia/daSilva2017
     candidates filtered by HPA reproductive/thymus restriction) — a single
     source of truth, not a hand-maintained duplicate."""
-    cta = pytest.importorskip("cancerdata.cta")
     genes = load_gene_set("CTA")
-    assert set(genes) == set(cta.CTA_gene_names())
+    assert set(genes) == set(fake_cancerdata)
     assert len(genes) > 200  # the full restriction-filtered panel, not a subset
     for expected in ("PRAME", "MAGEA4", "CAGE1", "BRDT"):
         assert expected in genes
     assert len(genes) == len(set(genes))
 
 
-def test_load_gene_set_is_case_insensitive():
-    pytest.importorskip("cancerdata.cta")
+def test_load_gene_set_is_case_insensitive(fake_cancerdata):
     assert load_gene_set("cta") == load_gene_set("CTA")
+
+
+def test_load_gene_set_missing_optional_provider_is_actionable(monkeypatch):
+    from hitlist.genes import _genes_from_provider
+
+    monkeypatch.delitem(sys.modules, "cancerdata", raising=False)
+    monkeypatch.delitem(sys.modules, "cancerdata.cta", raising=False)
+    real_import = __import__
+
+    def import_without_cancerdata(name, *args, **kwargs):
+        if name == "cancerdata":
+            raise ImportError("not installed")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr("builtins.__import__", import_without_cancerdata)
+
+    with pytest.raises(
+        RuntimeError,
+        match=r"pip install git\+https://github.com/pirl-unc/cancerdata",
+    ):
+        _genes_from_provider("cancerdata", set_name="CTA")
 
 
 def test_load_gene_set_unknown_raises():

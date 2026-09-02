@@ -4,6 +4,18 @@ import pytest
 from hitlist.proteome import ProteomeIndex
 
 
+def _build_index_in_spawned_process(fasta: str, cache_dir: str, result_path: str) -> None:
+    """Spawn-safe target for the concurrent disk-cache regression test."""
+    from pathlib import Path
+
+    from hitlist.proteome import ProteomeIndex, clear_fasta_index_cache, set_disk_cache_dir
+
+    set_disk_cache_dir(cache_dir)
+    clear_fasta_index_cache()
+    idx = ProteomeIndex.from_fasta(fasta, lengths=(5,), verbose=False)
+    Path(result_path).write_text(str(len(idx.proteins)))
+
+
 def _make_index():
     """Build a small test index from 2 proteins."""
     proteins = {
@@ -643,7 +655,7 @@ def test_digest_unknown_enzyme_raises():
 # ── On-disk persistent cache (#246) ───────────────────────────────────────
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def isolated_disk_cache(tmp_path, monkeypatch):
     """Point the proteome-index disk cache at tmp_path for the duration
     of the test, and reset to default afterward.
@@ -657,11 +669,16 @@ def isolated_disk_cache(tmp_path, monkeypatch):
         set_disk_cache_dir,
     )
 
-    set_disk_cache_dir(tmp_path / "proteome_idx_cache")
+    cache_dir = tmp_path / "proteome_idx_cache"
+    set_disk_cache_dir(cache_dir)
     clear_fasta_index_cache()
     # Make sure the default cap is sane for tests that don't set their own.
     monkeypatch.setenv("HITLIST_PROTEOME_INDEX_CACHE_GB", "1")
     yield
+    # A test may temporarily select another cache or reset to the default.
+    # Re-select our isolated directory before cleanup so teardown can never
+    # delete or even inspect a developer's real ~/.hitlist cache.
+    set_disk_cache_dir(cache_dir)
     clear_disk_cache()
     set_disk_cache_dir(None)
     clear_fasta_index_cache()
@@ -966,27 +983,18 @@ def test_disk_cache_concurrent_writes_are_safe(tmp_path, isolated_disk_cache):
     fasta = tmp_path / "p.fasta"
     fasta.write_text(">sp|P|A\nACDEFGHIKLMNPQRSTVWY\n")
 
-    # The fork target needs its own setup since process state isn't
-    # inherited cleanly under spawn (the default on macOS).
+    # Each spawned target needs its own cache setup. Results use distinct files
+    # rather than multiprocessing.Manager(), whose listener socket may be
+    # unavailable in restricted CI/sandbox environments (#406).
     cache_dir = str(_PROTEOME_INDEX_DISK_CACHE_DIR)
-
-    def _worker(fasta_str, cache_dir_str, return_dict, idx):
-        from hitlist.proteome import (
-            ProteomeIndex,
-            clear_fasta_index_cache,
-            set_disk_cache_dir,
-        )
-
-        set_disk_cache_dir(cache_dir_str)
-        clear_fasta_index_cache()
-        idx_obj = ProteomeIndex.from_fasta(fasta_str, lengths=(5,), verbose=False)
-        return_dict[idx] = len(idx_obj.proteins)
-
-    ctx = mp.get_context("fork") if hasattr(mp, "get_context") else mp
-    manager = ctx.Manager()
-    return_dict = manager.dict()
+    result_paths = [tmp_path / f"result-{i}.txt" for i in range(4)]
+    ctx = mp.get_context("spawn") if hasattr(mp, "get_context") else mp
     procs = [
-        ctx.Process(target=_worker, args=(str(fasta), cache_dir, return_dict, i)) for i in range(4)
+        ctx.Process(
+            target=_build_index_in_spawned_process,
+            args=(str(fasta), cache_dir, str(result_path)),
+        )
+        for result_path in result_paths
     ]
     for p in procs:
         p.start()
@@ -995,7 +1003,7 @@ def test_disk_cache_concurrent_writes_are_safe(tmp_path, isolated_disk_cache):
         assert p.exitcode == 0, f"worker {p.pid} exited {p.exitcode}"
 
     # All workers built the same content.
-    assert dict(return_dict) == {0: 1, 1: 1, 2: 1, 3: 1}
+    assert [path.read_text() for path in result_paths] == ["1"] * 4
 
     # Exactly one cache file (atomic rename means the final entry is
     # whichever winner finished last; previous writes' .tmp files don't

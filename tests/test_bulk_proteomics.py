@@ -2,6 +2,7 @@ import pandas as pd
 import pytest
 
 from hitlist import bulk_proteomics as _bp
+from hitlist import downloads
 from hitlist.bulk_proteomics import (
     available_cell_lines,
     available_peptide_cell_lines,
@@ -11,6 +12,12 @@ from hitlist.bulk_proteomics import (
     load_bulk_proteomics,
     load_bulk_sources,
 )
+
+
+@pytest.fixture(autouse=True)
+def isolated_hitlist_data_dir(tmp_path, monkeypatch):
+    """Never read or overwrite a developer's built bulk-proteomics cache."""
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path / "hitlist-data")
 
 
 def test_read_parquet_cached_memoizes_and_invalidates_on_rebuild(tmp_path):

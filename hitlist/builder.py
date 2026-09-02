@@ -556,6 +556,19 @@ def build_observations(
     out_path = _observations_path()
     binding_out = _binding_path()
     if not force and _cache_is_valid(paths, with_flanking=with_flanking):
+        if build_mappings:
+            # The observations and mappings artifacts have independent cache
+            # contracts. A package upgrade can change mapping semantics while
+            # the source parquets remain byte-for-byte current (#404), so the
+            # observations fast path must still validate/rebuild the sidecar.
+            from .mappings import build_peptide_mappings
+
+            build_peptide_mappings(
+                release=proteome_release,
+                fetch_missing=fetch_missing_proteomes,
+                use_uniprot=use_uniprot_search,
+                force=False,
+            )
         meta = _cache_meta()
         size_mb = out_path.stat().st_size / 1e6 if out_path.exists() else 0
         print(f"Observations already built ({meta.get('n_rows', '?'):,} rows, {size_mb:.1f} MB)")

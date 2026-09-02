@@ -176,9 +176,8 @@ def test_uniprot_transient_error_does_not_cache_negative(monkeypatch):
     assert saved == []  # no negative cached -> a later run retries
 
 
-def test_download_passes_timeout_from_env(tmp_path, monkeypatch):
+def test_download_uses_fixed_socket_timeout(tmp_path, monkeypatch):
     dest = tmp_path / "out.fasta"
-    monkeypatch.setenv("HITLIST_DOWNLOAD_TIMEOUT", "12.5")
     seen = {}
 
     def capture(url, timeout=None):
@@ -188,17 +187,71 @@ def test_download_passes_timeout_from_env(tmp_path, monkeypatch):
     monkeypatch.setattr(downloads.urllib.request, "urlopen", capture)
 
     downloads._download_to_file("http://example/x", dest, verbose=False)
-    assert seen["timeout"] == 12.5
+    assert seen["timeout"] == downloads._DOWNLOAD_SOCKET_TIMEOUT
 
 
-def test_download_timeout_env_invalid_falls_back(monkeypatch):
-    monkeypatch.setenv("HITLIST_DOWNLOAD_TIMEOUT", "not-a-number")
-    assert downloads._download_timeout() == downloads._DEFAULT_DOWNLOAD_TIMEOUT
+def test_uniprot_lookup_offline_reuses_cached_resolution(monkeypatch):
+    monkeypatch.setattr(
+        downloads,
+        "_uniprot_cache",
+        lambda: {
+            "Pteropus alecto": {
+                "proteome_id": "UP000031014",
+                "scientific_name": "Pteropus alecto",
+            }
+        },
+    )
+    monkeypatch.setattr(
+        downloads,
+        "resolve_proteome_via_uniprot",
+        lambda *_a, **_kw: pytest.fail("offline lookup must not contact UniProt"),
+    )
+
+    assert (
+        downloads.lookup_proteome("Uncached organism xyz", use_uniprot=True, allow_network=False)
+        is None
+    )
+
+    out = downloads.lookup_proteome("Pteropus alecto", use_uniprot=True, allow_network=False)
+
+    assert out is not None
+    assert out["proteome_id"] == "UP000031014"
 
 
-def test_download_timeout_env_default(monkeypatch):
-    monkeypatch.delenv("HITLIST_DOWNLOAD_TIMEOUT", raising=False)
-    assert downloads._download_timeout() == downloads._DEFAULT_DOWNLOAD_TIMEOUT
+def test_uniprot_lookup_offline_does_not_resolve_uncached_organism(monkeypatch):
+    monkeypatch.setattr(downloads, "_uniprot_cache", lambda: {})
+    monkeypatch.setattr(
+        downloads,
+        "resolve_proteome_via_uniprot",
+        lambda *_a, **_kw: pytest.fail("offline lookup must not contact UniProt"),
+    )
+
+    assert (
+        downloads.lookup_proteome(
+            "Uncached organism xyz",
+            use_uniprot=True,
+            allow_network=False,
+        )
+        is None
+    )
+
+
+def test_fetch_by_upid_offline_does_not_download(tmp_path, monkeypatch):
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
+    monkeypatch.setattr(
+        downloads,
+        "_download_to_file",
+        lambda *_a, **_kw: pytest.fail("offline UPID fetch must not download"),
+    )
+
+    result = downloads.fetch_proteome_by_upid(
+        "UP000000001",
+        label="offline",
+        verbose=False,
+        fetch_missing=False,
+    )
+
+    assert result is None
 
 
 def test_manifest_atomic_write_and_corruption_tolerance(tmp_path, monkeypatch):

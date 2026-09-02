@@ -1,3 +1,84 @@
+# Issues #402, #404, #405 — bounded/offline-safe mapping builds and artifact contract
+
+## Goal
+
+Make peptide-mapping builds terminate predictably, obey the documented no-fetch policy, and
+rebuild sidecars whenever the code or parameters that define their contents change. Remove the
+new timeout environment variables: safety deadlines are internal invariants, while legitimate
+caller choices remain explicit function/CLI arguments.
+
+## Design
+
+- Replace the parent loop's before-call stopwatch with a supervised, killable child process.
+  The parent submits one canonical at a time to a single-child process pool, records the in-flight
+  name before dispatch, and waits only until one fixed absolute phase deadline. If the child does
+  not answer, terminate it, report the named canonical, and skip it plus the unattempted tail.
+- Return explicit prefetch outcomes. Workers may only receive UniProt/Ensembl tasks whose required
+  local cache warm-up succeeded; a failed/timed-out fetch is not retried silently in a worker.
+  This keeps the existing "failure is tolerated" contract without moving the same hang elsewhere.
+- Replace `_per_canonical_mapping_worker`'s positional tuple protocol with a documented, picklable
+  `MappingTask` value object. Keep index construction, peptide mapping, output normalization, and
+  coverage accounting in one worker entry point so unit and real process-pool tests exercise the
+  same API across cache/network policies and peptide lengths.
+- Remove `HITLIST_PREFETCH_BUDGET`, `HITLIST_DOWNLOAD_TIMEOUT`, and their float parsers. Keep the
+  socket timeout and prefetch deadline as finite positive internal constants. Tests may pass an
+  internal deadline argument directly; users do not configure safety correctness through process
+  state.
+- Honor `fetch_missing=False` (#405): reuse existing cached artifacts, but do not launch the
+  prefetch worker or any network download for an uncached proteome. Log and record skipped tasks.
+- Add a monotonic peptide-mapping artifact version plus behavior-defining parameters (Ensembl
+  release, UniProt search policy, flank width, seed length, and output schema) to the metadata.
+  Legacy or mismatched metadata is stale.
+- On an observations-cache hit with `build_mappings=True`, invoke the mappings builder so it can
+  validate/rebuild only the sidecar. Do not rescan observations, bulk proteomics, or expression.
+- Keep the pre-call progress line from #403 and make deadline/failure messages unconditional when
+  they explain omitted output.
+
+## Implementation and verification
+
+- [x] Add failing regression tests for an actually blocked in-flight prefetch, explicit failed and
+      unattempted outcomes, no worker retry, and `fetch_missing=False` network isolation.
+- [x] Introduce and document `MappingTask`; expand direct and process-pool worker contract tests.
+- [x] Implement supervised prefetch and remove the timeout environment-variable APIs/tests.
+- [x] Add mapping artifact contract metadata and cache-validation tests, including legacy metadata
+      and each behavior-defining parameter.
+- [x] Add a builder early-return regression proving stale/missing mappings rebuild independently.
+- [x] Identify all four default-suite skips; remove any state-dependent skip that masks a unit-test
+      branch, or document why the integration/dependency skip is intentional.
+- [x] Bump the patch version and update user-facing documentation/comments.
+- [x] Run `./format.sh`, `./lint.sh`, and `./test.sh`; inspect the diff and test behavior.
+- [x] Isolate the unrelated default-suite cache/multiprocessing flake found during final
+      high-concurrency verification (#406), then rerun all required gates.
+- [ ] Push a PR linking #402, #404, and #405; check every CI job.
+- [ ] Merge, update clean `main`, run `./deploy.sh`, and verify the released version on PyPI.
+
+## Review section
+
+- Replaced the pre-call-only stopwatch with a single-child supervisor that names every in-flight
+  request, enforces one absolute 900-second warm-up deadline, terminates a blocked call, and marks
+  the current/unattempted proteomes unavailable. Mapping workers are structurally cache-only, so
+  the same network operation cannot escape the deadline as an on-demand retry.
+- Removed `HITLIST_PREFETCH_BUDGET` and `HITLIST_DOWNLOAD_TIMEOUT`. The finite socket timeout and
+  warm-up deadline are internal safety constants; invalid/exhausted internal test deadlines fail
+  closed. `fetch_missing=False` now reaches resolution, primary UPID fetches, and PMID overrides.
+- `_per_canonical_mapping_worker` now accepts a documented `MappingTask` and returns a named
+  `MappingResult`. One implementation builds one seed index, maps every peptide length, produces
+  one normalized frame, distinguishes unavailable from zero matches, and preserves the full
+  coverage denominator. Direct, pickle, corrupt-cache, and real process-pool cases cover the API.
+- Mapping metadata now carries artifact version, Ensembl release, UniProt/fetch policy, flank,
+  seed length, and schema. Legacy/mismatched/incomplete artifacts rebuild; observations cache hits
+  still validate the independently cached mappings sidecar.
+- The four default skips were two tests conditional on a developer's local observations cache and
+  two tests conditional on the optional, non-PyPI `cancerdata` package. The first pair now uses an
+  isolated empty data directory; the second injects a fake provider and separately tests the
+  actionable missing-provider error. Latest default run: 1,130 passed, 0 skipped.
+- `./format.sh`, `./lint.sh`, and `./test.sh -rs` pass. Version bumped from 1.55.3 to 1.55.4.
+- Final high-concurrency review exposed #406: bulk/proteome tests depended on real user cache state,
+  and one multiprocessing regression required a sandbox-forbidden Manager socket. The PR now
+  isolates those caches per test and uses spawn-safe result files instead of a Manager service.
+
+---
+
 # Issue #46 — multi-axis species model (PR 1: schema + filters)
 
 Scope (user-approved): **Schema + filters**, detection via **genus-aware heuristic + audit**.

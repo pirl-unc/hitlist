@@ -76,10 +76,12 @@ from tqdm.auto import tqdm
 # parallel mapping pre-fetch (#254) downloads serially in the orchestrator,
 # where one hung connection would stall every worker.  See issue #255.
 
-# Connect+read timeout for a single download attempt, in seconds.  Long
-# enough for a ~200 MB UniProt FASTA on a slow link, short enough to detect a
-# real stall.  Override with ``HITLIST_DOWNLOAD_TIMEOUT``.
-_DEFAULT_DOWNLOAD_TIMEOUT = 300.0
+# Connect/read socket timeout for a single download operation, in seconds.
+# This is a safety invariant, not a user-tuning knob: accepting arbitrary
+# process-state values allowed NaN/inf/negative timeouts that either disabled
+# the guard or crashed inside ``socket.settimeout``.  Mapping prefetch has a
+# separate hard wall-clock deadline supervised from another process (#402).
+_DOWNLOAD_SOCKET_TIMEOUT = 300.0
 
 # Backoff (seconds) before each retry.  Its length is the retry count, so the
 # total number of attempts is ``len(_DOWNLOAD_RETRY_BACKOFF) + 1``.  Tests
@@ -89,17 +91,6 @@ _DOWNLOAD_RETRY_BACKOFF: tuple[float, ...] = (5.0, 30.0)
 # Streaming read size for downloads — caps memory at one chunk (vs reading the
 # whole response) and gives the progress bar a smooth update cadence.
 _DOWNLOAD_CHUNK_SIZE = 1 << 16  # 64 KiB
-
-
-def _download_timeout() -> float:
-    """Per-attempt download timeout in seconds (``HITLIST_DOWNLOAD_TIMEOUT``)."""
-    raw = os.environ.get("HITLIST_DOWNLOAD_TIMEOUT")
-    if raw:
-        try:
-            return float(raw)
-        except ValueError:
-            pass
-    return _DEFAULT_DOWNLOAD_TIMEOUT
 
 
 def _download_to_file(url: str, dest: Path, *, label: str = "", verbose: bool = True) -> None:
@@ -112,7 +103,7 @@ def _download_to_file(url: str, dest: Path, *, label: str = "", verbose: bool = 
     ``_DOWNLOAD_RETRY_BACKOFF``.  Raises ``RuntimeError`` if every attempt
     fails.
     """
-    timeout = _download_timeout()
+    timeout = _DOWNLOAD_SOCKET_TIMEOUT
     tmp = dest.with_suffix(dest.suffix + ".tmp")
     what = label or url
     last_err: Exception | None = None
@@ -760,15 +751,16 @@ def _save_uniprot_cache_entry(organism: str, entry: dict | None) -> None:
 def lookup_proteome(
     species_or_organism: str,
     use_uniprot: bool = False,
+    allow_network: bool = True,
 ) -> dict | None:
     """Resolve a species or IEDB source_organism string to a proteome registry entry.
 
     Applies in order:
     1. Curated ``SPECIES_PROTEOMES`` registry (normalized via mhcgnomes)
     2. Curated ``VIRAL_PROTEOMES`` substring match
-    3. (Optional) UniProt REST lookup — only if ``use_uniprot=True``
-       and the resolution hasn't been cached yet.  Negative results
-       (``{"not_found": True}``) are also cached to avoid re-querying.
+    3. (Optional) cached UniProt resolution when ``use_uniprot=True``
+    4. (Optional) UniProt REST lookup when ``use_uniprot=True`` and
+       ``allow_network=True``. Negative results are cached to avoid re-querying.
 
     Returns ``None`` if no proteome is registered/discoverable.
     """
@@ -826,6 +818,9 @@ def lookup_proteome(
             "proteome_type": cached.get("proteome_type"),
         }
 
+    if not allow_network:
+        return None
+
     try:
         resolved = resolve_proteome_via_uniprot(species_or_organism)
     except Exception:
@@ -850,6 +845,7 @@ def fetch_species_proteome(
     force: bool = False,
     verbose: bool = True,
     use_uniprot: bool = False,
+    fetch_missing: bool = True,
 ) -> Path | None:
     """Fetch (or return cached) reference proteome FASTA for a species.
 
@@ -869,8 +865,15 @@ def fetch_species_proteome(
         Fall back to UniProt REST search for organisms not in the curated
         registry.  Resolved mappings are cached in the manifest to avoid
         re-querying.
+    fetch_missing
+        Download an uncached FASTA when True. When False, cached registry and
+        UniProt-resolution entries may be reused but no network call is made.
     """
-    entry = lookup_proteome(species, use_uniprot=use_uniprot)
+    entry = lookup_proteome(
+        species,
+        use_uniprot=use_uniprot,
+        allow_network=fetch_missing,
+    )
     if entry is None:
         return None
 
@@ -934,6 +937,9 @@ def fetch_species_proteome(
         _save_manifest(manifest)
         return dest
 
+    if not fetch_missing:
+        return None
+
     if verbose:
         print(f"  [{canonical}] fetching UniProt {proteome_id} ...")
     _download_to_file(url, dest, label=canonical, verbose=verbose)
@@ -964,6 +970,7 @@ def fetch_proteome_by_upid(
     label: str | None = None,
     force: bool = False,
     verbose: bool = True,
+    fetch_missing: bool = True,
 ) -> Path | None:
     """Fetch (or return cached) a UniProt reference proteome by UPID.
 
@@ -983,6 +990,9 @@ def fetch_proteome_by_upid(
         Re-download even if already cached.
     verbose
         Print progress messages.
+    fetch_missing
+        Download the FASTA when it is not already cached. When False, return
+        ``None`` without network access for a cache miss.
     """
     if not upid:
         return None
@@ -1006,6 +1016,8 @@ def fetch_proteome_by_upid(
         if verbose:
             print(f"  [{name}] already cached ({dest.stat().st_size:,} bytes)")
     else:
+        if not fetch_missing:
+            return None
         if verbose:
             print(f"  [{name}] fetching UniProt {upid} ...")
         _download_to_file(url, dest, label=name, verbose=verbose)

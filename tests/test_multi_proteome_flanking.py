@@ -226,6 +226,25 @@ def test_fetch_species_proteome_ensembl_no_download(tmp_path, monkeypatch):
     assert data["proteomes"]["Homo sapiens"]["kind"] == "ensembl"
 
 
+def test_fetch_species_proteome_offline_does_not_download(tmp_path, monkeypatch):
+    from hitlist import downloads
+
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
+
+    def fail_download(*_args, **_kwargs):
+        raise AssertionError("fetch_missing=False must not download")
+
+    monkeypatch.setattr(downloads, "_download_to_file", fail_download)
+
+    result = downloads.fetch_species_proteome(
+        "Sarcophilus harrisii",
+        verbose=False,
+        fetch_missing=False,
+    )
+
+    assert result is None
+
+
 def test_collect_pmid_extra_proteomes_reads_yaml():
     """_collect_pmid_extra_proteomes should surface reference_proteomes from ms_samples."""
     from hitlist.builder import _collect_pmid_extra_proteomes
