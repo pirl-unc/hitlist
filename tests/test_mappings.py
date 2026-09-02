@@ -639,6 +639,8 @@ def test_prefetch_plans_unique_canonicals_and_groups_ensembl(monkeypatch):
 
 
 def test_prefetch_worker_fetches_explicit_upid(tmp_path, monkeypatch):
+    from hitlist import downloads
+
     fetched = []
 
     fasta = tmp_path / "rare.fasta"
@@ -648,13 +650,21 @@ def test_prefetch_worker_fetches_explicit_upid(tmp_path, monkeypatch):
         fetched.append((upid, kwargs))
         return fasta
 
-    monkeypatch.setattr("hitlist.downloads.fetch_proteome_by_upid", fake_fetch)
-    result = _prefetch_worker(
-        "Rare species",
-        {"kind": "uniprot", "proteome_id": "UP123"},
-        str(tmp_path),
-        release=112,
-    )
+    original_data_dir = downloads._override_data_dir
+    with monkeypatch.context() as child_state:
+        # _prefetch_worker normally runs in a disposable spawned process. A
+        # direct unit call must restore the process-global override afterward
+        # or later xdist tests can observe this test's empty tmp directory.
+        child_state.setattr(downloads, "_override_data_dir", original_data_dir)
+        child_state.setattr(downloads, "fetch_proteome_by_upid", fake_fetch)
+        result = _prefetch_worker(
+            "Rare species",
+            {"kind": "uniprot", "proteome_id": "UP123"},
+            str(tmp_path),
+            release=112,
+        )
+
+    assert downloads._override_data_dir is original_data_dir
 
     assert fetched == [
         (
@@ -675,19 +685,23 @@ def test_prefetch_worker_distinguishes_negative_resolution_from_transport_failur
 ):
     from hitlist import downloads
 
-    monkeypatch.setattr(downloads, "lookup_proteome", lambda *_a, **_kw: None)
-    monkeypatch.setattr(
-        downloads,
-        "_uniprot_cache",
-        lambda: {"Mystery organism": {"not_found": True}} if cached else {},
-    )
+    original_data_dir = downloads._override_data_dir
+    with monkeypatch.context() as child_state:
+        child_state.setattr(downloads, "_override_data_dir", original_data_dir)
+        child_state.setattr(downloads, "lookup_proteome", lambda *_a, **_kw: None)
+        child_state.setattr(
+            downloads,
+            "_uniprot_cache",
+            lambda: {"Mystery organism": {"not_found": True}} if cached else {},
+        )
+        result = _prefetch_worker(
+            "Resolve mystery",
+            {"kind": "resolve", "organism": "Mystery organism"},
+            str(tmp_path),
+            release=112,
+        )
 
-    result = _prefetch_worker(
-        "Resolve mystery",
-        {"kind": "resolve", "organism": "Mystery organism"},
-        str(tmp_path),
-        release=112,
-    )
+    assert downloads._override_data_dir is original_data_dir
 
     assert result[0] == "Resolve mystery"
     assert result[1] is succeeded

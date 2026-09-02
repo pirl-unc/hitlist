@@ -1,3 +1,28 @@
+# Issue #406 follow-up — isolate direct prefetch-worker tests
+
+## Goal
+
+Prevent direct unit calls to the child-only prefetch entry point from leaking its data-directory
+override into later xdist tests. The full integration suite should retain only genuine
+corpus-dependent skips.
+
+## Steps
+
+- [x] Scope `_prefetch_worker` test doubles and data-directory mutation to a monkeypatch context.
+- [x] Add a regression assertion that the parent test process state is restored.
+- [x] Bump to 1.55.5; run format, lint, targeted mixed-order tests, and `./test.sh --all -rs`.
+- [ ] Ship a follow-up PR, merge, deploy, and verify PyPI.
+
+## Review section
+
+- Direct `_prefetch_worker` tests now emulate the disposable child-process boundary with a nested
+  monkeypatch context and assert that `_override_data_dir` is restored after each call.
+- The mixed-order regression (`test_mappings.py` followed by `test_observations.py` in one worker)
+  passes all 86 tests; the full suite passes 1,153 with only one legitimate corpus-dependent skip
+  (`Alpizar 2017 not present in this build`). Format and lint pass. Version bumped to 1.55.5.
+
+---
+
 # Issues #402, #404, #405 — bounded/offline-safe mapping builds and artifact contract
 
 ## Goal
