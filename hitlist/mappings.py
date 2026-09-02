@@ -41,7 +41,7 @@ from pathlib import Path
 import pandas as pd
 
 from .downloads import data_dir
-from .proteome import SEED_KMER_LENGTH
+from .proteome import DEFAULT_FLANK, SEED_KMER_LENGTH
 
 _MAPPING_COLUMNS = (
     "peptide",
@@ -286,7 +286,7 @@ def build_peptide_mappings(
     fetch_missing: bool = True,
     use_uniprot: bool = False,
     force: bool = False,
-    flank: int = 10,
+    flank: int = DEFAULT_FLANK,
     verbose: bool = True,
     obs_override: pd.DataFrame | None = None,
     binding_override: pd.DataFrame | None = None,
