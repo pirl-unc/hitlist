@@ -22,11 +22,14 @@ the columns it needs by name (with hardcoded fallbacks), streams the file, and
 for each row:
 
 - **deduplicates** by IEDB assay IRI,
-- **normalizes the allele** string through [mhcgnomes](https://github.com/openvax/mhcgnomes)
-  (`normalize_allele`) so `HLA-A2`, `A*02:01`, and `HLA-A*02:01:01` collapse to one
-  canonical form,
-- **classifies MHC species** from the allele itself (`classify_mhc_species`),
-  not free-text host fields, and
+- **resolves MHC identity** once through
+  `resolve_mhc_annotation(restriction, reported_class, species_context)`: molecule names
+  are normalized, class is derived from actual alleles/genes/pairs when possible, and
+  ambiguous species names use explicit per-study curation as parser context,
+- **retains provenance** in `mhc_class_reported`, `mhc_class_source`,
+  `mhc_class_corrected`, `mhc_species_source`, and
+  `mhc_species_context_disagrees`; an explicit cross-species MHC is never erased merely
+  because the study context differs, and
 - **extracts post-translational modifications** into a separate column so the
   bare peptide sequence stays clean.
 
@@ -69,6 +72,10 @@ presentation on binding-affinity rows.
 The builder scans both sources, partitions them, concatenates, deduplicates by
 assay IRI, folds in supplementary data (below), drops biologically implausible
 rows (e.g. very short class-II peptides), and writes the two parquets atomically.
+Before writing, the same token audit used by `hitlist qc mhc-tokens` checks MS,
+binding, and curated sample metadata. Reviewed source defects and parser gaps are
+reported separately; any new unrecognized token fails the build instead of being
+silently treated as data.
 Gene/protein annotations are **not** copied onto every row; they live in the
 `peptide_mappings.parquet` sidecar and are joined on demand at query time.
 

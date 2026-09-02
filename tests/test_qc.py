@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import pandas as pd
+import pytest
 
 
 def _write_obs_fixture(tmp_path, rows):
@@ -368,6 +369,7 @@ def test_run_all_returns_named_dataframes(tmp_path, monkeypatch):
     assert set(results.keys()) == {
         "resolution",
         "normalization",
+        "mhc_tokens",
         "cross_reference",
         "discrepancies",
         # v1.30.26: proteome_coverage joined the run_all aggregator
@@ -377,6 +379,138 @@ def test_run_all_returns_named_dataframes(tmp_path, monkeypatch):
     }
     for v in results.values():
         assert isinstance(v, pd.DataFrame)
+
+
+def test_mhc_token_audit_distinguishes_source_errors_parser_gaps_and_unknowns(monkeypatch):
+    """#396: invalid source data and a valid parser gap are not equivalent."""
+    from hitlist import qc
+
+    real_parse = qc._cached_parse
+    monkeypatch.setattr(
+        qc,
+        "_cached_parse",
+        lambda token: None if token == "HLA-Cw16" else real_parse(token),
+    )
+
+    evidence = {
+        "ms": pd.DataFrame(
+            {
+                "pmid": [1, 2, 3, 4],
+                "mhc_restriction": ["HLA-A*02:01", "HLA class I", "HLA-A*02:01", "BOGUS-X"],
+                "host_mhc_types": [
+                    "HLA-A2;HLA-B23",
+                    "HLA-Cw16",
+                    "unknown",
+                    "HLA-A2",
+                ],
+                "serotype": ["HLA-A2", "", "HLA-DR7A", ""],
+                "serotypes": ["HLA-A2;HLA-Bw4", "", "", ""],
+            }
+        ),
+        "binding": pd.DataFrame(
+            {
+                "pmid": [5],
+                "mhc_restriction": ["HLA-B*07:02"],
+                "host_mhc_types": ["HLA-B23"],
+                "serotype": ["HLA-B7"],
+                "serotypes": ["HLA-B7;HLA-Bw6"],
+            }
+        ),
+    }
+    curated = pd.DataFrame(
+        {
+            "pmid": [6],
+            "sample_label": ["sample"],
+            "mhc": ["HLA-A*02:01 HLA-B*07:02"],
+        }
+    )
+
+    audit = qc.mhc_token_audit(evidence_frames=evidence, curated_samples=curated)
+    by_token = audit.set_index("token")
+    assert by_token.loc["HLA-B23", "status"].tolist() == ["invalid_source", "invalid_source"]
+    assert by_token.loc["HLA-Cw16", "status"] == "parser_gap"
+    assert by_token.loc["HLA-DR7A", "status"] == "invalid_source"
+    assert by_token.loc["BOGUS-X", "status"] == "unrecognized"
+    assert "unknown" not in set(audit["token"])
+    assert "HLA-A*02:01" not in set(audit["token"])
+    assert set(audit["evidence_kind"]) == {"ms", "binding"}
+
+
+def test_mhc_token_audit_uses_curated_overrides_when_samples_not_supplied(monkeypatch):
+    from hitlist import qc
+
+    monkeypatch.setattr(
+        qc,
+        "load_pmid_overrides",
+        lambda: {
+            7: {
+                "ms_samples": [
+                    {"sample_label": "bad sample", "mhc": "HLA-A*02:01 BAD-MHC"},
+                ]
+            }
+        },
+    )
+    audit = qc.mhc_token_audit(evidence_frames={})
+    assert audit[["evidence_kind", "field", "token", "status"]].to_dict("records") == [
+        {
+            "evidence_kind": "curation",
+            "field": "sample_mhc",
+            "token": "BAD-MHC",
+            "status": "unrecognized",
+        }
+    ]
+
+
+def test_mhc_token_audit_parser_gap_self_expires(monkeypatch):
+    """A known parser gap stops reporting once the installed parser accepts it."""
+    from hitlist import qc
+
+    parsed_serotype = type("Serotype", (), {})()
+    monkeypatch.setattr(qc, "_cached_parse", lambda _token: parsed_serotype)
+    evidence = {
+        "ms": pd.DataFrame({"pmid": [1], "host_mhc_types": ["HLA-Cw16"]}),
+    }
+
+    assert qc.mhc_token_audit(
+        evidence_frames=evidence,
+        curated_samples=pd.DataFrame(),
+    ).empty
+
+
+@pytest.mark.integration
+def test_current_corpus_mhc_token_allowlist_is_complete_and_not_stale():
+    """#396: every exceptional token in the registered corpus is reviewed."""
+    from hitlist.observations import is_built
+    from hitlist.qc import _MHC_DESIGNATION_TYPES, _cached_parse, mhc_token_audit
+
+    if not is_built():
+        pytest.skip("requires a registered observations corpus")
+
+    audit = mhc_token_audit()
+
+    assert not (audit["status"] == "unrecognized").any(), audit.to_string(index=False)
+    expected = {
+        ("HLA-B23", "invalid_source"),
+        ("HLA-DR7A", "invalid_source"),
+        ("HLA-DR3A", "invalid_source"),
+        ("HLA-DR1B", "invalid_source"),
+    }
+    if type(_cached_parse("HLA-Cw16")).__name__ not in _MHC_DESIGNATION_TYPES:
+        expected.add(("HLA-Cw16", "parser_gap"))
+    assert set(zip(audit["token"], audit["status"])) == expected
+
+
+def test_cli_routes_mhc_token_audit(monkeypatch, capsys):
+    from hitlist import qc
+    from hitlist.cli import main
+
+    expected = pd.DataFrame({"token": ["HLA-Cw16"], "status": ["parser_gap"], "n_records": [1]})
+    monkeypatch.setattr(qc, "mhc_token_audit", lambda: expected)
+    monkeypatch.setattr("sys.argv", ["hitlist", "qc", "mhc-tokens"])
+
+    main()
+
+    assert "HLA-Cw16,parser_gap,1" in capsys.readouterr().out
 
 
 # ── #182 / #45 / #37 / v1.30.9: discrepancies report ──────────────────

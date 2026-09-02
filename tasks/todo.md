@@ -1,3 +1,85 @@
+# Comprehensive modality correctness — issues #382, #376, #396, #399
+
+## Program goal
+
+Make MHC identity and source-protein attribution explicit, correct, and auditable across MS
+elution, binding assays, curated sample metadata, and peptide mappings. Ship the work in two
+dependency-ordered PRs: the shared MHC identity contract first, then Ensembl IG/TR mapping
+coverage and provenance.
+
+## Phase 1 — contextual MHC identity and validation (#382, #376, #396)
+
+### Design
+
+- Introduce one cached, documented MHC annotation resolver that accepts the raw restriction,
+  source-reported class, and optional curated species context. It returns the normalized
+  restriction, resolved species and provenance, canonical class and provenance, plus explicit
+  correction/conflict flags.
+- Treat curated species as a parsing constraint when it can parse the designation; fall back to
+  an explicit designation's unconstrained species for legitimate engineered-MHC systems. Cache
+  keys include the species context. A compatible generic result such as `Bos sp.` may be refined
+  to `Bos taurus`; an incompatible unconstrained guess is recorded as a context disagreement.
+- Derive class only from actual molecules (`Allele`, `Gene`, `Pair`). Derive semicolon candidate
+  sets component-wise when every resolved component agrees. Class-only, serotype-only, and
+  unparseable restrictions retain the normalized source-reported class.
+- Store `mhc_class_reported`, `mhc_class_source`, `mhc_class_corrected`,
+  `mhc_species_source`, and `mhc_species_context_disagrees` on both MS and binding rows. Refresh
+  these fields after donor-set promotion so the stored restriction and provenance cannot drift.
+- Add a cross-modality MHC-token audit covering MS, binding, and curated sample MHC. Known source
+  errors and parser gaps carry distinct statuses/reasons; any new unrecognized token fails the
+  build. Expose the audit through the Python QC API, bare `hitlist qc`, and a dedicated CLI command.
+- Version the observations artifact contract so existing parquets rebuild once instead of
+  silently preserving the old schema and wrong classifications.
+- Print build summaries for class corrections and incompatible contextual-species corrections.
+
+### Verification
+
+- [x] Unit-test contextual parsing, explicit-species fallback, class derivation/fallback,
+      donor-set behavior, and correction flags.
+- [x] Scanner-test the Bos contextual case, Caja/Mamu correction, class-only fallback, and
+      post-promotion donor-set fields for both source classifications.
+- [x] Unit-test known-invalid, parser-gap, sentinel, and unknown-token QC behavior across MS,
+      binding, and curated sample inputs; add a real-corpus staleness/new-token guard.
+- [x] Test artifact-version invalidation, schema columns, build summaries, CLI routing, and docs.
+- [x] Bump the patch version; run targeted tests, format, lint, and the complete test suite.
+- [ ] Open a PR closing #382, #376, and #396; require all CI jobs, merge, deploy, and verify PyPI.
+
+## Phase 2 — immunoglobulin/TCR mapping coverage (#399)
+
+### Design
+
+- Include Ensembl's coding IG/TR biotypes (`IG_V/D/J/C_gene`, `TR_V/D/J/C_gene`) alongside
+  `protein_coding`; continue excluding pseudogenes and document the germline-only boundary.
+- Carry source-gene biotype through `ProteomeIndex`, long-form peptide mappings, mapping schema,
+  filters/exports, and artifact-version metadata so IG/TR attribution is distinguishable from a
+  conventional protein-coding match.
+- Test index construction and mapping with protein-coding, IG, TR, pseudogene, duplicate-sequence,
+  cache round-trip, process-worker, and legacy-artifact cases. Quantify recovered current-corpus
+  mappings before release.
+
+### Verification
+
+- [ ] Implement and verify the expanded Ensembl index contract and mapping provenance.
+- [ ] Bump the patch version; run all required gates and corpus coverage comparisons.
+- [ ] Open a PR closing #399; require all CI jobs, merge, deploy, and verify PyPI.
+
+## Review section
+
+- `resolve_mhc_annotation()` now owns normalization, contextual species resolution,
+  molecule/donor-set class derivation, source fallback, and persisted provenance. Scanner and
+  supplementary ingestion both use it before filtering and refresh it after set promotion.
+- The registered 4.4M-row corpus has exactly five reviewed exceptional tokens: four
+  `invalid_source` values (`HLA-B23`, `HLA-DR7A`, `HLA-DR3A`, `HLA-DR1B`) and one parser gap
+  (`HLA-Cw16`). The audit finds no unrecognized token; its integration test pins both growth and
+  stale allowlist entries.
+- Observations artifact contract v1 forces a one-time rebuild for the new schema. Build output
+  reports class corrections, species-context conflicts, and token-audit totals before writing.
+- Verification: 338 affected non-integration tests passed; the dedicated corpus audit passed;
+  the supplementary suite also passes under Python 3.9; format and lint passed; full
+  `./test.sh --all -rs` passed 1,170 tests with zero skips and one expected warning.
+
+---
+
 # Issue #410 — deterministic Alpizar resolver regression
 
 ## Goal

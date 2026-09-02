@@ -2291,6 +2291,80 @@ def test_mhc_class_of_resolves_donor_sets_only_when_consistent():
     assert mhc_class_of("HLA-A*02:01;HLA-DRB1*15:01") == ""
 
 
+def test_mhc_class_of_does_not_derive_from_class_or_serotype_labels():
+    """#376: only molecule-level designations can replace source class.
+
+    A class sentinel or serotype carries useful coarse information but is
+    not an independently identified molecule, so its class remains source
+    reported rather than claiming derived provenance.
+    """
+    from hitlist.curation import mhc_class_of
+
+    assert mhc_class_of("HLA class I") == ""
+    assert mhc_class_of("HLA-A2") == ""
+
+
+def test_resolve_mhc_annotation_uses_context_without_overriding_explicit_species():
+    """#382: context refines ambiguity but explicit chimeric MHC survives."""
+    from hitlist.curation import resolve_mhc_annotation
+
+    contextual = resolve_mhc_annotation("class I", "I", "Bos taurus")
+    assert contextual.mhc_species == "Bos taurus"
+    assert contextual.mhc_species_source == "context"
+    assert contextual.mhc_species_context_disagrees is True
+    assert contextual.mhc_class == "I"
+    assert contextual.mhc_class_source == "export"
+
+    refined = resolve_mhc_annotation("BoLA class I", "I", "Bos taurus")
+    assert refined.mhc_species == "Bos taurus"
+    assert refined.mhc_species_source == "context"
+    # Bos sp. and Bos taurus are compatible, so refinement is not a conflict.
+    assert refined.mhc_species_context_disagrees is False
+
+    engineered = resolve_mhc_annotation("HLA-A*02:01", "I", "Mus musculus")
+    assert engineered.mhc_species == "Homo sapiens"
+    assert engineered.mhc_species_source == "explicit"
+    assert engineered.mhc_species_context_disagrees is False
+
+
+def test_resolve_mhc_annotation_derives_class_and_preserves_reported_value():
+    """#376: molecule truth wins, with the source assertion still visible."""
+    from hitlist.curation import resolve_mhc_annotation
+
+    caja = resolve_mhc_annotation("Caja-E", "I", "Callithrix jacchus")
+    assert caja.mhc_class == "non-classical"
+    assert caja.mhc_class_reported == "I"
+    assert caja.mhc_class_source == "derived"
+    assert caja.mhc_class_corrected is True
+
+    fallback = resolve_mhc_annotation("HLA-B23", "I", "Homo sapiens")
+    assert fallback.mhc_class == "I"
+    assert fallback.mhc_class_source == "export"
+    assert fallback.mhc_class_corrected is False
+
+
+def test_resolve_mhc_annotation_derives_consistent_donor_sets():
+    from hitlist.curation import resolve_mhc_annotation
+
+    same = resolve_mhc_annotation(
+        "HLA-DQB1*03:01;HLA-DRB1*15:01",
+        "II",
+        "Homo sapiens",
+    )
+    assert same.mhc_class == "II"
+    assert same.mhc_class_source == "donor_set"
+    assert same.mhc_species == "Homo sapiens"
+    assert same.allele_resolution == "donor_set"
+
+    mixed = resolve_mhc_annotation(
+        "HLA-A*02:01;HLA-DRB1*15:01",
+        "I",
+        "Homo sapiens",
+    )
+    assert mixed.mhc_class == "I"
+    assert mixed.mhc_class_source == "export"
+
+
 def test_normalize_mhc_class_token_bridges_the_spelling_split():
     """The YAML writes 'non-classical', the IEDB export writes 'non
     classical'; they could never compare equal (#363)."""

@@ -1281,6 +1281,15 @@ def main() -> None:
     )
     p_qc_norm.add_argument("--output", "-o", help="Write CSV to file")
 
+    p_qc_tokens = qc_sub.add_parser(
+        "mhc-tokens",
+        help=(
+            "Audit unparseable MHC restrictions, host typings, serotypes, "
+            "and curated sample MHC across MS and binding modalities"
+        ),
+    )
+    p_qc_tokens.add_argument("--output", "-o", help="Write CSV to file")
+
     p_qc_xref = qc_sub.add_parser(
         "cross-reference",
         help=(
@@ -1732,6 +1741,8 @@ def _qc(args: argparse.Namespace) -> None:
         )
     elif cmd == "normalization":
         df = qc.normalization_drift()
+    elif cmd == "mhc-tokens":
+        df = qc.mhc_token_audit()
     elif cmd == "cross-reference":
         df = qc.cross_reference(mhc_class=getattr(args, "mhc_class", None))
         direction = getattr(args, "direction", "both")

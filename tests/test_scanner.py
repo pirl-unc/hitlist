@@ -123,6 +123,7 @@ def _write_tiny_iedb_csv(path, rows):
         "Assay | Culture Condition",
         "MHC Restriction | Name",
         "MHC Allele Class",
+        "Host | MHC Types Present",
     ]
     category_header = [""] * len(field_header)  # real IEDB uses grouping labels; "" is safe
     import csv
@@ -164,6 +165,82 @@ def test_scan_preserves_assay_iri_per_row(tmp_path):
     # All assay_iri values propagated through unchanged.
     for i in range(3):
         assert f"http://iedb.org/assay/{1000001 + i}" in df["assay_iri"].values
+
+
+@pytest.mark.parametrize("classify_source", [True, False])
+def test_scan_resolves_contextual_species_and_molecule_class(
+    tmp_path, monkeypatch, classify_source
+):
+    """#382/#376: both scanner modes use one MHC identity contract."""
+    src = tmp_path / "iedb.csv"
+    rows = []
+    for i, (pmid, restriction, reported_class) in enumerate(
+        [
+            (36423003, "BoLA class I", "I"),
+            (99900001, "Caja-E", "I"),
+            (99900002, "Mamu-E*02:11", "I"),
+            (99900004, "HLA class II", "II"),
+        ]
+    ):
+        row = [""] * 22
+        row[0] = f"http://iedb.org/assay/identity-{i}"
+        row[2] = str(pmid)
+        row[5] = f"PEPTIDE{i}AA"
+        row[19] = restriction
+        row[20] = reported_class
+        rows.append(row)
+    _write_tiny_iedb_csv(src, rows)
+
+    monkeypatch.setattr(
+        "hitlist.curation.pmid_mhc_species_context",
+        lambda pmid: "Bos taurus" if int(pmid) == 36423003 else "",
+    )
+    df = scan(
+        peptides=None,
+        iedb_path=src,
+        cedar_path=None,
+        mhc_species=None,
+        classify_source=classify_source,
+    ).set_index("pmid")
+
+    assert df.loc[36423003, "mhc_species"] == "Bos taurus"
+    assert df.loc[36423003, "mhc_species_source"] == "context"
+    assert df.loc[99900001, "mhc_class"] == "non-classical"
+    assert df.loc[99900002, "mhc_class"] == "non-classical"
+    assert df.loc[99900001, "mhc_class_reported"] == "I"
+    assert bool(df.loc[99900001, "mhc_class_corrected"]) is True
+    assert df.loc[99900004, "mhc_class"] == "II"
+    assert df.loc[99900004, "mhc_class_source"] == "export"
+
+
+@pytest.mark.parametrize("classify_source", [True, False])
+def test_scan_refreshes_mhc_identity_after_donor_set_promotion(
+    tmp_path, monkeypatch, classify_source
+):
+    """The final restriction and its resolution/class provenance cannot drift."""
+    src = tmp_path / "iedb.csv"
+    row = [""] * 22
+    row[0] = "http://iedb.org/assay/donor-set"
+    row[2] = "99900003"
+    row[5] = "DONORPEPTIDE"
+    row[19] = "HLA class I"
+    row[20] = "I"
+    row[21] = "HLA-A*02:01;HLA-B*07:02"
+    _write_tiny_iedb_csv(src, [row])
+    monkeypatch.setattr("hitlist.curation.pmid_mhc_species_context", lambda _pmid: "")
+
+    result = scan(
+        peptides=None,
+        iedb_path=src,
+        cedar_path=None,
+        mhc_species=None,
+        classify_source=classify_source,
+    ).iloc[0]
+    assert result["mhc_restriction"] == "HLA-A*02:01;HLA-B*07:02"
+    assert result["allele_resolution"] == "donor_set"
+    assert result["mhc_class"] == "I"
+    assert result["mhc_class_source"] == "donor_set"
+    assert result["mhc_species"] == "Homo sapiens"
 
 
 def test_scan_dedupes_by_assay_iri_within_source(tmp_path):

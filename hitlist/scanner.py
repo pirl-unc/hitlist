@@ -313,11 +313,11 @@ def scan(
         allele_resolution_rank,
         attribute_peptide_to_per_sample_typings,
         classify_allele_resolution,
-        classify_mhc_species,
         is_binding_assay,
         is_non_peptide_ligand,
-        normalize_allele,
         normalize_species,
+        pmid_mhc_species_context,
+        resolve_mhc_annotation,
     )
 
     if mhc_species is not None:
@@ -354,19 +354,28 @@ def scan(
             src_org = _safe_col(row, c["source_organism"])
             species = _safe_col(row, c["species"])
             host = _safe_col(row, c["host"])
+            raw_pmid = _safe_col(row, c["pmid"]).strip()
+            pmid: str | int = ""
+            if raw_pmid:
+                try:
+                    pmid = int(raw_pmid)
+                except ValueError:
+                    pmid = raw_pmid
+
             mhc_res_raw = _safe_col(row, c["mhc_restriction"])
-            # Canonicalize the allele string at ingest so downstream exact-
-            # match filters see a consistent representation. mhcgnomes /
-            # normalize_allele handles formats like "A*02:01" (missing
-            # HLA- prefix), different separator styles, and multi-allele
-            # pairs.  normalize_allele is already @cache'd on the unique
-            # vocabulary so the per-row cost is ~100ns.  See #121.
-            mhc_res = normalize_allele(mhc_res_raw) if mhc_res_raw else mhc_res_raw
+            reported_mhc_class = _safe_col(row, c["mhc_class"])
+            mhc_species_context = pmid_mhc_species_context(pmid)
+            mhc_annotation = resolve_mhc_annotation(
+                mhc_res_raw,
+                reported_mhc_class,
+                mhc_species_context,
+            )
+            mhc_res = mhc_annotation.restriction
 
             # Species filtering: use MHC allele name (via mhcgnomes) as the
             # authoritative species source; when species_fallback=True and
             # mhcgnomes can't parse, fall back to host/species text columns.
-            mhc_sp = classify_mhc_species(mhc_res)
+            mhc_sp = mhc_annotation.mhc_species
 
             if mhc_species is not None:
                 if mhc_sp:
@@ -381,20 +390,12 @@ def scan(
                 else:
                     # Strict mode: unparseable MHC restriction → drop.
                     continue
-            if mhc_class is not None and _safe_col(row, c["mhc_class"]) != mhc_class:
+            if mhc_class is not None and mhc_annotation.mhc_class != mhc_class:
                 continue
             if min_res_rank is not None:
                 res = classify_allele_resolution(mhc_res)
                 if allele_resolution_rank(res) > min_res_rank:
                     continue
-
-            raw_pmid = _safe_col(row, c["pmid"]).strip()
-            pmid: str | int = ""
-            if raw_pmid:
-                try:
-                    pmid = int(raw_pmid)
-                except ValueError:
-                    pmid = raw_pmid
 
             # Per-PMID source-organism curation (#307): fill the source proteome
             # for self-peptidome datasets IEDB left blank / "unidentified".  Only
@@ -457,8 +458,7 @@ def scan(
                 "peptide_modifications": peptide_modifications_str,
                 "has_ptm": has_ptm,
                 "peptide_extended": peptide_extended,
-                "mhc_restriction": mhc_res,
-                "mhc_class": _safe_col(row, c["mhc_class"]),
+                **mhc_annotation.as_record_fields(),
                 "assay_iri": iri,
                 "reference_iri": _safe_col(row, c["ref_iri"]),
                 "pmid": pmid,
@@ -518,19 +518,11 @@ def scan(
                         cell_name,
                         pmid,
                         mhc_restriction=mhc_res,
+                        mhc_species_context=mhc_species_context,
                         submission_id=record.get("submission_id", ""),
                         assay_comments=record.get("assay_comments", ""),
                     )
                 )
-            else:
-                from .curation import allele_to_all_serotypes
-
-                all_sero = allele_to_all_serotypes(mhc_res)
-                record["allele_resolution"] = classify_allele_resolution(mhc_res)
-                record["serotype"] = all_sero[0] if all_sero else ""
-                record["serotypes"] = ";".join(all_sero)
-                record["mhc_species"] = mhc_sp
-
             # Exact-allele set expansion (issue #137).  Computed off the
             # row's MHC restriction + the donor's typed alleles (Host |
             # MHC Types Present, when IEDB carries them) + the per-PMID
@@ -576,7 +568,12 @@ def scan(
                     # as the single-record path below — this donor's typed
                     # alleles ARE the restriction for this attributed row.
                     if donor_size > 0 and donor_prov != "exact":
-                        donor_record["mhc_restriction"] = donor_allele_set
+                        donor_annotation = resolve_mhc_annotation(
+                            donor_allele_set,
+                            reported_mhc_class,
+                            mhc_species_context,
+                        )
+                        donor_record.update(donor_annotation.as_record_fields())
                     rows.append(donor_record)
                 continue
 
@@ -603,7 +600,12 @@ def scan(
             # semicolon-joined (multi-allele attribution like
             # ``gene_names``).  See #45 for the design rationale.
             if set_size > 0 and set_provenance != "exact":
-                record["mhc_restriction"] = allele_set
+                promoted_annotation = resolve_mhc_annotation(
+                    allele_set,
+                    reported_mhc_class,
+                    mhc_species_context,
+                )
+                record.update(promoted_annotation.as_record_fields())
 
             rows.append(record)
         # Close the wrapped file handle explicitly — relying on garbage
