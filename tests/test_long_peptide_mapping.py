@@ -175,3 +175,57 @@ class TestFlankWidth:
         row = idx.map_peptides([pep], flank=15, verbose=False).iloc[0]
         assert row["n_flank"] == "W" * 15
         assert row["c_flank"] == "Y" * 15
+
+
+class TestFlankDefaultHasOneSource:
+    """`DEFAULT_FLANK` must be what the build actually uses.
+
+    It was not. #398 introduced `DEFAULT_FLANK = 15` and wired it into
+    `ProteomeIndex.map_peptides`, but `build_peptide_mappings` -- the
+    function that actually writes peptide_mappings.parquet -- kept its own
+    hardcoded `flank: int = 10`, and `builder.py` calls it without passing
+    the argument. So the signature default that mattered was the one nobody
+    updated, and a full rebuild produced 10-residue flanks while every
+    docstring claimed 15.
+
+    Nothing caught it because the constant existed and looked authoritative.
+    These assert that every entry point defers to it rather than restating
+    a number.
+    """
+
+    def test_map_peptides_defaults_to_the_shared_constant(self):
+        import inspect
+
+        from hitlist.proteome import DEFAULT_FLANK, ProteomeIndex
+
+        got = inspect.signature(ProteomeIndex.map_peptides).parameters["flank"].default
+        assert got == DEFAULT_FLANK
+
+    def test_build_peptide_mappings_defaults_to_the_shared_constant(self):
+        import inspect
+
+        from hitlist.mappings import build_peptide_mappings
+        from hitlist.proteome import DEFAULT_FLANK
+
+        got = inspect.signature(build_peptide_mappings).parameters["flank"].default
+        assert got == DEFAULT_FLANK, (
+            "build_peptide_mappings writes the artifact, so its default is the "
+            "one that decides the stored flank width"
+        )
+
+    def test_no_module_hardcodes_a_competing_flank_default(self):
+        """A second literal is how the two drifted apart in the first place."""
+        import pathlib
+        import re
+
+        import hitlist
+
+        pkg = pathlib.Path(hitlist.__file__).parent
+        offenders = []
+        for path in pkg.rglob("*.py"):
+            for i, line in enumerate(path.read_text().splitlines(), 1):
+                if re.search(r"\bflank\s*(?::\s*int\s*)?=\s*\d+", line):
+                    offenders.append(f"{path.name}:{i}: {line.strip()}")
+        assert not offenders, "flank defaults must reference DEFAULT_FLANK:\n" + "\n".join(
+            offenders
+        )

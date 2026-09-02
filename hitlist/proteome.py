@@ -43,7 +43,7 @@ Typical usage::
     from hitlist.proteome import ProteomeIndex
 
     idx = ProteomeIndex.from_ensembl(release=112)
-    hits = idx.map_peptides(["SLYNTVATL", "GILGFVFTL"], flank=5)
+    hits = idx.map_peptides(["SLYNTVATL", "GILGFVFTL"])
 """
 
 from __future__ import annotations
