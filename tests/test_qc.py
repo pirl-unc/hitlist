@@ -385,6 +385,13 @@ def test_mhc_token_audit_distinguishes_source_errors_parser_gaps_and_unknowns(mo
     """#396: invalid source data and a valid parser gap are not equivalent."""
     from hitlist import qc
 
+    real_parse = qc._cached_parse
+    monkeypatch.setattr(
+        qc,
+        "_cached_parse",
+        lambda token: None if token == "HLA-Cw16" else real_parse(token),
+    )
+
     evidence = {
         "ms": pd.DataFrame(
             {
@@ -454,21 +461,43 @@ def test_mhc_token_audit_uses_curated_overrides_when_samples_not_supplied(monkey
     ]
 
 
+def test_mhc_token_audit_parser_gap_self_expires(monkeypatch):
+    """A known parser gap stops reporting once the installed parser accepts it."""
+    from hitlist import qc
+
+    parsed_serotype = type("Serotype", (), {})()
+    monkeypatch.setattr(qc, "_cached_parse", lambda _token: parsed_serotype)
+    evidence = {
+        "ms": pd.DataFrame({"pmid": [1], "host_mhc_types": ["HLA-Cw16"]}),
+    }
+
+    assert qc.mhc_token_audit(
+        evidence_frames=evidence,
+        curated_samples=pd.DataFrame(),
+    ).empty
+
+
 @pytest.mark.integration
 def test_current_corpus_mhc_token_allowlist_is_complete_and_not_stale():
     """#396: every exceptional token in the registered corpus is reviewed."""
-    from hitlist.qc import mhc_token_audit
+    from hitlist.observations import is_built
+    from hitlist.qc import _MHC_DESIGNATION_TYPES, _cached_parse, mhc_token_audit
+
+    if not is_built():
+        pytest.skip("requires a registered observations corpus")
 
     audit = mhc_token_audit()
 
     assert not (audit["status"] == "unrecognized").any(), audit.to_string(index=False)
-    assert set(zip(audit["token"], audit["status"], strict=True)) == {
+    expected = {
         ("HLA-B23", "invalid_source"),
         ("HLA-DR7A", "invalid_source"),
         ("HLA-DR3A", "invalid_source"),
         ("HLA-DR1B", "invalid_source"),
-        ("HLA-Cw16", "parser_gap"),
     }
+    if type(_cached_parse("HLA-Cw16")).__name__ not in _MHC_DESIGNATION_TYPES:
+        expected.add(("HLA-Cw16", "parser_gap"))
+    assert set(zip(audit["token"], audit["status"])) == expected
 
 
 def test_cli_routes_mhc_token_audit(monkeypatch, capsys):

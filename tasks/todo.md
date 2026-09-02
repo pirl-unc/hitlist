@@ -75,8 +75,8 @@ coverage and provenance.
 - Observations artifact contract v1 forces a one-time rebuild for the new schema. Build output
   reports class corrections, species-context conflicts, and token-audit totals before writing.
 - Verification: 338 affected non-integration tests passed; the dedicated corpus audit passed;
-  format and lint passed; full `./test.sh --all -rs` passed 1,169 tests with zero skips and one
-  expected warning.
+  the supplementary suite also passes under Python 3.9; format and lint passed; full
+  `./test.sh --all -rs` passed 1,170 tests with zero skips and one expected warning.
 
 ---
 

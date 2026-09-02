@@ -150,9 +150,7 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
 
         annotations = [
             resolve_mhc_annotation(restriction, reported_class, mhc_species_context)
-            for restriction, reported_class in zip(
-                df["mhc_restriction"], df["mhc_class"], strict=True
-            )
+            for restriction, reported_class in zip(df["mhc_restriction"], df["mhc_class"])
         ]
         identity = pd.DataFrame([annotation.as_record_fields() for annotation in annotations])
 
