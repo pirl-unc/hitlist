@@ -478,18 +478,12 @@ def test_generate_observations_parquet_export(tmp_path, full_observations_df):
     assert set(loaded.columns) == set(df.columns)
 
 
-def test_generate_observations_table_not_built():
+def test_generate_observations_table_not_built(tmp_path, monkeypatch):
     """Should raise FileNotFoundError when observations not built."""
-    from hitlist.observations import is_built
-
-    if is_built():
-        import pytest
-
-        pytest.skip("Observations table is built — cannot test error path")
-    import pytest
-
+    from hitlist import downloads
     from hitlist.export import generate_observations_table
 
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
     with pytest.raises(FileNotFoundError, match="not built"):
         generate_observations_table()
 
@@ -1027,12 +1021,9 @@ def test_species_summary_counts_are_coherent():
 
 def test_species_summary_empty_when_not_built(tmp_path, monkeypatch):
     """Unbuilt-index path returns empty frame with canonical columns."""
-    from hitlist.observations import is_built
+    from hitlist import downloads
 
-    if is_built():
-        import pytest
-
-        pytest.skip("Observations table is built — cannot test empty path")
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
     df = generate_species_summary()
     assert len(df) == 0
     assert set(df.columns) == {"species", "mhc_class", "n_pmids", "n_peptides", "n_observations"}

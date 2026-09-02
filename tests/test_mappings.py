@@ -13,13 +13,22 @@ import pytest
 
 from hitlist.mappings import (
     _MAPPING_COLUMNS,
+    MappingResult,
+    MappingTask,
+    _build_species_index,
     _build_workers,
     _flanking_rows_to_mapping_rows,
+    _mapping_artifact_contract,
+    _obs_fingerprint,
     _per_canonical_mapping_worker,
     _prefetch_proteomes_for_workers,
+    _prefetch_worker,
     _proteome_group_key,
+    _supervise_prefetch_tasks,
     load_peptide_mappings,
+    mappings_meta_path,
 )
+from hitlist.mappings import _cache_is_valid as _mapping_cache_is_valid
 
 
 def test_mapping_columns_contract_includes_transcript_fields():
@@ -147,6 +156,115 @@ def test_load_peptide_mappings_missing_file_raises(tmp_path, monkeypatch):
     monkeypatch.setattr("hitlist.mappings.mappings_path", lambda: tmp_path / "nonexistent.parquet")
     with pytest.raises(FileNotFoundError, match="not built"):
         load_peptide_mappings(peptide="AAA")
+
+
+def _seed_mapping_cache(tmp_path, monkeypatch, *, include_contract=True):
+    import json
+
+    from hitlist import downloads
+
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
+    for name in ("observations.parquet", "binding.parquet", "peptide_mappings.parquet"):
+        (tmp_path / name).write_bytes(name.encode())
+    meta = {"observations": _obs_fingerprint()}
+    if include_contract:
+        meta["contract"] = _mapping_artifact_contract(
+            release=112,
+            use_uniprot=False,
+            fetch_missing=True,
+            flank=15,
+        )
+    mappings_meta_path().write_text(json.dumps(meta))
+    return meta
+
+
+def test_mapping_cache_requires_current_artifact_contract(tmp_path, monkeypatch):
+    _seed_mapping_cache(tmp_path, monkeypatch)
+
+    assert _mapping_cache_is_valid(
+        release=112,
+        use_uniprot=False,
+        fetch_missing=True,
+        flank=15,
+    )
+
+
+def test_mapping_cache_rejects_legacy_metadata(tmp_path, monkeypatch):
+    _seed_mapping_cache(tmp_path, monkeypatch, include_contract=False)
+
+    assert not _mapping_cache_is_valid(
+        release=112,
+        use_uniprot=False,
+        fetch_missing=True,
+        flank=15,
+    )
+
+
+@pytest.mark.parametrize(
+    ("override", "value"),
+    [
+        ("release", 113),
+        ("use_uniprot", True),
+        ("fetch_missing", False),
+        ("flank", 10),
+    ],
+)
+def test_mapping_cache_rejects_parameter_changes(tmp_path, monkeypatch, override, value):
+    _seed_mapping_cache(tmp_path, monkeypatch)
+    params = {
+        "release": 112,
+        "use_uniprot": False,
+        "fetch_missing": True,
+        "flank": 15,
+    }
+    params[override] = value
+
+    assert not _mapping_cache_is_valid(**params)
+
+
+def test_mapping_cache_rejects_builder_version_change(tmp_path, monkeypatch):
+    import json
+
+    meta = _seed_mapping_cache(tmp_path, monkeypatch)
+    meta["contract"]["artifact_version"] -= 1
+    mappings_meta_path().write_text(json.dumps(meta))
+
+    assert not _mapping_cache_is_valid(
+        release=112,
+        use_uniprot=False,
+        fetch_missing=True,
+        flank=15,
+    )
+
+
+def test_mapping_cache_rejects_schema_change(tmp_path, monkeypatch):
+    import json
+
+    meta = _seed_mapping_cache(tmp_path, monkeypatch)
+    meta["contract"]["columns"] = meta["contract"]["columns"][:-1]
+    mappings_meta_path().write_text(json.dumps(meta))
+
+    assert not _mapping_cache_is_valid(
+        release=112,
+        use_uniprot=False,
+        fetch_missing=True,
+        flank=15,
+    )
+
+
+def test_mapping_cache_retries_incomplete_artifact(tmp_path, monkeypatch):
+    import json
+
+    meta = _seed_mapping_cache(tmp_path, monkeypatch)
+    meta["unavailable_proteomes"] = ["Timed-out species"]
+    mappings_meta_path().write_text(json.dumps(meta))
+
+    assert not _mapping_cache_is_valid(
+        release=112,
+        use_uniprot=False,
+        fetch_missing=True,
+        flank=15,
+    )
 
 
 # ── #107 / v1.30.6: build-order clusters same-FASTA canonicals ─────────
@@ -284,24 +402,45 @@ class _FakeFlanking:
         )
 
 
+def _mapping_task(
+    canonical="X",
+    peptides=("ABCDEFGHI",),
+    *,
+    entry=None,
+    flank=15,
+):
+    return MappingTask(
+        canonical=canonical,
+        entry=entry or {"kind": "uniprot", "proteome_id": "UP_TEST"},
+        peptides=tuple(peptides),
+        seed_lengths=(7,),
+        release=112,
+        flank=flank,
+    )
+
+
 def test_per_canonical_worker_returns_expected_shape(monkeypatch):
-    """The worker must return (canonical, dfs, n_matched, n_total) so
-    the orchestrator can aggregate and log uniformly."""
+    """The result object gives the orchestrator named aggregation fields."""
     monkeypatch.setattr(
         "hitlist.mappings._build_species_index",
         lambda *a, **kw: _FakeFlanking("Homo sapiens"),
     )
     peptides = ["ABCDEFGHI", "JKLMNOPQR", "ABCDEFGHIJ", "ZZZZZZZZZZZZ"]
-    canonical, dfs, n_matched, n_total = _per_canonical_mapping_worker(
-        ("Homo sapiens", peptides, (7,), 112, False, 15)
+    result = _per_canonical_mapping_worker(
+        _mapping_task(
+            canonical="Homo sapiens",
+            peptides=peptides,
+            entry={"kind": "ensembl", "species": "human"},
+        )
     )
-    assert canonical == "Homo sapiens"
+    assert result.canonical == "Homo sapiens"
     # One index, one pass, one frame -- regardless of how many lengths the
     # peptides span (#398).
-    assert len(dfs) == 1
+    assert result.mapping_frame is not None
     # Including the 12-mer, which one seed index serves like any other length.
-    assert n_matched == 4
-    assert n_total == 4
+    assert result.n_matched_peptides == 4
+    assert result.n_input_peptides == 4
+    assert result.proteome_available is True
 
 
 def test_per_canonical_worker_builds_one_index_for_all_lengths(monkeypatch):
@@ -319,9 +458,86 @@ def test_per_canonical_worker_builds_one_index_for_all_lengths(monkeypatch):
 
     monkeypatch.setattr("hitlist.mappings._build_species_index", counting_build)
     _per_canonical_mapping_worker(
-        ("X", ["ABCDEFGH", "ABCDEFGHI", "ABCDEFGHIJ", "A" * 20], (7,), 112, False, 15)
+        _mapping_task(peptides=["ABCDEFGH", "ABCDEFGHI", "ABCDEFGHIJ", "A" * 20])
     )
     assert builds["n"] == 1
+
+
+def test_per_canonical_worker_uses_resolved_entry_and_is_cache_only(monkeypatch):
+    captured = {}
+
+    def capture_build(*args, **kwargs):
+        captured["args"] = args
+        captured["kwargs"] = kwargs
+        return _FakeFlanking("offline")
+
+    monkeypatch.setattr("hitlist.mappings._build_species_index", capture_build)
+    entry = {"kind": "uniprot", "proteome_id": "UP_OFFLINE"}
+    task = _mapping_task(entry=entry)
+
+    result = _per_canonical_mapping_worker(task)
+
+    assert result.n_matched_peptides == 1
+    assert captured["kwargs"]["entry"] is entry
+    assert captured["kwargs"]["fetch_missing"] is False
+    assert captured["kwargs"]["lengths"] == (7,)
+
+
+def test_build_species_index_offline_never_downloads(monkeypatch):
+    from hitlist import downloads
+
+    captured = {}
+
+    def cache_only_fetch(upid, **kwargs):
+        captured["upid"] = upid
+        captured["kwargs"] = kwargs
+        return None
+
+    monkeypatch.setattr(downloads, "fetch_proteome_by_upid", cache_only_fetch)
+
+    result = _build_species_index(
+        "Offline species",
+        release=112,
+        use_uniprot=True,
+        verbose=False,
+        entry={"kind": "uniprot", "proteome_id": "UP_OFFLINE"},
+        fetch_missing=False,
+    )
+
+    assert result is None
+    assert captured == {
+        "upid": "UP_OFFLINE",
+        "kwargs": {
+            "label": "Offline species",
+            "verbose": False,
+            "fetch_missing": False,
+        },
+    }
+
+
+def test_build_species_index_tolerates_corrupt_cached_fasta(tmp_path, monkeypatch):
+    from hitlist import downloads
+    from hitlist.proteome import ProteomeIndex
+
+    fasta = tmp_path / "broken.fasta"
+    fasta.write_text("not a FASTA")
+    monkeypatch.setattr(downloads, "fetch_proteome_by_upid", lambda *_a, **_kw: fasta)
+
+    def fail_to_index(*_args, **_kwargs):
+        raise ValueError("corrupt FASTA")
+
+    monkeypatch.setattr(ProteomeIndex, "from_fasta", fail_to_index)
+
+    result = _build_species_index(
+        "Broken cached species",
+        release=112,
+        use_uniprot=False,
+        verbose=False,
+        entry={"kind": "uniprot", "proteome_id": "UP_BROKEN"},
+        fetch_missing=False,
+    )
+
+    assert result is None
 
 
 def test_per_canonical_worker_survives_an_unbuildable_index(monkeypatch):
@@ -330,30 +546,26 @@ def test_per_canonical_worker_survives_an_unbuildable_index(monkeypatch):
     the whole mapping pass."""
     monkeypatch.setattr("hitlist.mappings._build_species_index", lambda *a, **kw: None)
 
-    canonical, dfs, n_matched, n_total = _per_canonical_mapping_worker(
-        ("X", ["ABCDEFGHI", "ABCDEFGHIJ"], (7,), 112, False, 15)
-    )
-    assert canonical == "X"
-    assert dfs == []
-    assert n_matched == 0
+    result = _per_canonical_mapping_worker(_mapping_task(peptides=["ABCDEFGHI", "ABCDEFGHIJ"]))
+    assert result.canonical == "X"
+    assert result.mapping_frame is None
+    assert result.n_matched_peptides == 0
     # n_total still reports what was asked for, so the stats line is honest
     # about coverage rather than silently shrinking the denominator.
-    assert n_total == 2
+    assert result.n_input_peptides == 2
+    assert result.proteome_available is False
 
 
 def test_per_canonical_worker_args_are_picklable():
     """ProcessPoolExecutor.map dispatches via pickle — args MUST round-trip."""
     import pickle
 
-    args = (
-        "Homo sapiens",
-        ["ABCDEFGHI", "JKLMNOPQR", "ABCDEFGHIJ"],
-        (7,),
-        112,
-        False,
-        15,
+    task = _mapping_task(
+        canonical="Homo sapiens",
+        peptides=["ABCDEFGHI", "JKLMNOPQR", "ABCDEFGHIJ"],
+        entry={"kind": "ensembl", "species": "human"},
     )
-    assert pickle.loads(pickle.dumps(args)) == args
+    assert pickle.loads(pickle.dumps(task)) == task
 
 
 def test_per_canonical_worker_return_value_is_picklable(monkeypatch):
@@ -364,198 +576,226 @@ def test_per_canonical_worker_return_value_is_picklable(monkeypatch):
         "hitlist.mappings._build_species_index",
         lambda *a, **kw: _FakeFlanking("Z"),
     )
-    result = _per_canonical_mapping_worker(("Z", {9: ["ABCDEFGHI"]}, (9,), 112, False, 10))
+    result = _per_canonical_mapping_worker(_mapping_task(canonical="Z", flank=10))
     round_tripped = pickle.loads(pickle.dumps(result))
-    assert round_tripped[0] == "Z"
-    assert len(round_tripped[1]) == 1
-    assert round_tripped[2] == 1
-    assert round_tripped[3] == 1
+    assert round_tripped.canonical == "Z"
+    assert round_tripped.mapping_frame is not None
+    assert round_tripped.n_matched_peptides == 1
+    assert round_tripped.n_input_peptides == 1
+    assert round_tripped.proteome_available is True
 
 
 # ── _prefetch_proteomes_for_workers (#249) ──────────────────────────────
 
 
-def test_prefetch_dedupes_uniprot_canonicals(monkeypatch):
-    """Pre-fetch must call fetch_species_proteome ONCE per unique canonical
-    KEY even if the same canonical shows up multiple times in the input."""
-    fetched: list[tuple[str, bool]] = []
+def _scripted_prefetch_worker(label, _entry, _cache_dir, _release):
+    """Spawn-safe test worker: one named failure, all other tasks succeed."""
+    if label == "BadSpecies":
+        return label, False, "RuntimeError: simulated failure"
+    return label, True, ""
 
-    def fake_fetch(canonical, verbose, use_uniprot):
-        fetched.append((canonical, use_uniprot))
-        return None
 
-    monkeypatch.setattr("hitlist.downloads.fetch_species_proteome", fake_fetch)
+def _blocking_prefetch_worker(label, _entry, _cache_dir, _release):
+    """Spawn-safe test worker that never answers its first request."""
+    import time
 
+    time.sleep(60)
+    return label, True, ""
+
+
+def test_prefetch_plans_unique_canonicals_and_groups_ensembl(monkeypatch):
+    captured = {}
+
+    def capture(tasks, **kwargs):
+        captured["tasks"] = tasks
+        captured["kwargs"] = kwargs
+        return set()
+
+    monkeypatch.setattr("hitlist.mappings._supervise_prefetch_tasks", capture)
     pairs = [
-        ("Mus musculus", {"kind": "uniprot", "canonical_species": "Mus musculus"}),
-        ("Mus musculus", {"kind": "uniprot", "canonical_species": "Mus musculus"}),  # dup
-        ("SARS-CoV-2 wuhan", {"kind": "uniprot"}),
+        ("Virus", {"kind": "uniprot", "proteome_id": "UP1"}),
+        ("Virus", {"kind": "uniprot", "proteome_id": "UP1"}),
+        ("Virus alias", {"kind": "uniprot", "proteome_id": "UP1"}),
+        ("Human alias A", {"kind": "ensembl", "species": "human"}),
+        ("Human alias B", {"kind": "ensembl", "species": "human"}),
     ]
-    _prefetch_proteomes_for_workers(pairs, release=112, use_uniprot=False, verbose=False)
 
-    assert sorted(c for c, _ in fetched) == ["Mus musculus", "SARS-CoV-2 wuhan"]
+    unavailable = _prefetch_proteomes_for_workers(pairs, release=112, verbose=False)
 
-
-def test_prefetch_skips_ensembl_in_uniprot_loop(monkeypatch):
-    """Ensembl entries must not be fed to fetch_species_proteome — they
-    have no FASTA to download (pyensembl manages its own cache).
-
-    Mocks the ``pyensembl`` module so the test doesn't trigger a real
-    ``EnsemblRelease(112).download() / .index()`` against ftp.ensembl.org
-    on machines without ``~/.pyensembl/release-112/`` already cached.
-    """
-    import sys
-    import types
-
-    fetched: list[str] = []
-
-    def fake_fetch(canonical, verbose, use_uniprot):
-        fetched.append(canonical)
-        return None
-
-    # Record pyensembl interactions so we can assert the Ensembl warm-up
-    # branch was actually reached (the whole point of this test).
-    ensembl_calls: list[str] = []
-
-    class _FakeEnsembl:
-        def __init__(self, release, species=None):
-            self.release = release
-            self.species = species
-
-        def download(self):
-            ensembl_calls.append(f"download({self.release},{self.species})")
-
-        def index(self):
-            ensembl_calls.append(f"index({self.release},{self.species})")
-
-    fake_pyensembl = types.SimpleNamespace(EnsemblRelease=_FakeEnsembl)
-    monkeypatch.setitem(sys.modules, "pyensembl", fake_pyensembl)
-    monkeypatch.setattr("hitlist.downloads.fetch_species_proteome", fake_fetch)
-
-    pairs = [
-        ("Homo sapiens", {"kind": "ensembl", "species": "human"}),
+    assert unavailable == set()
+    assert captured["tasks"] == [
         (
-            "Mycobacterium tuberculosis",
-            {"kind": "uniprot", "canonical_species": "Mycobacterium tuberculosis"},
+            "Virus",
+            ("Virus", "Virus alias"),
+            {"kind": "uniprot", "proteome_id": "UP1"},
+        ),
+        (
+            "Ensembl human r112",
+            ("Human alias A", "Human alias B"),
+            {"kind": "ensembl", "species": "human"},
         ),
     ]
-    _prefetch_proteomes_for_workers(pairs, release=112, use_uniprot=False, verbose=False)
-
-    # Only the UniProt entry was fed to fetch_species_proteome.
-    assert fetched == ["Mycobacterium tuberculosis"]
-    # The Ensembl branch DID run — both download() and index() called once.
-    assert ensembl_calls == ["download(112,human)", "index(112,human)"]
+    assert captured["kwargs"]["release"] == 112
 
 
-def test_prefetch_ensembl_branch_handles_missing_pyensembl(monkeypatch):
-    """When pyensembl is unavailable, the helper exits cleanly without
-    propagating the ImportError to the caller."""
-    import sys
+def test_prefetch_worker_fetches_explicit_upid(tmp_path, monkeypatch):
+    fetched = []
 
-    monkeypatch.setitem(sys.modules, "pyensembl", None)
-    pairs = [("Homo sapiens", {"kind": "ensembl", "species": "human"})]
-    # Must NOT raise.  Setting sys.modules["pyensembl"] = None causes
-    # `import pyensembl` to ImportError, which the helper swallows.
-    _prefetch_proteomes_for_workers(pairs, release=112, use_uniprot=False, verbose=False)
+    fasta = tmp_path / "rare.fasta"
+    fasta.write_text(">p\nPEPTIDE\n")
 
+    def fake_fetch(upid, **kwargs):
+        fetched.append((upid, kwargs))
+        return fasta
 
-def test_prefetch_swallows_per_canonical_failures(monkeypatch):
-    """A failed fetch on one canonical must not crash the pre-fetch pass —
-    workers will hit the same failure and surface it there."""
-    calls: list[str] = []
+    monkeypatch.setattr("hitlist.downloads.fetch_proteome_by_upid", fake_fetch)
+    result = _prefetch_worker(
+        "Rare species",
+        {"kind": "uniprot", "proteome_id": "UP123"},
+        str(tmp_path),
+        release=112,
+    )
 
-    def flaky_fetch(canonical, verbose, use_uniprot):
-        calls.append(canonical)
-        if canonical == "BadSpecies":
-            raise RuntimeError("simulated download failure")
-        return None
-
-    monkeypatch.setattr("hitlist.downloads.fetch_species_proteome", flaky_fetch)
-    pairs = [
-        ("BadSpecies", {"kind": "uniprot"}),
-        ("GoodSpecies", {"kind": "uniprot"}),
+    assert fetched == [
+        (
+            "UP123",
+            {
+                "label": "Rare species",
+                "verbose": False,
+                "fetch_missing": True,
+            },
+        )
     ]
-    # Must NOT raise.
-    _prefetch_proteomes_for_workers(pairs, release=112, use_uniprot=False, verbose=False)
-    # Both canonicals were attempted (Bad first because alphabetical).
-    assert sorted(calls) == ["BadSpecies", "GoodSpecies"]
+    assert result == ("Rare species", True, "")
+
+
+@pytest.mark.parametrize(("cached", "succeeded"), [(True, True), (False, False)])
+def test_prefetch_worker_distinguishes_negative_resolution_from_transport_failure(
+    tmp_path, monkeypatch, cached, succeeded
+):
+    from hitlist import downloads
+
+    monkeypatch.setattr(downloads, "lookup_proteome", lambda *_a, **_kw: None)
+    monkeypatch.setattr(
+        downloads,
+        "_uniprot_cache",
+        lambda: {"Mystery organism": {"not_found": True}} if cached else {},
+    )
+
+    result = _prefetch_worker(
+        "Resolve mystery",
+        {"kind": "resolve", "organism": "Mystery organism"},
+        str(tmp_path),
+        release=112,
+    )
+
+    assert result[0] == "Resolve mystery"
+    assert result[1] is succeeded
+    if not succeeded:
+        assert "transiently" in result[2]
+
+
+def test_prefetch_supervisor_continues_after_failure(capsys):
+    tasks = [
+        ("BadSpecies", ("BadSpecies",), {"kind": "uniprot", "proteome_id": "UP_BAD"}),
+        (
+            "GoodSpecies",
+            ("GoodSpecies",),
+            {"kind": "uniprot", "proteome_id": "UP_GOOD"},
+        ),
+    ]
+
+    unavailable = _supervise_prefetch_tasks(
+        tasks,
+        release=112,
+        verbose=True,
+        deadline_seconds=5,
+        worker_target=_scripted_prefetch_worker,
+    )
+
+    out = capsys.readouterr().out
+    assert unavailable == {"BadSpecies"}
+    assert "[1/2] BadSpecies" in out
+    assert "[2/2] GoodSpecies" in out
+    assert "simulated failure" in out
+
+
+def test_prefetch_supervisor_terminates_blocked_inflight_call(capsys):
+    import time
+
+    tasks = [
+        ("BlockedSpecies", ("BlockedSpecies",), {"kind": "uniprot", "proteome_id": "UP1"}),
+        ("NeverStarted", ("NeverStarted",), {"kind": "uniprot", "proteome_id": "UP2"}),
+    ]
+    started = time.monotonic()
+
+    unavailable = _supervise_prefetch_tasks(
+        tasks,
+        release=112,
+        verbose=True,
+        deadline_seconds=0.2,
+        worker_target=_blocking_prefetch_worker,
+    )
+
+    elapsed = time.monotonic() - started
+    out = capsys.readouterr().out
+    assert elapsed < 5
+    assert unavailable == {"BlockedSpecies", "NeverStarted"}
+    assert "BlockedSpecies" in out
+    assert "timed out" in out
+    assert "NeverStarted" not in out
+
+
+@pytest.mark.parametrize("deadline_seconds", [0.0, -1.0, float("nan"), float("inf")])
+def test_prefetch_supervisor_fails_safe_for_invalid_or_exhausted_deadline(deadline_seconds, capsys):
+    tasks = [("NeverStarted", ("NeverStarted",), {"kind": "uniprot", "proteome_id": "UP1"})]
+
+    unavailable = _supervise_prefetch_tasks(
+        tasks,
+        release=112,
+        verbose=False,
+        deadline_seconds=deadline_seconds,
+        worker_target=_blocking_prefetch_worker,
+    )
+
+    assert unavailable == {"NeverStarted"}
+    assert "invalid or already exhausted" in capsys.readouterr().out
 
 
 def test_prefetch_handles_empty_input():
-    """Zero entries → no work, no crash."""
-    _prefetch_proteomes_for_workers([], release=112, use_uniprot=False, verbose=False)
-
-
-def test_prefetch_threads_use_uniprot_to_fetch(monkeypatch):
-    """Regression: pre-fetch must pass the orchestrator's use_uniprot
-    value through to fetch_species_proteome.  Otherwise the pre-fetch
-    resolves canonicals via a different registry path than the workers
-    and may silently miss species the workers DO need (re-introducing
-    the very download race we're trying to avoid)."""
-    captured: list[bool] = []
-
-    def fake_fetch(canonical, verbose, use_uniprot):
-        captured.append(use_uniprot)
-        return None
-
-    monkeypatch.setattr("hitlist.downloads.fetch_species_proteome", fake_fetch)
-    pairs = [("SomeOrganism", {"kind": "uniprot"})]
-
-    _prefetch_proteomes_for_workers(pairs, release=112, use_uniprot=True, verbose=False)
-    assert captured == [True]
-
-    captured.clear()
-    _prefetch_proteomes_for_workers(pairs, release=112, use_uniprot=False, verbose=False)
-    assert captured == [False]
-
-
-def test_prefetch_uses_canonical_key_not_entry_field(monkeypatch):
-    """Regression: pre-fetch dedupes/feeds via the canonical KEY, not
-    entry.canonical_species.  The orchestrator's dict key falls back to
-    the source organism string when entry.canonical_species is absent;
-    earlier code keyed off the field and silently dropped these entries.
-    """
-    fetched: list[str] = []
-
-    def fake_fetch(canonical, verbose, use_uniprot):
-        fetched.append(canonical)
-        return None
-
-    monkeypatch.setattr("hitlist.downloads.fetch_species_proteome", fake_fetch)
-    # Entry has NO canonical_species field — earlier code would skip this.
-    pairs = [("Strange organism sp. ABC123", {"kind": "uniprot", "proteome_id": "UP000000001"})]
-    _prefetch_proteomes_for_workers(pairs, release=112, use_uniprot=False, verbose=False)
-    assert fetched == ["Strange organism sp. ABC123"]
+    assert _prefetch_proteomes_for_workers([], release=112, verbose=False) == set()
 
 
 # ── End-to-end orchestrator dispatch (#249) ────────────────────────────
 
 
-def _e2e_worker_for_pool_test(args):
+def _e2e_worker_for_pool_test(task):
     """Module-level (picklable) double of _per_canonical_mapping_worker for
     end-to-end ProcessPoolExecutor dispatch tests.  Returns the same shape
     so the orchestrator's aggregation can be exercised without needing a
     real proteome.  Defined at module scope so spawn-based pools can pickle.
     """
-    canonical, peptides_by_len, lengths_in_query, _release, _use_uniprot, _flank = args
-    n_input = sum(len(v) for v in peptides_by_len.values())
-    n_matched = sum(len(peptides_by_len.get(L, [])) for L in lengths_in_query)
     df = pd.DataFrame(
         {
             "peptide": ["FAKEPEP"],
-            "protein_id": [f"{canonical}_PROT"],
-            "gene_name": [canonical],
-            "gene_id": [f"{canonical}_GENE"],
+            "protein_id": [f"{task.canonical}_PROT"],
+            "gene_name": [task.canonical],
+            "gene_id": [f"{task.canonical}_GENE"],
             "transcript_id": [""],
             "is_canonical_transcript": [False],
             "position": [0],
             "n_flank": [""],
             "c_flank": [""],
-            "proteome": [canonical],
+            "proteome": [task.canonical],
             "proteome_source": ["species"],
         }
     )
-    return canonical, [df], n_matched, n_input
+    return MappingResult(
+        canonical=task.canonical,
+        mapping_frame=df,
+        n_matched_peptides=len(task.peptides),
+        n_input_peptides=len(task.peptides),
+    )
 
 
 def test_pool_map_dispatch_preserves_order_and_aggregates_results():
@@ -563,81 +803,14 @@ def test_pool_map_dispatch_preserves_order_and_aggregates_results():
     pickle args/results, preserve task order, return all canonicals."""
     from concurrent.futures import ProcessPoolExecutor
 
-    tasks = [(f"species_{i}", {9: [f"PEP{i:05d}"]}, (9,), 112, False, 10) for i in range(6)]
+    tasks = [_mapping_task(canonical=f"species_{i}", peptides=[f"PEP{i:05d}"]) for i in range(6)]
     with ProcessPoolExecutor(max_workers=2) as pool:
         results = list(pool.map(_e2e_worker_for_pool_test, tasks, chunksize=2))
     # Order is preserved by pool.map (matches submission order).
-    assert [r[0] for r in results] == [t[0] for t in tasks]
+    assert [result.canonical for result in results] == [task.canonical for task in tasks]
     # Each task produced exactly one DataFrame.
-    assert all(len(r[1]) == 1 for r in results)
+    assert all(result.mapping_frame is not None for result in results)
     # n_matched == n_total == 1 in all cases.
-    assert all(r[2] == 1 and r[3] == 1 for r in results)
-
-
-class TestPrefetchIsBounded:
-    """The parent-side UniProt pre-fetch must not be able to wedge a build.
-
-    A real build sat here for 2h29m at 0% CPU with no output and no artifact,
-    after 80 consecutive UniProt failures (#402). The phase's own docstring
-    already promises that failures are tolerated because the worker hits the
-    same code path -- so a stall has to be tolerated the same way, or the
-    phase that exists to save time is the one that stops the build finishing.
-    """
-
-    @staticmethod
-    def _entries(n):
-        return [(f"Species {i}", {"kind": "uniprot"}) for i in range(n)]
-
-    def test_budget_stops_the_loop_and_says_so(self, monkeypatch, capsys):
-        calls = {"n": 0}
-
-        def slow_fetch(canonical, verbose=True, use_uniprot=False):
-            calls["n"] += 1
-
-        monkeypatch.setattr("hitlist.downloads.fetch_species_proteome", slow_fetch)
-        monkeypatch.setattr("hitlist.mappings._prefetch_budget", lambda: 0.0)
-
-        from hitlist.mappings import _prefetch_proteomes_for_workers
-
-        _prefetch_proteomes_for_workers(
-            self._entries(25), release=112, use_uniprot=True, verbose=True
-        )
-
-        out = capsys.readouterr().out
-        assert "budget" in out and "skipping the remaining" in out
-        # Budget of 0 trips on the first iteration, so nothing is fetched.
-        assert calls["n"] == 0
-
-    def test_each_attempt_is_logged_before_it_runs(self, monkeypatch, capsys):
-        """The old loop logged only in `except`, so a call that blocked printed
-        nothing and the last log line named an already-finished proteome. That
-        is why #402 could not be attributed to a specific fetch."""
-        seen = []
-
-        def fetch(canonical, verbose=True, use_uniprot=False):
-            seen.append(canonical)
-            raise RuntimeError("boom")
-
-        monkeypatch.setattr("hitlist.downloads.fetch_species_proteome", fetch)
-        from hitlist.mappings import _prefetch_proteomes_for_workers
-
-        _prefetch_proteomes_for_workers(
-            self._entries(3), release=112, use_uniprot=True, verbose=True
-        )
-
-        out = capsys.readouterr().out
-        for i in range(1, 4):
-            assert f"[{i}/3]" in out, f"missing in-flight line for attempt {i}"
-        # Failures are still tolerated, all three attempted.
-        assert len(seen) == 3
-        assert out.count("pre-fetch skipped") == 3
-
-    def test_budget_is_env_overridable(self, monkeypatch):
-        from hitlist.mappings import _DEFAULT_PREFETCH_BUDGET, _prefetch_budget
-
-        assert _prefetch_budget() == _DEFAULT_PREFETCH_BUDGET
-        monkeypatch.setenv("HITLIST_PREFETCH_BUDGET", "12.5")
-        assert _prefetch_budget() == 12.5
-        # A malformed value falls back rather than crashing a long build.
-        monkeypatch.setenv("HITLIST_PREFETCH_BUDGET", "not-a-number")
-        assert _prefetch_budget() == _DEFAULT_PREFETCH_BUDGET
+    assert all(
+        result.n_matched_peptides == 1 and result.n_input_peptides == 1 for result in results
+    )

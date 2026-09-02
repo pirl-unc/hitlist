@@ -98,6 +98,57 @@ def test_cache_invalid_when_observations_parquet_missing(tmp_path, monkeypatch):
     assert _cache_is_valid({}, with_flanking=False) is False
 
 
+def test_observations_cache_hit_still_validates_mapping_sidecar(tmp_path, monkeypatch):
+    """#404: a current observations parquet must not hide stale mappings."""
+    from hitlist import builder, downloads, mappings
+
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
+    observations = tmp_path / "observations.parquet"
+    binding = tmp_path / "binding.parquet"
+    observations.write_bytes(b"observations")
+    binding.write_bytes(b"binding")
+    source = tmp_path / "iedb.csv"
+    source.write_text("source")
+
+    monkeypatch.setattr(builder, "_source_paths", lambda: {"iedb": source})
+    monkeypatch.setattr(builder, "_cache_is_valid", lambda *_a, **_kw: True)
+    monkeypatch.setattr(
+        builder,
+        "_cache_meta",
+        lambda: {
+            "n_rows": 1,
+            "n_peptides": 1,
+            "n_alleles": 1,
+            "n_species": 1,
+            "n_binding_rows": 1,
+        },
+    )
+    calls = []
+
+    def validate_mappings(**kwargs):
+        calls.append(kwargs)
+        return tmp_path / "peptide_mappings.parquet"
+
+    monkeypatch.setattr(mappings, "build_peptide_mappings", validate_mappings)
+
+    result = builder.build_observations(
+        proteome_release=113,
+        fetch_missing_proteomes=False,
+        use_uniprot_search=True,
+        build_mappings=True,
+    )
+
+    assert result == observations
+    assert calls == [
+        {
+            "release": 113,
+            "fetch_missing": False,
+            "use_uniprot": True,
+            "force": False,
+        }
+    ]
+
+
 def test_cache_invalid_when_parquet_fingerprint_changes(tmp_path, monkeypatch):
     """If a parquet is replaced (size/mtime changes) after the meta was
     written, the cache must invalidate even if source CSVs look unchanged.
