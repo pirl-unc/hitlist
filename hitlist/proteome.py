@@ -55,6 +55,7 @@ import pickle
 import tempfile
 import warnings
 from collections import OrderedDict
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from functools import cached_property, lru_cache
 from pathlib import Path
@@ -119,6 +120,46 @@ SEED_KMER_LENGTH = 7
 # Flanks are sliced from the source sequence after the position is known, so
 # this is independent of the index; the cost is output size only.
 DEFAULT_FLANK = 15
+
+# Ensembl deliberately classifies translated immunoglobulin and T-cell-receptor
+# germline segments separately from ordinary ``protein_coding`` genes. They
+# are real protein sources, while the similarly named ``*_pseudogene``
+# biotypes are not. Keep the complete inclusion policy in one public constant
+# so mapping, transcript-origin lookup, cache metadata, and downstream callers
+# cannot drift apart (#399).
+ENSEMBL_CODING_GENE_BIOTYPES = (
+    "protein_coding",
+    "IG_V_gene",
+    "IG_D_gene",
+    "IG_J_gene",
+    "IG_C_gene",
+    "TR_V_gene",
+    "TR_D_gene",
+    "TR_J_gene",
+    "TR_C_gene",
+)
+
+
+def _normalize_ensembl_gene_biotypes(
+    gene_biotypes: str | Iterable[str] | None,
+) -> tuple[str, ...]:
+    """Return a validated, order-independent Ensembl gene-biotype policy.
+
+    ``None`` selects :data:`ENSEMBL_CODING_GENE_BIOTYPES`. A string is
+    treated as one biotype rather than an iterable of characters, preserving
+    the historical ``biotype="protein_coding"`` API. Sorting makes equivalent
+    caller inputs share the same disk-cache key.
+    """
+    if gene_biotypes is None:
+        values = ENSEMBL_CODING_GENE_BIOTYPES
+    elif isinstance(gene_biotypes, str):
+        values = (gene_biotypes,)
+    else:
+        values = tuple(gene_biotypes)
+    normalized = tuple(sorted({str(value).strip() for value in values if str(value).strip()}))
+    if not normalized:
+        raise ValueError("At least one Ensembl gene biotype is required")
+    return normalized
 
 
 @dataclass
@@ -428,7 +469,7 @@ def _disk_cache_filename(cache_key: tuple) -> str:
 
     Two cache-key shapes are recognized via the first-element discriminant:
 
-    * ``("ensembl", release, species, biotype, lengths, gtf_size, gtf_mtime)``
+    * ``("ensembl", release, species, gene_biotypes, lengths, gtf_size, gtf_mtime)``
       — emitted by :meth:`ProteomeIndex.from_ensembl` (#251).
     * ``(path_str, size, mtime, lengths, gene_name, gene_id)`` — emitted by
       :meth:`ProteomeIndex.from_fasta` (#246).  This is the legacy shape;
@@ -439,9 +480,15 @@ def _disk_cache_filename(cache_key: tuple) -> str:
     suffix would silently change for the same logical key otherwise.
     """
     if len(cache_key) > 0 and cache_key[0] == "ensembl":
-        _tag, release, species, biotype, lengths, _size, _mtime = cache_key
+        _tag, release, species, gene_biotypes, lengths, _size, _mtime = cache_key
         species_slug = str(species).lower().replace(" ", "_")
-        basename = f"ensembl_{species_slug}_r{release}_{biotype}"
+        if set(gene_biotypes) == set(ENSEMBL_CODING_GENE_BIOTYPES):
+            biotype_label = "coding"
+        elif len(gene_biotypes) == 1:
+            biotype_label = gene_biotypes[0]
+        else:
+            biotype_label = f"{len(gene_biotypes)}-biotypes"
+        basename = f"ensembl_{species_slug}_r{release}_{biotype_label}"
     else:
         path_str, _size, _mtime, lengths, _gn, _gid = cache_key
         basename = Path(path_str).stem.lower().replace(" ", "_")
@@ -543,7 +590,7 @@ def _build_ensembl_cache_key(
     ensembl,
     release: int,
     species: str,
-    biotype: str,
+    gene_biotypes: tuple[str, ...],
     lengths: tuple[int, ...],
 ) -> tuple | None:
     """Construct the cache key tuple used by ``from_ensembl``.
@@ -562,7 +609,7 @@ def _build_ensembl_cache_key(
         "ensembl",
         int(release),
         str(species),
-        str(biotype),
+        tuple(gene_biotypes),
         tuple(lengths),
         stat.st_size,
         stat.st_mtime_ns,
@@ -695,6 +742,7 @@ class ProteinSource:
     protein_id: str
     gene_name: str
     gene_id: str
+    gene_biotype: str
     position: int  # 0-based start in protein
     n_flank: str
     c_flank: str
@@ -709,7 +757,8 @@ class ProteomeIndex:
     proteins : dict[str, str]
         Mapping from protein_id to amino acid sequence.
     protein_meta : dict[str, dict]
-        Mapping from protein_id to metadata (gene_name, gene_id).
+        Mapping from protein_id to metadata (gene_name, gene_id,
+        gene_biotype, transcript_id, is_canonical_transcript).
     index : _PackedIndex | dict[str, int | np.ndarray]
         Inverted index: peptide -> packed postings. Normally a
         :class:`_PackedIndex` (int-encoded columnar arrays, #250); a legacy
@@ -734,11 +783,13 @@ class ProteomeIndex:
         cls,
         release: int = 112,
         lengths: tuple[int, ...] = (SEED_KMER_LENGTH,),
-        biotype: str = "protein_coding",
+        biotype: str | None = None,
         verbose: bool = True,
         species: str = "human",
+        *,
+        gene_biotypes: Iterable[str] | None = None,
     ) -> ProteomeIndex:
-        """Build index from Ensembl protein sequences.
+        """Build an index from translated Ensembl gene records.
 
         Parameters
         ----------
@@ -747,11 +798,20 @@ class ProteomeIndex:
         lengths
             Peptide lengths to index.
         biotype
-            Gene biotype filter (default ``"protein_coding"``).
+            Backward-compatible single-biotype filter. For example,
+            ``biotype="protein_coding"`` reproduces the pre-1.55.8 narrow
+            index. Mutually exclusive with ``gene_biotypes``.
         verbose
             Print progress messages.
         species
             pyensembl species key (``"human"``, ``"mouse"``, ``"rat"``, ...).
+        gene_biotypes
+            Gene biotypes to include. By default, includes ordinary
+            ``protein_coding`` genes plus the eight translated IG/TR germline
+            biotypes in :data:`ENSEMBL_CODING_GENE_BIOTYPES`. Pseudogene
+            biotypes are deliberately excluded. Ensembl contains germline
+            V/D/J/C segments, not donor-specific rearranged receptors, so
+            peptides spanning a V(D)J junction remain outside this index.
 
         Returns
         -------
@@ -776,11 +836,18 @@ class ProteomeIndex:
         """
         from pyensembl import EnsemblRelease
 
+        if biotype is not None and gene_biotypes is not None:
+            raise ValueError("Pass either biotype or gene_biotypes, not both")
+        selected_biotypes = _normalize_ensembl_gene_biotypes(
+            biotype if biotype is not None else gene_biotypes
+        )
+        selected_biotype_set = set(selected_biotypes)
+
         ensembl = EnsemblRelease(release, species=species)
 
         # Build the cache key off pyensembl's local GTF (size + mtime).
         # When unresolvable (test fakes, missing local GTF), skip caching.
-        cache_key = _build_ensembl_cache_key(ensembl, release, species, biotype, lengths)
+        cache_key = _build_ensembl_cache_key(ensembl, release, species, selected_biotypes, lengths)
         if cache_key is not None:
             label = f"ensembl {species} r{release}"
             hit = _hit_in_memory_cache(cache_key, label, verbose)
@@ -798,9 +865,10 @@ class ProteomeIndex:
         )
 
         for gene in gene_iter:
-            if gene.biotype != biotype:
+            gene_biotype = str(gene.biotype)
+            if gene_biotype not in selected_biotype_set:
                 continue
-            # Issue #141: index every protein-coding transcript per gene
+            # Issue #141: index every translated selected transcript per gene
             # rather than collapsing each gene to its longest transcript.
             # The canonical transcript is identified post-hoc as the
             # longest valid translation (a stable, pyensembl-version-
@@ -810,7 +878,7 @@ class ProteomeIndex:
             # ambiguity in mapping rows.
             transcript_records: list[tuple[str, str, str]] = []
             for t in gene.transcripts:
-                if getattr(t, "biotype", "") != "protein_coding":
+                if getattr(t, "biotype", "") not in selected_biotype_set:
                     continue
                 try:
                     seq = t.protein_sequence
@@ -841,6 +909,7 @@ class ProteomeIndex:
                 meta[protein_key] = {
                     "gene_name": gene.name,
                     "gene_id": gene.id,
+                    "gene_biotype": gene_biotype,
                     "transcript_id": transcript_id,
                     "is_canonical_transcript": protein_key == canonical_protein_key,
                 }
@@ -934,6 +1003,9 @@ class ProteomeIndex:
                     meta[current_id] = {
                         "gene_name": gn,
                         "gene_id": gene_id,
+                        # UniProt/custom FASTAs do not expose an Ensembl gene
+                        # biotype. Empty means unavailable, not protein_coding.
+                        "gene_biotype": "",
                         "transcript_id": "",
                         "is_canonical_transcript": False,
                     }
@@ -1244,7 +1316,7 @@ class ProteomeIndex:
         pd.DataFrame
             One row per (peptide, source protein) occurrence. Columns:
             ``peptide``, ``protein_id``, ``gene_name``, ``gene_id``,
-            ``position`` (0-based), ``n_flank``, ``c_flank``,
+            ``gene_biotype``, ``position`` (0-based), ``n_flank``, ``c_flank``,
             ``n_sources`` (total source count for this peptide),
             ``unique_nflank`` (set if all sources have same n_flank, else ""),
             ``unique_cflank`` (same for c_flank).
@@ -1270,11 +1342,12 @@ class ProteomeIndex:
                         "protein_id": prot_id,
                         "gene_name": m.get("gene_name", ""),
                         "gene_id": m.get("gene_id", ""),
+                        "gene_biotype": m.get("gene_biotype", ""),
                         # Issue #141: transcript_id is now a first-class
                         # column distinct from protein_id.  For Ensembl-
                         # backed indexes it carries the ENST; for FASTA-
                         # backed indexes it's "".  is_canonical_transcript
-                        # marks the longest protein-coding transcript per
+                        # marks the longest translated selected transcript per
                         # gene (the Ensembl-canonical proxy).
                         "transcript_id": m.get("transcript_id", ""),
                         "is_canonical_transcript": bool(m.get("is_canonical_transcript", False)),
@@ -1291,6 +1364,7 @@ class ProteomeIndex:
                     "protein_id",
                     "gene_name",
                     "gene_id",
+                    "gene_biotype",
                     "transcript_id",
                     "is_canonical_transcript",
                     "position",
@@ -1325,7 +1399,7 @@ class ProteomeIndex:
 # ---------------------------------------------------------------------------
 #
 # Shared by tsarina (self-peptide subtraction), perseus, topiary, and any
-# future consumer that wants "every protein-coding k-mer at lengths X,
+# future consumer that wants "every translated coding k-mer at lengths X,
 # optionally restricted to a gene subset." Delegates to ProteomeIndex
 # but caches the frozenset so repeated calls with the same arguments are
 # sub-millisecond.
@@ -1366,7 +1440,7 @@ def proteome_kmer_set(
     gene_ids: frozenset[str] | set[str] | None = None,
     species: str = "human",
 ) -> frozenset[str]:
-    """Every protein-coding k-mer in the proteome, cached across calls.
+    """Every translated coding k-mer in the proteome, cached across calls.
 
     The canonical primitive for self-peptide subtraction, vaccine /
     neoantigen candidate filtering, and any other workflow that needs a
@@ -1395,6 +1469,9 @@ def proteome_kmer_set(
 
     Notes
     -----
+    - The default Ensembl index includes conventional protein-coding genes and
+      coding IG/TR germline segments, but not pseudogenes or donor-specific
+      rearranged V(D)J junctions.
     - First call: ~10-60 s (ProteomeIndex build + iteration). Memory
       peak during the call is bounded by the ProteomeIndex
       representation (v1.14.0+: ~3 GB for human at all 4 lengths).

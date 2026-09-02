@@ -138,6 +138,7 @@ _TRAINING_MAPPING_COLUMNS = (
     "protein_id",
     "gene_name",
     "gene_id",
+    "gene_biotype",
     # Issue #141: transcript identity is now a first-class training-export
     # column.  ``protein_id`` carries the ENSP for Ensembl-backed mappings
     # (was ENST pre-#141); ``transcript_id`` is the ENST.  FASTA-backed
@@ -1934,9 +1935,11 @@ _EXPRESSION_ANCHOR_COLUMNS = (
 def _build_transcript_lookup(gene_names: set[str], release: int):
     """Return a ``gene_name -> [(transcript_id, protein_seq)]`` closure.
 
-    Built by iterating pyensembl's protein-coding transcripts for each
-    requested gene.  Returns ``None`` if pyensembl is unavailable (the
-    caller then falls back to the gene-only origin path).
+    Built from the same conventional + IG/TR translated-biotype policy as
+    :meth:`hitlist.proteome.ProteomeIndex.from_ensembl`, so peptide-origin
+    scoring cannot lose a receptor mapping that exists in the sidecar.
+    Returns ``None`` if pyensembl is unavailable (the caller then falls back
+    to the gene-only origin path).
     """
     try:
         from pyensembl import EnsemblRelease
@@ -1947,6 +1950,10 @@ def _build_transcript_lookup(gene_names: set[str], release: int):
         ensembl = EnsemblRelease(release)
     except Exception:
         return None
+
+    from .proteome import ENSEMBL_CODING_GENE_BIOTYPES
+
+    coding_biotypes = set(ENSEMBL_CODING_GENE_BIOTYPES)
 
     cache: dict[str, list[tuple[str, str]]] = {}
 
@@ -1961,7 +1968,7 @@ def _build_transcript_lookup(gene_names: set[str], release: int):
             return records
         for gene in genes:
             for t in gene.transcripts:
-                if getattr(t, "biotype", "") != "protein_coding":
+                if getattr(t, "biotype", "") not in coding_biotypes:
                     continue
                 try:
                     seq = t.protein_sequence
@@ -2342,8 +2349,9 @@ def generate_training_table(
     This function composes those indexes into one downstream-facing export.
     Compact mode preserves one row per evidence row. ``map_source_proteins=True``
     expands the export to one row per ``(evidence row, source-protein mapping)``,
-    adding ``protein_id`` / ``gene_name`` / ``gene_id`` / ``transcript_id`` /
-    ``position`` / ``n_flank`` / ``c_flank`` from ``peptide_mappings.parquet``.
+    adding ``protein_id`` / ``gene_name`` / ``gene_id`` / ``gene_biotype`` /
+    ``transcript_id`` / ``position`` / ``n_flank`` / ``c_flank`` from
+    ``peptide_mappings.parquet``.
     Suitable for flank-aware model pipelines such as Presto.
 
     .. deprecated:: 1.24.1

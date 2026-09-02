@@ -1,9 +1,8 @@
 """Tests for hitlist.mappings — peptide_mappings.parquet contract.
 
-Issue #141 added ``transcript_id`` and ``is_canonical_transcript`` as
-first-class columns and exposed matching filters on
-``load_peptide_mappings``.  These tests pin down the schema (uniform
-across FASTA + Ensembl backends) and the filter pushdown.
+Issue #141 added transcript provenance and #399 added Ensembl gene-biotype
+provenance. These tests pin down the schema (uniform across FASTA + Ensembl
+backends), filter pushdown, and process-worker contract.
 """
 
 from __future__ import annotations
@@ -29,6 +28,7 @@ from hitlist.mappings import (
     mappings_meta_path,
 )
 from hitlist.mappings import _cache_is_valid as _mapping_cache_is_valid
+from hitlist.proteome import ENSEMBL_CODING_GENE_BIOTYPES
 
 
 def test_mapping_columns_contract_includes_transcript_fields():
@@ -36,6 +36,7 @@ def test_mapping_columns_contract_includes_transcript_fields():
     cols = set(_MAPPING_COLUMNS)
     assert "transcript_id" in cols
     assert "is_canonical_transcript" in cols
+    assert "gene_biotype" in cols
     # Existing fields stay.
     for legacy in ("peptide", "protein_id", "gene_name", "gene_id", "position"):
         assert legacy in cols
@@ -52,6 +53,7 @@ def test_flanking_rows_to_mapping_rows_carries_transcript_columns():
             "protein_id": ["ENSP00000001"],
             "gene_name": ["TP53"],
             "gene_id": ["ENSG00000141510"],
+            "gene_biotype": ["protein_coding"],
             "transcript_id": ["ENST00000269305"],
             "is_canonical_transcript": [True],
             "position": [42],
@@ -65,6 +67,7 @@ def test_flanking_rows_to_mapping_rows_carries_transcript_columns():
     assert list(out.columns) == list(_MAPPING_COLUMNS)
     row = out.iloc[0]
     assert row["transcript_id"] == "ENST00000269305"
+    assert row["gene_biotype"] == "protein_coding"
     assert row["is_canonical_transcript"] is True or row["is_canonical_transcript"] == True  # noqa: E712
 
 
@@ -89,6 +92,7 @@ def test_flanking_rows_to_mapping_rows_legacy_input_safe_defaults():
     assert "is_canonical_transcript" in out.columns
     assert out.iloc[0]["transcript_id"] == ""
     assert bool(out.iloc[0]["is_canonical_transcript"]) is False
+    assert out.iloc[0]["gene_biotype"] == ""
 
 
 def test_flanking_rows_to_mapping_rows_empty_input_emits_full_schema():
@@ -107,6 +111,7 @@ def test_load_peptide_mappings_transcript_id_filter(tmp_path, monkeypatch):
             "protein_id": ["ENSP1", "ENSP2", "ENSP3"],
             "gene_name": ["TP53", "TP53", "MYC"],
             "gene_id": ["ENSG_TP53", "ENSG_TP53", "ENSG_MYC"],
+            "gene_biotype": ["protein_coding", "IG_V_gene", "TR_J_gene"],
             "transcript_id": ["ENST_T1", "ENST_T2", "ENST_T3"],
             "is_canonical_transcript": [True, False, True],
             "position": [1, 2, 3],
@@ -124,6 +129,9 @@ def test_load_peptide_mappings_transcript_id_filter(tmp_path, monkeypatch):
     assert list(sub["transcript_id"]) == ["ENST_T2"]
     assert list(sub["protein_id"]) == ["ENSP2"]
 
+    receptor = load_peptide_mappings(gene_biotype=["IG_V_gene", "TR_J_gene"])
+    assert set(receptor["protein_id"]) == {"ENSP2", "ENSP3"}
+
 
 def test_load_peptide_mappings_is_canonical_filter(tmp_path, monkeypatch):
     """``is_canonical_transcript=True`` returns only the canonical rows."""
@@ -133,6 +141,7 @@ def test_load_peptide_mappings_is_canonical_filter(tmp_path, monkeypatch):
             "protein_id": ["ENSP1", "ENSP2", "ENSP3"],
             "gene_name": ["TP53", "TP53", "MYC"],
             "gene_id": ["ENSG_TP53", "ENSG_TP53", "ENSG_MYC"],
+            "gene_biotype": ["protein_coding"] * 3,
             "transcript_id": ["ENST_T1", "ENST_T2", "ENST_T3"],
             "is_canonical_transcript": [True, False, True],
             "position": [1, 2, 3],
@@ -179,7 +188,9 @@ def _seed_mapping_cache(tmp_path, monkeypatch, *, include_contract=True):
 
 
 def test_mapping_cache_requires_current_artifact_contract(tmp_path, monkeypatch):
-    _seed_mapping_cache(tmp_path, monkeypatch)
+    meta = _seed_mapping_cache(tmp_path, monkeypatch)
+
+    assert meta["contract"]["ensembl_gene_biotypes"] == list(ENSEMBL_CODING_GENE_BIOTYPES)
 
     assert _mapping_cache_is_valid(
         release=112,
@@ -393,6 +404,7 @@ class _FakeFlanking:
                 "protein_id": [f"{self._label}_PROT"] * len(peptides),
                 "gene_name": [self._label] * len(peptides),
                 "gene_id": [f"{self._label}_GENE"] * len(peptides),
+                "gene_biotype": ["protein_coding"] * len(peptides),
                 "transcript_id": [f"{self._label}_TX"] * len(peptides),
                 "is_canonical_transcript": [True] * len(peptides),
                 "position": list(range(len(peptides))),
@@ -416,6 +428,7 @@ def _mapping_task(
         seed_lengths=(7,),
         release=112,
         flank=flank,
+        ensembl_gene_biotypes=ENSEMBL_CODING_GENE_BIOTYPES,
     )
 
 
@@ -481,6 +494,7 @@ def test_per_canonical_worker_uses_resolved_entry_and_is_cache_only(monkeypatch)
     assert captured["kwargs"]["entry"] is entry
     assert captured["kwargs"]["fetch_missing"] is False
     assert captured["kwargs"]["lengths"] == (7,)
+    assert captured["kwargs"]["gene_biotypes"] == ENSEMBL_CODING_GENE_BIOTYPES
 
 
 def test_build_species_index_offline_never_downloads(monkeypatch):
@@ -795,6 +809,7 @@ def _e2e_worker_for_pool_test(task):
             "protein_id": [f"{task.canonical}_PROT"],
             "gene_name": [task.canonical],
             "gene_id": [f"{task.canonical}_GENE"],
+            "gene_biotype": ["protein_coding"],
             "transcript_id": [""],
             "is_canonical_transcript": [False],
             "position": [0],

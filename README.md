@@ -187,7 +187,7 @@ scan_supplementary()                 # DataFrame of curated paper-supplement pep
 - `~/.hitlist/binding.parquet` — one row per binding-assay observation
 - `~/.hitlist/peptide_mappings.parquet` — one row per (peptide, protein, position)
 
-The mappings sidecar **preserves multi-mapping** so a peptide shared by MAGEA1/A4/A10/A12 keeps every paralog. Observations additionally carry semicolon-joined identity columns:
+The mappings sidecar **preserves multi-mapping** so a peptide shared by MAGEA1/A4/A10/A12 keeps every paralog. Ensembl mappings include `gene_biotype`: the default index covers ordinary `protein_coding` genes plus the coding `IG_V/D/J/C_gene` and `TR_V/D/J/C_gene` biotypes, while excluding pseudogenes. These receptor records are germline segments; Ensembl does not contain a donor's recombined receptor, so peptides spanning a V(D)J junction cannot map. Observations additionally carry semicolon-joined identity columns:
 
 | column | example |
 |---|---|
@@ -205,7 +205,14 @@ df = load_ms_observations(gene_name="PRAME")
 
 # Long form for paralog / position / flank analysis
 mappings = load_peptide_mappings(gene_name="MAGEA4")
-# columns: peptide, protein_id, gene_name, gene_id, position, n_flank, c_flank, proteome
+
+# Receptor-derived mappings remain distinguishable from ordinary proteins
+receptor_mappings = load_peptide_mappings(
+    gene_biotype=["IG_V_gene", "IG_D_gene", "IG_J_gene", "IG_C_gene",
+                  "TR_V_gene", "TR_D_gene", "TR_J_gene", "TR_C_gene"]
+)
+# columns include: peptide, protein_id, gene_name, gene_id, gene_biotype,
+# transcript_id, position, n_flank, c_flank, proteome
 ```
 
 For ad-hoc queries without building the full table:
@@ -213,8 +220,11 @@ For ad-hoc queries without building the full table:
 ```python
 from hitlist.proteome import ProteomeIndex
 
-idx = ProteomeIndex.from_ensembl(release=112, species="human")
+idx = ProteomeIndex.from_ensembl(release=112, species="human")  # coding + germline IG/TR
 flanking = idx.map_peptides(["SLLMWITQC", "GILGFVFTL"], flank=10)
+
+# Explicit compatibility mode for the historical protein-coding-only index:
+ordinary_only = ProteomeIndex.from_ensembl(release=112, biotype="protein_coding")
 ```
 
 ### Proteome registry / UniProt resolution
@@ -423,7 +433,7 @@ hitlist export binding --mhc-allele HLA-A*02:01 --serotype Bw4
 `hitlist export training` exposes the shared pMHC filters plus two export-shape controls:
 
 - `--include-evidence ms|binding|both` chooses which canonical evidence families to compose.
-- `--explode-mappings` expands the output to one row per `(evidence row, peptide mapping)` with `protein_id`, `position`, `n_flank`, `c_flank`, `proteome`, and `proteome_source`.
+- `--explode-mappings` expands the output to one row per `(evidence row, peptide mapping)` with `protein_id`, `gene_biotype`, `position`, `n_flank`, `c_flank`, `proteome`, and `proteome_source`.
 
 MS-specific filters (`--mono-allelic`, `--instrument-type`, `--acquisition-mode`) apply only to the MS slice. Binding rows never gain fake sample context; they remain tagged as `evidence_kind="binding"` with `sample_match_type="not_applicable"`.
 

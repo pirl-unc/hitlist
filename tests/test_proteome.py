@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from hitlist.proteome import ProteomeIndex
+from hitlist.proteome import ENSEMBL_CODING_GENE_BIOTYPES, ProteomeIndex
 
 
 def _build_index_in_spawned_process(fasta: str, cache_dir: str, result_path: str) -> None:
@@ -319,6 +319,7 @@ def test_from_fasta_meta_includes_transcript_columns(tmp_path):
     meta = idx.protein_meta["sp|P1|A"]
     assert meta["transcript_id"] == ""
     assert meta["is_canonical_transcript"] is False
+    assert meta["gene_biotype"] == ""
     assert meta["gene_name"] == "GENA"
 
 
@@ -333,8 +334,10 @@ def test_map_peptides_emits_transcript_columns(tmp_path):
     df = idx.map_peptides(["ACDEF"], flank=2, verbose=False)
     assert "transcript_id" in df.columns
     assert "is_canonical_transcript" in df.columns
+    assert "gene_biotype" in df.columns
     assert (df["transcript_id"] == "").all()
     assert (df["is_canonical_transcript"] == False).all()  # noqa: E712
+    assert (df["gene_biotype"] == "").all()
 
 
 def test_map_peptides_empty_emits_transcript_columns(tmp_path):
@@ -345,6 +348,123 @@ def test_map_peptides_empty_emits_transcript_columns(tmp_path):
     df = idx.map_peptides(["ZZZZZ"], verbose=False)
     assert "transcript_id" in df.columns
     assert "is_canonical_transcript" in df.columns
+    assert "gene_biotype" in df.columns
+
+
+def test_default_ensembl_biotypes_are_coding_and_exclude_pseudogenes():
+    assert set(ENSEMBL_CODING_GENE_BIOTYPES) == {
+        "protein_coding",
+        "IG_V_gene",
+        "IG_D_gene",
+        "IG_J_gene",
+        "IG_C_gene",
+        "TR_V_gene",
+        "TR_D_gene",
+        "TR_J_gene",
+        "TR_C_gene",
+    }
+    assert all("pseudogene" not in biotype for biotype in ENSEMBL_CODING_GENE_BIOTYPES)
+
+
+def test_from_ensembl_rejects_empty_biotype_policy():
+    with pytest.raises(ValueError, match="At least one Ensembl gene biotype"):
+        ProteomeIndex.from_ensembl(gene_biotypes=(), verbose=False)
+
+
+def test_from_ensembl_includes_coding_ig_tr_and_preserves_biotype(monkeypatch):
+    """#399: every translated IG/TR family is indexed, pseudogenes stay out.
+
+    All included records deliberately share one sequence. The mapping must
+    preserve all nine source genes rather than collapsing duplicate proteins.
+    """
+    import sys
+    import types
+
+    fake_module = types.ModuleType("pyensembl")
+
+    class _FakeTranscript:
+        def __init__(self, suffix, gene_biotype):
+            self.id = f"ENST_{suffix}"
+            self.protein_id = f"ENSP_{suffix}"
+            self.protein_sequence = "ACDEFGHIK"
+            self.biotype = gene_biotype
+
+    class _FakeGene:
+        def __init__(self, index, gene_biotype):
+            self.name = f"GENE_{index}"
+            self.id = f"ENSG_{index}"
+            self.biotype = gene_biotype
+            self.transcripts = [_FakeTranscript(str(index), gene_biotype)]
+
+    pseudogene_biotypes = ("IG_V_pseudogene", "TR_J_pseudogene")
+    genes = [
+        _FakeGene(index, gene_biotype)
+        for index, gene_biotype in enumerate((*ENSEMBL_CODING_GENE_BIOTYPES, *pseudogene_biotypes))
+    ]
+
+    class _FakeEnsembl:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def genes(self):
+            return genes
+
+    fake_module.EnsemblRelease = _FakeEnsembl
+    monkeypatch.setitem(sys.modules, "pyensembl", fake_module)
+
+    idx = ProteomeIndex.from_ensembl(release=999, lengths=(7,), verbose=False)
+    mappings = idx.map_peptides(["ACDEFGH"], verbose=False)
+
+    assert len(idx.proteins) == len(ENSEMBL_CODING_GENE_BIOTYPES)
+    assert set(mappings["gene_biotype"]) == set(ENSEMBL_CODING_GENE_BIOTYPES)
+    assert mappings["protein_id"].nunique() == len(ENSEMBL_CODING_GENE_BIOTYPES)
+    assert not set(mappings["gene_biotype"]) & set(pseudogene_biotypes)
+
+
+def test_from_ensembl_single_biotype_api_preserves_narrow_opt_in(monkeypatch):
+    """The historical keyword remains a documented explicit narrow policy."""
+    import sys
+    import types
+
+    fake_module = types.ModuleType("pyensembl")
+
+    class _FakeTranscript:
+        id = "ENST1"
+        protein_id = "ENSP1"
+        protein_sequence = "ACDEFGHIK"
+        biotype = "protein_coding"
+
+    class _FakeGene:
+        name = "GENE1"
+        id = "ENSG1"
+        biotype = "protein_coding"
+        transcripts = [_FakeTranscript()]
+
+    class _FakeEnsembl:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def genes(self):
+            return [_FakeGene()]
+
+    fake_module.EnsemblRelease = _FakeEnsembl
+    monkeypatch.setitem(sys.modules, "pyensembl", fake_module)
+
+    idx = ProteomeIndex.from_ensembl(
+        release=999,
+        lengths=(7,),
+        biotype="protein_coding",
+        verbose=False,
+    )
+    assert idx.protein_meta["ENSP1"]["gene_biotype"] == "protein_coding"
+
+    with pytest.raises(ValueError, match="either biotype or gene_biotypes"):
+        ProteomeIndex.from_ensembl(
+            release=999,
+            biotype="protein_coding",
+            gene_biotypes=("IG_V_gene",),
+            verbose=False,
+        )
 
 
 def test_from_ensembl_keeps_all_protein_coding_transcripts():
@@ -1169,10 +1289,19 @@ def test_from_ensembl_cache_keyed_on_release_and_species(
     ProteomeIndex.from_ensembl(release=112, species="mouse", lengths=(5,), verbose=False)
     clear_fasta_index_cache()
     ProteomeIndex.from_ensembl(release=112, species="human", lengths=(8,), verbose=False)
+    clear_fasta_index_cache()
+    ProteomeIndex.from_ensembl(
+        release=112,
+        species="human",
+        lengths=(5,),
+        biotype="protein_coding",
+        verbose=False,
+    )
 
     files = sorted(_PROTEOME_INDEX_DISK_CACHE_DIR.glob("v*ensembl*.pkl"))
-    # 4 distinct keys → 4 distinct files.
-    assert len(files) == 4, f"expected 4 cache files, got {[f.name for f in files]}"
+    # 5 distinct keys → 5 distinct files, including default coding+IG/TR vs
+    # explicit protein_coding-only policy at otherwise identical parameters.
+    assert len(files) == 5, f"expected 5 cache files, got {[f.name for f in files]}"
 
 
 def test_from_ensembl_cache_disabled_when_gtf_unresolvable(

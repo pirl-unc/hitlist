@@ -2,6 +2,7 @@ import pandas as pd
 import pytest
 
 from hitlist.export import (
+    _build_transcript_lookup,
     _classify_instrument,
     _extract_allele_strings,
     _fillna_scalar_safe,
@@ -11,6 +12,41 @@ from hitlist.export import (
     generate_species_summary,
     validate_mhc_alleles,
 )
+
+
+def test_transcript_lookup_uses_shared_coding_ig_tr_policy(monkeypatch):
+    """Peptide-origin scoring must retain the receptor mappings in the sidecar."""
+    import sys
+    import types
+
+    fake_module = types.ModuleType("pyensembl")
+
+    class _FakeTranscript:
+        def __init__(self, transcript_id, biotype, sequence):
+            self.id = transcript_id
+            self.biotype = biotype
+            self.protein_sequence = sequence
+
+    class _FakeGene:
+        transcripts = [
+            _FakeTranscript("ENST_IG", "IG_V_gene", "ACDEFGHIK"),
+            _FakeTranscript("ENST_PSEUDO", "IG_V_pseudogene", "PSEUDOSEQ"),
+        ]
+
+    class _FakeEnsembl:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def genes_by_name(self, _gene_name):
+            return [_FakeGene()]
+
+    fake_module.EnsemblRelease = _FakeEnsembl
+    monkeypatch.setitem(sys.modules, "pyensembl", fake_module)
+
+    lookup = _build_transcript_lookup({"IGHV1"}, release=999)
+
+    assert lookup is not None
+    assert lookup("IGHV1") == [("ENST_IG", "ACDEFGHIK")]
 
 
 def test_fillna_scalar_safe_widens_categorical():
@@ -1887,6 +1923,7 @@ def test_generate_training_table_explodes_mappings(tmp_path, monkeypatch):
             "protein_id": ["P1", "P2", "P3"],
             "gene_name": ["PRAME", "PRAME", "MAGEA1"],
             "gene_id": ["ENSG00000185686", "ENSG00000185686", "ENSG00000198681"],
+            "gene_biotype": ["protein_coding", "IG_V_gene", "protein_coding"],
             # Issue #141 added these as first-class mapping columns; the
             # synthetic fixture has to declare them for the training-export
             # column-projection request to succeed against pyarrow.
@@ -1909,6 +1946,8 @@ def test_generate_training_table_explodes_mappings(tmp_path, monkeypatch):
     # transcript_id and is_canonical_transcript flow through to the export.
     assert "transcript_id" in df.columns
     assert "is_canonical_transcript" in df.columns
+    assert "gene_biotype" in df.columns
+    assert set(df["gene_biotype"]) == {"protein_coding", "IG_V_gene"}
 
     aa = df[df["peptide"] == "AAAAAAAAA"]
     assert set(aa["protein_id"]) == {"P1", "P2"}
@@ -1964,6 +2003,7 @@ def test_generate_training_table_exploded_mappings_respect_gene_filter(tmp_path,
             "protein_id": ["P1", "P2"],
             "gene_name": ["PRAME", "MAGEA1"],
             "gene_id": ["ENSG1", "ENSG2"],
+            "gene_biotype": ["protein_coding", "protein_coding"],
             # Issue #141: required schema columns.
             "transcript_id": ["ENST_T1", "ENST_T2"],
             "is_canonical_transcript": [True, True],
