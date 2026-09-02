@@ -1,3 +1,50 @@
+# Issue #410 — deterministic Alpizar resolver regression
+
+## Goal
+
+Remove the last full-suite skip without weakening the regression. The test must exercise the
+public observations-export path against a small, version-controlled Alpizar-shaped fixture rather
+than depending on whichever IEDB snapshot happens to be registered on the developer machine.
+
+## Diagnosis and design
+
+- PMID 27920218 is present in the current build (8,144 rows). The stale test selected zero rows
+  because IEDB replaced the old 515 literal `HLA class I` restrictions with explicit
+  semicolon-separated candidate-allele sets.
+- Keep the biological behavior under test: ambiguous C1R rows must route to B*40:02, B*39:01, or
+  the pooled sample from their antigen-processing text. Exercise both the historical class-only
+  representation and the current allele-set representation.
+- Use a temporary observations parquet plus a minimal synthetic PMID override and call
+  `generate_observations_table()`. This covers the real class-pool orchestration and candidate
+  scorer while remaining independent of the installed corpus.
+- Correct the newly exposed provenance error: a class-pool candidate selected from row-level
+  discriminator text must report `sample_attribution=discriminated`; `sample_match_type` remains
+  `pmid_class_pool` because the restriction itself was not an exact allele match.
+- Update the shipped Alpizar curation note to document the IEDB representation change.
+
+## Steps
+
+- [x] Replace the conditional full-corpus Alpizar test with the deterministic public-API fixture.
+- [x] Correct and test class-pool discriminator provenance.
+- [x] Update the Alpizar curation note and bump the patch version.
+- [x] Run targeted tests, `./format.sh`, `./lint.sh`, and `./test.sh --all -rs`.
+- [ ] Review the diff, open a PR closing #410, merge, deploy, and verify PyPI.
+
+## Review section
+
+- The paper was never absent: the current corpus has 8,144 Alpizar rows. IEDB changed the 515
+  ambiguous restrictions from `HLA class I` to candidate-allele sets, making the old filter stale.
+- The replacement writes four small observation rows to a temporary parquet and exercises
+  `generate_observations_table()` with an isolated Alpizar-shaped override. It covers the old
+  class-only form, both current single-transfectant sets, and the current pooled set.
+- Class-pool scoring now records `sample_attribution=discriminated` while correctly retaining
+  `sample_match_type=pmid_class_pool`; the latter describes restriction-level evidence, whereas
+  the former describes the sample-selection mechanism.
+- Targeted export tests pass (117 passed, 17 integration tests deselected). Format and lint pass.
+  The complete corpus suite passes 1,154 tests with zero skips and one expected warning.
+
+---
+
 # Issue #406 follow-up — isolate direct prefetch-worker tests
 
 ## Goal

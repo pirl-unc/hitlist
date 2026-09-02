@@ -3817,10 +3817,12 @@
       C1R cells expressing single HLA-B alleles, profiled for phosphopeptides.
       IEDB contains data only for the two C1R transfectants listed below:
       HLA-B*40:02 (6,676 peptides) and HLA-B*39:01 (953 peptides), plus 515
-      class-only rows that the submitter tagged "HLA class I". Paper
-      Methods (PMC5294207) confirm only B*40:02 and B*39:01 transfectants
-      were used for MS; the unresolved 515 rows are pooled across those
-      two transfectants. Methods also list HLA-B*27:05 and HLA-B*07:02
+      ambiguous rows. Older IEDB exports tagged those rows "HLA class I";
+      the current export lists endogenous C1R alleles plus B*40:02, B*39:01,
+      or both. Antigen-processing comments resolve 408 rows to B*40:02 and
+      99 to B*39:01; the remaining 8 stay pooled. Paper Methods (PMC5294207)
+      confirm only B*40:02 and B*39:01 transfectants were used for MS.
+      Methods also list HLA-B*27:05 and HLA-B*07:02
       transfectants but those were profiled on GR-LCL, not C1R, and have
       no IEDB rows for this PMID. The prior pooled sample entry incorrectly
       labeled the B*40 transfectant as B*40:01 — IEDB rows all carry B*40:02.
@@ -3842,13 +3844,11 @@
         source: "C1R-HLA-B*40:02 and C1R-HLA-B*39:01 transfectants pooled"
         condition: "unperturbed — pooled mono-allelic"
         mhc_class: "I"
-        # Issue #207: the 515 IEDB rows annotated "HLA class I" on
-        # C1R cells come from the same two C1R-B transfectants used
-        # elsewhere in the paper; the submitter just didn't split
-        # allele attribution. Listing both alleles preserves the
-        # paper-confirmed candidate set without claiming per-row
-        # attribution. The class-pool tie-break (v1.30.30) routes
-        # these rows here via the cell_name match.
+        # Issues #207/#410: ambiguous C1R rows come from these two
+        # transfectants. Listing both alleles preserves the paper-confirmed
+        # candidate set without claiming unsupported per-row attribution;
+        # row-level antigen-processing text resolves either transfectant
+        # when it names one and leaves genuinely pooled rows here.
         mhc: "HLA-B*40:02 HLA-B*39:01"
 
   - pmid: 32897882
