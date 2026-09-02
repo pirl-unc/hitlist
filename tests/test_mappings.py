@@ -572,3 +572,72 @@ def test_pool_map_dispatch_preserves_order_and_aggregates_results():
     assert all(len(r[1]) == 1 for r in results)
     # n_matched == n_total == 1 in all cases.
     assert all(r[2] == 1 and r[3] == 1 for r in results)
+
+
+class TestPrefetchIsBounded:
+    """The parent-side UniProt pre-fetch must not be able to wedge a build.
+
+    A real build sat here for 2h29m at 0% CPU with no output and no artifact,
+    after 80 consecutive UniProt failures (#402). The phase's own docstring
+    already promises that failures are tolerated because the worker hits the
+    same code path -- so a stall has to be tolerated the same way, or the
+    phase that exists to save time is the one that stops the build finishing.
+    """
+
+    @staticmethod
+    def _entries(n):
+        return [(f"Species {i}", {"kind": "uniprot"}) for i in range(n)]
+
+    def test_budget_stops_the_loop_and_says_so(self, monkeypatch, capsys):
+        calls = {"n": 0}
+
+        def slow_fetch(canonical, verbose=True, use_uniprot=False):
+            calls["n"] += 1
+
+        monkeypatch.setattr("hitlist.downloads.fetch_species_proteome", slow_fetch)
+        monkeypatch.setattr("hitlist.mappings._prefetch_budget", lambda: 0.0)
+
+        from hitlist.mappings import _prefetch_proteomes_for_workers
+
+        _prefetch_proteomes_for_workers(
+            self._entries(25), release=112, use_uniprot=True, verbose=True
+        )
+
+        out = capsys.readouterr().out
+        assert "budget" in out and "skipping the remaining" in out
+        # Budget of 0 trips on the first iteration, so nothing is fetched.
+        assert calls["n"] == 0
+
+    def test_each_attempt_is_logged_before_it_runs(self, monkeypatch, capsys):
+        """The old loop logged only in `except`, so a call that blocked printed
+        nothing and the last log line named an already-finished proteome. That
+        is why #402 could not be attributed to a specific fetch."""
+        seen = []
+
+        def fetch(canonical, verbose=True, use_uniprot=False):
+            seen.append(canonical)
+            raise RuntimeError("boom")
+
+        monkeypatch.setattr("hitlist.downloads.fetch_species_proteome", fetch)
+        from hitlist.mappings import _prefetch_proteomes_for_workers
+
+        _prefetch_proteomes_for_workers(
+            self._entries(3), release=112, use_uniprot=True, verbose=True
+        )
+
+        out = capsys.readouterr().out
+        for i in range(1, 4):
+            assert f"[{i}/3]" in out, f"missing in-flight line for attempt {i}"
+        # Failures are still tolerated, all three attempted.
+        assert len(seen) == 3
+        assert out.count("pre-fetch skipped") == 3
+
+    def test_budget_is_env_overridable(self, monkeypatch):
+        from hitlist.mappings import _DEFAULT_PREFETCH_BUDGET, _prefetch_budget
+
+        assert _prefetch_budget() == _DEFAULT_PREFETCH_BUDGET
+        monkeypatch.setenv("HITLIST_PREFETCH_BUDGET", "12.5")
+        assert _prefetch_budget() == 12.5
+        # A malformed value falls back rather than crashing a long build.
+        monkeypatch.setenv("HITLIST_PREFETCH_BUDGET", "not-a-number")
+        assert _prefetch_budget() == _DEFAULT_PREFETCH_BUDGET
