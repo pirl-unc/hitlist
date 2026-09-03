@@ -2431,19 +2431,18 @@ def species_compatible(a: str, b: str) -> bool:
     return resolved is not None and resolved.compatible_with(b)
 
 
-_KNOWN_CLASS_MISMATCHES = {
-    (33392160, "THP-1 + biomaterial contact"),
-    (33936100, "GRANTA-519 (mantle cell lymphoma, untreated)"),
-    (33936100, "GRANTA-519 + IFN-gamma"),
-    (35051231, "P1 lung — UV mock (uninfected)"),
-    (35051231, "P1 lung — Wisconsin-infected"),
-    (35051231, "P3 lung — UV mock (uninfected)"),
-    (35051231, "P3 lung — Wisconsin-infected"),
-    (35051231, "P3 lung — X31-infected"),
-    (35051231, "THP-1 macrophage — UV mock (uninfected)"),
-    (35051231, "THP-1 macrophage — Wisconsin-infected"),
-    (35051231, "THP-1 macrophage — X31-infected"),
-}
+#: Samples whose declared ``mhc_class`` is knowingly at odds with the
+#: class derived from their own alleles.
+#:
+#: Empty, and worth keeping that way.  The eleven entries this held were
+#: all #374 group 2: samples declaring ``I+II`` while listing only
+#: class-I alleles.  None was a real contradiction — each study did
+#: profile both classes, and the class-II alleles were simply missing
+#: from the curation.  They came from the papers' own typing tables
+#: (Nicholas 2022 S1 Table; Olsson 2021 Methods; Ghosh 2020 Results),
+#: so the fix was to finish the typing rather than to weaken the
+#: declaration.
+_KNOWN_CLASS_MISMATCHES: set = set()
 
 
 #: mhcgnomes result types that name a real MHC designation.  Alleles,

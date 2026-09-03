@@ -2,42 +2,69 @@
 
 ## Goal
 
-Fix the remaining curated-sample MHC attribution defects in dependency order: define one
-well-documented sample-MHC candidate API (#380), use it with the concrete BoLA-I restrictions
-for PMID 36423003 (#381), then eliminate the remaining declared-class/typed-allele
-contradictions with paper-supported curation (#374).
-
-## Design
-
-- Centralize conversion of a curated sample's `mhc` field into attribution candidates. Exact
-  molecules remain exact, serotypes expand through the existing `serotype_to_alleles` table,
-  and class/locus-only designations remain deliberately imprecise rather than fabricating an
-  allele. Use the same API in the public per-PMID lookup and observations sample join.
-- Preserve peptide-summary semantics: a serotype is reported as a serotype there, not expanded
-  into falsely precise observed alleles. Prove the two existing single-sample serotype studies
-  retain their current attribution while a synthetic multi-sample case gains the intended exact
-  match.
-- Audit every PMID 36423003 class-I restriction in the registered corpus and curate the complete
-  observed BoLA-I set. Keep its BoLA-DR sample class/locus-level unless the source supplies a
-  genotype; prove all class-I rows match the curated sample exactly.
-- Read the primary methods/supplements for the remaining #374 studies. Add class-II typings only
-  when the study reports them; otherwise correct `mhc_class` to the actually profiled class.
-  Remove the contradiction allowlist entries and retain a staleness-free invariant test.
-- Bump the patch version and document the resulting corpus-level attribution changes.
+Fix the curated-sample MHC attribution defects in dependency order: one documented
+sample-MHC candidate API (#380), correct per-sample genotypes for PMID 36423003 (#381),
+and eliminate the declared-class/typed-allele contradictions (#374).
 
 ## Steps
 
-- [ ] Inspect the sample-join implementation, current YAML, corpus restriction counts, and paper
-      methods; record the evidence-backed curation decisions.
-- [ ] Implement and document the centralized sample-MHC attribution-candidate API.
-- [ ] Curate PMID 36423003 and the remaining #374 samples.
-- [ ] Add focused unit, synthetic public-path, and registered-corpus regression tests.
-- [ ] Run `./format.sh`, `./lint.sh`, and `./test.sh`; review the diff and corpus deltas.
-- [ ] Bump the patch version and open a PR closing #380, #381, and #374.
+- [x] Inspect the sample-join implementation, current YAML, corpus counts, and paper methods.
+- [x] Implement and document the centralized sample-MHC attribution-candidate API.
+- [x] Add a general audit for samples whose `mhc` pools several genotypes.
+- [x] Curate PMID 36423003 and the remaining #374 samples from primary sources.
+- [x] Add focused unit and invariant tests.
+- [x] Run `./format.sh`, `./lint.sh`, `./test.sh`.
+- [x] Bump the version and open a PR.
 
-## Review section
+## Review
 
-Pending.
+### What the verification changed
+
+Three of the four premises in the issues were wrong, and checking first saved
+implementing them:
+
+- **#374 group 1 (HLA-G declared class I) was already fixed** — all three
+  721.221-HLA-G transfectants declare `non-classical` today. No work needed.
+- **#374 group 2 was real but mis-framed.** The eleven `I+II` samples were not
+  contradictions: every study *did* profile both classes, and the class-II alleles
+  were simply missing from the curation. The fix was to finish the typing from each
+  paper's own table, not to weaken the declaration to `I`.
+- **#381's allele table was incomplete and its acceptance criteria wrong.** The corpus
+  holds 13 class-I BoLA alleles, not 6, and its class-II sample has three real DRB3
+  genotypes. Curating all 13 onto one sample would pool eight animals and would also
+  report a NetMHCpan prediction as an observation.
+
+### The generalization
+
+The #381 bug — an `mhc` field holding a union across samples rather than one
+genotype — is a *class* of defect, not one entry. `qc.sample_ploidy_audit` detects it
+without threshold tuning: a diploid donor carries at most two alleles per locus, so
+three is proof of pooling. It found six samples; all six were wrong, and all six are
+fixed here from primary sources. The audit now guards the corpus in CI.
+
+Notably it also guards against doing #381 *wrong*: the pooled 13-allele curation the
+issue asks for would fail it.
+
+### Deliberately not done
+
+- **Predicted-vs-observed restriction** (#415). `mhc_allele_provenance` has no value
+  meaning "predicted", and 155 of PMID 36423003's rows resolve `exact` from a
+  NetMHCpan <2%-rank assignment. This is not one study's problem — IEDB populates
+  elution restrictions by inference routinely — so it needs a schema axis and a
+  corpus-wide sweep, not a patch here.
+- **THP-1 class-I typing conflict** (#416). Two primary sources disagree; the
+  heterozygous DSMZ form is kept and the conflict filed rather than guessed.
+- **BoLA-6*014:01 vs *014:02** (#414). IEDB and the paper disagree on one allele of
+  one line. IEDB's value is curated so its rows still attribute, discrepancy recorded.
+
+### Sample-count changes
+
+| PMID | Before | After |
+|---|---|---|
+| 36423003 | 2 | 9 (8 per-line class-I + 1 locus-level class-II) |
+| 32350084 | 2 | 26 (19 EBV-LCL + 7 K562) |
+| 26768311 | 2 | 10 (5 allotypes x 2 conditions) |
+| 31495665 class II | 2 | 10 (one per allele) |
 
 ---
 
