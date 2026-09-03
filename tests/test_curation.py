@@ -2431,19 +2431,18 @@ def species_compatible(a: str, b: str) -> bool:
     return resolved is not None and resolved.compatible_with(b)
 
 
-_KNOWN_CLASS_MISMATCHES = {
-    (33392160, "THP-1 + biomaterial contact"),
-    (33936100, "GRANTA-519 (mantle cell lymphoma, untreated)"),
-    (33936100, "GRANTA-519 + IFN-gamma"),
-    (35051231, "P1 lung — UV mock (uninfected)"),
-    (35051231, "P1 lung — Wisconsin-infected"),
-    (35051231, "P3 lung — UV mock (uninfected)"),
-    (35051231, "P3 lung — Wisconsin-infected"),
-    (35051231, "P3 lung — X31-infected"),
-    (35051231, "THP-1 macrophage — UV mock (uninfected)"),
-    (35051231, "THP-1 macrophage — Wisconsin-infected"),
-    (35051231, "THP-1 macrophage — X31-infected"),
-}
+#: Samples whose declared ``mhc_class`` is knowingly at odds with the
+#: class derived from their own alleles.
+#:
+#: Empty, and worth keeping that way.  The eleven entries this held were
+#: all #374 group 2: samples declaring ``I+II`` while listing only
+#: class-I alleles.  None was a real contradiction — each study did
+#: profile both classes, and the class-II alleles were simply missing
+#: from the curation.  They came from the papers' own typing tables
+#: (Nicholas 2022 S1 Table; Olsson 2021 Methods; Ghosh 2020 Results),
+#: so the fix was to finish the typing rather than to weaken the
+#: declaration.
+_KNOWN_CLASS_MISMATCHES: set = set()
 
 
 #: mhcgnomes result types that name a real MHC designation.  Alleles,
@@ -2725,10 +2724,14 @@ def test_class_only_typed_samples_are_declared_not_incidental():
     """A class-only ``mhc`` skips the allele-join guard, so switching a
     sample to a sentinel silently removes it from that check.
 
-    Rather than enumerate all 100 class-only samples, pin the two that
-    #375 converted, so the conversion stays deliberate.  PMID 36423003
-    is a genuine downgrade — IEDB carries real 4-digit BoLA alleles for
-    it (#381) — and is recorded here until those are curated.
+    Rather than enumerate all 100 class-only samples, pin the ones #375
+    converted, so the conversion stays deliberate.
+
+    PMID 36423003 used to be pinned here too.  It was a genuine downgrade
+    — IEDB carries real 4-digit BoLA alleles for it (#381) — and the pin
+    said "until those are curated".  They now are: the study is split
+    into one sample per cell line, each carrying that animal's haplotype,
+    so no class-only sentinel remains to pin.
     """
     from hitlist.curation import extract_allele_tokens, is_class_only_token
     from hitlist.export import generate_ms_samples_table
@@ -2736,7 +2739,6 @@ def test_class_only_typed_samples_are_declared_not_incidental():
     samples = generate_ms_samples_table().set_index(["pmid", "sample_label"])
     for key, mhc in (
         ((36146698, "SLA-I Lr-Hp 35.0/24 mod (porcine cell line, PRRSV-infected)"), "SLA class I"),
-        ((36423003, "T. parva-infected bovine lymphocyte lines (BoLA-I)"), "Bos taurus class I"),
     ):
         value = str(samples.loc[key, "mhc"])
         assert value == mhc, f"{key} mhc changed: {value!r}"
@@ -2989,3 +2991,133 @@ def test_cache_clear_drops_the_whole_derived_chain():
     curation.peptide_alleles_for_pmid.cache_clear()
     assert curation._peptide_alleles_by_pmid.cache_info().currsize == 0
     assert curation._peptide_typings_by_pmid.cache_info().currsize == 0
+
+
+# ── Sample-MHC attribution candidates (#380) ───────────────────────────────
+
+
+def test_sample_mhc_candidates_keeps_the_three_precisions_apart():
+    """Exact / serotype / imprecise must not be merged.
+
+    Merging serotype members into ``exact`` is the specific error worth
+    guarding: it turns "this donor is DR15" into "this peptide was seen
+    on DRB1*15:01".
+    """
+    from hitlist.curation import sample_mhc_candidates
+
+    exact = sample_mhc_candidates("HLA-A*02:01 HLA-B*07:02")
+    assert exact.exact == frozenset({"HLA-A*02:01", "HLA-B*07:02"})
+    assert exact.serotypes == () and exact.imprecise == ()
+
+    sero = sample_mhc_candidates("HLA-DQ8")
+    assert sero.exact == frozenset()
+    assert sero.serotypes == ("HLA-DQ8",)
+    assert sero.serotype_alleles, "a known serotype must expand to members"
+    assert sero.join_alleles == sero.serotype_alleles
+
+    locus = sample_mhc_candidates("BoLA-DR")
+    assert locus.imprecise == ("BoLA-DR",)
+    assert locus.join_alleles == frozenset(), "a locus names no allele to join on"
+    assert not locus.is_empty, "imprecise is faithful curation, not an empty parse"
+
+
+@pytest.mark.parametrize(
+    ("raw", "canonical"),
+    [
+        ("DQ8", "HLA-DQ8"),
+        ("dr15", "HLA-DR15"),
+        ("hla-dq8", "HLA-DQ8"),
+    ],
+)
+def test_sample_mhc_candidates_canonicalizes_serotype_spellings(raw, canonical):
+    """Every spelling accepted by mhcgnomes must reach the catalog."""
+    from hitlist.curation import sample_mhc_candidates, serotype_to_alleles
+
+    got = sample_mhc_candidates(raw)
+
+    assert got.serotypes == (canonical,)
+    assert got.serotype_alleles == frozenset(serotype_to_alleles(canonical))
+    assert got.serotype_alleles
+
+
+def test_sample_mhc_candidates_canonicalizes_serotype_inside_mixed_field():
+    """Tokenized mixed exact/serotype fields use the same canonical path."""
+    from hitlist.curation import sample_mhc_candidates, serotype_to_alleles
+
+    got = sample_mhc_candidates("HLA-A*02:01 dq8")
+
+    assert got.exact == frozenset({"HLA-A*02:01"})
+    assert got.serotypes == ("HLA-DQ8",)
+    assert got.serotype_alleles == frozenset(serotype_to_alleles("HLA-DQ8"))
+
+
+def test_sample_mhc_candidates_survives_a_multiword_class_sentinel():
+    """``Bos taurus class I`` must not be shredded by the token split.
+
+    Splitting on whitespace first yields "Bos"/"taurus"/"class"/"I",
+    none of which parses, reporting a faithfully curated sentinel as an
+    empty parse — i.e. as a curation typo.
+    """
+    from hitlist.curation import sample_mhc_candidates
+
+    for sentinel in ("Bos taurus class I", "HLA class I", "MHC class II"):
+        got = sample_mhc_candidates(sentinel)
+        assert got.imprecise == (sentinel,), sentinel
+        assert not got.is_empty, sentinel
+
+
+def test_sample_mhc_candidates_still_rejects_the_na_haplotype():
+    """mhcgnomes resolves "n/a" to the rat haplotype RT1-n/A, so a
+    free-text field must never be accepted on "it parsed" alone."""
+    from hitlist.curation import sample_mhc_candidates
+
+    for junk in ("n/a", "", None, 42):
+        assert sample_mhc_candidates(junk).is_empty, junk
+
+
+def test_sample_mhc_candidates_exact_matches_the_pre_380_extraction():
+    """``exact`` must stay byte-identical to the old allele extraction,
+    so centralizing the parse cannot silently renormalize a genotype."""
+    from hitlist.curation import extract_allele_tokens, sample_mhc_candidates
+
+    for field in (
+        "A*02:01 A*24:02 B*15:01 B*44:02 C*05:01 C*07:02",
+        "HLA-A*02:01",
+        "H2-K*b H2-D*b",
+        "Patr-AL",
+        "HLA-DPB1*06:01/DPA1*01:03",
+    ):
+        assert sample_mhc_candidates(field).exact == frozenset(extract_allele_tokens(field)), field
+
+
+def test_allele_locus_is_species_qualified():
+    """HLA-DRB3 and BoLA-DRB3 share a gene name but are different loci;
+    bucketing on the bare name would merge two species' alleles."""
+    from hitlist.curation import allele_locus
+
+    assert allele_locus("HLA-DRB3*01:01") == "HLA-DRB3"
+    assert allele_locus("BoLA-DRB3*011:01") == "BoLA-DRB3"
+    assert allele_locus("HLA-A*02:01") == "HLA-A"
+    assert allele_locus("BoLA-6*013:01") == "BoLA-6"
+    # No single locus: a serotype, a class-II locus token, a heterodimer.
+    for spanning in ("HLA-DR15", "BoLA-DR", "HLA-DPB1*06:01/DPA1*01:03", "", "n/a"):
+        assert allele_locus(spanning) == "", spanning
+
+
+def test_sample_alleles_for_pmid_is_public_and_omits_imprecise_samples():
+    """The sample-level map is a real contract and must be reachable
+    without touching a private name (it was ``_pmid_sample_alleles``)."""
+    import hitlist
+    from hitlist.curation import sample_alleles_for_pmid
+
+    assert hitlist.sample_alleles_for_pmid is sample_alleles_for_pmid
+    assert "sample_alleles_for_pmid" in hitlist.__all__
+
+    per_line = sample_alleles_for_pmid(36423003)
+    assert len(per_line) == 8, "one sample per T. parva-infected cell line"
+    assert per_line["641TP (T. parva-infected, BoLA-I A18)"] == frozenset({"BoLA-6*013:01"})
+    # The class-II sample is locus-typed, so it names no allele and is omitted.
+    assert not any("BoLA-DR)" in label for label in per_line)
+
+    assert sample_alleles_for_pmid("36423003") == per_line, "str and int PMIDs agree"
+    assert sample_alleles_for_pmid(1) == {}, "unknown PMID is empty, not an error"

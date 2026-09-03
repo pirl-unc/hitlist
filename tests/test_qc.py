@@ -1275,3 +1275,71 @@ def test_species_axis_audit_empty_when_no_chimeric(tmp_path, monkeypatch):
         "example_pmids",
         "severity",
     ]
+
+
+# ── Ploidy audit (#381 and the union-of-samples bug class) ─────────────────
+
+
+def test_sample_ploidy_audit_flags_a_pooled_genotype():
+    """Three alleles at one locus is proof of pooling, not a rare genotype."""
+    from hitlist.qc import sample_ploidy_audit
+
+    pooled = {
+        1: {
+            "ms_samples": [
+                # A union across three mono-allelic constructs.
+                {"sample_label": "pooled", "mhc": "HLA-A*01:01 HLA-A*02:01 HLA-A*03:01"},
+                # A legitimate diploid donor: two DRB1 plus a linked DRB3.
+                {
+                    "sample_label": "real donor",
+                    "mhc": "HLA-DRB1*01:01 HLA-DRB1*03:01 HLA-DRB3*01:01",
+                },
+                # Imprecise designations name no allele and cannot be pooled.
+                {"sample_label": "locus only", "mhc": "BoLA-DR"},
+            ]
+        }
+    }
+    found = sample_ploidy_audit(pooled)
+    assert list(found["sample_label"]) == ["pooled"]
+    row = found.iloc[0]
+    assert row["locus"] == "HLA-A" and row["n_alleles"] == 3
+
+
+def test_sample_ploidy_audit_charges_each_heterodimer_chain_to_its_own_locus():
+    """A DP pair spans two loci, so three pairs are three alphas and three
+    betas — not six alleles at one made-up locus."""
+    from hitlist.qc import sample_ploidy_audit
+
+    pairs = {
+        1: {
+            "ms_samples": [
+                {
+                    "sample_label": "three DP transfectants pooled",
+                    "mhc": (
+                        "HLA-DPB1*02:01/DPA1*01:03 "
+                        "HLA-DPB1*04:01/DPA1*01:03 "
+                        "HLA-DPB1*04:02/DPA1*01:03"
+                    ),
+                }
+            ]
+        }
+    }
+    found = sample_ploidy_audit(pairs)
+    # DPB1 has three distinct betas; DPA1 is the same alpha three times.
+    assert list(found["locus"]) == ["HLA-DPB1"]
+    assert found.iloc[0]["n_alleles"] == 3
+
+
+def test_curated_corpus_has_no_pooled_genotypes():
+    """The real curation must stay clean.
+
+    Every finding here is a sample whose ``mhc`` field pools several
+    donors or constructs, which makes the allele join offer every pooled
+    allele as a candidate for every peptide in the sample.
+    """
+    from hitlist.qc import sample_ploidy_audit
+
+    found = sample_ploidy_audit()
+    assert found.empty, "curated samples pool multiple genotypes:\n" + found[
+        ["pmid", "sample_label", "locus", "alleles"]
+    ].to_string(index=False)

@@ -1,5 +1,34 @@
 # Lessons
 
+## 2026-09-03
+
+- Candidate expansion and reported precision are different data and must not share one field.
+  Rule: an expanded serotype member may be used as an internal join key, but any fallback or
+  public result must still carry the source's serotype designation separately; never serialize
+  inferred members into a field that downstream code reparses as exact reported typing.
+
+- Once a domain parser accepts a spelling, serialize the parsed object instead of re-normalizing
+  the raw token through a narrower helper.
+  Rule: `normalize_allele()` intentionally canonicalizes molecules only, so a parsed Serotype must
+  use `parsed.to_string()` before catalog lookup. Test case, prefix, and bare-name variants for
+  every public input path.
+
+- Precision-aware matching must be symmetric across both sides of a structured MHC restriction.
+  Rule: when sample candidates can be single chains but observations can be full class-II pairs,
+  regression-test the sample-to-observation join and the downstream summary separately. Expand a
+  full observation to eligible single-chain sample typings, but never equate two fully known pairs
+  merely because they share one chain.
+
+- "Unknown" means no relevant typing exists, not that one representation-specific set is empty.
+  Rule: before labeling support `unknown_allele`, check every known typing precision (exact allele,
+  serotype, and any future typed designation). A nonmatching known serotype is exclusion evidence,
+  not permission to include the row as unknown.
+
+- A merged measurement is not an unperturbed sample just because one input arm was unperturbed.
+  Rule: preserve experimentally distinct control/perturbation samples in curation even when the
+  peptide artifact merges them; let the observation join emit unknown arm metadata unless the
+  source provides a per-peptide discriminator.
+
 ## 2026-04-23
 
 - When adding a composed export on top of existing indexes, test the post-filter expansion path explicitly.
@@ -61,3 +90,15 @@
 
 - Name the question, not the answers, when the same predicate is computed in several places.
   Rule: `qc.curation_plan` carried `has_borderline` / `has_implausible` — two booleans that actually meant "does the upstream frame contain this metric column?" — and threaded them through a string-keyed flag mapping and a `_metric_applies` helper with an unguarded `else`. Three call sites, three chances to drift, and a name that reads like a data verdict rather than a schema check. Replacing all of it with one `_available_optional_metrics(disc.columns) -> list[str]` removed the flags, the mapping, the helper and the failure mode together. When a boolean pair starts getting passed around, ask what question it answers and return that instead.
+
+- The `str.replace` lesson applies to YAML data files too, and "scoped to a block" is the fix.
+  Rule: I already had a lesson about `str.replace` landing in the wrong function, then repeated it on `pmid_overrides.yaml` — `s.replace("mhc: unknown", P4_genotype)` rewrote **12 samples across the whole file** when exactly one was in scope. The count was right there in the output and I only caught it because I printed replacement counts. Two things made the redo safe: bound the edit to the entry (`- pmid: N` .. next `- pmid:`) and assert the expected occurrence count inside that span. A data file has no compiler and no test that reads every entry, so a wrong edit here is quieter than a wrong edit in source. Print counts, assert them, scope the span.
+
+- Verify an issue's premises before implementing its acceptance criteria.
+  Rule: of four claims across #380/#381/#374, one was already fixed (HLA-G), one was mis-framed (the `I+II` samples were incomplete typing, not contradictions), and one had criteria that would have introduced a worse bug than the one it reported (#381's "curate the allele list observed in the corpus" pools eight animals and reports a NetMHCpan prediction as an observation). Issues are written from a snapshot and a partial read; they are evidence, not a spec. Check each claim against the code and the primary source first — it changed the scope of every one of the three.
+
+- A helper is private only if it has no callers outside its own reasoning.
+  Rule: the user asked why `_pmid_sample_alleles` was private and the honest answer was "no reason". It was already effectively public — all four exported `peptide_*_for_pmid` functions are thin wrappers over it — so callers got its output but could not ask for it directly, and the natural question ("what did this study type its samples to?") had no public answer. Before leaving an underscore on something, ask whether its result already escapes through a public function.
+
+- When a curation defect has a mechanism, look for the invariant that detects the whole class.
+  Rule: #381 reported one study whose `mhc` field pooled several animals. The mechanism — an `mhc` field holding a union across samples rather than one genotype — generalises, and the user asked for exactly that generalisation. The invariant turned out to be free of thresholds and of species: a diploid donor carries at most two alleles per locus, so three is proof of pooling. It found five more samples, all genuinely wrong, and it now also guards against "fixing" #381 the way the issue asked. One bug report plus a mechanism is often an audit waiting to be written.

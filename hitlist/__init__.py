@@ -87,9 +87,12 @@ _PUBLIC_API: dict[str, str] = {
     "load_observations": ".observations",
     "load_binding": ".observations",
     "load_all_evidence": ".observations",
-    # Curated per-peptide donor evidence, where a study deposited it.
-    # The `*_for_pmid` pair returns whole read-only maps; the `attribute_*`
+    # Curated MHC typing. `sample_alleles_for_pmid` is the sample-level
+    # answer, available for every study; the peptide-level functions below
+    # need a `peptide_attributions` CSV and so are empty for most studies.
+    # The `*_for_pmid` group returns whole read-only maps; the `attribute_*`
     # pair answers for one peptide without materializing them.
+    "sample_alleles_for_pmid": ".curation",
     "peptide_alleles_for_pmid": ".curation",
     "peptide_typings_for_pmid": ".curation",
     "attribute_peptide_to_sample_alleles": ".curation",

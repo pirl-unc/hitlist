@@ -622,7 +622,21 @@
       distant from resection margin, no visible abnormalities. PRIDE data (PXD022884, 149 raw files) shows
       UV-inactivated mock controls WERE profiled by MS for both lung tissue and THP-1 (but NOT for moDCs).
       P1 lung X31 host immunopeptidome was profiled but no PRIDE raw files found (likely excluded after QC).
-      Both HLA-I and HLA-II IPs for lung, THP-1, and moDCs.
+      Both HLA-I and HLA-II IPs for lung, THP-1, and moDCs (sequential: W6/32 pan-class-I, then HB145
+      pan-class-II on the depleted lysate). S2 Table reports class-II yields for P1 (1,038 peptides),
+      P2 (1,826 / 1,469) and P3 (1,091 / 1,170) and for the moDC arm (4,639), so class II was profiled
+      throughout, not only for the one influenza class-II peptide the prose highlights. THP-1 class-II
+      IP was run and deposited (PXD022884 MHC2 files) but yielded very few host peptides and is not
+      tabulated in S2 — its mhc_class stays I+II because the IP was performed.
+      Typing is S1 Table: six class-I and six class-II alleles per subject (DRB1/DQB1/DPB1 only — the
+      study did not type DRB3/4/5, DQA1 or DPA1, so those are absent rather than assumed).
+      THP-1 CLASS-I CONFLICT: this study types THP-1 homozygous A*02:01/B*15:11/C*03:03 and assigns its
+      peptides on that basis, while DSMZ ACC-16 (and PMID 33392160) type it heterozygous
+      A*02:01/A*24:02, B*15:11/B*35:01. The heterozygous DSMZ form is kept here since two independent
+      sources support it; see the tracking issue.
+      PAPER ERROR, do not propagate: the Results text credits the single class-II influenza peptide
+      (HA 15-mer AADLKSTQAAINQIN, HLA-DRB1*04:01) to P3, but Table 1 assigns it to P2 and only P2
+      carries DRB1*04:01. P2 is correct.
     donors: 3
     perturbations:
       - Influenza A/H3N2/X31 infection (22h ex vivo)
@@ -634,29 +648,77 @@
         - "HLA-A*03:01"
         - "HLA-A*26:01"
         - "HLA-B*07:02"
+        - "HLA-C*07:02"
+        - "HLA-DRB1*11:01"
+        - "HLA-DRB1*15:01"
+        - "HLA-DQB1*03:01"
+        - "HLA-DQB1*06:02"
+        - "HLA-DPB1*02:01"
+        - "HLA-DPB1*16:01"
       P2:
+        - "HLA-A*01:01"
         - "HLA-A*02:01"
         - "HLA-B*15:01"
         - "HLA-B*44:27"
+        - "HLA-C*03:03"
+        - "HLA-C*07:04"
         - "HLA-DRB1*04:01"
+        - "HLA-DRB1*15:01"
+        - "HLA-DQB1*03:02"
+        - "HLA-DQB1*06:03"
+        - "HLA-DPB1*03:01"
+        - "HLA-DPB1*04:01"
       P3:
         - "HLA-A*02:01"
         - "HLA-A*03:01"
         - "HLA-B*15:01"
         - "HLA-B*18:01"
+        - "HLA-C*03:04"
+        - "HLA-C*05:01"
+        - "HLA-DRB1*11:01"
+        - "HLA-DRB1*15:01"
+        - "HLA-DQB1*03:01"
+        - "HLA-DQB1*06:02"
+        - "HLA-DPB1*01:01"
+        - "HLA-DPB1*04:01"
+      P4_moDC:
+        - "HLA-A*01:01"
+        - "HLA-B*51:01"
+        - "HLA-B*57:01"
+        - "HLA-C*06:02"
+        - "HLA-C*07:01"
+        - "HLA-DRB1*04:03"
+        - "HLA-DRB1*07:01"
+        - "HLA-DQB1*03:03"
+        - "HLA-DQB1*03:05"
+        - "HLA-DPB1*04:01"
+        - "HLA-DPB1*14:01"
+      A549_feeder:
+        - "HLA-A*25:01"
+        - "HLA-A*30:01"
+        - "HLA-B*18:01"
+        - "HLA-B*44:03"
+        - "HLA-C*12:03"
+        - "HLA-C*16:01"
+        - "HLA-DRB1*07:01"
+        - "HLA-DRB1*11:04"
+        - "HLA-DQB1*02:02"
+        - "HLA-DQB1*03:01"
+        - "HLA-DPB1*03:01"
+        - "HLA-DPB1*06:01"
     ms_samples:
       - sample_label: P1 lung — UV mock (uninfected)
         n_samples: 1
         source: "TL1165, surgical resection"
         condition: UV-inactivated virus control
         mhc_class: I+II
-        mhc: "HLA-A*03:01 HLA-A*26:01 HLA-B*07:02"
+        mhc: "HLA-A*03:01 HLA-A*26:01 HLA-B*07:02 HLA-C*07:02 HLA-DRB1*11:01 HLA-DRB1*15:01 HLA-DQB1*03:01 HLA-DQB1*06:02 HLA-DPB1*02:01 HLA-DPB1*16:01"
       - sample_label: P1 lung — Wisconsin-infected
         n_samples: 1
         source: TL1165
         condition: influenza A/H3N2/Wisconsin 22h
         mhc_class: I+II
-        mhc: "HLA-A*03:01 HLA-A*26:01 HLA-B*07:02"
+        mhc: "HLA-A*03:01 HLA-A*26:01 HLA-B*07:02 HLA-C*07:02 HLA-DRB1*11:01 HLA-DRB1*15:01 HLA-DQB1*03:01 HLA-DQB1*06:02 HLA-DPB1*02:01 HLA-DPB1*16:01"
         reference_proteomes:
           - uniprot: UP000009255
             proteome_label: Influenza A virus
@@ -672,13 +734,13 @@
         source: "TL1178, surgical resection"
         condition: UV-inactivated virus control
         mhc_class: I+II
-        mhc: "HLA-A*02:01 HLA-B*15:01 HLA-B*44:27 HLA-DRB1*04:01"
+        mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*15:01 HLA-B*44:27 HLA-C*03:03 HLA-C*07:04 HLA-DRB1*04:01 HLA-DRB1*15:01 HLA-DQB1*03:02 HLA-DQB1*06:03 HLA-DPB1*03:01 HLA-DPB1*04:01"
       - sample_label: P2 lung — Wisconsin-infected
         n_samples: 1
         source: TL1178
         condition: influenza A/H3N2/Wisconsin 22h
         mhc_class: I+II
-        mhc: "HLA-A*02:01 HLA-B*15:01 HLA-B*44:27 HLA-DRB1*04:01"
+        mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*15:01 HLA-B*44:27 HLA-C*03:03 HLA-C*07:04 HLA-DRB1*04:01 HLA-DRB1*15:01 HLA-DQB1*03:02 HLA-DQB1*06:03 HLA-DPB1*03:01 HLA-DPB1*04:01"
         reference_proteomes:
           - uniprot: UP000009255
             proteome_label: Influenza A virus
@@ -687,7 +749,7 @@
         source: TL1178
         condition: influenza A/H3N2/X31 22h
         mhc_class: I+II
-        mhc: "HLA-A*02:01 HLA-B*15:01 HLA-B*44:27 HLA-DRB1*04:01"
+        mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*15:01 HLA-B*44:27 HLA-C*03:03 HLA-C*07:04 HLA-DRB1*04:01 HLA-DRB1*15:01 HLA-DQB1*03:02 HLA-DQB1*06:03 HLA-DPB1*03:01 HLA-DPB1*04:01"
         reference_proteomes:
           - uniprot: UP000009255
             proteome_label: Influenza A virus
@@ -696,13 +758,13 @@
         source: "TL1187, surgical resection"
         condition: UV-inactivated virus control
         mhc_class: I+II
-        mhc: "HLA-A*02:01 HLA-A*03:01 HLA-B*15:01 HLA-B*18:01"
+        mhc: "HLA-A*02:01 HLA-A*03:01 HLA-B*15:01 HLA-B*18:01 HLA-C*03:04 HLA-C*05:01 HLA-DRB1*11:01 HLA-DRB1*15:01 HLA-DQB1*03:01 HLA-DQB1*06:02 HLA-DPB1*01:01 HLA-DPB1*04:01"
       - sample_label: P3 lung — Wisconsin-infected
         n_samples: 1
         source: TL1187
         condition: influenza A/H3N2/Wisconsin 22h
         mhc_class: I+II
-        mhc: "HLA-A*02:01 HLA-A*03:01 HLA-B*15:01 HLA-B*18:01"
+        mhc: "HLA-A*02:01 HLA-A*03:01 HLA-B*15:01 HLA-B*18:01 HLA-C*03:04 HLA-C*05:01 HLA-DRB1*11:01 HLA-DRB1*15:01 HLA-DQB1*03:01 HLA-DQB1*06:02 HLA-DPB1*01:01 HLA-DPB1*04:01"
         reference_proteomes:
           - uniprot: UP000009255
             proteome_label: Influenza A virus
@@ -711,7 +773,7 @@
         source: TL1187
         condition: influenza A/H3N2/X31 22h
         mhc_class: I+II
-        mhc: "HLA-A*02:01 HLA-A*03:01 HLA-B*15:01 HLA-B*18:01"
+        mhc: "HLA-A*02:01 HLA-A*03:01 HLA-B*15:01 HLA-B*18:01 HLA-C*03:04 HLA-C*05:01 HLA-DRB1*11:01 HLA-DRB1*15:01 HLA-DQB1*03:01 HLA-DQB1*06:02 HLA-DPB1*01:01 HLA-DPB1*04:01"
         reference_proteomes:
           - uniprot: UP000009255
             proteome_label: Influenza A virus
@@ -720,12 +782,12 @@
         source: PMA-differentiated THP-1 (3 independent differentiations)
         condition: UV-inactivated virus control
         mhc_class: I+II
-        mhc: "HLA-A*02:01 HLA-A*24:02 HLA-B*15:11 HLA-B*35:01 HLA-C*03:03"
+        mhc: "HLA-A*02:01 HLA-A*24:02 HLA-B*15:11 HLA-B*35:01 HLA-C*03:03 HLA-DRB1*01:01 HLA-DRB1*15:01 HLA-DQB1*05:01 HLA-DQB1*06:02 HLA-DPB1*02:01 HLA-DPB1*04:02"
       - sample_label: THP-1 macrophage — Wisconsin-infected
         n_samples: 3
         condition: PMA differentiation → influenza A/H3N2/Wisconsin
         mhc_class: I+II
-        mhc: "HLA-A*02:01 HLA-A*24:02 HLA-B*15:11 HLA-B*35:01 HLA-C*03:03"
+        mhc: "HLA-A*02:01 HLA-A*24:02 HLA-B*15:11 HLA-B*35:01 HLA-C*03:03 HLA-DRB1*01:01 HLA-DRB1*15:01 HLA-DQB1*05:01 HLA-DQB1*06:02 HLA-DPB1*02:01 HLA-DPB1*04:02"
         reference_proteomes:
           - uniprot: UP000009255
             proteome_label: Influenza A virus
@@ -733,7 +795,7 @@
         n_samples: 3
         condition: PMA differentiation → influenza A/H3N2/X31
         mhc_class: I+II
-        mhc: "HLA-A*02:01 HLA-A*24:02 HLA-B*15:11 HLA-B*35:01 HLA-C*03:03"
+        mhc: "HLA-A*02:01 HLA-A*24:02 HLA-B*15:11 HLA-B*35:01 HLA-C*03:03 HLA-DRB1*01:01 HLA-DRB1*15:01 HLA-DQB1*05:01 HLA-DQB1*06:02 HLA-DPB1*02:01 HLA-DPB1*04:02"
         reference_proteomes:
           - uniprot: UP000009255
             proteome_label: Influenza A virus
@@ -742,7 +804,7 @@
         source: "donor P4, heterotypic HLA relative to A549"
         condition: PromoCell DC medium 6d → fed UV-irradiated apoptotic Wisconsin-infected A549 → DC activation 4h
         mhc_class: I+II
-        mhc: unknown
+        mhc: "HLA-A*01:01 HLA-B*51:01 HLA-B*57:01 HLA-C*06:02 HLA-C*07:01 HLA-DRB1*04:03 HLA-DRB1*07:01 HLA-DQB1*03:03 HLA-DQB1*03:05 HLA-DPB1*04:01 HLA-DPB1*14:01"
         reference_proteomes:
           - uniprot: UP000009255
             proteome_label: Influenza A virus
@@ -2434,8 +2496,13 @@
     note: >
       NOT IN IEDB — peptides ingested from paper supplement (Table S1B, sheet DataS1B).
       MAPTAC (Mono-Allelic Purification with Tagged Allele Constructs) uses biotin-acceptor peptide tag
-      + BirA → streptavidin pulldown for mono-allelic class II profiling. dm+ = HLA-DM co-transfected (peptide
-      editing), dm- = no DM (CLIP-loaded, low-affinity peptides). Also includes SILAC DC cross-presentation
+      + BirA → streptavidin pulldown for mono-allelic class II profiling. One allele per sample: the
+      construct carries a single beta chain, so a pooled multi-allele sample would assert that any of the
+      alleles could present any of the peptides. DataS1B reports HLA-DM co-transfection (peptide editing)
+      and no-DM (CLIP-loaded, low-affinity) as separate arms for 4 of the 10 alleles. Those arms remain
+      separate samples here even though the ingested CSV merges their peptide sets per allele; consequently
+      an observation cannot be assigned to either arm and its arm-level metadata stays unknown. Also
+      includes SILAC DC cross-presentation
       (heavy DCs + light tumor cells → distinguish cross-presented vs endogenous peptides). Lung and spleen
       from healthy donors. PBMCs from healthy donors. Raw MS: MassIVE MSV000083991.
     hla_alleles:
@@ -2531,20 +2598,104 @@
         ip_antibody: "streptavidin (MAPTAC)"
         mhc_class: I
         mhc: "HLA-C*06:02"
-      - sample_label: MAPTAC class II dm+ (HLA-DM co-transfected)
-        n_samples: 10
-        source: "ExpiHEK293, A375, K562, KG-1, B721.221 mixtures"
-        condition: "dm+: HLA-DM co-transfection enables peptide editing"
+      - sample_label: "MAPTAC-HLA-DRB1*01:01"
+        n_samples: 1
+        source: "Expi293, A375, B721.221, K562, KG-1"
+        condition: "unperturbed — mono-allelic"
         mhc_class: II
         ip_antibody: "streptavidin (MAPTAC)"
-        mhc: "HLA-DRB1*01:01 HLA-DRB1*03:01 HLA-DRB1*04:01 HLA-DRB1*07:01 HLA-DRB1*11:01 HLA-DRB1*12:01 HLA-DRB1*15:01 HLA-DRB3*01:01 HLA-DPB1*06:01/DPA1*01:03 HLA-DQB1*06:04/DQA1*01:02"
-      - sample_label: MAPTAC class II dm- (no HLA-DM)
-        n_samples: 7
-        source: ExpiHEK293 and others
-        condition: "dm-: no HLA-DM, CLIP-loaded, unedited peptide repertoire"
+        mhc: "HLA-DRB1*01:01"
+      - sample_label: "MAPTAC-HLA-DRB1*03:01"
+        n_samples: 1
+        source: "Expi293"
+        condition: "unperturbed — mono-allelic"
         mhc_class: II
         ip_antibody: "streptavidin (MAPTAC)"
-        mhc: "HLA-DRB1*01:01 HLA-DRB1*03:01 HLA-DRB1*04:01 HLA-DRB1*07:01 HLA-DRB1*11:01 HLA-DRB1*12:01 HLA-DRB1*15:01 HLA-DRB3*01:01 HLA-DPB1*06:01/DPA1*01:03 HLA-DQB1*06:04/DQA1*01:02"
+        mhc: "HLA-DRB1*03:01"
+      - sample_label: "MAPTAC-HLA-DRB1*04:01"
+        n_samples: 1
+        source: "Expi293"
+        condition: "unperturbed — mono-allelic"
+        mhc_class: II
+        ip_antibody: "streptavidin (MAPTAC)"
+        mhc: "HLA-DRB1*04:01"
+      - sample_label: "MAPTAC-HLA-DRB1*07:01"
+        n_samples: 1
+        source: "Expi293, HEK293"
+        condition: "unperturbed — mono-allelic"
+        mhc_class: II
+        ip_antibody: "streptavidin (MAPTAC)"
+        mhc: "HLA-DRB1*07:01"
+      - sample_label: "MAPTAC-HLA-DRB1*11:01"
+        n_samples: 1
+        source: "Expi293, A375, HEK293, K562, KG-1"
+        condition: "unperturbed — mono-allelic"
+        mhc_class: II
+        ip_antibody: "streptavidin (MAPTAC)"
+        mhc: "HLA-DRB1*11:01"
+      - sample_label: "MAPTAC-HLA-DRB1*12:01 (dm-)"
+        n_samples: 1
+        source: "Expi293"
+        condition: "unperturbed — mono-allelic; no HLA-DM co-transfection"
+        mhc_class: II
+        ip_antibody: "streptavidin (MAPTAC)"
+        mhc: "HLA-DRB1*12:01"
+      - sample_label: "MAPTAC-HLA-DRB1*12:01 (dm+)"
+        n_samples: 1
+        source: "Expi293"
+        condition: "HLA-DM co-transfection — mono-allelic peptide editing"
+        mhc_class: II
+        ip_antibody: "streptavidin (MAPTAC)"
+        mhc: "HLA-DRB1*12:01"
+      - sample_label: "MAPTAC-HLA-DRB1*15:01"
+        n_samples: 1
+        source: "Expi293"
+        condition: "unperturbed — mono-allelic"
+        mhc_class: II
+        ip_antibody: "streptavidin (MAPTAC)"
+        mhc: "HLA-DRB1*15:01"
+      - sample_label: "MAPTAC-HLA-DRB3*01:01 (dm-)"
+        n_samples: 1
+        source: "Expi293"
+        condition: "unperturbed — mono-allelic; no HLA-DM co-transfection"
+        mhc_class: II
+        ip_antibody: "streptavidin (MAPTAC)"
+        mhc: "HLA-DRB3*01:01"
+      - sample_label: "MAPTAC-HLA-DRB3*01:01 (dm+)"
+        n_samples: 1
+        source: "Expi293"
+        condition: "HLA-DM co-transfection — mono-allelic peptide editing"
+        mhc_class: II
+        ip_antibody: "streptavidin (MAPTAC)"
+        mhc: "HLA-DRB3*01:01"
+      - sample_label: "MAPTAC-HLA-DPB1*06:01/DPA1*01:03 (dm-)"
+        n_samples: 1
+        source: "Expi293"
+        condition: "unperturbed — mono-allelic; no HLA-DM co-transfection"
+        mhc_class: II
+        ip_antibody: "streptavidin (MAPTAC)"
+        mhc: "HLA-DPB1*06:01/DPA1*01:03"
+      - sample_label: "MAPTAC-HLA-DPB1*06:01/DPA1*01:03 (dm+)"
+        n_samples: 1
+        source: "Expi293"
+        condition: "HLA-DM co-transfection — mono-allelic peptide editing"
+        mhc_class: II
+        ip_antibody: "streptavidin (MAPTAC)"
+        mhc: "HLA-DPB1*06:01/DPA1*01:03"
+      - sample_label: "MAPTAC-HLA-DQB1*06:04/DQA1*01:02 (dm-)"
+        n_samples: 1
+        source: "Expi293"
+        condition: "unperturbed — mono-allelic; no HLA-DM co-transfection"
+        mhc_class: II
+        ip_antibody: "streptavidin (MAPTAC)"
+        mhc: "HLA-DQB1*06:04/DQA1*01:02"
+      - sample_label: "MAPTAC-HLA-DQB1*06:04/DQA1*01:02 (dm+)"
+        n_samples: 1
+        source: "Expi293"
+        condition: "HLA-DM co-transfection — mono-allelic peptide editing"
+        mhc_class: II
+        ip_antibody: "streptavidin (MAPTAC)"
+        mhc: "HLA-DQB1*06:04/DQA1*01:02"
       - sample_label: lung tissue (HLA-DR)
         n_samples: 1
         source: healthy donor
@@ -2570,8 +2721,8 @@
         classification: healthy
         mhc: "HLA class II"
       - sample_label: SILAC DCs cross-presenting tumor antigens
-        n_samples: 4
-        source: 2 donors x 2 timepoints
+        n_samples: 6
+        source: "2 donors (donor 1: DC-only, 10-min lysate, 5-hr lysate, UV overnight; donor 2: UV 16-hr, UV 24-hr)"
         condition: SILAC heavy DCs + light tumor cells → cross-presentation
         mhc_class: II
         ip_antibody: L243
@@ -2641,18 +2792,71 @@
     override:
     species: Bos taurus (cattle)
     note: >
-      Most comprehensive BoLA immunopeptidome study. T. parva-infected parasitized bovine lymphocyte cell
-      lines. Both BoLA class I (13 datasets) and BoLA-DR class II (6 datasets). 74 BoLA-I and 15 BoLA-DR
-      curated T. parva peptides plus thousands of self-peptides. In IEDB.
+      Most comprehensive BoLA immunopeptidome study. T. parva-infected parasitized bovine lymphocyte
+      cell lines. Both BoLA class I (13 datasets) and BoLA-DR class II (6 datasets). 74 BoLA-I and
+      15 BoLA-DR curated T. parva peptides plus thousands of self-peptides. In IEDB.
+      Curated as one sample per cell line, not one pooled sample.  The 13 class-I alleles in the
+      corpus are the union across eight animals of six different BoLA haplotypes; pooling them onto
+      a single sample would assert that any of the 13 could present any of the peptides, when no
+      individual animal carries more than five.  Per-line genotypes are from the Results (sections
+      3.1 and 3.2).  IEDB rows carry no cell-line identifier, so the allele itself is the
+      discriminator: alleles unique to one line attribute exactly, while alleles shared across
+      lines (BoLA-2*025:01, BoLA-4*024:01, BoLA-1*009:01, and the two A10 alleles) stay ambiguous
+      by design rather than being assigned arbitrarily.
+      CAVEAT — peptide-to-allele assignment in this study is PREDICTED, not measured: peptides with
+      a NetMHCpan-4.1 percent-rank <2% to an allele expressed by the source line were called
+      binders. The per-line genotypes curated here are measured fact; the per-peptide restriction
+      is an inference.
+      DISCREPANCY — the paper reports BoLA-6*014:02 for 2824TP (A19); IEDB carries BoLA-6*014:01
+      (3 rows). IEDB's value is curated so those rows still attribute; filed for resolution.
+      The paper also lists BoLA-2*008:01 for 2123TP, which has no rows in the corpus.
+      Class II is left at locus level deliberately: the corpus holds three BoLA-DRB3 alleles
+      (*011:01, *015:01, *016:01) but the source gives no line-to-DRB3 mapping, so splitting them
+      across lines would be a guess and pooling them onto one sample would repeat the very error
+      this entry fixes.
     perturbations:
       - Theileria parva (Muguga strain) parasitic infection
     ms_samples:
-      - sample_label: T. parva-infected bovine lymphocyte lines (BoLA-I)
-        n_samples: 13
-        source: "parasitized lymphocyte cell lines, multiple BoLA genotypes"
+      - sample_label: "641TP (T. parva-infected, BoLA-I A18)"
+        source: "T. parva-infected bovine lymphocyte line, BoLA haplotype A18"
         condition: T. parva infection
         mhc_class: I
-        mhc: Bos taurus class I
+        mhc: "BoLA-6*013:01"
+      - sample_label: "1011TP (T. parva-infected, BoLA-I A10)"
+        source: "T. parva-infected bovine lymphocyte line, BoLA haplotype A10"
+        condition: T. parva infection
+        mhc_class: I
+        mhc: "BoLA-2*012:01 BoLA-3*002:01"
+      - sample_label: "5072TP (T. parva-infected, BoLA-I A10)"
+        source: "T. parva-infected bovine lymphocyte line, BoLA haplotype A10"
+        condition: T. parva infection
+        mhc_class: I
+        mhc: "BoLA-2*012:01 BoLA-3*002:01"
+      - sample_label: "2229TP (T. parva-infected, BoLA-I A14)"
+        source: "T. parva-infected bovine lymphocyte line, BoLA haplotype A14"
+        condition: T. parva infection
+        mhc_class: I
+        mhc: "BoLA-1*023:01 BoLA-2*025:01 BoLA-4*024:01 BoLA-6*040:01"
+      - sample_label: "2824TP (T. parva-infected, BoLA-I A19)"
+        source: "T. parva-infected bovine lymphocyte line, BoLA haplotype A19"
+        condition: T. parva infection
+        mhc_class: I
+        mhc: "BoLA-2*016:01 BoLA-6*014:01"
+      - sample_label: "5350TP (T. parva-infected, BoLA-I A20)"
+        source: "T. parva-infected bovine lymphocyte line, BoLA haplotype A20"
+        condition: T. parva infection
+        mhc_class: I
+        mhc: "BoLA-2*026:01 BoLA-3*027:01"
+      - sample_label: "2408TP (T. parva-infected, BoLA-I A15)"
+        source: "T. parva-infected bovine lymphocyte line, BoLA haplotype A15"
+        condition: T. parva infection
+        mhc_class: I
+        mhc: "BoLA-1*009:01 BoLA-2*025:01 BoLA-4*024:01"
+      - sample_label: "2123TP (T. parva-infected, BoLA-I A12/A15)"
+        source: "T. parva-infected bovine lymphocyte line, BoLA haplotype A12/A15"
+        condition: T. parva infection
+        mhc_class: I
+        mhc: "BoLA-1*009:01 BoLA-1*019:01 BoLA-2*008:01 BoLA-2*025:01 BoLA-4*024:01"
       - sample_label: T. parva-infected bovine lymphocyte lines (BoLA-DR)
         n_samples: 6
         source: "same cell lines, class II IP"
@@ -2942,23 +3146,239 @@
     title: "Immunopeptidome Analysis of HLA-DPB1 Allelic Variants Reveals New Functional Hierarchies"
     override: cell_line
     note: >
-      EBV-LCLs homozygous for different HLA-DPB1 alleles + K562
-      transfectants. IEDB "Blood, healthy" is approximately correct for
-      B-LCLs but misses K562 cancer cell line component. ~13 DPB1 alleles.
+      19 HLA-DP-typed EBV-LCLs (15 DPB1-homozygous, 4 heterozygous) plus 7
+      HLA-DP-transduced K562 transfectants, each profiled separately — so
+      each is its own sample.  A single pooled entry would assert that any
+      of the study's alleles could present any of its peptides.
+      The Methods name 12 distinct DPB1 alleles (TCE-1: 09:01, 10:01,
+      17:01; TCE-2: 03:01, 14:01; TCE-3: 01:01, 02:01, 04:01, 04:02,
+      05:01, 06:01, 13:01).  DPB1*17:01 and *06:01 had no homozygous line
+      and were profiled only in trans, so they belong to no homozygous-LCL
+      and no K562 sample.
+      DP is a heterodimer and DPA1 varies across lines, so the alpha chain
+      is curated with each beta chain rather than assumed fixed.  The paper
+      types to three fields (e.g. DPB1*05:01:01); the third field is
+      synonymous-level and never appears in IEDB mhc_restriction, so two
+      fields are curated here.
+      IEDB "Blood, healthy" is approximately right for the B-LCLs but misses
+      the K562 component; K562 is an EBV-negative CML line, so only the LCL
+      samples carry the EBV proteome.
     hla_alleles:
-      profiled: ["HLA-DPB1*09:01", "HLA-DPB1*10:01", "HLA-DPB1*17:01", "HLA-DPB1*04:01", "HLA-DPB1*04:02", "HLA-DPB1*02:01"]
+      profiled: ["HLA-DPB1*01:01", "HLA-DPB1*02:01", "HLA-DPB1*03:01", "HLA-DPB1*04:01", "HLA-DPB1*04:02", "HLA-DPB1*05:01", "HLA-DPB1*06:01", "HLA-DPB1*09:01", "HLA-DPB1*10:01", "HLA-DPB1*13:01", "HLA-DPB1*14:01", "HLA-DPB1*17:01"]
     ms_samples:
-      - sample_label: "EBV-LCLs (DPB1 homozygous)"
+      - sample_label: "EBV-LCL CCC 12493 (DPB1*09:01 homozygous)"
+        n_samples: 1
+        source: "HLA-DP-typed EBV-transformed B-cell line"
         condition: "unperturbed"
         mhc_class: "II"
-        mhc: "HLA-DPB1*09:01 HLA-DPB1*10:01 HLA-DPB1*17:01 HLA-DPB1*04:01 HLA-DPB1*04:02 HLA-DPB1*02:01"
+        mhc: "HLA-DPB1*09:01/DPA1*02:01"
         reference_proteomes:
           - uniprot: UP000153037
             proteome_label: Epstein-Barr virus
-      - sample_label: "K562 DPB1 transfectants"
+      - sample_label: "EBV-LCL VNG 12286 (DPB1*10:01 homozygous)"
+        n_samples: 1
+        source: "HLA-DP-typed EBV-transformed B-cell line"
+        condition: "unperturbed"
+        mhc_class: "II"
+        mhc: "HLA-DPB1*10:01/DPA1*02:01"
+        reference_proteomes:
+          - uniprot: UP000153037
+            proteome_label: Epstein-Barr virus
+      - sample_label: "EBV-LCL ETV 11197 (DPB1*14:01 homozygous)"
+        n_samples: 1
+        source: "HLA-DP-typed EBV-transformed B-cell line"
+        condition: "unperturbed"
+        mhc_class: "II"
+        mhc: "HLA-DPB1*14:01/DPA1*02:01"
+        reference_proteomes:
+          - uniprot: UP000153037
+            proteome_label: Epstein-Barr virus
+      - sample_label: "EBV-LCL CLK 3987 (DPB1*03:01 homozygous)"
+        n_samples: 1
+        source: "HLA-DP-typed EBV-transformed B-cell line"
+        condition: "unperturbed"
+        mhc_class: "II"
+        mhc: "HLA-DPB1*03:01/DPA1*01:03"
+        reference_proteomes:
+          - uniprot: UP000153037
+            proteome_label: Epstein-Barr virus
+      - sample_label: "EBV-LCL MPF 174 (DPB1*03:01 homozygous)"
+        n_samples: 1
+        source: "HLA-DP-typed EBV-transformed B-cell line"
+        condition: "unperturbed"
+        mhc_class: "II"
+        mhc: "HLA-DPB1*03:01/DPA1*01:03"
+        reference_proteomes:
+          - uniprot: UP000153037
+            proteome_label: Epstein-Barr virus
+      - sample_label: "EBV-LCL TQP 8275 (DPB1*05:01 homozygous)"
+        n_samples: 1
+        source: "HLA-DP-typed EBV-transformed B-cell line"
+        condition: "unperturbed"
+        mhc_class: "II"
+        mhc: "HLA-DPB1*05:01/DPA1*02:02"
+        reference_proteomes:
+          - uniprot: UP000153037
+            proteome_label: Epstein-Barr virus
+      - sample_label: "EBV-LCL WKD 3639 (DPB1*05:01 homozygous)"
+        n_samples: 1
+        source: "HLA-DP-typed EBV-transformed B-cell line"
+        condition: "unperturbed"
+        mhc_class: "II"
+        mhc: "HLA-DPB1*05:01/DPA1*02:02"
+        reference_proteomes:
+          - uniprot: UP000153037
+            proteome_label: Epstein-Barr virus
+      - sample_label: "EBV-LCL NAG 12292 (DPB1*01:01 homozygous)"
+        n_samples: 1
+        source: "HLA-DP-typed EBV-transformed B-cell line"
+        condition: "unperturbed"
+        mhc_class: "II"
+        mhc: "HLA-DPB1*01:01/DPA1*02:01"
+        reference_proteomes:
+          - uniprot: UP000153037
+            proteome_label: Epstein-Barr virus
+      - sample_label: "EBV-LCL BZQ 12290 (DPB1*13:01 homozygous)"
+        n_samples: 1
+        source: "HLA-DP-typed EBV-transformed B-cell line"
+        condition: "unperturbed"
+        mhc_class: "II"
+        mhc: "HLA-DPB1*13:01/DPA1*02:01"
+        reference_proteomes:
+          - uniprot: UP000153037
+            proteome_label: Epstein-Barr virus
+      - sample_label: "EBV-LCL FAQ 3528 (DPB1*02:01 homozygous)"
+        n_samples: 1
+        source: "HLA-DP-typed EBV-transformed B-cell line"
+        condition: "unperturbed"
+        mhc_class: "II"
+        mhc: "HLA-DPB1*02:01/DPA1*01:03"
+        reference_proteomes:
+          - uniprot: UP000153037
+            proteome_label: Epstein-Barr virus
+      - sample_label: "EBV-LCL HHC 5852 (DPB1*04:01 homozygous)"
+        n_samples: 1
+        source: "HLA-DP-typed EBV-transformed B-cell line"
+        condition: "unperturbed"
+        mhc_class: "II"
+        mhc: "HLA-DPB1*04:01/DPA1*01:03"
+        reference_proteomes:
+          - uniprot: UP000153037
+            proteome_label: Epstein-Barr virus
+      - sample_label: "EBV-LCL MHX 1699 (DPB1*04:01 homozygous)"
+        n_samples: 1
+        source: "HLA-DP-typed EBV-transformed B-cell line"
+        condition: "unperturbed"
+        mhc_class: "II"
+        mhc: "HLA-DPB1*04:01/DPA1*01:03"
+        reference_proteomes:
+          - uniprot: UP000153037
+            proteome_label: Epstein-Barr virus
+      - sample_label: "EBV-LCL WEW 12494 (DPB1*04:01 homozygous)"
+        n_samples: 1
+        source: "HLA-DP-typed EBV-transformed B-cell line"
+        condition: "unperturbed"
+        mhc_class: "II"
+        mhc: "HLA-DPB1*04:01/DPA1*01:03"
+        reference_proteomes:
+          - uniprot: UP000153037
+            proteome_label: Epstein-Barr virus
+      - sample_label: "EBV-LCL AST 5085 (DPB1*04:02 homozygous)"
+        n_samples: 1
+        source: "HLA-DP-typed EBV-transformed B-cell line"
+        condition: "unperturbed"
+        mhc_class: "II"
+        mhc: "HLA-DPB1*04:02/DPA1*01:03"
+        reference_proteomes:
+          - uniprot: UP000153037
+            proteome_label: Epstein-Barr virus
+      - sample_label: "EBV-LCL REE 7929 (DPB1*02:01 homozygous, DPA1 heterozygous)"
+        n_samples: 1
+        source: "HLA-DP-typed EBV-transformed B-cell line"
+        condition: "unperturbed"
+        mhc_class: "II"
+        mhc: "HLA-DPB1*02:01/DPA1*01:03 HLA-DPB1*02:01/DPA1*02:01"
+        reference_proteomes:
+          - uniprot: UP000153037
+            proteome_label: Epstein-Barr virus
+      - sample_label: "EBV-LCL UKM 7264 (DPB1*04:01/*17:01 heterozygous)"
+        n_samples: 1
+        source: "HLA-DP-typed EBV-transformed B-cell line"
+        condition: "unperturbed"
+        mhc_class: "II"
+        mhc: "HLA-DPB1*04:01 HLA-DPB1*17:01 HLA-DPA1*01:03 HLA-DPA1*02:01"
+        reference_proteomes:
+          - uniprot: UP000153037
+            proteome_label: Epstein-Barr virus
+      - sample_label: "EBV-LCL ASY 3436 (DPB1*04:01/*10:01 heterozygous)"
+        n_samples: 1
+        source: "HLA-DP-typed EBV-transformed B-cell line"
+        condition: "unperturbed"
+        mhc_class: "II"
+        mhc: "HLA-DPB1*04:01 HLA-DPB1*10:01 HLA-DPA1*01:03 HLA-DPA1*02:01"
+        reference_proteomes:
+          - uniprot: UP000153037
+            proteome_label: Epstein-Barr virus
+      - sample_label: "EBV-LCL AZP 2877 (DPB1*04:01/*14:01 heterozygous)"
+        n_samples: 1
+        source: "HLA-DP-typed EBV-transformed B-cell line"
+        condition: "unperturbed"
+        mhc_class: "II"
+        mhc: "HLA-DPB1*04:01 HLA-DPB1*14:01 HLA-DPA1*01:03 HLA-DPA1*02:01"
+        reference_proteomes:
+          - uniprot: UP000153037
+            proteome_label: Epstein-Barr virus
+      - sample_label: "EBV-LCL JTD 5000 (DPB1*04:01/*06:01 heterozygous)"
+        n_samples: 1
+        source: "HLA-DP-typed EBV-transformed B-cell line"
+        condition: "unperturbed"
+        mhc_class: "II"
+        mhc: "HLA-DPB1*04:01 HLA-DPB1*06:01 HLA-DPA1*01:03"
+        reference_proteomes:
+          - uniprot: UP000153037
+            proteome_label: Epstein-Barr virus
+      - sample_label: "K562 transfectant DPB1*01:01/DPA1*02:01"
+        n_samples: 1
+        source: "HLA class II-negative K562 transduced with one DPA1-T2A-DPB1 construct"
         condition: "unperturbed — mono-allelic expression system"
         mhc_class: "II"
-        mhc: "HLA-DPB1*09:01 HLA-DPB1*10:01 HLA-DPB1*17:01 HLA-DPB1*04:01 HLA-DPB1*04:02 HLA-DPB1*02:01"
+        mhc: "HLA-DPB1*01:01/DPA1*02:01"
+      - sample_label: "K562 transfectant DPB1*02:01/DPA1*01:03"
+        n_samples: 1
+        source: "HLA class II-negative K562 transduced with one DPA1-T2A-DPB1 construct"
+        condition: "unperturbed — mono-allelic expression system"
+        mhc_class: "II"
+        mhc: "HLA-DPB1*02:01/DPA1*01:03"
+      - sample_label: "K562 transfectant DPB1*03:01/DPA1*01:03"
+        n_samples: 1
+        source: "HLA class II-negative K562 transduced with one DPA1-T2A-DPB1 construct"
+        condition: "unperturbed — mono-allelic expression system"
+        mhc_class: "II"
+        mhc: "HLA-DPB1*03:01/DPA1*01:03"
+      - sample_label: "K562 transfectant DPB1*04:01/DPA1*01:03"
+        n_samples: 1
+        source: "HLA class II-negative K562 transduced with one DPA1-T2A-DPB1 construct"
+        condition: "unperturbed — mono-allelic expression system"
+        mhc_class: "II"
+        mhc: "HLA-DPB1*04:01/DPA1*01:03"
+      - sample_label: "K562 transfectant DPB1*04:02/DPA1*01:03"
+        n_samples: 1
+        source: "HLA class II-negative K562 transduced with one DPA1-T2A-DPB1 construct"
+        condition: "unperturbed — mono-allelic expression system"
+        mhc_class: "II"
+        mhc: "HLA-DPB1*04:02/DPA1*01:03"
+      - sample_label: "K562 transfectant DPB1*05:01/DPA1*02:02"
+        n_samples: 1
+        source: "HLA class II-negative K562 transduced with one DPA1-T2A-DPB1 construct"
+        condition: "unperturbed — mono-allelic expression system"
+        mhc_class: "II"
+        mhc: "HLA-DPB1*05:01/DPA1*02:02"
+      - sample_label: "K562 transfectant DPB1*14:01/DPA1*02:01"
+        n_samples: 1
+        source: "HLA class II-negative K562 transduced with one DPA1-T2A-DPB1 construct"
+        condition: "unperturbed — mono-allelic expression system"
+        mhc_class: "II"
+        mhc: "HLA-DPB1*14:01/DPA1*02:01"
 
   - pmid: 32157095
     study_label: "Chong 2020 — proteogenomic melanoma + lung"
@@ -3386,17 +3806,28 @@
     study_label: "Olsson 2021 — mantle cell lymphoma ± IFNg"
     title: "An Integrated Genomic, Proteomic, and Immunopeptidomic Approach to Discover Treatment-Induced Neoantigens"
     override: cell_line
+    note: >
+      GRANTA-519 profiled for both classes by serial IP: W6/32 for class I, then L243 on the depleted
+      supernatant. 951 unique class-I and 582 class-II peptides.
+      L243 is HLA-DR-specific, NOT pan-class-II, so only DR alleles can restrict the observed class-II
+      peptides — DRB1*11:03, DRB1*15:01, DRB3*02:02, DRB5*01:01 (Methods typing, KASHI Transplant).
+      The line's DP/DQ alleles are typed in the paper but were never immunoprecipitated, so they are
+      deliberately not curated on the sample; the paper's DPA1*04:01 and DQA1*03:01 also disagree with
+      DSMZ ACC-342 (DPA1*01:03, DQA1*01:02/05:05), which is another reason not to propagate them.
+      HLA-A*02:01 was missing from the earlier curation. The paper lists six class-I alleles and refers
+      to "the six GRANTA-519 alleles" and "the four HLA-A and HLA-B alleles"; DSMZ ACC-342 independently
+      types A*02:01:01,02:05:01.
     perturbations:
       - "IFN-gamma (vs untreated control)"
     ms_samples:
       - sample_label: "GRANTA-519 (mantle cell lymphoma, untreated)"
         condition: "unperturbed"
         mhc_class: "I+II"
-        mhc: "HLA-A*02:05 HLA-B*07:02 HLA-B*50:01 HLA-C*06:02 HLA-C*07:02"
+        mhc: "HLA-A*02:01 HLA-A*02:05 HLA-B*07:02 HLA-B*50:01 HLA-C*06:02 HLA-C*07:02 HLA-DRB1*11:03 HLA-DRB1*15:01 HLA-DRB3*02:02 HLA-DRB5*01:01"
       - sample_label: "GRANTA-519 + IFN-gamma"
         condition: "IFN-gamma treatment"
         mhc_class: "I+II"
-        mhc: "HLA-A*02:05 HLA-B*07:02 HLA-B*50:01 HLA-C*06:02 HLA-C*07:02"
+        mhc: "HLA-A*02:01 HLA-A*02:05 HLA-B*07:02 HLA-B*50:01 HLA-C*06:02 HLA-C*07:02 HLA-DRB1*11:03 HLA-DRB1*15:01 HLA-DRB3*02:02 HLA-DRB5*01:01"
 
   - pmid: 28904123
     study_label: "Di Marco 2017 — HLA-C/E/G motifs on C1R"
@@ -4529,12 +4960,22 @@
     study_label: "Ghosh 2020 — THP-1 + biomaterials + LPS"
     title: "The Impact of Biomaterial Cell Contact on the Immunopeptidome"
     override: cell_line
+    note: >
+      Class I and class II both profiled, with high yields for both (W6/32 for class I; pan-class-II
+      Tu-39 plus DR-specific L243), and separate MS mass ranges per class. Class-II peptides are a
+      headline result — "HLA class II peptides were mainly induced by stainless steel".
+      THP-1 here is undifferentiated suspension culture (DSMZ ACC 16), not PMA-differentiated, and
+      still yielded class-II peptides in bulk. Class-II typing is from the paper's Results and matches
+      DSMZ ACC-16 exactly; Cellosaurus additionally carries DPA1*01:03/*02:02 and DRB5*01, which the
+      paper does not report and which are therefore not curated here.
+      Note PMID 35051231 types THP-1 class I as homozygous A*02:01/B*15:11/C*03:03, disagreeing with
+      the heterozygous DSMZ typing used here; see the tracking issue.
     perturbations: ["Biomaterial contact (steel, aluminum, zinc, polyethylene)", "LPS stimulation"]
     ms_samples:
       - sample_label: "THP-1 + biomaterial contact"
         condition: "biomaterial contact + LPS"
         mhc_class: "I+II"
-        mhc: "HLA-A*02:01 HLA-A*24:02 HLA-B*15:11 HLA-B*35:01 HLA-C*03:03"
+        mhc: "HLA-A*02:01 HLA-A*24:02 HLA-B*15:11 HLA-B*35:01 HLA-C*03:03 HLA-DRB1*01:01 HLA-DRB1*15:01 HLA-DQA1*01:01 HLA-DQA1*01:02 HLA-DQB1*05:01 HLA-DQB1*06:02 HLA-DPB1*02:01 HLA-DPB1*04:02"
 
   - pmid: 31530632
     study_label: "Lorente 2019 — HLA-B*40:02 ERAP2 KO"
@@ -6270,29 +6711,91 @@
     study_label: "Spencer 2015 — HeLa ± vaccinia self-peptidome shift"
     title: "Viral infection causes a shift in the self peptide repertoire presented by human MHC class I molecules"
     override: cell_line
+    mono_allelic_method: "sHLA (secreted, W6/32-purified)"
     note: >
       HeLa self-peptidome presented by five HLA-I allotypes, profiled before
       and after vaccinia virus (VACV) infection (the "self peptidome shift").
-      HeLa is a cervical-carcinoma line.  Typing from IEDB's recorded
-      mhc_restriction in our corpus; IEDB cell_name "HeLa cells-Epithelial
+      HeLa is a cervical-carcinoma line.  IEDB cell_name "HeLa cells-Epithelial
       cell".  #33b/#35.
+      MONO-ALLELIC, one line per allotype.  The study used five separate HeLa
+      transfectants each secreting a single soluble HLA heavy chain (Methods:
+      "HeLa cells expressing secreted HLA A*01;01, A*02;01, B*07;02, B*35;01 and
+      B*45;01"; supernatants contain "sA1, sA2, sB7, sB35 *or* sB45"), following
+      the Prilliman 1997 (PMID 9089095) secreted-HLA system.  Mono-allelicity
+      comes from the secreted-versus-membrane distinction, NOT from
+      allotype-specific capture: purification used W6/32, a pan-class-I
+      antibody, so only the untagged secreted chain is recovered while
+      endogenous membrane HLA stays behind.  Distinct from Trolle 2016
+      (PMID 26783342), the same lab's later VLDLr-tagged construct.
+      PRIOR CURATION ERROR: this entry listed all five allotypes as one
+      genotype on two pooled samples, taken from the union of
+      mhc_restriction values in our corpus rather than from the paper.  That
+      is three HLA-B alleles on one diploid sample — impossible, and caught by
+      qc.sample_ploidy_audit.  It is also not HeLa's own genotype: parental
+      HeLa types as A*68:02 / B*15:03 / C*12:03 with 6p LOH (Cellosaurus
+      CVCL_0030; Boegel 2014 PMID 25960936, TCLP PMID 26589293), none of which
+      appears in this study because endogenous HLA is not secreted.
     ms_samples:
-      - sample_label: "HeLa uninfected"
+      - sample_label: "HeLa-sHLA-HLA-A*01:01 uninfected"
         n_samples: 1
-        source: "HeLa cervical carcinoma cell line"
-        condition: unperturbed
+        source: "HeLa transfectant secreting a single sHLA heavy chain; supernatant W6/32-purified"
+        condition: "unperturbed — mono-allelic"
         mhc_class: "I"
-        mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*07:02 HLA-B*35:01 HLA-B*45:01"
-      - sample_label: "HeLa + vaccinia (VACV) infection"
+        mhc: "HLA-A*01:01"
+      - sample_label: "HeLa-sHLA-HLA-A*01:01 + vaccinia (VACV)"
         n_samples: 1
-        source: "HeLa cervical carcinoma cell line, vaccinia virus (WR) infected"
+        source: "HeLa transfectant secreting a single sHLA heavy chain, vaccinia virus (WR) infected; supernatant W6/32-purified"
         condition: "vaccinia (VACV) infection"
         mhc_class: "I"
-        mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*07:02 HLA-B*35:01 HLA-B*45:01"
-
-  # ── #33b / #35 batch 3 — multi-allele patient-tumor / cell-line / EBV-LCL
-  # studies (HLA typing taken from IEDB's recorded mhc_restriction; sample type
-  # + cancer/EBV-LCL status verified per paper) ──────────────────────────────
+        mhc: "HLA-A*01:01"
+      - sample_label: "HeLa-sHLA-HLA-A*02:01 uninfected"
+        n_samples: 1
+        source: "HeLa transfectant secreting a single sHLA heavy chain; supernatant W6/32-purified"
+        condition: "unperturbed — mono-allelic"
+        mhc_class: "I"
+        mhc: "HLA-A*02:01"
+      - sample_label: "HeLa-sHLA-HLA-A*02:01 + vaccinia (VACV)"
+        n_samples: 1
+        source: "HeLa transfectant secreting a single sHLA heavy chain, vaccinia virus (WR) infected; supernatant W6/32-purified"
+        condition: "vaccinia (VACV) infection"
+        mhc_class: "I"
+        mhc: "HLA-A*02:01"
+      - sample_label: "HeLa-sHLA-HLA-B*07:02 uninfected"
+        n_samples: 1
+        source: "HeLa transfectant secreting a single sHLA heavy chain; supernatant W6/32-purified"
+        condition: "unperturbed — mono-allelic"
+        mhc_class: "I"
+        mhc: "HLA-B*07:02"
+      - sample_label: "HeLa-sHLA-HLA-B*07:02 + vaccinia (VACV)"
+        n_samples: 1
+        source: "HeLa transfectant secreting a single sHLA heavy chain, vaccinia virus (WR) infected; supernatant W6/32-purified"
+        condition: "vaccinia (VACV) infection"
+        mhc_class: "I"
+        mhc: "HLA-B*07:02"
+      - sample_label: "HeLa-sHLA-HLA-B*35:01 uninfected"
+        n_samples: 1
+        source: "HeLa transfectant secreting a single sHLA heavy chain; supernatant W6/32-purified"
+        condition: "unperturbed — mono-allelic"
+        mhc_class: "I"
+        mhc: "HLA-B*35:01"
+      - sample_label: "HeLa-sHLA-HLA-B*35:01 + vaccinia (VACV)"
+        n_samples: 1
+        source: "HeLa transfectant secreting a single sHLA heavy chain, vaccinia virus (WR) infected; supernatant W6/32-purified"
+        condition: "vaccinia (VACV) infection"
+        mhc_class: "I"
+        mhc: "HLA-B*35:01"
+      - sample_label: "HeLa-sHLA-HLA-B*45:01 uninfected"
+        n_samples: 1
+        source: "HeLa transfectant secreting a single sHLA heavy chain; supernatant W6/32-purified"
+        condition: "unperturbed — mono-allelic"
+        mhc_class: "I"
+        mhc: "HLA-B*45:01"
+      - sample_label: "HeLa-sHLA-HLA-B*45:01 + vaccinia (VACV)"
+        n_samples: 1
+        source: "HeLa transfectant secreting a single sHLA heavy chain, vaccinia virus (WR) infected; supernatant W6/32-purified"
+        condition: "vaccinia (VACV) infection"
+        mhc_class: "I"
+        mhc: "HLA-B*45:01"
   - pmid: 33123756
     study_label: "Dao 2021 — ovarian cancer patient neoantigen ligandome"
     title: "Impact of tumor heterogeneity and microenvironment in identifying neoantigens in a patient with ovarian cancer"
