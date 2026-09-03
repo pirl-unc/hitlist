@@ -1711,9 +1711,10 @@ def sample_mhc_candidates(mhc_field) -> SampleMhcCandidates:
     # shred one into "Bos" / "taurus" / "class" / "I" — none of which
     # parses — reporting a faithfully curated sentinel as empty.
     whole = mhc_field.strip()
-    whole_kind = type(_cached_parse(whole)).__name__ if whole else ""
+    whole_parsed = _cached_parse(whole) if whole else None
+    whole_kind = type(whole_parsed).__name__
     if whole_kind in _MHC_SEROTYPE_TYPES:
-        name = normalize_allele(whole)
+        name = whole_parsed.to_string()
         return SampleMhcCandidates(
             serotypes=(name,), serotype_alleles=frozenset(serotype_to_alleles(name))
         )
@@ -1738,7 +1739,7 @@ def sample_mhc_candidates(mhc_field) -> SampleMhcCandidates:
             if name and name not in exact:
                 exact.append(name)
         elif kind in _MHC_SEROTYPE_TYPES:
-            name = normalize_allele(token)
+            name = parsed.to_string()
             if name and name not in serotypes:
                 serotypes.append(name)
                 serotype_alleles.update(serotype_to_alleles(name))

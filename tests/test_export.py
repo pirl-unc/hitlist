@@ -3482,7 +3482,7 @@ def test_dq_serotype_sample_joins_full_heterodimer_observation(tmp_path, monkeyp
                         "n_samples": 1,
                         "condition": "unperturbed",
                         "mhc_class": "II",
-                        "mhc": "HLA-DQ8",
+                        "mhc": "hla-dq8",
                     }
                 ],
             }
@@ -3502,9 +3502,60 @@ def test_dq_serotype_sample_joins_full_heterodimer_observation(tmp_path, monkeyp
     row = generate_ms_observations_table().iloc[0]
 
     assert row["sample_label"] == "HLA-DQ8 immunopeptidome component"
-    assert row["sample_mhc"] == "HLA-DQ8"
+    assert row["sample_mhc"] == "hla-dq8"
     assert row["sample_match_type"] == "allele_match"
     assert row["sample_attribution"] == "serotype_expansion"
+
+
+def test_class_pool_preserves_reported_serotype_precision(tmp_path, monkeypatch):
+    """A serotype expansion is a join key, never reported exact typing."""
+    pmid = 99999304
+    monkeypatch.setattr(
+        "hitlist.export.load_pmid_overrides",
+        lambda: {
+            pmid: {
+                "study_label": "synthetic unresolved serotype pool",
+                "species": "Homo sapiens (human)",
+                "ms_samples": [
+                    {
+                        "sample_label": "DR15 sample",
+                        "n_samples": 1,
+                        "condition": "unperturbed",
+                        "mhc_class": "II",
+                        "mhc": "HLA-DR15",
+                    },
+                    {
+                        "sample_label": "DR4 sample",
+                        "n_samples": 1,
+                        "condition": "unperturbed",
+                        "mhc_class": "II",
+                        "mhc": "HLA-DR4",
+                    },
+                ],
+            }
+        },
+    )
+    obs_row = _obs_row("SEROTYPEPOOL", "")
+    obs_row.update(
+        {
+            "pmid": pd.array([pmid], dtype="Int64")[0],
+            "mhc_restriction": "HLA class II",
+            "mhc_class": "II",
+            "mhc_species": "Homo sapiens",
+        }
+    )
+    _write_obs(tmp_path, monkeypatch, [obs_row])
+
+    observation = generate_ms_observations_table(peptide=["SEROTYPEPOOL"]).iloc[0]
+    assert observation["sample_mhc"] == "HLA-DR15 HLA-DR4"
+    assert observation["sample_match_type"] == "pmid_class_pool"
+
+    summary = generate_ms_peptide_summary_table(
+        peptide=["SEROTYPEPOOL"], mhc_allele=["HLA-DRB1*15:01"]
+    ).iloc[0]
+    assert summary["n_class_only_sample_allele_rows"] == 0
+    assert summary["n_class_only_sample_serotype_rows"] == 1
+    assert summary["best_support"] == "class_only_sample_serotype"
 
 
 def test_full_heterodimers_do_not_match_on_one_shared_chain(tmp_path, monkeypatch):

@@ -1021,32 +1021,35 @@ def generate_observations_table(
         obs["mhc_class"].astype(str).map(normalize_mhc_class_token).astype("object")
     )
 
-    # --- PMID x class allele pool ---
+    # --- PMID x class reported-MHC pool ---
     # For class-only observations (mhc_restriction = "HLA class I"),
-    # collect the union of all alleles across all samples of that class.
-    # This gives "one of X, Y, Z" even when we can't pick a specific sample.
-    _class_pool: dict[tuple[int, str], str] = {}  # (pmid, mhc_class) → space-joined alleles
+    # collect the union of all reported typings across samples of that class.
+    # Keep exact molecules and serotypes distinct here: serotype member alleles
+    # are join candidates, not typing claims made by the source.
+    _class_pool: dict[tuple[int, str], str] = {}  # (pmid, mhc_class) → reported typings
     for pmid_int_s, group in samples.groupby("pmid"):
         pmid_int_v = int(pmid_int_s)
         _classes_here = set().union(*(_sample_class_tokens(r) for _, r in group.iterrows()))
         for cls in sorted(_classes_here):
-            alleles: set[str] = set()
+            reported_mhc: set[str] = set()
             for _, srow in group.iterrows():
                 if cls in _sample_class_tokens(srow):
                     candidates = sample_mhc_candidates(srow.get("mhc", ""))
-                    # Same heterodimer expansion as the allele-level join:
-                    # retain the pair and both chains.  Filter each molecule
-                    # back to the pool's class, because an ``I+II`` sample's
-                    # genotype must not put HLA-A alleles in its class-II pool
-                    # (or HLA-DR alleles in its class-I pool).
-                    for token in candidates.join_alleles:
-                        for comp in _normalized_allele_components(token):
-                            if _mhc_class_matches(mhc_class_of(comp), cls):
-                                alleles.add(comp)
-            # Filter out empty strings from failed normalization
-            alleles.discard("")
-            if alleles:
-                _class_pool[(pmid_int_v, cls)] = " ".join(sorted(alleles))
+                    for token in candidates.exact:
+                        if any(
+                            _mhc_class_matches(mhc_class_of(comp), cls)
+                            for comp in _normalized_allele_components(token)
+                        ):
+                            reported_mhc.add(token)
+                    for serotype in candidates.serotypes:
+                        if any(
+                            _mhc_class_matches(mhc_class_of(member), cls)
+                            for member in serotype_to_alleles(serotype)
+                        ):
+                            reported_mhc.add(serotype)
+            reported_mhc.discard("")
+            if reported_mhc:
+                _class_pool[(pmid_int_v, cls)] = " ".join(sorted(reported_mhc))
 
     # --- Vectorized join ---
     obs["_pmid_int"] = pd.to_numeric(obs["pmid"], errors="coerce")

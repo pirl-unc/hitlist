@@ -2,6 +2,17 @@
 
 ## 2026-09-03
 
+- Candidate expansion and reported precision are different data and must not share one field.
+  Rule: an expanded serotype member may be used as an internal join key, but any fallback or
+  public result must still carry the source's serotype designation separately; never serialize
+  inferred members into a field that downstream code reparses as exact reported typing.
+
+- Once a domain parser accepts a spelling, serialize the parsed object instead of re-normalizing
+  the raw token through a narrower helper.
+  Rule: `normalize_allele()` intentionally canonicalizes molecules only, so a parsed Serotype must
+  use `parsed.to_string()` before catalog lookup. Test case, prefix, and bare-name variants for
+  every public input path.
+
 - Precision-aware matching must be symmetric across both sides of a structured MHC restriction.
   Rule: when sample candidates can be single chains but observations can be full class-II pairs,
   regression-test the sample-to-observation join and the downstream summary separately. Expand a

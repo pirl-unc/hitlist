@@ -3021,6 +3021,36 @@ def test_sample_mhc_candidates_keeps_the_three_precisions_apart():
     assert not locus.is_empty, "imprecise is faithful curation, not an empty parse"
 
 
+@pytest.mark.parametrize(
+    ("raw", "canonical"),
+    [
+        ("DQ8", "HLA-DQ8"),
+        ("dr15", "HLA-DR15"),
+        ("hla-dq8", "HLA-DQ8"),
+    ],
+)
+def test_sample_mhc_candidates_canonicalizes_serotype_spellings(raw, canonical):
+    """Every spelling accepted by mhcgnomes must reach the catalog."""
+    from hitlist.curation import sample_mhc_candidates, serotype_to_alleles
+
+    got = sample_mhc_candidates(raw)
+
+    assert got.serotypes == (canonical,)
+    assert got.serotype_alleles == frozenset(serotype_to_alleles(canonical))
+    assert got.serotype_alleles
+
+
+def test_sample_mhc_candidates_canonicalizes_serotype_inside_mixed_field():
+    """Tokenized mixed exact/serotype fields use the same canonical path."""
+    from hitlist.curation import sample_mhc_candidates, serotype_to_alleles
+
+    got = sample_mhc_candidates("HLA-A*02:01 dq8")
+
+    assert got.exact == frozenset({"HLA-A*02:01"})
+    assert got.serotypes == ("HLA-DQ8",)
+    assert got.serotype_alleles == frozenset(serotype_to_alleles("HLA-DQ8"))
+
+
 def test_sample_mhc_candidates_survives_a_multiword_class_sentinel():
     """``Bos taurus class I`` must not be shredded by the token split.
 

@@ -35,6 +35,17 @@ support, and merged HLA-DM measurements must not be labeled as control samples.
 - [x] Split the four merged MAPTAC HLA-DM conditions into explicit `-DM` / `+DM` sample arms.
 - [x] Run targeted tests and inspect the affected real-PMID outputs.
 - [x] Run `./format.sh`, `./lint.sh`, and `./test.sh`.
+
+### Second review: preserve precision through fallback paths
+
+- [x] Reproduce noncanonical serotype parsing and multi-sample class-pool summary behavior.
+- [x] Canonicalize every parsed serotype with its own `to_string()` representation before catalog
+      lookup, for both whole fields and tokens inside mixed fields.
+- [x] Represent class-pool exact alleles and reported serotypes separately; propagate both through
+      the fallback without converting inferred serotype members into reported exact alleles.
+- [x] Add focused unit and end-to-end regressions for spelling variants, allele joins, and
+      `class_only_sample_serotype` summary provenance.
+- [x] Re-run real-corpus checks, `./format.sh`, `./lint.sh`, `./test.sh`, and build smoke.
 - [ ] Update the version/PR, wait for CI, merge, deploy from clean `main`, and verify PyPI.
 
 ## Review
@@ -56,6 +67,13 @@ support, and merged HLA-DM measurements must not be labeled as control samples.
   row to a DRB1*11:01 query; and PMID 28467828 contributes no row to an unrelated DR4 query.
 - Verification: 16 focused review regressions passed; `./format.sh` and `./lint.sh` passed;
   `./test.sh` passed 1,171 tests with one expected warning; `tests/test_build_smoke.py` passed 2/2.
+- The second review's six focused cases now pass. Parsed serotypes use mhcgnomes' canonical
+  representation for catalog lookup, while class pools serialize source-reported exact molecules
+  and serotypes rather than expanded join candidates. The synthetic multi-sample regression now
+  reports `class_only_sample_serotype`, never `class_only_sample_allele`.
+- Final verification after both review rounds: the curation/export suite passed 362 tests;
+  `./format.sh` and `./lint.sh` passed; `./test.sh` passed 1,176 tests with one expected warning;
+  and `tests/test_build_smoke.py` passed 2/2.
 
 ---
 
