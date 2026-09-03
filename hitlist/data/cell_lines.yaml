@@ -2454,7 +2454,13 @@ engineering_systems:
     synonyms:
     - sHLA
     - sHLA (VLDLr-tagged, secreted)
-    notes: Soluble HLA construct (VLDLr-tagged, secreted).
+    - sHLA (secreted, W6/32-purified)
+    notes: >
+      Soluble HLA construct, secreted into culture supernatant and purified
+      from it.  Mono-allelic because only the secreted chain is recovered —
+      endogenous membrane HLA stays on the cell.  Two variants: the
+      VLDLr-tagged form captured via its tag, and the untagged form of
+      Prilliman 1997 (PMID 9089095) recovered with pan-class-I W6/32.
   HLA-ABC-CRISPR-KO:
     synonyms:
     - HLA-ABC CRISPR knockout + single-allele transduction

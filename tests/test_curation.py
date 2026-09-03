@@ -2725,10 +2725,14 @@ def test_class_only_typed_samples_are_declared_not_incidental():
     """A class-only ``mhc`` skips the allele-join guard, so switching a
     sample to a sentinel silently removes it from that check.
 
-    Rather than enumerate all 100 class-only samples, pin the two that
-    #375 converted, so the conversion stays deliberate.  PMID 36423003
-    is a genuine downgrade — IEDB carries real 4-digit BoLA alleles for
-    it (#381) — and is recorded here until those are curated.
+    Rather than enumerate all 100 class-only samples, pin the ones #375
+    converted, so the conversion stays deliberate.
+
+    PMID 36423003 used to be pinned here too.  It was a genuine downgrade
+    — IEDB carries real 4-digit BoLA alleles for it (#381) — and the pin
+    said "until those are curated".  They now are: the study is split
+    into one sample per cell line, each carrying that animal's haplotype,
+    so no class-only sentinel remains to pin.
     """
     from hitlist.curation import extract_allele_tokens, is_class_only_token
     from hitlist.export import generate_ms_samples_table
@@ -2736,7 +2740,6 @@ def test_class_only_typed_samples_are_declared_not_incidental():
     samples = generate_ms_samples_table().set_index(["pmid", "sample_label"])
     for key, mhc in (
         ((36146698, "SLA-I Lr-Hp 35.0/24 mod (porcine cell line, PRRSV-infected)"), "SLA class I"),
-        ((36423003, "T. parva-infected bovine lymphocyte lines (BoLA-I)"), "Bos taurus class I"),
     ):
         value = str(samples.loc[key, "mhc"])
         assert value == mhc, f"{key} mhc changed: {value!r}"

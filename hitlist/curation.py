@@ -1006,6 +1006,37 @@ def species_axes_agreement(source_species: str, mhc_species: str) -> str:
     return "true" if any(source.compatible_with(d) for d in derived) else "false"
 
 
+def allele_locus(allele_token: str) -> str:
+    """The species-qualified locus an allele belongs to (``HLA-A``, ``BoLA-6``).
+
+    Species-qualified on purpose: ``HLA-DRB3`` and ``BoLA-DRB3`` share a
+    gene *name* but are different loci, so keying on the bare name would
+    merge two species' alleles into one bucket.
+
+    Returns ``""`` for anything with no single locus — an unparseable
+    token, a class or serotype designation, or a class-II heterodimer
+    pair.  A pair spans two loci by construction; decompose it with
+    :func:`expand_allele_components` first and ask about each chain.
+
+    Examples::
+
+        allele_locus("HLA-A*02:01")       # "HLA-A"
+        allele_locus("BoLA-6*013:01")     # "BoLA-6"
+        allele_locus("HLA-DRB1*15:01")    # "HLA-DRB1"
+        allele_locus("HLA-DR15")          # "" — a serotype, not a molecule
+    """
+    token = (allele_token or "").strip()
+    if not token:
+        return ""
+    parsed = _cached_parse(token)
+    if type(parsed).__name__ not in _MHC_MOLECULE_TYPES:
+        return ""
+    gene = getattr(parsed, "gene", None)
+    if gene is None:
+        return ""
+    return gene.to_string()
+
+
 def expand_allele_components(allele_token: str) -> list[str]:
     """Return an allele plus, for a class-II pair, its alpha/beta chains.
 
@@ -1555,32 +1586,201 @@ def _pmid_allele_pool(pmid_int: int) -> frozenset[str]:
     return frozenset(_flatten_hla_alleles(entry.get("hla_alleles")))
 
 
+#: mhcgnomes result types that name a *set* of molecules rather than one.
+#: ``Serotype`` carries a member list and can be expanded; the rest name a
+#: locus or a whole class and expand to nothing by design.
+_MHC_SEROTYPE_TYPES = frozenset({"Serotype"})
+_MHC_IMPRECISE_TYPES = frozenset({"Class2Locus", "MhcClass", "Species"})
+
+
+@dataclass(frozen=True)
+class SampleMhcCandidates:
+    """What a curated ``ms_samples[].mhc`` value licenses as an attribution claim.
+
+    A sample's ``mhc`` field is written at whatever precision the study
+    reported, and three precisions occur.  Conflating them is how #380
+    happened, so they are kept apart here:
+
+    ``exact``
+        Molecules named outright — ``HLA-A*02:01``, ``H2-K*b``,
+        ``BoLA-6*013:01``.  Safe to report to a reader as an observed
+        allele.
+    ``serotypes`` / ``serotype_alleles``
+        A serological designation — ``HLA-DR15``, ``HLA-DQ8``.  The study
+        typed to serotype, not to allele.  ``serotype_alleles`` is the
+        member set from the IPD-IMGT/HLA catalog, which is a legitimate
+        *candidate* set for the allele-level join; ``serotypes`` is what
+        should be shown to a reader.  Merging the two would turn "this
+        donor is DR15" into the false claim "this peptide was observed on
+        DRB1*15:01".
+    ``imprecise``
+        A locus or class designation — ``SLA-DR``, ``BoLA-DR``,
+        ``Bos taurus class I``.  These name no allele, and expanding one
+        would fabricate a restriction the study never reported.  Carried
+        rather than dropped so a caller can say *why* a sample has no
+        candidates instead of treating it as an unparseable typo.
+
+    Notes
+    -----
+    Before #380 everything except ``exact`` yielded the empty set, so
+    seven samples across five PMIDs fell out of the allele-level join
+    silently — indistinguishable from a curation error.
+    """
+
+    exact: frozenset[str] = frozenset()
+    serotypes: tuple[str, ...] = ()
+    serotype_alleles: frozenset[str] = frozenset()
+    imprecise: tuple[str, ...] = ()
+
+    @property
+    def join_alleles(self) -> frozenset[str]:
+        """Candidate alleles for the allele-level join.
+
+        Includes serotype members: for matching purposes "the donor is one
+        of these seven DRB1*15 alleles" is a real narrowing, and strictly
+        more specific than the study-wide class pool the sample otherwise
+        falls back to.  Use :attr:`exact` anywhere the answer is presented
+        as an allele that was actually observed.
+        """
+        return self.exact | self.serotype_alleles
+
+    @property
+    def is_empty(self) -> bool:
+        """True when the field named nothing at all.
+
+        Distinct from "named something imprecise": an empty result means
+        the string parsed to no MHC entity, which is a curation defect
+        worth surfacing, whereas ``imprecise`` is a faithful record of a
+        study that only typed to locus or class.
+        """
+        return not (self.exact or self.serotypes or self.imprecise)
+
+
+def sample_mhc_candidates(mhc_field) -> SampleMhcCandidates:
+    """Classify a curated ``ms_samples[].mhc`` value by precision.
+
+    The single place a curated sample genotype is turned into attribution
+    candidates, so the allele-level join and the peptide summary cannot
+    drift apart about what a given designation means (#380).
+
+    Parameters
+    ----------
+    mhc_field
+        A ``ms_samples[].mhc`` value: a string (``"HLA-A*02:01"``, the
+        bare space-joined ``"A*02:01 A*24:02 B*15:01"``, a serotype, or a
+        locus/class designation), a list of any of those, or ``None``.
+
+    Returns
+    -------
+    SampleMhcCandidates
+        Empty when the field is absent or names no MHC entity.
+
+    Examples
+    --------
+    >>> sorted(sample_mhc_candidates("HLA-A*02:01 HLA-B*07:02").exact)
+    ['HLA-A*02:01', 'HLA-B*07:02']
+    >>> c = sample_mhc_candidates("HLA-DQ8")
+    >>> c.exact, c.serotypes
+    (frozenset(), ('HLA-DQ8',))
+    >>> sorted(c.serotype_alleles)[:2]
+    ['HLA-DQA1*03:01-DQB1*03:02', 'HLA-DQA1*03:02-DQB1*03:02']
+    >>> sample_mhc_candidates("BoLA-DR").imprecise
+    ('BoLA-DR',)
+
+    See Also
+    --------
+    serotype_to_alleles : the serotype expansion this uses.
+    """
+    if mhc_field is None:
+        return SampleMhcCandidates()
+    if isinstance(mhc_field, (list, tuple)):
+        parts = [sample_mhc_candidates(item) for item in mhc_field]
+        return SampleMhcCandidates(
+            exact=frozenset().union(*(p.exact for p in parts)) if parts else frozenset(),
+            serotypes=tuple(dict.fromkeys(s for p in parts for s in p.serotypes)),
+            serotype_alleles=(
+                frozenset().union(*(p.serotype_alleles for p in parts)) if parts else frozenset()
+            ),
+            imprecise=tuple(dict.fromkeys(s for p in parts for s in p.imprecise)),
+        )
+    if not isinstance(mhc_field, str):
+        return SampleMhcCandidates()
+
+    # Whole-string check first.  Class and locus designations are often
+    # multi-word ("Bos taurus class I"), and the token split below would
+    # shred one into "Bos" / "taurus" / "class" / "I" — none of which
+    # parses — reporting a faithfully curated sentinel as empty.
+    whole = mhc_field.strip()
+    whole_kind = type(_cached_parse(whole)).__name__ if whole else ""
+    if whole_kind in _MHC_SEROTYPE_TYPES:
+        name = normalize_allele(whole)
+        return SampleMhcCandidates(
+            serotypes=(name,), serotype_alleles=frozenset(serotype_to_alleles(name))
+        )
+    if whole_kind in _MHC_IMPRECISE_TYPES:
+        return SampleMhcCandidates(imprecise=(normalize_allele(whole),))
+
+    exact: list[str] = []
+    serotypes: list[str] = []
+    serotype_alleles: set[str] = set()
+    imprecise: list[str] = []
+    for raw in re.split(r"[\s;,]+", mhc_field):
+        token = raw.strip()
+        if not token:
+            continue
+        parsed = _cached_parse(token)
+        kind = type(parsed).__name__
+        if kind in _MHC_MOLECULE_TYPES:
+            # Canonical form via ``to_string`` exactly as
+            # :func:`extract_allele_tokens` does, so ``exact`` stays
+            # byte-identical to what the pre-#380 path produced.
+            name = parsed.to_string()
+            if name and name not in exact:
+                exact.append(name)
+        elif kind in _MHC_SEROTYPE_TYPES:
+            name = normalize_allele(token)
+            if name and name not in serotypes:
+                serotypes.append(name)
+                serotype_alleles.update(serotype_to_alleles(name))
+        elif kind in _MHC_IMPRECISE_TYPES:
+            name = normalize_allele(token)
+            if name and name not in imprecise:
+                imprecise.append(name)
+    return SampleMhcCandidates(
+        exact=frozenset(exact),
+        serotypes=tuple(serotypes),
+        serotype_alleles=frozenset(serotype_alleles),
+        imprecise=tuple(imprecise),
+    )
+
+
 def _parse_sample_mhc_field(mhc_field) -> frozenset[str]:
-    """Parse a ``ms_samples[].mhc`` value into a normalized 4-digit-allele set.
+    """Parse a ``ms_samples[].mhc`` value into a normalized allele set.
+
+    Thin wrapper over :func:`sample_mhc_candidates`, kept because the
+    per-peptide attribution path wants one flat candidate set rather than
+    the precision breakdown.  Returns
+    :attr:`SampleMhcCandidates.join_alleles`, so a serotype-typed sample
+    contributes its member alleles as candidates instead of dropping out
+    of the join entirely (#380).
 
     ms_samples curators use mixed formats — some entries are
     ``"HLA-A*01:01"`` (HLA-prefixed) and others are ``"A*02:01 A*24:02
     B*15:01 ..."`` (bare, space-joined).  Both shapes carry valid donor
-    genotypes; :func:`extract_allele_tokens` normalizes either through
-    mhcgnomes so the per-sample set matches the canonical form used
+    genotypes and normalize through mhcgnomes to the canonical form used
     elsewhere (``HLA-A*02:01``).
 
-    Previously an HLA-shaped regex did the extraction, which silently
-    returned nothing for every non-human genotype — ``"H-2Kb H-2Db"``,
-    ``"H-2Q1 H-2Q2"`` and ``"Patr-AL"`` all parsed to the empty set, so
-    per-peptide attribution could never narrow a mouse sample's candidate
-    alleles.
+    Non-human genotypes are deliberately supported — ``"H-2Kb H-2Db"``,
+    ``"H-2Q1 H-2Q2"`` and ``"Patr-AL"`` all resolve.  An HLA-shaped regex
+    used to do the extraction, which silently returned nothing for every
+    one of them, so per-peptide attribution could never narrow a mouse
+    sample's candidate alleles.
+
+    Callers presenting the result to a reader as an *observed* allele
+    should use :func:`sample_mhc_candidates` directly and read
+    :attr:`SampleMhcCandidates.exact`, which excludes serotype members.
     """
-    if mhc_field is None:
-        return frozenset()
-    if isinstance(mhc_field, list):
-        out: set[str] = set()
-        for item in mhc_field:
-            out |= _parse_sample_mhc_field(item)
-        return frozenset(out)
-    if not isinstance(mhc_field, str):
-        return frozenset()
-    return frozenset(extract_allele_tokens(mhc_field))
+    return sample_mhc_candidates(mhc_field).join_alleles
 
 
 @lru_cache(maxsize=512)
@@ -1703,6 +1903,52 @@ def _peptide_alleles_by_pmid(pmid: int) -> Mapping[str, frozenset[str]]:
             for peptide, per_donor in _peptide_typings_by_pmid(pmid).items()
         }
     )
+
+
+def sample_alleles_for_pmid(pmid: int | str) -> Mapping[str, frozenset[str]]:
+    """Curated ``sample_label -> candidate alleles`` for one study's ms_samples.
+
+    The sample-level counterpart to :func:`peptide_alleles_for_pmid`: what
+    each curated sample of this study was typed to, before any per-peptide
+    narrowing.  Public because it is the direct answer to "what did this
+    study type its samples to?", and because every other way of asking had
+    to reach through the per-peptide functions, which return nothing for
+    the ~99% of studies with no ``peptide_attributions`` CSV.
+
+    Values are :attr:`SampleMhcCandidates.join_alleles` — exact molecules
+    plus, for a serotype-typed sample, that serotype's member alleles.
+    Samples typed only to a locus or class (``BoLA-DR``, ``HLA class II``)
+    name no allele and are **omitted**, as are samples with no ``mhc``
+    field.  Use :func:`sample_mhc_candidates` on the raw field when you
+    need to tell "typed imprecisely" from "not typed at all", or when you
+    need the exact molecules without serotype expansion.
+
+    Parameters
+    ----------
+    pmid
+        PubMed ID of the study, as an int or a string of digits.
+
+    Returns
+    -------
+    Mapping[str, frozenset[str]]
+        Empty when the PMID has no override, no ``ms_samples``, or no
+        sample that names an allele.
+
+    Examples
+    --------
+    >>> sorted(sample_alleles_for_pmid(26768311))
+    ['HeLa + vaccinia (VACV) infection', 'HeLa uninfected']
+
+    See Also
+    --------
+    sample_mhc_candidates : the per-field parse, keeping precision apart.
+    peptide_alleles_for_pmid : per-peptide narrowing, where a study
+        deposited peptide-to-donor attributions.
+    """
+    pmid_int = _coerce_pmid(pmid)
+    if pmid_int is None:
+        return MappingProxyType({})
+    return MappingProxyType(dict(_pmid_sample_alleles(pmid_int)))
 
 
 def peptide_alleles_for_pmid(pmid: int | str) -> Mapping[str, frozenset[str]]:

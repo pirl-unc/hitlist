@@ -1,3 +1,46 @@
+# Issues #380, #381, and #374 — truthful sample-MHC attribution
+
+## Goal
+
+Fix the remaining curated-sample MHC attribution defects in dependency order: define one
+well-documented sample-MHC candidate API (#380), use it with the concrete BoLA-I restrictions
+for PMID 36423003 (#381), then eliminate the remaining declared-class/typed-allele
+contradictions with paper-supported curation (#374).
+
+## Design
+
+- Centralize conversion of a curated sample's `mhc` field into attribution candidates. Exact
+  molecules remain exact, serotypes expand through the existing `serotype_to_alleles` table,
+  and class/locus-only designations remain deliberately imprecise rather than fabricating an
+  allele. Use the same API in the public per-PMID lookup and observations sample join.
+- Preserve peptide-summary semantics: a serotype is reported as a serotype there, not expanded
+  into falsely precise observed alleles. Prove the two existing single-sample serotype studies
+  retain their current attribution while a synthetic multi-sample case gains the intended exact
+  match.
+- Audit every PMID 36423003 class-I restriction in the registered corpus and curate the complete
+  observed BoLA-I set. Keep its BoLA-DR sample class/locus-level unless the source supplies a
+  genotype; prove all class-I rows match the curated sample exactly.
+- Read the primary methods/supplements for the remaining #374 studies. Add class-II typings only
+  when the study reports them; otherwise correct `mhc_class` to the actually profiled class.
+  Remove the contradiction allowlist entries and retain a staleness-free invariant test.
+- Bump the patch version and document the resulting corpus-level attribution changes.
+
+## Steps
+
+- [ ] Inspect the sample-join implementation, current YAML, corpus restriction counts, and paper
+      methods; record the evidence-backed curation decisions.
+- [ ] Implement and document the centralized sample-MHC attribution-candidate API.
+- [ ] Curate PMID 36423003 and the remaining #374 samples.
+- [ ] Add focused unit, synthetic public-path, and registered-corpus regression tests.
+- [ ] Run `./format.sh`, `./lint.sh`, and `./test.sh`; review the diff and corpus deltas.
+- [ ] Bump the patch version and open a PR closing #380, #381, and #374.
+
+## Review section
+
+Pending.
+
+---
+
 # Comprehensive modality correctness — issues #382, #376, #396, #399
 
 ## Program goal

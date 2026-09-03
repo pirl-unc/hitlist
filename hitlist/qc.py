@@ -261,6 +261,118 @@ def mhc_token_audit(
     )
 
 
+#: A diploid genome carries at most two alleles at one locus.  Anything
+#: above this on a single curated sample means the ``mhc`` field is a union
+#: across several donors, transfectants, or mono-allelic constructs rather
+#: than one sample's genotype.
+MAX_ALLELES_PER_LOCUS = 2
+
+_PLOIDY_AUDIT_COLUMNS = [
+    "pmid",
+    "sample_label",
+    "locus",
+    "n_alleles",
+    "alleles",
+    "n_alleles_total",
+    "reason",
+]
+
+
+def sample_ploidy_audit(overrides: Mapping[int, dict] | None = None) -> pd.DataFrame:
+    """Flag curated samples carrying more alleles at a locus than a genome can.
+
+    A curated ``ms_samples[].mhc`` field is supposed to describe **one
+    sample's** genotype.  A diploid donor has at most two alleles at any
+    locus, so three or more is proof the field pools several donors,
+    transfectants, or mono-allelic constructs into a single entry.
+
+    That pooling is not cosmetic.  The allele-level join treats every
+    listed allele as a candidate for every peptide in the sample, so a
+    union of ten mono-allelic MAPTAC constructs asserts that any of the
+    ten could have presented any peptide — the same false-widening bug
+    class as #392, where a study-level perturbation panel marked every
+    arm as perturbed for every gene.
+
+    Locus is species-qualified (:func:`hitlist.curation.allele_locus`), so
+    ``HLA-DRB3`` and ``BoLA-DRB3`` are counted apart.  Class-II
+    heterodimer pairs are decomposed into their chains first, and each
+    chain is charged to its own locus.
+
+    Deliberately **not** flagged:
+
+    - Serotype and locus/class designations, which name no allele.
+    - Multiple loci on one sample.  A donor legitimately carries
+      ``HLA-DRB1`` x2 plus a linked ``HLA-DRB3``/``DRB4``/``DRB5``.
+
+    Returns
+    -------
+    pd.DataFrame
+        One row per offending (sample, locus), empty when the corpus is
+        clean.  ``n_alleles_total`` gives the sample's whole allele count
+        for context, since a badly pooled sample usually breaks several
+        loci at once.
+
+    Notes
+    -----
+    Aneuploid lines are the one real source of false positives: HeLa is
+    hypertriploid and could in principle carry three alleles at a locus.
+    Such a sample still warrants a curation note explaining why it is
+    exempt, so it is reported rather than special-cased here.
+    """
+    from .curation import (
+        allele_locus,
+        expand_allele_components,
+        load_pmid_overrides,
+        sample_mhc_candidates,
+    )
+
+    if overrides is None:
+        overrides = load_pmid_overrides()
+
+    findings: list[dict] = []
+    for pmid, entry in overrides.items():
+        for sample in entry.get("ms_samples") or []:
+            candidates = sample_mhc_candidates(sample.get("mhc"))
+            if not candidates.exact:
+                continue
+            by_locus: dict[str, set[str]] = {}
+            for allele in candidates.exact:
+                # A pair spans two loci; charge each chain to its own.
+                components = expand_allele_components(allele)
+                chains = [c for c in components if allele_locus(c)] or [allele]
+                for chain in chains:
+                    locus = allele_locus(chain)
+                    if locus:
+                        by_locus.setdefault(locus, set()).add(chain)
+            for locus, alleles in sorted(by_locus.items()):
+                if len(alleles) <= MAX_ALLELES_PER_LOCUS:
+                    continue
+                findings.append(
+                    {
+                        "pmid": pmid,
+                        "sample_label": sample.get("sample_label", ""),
+                        "locus": locus,
+                        "n_alleles": len(alleles),
+                        "alleles": " ".join(sorted(alleles)),
+                        "n_alleles_total": len(candidates.exact),
+                        "reason": (
+                            f"{len(alleles)} alleles at {locus}; a diploid sample carries at "
+                            f"most {MAX_ALLELES_PER_LOCUS}, so this mhc field pools several "
+                            "samples"
+                        ),
+                    }
+                )
+    if not findings:
+        return pd.DataFrame(columns=_PLOIDY_AUDIT_COLUMNS)
+    return (
+        pd.DataFrame(findings)
+        .sort_values(
+            ["n_alleles", "pmid", "sample_label", "locus"], ascending=[False, True, True, True]
+        )
+        .reset_index(drop=True)[_PLOIDY_AUDIT_COLUMNS]
+    )
+
+
 def resolution_histogram(
     mhc_class: str | None = None,
     species: str | None = None,

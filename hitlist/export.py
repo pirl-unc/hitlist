@@ -38,6 +38,7 @@ from .curation import (
     mhc_species_of,
     normalize_allele,
     normalize_species,
+    sample_mhc_candidates,
     species_axes_agreement,
 )
 
@@ -919,22 +920,40 @@ def generate_observations_table(
     # ``HLA-DPA1*01:03``) so an observation reporting a beta-chain-only
     # restriction still joins to the heterodimer sample — see
     # pirl-unc/hitlist#151 (Abelin MAPTAC DP/DQ rows).
+    # Precision comes from ``sample_mhc_candidates`` rather than a raw
+    # ``.split()``: a serotype-typed sample (``HLA-DR15``) used to emit the
+    # literal token, which matches no IEDB ``mhc_restriction`` and dropped
+    # the sample out of the join entirely (#380).  Its member alleles are
+    # a legitimate candidate set, so they join — but they are marked
+    # ``serotype_expansion`` rather than ``allele_exact``, because the
+    # study typed to serotype and the match is an inference from the
+    # IPD-IMGT/HLA catalog, not a reported allele.  Locus- and class-only
+    # designations (``BoLA-DR``, ``HLA class I``) still contribute
+    # nothing, which is correct: they name no allele to match on.
     allele_rows: list[dict] = []
     for _, srow in samples.iterrows():
         pmid = int(srow["pmid"])
-        mhc_str = srow.get("mhc", "")
-        if mhc_str and not _is_class_only_sentinel(mhc_str):
-            meta = {col: srow.get(col, "") for col in meta_cols}
-            meta["_pmid_int"] = pmid
-            for token in mhc_str.split():
-                for allele in _expand_heterodimer_components(token):
-                    # Canonicalize via mhcgnomes so YAML tokens like
-                    # ``H-2Kb`` match IEDB's already-normalized
-                    # ``mhc_restriction`` values like ``H2-K*b``. Without
-                    # this the join silently misses every mouse / non-
-                    # human-syntax allele the curator wrote in the
-                    # paper's notation.
-                    allele_rows.append({**meta, "_allele": normalize_allele(allele) or allele})
+        candidates = sample_mhc_candidates(srow.get("mhc", ""))
+        if not candidates.join_alleles:
+            continue
+        meta = {col: srow.get(col, "") for col in meta_cols}
+        meta["_pmid_int"] = pmid
+        expanded = [(allele, False) for allele in sorted(candidates.exact)]
+        expanded += [
+            (allele, True) for allele in sorted(candidates.serotype_alleles - candidates.exact)
+        ]
+        for allele, from_serotype in expanded:
+            for component in _expand_heterodimer_components(allele):
+                # Canonicalize via mhcgnomes so YAML tokens like
+                # ``H-2Kb`` match IEDB's already-normalized
+                # ``mhc_restriction`` values like ``H2-K*b``. Without
+                # this the join silently misses every mouse / non-
+                # human-syntax allele the curator wrote in the
+                # paper's notation.
+                row = {**meta, "_allele": normalize_allele(component) or component}
+                if from_serotype:
+                    row["sample_attribution"] = "serotype_expansion"
+                allele_rows.append(row)
 
     allele_df_full = (
         pd.DataFrame(allele_rows)
@@ -2930,13 +2949,27 @@ def _serotype_key(raw: str) -> str:
 
 
 def _sample_alleles(sample_mhc: str) -> list[str]:
-    if (
-        not isinstance(sample_mhc, str)
-        or not sample_mhc.strip()
-        or _is_class_only_sentinel(sample_mhc)
-    ):
-        return []
-    return [normalize_allele(a) for a in sample_mhc.split() if normalize_allele(a)]
+    """Alleles the sample was actually typed to.
+
+    Deliberately :attr:`~hitlist.curation.SampleMhcCandidates.exact` only.
+    The peptide summary uses this to decide whether a peptide matched a
+    *reported allele*, so expanding a serotype here would turn "this donor
+    is DR15" into the false claim "this peptide was seen on DRB1*15:01".
+    A serotype-typed sample is reported through
+    :func:`_sample_serotypes` instead, which is what the study measured.
+    """
+    return sorted(sample_mhc_candidates(sample_mhc).exact)
+
+
+def _sample_serotypes(sample_mhc: str) -> tuple[str, ...]:
+    """Serotype designations the sample was typed to, as serotypes.
+
+    A study that typed only to ``HLA-DR15`` never named an allele, so the
+    serotype is the finest true statement about it.  Kept apart from
+    :func:`_sample_alleles` so a serotype match is reported as a serotype
+    match (#380).
+    """
+    return sample_mhc_candidates(sample_mhc).serotypes
 
 
 def _source_bucket(row: pd.Series) -> str:
@@ -3106,12 +3139,17 @@ def generate_ms_peptide_summary_table(
             _serotype_key(s) for s in str(row.get("serotypes", "")).split(";") if s
         }
         row_serotype_keys.update(_serotype_key(s) for s in allele_to_all_serotypes(row_allele))
-        sample_allele_list = _sample_alleles(str(row.get("sample_mhc", "")))
+        sample_mhc_text = str(row.get("sample_mhc", ""))
+        sample_allele_list = _sample_alleles(sample_mhc_text)
         sample_serotype_keys = {
             _serotype_key(s)
             for allele in sample_allele_list
             for s in allele_to_all_serotypes(allele)
         }
+        # A serotype-typed sample names no allele, so it contributes no
+        # keys through the loop above; add the curated designation itself
+        # or the sample drops out of serotype matching entirely (#380).
+        sample_serotype_keys.update(_serotype_key(s) for s in _sample_serotypes(sample_mhc_text))
         has_peptide_level_allele = _truthy(row.get("has_peptide_level_allele", False))
         mono = _truthy(row.get("is_monoallelic", False))
 
