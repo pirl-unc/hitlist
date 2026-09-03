@@ -34,11 +34,15 @@ import pandas as pd
 from .curation import (
     allele_to_all_serotypes,
     allele_to_serotype,
+    expand_allele_components,
     load_pmid_overrides,
+    mhc_class_of,
     mhc_species_of,
     normalize_allele,
+    normalize_mhc_class_token,
     normalize_species,
     sample_mhc_candidates,
+    serotype_to_alleles,
     species_axes_agreement,
 )
 
@@ -930,35 +934,55 @@ def generate_observations_table(
     # IPD-IMGT/HLA catalog, not a reported allele.  Locus- and class-only
     # designations (``BoLA-DR``, ``HLA class I``) still contribute
     # nothing, which is correct: they name no allele to match on.
+    # Full class-II restrictions also need to reach serotype-typed samples
+    # (notably DQ8, whose catalog members are DQB1 chains). Build aliases
+    # from each observed pair component back to the exact stored
+    # restriction, but only for serotype-expanded candidates. Exact sample
+    # molecules keep exact identity: two known pairs that merely share DQA1
+    # or DPA1 are not the same molecule.
+    _observed_pairs_by_component: dict[str, set[str]] = {}
+    for _restriction in obs["mhc_restriction"].fillna("").astype(str).unique():
+        _restriction_components = _normalized_allele_components(_restriction)
+        if len(_restriction_components) <= 1:
+            continue
+        for _component in _restriction_components[1:]:
+            _observed_pairs_by_component.setdefault(_component, set()).add(_restriction)
+
     allele_rows: list[dict] = []
-    for _, srow in samples.iterrows():
+    for sample_index, srow in samples.iterrows():
         pmid = int(srow["pmid"])
         candidates = sample_mhc_candidates(srow.get("mhc", ""))
         if not candidates.join_alleles:
             continue
         meta = {col: srow.get(col, "") for col in meta_cols}
         meta["_pmid_int"] = pmid
+        meta["_sample_index"] = sample_index
         expanded = [(allele, False) for allele in sorted(candidates.exact)]
         expanded += [
             (allele, True) for allele in sorted(candidates.serotype_alleles - candidates.exact)
         ]
         for allele, from_serotype in expanded:
-            for component in _expand_heterodimer_components(allele):
-                # Canonicalize via mhcgnomes so YAML tokens like
-                # ``H-2Kb`` match IEDB's already-normalized
-                # ``mhc_restriction`` values like ``H2-K*b``. Without
-                # this the join silently misses every mouse / non-
-                # human-syntax allele the curator wrote in the
-                # paper's notation.
-                row = {**meta, "_allele": normalize_allele(component) or component}
+            normalized_components = _normalized_allele_components(allele)
+            for component in normalized_components:
+                row = {**meta, "_allele": component}
                 if from_serotype:
                     row["sample_attribution"] = "serotype_expansion"
                 allele_rows.append(row)
 
+                # A serotype member can identify a full observed pair
+                # through that component. Exact molecules cannot: the full
+                # restriction itself must match in that case.
+                if from_serotype:
+                    for pair_restriction in _observed_pairs_by_component.get(component, ()):
+                        allele_rows.append({**row, "_allele": pair_restriction})
+
     allele_df_full = (
         pd.DataFrame(allele_rows)
         if allele_rows
-        else pd.DataFrame(columns=["_pmid_int", "_allele", *meta_cols])
+        else pd.DataFrame(columns=["_pmid_int", "_allele", "_sample_index", *meta_cols])
+    )
+    allele_df_full = allele_df_full.drop_duplicates(
+        subset=["_pmid_int", "_allele", "_sample_index"], keep="first"
     )
     # Identify (pmid, allele) keys hit by multiple curated samples — these
     # need per-obs-row tie-breaking on cell_name / source_tissue / assay
@@ -1009,17 +1033,16 @@ def generate_observations_table(
             alleles: set[str] = set()
             for _, srow in group.iterrows():
                 if cls in _sample_class_tokens(srow):
-                    mhc_str = srow.get("mhc", "")
-                    if mhc_str and not _is_class_only_sentinel(mhc_str):
-                        # Same heterodimer expansion as the allele-level
-                        # join — a class pool that contains the full
-                        # heterodimer string AND its beta/alpha components
-                        # lets a class-only observation be reported with
-                        # the same pool whether the sample was curated
-                        # as a heterodimer or as a beta-chain.
-                        for token in mhc_str.split():
-                            for comp in _expand_heterodimer_components(token):
-                                alleles.add(normalize_allele(comp))
+                    candidates = sample_mhc_candidates(srow.get("mhc", ""))
+                    # Same heterodimer expansion as the allele-level join:
+                    # retain the pair and both chains.  Filter each molecule
+                    # back to the pool's class, because an ``I+II`` sample's
+                    # genotype must not put HLA-A alleles in its class-II pool
+                    # (or HLA-DR alleles in its class-I pool).
+                    for token in candidates.join_alleles:
+                        for comp in _normalized_allele_components(token):
+                            if _mhc_class_matches(mhc_class_of(comp), cls):
+                                alleles.add(comp)
             # Filter out empty strings from failed normalization
             alleles.discard("")
             if alleles:
@@ -1048,7 +1071,9 @@ def generate_observations_table(
             obs[col] = False if col == "study_apm_perturbed" else ""
 
     # 2) Allele-level match: obs.mhc_restriction == allele_df._allele
-    #    within same PMID. Use MultiIndex.reindex instead of merge —
+    #    within same PMID. Observation-pair aliases were added to allele_df
+    #    above where a sample genuinely names one component. Use
+    #    MultiIndex.reindex instead of merge —
     #    issue #30. The merge path was 60% block-manager consolidation
     #    (numpy.copy + _merge_blocks) on the 4.3M-row x ~50-col obs
     #    DataFrame; reindex assigns metas in-place and skips that pass
@@ -2672,9 +2697,23 @@ def _expand_heterodimer_components(allele_token: str) -> list[str]:
     write.  See pirl-unc/hitlist#151 for why single-chain observations
     need to reach heterodimer samples.
     """
-    from .curation import expand_allele_components
-
     return expand_allele_components(allele_token)
+
+
+def _normalized_allele_components(allele_token: str) -> tuple[str, ...]:
+    """Canonical full restriction and component chains, in match priority.
+
+    Full-pair identity comes first.  Alpha and beta chains follow in the
+    order returned by mhcgnomes, with duplicates and failed/empty parses
+    removed.  This is the shared observation/sample symmetry required for
+    pair-aware joining and peptide-summary serotype derivation.
+    """
+    out: list[str] = []
+    for component in _expand_heterodimer_components(allele_token):
+        normalized = normalize_allele(component)
+        if normalized and normalized not in out:
+            out.append(normalized)
+    return tuple(out)
 
 
 _TIEBREAK_TOKEN_RE = re.compile(r"[^a-z0-9]+")
@@ -2888,19 +2927,6 @@ def _tiebreak_score(
     return best
 
 
-def _is_class_only_sentinel(mhc_str: str) -> bool:
-    """True when the sample's mhc field carries no allele-level info.
-
-    Delegates to :func:`hitlist.curation.is_class_only_token`, which asks
-    mhcgnomes whether the string names a *class* rather than a molecule —
-    so ``"HLA class I"``, ``"MHC class II"`` and any other species'
-    notation are recognised without prefix matching.
-    """
-    from .curation import is_class_only_token
-
-    return is_class_only_token(mhc_str)
-
-
 def _join_unique_text(values) -> str:
     return ";".join(sorted({str(v) for v in values if pd.notna(v) and str(v).strip()}))
 
@@ -2948,7 +2974,22 @@ def _serotype_key(raw: str) -> str:
     return s.lower()
 
 
-def _sample_alleles(sample_mhc: str) -> list[str]:
+def _query_mhc_class(target_allele: str = "", target_serotype: str = "") -> str:
+    """Infer one canonical class from an allele or serotype query."""
+    molecules = (
+        _normalized_allele_components(target_allele)
+        if target_allele
+        else tuple(serotype_to_alleles(target_serotype))
+    )
+    classes: set[str] = set()
+    for molecule in molecules:
+        mhc_class = normalize_mhc_class_token(mhc_class_of(molecule))
+        if mhc_class:
+            classes.add(mhc_class)
+    return next(iter(classes)) if len(classes) == 1 else ""
+
+
+def _sample_alleles(sample_mhc: str, mhc_class: str = "") -> list[str]:
     """Alleles the sample was actually typed to.
 
     Deliberately :attr:`~hitlist.curation.SampleMhcCandidates.exact` only.
@@ -2957,11 +2998,24 @@ def _sample_alleles(sample_mhc: str) -> list[str]:
     is DR15" into the false claim "this peptide was seen on DRB1*15:01".
     A serotype-typed sample is reported through
     :func:`_sample_serotypes` instead, which is what the study measured.
+    A class-II pair contributes the full pair and both component chains;
+    those components are part of the reported molecule rather than a
+    serotype inference.  When ``mhc_class`` is supplied, alleles from the
+    other half of a mixed ``I+II`` genotype are excluded.
     """
-    return sorted(sample_mhc_candidates(sample_mhc).exact)
+    alleles = {
+        component
+        for allele in sample_mhc_candidates(sample_mhc).exact
+        for component in _normalized_allele_components(allele)
+    }
+    if mhc_class:
+        alleles = {
+            allele for allele in alleles if _mhc_class_matches(mhc_class_of(allele), mhc_class)
+        }
+    return sorted(alleles)
 
 
-def _sample_serotypes(sample_mhc: str) -> tuple[str, ...]:
+def _sample_serotypes(sample_mhc: str, mhc_class: str = "") -> tuple[str, ...]:
     """Serotype designations the sample was typed to, as serotypes.
 
     A study that typed only to ``HLA-DR15`` never named an allele, so the
@@ -2969,7 +3023,14 @@ def _sample_serotypes(sample_mhc: str) -> tuple[str, ...]:
     :func:`_sample_alleles` so a serotype match is reported as a serotype
     match (#380).
     """
-    return sample_mhc_candidates(sample_mhc).serotypes
+    serotypes = sample_mhc_candidates(sample_mhc).serotypes
+    if not mhc_class:
+        return serotypes
+    return tuple(
+        serotype
+        for serotype in serotypes
+        if _mhc_class_matches(_query_mhc_class(target_serotype=serotype), mhc_class)
+    )
 
 
 def _source_bucket(row: pd.Series) -> str:
@@ -3071,9 +3132,10 @@ def generate_ms_peptide_summary_table(
     )
     target_serotype_key = _serotype_key(target_serotype)
     query_mode = "allele" if target_allele else "serotype"
+    target_mhc_class = _query_mhc_class(target_allele, target_serotype)
 
     df = generate_observations_table(
-        mhc_class=mhc_class,
+        mhc_class=mhc_class or target_mhc_class or None,
         species=species,
         source=source,
         gene=gene,
@@ -3110,6 +3172,14 @@ def generate_ms_peptide_summary_table(
         return result[columns] if columns else result
 
     work = df.copy()
+    if target_mhc_class and "mhc_class" in work.columns:
+        same_class = work["mhc_class"].map(
+            lambda value: _mhc_class_matches(str(value), target_mhc_class)
+        )
+        work = work[same_class].copy()
+        if work.empty:
+            result = pd.DataFrame(columns=canonical_columns)
+            return result[columns] if columns else result
     for col, default in {
         "sample_mhc": "",
         "sample_match_type": "",
@@ -3134,13 +3204,18 @@ def generate_ms_peptide_summary_table(
 
     flags: list[dict] = []
     for _, row in work.iterrows():
-        row_allele = normalize_allele(str(row.get("mhc_restriction", "")))
+        row_alleles = _normalized_allele_components(str(row.get("mhc_restriction", "")))
+        row_allele = row_alleles[0] if row_alleles else ""
         row_serotype_keys = {
             _serotype_key(s) for s in str(row.get("serotypes", "")).split(";") if s
         }
-        row_serotype_keys.update(_serotype_key(s) for s in allele_to_all_serotypes(row_allele))
+        row_serotype_keys.update(
+            _serotype_key(serotype)
+            for allele in row_alleles
+            for serotype in allele_to_all_serotypes(allele)
+        )
         sample_mhc_text = str(row.get("sample_mhc", ""))
-        sample_allele_list = _sample_alleles(sample_mhc_text)
+        sample_allele_list = _sample_alleles(sample_mhc_text, target_mhc_class)
         sample_serotype_keys = {
             _serotype_key(s)
             for allele in sample_allele_list
@@ -3149,11 +3224,13 @@ def generate_ms_peptide_summary_table(
         # A serotype-typed sample names no allele, so it contributes no
         # keys through the loop above; add the curated designation itself
         # or the sample drops out of serotype matching entirely (#380).
-        sample_serotype_keys.update(_serotype_key(s) for s in _sample_serotypes(sample_mhc_text))
+        sample_serotype_keys.update(
+            _serotype_key(s) for s in _sample_serotypes(sample_mhc_text, target_mhc_class)
+        )
         has_peptide_level_allele = _truthy(row.get("has_peptide_level_allele", False))
         mono = _truthy(row.get("is_monoallelic", False))
 
-        exact = bool(target_allele and row_allele == target_allele)
+        exact = bool(target_allele and target_allele in row_alleles)
         sero = bool(target_serotype_key and target_serotype_key in row_serotype_keys)
         class_only_sample_allele = (
             not has_peptide_level_allele
@@ -3171,6 +3248,7 @@ def generate_ms_peptide_summary_table(
             and not class_only_sample_allele
             and not class_only_sample_serotype
             and not sample_allele_list
+            and not sample_serotype_keys
         )
         relevant = (
             exact or sero or class_only_sample_allele or class_only_sample_serotype or unknown

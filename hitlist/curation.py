@@ -1683,7 +1683,7 @@ def sample_mhc_candidates(mhc_field) -> SampleMhcCandidates:
     >>> c.exact, c.serotypes
     (frozenset(), ('HLA-DQ8',))
     >>> sorted(c.serotype_alleles)[:2]
-    ['HLA-DQA1*03:01-DQB1*03:02', 'HLA-DQA1*03:02-DQB1*03:02']
+    ['HLA-DQB1*03:02', 'HLA-DQB1*03:05']
     >>> sample_mhc_candidates("BoLA-DR").imprecise
     ('BoLA-DR',)
 

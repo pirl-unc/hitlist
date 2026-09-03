@@ -1,5 +1,23 @@
 # Lessons
 
+## 2026-09-03
+
+- Precision-aware matching must be symmetric across both sides of a structured MHC restriction.
+  Rule: when sample candidates can be single chains but observations can be full class-II pairs,
+  regression-test the sample-to-observation join and the downstream summary separately. Expand a
+  full observation to eligible single-chain sample typings, but never equate two fully known pairs
+  merely because they share one chain.
+
+- "Unknown" means no relevant typing exists, not that one representation-specific set is empty.
+  Rule: before labeling support `unknown_allele`, check every known typing precision (exact allele,
+  serotype, and any future typed designation). A nonmatching known serotype is exclusion evidence,
+  not permission to include the row as unknown.
+
+- A merged measurement is not an unperturbed sample just because one input arm was unperturbed.
+  Rule: preserve experimentally distinct control/perturbation samples in curation even when the
+  peptide artifact merges them; let the observation join emit unknown arm metadata unless the
+  source provides a per-peptide discriminator.
+
 ## 2026-04-23
 
 - When adding a composed export on top of existing indexes, test the post-filter expansion path explicitly.

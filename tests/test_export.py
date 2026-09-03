@@ -2627,6 +2627,94 @@ def test_generate_ms_peptide_summary_serotype_query(monkeypatch):
     assert p1["best_support"] == "mono_serotype"
 
 
+def test_generate_ms_peptide_summary_rejects_opposite_class_rows(monkeypatch):
+    """A mixed I+II sample genotype cannot make a class-I row support DR.
+
+    The target class is inferred even when the caller leaves ``mhc_class``
+    unset, and the row-level check remains a backstop for legacy or mocked
+    observation frames that do not honor the pushed-down filter.
+    """
+    captured = {}
+
+    def fake_generate_observations_table(**kwargs):
+        captured.update(kwargs)
+        return pd.DataFrame(
+            {
+                "peptide": ["CLASSICROSS"],
+                "mhc_restriction": ["HLA class I"],
+                "mhc_class": ["I"],
+                "pmid": pd.array([35051231], dtype="Int64"),
+                "sample_mhc": ["HLA-A*03:01 HLA-DRB1*11:01"],
+                "sample_match_type": ["pmid_class_pool"],
+                "is_monoallelic": [False],
+                "has_peptide_level_allele": [False],
+                "serotypes": [""],
+            }
+        )
+
+    monkeypatch.setattr(
+        "hitlist.export.generate_observations_table", fake_generate_observations_table
+    )
+
+    df = generate_ms_peptide_summary_table(peptide=["CLASSICROSS"], mhc_allele=["HLA-DRB1*11:01"])
+
+    assert captured["mhc_class"] == "II"
+    assert df.empty
+
+
+def test_generate_ms_peptide_summary_matches_dq_serotype_via_pair_component(monkeypatch):
+    """A full DQA/DQB observation carries the beta-chain DQ serotype."""
+    monkeypatch.setattr(
+        "hitlist.export.generate_observations_table",
+        lambda **_: pd.DataFrame(
+            {
+                "peptide": ["DQ8PAIRPEPTIDE"],
+                "mhc_restriction": ["HLA-DQA1*03:01/DQB1*03:02"],
+                "mhc_class": ["II"],
+                "pmid": pd.array([34433824], dtype="Int64"),
+                "sample_mhc": ["HLA-DQ8"],
+                "sample_match_type": ["allele_match"],
+                "is_monoallelic": [False],
+                "has_peptide_level_allele": [True],
+                "serotypes": [""],
+            }
+        ),
+    )
+
+    df = generate_ms_peptide_summary_table(peptide=["DQ8PAIRPEPTIDE"], serotype=["DQ8"])
+
+    assert len(df) == 1
+    row = df.iloc[0]
+    assert row["target_serotype"] == "HLA-DQ8"
+    assert row["target_peptide_alleles"] == "HLA-DQA1*03:01/DQB1*03:02"
+    assert row["n_multi_serotype_rows"] == 1
+    assert row["n_unknown_allele_rows"] == 0
+
+
+def test_generate_ms_peptide_summary_excludes_known_nonmatching_serotype(monkeypatch):
+    """DR15-only typing is negative evidence for a DR4 class-only query."""
+    monkeypatch.setattr(
+        "hitlist.export.generate_observations_table",
+        lambda **_: pd.DataFrame(
+            {
+                "peptide": ["KNOWNDR15"],
+                "mhc_restriction": ["HLA class II"],
+                "mhc_class": ["II"],
+                "pmid": pd.array([28467828], dtype="Int64"),
+                "sample_mhc": ["HLA-DR15"],
+                "sample_match_type": ["single_sample_fallback"],
+                "is_monoallelic": [False],
+                "has_peptide_level_allele": [False],
+                "serotypes": [""],
+            }
+        ),
+    )
+
+    df = generate_ms_peptide_summary_table(peptide=["KNOWNDR15"], mhc_allele=["HLA-DRB1*04:01"])
+
+    assert df.empty
+
+
 def test_generate_ms_peptide_summary_requires_single_target(monkeypatch):
     monkeypatch.setattr(
         "hitlist.export.generate_observations_table",
@@ -3345,6 +3433,12 @@ def test_sample_alleles_excludes_serotype_members():
     assert _sample_alleles("HLA-A*02:01 HLA-B*07:02") == ["HLA-A*02:01", "HLA-B*07:02"]
     assert _sample_serotypes("HLA-A*02:01 HLA-B*07:02") == ()
 
+    # A mixed I+II genotype is narrowed to the target/observation class
+    # before class-only support is evaluated.
+    mixed = "HLA-A*02:01 HLA-DRB1*11:01"
+    assert _sample_alleles(mixed, "I") == ["HLA-A*02:01"]
+    assert _sample_alleles(mixed, "II") == ["HLA-DRB1*11:01"]
+
 
 def test_sample_alleles_still_drops_class_and_locus_designations():
     """Class sentinels and class-II loci name no allele, before or after
@@ -3371,3 +3465,161 @@ def test_serotype_typed_samples_join_through_their_members():
         # Every expanded member is a real 4-digit molecule, not the serotype.
         assert pmid_serotype not in candidates.join_alleles
         assert candidates.exact == frozenset(), "expansion must not claim exactness"
+
+
+def test_dq_serotype_sample_joins_full_heterodimer_observation(tmp_path, monkeypatch):
+    """Observation-side pair expansion completes the DQ8 serotype join."""
+    pmid = 99999301
+    monkeypatch.setattr(
+        "hitlist.export.load_pmid_overrides",
+        lambda: {
+            pmid: {
+                "study_label": "synthetic DQ8 pair",
+                "species": "Homo sapiens (human)",
+                "ms_samples": [
+                    {
+                        "sample_label": "HLA-DQ8 immunopeptidome component",
+                        "n_samples": 1,
+                        "condition": "unperturbed",
+                        "mhc_class": "II",
+                        "mhc": "HLA-DQ8",
+                    }
+                ],
+            }
+        },
+    )
+    obs_row = _obs_row("DQ8PAIRPEPTIDE", "")
+    obs_row.update(
+        {
+            "pmid": pd.array([pmid], dtype="Int64")[0],
+            "mhc_restriction": "HLA-DQA1*03:01/DQB1*03:02",
+            "mhc_class": "II",
+            "mhc_species": "Homo sapiens",
+        }
+    )
+    _write_obs(tmp_path, monkeypatch, [obs_row])
+
+    row = generate_ms_observations_table().iloc[0]
+
+    assert row["sample_label"] == "HLA-DQ8 immunopeptidome component"
+    assert row["sample_mhc"] == "HLA-DQ8"
+    assert row["sample_match_type"] == "allele_match"
+    assert row["sample_attribution"] == "serotype_expansion"
+
+
+def test_full_heterodimers_do_not_match_on_one_shared_chain(tmp_path, monkeypatch):
+    """Two known pairs are not equal merely because their alpha chains match."""
+    pmid = 99999303
+    monkeypatch.setattr(
+        "hitlist.export.load_pmid_overrides",
+        lambda: {
+            pmid: {
+                "study_label": "synthetic distinct DQ pairs",
+                "species": "Homo sapiens (human)",
+                "ms_samples": [
+                    {
+                        "sample_label": "DQ pair one",
+                        "n_samples": 1,
+                        "condition": "unperturbed",
+                        "mhc_class": "II",
+                        "mhc": "HLA-DQA1*03:01/DQB1*03:01",
+                    },
+                    {
+                        "sample_label": "DQ pair two",
+                        "n_samples": 1,
+                        "condition": "unperturbed",
+                        "mhc_class": "II",
+                        "mhc": "HLA-DQA1*05:01/DQB1*02:01",
+                    },
+                ],
+            }
+        },
+    )
+    obs_row = _obs_row("DISTINCTDQPAIR", "")
+    obs_row.update(
+        {
+            "pmid": pd.array([pmid], dtype="Int64")[0],
+            "mhc_restriction": "HLA-DQA1*03:01/DQB1*03:02",
+            "mhc_class": "II",
+            "mhc_species": "Homo sapiens",
+        }
+    )
+    _write_obs(tmp_path, monkeypatch, [obs_row])
+
+    row = generate_ms_observations_table().iloc[0]
+
+    assert row["sample_match_type"] == "pmid_class_pool"
+    assert row["sample_attribution"] != "allele_exact"
+    assert row["sample_label"] == ""
+
+
+def test_maptac_hla_dm_arms_are_explicit_and_not_merged_controls():
+    """The four ±DM alleles are eight real arms, not four controls."""
+    samples = generate_ms_samples_table()
+    maptac = samples[
+        (samples["pmid"] == 31495665) & samples["sample_label"].str.contains(r"\(dm[+-]\)")
+    ]
+
+    assert len(maptac) == 8
+    assert set(maptac.groupby("mhc").size()) == {2}
+    dm_minus = maptac[maptac["sample_label"].str.endswith("(dm-)")]
+    dm_plus = maptac[maptac["sample_label"].str.endswith("(dm+)")]
+    assert set(dm_minus["condition_category"]) == {"unperturbed"}
+    assert set(dm_minus["apm_perturbed"]) == {"false"}
+    assert set(dm_minus["is_control_arm"]) == {"true"}
+    assert set(dm_plus["condition_category"]) == {"HLA-DM_perturbation"}
+    assert set(dm_plus["apm_perturbed"]) == {"true"}
+    assert set(dm_plus["is_control_arm"]) == {"false"}
+
+
+def test_merged_hla_dm_observation_has_unknown_arm_metadata(tmp_path, monkeypatch):
+    """A peptide merged across ±DM arms must inherit neither arm's label."""
+    pmid = 99999302
+    allele = "HLA-DRB1*12:01"
+    base = {
+        "n_samples": 1,
+        "source": "Expi293",
+        "mhc_class": "II",
+        "mhc": allele,
+    }
+    monkeypatch.setattr(
+        "hitlist.export.load_pmid_overrides",
+        lambda: {
+            pmid: {
+                "study_label": "synthetic merged HLA-DM arms",
+                "species": "Homo sapiens (human)",
+                "ms_samples": [
+                    {
+                        **base,
+                        "sample_label": "MAPTAC-HLA-DRB1*12:01 (dm-)",
+                        "condition": "unperturbed — no HLA-DM co-transfection",
+                    },
+                    {
+                        **base,
+                        "sample_label": "MAPTAC-HLA-DRB1*12:01 (dm+)",
+                        "condition": "HLA-DM co-transfection — peptide editing",
+                    },
+                ],
+            }
+        },
+    )
+    obs_row = _obs_row("MERGEDDMPEPTIDE", "")
+    obs_row.update(
+        {
+            "pmid": pd.array([pmid], dtype="Int64")[0],
+            "mhc_restriction": allele,
+            "mhc_class": "II",
+            "mhc_species": "Homo sapiens",
+        }
+    )
+    _write_obs(tmp_path, monkeypatch, [obs_row])
+
+    row = generate_ms_observations_table().iloc[0]
+
+    assert row["sample_mhc"] == allele
+    assert row["sample_match_type"] == "allele_match"
+    assert row["sample_attribution"] == "pmid_ambiguous"
+    assert row["sample_label"] == ""
+    assert row["condition_category"] == ""
+    assert row["apm_perturbed"] == ""
+    assert row["is_control_arm"] == ""

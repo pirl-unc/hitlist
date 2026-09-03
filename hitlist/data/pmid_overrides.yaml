@@ -2496,12 +2496,13 @@
     note: >
       NOT IN IEDB — peptides ingested from paper supplement (Table S1B, sheet DataS1B).
       MAPTAC (Mono-Allelic Purification with Tagged Allele Constructs) uses biotin-acceptor peptide tag
-      + BirA → streptavidin pulldown for mono-allelic class II profiling. One sample per allele: the
+      + BirA → streptavidin pulldown for mono-allelic class II profiling. One allele per sample: the
       construct carries a single beta chain, so a pooled multi-allele sample would assert that any of the
-      alleles could present any of the peptides. HLA-DM co-transfection (peptide editing) vs no DM
-      (CLIP-loaded, low-affinity) is a within-allele protocol variation; DataS1B reports it as separate
-      columns for only 4 of the 10 alleles and the ingested CSV merges them, so it is recorded in each
-      sample's condition rather than as separate samples. Also includes SILAC DC cross-presentation
+      alleles could present any of the peptides. DataS1B reports HLA-DM co-transfection (peptide editing)
+      and no-DM (CLIP-loaded, low-affinity) as separate arms for 4 of the 10 alleles. Those arms remain
+      separate samples here even though the ingested CSV merges their peptide sets per allele; consequently
+      an observation cannot be assigned to either arm and its arm-level metadata stays unknown. Also
+      includes SILAC DC cross-presentation
       (heavy DCs + light tumor cells → distinguish cross-presented vs endogenous peptides). Lung and spleen
       from healthy donors. PBMCs from healthy donors. Raw MS: MassIVE MSV000083991.
     hla_alleles:
@@ -2632,10 +2633,17 @@
         mhc_class: II
         ip_antibody: "streptavidin (MAPTAC)"
         mhc: "HLA-DRB1*11:01"
-      - sample_label: "MAPTAC-HLA-DRB1*12:01"
+      - sample_label: "MAPTAC-HLA-DRB1*12:01 (dm-)"
         n_samples: 1
         source: "Expi293"
-        condition: "unperturbed — mono-allelic; profiled both with and without HLA-DM co-transfection, merged in the ingested supplement"
+        condition: "unperturbed — mono-allelic; no HLA-DM co-transfection"
+        mhc_class: II
+        ip_antibody: "streptavidin (MAPTAC)"
+        mhc: "HLA-DRB1*12:01"
+      - sample_label: "MAPTAC-HLA-DRB1*12:01 (dm+)"
+        n_samples: 1
+        source: "Expi293"
+        condition: "HLA-DM co-transfection — mono-allelic peptide editing"
         mhc_class: II
         ip_antibody: "streptavidin (MAPTAC)"
         mhc: "HLA-DRB1*12:01"
@@ -2646,24 +2654,45 @@
         mhc_class: II
         ip_antibody: "streptavidin (MAPTAC)"
         mhc: "HLA-DRB1*15:01"
-      - sample_label: "MAPTAC-HLA-DRB3*01:01"
+      - sample_label: "MAPTAC-HLA-DRB3*01:01 (dm-)"
         n_samples: 1
         source: "Expi293"
-        condition: "unperturbed — mono-allelic; profiled both with and without HLA-DM co-transfection, merged in the ingested supplement"
+        condition: "unperturbed — mono-allelic; no HLA-DM co-transfection"
         mhc_class: II
         ip_antibody: "streptavidin (MAPTAC)"
         mhc: "HLA-DRB3*01:01"
-      - sample_label: "MAPTAC-HLA-DPB1*06:01/DPA1*01:03"
+      - sample_label: "MAPTAC-HLA-DRB3*01:01 (dm+)"
         n_samples: 1
         source: "Expi293"
-        condition: "unperturbed — mono-allelic; profiled both with and without HLA-DM co-transfection, merged in the ingested supplement"
+        condition: "HLA-DM co-transfection — mono-allelic peptide editing"
+        mhc_class: II
+        ip_antibody: "streptavidin (MAPTAC)"
+        mhc: "HLA-DRB3*01:01"
+      - sample_label: "MAPTAC-HLA-DPB1*06:01/DPA1*01:03 (dm-)"
+        n_samples: 1
+        source: "Expi293"
+        condition: "unperturbed — mono-allelic; no HLA-DM co-transfection"
         mhc_class: II
         ip_antibody: "streptavidin (MAPTAC)"
         mhc: "HLA-DPB1*06:01/DPA1*01:03"
-      - sample_label: "MAPTAC-HLA-DQB1*06:04/DQA1*01:02"
+      - sample_label: "MAPTAC-HLA-DPB1*06:01/DPA1*01:03 (dm+)"
         n_samples: 1
         source: "Expi293"
-        condition: "unperturbed — mono-allelic; profiled both with and without HLA-DM co-transfection, merged in the ingested supplement"
+        condition: "HLA-DM co-transfection — mono-allelic peptide editing"
+        mhc_class: II
+        ip_antibody: "streptavidin (MAPTAC)"
+        mhc: "HLA-DPB1*06:01/DPA1*01:03"
+      - sample_label: "MAPTAC-HLA-DQB1*06:04/DQA1*01:02 (dm-)"
+        n_samples: 1
+        source: "Expi293"
+        condition: "unperturbed — mono-allelic; no HLA-DM co-transfection"
+        mhc_class: II
+        ip_antibody: "streptavidin (MAPTAC)"
+        mhc: "HLA-DQB1*06:04/DQA1*01:02"
+      - sample_label: "MAPTAC-HLA-DQB1*06:04/DQA1*01:02 (dm+)"
+        n_samples: 1
+        source: "Expi293"
+        condition: "HLA-DM co-transfection — mono-allelic peptide editing"
         mhc_class: II
         ip_antibody: "streptavidin (MAPTAC)"
         mhc: "HLA-DQB1*06:04/DQA1*01:02"

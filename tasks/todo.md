@@ -1,3 +1,64 @@
+# PR #417 review fixes — class-safe and heterodimer-safe attribution
+
+## Goal
+
+Resolve every review finding without weakening the new sample-MHC attribution contract:
+peptide support must stay within the target MHC class, serotype matching must work for either
+chain of a reported class-II heterodimer, typed nonmatching serotypes must not become unknown
+support, and merged HLA-DM measurements must not be labeled as control samples.
+
+## Design
+
+- Infer the query MHC class from the requested allele or serotype and use it when the caller did
+  not supply `mhc_class`; also gate every summary row against that target class so monkeypatched,
+  legacy, or explicitly broad observation frames cannot contribute opposite-class evidence.
+- Make the sample join symmetric for class-II pairs: retain exact full-restriction matching as
+  first priority, then try each normalized observation-side heterodimer component. Carry the
+  effective join key through ambiguous-candidate resolution and match-type provenance so a DQ8
+  beta-chain expansion can match a full DQA1/DQB1 observation without rewriting the observation.
+- Derive peptide-summary allele and serotype evidence from the full restriction plus all of its
+  components. A target beta chain can therefore match a full pair exactly, and DQ8 can match the
+  pair through its DQB1 component.
+- Define `unknown_allele` only when the attributed sample provides neither exact-allele typing nor
+  serotype typing. A known, nonmatching serotype is negative evidence for this query, not unknown.
+- Replace each of the four MAPTAC samples whose deposited peptides merge `-DM` and `+DM` with two
+  truthful experimental-arm samples. Their shared-allele observation join is intentionally
+  ambiguous and therefore blanks arm/APM/control metadata via the existing consensus path.
+- Treat all five defects as local: no upstream issue is warranted unless implementation exposes a
+  dependency behavior that prevents component-aware matching rather than merely requiring it.
+
+## Steps
+
+- [x] Add focused regressions for cross-class summary leakage, DQ8 pair joining and summary
+      support, nonmatching-serotype exclusion, and merged HLA-DM arm metadata.
+- [x] Implement target-class and heterodimer-component matching with truthful provenance.
+- [x] Split the four merged MAPTAC HLA-DM conditions into explicit `-DM` / `+DM` sample arms.
+- [x] Run targeted tests and inspect the affected real-PMID outputs.
+- [x] Run `./format.sh`, `./lint.sh`, and `./test.sh`.
+- [ ] Update the version/PR, wait for CI, merge, deploy from clean `main`, and verify PyPI.
+
+## Review
+
+- All five findings were local Hitlist defects; no upstream issue was warranted. The DQ8 catalog's
+  beta-chain members are sufficient once Hitlist applies its own component-aware matching contract
+  symmetrically to observation pairs.
+- Peptide summaries now infer and push down the target class, retain a row-class backstop, filter
+  mixed-sample genotypes to that class, derive serotypes from both chains of a pair, and reserve
+  `unknown_allele` for samples with neither exact nor serotype typing.
+- The observation join aliases a full class-II restriction only from a serotype member. A
+  regression proves that two fully known pairs do not become a match merely because they share
+  one chain.
+- PMID 31495665 now has separate `dm-` and `dm+` samples for each of the four alleles whose peptide
+  sets were merged during ingestion. Real merged observations resolve as `pmid_ambiguous` with
+  blank `condition_category`, `apm_perturbed`, and `is_control_arm` rather than false controls.
+- Real-corpus checks confirmed PMID 34433824's DQA1/DQB1 rows join to the DQ8 sample as
+  `serotype_expansion`; its DQ8 peptide summary is nonempty; PMID 35051231 contributes no class-I
+  row to a DRB1*11:01 query; and PMID 28467828 contributes no row to an unrelated DR4 query.
+- Verification: 16 focused review regressions passed; `./format.sh` and `./lint.sh` passed;
+  `./test.sh` passed 1,171 tests with one expected warning; `tests/test_build_smoke.py` passed 2/2.
+
+---
+
 # Issues #380, #381, and #374 — truthful sample-MHC attribution
 
 ## Goal
@@ -64,7 +125,7 @@ issue asks for would fail it.
 | 36423003 | 2 | 9 (8 per-line class-I + 1 locus-level class-II) |
 | 32350084 | 2 | 26 (19 EBV-LCL + 7 K562) |
 | 26768311 | 2 | 10 (5 allotypes x 2 conditions) |
-| 31495665 class II | 2 | 10 (one per allele) |
+| 31495665 class II | 2 | 14 (6 single arms + 4 alleles x 2 HLA-DM arms) |
 
 ---
 
