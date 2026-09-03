@@ -3325,3 +3325,49 @@ def test_load_ms_observations_delegates_and_keeps_its_identity():
     # It really delegates rather than reimplementing.
     assert load_ms_observations.__wrapped__ is load_observations
     assert load_ms_observations.__code__ is not load_observations.__code__
+
+
+# ── Serotype-typed samples in the peptide summary (#380) ───────────────────
+
+
+def test_sample_alleles_excludes_serotype_members():
+    """The peptide summary asks "did this match a reported allele?".
+
+    A serotype-typed study reported no allele, so expanding HLA-DR15 into
+    DRB1*15:01 here would manufacture an observation the study never made.
+    """
+    from hitlist.export import _sample_alleles, _sample_serotypes
+
+    assert _sample_alleles("HLA-DR15") == []
+    assert _sample_serotypes("HLA-DR15") == ("HLA-DR15",)
+
+    # An allele-typed sample is unaffected.
+    assert _sample_alleles("HLA-A*02:01 HLA-B*07:02") == ["HLA-A*02:01", "HLA-B*07:02"]
+    assert _sample_serotypes("HLA-A*02:01 HLA-B*07:02") == ()
+
+
+def test_sample_alleles_still_drops_class_and_locus_designations():
+    """Class sentinels and class-II loci name no allele, before or after
+    #380 — the join has nothing to match them on."""
+    from hitlist.export import _sample_alleles, _sample_serotypes
+
+    for imprecise in ("HLA class I", "MHC class II", "BoLA-DR", "SLA-DR", ""):
+        assert _sample_alleles(imprecise) == [], imprecise
+        assert _sample_serotypes(imprecise) == (), imprecise
+
+
+def test_serotype_typed_samples_join_through_their_members():
+    """A serotype-typed sample contributes candidate alleles to the join.
+
+    Before #380 the explode emitted the literal token "HLA-DR15", which
+    matches no IEDB mhc_restriction, so the sample dropped out of the
+    allele-level join entirely and fell back to the class pool.
+    """
+    from hitlist.curation import sample_mhc_candidates
+
+    for pmid_serotype in ("HLA-DR15", "HLA-DQ8"):
+        candidates = sample_mhc_candidates(pmid_serotype)
+        assert candidates.join_alleles, f"{pmid_serotype} must expand for the join"
+        # Every expanded member is a real 4-digit molecule, not the serotype.
+        assert pmid_serotype not in candidates.join_alleles
+        assert candidates.exact == frozenset(), "expansion must not claim exactness"
