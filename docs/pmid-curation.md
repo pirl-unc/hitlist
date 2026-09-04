@@ -120,13 +120,15 @@ either, the row falls through to structured-field classification.
 
 ## Per-donor attribution
 
-The IEDB **Antigen Processing Comments** field sometimes carries per-sample
-identifiers ("buffy coat 25", "colon 32"). For studies with a
-`peptide_attributions` CSV, hitlist splits each class-only row into one row per
-matched donor, each tagged with that donor's HLA typing and an explicit
-`mhc_allele_provenance` (`exact` / `peptide_attribution` / `sample_allele_match`
-/ `pmid_class_pool` / `unmatched`). This narrows a peptide's candidate alleles
-from a disease-wide union down to the specific donors it was actually found in.
+Supplementary data sometimes provide per-peptide sample identifiers that IEDB
+does not carry as structured fields. For studies with a `peptide_attributions`
+CSV, hitlist emits one row per matched sample. A class-only source row narrows to
+that sample's typing and records the corresponding `mhc_allele_provenance`
+(`exact` / `peptide_attribution` / `sample_allele_match` / `pmid_class_pool` /
+`unmatched`). An already allele-resolved source row keeps its reported
+restriction and provenance; the mapping adds only `attributed_sample_label`.
+This preserves independent facts such as a predicted restriction that differs
+from the sample's measured genotype.
 
 ## Adding a new override
 

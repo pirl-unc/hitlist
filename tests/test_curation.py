@@ -2085,6 +2085,19 @@ def test_attribute_peptide_to_sample_alleles_known_sarkizova_peptide():
     )
 
 
+@pytest.mark.parametrize("peptide", ["SEIDVKDVL", "SEVAVSAMGPL", "REYATDVDLEFV"])
+def test_bola_prediction_attribution_keeps_measured_a19_genotype(peptide):
+    """#414: a predicted restriction is not the animal's measured genotype."""
+    from hitlist.curation import attribute_peptide_to_per_sample_typings
+
+    assert attribute_peptide_to_per_sample_typings(36423003, peptide) == (
+        (
+            "2824TP (T. parva-infected, BoLA-I A19)",
+            frozenset({"BoLA-2*016:01", "BoLA-6*014:02"}),
+        ),
+    )
+
+
 def test_attribute_peptide_to_sample_alleles_unknown_peptide_returns_empty():
     """Peptides not in the attribution CSV (or PMIDs without an
     attribution registered) return the empty frozenset — caller falls
@@ -2979,20 +2992,19 @@ def test_peptide_lookups_accept_a_string_pmid():
     assert peptide_alleles_for_pmid("not-a-pmid") == {}
 
 
-def test_only_one_pmid_has_peptide_attributions():
-    """`peptide_alleles_for_pmid`'s docstring states that PMID 31844290 is
-    the only study with a peptide_attributions CSV.
+def test_registered_pmids_with_peptide_attributions_match_documentation():
+    """The public docstring names every study with a peptide-attribution CSV.
 
-    The mechanism is generic, so a curator can add a second at any time.
-    This pins the claim so the docstring fails loudly instead of quietly
-    becoming false to everyone reading `help()`.
+    The mechanism is generic, so a curator can add another at any time. This
+    pins the claim so the docstring fails loudly instead of quietly becoming
+    false to everyone reading `help()`.
     """
     from hitlist.curation import load_pmid_overrides
 
     with_attributions = {
         pmid for pmid, entry in load_pmid_overrides().items() if entry.get("peptide_attributions")
     }
-    assert with_attributions == {31844290}, (
+    assert with_attributions == {31844290, 36423003}, (
         "update the caveat in peptide_alleles_for_pmid / peptide_typings_for_pmid"
     )
 
@@ -3172,6 +3184,9 @@ def test_sample_alleles_for_pmid_is_public_and_omits_imprecise_samples():
     per_line = sample_alleles_for_pmid(36423003)
     assert len(per_line) == 8, "one sample per T. parva-infected cell line"
     assert per_line["641TP (T. parva-infected, BoLA-I A18)"] == frozenset({"BoLA-6*013:01"})
+    assert per_line["2824TP (T. parva-infected, BoLA-I A19)"] == frozenset(
+        {"BoLA-2*016:01", "BoLA-6*014:02"}
+    )
     # The class-II sample is locus-typed, so it names no allele and is omitted.
     assert not any("BoLA-DR)" in label for label in per_line)
 

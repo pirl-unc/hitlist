@@ -547,19 +547,16 @@ def scan(
             # ``pmid_class_pool`` / ``unmatched``.  Always emitted so the
             # parquet schema is uniform across modalities.
             #
-            # Per-peptide attribution lookup (#45 / #236): for class-only
-            # rows in PMIDs that registered a ``peptide_attributions:``
-            # CSV, the helper returns one ``(sample_label, alleles)`` pair
-            # per matched donor.  We then emit one record per donor with
-            # that donor's specific 6-allele typing — instead of one row
-            # carrying the union of all matched donors' alleles — so
-            # downstream consumers can attribute observations to specific
-            # samples.  For non-attributed rows (every other PMID, plus
-            # attributed PMIDs whose row is not class-only or whose
-            # peptide is not in the CSV) the helper returns ``()`` and
-            # the original single-record path runs unchanged.
+            # Per-peptide attribution lookup (#45 / #236 / #414): for PMIDs
+            # that registered a ``peptide_attributions:`` CSV, the helper
+            # returns one ``(sample_label, alleles)`` pair per matched donor.
+            # Class-only rows narrow to that donor's typing; already resolved
+            # rows retain their reported restriction and gain only the
+            # source-backed sample label.  In either case, multiple matched
+            # donors emit one record apiece.  For every other row the helper
+            # returns ``()`` and the original single-record path is unchanged.
             per_sample_typings: tuple[tuple[str, frozenset[str]], ...] = ()
-            if bare_peptide and classify_allele_resolution(mhc_res) == "class_only":
+            if bare_peptide:
                 per_sample_typings = attribute_peptide_to_per_sample_typings(pmid, bare_peptide)
 
             host_mhc_types = record.get("host_mhc_types", "")
@@ -580,9 +577,9 @@ def scan(
                     donor_record["mhc_allele_provenance"] = donor_prov
                     donor_record["mhc_allele_set_size"] = donor_size
                     donor_record["attributed_sample_label"] = sample_label
-                    # Promote set to ``mhc_restriction`` (#45).  Same logic
-                    # as the single-record path below — this donor's typed
-                    # alleles ARE the restriction for this attributed row.
+                    # Promote a narrowed class-only set to ``mhc_restriction``
+                    # (#45).  An exact source restriction remains unchanged;
+                    # the curated donor label is independent metadata (#414).
                     if donor_size > 0 and donor_prov != "exact":
                         donor_annotation = resolve_mhc_annotation(
                             donor_allele_set,

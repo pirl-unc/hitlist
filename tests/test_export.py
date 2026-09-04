@@ -3111,6 +3111,36 @@ def test_curated_sample_label_resolves_an_otherwise_ambiguous_arm(tmp_path, monk
     assert df.loc["PEPTIDEBBB", "is_control_arm"] == "false"
 
 
+def test_bola_prediction_label_joins_to_measured_a19_genotype(tmp_path, monkeypatch):
+    """#414: sample attribution must not turn the predicted allele into sample typing."""
+    from hitlist.export import generate_observations_table
+
+    row = {
+        "peptide": "SEIDVKDVL",
+        "mhc_restriction": "BoLA-6*014:01",
+        "mhc_class": "I",
+        "allele_resolution": "four_digit",
+        "reference_iri": "https://pubmed.ncbi.nlm.nih.gov/36423003/",
+        "pmid": pd.array([36423003], dtype="Int64")[0],
+        "source": "iedb",
+        "mhc_species": "Bos taurus",
+        "is_monoallelic": False,
+        "is_binding_assay": False,
+        "qualitative_measurement": "Positive",
+        "restriction_evidence": "predicted",
+        "attributed_sample_label": "2824TP (T. parva-infected, BoLA-I A19)",
+    }
+    _write_obs(tmp_path, monkeypatch, [row])
+
+    result = generate_observations_table().iloc[0]
+
+    assert result["sample_label"] == "2824TP (T. parva-infected, BoLA-I A19)"
+    assert result["sample_attribution"] == "curated_sample_label"
+    assert result["mhc_restriction"] == "BoLA-6*014:01"
+    assert set(result["sample_mhc"].split()) == {"BoLA-2*016:01", "BoLA-6*014:02"}
+    assert result["restriction_evidence"] == "predicted"
+
+
 def test_unmatched_curated_label_does_not_assert_an_arm(tmp_path, monkeypatch):
     """A label naming no curated sample must fall through to the normal
     heuristics rather than attributing arbitrarily."""

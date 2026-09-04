@@ -1845,12 +1845,12 @@ def _pmid_peptide_attributions(pmid_int: int) -> dict[str, frozenset[str]]:
     """Map ``peptide → frozenset(sample_label)`` for a PMID's per-peptide
     attribution CSV (#45).
 
-    Some studies (Sarkizova 2020, etc.) deposit per-peptide → patient
-    sample mappings in their supplementary tables, but IEDB ingests the
-    rows with a class-only ``mhc_restriction`` and the union of donor
-    HLAs in ``Host | MHC Types Present``.  Curators register the
-    paper's per-peptide attribution via a CSV referenced from the
-    PMID's ``peptide_attributions:`` key in pmid_overrides.yaml.
+    Some studies deposit per-peptide → sample mappings in their
+    supplementary tables.  Curators register that evidence via a CSV
+    referenced from the PMID's ``peptide_attributions:`` key in
+    pmid_overrides.yaml.  For a class-only source row the mapping narrows
+    a pooled genotype; for an already resolved source row it supplies
+    sample identity without replacing the reported restriction.
 
     The CSV must have columns ``peptide`` and ``sample_label`` (semicolon-
     joined when a peptide was observed in multiple samples).
@@ -2002,13 +2002,12 @@ def peptide_alleles_for_pmid(pmid: int | str) -> Mapping[str, frozenset[str]]:
     -----
     **Empty for most studies, and that is not an error.**  It requires a
     ``peptide_attributions`` CSV, which only a handful of PMIDs have — as
-    of writing, PMID 31844290 is the only one, which
-    ``test_only_one_pmid_has_peptide_attributions`` pins so this sentence
-    fails loudly rather than going quietly stale.  Every other study
-    returns an empty map, so a caller must treat "no entry" as "not
-    narrowed", never as "no alleles".  This is worth stating because it is
-    easy to reach for this function to explain an attribution result and
-    conclude the wrong thing from an empty answer.
+    of version 1.57.1, PMIDs 31844290 and 36423003.  A sentinel test pins
+    that list so this sentence fails loudly rather than going quietly
+    stale.  Every other study returns an empty map, so a caller must treat
+    "no entry" as "not narrowed", never as "no alleles".  This is worth
+    stating because it is easy to reach for this function to explain an
+    attribution result and conclude the wrong thing from an empty answer.
 
     Allele names are whatever the curated genotype uses, which is not
     always HLA: :func:`_parse_sample_mhc_field` deliberately handles
@@ -2129,7 +2128,9 @@ def attribute_peptide_to_per_sample_typings(
     The scanner uses this to emit one observation row per matched donor
     (issue #236), so polyspecific cohort rows decompose cleanly into
     per-sample rows with that donor's specific typing — instead of one
-    row carrying the union of (e.g.) 15 alleles across 3 donors.
+    row carrying the union of (e.g.) 15 alleles across 3 donors.  For an
+    already resolved observation, the donor label is attached without
+    rewriting the source's reported restriction (issue #414).
     """
     if not peptide:
         return ()
