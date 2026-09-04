@@ -2795,6 +2795,7 @@
     title: Immunopeptidomic Analysis of BoLA-I and BoLA-DR Presented Peptides from Theileria parva Infected Cells
     override:
     species: Bos taurus (cattle)
+    peptide_attributions: peptide_attributions/connelley_2022_bola_a19.csv
     restriction_evidence_rules:
       - condition:
           Assay Method: cellular MHC/mass spectrometry
@@ -2817,9 +2818,13 @@
       binders. These resolved cellular-MS rows now carry restriction_evidence=predicted. The
       per-line genotypes curated here are measured fact; the per-peptide restriction is an
       inference.
-      DISCREPANCY — the paper reports BoLA-6*014:02 for 2824TP (A19); IEDB carries BoLA-6*014:01
-      (3 rows). IEDB's value is curated so those rows still attribute; filed for resolution.
-      The paper also lists BoLA-2*008:01 for 2123TP, which has no rows in the corpus.
+      SOURCE DISCREPANCY — Results 3.2 and the independent A19 definition report BoLA-6*014:02
+      for 2824TP, while this paper's Table 3 and Supplementary Data 2.1 predict three retained
+      peptides for BoLA-6*014:01. IEDB faithfully carries those predictions. The genotype below
+      preserves *014:02 as the measured sample typing; the peptide-attribution asset links the
+      three *014:01 predictions to 2824TP without treating the alleles as aliases. Supplementary
+      Data 2.1 also contains 16 BoLA-2*008:01 predictions from 2123TP, but none survive into the
+      final Table 3 / IEDB set, so no observation is invented for them.
       Class II is left at locus level deliberately: the corpus holds three BoLA-DRB3 alleles
       (*011:01, *015:01, *016:01) but the source gives no line-to-DRB3 mapping, so splitting them
       across lines would be a guess and pooling them onto one sample would repeat the very error
@@ -2851,7 +2856,7 @@
         source: "T. parva-infected bovine lymphocyte line, BoLA haplotype A19"
         condition: T. parva infection
         mhc_class: I
-        mhc: "BoLA-2*016:01 BoLA-6*014:01"
+        mhc: "BoLA-2*016:01 BoLA-6*014:02"
       - sample_label: "5350TP (T. parva-infected, BoLA-I A20)"
         source: "T. parva-infected bovine lymphocyte line, BoLA haplotype A20"
         condition: T. parva infection

@@ -1,5 +1,12 @@
 # Lessons
 
+## 2026-09-04
+
+- Never pass multiline Markdown containing backticks or apostrophes as an inline shell argument.
+  Rule: create GitHub issue/PR/comment bodies with `apply_patch` in a temporary file and pass them
+  with `--body-file`. Shell quoting is too easy to terminate early, after which Markdown backticks
+  execute as commands and the outward-facing update either fails or becomes corrupted.
+
 ## 2026-09-03
 
 - Candidate expansion and reported precision are different data and must not share one field.

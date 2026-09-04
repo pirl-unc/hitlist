@@ -1,3 +1,63 @@
+# Issue #414 — separate the measured A19 genotype from predicted restrictions
+
+## Goal
+
+Represent both source facts from PMID 36423003 without converting one into the other: 2824TP's
+measured A19 genotype contains `BoLA-6*014:02`, while the paper and supplement assign three retained
+peptides to `BoLA-6*014:01` by prediction.
+
+## Source finding
+
+- Results 3.2 and the independent Vasoya et al. A19 definition both give the genotype as
+  `BoLA-2*016:01 BoLA-6*014:02`.
+- Table 3 and Supplementary Data 2.1 report predicted restrictions as `BoLA-6*014:01`; the
+  supplement contains 23 such predictions, all from the two 2824TP runs, and no `*014:02`
+  prediction. IEDB faithfully retains three final-table rows, so this is not an IEDB ingestion bug.
+- Supplementary Data 2.1 also contains 16 `BoLA-2*008:01` predictions from 2123TP, but none survive
+  into the final Table 3 / IEDB set. Keep it as measured sample typing without inventing an
+  observation.
+
+## Design
+
+- Correct the 2824TP `ms_samples[].mhc` genotype to `BoLA-6*014:02`.
+- Register the paper's three peptide-to-2824TP mappings through the existing
+  `peptide_attributions` mechanism.
+- Generalize scan-time attribution so a curated mapping can label an already allele-resolved row.
+  Preserve its reported restriction, allele set, and `exact` allele-set provenance; only add the
+  source-backed sample label. Emit one row per attributed sample if a future resolved peptide maps
+  to more than one.
+- Let the observation join use the existing `curated_sample_label` path. The public `sample_mhc`
+  must show `*014:02`, while `mhc_restriction` remains the paper's predicted `*014:01` and
+  `restriction_evidence` remains `predicted`.
+- Do not create an allele alias or claim that `*014:01` and `*014:02` are equivalent molecules.
+  Keep the unexplained source-level mismatch explicit in the study note and #414.
+- Bump the patch version to 1.57.1, since this corrects existing sample typing and attribution
+  without adding a new public schema field.
+
+## Steps
+
+- [x] Inspect the article, independent A19 definition, and all relevant supplementary workbooks.
+- [x] Correct #414's issue record with the primary-source finding.
+- [x] Add failing curation, scanner, and observation-join regressions.
+- [x] Implement resolved-row sample attribution and correct the PMID curation/data asset.
+- [x] Verify the real three-row output and the corpus-wide sample-ploidy audit.
+- [x] Run `./format.sh`, `./lint.sh`, `./test.sh`, and build smoke.
+- [ ] Open the PR, wait for CI, merge, deploy from clean `main`, and verify PyPI.
+
+## Review
+
+- Primary-source checking showed that IEDB faithfully represents this paper's own prediction
+  table, so no upstream IEDB issue is warranted. The unresolved mismatch is within the published
+  source: its measured A19 genotype uses `*014:02`, while its retained predictions use `*014:01`.
+- The three predictions now retain the exact resolved molecule and `predicted` evidence while a
+  separate curated label selects 2824TP, whose public sample genotype contains `*014:02`.
+- A real scan of the 7.77 GB IEDB export found exactly the three expected PMID rows with this
+  separation. The corpus-wide sample-ploidy audit remains clean.
+- Release gates are clean: formatting and lint passed, the full suite passed 1,190 tests with one
+  expected warning, and the two build-smoke tests passed against regenerated artifacts.
+
+---
+
 # Issue #415 — restriction evidence is separate from allele-set provenance
 
 ## Goal
@@ -32,7 +92,7 @@ system, computationally predicted, or not established. Keep this independent fro
 - [x] Curate PMID 36423003 and verify real-corpus counts by evidence and assay family.
 - [x] Bump the minor version and update changelog/release-facing version surfaces.
 - [x] Run `./format.sh`, `./lint.sh`, `./test.sh`, and build smoke.
-- [ ] Open the PR, wait for CI, merge, deploy from clean `main`, and verify PyPI.
+- [x] Open the PR, wait for CI, merge, deploy from clean `main`, and verify PyPI.
 
 ## Review
 

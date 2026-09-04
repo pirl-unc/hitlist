@@ -210,6 +210,36 @@ def test_scan_emits_independent_restriction_evidence_states(tmp_path, monkeypatc
     assert by_peptide.loc["UNKNOWN", "restriction_evidence"] == "unknown"
 
 
+def test_scan_attributes_resolved_prediction_without_rewriting_restriction(tmp_path):
+    """#414: source-backed sample identity is independent of an exact row restriction."""
+    src = tmp_path / "iedb.csv"
+    row = [""] * 24
+    row[0] = "http://iedb.org/assay/414"
+    row[2] = "36423003"
+    row[5] = "SEIDVKDVL"
+    row[14] = "Positive"
+    row[19] = "BoLA-6*014:01"
+    row[20] = "I"
+    row[22] = "cellular MHC/mass spectrometry"
+    row[23] = "ligand presentation"
+    _write_tiny_iedb_csv(src, [row])
+
+    result = scan(
+        peptides=None,
+        iedb_path=src,
+        cedar_path=None,
+        mhc_species="Bos taurus",
+    ).iloc[0]
+
+    # The scanner canonicalizes the source's BoLA spelling to mhcgnomes'
+    # Bos-taurus prefix, but must preserve the same resolved molecule.
+    assert result["mhc_restriction"] == "Bota-6*014:01"
+    assert result["mhc_allele_set"] == "Bota-6*014:01"
+    assert result["mhc_allele_provenance"] == "exact"
+    assert result["restriction_evidence"] == "predicted"
+    assert result["attributed_sample_label"] == "2824TP (T. parva-infected, BoLA-I A19)"
+
+
 def test_scan_preserves_assay_iri_per_row(tmp_path):
     """Every scanner-emitted row must carry a populated ``assay_iri`` column
     (issue #146), not just ``reference_iri``.  The three assay rows below
