@@ -1,3 +1,59 @@
+# Issue #415 — restriction evidence is separate from allele-set provenance
+
+## Goal
+
+Expose whether a named MHC restriction was experimentally isolated, implied by a monoallelic
+system, computationally predicted, or not established. Keep this independent from
+`mhc_allele_provenance`, which answers only where the candidate allele set came from.
+
+## Design
+
+- Add a categorical `restriction_evidence` column with four values: `experimental`,
+  `monoallelic`, `predicted`, and `unknown`.
+- Infer `experimental` only for resolved restrictions in binding assays and `monoallelic` only
+  for resolved restrictions whose existing sample classifier proves a monoallelic system.
+  Everything else remains `unknown` unless explicitly curated.
+- Support PMID-level defaults plus condition-matched `restriction_evidence_rules`, so mixed
+  studies can describe one evidence-generating method without relabeling unrelated rows.
+- Curate PMID 36423003's resolved cellular-MHC/MS allele assignments as `predicted`; its
+  class-only row and purified-MHC half-life rows must not inherit that claim.
+- Carry the axis and an exact-value filter through the canonical observation, binding, export,
+  training, and CLI paths. Do not change `mhc_allele_provenance` values or semantics.
+- Treat the newly discovered purified-MHC index leak as separate issue #418 rather than hiding
+  it in evidence curation.
+
+## Steps
+
+- [x] Add failing unit and scanner regressions for inferred, curated, mixed-study, and unresolved
+      evidence states.
+- [x] Implement and validate the evidence vocabulary and conditional curation API.
+- [x] Persist `restriction_evidence` in scanner and supplementary rows; categorize it in builds.
+- [x] Add load/export/training/CLI filters and document the new schema contract.
+- [x] Curate PMID 36423003 and verify real-corpus counts by evidence and assay family.
+- [x] Bump the minor version and update changelog/release-facing version surfaces.
+- [x] Run `./format.sh`, `./lint.sh`, `./test.sh`, and build smoke.
+- [ ] Open the PR, wait for CI, merge, deploy from clean `main`, and verify PyPI.
+
+## Review
+
+- `mhc_allele_provenance=exact` remains a structural statement: the source row named a concrete
+  allele. `restriction_evidence=predicted` can now accompany it without laundering a predictor's
+  assignment into an experimental observation.
+- The only inferred positive labels are mechanically safe: resolved binding-assay restrictions
+  are `experimental`, and resolved rows already proven monoallelic are `monoallelic`. All other
+  rows default to `unknown` unless a validated PMID rule says otherwise.
+- PMID 36423003 uses a method-and-response rule. Raw-source verification separated resolved
+  cellular-MS predictions from the class-only row and the purified-MHC half-life assays.
+- That verification exposed two unrelated pre-existing defects, filed as #418 (binding-index
+  leakage) and #419 (CLI rejects `peptide_attribution` provenance). Neither is hidden or folded
+  into this PR.
+- Focused checks passed 10 tests; the complete impacted curation/scanner/supplement/load/export
+  suite passed 460 tests.
+- Release gates are clean: formatting and lint passed, the full suite passed 1,185 tests, and the
+  two build-smoke tests passed against regenerated artifacts.
+
+---
+
 # PR #417 review fixes — class-safe and heterodimer-safe attribution
 
 ## Goal

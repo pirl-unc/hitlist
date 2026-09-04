@@ -132,6 +132,7 @@ def load_observations(
     mhc_restriction: str | list[str] | None = None,
     mhc_allele_in_set: str | list[str] | None = None,
     mhc_allele_provenance: str | list[str] | None = None,
+    restriction_evidence: str | list[str] | None = None,
     gene_name: str | list[str] | None = None,
     gene_id: str | list[str] | None = None,
     peptide: str | list[str] | None = None,
@@ -205,6 +206,12 @@ def load_observations(
         Use ``"exact"`` for strict allele-resolved training data;
         ``"peptide_attribution"`` for sample-narrowed multi-allelic
         cohorts; the others depending on tolerance for set noise.
+    restriction_evidence
+        Filter independently by how the named peptide-to-MHC restriction was
+        established: ``"experimental"``, ``"monoallelic"``, ``"predicted"``,
+        or ``"unknown"``. Unlike ``mhc_allele_provenance``, this axis describes
+        evidentiary strength rather than where the candidate allele set came
+        from.
     gene_name, gene_id
         Gene filters — resolved through the peptide mappings sidecar.
     length_min, length_max
@@ -245,6 +252,7 @@ def load_observations(
         mhc_restriction=mhc_restriction,
         mhc_allele_in_set=mhc_allele_in_set,
         mhc_allele_provenance=mhc_allele_provenance,
+        restriction_evidence=restriction_evidence,
         gene_name=gene_name,
         gene_id=gene_id,
         peptide=peptide,
@@ -291,6 +299,7 @@ def load_binding(
     mhc_restriction: str | list[str] | None = None,
     mhc_allele_in_set: str | list[str] | None = None,
     mhc_allele_provenance: str | list[str] | None = None,
+    restriction_evidence: str | list[str] | None = None,
     gene_name: str | list[str] | None = None,
     gene_id: str | list[str] | None = None,
     peptide: str | list[str] | None = None,
@@ -324,6 +333,7 @@ def load_binding(
         mhc_restriction=mhc_restriction,
         mhc_allele_in_set=mhc_allele_in_set,
         mhc_allele_provenance=mhc_allele_provenance,
+        restriction_evidence=restriction_evidence,
         gene_name=gene_name,
         gene_id=gene_id,
         peptide=peptide,
@@ -347,6 +357,7 @@ def load_all_evidence(
     mhc_restriction: str | list[str] | None = None,
     mhc_allele_in_set: str | list[str] | None = None,
     mhc_allele_provenance: str | list[str] | None = None,
+    restriction_evidence: str | list[str] | None = None,
     gene_name: str | list[str] | None = None,
     gene_id: str | list[str] | None = None,
     peptide: str | list[str] | None = None,
@@ -386,6 +397,7 @@ def load_all_evidence(
         "mhc_restriction": mhc_restriction,
         "mhc_allele_in_set": mhc_allele_in_set,
         "mhc_allele_provenance": mhc_allele_provenance,
+        "restriction_evidence": restriction_evidence,
         "gene_name": gene_name,
         "gene_id": gene_id,
         "peptide": peptide,
@@ -537,6 +549,7 @@ def _load_peptide_index(
     mhc_restriction: str | list[str] | None,
     mhc_allele_in_set: str | list[str] | None,
     mhc_allele_provenance: str | list[str] | None,
+    restriction_evidence: str | list[str] | None,
     gene_name: str | list[str] | None,
     gene_id: str | list[str] | None,
     peptide: str | list[str] | None,
@@ -621,6 +634,8 @@ def _load_peptide_index(
         filters.append(("peptide", "in", _as_list(peptide)))
     if mhc_allele_provenance is not None:
         filters.append(("mhc_allele_provenance", "in", _as_list(mhc_allele_provenance)))
+    if restriction_evidence is not None:
+        filters.append(("restriction_evidence", "in", _as_list(restriction_evidence)))
 
     if gene_name is not None or gene_id is not None:
         # Gene filters resolve to a peptide list via peptide_mappings.parquet,

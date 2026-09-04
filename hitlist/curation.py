@@ -55,6 +55,17 @@ from mhcgnomes import Species
 
 from .cell_name_parser import parse_cell_name
 
+#: How strongly a row establishes its named MHC restriction. This is
+#: deliberately orthogonal to ``mhc_allele_provenance``, which records where
+#: the candidate allele *set* came from rather than how the peptide-to-allele
+#: claim was established (#415).
+RESTRICTION_EVIDENCE_VALUES = (
+    "experimental",
+    "monoallelic",
+    "predicted",
+    "unknown",
+)
+
 
 def _data_path(filename: str) -> str:
     return join(dirname(__file__), "data", filename)
@@ -127,6 +138,20 @@ def load_pmid_overrides() -> dict[int, dict]:
                     stacklevel=2,
                 )
                 break  # one warning per PMID is enough
+        evidence = e.get("restriction_evidence")
+        if evidence is not None and evidence not in RESTRICTION_EVIDENCE_VALUES:
+            raise ValueError(
+                f"PMID {e.get('pmid')}: restriction_evidence={evidence!r} is invalid; "
+                f"expected one of {RESTRICTION_EVIDENCE_VALUES}"
+            )
+        for i, rule in enumerate(e.get("restriction_evidence_rules") or []):
+            rule_evidence = rule.get("evidence")
+            if rule_evidence not in RESTRICTION_EVIDENCE_VALUES:
+                raise ValueError(
+                    f"PMID {e.get('pmid')}: restriction_evidence_rules[{i}].evidence="
+                    f"{rule_evidence!r} is invalid; expected one of "
+                    f"{RESTRICTION_EVIDENCE_VALUES}"
+                )
 
     return {int(e["pmid"]): e for e in entries}
 
@@ -2288,6 +2313,68 @@ def _matches_condition(row_fields: dict[str, str], condition: dict) -> bool:
             elif actual != expected:
                 return False
     return True
+
+
+@lru_cache(maxsize=16384)
+def restriction_evidence_for_row(
+    mhc_restriction: str,
+    *,
+    pmid: int | str = "",
+    submission_id: str = "",
+    is_binding_assay: bool = False,
+    is_monoallelic: bool = False,
+    process_type: str = "",
+    disease: str = "",
+    culture_condition: str = "",
+    source_tissue: str = "",
+    cell_name: str = "",
+    assay_comments: str = "",
+    assay_method: str = "",
+    response_measured: str = "",
+    qualitative_measurement: str = "",
+) -> str:
+    """Classify how a row establishes its named MHC restriction.
+
+    A restriction must name one resolved molecule before it can carry a
+    positive evidence claim. Curated PMID rules win over safe structural
+    inference; uncurated multi-allelic observations remain ``unknown`` even
+    when their source export happens to contain a four-digit allele.
+    """
+    if not _is_resolved_allele(mhc_restriction):
+        return "unknown"
+
+    entry = None
+    if pmid:
+        with contextlib.suppress(ValueError, TypeError):
+            entry = load_pmid_overrides().get(int(pmid))
+    if entry is None and submission_id:
+        entry = load_pmid_overrides().get(submission_id)
+
+    if entry:
+        row_fields = {
+            "MHC Restriction": str(mhc_restriction),
+            "Process Type": str(process_type),
+            "Disease": str(disease),
+            "Culture Condition": str(culture_condition),
+            "Source Tissue": str(source_tissue),
+            "Cell Name": str(cell_name),
+            "Assay Comments": str(assay_comments),
+            "Assay Method": str(assay_method),
+            "Response Measured": str(response_measured),
+            "Qualitative Measurement": str(qualitative_measurement),
+        }
+        for rule in entry.get("restriction_evidence_rules") or []:
+            if _matches_condition(row_fields, rule.get("condition") or {}):
+                return rule["evidence"]
+        curated = entry.get("restriction_evidence")
+        if curated:
+            return curated
+
+    if is_binding_assay:
+        return "experimental"
+    if is_monoallelic:
+        return "monoallelic"
+    return "unknown"
 
 
 @lru_cache(maxsize=16384)

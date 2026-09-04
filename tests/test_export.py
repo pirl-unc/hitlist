@@ -1520,6 +1520,12 @@ def _make_quant_binding_fixture(tmp_path):
                 "exact",
                 "sample_allele_match",
             ],
+            "restriction_evidence": [
+                "experimental",
+                "experimental",
+                "experimental",
+                "unknown",
+            ],
             "mhc_allele_set_size": [1, 1, 1, 2],
         }
     )
@@ -1595,6 +1601,17 @@ def test_generate_binding_table_allele_set_filters(tmp_path, monkeypatch):
     # MIL-friendly: exact + sample_allele_match (small trusted sets).
     df = generate_binding_table(mhc_allele_provenance=["exact", "sample_allele_match"])
     assert set(df["peptide"]) == {"LOWIC50", "HIGHIC50", "LOGIC50", "QUALONLY"}
+
+
+def test_generate_binding_table_restriction_evidence_filter(tmp_path, monkeypatch):
+    from hitlist.export import generate_binding_table
+
+    bd_path = _make_quant_binding_fixture(tmp_path)
+    monkeypatch.setattr("hitlist.observations.binding_path", lambda: bd_path)
+
+    df = generate_binding_table(restriction_evidence="experimental")
+
+    assert set(df["peptide"]) == {"LOWIC50", "HIGHIC50", "LOGIC50"}
 
 
 def test_generate_binding_table_response_measured_filter(tmp_path, monkeypatch):
@@ -1704,6 +1721,7 @@ def test_generate_training_table_threads_allele_set_filters(tmp_path, monkeypatc
                 "HLA-A*02:01;HLA-B*07:02",
             ],
             "mhc_allele_provenance": ["exact", "exact", "sample_allele_match"],
+            "restriction_evidence": ["predicted", "monoallelic", "unknown"],
             "mhc_allele_set_size": [1, 1, 2],
         }
     )
@@ -1736,6 +1754,7 @@ def test_generate_training_table_threads_allele_set_filters(tmp_path, monkeypatc
                 "exact",
                 "sample_allele_match",
             ],
+            "restriction_evidence": ["experimental"] * 4,
             "mhc_allele_set_size": [1, 1, 1, 2],
         }
     )
@@ -1771,6 +1790,18 @@ def test_generate_training_table_threads_allele_set_filters(tmp_path, monkeypatc
     # multi-allelic donor-typed rows, one ms + one binding).
     df_b7 = generate_training_table(include_evidence="both", mhc_allele_in_set="HLA-B*07:02")
     assert set(df_b7["peptide"]) == {"MS_DONOR_SET_PEPTIDE", "BD_DONOR_SET_PEPTIDE"}
+
+    trusted = generate_training_table(
+        include_evidence="both",
+        restriction_evidence=["experimental", "monoallelic"],
+    )
+    assert set(trusted["peptide"]) == {
+        "MS_EXACT2",
+        "BD_EXACT",
+        "BD_EXACT2",
+        "BD_EXACT3",
+        "BD_DONOR_SET_PEPTIDE",
+    }
 
 
 def test_evidence_row_id_prefers_assay_iri_when_present(tmp_path, monkeypatch):
@@ -2121,6 +2152,7 @@ def test_export_training_cli_helper(monkeypatch):
         mhc_allele=["HLA-A*02:01"],
         mhc_allele_in_set=["HLA-A*02:01"],
         mhc_allele_provenance=["exact"],
+        restriction_evidence=["experimental", "monoallelic"],
         gene=["PRAME"],
         gene_name=["PRAME"],
         gene_id=["ENSG00000185686"],
@@ -2147,6 +2179,7 @@ def test_export_training_cli_helper(monkeypatch):
         "mhc_allele": ["HLA-A*02:01"],
         "mhc_allele_in_set": ["HLA-A*02:01"],
         "mhc_allele_provenance": ["exact"],
+        "restriction_evidence": ["experimental", "monoallelic"],
         "gene": ["PRAME"],
         "gene_name": ["PRAME"],
         "gene_id": ["ENSG00000185686"],
@@ -2776,6 +2809,7 @@ def test_export_ms_cli_helper(monkeypatch):
         mono_allelic=False,
         min_allele_resolution="four_digit",
         mhc_allele=["HLA-A*24:02"],
+        restriction_evidence=["predicted"],
         gene=["PRAME"],
         gene_name=["PRAME"],
         gene_id=["ENSG00000185686"],
@@ -2787,6 +2821,33 @@ def test_export_ms_cli_helper(monkeypatch):
     assert list(df["peptide"]) == ["AAAAAAAAA"]
     assert captured["peptide"] == ["ALYVDSLFFL"]
     assert captured["mhc_allele"] == ["HLA-A*24:02"]
+    assert captured["restriction_evidence"] == ["predicted"]
+
+
+@pytest.mark.parametrize("subcommand", ["ms", "binding", "training"])
+def test_cli_parses_restriction_evidence_filter(monkeypatch, subcommand):
+    import sys
+
+    from hitlist import cli
+
+    captured = {}
+    monkeypatch.setattr(cli, "_export", lambda args: captured.update(vars(args)))
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "hitlist",
+            "export",
+            subcommand,
+            "--restriction-evidence",
+            "experimental",
+            "monoallelic",
+        ],
+    )
+
+    cli.main()
+
+    assert captured["restriction_evidence"] == ["experimental", "monoallelic"]
 
 
 def test_export_peptide_summary_cli_helper(monkeypatch):

@@ -34,7 +34,7 @@ try:
 except ImportError:
     _tqdm = None
 
-from .curation import classify_ms_row, expand_allele_set
+from .curation import classify_ms_row, expand_allele_set, restriction_evidence_for_row
 from .peptide_modifications import parse_peptide_modifications
 
 # Sentinel so we can tell "user didn't pass mhc_species" apart from
@@ -523,6 +523,22 @@ def scan(
                         assay_comments=record.get("assay_comments", ""),
                     )
                 )
+            record["restriction_evidence"] = restriction_evidence_for_row(
+                mhc_res,
+                pmid=pmid,
+                submission_id=record.get("submission_id", ""),
+                is_binding_assay=bool(record["is_binding_assay"]),
+                is_monoallelic=bool(record.get("is_monoallelic", False)),
+                process_type=process_type,
+                disease=disease,
+                culture_condition=culture_condition,
+                source_tissue=source_tissue,
+                cell_name=cell_name,
+                assay_comments=record.get("assay_comments", ""),
+                assay_method=record.get("assay_method", ""),
+                response_measured=record.get("response_measured", ""),
+                qualitative_measurement=record.get("qualitative_measurement", ""),
+            )
             # Exact-allele set expansion (issue #137).  Computed off the
             # row's MHC restriction + the donor's typed alleles (Host |
             # MHC Types Present, when IEDB carries them) + the per-PMID

@@ -778,6 +778,34 @@ def test_mhc_allele_provenance_filter(tmp_path, monkeypatch):
     assert set(out["peptide"]) == {"P_EXACT", "P_ATTR"}
 
 
+def test_restriction_evidence_filter_is_independent_of_allele_provenance(tmp_path, monkeypatch):
+    """Two exact allele sets can carry different restriction evidence."""
+    import pandas as pd
+
+    from hitlist.observations import load_observations
+
+    df = pd.DataFrame(
+        {
+            "peptide": ["OBSERVED", "PREDICTED", "UNKNOWN"],
+            "mhc_restriction": ["HLA-A*02:01"] * 3,
+            "mhc_class": ["I"] * 3,
+            "mhc_allele_provenance": ["exact"] * 3,
+            "restriction_evidence": ["monoallelic", "predicted", "unknown"],
+            "reference_iri": ["r-1", "r-2", "r-3"],
+            "pmid": pd.array([1, 2, 3], dtype="Int64"),
+            "source": ["iedb"] * 3,
+            "mhc_species": ["Homo sapiens"] * 3,
+        }
+    )
+    path = tmp_path / "observations.parquet"
+    df.to_parquet(path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
+
+    out = load_observations(restriction_evidence=["monoallelic", "experimental"])
+
+    assert out["peptide"].tolist() == ["OBSERVED"]
+
+
 def test_load_observations_emits_severity_tiers(tmp_path, monkeypatch):
     """v1.30.17 / #201: ``mhc_class_label_severity`` returns one of
     {ok, borderline, suspect, implausible} per row.

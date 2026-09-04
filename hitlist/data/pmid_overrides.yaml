@@ -36,6 +36,10 @@
 #                      retractions, republications, or HLApollo / SHERPA
 #                      benchmark dataset names.  Keys are arbitrary strings
 #                      keyed by the *external* convention; values are scalars.
+#   restriction_evidence - optional study-wide evidence for a resolved named MHC restriction:
+#                      experimental, monoallelic, predicted, or unknown
+#   restriction_evidence_rules - condition-matched evidence overrides for studies containing
+#                      multiple restriction methods; each item has `condition` + `evidence`
 #
 # MS acquisition metadata (two-level inheritance):
 #   These fields may appear at the PMID level (study-wide default) or on
@@ -2791,6 +2795,11 @@
     title: Immunopeptidomic Analysis of BoLA-I and BoLA-DR Presented Peptides from Theileria parva Infected Cells
     override:
     species: Bos taurus (cattle)
+    restriction_evidence_rules:
+      - condition:
+          Assay Method: cellular MHC/mass spectrometry
+          Response Measured: ligand presentation
+        evidence: predicted
     note: >
       Most comprehensive BoLA immunopeptidome study. T. parva-infected parasitized bovine lymphocyte
       cell lines. Both BoLA class I (13 datasets) and BoLA-DR class II (6 datasets). 74 BoLA-I and
@@ -2805,8 +2814,9 @@
       by design rather than being assigned arbitrarily.
       CAVEAT — peptide-to-allele assignment in this study is PREDICTED, not measured: peptides with
       a NetMHCpan-4.1 percent-rank <2% to an allele expressed by the source line were called
-      binders. The per-line genotypes curated here are measured fact; the per-peptide restriction
-      is an inference.
+      binders. These resolved cellular-MS rows now carry restriction_evidence=predicted. The
+      per-line genotypes curated here are measured fact; the per-peptide restriction is an
+      inference.
       DISCREPANCY — the paper reports BoLA-6*014:02 for 2824TP (A19); IEDB carries BoLA-6*014:01
       (3 rows). IEDB's value is curated so those rows still attribute; filed for resolution.
       The paper also lists BoLA-2*008:01 for 2123TP, which has no rows in the corpus.

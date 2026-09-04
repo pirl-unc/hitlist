@@ -50,6 +50,13 @@ def test_scan_supplementary_schema():
     assert "is_monoallelic" in df.columns
     assert "allele_resolution" in df.columns
     assert "mhc_species" in df.columns
+    assert "restriction_evidence" in df.columns
+    assert set(df["restriction_evidence"]) <= {
+        "experimental",
+        "monoallelic",
+        "predicted",
+        "unknown",
+    }
     for col in (
         "mhc_class_reported",
         "mhc_class_source",
@@ -263,6 +270,7 @@ def test_scan_supplementary_no_classify():
     assert len(df) > 0
     # Should have allele_resolution but not src_cancer
     assert "allele_resolution" in df.columns
+    assert "restriction_evidence" in df.columns
     assert "src_cancer" not in df.columns
 
 

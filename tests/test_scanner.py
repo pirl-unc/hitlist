@@ -124,6 +124,8 @@ def _write_tiny_iedb_csv(path, rows):
         "MHC Restriction | Name",
         "MHC Allele Class",
         "Host | MHC Types Present",
+        "Assay | Method",
+        "Assay | Response measured",
     ]
     category_header = [""] * len(field_header)  # real IEDB uses grouping labels; "" is safe
     import csv
@@ -134,6 +136,78 @@ def _write_tiny_iedb_csv(path, rows):
         writer.writerow(field_header)
         for row in rows:
             writer.writerow(row)
+
+
+def test_scan_emits_independent_restriction_evidence_states(tmp_path, monkeypatch):
+    """Restriction evidence describes the claim, not allele-set resolution."""
+    src = tmp_path / "iedb.csv"
+
+    def _row(
+        assay_id,
+        peptide,
+        *,
+        pmid=99900415,
+        restriction="HLA-A*02:01",
+        qualitative="Positive",
+        cell_name="",
+        culture_condition="",
+        assay_method="",
+    ):
+        row = [""] * 24
+        row[0] = f"http://iedb.org/assay/{assay_id}"
+        row[2] = str(pmid)
+        row[5] = peptide
+        row[14] = qualitative
+        row[17] = cell_name
+        row[18] = culture_condition
+        row[19] = restriction
+        row[20] = "I"
+        row[22] = assay_method
+        return row
+
+    rows = [
+        _row(1, "PREDICTED", assay_method="cellular MHC/mass spectrometry"),
+        _row(
+            2,
+            "UNRESOLVED",
+            restriction="HLA class I",
+            assay_method="cellular MHC/mass spectrometry",
+        ),
+        _row(
+            3,
+            "MONOALLELIC",
+            pmid=99900416,
+            cell_name="721.221",
+            culture_condition="Cell Line / Clone",
+        ),
+        _row(4, "EXPERIMENTAL", pmid=99900417, qualitative="Negative"),
+        _row(5, "UNKNOWN", pmid=99900418),
+    ]
+    _write_tiny_iedb_csv(src, rows)
+    monkeypatch.setattr(
+        "hitlist.curation.load_pmid_overrides",
+        lambda: {
+            99900415: {
+                "restriction_evidence_rules": [
+                    {
+                        "condition": {
+                            "Assay Method": "cellular MHC/mass spectrometry",
+                        },
+                        "evidence": "predicted",
+                    }
+                ]
+            }
+        },
+    )
+
+    by_peptide = scan(peptides=None, iedb_path=src, cedar_path=None).set_index("peptide")
+
+    assert by_peptide.loc["PREDICTED", "restriction_evidence"] == "predicted"
+    assert by_peptide.loc["PREDICTED", "mhc_allele_provenance"] == "exact"
+    assert by_peptide.loc["UNRESOLVED", "restriction_evidence"] == "unknown"
+    assert by_peptide.loc["MONOALLELIC", "restriction_evidence"] == "monoallelic"
+    assert by_peptide.loc["EXPERIMENTAL", "restriction_evidence"] == "experimental"
+    assert by_peptide.loc["UNKNOWN", "restriction_evidence"] == "unknown"
 
 
 def test_scan_preserves_assay_iri_per_row(tmp_path):

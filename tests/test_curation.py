@@ -1323,6 +1323,40 @@ def test_load_pmid_overrides_rejects_unknown_mono_host(tmp_path, monkeypatch):
         curation.load_pmid_overrides.cache_clear()
 
 
+@pytest.mark.parametrize(
+    "entry",
+    [
+        {"pmid": 99999998, "restriction_evidence": "guessed"},
+        {
+            "pmid": 99999998,
+            "restriction_evidence_rules": [
+                {"condition": {"Assay Method": "x"}, "evidence": "guessed"}
+            ],
+        },
+    ],
+)
+def test_load_pmid_overrides_rejects_invalid_restriction_evidence(tmp_path, monkeypatch, entry):
+    """Invalid evidence labels must fail before they reach a published index."""
+    import yaml as _yaml
+
+    from hitlist import curation
+
+    bad_yaml = tmp_path / "pmid_overrides.yaml"
+    bad_yaml.write_text(_yaml.safe_dump([entry]))
+    real_data_path = curation._data_path
+    monkeypatch.setattr(
+        curation,
+        "_data_path",
+        lambda fn: str(bad_yaml) if fn == "pmid_overrides.yaml" else real_data_path(fn),
+    )
+    curation.load_pmid_overrides.cache_clear()
+    try:
+        with pytest.raises(ValueError, match="guessed"):
+            curation.load_pmid_overrides()
+    finally:
+        curation.load_pmid_overrides.cache_clear()
+
+
 def test_load_pmid_overrides_warns_on_legacy_keys(tmp_path, monkeypatch):
     """Legacy keys ``label:`` / ``type:`` were renamed in v1.7.0.  Loading
     a file with the old names must emit DeprecationWarning so users
@@ -1450,6 +1484,28 @@ def test_expand_allele_set_exact_four_digit():
     assert allele_set == "HLA-A*02:01"
     assert prov == "exact"
     assert n == 1
+
+
+def test_pmid_36423003_prediction_rule_is_scoped_to_resolved_ms_rows():
+    """#415: do not label the class-only or purified-MHC arms predicted."""
+    from hitlist.curation import restriction_evidence_for_row
+
+    common = {
+        "pmid": 36423003,
+        "assay_method": "cellular MHC/mass spectrometry",
+        "response_measured": "ligand presentation",
+    }
+    assert restriction_evidence_for_row("BoLA-6*013:01", **common) == "predicted"
+    assert restriction_evidence_for_row("BoLA class I", **common) == "unknown"
+    assert (
+        restriction_evidence_for_row(
+            "BoLA-DRB3*011:01",
+            pmid=36423003,
+            assay_method="purified MHC/direct/radioactivity",
+            response_measured="half life",
+        )
+        == "unknown"
+    )
 
 
 def test_expand_allele_set_class_only_with_sample_mhc():

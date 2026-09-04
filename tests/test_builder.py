@@ -436,6 +436,7 @@ def _full_obs_fixture(n_rows: int = 50) -> pd.DataFrame:
             "mhc_species_source": ["explicit"] * n_rows,
             "mhc_restriction": ["HLA-A*02:01"] * n_rows,
             "mhc_allele_provenance": ["exact"] * n_rows,
+            "restriction_evidence": ["monoallelic"] * n_rows,
             "allele_resolution": ["four_digit"] * n_rows,
             "serotype": ["A2"] * n_rows,
             "host": ["Donor-1"] * n_rows,

@@ -254,6 +254,7 @@ _CATEGORICAL_BUILD_COLUMNS: tuple[str, ...] = (
     "mhc_species_source",
     "mhc_restriction",
     "mhc_allele_provenance",
+    "restriction_evidence",
     "allele_resolution",
     "serotype",
     "host",
