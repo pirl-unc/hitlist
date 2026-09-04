@@ -80,6 +80,8 @@ from .version import __version__  # noqa: E402  -- after side-effect setup
 # are only imported on first attribute access. Listed in ``__all__`` so the API
 # is discoverable via ``dir(hitlist)`` / autocomplete and stable across refactors.
 _PUBLIC_API: dict[str, str] = {
+    # Public enumerations shared by scanners, APIs, and CLIs.
+    "MHC_ALLELE_PROVENANCE_VALUES": ".curation",
     # Build the cached indexes.
     "build_observations": ".builder",
     # Load the built indexes (filters documented on each function).

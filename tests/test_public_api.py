@@ -20,6 +20,7 @@ from hitlist import _PUBLIC_API
 
 def test_top_level_entry_points_importable():
     from hitlist import (  # noqa: F401
+        MHC_ALLELE_PROVENANCE_VALUES,
         ProteomeIndex,
         VersionedDatasetRegistry,
         build_observations,

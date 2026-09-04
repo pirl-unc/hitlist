@@ -533,6 +533,48 @@ def test_scan_preserves_quantitative_binding_fields(tmp_path):
     assert math.isnan(qual_only["quantitative_value"])
 
 
+def test_scan_routes_purified_mhc_half_life_away_from_ms(tmp_path):
+    """#418: structured assay fields distinguish stability from MS elution."""
+    src = tmp_path / "iedb.csv"
+    rows = []
+    for i, (peptide, method, response) in enumerate(
+        [
+            (
+                "HALFLIFEAB",
+                "purified MHC/direct/radioactivity",
+                "half life",
+            ),
+            (
+                "MSELUTIONAB",
+                "cellular MHC/mass spectrometry",
+                "ligand presentation",
+            ),
+        ]
+    ):
+        row = [""] * 112
+        row[0] = f"http://iedb.org/assay/{4180000 + i}"
+        row[1] = "http://iedb.org/reference/418"
+        row[2] = "36423003"
+        row[5] = peptide
+        row[90] = method
+        row[91] = response
+        row[94] = "Positive"
+        row[107] = "BoLA-6*013:01"
+        row[108] = "I"
+        rows.append(row)
+    _write_quant_iedb_csv(src, rows)
+
+    result = scan(
+        peptides=None,
+        iedb_path=src,
+        cedar_path=None,
+        mhc_species="Bos taurus",
+    ).set_index("peptide")
+
+    assert bool(result.loc["HALFLIFEAB", "is_binding_assay"]) is True
+    assert bool(result.loc["MSELUTIONAB", "is_binding_assay"]) is False
+
+
 def test_scan_quantitative_value_handles_garbage(tmp_path):
     """A non-numeric quantitative_measurement value must become NaN, not
     crash the scanner.

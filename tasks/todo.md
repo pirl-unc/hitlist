@@ -1,3 +1,68 @@
+# Issues #418 and #419 — assay routing and provenance CLI parity
+
+## Goal
+
+Keep biochemical purified-MHC stability measurements out of the MS-elution index, and make every
+MHC allele-set provenance value emitted by Hitlist valid at each CLI export entry point.
+
+## Premise check
+
+- The registered 2026-03-30 IEDB source has 222 rows for PMID 36423003: 146
+  `cellular MHC/mass spectrometry` ligand-presentation rows and 76
+  `purified MHC/direct/radioactivity` half-life rows.
+- The existing qualitative-only classifier routes 66 non-`Positive` half-life rows correctly but
+  leaks the 10 plain-`Positive` half-life rows into `observations.parquet`. They are eight
+  BoLA-6*013:01, one BoLA-1*023:01, and one BoLA-2*012:01 row; the issue's three-DRB3/153-MS count
+  does not match the current registered source or built corpus.
+- The same mechanism affects 942 plain-`Positive`, purified-MHC half-life rows corpus-wide (646
+  fluorescence and 296 radioactivity). Classification must be based on the structured method and
+  response, not a PMID or allele allow-list.
+
+## Design
+
+- Extend `is_binding_assay` with optional `assay_method` and `response_measured` inputs, preserving
+  source compatibility for existing two-argument callers.
+- Treat a half-life response measured on purified MHC as binding evidence. Keep the existing
+  qualitative/comment rules unchanged in this PR, and explicitly retain cellular-MHC mass
+  spectrometry ligand-presentation rows.
+- Pass the already-scanned structured fields into the classifier. Bump the observations artifact
+  contract so existing cached parquets rebuild instead of retaining stale routing.
+- Promote the complete MHC allele-set provenance tuple to one public constant, use it for the
+  scanner contract and all three CLI `choices`, and export it through the lazy top-level API.
+- Add scanner/classifier regressions for both assay types and end-to-end parser coverage proving
+  every emitted provenance value is accepted by `export ms`, `export binding`, and
+  `export training`.
+- Bump to 1.58.0: this changes which public evidence index contains existing rows and adds a public
+  vocabulary constant plus a new accepted CLI value.
+
+## Steps
+
+- [x] Reproduce both reports and audit #418 against the registered raw-source snapshot.
+- [x] Correct #418's stale row-count/allele premise on the issue.
+- [x] Add failing classifier, scanner, and CLI regressions.
+- [x] Implement structured assay routing, cache invalidation, and shared provenance choices.
+- [x] Verify targeted raw-source output and real rebuilt index counts.
+- [x] Run `./format.sh`, `./lint.sh`, `./test.sh`, and build smoke.
+- [ ] Open the PR, wait for CI, merge, deploy from clean `main`, and verify PyPI.
+
+## Review
+
+- The fix keys on a source-defined assay signature, not PMID or allele identity. An isolated full
+  rebuild moved all 942 matching assay IRIs from MS to binding, left zero matching rows in MS, and
+  confirmed every moved IRI in `binding.parquet`.
+- PMID 36423003 now has 146 cellular mass-spectrometry rows and 76 purified-MHC half-life rows in
+  their respective indexes. The current IEDB source already carries correct structured metadata,
+  so no upstream issue is warranted.
+- `MHC_ALLELE_PROVENANCE_VALUES` is now the public contract used by all three CLI parsers; the
+  parser regression exercises every value for MS, binding, and training exports.
+- Artifact contract version 2 forces existing cached parquets to rebuild with the corrected
+  routing. Hitlist is bumped to 1.58.0 because existing evidence moves between public indexes and
+  a public vocabulary/CLI value is added.
+- `./format.sh` and `./lint.sh` passed; `./test.sh` passed 1,198 tests with one expected warning;
+  `tests/test_build_smoke.py` passed 2/2.
+
+---
+
 # Issue #416 — preserve study-specific THP-1 HLA typing
 
 ## Goal
@@ -38,7 +103,7 @@ used DSMZ ACC-16 and reported that genotype.
 - [x] Correct the three Nicholas samples and document the source-specific registry contract.
 - [x] Verify affected real-PMID outputs and the corpus-wide sample-ploidy audit.
 - [x] Run `./format.sh`, `./lint.sh`, `./test.sh`, and build smoke.
-- [ ] Open the PR, wait for CI, merge, deploy from clean `main`, and verify PyPI.
+- [x] Open the PR, wait for CI, merge, deploy from clean `main`, and verify PyPI.
 
 ## Review
 
@@ -52,6 +117,7 @@ used DSMZ ACC-16 and reported that genotype.
   superset for Nicholas's reported genotype.
 - `./format.sh` and `./lint.sh` passed; `./test.sh` passed 1,192 tests with one expected warning;
   `tests/test_build_smoke.py` passed 2/2.
+- PR #422 merged as `bb11d78`; Hitlist 1.57.2 was uploaded to PyPI as both wheel and sdist.
 
 ---
 
