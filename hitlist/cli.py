@@ -32,7 +32,7 @@ import json
 import sys
 
 from .cli_help import ColorArgumentParser
-from .curation import RESTRICTION_EVIDENCE_VALUES
+from .curation import MHC_ALLELE_PROVENANCE_VALUES, RESTRICTION_EVIDENCE_VALUES
 from .downloads import (
     available_datasets,
     data_dir,
@@ -793,7 +793,7 @@ def main() -> None:
         "--mhc-allele-provenance",
         action="extend",
         nargs="+",
-        choices=["exact", "sample_allele_match", "pmid_class_pool", "unmatched"],
+        choices=MHC_ALLELE_PROVENANCE_VALUES,
         help=(
             "Filter by how the allele set was obtained.  Use 'exact' for "
             "strict-resolution training; ['exact', 'sample_allele_match'] for "
@@ -970,7 +970,7 @@ def main() -> None:
         "--mhc-allele-provenance",
         action="extend",
         nargs="+",
-        choices=["exact", "sample_allele_match", "pmid_class_pool", "unmatched"],
+        choices=MHC_ALLELE_PROVENANCE_VALUES,
         help="Filter by how the allele set was obtained (issue #137).",
     )
     p_bind.add_argument(
@@ -1132,7 +1132,7 @@ def main() -> None:
         "--mhc-allele-provenance",
         action="extend",
         nargs="+",
-        choices=["exact", "sample_allele_match", "pmid_class_pool", "unmatched"],
+        choices=MHC_ALLELE_PROVENANCE_VALUES,
         help=(
             "Filter by how the allele set was obtained.  Use 'exact' for "
             "strict-resolution training; ['exact', 'sample_allele_match'] for "

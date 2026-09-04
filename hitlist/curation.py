@@ -66,6 +66,17 @@ RESTRICTION_EVIDENCE_VALUES = (
     "unknown",
 )
 
+#: How an observation's candidate allele set was obtained. This is the
+#: authoritative vocabulary for scanner output, Python filters, and CLI
+#: choices; keep those consumers on this one contract (#419).
+MHC_ALLELE_PROVENANCE_VALUES = (
+    "exact",
+    "peptide_attribution",
+    "sample_allele_match",
+    "pmid_class_pool",
+    "unmatched",
+)
+
 
 def _data_path(filename: str) -> str:
     return join(dirname(__file__), "data", filename)
@@ -1536,15 +1547,6 @@ def _is_resolved_allele(mhc_restriction: str) -> bool:
 # ── Exact-allele set expansion (issue #137) ────────────────────────────────
 
 
-_SET_PROVENANCE_VALUES = (
-    "exact",
-    "peptide_attribution",
-    "sample_allele_match",
-    "pmid_class_pool",
-    "unmatched",
-)
-
-
 def _looks_like_four_digit_allele(s: str) -> bool:
     """Quick syntactic check that a string is a 4-digit-ish HLA allele.
 
@@ -2667,19 +2669,34 @@ _COMPETITIVE_BINDING_ASSAY_KEYWORDS = re.compile(
 
 
 @cache
-def is_binding_assay(qualitative_measurement: str, assay_comments: str) -> bool:
+def is_binding_assay(
+    qualitative_measurement: str,
+    assay_comments: str,
+    assay_method: str = "",
+    response_measured: str = "",
+) -> bool:
     """Classify whether an observation is from a binding assay vs MS elution.
 
     Returns True for binding assay data (peptide microarrays, refolding
     assays, MEDi display, etc.) which should be excluded from
     immunopeptidome-focused analyses.
 
-    Cached by ``(qualitative_measurement, assay_comments)`` tuple —
-    qualitative_measurement is drawn from a handful of values and
-    assay_comments is highly repetitive across IEDB rows, so the cache
-    quickly saturates at O(a few thousand) distinct keys vs millions of
-    per-row calls in the scanner.
+    Structured IEDB fields take precedence when their combination identifies
+    the modality directly. In particular, peptide half-life measured on
+    purified MHC is a biochemical stability/binding assay even when its
+    qualitative result is the otherwise-ambiguous plain ``"Positive"``.
+
+    The last two parameters are optional to preserve source compatibility for
+    existing two-argument callers. All four inputs are low-cardinality or
+    highly repetitive, so caching the tuple remains cheap relative to the
+    millions of scanner calls.
     """
+    method = " ".join(str(assay_method or "").casefold().split())
+    response = " ".join(str(response_measured or "").casefold().replace("-", " ").split())
+    is_purified_mhc = method == "purified mhc" or method.startswith("purified mhc/")
+    if is_purified_mhc and response == "half life":
+        return True
+
     qm = qualitative_measurement.strip() if qualitative_measurement else ""
     # Negative results and quantitative tiers are binding assays
     if qm in ("Negative", "Positive-High", "Positive-Intermediate", "Positive-Low"):

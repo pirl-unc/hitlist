@@ -1067,6 +1067,28 @@ def test_is_binding_assay_competitive_ic50_comment():
     assert is_binding_assay("Positive", comments) is True
 
 
+def test_is_binding_assay_uses_structured_purified_mhc_half_life_fields():
+    """#418: a positive result is still a biochemical stability assay."""
+    assert (
+        is_binding_assay(
+            "Positive",
+            "",
+            assay_method="purified MHC/direct/radioactivity",
+            response_measured="half life",
+        )
+        is True
+    )
+    assert (
+        is_binding_assay(
+            "Positive",
+            "",
+            assay_method="cellular MHC/mass spectrometry",
+            response_measured="ligand presentation",
+        )
+        is False
+    )
+
+
 # ── MHC species classification ─────────────────────────────────────────
 
 

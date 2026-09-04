@@ -52,7 +52,7 @@ from .downloads import data_dir
 
 #: Schema/semantic contract for observations + binding artifacts. Metadata
 #: without this exact value is legacy and must rebuild once on upgrade.
-_OBSERVATIONS_ARTIFACT_VERSION = 1
+_OBSERVATIONS_ARTIFACT_VERSION = 2
 
 
 def _source_paths() -> dict[str, Path]:

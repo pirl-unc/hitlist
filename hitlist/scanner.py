@@ -499,6 +499,8 @@ def scan(
                 "is_binding_assay": is_binding_assay(
                     _safe_col(row, c["qualitative_measurement"]),
                     _safe_col(row, c["assay_comments"]),
+                    _safe_col(row, c["assay_method"]),
+                    _safe_col(row, c["response_measured"]),
                 ),
                 # Flags rows whose MHC molecule presents lipids / metabolites
                 # rather than peptides (CD1, MR1, MIC, ULBP, etc. — see #228).
