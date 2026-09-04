@@ -2,6 +2,11 @@
 
 ## 2026-09-04
 
+- If a release script is known to require network or unsandboxed build isolation, request that
+  access on its first invocation. An approved command prefix does not make restricted-network DNS
+  available; discovering that only after a long integration suite needlessly repeats the entire
+  release gate.
+
 - Never pass multiline Markdown containing backticks or apostrophes as an inline shell argument.
   Rule: create GitHub issue/PR/comment bodies with `apply_patch` in a temporary file and pass them
   with `--body-file`. Shell quoting is too easy to terminate early, after which Markdown backticks

@@ -634,10 +634,10 @@
       tabulated in S2 — its mhc_class stays I+II because the IP was performed.
       Typing is S1 Table: six class-I and six class-II alleles per subject (DRB1/DQB1/DPB1 only — the
       study did not type DRB3/4/5, DQA1 or DPA1, so those are absent rather than assumed).
-      THP-1 CLASS-I CONFLICT: this study types THP-1 homozygous A*02:01/B*15:11/C*03:03 and assigns its
-      peptides on that basis, while DSMZ ACC-16 (and PMID 33392160) type it heterozygous
-      A*02:01/A*24:02, B*15:11/B*35:01. The heterozygous DSMZ form is kept here since two independent
-      sources support it; see the tracking issue.
+      THP-1 HLA typing is study-specific: S1 Table types this culture homozygous
+      A*02:01/B*15:11/C*03:03 and the paper assigns peptides on that basis, so those are the class-I
+      alleles curated here. DSMZ ACC-16 and PMID 33392160 report a heterozygous culture instead;
+      that genotype is retained only for sources that report it.
       PAPER ERROR, do not propagate: the Results text credits the single class-II influenza peptide
       (HA 15-mer AADLKSTQAAINQIN, HLA-DRB1*04:01) to P3, but Table 1 assigns it to P2 and only P2
       carries DRB1*04:01. P2 is correct.
@@ -786,12 +786,12 @@
         source: PMA-differentiated THP-1 (3 independent differentiations)
         condition: UV-inactivated virus control
         mhc_class: I+II
-        mhc: "HLA-A*02:01 HLA-A*24:02 HLA-B*15:11 HLA-B*35:01 HLA-C*03:03 HLA-DRB1*01:01 HLA-DRB1*15:01 HLA-DQB1*05:01 HLA-DQB1*06:02 HLA-DPB1*02:01 HLA-DPB1*04:02"
+        mhc: "HLA-A*02:01 HLA-B*15:11 HLA-C*03:03 HLA-DRB1*01:01 HLA-DRB1*15:01 HLA-DQB1*05:01 HLA-DQB1*06:02 HLA-DPB1*02:01 HLA-DPB1*04:02"
       - sample_label: THP-1 macrophage — Wisconsin-infected
         n_samples: 3
         condition: PMA differentiation → influenza A/H3N2/Wisconsin
         mhc_class: I+II
-        mhc: "HLA-A*02:01 HLA-A*24:02 HLA-B*15:11 HLA-B*35:01 HLA-C*03:03 HLA-DRB1*01:01 HLA-DRB1*15:01 HLA-DQB1*05:01 HLA-DQB1*06:02 HLA-DPB1*02:01 HLA-DPB1*04:02"
+        mhc: "HLA-A*02:01 HLA-B*15:11 HLA-C*03:03 HLA-DRB1*01:01 HLA-DRB1*15:01 HLA-DQB1*05:01 HLA-DQB1*06:02 HLA-DPB1*02:01 HLA-DPB1*04:02"
         reference_proteomes:
           - uniprot: UP000009255
             proteome_label: Influenza A virus
@@ -799,7 +799,7 @@
         n_samples: 3
         condition: PMA differentiation → influenza A/H3N2/X31
         mhc_class: I+II
-        mhc: "HLA-A*02:01 HLA-A*24:02 HLA-B*15:11 HLA-B*35:01 HLA-C*03:03 HLA-DRB1*01:01 HLA-DRB1*15:01 HLA-DQB1*05:01 HLA-DQB1*06:02 HLA-DPB1*02:01 HLA-DPB1*04:02"
+        mhc: "HLA-A*02:01 HLA-B*15:11 HLA-C*03:03 HLA-DRB1*01:01 HLA-DRB1*15:01 HLA-DQB1*05:01 HLA-DQB1*06:02 HLA-DPB1*02:01 HLA-DPB1*04:02"
         reference_proteomes:
           - uniprot: UP000009255
             proteome_label: Influenza A virus
@@ -4983,8 +4983,9 @@
       still yielded class-II peptides in bulk. Class-II typing is from the paper's Results and matches
       DSMZ ACC-16 exactly; Cellosaurus additionally carries DPA1*01:03/*02:02 and DRB5*01, which the
       paper does not report and which are therefore not curated here.
-      Note PMID 35051231 types THP-1 class I as homozygous A*02:01/B*15:11/C*03:03, disagreeing with
-      the heterozygous DSMZ typing used here; see the tracking issue.
+      PMID 35051231 types its THP-1 culture homozygous A*02:01/B*15:11/C*03:03. Because THP-1 HLA
+      typing varies by source/sub-line, each study retains its own reported genotype rather than a
+      registry-wide superset.
     perturbations: ["Biomaterial contact (steel, aluminum, zinc, polyethylene)", "LPS stimulation"]
     ms_samples:
       - sample_label: "THP-1 + biomaterial contact"

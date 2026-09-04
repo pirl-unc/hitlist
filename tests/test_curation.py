@@ -3192,3 +3192,29 @@ def test_sample_alleles_for_pmid_is_public_and_omits_imprecise_samples():
 
     assert sample_alleles_for_pmid("36423003") == per_line, "str and int PMIDs agree"
     assert sample_alleles_for_pmid(1) == {}, "unknown PMID is empty, not an error"
+
+
+def test_thp1_typing_is_study_specific():
+    """#416: a shared cell-line identity does not imply one universal HLA genotype."""
+    from hitlist.curation import sample_alleles_for_pmid
+
+    nicholas = sample_alleles_for_pmid(35051231)
+    thp1_labels = {
+        "THP-1 macrophage — UV mock (uninfected)",
+        "THP-1 macrophage — Wisconsin-infected",
+        "THP-1 macrophage — X31-infected",
+    }
+    assert thp1_labels <= nicholas.keys()
+    for label in thp1_labels:
+        alleles = nicholas[label]
+        assert {"HLA-A*02:01", "HLA-B*15:11", "HLA-C*03:03"} <= alleles
+        assert alleles.isdisjoint({"HLA-A*24:02", "HLA-B*35:01"})
+
+    ghosh = sample_alleles_for_pmid(33392160)["THP-1 + biomaterial contact"]
+    assert {
+        "HLA-A*02:01",
+        "HLA-A*24:02",
+        "HLA-B*15:11",
+        "HLA-B*35:01",
+        "HLA-C*03:03",
+    } <= ghosh
