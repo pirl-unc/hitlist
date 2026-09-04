@@ -253,6 +253,7 @@ lookup_proteome("Mycobacterium tuberculosis")
 | `mhc_class_source`, `mhc_class_corrected` | Whether class came from one molecule, a consistent donor set, or source fallback; whether it corrected the source |
 | `mhc_species` | Canonical MHC species (mhcgnomes plus explicit per-study context for ambiguous names) |
 | `mhc_species_source`, `mhc_species_context_disagrees` | Species-resolution provenance and explicit context-conflict signal |
+| `restriction_evidence` | How the named peptide-to-MHC restriction was established: `experimental`, `monoallelic`, `predicted`, or `unknown` |
 | `is_monoallelic` | True if sample has a single transfected allele (721.221, C1R, K562, MAPTAC…) |
 | `has_peptide_level_allele` | True if `mhc_restriction` is a specific allele (not `"HLA class I"`) |
 | `is_potential_contaminant` | True for MS-eluted peptides that failed NetMHCpan binding prediction |
@@ -369,6 +370,7 @@ training pipelines.
 | `--acquisition-mode` | `DDA`, `DIA`, `PRM` |
 | `--min-allele-resolution` | `four_digit`, `two_digit`, `serological`, `class_only` |
 | `--mhc-allele` | Exact match on `mhc_restriction` after allele normalization. Repeatable / comma-separated. |
+| `--restriction-evidence` | Restriction evidence: `experimental`, `monoallelic`, `predicted`, or `unknown`. Independent of allele-set provenance. Repeatable. |
 | `--gene` | Symbol, Ensembl ID, or old alias (HGNC synonym lookup). Repeatable / comma-separated. Requires the mappings sidecar (default-on at build). |
 | `--gene-name` | Exact match on `gene_name` column (no HGNC lookup) |
 | `--gene-id` | Exact match on `gene_id` column (ENSG) |

@@ -36,6 +36,7 @@ from .curation import (
     normalize_species,
     pmid_mhc_species_context,
     resolve_mhc_annotation,
+    restriction_evidence_for_row,
 )
 
 _DATA_DIR = Path(__file__).parent / "data"
@@ -273,6 +274,16 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
             # duplicate merge column from classify_ms_row's compatibility API.
             for identity_column in ("mhc_species", "allele_resolution", "serotype", "serotypes"):
                 classification.pop(identity_column, None)
+            classification["restriction_evidence"] = restriction_evidence_for_row(
+                allele,
+                pmid=_pmid,
+                is_monoallelic=bool(classification.get("is_monoallelic", False)),
+                process_type=_process_type,
+                disease=_disease,
+                culture_condition=_culture_condition,
+                source_tissue=_source_tissue,
+                cell_name=_cell_name,
+            )
             return classification
 
         if classify_source:
@@ -288,6 +299,7 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
             flag_rows = [
                 {
                     "mhc_restriction": a,
+                    "restriction_evidence": restriction_evidence_for_row(a, pmid=pmid),
                     **_set_for(a),
                 }
                 for a in unique_alleles

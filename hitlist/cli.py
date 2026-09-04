@@ -32,6 +32,7 @@ import json
 import sys
 
 from .cli_help import ColorArgumentParser
+from .curation import RESTRICTION_EVIDENCE_VALUES
 from .downloads import (
     available_datasets,
     data_dir,
@@ -800,6 +801,13 @@ def main() -> None:
         ),
     )
     p_obs.add_argument(
+        "--restriction-evidence",
+        action="extend",
+        nargs="+",
+        choices=RESTRICTION_EVIDENCE_VALUES,
+        help="Filter by how the named peptide-to-MHC restriction was established.",
+    )
+    p_obs.add_argument(
         "--gene",
         action="extend",
         nargs="+",
@@ -966,6 +974,13 @@ def main() -> None:
         help="Filter by how the allele set was obtained (issue #137).",
     )
     p_bind.add_argument(
+        "--restriction-evidence",
+        action="extend",
+        nargs="+",
+        choices=RESTRICTION_EVIDENCE_VALUES,
+        help="Filter by how the named peptide-to-MHC restriction was established.",
+    )
+    p_bind.add_argument(
         "--gene",
         action="extend",
         nargs="+",
@@ -1123,6 +1138,13 @@ def main() -> None:
             "strict-resolution training; ['exact', 'sample_allele_match'] for "
             "MIL / noisy-OR over small trusted sets."
         ),
+    )
+    p_training.add_argument(
+        "--restriction-evidence",
+        action="extend",
+        nargs="+",
+        choices=RESTRICTION_EVIDENCE_VALUES,
+        help="Filter by how the named peptide-to-MHC restriction was established.",
     )
     p_training.add_argument(
         "--gene",
@@ -2154,6 +2176,7 @@ def _export_training(args: argparse.Namespace):
         mhc_allele=getattr(args, "mhc_allele", None),
         mhc_allele_in_set=getattr(args, "mhc_allele_in_set", None),
         mhc_allele_provenance=getattr(args, "mhc_allele_provenance", None),
+        restriction_evidence=getattr(args, "restriction_evidence", None),
         gene=getattr(args, "gene", None),
         gene_name=getattr(args, "gene_name", None),
         gene_id=getattr(args, "gene_id", None),
@@ -2193,6 +2216,7 @@ def _export_ms(args: argparse.Namespace):
         mhc_allele=getattr(args, "mhc_allele", None),
         mhc_allele_in_set=getattr(args, "mhc_allele_in_set", None),
         mhc_allele_provenance=getattr(args, "mhc_allele_provenance", None),
+        restriction_evidence=getattr(args, "restriction_evidence", None),
         gene=getattr(args, "gene", None),
         gene_name=getattr(args, "gene_name", None),
         gene_id=getattr(args, "gene_id", None),
@@ -2315,6 +2339,7 @@ def _export(args: argparse.Namespace) -> None:
                 mhc_allele=getattr(args, "mhc_allele", None),
                 mhc_allele_in_set=getattr(args, "mhc_allele_in_set", None),
                 mhc_allele_provenance=getattr(args, "mhc_allele_provenance", None),
+                restriction_evidence=getattr(args, "restriction_evidence", None),
                 gene=getattr(args, "gene", None),
                 gene_name=getattr(args, "gene_name", None),
                 gene_id=getattr(args, "gene_id", None),
