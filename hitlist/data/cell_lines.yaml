@@ -2295,7 +2295,10 @@ cell_lines:
     category: Cancer cell line
     is_cancer: true
     is_ebv_lcl: false
-    notes: Acute monocytic leukemia.
+    notes: >
+      Acute monocytic leukemia. HLA typing varies by source/sub-line: Nicholas 2022 reports
+      homozygous class-I typing, while DSMZ ACC-16 and Ghosh 2020 report heterozygous typing.
+      Use each PMID's ms_samples typing rather than a registry-wide genotype.
   TPC-1:
     synonyms:
     - TPC-1

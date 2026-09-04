@@ -3086,6 +3086,31 @@ def _obs_row(peptide, label):
     }
 
 
+def test_thp1_observation_uses_nicholas_study_genotype(tmp_path, monkeypatch):
+    """#416: an ambiguous Nicholas THP-1 row keeps only that study's typing."""
+    obs_row = _obs_row("THP1B15PEPTIDE", "")
+    obs_row.update(
+        {
+            "pmid": pd.array([35051231], dtype="Int64")[0],
+            "mhc_restriction": "HLA-B*15:11",
+            "cell_name": "THP-1",
+            "source_tissue": "Blood",
+        }
+    )
+    _write_obs(tmp_path, monkeypatch, [obs_row])
+
+    row = generate_ms_observations_table().iloc[0]
+
+    assert row["sample_match_type"] == "allele_match"
+    assert row["sample_attribution"] == "pmid_ambiguous"
+    assert row["sample_label"] == ""
+    assert row["sample_mhc"] == (
+        "HLA-A*02:01 HLA-B*15:11 HLA-C*03:03 "
+        "HLA-DRB1*01:01 HLA-DRB1*15:01 HLA-DQB1*05:01 HLA-DQB1*06:02 "
+        "HLA-DPB1*02:01 HLA-DPB1*04:02"
+    )
+
+
 def test_curated_sample_label_resolves_an_otherwise_ambiguous_arm(tmp_path, monkeypatch):
     """A per-row ``attributed_sample_label`` that names a curated sample
     is exact evidence and outranks every heuristic.  Both arms share

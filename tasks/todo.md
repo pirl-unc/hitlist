@@ -1,3 +1,60 @@
+# Issue #416 — preserve study-specific THP-1 HLA typing
+
+## Goal
+
+Stop offering HLA-A*24:02 and HLA-B*35:01 as candidate presenters for PMID 35051231 when that
+study explicitly typed and analyzed its THP-1 sub-line as homozygous HLA-A*02:01,
+HLA-B*15:11, and HLA-C*03:03. Preserve the heterozygous typing for PMID 33392160, whose authors
+used DSMZ ACC-16 and reported that genotype.
+
+## Source finding
+
+- Nicholas 2022 S1 Table repeats A*02:01, B*15:11, and C*03:03 in both class-I haplotypes for
+  THP-1. The Results explicitly call the three loci homozygous and assign 6,499 peptides to the
+  A*02:01 and B*15:11 motifs.
+- Ghosh 2020 reports A*02:01/A*24:02, B*15:11/B*35:01, and C*03:03 for its THP-1 culture and
+  states that the line came from DSMZ ACC-16.
+- Cellosaurus CVCL_0006 preserves both homozygous and heterozygous typing records and cites a
+  paper specifically documenting the THP-1 HLA discrepancy. These are study/sub-line-specific
+  facts, not two spellings of one canonical genotype.
+
+## Design
+
+- Replace only the three Nicholas THP-1 sample genotypes with the study's homozygous class-I
+  typing while retaining its reported class-II typing unchanged.
+- Keep Ghosh/DSMZ and other independently sourced THP-1 entries heterozygous unless their own
+  source says otherwise. Do not create an allele alias or globally rewrite THP-1.
+- Clarify the PMID notes and the shared `cell_lines.yaml` entry: the registry owns canonical line
+  identity, while `ms_samples[].mhc` owns study-specific typing. Nicholas gives no catalogue
+  number, so do not invent a second Cellosaurus accession or sub-line name.
+- Add regressions at the curation and observation-join boundaries proving that PMID 35051231
+  excludes A*24:02/B*35:01 and PMID 33392160 retains them.
+- Bump the patch version to 1.57.2.
+
+## Steps
+
+- [x] Inspect issue #416 and verify Nicholas S1/Results, Ghosh Results, DSMZ, and Cellosaurus.
+- [x] Add failing study-specific typing and observation-join regressions.
+- [x] Correct the three Nicholas samples and document the source-specific registry contract.
+- [x] Verify affected real-PMID outputs and the corpus-wide sample-ploidy audit.
+- [x] Run `./format.sh`, `./lint.sh`, `./test.sh`, and build smoke.
+- [ ] Open the PR, wait for CI, merge, deploy from clean `main`, and verify PyPI.
+
+## Review
+
+- The correction is confined to the three Nicholas THP-1 arms. The Ghosh/DSMZ sample remains
+  heterozygous, and the shared cell-line registry now explicitly directs consumers to the
+  study-level genotype.
+- A real-data join over PMID 35051231's B*15:11 observations contains neither A*24:02 nor B*35:01
+  in exact or class-pool sample metadata; `sample_ploidy_audit()` remains empty corpus-wide.
+- No upstream issue is warranted: Nicholas, Ghosh, DSMZ, and Cellosaurus faithfully expose the
+  divergent source/sub-line typings; the defect was Hitlist's choice to substitute a global
+  superset for Nicholas's reported genotype.
+- `./format.sh` and `./lint.sh` passed; `./test.sh` passed 1,192 tests with one expected warning;
+  `tests/test_build_smoke.py` passed 2/2.
+
+---
+
 # Issue #414 — separate the measured A19 genotype from predicted restrictions
 
 ## Goal
@@ -42,7 +99,7 @@ peptides to `BoLA-6*014:01` by prediction.
 - [x] Implement resolved-row sample attribution and correct the PMID curation/data asset.
 - [x] Verify the real three-row output and the corpus-wide sample-ploidy audit.
 - [x] Run `./format.sh`, `./lint.sh`, `./test.sh`, and build smoke.
-- [ ] Open the PR, wait for CI, merge, deploy from clean `main`, and verify PyPI.
+- [x] Open the PR, wait for CI, merge, deploy from clean `main`, and verify PyPI.
 
 ## Review
 
@@ -55,6 +112,7 @@ peptides to `BoLA-6*014:01` by prediction.
   separation. The corpus-wide sample-ploidy audit remains clean.
 - Release gates are clean: formatting and lint passed, the full suite passed 1,190 tests with one
   expected warning, and the two build-smoke tests passed against regenerated artifacts.
+- PR #421 merged as `c43937b`; Hitlist 1.57.1 was uploaded to PyPI as both wheel and sdist.
 
 ---
 
