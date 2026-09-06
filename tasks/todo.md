@@ -1,3 +1,99 @@
+# Data consistency release series — issues #424–#427
+
+## Priority and acceptance contract
+
+1. **#424 / v1.58.1 — current curation in persisted data.** Include the scanner's curation YAML
+   inputs and peptide-attribution CSVs in observations cache fingerprints. Cover cell-line
+   metadata as well as study overrides, tissues, and monoallelic hosts. A curation-only edit must
+   invalidate the cache and a normal rebuild must persist the edited value, including consecutive
+   builds in the same interpreter. Existing metadata without these inputs must rebuild once.
+2. **#425 / v1.58.2 — complete gene-query results.** Preserve OR semantics for mixed gene-symbol
+   and Ensembl-ID queries across MS, binding, and training. Apply the same gene selection when
+   expanding source-protein mappings; do not reintroduce unrelated mappings through a shared
+   peptide. Keep explicitly supplied low-level name/ID filter semantics clear.
+3. **#426 / v1.58.3 — projection-independent species filters.** A source-species filter must
+   select the same evidence whether or not the output projects its derived column or fallback
+   inputs. Exercise both indexes, missing source organism, and a nonmatching control row.
+4. **#427 / v1.58.4 — one allele-set filter contract.** Route export filtering through the
+   loader's normalization and validation so aliases, canonical inputs, and invalid empty queries
+   behave consistently in MS, binding, and training exports.
+
+## Execution and verification
+
+- [x] Recheck the reported defects, current main, existing PRs, and release scripts.
+- [ ] PR 1: add failing cache/rebuild regressions; implement #424; review; format, lint, test;
+      bump version; open PR; require all CI checks; merge; deploy from clean main; verify PyPI.
+- [ ] PR 2: add mixed-query and mapping-expansion regressions; implement #425; run all gates;
+      bump version; open PR; require CI; merge; deploy from clean main; verify PyPI.
+- [ ] PR 3: add projected-filter regressions; implement #426; run all gates; bump version;
+      open PR; require CI; merge; deploy from clean main; verify PyPI.
+- [ ] PR 4: add loader/export parity regressions; implement #427; run all gates; bump version;
+      open PR; require CI; merge; deploy from clean main; verify PyPI.
+- [ ] Review remaining related Hitlist/ecosystem issues by dependency and data-quality impact.
+
+Each PR has its own feature branch and patch release. The actual `deploy.sh` publishes the
+version already in `hitlist/version.py`, so each bump is made explicitly in its PR. Reproduction
+fixtures must be independent of the developer's data cache. Required release validation includes
+`./test.sh --all` through the deployment script; never infer CI success from local tests.
+
+## Review
+
+- PR 1 implementation fingerprints the three curation YAMLs, cell-line registry, and every
+  referenced peptide-attribution CSV with content hashes. Missing fingerprint entries invalidate
+  old metadata automatically. Builds clear the file-backed curation caches and derived results.
+- The two-build regression exposed #428: nested unbounded caches defeated bounded-cache eviction
+  and retained stale classifications after `cache_clear()`. Removed all four redundant wrappers;
+  source category and restriction evidence now both change on the next normal build.
+- PR 1 validation: all seven new regressions pass; format and lint pass; `./test.sh` passes
+  1,205 tests with one expected warning. The earlier focused builder/curation/smoke run passed
+  290 tests. Version is 1.58.1; CI, merge, and deployment pending.
+
+---
+
+# Bug review — 2026-09-05
+
+## Scope and approach
+
+Review the current main snapshot (`8fd02b3`) for reproducible correctness defects, with emphasis
+on public filtering/export contracts, sample attribution, and cached build artifacts. Use the
+existing tests as a baseline and isolated temporary fixtures to verify suspected failures. This
+is a findings review; production fixes and their release workflow are a separate follow-up.
+
+## Steps
+
+- [x] Read repository guidance, lessons, recent history, and package/test configuration.
+- [x] Run formatting, lint, and the existing test suite to establish the baseline.
+- [x] Trace public API and CLI paths through filtering, joins, and artifact reuse.
+- [x] Reproduce actionable defects and check for existing GitHub issues.
+- [x] File confirmed new bugs with exact reproduction and impact, as required by AGENTS.md.
+- [x] Record verification results and report prioritized findings with source locations.
+
+## Review
+
+- Reviewed main `8fd02b3` / Hitlist 1.58.0. No production code changed; the local review branch
+  contains only this task record. No PR/release is part of this findings-only review.
+- `./format.sh` made no changes; `./lint.sh` passed; `./test.sh` passed all 1,198 default-suite
+  tests with one expected backend-exception warning. Integration tests were excluded by the
+  script's default selection. This is local baseline validation, not a new CI run.
+- Seven isolated assertions reproduced four defects, independently covering both MS and binding
+  paths where applicable. Reproductions use temporary fixtures and no network. The full local
+  reproduction file is `/private/tmp/hitlist_bug_review_20260905.py`; each issue also contains a
+  self-contained reproduction whose output was executed and verified before filing.
+- **P1 — [#424](https://github.com/pirl-unc/hitlist/issues/424):** observations cache fingerprints
+  omit the main curation YAML inputs. Changing `restriction_evidence` from experimental to
+  predicted leaves the cache valid, permitting stale persisted scientific annotations.
+- **P2 — [#425](https://github.com/pirl-unc/hitlist/issues/425):** mixed gene-symbol/Ensembl-ID
+  export queries use AND instead of the documented OR semantics. Two individually matching
+  genes yield zero rows when queried together; mapping expansion repeats the same conjunction.
+- **P2 — [#426](https://github.com/pirl-unc/hitlist/issues/426):** projecting only `peptide`
+  omits the raw `species` dependency of a `source_species` filter, dropping rows that need its
+  documented fallback when `source_organism` is blank.
+- **P2 — [#427](https://github.com/pirl-unc/hitlist/issues/427):** export allele-set filters omit
+  normalization that the raw loaders perform. `A*02:01` matches the loader but silently returns
+  zero exported rows where canonical `HLA-A*02:01` succeeds.
+
+---
+
 # Issues #418 and #419 — assay routing and provenance CLI parity
 
 ## Goal

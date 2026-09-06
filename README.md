@@ -103,6 +103,11 @@ hitlist export training --include-evidence both --class I --species "Homo sapien
 
 ## Python API
 
+`hitlist build observations` checks the source files and the curation inputs that define stored
+annotations, including study overrides, tissue/cell-line metadata, and peptide-attribution CSVs.
+Editing these inputs triggers a rebuild without `--force`. Upgrading from an older cache that
+lacks curation fingerprints also triggers one rebuild.
+
 ### Training-data export
 
 ```python

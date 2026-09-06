@@ -1326,7 +1326,6 @@ def _build_allele_to_serotype_map() -> dict[str, str]:
 
 
 @lru_cache(maxsize=8192)
-@cache
 def allele_to_all_serotypes(mhc_restriction: str) -> tuple[str, ...]:
     """All serotypes an allele belongs to, most-specific first.
 
@@ -1428,7 +1427,6 @@ def _build_serotype_to_alleles_map() -> dict[str, tuple[str, ...]]:
 
 
 @lru_cache(maxsize=8192)
-@cache
 def serotype_to_alleles(serotype: str) -> tuple[str, ...]:
     """Enumerate the 4-digit alleles that belong to a serotype.
 
@@ -1452,7 +1450,6 @@ def serotype_to_alleles(serotype: str) -> tuple[str, ...]:
 
 
 @lru_cache(maxsize=8192)
-@cache
 def best_4digit_for_serotype(serotype: str) -> str:
     """Pick the most-likely 4-digit allele for a serotype.
 
@@ -2381,7 +2378,6 @@ def restriction_evidence_for_row(
 
 
 @lru_cache(maxsize=16384)
-@cache
 def classify_ms_row(
     process_type: str,
     disease: str,
@@ -2711,6 +2707,31 @@ def is_binding_assay(
             or _COMPETITIVE_BINDING_ASSAY_KEYWORDS.search(assay_comments)
         )
     )
+
+
+def _clear_curation_caches() -> None:
+    """Reload file-backed curation and its derived annotations on the next build."""
+    from .cell_name_parser import _load_registry
+
+    for cached in (
+        load_pmid_overrides,
+        load_tissue_categories,
+        load_tissue_groups,
+        load_monoallelic_lines,
+        pmid_provenance,
+        pmid_mhc_species_context,
+        _load_registry,
+        _ebv_lcl_mono_hosts,
+        _pmid_allele_pool,
+        _pmid_sample_alleles,
+        _pmid_peptide_attributions,
+        _peptide_typings_by_pmid,
+        _peptide_alleles_by_pmid,
+        expand_allele_set,
+        restriction_evidence_for_row,
+        classify_ms_row,
+    ):
+        cached.cache_clear()
 
 
 def is_cancer_specific(flags: dict[str, bool]) -> bool:
