@@ -1,4 +1,5 @@
 import json
+import os
 
 import pandas as pd
 import pytest
@@ -18,6 +19,134 @@ from hitlist.builder import (
     _validate_mhc_tokens,
 )
 from hitlist.supplement import load_supplementary_manifest
+
+
+@pytest.fixture
+def isolated_curation(tmp_path, monkeypatch):
+    from pathlib import Path
+
+    from hitlist import cell_name_parser, curation, downloads
+
+    data_root = tmp_path / "curation"
+    data_root.mkdir()
+    for name in ("pmid_overrides.yaml", "tissue_categories.yaml", "monoallelic_lines.yaml"):
+        (data_root / name).write_bytes(Path(curation._data_path(name)).read_bytes())
+    (data_root / "cell_lines.yaml").write_bytes(cell_name_parser._registry_path().read_bytes())
+    (data_root / "pmid_overrides.yaml").write_text(
+        "- pmid: 99999999\n"
+        "  restriction_evidence: experimental\n"
+        "  peptide_attributions: attributions.csv\n"
+    )
+    (data_root / "attributions.csv").write_text("peptide,sample\nAAAAAAAAA,donor_a\n")
+    monkeypatch.setattr(curation, "_data_path", lambda name: str(data_root / name))
+    monkeypatch.setattr(cell_name_parser, "_registry_path", lambda: data_root / "cell_lines.yaml")
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path / "indexes")
+    return data_root
+
+
+@pytest.mark.parametrize(
+    "filename",
+    [
+        "pmid_overrides.yaml",
+        "tissue_categories.yaml",
+        "monoallelic_lines.yaml",
+        "cell_lines.yaml",
+        "attributions.csv",
+    ],
+)
+def test_cache_invalidates_curation_content_changes(isolated_curation, filename):
+    """A same-size edit with restored mtime must invalidate stored annotations."""
+    from hitlist import builder
+
+    path = isolated_curation / filename
+    path.write_text(path.read_text() + "\n# review a\n")
+    for name in ("observations", "binding", "bulk_proteomics", "line_expression"):
+        builder._atomic_write_parquet(
+            pd.DataFrame({"peptide": ["AAAAAAAAA"]}), builder.data_dir() / f"{name}.parquet"
+        )
+    _meta_path().write_text(
+        json.dumps(
+            {
+                "artifact_version": _OBSERVATIONS_ARTIFACT_VERSION,
+                "sources": _source_fingerprints({}),
+                "parquets": builder._parquet_fingerprints(),
+            }
+        )
+    )
+    assert _cache_is_valid({})
+    stat = path.stat()
+    content = path.read_text()
+    path.write_text(content.replace("# review a", "# review b"))
+    os.utime(path, ns=(stat.st_atime_ns, stat.st_mtime_ns))
+    assert path.stat().st_size == stat.st_size
+    assert not _cache_is_valid({})
+
+
+def test_cache_tracks_new_attribution_reference(isolated_curation):
+    """An already-warm YAML loader must not hide newly referenced input files."""
+    from hitlist import curation
+
+    curation.load_pmid_overrides.cache_clear()
+    try:
+        curation.load_pmid_overrides()
+        path = isolated_curation / "pmid_overrides.yaml"
+        path.write_text(path.read_text().replace("attributions.csv", "new.csv"))
+        csv_path = isolated_curation / "new.csv"
+        csv_path.write_text("peptide,sample\nCCCCCCCCC,donor_b\n")
+        fingerprints = _source_fingerprints({})
+        assert str(csv_path) in {value.get("path") for value in fingerprints.values()}
+    finally:
+        curation.load_pmid_overrides.cache_clear()
+
+
+def test_curation_change_rebuilds_stored_evidence(isolated_curation, tmp_path, monkeypatch):
+    """Two normal builds in one interpreter must persist changed curation."""
+    from hitlist import builder, curation, downloads, supplement
+    from tests.test_build_smoke import _write_synthetic_iedb
+
+    csv_path = tmp_path / "iedb.csv"
+    _write_synthetic_iedb(csv_path)
+    overrides = isolated_curation / "pmid_overrides.yaml"
+    overrides.write_text(
+        "- pmid: 33858848\n  restriction_evidence: experimental\n  override: cancer_patient\n"
+    )
+    downloads.register("iedb", csv_path)
+    monkeypatch.setattr(supplement, "scan_supplementary", lambda **kwargs: pd.DataFrame())
+
+    def write_empty_index(path):
+        frame = pd.DataFrame()
+        builder._atomic_write_parquet(frame, path)
+        return frame
+
+    monkeypatch.setattr(
+        builder,
+        "build_bulk_proteomics",
+        lambda **kw: write_empty_index(builder._bulk_proteomics_path()),
+    )
+    monkeypatch.setattr(
+        builder,
+        "build_line_expression",
+        lambda **kw: write_empty_index(builder._line_expression_path()),
+    )
+    curation._clear_curation_caches()
+    try:
+        path = builder.build_observations(build_mappings=False)
+        first = pd.read_parquet(path)
+        assert set(first.loc[first.pmid == 33858848, "restriction_evidence"]) == {"experimental"}
+        assert first.loc[first.pmid == 33858848, "src_cancer"].all()
+        assert _cache_is_valid(builder._source_paths())
+
+        overrides.write_text(
+            "- pmid: 33858848\n  restriction_evidence: predicted\n  override: healthy\n"
+        )
+        builder.build_observations(build_mappings=False)
+        second = pd.read_parquet(path)
+        assert set(second.loc[second.pmid == 33858848, "restriction_evidence"]) == {"predicted"}
+        assert not second.loc[second.pmid == 33858848, "src_cancer"].any()
+        identity_columns = ["assay_iri", "peptide", "pmid", "mhc_restriction"]
+        pd.testing.assert_frame_equal(first[identity_columns], second[identity_columns])
+    finally:
+        curation._clear_curation_caches()
 
 
 def test_source_fingerprints_includes_supplementary_csvs(tmp_path):

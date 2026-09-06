@@ -43,10 +43,12 @@ CLI::
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import json
 from pathlib import Path
 
 import pandas as pd
+import yaml
 
 from .downloads import data_dir
 
@@ -81,6 +83,7 @@ def _stat_fingerprint(path: Path) -> dict:
 def _source_fingerprints(paths: dict[str, Path]) -> dict:
     """File identity for cache invalidation."""
     fp = {name: _stat_fingerprint(p) for name, p in paths.items()}
+    fp.update(_curation_fingerprints())
     # Include supplementary manifest so adding a new supplement invalidates cache
     from .supplement import load_supplementary_manifest, manifest_path
 
@@ -130,6 +133,34 @@ def _source_fingerprints(paths: dict[str, Path]) -> dict:
             fp[f"line_expression_input:{key}"] = _stat_fingerprint(p)
 
     return fp
+
+
+def _curation_fingerprints() -> dict:
+    """Content identity of inputs used to annotate persisted evidence (#424)."""
+    from .cell_name_parser import _registry_path
+    from .curation import _asset_path, _data_path
+
+    paths = {
+        name: Path(_data_path(name))
+        for name in ("pmid_overrides.yaml", "tissue_categories.yaml", "monoallelic_lines.yaml")
+    }
+    paths["cell_lines.yaml"] = _registry_path()
+    # Read the on-disk YAML, not the cached curation loader: an edit may add
+    # or remove a dependency while this interpreter still has the old map.
+    entries = yaml.safe_load(paths["pmid_overrides.yaml"].read_text()) or []
+    for entry in entries:
+        rel_path = entry.get("peptide_attributions")
+        if rel_path:
+            paths[rel_path] = Path(_asset_path(rel_path))
+    return {
+        f"curation:{name}": {
+            **_stat_fingerprint(path),
+            # These inputs are small. Hashing detects same-size edits even
+            # when a checkout or copy preserves the file's timestamp.
+            "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+        }
+        for name, path in sorted(paths.items())
+    }
 
 
 def _observations_path() -> Path:
@@ -610,6 +641,11 @@ def build_observations(
         Path to ``observations.parquet`` (the MS index).  The binding
         index is written alongside at ``binding.parquet``.
     """
+    from .curation import _clear_curation_caches
+
+    # A rebuild in a long-lived Python process must use the same current
+    # curation whose fingerprints will be written into its metadata.
+    _clear_curation_caches()
     paths = _source_paths()
     if not paths:
         raise FileNotFoundError(
