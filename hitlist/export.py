@@ -809,6 +809,10 @@ def generate_observations_table(
         obs_filters["source"] = source
     if mhc_allele is not None:
         obs_filters["mhc_restriction"] = mhc_allele
+    if mhc_allele_in_set is not None:
+        obs_filters["mhc_allele_in_set"] = _to_list(mhc_allele_in_set)
+    if mhc_allele_provenance is not None:
+        obs_filters["mhc_allele_provenance"] = _to_list(mhc_allele_provenance)
     obs_filters.update(_gene_observation_filters(resolved_gene_names, resolved_gene_ids, peptide))
     if restriction_evidence is not None:
         obs_filters["restriction_evidence"] = restriction_evidence
@@ -849,16 +853,6 @@ def generate_observations_table(
                 lambda a: allele_resolution_rank(classify_allele_resolution(a)) <= min_rank
             )
         ]
-
-    # Allele-set filters (issue #137).  Degrade gracefully on pre-v1.23.0
-    # builds where the column is absent.
-    if mhc_allele_provenance is not None and "mhc_allele_provenance" in obs.columns:
-        wanted_prov = set(_to_list(mhc_allele_provenance))
-        obs = obs[obs["mhc_allele_provenance"].isin(wanted_prov)]
-    if mhc_allele_in_set is not None and "mhc_allele_set" in obs.columns:
-        wanted_set = {a.strip() for a in _to_list(mhc_allele_in_set)}
-        set_col = obs["mhc_allele_set"].fillna("").astype(str)
-        obs = obs[set_col.apply(lambda s: any(a in s.split(";") for a in wanted_set))]
 
     # --- Load sample metadata ---
     samples = generate_ms_samples_table(mhc_class=mhc_class)
@@ -1788,6 +1782,10 @@ def generate_binding_table(
         bind_filters["source"] = source
     if mhc_allele is not None:
         bind_filters["mhc_restriction"] = mhc_allele
+    if mhc_allele_in_set is not None:
+        bind_filters["mhc_allele_in_set"] = _to_list(mhc_allele_in_set)
+    if mhc_allele_provenance is not None:
+        bind_filters["mhc_allele_provenance"] = _to_list(mhc_allele_provenance)
     bind_filters.update(_gene_observation_filters(resolved_gene_names, resolved_gene_ids, peptide))
     if restriction_evidence is not None:
         bind_filters["restriction_evidence"] = restriction_evidence
@@ -1848,17 +1846,6 @@ def generate_binding_table(
             df["quantitative_value"].notna()
             & (df["quantitative_value"] <= float(quantitative_value_max))
         ]
-
-    # Allele-set filters (issue #137).  Both filters degrade gracefully
-    # when the columns are absent (pre-v1.23.0 builds) — the row passes
-    # through unaffected.
-    if mhc_allele_provenance is not None and "mhc_allele_provenance" in df.columns:
-        wanted_prov = set(_to_list(mhc_allele_provenance))
-        df = df[df["mhc_allele_provenance"].isin(wanted_prov)]
-    if mhc_allele_in_set is not None and "mhc_allele_set" in df.columns:
-        wanted_set = {a.strip() for a in _to_list(mhc_allele_in_set)}
-        set_col = df["mhc_allele_set"].fillna("").astype(str)
-        df = df[set_col.apply(lambda s: any(a in s.split(";") for a in wanted_set))]
 
     if columns:
         available = [c for c in columns if c in df.columns]
