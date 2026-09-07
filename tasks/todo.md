@@ -35,7 +35,7 @@
 - [x] Recheck the reported defects, current main, existing PRs, and release scripts.
 - [x] PR 1: add failing cache/rebuild regressions; implement #424; review; format, lint, test;
       bump version; open PR; require all CI checks; merge; deploy from clean main; verify PyPI.
-- [ ] PR 2: add mixed-query and mapping-expansion regressions; implement #425; run all gates;
+- [x] PR 2: add mixed-query and mapping-expansion regressions; implement #425; run all gates;
       bump version; open PR; require CI; merge; deploy from clean main; verify PyPI.
 - [ ] PR 3: add projected-filter regressions; implement #426; run all gates; bump version;
       open PR; require CI; merge; deploy from clean main; verify PyPI.
@@ -70,7 +70,12 @@ fixtures must be independent of the developer's data cache. Required release val
   bind to a large-string parquet column. The shared loader now types its peptide value set so
   unmatched queries and empty intersections return zero rows. Targeted export/loader tests pass
   201 tests. Format and lint pass; `./test.sh` passes 1,232 tests with one expected warning.
-  Version is 1.58.2; CI, merge, and deployment pending.
+  PR #431 passed all CI jobs, merged, and shipped as 1.58.2. Its complete release suite passed
+  1,256 tests. Both distribution hashes match the published PyPI artifacts.
+- PR 3 adds the raw `species` fallback to the columns read for species-axis filters. All six
+  new full/projected regressions pass, and the focused observations suite passes 45 tests.
+  The branch is rebased on PR #431 and bumped to 1.58.3. Format and lint pass; the default suite
+  passes 1,238 tests with one expected warning. CI, merge, and deployment are pending.
 
 ---
 
