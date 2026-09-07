@@ -809,12 +809,7 @@ def generate_observations_table(
         obs_filters["source"] = source
     if mhc_allele is not None:
         obs_filters["mhc_restriction"] = mhc_allele
-    if resolved_gene_names:
-        obs_filters["gene_name"] = sorted(resolved_gene_names)
-    if resolved_gene_ids:
-        obs_filters["gene_id"] = sorted(resolved_gene_ids)
-    if peptide is not None:
-        obs_filters["peptide"] = peptide
+    obs_filters.update(_gene_observation_filters(resolved_gene_names, resolved_gene_ids, peptide))
     if restriction_evidence is not None:
         obs_filters["restriction_evidence"] = restriction_evidence
     if serotype is not None:
@@ -1793,12 +1788,7 @@ def generate_binding_table(
         bind_filters["source"] = source
     if mhc_allele is not None:
         bind_filters["mhc_restriction"] = mhc_allele
-    if resolved_gene_names:
-        bind_filters["gene_name"] = sorted(resolved_gene_names)
-    if resolved_gene_ids:
-        bind_filters["gene_id"] = sorted(resolved_gene_ids)
-    if peptide is not None:
-        bind_filters["peptide"] = peptide
+    bind_filters.update(_gene_observation_filters(resolved_gene_names, resolved_gene_ids, peptide))
     if restriction_evidence is not None:
         bind_filters["restriction_evidence"] = restriction_evidence
     if serotype is not None:
@@ -2328,6 +2318,53 @@ def _apply_training_defaults(df: pd.DataFrame) -> pd.DataFrame:
     return result
 
 
+def _load_gene_union_mappings(
+    *,
+    gene_name: list[str] | None = None,
+    gene_id: list[str] | None = None,
+    peptide: list[str] | None = None,
+    columns: list[str] | None = None,
+) -> pd.DataFrame:
+    """Select mapping rows matching either gene identifier axis (#425).
+
+    The low-level loader intentionally ANDs separately supplied column
+    filters. An export's gene query instead names alternatives, so mixed
+    symbols/IDs need a union. Deduplicate rows that match both identifiers.
+    """
+    from .mappings import load_peptide_mappings
+
+    if not (gene_name and gene_id):
+        return load_peptide_mappings(
+            gene_name=gene_name, gene_id=gene_id, peptide=peptide, columns=columns
+        )
+    by_name = load_peptide_mappings(gene_name=gene_name, peptide=peptide, columns=columns)
+    by_id = load_peptide_mappings(gene_id=gene_id, peptide=peptide, columns=columns)
+    return pd.concat([by_name, by_id], ignore_index=True).drop_duplicates(ignore_index=True)
+
+
+def _gene_observation_filters(
+    gene_names: set[str], gene_ids: set[str], peptide: str | list[str] | None
+) -> dict:
+    """Translate the export's gene alternatives to a loader-safe peptide filter."""
+    filters: dict = {}
+    if gene_names and gene_ids:
+        mappings = _load_gene_union_mappings(
+            gene_name=sorted(gene_names), gene_id=sorted(gene_ids), columns=["peptide"]
+        )
+        matches = set(mappings["peptide"].dropna())
+        if peptide is not None:
+            matches.intersection_update(_to_list(peptide))
+        filters["peptide"] = sorted(matches)
+    else:
+        if gene_names:
+            filters["gene_name"] = sorted(gene_names)
+        if gene_ids:
+            filters["gene_id"] = sorted(gene_ids)
+        if peptide is not None:
+            filters["peptide"] = peptide
+    return filters
+
+
 def _load_training_mappings_for_peptides(
     peptides: pd.Series | list[str],
     gene_name: list[str] | None = None,
@@ -2339,8 +2376,6 @@ def _load_training_mappings_for_peptides(
     back to a full mappings scan plus an in-memory peptide filter to avoid
     constructing a huge ``IN (...)`` predicate for pyarrow.
     """
-    from .mappings import load_peptide_mappings
-
     wanted = sorted({str(p).strip() for p in peptides if str(p).strip()})
     columns = ["peptide", *_TRAINING_MAPPING_COLUMNS]
     if not wanted:
@@ -2353,9 +2388,9 @@ def _load_training_mappings_for_peptides(
         filter_kwargs["gene_id"] = gene_id
 
     if len(wanted) <= 10_000:
-        return load_peptide_mappings(peptide=wanted, columns=columns, **filter_kwargs)
+        return _load_gene_union_mappings(peptide=wanted, columns=columns, **filter_kwargs)
 
-    mappings = load_peptide_mappings(columns=columns, **filter_kwargs)
+    mappings = _load_gene_union_mappings(columns=columns, **filter_kwargs)
     return mappings[mappings["peptide"].isin(set(wanted))]
 
 

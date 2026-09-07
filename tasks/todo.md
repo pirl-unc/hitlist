@@ -21,7 +21,7 @@
 ## Execution and verification
 
 - [x] Recheck the reported defects, current main, existing PRs, and release scripts.
-- [ ] PR 1: add failing cache/rebuild regressions; implement #424; review; format, lint, test;
+- [x] PR 1: add failing cache/rebuild regressions; implement #424; review; format, lint, test;
       bump version; open PR; require all CI checks; merge; deploy from clean main; verify PyPI.
 - [ ] PR 2: add mixed-query and mapping-expansion regressions; implement #425; run all gates;
       bump version; open PR; require CI; merge; deploy from clean main; verify PyPI.
@@ -38,6 +38,12 @@ fixtures must be independent of the developer's data cache. Required release val
 
 ## Review
 
+- PR 2 design: keep the low-level mapping/observation filters conjunctive, and resolve the
+  export's combined gene-query axis through one internal union loader. Use that same helper
+  for evidence selection and source-protein expansion, deduplicating mappings that match both
+  name and ID. Explicit peptide filters intersect the selected gene peptides, including empty
+  intersections. Tests cover both evidence kinds, same-gene aliases, unknown queries, and shared
+  peptides whose unrelated source-protein mappings must remain excluded.
 - PR 1 implementation fingerprints the three curation YAMLs, cell-line registry, and every
   referenced peptide-attribution CSV with content hashes. Missing fingerprint entries invalidate
   old metadata automatically. Builds clear the file-backed curation caches and derived results.
@@ -46,7 +52,13 @@ fixtures must be independent of the developer's data cache. Required release val
   source category and restriction evidence now both change on the next normal build.
 - PR 1 validation: all seven new regressions pass; format and lint pass; `./test.sh` passes
   1,205 tests with one expected warning. The earlier focused builder/curation/smoke run passed
-  290 tests. Version is 1.58.1; CI, merge, and deployment pending.
+  290 tests. PR #429 passed every CI check, merged, and shipped as 1.58.1. The deployment's
+  complete suite passed 1,229 tests, and both wheel and sdist hashes match the PyPI artifacts.
+- PR 2's mixed-query regression also exposed #430: an untyped empty peptide IN predicate cannot
+  bind to a large-string parquet column. The shared loader now types its peptide value set so
+  unmatched queries and empty intersections return zero rows. Targeted export/loader tests pass
+  201 tests. Format and lint pass; `./test.sh` passes 1,232 tests with one expected warning.
+  Version is 1.58.2; CI, merge, and deployment pending.
 
 ---
 

@@ -135,6 +135,12 @@ presto = generate_training_table(
 
 `generate_observations_table()` remains available as a backward-compatible alias.
 
+Gene queries can mix symbols and Ensembl IDs: `gene=["PRAME", "ENSG00000198681"]` selects
+peptides matching either gene. An additional `peptide=` filter narrows that union. Mapping-expanded
+training exports retain only mappings for the selected genes, even when a peptide also maps to
+an unrelated gene. Separately supplied `gene_name` and `gene_id` filters on the low-level loaders
+remain conjunctive.
+
 Species filters accept any variant — `"Homo sapiens"`, `"human"`, `"homo_sapiens"`, `"Homo sapiens (human)"` all work.
 
 ### Raw observations loading
