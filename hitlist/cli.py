@@ -748,6 +748,7 @@ def main() -> None:
     )
     p_obs.add_argument("--class", dest="mhc_class", help="MHC class (I, II, or non-classical)")
     p_obs.add_argument("--species", help="Filter by MHC species")
+    _add_export_species_axis_args(p_obs)
     p_obs.add_argument("--instrument-type", help="Instrument type (Orbitrap, timsTOF)")
     p_obs.add_argument("--acquisition-mode", help="Acquisition mode (DDA, DIA, PRM)")
     p_obs.add_argument(
@@ -889,6 +890,7 @@ def main() -> None:
         "--class", dest="mhc_class", help="MHC class (I, II, or non-classical)"
     )
     p_pep_summary.add_argument("--species", help="Filter by MHC species")
+    _add_export_species_axis_args(p_pep_summary)
     p_pep_summary.add_argument(
         "--source",
         choices=["iedb", "cedar", "supplement"],
@@ -938,6 +940,7 @@ def main() -> None:
     )
     p_bind.add_argument("--class", dest="mhc_class", help="MHC class (I, II, or non-classical)")
     p_bind.add_argument("--species", help="Filter by MHC species")
+    _add_export_species_axis_args(p_bind)
     p_bind.add_argument(
         "--source",
         choices=["iedb", "cedar"],
@@ -1077,6 +1080,7 @@ def main() -> None:
     )
     p_training.add_argument("--class", dest="mhc_class", help="MHC class (I, II, or non-classical)")
     p_training.add_argument("--species", help="Filter by MHC species")
+    _add_export_species_axis_args(p_training)
     p_training.add_argument(
         "--source",
         choices=["iedb", "cedar", "supplement"],
@@ -2160,6 +2164,21 @@ def _export_bulk(args: argparse.Namespace):
     return pd.concat(frames, ignore_index=True, sort=False) if frames else pd.DataFrame()
 
 
+def _add_export_species_axis_args(parser: argparse.ArgumentParser) -> None:
+    """Keep independent species-axis filters available on every evidence export."""
+    parser.add_argument(
+        "--source-species",
+        nargs="+",
+        help="Filter by peptide-source proteome species (names or aliases)",
+    )
+    parser.add_argument(
+        "--host-species", nargs="+", help="Filter by host-cell species (names or aliases)"
+    )
+    parser.add_argument(
+        "--exclude-chimeric", action="store_true", help="Exclude observations flagged as chimeric"
+    )
+
+
 def _export_training(args: argparse.Namespace):
     """Run the ``hitlist export training`` subcommand."""
     from .export import generate_training_table
@@ -2168,6 +2187,9 @@ def _export_training(args: argparse.Namespace):
         include_evidence=getattr(args, "include_evidence", "both"),
         mhc_class=getattr(args, "mhc_class", None),
         species=getattr(args, "species", None),
+        source_species=getattr(args, "source_species", None),
+        host_species=getattr(args, "host_species", None),
+        exclude_chimeric=getattr(args, "exclude_chimeric", False),
         source=getattr(args, "source", None),
         instrument_type=getattr(args, "instrument_type", None),
         acquisition_mode=getattr(args, "acquisition_mode", None),
@@ -2208,6 +2230,9 @@ def _export_ms(args: argparse.Namespace):
     return generate_observations_table(
         mhc_class=args.mhc_class,
         species=getattr(args, "species", None),
+        source_species=getattr(args, "source_species", None),
+        host_species=getattr(args, "host_species", None),
+        exclude_chimeric=getattr(args, "exclude_chimeric", False),
         source=getattr(args, "source", None),
         instrument_type=getattr(args, "instrument_type", None),
         acquisition_mode=getattr(args, "acquisition_mode", None),
@@ -2235,6 +2260,9 @@ def _export_peptide_summary(args: argparse.Namespace):
     return generate_ms_peptide_summary_table(
         mhc_class=args.mhc_class,
         species=getattr(args, "species", None),
+        source_species=getattr(args, "source_species", None),
+        host_species=getattr(args, "host_species", None),
+        exclude_chimeric=getattr(args, "exclude_chimeric", False),
         source=getattr(args, "source", None),
         mhc_allele=getattr(args, "mhc_allele", None),
         serotype=getattr(args, "serotype", None),
@@ -2334,6 +2362,9 @@ def _export(args: argparse.Namespace) -> None:
             df = generate_binding_table(
                 mhc_class=args.mhc_class,
                 species=getattr(args, "species", None),
+                source_species=getattr(args, "source_species", None),
+                host_species=getattr(args, "host_species", None),
+                exclude_chimeric=getattr(args, "exclude_chimeric", False),
                 source=getattr(args, "source", None),
                 min_allele_resolution=getattr(args, "min_allele_resolution", None),
                 mhc_allele=getattr(args, "mhc_allele", None),

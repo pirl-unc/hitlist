@@ -147,6 +147,14 @@ raise `ValueError` consistently.
 
 Species filters accept any variant — `"Homo sapiens"`, `"human"`, `"homo_sapiens"`, `"Homo sapiens (human)"` all work.
 
+MS, binding, training, and peptide-summary exports support independent `source_species` and
+`host_species` filters, plus `exclude_chimeric=True`. The existing `species` filter selects MHC
+species. For example, `generate_training_table(species="human", source_species="mouse")` selects
+mouse-source peptides presented on human MHC. The matching CLI flags are `--source-species`,
+`--host-species`, and `--exclude-chimeric`; quote multiword species names. Defaults retain all
+species and chimeric systems. Source filtering and system flags both fall back to the raw
+`species` column when `source_organism` is blank; raw source annotations remain available.
+
 ### Raw observations loading
 
 ```python

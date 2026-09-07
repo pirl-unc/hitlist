@@ -731,6 +731,10 @@ def generate_observations_table(
     exclude_non_peptide_ligand: bool = True,
     apm_only: bool = False,
     columns: list[str] | None = None,
+    *,
+    source_species: str | list[str] | None = None,
+    host_species: str | list[str] | None = None,
+    exclude_chimeric: bool = False,
 ) -> pd.DataFrame:
     """Join per-peptide observations with per-sample metadata.
 
@@ -751,6 +755,11 @@ def generate_observations_table(
         Filter to ``"I"`` or ``"II"``.
     species
         Filter by MHC species (e.g. ``"Homo sapiens"``).
+    source_species, host_species
+        Filter independently by peptide-source proteome and host-cell species.
+        Accept the same species aliases and lists as the raw loaders.
+    exclude_chimeric
+        Exclude rows flagged as chimeric by the raw loader. Defaults to False.
     instrument_type
         Filter by instrument category (e.g. ``"Orbitrap"``).
     acquisition_mode
@@ -794,13 +803,17 @@ def generate_observations_table(
     FileNotFoundError
         If the observations table has not been built yet.
     """
-    from .observations import load_observations
+    from .observations import _source_organism_with_fallback, load_observations
 
     # --- Resolve gene query (may require HGNC lookup) up front ---
     resolved_gene_names, resolved_gene_ids = _resolve_gene_filters(gene, gene_name, gene_id)
 
     # --- Load observations with as many filters pushed to parquet as possible ---
-    obs_filters: dict = {}
+    obs_filters: dict = {
+        "source_species": source_species,
+        "host_species": host_species,
+        "exclude_chimeric": exclude_chimeric,
+    }
     if mhc_class:
         obs_filters["mhc_class"] = mhc_class
     if species:
@@ -1520,17 +1533,18 @@ def generate_observations_table(
     )
 
     # --- Chimeric experimental system flag (#46 down-payment) ---
-    if "source_organism" in obs.columns and "mhc_species" in obs.columns:
-        obs["is_chimeric"] = _compute_is_chimeric(obs["source_organism"], obs["mhc_species"])
+    source_organism = _source_organism_with_fallback(obs)
+    if "mhc_species" in obs.columns:
+        obs["is_chimeric"] = _compute_is_chimeric(source_organism, obs["mhc_species"])
     else:
         obs["is_chimeric"] = False
 
     # --- Engineered-MHC flag (#226): narrows is_chimeric to rows where the
     # MHC is heterologous to the host cells, vs heterologous-antigen rows
     # that present a foreign protein on the host's native MHC. ---
-    if "source_organism" in obs.columns and "mhc_species" in obs.columns and "host" in obs.columns:
+    if "mhc_species" in obs.columns and "host" in obs.columns:
         obs["is_engineered_mhc"] = _compute_is_engineered_mhc(
-            obs["source_organism"], obs["mhc_species"], obs["host"]
+            source_organism, obs["mhc_species"], obs["host"]
         )
     else:
         obs["is_engineered_mhc"] = False
@@ -1607,6 +1621,10 @@ def generate_ms_observations_table(
     exclude_non_peptide_ligand: bool = True,
     apm_only: bool = False,
     columns: list[str] | None = None,
+    *,
+    source_species: str | list[str] | None = None,
+    host_species: str | list[str] | None = None,
+    exclude_chimeric: bool = False,
 ) -> pd.DataFrame:
     """MS observations table: per-peptide rows joined with per-sample metadata.
 
@@ -1620,6 +1638,9 @@ def generate_ms_observations_table(
     return generate_observations_table(
         mhc_class=mhc_class,
         species=species,
+        source_species=source_species,
+        host_species=host_species,
+        exclude_chimeric=exclude_chimeric,
         source=source,
         instrument_type=instrument_type,
         acquisition_mode=acquisition_mode,
@@ -1671,6 +1692,9 @@ def generate_binding_table(
     *,
     exclude_class_label_suspect: bool = False,
     exclude_class_label_implausible: bool = False,
+    source_species: str | list[str] | None = None,
+    host_species: str | list[str] | None = None,
+    exclude_chimeric: bool = False,
 ) -> pd.DataFrame:
     """Load the binding-assay index with optional filters.
 
@@ -1773,7 +1797,11 @@ def generate_binding_table(
 
     resolved_gene_names, resolved_gene_ids = _resolve_gene_filters(gene, gene_name, gene_id)
 
-    bind_filters: dict = {}
+    bind_filters: dict = {
+        "source_species": source_species,
+        "host_species": host_species,
+        "exclude_chimeric": exclude_chimeric,
+    }
     if mhc_class:
         bind_filters["mhc_class"] = mhc_class
     if species:
@@ -2198,6 +2226,8 @@ def _attach_peptide_origin(
 
 def _apply_training_defaults(df: pd.DataFrame) -> pd.DataFrame:
     """Normalize the mixed MS/binding export schema."""
+    from .observations import _source_organism_with_fallback
+
     result = df.copy()
 
     if "sample_mhc" not in result.columns and "mhc" in result.columns:
@@ -2225,20 +2255,15 @@ def _apply_training_defaults(df: pd.DataFrame) -> pd.DataFrame:
     elif "has_peptide_level_allele" not in result.columns:
         result["has_peptide_level_allele"] = False
 
-    if "source_organism" in result.columns and "mhc_species" in result.columns:
-        result["is_chimeric"] = _compute_is_chimeric(
-            result["source_organism"], result["mhc_species"]
-        )
+    source_organism = _source_organism_with_fallback(result)
+    if "mhc_species" in result.columns:
+        result["is_chimeric"] = _compute_is_chimeric(source_organism, result["mhc_species"])
     elif "is_chimeric" not in result.columns:
         result["is_chimeric"] = False
 
-    if (
-        "source_organism" in result.columns
-        and "mhc_species" in result.columns
-        and "host" in result.columns
-    ):
+    if "mhc_species" in result.columns and "host" in result.columns:
         result["is_engineered_mhc"] = _compute_is_engineered_mhc(
-            result["source_organism"], result["mhc_species"], result["host"]
+            source_organism, result["mhc_species"], result["host"]
         )
     elif "is_engineered_mhc" not in result.columns:
         result["is_engineered_mhc"] = False
@@ -2423,6 +2448,9 @@ def generate_training_table(
     exclude_class_label_suspect: bool = False,
     exclude_class_label_implausible: bool = False,
     exclude_non_peptide_ligand: bool = True,
+    source_species: str | list[str] | None = None,
+    host_species: str | list[str] | None = None,
+    exclude_chimeric: bool = False,
 ) -> pd.DataFrame:
     """Export a unified pMHC training table.
 
@@ -2500,6 +2528,9 @@ def generate_training_table(
     shared_kwargs = {
         "mhc_class": mhc_class,
         "species": species,
+        "source_species": source_species,
+        "host_species": host_species,
+        "exclude_chimeric": exclude_chimeric,
         "source": source,
         "min_allele_resolution": min_allele_resolution,
         "mhc_allele": mhc_allele,
@@ -3140,6 +3171,10 @@ def generate_ms_peptide_summary_table(
     gene_id: str | list[str] | None = None,
     peptide: str | list[str] | None = None,
     columns: list[str] | None = None,
+    *,
+    source_species: str | list[str] | None = None,
+    host_species: str | list[str] | None = None,
+    exclude_chimeric: bool = False,
 ) -> pd.DataFrame:
     """Summarize per-peptide MS support for one target allele or serotype.
 
@@ -3180,6 +3215,9 @@ def generate_ms_peptide_summary_table(
     df = generate_observations_table(
         mhc_class=mhc_class or target_mhc_class or None,
         species=species,
+        source_species=source_species,
+        host_species=host_species,
+        exclude_chimeric=exclude_chimeric,
         source=source,
         gene=gene,
         gene_name=gene_name,

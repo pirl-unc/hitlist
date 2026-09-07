@@ -464,6 +464,18 @@ _SPECIES_AXIS_COLUMNS: tuple[str, ...] = (
 )
 
 
+def _source_organism_with_fallback(df: pd.DataFrame) -> pd.Series:
+    """Resolve the source input consistently for species filters and system flags."""
+    source = (
+        df["source_organism"].fillna("").astype(str)
+        if "source_organism" in df.columns
+        else pd.Series("", index=df.index)
+    )
+    if "species" in df.columns:
+        source = source.where(source.str.strip() != "", df["species"].fillna("").astype(str))
+    return source
+
+
 def _attach_species_axes(df: pd.DataFrame) -> pd.DataFrame:
     """Add the #46 multi-axis species columns to ``df`` in place.
 
@@ -488,37 +500,20 @@ def _attach_species_axes(df: pd.DataFrame) -> pd.DataFrame:
     host = (
         df["host"].fillna("").astype(str) if "host" in df.columns else pd.Series("", index=df.index)
     )
-    src = (
-        df["source_organism"].fillna("").astype(str)
-        if "source_organism" in df.columns
-        else pd.Series("", index=df.index)
-    )
+    src = _source_organism_with_fallback(df)
     mhc = (
         df["mhc_species"].fillna("").astype(str)
         if "mhc_species" in df.columns
         else pd.Series("", index=df.index)
     )
-    # The source-proteome axis lives in two IEDB columns (#306): source_organism
-    # (strain-level) and species (species-rank).  Coalesce so source_species is
-    # resolved when EITHER is populated.
-    spc = (
-        df["species"].fillna("").astype(str)
-        if "species" in df.columns
-        else pd.Series("", index=df.index)
-    )
-
     if "host_organism" not in df.columns:
         uniq = host.dropna().unique()
         m = {h: normalize_species(h) for h in uniq}
         df["host_organism"] = host.map(m).fillna("")
     if "source_species" not in df.columns:
-        uniq = set(src.dropna().unique()) | set(spc.dropna().unique())
+        uniq = src.unique()
         m = {s: normalize_species(s) for s in uniq}
-        # Prefer source_organism's normalized form; fall back to species when
-        # source_organism is blank/unresolved (#306 coalesce).
-        from_src = src.map(m).fillna("")
-        from_spc = spc.map(m).fillna("")
-        df["source_species"] = from_src.where(from_src != "", from_spc)
+        df["source_species"] = src.map(m).fillna("")
     if "is_chimeric" not in df.columns:
         pairs = {(s, m) for s, m in zip(src, mhc)}
         flag = {p: is_chimeric_system(*p) for p in pairs}
