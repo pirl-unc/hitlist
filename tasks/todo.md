@@ -48,7 +48,7 @@
       bump version; open PR; require all CI checks; merge; deploy from clean main; verify PyPI.
 - [x] PR 2: add mixed-query and mapping-expansion regressions; implement #425; run all gates;
       bump version; open PR; require CI; merge; deploy from clean main; verify PyPI.
-- [ ] PR 3: add projected-filter regressions; implement #426; run all gates; bump version;
+- [x] PR 3: add projected-filter regressions; implement #426; run all gates; bump version;
       open PR; require CI; merge; deploy from clean main; verify PyPI.
 - [ ] PR 4: add loader/export parity regressions; implement #427; run all gates; bump version;
       open PR; require CI; merge; deploy from clean main; verify PyPI.
@@ -86,13 +86,15 @@ fixtures must be independent of the developer's data cache. Required release val
 - PR 3 adds the raw `species` fallback to the columns read for species-axis filters. All six
   new full/projected regressions pass, and the focused observations suite passes 45 tests.
   The branch is rebased on PR #431 and bumped to 1.58.3. Format and lint pass; the default suite
-  passes 1,238 tests with one expected warning. PR #432 passed every CI job and merged;
-  deployment verification is pending.
+  passes 1,238 tests with one expected warning. PR #432 passed every CI job, merged, and
+  shipped as 1.58.3. Its complete release suite passed 1,262 tests, and both distribution
+  hashes match the published PyPI artifacts.
 - PR 4 deletes the duplicate export membership filters and forwards both allele-set and
   provenance arguments through the loaders. All 42 new parity regressions pass; the combined
   export suite passes 200 tests. The branch incorporates PR #432's species fix and is bumped
   to 1.58.4. Format and lint pass; the default suite passes 1,280 tests with one expected
-  warning. CI, merge, and deployment are pending.
+  warning. All seven original review reproductions pass on the combined series. CI, merge,
+  and deployment are pending.
 
 ## Next priorities after this series
 
