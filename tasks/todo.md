@@ -10,6 +10,17 @@
 
 ---
 
+# PR 4 specification — #427
+
+- Forward allele-set and provenance filters through the shared observations/binding loaders,
+  preserving the export's comma-separated list input handling, and delete the duplicate filters.
+- Verify canonical/bare/case-variant alleles, list and comma-separated inputs, combined provenance
+  filters, and explicit empty inputs across raw loaders, MS/binding exports, and training modes.
+- Ship as 1.58.4 after the preceding PRs have merged and deployed. Run format, lint, and the full
+  default suite on the final branch, require every CI check, and deploy from clean main.
+
+---
+
 # Data consistency release series — issues #424–#427
 
 ## Priority and acceptance contract
