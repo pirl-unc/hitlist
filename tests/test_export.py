@@ -2278,6 +2278,9 @@ def test_export_training_cli_helper(monkeypatch):
         "include_evidence": "both",
         "mhc_class": "I",
         "species": "Homo sapiens",
+        "source_species": None,
+        "host_species": None,
+        "exclude_chimeric": False,
         "source": "iedb",
         "instrument_type": "Orbitrap",
         "acquisition_mode": "DDA",
@@ -2990,6 +2993,9 @@ def test_export_peptide_summary_cli_helper(monkeypatch):
     assert captured == {
         "mhc_class": "I",
         "species": "Homo sapiens",
+        "source_species": None,
+        "host_species": None,
+        "exclude_chimeric": False,
         "source": "iedb",
         "mhc_allele": ["HLA-A*24:02"],
         "serotype": None,
@@ -3553,15 +3559,8 @@ _LOADER_ONLY_FILTERS = {
     "mhc_restriction",  # exposed as ``mhc_allele`` on the export layer
 }
 
-#: Loader filters genuinely missing from the export layer, so a caller
-#: cannot filter by species axis or exclude chimeric rows from an export.
-#: Tracked in #386 — listed here so the gap is visible rather than
-#: quietly absent from the parity set.
-_EXPORT_MISSING_FILTERS = {
-    "source_species",
-    "host_species",
-    "exclude_chimeric",
-}
+#: No export gaps remain after #386. Keep the staleness guard for future gaps.
+_EXPORT_MISSING_FILTERS = set()
 
 
 def test_observation_filter_signatures_stay_in_sync():
@@ -3591,6 +3590,7 @@ def test_observation_filter_signatures_stay_in_sync():
     )
     targets = [
         export.generate_observations_table,
+        export.generate_ms_observations_table,
         export.generate_binding_table,
         export.generate_training_table,
     ]

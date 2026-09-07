@@ -1,3 +1,45 @@
+# Species filters and sample-curation preservation — #386 / #373
+
+## Acceptance contract and order
+
+1. **#386 / 1.58.5:** expose source-species, host-species, and chimeric exclusion through
+   MS observations (including the compatibility wrapper), binding, training, peptide summaries,
+   and their CLI routes. Delegate selection to the existing loaders, preserving independent
+   MHC/source/host axes and their normalization. Defaults must retain the same evidence identities.
+   Explicit filters must select exactly the raw-loader evidence, including empty selections,
+   missing metadata, fallback source species, combinations, and narrow column projections.
+2. **#373 / 1.58.6:** audit every curated sample key and the affected papers/deposits before
+   deciding provenance semantics. Preserve explicit null versus absent overrides, sample caveats,
+   and ambiguous attribution. Apply arm metadata only where evidence identifies the arm; never
+   let adding a metadata field drop or multiply evidence rows. Add a schema guard against silently
+   ignored fields and source-linked audit notes for each affected study. File additional verified
+   defects separately and link them to the relevant PR.
+
+## Steps
+
+- [x] Read guidance, lessons, current code, issue premises, and open PRs; create isolated branches.
+- [x] Add failing species-filter parity and CLI regressions; implement the shared-loader routing.
+- [x] Compare default and filtered evidence identities, then run format, lint, and the test suite.
+- [ ] Open #386 PR; require CI, merge, deploy from clean main, verify wheel and source archive.
+- [ ] Audit #373's sample fields against code, raw evidence, papers, and deposit metadata.
+- [ ] Specify and test override/null/ambiguity semantics and metadata preservation; implement.
+- [ ] Run all required gates; open #373 PR; require CI, merge, deploy, verify published artifacts.
+- [ ] Record validation, remaining evidence limitations, and dependency-ordered follow-up work.
+
+## Review
+
+The 84 initial species regressions produced 74 failures and 10 passing default-behavior checks
+before implementation. All pass after routing the filters through the loaders. Additional cases
+cover lists and empty selections. This exposed #434: chimeric/system flags ignored the fallback
+source used by species filters. A shared source coalescing helper now feeds both, retaining the
+existing classifier and primary-source precedence. All 162 targeted species/observations tests
+pass; format and lint pass. The full default suite passes 1,389 tests with one expected warning.
+Two existing CLI forwarding assertions were updated for the new default arguments. A streaming
+audit covered all 4,439,643 MS and 891,885 binding rows: the fallback correction changes no
+chimeric classifications in the current corpus. CI, merge, and publication are pending.
+
+---
+
 # PR 3 specification — #426
 
 - Preserve the full-load source-species selection in projected loads by reading both raw
@@ -50,7 +92,7 @@
       bump version; open PR; require CI; merge; deploy from clean main; verify PyPI.
 - [x] PR 3: add projected-filter regressions; implement #426; run all gates; bump version;
       open PR; require CI; merge; deploy from clean main; verify PyPI.
-- [ ] PR 4: add loader/export parity regressions; implement #427; run all gates; bump version;
+- [x] PR 4: add loader/export parity regressions; implement #427; run all gates; bump version;
       open PR; require CI; merge; deploy from clean main; verify PyPI.
 - [x] Review remaining related Hitlist/ecosystem issues by dependency and data-quality impact.
 
@@ -93,8 +135,9 @@ fixtures must be independent of the developer's data cache. Required release val
   provenance arguments through the loaders. All 42 new parity regressions pass; the combined
   export suite passes 200 tests. The branch incorporates PR #432's species fix and is bumped
   to 1.58.4. Format and lint pass; the default suite passes 1,280 tests with one expected
-  warning. All seven original review reproductions pass on the combined series. CI, merge,
-  and deployment are pending.
+  warning. All seven original review reproductions pass on the combined series. PR #433 passed
+  every CI job, merged, and shipped as 1.58.4; all 1,304 release tests passed and both PyPI artifact
+  hashes matched the local builds. Final verification is also recorded in the PR description.
 
 ## Next priorities after this series
 
