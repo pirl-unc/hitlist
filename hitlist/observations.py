@@ -75,6 +75,7 @@ from functools import WRAPPER_ASSIGNMENTS, lru_cache, wraps
 from pathlib import Path
 
 import pandas as pd
+import pyarrow as pa
 import pyarrow.parquet as pq
 
 from .downloads import data_dir
@@ -631,7 +632,9 @@ def _load_peptide_index(
             )
         filters.append(("mhc_restriction", "in", matching))
     if peptide is not None:
-        filters.append(("peptide", "in", _as_list(peptide)))
+        # An untyped empty list becomes Arrow null, which cannot bind to a
+        # large_string peptide column. An empty query must match zero rows.
+        filters.append(("peptide", "in", pa.array(_as_list(peptide), type=pa.string())))
     if mhc_allele_provenance is not None:
         filters.append(("mhc_allele_provenance", "in", _as_list(mhc_allele_provenance)))
     if restriction_evidence is not None:

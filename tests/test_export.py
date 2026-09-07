@@ -1314,6 +1314,113 @@ def test_generate_observations_gene_filter_matches(tmp_path, monkeypatch):
     assert len(df) == 3
 
 
+@pytest.fixture
+def mixed_gene_indexes(tmp_path, monkeypatch):
+    """Two selected genes, an unrelated shared-peptide mapping, and an excluded peptide."""
+    from hitlist import downloads, genes
+
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
+    monkeypatch.setattr(genes, "resolve_hgnc_symbol", lambda query: ())
+    peptides = ["AAAAAAAAA", "CCCCCCCCC", "DDDDDDDDD"]
+    for kind, filename in (("ms", "observations.parquet"), ("binding", "binding.parquet")):
+        pd.DataFrame(
+            {
+                "peptide": peptides,
+                "mhc_restriction": ["HLA-A*02:01"] * 3,
+                "mhc_class": ["I"] * 3,
+                "mhc_species": ["Homo sapiens"] * 3,
+                "pmid": pd.array([99999999] * 3, dtype="Int64"),
+                "source": ["iedb"] * 3,
+                "assay_iri": [f"{kind}:{i}" for i in range(3)],
+            }
+        ).to_parquet(tmp_path / filename, index=False)
+    pd.DataFrame(
+        {
+            "peptide": ["AAAAAAAAA", "CCCCCCCCC", "AAAAAAAAA", "DDDDDDDDD"],
+            "gene_name": ["PRAME", "MAGEA1", "OTHER", "OTHER"],
+            "gene_id": ["ENSG00000185686", "ENSG00000198681", "ENSG00000999999", "ENSG00000999999"],
+            "protein_id": ["P_PRAME", "P_MAGEA1", "P_OTHER", "P_OTHER"],
+            "gene_biotype": ["protein_coding"] * 4,
+            "transcript_id": ["T_PRAME", "T_MAGEA1", "T_OTHER", "T_OTHER"],
+            "is_canonical_transcript": [True] * 4,
+            "position": [0, 0, 0, 10],
+            "n_flank": ["NN"] * 4,
+            "c_flank": ["CC"] * 4,
+            "proteome": ["Homo sapiens"] * 4,
+            "proteome_source": ["species"] * 4,
+        }
+    ).to_parquet(tmp_path / "peptide_mappings.parquet", index=False)
+
+
+@pytest.mark.parametrize("kind", ["ms", "binding"])
+@pytest.mark.parametrize(
+    "query,expected",
+    [
+        (["PRAME", "ENSG00000198681"], {"AAAAAAAAA", "CCCCCCCCC"}),
+        (["PRAME,ENSG00000198681"], {"AAAAAAAAA", "CCCCCCCCC"}),
+        (["PRAME", "ENSG00000185686"], {"AAAAAAAAA"}),
+        (["PRAME", "ENSG00000000000"], {"AAAAAAAAA"}),
+        (["NO_SUCH_GENE", "ENSG00000198681"], {"CCCCCCCCC"}),
+        (["NO_SUCH_GENE", "ENSG00000000000"], set()),
+    ],
+)
+def test_exports_union_mixed_gene_queries(mixed_gene_indexes, kind, query, expected):
+    from hitlist.export import generate_binding_table, generate_observations_table
+
+    generator = generate_observations_table if kind == "ms" else generate_binding_table
+    result = generator(gene=query)
+    assert set(result["peptide"]) == expected
+    assert len(result) == len(expected)
+
+
+@pytest.mark.parametrize("expanded", [False, True])
+@pytest.mark.parametrize("mode", ["ms", "binding", "both"])
+def test_training_gene_union_preserves_matching_mappings(mixed_gene_indexes, expanded, mode):
+    from hitlist.export import generate_training_table
+
+    result = generate_training_table(
+        include_evidence=mode,
+        gene=["PRAME", "ENSG00000198681", "ENSG00000185686"],
+        map_source_proteins=expanded,
+    )
+    assert set(result["peptide"]) == {"AAAAAAAAA", "CCCCCCCCC"}
+    assert len(result) == (4 if mode == "both" else 2)
+    assert result["evidence_row_id"].is_unique
+    if expanded:
+        assert set(result["protein_id"]) == {"P_PRAME", "P_MAGEA1"}
+
+
+@pytest.mark.parametrize(
+    "peptides,expected", [(["CCCCCCCCC"], {"CCCCCCCCC"}), (["DDDDDDDDD"], set()), ([], set())]
+)
+def test_gene_union_intersects_explicit_peptide_filter(mixed_gene_indexes, peptides, expected):
+    from hitlist.export import generate_training_table
+
+    result = generate_training_table(
+        gene=["PRAME", "ENSG00000198681"], peptide=peptides, map_source_proteins=True
+    )
+    assert set(result["peptide"]) == expected
+
+
+def test_low_level_gene_name_and_id_filters_still_intersect(mixed_gene_indexes):
+    from hitlist.mappings import load_peptide_mappings
+    from hitlist.observations import load_binding, load_observations
+
+    for loader in (load_peptide_mappings, load_observations, load_binding):
+        assert loader(gene_name="PRAME", gene_id="ENSG00000198681").empty
+
+
+def test_training_gene_union_large_peptide_selection(mixed_gene_indexes):
+    from hitlist.export import _load_training_mappings_for_peptides
+
+    peptides = ["AAAAAAAAA", "CCCCCCCCC", *[f"UNMATCHED{i}" for i in range(10_000)]]
+    result = _load_training_mappings_for_peptides(
+        peptides, gene_name=["PRAME"], gene_id=["ENSG00000198681", "ENSG00000185686"]
+    )
+    assert set(result["protein_id"]) == {"P_PRAME", "P_MAGEA1"}
+    assert len(result) == 2
+
+
 def test_generate_observations_mhc_allele_filter(tmp_path, monkeypatch):
     """--mhc-allele should filter exact allele matches (after normalization)."""
     import pandas as pd

@@ -94,6 +94,21 @@ def test_mhc_allele_in_set_filter_applies_under_projection(tmp_path, monkeypatch
     assert set(df.columns) == {"peptide"}  # helper column not leaked
 
 
+@pytest.mark.parametrize("loader", [load_observations, load_binding])
+@pytest.mark.parametrize("columns", [None, ["peptide"]])
+def test_empty_peptide_filter_returns_empty_table(tmp_path, monkeypatch, loader, columns):
+    import pandas as pd
+
+    from hitlist import downloads
+
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
+    for filename in ("observations.parquet", "binding.parquet"):
+        pd.DataFrame({"peptide": ["AAAAAAAAA"]}).to_parquet(tmp_path / filename, index=False)
+    result = loader(peptide=[], columns=columns)
+    assert result.empty
+    assert list(result.columns) == ["peptide"]
+
+
 def test_attach_species_axes_blanks_nan_host(tmp_path):
     """Regression: a NaN host must derive host_organism == "" (blank), not the
     phantom species "nan"/"None" that a bare astype(str) produced."""
