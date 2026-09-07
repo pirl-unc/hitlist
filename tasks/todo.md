@@ -1,3 +1,15 @@
+# PR 3 specification — #426
+
+- Preserve the full-load source-species selection in projected loads by reading both raw
+  source-organism inputs before the derived filter is evaluated.
+- Verify MS and binding with full output, peptide-only output, and explicit derived-column
+  output. Include blank/null source organisms, populated fallback species, a conflicting fallback
+  that must lose to the primary value, and unresolved rows.
+- Ship as 1.58.3 after the gene-query PR has merged and deployed. Run the required gates on the
+  final rebased branch; merge only after all CI checks pass, then deploy from clean main.
+
+---
+
 # Data consistency release series — issues #424–#427
 
 ## Priority and acceptance contract

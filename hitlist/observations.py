@@ -716,10 +716,10 @@ def _load_peptide_index(
             for dep in _DERIVED_COLUMN_DEPS["is_non_peptide_ligand"]:
                 if dep not in kept:
                     kept.append(dep)
-        # The #46 species-axis filters need host / source_organism /
-        # mhc_species read even when the derived axis columns aren't projected.
+        # Species-axis filters also need the raw species fallback (#426),
+        # even when source_species itself isn't projected.
         if exclude_chimeric or source_species is not None or host_species is not None:
-            for col in ("host", "source_organism", "mhc_species"):
+            for col in ("host", "source_organism", "species", "mhc_species"):
                 if col not in kept:
                     kept.append(col)
         # The mhc_allele_in_set filter reads mhc_allele_set post-load; without

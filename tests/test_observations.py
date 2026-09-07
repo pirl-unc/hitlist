@@ -1284,3 +1284,30 @@ def test_source_species_coalesces_species_when_source_organism_blank(tmp_path, m
     assert out.loc["AAAAAAAAA", "source_species"] == "Homo sapiens"  # from source_organism
     assert out.loc["CCCCCCCCC", "source_species"] == "Mus musculus"  # coalesced from species
     assert out.loc["DDDDDDDDD", "source_species"] == ""  # genuinely unresolved
+
+
+@pytest.mark.parametrize("loader", [load_observations, load_binding])
+@pytest.mark.parametrize("columns", [None, ["peptide"], ["peptide", "source_species"]])
+def test_source_species_filter_is_projection_independent(tmp_path, monkeypatch, loader, columns):
+    import pandas as pd
+
+    from hitlist import downloads
+
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
+    frame = pd.DataFrame(
+        {
+            "peptide": ["AAAAAAAAA", "CCCCCCCCC", "DDDDDDDDD", "EEEEEEEEE", "FFFFFFFFF"],
+            "mhc_restriction": ["HLA-A*02:01"] * 5,
+            "mhc_species": ["Homo sapiens"] * 5,
+            "host": ["Homo sapiens"] * 5,
+            "source_organism": ["Mus musculus", "", None, "Homo sapiens", ""],
+            "species": ["Homo sapiens", "Mus musculus", "Mus musculus", "Mus musculus", ""],
+        }
+    )
+    for filename in ("observations.parquet", "binding.parquet"):
+        frame.to_parquet(tmp_path / filename, index=False)
+
+    result = loader(source_species="Mus musculus", columns=columns)
+    assert set(result["peptide"]) == {"AAAAAAAAA", "CCCCCCCCC", "DDDDDDDDD"}
+    if columns is not None:
+        assert list(result.columns) == columns
