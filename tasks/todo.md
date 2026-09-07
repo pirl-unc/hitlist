@@ -52,7 +52,7 @@
       open PR; require CI; merge; deploy from clean main; verify PyPI.
 - [ ] PR 4: add loader/export parity regressions; implement #427; run all gates; bump version;
       open PR; require CI; merge; deploy from clean main; verify PyPI.
-- [ ] Review remaining related Hitlist/ecosystem issues by dependency and data-quality impact.
+- [x] Review remaining related Hitlist/ecosystem issues by dependency and data-quality impact.
 
 Each PR has its own feature branch and patch release. The actual `deploy.sh` publishes the
 version already in `hitlist/version.py`, so each bump is made explicitly in its PR. Reproduction
@@ -86,7 +86,30 @@ fixtures must be independent of the developer's data cache. Required release val
 - PR 3 adds the raw `species` fallback to the columns read for species-axis filters. All six
   new full/projected regressions pass, and the focused observations suite passes 45 tests.
   The branch is rebased on PR #431 and bumped to 1.58.3. Format and lint pass; the default suite
-  passes 1,238 tests with one expected warning. CI, merge, and deployment are pending.
+  passes 1,238 tests with one expected warning. PR #432 passed every CI job and merged;
+  deployment verification is pending.
+- PR 4 deletes the duplicate export membership filters and forwards both allele-set and
+  provenance arguments through the loaders. All 42 new parity regressions pass; the combined
+  export suite passes 200 tests. The branch incorporates PR #432's species fix and is bumped
+  to 1.58.4. Format and lint pass; the default suite passes 1,280 tests with one expected
+  warning. CI, merge, and deployment are pending.
+
+## Next priorities after this series
+
+1. **#386 — export species-filter parity.** Expose the loader's source-species, host-species,
+   and chimeric filters through exports. The projection fix in this series is its foundation.
+2. **#373 — sample-curation schema validation.** Reject or implement ignored sample `override`
+   and `note` fields, with explicit provenance semantics. Avoid accepting curation that has
+   no effect on the output.
+3. **#357 — expression coverage.** Make missing DepMap expression data visible and provide
+   an explicit acquisition path; resolved sample identifiers alone do not establish coverage.
+4. **Evidence-dependent curation.** Keep #359 and #366's ambiguous experimental arms unresolved
+   until source evidence distinguishes them. Resolve pirl-unc/mhcgnomes#190 before extending
+   the affected mouse curation in #364; track helper-gene parsing in mhcgnomes#191 separately.
+
+The related mhcgnomes and openvax/pyensembl backlogs were reviewed. Parser correctness is upstream
+of affected curation; unrelated parser display, packaging, and optional FASTA work do not block
+the four releases above.
 
 ---
 
