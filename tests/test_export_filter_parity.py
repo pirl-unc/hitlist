@@ -47,7 +47,9 @@ def test_export_allele_filters_match_loader(allele_indexes, loader, exporter, al
 
 
 @pytest.mark.parametrize("mode", ["ms", "binding", "both"])
-@pytest.mark.parametrize("alleles", [["A*02:01", "B*07:02"], "A*02:01,B*07:02", ["A*02:01,B*07:02"]])
+@pytest.mark.parametrize(
+    "alleles", [["A*02:01", "B*07:02"], "A*02:01,B*07:02", ["A*02:01,B*07:02"]]
+)
 def test_training_allele_filter_input_forms(allele_indexes, mode, alleles):
     result = generate_training_table(
         include_evidence=mode, mhc_allele_in_set=alleles, mhc_allele_provenance="exact"

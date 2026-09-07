@@ -141,6 +141,10 @@ training exports retain only mappings for the selected genes, even when a peptid
 an unrelated gene. Separately supplied `gene_name` and `gene_id` filters on the low-level loaders
 remain conjunctive.
 
+Allele-set filters use the same normalization in raw loaders and exports: `mhc_allele_in_set="A*02:01"`
+and `mhc_allele_in_set="HLA-A*02:01"` select the same evidence. Explicit empty allele-set queries
+raise `ValueError` consistently.
+
 Species filters accept any variant — `"Homo sapiens"`, `"human"`, `"homo_sapiens"`, `"Homo sapiens (human)"` all work.
 
 ### Raw observations loading
