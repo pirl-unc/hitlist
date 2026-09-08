@@ -2644,10 +2644,15 @@ def test_resolver_skips_apc_when_cell_name_varies(full_observations_df):
     text mentions "GR lymphoblastoid cell line" referring to the
     GR-LCL sample. Without the cell_name-varies guard, the C1R
     parental sample's "lymphoblastoid" token would falsely win those
-    rows via APC narrative. Verify B cell rows stay unassigned (no
-    GR-LCL/JY-specific identifier in the obs metadata to discriminate
-    those two samples) — and that the C1R-cell-name rows correctly
-    resolve to the C1R parental sample.
+    rows via APC narrative. Verify B cell rows stay unassigned — their
+    ``mhc_restriction`` is the full six-allele genotype rather than a
+    single allele, so no allele-level path can fire, and the guard
+    correctly declines to let a narrative token decide — and that the
+    C1R-cell-name rows resolve to the C1R parental sample.
+
+    The B-cell rows were unassigned before #436 removed the phantom JY
+    sample and remain unassigned after; JY was never a candidate for
+    them.
     """
     df = full_observations_df
     sub = df[df["pmid"] == 27846572]
@@ -3448,13 +3453,16 @@ def test_real_mixed_species_studies_keep_their_per_sample_species():
 
     samples = generate_ms_samples_table().set_index(["pmid", "sample_label"])
     assert samples.loc[(34129938, "MC38 mouse colon carcinoma"), "species"] == "Mus musculus"
-    assert samples.loc[(39438697, "mouse splenocytes (C57BL/6)"), "species"] == "Mus musculus"
+    assert (
+        samples.loc[(39438697, "mouse splenocytes (C57BL/6) + Alg8 peptide pulse"), "species"]
+        == "Mus musculus"
+    )
     # Their human co-samples in the same studies still resolve to human.
     assert (
         samples.loc[(34129938, "GRANTA-519 human mantle cell lymphoma"), "species"]
         == "Homo sapiens"
     )
-    assert samples.loc[(39438697, "THP-1 (human monocytic leukemia)"), "species"] == "Homo sapiens"
+    assert samples.loc[(39438697, "THP-1 wild-type + mock infection"), "species"] == "Homo sapiens"
 
 
 def test_non_classical_filter_matches_samples_in_both_spellings():

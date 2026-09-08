@@ -4044,44 +4044,58 @@
           Culture Condition: "Direct Ex Vivo"
         override: healthy
     note: >
-      GR-LCL, JY, C1R, HeLa, primary fibroblasts. Demonstrates ~1/3 of
+      GR-LCL, C1R, T2, and primary human fibroblasts. Demonstrates ~1/3 of
       immunopeptidome diversity is cis-spliced. Multiple cell types —
       per-sample rule routes Direct Ex Vivo primary fibroblasts through
       the healthy override so they are not mis-flagged as cancer.
+      CORRECTED #436: this note and the samples below previously listed JY and
+      HeLa. The paper names neither anywhere in its text, and the corpus has no
+      row for either — all 18,664 IEDB rows fall into exactly four groups
+      matching the four cell types above (B cell / EBV-LCL 11,733; Fibroblast
+      3,614; C1R 3,206; T2 111). Both were removed; T2, which the paper uses as
+      the TAP-deficient control and which carries 111 rows, was added.
     ms_samples:
       - sample_label: "GR-LCL (EBV-LCL)"
         condition: "unperturbed"
         mhc_class: "I"
-        mhc: "HLA-A*01 HLA-A*03 HLA-B*07 HLA-B*27 HLA-C*02 HLA-C*07"
-        reference_proteomes:
-          - uniprot: UP000153037
-            proteome_label: Epstein-Barr virus
-      - sample_label: "JY (EBV-LCL)"
-        condition: "unperturbed"
-        mhc_class: "I"
-        mhc: "HLA-A*02:01 HLA-B*07:02 HLA-C*07:02"
+        # Four-digit typing taken from the evidence itself: all 11,733 rows
+        # carry this exact restriction (#436).  Was two-digit.
+        mhc: "HLA-A*01:01 HLA-A*03:01 HLA-B*07:02 HLA-B*27:05 HLA-C*02:02 HLA-C*07:02"
         reference_proteomes:
           - uniprot: UP000153037
             proteome_label: Epstein-Barr virus
       - sample_label: "C1R parental (B-lymphoblastoid)"
         condition: "unperturbed"
         mhc_class: "I"
-        # Parental (un-transfected) C1R retains low endogenous
-        # expression of HLA-B*35:03 and HLA-Cw*04:01; HLA-A is silenced.
-        # Issue #207: previously carried the placeholder "HLA class I"
-        # which left ~3.2K rows unattributed.
-        mhc: "HLA-B*35:03 HLA-C*04:01"
+        # Parental (un-transfected) C1R retains low endogenous expression of
+        # HLA-B*35:03 and HLA-Cw*04:01; HLA-A is silenced.  Issue #207:
+        # previously carried the placeholder "HLA class I" which left ~3.2K
+        # rows unattributed.  #436 added HLA-B*40:02, which all 3,206 rows
+        # carry and the curated genotype omitted.
+        mhc: "HLA-B*35:03 HLA-B*40:02 HLA-C*04:01"
         note: >
           Parental C1R — no HLA transfection. C1R is the canonical
           HLA-class-I-deficient B-LCL host: HLA-A is silenced; HLA-B*35:03
-          and HLA-Cw*04:01 are expressed at low residual levels. Liepe
-          2016 used the parental line (data sourced from Bassani-Sternberg
-          2015, PMID 25576301) alongside transfected LCLs for the
-          proteasome-spliced-peptide analysis.
-      - sample_label: "HeLa (cervical carcinoma)"
+          and HLA-Cw*04:01 are expressed at low residual levels.
+          CORRECTED #436: this note previously sourced the C1R data to
+          Bassani-Sternberg 2015 (PMID 25576301). The paper cites its C1R
+          immunopeptidome to reference 5, Caron et al., eLife 4 (2015);
+          Bassani-Sternberg 2015 is reference 6, cited for the primary
+          fibroblasts. The attribution was exactly inverted. An earlier claim
+          that this line was analysed alongside HLA-transfected derivatives is
+          also unsupported by the paper and has been withdrawn.
+      - sample_label: "T2 (TAP-deficient lymphoblastoid)"
         condition: "unperturbed"
         mhc_class: "I"
-        mhc: "HLA-A*68:02 HLA-B*15:03 HLA-C*12:03"
+        # TAP-deficient control line (T2 / .174xCEM.T2).  All 111 rows carry
+        # HLA-A*02:01.  Added in #436 — the paper's TAP-deficiency control was
+        # absent from the curated samples entirely.
+        mhc: "HLA-A*02:01"
+        note: >
+          TAP-deficient control. The paper uses T2 to test proteasome
+          dependency: spliced peptides fall to 13% of its HLA-I
+          immunopeptidome, versus 25-33% elsewhere, while an unsorted cytosolic
+          pool from the same cells shows a normal 25%.
       - sample_label: "primary fibroblasts"
         condition: "unperturbed"
         mhc_class: "I"
@@ -6243,10 +6257,21 @@
     override:
     note: >
       SureQuant-IsoMHC method for absolute quantification of tumor-associated
-      peptides. Isotopologue pMHC standards spiked into IP eluates. A375
-      melanoma cell line ± MEKi (trametinib) plus 10 patient melanoma biopsies.
-      Quantified 18 tumor antigens ranging ~1-144,000 copies/cell.
-      PRIDE: PXD024917.
+      peptides. Isotopologue pMHC standards spiked into IP eluates. BRAF-mutant
+      melanoma line SKMEL5 (CVCL_0527) treated with 100 nM binimetinib (MEK
+      inhibitor) for 72 h versus a DMSO vehicle control, plus 10
+      HLA-A*02:01-positive human melanoma punch biopsies (1.1-5.0 mg lysate
+      each). Quantified 18 tumor antigens (Iso18 panel) ranging ~1-144,000
+      copies/cell. PRIDE: PXD024917.
+      CORRECTED #436: previously curated as A375 ± trametinib. The paper names
+      SKMEL5 and binimetinib throughout and mentions neither A375 nor
+      trametinib; PXD024917 file names agree
+      (SKMEL5_Binimetinib_100nM_HFX_PSMs.txt, SKMEL5_Transitions_DMSO_MEKi.xlsx).
+      The former per-sample genotype was A375's and has been withdrawn rather
+      than substituted: neither the paper nor cell_lines.yaml records SKMEL5's
+      HLA typing. The paper states only that the Iso18 targets were predicted
+      HLA-A*02:01 binders and that all 10 biopsies were HLA-A*02:01-positive,
+      which is a selection criterion, not a genotype.
     ip_antibody: W6/32
     acquisition_mode: "DDA + SureQuant PRM"
     instrument: "Exploris 480"
@@ -6254,30 +6279,27 @@
     labeling: "isotopologue pMHC standards"
     search_engine: "Proteome Discoverer"
     quantification_method: SureQuant-IsoMHC
-    hla_alleles:
-      A375:
-        - "HLA-A*01:01"
-        - "HLA-A*02:01"
-        - "HLA-B*44:03"
-        - "HLA-B*57:01"
-        - "HLA-C*06:02"
-        - "HLA-C*16:01"
     ms_samples:
-      - sample_label: "A375 melanoma (untreated)"
-        condition: "unperturbed"
+      # No hla_alleles block: the withdrawn A375 genotype was the only typing
+      # here and SKMEL5's is not recorded by the paper or by cell_lines.yaml.
+      - sample_label: "SKMEL5 melanoma + DMSO (control)"
+        condition: "unperturbed — DMSO vehicle control"
         mhc_class: "I"
-        mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*44:03 HLA-B*57:01 HLA-C*06:02 HLA-C*16:01"
+        mhc: "HLA class I"
+        source: "BRAF-mutant cutaneous melanoma line SKMEL5 (CVCL_0527), 7.5e6 cells / 5 mg lysate, n=3"
         override: cell_line
-      - sample_label: "A375 melanoma + trametinib (MEKi)"
-        condition: "MEK inhibitor (trametinib)"
+      - sample_label: "SKMEL5 melanoma + binimetinib (MEKi)"
+        condition: "MEK inhibitor (binimetinib, 100 nM, 72 h)"
         mhc_class: "I"
-        mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*44:03 HLA-B*57:01 HLA-C*06:02 HLA-C*16:01"
+        mhc: "HLA class I"
+        source: "BRAF-mutant cutaneous melanoma line SKMEL5 (CVCL_0527), 7.5e6 cells / 5 mg lysate, n=3"
         override: cell_line
       - sample_label: "patient melanoma biopsies"
         n_samples: 10
-        condition: "unperturbed — fresh tumor biopsies"
+        condition: "unperturbed — fresh tumor punch biopsies"
         mhc_class: "I"
         mhc: "HLA class I"
+        source: "10 HLA-A*02:01-positive human melanoma punch biopsies, 1.1-5.0 mg homogenized lysate"
         override:
 
   - pmid: 31253788
@@ -6328,7 +6350,17 @@
       TOMAHAQ (triggered by offset, multiplexed, accurate-mass, high-resolution,
       absolute quantification) on Orbitrap tribrid. MC38 mouse colon carcinoma
       (H-2Kb/Db) and GRANTA-519 human mantle cell lymphoma. TMT-based targeted
-      quantification of neoepitopes. MassIVE: MSV000086582.
+      quantification of neoepitopes. MassIVE: MSV000086582; figure code and data
+      at https://github.com/sbpollock/NeoToma2021.
+      The quantified arms use idAdpgkG MC38 — MC38 transfected (piggyBAC) with a
+      doxycycline-inducible Adpgk(R304M) neoantigen carrying an N-terminal
+      FKBP12(F36V) degron and a C-terminal turboGFP. Per Methods, all four arms
+      sit on a 20 ng/ml mouse IFN-gamma background: IFN-gamma alone 51 h
+      ("control"), IFN-gamma 48 h then 1 uM dTAG-13 for 3 h ("dTAG"),
+      IFN-gamma + 1 ug/ml doxycycline 51 h ("dox"), and IFN-gamma + doxycycline
+      48 h then dTAG-13 for 3 h ("both"). Curated as four arms per #436; the
+      single "unperturbed MC38" entry lost all of them and misread an
+      IFN-gamma-treated engineered derivative as an untreated parental line.
     ip_antibody: "Y-3 (H-2Kb) / W6/32 (human)"
     acquisition_mode: "TOMAHAQ (triggered PRM)"
     instrument: "Orbitrap Fusion Lumos"
@@ -6336,9 +6368,41 @@
     labeling: TMT
     search_engine: "Proteome Discoverer"
     quantification_method: TOMAHAQ
+    perturbations:
+      - "IFN-gamma (mouse, 20 ng/ml) on every idAdpgkG MC38 arm"
+      - "doxycycline-induced Adpgk(R304M) neoantigen overexpression"
+      - "dTAG-13 targeted degradation of the FKBP12(F36V)-tagged neoantigen"
     ms_samples:
+      # Method-development enrichments. The paper names MC38 as the challenging
+      # adherent line for the cartridge workflow but does not say whether those
+      # runs used the parental line or the idAdpgkG derivative, so this arm is
+      # kept and left unperturbed rather than folded into one of the four below.
       - sample_label: "MC38 mouse colon carcinoma"
         condition: "unperturbed"
+        mhc_class: "I"
+        mhc: "H-2Kb H-2Db"
+        species: "Mus musculus (mouse)"
+        override: cell_line
+      - sample_label: "idAdpgkG MC38 + IFN-gamma (control)"
+        condition: "IFN-gamma (mouse, 20 ng/ml, 51 h)"
+        mhc_class: "I"
+        mhc: "H-2Kb H-2Db"
+        species: "Mus musculus (mouse)"
+        override: cell_line
+      - sample_label: "idAdpgkG MC38 + IFN-gamma + dTAG-13"
+        condition: "IFN-gamma (20 ng/ml, 48 h) then dTAG-13 (1 uM, 3 h) degrader"
+        mhc_class: "I"
+        mhc: "H-2Kb H-2Db"
+        species: "Mus musculus (mouse)"
+        override: cell_line
+      - sample_label: "idAdpgkG MC38 + IFN-gamma + doxycycline"
+        condition: "IFN-gamma (20 ng/ml) + doxycycline (1 ug/ml), 51 h"
+        mhc_class: "I"
+        mhc: "H-2Kb H-2Db"
+        species: "Mus musculus (mouse)"
+        override: cell_line
+      - sample_label: "idAdpgkG MC38 + IFN-gamma + doxycycline + dTAG-13"
+        condition: "IFN-gamma + doxycycline (48 h) then dTAG-13 (1 uM, 3 h) degrader"
         mhc_class: "I"
         mhc: "H-2Kb H-2Db"
         species: "Mus musculus (mouse)"
@@ -6381,10 +6445,21 @@
     title: "Validation and quantification of peptide antigens presented on MHCs using SureQuant"
     override:
     note: >
-      SureQuant protocol paper on Exploris 480. THP-1 (human monocytic leukemia)
-      and mouse splenocytes. Validated Mtb-derived epitopes on THP-1 and Alg8
-      neoantigen on mouse splenocytes. Detailed protocol for targeted
-      immunopeptidomics with SureQuant acquisition.
+      SureQuant protocol paper on Exploris 480. Detailed protocol for targeted
+      immunopeptidomics with SureQuant acquisition, exemplified on three sample
+      types: primary human monocyte-derived macrophages (hMDMs) infected with
+      Mycobacterium tuberculosis versus mock (Fig. 4-5), THP-1 macrophages that
+      are wild-type or TAP1 knockout crossed with Mtb H37Rv versus mock
+      infection (Fig. 5c-e), and C57BL/6 splenocytes pulsed with the Alg8
+      neoantigen peptide (Fig. 6).
+      Deposits split by figure: Fig. 4 raw MS is part of PXD037843; the Fig. 5
+      and Fig. 6 quantification exists only as Skyline reports in
+      https://github.com/oleddy/SureQuant_MHC/ — no raw deposit. The four THP-1
+      arms are named verbatim in the authors' conditions_table_TAP.csv
+      (080623_THP_SQ_{WT,TAP1_KO}_{mock,H37Rv}).
+      Curated per #436: the previous two THP-1 arms collapsed the TAP1 knockout
+      axis, the hMDM arms were missing entirely, and the splenocytes were
+      curated as unperturbed when the paper pulses them with Alg8 peptide.
     ip_antibody: "W6/32 (human) / Y-3 (H-2Kb, mouse)"
     acquisition_mode: SureQuant PRM
     instrument: "Exploris 480"
@@ -6392,24 +6467,60 @@
     labeling: "SIL peptide standards"
     search_engine: "Skyline"
     quantification_method: SureQuant
+    perturbations:
+      - "TAP1 knockout THP-1 line versus its parental wild-type"
+      - "Mycobacterium tuberculosis H37Rv infection"
+      - "Alg8 peptide pulse (mouse splenocytes)"
     ms_samples:
-      - sample_label: "THP-1 (human monocytic leukemia)"
-        condition: "unperturbed"
+      # THP-1 arms: wild-type / TAP1 KO x mock / H37Rv, named verbatim in the
+      # authors' conditions_table_TAP.csv.  The paper gives no THP-1 HLA typing
+      # and cell_lines.yaml warns that it varies by sub-line, so mhc stays
+      # class-only rather than borrowing another study's genotype.
+      - sample_label: "THP-1 wild-type + mock infection"
+        condition: "unperturbed — mock infection control"
         mhc_class: "I"
         mhc: "HLA class I"
         override: cell_line
-      - sample_label: "THP-1 + Mtb infection"
-        condition: "Mycobacterium tuberculosis infection"
+      - sample_label: "THP-1 TAP1 knockout + mock infection"
+        condition: "TAP1 knockout"
+        mhc_class: "I"
+        mhc: "HLA class I"
+        override: cell_line
+      - sample_label: "THP-1 wild-type + Mtb H37Rv infection"
+        condition: "Mycobacterium tuberculosis H37Rv infection"
         mhc_class: "I"
         mhc: "HLA class I"
         override: cell_line
         reference_proteomes:
           - uniprot: UP000001584
             proteome_label: Mycobacterium tuberculosis H37Rv
-      - sample_label: "mouse splenocytes (C57BL/6)"
-        condition: "unperturbed"
+      - sample_label: "THP-1 TAP1 knockout + Mtb H37Rv infection"
+        condition: "TAP1 knockout + Mycobacterium tuberculosis H37Rv infection"
+        mhc_class: "I"
+        mhc: "HLA class I"
+        override: cell_line
+        reference_proteomes:
+          - uniprot: UP000001584
+            proteome_label: Mycobacterium tuberculosis H37Rv
+      # Primary hMDMs — not a cell line, so no cell_line override.
+      - sample_label: "primary human monocyte-derived macrophages + mock infection"
+        condition: "unperturbed — mock infection control"
+        mhc_class: "I"
+        mhc: "HLA class I"
+        source: "primary human monocyte-derived macrophages (hMDMs), 2e6 cells"
+      - sample_label: "primary human monocyte-derived macrophages + Mtb infection"
+        condition: "Mycobacterium tuberculosis infection"
+        mhc_class: "I"
+        mhc: "HLA class I"
+        source: "primary human monocyte-derived macrophages (hMDMs), 2e6 cells"
+        reference_proteomes:
+          - uniprot: UP000001584
+            proteome_label: Mycobacterium tuberculosis H37Rv
+      - sample_label: "mouse splenocytes (C57BL/6) + Alg8 peptide pulse"
+        condition: "Alg8 neoantigen peptide pulse"
         mhc_class: "I"
         mhc: "H-2Kb"
+        source: "C57BL/6 splenocytes, 1e7 cells, pulsed with Alg8 peptide before lysis"
         species: "Mus musculus (mouse)"
 
   - pmid: 33203899

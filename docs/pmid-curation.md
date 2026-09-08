@@ -151,6 +151,56 @@ silently, which is how two studies and five sample records disappeared (#438).
 
 No code changes are needed — the YAML is loaded at runtime.
 
+## Source-verified corrections (#436)
+
+Four studies had curation that was internally consistent and wrong. Each
+correction below is grounded in the primary source; the pattern is worth
+reading before adding curation of your own, because every one of these
+would have passed a plausibility check.
+
+| PMID | Was | Is | Source |
+|---|---|---|---|
+| 34497125 | A375 ± trametinib | SKMEL5 ± binimetinib (100 nM, 72 h) vs DMSO | [10.1073/pnas.2111173118](https://doi.org/10.1073/pnas.2111173118); PXD024917 file names |
+| 34129938 | one unperturbed MC38 arm | four idAdpgkG MC38 arms, all on 20 ng/ml IFN-γ | [10.1016/j.mcpro.2021.100108](https://doi.org/10.1016/j.mcpro.2021.100108) Methods; MSV000086582 |
+| 39438697 | two THP-1 arms, unperturbed splenocytes | WT/TAP1-KO × mock/H37Rv, plus hMDMs and Alg8-pulsed splenocytes | [10.1038/s41596-024-01076-x](https://doi.org/10.1038/s41596-024-01076-x); the authors' `conditions_table_TAP.csv` |
+| 27846572 | GR-LCL, JY, C1R, HeLa, fibroblasts | GR-LCL, C1R, T2, fibroblasts | [10.1126/science.aaf4384](https://doi.org/10.1126/science.aaf4384) |
+
+Three failure modes recur:
+
+**A plausible line substituted for the real one.** PMID 34497125 carried A375
+and trametinib. The paper says SKMEL5 and binimetinib and mentions neither of
+the others anywhere. The damage was not the label: the per-sample `mhc` was
+A375's genotype, attached to a study that never used A375. When the correct
+line's typing is not recorded — not in the paper, not in `cell_lines.yaml` —
+the honest `mhc` is `HLA class I`, not a substitute genotype.
+
+**A perturbation axis collapsed.** PMID 34129938's arms are all IFN-γ-treated
+and differ by doxycycline induction and dTAG-13 degradation; one "unperturbed
+MC38" entry asserted the opposite for all of them. PMID 39438697's four THP-1
+conditions are a 2×2 of TAP1 knockout by Mtb infection; two arms cannot
+express it. Both now reach `apm_genes_perturbed` (`ifn_gamma`, `tap1`), which
+is the point — a collapsed axis is invisible to every downstream filter.
+
+**A citation inverted.** PMID 27846572's C1R note sourced the data to
+Bassani-Sternberg 2015. The paper cites C1R to reference 5 (Caron 2015) and
+the *fibroblasts* to reference 6 (Bassani-Sternberg 2015) — exactly
+backwards. The same study also carried JY and HeLa samples the paper never
+mentions and for which the corpus holds no row, while T2, its TAP-deficient
+control with 111 rows, was absent.
+
+Two lessons for new curation:
+
+1. **Check the evidence, not only the paper.** Liepe 2016's 18,664 rows fall
+   into exactly four `cell_name` groups. That is what disproved JY and HeLa,
+   and it is where the four-digit GR-LCL typing and C1R's missing `HLA-B*40:02`
+   came from. A curated genotype that no row carries is a claim about nothing.
+2. **State what the source states.** "All 10 biopsies were HLA-A*02:01-positive"
+   is a selection criterion; putting that allele in `mhc` would read as a
+   mono-allelic sample. It belongs in `source`.
+
+`tests/test_curated_study_sources.py` pins each of these facts to the sentence
+in the source that establishes it.
+
 ## Exporting curated metadata
 
 ```bash
