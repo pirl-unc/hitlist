@@ -43,6 +43,7 @@ from __future__ import annotations
 
 import contextlib
 import re
+from collections import Counter
 from collections.abc import Mapping
 from dataclasses import dataclass
 from functools import cache, lru_cache
@@ -106,7 +107,9 @@ def load_pmid_overrides() -> dict[int, dict]:
 
     Validates that every ``mono_allelic_host`` name resolves to an entry
     in ``monoallelic_lines.yaml`` (typos would otherwise silently
-    produce rows with a non-existent ``monoallelic_host`` string).
+    produce rows with a non-existent ``monoallelic_host`` string), and
+    that no PMID is declared twice — the returned mapping is keyed by
+    PMID, so a duplicate would discard an entire curated study (#438).
     Warns on legacy YAML keys (``type:``, ``label:``) that were renamed
     to ``sample_label:`` / ``study_label:`` in v1.7.0.
 
@@ -163,6 +166,21 @@ def load_pmid_overrides() -> dict[int, dict]:
                     f"{rule_evidence!r} is invalid; expected one of "
                     f"{RESTRICTION_EVIDENCE_VALUES}"
                 )
+
+    # A PMID curated twice is a silent data loss, not a merge: the dict
+    # comprehension below keeps the last entry, so the earlier block's
+    # ``ms_samples`` and study metadata vanish with nothing raised.  That
+    # is how #307's source-organism blocks displaced two whole studies
+    # (five sample records) with no error and no warning (#438).
+    # Consolidate a second block into the first instead.
+    seen_pmids = Counter(int(e["pmid"]) for e in entries)
+    duplicates = sorted(pmid for pmid, count in seen_pmids.items() if count > 1)
+    if duplicates:
+        raise ValueError(
+            f"pmid_overrides.yaml declares {len(duplicates)} PMID(s) more than once: "
+            f"{duplicates}.  Merge each into a single entry — a later entry silently "
+            f"replaces the earlier one, discarding its ms_samples."
+        )
 
     return {int(e["pmid"]): e for e in entries}
 

@@ -3705,12 +3705,21 @@
     study_label: "Gastaldello 2021 — Tasmanian devil DFTD immunopeptidome"
     title: "The immunopeptidomes of two transmissible cancers and their host have a common, dominant peptide motif"
     override:
-    species: "Sarcophilus harrisii (Tasmanian devil)"
+    # #307 source-organism curation, consolidated here from a second 33460454
+    # block that silently replaced this whole entry (#438).  ``species`` keeps
+    # the bare binomial the scanner already read; the parenthetical common name
+    # it replaced normalized to the same value for the sample export.
+    source_organism: "Sarcophilus harrisii"
+    species: "Sarcophilus harrisii"
     note: >
       Devil Facial Tumour Disease (DFTD) — two transmissible cancers
       (DFT1, DFT2) compared to host fibroblasts. DFT1 requires IFN-gamma
       to express MHC-I. DFT2 is constitutively MHC-I positive.
       25,554 unique 7-15mer peptides total.
+      B2M-IP immunopeptidome — a genuine self-peptidome from Tasmanian devil
+      (Sarcophilus harrisii) cells. IEDB left 2,276 rows
+      source_organism="unidentified"; the rest are already Sarcophilus
+      harrisii. Fills the unresolved rows to match. #307.
     perturbations:
       - "DFT1: IFN-gamma treatment to induce MHC-I expression"
     ip_antibody: "anti-devil beta-2-microglobulin (hybridoma 13-34-38)"
@@ -4505,11 +4514,20 @@
 
   - pmid: 28188227
     study_label: "Barnea 2017 — HLA-B27 transgenic rat spondyloarthritis"
-    title: "HLA-B27 peptidome in HLA-B27 transgenic rats"
+    title: "The Human Leukocyte Antigen (HLA)-B27 Peptidome in Vivo, in Spondyloarthritis-susceptible HLA-B27 Transgenic Rats and the Effect of Erap1 Deletion"
     override:
+    # #307 source-organism curation, consolidated here from a second 28188227
+    # block that silently replaced this whole entry (#438).  Host is rat, MHC is
+    # engineered human — the eluted peptides are the rat proteome, so the
+    # sample-level mhc/species disagreement below is expected, not an error.
+    source_organism: "Rattus norvegicus"
+    species: "Rattus norvegicus"
     note: >
       HLA-B27 transgenic RAT model for spondyloarthritis. In vivo spleen.
       Despite being human HLA, the host is rat. Includes ERAP1 deletion.
+      IEDB left 12,494 rows source_organism="unidentified"; fills them to
+      Rattus norvegicus, leaving the 51 explicitly human-sourced rows
+      untouched. #307.
     perturbations:
       - "ERAP1 deletion (transgenic rat model)"
     ms_samples:
@@ -7560,26 +7578,11 @@
   # NOTE deliberately NOT curated: 35296092 (pig SLA-I) and 34535575 (possum)
   # are random-peptide-library REFOLDING assays — synthetic source, not the host
   # proteome — so they keep a blank source rather than being mislabeled.
-  - pmid: 33460454
-    study_label: "Owen 2021 — Tasmanian devil immunopeptidome (DFTD/DFT2 + host)"
-    source_organism: "Sarcophilus harrisii"
-    species: "Sarcophilus harrisii"
-    note: >
-      B2M-IP immunopeptidome of two transmissible devil facial tumours and their
-      host — a genuine self-peptidome from Tasmanian devil (Sarcophilus harrisii)
-      cells.  IEDB left 2,276 rows source_organism="unidentified"; the rest are
-      already Sarcophilus harrisii.  Fills the unresolved rows to match.  #307.
-  - pmid: 28188227
-    study_label: "Alvarez-Navarro 2018 — HLA-B27 transgenic rat peptidome (spondyloarthritis)"
-    source_organism: "Rattus norvegicus"
-    species: "Rattus norvegicus"
-    note: >
-      In-vivo HLA-B27 immunopeptidome from spondyloarthritis-susceptible
-      HLA-B27/human-beta2m TRANSGENIC RAT tissue — a rat self-peptidome presented
-      on transgenic human HLA (host=rat, mhc=engineered human; the eluted
-      peptides are the rat proteome).  IEDB left 12,494 rows
-      source_organism="unidentified"; fills them to Rattus norvegicus, leaving
-      the 51 explicitly human-sourced rows untouched.  #307.
+  # NOTE 33460454 (Tasmanian devil) and 28188227 (HLA-B27 transgenic rat) were
+  # curated here as new PMID blocks, which silently replaced their existing
+  # study entries; both now carry source_organism/species in those entries
+  # instead (#438).  Add provenance fields to the study block, never a second
+  # block for the same PMID — load_pmid_overrides() now rejects duplicates.
   - pmid: 31887370
     study_label: "Chen 2019 — multifocal hepatocellular carcinoma HLA-I immunopeptidome"
     source_organism: "Homo sapiens"

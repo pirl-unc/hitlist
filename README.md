@@ -57,9 +57,9 @@ supplementary tables.
 
 | What's curated | Count | Detail |
 |---|---|---|
-| Curated PMIDs (`pmid_overrides.yaml`) | **159** | Cover **89.5%** of all observations |
-| ↳ `ms_samples` with per-sample metadata | 633 | HLA genotype, tissue, disease, perturbation, instrument |
-| ↳ `ms_samples` with 4-digit HLA typing | 446 | The subset with allele-level genotype |
+| Curated PMIDs (`pmid_overrides.yaml`) | **215** | Cover **96.0%** of all observations |
+| ↳ `ms_samples` with per-sample metadata | 748 | HLA genotype, tissue, disease, perturbation, instrument |
+| ↳ `ms_samples` with 4-digit HLA typing | 579 | The subset with allele-level genotype |
 | Supplementary CSVs ingested (PRIDE / jPOSTrepo) | 9 | 3 papers — listed below |
 | Species reference proteomes | 22 | Ensembl ×4, UniProt ×18 |
 | Viral reference proteomes | 33 viruses | 58 name aliases |

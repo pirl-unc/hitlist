@@ -2621,6 +2621,13 @@ def test_hla_g_transfectants_are_non_classical():
 _KNOWN_CHIMERIC_SAMPLES = {
     (26740625, "DCs from lymph nodes (HLA-DR1 transgenic mouse)"),
     (26811146, "cell line expressing HLA-B*27:05"),
+    # Barnea 2017 (MCP): HLA-B*27 + human beta2m transgenic RAT spleen, in
+    # vivo.  Host and eluted proteome are rat, the restricting molecule is a
+    # human transgene — the textbook chimera.  Both arms became visible only
+    # when the duplicate 28188227 blocks were consolidated (#438); before
+    # that the entry carrying these samples was silently discarded at load.
+    (28188227, "HLA-B27 transgenic rat spleen (WT)"),
+    (28188227, "HLA-B27 transgenic rat spleen (ERAP1 KO)"),
 }
 
 

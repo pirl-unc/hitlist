@@ -1,42 +1,130 @@
-# Species filters and sample-curation preservation — #386 / #373
+# Sample-curation conservation and primary-source audit — #438 / #437 / #436 / #373
 
-## Acceptance contract and order
+## Release split
 
-1. **#386 / 1.58.5:** expose source-species, host-species, and chimeric exclusion through
-   MS observations (including the compatibility wrapper), binding, training, peptide summaries,
-   and their CLI routes. Delegate selection to the existing loaders, preserving independent
-   MHC/source/host axes and their normalization. Defaults must retain the same evidence identities.
-   Explicit filters must select exactly the raw-loader evidence, including empty selections,
-   missing metadata, fallback source species, combinations, and narrow column projections.
-2. **#373 / 1.58.6:** audit every curated sample key and the affected papers/deposits before
-   deciding provenance semantics. Preserve explicit null versus absent overrides, sample caveats,
-   and ambiguous attribution. Apply arm metadata only where evidence identifies the arm; never
-   let adding a metadata field drop or multiply evidence rows. Add a schema guard against silently
-   ignored fields and source-linked audit notes for each affected study. File additional verified
-   defects separately and link them to the relevant PR.
+The audit turned one issue into four with a hard dependency order, so it ships as three PRs
+rather than one. Each bumps the version and deploys before the next branches from main.
+
+1. **1.58.6 — #438 + #437, inventory conservation.** Every raw `ms_samples` record must survive
+   loading and reach the sample export. This is foundational: #436 and #373 both reason about
+   per-sample records, and today five of them do not exist as far as the loader is concerned.
+2. **1.58.7 — #436, verified curation corrections.** Data-only fixes to the four studies whose
+   sample curation source verification disproved.
+3. **1.58.8 — #373, sample-level `override` / `note` semantics + schema guard.** Enabling a
+   sample-level override before #436 would promote wrong curation into row classification, so
+   this lands last.
+
+## Specification
+
+### PR 1 — #438 + #437 (1.58.6)
+
+- `load_pmid_overrides()` rejects duplicate `pmid` identifiers before building its mapping,
+  naming every duplicated key. Today a dict comprehension silently keeps the last entry.
+- Consolidate the two duplicate pairs into one entry each, preserving both the study/sample
+  metadata of the earlier block and the `source_organism` / `species` curation of the later one.
+  Keep the exact `species` strings the scanner currently reads so no observation row changes.
+  Correct the two wrong study labels the duplicates introduced (verified against PubMed:
+  33460454 is Gastaldello 2021, not "Owen 2021"; 28188227 is Barnea 2017, not
+  "Alvarez-Navarro 2018").
+- `generate_ms_samples_table()` keeps `n_samples: 0` / `profiled: false` records instead of
+  dropping them, exporting `profiled="false"` and a null `n_samples`.
+- The observation metadata join excludes unprofiled samples explicitly, so restoring the
+  metadata cannot manufacture a peptide observation or an arm match. (Binding needs no change:
+  `generate_binding_table` never joins `ms_samples`.)
+- Regressions: raw-YAML-to-loader and loader-to-export inventory conservation, duplicate
+  rejection, unprofiled round-trip, join exclusion, and unchanged observation row identities.
+
+### PR 2 — #436 (1.58.7)
+
+- SKMEL5 +/- binimetinib replaces the A375 +/- trametinib curation for PMID 34497125.
+- Add the MC38 idAdpgkG IFN-gamma / doxycycline / dTAG-13 arms for PMID 34129938.
+- Add the WT/mock, TAP1-KO/mock, WT/H37Rv, TAP1-KO/H37Rv THP-1 conditions, primary human
+  macrophages, and the Alg8-pulsed splenocytes for PMID 39438697.
+- Correct the C1R note for PMID 27846572 (Caron 2015, not Bassani-Sternberg 2015) and add the
+  missing T2 sample. Preserve each arm without inventing allele typing.
+- Record source URLs, tables/figures, deposit file names, and affected corpus counts in an audit
+  document; compare evidence identities before and after.
+
+### PR 3 — #373 (1.58.8)
+
+- Export original `note`, `classification`, and `reason` separately, retaining legacy `notes`.
+  Carry the note and provenance override into MS/training evidence through the existing sample
+  join. A sample override takes precedence only on a resolved sample attribution. Explicit null
+  clears study-level override; absent sample override retains the normal PMID/rule behavior.
+  Export the effective override value and its origin so null, inheritance, and ambiguity remain
+  distinguishable. Preserve existing raw evidence fields and identities.
+- Validate sample keys during YAML loading against an explicit mapping of consumed fields and a
+  guard covering every current YAML key; no silently accepted typos.
 
 ## Steps
 
-- [x] Read guidance, lessons, current code, issue premises, and open PRs; create isolated branches.
-- [x] Add failing species-filter parity and CLI regressions; implement the shared-loader routing.
-- [x] Compare default and filtered evidence identities, then run format, lint, and the test suite.
-- [ ] Open #386 PR; require CI, merge, deploy from clean main, verify wheel and source archive.
-- [ ] Audit #373's sample fields against code, raw evidence, papers, and deposit metadata.
-- [ ] Specify and test override/null/ambiguity semantics and metadata preservation; implement.
-- [ ] Run all required gates; open #373 PR; require CI, merge, deploy, verify published artifacts.
-- [ ] Record validation, remaining evidence limitations, and dependency-ordered follow-up work.
+- [x] Enumerate 748 raw sample records: five lost to duplicate PMID replacement, then four
+      explicit unprofiled records dropped from the 743 retained by the loader.
+- [x] Verify the paper and deposit identities; identify and file additional curation defects.
+- [x] PR 1: failing inventory/duplicate/unprofiled tests, then the loader, YAML, and export fixes.
+- [x] PR 1: corpus identity comparison and gates.
+- [ ] PR 1: open PR, require CI, merge, deploy 1.58.6, verify PyPI.
+- [ ] PR 2: finish the supplementary-table audit; apply and verify the curation corrections.
+- [ ] PR 2: corpus comparison, gates, PR, CI, merge, deploy 1.58.7.
+- [ ] PR 3: override/null/inheritance/ambiguity tests, then the metadata and schema changes.
+- [ ] PR 3: corpus comparison, gates, PR, CI, merge, deploy 1.58.8.
 
 ## Review
 
-The 84 initial species regressions produced 74 failures and 10 passing default-behavior checks
-before implementation. All pass after routing the filters through the loaders. Additional cases
-cover lists and empty selections. This exposed #434: chimeric/system flags ignored the fallback
-source used by species filters. A shared source coalescing helper now feeds both, retaining the
-existing classifier and primary-source precedence. All 162 targeted species/observations tests
-pass; format and lint pass. The full default suite passes 1,389 tests with one expected warning.
-Two existing CLI forwarding assertions were updated for the new default arguments. A streaming
-audit covered all 4,439,643 MS and 891,885 binding rows: the fallback correction changes no
-chimeric classifications in the current corpus. CI, merge, and publication are pending.
+### PR 1 — #438 + #437 (1.58.6)
+
+Eight new regressions in `tests/test_sample_inventory.py` failed first: duplicate PMIDs present
+in the packaged YAML, no duplicate rejection in the loader, five sample records lost between the
+file and the loaded mapping, two consolidated entries missing their samples or their provenance,
+and four unprofiled records missing from the export.
+
+Two existing tests pinned the behavior this PR reverses and were rewritten rather than deleted:
+`test_ms_samples_no_zero_n` asserted every exported count was positive — true only because the
+records it describes were being dropped — and `_KNOWN_CHIMERIC_SAMPLES` gained the two
+HLA-B27-transgenic-rat arms, which are genuine chimeras (rat host and proteome, human HLA
+transgene) that only became visible once 28188227's duplicate blocks were consolidated.
+
+Verified against the full local corpus, before (ca5648c) versus after:
+
+| | before | after |
+|---|---|---|
+| sample export rows | 739 | 748 |
+| observation rows | 4,439,321 | 4,439,321 |
+
+The nine added sample rows are exactly the five records the duplicate PMIDs discarded (three
+Tasmanian devil, two transgenic rat) plus the four explicitly unprofiled records. No sample row
+was removed, the column set is unchanged, and no field on any pre-existing row changed.
+
+Observation `pmid`, `peptide`, `mhc_restriction`, `source_organism`, and `species` are identical
+row-for-row across all 4,439,321 rows — the consolidation deliberately kept the exact `species`
+strings the scanner already read, so no provenance fill moved. The only observation change is
+metadata gained: 33,959 Tasmanian-devil rows that were previously unattributed now discriminate
+into their three curated arms, including the IFN-gamma arm and its control-arm flags. PMID
+28188227's 59,778 rows stay unattributed, correctly — both curated arms carry the same imprecise
+`mhc: HLA-B*27`, so nothing distinguishes WT from ERAP1-KO and the join declines to guess.
+
+The join guard is load-bearing rather than defensive bookkeeping: attribution path 3c matches
+`attributed_sample_label` against `sample_label` with no allele involved and overrides every
+heuristic above it, so a curated per-row label colliding with an unprofiled arm would attribute
+real peptides to a sample the paper says was never profiled.
+
+README corpus counts were stale independently of this change (159 PMIDs / 633 samples / 446
+typed) and are now recomputed: 215 / 748 / 579, covering 96.0% of observations.
+
+Gates: format, lint, 1,397 tests, and the packaged-build smoke tests all pass. CI, merge, and
+publication are pending.
+
+### Audit carried into PR 2 and PR 3
+
+The three PMIDs carrying sample overrides have zero rows in the current local indexes. The
+two note-bearing studies contain 295,895 MS rows in total; Liepe 2016 also has 90 binding rows.
+Source verification already disproved the SKMEL5/A375 and binimetinib/trametinib curation,
+and found omitted MC38 and THP-1 perturbation arms.
+
+Consolidating the duplicates also corrected two study labels that named the wrong first author:
+33460454 is Gastaldello 2021 (Immunology, 10.1111/imm.13307), not "Owen 2021", and 28188227 is
+Barnea 2017 (MCP, 10.1074/mcp.M116.066241), not "Alvarez-Navarro 2018". Both verified against
+PubMed. 28188227's invented `title` was replaced with the published one.
 
 ---
 
