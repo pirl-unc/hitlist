@@ -67,6 +67,64 @@ RESTRICTION_EVIDENCE_VALUES = (
     "unknown",
 )
 
+#: Every provenance override a PMID entry, a conditional rule, or an
+#: ``ms_samples`` entry may declare. ``None`` (YAML ``override:`` with no
+#: value) is always allowed and means "no override"; anything outside this
+#: tuple is a typo and is rejected at load time. Mirrors the branch chain in
+#: :func:`classify_ms_row` — the vocabulary lived only there and in a YAML
+#: header comment, so a misspelling silently fell through to default
+#: classification (#373).
+OVERRIDE_VALUES = (
+    "cancer_patient",
+    "adjacent",
+    "activated_apc",
+    "cell_line",
+    "noncancer_cell_line",
+    "ebv_lcl",
+    "healthy",
+)
+
+#: Every key an ``ms_samples`` entry may carry, mapped to what reads it.
+#:
+#: This is the schema guard #373 asks for. Three keys — ``override``,
+#: ``note``, ``species`` — sat in the YAML for a long time with nothing
+#: reading them, and only an audit found them: the exporter iterated the keys
+#: it knew and ignored the rest, so adding a field that no consumer reads
+#: looked exactly like adding one that works. Loading now rejects a key that
+#: is not listed here, which turns the next silently-ignored field into an
+#: error at load rather than a discovery.
+#:
+#: Adding a key means adding it here *and* pointing it at its reader. If a
+#: field is genuinely informational, say so in its description rather than
+#: leaving it out.
+MS_SAMPLE_FIELDS = MappingProxyType(
+    {
+        "sample_label": "sample identity; the join key for observation attribution",
+        "condition": "perturbation text; drives perturbation, APM flags, condition_category",
+        "mhc": "curated genotype; parsed for allele-level attribution and mhc_species",
+        "mhc_class": "class filter, and the class pool when mhc is blank",
+        "n_samples": "replicate count; 0 marks an unprofiled arm (#437)",
+        "profiled": "false marks an arm the paper describes but never ran (#437)",
+        "source": "free-text sample provenance (tissue source, donor description)",
+        "species": "per-sample source proteome; overrides the study-level value (#372)",
+        "peptides": "curated peptide count for the arm",
+        "reference_proteomes": "per-sample viral / parasite proteome references",
+        "override": "per-sample provenance override; null clears the study value (#373)",
+        "note": "free-text analytic caveat about this arm (#373)",
+        "classification": "per-sample classification note, exported as `notes`",
+        "reason": "rationale for the classification, exported as `notes` when it is absent",
+        "ip_antibody": "IP antibody; overrides the study-level value",
+        "acquisition_mode": "acquisition mode; overrides the study-level value",
+        "instrument": "mass spectrometer; overrides the study-level value",
+        "fragmentation": "fragmentation method; overrides the study-level value",
+        "labeling": "labeling scheme; overrides the study-level value",
+        "search_engine": "search engine; overrides the study-level value",
+        "fdr": "false discovery rate; overrides the study-level value",
+        "type": "DEPRECATED spelling of sample_label (v1.7.0); warned about, never read",
+    }
+)
+
+
 #: How an observation's candidate allele set was obtained. This is the
 #: authoritative vocabulary for scanner output, Python filters, and CLI
 #: choices; keep those consumers on this one contract (#419).
@@ -143,15 +201,45 @@ def load_pmid_overrides() -> dict[int, dict]:
                 DeprecationWarning,
                 stacklevel=2,
             )
-        for sample in e.get("ms_samples") or []:
-            if "type" in sample and "sample_label" not in sample:
+        warned_legacy_type = False
+        for i, sample in enumerate(e.get("ms_samples") or []):
+            if "type" in sample and "sample_label" not in sample and not warned_legacy_type:
                 warnings.warn(
                     f"PMID {e.get('pmid')}: ms_samples entry uses deprecated "
                     f"'type:' key, use 'sample_label:' (v1.7.0).  Value ignored.",
                     DeprecationWarning,
                     stacklevel=2,
                 )
-                break  # one warning per PMID is enough
+                warned_legacy_type = True  # one warning per PMID is enough
+            unknown = sorted(set(sample) - set(MS_SAMPLE_FIELDS))
+            if unknown:
+                raise ValueError(
+                    f"PMID {e.get('pmid')}: ms_samples[{i}] has unknown key(s) "
+                    f"{unknown}.  Every ms_samples key must be declared in "
+                    f"curation.MS_SAMPLE_FIELDS together with what reads it — an "
+                    f"undeclared key is silently ignored by every consumer.  Fix the "
+                    f"typo, or add the field and its reader."
+                )
+            sample_override = sample.get("override")
+            if sample_override is not None and sample_override not in OVERRIDE_VALUES:
+                raise ValueError(
+                    f"PMID {e.get('pmid')}: ms_samples[{i}] override="
+                    f"{sample_override!r} is invalid; expected null or one of "
+                    f"{OVERRIDE_VALUES}"
+                )
+        entry_override = e.get("override")
+        if entry_override is not None and entry_override not in OVERRIDE_VALUES:
+            raise ValueError(
+                f"PMID {e.get('pmid')}: override={entry_override!r} is invalid; "
+                f"expected null or one of {OVERRIDE_VALUES}"
+            )
+        for i, rule in enumerate(e.get("rules") or []):
+            rule_override = rule.get("override")
+            if rule_override is not None and rule_override not in OVERRIDE_VALUES:
+                raise ValueError(
+                    f"PMID {e.get('pmid')}: rules[{i}].override={rule_override!r} is "
+                    f"invalid; expected null or one of {OVERRIDE_VALUES}"
+                )
         evidence = e.get("restriction_evidence")
         if evidence is not None and evidence not in RESTRICTION_EVIDENCE_VALUES:
             raise ValueError(

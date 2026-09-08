@@ -84,9 +84,40 @@ A representative entry:
 | `mhc` | Donor genotype (`HLA-A*…` or a space-joined allele list). |
 | `mhc_class` | `"I"`, `"II"`, `"I+II"`, or `"non-classical"`. Use `non-classical` for class Ib / MHC-Ib molecules — HLA-E, HLA-F, HLA-G, MR1, CD1, H2-Q — so `--class I` does not return them. A declared class that contradicts the sample's own alleles fails CI. |
 | `condition` | Perturbation or `"unperturbed"`. |
-| `classification`, `override`, `reason` | Per-sample classification override + rationale. |
+| `classification`, `reason` | Per-sample classification note + rationale. Exported as their own columns, and jointly as the legacy `notes` (classification if present, else reason). |
+| `override` | Per-sample provenance override. Present with a value = this sample's claim; present but **null** = "deliberately none here", which is *not* the same as omitting the key and inheriting the study's. See below. |
+| `note` | Free-text analytic caveat about this arm, exported and carried to attributed observations. |
 | `source`, `species`, `reference_proteomes` | Per-sample provenance. |
 | `profiled` | `false` (or `n_samples: 0`) for an arm that exists in the paper but was never run on the instrument. It is exported as a metadata row and excluded from observation attribution, so it can never be matched to a peptide. |
+
+Every key an `ms_samples` entry may carry is declared in
+`curation.MS_SAMPLE_FIELDS`, mapped to what reads it. **Loading rejects an
+undeclared key.** Adding a field means adding it there together with its
+reader — otherwise it looks exactly like a field that works while reaching no
+consumer, which is how `override`, `note`, and `species` sat unread (#373).
+
+### How `override` resolves
+
+Three columns keep the levels distinguishable rather than collapsing them to
+one value:
+
+| sample YAML | `sample_override` | `effective_override` | `effective_override_origin` |
+|---|---|---|---|
+| `override: cell_line` | `cell_line` | `cell_line` | `sample` |
+| `override:` (null) | `""` | `""` | `sample_null` |
+| key omitted, study has one | `""` | the study's value | `study` |
+| key omitted, study has none | `""` | `""` | `none` |
+
+`sample_null` and `none` produce the same value and mean different things: the
+first records that a curator considered this arm and decided against an
+override, the second that nobody did. PMID 34497125 is the shape this exists
+for — two `cell_line` cell-line arms beside a patient-biopsy arm explicitly
+marked null.
+
+These columns describe **the curation**. The classification flags
+(`src_cancer`, `src_cell_line`, …) are still computed at build time from the
+PMID-level `override` and `rules`, which run before any sample attribution
+exists; a sample-level override does not change them.
 
 ## The `rules` mechanism
 
