@@ -86,6 +86,7 @@ A representative entry:
 | `condition` | Perturbation or `"unperturbed"`. |
 | `classification`, `override`, `reason` | Per-sample classification override + rationale. |
 | `source`, `species`, `reference_proteomes` | Per-sample provenance. |
+| `profiled` | `false` (or `n_samples: 0`) for an arm that exists in the paper but was never run on the instrument. It is exported as a metadata row and excluded from observation attribution, so it can never be matched to a peptide. |
 
 ## The `rules` mechanism
 
@@ -131,6 +132,12 @@ This preserves independent facts such as a predicted restriction that differs
 from the sample's measured genotype.
 
 ## Adding a new override
+
+**One entry per PMID.** The loader keys its mapping by PMID and rejects a file
+that declares one twice. To add a field to an already-curated study — a
+provenance fill, an acquisition field, another sample — edit that study's
+existing entry. A second block for the same PMID used to replace the first
+silently, which is how two studies and five sample records disappeared (#438).
 
 1. Read the paper's Methods — confirm tissue, disease, cell lines, HLA typing,
    and any perturbation. Don't trust the IEDB free-text fields blindly.

@@ -564,8 +564,12 @@ def generate_ms_samples_table(
         - ``perturbation`` — the simplified non-unperturbed condition.
         - ``source`` — original ``source`` field (e.g. tissue source,
           biopsy notes, donor description).
-        - ``profiled`` — explicit profiled flag when present (``""``
-          when not curated; ``"false"`` for ``n_samples == 0`` placeholders).
+        - ``profiled`` — ``"true"`` / ``"false"`` / ``""`` (uncurated).
+          Explicitly unprofiled arms (``profiled: false`` or
+          ``n_samples: 0``) are exported as metadata rows with
+          ``n_samples == 0`` and are excluded from observation
+          attribution, so restoring them cannot manufacture evidence
+          (#437).
         - ``peptides`` — curated peptide count when present.
         - ``reference_proteomes`` — semicolon-joined ``UPID:label`` pairs
           for any per-sample viral / parasite proteome references.
@@ -623,16 +627,18 @@ def generate_ms_samples_table(
             condition = sample.get("condition", "") or ""
             perturbation = simplify_condition(condition)
 
-            n = sample.get("n_samples", "")
-            if n == 0:
-                # NOT-profiled placeholder rows are still dropped here to
-                # match v1.18-and-earlier export behavior; consumers that
-                # need to distinguish "curated, not profiled" from
-                # "uncurated" can iterate the YAML directly.  Issue #149
-                # remains partially open on this point.
-                continue
+            n_samples = sample.get("n_samples", "")
+            # ``profiled: false`` and ``n_samples: 0`` state the same curated
+            # fact — the arm exists in the paper and carries no MS data — so
+            # both export as ``profiled="false"`` and one column answers join
+            # eligibility.  These rows used to be dropped outright, which
+            # deleted exactly the records the ``profiled`` column exists to
+            # distinguish from uncurated ones (#437).
             profiled_field = sample.get("profiled")
-            profiled = "" if profiled_field is None else ("true" if profiled_field else "false")
+            if profiled_field is None:
+                profiled = "false" if n_samples == 0 else ""
+            else:
+                profiled = "true" if profiled_field else "false"
 
             row = {
                 "species": species,
@@ -644,7 +650,7 @@ def generate_ms_samples_table(
                 "pmid": pmid_int,
                 "study_label": study_label,
                 "mhc_class": cls,
-                "n_samples": n if n != "" else None,
+                "n_samples": n_samples if n_samples != "" else None,
                 "profiled": profiled,
                 "source": sample.get("source", "") or "",
                 # Cast peptides count to str so the column dtype stays
@@ -705,6 +711,20 @@ def generate_ms_samples_table(
     if apm_only and not df.empty:
         df = df[df["apm_perturbed"] == "true"].reset_index(drop=True)
     return df
+
+
+def _observation_eligible_samples(samples: pd.DataFrame) -> pd.DataFrame:
+    """Curated samples that may be matched to an observation.
+
+    Drops the explicitly unprofiled arms (``profiled: false`` /
+    ``n_samples: 0``) that :func:`generate_ms_samples_table` exports as
+    metadata.  Those arms exist in the paper but were never run on the
+    instrument, so attributing a peptide to one would assert evidence
+    that does not exist (#437).
+    """
+    if samples.empty:
+        return samples
+    return samples[samples["profiled"] != "false"].reset_index(drop=True)
 
 
 def generate_observations_table(
@@ -868,7 +888,11 @@ def generate_observations_table(
         ]
 
     # --- Load sample metadata ---
-    samples = generate_ms_samples_table(mhc_class=mhc_class)
+    # Explicitly unprofiled arms are curated metadata, not evidence: they
+    # have no MS data by construction, so they must never become a
+    # candidate arm for an observation.  Restoring them to the sample
+    # export (#437) is only safe because the join drops them here.
+    samples = _observation_eligible_samples(generate_ms_samples_table(mhc_class=mhc_class))
 
     meta_cols = [
         "sample_label",

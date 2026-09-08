@@ -123,11 +123,20 @@ def test_ms_samples_filter_class_ii():
         assert "II" in cls
 
 
-def test_ms_samples_no_zero_n():
-    """Placeholder rows with n=0 should be excluded."""
+def test_ms_samples_zero_count_rows_are_the_unprofiled_ones():
+    """``n_samples == 0`` is curated metadata, not a placeholder to drop.
+
+    This used to assert every exported count was positive, which held
+    only because the exporter deleted the ``profiled: false`` records
+    outright — the very rows the ``profiled`` column exists to
+    distinguish from uncurated ones (#437).  The contract now is that a
+    zero count is allowed *and* is exactly an explicitly unprofiled arm.
+    """
     df = generate_ms_samples_table()
-    for n in df["n_samples"].dropna():
-        assert n > 0
+    zero = df[df["n_samples"] == 0]
+    assert len(zero) > 0
+    assert (zero["profiled"] == "false").all()
+    assert (df["n_samples"].dropna() >= 0).all()
 
 
 def test_ms_samples_acquisition_metadata():
