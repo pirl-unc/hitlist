@@ -93,6 +93,12 @@ _CATEGORICAL_EXPORT_METADATA_COLS: tuple[str, ...] = (
     "sample_match_type",
     "perturbation",
     "condition_category",
+    # ms_samples provenance (#373): three curated values and a note that is
+    # populated on a handful of samples, so both are tiny category sets.
+    "sample_override",
+    "effective_override",
+    "effective_override_origin",
+    "note",
     # PMID-level / derived low-cardinality metadata
     "quantification_method",
     "mhc_class_label_severity",
@@ -525,6 +531,12 @@ def _empty_ms_samples_columns() -> list[str]:
         "peptides",
         "reference_proteomes",
         "notes",
+        "note",
+        "classification",
+        "reason",
+        "sample_override",
+        "effective_override",
+        "effective_override_origin",
         "mhc",
         *_ACQUISITION_FIELDS,
         "instrument_type",
@@ -640,6 +652,21 @@ def generate_ms_samples_table(
             else:
                 profiled = "true" if profiled_field else "false"
 
+            # Provenance override, resolved with the distinction the YAML
+            # draws (#373).  ``override:`` present with a value is this
+            # sample's own claim; present but null is the curator saying
+            # "deliberately none here", which is NOT the same as omitting the
+            # key and inheriting the study's.  Collapsing the two would erase
+            # the only record that the question was considered.
+            if "override" in sample:
+                sample_override = sample["override"] or ""
+                effective_override = sample_override
+                override_origin = "sample" if sample_override else "sample_null"
+            else:
+                sample_override = ""
+                effective_override = entry.get("override") or ""
+                override_origin = "study" if effective_override else "none"
+
             row = {
                 "species": species,
                 "sample_label": sample.get("sample_label", ""),
@@ -660,7 +687,18 @@ def generate_ms_samples_table(
                 "reference_proteomes": _serialize_reference_proteomes(
                     sample.get("reference_proteomes") or entry.get("reference_proteomes")
                 ),
+                # ``notes`` keeps its exact legacy meaning — classification
+                # if present, else reason — while the three underlying fields
+                # become addressable.  ``note`` reached no consumer at all
+                # before #373; it carries analytic caveats about samples that
+                # are in the corpus.
                 "notes": sample.get("classification", sample.get("reason", "")),
+                "note": sample.get("note", "") or "",
+                "classification": sample.get("classification", "") or "",
+                "reason": sample.get("reason", "") or "",
+                "sample_override": sample_override,
+                "effective_override": effective_override,
+                "effective_override_origin": override_origin,
                 "mhc": sample.get("mhc") or "",
             }
             for field in _ACQUISITION_FIELDS:
@@ -917,6 +955,16 @@ def generate_observations_table(
         # arm, and how confidently the row was attributed to a sample.
         "is_control_arm",
         "sample_attribution",
+        # Curated per-sample provenance (#373).  These are claims about the
+        # matched sample, so they are only knowable where a row reached one;
+        # an unattributed row keeps them blank rather than inheriting the
+        # study's, which would assert a sample-level fact about evidence with
+        # no sample.  They describe the curation, not the built classification
+        # flags, which stay PMID- and rule-driven at build time.
+        "sample_override",
+        "effective_override",
+        "effective_override_origin",
+        "note",
     ]
 
     # ``sample_attribution`` is synthesized by the join rather than read

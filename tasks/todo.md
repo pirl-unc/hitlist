@@ -65,8 +65,8 @@ rather than one. Each bumps the version and deploys before the next branches fro
 - [x] PR 1: corpus identity comparison and gates.
 - [x] PR 1: opened #439, CI green, merged, deployed 1.58.6, verified the published wheel.
 - [x] PR 2: finished the source audit; applied and verified the curation corrections.
-- [ ] PR 2: corpus comparison, gates, PR, CI, merge, deploy 1.58.7.
-- [ ] PR 3: override/null/inheritance/ambiguity tests, then the metadata and schema changes.
+- [x] PR 2: corpus comparison, gates, PR #441, CI green, merged, deployed 1.58.7, wheel verified.
+- [x] PR 3: override/null/inheritance/ambiguity tests, then the metadata and schema changes.
 - [ ] PR 3: corpus comparison, gates, PR, CI, merge, deploy 1.58.8.
 
 ## Review
@@ -141,6 +141,43 @@ Two existing tests were coupled to the corrected labels and were updated, not we
 GR-LCL/JY ambiguity. Those 11,733 rows carry a six-allele `mhc_restriction` rather than a single
 allele, so no allele path can fire; they were unassigned before and after, and JY was never a
 candidate for them.
+
+### PR 3 — #373 (1.58.8)
+
+`override` (13 samples) and `note` (3) reached no consumer at sample level. Both are now
+exported, along with `classification` and `reason` as their own columns beside the unchanged
+legacy `notes`.
+
+The resolution keeps four cases distinct rather than collapsing them to a value:
+`sample` (the arm's own claim), `sample_null` (a curator considered this arm and decided
+against one), `study` (inherited), `none` (nobody curated one). `sample_null` and `none`
+produce the same empty value and mean different things; PMID 34497125 is the shape that
+matters — two `cell_line` arms beside a patient-biopsy arm explicitly marked null.
+
+`curation.MS_SAMPLE_FIELDS` declares all 22 permitted keys against what reads each, and the
+loader rejects an undeclared key. `curation.OVERRIDE_VALUES` does the same for the override
+vocabulary, which previously existed only in `classify_ms_row`'s branch chain and a YAML header
+comment, so a misspelled override fell through to default classification. Study, rule, and
+sample levels are all validated.
+
+Verified before and after: sample export 755 -> 755 with six columns added, none removed, and
+every pre-existing column byte-identical; observations 4,439,321 rows with `pmid`, `peptide`,
+`mhc_restriction`, `source_organism`, `species`, `sample_label`, `sample_attribution`,
+`perturbation`, and `is_control_arm` all identical row-for-row. Purely additive.
+
+Origins across the 755 samples: study 513, none 229, sample 12, sample_null 1.
+
+Two limits stated rather than papered over. The classification flags stay build-time and
+PMID/rule-driven — `classify_ms_row` runs in the scanner, before any sample attribution exists,
+so a sample-level override cannot feed them without recomputing flags in the export and letting
+it disagree with the raw index. And `origin == "sample"` appears on no observation row today,
+because all 13 override-bearing samples belong to PMIDs with zero rows in the current corpus;
+the deterministic sample-export tests cover those cases, and the corpus test asserts the
+negative — no unattributed row may carry a sample-origin value.
+
+Filed #442 while verifying: 232 of 684 profiled curated samples are never attributed to any
+observation row, including PMID 31844290's `ccRCC Pat9`, whose caveat is the one #373 exists to
+surface.
 
 ### Audit carried into PR 3
 
