@@ -63,8 +63,8 @@ rather than one. Each bumps the version and deploys before the next branches fro
 - [x] Verify the paper and deposit identities; identify and file additional curation defects.
 - [x] PR 1: failing inventory/duplicate/unprofiled tests, then the loader, YAML, and export fixes.
 - [x] PR 1: corpus identity comparison and gates.
-- [ ] PR 1: open PR, require CI, merge, deploy 1.58.6, verify PyPI.
-- [ ] PR 2: finish the supplementary-table audit; apply and verify the curation corrections.
+- [x] PR 1: opened #439, CI green, merged, deployed 1.58.6, verified the published wheel.
+- [x] PR 2: finished the source audit; applied and verified the curation corrections.
 - [ ] PR 2: corpus comparison, gates, PR, CI, merge, deploy 1.58.7.
 - [ ] PR 3: override/null/inheritance/ambiguity tests, then the metadata and schema changes.
 - [ ] PR 3: corpus comparison, gates, PR, CI, merge, deploy 1.58.8.
@@ -114,7 +114,35 @@ typed) and are now recomputed: 215 / 748 / 579, covering 96.0% of observations.
 Gates: format, lint, 1,397 tests, and the packaged-build smoke tests all pass. CI, merge, and
 publication are pending.
 
-### Audit carried into PR 2 and PR 3
+### PR 2 — #436 (1.58.7)
+
+Source verification is complete for all four studies; the findings are recorded on #436 and
+summarized in `docs/pmid-curation.md`. Three failure modes recurred: a plausible cell line
+substituted for the real one (and its genotype carried along), a perturbation axis collapsed to a
+single "unperturbed" arm, and a citation inverted.
+
+Sample export 748 -> 755: seven removed (two phantom Liepe arms, two wrong-line Stopfer arms,
+three replaced Leddy arms), fourteen added. Five surviving rows changed fields, all intended:
+Liepe's GR-LCL and C1R genotypes, Pollock's two rows gaining study-level APM flags from the new
+`perturbations:` block, and Stopfer's biopsy row gaining a `source`.
+
+Observation rows stay at 4,439,321 with `pmid`, `peptide`, `mhc_restriction`, `source_organism`,
+and `species` identical row-for-row. **Exactly 111 rows changed attribution**, and they are the
+finding of this PR: T2's rows were being attributed to the phantom `JY (EBV-LCL)` sample by
+`allele_exact` — JY's curated `HLA-A*02:01` matched them at the highest-confidence tier — so a
+TAP-deficient hybridoma was labeled an EBV-LCL. A curated sample the paper never mentions is not
+a harmless extra row; it competes for real evidence. They now attribute to T2, still
+`allele_exact`.
+
+Two existing tests were coupled to the corrected labels and were updated, not weakened:
+`test_real_mixed_species_studies_keep_their_per_sample_species` (renamed arms; the per-sample
+`species:` it guards is intact) and the stale docstring on
+`test_resolver_skips_apc_when_cell_name_varies`, which explained the unassigned B-cell rows as
+GR-LCL/JY ambiguity. Those 11,733 rows carry a six-allele `mhc_restriction` rather than a single
+allele, so no allele path can fire; they were unassigned before and after, and JY was never a
+candidate for them.
+
+### Audit carried into PR 3
 
 The three PMIDs carrying sample overrides have zero rows in the current local indexes. The
 two note-bearing studies contain 295,895 MS rows in total; Liepe 2016 also has 90 binding rows.
