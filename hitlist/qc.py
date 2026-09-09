@@ -461,9 +461,13 @@ def sample_attribution_audit(
 
     obs = observations[observations["pmid"].notna()]
     obs_pmids = set(obs["pmid"].astype(int))
+    # NB: no ``zip(..., strict=True)`` — this package supports Python 3.9,
+    # where that keyword does not exist, and ruff cannot catch it because
+    # B905 is in the ignore list.  The two series come from one frame, so
+    # they are the same length by construction.
     attributed = {
         (int(pmid), str(label))
-        for pmid, label in zip(obs["pmid"], obs["sample_label"].astype(str), strict=True)
+        for pmid, label in zip(obs["pmid"], obs["sample_label"].astype(str))
         if str(label)
     }
 

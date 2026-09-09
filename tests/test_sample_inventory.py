@@ -200,9 +200,10 @@ def test_unprofiled_records_are_excluded_from_observation_attribution(full_obser
     """
     attributed = {
         (int(pmid), str(label))
-        for pmid, label in zip(
-            full_observations_df["pmid"], full_observations_df["sample_label"], strict=True
-        )
+        # No ``strict=True``: this package supports Python 3.9.  This test is
+        # integration-marked, so CI's 3.9 job skips it and never caught the
+        # same mistake shipped in 1.58.6.
+        for pmid, label in zip(full_observations_df["pmid"], full_observations_df["sample_label"])
         if str(label)
     }
     assert attributed & UNPROFILED_SAMPLES == set()
