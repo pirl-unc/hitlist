@@ -129,14 +129,15 @@ def test_settled_studies_have_no_remaining_arm_evidence(full_observations_df):
 
 
 @pytest.mark.integration
-def test_audit_reports_the_verdict_so_settled_findings_are_separable():
-    """The #442 audit must distinguish 'unresolvable' from 'unexamined'."""
-    from hitlist.observations import is_built
+def test_audit_reports_the_verdict_so_settled_findings_are_separable(full_observations_df):
+    """The #442 audit must distinguish 'unresolvable' from 'unexamined'.
+
+    Reuses the shared fixture; an unparameterized call would build a second
+    full table in the worker and OOM CI's coverage job.
+    """
     from hitlist.qc import sample_attribution_audit
 
-    if not is_built():
-        pytest.skip("requires a registered observations corpus")
-    found = sample_attribution_audit()
+    found = sample_attribution_audit(observations=full_observations_df)
     assert "arm_resolution" in found.columns
     actionable = found[~found["arm_resolution"].isin(SETTLED)]
     assert len(actionable) <= len(found)
