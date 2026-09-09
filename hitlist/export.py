@@ -164,6 +164,27 @@ _TRAINING_MAPPING_COLUMNS = (
     "proteome_source",
 )
 
+#: Every value ``sample_match_type`` can take.
+#:
+#: How the row's *sample* was reached, which is a different axis from
+#: ``sample_attribution`` (how its arm was): a row can be ``metadata_match``
+#: here and ``group_ambiguous`` there.  Pinned to a constant because a test
+#: hardcoded the old four-value set and ``metadata_match`` broke it — the same
+#: drift ``SAMPLE_ATTRIBUTION_VALUES`` below exists to prevent.
+SAMPLE_MATCH_TYPE_VALUES = (
+    "allele_match",
+    "single_sample_fallback",
+    "pmid_class_pool",
+    # Attributed from curated metadata rather than an allele: the study's
+    # ms_samples carry no ``mhc``, so no allele path could reach them, but a
+    # discriminator or the group stage named the sample anyway (#359).
+    "metadata_match",
+    "unmatched",
+    # Binding rows, which have no MS sample to match.
+    "not_applicable",
+    "",
+)
+
 #: Every value ``sample_attribution`` can take, most specific first.
 #:
 #: The docstring used to enumerate these inline and drifted — ``group_ambiguous``
