@@ -95,7 +95,6 @@ _CATEGORICAL_EXPORT_METADATA_COLS: tuple[str, ...] = (
     "condition_category",
     # ms_samples provenance (#373): three curated values and a note that is
     # populated on a handful of samples, so both are tiny category sets.
-    "sample_override",
     "effective_override",
     "effective_override_origin",
     "note",
@@ -167,6 +166,9 @@ _TRAINING_DEFAULTS = {
     "sample_label": "",
     "perturbation": "",
     "sample_mhc": "",
+    "sample_note": "",
+    "effective_override": "",
+    "effective_override_origin": "",
     "instrument": "",
     "instrument_type": "",
     "acquisition_mode": "",
@@ -334,6 +336,22 @@ def _consensus_meta(
             out[col] = next(iter(values))
         else:
             out[col] = False if col in _BOOL_META_COLS else ""
+
+    # Agreement is not enough for a claim that names an arm.  Several arms of
+    # one study routinely share a sample-level ``override`` — PMID 34129938
+    # marks all six ``cell_line`` — so the consensus rule above would keep
+    # ``effective_override_origin == "sample"`` on a row whose ``sample_label``
+    # it just blanked: a statement about a specific arm attached to evidence
+    # with no arm.  A study-origin value is a property of the deposit and
+    # survives; a sample-origin one cannot (#373).
+    if out.get("effective_override_origin") in ("sample", "sample_null"):
+        out["effective_override"] = ""
+        out["effective_override_origin"] = ""
+    # Free text describing one arm is arm-specific whether or not the arms
+    # happen to share it.
+    out["sample_note"] = ""
+    out["note"] = ""
+
     out["sample_attribution"] = "pmid_ambiguous"
     return out
 
@@ -665,7 +683,19 @@ def generate_ms_samples_table(
             else:
                 sample_override = ""
                 effective_override = entry.get("override") or ""
-                override_origin = "study" if effective_override else "none"
+                # ``rules`` are row-conditional: they match IEDB fields on the
+                # individual observation, so whether one supersedes the study
+                # default is not knowable from the sample.  Saying "study" here
+                # would assert a value the build contradicts — PMID 27846572
+                # inherits ``cell_line`` while its rule routes every Direct Ex
+                # Vivo fibroblast row to ``healthy``.  ``study_conditional``
+                # says: this is the default, and a rule may supersede it.
+                if effective_override and entry.get("rules"):
+                    override_origin = "study_conditional"
+                elif effective_override:
+                    override_origin = "study"
+                else:
+                    override_origin = "none"
 
             row = {
                 "species": species,
@@ -692,7 +722,7 @@ def generate_ms_samples_table(
                 # become addressable.  ``note`` reached no consumer at all
                 # before #373; it carries analytic caveats about samples that
                 # are in the corpus.
-                "notes": sample.get("classification", sample.get("reason", "")),
+                "notes": sample.get("classification", sample.get("reason", "")) or "",
                 "note": sample.get("note", "") or "",
                 "classification": sample.get("classification", "") or "",
                 "reason": sample.get("reason", "") or "",
@@ -955,16 +985,24 @@ def generate_observations_table(
         # arm, and how confidently the row was attributed to a sample.
         "is_control_arm",
         "sample_attribution",
-        # Curated per-sample provenance (#373).  These are claims about the
-        # matched sample, so they are only knowable where a row reached one;
-        # an unattributed row keeps them blank rather than inheriting the
-        # study's, which would assert a sample-level fact about evidence with
-        # no sample.  They describe the curation, not the built classification
-        # flags, which stay PMID- and rule-driven at build time.
-        "sample_override",
+        # Curated provenance (#373).  These describe the curation, not the
+        # built classification flags, which stay PMID- and rule-driven at
+        # build time.
+        #
+        # A row that reached no arm still carries a *study*-origin value: the
+        # ``pmid_ambiguous`` tier knows the deposit even when it cannot name
+        # the arm, and 513 of 755 samples inherit their override from the
+        # study.  What such a row never carries is a *sample*-origin value —
+        # ``_consensus_meta`` clears those, because naming an arm's override
+        # on evidence with no arm is a fabrication.
+        # ``sample_override`` is deliberately absent: it is derivable from
+        # the pair below (equal to ``effective_override`` when the origin is
+        # ``sample``, blank otherwise), and a redundant object column costs
+        # hundreds of MB across 4.4M rows (#263).  It stays on the samples
+        # table, where it is one row per arm.
         "effective_override",
         "effective_override_origin",
-        "note",
+        "note",  # → sample_note after rename
     ]
 
     # ``sample_attribution`` is synthesized by the join rather than read
@@ -1660,7 +1698,7 @@ def generate_observations_table(
     # Rename 'mhc' (from ms_samples join) to 'sample_mhc' to distinguish
     # from the IEDB mhc_restriction field (which may be "HLA class I").
     if "mhc" in result.columns:
-        result = result.rename(columns={"mhc": "sample_mhc"})
+        result = result.rename(columns={"mhc": "sample_mhc", "note": "sample_note"})
 
     if columns:
         available = [c for c in columns if c in result.columns]
@@ -1975,6 +2013,15 @@ _SAMPLE_PROVENANCE_COLUMNS = (
     "species_axes_agreement",
     "condition_category",
     "is_control_arm",
+    # Curated provenance (#373).  Omitting these is how one CLI flag used to
+    # change which curation a user got back; the comment above says exactly
+    # that about the species axes, and the same drift recurred here.
+    "note",
+    "classification",
+    "reason",
+    "sample_override",
+    "effective_override",
+    "effective_override_origin",
 )
 
 
@@ -2303,7 +2350,7 @@ def _apply_training_defaults(df: pd.DataFrame) -> pd.DataFrame:
     result = df.copy()
 
     if "sample_mhc" not in result.columns and "mhc" in result.columns:
-        result = result.rename(columns={"mhc": "sample_mhc"})
+        result = result.rename(columns={"mhc": "sample_mhc", "note": "sample_note"})
 
     for col, default in _TRAINING_DEFAULTS.items():
         if col not in result.columns:

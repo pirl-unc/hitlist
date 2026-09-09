@@ -67,9 +67,11 @@
       samples). Per-donor HLA from hla-ligand-atlas.org/rel/2020.12/donors.tsv.gz. Class II mhc entries
       include only DRB alleles (not DP/DQ) to match the DRB-only resolution in the IEDB mhc_restriction
       column for this PMID.
+    # Count fields carry an explicit unit suffix (house rule); these were
+    # bare `tissues:`/`samples:` and, like `donors:`, are read by nothing (#444).
     donors: 21
-    tissues: 29
-    samples: 227
+    n_tissues: 29
+    n_samples: 227
     hla_alleles:
       class_i: "51 HLA-I allotypes (95% HLA-A, 74% HLA-B, 93% HLA-C population coverage)"
       class_ii: 86 HLA-II allotypes
@@ -340,7 +342,7 @@
       patients and autopsy material). Sample IDs in Antigen Processing Comments (e.g. 'buffy coat 23', 'colon
       32'). Per-donor analysis shows single-CTA-per-sample pattern ruling out occult cancer.
     donors: ~160
-    samples: 160
+    n_samples: 160
     ms_samples:
       - sample_label: blood (buffy coat)
         source: Dept of Transfusion Medicine — healthy blood bank donors

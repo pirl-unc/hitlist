@@ -1437,6 +1437,32 @@ def main() -> None:
     )
     p_qc_pc.add_argument("--output", "-o", help="Write CSV to file")
 
+    p_qc_sa = qc_sub.add_parser(
+        "sample-attribution",
+        help=(
+            "Curated ms_samples arms that were profiled but reach zero "
+            "observation rows. A curator adding an arm otherwise gets no "
+            "signal about whether it landed (#442). Builds the full "
+            "enriched table, so this is slower than the other checks."
+        ),
+    )
+    p_qc_sa.add_argument(
+        "--bucket",
+        choices=["label_mismatch_candidate", "study_unattributed"],
+        help=(
+            "Filter to one finding shape. 'label_mismatch_candidate' means "
+            "other arms of the same study do attribute, so the label is the "
+            "suspect; 'study_unattributed' means no arm of the study "
+            "attributes at all (default: both)."
+        ),
+    )
+    p_qc_sa.add_argument(
+        "--severity",
+        choices=["info", "warn"],
+        help="Filter to one severity level (default: all).",
+    )
+    p_qc_sa.add_argument("--output", "-o", help="Write CSV to file")
+
     # ── pmhc subcommand ────────────────────────────────────────────────
     p_pmhc = sub.add_parser(
         "pmhc",
@@ -1806,6 +1832,14 @@ def _qc(args: argparse.Namespace) -> None:
         missing_only = getattr(args, "missing_only", False)
         if missing_only and not df.empty:
             df = df[~df["has_proteome"]].reset_index(drop=True)
+    elif cmd == "sample-attribution":
+        df = qc.sample_attribution_audit()
+        bucket = getattr(args, "bucket", None)
+        if bucket is not None and not df.empty:
+            df = df[df["bucket"] == bucket].reset_index(drop=True)
+        sev = getattr(args, "severity", None)
+        if sev is not None and not df.empty:
+            df = df[df["severity"] == sev].reset_index(drop=True)
     else:
         print(f"Unknown qc subcommand: {cmd}", file=sys.stderr)
         sys.exit(1)

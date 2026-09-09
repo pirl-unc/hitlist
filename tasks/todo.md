@@ -1,3 +1,104 @@
+# Arm attribution cluster — #442 / #366 / #359 / #364 / #362
+
+## Release split
+
+Approved plan: three sequenced PRs, each version-bumped and deployed before the next branches.
+
+1. **1.58.9 — #442 QC check, study-level schema guard, #362 close-out.** Code and docs only;
+   the corpus must come out byte-identical.
+2. **1.59.0 — #359 + #364.** `sample_group` curation vocabulary plus group-aware attribution,
+   then the arm curation that depends on it.
+3. **1.59.1 — #366.** `arm_resolution` accounting across all 28 ambiguous studies.
+
+## What the investigation changed
+
+Re-measuring on the current corpus before writing code contradicted two of the five issues.
+
+- **#362 is already fully delivered**, not partly. Its two proposals (carry the matched sample
+  onto observations; denormalize the APM block) are live, and its remaining "consumer caveat" —
+  that a WT control inherits the study panel's gene flags — describes pre-#353 behavior.
+  Verified on the Shapiro HAP1 panel: `HAP1 wildtype` reports `apm_genes_perturbed=""` and
+  `apm_perturbed="false"` while `study_apm_perturbed` stays True. Documenting that caveat would
+  have described a bug that no longer exists, so PR 1 pins the correct behavior with a test and
+  closes the issue instead.
+- **#359's premise is false.** A subagent ran the counterfactual end-to-end: making PMID
+  29242379's arm labels symmetric yields `""`, not `pmid_ambiguous`, because the class-pool path
+  has no `_consensus_meta` fallback; and the TIL/meningioma rows stay unattributed because
+  `assay_comments` is blocked wholesale when candidate arms disagree. Labels alone make the
+  output strictly worse, so PR 2 needs `sample_group` and a matcher change.
+- **The asymmetry bug is a live mis-attribution, and wider than filed.** PMID 29242379's 3,919
+  "attributed" rows land on the untreated arm because `ovarian` matches `source_tissue = Ovary`
+  and appears on only that one of six candidates. PMID 30833945 has the identical pathology via
+  `lung`. 8,595 rows are confidently attributed to a control arm on no evidence.
+- **#366's biggest study is unresolvable by construction.** PMID 33858848 is 255,179 of the
+  450,704 ambiguous rows; its arms are per donor and its evidence records tissue. Orthogonal
+  axes, unrecoverable from IEDB.
+
+## Steps
+
+- [x] Re-measure all five issues on the current corpus; run the #359 counterfactual.
+- [x] PR 1: `qc.sample_attribution_audit` + CLI, `PMID_ENTRY_FIELDS` guard, #362 close-out test.
+- [ ] PR 1: gates, corpus identity check, PR, CI, merge, deploy 1.58.9, close #442 and #362.
+- [ ] PR 2: `sample_group` + group-aware attribution; curate 29242379, 30833945, 32938616, 27371725.
+- [ ] PR 2: corpus before/after, gates, PR, CI, merge, deploy 1.59.0, close #359 and #364.
+- [ ] PR 3: `arm_resolution` across all 28 ambiguous studies; deploy 1.59.1, close #366.
+
+## Review
+
+### PR 1 — #442 + #362 + the study-level guard (1.58.9)
+
+`qc.sample_attribution_audit()` reports the 232 profiled arms that reach zero observation rows,
+bucketed by whether the study attributes anything at all: 137 `label_mismatch_candidate` (the
+join demonstrably works in that study, so the label is the suspect) and 95 `study_unattributed`
+(a different failure, triaged per study). Deliberately not wired into `run_all` or
+`curation_plan` — `sample_label` is synthesized by the export join, so this is the only check
+needing the full enriched table, and either rollup would make every `hitlist qc` pay that build.
+
+**#444 found while adding the guard.** `exclude_from_ms` is documented as excluding a study from
+the MS index and is set on 11 studies, every one curated as *not* a mass-spec elution experiment
+— yeast display, peptide microarray, refolding crystallography, computational tools. Nothing
+reads it. 40,355 rows / 33,101 unique peptides from 6 of those studies are in the corpus and
+reach the enriched export. Three more study-level keys are unread: `donors` (11 studies),
+`samples` (2), `tissues` (1). `PMID_ENTRY_FIELDS` now declares all 37 permitted top-level keys
+against their readers and the loader rejects the rest; the unread ones are declared as UNREAD
+citing #444 rather than described as if they worked. `samples`/`tissues` renamed to
+`n_samples`/`n_tissues` per the count-suffix rule.
+
+Removing those 40,355 rows is a deliberate corpus change and ships separately.
+
+### Review fixes folded into PR 1
+
+`/code-review` on the branch returned 12 findings, 8 of them real defects in the #373 provenance
+work already published as 1.58.8. Each was verified against the corpus before fixing.
+
+- **`effective_override` skipped the `rules` level.** PMID 27846572's `primary fibroblasts`
+  exported `cell_line` / `study` while the study's rule sends every Direct Ex Vivo fibroblast row
+  to `healthy` — exported provenance contradicting the classification the build applied, on
+  131,252 observation rows across 14 studies that carry both `rules` and `ms_samples`. Rules match
+  per row, so a sample-level value cannot resolve them; the new origin `study_conditional` says
+  the inherited value is a default a rule may supersede, instead of asserting finality.
+- **`_consensus_meta` kept arm-specific claims on arm-less rows.** Arms of one study routinely
+  agree on `override` (PMID 34129938 marks all six `cell_line`), so consensus preserved
+  `origin="sample"` on rows whose `sample_label` it had just blanked. Latent only because those
+  PMIDs have no rows; it would have broken `test_no_unattributed_row_carries_a_sample_level_override`
+  on the next corpus refresh. Study-origin values still survive — those are deposit properties.
+- **`_SAMPLE_PROVENANCE_COLUMNS` / `_TRAINING_DEFAULTS` not extended** — `--with-expression-anchors`
+  silently dropped all six new columns, and binding rows got NaN where every other MS-only column
+  gets `""`.
+- Plus: a join docstring asserting the opposite of the join's behavior, an un-coerced legacy
+  `notes` beside three coerced siblings, and a test using `.` as a regex stand-in for a literal `+`.
+
+Three design findings taken: `note` → `sample_note` on observations (it collided with the
+study-level `note` key *and* the `notes` column), `sample_override` dropped from the 4.4M-row join
+as derivable from the other two, and a new test tying every declared `MS_SAMPLE_FIELDS` key to an
+exported column — the old one only checked descriptions were non-empty, so "declared" could have
+become a synonym for "accepted and ignored", the exact failure #373 exists to prevent.
+
+Corpus effect: 13 sample rows move `study` → `study_conditional`; zero changes to observation row
+identities. Gates: format, lint, 1,432 tests, build smoke.
+
+---
+
 # Sample-curation conservation and primary-source audit — #438 / #437 / #436 / #373
 
 ## Release split
