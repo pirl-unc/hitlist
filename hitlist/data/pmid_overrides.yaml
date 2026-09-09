@@ -3083,15 +3083,27 @@
       profiled ± IFN-gamma (100 IU/mL, 24h) in quadruplicate.
     perturbations:
       - "IFN-gamma 100 IU/mL 24h (cell line experiments only)"
+    # Four sample systems, two of which split into untreated / +IFN-gamma
+    # arms.  IEDB's assay_comments name the system on every row and never
+    # mention treatment, so the system is recoverable and the arm is not —
+    # which is exactly the split `sample_group` encodes (#359).
+    #
+    # The arm labels are also now symmetric within each pair.  They were not:
+    # only the untreated B-LCL label carried the donor roster and only the
+    # untreated UWB label carried "(ovarian carcinoma)", and that lone extra
+    # token — matching source_tissue "Ovary" — handed all 3,919 UWB rows to
+    # the untreated arm with nothing about treatment in evidence.
     ms_samples:
       - sample_label: "B-LCLs (JY, CD165, PD42, CM467, RA957) untreated"
+        sample_group: "B-LCLs (JY, CD165, PD42, CM467, RA957)"
         condition: "unperturbed"
         mhc_class: "I+II"
         ip_antibody: "W6/32 (I) + HB145/L243 (II)"
         reference_proteomes:
           - uniprot: UP000153037
             proteome_label: Epstein-Barr virus
-      - sample_label: "B-LCLs + IFN-gamma"
+      - sample_label: "B-LCLs (JY, CD165, PD42, CM467, RA957) + IFN-gamma"
+        sample_group: "B-LCLs (JY, CD165, PD42, CM467, RA957)"
         condition: "IFN-gamma 100 IU/mL 24h"
         mhc_class: "I+II"
         ip_antibody: "W6/32 (I) + HB145/L243 (II)"
@@ -3099,22 +3111,26 @@
           - uniprot: UP000153037
             proteome_label: Epstein-Barr virus
       - sample_label: "UWB.1 289 (ovarian carcinoma) untreated"
+        sample_group: "UWB.1 289 (ovarian carcinoma)"
         condition: "unperturbed"
         mhc_class: "I+II"
         ip_antibody: "W6/32 (I) + HB145/L243 (II)"
         classification: cancer
-      - sample_label: "UWB.1 289 + IFN-gamma"
+      - sample_label: "UWB.1 289 (ovarian carcinoma) + IFN-gamma"
+        sample_group: "UWB.1 289 (ovarian carcinoma)"
         condition: "IFN-gamma 100 IU/mL 24h"
         mhc_class: "I+II"
         ip_antibody: "W6/32 (I) + HB145/L243 (II)"
         classification: cancer
       - sample_label: "primary meningioma tissue"
+        sample_group: "primary meningioma tissue"
         n_samples: 4
         condition: "unperturbed — snap-frozen surgical resection"
         mhc_class: "I+II"
         ip_antibody: "W6/32 (I) + HB145/L243 (II)"
         classification: cancer
       - sample_label: "melanoma TILs (expanded)"
+        sample_group: "melanoma tumor infiltrating lymphocytes (TILs)"
         n_samples: 2
         condition: "TIL expansion protocol"
         mhc_class: "I"
@@ -3143,18 +3159,67 @@
     override: cell_line
     note: >
       Patient-derived melanoma cell lines (LM-MEL panel) profiled
-      ± IFN-gamma. IEDB annotation "Lymph Node" is misleading — these
-      are CELL LINES, not tissue. ~6-8% of peptides are cis-spliced.
+      ± IFN-gamma (100 ng/ml, 72 h). IEDB annotation "Lymph Node" is
+      misleading — these are CELL LINES, not tissue. ~6-8% of peptides are
+      cis-spliced. PRIDE: PXD014397.
+      Three lines were profiled, each untreated and IFN-gamma treated:
+      LM-MEL-44 (3 biological replicates per condition), LM-MEL-33 and
+      LM-MEL-53 (1 each). LM-MEL-53 is a later metastasis from the same
+      patient as LM-MEL-44; LM-MEL-33 is a different patient sharing three
+      HLA alleles with LM-MEL-44.
+      CORRECTED #359: previously two panel-level arms ("LM-MEL melanoma cell
+      lines" ± IFN-gamma), which could not represent the per-line split the
+      evidence carries. NB IEDB's per-row cell_name names only LM-MEL-44
+      (66,500 rows) and LM-MEL-33 (25,669) and never LM-MEL-53, but its
+      per-peptide elution-condition enumeration in assay_comments does name
+      LM-MEL-53 — so the line identity is recoverable per row from
+      assay_comments even though cell_name is incomplete.
     ip_antibody: W6/32
     perturbations:
-      - "IFN-gamma (concentration/duration in methods)"
+      - "IFN-gamma 100 ng/ml 72h"
     ms_samples:
-      - sample_label: "LM-MEL melanoma cell lines (untreated)"
+      # LM-MEL-44 replicate 1 additionally used a DT9 (anti-HLA-C) pulldown
+      # alongside W6/32; replicates 2-3 and the other two lines used W6/32
+      # alone.  Not split into separate arms: IEDB carries no per-row
+      # antibody field, so the split would be unattributable.
+      - sample_label: "LM-MEL-44 (untreated)"
+        sample_group: "LM-MEL-44"
+        n_samples: 3
+        condition: "unperturbed"
+        mhc_class: "I"
+        mhc: "HLA-A*02:01 HLA-B*40:01 HLA-B*44:02 HLA-C*03:04 HLA-C*05:01"
+      - sample_label: "LM-MEL-44 + IFN-gamma"
+        sample_group: "LM-MEL-44"
+        n_samples: 3
+        condition: "IFN-gamma 100 ng/ml 72h"
+        mhc_class: "I"
+        mhc: "HLA-A*02:01 HLA-B*40:01 HLA-B*44:02 HLA-C*03:04 HLA-C*05:01"
+      - sample_label: "LM-MEL-33 (untreated)"
+        sample_group: "LM-MEL-33"
+        n_samples: 1
+        condition: "unperturbed"
+        # B*47 is given without a second field in the paper; kept at the
+        # resolution stated rather than invented up to B*47:01.
+        mhc: "HLA-A*02:01 HLA-A*03:01 HLA-B*40:02 HLA-B*47 HLA-C*03:04 HLA-C*06:02"
+        mhc_class: "I"
+      - sample_label: "LM-MEL-33 + IFN-gamma"
+        sample_group: "LM-MEL-33"
+        n_samples: 1
+        condition: "IFN-gamma 100 ng/ml 72h"
+        mhc: "HLA-A*02:01 HLA-A*03:01 HLA-B*40:02 HLA-B*47 HLA-C*03:04 HLA-C*06:02"
+        mhc_class: "I"
+      # LM-MEL-53's genotype is NOT stated by the paper.  Same patient as
+      # LM-MEL-44 does not license copying LM-MEL-44's typing onto it.
+      - sample_label: "LM-MEL-53 (untreated)"
+        sample_group: "LM-MEL-53"
+        n_samples: 1
         condition: "unperturbed"
         mhc_class: "I"
         mhc: "HLA class I"
-      - sample_label: "LM-MEL melanoma cell lines + IFN-gamma"
-        condition: "IFN-gamma treatment"
+      - sample_label: "LM-MEL-53 + IFN-gamma"
+        sample_group: "LM-MEL-53"
+        n_samples: 1
+        condition: "IFN-gamma 100 ng/ml 72h"
         mhc_class: "I"
         mhc: "HLA class I"
 
@@ -5102,12 +5167,20 @@
     title: "Pro-inflammatory Cytokines Alter the Immunopeptidome Landscape by Modulation of HLA-B Expression"
     override: cell_line
     perturbations: ["TNF-alpha + IFN-gamma stimulation"]
+    # One system, two arms.  Symmetric labels + sample_group (#359): the
+    # untreated label alone used to carry "lung cancer", and "lung" matched
+    # source_tissue "Lung" on every row of the study, handing all 4,676
+    # discriminated rows to the control arm.  The study's single
+    # assay_comments string describes the TNFa/IFNg experiment itself and
+    # offers no per-row arm evidence, so arm-level ambiguity is the ceiling.
     ms_samples:
       - sample_label: "A549 lung cancer (untreated)"
+        sample_group: "A549 lung cancer"
         condition: "unperturbed"
         mhc_class: "I"
         mhc: "HLA-A*25:01 HLA-A*30:01 HLA-B*07:02 HLA-B*44:03 HLA-C*12:03"
-      - sample_label: "A549 + TNFa + IFNg"
+      - sample_label: "A549 lung cancer + TNFa + IFNg"
+        sample_group: "A549 lung cancer"
         condition: "TNF-alpha + IFN-gamma"
         mhc_class: "I"
         mhc: "HLA-A*25:01 HLA-A*30:01 HLA-B*07:02 HLA-B*44:03 HLA-C*12:03"
@@ -6083,17 +6156,54 @@
         mhc: "HLA-F*01:04"
 
   - pmid: 27371725
-    study_label: "Nagarajan 2016 — mouse H2-Q1/Q2 ± ERAAP KO"
-    title: "ERAAP shapes the non-classical MHC-I peptidome"
+    study_label: "Nagarajan 2016 — mouse classical + non-classical MHC-I ± ERAAP KO"
+    title: "ERAAP shapes the peptidome associated with classical and non-classical MHC class I molecules"
     override:
     species: "Mus musculus (mouse)"
     perturbations: ["ERAAP knockout"]
+    # EVERY restriction in this study is algorithmically assigned, none
+    # measured.  Peptides were released by mild acid elution from the whole
+    # cell surface — a pan-MHC-I eluate with no allele-specific pulldown —
+    # and then assigned: H2-Kb / H2-Db by NetMHC (IC50 <= 500 nM), Qa-2a by
+    # Rankpep.  Only Qa-1b was established experimentally, by genetic
+    # subtraction against Qa-1b/ERAAP double-knockout cells, and no Qa-1b
+    # (H2-T23) rows are present in the corpus.  Ingesting these as observed
+    # allele-specific ligands would be circular for anything training or
+    # benchmarking a binding predictor (#364).
+    restriction_evidence: predicted
+    note: >
+      ERAAP (Arts1-tm1Ucb; Arts1 is a synonym for mouse Erap1 — the paper
+      itself never writes Erap1) knockout versus wild-type C57BL/6.
+      CORRECTED #364: the curated arms said "mouse splenocytes", but the
+      Methods elute from bone-marrow-derived dendritic cells — "MHC I-peptides
+      were isolated from BMDCs ... using mild acid elution", two biological
+      replicates of 500e6 BMDCs each. Spleen cells appear only as immunogen in
+      the T-cell assays. IEDB's cell_name="Dendritic cell" /
+      source_tissue="Bone Marrow" on all 1,970 rows was right and the curation
+      was wrong.
+      Also corrected: only non-classical arms were curated, leaving the 1,334
+      classical H2-Kb / H2-Db rows with no arm to attach to. WT and ERAAP-KO
+      share a genotype and the study carries no per-row discriminator
+      (assay_comments and antigen_processing_comments are empty on every row),
+      so arm-level attribution stays ambiguous by construction — but the rows
+      now reach a curated arm instead of nothing.
+      Deposit: IEDB submission 1000706 only; no ProteomeXchange record exists.
+      A beta2m-knockout BMDC eluate was also run, purely as an exclusion set
+      for MHC-I-independent peptides, so it contributes no curated arm.
     ms_samples:
-      - sample_label: "WT mouse splenocytes (H2-Q1/Q2)"
+      - sample_label: "WT BMDC (classical H2-Kb/H2-Db)"
+        condition: "unperturbed"
+        mhc_class: "I"
+        mhc: "H-2Kb H-2Db"
+      - sample_label: "ERAAP KO BMDC (classical H2-Kb/H2-Db)"
+        condition: "ERAAP knockout"
+        mhc_class: "I"
+        mhc: "H-2Kb H-2Db"
+      - sample_label: "WT BMDC (non-classical H2-Q1/Q2)"
         condition: "unperturbed"
         mhc_class: "non-classical"
         mhc: "H-2Q1 H-2Q2"
-      - sample_label: "ERAAP KO mouse splenocytes (H2-Q1/Q2)"
+      - sample_label: "ERAAP KO BMDC (non-classical H2-Q1/Q2)"
         condition: "ERAAP knockout"
         mhc_class: "non-classical"
         mhc: "H-2Q1 H-2Q2"

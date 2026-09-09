@@ -98,6 +98,7 @@ _CATEGORICAL_EXPORT_METADATA_COLS: tuple[str, ...] = (
     "effective_override",
     "effective_override_origin",
     "note",
+    "sample_group",
     # PMID-level / derived low-cardinality metadata
     "quantification_method",
     "mhc_class_label_severity",
@@ -167,6 +168,7 @@ _TRAINING_DEFAULTS = {
     "perturbation": "",
     "sample_mhc": "",
     "sample_note": "",
+    "sample_group": "",
     "effective_override": "",
     "effective_override_origin": "",
     "instrument": "",
@@ -303,6 +305,78 @@ def _candidates_disagree_on_arm(candidates: list[tuple[str, str, dict]]) -> bool
     :func:`_select_best_candidate`) and to refuse first-picking a tie.
     """
     return len({str((c[2] or {}).get("condition_category", "")) for c in candidates}) > 1
+
+
+def _alphanumeric_key(text: str) -> str:
+    """Lowercased alphanumerics only, for identifier containment tests.
+
+    ``LM-MEL-44`` and ``LM-MEL-44-Melanocyte`` share no whole token the
+    scorer will keep — it drops anything under three characters, which is
+    the digits that distinguish the lines — but they do share the key
+    ``lmmel44``.
+    """
+    return re.sub(r"[^a-z0-9]+", "", str(text or "").lower())
+
+
+def _select_group(
+    candidates: list[tuple[str, str, dict]],
+    cell_name: str,
+    source_tissue: str,
+    antigen_processing_comments: str,
+    assay_comments: str,
+) -> str | None:
+    """Which curated sample *system* an observation row came from (#359).
+
+    The arm scorer deliberately refuses IEDB's narrative fields whenever
+    candidate arms disagree, because those fields describe the study and
+    name every arm on every row — scoring them is what produced the #354
+    collapse.  But that reasoning is about the *treatment* axis only.  On
+    the system axis the same fields are reliable: ``eluted from the ovarian
+    cancer cell line UWB.1289`` identifies the system exactly and says
+    nothing about whether that sample saw IFN-gamma.
+
+    So the fields are admitted here, where the only question is which
+    system, and stay blocked one stage later, where the question is which
+    arm.  Groups are scored as pseudo-candidates whose ``condition_category``
+    is the group name, so a tie between two systems trips the existing
+    cross-arm tie guard and returns ``None`` rather than guessing.
+
+    Returns the winning group name, or ``None`` when the row does not
+    identify one.
+    """
+    groups = sorted({str(c[2].get("sample_group", "") or "") for c in candidates})
+    if "" in groups or not groups:
+        # Grouping is all-or-nothing per study (enforced at load); an
+        # ungrouped candidate here means this study opted out.
+        return None
+    if len(groups) == 1:
+        return groups[0]
+
+    # Identifier match first.  Token scoring drops tokens shorter than three
+    # characters, so the part of a line name that actually distinguishes it —
+    # "LM-MEL-44" versus "LM-MEL-33" — is invisible to it and every LM-MEL
+    # group scores identically on "mel".  Comparing alphanumerics-only
+    # substrings recovers exactly those cases without loosening the tokenizer
+    # for every other caller.
+    #
+    # Per-row factual fields are tried before narrative ones: cell_name states
+    # which line this row came from, while a narrative may enumerate every
+    # line the peptide was seen in.
+    for fields in ((cell_name, source_tissue), (antigen_processing_comments, assay_comments)):
+        haystack = _alphanumeric_key(" ".join(fields))
+        if not haystack:
+            continue
+        hits = [g for g in groups if _alphanumeric_key(g) and _alphanumeric_key(g) in haystack]
+        if len(hits) == 1:
+            return hits[0]
+
+    pseudo = [(group, "", {"condition_category": group}) for group in groups]
+    best = _select_best_candidate(
+        pseudo, cell_name, source_tissue, antigen_processing_comments, assay_comments
+    )
+    if best is None:
+        return None
+    return str(best.get("condition_category", "")) or None
 
 
 def _consensus_meta(
@@ -552,6 +626,7 @@ def _empty_ms_samples_columns() -> list[str]:
         "note",
         "classification",
         "reason",
+        "sample_group",
         "sample_override",
         "effective_override",
         "effective_override_origin",
@@ -726,6 +801,7 @@ def generate_ms_samples_table(
                 "note": sample.get("note", "") or "",
                 "classification": sample.get("classification", "") or "",
                 "reason": sample.get("reason", "") or "",
+                "sample_group": sample.get("sample_group", "") or "",
                 "sample_override": sample_override,
                 "effective_override": effective_override,
                 "effective_override_origin": override_origin,
@@ -1003,6 +1079,10 @@ def generate_observations_table(
         "effective_override",
         "effective_override_origin",
         "note",  # → sample_note after rename
+        # The sample *system* (#359).  Survives `_consensus_meta` on purpose:
+        # when the arms of one system tie, the system is still known and is
+        # the most specific true statement available about the row.
+        "sample_group",
     ]
 
     # ``sample_attribution`` is synthesized by the join rather than read
@@ -1290,6 +1370,21 @@ def generate_observations_table(
                 # including peptides found only in the other arm
                 # (#354).  Absence of evidence in a narrative field is
                 # not evidence, so those fields never decide an arm.
+                # Group stage (#359), opt-in per study.  Runs before the
+                # arm logic for the same reason it does on the class-pool
+                # path: narrative fields identify the *system* reliably and
+                # say nothing about treatment, so admitting them here and
+                # blocking them below splits a question the scorer could
+                # not otherwise separate.
+                _group = _select_group(
+                    cands,
+                    r["cell_name"],
+                    r["source_tissue"],
+                    r["antigen_processing_comments"],
+                    r["assay_comments"],
+                )
+                if _group is not None:
+                    cands = [c for c in cands if str(c[2].get("sample_group", "") or "") == _group]
                 _arm_split = _candidates_disagree_on_arm(cands)
                 # IEDB's per-peptide elution-condition enumeration is
                 # the one reliable arm discriminator it offers, so it
@@ -1310,6 +1405,12 @@ def generate_observations_table(
                 # agrees on rather than first-picking one arm (#354).
                 if best is None:
                     best = _consensus_meta(cands, meta_cols)
+                    if _group is not None:
+                        # The system is known even though the arm is not —
+                        # a more specific true statement than "somewhere in
+                        # this study".
+                        best["sample_group"] = _group
+                        best["sample_attribution"] = "group_ambiguous"
                 else:
                     best = {**best, "sample_attribution": _attr}
                 _winner_meta[
@@ -1444,6 +1545,24 @@ def generate_observations_table(
                     _cands = _class_candidates.get(_key)
                     if not _cands:
                         continue
+                    # ── group stage (#359) ─────────────────────────────
+                    # Opt-in: only studies that curate ``sample_group``.
+                    # Narrowing to one system before the arm scorer runs
+                    # is what makes a single-arm system attributable at
+                    # all, and stops extra identifying words on one arm of
+                    # a pair from deciding the pair.
+                    _group = _select_group(
+                        _cands,
+                        _r["cell_name"],
+                        _r["source_tissue"],
+                        _r["antigen_processing_comments"],
+                        _r["assay_comments"],
+                    )
+                    _grouped = _group is not None
+                    if _grouped:
+                        _cands = [
+                            c for c in _cands if str(c[2].get("sample_group", "") or "") == _group
+                        ]
                     _pool_attr = "class_pool"
                     if len(_cands) == 1:
                         # Single-class candidate inside a multi-sample
@@ -1514,6 +1633,15 @@ def generate_observations_table(
                             # was not an exact allele match), but report how
                             # the sample metadata was actually attributed.
                             _pool_attr = "discriminated"
+                        elif _grouped:
+                            # The system is known and the arm is not.  That is
+                            # strictly more than this path used to say, which
+                            # was nothing at all: without a winner no entry was
+                            # written and the row stayed unattributed, unlike
+                            # the allele path which falls back to consensus.
+                            _best_meta = _consensus_meta(_cands, meta_cols)
+                            _best_meta["sample_group"] = _group
+                            _pool_attr = "group_ambiguous"
                     if _best_meta is not None:
                         _best_meta = {**_best_meta, "sample_attribution": _pool_attr}
                         _tb_winner[
@@ -2019,6 +2147,7 @@ _SAMPLE_PROVENANCE_COLUMNS = (
     "note",
     "classification",
     "reason",
+    "sample_group",
     "sample_override",
     "effective_override",
     "effective_override_origin",
