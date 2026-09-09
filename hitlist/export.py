@@ -1078,6 +1078,7 @@ def generate_observations_table(
     mhc_allele_in_set: str | list[str] | None = None,
     mhc_allele_provenance: str | list[str] | None = None,
     restriction_evidence: str | list[str] | None = None,
+    serotype_source: str | list[str] | None = None,
     gene: str | list[str] | None = None,
     gene_name: str | list[str] | None = None,
     gene_id: str | list[str] | None = None,
@@ -1131,6 +1132,10 @@ def generate_observations_table(
         Filter by how the named peptide-to-MHC restriction was established:
         ``"experimental"``, ``"monoallelic"``, ``"predicted"``, or
         ``"unknown"``. This is independent of ``mhc_allele_provenance``.
+    serotype_source
+        Filter by whether the serotype is primary data (``"reported"``), this
+        library's projection of a named molecule (``"derived"``), or a union
+        over a donor's typed alleles (``"donor_set"``).
     columns
         Return only these columns.
 
@@ -1197,6 +1202,8 @@ def generate_observations_table(
     obs_filters.update(_gene_observation_filters(resolved_gene_names, resolved_gene_ids, peptide))
     if restriction_evidence is not None:
         obs_filters["restriction_evidence"] = restriction_evidence
+    if serotype_source is not None:
+        obs_filters["serotype_source"] = _to_list(serotype_source)
     if serotype is not None:
         obs_filters["serotype"] = _to_list(serotype)
     if length_min is not None:
@@ -2145,6 +2152,7 @@ def generate_ms_observations_table(
     mhc_allele_in_set: str | list[str] | None = None,
     mhc_allele_provenance: str | list[str] | None = None,
     restriction_evidence: str | list[str] | None = None,
+    serotype_source: str | list[str] | None = None,
     gene: str | list[str] | None = None,
     gene_name: str | list[str] | None = None,
     gene_id: str | list[str] | None = None,
@@ -2186,6 +2194,7 @@ def generate_ms_observations_table(
         mhc_allele_in_set=mhc_allele_in_set,
         mhc_allele_provenance=mhc_allele_provenance,
         restriction_evidence=restriction_evidence,
+        serotype_source=serotype_source,
         gene=gene,
         gene_name=gene_name,
         gene_id=gene_id,
@@ -2209,6 +2218,7 @@ def generate_binding_table(
     mhc_allele_in_set: str | list[str] | None = None,
     mhc_allele_provenance: str | list[str] | None = None,
     restriction_evidence: str | list[str] | None = None,
+    serotype_source: str | list[str] | None = None,
     gene: str | list[str] | None = None,
     gene_name: str | list[str] | None = None,
     gene_id: str | list[str] | None = None,
@@ -2320,6 +2330,10 @@ def generate_binding_table(
         Filter independently by how the named restriction was established:
         ``"experimental"``, ``"monoallelic"``, ``"predicted"``, or
         ``"unknown"``.
+    serotype_source
+        Filter by whether the serotype is primary data (``"reported"``), this
+        library's projection of a named molecule (``"derived"``), or a union
+        over a donor's typed alleles (``"donor_set"``).
     exclude_class_label_suspect
         Drop rows whose curated MHC class disagrees with the peptide
         length severely enough to be flagged ``suspect`` — the strict
@@ -2353,6 +2367,8 @@ def generate_binding_table(
     bind_filters.update(_gene_observation_filters(resolved_gene_names, resolved_gene_ids, peptide))
     if restriction_evidence is not None:
         bind_filters["restriction_evidence"] = restriction_evidence
+    if serotype_source is not None:
+        bind_filters["serotype_source"] = _to_list(serotype_source)
     if serotype is not None:
         bind_filters["serotype"] = _to_list(serotype)
     if length_min is not None:
@@ -2982,6 +2998,7 @@ def generate_training_table(
     mhc_allele_in_set: str | list[str] | None = None,
     mhc_allele_provenance: str | list[str] | None = None,
     restriction_evidence: str | list[str] | None = None,
+    serotype_source: str | list[str] | None = None,
     gene: str | list[str] | None = None,
     gene_name: str | list[str] | None = None,
     gene_id: str | list[str] | None = None,
@@ -3088,6 +3105,7 @@ def generate_training_table(
         "mhc_allele_in_set": mhc_allele_in_set,
         "mhc_allele_provenance": mhc_allele_provenance,
         "restriction_evidence": restriction_evidence,
+        "serotype_source": serotype_source,
         "gene": gene,
         "gene_name": gene_name,
         "gene_id": gene_id,

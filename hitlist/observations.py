@@ -134,6 +134,7 @@ def load_observations(
     mhc_allele_in_set: str | list[str] | None = None,
     mhc_allele_provenance: str | list[str] | None = None,
     restriction_evidence: str | list[str] | None = None,
+    serotype_source: str | list[str] | None = None,
     gene_name: str | list[str] | None = None,
     gene_id: str | list[str] | None = None,
     peptide: str | list[str] | None = None,
@@ -213,6 +214,15 @@ def load_observations(
         or ``"unknown"``. Unlike ``mhc_allele_provenance``, this axis describes
         evidentiary strength rather than where the candidate allele set came
         from.
+    serotype_source
+        Filter by whether the row's serotype is primary data or a projection:
+        ``"reported"`` (the study typed serologically and no molecule was
+        measured), ``"derived"`` (computed from a named molecule through
+        mhcgnomes' membership table), or ``"donor_set"`` (a union over a
+        donor's typed alleles, so the serotype is a candidate rather than the
+        restriction's identity). Use ``"reported"`` to restrict a serotype
+        query to serological observations rather than this library's
+        projections of molecular ones.
     gene_name, gene_id
         Gene filters — resolved through the peptide mappings sidecar.
     length_min, length_max
@@ -254,6 +264,7 @@ def load_observations(
         mhc_allele_in_set=mhc_allele_in_set,
         mhc_allele_provenance=mhc_allele_provenance,
         restriction_evidence=restriction_evidence,
+        serotype_source=serotype_source,
         gene_name=gene_name,
         gene_id=gene_id,
         peptide=peptide,
@@ -301,6 +312,7 @@ def load_binding(
     mhc_allele_in_set: str | list[str] | None = None,
     mhc_allele_provenance: str | list[str] | None = None,
     restriction_evidence: str | list[str] | None = None,
+    serotype_source: str | list[str] | None = None,
     gene_name: str | list[str] | None = None,
     gene_id: str | list[str] | None = None,
     peptide: str | list[str] | None = None,
@@ -335,6 +347,7 @@ def load_binding(
         mhc_allele_in_set=mhc_allele_in_set,
         mhc_allele_provenance=mhc_allele_provenance,
         restriction_evidence=restriction_evidence,
+        serotype_source=serotype_source,
         gene_name=gene_name,
         gene_id=gene_id,
         peptide=peptide,
@@ -359,6 +372,7 @@ def load_all_evidence(
     mhc_allele_in_set: str | list[str] | None = None,
     mhc_allele_provenance: str | list[str] | None = None,
     restriction_evidence: str | list[str] | None = None,
+    serotype_source: str | list[str] | None = None,
     gene_name: str | list[str] | None = None,
     gene_id: str | list[str] | None = None,
     peptide: str | list[str] | None = None,
@@ -399,6 +413,7 @@ def load_all_evidence(
         "mhc_allele_in_set": mhc_allele_in_set,
         "mhc_allele_provenance": mhc_allele_provenance,
         "restriction_evidence": restriction_evidence,
+        "serotype_source": serotype_source,
         "gene_name": gene_name,
         "gene_id": gene_id,
         "peptide": peptide,
@@ -546,6 +561,7 @@ def _load_peptide_index(
     mhc_allele_in_set: str | list[str] | None,
     mhc_allele_provenance: str | list[str] | None,
     restriction_evidence: str | list[str] | None,
+    serotype_source: str | list[str] | None,
     gene_name: str | list[str] | None,
     gene_id: str | list[str] | None,
     peptide: str | list[str] | None,
@@ -634,6 +650,8 @@ def _load_peptide_index(
         filters.append(("mhc_allele_provenance", "in", _as_list(mhc_allele_provenance)))
     if restriction_evidence is not None:
         filters.append(("restriction_evidence", "in", _as_list(restriction_evidence)))
+    if serotype_source is not None:
+        filters.append(("serotype_source", "in", _as_list(serotype_source)))
 
     if gene_name is not None or gene_id is not None:
         # Gene filters resolve to a peptide list via peptide_mappings.parquet,

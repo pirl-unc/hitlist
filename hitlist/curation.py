@@ -68,6 +68,21 @@ RESTRICTION_EVIDENCE_VALUES = (
     "unknown",
 )
 
+#: Whether a row's serotype is primary data or a computed membership.
+#: ``reported`` means the study typed serologically and the restriction *is*
+#: the serotype -- no molecule was measured, and the allele columns are empty
+#: because of that, not because the row is unresolved. ``derived`` means the
+#: study named a molecule and the serotype is this library's projection of it
+#: through mhcgnomes' membership table, so it is only as current as the
+#: installed mhcgnomes. ``donor_set`` is a union over a donor's typed alleles,
+#: which makes the serotype a candidate rather than the restriction's
+#: identity. Empty means the row carries no serotype at all (#458).
+SEROTYPE_SOURCE_VALUES = (
+    "reported",
+    "derived",
+    "donor_set",
+)
+
 #: Every provenance override a PMID entry, a conditional rule, or an
 #: ``ms_samples`` entry may declare. ``None`` (YAML ``override:`` with no
 #: value) is always allowed and means "no override"; anything outside this
@@ -664,6 +679,7 @@ class MhcAnnotation:
     allele_resolution: str
     serotype: str
     serotypes: str
+    serotype_source: str
 
     def as_record_fields(self) -> dict[str, bool | str]:
         """Return the persisted scanner columns for this annotation."""
@@ -679,6 +695,7 @@ class MhcAnnotation:
             "allele_resolution": self.allele_resolution,
             "serotype": self.serotype,
             "serotypes": self.serotypes,
+            "serotype_source": self.serotype_source,
         }
 
 
@@ -686,6 +703,23 @@ def _molecule_class(parsed) -> str:
     if type(parsed).__name__ not in _MHC_MOLECULE_TYPES:
         return ""
     return _FINE_MHC_CLASS_TO_TOKEN.get(str(getattr(parsed, "mhc_class", "")), "")
+
+
+def _serotype_source(
+    component_serotypes: tuple[str, ...], n_parts: int, allele_resolution: str
+) -> str:
+    """Classify whether a row's serotype is primary data or a projection.
+
+    See :data:`SEROTYPE_SOURCE_VALUES`. The distinction is not recoverable
+    from the serotype itself: a serologically typed study reporting ``HLA-A2``
+    and a sequenced study reporting ``HLA-A*02:01`` produce the identical
+    ``serotypes`` cell, one measured and one computed (#458).
+    """
+    if not component_serotypes:
+        return ""
+    if n_parts > 1:
+        return "donor_set"
+    return "reported" if allele_resolution == "serological" else "derived"
 
 
 @cache
@@ -768,6 +802,7 @@ def resolve_mhc_annotation(
             serotype for part in normalized_parts for serotype in allele_to_all_serotypes(part)
         )
     )
+    resolution = classify_allele_resolution(normalized)
     return MhcAnnotation(
         restriction=normalized,
         mhc_species=resolved_species,
@@ -777,9 +812,10 @@ def resolve_mhc_annotation(
         mhc_class_reported=reported_raw,
         mhc_class_source=class_source,
         mhc_class_corrected=corrected,
-        allele_resolution=classify_allele_resolution(normalized),
+        allele_resolution=resolution,
         serotype=component_serotypes[0] if component_serotypes else "",
         serotypes=";".join(component_serotypes),
+        serotype_source=_serotype_source(component_serotypes, len(parts), resolution),
     )
 
 
@@ -1580,6 +1616,26 @@ def _broader_locus_serotype_name(name: str, known_names: set[str]) -> str:
     return ""
 
 
+def _serotype_table_key(allele_str: str) -> str:
+    """Key one allele designation for the serotype reverse map.
+
+    mhcgnomes' serotype table is not consistent in how it spells alleles:
+    915 of its entries use the compact ``C*0304`` form and 11 use the colon
+    form ``C*15:02`` -- the hand-curated rows that its generator cannot
+    reproduce (mhcgnomes#156), which is why they carry the newer spelling.
+    Keying by whatever the table happens to hold made those rows unreachable
+    from :func:`allele_to_all_serotypes`, which builds a compact key from a
+    parsed allele's fields.  Six serological specificities -- Cw12, Cw14,
+    Cw15, Cw16, Cw17, Cw18 -- were silently absent from every annotation as
+    a result (#455).
+
+    Both sides now normalize the same way, so a format change upstream
+    cannot quietly drop a locus again; ``test_curation.py`` asserts every
+    table entry stays reachable.
+    """
+    return allele_str.replace(":", "")
+
+
 @lru_cache(maxsize=1)
 def _build_allele_to_serotypes_map() -> dict[str, tuple[str, ...]]:
     """Build a reverse map from allele compact key to ALL its serotypes.
@@ -1607,7 +1663,7 @@ def _build_allele_to_serotypes_map() -> dict[str, tuple[str, ...]]:
         broader_name = _broader_locus_serotype_name(sero_name, known_names)
         names_for_sero = [sero_name] if not broader_name else [sero_name, broader_name]
         for allele_str in allele_list:
-            reverse.setdefault(allele_str, []).extend(names_for_sero)
+            reverse.setdefault(_serotype_table_key(allele_str), []).extend(names_for_sero)
 
     return {
         allele: tuple(
@@ -1616,17 +1672,6 @@ def _build_allele_to_serotypes_map() -> dict[str, tuple[str, ...]]:
         )
         for allele, names in reverse.items()
     }
-
-
-@lru_cache(maxsize=1)
-def _build_allele_to_serotype_map() -> dict[str, str]:
-    """Build a reverse map from allele compact key to its canonical serotype.
-
-    Ranks serotypes by specificity (locus-specific beats public epitopes),
-    then by broader-first (A2 over A2.1), so A\\*24:02 → HLA-A24 rather
-    than HLA-Bw4.
-    """
-    return {a: names[0] for a, names in _build_allele_to_serotypes_map().items() if names}
 
 
 @lru_cache(maxsize=8192)
@@ -1663,7 +1708,7 @@ def allele_to_all_serotypes(mhc_restriction: str) -> tuple[str, ...]:
             if isinstance(result, Serotype):
                 return (f"HLA-{result.name}",)
             if isinstance(result, Allele):
-                key = f"{result.gene.name}*{''.join(result.allele_fields)}"
+                key = _serotype_table_key(f"{result.gene.name}*{':'.join(result.allele_fields)}")
                 return _build_allele_to_serotypes_map().get(key, ())
         except ImportError:
             pass

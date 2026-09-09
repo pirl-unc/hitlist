@@ -277,6 +277,8 @@ lookup_proteome("Mycobacterium tuberculosis")
 | `mhc_species` | Canonical MHC species (mhcgnomes plus explicit per-study context for ambiguous names) |
 | `mhc_species_source`, `mhc_species_context_disagrees` | Species-resolution provenance and explicit context-conflict signal |
 | `restriction_evidence` | How the named peptide-to-MHC restriction was established: `experimental`, `monoallelic`, `predicted`, or `unknown` |
+| `serotype`, `serotypes` | Canonical serotype and full membership (an allele can carry a locus serotype and a public epitope such as `Bw4`) |
+| `serotype_source` | Whether the serotype is primary data or a projection: `reported` (the study typed serologically; no molecule was measured, which is why the allele fields are empty), `derived` (computed from a named molecule through mhcgnomes' membership table, so only as current as the installed mhcgnomes — the build records `mhcgnomes_version` in `observations_meta.json`), `donor_set` (a union over a donor's typed alleles, making the serotype a candidate rather than the restriction's identity), or empty (no serotype) |
 | `is_monoallelic` | True if sample has a single transfected allele (721.221, C1R, K562, MAPTAC…) |
 | `has_peptide_level_allele` | True if `mhc_restriction` is a specific allele (not `"HLA class I"`) |
 | `is_potential_contaminant` | True for MS-eluted peptides that failed NetMHCpan binding prediction |
@@ -394,6 +396,7 @@ training pipelines.
 | `--min-allele-resolution` | `four_digit`, `two_digit`, `serological`, `class_only` |
 | `--mhc-allele` | Exact match on `mhc_restriction` after allele normalization. Repeatable / comma-separated. |
 | `--restriction-evidence` | Restriction evidence: `experimental`, `monoallelic`, `predicted`, or `unknown`. Independent of allele-set provenance. Repeatable. |
+| `--serotype-source` | Whether the serotype is primary data or a projection: `reported` (serologically typed study), `derived` (computed from a named molecule), `donor_set` (union over a donor's typed alleles). Pair with `--serotype` to keep a serotype query on measured typings. Repeatable. |
 | `--gene` | Symbol, Ensembl ID, or old alias (HGNC synonym lookup). Repeatable / comma-separated. Requires the mappings sidecar (default-on at build). |
 | `--gene-name` | Exact match on `gene_name` column (no HGNC lookup) |
 | `--gene-id` | Exact match on `gene_id` column (ENSG) |

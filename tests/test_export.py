@@ -2272,6 +2272,7 @@ def test_export_training_cli_helper(monkeypatch):
         mhc_allele_in_set=["HLA-A*02:01"],
         mhc_allele_provenance=["exact"],
         restriction_evidence=["experimental", "monoallelic"],
+        serotype_source=["reported"],
         gene=["PRAME"],
         gene_name=["PRAME"],
         gene_id=["ENSG00000185686"],
@@ -2302,6 +2303,7 @@ def test_export_training_cli_helper(monkeypatch):
         "mhc_allele_in_set": ["HLA-A*02:01"],
         "mhc_allele_provenance": ["exact"],
         "restriction_evidence": ["experimental", "monoallelic"],
+        "serotype_source": ["reported"],
         "gene": ["PRAME"],
         "gene_name": ["PRAME"],
         "gene_id": ["ENSG00000185686"],
@@ -3917,3 +3919,30 @@ def test_merged_hla_dm_observation_has_unknown_arm_metadata(tmp_path, monkeypatc
     assert row["condition_category"] == ""
     assert row["apm_perturbed"] == ""
     assert row["is_control_arm"] == ""
+
+
+@pytest.mark.parametrize("subcommand", ["ms", "binding", "training"])
+def test_cli_parses_serotype_source_filter(monkeypatch, subcommand):
+    """#458: every evidence export can restrict a serotype query by provenance."""
+    import sys
+
+    from hitlist import cli
+
+    captured = {}
+    monkeypatch.setattr(cli, "_export", lambda args: captured.update(vars(args)))
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "hitlist",
+            "export",
+            subcommand,
+            "--serotype-source",
+            "reported",
+            "derived",
+        ],
+    )
+
+    cli.main()
+
+    assert captured["serotype_source"] == ["reported", "derived"]

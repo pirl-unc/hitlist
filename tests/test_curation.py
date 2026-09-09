@@ -3247,3 +3247,92 @@ def test_thp1_typing_is_study_specific():
         "HLA-B*35:01",
         "HLA-C*03:03",
     } <= ghosh
+
+
+def test_every_serotype_table_entry_is_reachable():
+    """#455: the reverse map and its lookup must agree on how alleles are keyed.
+
+    mhcgnomes' table spells alleles two ways -- 915 entries as ``C*0304`` and
+    11 as ``C*15:02``, the hand-curated rows its generator cannot reproduce
+    (mhcgnomes#156).  Keying the map by whatever the table held made those rows
+    unreachable, silently removing Cw12, Cw14, Cw15, Cw16, Cw17 and Cw18 from
+    every annotation in the index.  This asserts the whole vocabulary stays
+    reachable, so a format change upstream fails here instead of quietly
+    dropping a locus.
+    """
+    if not _HAS_MHCGNOMES:
+        return
+    from mhcgnomes.data import serotypes
+
+    unreachable = [
+        allele
+        for allele_list in serotypes["HLA"].values()
+        for allele in allele_list
+        if not allele_to_all_serotypes(f"HLA-{allele}")
+    ]
+    assert unreachable == []
+
+
+def test_allele_to_all_serotypes_reaches_curated_c_locus_specificities():
+    """The colon-spelled curated rows, named individually.
+
+    Cw16 is the one that matters most: WHO's ``hla_nom.txt`` records
+    ``Cw;16;20260128;;;``, assigned and never deleted, and mhcgnomes curated it
+    in deliberately (mhcgnomes#153) because the IPD dictionary its generator
+    reads predates the assignment.  A key-format mismatch here discarded that
+    work.
+    """
+    if not _HAS_MHCGNOMES:
+        return
+    assert allele_to_all_serotypes("HLA-C*16:01") == ("HLA-Cw16",)
+    assert allele_to_all_serotypes("HLA-C*16:02") == ("HLA-Cw16",)
+    assert allele_to_all_serotypes("HLA-C*15:02") == ("HLA-Cw15",)
+    assert allele_to_all_serotypes("HLA-C*12:03") == ("HLA-Cw12",)
+    assert allele_to_all_serotypes("HLA-C*14:02") == ("HLA-Cw14",)
+    assert allele_to_all_serotypes("HLA-C*17:01") == ("HLA-Cw17",)
+    assert allele_to_all_serotypes("HLA-C*18:01") == ("HLA-Cw18",)
+
+
+def test_serotype_source_separates_reported_from_computed():
+    """#458: a measured serological typing and a projection are not the same fact.
+
+    A study that typed serologically reports ``HLA-A2`` and measured no
+    molecule -- the serotype *is* the observation.  A study that sequenced
+    ``HLA-A*02:01`` yields the same ``serotypes`` cell computed from mhcgnomes'
+    membership table.  Without this column the two are indistinguishable.
+    """
+    if not _HAS_MHCGNOMES:
+        return
+    from hitlist.curation import SEROTYPE_SOURCE_VALUES, resolve_mhc_annotation
+
+    reported = resolve_mhc_annotation("HLA-A2")
+    assert reported.serotype_source == "reported"
+    assert reported.allele_resolution == "serological"
+    assert reported.serotypes == "HLA-A2"
+
+    derived = resolve_mhc_annotation("HLA-A*02:01")
+    assert derived.serotype_source == "derived"
+    assert derived.serotypes == "HLA-A2;HLA-A2.1"
+
+    # A donor bag's serotypes are a union over the donor's typed alleles, so
+    # the serotype is a candidate rather than the restriction's identity.
+    donor_set = resolve_mhc_annotation("HLA-A*01:01;HLA-A*02:01")
+    assert donor_set.serotype_source == "donor_set"
+    assert donor_set.allele_resolution == "donor_set"
+
+    # No serotype, no source: class-only rows and alleles serology never typed.
+    assert resolve_mhc_annotation("HLA class I").serotype_source == ""
+    assert resolve_mhc_annotation("HLA-DQA1*01:02").serotype_source == ""
+
+    assert set(SEROTYPE_SOURCE_VALUES) == {"reported", "derived", "donor_set"}
+
+
+def test_serotype_source_is_persisted_with_the_annotation():
+    """The scanner writes ``as_record_fields`` atomically; the source rides along."""
+    if not _HAS_MHCGNOMES:
+        return
+    from hitlist.curation import resolve_mhc_annotation
+
+    fields = resolve_mhc_annotation("HLA-A*24:02").as_record_fields()
+    assert fields["serotype_source"] == "derived"
+    assert fields["serotypes"] == "HLA-A24;HLA-Bw4"

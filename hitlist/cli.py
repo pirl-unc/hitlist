@@ -32,7 +32,11 @@ import json
 import sys
 
 from .cli_help import ColorArgumentParser
-from .curation import MHC_ALLELE_PROVENANCE_VALUES, RESTRICTION_EVIDENCE_VALUES
+from .curation import (
+    MHC_ALLELE_PROVENANCE_VALUES,
+    RESTRICTION_EVIDENCE_VALUES,
+    SEROTYPE_SOURCE_VALUES,
+)
 from .downloads import (
     available_datasets,
     data_dir,
@@ -809,6 +813,17 @@ def main() -> None:
         help="Filter by how the named peptide-to-MHC restriction was established.",
     )
     p_obs.add_argument(
+        "--serotype-source",
+        action="extend",
+        nargs="+",
+        choices=SEROTYPE_SOURCE_VALUES,
+        help=(
+            "Filter by whether the serotype is primary data (reported), a "
+            "projection of a named molecule (derived), or a union over a "
+            "donor's typed alleles (donor_set)."
+        ),
+    )
+    p_obs.add_argument(
         "--gene",
         action="extend",
         nargs="+",
@@ -984,6 +999,17 @@ def main() -> None:
         help="Filter by how the named peptide-to-MHC restriction was established.",
     )
     p_bind.add_argument(
+        "--serotype-source",
+        action="extend",
+        nargs="+",
+        choices=SEROTYPE_SOURCE_VALUES,
+        help=(
+            "Filter by whether the serotype is primary data (reported), a "
+            "projection of a named molecule (derived), or a union over a "
+            "donor's typed alleles (donor_set)."
+        ),
+    )
+    p_bind.add_argument(
         "--gene",
         action="extend",
         nargs="+",
@@ -1149,6 +1175,17 @@ def main() -> None:
         nargs="+",
         choices=RESTRICTION_EVIDENCE_VALUES,
         help="Filter by how the named peptide-to-MHC restriction was established.",
+    )
+    p_training.add_argument(
+        "--serotype-source",
+        action="extend",
+        nargs="+",
+        choices=SEROTYPE_SOURCE_VALUES,
+        help=(
+            "Filter by whether the serotype is primary data (reported), a "
+            "projection of a named molecule (derived), or a union over a "
+            "donor's typed alleles (donor_set)."
+        ),
     )
     p_training.add_argument(
         "--gene",
@@ -2245,6 +2282,7 @@ def _export_training(args: argparse.Namespace):
         mhc_allele_in_set=getattr(args, "mhc_allele_in_set", None),
         mhc_allele_provenance=getattr(args, "mhc_allele_provenance", None),
         restriction_evidence=getattr(args, "restriction_evidence", None),
+        serotype_source=getattr(args, "serotype_source", None),
         gene=getattr(args, "gene", None),
         gene_name=getattr(args, "gene_name", None),
         gene_id=getattr(args, "gene_id", None),
@@ -2288,6 +2326,7 @@ def _export_ms(args: argparse.Namespace):
         mhc_allele_in_set=getattr(args, "mhc_allele_in_set", None),
         mhc_allele_provenance=getattr(args, "mhc_allele_provenance", None),
         restriction_evidence=getattr(args, "restriction_evidence", None),
+        serotype_source=getattr(args, "serotype_source", None),
         gene=getattr(args, "gene", None),
         gene_name=getattr(args, "gene_name", None),
         gene_id=getattr(args, "gene_id", None),
@@ -2417,6 +2456,7 @@ def _export(args: argparse.Namespace) -> None:
                 mhc_allele_in_set=getattr(args, "mhc_allele_in_set", None),
                 mhc_allele_provenance=getattr(args, "mhc_allele_provenance", None),
                 restriction_evidence=getattr(args, "restriction_evidence", None),
+                serotype_source=getattr(args, "serotype_source", None),
                 gene=getattr(args, "gene", None),
                 gene_name=getattr(args, "gene_name", None),
                 gene_id=getattr(args, "gene_id", None),
