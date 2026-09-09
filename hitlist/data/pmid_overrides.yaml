@@ -3171,12 +3171,15 @@
   - pmid: 29242379
     # Arm-resolution verdict (#366): recorded so this study is not
     # re-investigated. Describes the deposited evidence, not the curation.
-    arm_resolution: no_row_discriminator
+    arm_resolution: arm_not_recorded
     arm_resolution_note: >
-      Resolved to the sample system via sample_group (#359). Within the B-LCL and UWB
-      systems, assay_comments identifies the system on every row and never mentions
-      treatment, and no other per-row field varies with the arm, so the +/- IFN-gamma split
-      is not recoverable. The TIL and meningioma systems have one arm each and do resolve.
+      Resolved to the sample system via sample_group (#359): assay_comments identifies the
+      system on every row (5 distinct cell_name, 3 source_tissue, 4 assay_comments values)
+      and never mentions treatment. So per-row metadata does vary and does carry real
+      information -- it is what resolves the system -- but not on the axis the arms encode,
+      which is why this is arm_not_recorded and not no_row_discriminator. The TIL and
+      meningioma systems have one arm each and resolve fully; the B-LCL and UWB systems
+      split +/- IFN-gamma and that split is not recoverable from anything IEDB records.
     study_label: "Chong 2018 — high-throughput immunopeptidomics ± IFNg"
     title: "High-throughput and Sensitive Immunopeptidomics Platform Reveals Profound Interferon-gamma-Mediated Remodeling of the Human Leukocyte Antigen (HLA) Ligandome"
     override:
@@ -5364,20 +5367,24 @@
     title: "Pro-inflammatory Cytokines Alter the Immunopeptidome Landscape by Modulation of HLA-B Expression"
     override: cell_line
     perturbations: ["TNF-alpha + IFN-gamma stimulation"]
-    # One system, two arms.  Symmetric labels + sample_group (#359): the
-    # untreated label alone used to carry "lung cancer", and "lung" matched
-    # source_tissue "Lung" on every row of the study, handing all 4,676
-    # discriminated rows to the control arm.  The study's single
-    # assay_comments string describes the TNFa/IFNg experiment itself and
-    # offers no per-row arm evidence, so arm-level ambiguity is the ceiling.
+    # One system, two arms.  Symmetric labels (#359): the untreated label
+    # alone used to carry "lung cancer", and "lung" matched source_tissue
+    # "Lung" on every row of the study, handing all 4,676 discriminated rows
+    # to the control arm.  Making the labels symmetric makes the arms tie, so
+    # the join declines and the rows land at pmid_ambiguous -- honest, given
+    # the study's single assay_comments string describes the TNFa/IFNg
+    # experiment itself and offers no per-row arm evidence at all.
+    #
+    # Deliberately NOT given a sample_group: the study has exactly one system,
+    # so naming it would say no more than naming the PMID while relabelling
+    # these rows group_ambiguous and breaking consumers that partition on
+    # pmid_ambiguous to find undetermined arms.
     ms_samples:
       - sample_label: "A549 lung cancer (untreated)"
-        sample_group: "A549 lung cancer"
         condition: "unperturbed"
         mhc_class: "I"
         mhc: "HLA-A*25:01 HLA-A*30:01 HLA-B*07:02 HLA-B*44:03 HLA-C*12:03"
       - sample_label: "A549 lung cancer + TNFa + IFNg"
-        sample_group: "A549 lung cancer"
         condition: "TNF-alpha + IFN-gamma"
         mhc_class: "I"
         mhc: "HLA-A*25:01 HLA-A*30:01 HLA-B*07:02 HLA-B*44:03 HLA-C*12:03"

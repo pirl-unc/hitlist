@@ -29,7 +29,9 @@ from hitlist.curation import ARM_RESOLUTION_VALUES, PMID_ENTRY_FIELDS, load_pmid
 from hitlist.export import generate_ms_samples_table
 
 #: Verdicts meaning "more curation will not help".
-SETTLED = frozenset({"axis_mismatch", "no_row_discriminator", "multi_arm_evidence"})
+SETTLED = frozenset(
+    {"axis_mismatch", "no_row_discriminator", "arm_not_recorded", "multi_arm_evidence"}
+)
 
 
 def test_vocabulary_is_declared_and_exported():
@@ -138,3 +140,29 @@ def test_audit_reports_the_verdict_so_settled_findings_are_separable():
     assert "arm_resolution" in found.columns
     actionable = found[~found["arm_resolution"].isin(SETTLED)]
     assert len(actionable) <= len(found)
+
+
+@pytest.mark.integration
+def test_arm_not_recorded_studies_do_resolve_their_system(full_observations_df):
+    """That verdict claims the system IS recovered, so check it was.
+
+    `arm_not_recorded` is the weaker sibling of `no_row_discriminator`: the
+    per-row fields vary and carry real information, they just do not carry
+    the arm. The claim only holds if the study actually curates
+    `sample_group` and its rows reach it.
+    """
+    df = full_observations_df
+    for pmid, entry in load_pmid_overrides().items():
+        if entry.get("arm_resolution") != "arm_not_recorded":
+            continue
+        arms = entry.get("ms_samples") or []
+        assert all(s.get("sample_group") for s in arms), (
+            f"PMID {pmid} is recorded arm_not_recorded but curates no sample_group; "
+            f"without one the system is not resolved and the verdict overstates"
+        )
+        rows = df[df["pmid"] == pmid]
+        if rows.empty:
+            continue
+        assert (rows["sample_group"].astype(str) != "").any(), (
+            f"PMID {pmid} claims its system resolves, but no row carries a sample_group"
+        )

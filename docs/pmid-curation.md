@@ -95,6 +95,7 @@ rather than describing behavior it does not have.
 | `override` | Per-sample provenance override. Present with a value = this sample's claim; present but **null** = "deliberately none here", which is *not* the same as omitting the key and inheriting the study's. See below. |
 | `note` | Free-text analytic caveat about this arm, exported and carried to attributed observations. |
 | `source`, `species`, `reference_proteomes` | Per-sample provenance. |
+| `sample_group` | The sample **system** this arm belongs to — a cell line, tissue, or donor cohort (#359). Attribution resolves the system first, then the arm within it. **Opt-in per study and all-or-none**: curating it on a subset raises at load, as does a one-to-one group/arm mapping. See below. |
 | `profiled` | `false` (or `n_samples: 0`) for an arm that exists in the paper but was never run on the instrument. It is exported as a metadata row and excluded from observation attribution, so it can never be matched to a peptide. |
 
 Every key an `ms_samples` entry may carry is declared in
@@ -102,6 +103,36 @@ Every key an `ms_samples` entry may carry is declared in
 undeclared key.** Adding a field means adding it there together with its
 reader — otherwise it looks exactly like a field that works while reaching no
 consumer, which is how `override`, `note`, and `species` sat unread (#373).
+
+### `sample_group` — system before arm
+
+The arm scorer reads `sample_label` and `perturbation` as one bag of tokens,
+so it cannot tell a *system* descriptor from a *condition* one. Two things
+followed from that, both observed in the corpus:
+
+- Extra identifying words on one arm of a pair decided the pair. PMID
+  29242379's untreated UWB arm alone carried `(ovarian carcinoma)`, and
+  `ovarian` matching `source_tissue = "Ovary"` took all 3,919 of its rows —
+  with nothing about treatment in evidence.
+- A system whose arm is unambiguous was not attributable either, because the
+  narrative fields are withheld wholesale whenever candidate arms disagree.
+
+`sample_group` splits the question. The **system stage** admits IEDB's
+narrative fields — naming a system is what they do reliably, and they say
+nothing about treatment. The **arm stage** keeps blocking them. When arms of
+a known system tie, the row reports `sample_attribution = "group_ambiguous"`:
+system known, arm withheld.
+
+Three rules the loader enforces, because each failure is silent otherwise:
+
+| rule | why |
+|---|---|
+| all arms of a study carry it, or none | a partially grouped study falls back to the ungrouped path, losing the grouping with no error |
+| a group must not hold exactly one arm when there are several groups | a 1:1 group/arm mapping makes the system stage select an *arm* from narrative text, which is what #354 forbids |
+| every arm of a multi-arm group carries its group name | otherwise an arm with extra identifying words wins on them alone — the original bug |
+
+Do not group a study with only one system: naming it says no more than naming
+the PMID, and the stage declines in that case rather than relabelling rows.
 
 ### How `override` resolves
 

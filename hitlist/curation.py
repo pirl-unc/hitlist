@@ -98,10 +98,16 @@ ARM_RESOLUTION_VALUES = (
     # peptide eluted from both the treated and the untreated sample really was
     # in both. The ambiguity is a fact about the biology, not a missing field.
     "multi_arm_evidence",
-    # IEDB carries no per-row field that varies with the arm. Verified by
-    # measuring the distinct-value count of cell_name, source_tissue,
+    # IEDB carries no per-row field that varies at all. Verified by measuring
+    # the distinct-value count of cell_name, source_tissue,
     # antigen_processing_comments and assay_comments across the study's rows.
     "no_row_discriminator",
+    # Per-row metadata identifies the sample *system* — and `sample_group`
+    # uses it (#359) — but never the arm within that system. Distinct from
+    # `no_row_discriminator`: fields here do vary and do carry real
+    # information, just not on the axis the arms encode. The rows land at
+    # `group_ambiguous` rather than `pmid_ambiguous` for that reason.
+    "arm_not_recorded",
     # The curated arms and the recorded metadata are on different axes — arms
     # per donor against evidence per tissue, say. Neither is wrong; they simply
     # do not intersect, and no matcher can bridge them.
@@ -306,7 +312,18 @@ def load_pmid_overrides() -> dict[int, dict]:
                 stacklevel=2,
             )
         warned_legacy_type = False
+        # Accumulated in the one pass over ms_samples that already happens,
+        # so the sample_group guards below do not re-walk the same list.
+        group_sizes: dict[str, int] = {}
+        ungrouped_labels: list[str] = []
+        n_samples_in_entry = 0
         for i, sample in enumerate(e.get("ms_samples") or []):
+            n_samples_in_entry += 1
+            _grp = sample.get("sample_group")
+            if _grp:
+                group_sizes[str(_grp)] = group_sizes.get(str(_grp), 0) + 1
+            else:
+                ungrouped_labels.append(sample.get("sample_label", "?"))
             if "type" in sample and "sample_label" not in sample and not warned_legacy_type:
                 warnings.warn(
                     f"PMID {e.get('pmid')}: ms_samples entry uses deprecated "
@@ -339,17 +356,12 @@ def load_pmid_overrides() -> dict[int, dict]:
                 f"what reads it — an undeclared key is silently ignored by every consumer "
                 f"(#444).  Fix the typo, or add the field and its reader."
             )
-        samples_in_entry = e.get("ms_samples") or []
-        grouped = [s_ for s_ in samples_in_entry if s_.get("sample_group")]
-        if grouped and len(grouped) != len(samples_in_entry):
-            ungrouped = [
-                s_.get("sample_label", "?") for s_ in samples_in_entry if not s_.get("sample_group")
-            ]
+        if group_sizes and ungrouped_labels:
             raise ValueError(
                 f"PMID {e.get('pmid')}: sample_group is curated on "
-                f"{len(grouped)} of {len(samples_in_entry)} ms_samples; it must be on all "
-                f"or none.  Missing on {ungrouped}.  A partially grouped study falls back "
-                f"to ungrouped attribution, silently losing the grouping (#359)."
+                f"{sum(group_sizes.values())} of {n_samples_in_entry} ms_samples; it must be "
+                f"on all or none.  Missing on {ungrouped_labels}.  A partially grouped study "
+                f"falls back to ungrouped attribution, silently losing the grouping (#359)."
             )
         arm_resolution = e.get("arm_resolution")
         if arm_resolution is not None and arm_resolution not in ARM_RESOLUTION_VALUES:
@@ -361,6 +373,14 @@ def load_pmid_overrides() -> dict[int, dict]:
             raise ValueError(
                 f"PMID {e.get('pmid')}: arm_resolution_note is set without "
                 f"arm_resolution.  The note explains the verdict; it is not one."
+            )
+        if len(group_sizes) > 1 and all(n == 1 for n in group_sizes.values()):
+            raise ValueError(
+                f"PMID {e.get('pmid')}: every sample_group holds exactly one arm "
+                f"({sorted(group_sizes)}).  A one-to-one group/arm mapping makes the "
+                f"group stage select an *arm* from narrative fields, which is precisely "
+                f"what #354 forbids — narrative names every arm on every row.  Group "
+                f"arms that share a sample system, or drop sample_group entirely."
             )
         entry_override = e.get("override")
         if entry_override is not None and entry_override not in OVERRIDE_VALUES:
