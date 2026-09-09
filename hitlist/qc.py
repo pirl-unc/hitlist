@@ -383,6 +383,7 @@ _SAMPLE_ATTRIBUTION_AUDIT_COLUMNS = [
     "mhc_class",
     "condition",
     "bucket",
+    "arm_resolution",
     "n_study_arms",
     "n_attributed_arms",
     "reason",
@@ -418,6 +419,10 @@ def sample_attribution_audit(
         No arm in the study attributes at all. That is a different
         failure — possibly a study whose evidence cannot be resolved to
         an arm at all — and is triaged per study, not per label (#366).
+
+    The ``arm_resolution`` column carries the study's recorded verdict, so a
+    finding in a study already known to be unresolvable can be separated from
+    one nobody has looked at. Only ``curation_gap`` and a blank marks work.
 
     Parameters
     ----------
@@ -455,6 +460,7 @@ def sample_attribution_audit(
     if observations is None:
         observations = generate_observations_table(columns=["pmid", "sample_label"])
 
+    overrides = load_pmid_overrides()
     eligible = _observation_eligible_samples(samples)
     if eligible.empty or observations.empty:
         return pd.DataFrame(columns=_SAMPLE_ATTRIBUTION_AUDIT_COLUMNS)
@@ -510,6 +516,10 @@ def sample_attribution_audit(
                 "mhc_class": str(getattr(row, "mhc_class", "") or ""),
                 "condition": str(getattr(row, "condition", "") or ""),
                 "bucket": bucket,
+                # The study's recorded arm-resolution verdict (#366), so a
+                # reader can tell "nobody has looked at this" from "this was
+                # investigated and the deposit cannot answer it".
+                "arm_resolution": str(overrides.get(pmid, {}).get("arm_resolution", "") or ""),
                 "n_study_arms": arms_per_pmid[pmid],
                 "n_attributed_arms": n_attributed,
                 "reason": reason,

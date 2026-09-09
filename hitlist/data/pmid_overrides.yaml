@@ -57,6 +57,16 @@
 # ── Gold-standard healthy tissue ────────────────────────────────────────────
 
   - pmid: 33858848
+    # Arm-resolution verdict (#366): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: axis_mismatch
+    arm_resolution_note: >
+      Arms are curated per DONOR (AUT01-DN02, THY01-DN1, OVA01-DN278, ...); IEDB records
+      per TISSUE (source_tissue takes 29 distinct values: Colon 7,389; Bladder 7,324; Skin
+      6,860; Aorta 5,742; ...) and never records which donor a peptide came from. The two
+      axes are orthogonal, so no matcher can bridge them. 255,179 rows, the single largest
+      block of arm-ambiguity in the corpus. The donor arms are still correct and useful --
+      they carry the genotypes -- they simply cannot be matched per row.
     study_label: Marcu 2021 — HLA Ligand Atlas
     title: "HLA Ligand Atlas: a benign reference of HLA-presented peptides to improve T-cell-based cancer immunotherapy"
     override: healthy
@@ -620,6 +630,16 @@
         mhc_class: I+II
         mhc: unknown
   - pmid: 35051231
+    # Arm-resolution verdict (#366).
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      54 rows remain arm-ambiguous, but a per-row discriminator is present, so this is
+      unfinished curation rather than a limit of the deposit. Measured: varying per-row
+      fields: cell_name (4 distinct), source_tissue (2 distinct), antigen_processing_comments
+      (5 distinct), assay_comments (20 distinct). Whether that field varies WITH THE ARM
+      (rather than being study-level boilerplate that names every arm on every row) still
+      needs per-study checking -- that check is the work this verdict marks, and #366 records
+      narrative fields as a known dead end for exactly this reason.
     study_label: Nicholas 2022 — influenza-infected lung
     title: Immunopeptidomic analysis of influenza A virus infected human tissues identifies internal proteins as a rich source of HLA ligands
     override: adjacent
@@ -1180,6 +1200,17 @@
         mhc_class: I
         mhc: "HLA class I"
   - pmid: 31844290
+    # Arm-resolution verdict (#366).
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      50,972 rows remain arm-ambiguous, but a per-row discriminator is present, so this is
+      unfinished curation rather than a limit of the deposit. Measured:
+      attributed_sample_label populated on 54,682 of 277,231 rows; varying per-row fields:
+      cell_name (5 distinct), source_tissue (7 distinct), antigen_processing_comments (3
+      distinct). Whether that field varies WITH THE ARM (rather than being study-level
+      boilerplate that names every arm on every row) still needs per-study checking -- that
+      check is the work this verdict marks, and #366 records narrative fields as a known dead
+      end for exactly this reason.
     study_label: Sarkizova 2020 — large-scale mono-allelic immunopeptidomes
     title: A large peptidome dataset improves HLA class I epitope prediction across most of the human population
     override: cell_line
@@ -1845,6 +1876,16 @@
         mhc: "HLA class I"
         note: "No HLA typing — used for proteasomal analysis (Fig. 4) but excluded from allele-level validation (Fig. 6)"
   - pmid: 31092671
+    # Arm-resolution verdict (#366).
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      2,741 rows remain arm-ambiguous, but a per-row discriminator is present, so this is
+      unfinished curation rather than a limit of the deposit. Measured: varying per-row
+      fields: cell_name (2 distinct), source_tissue (2 distinct), assay_comments (2 distinct).
+      Whether that field varies WITH THE ARM (rather than being study-level boilerplate that
+      names every arm on every row) still needs per-study checking -- that check is the work
+      this verdict marks, and #366 records narrative fields as a known dead end for exactly
+      this reason.
     study_label: Guasp 2019 — ERAP1/ERAP2 antigen processing
     title: "Redundancy and Complementarity between ERAP1 and ERAP2 Revealed by their Effects on the Behcet's Disease-associated HLA-B*51 Peptidome"
     override: cell_line
@@ -2048,6 +2089,11 @@
         mhc_class: I
         mhc: "HLA-A*02:01 HLA-A*11:01 HLA-B*07:02 HLA-B*40:01 HLA-C*03:04 HLA-C*07:02"
   - pmid: 23481700
+    # Arm-resolution verdict (#366): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: no_row_discriminator
+    arm_resolution_note: >
+      Measured: all four per-row metadata fields are constant across all rows of the study.
     study_label: Hassan 2013 — B-LCL HLA-I ligandome
     title: The human leukocyte antigen-presented ligandome of B lymphocytes
     override: ebv_lcl
@@ -2124,6 +2170,16 @@
           - uniprot: UP000153037
             proteome_label: Epstein-Barr virus
   - pmid: 25576301
+    # Arm-resolution verdict (#366).
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      5 rows remain arm-ambiguous, but a per-row discriminator is present, so this is
+      unfinished curation rather than a limit of the deposit. Measured: varying per-row
+      fields: cell_name (5 distinct), source_tissue (5 distinct), assay_comments (2 distinct).
+      Whether that field varies WITH THE ARM (rather than being study-level boilerplate that
+      names every arm on every row) still needs per-study checking -- that check is the work
+      this verdict marks, and #366 records narrative fields as a known dead end for exactly
+      this reason.
     study_label: Bassani-Sternberg 2015 — protein abundance & HLA presentation
     title: Mass spectrometry of human leukocyte antigen class I peptidomes reveals strong effects of protein abundance and turnover on antigen presentation
     override:
@@ -2495,6 +2551,16 @@
         ip_antibody: HB-145
         mhc: "HLA class II"
   - pmid: 31495665
+    # Arm-resolution verdict (#366).
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      8,588 rows remain arm-ambiguous, but a per-row discriminator is present, so this is
+      unfinished curation rather than a limit of the deposit. Measured:
+      attributed_sample_label populated on 58,358 of 58,358 rows; varying per-row fields:
+      cell_name (2 distinct). Whether that field varies WITH THE ARM (rather than being study-
+      level boilerplate that names every arm on every row) still needs per-study checking --
+      that check is the work this verdict marks, and #366 records narrative fields as a known
+      dead end for exactly this reason.
     study_label: Abelin 2019 — MAPTAC HLA-II + class I
     title: Defining HLA-II Ligand Processing and Binding Rules with Mass Spectrometry Enhances Cancer Epitope Prediction
     override:
@@ -2793,6 +2859,15 @@
         mhc_class: II
         mhc: SLA-DR
   - pmid: 36423003
+    # Arm-resolution verdict (#366).
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      48 rows remain arm-ambiguous, but a per-row discriminator is present, so this is
+      unfinished curation rather than a limit of the deposit. Measured: varying per-row
+      fields: cell_name (2 distinct), source_tissue (2 distinct). Whether that field varies
+      WITH THE ARM (rather than being study-level boilerplate that names every arm on every
+      row) still needs per-study checking -- that check is the work this verdict marks, and
+      #366 records narrative fields as a known dead end for exactly this reason.
     study_label: Connelley/Sheldrake 2022 — BoLA I+II T. parva
     title: Immunopeptidomic Analysis of BoLA-I and BoLA-DR Presented Peptides from Theileria parva Infected Cells
     override:
@@ -2895,6 +2970,16 @@
         mhc_class: II
         mhc: BoLA-DR
   - pmid: 27893789
+    # Arm-resolution verdict (#366).
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      2 rows remain arm-ambiguous, but a per-row discriminator is present, so this is
+      unfinished curation rather than a limit of the deposit. Measured: varying per-row
+      fields: cell_name (2 distinct), source_tissue (2 distinct), antigen_processing_comments
+      (2 distinct), assay_comments (2 distinct). Whether that field varies WITH THE ARM
+      (rather than being study-level boilerplate that names every arm on every row) still
+      needs per-study checking -- that check is the work this verdict marks, and #366 records
+      narrative fields as a known dead end for exactly this reason.
     study_label: "Barth 2016 — DLA-88*501:01 peptidome"
     title: Characterization of the Canine MHC Class I DLA-88*50101 Peptide Binding Motif as a Prerequisite for Canine T Cell Immunotherapy
     override:
@@ -2914,6 +2999,16 @@
         mhc_class: I
         mhc: "DLA-88*501:01"
   - pmid: 29475511
+    # Arm-resolution verdict (#366).
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      81 rows remain arm-ambiguous, but a per-row discriminator is present, so this is
+      unfinished curation rather than a limit of the deposit. Measured: varying per-row
+      fields: source_tissue (2 distinct), antigen_processing_comments (2 distinct),
+      assay_comments (3 distinct). Whether that field varies WITH THE ARM (rather than being
+      study-level boilerplate that names every arm on every row) still needs per-study
+      checking -- that check is the work this verdict marks, and #366 records narrative fields
+      as a known dead end for exactly this reason.
     study_label: "Ross 2018 — DLA-88*508:01 + CDV"
     title: "The canine MHC class Ia allele DLA-88*508:01 presents diverse self- and canine distemper virus-origin peptides of varying length that have a conserved binding motif"
     override:
@@ -3074,6 +3169,14 @@
         mhc: "HLA-DRB1*07:01 HLA-DRB1*13:05 HLA-DPA1*02:01 HLA-DPB1*17:01 HLA-DQA1*02:02 HLA-DQB1*03:01"
 
   - pmid: 29242379
+    # Arm-resolution verdict (#366): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: no_row_discriminator
+    arm_resolution_note: >
+      Resolved to the sample system via sample_group (#359). Within the B-LCL and UWB
+      systems, assay_comments identifies the system on every row and never mentions
+      treatment, and no other per-row field varies with the arm, so the +/- IFN-gamma split
+      is not recoverable. The TIL and meningioma systems have one arm each and do resolve.
     study_label: "Chong 2018 — high-throughput immunopeptidomics ± IFNg"
     title: "High-throughput and Sensitive Immunopeptidomics Platform Reveals Profound Interferon-gamma-Mediated Remodeling of the Human Leukocyte Antigen (HLA) Ligandome"
     override:
@@ -3154,6 +3257,14 @@
         mhc: "HLA-DRB1*12:01 HLA-DQB1*03:01 HLA-DPB1*04:01"
 
   - pmid: 32938616
+    # Arm-resolution verdict (#366): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: multi_arm_evidence
+    arm_resolution_note: >
+      Every row carries IEDB's per-peptide elution enumeration, and the ambiguous ones name
+      more than one arm of the same line ('untreated LM-MEL-44; treated LM-MEL-44'). The
+      peptide really was eluted from both arms; the ambiguity is a fact about the data, not
+      a missing field. 37,643 rows whose enumeration names one arm do resolve.
     study_label: "Faridi 2020 — melanoma spliced peptides ± IFNg"
     title: "Spliced Peptides and Cytokine-Driven Changes in the Immunopeptidome of Melanoma"
     override: cell_line
@@ -3574,6 +3685,15 @@
         reason: "Matched normal lung from cancer patients, not independent healthy donors"
 
   - pmid: 33592498
+    # Arm-resolution verdict (#366).
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      17,510 rows remain arm-ambiguous, but a per-row discriminator is present, so this is
+      unfinished curation rather than a limit of the deposit. Measured: varying per-row
+      fields: cell_name (3 distinct), assay_comments (9 distinct). Whether that field varies
+      WITH THE ARM (rather than being study-level boilerplate that names every arm on every
+      row) still needs per-study checking -- that check is the work this verdict marks, and
+      #366 records narrative fields as a known dead end for exactly this reason.
     study_label: "Bassani-Sternberg 2021 — GBM CIITA-transduced HLA-II"
     title: "CIITA-Transduced Glioblastoma Cells Uncover a Rich Repertoire of Clinically Relevant Tumor-Associated HLA-II Antigens"
     override: cell_line
@@ -4017,6 +4137,15 @@
         mhc: "HLA-G*01:01"
 
   - pmid: 36010968
+    # Arm-resolution verdict (#366).
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      10,323 rows remain arm-ambiguous, but a per-row discriminator is present, so this is
+      unfinished curation rather than a limit of the deposit. Measured: varying per-row
+      fields: assay_comments (27 distinct). Whether that field varies WITH THE ARM (rather
+      than being study-level boilerplate that names every arm on every row) still needs per-
+      study checking -- that check is the work this verdict marks, and #366 records narrative
+      fields as a known dead end for exactly this reason.
     study_label: "Vadakekolathu 2022 — SaOS-2 p53 mutant immunopeptidome"
     title: "Multi-Omic Analysis of Two Common P53 Mutations"
     override: cell_line
@@ -4169,6 +4298,17 @@
         mhc: "HLA class I"
 
   - pmid: 34171305
+    # Arm-resolution verdict (#366).
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      21 rows remain arm-ambiguous, but a per-row discriminator is present, so this is
+      unfinished curation rather than a limit of the deposit. Measured: elution-condition
+      enumeration on 18,165 rows; varying per-row fields: cell_name (3 distinct),
+      source_tissue (3 distinct), antigen_processing_comments (4 distinct), assay_comments
+      (1163 distinct). Whether that field varies WITH THE ARM (rather than being study-level
+      boilerplate that names every arm on every row) still needs per-study checking -- that
+      check is the work this verdict marks, and #366 records narrative fields as a known dead
+      end for exactly this reason.
     study_label: "Weingarten-Gabbay 2021 — SARS-CoV-2 immunopeptidome"
     title: "Profiling SARS-CoV-2 HLA-I peptidome reveals T cell epitopes from out-of-frame ORFs"
     override: cell_line
@@ -4388,6 +4528,16 @@
         mhc: "HLA-B*40:02 HLA-B*39:01"
 
   - pmid: 32897882
+    # Arm-resolution verdict (#366).
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      3,590 rows remain arm-ambiguous, but a per-row discriminator is present, so this is
+      unfinished curation rather than a limit of the deposit. Measured: varying per-row
+      fields: cell_name (3 distinct), source_tissue (2 distinct), assay_comments (944
+      distinct). Whether that field varies WITH THE ARM (rather than being study-level
+      boilerplate that names every arm on every row) still needs per-study checking -- that
+      check is the work this verdict marks, and #366 records narrative fields as a known dead
+      end for exactly this reason.
     study_label: "Klatt 2020 — hydrophobic peptide recovery method"
     title: "Solving an MHC allele-specific bias in the reported immunopeptidome"
     override: cell_line
@@ -4622,6 +4772,16 @@
         mhc: "HLA-B*27"
 
   - pmid: 35580925
+    # Arm-resolution verdict (#366).
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      1,978 rows remain arm-ambiguous, but a per-row discriminator is present, so this is
+      unfinished curation rather than a limit of the deposit. Measured: varying per-row
+      fields: cell_name (2 distinct), source_tissue (2 distinct), antigen_processing_comments
+      (5 distinct), assay_comments (2 distinct). Whether that field varies WITH THE ARM
+      (rather than being study-level boilerplate that names every arm on every row) still
+      needs per-study checking -- that check is the work this verdict marks, and #366 records
+      narrative fields as a known dead end for exactly this reason.
     study_label: "Khazan-Kost 2022 — pleural effusion sHLA"
     title: "Soluble HLA peptidome from pleural effusions"
     override:
@@ -4744,6 +4904,12 @@
           - uniprot: UP000153037
             proteome_label: Epstein-Barr virus
   - pmid: 33912179
+    # Arm-resolution verdict (#366): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: no_row_discriminator
+    arm_resolution_note: >
+      Measured: all four per-row metadata fields are constant across all rows of the study.
+      No arm evidence of any kind.
     study_label: "Mifsud 2021 — carbamazepine immunopeptidome"
     title: "Carbamazepine effect on immunopeptidome in SJS/TEN context"
     override: cell_line
@@ -4929,6 +5095,15 @@
         mhc: "HLA class II"
 
   - pmid: 32161166
+    # Arm-resolution verdict (#366).
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      11,509 rows remain arm-ambiguous, but a per-row discriminator is present, so this is
+      unfinished curation rather than a limit of the deposit. Measured: varying per-row
+      fields: assay_comments (3 distinct). Whether that field varies WITH THE ARM (rather than
+      being study-level boilerplate that names every arm on every row) still needs per-study
+      checking -- that check is the work this verdict marks, and #366 records narrative fields
+      as a known dead end for exactly this reason.
     study_label: "Chen 2020 — HLA-B*51:01 subpeptidome / ERAP1 KD in HeLa.ABC-KO"
     title: "Unconventional subpeptidome bound to HLA-B*51:01 regulated by ERAP1"
     override: cell_line
@@ -5093,6 +5268,15 @@
         mhc: "HLA-A*02:01 HLA-A*24:02 HLA-B*15:11 HLA-B*35:01 HLA-C*03:03 HLA-DRB1*01:01 HLA-DRB1*15:01 HLA-DQA1*01:01 HLA-DQA1*01:02 HLA-DQB1*05:01 HLA-DQB1*06:02 HLA-DPB1*02:01 HLA-DPB1*04:02"
 
   - pmid: 31530632
+    # Arm-resolution verdict (#366).
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      10,319 rows remain arm-ambiguous, but a per-row discriminator is present, so this is
+      unfinished curation rather than a limit of the deposit. Measured: varying per-row
+      fields: assay_comments (3 distinct). Whether that field varies WITH THE ARM (rather than
+      being study-level boilerplate that names every arm on every row) still needs per-study
+      checking -- that check is the work this verdict marks, and #366 records narrative fields
+      as a known dead end for exactly this reason.
     study_label: "Lorente 2019 — HLA-B*40:02 ERAP2 KO"
     title: "Substantial Influence of ERAP2 on the HLA-B*40:02 Peptidome: Implications for HLA-B*27-Negative Ankylosing Spondylitis"
     override: cell_line
@@ -5148,6 +5332,11 @@
         mhc: "HLA class I"
 
   - pmid: 30524438
+    # Arm-resolution verdict (#366): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: no_row_discriminator
+    arm_resolution_note: >
+      Measured: all four per-row metadata fields are constant across all rows of the study.
     study_label: "Jensen 2018 — BET PROTAC immunopeptidome"
     title: "Specific MHC-I Peptides Are Induced Using PROTACs"
     override: cell_line
@@ -5163,6 +5352,14 @@
         mhc: "HLA-A*02:01 HLA-A*30:01 HLA-B*15:10 HLA-B*18:01 HLA-C*03:04 HLA-C*12:03"
 
   - pmid: 30833945
+    # Arm-resolution verdict (#366): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: no_row_discriminator
+    arm_resolution_note: >
+      Measured: cell_name, source_tissue, antigen_processing_comments and assay_comments
+      each take exactly ONE distinct value across all 7,524 rows. The single assay_comments
+      string describes the TNFa/IFNg experiment itself, so it names the study, not the arm.
+      Nothing separates treated from untreated.
     study_label: "Javitt 2019 — A549 + TNFa + IFNg"
     title: "Pro-inflammatory Cytokines Alter the Immunopeptidome Landscape by Modulation of HLA-B Expression"
     override: cell_line
@@ -5223,6 +5420,12 @@
         mhc: "HLA-A*29:02"
 
   - pmid: 29769354
+    # Arm-resolution verdict (#366): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: no_row_discriminator
+    arm_resolution_note: >
+      Measured: all four per-row metadata fields are constant across all rows of the study.
+      The ERAP2-overexpression arm cannot be separated from its control.
     study_label: "Sanz-Bravo 2018b — HLA-A*29:02 + ERAP2 overexpression"
     title: "Allele-specific Alterations in the Peptidome Underlie the Joint Association of HLA-A*29:02 and Endoplasmic Reticulum Aminopeptidase 2 (ERAP2) with Birdshot Chorioretinopathy"
     override: cell_line
@@ -5275,6 +5478,16 @@
         mhc: "HLA-A*68:02 HLA-B*15:03 HLA-C*12:03"
 
   - pmid: 33633747
+    # Arm-resolution verdict (#366).
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      1,128 rows remain arm-ambiguous, but a per-row discriminator is present, so this is
+      unfinished curation rather than a limit of the deposit. Measured: elution-condition
+      enumeration on 2,488 rows; varying per-row fields: antigen_processing_comments (3
+      distinct), assay_comments (7 distinct). Whether that field varies WITH THE ARM (rather
+      than being study-level boilerplate that names every arm on every row) still needs per-
+      study checking -- that check is the work this verdict marks, and #366 records narrative
+      fields as a known dead end for exactly this reason.
     study_label: "Puig 2021 — HLA-B*57:01 + flucloxacillin"
     title: "Alterations in the HLA-B*57:01 Immunopeptidome by Flucloxacillin and Immunogenicity of Drug-Haptenated Peptides"
     override: cell_line
@@ -6156,6 +6369,13 @@
         mhc: "HLA-F*01:04"
 
   - pmid: 27371725
+    # Arm-resolution verdict (#366): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: no_row_discriminator
+    arm_resolution_note: >
+      Measured: assay_comments and antigen_processing_comments are EMPTY on all 1,970 rows
+      and cell_name is constant ('Dendritic cell'). WT and ERAAP-KO share a genotype, so the
+      knockout contrast is unavailable for this study however the arms are curated.
     study_label: "Nagarajan 2016 — mouse classical + non-classical MHC-I ± ERAAP KO"
     title: "ERAAP shapes the peptidome associated with classical and non-classical MHC class I molecules"
     override:
@@ -6280,6 +6500,16 @@
         mhc: Patr-AL
 
   - pmid: 38480730
+    # Arm-resolution verdict (#366).
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      24,030 rows remain arm-ambiguous, but a per-row discriminator is present, so this is
+      unfinished curation rather than a limit of the deposit. Measured:
+      attributed_sample_label populated on 68,552 of 68,552 rows; varying per-row fields:
+      cell_name (5 distinct), source_tissue (3 distinct). Whether that field varies WITH THE
+      ARM (rather than being study-level boilerplate that names every arm on every row) still
+      needs per-study checking -- that check is the work this verdict marks, and #366 records
+      narrative fields as a known dead end for exactly this reason.
     study_label: "Gomez-Zepeda 2024 — Thunder-DDA-PASEF deep immunopeptidomics"
     title: "Thunder-DDA-PASEF enables high-coverage immunopeptidomics and is boosted by MS2Rescore with MS2PIP timsTOF fragmentation prediction model"
     override: cell_line
@@ -6415,6 +6645,16 @@
         override:
 
   - pmid: 31253788
+    # Arm-resolution verdict (#366).
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      21 rows remain arm-ambiguous, but a per-row discriminator is present, so this is
+      unfinished curation rather than a limit of the deposit. Measured: varying per-row
+      fields: cell_name (2 distinct), source_tissue (2 distinct), antigen_processing_comments
+      (2 distinct). Whether that field varies WITH THE ARM (rather than being study-level
+      boilerplate that names every arm on every row) still needs per-study checking -- that
+      check is the work this verdict marks, and #366 records narrative fields as a known dead
+      end for exactly this reason.
     study_label: "Wu 2019 — influenza epitope quantification (mouse)"
     title: "Quantification of epitope abundance reveals the effect of direct and cross-presentation on influenza CTL responses"
     override:
@@ -6965,6 +7205,15 @@
         mhc_class: "I"
         mhc: "HLA-A*02:01 HLA-A*24:02 HLA-B*08:01 HLA-B*35:01 HLA-C*04:01 HLA-C*07:06"
   - pmid: 26768311
+    # Arm-resolution verdict (#366).
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      2,070 rows remain arm-ambiguous, but a per-row discriminator is present, so this is
+      unfinished curation rather than a limit of the deposit. Measured: varying per-row
+      fields: assay_comments (3 distinct). Whether that field varies WITH THE ARM (rather than
+      being study-level boilerplate that names every arm on every row) still needs per-study
+      checking -- that check is the work this verdict marks, and #366 records narrative fields
+      as a known dead end for exactly this reason.
     study_label: "Spencer 2015 — HeLa ± vaccinia self-peptidome shift"
     title: "Viral infection causes a shift in the self peptide repertoire presented by human MHC class I molecules"
     override: cell_line
@@ -7154,6 +7403,15 @@
 
   # ── #33c / #36 batch 5 — single-allele medium studies (100-1000 peptides) ──
   - pmid: 19748539
+    # Arm-resolution verdict (#366).
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      125 rows remain arm-ambiguous, but a per-row discriminator is present, so this is
+      unfinished curation rather than a limit of the deposit. Measured: varying per-row
+      fields: assay_comments (6 distinct). Whether that field varies WITH THE ARM (rather than
+      being study-level boilerplate that names every arm on every row) still needs per-study
+      checking -- that check is the work this verdict marks, and #366 records narrative fields
+      as a known dead end for exactly this reason.
     study_label: "Wahl 2010 — HeLa ± influenza A self-peptidome (HLA-A*02:01)"
     title: "HLA class I molecules reflect an altered host proteome after influenza virus infection"
     override: cell_line
@@ -7446,6 +7704,16 @@
   # cancer flag; one arm of 18507432 is a
   # vaccinia-MVA-infected perturbation of the same LG2 EBV-LCL host.  #33c/#36.
   - pmid: 18507432
+    # Arm-resolution verdict (#366).
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      163 rows remain arm-ambiguous, but a per-row discriminator is present, so this is
+      unfinished curation rather than a limit of the deposit. Measured: varying per-row
+      fields: cell_name (2 distinct), source_tissue (2 distinct), antigen_processing_comments
+      (2 distinct), assay_comments (3 distinct). Whether that field varies WITH THE ARM
+      (rather than being study-level boilerplate that names every arm on every row) still
+      needs per-study checking -- that check is the work this verdict marks, and #366 records
+      narrative fields as a known dead end for exactly this reason.
     study_label: "Strug 2008 — vaccinia peptides on HLA-DR1 from LG2 EBV-LCL"
     title: "Vaccinia peptides eluted from HLA-DR1 isolated from virus-infected cells are recognized by CD4+ T cells from a vaccinated donor"
     override: ebv_lcl
@@ -7621,6 +7889,16 @@
         mhc: "HLA-A*02:01 HLA-A*24:02 HLA-B*35:02 HLA-B*44:03"
   # ── #33c / #36 batch 14 — uncurated carcinoma-line immunopeptidome ──────────
   - pmid: 29371260
+    # Arm-resolution verdict (#366).
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      1 rows remain arm-ambiguous, but a per-row discriminator is present, so this is
+      unfinished curation rather than a limit of the deposit. Measured: varying per-row
+      fields: cell_name (2 distinct), source_tissue (2 distinct), assay_comments (5 distinct).
+      Whether that field varies WITH THE ARM (rather than being study-level boilerplate that
+      names every arm on every row) still needs per-study checking -- that check is the work
+      this verdict marks, and #366 records narrative fields as a known dead end for exactly
+      this reason.
     study_label: "Miyamoto 2018 — SW480 colon carcinoma HLA-A24 ligandome (bulk vs CSC)"
     title: "The Antigen ASB4 on Cancer Stem Cells Serves as a Target for CTL Immunotherapy of Colorectal Cancer"
     override: cell_line

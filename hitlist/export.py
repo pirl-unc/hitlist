@@ -99,6 +99,7 @@ _CATEGORICAL_EXPORT_METADATA_COLS: tuple[str, ...] = (
     "effective_override_origin",
     "note",
     "sample_group",
+    "arm_resolution",
     # PMID-level / derived low-cardinality metadata
     "quantification_method",
     "mhc_class_label_severity",
@@ -169,6 +170,7 @@ _TRAINING_DEFAULTS = {
     "sample_mhc": "",
     "sample_note": "",
     "sample_group": "",
+    "arm_resolution": "",
     "effective_override": "",
     "effective_override_origin": "",
     "instrument": "",
@@ -627,6 +629,7 @@ def _empty_ms_samples_columns() -> list[str]:
         "classification",
         "reason",
         "sample_group",
+        "arm_resolution",
         "sample_override",
         "effective_override",
         "effective_override_origin",
@@ -802,6 +805,10 @@ def generate_ms_samples_table(
                 "classification": sample.get("classification", "") or "",
                 "reason": sample.get("reason", "") or "",
                 "sample_group": sample.get("sample_group", "") or "",
+                # Study-level, denormalized onto the sample so an ambiguous row
+                # carries its own explanation instead of sending a reader back
+                # to the YAML (#366).
+                "arm_resolution": entry.get("arm_resolution", "") or "",
                 "sample_override": sample_override,
                 "effective_override": effective_override,
                 "effective_override_origin": override_origin,
@@ -1079,6 +1086,7 @@ def generate_observations_table(
         "effective_override",
         "effective_override_origin",
         "note",  # → sample_note after rename
+        "arm_resolution",
         # The sample *system* (#359).  Survives `_consensus_meta` on purpose:
         # when the arms of one system tie, the system is still known and is
         # the most specific true statement available about the row.
@@ -2148,6 +2156,7 @@ _SAMPLE_PROVENANCE_COLUMNS = (
     "classification",
     "reason",
     "sample_group",
+    "arm_resolution",
     "sample_override",
     "effective_override",
     "effective_override_origin",

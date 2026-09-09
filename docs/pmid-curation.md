@@ -226,6 +226,31 @@ KO-vs-WT contrast rather than merely adding noise. `HAP1 wildtype` rows today
 carry `apm_genes_perturbed=""` with `study_apm_perturbed=True`, and
 `tests/test_sample_attribution_audit.py` pins that through the join.
 
+## Arm resolution — why a row has no arm (#366)
+
+584,966 observation rows sit at `pmid_ambiguous` or `group_ambiguous`. The
+useful question is not how many, but which of them more curation could fix.
+`arm_resolution` records that per study, once, so a study is not
+re-investigated every time someone notices the number.
+
+| verdict | rows | means |
+|---|---|---|
+| `axis_mismatch` | 255,179 | Curated arms and recorded metadata are on different axes. PMID 33858848 curates per **donor**; IEDB records per **tissue** (29 values) and never records donor. No matcher can bridge them. |
+| `curation_gap` | 145,279 | A per-row discriminator is present and the arms are not yet curated to use it. **The only verdict marking real work.** |
+| `no_row_discriminator` | 129,982 | Measured: `cell_name`, `source_tissue`, `antigen_processing_comments` and `assay_comments` each take exactly one distinct value across the study. |
+| `multi_arm_evidence` | 54,526 | The evidence positively places the peptide in more than one arm — eluted from both the treated and untreated sample. Nothing is missing. |
+
+Three quarters of the ambiguity is settled: it is a property of what was
+deposited, not of how carefully anyone curated. `arm_resolution_note` carries
+the measurement behind each verdict, and loading rejects a note without a
+verdict — the note explains a judgement, it is not one.
+
+`hitlist qc sample-attribution --actionable-only` hides findings in settled
+studies. A `no_row_discriminator` verdict is a measurement, so a test
+re-measures it: if a corpus refresh gives one of those studies a varying
+per-row field, the verdict is stale and the study gets looked at again rather
+than being silently trusted.
+
 ## Source-verified corrections (#436)
 
 Four studies had curation that was internally consistent and wrong. Each

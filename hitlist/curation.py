@@ -84,6 +84,33 @@ OVERRIDE_VALUES = (
     "healthy",
 )
 
+#: Why a study's rows can or cannot be resolved to an experimental arm (#366).
+#:
+#: 450k+ observation rows sit at ``pmid_ambiguous`` / ``group_ambiguous``, and
+#: without a recorded reason each one invites the same investigation again.
+#: These values record the answer once. They describe the *deposited evidence*,
+#: not the curation's completeness — a study can be perfectly curated and still
+#: be unresolvable.
+ARM_RESOLUTION_VALUES = (
+    # Rows reach a specific arm. Nothing to investigate.
+    "resolved",
+    # The evidence positively places these peptides in more than one arm — a
+    # peptide eluted from both the treated and the untreated sample really was
+    # in both. The ambiguity is a fact about the biology, not a missing field.
+    "multi_arm_evidence",
+    # IEDB carries no per-row field that varies with the arm. Verified by
+    # measuring the distinct-value count of cell_name, source_tissue,
+    # antigen_processing_comments and assay_comments across the study's rows.
+    "no_row_discriminator",
+    # The curated arms and the recorded metadata are on different axes — arms
+    # per donor against evidence per tissue, say. Neither is wrong; they simply
+    # do not intersect, and no matcher can bridge them.
+    "axis_mismatch",
+    # A per-row discriminator does exist and the arms are not yet curated to
+    # use it. This is the only value that marks real remaining work.
+    "curation_gap",
+)
+
 #: Every key a top-level PMID entry may carry, mapped to what reads it.
 #:
 #: The study-level twin of :data:`MS_SAMPLE_FIELDS`. #373 guarded the sample
@@ -129,6 +156,12 @@ PMID_ENTRY_FIELDS = MappingProxyType(
         "aliases": "citation provenance (withdrawn_pmid, benchmark dataset names)",
         "peptide_attributions": "relative path to a per-peptide sample-attribution CSV (#360)",
         "tissue_overrides": "per-tissue overrides; rendered by hitlist.report",
+        "arm_resolution": (
+            "why this study's rows can or cannot reach a specific arm; one of "
+            "curation.ARM_RESOLUTION_VALUES, exported per sample and per "
+            "observation so an ambiguous row carries its own explanation (#366)"
+        ),
+        "arm_resolution_note": "the evidence behind arm_resolution, in prose (#366)",
         "n_samples": "curated sample count for the study; informational",
         "n_tissues": "curated tissue count for the study; informational",
         "donors": "UNREAD. Curated on 11 studies, consumed by nothing (#444)",
@@ -317,6 +350,17 @@ def load_pmid_overrides() -> dict[int, dict]:
                 f"{len(grouped)} of {len(samples_in_entry)} ms_samples; it must be on all "
                 f"or none.  Missing on {ungrouped}.  A partially grouped study falls back "
                 f"to ungrouped attribution, silently losing the grouping (#359)."
+            )
+        arm_resolution = e.get("arm_resolution")
+        if arm_resolution is not None and arm_resolution not in ARM_RESOLUTION_VALUES:
+            raise ValueError(
+                f"PMID {e.get('pmid')}: arm_resolution={arm_resolution!r} is invalid; "
+                f"expected one of {ARM_RESOLUTION_VALUES}"
+            )
+        if e.get("arm_resolution_note") and not arm_resolution:
+            raise ValueError(
+                f"PMID {e.get('pmid')}: arm_resolution_note is set without "
+                f"arm_resolution.  The note explains the verdict; it is not one."
             )
         entry_override = e.get("override")
         if entry_override is not None and entry_override not in OVERRIDE_VALUES:
