@@ -45,7 +45,13 @@ alleles = [
     # species-inference fixes (mhcgnomes #102/#105/#106/#107).  An older
     # floor let CI install a newer mhcgnomes than a developer had locally,
     # which is how a green local run shipped a red CI.
-    "mhcgnomes>=3.41.0",
+    # 3.54.0 added HLA-Cw16 to the serotype table (mhcgnomes#153; the tag
+    # points at exactly that commit, and 3.53.0's serotypes.yaml has no Cw16).
+    # The suite already required it: test_curation asserts
+    # allele_to_all_serotypes("HLA-C*16:01") == ("HLA-Cw16",), which fails on
+    # 3.41-3.53. So the floor was de facto 3.54.0 and only pyproject
+    # disagreed; this makes the declared floor match the tested one.
+    "mhcgnomes>=3.54.0",
 ]
 dev = [
     "pytest",

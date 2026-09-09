@@ -3259,18 +3259,27 @@ def test_every_serotype_table_entry_is_reachable():
     every annotation in the index.  This asserts the whole vocabulary stays
     reachable, so a format change upstream fails here instead of quietly
     dropping a locus.
+
+    It asserts each entry resolves to *its own* serotype rather than merely
+    to something.  A non-empty check passes a regression that maps an allele
+    to the wrong specificity, which is the same silently-wrong-value class
+    #455 was about — the annotation would still be there, and still be
+    incorrect.
     """
     if not _HAS_MHCGNOMES:
         return
     from mhcgnomes.data import serotypes
 
-    unreachable = [
-        allele
-        for allele_list in serotypes["HLA"].values()
-        for allele in allele_list
-        if not allele_to_all_serotypes(f"HLA-{allele}")
-    ]
-    assert unreachable == []
+    wrong = []
+    for sero_name, allele_list in serotypes["HLA"].items():
+        for allele in allele_list:
+            found = allele_to_all_serotypes(f"HLA-{allele}")
+            if f"HLA-{sero_name}" not in found:
+                wrong.append(f"{sero_name} -> {allele} (got {found})")
+    assert wrong == [], (
+        f"{len(wrong)} table entries do not resolve to their own serotype:\n  "
+        + "\n  ".join(wrong[:15])
+    )
 
 
 def test_allele_to_all_serotypes_reaches_curated_c_locus_specificities():
@@ -3291,6 +3300,13 @@ def test_allele_to_all_serotypes_reaches_curated_c_locus_specificities():
     assert allele_to_all_serotypes("HLA-C*14:02") == ("HLA-Cw14",)
     assert allele_to_all_serotypes("HLA-C*17:01") == ("HLA-Cw17",)
     assert allele_to_all_serotypes("HLA-C*18:01") == ("HLA-Cw18",)
+    # The C locus skips two numbers, for two different reasons, and neither is
+    # a bug here: wmda/hla_nom.txt records Cw11 as assigned in 1987 and deleted
+    # in 1991 for "Sequence error", while Cw13 has no line at all and was never
+    # assigned. Recorded as a comment rather than an assertion on purpose --
+    # `"Cw13" not in serotypes["HLA"]` would test the dependency's data, and
+    # this very PR exists because WHO assigned six new C serotypes in 2026, so
+    # "these absences are permanent" is a premise already falsified once.
 
 
 def test_serotype_source_separates_reported_from_computed():

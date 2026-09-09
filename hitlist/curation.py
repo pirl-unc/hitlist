@@ -1629,9 +1629,11 @@ def _serotype_table_key(allele_str: str) -> str:
     Cw15, Cw16, Cw17, Cw18 -- were silently absent from every annotation as
     a result (#455).
 
-    Both sides now normalize the same way, so a format change upstream
-    cannot quietly drop a locus again; ``test_curation.py`` asserts every
-    table entry stays reachable.
+    Only the map-build side needs this: the lookup builds its key compactly
+    from a parsed allele's fields, so its spelling never varies. What keeps a
+    future format change from quietly dropping a locus is not this function
+    but ``test_every_serotype_table_entry_is_reachable``, which asserts every
+    table entry still resolves to its own serotype.
     """
     return allele_str.replace(":", "")
 
@@ -1708,7 +1710,19 @@ def allele_to_all_serotypes(mhc_restriction: str) -> tuple[str, ...]:
             if isinstance(result, Serotype):
                 return (f"HLA-{result.name}",)
             if isinstance(result, Allele):
-                key = _serotype_table_key(f"{result.gene.name}*{':'.join(result.allele_fields)}")
+                # Built compact directly. Routing this through
+                # _serotype_table_key was a no-op: an allele field never
+                # contains a colon (mhcgnomes splits on ":" and peels
+                # expression suffixes into annotations), so joining on ":" and
+                # stripping it is identical to joining on "". Verified over
+                # 6,645 parsed alleles.
+                #
+                # This key carries no species, while the map is built only from
+                # serotypes["HLA"], so a non-human allele whose gene and fields
+                # coincide with a human one collects human serotypes --
+                # Patr-A*02:01 returns HLA-A2. Pre-existing, and no curated row
+                # reaches it today; tracked as #463.
+                key = f"{result.gene.name}*{''.join(result.allele_fields)}"
                 return _build_allele_to_serotypes_map().get(key, ())
         except ImportError:
             pass
