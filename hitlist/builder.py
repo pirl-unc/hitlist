@@ -54,7 +54,11 @@ from .downloads import data_dir
 
 #: Schema/semantic contract for observations + binding artifacts. Metadata
 #: without this exact value is legacy and must rebuild once on upgrade.
-_OBSERVATIONS_ARTIFACT_VERSION = 2
+#:
+#: 3: ``serotype_source`` names whether a serotype is reported or computed
+#:    (#458), and the serotype reverse map reaches the six C-locus
+#:    specificities it used to drop (#455), so stored serotypes change.
+_OBSERVATIONS_ARTIFACT_VERSION = 3
 
 
 def _source_paths() -> dict[str, Path]:
@@ -78,6 +82,16 @@ def _stat_fingerprint(path: Path) -> dict:
         "size": stat.st_size,
         "mtime": stat.st_mtime,
     }
+
+
+def _mhcgnomes_version() -> str:
+    """Version of the library that computed the derived MHC columns."""
+    try:
+        import mhcgnomes
+
+        return str(getattr(mhcgnomes, "__version__", "") or "unknown")
+    except ImportError:  # pragma: no cover - mhcgnomes is a hard dependency
+        return "unavailable"
 
 
 def _source_fingerprints(paths: dict[str, Path]) -> dict:
@@ -288,6 +302,7 @@ _CATEGORICAL_BUILD_COLUMNS: tuple[str, ...] = (
     "restriction_evidence",
     "allele_resolution",
     "serotype",
+    "serotype_source",
     "host",
     "host_age",
     "process_type",
@@ -901,6 +916,11 @@ def build_observations(
     # Save metadata
     meta = {
         "artifact_version": _OBSERVATIONS_ARTIFACT_VERSION,
+        # Serotype and class projections are only as current as the library
+        # that computed them, which is a property of the build rather than of
+        # the observation. Recording it makes a rebuild that silently changes
+        # 1.6M serotype values attributable (#458).
+        "mhcgnomes_version": _mhcgnomes_version(),
         "sources": _source_fingerprints(paths),
         "parquets": _parquet_fingerprints(),
         "n_rows": len(obs),

@@ -134,3 +134,26 @@
 
 - When a curation defect has a mechanism, look for the invariant that detects the whole class.
   Rule: #381 reported one study whose `mhc` field pooled several animals. The mechanism — an `mhc` field holding a union across samples rather than one genotype — generalises, and the user asked for exactly that generalisation. The invariant turned out to be free of thresholds and of species: a diploid donor carries at most two alleles per locus, so three is proof of pooling. It found five more samples, all genuinely wrong, and it now also guards against "fixing" #381 the way the issue asked. One bug report plus a mechanism is often an audit waiting to be written.
+
+- Never key a reverse map by an upstream table's own spelling. Assert that the
+  whole vocabulary round-trips instead.
+  Rule: #455 was a reverse map that used `mhcgnomes.data.serotypes`' allele
+  strings as keys while the lookup built its own compact key from a parsed
+  allele. 11 of 924 entries carry a different spelling — the hand-curated rows
+  its generator cannot reproduce — so six serological specificities vanished
+  from 41,478 rows with no error, no warning, and an empty tuple that reads
+  exactly like "this allele has no serological equivalent". A `.get(key, ())`
+  against data you do not control is a silent-wrong-answer machine. The test
+  that belongs beside it is not "A*02:01 maps to A2" but "every entry in the
+  source table is reachable", which fails on the next format change instead of
+  discarding another locus.
+
+- Two facts under one column name will be conflated by every consumer.
+  Rule: `serotypes` held a measured serological typing (35,257 rows) and a
+  computed membership (1,630,309 rows), spelled identically. The distinction
+  was recoverable from `allele_resolution == "serological"`, so nothing was
+  *lost* — but recoverable-by-inference is not the same as available, and
+  tsarina duly built a filter that pooled the two. When a column's value can
+  arrive either as primary data or as this library's projection, the provenance
+  is part of the fact, not metadata about it: name it in its own column and put
+  the library version that computed the projection in the artifact metadata.

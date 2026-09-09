@@ -1311,3 +1311,41 @@ def test_source_species_filter_is_projection_independent(tmp_path, monkeypatch, 
     assert set(result["peptide"]) == {"AAAAAAAAA", "CCCCCCCCC", "DDDDDDDDD"}
     if columns is not None:
         assert list(result.columns) == columns
+
+
+def test_serotype_source_filter_separates_reported_from_derived(tmp_path, monkeypatch):
+    """#458: a serotype query can be restricted to serological observations.
+
+    All three rows carry ``HLA-A2`` in ``serotypes``, but only one measured it.
+    """
+    import pandas as pd
+
+    from hitlist.observations import load_observations
+
+    df = pd.DataFrame(
+        {
+            "peptide": ["TYPED", "SEQUENCED", "DONOR"],
+            "mhc_restriction": ["HLA-A2", "HLA-A*02:01", "HLA-A*01:01;HLA-A*02:01"],
+            "mhc_class": ["I"] * 3,
+            "serotypes": ["HLA-A2", "HLA-A2;HLA-A2.1", "HLA-A1;HLA-A2;HLA-A2.1"],
+            "serotype_source": ["reported", "derived", "donor_set"],
+            "reference_iri": ["r-1", "r-2", "r-3"],
+            "pmid": pd.array([1, 2, 3], dtype="Int64"),
+            "source": ["iedb"] * 3,
+            "mhc_species": ["Homo sapiens"] * 3,
+        }
+    )
+    path = tmp_path / "observations.parquet"
+    df.to_parquet(path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
+
+    assert load_observations(serotype_source="reported")["peptide"].tolist() == ["TYPED"]
+    assert load_observations(serotype_source=["derived", "donor_set"])["peptide"].tolist() == [
+        "SEQUENCED",
+        "DONOR",
+    ]
+    # The serotype query itself still spans all three; the axes are independent.
+    assert len(load_observations(serotype="A2")) == 3
+    assert load_observations(serotype="A2", serotype_source="reported")["peptide"].tolist() == [
+        "TYPED"
+    ]

@@ -1311,3 +1311,57 @@ Next: #380 (serotype/locus values never reach the allele join), #381 (PMID 36423
 alleles in IEDB but is curated class-only), #382 (species inference pinned only in curated YAML;
 the ingest path still misclassifies), #374 remainder (11 `I+II` samples need class-II genotypes
 read out of the papers).
+
+---
+
+## Serotype provenance and the unreachable half of the serotype map (#455, #458)
+
+Reported from tsarina, which moved its `--serotype` filter onto this column and
+found that two different facts share one name, and that six specificities never
+appear at all.
+
+### The two problems
+
+1. **#455 — 41,478 rows carry no serotype that should.**
+   `mhcgnomes.data.serotypes["HLA"]` spells alleles two ways: 915 entries use
+   the compact `C*0304` form, 11 use `C*15:02`. The 11 are the hand-curated
+   rows its generator cannot reproduce (mhcgnomes#156). `_build_allele_to_serotypes_map`
+   keyed by whatever the table held while `allele_to_all_serotypes` looked up a
+   compact key it built itself, so those rows were unreachable and Cw12, Cw14,
+   Cw15, Cw16, Cw17 and Cw18 were absent from every annotation. Worst of these
+   is Cw16: curated in deliberately from WHO's `hla_nom.txt` (mhcgnomes#153),
+   and discarded here by a key format.
+
+2. **#458 — `serotypes` mixes primary data with a projection.**
+   35,257 human rows are serologically typed studies where the serotype *is*
+   the observation and no molecule was measured. 1,630,309 rows name a molecule
+   and get a serotype computed from it. Both spell the result identically. The
+   marker was `allele_resolution == "serological"`, which is an inference the
+   consumer has to know to make, from a column named for resolution.
+
+### Plan
+
+- [x] Normalize both sides of the reverse map through one key helper, and
+      assert every table entry stays reachable.
+- [x] Delete `_build_allele_to_serotype_map`, unused since `allele_to_serotype`
+      started delegating to the plural form.
+- [x] Add `serotype_source` (`reported` / `derived` / `donor_set` / empty) to
+      `MhcAnnotation`, so the distinction is a column rather than a deduction.
+- [x] Record `mhcgnomes_version` in `observations_meta.json`: the derived
+      columns are only as current as the library that computed them.
+- [x] Bump the observations artifact version so every existing index rebuilds
+      its derived columns.
+- [ ] Thread `serotype_source` through the loader, exports and CLI the way
+      `restriction_evidence` (#415) is threaded.
+- [ ] Document both axes in the README.
+- [ ] Tests: reachability of the whole table, the three source values, the
+      artifact-version invalidation, and the new filter.
+- [ ] Rebuild the local index and confirm the derived columns regenerate.
+- [ ] Version bump, three gates, PR, deploy.
+
+### Deliberately not in this PR
+
+`#456` (retired designations such as `B*44:01` never resolving to their current
+name, because `parse()` runs with `use_allele_aliases=False`) is a semantic
+decision about whether `mhc_restriction` may stop being what the paper
+reported. It stays open for a call rather than being bundled here.

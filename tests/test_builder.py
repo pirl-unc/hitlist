@@ -568,6 +568,7 @@ def _full_obs_fixture(n_rows: int = 50) -> pd.DataFrame:
             "restriction_evidence": ["monoallelic"] * n_rows,
             "allele_resolution": ["four_digit"] * n_rows,
             "serotype": ["A2"] * n_rows,
+            "serotype_source": ["derived"] * n_rows,
             "host": ["Donor-1"] * n_rows,
             "host_age": [""] * n_rows,
             "process_type": ["natural"] * n_rows,
