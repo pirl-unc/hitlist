@@ -512,6 +512,20 @@
         mhc: "HLA-DRB1*04:04 HLA-DRB1*11:08"
   - pmid: 29557506
     study_label: Neidert 2018 — Tübingen/Zurich biobank
+    # Arm-resolution verdict (#451): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      antigen_processing_comments takes 1,845 distinct values and names the exact sample on
+      every row ('Peptides were eluted from tissues obtained from healthy subject(s) liver
+      03.' 4,838 rows; 'Peptides were eluted from established Glioblastoma Stem Cell (GSC)
+      line(s) GS-2.' 2,718 rows), and source_tissue takes 18 (Blood 44,865; Gastrointestinal
+      Tract 40,880; Central nervous system (CNS) 34,749; Kidney 31,725). Those values sit on
+      the same axis as the seven curated arms, which are benign tissue pools, but the arm set
+      covers neither the GSC lines nor the GBM tumors the deposit names, and all seven arms
+      are class I while 34,407 rows are class II (assay_comments is the single pan-class-II
+      precipitation sentence). The per-row discriminator is present and the arms cannot
+      consume it for those 61,714 rows.
     title: "The natural HLA ligandome of glioblastoma stem-like cells: antigen discovery for T cell-based immunotherapy"
     override: healthy
     note: >
@@ -817,6 +831,20 @@
         reason: Healthy donor blood controls
   - pmid: 32983136
     study_label: Marino 2020 — activated immune cell subsets
+    # Arm-resolution verdict (#451): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      cell_name takes 5 distinct values that partition the rows onto the curated subsets
+      ('Dendritic cell' 13,740; 'Macrophage' 10,456, the CD14+ monocyte arm; 'B cell' 6,143;
+      'T cell CD8+' 3,067; 'T cell CD4+' 1,200), and assay_comments takes 503 distinct values,
+      many of which name a single subset ('The epitope was eluted from the following cell
+      types: MaDC.' on 4,730 rows, 'CD19.' on 1,046). Only 3,067 of 34,606 rows currently
+      reach an arm, so the field that separates ImDC from MaDC and monocytes from B cells is
+      deposited and unexploited. Per-arm mhc is 'unknown' while rows carry 40 distinct donor
+      genotypes, so allele matching cannot substitute. A minority of rows do enumerate several
+      subsets at once ('CD14, CD19, CD4, CD8, ImDC, MaDC', 3,251 rows) and those are ambiguous
+      by fact; the single-subset rows are the remaining work.
     title: Biogenesis of HLA Ligand Presentation in Immune Cells Upon Activation Reveals Changes in Peptide Length Preference
     override: activated_apc
     note: >
@@ -1229,6 +1257,21 @@
         reason: Adjacent normal breast tissue from cancer resection
   - pmid: 26992070
     study_label: Ritz 2016 — high-sensitivity HLA peptidome
+    # Arm-resolution verdict (#451): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      A clean per-row discriminator is present: cell_name takes 7 distinct values
+      (MAVER-1-Lymphoblast 7,786; HL-60-Myeloblast 6,835; THP-1-Monocyte 5,733;
+      293-T-Epithelial cell 5,247; RPMI-8226-Lymphoblast 4,739; CA46-Lymphoblast 2,896;
+      Mononuclear cell 1,561) and assay_comments takes 11, each naming a single system, for
+      example 'Class I ligands were eluted from MHC obtained from Mantle Cell Lymphoma cell
+      line MAVER-1.'. Those values map one to one onto the six curated cell-line arms, yet
+      16,821 of 34,797 rows remain arm-ambiguous, so this is unfinished curation rather than a
+      limit of the deposit. The two serum arms are the exception: all 1,561 serum rows carry
+      cell_name 'Mononuclear cell' and the single comment 'Class I ligands were eluted from
+      soluble MHC obtained from the sera of melanoma patients.', with nothing separating the
+      healthy volunteer sera from the melanoma sera.
     title: "High-sensitivity HLA class I peptidome analysis enables a precise definition of peptide motifs and the identification of peptides from cell lines and patients' sera"
     override:
     note: >
@@ -1363,6 +1406,19 @@
         reason: Melanoma patient sera
   - pmid: 31154438
     study_label: Shraibman 2019 — GBM tumor antigens
+    # Arm-resolution verdict (#451): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      antigen_processing_comments is present on 31,715 rows ('Cells were isolated from
+      patients with glioblastoma multiforme (GBM).') and absent on 24,413, and that
+      presence/absence is itself a per-row split: cell_name ('PBMC'), source_tissue ('Blood')
+      and mhc_restriction (one pooled 14-allele string) are otherwise identical across all
+      56,128 rows. The split cannot name one of the five curated arms, but it does separate
+      GBM-derived material from the healthy-donor and ankylosing-spondylitis plasma, which is
+      more than the arms use today. Whether it also separates tumor tissue from pre- and post-
+      surgery plasma has not been established, so this is unfinished work rather than a
+      settled limit of the deposit.
     title: Identification of Tumor Antigens Among the HLA Peptidomes of Glioblastoma Tumors and Plasma
     override:
     note: >
@@ -3184,6 +3240,19 @@
         mhc: "HLA-A*02:01 HLA-B*40:01 HLA-C*03:04"
   - pmid: 27600516
     study_label: Gloger 2016 — melanoma cell line peptidomes
+    # Arm-resolution verdict (#451): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: axis_mismatch
+    arm_resolution_note: >
+      Arms are curated per cell line (FM-82, FM-93/2, Mel-624, MeWo, SK-Mel-5) but the per-row
+      fields vary on a different axis: cell_name (2 distinct: Fibroblast 10,322; PBMC 79) and
+      source_tissue (2 distinct: Skin; Blood) separate the cell-line peptidomes from 79 rows
+      of patient serum sHLA, a system with no curated arm. antigen_processing_comments also
+      takes 2 values, and the one on all 10,322 cell-line rows names every arm at once:
+      'eluted from established human melanoma cell lines (FM-82, FM-93/2, SK-Mel-5, MeWo
+      and/or Mel-624)'. That 'and/or' enumeration is the #354 trap rather than a
+      discriminator, and mhc_restriction is a pooled 17-allele string on 9,920 of the 9,924
+      ambiguous rows.
     title: Mass spectrometric analysis of the HLA class I peptidome of melanoma cell lines as a promising tool for the identification of putative tumor-associated HLA epitopes
     override: cell_line
     note: >
@@ -3594,6 +3663,19 @@
         mhc: "HLA-A*03:01 HLA-B*35:01 HLA-C*04:01"
   - pmid: 28832583
     study_label: Bassani-Sternberg 2017 — HLA-I motif deconvolution
+    # Arm-resolution verdict (#451): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: axis_mismatch
+    arm_resolution_note: >
+      Fields do vary, but on the wrong axis: cell_name takes 2 distinct values (B cell 39,605;
+      Lymphocyte 14,084), source_tissue 2 (Blood 39,605; Skin 14,084) and
+      antigen_processing_comments 2, against 10 per-sample curated arms. The blood narrative
+      names all eight of its samples on every row ('Six EBV-transformed human B-cell lines
+      CD165, GD149, PD42, CM467, RA957 and MD155 and two leukapheresis samples (Apher1 and 6)
+      were used.') and the skin narrative names both TILs on every row, so each value
+      partitions rows by sample SYSTEM and never by sample. assay_comments is absent (0
+      distinct), and mhc_restriction repeats the same two pooled allele strings. A 2-value
+      system split cannot reach 10 per-donor arms, so no matcher can bridge the two axes.
     title: Deciphering HLA-I motifs across HLA peptidomes improves neo-antigen predictions and identifies allostery regulating HLA specificity
     override:
     note: >
@@ -4584,6 +4666,19 @@
         mhc: "DLA-88*508:01"
   - pmid: 18612635
     study_label: Sherman 2008 — chicken BF2 class I
+    # Arm-resolution verdict (#451): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      Exactly the 34 BF2*2101 rows are ambiguous while all 30 BF2*1301 rows resolve, which
+      locates the gap precisely. assay_comments takes 2 distinct values that partition the
+      study by arm ('The epitope was eluted from BF2*2101 from transfected RP9 cells.', 34
+      rows; the BF2*1301 twin, 30 rows), and antigen_processing_comments (2 values) and
+      mhc_restriction (2 values) split on the same 34/30 boundary. The ambiguous rows spell
+      the allele 'Gaga-BF2*021:01' against the arm's curated 'Gaga-BF2*2101', a zero-padded
+      field-1 form the curated string does not match, whereas 'Gaga-BF2*13:01' does reach
+      'Gaga-BF2*1301'. The discriminator is present and unambiguous on every row; only allele-
+      name normalization stands between it and the arm.
     title: "Mass spectral data for 64 eluted peptides and structural modeling define peptide binding preferences for class I alleles in two chicken MHC-B haplotypes associated with opposite responses to Marek's disease"
     override:
     species: Gallus gallus (chicken)
@@ -4738,6 +4833,20 @@
 
   - pmid: 33968037
     study_label: "Goncalves 2021 — TNBC MDA-MB-231 ± IFNg"
+    # Arm-resolution verdict (#451): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: multi_arm_evidence
+    arm_resolution_note: >
+      All 20,013 ambiguous rows carry a single assay_comments value: "The peptide was eluted
+      from the following experimental conditions: IFNg-treated, untreated." The field takes 4
+      distinct values and the other three each place a row in one arm (IFNg-treated 30,090;
+      untreated 5,203; class II antibody elution 37,100), so the ambiguity falls exactly on
+      the peptides IEDB reports from both the treated and the untreated MDA-MB-231 sample.
+      cell_name and source_tissue are constant (1 value each: MDA-MB-231-Epithelial cell,
+      Lymphoid), and antigen_processing_comments takes 2 values that split treated-only from
+      either-or rather than naming an arm. Nothing is missing from the deposit: those peptides
+      were positively observed in both arms, which is the paper's own finding of only partial
+      overlap between the untreated and IFN-gamma repertoires.
     title: "IFNg Modulates the Immunopeptidome of Triple Negative Breast Cancer Cells by Enhancing and Diversifying Antigen Processing and Presentation"
     override: cell_line
     note: >
@@ -5362,6 +5471,23 @@
 
   - pmid: 32157095
     study_label: "Chong 2020 — proteogenomic melanoma + lung"
+    # Arm-resolution verdict (#451): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      antigen_processing_comments takes 65 distinct values and names the source sample on
+      nearly every row: "T1185B, a primary cell line established from a patient-derived tumor,
+      was utilized for ligand elution" (16,125 rows), the matching 0D5P wording (11,835),
+      "Tumor tissue from patient C3N02289 was utilized for ligand elution" (7,564) and "Normal
+      matched tissue from cancer patient C3N02289" (11,765). Those strings map one to one onto
+      the 11 curated arms, including the tumor against matched-normal split that
+      mhc_restriction cannot make: C3N-02289 tumor and its matched normal are typed
+      identically and 13,449 rows carry that shared genotype. cell_name and source_tissue take
+      2 values each (Melanocyte / Skin 47,468 against Cell found in tissue / Lung 19,329),
+      which separates the melanoma lines from the lung patients but not the arms inside either
+      group. The per-row discriminator is present and the curated arms do not use it; the
+      6,381 rows restricted to "HLA class II" additionally have no class II arm to reach,
+      since all 11 curated arms are class I.
     title: "Integrated proteogenomic deep sequencing and analytics accurately identify non-canonical peptides in tumor immunopeptidomes"
     override:
     note: >
@@ -5922,6 +6048,19 @@
 
   - pmid: 26811146
     study_label: "Marcilla 2016 — Mamu-B*08 vs HLA-B*27 peptidomes"
+    # Arm-resolution verdict (#451): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: no_row_discriminator
+    arm_resolution_note: >
+      Measured: all four per-row narrative fields are constant across all 3,614 rows --
+      cell_name 'C1R cells-B cell', source_tissue 'Lymphoid', one antigen_processing_comments
+      value describing C1R transfectants purified with W6/32 affinity chromatography, and
+      assay_comments never populated. The transfected allele appears only in mhc_restriction,
+      which already resolves the bulk of the study: 2,168 rows on HLA-B*27:05 and 880 on
+      Mamu-B*008:01 reach their arm. The 566 rows that stay ambiguous are exactly those
+      restricted by C1R's own endogenous class I, HLA-C*04:01 (418) and HLA-B*35:03 (148),
+      which both transfectant cultures express, so no deposited field can say which arm they
+      came from.
     title: "Comparative Analysis of the Endogenous Peptidomes Displayed by HLA-B*27 and Mamu-B*08: Two MHC Class I Alleles Associated with Elite Control of HIV/SIV Infection"
     override: cell_line
     species: "Macaca mulatta (rhesus macaque)"
@@ -6007,6 +6146,21 @@
 
   - pmid: 33936100
     study_label: "Olsson 2021 — mantle cell lymphoma ± IFNg"
+    # Arm-resolution verdict (#451): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      assay_comments is a real per-row treatment discriminator here: 3 distinct values, 'The
+      epitope was eluted from untreated and IFNg-treated cells.' (13,616 rows), 'The epitope
+      was eluted from untreated cells, but not from IFNg-treated cells.' (2,136) and the IFNg-
+      only mirror (2,035). The 4,171 rows in the two exclusive categories each name exactly
+      one curated arm, so evidence on the arm axis exists and is not being used. The residual
+      ambiguity is class-shaped rather than narrative-shaped: 9,246 of the 9,248 ambiguous
+      rows carry mhc_restriction 'HLA class II', and both arms are curated with the identical
+      I+II genotype, so allele matching cannot separate them. cell_name, source_tissue and
+      antigen_processing_comments are each constant across the study. The 13,616 both-arms
+      rows are genuine multi-arm evidence, but the exclusive rows are recoverable, and
+      recovering them is the work this verdict marks.
     title: "An Integrated Genomic, Proteomic, and Immunopeptidomic Approach to Discover Treatment-Induced Neoantigens"
     override: cell_line
     note: >
@@ -6302,6 +6456,18 @@
             proteome_label: Epstein-Barr virus
   - pmid: 32502341
     study_label: "Pfammatter 2020 — TMT-labeled ALL + healthy B cells"
+    # Arm-resolution verdict (#451): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: no_row_discriminator
+    arm_resolution_note: >
+      Measured: all four per-row fields take exactly one value across the 10 rows. cell_name
+      is 'Lymphoblast', source_tissue is 'Blood', antigen_processing_comments is one string
+      ('The epitope was eluted from an Epstein-Barr virus (EBV)-transformed B-lymphoblastoid
+      cell line (B-LCL) derived from healthy peripheral blood mononuclear cells...') and
+      assay_comments is one string ('The epitope was eluted from the following conditions: TMT
+      (20 millions).'). The curated ALL-patient and healthy-donor arms cannot be told apart
+      because nothing varies; the single narrative value describes only a healthy-donor B-LCL.
+      With 10 rows deposited there is nothing further to recover.
     title: "Extending the Comprehensiveness of Immunopeptidome Analyses Using Isobaric Peptide Labeling"
     override:
     note: >
@@ -6343,6 +6509,21 @@
 
   - pmid: 27846572
     study_label: "Liepe 2016 — proteasome-spliced peptides"
+    # Arm-resolution verdict (#451): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      The 11,733 ambiguous rows are the GR-LCL block and the deposit names it per row:
+      antigen_processing_comments takes 29 distinct values, of which "HLA-I peptide complexes
+      were immunoprecipitated from lysed GR-LCL" covers 11,322 rows, and assay_comments (35
+      values) repeats "the GR lymphoblastoid cell line (GR-LCL)". mhc_restriction agrees:
+      11,730 rows carry GR-LCL's exact six-allele genotype
+      HLA-A*01:01;HLA-A*03:01;HLA-B*07:02;HLA-B*27:05;HLA-C*02:02;HLA-C*07:02, which no other
+      curated arm shares. cell_name splits the study four ways, one value per curated arm (B
+      cell 11,733; Fibroblast 3,614; C1R cells-B cell 3,206; T2 cells-Lymphoblast 111), and
+      the other three blocks do reach their arm. Only 387 rows are genuinely shared between
+      two arms ("lysed GR-LCL or primary human fibroblasts"); the remaining rows name one arm
+      and the curation does not exploit it.
     title: "A large fraction of HLA class I ligands are proteasome-generated spliced peptides"
     override: cell_line
     rules:
@@ -6623,6 +6804,20 @@
 
   - pmid: 36215666
     study_label: "Sarango 2022 — HeLa-CIITA T6BP/autophagy"
+    # Arm-resolution verdict (#451): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      assay_comments takes 21 distinct values and many name exactly one condition: 'The
+      epitope was eluted under the following experimental conditions: siT6BP.' on 2,181 rows,
+      the siCTRL-only variant on 1,143 and the Mock-only variant on 3,513. cell_name ('HeLa
+      cells-Epithelial cell'), source_tissue ('Uterine Cervix') and
+      antigen_processing_comments are each 1 distinct, and that one
+      antigen_processing_comments value enumerates Mock, siCTRL and siT6BP together, so all of
+      the discriminating signal sits in assay_comments. The curated arms are control siRNA and
+      T6BP siRNA, with no arm for the mock-treated condition IEDB records, so the single-
+      condition rows have nowhere to land. Rows whose value lists several conditions are
+      genuinely multi-arm, but the single-condition rows are real unfinished curation.
     title: "The Autophagy Receptor TAX1BP1 (T6BP) improves antigen presentation by MHC-II molecules"
     override: cell_line
     note: >
@@ -6828,6 +7023,19 @@
 
   - pmid: 29493099
     study_label: "Olsson 2018 — primary T cell subsets (healthy)"
+    # Arm-resolution verdict (#451): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      assay_comments takes 10 distinct values, and 11,758 of the 13,779 rows name exactly one
+      of the three curated arms: 'The epitope was eluted from CD3/28 stimulated and expanded
+      non-regulatory (CD4+/CD25-) T cells.' (6,533 rows, the activated arm), 'The epitope was
+      eluted from non-regulatory (CD4+/CD25-) T cells.' (4,504, Tconv) and 'The epitope was
+      eluted from regulatory (CD4+/CD25+) T cells.' (721, Treg). cell_name and source_tissue
+      are constant at 1 distinct value each ('PBMC', 'Blood') and mhc_restriction is the
+      single value 'HLA class I', so this narrative is the only discriminator the deposit
+      carries. Every row is currently ambiguous, so it is deposited and unused. The remaining
+      2,019 rows enumerate two or three subsets together and are genuinely multi-arm.
     title: "T-Cell Immunopeptidomes Reveal Cell Subtype Surface Markers Derived From Intracellular Proteins"
     override: healthy
     note: >
@@ -6867,6 +7075,17 @@
 
   - pmid: 29632711
     study_label: "Nelde 2018 — CLL ± lenalidomide"
+    # Arm-resolution verdict (#451): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: no_row_discriminator
+    arm_resolution_note: >
+      Measured: all four per-row fields are constant across all 13,607 rows. cell_name is 'B
+      cell', source_tissue is 'Blood', antigen_processing_comments takes the single
+      immunoaffinity boilerplate value naming W6/32, Tu-39 and L243, and assay_comments is
+      never populated. mhc_restriction does vary (5 values) but only along the MHC class axis
+      -- 6,973 rows on the HLA-A/B/C set, 6,616 on the HLA-DRB1 set -- and the two curated
+      arms are both I+II, so it says nothing about treatment. The untreated versus
+      lenalidomide split is simply absent from the deposit.
     title: "HLA ligandome analysis of primary chronic lymphocytic leukemia (CLL) cells under lenalidomide treatment"
     override: cancer_patient
     perturbations:
@@ -6897,6 +7116,20 @@
 
   - pmid: 28834231
     study_label: "Ritz 2017b — DIA method (JY + HEK293)"
+    # Arm-resolution verdict (#451): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      cell_name takes 2 distinct values (MAVER-1-Lymphoblast 7,646; 293-T-Epithelial cell
+      5,093) and mhc_restriction tracks them one to one, so a per-row discriminator sits on
+      exactly the arm axis; antigen_processing_comments is constant across all 12,739 rows and
+      assay_comments is empty. The 5,093 HEK293 rows attribute and the 7,646 others do not,
+      because the second curated arm is labelled 'JY (EBV-LCL)' with JY's genotype HLA-A*02:01
+      HLA-B*07:02 HLA-C*07:02 while every deposited row carries MAVER-1's
+      HLA-A*24:02;HLA-A*26:01;HLA-B*38:01;HLA-B*44:02;HLA-C*05:01;HLA-C*12:03, the same
+      genotype curated for MAVER-1 under PMID 26992070. The paper (Proteomics 2017, doi
+      10.1002/pmic.201700177, MSV000081439) benchmarks MAVER-1 against HEK293 and never uses
+      JY, so the deposit is sufficient and the arm label is what needs correcting.
     title: "Data-Independent Acquisition of HLA Class I Peptidomes on the Q Exactive Mass Spectrometer Platform"
     override: cell_line
     note: >
@@ -6974,6 +7207,20 @@
 
   - pmid: 32488085
     study_label: "Stopfer 2020 — CDK4/6i + IFNg on melanoma/breast"
+    # Arm-resolution verdict (#451): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      A per-row discriminator is present on both axes the arms encode. cell_name takes 5
+      distinct values (IPC-298-Melanocyte 3,561; MDA-MB-231-Epithelial cell 3,544; SK-MEL-5
+      3,288; SK-MEL-28 2,918; SK-MEL-2 2,510) and assay_comments takes 14, naming the
+      treatment per row ('The epitope was eluted from cells treated with 10uM CDK4/6i.', 2,171
+      rows; the 10ng/mL IFNg twin, 5,528 rows). The curated arms name A375 and MDA-MB-231
+      only, and A375 is not among the 5 deposited cell_name values, so four of the five
+      deposited lines have no arm to reach. Some assay_comments values do enumerate several
+      doses at once ('1uM CDK4/6i, 10uM CDK4/6i, and 10ng/mL IFNg', 1,434 rows) and those rows
+      are genuinely multi-arm, but the single-treatment majority becomes resolvable once the
+      arm roster matches the deposited lines.
     title: "Multiplexed relative and absolute quantitative immunopeptidomics reveals MHC I repertoire alterations induced by CDK4/6 inhibition"
     override: cell_line
     note: >
@@ -7064,6 +7311,21 @@
 
   - pmid: 28188227
     study_label: "Barnea 2017 — HLA-B27 transgenic rat spondyloarthritis"
+    # Arm-resolution verdict (#451): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: axis_mismatch
+    arm_resolution_note: >
+      Measured: cell_name and source_tissue are constant (Splenocyte; Spleen) and
+      assay_comments is empty, so the only varying narrative is antigen_processing_comments,
+      with 2 distinct values. Those values split the rows by disease state, not by ERAP1
+      genotype: 'Peptides were eluted from healthy rats. These included HLA-B27 transgenic
+      wild type and ERAP null female young and old rats' (35,864 rows) against 'Peptides were
+      eluted from arthritic rats, used as a model of ankylosing spondylitis. These included
+      wild type and ERAP1 null old male rats.' (21,110 rows). Each value names both curated
+      arms, so neither can place a peptide in the WT or the ERAP1 KO arm; the recorded axis is
+      healthy against arthritic while the curated axis is ERAP1 deletion, and the two do not
+      intersect. mhc_restriction also varies (HLA-B*27:05 on 56,974 rows, HLA-B7 on 2,804) but
+      the HLA-B7 control rats are not a curated arm at all.
     title: "The Human Leukocyte Antigen (HLA)-B27 Peptidome in Vivo, in Spondyloarthritis-susceptible HLA-B27 Transgenic Rats and the Effect of Erap1 Deletion"
     override:
     # #307 source-organism curation, consolidated here from a second 28188227
@@ -7377,6 +7639,18 @@
 
   - pmid: 30429286
     study_label: "Gfeller 2018 — HLA-I length distributions"
+    # Arm-resolution verdict (#451): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      Almost everything is constant, but not quite: antigen_processing_comments carries
+      'Samples were obtained from patients with meningioma.' on 32,682 rows and is absent on
+      30, cell_name is 'Other' on the same 32,682 and blank on those 30, and the 30 carry
+      allele-level mhc_restriction (HLA-A*03:01, HLA-B*51:01, HLA-C*06:02) where every other
+      row carries the pooled 'HLA class I'. source_tissue is 'Brain' throughout. So a per-row
+      discriminator does exist, on 30 of 32,712 rows, and it is the only thing separating the
+      curated meningioma-tissue arm from the cell-line arm. Small, but recoverable, which is
+      why this is not no_row_discriminator.
     title: "Length distribution and multiple specificity of naturally presented HLA-I ligands"
     override:
     # IEDB left source_tissue="Other"; the tissue samples are human meningioma
@@ -7442,6 +7716,23 @@
             proteome_label: Epstein-Barr virus
   - pmid: 31848261
     study_label: "Solleder 2020 — phosphorylated HLA-I ligands"
+    # Arm-resolution verdict (#451): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      Measured: cell_name and source_tissue are constant (one value each, 'Other' on 30,053 of
+      30,166 rows) and assay_comments is never populated, but antigen_processing_comments
+      takes 5 distinct values and every one names a specific patient tumor: 'The patient was
+      diagnosed with Meningioma.' (13,174 rows), Schwannoma (7,014), a uterus tumor (6,403),
+      adenocarcinoma of the cecum (2,807) and serous ovarian carcinoma (655). Those five
+      values partition all 30,053 populated rows cleanly and not one of them names a cell
+      line, so the deposit does discriminate on the axis the arms use -- sample identity --
+      just at a finer grain than the two curated arms, 'adenocarcinoma tissue (direct ex
+      vivo)' and 'cell lines'. mhc_restriction agrees: 15 distinct genotype sets whose counts
+      track the diagnoses one to one (7,014 rows on
+      HLA-A*03:01;HLA-B*14:01;HLA-B*35:08;HLA-C*04:01;HLA-C*07:02). Arms curated per patient
+      tumor would consume that discriminator, so this is unfinished curation rather than a
+      limit of what was deposited.
     title: "Phosphorylated HLA class I ligand predictions"
     override:
     ms_samples:
@@ -7500,6 +7791,19 @@
 
   - pmid: 34087483
     study_label: "Komov 2021 — IFN + DRiPs in breast cancer"
+    # Arm-resolution verdict (#451): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      assay_comments takes 7 distinct values and 4,311 rows name exactly one arm ('The epitope
+      was eluted from IFNg treated cells.' 1,832; 'The epitope was eluted from IFN-B treated
+      cells.' 1,822; 'The epitope was eluted from untreated cells.' 657), while cell_name,
+      source_tissue and antigen_processing_comments are each constant. The deposit also
+      separates IFN-beta from IFN-gamma per row, whereas the curation carries a single pooled
+      '+ IFN' arm, so even those single-arm rows have no arm to land on. The other 7,995 rows
+      do enumerate several arms at once ('untreated cells, and cells treated with IFN-B, or
+      IFNg') and are genuinely multi-arm, but the single-arm subset is unexploited per-row
+      signal.
     title: "Effect of interferons on presentation of defective ribosomal products as HLA peptides"
     override: cell_line
     perturbations:
@@ -7525,6 +7829,19 @@
 
   - pmid: 29508533
     study_label: "Lanoix 2018 — IP method comparison (CLL + LCL)"
+    # Arm-resolution verdict (#451): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      Two per-row fields split this study on the same boundary. antigen_processing_comments is
+      present on 3,972 rows ('Cells were harvested from an adult male patient with B acute
+      lymphoblastic leukemia (B-ALL)...') and absent on 9,423, and mhc_restriction tracks that
+      split exactly: the 3,972 rows carry HLA-A*02:01;HLA-A*11:01;HLA-B*40:01;HLA-B*44:03
+      while the 9,423 carry
+      HLA-A*01:01;HLA-A*02:01;HLA-B*07:02;HLA-B*44:03;HLA-C*07:02;HLA-C*16:01. Those are two
+      different donor genotypes and the study curates exactly two arms, primary CLL cells and
+      EBV-LCLs, both recorded only as 'HLA class I'. cell_name ('B cell') and source_tissue
+      ('Blood') are constant. The discriminator is deposited and unused.
     title: "Comparison of MHC I immunopeptidome isolation methods"
     override:
     ms_samples:
@@ -7551,6 +7868,20 @@
             proteome_label: Epstein-Barr virus
   - pmid: 29314611
     study_label: "Ritz 2018 — sHLA class II (NHL + cell lines)"
+    # Arm-resolution verdict (#451): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      Measured: cell_name (2 distinct: Lymphoblast 11,322; Plasma cell 420), source_tissue (2
+      distinct: Lymphoid 11,322; Blood 420) and assay_comments (2 distinct: 'The epitope was
+      eluted from the human mantle cell lymphoma cell line MAVER-1 or human follicular
+      lymphoma cell line DOHH2.' on 11,304 rows, 'The epitope was eluted from plasma of 4
+      donors.' on 420) all partition the rows along exactly the curated boundary between the
+      NHL plasma arm and the cell-line arm. The 420 plasma rows attribute and the 11,322 cell-
+      line rows do not, even though the same three fields identify them, so the discriminator
+      exists and the arms are not yet curated to use it. The deposit never says which of
+      MAVER-1 or DOHH2 a given peptide came from, but the curation pools both lines into one
+      arm, so that pooling is not what blocks attribution.
     title: "Membranal and blood-soluble HLA class II peptidome using DDA and DIA"
     override:
     ms_samples:
@@ -7574,6 +7905,20 @@
 
   - pmid: 33043033
     study_label: "Gutierrez-Hoffmann 2020 — Borrelia-infected DCs"
+    # Arm-resolution verdict (#451): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      assay_comments takes 7 distinct values, and 5,014 rows carry a single-arm statement:
+      'The epitope was eluted from cells stimulated with Borrelia burgdorferi.' (2,142), 'The
+      epitope was eluted from unstimulated cells.' (1,631), and 'The epitope was eluted from
+      cells stimulated with LTA from Staphylococcus aureus.' (1,241). cell_name (1 value,
+      'Dendritic cell'), source_tissue (1, 'Blood') and antigen_processing_comments (0) add
+      nothing, but assay_comments alone partitions those rows onto exactly the stimulation
+      axis the arms encode. Only two arms are curated, unstimulated and Borrelia
+      restimulation, and the deposited LTA-stimulated arm is not curated at all, so even rows
+      naming a single stimulus have nowhere to land. The other 6,092 rows name two or three
+      stimuli at once and are genuinely multi-arm.
     title: "Borrelia burgdorferi-induced changes in class II self-immunopeptidome on DCs"
     override: activated_apc
     perturbations:
@@ -7662,6 +8007,15 @@
 
   - pmid: 34932366
     study_label: "Sudhir 2022 — T1D vs healthy B cell immunopeptidome"
+    # Arm-resolution verdict (#451): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: no_row_discriminator
+    arm_resolution_note: >
+      Measured: cell_name takes one value ('B cell'), source_tissue takes one value ('Blood'),
+      and antigen_processing_comments and assay_comments are absent entirely (0 distinct
+      values) across all 20,981 rows. Nothing in the deposit separates the T1D-donor EBV-LCLs
+      from the healthy-donor ones. mhc_restriction does split class I (16,119 rows) from class
+      II (4,862), but that is the assay axis, not the donor-disease axis the two arms encode.
     title: "HLA allele-specific quantitative profiling of T1D B lymphocyte immunopeptidome"
     override:
     note: >
@@ -7705,6 +8059,15 @@
 
   - pmid: 33981976
     study_label: "Becker 2021 — NMD inhibition + 5-azacytidine on CRC"
+    # Arm-resolution verdict (#451): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: no_row_discriminator
+    arm_resolution_note: >
+      Measured: cell_name takes 1 distinct value ('HCT 116-Epithelial cell'), source_tissue 1
+      ('Colon'), and antigen_processing_comments and assay_comments are absent from every row
+      (0 distinct). mhc_restriction is a single pooled six-allele string on all 11,043 rows.
+      The curated contrast is untreated versus 5-azacytidine, a treatment axis IEDB records in
+      no per-row field here, so nothing separates one arm from the other.
     title: "NMD inhibition augments presentation of frameshift-derived neoepitopes"
     override: cell_line
     perturbations:
@@ -7895,6 +8258,18 @@
             proteome_label: Human immunodeficiency virus 1
   - pmid: 30779550
     study_label: "Murphy 2019 — cancer cells + doxorubicin"
+    # Arm-resolution verdict (#451): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      assay_comments takes 3 distinct values and one names the treatment arm directly: 'The
+      epitope was eluted from HCT 116 cells that were terated with doxorubicin.' on 2,038
+      rows, against 'The epitope was eluted from EL4 cells.' (3,001) and 'The epitope was
+      eluted from C57BL/6 mice that had received EL4 cells.' (3,001). cell_name and
+      source_tissue each take 4 distinct values (HCT 116 4,799; MDA-MB-468 3,844; Splenocyte
+      3,001; EL-4 3,001). The two curated arms are generic 'cancer cell lines' with and
+      without doxorubicin and name no line, so the deposited per-row discriminator cannot be
+      matched, and the mouse EL4/splenocyte system has no curated arm at all.
     title: "Multiplexed Relative Quantitation with Isobaric Tagging Mass Spectrometry Reveals Class I Major Histocompatibility Complex Ligand Dynamics in Response to Doxorubicin"
     override: cell_line
     perturbations: ["Doxorubicin treatment"]
@@ -8013,6 +8388,22 @@
 
   - pmid: 35561310
     study_label: "Bourne 2022 — DLBCL + EZH2i + decitabine + IFNg"
+    # Arm-resolution verdict (#451): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      Two per-row discriminators vary and the two curated arms exploit neither. cell_name
+      takes 3 distinct values (DB-B cell 2,622; SU-DHL-4-B cell 2,583; SU-DHL-6-B cell 2,216)
+      while neither arm names a cell line, and mhc_restriction takes 9 values that split by
+      line and by class ('HLA-A*02:01;HLA-B*18:01;HLA-C*05:01' 2,487 rows; 'HLA-
+      DRB1*01:01;HLA-DRB1*04:01' 1,537) while both arms record mhc as 'unknown'.
+      assay_comments takes 63 distinct values sharing one prefix ('Cells were treated with
+      decitabine (DAC), tazemetostat (TAZ), IFN-gamma (IFN), or DMSO individually or in
+      combinations containing different subsets of these treatments.') and carrying the per-
+      row treatment list in the tail past this extract's 200-character truncation. The second
+      arm collapses every DAC/TAZ/IFN combination into a single label, so both the 63-way
+      treatment split and the 3-way line split are recoverable work rather than a limit of the
+      deposit.
     title: "Unmasking the suppressed immunopeptidome of EZH2-mutated diffuse large B-cell lymphomas through combination drug treatment"
     override: cell_line
     perturbations: ["EZH2 inhibitor (tazemetostat)", "Decitabine", "IFN-gamma"]
@@ -8095,6 +8486,18 @@
 
   - pmid: 31222486
     study_label: "Koumantou 2019 — A375 + ERAP1 inhibitor"
+    # Arm-resolution verdict (#451): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      assay_comments takes 3 distinct values and two of them name exactly one arm: 'The
+      peptide was eluted from untreated A375 melanoma cells.' on 1,198 rows and 'The peptide
+      was eluted from A375 melanoma cells treated with the ERAP1 inhibitor DG013A, but not
+      from untreated cells.' on 417. Those 1,615 rows map one-to-one onto the curated
+      untreated and ERAP1-inhibitor arms and are not used. cell_name (1 distinct, 'Epithelial
+      cell'), source_tissue (1, 'Skin') and antigen_processing_comments (0 distinct) carry
+      nothing. The remaining 1,589 rows name both arms and are genuine multi-arm evidence, but
+      the single-arm rows are recoverable work.
     title: "Editing the immunopeptidome of melanoma cells using a potent inhibitor of endoplasmic reticulum aminopeptidase 1 (ERAP1)"
     override: cell_line
     perturbations: ["ERAP1 pharmacological inhibitor"]
@@ -8167,6 +8570,18 @@
 
   - pmid: 26375851
     study_label: "Schellens 2015 — EBV-LCLs ± vaccinia virus"
+    # Arm-resolution verdict (#451): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: no_row_discriminator
+    arm_resolution_note: >
+      Measured: all four per-row fields are constant across the 8,024 rows. cell_name is
+      'Lymphoblast', source_tissue is 'Lymphoid', and the one antigen_processing_comments
+      sentence describes the whole experiment on every row ('eluted from four different B
+      lymphoblastoid cell-lines (BLCL) in both steady state (uninfected) and following in
+      vitro infection with measles virus'), naming both arms everywhere rather than
+      partitioning rows; the single assay_comments sentence does the same. mhc_restriction
+      varies (17 distinct values; 'HLA-B*44:02' 1,169 rows) but that is the allele axis,
+      orthogonal to the infected/uninfected split the arms encode.
     title: "Comprehensive Analysis of the Naturally Processed Peptide Repertoire: Differences between HLA-A and B in the Immunopeptidome"
     override: ebv_lcl
     perturbations: ["Vaccinia virus infection (some conditions)"]
@@ -8280,6 +8695,20 @@
 
   - pmid: 33091337
     study_label: "Wang 2020 — HLA-DR15 in MS brain/thymus/B cells"
+    # Arm-resolution verdict (#451): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      cell_name takes 2 distinct values and partitions the study exactly: 'B cell' on 1,356
+      rows, which reach the primary B cells arm, and 'Mononuclear cell' on 1,893 rows, which
+      is precisely the ambiguous set. Those are the blood monocyte samples (source_tissue is
+      'Blood' on all 3,249 rows, so no thymus or brain rows are present here), but the curated
+      arm reads 'primary monocytes' and does not match IEDB's 'Mononuclear cell' vocabulary,
+      so a real per-row discriminator goes unused. The other varying fields are orthogonal:
+      antigen_processing_comments (2 distinct) splits by donor cohort ('3 untreated relapsing-
+      remitting MS (RRMS) patients, and 3 RRMS patients treated with the anti-VLA4 antibody
+      natalizumab' vs '3 healthy donors'), and assay_comments (31 distinct) by eluting mAb,
+      anti-DR2a against anti-DR2b.
     title: "HLA-DR15 Molecules Jointly Shape an Autoreactive T Cell Repertoire in Multiple Sclerosis"
     override:
     note: >
@@ -8320,6 +8749,19 @@
 
   - pmid: 27452731
     study_label: "Heyder 2016 — HLA-DR in sarcoidosis BAL + B cells"
+    # Arm-resolution verdict (#451): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      Three per-row fields split this study cleanly in two: cell_name (2 distinct),
+      source_tissue (2) and antigen_processing_comments (2). The 4,838 resolving rows are
+      'Mononuclear cell' / 'Bronchial Aveolar Lavage (BAL)'; all 708 ambiguous rows are 'B
+      cell' / 'Blood' and carry 'HLA-DR molecules were isolated from Priess cells (human EBV-
+      transformed B cell line homozygous for HLA-DRB1*04:01) by immunoaffinity purification
+      with anti-DR antibody L243'. Those same rows carry mhc_restriction 'HLA-DRB1*04:01'
+      against 'HLA-DR' on the BAL rows, so both the narrative and the restriction name the
+      EBV-B cells arm. The discriminator is deposited and the arms do not use it: the curated
+      EBV-B cells arm has an empty mhc.
     title: "Approach for Identifying Human Leukocyte Antigen (HLA)-DR Bound Peptides from Scarce Clinical Samples"
     override:
     ms_samples:
@@ -9040,6 +9482,21 @@
 
   - pmid: 30573663
     study_label: "Nanaware 2019 — HLA-DO KO mouse class II"
+    # Arm-resolution verdict (#451): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: axis_mismatch
+    arm_resolution_note: >
+      The two curated arms differ only by HLA-DO genotype (mouse splenocytes WT against mouse
+      splenocytes DO KO), and no deposited field records DO status:
+      antigen_processing_comments and assay_comments are both absent (0 distinct values). What
+      does vary is the sample system. cell_name and source_tissue take 2 values each and split
+      the same way, B cell / Blood 6,912 against Splenocyte / Spleen 757, tracking
+      mhc_restriction's split of human HLA-DRA*01:01/DRB1*01:01 (6,912) against mouse
+      H2-AA*b/AB*b (757). That axis is orthogonal to the curated one: both arms are mouse
+      splenocytes typed H-2Ab, so the 757 mouse rows cannot be divided between WT and
+      knockout, and the 6,912 human DR1-restricted rows sit in a system the arms do not cover.
+      Curating a human DR1 arm would still leave the DO-positive against DO-null distinction
+      unrecorded on every row.
     title: "HLA-DO Modulates the Diversity of the MHC-II Self-peptidome"
     override:
     species: "Mus musculus (mouse)"
@@ -9992,6 +10449,19 @@
 
   - pmid: 39111711
     study_label: "Salek 2024 — optiPRM neoantigen detection"
+    # Arm-resolution verdict (#451): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      All 6 rows are ambiguous and assay_comments (4 distinct values) names the arm on every
+      one of them. 'The epitope was detected in a patient-derived xenograft cell line that had
+      been treated with IFN-gamma to up-regulate HLA class I expression.' is the PDX arm; the
+      other three ('The epitope was eluted from a tumor tissue sample obtained from a patient
+      with liposarcoma.', 2 rows; osteosarcoma with lung metastasis, 2 rows; small intestine
+      carcinoma, 1 row) are the patient biopsy arm. source_tissue also varies over 4 values
+      (Lung 2, Other 2, Pancreas 1, Small Intestine 1) and mhc_restriction over 4 patient
+      genotypes, while both curated arms carry only 'HLA class I'. The PDX versus biopsy split
+      is exactly the curated axis and it is recorded per row.
     title: "optiPRM: A Targeted Immunopeptidomics LC-MS Workflow With Ultra-High Sensitivity for Detection of Mutation-Derived Tumor Neoepitopes From Limited Input Material"
     override:
     note: >
@@ -10275,6 +10745,16 @@
 
   - pmid: 30778243
     study_label: "Koutsakos 2019 — influenza A/B/C cross-reactive T cells"
+    # Arm-resolution verdict (#451): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: no_row_discriminator
+    arm_resolution_note: >
+      Measured across all 423 rows: cell_name (1 distinct, 'C1R cells-B cell'), source_tissue
+      (1 distinct, 'Blood'), antigen_processing_comments (0 distinct) and assay_comments (0
+      distinct). Only mhc_restriction varies (3 values), and it already resolves 414 rows:
+      'HLA class II' (331) reaches the class II arm and 'HLA-A*02:01' (83) the BB7.2-pulled
+      transfectant. The 9 ambiguous rows carry the generic 'HLA class I' and nothing deposited
+      says whether they came from the w6/32 parental pull or the A*02:01 transfectant.
     title: "Human CD8+ T cell cross-reactivity across influenza A, B and C viruses"
     override: cell_line
     note: >
@@ -11110,6 +11590,21 @@
   # flag.
   - pmid: 28871256
     study_label: "Scholz 2017 — BLS EBV-LCL DR2 transfectants (DRB1*15:01 / DRB5*01:01)"
+    # Arm-resolution verdict (#451): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      Both blocks of the 177 ambiguous rows are named per row. 175 are the MGAR arm:
+      antigen_processing_comments takes 2 distinct values and theirs reads "The DR2-homozygous
+      B cell lymphoblastoid cell line MGAR was used as the source of the peptide-HLA-DR
+      complexes", with assay_comments repeating "eluted from the MGAR human lymphoblastoid
+      cell line", while their mhc_restriction is the haplotype-level "HLA-DR2" (175 rows) that
+      fits all three curated DR2 arms and therefore ties. The other 2 rows carry
+      assay_comments "DR2a." and mhc_restriction "HLA-DRA*01:01/DRB5*01:01", naming BLS-DR2a
+      in an alpha/beta notation the arm's plain HLA-DRB5*01:01 string does not match.
+      cell_name separates the two systems the same way (B cell 697 for the BLS transfectants,
+      Lymphoblast 175 for MGAR) while source_tissue is constant (Blood, 1 value). A per-row
+      discriminator exists for every ambiguous row and the curated arms do not use it.
     title: "Human Leukocyte Antigen (HLA)-DRB1*15:01 and HLA-DRB5*01:01 Present Complementary Peptide Repertoires"
     override: ebv_lcl
     note: >
@@ -11328,6 +11823,18 @@
   # Cell-line HLA types verified against Cellosaurus and IEDB's own records.
   - pmid: 23328677
     study_label: "Cronin 2013 — Raji Burkitt lymphoma HLA-DR ligandome ± HDAC inhibitor"
+    # Arm-resolution verdict (#451): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      assay_comments takes 3 distinct values across the 184 rows and 26 of them exclude one
+      arm outright ('The epitope was eluted from DMSO-treated HLA-DR expressing Raji B-cells
+      but not from Entinostat -treated cells.' 16 rows, plus the mirrored Entinostat-only
+      sentence, 10 rows), which maps one to one onto the two curated arms. cell_name ('B
+      cell') and source_tissue ('Blood') are constant and antigen_processing_comments is
+      absent. The remaining 158 rows name both arms at once ('eluted from DMSO or Entinostat-
+      treated'), so most of the ambiguity is genuine, but those 26 exclusionary rows are a
+      per-row discriminator no arm currently consumes.
     title: "Regulation of HLA-DR peptide occupancy by histone deacetylase inhibitors"
     override: cell_line
     note: >
@@ -11571,6 +12078,21 @@
   # ── #36 — HCT 116 colon carcinoma + gemcitabine (type now resolved) ─────────
   - pmid: 29930882
     study_label: "Gravett 2018 — HCT 116 colon carcinoma class-I ligandome ± gemcitabine"
+    # Arm-resolution verdict (#451): recorded so this study is not
+    # re-investigated. Describes the deposited evidence, not the curation.
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      cell_name, source_tissue and antigen_processing_comments are each constant across all
+      122 rows (HCT 116-Epithelial cell; Gastrointestinal Tract; one W6/32 immunoaffinity
+      paragraph), but assay_comments takes 3 distinct values and 87 rows carry one that names
+      a single arm: 'The class I ligand was eluted exclusively in the presence of gemcitabine
+      (GEM) treatment, which is known to upregulate MHC class I expression on the surface of
+      tumor cells.'. Those 87 rows belong to the gemcitabine-treated arm and are unattributed,
+      so a per-row discriminator is present that the curated arms do not yet exploit. The
+      remaining 35 rows carry the two phrasings of eluted in the presence and absence of
+      gemcitabine (34 plus 1, differing only in wording) and are genuinely multi-arm: the
+      peptide was found in both arms, so those rows stay ambiguous even after the gap is
+      closed.
     title: "Gemcitabine alters the proteasome composition and immunopeptidome of tumour cells"
     override: cell_line
     note: >
