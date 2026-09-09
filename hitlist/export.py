@@ -369,19 +369,27 @@ def _candidate_arm_identity(meta: dict | None) -> str:
 def _candidates_disagree_on_arm(candidates: list[tuple[str, str, dict]]) -> bool:
     """True when the candidates span more than one experimental arm.
 
-    "Arm" is the curated ``condition_id`` where there is one, falling back
-    to the coarse ``condition_category`` bucket.  Callers use this to
-    withhold the narrative IEDB fields from the scorer (see
-    :func:`_select_best_candidate`) and to refuse first-picking a tie.
+    "Arm" is ``condition_category`` — the coarse perturbation bucket —
+    so KO-vs-WT and treated-vs-untreated count as disagreement while
+    two tissue samples of one untreated study do not.  Callers use this
+    to withhold the narrative IEDB fields from the scorer.
 
-    The identity, not the bucket, is what decides this (#450).  A bucket
-    holds arms that differ: PMID 41003078's two IFN-gamma arms are 100
-    IU/mL for 24 h and 100 ng/ml for 72 h, both ``IFN_gamma_treatment``.
-    Reading the bucket, those two "agree on the arm", so the narrative
-    fields are admitted and one of them wins on prose that names both —
-    the #354 collapse, surviving inside a category.
+    The bucket is the right test *here*, and deliberately not the finer
+    ``condition_id`` (#450).  The question this gate asks is whether the
+    candidates differ **by treatment**, because that is the axis the
+    narrative fields are unreliable on — naming a *system* is what they do
+    well (#359).  Keying it on identity instead withholds them from exactly
+    the studies they resolve correctly: PMID 27920218's rows carry "The
+    peptidome associated to HLA-B*40 from the C1R-B*40 cell line", a real
+    per-row discriminator, and its three mono-allelic arms have distinct
+    ids but one category.  Refusing that text sends 7,629 correctly
+    discriminated rows to ``pmid_ambiguous``.
+
+    Identity is the right test for the *tie* one stage later, where the
+    question is whether scoring actually singled out one arm — see
+    :func:`_select_best_candidate`.
     """
-    return len({_candidate_arm_identity(c[2]) for c in candidates}) > 1
+    return len({str((c[2] or {}).get("condition_category", "")) for c in candidates}) > 1
 
 
 def _identifier_tokens(text: str) -> frozenset[str]:
@@ -1863,6 +1871,12 @@ def generate_observations_table(
                             # was nothing at all: without a winner no entry was
                             # written and the row stayed unattributed, unlike
                             # the allele path which falls back to consensus.
+                            #
+                            # Extending the fallback to ungrouped studies is
+                            # right and is not this change: it moves 1.23M rows
+                            # off blank onto `pmid_ambiguous`, and each study
+                            # that lands there needs its own measured
+                            # `arm_resolution` verdict (#451).
                             _best_meta = _consensus_meta(_cands, meta_cols)
                             _pool_attr = str(_best_meta["sample_attribution"])
                     if _best_meta is not None:

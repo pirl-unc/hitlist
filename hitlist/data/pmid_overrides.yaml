@@ -6662,6 +6662,21 @@
         mhc: "HLA-B*40:02"
 
   - pmid: 27920218
+    # Arm-resolution verdict (#450): a per-row discriminator exists and the
+    # curated arms cannot use it, which is real remaining work.
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      antigen_processing_comments takes 7 distinct values and names the allele per row
+      ("The peptidome associated to HLA-B*40 from the C1R-B*40 cell line", 6,674 rows;
+      the B*39 wording, 952). That is a usable discriminator. What defeats it is the
+      third arm: "C1R-HLA-B (pooled B*40:02 / B*39:01)" carries both alleles in `mhc`,
+      so it is a candidate for the B*40:02 key and the B*39:01 key alike, and its label
+      contains every token the single-allele labels do. Scoring cannot separate them,
+      and 7,629 rows tie. Until #450 they were first-picked because all three arms
+      categorize as `unperturbed`; the tie is now refused rather than guessed. The fix
+      is to stop the pooled arm competing for single-allele keys — it exists for the 8
+      genuinely pooled rows the study note already counts, not for the 7,626 that name
+      one allele.
     study_label: "Alpizar 2017 — HLA-B phosphopeptidome"
     title: "A Molecular Basis for the Presentation of Phosphorylated Peptides by HLA-B Antigens"
     override: cell_line
