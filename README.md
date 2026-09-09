@@ -58,9 +58,8 @@ supplementary tables.
 | What's curated | Count | Detail |
 |---|---|---|
 | Curated PMIDs (`pmid_overrides.yaml`) | **215** | Cover **96.0%** of all observations |
-| ↳ `ms_samples` with per-sample metadata | 748 | HLA genotype, tissue, disease, perturbation, instrument |
+| ↳ `ms_samples` with per-sample metadata | 761 | HLA genotype, tissue, disease, instrument, plus the flat condition columns — knockout / cytokine / drug / infection / control role as scalars, not prose |
 | ↳ `ms_samples` with 4-digit HLA typing | 579 | The subset with allele-level genotype |
-| ↳ `ms_samples` with flat condition columns | 761 | Knockout / cytokine / drug / infection / control role as scalar columns, not prose |
 | Supplementary CSVs ingested (PRIDE / jPOSTrepo) | 9 | 3 papers — listed below |
 | Species reference proteomes | 22 | Ensembl ×4, UniProt ×18 |
 | Viral reference proteomes | 33 viruses | 58 name aliases |
