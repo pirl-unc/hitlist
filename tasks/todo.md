@@ -1,3 +1,31 @@
+# Flat experimental-condition columns
+
+## Objective
+
+Revise `tasks/condition-model-spec.md` around one consistent, flat condition schema that
+curators can fill from papers and that reaches individual rows of the unified training table.
+Keep source evidence, unknown values, and ambiguous peptide attribution explicit. Implement,
+verify, and ship the resulting change through a versioned PR and PyPI release.
+
+## Plan
+
+- [ ] Audit existing condition strings, metadata readers, and representative primary sources.
+- [x] Write the flat schema, paper-extraction contract, migration, and acceptance criteria.
+- [ ] Implement validation, categorical annotations, and propagation through every export.
+- [ ] Curate the existing condition vocabulary and source-verified representative samples.
+- [ ] Verify combinations, controls, missing information, ambiguous assignments, and projection.
+- [ ] Run format, lint, tests, and a before/after corpus comparison; inspect the final diff.
+- [ ] Bump the version, open the PR, verify CI, merge, and deploy from clean main.
+- [ ] Record results and review the next relevant open issues.
+
+## Review
+
+The revised spec is ready for implementation handoff in `tasks/condition-model-spec.md`.
+The local corpus and export paths have been inspected; the primary-source pilot, package
+implementation, verification, PR, and release remain outstanding. No code has changed.
+
+---
+
 # Arm attribution cluster — #442 / #366 / #359 / #364 / #362
 
 ## Release split

@@ -1,5 +1,12 @@
 # Lessons
 
+## 2026-09-09
+
+- When the user needs condition categoricals on dataset rows, design the shared table columns
+  before proposing an object hierarchy. Keep authoring flat, use the same column names for
+  curation and exports, and add nesting only when a concrete source cannot be represented
+  faithfully in the table. Verify paper-to-column extraction and row attribution separately.
+
 ## 2026-09-04
 
 - If a release script is known to require network or unsandboxed build isolation, request that
