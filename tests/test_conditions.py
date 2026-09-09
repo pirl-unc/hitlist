@@ -9,14 +9,18 @@ directly against the packaged curation.
 
 from __future__ import annotations
 
+import pathlib
+
 import pytest
 import yaml
 
 from hitlist import curation
 from hitlist.conditions import (
+    ARM_SPECIFIC_CONDITION_COLUMNS,
     CLOSED_CONDITION_VOCABULARIES,
     CONDITION_COLUMNS,
     CONDITION_STATUS_VALUES,
+    INTERVENTION_CONDITION_COLUMNS,
     MULTI_VALUE_CONDITION_COLUMNS,
     NONE_PERMITTED_CONDITION_COLUMNS,
     canonical_condition_token,
@@ -119,6 +123,11 @@ def test_ifn_stays_coarse_when_the_source_was_coarse():
         (_arm(condition_cytokines="IFNG;IFNG"), "sorted and unique"),
         (_arm(condition_cytokines="IFNG;"), "empty token"),
         (_arm(condition_cytokines="IFN-gamma"), "alias"),
+        # condition_culture is the one open-vocabulary *single-valued* column,
+        # so its aliases were declared and unenforceable until the check moved
+        # out of the multi-value branch.
+        (_arm(condition_culture="RPMI"), "alias"),
+        (_arm(condition_culture="standard culture"), "alias"),
         (_arm(condition_knockout_genes="ERAP1 KO"), "not a gene designation"),
         (_arm(condition_material="cryopreserved"), "condition_material"),
         (_arm(condition_culture="none"), "does not support"),
@@ -127,6 +136,10 @@ def test_ifn_stays_coarse_when_the_source_was_coarse():
         (_arm(condition_reference="doi:10/x Methods"), "condition_reference but"),
         (_arm(condition_status="unreported", condition_evidence="curated_text"), "unreported"),
         (_arm(condition_control_for="ghost"), "not a condition_id in this study"),
+        (
+            _arm(condition_combination="simultaneous"),
+            "names no intervention",
+        ),
         (_arm(condition_control_for="arm"), "its own condition_id"),
     ],
 )
@@ -310,26 +323,22 @@ def test_mixed_arms_assert_no_agent():
     df = generate_ms_samples_table()
     mixed = df[df["condition_status"] == "mixed"]
     assert not mixed.empty
-    agent_cols = [
-        "condition_knockout_genes",
-        "condition_knockdown_genes",
-        "condition_overexpression_genes",
-        "condition_cytokines",
-        "condition_drugs",
-        "condition_infection",
-        "condition_stimulation",
-    ]
-    for column in agent_cols:
+    # Every intervention column, not a hand-picked subset: `mixed` means the
+    # alternatives are unseparated, and a union in any of them reads as a
+    # combination nobody performed. `condition_genetic_variants` was missing
+    # here and was carrying `ERAP1 unspecified;ERAP2 unspecified`.
+    for column in sorted(INTERVENTION_CONDITION_COLUMNS):
         assert (mixed[column].astype(str) == "").all(), (
             f"a mixed arm claims {column} for alternatives the source does not separate"
         )
-    # ...and it is not silently a control either.
-    assert (mixed["condition_control"].astype(str) == "").all()
+    # ...nor a control, nor a claim that several interventions happened.
+    assert mixed["condition_control"].isin([""]).all()
+    assert mixed["condition_combination"].isin([""]).all()
 
 
 def test_status_vocabulary_is_pinned():
     df = generate_ms_samples_table()
-    assert set(df["condition_status"].astype(str)) <= set(CONDITION_STATUS_VALUES)
+    assert set(df["condition_status"].unique()) <= set(CONDITION_STATUS_VALUES)
 
 
 # ── what the columns are for ────────────────────────────────────────────────
@@ -451,27 +460,67 @@ def test_only_a_resolved_row_names_an_arm(full_observations_df):
     """`condition_id` names one arm, so an ambiguous row must not carry one.
 
     This is the invariant that keeps the block honest across 4.4M rows: a
-    consumer filtering `condition_id == "hap1_erap1_ko"` gets peptides the
-    join actually placed in that arm, not peptides from a study that has one.
+    consumer filtering `(pmid, condition_id) == (40113210, "hap1_erap1_ko")`
+    gets peptides the join actually placed in that arm, not peptides from a
+    study that merely has one.
+
+    The pair, not the bare id: ids are unique *within* a study and 37 of them
+    recur across studies (`jy_ebv_lcl` is curated in four), so filtering on
+    the id alone pools unrelated studies' arms.
     """
     df = full_observations_df
-    has_id = df["condition_id"].astype(str) != ""
-    ambiguous = df["sample_attribution"].astype(str).isin(["pmid_ambiguous", "group_ambiguous"])
+    # `.isin` on the Categorical, never `.astype(str)`: materializing one of
+    # these columns as Python strings costs hundreds of MB on 4.4M rows, which
+    # is the overhead the categorical dtype exists to avoid (#263) and enough
+    # to OOM the 2-worker integration runner.
+    has_id = ~df["condition_id"].isin([""])
+    ambiguous = df["sample_attribution"].isin(["pmid_ambiguous", "group_ambiguous"])
     assert not (has_id & ambiguous).any(), "an ambiguous row asserts a condition_id"
-    resolved = (
-        df["sample_attribution"]
-        .astype(str)
-        .isin(
-            [
-                "discriminated",
-                "single_sample_pmid",
-                "curated_sample_label",
-                "elution_conditions",
-                "serotype_expansion",
-            ]
-        )
+    resolved = df["sample_attribution"].isin(
+        [
+            "discriminated",
+            "single_sample_pmid",
+            "curated_sample_label",
+            "elution_conditions",
+            "serotype_expansion",
+        ]
     )
-    assert not (resolved & ~has_id).any(), "a row attributed to one arm carries no condition_id"
+    # Scoped to studies that curate the block, because opting out is legal:
+    # `validate_study_conditions` returns early for a study with no condition
+    # keys at all (all-or-none, #359's rule). Asserting over every study would
+    # make a sanctioned opt-out a guaranteed failure.
+    curated = {
+        pmid
+        for pmid, entry in load_pmid_overrides().items()
+        if any(s.get("condition_id") for s in (entry.get("ms_samples") or []))
+    }
+    in_curated = df["pmid"].isin(curated)
+    assert not (resolved & in_curated & ~has_id).any(), (
+        "a row attributed to one arm of a condition-curated study carries no condition_id"
+    )
+
+
+def test_an_arms_own_record_does_not_outlive_the_arm(full_observations_df):
+    """An unattributed row must not claim its condition was annotated.
+
+    `condition_status` / `condition_evidence` / `condition_reference` describe
+    *one arm's* record, and candidate arms agree on them routinely — all 12
+    Shapiro HAP1 arms are `annotated` from the same `primary_source`. So the
+    consensus rule keeps them while blanking the agent columns the arms
+    disagree on, and the row exports "fully annotated from the paper, no
+    knockout": a disagreement laundered into an established absence.
+
+    Facts about the *material* are a different case and do survive — if every
+    candidate was cultured in RPMI-1640 then so was this peptide's arm.
+    """
+    df = full_observations_df
+    ambiguous = df[df["sample_attribution"].isin(["pmid_ambiguous", "group_ambiguous"])]
+    assert not ambiguous.empty
+    for column in sorted(ARM_SPECIFIC_CONDITION_COLUMNS):
+        offenders = ambiguous[~ambiguous[column].isin([""])]
+        assert offenders.empty, (
+            f"{len(offenders):,} unattributed rows assert {column}={offenders[column].iloc[0]!r}"
+        )
 
 
 def test_condition_columns_are_categorical_on_observations(full_observations_df):
@@ -482,8 +531,9 @@ def test_condition_columns_are_categorical_on_observations(full_observations_df)
     import pandas as pd
 
     for column in CONDITION_COLUMNS:
-        assert isinstance(df_dtype := full_observations_df[column].dtype, pd.CategoricalDtype), (
-            f"{column} arrived as {df_dtype}, not a Categorical"
+        dtype = full_observations_df[column].dtype
+        assert isinstance(dtype, pd.CategoricalDtype), (
+            f"{column} arrived as {dtype}, not a Categorical"
         )
 
 
@@ -498,15 +548,15 @@ def test_a_study_panel_does_not_reach_its_own_control_arm(full_observations_df):
     hap1 = df[df["pmid"] == 40113210]
     if hap1.empty:
         pytest.skip("Shapiro HAP1 panel not present in this build")
-    wildtype = hap1[hap1["condition_id"].astype(str) == "hap1_wildtype"]
+    wildtype = hap1[hap1["condition_id"].isin(["hap1_wildtype"])]
     if wildtype.empty:
         pytest.skip("no rows reached the wildtype arm in this build")
     # `none` (the primary-source claim that this arm has no knockout) and ""
     # both satisfy the invariant; a panel gene does not.
-    assert set(wildtype["condition_knockout_genes"].astype(str)) <= {"", "none"}
-    erap1 = hap1[hap1["condition_id"].astype(str) == "hap1_erap1_ko"]
+    assert set(wildtype["condition_knockout_genes"].unique()) <= {"", "none"}
+    erap1 = hap1[hap1["condition_id"].isin(["hap1_erap1_ko"])]
     if not erap1.empty:
-        assert (erap1["condition_knockout_genes"].astype(str) == "ERAP1").all()
+        assert erap1["condition_knockout_genes"].eq("ERAP1").all()
 
 
 def test_binding_rows_get_blanks_not_an_untreated_arm():
@@ -523,3 +573,76 @@ def test_binding_rows_get_blanks_not_an_untreated_arm():
         assert _TRAINING_DEFAULTS[column] == "", (
             f"{column} defaults to {_TRAINING_DEFAULTS[column]!r} on binding rows"
         )
+
+
+# ── keeping categoricals categorical ────────────────────────────────────────
+
+
+def test_declared_categorical_columns_arrive_as_categoricals(full_observations_df):
+    """Every column the exporter declares low-cardinality must actually be one.
+
+    `_CATEGORICAL_EXPORT_METADATA_COLS` is the memory contract for a 4.4M-row
+    frame. A column that silently stops being converted — renamed, dropped
+    from the join, arriving as a dtype the loop skips — costs hundreds of MB
+    with nothing to say so.
+    """
+    import pandas as pd
+
+    from hitlist.export import _CATEGORICAL_EXPORT_METADATA_COLS
+
+    df = full_observations_df
+    renamed = {"mhc": "sample_mhc", "note": "sample_note"}
+    missing = []
+    for column in _CATEGORICAL_EXPORT_METADATA_COLS:
+        name = renamed.get(column, column)
+        if name not in df.columns:
+            continue
+        if not isinstance(df[name].dtype, pd.CategoricalDtype):
+            missing.append(f"{name} ({df[name].dtype})")
+    assert missing == [], f"declared categorical but exported otherwise: {missing}"
+
+
+def test_no_source_calls_astype_str_on_a_categorical_column():
+    """`.astype(str)` on a Categorical rebuilds the object array it replaced.
+
+    On the observations frame that is hundreds of MB per call, and it is what
+    OOM-killed the 2-worker integration job in CI: three such calls in one
+    test. The categorical-safe idioms mean the same thing and allocate
+    nothing — `.eq(v)`, `.isin([...])`, `.unique()`, `.str.*` all work
+    directly on a Categorical.
+
+    Scanned rather than reviewed, because the wrong form is easy to write and
+    invisible until the frame is large.
+    """
+    import ast
+
+    from hitlist.export import _CATEGORICAL_EXPORT_METADATA_COLS
+
+    declared = set(_CATEGORICAL_EXPORT_METADATA_COLS) | {"sample_mhc", "sample_note"}
+    root = pathlib.Path(__file__).resolve().parent.parent
+    offenders = []
+    for path in sorted([*(root / "hitlist").rglob("*.py"), *(root / "tests").rglob("*.py")]):
+        for node in ast.walk(ast.parse(path.read_text(), str(path))):
+            if not (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute)
+                and node.func.attr == "astype"
+                and len(node.args) == 1
+                and isinstance(node.args[0], ast.Name)
+                and node.args[0].id == "str"
+            ):
+                continue
+            target = node.func.value
+            if (
+                isinstance(target, ast.Subscript)
+                and isinstance(target.slice, ast.Constant)
+                and target.slice.value in declared
+            ):
+                offenders.append(
+                    f"{path.relative_to(root)}:{node.lineno} [{target.slice.value!r}].astype(str)"
+                )
+    assert offenders == [], (
+        "these convert a declared-categorical column back to Python strings:\n  "
+        + "\n  ".join(offenders)
+        + "\nUse .eq(value), .isin([...]), .unique() or .str.* instead."
+    )

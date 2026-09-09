@@ -3856,7 +3856,6 @@
         condition_id: "melanoma_metastasis_tissue_class_i"
         condition_status: "mixed"
         condition_evidence: "curated_text"
-        condition_combination: "unspecified"
         mhc_class: I
         ip_antibody: W6/32
         mhc: "HLA class I"
@@ -5973,6 +5972,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_combination: "single"
+        condition_transduction: "MHC-I"
         condition_mhc_context: "mhc_coexpression"
         mhc_class: "I"
         mhc: "H-2Kb H-2Kd"
@@ -8030,7 +8030,6 @@
         condition_id: "dlbcl_tazemetostat_decitabine_ifng_combinations"
         condition_status: "mixed"
         condition_evidence: "curated_text"
-        condition_combination: "unspecified"
         mhc_class: "I+II"
         mhc: unknown
 
@@ -8091,8 +8090,6 @@
         condition_id: "cells_various_erap1_erap2_genotype_combinations"
         condition_status: "mixed"
         condition_evidence: "curated_text"
-        condition_combination: "unspecified"
-        condition_genetic_variants: "ERAP1 unspecified;ERAP2 unspecified"
         mhc_class: "I"
         mhc: "HLA-B*27:05"
 
@@ -8131,8 +8128,6 @@
         condition_id: "cells_tapbpr_manipulation"
         condition_status: "mixed"
         condition_evidence: "curated_text"
-        condition_combination: "unspecified"
-        condition_genetic_variants: "TAPBPR unspecified"
         mhc_class: "I"
         mhc: "HLA-A*68:02 HLA-B*15:03 HLA-C*12:03"
 

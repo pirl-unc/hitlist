@@ -178,6 +178,51 @@ CLOSED_CONDITION_VOCABULARIES = MappingProxyType(
     }
 )
 
+#: The columns that name an intervention someone performed.
+#:
+#: ``condition_combination`` describes the relationship *between* these, so it
+#: is only meaningful when at least one is filled. Without that rule a record
+#: can say "several interventions, relationship not stated" while naming none,
+#: which a featurizer reads as a multi-agent arm with unknown agents rather
+#: than as an unresolvable record.
+INTERVENTION_CONDITION_COLUMNS = frozenset(
+    {
+        "condition_knockout_genes",
+        "condition_knockdown_genes",
+        "condition_overexpression_genes",
+        "condition_genetic_variants",
+        "condition_transfection",
+        "condition_transduction",
+        "condition_cytokines",
+        "condition_drugs",
+        "condition_infection",
+        "condition_stimulation",
+        "condition_antigen_exposure",
+    }
+)
+
+#: Columns that describe *one arm's own record* rather than a fact about the
+#: material, and so cannot survive onto a row that reached no arm.
+#:
+#: The rest of the block can. If every candidate arm was cultured in RPMI-1640
+#: then so was whichever one this peptide came from, and withholding that would
+#: lose a fact the evidence does support. But ``condition_status: annotated``
+#: says *this record's* annotation is complete, and an unattributed row has no
+#: record — so keeping it while the consensus blanks the agent columns exports
+#: "fully annotated, no knockout", which is the ""-means-absence conflation
+#: this module exists to prevent. Same shape as the ``effective_override_origin``
+#: rule in ``_consensus_meta``: a statement about a specific arm must not
+#: outlive the arm (#373).
+ARM_SPECIFIC_CONDITION_COLUMNS = frozenset(
+    {
+        "condition_id",
+        "condition_status",
+        "condition_evidence",
+        "condition_reference",
+        "condition_control_for",
+    }
+)
+
 #: Columns where ``none`` is a permitted value: an explicit, positive claim
 #: that this intervention was *not* applied.
 #:
@@ -352,8 +397,12 @@ def load_condition_vocabulary() -> Mapping[str, Mapping[str, str]]:
         Column name → ``{alias: canonical}``.  Aliases are matched
         case-insensitively; canonical values are returned verbatim.
     """
+    # Imported here rather than at module scope: `curation` imports this
+    # module for the column registry, so a top-level import would cycle.
+    from .curation import UniqueKeyLoader
+
     with open(_vocabulary_path()) as f:
-        raw = yaml.safe_load(f) or {}
+        raw = yaml.load(f, Loader=UniqueKeyLoader) or {}
     aliases = raw.get("aliases") or {}
     return MappingProxyType(
         {
@@ -382,7 +431,12 @@ def split_condition_tokens(value: str | None) -> list[str]:
     multi-hot encodings split, rather than treating ``ERAP1;ERAP2`` as a
     third agent distinct from either.
     """
-    return [t for t in (value or "").split(";") if t]
+    # `str(value or "")` rather than `value or ""`: a pandas NaN is truthy, so
+    # the bare form returned the float and raised AttributeError on .split —
+    # on the one input an exported frame most plausibly hands this.
+    if value is None or value != value:  # NaN is the only value unequal to itself
+        return []
+    return [t for t in str(value).split(";") if t]
 
 
 def _describe(pmid: object, index: int) -> str:
@@ -409,6 +463,21 @@ def _validate_token(column: str, token: str, where: str) -> None:
         raise ValueError(
             f"{where} {column} token {token!r} is malformed.  Tokens must be non-empty "
             f"and free of ';'."
+        )
+
+
+def _reject_alias(column: str, token: str, where: str) -> None:
+    """Refuse a token the vocabulary maps to a different canonical spelling.
+
+    Load-time rejection rather than a silent rewrite, so the YAML always shows
+    what a consumer will filter on.
+    """
+    canonical = canonical_condition_token(column, token)
+    if canonical != token:
+        raise ValueError(
+            f"{where} {column} token {token!r} is an alias for {canonical!r}.  "
+            f"Curate the canonical spelling so a membership filter finds this "
+            f"row; condition_vocabulary.yaml records the mapping."
         )
 
 
@@ -457,13 +526,7 @@ def _validate_column(column: str, raw: object, where: str) -> str:
                 raise ValueError(
                     f"{where} {column} token {token!r} is not in the declared vocabulary {allowed}."
                 )
-            canonical = canonical_condition_token(column, token)
-            if canonical != token:
-                raise ValueError(
-                    f"{where} {column} token {token!r} is an alias for {canonical!r}.  "
-                    f"Curate the canonical spelling so a membership filter finds this "
-                    f"row; condition_vocabulary.yaml records the mapping."
-                )
+            _reject_alias(column, token, where)
         if sorted(set(tokens)) != tokens:
             raise ValueError(
                 f"{where} {column}={value!r} must be sorted and unique.  A canonical "
@@ -476,6 +539,11 @@ def _validate_column(column: str, raw: object, where: str) -> str:
     if allowed is not None and value not in allowed:
         raise ValueError(f"{where} {column}={value!r} is invalid; expected one of {allowed}.")
     _validate_token(column, value, where)
+    # `condition_culture` is the one open-vocabulary single-valued column, so
+    # without this its aliases were declared and unenforceable: `RPMI` loaded
+    # happily beside the rows curated `RPMI-1640` and a membership filter
+    # missed it.
+    _reject_alias(column, value, where)
     return value
 
 
@@ -525,6 +593,16 @@ def validate_sample_conditions(sample: Mapping[str, object], pmid: object, index
             f"{where} is condition_status={status!r} without condition_evidence.  "
             f"Normalizing the existing curated string and reading the paper are "
             f"different claims and the audit reports them separately."
+        )
+
+    interventions = [c for c in INTERVENTION_CONDITION_COLUMNS if values[c] and values[c] != "none"]
+    if values["condition_combination"] and not interventions:
+        raise ValueError(
+            f"{where} sets condition_combination="
+            f"{values['condition_combination']!r} but names no intervention.  The "
+            f"value describes how the documented interventions relate to each "
+            f"other, so with none documented it asserts agents the record does "
+            f"not have."
         )
 
     if evidence == "primary_source" and not values["condition_reference"]:

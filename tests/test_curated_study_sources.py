@@ -204,7 +204,7 @@ def test_liepe_2016_t2_rows_are_not_attributed_to_a_phantom_sample(full_observat
     assert not labels.str.contains("HeLa").any()
     t2 = sub[labels.str.startswith("T2")]
     assert len(t2) == 111
-    assert (t2["sample_attribution"].astype(str) == "allele_exact").all()
+    assert t2["sample_attribution"].eq("allele_exact").all()
 
 
 # ── The #450 primary-source pilot ───────────────────────────────────────────

@@ -32,6 +32,7 @@ import re
 import pandas as pd
 
 from .conditions import (
+    ARM_SPECIFIC_CONDITION_COLUMNS,
     CONDITION_COLUMNS,
     condition_columns_for_sample,
     empty_condition_columns,
@@ -122,6 +123,29 @@ _CATEGORICAL_EXPORT_METADATA_COLS: tuple[str, ...] = (
     # this load path
     "mhc_restriction",
     "cell_line_name",
+    # Measured, not assumed (#450).  "free-text comments" were excluded on the
+    # theory that they are high-cardinality; on the current corpus they are
+    # not, because they are written per study and repeated across every row of
+    # it.  Distinct values over 4,439,321 rows, with the memory each column
+    # costs as plain strings:
+    #
+    #   reference_title              2,285   0.05%   498 MB
+    #   antigen_processing_comments  2,618   0.06%   377 MB
+    #   assay_comments               7,341   0.17%   192 MB
+    #   sample_attribution              10       -    75 MB
+    #   apm_perturbed                    3       -    48 MB
+    #   is_control_arm                   3       -    46 MB
+    #
+    # Together ~1.24 GB of a 3.6 GB frame, for ~30 MB of codes. The genuinely
+    # high-cardinality columns stay out and are worth naming so the next
+    # audit does not re-derive them: assay_iri is 99.5% distinct (one per
+    # row), reference_iri 12.1%, peptide 30.2%, peptide_extended 27.9%.
+    "reference_title",
+    "antigen_processing_comments",
+    "assay_comments",
+    "sample_attribution",
+    "apm_perturbed",
+    "is_control_arm",
 )
 
 # Map specific instrument models → category.  Keys are matched as
@@ -363,7 +387,17 @@ def _candidate_arm_identity(meta: dict | None) -> str:
     carry a group name in that field precisely so they reuse this guard.
     """
     meta = meta or {}
-    return str(meta.get("condition_id") or meta.get("condition_category") or "")
+    for key in ("condition_id", "condition_category"):
+        value = meta.get(key)
+        # `or` alone is wrong here: a pandas NaN is truthy, so a NaN
+        # ``condition_id`` would short-circuit the fallback and every candidate
+        # would read "nan" — one identity, tie accepted, first-pick restored.
+        if value is None or value != value:
+            continue
+        text = str(value)
+        if text:
+            return text
+    return ""
 
 
 def _candidates_disagree_on_arm(candidates: list[tuple[str, str, dict]]) -> bool:
@@ -487,6 +521,10 @@ def _select_group(
             group,
             "",
             {
+                # Both, so the arm guard reads its primary key here like
+                # anywhere else instead of relying on the category fallback
+                # (#450).  The two concerns stay independently editable.
+                "condition_id": group,
                 "condition_category": group,
                 # Only when the group's arms agree: a genotype that differs
                 # between arms is not a property of the system.
@@ -549,11 +587,18 @@ def _consensus_meta(
     # happen to share it.
     out["sample_note"] = ""
     out["note"] = ""
-    # ``condition_id`` names one arm.  This row reached more than one, so it
-    # has no arm to name — the generic consensus above already blanks it
-    # (ids are unique within a study), but stating it here means a future
-    # candidate set that somehow shares one cannot assert it either (#450).
-    out["condition_id"] = ""
+    # Condition columns describing one arm's own record cannot outlive the arm
+    # (#450).  ``condition_id`` names it; ``condition_status`` /
+    # ``condition_evidence`` / ``condition_reference`` describe the annotation
+    # of it.  Those agree across candidates routinely — all 12 Shapiro HAP1
+    # arms are `annotated` from the same `primary_source` reference — so the
+    # consensus rule above keeps them while blanking the agent columns the arms
+    # disagree on, and the row exports "fully annotated from the paper, no
+    # knockout".  That is the ""-means-absence conflation.  Facts about the
+    # material (culture, material state, MHC context) are not arm records and
+    # do survive, which is the point of consensusing at all.
+    for _arm_col in ARM_SPECIFIC_CONDITION_COLUMNS:
+        out[_arm_col] = ""
 
     # If every surviving candidate belongs to one sample system, the system is
     # known and only the arm is not — say so, whichever stage narrowed them.
@@ -1920,7 +1965,7 @@ def generate_observations_table(
             _label_df = pd.DataFrame(_label_rows).drop_duplicates(
                 subset=["_pmid_int", "_label"], keep="first"
             )
-            _obs_label = obs["attributed_sample_label"].astype(str).str.strip()
+            _obs_label = obs["attributed_sample_label"].astype("string").fillna("").str.strip()
             _obs_label = _obs_label.where(~_obs_label.isin(("nan", "None")), "")
             if _obs_label.ne("").any():
                 _label_matched = _label_df.set_index(["_pmid_int", "_label"])[meta_cols].reindex(

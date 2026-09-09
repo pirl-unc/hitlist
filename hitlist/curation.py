@@ -251,7 +251,7 @@ MHC_ALLELE_PROVENANCE_VALUES = (
 )
 
 
-class _UniqueKeyLoader(yaml.SafeLoader):
+class UniqueKeyLoader(yaml.SafeLoader):
     """``SafeLoader`` that rejects a mapping key declared twice.
 
     PyYAML resolves a duplicate key by keeping the last one, silently. On a
@@ -260,6 +260,12 @@ class _UniqueKeyLoader(yaml.SafeLoader):
     first genotype, and every downstream check still passes because the
     record is well-formed. The duplicate-*PMID* guard below exists for the
     same failure one level up (#438); this closes it at the key level.
+
+    Public because it has a consumer outside this module
+    (:func:`hitlist.conditions.load_condition_vocabulary`). The other
+    hand-maintained curation YAML still loads through plain ``safe_load``;
+    all 11 packaged files are currently duplicate-free, and moving them over
+    is #454.
     """
 
     def construct_mapping(self, node, deep=False):
@@ -325,7 +331,7 @@ def load_pmid_overrides() -> dict[int, dict]:
     import warnings
 
     with open(_data_path("pmid_overrides.yaml")) as f:
-        entries = yaml.load(f, Loader=_UniqueKeyLoader)
+        entries = yaml.load(f, Loader=UniqueKeyLoader)
 
     known_hosts = {e["name"] for e in load_monoallelic_lines()}
     for e in entries:

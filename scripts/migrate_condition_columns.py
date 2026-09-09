@@ -40,7 +40,7 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from hitlist.conditions import CONDITION_COLUMNS  # noqa: E402
+from hitlist.conditions import CONDITION_COLUMNS
 
 YAML_PATH = Path(__file__).resolve().parent.parent / "hitlist" / "data" / "pmid_overrides.yaml"
 
@@ -85,7 +85,7 @@ ANNOTATIONS: dict[str, dict[str, str]] = {
     # ones. Recorded as MHC context, not as an infection: a vector name is
     # not a pathogen.
     "AAV-transduced allogeneic MHC-I expression": A(
-        mhc_context="mhc_coexpression", combination="single"
+        transduction="MHC-I", mhc_context="mhc_coexpression", combination="single"
     ),
     "Alg8 neoantigen peptide pulse": A(antigen_exposure="peptide_pulse", combination="single"),
     "B2M CRISPR/Cas9 knockout": A(knockout_genes="B2M", combination="single"),
@@ -118,16 +118,14 @@ ANNOTATIONS: dict[str, dict[str, str]] = {
     "ERAP1 pharmacological inhibition": A(drugs="ERAP1_inhibitor", combination="single"),
     # A knockdown is not a knockout and must not be relabelled as one.
     "ERAP1 shRNA knockdown": A(knockdown_genes="ERAP1", combination="single"),
-    "ERAP1 variant comparison": P(
-        genetic_variants="ERAP1 unspecified", combination="single"
-    ),
+    "ERAP1 variant comparison": P(genetic_variants="ERAP1 unspecified", combination="single"),
     "ERAP1+ERAP2 double CRISPR/Cas9 knockout (3 replicates)": A(
         knockout_genes="ERAP1;ERAP2", combination="simultaneous"
     ),
     # "combinations" is a set of arms the string does not separate.
-    "ERAP1/ERAP2 variant combinations": M(
-        genetic_variants="ERAP1 unspecified;ERAP2 unspecified", combination="unspecified"
-    ),
+    # A union here would say both variants apply to every contributing arm,
+    # which is what "combinations" declines to state.
+    "ERAP1/ERAP2 variant combinations": M(),
     "ERAP2 CRISPR KO": A(knockout_genes="ERAP2", combination="single"),
     "ERAP2 CRISPR/Cas9 knockout (3 replicates)": A(knockout_genes="ERAP2", combination="single"),
     "ERAP2 KO comparison": A(knockout_genes="ERAP2", combination="single"),
@@ -135,14 +133,12 @@ ANNOTATIONS: dict[str, dict[str, str]] = {
     # "various combinations": no agent is established for every contributing
     # condition, so no agent column is filled. Listing all three would assert
     # a triple treatment the source explicitly does not claim.
-    "EZH2i + decitabine + IFNg (various combinations)": M(combination="unspecified"),
+    "EZH2i + decitabine + IFNg (various combinations)": M(),
     "Entinostat (MS-275, HDAC inhibitor)": A(drugs="entinostat", combination="single"),
     "GANAB CRISPR/Cas9 knockout (glucosidase II alpha)": A(
         knockout_genes="GANAB", combination="single"
     ),
-    "GM-CSF (500 IU/mL) + IL-4 (250 IU/mL) 6d": A(
-        cytokines="CSF2;IL4", combination="simultaneous"
-    ),
+    "GM-CSF (500 IU/mL) + IL-4 (250 IU/mL) 6d": A(cytokines="CSF2;IL4", combination="simultaneous"),
     "GM-CSF + IL-4 6d → LPS (60 EU/mL) + IFN-gamma (2000 IU/mL) 24h": A(
         cytokines="CSF2;IFNG;IL4", stimulation="LPS", combination="sequential"
     ),
@@ -165,9 +161,7 @@ ANNOTATIONS: dict[str, dict[str, str]] = {
         cytokines="IFNG", drugs="dTAG-13", combination="sequential"
     ),
     "IFN-gamma (mouse, 20 ng/ml, 51 h)": A(cytokines="IFNG", combination="single"),
-    "IFN-gamma (required to induce MHC-I expression)": A(
-        cytokines="IFNG", combination="single"
-    ),
+    "IFN-gamma (required to induce MHC-I expression)": A(cytokines="IFNG", combination="single"),
     "IFN-gamma + doxycycline (48 h) then dTAG-13 (1 uM, 3 h) degrader": A(
         cytokines="IFNG", drugs="dTAG-13;doxycycline", combination="sequential"
     ),
@@ -221,9 +215,7 @@ ANNOTATIONS: dict[str, dict[str, str]] = {
     ),
     "PROTAC BET degrader treatment": A(drugs="BET_degrader", combination="single"),
     "PRRSV infection": A(infection="PRRSV", combination="single"),
-    "PRRSV infection (in vivo)": A(
-        infection="PRRSV", material="in_vivo", combination="single"
-    ),
+    "PRRSV infection (in vivo)": A(infection="PRRSV", material="in_vivo", combination="single"),
     "PromoCell DC medium 6d → fed UV-irradiated apoptotic Wisconsin-infected A549 → "
     "DC activation 4h": A(
         culture="PromoCell_DC",
@@ -256,9 +248,7 @@ ANNOTATIONS: dict[str, dict[str, str]] = {
     "TAPBP CRISPR/Cas9 knockout (tapasin)": A(knockout_genes="TAPBP", combination="single"),
     # "overexpression/mutation" is two arms the string does not separate, so
     # neither mechanism is established for every contributing condition.
-    "TAPBPR overexpression/mutation": M(
-        genetic_variants="TAPBPR unspecified", combination="unspecified"
-    ),
+    "TAPBPR overexpression/mutation": M(),
     "TIL expansion protocol": A(stimulation="til_expansion", combination="single"),
     "TNF-alpha + IFN-gamma": A(cytokines="IFNG;TNF", combination="simultaneous"),
     "TP53 R175H mutant transfection": A(
@@ -278,9 +268,7 @@ ANNOTATIONS: dict[str, dict[str, str]] = {
     "biomaterial contact + LPS": A(
         stimulation="LPS;biomaterial_contact", combination="simultaneous"
     ),
-    "canine distemper virus infection": A(
-        infection="Canine distemper virus", combination="single"
-    ),
+    "canine distemper virus infection": A(infection="Canine distemper virus", combination="single"),
     "carbamazepine exposure": A(drugs="carbamazepine", combination="single"),
     "doxorubicin treatment": A(drugs="doxorubicin", combination="single"),
     "flucloxacillin treatment": A(drugs="flucloxacillin", combination="single"),
@@ -333,7 +321,9 @@ ANNOTATIONS: dict[str, dict[str, str]] = {
     ),
     "unperturbed — ex vivo": A(control="untreated", material="direct_ex_vivo"),
     "unperturbed — fresh tumor biopsies": A(control="untreated", material="fresh"),
-    "unperturbed — fresh tumor punch biopsies": A(control="untreated", material="fresh"),
+    # Corrected by the #450 primary-source pilot: the paper says snap frozen at
+    # -80 C, and says nothing about these patients' prior therapy.
+    "unperturbed — snap-frozen tumor punch biopsies": A(material="frozen"),
     "unperturbed — in vivo": A(control="untreated", material="in_vivo"),
     "unperturbed — matched non-malignant tissue from cancer patients": A(control="untreated"),
     "unperturbed — mock infection control": A(control="mock"),
@@ -391,7 +381,7 @@ ANNOTATIONS: dict[str, dict[str, str]] = {
     # "some patients" is exactly the case where a control claim would be
     # fabricated: the record mixes treated and untreated donors, so neither
     # `untreated` nor the drug is true of every contributing condition.
-    "unperturbed — some patients post-ipilimumab": M(combination="unspecified"),
+    "unperturbed — some patients post-ipilimumab": M(),
     "unperturbed — standard culture": A(control="untreated", culture="standard_culture"),
     "unperturbed — standard culture (IMDM + 10% FBS)": A(control="untreated", culture="IMDM"),
     "unperturbed — tal1b5 (anti-HLA-DR) IP": A(control="untreated"),
@@ -409,10 +399,9 @@ def slugify(label: str, taken: set[str]) -> str:
     it, so renaming the label later cannot move an observation to a
     different arm.
     """
-    slug = re.sub(r"[^a-z0-9]+", "_", label.casefold()).strip("_")[:48].strip("_")
-    slug = re.sub(r"^([^a-z0-9]*)", "", slug) or "arm"
-    if not re.match(r"^[a-z0-9]", slug):
-        slug = f"arm_{slug}"
+    # The substitution leaves only [a-z0-9_] and the strip removes leading
+    # underscores, so the result already starts with [a-z0-9] or is empty.
+    slug = re.sub(r"[^a-z0-9]+", "_", label.casefold()).strip("_")[:48].strip("_") or "arm"
     candidate, n = slug, 1
     while candidate in taken:
         n += 1
@@ -463,7 +452,7 @@ def main() -> int:
                 after = sample.value[idx + 1][0].start_mark.line
             else:
                 after = max(v.end_mark.line for _, v in fields)
-            insertions[after] = insertions.get(after, []) + [body]
+            insertions[after] = [*insertions.get(after, []), body]
             n_annotated += 1
 
     missing = conditions_seen - set(ANNOTATIONS)

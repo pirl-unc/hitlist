@@ -193,7 +193,13 @@ migration marked all 761 arms `curated_text` because that is what it did;
 - **`condition_id` is unique within the study and frozen.** It is assigned
   once in curation, never re-derived at export from a label or row position:
   labels change, and an observation attributed to `(pmid, condition_id)`
-  must not quietly move to another arm when one does.
+  must not quietly move to another arm when one does. **Within** the study is
+  the whole guarantee — 37 ids recur across studies (`jy_ebv_lcl` is curated
+  in four), so the key is the pair and a filter on the bare id pools
+  unrelated studies' arms.
+- **`condition_combination` needs an intervention.** It describes how the
+  documented interventions relate, so with none documented it would assert
+  agents the record does not have.
 - **Tokens must be canonical.** `condition_vocabulary.yaml` maps aliases to
   canonical spellings, and loading *rejects* an alias rather than rewriting
   it — so the YAML always shows what a consumer will filter on. An unknown
@@ -201,6 +207,23 @@ migration marked all 761 arms `curated_text` because that is what it did;
   still a knockout.
 - **`condition_control_for` must name a real sibling arm**, and only where
   the comparison is documented.
+
+#### On a row that reached no arm
+
+`_consensus_meta` keeps what every candidate arm agrees on and blanks the
+rest, so shared facts about the material survive an ambiguous attribution —
+if all candidates were cultured in RPMI-1640, so was this peptide's arm.
+
+Four columns are excluded from that, because they describe *one arm's own
+record* rather than the material: `condition_id`, `condition_status`,
+`condition_evidence`, `condition_reference` and `condition_control_for`.
+Candidates agree on those routinely — all 12 Shapiro HAP1 arms are
+`annotated` from the same `primary_source` — so consensus would keep them
+while blanking the agent columns the arms disagree on, and the row would
+export "fully annotated from the paper, no knockout". That is a disagreement
+laundered into an established absence. Same rule as
+`effective_override_origin` (#373): a statement about a specific arm must not
+outlive the arm.
 
 #### What did not change
 
@@ -393,23 +416,31 @@ than being silently trusted.
 
 Two questions look alike and take different answers.
 
-**"Did scoring single out one arm?"** — `_select_best_candidate`'s tie guard.
-This is `condition_id`. A tie used to be accepted whenever the tied
-candidates shared a `condition_category`, and one was first-picked; a
-category holds arms that differ, so that is the #354 collapse surviving
-inside a bucket. PMID 27920218 is the shape: its pooled `B*40:02 / B*39:01`
-arm carries both alleles in `mhc`, so it competes for each single-allele key
-and ties with the arm that actually matches. Those 7,629 rows now report
-`pmid_ambiguous` and the study carries a `curation_gap` verdict.
+PMID 27920218 answers both, in opposite directions, which is why it is worth
+following through the two stages rather than reading either in isolation.
 
 **"May we score IEDB's narrative fields?"** — `_candidates_disagree_on_arm`.
-This stays `condition_category`, deliberately. The question there is whether
-the candidates differ *by treatment*, because that is the axis narrative is
-unreliable on — naming a *system* is what it does well (#359). Keying it on
-identity withholds narrative from exactly the studies it resolves correctly:
-PMID 27920218's rows carry *"The peptidome associated to HLA-B*40 from the
-C1R-B*40 cell line"*, a real per-row discriminator, and refusing it sent
-7,629 correctly discriminated rows to `pmid_ambiguous`.
+This stays `condition_category`, deliberately. The question is whether the
+candidates differ *by treatment*, because that is the axis narrative is
+unreliable on — naming a *system* is what it does well (#359). 27920218's
+three mono-allelic arms have distinct ids but one category, and its rows
+carry *"The peptidome associated to HLA-B*40 from the C1R-B*40 cell line"*,
+a real per-row discriminator. Keying this gate on identity would withhold
+that text and send its rows to `pmid_ambiguous` — so the gate admits them,
+and the scorer runs.
+
+**"Did scoring single out one arm?"** — `_select_best_candidate`'s tie guard.
+This is `condition_id`. Here 27920218 fails, and should: its third arm,
+`C1R-HLA-B (pooled B*40:02 / B*39:01)`, carries both alleles in `mhc`, so it
+competes for each single-allele key and its label contains every token the
+single-allele labels do. Scoring cannot separate them and 7,629 rows tie.
+Under the old guard all three arms shared `unperturbed`, so the tie was
+accepted and one arm first-picked; now the tie is refused and those rows
+report `pmid_ambiguous` with a `curation_gap` verdict recording why.
+
+The net for this study: narrative admitted, tie refused. A category-keyed tie
+guard would have guessed; an identity-keyed admission gate would never have
+scored at all.
 
 Corpus effect of the tie fix, against `735014f`: 184,811 rows stop being
 assigned an arm they were never entitled to. 26,280 land on `pmid_ambiguous`;
