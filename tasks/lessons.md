@@ -157,3 +157,16 @@
   arrive either as primary data or as this library's projection, the provenance
   is part of the fact, not metadata about it: name it in its own column and put
   the library version that computed the projection in the artifact metadata.
+
+- An "invariant" that only holds while the corpus is sparse is not an invariant.
+  Rule: `test_species_summary_counts_are_coherent` asserted
+  `n_peptides >= n_pmids` on the reasoning that each PMID contributes at least
+  one peptide — true, and it implies no ordering, because two studies can report
+  the same epitope. It passed for as long as no species happened to have a
+  shared peptide, then a rebuild produced `Bos sp.` class I with 3 peptides
+  across 4 PMIDs and the test failed with nothing wrong in the data. Since it is
+  an `@pytest.mark.integration` test that skips when no index is built, CI never
+  ran it: the failure surfaced only in `deploy.sh`, which gates on the local
+  suite. Before asserting an ordering between two counts, name the operation
+  that would violate it — here "two papers, one peptide" — and if it is ordinary
+  science, the assertion is wrong rather than the data.
