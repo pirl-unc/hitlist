@@ -28,6 +28,9 @@ print, write to CSV, or feed into a notebook:
 - :func:`mhc_token_audit` — unparseable restriction, host-typing, serotype,
   and curated-sample tokens across MS and binding, classified as source
   defects, known parser gaps, or new unrecognized values.
+- :func:`sample_attribution_audit` — curated arms that were profiled but
+  reach zero observation rows.  Catches curation that describes something
+  the corpus cannot see.
 
 Each function returns the same shape: a DataFrame with one row per
 finding plus a ``severity`` column (``info`` / ``warn`` / ``error``) so
@@ -370,6 +373,156 @@ def sample_ploidy_audit(overrides: Mapping[int, dict] | None = None) -> pd.DataF
             ["n_alleles", "pmid", "sample_label", "locus"], ascending=[False, True, True, True]
         )
         .reset_index(drop=True)[_PLOIDY_AUDIT_COLUMNS]
+    )
+
+
+_SAMPLE_ATTRIBUTION_AUDIT_COLUMNS = [
+    "pmid",
+    "study_label",
+    "sample_label",
+    "mhc_class",
+    "condition",
+    "bucket",
+    "n_study_arms",
+    "n_attributed_arms",
+    "reason",
+    "severity",
+]
+
+
+def sample_attribution_audit(
+    samples: pd.DataFrame | None = None,
+    observations: pd.DataFrame | None = None,
+) -> pd.DataFrame:
+    """Curated arms that were profiled but reach zero observation rows.
+
+    A curated ``ms_samples`` entry describes an experimental arm. If no
+    evidence row is ever attributed to it, the curation is describing
+    something the corpus cannot see — and today a curator adding an arm
+    gets no signal about whether it landed. 232 of 684 profiled arms are
+    in that state (#442).
+
+    Arms explicitly curated as unprofiled are excluded: they have no MS
+    data by construction and are supposed to reach no row (#437). The
+    predicate comes from :func:`hitlist.export._observation_eligible_samples`
+    so this check and the join agree on what "joinable" means.
+
+    Findings are bucketed, because the two shapes need different triage:
+
+    ``label_mismatch_candidate``
+        The study has other arms that *do* attribute, so the mechanism
+        demonstrably works here and this arm's label is the suspect.
+        PMID 31844290 attributes 86 of its 107 arms; the 21 that fail
+        are the interesting ones.
+    ``study_unattributed``
+        No arm in the study attributes at all. That is a different
+        failure — possibly a study whose evidence cannot be resolved to
+        an arm at all — and is triaged per study, not per label (#366).
+
+    Parameters
+    ----------
+    samples
+        Curated sample frame; defaults to
+        :func:`hitlist.export.generate_ms_samples_table`.
+    observations
+        Enriched observation frame carrying ``pmid`` and ``sample_label``;
+        defaults to :func:`hitlist.export.generate_observations_table`.
+
+    Returns
+    -------
+    pd.DataFrame
+        One row per orphaned arm, ordered by study size then PMID.
+
+    Notes
+    -----
+    Deliberately **not** wired into :func:`run_all` or
+    :func:`curation_plan`. ``sample_label`` is synthesized by the export
+    join and is not a column of ``observations.parquet``, so this is the
+    only check that needs the full enriched table rather than a narrow
+    ``load_observations`` projection. Wiring it into either rollup would
+    make every ``hitlist qc`` invocation pay that build.
+    :func:`sample_ploidy_audit` and :func:`species_axis_audit` are the
+    precedent for a check that ships standalone.
+    """
+    from .export import (
+        _observation_eligible_samples,
+        generate_ms_samples_table,
+        generate_observations_table,
+    )
+
+    if samples is None:
+        samples = generate_ms_samples_table()
+    if observations is None:
+        observations = generate_observations_table(columns=["pmid", "sample_label"])
+
+    eligible = _observation_eligible_samples(samples)
+    if eligible.empty or observations.empty:
+        return pd.DataFrame(columns=_SAMPLE_ATTRIBUTION_AUDIT_COLUMNS)
+
+    obs = observations[observations["pmid"].notna()]
+    obs_pmids = set(obs["pmid"].astype(int))
+    # NB: no ``zip(..., strict=True)`` — this package supports Python 3.9,
+    # where that keyword does not exist, and ruff cannot catch it because
+    # B905 is in the ignore list.  The two series come from one frame, so
+    # they are the same length by construction.
+    attributed = {
+        (int(pmid), str(label))
+        for pmid, label in zip(obs["pmid"], obs["sample_label"].astype(str))
+        if str(label)
+    }
+
+    # An arm in a PMID with no rows at all is not an attribution failure —
+    # the study simply is not in this corpus build.
+    in_scope = eligible[eligible["pmid"].notna()]
+    in_scope = in_scope[in_scope["pmid"].astype(int).isin(obs_pmids)]
+
+    attributed_per_pmid: dict[int, int] = {}
+    arms_per_pmid: dict[int, int] = {}
+    for row in in_scope.itertuples():
+        pmid = int(row.pmid)
+        arms_per_pmid[pmid] = arms_per_pmid.get(pmid, 0) + 1
+        if (pmid, str(row.sample_label)) in attributed:
+            attributed_per_pmid[pmid] = attributed_per_pmid.get(pmid, 0) + 1
+
+    findings = []
+    for row in in_scope.itertuples():
+        pmid = int(row.pmid)
+        if (pmid, str(row.sample_label)) in attributed:
+            continue
+        n_attributed = attributed_per_pmid.get(pmid, 0)
+        if n_attributed:
+            bucket, severity = "label_mismatch_candidate", "warn"
+            reason = (
+                f"{n_attributed} of {arms_per_pmid[pmid]} arms in this study do attribute, "
+                f"so the join works here and this arm's label is the suspect"
+            )
+        else:
+            bucket, severity = "study_unattributed", "info"
+            reason = (
+                f"no arm of this study attributes ({arms_per_pmid[pmid]} curated); triage per "
+                f"study rather than per label"
+            )
+        findings.append(
+            {
+                "pmid": pmid,
+                "study_label": str(getattr(row, "study_label", "") or ""),
+                "sample_label": str(row.sample_label),
+                "mhc_class": str(getattr(row, "mhc_class", "") or ""),
+                "condition": str(getattr(row, "condition", "") or ""),
+                "bucket": bucket,
+                "n_study_arms": arms_per_pmid[pmid],
+                "n_attributed_arms": n_attributed,
+                "reason": reason,
+                "severity": severity,
+            }
+        )
+
+    if not findings:
+        return pd.DataFrame(columns=_SAMPLE_ATTRIBUTION_AUDIT_COLUMNS)
+    return (
+        pd.DataFrame(findings)
+        .sort_values(["n_study_arms", "pmid", "sample_label"], ascending=[False, True, True])
+        .reset_index(drop=True)[_SAMPLE_ATTRIBUTION_AUDIT_COLUMNS]
     )
 
 

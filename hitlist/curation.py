@@ -84,6 +84,63 @@ OVERRIDE_VALUES = (
     "healthy",
 )
 
+#: Every key a top-level PMID entry may carry, mapped to what reads it.
+#:
+#: The study-level twin of :data:`MS_SAMPLE_FIELDS`. #373 guarded the sample
+#: level and this level was left open, which is how four study-level keys ended
+#: up curated and read by nothing — including ``exclude_from_ms``, documented as
+#: excluding a study from the MS index and set on 11 non-MS studies whose 40,355
+#: rows are in the corpus regardless (#444).
+#:
+#: Adding a key means adding it here *and* naming its reader. Where a key is
+#: genuinely informational, say so; where it is unread but kept pending a fix,
+#: say that and cite the issue rather than describing it as if it worked.
+PMID_ENTRY_FIELDS = MappingProxyType(
+    {
+        "pmid": "study identifier; the key of the returned mapping",
+        "submission_id": "identifier for studies with no PMID; classify_ms_row checks both",
+        "study_label": "friendly study name, exported on every sample and observation",
+        "title": "paper title; informational, for curator orientation",
+        "override": "study-wide provenance override applied by classify_ms_row",
+        "rules": "condition-matched overrides, checked before the study-wide value",
+        "ms_samples": "per-arm enumeration; see MS_SAMPLE_FIELDS",
+        "note": "study-level free-text curation rationale",
+        "perturbations": "study-level perturbation panel; ORed into the APM gene flags",
+        "hla_alleles": "study-wide typing; flattened by the qc token audit",
+        "species": "curated source proteome; scanner fills unresolved rows (#307)",
+        "source_organism": "curated source organism; scanner fills unresolved rows (#307)",
+        "source_tissue": "curated tissue; scanner fills rows IEDB left blank (#314)",
+        "cell_name": "curated cell line; scanner fills rows IEDB left blank (#314)",
+        "disease": "curated disease; scanner fills rows IEDB left blank (#314)",
+        "culture_condition": "curated culture condition; scanner fills blank rows (#314)",
+        "mono_allelic_host": "HLA-null host line; validated against monoallelic_lines.yaml",
+        "mono_allelic_method": "how mono-allelic presentation was engineered",
+        "ip_antibody": "study default IP antibody; per-sample values override it",
+        "acquisition_mode": "study default acquisition mode; per-sample values override it",
+        "instrument": "study default instrument; per-sample values override it",
+        "fragmentation": "study default fragmentation; per-sample values override it",
+        "labeling": "study default labeling; per-sample values override it",
+        "search_engine": "study default search engine; per-sample values override it",
+        "fdr": "study default false discovery rate; per-sample values override it",
+        "quantification_method": "targeted quantification approach; exported per observation",
+        "reference_proteomes": "study-level viral/parasite proteomes; per-sample values win",
+        "restriction_evidence": "study-wide evidence for a named MHC restriction (#415)",
+        "restriction_evidence_rules": "condition-matched restriction-evidence overrides (#415)",
+        "aliases": "citation provenance (withdrawn_pmid, benchmark dataset names)",
+        "peptide_attributions": "relative path to a per-peptide sample-attribution CSV (#360)",
+        "tissue_overrides": "per-tissue overrides; rendered by hitlist.report",
+        "n_samples": "curated sample count for the study; informational",
+        "n_tissues": "curated tissue count for the study; informational",
+        "donors": "UNREAD. Curated on 11 studies, consumed by nothing (#444)",
+        "exclude_from_ms": (
+            "UNREAD. Documented as excluding a study from the MS index and set on "
+            "11 non-MS studies, but no code honors it and their 40,355 rows are in "
+            "the corpus (#444)"
+        ),
+        "label": "DEPRECATED spelling of study_label (v1.7.0); warned about, never read",
+    }
+)
+
 #: Every key an ``ms_samples`` entry may carry, mapped to what reads it.
 #:
 #: This is the schema guard #373 asks for. Three keys — ``override``,
@@ -109,7 +166,12 @@ MS_SAMPLE_FIELDS = MappingProxyType(
         "species": "per-sample source proteome; overrides the study-level value (#372)",
         "peptides": "curated peptide count for the arm",
         "reference_proteomes": "per-sample viral / parasite proteome references",
-        "override": "per-sample provenance override; null clears the study value (#373)",
+        "override": (
+            "per-sample provenance override, exported as sample_override / "
+            "effective_override. Metadata only: classify_ms_row never sees "
+            "ms_samples, so an explicit null clears the exported value but NOT "
+            "the build-time src_* flags, which stay PMID- and rule-driven (#373)"
+        ),
         "note": "free-text analytic caveat about this arm (#373)",
         "classification": "per-sample classification note, exported as `notes`",
         "reason": "rationale for the classification, exported as `notes` when it is absent",
@@ -168,6 +230,9 @@ def load_pmid_overrides() -> dict[int, dict]:
     produce rows with a non-existent ``monoallelic_host`` string), and
     that no PMID is declared twice — the returned mapping is keyed by
     PMID, so a duplicate would discard an entire curated study (#438).
+    Rejects any top-level or ``ms_samples`` key not declared in
+    :data:`PMID_ENTRY_FIELDS` / :data:`MS_SAMPLE_FIELDS`, so a field
+    nothing reads fails at load rather than in an audit (#373, #444).
     Warns on legacy YAML keys (``type:``, ``label:``) that were renamed
     to ``sample_label:`` / ``study_label:`` in v1.7.0.
 
@@ -227,6 +292,14 @@ def load_pmid_overrides() -> dict[int, dict]:
                     f"{sample_override!r} is invalid; expected null or one of "
                     f"{OVERRIDE_VALUES}"
                 )
+        unknown_entry_keys = sorted(set(e) - set(PMID_ENTRY_FIELDS))
+        if unknown_entry_keys:
+            raise ValueError(
+                f"PMID {e.get('pmid')}: unknown top-level key(s) {unknown_entry_keys}.  "
+                f"Every key must be declared in curation.PMID_ENTRY_FIELDS together with "
+                f"what reads it — an undeclared key is silently ignored by every consumer "
+                f"(#444).  Fix the typo, or add the field and its reader."
+            )
         entry_override = e.get("override")
         if entry_override is not None and entry_override not in OVERRIDE_VALUES:
             raise ValueError(

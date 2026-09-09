@@ -22,13 +22,23 @@ import pytest
 import yaml
 
 from hitlist import curation
-from hitlist.curation import MS_SAMPLE_FIELDS
+from hitlist.curation import MS_SAMPLE_FIELDS, load_pmid_overrides
 from hitlist.export import generate_ms_samples_table
 
 
 def _row(samples, pmid: int, label_fragment: str):
+    """One sample row, matched on a *literal* label substring.
+
+    ``regex=False`` on purpose: the fragments are real label text and
+    contain ``+`` and ``(``.  With the default regex mode a fragment like
+    ``"SKMEL5 melanoma + binimetinib"`` is not even a valid pattern, and
+    papering over that with ``.`` would also match labels that do not
+    exist, surfacing as a confusing count failure rather than a missing
+    label.
+    """
     matched = samples[
-        (samples["pmid"] == pmid) & samples["sample_label"].str.contains(label_fragment)
+        (samples["pmid"] == pmid)
+        & samples["sample_label"].str.contains(label_fragment, regex=False)
     ]
     assert len(matched) == 1, f"{label_fragment!r} matched {len(matched)} rows"
     return matched.iloc[0]
@@ -40,7 +50,7 @@ def _row(samples, pmid: int, label_fragment: str):
 def test_sample_override_is_exported():
     """A sample-level override no longer evaporates."""
     samples = generate_ms_samples_table()
-    arm = _row(samples, 34497125, "SKMEL5 melanoma . binimetinib")
+    arm = _row(samples, 34497125, "SKMEL5 melanoma + binimetinib (MEKi)")
     assert arm["sample_override"] == "cell_line"
     assert arm["effective_override"] == "cell_line"
     assert arm["effective_override_origin"] == "sample"
@@ -61,12 +71,44 @@ def test_explicit_null_override_is_distinguishable_from_absence():
 
 
 def test_absent_sample_override_inherits_the_study_value():
-    """PMID 27846572 is ``cell_line`` study-wide; its samples say nothing."""
+    """A study with no ``rules`` inherits cleanly.
+
+    Asserted over the whole ``study`` cohort rather than one named arm:
+    which studies carry a sample-level override is curation that moves,
+    and this contract does not depend on any particular one.
+    """
     samples = generate_ms_samples_table()
-    c1r = _row(samples, 27846572, "C1R parental")
-    assert c1r["sample_override"] == ""
-    assert c1r["effective_override"] == "cell_line"
-    assert c1r["effective_override_origin"] == "study"
+    overrides = load_pmid_overrides()
+    study_only = samples[samples["effective_override_origin"] == "study"]
+    assert len(study_only) > 0
+    # Origin "study" means the arm declared nothing and inherited a value.
+    assert (study_only["sample_override"] == "").all()
+    assert (study_only["effective_override"] != "").all()
+    for _, row in study_only.iterrows():
+        assert row["effective_override"] == overrides[int(row["pmid"])]["override"]
+
+
+def test_row_conditional_rules_downgrade_the_inherited_origin():
+    """``rules`` match per row, so a sample cannot claim the study value.
+
+    PMID 27846572 inherits ``cell_line`` while its rule routes every
+    Direct Ex Vivo fibroblast row to ``healthy``.  Reporting plain
+    ``study`` there asserts a value the build contradicts on 3,614 rows,
+    so the origin says the default is conditional instead.
+    """
+    samples = generate_ms_samples_table()
+    fibroblasts = _row(samples, 27846572, "primary fibroblasts")
+    assert fibroblasts["effective_override"] == "cell_line"
+    assert fibroblasts["effective_override_origin"] == "study_conditional"
+
+    overrides = load_pmid_overrides()
+    conditional = samples[samples["effective_override_origin"] == "study_conditional"]
+    assert len(conditional) > 0
+    for pmid in conditional["pmid"].unique():
+        assert overrides[int(pmid)].get("rules"), f"PMID {pmid} has no rules"
+    plain = samples[samples["effective_override_origin"] == "study"]
+    for pmid in plain["pmid"].unique():
+        assert not overrides[int(pmid)].get("rules"), f"PMID {pmid} has rules"
 
 
 def test_no_override_anywhere_reports_no_origin():
@@ -158,9 +200,45 @@ def test_load_pmid_overrides_rejects_an_unknown_sample_key(tmp_path, monkeypatch
         curation.load_pmid_overrides.cache_clear()
 
 
+#: Declared keys whose exported column carries a different name.
+_SAMPLE_FIELD_COLUMN_ALIASES = {
+    # Exported as the resolved pair, because the sample's own claim and the
+    # value that survives inheritance are different facts (#373).
+    "override": "sample_override",
+}
+
+#: Sample keys that legitimately reach no exported column at all.
+_UNEXPORTED_SAMPLE_FIELDS = frozenset(
+    {
+        "type",  # deprecated spelling; warned about, never read
+    }
+)
+
+
 def test_declared_fields_describe_what_reads_them():
     """The mapping is documentation, not just a spelling list."""
     assert all(isinstance(v, str) and v for v in MS_SAMPLE_FIELDS.values())
+
+
+def test_every_declared_field_actually_reaches_a_consumer():
+    """ "Declared" must not become a synonym for "accepted and ignored".
+
+    The guard rejects an *undeclared* key, which stops a typo — but on its
+    own it would happily accept a new field added to the mapping with no
+    reader, which is the exact failure #373 is about.  Tie the declaration
+    to the exported column set so adding a field without a consumer fails.
+    """
+    exported = set(generate_ms_samples_table().columns)
+    undelivered = {
+        field
+        for field in MS_SAMPLE_FIELDS
+        if _SAMPLE_FIELD_COLUMN_ALIASES.get(field, field) not in exported
+        and field not in _UNEXPORTED_SAMPLE_FIELDS
+    }
+    assert undelivered == set(), (
+        f"declared but reaching no exported column: {sorted(undelivered)}. "
+        f"Add the reader, or list it in _UNEXPORTED_SAMPLE_FIELDS with why."
+    )
 
 
 # ── conservation ────────────────────────────────────────────────────────────
@@ -176,12 +254,16 @@ def test_no_unattributed_row_carries_a_sample_level_override(full_observations_d
     appear is ``"sample"`` or ``"sample_null"`` — those claim a specific arm.
     """
     df = full_observations_df
-    for column in ("sample_override", "effective_override", "effective_override_origin"):
+    for column in ("effective_override", "effective_override_origin", "sample_note"):
         assert column in df.columns
+    # sample_override is deliberately not carried here — derivable, and a
+    # redundant object column is expensive across 4.4M rows.
+    assert "sample_override" not in df.columns
     unattributed = df[df["sample_label"].astype(str) == ""]
     origins = set(unattributed["effective_override_origin"].astype(str))
     assert origins & {"sample", "sample_null"} == set()
-    assert (unattributed["sample_override"].astype(str) == "").all()
+    # An arm's free text is arm-specific, so it cannot survive either.
+    assert (unattributed["sample_note"].astype(str) == "").all()
 
 
 def test_study_origin_values_agree_with_the_study_entry(full_observations_df):
@@ -196,3 +278,55 @@ def test_study_origin_values_agree_with_the_study_entry(full_observations_df):
     for _, row in sampled.iterrows():
         expected = overrides[int(row["pmid"])].get("override") or ""
         assert str(row["effective_override"]) == expected
+
+
+def test_consensus_meta_drops_arm_specific_claims():
+    """Agreement between arms is not licence to name one.
+
+    Several arms of a study routinely share a sample-level ``override`` —
+    PMID 34129938 marks all six ``cell_line`` — so a plain consensus rule
+    keeps ``effective_override_origin == "sample"`` on a row whose
+    ``sample_label`` it just blanked. That is a statement about a specific
+    arm attached to evidence with no arm. A *study*-origin value is a
+    property of the deposit and legitimately survives.
+    """
+    from hitlist.export import _consensus_meta
+
+    meta_cols = [
+        "sample_label",
+        "effective_override",
+        "effective_override_origin",
+        "note",
+        "instrument",
+    ]
+
+    def _cand(label, origin, override):
+        return (
+            "",
+            "",
+            {
+                "sample_label": label,
+                "effective_override": override,
+                "effective_override_origin": origin,
+                "note": "an arm-specific caveat",
+                "instrument": "Exploris 480",
+            },
+        )
+
+    agreed_sample = _consensus_meta(
+        [_cand("arm a", "sample", "cell_line"), _cand("arm b", "sample", "cell_line")],
+        meta_cols,
+    )
+    assert agreed_sample["effective_override"] == ""
+    assert agreed_sample["effective_override_origin"] == ""
+    assert agreed_sample["note"] == ""
+    # What the arms genuinely share still survives.
+    assert agreed_sample["instrument"] == "Exploris 480"
+    assert agreed_sample["sample_attribution"] == "pmid_ambiguous"
+
+    agreed_study = _consensus_meta(
+        [_cand("arm a", "study", "cell_line"), _cand("arm b", "study", "cell_line")],
+        meta_cols,
+    )
+    assert agreed_study["effective_override"] == "cell_line"
+    assert agreed_study["effective_override_origin"] == "study"

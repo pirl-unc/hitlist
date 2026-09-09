@@ -58,10 +58,17 @@ A representative entry:
 | `mono_allelic_method` | Tagged-pulldown mono-allelic method (e.g. MAPTAC) — not a cell line. |
 | `ms_samples` | Per-sample-type metadata (below). |
 | `peptide_attributions` | Path to a CSV mapping `peptide` → `sample_label` for per-donor attribution. |
-| `exclude_from_ms` | Exclude this study/sample from the MS index. |
-| `donors`, `samples`, `tissues` | Counts. |
+| `exclude_from_ms` | **Not honored — see [#444](https://github.com/pirl-unc/hitlist/issues/444).** Intended to exclude a study from the MS index, and set on 11 studies curated as non-MS (yeast display, microarray, refolding, computational). No code reads it, so their 40,355 rows are in the corpus. |
+| `donors` | **Not honored.** Curated on 11 studies, read by nothing (#444). |
+| `n_samples`, `n_tissues` | Informational counts. Read by nothing, but named per the count-suffix rule; they were bare `samples:` / `tissues:` until the study-level guard went in. |
 | `ip_antibody`, `acquisition_mode`, `instrument`, `fragmentation`, `labeling`, `search_engine`, `fdr`, `quantification_method` | MS-acquisition metadata (study-wide defaults; overridable per `ms_samples` entry). |
 | `perturbations` | Non-standard processing (gene KO, cytokines, infection, …). |
+
+Every top-level key is declared in `curation.PMID_ENTRY_FIELDS`, mapped to what
+reads it, and **loading rejects an undeclared key** — the study-level twin of the
+`MS_SAMPLE_FIELDS` guard. Its absence is why four keys above ended up curated
+with no reader. A key that is accepted but unread says so in its description
+rather than describing behavior it does not have.
 
 ### `override` vocabulary
 
@@ -105,7 +112,8 @@ one value:
 |---|---|---|---|
 | `override: cell_line` | `cell_line` | `cell_line` | `sample` |
 | `override:` (null) | `""` | `""` | `sample_null` |
-| key omitted, study has one | `""` | the study's value | `study` |
+| key omitted, study has one, study has **no** `rules` | `""` | the study's value | `study` |
+| key omitted, study has one **and** has `rules` | `""` | the study's value | `study_conditional` |
 | key omitted, study has none | `""` | `""` | `none` |
 
 `sample_null` and `none` produce the same value and mean different things: the
@@ -114,10 +122,25 @@ override, the second that nobody did. PMID 34497125 is the shape this exists
 for — two `cell_line` cell-line arms beside a patient-biopsy arm explicitly
 marked null.
 
-These columns describe **the curation**. The classification flags
-(`src_cancer`, `src_cell_line`, …) are still computed at build time from the
-PMID-level `override` and `rules`, which run before any sample attribution
-exists; a sample-level override does not change them.
+`study_conditional` exists because `rules` match **per observation row**, not
+per sample, so whether one supersedes the study default is not knowable from
+the sample. PMID 27846572 inherits `cell_line` while its rule sends every
+Direct Ex Vivo fibroblast row to `healthy`; reporting plain `study` there would
+assert a value the build contradicts on 3,614 rows.
+
+These columns describe **the curation, and only the curation**. The
+classification flags (`src_cancer`, `src_cell_line`, …) are computed at build
+time by `classify_ms_row`, which never sees `ms_samples` — it applies `rules`
+then the PMID-level `override`. So a sample-level `override: null` clears the
+exported metadata value and changes no flag. If you need the override the build
+actually applied to a row, read the `src_*` flags, not these columns.
+
+On the observations export the free-text note is renamed `sample_note`, the way
+`mhc` becomes `sample_mhc` — `note` is also a study-level YAML key and `notes`
+is an adjacent column meaning classification-or-reason, so the bare name was
+ambiguous between three things. `sample_override` is not carried there at all:
+it is derivable from the other two and a redundant object column is expensive
+across 4.4M rows.
 
 ## The `rules` mechanism
 
@@ -181,6 +204,27 @@ silently, which is how two studies and five sample records disappeared (#438).
    `hitlist qc` flags normalization and cross-reference issues.
 
 No code changes are needed — the YAML is loaded at runtime.
+
+## The two APM levels (#353, #362)
+
+Both reach the per-observation export, and they answer different questions:
+
+| column | scope | question |
+|---|---|---|
+| `apm_genes_perturbed`, `apm_perturbed`, `condition_category` | **this sample's own arm** | was *this* peptide's arm perturbed? |
+| `study_apm_genes`, `study_apm_perturbed` | **the parent deposit's panel** | did the study run a perturbation at all? |
+
+The per-sample flags are derived only from the arm's own `condition`. Folding a
+study's `perturbations` panel into them is what #353 fixed: the Shapiro HAP1
+CRISPR panel made all 12 arms claim the same 11 genes, so `HAP1 wildtype`
+reported `apm_erap1_perturbed=True` and per-gene filtering selected whole
+studies instead of perturbed samples.
+
+That matters most for the control arm. A model that featurizes the study-level
+column as if it were per-sample inverts its own control, which cancels the
+KO-vs-WT contrast rather than merely adding noise. `HAP1 wildtype` rows today
+carry `apm_genes_perturbed=""` with `study_apm_perturbed=True`, and
+`tests/test_sample_attribution_audit.py` pins that through the join.
 
 ## Source-verified corrections (#436)
 
