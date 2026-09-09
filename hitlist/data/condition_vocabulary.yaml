@@ -1,0 +1,148 @@
+# Alias -> canonical spellings for the open-vocabulary condition columns.
+#
+# The closed vocabularies (condition_status, condition_evidence,
+# condition_control, condition_combination, condition_antigen_exposure,
+# condition_mhc_context, condition_material) are contract, not data, and live
+# in hitlist/conditions.py.  What is here is curation data — gene, compound
+# and organism names — which AGENTS.md keeps in YAML.
+#
+# How this is used: `hitlist.conditions` rejects a curated token that appears
+# as an alias key, naming the canonical spelling.  Normalization is therefore
+# a load-time *check*, not a silent rewrite: the YAML always shows what a
+# consumer will filter on.  A token with no entry here passes through
+# unchanged — an unknown reported entity is still a source fact, and dropping
+# it for missing a list is exactly what these columns exist to prevent.
+#
+# Aliases match case-insensitively.  Do not add an alias whose canonical form
+# loses precision the source stated: `ERAAP -> ERAP1` is the murine name for
+# one gene, while `knockdown -> knockout` would be a different claim.
+
+aliases:
+  # ── Gene symbols ──────────────────────────────────────────────────────
+  # Only aliases that appear in curated text.  Protein names are folded onto
+  # the gene symbol; the original wording stays in `condition`.
+  condition_knockout_genes: &gene_aliases
+    ERAAP: ERAP1            # murine literature name for ERAP1
+    calreticulin: CALR
+    calnexin: CANX
+    ERp57: PDIA3
+    tapasin: TAPBP
+    TAPBPL: TAPBPR
+    "glucosidase II alpha": GANAB
+    T6BP: TAX1BP1           # TRAF6-binding protein; one gene, two names
+    "beta-2-microglobulin": B2M
+    B2m: B2M
+    Tap1: TAP1
+    Tap2: TAP2
+    LMP7: PSMB8
+    LMP2: PSMB9
+    "MECL-1": PSMB10
+    "invariant chain": CD74
+  condition_knockdown_genes: *gene_aliases
+  condition_overexpression_genes: *gene_aliases
+
+  # ── Cytokines: HGNC symbols ───────────────────────────────────────────
+  # `IFN` is deliberately a canonical value, not an alias for IFNG: a source
+  # that says only "IFN treatment" did not say which one, and resolving it
+  # here would manufacture a fact.  Those records carry condition_status
+  # `partial`.
+  condition_cytokines:
+    "IFN-gamma": IFNG
+    "IFN-γ": IFNG
+    IFNg: IFNG
+    "interferon gamma": IFNG
+    "IFN-alpha": IFNA
+    "IFN-beta": IFNB1
+    "TNF-alpha": TNF
+    "TNF-α": TNF
+    "IL-2": IL2
+    "IL-4": IL4
+    "IL-13": IL13
+    "IL-15": IL15
+    "GM-CSF": CSF2
+    "CD40L": CD40LG
+    "CD40L-Tri": CD40LG
+
+  # ── Compounds ─────────────────────────────────────────────────────────
+  # Canonical form is the INN, lowercase.  Where the source names only a
+  # class, the class is canonical (`EZH2_inhibitor`) — a class is what was
+  # reported, and inventing a member would be worse than keeping it coarse.
+  condition_drugs:
+    "5-azacytidine": azacitidine
+    azacytidine: azacitidine
+    "MS-275": entinostat
+    entinostat (MS-275): entinostat
+    "dTAG13": dTAG-13
+    "EZH2i": EZH2_inhibitor
+    "EZH2 inhibitor": EZH2_inhibitor
+    "ERAP1 inhibitor": ERAP1_inhibitor
+    "ERAP inhibitor": ERAP1_inhibitor
+    "BET degrader": BET_degrader
+    "PROTAC BET degrader": BET_degrader
+    "MEK inhibitor": binimetinib      # only curated use names binimetinib
+    DMSO: DMSO
+    "5-FU": fluorouracil
+
+  # ── Organisms ─────────────────────────────────────────────────────────
+  # Canonical form is the accepted species/virus designation at the
+  # precision the sources state.  Strain and timing detail stays in
+  # `condition`: "influenza A/H3N2/Wisconsin 22h" and "influenza infection
+  # (PR8)" are both Influenza A virus, and a consumer that needs the strain
+  # reads the original wording.
+  condition_infection:
+    "T. parva": Theileria parva
+    "Theileria parva infection": Theileria parva
+    VACV: Vaccinia virus
+    vaccinia: Vaccinia virus
+    MVA: Vaccinia virus
+    "modified vaccinia Ankara": Vaccinia virus
+    "influenza A": Influenza A virus
+    influenza: Influenza A virus
+    "SARS-CoV2": SARS-CoV-2
+    "M. tuberculosis": Mycobacterium tuberculosis
+    "Mtb": Mycobacterium tuberculosis
+    "H37Rv": Mycobacterium tuberculosis
+    "CyHV-2": Cyprinid herpesvirus 2
+    "canine distemper virus": Canine distemper virus
+    "Marek's disease virus": Mareks disease virus
+    "HHV6B": HHV-6B
+    HIV: HIV-1
+
+  # ── Stimuli ───────────────────────────────────────────────────────────
+  # Agents keep their reagent names; processes are snake_case so the two are
+  # distinguishable at a glance.
+  condition_stimulation:
+    "phorbol myristate acetate": PMA
+    "lipopolysaccharide": LPS
+    "anti-CD3": OKT3
+    "TIL expansion": til_expansion
+    "TIL expansion protocol": til_expansion
+    "in vitro activation": in_vitro_activation
+    "DC activation": dc_maturation
+    "DC maturation": dc_maturation
+    "biomaterial contact": biomaterial_contact
+    "restimulation": antigen_restimulation
+
+  # ── Culture ───────────────────────────────────────────────────────────
+  # The medium when the source names one, `standard_culture` when it says no
+  # more than that.  Serum supplementation is not a category of its own:
+  # "RPMI + 10% FBS" is RPMI-1640, and the supplement stays in `condition`.
+  condition_culture:
+    RPMI: RPMI-1640
+    "RPMI 1640": RPMI-1640
+    "standard culture": standard_culture
+    "PromoCell DC medium": PromoCell_DC
+
+  # ── Metabolic labeling used as a design factor ────────────────────────
+  # Not the acquisition `labeling` field: that records the run's
+  # quantification scheme, this records labeling that separates the
+  # biological arms (heavy donor cells against light recipients).
+  condition_labeling:
+    "SILAC metabolic labeling": SILAC
+    "stable isotope labeling": SILAC
+
+  # ── Intrinsic background ──────────────────────────────────────────────
+  condition_background:
+    "TAP deficiency": TAP_deficient
+    "TAP-deficient": TAP_deficient
+    "Hap10": ERAP1_hap10
