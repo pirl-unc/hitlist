@@ -1052,11 +1052,20 @@ def test_species_summary_covers_non_curated_species():
 
 @pytest.mark.integration
 def test_species_summary_counts_are_coherent():
-    """n_observations >= n_peptides >= n_pmids is a structural invariant.
+    """``n_observations`` bounds both other counts, and nothing bounds them
+    against each other.
 
-    Each PMID contributes at least one peptide, each peptide at least
-    one observation row, and the inequalities are non-strict when every
-    peptide happens to appear once in a single PMID.
+    Every peptide has at least one observation row and every PMID contributes
+    at least one, so ``n_observations`` is the largest of the three. Peptides
+    against PMIDs have no ordering in either direction: two studies reporting
+    the same epitope give more PMIDs than peptides, and one study reporting a
+    peptidome gives the reverse.
+
+    This test used to assert ``n_peptides >= n_pmids`` as if a PMID implied a
+    distinct peptide. Real data disproves it -- ``Bos sp.`` class I is 6 rows,
+    3 peptides, 4 PMIDs, because ``VGYPKVKEEML`` on BoLA-6*013:01 is reported
+    by both 20976198 and 26139380. Well-studied epitopes are shared by
+    construction; the small species simply made the arithmetic visible.
     """
     from hitlist.observations import is_built
 
@@ -1064,7 +1073,7 @@ def test_species_summary_counts_are_coherent():
         pytest.skip("Observations table not built")
     df = generate_species_summary()
     assert (df["n_observations"] >= df["n_peptides"]).all()
-    assert (df["n_peptides"] >= df["n_pmids"]).all()
+    assert (df["n_observations"] >= df["n_pmids"]).all()
 
 
 def test_species_summary_empty_when_not_built(tmp_path, monkeypatch):
