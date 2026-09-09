@@ -509,7 +509,7 @@ def _drop_supplementary_duplicates(supp: pd.DataFrame, obs: pd.DataFrame) -> pd.
             .drop_duplicates()
             .assign(
                 peptide=lambda d: d["peptide"].astype(str),
-                mhc_restriction=lambda d: d["mhc_restriction"].astype(str),
+                mhc_restriction=lambda d: d["mhc_restriction"].astype("string").fillna(""),
                 pmid=lambda d: pd.to_numeric(d["pmid"], errors="coerce").astype("Int64"),
             )
         )

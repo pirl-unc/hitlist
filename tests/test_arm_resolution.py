@@ -91,10 +91,10 @@ def test_every_ambiguous_row_carries_a_verdict(full_observations_df):
     and is exactly what this issue exists to eliminate.
     """
     df = full_observations_df
-    ambiguous = df[df["sample_attribution"].astype(str).isin(["pmid_ambiguous", "group_ambiguous"])]
+    ambiguous = df[df["sample_attribution"].isin(["pmid_ambiguous", "group_ambiguous"])]
     if ambiguous.empty:
         pytest.skip("no ambiguous rows in this build")
-    unexplained = ambiguous[ambiguous["arm_resolution"].astype(str) == ""]
+    unexplained = ambiguous[ambiguous["arm_resolution"].isin([""])]
     assert unexplained.empty, (
         f"{len(unexplained):,} ambiguous rows in "
         f"{unexplained['pmid'].nunique()} studies carry no arm_resolution verdict: "
@@ -164,6 +164,6 @@ def test_arm_not_recorded_studies_do_resolve_their_system(full_observations_df):
         rows = df[df["pmid"] == pmid]
         if rows.empty:
             continue
-        assert (rows["sample_group"].astype(str) != "").any(), (
+        assert (~rows["sample_group"].isin([""])).any(), (
             f"PMID {pmid} claims its system resolves, but no row carries a sample_group"
         )

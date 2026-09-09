@@ -506,7 +506,7 @@ def test_generate_observations_is_non_peptide_ligand_opt_in():
     assert df["is_non_peptide_ligand"].mean() < 0.01
     # Every flagged row must have an MHC molecule from the non-peptide
     # whitelist — sanity check on the regex (no spurious classical hits).
-    flagged_alleles = set(flagged["mhc_restriction"].astype(str))
+    flagged_alleles = set(flagged["mhc_restriction"].unique())
     for a in flagged_alleles:
         token = a.lower()
         assert any(

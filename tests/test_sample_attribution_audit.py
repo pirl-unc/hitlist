@@ -217,7 +217,7 @@ def test_per_sample_and_study_apm_levels_stay_separate_on_observations(full_obse
     wildtype = hap1[hap1["sample_label"].astype(str) == "HAP1 wildtype"]
     assert len(wildtype) > 0
     assert (wildtype["apm_genes_perturbed"].astype(str) == "").all()
-    assert (wildtype["apm_perturbed"].astype(str) == "false").all()
+    assert wildtype["apm_perturbed"].eq("false").all()
     # The panel context is still queryable, just not as a sample-level fact.
     assert wildtype["study_apm_perturbed"].all()
     ko = hap1[hap1["sample_label"].astype(str) == "HAP1 ERAP1 KO"]

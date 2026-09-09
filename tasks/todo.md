@@ -1,3 +1,53 @@
+# Flat experimental-condition columns
+
+## Objective
+
+Revise `tasks/condition-model-spec.md` around one consistent, flat condition schema that
+curators can fill from papers and that reaches individual rows of the unified training table.
+Keep source evidence, unknown values, and ambiguous peptide attribution explicit. Implement,
+verify, and ship the resulting change through a versioned PR and PyPI release.
+
+## Plan
+
+- [x] Audit existing condition strings, metadata readers, and representative primary sources.
+- [x] Write the flat schema, paper-extraction contract, migration, and acceptance criteria.
+- [x] Implement validation, categorical annotations, and propagation through every export.
+- [x] Curate the existing condition vocabulary and source-verified representative samples.
+- [x] Verify combinations, controls, missing information, ambiguous assignments, and projection.
+- [x] Run format, lint, tests, and a before/after corpus comparison; inspect the final diff.
+- [ ] Bump the version, open the PR, verify CI, merge, and deploy from clean main.
+- [ ] Record results and review the next relevant open issues.
+
+## Review
+
+Shipped as #450. 23 flat condition columns declared once in `hitlist/conditions.py`
+and spliced into the loader schema, the samples row, the empty-frame schema, the
+expression-anchor projection, the observation join and the training defaults.
+
+**Curation.** All 761 arms annotated from the 167 distinct condition strings, written
+into the YAML as reviewed data (`curated_text`), every pre-existing value byte-identical.
+19 arms across four studies upgraded to `primary_source` with section-level locators.
+
+**What the pilot caught.** Reading the papers disproved three curated facts that no
+consistency check could see: Stopfer 2021's biopsies are snap-frozen not fresh, and
+its `condition_control: untreated` asserted a therapy status the paper never states;
+Javitt 2019's A549 genotype carried `HLA-B*07:02` where both the paper and IEDB's own
+rows say `HLA-B*18:01`. Lorente 2019's arms are correct but incomplete (5 profiled,
+2 curated) — filed as #452 rather than expanded here.
+
+**Attribution.** The tie guard now compares curated `condition_id` instead of the
+coarse category, so 184,811 rows stop being assigned an arm they were never entitled
+to. `_candidates_disagree_on_arm` deliberately stays on the category — that gate asks
+a different question, and identity there cost 7,629 correct discriminations.
+
+**Filed, not worked around.** #451 (class-pool path leaves ungrouped rows blank
+instead of `pmid_ambiguous`; the fix moves 1.23M rows and needs its own verdict pass),
+#452 (Lorente arm split).
+
+Corpus: 4,439,321 rows before and after. 1,532 tests pass including integration.
+
+---
+
 # Arm attribution cluster — #442 / #366 / #359 / #364 / #362
 
 ## Release split

@@ -31,6 +31,12 @@ import re
 
 import pandas as pd
 
+from .conditions import (
+    ARM_SPECIFIC_CONDITION_COLUMNS,
+    CONDITION_COLUMNS,
+    condition_columns_for_sample,
+    empty_condition_columns,
+)
 from .curation import (
     allele_to_all_serotypes,
     allele_to_serotype,
@@ -100,6 +106,12 @@ _CATEGORICAL_EXPORT_METADATA_COLS: tuple[str, ...] = (
     "note",
     "sample_group",
     "arm_resolution",
+    # The flat condition block (#450).  Every value is derived from one of
+    # 761 curated arms, so each column's cardinality is bounded by that —
+    # small enough for int8/int16 codes on a 4.4M-row table.  Multi-value
+    # cells stay categorical here (unlike apm_genes_perturbed) because they
+    # are sorted and canonical, so equal cells really are one category.
+    *CONDITION_COLUMNS,
     # PMID-level / derived low-cardinality metadata
     "quantification_method",
     "mhc_class_label_severity",
@@ -111,6 +123,29 @@ _CATEGORICAL_EXPORT_METADATA_COLS: tuple[str, ...] = (
     # this load path
     "mhc_restriction",
     "cell_line_name",
+    # Measured, not assumed (#450).  "free-text comments" were excluded on the
+    # theory that they are high-cardinality; on the current corpus they are
+    # not, because they are written per study and repeated across every row of
+    # it.  Distinct values over 4,439,321 rows, with the memory each column
+    # costs as plain strings:
+    #
+    #   reference_title              2,285   0.05%   498 MB
+    #   antigen_processing_comments  2,618   0.06%   377 MB
+    #   assay_comments               7,341   0.17%   192 MB
+    #   sample_attribution              10       -    75 MB
+    #   apm_perturbed                    3       -    48 MB
+    #   is_control_arm                   3       -    46 MB
+    #
+    # Together ~1.24 GB of a 3.6 GB frame, for ~30 MB of codes. The genuinely
+    # high-cardinality columns stay out and are worth naming so the next
+    # audit does not re-derive them: assay_iri is 99.5% distinct (one per
+    # row), reference_iri 12.1%, peptide 30.2%, peptide_extended 27.9%.
+    "reference_title",
+    "antigen_processing_comments",
+    "assay_comments",
+    "sample_attribution",
+    "apm_perturbed",
+    "is_control_arm",
 )
 
 # Map specific instrument models → category.  Keys are matched as
@@ -221,6 +256,10 @@ _TRAINING_DEFAULTS = {
     "labeling": "",
     "ip_antibody": "",
     "quantification_method": "",
+    # Binding evidence has no MS sample, so it has no experimental condition
+    # to report.  "" says exactly that; any other default would assert an
+    # untreated arm for every predicted binder in the training table (#450).
+    **empty_condition_columns(),
     "sample_match_type": "not_applicable",
     "matched_sample_count": 0,
     "is_chimeric": False,
@@ -338,14 +377,51 @@ def _select_by_elution_conditions(
     return matching[0][2]
 
 
+def _candidate_arm_identity(meta: dict | None) -> str:
+    """Which arm a candidate is, for tie and disagreement tests.
+
+    ``condition_id`` is the curated identity and is what an attributed
+    observation reports, so it is what "same arm" has to mean.  The
+    fallback to ``condition_category`` keeps two callers working: an
+    uncurated arm, and :func:`_select_group`'s pseudo-candidates, which
+    carry a group name in that field precisely so they reuse this guard.
+    """
+    meta = meta or {}
+    for key in ("condition_id", "condition_category"):
+        value = meta.get(key)
+        # `or` alone is wrong here: a pandas NaN is truthy, so a NaN
+        # ``condition_id`` would short-circuit the fallback and every candidate
+        # would read "nan" — one identity, tie accepted, first-pick restored.
+        if value is None or value != value:
+            continue
+        text = str(value)
+        if text:
+            return text
+    return ""
+
+
 def _candidates_disagree_on_arm(candidates: list[tuple[str, str, dict]]) -> bool:
     """True when the candidates span more than one experimental arm.
 
     "Arm" is ``condition_category`` — the coarse perturbation bucket —
     so KO-vs-WT and treated-vs-untreated count as disagreement while
     two tissue samples of one untreated study do not.  Callers use this
-    to withhold the narrative IEDB fields from the scorer (see
-    :func:`_select_best_candidate`) and to refuse first-picking a tie.
+    to withhold the narrative IEDB fields from the scorer.
+
+    The bucket is the right test *here*, and deliberately not the finer
+    ``condition_id`` (#450).  The question this gate asks is whether the
+    candidates differ **by treatment**, because that is the axis the
+    narrative fields are unreliable on — naming a *system* is what they do
+    well (#359).  Keying it on identity instead withholds them from exactly
+    the studies they resolve correctly: PMID 27920218's rows carry "The
+    peptidome associated to HLA-B*40 from the C1R-B*40 cell line", a real
+    per-row discriminator, and its three mono-allelic arms have distinct
+    ids but one category.  Refusing that text sends 7,629 correctly
+    discriminated rows to ``pmid_ambiguous``.
+
+    Identity is the right test for the *tie* one stage later, where the
+    question is whether scoring actually singled out one arm — see
+    :func:`_select_best_candidate`.
     """
     return len({str((c[2] or {}).get("condition_category", "")) for c in candidates}) > 1
 
@@ -445,6 +521,10 @@ def _select_group(
             group,
             "",
             {
+                # Both, so the arm guard reads its primary key here like
+                # anywhere else instead of relying on the category fallback
+                # (#450).  The two concerns stay independently editable.
+                "condition_id": group,
                 "condition_category": group,
                 # Only when the group's arms agree: a genotype that differs
                 # between arms is not a property of the system.
@@ -507,6 +587,18 @@ def _consensus_meta(
     # happen to share it.
     out["sample_note"] = ""
     out["note"] = ""
+    # Condition columns describing one arm's own record cannot outlive the arm
+    # (#450).  ``condition_id`` names it; ``condition_status`` /
+    # ``condition_evidence`` / ``condition_reference`` describe the annotation
+    # of it.  Those agree across candidates routinely — all 12 Shapiro HAP1
+    # arms are `annotated` from the same `primary_source` reference — so the
+    # consensus rule above keeps them while blanking the agent columns the arms
+    # disagree on, and the row exports "fully annotated from the paper, no
+    # knockout".  That is the ""-means-absence conflation.  Facts about the
+    # material (culture, material state, MHC context) are not arm records and
+    # do survive, which is the point of consensusing at all.
+    for _arm_col in ARM_SPECIFIC_CONDITION_COLUMNS:
+        out[_arm_col] = ""
 
     # If every surviving candidate belongs to one sample system, the system is
     # known and only the arm is not — say so, whichever stage narrowed them.
@@ -727,6 +819,7 @@ def _empty_ms_samples_columns() -> list[str]:
     ]
     return [
         *base,
+        *CONDITION_COLUMNS,
         *apm_columns_for_sample(""),
         "condition_category",
         "is_control_arm",
@@ -905,6 +998,13 @@ def generate_ms_samples_table(
             for field in _ACQUISITION_FIELDS:
                 row[field] = sample.get(field) or entry.get(field) or ""
             row["instrument_type"] = _classify_instrument(row["instrument"])
+            # The flat condition block (#450).  Read straight off the curated
+            # record — never derived from the ``condition`` prose, because a
+            # guess would be indistinguishable from curation in every export,
+            # and telling those apart is the whole point of the block.  The
+            # legacy ``perturbation`` / ``condition_category`` / ``apm_*``
+            # classifiers below keep their documented meanings alongside.
+            row.update(condition_columns_for_sample(sample))
             # APM perturbation block — one boolean per gene + union
             # (#202).  Per-gene flags come from this sample's own
             # condition; the study's panel-level list is reported in the
@@ -1165,6 +1265,11 @@ def generate_observations_table(
         # arm, and how confidently the row was attributed to a sample.
         "is_control_arm",
         "sample_attribution",
+        # The flat condition block (#450).  These describe the matched arm's
+        # own experimental condition, so like the APM block they are only
+        # knowable where the row reached a sample; ``_consensus_meta`` keeps
+        # only what every candidate arm agrees on when it did not.
+        *CONDITION_COLUMNS,
         # Curated provenance (#373).  These describe the curation, not the
         # built classification flags, which stay PMID- and rule-driven at
         # build time.
@@ -1811,6 +1916,12 @@ def generate_observations_table(
                             # was nothing at all: without a winner no entry was
                             # written and the row stayed unattributed, unlike
                             # the allele path which falls back to consensus.
+                            #
+                            # Extending the fallback to ungrouped studies is
+                            # right and is not this change: it moves 1.23M rows
+                            # off blank onto `pmid_ambiguous`, and each study
+                            # that lands there needs its own measured
+                            # `arm_resolution` verdict (#451).
                             _best_meta = _consensus_meta(_cands, meta_cols)
                             _pool_attr = str(_best_meta["sample_attribution"])
                     if _best_meta is not None:
@@ -1854,7 +1965,7 @@ def generate_observations_table(
             _label_df = pd.DataFrame(_label_rows).drop_duplicates(
                 subset=["_pmid_int", "_label"], keep="first"
             )
-            _obs_label = obs["attributed_sample_label"].astype(str).str.strip()
+            _obs_label = obs["attributed_sample_label"].astype("string").fillna("").str.strip()
             _obs_label = _obs_label.where(~_obs_label.isin(("nan", "None")), "")
             if _obs_label.ne("").any():
                 _label_matched = _label_df.set_index(["_pmid_int", "_label"])[meta_cols].reindex(
@@ -2328,6 +2439,10 @@ _SAMPLE_PROVENANCE_COLUMNS = (
     "species_axes_agreement",
     "condition_category",
     "is_control_arm",
+    # The flat condition block (#450), spliced from the registry rather than
+    # retyped.  This tuple has already drifted from the plain samples export
+    # twice; a hand-copied list of 23 more names would be the third time.
+    *CONDITION_COLUMNS,
     # Curated provenance (#373).  Omitting these is how one CLI flag used to
     # change which curation a user got back; the comment above says exactly
     # that about the species axes, and the same drift recurred here.
@@ -3401,12 +3516,17 @@ def _select_best_candidate(
     if best_idx < 0 or best_score == (0, 0, 0, 0):
         return None
     # A tie at the top is only a discrimination if the tied candidates
-    # belong to the same arm.  When they disagree on
-    # ``condition_category`` the row genuinely cannot be placed, and
-    # first-picking would reintroduce the silent collapse (#354).
+    # belong to the same arm.  When they are different arms the row
+    # genuinely cannot be placed, and first-picking would reintroduce the
+    # silent collapse (#354).
+    #
+    # "Same arm" is the curated ``condition_id``, not the coarse category
+    # (#450): distinct arms that share a bucket used to pass this guard and
+    # be first-picked, which is the collapse again with a category-sized
+    # blast radius instead of a study-sized one.
     tied = [i for i, sc in enumerate(all_scores) if sc == best_score]
     if len(tied) > 1:
-        arms = {str((candidates[i][2] or {}).get("condition_category", "")) for i in tied}
+        arms = {_candidate_arm_identity(candidates[i][2]) for i in tied}
         if len(arms) > 1:
             return None
     return candidates[best_idx][2]

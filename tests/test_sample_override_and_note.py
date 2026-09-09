@@ -260,10 +260,10 @@ def test_no_unattributed_row_carries_a_sample_level_override(full_observations_d
     # redundant object column is expensive across 4.4M rows.
     assert "sample_override" not in df.columns
     unattributed = df[df["sample_label"].astype(str) == ""]
-    origins = set(unattributed["effective_override_origin"].astype(str))
+    origins = set(unattributed["effective_override_origin"].unique())
     assert origins & {"sample", "sample_null"} == set()
     # An arm's free text is arm-specific, so it cannot survive either.
-    assert (unattributed["sample_note"].astype(str) == "").all()
+    assert unattributed["sample_note"].isin([""]).all()
 
 
 def test_study_origin_values_agree_with_the_study_entry(full_observations_df):
@@ -272,7 +272,7 @@ def test_study_origin_values_agree_with_the_study_entry(full_observations_df):
 
     overrides = load_pmid_overrides()
     df = full_observations_df
-    study_rows = df[df["effective_override_origin"].astype(str) == "study"]
+    study_rows = df[df["effective_override_origin"].eq("study")]
     assert len(study_rows) > 0
     sampled = study_rows.drop_duplicates(subset=["pmid"])
     for _, row in sampled.iterrows():

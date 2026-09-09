@@ -55,6 +55,7 @@ import yaml
 from mhcgnomes import Species
 
 from .cell_name_parser import parse_cell_name
+from .conditions import CONDITION_FIELDS, validate_study_conditions
 
 #: How strongly a row establishes its named MHC restriction. This is
 #: deliberately orthogonal to ``mhc_allele_provenance``, which records where
@@ -228,6 +229,12 @@ MS_SAMPLE_FIELDS = MappingProxyType(
         "search_engine": "search engine; overrides the study-level value",
         "fdr": "false discovery rate; overrides the study-level value",
         "type": "DEPRECATED spelling of sample_label (v1.7.0); warned about, never read",
+        # The flat experimental-condition block (#450).  Spliced in from the
+        # one registry rather than retyped: these columns are authored on
+        # ms_samples, validated at load, and exported under these same names,
+        # so a second hand-maintained copy would be a drift site with no
+        # upside — which is how _SAMPLE_PROVENANCE_COLUMNS drifted twice.
+        **CONDITION_FIELDS,
     }
 )
 
@@ -242,6 +249,39 @@ MHC_ALLELE_PROVENANCE_VALUES = (
     "pmid_class_pool",
     "unmatched",
 )
+
+
+class UniqueKeyLoader(yaml.SafeLoader):
+    """``SafeLoader`` that rejects a mapping key declared twice.
+
+    PyYAML resolves a duplicate key by keeping the last one, silently. On a
+    hand-maintained 8k-line curation file that is a data-loss mode with no
+    symptom: a second ``mhc:`` on one ``ms_samples`` record discards the
+    first genotype, and every downstream check still passes because the
+    record is well-formed. The duplicate-*PMID* guard below exists for the
+    same failure one level up (#438); this closes it at the key level.
+
+    Public because it has a consumer outside this module
+    (:func:`hitlist.conditions.load_condition_vocabulary`). The other
+    hand-maintained curation YAML still loads through plain ``safe_load``;
+    all 11 packaged files are currently duplicate-free, and moving them over
+    is #454.
+    """
+
+    def construct_mapping(self, node, deep=False):
+        seen = set()
+        for key_node, _ in node.value:
+            key = self.construct_object(key_node, deep=deep)
+            if key in seen:
+                raise yaml.constructor.ConstructorError(
+                    "while constructing a mapping",
+                    node.start_mark,
+                    f"found duplicate key {key!r}; PyYAML would keep only the last "
+                    f"value and discard the first with no error",
+                    key_node.start_mark,
+                )
+            seen.add(key)
+        return super().construct_mapping(node, deep=deep)
 
 
 def _data_path(filename: str) -> str:
@@ -291,7 +331,7 @@ def load_pmid_overrides() -> dict[int, dict]:
     import warnings
 
     with open(_data_path("pmid_overrides.yaml")) as f:
-        entries = yaml.safe_load(f)
+        entries = yaml.load(f, Loader=UniqueKeyLoader)
 
     known_hosts = {e["name"] for e in load_monoallelic_lines()}
     for e in entries:
@@ -356,6 +396,9 @@ def load_pmid_overrides() -> dict[int, dict]:
                 f"what reads it — an undeclared key is silently ignored by every consumer "
                 f"(#444).  Fix the typo, or add the field and its reader."
             )
+        # The flat condition block: per-record shape, then the study-scoped
+        # identity and control-reference rules (#450).
+        validate_study_conditions(e)
         if group_sizes and ungrouped_labels:
             raise ValueError(
                 f"PMID {e.get('pmid')}: sample_group is curated on "

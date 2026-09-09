@@ -217,8 +217,8 @@ def test_single_arm_systems_attribute_and_paired_ones_report_the_system(full_obs
         pytest.skip("Chong 2018 not present in this build")
 
     labels = study["sample_label"].astype(str)
-    groups = study["sample_group"].astype(str)
-    attribution = study["sample_attribution"].astype(str)
+    groups = study["sample_group"]
+    attribution = study["sample_attribution"]
 
     # Single-arm systems reach a specific arm.
     assert (labels == "melanoma TILs (expanded)").sum() > 0
@@ -228,7 +228,7 @@ def test_single_arm_systems_attribute_and_paired_ones_report_the_system(full_obs
     for group in ("B-LCLs (JY, CD165, PD42, CM467, RA957)", "UWB.1 289 (ovarian carcinoma)"):
         rows = study[groups == group]
         assert len(rows) > 0
-        assert (rows["sample_attribution"].astype(str) == "group_ambiguous").all()
+        assert rows["sample_attribution"].eq("group_ambiguous").all()
         assert (rows["sample_label"].astype(str) == "").all()
 
     # No row is attributed to a specific arm of a paired system.
@@ -241,18 +241,18 @@ def test_single_arm_systems_attribute_and_paired_ones_report_the_system(full_obs
 def test_group_ambiguous_rows_never_name_an_arm(full_observations_df):
     """The whole point: system known, arm withheld — not arm guessed."""
     df = full_observations_df
-    rows = df[df["sample_attribution"].astype(str) == "group_ambiguous"]
+    rows = df[df["sample_attribution"].eq("group_ambiguous")]
     if rows.empty:
         pytest.skip("no grouped studies in this build")
     assert (rows["sample_label"].astype(str) == "").all()
-    assert (rows["sample_group"].astype(str) != "").all()
+    assert (~rows["sample_group"].isin([""])).all()
     # Every reported group must be one a curator actually wrote.
     curated = {
         str(s.get("sample_group", "") or "")
         for entry in load_pmid_overrides().values()
         for s in (entry.get("ms_samples") or [])
     }
-    assert set(rows["sample_group"].astype(str)) <= curated
+    assert set(rows["sample_group"].unique()) <= curated
 
 
 def test_attribution_vocabulary_covers_what_the_join_emits():
