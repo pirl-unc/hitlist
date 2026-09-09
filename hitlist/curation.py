@@ -166,6 +166,12 @@ MS_SAMPLE_FIELDS = MappingProxyType(
         "species": "per-sample source proteome; overrides the study-level value (#372)",
         "peptides": "curated peptide count for the arm",
         "reference_proteomes": "per-sample viral / parasite proteome references",
+        "sample_group": (
+            "the sample *system* this arm belongs to (a cell line, tissue, donor "
+            "cohort). Attribution resolves the group first, using IEDB's narrative "
+            "fields — they identify the system reliably and say nothing about "
+            "treatment — then the arm within it (#359)"
+        ),
         "override": (
             "per-sample provenance override, exported as sample_override / "
             "effective_override. Metadata only: classify_ms_row never sees "
@@ -299,6 +305,18 @@ def load_pmid_overrides() -> dict[int, dict]:
                 f"Every key must be declared in curation.PMID_ENTRY_FIELDS together with "
                 f"what reads it — an undeclared key is silently ignored by every consumer "
                 f"(#444).  Fix the typo, or add the field and its reader."
+            )
+        samples_in_entry = e.get("ms_samples") or []
+        grouped = [s_ for s_ in samples_in_entry if s_.get("sample_group")]
+        if grouped and len(grouped) != len(samples_in_entry):
+            ungrouped = [
+                s_.get("sample_label", "?") for s_ in samples_in_entry if not s_.get("sample_group")
+            ]
+            raise ValueError(
+                f"PMID {e.get('pmid')}: sample_group is curated on "
+                f"{len(grouped)} of {len(samples_in_entry)} ms_samples; it must be on all "
+                f"or none.  Missing on {ungrouped}.  A partially grouped study falls back "
+                f"to ungrouped attribution, silently losing the grouping (#359)."
             )
         entry_override = e.get("override")
         if entry_override is not None and entry_override not in OVERRIDE_VALUES:

@@ -38,8 +38,8 @@ Re-measuring on the current corpus before writing code contradicted two of the f
 
 - [x] Re-measure all five issues on the current corpus; run the #359 counterfactual.
 - [x] PR 1: `qc.sample_attribution_audit` + CLI, `PMID_ENTRY_FIELDS` guard, #362 close-out test.
-- [ ] PR 1: gates, corpus identity check, PR, CI, merge, deploy 1.58.9, close #442 and #362.
-- [ ] PR 2: `sample_group` + group-aware attribution; curate 29242379, 30833945, 32938616, 27371725.
+- [x] PR 1: PR #445, CI green, merged, deployed 1.58.9, wheel verified; #442 and #362 closed.
+- [x] PR 2: `sample_group` + group-aware attribution; curated all four studies.
 - [ ] PR 2: corpus before/after, gates, PR, CI, merge, deploy 1.59.0, close #359 and #364.
 - [ ] PR 3: `arm_resolution` across all 28 ambiguous studies; deploy 1.59.1, close #366.
 
@@ -96,6 +96,44 @@ become a synonym for "accepted and ignored", the exact failure #373 exists to pr
 
 Corpus effect: 13 sample rows move `study` → `study_conditional`; zero changes to observation row
 identities. Gates: format, lint, 1,432 tests, build smoke.
+
+### PR 2 — #359 + #364 (1.59.0)
+
+`sample_group` names the sample *system* an arm belongs to. Attribution resolves the system
+first — admitting IEDB's narrative fields, because identifying a system is what they do reliably
+— then the arm within it, where those fields stay blocked. Opt-in per study and enforced
+all-or-nothing at load, so a half-curated study cannot silently fall back.
+
+The plan's counterfactual held: symmetric labels alone would have produced `""`. What makes the
+study attributable is the group stage plus a `_consensus_meta` fallback on the class-pool path,
+which the allele path already had.
+
+| study | before | after |
+|---|---|---|
+| 29242379 Chong | 3,919 attributed, all to the wrong arm | 11,450 arm-resolved, 70,878 system-resolved |
+| 30833945 Javitt | 4,676 attributed to the wrong arm | 7,524 system-resolved |
+| 32938616 Faridi | 37,643 condition-only, panel-level | 37,643 line+condition, 54,526 line-resolved |
+| 27371725 Nagarajan | 1,334 rows with no arm | all 1,970 reach a curated arm |
+
+Corpus-wide: unattributed 1,630,156 -> 1,493,039; `discriminated` down exactly 8,595, the false
+control-arm attributions and nothing else; `elution_conditions` unchanged at 74,304. Row
+identities identical, and only the four curated PMIDs moved.
+
+Two source findings changed the curation from what the issues assumed. **Nagarajan's classical
+restrictions are NetMHC predictions**, not measurements: the study acid-eluted the whole cell
+surface with no allele-specific pulldown, then assigned H2-Kb/H2-Db by NetMHC and Qa-2a by
+Rankpep. Only Qa-1b was experimental, and no Qa-1b rows are in the corpus — so the entry sets
+`restriction_evidence: predicted`, the vocabulary #415 exists for. The paper's real title covers
+classical MHC, and IEDB was right that the cells are bone-marrow-derived dendritic cells, not the
+curated "splenocytes". **Faridi ran three lines**, not a panel; LM-MEL-53's HLA type is stated
+nowhere in the paper, so it stays class-only rather than inheriting LM-MEL-44's on the strength of
+being the same patient.
+
+Implementation note: the token scorer drops tokens under three characters, so `LM-MEL-44` and
+`LM-MEL-33` both reduced to `mel` and tied — the digits that distinguish them were invisible. The
+group selector now tries an alphanumerics-only containment test first (`lmmel44` inside
+`lmmel44melanocyte`), per-row factual fields before narrative ones, falling back to token scoring.
+That recovered all 37,643 elution-resolved rows, which the first attempt had cut to 14,617.
 
 ---
 
