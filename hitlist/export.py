@@ -1917,18 +1917,18 @@ def generate_observations_table(
                             # was not an exact allele match), but report how
                             # the sample metadata was actually attributed.
                             _pool_attr = "discriminated"
-                        elif _grouped:
-                            # The system is known and the arm is not.  That is
-                            # strictly more than this path used to say, which
-                            # was nothing at all: without a winner no entry was
-                            # written and the row stayed unattributed, unlike
-                            # the allele path which falls back to consensus.
+                        else:
+                            # No winner: fall back to what every candidate
+                            # agrees on, exactly as the allele path does.
+                            # ``_consensus_meta`` reports ``group_ambiguous``
+                            # when the survivors share a system and
+                            # ``pmid_ambiguous`` when they do not.
                             #
-                            # Extending the fallback to ungrouped studies is
-                            # right and is not this change: it moves 1.23M rows
-                            # off blank onto `pmid_ambiguous`, and each study
-                            # that lands there needs its own measured
-                            # `arm_resolution` verdict (#451).
+                            # This ran only for grouped studies until #451, so
+                            # an ungrouped one wrote no entry at all and the
+                            # row stayed blank — indistinguishable from a row
+                            # that matched no sample, while discarding the
+                            # metadata every candidate agreed on.
                             _best_meta = _consensus_meta(_cands, meta_cols)
                             _pool_attr = str(_best_meta["sample_attribution"])
                     if _best_meta is not None:
