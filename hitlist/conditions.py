@@ -225,6 +225,11 @@ _GENE_SYMBOL_RE = re.compile(r"^[A-Z][A-Z0-9]*(-[A-Z0-9]+)*$")
 #: names all live here.
 _OPEN_TOKEN_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 ._/+()'-]*$")
 
+#: Columns holding free text rather than categorical tokens.  A source
+#: locator is prose — "PMC6823859 Methods, 'Cell lines and antibodies'" — and
+#: running it through the token shape check would reject every useful one.
+FREE_TEXT_CONDITION_COLUMNS = frozenset({"condition_reference"})
+
 #: A ``condition_id``: lowercase, short, and free of the separators the
 #: multi-value cells use, so a control reference can never be ambiguous.
 _CONDITION_ID_RE = re.compile(r"^[a-z0-9][a-z0-9_]*$")
@@ -420,7 +425,17 @@ def _validate_column(column: str, raw: object, where: str) -> str:
     if not value:
         return ""
 
+    if column in FREE_TEXT_CONDITION_COLUMNS:
+        return value
+
     allowed = CLOSED_CONDITION_VOCABULARIES.get(column)
+    if value == "none" and column not in NONE_PERMITTED_CONDITION_COLUMNS:
+        raise ValueError(
+            f"{where} {column}={value!r} uses 'none', which this column does not "
+            f"support.  'none' asserts that an intervention was not applied; for a "
+            f"context field the source simply did not say, and '' is how that is "
+            f"recorded."
+        )
     if column in MULTI_VALUE_CONDITION_COLUMNS:
         if ";;" in value or value.startswith(";") or value.endswith(";"):
             raise ValueError(
@@ -429,13 +444,6 @@ def _validate_column(column: str, raw: object, where: str) -> str:
             )
         tokens = value.split(";")
         if "none" in tokens:
-            if column not in NONE_PERMITTED_CONDITION_COLUMNS:
-                raise ValueError(
-                    f"{where} {column}={value!r} uses 'none', which this column does "
-                    f"not support.  'none' asserts that an intervention was not "
-                    f"applied; for a context field the source simply did not say, and "
-                    f"'' is how that is recorded."
-                )
             if len(tokens) > 1:
                 raise ValueError(
                     f"{where} {column}={value!r} mixes 'none' with {sorted(set(tokens) - {'none'})}.  "

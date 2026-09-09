@@ -442,9 +442,9 @@ def main() -> int:
             fields = [(k.value, v) for k, v in sample.value]
             names = [k for k, _ in fields]
             condition = next(v.value for k, v in fields if k == "condition")
-            conditions_seen.add(condition)
             if "condition_id" in names:
-                continue  # already migrated
+                continue  # already migrated; a later hand-correction stands
+            conditions_seen.add(condition)
 
             ann = dict(ANNOTATIONS.get(condition, UNREPORTED))
             label = next((v.value for k, v in fields if k == "sample_label"), f"pmid_{pmid}")
@@ -473,7 +473,7 @@ def main() -> int:
             print(f"  {c!r}")
         return 1
     unused = set(ANNOTATIONS) - conditions_seen
-    if unused:
+    if conditions_seen and unused:
         print(f"ERROR: {len(unused)} annotation(s) match no curated string (stale/typo):")
         for c in sorted(unused):
             print(f"  {c!r}")

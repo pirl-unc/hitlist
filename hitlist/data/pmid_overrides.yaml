@@ -3042,8 +3042,12 @@
         condition: unperturbed
         condition_id: "hap1_wildtype"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
         condition_control: "untreated"
+        condition_reference: "PMC12090245 Abstract; Results, 'In-Depth Immunopeptidomics' para. 1; Experimental Procedures, 'Cell Culture', 'Reagents' and 'Experimental Design and Statistical Rationale'; supplemental Table S1"
+        condition_control_for: "hap1_b2m_ko;hap1_calr_ko;hap1_canx_ko;hap1_erap1_ko;hap1_ganab_ko;hap1_irf2_ko;hap1_pdia3_ko;hap1_sppl3_ko;hap1_tap1_ko;hap1_tap2_ko;hap1_tapbp_ko"
+        condition_knockout_genes: "none"
+        condition_culture: "RPMI-1640"
         mhc_class: I
         mhc: "HLA-A*02:01 HLA-B*40:01 HLA-C*03:04"
       - sample_label: HAP1 B2M KO
@@ -3051,9 +3055,11 @@
         condition: B2M CRISPR/Cas9 knockout
         condition_id: "hap1_b2m_ko"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
         condition_combination: "single"
         condition_knockout_genes: "B2M"
+        condition_reference: "PMC12090245 Abstract; Results, 'In-Depth Immunopeptidomics' para. 1; Experimental Procedures, 'Cell Culture', 'Reagents' and 'Experimental Design and Statistical Rationale'; supplemental Table S1"
+        condition_culture: "RPMI-1640"
         mhc_class: I
         mhc: "HLA-A*02:01 HLA-B*40:01 HLA-C*03:04"
       - sample_label: HAP1 TAP1 KO
@@ -3061,9 +3067,11 @@
         condition: TAP1 CRISPR/Cas9 knockout
         condition_id: "hap1_tap1_ko"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
         condition_combination: "single"
         condition_knockout_genes: "TAP1"
+        condition_reference: "PMC12090245 Abstract; Results, 'In-Depth Immunopeptidomics' para. 1; Experimental Procedures, 'Cell Culture', 'Reagents' and 'Experimental Design and Statistical Rationale'; supplemental Table S1"
+        condition_culture: "RPMI-1640"
         mhc_class: I
         mhc: "HLA-A*02:01 HLA-B*40:01 HLA-C*03:04"
       - sample_label: HAP1 TAP2 KO
@@ -3071,9 +3079,11 @@
         condition: TAP2 CRISPR/Cas9 knockout
         condition_id: "hap1_tap2_ko"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
         condition_combination: "single"
         condition_knockout_genes: "TAP2"
+        condition_reference: "PMC12090245 Abstract; Results, 'In-Depth Immunopeptidomics' para. 1; Experimental Procedures, 'Cell Culture', 'Reagents' and 'Experimental Design and Statistical Rationale'; supplemental Table S1"
+        condition_culture: "RPMI-1640"
         mhc_class: I
         mhc: "HLA-A*02:01 HLA-B*40:01 HLA-C*03:04"
       - sample_label: HAP1 TAPBP KO
@@ -3081,9 +3091,11 @@
         condition: TAPBP CRISPR/Cas9 knockout (tapasin)
         condition_id: "hap1_tapbp_ko"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
         condition_combination: "single"
         condition_knockout_genes: "TAPBP"
+        condition_reference: "PMC12090245 Abstract; Results, 'In-Depth Immunopeptidomics' para. 1; Experimental Procedures, 'Cell Culture', 'Reagents' and 'Experimental Design and Statistical Rationale'; supplemental Table S1"
+        condition_culture: "RPMI-1640"
         mhc_class: I
         mhc: "HLA-A*02:01 HLA-B*40:01 HLA-C*03:04"
       - sample_label: HAP1 IRF2 KO
@@ -3091,9 +3103,11 @@
         condition: IRF2 CRISPR/Cas9 knockout
         condition_id: "hap1_irf2_ko"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
         condition_combination: "single"
         condition_knockout_genes: "IRF2"
+        condition_reference: "PMC12090245 Abstract; Results, 'In-Depth Immunopeptidomics' para. 1; Experimental Procedures, 'Cell Culture', 'Reagents' and 'Experimental Design and Statistical Rationale'; supplemental Table S1"
+        condition_culture: "RPMI-1640"
         mhc_class: I
         mhc: "HLA-A*02:01 HLA-B*40:01 HLA-C*03:04"
       - sample_label: HAP1 PDIA3 KO
@@ -3101,9 +3115,11 @@
         condition: PDIA3 CRISPR/Cas9 knockout (ERp57)
         condition_id: "hap1_pdia3_ko"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
         condition_combination: "single"
         condition_knockout_genes: "PDIA3"
+        condition_reference: "PMC12090245 Abstract; Results, 'In-Depth Immunopeptidomics' para. 1; Experimental Procedures, 'Cell Culture', 'Reagents' and 'Experimental Design and Statistical Rationale'; supplemental Table S1"
+        condition_culture: "RPMI-1640"
         mhc_class: I
         mhc: "HLA-A*02:01 HLA-B*40:01 HLA-C*03:04"
       - sample_label: HAP1 ERAP1 KO
@@ -3111,9 +3127,11 @@
         condition: ERAP1 CRISPR/Cas9 knockout
         condition_id: "hap1_erap1_ko"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
         condition_combination: "single"
         condition_knockout_genes: "ERAP1"
+        condition_reference: "PMC12090245 Abstract; Results, 'In-Depth Immunopeptidomics' para. 1; Experimental Procedures, 'Cell Culture', 'Reagents' and 'Experimental Design and Statistical Rationale'; supplemental Table S1"
+        condition_culture: "RPMI-1640"
         mhc_class: I
         mhc: "HLA-A*02:01 HLA-B*40:01 HLA-C*03:04"
       - sample_label: HAP1 GANAB KO
@@ -3121,9 +3139,11 @@
         condition: GANAB CRISPR/Cas9 knockout (glucosidase II alpha)
         condition_id: "hap1_ganab_ko"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
         condition_combination: "single"
         condition_knockout_genes: "GANAB"
+        condition_reference: "PMC12090245 Abstract; Results, 'In-Depth Immunopeptidomics' para. 1; Experimental Procedures, 'Cell Culture', 'Reagents' and 'Experimental Design and Statistical Rationale'; supplemental Table S1"
+        condition_culture: "RPMI-1640"
         mhc_class: I
         mhc: "HLA-A*02:01 HLA-B*40:01 HLA-C*03:04"
       - sample_label: HAP1 SPPL3 KO
@@ -3131,9 +3151,11 @@
         condition: SPPL3 CRISPR/Cas9 knockout
         condition_id: "hap1_sppl3_ko"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
         condition_combination: "single"
         condition_knockout_genes: "SPPL3"
+        condition_reference: "PMC12090245 Abstract; Results, 'In-Depth Immunopeptidomics' para. 1; Experimental Procedures, 'Cell Culture', 'Reagents' and 'Experimental Design and Statistical Rationale'; supplemental Table S1"
+        condition_culture: "RPMI-1640"
         mhc_class: I
         mhc: "HLA-A*02:01 HLA-B*40:01 HLA-C*03:04"
       - sample_label: HAP1 CANX KO
@@ -3141,9 +3163,11 @@
         condition: CANX CRISPR/Cas9 knockout (calnexin)
         condition_id: "hap1_canx_ko"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
         condition_combination: "single"
         condition_knockout_genes: "CANX"
+        condition_reference: "PMC12090245 Abstract; Results, 'In-Depth Immunopeptidomics' para. 1; Experimental Procedures, 'Cell Culture', 'Reagents' and 'Experimental Design and Statistical Rationale'; supplemental Table S1"
+        condition_culture: "RPMI-1640"
         mhc_class: I
         mhc: "HLA-A*02:01 HLA-B*40:01 HLA-C*03:04"
       - sample_label: HAP1 CALR KO
@@ -3151,9 +3175,11 @@
         condition: CALR CRISPR/Cas9 knockout (calreticulin)
         condition_id: "hap1_calr_ko"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
         condition_combination: "single"
         condition_knockout_genes: "CALR"
+        condition_reference: "PMC12090245 Abstract; Results, 'In-Depth Immunopeptidomics' para. 1; Experimental Procedures, 'Cell Culture', 'Reagents' and 'Experimental Design and Statistical Rationale'; supplemental Table S1"
+        condition_culture: "RPMI-1640"
         mhc_class: I
         mhc: "HLA-A*02:01 HLA-B*40:01 HLA-C*03:04"
   - pmid: 27600516
@@ -6438,7 +6464,7 @@
         condition_evidence: "curated_text"
         condition_control: "untreated"
         mhc_class: "I"
-        mhc: "HLA-A*25:01 HLA-A*30:01 HLA-B*07:02 HLA-B*44:03 HLA-C*12:03"
+        mhc: "HLA-A*25:01 HLA-A*30:01 HLA-B*18:01 HLA-B*44:03 HLA-C*12:03"
       - sample_label: "A549-ACE2-TMPRSS2 (SARS-CoV-2-infected)"
         n_samples: 1
         source: A549-ACE2-TMPRSS2 infected with SARS-CoV-2 (3–24 hpi timecourse)
@@ -6449,7 +6475,7 @@
         condition_combination: "single"
         condition_infection: "SARS-CoV-2"
         mhc_class: "I"
-        mhc: "HLA-A*25:01 HLA-A*30:01 HLA-B*07:02 HLA-B*44:03 HLA-C*12:03"
+        mhc: "HLA-A*25:01 HLA-A*30:01 HLA-B*18:01 HLA-B*44:03 HLA-C*12:03"
         reference_proteomes:
           - uniprot: UP000464024
             proteome_label: SARS-CoV-2
@@ -7808,17 +7834,27 @@
         condition: "unperturbed"
         condition_id: "c1r_hla_b_40_02_wt"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
         condition_control: "untreated"
+        condition_reference: "PMC6823859 Experimental Procedures, 'Cell Lines' and 'ERAP2 KO Generation by CRISPR'; Results, 'ERAP1, ERAP2, and HLA-B*40:02 Expression on WT and ERAP2 KO Lines'"
+        condition_control_for: "c1r_hla_b_40_02_erap2_ko"
+        condition_knockout_genes: "none"
+        condition_background: "ERAP1_hap8"
+        condition_mhc_context: "mhc_transfectant"
+        condition_culture: "RPMI-1640"
         mhc_class: "I"
         mhc: "HLA-B*40:02"
       - sample_label: "C1R HLA-B*40:02 (ERAP2 KO)"
         condition: "ERAP2 CRISPR KO"
         condition_id: "c1r_hla_b_40_02_erap2_ko"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
         condition_combination: "single"
         condition_knockout_genes: "ERAP2"
+        condition_reference: "PMC6823859 Experimental Procedures, 'Cell Lines' and 'ERAP2 KO Generation by CRISPR'; Results, 'ERAP1, ERAP2, and HLA-B*40:02 Expression on WT and ERAP2 KO Lines'"
+        condition_background: "ERAP1_hap8"
+        condition_mhc_context: "mhc_transfectant"
+        condition_culture: "RPMI-1640"
         mhc_class: "I"
         mhc: "HLA-B*40:02"
 
@@ -7940,19 +7976,24 @@
         condition: "unperturbed"
         condition_id: "a549_lung_cancer_untreated"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
         condition_control: "untreated"
+        condition_reference: "PMC6387973 Methods, 'Cell Culture and Treatments'; Results, 'TNFa and IFNg Signaling Increases Presentation of MHC I Peptides'; Figure 2A legend"
+        condition_control_for: "a549_lung_cancer_tnfa_ifng"
+        condition_culture: "DMEM"
         mhc_class: "I"
-        mhc: "HLA-A*25:01 HLA-A*30:01 HLA-B*07:02 HLA-B*44:03 HLA-C*12:03"
+        mhc: "HLA-A*25:01 HLA-A*30:01 HLA-B*18:01 HLA-B*44:03 HLA-C*12:03"
       - sample_label: "A549 lung cancer + TNFa + IFNg"
         condition: "TNF-alpha + IFN-gamma"
         condition_id: "a549_lung_cancer_tnfa_ifng"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
         condition_combination: "simultaneous"
         condition_cytokines: "IFNG;TNF"
+        condition_reference: "PMC6387973 Methods, 'Cell Culture and Treatments'; Results, 'TNFa and IFNg Signaling Increases Presentation of MHC I Peptides'; Figure 2A legend"
+        condition_culture: "DMEM"
         mhc_class: "I"
-        mhc: "HLA-A*25:01 HLA-A*30:01 HLA-B*07:02 HLA-B*44:03 HLA-C*12:03"
+        mhc: "HLA-A*25:01 HLA-A*30:01 HLA-B*18:01 HLA-B*44:03 HLA-C*12:03"
 
   - pmid: 32265295
     study_label: "Lorente 2020 — HLA-B*27:05 ERAP2 KO"
@@ -9751,9 +9792,12 @@
         condition: "unperturbed — DMSO vehicle control"
         condition_id: "skmel5_melanoma_dmso_control"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
         condition_control: "vehicle"
         condition_drugs: "DMSO"
+        condition_reference: "PMC8449407 Results and Discussion para. 2; SI Appendix, 'Cell culture', 'Peptide MHC isolation' and 'Flow cytometry'; Figure 2C legend; PXD024917 Dataset S7"
+        condition_control_for: "skmel5_melanoma_binimetinib_meki"
+        condition_culture: "DMEM"
         mhc_class: "I"
         mhc: "HLA class I"
         source: "BRAF-mutant cutaneous melanoma line SKMEL5 (CVCL_0527), 7.5e6 cells / 5 mg lysate, n=3"
@@ -9762,21 +9806,23 @@
         condition: "MEK inhibitor (binimetinib, 100 nM, 72 h)"
         condition_id: "skmel5_melanoma_binimetinib_meki"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
         condition_combination: "single"
         condition_drugs: "binimetinib"
+        condition_reference: "PMC8449407 Results and Discussion para. 2; SI Appendix, 'Cell culture', 'Peptide MHC isolation' and 'Flow cytometry'; Figure 2C legend; PXD024917 Dataset S7"
+        condition_culture: "DMEM"
         mhc_class: "I"
         mhc: "HLA class I"
         source: "BRAF-mutant cutaneous melanoma line SKMEL5 (CVCL_0527), 7.5e6 cells / 5 mg lysate, n=3"
         override: cell_line
       - sample_label: "patient melanoma biopsies"
         n_samples: 10
-        condition: "unperturbed — fresh tumor punch biopsies"
+        condition: "unperturbed — snap-frozen tumor punch biopsies"
         condition_id: "patient_melanoma_biopsies"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
-        condition_control: "untreated"
-        condition_material: "fresh"
+        condition_evidence: "primary_source"
+        condition_material: "frozen"
+        condition_reference: "PMC8449407 Materials and Methods para. 1 ('collected, snap frozen, and stored at -80 C'); SI Appendix, 'Human Tumor HLA typing'; Dataset S5"
         mhc_class: "I"
         mhc: "HLA class I"
         source: "10 HLA-A*02:01-positive human melanoma punch biopsies, 1.1-5.0 mg homogenized lysate"

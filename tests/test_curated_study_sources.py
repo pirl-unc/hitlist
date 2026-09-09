@@ -205,3 +205,140 @@ def test_liepe_2016_t2_rows_are_not_attributed_to_a_phantom_sample(full_observat
     t2 = sub[labels.str.startswith("T2")]
     assert len(t2) == 111
     assert (t2["sample_attribution"].astype(str) == "allele_exact").all()
+
+
+# ── The #450 primary-source pilot ───────────────────────────────────────────
+#
+# Four studies read against the paper to check that the flat condition columns
+# can carry what a source actually states.  Two of the four disproved existing
+# curation, which is the point of reading them: both errors were plausible,
+# and neither was visible to any consistency check.
+
+
+def _condition(pmid: int, condition_id: str) -> dict:
+    return next(s for s in _samples(pmid) if s.get("condition_id") == condition_id)
+
+
+def test_pilot_records_cite_where_in_the_source_the_facts_are():
+    """A `primary_source` claim without a locator is an unverifiable assertion."""
+    verified = [s for pmid in (31530632, 30833945, 34497125, 40113210) for s in _samples(pmid)]
+    assert len(verified) == 19
+    for sample in verified:
+        assert sample["condition_evidence"] == "primary_source"
+        reference = sample["condition_reference"]
+        assert reference.startswith("PMC"), reference
+        assert len(reference) > 40, f"{reference!r} names no section"
+
+
+def test_lorente_2019_separates_the_background_from_the_knockout():
+    """C1R's own ERAP1 haplotype is not something this study did to it.
+
+    *"C1R cells are ERAP2-positive and express the ERAP1 variant Hap8"*
+    (Experimental Procedures, "Cell Lines"), and the KO leaves it alone —
+    *"their expression of ERAP1 remained unaltered"*.  So Hap8 is the
+    material's background on both arms, while ERAP2 is the intervention on
+    one.  Collapsing the two would read as an ERAP1 perturbation.
+    """
+    wt = _condition(31530632, "c1r_hla_b_40_02_wt")
+    ko = _condition(31530632, "c1r_hla_b_40_02_erap2_ko")
+    assert wt["condition_background"] == ko["condition_background"] == "ERAP1_hap8"
+    assert ko["condition_knockout_genes"] == "ERAP2"
+    # ERAP2-positive is stated, so absence here is a claim, not a silence.
+    assert wt["condition_knockout_genes"] == "none"
+    assert wt["condition_control_for"] == "c1r_hla_b_40_02_erap2_ko"
+    # A transfectant on an HLA-low host; the paper never calls it mono-allelic.
+    assert wt["condition_mhc_context"] == "mhc_transfectant"
+
+
+def test_javitt_2019_keeps_both_cytokines_without_splitting_them():
+    """Only the combination was profiled, so neither effect is separable.
+
+    *"A549 cells were stimulated with TNF-alpha and IFN-gamma (denoted as T+I) or left
+    untreated (UT)"* — there is no single-cytokine MS arm anywhere in the
+    paper, so the two factors belong in one row and nothing may infer either
+    one alone.
+    """
+    arms = _samples(30833945)
+    assert len(arms) == 2
+    treated = _condition(30833945, "a549_lung_cancer_tnfa_ifng")
+    assert treated["condition_cytokines"] == "IFNG;TNF"
+    assert treated["condition_combination"] == "simultaneous"
+    untreated = _condition(30833945, "a549_lung_cancer_untreated")
+    assert not untreated.get("condition_cytokines")
+    assert untreated["condition_control_for"] == "a549_lung_cancer_tnfa_ifng"
+
+
+def test_javitt_2019_a549_genotype_matches_the_paper_and_the_rows():
+    """`HLA-B*07:02` was a transcription error for `HLA-B*18:01`.
+
+    The paper names B*18:01 twice — *"both HLA-B4403 and -B1801 bind mainly
+    to peptides with a glutamic acid at the second position"* — and never
+    mentions B*07:02.  IEDB agrees: this PMID's rows carry
+    `HLA-A*25:01;HLA-A*30:01;HLA-B*18:01;HLA-B*44:03;HLA-C*12:03`, 1,120 of
+    them restricted to B*18:01 alone and none to B*07:02.  A curated genotype
+    no row carries is a claim about nothing (#436), and it mattered here: the
+    paper's central result is a B*18:01/B*44:03 P2-glutamate motif, while
+    B*07:02 is a P2-proline binder.
+    """
+    for pmid in (30833945, 34171305):
+        for sample in _samples(pmid):
+            mhc = str(sample.get("mhc") or "")
+            if "HLA-A*25:01" in mhc:
+                assert "HLA-B*18:01" in mhc, f"PMID {pmid}: {mhc}"
+                assert "HLA-B*07:02" not in mhc, f"PMID {pmid}: {mhc}"
+
+
+def test_stopfer_2021_biopsies_are_frozen_and_of_unstated_treatment():
+    """Two assertions the paper does not support, both plausible.
+
+    *"Tumor samples were collected, snap frozen, and stored at -80 C prior
+    to analysis"* (Materials and Methods) — the curation said "fresh", a word
+    that appears nowhere in the paper or its SI.  And the paper says nothing
+    at all about prior or concurrent therapy for these metastatic-melanoma
+    patients, so `condition_control: untreated` asserted a fact no source
+    states.  An unreported condition must not become an untreated one.
+    """
+    biopsies = _condition(34497125, "patient_melanoma_biopsies")
+    assert biopsies["condition_material"] == "frozen"
+    assert "snap-frozen" in biopsies["condition"]
+    assert "fresh" not in biopsies["condition"]
+    assert not biopsies.get("condition_control")
+
+
+def test_stopfer_2021_vehicle_is_both_a_vehicle_and_a_comparator():
+    """*"treated with binimetinib ... or DMSO as a vehicle control for 72 hrs"*.
+
+    The vehicle exposure and the control role are different facts and both
+    survive: DMSO is what the cells saw, `vehicle` is what the arm is for.
+    """
+    dmso = _condition(34497125, "skmel5_melanoma_dmso_control")
+    assert dmso["condition_drugs"] == "DMSO"
+    assert dmso["condition_control"] == "vehicle"
+    assert dmso["condition_control_for"] == "skmel5_melanoma_binimetinib_meki"
+
+
+def test_shapiro_2025_each_arm_carries_only_its_own_knockout():
+    """*"each with a KO of a single gene"* — 11 KOs plus wildtype, no doubles.
+
+    The study-wide union is what #353 stopped reaching the APM flags; the
+    same union must never reach these columns either.  The wildtype arm is
+    the paper's comparator for all eleven, which `condition_control_for`
+    records once rather than eleven implicit times.
+    """
+    arms = _samples(40113210)
+    assert len(arms) == 12
+    knockouts = {
+        s["condition_id"]: s.get("condition_knockout_genes", "")
+        for s in arms
+        if s["condition_id"] != "hap1_wildtype"
+    }
+    assert len(knockouts) == 11
+    for condition_id, genes in knockouts.items():
+        assert ";" not in genes, f"{condition_id} claims more than one knockout"
+        assert genes, f"{condition_id} claims none"
+    assert sorted(knockouts.values()) == sorted(
+        ["B2M", "TAP1", "TAP2", "TAPBP", "IRF2", "PDIA3", "ERAP1", "GANAB", "SPPL3", "CANX", "CALR"]
+    )
+    wildtype = _condition(40113210, "hap1_wildtype")
+    assert wildtype["condition_knockout_genes"] == "none"
+    assert wildtype["condition_control_for"].split(";") == sorted(knockouts)
