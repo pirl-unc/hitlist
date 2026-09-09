@@ -6,6 +6,19 @@
   before proposing an object hierarchy. Keep authoring flat, use the same column names for
   curation and exports, and add nesting only when a concrete source cannot be represented
   faithfully in the table. Verify paper-to-column extraction and row attribution separately.
+- Two guards that look like the same question can need different answers. The arm *tie*
+  guard and the narrative *admission* gate both asked "same arm?", so tightening both to
+  `condition_id` looked consistent — and cost 7,629 correct discriminations, because the
+  gate is really asking "do these differ by treatment?", where the coarse bucket is the
+  right test. Before reusing a predicate, say out loud what each caller is asking.
+- Measure a behavioural change against the base commit before believing it. A `git worktree`
+  on the base plus one probe script turned "184,811 rows changed" from a worry into a
+  reviewable table, and it is what surfaced that 204,668 rows were going *blank* rather
+  than to `pmid_ambiguous` — a pre-existing asymmetry my change was quietly worsening.
+- When a fix is right but its blast radius belongs to another change, measure the radius
+  and put the number in the issue. #451 is a one-word diff (`elif _grouped:` -> `else:`)
+  that moves 1.23M rows and obliges a per-study verdict pass; "1.23M rows" is what makes
+  that obvious to the next reader, and guessing would have made it look like a drive-by.
 
 ## 2026-09-04
 

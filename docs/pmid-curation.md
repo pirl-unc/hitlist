@@ -97,12 +97,119 @@ rather than describing behavior it does not have.
 | `source`, `species`, `reference_proteomes` | Per-sample provenance. |
 | `sample_group` | The sample **system** this arm belongs to — a cell line, tissue, or donor cohort (#359). Attribution resolves the system first, then the arm within it. **Opt-in per study and all-or-none**: curating it on a subset raises at load, as does a one-to-one group/arm mapping. See below. |
 | `profiled` | `false` (or `n_samples: 0`) for an arm that exists in the paper but was never run on the instrument. It is exported as a metadata row and excluded from observation attribution, so it can never be matched to a peptide. |
+| `condition_id`, `condition_status`, `condition_evidence`, … | The flat experimental-condition block — 23 columns, declared in `hitlist/conditions.py`. See below. |
 
 Every key an `ms_samples` entry may carry is declared in
 `curation.MS_SAMPLE_FIELDS`, mapped to what reads it. **Loading rejects an
 undeclared key.** Adding a field means adding it there together with its
 reader — otherwise it looks exactly like a field that works while reaching no
 consumer, which is how `override`, `note`, and `species` sat unread (#373).
+
+### The flat condition columns (#450)
+
+`condition` is prose and `condition_category` is one coarse bucket per arm.
+Neither can answer "every ERAP2 knockout arm" or "every vehicle control"
+without parsing, and three things are lost outright:
+
+- **A bucket cannot separate the arms inside it.** `IFN-gamma 100 IU/mL 24h`
+  and `IFN-gamma 100 ng/ml 72h` are one `IFN_gamma_treatment` value.
+- **One bucket cannot hold two factors.** `TAP1 knockout + Mycobacterium
+  tuberculosis H37Rv infection` categorizes as `TAP_perturbation`; the
+  infection reaches no exported column.
+- **`simplify_condition` blanks everything after `unperturbed — `.** Right for
+  a culture medium, wrong for the HLA-DM co-transfection that 42 arms carry
+  and 4 arms explicitly lack. All 46 read as `unperturbed`.
+
+So each arm also carries a block of scalar columns, authored on `ms_samples`
+and exported under the same names. `hitlist/conditions.py` declares them once
+— `CONDITION_COLUMNS` feeds the loader's schema, the samples row, the
+empty-frame schema, the expression-anchor projection, the observation join
+and the training defaults.
+
+| Group | Columns |
+|---|---|
+| Identity | `condition_id`, `condition_status`, `condition_evidence`, `condition_reference` |
+| Control | `condition_control`, `condition_control_for`, `condition_combination` |
+| Genetic | `condition_knockout_genes`, `condition_knockdown_genes`, `condition_overexpression_genes`, `condition_genetic_variants` |
+| Introduced | `condition_transfection`, `condition_transduction` |
+| Exposure | `condition_cytokines`, `condition_drugs`, `condition_infection`, `condition_stimulation`, `condition_antigen_exposure` |
+| Context | `condition_background`, `condition_mhc_context`, `condition_culture`, `condition_material`, `condition_labeling` |
+
+#### The three ways a cell can be empty-ish
+
+This is the part that matters, and it is the same distinction `sample_null`
+draws for `override`:
+
+| value | means |
+|---|---|
+| `""` | **Not established.** The source does not say. Never untreated. |
+| `none` | **Explicit absence.** A claim the intervention was not applied — the wild-type arm of a knockout study. Only on intervention columns, never mixed with a present agent. |
+| `unspecified` | The intervention happened and its target is unnamed (`unperturbed — 48h transfection`). |
+
+Collapsing `""` into `untreated` is the one direction that cancels the
+perturbed-vs-control contrast rather than merely adding noise — the same
+failure #392 fixed for `apm_perturbed`. The pilot caught it live: PMID
+34497125's biopsy arm was curated `untreated`, and the paper says nothing at
+all about those patients' prior therapy.
+
+#### Multi-value cells
+
+Sorted, unique, `;`-separated, and they mean **all of these apply** —
+`ERAP1;ERAP2` is a double knockout, never "one of the two". A union of
+alternatives would read as a combination treatment nobody performed, which
+is why a `mixed` record keeps only what every contributing condition shares.
+`EZH2i + decitabine + IFNg (various combinations)` therefore names no agent
+at all.
+
+The sort is also why token order never encodes a sequence. A sequential
+protocol sets `condition_combination: sequential` and keeps the order in
+`condition`.
+
+#### Status and evidence
+
+`condition_status` describes **the annotation**, not confidence that a
+peptide belongs to the arm — that is `sample_attribution`, and reporting one
+as evidence for the other is what the two vocabularies exist to prevent.
+
+| status | means |
+|---|---|
+| `annotated` | Every fact the reviewed text states is in a column. Not a claim the paper reported every variable. |
+| `partial` | The text states a fact no column captures at its stated precision. |
+| `mixed` | The record combines alternatives the source does not separate. |
+| `unreported` | Nothing has been annotated. |
+
+`condition_evidence` separates normalizing existing curated wording
+(`curated_text`) from reading the paper (`primary_source`, which requires a
+`condition_reference` naming the section, figure, table or sheet). The
+migration marked all 761 arms `curated_text` because that is what it did;
+19 arms across the four pilot studies are `primary_source`.
+
+#### Curation rules the loader enforces
+
+- **Opt-in per study, all or none** — the `sample_group` rule (#359). A
+  half-curated study exports blanks indistinguishable from "nobody could
+  establish this". An arm with nothing to say uses `condition_status:
+  unreported`, which is a statement rather than a silence.
+- **`condition_id` is unique within the study and frozen.** It is assigned
+  once in curation, never re-derived at export from a label or row position:
+  labels change, and an observation attributed to `(pmid, condition_id)`
+  must not quietly move to another arm when one does.
+- **Tokens must be canonical.** `condition_vocabulary.yaml` maps aliases to
+  canonical spellings, and loading *rejects* an alias rather than rewriting
+  it — so the YAML always shows what a consumer will filter on. An unknown
+  entity passes through: a knockout of a gene outside `apm.APM_GENES` is
+  still a knockout.
+- **`condition_control_for` must name a real sibling arm**, and only where
+  the comparison is documented.
+
+#### What did not change
+
+Additive. `condition`, `condition_category`, `perturbation`,
+`is_control_arm`, `arm_resolution` and the `apm_*` block keep their
+documented legacy meanings, and the prose classifiers in
+`condition_categories.py` / `apm.py` are untouched. `condition_control`
+(curated) and `is_control_arm` (`condition_category == "unperturbed"`) are
+different claims and both are exported.
 
 ### `sample_group` — system before arm
 
@@ -281,6 +388,34 @@ studies. A `no_row_discriminator` verdict is a measurement, so a test
 re-measures it: if a corpus refresh gives one of those studies a varying
 per-row field, the verdict is stale and the study gets looked at again rather
 than being silently trusted.
+
+### Arm identity decides a tie, the category decides the gate (#450)
+
+Two questions look alike and take different answers.
+
+**"Did scoring single out one arm?"** — `_select_best_candidate`'s tie guard.
+This is `condition_id`. A tie used to be accepted whenever the tied
+candidates shared a `condition_category`, and one was first-picked; a
+category holds arms that differ, so that is the #354 collapse surviving
+inside a bucket. PMID 27920218 is the shape: its pooled `B*40:02 / B*39:01`
+arm carries both alleles in `mhc`, so it competes for each single-allele key
+and ties with the arm that actually matches. Those 7,629 rows now report
+`pmid_ambiguous` and the study carries a `curation_gap` verdict.
+
+**"May we score IEDB's narrative fields?"** — `_candidates_disagree_on_arm`.
+This stays `condition_category`, deliberately. The question there is whether
+the candidates differ *by treatment*, because that is the axis narrative is
+unreliable on — naming a *system* is what it does well (#359). Keying it on
+identity withholds narrative from exactly the studies it resolves correctly:
+PMID 27920218's rows carry *"The peptidome associated to HLA-B*40 from the
+C1R-B*40 cell line"*, a real per-row discriminator, and refusing it sent
+7,629 correctly discriminated rows to `pmid_ambiguous`.
+
+Corpus effect of the tie fix, against `735014f`: 184,811 rows stop being
+assigned an arm they were never entitled to. 26,280 land on `pmid_ambiguous`;
+the rest go unattributed, because the class-pool path writes no entry for an
+ungrouped study with no winner — a pre-existing asymmetry tracked as #451,
+whose fix moves 1.23M rows and needs a verdict pass of its own.
 
 ## Source-verified corrections (#436)
 
