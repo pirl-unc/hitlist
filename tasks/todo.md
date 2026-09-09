@@ -40,8 +40,9 @@ Re-measuring on the current corpus before writing code contradicted two of the f
 - [x] PR 1: `qc.sample_attribution_audit` + CLI, `PMID_ENTRY_FIELDS` guard, #362 close-out test.
 - [x] PR 1: PR #445, CI green, merged, deployed 1.58.9, wheel verified; #442 and #362 closed.
 - [x] PR 2: `sample_group` + group-aware attribution; curated all four studies.
-- [ ] PR 2: corpus before/after, gates, PR, CI, merge, deploy 1.59.0, close #359 and #364.
-- [ ] PR 3: `arm_resolution` across all 28 ambiguous studies; deploy 1.59.1, close #366.
+- [x] PR 2: PR #446, CI green, merged, deployed 1.59.0; #359 and #364 closed.
+- [x] PR 3: `arm_resolution` across all 31 ambiguous studies.
+- [ ] PR 3: PR, CI, merge, deploy 1.59.1, close #366.
 
 ## Review
 
@@ -134,6 +135,33 @@ Implementation note: the token scorer drops tokens under three characters, so `L
 group selector now tries an alphanumerics-only containment test first (`lmmel44` inside
 `lmmel44melanocyte`), per-row factual fields before narrative ones, falling back to token scoring.
 That recovered all 37,643 elution-resolved rows, which the first attempt had cut to 14,617.
+
+### PR 3 — #366 (1.59.1)
+
+Every one of the 584,966 ambiguous rows now carries a recorded reason. Zero unexplained.
+
+| verdict | rows | means |
+|---|---|---|
+| `axis_mismatch` | 255,179 | curated arms and recorded metadata on different axes (33858848: donor vs tissue) |
+| `curation_gap` | 145,279 | a per-row discriminator exists; the only verdict marking real work |
+| `no_row_discriminator` | 129,982 | measured — all four per-row fields take one distinct value across the study |
+| `multi_arm_evidence` | 54,526 | the evidence positively places the peptide in more than one arm |
+
+**75% of the ambiguity is settled**: a property of what was deposited, not of how carefully
+anyone curated. That is the answer #366 wanted, and the reason a five-value vocabulary beat the
+planned three — the data showed three genuinely different kinds of unresolvable, and calling
+32938616's "peptide really was in both arms" case *unresolvable* would have been wrong.
+
+Two guards stop a verdict becoming a way to stop looking. `arm_resolution_note` must carry the
+measurement, and a note without a verdict is rejected at load. And a test re-measures every
+`no_row_discriminator` study against the corpus: if a refresh gives one a varying per-row field,
+the verdict is stale and the study is re-audited rather than silently trusted.
+
+`hitlist qc sample-attribution --actionable-only` hides findings in settled studies, so the #442
+audit distinguishes "unresolvable" from "unexamined".
+
+Purely additive: one new column on the samples export, no pre-existing sample or observation
+value changed.
 
 ---
 

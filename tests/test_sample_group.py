@@ -27,7 +27,11 @@ import yaml
 
 from hitlist import curation
 from hitlist.curation import MS_SAMPLE_FIELDS, load_pmid_overrides
-from hitlist.export import _select_group, generate_ms_samples_table
+from hitlist.export import (
+    _identifier_tokens,
+    _select_group,
+    generate_ms_samples_table,
+)
 
 
 def _cands(*specs):
@@ -77,20 +81,25 @@ def test_a_tie_between_systems_declines_rather_than_guessing():
     )
 
 
-def test_a_single_system_needs_no_scoring():
-    """All arms of one system: the system is known before anything is read."""
+def test_a_single_system_is_not_a_discrimination():
+    """Naming the only system says no more than naming the PMID.
+
+    Returning it would relabel genuinely arm-ambiguous rows from
+    `pmid_ambiguous` to `group_ambiguous` on no evidence, and break any
+    consumer partitioning on the former to find undetermined arms.
+    """
     assert (
         _select_group(
             _cands(
                 ("A549 untreated", "unperturbed", "A549 lung cancer"),
                 ("A549 + TNFa + IFNg", "other_perturbation", "A549 lung cancer"),
             ),
-            cell_name="",
-            source_tissue="",
+            cell_name="A549-Epithelial cell",
+            source_tissue="Lung",
             antigen_processing_comments="",
             assay_comments="",
         )
-        == "A549 lung cancer"
+        is None
     )
 
 
@@ -160,11 +169,34 @@ def test_paired_arms_of_one_system_are_labelled_symmetrically():
     assert len(multi) > 0
     for pmid, group in multi:
         arms = grouped[(grouped["pmid"] == pmid) & (grouped["sample_group"] == group)]
-        for label in arms["sample_label"]:
+        for _, arm in arms.iterrows():
+            label = str(arm["sample_label"])
             assert group in label, (
                 f"PMID {pmid}: arm {label!r} does not carry its group name {group!r}; "
                 f"an arm with extra identifying words wins on them alone"
             )
+            # Carrying the group name is necessary but not sufficient: the
+            # regression this guards against is one arm holding identifying
+            # words its partner lacks. Whatever remains after removing the
+            # group name must be arm text — the perturbation or an untreated
+            # marker — and never a further identifier.
+            remainder = _identifier_tokens(label.replace(group, " "))
+            partners = [
+                str(other["sample_label"])
+                for _, other in arms.iterrows()
+                if str(other["sample_label"]) != label
+            ]
+            for partner in partners:
+                unique = remainder - _identifier_tokens(partner.replace(group, " "))
+                arm_words = _identifier_tokens(
+                    f"{arm['condition']} {arm['perturbation']} untreated control"
+                )
+                stray = {t for t in unique - arm_words if not t.isdigit()}
+                assert not stray, (
+                    f"PMID {pmid}: arm {label!r} carries {sorted(stray)}, which its "
+                    f"partner {partner!r} lacks and which is not condition text. That "
+                    f"asymmetry is what decided the arm before #359."
+                )
 
 
 # ── end-to-end on the corpus ────────────────────────────────────────────────
@@ -221,3 +253,49 @@ def test_group_ambiguous_rows_never_name_an_arm(full_observations_df):
         for s in (entry.get("ms_samples") or [])
     }
     assert set(rows["sample_group"].astype(str)) <= curated
+
+
+def test_attribution_vocabulary_covers_what_the_join_emits():
+    """The documented value set drifted once; pin it to one constant.
+
+    `group_ambiguous` shipped in 1.59.0 without being added to the
+    docstring's exhaustive list, so a consumer validating against the
+    documented set would have dropped every grouped row.
+    """
+    from hitlist.export import SAMPLE_ATTRIBUTION_VALUES
+
+    assert "group_ambiguous" in SAMPLE_ATTRIBUTION_VALUES
+    assert "" in SAMPLE_ATTRIBUTION_VALUES
+    assert len(set(SAMPLE_ATTRIBUTION_VALUES)) == len(SAMPLE_ATTRIBUTION_VALUES)
+
+
+def test_one_arm_per_group_is_rejected(tmp_path, monkeypatch):
+    """A 1:1 group/arm mapping turns the group stage into an arm selector.
+
+    That would let narrative fields pick an arm — exactly what #354
+    forbids — with no error and nothing in the output to show for it.
+    """
+    bad = tmp_path / "pmid_overrides.yaml"
+    bad.write_text(
+        yaml.safe_dump(
+            [
+                {
+                    "pmid": 12345678,
+                    "ms_samples": [
+                        {"sample_label": "A549 untreated", "sample_group": "A549 untreated"},
+                        {"sample_label": "A549 + TNFa", "sample_group": "A549 + TNFa"},
+                    ],
+                }
+            ]
+        )
+    )
+    real = curation._data_path
+    monkeypatch.setattr(
+        curation, "_data_path", lambda fn: str(bad) if fn == "pmid_overrides.yaml" else real(fn)
+    )
+    curation.load_pmid_overrides.cache_clear()
+    try:
+        with pytest.raises(ValueError, match="one arm"):
+            curation.load_pmid_overrides()
+    finally:
+        curation.load_pmid_overrides.cache_clear()

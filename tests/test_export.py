@@ -402,9 +402,12 @@ def test_generate_observations_provenance_columns(full_observations_df):
     assert "sample_match_type" in df.columns
     assert "matched_sample_count" in df.columns
     assert "has_peptide_level_allele" in df.columns
-    # Match types should only be these values
-    valid_types = {"allele_match", "single_sample_fallback", "pmid_class_pool", "unmatched"}
-    assert set(df["sample_match_type"].unique()).issubset(valid_types)
+    # Match types come from one authoritative vocabulary.  This used to
+    # hardcode the set, so adding ``metadata_match`` broke a test that had
+    # nothing to do with the change.
+    from hitlist.export import SAMPLE_MATCH_TYPE_VALUES
+
+    assert set(df["sample_match_type"].unique()).issubset(set(SAMPLE_MATCH_TYPE_VALUES))
     # Most rows with alleles should have allele_match
     has_allele = df[df["has_peptide_level_allele"]]
     if len(has_allele) > 0:

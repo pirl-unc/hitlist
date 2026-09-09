@@ -128,14 +128,15 @@ def test_cli_routes_sample_attribution(monkeypatch, capsys):
 
 
 @pytest.mark.integration
-def test_real_corpus_orphan_count_is_bucketed():
-    """The audit runs on the real corpus and both shapes are present."""
-    from hitlist.observations import is_built
+def test_real_corpus_orphan_count_is_bucketed(full_observations_df):
+    """The audit runs on the real corpus and both shapes are present.
 
-    if not is_built():
-        pytest.skip("requires a registered observations corpus")
-
-    found = sample_attribution_audit()
+    Feeds the shared fixture in rather than letting the audit build its own
+    table: an unparameterized call materializes a second 4.4M-row frame in
+    the worker on top of the mmapped one, which OOM-killed CI's coverage job
+    (exit 143).  The injectable parameter exists for this.
+    """
+    found = sample_attribution_audit(observations=full_observations_df)
     assert len(found) > 0
     assert set(found["bucket"]) == {"label_mismatch_candidate", "study_unattributed"}
     # Every finding must name a study that has rows and an arm that has none.

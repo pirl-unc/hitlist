@@ -1,7 +1,12 @@
 # Per-sample MHC Curation Tracker
 
-**Coverage:** 108 / 332 samples have `mhc` (32%)
-**Studies needing work:** 108
+**Coverage:** 734 / 761 samples have `mhc` (96%)
+**Studies needing work:** 13
+
+> Hand-maintained and not generated, so it drifts whenever curation changes.
+> Counts and the four entries touched by #359/#364 were refreshed from
+> `load_pmid_overrides()` on 2026-09-09; anything else may be stale.
+> `hitlist qc sample-attribution` is the generated view of what needs work.
 
 
 ## Tier 1: Mono-allelic (link alleles to samples) (7 studies)
@@ -56,14 +61,14 @@
 - [ ] **30484775** Ilca 2018 — TAPBPR peptide editing — 1 samples: cells ± TAPBPR manipulation
 - [ ] **30524438** Jensen 2018 — BET PROTAC immunopeptidome — 2 samples: cells (untreated); cells + BET PROTAC
 - [ ] **30779550** Murphy 2019 — cancer cells + doxorubicin — 2 samples: cancer cell lines (untreated); cancer cell lines + doxorubicin
-- [ ] **30833945** Javitt 2019 — A549 + TNFa + IFNg — 2 samples: A549 lung cancer (untreated); A549 + TNFa + IFNg
+- [ ] **30833945** Javitt 2019 — A549 + TNFa + IFNg — 2 samples: A549 lung cancer (untreated); A549 lung cancer + TNFa + IFNg
 - [ ] **31222486** Koumantou 2019 — A375 + ERAP1 inhibitor — 2 samples: A375 melanoma (untreated); A375 + ERAP1 inhibitor
 - [ ] **31937595** Ghosh 2020b — LC-MS/MS validation pipeline — 1 samples: JY, PBMCs, CLL, bladder cancer (method validation)
 - [ ] **31998317** Kemps 2020 — BRAF neoantigen targeted peptidomics — 1 samples: BRAF-transduced cell lines
 - [ ] **32357974** Mei 2020 — deamidated HLA peptides from deglycosylation — 1 samples: EBV-LCLs (healthy donors)
 - [ ] **32488085** Stopfer 2020 — CDK4/6i + IFNg on melanoma/breast — 3 samples: melanoma/breast cancer cell lines (untreated); melanoma/breast cancer cell lines + palbociclib; melanoma/breast cancer cell lines + IFN-gamma
 - [ ] **32897882** Klatt 2020 — hydrophobic peptide recovery method — 3 samples: BV173 (B-ALL/CML blast crisis); MSTO-211H (biphasic mesothelioma); JY (EBV-LCL)
-- [ ] **32938616** Faridi 2020 — melanoma spliced peptides ± IFNg — 2 samples: LM-MEL melanoma cell lines (untreated); LM-MEL melanoma cell lines + IFN-gamma
+- [ ] **32938616** Faridi 2020 — melanoma spliced peptides ± IFNg — 6 samples: LM-MEL-44 (untreated); LM-MEL-44 + IFN-gamma; LM-MEL-33 (untreated); LM-MEL-33 + IFN-gamma; LM-MEL-53 (untreated); LM-MEL-53 + IFN-gamma (LM-MEL-53 genotype not stated by the paper)
 - [ ] **33043033** Gutierrez-Hoffmann 2020 — Borrelia-infected DCs — 2 samples: DCs (direct ex vivo); DCs + Borrelia restimulation
 - [ ] **33141586** Sturm 2021 — mild acid vs IP method comparison — 1 samples: monocytic leukemia cell line (likely THP-1)
 - [ ] **33298915** Jappe 2020 — pMHC thermostability profiling — 1 samples: EBV-LCLs
@@ -92,7 +97,7 @@
 ## Tier 4: Patient/tissue (paper supplementary) (15 studies)
 
 - [ ] **27452731** Heyder 2016 — HLA-DR in sarcoidosis BAL + B cells — 2 samples: EBV-B cells; BAL cells (sarcoidosis patients)
-- [ ] **29242379** Chong 2018 — high-throughput immunopeptidomics ± IFNg — 6 samples: B-LCLs (JY, CD165, PD42, CM467, RA957) untreated; B-LCLs + IFN-gamma; UWB.1 289 (ovarian carcinoma) untreated; UWB.1 289 + IFN-gamma; ... (+2 more)
+- [ ] **29242379** Chong 2018 — high-throughput immunopeptidomics ± IFNg — 6 samples: B-LCLs (JY, CD165, PD42, CM467, RA957) untreated; B-LCLs (JY, CD165, PD42, CM467, RA957) + IFN-gamma; UWB.1 289 (ovarian carcinoma) untreated; UWB.1 289 (ovarian carcinoma) + IFN-gamma; ... (+2 more)
 - [ ] **29314611** Ritz 2018 — sHLA class II (NHL + cell lines) — 2 samples: NHL patient plasma (sHLA); cell lines (class II)
 - [ ] **29508533** Lanoix 2018 — IP method comparison (CLL + LCL) — 2 samples: primary CLL cells; EBV-LCLs
 - [ ] **29789417** Loffler 2018 — CRC + matched normal colon — 2 samples: CRC tumor tissue; matched normal colon mucosa
@@ -113,7 +118,7 @@
 - [ ] **18612635** Sherman 2008 — chicken BF2 class I — 2 samples: RP9 transduced with BF2*2101 (B21 haplotype); RP9 transduced with BF2*1301 (B13 haplotype)
 - [ ] **21209280** Gleimer 2011 — chimpanzee Patr-AL peptidome — 1 samples: transfected cells expressing Patr-AL
 - [ ] **26740625** Clement 2016 — HLA-DR1 transgenic mouse DCs — 1 samples: DCs from lymph nodes (HLA-DR1 transgenic mouse)
-- [ ] **27371725** Nagarajan 2016 — mouse H2-Q1/Q2 ± ERAAP KO — 2 samples: WT mouse splenocytes (H2-Q1/Q2); ERAAP KO mouse splenocytes (H2-Q1/Q2)
+- [ ] **27371725** Nagarajan 2016 — mouse classical + non-classical MHC-I ± ERAAP KO — 4 samples: WT BMDC (classical H2-Kb/H2-Db); ERAAP KO BMDC (classical H2-Kb/H2-Db); WT BMDC (non-classical H2-Q1/Q2); ERAAP KO BMDC (non-classical H2-Q1/Q2)
 - [ ] **27893789** Barth 2016 — DLA-88*501:01 peptidome — 2 samples: C1R transfected with DLA-88*501:01; K562 transfected with DLA-88*501:01
 - [ ] **29475511** Ross 2018 — DLA-88*508:01 + CDV — 2 samples: canine histiocytic cells (DLA-88*508:01, uninfecte; canine histiocytic cells (DLA-88*508:01, CDV-infec
 - [ ] **30573663** Nanaware 2019 — HLA-DO KO mouse class II — 2 samples: mouse splenocytes (WT); mouse splenocytes (DO KO)

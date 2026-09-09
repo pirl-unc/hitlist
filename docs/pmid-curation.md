@@ -95,6 +95,7 @@ rather than describing behavior it does not have.
 | `override` | Per-sample provenance override. Present with a value = this sample's claim; present but **null** = "deliberately none here", which is *not* the same as omitting the key and inheriting the study's. See below. |
 | `note` | Free-text analytic caveat about this arm, exported and carried to attributed observations. |
 | `source`, `species`, `reference_proteomes` | Per-sample provenance. |
+| `sample_group` | The sample **system** this arm belongs to — a cell line, tissue, or donor cohort (#359). Attribution resolves the system first, then the arm within it. **Opt-in per study and all-or-none**: curating it on a subset raises at load, as does a one-to-one group/arm mapping. See below. |
 | `profiled` | `false` (or `n_samples: 0`) for an arm that exists in the paper but was never run on the instrument. It is exported as a metadata row and excluded from observation attribution, so it can never be matched to a peptide. |
 
 Every key an `ms_samples` entry may carry is declared in
@@ -102,6 +103,36 @@ Every key an `ms_samples` entry may carry is declared in
 undeclared key.** Adding a field means adding it there together with its
 reader — otherwise it looks exactly like a field that works while reaching no
 consumer, which is how `override`, `note`, and `species` sat unread (#373).
+
+### `sample_group` — system before arm
+
+The arm scorer reads `sample_label` and `perturbation` as one bag of tokens,
+so it cannot tell a *system* descriptor from a *condition* one. Two things
+followed from that, both observed in the corpus:
+
+- Extra identifying words on one arm of a pair decided the pair. PMID
+  29242379's untreated UWB arm alone carried `(ovarian carcinoma)`, and
+  `ovarian` matching `source_tissue = "Ovary"` took all 3,919 of its rows —
+  with nothing about treatment in evidence.
+- A system whose arm is unambiguous was not attributable either, because the
+  narrative fields are withheld wholesale whenever candidate arms disagree.
+
+`sample_group` splits the question. The **system stage** admits IEDB's
+narrative fields — naming a system is what they do reliably, and they say
+nothing about treatment. The **arm stage** keeps blocking them. When arms of
+a known system tie, the row reports `sample_attribution = "group_ambiguous"`:
+system known, arm withheld.
+
+Three rules the loader enforces, because each failure is silent otherwise:
+
+| rule | why |
+|---|---|
+| all arms of a study carry it, or none | a partially grouped study falls back to the ungrouped path, losing the grouping with no error |
+| a group must not hold exactly one arm when there are several groups | a 1:1 group/arm mapping makes the system stage select an *arm* from narrative text, which is what #354 forbids |
+| every arm of a multi-arm group carries its group name | otherwise an arm with extra identifying words wins on them alone — the original bug |
+
+Do not group a study with only one system: naming it says no more than naming
+the PMID, and the stage declines in that case rather than relabelling rows.
 
 ### How `override` resolves
 
@@ -225,6 +256,31 @@ column as if it were per-sample inverts its own control, which cancels the
 KO-vs-WT contrast rather than merely adding noise. `HAP1 wildtype` rows today
 carry `apm_genes_perturbed=""` with `study_apm_perturbed=True`, and
 `tests/test_sample_attribution_audit.py` pins that through the join.
+
+## Arm resolution — why a row has no arm (#366)
+
+584,966 observation rows sit at `pmid_ambiguous` or `group_ambiguous`. The
+useful question is not how many, but which of them more curation could fix.
+`arm_resolution` records that per study, once, so a study is not
+re-investigated every time someone notices the number.
+
+| verdict | rows | means |
+|---|---|---|
+| `axis_mismatch` | 255,179 | Curated arms and recorded metadata are on different axes. PMID 33858848 curates per **donor**; IEDB records per **tissue** (29 values) and never records donor. No matcher can bridge them. |
+| `curation_gap` | 145,279 | A per-row discriminator is present and the arms are not yet curated to use it. **The only verdict marking real work.** |
+| `no_row_discriminator` | 129,982 | Measured: `cell_name`, `source_tissue`, `antigen_processing_comments` and `assay_comments` each take exactly one distinct value across the study. |
+| `multi_arm_evidence` | 54,526 | The evidence positively places the peptide in more than one arm — eluted from both the treated and untreated sample. Nothing is missing. |
+
+Three quarters of the ambiguity is settled: it is a property of what was
+deposited, not of how carefully anyone curated. `arm_resolution_note` carries
+the measurement behind each verdict, and loading rejects a note without a
+verdict — the note explains a judgement, it is not one.
+
+`hitlist qc sample-attribution --actionable-only` hides findings in settled
+studies. A `no_row_discriminator` verdict is a measurement, so a test
+re-measures it: if a corpus refresh gives one of those studies a varying
+per-row field, the verdict is stale and the study gets looked at again rather
+than being silently trusted.
 
 ## Source-verified corrections (#436)
 

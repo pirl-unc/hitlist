@@ -1461,6 +1461,15 @@ def main() -> None:
         choices=["info", "warn"],
         help="Filter to one severity level (default: all).",
     )
+    p_qc_sa.add_argument(
+        "--actionable-only",
+        action="store_true",
+        help=(
+            "Hide findings in studies already recorded as unresolvable "
+            "(arm_resolution axis_mismatch / no_row_discriminator / "
+            "multi_arm_evidence), leaving only what more curation could fix."
+        ),
+    )
     p_qc_sa.add_argument("--output", "-o", help="Write CSV to file")
 
     # ── pmhc subcommand ────────────────────────────────────────────────
@@ -1840,6 +1849,9 @@ def _qc(args: argparse.Namespace) -> None:
         sev = getattr(args, "severity", None)
         if sev is not None and not df.empty:
             df = df[df["severity"] == sev].reset_index(drop=True)
+        if getattr(args, "actionable_only", False) and not df.empty:
+            settled = {"axis_mismatch", "no_row_discriminator", "multi_arm_evidence"}
+            df = df[~df["arm_resolution"].isin(settled)].reset_index(drop=True)
     else:
         print(f"Unknown qc subcommand: {cmd}", file=sys.stderr)
         sys.exit(1)
