@@ -43,7 +43,7 @@ perturbed-vs-control contrast (the same failure #392 fixed for
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable, Mapping
+from collections.abc import Mapping
 from functools import lru_cache
 from os.path import dirname, join
 from types import MappingProxyType
@@ -544,6 +544,32 @@ def validate_study_conditions(entry: Mapping[str, object]) -> None:
     """
     pmid = entry.get("pmid", entry.get("submission_id"))
     samples = entry.get("ms_samples") or []
+
+    # Opt-in per study and all-or-none, the rule `sample_group` already uses
+    # (#359).  A study that curates no condition block at all is uncurated
+    # and says so; one that curates half is the silent case — the annotated
+    # arms are filterable, the rest are indistinguishable from arms whose
+    # condition nobody could establish, and no error marks the difference.
+    # A record that genuinely has nothing to say uses
+    # `condition_status: unreported`, which is a statement, not a silence.
+    annotated = [i for i, s in enumerate(samples) if any(c in s for c in CONDITION_COLUMNS)]
+    if not annotated:
+        return
+    if len(annotated) != len(samples):
+        missing = [
+            samples[i].get("sample_label", "?")
+            for i in range(len(samples))
+            if i not in set(annotated)
+        ]
+        raise ValueError(
+            f"PMID {pmid}: the condition columns are curated on {len(annotated)} of "
+            f"{len(samples)} ms_samples; it must be all or none.  Missing on {missing}.  "
+            f"A half-curated study exports blanks that are indistinguishable from "
+            f"'nobody could establish this', so the gap is invisible to the coverage "
+            f"audit.  Use condition_status: unreported to say an arm has nothing "
+            f"recorded (#450)."
+        )
+
     seen: dict[str, int] = {}
     for index, sample in enumerate(samples):
         validate_sample_conditions(sample, pmid, index)
@@ -594,25 +620,3 @@ def empty_condition_columns() -> dict[str, str]:
     untreated arm for every predicted binder in the training table.
     """
     return dict.fromkeys(CONDITION_COLUMNS, "")
-
-
-def condition_columns_agree(candidates: Iterable[Mapping[str, object]]) -> dict[str, str]:
-    """Fields every candidate arm agrees on, for an observation with no resolved arm.
-
-    Agreement requires a value: if one candidate is blank the field is
-    withheld, because "unknown here, ERAP2 there" is not evidence that the
-    peptide came from an ERAP2 arm.  ``condition_id`` is never consensused —
-    it identifies one arm, and an unresolved row reached more than one.
-    """
-    candidates = list(candidates)
-    if not candidates:
-        return empty_condition_columns()
-    agreed = empty_condition_columns()
-    for column in CONDITION_COLUMNS:
-        if column == "condition_id":
-            continue
-        values = {str((c or {}).get(column, "") or "") for c in candidates}
-        if len(values) == 1:
-            only = values.pop()
-            agreed[column] = only
-    return agreed
