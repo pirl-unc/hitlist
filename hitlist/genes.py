@@ -103,9 +103,9 @@ def _gene_sets_path() -> Path:
 
 @lru_cache(maxsize=1)
 def _load_gene_sets() -> dict[str, dict]:
-    import yaml
+    from .curation_yaml import load_curation_yaml
 
-    data = yaml.safe_load(_gene_sets_path().read_text()) or {}
+    data = load_curation_yaml(_gene_sets_path()) or {}
     return data.get("gene_sets", {}) or {}
 
 

@@ -112,6 +112,13 @@ touching Python:
 | `tissue_categories.yaml` | Reproductive / thymus / activated-APC tissue + cell-name sets | Healthy-subtype routing, APC classification |
 | Species + viral proteome registry | Ensembl/UniProt reference proteomes per species; viral UPIDs | Peptide → source-protein mapping, flanking |
 
+Every packaged YAML — these registries and the smaller ones beside them
+(`condition_vocabulary.yaml`, `gene_sets.yaml`, `supplementary.yaml`, `data_assets.yaml`,
+the line-expression and bulk-proteomics `sources.yaml`) — loads through
+`hitlist.curation_yaml.load_curation_yaml`, which rejects a mapping key declared twice
+instead of letting PyYAML keep the last value silently (#454). A test asserts that no
+module parses YAML any other way, so a new registry gets the guard by default.
+
 ## Design principles
 
 The pipeline encodes a handful of deliberate ideas. Understanding them explains

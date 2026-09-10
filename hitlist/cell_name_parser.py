@@ -52,7 +52,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 
-import yaml
+from .curation_yaml import load_curation_yaml
 
 # ── Cell-type vocabulary (the right-hand side of hybrid strings) ─────────
 #
@@ -200,7 +200,7 @@ def _load_registry() -> tuple[dict[str, dict], dict[str, str], list[str], list[s
         Same for engineering-system entries.  Separated so the parser
         can tag them as constructs distinct from real cell lines.
     """
-    data = yaml.safe_load(_registry_path().read_text())
+    data = load_curation_yaml(_registry_path())
     canonical_to_entry: dict[str, dict] = {}
     synonym_to_canonical: dict[str, str] = {}
     line_synonyms: list[str] = []

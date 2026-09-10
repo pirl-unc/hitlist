@@ -48,7 +48,6 @@ import json
 from pathlib import Path
 
 import pandas as pd
-import yaml
 
 from .downloads import data_dir
 
@@ -167,6 +166,7 @@ def _curation_fingerprints(*, fetch_missing_assets: bool = True) -> dict:
     """
     from .cell_name_parser import _registry_path
     from .curation import _asset_path, _data_path
+    from .curation_yaml import load_curation_yaml
     from .downloads import packaged_or_cached
 
     paths: dict[str, Path | None] = {
@@ -176,7 +176,7 @@ def _curation_fingerprints(*, fetch_missing_assets: bool = True) -> dict:
     paths["cell_lines.yaml"] = _registry_path()
     # Read the on-disk YAML, not the cached curation loader: an edit may add
     # or remove a dependency while this interpreter still has the old map.
-    entries = yaml.safe_load(paths["pmid_overrides.yaml"].read_text()) or []
+    entries = load_curation_yaml(paths["pmid_overrides.yaml"]) or []
     for entry in entries:
         rel_path = entry.get("peptide_attributions")
         if not rel_path:

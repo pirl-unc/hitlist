@@ -51,8 +51,9 @@ from importlib.resources import files
 from pathlib import Path
 
 import pandas as pd
-import yaml
 from pyarrow.lib import ArrowInvalid
+
+from .curation_yaml import load_curation_yaml
 
 _DATA_MODULE = "hitlist.data.bulk_proteomics"
 
@@ -98,8 +99,7 @@ def _load_bj() -> pd.DataFrame:
 
 @lru_cache(maxsize=1)
 def _load_sources_yaml() -> list[dict]:
-    path = files(_DATA_MODULE) / "sources.yaml"
-    data = yaml.safe_load(path.read_text())
+    data = load_curation_yaml(files(_DATA_MODULE) / "sources.yaml")
     return data.get("sources", [])
 
 

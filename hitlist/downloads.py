@@ -1051,10 +1051,9 @@ def _data_assets_registry() -> dict:
     """Load the data-assets manifest (base_url + per-file sha256/source)."""
     from importlib.resources import files as _ir_files
 
-    import yaml
+    from .curation_yaml import load_curation_yaml
 
-    text = (_ir_files("hitlist.data") / "data_assets.yaml").read_text()
-    doc = yaml.safe_load(text) or {}
+    doc = load_curation_yaml(_ir_files("hitlist.data") / "data_assets.yaml") or {}
     base_url = doc.get("base_url", "")
     assets = {
         a["filename"]: {
