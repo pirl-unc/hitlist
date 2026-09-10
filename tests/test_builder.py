@@ -198,7 +198,7 @@ def test_cache_valid_when_sources_unchanged(tmp_path, monkeypatch):
             }
         )
     )
-    monkeypatch.setattr(builder, "_source_fingerprints", lambda paths: {})
+    monkeypatch.setattr(builder, "_source_fingerprints", lambda paths, **_kw: {})
 
     assert _cache_is_valid({}, with_flanking=False) is True
     assert _cache_is_valid({}, with_flanking=True) is True  # no longer invalidates
@@ -213,7 +213,7 @@ def test_cache_invalid_when_binding_parquet_missing(tmp_path, monkeypatch):
     (tmp_path / "observations.parquet").write_bytes(b"fake parquet")
     # Intentionally no binding.parquet
     _meta_path().write_text(json.dumps({"sources": {}, "n_rows": 100}))
-    monkeypatch.setattr(builder, "_source_fingerprints", lambda paths: {})
+    monkeypatch.setattr(builder, "_source_fingerprints", lambda paths, **_kw: {})
 
     assert _cache_is_valid({}, with_flanking=False) is False
 
@@ -226,7 +226,7 @@ def test_cache_invalid_when_observations_parquet_missing(tmp_path, monkeypatch):
 
     (tmp_path / "binding.parquet").write_bytes(b"fake parquet")
     _meta_path().write_text(json.dumps({"sources": {}, "n_rows": 0}))
-    monkeypatch.setattr(builder, "_source_fingerprints", lambda paths: {})
+    monkeypatch.setattr(builder, "_source_fingerprints", lambda paths, **_kw: {})
 
     assert _cache_is_valid({}, with_flanking=False) is False
 
@@ -302,7 +302,7 @@ def test_cache_invalid_when_parquet_fingerprint_changes(tmp_path, monkeypatch):
     bulk_p.write_bytes(b"original bulk")
     le_p.write_bytes(b"original line expression")
 
-    monkeypatch.setattr(builder, "_source_fingerprints", lambda paths: {})
+    monkeypatch.setattr(builder, "_source_fingerprints", lambda paths, **_kw: {})
     _meta_path().write_text(
         json.dumps(
             {
@@ -334,7 +334,7 @@ def test_cache_invalidates_legacy_observations_artifact(tmp_path, monkeypatch, a
         "line_expression.parquet",
     ):
         (tmp_path / filename).write_bytes(b"artifact")
-    monkeypatch.setattr(builder, "_source_fingerprints", lambda paths: {})
+    monkeypatch.setattr(builder, "_source_fingerprints", lambda paths, **_kw: {})
     metadata = {"sources": {}, "parquets": builder._parquet_fingerprints()}
     if artifact_version is not None:
         metadata["artifact_version"] = artifact_version
@@ -522,7 +522,7 @@ def test_cache_invalid_when_line_expression_parquet_missing(tmp_path, monkeypatc
     (tmp_path / "bulk_proteomics.parquet").write_bytes(b"fake parquet")
     # Intentionally no line_expression.parquet
     _meta_path().write_text(json.dumps({"sources": {}, "n_rows": 100}))
-    monkeypatch.setattr(builder, "_source_fingerprints", lambda paths: {})
+    monkeypatch.setattr(builder, "_source_fingerprints", lambda paths, **_kw: {})
 
     assert _cache_is_valid({}, with_flanking=False) is False
 

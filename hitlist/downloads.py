@@ -1164,6 +1164,27 @@ def packaged_or_fetched(packaged_path, filename: str) -> Path:
     return fetch_data_asset(filename)
 
 
+def packaged_or_cached(packaged_path, filename: str) -> Path | None:
+    """Like :func:`packaged_or_fetched`, but never downloads.
+
+    Returns the packaged file, else the copy a previous
+    :func:`fetch_data_asset` left in the datacache dir, else ``None``. For
+    callers that must not reach the network: the cache-validity predicates
+    (#448) resolve every fingerprinted input through here.
+    """
+    p = Path(str(packaged_path))
+    if p.is_file():
+        return p
+    # The same path fetch_data_asset's ``datacache.fetch_file(..., subdir="hitlist")``
+    # writes to, computed with datacache's own helpers so the two cannot drift
+    # (``build_path`` itself is avoided: it creates the cache dir as a side effect).
+    from datacache import get_data_dir
+    from datacache.download import build_local_filename
+
+    cached = Path(get_data_dir("hitlist")) / build_local_filename(filename=filename)
+    return cached if cached.is_file() else None
+
+
 # ── Core API ────────────────────────────────────────────────────────────────
 
 
