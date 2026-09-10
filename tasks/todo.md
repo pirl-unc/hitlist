@@ -1,3 +1,46 @@
+# Issue #448 — public, quiet cache-validity predicates
+
+## Objective
+
+Give library consumers (tsarina, presto) a side-effect-free way to ask whether the
+built `observations.parquet` / `binding.parquet` set and the `peptide_mappings.parquet`
+sidecar are current, so they can announce a rebuild before spending ten minutes on it
+instead of buffering `build_observations()`'s status block and inferring afterwards.
+`observations.is_built()` / `mappings.is_mappings_built()` stay existence-only.
+
+## Design
+
+- `hitlist.observations.observations_cache_is_current() -> bool | None`
+  - `None` when no IEDB/CEDAR source is registered: validity is unknowable, and
+    `build_observations()` would raise rather than answer.
+  - Otherwise the same verdict `build_observations(force=False)` reaches before
+    deciding to skip: artifact version, source + curation fingerprints, parquet
+    fingerprints. Nothing printed, nothing written.
+  - Must not download. `_curation_fingerprints` resolves `peptide_attributions`
+    assets through `packaged_or_fetched`, which fetches a missing externalized CSV
+    on a wheel install. The predicate resolves through a new
+    `downloads.packaged_or_cached` instead and reports the cache stale when an
+    asset is absent — which is what a build would conclude too, since fetching
+    stamps a fresh mtime.
+- `hitlist.mappings.mappings_cache_is_current(*, release=112, fetch_missing=True,
+  use_uniprot=False, flank=DEFAULT_FLANK) -> bool`
+  - Same contract check as `build_peptide_mappings(force=False)`; keyword defaults
+    mirror the builder's, with a test that pins them together.
+  - Returns `bool` only: the sidecar is either stamped against the observations on
+    disk or it is not, so there is no unknowable case to encode as `None`.
+- Both names join `_PUBLIC_API`; README documents them beside `is_built`.
+
+## Plan
+
+- [ ] `downloads.packaged_or_cached`: local-only twin of `packaged_or_fetched`.
+- [ ] Thread `fetch_missing_assets` through `_curation_fingerprints`,
+      `_source_fingerprints`, `_cache_is_valid`; default unchanged for the builder.
+- [ ] Add the two predicates, export them, document them.
+- [ ] Tests: `None` without sources; True/False on seeded caches; silent on stdout;
+      never fetches; mapping defaults pinned to `build_peptide_mappings`.
+- [ ] Smoke-test against the local `~/.hitlist` cache (artifact_version 3 vs code 4).
+- [ ] Bump to 1.62.0, format, lint, test, PR, CI, merge, deploy from clean main.
+
 # Flat experimental-condition columns
 
 ## Objective

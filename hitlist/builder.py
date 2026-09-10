@@ -96,10 +96,14 @@ def _mhcgnomes_version() -> str:
         return "unavailable"
 
 
-def _source_fingerprints(paths: dict[str, Path]) -> dict:
-    """File identity for cache invalidation."""
+def _source_fingerprints(paths: dict[str, Path], *, fetch_missing_assets: bool = True) -> dict:
+    """File identity for cache invalidation.
+
+    ``fetch_missing_assets=False`` keeps this free of network side effects
+    for the cache-validity predicate (#448); see :func:`_curation_fingerprints`.
+    """
     fp = {name: _stat_fingerprint(p) for name, p in paths.items()}
-    fp.update(_curation_fingerprints())
+    fp.update(_curation_fingerprints(fetch_missing_assets=fetch_missing_assets))
     # Include supplementary manifest so adding a new supplement invalidates cache
     from .supplement import load_supplementary_manifest, manifest_path
 
@@ -151,12 +155,21 @@ def _source_fingerprints(paths: dict[str, Path]) -> dict:
     return fp
 
 
-def _curation_fingerprints() -> dict:
-    """Content identity of inputs used to annotate persisted evidence (#424)."""
+def _curation_fingerprints(*, fetch_missing_assets: bool = True) -> dict:
+    """Content identity of inputs used to annotate persisted evidence (#424).
+
+    Externalized ``peptide_attributions`` CSVs are fetched when a wheel
+    install has not cached them yet, because a build needs their bytes.
+    With ``fetch_missing_assets=False`` an absent asset is recorded as
+    ``{"missing": True}`` instead. That never equals a stored fingerprint, so
+    the cache reads as stale — the verdict a build would reach anyway, since
+    fetching stamps a fresh mtime — and no network is touched (#448).
+    """
     from .cell_name_parser import _registry_path
     from .curation import _asset_path, _data_path
+    from .downloads import packaged_or_cached
 
-    paths = {
+    paths: dict[str, Path | None] = {
         name: Path(_data_path(name))
         for name in ("pmid_overrides.yaml", "tissue_categories.yaml", "monoallelic_lines.yaml")
     }
@@ -166,15 +179,23 @@ def _curation_fingerprints() -> dict:
     entries = yaml.safe_load(paths["pmid_overrides.yaml"].read_text()) or []
     for entry in entries:
         rel_path = entry.get("peptide_attributions")
-        if rel_path:
+        if not rel_path:
+            continue
+        if fetch_missing_assets:
             paths[rel_path] = Path(_asset_path(rel_path))
+        else:
+            paths[rel_path] = packaged_or_cached(_data_path(rel_path), Path(rel_path).name)
     return {
-        f"curation:{name}": {
-            **_stat_fingerprint(path),
-            # These inputs are small. Hashing detects same-size edits even
-            # when a checkout or copy preserves the file's timestamp.
-            "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
-        }
+        f"curation:{name}": (
+            {"missing": True}
+            if path is None
+            else {
+                **_stat_fingerprint(path),
+                # These inputs are small. Hashing detects same-size edits even
+                # when a checkout or copy preserves the file's timestamp.
+                "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+            }
+        )
         for name, path in sorted(paths.items())
     }
 
@@ -219,7 +240,9 @@ def _parquet_fingerprints() -> dict:
     return fp
 
 
-def _cache_is_valid(paths: dict[str, Path], with_flanking: bool = False) -> bool:
+def _cache_is_valid(
+    paths: dict[str, Path], with_flanking: bool = False, *, fetch_missing_assets: bool = True
+) -> bool:
     """Check if the cached indexes are still valid for the requested build.
 
     All four parquets (``observations``, ``binding``, ``bulk_proteomics``,
@@ -227,6 +250,9 @@ def _cache_is_valid(paths: dict[str, Path], with_flanking: bool = False) -> bool
     match the stored metadata.  Binding was added in 1.7.0,
     bulk_proteomics in 1.11.2, and line_expression in 1.16.0, so older
     installs rebuild once on upgrade.
+
+    ``fetch_missing_assets=False`` is the read-only mode the public
+    :func:`hitlist.observations.observations_cache_is_current` uses (#448).
     """
     meta = _meta_path()
     if not meta.exists():
@@ -242,7 +268,9 @@ def _cache_is_valid(paths: dict[str, Path], with_flanking: bool = False) -> bool
     stored = json.loads(meta.read_text())
     if stored.get("artifact_version") != _OBSERVATIONS_ARTIFACT_VERSION:
         return False
-    if stored.get("sources") != _source_fingerprints(paths):
+    if stored.get("sources") != _source_fingerprints(
+        paths, fetch_missing_assets=fetch_missing_assets
+    ):
         return False
     stored_parquets = stored.get("parquets")
     return not (stored_parquets is not None and stored_parquets != _parquet_fingerprints())

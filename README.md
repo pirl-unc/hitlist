@@ -163,6 +163,7 @@ from hitlist.observations import (
     load_binding,             # in-vitro binding-assay measurements
     load_all_evidence,        # union, tagged with an evidence_kind column
     is_built, is_binding_built,
+    observations_cache_is_current,  # current vs. legacy; never builds or prints
     observations_path, binding_path,
 )
 
@@ -183,6 +184,14 @@ both["evidence_kind"].value_counts()
 ```
 
 `load_observations()` remains available as a backward-compatible alias.
+
+`is_built()` only says a parquet exists. To learn whether it is *current* — the same
+verdict `build_observations(force=False)` reaches before skipping — call
+`observations_cache_is_current()`. It returns `True`, `False`, or `None` when no IEDB/CEDAR
+source is registered and validity cannot be judged. `hitlist.mappings.mappings_cache_is_current()`
+answers the same for the `peptide_mappings.parquet` sidecar. Neither prints, writes, or
+downloads, so a consumer can announce a rebuild before starting one instead of buffering
+the builder's output and inferring afterwards.
 
 ### Building / curation
 

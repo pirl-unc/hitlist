@@ -83,8 +83,11 @@ _PUBLIC_API: dict[str, str] = {
     # Public enumerations shared by scanners, APIs, and CLIs.
     "MHC_ALLELE_PROVENANCE_VALUES": ".curation",
     "normalize_serotype_query": ".curation",
-    # Build the cached indexes.
+    # Build the cached indexes, or ask whether they are current without
+    # building, printing, or downloading anything (#448).
     "build_observations": ".builder",
+    "observations_cache_is_current": ".observations",
+    "mappings_cache_is_current": ".mappings",
     # Load the built indexes (filters documented on each function).
     "load_ms_observations": ".observations",
     "load_observations": ".observations",

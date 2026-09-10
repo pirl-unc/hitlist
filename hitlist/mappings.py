@@ -179,6 +179,35 @@ def is_mappings_built() -> bool:
     return mappings_path().exists()
 
 
+def mappings_cache_is_current(
+    *,
+    release: int = 112,
+    fetch_missing: bool = True,
+    use_uniprot: bool = False,
+    flank: int = DEFAULT_FLANK,
+) -> bool:
+    """Whether ``peptide_mappings.parquet`` is current for these build settings.
+
+    The sidecar's metadata stamps the observations/binding parquets it was
+    built from and the behaviour-defining contract (release, flank, ...).
+    This is the check ``build_peptide_mappings(force=False)`` runs before
+    skipping, minus its output and minus the ``FileNotFoundError`` it raises
+    when nothing is built (#448). Keyword defaults mirror
+    :func:`build_peptide_mappings`.
+
+    Always a ``bool``: unlike
+    :func:`hitlist.observations.observations_cache_is_current` there is no
+    unknowable case — either the sidecar is stamped against the parquets on
+    disk or it is not.
+    """
+    return _cache_is_valid(
+        release=release,
+        use_uniprot=use_uniprot,
+        fetch_missing=fetch_missing,
+        flank=flank,
+    )
+
+
 @lru_cache(maxsize=4)
 def _known_gene_identifiers(_key: tuple) -> frozenset[str]:
     import pyarrow.parquet as pq

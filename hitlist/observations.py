@@ -124,6 +124,34 @@ def is_binding_built() -> bool:
     return binding_path().exists()
 
 
+def observations_cache_is_current() -> bool | None:
+    """Whether the built MS/binding indexes are current, without building anything.
+
+    :func:`is_built` only says a parquet exists. A consumer that gates on it
+    serves a legacy artifact forever once the package's schema or curation
+    moves on (#448). This answers the question ``build_observations(force=False)``
+    asks before deciding to skip — artifact version, source and curation
+    fingerprints, parquet fingerprints — and does nothing else: no output, no
+    writes, and no download of an externalized curation asset that a wheel
+    install has not cached yet (such an asset makes the cache read as stale,
+    which is the verdict a build would reach too, since fetching it stamps a
+    fresh mtime).
+
+    Returns
+    -------
+    bool | None
+        ``True`` if a build would be a no-op, ``False`` if it would rebuild,
+        ``None`` when no IEDB/CEDAR source is registered, so validity cannot
+        be judged (``build_observations`` would raise rather than answer).
+    """
+    from .builder import _cache_is_valid, _source_paths
+
+    paths = _source_paths()
+    if not paths:
+        return None
+    return _cache_is_valid(paths, fetch_missing_assets=False)
+
+
 def load_observations(
     mhc_class: str | None = None,
     species: str | None = None,
