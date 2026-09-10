@@ -1349,3 +1349,27 @@ def test_serotype_source_filter_separates_reported_from_derived(tmp_path, monkey
     assert load_observations(serotype="A2", serotype_source="reported")["peptide"].tolist() == [
         "TYPED"
     ]
+
+
+@pytest.mark.parametrize("loader_name", ["load_observations", "load_binding"])
+def test_serotype_queries_preserve_nonhuman_species(tmp_path, monkeypatch, loader_name):
+    import pandas as pd
+
+    from hitlist import observations
+
+    monkeypatch.setattr(observations, "data_dir", lambda: tmp_path)
+    frame = pd.DataFrame(
+        {
+            "peptide": ["CATTLEPEP", "CHIMPPEP", "HUMANPEP"],
+            "mhc_restriction": ["BoLA-6*013:01", "Patr-DR1", "HLA-DR1"],
+            "mhc_species": ["Bos sp.", "Pan troglodytes", "Homo sapiens"],
+            "mhc_class": ["I", "II", "II"],
+            "serotypes": ["BoLA-A18", "Patr-DR1", "HLA-DR1"],
+        }
+    )
+    for filename in ("observations.parquet", "binding.parquet"):
+        frame.to_parquet(tmp_path / filename, index=False)
+    load = getattr(observations, loader_name)
+    assert load(serotype="bola-a18")["peptide"].tolist() == ["CATTLEPEP"]
+    assert load(serotype="patr-dr1")["peptide"].tolist() == ["CHIMPPEP"]
+    assert load(serotype="dr1")["peptide"].tolist() == ["HUMANPEP"]

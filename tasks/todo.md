@@ -1365,3 +1365,33 @@ appear at all.
 name, because `parse()` runs with `use_allele_aliases=False`) is a semantic
 decision about whether `mhc_restriction` may stop being what the paper
 reported. It stays open for a call rather than being bundled here.
+
+# PR #462 review fixes and release
+
+Specification: [pr-462-release-spec.md](pr-462-release-spec.md).
+
+- [x] Confirm current PR, review findings, dependency data, and release scripts.
+- [x] Preserve species in both serotype lookup directions; add regressions.
+- [x] Correct worker sizing and interpreter selection; make continuation tests deterministic.
+- [x] Measure corpus impact and validate the declared dependency floor.
+- [ ] Run format, lint, and all tests; record review results.
+- [ ] Update PR description, push, verify CI, and merge.
+- [ ] Deploy from clean main and verify PyPI publication.
+- [ ] Review the next relevant issue group.
+
+## Review
+
+Species-aware annotation, inverse lookup, and the shared public query normalizer
+now agree across the catalog (#463, #449). The comparison in
+`pr-462-serotype-impact.json` changes 27 observation and 464 binding rows;
+human annotations are unchanged. Artifact version 4 forces regeneration on the
+next build. The dependency floor remains mhcgnomes 3.54.0.
+
+The test runner uses free/speculative memory, a single worker when probes fail,
+and Python's own pytest module. The continuation test no longer depends on
+process startup fitting into five seconds (#440); actual process termination
+remains covered.
+
+Format/lint pass with the locked Ruff version. The isolated environment passes
+68 targeted query/runner checks and all 252 curation tests at the mhcgnomes floor.
+Full local validation and CI are in progress before merge and deployment.

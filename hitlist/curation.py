@@ -1639,8 +1639,8 @@ def _serotype_table_key(allele_str: str) -> str:
 
 
 @lru_cache(maxsize=1)
-def _build_allele_to_serotypes_map() -> dict[str, tuple[str, ...]]:
-    """Build a reverse map from allele compact key to ALL its serotypes.
+def _build_allele_to_serotypes_map() -> dict[tuple[str, str], tuple[str, ...]]:
+    """Build a reverse map from (species prefix, compact allele) to its serotypes.
 
     Returns a dict of ``{allele_key: (serotype1, serotype2, ...)}`` where
     the tuple is ordered by specificity:
@@ -1655,24 +1655,25 @@ def _build_allele_to_serotypes_map() -> dict[str, tuple[str, ...]]:
     except ImportError:
         return {}
 
-    reverse: dict[str, list[str]] = {}
-    hla = serotypes["HLA"]
-    known_names = set(hla)
-    for sero_name, allele_list in hla.items():
-        # A split serotype (A2403) also implies its broad parent (A24) when
-        # that parent serotype exists in the table, so broad queries match
-        # split members.
-        broader_name = _broader_locus_serotype_name(sero_name, known_names)
-        names_for_sero = [sero_name] if not broader_name else [sero_name, broader_name]
-        for allele_str in allele_list:
-            reverse.setdefault(_serotype_table_key(allele_str), []).extend(names_for_sero)
+    reverse: dict[tuple[str, str], list[str]] = {}
+    for prefix, table in serotypes.items():
+        known_names = set(table)
+        for sero_name, allele_list in table.items():
+            # HLA split serotypes also imply their catalogued broad parent.
+            broader_name = (
+                _broader_locus_serotype_name(sero_name, known_names) if prefix == "HLA" else ""
+            )
+            names_for_sero = [sero_name] if not broader_name else [sero_name, broader_name]
+            for allele_str in allele_list:
+                key = (prefix, _serotype_table_key(allele_str))
+                reverse.setdefault(key, []).extend(names_for_sero)
 
     return {
-        allele: tuple(
-            f"HLA-{s}"
+        (prefix, allele): tuple(
+            f"{prefix}-{s}"
             for s in sorted(set(names), key=lambda n: (_serotype_specificity_rank(n), len(n), n))
         )
-        for allele, names in reverse.items()
+        for (prefix, allele), names in reverse.items()
     }
 
 
@@ -1708,21 +1709,12 @@ def allele_to_all_serotypes(mhc_restriction: str) -> tuple[str, ...]:
             from mhcgnomes.serotype import Serotype
 
             if isinstance(result, Serotype):
-                return (f"HLA-{result.name}",)
+                return (result.to_string(),)
             if isinstance(result, Allele):
-                # Built compact directly. Routing this through
-                # _serotype_table_key was a no-op: an allele field never
-                # contains a colon (mhcgnomes splits on ":" and peels
-                # expression suffixes into annotations), so joining on ":" and
-                # stripping it is identical to joining on "". Verified over
-                # 6,645 parsed alleles.
-                #
-                # This key carries no species, while the map is built only from
-                # serotypes["HLA"], so a non-human allele whose gene and fields
-                # coincide with a human one collects human serotypes --
-                # Patr-A*02:01 returns HLA-A2. Pre-existing, and no curated row
-                # reaches it today; tracked as #463.
-                key = f"{result.gene.name}*{''.join(result.allele_fields)}"
+                key = (
+                    result.species.mhc_prefix,
+                    f"{result.gene.name}*{''.join(result.allele_fields)}",
+                )
                 return _build_allele_to_serotypes_map().get(key, ())
         except ImportError:
             pass
@@ -1731,7 +1723,7 @@ def allele_to_all_serotypes(mhc_restriction: str) -> tuple[str, ...]:
 
 
 def allele_to_serotype(mhc_restriction: str) -> str:
-    """Map an HLA allele or serotype annotation to its canonical serotype.
+    """Map an allele or serotype annotation to its species-qualified serotype.
 
     Uses mhcgnomes when available. Returns the most-specific serotype
     (e.g. ``"HLA-A24"`` rather than ``"HLA-Bw4"`` for HLA-A*24:02).  Use
@@ -1757,8 +1749,7 @@ def allele_to_serotype(mhc_restriction: str) -> str:
 def _build_serotype_to_alleles_map() -> dict[str, tuple[str, ...]]:
     """Forward map from canonical serotype name to its 4-digit members.
 
-    Reads ``mhcgnomes.data.serotypes["HLA"]`` directly so the values come
-    from the same IPD-IMGT/HLA table mhcgnomes ships with. The shipped
+    Reads ``mhcgnomes.data.serotypes`` across all species. The shipped
     table stores alleles in compact form (``A*0201``) — we canonicalize
     each via ``normalize_allele`` to the colon-separated 4-digit form
     (``HLA-A*02:01``) so callers can match against the parquet's
@@ -1768,7 +1759,7 @@ def _build_serotype_to_alleles_map() -> dict[str, tuple[str, ...]]:
     population-dominant allele (A2 → A*02:01, B7 → B*07:02, DR4 →
     DRB1*04:01).
 
-    Keys are HLA-prefixed (``"HLA-A2"``). Returns empty dict if
+    Keys carry the species prefix (``"HLA-A2"``, ``"BoLA-A18"``). Returns empty dict if
     mhcgnomes is unavailable.
     """
     try:
@@ -1777,16 +1768,39 @@ def _build_serotype_to_alleles_map() -> dict[str, tuple[str, ...]]:
         return {}
 
     out: dict[str, tuple[str, ...]] = {}
-    for sero_name, allele_list in serotypes["HLA"].items():
-        canon: list[str] = []
-        for compact in allele_list:
-            # ``compact`` is the IPD-style "A*0201" — prefix with HLA-
-            # and let normalize_allele insert the colon and validate.
-            normalized = normalize_allele(f"HLA-{compact}")
-            if normalized:
-                canon.append(normalized)
-        out[f"HLA-{sero_name}"] = tuple(sorted(set(canon)))
+    for prefix, table in serotypes.items():
+        for sero_name, allele_list in table.items():
+            canon = {normalize_allele(f"{prefix}-{allele}") for allele in allele_list}
+            out[f"{prefix}-{sero_name}"] = tuple(sorted(canon))
     return out
+
+
+@lru_cache(maxsize=8192)
+def normalize_serotype_query(raw: str) -> str:
+    """Canonicalize a serotype query, preserving its MHC species.
+
+    Human queries may omit the prefix (``a2`` -> ``HLA-A2``). Explicit
+    non-human names retain it (``bola-a18`` -> ``BoLA-A18``). Unknown queries
+    keep the historical HLA spelling fallback and simply match no catalog row.
+    """
+    from mhcgnomes.serotype import Serotype
+
+    query = str(raw).strip()
+    if not query:
+        return ""
+    parsed = _cached_parse(query)
+    if isinstance(parsed, Serotype):
+        return parsed.to_string()
+    if query.upper().startswith("HLA-"):
+        query = query[4:]
+    low = query.lower()
+    if low.startswith("bw"):
+        query = "Bw" + query[2:]
+    elif low.startswith(("dr", "dq", "dp", "dm", "do")):
+        query = low[:2].upper() + query[2:]
+    else:
+        query = query[:1].upper() + query[1:]
+    return f"HLA-{query}"
 
 
 @lru_cache(maxsize=8192)
@@ -1799,7 +1813,7 @@ def serotype_to_alleles(serotype: str) -> tuple[str, ...]:
     the matching rows.
 
     Returns an empty tuple when the input is empty, not a serotype, or
-    not in the IPD-IMGT/HLA serotype catalog.
+    not in mhcgnomes' serotype catalog.
 
     Examples::
 
@@ -1808,8 +1822,12 @@ def serotype_to_alleles(serotype: str) -> tuple[str, ...]:
     """
     if not serotype:
         return ()
-    norm = normalize_allele(serotype)
-    return _build_serotype_to_alleles_map().get(norm, ())
+    from mhcgnomes.serotype import Serotype
+
+    parsed = _cached_parse(serotype)
+    if not isinstance(parsed, Serotype):
+        return ()
+    return _build_serotype_to_alleles_map().get(parsed.to_string(), ())
 
 
 @lru_cache(maxsize=8192)

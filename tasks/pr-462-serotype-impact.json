@@ -1,0 +1,264 @@
+{
+  "observations": {
+    "n_rows": 4480783,
+    "n_restrictions": 1180,
+    "n_changed_rows": 27,
+    "changes": [
+      {
+        "restriction": "BoLA-6*013:01",
+        "n_rows": 2,
+        "before": "",
+        "after": "BoLA-A18",
+        "source_before": "",
+        "source_after": "derived"
+      },
+      {
+        "restriction": "BoLA-6*013:02",
+        "n_rows": 1,
+        "before": "",
+        "after": "BoLA-A18",
+        "source_before": "",
+        "source_after": "derived"
+      },
+      {
+        "restriction": "Mamu-DR1B",
+        "n_rows": 1,
+        "before": "HLA-DR1B",
+        "after": "Mamu-DR1B",
+        "source_before": "reported",
+        "source_after": "reported"
+      },
+      {
+        "restriction": "Mamu-DR2",
+        "n_rows": 1,
+        "before": "HLA-DR2",
+        "after": "Mamu-DR2",
+        "source_before": "reported",
+        "source_after": "reported"
+      },
+      {
+        "restriction": "Mamu-DR3A",
+        "n_rows": 1,
+        "before": "HLA-DR3A",
+        "after": "Mamu-DR3A",
+        "source_before": "reported",
+        "source_after": "reported"
+      },
+      {
+        "restriction": "Mamu-DR4",
+        "n_rows": 1,
+        "before": "HLA-DR4",
+        "after": "Mamu-DR4",
+        "source_before": "reported",
+        "source_after": "reported"
+      },
+      {
+        "restriction": "Mamu-DR6",
+        "n_rows": 1,
+        "before": "HLA-DR6",
+        "after": "Mamu-DR6",
+        "source_before": "reported",
+        "source_after": "reported"
+      },
+      {
+        "restriction": "Mamu-DR7A",
+        "n_rows": 1,
+        "before": "HLA-DR7A",
+        "after": "Mamu-DR7A",
+        "source_before": "reported",
+        "source_after": "reported"
+      },
+      {
+        "restriction": "Mamu-DR8",
+        "n_rows": 1,
+        "before": "HLA-DR8",
+        "after": "Mamu-DR8",
+        "source_before": "reported",
+        "source_after": "reported"
+      },
+      {
+        "restriction": "Mamu-DRB1*03:03",
+        "n_rows": 1,
+        "before": "HLA-DR18",
+        "after": "",
+        "source_before": "derived",
+        "source_after": ""
+      },
+      {
+        "restriction": "Mamu-DRB1*03:06",
+        "n_rows": 1,
+        "before": "HLA-DR3",
+        "after": "",
+        "source_before": "derived",
+        "source_after": ""
+      },
+      {
+        "restriction": "Patr-A*03:01",
+        "n_rows": 3,
+        "before": "HLA-A3",
+        "after": "",
+        "source_before": "derived",
+        "source_after": ""
+      },
+      {
+        "restriction": "Patr-DR1",
+        "n_rows": 1,
+        "before": "HLA-DR1",
+        "after": "Patr-DR1",
+        "source_before": "reported",
+        "source_after": "reported"
+      },
+      {
+        "restriction": "Patr-DR10",
+        "n_rows": 1,
+        "before": "HLA-DR10",
+        "after": "Patr-DR10",
+        "source_before": "reported",
+        "source_after": "reported"
+      },
+      {
+        "restriction": "Patr-DR2",
+        "n_rows": 1,
+        "before": "HLA-DR2",
+        "after": "Patr-DR2",
+        "source_before": "reported",
+        "source_after": "reported"
+      },
+      {
+        "restriction": "Patr-DR3",
+        "n_rows": 1,
+        "before": "HLA-DR3",
+        "after": "Patr-DR3",
+        "source_before": "reported",
+        "source_after": "reported"
+      },
+      {
+        "restriction": "Patr-DR4",
+        "n_rows": 1,
+        "before": "HLA-DR4",
+        "after": "Patr-DR4",
+        "source_before": "reported",
+        "source_after": "reported"
+      },
+      {
+        "restriction": "Patr-DR5",
+        "n_rows": 1,
+        "before": "HLA-DR5",
+        "after": "Patr-DR5",
+        "source_before": "reported",
+        "source_after": "reported"
+      },
+      {
+        "restriction": "Patr-DR7",
+        "n_rows": 1,
+        "before": "HLA-DR7",
+        "after": "Patr-DR7",
+        "source_before": "reported",
+        "source_after": "reported"
+      },
+      {
+        "restriction": "Patr-DR8",
+        "n_rows": 1,
+        "before": "HLA-DR8",
+        "after": "Patr-DR8",
+        "source_before": "reported",
+        "source_after": "reported"
+      },
+      {
+        "restriction": "Patr-DR9",
+        "n_rows": 1,
+        "before": "HLA-DR9",
+        "after": "Patr-DR9",
+        "source_before": "reported",
+        "source_after": "reported"
+      },
+      {
+        "restriction": "SLA-DRB1*04:02",
+        "n_rows": 1,
+        "before": "HLA-DR4",
+        "after": "",
+        "source_before": "derived",
+        "source_after": ""
+      },
+      {
+        "restriction": "SLA-DRB1*10:01",
+        "n_rows": 2,
+        "before": "HLA-DR10",
+        "after": "",
+        "source_before": "derived",
+        "source_after": ""
+      }
+    ]
+  },
+  "binding": {
+    "n_rows": 892827,
+    "n_restrictions": 538,
+    "n_changed_rows": 464,
+    "changes": [
+      {
+        "restriction": "BoLA-6*013:01",
+        "n_rows": 90,
+        "before": "",
+        "after": "BoLA-A18",
+        "source_before": "",
+        "source_after": "derived"
+      },
+      {
+        "restriction": "BoLA-A11",
+        "n_rows": 40,
+        "before": "HLA-A11",
+        "after": "BoLA-A11",
+        "source_before": "reported",
+        "source_after": "reported"
+      },
+      {
+        "restriction": "Mamu-DRB1*04:06",
+        "n_rows": 90,
+        "before": "HLA-DR4",
+        "after": "",
+        "source_before": "derived",
+        "source_after": ""
+      },
+      {
+        "restriction": "Patr-A*01:01",
+        "n_rows": 108,
+        "before": "HLA-A1",
+        "after": "",
+        "source_before": "derived",
+        "source_after": ""
+      },
+      {
+        "restriction": "Patr-A*03:01",
+        "n_rows": 5,
+        "before": "HLA-A3",
+        "after": "",
+        "source_before": "derived",
+        "source_after": ""
+      },
+      {
+        "restriction": "Patr-B*13:01",
+        "n_rows": 128,
+        "before": "HLA-B13;HLA-Bw4",
+        "after": "",
+        "source_before": "derived",
+        "source_after": ""
+      },
+      {
+        "restriction": "SLA-DRB1*04:02",
+        "n_rows": 2,
+        "before": "HLA-DR4",
+        "after": "",
+        "source_before": "derived",
+        "source_after": ""
+      },
+      {
+        "restriction": "SLA-DRB1*10:01",
+        "n_rows": 1,
+        "before": "HLA-DR10",
+        "after": "",
+        "source_before": "derived",
+        "source_after": ""
+      }
+    ]
+  }
+}

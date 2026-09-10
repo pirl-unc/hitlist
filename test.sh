@@ -14,7 +14,7 @@
 # up. xdist is optional — fall back to serial pytest when it isn't
 # installed.
 #
-# See issues #223, #244, #262.
+# See issues #223, #244, #262, #440.
 #
 # Tunables (env vars):
 #   PER_WORKER_GB    per-worker memory budget in GB (default: 2.5)
@@ -63,9 +63,10 @@ mac_available_bytes() {
     page_size=$(sysctl -n hw.pagesize 2>/dev/null) || return 1
     vm_stat 2>/dev/null | awk -v ps="$page_size" '
         /Pages free/        { gsub(/\./, "", $3); free     = $3 }
-        /Pages inactive/    { gsub(/\./, "", $3); inactive = $3 }
         /Pages speculative/ { gsub(/\./, "", $3); spec     = $3 }
-        END { print (free + inactive + spec) * ps }
+        # Inactive pages may require eviction and swap I/O to reclaim.
+        # Counting them as free overcommits a busy machine (#440).
+        END { print (free + spec) * ps }
     '
 }
 
@@ -98,13 +99,13 @@ if avail=$(available_bytes 2>/dev/null) && [[ -n "$avail" ]]; then
     AVAIL_GB=$(awk -v b="$avail" 'BEGIN { printf "%.1f", b / 1024^3 }')
     mem_note="ram_free=${AVAIL_GB}GB mem_cap=${MEM_CAP}"
 else
-    MEM_CAP=$CPU_CAP
-    mem_note="ram_free=? (probe unavailable) mem_cap=cpu_cap"
+    MEM_CAP=1
+    mem_note="ram_free=? (probe unavailable) mem_cap=1"
 fi
 
 if (( CPU_CAP < MEM_CAP )); then WORKERS=$CPU_CAP; else WORKERS=$MEM_CAP; fi
-if (( TEST_SH_MAX > 0 && WORKERS > TEST_SH_MAX )); then WORKERS=$TEST_SH_MAX; fi
 if (( WORKERS < TEST_SH_MIN )); then WORKERS=$TEST_SH_MIN; fi
+if (( TEST_SH_MAX > 0 && WORKERS > TEST_SH_MAX )); then WORKERS=$TEST_SH_MAX; fi
 
 # Argument parsing: --all expands to include integration tests.
 filter=(-m "not integration")
@@ -122,12 +123,12 @@ if python -c "import xdist" 2>/dev/null; then
     XDIST_FLAGS=(-n "$WORKERS")
     log "platform=${OS} cpus=${CPUS} cpu_cap=${CPU_CAP} ${mem_note} per_worker=${PER_WORKER_GB}GB"
     if (( ${#filter[@]} )); then
-        log "workers=${WORKERS} → exec pytest -n ${WORKERS} ${filter[*]} --cov=hitlist/ --cov-report=term-missing tests ${extra[*]:-}"
+        log "workers=${WORKERS} → exec python -m pytest -n ${WORKERS} ${filter[*]} --cov=hitlist/ --cov-report=term-missing tests ${extra[*]:-}"
     else
-        log "workers=${WORKERS} → exec pytest -n ${WORKERS} --cov=hitlist/ --cov-report=term-missing tests ${extra[*]:-} (--all: integration tests included)"
+        log "workers=${WORKERS} → exec python -m pytest -n ${WORKERS} --cov=hitlist/ --cov-report=term-missing tests ${extra[*]:-} (--all: integration tests included)"
     fi
 else
     log "platform=${OS} cpus=${CPUS} (pytest-xdist not installed; running serial)"
 fi
 
-exec pytest "${XDIST_FLAGS[@]}" "${filter[@]}" --cov=hitlist/ --cov-report=term-missing tests "${extra[@]}"
+exec python -m pytest "${XDIST_FLAGS[@]}" "${filter[@]}" --cov=hitlist/ --cov-report=term-missing tests "${extra[@]}"

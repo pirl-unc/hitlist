@@ -851,7 +851,8 @@ def main() -> None:
         action="extend",
         nargs="+",
         help=(
-            "Filter by HLA serotype.  Accepts locus-specific names (A2, A24, "
+            "Filter by MHC serotype. Use a species prefix for non-human names (BoLA-A18). "
+            "Accepts locus-specific names (A2, A24, "
             "B57, DR15) or public epitopes (Bw4, Bw6, C1, C2).  Matches any "
             "serotype an allele belongs to, so --serotype Bw4 returns A*24:02, "
             "B*27:05, B*57:01, etc.  Space-separated, comma-separated, or repeated."
@@ -1029,7 +1030,7 @@ def main() -> None:
         action="extend",
         nargs="+",
         help=(
-            "Filter by HLA serotype (locus-specific A24/B57/DR15 or public "
+            "Filter by MHC serotype (species-prefixed BoLA-A18, locus-specific A24/B57/DR15 or public "
             "epitopes Bw4/Bw6/C1/C2).  Space-separated, comma-separated, or repeated."
         ),
     )
@@ -1210,7 +1211,7 @@ def main() -> None:
         "--serotype",
         action="extend",
         nargs="+",
-        help="Filter by HLA serotype. Space-separated, comma-separated, or repeated.",
+        help="Filter by MHC serotype (A2, BoLA-A18). Space-separated, comma-separated, or repeated.",
     )
     p_training.add_argument("--length-min", type=int, help="Minimum peptide length (inclusive).")
     p_training.add_argument("--length-max", type=int, help="Maximum peptide length (inclusive).")

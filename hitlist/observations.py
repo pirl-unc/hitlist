@@ -78,6 +78,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+from .curation import normalize_serotype_query as _normalize_serotype_query
 from .downloads import data_dir
 
 
@@ -987,16 +988,3 @@ def _load_peptide_index(
         df = df[[c for c in columns if c in df.columns]]
 
     return df
-
-
-def _normalize_serotype_query(raw: str) -> str:
-    """Normalize user serotype input to canonical ``HLA-X`` form.
-
-    Accepts ``A24``, ``HLA-A24``, ``hla-a24``, ``Bw4``, etc.
-    """
-    s = raw.strip()
-    if not s:
-        return ""
-    if s.upper().startswith("HLA-"):
-        return "HLA-" + s[4:]
-    return f"HLA-{s}"

@@ -58,7 +58,9 @@ from .downloads import data_dir
 #: 3: ``serotype_source`` names whether a serotype is reported or computed
 #:    (#458), and the serotype reverse map reaches the six C-locus
 #:    specificities it used to drop (#455), so stored serotypes change.
-_OBSERVATIONS_ARTIFACT_VERSION = 3
+#: 4: Serotypes retain their MHC species and include non-human catalog
+#:    memberships, avoiding collisions with human alleles (#463).
+_OBSERVATIONS_ARTIFACT_VERSION = 4
 
 
 def _source_paths() -> dict[str, Path]:

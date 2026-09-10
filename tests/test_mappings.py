@@ -723,7 +723,32 @@ def test_prefetch_worker_distinguishes_negative_resolution_from_transport_failur
         assert "transiently" in result[2]
 
 
-def test_prefetch_supervisor_continues_after_failure(capsys):
+def test_prefetch_supervisor_continues_after_failure(capsys, monkeypatch):
+    """Task failure must not skip subsequent tasks while time remains (#440)."""
+    import multiprocessing as mp
+    from types import SimpleNamespace
+
+    from hitlist import mappings
+
+    calls = []
+
+    class ImmediatePool:
+        def apply_async(self, target, args):
+            calls.append(args[0])
+            return SimpleNamespace(get=lambda timeout: target(*args))
+
+        def close(self):
+            calls.append("close")
+
+        def join(self):
+            calls.append("join")
+
+    # This tests continuation, not process startup speed. The real spawned
+    # pool and its termination remain covered by the blocked-call test below.
+    monkeypatch.setattr(
+        mp, "get_context", lambda _: SimpleNamespace(Pool=lambda **_: ImmediatePool())
+    )
+    monkeypatch.setattr(mappings, "time", SimpleNamespace(monotonic=lambda: 0.0))
     tasks = [
         ("BadSpecies", ("BadSpecies",), {"kind": "uniprot", "proteome_id": "UP_BAD"}),
         (
@@ -746,6 +771,7 @@ def test_prefetch_supervisor_continues_after_failure(capsys):
     assert "[1/2] BadSpecies" in out
     assert "[2/2] GoodSpecies" in out
     assert "simulated failure" in out
+    assert calls == ["BadSpecies", "GoodSpecies", "close", "join"]
 
 
 def test_prefetch_supervisor_terminates_blocked_inflight_call(capsys):
