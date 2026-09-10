@@ -2,6 +2,16 @@
 
 ## 2026-09-09
 
+- When asked to fix all review findings and ship, resolve the known failing gate
+  as well as the PR-specific defect. A timing test that passes only in isolation
+  still needs a deterministic contract before relying on it for deployment.
+- Verify claimed zero impact against the stored observation and binding vocabularies,
+  not only curated sample tokens. #463 already changed 27 observation and 464 binding
+  rows when checked across both local artifacts, despite its initial zero-impact claim.
+- Use an isolated environment from the repository lockfile for release validation.
+  The shared virtualenv changed from mhcgnomes 3.64.2 to unsupported 3.33.4 during
+  this run, turning previously passing checks into misleading API/data failures.
+
 - When the user needs condition categoricals on dataset rows, design the shared table columns
   before proposing an object hierarchy. Keep authoring flat, use the same column names for
   curation and exports, and add nesting only when a concrete source cannot be represented

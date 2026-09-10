@@ -321,8 +321,9 @@ def test_cache_invalid_when_parquet_fingerprint_changes(tmp_path, monkeypatch):
     assert _cache_is_valid({}, with_flanking=False) is False
 
 
-def test_cache_invalidates_legacy_observations_artifact(tmp_path, monkeypatch):
-    """A pre-contract artifact must rebuild even when every file fingerprint matches."""
+@pytest.mark.parametrize("artifact_version", [None, 3])
+def test_cache_invalidates_legacy_observations_artifact(tmp_path, monkeypatch, artifact_version):
+    """Pre-contract and pre-species-serotype artifacts must regenerate annotations."""
     from hitlist import builder, downloads
 
     monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
@@ -334,9 +335,10 @@ def test_cache_invalidates_legacy_observations_artifact(tmp_path, monkeypatch):
     ):
         (tmp_path / filename).write_bytes(b"artifact")
     monkeypatch.setattr(builder, "_source_fingerprints", lambda paths: {})
-    _meta_path().write_text(
-        json.dumps({"sources": {}, "parquets": builder._parquet_fingerprints()})
-    )
+    metadata = {"sources": {}, "parquets": builder._parquet_fingerprints()}
+    if artifact_version is not None:
+        metadata["artifact_version"] = artifact_version
+    _meta_path().write_text(json.dumps(metadata))
 
     assert _cache_is_valid({}, with_flanking=False) is False
 

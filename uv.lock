@@ -569,7 +569,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "datacache" },
-    { name = "mhcgnomes", marker = "extra == 'alleles'", specifier = ">=3.41.0" },
+    { name = "mhcgnomes", marker = "extra == 'alleles'", specifier = ">=3.54.0" },
     { name = "pandas" },
     { name = "pyarrow" },
     { name = "pyensembl" },

@@ -51,6 +51,7 @@ from .curation import (
     serotype_to_alleles,
     species_axes_agreement,
 )
+from .curation import normalize_serotype_query as _normalize_serotype_query
 
 # MS acquisition metadata fields.  Each may appear at the PMID level
 # (study-wide default) or on individual ``ms_samples`` entries.
@@ -3604,24 +3605,6 @@ def _truthy(value) -> bool:
     if pd.isna(value):
         return False
     return bool(value)
-
-
-def _normalize_serotype_query(raw: str) -> str:
-    """Normalise a user serotype query (``A24``, ``bw4``, ``hla-dr15``) to the
-    ``HLA-*`` display style used by the serotype map."""
-    q = str(raw).strip()
-    if not q:
-        return ""
-    if q.upper().startswith("HLA-"):
-        q = q[4:]
-    low = q.lower()
-    if low.startswith("bw"):
-        q = "Bw" + q[2:]
-    elif low.startswith(("dr", "dq", "dp", "dm", "do")):
-        q = low[:2].upper() + q[2:]
-    else:
-        q = q[:1].upper() + q[1:]
-    return f"HLA-{q}"
 
 
 def _serotype_key(raw: str) -> str:

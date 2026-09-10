@@ -82,6 +82,7 @@ from .version import __version__  # noqa: E402  -- after side-effect setup
 _PUBLIC_API: dict[str, str] = {
     # Public enumerations shared by scanners, APIs, and CLIs.
     "MHC_ALLELE_PROVENANCE_VALUES": ".curation",
+    "normalize_serotype_query": ".curation",
     # Build the cached indexes.
     "build_observations": ".builder",
     # Load the built indexes (filters documented on each function).

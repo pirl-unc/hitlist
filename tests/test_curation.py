@@ -3259,18 +3259,100 @@ def test_every_serotype_table_entry_is_reachable():
     every annotation in the index.  This asserts the whole vocabulary stays
     reachable, so a format change upstream fails here instead of quietly
     dropping a locus.
+
+    It asserts each entry resolves to *its own* serotype rather than merely
+    to something.  A non-empty check passes a regression that maps an allele
+    to the wrong specificity, which is the same silently-wrong-value class
+    #455 was about — the annotation would still be there, and still be
+    incorrect.
     """
     if not _HAS_MHCGNOMES:
         return
     from mhcgnomes.data import serotypes
 
-    unreachable = [
-        allele
-        for allele_list in serotypes["HLA"].values()
-        for allele in allele_list
-        if not allele_to_all_serotypes(f"HLA-{allele}")
-    ]
-    assert unreachable == []
+    wrong = []
+    for prefix, table in serotypes.items():
+        for sero_name, allele_list in table.items():
+            for allele in allele_list:
+                found = allele_to_all_serotypes(f"{prefix}-{allele}")
+                if f"{prefix}-{sero_name}" not in found:
+                    wrong.append(f"{prefix}-{sero_name} -> {allele} (got {found})")
+    assert wrong == [], (
+        f"{len(wrong)} table entries do not resolve to their own serotype:\n  "
+        + "\n  ".join(wrong[:15])
+    )
+
+
+@pytest.mark.parametrize(
+    "allele",
+    [
+        "Patr-A*02:01",
+        "Gogo-A*01:02",
+        "DLA-A*02:01",
+        "Patr-B*13:01",
+        "Mamu-DRB1*04:06",
+        "SLA-DRB1*10:01",
+    ],
+)
+def test_nonhuman_alleles_do_not_collect_human_serotypes(allele):
+    assert allele_to_all_serotypes(allele) == ()
+
+
+@pytest.mark.parametrize("serotype", ["Patr-DR1", "Mamu-DR1B", "DLA-A2", "BoLA-A18"])
+def test_reported_serotypes_preserve_their_species(serotype):
+    from hitlist.curation import resolve_mhc_annotation
+
+    assert allele_to_all_serotypes(serotype) == (serotype,)
+    annotation = resolve_mhc_annotation(serotype)
+    assert annotation.serotypes == serotype
+    assert annotation.serotype_source == "reported"
+
+
+def test_cattle_serotype_memberships_work_in_both_directions():
+    for allele in ("BoLA-6*013:01", "BoLA-6*013:02"):
+        assert allele_to_all_serotypes(allele) == ("BoLA-A18",)
+    assert allele_to_all_serotypes("BoLA-N*018:01") == ("BoLA-A11",)
+    for spelling in ("BoLA-A18", "bola-a18"):
+        assert serotype_to_alleles(spelling) == ("BoLA-6*013:01", "BoLA-6*013:02")
+    # A named serotype does not imply that the catalog has molecular members.
+    assert serotype_to_alleles("Patr-DR1") == ()
+
+
+def test_nonhuman_donor_bag_retains_species_and_candidate_provenance():
+    from hitlist.curation import resolve_mhc_annotation
+
+    annotation = resolve_mhc_annotation("BoLA-6*013:01;BoLA-6*013:02")
+    assert annotation.serotypes == "BoLA-A18"
+    assert annotation.serotype_source == "donor_set"
+
+
+@pytest.mark.parametrize("spelling", ["HLA-A2", "hla-a2", "A2", "a2"])
+def test_serotype_expansion_accepts_parsed_spellings(spelling):
+    assert serotype_to_alleles(spelling) == serotype_to_alleles("HLA-A2")
+    assert "HLA-A*02:01" in serotype_to_alleles(spelling)
+
+
+@pytest.mark.parametrize(
+    ("query", "expected"),
+    [
+        ("a2", "HLA-A2"),
+        ("hla-dr15", "HLA-DR15"),
+        ("bw4", "HLA-Bw4"),
+        ("hla-cw16", "HLA-Cw16"),
+        ("bola-a18", "BoLA-A18"),
+        ("patr-dr1", "Patr-DR1"),
+        ("a99", "HLA-A99"),
+        ("", ""),
+    ],
+)
+def test_public_serotype_normalizer_is_shared_by_loaders_and_exports(query, expected):
+    import hitlist
+    from hitlist import export, observations
+
+    assert hitlist.normalize_serotype_query(query) == expected
+    assert observations._normalize_serotype_query is hitlist.normalize_serotype_query
+    assert export._normalize_serotype_query is hitlist.normalize_serotype_query
+    assert "normalize_serotype_query" in hitlist.__all__
 
 
 def test_allele_to_all_serotypes_reaches_curated_c_locus_specificities():
@@ -3291,6 +3373,13 @@ def test_allele_to_all_serotypes_reaches_curated_c_locus_specificities():
     assert allele_to_all_serotypes("HLA-C*14:02") == ("HLA-Cw14",)
     assert allele_to_all_serotypes("HLA-C*17:01") == ("HLA-Cw17",)
     assert allele_to_all_serotypes("HLA-C*18:01") == ("HLA-Cw18",)
+    # The C locus skips two numbers, for two different reasons, and neither is
+    # a bug here: wmda/hla_nom.txt records Cw11 as assigned in 1987 and deleted
+    # in 1991 for "Sequence error", while Cw13 has no line at all and was never
+    # assigned. Recorded as a comment rather than an assertion on purpose --
+    # `"Cw13" not in serotypes["HLA"]` would test the dependency's data, and
+    # this very PR exists because WHO assigned six new C serotypes in 2026, so
+    # "these absences are permanent" is a premise already falsified once.
 
 
 def test_serotype_source_separates_reported_from_computed():

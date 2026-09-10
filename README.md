@@ -277,7 +277,7 @@ lookup_proteome("Mycobacterium tuberculosis")
 | `mhc_species` | Canonical MHC species (mhcgnomes plus explicit per-study context for ambiguous names) |
 | `mhc_species_source`, `mhc_species_context_disagrees` | Species-resolution provenance and explicit context-conflict signal |
 | `restriction_evidence` | How the named peptide-to-MHC restriction was established: `experimental`, `monoallelic`, `predicted`, or `unknown` |
-| `serotype`, `serotypes` | Canonical serotype and full membership (an allele can carry a locus serotype and a public epitope such as `Bw4`) |
+| `serotype`, `serotypes` | Canonical serotype and full membership, preserving the MHC species prefix (for example `HLA-A2` or `BoLA-A18`). An allele can carry a locus serotype and a public epitope such as `Bw4`. |
 | `serotype_source` | Whether the serotype is primary data or a projection: `reported` (the study typed serologically; no molecule was measured, which is why the allele fields are empty), `derived` (computed from a named molecule through mhcgnomes' membership table, so only as current as the installed mhcgnomes — the build records `mhcgnomes_version` in `observations_meta.json`), `donor_set` (a union over a donor's typed alleles, making the serotype a candidate rather than the restriction's identity), or empty (no serotype) |
 | `is_monoallelic` | True if sample has a single transfected allele (721.221, C1R, K562, MAPTAC…) |
 | `has_peptide_level_allele` | True if `mhc_restriction` is a specific allele (not `"HLA class I"`) |
@@ -401,11 +401,15 @@ training pipelines.
 | `--gene-name` | Exact match on `gene_name` column (no HGNC lookup) |
 | `--gene-id` | Exact match on `gene_id` column (ENSG) |
 | `--peptide` | Exact match on `peptide` sequence. Repeatable / comma-separated. |
-| `--serotype` | HLA serotype: locus-specific (`A24`, `B57`, `DR15`) or public epitope (`Bw4`, `Bw6`). Matches any serotype the allele belongs to, so `--serotype Bw4` returns A\*24:02, B\*27:05, B\*57:01, etc. Split serotypes are rolled into their broad parent, so `--serotype A24` also matches A\*24:03 (serotype `A2403`). Repeatable / comma-separated. |
+| `--serotype` | MHC serotype: use a species prefix for non-human names (`BoLA-A18`, `Patr-DR1`); HLA names may omit it (`A24`, `B57`, `DR15`, `Bw4`, `Bw6`). Matches any serotype the allele belongs to, so `--serotype Bw4` returns A\*24:02, B\*27:05, B\*57:01, etc. HLA split serotypes are rolled into their broad parent, so `--serotype A24` also matches A\*24:03 (serotype `A2403`). Repeatable / comma-separated. |
 | `--exclude-class-label-suspect` | Drop rows where the curated class disagrees with peptide length severely enough to be flagged `suspect` or `implausible` (`mhc_class_label_severity`). |
 | `--exclude-class-label-implausible` | Strict-cleaning variant — drops only `implausible` rows (class-I ≥18aa or ≤7aa, class-II ≤4 or ≥45aa). Keeps borderline + suspect tiers, useful when bulged class-I 15-17aa peptides should be retained. |
 | `--apm-only` | Filter to peptide rows from samples where any APM gene was perturbed (`apm_perturbed=True`). Reflects the sample's *own* condition; the parent study's perturbation panel is carried separately in `study_apm_perturbed` / `study_apm_genes`. |
 | `--output` / `-o` | `.csv` or `.parquet` |
+
+For filtering a frame already in memory, `hitlist.normalize_serotype_query()` uses
+the same spelling rules as the loaders and exports: `"a2"` becomes `"HLA-A2"`,
+and `"bola-a18"` becomes `"BoLA-A18"`.
 
 All filters are pushed down to the parquet reader (pyarrow), so `--gene PRAME` reads
 only the matching row groups — typically milliseconds rather than a full table scan.
