@@ -7,6 +7,8 @@ backends), filter pushdown, and process-worker contract.
 
 from __future__ import annotations
 
+import time
+
 import pandas as pd
 import pytest
 
@@ -775,8 +777,6 @@ def test_prefetch_supervisor_continues_after_failure(capsys, monkeypatch):
 
 
 def test_prefetch_supervisor_terminates_blocked_inflight_call(capsys):
-    import time
-
     tasks = [
         ("BlockedSpecies", ("BlockedSpecies",), {"kind": "uniprot", "proteome_id": "UP1"}),
         ("NeverStarted", ("NeverStarted",), {"kind": "uniprot", "proteome_id": "UP2"}),
@@ -798,6 +798,44 @@ def test_prefetch_supervisor_terminates_blocked_inflight_call(capsys):
     assert "BlockedSpecies" in out
     assert "timed out" in out
     assert "NeverStarted" not in out
+
+
+def test_prefetch_deadline_does_not_pay_for_pool_startup(monkeypatch, capsys):
+    """Slow process startup must not consume the warm-up budget (#468).
+
+    The supervisor builds a *spawn* pool, so the interpreter it starts costs
+    whatever a loaded machine charges. Before #468 the clock was already
+    running, and a startup longer than the deadline sent the supervisor down
+    its "deadline exhausted" path having attempted nothing — which is how
+    this suite's in-flight timeout test came to depend on runner load.
+    """
+    import multiprocessing as mp
+
+    real_context = mp.get_context("spawn")
+
+    class SlowStartContext:
+        """A spawn context whose pool takes longer to build than the deadline."""
+
+        def Pool(self, processes):  # matches the stdlib context API
+            pool = real_context.Pool(processes=processes)
+            time.sleep(0.4)
+            return pool
+
+    monkeypatch.setattr(mp, "get_context", lambda _kind: SlowStartContext())
+
+    unavailable = _supervise_prefetch_tasks(
+        [("BlockedSpecies", ("BlockedSpecies",), {"kind": "uniprot", "proteome_id": "UP1"})],
+        release=112,
+        verbose=True,
+        deadline_seconds=0.2,
+        worker_target=_blocking_prefetch_worker,
+    )
+
+    out = capsys.readouterr().out
+    assert unavailable == {"BlockedSpecies"}
+    # The work was attempted and timed out; the budget was not spent on startup.
+    assert "timed out" in out
+    assert "exhausted" not in out
 
 
 @pytest.mark.parametrize("deadline_seconds", [0.0, -1.0, float("nan"), float("inf")])

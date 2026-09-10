@@ -1007,12 +1007,19 @@ def _supervise_prefetch_tasks(
     target = worker_target or _prefetch_worker
     context = mp.get_context("spawn")
     unavailable: set[str] = set()
-    started = time.monotonic()
     pool = None
     aborted = False
 
     try:
         pool = context.Pool(processes=1)
+        # The clock starts once a worker process exists, not before (#468).
+        # This is the spawn context, so building the pool starts a fresh
+        # interpreter, and its cost tracks how busy the machine is rather
+        # than anything the deadline is meant to bound: the budget exists
+        # to stop a *network* stall from hanging a build (#402, #407).
+        # Charging local startup to it let a loaded box burn the whole
+        # phase without attempting a single fetch.
+        started = time.monotonic()
         for i, (label, canonicals, entry) in enumerate(tasks, 1):
             elapsed = time.monotonic() - started
             remaining_seconds = deadline_seconds - elapsed

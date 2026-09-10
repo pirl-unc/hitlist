@@ -1,3 +1,29 @@
+# Issue #468 — the warm-up deadline stops paying for process startup
+
+## Objective
+
+`_supervise_prefetch_tasks` started its wall-clock budget before building a **spawn**
+pool, so the cost of starting a fresh interpreter was charged to a deadline that exists
+to bound *network* stalls (#402, #407). On a loaded machine that could consume the whole
+phase without a single fetch attempted, and it made
+`test_prefetch_supervisor_terminates_blocked_inflight_call` depend on runner load — it
+failed on the Python 3.11 leg of #465, a PR that touches nothing in `mappings.py`.
+
+## Plan
+
+- [x] Start the clock once the pool exists, so the budget measures warm-up work.
+- [x] Regression that fails on the old code with the exact CI message: a context double
+      whose `Pool` takes longer than the deadline, asserting the work was still attempted.
+- [x] Prove the in-flight timeout test is deterministic again.
+- [ ] Format, lint, full tests; PR, CI, merge, deploy from clean main.
+
+## Review
+
+The new test reproduces the CI failure verbatim against the unfixed supervisor
+(`assert 'timed out' in '    prefetch deadline of 0s exhausted; skipping 1 proteome(s).'`)
+and passes with the clock moved. Behaviour on either path was already correct — every
+proteome is reported unavailable — so no corpus or artifact effect.
+
 # Issue #448 — public, quiet cache-validity predicates
 
 ## Objective
