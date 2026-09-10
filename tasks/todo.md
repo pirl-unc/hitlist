@@ -1,3 +1,29 @@
+# Issue #454 — one duplicate-key-rejecting loader for every curation YAML
+
+## Objective
+
+`UniqueKeyLoader` (#450) guarded `pmid_overrides.yaml` and `condition_vocabulary.yaml`;
+the other nine packaged YAML files still loaded through plain `safe_load`, where a
+duplicated key silently discards the first value. All eleven parse clean today, so this
+is a guard-rail change with no data edits and a byte-identical corpus.
+
+## Design
+
+- New leaf module `hitlist/curation_yaml.py` holding `UniqueKeyLoader` and
+  `load_curation_yaml(path_or_traversable)`. It imports only PyYAML, so the light
+  registry/download modules use it without pulling in the curation stack, and
+  `conditions` drops its lazy import that dodged the `curation` cycle.
+- `hitlist.curation.UniqueKeyLoader` stays importable under its original name.
+- Every `yaml.safe_load` / `yaml.load` call in the package (12 sites, 9 modules) routes
+  through the helper. A test greps the package for any direct PyYAML parse outside the
+  leaf module, and a parametrized test loads every packaged YAML through the guard.
+
+## Plan
+
+- [x] Leaf module + re-export; route all twelve call sites.
+- [x] Tests: rejection, path/traversable inputs, packaged-file sweep, bypass guard.
+- [x] Document the guarantee in `docs/curation-process.md`.
+- [ ] Format, lint, tests; bump the version, PR, CI, merge, deploy from clean main.
 # Issue #468 — the warm-up deadline stops paying for process startup
 
 ## Objective

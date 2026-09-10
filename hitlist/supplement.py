@@ -27,7 +27,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import pandas as pd
-import yaml
 
 from .curation import (
     classify_ms_row,
@@ -38,6 +37,7 @@ from .curation import (
     resolve_mhc_annotation,
     restriction_evidence_for_row,
 )
+from .curation_yaml import load_curation_yaml
 
 _DATA_DIR = Path(__file__).parent / "data"
 _MANIFEST_PATH = _DATA_DIR / "supplementary.yaml"
@@ -60,8 +60,7 @@ def load_supplementary_manifest() -> list[dict]:
     """
     if not _MANIFEST_PATH.exists():
         return []
-    with open(_MANIFEST_PATH) as f:
-        entries = yaml.safe_load(f)
+    entries = load_curation_yaml(_MANIFEST_PATH)
     return entries if entries else []
 
 

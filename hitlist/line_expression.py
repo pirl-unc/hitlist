@@ -77,8 +77,9 @@ from pathlib import Path
 from typing import Callable
 
 import pandas as pd
-import yaml
 from pyarrow.lib import ArrowInvalid
+
+from .curation_yaml import load_curation_yaml
 
 _DATA_MODULE = "hitlist.data.line_expression"
 _ANCHORS_RESOURCE = "hitlist.data"
@@ -112,15 +113,13 @@ def is_line_expression_built() -> bool:
 
 @lru_cache(maxsize=1)
 def _load_anchors_yaml() -> list[dict]:
-    path = files(_ANCHORS_RESOURCE) / _ANCHORS_FILE
-    data = yaml.safe_load(path.read_text())
+    data = load_curation_yaml(files(_ANCHORS_RESOURCE) / _ANCHORS_FILE)
     return list(data.get("lines", []) or [])
 
 
 @lru_cache(maxsize=1)
 def _load_sources_yaml() -> list[dict]:
-    path = files(_DATA_MODULE) / "sources.yaml"
-    data = yaml.safe_load(path.read_text())
+    data = load_curation_yaml(files(_DATA_MODULE) / "sources.yaml")
     return list(data.get("sources", []) or [])
 
 

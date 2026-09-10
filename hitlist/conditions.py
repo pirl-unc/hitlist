@@ -48,7 +48,7 @@ from functools import lru_cache
 from os.path import dirname, join
 from types import MappingProxyType
 
-import yaml
+from .curation_yaml import load_curation_yaml
 
 #: Completeness of *this record's* categorical annotation.
 #:
@@ -397,12 +397,7 @@ def load_condition_vocabulary() -> Mapping[str, Mapping[str, str]]:
         Column name → ``{alias: canonical}``.  Aliases are matched
         case-insensitively; canonical values are returned verbatim.
     """
-    # Imported here rather than at module scope: `curation` imports this
-    # module for the column registry, so a top-level import would cycle.
-    from .curation import UniqueKeyLoader
-
-    with open(_vocabulary_path()) as f:
-        raw = yaml.load(f, Loader=UniqueKeyLoader) or {}
+    raw = load_curation_yaml(_vocabulary_path()) or {}
     aliases = raw.get("aliases") or {}
     return MappingProxyType(
         {
