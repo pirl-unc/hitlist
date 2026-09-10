@@ -8,8 +8,8 @@ landed. These tests pin the audit that surfaces them.
 The same module carries the study-level schema guard. #373 closed the
 sample level; the study level stayed open, and four keys were curated with
 no reader — most seriously ``exclude_from_ms``, documented as excluding a
-study from the MS index, set on 11 non-MS studies, honored by nothing
-(#444).
+study from the MS index and set on 11 non-MS studies. That one now has a
+reader and its own tests; ``donors`` is still unread (#444).
 """
 
 from __future__ import annotations
@@ -192,8 +192,12 @@ def test_unread_fields_are_declared_as_unread():
 
     The guard has to accept these keys or the packaged YAML stops
     loading, so the honest thing is to accept them and say so.
+
+    ``exclude_from_ms`` was here too until it gained a reader; the
+    inverse assertion now lives in test_exclude_from_ms.py so this list
+    shrinking is deliberate rather than an erosion of the rule.
     """
-    for field in ("donors", "exclude_from_ms"):
+    for field in ("donors",):
         assert "UNREAD" in PMID_ENTRY_FIELDS[field]
         assert "#444" in PMID_ENTRY_FIELDS[field]
 

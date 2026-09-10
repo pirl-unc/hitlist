@@ -1490,3 +1490,59 @@ remains covered.
 Format/lint pass with the locked Ruff version. The isolated environment passes
 68 targeted query/runner checks and all 252 curation tests at the mhcgnomes floor.
 Full local validation and CI are in progress before merge and deployment.
+
+---
+
+## #444 — honor `exclude_from_ms` (1.62.0)
+
+- [x] Give the flag a reader: `curation.ms_excluded_pmids()`, registered in
+      `_clear_curation_caches` so a rebuild sees YAML edits.
+- [x] Drop the rows in `builder._drop_excluded_from_ms`, called on `obs` only.
+- [x] Bump `_OBSERVATIONS_ARTIFACT_VERSION` 4 → 5 so stale caches rebuild.
+- [x] Regression suite in `tests/test_exclude_from_ms.py`.
+- [x] Re-describe the key in `PMID_ENTRY_FIELDS` and `docs/pmid-curation.md`.
+- [ ] Merge, then republish the CI corpus so the integration assertion goes live.
+
+### Review
+
+The flag was documented, curated on 11 studies, and read by nothing. It now has
+exactly one reader, and the drop runs next to `_drop_short_mhc2_rows` — after the
+supplementary merge, so it covers IEDB, CEDAR and supplement in one place.
+
+Measured by running the shipped helper over the real 4.4M-row corpus:
+
+| | before | after |
+|---|---:|---:|
+| MS observation rows | 4,480,783 | 4,440,428 |
+| MS peptides | 1,341,351 | 1,310,337 |
+
+40,355 rows go (0.90% of the corpus), from 6 of the 11 studies; the other 5
+contribute only binding rows. 31,014 peptides leave the corpus entirely — they
+were never MS-observed, only yeast-displayed, microarrayed or predicted. The
+remaining 2,087 are also seen in genuine elution studies and stay.
+
+What the dropped rows actually were: 12,490 `purified MHC`, 12,154
+`High throughput multiplexed assay`, 6,285 and 5,608 fluorescence-based
+`purified MHC` variants, 2 `x-ray crystallography`. All 40,355 carried
+`is_binding_assay = False`, which is why IEDB's own flag never caught them and
+the MS/binding fork put them on the MS side. Chen 2019 is the sharp case: 3,816
+of its rows are labelled `cellular MHC/mass spectrometry` by IEDB, but the paper
+is the MARIA prediction tool. Only a curator reading the paper catches that, and
+one did.
+
+**Scoped to MS evidence.** `binding.parquet` keeps all 472,497 rows from these
+studies, including Wendorff 2020's 418,890 microarray measurements. `binding` is
+the complementary mask of the same scan and is never derived from `obs`, so the
+filter cannot reach it by construction; a test pins it anyway.
+
+The integration assertion at `generate_observations_table()` skips against a
+corpus built before this change, because a build-time filter is a property of the
+artifact and asserting it against the old artifact tests nothing. The CI corpus
+(`ci-corpus-v1`) predates it, so that test skips in CI until the corpus is
+republished; the unit tier covers the drop logic unconditionally.
+
+**Local suite is not a clean signal right now.** 215 tests fail identically on
+this branch and on clean main at 6ed972f: the shared virtualenv has mhcgnomes
+3.33.4 in site-packages, below hitlist's own `>=3.54.0` floor, shadowing the
+3.64.2 sibling checkout. `Species.compatible_with` does not exist at 3.33.4. The
+failure sets diff clean, and this branch adds 6 passing tests. Filed separately.

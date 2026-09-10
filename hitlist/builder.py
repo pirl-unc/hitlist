@@ -59,7 +59,10 @@ from .downloads import data_dir
 #:    specificities it used to drop (#455), so stored serotypes change.
 #: 4: Serotypes retain their MHC species and include non-human catalog
 #:    memberships, avoiding collisions with human alleles (#463).
-_OBSERVATIONS_ARTIFACT_VERSION = 4
+#: 5: The MS index honors the curated ``exclude_from_ms`` flag, so 11
+#:    non-MS studies no longer contribute rows (#444).  A cache built
+#:    before this still holds them, which is why it must rebuild.
+_OBSERVATIONS_ARTIFACT_VERSION = 5
 
 
 def _source_paths() -> dict[str, Path]:
@@ -591,6 +594,41 @@ def _drop_short_mhc2_rows(df: pd.DataFrame, label: str) -> pd.DataFrame:
     return df[~mask].reset_index(drop=True)
 
 
+def _drop_excluded_from_ms(df: pd.DataFrame, label: str) -> pd.DataFrame:
+    """Drop rows from studies curated as *not* MS elution experiments.
+
+    A curator who reads a paper and concludes it is a yeast-display
+    selection, a peptide microarray, a computational prediction, or a
+    refolding / crystallography experiment sets ``exclude_from_ms`` on
+    the study.  IEDB does not always flag those rows as binding assays,
+    so they land on the MS side of the ``is_binding_assay`` fork and sit
+    in a corpus whose premise is MS-observed eluted ligands.  The flag
+    was documented and curated on 11 studies for a long time with no
+    reader at all (#444).
+
+    Call this on the MS frame ONLY.  The exclusion says "this is not an
+    elution experiment", not "distrust this publication": these studies
+    measure real peptide-MHC binding, and their ``binding.parquet`` rows
+    are deliberately kept.  Prints the drop count and the per-PMID
+    breakdown so the corpus change is auditable in the build log.
+    """
+    if df.empty or "pmid" not in df.columns:
+        return df
+    from .curation import ms_excluded_pmids
+
+    excluded = ms_excluded_pmids()
+    if not excluded:
+        return df
+    mask = df["pmid"].isin(excluded)
+    n_drop = int(mask.sum())
+    if n_drop == 0:
+        return df
+    print(f"  Dropped {n_drop:,} rows from {label} (curated exclude_from_ms, #444)")
+    for pmid, n in df.loc[mask, "pmid"].value_counts().items():
+        print(f"    PMID {pmid}: {n:,} rows")
+    return df[~mask].reset_index(drop=True)
+
+
 def _report_mhc_identity_summary(df: pd.DataFrame, label: str) -> None:
     """Print high-signal MHC corrections made by the shared resolver."""
     if df.empty:
@@ -856,6 +894,12 @@ def build_observations(
     # overwhelmingly IEDB import errors (e.g. HLA Ligand Atlas 9-mers).
     obs = _drop_short_mhc2_rows(obs, "MS observations")
     binding = _drop_short_mhc2_rows(binding, "binding")
+
+    # Honor the curated exclude_from_ms flag (#444).  Applied to the MS
+    # frame only and deliberately not to ``binding`` — ``binding`` is the
+    # complementary mask of the same scan and is never derived from
+    # ``obs``, so the two indexes cannot drift on this point.
+    obs = _drop_excluded_from_ms(obs, "MS observations")
 
     _report_mhc_identity_summary(obs, "MS")
     _report_mhc_identity_summary(binding, "binding")

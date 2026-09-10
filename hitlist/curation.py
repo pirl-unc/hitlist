@@ -139,9 +139,9 @@ ARM_RESOLUTION_VALUES = (
 #:
 #: The study-level twin of :data:`MS_SAMPLE_FIELDS`. #373 guarded the sample
 #: level and this level was left open, which is how four study-level keys ended
-#: up curated and read by nothing — including ``exclude_from_ms``, documented as
-#: excluding a study from the MS index and set on 11 non-MS studies whose 40,355
-#: rows are in the corpus regardless (#444).
+#: up curated and read by nothing. ``exclude_from_ms`` was the costly one: it
+#: now has a reader (:func:`ms_excluded_pmids`), and ``donors`` is still unread
+#: and still says so (#444).
 #:
 #: Adding a key means adding it here *and* naming its reader. Where a key is
 #: genuinely informational, say so; where it is unread but kept pending a fix,
@@ -190,9 +190,9 @@ PMID_ENTRY_FIELDS = MappingProxyType(
         "n_tissues": "curated tissue count for the study; informational",
         "donors": "UNREAD. Curated on 11 studies, consumed by nothing (#444)",
         "exclude_from_ms": (
-            "UNREAD. Documented as excluding a study from the MS index and set on "
-            "11 non-MS studies, but no code honors it and their 40,355 rows are in "
-            "the corpus (#444)"
+            "marks a study as not an MS elution experiment; ms_excluded_pmids() "
+            "reads it and build_observations drops those rows from the MS index. "
+            "Scoped to MS evidence — binding.parquet keeps them (#444)"
         ),
         "label": "DEPRECATED spelling of study_label (v1.7.0); warned about, never read",
     }
@@ -452,6 +452,34 @@ def load_pmid_overrides() -> dict[int, dict]:
         )
 
     return {int(e["pmid"]): e for e in entries}
+
+
+@lru_cache(maxsize=1)
+def ms_excluded_pmids() -> frozenset[int]:
+    """PMIDs curated as *not* mass-spectrometry elution experiments.
+
+    The reader for the study-level ``exclude_from_ms`` flag.  A curator
+    who reads a paper and concludes it is a yeast-display selection, a
+    peptide microarray, a computational prediction, or a refolding /
+    crystallography experiment sets the flag; :func:`hitlist.builder.
+    build_observations` drops those rows from the MS index (#444).
+
+    Scoped to MS evidence on purpose.  These studies still measure real
+    peptide-MHC binding, and their rows in ``binding.parquet`` are kept:
+    the flag says "this is not an elution experiment", not "distrust this
+    publication".  The builder applies it to the MS frame only, so the
+    two indexes cannot drift on this point.
+
+    Returns
+    -------
+    frozenset[int]
+        PMIDs to exclude from the MS observation index.
+    """
+    return frozenset(
+        pmid
+        for pmid, entry in load_pmid_overrides().items()
+        if entry.get("exclude_from_ms") is True
+    )
 
 
 @lru_cache(maxsize=1)
@@ -3061,6 +3089,7 @@ def _clear_curation_caches() -> None:
 
     for cached in (
         load_pmid_overrides,
+        ms_excluded_pmids,
         load_tissue_categories,
         load_tissue_groups,
         load_monoallelic_lines,
