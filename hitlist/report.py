@@ -404,4 +404,36 @@ def _run_report_from_csv(
         mhc_species="Homo sapiens",
         classify_source=True,
     )
+    df = _drop_excluded_ms_rows(df)
     return generate_report(df, mhc_class_filter=mhc_class, output=output)
+
+
+def _drop_excluded_ms_rows(df: pd.DataFrame) -> pd.DataFrame:
+    """Drop ``exclude_from_ms`` MS rows from a raw scanned frame (#444, #471).
+
+    The built-corpus path (``hitlist report``) reads ``observations.parquet``,
+    which never had these rows to begin with — :func:`hitlist.builder.
+    build_observations` drops them at build time. ``--from-csv`` scans raw
+    IEDB/CEDAR CSVs directly and skipped that step entirely, so its counts
+    diverged from the built path's for the same underlying data. Scoped to
+    MS rows only, same as the builder: a binding row for an excluded PMID is
+    real evidence and stays, ``df`` here is the raw *mixed* scan (unlike the
+    builder's already-split ``obs``), so scoping has to happen here rather
+    than by reusing :func:`hitlist.builder._drop_excluded_from_ms` directly.
+    """
+    if df.empty or "pmid" not in df.columns:
+        return df
+    from .curation import ms_excluded_pmids
+
+    excluded = ms_excluded_pmids()
+    if not excluded:
+        return df
+    is_ms = (
+        ~df["is_binding_assay"].fillna(False).astype(bool)
+        if "is_binding_assay" in df.columns
+        else pd.Series(True, index=df.index)
+    )
+    mask = is_ms & df["pmid"].isin(excluded)
+    if not mask.any():
+        return df
+    return df[~mask].reset_index(drop=True)

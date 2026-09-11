@@ -100,6 +100,80 @@ def test_run_report_from_csv_uses_scanner(tmp_path, monkeypatch):
     assert "HITLIST DATA QUALITY REPORT" in text
 
 
+def test_drop_excluded_ms_rows_only_drops_ms_rows_for_excluded_pmids(monkeypatch):
+    """MS rows for an excluded PMID go; a binding row for the same PMID stays (#471)."""
+    from hitlist import report as report_mod
+
+    monkeypatch.setattr("hitlist.curation.ms_excluded_pmids", lambda: frozenset({100}))
+    df = pd.DataFrame(
+        {
+            "pmid": [100, 100, 200],
+            "peptide": ["MSDROPPED", "BINDINGKEPT", "MSKEPT"],
+            "is_binding_assay": [False, True, False],
+        }
+    )
+    out = report_mod._drop_excluded_ms_rows(df)
+    assert sorted(out["peptide"]) == ["BINDINGKEPT", "MSKEPT"]
+
+
+def test_drop_excluded_ms_rows_no_op_without_excluded_pmids(monkeypatch):
+    from hitlist import report as report_mod
+
+    monkeypatch.setattr("hitlist.curation.ms_excluded_pmids", lambda: frozenset())
+    df = pd.DataFrame({"pmid": [1], "peptide": ["X"], "is_binding_assay": [False]})
+    out = report_mod._drop_excluded_ms_rows(df)
+    assert len(out) == 1
+
+
+def test_drop_excluded_ms_rows_tolerates_empty_or_pmidless_frame():
+    from hitlist import report as report_mod
+
+    empty = pd.DataFrame({"pmid": pd.array([], dtype="Int64"), "peptide": []})
+    assert report_mod._drop_excluded_ms_rows(empty).empty
+    pmidless = pd.DataFrame({"peptide": ["X"]})
+    assert len(report_mod._drop_excluded_ms_rows(pmidless)) == 1
+
+
+def test_run_report_from_csv_drops_excluded_ms_rows(monkeypatch):
+    """``--from-csv`` must not diverge from the built-corpus path on
+    ``exclude_from_ms`` (#471) — the built path never had these rows because
+    ``build_observations`` drops them; the raw scan does, unless filtered.
+    """
+    from hitlist import report as report_mod
+
+    def fake_scan(**kwargs):
+        return pd.DataFrame(
+            {
+                "peptide": ["EXCLUDEDMS", "KEPTBINDING", "KEPTMS"],
+                "pmid": [999, 999, 1],
+                "mhc_class": ["I", "I", "I"],
+                "mhc_restriction": ["HLA-A*02:01"] * 3,
+                "is_monoallelic": [False, False, False],
+                "monoallelic_host": [""] * 3,
+                "cell_line_name": [""] * 3,
+                "source_tissue": [""] * 3,
+                "disease": [""] * 3,
+                "src_cancer": [False] * 3,
+                "src_healthy_tissue": [False] * 3,
+                "is_binding_assay": [False, True, False],
+            }
+        )
+
+    captured = {}
+
+    def fake_generate_report(df, **kwargs):
+        captured["df"] = df
+        return "HITLIST DATA QUALITY REPORT"
+
+    monkeypatch.setattr("hitlist.scanner.scan", fake_scan)
+    monkeypatch.setattr("hitlist.downloads.get_path", lambda name: f"/tmp/fake/{name}.csv")
+    monkeypatch.setattr("hitlist.curation.ms_excluded_pmids", lambda: frozenset({999}))
+    monkeypatch.setattr(report_mod, "generate_report", fake_generate_report)
+
+    report_mod.run_report(from_csv=True)
+    assert sorted(captured["df"]["peptide"]) == ["KEPTBINDING", "KEPTMS"]
+
+
 def test_run_report_no_observations_parquet_prints_hint(tmp_path, monkeypatch, capsys):
     """If the parquet hasn't been built and the user hasn't passed
     --from-csv, run_report prints a one-line hint pointing at the new

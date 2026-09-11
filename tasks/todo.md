@@ -1,3 +1,88 @@
+# Issue #471 — post-merge review findings on #466 (exclude_from_ms)
+
+## Objective
+
+`/code-review` on merged PR #466 surfaced 11 findings: a validation gap that lets
+`exclude_from_ms` silently no-op, two QC signals that never learned about the new
+filter, a supplementary-data contradiction with no cross-check, a second code path
+that bypassed the filter entirely, two cleanup items, two test-coverage gaps, and
+two doc corrections. Fix all of them in one release.
+
+## Plan
+
+- [x] `curation.ms_excluded_pmids()`: reject a non-boolean `exclude_from_ms` value
+      loudly instead of silently treating it as "not excluded".
+- [x] `qc.cross_reference()` / `curation_plan()`: skip excluded PMIDs so they stop
+      reading as `yaml_only` gaps and inflating priority.
+- [x] `qc._default_curated_mhc_samples()`: skip excluded PMIDs in the token audit.
+- [x] `supplement.load_supplementary_manifest()`: raise if a manifest entry's PMID
+      is also curated `exclude_from_ms: true` — the two curations disagree about
+      whether the study is an elution experiment, and silently dropping the
+      hand-vetted rows a few build steps later hid that.
+- [x] `report._run_report_from_csv()`: apply the same MS-scoped exclusion the built
+      corpus gets, so `--from-csv` stops diverging from `hitlist report`.
+- [x] `builder._drop_masked_rows()`: shared skeleton for `_drop_short_mhc2_rows` and
+      `_drop_excluded_from_ms`, closing the missing `.head(5)` cap on the latter.
+- [x] Structural schema-guard test: a field not self-declared unread must be
+      referenced somewhere outside its own `PMID_ENTRY_FIELDS` declaration, with a
+      synthetic negative case proving the check isn't vacuous.
+- [x] Restore the `"#444" in description` assertion dropped from the replacement test.
+- [x] `tasks/todo.md`: fix the stale `(1.62.0)` heading to `(1.62.3)`, and note
+      format/lint passed in #444's own review section, matching the prior entry.
+- [x] Format, lint, full non-integration and integration tests; PR, CI, merge,
+      deploy from clean main.
+
+## Review
+
+All 11 findings fixed with direct regression coverage for every new branch, not just
+incidental coverage from existing tests.
+
+**Validation (#1).** `ms_excluded_pmids()` now rejects a non-boolean `exclude_from_ms`
+with a `ValueError` naming the PMID, instead of `is True` silently treating `1` or
+`"true"` as "not excluded".
+
+**QC signals (#2, #3).** `cross_reference()` (and therefore `curation_plan()`, which
+consumes it) and `_default_curated_mhc_samples()` (the token audit's default sample
+source) both skip `ms_excluded_pmids()` now. Verified against the real corpus: nothing
+raises, and a direct unit test proves an excluded study's curated arm no longer reads
+as a `yaml_only` gap while an unrelated study's genuine gap still does.
+
+**Supplementary contradiction (#4).** `load_supplementary_manifest()` raises if any
+entry's PMID is also curated `exclude_from_ms: true` — the two curations disagree
+about whether the study is an elution experiment, and the alternative (silently
+dropping the hand-vetted rows after `scan_supplementary` already logged them as
+added) is exactly the kind of silent contradiction #436 and #444 both warn about.
+Verified clean against the real packaged manifest (21 entries, 11 exclusions, zero
+overlap) before adding the guard.
+
+**Report path parity (#5).** `--from-csv` now applies the same MS-scoped exclusion the
+built corpus gets via a new `_drop_excluded_ms_rows`, careful to only drop the
+MS-classified subset — `df` here is the raw mixed scan, unlike the builder's
+already-split `obs`, so a binding row for an excluded PMID stays either way.
+
+**Cleanup (#6, #7).** `_drop_short_mhc2_rows` and `_drop_excluded_from_ms` now share
+one `_drop_masked_rows` skeleton, which closes the missing `.head(5)` cap on the
+exclusion loop as a side effect of not duplicating it.
+
+**Test coverage (#8, #9).** Added the structural half of the schema guard: any
+`PMID_ENTRY_FIELDS` entry not self-declared unread/informational must have its exact
+name referenced somewhere outside its own declaration, with a synthetic negative case
+(`_fields_claiming_a_reader_without_one`) proving the check actually catches an unwired
+claim rather than passing vacuously. Restored the dropped `"#444" in description`
+assertion.
+
+**Documentation (#10, #11).** `#444`'s review section now notes format/lint passed,
+matching the prior `#462` entry's convention; its heading cites the version it actually
+shipped as (1.62.3, not 1.62.0 — three other PRs landed and bumped the version between
+when that section was drafted and when it merged).
+
+Full non-integration suite: 1580 passed (0 new failures). Targeted suite across every
+changed module plus all new tests: 407 passed, 1 skipped (a real-corpus integration
+test that predates artifact_version 5 locally — pre-existing, unrelated to this PR).
+Coverage confirmed on every new branch: the validation raise, the contradiction raise,
+`_drop_excluded_ms_rows`'s three return paths, and both new QC skip checks are all
+exercised by a test, not just reached incidentally.
+
 # Issue #454 — one duplicate-key-rejecting loader for every curation YAML
 
 ## Objective
@@ -1493,7 +1578,7 @@ Full local validation and CI are in progress before merge and deployment.
 
 ---
 
-## #444 — honor `exclude_from_ms` (1.62.0)
+## #444 — honor `exclude_from_ms` (1.62.3)
 
 - [x] Give the flag a reader: `curation.ms_excluded_pmids()`, registered in
       `_clear_curation_caches` so a rebuild sees YAML edits.
@@ -1545,4 +1630,10 @@ republished; the unit tier covers the drop logic unconditionally.
 this branch and on clean main at 6ed972f: the shared virtualenv has mhcgnomes
 3.33.4 in site-packages, below hitlist's own `>=3.54.0` floor, shadowing the
 3.64.2 sibling checkout. `Species.compatible_with` does not exist at 3.33.4. The
-failure sets diff clean, and this branch adds 6 passing tests. Filed separately.
+failure sets diff clean, and this branch adds 6 passing tests. Filed separately
+as #467.
+
+Format/lint pass with the locked Ruff version — `env -u VIRTUAL_ENV uv run
+./format.sh` / `./lint.sh` against the lockfile's mhcgnomes 3.64.2, unaffected
+by the shared venv issue above (#467). CI's four Python legs are the clean
+signal for the full suite; all passed on 8886b37.

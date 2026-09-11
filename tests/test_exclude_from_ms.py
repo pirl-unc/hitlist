@@ -54,6 +54,31 @@ def test_exclude_from_ms_is_no_longer_declared_unread():
     described = PMID_ENTRY_FIELDS["exclude_from_ms"]
     assert "UNREAD" not in described
     assert "ms_excluded_pmids" in described
+    assert "#444" in described
+
+
+def test_ms_excluded_pmids_rejects_a_non_boolean_value(tmp_path, monkeypatch):
+    """A typo'd ``exclude_from_ms: 1`` must fail loudly, not silently leave the
+    study in the MS corpus (#471). ``1 is True`` is ``False`` in Python, so an
+    unvalidated ``is True`` check would treat this as "not excluded" with no
+    error anywhere.
+    """
+    bad_yaml = tmp_path / "pmid_overrides.yaml"
+    bad_yaml.write_text("- pmid: 12345678\n  study_label: bad flag\n  exclude_from_ms: 1\n")
+    real_data_path = curation._data_path
+    monkeypatch.setattr(
+        curation,
+        "_data_path",
+        lambda fn: str(bad_yaml) if fn == "pmid_overrides.yaml" else real_data_path(fn),
+    )
+    curation.load_pmid_overrides.cache_clear()
+    curation.ms_excluded_pmids.cache_clear()
+    try:
+        with pytest.raises(ValueError, match="12345678"):
+            curation.ms_excluded_pmids()
+    finally:
+        curation.load_pmid_overrides.cache_clear()
+        curation.ms_excluded_pmids.cache_clear()
 
 
 def test_drop_excluded_from_ms_drops_only_the_curated_studies():
