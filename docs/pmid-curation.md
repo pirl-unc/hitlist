@@ -58,7 +58,7 @@ A representative entry:
 | `mono_allelic_method` | Tagged-pulldown mono-allelic method (e.g. MAPTAC) — not a cell line. |
 | `ms_samples` | Per-sample-type metadata (below). |
 | `peptide_attributions` | Path to a CSV mapping `peptide` → `sample_label` for per-donor attribution. |
-| `exclude_from_ms` | **Not honored — see [#444](https://github.com/pirl-unc/hitlist/issues/444).** Intended to exclude a study from the MS index, and set on 11 studies curated as non-MS (yeast display, microarray, refolding, computational). No code reads it, so their 40,355 rows are in the corpus. |
+| `exclude_from_ms` | Marks a study as **not** an MS elution experiment (yeast display, microarray, refolding, computational). `build_observations` drops its rows from `observations.parquet` via `curation.ms_excluded_pmids()`. Scoped to MS evidence: the study's `binding.parquet` rows are kept, because the flag says "not an elution experiment", not "distrust this paper" ([#444](https://github.com/pirl-unc/hitlist/issues/444)). |
 | `donors` | **Not honored.** Curated on 11 studies, read by nothing (#444). |
 | `n_samples`, `n_tissues` | Informational counts. Read by nothing, but named per the count-suffix rule; they were bare `samples:` / `tissues:` until the study-level guard went in. |
 | `ip_antibody`, `acquisition_mode`, `instrument`, `fragmentation`, `labeling`, `search_engine`, `fdr`, `quantification_method` | MS-acquisition metadata (study-wide defaults; overridable per `ms_samples` entry). |
@@ -67,8 +67,9 @@ A representative entry:
 Every top-level key is declared in `curation.PMID_ENTRY_FIELDS`, mapped to what
 reads it, and **loading rejects an undeclared key** — the study-level twin of the
 `MS_SAMPLE_FIELDS` guard. Its absence is why four keys above ended up curated
-with no reader. A key that is accepted but unread says so in its description
-rather than describing behavior it does not have.
+with no reader; `exclude_from_ms` has since gained one. A key that is accepted
+but unread says so in its description rather than describing behavior it does
+not have.
 
 ### `override` vocabulary
 
