@@ -1,3 +1,76 @@
+# Fixture cache leak found while deploying 1.62.4
+
+## Objective
+
+The 1.62.4 deploy (merge of #472) failed its own `./test.sh --all` gate with 23
+failures, all in `test_curation.py`/`test_exclude_from_ms.py`, none touching code
+`#472` changed. GitHub Actions CI on the same commit was green on all four Python
+legs. Root-caused and fixed before retrying the deploy.
+
+## Root cause
+
+`deploy.sh` runs `test.sh --all`, which mixes integration and non-integration
+tests in one `pytest -n 5` invocation with no `-m` filter. CI's Python 3.11 job
+keeps them in two separate `pytest` invocations (`-m "not integration"` then
+`-m integration`), so this bug had no way to surface there.
+
+`tests/test_cache_current.py`'s `curation_referencing_uncached_asset` fixture (added
+for #448) monkeypatches `curation._data_path` to an isolated single-PMID YAML tree
+for the duration of one test, and never clears any curation cache. That was safe
+when written: nothing in `observations_cache_is_current()`'s call graph touched
+`curation.load_pmid_overrides()`'s `lru_cache`. #471 changed that —
+`supplement.load_supplementary_manifest()` now calls `ms_excluded_pmids()`, which
+calls `load_pmid_overrides()` — and `_source_fingerprints()` (part of the
+predicate's call graph) reads the supplementary manifest. So the fixture's test
+now populates the REAL, process-global `load_pmid_overrides` cache with its fake
+single-PMID data, and nothing clears it afterward. Under `-n 5` with the full
+~1630-item collection, whichever worker draws this test early in its queue then
+serves every subsequent real-data curation test on that worker from the fake
+cache for the rest of the run — reproduced deterministically (though the exact
+failing set varies run to run, since xdist's dynamic scheduling isn't) down to a
+minimal two-test repro:
+`test_cache_current.py::test_observations_predicate_never_downloads` followed by
+`test_curation.py::test_pmid_mono_allelic_override`.
+
+`test_builder.py`'s pre-existing `isolated_curation` fixture has the identical
+shape (patches `_data_path`, no fixture-level teardown) and has stayed safe only
+because its three current tests each remember to clean up manually. Same bug
+class, same fix.
+
+## Plan
+
+- [x] Bisect: confirmed via a minimal two-test repro, not a full-suite guess.
+- [x] Harden both `_data_path`-patching fixtures to `yield` + unconditional
+      `curation._clear_curation_caches()` teardown, so the next function that
+      gains an indirect `load_pmid_overrides()` dependency can't reopen this.
+- [x] Verify the exact confirmed pair passes; verify both fixtures' existing
+      tests still pass; re-run the full `test.sh --all`-equivalent invocation.
+- [x] Format, lint; PR, CI, merge, retry the deploy from clean main.
+
+## Review
+
+Root cause confirmed with a minimal two-test repro before touching anything:
+`tests/test_cache_current.py::test_observations_predicate_never_downloads` followed
+by `tests/test_curation.py::test_pmid_mono_allelic_override`, run together with no
+xdist, fails identically to the deploy log. The fix (both fixtures now `yield` +
+unconditionally clear curation caches in `finally`) turns that pair green.
+
+Verified against the actual failure mode twice: `pytest -n 5 tests` (deploy.sh's
+exact invocation, no `-m` filter) passed 1631/1631 both times, where main at
+`c4fa4cc` failed 23 (first run) and 7 (second run, verbose) -- the varying failure
+set across runs is itself evidence this was xdist scheduling exposing a real
+process-global cache leak, not a fixed collection-order bug.
+
+Not a production bug: `curation._clear_curation_caches()` already lists
+`ms_excluded_pmids` (added correctly in #444/#466). The gap was purely in two test
+fixtures that monkeypatch `_data_path` without a teardown, which stayed invisible
+until #471 gave `load_supplementary_manifest()` an indirect path to
+`load_pmid_overrides()` that didn't exist when the #448 fixture was written.
+CI never caught it because the workflow keeps integration and non-integration
+tests in two separate `pytest` invocations; `deploy.sh`'s `test.sh --all` runs
+them together in one `-n 5` pass, which is exactly the condition needed to expose
+a same-worker cache leak.
+
 # Issue #471 — post-merge review findings on #466 (exclude_from_ms)
 
 ## Objective

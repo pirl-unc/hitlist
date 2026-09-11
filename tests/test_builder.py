@@ -23,6 +23,20 @@ from hitlist.supplement import load_supplementary_manifest
 
 @pytest.fixture
 def isolated_curation(tmp_path, monkeypatch):
+    """Curation isolated to a fake, single-PMID YAML tree.
+
+    ``_data_path`` is patched for the duration of the test, so anything that
+    calls a cached curation loader here (``load_pmid_overrides()`` and
+    friends -- all process-global ``functools.lru_cache``/``cache``, keyed
+    on no arguments or on a PMID that collides with real ones) populates it
+    with this fixture's fake data. That survives ``monkeypatch``'s teardown
+    of ``_data_path`` and leaks into every later test in this worker unless
+    something clears it -- #471 found exactly this leak from an equivalent
+    fixture once a new indirect caller of ``load_pmid_overrides()`` was
+    added elsewhere. Clearing unconditionally on teardown, rather than
+    trusting every test body to remember, is what stays correct as new
+    indirect callers get added.
+    """
     from pathlib import Path
 
     from hitlist import cell_name_parser, curation, downloads
@@ -41,7 +55,11 @@ def isolated_curation(tmp_path, monkeypatch):
     monkeypatch.setattr(curation, "_data_path", lambda name: str(data_root / name))
     monkeypatch.setattr(cell_name_parser, "_registry_path", lambda: data_root / "cell_lines.yaml")
     monkeypatch.setattr(downloads, "_override_data_dir", tmp_path / "indexes")
-    return data_root
+    curation._clear_curation_caches()
+    try:
+        yield data_root
+    finally:
+        curation._clear_curation_caches()
 
 
 @pytest.mark.parametrize(
