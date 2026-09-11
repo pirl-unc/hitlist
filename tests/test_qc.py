@@ -222,6 +222,45 @@ def test_cross_reference_yaml_only_and_data_only(tmp_path, monkeypatch):
     assert "HLA-A*02:01" not in df["allele"].values
 
 
+def test_cross_reference_skips_excluded_from_ms_studies(tmp_path, monkeypatch):
+    """A curated arm for an ``exclude_from_ms`` study never reaches the MS
+    index, so it must not read as a ``yaml_only`` gap (#471) -- the #444
+    rationale is exactly that these studies are not elution experiments.
+    """
+    from hitlist import qc
+
+    obs_path = _write_obs_fixture(
+        tmp_path,
+        [
+            {
+                "peptide": "CCCCCCCCC",
+                "mhc_class": "I",
+                "source": "iedb",
+                "allele_resolution": "four_digit",
+                "mhc_restriction": "HLA-A*02:01",
+                "pmid": 200,
+            },
+        ],
+    )
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+
+    fake_overrides = {
+        100: {
+            "study_label": "Excluded Study",
+            "exclude_from_ms": True,
+            "ms_samples": [{"sample_label": "donor1", "mhc": ["HLA-C*04:01"]}],
+        },
+        200: {"study_label": "Kept Study"},
+    }
+    monkeypatch.setattr("hitlist.qc.load_pmid_overrides", lambda: fake_overrides)
+    monkeypatch.setattr("hitlist.qc.ms_excluded_pmids", lambda: frozenset({100}))
+
+    df = qc.cross_reference()
+    assert 100 not in set(df["pmid"])
+    data_only = df[df["direction"] == "data_only"]
+    assert "HLA-A*02:01" in data_only["allele"].values
+
+
 def test_cross_reference_emits_needs_deconvolution_for_class_only_pmids(tmp_path, monkeypatch):
     """v1.30.15: PMIDs with YAML alleles but ZERO 4-digit data rows
     (data is 100% class-only) used to dump every YAML allele under
@@ -459,6 +498,34 @@ def test_mhc_token_audit_uses_curated_overrides_when_samples_not_supplied(monkey
             "status": "unrecognized",
         }
     ]
+
+
+def test_mhc_token_audit_skips_exclude_from_ms_studies_default_samples(monkeypatch):
+    """A study curated ``exclude_from_ms`` never reaches the MS index; its
+    samples must not enter the token audit either (#471).
+    """
+    from hitlist import qc
+
+    monkeypatch.setattr(qc, "ms_excluded_pmids", lambda: frozenset({7}))
+    monkeypatch.setattr(
+        qc,
+        "load_pmid_overrides",
+        lambda: {
+            7: {
+                "exclude_from_ms": True,
+                "ms_samples": [
+                    {"sample_label": "should be skipped", "mhc": "HLA-A*02:01 BAD-MHC"},
+                ],
+            },
+            8: {
+                "ms_samples": [
+                    {"sample_label": "kept", "mhc": "HLA-A*02:01 ALSO-BAD"},
+                ],
+            },
+        },
+    )
+    audit = qc.mhc_token_audit(evidence_frames={})
+    assert set(audit["token"]) == {"ALSO-BAD"}
 
 
 def test_mhc_token_audit_parser_gap_self_expires(monkeypatch):

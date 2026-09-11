@@ -474,11 +474,31 @@ def ms_excluded_pmids() -> frozenset[int]:
     -------
     frozenset[int]
         PMIDs to exclude from the MS observation index.
+
+    Raises
+    ------
+    ValueError
+        If any entry sets ``exclude_from_ms`` to a non-boolean value.  YAML
+        parses ``1`` as an int and ``"true"`` as a str, and an ``is True``
+        check silently treats either as "not excluded" with no error —
+        exactly the failure mode this field's own docstring warns about.
+        Failing loudly here is cheaper than a study quietly staying in the
+        MS corpus because a curator wrote the wrong token.
     """
-    return frozenset(
+    entries = load_pmid_overrides()
+    bad = sorted(
         pmid
-        for pmid, entry in load_pmid_overrides().items()
-        if entry.get("exclude_from_ms") is True
+        for pmid, entry in entries.items()
+        if "exclude_from_ms" in entry and not isinstance(entry["exclude_from_ms"], bool)
+    )
+    if bad:
+        raise ValueError(
+            f"pmid_overrides.yaml sets exclude_from_ms to a non-boolean value for "
+            f"PMID(s) {bad}: only `true` / `false` are valid.  A value like `1` or "
+            f'`"true"` would silently fail to exclude the study.'
+        )
+    return frozenset(
+        pmid for pmid, entry in entries.items() if entry.get("exclude_from_ms") is True
     )
 
 

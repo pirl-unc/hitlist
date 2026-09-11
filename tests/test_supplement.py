@@ -1,3 +1,5 @@
+import pytest
+
 from hitlist.supplement import (
     load_supplementary_manifest,
     scan_supplementary,
@@ -23,6 +25,39 @@ def test_load_manifest_structure():
         defaults = entry["defaults"]
         assert "culture_condition" in defaults
         assert "cell_name" in defaults
+
+
+def test_load_supplementary_manifest_rejects_pmid_also_excluded_from_ms(tmp_path, monkeypatch):
+    """Hand-vetted supplementary rows and ``exclude_from_ms`` disagree about
+    whether a study is an MS elution experiment; that contradiction must fail
+    loudly instead of the build silently dropping the supplementary rows a
+    few steps later with no warning (#444, #471).
+    """
+    from hitlist import supplement
+
+    fake_manifest = tmp_path / "supplementary.yaml"
+    fake_manifest.write_text(
+        "- pmid: 87654321\n  file: fake.csv\n  study_label: fake\n  defaults: {}\n"
+    )
+    monkeypatch.setattr(supplement, "_MANIFEST_PATH", fake_manifest)
+    monkeypatch.setattr(supplement, "ms_excluded_pmids", lambda: frozenset({87654321}))
+
+    with pytest.raises(ValueError, match="87654321"):
+        supplement.load_supplementary_manifest()
+
+
+def test_load_supplementary_manifest_allows_pmids_that_are_not_excluded(tmp_path, monkeypatch):
+    from hitlist import supplement
+
+    fake_manifest = tmp_path / "supplementary.yaml"
+    fake_manifest.write_text(
+        "- pmid: 11111111\n  file: fake.csv\n  study_label: fake\n  defaults: {}\n"
+    )
+    monkeypatch.setattr(supplement, "_MANIFEST_PATH", fake_manifest)
+    monkeypatch.setattr(supplement, "ms_excluded_pmids", lambda: frozenset({99999999}))
+
+    entries = supplement.load_supplementary_manifest()
+    assert entries[0]["pmid"] == 11111111
 
 
 def test_scan_supplementary_not_empty():

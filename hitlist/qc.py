@@ -49,6 +49,7 @@ from .curation import (
     _flatten_hla_alleles,
     is_class_only_token,
     load_pmid_overrides,
+    ms_excluded_pmids,
     normalize_allele,
 )
 
@@ -116,9 +117,17 @@ def _default_mhc_audit_frames() -> dict[str, pd.DataFrame]:
 
 
 def _default_curated_mhc_samples() -> pd.DataFrame:
-    """Flatten PMID ``ms_samples`` into the fields needed by the token audit."""
+    """Flatten PMID ``ms_samples`` into the fields needed by the token audit.
+
+    Skips ``exclude_from_ms`` studies (#444, #471): their curated samples
+    describe a system that never reaches the MS index, so their tokens have
+    nothing in ``evidence_frames["ms"]`` to reconcile against.
+    """
+    excluded = ms_excluded_pmids()
     rows = []
     for pmid, entry in load_pmid_overrides().items():
+        if pmid in excluded:
+            continue
         for sample in entry.get("ms_samples", []) or []:
             rows.append(
                 {
@@ -797,8 +806,14 @@ def cross_reference(mhc_class: str | None = None) -> pd.DataFrame:
     pmids_with_4digit_data = {int(p) for p in data_by_pmid if pd.notna(p)}
 
     overrides = load_pmid_overrides()
+    excluded = ms_excluded_pmids()
     rows: list[dict] = []
     for pmid_int, entry in sorted(overrides.items()):
+        if pmid_int in excluded:
+            # exclude_from_ms studies never reach ``obs`` (#444), so every
+            # curated allele here would otherwise read as yaml_only — a
+            # false gap, not a real one (#471).
+            continue
         study_label = entry.get("study_label", "")
         # YAML-curated alleles for this PMID (sample-level + paper-level pool).
         yaml_alleles = _flatten_hla_alleles(entry.get("hla_alleles", {}))

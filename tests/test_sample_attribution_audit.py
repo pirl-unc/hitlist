@@ -14,6 +14,9 @@ reader and its own tests; ``donors`` is still unread (#444).
 
 from __future__ import annotations
 
+import re
+from pathlib import Path
+
 import pandas as pd
 import pytest
 import yaml
@@ -21,6 +24,41 @@ import yaml
 from hitlist import curation
 from hitlist.curation import PMID_ENTRY_FIELDS
 from hitlist.qc import _SAMPLE_ATTRIBUTION_AUDIT_COLUMNS, sample_attribution_audit
+
+#: Docstring phrases that self-declare a field has no reader, so the
+#: structural check below doesn't require one. Broader than the literal
+#: "UNREAD" marker (#373's convention) because three fields predate that
+#: convention and say so in their own words: ``title``/``n_samples``/
+#: ``n_tissues`` are "informational", ``label`` says "never read".
+_SELF_DECLARED_UNREAD_MARKERS = ("UNREAD", "informational", "never read")
+
+
+def _fields_claiming_a_reader_without_one(fields: dict[str, str], package_root: Path) -> list[str]:
+    """Which ``fields`` (name -> docstring) name a reader nothing wires in.
+
+    A field is "wired in" if its exact quoted name appears anywhere in the
+    package's source outside the schema declaration itself -- cheap, but it
+    is exactly the check that was missing before #444: ``exclude_from_ms``
+    was documented and curated for months with a docstring that never
+    claimed to be unread, and nothing checked that a reader actually
+    existed until an audit found it by hand.
+    """
+    curation_src = (package_root / "curation.py").read_text()
+    start = curation_src.index("PMID_ENTRY_FIELDS = MappingProxyType(")
+    end = curation_src.index("\n)\n", start) + len("\n)\n")
+    rest_of_curation = curation_src[:start] + curation_src[end:]
+    other_source = "\n".join(
+        p.read_text() for p in sorted(package_root.glob("*.py")) if p.name != "curation.py"
+    )
+    haystack = rest_of_curation + "\n" + other_source
+
+    missing = []
+    for field, doc in fields.items():
+        if any(marker in doc for marker in _SELF_DECLARED_UNREAD_MARKERS):
+            continue
+        if not re.search(rf'["\']{re.escape(field)}["\']', haystack):
+            missing.append(field)
+    return missing
 
 
 def _samples(*rows) -> pd.DataFrame:
@@ -200,6 +238,38 @@ def test_unread_fields_are_declared_as_unread():
     for field in ("donors",):
         assert "UNREAD" in PMID_ENTRY_FIELDS[field]
         assert "#444" in PMID_ENTRY_FIELDS[field]
+
+
+def test_every_field_that_claims_a_reader_actually_has_one():
+    """The structural half of the guard the ``UNREAD`` string-match above
+    doesn't cover (#471). That test proves a *declared*-unread field says
+    so; it cannot notice a field whose docstring quietly claims a reader
+    that was never wired in -- which is exactly how ``exclude_from_ms``
+    shipped undetected in the first place (#444).
+    """
+    package_root = Path(curation.__file__).resolve().parent
+    missing = _fields_claiming_a_reader_without_one(dict(PMID_ENTRY_FIELDS), package_root)
+    assert not missing, (
+        f"{missing} are declared in PMID_ENTRY_FIELDS with a docstring that doesn't "
+        f"self-declare as unread, but the field name appears nowhere else in "
+        f"hitlist/*.py -- either wire in the reader it claims to have, or mark it "
+        f"UNREAD/informational/never read so this check (and a future curator) knows."
+    )
+
+
+def test_the_reader_check_catches_an_unwired_claim():
+    """Prove the structural check above is not vacuously true.
+
+    A synthetic field whose docstring claims a reader, but whose name
+    appears nowhere in the source, must be reported missing.
+    """
+    package_root = Path(curation.__file__).resolve().parent
+    fake_fields = {
+        "definitely_not_a_real_field_471": "curated per-study widget; read by the frobnicator",
+        "donors": PMID_ENTRY_FIELDS["donors"],  # self-declared UNREAD: must not be flagged
+    }
+    missing = _fields_claiming_a_reader_without_one(fake_fields, package_root)
+    assert missing == ["definitely_not_a_real_field_471"]
 
 
 # ── #362: the two APM levels stay separate through the join ─────────────────

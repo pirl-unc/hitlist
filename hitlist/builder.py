@@ -571,6 +571,27 @@ def _drop_supplementary_duplicates(supp: pd.DataFrame, obs: pd.DataFrame) -> pd.
     )
 
 
+def _drop_masked_rows(
+    df: pd.DataFrame, mask: pd.Series, label: str, what: str, reason: str, *, top_n: int = 5
+) -> pd.DataFrame:
+    """Shared skeleton for a "drop these rows and print an audit trail" filter.
+
+    Prints the drop count and the top-``top_n`` PMIDs affected, matching the
+    other per-PMID print loops in this module. Factored out of
+    :func:`_drop_short_mhc2_rows` and :func:`_drop_excluded_from_ms` (#471),
+    which had drifted to duplicate the print-and-filter shape while only one
+    of the two capped its per-PMID breakdown.
+    """
+    n_drop = int(mask.sum())
+    if n_drop == 0:
+        return df
+    print(f"  Dropped {n_drop:,} {what} from {label} ({reason})")
+    if "pmid" in df.columns:
+        for pmid, n in df.loc[mask, "pmid"].value_counts().head(top_n).items():
+            print(f"    PMID {pmid}: {n:,} rows")
+    return df[~mask].reset_index(drop=True)
+
+
 def _drop_short_mhc2_rows(df: pd.DataFrame, label: str) -> pd.DataFrame:
     """Drop ``mhc_class == "II"`` rows with peptides shorter than 12 aa.
 
@@ -583,15 +604,7 @@ def _drop_short_mhc2_rows(df: pd.DataFrame, label: str) -> pd.DataFrame:
     if df.empty or "mhc_class" not in df.columns or "peptide" not in df.columns:
         return df
     mask = (df["mhc_class"] == "II") & (df["peptide"].str.len() < 12)
-    n_drop = int(mask.sum())
-    if n_drop == 0:
-        return df
-    print(f"  Dropped {n_drop:,} short MHC-II rows from {label} (peptide < 12 aa, #122)")
-    if "pmid" in df.columns:
-        by_pmid = df.loc[mask, "pmid"].value_counts().head(5)
-        for pmid, n in by_pmid.items():
-            print(f"    PMID {pmid}: {n:,} rows")
-    return df[~mask].reset_index(drop=True)
+    return _drop_masked_rows(df, mask, label, "short MHC-II rows", "peptide < 12 aa, #122")
 
 
 def _drop_excluded_from_ms(df: pd.DataFrame, label: str) -> pd.DataFrame:
@@ -609,7 +622,7 @@ def _drop_excluded_from_ms(df: pd.DataFrame, label: str) -> pd.DataFrame:
     Call this on the MS frame ONLY.  The exclusion says "this is not an
     elution experiment", not "distrust this publication": these studies
     measure real peptide-MHC binding, and their ``binding.parquet`` rows
-    are deliberately kept.  Prints the drop count and the per-PMID
+    are deliberately kept.  Prints the drop count and the top-5 per-PMID
     breakdown so the corpus change is auditable in the build log.
     """
     if df.empty or "pmid" not in df.columns:
@@ -620,13 +633,7 @@ def _drop_excluded_from_ms(df: pd.DataFrame, label: str) -> pd.DataFrame:
     if not excluded:
         return df
     mask = df["pmid"].isin(excluded)
-    n_drop = int(mask.sum())
-    if n_drop == 0:
-        return df
-    print(f"  Dropped {n_drop:,} rows from {label} (curated exclude_from_ms, #444)")
-    for pmid, n in df.loc[mask, "pmid"].value_counts().items():
-        print(f"    PMID {pmid}: {n:,} rows")
-    return df[~mask].reset_index(drop=True)
+    return _drop_masked_rows(df, mask, label, "rows", "curated exclude_from_ms, #444")
 
 
 def _report_mhc_identity_summary(df: pd.DataFrame, label: str) -> None:

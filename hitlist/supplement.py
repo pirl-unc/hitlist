@@ -32,6 +32,7 @@ from .curation import (
     classify_ms_row,
     expand_allele_set,
     is_non_peptide_ligand,
+    ms_excluded_pmids,
     normalize_species,
     pmid_mhc_species_context,
     resolve_mhc_annotation,
@@ -57,11 +58,31 @@ def load_supplementary_manifest() -> list[dict]:
     list[dict]
         Each entry has ``pmid``, ``file``, ``study_label``, and ``defaults``.
         Returns an empty list if the manifest does not exist.
+
+    Raises
+    ------
+    ValueError
+        If a manifest entry's PMID is also curated ``exclude_from_ms: true``.
+        Without this check the build silently drops those hand-vetted rows a
+        few steps after ``scan_supplementary`` logs them as added, with no
+        warning that the two curations disagree (#444, #471).
     """
     if not _MANIFEST_PATH.exists():
         return []
     entries = load_curation_yaml(_MANIFEST_PATH)
-    return entries if entries else []
+    entries = entries if entries else []
+
+    excluded = ms_excluded_pmids()
+    conflicts = sorted({int(e["pmid"]) for e in entries if int(e["pmid"]) in excluded})
+    if conflicts:
+        raise ValueError(
+            f"supplementary.yaml curates hand-vetted MS rows for PMID(s) {conflicts}, "
+            f"but pmid_overrides.yaml also marks them exclude_from_ms: true.  These "
+            f"disagree about whether the study is an MS elution experiment: either "
+            f"remove exclude_from_ms (the supplementary rows are real elution data) "
+            f"or remove the supplementary entry (the study genuinely isn't one)."
+        )
+    return entries
 
 
 def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
