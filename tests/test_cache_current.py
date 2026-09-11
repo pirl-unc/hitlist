@@ -109,7 +109,21 @@ def test_observations_predicate_false_when_nothing_is_built(tmp_path, monkeypatc
 
 @pytest.fixture
 def curation_referencing_uncached_asset(tmp_path, monkeypatch):
-    """Curation whose ``peptide_attributions`` CSV is neither packaged nor cached."""
+    """Curation whose ``peptide_attributions`` CSV is neither packaged nor cached.
+
+    ``_data_path`` is patched for the duration of the test, so anything that
+    calls a cached curation loader here populates it with this fixture's
+    fake, single-PMID data instead of the real package. Every such loader is
+    also process-global (``functools.lru_cache``/``cache``, keyed on no
+    arguments or on a PMID that collides with real ones), so a value cached
+    under the fake path survives the ``monkeypatch`` teardown restoring
+    ``_data_path`` and leaks into every later test in this worker --
+    exactly what happened here once #471 gave ``load_supplementary_manifest``
+    an indirect path to ``load_pmid_overrides()`` that didn't exist when this
+    fixture was written for #448. Clearing unconditionally on teardown is the
+    only version of this fixture that stays correct as new indirect callers
+    get added.
+    """
     from hitlist import cell_name_parser, curation
 
     data_root = tmp_path / "curation"
@@ -129,7 +143,11 @@ def curation_referencing_uncached_asset(tmp_path, monkeypatch):
         raise AssertionError(f"tried to download {filename}")
 
     monkeypatch.setattr(downloads, "fetch_data_asset", refuse_network)
-    return data_root
+    curation._clear_curation_caches()
+    try:
+        yield data_root
+    finally:
+        curation._clear_curation_caches()
 
 
 def test_observations_predicate_never_downloads(
