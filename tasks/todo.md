@@ -1,3 +1,85 @@
+# Issue #467 — mhcgnomes version-floor tripwire
+
+## Objective
+
+An installed `mhcgnomes` below the floor `pyproject.toml` declares fails the
+suite with 200+ scattered `AttributeError`s across 15+ files (e.g.
+`Species.compatible_with` missing below 3.39.0), with nothing connecting any
+one traceback back to the actual cause. Reported from a release install of
+3.33.4 shadowing a correctly-locked 3.64.2 in a shared environment's
+site-packages. Add a tripwire that turns 200+ cryptic failures into one
+message naming the declared floor, the installed version, and the resolved
+import path.
+
+Deliberately scoped to the tripwire the issue actually asks for, not to
+modifying the shared environment itself: that environment is used by other
+concurrent sessions and several sibling repos, and a version bump there is
+someone else's call, not a fix this repo's code can make unilaterally. The
+per-worktree `uv run` workaround already documented on the issue remains the
+correct way to get a conforming environment; this tripwire is what makes the
+*next* person who hits a shadowing install able to diagnose it in one line
+instead of reverse-engineering it from a curation.py traceback.
+
+## Design
+
+- `tests/mhcgnomes_floor_check.py`: pure, independently-testable functions
+  (`declared_floor`, `floor_violation_message`, `check`) mirroring the
+  existing `tests/xdist_cache.py` pattern -- parsing/comparison logic lives
+  outside conftest.py so it has a public surface to unit-test.
+- `tests/conftest.py`'s new `pytest_configure` hook calls `check()` once,
+  before collection, and `pytest.exit()`s the whole session with the
+  message if it fails -- no per-test overhead, no chance of 200 confusing
+  failures burying the one line that explains them.
+- Version comparison via `packaging.version.Version` (already a transitive
+  dependency), not string comparison -- `"3.9.0" > "3.54.0"` lexically,
+  backwards, so a naive string floor check would have the wrong sense for
+  any single-digit-vs-two-digit minor version pair.
+
+## Plan
+
+- [x] `tests/mhcgnomes_floor_check.py`: parse the floor, compare, message.
+- [x] Wire into `tests/conftest.py`'s `pytest_configure`.
+- [x] Unit tests: parsing (real file + synthetic + missing-declaration),
+      message content, numeric-not-lexical comparison, the real
+      environment's happy path, and the `pytest_configure` wiring itself.
+- [x] End-to-end proof, not just a mock: a fake `mhcgnomes==3.33.4` package
+      shadowed onto `PYTHONPATH`, reproducing the exact reported scenario,
+      confirmed the whole session exits on one message instead of running
+      into 215 failures.
+- [x] Format, lint, targeted + full combined-suite run; PR, CI, merge,
+      deploy from clean main.
+
+## Review
+
+End-to-end proof, not just a mock: built a fake `mhcgnomes` package declaring
+`__version__ = "3.33.4"` and shadowed it onto `PYTHONPATH` ahead of the real
+3.64.2 install -- an exact reproduction of the reported scenario. The whole
+session now exits immediately with:
+
+```
+Exit: installed mhcgnomes 3.33.4 is older than the floor this project
+declares in pyproject.toml's `alleles` extra (3.54.0).
+  Resolved from: .../fake_mhcgnomes_shadow/mhcgnomes/__init__.py
+  ...
+```
+
+instead of collecting and running into 215 scattered `AttributeError`s.
+
+10 new unit tests cover the parsing (real pyproject.toml + a synthetic
+string + a missing-declaration failure mode), the message content, numeric
+vs. lexical version comparison, the real environment's happy path, and the
+`pytest_configure` wiring itself (via `pytest.exit.Exception`).
+
+Full combined-suite run (`pytest -n 5 tests`, the same invocation
+`test.sh --all` and therefore `deploy.sh` use): 1641 passed, 1 skipped --
+1631 from before plus the 10 new tests, zero regressions.
+
+Not attempted: upgrading the shared virtualenv itself. That environment is
+shared across concurrent sessions and several sibling repos; a version bump
+there is a decision for whoever owns those other workloads, not something
+this repo's code can safely make unilaterally. The tripwire is the part of
+#467 that is actually this repo's to fix.
+
 # Consolidate the isolated-curation test fixtures (#473 follow-up review)
 
 ## Objective
