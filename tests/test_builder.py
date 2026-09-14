@@ -22,44 +22,21 @@ from hitlist.supplement import load_supplementary_manifest
 
 
 @pytest.fixture
-def isolated_curation(tmp_path, monkeypatch):
-    """Curation isolated to a fake, single-PMID YAML tree.
-
-    ``_data_path`` is patched for the duration of the test, so anything that
-    calls a cached curation loader here (``load_pmid_overrides()`` and
-    friends -- all process-global ``functools.lru_cache``/``cache``, keyed
-    on no arguments or on a PMID that collides with real ones) populates it
-    with this fixture's fake data. That survives ``monkeypatch``'s teardown
-    of ``_data_path`` and leaks into every later test in this worker unless
-    something clears it -- #471 found exactly this leak from an equivalent
-    fixture once a new indirect caller of ``load_pmid_overrides()`` was
-    added elsewhere. Clearing unconditionally on teardown, rather than
-    trusting every test body to remember, is what stays correct as new
-    indirect callers get added.
+def isolated_curation(_isolated_curation_root, tmp_path, monkeypatch):
+    """A fake, single-PMID curation tree, on top of ``_isolated_curation_root``
+    (#474) -- this fixture only owns the content specific to these tests.
     """
-    from pathlib import Path
+    from hitlist import downloads
 
-    from hitlist import cell_name_parser, curation, downloads
-
-    data_root = tmp_path / "curation"
-    data_root.mkdir()
-    for name in ("pmid_overrides.yaml", "tissue_categories.yaml", "monoallelic_lines.yaml"):
-        (data_root / name).write_bytes(Path(curation._data_path(name)).read_bytes())
-    (data_root / "cell_lines.yaml").write_bytes(cell_name_parser._registry_path().read_bytes())
+    data_root = _isolated_curation_root
     (data_root / "pmid_overrides.yaml").write_text(
         "- pmid: 99999999\n"
         "  restriction_evidence: experimental\n"
         "  peptide_attributions: attributions.csv\n"
     )
     (data_root / "attributions.csv").write_text("peptide,sample\nAAAAAAAAA,donor_a\n")
-    monkeypatch.setattr(curation, "_data_path", lambda name: str(data_root / name))
-    monkeypatch.setattr(cell_name_parser, "_registry_path", lambda: data_root / "cell_lines.yaml")
     monkeypatch.setattr(downloads, "_override_data_dir", tmp_path / "indexes")
-    curation._clear_curation_caches()
-    try:
-        yield data_root
-    finally:
-        curation._clear_curation_caches()
+    return data_root
 
 
 @pytest.mark.parametrize(
@@ -101,25 +78,31 @@ def test_cache_invalidates_curation_content_changes(isolated_curation, filename)
 
 
 def test_cache_tracks_new_attribution_reference(isolated_curation):
-    """An already-warm YAML loader must not hide newly referenced input files."""
+    """An already-warm YAML loader must not hide newly referenced input files.
+
+    ``isolated_curation`` (via ``_isolated_curation_root``) already guarantees
+    a clear cache on entry and clears it again on exit, so warming the loader
+    here needs no manual clear/restore of its own (#474).
+    """
     from hitlist import curation
 
-    curation.load_pmid_overrides.cache_clear()
-    try:
-        curation.load_pmid_overrides()
-        path = isolated_curation / "pmid_overrides.yaml"
-        path.write_text(path.read_text().replace("attributions.csv", "new.csv"))
-        csv_path = isolated_curation / "new.csv"
-        csv_path.write_text("peptide,sample\nCCCCCCCCC,donor_b\n")
-        fingerprints = _source_fingerprints({})
-        assert str(csv_path) in {value.get("path") for value in fingerprints.values()}
-    finally:
-        curation.load_pmid_overrides.cache_clear()
+    curation.load_pmid_overrides()
+    path = isolated_curation / "pmid_overrides.yaml"
+    path.write_text(path.read_text().replace("attributions.csv", "new.csv"))
+    csv_path = isolated_curation / "new.csv"
+    csv_path.write_text("peptide,sample\nCCCCCCCCC,donor_b\n")
+    fingerprints = _source_fingerprints({})
+    assert str(csv_path) in {value.get("path") for value in fingerprints.values()}
 
 
 def test_curation_change_rebuilds_stored_evidence(isolated_curation, tmp_path, monkeypatch):
-    """Two normal builds in one interpreter must persist changed curation."""
-    from hitlist import builder, curation, downloads, supplement
+    """Two normal builds in one interpreter must persist changed curation.
+
+    No manual cache clear needed around the builds: ``build_observations``
+    already clears curation caches at its own start, and ``isolated_curation``
+    (via ``_isolated_curation_root``) clears again on teardown regardless (#474).
+    """
+    from hitlist import builder, downloads, supplement
     from tests.test_build_smoke import _write_synthetic_iedb
 
     csv_path = tmp_path / "iedb.csv"
@@ -146,25 +129,21 @@ def test_curation_change_rebuilds_stored_evidence(isolated_curation, tmp_path, m
         "build_line_expression",
         lambda **kw: write_empty_index(builder._line_expression_path()),
     )
-    curation._clear_curation_caches()
-    try:
-        path = builder.build_observations(build_mappings=False)
-        first = pd.read_parquet(path)
-        assert set(first.loc[first.pmid == 33858848, "restriction_evidence"]) == {"experimental"}
-        assert first.loc[first.pmid == 33858848, "src_cancer"].all()
-        assert _cache_is_valid(builder._source_paths())
+    path = builder.build_observations(build_mappings=False)
+    first = pd.read_parquet(path)
+    assert set(first.loc[first.pmid == 33858848, "restriction_evidence"]) == {"experimental"}
+    assert first.loc[first.pmid == 33858848, "src_cancer"].all()
+    assert _cache_is_valid(builder._source_paths())
 
-        overrides.write_text(
-            "- pmid: 33858848\n  restriction_evidence: predicted\n  override: healthy\n"
-        )
-        builder.build_observations(build_mappings=False)
-        second = pd.read_parquet(path)
-        assert set(second.loc[second.pmid == 33858848, "restriction_evidence"]) == {"predicted"}
-        assert not second.loc[second.pmid == 33858848, "src_cancer"].any()
-        identity_columns = ["assay_iri", "peptide", "pmid", "mhc_restriction"]
-        pd.testing.assert_frame_equal(first[identity_columns], second[identity_columns])
-    finally:
-        curation._clear_curation_caches()
+    overrides.write_text(
+        "- pmid: 33858848\n  restriction_evidence: predicted\n  override: healthy\n"
+    )
+    builder.build_observations(build_mappings=False)
+    second = pd.read_parquet(path)
+    assert set(second.loc[second.pmid == 33858848, "restriction_evidence"]) == {"predicted"}
+    assert not second.loc[second.pmid == 33858848, "src_cancer"].any()
+    identity_columns = ["assay_iri", "peptide", "pmid", "mhc_restriction"]
+    pd.testing.assert_frame_equal(first[identity_columns], second[identity_columns])
 
 
 def test_source_fingerprints_includes_supplementary_csvs(tmp_path):

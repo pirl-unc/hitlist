@@ -1,3 +1,59 @@
+# Consolidate the isolated-curation test fixtures (#473 follow-up review)
+
+## Objective
+
+`/code-review` on #473 (the fixture-cache-leak fix) found no correctness bugs but
+confirmed four real cleanup findings in the fix itself: an unguarded `finally`
+that could mask a real test failure, redundant `try/finally` ceremony around a
+`yield`-fixture pytest already tears down unconditionally, the same ~13-line
+docstring and clear/yield/clear block duplicated across two files, and two
+pre-existing tests now carrying manual cache-clear calls the fixture itself
+already guarantees. Fix all four together.
+
+## Design
+
+- New shared `_isolated_curation_root` fixture in `tests/conftest.py`: copies the
+  packaged curation YAML into an isolated temp tree, monkeypatches
+  `curation._data_path` / `cell_name_parser._registry_path`, and clears every
+  curation cache on setup and teardown via a plain `yield` (no `try/finally` --
+  pytest already runs a fixture's post-`yield` code unconditionally, so wrapping
+  it adds a masking risk with no added guarantee).
+- `test_builder.py`'s `isolated_curation` and `test_cache_current.py`'s
+  `curation_referencing_uncached_asset` become thin fixtures depending on the
+  shared base, each owning only the fake `pmid_overrides.yaml` content and
+  monkeypatches specific to their own tests.
+- Removed the now-redundant manual `cache_clear()` calls in
+  `test_cache_tracks_new_attribution_reference` and
+  `test_curation_change_rebuilds_stored_evidence`.
+
+## Scope note
+
+Five more tests in `test_curation.py`/`test_exclude_from_ms.py` hand-roll a
+narrower, single-file `_data_path` monkeypatch with their own correctly-scoped
+`try/finally` cache_clear -- already safe, unlike the two fixtures this PR
+touches. Left alone: a DRY improvement there would touch several already-correct,
+unrelated tests for a purely stylistic gain, disproportionate to the risk.
+
+## Plan
+
+- [x] Shared `_isolated_curation_root` fixture in `tests/conftest.py`.
+- [x] Both fixtures refactored to thin wrappers; unused imports removed.
+- [x] Redundant manual cache-clear calls removed from the two dependent tests.
+- [x] Verify the exact confirmed regression pair from #474 still passes.
+- [x] Format, lint, targeted tests, full combined-suite run twice; PR, CI,
+      merge, deploy from clean main.
+
+## Review
+
+`ruff check --fix` removed one now-unused `Path` import in `test_cache_current.py`
+as a direct consequence of the refactor (the shared fixture owns that copy logic
+now); no other changes needed to satisfy lint.
+
+Verified in order: both fixtures' own tests (78 total, unchanged pass count) still
+pass; the exact two-test pair that reproduced #474's regression still passes;
+`pytest -n 5 tests` (the combined invocation that originally exposed the leak)
+passed 1631/1631, twice in a row.
+
 # Fixture cache leak found while deploying 1.62.4
 
 ## Objective
