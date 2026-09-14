@@ -27,7 +27,19 @@ from pathlib import Path
 
 import pytest
 
+from tests.mhcgnomes_floor_check import check as _check_mhcgnomes_floor
 from tests.xdist_cache import load_or_build_mmapped_arrow
+
+
+def pytest_configure(config):
+    """Fail the whole session immediately, with one clear message, when the
+    installed ``mhcgnomes`` predates this project's declared floor (#467) --
+    instead of 200+ scattered ``AttributeError``\\ s with nothing connecting
+    any one traceback back to the actual cause. Runs once, before collection.
+    """
+    message = _check_mhcgnomes_floor()
+    if message:
+        pytest.exit(message, returncode=1)
 
 
 @pytest.fixture
