@@ -23,9 +23,51 @@ public surface that can be unit-tested independently of the fixture.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from tests.xdist_cache import load_or_build_mmapped_arrow
+
+
+@pytest.fixture
+def _isolated_curation_root(tmp_path, monkeypatch):
+    """Shared base for a test-isolated curation YAML tree (#471, #474).
+
+    Copies the packaged ``pmid_overrides.yaml`` / ``tissue_categories.yaml``
+    / ``monoallelic_lines.yaml`` / ``cell_lines.yaml`` into an isolated temp
+    dir and points ``curation._data_path`` / ``cell_name_parser._registry_path``
+    at it, clearing every curation ``lru_cache`` on setup and teardown.
+
+    Every curation loader this touches is process-global, keyed on no
+    arguments or on a PMID that can collide with a real one, so a value
+    cached under this fixture's fake data survives ``monkeypatch``'s own
+    teardown (which only restores ``_data_path``, not whatever got cached
+    while it was patched) and leaks into whatever test runs next on the
+    same xdist worker. #448's ``curation_referencing_uncached_asset`` shipped
+    without this and stayed safe only because nothing in its call graph
+    happened to reach ``load_pmid_overrides()`` -- until #471 gave
+    ``load_supplementary_manifest`` an indirect path to it, and the leak
+    failed 23 unrelated tests on the very next deploy. One fixture with an
+    unconditional clear, reused everywhere a test needs this, is the version
+    that survives the next such addition -- see #474.
+
+    Callers overwrite ``pmid_overrides.yaml`` with their own fake content
+    before the test body runs; nothing here calls a cached loader in
+    between, so the caller's final content is always what gets read first.
+    """
+    from hitlist import cell_name_parser, curation
+
+    data_root = tmp_path / "curation"
+    data_root.mkdir()
+    for name in ("pmid_overrides.yaml", "tissue_categories.yaml", "monoallelic_lines.yaml"):
+        (data_root / name).write_bytes(Path(curation._data_path(name)).read_bytes())
+    (data_root / "cell_lines.yaml").write_bytes(cell_name_parser._registry_path().read_bytes())
+    monkeypatch.setattr(curation, "_data_path", lambda name: str(data_root / name))
+    monkeypatch.setattr(cell_name_parser, "_registry_path", lambda: data_root / "cell_lines.yaml")
+    curation._clear_curation_caches()
+    yield data_root
+    curation._clear_curation_caches()
 
 
 def _build_full_observations_df():
