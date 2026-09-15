@@ -1,3 +1,93 @@
+# Issue #470 — CEDAR column misparsing
+
+## Objective
+
+CEDAR's export carries one more column than IEDB's (`Epitope | Mutation`
+inserted at index 27), and three columns' name candidates never had a working
+match on either source, so all three silently fell back to IEDB's positional
+index -- correct by luck on IEDB, one column off on CEDAR. Two measured,
+silent consequences: a binding assay (T2 stabilization) entering the
+eluted-ligand output because the misread `assay_comments` comes back empty,
+and mono-allelic cell-line detection never firing on CEDAR rows because the
+misread `cell_name` returns an IRI instead of a name.
+
+## Root cause (deeper than the issue itself identified)
+
+`_resolve_columns` combines the two header rows as `f"{cat} | {fld}"` before
+matching. `_COLUMN_NAMES["antigen_processing_comments"]`,
+`["assay_comments"]`, and `["cell_name"]`'s candidates never included the
+`" | "` separator, so they never matched EITHER source's real header (real
+category is non-empty: "Antigen Processing" / "Assay" / "Antigen Presenting
+Cell") -- confirmed empirically against both registered real files before
+writing any fix. They "worked" on IEDB only because `_FALLBACK_INDICES` was
+calibrated against IEDB's own column count. `assay_iri`/`ref_iri` have the
+identical bug for a different reason: CEDAR literally names its first two
+columns "CEDAR IRI" instead of "IEDB IRI".
+
+## Design
+
+- Add the missing pipe-separated candidates for all four broken keys.
+- After the fix, verified all 27 `_COLUMN_NAMES` keys resolve by name alone
+  on every known real/simulated layout (real IEDB, real CEDAR, and CEDAR with
+  the exact reported extra column) -- the positional fallback is now a pure,
+  never-triggered safety net for a genuinely unrecognized header.
+- `_resolve_columns` now raises `ValueError` (naming the unresolved keys,
+  the column count, and nearby header text) instead of silently using
+  `_FALLBACK_INDICES` -- issue's suggestion #2, made safe by the point above.
+
+## Plan
+
+- [x] Verify the bug against real registered IEDB + CEDAR files (the local
+      CEDAR predates the extra column, so also simulated the exact reported
+      113-column layout by inserting it programmatically).
+- [x] Fix the four broken `_COLUMN_NAMES` entries.
+- [x] Fail-closed guard in `_resolve_columns`.
+- [x] Fix 21 pre-existing scanner tests broken by the guard (three shared
+      CSV-writing helpers relied on silent fallback for columns they didn't
+      bother naming) by adding the missing names, not weakening the fix.
+- [x] New regression tests: name-resolution position-independence, the
+      exact three broken keys on the exact reported layout, the fail-closed
+      guard, and two full `scan()` end-to-end tests reproducing both
+      consequences verbatim from the issue (T2-stabilization binding assay,
+      HMy2.C1R mono-allelic detection) -- verified each new test genuinely
+      fails against the unfixed code with the exact reported symptom before
+      trusting it.
+- [x] Format, lint, full combined-suite run twice; PR, CI, merge, deploy.
+
+## Review
+
+Every new test was checked against the unfixed code before being trusted, not
+just written and assumed correct: `git stash` on `hitlist/scanner.py` alone,
+re-run, confirm each fails with the exact reported symptom
+(`is_binding_assay` False instead of True, `is_monoallelic` False instead of
+True, index 88 instead of 89, no raise where one is now expected), then
+restore.
+
+The first version of the new tests used blank category headers (matching the
+existing `_write_tiny_iedb_csv` convention) and all five passed against the
+UNFIXED code -- a false-negative regression suite. The real bug specifically
+needs a non-empty category (`"Antigen Processing"`, `"Assay"`, `"Antigen
+Presenting Cell"`) to expose the missing `" | "` separator; blank categories
+let the old single-string candidates match trivially via the field-only
+fallback pass. Rebuilt the header from real category/field text measured
+directly off the registered IEDB file, keyed by real column index, with
+CEDAR's extra column insertable at its exact reported index (27) -- this is
+what makes the "before" run fail with the issue's own literal symptom
+language rather than a synthetic proxy for it.
+
+Fixing the fail-closed guard's blast radius took more than the four
+`_COLUMN_NAMES` entries: 21 of 33 existing scanner tests relied on three
+shared CSV-writing helpers that left most columns unnamed, silently accepting
+whatever `_FALLBACK_INDICES` guessed. Extended each helper to name every key
+(placed past the columns each helper's rows actually populate, so no existing
+`row[N]` assignment needed to change) rather than softening the guard to
+tolerate unnamed columns -- the guard's whole point is that an unnamed column
+must not resolve silently.
+
+Full combined-suite run (`pytest -n 5 tests`, the same invocation
+`test.sh --all` and `deploy.sh` use): 1646 passed, 1 skipped, twice in a row
+-- 1641 from before plus the 5 new tests, zero regressions.
+
 # Issue #467 — mhcgnomes version-floor tripwire
 
 ## Objective

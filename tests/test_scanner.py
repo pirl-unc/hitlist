@@ -1,9 +1,10 @@
+import csv
 import warnings
 
 import pandas as pd
 import pytest
 
-from hitlist.scanner import scan
+from hitlist.scanner import _resolve_columns, scan
 
 
 def test_scan_no_sources():
@@ -126,6 +127,9 @@ def _write_tiny_iedb_csv(path, rows):
         "Host | MHC Types Present",
         "Assay | Method",
         "Assay | Response measured",
+        "Assay | Units",
+        "Assay | Measurement Inequality",
+        "Assay | Quantitative measurement",
     ]
     category_header = [""] * len(field_header)  # real IEDB uses grouping labels; "" is safe
     import csv
@@ -411,12 +415,32 @@ def _write_quant_iedb_csv(path, rows):
     field_header[94] = "Qualitative Measurement"
     field_header[95] = "Assay | Measurement Inequality"
     field_header[96] = "Assay | Quantitative measurement"
-    # Note: mhc_restriction / mhc_class are beyond index 96, but the scanner
-    # falls back to _FALLBACK_INDICES for columns we don't explicitly name,
-    # so indices 107/108 get read from row[107]/row[108].  Pad rows out.
     field_header_full = field_header + [""] * (109 - len(field_header))
     field_header_full[107] = "MHC Restriction | Name"
     field_header_full[108] = "MHC Allele Class"
+    # Every other key _COLUMN_NAMES declares must still resolve by name
+    # (#470: a column resolving by position instead of name can silently
+    # read the wrong index the moment a source's layout shifts). This test
+    # only cares about the quantitative fields above, so the rest just need
+    # *a* resolvable name; appending past the columns already in use keeps
+    # every existing row[N] assignment in this file valid.
+    field_header_full += [
+        "Submission ID",
+        "Title",
+        "Source Organism",
+        "Epitope | Species",
+        "Host",
+        "Host Age",
+        "Process Type",
+        "Disease",
+        "Disease Stage",
+        "Antigen Processing | Comments",
+        "Assay | Comments",
+        "Source Tissue",
+        "Antigen Presenting Cell | Name",
+        "Culture Condition",
+        "Host | MHC Types Present",
+    ]
     category_header = [""] * len(field_header_full)
 
     import csv
@@ -616,6 +640,32 @@ def _write_set_iedb_csv(path, rows):
     field_header[49] = "Host | MHC Types Present"
     field_header[107] = "MHC Restriction | Name"
     field_header[108] = "MHC Allele Class"
+    # Every other key _COLUMN_NAMES declares must still resolve by name
+    # (#470: a column resolving by position instead of name can silently
+    # read the wrong index the moment a source's layout shifts). These
+    # tests don't care about the values, so appending past column 108
+    # keeps every existing row[N] assignment in this file valid.
+    field_header += [
+        "Submission ID",
+        "Title",
+        "Source Organism",
+        "Epitope | Species",
+        "Host Age",
+        "Process Type",
+        "Disease",
+        "Disease Stage",
+        "Antigen Processing | Comments",
+        "Qualitative Measurement",
+        "Assay | Method",
+        "Assay | Response measured",
+        "Assay | Units",
+        "Assay | Measurement Inequality",
+        "Assay | Quantitative measurement",
+        "Assay | Comments",
+        "Source Tissue",
+        "Antigen Presenting Cell | Name",
+        "Culture Condition",
+    ]
     category_header = [""] * len(field_header)
 
     import csv
@@ -1065,3 +1115,177 @@ def test_scanner_output_uses_stringdtype(tmp_path):
                 "memory inflation is back.  Verify hitlist/__init__.py still "
                 "sets pd.options.future.infer_string = True."
             )
+
+
+# ── CEDAR column resolution (#470) ──────────────────────────────────────────
+#
+# CEDAR's export inserts one extra "Epitope | Mutation" column relative to
+# IEDB's layout. Three keys' name candidates were missing the " | " that
+# _resolve_columns inserts when combining the category and field header
+# rows, so they never matched by name on EITHER source -- they only ever
+# "worked" on IEDB by the coincidence that _FALLBACK_INDICES was calibrated
+# against IEDB's own column count. The moment a layout no longer matches
+# (CEDAR's extra column, or any future one), the fallback silently reads
+# the wrong column with no symptom but wrong data.
+
+
+#: The real (category, field) header text IEDB uses for every key that
+#: had a ``_FALLBACK_INDICES`` entry, keyed by the key's real IEDB column
+#: index -- measured directly from a registered IEDB export (#470's own
+#: repro methodology). Deliberately includes the category text: three
+#: keys' bug was specifically that their name candidates never matched
+#: once combined with a *non-empty* category via " | ", so a synthetic
+#: header with blank categories (as ``_write_tiny_iedb_csv`` uses) cannot
+#: reproduce it -- it has to look exactly like this.
+_REAL_HEADER_BY_INDEX: dict[int, tuple[str, str, str]] = {
+    0: ("assay_iri", "Assay ID", "IEDB IRI"),
+    1: ("ref_iri", "Reference", "IEDB IRI"),
+    3: ("pmid", "Reference", "PMID"),
+    4: ("submission_id", "Reference", "Submission ID"),
+    8: ("ref_title", "Reference", "Title"),
+    11: ("epitope_name", "Epitope", "Name"),
+    23: ("source_organism", "Epitope", "Source Organism"),
+    25: ("species", "Epitope", "Species"),
+    43: ("host", "Host", "Name"),
+    48: ("host_age", "Host", "Age"),
+    49: ("host_mhc_types", "Host", "MHC Types Present"),
+    50: ("process_type", "in vivo Process", "Process Type"),
+    51: ("disease", "in vivo Process", "Disease"),
+    53: ("disease_stage", "in vivo Process", "Disease Stage"),
+    88: ("antigen_processing_comments", "Antigen Processing", "Comments"),
+    90: ("assay_method", "Assay", "Method"),
+    91: ("response_measured", "Assay", "Response measured"),
+    92: ("measurement_units", "Assay", "Units"),
+    94: ("qualitative_measurement", "Assay", "Qualitative Measurement"),
+    95: ("measurement_inequality", "Assay", "Measurement Inequality"),
+    96: ("quantitative_measurement", "Assay", "Quantitative measurement"),
+    101: ("assay_comments", "Assay", "Comments"),
+    102: ("source_tissue", "Antigen Presenting Cell", "Source Tissue"),
+    104: ("cell_name", "Antigen Presenting Cell", "Name"),
+    106: ("culture_condition", "Antigen Presenting Cell", "Culture Condition"),
+    107: ("mhc_restriction", "MHC Restriction", "Name"),
+    111: ("mhc_class", "MHC Restriction", "Class"),
+}
+#: CEDAR's exact reported divergence (#470): one extra column inserted at
+#: this real-IEDB index, shifting every real index at or after it by one.
+_CEDAR_MUTATION_COLUMN_INDEX = 27
+
+
+def _iedb_shaped_header(*, cedar_shifted: bool = False):
+    """A header shaped like a real IEDB/CEDAR export: every key from
+    :data:`_REAL_HEADER_BY_INDEX` at its real column index, unused columns
+    blank, sized to 112 real columns (113 when ``cedar_shifted``).
+    ``cedar_shifted`` inserts CEDAR's actual extra column at its actual
+    reported index, reproducing #470 exactly rather than a simplified
+    stand-in -- everything at or after index 27 shifts by one, nothing
+    before it moves.
+
+    Returns ``(category_header, field_header, key_to_index)`` -- the last
+    one is what test bodies use to place values, so no test ever has to
+    know or guess a column's shifted position by hand.
+    """
+    width = max(_REAL_HEADER_BY_INDEX) + 1
+    cat = [""] * width
+    fld = [""] * width
+    for idx, (_key, c, f) in _REAL_HEADER_BY_INDEX.items():
+        cat[idx] = c
+        fld[idx] = f
+    key_to_index = {key: idx for idx, (key, _c, _f) in _REAL_HEADER_BY_INDEX.items()}
+
+    if cedar_shifted:
+        cat = [*cat[:_CEDAR_MUTATION_COLUMN_INDEX], "Epitope", *cat[_CEDAR_MUTATION_COLUMN_INDEX:]]
+        fld = [*fld[:_CEDAR_MUTATION_COLUMN_INDEX], "Mutation", *fld[_CEDAR_MUTATION_COLUMN_INDEX:]]
+        key_to_index = {
+            key: (idx + 1 if idx >= _CEDAR_MUTATION_COLUMN_INDEX else idx)
+            for key, idx in key_to_index.items()
+        }
+    return cat, fld, key_to_index
+
+
+def test_resolve_columns_matches_by_name_not_by_lucky_position():
+    """Every key resolves to the SAME semantic column whether or not
+    CEDAR's extra column is present -- proof the match is by name, not by
+    a position that only happens to be right on IEDB's own layout.
+    """
+    plain_cat, plain_fld, plain_idx = _iedb_shaped_header()
+    shifted_cat, shifted_fld, shifted_idx = _iedb_shaped_header(cedar_shifted=True)
+
+    plain = _resolve_columns(plain_cat, plain_fld)
+    shifted = _resolve_columns(shifted_cat, shifted_fld)
+
+    for key, _cat, _fld in _REAL_HEADER_BY_INDEX.values():
+        assert plain[key] == plain_idx[key], key
+        assert shifted[key] == shifted_idx[key], key
+
+
+def test_resolve_columns_finds_the_three_keys_470_reports_broken():
+    """The exact three columns #470 reports falling back to the wrong
+    index once CEDAR's layout diverges from IEDB's by one column -- using
+    the real category text that made their old candidates never match.
+    """
+    cat, fld, key_to_index = _iedb_shaped_header(cedar_shifted=True)
+    resolved = _resolve_columns(cat, fld)
+    for key in ("antigen_processing_comments", "assay_comments", "cell_name"):
+        assert resolved[key] == key_to_index[key], key
+
+
+def test_resolve_columns_fails_closed_on_an_unrecognized_header():
+    """A header hitlist has never seen must say so, not guess a
+    neighboring column via ``_FALLBACK_INDICES`` (#470's second fix).
+    """
+    with pytest.raises(ValueError, match="cell_name"):
+        _resolve_columns(["", "", ""], ["Column A", "Column B", "Column C"])
+
+
+def _write_shaped_csv(path, category_header, field_header, rows):
+    with open(path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(category_header)
+        writer.writerow(field_header)
+        for row in rows:
+            writer.writerow(row)
+
+
+def test_scan_detects_binding_assay_on_a_cedar_shaped_layout(tmp_path):
+    """#470's first reported consequence: a binding assay must not enter
+    the eluted-ligand output just because its layout has CEDAR's extra
+    column and ``assay_comments`` is read one column left of where it is.
+    """
+    cat, fld, idx = _iedb_shaped_header(cedar_shifted=True)
+    row = [""] * len(fld)
+    row[idx["assay_iri"]] = "http://iedb.org/assay/22938803"
+    row[idx["pmid"]] = "24492013"
+    row[idx["epitope_name"]] = "AMTKLGFKV"
+    row[idx["mhc_restriction"]] = "HLA-A*02:01"
+    row[idx["mhc_class"]] = "I"
+    row[idx["qualitative_measurement"]] = "Positive"
+    row[idx["assay_comments"]] = "Binding was demonstrated by T2 stabilization assay."
+    src = tmp_path / "cedar.csv"
+    _write_shaped_csv(src, cat, fld, [row])
+
+    df = scan(peptides=None, iedb_path=str(src), cedar_path=None)
+    assert bool(df.loc[df["peptide"] == "AMTKLGFKV", "is_binding_assay"].iloc[0]) is True
+
+
+def test_scan_detects_monoallelic_host_on_a_cedar_shaped_layout(tmp_path):
+    """#470's second reported consequence: a mono-allelic cell line must
+    still be recognized when ``cell_name`` is read one column left because
+    of CEDAR's extra column -- otherwise the one source of unambiguous
+    single-allele assignment silently stops firing.
+    """
+    cat, fld, idx = _iedb_shaped_header(cedar_shifted=True)
+    row = [""] * len(fld)
+    row[idx["assay_iri"]] = "http://iedb.org/assay/23843967"
+    row[idx["pmid"]] = "23843967"
+    row[idx["epitope_name"]] = "AFDDIATYF"
+    row[idx["mhc_restriction"]] = "HLA-A*02:01"
+    row[idx["mhc_class"]] = "I"
+    row[idx["cell_name"]] = "HMy2.C1R cell (B cell)"
+    row[idx["culture_condition"]] = "Cell Line / Clone"
+    src = tmp_path / "cedar.csv"
+    _write_shaped_csv(src, cat, fld, [row])
+
+    df = scan(peptides=None, iedb_path=str(src), cedar_path=None)
+    hit = df.loc[df["peptide"] == "AFDDIATYF"].iloc[0]
+    assert bool(hit["is_monoallelic"]) is True
+    assert hit["monoallelic_host"] == "C1R"

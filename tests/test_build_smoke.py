@@ -60,6 +60,18 @@ _IEDB_FIELD_HEADER = [
     "Assay | Culture Condition",
     "MHC Restriction | Name",
     "MHC Allele Class",
+    # Every other key hitlist.scanner._COLUMN_NAMES declares must still
+    # resolve by name (#470: a column resolving by position instead of name
+    # can silently read the wrong index the moment a source's layout
+    # shifts). This fixture doesn't populate these, so any resolvable name
+    # is enough -- appended past the columns _write_synthetic_iedb's rows
+    # actually set, so no row[N] assignment needs to change.
+    "Assay | Method",
+    "Assay | Response measured",
+    "Assay | Units",
+    "Assay | Measurement Inequality",
+    "Assay | Quantitative measurement",
+    "Host | MHC Types Present",
 ]
 
 
@@ -86,7 +98,7 @@ def _write_synthetic_iedb(path) -> None:
         rows.append(r)
     with open(path, "w", newline="") as f:
         w = csv.writer(f)
-        w.writerow([""] * 21)  # category header row
+        w.writerow([""] * len(_IEDB_FIELD_HEADER))  # category header row
         w.writerow(_IEDB_FIELD_HEADER)  # field header row
         w.writerows(rows)
 
