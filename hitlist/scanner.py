@@ -50,8 +50,18 @@ _UNRESOLVED_TISSUE: frozenset[str] = frozenset(
 # ── Column name → index resolution ─────────────────────────────────────────
 
 _COLUMN_NAMES: dict[str, list[str]] = {
-    "assay_iri": ["Assay IRI", "Assay - Assay IRI"],
-    "ref_iri": ["Reference IRI", "Reference - Reference IRI", "Reference | IEDB IRI"],
+    "assay_iri": [
+        "Assay ID | IEDB IRI",
+        "Assay ID | CEDAR IRI",
+        "Assay IRI",
+        "Assay - Assay IRI",
+    ],
+    "ref_iri": [
+        "Reference | IEDB IRI",
+        "Reference | CEDAR IRI",
+        "Reference IRI",
+        "Reference - Reference IRI",
+    ],
     "pmid": ["PMID", "Reference | PMID"],
     "submission_id": ["Submission ID", "Reference | Submission ID"],
     "ref_title": ["Title", "Reference | Title"],
@@ -64,7 +74,7 @@ _COLUMN_NAMES: dict[str, list[str]] = {
     "process_type": ["Process Type", "Host | Process Type"],
     "disease": ["Disease", "Host | Disease"],
     "disease_stage": ["Disease Stage", "Host | Disease Stage"],
-    "antigen_processing_comments": ["Antigen Processing Comments"],
+    "antigen_processing_comments": ["Antigen Processing | Comments", "Antigen Processing Comments"],
     "qualitative_measurement": ["Qualitative Measurement"],
     "assay_method": ["Assay | Method", "Method"],
     "response_measured": ["Assay | Response measured", "Response measured"],
@@ -74,9 +84,13 @@ _COLUMN_NAMES: dict[str, list[str]] = {
         "Assay | Quantitative measurement",
         "Quantitative measurement",
     ],
-    "assay_comments": ["Assay Comments"],
+    "assay_comments": ["Assay | Comments", "Assay Comments"],
     "source_tissue": ["Source Tissue", "Effector Cells | Source Tissue"],
-    "cell_name": ["Cell Name", "Effector Cells | Cell Name"],
+    "cell_name": [
+        "Antigen Presenting Cell | Name",
+        "Cell Name",
+        "Effector Cells | Cell Name",
+    ],
     "culture_condition": ["Culture Condition", "Assay | Culture Condition"],
     "mhc_restriction": ["MHC Restriction | Name", "MHC Restriction Name"],
     "mhc_class": ["MHC Allele Class", "Class"],
@@ -114,7 +128,17 @@ _FALLBACK_INDICES: dict[str, int] = {
 
 
 def _resolve_columns(cat_header: list[str], field_header: list[str]) -> dict[str, int]:
-    """Resolve column indices from IEDB header rows, with fallbacks."""
+    """Resolve column indices from IEDB/CEDAR header rows.
+
+    Every key in :data:`_COLUMN_NAMES` is expected to resolve by matching
+    the two header rows.  :data:`_FALLBACK_INDICES` exists only as a last
+    resort and is deliberately never allowed to fire silently: a positional
+    index is only meaningful against the exact layout it was measured from
+    (112 IEDB columns), and CEDAR has added a column since without renaming
+    anything (#470) -- proof that layouts drift.  A column that stops
+    resolving by name is a genuine "hitlist doesn't recognize this header
+    yet" and must say so, not guess a neighboring column and continue.
+    """
     indices: dict[str, int] = {}
     combined_lower = []
     for i in range(max(len(cat_header), len(field_header))):
@@ -138,9 +162,31 @@ def _resolve_columns(cat_header: list[str], field_header: list[str]) -> dict[str
                     break
             if key in indices:
                 break
-    for key, fallback in _FALLBACK_INDICES.items():
-        if key not in indices:
-            indices[key] = fallback
+    unresolved = sorted(set(_COLUMN_NAMES) - set(indices))
+    if unresolved:
+        column_count = max(len(cat_header), len(field_header))
+        raise ValueError(
+            f"could not resolve column(s) {unresolved} by name against a "
+            f"{column_count}-column header. _COLUMN_NAMES' candidates for "
+            f"{unresolved} need a new entry matching this file's header text "
+            f"-- a positional fallback here would be a guess with no way to "
+            f"detect if it lands on the wrong column (#470). "
+            f"Nearby header text: "
+            + "; ".join(
+                f"[{i}] {cat_header[i] if i < len(cat_header) else ''!r} | "
+                f"{field_header[i] if i < len(field_header) else ''!r}"
+                for i in sorted(
+                    {
+                        j
+                        for key in unresolved
+                        for j in range(
+                            max(0, _FALLBACK_INDICES.get(key, 0) - 1),
+                            min(column_count, _FALLBACK_INDICES.get(key, 0) + 2),
+                        )
+                    }
+                )
+            )
+        )
     return indices
 
 
