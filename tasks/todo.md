@@ -2019,3 +2019,56 @@ Format/lint pass with the locked Ruff version — `env -u VIRTUAL_ENV uv run
 ./format.sh` / `./lint.sh` against the lockfile's mhcgnomes 3.64.2, unaffected
 by the shared venv issue above (#467). CI's four Python legs are the clean
 signal for the full suite; all passed on 8886b37.
+
+## #483: split `test.sh --all` into two pytest processes (1.62.11)
+
+`deploy.sh`'s combined `--all` pass had OOM-killed the machine three times in
+one day, even at a single xdist worker. `test.sh` now runs non-integration and
+integration tests as two separate `python -m pytest` invocations (CI has done
+this since #272/#274) instead of one process carrying both. Each pass
+re-probes available memory independently and gets its own per-worker budget —
+`PER_WORKER_GB` (2.5, unchanged) for the light pass, a new
+`INTEGRATION_PER_WORKER_GB` (5) for the integration pass.
+
+**Real end-to-end run, not just `--collect-only`.** Ran the new script for
+real: light pass 1620 passed (13m55s), integration pass 42 passed / 1 failed
+(8m42s). No OOM kill, despite the machine being genuinely memory-starved by
+two unrelated repos' test suites (`pirlygenes`, `vaxrank`) running the whole
+time — system-wide available memory sat under 0.2GB for 56 of the sampled
+10s ticks during the run. That contention is real evidence the split
+survives non-ideal conditions, but it also means this isn't a clean
+before/after: I don't have a same-methodology peak-RSS number for the old
+single-process `--all` to compare against, only the earlier session's
+differently-measured 4.6-8.7GB range from the OOM-killed attempts (killed
+before reaching whatever their true peak would have been, so not a ceiling
+either).
+
+**Process RSS trace (own descendant PIDs, summed):** light pass peaked at
+~3.6GB transiently, mostly running ~200-350MB; integration pass reset to
+~80MB at the fresh-process boundary, then climbed to ~11.6GB peak while
+building/holding the observation corpus fixture. Take the integration peak
+as an upper bound, not a clean physical-memory number — summed RSS across a
+coordinator + one xdist worker double-counts any pages both processes have
+resident from the same mmapped fixture file (`tests/xdist_cache.py`, #262).
+The one clean, methodology-independent result: it finished both passes
+without being killed.
+
+**Unrelated integration-test failure found, not fixed here**: the fresh
+run's integration pass failed
+`test_current_corpus_mhc_token_allowlist_is_complete_and_not_stale` — the
+test's hardcoded allowlist still expects `HLA-DR3A`/`HLA-DR7A`/`HLA-DR1B` as
+`invalid_source` exceptions, but the currently-registered corpus no longer
+has them. Reproduces cleanly on `origin/main` HEAD with no local diff to
+either file, so it's pre-existing data/test drift, unrelated to this PR.
+Filed as #484 rather than fixed in-flight, since diagnosing which side (test
+allowlist vs. corpus) is stale is its own task.
+
+`tests/test_test_script.py` previously only asserted the old single-pass
+`--all` behavior (and never covered the plain, non-`--all` path at all).
+Rewrote it to assert two independent invocations for `--all` (own marker,
+own worker count from its own per-worker budget, right cov flags each), plus
+a new test for the previously-uncovered default path, plus a test that
+extra CLI args reach both passes. Confirmed both new `--all` tests fail
+against the pre-#483 script (only one invocation ever appears) and the
+default-path test still passes against it, so the rewrite isn't vacuous in
+either direction.
