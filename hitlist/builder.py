@@ -355,6 +355,23 @@ _CATEGORICAL_BUILD_COLUMNS: tuple[str, ...] = (
     "source_organism",
 )
 
+#: ``promote_options`` for the cross-source ``pa.concat_tables`` calls below.
+#:
+#: Each of the 28 columns above is compressed to a pandas ``category`` — and
+#: therefore an Arrow ``dictionary`` — independently per source partition
+#: (IEDB, CEDAR), so pyarrow's dictionary-index width is chosen from *that
+#: partition's own* distinct-value count: <=127 categories fits ``int8``,
+#: more needs ``int16``.  ``"default"`` promotes null-typed/missing columns
+#: but does not reconcile two dictionaries of the same value type at
+#: different index widths, and raises ``ArrowTypeError`` the moment one
+#: source's cardinality crosses the ``int8`` boundary and another's doesn't
+#: (#478).  ``"permissive"`` does the same null/missing promotion *and*
+#: widens mismatched-but-compatible types (dictionary index width, integer
+#: width, string vs large_string, ...) to a common denominator — it still
+#: rejects a genuine mismatch like ``int64`` vs ``string``, so this is not a
+#: relaxation of the schema check, only of the width it insists on.
+_CONCAT_PROMOTE_OPTIONS = "permissive"
+
 
 def _compress_categoricals(df: pd.DataFrame, *, strict: bool = False) -> None:
     """In-place ``object → category`` for low-cardinality string columns.
@@ -854,10 +871,12 @@ def build_observations(
         raise RuntimeError("No data scanned.")
 
     # ``pa.concat_tables`` is zero-copy when schemas match (which they do,
-    # since both sources came through the same scanner).  ``promote_options``
-    # widens to a common type if any column dtype diverged across sources.
+    # since both sources came through the same scanner).  ``_CONCAT_PROMOTE_OPTIONS``
+    # widens to a common type if any column dtype diverged across sources —
+    # see its own docstring; a plain "default" raises on this exact pair of
+    # per-source-compressed partitions (#478).
     if ms_tables:
-        ms_table = pa.concat_tables(ms_tables, promote_options="default")
+        ms_table = pa.concat_tables(ms_tables, promote_options=_CONCAT_PROMOTE_OPTIONS)
         ms_tables.clear()
         # Cross-source dedup by assay IRI (#146): pyarrow doesn't expose a
         # direct ``drop_duplicates`` so we materialize as pandas here, then
@@ -871,7 +890,7 @@ def build_observations(
         obs = pd.DataFrame()
 
     if binding_tables:
-        binding_table = pa.concat_tables(binding_tables, promote_options="default")
+        binding_table = pa.concat_tables(binding_tables, promote_options=_CONCAT_PROMOTE_OPTIONS)
         binding_tables.clear()
         binding = binding_table.to_pandas()
         del binding_table
