@@ -556,11 +556,14 @@ def test_current_corpus_mhc_token_allowlist_is_complete_and_not_stale():
     audit = mhc_token_audit()
 
     assert not (audit["status"] == "unrecognized").any(), audit.to_string(index=False)
+    # HLA-DR7A/DR3A/DR1B (#396) no longer occur anywhere in the registered
+    # observations/binding/curated-override data -- the studies or rows that
+    # carried them are gone from the corpus, not a parsing regression
+    # (confirmed by grepping the built parquet files directly, #484). They
+    # stay in qc._KNOWN_INVALID_MHC_TOKENS so the audit still flags them if a
+    # future corpus rebuild reintroduces them.
     expected = {
         ("HLA-B23", "invalid_source"),
-        ("HLA-DR7A", "invalid_source"),
-        ("HLA-DR3A", "invalid_source"),
-        ("HLA-DR1B", "invalid_source"),
     }
     if type(_cached_parse("HLA-Cw16")).__name__ not in _MHC_DESIGNATION_TYPES:
         expected.add(("HLA-Cw16", "parser_gap"))
