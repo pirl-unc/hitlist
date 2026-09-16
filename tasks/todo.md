@@ -1,3 +1,84 @@
+# Issue #478 — ArrowTypeError merging serotype dictionary columns
+
+## Objective
+
+`build_observations()` crashes rebuilding the MS observations index inside
+the cross-source concat step, reported from tsarina with a full
+reproduction: `pa.concat_tables(ms_tables, promote_options="default")`
+raises `ArrowTypeError` because two per-source partitions' `serotype`
+column ended up dictionary-encoded at different index widths (`int8` vs
+`int16`). Blocks any fresh build; does not affect an already-built parquet.
+
+## Root cause
+
+`_compress_categoricals` runs once per source partition (IEDB, CEDAR)
+before the Arrow conversion, so pyarrow picks each partition's dictionary
+index width from *that partition's own* distinct-value count independently
+(<=127 categories -> int8, more -> int16). `promote_options="default"`
+promotes null/missing columns but does not reconcile two dictionaries of
+the same value type at different index widths.
+
+Not scoped to `serotype` alone: all 28 columns in
+`_CATEGORICAL_BUILD_COLUMNS` go through the identical per-partition
+compression before the same two `pa.concat_tables` calls (MS and binding),
+so any of them could hit this the moment one source's cardinality happens
+to straddle the boundary and another's doesn't.
+
+## Design
+
+- `promote_options="permissive"` (pyarrow's own documented next tier up)
+  widens mismatched-but-compatible types -- including dictionary index
+  width -- to a common denominator, and still rejects a genuine mismatch
+  like `int64` vs `string`. Verified both properties directly against
+  pyarrow before trusting it.
+- New `_CONCAT_PROMOTE_OPTIONS` module constant (both call sites now read
+  from it) documents why, and gives tests one source of truth instead of
+  a literal string that could silently drift from what production uses.
+
+## Plan
+
+- [x] Reproduce the exact `ArrowTypeError` with minimal synthetic tables
+      before touching any code.
+- [x] Empirically verify `promote_options="permissive"` fixes the dictionary-
+      width mismatch AND still rejects a genuine `int64` vs `string` type
+      mismatch (i.e. it widens compatible types, not relaxes validation).
+- [x] Confirm via `_CATEGORICAL_BUILD_COLUMNS` that the same per-partition
+      compression risk applies to all 28 categorical columns, not only
+      `serotype` -- the fix is at the concat call, so it covers all of them.
+- [x] Fix both `pa.concat_tables` call sites (MS, binding).
+- [x] Regression tests, verified against the unfixed value before trusting
+      them: the exact failure pinned, the fix confirmed end to end through
+      the real `_compress_categoricals`, and a boundary test proving the
+      fix doesn't also start accepting truly incompatible types.
+- [x] Full `test_builder.py` + build-smoke tests (exercise `build_observations`
+      end to end) pass.
+- [x] Full combined-suite run twice; PR, CI, merge, deploy.
+
+## Review
+
+Reproduced the exact `ArrowTypeError` with two lines of synthetic pyarrow
+tables before touching any code, then again through the real
+`_compress_categoricals` helper to confirm the mechanism, not just the
+symptom. Checked `promote_options="permissive"`'s actual boundary before
+relying on it: it correctly merges `int8`/`int16` dictionary indices of the
+same value type, and correctly still rejects `int64` vs `large_string` --
+confirmed both directly against pyarrow, and pinned the second as its own
+test so a future pyarrow upgrade that changed this behavior would be caught
+rather than silently trusted.
+
+Verified the new test suite is not merely trivially passing: with the
+constant's value reverted to `"default"`, the fix test fails with the
+issue's own literal error message; restored, it passes.
+
+No artifact-version bump: this fixes a build-time crash, not any stored
+column's values or meaning -- an existing artifact built before this
+change needs no invalidation.
+
+Full combined-suite run (`pytest -n 5 tests`, the same invocation
+`test.sh --all` and `deploy.sh` use) plus the build-smoke tests that
+exercise `build_observations` end to end: 1649 passed, 1 skipped, twice in
+a row -- 1646 from before plus the 3 new tests, zero regressions.
+
 # Issue #470 — CEDAR column misparsing
 
 ## Objective

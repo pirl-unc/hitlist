@@ -2,10 +2,12 @@ import json
 import os
 
 import pandas as pd
+import pyarrow as pa
 import pytest
 
 from hitlist.builder import (
     _CATEGORICAL_BUILD_COLUMNS,
+    _CONCAT_PROMOTE_OPTIONS,
     _OBSERVATIONS_ARTIFACT_VERSION,
     _atomic_write_parquet,
     _cache_is_valid,
@@ -667,6 +669,61 @@ def test_compress_categoricals_partial_frame_default_does_not_raise():
     df = pd.DataFrame({"source": ["iedb"] * 5, "peptide": list("abcde")})
     _compress_categoricals(df)
     assert df["source"].dtype.name == "category"
+
+
+# ── Cross-source dictionary-width concat (#478) ─────────────────────────────
+#
+# _compress_categoricals runs once per source partition (IEDB, CEDAR), so
+# pyarrow picks each partition's dictionary index width from *that
+# partition's own* distinct-value count: a small partition needs only
+# int8, a large one needs int16. Concatenating the two under
+# promote_options="default" raised ArrowTypeError the moment cardinality
+# crossed the int8 boundary in only one of them — this reproduces that
+# exact split with a real per-source compression, not a hand-built schema.
+
+
+def _serotype_partition(n_distinct: int, n_rows: int) -> pd.DataFrame:
+    df = pd.DataFrame({"serotype": [f"S{i % n_distinct}" for i in range(n_rows)]})
+    _compress_categoricals(df)
+    return df
+
+
+def test_concat_tables_default_rejects_mismatched_dictionary_widths():
+    """Pin the exact failure #478 reports, so a future pyarrow upgrade that
+    changes this behavior is caught rather than silently assumed."""
+    small = pa.Table.from_pandas(_serotype_partition(3, 6), preserve_index=False)
+    large = pa.Table.from_pandas(_serotype_partition(200, 200), preserve_index=False)
+    assert small.schema.field("serotype").type.index_type == pa.int8()
+    assert large.schema.field("serotype").type.index_type == pa.int16()
+    with pytest.raises(pa.lib.ArrowTypeError, match="serotype"):
+        pa.concat_tables([small, large], promote_options="default")
+
+
+def test_concat_tables_promote_options_unifies_mismatched_dictionary_widths():
+    """The actual fix: the same two partitions concatenate cleanly under
+    ``_CONCAT_PROMOTE_OPTIONS``, with every row and value preserved."""
+    small_df = _serotype_partition(3, 6)
+    large_df = _serotype_partition(200, 200)
+    small = pa.Table.from_pandas(small_df, preserve_index=False)
+    large = pa.Table.from_pandas(large_df, preserve_index=False)
+
+    result = pa.concat_tables([small, large], promote_options=_CONCAT_PROMOTE_OPTIONS)
+
+    assert result.num_rows == len(small_df) + len(large_df)
+    got = result.column("serotype").to_pylist()
+    assert got == list(small_df["serotype"]) + list(large_df["serotype"])
+
+
+def test_concat_tables_promote_options_still_rejects_true_type_mismatches():
+    """The fix widens compatible types; it must not also start accepting
+    genuinely incompatible ones (e.g. a column that is numeric in one
+    source and text in another) -- that would trade one silent-wrong-data
+    risk for another.
+    """
+    numeric = pa.table({"x": pa.array([1, 2, 3], type=pa.int64())})
+    textual = pa.table({"x": pa.array(["a", "b"], type=pa.large_string())})
+    with pytest.raises(pa.lib.ArrowTypeError, match="x"):
+        pa.concat_tables([numeric, textual], promote_options=_CONCAT_PROMOTE_OPTIONS)
 
 
 def test_hitlist_import_enables_pandas_infer_string():
