@@ -530,3 +530,21 @@ def known_cell_lines() -> list[str]:
 def known_cell_types() -> tuple[str, ...]:
     """Return the cell-type vocabulary used for hybrid-string parsing."""
     return CELL_TYPES
+
+
+def registry_verdict(cell_line_name: str) -> dict | None:
+    """The registry's curated ``is_cancer``/``is_ebv_lcl`` verdict for a
+    canonical line name (as returned in :attr:`CellNameInfo.cell_line_name`).
+
+    Every one of the 149 entries in ``cell_lines.yaml`` carries both
+    fields, so a hit is always a complete ``{"is_cancer": bool,
+    "is_ebv_lcl": bool}`` verdict. Returns ``None`` for an unrecognized
+    or empty name -- callers must not treat that as "known non-cancer".
+    """
+    if not cell_line_name:
+        return None
+    canonical_to_entry, _, _, _ = _load_registry()
+    entry = canonical_to_entry.get(cell_line_name)
+    if entry is None or "is_cancer" not in entry:
+        return None
+    return {"is_cancer": entry["is_cancer"], "is_ebv_lcl": entry.get("is_ebv_lcl", False)}

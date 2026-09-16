@@ -34,6 +34,7 @@ from hitlist.cell_name_parser import (
     known_cell_lines,
     known_cell_types,
     parse_cell_name,
+    registry_verdict,
 )
 
 # ── Pure cell-line names ──────────────────────────────────────────────
@@ -329,6 +330,29 @@ def test_known_cell_types_includes_common_categories():
     types = set(known_cell_types())
     for expected in ("B cell", "Epithelial cell", "Myeloid cell", "Melanocyte"):
         assert expected in types
+
+
+# ── registry_verdict ─────────────────────────────────────────────────────
+
+
+def test_registry_verdict_malignant_line():
+    assert registry_verdict("Raji") == {"is_cancer": True, "is_ebv_lcl": False}
+
+
+def test_registry_verdict_ebv_lcl_reference_line():
+    assert registry_verdict("JY") == {"is_cancer": False, "is_ebv_lcl": True}
+
+
+def test_registry_verdict_non_malignant_non_ebv_line():
+    assert registry_verdict("HEK293T") == {"is_cancer": False, "is_ebv_lcl": False}
+
+
+def test_registry_verdict_unknown_name_is_none():
+    assert registry_verdict("not-a-real-line") is None
+
+
+def test_registry_verdict_empty_name_is_none():
+    assert registry_verdict("") is None
 
 
 def test_cell_line_catalog_is_well_formed():
