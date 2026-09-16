@@ -9,21 +9,36 @@
 # See ~/code/trufflepig/test.sh for the worker-cap rationale: running
 # several sibling repos' suites concurrently can fork-bomb the laptop,
 # so we cap workers at min(cpu_reserve, available_RAM / PER_WORKER_GB).
-# Hitlist's integration ``full_observations_df`` fixture costs ~2 GB
-# per worker (#244, #262), so the default per-worker budget is bumped
-# up. xdist is optional — fall back to serial pytest when it isn't
+#
+# ``--all`` runs as TWO separate pytest processes, not one (#483):
+# non-integration first, then integration. CI has done this since
+# #272/#274 — a fresh process for the ~2-4 GB ``full_observations_df``
+# fixture, rather than one that already carries whatever the preceding
+# ~1500 non-integration tests left allocated (freed objects don't
+# necessarily return pages to the OS; a long-lived interpreter's heap
+# only gets more fragmented). ``deploy.sh``'s single combined pass hit
+# this directly: two sessions independently got OOM-killed by the OS
+# running ``--all`` as one process on an otherwise memory-constrained
+# machine, even down to a single worker. Splitting doesn't fix that
+# ceiling by itself, but it removes one avoidable multiplier on it, and
+# the integration pass gets its own, more conservative worker budget
+# instead of inheriting the light pass's.
+#
+# xdist is optional — fall back to serial pytest when it isn't
 # installed.
 #
-# See issues #223, #244, #262, #440.
+# See issues #223, #244, #262, #440, #483.
 #
 # Tunables (env vars):
-#   PER_WORKER_GB    per-worker memory budget in GB (default: 2.5)
-#   TEST_SH_MIN      floor on workers (default: 1)
-#   TEST_SH_MAX      hard ceiling on workers (default: unset)
+#   PER_WORKER_GB               non-integration per-worker budget in GB (default: 2.5)
+#   INTEGRATION_PER_WORKER_GB   integration per-worker budget in GB (default: 5)
+#   TEST_SH_MIN                 floor on workers (default: 1)
+#   TEST_SH_MAX                 hard ceiling on workers, both passes (default: unset)
 
 set -eo pipefail
 
 PER_WORKER_GB="${PER_WORKER_GB:-2.5}"
+INTEGRATION_PER_WORKER_GB="${INTEGRATION_PER_WORKER_GB:-5}"
 TEST_SH_MIN="${TEST_SH_MIN:-1}"
 TEST_SH_MAX="${TEST_SH_MAX:-0}"
 
@@ -89,46 +104,78 @@ available_bytes() {
 CPUS=$(cpu_count)
 CPU_CAP=$(cpu_cap "$CPUS")
 
-avail=""
-if avail=$(available_bytes 2>/dev/null) && [[ -n "$avail" ]]; then
-    MEM_CAP=$(awk -v b="$avail" -v g="$PER_WORKER_GB" 'BEGIN {
-        n = int(b / 1024^3 / g)
-        if (n < 1) n = 1
-        print n
-    }')
-    AVAIL_GB=$(awk -v b="$avail" 'BEGIN { printf "%.1f", b / 1024^3 }')
-    mem_note="ram_free=${AVAIL_GB}GB mem_cap=${MEM_CAP}"
-else
-    MEM_CAP=1
-    mem_note="ram_free=? (probe unavailable) mem_cap=1"
-fi
-
-if (( CPU_CAP < MEM_CAP )); then WORKERS=$CPU_CAP; else WORKERS=$MEM_CAP; fi
-if (( WORKERS < TEST_SH_MIN )); then WORKERS=$TEST_SH_MIN; fi
-if (( TEST_SH_MAX > 0 && WORKERS > TEST_SH_MAX )); then WORKERS=$TEST_SH_MAX; fi
+# Re-probed for each pass (not cached), since availability can shift
+# meaningfully between the light pass finishing and the heavy one
+# starting -- exactly the situation #483 was filed from.
+worker_count() {
+    local per_worker_gb="$1"
+    local avail mem_cap avail_gb workers
+    if avail=$(available_bytes 2>/dev/null) && [[ -n "$avail" ]]; then
+        mem_cap=$(awk -v b="$avail" -v g="$per_worker_gb" 'BEGIN {
+            n = int(b / 1024^3 / g)
+            if (n < 1) n = 1
+            print n
+        }')
+        avail_gb=$(awk -v b="$avail" 'BEGIN { printf "%.1f", b / 1024^3 }')
+        mem_note="ram_free=${avail_gb}GB mem_cap=${mem_cap}"
+    else
+        mem_cap=1
+        mem_note="ram_free=? (probe unavailable) mem_cap=1"
+    fi
+    if (( CPU_CAP < mem_cap )); then workers=$CPU_CAP; else workers=$mem_cap; fi
+    if (( workers < TEST_SH_MIN )); then workers=$TEST_SH_MIN; fi
+    if (( TEST_SH_MAX > 0 && workers > TEST_SH_MAX )); then workers=$TEST_SH_MAX; fi
+    echo "${workers} ${mem_note}"
+}
 
 # Argument parsing: --all expands to include integration tests.
-filter=(-m "not integration")
+run_all=0
 extra=()
 for arg in "$@"; do
     if [[ "$arg" == "--all" ]]; then
-        filter=()
+        run_all=1
     else
         extra+=("$arg")
     fi
 done
 
-XDIST_FLAGS=()
+use_xdist=0
 if python -c "import xdist" 2>/dev/null; then
-    XDIST_FLAGS=(-n "$WORKERS")
-    log "platform=${OS} cpus=${CPUS} cpu_cap=${CPU_CAP} ${mem_note} per_worker=${PER_WORKER_GB}GB"
-    if (( ${#filter[@]} )); then
-        log "workers=${WORKERS} → exec python -m pytest -n ${WORKERS} ${filter[*]} --cov=hitlist/ --cov-report=term-missing tests ${extra[*]:-}"
-    else
-        log "workers=${WORKERS} → exec python -m pytest -n ${WORKERS} --cov=hitlist/ --cov-report=term-missing tests ${extra[*]:-} (--all: integration tests included)"
-    fi
+    use_xdist=1
 else
     log "platform=${OS} cpus=${CPUS} (pytest-xdist not installed; running serial)"
 fi
 
-exec python -m pytest "${XDIST_FLAGS[@]}" "${filter[@]}" --cov=hitlist/ --cov-report=term-missing tests "${extra[@]}"
+run_pytest() {
+    # $1 = per-worker GB, $2 = -m marker expression (empty = no filter),
+    # remaining args = extra pytest cov/report flags for this invocation.
+    # Plain positional args rather than an array-by-reference: this
+    # machine's /bin/bash is 3.2, which predates nameref support (4.3+).
+    local per_worker_gb=$1
+    local marker=$2
+    shift 2
+    local filter_args=()
+    if [[ -n "$marker" ]]; then
+        filter_args=(-m "$marker")
+    fi
+    local xdist_flags=()
+    if (( use_xdist )); then
+        local workers mem_note
+        read -r workers mem_note < <(worker_count "$per_worker_gb")
+        xdist_flags=(-n "$workers")
+        log "cpus=${CPUS} cpu_cap=${CPU_CAP} ${mem_note} per_worker=${per_worker_gb}GB workers=${workers}"
+        log "→ exec python -m pytest -n ${workers} ${filter_args[*]:-} $* tests ${extra[*]:-}"
+    fi
+    python -m pytest "${xdist_flags[@]}" "${filter_args[@]}" "$@" tests "${extra[@]}"
+}
+
+if (( run_all )); then
+    # Two processes, not one (#483): the integration pass starts with a
+    # clean interpreter instead of inheriting whatever ~1500 preceding
+    # non-integration tests left allocated, and gets its own (higher)
+    # per-worker memory budget rather than the light pass's.
+    run_pytest "$PER_WORKER_GB" "not integration" --cov=hitlist/
+    run_pytest "$INTEGRATION_PER_WORKER_GB" "integration" --cov=hitlist/ --cov-append --cov-report=term-missing
+else
+    run_pytest "$PER_WORKER_GB" "not integration" --cov=hitlist/ --cov-report=term-missing
+fi
