@@ -88,6 +88,74 @@ def test_ebv_lcl_not_cancer():
     assert flags["src_ebv_lcl"] is True
 
 
+# ── Registry-driven correction (no PMID override; cell_name alone resolves
+# to a known line, and the registry's is_cancer/is_ebv_lcl verdict wins over
+# both IEDB's raw Culture Condition tag and the generic default heuristic) ──
+
+
+def test_raji_is_cancer_even_when_iedb_tags_it_ebv_lcl():
+    """Raji (Burkitt lymphoma, CVCL_0511) is EBV-genome-positive, so IEDB
+    sometimes tags it with the generic "(EBV transformed, B-LCL)" Culture
+    Condition -- but it is the malignancy itself, not an EBV-immortalized
+    surrogate host, and the registry says so (is_cancer=true,
+    is_ebv_lcl=false). No PMID override needed: the cell name alone
+    resolves. Regression pin for hitlist#480 (PMID 38480730's Raji rows
+    were previously src_cancer=False)."""
+    flags = classify_ms_row(
+        "No immunization",
+        "Burkitt's lymphoma",
+        "Cell Line / Clone (EBV transformed, B-LCL)",
+        "Blood",
+        "Raji",
+    )
+    assert flags["src_cancer"] is True
+    assert flags["src_ebv_lcl"] is False
+    assert flags["src_cell_line"] is True
+
+
+def test_jy_is_not_cancer_without_any_pmid_override():
+    """JY is a registered EBV-LCL reference host (registry: is_cancer=false,
+    is_ebv_lcl=true) immortalized from an unrelated normal donor, distinct
+    from a patient tumor line. Previously this only resolved correctly via
+    the mono-allelic-host special case or a per-PMID override; a plain "JY"
+    cell name with a generic "Cell Line / Clone" tag and no override used to
+    default to src_cancer=True."""
+    flags = classify_ms_row(
+        "No immunization", "", "Cell Line / Clone", "Lymphoid", "JY cells-B cell"
+    )
+    assert flags["src_cancer"] is False
+    assert flags["src_ebv_lcl"] is True
+
+
+def test_thp1_is_cancer_even_when_iedb_omits_the_cell_line_tag():
+    """THP-1 (acute monocytic leukemia, CVCL_0006) plainly names a
+    registered cancer line, but this row's raw Culture Condition doesn't
+    match either "Cell Line / Clone" variant -- the registry corrects
+    src_cell_line/src_cancer regardless."""
+    flags = classify_ms_row("No immunization", "", "", "Blood", "THP-1-Monocyte")
+    assert flags["src_cancer"] is True
+    assert flags["src_cell_line"] is True
+    assert flags["src_ebv_lcl"] is False
+
+
+def test_hek293t_is_not_cancer():
+    """HEK293T is SV40-transformed embryonic kidney -- immortalized, not
+    malignant (registry: is_cancer=false, is_ebv_lcl=false). Neither the
+    is_ebv_lcl-based default heuristic nor a "cell_line" PMID override can
+    express this combination without consulting the registry directly."""
+    flags = classify_ms_row("No immunization", "healthy", "Cell Line / Clone", "Kidney", "293-T")
+    assert flags["src_cancer"] is False
+    assert flags["src_ebv_lcl"] is False
+    assert flags["src_cell_line"] is True
+
+
+def test_expi293f_is_not_cancer():
+    """Expi293F (a suspension-adapted HEK293 derivative used as a
+    transfection/production workhorse) is not malignant."""
+    flags = classify_ms_row("No immunization", "healthy", "Cell Line / Clone", "Kidney", "Expi293F")
+    assert flags["src_cancer"] is False
+
+
 def test_healthy_somatic():
     flags = classify_ms_row("No immunization", "healthy", "Direct Ex Vivo", "Liver")
     assert flags["src_healthy_tissue"] is True
@@ -425,15 +493,36 @@ def test_cell_line_override_ebv_lcl_not_cancer():
     assert flags["src_ebv_lcl"] is True
 
 
-def test_cell_line_override_non_ebv_still_cancer():
-    """cell_line override with non-EBV cell line → still cancer."""
-    # Ritz 2017 also has HEK293 (non-EBV)
+def test_cell_line_override_non_ebv_non_malignant_line_is_not_cancer():
+    """cell_line override with a non-EBV but non-malignant registered line
+    (HEK293: SV40/Ad5-transformed embryonic kidney, never a tumor) should
+    not be cancer -- "not EBV-LCL" alone doesn't imply malignant.  The
+    registry (cell_lines.yaml) knows HEK293 is_cancer=false, and this
+    exact PMID's own override entry already labels the sample "HEK293
+    (embryonic kidney)", not a tumor line."""
     flags = classify_ms_row(
         "No immunization",
         "healthy",
         "Cell Line / Clone",
         "Blood",
         "HEK293",
+        pmid=28834231,
+    )
+    assert flags["src_cancer"] is False
+    assert flags["src_ebv_lcl"] is False
+
+
+def test_cell_line_override_non_ebv_malignant_line_still_cancer():
+    """cell_line override with a genuinely malignant non-EBV registered
+    line (K562: chronic myeloid leukemia) should still be cancer -- the
+    registry verdict wins, not a blanket "non-EBV cell line = cancer"
+    heuristic."""
+    flags = classify_ms_row(
+        "No immunization",
+        "healthy",
+        "Cell Line / Clone",
+        "Blood",
+        "K562",
         pmid=28834231,
     )
     assert flags["src_cancer"] is True

@@ -53,7 +53,7 @@ from types import MappingProxyType
 import pandas as pd
 from mhcgnomes import Species
 
-from .cell_name_parser import parse_cell_name
+from .cell_name_parser import parse_cell_name, registry_verdict
 from .conditions import CONDITION_FIELDS, validate_study_conditions
 
 # ``UniqueKeyLoader`` was born here and is re-exported under its original name.
@@ -2856,6 +2856,26 @@ def classify_ms_row(
         "Cell Line / Clone (EBV transformed, B-LCL)",
     )
     is_ebv_lcl = culture_condition == "Cell Line / Clone (EBV transformed, B-LCL)"
+
+    # The curated cell-line registry (cell_lines.yaml) distinguishes
+    # genuinely malignant EBV+ lines (Raji: is_ebv_lcl=false, the tumor
+    # itself) from EBV-transformed reference/surrogate hosts (JY, C1R:
+    # is_ebv_lcl=true, immortalized from an unrelated normal donor) --
+    # a distinction IEDB's single generic "Cell Line / Clone (EBV
+    # transformed, B-LCL)" Culture Condition tag conflates, and that tag
+    # is sometimes simply absent for a row whose Cell Name plainly names
+    # a registered line (e.g. THP-1). When the name resolves to a known
+    # line, trust the registry over the raw IEDB tag for both signals --
+    # the same precedent as the mono-allelic-host EBV-LCL correction
+    # below, which already overrides IEDB "regardless of how [it] tagged
+    # the culture condition." Every registry entry carries both fields
+    # (see ``registry_verdict``), so a hit is always a complete verdict.
+    _registry_cell_info = parse_cell_name(cell_name_str)
+    _verdict = registry_verdict(_registry_cell_info.cell_line_name)
+    if _verdict is not None:
+        is_cell_line = True
+        is_ebv_lcl = _verdict["is_ebv_lcl"]
+
     is_reproductive = source_tissue_lower in categories["reproductive"]
     is_reproductive_female = source_tissue_lower in categories["reproductive_female"]
     is_reproductive_male = source_tissue_lower in categories["reproductive_male"]
@@ -2915,7 +2935,10 @@ def classify_ms_row(
         is_adjacent = False
         is_activated_apc = True
     elif effective_override == "cell_line":
-        is_cancer = not is_ebv_lcl  # EBV-LCLs are not cancer
+        # A registered line's curated verdict is authoritative when known
+        # (see the default branch below for why is_ebv_lcl alone isn't
+        # enough); otherwise fall back to the is_ebv_lcl heuristic.
+        is_cancer = _verdict["is_cancer"] if _verdict is not None else not is_ebv_lcl
         is_adjacent = False
         is_activated_apc = False
     elif effective_override == "noncancer_cell_line":
@@ -2938,8 +2961,15 @@ def classify_ms_row(
         is_adjacent = False
         is_activated_apc = False
     else:
-        # Default: non-EBV cell lines are cancer-derived
-        is_cancer = process_type == "Occurrence of cancer" or (is_cell_line and not is_ebv_lcl)
+        # Default: non-EBV cell lines are cancer-derived. When the cell
+        # name resolves to a registered line, its curated is_cancer verdict
+        # is authoritative -- the is_ebv_lcl heuristic alone can't express
+        # a non-malignant, non-EBV-LCL immortalized line (HEK293T: SV40-
+        # transformed, is_cancer=false, is_ebv_lcl=false; JAWS II likewise).
+        if _verdict is not None:
+            is_cancer = process_type == "Occurrence of cancer" or _verdict["is_cancer"]
+        else:
+            is_cancer = process_type == "Occurrence of cancer" or (is_cell_line and not is_ebv_lcl)
         is_adjacent = False
 
     # Healthy requires: ex vivo, no cancer/adjacent/apc, no disease.
