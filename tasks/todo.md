@@ -2072,3 +2072,47 @@ extra CLI args reach both passes. Confirmed both new `--all` tests fail
 against the pre-#483 script (only one invocation ever appears) and the
 default-path test still passes against it, so the rewrite isn't vacuous in
 either direction.
+
+## #483 (continued): preflight memory guard, so a low-memory run aborts instead of getting killed later (1.62.13)
+
+The two-pass split (1.62.11/1.62.12) mitigated one failure mode but left the
+issue's other two asks open: no preflight guard at the low end, and no clear
+failure signal when the OS kills the process. This PR adds the preflight
+guard; the retry-once-after-delay idea from the issue is still not done.
+
+`worker_count()`'s `mem_cap` used to hard-floor at 1 in the `awk` step
+itself, so a critically-low reading could never actually reach 0 by the time
+`workers < TEST_SH_MIN` ran — the "floor to TEST_SH_MIN and proceed anyway"
+behavior the issue complained about was baked in twice over, not just once.
+
+Removed that inner floor so `mem_cap` can be 0. After the full pipeline runs
+(CPU cap, `TEST_SH_MIN` floor, `TEST_SH_MAX` ceiling), compare the *final*
+worker count against `mem_cap` -- not `TEST_SH_MIN` directly, which the first
+draft of this fix got wrong: a case with `TEST_SH_MIN=10, TEST_SH_MAX=2` and
+enough memory for exactly 3-4 workers used to abort under that draft (`3 <
+10`), even though the final, TEST_SH_MAX-clamped count of 2 was perfectly
+safe. Comparing against the post-clamp `workers` instead fixes that -- it
+only aborts when the number of workers that would *actually run* needs more
+memory than is available, after every floor and ceiling has already applied.
+
+Caught this by hand-deriving expected worker counts (page counts × page size
+÷ per-worker GB, with `int()` truncation) for each existing parametrized
+case in `tests/test_test_script.py` rather than trusting the numbers already
+there -- one of the four existing cases (`10_000` speculative pages) turned
+out to only work under the *old*, incorrect version of this guard, and
+silently masked a real design bug once actually verified against a hand
+computation instead of copied from a neighboring case.
+
+`available_bytes` probe failing (the existing macOS/Linux fallback) still
+bypasses the guard entirely and proceeds at `mem_cap=1` -- no evidence of
+scarcity, nothing to abort on.
+
+Verified: all new/changed cases in `tests/test_test_script.py` fail against
+the pre-guard script and pass against the new one. Real (non-stub) dry run
+against this machine's actual `vm_stat`/`sysctl` output at 6GB available
+proceeds normally with 2 workers, confirming no false-positive abort under
+ordinary conditions.
+
+Still open on #483: `deploy.sh` retrying the test step once after a short
+delay before giving up, since the underlying pressure (other apps, not
+hitlist) can resolve on its own.

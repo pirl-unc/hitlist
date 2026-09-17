@@ -78,10 +78,14 @@ def _marker(invocation):
         "expected_integration",
     ),
     [
-        (100_000, 10_000, False, 1, 0, 1, 1),
         (100_000, 400_000, False, 1, 0, 3, 1),
         (100_000, 400_000, True, 1, 0, 1, 1),
-        (100_000, 400_000, False, 10, 2, 2, 2),
+        # Enough real memory backs the final (post TEST_SH_MIN-floor,
+        # TEST_SH_MAX-ceiling) worker count in both passes here -- unlike an
+        # earlier version of this case (10_000 speculative pages), which
+        # relied on TEST_SH_MAX clamping 10 back down to 2 while only ever
+        # having memory for 3-4, and now correctly aborts instead (#483).
+        (100_000, 700_000, False, 10, 2, 2, 2),
     ],
 )
 def test_all_runs_two_passes_with_independent_worker_budgets(
@@ -137,6 +141,43 @@ def test_default_invocation_is_a_single_non_integration_pass(tmp_path):
     assert "--cov=hitlist/" in invocation
     assert "--cov-report=term-missing" in invocation
     assert "--cov-append" not in invocation
+
+
+def test_aborts_with_a_clear_message_when_memory_cant_cover_even_one_worker(tmp_path):
+    """#483: when available memory can't cover TEST_SH_MIN workers at the
+    pass's own per-worker budget, test.sh must refuse to start and say why,
+    rather than silently forcing TEST_SH_MIN and letting the OS SIGKILL
+    pytest later with no useful signal."""
+    env = _stub_env(tmp_path, 50_000, 50_000, probe_fails=False, worker_min=1, worker_max=0)
+    result = subprocess.run(["bash", str(SCRIPT), "--all"], env=env, capture_output=True, text=True)
+    assert result.returncode == 1
+    assert result.stdout == ""
+    assert "only 1.5" in result.stderr
+    assert "need ~2.5GB for 1 worker(s)" in result.stderr
+    assert "lower TEST_SH_MIN" in result.stderr
+
+
+def test_light_pass_runs_but_integration_pass_aborts_on_its_own_higher_budget(tmp_path):
+    """The two passes must be gated independently: enough memory for the
+    light pass's 2.5GB/worker budget but not the integration pass's
+    5GB/worker budget must run the light pass and abort before the second."""
+    env = _stub_env(tmp_path, 150_000, 50_000, probe_fails=False, worker_min=1, worker_max=0)
+    result = subprocess.run(["bash", str(SCRIPT), "--all"], env=env, capture_output=True, text=True)
+    assert result.returncode == 1
+    args = result.stdout.splitlines()
+    (light,) = _split_invocations(args)
+    assert _marker(light) == "not integration"
+    assert "only 3.0" in result.stderr
+    assert "need ~5.0GB" in result.stderr
+
+
+def test_probe_unavailable_still_proceeds_rather_than_aborting(tmp_path):
+    """When the memory probe itself fails, there's no evidence of scarcity
+    to abort on -- must keep falling back to mem_cap=1, not refuse to run."""
+    env = _stub_env(tmp_path, 100, 100, probe_fails=True, worker_min=1, worker_max=0)
+    result = subprocess.run(["bash", str(SCRIPT)], env=env, capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    assert "probe unavailable" in result.stderr
 
 
 def test_extra_args_are_forwarded_to_every_pass(tmp_path):

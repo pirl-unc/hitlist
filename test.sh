@@ -29,10 +29,18 @@
 #
 # See issues #223, #244, #262, #440, #483.
 #
+# Preflight memory guard (#483): if available memory can't even cover
+# TEST_SH_MIN workers at the pass's own per-worker budget, abort with a
+# clear message instead of silently forcing TEST_SH_MIN anyway and letting
+# the OS SIGKILL pytest later with no useful signal. Both prior OOM kills
+# this issue was filed from would have hit this guard instead of burning
+# 10+ minutes of test progress on an ambiguous "process vanished".
+#
 # Tunables (env vars):
 #   PER_WORKER_GB               non-integration per-worker budget in GB (default: 2.5)
 #   INTEGRATION_PER_WORKER_GB   integration per-worker budget in GB (default: 5)
-#   TEST_SH_MIN                 floor on workers (default: 1)
+#   TEST_SH_MIN                 floor on workers (default: 1); also the preflight guard's
+#                               worker-count target -- lower it to relax the guard
 #   TEST_SH_MAX                 hard ceiling on workers, both passes (default: unset)
 
 set -eo pipefail
@@ -109,23 +117,31 @@ CPU_CAP=$(cpu_cap "$CPUS")
 # starting -- exactly the situation #483 was filed from.
 worker_count() {
     local per_worker_gb="$1"
-    local avail mem_cap avail_gb workers
+    local avail mem_cap avail_gb workers probed=1
     if avail=$(available_bytes 2>/dev/null) && [[ -n "$avail" ]]; then
-        mem_cap=$(awk -v b="$avail" -v g="$per_worker_gb" 'BEGIN {
-            n = int(b / 1024^3 / g)
-            if (n < 1) n = 1
-            print n
-        }')
-        avail_gb=$(awk -v b="$avail" 'BEGIN { printf "%.1f", b / 1024^3 }')
+        mem_cap=$(awk -v b="$avail" -v g="$per_worker_gb" 'BEGIN { print int(b / 1024^3 / g) }')
+        avail_gb=$(awk -v b="$avail" 'BEGIN { printf "%.2f", b / 1024^3 }')
         mem_note="ram_free=${avail_gb}GB mem_cap=${mem_cap}"
     else
+        probed=0
         mem_cap=1
         mem_note="ram_free=? (probe unavailable) mem_cap=1"
     fi
     if (( CPU_CAP < mem_cap )); then workers=$CPU_CAP; else workers=$mem_cap; fi
     if (( workers < TEST_SH_MIN )); then workers=$TEST_SH_MIN; fi
     if (( TEST_SH_MAX > 0 && workers > TEST_SH_MAX )); then workers=$TEST_SH_MAX; fi
-    echo "${workers} ${mem_note}"
+    # TEST_SH_MIN (and, on a low-CPU box, TEST_SH_MAX) can each force workers
+    # above what mem_cap actually supports. Check the worker count that
+    # would really run, after every floor/ceiling has applied, not just the
+    # raw memory division -- otherwise a TEST_SH_MAX clamp that brings it
+    # back into a safe range would abort anyway on the pre-clamp value.
+    if (( probed )) && (( workers > mem_cap )); then
+        local need_gb
+        need_gb=$(awk -v g="$per_worker_gb" -v w="$workers" 'BEGIN { printf "%.1f", g * w }')
+        echo "abort 0 only ${avail_gb}GB available, need ~${need_gb}GB for ${workers} worker(s) at ${per_worker_gb}GB each -- free memory and retry (or lower TEST_SH_MIN / raise PER_WORKER_GB to accept the risk)"
+        return
+    fi
+    echo "ok ${workers} ${mem_note}"
 }
 
 # Argument parsing: --all expands to include integration tests.
@@ -160,8 +176,12 @@ run_pytest() {
     fi
     local xdist_flags=()
     if (( use_xdist )); then
-        local workers mem_note
-        read -r workers mem_note < <(worker_count "$per_worker_gb")
+        local status workers mem_note
+        read -r status workers mem_note < <(worker_count "$per_worker_gb")
+        if [[ "$status" == "abort" ]]; then
+            log "${mem_note} (#483)"
+            exit 1
+        fi
         xdist_flags=(-n "$workers")
         log "cpus=${CPUS} cpu_cap=${CPU_CAP} ${mem_note} per_worker=${per_worker_gb}GB workers=${workers}"
         log "→ exec python -m pytest -n ${workers} ${filter_args[*]:-} $* tests ${extra[*]:-}"
