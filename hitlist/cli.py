@@ -1533,10 +1533,15 @@ def main() -> None:
     )
     p_pmhc.add_argument(
         "--mhc-allele",
+        "--mhc-alleles",
         action="extend",
         nargs="+",
         help=(
             "One or more 4-digit MHC alleles (HLA-A*02:01, HLA-B*07:02, ...). "
+            "Space-separated, comma-separated, or repeated -- a whole pasted "
+            "genotype string works as one argument, e.g. "
+            '--mhc-allele "HLA-A*02:01 HLA-B*07:02" or '
+            "--mhc-allele HLA-A*02:01,HLA-B*07:02. "
             "Omit to scan all alleles. Mutually exclusive with --sample / --samples — "
             "use those when each sample has its own allele set instead of a "
             "cross-product across all of them."
@@ -1970,6 +1975,21 @@ def _parse_pmhc_samples(inline_specs: list[str], tsv_path: str | None) -> dict[s
     return out
 
 
+def _split_allele_tokens(raw: list[str]) -> list[str]:
+    """Flatten --mhc-allele's raw tokens, splitting each on commas/whitespace.
+
+    ``action="extend", nargs="+"`` alone only separates alleles the shell
+    already split into distinct argv tokens -- a single quoted, pasted
+    genotype string ("HLA-A*02:01 HLA-B*07:02" or "HLA-A*02:01,HLA-B*07:02")
+    arrives as ONE token and would otherwise be matched against literally
+    (#491), silently returning zero rows instead of erroring or working.
+    """
+    out: list[str] = []
+    for token in raw:
+        out.extend(token.replace(",", " ").split())
+    return out
+
+
 def _warn_unrecognized_genes(proteins: list[str]) -> None:
     """Print a stderr hint when a ``--gene`` query matched nothing because the
     symbol isn't in the corpus (likely a typo), vs. a real gene with no evidence.
@@ -2036,7 +2056,7 @@ def _pmhc(args: argparse.Namespace) -> None:
         except KeyError as e:
             print(f"Error: {e}", file=sys.stderr)
             sys.exit(2)
-    alleles = getattr(args, "mhc_allele", []) or []
+    alleles = _split_allele_tokens(getattr(args, "mhc_allele", []) or [])
     inline_samples = getattr(args, "sample", None) or []
     samples_path = getattr(args, "samples", None)
     species = getattr(args, "species", None)

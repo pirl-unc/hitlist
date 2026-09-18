@@ -2215,3 +2215,33 @@ own golden rule #1. Recovered via `git stash` in main + `git worktree add`
 nothing had been committed yet so nothing was actually at risk, but noting
 it since it's exactly the mistake [[feedback_worktree_when_concurrent]]
 warns about.
+
+## #491: pmhc --mhc-allele accepts a pasted genotype string; --mhc-alleles alias (1.62.16)
+
+`--mhc-allele "A*03:01 A*02:01 B*14:02 B*44:02 C*08:02 C*05:01"` -- six
+alleles quoted as one shell argument, which is how anyone pasting a typing
+report's genotype line would naturally write it -- silently matched nothing
+and returned zero rows. `action="extend", nargs="+"` only separates what the
+shell already split into distinct argv tokens; a single quoted string
+arrives as ONE token and got matched literally against `mhc_restriction`.
+No error, just a plausible-looking empty result.
+
+Added `_split_allele_tokens`, applied where `_pmhc` reads the parsed value:
+each raw token is split on commas and whitespace and flattened, so quoted,
+comma-joined, and repeated-flag forms all work and compose. Added
+`--mhc-alleles` as a plural alias (argparse keeps `dest="mhc_allele"` from
+the first option string, same as the existing `--protein`/`--gene` pair on
+this subparser -- verified rather than assumed).
+
+Deliberately scoped to `pmhc`. The `data`/`report` subcommand's own
+`--mhc-allele` help text already claims "Space-separated, comma-separated,
+or repeated" without implementing it either, but that's a separate
+pre-existing mismatch on a different code path and isn't what #491 asked
+for.
+
+Tests cover the helper directly (pass-through, space-joined, comma-joined,
+mixed, empty) plus two CLI-level tests that drive real argparse through
+`main()` with a stubbed `pmhc_query.query`, so the alias's dest resolution
+and the plumbing in `_pmhc` are both exercised, not just the pure function.
+All seven fail against the pre-fix CLI (the alias ones with argparse's own
+"unrecognized arguments" error).
