@@ -2163,3 +2163,55 @@ Also filed #491 (separate, not fixed here): `--mhc-allele` should split a
 single space/comma-joined token and gain a `--mhc-alleles` alias -- the
 same real query first failed with 0 rows because all six alleles were
 passed as one quoted shell argument.
+
+## #493: surface whether a peptide also occurs in an un-queried gene (1.62.15)
+
+User asked whether `pmhc` checks for a candidate peptide (from a queried
+CTA gene panel) also occurring in some other, un-queried protein -- a real
+TCR-T target-selection safety question, since a peptide shared with a
+normal-tissue gene is a very different risk than one unique to the tumor
+antigen.
+
+Turned out the underlying data already existed and was already being
+loaded on every `pmhc` query: `load_observations`'s auto-attach mechanism
+(#238) joins `gene_names`/`gene_ids` from `peptide_mappings.parquet`
+whenever the caller requests them, which `query()` always does (needed to
+split multi-gene rows, one row per gene). But right after exploding into
+one row per (peptide, gene), the "final precise gene filter" drops every
+row whose gene isn't in the caller's query -- silently discarding the fact
+that the SAME peptide also matched a gene the caller didn't ask about. The
+code's own pre-existing comment already named this exact scenario ("e.g. a
+KRAS-attributed peptide that also matches NRAS") without ever surfacing
+it.
+
+Added `other_genes` (semicolon-joined genes besides the ones queried whose
+protein also contains this peptide, empty if unique to the query) and
+`n_source_genes` (total distinct genes, including queried ones) by
+capturing each peptide's full multi-gene mapping before the precise filter
+runs. Deliberately doesn't try to classify "harmless same-family paralog"
+vs. "unrelated gene" -- checked a real query's output by hand and every
+flagged gene turned out to be a CT-antigen-family paralog (CTAG1A/CTAG1B
+alongside CTAG2, the SSX family alongside SSX1/SSX2, XAGE1A alongside
+XAGE1B), not a genuine off-target, but that judgment call belongs to the
+reader, not something to hardcode against a possibly-stale gene-set
+snapshot.
+
+**A real correctness gotcha caught by testing, not review**: the
+per-donor-row consolidation `_score_and_narrow_to_best_allele` does after
+predictor narrowing (`_collapse_rows_sharing_narrowed_allele`) uses an
+explicit `agg_spec` for its `.groupby().agg()` call -- any column not
+named there is silently dropped, the same trap `mhc_species` and the
+`_line_ids`/`_donor_ids`/`_donor_type_ids` columns already had (per their
+own comments). Verified by writing the fix, then deliberately removing
+only the `agg_spec` addition and confirming exactly one test failed (the
+consolidation-path test) while the two `query()`-level tests still passed
+-- proof the fix was targeting the right, specific bug rather than a vague
+"add it everywhere and hope."
+
+Also: caught mid-implementation that I'd been editing these files directly
+in the shared main checkout instead of a worktree -- broke the project's
+own golden rule #1. Recovered via `git stash` in main + `git worktree add`
++ `git stash pop` in the new worktree, without touching main's history;
+nothing had been committed yet so nothing was actually at risk, but noting
+it since it's exactly the mistake [[feedback_worktree_when_concurrent]]
+warns about.
