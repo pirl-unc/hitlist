@@ -568,7 +568,13 @@ def query(
     #    (inside _score_and_narrow_to_best_allele) preserves mhc_species AND the
     #    three internal ID columns via its group_cols / agg_spec.
     if predictor is not None:
-        grouped = _score_and_narrow_to_best_allele(grouped, predictor)
+        # A caller-supplied allele filter names a specific individual's
+        # genotype (#488) -- narrow multi-allele rows to the best allele
+        # *within that genotype*, not the best across every allele any
+        # matched study recorded. `alleles` is the caller's original list
+        # (pre serotype-expansion), so this stays exactly what was asked for.
+        allowed = frozenset(alleles) if alleles else None
+        grouped = _score_and_narrow_to_best_allele(grouped, predictor, allowed_alleles=allowed)
 
     # 5b. Derive the user-facing count columns from the joined-ID columns,
     #     then drop the internals.
@@ -958,7 +964,9 @@ def query_by_samples(
     return result
 
 
-def _score_and_narrow_to_best_allele(df: pd.DataFrame, predictor: str) -> pd.DataFrame:
+def _score_and_narrow_to_best_allele(
+    df: pd.DataFrame, predictor: str, allowed_alleles: frozenset[str] | None = None
+) -> pd.DataFrame:
     """Score each row's (peptide, allele-set) and narrow multi-allele rows
     to the single best-binding allele within their candidate set (#239).
 
@@ -970,7 +978,8 @@ def _score_and_narrow_to_best_allele(df: pd.DataFrame, predictor: str) -> pd.Dat
     the function:
 
     1. Expands the row to one ``(peptide, allele)`` prediction call per
-       individual allele in the set.
+       individual allele in the set (restricted to ``allowed_alleles``
+       when given and the row has at least one member in it — see below).
     2. Scores each pair via MHCflurry or NetMHCpan.
     3. Picks the best binder by ``presentation_percentile`` (with
        ``affinity_nM`` as the tiebreaker).
@@ -984,6 +993,20 @@ def _score_and_narrow_to_best_allele(df: pd.DataFrame, predictor: str) -> pd.Dat
     Rows where every allele in the set returns NaN (predictor failure
     or peptide-length mismatch) keep their original multi-allele
     ``mhc_allele`` and have empty ``best_predicted_allele``.
+
+    Parameters
+    ----------
+    allowed_alleles
+        When given (the caller's ``--mhc-allele`` / ``--sample`` filter —
+        a specific individual's genotype, not a corpus-wide scan), restrict
+        each row's candidate set to its intersection with this set before
+        scoring, so "best allele" means the best *among alleles that
+        individual actually carries* (#488) — not the best across every
+        allele any matched study recorded for that peptide, most of which
+        the queried individual may not have. Falls back to the row's full
+        candidate set if the intersection is empty (should not happen for
+        rows that survived the corpus-level allele pushdown filter, but a
+        row with no overlap is more useful shown unnarrowed than dropped).
     """
     if df.empty:
         df = df.copy()
@@ -1000,10 +1023,13 @@ def _score_and_narrow_to_best_allele(df: pd.DataFrame, predictor: str) -> pd.Dat
     for pos, (_, row) in enumerate(df.iterrows()):
         peptide = str(row["peptide"])
         allele_str = str(row.get("best_guess_allele") or "")
-        for allele in allele_str.split(";"):
-            allele = allele.strip()
-            if allele:
-                candidates.append({"_row_pos": pos, "peptide": peptide, "allele": allele})
+        row_alleles = [a.strip() for a in allele_str.split(";") if a.strip()]
+        if allowed_alleles is not None:
+            restricted = [a for a in row_alleles if a in allowed_alleles]
+            if restricted:
+                row_alleles = restricted
+        for allele in row_alleles:
+            candidates.append({"_row_pos": pos, "peptide": peptide, "allele": allele})
 
     if not candidates:
         df = df.copy()

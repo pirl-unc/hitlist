@@ -2116,3 +2116,50 @@ ordinary conditions.
 Still open on #483: `deploy.sh` retrying the test step once after a short
 delay before giving up, since the underlying pressure (other apps, not
 hitlist) can resolve on its own.
+
+## #488: pmhc --predictor mhcflurry crash + best-allele narrowing not restricted to the queried genotype (1.62.14)
+
+Found running a real user query (4 cancer-testis-antigen genes x a
+6-allele patient typing, `--predictor mhcflurry`) -- two real bugs in the
+same code path, both fixed here since both block the same real command.
+
+**Crash on >6 unique (peptide, allele) pairs.** `_predict_mhcflurry` called
+`Class1PresentationPredictor.predict(alleles=[[a] for a in ...])` -- a
+list-of-single-element-lists. That's neither of the two shapes mhcflurry's
+`alleles` argument actually accepts (a flat list of <=6 allele strings as
+one shared genotype for every peptide, or a dict of sample_name -> alleles
+paired with `sample_names`). Falls into the flat-list branch, and the
+*number of scored rows* gets checked against the 6-allele-genotype limit --
+crashes on essentially any real query. Fixed by keying the dict by allele
+(one-allele "sample" per unique allele) and using each row's own allele as
+its `sample_names` entry. Verified manually against the real mhcflurry
+package with 8 distinct alleles before writing the regression test.
+
+**One atypical-length peptide crashed the whole batch.** A real 16-mer
+MS hit made `predict()` raise (`Class1PresentationPredictor`'s affinity
+model only supports lengths 5-15) and abort scoring the other 32 peptides
+in the same query. `_score_and_narrow_to_best_allele`'s own docstring
+already promised "peptide-length mismatch" degrades to NaN gracefully --
+`_predict_mhcflurry` just didn't implement that promise. Fixed by filtering
+to the predictor's `supported_peptide_lengths` before calling `predict()`
+and leaving out-of-range rows NaN.
+
+**Best-allele narrowing wasn't restricted to the queried allele set.**
+Separately, real output showed `best_predicted_allele` values (e.g.
+HLA-B*07:02, HLA-B*08:01) that weren't among the 6 alleles the query asked
+about at all. `_score_and_narrow_to_best_allele` scores a row's *entire*
+recorded ambiguity set (every allele any matched study's genotype carried)
+and picks the global best -- `query()`'s own `alleles` filter (the specific
+individual's genotype) was never threaded into the narrowing step, only
+into the initial corpus-level pushdown. Added an `allowed_alleles`
+parameter: when the caller supplied a specific allele filter (`--mhc-allele`
+or `--sample`), restrict each row's candidate set to the intersection with
+it before scoring, falling back to the full set only if that intersection
+is empty. Re-ran the original real query after the fix: every
+`best_predicted_allele` in the output is now one of the 6 queried alleles.
+
+Filed #488 with the root-cause writeup; both fixes + narrowing landed here.
+Also filed #491 (separate, not fixed here): `--mhc-allele` should split a
+single space/comma-joined token and gain a `--mhc-alleles` alias -- the
+same real query first failed with 0 rows because all six alleles were
+passed as one quoted shell argument.
