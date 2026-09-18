@@ -2245,3 +2245,35 @@ mixed, empty) plus two CLI-level tests that drive real argparse through
 and the plumbing in `_pmhc` are both exercised, not just the pure function.
 All seven fail against the pre-fix CLI (the alias ones with argparse's own
 "unrecognized arguments" error).
+## #483 (final): deploy.sh retries the test gate once after a delay (1.62.17)
+
+Last of #483's three asks. The two-pass split (1.62.11) and the preflight
+memory guard (1.62.13) shipped earlier; this is the retry.
+
+The memory pressure behind a failed or OS-killed `./test.sh --all` during a
+deploy is usually ordinary desktop app usage on the shared machine, not
+anything test.sh did, and it often clears within a couple of minutes --
+observed repeatedly across this session's deploys. One retry after a delay
+turns a class of deploy failure that currently needs a human to notice and
+re-run into one that resolves itself.
+
+Deliberately ONE retry, not a loop: a second consecutive failure propagates
+for real rather than masking a genuine break behind indefinite retrying.
+`DEPLOY_TEST_RETRY_DELAY_SECONDS` (default 120) is the knob, matching
+test.sh's existing env-var tunable convention.
+
+Implementation leans on `set -e`'s existing semantics rather than fighting
+them: `if ! ./test.sh --all; then ... ./test.sh --all; fi`. A command in an
+`if` condition is exempt from `set -e`, so the first failure is caught; the
+retry is the last statement in the block and is NOT in a conditional, so
+`set -e` aborts the script with the retry's own exit code if it also fails.
+Verified both branches by simulation before writing the real tests.
+
+First tests deploy.sh has ever had. It calls `./lint.sh` and `./test.sh` by
+relative path, so the tests copy the real deploy.sh into a tmp dir beside
+fake versions of those, with fake python/twine on PATH so the build and
+upload steps can never touch anything real. Three cases: transient failure
+then success (proceeds, exactly 2 calls), two failures (aborts, exactly 2
+calls -- not a loop, and never reaches the build step), and first-try pass
+(1 call, no retry noise). The two retry cases fail against the pre-fix
+script; the pass-through case correctly passes either way.
