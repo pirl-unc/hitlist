@@ -150,8 +150,14 @@ def query(
     pd.DataFrame
         Columns: ``gene_name``, ``gene_id``, ``mhc_allele``,
         ``peptide``, ``n_observations``, ``n_references``,
-        ``n_samples``, ``pmids``, ``mhc_class``.  Plus the affinity
-        columns when ``predictor`` is set.
+        ``n_samples``, ``pmids``, ``mhc_class``, ``other_genes``
+        (semicolon-joined gene names, besides the ones queried, whose
+        protein also contains this exact peptide sequence -- empty when
+        the peptide is unique to the queried gene(s); does not
+        distinguish a harmless same-family paralog from an unrelated
+        gene, that judgment is on the reader), ``n_source_genes`` (total
+        distinct genes the peptide occurs in, including queried ones).
+        Plus the affinity columns when ``predictor`` is set.
         Sorted by (mhc_species, gene_name, mhc_allele, -n_observations).
         Empty DataFrame with these columns if nothing matched.
     """
@@ -416,6 +422,16 @@ def query(
     df["gene_id"] = df["_gene_id"].astype(str).str.strip()
     df = df.drop(columns=["_gene_name", "_gene_id", "gene_names", "gene_ids"])
     _progress(f"  {len(df):,} rows after split", verbose)
+    # Capture each peptide's full multi-gene mapping BEFORE the precise
+    # filter below drops sibling-gene rows, so that information isn't
+    # simply discarded (#493) -- a peptide attributed to a queried CTA
+    # gene that ALSO occurs in some other protein entirely is exactly the
+    # kind of thing a TCR-T target-selection reader needs surfaced, not
+    # silently dropped because it happened to also multi-map onto a gene
+    # they didn't ask about.
+    peptide_to_all_genes: dict[str, set[str]] = (
+        df.groupby("peptide")["gene_name"].agg(lambda s: {g for g in s if g}).to_dict()
+    )
     # Final precise gene filter — the parquet-side peptide pushdown
     # above can surface sibling genes when a peptide multi-maps
     # (e.g. KRAS-attributed peptide that also matches NRAS).  Drop
@@ -562,6 +578,24 @@ def query(
         )
         .reset_index()
         .rename(columns={"mhc_restriction": "mhc_allele"})
+    )
+
+    # 4b. Peptide specificity (#493): does this exact peptide sequence also
+    # occur in some gene besides the ones queried (or, for an unfiltered
+    # scan, besides this row's own gene)? `names` is the caller's resolved
+    # query set -- excluding it (rather than just this row's own gene_name)
+    # means a peptide shared between two genes the caller BOTH asked about
+    # doesn't get flagged, only a genuinely un-asked-about gene does.
+    # `other_genes` doesn't distinguish "harmless paralog in the same
+    # family" from "unrelated gene" -- that judgment call is on the reader,
+    # this only surfaces that there's a judgment call to make at all.
+    def _other_genes(row: pd.Series) -> str:
+        full = peptide_to_all_genes.get(row["peptide"], set())
+        return ";".join(sorted(full - names - {row["gene_name"]}))
+
+    grouped["other_genes"] = grouped.apply(_other_genes, axis=1)
+    grouped["n_source_genes"] = grouped["peptide"].map(
+        lambda p: len(peptide_to_all_genes.get(p, set()))
     )
 
     # 5. Optional binding-affinity prediction.  _collapse_rows_sharing_narrowed_allele
@@ -1151,6 +1185,13 @@ def _collapse_rows_sharing_narrowed_allele(df: pd.DataFrame) -> pd.DataFrame:
     for col in score_cols:
         if col in df.columns:
             agg_spec[col] = "first"
+    # other_genes / n_source_genes (#493) are peptide-level constants —
+    # every row sharing this group's peptide has the same value — but
+    # .agg() silently drops any column not named here, same gotcha as
+    # mhc_species / _line_ids above.
+    for col in ("other_genes", "n_source_genes"):
+        if col in df.columns:
+            agg_spec[col] = "first"
 
     return df.groupby(group_cols, dropna=False, observed=True).agg(agg_spec).reset_index()
 
@@ -1230,6 +1271,8 @@ def _empty_result(with_predictions: bool) -> pd.DataFrame:
         "pmids",
         "mhc_class",
         "mhc_species",
+        "other_genes",
+        "n_source_genes",
     ]
     if with_predictions:
         cols += ["affinity_nM", "presentation_percentile", "binder_class"]
@@ -1540,6 +1583,8 @@ def format_table(df: pd.DataFrame) -> str:
         ("n_samples", "n_samples"),
         ("pmids", "pmids"),
     ]
+    if "other_genes" in df.columns:
+        pep_columns.append(("other_genes", "other_genes"))
     if has_pred:
         pep_columns += [
             ("affinity_nM", "affinity_nM"),

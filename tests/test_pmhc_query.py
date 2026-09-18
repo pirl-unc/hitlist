@@ -169,6 +169,42 @@ def test_pmhc_query_filters_to_requested_proteins(tmp_path, monkeypatch):
     assert "KRAS" not in df["gene_name"].values
 
 
+def test_pmhc_query_flags_other_genes_not_asked_about(tmp_path, monkeypatch):
+    """#493: asking for only NRAS must still surface that KLVVVGAGGV also
+    occurs in KRAS -- that information shouldn't just vanish because KRAS
+    wasn't part of the query. A peptide unique to NRAS (ILDTAGREEY) must
+    show an empty other_genes."""
+    from hitlist import pmhc_query
+
+    obs_path, mappings_path = _write_obs_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
+
+    df = pmhc_query.query(proteins=["NRAS"], alleles=["HLA-A*02:01"], use_hgnc=False)
+    klvv = df[df["peptide"] == "KLVVVGAGGV"].iloc[0]
+    assert klvv["other_genes"] == "KRAS"
+    assert klvv["n_source_genes"] == 2
+
+    ildt = df[df["peptide"] == "ILDTAGREEY"].iloc[0]
+    assert ildt["other_genes"] == ""
+    assert ildt["n_source_genes"] == 1
+
+
+def test_pmhc_query_other_genes_empty_when_all_sibling_genes_were_queried(tmp_path, monkeypatch):
+    """#493: querying BOTH NRAS and KRAS must NOT flag KLVVVGAGGV as
+    shared with something un-asked-about -- both genes it maps to were
+    part of the query, so there's nothing to warn about. n_source_genes
+    still reports 2, since that's a property of the peptide, not the query."""
+    from hitlist import pmhc_query
+
+    obs_path, mappings_path = _write_obs_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
+
+    df = pmhc_query.query(proteins=["NRAS", "KRAS"], alleles=["HLA-A*02:01"], use_hgnc=False)
+    klvv = df[df["peptide"] == "KLVVVGAGGV"]
+    assert set(klvv["other_genes"]) == {""}
+    assert set(klvv["n_source_genes"]) == {2}
+
+
 def test_pmhc_forwards_source_and_host_species_filters(monkeypatch):
     """query / tissue_distribution / gene_distribution forward the source- and
     host-species axes to load_observations (so e.g. --source-species human drops
@@ -1148,6 +1184,51 @@ def test_score_and_narrow_to_best_allele_consolidates_per_donor_rows_after_narro
     assert r["best_predicted_allele"] == "HLA-A*02:01"
     assert r["n_observations"] == 6  # 2 + 2 + 2
     assert r["pmids"] == "31844290"  # union of identical PMIDs
+
+
+def test_score_and_narrow_to_best_allele_preserves_other_genes_through_consolidation(monkeypatch):
+    """#493: other_genes / n_source_genes are peptide-level constants set
+    upstream in query(), before predictor narrowing ever runs. The
+    per-donor-row consolidation this function does on collapse
+    (_collapse_rows_sharing_narrowed_allele) uses an explicit agg_spec --
+    same "silently dropped by groupby" gotcha mhc_species and the
+    _line_ids/_donor_ids/_donor_type_ids columns already had (see their
+    own comments) -- so a column not named there vanishes on collapse."""
+    from hitlist import pmhc_query
+
+    rows = [
+        {
+            "peptide": "SLLQHLIGL",
+            "mhc_allele": "HLA-A*02:01;HLA-A*03:01",
+            "best_guess_allele": "HLA-A*02:01;HLA-A*03:01",
+            "other_genes": "MAGEA10",
+            "n_source_genes": 2,
+        },
+        {
+            "peptide": "SLLQHLIGL",
+            "mhc_allele": "HLA-A*02:01;HLA-A*24:02",
+            "best_guess_allele": "HLA-A*02:01;HLA-A*24:02",
+            "other_genes": "MAGEA10",
+            "n_source_genes": 2,
+        },
+    ]
+    df = _make_grouped(rows)
+
+    def fake_predict(pairs: pd.DataFrame) -> pd.DataFrame:
+        out = pairs.copy()
+        out["affinity_nM"] = [12.0 if a == "HLA-A*02:01" else 8000.0 for a in out["allele"]]
+        out["presentation_percentile"] = [
+            0.05 if a == "HLA-A*02:01" else 5.5 for a in out["allele"]
+        ]
+        return out
+
+    monkeypatch.setattr("hitlist.predict._predict_mhcflurry", fake_predict)
+    out = pmhc_query._score_and_narrow_to_best_allele(df, "mhcflurry")
+
+    assert len(out) == 1  # both rows narrow to A*02:01 and collapse
+    r = out.iloc[0]
+    assert r["other_genes"] == "MAGEA10"
+    assert r["n_source_genes"] == 2
 
 
 def test_score_and_narrow_to_best_allele_keeps_single_allele_rows_unchanged(monkeypatch):
