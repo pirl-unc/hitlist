@@ -205,6 +205,64 @@ def test_pmhc_query_other_genes_empty_when_all_sibling_genes_were_queried(tmp_pa
     assert set(klvv["n_source_genes"]) == {2}
 
 
+def test_pmhc_query_other_genes_honors_an_ensembl_id_query(tmp_path, monkeypatch):
+    """#497: querying the same two genes by Ensembl ID must behave exactly
+    like querying them by symbol. resolve_gene_query fills only ``ids`` for
+    an Ensembl ID and leaves ``names`` empty, so subtracting the raw query
+    set flagged each co-queried sibling as un-asked-about -- a false
+    cross-reactivity alarm on a gene the caller deliberately included."""
+    from hitlist import pmhc_query
+
+    obs_path, mappings_path = _write_obs_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
+
+    df = pmhc_query.query(
+        proteins=["ENSG00000213281", "ENSG00000133703"],  # NRAS, KRAS
+        alleles=["HLA-A*02:01"],
+        use_hgnc=False,
+    )
+    klvv = df[df["peptide"] == "KLVVVGAGGV"]
+    assert set(klvv["gene_name"]) == {"NRAS", "KRAS"}
+    assert set(klvv["other_genes"]) == {""}
+
+
+def test_pmhc_query_other_genes_by_id_still_flags_a_gene_not_queried(tmp_path, monkeypatch):
+    """The ID path must still flag genuinely un-queried genes -- the fix
+    for #497 must not over-correct into suppressing everything."""
+    from hitlist import pmhc_query
+
+    obs_path, mappings_path = _write_obs_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
+
+    df = pmhc_query.query(
+        proteins=["ENSG00000213281"],  # NRAS only
+        alleles=["HLA-A*02:01"],
+        use_hgnc=False,
+    )
+    klvv = df[df["peptide"] == "KLVVVGAGGV"].iloc[0]
+    assert klvv["gene_name"] == "NRAS"
+    assert klvv["other_genes"] == "KRAS"
+
+
+def test_pmhc_query_other_genes_on_an_unfiltered_scan(tmp_path, monkeypatch):
+    """#497: with no gene filter nothing was "queried", so other_genes can
+    only mean "every other gene this peptide occurs in". Pinning the
+    behavior the docstring now describes, which previously had no test."""
+    from hitlist import pmhc_query
+
+    obs_path, mappings_path = _write_obs_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
+
+    df = pmhc_query.query(alleles=["HLA-A*02:01"], use_hgnc=False)
+    klvv = df[df["peptide"] == "KLVVVGAGGV"]
+    # One row per gene, each naming the other.
+    assert dict(zip(klvv["gene_name"], klvv["other_genes"])) == {
+        "NRAS": "KRAS",
+        "KRAS": "NRAS",
+    }
+    assert set(klvv["n_source_genes"]) == {2}
+
+
 def test_pmhc_forwards_source_and_host_species_filters(monkeypatch):
     """query / tissue_distribution / gene_distribution forward the source- and
     host-species axes to load_observations (so e.g. --source-species human drops

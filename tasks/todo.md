@@ -2277,3 +2277,56 @@ then success (proceeds, exactly 2 calls), two failures (aborts, exactly 2
 calls -- not a loop, and never reaches the build step), and first-try pass
 (1 call, no retry noise). The two retry cases fail against the pre-fix
 script; the pass-through case correctly passes either way.
+## #497: other_genes correctness fixes from code review of #493 (1.62.18)
+
+Code review of the just-shipped #493 work found several real defects. The
+serious one, reproduced live against the repo's own fixture before fixing:
+
+**Ensembl-ID queries false-flagged every co-queried sibling.**
+`other_genes` subtracted `names`, the raw resolved query set.
+`resolve_gene_query` fills only `ids` for an Ensembl ID and leaves `names`
+EMPTY, so an ID-based query subtracted nothing:
+
+    by SYMBOL  (["NRAS","KRAS"]):  other_genes = "" , ""      correct
+    by ENS ID  (same two genes):   other_genes = "NRAS","KRAS"  false alarm
+
+Exactly what an existing test pins as must-not-happen, just reached by the
+other input shape. The same subtraction was also too WIDE: `names` is
+HGNC-alias-expanded, so a gene whose approved symbol collides with one of
+those aliases got silently erased from `other_genes` -- a false negative in
+the one field whose whole job is to surface cross-reactivity, and strictly
+worse than a false positive because the reader sees an empty cell and stops
+looking.
+
+Fixed by subtracting the symbols that actually survived the precise gene
+filter instead of the raw query set. Covers both input shapes, drops nothing
+to alias collisions, and on an unfiltered scan the set is empty by
+construction so the field degrades to "every other gene", the only thing it
+can mean when nothing was asked for.
+
+Also from the same review: `other_genes` had no truncation while
+`format_table` computes column widths once across the whole result, so one
+peptide hitting a paralog family (PRAMEF, CT45A, GAGE) padded every other
+row out to match -- now truncates like `pmids` does. `n_source_genes` was
+documented and in `_empty_result` but never rendered in the default table.
+My own comment calling `other_genes` a "peptide-level constant" was false
+(it subtracts the row's own gene, so it's (peptide, gene)-level; `"first"`
+aggregation is safe only because `gene_name` is in `group_cols`, and the
+comment now says exactly that). Docstring covered only the filtered case.
+Row-wise `apply(axis=1)` and a per-row lambda vectorized; `observed=True`
+added to the one groupby in the file missing it.
+
+**One review finding deliberately NOT taken.** It proposed fixing
+`n_source_genes`'s undercount by counting Ensembl IDs instead of symbols.
+Measured against the real 5.9M-row mapping table first: blank `gene_id` on
+114,703 rows vs blank `gene_name` on 29,376 -- counting IDs would lose ~4x
+MORE loci. Neither field alone is a complete key, and name/id pairing is
+already unreliable by the time query() sees it (two independent
+`_join_unique` calls upstream, then padded and exploded). A sound count has
+to be derived at mapping time. Filed as #496 with the measurements; the
+docstring now states the limitation ("at least this promiscuous, never at
+most") rather than shipping a change that looks like a fix but isn't.
+
+Tests added for the two branches that had none and where the semantics
+actually differ: Ensembl-ID queries (fails against the shipped code) and
+the unfiltered whole-corpus scan.

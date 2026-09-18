@@ -38,6 +38,9 @@ from .genes import resolve_gene_query
 #: observations.parquet; a row matches the context if ANY of its columns is True.
 #: The classification is the curated source provenance of the eluting material
 #: (see :func:`hitlist.curation.classify_ms_row`), independent of the MHC species.
+#: Shared default for peptides absent from the gene map — never mutated.
+_EMPTY_GENE_SET: frozenset[str] = frozenset()
+
 SOURCE_CONTEXTS: dict[str, tuple[str, ...]] = {
     "healthy": ("src_healthy_tissue", "src_healthy_thymus", "src_healthy_reproductive"),
     "cancer": ("src_cancer",),
@@ -151,12 +154,27 @@ def query(
         Columns: ``gene_name``, ``gene_id``, ``mhc_allele``,
         ``peptide``, ``n_observations``, ``n_references``,
         ``n_samples``, ``pmids``, ``mhc_class``, ``other_genes``
-        (semicolon-joined gene names, besides the ones queried, whose
-        protein also contains this exact peptide sequence -- empty when
-        the peptide is unique to the queried gene(s); does not
+        (semicolon-joined gene names, besides the ones that matched this
+        query, whose protein also contains this exact peptide sequence --
+        empty when the peptide is unique to the queried gene(s); does not
         distinguish a harmless same-family paralog from an unrelated
         gene, that judgment is on the reader), ``n_source_genes`` (total
         distinct genes the peptide occurs in, including queried ones).
+
+        ``n_source_genes`` counts distinct gene SYMBOLS, so it is a lower
+        bound, not an exact locus count: ~29K mapping rows carry no HGNC
+        symbol and are invisible to it (and to ``other_genes``). Counting
+        Ensembl IDs instead would be worse, not better -- those are blank
+        on ~115K rows. A sound count has to be derived at mapping time
+        where gene_name/gene_id are still row-aligned; see #496. Treat a
+        peptide as at least this promiscuous, never at most.
+
+        With no gene filter (``proteins=None``, the whole-corpus scan),
+        nothing was "queried", so ``other_genes`` necessarily means every
+        OTHER gene the peptide occurs in and is non-empty for essentially
+        every multi-mapping peptide. Code selecting on ``other_genes ==
+        ""`` therefore behaves quite differently with and without a gene
+        filter.
         Plus the affinity columns when ``predictor`` is set.
         Sorted by (mhc_species, gene_name, mhc_allele, -n_observations).
         Empty DataFrame with these columns if nothing matched.
@@ -430,12 +448,26 @@ def query(
     # silently dropped because it happened to also multi-map onto a gene
     # they didn't ask about.
     peptide_to_all_genes: dict[str, set[str]] = (
-        df.groupby("peptide")["gene_name"].agg(lambda s: {g for g in s if g}).to_dict()
+        df.groupby("peptide", observed=True)["gene_name"]
+        .agg(lambda s: {g for g in s if g})
+        .to_dict()
     )
     # Final precise gene filter — the parquet-side peptide pushdown
     # above can surface sibling genes when a peptide multi-maps
     # (e.g. KRAS-attributed peptide that also matches NRAS).  Drop
     # those sibling-gene rows so the user sees only the genes they asked for.
+    #
+    # ``queried_gene_names`` is the set of gene SYMBOLS that actually
+    # survived this filter, which is what ``other_genes`` below subtracts.
+    # Deliberately not ``names``: that's the raw query set, which is both
+    # too narrow and too wide. Too narrow because an Ensembl-ID query
+    # leaves ``names`` empty entirely (resolve_gene_query only fills
+    # ``ids``), so every co-queried sibling would be flagged as
+    # un-asked-about. Too wide because ``names`` is HGNC-alias-expanded,
+    # so an alias colliding with some other gene's approved symbol would
+    # silently erase that gene from ``other_genes`` — a false negative in
+    # the one field whose entire job is to surface it.
+    queried_gene_names: set[str] = set()
     if names or ids:
         keep_mask = pd.Series(False, index=df.index)
         if names:
@@ -445,6 +477,7 @@ def query(
         df = df[keep_mask].reset_index(drop=True)
         if df.empty:
             return _empty_result(predictor is not None)
+        queried_gene_names = {g for g in df["gene_name"] if g}
 
     # 4. Aggregate to (gene_name, gene_id, mhc_restriction, peptide):
     #    n_observations = row count, pmids = sorted unique semicolon-joined.
@@ -581,22 +614,29 @@ def query(
     )
 
     # 4b. Peptide specificity (#493): does this exact peptide sequence also
-    # occur in some gene besides the ones queried (or, for an unfiltered
-    # scan, besides this row's own gene)? `names` is the caller's resolved
-    # query set -- excluding it (rather than just this row's own gene_name)
+    # occur in some gene besides the ones queried? Subtracting
+    # ``queried_gene_names`` (the genes that actually matched the filter)
     # means a peptide shared between two genes the caller BOTH asked about
-    # doesn't get flagged, only a genuinely un-asked-about gene does.
-    # `other_genes` doesn't distinguish "harmless paralog in the same
+    # isn't flagged, only a genuinely un-asked-about gene is. On an
+    # unfiltered whole-corpus scan that set is empty by construction, so
+    # this degrades to "every other gene this peptide occurs in", which is
+    # the only thing it can mean when nothing was asked for.
+    #
+    # ``other_genes`` doesn't distinguish "harmless paralog in the same
     # family" from "unrelated gene" -- that judgment call is on the reader,
     # this only surfaces that there's a judgment call to make at all.
-    def _other_genes(row: pd.Series) -> str:
-        full = peptide_to_all_genes.get(row["peptide"], set())
-        return ";".join(sorted(full - names - {row["gene_name"]}))
-
-    grouped["other_genes"] = grouped.apply(_other_genes, axis=1)
-    grouped["n_source_genes"] = grouped["peptide"].map(
-        lambda p: len(peptide_to_all_genes.get(p, set()))
-    )
+    #
+    # NOT a peptide-level constant: the row's own gene is subtracted too,
+    # so two rows sharing a peptide under different genes carry different
+    # values. Anything aggregating it must keep gene_name in the group key.
+    grouped["other_genes"] = [
+        ";".join(
+            sorted(peptide_to_all_genes.get(pep, _EMPTY_GENE_SET) - queried_gene_names - {gene})
+        )
+        for pep, gene in zip(grouped["peptide"], grouped["gene_name"])
+    ]
+    peptide_gene_counts = {pep: len(genes) for pep, genes in peptide_to_all_genes.items()}
+    grouped["n_source_genes"] = grouped["peptide"].map(peptide_gene_counts).fillna(0).astype(int)
 
     # 5. Optional binding-affinity prediction.  _collapse_rows_sharing_narrowed_allele
     #    (inside _score_and_narrow_to_best_allele) preserves mhc_species AND the
@@ -1185,10 +1225,14 @@ def _collapse_rows_sharing_narrowed_allele(df: pd.DataFrame) -> pd.DataFrame:
     for col in score_cols:
         if col in df.columns:
             agg_spec[col] = "first"
-    # other_genes / n_source_genes (#493) are peptide-level constants —
-    # every row sharing this group's peptide has the same value — but
-    # .agg() silently drops any column not named here, same gotcha as
-    # mhc_species / _line_ids above.
+    # other_genes / n_source_genes (#493): .agg() silently drops any column
+    # not named here, same gotcha as mhc_species / _line_ids above.
+    # "first" is safe ONLY because gene_name is in group_cols above:
+    # n_source_genes is genuinely peptide-level, but other_genes subtracts
+    # the row's own gene, so two rows sharing a peptide under different
+    # genes carry DIFFERENT values. Drop gene_name from the group key and
+    # "first" starts stamping one gene's cross-reactivity list onto the
+    # other's row, silently and with no test failing.
     for col in ("other_genes", "n_source_genes"):
         if col in df.columns:
             agg_spec[col] = "first"
@@ -1585,6 +1629,8 @@ def format_table(df: pd.DataFrame) -> str:
     ]
     if "other_genes" in df.columns:
         pep_columns.append(("other_genes", "other_genes"))
+    if "n_source_genes" in df.columns:
+        pep_columns.append(("n_genes", "n_source_genes"))
     if has_pred:
         pep_columns += [
             ("affinity_nM", "affinity_nM"),
@@ -1595,20 +1641,23 @@ def format_table(df: pd.DataFrame) -> str:
     def _fmt(header: str, value) -> str:
         if pd.isna(value):
             return ""
-        if header in ("n_obs", "n_refs", "n_lines", "n_donors", "n_samples"):
+        if header in ("n_obs", "n_refs", "n_lines", "n_donors", "n_samples", "n_genes"):
             return f"{int(value)}"
         if header == "affinity_nM":
             return f"{float(value):.1f}"
         if header == "pct_rank":
             return f"{float(value):.2f}"
-        if header == "pmids":
-            # Truncate long PMID lists.  Full list is still in the CSV/JSON
-            # output via the ``pmids`` column; the table view just shows
-            # the first 3 + a count so the column doesn't dominate the page.
-            parts = str(value).split(";")
+        if header in ("pmids", "other_genes"):
+            # Truncate long lists.  Full value is still in the CSV/JSON
+            # output; the table view just shows the first 3 + a count so
+            # the column doesn't dominate the page.  Column widths here are
+            # computed once across the WHOLE result, so one peptide mapping
+            # onto a big paralog family (PRAMEF, CT45A, GAGE, MAGEA...)
+            # would otherwise pad every other row out to match it.
+            parts = [p for p in str(value).split(";") if p]
             if len(parts) > 3:
                 return f"{';'.join(parts[:3])}; +{len(parts) - 3} more"
-            return str(value)
+            return ";".join(parts)
         return str(value)
 
     pep_headers = [h for h, _ in pep_columns]
