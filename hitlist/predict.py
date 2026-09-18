@@ -34,6 +34,7 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 
@@ -71,16 +72,41 @@ def _predict_mhcflurry(pairs: pd.DataFrame) -> pd.DataFrame:
         ) from e
 
     predictor = Class1PresentationPredictor.load()
+    pairs = pairs.reset_index(drop=True).copy()
+    pairs["affinity_nM"] = np.nan
+    pairs["presentation_percentile"] = np.nan
+
+    # MHCflurry's affinity model only handles a fixed peptide-length range
+    # (currently 5-15); anything outside it raises rather than returning a
+    # score. One atypical-length MS hit shouldn't abort scoring the rest of
+    # the batch -- leave it NaN, same as a predictor failure, rather than
+    # crashing the whole query (#488).
+    min_len, max_len = predictor.affinity_predictor.supported_peptide_lengths
+    scorable = pairs["peptide"].str.len().between(min_len, max_len)
+    if not scorable.any():
+        return pairs
+
+    # Class1PresentationPredictor.predict()'s `alleles` only accepts a flat
+    # list of <=6 allele strings (one shared genotype tried against every
+    # peptide) or a dict of sample_name -> alleles paired with
+    # `sample_names` saying which peptide goes with which sample (#488).
+    # Each row here wants its own specific allele, not a shared genotype, so
+    # key the dict by allele (a one-allele "sample") and use each row's own
+    # allele as its sample_names entry -- a flat list of one-element lists
+    # looks like neither shape and silently gets treated as the first,
+    # capping at 6 *rows* rather than 6 alleles per genotype.
+    scored_rows = pairs[scorable]
+    unique_alleles = scored_rows["allele"].unique()
     out = predictor.predict(
-        peptides=pairs["peptide"].tolist(),
-        alleles=[[a] for a in pairs["allele"]],
+        peptides=scored_rows["peptide"].tolist(),
+        alleles={a: [a] for a in unique_alleles},
+        sample_names=scored_rows["allele"].tolist(),
         verbose=0,
     )
     # MHCflurry returns one row per (peptide, allele) pair in input order.
     out = out.reset_index(drop=True)
-    pairs = pairs.reset_index(drop=True).copy()
-    pairs["affinity_nM"] = out["affinity"].values
-    pairs["presentation_percentile"] = out["presentation_percentile"].values
+    pairs.loc[scorable, "affinity_nM"] = out["affinity"].values
+    pairs.loc[scorable, "presentation_percentile"] = out["presentation_percentile"].values
     return pairs
 
 

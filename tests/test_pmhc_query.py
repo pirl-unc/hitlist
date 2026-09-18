@@ -1211,6 +1211,86 @@ def test_score_and_narrow_to_best_allele_keeps_multi_allele_when_no_predictions(
     assert pd.isna(r["presentation_percentile"])
 
 
+def test_score_and_narrow_to_best_allele_restricts_to_allowed_alleles_when_given(monkeypatch):
+    """#488: a caller-supplied allele filter names a specific individual's
+    genotype. Narrowing must pick the best allele *within that genotype*,
+    not the best across every allele the matched study recorded for the
+    peptide -- most of which the queried individual may not even carry.
+
+    Here B*27:05 is the best binder across the row's full 3-allele set, but
+    it's not in `allowed_alleles` -- the queried individual only has
+    A*02:01/A*03:01 -- so the row must narrow to A*03:01 (the better of
+    just those two), not B*27:05.
+    """
+    from hitlist import pmhc_query
+
+    df = _make_grouped(
+        [
+            {
+                "peptide": "SLLQHLIGL",
+                "mhc_allele": "HLA-A*02:01;HLA-A*03:01;HLA-B*27:05",
+                "best_guess_allele": "HLA-A*02:01;HLA-A*03:01;HLA-B*27:05",
+            }
+        ]
+    )
+
+    def fake_predict(pairs: pd.DataFrame) -> pd.DataFrame:
+        # B*27:05 would win globally; A*03:01 wins among the allowed pair.
+        scores = {
+            "HLA-A*02:01": (1500.0, 1.8),
+            "HLA-A*03:01": (300.0, 0.9),
+            "HLA-B*27:05": (12.0, 0.05),
+        }
+        out = pairs.copy()
+        out["affinity_nM"] = [scores[a][0] for a in out["allele"]]
+        out["presentation_percentile"] = [scores[a][1] for a in out["allele"]]
+        return out
+
+    monkeypatch.setattr("hitlist.predict._predict_mhcflurry", fake_predict)
+
+    out = pmhc_query._score_and_narrow_to_best_allele(
+        df, "mhcflurry", allowed_alleles=frozenset({"HLA-A*02:01", "HLA-A*03:01"})
+    )
+    assert len(out) == 1
+    r = out.iloc[0]
+    assert r["best_predicted_allele"] == "HLA-A*03:01"
+    assert r["mhc_allele"] == "HLA-A*03:01"
+    assert r["affinity_nM"] == 300.0
+
+
+def test_score_and_narrow_to_best_allele_falls_back_to_full_set_when_no_overlap(monkeypatch):
+    """If a row's candidate set has zero overlap with allowed_alleles
+    (shouldn't happen for rows that survived the corpus-level pushdown
+    filter, but a defensive fallback), narrow across the full set rather
+    than silently emptying the row's candidates."""
+    from hitlist import pmhc_query
+
+    df = _make_grouped(
+        [
+            {
+                "peptide": "SLLQHLIGL",
+                "mhc_allele": "HLA-A*02:01;HLA-B*27:05",
+                "best_guess_allele": "HLA-A*02:01;HLA-B*27:05",
+            }
+        ]
+    )
+
+    def fake_predict(pairs: pd.DataFrame) -> pd.DataFrame:
+        scores = {"HLA-A*02:01": (1500.0, 1.8), "HLA-B*27:05": (12.0, 0.05)}
+        out = pairs.copy()
+        out["affinity_nM"] = [scores[a][0] for a in out["allele"]]
+        out["presentation_percentile"] = [scores[a][1] for a in out["allele"]]
+        return out
+
+    monkeypatch.setattr("hitlist.predict._predict_mhcflurry", fake_predict)
+
+    out = pmhc_query._score_and_narrow_to_best_allele(
+        df, "mhcflurry", allowed_alleles=frozenset({"HLA-C*05:01"})
+    )
+    assert len(out) == 1
+    assert out.iloc[0]["best_predicted_allele"] == "HLA-B*27:05"
+
+
 def test_query_by_samples_empty_sample_section_has_placeholder(tmp_path, monkeypatch):
     """v1.30.5: a sample whose alleles match nothing in the corpus still appears
     in the output with a ``(no pMHC evidence ...)`` line.  The empty sample is
