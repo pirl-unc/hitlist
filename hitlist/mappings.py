@@ -373,6 +373,47 @@ def _flanking_rows_to_mapping_rows(
     return df[list(_MAPPING_COLUMNS)]
 
 
+def locus_keys(mappings: pd.DataFrame) -> pd.Series:
+    """One canonical locus identifier per (peptide, protein) mapping row.
+
+    Neither ``gene_id`` nor ``gene_name`` is a complete key on its own
+    (#496).  Against the current corpus: 106,470 rows carry a symbol but no
+    Ensembl ID, 8,233 carry neither, and ``protein_id`` is the only field
+    that is never blank.  Counting either gene field alone silently drops
+    the loci it can't name, and always in the reassuring direction — a
+    reader concludes a peptide is more gene-specific, i.e. a safer TCR-T
+    target, than it is.
+
+    Naively falling back symbol-when-no-ID is not enough either: 5,487
+    symbols appear BOTH with and without an ID, so they'd be counted twice,
+    once under the ENSG and once under the bare symbol.  So resolve the
+    symbol to its Ensembl ID first, learned from the rows that carry both,
+    and only fall back to the raw symbol when the corpus never pairs it
+    with an ID.  ``protein_id`` is the last resort, which over-counts a
+    nameless multi-isoform locus rather than dropping it — the safe
+    direction for a promiscuity signal.
+    """
+    gene_id = mappings["gene_id"].fillna("").astype(str).str.strip()
+    gene_name = mappings["gene_name"].fillna("").astype(str).str.strip()
+    protein_id = mappings["protein_id"].fillna("").astype(str).str.strip()
+
+    both = (gene_id != "") & (gene_name != "")
+    # Deterministic pick when a symbol maps to several IDs: any single one
+    # merges the ID-less rows into a real bucket, which beats stranding
+    # them in a symbol-keyed bucket of their own.
+    name_to_id = (
+        pd.DataFrame({"_n": gene_name[both], "_i": gene_id[both]})
+        .sort_values("_i")
+        .drop_duplicates("_n")
+        .set_index("_n")["_i"]
+    )
+    resolved = gene_name.map(name_to_id).fillna("") if len(name_to_id) else gene_name.str[:0]
+
+    key = gene_id.where(gene_id != "", resolved)
+    key = key.where(key != "", gene_name)
+    return key.where(key != "", protein_id)
+
+
 def annotate_observations_with_genes(obs: pd.DataFrame, mappings: pd.DataFrame) -> pd.DataFrame:
     """Add central semicolon-joined gene/protein columns to an observations DataFrame.
 
@@ -380,6 +421,8 @@ def annotate_observations_with_genes(obs: pd.DataFrame, mappings: pd.DataFrame) 
     - ``gene_ids``:   unique Ensembl gene IDs, joined by ``;``
     - ``protein_ids``: unique protein IDs, joined by ``;``
     - ``n_source_proteins``: count of distinct protein matches (int)
+    - ``n_source_genes``: count of distinct source loci (int), keyed via
+      :func:`locus_keys` so loci with no HGNC symbol still count (#496)
 
     Multi-mapping is preserved (MAGEA4;MAGEA10 for shared peptides).
     """
@@ -387,6 +430,7 @@ def annotate_observations_with_genes(obs: pd.DataFrame, mappings: pd.DataFrame) 
         for col in ("gene_names", "gene_ids", "protein_ids"):
             obs[col] = ""
         obs["n_source_proteins"] = 0
+        obs["n_source_genes"] = 0
         return obs
 
     def _join_unique(series: pd.Series) -> str:
@@ -397,14 +441,22 @@ def annotate_observations_with_genes(obs: pd.DataFrame, mappings: pd.DataFrame) 
                 seen.append(s)
         return ";".join(seen)
 
+    mappings = mappings.assign(_locus_key=locus_keys(mappings))
     agg = mappings.groupby("peptide").agg(
         gene_names=("gene_name", _join_unique),
         gene_ids=("gene_id", _join_unique),
         protein_ids=("protein_id", _join_unique),
         n_source_proteins=("protein_id", "nunique"),
+        n_source_genes=("_locus_key", "nunique"),
     )
     return obs.merge(agg, left_on="peptide", right_index=True, how="left").fillna(
-        {"gene_names": "", "gene_ids": "", "protein_ids": "", "n_source_proteins": 0}
+        {
+            "gene_names": "",
+            "gene_ids": "",
+            "protein_ids": "",
+            "n_source_proteins": 0,
+            "n_source_genes": 0,
+        }
     )
 
 

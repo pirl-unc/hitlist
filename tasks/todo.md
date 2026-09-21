@@ -2330,3 +2330,50 @@ most") rather than shipping a change that looks like a fix but isn't.
 Tests added for the two branches that had none and where the semantics
 actually differ: Ensembl-ID queries (fails against the shipped code) and
 the unfiltered whole-corpus scan.
+
+## #496: count source LOCI, not gene symbols, for n_source_genes (1.62.19)
+
+The follow-up deliberately deferred out of #497. `n_source_genes` counted
+distinct gene SYMBOLS off the exploded `gene_names` view, which silently
+dropped every locus with no HGNC symbol -- and always in the reassuring
+direction, so a reader concluded a candidate peptide was more gene-specific
+(a safer TCR-T target) than it is.
+
+**Measured before choosing a key**, against the real 5,875,577-row mapping
+table, because the obvious fixes are both wrong:
+
+| tier | rows |
+|---|---|
+| Ensembl ID present | 5,760,874 |
+| no ID, symbol present | 106,470 |
+| neither | 8,233 |
+| blank `protein_id` | 0 |
+
+So "just count gene_id" loses ~4x more loci than counting symbols does.
+And a naive symbol-when-no-ID fallback double-counts, because **5,487
+symbols appear BOTH with and without an ID** -- they'd land in one bucket
+under the ENSG and another under the bare symbol.
+
+New `mappings.locus_keys` therefore keys on the Ensembl ID, falls back to
+the symbol *resolved to its ID first* (learned from the rows carrying both,
+so the 5,487 collapse correctly), then the bare symbol when the corpus
+never pairs it with an ID, and finally `protein_id`, which is never blank.
+The last tier over-counts a nameless multi-isoform locus rather than
+dropping it -- the safe direction for a promiscuity signal, and documented
+as such.
+
+Computed in `annotate_observations_with_genes` where the frame is still one
+row per (peptide, protein) and gene_name/gene_id are genuinely row-aligned,
+then wired through `_GENE_DERIVED` / `_DERIVED_COLUMN_DEPS` like the other
+four derived columns, so every consumer of observations gets it rather than
+just `pmhc_query`. That also removes the second, query-time code path that
+was answering the same question differently.
+
+**Corpus-wide impact:** of 1,282,910 peptides, 25,622 (2.00%) change count.
+All 25,622 are increases; zero decrease, which is the evidence the
+symbol->ID resolution didn't introduce double-counting. `AAAAAAPPPST` goes
+from **0 to 2** -- the old count claimed it came from no gene at all.
+
+`other_genes` still can't NAME an unnamed locus, so the docstring now points
+out the tell: `n_source_genes` exceeding the `other_genes` entries plus the
+row's own gene means there are unnamed loci behind it.

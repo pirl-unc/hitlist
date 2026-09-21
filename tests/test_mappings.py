@@ -907,3 +907,91 @@ def test_pool_map_dispatch_preserves_order_and_aggregates_results():
     assert all(
         result.n_matched_peptides == 1 and result.n_input_peptides == 1 for result in results
     )
+
+
+# ── Locus counting for n_source_genes (#496) ──────────────────────────
+
+
+def _mapping_rows(rows: list[tuple[str, str, str, str]]) -> pd.DataFrame:
+    """(peptide, gene_name, gene_id, protein_id) tuples -> mapping frame."""
+    return pd.DataFrame(rows, columns=["peptide", "gene_name", "gene_id", "protein_id"])
+
+
+def test_locus_keys_prefers_the_ensembl_id():
+    from hitlist.mappings import locus_keys
+
+    df = _mapping_rows([("PEPA", "NRAS", "ENSG001", "ENSP001")])
+    assert locus_keys(df).tolist() == ["ENSG001"]
+
+
+def test_locus_keys_resolves_a_symbol_to_its_id_rather_than_double_counting():
+    """#496: 5,487 symbols in the real corpus appear BOTH with and without
+    an Ensembl ID. Keying the ID-less rows on the bare symbol would count
+    such a gene twice -- once under the ENSG, once under the symbol."""
+    from hitlist.mappings import locus_keys
+
+    df = _mapping_rows(
+        [
+            ("PEPA", "NRAS", "ENSG001", "ENSP001"),
+            ("PEPA", "NRAS", "", "ENSP002"),  # same gene, ID missing here
+        ]
+    )
+    assert locus_keys(df).tolist() == ["ENSG001", "ENSG001"]
+    assert locus_keys(df).nunique() == 1
+
+
+def test_locus_keys_falls_back_to_the_symbol_when_no_id_exists_anywhere():
+    from hitlist.mappings import locus_keys
+
+    df = _mapping_rows([("PEPA", "ORPHAN", "", "ENSP001")])
+    assert locus_keys(df).tolist() == ["ORPHAN"]
+
+
+def test_locus_keys_falls_back_to_protein_id_when_the_locus_is_nameless():
+    """~8K rows carry neither a symbol nor an ID. Dropping them undercounts
+    in the reassuring direction; protein_id is never blank, so use it."""
+    from hitlist.mappings import locus_keys
+
+    df = _mapping_rows([("PEPA", "", "", "ENSP001")])
+    assert locus_keys(df).tolist() == ["ENSP001"]
+
+
+def test_n_source_genes_counts_a_locus_with_no_symbol():
+    """The whole point of #496: a nameless locus must still be counted.
+    The old symbol-based count reported 1 here, hiding the second source."""
+    from hitlist.mappings import annotate_observations_with_genes
+
+    mappings = _mapping_rows(
+        [
+            ("PEPA", "NRAS", "ENSG001", "ENSP001"),
+            ("PEPA", "", "", "ENSP002"),  # nameless, ID-less second locus
+        ]
+    )
+    obs = pd.DataFrame({"peptide": ["PEPA"]})
+    out = annotate_observations_with_genes(obs, mappings)
+    assert out["gene_names"].tolist() == ["NRAS"]  # still unnamable
+    assert out["n_source_genes"].tolist() == [2]  # but counted
+    assert out["n_source_proteins"].tolist() == [2]
+
+
+def test_n_source_genes_does_not_double_count_a_partially_id_less_gene():
+    from hitlist.mappings import annotate_observations_with_genes
+
+    mappings = _mapping_rows(
+        [
+            ("PEPA", "NRAS", "ENSG001", "ENSP001"),
+            ("PEPA", "NRAS", "", "ENSP002"),
+        ]
+    )
+    out = annotate_observations_with_genes(pd.DataFrame({"peptide": ["PEPA"]}), mappings)
+    assert out["n_source_genes"].tolist() == [1]
+    assert out["n_source_proteins"].tolist() == [2]
+
+
+def test_annotate_empty_mappings_still_emits_n_source_genes():
+    from hitlist.mappings import annotate_observations_with_genes
+
+    out = annotate_observations_with_genes(
+        pd.DataFrame({"peptide": ["PEPA"]}), _mapping_rows([]).iloc[0:0]
+    )
+    assert out["n_source_genes"].tolist() == [0]

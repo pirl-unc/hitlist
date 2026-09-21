@@ -977,7 +977,8 @@ def build_observations(
         # transient memory.
         #
         # Consumers that need ``gene_names`` / ``gene_ids`` / ``protein_ids`` /
-        # ``n_source_proteins`` columns now get them via a query-time join:
+        # ``n_source_proteins`` / ``n_source_genes`` columns now get them via a
+        # query-time join:
         # ``load_observations`` auto-attaches them when requested in
         # ``columns=`` but absent from the parquet (post-v1.30.46), routing
         # through ``annotate_observations_with_genes`` against the matched-

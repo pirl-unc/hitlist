@@ -161,13 +161,15 @@ def query(
         gene, that judgment is on the reader), ``n_source_genes`` (total
         distinct genes the peptide occurs in, including queried ones).
 
-        ``n_source_genes`` counts distinct gene SYMBOLS, so it is a lower
-        bound, not an exact locus count: ~29K mapping rows carry no HGNC
-        symbol and are invisible to it (and to ``other_genes``). Counting
-        Ensembl IDs instead would be worse, not better -- those are blank
-        on ~115K rows. A sound count has to be derived at mapping time
-        where gene_name/gene_id are still row-aligned; see #496. Treat a
-        peptide as at least this promiscuous, never at most.
+        ``n_source_genes`` counts distinct source LOCI, not gene symbols
+        (#496): it comes from ``peptide_mappings`` via
+        :func:`hitlist.mappings.locus_keys`, which keys on the Ensembl ID,
+        falls back to the symbol (resolved to its ID first, so a gene
+        appearing both with and without an ID isn't counted twice), and
+        finally to the protein ID. So it counts the ~106K loci that carry
+        no HGNC symbol, which ``other_genes`` still cannot name. A peptide
+        whose ``n_source_genes`` exceeds the number of entries in
+        ``other_genes`` plus its own gene has unnamed loci behind it.
 
         With no gene filter (``proteins=None``, the whole-corpus scan),
         nothing was "queried", so ``other_genes`` necessarily means every
@@ -275,6 +277,7 @@ def query(
             "monoallelic_host",
             "gene_names",
             "gene_ids",
+            "n_source_genes",
         ],
     }
     if species is not None:
@@ -605,6 +608,7 @@ def query(
                 "pmid",
                 lambda s: ";".join(str(int(p)) for p in sorted(set(s.dropna()))),
             ),
+            n_source_genes=("n_source_genes", "max"),
             _line_ids=("_line_id", _join_distinct_nonempty),
             _donor_ids=("_donor_id", _join_distinct_nonempty),
             _donor_type_ids=("_donor_type_id", _join_distinct_nonempty),
@@ -635,8 +639,14 @@ def query(
         )
         for pep, gene in zip(grouped["peptide"], grouped["gene_name"])
     ]
-    peptide_gene_counts = {pep: len(genes) for pep, genes in peptide_to_all_genes.items()}
-    grouped["n_source_genes"] = grouped["peptide"].map(peptide_gene_counts).fillna(0).astype(int)
+    # n_source_genes comes from peptide_mappings via load_observations, NOT
+    # from peptide_to_all_genes above (#496). The gene_names/gene_ids strings
+    # this function explodes are deduplicated independently upstream and then
+    # padded to equal length, so a locus with no HGNC symbol disappears from
+    # them entirely -- counting off that view undercounted, always in the
+    # reassuring direction. mappings.locus_keys does it where the frame is
+    # still row-aligned.
+    grouped["n_source_genes"] = grouped["n_source_genes"].fillna(0).astype(int)
 
     # 5. Optional binding-affinity prediction.  _collapse_rows_sharing_narrowed_allele
     #    (inside _score_and_narrow_to_best_allele) preserves mhc_species AND the
