@@ -488,6 +488,7 @@ _DERIVED_COLUMN_DEPS: dict[str, tuple[str, ...]] = {
     "gene_ids": ("peptide",),
     "protein_ids": ("peptide",),
     "n_source_proteins": ("peptide",),
+    "n_source_genes": ("peptide",),
     # Multi-axis species columns (#46). Derived at load time from the
     # already-stored host / source_organism / mhc_species so they work on
     # parquets built before this schema, mirroring is_non_peptide_ligand.
@@ -982,7 +983,13 @@ def _load_peptide_index(
     # on every full load (which would break test fixtures and any consumer
     # that doesn't actually need the gene columns).  Callers that DO need
     # the gene columns post-#238 must list them explicitly in ``columns=``.
-    _GENE_DERIVED = {"gene_names", "gene_ids", "protein_ids", "n_source_proteins"}
+    _GENE_DERIVED = {
+        "gene_names",
+        "gene_ids",
+        "protein_ids",
+        "n_source_proteins",
+        "n_source_genes",
+    }
     requested_gene_cols = _GENE_DERIVED & set(columns) if columns is not None else set()
     missing_gene_cols = requested_gene_cols - set(df.columns)
     if missing_gene_cols and "peptide" in df.columns and len(df) > 0:
@@ -1008,6 +1015,7 @@ def _load_peptide_index(
             for col in ("gene_names", "gene_ids", "protein_ids"):
                 df[col] = ""
             df["n_source_proteins"] = 0
+            df["n_source_genes"] = 0
 
     # If the caller explicitly projected, trim back to that exact list now
     # — derived columns pulled extra dependency columns into the read above
