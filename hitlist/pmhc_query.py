@@ -32,6 +32,14 @@ import time
 import pandas as pd
 
 from .genes import resolve_gene_query
+from .sample_identity import (
+    DONOR_ID_COLUMN,
+    DONOR_TYPE_ID_COLUMN,
+    LINE_ID_COLUMN,
+    SAMPLE_IDENTITY_COLUMNS,
+    add_sample_identity_columns,
+    count_distinct_ids,
+)
 
 #: Named source-context filters for ``--source-context`` / ``query(source_context=)``.
 #: Each maps a context name to the ``src_*`` classification columns on
@@ -555,35 +563,7 @@ def query(
     # We carry three internal semicolon-joined ID columns through the
     # groupby so _collapse_rows_sharing_narrowed_allele can union them; the final
     # counts are derived from them after consolidation.
-    def _str_col(name: str) -> pd.Series:
-        if name in df.columns:
-            return df[name].astype(object).fillna("").astype(str)
-        return pd.Series([""] * len(df), index=df.index)
-
-    src_cell_line = (
-        df["src_cell_line"].astype("boolean").fillna(False)
-        if "src_cell_line" in df.columns
-        else pd.Series([False] * len(df), index=df.index)
-    )
-    cell_line_name = _str_col("cell_line_name")
-    cell_name = _str_col("cell_name")
-    monoallelic_host = _str_col("monoallelic_host")
-    asl = _str_col("attributed_sample_label")
-    pmid_str = df["pmid"].astype("Int64").astype(str)
-
-    # Cell-line ID per row (empty for non-cell-line rows).  Set when
-    # src_cell_line=True AND at least one of cell_line_name /
-    # monoallelic_host is populated — the latter catches the ~9K
-    # mono-allelic rows where the host platform is the only line ID.
-    df["_line_id"] = (cell_line_name + "|" + monoallelic_host).where(
-        src_cell_line & ((cell_line_name != "") | (monoallelic_host != "")),
-        "",
-    )
-    # Donor ID per row (empty for cell-line rows).
-    donor_id = asl.where(asl != "", "pmid:" + pmid_str)
-    df["_donor_id"] = donor_id.where(~src_cell_line, "")
-    # (donor, cell-type) per row (empty for cell-line rows).
-    df["_donor_type_id"] = (donor_id + "|" + cell_name).where(~src_cell_line, "")
+    df = add_sample_identity_columns(df)
 
     def _join_distinct_nonempty(s: pd.Series) -> str:
         return ";".join(sorted({str(x) for x in s.dropna() if str(x)}))
@@ -609,9 +589,9 @@ def query(
                 lambda s: ";".join(str(int(p)) for p in sorted(set(s.dropna()))),
             ),
             n_source_genes=("n_source_genes", "max"),
-            _line_ids=("_line_id", _join_distinct_nonempty),
-            _donor_ids=("_donor_id", _join_distinct_nonempty),
-            _donor_type_ids=("_donor_type_id", _join_distinct_nonempty),
+            _line_ids=(LINE_ID_COLUMN, _join_distinct_nonempty),
+            _donor_ids=(DONOR_ID_COLUMN, _join_distinct_nonempty),
+            _donor_type_ids=(DONOR_TYPE_ID_COLUMN, _join_distinct_nonempty),
         )
         .reset_index()
         .rename(columns={"mhc_restriction": "mhc_allele"})
@@ -1486,7 +1466,12 @@ def gene_distribution(
     Answers *"across this set of genes (e.g. a CTA panel), how much evidence does
     each have?"*  Returns columns ``gene_name``, ``gene_id``, ``n_observations``
     (rows), ``n_unique_peptides``, ``n_references`` (distinct PMIDs),
-    ``n_samples`` (distinct sample labels), sorted by ``n_observations`` desc.
+    ``n_samples``, sorted by ``n_observations`` desc.  ``n_samples`` uses the
+    same definition as :func:`query` — distinct cell lines plus distinct
+    (donor, cell-type) combos, via :func:`sample_identity_ids` — NOT distinct
+    ``attributed_sample_label`` values, which is what it counted before #502
+    and which made the column meaningless (that field is blank on 96.7% of
+    the corpus, so every unlabelled row collapsed into one bucket).
     A peptide that multi-maps to several requested genes counts for each (it is
     real evidence for each).  ``species`` / ``source_context`` filter exactly as
     in :func:`tissue_distribution`.
@@ -1521,7 +1506,9 @@ def gene_distribution(
     if mp.empty:
         return pd.DataFrame(columns=out_cols)
 
-    cols = ["peptide", "pmid", "attributed_sample_label"]
+    # Sample identity needs the full column set (#502) — projecting only
+    # attributed_sample_label is what made n_samples meaningless here.
+    cols = ["peptide", *SAMPLE_IDENTITY_COLUMNS]
     if source_context is not None:
         if source_context not in SOURCE_CONTEXTS:
             raise ValueError(
@@ -1548,15 +1535,25 @@ def gene_distribution(
     merged = obs.merge(mp, on="peptide", how="inner")
     if merged.empty:
         return pd.DataFrame(columns=out_cols)
+
+    # Same sample definition as query() (#502): distinct cell lines plus
+    # distinct (donor, cell-type) combos, NOT distinct sample labels.
+    merged = add_sample_identity_columns(merged)
+
     g = (
         merged.groupby(["gene_name", "gene_id"], observed=True)
         .agg(
             n_observations=("peptide", "size"),
             n_unique_peptides=("peptide", "nunique"),
             n_references=("pmid", "nunique"),
-            n_samples=("attributed_sample_label", "nunique"),
+            _n_lines=(LINE_ID_COLUMN, count_distinct_ids),
+            _n_donor_types=(DONOR_TYPE_ID_COLUMN, count_distinct_ids),
         )
         .reset_index()
+    )
+    g["n_samples"] = g["_n_lines"] + g["_n_donor_types"]
+    g = (
+        g.drop(columns=["_n_lines", "_n_donor_types"])
         .sort_values(["n_observations", "gene_name"], ascending=[False, True])
         .reset_index(drop=True)
     )
@@ -1568,7 +1565,10 @@ def gene_distribution(
         "n_observations": len(merged),
         "n_unique_peptides": int(merged["peptide"].nunique()),
         "n_references": int(merged["pmid"].nunique()),
-        "n_samples": int(merged["attributed_sample_label"].nunique()),
+        "n_samples": (
+            count_distinct_ids(merged[LINE_ID_COLUMN])
+            + count_distinct_ids(merged[DONOR_TYPE_ID_COLUMN])
+        ),
     }
     return g
 

@@ -2377,3 +2377,50 @@ from **0 to 2** -- the old count claimed it came from no gene at all.
 `other_genes` still can't NAME an unnamed locus, so the docstring now points
 out the tell: `n_source_genes` exceeding the `other_genes` entries plus the
 row's own gene means there are unnamed loci behind it.
+
+## #502: centralize "what is one sample"; --by-gene n_samples was ~always 1 (1.62.20)
+
+`pmhc --by-gene` reported **1 sample for CTAG2 across 17 references** —
+impossible on its face. `gene_distribution` counted
+`nunique(attributed_sample_label)`, and that field is blank on 4,295,716 of
+4,440,124 rows (**96.7%**), so every uncurated row collapsed into one
+bucket: **13** distinct samples corpus-wide against **2,244** with the PMID
+fallback. CTAG2 now reads 14, SSX2 1 -> 5.
+
+The deeper problem wasn't the arithmetic, it was that `query()` had already
+solved this properly — PMID fallback plus cell-line/donor decomposition —
+so the repo published one column name under two definitions that had
+drifted by two orders of magnitude. Same shape as #496's "two code paths
+answering one question".
+
+**Centralized rather than merely shared.** New `hitlist/sample_identity.py`
+is the canonical home, with a fully public API (`SAMPLE_IDENTITY_COLUMNS`,
+`SAMPLE_IDENTITY_ID_COLUMNS`, `sample_identity_ids`,
+`add_sample_identity_columns`, `count_distinct_ids`, `count_samples`). The
+attached columns are public too — `line_id` / `donor_id` / `donor_type_id`,
+previously underscore-prefixed, which wrongly signalled callers shouldn't
+rely on them when they are exactly the shared contract.
+
+Also fixed the cell-line tier's missing last-resort fallback: a
+`src_cell_line` row carrying neither a line name nor a mono-allelic host
+got an empty ID and vanished from the count, where the donor tier had used
+a PMID fallback all along (21 rows / 4 PMIDs / 19 peptides).
+
+**Drift guard**, per the repo's no-private-interfaces rule: a test scans
+every module for sample counts taken off the raw label and fails naming the
+offending `file:line`. Verified it actually fires by reintroducing the bug
+in `export.py` and watching it point at `export.py:4219`.
+
+**Deliberately NOT unified:** `samples.py::sample_peptidomes` is a third
+definition, grouping raw scanner output by
+`(pmid, antigen_processing_comments)`. It runs one pipeline stage earlier,
+before curation attaches `src_cell_line` / `cell_line_name` /
+`monoallelic_host`, so it *cannot* use this definition. Documented in the
+module docstring so nobody unifies it later and breaks it.
+
+One test lesson worth recording: the cross-path agreement test initially
+PASSED against the broken code, because the existing fixture has every
+`attributed_sample_label` curated, so the old count agreed by accident.
+Rewrote it on an unlabelled fixture where it fails pre-fix with
+`assert 1 == 3` — the CTAG2 symptom in miniature. A green test that cannot
+fail is worse than no test.
