@@ -2343,3 +2343,79 @@ def test_format_tissue_table_columns_align_across_sections(tmp_path, monkeypatch
     # Every header row places "n_observations" at the same column offset.
     offsets = {ln.index("n_observations") for ln in lines}
     assert len(offsets) == 1, out
+
+
+# ── Cross-path n_samples agreement (#502) ────────────────────────────
+
+
+def _write_unlabelled_fixture(tmp_path):
+    """Fixture whose rows carry NO attributed_sample_label -- the 96.7%
+    case. The pre-#502 rollup counted the raw label, so every row here
+    collapsed into a single bucket."""
+    obs = pd.DataFrame(
+        {
+            "peptide": ["KLVVVGAGGV", "ILDTAGREEY", "ALAVLGFFV"],
+            "pmid": [111, 222, 333],  # three separate studies
+            "mhc_class": ["I"] * 3,
+            "mhc_restriction": ["HLA-A*02:01"] * 3,
+            "species": ["Homo sapiens"] * 3,
+            "mhc_species": ["Homo sapiens"] * 3,
+            "attributed_sample_label": ["", "", ""],  # never curated
+            "cell_name": [""] * 3,
+            "cell_line_name": [""] * 3,
+            "monoallelic_host": [""] * 3,
+            "src_cell_line": [False] * 3,
+            "source": ["iedb"] * 3,
+        }
+    )
+    obs_path = tmp_path / "observations.parquet"
+    obs.to_parquet(obs_path, index=False)
+
+    mappings = pd.DataFrame(
+        {
+            "peptide": ["KLVVVGAGGV", "ILDTAGREEY", "ALAVLGFFV"],
+            "gene_name": ["NRAS"] * 3,
+            "gene_id": ["ENSG00000213281"] * 3,
+            "protein_id": ["ENSP00000358548"] * 3,
+        }
+    )
+    mappings_path = tmp_path / "peptide_mappings.parquet"
+    mappings.to_parquet(mappings_path, index=False)
+    return obs_path, mappings_path
+
+
+def test_gene_distribution_counts_unlabelled_rows_as_separate_samples(tmp_path, monkeypatch):
+    """#502's core case: three unlabelled rows from three studies are three
+    samples. The old nunique("attributed_sample_label") reported 1 -- which
+    is how CTAG2 showed 1 sample across 17 references."""
+    from hitlist import pmhc_query
+
+    obs_path, mappings_path = _write_unlabelled_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
+
+    by_gene = pmhc_query.gene_distribution(proteins=["NRAS"], use_hgnc=False)
+    assert int(by_gene.loc[by_gene["gene_name"] == "NRAS", "n_samples"].iloc[0]) == 3
+    assert by_gene.attrs["panel_total"]["n_samples"] == 3
+
+
+def test_gene_distribution_n_samples_matches_the_main_query_path(tmp_path, monkeypatch):
+    """#502's core guard: one fixture, both code paths, same n_samples.
+    They published the same column name with definitions that had drifted
+    by two orders of magnitude; this fails if they ever drift again.
+
+    Uses the unlabelled fixture deliberately -- on a fixture where every
+    label happens to be curated, the old broken count agrees by accident
+    and the test proves nothing."""
+    from hitlist import pmhc_query
+
+    obs_path, mappings_path = _write_unlabelled_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
+
+    by_gene = pmhc_query.gene_distribution(proteins=["NRAS"], use_hgnc=False)
+    detailed = pmhc_query.query(proteins=["NRAS"], use_hgnc=False)
+
+    rollup = int(by_gene.loc[by_gene["gene_name"] == "NRAS", "n_samples"].iloc[0])
+    # The rollup unions samples across the gene's rows; the detailed path
+    # reports them per (allele, peptide) row. Union == sum here because the
+    # three rows come from three distinct studies.
+    assert rollup == int(detailed["n_samples"].sum()) == 3
