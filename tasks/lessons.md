@@ -1,5 +1,14 @@
 # Lessons
 
+## 2026-09-22
+
+- Respect biological units when diagnosing predictor input limits. MHCflurry's
+  presentation predictor accepts a genotype of at most six class-I alleles;
+  peptide/allele pairs and a pooled study allele union are not that genotype.
+  Verify the caller's biological sample and the upstream API before deciding
+  that a limit should be relaxed. Keep queried sample alleles separate from
+  reported observational restrictions, and preserve both provenances.
+
 ## 2026-09-09
 
 - When asked to fix all review findings and ship, resolve the known failing gate

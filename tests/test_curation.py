@@ -970,29 +970,12 @@ def test_classify_ms_row_includes_allele_resolution():
 # ── Serotype mapping ──────────────────────────────────────────────────
 
 
-try:
-    import mhcgnomes  # noqa: F401
-
-    _HAS_MHCGNOMES = True
-except ImportError:
-    _HAS_MHCGNOMES = False
-
-
 def test_allele_to_serotype_four_digit():
-    # Requires mhcgnomes; returns "" without it
-    result = allele_to_serotype("HLA-A*02:01")
-    if _HAS_MHCGNOMES:
-        assert result == "HLA-A2"
-    else:
-        assert result == ""
+    assert allele_to_serotype("HLA-A*02:01") == "HLA-A2"
 
 
 def test_allele_to_serotype_already_serotype():
-    result = allele_to_serotype("HLA-A2")
-    if _HAS_MHCGNOMES:
-        assert result == "HLA-A2"
-    else:
-        assert result == ""
+    assert allele_to_serotype("HLA-A2") == "HLA-A2"
 
 
 def test_allele_to_serotype_class_only():
@@ -1013,17 +996,14 @@ def test_classify_ms_row_includes_serotype():
     )
     assert "serotype" in flags
     assert "serotypes" in flags
-    if _HAS_MHCGNOMES:
-        # Most-specific serotype is the broader locus-specific name (A2),
-        # not the IEF sub-serotype (A2.1)
-        assert flags["serotype"] == "HLA-A2"
-        assert "HLA-A2" in flags["serotypes"].split(";")
+    # Most-specific serotype is the broader locus-specific name (A2),
+    # not the IEF sub-serotype (A2.1)
+    assert flags["serotype"] == "HLA-A2"
+    assert "HLA-A2" in flags["serotypes"].split(";")
 
 
 def test_allele_to_serotype_prefers_locus_specific_over_bw4():
     """hitlist #44: A*24:02 must resolve to HLA-A24, not HLA-Bw4."""
-    if not _HAS_MHCGNOMES:
-        return
     assert allele_to_serotype("HLA-A*24:02") == "HLA-A24"
     # And the full list should include Bw4 as secondary
     all_sero = allele_to_all_serotypes("HLA-A*24:02")
@@ -1034,8 +1014,6 @@ def test_allele_to_serotype_prefers_locus_specific_over_bw4():
 
 def test_allele_to_serotype_b57_prefers_b57():
     """B*57:01 belongs to B57, B17, AND Bw4 — B57 must win."""
-    if not _HAS_MHCGNOMES:
-        return
     assert allele_to_serotype("HLA-B*57:01") == "HLA-B57"
     all_sero = allele_to_all_serotypes("HLA-B*57:01")
     assert all_sero[0] == "HLA-B57"
@@ -1048,8 +1026,6 @@ def test_allele_to_all_serotypes_a02_broader_first():
     Our ranking prefers the broader name as canonical — clinicians say "A2",
     not "A2.1".
     """
-    if not _HAS_MHCGNOMES:
-        return
     all_sero = allele_to_all_serotypes("HLA-A*02:01")
     assert all_sero[0] == "HLA-A2"
     assert "HLA-A2" in all_sero
@@ -1058,8 +1034,6 @@ def test_allele_to_all_serotypes_a02_broader_first():
 def test_allele_to_all_serotypes_split_includes_broad_parent():
     """A split serotype like A2403 implies its broad parent A24, so a broad
     A24 query matches A*24:03.  The broad parent ranks first (broader-first)."""
-    if not _HAS_MHCGNOMES:
-        return
     all_sero = allele_to_all_serotypes("HLA-A*24:03")
     assert "HLA-A24" in all_sero
     assert "HLA-A2403" in all_sero
@@ -1077,8 +1051,6 @@ def test_allele_to_all_serotypes_empty():
 def test_serotype_to_alleles_a2_includes_canonical_member():
     """v1.30.2: HLA-A2 expands to its 4-digit members; A*02:01 must be one
     of them and must be first (lowest-numbered = best-guess heuristic)."""
-    if not _HAS_MHCGNOMES:
-        return
     members = serotype_to_alleles("HLA-A2")
     assert len(members) >= 10  # A2 has dozens of members in IPD-IMGT/HLA
     assert "HLA-A*02:01" in members
@@ -1087,8 +1059,6 @@ def test_serotype_to_alleles_a2_includes_canonical_member():
 
 def test_serotype_to_alleles_b7_dominated_by_b07_02():
     """v1.30.2: HLA-B7 → B*07:02 as the lowest-numbered member."""
-    if not _HAS_MHCGNOMES:
-        return
     members = serotype_to_alleles("HLA-B7")
     assert "HLA-B*07:02" in members
     # B*07:02 is the most common B7 in nearly all populations.
@@ -1098,40 +1068,30 @@ def test_serotype_to_alleles_b7_dominated_by_b07_02():
 def test_serotype_to_alleles_no_op_on_4digit_input():
     """v1.30.2: passing a 4-digit allele in returns ``()`` — only true
     serotypes expand."""
-    if not _HAS_MHCGNOMES:
-        return
     assert serotype_to_alleles("HLA-A*02:01") == ()
 
 
 def test_serotype_to_alleles_empty_and_unknown():
     """v1.30.2: empty / unknown / class-only inputs return ``()``."""
     assert serotype_to_alleles("") == ()
-    if not _HAS_MHCGNOMES:
-        return
     assert serotype_to_alleles("HLA class I") == ()
     assert serotype_to_alleles("HLA-A99") == ()  # not a real serotype
 
 
 def test_best_4digit_for_serotype_a2_a0201():
     """v1.30.2: HLA-A2's best 4-digit guess is HLA-A*02:01."""
-    if not _HAS_MHCGNOMES:
-        return
     assert best_4digit_for_serotype("HLA-A2") == "HLA-A*02:01"
 
 
 def test_best_4digit_for_serotype_returns_empty_for_non_serotype():
     """v1.30.2: 4-digit input or unknown serotype → empty string (caller
     decides the fallback)."""
-    if not _HAS_MHCGNOMES:
-        return
     assert best_4digit_for_serotype("HLA-A*02:01") == ""
     assert best_4digit_for_serotype("") == ""
 
 
 def test_classify_ms_row_serotypes_plural_populated():
     """serotypes column must be semicolon-joined when multiple serotypes exist."""
-    if not _HAS_MHCGNOMES:
-        return
     flags = classify_ms_row(
         "No immunization",
         "healthy",
@@ -1187,11 +1147,7 @@ def test_classify_mhc_species_human():
 
 
 def test_classify_mhc_species_mouse():
-    result = classify_mhc_species("H-2Kb")
-    if _HAS_MHCGNOMES:
-        assert result == "Mus musculus"
-    else:
-        assert result == "Mus musculus"  # regex fallback handles H-2
+    assert classify_mhc_species("H-2Kb") == "Mus musculus"
 
 
 def test_classify_mhc_species_empty():
@@ -3355,8 +3311,6 @@ def test_every_serotype_table_entry_is_reachable():
     #455 was about — the annotation would still be there, and still be
     incorrect.
     """
-    if not _HAS_MHCGNOMES:
-        return
     from mhcgnomes.data import serotypes
 
     wrong = []
@@ -3453,8 +3407,6 @@ def test_allele_to_all_serotypes_reaches_curated_c_locus_specificities():
     reads predates the assignment.  A key-format mismatch here discarded that
     work.
     """
-    if not _HAS_MHCGNOMES:
-        return
     assert allele_to_all_serotypes("HLA-C*16:01") == ("HLA-Cw16",)
     assert allele_to_all_serotypes("HLA-C*16:02") == ("HLA-Cw16",)
     assert allele_to_all_serotypes("HLA-C*15:02") == ("HLA-Cw15",)
@@ -3479,8 +3431,6 @@ def test_serotype_source_separates_reported_from_computed():
     ``HLA-A*02:01`` yields the same ``serotypes`` cell computed from mhcgnomes'
     membership table.  Without this column the two are indistinguishable.
     """
-    if not _HAS_MHCGNOMES:
-        return
     from hitlist.curation import SEROTYPE_SOURCE_VALUES, resolve_mhc_annotation
 
     reported = resolve_mhc_annotation("HLA-A2")
@@ -3507,8 +3457,6 @@ def test_serotype_source_separates_reported_from_computed():
 
 def test_serotype_source_is_persisted_with_the_annotation():
     """The scanner writes ``as_record_fields`` atomically; the source rides along."""
-    if not _HAS_MHCGNOMES:
-        return
     from hitlist.curation import resolve_mhc_annotation
 
     fields = resolve_mhc_annotation("HLA-A*24:02").as_record_fields()
