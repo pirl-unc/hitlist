@@ -44,24 +44,18 @@ def _stub_env(
 def _split_invocations(args):
     """Split one process's flattened stdout back into per-invocation arg lists.
 
-    Each ``python -m pytest -n <workers> ...`` invocation starts with the
-    same three-token prefix, which never recurs mid-invocation (the only
-    other ``-m`` is pytest's own marker flag, never followed by ``-n``).
+    Each invocation starts with ``-m pytest``, with optional xdist flags.
+    The marker expression's ``-m`` is never followed by ``pytest``.
     """
-    starts = [
-        i
-        for i in range(len(args) - 2)
-        if args[i : i + 2] == ["-m", "pytest"] and args[i + 2] == "-n"
-    ]
+    starts = [i for i in range(len(args) - 2) if args[i : i + 2] == ["-m", "pytest"]]
     assert starts == sorted(starts) and starts and starts[0] == 0, args
     bounds = [*starts, len(args)]
     return [args[bounds[i] : bounds[i + 1]] for i in range(len(starts))]
 
 
 def _marker(invocation):
-    # invocation[:4] is always ["-m", "pytest", "-n", "<workers>"]; the next
-    # "-m" (if any) is pytest's own marker-expression flag.
-    for i in range(4, len(invocation) - 1):
+    # Skip the Python module flag; the next -m belongs to pytest.
+    for i in range(2, len(invocation) - 1):
         if invocation[i] == "-m":
             return invocation[i + 1]
     return None
@@ -193,3 +187,110 @@ def test_extra_args_are_forwarded_to_every_pass(tmp_path):
     light, integration = _split_invocations(args)
     assert "-k" in light and "foo" in light
     assert "-k" in integration and "foo" in integration
+
+
+def _memory_sequence(tmp_path, pages):
+    counter = tmp_path / "memory_probes"
+    cases = "\n".join(f"{i}) pages={value} ;;" for i, value in enumerate(pages, 1))
+    (tmp_path / "vm_stat").write_text(
+        "#!/bin/sh\n"
+        f'n=$(( $(cat "{counter}" 2>/dev/null || echo 0) + 1 ))\n'
+        f'echo "$n" > "{counter}"\n'
+        f'case "$n" in\n{cases}\n*) exit 97 ;;\nesac\n'
+        'echo "Pages free: $pages."\n'
+        "echo 'Pages speculative: 0.'\n"
+    )
+    return counter
+
+
+def _retry_env(tmp_path, has_xdist):
+    env = _stub_env(tmp_path, 600_000, 0, False, 1, 1, TEST_SH_MEMORY_RETRY_DELAY_SECONDS="0")
+    if not has_xdist:
+        (tmp_path / "python").write_text(
+            '#!/bin/sh\nif [ "$1" = "-c" ]; then exit 1; fi\nprintf "%s\\n" "$@"\n'
+        )
+    return env
+
+
+@pytest.mark.parametrize("has_xdist", [False, True])
+def test_recovered_integration_preflight_never_replays_regular_tests(tmp_path, has_xdist):
+    env = _retry_env(tmp_path, has_xdist)
+    probes = _memory_sequence(tmp_path, [600_000, 100_000, 600_000])
+    result = subprocess.run(
+        ["bash", str(SCRIPT), "--all", "--retry-memory"],
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    assert probes.read_text().strip() == "3"
+    invocations = _split_invocations(result.stdout.splitlines())
+    assert [_marker(call) for call in invocations] == ["not integration", "integration"]
+    assert "--retry-memory" not in result.stdout
+    assert ("-n" in invocations[0]) == has_xdist
+
+
+@pytest.mark.parametrize("has_xdist", [False, True])
+def test_exhausted_integration_preflight_aborts_without_replaying_regular(tmp_path, has_xdist):
+    env = _retry_env(tmp_path, has_xdist)
+    probes = _memory_sequence(tmp_path, [600_000, 100_000, 100_000])
+    result = subprocess.run(
+        ["bash", str(SCRIPT), "--all", "--retry-memory"],
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 1
+    assert probes.read_text().strip() == "3"
+    assert [_marker(call) for call in _split_invocations(result.stdout.splitlines())] == [
+        "not integration"
+    ]
+
+
+@pytest.mark.parametrize("has_xdist", [False, True])
+def test_first_phase_can_recover_and_new_invocation_runs_both_phases(tmp_path, has_xdist):
+    env = _retry_env(tmp_path, has_xdist)
+    probes = _memory_sequence(tmp_path, [100_000, 600_000, 600_000, 600_000, 600_000])
+    for _ in range(2):
+        result = subprocess.run(
+            ["bash", str(SCRIPT), "--all", "--retry-memory"],
+            env=env,
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, result.stderr
+        assert [_marker(call) for call in _split_invocations(result.stdout.splitlines())] == [
+            "not integration",
+            "integration",
+        ]
+    assert probes.read_text().strip() == "5"
+
+
+@pytest.mark.parametrize("failed_marker", ["not integration", "integration"])
+def test_real_pytest_failure_is_not_retried(tmp_path, failed_marker):
+    env = _retry_env(tmp_path, has_xdist=True)
+    (tmp_path / "python").write_text(
+        '#!/bin/sh\nif [ "$1" = "-c" ]; then exit 0; fi\nprintf "%s\\n" "$@"\n'
+        f'for arg in "$@"; do [ "$arg" = "{failed_marker}" ] && exit 42; done\nexit 0\n'
+    )
+    result = subprocess.run(
+        ["bash", str(SCRIPT), "--all", "--retry-memory"],
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 42
+    markers = [_marker(call) for call in _split_invocations(result.stdout.splitlines())]
+    expected = ["not integration"]
+    if failed_marker == "integration":
+        expected.append("integration")
+    assert markers == expected
+
+
+def test_serial_fallback_obeys_memory_guard_without_retry_optin(tmp_path):
+    env = _retry_env(tmp_path, has_xdist=False)
+    _memory_sequence(tmp_path, [100_000])
+    result = subprocess.run(["bash", str(SCRIPT)], env=env, capture_output=True, text=True)
+    assert result.returncode == 1
+    assert not result.stdout
+    assert "need ~2.5GB for 1 worker(s)" in result.stderr
