@@ -45,6 +45,27 @@ def _cands(*specs):
 # ── the group selector ──────────────────────────────────────────────────────
 
 
+@pytest.mark.parametrize("line", ["SK-MEL-2", "SK-MEL-5", "SK-MEL-28", "LM-MEL-33", "LM-MEL-44"])
+def test_numeric_suffix_identifies_one_cell_line(line):
+    """The number is part of the biological sample identifier (#511)."""
+    candidates = _cands(
+        *(
+            (name, "unperturbed", name)
+            for name in ["SK-MEL-2", "SK-MEL-5", "SK-MEL-28", "LM-MEL-33", "LM-MEL-44"]
+        )
+    )
+    assert _select_group(candidates, line + "-Melanocyte", "Skin", "", "") == line
+
+
+@pytest.mark.parametrize("names", ["SK-MEL-2 and SK-MEL-5", "SK-MEL-5 and SK-MEL-28"])
+def test_multiple_numeric_line_identifiers_remain_ambiguous(names):
+    candidates = _cands(
+        *((name, "unperturbed", name) for name in ["SK-MEL-2", "SK-MEL-5", "SK-MEL-28"])
+    )
+    # A narrative naming only one line must not override an explicitly mixed cell field.
+    assert _select_group(candidates, names, "Skin", "SK-MEL-5", "") is None
+
+
 def test_narrative_field_identifies_the_system():
     """The field the arm stage refuses is the right evidence for this stage."""
     chosen = _select_group(

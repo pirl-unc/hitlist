@@ -1,5 +1,24 @@
 # September 22 backlog campaign
 
+## #511 specification — numeric cell-line identifiers
+
+The group identifier tokenizer drops one-digit numeric suffixes, conflating
+SK-MEL-2 with SK-MEL-5 and making both match SK-MEL-28. Preserve numeric
+tokens of any length while retaining the existing minimum for alphabetic
+words and exact token boundaries. Do not alter the fuzzy arm scorer. Verify
+single-line and explicitly multiple-line evidence and existing LM-MEL groups.
+Ship 1.62.25 before #457's corrected sample roster depends on these identities.
+
+- [x] Reproduce three single-line failures and preserve ambiguity controls.
+- [ ] Fix numeric tokens; run format, lint, tests and review CI.
+- [ ] Merge, deploy from clean main, verify PyPI.
+
+Review: three SK-MEL cases fail before the fix; two LM-MEL and two explicit
+mixed-line controls already pass. Numeric tokens retain exact boundaries;
+the change cannot turn a mixed-line match into a single winner. Format/lint
+and the focused non-integration group suite pass. Full tests and CI remain
+required before merge.
+
 ## #409 specification — modern license metadata
 
 Replace the deprecated license table and license classifier with SPDX
