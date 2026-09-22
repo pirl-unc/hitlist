@@ -428,12 +428,13 @@ def _candidates_disagree_on_arm(candidates: list[tuple[str, str, dict]]) -> bool
 
 
 def _identifier_tokens(text: str) -> frozenset[str]:
-    """Alphanumeric tokens of length >= 2, for identifier matching.
+    """Numeric tokens and other tokens of length >= 2, for identifier matching.
 
     The arm scorer drops tokens under three characters, which is exactly
     the part of a line name that distinguishes it — ``LM-MEL-44`` and
     ``LM-MEL-33`` both reduce to ``mel`` and tie.  Keeping two-character
-    tokens recovers the digits.
+    tokens recovers the digits. Single-digit numbers are also identifiers:
+    dropping them conflates SK-MEL-2 and SK-MEL-5 (#511).
 
     Tokens rather than a concatenated key: a key like
     ``melanomatumorinfiltratinglymphocytestils`` only matches when the
@@ -442,7 +443,9 @@ def _identifier_tokens(text: str) -> frozenset[str]:
     matched inside ``until``.  Comparing token *sets* is order-insensitive
     and boundary-respecting, which is what both cases need.
     """
-    return frozenset(t for t in re.split(r"[^a-z0-9]+", str(text or "").lower()) if len(t) >= 2)
+    return frozenset(
+        t for t in re.split(r"[^a-z0-9]+", str(text or "").lower()) if len(t) >= 2 or t.isdecimal()
+    )
 
 
 def _select_group(
