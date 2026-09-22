@@ -1,5 +1,35 @@
 # September 22 backlog campaign
 
+## #490 specification — strict prediction candidate boundary
+
+PR #492 fixed the common case but still scores a row's entire reported set
+when its intersection with the requested alleles is empty. It also compares
+canonical row alleles with raw query spellings, making that fallback reachable
+for aliases. Use the same normalized, serotype-expanded query set used for
+observation filtering as the scoring allow-list. Normalize each candidate
+token before intersection. An empty intersection stays unscored and retains
+the original evidence restriction; it must never widen to outside alleles.
+Each named sample continues to be queried independently. Unfiltered scans
+retain their existing candidate behavior; the MHCflurry genotype limit is
+unchanged. Release 1.62.23 after #504.
+
+- [x] Reproduce alias, serotype, and no-overlap escapes with regression tests.
+- [x] Enforce normalized intersection including the empty-set case.
+- [x] Verify mixed scored/unscored rows and independent named genotypes.
+- [ ] Run format/lint/test, review diff and CI, merge, deploy, verify PyPI.
+
+Review: six new regression cases failed against the previous implementation;
+all 86 pMHC tests now pass. Coverage includes canonical and shorthand allele
+inputs, serotype expansion, two independently queried sample genotypes, and
+unscored rows on both sides of a scored row. Format and lint pass. The change
+does not raise MHCflurry's genotype limit or pool alleles across sample names.
+
+Backlog review: #489 closed after a real eight-pair/two-allele prediction with
+development MHCflurry; #482 retired after Table 1 confirmed five benign
+patients already correctly curated; #67 closed as implemented by #83/#84/
+#90/#103, retaining #95/#96/#361. Observed MHCflurry's 21-key warning is already
+tracked upstream in openvax/mhcflurry#425 and #372.
+
 ## #504 specification — required allele parser
 
 Core curation imports `mhcgnomes.Species` at module scope, so declare the

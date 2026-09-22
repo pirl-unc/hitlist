@@ -1397,11 +1397,8 @@ def test_score_and_narrow_to_best_allele_restricts_to_allowed_alleles_when_given
     assert r["affinity_nM"] == 300.0
 
 
-def test_score_and_narrow_to_best_allele_falls_back_to_full_set_when_no_overlap(monkeypatch):
-    """If a row's candidate set has zero overlap with allowed_alleles
-    (shouldn't happen for rows that survived the corpus-level pushdown
-    filter, but a defensive fallback), narrow across the full set rather
-    than silently emptying the row's candidates."""
+def test_score_and_narrow_to_best_allele_keeps_no_overlap_unscored(monkeypatch):
+    """#490: no candidate may escape an explicit query genotype."""
     from hitlist import pmhc_query
 
     df = _make_grouped(
@@ -1415,11 +1412,7 @@ def test_score_and_narrow_to_best_allele_falls_back_to_full_set_when_no_overlap(
     )
 
     def fake_predict(pairs: pd.DataFrame) -> pd.DataFrame:
-        scores = {"HLA-A*02:01": (1500.0, 1.8), "HLA-B*27:05": (12.0, 0.05)}
-        out = pairs.copy()
-        out["affinity_nM"] = [scores[a][0] for a in out["allele"]]
-        out["presentation_percentile"] = [scores[a][1] for a in out["allele"]]
-        return out
+        pytest.fail("an empty intersection must not call the predictor")
 
     monkeypatch.setattr("hitlist.predict._predict_mhcflurry", fake_predict)
 
@@ -1427,7 +1420,78 @@ def test_score_and_narrow_to_best_allele_falls_back_to_full_set_when_no_overlap(
         df, "mhcflurry", allowed_alleles=frozenset({"HLA-C*05:01"})
     )
     assert len(out) == 1
-    assert out.iloc[0]["best_predicted_allele"] == "HLA-B*27:05"
+    assert out.iloc[0]["best_predicted_allele"] == ""
+    assert out.iloc[0]["mhc_allele"] == "HLA-A*02:01;HLA-B*27:05"
+    assert pd.isna(out.iloc[0]["affinity_nM"])
+    assert pd.isna(out.iloc[0]["presentation_percentile"])
+
+
+@pytest.mark.parametrize("allele", ["HLA-A*02:01", "A0201", "HLA-A2"])
+@pytest.mark.parametrize("per_sample", [False, True])
+def test_query_prediction_respects_normalized_genotype(tmp_path, monkeypatch, allele, per_sample):
+    """Filtering and prediction must agree for canonical, alias, and serotype inputs."""
+    from hitlist import pmhc_query
+
+    obs_path, mappings_path = _write_obs_fixture(tmp_path)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
+    obs = pd.read_parquet(obs_path)
+    obs.loc[obs["peptide"] == "KLVVVGAGGV", "mhc_restriction"] = "HLA-A*02:01;HLA-B*07:02"
+    obs.to_parquet(obs_path, index=False)
+    calls = []
+
+    def fake_predict(pairs):
+        calls.append(set(pairs["allele"]))
+        out = pairs.copy()
+        # The allele outside the requested genotype would win if it leaked.
+        out["affinity_nM"] = out["allele"].map({"HLA-A*02:01": 300.0, "HLA-B*07:02": 10.0})
+        out["presentation_percentile"] = out["allele"].map(
+            {"HLA-A*02:01": 0.9, "HLA-B*07:02": 0.01}
+        )
+        return out
+
+    monkeypatch.setattr("hitlist.predict._predict_mhcflurry", fake_predict)
+    kwargs = {"proteins": ["NRAS"], "predictor": "mhcflurry", "use_hgnc": False}
+    if per_sample:
+        out = pmhc_query.query_by_samples({"patient": [allele], "other": ["B0702"]}, **kwargs)
+        assert set(out["sample_name"]) == {"patient", "other"}
+        assert set(out.loc[out["sample_name"] == "other", "best_predicted_allele"]) == {
+            "HLA-B*07:02"
+        }
+        assert calls == [{"HLA-A*02:01"}, {"HLA-B*07:02"}]
+        out = out[out["sample_name"] == "patient"]
+    else:
+        out = pmhc_query.query(alleles=[allele], **kwargs)
+        assert calls == [{"HLA-A*02:01"}]
+    assert not out.empty
+    assert set(out["best_predicted_allele"]) == {"HLA-A*02:01"}
+
+
+def test_score_and_narrow_preserves_rows_without_eligible_candidates(monkeypatch):
+    """Unscored rows before and after a scored row must retain their evidence."""
+    from hitlist import pmhc_query
+
+    df = _make_grouped(
+        [
+            {"peptide": "SLLQHLIGL", "mhc_allele": a, "best_guess_allele": a}
+            for a in ["HLA-B*07:02", "A*02:01;HLA-B*07:02", "HLA-C*05:01"]
+        ]
+    )
+
+    def fake_predict(pairs):
+        assert pairs["allele"].tolist() == ["HLA-A*02:01"]
+        return pairs.assign(affinity_nM=100.0, presentation_percentile=0.1)
+
+    monkeypatch.setattr("hitlist.predict._predict_mhcflurry", fake_predict)
+    out = pmhc_query._score_and_narrow_to_best_allele(
+        df, "mhcflurry", allowed_alleles=frozenset({"HLA-A*02:01"})
+    )
+    assert len(out) == 3
+    scored = out[out["best_predicted_allele"] != ""]
+    assert scored["best_predicted_allele"].tolist() == ["HLA-A*02:01"]
+    unscored = out[out["best_predicted_allele"] == ""]
+    assert set(unscored["mhc_allele"]) == {"HLA-B*07:02", "HLA-C*05:01"}
+    assert unscored["affinity_nM"].isna().all()
+    assert unscored["presentation_percentile"].isna().all()
 
 
 def test_query_by_samples_empty_sample_section_has_placeholder(tmp_path, monkeypatch):
