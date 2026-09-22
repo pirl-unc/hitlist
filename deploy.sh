@@ -37,6 +37,10 @@ echo "==> Building distribution..."
 python -m build
 
 echo ""
+echo "==> Verifying distribution license metadata..."
+python scripts/check_distribution_license.py dist
+
+echo ""
 echo "==> Built artifacts:"
 ls -lh dist/
 

@@ -1,5 +1,28 @@
 # September 22 backlog campaign
 
+## #409 specification — modern license metadata
+
+Replace the deprecated license table and license classifier with SPDX
+`Apache-2.0` and explicit `license-files = ["LICENSE"]`. Raise the setuptools
+build floor to its PEP 639-supporting release (77.0.0). Retain the same license
+text. Add a release-time artifact assertion after `python -m build` and before
+upload: both wheel and sdist must declare the expression and contain the exact
+repository LICENSE bytes. Validate a real build and demonstrate a corrupted
+license is rejected. Release 1.62.24 after #490.
+
+- [x] Update metadata and add the pre-upload artifact verification.
+- [x] Build wheel and sdist, check metadata and license bytes, test rejection.
+- [ ] Run format/lint/test and CI; review, merge, deploy, verify publication.
+
+Review: a real isolated PEP 517 build produced a wheel and sdist with
+`License-Expression: Apache-2.0`, `License-File: LICENSE`, and unchanged license
+bytes. The release checker rejects a wheel whose license content is corrupted.
+`twine check`, format, lint, and explicit script lint/format checks pass.
+
+Reference: setuptools' pyproject configuration guide documents that SPDX
+expressions and `project.license-files` were introduced in 77.0.0:
+https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html
+
 ## #490 specification — strict prediction candidate boundary
 
 PR #492 fixed the common case but still scores a row's entire reported set
