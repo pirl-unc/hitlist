@@ -635,9 +635,9 @@ def query(
         # A caller-supplied allele filter names a specific individual's
         # genotype (#488) -- narrow multi-allele rows to the best allele
         # *within that genotype*, not the best across every allele any
-        # matched study recorded. `alleles` is the caller's original list
-        # (pre serotype-expansion), so this stays exactly what was asked for.
-        allowed = frozenset(alleles) if alleles else None
+        # matched study recorded. Reuse the filter's serotype expansion:
+        # a queried serotype admits its members, not unrelated row alleles.
+        allowed = frozenset(load_kwargs["mhc_restriction"]) if alleles else None
         grouped = _score_and_narrow_to_best_allele(grouped, predictor, allowed_alleles=allowed)
 
     # 5b. Derive the user-facing count columns from the joined-ID columns,
@@ -1043,7 +1043,7 @@ def _score_and_narrow_to_best_allele(
 
     1. Expands the row to one ``(peptide, allele)`` prediction call per
        individual allele in the set (restricted to ``allowed_alleles``
-       when given and the row has at least one member in it — see below).
+       when given, including an empty intersection).
     2. Scores each pair via MHCflurry or NetMHCpan.
     3. Picks the best binder by ``presentation_percentile`` (with
        ``affinity_nM`` as the tiebreaker).
@@ -1067,10 +1067,10 @@ def _score_and_narrow_to_best_allele(
         scoring, so "best allele" means the best *among alleles that
         individual actually carries* (#488) — not the best across every
         allele any matched study recorded for that peptide, most of which
-        the queried individual may not have. Falls back to the row's full
-        candidate set if the intersection is empty (should not happen for
-        rows that survived the corpus-level allele pushdown filter, but a
-        row with no overlap is more useful shown unnarrowed than dropped).
+        the queried individual may not have. Both sides are normalized before
+        comparison. Rows with no eligible candidates retain their original
+        evidence restriction and remain unscored; they never fall back to
+        scoring outside the query's allele set.
     """
     if df.empty:
         df = df.copy()
@@ -1080,6 +1080,11 @@ def _score_and_narrow_to_best_allele(
         df["best_predicted_allele"] = pd.Series(dtype="string")
         return df
 
+    from .curation import normalize_allele
+
+    if allowed_alleles is not None:
+        allowed_alleles = frozenset(normalize_allele(a) for a in allowed_alleles)
+
     # Build a long frame: one (peptide, allele) candidate per individual
     # allele in each row's best_guess_allele set, tagged with the
     # source row's positional index so we can map results back.
@@ -1087,11 +1092,9 @@ def _score_and_narrow_to_best_allele(
     for pos, (_, row) in enumerate(df.iterrows()):
         peptide = str(row["peptide"])
         allele_str = str(row.get("best_guess_allele") or "")
-        row_alleles = [a.strip() for a in allele_str.split(";") if a.strip()]
+        row_alleles = [normalize_allele(a.strip()) for a in allele_str.split(";") if a.strip()]
         if allowed_alleles is not None:
-            restricted = [a for a in row_alleles if a in allowed_alleles]
-            if restricted:
-                row_alleles = restricted
+            row_alleles = [a for a in row_alleles if a in allowed_alleles]
         for allele in row_alleles:
             candidates.append({"_row_pos": pos, "peptide": peptide, "allele": allele})
 
