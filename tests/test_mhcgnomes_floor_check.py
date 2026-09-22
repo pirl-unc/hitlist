@@ -30,7 +30,7 @@ def test_declared_floor_parses_the_real_pyproject():
 
 
 def test_declared_floor_parses_a_synthetic_declaration():
-    text = '[project.optional-dependencies]\nalleles = [\n    "mhcgnomes>=3.54.0",\n]\n'
+    text = '[project]\ndependencies = [\n    "mhcgnomes>=3.54.0",\n]\n'
     assert declared_floor(text) == "3.54.0"
 
 

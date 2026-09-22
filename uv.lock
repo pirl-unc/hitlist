@@ -545,6 +545,7 @@ name = "hitlist"
 source = { editable = "." }
 dependencies = [
     { name = "datacache" },
+    { name = "mhcgnomes" },
     { name = "pandas", version = "2.3.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "pandas", version = "3.0.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "pyarrow", version = "21.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
@@ -555,9 +556,6 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
-alleles = [
-    { name = "mhcgnomes" },
-]
 dev = [
     { name = "pytest", version = "8.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "pytest", version = "9.1.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
@@ -569,7 +567,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "datacache" },
-    { name = "mhcgnomes", marker = "extra == 'alleles'", specifier = ">=3.54.0" },
+    { name = "mhcgnomes", specifier = ">=3.54.0" },
     { name = "pandas" },
     { name = "pyarrow" },
     { name = "pyensembl" },

@@ -1,5 +1,30 @@
 # September 22 backlog campaign
 
+## #504 specification — required allele parser
+
+Core curation imports `mhcgnomes.Species` at module scope, so declare the
+existing `mhcgnomes>=3.54.0` requirement in base dependencies. Preserve the
+`alleles` extra as an empty compatibility alias for existing install commands.
+Keep the installed-version floor check, correcting its optional-extra wording.
+Refresh the lockfile without upgrading unrelated packages. Validate wheel
+metadata and a clean base install's curation import and CLI, plus required
+format/lint/test and CI gates. Release 1.62.22 after #501 ships.
+
+- [x] Update dependency declaration, diagnostic wording, and lockfile.
+- [x] Verify built metadata and isolated base installation.
+- [x] Run format, lint, test; review PR and CI.
+- [ ] Merge, deploy from clean main, verify PyPI publication.
+
+Review: built wheel declares unconditional `Requires-Dist: mhcgnomes>=3.54.0`
+and still provides the `alleles` extra. A fresh environment installed only the
+wheel (no extras), imported curation from site-packages, and ran `hitlist --help`.
+The 10 floor-check tests, format, lint, and `uv lock --check` pass. Retained all
+existing locked package versions and unrelated resolution entries. All 1,659
+non-integration tests pass; lint and all four Python CI jobs pass. Reviewed
+the dependency graph and confirmed that the base requirement matches the
+existing unconditional import. Rebased onto merged #505 without code changes;
+the new PR head must also finish CI before merge.
+
 ## Scope and release contract
 
 Review every open issue against current code and source evidence. Each issue
@@ -10,7 +35,7 @@ and link them from affected PRs. Preserve unrelated local files and branches.
 
 ## Ordered plan
 
-- [ ] Establish an isolated environment using current development revisions of
+- [x] Establish an isolated environment using current development revisions of
       all locally developed libraries in the dependency graph; record revisions.
 - [ ] #501: remove obsolete dependency guards before relying on coverage.
 - [ ] #504: declare the existing mandatory mhcgnomes runtime dependency.
