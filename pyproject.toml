@@ -34,10 +34,7 @@ dependencies = [
     # (`pyensembl install --release 112 --species homo_sapiens`); the build
     # degrades gracefully when it isn't present.
     "pyensembl",
-]
-
-[project.optional-dependencies]
-alleles = [
+    # Core curation imports mhcgnomes unconditionally (#504).
     # Pin to >=3.31.0 to match the serotype/allele normalization forms
     # the test suite asserts.  Earlier versions parsed some strings
     # differently (e.g. "SahaI*35"), which silently broke CI.
@@ -53,6 +50,10 @@ alleles = [
     # disagreed; this makes the declared floor match the tested one.
     "mhcgnomes>=3.54.0",
 ]
+
+[project.optional-dependencies]
+# Backward-compatible alias: allele parsing is now installed by default.
+alleles = []
 dev = [
     "pytest",
     "pytest-cov",

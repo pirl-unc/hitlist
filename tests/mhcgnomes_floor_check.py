@@ -26,7 +26,7 @@ from pathlib import Path
 
 from packaging.version import Version
 
-#: Matches the exact declaration in pyproject.toml's ``alleles`` extra,
+#: Matches the exact declaration in pyproject.toml's base dependencies,
 #: e.g. ``"mhcgnomes>=3.54.0"``. Deliberately narrow: a format drift here
 #: should fail loudly (see `declared_floor`) rather than silently stop
 #: enforcing the floor.
@@ -59,13 +59,13 @@ def floor_violation_message(*, floor: str, installed: str, resolved_from: str) -
         return None
     return (
         f"installed mhcgnomes {installed} is older than the floor this project "
-        f"declares in pyproject.toml's `alleles` extra ({floor}).\n"
+        f"declares in pyproject.toml's dependencies ({floor}).\n"
         f"  Resolved from: {resolved_from}\n"
         f"  This is almost always a stale or shadowing install -- e.g. a release "
         f"version in a shared environment's site-packages taking precedence over "
         f"a newer sibling checkout or a locked dependency.\n"
-        f"  Fix: run `uv sync --locked --extra alleles --extra dev` (or "
-        f"`pip install -e '.[alleles,dev]'`) in the environment actually running "
+        f"  Fix: run `uv sync --locked --extra dev` (or "
+        f"`pip install -e '.[dev]'`) in the environment actually running "
         f"pytest, then re-run."
     )
 
