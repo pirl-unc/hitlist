@@ -1,3 +1,59 @@
+# September 22 backlog campaign
+
+## Scope and release contract
+
+Review every open issue against current code and source evidence. Each issue
+requiring changes gets its own feature branch, patch-or-greater version bump,
+reviewed PR, passing CI, merge, and deployment from clean main. Retire obsolete
+issues only with evidence. File newly discovered dependency defects upstream
+and link them from affected PRs. Preserve unrelated local files and branches.
+
+## Ordered plan
+
+- [ ] Establish an isolated environment using current development revisions of
+      all locally developed libraries in the dependency graph; record revisions.
+- [ ] #501: remove obsolete dependency guards before relying on coverage.
+- [ ] #504: declare the existing mandatory mhcgnomes runtime dependency.
+- [ ] #490, #489: preserve queried biological genotypes in scoring, then correct
+      the MHCflurry presentation API call without weakening its genotype limit.
+- [ ] #456: audit retired allele aliases and preserve reported provenance.
+- [ ] #409, #291, #289, #306: packaging, cache, errors, and schema foundations.
+- [ ] #482, #457, #452, #314, #230: primary-source-backed curation corrections.
+- [ ] #357, #358, #140, #56: expression coverage and sample associations.
+- [ ] #67, #95, #96, #361: bulk proteomics and detectability training data.
+- [ ] #63, #176: profile and improve the remaining build bottlenecks.
+- [ ] #46, #40, #39, #37: experimental-system, source, and attribution models.
+- [ ] #18, #24, #41, #42: acquisition, quantitative and custom-database evidence.
+- [ ] #33, #35, #36, #7, #8, #13, #14: source-verified remaining study curation;
+      reconcile umbrella issues with their children before claiming completion.
+
+## #501 specification
+
+Verification changed this plan: metadata calls `mhcgnomes` optional, but
+`curation.py` imports `Species` unconditionally at module scope. Remove the
+obsolete try/except, all 15 early returns, and four remaining conditional test
+branches. Assertions must execute unconditionally; an unavailable required
+dependency must fail collection loudly. Track the metadata mismatch in #504
+instead of adding another unsupported optional path. CI installs the allele
+extra on every test job. Bump 1.62.20 to
+1.62.21, run format/lint/test, review the diff, create PR, check CI, merge, deploy,
+and verify the published version before moving to the next issue.
+
+## Review and release log
+
+- Initial state: main at 62ad259, version 1.62.20, 38 open issues, no open PRs.
+- The existing deploy script publishes the current version; despite the older
+  AGENTS wording it does not accept a version or perform bump/commit/push. Keep
+  version bumps on feature branches and use the actual release behavior.
+- Dependency environment: isolated `.venv`, development snapshots verified
+  against upstream HEAD: datacache ee20b5a, pyensembl 4392376, gtfparse cb3788e,
+  serializable 19c38ce, mhcgnomes 8d8f30a, mhcflurry 8b72541. The latter is
+  upstream master, not the unrelated feature branch in the sibling checkout.
+- Confirmed openvax/sercol#4 still blocks a combined development install with
+  serializable 1.1.0 and added the resolver reproduction upstream. sercol and
+  mhctools are not in hitlist's dependency graph and are not needed for its
+  subprocess-based NetMHCpan integration; no constraints were bypassed.
+
 # Issue #478 — ArrowTypeError merging serotype dictionary columns
 
 ## Objective
