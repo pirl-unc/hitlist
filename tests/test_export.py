@@ -147,10 +147,10 @@ def test_ms_samples_acquisition_metadata():
     assert len(mommen) > 0
     assert mommen.iloc[0]["fragmentation"] == "EThcD"
     assert mommen.iloc[0]["ip_antibody"] == "W6/32"
-    # Ritz 2017b — DIA acquisition
+    # Ritz 2017b — DDA/DIA method comparison
     ritz = df[df["pmid"] == 28834231]
     assert len(ritz) > 0
-    assert ritz.iloc[0]["acquisition_mode"] == "DIA"
+    assert ritz.iloc[0]["acquisition_mode"] == "DDA + DIA"
     # Pfammatter 2020 — TMT labeling
     pfammatter = df[df["pmid"] == 32502341]
     assert len(pfammatter) > 0

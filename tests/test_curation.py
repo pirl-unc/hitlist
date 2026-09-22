@@ -480,7 +480,8 @@ def test_ebv_lcl_override_forces_flags():
 
 def test_cell_line_override_ebv_lcl_not_cancer():
     """cell_line override with EBV culture_condition → not cancer."""
-    # Ritz 2017 is override: cell_line (mixed study), JY is EBV-LCL
+    # Exercise a cell_line override with a synthetic EBV-LCL row.
+    # The actual Ritz study used MAVER-1 and HEK293, not JY.
     flags = classify_ms_row(
         "No immunization",
         "healthy",
