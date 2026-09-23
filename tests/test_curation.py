@@ -2027,6 +2027,23 @@ def test_is_non_peptide_ligand_empty_input():
     assert is_non_peptide_ligand(None) is False  # type: ignore[arg-type]
 
 
+@pytest.mark.parametrize(
+    "restriction",
+    ["HLA-BTN3A1", "human-BTN3A2", "BTN3A3 R351H mutant", "BTN2A1", "btn3a1"],
+)
+def test_phosphoantigen_butyrophilins_are_not_peptide_mhc(restriction):
+    from hitlist.curation import is_non_peptide_ligand
+
+    assert is_non_peptide_ligand(restriction)
+
+
+@pytest.mark.parametrize("restriction", ["BTN3A10", "BTN3A4", "BTN2A2", "BTN1A1", "XBTN3A1"])
+def test_butyrophilin_rule_does_not_guess_from_family_prefix(restriction):
+    from hitlist.curation import is_non_peptide_ligand
+
+    assert not is_non_peptide_ligand(restriction)
+
+
 # ── Per-sample attribution / donor-set promotion (#45) ───────────────────
 
 
