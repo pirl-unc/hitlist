@@ -1391,7 +1391,7 @@ def mhc_species_of(mhc_field: str) -> str:
     the MHC molecule's species, as distinct from ``source_species`` (the
     proteome the peptide came from) and ``host_organism``.
 
-    Resolves every token through :func:`classify_mhc_species`, not just
+    Resolves every complete designation through :func:`classify_mhc_species`, not just
     the ones that are alleles.  ``HLA-DR15`` is a Serotype and
     ``BoLA-DR`` a Class2Locus; both name a species perfectly well, and
     filtering to Allele/Gene/Pair would report ``""`` for 19 curated
@@ -1407,7 +1407,7 @@ def mhc_species_of(mhc_field: str) -> str:
         return ""
     if is_class_only_token(text):
         return classify_mhc_species(text)
-    species = {classify_mhc_species(tok) for tok in re.split(r"[\s;,]+", text) if tok}
+    species = {classify_mhc_species(span) for span, _ in _mhc_field_spans(text)}
     species.discard("")
     return ";".join(sorted(species))
 
@@ -1512,8 +1512,9 @@ def extract_allele_tokens(text: str) -> list[str]:
     Replaces an ``(?:HLA-)?[A-Z]+\\d*\\*\\d{2,4}:\\d{2,4}`` regex that
     encoded HLA's digit syntax and therefore silently dropped every
     non-human allele — ``H-2Kb``, ``H2-K*b``, ``H-2Q1`` and ``Patr-AL`` all
-    returned nothing.  Splitting on separators and asking mhcgnomes what
-    each token is works for every species it knows.
+    returned nothing. Ask mhcgnomes to identify complete molecules before
+    splitting a genotype, so mutation annotations stay with their molecule
+    and chain. Unassigned mutation text raises ``ValueError``.
 
     Only ``Allele`` / ``Gene`` / ``Pair`` results are accepted.  That
     matters: mhcgnomes resolves ``"n/a"`` to the rat haplotype ``RT1-n/A``,
@@ -1523,11 +1524,7 @@ def extract_allele_tokens(text: str) -> list[str]:
     if not text:
         return []
     out: list[str] = []
-    for raw in re.split(r"[\s;,]+", str(text)):
-        token = raw.strip()
-        if not token:
-            continue
-        parsed = _cached_parse(token)
+    for _, parsed in _mhc_field_spans(str(text)):
         if type(parsed).__name__ not in _MHC_MOLECULE_TYPES:
             continue
         canonical = parsed.to_string()
@@ -2159,22 +2156,25 @@ class SampleMhcCandidates:
 
 
 @lru_cache(maxsize=4096)
-def _sample_mhc_spans(text: str) -> tuple:
-    """Consume complete molecules before genotype separators (#528)."""
+def _mhc_field_spans(text: str) -> tuple:
+    """Consume complete MHC designations before genotype separators (#528, #537)."""
     from mhcgnomes import Mutation
 
-    kinds = _MHC_MOLECULE_TYPES | _MHC_SEROTYPE_TYPES | _MHC_IMPRECISE_TYPES
+    # Haplotype designations carry species but are not individual molecules;
+    # extraction and sample candidate consumers still exclude them.
+    kinds = _MHC_MOLECULE_TYPES | _MHC_SEROTYPE_TYPES | _MHC_IMPRECISE_TYPES | {"Haplotype"}
     text = text.strip()
     if not text:
         return ()
+    if ";" in text:
+        return tuple(span for part in text.split(";") for span in _mhc_field_spans(part))
     if Mutation.parse(text, raise_on_error=False) is not None:
         raise ValueError(f"Unassigned mutation in sample MHC field: {text!r}")
     whole = _cached_parse(text)
     if type(whole).__name__ in kinds:
         return ((text, whole),)
 
-    # Commas inside mutation lists are optional to mhcgnomes. Semicolons
-    # are handled as explicit genotype boundaries by the caller.
+    # Commas inside mutation lists are optional to mhcgnomes.
     tokens = [token for token in re.split(r"[\s,]+", text) if token]
     spans = []
     start = 0
@@ -2253,14 +2253,11 @@ def sample_mhc_candidates(mhc_field) -> SampleMhcCandidates:
     if not isinstance(mhc_field, str):
         return SampleMhcCandidates()
 
-    if ";" in mhc_field:
-        return sample_mhc_candidates(mhc_field.split(";"))
-
     exact: list[str] = []
     serotypes: list[str] = []
     serotype_alleles: set[str] = set()
     imprecise: list[str] = []
-    for token, parsed in _sample_mhc_spans(mhc_field):
+    for token, parsed in _mhc_field_spans(mhc_field):
         kind = type(parsed).__name__
         if kind in _MHC_MOLECULE_TYPES:
             # Candidate identity is derived; the source YAML retains the

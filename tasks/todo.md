@@ -2773,6 +2773,21 @@ remains independent and is reserved for 1.63.0.
 
 # Parse mutant sample genotypes as molecules (#528)
 
+Review follow-up, 2026-09-23: the same whitespace split remains in
+`extract_allele_tokens` and `mhc_species_of`. The first invents HLA-E*76C
+from B*08:01 E76C mutant; the second falsely assigns a mouse mutant both
+human and mouse species. File the reproduced sibling defect and include
+these consumers in the shared molecule segmentation fix. Move semicolon
+handling into that shared helper. Preserve reported allele names in token
+extraction, derived identities in sample matching, and coarse species
+resolution. Audit all current sample fields for token/species changes as
+well as candidate changes; reject malformed mutation tails consistently.
+
+- [x] File the sibling-helper defect with exact reproductions (#537).
+- [x] Add failing extraction/species regressions and share segmentation.
+- [x] Repeat current-curation audit and focused tests on Python 3.9 and 3.12.
+- [ ] Require final supported-version CI after this review follow-up.
+
 Whitespace splitting can turn `E76C mutant` into an invented HLA-E allele,
 while stripping the mutation from its actual B allele. Preserve complete
 parseable molecules/pairs before splitting genotype lists. For mixed fields,
@@ -2812,4 +2827,13 @@ test entry point was refused before pytest by its unchanged memory guard
 (0.22 GiB available; 2.5 GiB required), so full local validation remains
 pending. Final CI, merge, and clean-main deployment are also required.
 
-Reserve 1.62.38 for the independent RNA host data (#358).
+Priority-stack review: shared segmentation now also protects allele extraction
+and sample species (#537), including class-II chain ownership, mouse mutants,
+true mixed-species genotypes, haplotype/coarse species and malformed tails.
+All 333 curation, mutation and identity checks pass on Python 3.9 and 3.12;
+format and lint pass. The repeat audit covers the 772 samples on the direct
+main-based priority stack, with 376 distinct fields: candidates, precision,
+extracted molecules and species are all unchanged. Raw YAML SHA-256 is
+7380766616315777df7593946a7637a30c7afe21cf5fabaa84ef4e08771e74d0.
+All mutation examples remain synthetic. Final CI and the full local suite
+are required again after this review change. Reserve 1.63.0 for RNA #358.

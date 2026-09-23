@@ -2,7 +2,49 @@
 
 import pytest
 
-from hitlist.curation import sample_mhc_candidates
+from hitlist.curation import extract_allele_tokens, mhc_species_of, sample_mhc_candidates
+
+
+@pytest.mark.parametrize(
+    "field, expected",
+    [
+        ("HLA-B*08:01 E76C mutant", ["HLA-B*08:01 E76C mutant"]),
+        (
+            "HLA-DRA*01:01 F54C mutant/DRB1*01:01",
+            ["HLA-DRA*01:01 F54C mutant/DRB1*01:01"],
+        ),
+        (
+            "H-2Kb E76C, R55T mutant; HLA-A*02:01",
+            ["H2-K*b E76C R55T mutant", "HLA-A*02:01"],
+        ),
+        ("HLA-B*44:01 E76C mutant", ["HLA-B*44:01 E76C mutant"]),
+    ],
+)
+def test_allele_extraction_preserves_reported_mutant_molecules(field, expected):
+    assert extract_allele_tokens(field) == expected
+
+
+@pytest.mark.parametrize(
+    "field, expected",
+    [
+        ("H-2Kb E76C mutant", "Mus musculus"),
+        ("H-2Kb E76C, R55T mutant; H-2Db", "Mus musculus"),
+        ("H-2Kb E76C mutant HLA-A*02:01", "Homo sapiens;Mus musculus"),
+        ("HLA-DRA*01:01 F54C mutant/DRB1*01:01", "Homo sapiens"),
+        ("BoLA-DR; SLA class I", "Bos sp.;Sus sp."),
+        ("RT1-a", "Rattus sp."),
+        ("H-2b", "Mus musculus"),
+    ],
+)
+def test_species_uses_complete_molecules(field, expected):
+    assert mhc_species_of(field) == expected
+
+
+@pytest.mark.parametrize("parse_field", [extract_allele_tokens, mhc_species_of])
+@pytest.mark.parametrize("field", ["HLA-B*08:01 E76C", "H-2Kb nonsense mutant", "E76C"])
+def test_all_field_consumers_reject_unassigned_mutations(parse_field, field):
+    with pytest.raises(ValueError, match="mutation"):
+        parse_field(field)
 
 
 @pytest.mark.parametrize(
