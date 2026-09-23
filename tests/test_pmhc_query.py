@@ -2483,3 +2483,34 @@ def test_gene_distribution_n_samples_matches_the_main_query_path(tmp_path, monke
     # reports them per (allele, peptide) row. Union == sum here because the
     # three rows come from three distinct studies.
     assert rollup == int(detailed["n_samples"].sum()) == 3
+
+
+@pytest.mark.parametrize("query_allele", ["HLA-B*44:01", "HLA-B*44:02"])
+@pytest.mark.parametrize("predictor", [None, "mhcflurry"])
+def test_retired_allele_aggregation_retains_reported_names(
+    tmp_path, monkeypatch, query_allele, predictor
+):
+    from hitlist import pmhc_query
+
+    obs_path, mappings_path = _write_obs_fixture(tmp_path)
+    df = pd.read_parquet(obs_path)
+    df.loc[0, "mhc_restriction"] = "HLA-B*44:01"
+    df.loc[1, "mhc_restriction"] = "HLA-B*44:02"
+    df.to_parquet(obs_path, index=False)
+    _patch_paths(monkeypatch, obs_path, mappings_path)
+
+    def score(pairs):
+        assert list(pairs.allele) == ["HLA-B*44:02"]
+        assert list(pairs.peptide) == ["KLVVVGAGGV"]
+        return pairs.assign(affinity_nM=20.0, presentation_percentile=0.1)
+
+    monkeypatch.setattr("hitlist.predict._predict_mhcflurry", score)
+    result = pmhc_query.query(
+        proteins=["NRAS"], alleles=[query_allele], predictor=predictor, use_hgnc=False
+    )
+    assert len(result) == 1
+    row = result.iloc[0]
+    assert row.mhc_allele == "HLA-B*44:02"
+    assert row.n_observations == 2
+    assert row.n_donors == 2
+    assert row.reported_mhc_restrictions == "HLA-B*44:01 | HLA-B*44:02"

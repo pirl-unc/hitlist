@@ -612,7 +612,7 @@ def _load_peptide_index(
     if not path.exists():
         raise FileNotFoundError(f"{index_name} table not built. Run: hitlist build observations")
 
-    from .curation import normalize_allele, normalize_species
+    from .curation import normalize_allele, normalize_species, resolve_allele_identity
 
     def _as_list(v) -> list[str]:
         if isinstance(v, str):
@@ -655,7 +655,7 @@ def _load_peptide_index(
         # predicate fast while honoring set-membership semantics.  The
         # unique-restriction set is cached per ``(path, mtime_ns, size)``
         # so we don't re-read the column on every call.
-        wanted = {normalize_allele(v) for v in _as_list(mhc_restriction)} - {""}
+        wanted = {resolve_allele_identity(v) for v in _as_list(mhc_restriction)} - {""}
         if not wanted:
             raise ValueError(
                 "mhc_restriction filter received no usable allele values "
@@ -665,7 +665,11 @@ def _load_peptide_index(
         matching = [
             r
             for r in all_restrictions
-            if r and (r in wanted or any(a in r.split(";") for a in wanted))
+            if r
+            and (
+                resolve_allele_identity(r) in wanted
+                or wanted.intersection(resolve_allele_identity(r).split(";"))
+            )
         ]
         if not matching:
             return pd.read_parquet(
@@ -770,6 +774,15 @@ def _load_peptide_index(
         # (the guard below is `... in df.columns`), returning the full table.
         if mhc_allele_in_set is not None and "mhc_allele_set" not in kept:
             kept.append("mhc_allele_set")
+        # Retired identities affect derived serotypes and candidate counts
+        # even when the caller does not request the original restriction.
+        if (
+            any(c in kept for c in ("serotypes", "serotype_source"))
+            and "mhc_restriction" not in kept
+        ):
+            kept.append("mhc_restriction")
+        if "mhc_allele_set_size" in kept and "mhc_allele_set" not in kept:
+            kept.append("mhc_allele_set")
         # Drop any requested column that isn't on this parquet (e.g.
         # ``cell_type`` / ``sample_match_type`` on a pre-v1.30.57 build).
         # Projecting a missing column into a *filtered* pyarrow scan raises
@@ -779,6 +792,43 @@ def _load_peptide_index(
         read_columns = [c for c in kept if c in parquet_columns]
 
     df = pd.read_parquet(path, columns=read_columns, filters=filters if filters else None)
+
+    # Refresh only derived identities. Reported restrictions stay intact,
+    # including on indexes built before the retirement rule (#456).
+    if "mhc_allele_set" in df.columns:
+        candidate_sets = df["mhc_allele_set"].astype("string").fillna("")
+        identity_map = {
+            s: resolve_allele_identity(s)
+            for s in candidate_sets.unique()
+            if resolve_allele_identity(s) != s
+        }
+        if identity_map:
+            changed = candidate_sets.isin(identity_map)
+            df["mhc_allele_set"] = df["mhc_allele_set"].astype("string")
+            df.loc[changed, "mhc_allele_set"] = candidate_sets[changed].map(identity_map)
+            if "mhc_allele_set_size" in df.columns:
+                sizes = {s: len(s.split(";")) if s else 0 for s in identity_map.values()}
+                df.loc[changed, "mhc_allele_set_size"] = df.loc[changed, "mhc_allele_set"].map(
+                    sizes
+                )
+    if "mhc_restriction" in df.columns and any(
+        c in df.columns for c in ("serotypes", "serotype_source")
+    ):
+        from .curation import resolve_mhc_annotation, serotype_requires_alias_refresh
+
+        restrictions = df["mhc_restriction"].astype("string").fillna("")
+        renamed = {
+            s: resolve_mhc_annotation(s)
+            for s in restrictions.unique()
+            if serotype_requires_alias_refresh(s)
+        }
+        if renamed:
+            changed = restrictions.isin(renamed)
+            for column in ("serotypes", "serotype_source"):
+                if column in df.columns:
+                    values = {s: a.as_record_fields()[column] for s, a in renamed.items()}
+                    df[column] = df[column].astype("string")
+                    df.loc[changed, column] = restrictions[changed].map(values)
 
     if post_serotypes:
         wanted = set(post_serotypes)
@@ -799,7 +849,9 @@ def _load_peptide_index(
         # ``HLA-A*02`` from matching ``HLA-A*02:01``.  ``str.contains`` runs
         # in C; one pass per wanted allele beats a per-row Python apply
         # for low-selectivity queries on millions of rows.
-        wanted_set = {normalize_allele(a.strip()) for a in _as_list(mhc_allele_in_set)} - {""}
+        wanted_set = {resolve_allele_identity(a.strip()) for a in _as_list(mhc_allele_in_set)} - {
+            ""
+        }
         if not wanted_set:
             raise ValueError(
                 "mhc_allele_in_set filter received no usable allele values "

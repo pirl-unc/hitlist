@@ -1215,6 +1215,60 @@ def normalize_allele(raw: str, species_context: str = "") -> str:
     return cleaned
 
 
+@cache
+def _identity_alias_parser():
+    from mhcgnomes.parser import Parser
+
+    return Parser(use_allele_aliases=True)
+
+
+def _resolve_allele_candidate(parsed):
+    from mhcgnomes import Allele, Pair
+
+    if isinstance(parsed, Pair):
+        return parsed.copy(
+            alpha=_resolve_allele_candidate(parsed.alpha),
+            beta=_resolve_allele_candidate(parsed.beta),
+        )
+    if isinstance(parsed, Allele):
+        target = _identity_alias_parser().transform_parse_candidate(parsed)
+        if isinstance(target, Allele):
+            target = target.restrict_allele_fields(parsed.num_allele_fields)
+            if target.gene != parsed.gene or target.allele_fields[:2] != parsed.allele_fields[:2]:
+                return target
+    return parsed
+
+
+@lru_cache(maxsize=8192)
+def resolve_allele_identity(raw: str, species_context: str = "") -> str:
+    """Resolve retired designations for matching, retaining reported precision.
+
+    Unlike :func:`normalize_allele`, this is a derived identity, never a
+    replacement for the reported restriction. Only a gene or first-two-field
+    rename is applied; alias-table field extensions cannot add typing depth.
+    Mutations remain on their original chains (requires mhcgnomes >=3.64.3).
+    Semicolon-separated candidate sets are deduplicated in source order.
+
+    IPD-IMGT/HLA's Deleted_alleles.txt records B*4401 as identical to
+    B*44:02:01:01 (HLA00317, March 1994). A reported B*44:01 therefore has
+    derived identity B*44:02, without claiming four-field typing (#456).
+    """
+    if not raw or not raw.strip():
+        return ""
+    if ";" in raw:
+        return ";".join(
+            dict.fromkeys(
+                resolve_allele_identity(part, species_context)
+                for part in raw.split(";")
+                if part.strip()
+            )
+        )
+    parsed, _, _ = _parse_with_context(raw.strip(), species_context)
+    if type(parsed).__name__ in _MHC_MOLECULE_TYPES:
+        return _resolve_allele_candidate(parsed).to_string()
+    return normalize_allele(raw, species_context)
+
+
 # ── MHC class (mhcgnomes-derived) ──────────────────────────────────────────
 
 #: mhcgnomes reports a fine-grained class taxonomy.  Map it onto the three
@@ -1439,7 +1493,7 @@ def expand_allele_components(allele_token: str) -> list[str]:
     any species rather than depending on where the ``HLA-`` prefix happened
     to sit in the curated text.  Non-pairs pass through unchanged.
     """
-    token = (allele_token or "").strip()
+    token = resolve_allele_identity(allele_token)
     if not token:
         return []
     out = [token]
@@ -1630,26 +1684,15 @@ def _broader_locus_serotype_name(name: str, known_names: set[str]) -> str:
     return ""
 
 
-def _serotype_table_key(allele_str: str) -> str:
-    """Key one allele designation for the serotype reverse map.
+def _serotype_table_key(prefix: str, allele_str: str) -> tuple[str, str]:
+    """Use the same current identity for catalog entries and reverse lookups.
 
-    mhcgnomes' serotype table is not consistent in how it spells alleles:
-    915 of its entries use the compact ``C*0304`` form and 11 use the colon
-    form ``C*15:02`` -- the hand-curated rows that its generator cannot
-    reproduce (mhcgnomes#156), which is why they carry the newer spelling.
-    Keying by whatever the table happens to hold made those rows unreachable
-    from :func:`allele_to_all_serotypes`, which builds a compact key from a
-    parsed allele's fields.  Six serological specificities -- Cw12, Cw14,
-    Cw15, Cw16, Cw17, Cw18 -- were silently absent from every annotation as
-    a result (#455).
-
-    Only the map-build side needs this: the lookup builds its key compactly
-    from a parsed allele's fields, so its spelling never varies. What keeps a
-    future format change from quietly dropping a locus is not this function
-    but ``test_every_serotype_table_entry_is_reachable``, which asserts every
-    table entry still resolves to its own serotype.
+    Catalog values mix compact and colon spellings (#455) and can retain
+    retired designations (#456). Normalize both before building the map so
+    the catalog's own members remain reachable through their current names.
     """
-    return allele_str.replace(":", "")
+    result = _cached_parse(resolve_allele_identity(f"{prefix}-{allele_str}"))
+    return result.species.mhc_prefix, f"{result.gene.name}*{''.join(result.allele_fields)}"
 
 
 @lru_cache(maxsize=1)
@@ -1660,7 +1703,8 @@ def _build_allele_to_serotypes_map() -> dict[tuple[str, str], tuple[str, ...]]:
     the tuple is ordered by specificity:
     1. Locus-specific serotypes first (A24, B57, DR15)
     2. Public epitopes after (Bw4, Bw6)
-    3. Within a class, broader (shorter) names first
+    3. Prefer memberships under a current designation over a retired alias
+    4. Break remaining ties by name length and spelling
 
     Returns empty dict if mhcgnomes is unavailable.
     """
@@ -1670,6 +1714,7 @@ def _build_allele_to_serotypes_map() -> dict[tuple[str, str], tuple[str, ...]]:
         return {}
 
     reverse: dict[tuple[str, str], list[str]] = {}
+    current_memberships: set[tuple[tuple[str, str], str]] = set()
     for prefix, table in serotypes.items():
         known_names = set(table)
         for sero_name, allele_list in table.items():
@@ -1679,16 +1724,55 @@ def _build_allele_to_serotypes_map() -> dict[tuple[str, str], tuple[str, ...]]:
             )
             names_for_sero = [sero_name] if not broader_name else [sero_name, broader_name]
             for allele_str in allele_list:
-                key = (prefix, _serotype_table_key(allele_str))
+                key = _serotype_table_key(prefix, allele_str)
                 reverse.setdefault(key, []).extend(names_for_sero)
+                reported = normalize_allele(f"{prefix}-{allele_str}")
+                if resolve_allele_identity(reported) == reported:
+                    current_memberships.update((key, name) for name in names_for_sero)
 
     return {
         (prefix, allele): tuple(
             f"{prefix}-{s}"
-            for s in sorted(set(names), key=lambda n: (_serotype_specificity_rank(n), len(n), n))
+            for s in sorted(
+                set(names),
+                key=lambda n: (
+                    _serotype_specificity_rank(n),
+                    ((prefix, allele), n) not in current_memberships,
+                    len(n),
+                    n,
+                ),
+            )
         )
         for (prefix, allele), names in reverse.items()
     }
+
+
+@cache
+def _renamed_serotype_members() -> frozenset[str]:
+    from mhcgnomes.data import serotypes
+
+    return frozenset(
+        resolve_allele_identity(f"{prefix}-{allele}")
+        for prefix, table in serotypes.items()
+        for alleles in table.values()
+        for allele in alleles
+        if resolve_allele_identity(f"{prefix}-{allele}") != normalize_allele(f"{prefix}-{allele}")
+    )
+
+
+@lru_cache(maxsize=8192)
+def serotype_requires_alias_refresh(mhc_restriction: str) -> bool:
+    """Whether a reported or catalogued retirement can change this annotation.
+
+    A stored current name can also need refreshing when its catalog membership
+    was recorded under a retired alias, e.g. B*15:112 -> B*15:11 (#456).
+    """
+    return any(
+        resolve_allele_identity(part) != normalize_allele(part)
+        or resolve_allele_identity(part) in _renamed_serotype_members()
+        for part in (mhc_restriction or "").split(";")
+        if part.strip()
+    )
 
 
 @lru_cache(maxsize=8192)
@@ -1716,7 +1800,7 @@ def allele_to_all_serotypes(mhc_restriction: str) -> tuple[str, ...]:
     if not mhc_restriction:
         return ()
 
-    result = _cached_parse(mhc_restriction)
+    result = _cached_parse(resolve_allele_identity(mhc_restriction))
     if result is not None:
         try:
             from mhcgnomes.allele import Allele
@@ -1784,7 +1868,7 @@ def _build_serotype_to_alleles_map() -> dict[str, tuple[str, ...]]:
     out: dict[str, tuple[str, ...]] = {}
     for prefix, table in serotypes.items():
         for sero_name, allele_list in table.items():
-            canon = {normalize_allele(f"{prefix}-{allele}") for allele in allele_list}
+            canon = {resolve_allele_identity(f"{prefix}-{allele}") for allele in allele_list}
             out[f"{prefix}-{sero_name}"] = tuple(sorted(canon))
     return out
 
@@ -2150,10 +2234,9 @@ def sample_mhc_candidates(mhc_field) -> SampleMhcCandidates:
         parsed = _cached_parse(token)
         kind = type(parsed).__name__
         if kind in _MHC_MOLECULE_TYPES:
-            # Canonical form via ``to_string`` exactly as
-            # :func:`extract_allele_tokens` does, so ``exact`` stays
-            # byte-identical to what the pre-#380 path produced.
-            name = parsed.to_string()
+            # Candidate identity is derived; the source YAML retains the
+            # reported designation and precision, including retired names.
+            name = resolve_allele_identity(parsed.to_string())
             if name and name not in exact:
                 exact.append(name)
         elif kind in _MHC_SEROTYPE_TYPES:
@@ -2605,7 +2688,7 @@ def expand_allele_set(
 
     Logic:
 
-    - ``four_digit`` rows are returned as-is with provenance ``exact``.
+    - ``four_digit`` rows use the derived identity with provenance ``exact``.
     - ``class_only`` rows (e.g. ``"HLA class I"``) are expanded against,
       in priority order:
 
@@ -2640,7 +2723,7 @@ def expand_allele_set(
     """
     resolution = classify_allele_resolution(mhc_restriction)
     if resolution == "four_digit":
-        return mhc_restriction.strip(), "exact", 1
+        return resolve_allele_identity(mhc_restriction), "exact", 1
 
     if resolution != "class_only":
         return "", "unmatched", 0
@@ -2656,7 +2739,9 @@ def expand_allele_set(
     if not candidates:
         return "", "unmatched", 0
 
-    candidates = _filter_alleles_by_class(candidates, mhc_class)
+    candidates = _filter_alleles_by_class(
+        {resolve_allele_identity(a) for a in candidates}, mhc_class
+    )
     if not candidates:
         return "", "unmatched", 0
 

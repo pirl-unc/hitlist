@@ -567,7 +567,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "datacache" },
-    { name = "mhcgnomes", specifier = ">=3.54.0" },
+    { name = "mhcgnomes", specifier = ">=3.64.3" },
     { name = "pandas" },
     { name = "pyarrow" },
     { name = "pyensembl" },
@@ -630,7 +630,7 @@ sdist = { url = "https://files.pythonhosted.org/packages/70/db/23f8b5d86c9385299
 
 [[package]]
 name = "mhcgnomes"
-version = "3.64.2"
+version = "3.64.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy", version = "2.0.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
@@ -641,9 +641,9 @@ dependencies = [
     { name = "pandas", version = "3.0.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "pyyaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/af/68/418e294e303b48bbad370f5c0dea661c7e39b70375e8ad080ecf84633b86/mhcgnomes-3.64.2.tar.gz", hash = "sha256:eacc8328e47003d0d3caa494524b200990847042a3b3c8144ae760948ae10893", size = 237234, upload-time = "2026-09-01T18:39:13.556Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/2c/bc/017a1662edcb75af5475cc57a1697bc5bcb46a639f5a35229424d2a80adc/mhcgnomes-3.64.3.tar.gz", hash = "sha256:cbcda76c9664e72beffa78aac73378a1ac945c6c23a6c8dea04417b937de20cd", size = 236920, upload-time = "2026-09-22T19:39:16.583Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ca/f5/d808921768202ba124c50c231573a019786b3b1b868df3938210a034cee4/mhcgnomes-3.64.2-py3-none-any.whl", hash = "sha256:15c30555c6ac1c8631df508ae0b131e7755ea6a8bbef8700c0cbdc11342f9474", size = 242256, upload-time = "2026-09-01T18:39:12.209Z" },
+    { url = "https://files.pythonhosted.org/packages/60/fa/3aa138de86c7cad69de168268632593e1b4205b82adba837ae52e2a3d10b/mhcgnomes-3.64.3-py3-none-any.whl", hash = "sha256:2aac500253046cfd65ffcca25280eb263294682e7c1e415f905f28399edacee8", size = 242390, upload-time = "2026-09-22T19:39:15.318Z" },
 ]
 
 [[package]]
