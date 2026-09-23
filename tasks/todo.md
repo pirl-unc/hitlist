@@ -2618,3 +2618,58 @@ PASSED against the broken code, because the existing fixture has every
 Rewrote it on an unlabelled fixture where it fails pre-fix with
 `assert 1 == 3` — the CTAG2 symptom in miniature. A green test that cannot
 fail is worse than no test.
+# Priority release prerequisite: phase-local memory retry (#526)
+
+The pending clean-main 1.62.26 deployment reproduced #526: all 1,676
+regular tests passed, the integration memory guard refused at 1.62 GiB,
+and free memory recovered above 8 GiB during the retry delay. The current
+deployment then reruns all regular tests instead of retrying the refused
+integration preflight. Prepare the already-reviewed #527 patch directly
+on main as a release prerequisite if this blocks publication again.
+
+Keep the 2.5/5 GiB budgets and one retry. Only preflight refusals can retry;
+actual pytest failures must stop immediately. Retain serial fallback guards,
+test each phase independently, and preserve the reserved version 1.62.35.
+Do not incorporate unrelated curation from the old stack.
+
+- [x] Preserve the old #527 branch in a named backup.
+- [x] Apply only its phase-retry implementation and script regression tests.
+- [ ] Run format/lint/script tests, full tests, and supported-version CI.
+- [ ] Review, merge and deploy before correctness PRs only if needed to
+      resolve their release blocker; otherwise retain as the next foundation.
+
+Restacked review: only deploy.sh, test.sh, their tests, version and planning
+notes differ from main. All 20 script tests pass (51.48 s); format and lint
+pass. Full local validation and final CI are still required.
+
+# Retry memory preflight at the test phase boundary (#526)
+
+Deployment currently repeats an already-passed 11-minute regular suite when
+the separate integration process cannot start under its 5 GB memory guard.
+Keep both phases and their budgets, but retry only the current phase's memory
+preflight, once, inside a single invocation. Actual pytest failures must fail
+immediately. A new deployment invocation must always run both phases again;
+there is no persisted success token or cross-revision reuse.
+
+Add an explicit `test.sh --retry-memory` option used by deploy.sh. Keep the
+existing deploy delay environment setting, forwarding it to the test runner.
+Probe again after the delay and cap retries per phase. The same guard must
+apply to the actual single worker when pytest-xdist is absent; otherwise
+serial fallback bypasses both memory protection and its retry path.
+
+- [x] Reproduce phase replay and unguarded serial fallback with command stubs.
+- [x] Implement bounded preflight-only retries, preserving the memory budgets.
+- [x] Cover regular/integration refusal and recovery, exhausted retries, real
+      test failures, new invocations, and serial/xdist worker counts.
+- [ ] Run format.sh, lint.sh, test.sh, CI and self-review.
+- [ ] Bump 1.62.35, open its own PR, merge and deploy from clean main.
+
+Review: seven new resource-control regressions fail before the change; all 20
+test/deployment script cases pass afterward (37.50 s). Format/lint pass.
+Self-review confirms unchanged 2.5/5 GB budgets, one preflight retry per phase,
+fresh probes after each wait, actual one-worker accounting without xdist,
+immediate propagation of real test failures, no build after failed tests, and
+no successful-phase state persisted between invocations. Existing deploy delay
+configuration is preserved. Full tests/CI and release remain pending.
+#358 RNA curation remains uncommitted and will use the next version when its
+verified primary inputs and complete profile QC are ready.

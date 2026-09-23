@@ -1,4 +1,4 @@
-"""Tests for deploy.sh's retry-once-after-a-delay behavior (#483).
+"""Tests for deployment's phase-preflight retry policy (#526).
 
 deploy.sh calls ./lint.sh and ./test.sh via relative paths, so exercising
 it means running it from a temp directory that holds fake versions of
@@ -54,39 +54,38 @@ def _run(tmp_path, env):
     )
 
 
-def test_retries_once_after_a_transient_failure_and_then_succeeds(tmp_path):
-    """A first test.sh failure followed by a passing retry must let the
-    deploy proceed (reach the build/upload steps) rather than aborting."""
-    counts_file = tmp_path / "test_sh_calls"
+def test_deploy_delegates_bounded_memory_retries_to_the_test_runner(tmp_path):
+    """The test runner owns phase progress; deploy must invoke it just once."""
+    arguments = tmp_path / "test_arguments"
+    delay = tmp_path / "retry_delay"
     body = (
         "#!/bin/sh\n"
-        f'n=$(( $(cat "{counts_file}" 2>/dev/null || echo 0) + 1 ))\n'
-        f'echo "$n" > "{counts_file}"\n'
-        '[ "$n" -eq 1 ] && exit 1\n'
+        f'printf "%s\\n" "$@" >> "{arguments}"\n'
+        f'printf "%s" "$TEST_SH_MEMORY_RETRY_DELAY_SECONDS" > "{delay}"\n'
         "exit 0\n"
     )
     env = _stub_deploy_dir(tmp_path, test_sh_body=body)
+    env["DEPLOY_TEST_RETRY_DELAY_SECONDS"] = "13"
     result = _run(tmp_path, env)
     assert result.returncode == 0, result.stdout + result.stderr
-    assert counts_file.read_text().strip() == "2"  # first call failed, second (retry) ran
+    assert arguments.read_text().splitlines() == ["--all", "--retry-memory"]
+    assert delay.read_text() == "13"
     assert "Deploy complete" in result.stdout
 
 
-def test_gives_up_after_the_retry_also_fails(tmp_path):
-    """Two consecutive test.sh failures must abort the deploy for real --
-    the retry is a single attempt, not a loop that could mask a genuine
-    break forever."""
+def test_test_runner_failure_stops_deploy_without_replaying_any_phase(tmp_path):
+    """Real failures or exhausted preflights must never reach build/upload."""
     counts_file = tmp_path / "test_sh_calls"
     body = (
         "#!/bin/sh\n"
         f'n=$(( $(cat "{counts_file}" 2>/dev/null || echo 0) + 1 ))\n'
         f'echo "$n" > "{counts_file}"\n'
-        "exit 1\n"
+        "exit 42\n"
     )
     env = _stub_deploy_dir(tmp_path, test_sh_body=body)
     result = _run(tmp_path, env)
-    assert result.returncode != 0
-    assert counts_file.read_text().strip() == "2"  # exactly one retry, not more
+    assert result.returncode == 42
+    assert counts_file.read_text().strip() == "1"
     assert "Deploy complete" not in result.stdout
     assert not (tmp_path / "dist" / "fake.whl").exists()  # never reached the build step
 

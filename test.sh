@@ -42,6 +42,10 @@
 #   TEST_SH_MIN                 floor on workers (default: 1); also the preflight guard's
 #                               worker-count target -- lower it to relax the guard
 #   TEST_SH_MAX                 hard ceiling on workers, both passes (default: unset)
+#   TEST_SH_MEMORY_RETRY_DELAY_SECONDS  delay for --retry-memory (default: 120)
+#
+# --retry-memory retries a refused memory preflight once per phase, before
+# pytest starts. A passed phase is never replayed and test failures are not retried.
 
 set -eo pipefail
 
@@ -49,6 +53,7 @@ PER_WORKER_GB="${PER_WORKER_GB:-2.5}"
 INTEGRATION_PER_WORKER_GB="${INTEGRATION_PER_WORKER_GB:-5}"
 TEST_SH_MIN="${TEST_SH_MIN:-1}"
 TEST_SH_MAX="${TEST_SH_MAX:-0}"
+TEST_SH_MEMORY_RETRY_DELAY_SECONDS="${TEST_SH_MEMORY_RETRY_DELAY_SECONDS:-120}"
 
 log() { printf '[test.sh] %s\n' "$*" >&2; }
 
@@ -130,6 +135,8 @@ worker_count() {
     if (( CPU_CAP < mem_cap )); then workers=$CPU_CAP; else workers=$mem_cap; fi
     if (( workers < TEST_SH_MIN )); then workers=$TEST_SH_MIN; fi
     if (( TEST_SH_MAX > 0 && workers > TEST_SH_MAX )); then workers=$TEST_SH_MAX; fi
+    # Serial fallback still consumes one worker's budget (#526).
+    if (( ! use_xdist )); then workers=1; fi
     # TEST_SH_MIN (and, on a low-CPU box, TEST_SH_MAX) can each force workers
     # above what mem_cap actually supports. Check the worker count that
     # would really run, after every floor/ceiling has applied, not just the
@@ -146,10 +153,13 @@ worker_count() {
 
 # Argument parsing: --all expands to include integration tests.
 run_all=0
+retry_memory=0
 extra=()
 for arg in "$@"; do
     if [[ "$arg" == "--all" ]]; then
         run_all=1
+    elif [[ "$arg" == "--retry-memory" ]]; then
+        retry_memory=1
     else
         extra+=("$arg")
     fi
@@ -175,17 +185,25 @@ run_pytest() {
         filter_args=(-m "$marker")
     fi
     local xdist_flags=()
-    if (( use_xdist )); then
-        local status workers mem_note
+    local status workers mem_note attempted_retry=0
+    while true; do
         read -r status workers mem_note < <(worker_count "$per_worker_gb")
-        if [[ "$status" == "abort" ]]; then
-            log "${mem_note} (#483)"
-            exit 1
+        if [[ "$status" != "abort" ]]; then
+            break
         fi
+        log "${mem_note} (#483)"
+        if (( ! retry_memory || attempted_retry )); then
+            return 1
+        fi
+        log "Memory preflight for '${marker}' refused; waiting ${TEST_SH_MEMORY_RETRY_DELAY_SECONDS}s and retrying once (#526)"
+        sleep "$TEST_SH_MEMORY_RETRY_DELAY_SECONDS"
+        attempted_retry=1
+    done
+    log "cpus=${CPUS} cpu_cap=${CPU_CAP} ${mem_note} per_worker=${per_worker_gb}GB workers=${workers}"
+    if (( use_xdist )); then
         xdist_flags=(-n "$workers")
-        log "cpus=${CPUS} cpu_cap=${CPU_CAP} ${mem_note} per_worker=${per_worker_gb}GB workers=${workers}"
-        log "→ exec python -m pytest -n ${workers} ${filter_args[*]:-} $* tests ${extra[*]:-}"
     fi
+    log "→ exec python -m pytest ${xdist_flags[*]:-} ${filter_args[*]:-} $* tests ${extra[*]:-}"
     python -m pytest "${xdist_flags[@]}" "${filter_args[@]}" "$@" tests "${extra[@]}"
 }
 

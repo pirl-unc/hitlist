@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Tunables (env vars):
-#   DEPLOY_TEST_RETRY_DELAY_SECONDS   delay before the one retry below (default: 120)
+#   DEPLOY_TEST_RETRY_DELAY_SECONDS   delay before one memory preflight retry per phase (default: 120)
 
 set -e
 
@@ -16,17 +16,10 @@ echo "==> Running lint checks..."
 
 echo ""
 echo "==> Running tests (--all, including integration corpus tests)..."
-# Retry once after a delay before giving up (#483): the memory pressure
-# behind a failed/aborted run is usually ordinary desktop app usage on the
-# shared machine, not anything test.sh itself did, and it often clears on
-# its own within a couple of minutes. One retry, not a loop -- a second
-# failure propagates for real rather than masking a genuine break.
-if ! ./test.sh --all; then
-    echo "" >&2
-    echo "==> test.sh --all failed; waiting ${DEPLOY_TEST_RETRY_DELAY_SECONDS}s and retrying once (#483)..." >&2
-    sleep "$DEPLOY_TEST_RETRY_DELAY_SECONDS"
-    ./test.sh --all
-fi
+# Retry only a phase's memory preflight, before its tests start (#526).
+# Replaying --all repeats passed tests and does not help an integration
+# preflight refusal. Actual test failures must stop the release immediately.
+TEST_SH_MEMORY_RETRY_DELAY_SECONDS="$DEPLOY_TEST_RETRY_DELAY_SECONDS" ./test.sh --all --retry-memory
 
 echo ""
 echo "==> Cleaning old builds..."
