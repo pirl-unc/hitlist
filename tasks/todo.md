@@ -40,7 +40,13 @@ publisher regressions reject stale builder fingerprints, modified/missing
 files, absent/old provenance, private builder metadata, and overwriting an
 existing release. The publisher transfers a verified snapshot and preserves
 the original metadata. Format/lint and actionlint pass; focused checks pass
-on Python 3.9 and 3.12. Full CI validation remains required.
+on Python 3.9 and 3.12 (47 checks each). The complete guarded local
+`./test.sh --all --retry-memory` passes: 1,950 regular tests and all 43
+integration tests, with no skips. Its unchanged memory guard observed
+5.24 GiB before two regular workers and 8.49 GiB before one corpus worker.
+The full integration run therefore executes #444's exclusion regression
+against the real corpus. Fresh CI validation remains required after the
+public corpus publication is authorized.
 
 Publication of ci-corpus-v2 was rejected before execution by automatic
 approval review: this specific public data bundle needs explicit user
