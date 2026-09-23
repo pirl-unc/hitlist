@@ -1229,6 +1229,39 @@ def test_compute_has_peptide_level_allele_handles_categorical_resolution():
     assert list(out) == [True, False, False]
 
 
+@pytest.mark.filterwarnings("error:.*no_silent_downcasting.*")
+@pytest.mark.parametrize("dtype", ["object", "string", "category"])
+@pytest.mark.parametrize(
+    "values,allele_flags,non_peptide_flags",
+    [
+        (["HLA-A*02:01", None], [True, False], [False, False]),
+        (["human-MR1", None], [False, False], [True, False]),
+        (
+            ["HLA class I", "HLA-A*02:01", "human-MR1", None],
+            [False, True, False, False],
+            [False, False, True, False],
+        ),
+        ([None], [False], [False]),
+        ([], [], []),
+    ],
+)
+def test_export_boolean_flags_preserve_missing_values_and_dtype(
+    dtype, values, allele_flags, non_peptide_flags
+):
+    from hitlist.export import _apply_training_defaults, _compute_has_peptide_level_allele
+
+    restrictions = pd.Series(values, dtype=dtype, index=range(10, 10 + len(values)))
+    direct = _compute_has_peptide_level_allele(restrictions)
+    result = _apply_training_defaults(pd.DataFrame({"mhc_restriction": restrictions}))
+    assert direct.tolist() == allele_flags
+    assert direct.dtype == bool
+    assert direct.index.equals(restrictions.index)
+    assert result["has_peptide_level_allele"].tolist() == allele_flags
+    assert result["is_non_peptide_ligand"].tolist() == non_peptide_flags
+    assert result["has_peptide_level_allele"].dtype == bool
+    assert result["is_non_peptide_ligand"].dtype == bool
+
+
 def test_generate_observations_gene_filter_requires_mappings(tmp_path, monkeypatch):
     """Using --gene without a peptide_mappings sidecar should error clearly."""
     import pandas as pd

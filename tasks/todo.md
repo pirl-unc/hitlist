@@ -3263,3 +3263,52 @@ Review: the existing suite produced 12 setup errors with the deprecation
 promoted to an error; all 30 tests now pass under that same warning policy.
 Format/lint pass. Scope, construction and test assertions are unchanged.
 The change follows pytest's documented classmethod fixture migration.
+
+## PR #518 release-runner restack (1.62.45)
+
+Move the already reviewed scientific patch after the release-runner
+foundation (#539, 1.62.39). Preserve its code, source data and tests exactly.
+Retain the original branch; prove patch identity, bump the release version,
+run format/lint and final-head CI, and repeat the relevant compact source
+audit before merging. Run the full clean-main release workflow and verify
+its tested artifacts before local PyPI publication. No memory gate is waived.
+
+- [x] Prove the non-planning patch is unchanged.
+- [ ] Run format/lint, focused checks, source audit and final-head CI.
+- [ ] Review, merge, run the clean-main release and verify PyPI publication.
+
+
+## PR #518 priority queue restack (1.62.45)
+
+Move this previously reviewed change after #528/#514 and their source-verified
+attribution follow-ups. Preserve the implementation, curation and tests exactly;
+only the base, release version and planning records change. Keep the original
+local branch, compare stable patch IDs, then run format/lint and fresh CI.
+Repeat affected source audits and full local release gates before publication.
+
+- [x] Preserve and compare the original non-planning patch.
+- [ ] Run format/lint and fresh CI on this exact head.
+- [ ] Review against the updated base, validate, merge and deploy in order.
+
+
+## #508 specification — explicit boolean mapping
+
+Replace the two deprecated pandas no-silent-downcasting option contexts
+with nullable-boolean conversion before filling missing mapped values,
+then preserve the public plain-bool dtype. Check object, string and
+categorical inputs, missing values, homogeneous categories and empty
+frames. Use warnings-as-errors to verify the existing export tests, and
+compare both flags over the actual restriction vocabulary. Run required
+format/lint/test and CI; review, merge and deploy 1.62.45.
+
+- [x] Reproduce warning/failure boundaries and fix both conversions.
+- [x] Verify outputs/dtypes and existing export behavior.
+- [ ] Complete full gates, merge, deploy and verify PyPI.
+
+Review: all 15 dtype/missing-value cases fail before the fix with the
+deprecated option warning treated as an error. The complete non-integration
+export suite now passes under that policy (176 tests). Compared every output
+column of the old/new training-default paths over all 1,304 distinct
+restriction strings in observation and binding artifacts plus missing data,
+for object, string and categorical inputs: zero differences. Plain boolean
+dtypes and non-default row indexes are preserved. Format/lint pass.
