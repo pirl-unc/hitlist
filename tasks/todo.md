@@ -2696,11 +2696,23 @@ Complete format, lint, full tests, final CI, review, merge and clean-main
 PyPI deployment for each PR in dependency order. Never weaken memory guards
 or report an unreleased draft as fixed for installed users.
 
-- [ ] Back up branch tips and restack the three priority PRs on main.
-- [ ] Verify regressions, current curation impact, and supported Python versions.
+- [x] Back up branch tips and restack the three priority PRs on main.
+- [x] Verify regressions, current curation impact, and supported Python versions.
 - [ ] Run format/lint/full tests and final-head CI on the restacked PRs.
 - [ ] Publish pending main release, then merge/deploy #529, #530, and #531.
 - [ ] Rebase and renumber the remaining queue after the priority releases.
+
+Priority review: the new stack contains only allele identity, mutation
+tokenization, and genotype-consistency changes. All 80 combined regressions
+pass on Python 3.9 and 3.12. The mutation audit preserves every candidate
+and precision category across the current main-based 772 sample records
+and 376 distinct MHC fields, with unchanged YAML. No curated candidate
+currently carries a mutation. The genotype audit again changes zero values
+over 12,888 patterns representing 3,644,028 observations from 102 studies.
+The identity audit still changes only B*44:01 on 7,127 rows across the full
+5,333,255-row vocabulary. All six development dependency heads remain current.
+Full local suites and final CI remain pending. With memory restored, the
+pending clean-main 1.62.26 deployment has begun its serial full test gates.
 
 IPD-IMGT/HLA 3.65.0 Deleted_alleles.txt (2026-07-14), HLA00317, confirms
 B*4401 was a sequence error identical to B*44:02:01:01 (March 1994).
@@ -2756,4 +2768,4 @@ memberships), #197 (missing documented retirement), and hitlist#528 (sample
 field tokenization fabricates alleles from mutation labels). The resolver
 preserves mutations; it cannot restore information already lost by that
 separate tokenizer. Upstream #193 is fixed and published. RNA curation #358
-remains independent; reserve 1.62.37 for it.
+remains independent and is reserved for 1.63.0.
