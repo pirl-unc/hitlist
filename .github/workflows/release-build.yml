@@ -7,6 +7,9 @@ on:
       - .github/workflows/release-build.yml
       - deploy.sh
       - scripts/release_artifacts.py
+      - scripts/ci_corpus.py
+      - scripts/publish_ci_corpus.sh
+      - tests/test_ci_corpus.py
       - tests/test_deploy_script.py
       - tests/test_release_artifacts.py
 
@@ -25,7 +28,7 @@ jobs:
     env:
       TEST_SH_MAX: "2"
       PYTEST_ADDOPTS: "-ra"
-      CORPUS_VERSION: v1
+      CORPUS_VERSION: v2
     steps:
       - uses: actions/checkout@v4
         with:
@@ -65,17 +68,16 @@ jobs:
           corpus_dir="$RUNNER_TEMP/hitlist-ci-corpus"
           mkdir -p "$corpus_dir"
           gh release download "ci-corpus-$CORPUS_VERSION" \
-            --repo "$GITHUB_REPOSITORY" --pattern '*.parquet' --dir "$corpus_dir"
-          for filename in observations peptide_mappings binding bulk_proteomics line_expression; do
-            test -s "$corpus_dir/$filename.parquet"
-          done
+            --repo pirl-unc/hitlist --pattern '*.parquet' \
+            --pattern observations_meta.json --dir "$corpus_dir"
+          python scripts/ci_corpus.py verify "$corpus_dir"
           echo "HITLIST_DATA_DIR=$corpus_dir" >> "$GITHUB_ENV"
 
       - name: Format, test and build the release artifacts
         run: |
           ./format.sh
-          ruff check scripts/release_artifacts.py
-          ruff format --check scripts/release_artifacts.py
+          ruff check scripts/release_artifacts.py scripts/ci_corpus.py
+          ruff format --check scripts/release_artifacts.py scripts/ci_corpus.py
           test -z "$(git status --porcelain --untracked-files=no)"
           ./deploy.sh --build-only
           twine check dist/*.whl dist/*.tar.gz

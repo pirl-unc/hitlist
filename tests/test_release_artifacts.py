@@ -197,9 +197,10 @@ def test_feature_checkout_cannot_publish(release_bundle):
         verify_manifest(dist, root)
 
 
-def test_missing_corpus_cannot_produce_release_manifest(release_bundle):
+@pytest.mark.parametrize("filename", ["observations.parquet", "observations_meta.json"])
+def test_missing_corpus_cannot_produce_release_manifest(release_bundle, filename):
     root, dist, corpus, _ = release_bundle
-    (corpus / "observations.parquet").unlink()
+    (corpus / filename).unlink()
     (dist / "release.json").unlink()
     with pytest.raises(FileNotFoundError):
         write_manifest(dist, corpus, root)

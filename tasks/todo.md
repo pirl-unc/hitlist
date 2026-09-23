@@ -1,5 +1,52 @@
 # September 22 backlog campaign
 
+## #540 specification — verifiable public CI corpus provenance
+
+The corpus publisher and both CI consumers transfer only five parquets.
+The excluded-study integration check reads observations_meta.json, so its
+absence permanently skips that regression. The current local build has
+artifact contract 5, matching recorded parquet fingerprints, and zero
+excluded-study rows among 4,440,428 observations. All five local hashes differ
+from the existing public assets; its metadata must not be copied onto those
+different files. Publish a new immutable corpus version after verification.
+
+Add a small standard-library corpus helper. Export only the original artifact
+contract version, original mhcgnomes version, a manifest format version and
+the five exact file hashes/sizes. Require the existing builder metadata to
+match the four tracked parquet size/mtime fingerprints; require contract 5
+or later so the #444 check can execute. Never infer a new contract version
+from the code running the helper, and never expose private source paths.
+Preserve the original local metadata. Snapshot the five files, verify the
+snapshot against the public manifest, and refuse to overwrite an existing
+corpus tag. Publish the verified snapshot and public metadata together.
+
+Move normal CI and release CI to the new public corpus version, require its
+metadata and verify all hashes before tests/cache persistence. Use the
+canonical public corpus for fork CI too. Record the metadata hash in release
+provenance. The #444 test should require its feature's minimum contract (5),
+not equality with the running builder's current contract (6 after #536).
+Version 1.62.51 follows the existing reviewed queue; this independent work
+must not interrupt the active 1.62.40 publication.
+
+- [x] Reproduce missing/stale/changed corpus provenance and the version guard.
+- [x] Implement sanitized manifests, immutable snapshot publication and CI reads.
+- [ ] Verify the real local corpus and publish a new matching corpus bundle.
+- [ ] Run format/lint, meaningful regressions, workflow checks and fresh CI.
+- [ ] Review, merge and deploy after the existing queue; verify PyPI hashes.
+
+Review: the original guard incorrectly skips a valid contract-5 corpus with
+builder contract 6. The corrected guard accepts both versions. Manifest and
+publisher regressions reject stale builder fingerprints, modified/missing
+files, absent/old provenance, private builder metadata, and overwriting an
+existing release. The publisher transfers a verified snapshot and preserves
+the original metadata. Format/lint and actionlint pass; focused checks pass
+on Python 3.9 and 3.12. Full CI validation remains required.
+
+Publication of ci-corpus-v2 was rejected before execution by automatic
+approval review: this specific public data bundle needs explicit user
+authorization. The approval question is pending; no corpus was uploaded.
+Package releases from the reviewed queue continue independently using v1.
+
 ## #538 specification — release artifacts from the existing CI runner
 
 The requested correctness fixes are merged, but local memory repeatedly

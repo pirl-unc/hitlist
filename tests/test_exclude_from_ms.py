@@ -18,7 +18,7 @@ import pandas as pd
 import pytest
 
 from hitlist import curation
-from hitlist.builder import _OBSERVATIONS_ARTIFACT_VERSION, _drop_excluded_from_ms
+from hitlist.builder import _drop_excluded_from_ms
 from hitlist.curation import PMID_ENTRY_FIELDS, load_pmid_overrides, ms_excluded_pmids
 
 # Wendorff 2020 — HLA-DP peptide microarray, 69,815 random 13-mers against
@@ -112,7 +112,18 @@ def _corpus_predates_the_fix() -> bool:
     """
     from hitlist.builder import _cache_meta
 
-    return _cache_meta().get("artifact_version") != _OBSERVATIONS_ARTIFACT_VERSION
+    # Later contracts preserve this exclusion; equality with the running
+    # builder's version would silently skip valid older CI corpora (#540).
+    version = _cache_meta().get("artifact_version")
+    return type(version) is not int or version < 5
+
+
+@pytest.mark.parametrize("version,predates", [(None, True), (4, True), (5, False), (6, False)])
+def test_exclusion_guard_uses_the_feature_contract_not_the_current_builder(
+    monkeypatch, version, predates
+):
+    monkeypatch.setattr("hitlist.builder._cache_meta", lambda: {"artifact_version": version})
+    assert _corpus_predates_the_fix() is predates
 
 
 @pytest.mark.integration
@@ -123,10 +134,7 @@ def test_no_excluded_study_reaches_the_enriched_export():
     if not is_built():
         pytest.skip("Observations table not built")
     if _corpus_predates_the_fix():
-        pytest.skip(
-            f"corpus predates #444 (artifact_version "
-            f"!= {_OBSERVATIONS_ARTIFACT_VERSION}); rebuild to check"
-        )
+        pytest.skip("corpus lacks #444 provenance (artifact_version >= 5); rebuild to check")
     from hitlist.export import generate_observations_table
 
     df = generate_observations_table(columns=["pmid", "peptide"])
