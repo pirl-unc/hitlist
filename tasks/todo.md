@@ -3217,3 +3217,49 @@ review CI, merge and deploy.
 Review: both actual error paths for absent `depmap_rna` retain the download
 URL, exact expected filename and dataset key, with their original exception
 types. Format/lint pass. No parser, registry or download behavior changed.
+
+## PR #517 release-runner restack (1.62.44)
+
+Move the already reviewed scientific patch after the release-runner
+foundation (#539, 1.62.39). Preserve its code, source data and tests exactly.
+Retain the original branch; prove patch identity, bump the release version,
+run format/lint and final-head CI, and repeat the relevant compact source
+audit before merging. Run the full clean-main release workflow and verify
+its tested artifacts before local PyPI publication. No memory gate is waived.
+
+- [x] Prove the non-planning patch is unchanged.
+- [ ] Run format/lint, focused checks, source audit and final-head CI.
+- [ ] Review, merge, run the clean-main release and verify PyPI publication.
+
+
+## PR #517 priority queue restack (1.62.44)
+
+Move this previously reviewed change after #528/#514 and their source-verified
+attribution follow-ups. Preserve the implementation, curation and tests exactly;
+only the base, release version and planning records change. Keep the original
+local branch, compare stable patch IDs, then run format/lint and fresh CI.
+Repeat affected source audits and full local release gates before publication.
+
+- [x] Preserve and compare the original non-planning patch.
+- [ ] Run format/lint and fresh CI on this exact head.
+- [ ] Review against the updated base, validate, merge and deploy in order.
+
+
+## #509 specification — class-scoped fixture lifetime
+
+Two long-peptide class-scoped fixtures are instance methods despite not
+using their instance. Pytest 9.1 deprecates this lifetime mismatch. Define
+them as ordinary module functions with class scope and distinct names,
+without changing their constructed indexes. Re-plan after Python 3.9 CI
+showed that its classmethod descriptor lacks the metadata pytest expects;
+module functions avoid that version-dependent descriptor behavior. Verify
+the existing mapping tests with PytestRemovedIn10Warning promoted to an
+error, then format/lint/test, review CI, merge and deploy 1.62.44.
+
+- [x] Reproduce the warning as an error and correct fixture binding.
+- [ ] Run required gates, review CI, merge, deploy and verify publication.
+
+Review: the existing suite produced 12 setup errors with the deprecation
+promoted to an error; all 30 tests now pass under that same warning policy.
+Format/lint pass. Scope, construction and test assertions are unchanged.
+The change follows pytest's documented classmethod fixture migration.
