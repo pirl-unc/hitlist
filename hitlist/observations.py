@@ -530,9 +530,9 @@ _DERIVED_COLUMN_DEPS: dict[str, tuple[str, ...]] = {
     # parquets built before this schema, mirroring is_non_peptide_ligand.
     "host_organism": ("host",),
     "source_species": ("source_organism", "species"),
-    "is_chimeric": ("source_organism", "mhc_species"),
-    "is_engineered_mhc": ("source_organism", "mhc_species", "host"),
-    "xenograft": ("source_organism", "host", "mhc_species"),
+    "is_chimeric": ("source_organism", "species", "mhc_species"),
+    "is_engineered_mhc": ("source_organism", "species", "mhc_species", "host"),
+    "xenograft": ("source_organism", "species", "host", "mhc_species"),
 }
 
 #: The #46 species-axis columns derived together by ``_attach_species_axes``.
@@ -546,15 +546,19 @@ _SPECIES_AXIS_COLUMNS: tuple[str, ...] = (
 
 
 def _source_organism_with_fallback(df: pd.DataFrame) -> pd.Series:
-    """Resolve the source input consistently for species filters and system flags."""
-    source = (
-        df["source_organism"].fillna("").astype(str)
-        if "source_organism" in df.columns
-        else pd.Series("", index=df.index)
-    )
-    if "species" in df.columns:
-        source = source.where(source.str.strip() != "", df["species"].fillna("").astype(str))
-    return source
+    """Coalesce source evidence without letting missing-value labels block fallback.
+
+    The original raw columns are untouched. A valid source_organism takes
+    precedence over legacy species, including when the two disagree.
+    """
+    source = pd.Series("", index=df.index, dtype="string")
+    for column in ("source_organism", "species"):
+        if column not in df.columns:
+            continue
+        candidate = df[column].astype("string").fillna("").str.strip()
+        candidate = candidate.mask(candidate.str.lower().isin({"unknown", "unidentified"}), "")
+        source = source.where(source.ne(""), candidate)
+    return source.astype(str)
 
 
 def _attach_species_axes(df: pd.DataFrame) -> pd.DataFrame:

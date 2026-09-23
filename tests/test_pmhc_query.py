@@ -598,7 +598,17 @@ def test_pmhc_query_uses_obs_mhc_species_column_not_reparses_allele(tmp_path, mo
     assert n_classify_calls["n"] == 0
 
 
-def test_pmhc_query_warns_on_unresolved_source_organism(tmp_path, monkeypatch, capsys):
+@pytest.mark.parametrize(
+    "source_values,n_unknown",
+    [
+        (None, 2),
+        (["unidentified", "Mus musculus", "unknown"], 1),
+        (["unidentified", " UNIDENTIFIED ", "unknown"], 2),
+    ],
+)
+def test_pmhc_query_warns_on_unresolved_source_organism(
+    tmp_path, monkeypatch, capsys, source_values, n_unknown
+):
     """Verbose mode emits a WARNING line when rows have unresolved
     source organism (``species`` is empty or literal "unidentified" in
     IEDB metadata).  Both upstream sentinels fold into the same
@@ -625,6 +635,8 @@ def test_pmhc_query_warns_on_unresolved_source_organism(tmp_path, monkeypatch, c
             "source": ["iedb"] * 3,
         }
     )
+    if source_values is not None:
+        obs["source_organism"] = source_values
     mappings = pd.DataFrame(
         {
             "peptide": ["KLVVVGAGGV"],
@@ -642,8 +654,8 @@ def test_pmhc_query_warns_on_unresolved_source_organism(tmp_path, monkeypatch, c
     pmhc_query.query(proteins=["NRAS"], use_hgnc=False, verbose=True)
     err = capsys.readouterr().err
     assert "WARNING" in err
-    # Both the "" and "unidentified" rows fold into "unknown" → 2.
-    assert "2 row(s) have unresolved source organism" in err
+    # A valid raw source resolves a row even when legacy species is absent.
+    assert f"{n_unknown} row(s) have unresolved source organism" in err
 
 
 def test_normalize_species_column_folds_empty_and_unidentified_to_unknown():

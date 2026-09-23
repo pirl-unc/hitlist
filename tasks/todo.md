@@ -190,7 +190,7 @@ and link them from affected PRs. Preserve unrelated local files and branches.
 
 - [x] Establish an isolated environment using current development revisions of
       all locally developed libraries in the dependency graph; record revisions.
-- [ ] #501: remove obsolete dependency guards before relying on coverage.
+- [x] #501: remove obsolete dependency guards before relying on coverage.
 - [ ] #504: declare the existing mandatory mhcgnomes runtime dependency.
 - [ ] #490, #489: preserve queried biological genotypes in scoring, then correct
       the MHCflurry presentation API call without weakening its genotype limit.
@@ -3312,3 +3312,57 @@ column of the old/new training-default paths over all 1,304 distinct
 restriction strings in observation and binding artifacts plus missing data,
 for object, string and categorical inputs: zero differences. Plain boolean
 dtypes and non-default row indexes are preserved. Format/lint pass.
+
+## PR #519 release-runner restack (1.62.46)
+
+Move the already reviewed scientific patch after the release-runner
+foundation (#539, 1.62.39). Preserve its code, source data and tests exactly.
+Retain the original branch; prove patch identity, bump the release version,
+run format/lint and final-head CI, and repeat the relevant compact source
+audit before merging. Run the full clean-main release workflow and verify
+its tested artifacts before local PyPI publication. No memory gate is waived.
+
+- [x] Prove the non-planning patch is unchanged.
+- [ ] Run format/lint, focused checks, source audit and final-head CI.
+- [ ] Review, merge, run the clean-main release and verify PyPI publication.
+
+
+## PR #519 priority queue restack (1.62.46)
+
+Move this previously reviewed change after #528/#514 and their source-verified
+attribution follow-ups. Preserve the implementation, curation and tests exactly;
+only the base, release version and planning records change. Keep the original
+local branch, compare stable patch IDs, then run format/lint and fresh CI.
+Repeat affected source audits and full local release gates before publication.
+
+- [x] Preserve and compare the original non-planning patch.
+- [ ] Run format/lint and fresh CI on this exact head.
+- [ ] Review against the updated base, validate, merge and deploy in order.
+
+
+## #306 specification — finish source-axis consistency
+
+PRs #309/#312 already introduced canonical source_species and documented the
+two raw inputs. Residual defect: an explicit `unidentified` source blocks a
+valid legacy-species fallback in filters/flags, while pMHC's independent
+warning coalesce treats it as resolved. Centralize missing-source handling
+in the existing shared coalesce, preserving the original raw columns and
+source_organism precedence for two valid inputs. Treat blank, unknown and
+unidentified (case/whitespace insensitive) as missing, and keep unknown
+source output blank. Use the coalesce for the pMHC warning. Ensure projected
+chimeric/engineered/xenograft flags read the legacy fallback too. Verify
+MS/binding filtering and narrow projections, categorical/null inputs, and
+warning agreement; audit real raw-pair changes. Ship 1.62.46 after gates.
+
+- [x] Reproduce source-sentinel and projection inconsistencies.
+- [x] Share coalescing and complete derived-column dependencies.
+- [ ] Audit affected corpus inputs, test, review CI, merge and deploy.
+
+Review: seven regression cases fail before the fix. All 255 focused
+observation, pMHC and export-species tests now pass; format/lint pass.
+Audit covered 4,440,428 observation rows and 892,827 binding rows: 72,329
+and 371 respectively change only canonical source_species from the literal
+unidentified to blank. Raw fields are preserved, all three biological
+flags are unchanged, and unresolved-source warning counts are unchanged.
+The tests additionally cover valid legacy fallback, source precedence,
+source-only query rows and narrow projections absent from this corpus.

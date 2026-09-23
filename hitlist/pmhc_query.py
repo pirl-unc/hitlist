@@ -281,6 +281,7 @@ def query(
             "mhc_restriction",
             "mhc_species",
             "species",
+            "source_species",
             "attributed_sample_label",
             "cell_name",
             "cell_line_name",
@@ -509,19 +510,15 @@ def query(
     #     different granularity — ``source_organism`` (strain-level) and
     #     ``species`` (species-rank).  They describe the same axis (#306),
     #     so a row is only genuinely *unresolved* when BOTH are missing.
-    #     Warn on the canonical coalesce so we don't spuriously flag rows
-    #     where one field is curated but the other happens to be blank
-    #     (the inconsistency that surfaced the Gomez-Zepeda warning).
+    #     Use the loader's canonical source_species, which coalesces both
+    #     raw inputs and their missing-value sentinels for every consumer.
     #
     #     (A previous draft also warned on species != mhc_species, but
     #     that warning would fire 100K+ times on a broad query dominated
     #     by legitimate viral / bacterial peptides presented on host MHC.
     #     Low signal, removed.)
-    src_cols = [c for c in ("species", "source_organism") if c in df.columns]
-    if src_cols:
-        unknown_mask = pd.Series(True, index=df.index)
-        for c in src_cols:
-            unknown_mask &= _normalize_species_column(df[c]) == "unknown"
+    if "source_species" in df.columns:
+        unknown_mask = df["source_species"].fillna("").eq("")
         n_unknown = int(unknown_mask.sum())
         if n_unknown and verbose:
             _progress(
