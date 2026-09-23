@@ -48,7 +48,8 @@ dependencies = [
     # allele_to_all_serotypes("HLA-C*16:01") == ("HLA-Cw16",), which fails on
     # 3.41-3.53. So the floor was de facto 3.54.0 and only pyproject
     # disagreed; this makes the declared floor match the tested one.
-    "mhcgnomes>=3.54.0",
+    # 3.64.3 preserves mutations during derived alias resolution (#456).
+    "mhcgnomes>=3.64.3",
 ]
 
 [project.optional-dependencies]

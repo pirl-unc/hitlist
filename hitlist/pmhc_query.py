@@ -169,6 +169,10 @@ def query(
         gene, that judgment is on the reader), ``n_source_genes`` (total
         distinct genes the peptide occurs in, including queried ones).
 
+        ``mhc_allele`` uses the derived current identity without adding typing
+        fields. ``reported_mhc_restrictions`` retains distinct source spellings,
+        separated by `` | `` (each donor set keeps its semicolon boundaries).
+
         ``n_source_genes`` counts distinct source LOCI, not gene symbols
         (#496): it comes from ``peptide_mappings`` via
         :func:`hitlist.mappings.locus_keys`, which keys on the Ensembl ID,
@@ -409,18 +413,13 @@ def query(
         if col in df.columns:
             df[col] = df[col].fillna("").astype(str)
 
-    # 3b. Normalize MHC restriction strings before grouping. The parquet
-    #     stores both ``A*02:01`` and ``HLA-A*02:01`` for the same allele
-    #     because different sources used different conventions; passing
-    #     the raw strings through to groupby would split the peptides
-    #     across two unrelated buckets. ``normalize_allele`` is mhcgnomes-
-    #     backed and idempotent on canonical inputs; the LRU cache keeps
-    #     the per-row cost negligible (~hundreds of unique values).
-    from .curation import best_4digit_for_serotype, normalize_allele
+    # 3b. Group equivalent identities without discarding reported names.
+    #     Retired B*44:01 and current B*44:02 describe the same molecule;
+    #     alias field extensions must not invent additional typing (#456).
+    from .curation import best_4digit_for_serotype, resolve_allele_identity
 
-    df["mhc_restriction"] = (
-        df["mhc_restriction"].fillna("").map(lambda s: normalize_allele(s) if s else s)
-    )
+    df["reported_mhc_restrictions"] = df["mhc_restriction"].fillna("")
+    df["mhc_restriction"] = df["reported_mhc_restrictions"].map(resolve_allele_identity)
 
     # 3c. For rows whose stored allele is a serotype (HLA-A2, HLA-DR4, ...),
     #     fill ``best_guess_allele`` with the most likely 4-digit member.
@@ -583,6 +582,10 @@ def query(
             observed=True,
         )
         .agg(
+            reported_mhc_restrictions=(
+                "reported_mhc_restrictions",
+                lambda s: " | ".join(sorted({str(v) for v in s if v})),
+            ),
             n_observations=("pmid", "size"),
             pmids=(
                 "pmid",
@@ -1080,10 +1083,10 @@ def _score_and_narrow_to_best_allele(
         df["best_predicted_allele"] = pd.Series(dtype="string")
         return df
 
-    from .curation import normalize_allele
+    from .curation import resolve_allele_identity
 
     if allowed_alleles is not None:
-        allowed_alleles = frozenset(normalize_allele(a) for a in allowed_alleles)
+        allowed_alleles = frozenset(resolve_allele_identity(a) for a in allowed_alleles)
 
     # Build a long frame: one (peptide, allele) candidate per individual
     # allele in each row's best_guess_allele set, tagged with the
@@ -1092,7 +1095,11 @@ def _score_and_narrow_to_best_allele(
     for pos, (_, row) in enumerate(df.iterrows()):
         peptide = str(row["peptide"])
         allele_str = str(row.get("best_guess_allele") or "")
-        row_alleles = [normalize_allele(a.strip()) for a in allele_str.split(";") if a.strip()]
+        row_alleles = list(
+            dict.fromkeys(
+                resolve_allele_identity(a.strip()) for a in allele_str.split(";") if a.strip()
+            )
+        )
         if allowed_alleles is not None:
             row_alleles = [a for a in row_alleles if a in allowed_alleles]
         for allele in row_alleles:
@@ -1207,6 +1214,10 @@ def _collapse_rows_sharing_narrowed_allele(df: pd.DataFrame) -> pd.DataFrame:
         "n_observations": "sum",
         "pmids": _union_pmids,
     }
+    if "reported_mhc_restrictions" in df.columns:
+        agg_spec["reported_mhc_restrictions"] = lambda values: " | ".join(
+            sorted({name for value in values for name in value.split(" | ") if name})
+        )
     # _line_ids / _donor_ids / _donor_type_ids carry the per-row
     # distinct-sample lists as semicolon-joined strings; union them on
     # consolidation so the post-narrowing counts reflect the true
@@ -1297,6 +1308,7 @@ def _empty_result(with_predictions: bool) -> pd.DataFrame:
         "gene_name",
         "gene_id",
         "mhc_allele",
+        "reported_mhc_restrictions",
         "best_guess_allele",
         "peptide",
         "n_observations",

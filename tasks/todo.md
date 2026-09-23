@@ -2673,3 +2673,100 @@ no successful-phase state persisted between invocations. Existing deploy delay
 configuration is preserved. Full tests/CI and release remain pending.
 #358 RNA curation remains uncommitted and will use the next version when its
 verified primary inputs and complete profile QC are ready.
+
+# Retired allele identities without rewriting reported typing (#456)
+
+## Priority release plan for genotype correctness (#528, #514)
+
+The user elevated mutation-token fabrication and genotype-contradicting
+attribution as urgent correctness defects. Their implementation exists in
+PRs #530 and #531, but the old stack makes them wait for unrelated changes.
+Retain #529's allele-identity handling as the correctness prerequisite.
+The pending main release reproduced #526, so place its isolated phase-retry
+repair first: #527 -> #529 -> #530 -> #531. Preserve the reserved
+versions 1.62.35 through 1.62.38; patch versions may skip unshipped
+numbers. Other PRs must be rebased and bumped beyond the priority releases
+before they land. Preserve named backups of all original branch tips.
+
+No scientific values should be changed by restacking. Re-run mutation
+ownership and downstream join regressions, missing-tissue genotype tests,
+and corpus audits on the new bases. Retain uncertainty for coarse typing,
+missing loci, and predicted restrictions. Recheck latest development
+dependencies without modifying an environment while tests are running.
+Complete format, lint, full tests, final CI, review, merge and clean-main
+PyPI deployment for each PR in dependency order. Never weaken memory guards
+or report an unreleased draft as fixed for installed users.
+
+- [x] Back up branch tips and restack the three priority PRs on main.
+- [x] Verify regressions, current curation impact, and supported Python versions.
+- [ ] Run format/lint/full tests and final-head CI on the restacked PRs.
+- [ ] Publish pending main release, then merge/deploy #529, #530, and #531.
+- [ ] Rebase and renumber the remaining queue after the priority releases.
+
+Priority review: the new stack contains only allele identity, mutation
+tokenization, and genotype-consistency changes. All 80 combined regressions
+pass on Python 3.9 and 3.12. The mutation audit preserves every candidate
+and precision category across the current main-based 772 sample records
+and 376 distinct MHC fields, with unchanged YAML. No curated candidate
+currently carries a mutation. The genotype audit again changes zero values
+over 12,888 patterns representing 3,644,028 observations from 102 studies.
+The identity audit still changes only B*44:01 on 7,127 rows across the full
+5,333,255-row vocabulary. All six development dependency heads remain current.
+Full local suites and final CI remain pending. With memory restored, the
+pending clean-main 1.62.26 deployment has begun its serial full test gates.
+
+IPD-IMGT/HLA 3.65.0 Deleted_alleles.txt (2026-07-14), HLA00317, confirms
+B*4401 was a sequence error identical to B*44:02:01:01 (March 1994).
+The audited 832-token vocabulary changes only B*44:01, on 7,127 rows.
+Preserve the source's normalized restriction and field depth. A separate
+cached identity resolver applies mhcgnomes aliases only when the gene or
+first two allele fields change, truncating any added fields to the original
+depth. Keep mutations on their original chains; require mhcgnomes 3.64.3,
+which fixes upstream #193. Never enable aliases in the reported-value parser.
+
+Use this resolver for derived serotypes, candidate sets, sample matching,
+loader filters and pMHC aggregation/prediction candidates. Refresh stored
+candidate identities before set filtering and refresh serotypes only for
+restrictions containing a renamed allele. Preserve raw restrictions in
+loaders and expose their distinct reported spellings in aggregate results.
+Avoid deriving experimental certainty from an alias or expanding a genotype.
+
+- [x] Read primary IPD retirement evidence and audit all restriction tokens.
+- [x] Fix, review, merge and publish upstream mutation preservation (#193).
+- [x] Add failing regressions for aliases, typing depth, mutations and chains,
+      raw provenance, stored-index projection/filtering, aggregation and scoring.
+- [x] Implement one derived identity helper and route relevant consumers to it.
+- [x] Audit both complete indexes; assert only the documented identity changes.
+- [ ] Run format, lint, focused checks, full tests and final CI; self-review.
+- [ ] Bump 1.62.36, open its own PR, merge and deploy after the preceding releases.
+
+Review: 37 initial regressions failed before the change. Format/lint and 463
+focused tests pass on Python 3.12; 461 cases also passed on Python 3.9 before
+adding the final two duplicate-set/projection regressions. All 929 catalog
+members remain reachable. Current catalog memberships remain preferred over
+memberships inherited from a retired designation. No genotype is expanded.
+
+The 5,333,255-row audit covers both complete indexes and all 832 tokens.
+Only B*44:01 changes identity (7,127 observation rows); all raw restrictions
+and all parsed mutations retain their identity/chain. Canonicalizing a stale
+catalog member B*15:112 -> B*15:11 additionally restores B15 membership on
+63,990 observation rows. The primary HLA nomenclature broad/split table lists
+B75 under B15: https://hla.alleles.org/pages/antigens/broads_and_splits/.
+A direct old-index loader comparison verifies 71,117 serotype updates, 7,127
+candidate updates, unchanged candidate counts and zero reported-name changes.
+No binding rows change. Stored current names also refresh the affected
+catalog membership, including under projection and serotype filters.
+
+The latest six development dependency heads were checked; pyensembl was
+updated to 2.10.17 at d4abbf26, and mhcgnomes 3.64.3 b276be94 is now the
+required floor. The lockfile changes only that dependency and its requirement;
+uv lock --check and pip check pass. The full feature suite was canceled to
+reserve memory for the active clean-main release; it is not counted as a pass.
+Full tests and final CI remain required.
+
+Independent problems found and filed: mhcgnomes#196 (missing broad/split
+memberships), #197 (missing documented retirement), and hitlist#528 (sample
+field tokenization fabricates alleles from mutation labels). The resolver
+preserves mutations; it cannot restore information already lost by that
+separate tokenizer. Upstream #193 is fixed and published. RNA curation #358
+remains independent and is reserved for 1.63.0.
