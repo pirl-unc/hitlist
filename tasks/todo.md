@@ -2837,6 +2837,7 @@ extracted molecules and species are all unchanged. Raw YAML SHA-256 is
 7380766616315777df7593946a7637a30c7afe21cf5fabaa84ef4e08771e74d0.
 All mutation examples remain synthetic. Final CI and the full local suite
 are required again after this review change. Reserve 1.63.0 for RNA #358.
+
 # Respect reported genotype evidence in class-pool attribution (#514)
 
 The class-pool text scorer currently ignores the observation's restriction,
@@ -2884,3 +2885,7 @@ tissue regressions reconstruct that source evidence. No full-corpus column
 copy is added: restriction/evidence are part of the existing unique-row keys.
 Full local tests and final CI remain required before merge, with clean-main
 PyPI publication afterward.
+
+Final focused validation: format/lint and 201 export/curation tests pass;
+all 22 new cases also pass on Python 3.9. The audit remains unchanged after
+using the existing restriction/evidence columns directly as row keys.
