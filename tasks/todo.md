@@ -2618,3 +2618,22 @@ PASSED against the broken code, because the existing fixture has every
 Rewrote it on an unlabelled fixture where it fails pre-fix with
 `assert 1 == 3` — the CTAG2 symptom in miniature. A green test that cannot
 fail is worse than no test.
+# Priority release prerequisite: phase-local memory retry (#526)
+
+The pending clean-main 1.62.26 deployment reproduced #526: all 1,676
+regular tests passed, the integration memory guard refused at 1.62 GiB,
+and free memory recovered above 8 GiB during the retry delay. The current
+deployment then reruns all regular tests instead of retrying the refused
+integration preflight. Prepare the already-reviewed #527 patch directly
+on main as a release prerequisite if this blocks publication again.
+
+Keep the 2.5/5 GiB budgets and one retry. Only preflight refusals can retry;
+actual pytest failures must stop immediately. Retain serial fallback guards,
+test each phase independently, and preserve the reserved version 1.62.35.
+Do not incorporate unrelated curation from the old stack.
+
+- [x] Preserve the old #527 branch in a named backup.
+- [ ] Apply only its phase-retry implementation and script regression tests.
+- [ ] Run format/lint/script tests, full tests, and supported-version CI.
+- [ ] Review, merge and deploy before correctness PRs only if needed to
+      resolve their release blocker; otherwise retain as the next foundation.
