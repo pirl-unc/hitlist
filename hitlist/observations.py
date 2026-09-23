@@ -109,6 +109,42 @@ def observations_path() -> Path:
     return data_dir() / "observations.parquet"
 
 
+_ATTRIBUTION_CONTEXT_COLUMNS = (
+    "pmid",
+    "mhc_restriction",
+    "mhc_class",
+    "cell_name",
+    "source_tissue",
+    "antigen_processing_comments",
+    "assay_comments",
+)
+
+
+@lru_cache(maxsize=2)
+def _attribution_context_for_file(path: str, mtime_ns: int, size: int) -> pd.DataFrame:
+    """Compact source patterns, independent of output filters and rebuild-safe."""
+    parquet = pq.ParquetFile(path)
+    columns = [c for c in _ATTRIBUTION_CONTEXT_COLUMNS if c in parquet.schema_arrow.names]
+    patterns: set[tuple] = set()
+    for batch in parquet.iter_batches(batch_size=10000, columns=columns):
+        frame = batch.to_pandas()
+        frame = frame.reindex(columns=_ATTRIBUTION_CONTEXT_COLUMNS)
+        frame["pmid"] = pd.to_numeric(frame["pmid"], errors="coerce")
+        frame = frame[frame["pmid"].notna()].copy()
+        for column in _ATTRIBUTION_CONTEXT_COLUMNS[1:]:
+            frame[column] = frame[column].astype("string").fillna("")
+        patterns.update(frame.drop_duplicates().itertuples(index=False, name=None))
+    return pd.DataFrame(sorted(patterns), columns=_ATTRIBUTION_CONTEXT_COLUMNS)
+
+
+def _load_attribution_context(pmids) -> pd.DataFrame:
+    """Return independent, narrow study context; never expose the cached frame."""
+    path = observations_path()
+    stat = path.stat()
+    context = _attribution_context_for_file(str(path), stat.st_mtime_ns, stat.st_size)
+    return context[context["pmid"].isin(pmids)].copy()
+
+
 def binding_path() -> Path:
     """Path to the binding-assay parquet file."""
     return data_dir() / "binding.parquet"

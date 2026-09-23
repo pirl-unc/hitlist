@@ -3009,7 +3009,7 @@ any change beyond removal of unrelated ancestor commits. Repeat focused
 checks and the recorded source audits on the new bases before release.
 Keep memory-heavy audits and full suites serial with the active deployment.
 
-- [ ] Preserve old branch tips and restack only each issue's own commits.
+- [x] Preserve old branch tips and restack only each issue's own commits.
 - [ ] Review conflicts, confirm scoped diffs, and rerun focused validation.
 - [ ] Repeat source/corpus audits and final supported-version CI.
 - [ ] Run format/lint/full local tests, review, merge and publish after #531.
@@ -3088,3 +3088,88 @@ full suite and final CI remain required; memory guards currently prevent
 release validation. Latest development HEADs for mhcflurry, mhcgnomes,
 pyensembl, datacache, gtfparse, and serializable were rechecked and match the
 isolated test environment. This PR remains a draft until its gates pass.
+
+## PR #535 release-runner restack (1.62.42)
+
+Move the already reviewed scientific patch after the release-runner
+foundation (#539, 1.62.39). Preserve its code, source data and tests exactly.
+Retain the original branch; prove patch identity, bump the release version,
+run format/lint and final-head CI, and repeat the relevant compact source
+audit before merging. Run the full clean-main release workflow and verify
+its tested artifacts before local PyPI publication. No memory gate is waived.
+
+- [x] Prove the non-planning patch is unchanged.
+- [ ] Run format/lint, focused checks, source audit and final-head CI.
+- [ ] Review, merge, run the clean-main release and verify PyPI publication.
+
+
+Restack review: stable patch IDs for each scientific source, data and test
+delta are identical before/after: #512 4a8b5368, #534 68097bf1, and #532
+4300627a. The sole conflict was between appended planning sections; both
+were retained. Format and lint pass on all three new branches. Fresh CI and
+repeat corpus/source audits remain pending, with full local suites kept
+serial behind the active 1.62.35 deployment.
+
+
+# Make sample attribution stable under output filtering (#532)
+
+The same deposited observation must retain the same sample/group/condition
+when a caller asks for one peptide, one restriction, or another narrower
+output. The current variance guard measures the selected query, so removing
+other rows can erase a known cell identity or admit narrative after a factual
+field stops varying. Preserve the full-study boilerplate guard and the
+existing unfiltered attribution behavior.
+
+For queries with row filters, read a compact context containing only PMID,
+restriction, class, and the four discriminator fields from the complete MS
+artifact. Stream projected parquet batches and collapse duplicate patterns;
+cache against path, nanosecond mtime, and size so rebuilds invalidate it.
+Restrict the compact context to queried curated multi-sample studies. Do not
+load peptides, expression, or other wide payloads for the context.
+
+Use full-context restriction pairs when constructing sample join aliases.
+Evaluate ambiguous-allele discriminator variation and winners against the
+context; apply winners only to selected output rows. For the class-pool
+variance gate, retain only context rows that the preceding allele/single-
+sample paths leave without sample MHC, exactly as the current full-query
+path does. Reuse the same candidate and winner dictionaries. Never add
+context observations to the returned frame or change scoring weights.
+
+Keep the complete curated sample roster when filtering observation class:
+class selection must not turn a multi-sample study into a single-sample
+study and change its fallback provenance or matched-sample count.
+
+Tests must use a real temporary parquet and public filters, not simulate a
+filtered loader that also hides the full study. Cover grouped cell identity,
+exact-allele ties, ungrouped samples, treatment-dose attribution, unchanged
+multi-arm ambiguity, and genuine constant narrative. Compare every relevant
+metadata field between full and one-peptide exports; verify row counts,
+raw values, and context-cache invalidation. Audit unfiltered output against
+the base and a representative filtered query for each multi-sample study.
+
+- [x] Add public-query regressions and demonstrate base failures.
+- [x] Implement bounded full-study discriminator context without changing curation.
+- [x] Finish memory review and all filtering paths after the curation prerequisite.
+- [x] Audit full versus filtered attribution across the corpus.
+- [ ] Run format/lint/full tests and CI; review, merge, deploy 1.62.42 after #534.
+
+Review: 10 public-query regressions fail against the original base and two
+class-roster cases fail before retaining the complete roster. Rebased onto
+the source-verified cohort repair in #536; added explicit old-index HLA-G
+checks for peptide, allele, and class queries. Format/lint and 275 expanded
+export/repair tests pass after rebase. All 18 final query-context cases pass
+on Python 3.12 and all 38 query-context/repair cases pass on Python 3.9.
+Full local tests and final CI remain required before merge and clean-main
+deployment.
+
+The repeated audit uses freshly reconstructed patterns after correcting the
+cohort data: 11,850 patterns represent 3,601,946 observations from 102 studies.
+Every unfiltered value is identical to the corrected base. Of 132 narrow
+queries (66 known and 66 ambiguous), the base's 24 known-sample discrepancies
+disappear and all ambiguous cases stay unchanged. Every class-filtered
+pattern matches the complete export. Before this change class filtering
+changed matched-sample counts on 1,506,759 represented rows and attribution
+provenance on 38,252, while all sample labels now agree after the separate
+cohort repair. No scoring weights, source YAML, or stored artifacts change
+in this PR. The compact context contains seven columns, streams 10,000-row
+batches, and caches two file revisions without retaining peptide payloads.
