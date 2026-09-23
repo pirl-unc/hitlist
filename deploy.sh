@@ -5,6 +5,15 @@
 
 set -e
 
+BUILD_ONLY=0
+if (( $# )); then
+    if [[ $# -ne 1 || "$1" != "--build-only" ]]; then
+        echo "Usage: ./deploy.sh [--build-only]" >&2
+        exit 2
+    fi
+    BUILD_ONLY=1
+fi
+
 DEPLOY_TEST_RETRY_DELAY_SECONDS="${DEPLOY_TEST_RETRY_DELAY_SECONDS:-120}"
 
 VERSION=$(python -c "from hitlist.version import __version__; print(__version__)")
@@ -36,6 +45,12 @@ python scripts/check_distribution_license.py dist
 echo ""
 echo "==> Built artifacts:"
 ls -lh dist/
+
+if (( BUILD_ONLY )); then
+    echo ""
+    echo "Build complete: dist/. PyPI upload remains required."
+    exit 0
+fi
 
 echo ""
 echo "==> Uploading to PyPI..."

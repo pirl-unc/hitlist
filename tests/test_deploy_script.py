@@ -12,6 +12,8 @@ import shutil
 import subprocess
 from pathlib import Path
 
+import pytest
+
 DEPLOY_SCRIPT = Path(__file__).resolve().parents[1] / "deploy.sh"
 
 
@@ -48,9 +50,9 @@ def _stub_deploy_dir(tmp_path, *, test_sh_body: str) -> dict:
     )
 
 
-def _run(tmp_path, env):
+def _run(tmp_path, env, *args):
     return subprocess.run(
-        ["bash", "deploy.sh"], cwd=tmp_path, env=env, capture_output=True, text=True
+        ["bash", "deploy.sh", *args], cwd=tmp_path, env=env, capture_output=True, text=True
     )
 
 
@@ -106,3 +108,52 @@ def test_no_retry_message_or_delay_when_the_first_attempt_passes(tmp_path):
     assert counts_file.read_text().strip() == "1"  # only ran once
     assert "retrying once" not in result.stderr
     assert "Deploy complete" in result.stdout
+
+
+def test_build_only_runs_all_gates_without_invoking_upload(tmp_path):
+    arguments = tmp_path / "test_arguments"
+    body = f'#!/bin/sh\nprintf "%s\\n" "$@" > "{arguments}"\n'
+    env = _stub_deploy_dir(tmp_path, test_sh_body=body)
+    (tmp_path / "bin" / "twine").write_text("#!/bin/sh\nexit 99\n")
+    result = _run(tmp_path, env, "--build-only")
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert arguments.read_text().splitlines() == ["--all", "--retry-memory"]
+    assert (tmp_path / "dist" / "fake.whl").exists()
+    assert "PyPI upload remains required" in result.stdout
+    assert "Deploy complete" not in result.stdout
+
+
+def test_build_only_test_failure_cannot_produce_artifacts(tmp_path):
+    env = _stub_deploy_dir(tmp_path, test_sh_body="#!/bin/sh\nexit 42\n")
+    result = _run(tmp_path, env, "--build-only")
+    assert result.returncode == 42
+    assert not (tmp_path / "dist").exists()
+
+
+@pytest.mark.parametrize("gate", ["lint", "license"])
+def test_build_only_cannot_ignore_other_release_gate_failures(tmp_path, gate):
+    env = _stub_deploy_dir(tmp_path, test_sh_body="#!/bin/sh\nexit 0\n")
+    if gate == "lint":
+        (tmp_path / "lint.sh").write_text("#!/bin/sh\nexit 31\n")
+    else:
+        python = tmp_path / "bin" / "python"
+        body = python.read_text()
+        python.write_text(
+            body.replace(
+                "#!/bin/sh\n",
+                '#!/bin/sh\nif [ "$1" = "scripts/check_distribution_license.py" ]; then exit 31; fi\n',
+            )
+        )
+    result = _run(tmp_path, env, "--build-only")
+    assert result.returncode == 31
+    assert "Build complete" not in result.stdout
+    assert "Deploy complete" not in result.stdout
+
+
+def test_unknown_deployment_option_fails_before_any_tests(tmp_path):
+    marker = tmp_path / "tests_started"
+    env = _stub_deploy_dir(tmp_path, test_sh_body=f'#!/bin/sh\ntouch "{marker}"\n')
+    result = _run(tmp_path, env, "--skip-tests")
+    assert result.returncode == 2
+    assert not marker.exists()
+    assert not (tmp_path / "dist").exists()
