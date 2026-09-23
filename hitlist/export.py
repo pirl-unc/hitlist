@@ -47,6 +47,7 @@ from .curation import (
     normalize_allele,
     normalize_mhc_class_token,
     normalize_species,
+    reported_mhc_fields_overlap,
     sample_mhc_candidates,
     serotype_to_alleles,
     species_axes_agreement,
@@ -1777,7 +1778,14 @@ def generate_observations_table(
                 for col in _disc_cols_all:
                     if col not in obs.columns:
                         obs[col] = ""
-                _tb_cols = ["_pmid_int", "_mhc_class_norm", *_disc_cols_all]
+                _tb_cols = [
+                    "_pmid_int",
+                    "_mhc_class_norm",
+                    "mhc_restriction",
+                    *_disc_cols_all,
+                ]
+                if "restriction_evidence" in obs.columns:
+                    _tb_cols.append("restriction_evidence")
                 _eligible_df = _fillna_safe_for_categoricals(obs.loc[_eligible_mask, _tb_cols])
                 # Per (pmid, class), drop discriminator columns whose
                 # value is identical across all eligible rows — those
@@ -1808,6 +1816,12 @@ def generate_observations_table(
                     _cands = _class_candidates.get(_key)
                     if not _cands:
                         continue
+                    _pool_cands = _cands
+                    _reported_restriction = (
+                        ""
+                        if _r.get("restriction_evidence") == "predicted"
+                        else _r["mhc_restriction"]
+                    )
                     # ── group stage (#359) ─────────────────────────────
                     # Opt-in: only studies that curate ``sample_group``.
                     # Narrowing to one system before the arm scorer runs
@@ -1935,18 +1949,35 @@ def generate_observations_table(
                             # metadata every candidate agreed on.
                             _best_meta = _consensus_meta(_cands, meta_cols)
                             _pool_attr = str(_best_meta["sample_attribution"])
+                    # Validate the proposed winner without changing text
+                    # scoring weights (#514). Unknown typing cannot win by
+                    # merely surviving the exclusion of known genotypes.
+                    _compatible_cands = []
+                    for _candidate in _pool_cands:
+                        _overlap = reported_mhc_fields_overlap(
+                            _reported_restriction, _candidate[2].get("mhc", "")
+                        )
+                        if _overlap is not False:
+                            _compatible_cands.append((_candidate, _overlap))
+                    if len(_compatible_cands) == 1 and _compatible_cands[0][1] is True:
+                        _genotype_meta = _compatible_cands[0][0][2]
+                        if _best_meta is None or _best_meta.get(
+                            "sample_label"
+                        ) != _genotype_meta.get("sample_label"):
+                            _best_meta = _genotype_meta
+                            _pool_attr = "discriminated"
+                    elif (
+                        _best_meta is not None
+                        and _best_meta.get("sample_label")
+                        and reported_mhc_fields_overlap(
+                            _reported_restriction, _best_meta.get("mhc", "")
+                        )
+                        is False
+                    ):
+                        _best_meta = None
                     if _best_meta is not None:
                         _best_meta = {**_best_meta, "sample_attribution": _pool_attr}
-                        _tb_winner[
-                            (
-                                _r["_pmid_int"],
-                                _r["_mhc_class_norm"],
-                                _r["cell_name"],
-                                _r["source_tissue"],
-                                _r["antigen_processing_comments"],
-                                _r["assay_comments"],
-                            )
-                        ] = _best_meta
+                        _tb_winner[tuple(_r[column] for column in _tb_cols)] = _best_meta
 
                 if _tb_winner:
                     # Vectorized winner application (#244) — same shape as
