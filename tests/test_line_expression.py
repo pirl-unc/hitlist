@@ -169,7 +169,7 @@ def test_tier3_mono_allelic_host_t2_falls_to_k562(installed_depmap):
 
 
 def test_tier3_c1r_transfectant_falls_to_k562_via_family(installed_depmap):
-    # C1R has a placeholder source, so C1R tier-1 doesn't fire; its parent
+    # C1R has no validated exact-line source, so tier 1 does not fire; its parent
     # is itself (no parent line defined that has data); family =
     # mono_allelic_host → K562 class anchor.
     a = resolve_sample_expression_anchor("C1R-HLA-B*27:02")
@@ -498,7 +498,7 @@ def test_alias_starting_with_punctuation_matches_mid_string(installed_depmap):
     # character before ``.`` is alphanumeric.  The left-boundary check is
     # skipped for punctuation-initial aliases.
     a = resolve_sample_expression_anchor("721.221-B*51:01 ERAP1 KO")
-    assert a.expression_match_tier == 3  # .221 → 721.221 (placeholder) → K562 class anchor
+    assert a.expression_match_tier == 3  # .221 → 721.221 (no exact RNA) → K562 class anchor
     assert a.expression_key == "K562"
     assert a.expression_parent_key == "K562"
 

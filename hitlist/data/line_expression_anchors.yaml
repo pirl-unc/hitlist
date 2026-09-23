@@ -114,9 +114,9 @@ lines:
     line_family: mono_allelic_host
     lineage_tissue: "blood, b lymphocyte"
     cancer_type: null
-    expression_backend: packaged_rnaseq
+    expression_backend: none
     expression_key: "C1R"
-    source_ids: ["Kaabinejadian_2022_HLA_mono"]
+    source_ids: []
     notes: "HLA-A/B low Hmy2.CIR B-lymphoblastoid host; retains weak HLA-B*35:03 / HLA-C*04:01. Parent for C1R-HLA-* transfectant series."
 
   - name: "C1R-HLA"
@@ -135,9 +135,9 @@ lines:
     line_family: mono_allelic_host
     lineage_tissue: "blood, b lymphocyte"
     cancer_type: null
-    expression_backend: packaged_rnaseq
+    expression_backend: none
     expression_key: "721.221"
-    source_ids: ["Kaabinejadian_2022_HLA_mono"]
+    source_ids: []
     notes: "HLA class I null EBV-transformed B-LCL. Parent for .221-HLA-* transfectant series and .221 ERAP1 KO."
 
   - name: "721.221-HLA"
@@ -178,10 +178,10 @@ lines:
     line_family: ebv_lcl
     lineage_tissue: "blood, b lymphocyte"
     cancer_type: null
-    expression_backend: packaged_rnaseq
+    expression_backend: none
     expression_key: "HHC"
-    source_ids: ["Pearson_BLCL_panel"]
-    notes: "Donor EBV-LCL profiled by the Pearson / Caron labs alongside JY."
+    source_ids: []
+    notes: "Donor EBV-LCL; no validated exact-line RNA source is registered. Uses GM12878 as a family surrogate."
 
   - name: "GR"
     aliases: ["gr ebv-lcl", "gr (ebv-lcl)", "gr b-lcl"]
