@@ -3028,3 +3028,78 @@ Keep memory-heavy audits and full suites serial with the active deployment.
 - [ ] Review conflicts, confirm scoped diffs, and rerun focused validation.
 - [ ] Repeat source/corpus audits and final supported-version CI.
 - [ ] Run format/lint/full local tests, review, merge and publish after #531.
+
+## PR #536 release-runner restack (1.62.41)
+
+Move the already reviewed scientific patch after the release-runner
+foundation (#539, 1.62.39). Preserve its code, source data and tests exactly.
+Retain the original branch; prove patch identity, bump the release version,
+run format/lint and final-head CI, and repeat the relevant compact source
+audit before merging. Run the full clean-main release workflow and verify
+its tested artifacts before local PyPI publication. No memory gate is waived.
+
+- [x] Prove the non-planning patch is unchanged.
+- [ ] Run format/lint, focused checks, source audit and final-head CI.
+- [ ] Review, merge, run the clean-main release and verify PyPI publication.
+
+
+# Keep peptide-to-patient attribution within its source cohort (#534)
+
+Primary-source review confirms that Sarkizova 2020 (PMID 31844290,
+PMC7008090) contains independent monoallelic 721.221 and patient-tumor
+experiments. Supplementary Data 2 (publisher MOESM4, SHA256
+46bf469653a4e252825f185e1d2946a717aace0d9e894cb0c0e81903100bbfca)
+contains patient sample directories, including MEL_13240_005 and its IFNG
+arm for NAPWAVTSL. Peptide overlap does not transfer that patient identity
+to a separately recorded monoallelic assay. Reconcile the existing CSV
+against the workbook without changing its valid patient assignments.
+
+Declare `peptide_attribution_restrictions` in PMID YAML: an optional
+validated nonempty list of exact reported restriction strings to which the
+registered peptide map applies. For Sarkizova, allow only the deposited
+`HLA class I` patient-cohort restriction. Match before donor-set promotion;
+do not infer cohort eligibility from derived monoallelic flags or require
+source classification to be enabled. Unscoped Connelley maps retain their
+source-verified exact-allele behavior. Preserve the public peptide map API.
+
+Repair derived labels in existing observation/binding artifacts at load:
+for scoped studies, retain genuinely narrowed `peptide_attribution` rows,
+but clear labels attached to out-of-scope exact restrictions. Remove only
+the duplicate donor copies of those invalid rows, keyed by their original
+PMID, assay IRI, peptide, and restriction. Retain raw evidence and valid
+patient splits. Require a rebuild if a stale affected row has no source
+assay identity; never guess which repeated rows are independent assays.
+Projection must pull the repair inputs and then return exactly the requested
+columns, including a one-column peptide query. Bump the artifact version
+so a normal rebuild regenerates the corrected scan rather than skipping.
+
+The current MS artifact has 89,723 mislabelled monoallelic rows representing
+47,641 source assay/peptide/restriction records: 42,082 excess donor copies.
+Its 54,682 valid patient-attribution rows must be unchanged. Audit the
+complete affected study and both index modalities, then check scanner output
+from original source rows and export metadata, including HLA-G. This fix
+must precede the class-roster change in #535/#532.
+
+- [x] Reconcile patient CSV pairs against original Supplementary Data 2.
+- [x] Add failing mixed-cohort scan, old-index repair, projection, and schema tests.
+- [x] Implement validated source scope, scanner guard, and derived-index repair.
+- [x] Audit affected study and preserve Connelley exact-allele attribution.
+- [ ] Run format/lint/full tests and CI; review, merge and deploy 1.62.41.
+
+Review: the CSV exactly matches all 39,624 original workbook peptide–patient
+pairs (zero missing or unsupported pairs) and remains unchanged. Across the
+stored study, 89,723 false labels become 47,641 unlabelled independent source
+records, removing only 42,082 excess donor copies. Their retained evidence
+is identical; all 54,682 valid patient rows and all 146 Connelley MS rows
+are identical before and after, including their exports. HLA-G rows now
+export the corresponding 721.221 transfectants and HLA-G typing. Re-scanning
+the original IEDB/CEDAR rows independently gives the exact same result as
+repairing the old scan, with all 222 Connelley scan rows unchanged.
+
+The initial regression run failed 14 cases on the unchanged base. Format,
+lint, and 391 expanded tests pass; the additional public-export regression
+also passes. All 64 final scanner/repair cases pass on Python 3.9. The local
+full suite and final CI remain required; memory guards currently prevent
+release validation. Latest development HEADs for mhcflurry, mhcgnomes,
+pyensembl, datacache, gtfparse, and serializable were rechecked and match the
+isolated test environment. This PR remains a draft until its gates pass.
