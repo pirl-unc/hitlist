@@ -19,6 +19,47 @@ the change cannot turn a mixed-line match into a single winner. Format/lint
 and the focused non-integration group suite pass. Full tests and CI remain
 required before merge.
 
+## #457 specification — source-verified study identities
+
+Re-read primary papers, supplementary sample maps, and every deposited row
+description for PMIDs 28834231, 26375851, and 32488085 before editing their
+YAML blocks. Correct Ritz's JY arm to MAVER-1 with the deposited six-allele
+genotype; remove its unsupported EBV reference. Correct Schellens's pathogen
+to measles Edmonston B, retaining honest arm ambiguity where IEDB merges
+conditions. Replace Stopfer's unsupported A375 arms with the four melanoma
+lines actually profiled, separating vehicle, two palbociclib doses, and IFN-gamma;
+retain MDA-MB-231 only for the technical/absolute-quantification experiments.
+Do not infer missing HLA typing from another cell line or from prediction.
+Measure attribution before/after on all affected observations and pin source
+facts and ambiguity behavior in regressions. Change only the three study
+blocks plus necessary attribution support if a reproducible defect is found
+and filed. Bump to 1.62.26, review, run format/lint/test and CI, merge/deploy.
+
+- [x] Verify papers, supplement sample maps, genotypes and deposited descriptions.
+- [x] Correct the three YAML records and update resolution notes from evidence.
+- [x] Compare all affected rows and add meaningful regression coverage.
+- [ ] Run required checks, review and merge PR, deploy and verify PyPI.
+
+Review: all three source-fact regressions fail against the previous curation;
+326 focused checks pass with corrected data. Semantically only the three
+study blocks changed. All 7,646 MAVER-1 rows now resolve, the 5,093 HEK293 rows
+keep their correct identity, and all 8,024 Schellens rows retain infection-arm
+ambiguity. With #511, all 15,821 Stopfer rows identify their cell line; the
+3,544 MDA-MB-231 rows reach quantification validation, while all 12,277 melanoma
+rows retain unknown treatment pending #512. Found and filed a separate
+disjoint-genotype text-attribution defect as #514; it does not affect these
+stored rows because their source tissue is populated.
+
+Primary sources: PMC5846733 / doi:10.1002/pmic.201700177 (explicit SSO/SSP
+genotypes); PMC4574158 / doi:10.1371/journal.pone.0136417 (Methods, Table 1,
+S1 Table); PMC7265461 / doi:10.1038/s41467-020-16588-9 (Methods, Figures 2–6,
+Supplementary Data 3 and 5 file maps). UniProt identifies UP000100252 as
+measles Edmonston B. Stopfer's main paper also corrects the old instrument,
+search engine and invented A375 copy-number claim. Its supplementary raw
+headers sometimes say 1uM on 10uM sheets; dose identity was checked against
+sheet titles, normalized columns, file maps and the main paper, not inferred
+from those inconsistent headers. No quantitative values were ingested here.
+
 ## #409 specification — modern license metadata
 
 Replace the deprecated license table and license classifier with SPDX

@@ -7115,53 +7115,44 @@
         classification: cancer_patient
 
   - pmid: 28834231
-    study_label: "Ritz 2017b — DIA method (JY + HEK293)"
-    # Arm-resolution verdict (#451): recorded so this study is not
-    # re-investigated. Describes the deposited evidence, not the curation.
-    arm_resolution: curation_gap
-    arm_resolution_note: >
-      cell_name takes 2 distinct values (MAVER-1-Lymphoblast 7,646; 293-T-Epithelial cell
-      5,093) and mhc_restriction tracks them one to one, so a per-row discriminator sits on
-      exactly the arm axis; antigen_processing_comments is constant across all 12,739 rows and
-      assay_comments is empty. The 5,093 HEK293 rows attribute and the 7,646 others do not,
-      because the second curated arm is labelled 'JY (EBV-LCL)' with JY's genotype HLA-A*02:01
-      HLA-B*07:02 HLA-C*07:02 while every deposited row carries MAVER-1's
-      HLA-A*24:02;HLA-A*26:01;HLA-B*38:01;HLA-B*44:02;HLA-C*05:01;HLA-C*12:03, the same
-      genotype curated for MAVER-1 under PMID 26992070. The paper (Proteomics 2017, doi
-      10.1002/pmic.201700177, MSV000081439) benchmarks MAVER-1 against HEK293 and never uses
-      JY, so the deposit is sufficient and the arm label is what needs correcting.
-    title: "Data-Independent Acquisition of HLA Class I Peptidomes on the Q Exactive Mass Spectrometer Platform"
+    study_label: Ritz 2017b — DIA method (MAVER-1 + HEK293)
+    arm_resolution: resolved
+    arm_resolution_note: 'Both cell_name and the reported six-/three-allele genotype distinguish MAVER-1
+      (7,646 rows) from HEK293 (5,093 rows). Primary paper Results, Figure 1 and MSV000081439 confirm
+      these two cell lines. Corrected the former JY label/genotype in #457; no EBV-LCL was used.'
+    title: Data-Independent Acquisition of HLA Class I Peptidomes on the Q Exactive Mass Spectrometer
+      Platform
     override: cell_line
-    note: >
-      JY (EBV-LCL) and HEK293 cell lines. DIA vs DDA method comparison.
-      10,000+ peptides from 100M cells.
+    note: 'MAVER-1 mantle cell lymphoma and HEK293 embryonic kidney cell lines. DDA/DIA method comparison;
+      three replicate preparations per line. Primary paper doi:10.1002/pmic.201700177 reports both
+      genotypes from SSO/SSP typing. Deposit: MSV000081439.'
     ip_antibody: W6/32
-    instrument: "Q Exactive"
-    acquisition_mode: DIA
+    instrument: Q Exactive
+    acquisition_mode: DDA + DIA
     fragmentation: HCD
     labeling: label-free
     search_engine: SEQUEST
-    fdr: "1%"
+    fdr: 1%
     ms_samples:
-      - sample_label: "JY (EBV-LCL)"
-        condition: "unperturbed"
-        condition_id: "jy_ebv_lcl"
-        condition_status: "annotated"
-        condition_evidence: "curated_text"
-        condition_control: "untreated"
-        mhc_class: "I"
-        mhc: "HLA-A*02:01 HLA-B*07:02 HLA-C*07:02"
-        reference_proteomes:
-          - uniprot: UP000153037
-            proteome_label: Epstein-Barr virus
-      - sample_label: "HEK293 (embryonic kidney)"
-        condition: "unperturbed"
-        condition_id: "hek293_embryonic_kidney"
-        condition_status: "annotated"
-        condition_evidence: "curated_text"
-        condition_control: "untreated"
-        mhc_class: "I"
-        mhc: "HLA-A*03:01 HLA-B*07:02 HLA-C*07:01"
+    - sample_label: MAVER-1 (mantle cell lymphoma)
+      condition: unperturbed
+      condition_id: maver_1_mantle_cell_lymphoma
+      condition_status: annotated
+      condition_evidence: primary_source
+      condition_control: untreated
+      mhc_class: I
+      mhc: HLA-A*24:02 HLA-A*26:01 HLA-B*38:01 HLA-B*44:02 HLA-C*05:01 HLA-C*12:03
+      condition_reference: doi:10.1002/pmic.201700177, Results and Figures 1–3; MSV000081439
+    - sample_label: HEK293 (embryonic kidney)
+      condition: unperturbed
+      condition_id: hek293_embryonic_kidney
+      condition_status: annotated
+      condition_evidence: primary_source
+      condition_control: untreated
+      mhc_class: I
+      mhc: HLA-A*03:01 HLA-B*07:02 HLA-C*07:01
+      condition_reference: doi:10.1002/pmic.201700177, Results and Figures 1–3; MSV000081439
+
 
   - pmid: 25502872
     study_label: "Bergseng 2015 — celiac HLA-DQ motifs"
@@ -7206,107 +7197,233 @@
         mhc: "HLA class I"
 
   - pmid: 32488085
-    study_label: "Stopfer 2020 — CDK4/6i + IFNg on melanoma/breast"
-    # Arm-resolution verdict (#451): recorded so this study is not
-    # re-investigated. Describes the deposited evidence, not the curation.
+    study_label: Stopfer 2020 — melanoma CDK4/6i and IFNg; breast-cell quantification
     arm_resolution: curation_gap
-    arm_resolution_note: >
-      A per-row discriminator is present on both axes the arms encode. cell_name takes 5
-      distinct values (IPC-298-Melanocyte 3,561; MDA-MB-231-Epithelial cell 3,544; SK-MEL-5
-      3,288; SK-MEL-28 2,918; SK-MEL-2 2,510) and assay_comments takes 14, naming the
-      treatment per row ('The epitope was eluted from cells treated with 10uM CDK4/6i.', 2,171
-      rows; the 10ng/mL IFNg twin, 5,528 rows). The curated arms name A375 and MDA-MB-231
-      only, and A375 is not among the 5 deposited cell_name values, so four of the five
-      deposited lines have no arm to reach. Some assay_comments values do enumerate several
-      doses at once ('1uM CDK4/6i, 10uM CDK4/6i, and 10ng/mL IFNg', 1,434 rows) and those rows
-      are genuinely multi-arm, but the single-treatment majority becomes resolvable once the
-      arm roster matches the deposited lines.
-    title: "Multiplexed relative and absolute quantitative immunopeptidomics reveals MHC I repertoire alterations induced by CDK4/6 inhibition"
+    arm_resolution_note: 'The corrected roster covers all five deposited cell_name values. sample_group
+      identifies the line. Assay comments distinguish single-treatment melanoma rows from rows listing
+      multiple treatments, but the general narrative guard does not yet resolve these dose-specific
+      statements. Keep unresolved treatment metadata blank. MDA-MB-231 quantification observations
+      share one biological unperturbed arm. See #457 for the measured before/after audit.'
+    title: Multiplexed relative and absolute quantitative immunopeptidomics reveals MHC I repertoire
+      alterations induced by CDK4/6 inhibition
     override: cell_line
-    note: >
-      hipMHC internal standards for absolute quantification of HLA-I peptides.
-      TMT 10-plex multiplexing across treatment conditions. A375 (melanoma) and
-      MDA-MB-231 (TNBC) treated with CDK4/6i (palbociclib) or IFN-gamma.
-      ~500 copies/cell for average HLA-I peptide in A375.
+    note: Primary paper doi:10.1038/s41467-020-16588-9, Figures 2–6, Methods and Supplementary Data
+      1–3/5. SK-MEL-5, SK-MEL-28, SK-MEL-2 and IPC-298 were profiled after DMSO, 1 or 10 uM palbociclib,
+      or 10 ng/mL IFNG for 72 h. MDA-MB-231 was used for label-free/TMT precision and targeted absolute
+      quantification experiments, not those drug/cytokine arms. A375 was not used. The genotypes below
+      reproduce the deposited IEDB restriction for each named line; no missing typing was inferred
+      from another line. Technical replicates and endogenous absolute-quantification targets are not
+      separate treatments.
     perturbations:
-      - "CDK4/6 inhibitor (palbociclib)"
-      - "IFN-gamma"
+    - CDK4/6 inhibitor (palbociclib)
+    - IFN-gamma
     ip_antibody: W6/32
     acquisition_mode: DDA
-    instrument: "Orbitrap Fusion Lumos"
+    instrument: Q Exactive HF-X
     fragmentation: HCD
-    labeling: "TMT + hipMHC"
-    search_engine: "Spectrum Mill"
+    labeling: label-free + TMT + hipMHC
+    search_engine: Mascot 2.4 (Proteome Discoverer 2.2)
     quantification_method: hipMHC
-    hla_alleles:
-      A375:
-        - "HLA-A*01:01"
-        - "HLA-A*02:01"
-        - "HLA-B*44:03"
-        - "HLA-B*57:01"
-        - "HLA-C*06:02"
-        - "HLA-C*16:01"
-      MDA-MB-231:
-        - "HLA-A*02:01"
-        - "HLA-A*02:50"
-        - "HLA-B*40:01"
-        - "HLA-B*41:01"
-        - "HLA-C*02:02"
-        - "HLA-C*17:01"
     ms_samples:
-      - sample_label: "A375 melanoma (untreated)"
-        condition: "unperturbed"
-        condition_id: "a375_melanoma_untreated"
-        condition_status: "annotated"
-        condition_evidence: "curated_text"
-        condition_control: "untreated"
-        mhc_class: "I"
-        mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*44:03 HLA-B*57:01 HLA-C*06:02 HLA-C*16:01"
-      - sample_label: "A375 melanoma + palbociclib"
-        condition: "CDK4/6 inhibitor (palbociclib)"
-        condition_id: "a375_melanoma_palbociclib"
-        condition_status: "annotated"
-        condition_evidence: "curated_text"
-        condition_combination: "single"
-        condition_drugs: "palbociclib"
-        mhc_class: "I"
-        mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*44:03 HLA-B*57:01 HLA-C*06:02 HLA-C*16:01"
-      - sample_label: "A375 melanoma + IFN-gamma"
-        condition: "IFN-gamma"
-        condition_id: "a375_melanoma_ifn_gamma"
-        condition_status: "annotated"
-        condition_evidence: "curated_text"
-        condition_combination: "single"
-        condition_cytokines: "IFNG"
-        mhc_class: "I"
-        mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*44:03 HLA-B*57:01 HLA-C*06:02 HLA-C*16:01"
-      - sample_label: "MDA-MB-231 TNBC (untreated)"
-        condition: "unperturbed"
-        condition_id: "mda_mb_231_tnbc_untreated"
-        condition_status: "annotated"
-        condition_evidence: "curated_text"
-        condition_control: "untreated"
-        mhc_class: "I"
-        mhc: "HLA-A*02:01 HLA-A*02:50 HLA-B*40:01 HLA-B*41:01 HLA-C*02:02 HLA-C*17:01"
-      - sample_label: "MDA-MB-231 TNBC + palbociclib"
-        condition: "CDK4/6 inhibitor (palbociclib)"
-        condition_id: "mda_mb_231_tnbc_palbociclib"
-        condition_status: "annotated"
-        condition_evidence: "curated_text"
-        condition_combination: "single"
-        condition_drugs: "palbociclib"
-        mhc_class: "I"
-        mhc: "HLA-A*02:01 HLA-A*02:50 HLA-B*40:01 HLA-B*41:01 HLA-C*02:02 HLA-C*17:01"
-      - sample_label: "MDA-MB-231 TNBC + IFN-gamma"
-        condition: "IFN-gamma"
-        condition_id: "mda_mb_231_tnbc_ifn_gamma"
-        condition_status: "annotated"
-        condition_evidence: "curated_text"
-        condition_combination: "single"
-        condition_cytokines: "IFNG"
-        mhc_class: "I"
-        mhc: "HLA-A*02:01 HLA-A*02:50 HLA-B*40:01 HLA-B*41:01 HLA-C*02:02 HLA-C*17:01"
-
+    - sample_label: SK-MEL-5 (DMSO vehicle, 72 h)
+      sample_group: SK-MEL-5
+      condition: unperturbed (DMSO vehicle, 72 h)
+      condition_id: sk_mel_5_dmso
+      condition_status: partial
+      condition_evidence: primary_source
+      condition_reference: doi:10.1038/s41467-020-16588-9, Figures 4/6, Methods; Supplementary Data
+        3 and 5 sample/file maps
+      condition_control: vehicle
+      mhc_class: I
+      mhc: HLA-A*02:01 HLA-A*11:01 HLA-B*07:02 HLA-B*40:01 HLA-C*03:04 HLA-C*07:02
+    - sample_label: SK-MEL-5 (palbociclib (CDK4/6i), 1 uM, 72 h)
+      sample_group: SK-MEL-5
+      condition: palbociclib (CDK4/6i), 1 uM, 72 h
+      condition_id: sk_mel_5_palbociclib_1um
+      condition_status: partial
+      condition_evidence: primary_source
+      condition_reference: doi:10.1038/s41467-020-16588-9, Figures 4/6, Methods; Supplementary Data
+        3 and 5 sample/file maps
+      condition_combination: single
+      condition_drugs: palbociclib
+      mhc_class: I
+      mhc: HLA-A*02:01 HLA-A*11:01 HLA-B*07:02 HLA-B*40:01 HLA-C*03:04 HLA-C*07:02
+    - sample_label: SK-MEL-5 (palbociclib (CDK4/6i), 10 uM, 72 h)
+      sample_group: SK-MEL-5
+      condition: palbociclib (CDK4/6i), 10 uM, 72 h
+      condition_id: sk_mel_5_palbociclib_10um
+      condition_status: partial
+      condition_evidence: primary_source
+      condition_reference: doi:10.1038/s41467-020-16588-9, Figures 4/6, Methods; Supplementary Data
+        3 and 5 sample/file maps
+      condition_combination: single
+      condition_drugs: palbociclib
+      mhc_class: I
+      mhc: HLA-A*02:01 HLA-A*11:01 HLA-B*07:02 HLA-B*40:01 HLA-C*03:04 HLA-C*07:02
+    - sample_label: SK-MEL-5 (IFN-gamma, 10 ng/mL, 72 h)
+      sample_group: SK-MEL-5
+      condition: IFN-gamma, 10 ng/mL, 72 h
+      condition_id: sk_mel_5_ifng
+      condition_status: partial
+      condition_evidence: primary_source
+      condition_reference: doi:10.1038/s41467-020-16588-9, Figures 4/6, Methods; Supplementary Data
+        3 and 5 sample/file maps
+      condition_combination: single
+      condition_cytokines: IFNG
+      mhc_class: I
+      mhc: HLA-A*02:01 HLA-A*11:01 HLA-B*07:02 HLA-B*40:01 HLA-C*03:04 HLA-C*07:02
+    - sample_label: SK-MEL-28 (DMSO vehicle, 72 h)
+      sample_group: SK-MEL-28
+      condition: unperturbed (DMSO vehicle, 72 h)
+      condition_id: sk_mel_28_dmso
+      condition_status: partial
+      condition_evidence: primary_source
+      condition_reference: doi:10.1038/s41467-020-16588-9, Figures 4/6, Methods; Supplementary Data
+        3 and 5 sample/file maps
+      condition_control: vehicle
+      mhc_class: I
+      mhc: HLA-A*11:01 HLA-B*40:01 HLA-C*03:04
+    - sample_label: SK-MEL-28 (palbociclib (CDK4/6i), 1 uM, 72 h)
+      sample_group: SK-MEL-28
+      condition: palbociclib (CDK4/6i), 1 uM, 72 h
+      condition_id: sk_mel_28_palbociclib_1um
+      condition_status: partial
+      condition_evidence: primary_source
+      condition_reference: doi:10.1038/s41467-020-16588-9, Figures 4/6, Methods; Supplementary Data
+        3 and 5 sample/file maps
+      condition_combination: single
+      condition_drugs: palbociclib
+      mhc_class: I
+      mhc: HLA-A*11:01 HLA-B*40:01 HLA-C*03:04
+    - sample_label: SK-MEL-28 (palbociclib (CDK4/6i), 10 uM, 72 h)
+      sample_group: SK-MEL-28
+      condition: palbociclib (CDK4/6i), 10 uM, 72 h
+      condition_id: sk_mel_28_palbociclib_10um
+      condition_status: partial
+      condition_evidence: primary_source
+      condition_reference: doi:10.1038/s41467-020-16588-9, Figures 4/6, Methods; Supplementary Data
+        3 and 5 sample/file maps
+      condition_combination: single
+      condition_drugs: palbociclib
+      mhc_class: I
+      mhc: HLA-A*11:01 HLA-B*40:01 HLA-C*03:04
+    - sample_label: SK-MEL-28 (IFN-gamma, 10 ng/mL, 72 h)
+      sample_group: SK-MEL-28
+      condition: IFN-gamma, 10 ng/mL, 72 h
+      condition_id: sk_mel_28_ifng
+      condition_status: partial
+      condition_evidence: primary_source
+      condition_reference: doi:10.1038/s41467-020-16588-9, Figures 4/6, Methods; Supplementary Data
+        3 and 5 sample/file maps
+      condition_combination: single
+      condition_cytokines: IFNG
+      mhc_class: I
+      mhc: HLA-A*11:01 HLA-B*40:01 HLA-C*03:04
+    - sample_label: SK-MEL-2 (DMSO vehicle, 72 h)
+      sample_group: SK-MEL-2
+      condition: unperturbed (DMSO vehicle, 72 h)
+      condition_id: sk_mel_2_dmso
+      condition_status: partial
+      condition_evidence: primary_source
+      condition_reference: doi:10.1038/s41467-020-16588-9, Figures 4/6, Methods; Supplementary Data
+        3 and 5 sample/file maps
+      condition_control: vehicle
+      mhc_class: I
+      mhc: HLA-A*03:01 HLA-A*26:01 HLA-B*35:08 HLA-B*38:01 HLA-C*04:01 HLA-C*12:03
+    - sample_label: SK-MEL-2 (palbociclib (CDK4/6i), 1 uM, 72 h)
+      sample_group: SK-MEL-2
+      condition: palbociclib (CDK4/6i), 1 uM, 72 h
+      condition_id: sk_mel_2_palbociclib_1um
+      condition_status: partial
+      condition_evidence: primary_source
+      condition_reference: doi:10.1038/s41467-020-16588-9, Figures 4/6, Methods; Supplementary Data
+        3 and 5 sample/file maps
+      condition_combination: single
+      condition_drugs: palbociclib
+      mhc_class: I
+      mhc: HLA-A*03:01 HLA-A*26:01 HLA-B*35:08 HLA-B*38:01 HLA-C*04:01 HLA-C*12:03
+    - sample_label: SK-MEL-2 (palbociclib (CDK4/6i), 10 uM, 72 h)
+      sample_group: SK-MEL-2
+      condition: palbociclib (CDK4/6i), 10 uM, 72 h
+      condition_id: sk_mel_2_palbociclib_10um
+      condition_status: partial
+      condition_evidence: primary_source
+      condition_reference: doi:10.1038/s41467-020-16588-9, Figures 4/6, Methods; Supplementary Data
+        3 and 5 sample/file maps
+      condition_combination: single
+      condition_drugs: palbociclib
+      mhc_class: I
+      mhc: HLA-A*03:01 HLA-A*26:01 HLA-B*35:08 HLA-B*38:01 HLA-C*04:01 HLA-C*12:03
+    - sample_label: SK-MEL-2 (IFN-gamma, 10 ng/mL, 72 h)
+      sample_group: SK-MEL-2
+      condition: IFN-gamma, 10 ng/mL, 72 h
+      condition_id: sk_mel_2_ifng
+      condition_status: partial
+      condition_evidence: primary_source
+      condition_reference: doi:10.1038/s41467-020-16588-9, Figures 4/6, Methods; Supplementary Data
+        3 and 5 sample/file maps
+      condition_combination: single
+      condition_cytokines: IFNG
+      mhc_class: I
+      mhc: HLA-A*03:01 HLA-A*26:01 HLA-B*35:08 HLA-B*38:01 HLA-C*04:01 HLA-C*12:03
+    - sample_label: IPC-298 (DMSO vehicle, 72 h)
+      sample_group: IPC-298
+      condition: unperturbed (DMSO vehicle, 72 h)
+      condition_id: ipc_298_dmso
+      condition_status: partial
+      condition_evidence: primary_source
+      condition_reference: doi:10.1038/s41467-020-16588-9, Figures 4/6, Methods; Supplementary Data
+        3 and 5 sample/file maps
+      condition_control: vehicle
+      mhc_class: I
+      mhc: HLA-A*03:01 HLA-A*24:02 HLA-B*07:02 HLA-B*35:02 HLA-C*04:01 HLA-C*07:02
+    - sample_label: IPC-298 (palbociclib (CDK4/6i), 1 uM, 72 h)
+      sample_group: IPC-298
+      condition: palbociclib (CDK4/6i), 1 uM, 72 h
+      condition_id: ipc_298_palbociclib_1um
+      condition_status: partial
+      condition_evidence: primary_source
+      condition_reference: doi:10.1038/s41467-020-16588-9, Figures 4/6, Methods; Supplementary Data
+        3 and 5 sample/file maps
+      condition_combination: single
+      condition_drugs: palbociclib
+      mhc_class: I
+      mhc: HLA-A*03:01 HLA-A*24:02 HLA-B*07:02 HLA-B*35:02 HLA-C*04:01 HLA-C*07:02
+    - sample_label: IPC-298 (palbociclib (CDK4/6i), 10 uM, 72 h)
+      sample_group: IPC-298
+      condition: palbociclib (CDK4/6i), 10 uM, 72 h
+      condition_id: ipc_298_palbociclib_10um
+      condition_status: partial
+      condition_evidence: primary_source
+      condition_reference: doi:10.1038/s41467-020-16588-9, Figures 4/6, Methods; Supplementary Data
+        3 and 5 sample/file maps
+      condition_combination: single
+      condition_drugs: palbociclib
+      mhc_class: I
+      mhc: HLA-A*03:01 HLA-A*24:02 HLA-B*07:02 HLA-B*35:02 HLA-C*04:01 HLA-C*07:02
+    - sample_label: IPC-298 (IFN-gamma, 10 ng/mL, 72 h)
+      sample_group: IPC-298
+      condition: IFN-gamma, 10 ng/mL, 72 h
+      condition_id: ipc_298_ifng
+      condition_status: partial
+      condition_evidence: primary_source
+      condition_reference: doi:10.1038/s41467-020-16588-9, Figures 4/6, Methods; Supplementary Data
+        3 and 5 sample/file maps
+      condition_combination: single
+      condition_cytokines: IFNG
+      mhc_class: I
+      mhc: HLA-A*03:01 HLA-A*24:02 HLA-B*07:02 HLA-B*35:02 HLA-C*04:01 HLA-C*07:02
+    - sample_label: MDA-MB-231 (quantification validation)
+      sample_group: MDA-MB-231
+      condition: unperturbed
+      condition_id: mda_mb_231_quantification
+      condition_status: annotated
+      condition_evidence: primary_source
+      condition_reference: doi:10.1038/s41467-020-16588-9, Figures 2/3; Supplementary Data 1/2
+      condition_control: untreated
+      mhc_class: I
+      mhc: HLA-A*02:01 HLA-A*02:17 HLA-B*40:02 HLA-B*41:01 HLA-C*02:02 HLA-C*17:01
+    fdr: 'TMT: Percolator q <= 0.05; label-free: Mascot ion score >= 20'
 # ── Batch 3: studies 31-50 by peptide count ────────────────────────────────
 
   - pmid: 28188227
@@ -8569,51 +8686,61 @@
         mhc: "HLA-B*57:01"
 
   - pmid: 26375851
-    study_label: "Schellens 2015 — EBV-LCLs ± vaccinia virus"
-    # Arm-resolution verdict (#451): recorded so this study is not
-    # re-investigated. Describes the deposited evidence, not the curation.
+    study_label: Schellens 2015 — EBV-LCLs ± measles virus
     arm_resolution: no_row_discriminator
-    arm_resolution_note: >
-      Measured: all four per-row fields are constant across the 8,024 rows. cell_name is
-      'Lymphoblast', source_tissue is 'Lymphoid', and the one antigen_processing_comments
-      sentence describes the whole experiment on every row ('eluted from four different B
-      lymphoblastoid cell-lines (BLCL) in both steady state (uninfected) and following in
-      vitro infection with measles virus'), naming both arms everywhere rather than
-      partitioning rows; the single assay_comments sentence does the same. mhc_restriction
-      varies (17 distinct values; 'HLA-B*44:02' 1,169 rows) but that is the allele axis,
-      orthogonal to the infected/uninfected split the arms encode.
-    title: "Comprehensive Analysis of the Naturally Processed Peptide Repertoire: Differences between HLA-A and B in the Immunopeptidome"
-    override: ebv_lcl
-    perturbations: ["Vaccinia virus infection (some conditions)"]
-    ms_samples:
-      - sample_label: "EBV-LCLs (uninfected)"
-        condition: "unperturbed"
-        condition_id: "ebv_lcls_uninfected"
-        condition_status: "annotated"
-        condition_evidence: "curated_text"
-        condition_control: "untreated"
-        mhc_class: "I"
-        mhc: "HLA class I"
-        reference_proteomes:
-          - uniprot: UP000153037
-            proteome_label: Epstein-Barr virus
-      - sample_label: "EBV-LCLs + vaccinia virus"
-        condition: "vaccinia virus infection"
-        condition_id: "ebv_lcls_vaccinia_virus"
-        condition_status: "annotated"
-        condition_evidence: "curated_text"
-        condition_combination: "single"
-        condition_infection: "Vaccinia virus"
-        mhc_class: "I"
-        mhc: "HLA class I"
+    arm_resolution_note: 'Measured: all four per-row fields are constant across the 8,024 rows. cell_name
+      is ''Lymphoblast'', source_tissue is ''Lymphoid'', and the one antigen_processing_comments sentence
+      describes the whole experiment on every row (''eluted from four different B lymphoblastoid cell-lines
+      (BLCL) in both steady state (uninfected) and following in vitro infection with measles virus''),
+      naming both arms everywhere rather than partitioning rows; the single assay_comments sentence
+      does the same. mhc_restriction varies (17 distinct values; ''HLA-B*44:02'' 1,169 rows) but that
+      is the allele axis, orthogonal to the infected/uninfected split the arms encode.
 
+      '
+    title: 'Comprehensive Analysis of the Naturally Processed Peptide Repertoire: Differences between
+      HLA-A and B in the Immunopeptidome'
+    override: ebv_lcl
+    perturbations:
+    - Measles virus infection (Edmonston B strain)
+    ms_samples:
+    - sample_label: EBV-LCLs (uninfected)
+      condition: unperturbed
+      condition_id: ebv_lcls_uninfected
+      condition_status: annotated
+      condition_evidence: primary_source
+      condition_control: untreated
+      mhc_class: I
+      mhc: HLA class I
+      reference_proteomes:
+      - uniprot: UP000153037
+        proteome_label: Epstein-Barr virus
+      n_samples: 4
+      condition_reference: doi:10.1371/journal.pone.0136417, Cell culture and infection; Table 1; S1
+        Table
+    - sample_label: EBV-LCLs + measles virus (Edmonston B)
+      condition: measles virus infection (Edmonston B, MOI 0.5, 48 h)
+      condition_id: ebv_lcls_measles_virus
+      condition_status: partial
+      condition_evidence: primary_source
+      condition_combination: single
+      condition_infection: Measles virus
+      mhc_class: I
+      mhc: HLA class I
+      reference_proteomes:
+      - uniprot: UP000153037
+        proteome_label: Epstein-Barr virus
+      - uniprot: UP000100252
+        proteome_label: Measles virus (strain Edmonston B)
+      n_samples: 4
+      condition_reference: doi:10.1371/journal.pone.0136417, Cell culture and infection; Table 1; S1
+        Table
+    note: 'Primary paper doi:10.1371/journal.pone.0136417, Cell culture and infection: BLCL1053, BLCL1077,
+      BLCL1090 and BLCL1112 were each split into uninfected and measles Edmonston B-infected batches
+      (MOI 0.5, 48 h). Table 1 reports per-line typing; S1 Table records line and infection status
+      per peptide. The two records below summarize four lines each; they do not assert a pooled genotype.
+      IEDB narrative fields do not preserve that per-peptide infection discriminator.'
 # --- Healthy/adjacent tissue studies ---
 
-        reference_proteomes:
-          - uniprot: UP000153037
-            proteome_label: Epstein-Barr virus
-          - uniprot: UP000000344
-            proteome_label: Vaccinia virus
   - pmid: 29789417
     study_label: "Loffler 2018 — CRC + matched normal colon"
     title: "Mapping the HLA Ligandome of Colorectal Cancer Reveals an Imprint of Malignant Cell Transformation"
