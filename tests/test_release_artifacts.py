@@ -5,6 +5,7 @@ import json
 import subprocess
 from io import BytesIO
 from pathlib import Path
+from types import SimpleNamespace
 from zipfile import ZipFile
 
 import pytest
@@ -18,8 +19,22 @@ verify_manifest = release_artifacts.verify_manifest
 write_manifest = release_artifacts.write_manifest
 
 
+def development_distributions():
+    return [
+        SimpleNamespace(
+            metadata={"Name": name},
+            version="1.2.3",
+            read_text=lambda filename: json.dumps({"vcs_info": {"commit_id": "a" * 40}}),
+        )
+        for name in release_artifacts.DEVELOPMENT_DEPENDENCIES
+    ]
+
+
 @pytest.fixture
 def release_bundle(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        release_artifacts.importlib.metadata, "distributions", development_distributions
+    )
     root = tmp_path / "repo"
     root.mkdir()
     (root / "hitlist").mkdir()
@@ -187,5 +202,25 @@ def test_missing_corpus_cannot_produce_release_manifest(release_bundle):
     (corpus / "observations.parquet").unlink()
     (dist / "release.json").unlink()
     with pytest.raises(FileNotFoundError):
+        write_manifest(dist, corpus, root)
+    assert not (dist / "release.json").exists()
+
+
+@pytest.mark.parametrize("missing_installation", [False, True])
+def test_pypi_version_without_git_revision_cannot_authorize_release(
+    release_bundle, monkeypatch, missing_installation
+):
+    root, dist, corpus, _ = release_bundle
+    distributions = development_distributions()
+    if missing_installation:
+        distributions.pop()
+    else:
+        # Same version as the Git install, but installed from the package index.
+        distributions[-1].read_text = lambda filename: None
+    monkeypatch.setattr(
+        release_artifacts.importlib.metadata, "distributions", lambda: distributions
+    )
+    (dist / "release.json").unlink()
+    with pytest.raises(ValueError, match=r"lack installed Git revisions.*mhcgnomes"):
         write_manifest(dist, corpus, root)
     assert not (dist / "release.json").exists()
