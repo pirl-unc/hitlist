@@ -574,4 +574,37 @@ hitlist qc proteome-coverage --missing-only --min-rows 100
 ./deploy.sh     # lint + test + build + upload to PyPI
 ```
 
+When local memory cannot support the corpus tests, the **Release build** GitHub
+workflow runs the same gates on a hosted runner. It requires the full CI corpus,
+installs the current development heads of the six sibling libraries, and records
+their resolved revisions with the source commit and artifact checksums. The
+workflow builds artifacts; PyPI authentication stays on the maintainer's machine.
+
+From a clean, up-to-date `main` checkout, dispatch the workflow and wait for its
+successful manual run. A pull-request validation run cannot authorize publication.
+
+```bash
+gh workflow run release-build.yml --ref main
+gh run list --workflow release-build.yml
+```
+
+Set `release_run_id` to that successful manual run's ID, then download into an
+empty directory and verify before uploading. The verifier rejects a different
+source commit or version, a non-main checkout, failed or PR workflow runs, and
+modified distributions. Publish the downloaded wheel and sdist without rebuilding:
+
+```bash
+set -e
+release_dir=$(mktemp -d)
+gh run download "$release_run_id" \
+  --name "hitlist-release-$(git rev-parse HEAD)" --dir "$release_dir"
+python scripts/release_artifacts.py verify "$release_dir"
+python scripts/check_distribution_license.py "$release_dir"
+twine check "$release_dir"/*.whl "$release_dir"/*.tar.gz
+twine upload "$release_dir"/*.whl "$release_dir"/*.tar.gz
+```
+
+`./deploy.sh --build-only` retains the lint, full test, build and license gates,
+and stops before upload. It does not mark a release as published.
+
 See [docs/pmid-curation.md](docs/pmid-curation.md) for the curation YAML format and per-study overrides.

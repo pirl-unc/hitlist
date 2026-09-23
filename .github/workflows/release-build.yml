@@ -1,0 +1,85 @@
+name: Release build
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/release-build.yml
+      - deploy.sh
+      - scripts/release_artifacts.py
+      - tests/test_deploy_script.py
+      - tests/test_release_artifacts.py
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-build-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      TEST_SH_MAX: "1"
+      CORPUS_VERSION: v1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && 'main' || github.ref }}
+
+      - name: Verify dispatch source
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          test "$(git branch --show-current)" = main
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install release tools and current development dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,alleles]" build twine
+          pip install --upgrade \
+            git+https://github.com/openvax/datacache.git@master \
+            git+https://github.com/openvax/gtfparse.git@master \
+            git+https://github.com/openvax/serializable.git@master \
+            git+https://github.com/openvax/mhcflurry.git@master \
+            git+https://github.com/openvax/pyensembl.git@main \
+            git+https://github.com/pirl-unc/mhcgnomes.git@main
+          pip check
+
+      - name: Require the integration corpus
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          corpus_dir="$RUNNER_TEMP/hitlist-ci-corpus"
+          mkdir -p "$corpus_dir"
+          gh release download "ci-corpus-$CORPUS_VERSION" \
+            --repo "$GITHUB_REPOSITORY" --pattern '*.parquet' --dir "$corpus_dir"
+          for filename in observations peptide_mappings binding bulk_proteomics line_expression; do
+            test -s "$corpus_dir/$filename.parquet"
+          done
+          echo "HITLIST_DATA_DIR=$corpus_dir" >> "$GITHUB_ENV"
+
+      - name: Format, test and build the release artifacts
+        run: |
+          ./format.sh
+          ruff check scripts/release_artifacts.py
+          ruff format --check scripts/release_artifacts.py
+          test -z "$(git status --porcelain --untracked-files=no)"
+          ./deploy.sh --build-only
+          twine check dist/*.whl dist/*.tar.gz
+          python scripts/release_artifacts.py write dist --corpus-dir "$HITLIST_DATA_DIR"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hitlist-release-${{ github.sha }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7

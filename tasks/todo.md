@@ -1,5 +1,45 @@
 # September 22 backlog campaign
 
+## #538 specification — release artifacts from the existing CI runner
+
+The requested correctness fixes are merged, but local memory repeatedly
+prevents the mandatory corpus tests from starting. Use the existing hosted
+runner for the full test/build phase and retain local PyPI authentication.
+Add `deploy.sh --build-only`, preserving every existing lint/test/build/license
+gate and ordinary deployment behavior. Reject unknown options before doing
+work, and never label a build-only result as a completed deployment.
+
+Add a release-build workflow with a manual main-branch entry point and a
+PR validation path limited to its own files. Require all five corpus files;
+missing corpus must fail, not silently skip integration coverage. Install
+the six locally developed dependencies from their current development heads
+and record their resolved revisions. Run format, require a clean tree, then
+the full build-only release with one worker and unchanged memory budgets.
+
+Record the source commit, package version, installed dependencies and exact
+wheel/sdist hashes in the artifact bundle. Before local upload, require a
+successful manual workflow run on the current clean main commit, verify the
+bundle against that commit/version, run the existing license checker and
+twine metadata check, then upload those exact files and verify public PyPI
+hashes. No PyPI credential leaves this machine. Bump to 1.62.39; subsequent
+unmerged queue versions must move up before they land.
+
+- [x] Implement build-only behavior and meaningful release-script regressions.
+- [x] Add workflow, artifact provenance and rejection checks.
+- [ ] Run format/lint, script regressions, workflow validation and CI review.
+- [ ] Merge, run the full release build from clean main on CI, publish locally,
+      and verify both PyPI artifact hashes before marking the fixes shipped.
+
+Review: format/lint and actionlint 1.7.12 pass. All 22 deployment/artifact
+checks pass on Python 3.9 and 3.12; the earlier combined run also passed all
+17 unchanged memory/test-runner regressions. Build-only failures propagate
+from lint, tests and license verification. Artifact validation checks the
+successful manual workflow, exact clean-main commit, package version and
+file hashes, then compares the manifest with the actual retained GitHub
+artifact. A forged local manifest cannot borrow a real successful run ID.
+PR-run builds are deliberately ineligible for publication. Full CI release
+validation and clean-main publication remain required.
+
 ## #511 specification — numeric cell-line identifiers
 
 The group identifier tokenizer drops one-digit numeric suffixes, conflating
