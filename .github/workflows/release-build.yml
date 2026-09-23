@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      TEST_SH_MAX: "1"
+      TEST_SH_MAX: "2"
       PYTEST_ADDOPTS: "-ra"
       CORPUS_VERSION: v1
     steps:

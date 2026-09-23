@@ -14,7 +14,7 @@ PR validation path limited to its own files. Require all five corpus files;
 missing corpus must fail, not silently skip integration coverage. Install
 the six locally developed dependencies from their current development heads
 and record their resolved revisions. Run format, require a clean tree, then
-the full build-only release with one worker and unchanged memory budgets.
+the full build-only release with at most two workers and unchanged memory budgets.
 
 Record the source commit, package version, installed dependencies and exact
 wheel/sdist hashes in the artifact bundle. Before local upload, require a
@@ -50,6 +50,10 @@ revision. Repeat the full release build on the corrected head before merging.
 All 24 release/deployment regressions now pass on Python 3.9 and 3.12;
 format, lint and actionlint pass. Final-head CI and actual main publication
 remain pending. The release workflow now reports individual skip reasons.
+The first runner had 14.5 GiB available in both phases. Allow the existing
+memory/CPU guard to select up to two workers, matching successful corpus CI;
+it still falls back to one when memory permits only one, and refuses when
+the unchanged per-worker budget cannot fit.
 
 ## #511 specification — numeric cell-line identifiers
 
