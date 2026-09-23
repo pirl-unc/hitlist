@@ -2676,6 +2676,32 @@ verified primary inputs and complete profile QC are ready.
 
 # Retired allele identities without rewriting reported typing (#456)
 
+## Priority release plan for genotype correctness (#528, #514)
+
+The user elevated mutation-token fabrication and genotype-contradicting
+attribution as urgent correctness defects. Their implementation exists in
+PRs #530 and #531, but the old stack makes them wait for unrelated changes.
+Retain #529's allele-identity handling as the true prerequisite, then
+restack #529 -> #530 -> #531 directly on current main. Preserve the reserved
+versions 1.62.36, 1.62.37, and 1.62.38; patch versions may skip unshipped
+numbers. Other PRs must be rebased and bumped beyond the priority releases
+before they land. Preserve named backups of all original branch tips.
+
+No scientific values should be changed by restacking. Re-run mutation
+ownership and downstream join regressions, missing-tissue genotype tests,
+and corpus audits on the new bases. Retain uncertainty for coarse typing,
+missing loci, and predicted restrictions. Recheck latest development
+dependencies without modifying an environment while tests are running.
+Complete format, lint, full tests, final CI, review, merge and clean-main
+PyPI deployment for each PR in dependency order. Never weaken memory guards
+or report an unreleased draft as fixed for installed users.
+
+- [ ] Back up branch tips and restack the three priority PRs on main.
+- [ ] Verify regressions, current curation impact, and supported Python versions.
+- [ ] Run format/lint/full tests and final-head CI on the restacked PRs.
+- [ ] Publish pending main release, then merge/deploy #529, #530, and #531.
+- [ ] Rebase and renumber the remaining queue after the priority releases.
+
 IPD-IMGT/HLA 3.65.0 Deleted_alleles.txt (2026-07-14), HLA00317, confirms
 B*4401 was a sequence error identical to B*44:02:01:01 (March 1994).
 The audited 832-token vocabulary changes only B*44:01, on 7,127 rows.

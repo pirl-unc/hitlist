@@ -1,5 +1,12 @@
 # Lessons
 
+## 2026-09-23
+
+- Give silent data-corruption fixes an independently shippable path. Keep
+  only their real prerequisites in front of them; unrelated feature PRs
+  should not delay genotype correctness. A tested draft is not a shipped
+  fix, and status reports must distinguish those states explicitly.
+
 ## 2026-09-22
 
 - Respect biological units when diagnosing predictor input limits. MHCflurry's
