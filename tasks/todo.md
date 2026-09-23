@@ -40,6 +40,17 @@ artifact. A forged local manifest cannot borrow a real successful run ID.
 PR-run builds are deliberately ineligible for publication. Full CI release
 validation and clean-main publication remain required.
 
+Artifact review found that `pip install --upgrade` resolved all six Git heads
+but retained five same-version PyPI installations. The first workflow therefore
+does not prove development-source validation and cannot authorize publication.
+Remove those six installations in the disposable runner before installing their
+Git refs. Validate VCS provenance immediately after installation and again when
+writing the manifest; add a regression for same-version packages without a Git
+revision. Repeat the full release build on the corrected head before merging.
+All 24 release/deployment regressions now pass on Python 3.9 and 3.12;
+format, lint and actionlint pass. Final-head CI and actual main publication
+remain pending. The release workflow now reports individual skip reasons.
+
 ## #511 specification — numeric cell-line identifiers
 
 The group identifier tokenizer drops one-digit numeric suffixes, conflating

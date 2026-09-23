@@ -19,6 +19,14 @@ CORPUS_FILES = (
     "bulk_proteomics.parquet",
     "line_expression.parquet",
 )
+DEVELOPMENT_DEPENDENCIES = (
+    "datacache",
+    "gtfparse",
+    "serializable",
+    "mhcflurry",
+    "pyensembl",
+    "mhcgnomes",
+)
 
 
 def file_digest(path):
@@ -50,9 +58,8 @@ def distribution_files(directory, version):
     return {name: file_digest(directory / name) for name in sorted(expected)}
 
 
-def write_manifest(directory, corpus_dir, root=ROOT):
-    source = source_state(root)
-    corpus = {name: file_digest(corpus_dir / name) for name in CORPUS_FILES}
+def installed_dependencies():
+    """Require actual Git installations, including when PyPI has the same version."""
     dependencies = {}
     for distribution in importlib.metadata.distributions():
         direct = json.loads(distribution.read_text("direct_url.json") or "{}")
@@ -61,13 +68,24 @@ def write_manifest(directory, corpus_dir, root=ROOT):
         if revision:
             details["commit"] = revision
         dependencies[distribution.metadata["Name"]] = details
+    missing = [
+        name for name in DEVELOPMENT_DEPENDENCIES if not dependencies.get(name, {}).get("commit")
+    ]
+    if missing:
+        raise ValueError(f"Development dependencies lack installed Git revisions: {missing}")
+    return dependencies
+
+
+def write_manifest(directory, corpus_dir, root=ROOT):
+    source = source_state(root)
+    corpus = {name: file_digest(corpus_dir / name) for name in CORPUS_FILES}
     manifest = {
         "workflow_run_id": os.environ.get("GITHUB_RUN_ID"),
         "source_commit": source["commit"],
         "version": source["version"],
         "files": distribution_files(directory, source["version"]),
         "corpus": corpus,
-        "dependencies": dependencies,
+        "dependencies": installed_dependencies(),
     }
     (directory / "release.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
 
