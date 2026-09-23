@@ -2633,10 +2633,14 @@ test each phase independently, and preserve the reserved version 1.62.35.
 Do not incorporate unrelated curation from the old stack.
 
 - [x] Preserve the old #527 branch in a named backup.
-- [ ] Apply only its phase-retry implementation and script regression tests.
+- [x] Apply only its phase-retry implementation and script regression tests.
 - [ ] Run format/lint/script tests, full tests, and supported-version CI.
 - [ ] Review, merge and deploy before correctness PRs only if needed to
       resolve their release blocker; otherwise retain as the next foundation.
+
+Restacked review: only deploy.sh, test.sh, their tests, version and planning
+notes differ from main. All 20 script tests pass (51.48 s); format and lint
+pass. Full local validation and final CI are still required.
 
 # Retry memory preflight at the test phase boundary (#526)
 
