@@ -7198,12 +7198,32 @@
 
   - pmid: 32488085
     study_label: Stopfer 2020 — melanoma CDK4/6i and IFNg; breast-cell quantification
-    arm_resolution: curation_gap
-    arm_resolution_note: 'The corrected roster covers all five deposited cell_name values. sample_group
-      identifies the line. Assay comments distinguish single-treatment melanoma rows from rows listing
-      multiple treatments, but the general narrative guard does not yet resolve these dose-specific
-      statements. Keep unresolved treatment metadata blank. MDA-MB-231 quantification observations
-      share one biological unperturbed arm. See #457 for the measured before/after audit.'
+    # Exact IEDB statements; primary paper Figures 4/6 and Supplementary Data
+    # 3/5 identify separate palbociclib doses and IFNG arms. Multiple-treatment
+    # statements remain unmapped because they do not identify one arm (#512).
+    elution_condition_ids:
+      'The epitope was eluted from cells treated with 1uM CDK4/6i.':
+      - sk_mel_5_palbociclib_1um
+      - sk_mel_28_palbociclib_1um
+      - sk_mel_2_palbociclib_1um
+      - ipc_298_palbociclib_1um
+      'The epitope was eluted from cells treated with 10uM CDK4/6i.':
+      - sk_mel_5_palbociclib_10um
+      - sk_mel_28_palbociclib_10um
+      - sk_mel_2_palbociclib_10um
+      - ipc_298_palbociclib_10um
+      'The epitope was eluted from cells treated with 10ng/mL IFNg.':
+      - sk_mel_5_ifng
+      - sk_mel_28_ifng
+      - sk_mel_2_ifng
+      - ipc_298_ifng
+    arm_resolution: multi_arm_evidence
+    arm_resolution_note: 'The roster covers all five deposited cell_name values. sample_group identifies
+      the line. Exact deposited statements map 8,390 melanoma observations to one treatment; 3,887
+      enumerate multiple treatment arms and must retain unknown arm metadata rather than imply
+      simultaneous combination treatment. MDA-MB-231 quantification observations share one biological
+      unperturbed arm. See #457 and #512 for source review and measured attribution audits. Query-dependent
+      discriminator variation is a separate export limitation tracked in #532.'
     title: Multiplexed relative and absolute quantitative immunopeptidomics reveals MHC I repertoire
       alterations induced by CDK4/6 inhibition
     override: cell_line

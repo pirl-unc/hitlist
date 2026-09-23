@@ -2944,3 +2944,87 @@ PyPI publication afterward.
 Final focused validation: format/lint and 201 export/curation tests pass;
 all 22 new cases also pass on Python 3.9. The audit remains unchanged after
 using the existing restriction/evidence columns directly as row keys.
+
+## PR #533 release-runner restack (1.62.40)
+
+Move the already reviewed scientific patch after the release-runner
+foundation (#539, 1.62.39). Preserve its code, source data and tests exactly.
+Retain the original branch; prove patch identity, bump the release version,
+run format/lint and final-head CI, and repeat the relevant compact source
+audit before merging. Run the full clean-main release workflow and verify
+its tested artifacts before local PyPI publication. No memory gate is waived.
+
+- [x] Prove the non-planning patch is unchanged.
+- [ ] Run format/lint, focused checks, source audit and final-head CI.
+- [ ] Review, merge, run the clean-main release and verify PyPI publication.
+
+
+# Attribute exact deposited elution conditions (#512)
+
+Re-read Stopfer 2020 (PMID 32488085, PMC7265461), Figures 4/6 and the
+Supplementary Data 3/5 file maps: separate DMSO, 1/10 uM palbociclib, and
+10 ng/mL IFNG arms were profiled at 72 hours. IEDB contains seven exact
+treatment-enumeration statements and seven independent MDA-MB-231
+quantification statements. Of 12,277 melanoma observations, 8,390 name
+one treatment (5,528 IFNG, 2,171 high-dose and 691 low-dose palbociclib);
+3,887 name multiple arms, not simultaneous combination treatment.
+
+Add a validated PMID-level YAML map from exact assay-comment strings to
+the existing condition IDs supported by each unambiguous statement. Map the
+three single-treatment statements; the four multiple-arm statements remain
+unmapped and cannot select an arm, even if a caller supplies fewer candidates. Preserve
+the unchanged comment text as source evidence; never use substring matching
+for doses. Validate that keys are nonempty strings and values are nonempty
+lists of distinct condition IDs declared by this study's profiled samples.
+The existing elution-condition selector will use an exact curated match
+when available, and return a winner only when exactly one candidate ID is
+supported. Use it in both allele-match and class-pool tie-breaks. Keep raw
+observations and the existing generic narrative admission rules unchanged.
+
+- [x] Add failing source-comment/dose-boundary/multi-arm and schema tests.
+- [x] Implement the validated mapping and both selection paths.
+- [x] Review all seven statements and curate only the three unambiguous ones.
+- [x] Audit all 15,821 observations and all 14 distinct comments before/after.
+- [ ] Run format/lint/full tests and final CI; review, merge and deploy 1.62.40.
+
+Review: 473 expanded curation/export tests pass and both the class-pool and
+ambiguous exact-allele paths select source-supported condition IDs. The
+audit covers 36,584 rows across Stopfer, Ritz, and Schellens: exactly 8,390
+Stopfer rows acquire an arm, 3,887 multi-arm rows stay ambiguous, all 3,544
+MDA quantification assignments are unchanged, and every value in the other
+two studies is unchanged. Raw peptides, restrictions, comments, cell names,
+and sample groups are identical. The categorical vocabulary expands only
+to accommodate newly assigned metadata. Full local tests and final CI remain
+required before merge, followed by clean-main PyPI publication.
+
+Found and filed #532: filtering to one row can remove sample-group identity
+because discriminator variability is computed within the selected query.
+The unchanged base reproduces this with two Stopfer rows versus one; the
+source-mapping tests exercise the complete multi-line study context. This
+separate query-stability fix follows #512; no generic narrative guard is
+relaxed here. RNA #358 remains independent and will use 1.63.0 once its
+source data and validation are complete.
+
+Final review: all 28 regression/schema cases pass on Python 3.9 and 3.12;
+the 13 public-export regressions fail against the unchanged #531 base.
+Format, lint, and whitespace checks pass. Full local tests and final CI
+remain pending in the serial validation queue.
+# Restack the next attribution fixes after the priority releases
+
+Keep the reviewed #512 -> #534 -> #532 changes behind #528 and #514.
+The old branches still include the unrelated queue that was removed from
+the priority stack. Back up all three tips, then apply only their own
+commits onto the final #531 head and preserve versions 1.62.40–1.62.41.
+The independent RNA work remains reserved for 1.63.0.
+
+This is a topology repair, not a new curation pass. Preserve the source-
+verified dose statements, cohort restrictions, and query context rules.
+Compare scientific source/test/data diffs against the old heads; investigate
+any change beyond removal of unrelated ancestor commits. Repeat focused
+checks and the recorded source audits on the new bases before release.
+Keep memory-heavy audits and full suites serial with the active deployment.
+
+- [ ] Preserve old branch tips and restack only each issue's own commits.
+- [ ] Review conflicts, confirm scoped diffs, and rerun focused validation.
+- [ ] Repeat source/corpus audits and final supported-version CI.
+- [ ] Run format/lint/full local tests, review, merge and publish after #531.

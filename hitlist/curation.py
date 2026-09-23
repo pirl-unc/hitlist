@@ -179,6 +179,10 @@ PMID_ENTRY_FIELDS = MappingProxyType(
         "restriction_evidence_rules": "condition-matched restriction-evidence overrides (#415)",
         "aliases": "citation provenance (withdrawn_pmid, benchmark dataset names)",
         "peptide_attributions": "relative path to a per-peptide sample-attribution CSV (#360)",
+        "elution_condition_ids": (
+            "exact deposited assay comments mapped to supported condition IDs; "
+            "export._select_by_elution_conditions reads this (#512)"
+        ),
         "tissue_overrides": "per-tissue overrides; rendered by hitlist.report",
         "arm_resolution": (
             "why this study's rows can or cannot reach a specific arm; one of "
@@ -382,6 +386,34 @@ def load_pmid_overrides() -> dict[int, dict]:
         # The flat condition block: per-record shape, then the study-scoped
         # identity and control-reference rules (#450).
         validate_study_conditions(e)
+        elution_map = e.get("elution_condition_ids", {})
+        if not isinstance(elution_map, dict):
+            raise ValueError(f"PMID {e.get('pmid')}: elution_condition_ids must be a mapping")
+        condition_ids = {
+            sample.get("condition_id")
+            for sample in e.get("ms_samples") or []
+            if sample.get("profiled", True)
+        }
+        for statement, targets in elution_map.items():
+            if (
+                not isinstance(statement, str)
+                or not statement.strip()
+                or statement != statement.strip()
+            ):
+                raise ValueError(
+                    f"PMID {e.get('pmid')}: elution statement must be nonempty, stripped text"
+                )
+            if (
+                not isinstance(targets, list)
+                or not targets
+                or any(not isinstance(target, str) or not target for target in targets)
+                or len(set(targets)) != len(targets)
+                or not set(targets) <= condition_ids
+            ):
+                raise ValueError(
+                    f"PMID {e.get('pmid')}: elution targets must be distinct condition IDs "
+                    "of profiled samples in this study"
+                )
         if group_sizes and ungrouped_labels:
             raise ValueError(
                 f"PMID {e.get('pmid')}: sample_group is curated on "

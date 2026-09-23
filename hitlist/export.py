@@ -358,22 +358,32 @@ def _arms_in_elution_conditions(assay_comments: str) -> set[str]:
 def _select_by_elution_conditions(
     candidates: list[tuple[str, str, dict]],
     assay_comments: str,
+    *,
+    curated_condition_ids: dict[str, list[str]] | None = None,
 ) -> dict | None:
     """Resolve an arm from IEDB's elution-condition enumeration.
 
     Returns the matching candidate's meta dict, or ``None`` when the
     construct is absent, names more than one arm, or does not single
     out exactly one curated candidate.
+
+    A source-verified exact statement map can select declared condition IDs,
+    including distinct doses of one drug. Unmapped statements retain the
+    existing generic enumeration rules; arbitrary narrative is not admitted.
     """
-    arms = _arms_in_elution_conditions(assay_comments)
-    if len(arms) != 1:
-        return None
-    want_control = arms == {"control"}
-    matching = [
-        c
-        for c in candidates
-        if (str((c[2] or {}).get("condition_category", "")) == "unperturbed") == want_control
-    ]
+    targets = (curated_condition_ids or {}).get(str(assay_comments).strip())
+    if targets is not None:
+        matching = [c for c in candidates if c[2].get("condition_id") in targets]
+    else:
+        arms = _arms_in_elution_conditions(assay_comments)
+        if len(arms) != 1:
+            return None
+        want_control = arms == {"control"}
+        matching = [
+            c
+            for c in candidates
+            if (str((c[2] or {}).get("condition_category", "")) == "unperturbed") == want_control
+        ]
     if len(matching) != 1:
         return None
     return matching[0][2]
@@ -1646,7 +1656,13 @@ def generate_observations_table(
                 # IEDB's per-peptide elution-condition enumeration is
                 # the one reliable arm discriminator it offers, so it
                 # outranks token scoring when present.
-                best = _select_by_elution_conditions(cands, r["assay_comments"])
+                best = _select_by_elution_conditions(
+                    cands,
+                    r["assay_comments"],
+                    curated_condition_ids=overrides.get(int(r["_pmid_int"]), {}).get(
+                        "elution_condition_ids"
+                    ),
+                )
                 _attr = "elution_conditions"
                 if best is None:
                     _attr = "discriminated"
@@ -1858,7 +1874,13 @@ def generate_observations_table(
                         # PMID — assign without scoring (no ambiguity).
                         _best_meta: dict | None = _cands[0][2]
                     elif (
-                        _elution := _select_by_elution_conditions(_cands, _r["assay_comments"])
+                        _elution := _select_by_elution_conditions(
+                            _cands,
+                            _r["assay_comments"],
+                            curated_condition_ids=overrides.get(int(_r["_pmid_int"]), {}).get(
+                                "elution_condition_ids"
+                            ),
+                        )
                     ) is not None:
                         # Same per-peptide arm evidence as the
                         # allele-level path above.
