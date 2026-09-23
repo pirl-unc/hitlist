@@ -2158,6 +2158,45 @@ class SampleMhcCandidates:
         return not (self.exact or self.serotypes or self.imprecise)
 
 
+@lru_cache(maxsize=4096)
+def _sample_mhc_spans(text: str) -> tuple:
+    """Consume complete molecules before genotype separators (#528)."""
+    from mhcgnomes import Mutation
+
+    kinds = _MHC_MOLECULE_TYPES | _MHC_SEROTYPE_TYPES | _MHC_IMPRECISE_TYPES
+    text = text.strip()
+    if not text:
+        return ()
+    if Mutation.parse(text, raise_on_error=False) is not None:
+        raise ValueError(f"Unassigned mutation in sample MHC field: {text!r}")
+    whole = _cached_parse(text)
+    if type(whole).__name__ in kinds:
+        return ((text, whole),)
+
+    # Commas inside mutation lists are optional to mhcgnomes. Semicolons
+    # are handled as explicit genotype boundaries by the caller.
+    tokens = [token for token in re.split(r"[\s,]+", text) if token]
+    spans = []
+    start = 0
+    while start < len(tokens):
+        if Mutation.parse(tokens[start], raise_on_error=False) is not None or re.search(
+            r"\bmutants?\b", tokens[start], re.IGNORECASE
+        ):
+            raise ValueError(f"Unassigned or malformed mutation in sample MHC field: {text!r}")
+        for end in range(len(tokens), start, -1):
+            span = " ".join(tokens[start:end])
+            parsed = _cached_parse(span)
+            if type(parsed).__name__ in kinds:
+                spans.append((span, parsed))
+                start = end
+                break
+        else:
+            # Preserve the existing treatment of unrecognized non-mutation
+            # labels; an unresolved modifier cannot fabricate a genotype.
+            start += 1
+    return tuple(spans)
+
+
 def sample_mhc_candidates(mhc_field) -> SampleMhcCandidates:
     """Classify a curated ``ms_samples[].mhc`` value by precision.
 
@@ -2176,6 +2215,12 @@ def sample_mhc_candidates(mhc_field) -> SampleMhcCandidates:
     -------
     SampleMhcCandidates
         Empty when the field is absent or names no MHC entity.
+
+    Raises
+    ------
+    ValueError
+        A mutation label cannot be assigned to a complete molecule. Such a
+        field must not silently become a wild-type or expanded genotype.
 
     Examples
     --------
@@ -2208,30 +2253,14 @@ def sample_mhc_candidates(mhc_field) -> SampleMhcCandidates:
     if not isinstance(mhc_field, str):
         return SampleMhcCandidates()
 
-    # Whole-string check first.  Class and locus designations are often
-    # multi-word ("Bos taurus class I"), and the token split below would
-    # shred one into "Bos" / "taurus" / "class" / "I" — none of which
-    # parses — reporting a faithfully curated sentinel as empty.
-    whole = mhc_field.strip()
-    whole_parsed = _cached_parse(whole) if whole else None
-    whole_kind = type(whole_parsed).__name__
-    if whole_kind in _MHC_SEROTYPE_TYPES:
-        name = whole_parsed.to_string()
-        return SampleMhcCandidates(
-            serotypes=(name,), serotype_alleles=frozenset(serotype_to_alleles(name))
-        )
-    if whole_kind in _MHC_IMPRECISE_TYPES:
-        return SampleMhcCandidates(imprecise=(normalize_allele(whole),))
+    if ";" in mhc_field:
+        return sample_mhc_candidates(mhc_field.split(";"))
 
     exact: list[str] = []
     serotypes: list[str] = []
     serotype_alleles: set[str] = set()
     imprecise: list[str] = []
-    for raw in re.split(r"[\s;,]+", mhc_field):
-        token = raw.strip()
-        if not token:
-            continue
-        parsed = _cached_parse(token)
+    for token, parsed in _sample_mhc_spans(mhc_field):
         kind = type(parsed).__name__
         if kind in _MHC_MOLECULE_TYPES:
             # Candidate identity is derived; the source YAML retains the

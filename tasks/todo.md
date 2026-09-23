@@ -2770,3 +2770,46 @@ field tokenization fabricates alleles from mutation labels). The resolver
 preserves mutations; it cannot restore information already lost by that
 separate tokenizer. Upstream #193 is fixed and published. RNA curation #358
 remains independent and is reserved for 1.63.0.
+
+# Parse mutant sample genotypes as molecules (#528)
+
+Whitespace splitting can turn `E76C mutant` into an invented HLA-E allele,
+while stripping the mutation from its actual B allele. Preserve complete
+parseable molecules/pairs before splitting genotype lists. For mixed fields,
+consume the longest parseable molecule/serotype/locus span, using mhcgnomes
+instead of an HLA-only token regex. Keep whole-field coarse names and existing
+list handling. Mutation tokens or a mutant marker left outside a successfully
+parsed molecule must raise an explicit input error, never fall back to a
+wild-type genotype. Do not mistake a compact genotype allele for a mutation;
+use mhcgnomes' Mutation parser and test actual curated field vocabulary.
+
+Require mhcgnomes 3.64.4 once upstream #198 passes CI and ships: whole-pair
+alpha selectors must retain chain ownership before this tokenizer trusts
+those parsed results. Test against the isolated upstream branch until then;
+do not replace a dependency underneath an active release test process.
+
+- [x] Add failing regressions for single mutants, mutated pairs, mixed lists,
+      selectors, invalid mutation tails, and ordinary multi-allele genotypes.
+- [x] Implement molecule-aware segmentation with explicit malformed-input errors.
+- [x] Audit every curated sample MHC field before/after and preserve raw YAML.
+- [x] Require the shipped upstream fix, update the lockfile and dependency envs.
+- [ ] Run format, lint, full tests and final CI; review and fix findings.
+- [ ] Bump 1.62.37, open a separate PR, merge and deploy in order.
+
+Review: format/lint and 459 focused tests pass; all 15 new cases also pass on
+Python 3.9. Tests exercise the export join for separate mutant and wild-type
+arms, including full class-II pairs, in addition to segmentation and invalid
+mutation rejection. Every candidate and precision category is unchanged over
+all 775 curated sample records (376 distinct field values), with identical
+raw YAML SHA-256. No mutation-bearing curated sample field currently exists;
+the regressions use explicitly synthetic inputs.
+
+Requires the published mhcgnomes 3.64.4, whose chain-selector fix passed
+17,171 tests and CI on Python 3.9–3.12. Both isolated hitlist environments
+use its latest merged development commit 5565acd. The lockfile only changes
+mhcgnomes and its requirement; uv lock --check and pip check pass. The full
+test entry point was refused before pytest by its unchanged memory guard
+(0.22 GiB available; 2.5 GiB required), so full local validation remains
+pending. Final CI, merge, and clean-main deployment are also required.
+
+Reserve 1.62.38 for the independent RNA host data (#358).
