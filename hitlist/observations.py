@@ -577,6 +577,77 @@ def _attach_species_axes(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+_ATTRIBUTION_REPAIR_COLUMNS = (
+    "pmid",
+    "attributed_sample_label",
+    "mhc_allele_provenance",
+    "mhc_restriction",
+    "assay_iri",
+    "peptide",
+)
+
+
+def _repair_scoped_peptide_attributions(df: pd.DataFrame) -> pd.DataFrame:
+    """Remove derived cross-cohort labels and their donor copies from old indexes."""
+    from .curation import load_pmid_overrides
+
+    if df.empty or "pmid" not in df or "attributed_sample_label" not in df:
+        return df
+    invalid = pd.Series(False, index=df.index)
+    pmids = pd.to_numeric(df["pmid"], errors="coerce")
+    for pmid, entry in load_pmid_overrides().items():
+        scope = entry.get("peptide_attribution_restrictions")
+        if scope is None:
+            continue
+        selected = pmids == pmid
+        labels = df.loc[selected, "attributed_sample_label"].astype("string").fillna("")
+        selected.loc[selected] = labels.str.strip().ne("")
+        if not selected.any():
+            continue
+        if any(column not in df for column in ("mhc_restriction", "mhc_allele_provenance")):
+            raise ValueError(
+                "Rebuild the peptide indexes to repair out-of-scope patient attributions: "
+                "hitlist build observations --force (required source identity/provenance is missing)"
+            )
+        reported = df.loc[selected, "mhc_restriction"].astype("string").fillna("")
+        allowed = reported.str.strip().str.casefold().isin({value.casefold() for value in scope})
+        # Promotion replaces the original class label with a donor typing.
+        # Its explicit provenance distinguishes these valid narrowed rows
+        # from the independently reported exact restrictions copied in #534.
+        promoted = (
+            df.loc[selected, "mhc_allele_provenance"]
+            .astype("string")
+            .fillna("")
+            .eq("peptide_attribution")
+        )
+        invalid.loc[selected] = ~(allowed | promoted)
+    if not invalid.any():
+        return df
+    if any(column not in df for column in ("assay_iri", "peptide")):
+        raise ValueError(
+            "Rebuild the peptide indexes to repair out-of-scope patient attributions: "
+            "hitlist build observations --force (required source assay identity is missing)"
+        )
+    identifiers = df.loc[invalid, "assay_iri"].astype("string").fillna("").str.strip()
+    if identifiers.eq("").any():
+        raise ValueError(
+            "Rebuild the peptide indexes to repair out-of-scope patient attributions: "
+            "hitlist build observations --force (affected rows have no source assay identity)"
+        )
+    labels = df["attributed_sample_label"]
+    if isinstance(labels.dtype, pd.CategoricalDtype) and "" not in labels.cat.categories:
+        df["attributed_sample_label"] = labels.cat.add_categories([""])
+    df.loc[invalid, "attributed_sample_label"] = ""
+    # Deduplicate only the invalid donor copies. Distinct source assays and
+    # valid patient splits remain independent observations.
+    duplicates = df.loc[invalid].duplicated(
+        subset=["pmid", "assay_iri", "peptide", "mhc_restriction"], keep="first"
+    )
+    keep = pd.Series(True, index=df.index)
+    keep.loc[duplicates.index] = ~duplicates
+    return df.loc[keep]
+
+
 def _load_peptide_index(
     path: Path,
     *,
@@ -783,6 +854,12 @@ def _load_peptide_index(
             kept.append("mhc_restriction")
         if "mhc_allele_set_size" in kept and "mhc_allele_set" not in kept:
             kept.append("mhc_allele_set")
+        # A projection must not hide stale cross-cohort labels or their
+        # duplicated donor records. Pull repair inputs, then trim normally.
+        if "attributed_sample_label" in parquet_columns:
+            for column in _ATTRIBUTION_REPAIR_COLUMNS:
+                if column not in kept:
+                    kept.append(column)
         # Drop any requested column that isn't on this parquet (e.g.
         # ``cell_type`` / ``sample_match_type`` on a pre-v1.30.57 build).
         # Projecting a missing column into a *filtered* pyarrow scan raises
@@ -792,6 +869,7 @@ def _load_peptide_index(
         read_columns = [c for c in kept if c in parquet_columns]
 
     df = pd.read_parquet(path, columns=read_columns, filters=filters if filters else None)
+    df = _repair_scoped_peptide_attributions(df)
 
     # Refresh only derived identities. Reported restrictions stay intact,
     # including on indexes built before the retirement rule (#456).

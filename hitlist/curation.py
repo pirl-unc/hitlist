@@ -179,6 +179,9 @@ PMID_ENTRY_FIELDS = MappingProxyType(
         "restriction_evidence_rules": "condition-matched restriction-evidence overrides (#415)",
         "aliases": "citation provenance (withdrawn_pmid, benchmark dataset names)",
         "peptide_attributions": "relative path to a per-peptide sample-attribution CSV (#360)",
+        "peptide_attribution_restrictions": (
+            "reported restrictions eligible for the peptide map; scanner and index repair (#534)"
+        ),
         "elution_condition_ids": (
             "exact deposited assay comments mapped to supported condition IDs; "
             "export._select_by_elution_conditions reads this (#512)"
@@ -386,6 +389,21 @@ def load_pmid_overrides() -> dict[int, dict]:
         # The flat condition block: per-record shape, then the study-scoped
         # identity and control-reference rules (#450).
         validate_study_conditions(e)
+        attribution_scope = e.get("peptide_attribution_restrictions")
+        if attribution_scope is not None and (
+            not e.get("peptide_attributions")
+            or not isinstance(attribution_scope, list)
+            or not attribution_scope
+            or any(
+                not isinstance(value, str) or not value.strip() or value != value.strip()
+                for value in attribution_scope
+            )
+            or len({value.casefold() for value in attribution_scope}) != len(attribution_scope)
+        ):
+            raise ValueError(
+                f"PMID {e.get('pmid')}: peptide_attribution_restrictions requires a peptide "
+                "map and a nonempty list of distinct, stripped restriction strings"
+            )
         elution_map = e.get("elution_condition_ids", {})
         if not isinstance(elution_map, dict):
             raise ValueError(f"PMID {e.get('pmid')}: elution_condition_ids must be a mapping")
@@ -2479,6 +2497,22 @@ def _coerce_pmid(pmid: int | str) -> int | None:
     with contextlib.suppress(ValueError, TypeError):
         return int(pmid)
     return None
+
+
+def peptide_attribution_applies_to_row(pmid: int | str, mhc_restriction: str) -> bool:
+    """Whether a reported source restriction belongs to a mapped cohort.
+
+    Apply before donor-set promotion. A peptide shared by separate cohorts
+    does not transfer a sample identity between their observations (#534).
+    An unscoped map preserves its existing study-wide applicability.
+    """
+    entry = load_pmid_overrides().get(_coerce_pmid(pmid), {})
+    if not entry.get("peptide_attributions"):
+        return False
+    scope = entry.get("peptide_attribution_restrictions")
+    return scope is None or str(mhc_restriction).strip().casefold() in {
+        value.casefold() for value in scope
+    }
 
 
 @lru_cache(maxsize=512)

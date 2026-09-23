@@ -62,7 +62,9 @@ from .downloads import data_dir
 #: 5: The MS index honors the curated ``exclude_from_ms`` flag, so 11
 #:    non-MS studies no longer contribute rows (#444).  A cache built
 #:    before this still holds them, which is why it must rebuild.
-_OBSERVATIONS_ARTIFACT_VERSION = 5
+#: 6: Peptide-to-patient maps respect source-cohort restrictions (#534),
+#:    preventing false labels and donor copies of monoallelic observations.
+_OBSERVATIONS_ARTIFACT_VERSION = 6
 
 
 def _source_paths() -> dict[str, Path]:

@@ -978,20 +978,28 @@ def test_scan_non_attributed_pmid_unaffected_by_per_donor_split(tmp_path):
     assert set(r["mhc_allele_set"].split(";")) == {"HLA-A*02:01", "HLA-B*07:02", "HLA-C*07:02"}
 
 
-def test_scan_per_donor_split_class_mismatch_emits_unmatched_per_donor(tmp_path):
-    """Edge case: if an attributed peptide's row has an mhc_class that
-    doesn't match the matched donors' allele class, ``expand_allele_set``
-    filters every donor's typing to empty → each emitted per-donor row
-    gets ``provenance=\"unmatched\"`` and ``mhc_allele_set_size=0``,
-    while still carrying the donor's ``attributed_sample_label`` and
-    leaving the original ``mhc_restriction`` (e.g. \"HLA class II\") in
-    place.
+@pytest.mark.parametrize("restriction", ["HLA-A*02:01", "HLA-G*01:01", "HLA class II"])
+@pytest.mark.parametrize("classify_source", [True, False])
+def test_patient_peptide_overlap_cannot_relabel_other_cohorts(
+    tmp_path, restriction, classify_source
+):
+    """The Sarkizova map is from patient Data 2, not monoallelic Data 1 (#534)."""
+    src = tmp_path / "iedb.csv"
+    row = [""] * 112
+    row[0] = "http://iedb.org/assay/90000534"
+    row[2] = "31844290"
+    row[5] = "SLLQHLIGL"  # present in three patient samples
+    row[107] = restriction
+    row[108] = "II" if restriction == "HLA class II" else "I"
+    _write_set_iedb_csv(src, [row])
+    result = scan(peptides=None, iedb_path=src, cedar_path=None, classify_source=classify_source)
+    assert len(result) == 1
+    assert result.iloc[0]["attributed_sample_label"] == ""
+    assert result.iloc[0]["mhc_restriction"] == restriction
 
-    Today this never fires in real data — the only attributed PMID
-    (Sarkizova 2020) is class-I only.  Test locks in the documented
-    edge-case behavior so a future class-II attribution CSV would
-    behave predictably.
-    """
+
+def test_scoped_patient_map_does_not_invent_a_class_mismatched_donor(tmp_path):
+    """A synthetic class-II record is outside this class-I patient source (#534)."""
     src = tmp_path / "iedb.csv"
     row = [""] * 112
     row[0] = "http://iedb.org/assay/9000005"
@@ -1005,7 +1013,7 @@ def test_scan_per_donor_split_class_mismatch_emits_unmatched_per_donor(tmp_path)
     df = scan(peptides=None, iedb_path=str(src), cedar_path=None)
     assert len(df) == 1
     r = df.iloc[0]
-    assert r["attributed_sample_label"] == "MEL2 (13240-005)"
+    assert r["attributed_sample_label"] == ""
     assert r["mhc_allele_provenance"] == "unmatched"
     assert r["mhc_allele_set_size"] == 0
     assert r["mhc_allele_set"] == ""

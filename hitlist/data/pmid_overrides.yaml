@@ -1813,6 +1813,11 @@
     # (so a unique-attribution peptide ends up with that one donor's 6
     # alleles instead of 14-18 disease-wide).
     peptide_attributions: peptide_attributions/sarkizova_2020_patient_cohort.csv
+    # Sup_Data2 describes patient tumors, independently of the monoallelic
+    # 721.221 experiments in Sup_Data1. Shared peptides do not transfer
+    # patient identities to those precisely restricted source rows (#534).
+    peptide_attribution_restrictions:
+      - HLA class I
     ip_antibody: W6/32
     perturbations:
       - "IFN-gamma (2000 U/mL, 3d) on 6 typed tumor lines (3 MEL + 3 GBM) + 1 untyped ccRCC — NOT on 721.221 mono-allelic data"

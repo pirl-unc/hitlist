@@ -362,6 +362,7 @@ def scan(
         is_binding_assay,
         is_non_peptide_ligand,
         normalize_species,
+        peptide_attribution_applies_to_row,
         pmid_mhc_species_context,
         resolve_mhc_annotation,
     )
@@ -600,11 +601,12 @@ def scan(
             # returns one ``(sample_label, alleles)`` pair per matched donor.
             # Class-only rows narrow to that donor's typing; already resolved
             # rows retain their reported restriction and gain only the
-            # source-backed sample label.  In either case, multiple matched
+            # source-backed sample label when that source cohort is eligible
+            # for the registered map (#534). Multiple matched
             # donors emit one record apiece.  For every other row the helper
             # returns ``()`` and the original single-record path is unchanged.
             per_sample_typings: tuple[tuple[str, frozenset[str]], ...] = ()
-            if bare_peptide:
+            if bare_peptide and peptide_attribution_applies_to_row(pmid, mhc_res_raw):
                 per_sample_typings = attribute_peptide_to_per_sample_typings(pmid, bare_peptide)
 
             host_mhc_types = record.get("host_mhc_types", "")
