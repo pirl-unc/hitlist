@@ -191,7 +191,7 @@ and link them from affected PRs. Preserve unrelated local files and branches.
 - [x] Establish an isolated environment using current development revisions of
       all locally developed libraries in the dependency graph; record revisions.
 - [x] #501: remove obsolete dependency guards before relying on coverage.
-- [ ] #504: declare the existing mandatory mhcgnomes runtime dependency.
+- [x] #504: declare the existing mandatory mhcgnomes runtime dependency.
 - [ ] #490, #489: preserve queried biological genotypes in scoring, then correct
       the MHCflurry presentation API call without weakening its genotype limit.
 - [ ] #456: audit retired allele aliases and preserve reported provenance.
@@ -3366,3 +3366,66 @@ unidentified to blank. Raw fields are preserved, all three biological
 flags are unchanged, and unresolved-source warning counts are unchanged.
 The tests additionally cover valid legacy fallback, source precedence,
 source-only query rows and narrow projections absent from this corpus.
+
+## PR #521 release-runner restack (1.62.47)
+
+Move the already reviewed scientific patch after the release-runner
+foundation (#539, 1.62.39). Preserve its code, source data and tests exactly.
+Retain the original branch; prove patch identity, bump the release version,
+run format/lint and final-head CI, and repeat the relevant compact source
+audit before merging. Run the full clean-main release workflow and verify
+its tested artifacts before local PyPI publication. No memory gate is waived.
+
+- [x] Prove the non-planning patch is unchanged.
+- [ ] Run format/lint, focused checks, source audit and final-head CI.
+- [ ] Review, merge, run the clean-main release and verify PyPI publication.
+
+
+## PR #521 priority queue restack (1.62.47)
+
+Move this previously reviewed change after #528/#514 and their source-verified
+attribution follow-ups. Preserve the implementation, curation and tests exactly;
+only the base, release version and planning records change. Keep the original
+local branch, compare stable patch IDs, then run format/lint and fresh CI.
+Repeat affected source audits and full local release gates before publication.
+
+- [x] Preserve and compare the original non-planning patch.
+- [ ] Run format/lint and fresh CI on this exact head.
+- [ ] Review against the updated base, validate, merge and deploy in order.
+
+
+## #452 specification — five ERAP2 experimental lines
+
+Re-read Lorente 2019 (PMID 31530632 / PMC6823859), Experimental
+Procedures and Results. Replace the two aggregated arms with parental
+polyclonal WT, unedited process-matched WT1/WT2, and ERAP2 knockout
+KO1/KO3. Record three independent biological preparations per line and
+retain the shared B*40:02 transfectant / ERAP1 Hap8 context. Distinguish
+parental untreated and process-matched control roles without claiming
+the unedited controls are gene knockouts. Use unique condition IDs and
+valid comparator references. Audit all 10,319 IEDB rows: three comments
+distinguish WT-only, KO-only and both, but never identify a clone. Preserve
+that ambiguity and state the actual clone-resolution limit; do not assign
+WT-only rows to parental WT or any KO row to a guessed clone. Check all
+other study entries are semantically unchanged. Release 1.62.47 after
+source regressions, corpus audit, format/lint/full tests, CI and review.
+
+- [x] Read primary methods and audit the deposited row descriptions.
+- [x] Curate all five lines and honest attribution limits.
+- [ ] Verify controls, replicates, observed-row impact and required gates.
+- [ ] Review, merge, deploy and verify PyPI.
+
+Review: all four source/attribution assertions fail against the old two-arm
+curation; 86 focused curation, condition, group and arm-resolution tests
+pass after the fix. Format/lint pass. All 10,319 observed rows retain their
+raw B*40:02 restriction and blank clone/condition fields; they gain C1R
+system attribution and the arm_not_recorded verdict. The scoped YAML
+rewrite verifies that every other entry is semantically unchanged.
+Primary methods expose a separate cellular-genotype versus selected-ligand
+restriction ambiguity, filed as #520; this PR records that limitation
+explicitly without silently changing the existing attribution contract.
+
+Release ledger: #501 / PR #505 shipped 1.62.21. #504 / PR #506 shipped
+1.62.22 after 1,659 regular and 43 integration tests. Both releases have
+verified PyPI wheel and sdist artifacts. Remaining PRs still need their
+full local gates, final review, merge and deployment.

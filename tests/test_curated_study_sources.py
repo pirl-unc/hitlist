@@ -222,7 +222,7 @@ def _condition(pmid: int, condition_id: str) -> dict:
 def test_pilot_records_cite_where_in_the_source_the_facts_are():
     """A `primary_source` claim without a locator is an unverifiable assertion."""
     verified = [s for pmid in (31530632, 30833945, 34497125, 40113210) for s in _samples(pmid)]
-    assert len(verified) == 19
+    assert len(verified) == 22
     for sample in verified:
         assert sample["condition_evidence"] == "primary_source"
         reference = sample["condition_reference"]
@@ -240,12 +240,15 @@ def test_lorente_2019_separates_the_background_from_the_knockout():
     one.  Collapsing the two would read as an ERAP1 perturbation.
     """
     wt = _condition(31530632, "c1r_hla_b_40_02_wt")
-    ko = _condition(31530632, "c1r_hla_b_40_02_erap2_ko")
+    ko = _condition(31530632, "c1r_hla_b_40_02_erap2_ko1")
     assert wt["condition_background"] == ko["condition_background"] == "ERAP1_hap8"
     assert ko["condition_knockout_genes"] == "ERAP2"
     # ERAP2-positive is stated, so absence here is a claim, not a silence.
     assert wt["condition_knockout_genes"] == "none"
-    assert wt["condition_control_for"] == "c1r_hla_b_40_02_erap2_ko"
+    assert set(wt["condition_control_for"].split(";")) == {
+        "c1r_hla_b_40_02_erap2_ko1",
+        "c1r_hla_b_40_02_erap2_ko3",
+    }
     # A transfectant on an HLA-low host; the paper never calls it mono-allelic.
     assert wt["condition_mhc_context"] == "mhc_transfectant"
 
