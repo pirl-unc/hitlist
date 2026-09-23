@@ -43,6 +43,7 @@ CLI::
 from __future__ import annotations
 
 import contextlib
+import csv
 import hashlib
 import json
 from pathlib import Path
@@ -1337,6 +1338,7 @@ _LINE_EXPRESSION_COLUMNS = (
     "gene_id",
     "gene_name",
     "transcript_id",
+    "profile_id",
     "tpm",
     "log2_tpm",
     "normalization",
@@ -1379,31 +1381,59 @@ def _source_stamp(source: dict) -> dict:
     }
 
 
-def _read_depmap_csv(path: Path, granularity: str) -> pd.DataFrame:
+def _read_depmap_csv(
+    path: Path,
+    granularity: str,
+    *,
+    line_keys: dict[str, str] | None = None,
+    profiles: dict[str, str] | None = None,
+) -> pd.DataFrame:
     """Parse a DepMap log2(TPM+1) matrix into long-form.
 
-    DepMap ships wide CSVs whose **rows** are keyed by DepMap ``ModelID``
-    (e.g. ``ACH-002680``) and whose **column labels** are per-feature:
-    ``"TP53 (7157)"`` for the gene matrix (symbol + Entrez ID) or
-    ``"ENST00000269305.9 (TP53)"`` for the transcript matrix (versioned
-    Ensembl transcript ID + gene symbol). The melt below produces one row
-    per (ModelID, feature) pair.
+    Gene rows use ``ModelID`` (ACH-...), whereas the official transcript
+    matrix uses ``ProfileID`` (PR-...). ``profiles`` selects the release's
+    default RNA profile per model, and ``line_keys`` maps models
+    to registered systems before expansion. Omitting both mappings retains
+    input identifiers for standalone parsing.
 
-    The melt puts the ModelID into ``line_key`` — :func:`_harmonize_depmap_line_keys`
-    is responsible for mapping it onto the registry's ``expression_key``.
+    Feature headers are ``TP53 (7157)`` or ``TP53 (ENST00000269305)``.
+    Previously supported ``ENST00000269305.9 (TP53)`` headers remain valid.
 
     DepMap normalization is log2(TPM+1); raw TPM is reconstituted via
     ``tpm = 2**log2_tpm - 1`` so downstream joins can compare across
     sources that ship raw TPM.
     """
-    df = pd.read_csv(path)
-    if df.empty:
+    # The transcript matrix is over 4 GB. Select input rows before numeric
+    # parsing/expansion; retaining every model before melt exhausts memory.
+    frames = []
+    with path.open(newline="") as handle:
+        reader = csv.reader(handle)
+        header = next(reader, [])
+        for row in reader:
+            if not row:
+                continue
+            model_id = row[0]
+            if model_id.startswith("PR-") and line_keys is not None:
+                if profiles is None:
+                    raise ValueError(
+                        "DepMap ProfileID rows require depmap_profiles and "
+                        "depmap_default_profiles; fetch the depmap bundle or register both."
+                    )
+                model_id = profiles.get(model_id, "")
+            if line_keys is not None:
+                if model_id not in line_keys:
+                    model_id = model_id.casefold()
+                if model_id not in line_keys:
+                    continue
+            frame = pd.DataFrame({"_label": header[1:], "log2_tpm": row[1:]})
+            frame["log2_tpm"] = pd.to_numeric(frame["log2_tpm"].replace("", float("nan")))
+            frame["line_key"] = line_keys[model_id] if line_keys is not None else model_id
+            frame["profile_id"] = row[0] if row[0].startswith("PR-") else ""
+            frames.append(frame)
+    if not frames:
         return pd.DataFrame()
-
-    id_col = df.columns[0]
-    long = df.melt(id_vars=[id_col], var_name="_label", value_name="log2_tpm")
+    long = pd.concat(frames, ignore_index=True)
     long = long.dropna(subset=["log2_tpm"])
-    long = long.rename(columns={id_col: "line_key"})
 
     if granularity == "gene":
         # Labels: "GENE (entrez)" — Entrez ID is not used here.
@@ -1413,10 +1443,14 @@ def _read_depmap_csv(path: Path, granularity: str) -> pd.DataFrame:
         long["transcript_id"] = ""
     else:
         parsed = long["_label"].str.extract(
+            r"^(?P<gene_name>.+?)\s*\((?P<transcript_id>ENST\d+)(?:\.\d+)?\)\s*$"
+        )
+        legacy = long["_label"].str.extract(
             r"^(?P<transcript_id>ENST\d+)"
             r"(?:\.\d+)?"
             r"\s*\((?P<gene_name>[^)]+)\)\s*$"
         )
+        parsed = parsed.combine_first(legacy)
         long["transcript_id"] = parsed["transcript_id"].fillna("")
         long["gene_name"] = parsed["gene_name"].fillna("").str.strip()
         long["gene_id"] = ""
@@ -1649,6 +1683,36 @@ def _fill_gene_names_via_ensembl(
     return df
 
 
+def _depmap_default_rna_profiles(
+    profiles_path: Path | None, defaults_path: Path | None
+) -> dict[str, str] | None:
+    """Map the release's default RNA ProfileIDs to their ModelIDs.
+
+    Matrix membership decides availability. Library strandedness is distinct
+    from the quantification mode: a stranded library can have values in a
+    matrix processed in unstranded mode (HAP1 in 24Q4, for example).
+    """
+    if profiles_path is None or defaults_path is None:
+        return None
+    profiles = pd.read_csv(profiles_path, dtype=str).fillna("")
+    defaults = pd.read_csv(defaults_path, dtype=str).fillna("")
+    defaults = defaults[defaults["ProfileType"].eq("rna")]
+    if defaults["ModelID"].duplicated().any():
+        raise ValueError("DepMap default RNA profiles must be unique per ModelID")
+    selected = defaults.merge(
+        profiles,
+        on=["ModelID", "ProfileID"],
+        how="left",
+        validate="one_to_one",
+        indicator=True,
+    )
+    if selected["_merge"].ne("both").any():
+        raise ValueError("DepMap default RNA profiles do not match OmicsProfiles metadata")
+    if selected["Datatype"].ne("rna").any():
+        raise ValueError("DepMap default RNA profile points to a non-RNA profile")
+    return dict(zip(selected["ProfileID"], selected["ModelID"]))
+
+
 def build_line_expression(verbose: bool = False) -> pd.DataFrame:
     """Build ``line_expression.parquet`` — per-line RNA / transcript TPM.
 
@@ -1672,7 +1736,12 @@ def build_line_expression(verbose: bool = False) -> pd.DataFrame:
         contain shippable data (packaged CSVs all missing AND no DepMap
         dataset registered).
     """
-    from .line_expression import _load_packaged_union, load_line_expression_sources
+    from .line_expression import (
+        _alias_to_expression_key,
+        _load_packaged_union,
+        load_line_expression_sources,
+        resolve_line_key,
+    )
 
     sources_by_id = {s.get("source_id"): s for s in load_line_expression_sources()}
 
@@ -1707,6 +1776,19 @@ def build_line_expression(verbose: bool = False) -> pd.DataFrame:
     # ModelID → display-name table, shared across gene + transcript matrices.
     model_csv = _registered_path("depmap_models")
     model_lookup = _load_depmap_model_lookup(model_csv)
+    # Resolve the small metadata table before touching wide expression rows.
+    line_keys = {
+        model_id: key
+        for model_id, name in model_lookup.items()
+        if (key := resolve_line_key(name)) is not None
+    }
+    # Previously registered matrices can already use canonical line names.
+    aliases = _alias_to_expression_key()
+    line_keys.update(aliases)
+    line_keys.update({key: key for key in aliases.values()})
+    profiles = _depmap_default_rna_profiles(
+        _registered_path("depmap_profiles"), _registered_path("depmap_default_profiles")
+    )
     if verbose and model_csv is not None:
         print(f"  Loaded DepMap Model.csv lookup ({len(model_lookup):,} ModelIDs)")
 
@@ -1719,10 +1801,7 @@ def build_line_expression(verbose: bool = False) -> pd.DataFrame:
             continue
         if verbose:
             print(f"  Reading {key} from {p}")
-        long = _read_depmap_csv(p, granularity=granularity)
-        if long.empty:
-            continue
-        long = _harmonize_depmap_line_keys(long, model_lookup=model_lookup)
+        long = _read_depmap_csv(p, granularity=granularity, line_keys=line_keys, profiles=profiles)
         if long.empty:
             continue
         meta = sources_by_id.get(source_id) or {}
@@ -1761,6 +1840,7 @@ def build_line_expression(verbose: bool = False) -> pd.DataFrame:
     df["pmid"] = pd.to_numeric(df["pmid"], errors="coerce").astype("Int64")
     df["tpm"] = pd.to_numeric(df["tpm"], errors="coerce").astype("float64")
     df["log2_tpm"] = pd.to_numeric(df["log2_tpm"], errors="coerce").astype("float64")
+    df["profile_id"] = df["profile_id"].fillna("")
 
     df = df[[c for c in _LINE_EXPRESSION_COLUMNS if c in df.columns]]
 

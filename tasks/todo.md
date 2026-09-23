@@ -3429,3 +3429,83 @@ Release ledger: #501 / PR #505 shipped 1.62.21. #504 / PR #506 shipped
 1.62.22 after 1,659 regular and 43 integration tests. Both releases have
 verified PyPI wheel and sdist artifacts. Remaining PRs still need their
 full local gates, final review, merge and deployment.
+
+## PR #523 release-runner restack (1.62.48)
+
+Move the already reviewed scientific patch after the release-runner
+foundation (#539, 1.62.39). Preserve its code, source data and tests exactly.
+Retain the original branch; prove patch identity, bump the release version,
+run format/lint and final-head CI, and repeat the relevant compact source
+audit before merging. Run the full clean-main release workflow and verify
+its tested artifacts before local PyPI publication. No memory gate is waived.
+
+- [x] Prove the non-planning patch is unchanged.
+- [ ] Run format/lint, focused checks, source audit and final-head CI.
+- [ ] Review, merge, run the clean-main release and verify PyPI publication.
+
+
+## PR #523 priority queue restack (1.62.48)
+
+Move this previously reviewed change after #528/#514 and their source-verified
+attribution follow-ups. Preserve the implementation, curation and tests exactly;
+only the base, release version and planning records change. Keep the original
+local branch, compare stable patch IDs, then run format/lint and fresh CI.
+Repeat affected source audits and full local release gates before publication.
+
+- [x] Preserve and compare the original non-planning patch.
+- [ ] Run format/lint and fresh CI on this exact head.
+- [ ] Review against the updated base, validate, merge and deploy in order.
+
+
+## #357 specification — fetchable, usable DepMap expression
+
+Use the pinned primary DepMap 24Q4 release (Figshare 27993248.v1), not
+the changing portal landing page. Register the actual gene matrix,
+transcript Profile matrix and their model/profile mapping companions.
+Provide an explicit opt-in `data fetch depmap` bundle that downloads and
+builds line_expression.parquet; normal package installation/build remains
+independent of downloading multi-GB expression matrices. Keep each source's
+normalization, citation and profile provenance accurate.
+
+Primary-file audit disproves two assumptions in the current parser: the
+transcript file is OmicsExpressionTranscriptsTPMLogp1Profile.csv (4.17 GB),
+its rows are ProfileID, and its headers are SYMBOL (ENST...), not the
+reverse. Stream rows and select registered systems before melting so the
+whole release is never expanded in memory. Join profiles through the
+release mappings, select source-appropriate profiles without summing
+replicates, and reconstruct TPM from log2(TPM+1). Preserve compatibility
+with already-registered supported files. Model metadata contains five of
+the six listed lines; HEK293 is absent and must not be fabricated. HAP1
+has a stranded RNA library, separately relevant to #358. The actual
+checksum-verified gene matrix contains 19,193 HAP1 values: library
+strandedness must not be used to infer matrix membership. Select the
+default RNA profile and check whether its row is actually present.
+
+The resolver must report exact/parent/family RNA only when its source has
+rows for that key. Missing optional downloads retain lower-tier fallback.
+Cache availability against the built artifact's identity so installing or
+rebuilding data becomes visible in the same process. Test explicit source
+availability, missing-data fallback, exact official header shapes, profile
+selection, bounded parsing and a fake-download-to-peptide-origin end-to-end
+path. Audit the real selected rows and source profile IDs. Run all required
+checks, review CI, merge and deploy 1.62.48.
+
+- [x] Inspect primary release metadata, README, model/profile maps and CSV prefixes.
+- [x] Reproduce fetch/parser/availability failures and implement the complete path.
+- [ ] Validate real data and focused/full test gates.
+- [ ] Review, merge, deploy and verify PyPI.
+
+Review: four regressions fail before the fix. All 293 expanded export, CLI,
+dataset and expression tests pass; 98 expression/fetch tests pass after the
+final profile-selection correction. Format/lint pass. Downloaded all five
+primary files and verified their sizes and published MD5s. The real build
+produces 1,502,002 rows, including 19,193 genes and 227,188 transcripts for
+each of six lines (HAP1 included), with one release-default ProfileID per
+line. Five requested lines now resolve to actual exact-line RNA; HEK293
+retains tissue fallback because it is absent. HAP1 registry wiring belongs
+to #358. The audit script completed in 51 seconds; the external timing
+wrapper alone returned an error because sandbox policy disallows its
+sysctl query. Its full JSON report and built index were verified separately.
+Wrong legacy placeholder citations discovered during the audit are filed
+as #522 and will be corrected separately from this download/parser change.
+Full local tests, final CI, merge and deployment are still required.

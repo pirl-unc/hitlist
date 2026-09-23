@@ -525,13 +525,20 @@ actually contains the peptide** — isoforms that splice out the peptide
 contribute zero, and a transcript is counted once regardless of how many
 times the peptide appears in its protein.
 
-Register DepMap matrices to broaden exact-line coverage:
+Fetch and build the optional DepMap 24Q4 gene/transcript expression bundle
+(about 4.7 GB). It provides RNA anchors for HeLa, A375, SaOS-2, THP-1 and
+K562. This release has no HEK293 model entry.
 
 ```bash
-hitlist data register depmap_rna /path/to/OmicsExpressionProteinCodingGenesTPMLogp1.csv
-hitlist data register depmap_rna_transcript /path/to/OmicsExpressionTranscriptsTPMLogp1.csv
-hitlist build observations
+hitlist data fetch depmap
 ```
+
+The bundle includes the model, profile and default-profile mappings needed
+for transcript rows. Existing registered copies are reused. Individual
+files can still be fetched or registered under `depmap_rna`,
+`depmap_rna_transcript`, `depmap_models`, `depmap_profiles` and
+`depmap_default_profiles`. RNA anchors report only sources with available
+rows; missing optional data falls back to the next applicable tier.
 
 ### A note on mono-allelic curation
 

@@ -20,7 +20,7 @@
 #   study_label      display label.
 #   backend          matches `expression_backend` in the anchors YAML:
 #                    depmap_rna | packaged_rnaseq | encode_rnaseq
-#   granularity      gene | gene_and_transcript
+#   granularity      gene | transcript | gene_and_transcript
 #   normalization    log2_tpm_plus_1 | tpm | fpkm
 #   quantifier       rsem | kallisto | salmon | star
 #   species          canonical species ("Homo sapiens (human)").
@@ -42,7 +42,7 @@
 sources:
   - source_id: DepMap_24Q4_gene
     pmid: null
-    reference: "DepMap 24Q4 (Broad Institute)"
+    reference: "doi:10.25452/figshare.plus.27993248.v1 (Broad Institute)"
     study_label: "DepMap 24Q4 gene TPM"
     backend: depmap_rna
     granularity: gene
@@ -57,20 +57,21 @@ sources:
       - SAOS2
       - THP1
       - K562
-      - HEK293
+      - HAP1
     license: "CC BY 4.0 (Broad DepMap)"
     notes: >
-      OmicsExpressionProteinCodingGenesTPMLogp1.csv from DepMap 24Q4. Users
-      register the download with `hitlist data register depmap_rna <path>`;
-      the builder pivots it into long-form per-line rows. Values are
-      log2(TPM+1), NOT raw TPM. Gene-level only.
+      OmicsExpressionProteinCodingGenesTPMLogp1.csv from DepMap 24Q4.
+      `hitlist data fetch depmap` downloads the matrices and mapping companions
+      and builds the line index. Values are log2(TPM+1), not raw TPM; RSEM
+      unstranded processing. The actual matrix includes HAP1 even though its
+      library is marked stranded. Model.csv has no HEK293 entry in this release.
 
   - source_id: DepMap_24Q4_transcript
     pmid: null
-    reference: "DepMap 24Q4 (Broad Institute)"
+    reference: "doi:10.25452/figshare.plus.27993248.v1 (Broad Institute)"
     study_label: "DepMap 24Q4 transcript TPM"
     backend: depmap_rna
-    granularity: gene_and_transcript
+    granularity: transcript
     normalization: log2_tpm_plus_1
     quantifier: rsem
     species: "Homo sapiens (human)"
@@ -82,12 +83,14 @@ sources:
       - SAOS2
       - THP1
       - K562
-      - HEK293
+      - HAP1
     license: "CC BY 4.0 (Broad DepMap)"
     notes: >
-      OmicsExpressionTranscriptsTPMLogp1.csv from DepMap 24Q4. Optional;
-      when registered, enables transcript-isoform-aware peptide-origin
-      summation in `generate_training_table(with_peptide_origin=True)`.
+      OmicsExpressionTranscriptsTPMLogp1Profile.csv from DepMap 24Q4.
+      RSEM unstranded processing. ProfileID rows join through OmicsProfiles.csv
+      and OmicsDefaultModelProfiles.csv; use one default RNA profile per model,
+      preserving its ProfileID. Model.csv supplies line names. Optional;
+      enables transcript-isoform-aware peptide-origin summation.
 
   - source_id: ENCODE_GM12878_polyA_rnaseq
     pmid: 22955616

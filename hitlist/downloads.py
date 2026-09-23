@@ -422,6 +422,27 @@ FETCHABLE_DATASETS: dict[str, dict[str, str]] = {
     },
 }
 
+# Immutable files from doi:10.25452/figshare.plus.27993248.v1 (CC BY 4.0).
+_DEPMAP_FILES = {
+    "depmap_rna": (51065489, "OmicsExpressionProteinCodingGenesTPMLogp1.csv"),
+    "depmap_rna_transcript": (51065534, "OmicsExpressionTranscriptsTPMLogp1Profile.csv"),
+    "depmap_models": (51065297, "Model.csv"),
+    "depmap_profiles": (51065723, "OmicsProfiles.csv"),
+    "depmap_default_profiles": (51065339, "OmicsDefaultModelProfiles.csv"),
+}
+FETCHABLE_DATASETS.update(
+    {
+        key: {
+            "url": f"https://ndownloader.figshare.com/files/{file_id}",
+            "filename": filename,
+            "description": f"DepMap 24Q4 {filename}",
+            "usage": "Optional line RNA expression; fetch depmap downloads companions and builds the index.",
+            "terms": "https://doi.org/10.25452/figshare.plus.27993248.v1",
+        }
+        for key, (file_id, filename) in _DEPMAP_FILES.items()
+    }
+)
+
 MANUAL_DATASETS: dict[str, dict[str, str]] = {
     "hpa_bulk": {
         "download_url": "https://www.proteinatlas.org/download/proteinatlas.tsv.zip",
@@ -440,38 +461,6 @@ MANUAL_DATASETS: dict[str, dict[str, str]] = {
         "description": "HPA normal tissue IHC (63 tissues)",
         "expected_filename": "normal_tissue.tsv",
         "usage": "Protein-level tissue expression for CTA restriction analysis.",
-    },
-    "depmap_rna": {
-        "download_url": "https://depmap.org/portal/data_page/?tab=allData",
-        "description": "DepMap 24Q4 protein-coding gene TPM (log2(TPM+1))",
-        "expected_filename": "OmicsExpressionProteinCodingGenesTPMLogp1.csv",
-        "usage": (
-            "Per-cell-line RNA expression anchor for tier-1 exact-line "
-            "resolution of HeLa / A375 / SaOS-2 / THP-1 / K562 / HEK293 in "
-            "hitlist.line_expression. Gene-level only. Ships as log2(TPM+1). "
-            "See the DepMap portal for the Figshare-hosted CSV; ~160MB."
-        ),
-    },
-    "depmap_rna_transcript": {
-        "download_url": "https://depmap.org/portal/data_page/?tab=allData",
-        "description": "DepMap 24Q4 transcript-level TPM (log2(TPM+1))",
-        "expected_filename": "OmicsExpressionTranscriptsTPMLogp1.csv",
-        "usage": (
-            "Optional companion to depmap_rna. When registered, enables "
-            "transcript-isoform-aware peptide-origin summation in "
-            "generate_training_table(with_peptide_origin=True). ~600MB."
-        ),
-    },
-    "depmap_models": {
-        "download_url": "https://depmap.org/portal/data_page/?tab=allData",
-        "description": "DepMap Model.csv (ModelID → StrippedCellLineName metadata)",
-        "expected_filename": "Model.csv",
-        "usage": (
-            "Required companion to depmap_rna / depmap_rna_transcript: lets "
-            "the line-expression builder map DepMap ModelIDs (ACH-xxxxxx) "
-            "onto the registry's expression_key values. Without it, most "
-            "DepMap rows are dropped with a warning. ~5MB."
-        ),
     },
 }
 
@@ -1213,6 +1202,18 @@ def register(name: str, path: str | Path, description: str | None = None) -> Pat
 
 def fetch(name: str, force: bool = False) -> Path:
     """Download a fetchable dataset."""
+    if name == "depmap":
+        from .builder import build_line_expression
+
+        for key in _DEPMAP_FILES:
+            registered = _load_manifest().get("datasets", {}).get(key, {})
+            if not force and registered.get("path") and Path(registered["path"]).exists():
+                continue
+            fetch(key, force=force)
+        build_line_expression(verbose=True)
+        output = data_dir() / "line_expression.parquet"
+        register("depmap", output, description="DepMap 24Q4 line-expression index")
+        return output
     if name not in FETCHABLE_DATASETS:
         if name in MANUAL_DATASETS:
             info = MANUAL_DATASETS[name]
@@ -1222,7 +1223,7 @@ def fetch(name: str, force: bool = False) -> Path:
                 f"Then register the downloaded {info['expected_filename']} file "
                 f"under dataset name '{name}'."
             )
-        available = sorted(set(FETCHABLE_DATASETS) | set(MANUAL_DATASETS))
+        available = sorted(available_datasets())
         raise ValueError(f"Unknown dataset '{name}'. Available: {available}")
 
     ds = FETCHABLE_DATASETS[name]
@@ -1290,6 +1291,13 @@ def info(name: str) -> dict:
     entry = manifest.get("datasets", {}).get(name)
     if entry is None:
         # Return known info even if not registered
+        if name == "depmap":
+            return {
+                "description": "DepMap 24Q4 gene/transcript expression and index (~4.7 GB)",
+                "datasets": list(_DEPMAP_FILES),
+                "status": "not installed",
+                "type": "bundle + build",
+            }
         if name in FETCHABLE_DATASETS:
             return {**FETCHABLE_DATASETS[name], "status": "not installed", "type": "auto-fetch"}
         if name in MANUAL_DATASETS:
@@ -1313,7 +1321,9 @@ def list_datasets() -> dict[str, dict]:
 
 def available_datasets() -> dict[str, str]:
     """Return all known dataset names with descriptions."""
-    result = {}
+    result = {
+        "depmap": "DepMap 24Q4 gene/transcript expression + companions (~4.7 GB) [bundle + build]"
+    }
     for name, ds in FETCHABLE_DATASETS.items():
         result[name] = ds["description"] + " [auto-fetch]"
     for name, ds in MANUAL_DATASETS.items():
