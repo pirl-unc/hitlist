@@ -2681,9 +2681,10 @@ verified primary inputs and complete profile QC are ready.
 The user elevated mutation-token fabrication and genotype-contradicting
 attribution as urgent correctness defects. Their implementation exists in
 PRs #530 and #531, but the old stack makes them wait for unrelated changes.
-Retain #529's allele-identity handling as the true prerequisite, then
-restack #529 -> #530 -> #531 directly on current main. Preserve the reserved
-versions 1.62.36, 1.62.37, and 1.62.38; patch versions may skip unshipped
+Retain #529's allele-identity handling as the correctness prerequisite.
+The pending main release reproduced #526, so place its isolated phase-retry
+repair first: #527 -> #529 -> #530 -> #531. Preserve the reserved
+versions 1.62.35 through 1.62.38; patch versions may skip unshipped
 numbers. Other PRs must be rebased and bumped beyond the priority releases
 before they land. Preserve named backups of all original branch tips.
 
