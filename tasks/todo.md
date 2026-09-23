@@ -2837,3 +2837,50 @@ extracted molecules and species are all unchanged. Raw YAML SHA-256 is
 7380766616315777df7593946a7637a30c7afe21cf5fabaa84ef4e08771e74d0.
 All mutation examples remain synthetic. Final CI and the full local suite
 are required again after this review change. Reserve 1.63.0 for RNA #358.
+# Respect reported genotype evidence in class-pool attribution (#514)
+
+The class-pool text scorer currently ignores the observation's restriction,
+so a generic display-label word can select a sample with a disjoint reported
+genotype. Re-read Ritz 2017 (PMID 28834231, PMC5846733): both cell lines were
+SSO/SSP typed; MAVER-1's six alleles and homozygous HEK293's three alleles are
+explicitly distinct. Reproduce the missing-tissue failure before editing.
+
+Validate the proposed class-pool text/group winner without changing text
+scoring weights: when observation and sample contain precise, reported
+molecules at the same loci, reject a disjoint named winner. Unknown,
+coarse, or serological typing must not be treated as complete exact evidence,
+and derived/predicted candidate sets must not be used as reported typing.
+Respect class-II chain versus complete-pair precision and mutation identity.
+Missing loci are unknown, and an untyped candidate cannot win merely by
+surviving exclusions. Genotype evidence may select a sample only when exactly
+one candidate overlaps and every alternative is explicitly disjoint. Include
+the restriction and its evidence category in row-discriminator
+keys so rows with identical text but distinct typings cannot share a winner.
+Leave curated per-row sample labels authoritative and keep raw data intact.
+
+- [x] Reproduce the paper-grounded missing-tissue case and precision edge cases.
+- [x] Implement the conservative winner check and use precise row keys.
+- [x] Audit changed attributions against the stored corpus and primary sources.
+- [ ] Run format/lint/full tests and final CI; review all behavioral changes.
+- [ ] Bump 1.62.38, open a separate PR, merge and deploy after #530.
+
+RNA #358 remains independently in progress and will use 1.62.39.
+
+Review: three source-grounded export regressions fail on the base. Initial
+testing exposed two unsafe generalizations, both corrected before review:
+filtering candidates before text scoring changed relative token weights and
+could promote an untyped cell line; treating absent loci as negative typing
+would reject DRB3/DRB4 observations from samples typed only at DRB1. The final
+check preserves scoring, handles gene coverage as uncertainty, and uses the
+existing species-ancestry relation for Calu/DLA naming. Pair-vs-chain identity,
+mutation identity, retired names, serotypes, partial alleles, unknown fields,
+predicted restrictions and identical-text/different-genotype rows are tested.
+
+Audit all 12,888 distinct attribution input patterns across 3,644,028 stored
+observations in 102 multi-sample studies: zero existing attribution changes.
+Raw source YAML and restrictions are unchanged. The Ritz paper explicitly
+reports the two SSO/SSP-typed genotypes and HEK293 homozygosity; the missing-
+tissue regressions reconstruct that source evidence. No full-corpus column
+copy is added: restriction/evidence are part of the existing unique-row keys.
+Full local tests and final CI remain required before merge, with clean-main
+PyPI publication afterward.

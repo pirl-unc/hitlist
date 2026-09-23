@@ -2282,6 +2282,65 @@ def sample_mhc_candidates(mhc_field) -> SampleMhcCandidates:
     )
 
 
+def reported_mhc_fields_overlap(first, second) -> bool | None:
+    """Whether two precisely reported molecule sets have a compatible member.
+
+    This is an exclusion boundary for heuristic sample attribution, not a
+    claim that either field is a complete cellular genotype. Unknown,
+    serological, gene-only, and one-field typing return None (undetermined).
+    A missing locus is also unknown: disjointness requires both fields to
+    cover the same loci. An observed DRB3 product cannot contradict a sample
+    whose only reported class-II typing is DRB1 (#520).
+    Compare reported molecules only; callers must exclude predicted or
+    inferred restriction fields before using this check.
+    """
+    from mhcgnomes import Allele, Pair
+
+    def precise_molecule(molecule):
+        if isinstance(molecule, Pair):
+            return precise_molecule(molecule.alpha) and precise_molecule(molecule.beta)
+        return isinstance(molecule, Allele) and molecule.num_allele_fields >= 2
+
+    def molecules(field):
+        candidates = sample_mhc_candidates(field)
+        if candidates.serotypes or candidates.imprecise or not candidates.exact:
+            return ()
+        parsed = tuple(_cached_parse(name) for name in candidates.exact)
+        return parsed if all(precise_molecule(molecule) for molecule in parsed) else ()
+
+    def compatible(left, right):
+        if isinstance(left, Pair) and isinstance(right, Pair):
+            return compatible(left.alpha, right.alpha) and compatible(left.beta, right.beta)
+        if isinstance(left, Pair):
+            return compatible(left.alpha, right) or compatible(left.beta, right)
+        if isinstance(right, Pair):
+            return compatible(left, right.alpha) or compatible(left, right.beta)
+        depth = min(left.num_allele_fields, right.num_allele_fields)
+        return (
+            left.gene.name == right.gene.name
+            and species_compatible(left.species.name, right.species.name)
+            and left.allele_fields[:depth] == right.allele_fields[:depth]
+            and left.mutations == right.mutations
+        )
+
+    left, right = molecules(first), molecules(second)
+    if not left or not right:
+        return None
+    if any(compatible(a, b) for a in left for b in right):
+        return True
+
+    def loci(items):
+        return {
+            chain.gene.name
+            for molecule in items
+            for chain in (
+                (molecule.alpha, molecule.beta) if isinstance(molecule, Pair) else (molecule,)
+            )
+        }
+
+    return False if loci(left) == loci(right) else None
+
+
 def _parse_sample_mhc_field(mhc_field) -> frozenset[str]:
     """Parse a ``ms_samples[].mhc`` value into a normalized allele set.
 
