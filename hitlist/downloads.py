@@ -1219,7 +1219,8 @@ def fetch(name: str, force: bool = False) -> Path:
             raise ValueError(
                 f"'{name}' requires manual download from:\n"
                 f"  {info['download_url']}\n"
-                f"Then register: hitlist data register {name} /path/to/{info['expected_filename']}"
+                f"Then register the downloaded {info['expected_filename']} file "
+                f"under dataset name '{name}'."
             )
         available = sorted(set(FETCHABLE_DATASETS) | set(MANUAL_DATASETS))
         raise ValueError(f"Unknown dataset '{name}'. Available: {available}")
@@ -1270,7 +1271,8 @@ def get_path(name: str) -> Path:
             info = MANUAL_DATASETS[name]
             hint = (
                 f"\n  Download from: {info['download_url']}"
-                f"\n  Then register: hitlist data register {name} /path/to/file"
+                f"\n  Register the downloaded {info['expected_filename']} file "
+                f"under dataset name '{name}'."
             )
         raise KeyError(f"Dataset '{name}' not registered.{hint}")
 
