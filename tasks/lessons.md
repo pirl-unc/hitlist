@@ -196,3 +196,5 @@
   suite. Before asserting an ordering between two counts, name the operation
   that would violate it — here "two papers, one peptide" — and if it is ordinary
   science, the assertion is wrong rather than the data.
+
+- When fixing test-framework deprecations, verify the oldest supported Python/pytest pair before propagating a stacked change. Class-scope fixtures that need no class state should be plain module functions; classmethod metadata differs before Python 3.10.

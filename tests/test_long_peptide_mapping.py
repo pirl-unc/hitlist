@@ -89,6 +89,13 @@ class TestShortAndExactLengthsAreUnchanged:
 SEED_ONLY = (7,)
 
 
+@pytest.fixture(scope="class")
+def single_seed_index():
+    proteins = {"P1": HOST, "P2": DECOY}
+    meta = {"P1": {"gene_name": "G1"}, "P2": {"gene_name": "G2"}}
+    return ProteomeIndex._build(proteins, meta, lengths=SEED_ONLY, verbose=False)
+
+
 class TestSingleSeedIndex:
     """The index carries ONE length; peptide length is a separate concern.
 
@@ -97,69 +104,64 @@ class TestSingleSeedIndex:
     multiplicity comes from isoforms, not sequence repetition.
     """
 
-    @pytest.fixture(scope="class")
-    def seed_index(self):
-        proteins = {"P1": HOST, "P2": DECOY}
-        meta = {"P1": {"gene_name": "G1"}, "P2": {"gene_name": "G2"}}
-        return ProteomeIndex._build(proteins, meta, lengths=SEED_ONLY, verbose=False)
+    def test_index_stores_a_single_length(self, single_seed_index):
+        assert single_seed_index.lengths == SEED_ONLY
 
-    def test_index_stores_a_single_length(self, seed_index):
-        assert seed_index.lengths == SEED_ONLY
-
-    def test_long_peptide_maps_through_the_seed(self, seed_index):
+    def test_long_peptide_maps_through_the_seed(self, single_seed_index):
         """20 residues located by a 7-residue seed -- 13 past the seed and
         8 past the 63-bit encoding ceiling."""
-        assert seed_index.lookup(LONG_PEPTIDE) == [("P1", 5)]
+        assert single_seed_index.lookup(LONG_PEPTIDE) == [("P1", 5)]
 
     @pytest.mark.parametrize("length", [7, 8, 9, 11, 12, 15, 20])
-    def test_every_length_at_or_above_the_seed_resolves(self, seed_index, length):
+    def test_every_length_at_or_above_the_seed_resolves(self, single_seed_index, length):
         """The class I lengths and the class II lengths take the same path."""
         pep = HOST[5 : 5 + length]
-        assert ("P1", 5) in seed_index.lookup(pep)
+        assert ("P1", 5) in single_seed_index.lookup(pep)
 
-    def test_verification_rejects_a_seed_match_that_diverges(self, seed_index):
+    def test_verification_rejects_a_seed_match_that_diverges(self, single_seed_index):
         """DECOY shares LONG_PEPTIDE's first 11 residues, so it matches the
         seed. Only checking the full span against the source sequence keeps
         the answer exact -- delete that check and this returns P2 too."""
-        hits = dict(seed_index.lookup(LONG_PEPTIDE))
+        hits = dict(single_seed_index.lookup(LONG_PEPTIDE))
         assert "P2" not in hits
         # ...and the shared prefix really does hit both, so the test is not
         # vacuous: the seed alone cannot tell them apart.
-        assert len(seed_index.lookup(LONG_PEPTIDE[:7])) == 2
+        assert len(single_seed_index.lookup(LONG_PEPTIDE[:7])) == 2
 
-    def test_below_the_seed_returns_nothing_rather_than_guessing(self, seed_index):
+    def test_below_the_seed_returns_nothing_rather_than_guessing(self, single_seed_index):
         """A 6-mer cannot be seeded at k=7. Returning [] is honest; the
         alternative is lowering the seed, which costs far more than the
         2,826 corpus rows at length 2-6 are worth (k=5 mean 16.6 hits/seed,
         worst case 10,022)."""
-        assert seed_index.lookup(LONG_PEPTIDE[:6]) == []
-        assert seed_index.lookup("") == []
+        assert single_seed_index.lookup(LONG_PEPTIDE[:6]) == []
+        assert single_seed_index.lookup("") == []
+
+
+@pytest.fixture(scope="class")
+def flank_seed_index():
+    proteins = {"P1": HOST}
+    return ProteomeIndex._build(
+        proteins, {"P1": {"gene_name": "G1"}}, lengths=SEED_ONLY, verbose=False
+    )
 
 
 class TestFlankWidth:
     """Flanks are sliced after the position is known, so width is an output
     decision independent of the index."""
 
-    @pytest.fixture(scope="class")
-    def seed_index(self):
-        proteins = {"P1": HOST}
-        return ProteomeIndex._build(
-            proteins, {"P1": {"gene_name": "G1"}}, lengths=SEED_ONLY, verbose=False
-        )
-
     def test_default_flank_is_fifteen(self):
         from hitlist.proteome import DEFAULT_FLANK
 
         assert DEFAULT_FLANK == 15
 
-    def test_flanks_truncate_at_termini_rather_than_padding(self, seed_index):
+    def test_flanks_truncate_at_termini_rather_than_padding(self, flank_seed_index):
         """HOST puts LONG_PEPTIDE at offset 5, so a 15-residue N-flank cannot
         be filled. The row is still a real mapping -- a short flank means
         'near a terminus', never 'context missing'. Consumers that read a
         short flank as absent data invert exactly the distinction #392 was
         about, one layer down.
         """
-        df = seed_index.map_peptides([LONG_PEPTIDE], flank=15, verbose=False)
+        df = flank_seed_index.map_peptides([LONG_PEPTIDE], flank=15, verbose=False)
         row = df.iloc[0]
         assert row["position"] == 5
         assert row["n_flank"] == "AAAAA"  # all 5 residues that exist, not padded
