@@ -3524,3 +3524,61 @@ sysctl query. Its full JSON report and built index were verified separately.
 Wrong legacy placeholder citations discovered during the audit are filed
 as #522 and will be corrected separately from this download/parser change.
 Full local tests, final CI, merge and deployment are still required.
+
+## PR #524 release-runner restack (1.62.49)
+
+Move the already reviewed scientific patch after the release-runner
+foundation (#539, 1.62.39). Preserve its code, source data and tests exactly.
+Retain the original branch; prove patch identity, bump the release version,
+run format/lint and final-head CI, and repeat the relevant compact source
+audit before merging. Run the full clean-main release workflow and verify
+its tested artifacts before local PyPI publication. No memory gate is waived.
+
+- [x] Prove the non-planning patch is unchanged.
+- [ ] Run format/lint, focused checks, source audit and final-head CI.
+- [ ] Review, merge, run the clean-main release and verify PyPI publication.
+
+
+## PR #524 priority queue restack (1.62.49)
+
+Move this previously reviewed change after #528/#514 and their source-verified
+attribution follow-ups. Preserve the implementation, curation and tests exactly;
+only the base, release version and planning records change. Keep the original
+local branch, compare stable patch IDs, then run format/lint and fresh CI.
+Repeat affected source audits and full local release gates before publication.
+
+- [x] Preserve and compare the original non-planning patch.
+- [ ] Run format/lint and fresh CI on this exact head.
+- [ ] Review against the updated base, validate, merge and deploy in order.
+
+
+## #522 specification — verified RNA-source provenance
+
+Check each stored PMID against the original article and read the intended
+papers' methods. Essletzbichler HAP1 is PMID 25373145, SRP044391,
+TopHat alignment with mapping-weighted gene counts reported as FPKM;
+remove the invented kallisto/TPM claim. Pearson is PMID 27841757;
+its own cohort is 18 donor B-LCLs, while JY is an external validation
+transcriptome reprocessed with kallisto 0.42.5. Retain only that supported
+JY association and remove unsupported HHC coverage. Kaabinejadian
+PMID 35154160 profiles HLA ligands, not host RNA; retire the falsely
+attributed RNA source and its C1R/721.221 anchor references. These are
+empty placeholders, so actual RNA values and fallback resolutions must
+remain unchanged. Document source evidence and availability explicitly;
+do not convert FPKM to TPM without a complete quantified feature set.
+Add source-fact regression assertions and verify all registry links,
+packaged data and existing fallback behavior. Run format/lint/full tests,
+final CI, review, merge and deploy 1.62.49 in its own PR.
+
+- [x] Re-read primary methods, provenance and data-access statements.
+- [x] Correct or retire unsupported placeholder metadata.
+- [ ] Verify unchanged values/fallbacks and all required gates.
+- [ ] Review, merge, deploy and verify PyPI.
+
+Review: all three primary-source regression checks fail before the change;
+101 provenance/expression/fetch tests pass afterward, with format/lint.
+Every registered line was resolved against an empty optional-data cache and
+against the full 1,502,002-row expression index before/after: all anchors,
+row counts and hashes are identical. Source IDs referenced by remaining
+anchors all exist. No numerical expression file changed. Full tests and
+final CI remain required before merge; deployment remains required after.
