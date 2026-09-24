@@ -127,7 +127,7 @@ def test_exclusion_guard_uses_the_feature_contract_not_the_current_builder(
 
 
 @pytest.mark.integration
-def test_no_excluded_study_reaches_the_enriched_export():
+def test_no_excluded_study_reaches_the_enriched_export(full_observations_df):
     """The regression #444 asks for, on the real corpus."""
     from hitlist.observations import is_built
 
@@ -135,9 +135,9 @@ def test_no_excluded_study_reaches_the_enriched_export():
         pytest.skip("Observations table not built")
     if _corpus_predates_the_fix():
         pytest.skip("corpus lacks #444 provenance (artifact_version >= 5); rebuild to check")
-    from hitlist.export import generate_observations_table
-
-    df = generate_observations_table(columns=["pmid", "peptide"])
+    # Earlier corpus tests already retain the complete enriched export. Reuse
+    # it instead of constructing a second multi-million-row export (#545).
+    df = full_observations_df
     leaked = df[df["pmid"].isin(ms_excluded_pmids())]
     assert leaked.empty, (
         f"{len(leaked):,} rows from exclude_from_ms studies "
