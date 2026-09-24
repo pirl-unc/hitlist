@@ -44,9 +44,13 @@ def _class_i_alleles(mhc_field: str | None) -> list[str]:
         return []
     if mhc_field.startswith("HLA class") or mhc_field == "unknown":
         return []
-    return [
-        a for a in mhc_field.split() if a.startswith(("HLA-A", "HLA-B", "HLA-C", "HLA-E", "HLA-G"))
-    ]
+    return list(
+        dict.fromkeys(
+            a
+            for a in mhc_field.split()
+            if a.startswith(("HLA-A", "HLA-B", "HLA-C", "HLA-E", "HLA-G"))
+        )
+    )
 
 
 def _class_ii_alleles(mhc_field: str | None) -> list[str]:
@@ -122,6 +126,8 @@ def _predict_netmhcpan(pairs: pd.DataFrame) -> pd.DataFrame:
     DTU; licensed for academic use).  Returns the same two score
     columns as MHCflurry so the best-allele logic is uniform.
     """
+    from .curation import resolve_allele_identity
+
     # One netMHCpan invocation per allele is simplest; batch peptides.
     rows: list[dict] = []
     for allele, grp in pairs.groupby("allele"):
@@ -140,18 +146,24 @@ def _predict_netmhcpan(pairs: pd.DataFrame) -> pd.DataFrame:
             parts = line.split()
             if len(parts) < 16:
                 continue
+            if resolve_allele_identity(parts[1]) != resolve_allele_identity(allele):
+                raise RuntimeError(
+                    f"NetMHCpan returned allele {parts[1]!r} for requested allele {allele!r}"
+                )
             try:
                 rows.append(
                     {
                         "peptide": parts[2],
-                        "allele": parts[1],
+                        # This invocation scores one requested allele. Keep
+                        # its input spelling so scores join back to candidates.
+                        "allele": allele,
                         "rank_EL": float(parts[12]),
                         "affinity_nM": float(parts[15]),
                     }
                 )
             except (ValueError, IndexError):
                 continue
-    out = pd.DataFrame(rows)
+    out = pd.DataFrame(rows, columns=["peptide", "allele", "rank_EL", "affinity_nM"])
     # Normalise to the same column names MHCflurry produces.  Use rank_EL
     # as the presentation proxy (lower = better, <= 0.5 = strong, <= 2 = weak).
     out["presentation_percentile"] = out["rank_EL"]
@@ -161,7 +173,7 @@ def _predict_netmhcpan(pairs: pd.DataFrame) -> pd.DataFrame:
 def reassign_class_only_alleles(
     method: str = "mhcflurry",
     mhc_class: str = "I",
-    max_alleles_per_sample: int = 30,
+    max_alleles_per_sample: int = 6,
 ) -> pd.DataFrame:
     """Reassign class-only peptides to their best-scoring allele.
 
@@ -169,7 +181,9 @@ def reassign_class_only_alleles(
     ``mhc_restriction`` is class-only ("HLA class I" / "HLA class II")
     and the sample has a curated multi-allelic genotype, runs the
     requested predictor against each sample's alleles, and returns the
-    best allele per peptide.
+    best allele per peptide/sample context. Shared peptides retain a separate
+    result for each PMID, sample label and genotype; predictions may be reused
+    across samples, but the selected allele must belong to that sample.
 
     Parameters
     ----------
@@ -181,18 +195,21 @@ def reassign_class_only_alleles(
         class II support via NetMHCpan requires netMHCIIpan (not yet
         wired).
     max_alleles_per_sample
-        Skip samples whose genotype has more alleles than this (likely
+        Skip samples whose genotype has more distinct alleles than this (likely
         a pooled-donor curation artifact; see
         tasks/per_sample_allele_curation_audit.md).  Such samples can
         produce misleading "best allele" calls because the pool does
-        not represent any one donor.
+        not represent any one donor. The conservative default is six for the
+        classical human class-I genotype; the explicit limit remains configurable
+        for separately justified experimental systems. Genotypes are never truncated.
 
     Returns
     -------
-    pd.DataFrame with columns:
+    pd.DataFrame, one row per distinct peptide/sample context, with columns:
         peptide, pmid, sample_label, sample_mhc, n_alleles_tested,
         best_allele, best_affinity_nM, best_presentation_percentile,
-        is_strong_binder, is_weak_binder.
+        is_strong_binder, is_weak_binder. When no candidate has a finite rank,
+        prediction fields are null and both binder flags are false.
     """
     if mhc_class != "I":
         raise NotImplementedError("Only class I reassignment is supported in v1.8.0.")
@@ -206,6 +223,8 @@ def reassign_class_only_alleles(
     target = df[class_only_mask & multi_mask].copy()
     target["_alleles"] = target["sample_mhc"].map(_class_i_alleles)
     target = target[target["_alleles"].map(len).between(1, max_alleles_per_sample)]
+    # Filter before the empty-input return; no predictor needs an empty batch.
+    target = target[target["peptide"].str.len().between(8, 12)]
     if target.empty:
         return pd.DataFrame(
             columns=[
@@ -222,15 +241,14 @@ def reassign_class_only_alleles(
             ]
         )
 
-    # Filter 8-12mer (class I)
-    target = target[target["peptide"].str.len().between(8, 12)]
-
-    # Build (peptide, allele) cross product de-duplicated across samples.
-    pairs: list[dict] = []
-    for _, row in target.iterrows():
-        for a in row["_alleles"]:
-            pairs.append({"peptide": row["peptide"], "allele": a})
-    pair_df = pd.DataFrame(pairs).drop_duplicates(["peptide", "allele"]).reset_index(drop=True)
+    context_columns = ["peptide", "pmid", "sample_label", "sample_mhc"]
+    target = target[[*context_columns, "_alleles"]].drop_duplicates(context_columns)
+    target = target.reset_index(drop=True)
+    target["_context_id"] = target.index
+    candidates = target[["_context_id", "peptide", "_alleles"]].explode("_alleles")
+    candidates = candidates.rename(columns={"_alleles": "allele"})
+    # Score shared pairs once, retaining each context's own candidate membership.
+    pair_df = candidates[["peptide", "allele"]].drop_duplicates().reset_index(drop=True)
 
     if method == "mhcflurry":
         scored = _predict_mhcflurry(pair_df)
@@ -239,29 +257,28 @@ def reassign_class_only_alleles(
     else:
         raise ValueError(f"Unknown method: {method!r}")
 
-    # Best allele per peptide (lowest presentation_percentile)
-    best = scored.sort_values(["peptide", "presentation_percentile"]).drop_duplicates(
-        "peptide", keep="first"
+    scored = scored[["peptide", "allele", "affinity_nM", "presentation_percentile"]].copy()
+    scored["presentation_percentile"] = pd.to_numeric(
+        scored["presentation_percentile"], errors="coerce"
     )
-    best = best.rename(
+    scored = scored[np.isfinite(scored["presentation_percentile"])]
+    ranked = candidates.merge(scored, on=["peptide", "allele"], validate="many_to_one")
+    best = ranked.sort_values(["_context_id", "presentation_percentile", "allele"]).drop_duplicates(
+        "_context_id"
+    )
+    best = best[["_context_id", "allele", "affinity_nM", "presentation_percentile"]].rename(
         columns={
             "allele": "best_allele",
             "affinity_nM": "best_affinity_nM",
             "presentation_percentile": "best_presentation_percentile",
         }
     )
+    result = target.merge(best, on="_context_id", how="left", validate="one_to_one", sort=False)
 
     # Thresholds are the community conventions MHCflurry and NetMHCpan
     # both use: strong binder = rank/percentile <= 0.5, weak <= 2.0.
-    best["is_strong_binder"] = best["best_presentation_percentile"] <= 0.5
-    best["is_weak_binder"] = best["best_presentation_percentile"] <= 2.0
-
-    # Attach sample context from the first occurrence of each peptide
-    # in the filtered target frame.
-    sample_ctx = target.drop_duplicates("peptide")[
-        ["peptide", "pmid", "sample_label", "sample_mhc", "_alleles"]
-    ]
-    result = best.merge(sample_ctx, on="peptide", how="left")
+    result["is_strong_binder"] = result["best_presentation_percentile"] <= 0.5
+    result["is_weak_binder"] = result["best_presentation_percentile"] <= 2.0
     result["n_alleles_tested"] = result["_alleles"].map(len)
     result = result.drop(columns=["_alleles"])
 
