@@ -24,11 +24,11 @@ jobs:
 
       - name: Lint with ruff
         run: |
-          ruff check hitlist tests
+          ruff check hitlist tests scripts/ci_corpus.py scripts/release_artifacts.py
 
       - name: Check formatting with ruff
         run: |
-          ruff format --check hitlist tests
+          ruff format --check hitlist tests scripts/ci_corpus.py scripts/release_artifacts.py
 
   test:
     runs-on: ubuntu-latest
@@ -43,7 +43,8 @@ jobs:
       # Bump in lockstep with the corpus published by
       # scripts/publish_ci_corpus.sh (tag ci-corpus-<CORPUS_VERSION>).
       # Changing this invalidates the cache below so CI pulls the new corpus.
-      CORPUS_VERSION: v1
+      CORPUS_VERSION: v2
+      PYTEST_ADDOPTS: "-ra"
 
     steps:
       - name: Checkout repository
@@ -62,14 +63,13 @@ jobs:
 
       # ── Prebuilt observations corpus (integration tests) ──────────────
       # CI can't build the corpus (the ~15 GB IEDB/CEDAR sources aren't
-      # here), so we restore the ~237 MB prebuilt parquets published by
+      # here), so we restore the prebuilt parquets and provenance published by
       # scripts/publish_ci_corpus.sh as a public release.  Only the 3.11
       # job runs the integration suite — the other versions exist for
       # language-compat coverage, which the (non-integration) unit tests
       # already provide — so the corpus pull is gated to 3.11 to keep
-      # 3.9/3.10/3.12 fast.  If the corpus is absent (not seeded, or a
-      # fork without the release), the integration tests self-skip and CI
-      # stays green.
+      # 3.9/3.10/3.12 fast. Forks also read the canonical public release.
+      # Missing or inconsistent corpus provenance must fail before tests.
       - name: Restore corpus cache
         if: matrix.python-version == '3.11'
         id: corpus-cache
@@ -80,24 +80,21 @@ jobs:
 
       - name: Download prebuilt corpus on cache miss
         if: matrix.python-version == '3.11' && steps.corpus-cache.outputs.cache-hit != 'true'
-        id: corpus-download
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p ~/.hitlist
-          if gh release download "ci-corpus-${CORPUS_VERSION}" \
-              --repo "${{ github.repository }}" \
-              --pattern '*.parquet' --dir ~/.hitlist --clobber; then
-            echo "present=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "::warning::corpus release ci-corpus-${CORPUS_VERSION} not found; integration tests will skip"
-            echo "present=false" >> "$GITHUB_OUTPUT"
-          fi
+          gh release download "ci-corpus-${CORPUS_VERSION}" \
+            --repo pirl-unc/hitlist --pattern '*.parquet' \
+            --pattern observations_meta.json --dir ~/.hitlist --clobber
 
-      # Only persist the cache once the corpus actually downloaded, so a
-      # pre-seed run can't poison the key with an empty ~/.hitlist.
+      - name: Verify corpus provenance and file hashes
+        if: matrix.python-version == '3.11'
+        run: python scripts/ci_corpus.py verify ~/.hitlist
+
+      # Verification runs on cache hits too; only verified downloads are saved.
       - name: Save corpus cache
-        if: matrix.python-version == '3.11' && steps.corpus-cache.outputs.cache-hit != 'true' && steps.corpus-download.outputs.present == 'true'
+        if: matrix.python-version == '3.11' && steps.corpus-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
           path: ~/.hitlist
@@ -106,15 +103,12 @@ jobs:
       - name: Run unit tests (with coverage)
         if: matrix.python-version == '3.11'
         run: |
-          # Two passes so the memory-heavy integration tests don't OOM the
-          # 16 GB runner: each loads the full ~4.4M-row observations table, and
-          # the Arrow xdist fixture only shares numeric/categorical columns
-          # zero-copy — string columns still materialize per worker, so 4
-          # workers blow past RAM. Run non-integration with full parallelism,
-          # then integration capped at 2 workers (still exercises the
-          # cross-worker mmap fixture). Coverage accumulates via --cov-append.
-          pytest tests/ -m "not integration" -n auto --cov=hitlist
-          pytest tests/ -m integration -n 2 --cov=hitlist --cov-append --cov-report=xml
+          # The v2 corpus repeatedly lost its hosted runner with two corpus
+          # workers. String materialization is not shared by the Arrow mmap
+          # fixture. Keep every test, use one corpus worker and record resource
+          # usage; regular tests retain normal parallelism. Coverage accumulates.
+          /usr/bin/time -v pytest tests/ -m "not integration" -n auto --cov=hitlist
+          /usr/bin/time -v pytest tests/ -m integration -n 1 --cov=hitlist --cov-append --cov-report=xml
 
       - name: Run unit tests (no coverage)
         if: matrix.python-version != '3.11'

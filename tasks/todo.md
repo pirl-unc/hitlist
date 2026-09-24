@@ -55,6 +55,110 @@ heterozygous at all three loci (Overview of the Immune Response, PMC2923430).
 The default remains conservative; it does not redefine nonclassical or engineered
 cell genotypes, which remain a separate explicit curation question in #520.
 
+## #540 specification — verifiable public CI corpus provenance
+
+The corpus publisher and both CI consumers transfer only five parquets.
+The excluded-study integration check reads observations_meta.json, so its
+absence permanently skips that regression. The current local build has
+artifact contract 5, matching recorded parquet fingerprints, and zero
+excluded-study rows among 4,440,428 observations. All five local hashes differ
+from the existing public assets; its metadata must not be copied onto those
+different files. Publish a new immutable corpus version after verification.
+
+Add a small standard-library corpus helper. Export only the original artifact
+contract version, original mhcgnomes version, a manifest format version and
+the five exact file hashes/sizes. Require the existing builder metadata to
+match the four tracked parquet size/mtime fingerprints; require contract 5
+or later so the #444 check can execute. Never infer a new contract version
+from the code running the helper, and never expose private source paths.
+Preserve the original local metadata. Snapshot the five files, verify the
+snapshot against the public manifest, and refuse to overwrite an existing
+corpus tag. Publish the verified snapshot and public metadata together.
+
+Move normal CI and release CI to the new public corpus version, require its
+metadata and verify all hashes before tests/cache persistence. Use the
+canonical public corpus for fork CI too. Record the metadata hash in release
+provenance. The #444 test should require its feature's minimum contract (5),
+not equality with the running builder's current contract (6 after #536).
+Version 1.62.52 follows the independently shippable genotype fix #548.
+The previous reviewed queue is published through 1.62.50.
+
+- [x] Reproduce missing/stale/changed corpus provenance and the version guard.
+- [x] Implement sanitized manifests, immutable snapshot publication and CI reads.
+- [x] Verify the real local corpus and publish a new matching corpus bundle.
+- [ ] Run format/lint, meaningful regressions, workflow checks and fresh CI.
+- [ ] Review, merge and deploy after the existing queue; verify PyPI hashes.
+
+Review: the original guard incorrectly skips a valid contract-5 corpus with
+builder contract 6. The corrected guard accepts both versions. Manifest and
+publisher regressions reject stale builder fingerprints, modified/missing
+files, absent/old provenance, private builder metadata, and overwriting an
+existing release. The publisher transfers a verified snapshot and preserves
+the original metadata. Format/lint and actionlint pass; focused checks pass
+on Python 3.9 and 3.12 (47 checks each). The complete guarded local
+`./test.sh --all --retry-memory` passes: 1,950 regular tests and all 43
+integration tests, with no skips. Its unchanged memory guard observed
+5.24 GiB before two regular workers and 8.49 GiB before one corpus worker.
+The full integration run therefore executes #444's exclusion regression
+against the real corpus. Fresh CI validation remains required after the
+public corpus is available.
+
+The user explicitly approved public corpus publication. Published ci-corpus-v2
+with exactly five parquets and sanitized metadata, then downloaded the entire
+public bundle into a fresh directory. All five SHA-256 hashes and sizes match;
+the downloaded metadata is byte-identical to the approved manifest. The
+original artifact contract remains 5 and its original mhcgnomes version remains
+3.64.1. No original private build metadata was published. Package releases
+from the reviewed queue continue independently using v1 until this PR lands.
+
+CI re-plan: two independent Python 3.11 jobs passed all regular assertions,
+then the hosted runner sent a shutdown signal after 18/19 integration cases
+with two workers. There is no explicit OOM diagnostic, so do not claim one.
+The exact corpus already passed all 43 cases locally with one worker. Use one
+corpus worker in ordinary CI and cap the full hosted release build at one;
+retain every test and the existing memory guards. Add GNU time resource
+measurements and repeat both complete workflows before merging. Keep the
+independent v1 package-release queue unchanged. File the observed runner
+problem and link it in this PR. The unchanged-head retry is stopped. The original PR release build also
+received a hosted-runner shutdown signal during its two-worker corpus phase
+after 1,949 regular passes; its failed result cannot authorize publication.
+The repeated runner failures are tracked in #545.
+
+Further #545 evidence: the one-worker cache PR run passes all 43 corpus tests,
+but GNU time reports 15,525,600 KiB maximum RSS (about 14.8 GiB). The provenance
+PR's single-worker run is terminated with exit 143. Inspection finds the Arrow
+fixture builder still holds its original DataFrame and conversion table while
+reading a second frame through mmap. Add a lifetime regression proving these
+original buffers are released before the read, then discard them after the
+atomic write. Preserve identical mmap-backed output, schemas, locking and
+atomicity. Retain conservative concurrency and repeat full CI with resource
+measurements; reducing concurrency alone is insufficient near the runner limit.
+
+The new lifetime regression fails on the original helper: the original
+DataFrame remains alive when the mmap reader opens. Releasing the DataFrame
+and conversion table after the atomic write makes both frame and original
+numeric-buffer weak references expire before the read. Existing dtype,
+round-trip, source-GC and atomicity regressions still pass. Format/lint and all
+67 targeted checks pass on Python 3.9 and 3.12; full hosted resource validation
+is required again on this fix.
+
+The next one-worker failures stop after exactly the first 12 integration
+cases. Collection order identifies the restored exclusion regression as case
+13. Earlier arm/condition tests have already built and retained the shared
+full export, but this regression independently constructs that entire export
+again before selecting two columns. Reuse full_observations_df and retain the
+identical all-row PMID exclusion assertion. This removes the second complete
+enrichment without dropping or narrowing any corpus check. Validate the full
+43-case suite and compare its peak RSS again before publication.
+
+Final-head pre-restack validation passes all five normal CI jobs and the
+separate release workflow: 1,950 regular checks (one optional Ensembl-data
+skip) and all 43 corpus checks without skips. Peak RSS remains about
+14.1–14.5 GiB; the modest reduction does not establish ample headroom.
+Further memory profiling remains tracked in #63. Restack after #548 and
+bump to 1.62.52 without changing the corpus implementation or tests; prove
+its stable patch identity and repeat complete CI on the new head.
+
 ## #538 specification — release artifacts from the existing CI runner
 
 The requested correctness fixes are merged, but local memory repeatedly

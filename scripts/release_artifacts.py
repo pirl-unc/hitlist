@@ -18,6 +18,7 @@ CORPUS_FILES = (
     "binding.parquet",
     "bulk_proteomics.parquet",
     "line_expression.parquet",
+    "observations_meta.json",
 )
 DEVELOPMENT_DEPENDENCIES = (
     "datacache",
