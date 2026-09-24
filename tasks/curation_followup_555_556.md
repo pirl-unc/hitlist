@@ -2,7 +2,7 @@
 
 Addresses [#555](https://github.com/pirl-unc/hitlist/issues/555) and
 [#556](https://github.com/pirl-unc/hitlist/issues/556), following release 1.62.57
-(base b095964). Proposed release: 1.62.58. Six YAML study records change;
+(base b095964). Proposed release: 1.62.58. Six source rosters and the Ritz ambiguity verdict change;
 the inventory remains 215 studies and grows from 789 to 794 sample records.
 
 ## Source decisions
@@ -67,6 +67,7 @@ Beyond the six source studies, only these studies change:
   ambiguous treatment within SU-DHL-6.
 - Ritz 27862975: 3,859 observations explicitly naming both serum and plasma lose
   an unsupported plasma-only assignment. Single-material assignments are preserved.
+  All 7,767 observations carry the study's explicit `multi_arm_evidence` verdict.
 - Gloger 27600516: 156 observations explicitly listing multiple melanoma lines
   lose an unsupported Mel-624 assignment. This is the same shared-label scoring bug.
 

@@ -58,7 +58,12 @@ passed. CI passed every compatibility/unit check, including 1,997 Python 3.11
 unit tests (two skips), then canceled the corpus phase without a failed assertion.
 During investigation, the full-study variance frame was compacted to distinct
 patterns (#562); all 14,120 exported audit patterns remain identical. The cause
-of cancellation is unconfirmed. Fresh final-head CI and publication remain gates.
+of cancellation is unconfirmed. After compaction, all 42 other corpus tests pass; the remaining test found
+Ritz's newly ambiguous rows lacked an arm-resolution verdict. Added the source-
+measured multi_arm_evidence verdict, extended projection checks to carry it, and
+verified the ambiguity-verdict invariant over all 14,120 corpus patterns. Only
+Ritz's arm_resolution field changes in that last comparison. Fresh final-head
+CI and publication remain gates.
 
 # September 24 curation sanity pass
 

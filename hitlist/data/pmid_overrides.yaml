@@ -630,6 +630,12 @@
         override: adjacent
         reason: Visceral Surgery / Urology departments — likely cancer resection margins
   - pmid: 27862975
+    arm_resolution: multi_arm_evidence
+    arm_resolution_note: >
+      The 3,859 observations explicitly naming both serum and plasma cannot
+      identify one material. Preserve shared evidence rather than choosing
+      plasma by token score (#556). The other 3,908 observations identify a
+      single material; individual donor identity is not asserted.
     study_label: Ritz 2017 — soluble HLA
     title: Purification of soluble HLA class I complexes from human serum or plasma deliver high quality immuno peptidomes required for biomarker discovery
     override: healthy

@@ -12,6 +12,7 @@ ATTRIBUTION_FIELDS = [
     "sample_match_type",
     "condition_id",
     "sample_mhc",
+    "arm_resolution",
 ]
 
 
@@ -266,6 +267,7 @@ def test_shared_biofluids_cannot_be_first_picked_by_label_length(tmp_path, monke
     assert complete.loc["AAAAAAAAA", "condition_id"] == ""
     assert complete.loc["AAAAAAAAA", "sample_label"] == ""
     assert complete.loc["AAAAAAAAA", "sample_attribution"] == "pmid_ambiguous"
+    assert complete.loc["AAAAAAAAA", "arm_resolution"] == "multi_arm_evidence"
     assert complete.loc["LLLLLLLLL", "sample_label"] == "healthy donor serum"
     assert complete.loc["VVVVVVVVV", "sample_label"] == "healthy donor plasma"
     selected = generate_observations_table(
