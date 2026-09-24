@@ -23,12 +23,27 @@ public surface that can be unit-tested independently of the fixture.
 
 from __future__ import annotations
 
+import threading
 from pathlib import Path
 
 import pytest
 
 from tests.mhcgnomes_floor_check import check as _check_mhcgnomes_floor
 from tests.xdist_cache import load_or_build_mmapped_arrow
+
+
+@pytest.fixture
+def threaded_parent():
+    """Keep a live parent thread during process-start regressions (#541)."""
+    stop = threading.Event()
+    thread = threading.Thread(target=stop.wait)
+    thread.start()
+    try:
+        yield
+    finally:
+        stop.set()
+        thread.join(timeout=5)
+        assert not thread.is_alive()
 
 
 def pytest_configure(config):

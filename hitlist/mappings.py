@@ -507,6 +507,10 @@ def build_peptide_mappings(
     overrides), maps each against the appropriate reference proteome, and
     writes all (peptide, protein, position) hits to the sidecar.
 
+    Parallel workers use the spawn start method, as does proteome prefetch.
+    Scripts invoking a build should use an ``if __name__ == "__main__":``
+    guard so importing the main module in a worker cannot restart the build.
+
     Parameters
     ----------
     obs_override, binding_override
@@ -692,7 +696,7 @@ def build_peptide_mappings(
     }
 
     n_workers = _build_workers()
-    # Cap workers at task count — more processes than work just adds fork overhead.
+    # Cap workers at task count — more processes than work just adds startup overhead.
     effective_workers = min(n_workers, max(1, len(mapping_tasks)))
 
     # Pre-fetch all missing proteomes in a supervised child so workers don't
@@ -759,6 +763,7 @@ def build_peptide_mappings(
                     f"{result.n_input_peptides:,} peptides"
                 )
     else:
+        import multiprocessing as mp
         from concurrent.futures import ProcessPoolExecutor
 
         from .proteome import _PROTEOME_INDEX_DISK_CACHE_DIR
@@ -770,6 +775,9 @@ def build_peptide_mappings(
         # index from the same-process cache rather than rebuilding.
         with ProcessPoolExecutor(
             max_workers=effective_workers,
+            # Forking a multithreaded parent can leave child locks unusable.
+            # Match supervised prefetch's fresh-process startup on every OS.
+            mp_context=mp.get_context("spawn"),
             initializer=_initialize_mapping_worker,
             initargs=(str(data_dir()), str(_PROTEOME_INDEX_DISK_CACHE_DIR)),
         ) as pool:
@@ -926,8 +934,7 @@ def _prefetch_proteomes_for_workers(
 ) -> set[str]:
     """Eagerly download/index every proteome the workers will need (#249).
 
-    Workers run in fresh processes (``ProcessPoolExecutor`` defaults to spawn
-    on macOS, fork on Linux) and don't share download locks. On a first-ever
+    Workers explicitly use spawn and don't share download locks. On a first-ever
     cold build, two workers needing the same UniProt FASTA or pyensembl GTF
     could race on the shared download/index paths. We avoid both races by
     warming the on-disk caches sequentially in one supervised child before
