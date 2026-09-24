@@ -110,8 +110,9 @@ def load_or_build_mmapped_arrow(
     own in-memory frame instead would make a test behave differently
     depending on which worker it landed on (writable RangeIndex on the
     builder vs read-only Int64 index on readers) — a nondeterministic
-    footgun under ``-n auto``.  The single redundant read on the builder
-    worker is negligible next to the build it just paid for.
+    footgun under ``-n auto``. Release the original builder frame and its
+    conversion table before reading the mmap, so they cannot overlap in
+    memory with the returned frame's materialized strings (#545).
 
     Lifetime note: the returned frame's zero-copy columns keep the
     underlying mmap alive via pyarrow's buffer refcounting, so the local
@@ -147,4 +148,5 @@ def load_or_build_mmapped_arrow(
             raise
         # Read back through mmap too, so the builder worker returns the same
         # read-only, mmap-backed frame every reader worker sees.
+        del df, table
         return _read_mmapped()

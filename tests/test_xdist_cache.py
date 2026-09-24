@@ -169,6 +169,35 @@ def test_arrow_second_call_reads_cache_and_skips_builder(tmp_path):
     pdt.assert_frame_equal(second.reset_index(drop=True), expected.reset_index(drop=True))
 
 
+def test_arrow_builder_releases_original_buffers_before_mmap_read(tmp_path, monkeypatch):
+    """Do not hold the full builder frame while allocating its mmap reader (#545)."""
+    import weakref
+
+    import numpy as np
+    import pandas as pd
+    import pyarrow.ipc as ipc
+
+    references = {}
+
+    def builder():
+        values = np.arange(500, dtype="int64")
+        frame = pd.DataFrame({"value": values}, copy=False)
+        references["frame"] = weakref.ref(frame)
+        references["values"] = weakref.ref(values)
+        return frame
+
+    original_open_file = ipc.open_file
+
+    def open_after_release(*args, **kwargs):
+        assert references["frame"]() is None, "original DataFrame still alive at mmap read"
+        assert references["values"]() is None, "original Arrow buffers still alive at mmap read"
+        return original_open_file(*args, **kwargs)
+
+    monkeypatch.setattr(ipc, "open_file", open_after_release)
+    result = load_or_build_mmapped_arrow(tmp_path / "df.arrow", builder)
+    assert result["value"].tolist() == list(range(500))
+
+
 def test_arrow_roundtrip_preserves_dtypes_and_survives_source_gc(tmp_path):
     """The mmap-read frame must preserve dtypes (incl. category) and remain
     valid after the local mmap source handle is gone — the zero-copy
