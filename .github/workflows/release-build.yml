@@ -12,6 +12,8 @@ on:
       - tests/test_ci_corpus.py
       - tests/test_deploy_script.py
       - tests/test_release_artifacts.py
+      - tests/test_xdist_cache.py
+      - tests/xdist_cache.py
 
 permissions:
   contents: read
