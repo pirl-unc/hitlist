@@ -87,6 +87,15 @@ round-trip, source-GC and atomicity regressions still pass. Format/lint and all
 67 targeted checks pass on Python 3.9 and 3.12; full hosted resource validation
 is required again on this fix.
 
+The next one-worker failures stop after exactly the first 12 integration
+cases. Collection order identifies the restored exclusion regression as case
+13. Earlier arm/condition tests have already built and retained the shared
+full export, but this regression independently constructs that entire export
+again before selecting two columns. Reuse full_observations_df and retain the
+identical all-row PMID exclusion assertion. This removes the second complete
+enrichment without dropping or narrowing any corpus check. Validate the full
+43-case suite and compare its peak RSS again before publication.
+
 ## #538 specification — release artifacts from the existing CI runner
 
 The requested correctness fixes are merged, but local memory repeatedly
