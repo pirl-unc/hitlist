@@ -103,6 +103,24 @@ received a hosted-runner shutdown signal during its two-worker corpus phase
 after 1,949 regular passes; its failed result cannot authorize publication.
 The repeated runner failures are tracked in #545.
 
+Further #545 evidence: the one-worker cache PR run passes all 43 corpus tests,
+but GNU time reports 15,525,600 KiB maximum RSS (about 14.8 GiB). The provenance
+PR's single-worker run is terminated with exit 143. Inspection finds the Arrow
+fixture builder still holds its original DataFrame and conversion table while
+reading a second frame through mmap. Add a lifetime regression proving these
+original buffers are released before the read, then discard them after the
+atomic write. Preserve identical mmap-backed output, schemas, locking and
+atomicity. Retain conservative concurrency and repeat full CI with resource
+measurements; reducing concurrency alone is insufficient near the runner limit.
+
+The new lifetime regression fails on the original helper: the original
+DataFrame remains alive when the mmap reader opens. Releasing the DataFrame
+and conversion table after the atomic write makes both frame and original
+numeric-buffer weak references expire before the read. Existing dtype,
+round-trip, source-GC and atomicity regressions still pass. Format/lint and all
+67 targeted checks pass on Python 3.9 and 3.12; full hosted resource validation
+is required again on this fix.
+
 ## #538 specification — release artifacts from the existing CI runner
 
 The requested correctness fixes are merged, but local memory repeatedly
