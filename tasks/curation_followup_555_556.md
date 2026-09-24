@@ -51,8 +51,8 @@ one candidate preserve ambiguity instead of falling back to narrative guessing.
 A genotype-rejected text guess retains curated consensus rather than erasing it.
 
 The audit collapsed every attribution input combination into 14,120 patterns
-weighted by their observation counts: 4,265,105 observations across all 215 curated
-PMIDs. The remaining 175,323 MS observations have no curated candidates. It compared
+weighted by their observation counts: 4,265,105 observations from the 191 curated
+PMIDs represented in this snapshot (all 215 curated PMIDs were included in the scan). The remaining 175,323 MS observations have no curated candidates. It compared
 all common exported fields before and after, not just nonblank labels. This is an
 attribution audit over one fixed snapshot, not a revalidation of every source paper.
 
