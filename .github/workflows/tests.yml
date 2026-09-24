@@ -9,10 +9,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
           cache: "pip"
@@ -48,10 +48,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
           cache: "pip"
@@ -73,7 +73,7 @@ jobs:
       - name: Restore corpus cache
         if: matrix.python-version == '3.11'
         id: corpus-cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: ~/.hitlist
           key: hitlist-corpus-${{ env.CORPUS_VERSION }}
@@ -95,7 +95,7 @@ jobs:
       # Verification runs on cache hits too; only verified downloads are saved.
       - name: Save corpus cache
         if: matrix.python-version == '3.11' && steps.corpus-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: ~/.hitlist
           key: hitlist-corpus-${{ env.CORPUS_VERSION }}
