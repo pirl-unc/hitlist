@@ -90,6 +90,19 @@ original artifact contract remains 5 and its original mhcgnomes version remains
 3.64.1. No original private build metadata was published. Package releases
 from the reviewed queue continue independently using v1 until this PR lands.
 
+CI re-plan: two independent Python 3.11 jobs passed all regular assertions,
+then the hosted runner sent a shutdown signal after 18/19 integration cases
+with two workers. There is no explicit OOM diagnostic, so do not claim one.
+The exact corpus already passed all 43 cases locally with one worker. Use one
+corpus worker in ordinary CI and cap the full hosted release build at one;
+retain every test and the existing memory guards. Add GNU time resource
+measurements and repeat both complete workflows before merging. Keep the
+independent v1 package-release queue unchanged. File the observed runner
+problem and link it in this PR. The unchanged-head retry is stopped. The original PR release build also
+received a hosted-runner shutdown signal during its two-worker corpus phase
+after 1,949 regular passes; its failed result cannot authorize publication.
+The repeated runner failures are tracked in #545.
+
 ## #538 specification — release artifacts from the existing CI runner
 
 The requested correctness fixes are merged, but local memory repeatedly
