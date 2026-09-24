@@ -32,7 +32,7 @@ task review; inspect the next foundational work after publication.
 - [x] Inspect resolver paths and reproduce both attribution defects on baseline.
 - [x] Read all six source/deposit rosters; record corrections and source evidence.
 - [x] Implement resolver fixes and source-supported YAML updates with regressions.
-- [ ] Audit complete-corpus and filtered/projected before/after impact.
+- [x] Audit complete-corpus and filtered/projected before/after impact.
 - [ ] Run format.sh, lint.sh, test.sh; review diff and final-head CI.
 - [ ] Merge PR, publish verified PyPI artifacts and review follow-up dependencies.
 
@@ -46,7 +46,11 @@ multi-arm mappings now block narrative guessing in both resolver paths. New
 source/allele conflicts are filed as #558/#559; #520 remains foundational.
 The first full run exposed two inventory-check defects with mixed class-only /
 allele typing (#561); both are fixed and the ten source/inventory checks pass.
-The run also retained an already-updated HeLa assertion in memory; it was stopped
+Final-head CI also exposed the same tokenizer defect in production QC; its
+component splitter and build-token gate regression are fixed under #561. All
+365 source patterns across the nine affected studies are invariant under
+individual peptide filters and output projection. The first run also retained
+an already-updated HeLa assertion in memory; it was stopped
 and the suite restarted on the final code. Full tests, exhaustive filtered/projected
 pattern checks, final-head CI and clean-main publication are in progress; the PR records their final outcomes.
 

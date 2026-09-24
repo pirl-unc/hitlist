@@ -95,8 +95,19 @@ def _split_mhc_audit_tokens(value: object, *, curated: bool = False) -> list[str
         return []
     if is_class_only_token(text):
         return [text]
-    separator = r"[\s;,]+" if curated else r"[;,]+"
-    return [token.strip() for token in re.split(separator, text) if token.strip()]
+    tokens = []
+    for component in re.split(r"[;,]+", text):
+        component = component.strip()
+        if not component:
+            continue
+        # Unknown class-I typing can accompany a typed class-II allele.
+        # Recognize each complete designation before splitting the space-
+        # joined allele lists used by curation (#561).
+        if curated and not is_class_only_token(component):
+            tokens.extend(component.split())
+        else:
+            tokens.append(component)
+    return tokens
 
 
 def _default_mhc_audit_frames() -> dict[str, pd.DataFrame]:

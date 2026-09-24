@@ -88,11 +88,14 @@ normal curation-fingerprint-triggered rebuild; the user's indexes were not rewri
 Baseline regressions reproduce both #556 defects; all eight new source checks
 also fail against the previous YAML. The full-suite inventory checks exposed
 [#561](https://github.com/pirl-unc/hitlist/issues/561): they incorrectly split or
-discarded a class-only designation beside a typed allele. They now preserve the
-explicit class component, with no exception list or invented genotype; the runtime
+discarded a class-only designation beside a typed allele. The production build QC splitter had the same defect, caught by the packaged-data
+build smoke test. Both checks now preserve the explicit class component, keep
+rejecting malformed tokens, and use no exception list or invented genotype; the runtime
 parser already supports it and the regression verifies its sole join allele is DR.
  New source checks exercise
 single/shared HeLa arms in both MHC classes, all eight ERAP combinations, B-LCL versus
 xenograft provenance, and four primary-material overrides. Query-context regressions
-cover full, peptide-filtered and projected exports. Format and lint pass; full-suite,
+cover full, peptide-filtered and projected exports. The exhaustive audit checks
+all 365 distinct source patterns from the nine affected studies individually:
+every filtered query and projected result agrees with the full-context export. Format and lint pass; full-suite,
 query-audit and final-head CI results are recorded in `tasks/todo.md` and the PR.
