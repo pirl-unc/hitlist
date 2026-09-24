@@ -3188,3 +3188,47 @@ provenance on 38,252, while all sample labels now agree after the separate
 cohort repair. No scoring weights, source YAML, or stored artifacts change
 in this PR. The compact context contains seven columns, streams 10,000-row
 batches, and caches two file revisions without retaining peptide payloads.
+
+## PR #516 release-runner restack (1.62.43)
+
+Move the already reviewed scientific patch after the release-runner
+foundation (#539, 1.62.39). Preserve its code, source data and tests exactly.
+Retain the original branch; prove patch identity, bump the release version,
+run format/lint and final-head CI, and repeat the relevant compact source
+audit before merging. Run the full clean-main release workflow and verify
+its tested artifacts before local PyPI publication. No memory gate is waived.
+
+- [x] Prove the non-planning patch is unchanged.
+- [ ] Run format/lint, focused checks, source audit and final-head CI.
+- [ ] Review, merge, run the clean-main release and verify PyPI publication.
+
+
+## PR #516 priority queue restack (1.62.43)
+
+Move this previously reviewed change after #528/#514 and their source-verified
+attribution follow-ups. Preserve the implementation, curation and tests exactly;
+only the base, release version and planning records change. Keep the original
+local branch, compare stable patch IDs, then run format/lint and fresh CI.
+Repeat affected source audits and full local release gates before publication.
+
+- [x] Preserve and compare the original non-planning patch.
+- [ ] Run format/lint and fresh CI on this exact head.
+- [ ] Review against the updated base, validate, merge and deploy in order.
+
+
+## #289 specification — reusable manual-dataset guidance
+
+IEDB/CEDAR now support automatic fetching, but HPA and DepMap still reach the
+reported hard-coded CLI message. Make both `fetch` and missing `get_path`
+manual-dataset errors name the download URL, expected file and registration
+dataset key without choosing a downstream application's command prefix.
+Keep exception types and behavior unchanged. Patch bump to 1.62.43; inspect
+both real error paths in an isolated empty registry, run format/lint/test,
+review CI, merge and deploy.
+
+- [x] Update both manual-dataset error paths and verify the resulting messages.
+- [ ] Run required gates, review CI, merge, deploy and verify PyPI.
+
+Review: both actual error paths for absent `depmap_rna` retain the download
+URL, exact expected filename and dataset key, with their original exception
+types. Format/lint pass. No parser, registry or download behavior changed.
