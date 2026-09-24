@@ -287,24 +287,8 @@ def _find_anchor_by_label(label: str) -> tuple[dict, str] | None:
     return best
 
 
-@lru_cache(maxsize=1)
-def _placeholder_source_ids() -> frozenset[str]:
-    """Source IDs whose data hasn't landed yet.
-
-    Registry entries referencing only placeholder sources must NOT fire a
-    tier-1 hit — otherwise downstream provenance would claim "exact JY RNA"
-    when no JY TPM ships. They cleanly fall through to tier 2/3 until a
-    curator commits a real CSV.
-    """
-    return frozenset(
-        str(s.get("source_id", ""))
-        for s in _load_sources_yaml()
-        if s.get("build_status") == "placeholder"
-    )
-
-
 def _entry_has_exact_line_data(entry: dict) -> bool:
-    """True iff the entry has a real (non-placeholder) backend + key."""
+    """True iff the entry has a backend and a source with rows for its key."""
     backend = entry.get("expression_backend") or ""
     key = entry.get("expression_key") or ""
     if not backend or backend == "none" or not key:
@@ -312,8 +296,38 @@ def _entry_has_exact_line_data(entry: dict) -> bool:
     source_ids = [str(s) for s in (entry.get("source_ids") or [])]
     if not source_ids:
         return False
-    placeholders = _placeholder_source_ids()
-    return any(sid not in placeholders for sid in source_ids)
+    available = _available_expression_sources()
+    return any((str(key), sid) in available for sid in source_ids)
+
+
+def _available_expression_sources() -> frozenset[tuple[str, str]]:
+    path = line_expression_path()
+    signature = None
+    if path.exists():
+        stat = path.stat()
+        signature = (stat.st_ino, stat.st_mtime_ns, stat.st_size)
+    return _expression_sources_at(str(path), signature)
+
+
+@lru_cache(maxsize=4)
+def _expression_sources_at(
+    path: str, signature: tuple[int, int, int] | None
+) -> frozenset[tuple[str, str]]:
+    """Read source availability once per artifact identity, including rebuilds."""
+    rows = None
+    if signature is not None:
+        try:
+            rows = pd.read_parquet(path, columns=["line_key", "source_id"])
+        except (ArrowInvalid, OSError, ValueError) as exc:
+            warnings.warn(
+                f"Failed to read line expression availability at {path}; "
+                f"falling back to packaged sources. {exc}",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+    if rows is None:
+        rows = _load_packaged_union()
+    return frozenset(rows[["line_key", "source_id"]].itertuples(index=False, name=None))
 
 
 def _resolve_via_parent(entry: dict) -> tuple[dict, str] | None:
@@ -346,7 +360,12 @@ def _resolve_via_class_anchor(entry: dict) -> tuple[dict, str] | None:
 
 
 def _tier_source_ids(entry: dict) -> tuple[str, ...]:
-    return tuple(str(s) for s in (entry.get("source_ids") or []))
+    available = _available_expression_sources()
+    return tuple(
+        str(source_id)
+        for source_id in (entry.get("source_ids") or [])
+        if (str(entry.get("expression_key") or ""), str(source_id)) in available
+    )
 
 
 def resolve_sample_expression_anchor(

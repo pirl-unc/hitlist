@@ -50,6 +50,30 @@ _STARTER_LINES = {
 }
 
 
+@pytest.fixture
+def installed_depmap(tmp_path, monkeypatch):
+    """Resolver tests opt into actual synthetic RNA rows, not registry promises."""
+    from hitlist import downloads
+    from hitlist.line_expression import _load_packaged_union
+
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
+    extra = pd.DataFrame(
+        {
+            "line_key": ["HeLa", "SAOS2", "K562"],
+            "source_id": "DepMap_24Q4_gene",
+            "granularity": "gene",
+            "gene_name": "TP53",
+            "gene_id": "",
+            "transcript_id": "",
+            "tpm": 1.0,
+            "log2_tpm": 1.0,
+        }
+    )
+    pd.concat([_load_packaged_union(), extra], ignore_index=True).to_parquet(
+        tmp_path / "line_expression.parquet", index=False
+    )
+
+
 def test_registry_covers_starter_lines():
     names = {str(e.get("name")) for e in load_line_expression_anchors()}
     missing = _STARTER_LINES - names
@@ -77,7 +101,7 @@ def test_sources_yaml_parses():
 # ── Resolver: tier 1 ───────────────────────────────────────────────────────
 
 
-def test_tier1_hela():
+def test_tier1_hela(installed_depmap):
     a = resolve_sample_expression_anchor("HeLa cells")
     assert a.expression_match_tier == 1
     assert a.expression_key == "HeLa"
@@ -92,7 +116,7 @@ def test_tier1_gm12878_direct():
     assert a.expression_backend == "encode_rnaseq"
 
 
-def test_tier1_saos2_typo_alias_raos():
+def test_tier1_saos2_typo_alias_raos(installed_depmap):
     # RaOS is curated as a SaOS-2 alias per user note on issue #140.
     a = resolve_sample_expression_anchor("RaOS cells")
     assert a.expression_match_tier == 1
@@ -102,18 +126,21 @@ def test_tier1_saos2_typo_alias_raos():
 # ── Resolver: tier 2 (parent-line fallback) ────────────────────────────────
 
 
-def test_tier2_hela_abc_ko_resolves_to_parent_hela():
+def test_tier2_hela_abc_ko_resolves_to_parent_hela(installed_depmap):
     a = resolve_sample_expression_anchor("HeLa.ABC-KO-HLA-B*51:01 (ERAP1 shRNA)")
     assert a.expression_match_tier == 2
     assert a.expression_key == "HeLa"
     assert a.expression_parent_key == "HeLa"
 
 
-def test_tier2_hek293t_ace2_resolves_to_parent_hek293():
+def test_hek293t_ace2_falls_back_when_parent_rna_is_unavailable(tmp_path, monkeypatch):
+    from hitlist import downloads
+
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
     a = resolve_sample_expression_anchor("HEK293T-ACE2-TMPRSS2 (SARS-CoV-2-infected)")
-    assert a.expression_match_tier == 2
-    assert a.expression_key == "HEK293"
-    assert a.expression_parent_key == "HEK293"
+    assert a.expression_match_tier == 5
+    assert a.expression_key == "kidney"
+    assert a.expression_parent_key is None
 
 
 # ── Resolver: tier 3 (class anchor) ────────────────────────────────────────
@@ -135,13 +162,13 @@ def test_tier3_ebv_lcl_gr_goes_to_gm12878():
     assert a.expression_key == "GM12878"
 
 
-def test_tier3_mono_allelic_host_t2_falls_to_k562():
+def test_tier3_mono_allelic_host_t2_falls_to_k562(installed_depmap):
     a = resolve_sample_expression_anchor("T2 cells")
     assert a.expression_match_tier == 3
     assert a.expression_key == "K562"
 
 
-def test_tier3_c1r_transfectant_falls_to_k562_via_family():
+def test_tier3_c1r_transfectant_falls_to_k562_via_family(installed_depmap):
     # C1R has a placeholder source, so C1R tier-1 doesn't fire; its parent
     # is itself (no parent line defined that has data); family =
     # mono_allelic_host → K562 class anchor.
@@ -460,13 +487,13 @@ def test_word_boundary_blocks_false_positives(label):
         ("T2 cells", 3, "K562"),
     ],
 )
-def test_word_boundary_allows_true_positives(label, expected_tier, expected_key):
+def test_word_boundary_allows_true_positives(label, expected_tier, expected_key, installed_depmap):
     a = resolve_sample_expression_anchor(label)
     assert a.expression_match_tier == expected_tier
     assert a.expression_key == expected_key
 
 
-def test_alias_starting_with_punctuation_matches_mid_string():
+def test_alias_starting_with_punctuation_matches_mid_string(installed_depmap):
     # ``.221`` alias must match inside ``721.221-...`` even though the
     # character before ``.`` is alphanumeric.  The left-boundary check is
     # skipped for punctuation-initial aliases.
@@ -487,10 +514,13 @@ def test_longest_alias_wins_over_shorter_substring():
     assert a.matched_alias == "hap1 tap1 ko"
 
 
-def test_hek293t_derivative_routes_through_catchall_to_hek293():
+def test_hek293t_derivative_keeps_alias_match_without_parent_rna(tmp_path, monkeypatch):
+    from hitlist import downloads
+
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
     a = resolve_sample_expression_anchor("HEK293T-ACE2-TMPRSS2 (SARS-CoV-2-infected)")
-    assert a.expression_match_tier == 2
-    assert a.expression_parent_key == "HEK293"
+    assert a.expression_match_tier == 5
+    assert a.matched_alias == "hek293t-ace2-tmprss2"
 
 
 # ── resolve_line_key (builder harmonization) ───────────────────────────────
@@ -542,13 +572,13 @@ def test_resolve_line_key_skips_none_backend_entries():
 # ── SampleExpressionAnchor — provenance fidelity ───────────────────────────
 
 
-def test_tier1_carries_entry_source_ids():
+def test_tier1_carries_entry_source_ids(installed_depmap):
     a = resolve_sample_expression_anchor("HeLa cells")
     assert "DepMap_24Q4_gene" in a.source_ids
     assert a.matched_alias == "hela"
 
 
-def test_tier2_carries_parent_source_ids():
+def test_tier2_carries_parent_source_ids(installed_depmap):
     a = resolve_sample_expression_anchor("HeLa.ABC-KO-HLA-B*51:01 (ERAP1 shRNA)")
     assert a.expression_match_tier == 2
     assert a.expression_parent_key == "HeLa"
@@ -796,7 +826,7 @@ def _mini_observations_df() -> pd.DataFrame:
     )
 
 
-def test_attach_peptide_origin_populates_provenance_columns(monkeypatch):
+def test_attach_peptide_origin_populates_provenance_columns(monkeypatch, installed_depmap):
     from hitlist import line_expression as le
     from hitlist.export import _attach_peptide_origin
 
@@ -1168,13 +1198,13 @@ def test_build_line_expression_no_sources_writes_empty_parquet(tmp_path, monkeyp
 # ── Resolver: additional edge cases ────────────────────────────────────────
 
 
-def test_resolver_prefers_cell_name_when_sample_label_empty():
+def test_resolver_prefers_cell_name_when_sample_label_empty(installed_depmap):
     a = resolve_sample_expression_anchor("", cell_name="HeLa cells")
     assert a.expression_match_tier == 1
     assert a.expression_key == "HeLa"
 
 
-def test_resolver_joins_sample_label_and_cell_name():
+def test_resolver_joins_sample_label_and_cell_name(installed_depmap):
     # Both contribute to the search string.
     a = resolve_sample_expression_anchor("donor 42", cell_name="HeLa")
     assert a.expression_match_tier == 1
@@ -1186,13 +1216,13 @@ def test_resolver_empty_label_falls_to_tier6():
     assert a.expression_match_tier == 6
 
 
-def test_resolver_reason_is_informative():
+def test_resolver_reason_is_informative(installed_depmap):
     a = resolve_sample_expression_anchor("HeLa cells")
     assert "exact line match" in a.reason
     assert a.matched_alias is not None
 
 
-def test_resolver_tier2_reason_mentions_parent():
+def test_resolver_tier2_reason_mentions_parent(installed_depmap):
     a = resolve_sample_expression_anchor("HeLa.ABC-KO-HLA-B*51:01")
     assert "parent-line fallback" in a.reason
     assert "HeLa" in a.reason

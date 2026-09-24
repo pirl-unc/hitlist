@@ -9,6 +9,12 @@
 
 ## 2026-09-22
 
+- Distinguish sequencing-library protocol from quantification mode and
+  actual matrix coverage. DepMap 24Q4 marks HAP1's library as stranded but
+  includes its values in the RSEM unstranded-mode gene matrix. Check the
+  downloaded row IDs before claiming absence or filtering profiles by a
+  metadata flag; retain the source's protocol and processing provenance.
+
 - Respect biological units when diagnosing predictor input limits. MHCflurry's
   presentation predictor accepts a genotype of at most six class-I alleles;
   peptide/allele pairs and a pooled study allele union are not that genotype.
