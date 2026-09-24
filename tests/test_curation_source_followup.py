@@ -3,7 +3,7 @@
 import pandas as pd
 import pytest
 
-from hitlist.curation import classify_ms_row, load_pmid_overrides
+from hitlist.curation import classify_ms_row, load_pmid_overrides, sample_mhc_candidates
 from hitlist.export import generate_ms_samples_table
 from tests.test_curation_sanity_pass import _export
 
@@ -74,6 +74,9 @@ def test_sarango_single_and_shared_arms_in_both_mhc_classes(monkeypatch, mhc_cla
     assert len(samples) == 3
     assert all(s["n_samples"] == 2 for s in samples)
     assert all(s["mhc"] == "HLA class I; HLA-DRB1*01:02" for s in samples)
+    typing = sample_mhc_candidates(samples[0]["mhc"])
+    assert typing.join_alleles == frozenset({"HLA-DRB1*01:02"})
+    assert typing.imprecise == ("HLA class I",)
     assert [s.get("condition_knockdown_genes", "") for s in samples] == ["", "", "TAX1BP1"]
     assert [s.get("condition_control", "") for s in samples] == ["mock", "non_targeting", ""]
     ids = {

@@ -44,8 +44,11 @@ observations as 14,120 distinct attribution patterns. Raw evidence/restrictions
 are unchanged. The audit caught a shared-HeLa fallback interaction, so explicit
 multi-arm mappings now block narrative guessing in both resolver paths. New
 source/allele conflicts are filed as #558/#559; #520 remains foundational.
-Full tests, exhaustive filtered/projected pattern checks, final-head CI and
-clean-main publication are in progress; the PR records their final outcomes.
+The first full run exposed two inventory-check defects with mixed class-only /
+allele typing (#561); both are fixed and the ten source/inventory checks pass.
+The run also retained an already-updated HeLa assertion in memory; it was stopped
+and the suite restarted on the final code. Full tests, exhaustive filtered/projected
+pattern checks, final-head CI and clean-main publication are in progress; the PR records their final outcomes.
 
 # September 24 curation sanity pass
 

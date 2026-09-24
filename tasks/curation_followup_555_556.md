@@ -85,7 +85,13 @@ normal curation-fingerprint-triggered rebuild; the user's indexes were not rewri
 
 ## Verification
 
-Baseline regressions reproduce both #556 defects. New source checks exercise
+Baseline regressions reproduce both #556 defects; all eight new source checks
+also fail against the previous YAML. The full-suite inventory checks exposed
+[#561](https://github.com/pirl-unc/hitlist/issues/561): they incorrectly split or
+discarded a class-only designation beside a typed allele. They now preserve the
+explicit class component, with no exception list or invented genotype; the runtime
+parser already supports it and the regression verifies its sole join allele is DR.
+ New source checks exercise
 single/shared HeLa arms in both MHC classes, all eight ERAP combinations, B-LCL versus
 xenograft provenance, and four primary-material overrides. Query-context regressions
 cover full, peptide-filtered and projected exports. Format and lint pass; full-suite,
