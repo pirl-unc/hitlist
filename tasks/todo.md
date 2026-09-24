@@ -16,7 +16,7 @@ Document the usual main-module guard for scripts. Measure startup and peak
 child RSS on a bounded cached-proteome workload; report the platform and scope
 without claiming a full-human-proteome benchmark or a measured Linux speedup.
 Run format/lint and supported-version checks, then full CI and clean-main
-release gates. Bump 1.62.53 and ship separately after #544.
+release gates. Bump 1.62.54 and ship separately after #544.
 
 - [x] Read official Python 3.12 context/start-method guidance and release warnings.
 - [x] Use explicit spawn and exercise actual workers from a threaded parent.
@@ -37,6 +37,10 @@ path, not a Linux speedup or full-human-proteome memory. Official context guidan
 https://docs.python.org/3.12/library/concurrent.futures.html#concurrent.futures.ProcessPoolExecutor
 Full CI and clean-main release gates remain required.
 
+All five pre-restack CI jobs pass, including all 43 corpus checks without
+skips. Restack unchanged after the updated cache prerequisite; the urgent
+genotype fix #548 ships first. Prove patch identity and repeat final-head CI.
+
 ## #543 specification — preserve configured caches in mapping workers
 
 A real cached FASTA maps one peptide sequentially but returns an unavailable
@@ -55,7 +59,7 @@ Exercise build_peptide_mappings with real FASTA files, a custom directory
 override, an unrelated environment fallback, and actual spawned workers.
 Compare complete sequential/parallel frames and metadata coverage, including
 empty and conflicting fallback caches. No network access or real cache writes
-are needed. Bump 1.62.52, review the bounded diff and run format/lint and full
+are needed. Bump 1.62.53, review the bounded diff and run format/lint and full
 tests before shipping after #542. Keep active releases and dependencies intact.
 
 - [x] Reproduce the real worker cache miss and file #543.
@@ -70,6 +74,65 @@ sequential builds in both cases; all four indexes are written into the caller's
 chosen index cache. Contract-1/2 artifacts are rejected for rebuild. Format/lint
 and 55 focused checks pass on Python 3.9 and 3.12. Full CI and clean-main release
 gates remain required; no installed dependency or active release tree changed.
+
+All five pre-restack CI jobs pass, including all 43 corpus checks without
+skips. Restack unchanged after #548 and updated #542; require fresh CI and
+verify the stable implementation patch before publication.
+
+## #547 specification — preserve biological sample identity in reassignment
+
+The independent reassign-alleles path chooses one global winner per peptide,
+then attaches the first observation's sample. A two-sample synthetic example
+returns cell_A with an allele present only in cell_B and discards cell_B.
+Keep shared peptide/allele scoring, but select a finite-rank winner separately
+for each peptide, PMID, sample label and original genotype. Deduplicate repeated
+observations of the same context, retain different contexts (including repeated
+sample labels across studies), and keep an unscored context with null prediction
+fields rather than inventing an allele. Count distinct alleles; use deterministic
+tie ordering. Filter peptide lengths before the empty-input fast path. Preserve
+the input allele spelling through the per-allele NetMHCpan wrapper so its output
+can join back to those exact candidates; allow an empty scored result.
+
+Default API and CLI limits become six distinct class-I alleles, reflecting the
+requested per-cell interpretation and MHCflurry's documented genotype interface.
+The explicit maximum remains configurable for separately justified experimental
+systems; never pool samples or silently truncate a genotype. No curation data,
+scientific thresholds, model weights or predictor pair batching changes.
+
+Regression coverage: two genotypes sharing a peptide; shared sample labels in
+different studies; repeated observations; row-order invariance; equal-rank ties;
+missing/nonfinite scores; no valid-length peptides; six versus seven distinct
+alleles; repeated allele tokens; both backend paths and NetMHCpan input spelling;
+CLI default and per-context output counts. Check existing pmhc regressions too.
+Review the primary upstream predictor contract and biological literature before
+the default change. Run format/lint, focused tests on Python 3.9/3.12 and complete
+CI/release gates. Bump to 1.62.51 on a branch directly after #525; restack unrelated
+pending PRs without changing their implementation. Merge and publish only after
+their mandatory gates, and verify both public distribution hashes.
+
+- [x] Reproduce the cross-sample wrong allele on current source; file #547.
+- [x] Re-plan release order so unrelated fixes do not delay genotype correctness.
+- [x] Add failing regressions and implement context-scoped selection.
+- [x] Run format/lint and focused compatibility checks; review the source diff.
+- [ ] Run complete final-head CI and the clean-main release gates.
+- [ ] Merge, deploy and verify public PyPI artifacts.
+
+Review: the synthetic two-cell corruption is fixed without changing curation.
+Predictions are shared only by peptide/allele; winner selection is constrained
+by the original sample context. Missing and nonfinite scores produce no allele
+assignment. NetMHCpan results are checked with the existing allele-identity
+resolver before restoring the input spelling; an unexpected allele fails loudly.
+All 117 focused checks pass on Python 3.12; Python 3.9 passes 116 with the existing
+optional MHCflurry import test skipped. Format/lint pass. The installed current
+MHCflurry source (8b72541) and official Python tutorial explicitly describe one
+genotype of up to six alleles and separate results for multiple named samples:
+https://openvax.github.io/mhcflurry/python_tutorial.html . DTU's official output
+documentation verifies the allele column and its naming conventions:
+https://services.healthtech.dtu.dk/services/NetMHCpan-4.1/ . The reviewed biological
+background describes HLA-A/B/C and six distinct binding products in an individual
+heterozygous at all three loci (Overview of the Immune Response, PMC2923430).
+The default remains conservative; it does not redefine nonclassical or engineered
+cell genotypes, which remain a separate explicit curation question in #520.
 
 ## #540 specification — verifiable public CI corpus provenance
 
@@ -96,8 +159,8 @@ metadata and verify all hashes before tests/cache persistence. Use the
 canonical public corpus for fork CI too. Record the metadata hash in release
 provenance. The #444 test should require its feature's minimum contract (5),
 not equality with the running builder's current contract (6 after #536).
-Version 1.62.51 follows the existing reviewed queue; this independent work
-must not interrupt the active 1.62.40 publication.
+Version 1.62.52 follows the independently shippable genotype fix #548.
+The previous reviewed queue is published through 1.62.50.
 
 - [x] Reproduce missing/stale/changed corpus provenance and the version guard.
 - [x] Implement sanitized manifests, immutable snapshot publication and CI reads.
@@ -166,6 +229,14 @@ again before selecting two columns. Reuse full_observations_df and retain the
 identical all-row PMID exclusion assertion. This removes the second complete
 enrichment without dropping or narrowing any corpus check. Validate the full
 43-case suite and compare its peak RSS again before publication.
+
+Final-head pre-restack validation passes all five normal CI jobs and the
+separate release workflow: 1,950 regular checks (one optional Ensembl-data
+skip) and all 43 corpus checks without skips. Peak RSS remains about
+14.1–14.5 GiB; the modest reduction does not establish ample headroom.
+Further memory profiling remains tracked in #63. Restack after #548 and
+bump to 1.62.52 without changing the corpus implementation or tests; prove
+its stable patch identity and repeat complete CI on the new head.
 
 ## #538 specification — release artifacts from the existing CI runner
 
