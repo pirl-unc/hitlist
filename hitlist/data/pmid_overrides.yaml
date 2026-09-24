@@ -8321,47 +8321,115 @@
         mhc: "HLA-A*02:01 HLA-A*24:02 HLA-B*15:11 HLA-B*35:01 HLA-C*03:03 HLA-DRB1*01:01 HLA-DRB1*15:01 HLA-DQA1*01:01 HLA-DQA1*01:02 HLA-DQB1*05:01 HLA-DQB1*06:02 HLA-DPB1*02:01 HLA-DPB1*04:02"
 
   - pmid: 31530632
-    # Arm-resolution verdict (#366).
-    arm_resolution: curation_gap
-    arm_resolution_note: >
-      10,319 rows remain arm-ambiguous, but a per-row discriminator is present, so this is
-      unfinished curation rather than a limit of the deposit. Measured: varying per-row
-      fields: assay_comments (3 distinct). Whether that field varies WITH THE ARM (rather than
-      being study-level boilerplate that names every arm on every row) still needs per-study
-      checking -- that check is the work this verdict marks, and #366 records narrative fields
-      as a known dead end for exactly this reason.
-    study_label: "Lorente 2019 — HLA-B*40:02 ERAP2 KO"
-    title: "Substantial Influence of ERAP2 on the HLA-B*40:02 Peptidome: Implications for HLA-B*27-Negative Ankylosing Spondylitis"
+    arm_resolution: arm_not_recorded
+    arm_resolution_note: All 10,319 local IEDB rows identify the C1R system. Assay comments distinguish
+      8,579 peptides observed in both ERAP2 states, 1,051 in WT cells only, and 689 in KO cells only.
+      None names parental WT versus WT1/WT2, or KO1 versus KO3. The five lines are therefore curated
+      separately but remain group-ambiguous; a WT-only statement does not identify the parental WT
+      line. Primary Results and Table I report all five lines separately. A future Table S1 peptide-level
+      import would be separate evidence, not an inference from these IEDB comments.
+    study_label: Lorente 2019 — HLA-B*40:02 ERAP2 KO
+    title: 'Substantial Influence of ERAP2 on the HLA-B*40:02 Peptidome: Implications for HLA-B*27-Negative
+      Ankylosing Spondylitis'
     override: cell_line
-    perturbations: ["ERAP2 CRISPR KO"]
+    perturbations:
+    - ERAP2 CRISPR KO
     ms_samples:
-      - sample_label: "C1R HLA-B*40:02 (WT)"
-        condition: "unperturbed"
-        condition_id: "c1r_hla_b_40_02_wt"
-        condition_status: "annotated"
-        condition_evidence: "primary_source"
-        condition_control: "untreated"
-        condition_reference: "PMC6823859 Experimental Procedures, 'Cell Lines' and 'ERAP2 KO Generation by CRISPR'; Results, 'ERAP1, ERAP2, and HLA-B*40:02 Expression on WT and ERAP2 KO Lines'"
-        condition_control_for: "c1r_hla_b_40_02_erap2_ko"
-        condition_knockout_genes: "none"
-        condition_background: "ERAP1_hap8"
-        condition_mhc_context: "mhc_transfectant"
-        condition_culture: "RPMI-1640"
-        mhc_class: "I"
-        mhc: "HLA-B*40:02"
-      - sample_label: "C1R HLA-B*40:02 (ERAP2 KO)"
-        condition: "ERAP2 CRISPR KO"
-        condition_id: "c1r_hla_b_40_02_erap2_ko"
-        condition_status: "annotated"
-        condition_evidence: "primary_source"
-        condition_combination: "single"
-        condition_knockout_genes: "ERAP2"
-        condition_reference: "PMC6823859 Experimental Procedures, 'Cell Lines' and 'ERAP2 KO Generation by CRISPR'; Results, 'ERAP1, ERAP2, and HLA-B*40:02 Expression on WT and ERAP2 KO Lines'"
-        condition_background: "ERAP1_hap8"
-        condition_mhc_context: "mhc_transfectant"
-        condition_culture: "RPMI-1640"
-        mhc_class: "I"
-        mhc: "HLA-B*40:02"
+    - sample_label: C1R HLA-B*40:02 (WT, parental polyclonal line)
+      condition: unperturbed (parental polyclonal line, WT)
+      condition_id: c1r_hla_b_40_02_wt
+      condition_status: annotated
+      condition_evidence: primary_source
+      condition_control: untreated
+      condition_reference: PMC6823859 Experimental Procedures, 'Cell Lines', 'ERAP2 KO Generation by
+        CRISPR', 'Isolation of HLA-B*40:02-Bound Peptides and Mass Spectrometry'; Results/Table I
+      condition_control_for: c1r_hla_b_40_02_erap2_ko1;c1r_hla_b_40_02_erap2_ko3
+      condition_knockout_genes: none
+      condition_background: ERAP1_hap8
+      condition_mhc_context: mhc_transfectant
+      condition_culture: RPMI-1640
+      mhc_class: I
+      mhc: HLA-B*40:02
+      sample_group: C1R
+      n_samples: 3
+    - sample_label: C1R HLA-B*40:02 (WT1, unedited ERAP2-positive clone)
+      condition: unperturbed (unedited ERAP2-positive clone, WT1)
+      condition_id: c1r_hla_b_40_02_wt1
+      condition_status: annotated
+      condition_evidence: primary_source
+      condition_control: other
+      condition_reference: PMC6823859 Experimental Procedures, 'Cell Lines', 'ERAP2 KO Generation by
+        CRISPR', 'Isolation of HLA-B*40:02-Bound Peptides and Mass Spectrometry'; Results/Table I
+      condition_control_for: c1r_hla_b_40_02_erap2_ko1;c1r_hla_b_40_02_erap2_ko3
+      condition_knockout_genes: none
+      condition_background: ERAP1_hap8
+      condition_mhc_context: mhc_transfectant
+      condition_culture: RPMI-1640
+      mhc_class: I
+      mhc: HLA-B*40:02
+      sample_group: C1R
+      n_samples: 3
+      note: Unedited clone from the same ERAP2-targeting CRISPR transfection and limiting-dilution
+        process as KO1/KO3; process-matched control.
+    - sample_label: C1R HLA-B*40:02 (WT2, unedited ERAP2-positive clone)
+      condition: unperturbed (unedited ERAP2-positive clone, WT2)
+      condition_id: c1r_hla_b_40_02_wt2
+      condition_status: annotated
+      condition_evidence: primary_source
+      condition_control: other
+      condition_reference: PMC6823859 Experimental Procedures, 'Cell Lines', 'ERAP2 KO Generation by
+        CRISPR', 'Isolation of HLA-B*40:02-Bound Peptides and Mass Spectrometry'; Results/Table I
+      condition_control_for: c1r_hla_b_40_02_erap2_ko1;c1r_hla_b_40_02_erap2_ko3
+      condition_knockout_genes: none
+      condition_background: ERAP1_hap8
+      condition_mhc_context: mhc_transfectant
+      condition_culture: RPMI-1640
+      mhc_class: I
+      mhc: HLA-B*40:02
+      sample_group: C1R
+      n_samples: 3
+      note: Unedited clone from the same ERAP2-targeting CRISPR transfection and limiting-dilution
+        process as KO1/KO3; process-matched control.
+    - sample_label: C1R HLA-B*40:02 (KO1, ERAP2 knockout clone)
+      condition: ERAP2 CRISPR knockout (clone KO1)
+      condition_id: c1r_hla_b_40_02_erap2_ko1
+      condition_status: annotated
+      condition_evidence: primary_source
+      condition_combination: single
+      condition_knockout_genes: ERAP2
+      condition_reference: PMC6823859 Experimental Procedures, 'Cell Lines', 'ERAP2 KO Generation by
+        CRISPR', 'Isolation of HLA-B*40:02-Bound Peptides and Mass Spectrometry'; Results/Table I
+      condition_background: ERAP1_hap8
+      condition_mhc_context: mhc_transfectant
+      condition_culture: RPMI-1640
+      mhc_class: I
+      mhc: HLA-B*40:02
+      sample_group: C1R
+      n_samples: 3
+    - sample_label: C1R HLA-B*40:02 (KO3, ERAP2 knockout clone)
+      condition: ERAP2 CRISPR knockout (clone KO3)
+      condition_id: c1r_hla_b_40_02_erap2_ko3
+      condition_status: annotated
+      condition_evidence: primary_source
+      condition_combination: single
+      condition_knockout_genes: ERAP2
+      condition_reference: PMC6823859 Experimental Procedures, 'Cell Lines', 'ERAP2 KO Generation by
+        CRISPR', 'Isolation of HLA-B*40:02-Bound Peptides and Mass Spectrometry'; Results/Table I
+      condition_background: ERAP1_hap8
+      condition_mhc_context: mhc_transfectant
+      condition_culture: RPMI-1640
+      mhc_class: I
+      mhc: HLA-B*40:02
+      sample_group: C1R
+      n_samples: 3
+    note: 'PMC6823859, Experimental Procedures: parental polyclonal C1R-B*40:02 WT; unedited ERAP2-positive
+      clones WT1/WT2 from the same CRISPR transfection and limiting-dilution process; ERAP2 knockout
+      clones KO1/KO3. Each line contributed three independent preparations of 1e9 cells. ERAP1 Hap8
+      is shared background. Results/Table I report 7,887, 8,042, 8,608, 8,091 and 8,126 B*40:02 ligands
+      respectively. The curated MHC restriction names the studied transfectant product, not absence
+      of endogenous HLA: Cell Lines reports low endogenous B*35:03/C*04:01; Experimental Design and
+      Strategy describes removal of corresponding background peptides after W6/32 capture. The process
+      controls are unedited, not mock- or non-targeting-guide-treated.'
 
   - pmid: 29632046
     study_label: "Sanz-Bravo 2018 — HLA-B*27 ERAP1 variants"
