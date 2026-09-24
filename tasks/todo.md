@@ -1,3 +1,52 @@
+# September 24 follow-up — source rosters and attribution (#555, #556)
+
+Resolve the six source/deposit leads in #555 and both attribution defects in
+#556 in one focused PR. Establish each study's actual MS sample roster from
+its deposited statements and primary methods/supplements: clinical material,
+cultured primary cells, transformed lines, natural ERAP backgrounds and
+experimentally perturbed arms are different facts. Review PMIDs 32502341,
+36215666, 28063628, 26154972, 27846572 and 28228285. Keep missing typing unknown;
+do not invent a genotype or reinterpret the selected-restriction contract in
+#520. Document verified non-errors as well as corrections and inaccessible
+evidence. Exact arm mappings must not resolve shared statements to one arm.
+
+Reproduce Bourne's lost SU-DHL-6 identity and Ritz's first-picked shared
+serum/plasma evidence with baseline-failing tests. Sample resolution must use
+the study's complete discriminator context, including observations already
+matched by allele, and remain invariant under row filtering and output
+projection. A discriminator identifying one biological system may narrow its
+candidate arms; statements naming multiple biological systems or materials
+must preserve ambiguity. Keep the treatment admission guard's protection
+against study-wide boilerplate, and retain explicit elution-condition mappings.
+Implement the smallest shared resolver change that satisfies those contracts;
+do not special-case these PMIDs in Python or change correct YAML to game scores.
+
+Measure before/after attribution over the complete local corpus in bounded
+batches, inspect every changed study, and check the affected studies under
+full, filtered and projected exports. Preserve reported MHC restrictions and
+raw evidence. Add meaningful regression coverage, bump the patch version,
+run format/lint/full tests, inspect final-head CI, merge and publish through
+the existing clean-main release procedure. Record results in the PR and this
+task review; inspect the next foundational work after publication.
+
+- [x] Inspect resolver paths and reproduce both attribution defects on baseline.
+- [x] Read all six source/deposit rosters; record corrections and source evidence.
+- [x] Implement resolver fixes and source-supported YAML updates with regressions.
+- [ ] Audit complete-corpus and filtered/projected before/after impact.
+- [ ] Run format.sh, lint.sh, test.sh; review diff and final-head CI.
+- [ ] Merge PR, publish verified PyPI artifacts and review follow-up dependencies.
+
+Review: the six source studies and complete-corpus impact are documented in
+`tasks/curation_followup_555_556.md`. Four baseline regression cases reproduce
+#556. All eight source follow-up checks and the two updated source-contract
+checks pass; format/lint pass. Corpus comparison covers 4,265,105 curated
+observations as 14,120 distinct attribution patterns. Raw evidence/restrictions
+are unchanged. The audit caught a shared-HeLa fallback interaction, so explicit
+multi-arm mappings now block narrative guessing in both resolver paths. New
+source/allele conflicts are filed as #558/#559; #520 remains foundational.
+Full tests, exhaustive filtered/projected pattern checks, final-head CI and
+clean-main publication are in progress; the PR records their final outcomes.
+
 # September 24 curation sanity pass
 
 Audit the complete packaged study/sample inventory for missing or contradictory

@@ -1765,8 +1765,8 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*57:01"
-      - sample_label: "validation cell lines (HCC1937, HCT116, fibroblasts, HeLa)"
-        source: multi-allelic validation samples
+      - sample_label: "validation cell lines (HCC1937, HCT116, HeLa)"
+        source: "PMC5405381 Figure 3C-G: previously published multi-allelic cell-line datasets reused for validation"
         condition: unperturbed — standard culture
         condition_id: "validation_cell_lines_hcc1937_hct116_fibroblasts"
         condition_status: "annotated"
@@ -1775,8 +1775,20 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA class I"
+      - sample_label: validation primary fibroblasts
+        override: healthy
+        source: "PMC5405381 Figure 3C-G: reused Bassani-Sternberg 2015 primary fibroblast dataset (PMC4349985, Cell culture); not a new Abelin specimen"
+        condition: unperturbed
+        condition_id: "validation_primary_fibroblasts"
+        condition_status: "annotated"
+        condition_evidence: "curated_text"
+        condition_material: "cultured"
+        mhc_class: I
+        mhc: "HLA class I"
       - sample_label: validation PBMCs
-        source: healthy donor PBMCs
+        override: healthy
+        source: "PMC5405381 Figure 3C-G: reused Caron 2015 healthy donor PBMC dataset (PMC4507788); not a new Abelin specimen"
+        condition_material: "direct_ex_vivo"
         condition: unperturbed
         condition_id: "validation_pbmcs"
         condition_status: "annotated"
@@ -6464,57 +6476,57 @@
           - uniprot: UP000153037
             proteome_label: Epstein-Barr virus
   - pmid: 32502341
-    study_label: "Pfammatter 2020 — TMT-labeled ALL + healthy B cells"
-    # Arm-resolution verdict (#451): recorded so this study is not
-    # re-investigated. Describes the deposited evidence, not the curation.
-    arm_resolution: no_row_discriminator
+    study_label: "Pfammatter 2020 — TMT in B-LCL and B-ALL xenograft cells"
+    arm_resolution: resolved
     arm_resolution_note: >
-      Measured: all four per-row fields take exactly one value across the 10 rows. cell_name
-      is 'Lymphoblast', source_tissue is 'Blood', antigen_processing_comments is one string
-      ('The epitope was eluted from an Epstein-Barr virus (EBV)-transformed B-lymphoblastoid
-      cell line (B-LCL) derived from healthy peripheral blood mononuclear cells...') and
-      assay_comments is one string ('The epitope was eluted from the following conditions: TMT
-      (20 millions).'). The curated ALL-patient and healthy-donor arms cannot be told apart
-      because nothing varies; the single narrative value describes only a healthy-donor B-LCL.
-      With 10 rows deposited there is nothing further to recover.
+      All 10 deposited rows explicitly describe EBV-transformed B-LCL from healthy
+      PBMCs and the TMT (20 millions) preparation. The exact deposited statement
+      is mapped to that biological source; the B-ALL model has no deposited rows.
     title: "Extending the Comprehensiveness of Immunopeptidome Analyses Using Isobaric Peptide Labeling"
-    override:
+    override: ebv_lcl
     note: >
-      Primary B cells from ALL patients and healthy donors. TMT-labeling
-      method paper. Needs rules to separate ALL from healthy.
+      Source audit #555: Supplementary Figures S1-S5 and PRIDE PXD017918
+      distinguish cultured B-LCL from B-ALL sample 10H080. The authors' matching
+      methods in US20230158132, Examples 1 and 3, identify 10H080 as patient-derived
+      B-ALL expanded in NSG mice, not a direct clinical preparation. Neither source
+      is a primary healthy B-cell comparator. Native and TMT-labeled peptide extracts
+      are analytical preparations, not cytokine/drug treatments. The study override
+      describes the current IEDB coverage (B-LCL only); the B-ALL sample has its own
+      cancer override. HLA allele groups in spectra are not asserted as a full genotype.
+    elution_condition_ids:
+      "The epitope was eluted from the following conditions: TMT (20 millions).":
+        - b_lcl_tmt
     ip_antibody: W6/32
     acquisition_mode: DDA
     fragmentation: HCD
     labeling: TMT
     fdr: "1%"
     ms_samples:
-      - sample_label: "primary B cells from ALL patients"
-        condition: "unperturbed"
-        condition_id: "primary_b_cells_from_all_patients"
+      - sample_label: "B-LCL (healthy-donor EBV-transformed cells)"
+        source: "EBV-transformed B-LCL derived from healthy PBMCs; IEDB and PXD017918"
+        condition: "unperturbed — cultured B-LCL; TMT-labeled deposited preparation"
+        condition_id: "b_lcl_tmt"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "doi:10.1021/acs.analchem.0c01545.s001, Figures S1-S3; PRIDE PXD017918; IEDB deposited source statement"
         condition_control: "untreated"
+        condition_material: "cultured"
+        condition_labeling: "TMT"
         mhc_class: "I"
         mhc: "HLA class I"
-        classification: cancer_patient
-      - sample_label: "primary B cells from healthy donors"
-        condition: "unperturbed"
-        condition_id: "primary_b_cells_from_healthy_donors"
-        condition_status: "annotated"
-        condition_evidence: "curated_text"
-        condition_control: "untreated"
-        mhc_class: "I"
-        mhc: "HLA class I"
-        classification: healthy
-    rules:
-      - condition:
-          Disease: "healthy"
-        override: healthy
-        reason: "Healthy donor B cells"
-      - condition:
-          Disease: "acute lymphoblastic leukemia"
+      - sample_label: "B-ALL 10H080 (patient-derived xenograft)"
         override: cancer_patient
-        reason: "ALL patient B cells"
+        source: "Patient B-ALL expanded in NSG mice; recovered from spleens"
+        condition: "unperturbed — patient-derived xenograft; native/TMT peptide preparations"
+        condition_id: "b_all_10h080_xenograft"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "doi:10.1021/acs.analchem.0c01545.s001, Figures S4-S5; US20230158132, Examples 1 and 3; PRIDE PXD017918"
+        condition_control: "untreated"
+        condition_material: "in_vivo"
+        mhc_class: "I"
+        mhc: "HLA class I"
+        note: "The supplement identifies 10H080; the authors' cell-transplantation methods document expansion in mice. No B-ALL observations occur in the current 10-row IEDB deposit."
 
   - pmid: 27846572
     study_label: "Liepe 2016 — proteasome-spliced peptides"
@@ -6544,8 +6556,8 @@
           Culture Condition: "Direct Ex Vivo"
         override: healthy
     note: >
-      GR-LCL, C1R, T2, and primary human fibroblasts. Demonstrates ~1/3 of
-      immunopeptidome diversity is cis-spliced. Multiple cell types —
+      GR-LCL, C1R, T2, and primary human fibroblasts. Reports ~1/3 of
+      immunopeptidome diversity as cis-spliced. Multiple cell types —
       per-sample rule routes Direct Ex Vivo primary fibroblasts through
       the healthy override so they are not mis-flagged as cancer.
       CORRECTED #436: this note and the samples below previously listed JY and
@@ -6556,6 +6568,7 @@
       the TAP-deficient control and which carries 111 rows, was added.
     ms_samples:
       - sample_label: "GR-LCL (EBV-LCL)"
+        override: ebv_lcl
         condition: "unperturbed"
         condition_id: "gr_lcl_ebv_lcl"
         condition_status: "annotated"
@@ -6609,6 +6622,9 @@
           immunopeptidome, versus 25-33% elsewhere, while an unsorted cytosolic
           pool from the same cells shows a normal 25%.
       - sample_label: "primary fibroblasts"
+        override: healthy
+        source: "Liepe 2016 reference 6, Bassani-Sternberg 2015 (PMC4349985), Cell culture and Results: primary fibroblast cells, reused immunopeptidome"
+        condition_material: "cultured"
         condition: "unperturbed"
         condition_id: "primary_fibroblasts"
         condition_status: "annotated"
@@ -6813,27 +6829,21 @@
 
   - pmid: 36215666
     study_label: "Sarango 2022 — HeLa-CIITA T6BP/autophagy"
-    # Arm-resolution verdict (#451): recorded so this study is not
-    # re-investigated. Describes the deposited evidence, not the curation.
-    arm_resolution: curation_gap
+    arm_resolution: multi_arm_evidence
     arm_resolution_note: >
-      assay_comments takes 21 distinct values and many name exactly one condition: 'The
-      epitope was eluted under the following experimental conditions: siT6BP.' on 2,181 rows,
-      the siCTRL-only variant on 1,143 and the Mock-only variant on 3,513. cell_name ('HeLa
-      cells-Epithelial cell'), source_tissue ('Uterine Cervix') and
-      antigen_processing_comments are each 1 distinct, and that one
-      antigen_processing_comments value enumerates Mock, siCTRL and siT6BP together, so all of
-      the discriminating signal sits in assay_comments. The curated arms are control siRNA and
-      T6BP siRNA, with no arm for the mock-treated condition IEDB records, so the single-
-      condition rows have nowhere to land. Rows whose value lists several conditions are
-      genuinely multi-arm, but the single-condition rows are real unfinished curation.
+      Exact single-condition statements, including antibody-qualified variants,
+      identify 3,632 Mock, 1,156 siCTRL and 2,233 siT6BP observations. The remaining
+      7,882 rows explicitly name multiple arms and retain unknown arm identity.
     title: "The Autophagy Receptor TAX1BP1 (T6BP) improves antigen presentation by MHC-II molecules"
     override: cell_line
     note: >
       HeLa-CIITA cells (cervical carcinoma + stable CIITA transduction for
-      forced class II expression). Paper profiles BOTH class I (W6/32 IP;
-      HLA-A*68:02, B*15:03, C*12:03 endogenous) and class II (TÜ39 IP;
-      HLA-DRB1*01:02 the primary DR allele driven by CIITA). IEDB source
+      forced class II expression). PMC9724678 Figure 3 and Figure EV2 profile
+      Mock, siCTRL and siT6BP in BOTH class I (W6/32 IP) and class II (TÜ39 IP).
+      The immunopeptidome methods explicitly support HLA-DRB1*01:02. Exact
+      endogenous class-I alleles previously copied here lack verified provenance
+      for this derivative and are withdrawn; class-I typing remains unspecified.
+      IEDB source
       annotation "healthy cervix" is misleading for disease state — HeLa is
       cervical adenocarcinoma, not healthy tissue — though IEDB's cervix /
       HeLa cell_name annotations are otherwise correct (paper-verified). The
@@ -6843,27 +6853,113 @@
       immunopeptidome without affecting MHC-I.
     perturbations:
       - "CIITA transduction (forced HLA-II expression)"
-      - "siRNA knockdown panel: NDP52, OPTN, T6BP (+ p62, CANX in follow-up)"
+      - "TAX1BP1 (T6BP) siRNA knockdown in MS experiment"
+    elution_condition_ids:
+      "The epitope was eluted under the following experimental conditions: Mock, siCTRL, siT6BP.":
+        - hela_ciita_mock
+        - hela_ciita_control_sirna
+        - hela_ciita_t6bp_sirna
+      "The epitope was eluted under the following experimental conditions: Mock, siCTRL, siT6BP. The epitope was eluted using the following mAbs: L243, Tu39.":
+        - hela_ciita_mock
+        - hela_ciita_control_sirna
+        - hela_ciita_t6bp_sirna
+      "The epitope was eluted under the following experimental conditions: Mock, siCTRL.":
+        - hela_ciita_mock
+        - hela_ciita_control_sirna
+      "The epitope was eluted under the following experimental conditions: Mock, siCTRL. The epitope was eluted using the following mAbs: L243, Tu39.":
+        - hela_ciita_mock
+        - hela_ciita_control_sirna
+      "The epitope was eluted under the following experimental conditions: Mock, siT6BP, siCTRL. The epitope was eluted using the following mAbs: L243, Tu39.":
+        - hela_ciita_mock
+        - hela_ciita_t6bp_sirna
+        - hela_ciita_control_sirna
+      "The epitope was eluted under the following experimental conditions: Mock, siT6BP.":
+        - hela_ciita_mock
+        - hela_ciita_t6bp_sirna
+      "The epitope was eluted under the following experimental conditions: Mock, siT6BP. The epitope was eluted using the following mAbs: L243, Tu39.":
+        - hela_ciita_mock
+        - hela_ciita_t6bp_sirna
+      "The epitope was eluted under the following experimental conditions: Mock.":
+        - hela_ciita_mock
+      "The epitope was eluted under the following experimental conditions: Mock. The epitope was eluted using the following mAbs: L243, Tu39.":
+        - hela_ciita_mock
+      "The epitope was eluted under the following experimental conditions: siCTRL, Mock, siT6BP. The epitope was eluted using the following mAbs: L243, Tu39.":
+        - hela_ciita_control_sirna
+        - hela_ciita_mock
+        - hela_ciita_t6bp_sirna
+      "The epitope was eluted under the following experimental conditions: siCTRL, Mock. The epitope was eluted using the following mAbs: L243, Tu39.":
+        - hela_ciita_control_sirna
+        - hela_ciita_mock
+      "The epitope was eluted under the following experimental conditions: siCTRL, siT6BP, Mock. The epitope was eluted using the following mAbs: L243, Tu39.":
+        - hela_ciita_control_sirna
+        - hela_ciita_t6bp_sirna
+        - hela_ciita_mock
+      "The epitope was eluted under the following experimental conditions: siCTRL, siT6BP.":
+        - hela_ciita_control_sirna
+        - hela_ciita_t6bp_sirna
+      "The epitope was eluted under the following experimental conditions: siCTRL, siT6BP. The epitope was eluted using the following mAbs: L243, Tu39.":
+        - hela_ciita_control_sirna
+        - hela_ciita_t6bp_sirna
+      "The epitope was eluted under the following experimental conditions: siCTRL.":
+        - hela_ciita_control_sirna
+      "The epitope was eluted under the following experimental conditions: siCTRL. The epitope was eluted using the following mAbs: L243, Tu39.":
+        - hela_ciita_control_sirna
+      "The epitope was eluted under the following experimental conditions: siT6BP, Mock, siCTRL. The epitope was eluted using the following mAbs: L243, Tu39.":
+        - hela_ciita_t6bp_sirna
+        - hela_ciita_mock
+        - hela_ciita_control_sirna
+      "The epitope was eluted under the following experimental conditions: siT6BP, Mock. The epitope was eluted using the following mAbs: L243, Tu39.":
+        - hela_ciita_t6bp_sirna
+        - hela_ciita_mock
+      "The epitope was eluted under the following experimental conditions: siT6BP, siCTRL. The epitope was eluted using the following mAbs: L243, Tu39.":
+        - hela_ciita_t6bp_sirna
+        - hela_ciita_control_sirna
+      "The epitope was eluted under the following experimental conditions: siT6BP.":
+        - hela_ciita_t6bp_sirna
+      "The epitope was eluted under the following experimental conditions: siT6BP. The epitope was eluted using the following mAbs: L243, Tu39.":
+        - hela_ciita_t6bp_sirna
     ms_samples:
+      - sample_label: "HeLa-CIITA (Mock)"
+        n_samples: 2
+        source: "Two mock-treated aliquots split 48 h before lysis; PMC9724678 Figure 3"
+        condition: "CIITA transduction; mock-treated control"
+        condition_id: "hela_ciita_mock"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC9724678, Figure 3, Figure EV2 and Immunopeptidome methods"
+        condition_control: "mock"
+        condition_control_for: "hela_ciita_control_sirna;hela_ciita_t6bp_sirna"
+        condition_transduction: "CIITA"
+        condition_material: "cultured"
+        mhc_class: "I+II"
+        mhc: "HLA class I; HLA-DRB1*01:02"
       - sample_label: "HeLa-CIITA (control siRNA)"
-        condition: "CIITA transduction only"
+        n_samples: 2
+        condition: "CIITA transduction; scrambled control siRNA"
         condition_id: "hela_ciita_control_sirna"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC9724678, Figure 3, Cell transfections and Immunopeptidome methods"
+        condition_control: "non_targeting"
+        condition_control_for: "hela_ciita_t6bp_sirna"
         condition_combination: "single"
         condition_transduction: "CIITA"
+        condition_material: "cultured"
         mhc_class: "I+II"
-        mhc: "HLA-A*68:02 HLA-B*15:03 HLA-C*12:03 HLA-DRB1*01:02"
+        mhc: "HLA class I; HLA-DRB1*01:02"
       - sample_label: "HeLa-CIITA + T6BP siRNA"
+        n_samples: 2
         condition: "CIITA transduction + T6BP/TAX1BP1 siRNA knockdown"
         condition_id: "hela_ciita_t6bp_sirna"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC9724678, Figure 3, Cell transfections and Immunopeptidome methods"
         condition_combination: "simultaneous"
         condition_knockdown_genes: "TAX1BP1"
         condition_transduction: "CIITA"
+        condition_material: "cultured"
         mhc_class: "I+II"
-        mhc: "HLA-A*68:02 HLA-B*15:03 HLA-C*12:03 HLA-DRB1*01:02"
+        mhc: "HLA class I; HLA-DRB1*01:02"
 
   - pmid: 24366607
     study_label: "Marcilla 2014 — HLA-B*40:02 phosphopeptidome"
@@ -7912,12 +8008,12 @@
           Culture Condition: "Direct Ex Vivo"
         override: healthy
     note: >
-      Digital immunopeptidome maps from multiple cell lines (JY, B721.221,
-      C1R, Jurkat) plus primary PBMCs. Per-sample rule routes Direct Ex Vivo
+      Digital immunopeptidome maps from JY, Jurkat and C1R transfectants
+      (B*27:05, B*39:01 and B*40:02) plus primary PBMCs. Per-sample rule routes Direct Ex Vivo
       PBMC rows through the healthy override so they are not mis-flagged
       as cancer.
     ms_samples:
-      - sample_label: "multiple cell lines (JY, B721.221, etc.)"
+      - sample_label: "multiple cell lines (JY, Jurkat, C1R transfectants)"
         condition: "unperturbed"
         condition_id: "multiple_cell_lines_jy_b721_221_etc"
         condition_status: "annotated"
@@ -7926,6 +8022,8 @@
         mhc_class: "I"
         mhc: "HLA class I"
       - sample_label: "primary PBMCs (healthy donors)"
+        override: healthy
+        source: "PMC4507788 Methods, Blood samples, cell lines and synthetic peptides: healthy donor PBMCs isolated by density gradient and frozen"
         condition: "unperturbed — ex vivo"
         condition_id: "primary_pbmcs_healthy_donors"
         condition_status: "annotated"
@@ -8942,14 +9040,68 @@
   - pmid: 28063628
     study_label: "Martin-Esteban 2017 — HLA-B*27 ERAP1/ERAP2 combinations"
     title: "Separate effects of the ankylosing spondylitis associated ERAP1 and ERAP2 aminopeptidases determine the influence of their combined phenotype on the HLA-B*27 peptidome"
-    override: cell_line
-    perturbations: ["ERAP1/ERAP2 KO/variant combinations"]
+    override: noncancer_cell_line
+    arm_resolution: multi_arm_evidence
+    arm_resolution_note: >
+      All 3,454 deposited rows enumerate two or more of 6370, 15510, 10151 and P50.
+      The four natural ERAP backgrounds are curated separately, but shared evidence
+      cannot identify one line. ERAP2-negative is not an engineered knockout.
+    note: >
+      Primary methods (author thesis, chapter A4, Cell lines and isolation of
+      HLA-B*27-bound peptidomes, PDF p. 104): four B*27:05-positive lymphoblastoid
+      lines with natural ERAP1 haplotypes and ERAP2 expression differences; three
+      independent peptide preparations per line, isolated with ME1. No gene KO
+      or knockdown intervention. The preceding A3 methods describe 6370, 10151
+      and 15510 as lines established from ankylosing spondylitis patients.
+      The selected B*27:05 restriction is not a complete cellular HLA genotype (#520).
+      https://repositorio.uam.es/bitstreams/a074744b-58e1-4795-8d14-761911c1d75f/download
     ms_samples:
-      - sample_label: "cells (various ERAP1/ERAP2 genotype combinations)"
-        condition: "ERAP1/ERAP2 variant combinations"
-        condition_id: "cells_various_erap1_erap2_genotype_combinations"
-        condition_status: "mixed"
+      - sample_label: "6370 lymphoblastoid cells"
+        source: "Martin-Esteban 2017 Methods; author thesis chapter A4, PDF p. 104"
+        n_samples: 3
+        condition: "unperturbed — natural ERAP1 Hap2, ERAP2 positive background"
+        condition_id: "6370_erap1_hap2_erap2_positive"
+        condition_status: "annotated"
         condition_evidence: "curated_text"
+        condition_background: "ERAP1_Hap2;ERAP2_positive"
+        condition_knockout_genes: "none"
+        condition_material: "cultured"
+        mhc_class: "I"
+        mhc: "HLA-B*27:05"
+      - sample_label: "15510 lymphoblastoid cells"
+        source: "Martin-Esteban 2017 Methods; author thesis chapter A4, PDF p. 104"
+        n_samples: 3
+        condition: "unperturbed — natural ERAP1 Hap1, ERAP2 negative background"
+        condition_id: "15510_erap1_hap1_erap2_negative"
+        condition_status: "annotated"
+        condition_evidence: "curated_text"
+        condition_background: "ERAP1_Hap1;ERAP2_negative"
+        condition_knockout_genes: "none"
+        condition_material: "cultured"
+        mhc_class: "I"
+        mhc: "HLA-B*27:05"
+      - sample_label: "10151 lymphoblastoid cells"
+        source: "Martin-Esteban 2017 Methods; author thesis chapter A4, PDF p. 104"
+        n_samples: 3
+        condition: "unperturbed — natural ERAP1 Hap2, ERAP2 negative background"
+        condition_id: "10151_erap1_hap2_erap2_negative"
+        condition_status: "annotated"
+        condition_evidence: "curated_text"
+        condition_background: "ERAP1_Hap2;ERAP2_negative"
+        condition_knockout_genes: "none"
+        condition_material: "cultured"
+        mhc_class: "I"
+        mhc: "HLA-B*27:05"
+      - sample_label: "P50 lymphoblastoid cells"
+        source: "Martin-Esteban 2017 Methods; author thesis chapter A4, PDF p. 104"
+        n_samples: 3
+        condition: "unperturbed — natural ERAP1 Hap10, ERAP2 positive background"
+        condition_id: "p50_erap1_hap10_erap2_positive"
+        condition_status: "annotated"
+        condition_evidence: "curated_text"
+        condition_background: "ERAP1_Hap10;ERAP2_positive"
+        condition_knockout_genes: "none"
+        condition_material: "cultured"
         mhc_class: "I"
         mhc: "HLA-B*27:05"
 

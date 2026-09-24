@@ -121,3 +121,18 @@ def test_unknown_typing_cannot_win_only_because_precise_typing_was_excluded(monk
     )
     result = _export(monkeypatch, [_row("HLA-A*01:01;HLA-B*08:01", "")])
     assert result.iloc[0].sample_label == ""
+
+
+def test_rejected_text_guess_preserves_curated_consensus(monkeypatch):
+    result = _export(
+        monkeypatch,
+        [
+            _row(MAVER, "MAVER-1-Lymphoblast"),
+            _row("HLA-A*01:01;HLA-B*08:01;HLA-C*07:02"),
+        ],
+    )
+    rejected = result.iloc[1]
+    assert rejected.sample_label == ""
+    assert rejected.condition_id == ""
+    assert rejected.sample_attribution == "pmid_ambiguous"
+    assert rejected.matched_sample_count == 2
