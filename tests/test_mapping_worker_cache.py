@@ -1,8 +1,6 @@
 """A spawned build must use the caller's configured cached proteomes (#543)."""
 
-import concurrent.futures
 import json
-import multiprocessing
 
 import pandas as pd
 import pytest
@@ -11,7 +9,10 @@ from hitlist import downloads, mappings, proteome
 
 
 @pytest.mark.parametrize("fallback_has_proteomes", [False, True])
-def test_spawned_build_preserves_configured_cache(tmp_path, monkeypatch, fallback_has_proteomes):
+@pytest.mark.filterwarnings("error::DeprecationWarning")
+def test_spawned_build_preserves_configured_cache(
+    tmp_path, monkeypatch, fallback_has_proteomes, threaded_parent
+):
     configured = tmp_path / "configured"
     fallback = tmp_path / "fallback"
     configured.mkdir()
@@ -42,12 +43,6 @@ def test_spawned_build_preserves_configured_cache(tmp_path, monkeypatch, fallbac
     observations = pd.DataFrame(
         {"peptide": "PEPTIDEK", "source_organism": labels, "mhc_species": "", "pmid": 0}
     )
-    real_executor = concurrent.futures.ProcessPoolExecutor
-
-    def spawned_executor(**kwargs):
-        return real_executor(mp_context=multiprocessing.get_context("spawn"), **kwargs)
-
-    monkeypatch.setattr(concurrent.futures, "ProcessPoolExecutor", spawned_executor)
     frames = []
     metadata = []
     for n_workers in (1, 2):

@@ -1,5 +1,42 @@
 # September 22 backlog campaign
 
+## #541 specification — explicit safe mapping-worker startup
+
+Linux/Python 3.12 release validation reports that the implicit mapping pool
+forks a multithreaded parent. Python's ProcessPoolExecutor documentation
+recommends a non-fork context in this case. Match the existing supervised
+prefetch phase by explicitly using spawn, after #543 transfers parent cache
+settings correctly. Keep worker counts, chunk size, ordering, mapping results
+and the sequential fallback unchanged. Do not suppress the fork warning.
+
+Exercise the real mapping build and the serialized result contract with a
+live parent thread and deprecations treated as errors. The cached-FASTA tests
+must use production's chosen context rather than forcing spawn themselves.
+Document the usual main-module guard for scripts. Measure startup and peak
+child RSS on a bounded cached-proteome workload; report the platform and scope
+without claiming a full-human-proteome benchmark or a measured Linux speedup.
+Run format/lint and supported-version checks, then full CI and clean-main
+release gates. Bump 1.62.53 and ship separately after #544.
+
+- [x] Read official Python 3.12 context/start-method guidance and release warnings.
+- [x] Use explicit spawn and exercise actual workers from a threaded parent.
+- [x] Compare mapping outputs, startup timing and child memory on cached inputs.
+- [ ] Run full gates, review, open PR, merge/deploy and verify PyPI.
+
+Review: format/lint and 55 focused checks pass on Python 3.9 and 3.12. Actual
+mapping tests now use the production context with a live parent thread and
+DeprecationWarnings treated as errors. A macOS/Python 3.12 audit maps 2,000
+distinct 9/15-mer queries per canonical across four cached-proteome tasks from
+a 2,011,479-byte Aeromonas bestiarum FASTA. Before/after, sequential and pooled
+runs produce the same 8,020 mapping rows, multiplicities, coverage and canonical
+task order. Rows within a canonical were already unordered; comparisons sort
+all columns rather than equating that incidental order with biology. Two-worker
+runs take about 1.9 seconds and peak at about 210 MiB for the largest child in
+both versions. macOS already defaulted to spawn: this measures that bounded
+path, not a Linux speedup or full-human-proteome memory. Official context guidance:
+https://docs.python.org/3.12/library/concurrent.futures.html#concurrent.futures.ProcessPoolExecutor
+Full CI and clean-main release gates remain required.
+
 ## #543 specification — preserve configured caches in mapping workers
 
 A real cached FASTA maps one peptide sequentially but returns an unavailable

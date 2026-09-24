@@ -894,13 +894,15 @@ def _e2e_worker_for_pool_test(task):
     )
 
 
-def test_pool_map_dispatch_preserves_order_and_aggregates_results():
+@pytest.mark.filterwarnings("error::DeprecationWarning")
+def test_pool_map_dispatch_preserves_order_and_aggregates_results(threaded_parent):
     """Verify ProcessPoolExecutor.map round-trips our worker contract end-to-end:
     pickle args/results, preserve task order, return all canonicals."""
     from concurrent.futures import ProcessPoolExecutor
+    from multiprocessing import get_context
 
     tasks = [_mapping_task(canonical=f"species_{i}", peptides=[f"PEP{i:05d}"]) for i in range(6)]
-    with ProcessPoolExecutor(max_workers=2) as pool:
+    with ProcessPoolExecutor(max_workers=2, mp_context=get_context("spawn")) as pool:
         results = list(pool.map(_e2e_worker_for_pool_test, tasks, chunksize=2))
     # Order is preserved by pool.map (matches submission order).
     assert [result.canonical for result in results] == [task.canonical for task in tasks]
