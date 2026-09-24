@@ -1,5 +1,39 @@
 # September 22 backlog campaign
 
+## #549 specification — supported GitHub Actions runtimes
+
+GitHub's September 2026 runner migration warns that our checkout, Python
+setup, cache and artifact actions still target Node 20. Audit direct actions
+and the Pages upload composite against their official release manifests and
+migration notes. Update them to current stable Node 24 majors: checkout v7,
+setup-python v7, cache v6, upload-artifact v7, upload-pages-artifact v5 and
+deploy-pages v5. Coveralls v2 is a shell composite and needs no runtime bump.
+The Node 24 actions require runner 2.327.1 or later; these workflows use
+GitHub-hosted ubuntu-latest. Checkout's newer fork protections do not affect
+our push, pull_request and workflow_dispatch events. Keep artifact archives,
+inputs, corpus provenance, Python versions and release source guards intact.
+
+Exercise the documentation build and Pages artifact upload on documentation
+PRs as well as main. Restrict actual Pages deployment and write permissions
+to the main push job; scope concurrency by ref so a PR cannot cancel a main
+deployment. Preserve the prior Pages hidden-file behavior explicitly. Bump
+the package to 1.62.55 and append this independent maintenance PR after the
+already reviewed releases without changing their heads or active controller.
+
+- [x] Read issue, direct/transitive action manifests and major migration notes.
+- [x] Update workflows, version and review the complete diff.
+- [x] Run format/lint and actionlint 1.7.12 workflow syntax validation.
+- [ ] Verify normal CI, docs artifact and complete PR release workflow.
+- [ ] Merge after predecessor publication; verify main docs and release build.
+- [ ] Publish both PyPI artifacts and verify their public hashes.
+
+Review: all 13 affected action references now use Node 24 actions, including
+the transitive Pages artifact uploader. Official manifests retain archive
+uploads by default. Format/lint and actionlint 1.7.12 pass; no local package
+or dependency environment was changed. Documentation build/upload, normal
+CI and the full release gates will run on hosted runners. No scientific or
+curation data changes are part of this maintenance task.
+
 ## #541 specification — explicit safe mapping-worker startup
 
 Linux/Python 3.12 release validation reports that the implicit mapping pool

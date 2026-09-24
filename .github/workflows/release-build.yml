@@ -34,7 +34,7 @@ jobs:
       PYTEST_ADDOPTS: "-ra"
       CORPUS_VERSION: v2
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && 'main' || github.ref }}
 
@@ -44,7 +44,7 @@ jobs:
           test "$(git branch --show-current)" = main
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -87,7 +87,7 @@ jobs:
           twine check dist/*.whl dist/*.tar.gz
           python scripts/release_artifacts.py write dist --corpus-dir "$HITLIST_DATA_DIR"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: hitlist-release-${{ github.sha }}
           path: dist/
