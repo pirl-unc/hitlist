@@ -851,13 +851,17 @@ def _load_peptide_index(
     # the post-load step can compute them.  ``gene_names`` and friends are
     # in ``_DERIVED_COLUMN_DEPS`` post-#238 BUT pre-#238 parquets still
     # carry them on disk — read them directly when present, treat as
-    # derived only when absent.  ``parquet_columns`` was computed at the
+    # derived only when absent. The non-peptide flag is always recomputed
+    # so a stored flag cannot hide later classification corrections (#230).
+    # ``parquet_columns`` was computed at the
     # top of the function for the early-return paths.
     requested_derived: list[str] = []
     if read_columns is not None:
         kept: list[str] = []
         for c in read_columns:
-            if c in _DERIVED_COLUMN_DEPS and c not in parquet_columns:
+            if c in _DERIVED_COLUMN_DEPS and (
+                c not in parquet_columns or c == "is_non_peptide_ligand"
+            ):
                 requested_derived.append(c)
                 for dep in _DERIVED_COLUMN_DEPS[c]:
                     if dep not in kept:
@@ -1093,17 +1097,16 @@ def _load_peptide_index(
     # ``columns=`` projections work and stale parquets stay correct.
     # Derived again at scan time and in :func:`_apply_training_defaults`
     # — same regex everywhere, redundancy is intentional.
-    if "mhc_restriction" in df.columns and len(df) > 0:
+    if "mhc_restriction" in df.columns:
         from .curation import is_non_peptide_ligand
 
-        if "is_non_peptide_ligand" not in df.columns:
-            uniq = df["mhc_restriction"].dropna().unique()
-            flag_map = {str(a): is_non_peptide_ligand(a) for a in uniq}
-            df["is_non_peptide_ligand"] = (
-                df["mhc_restriction"].map(flag_map).fillna(False).astype(bool)
-            )
-        else:
-            df["is_non_peptide_ligand"] = df["is_non_peptide_ligand"].astype(bool)
+        # Refresh even stored flags: older indexes predate additions to the
+        # non-peptide rule, including BTN3A1 (#230).
+        uniq = df["mhc_restriction"].dropna().unique()
+        flag_map = {str(a): is_non_peptide_ligand(a) for a in uniq}
+        df["is_non_peptide_ligand"] = (
+            df["mhc_restriction"].map(flag_map).astype("boolean").fillna(False).astype(bool)
+        )
         if exclude_non_peptide_ligand:
             df = df[~df["is_non_peptide_ligand"]]
 

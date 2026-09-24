@@ -3582,3 +3582,64 @@ against the full 1,502,002-row expression index before/after: all anchors,
 row counts and hashes are identical. Source IDs referenced by remaining
 anchors all exist. No numerical expression file changed. Full tests and
 final CI remain required before merge; deployment remains required after.
+
+## PR #525 release-runner restack (1.62.50)
+
+Move the already reviewed scientific patch after the release-runner
+foundation (#539, 1.62.39). Preserve its code, source data and tests exactly.
+Retain the original branch; prove patch identity, bump the release version,
+run format/lint and final-head CI, and repeat the relevant compact source
+audit before merging. Run the full clean-main release workflow and verify
+its tested artifacts before local PyPI publication. No memory gate is waived.
+
+- [x] Prove the non-planning patch is unchanged.
+- [ ] Run format/lint, focused checks, source audit and final-head CI.
+- [ ] Review, merge, run the clean-main release and verify PyPI publication.
+
+
+## PR #525 priority queue restack (1.62.50)
+
+Move this previously reviewed change after #528/#514 and their source-verified
+attribution follow-ups. Preserve the implementation, curation and tests exactly;
+only the base, release version and planning records change. Keep the original
+local branch, compare stable patch IDs, then run format/lint and fresh CI.
+Repeat affected source audits and full local release gates before publication.
+
+- [x] Preserve and compare the original non-planning patch.
+- [ ] Run format/lint and fresh CI on this exact head.
+- [ ] Review against the updated base, validate, merge and deploy in order.
+
+# Phosphoantigen restriction filtering (#230)
+
+The issue correctly identifies BTN3A1 rows as unsuitable for peptide-MHC
+consumers, but its extracellular "presenter" description is outdated. Yuan et
+al., Nature 2023, PMID 37674084, DOI 10.1038/s41586-023-06525-3, reports
+intracellular phosphoantigen binding by BTN3A1 and cooperation with BTN2A1;
+the CRISPR screen also implicates BTN3A2/BTN3A3 (Figure 1 / Results). These
+proteins are not classical peptide-presenting MHC molecules. Restrict the
+new allow-list to BTN3A1/2/3 and BTN2A1; do not infer the whole BTN family.
+
+Existing indexes can carry a stale false `is_non_peptide_ligand` flag. Recompute
+this derived classification from restriction strings at load time, including
+projection and opt-in reads, so upgrading the rule actually affects old indexes.
+Keep raw rows available through the existing explicit opt-in.
+
+- [x] Read the primary paper's mechanism, structural results and Figure 1.
+- [x] Audit current BTN rows and baseline flag counts.
+- [x] Add failing helper and stale-index/projection/opt-in regressions.
+- [x] Add the narrow sourced rule and refresh stored derived flags on load.
+- [x] Compare the complete restriction vocabulary and validate filtering.
+- [ ] Run format.sh, lint.sh, test.sh and final CI; review the complete diff.
+- [ ] Bump 1.62.50, open a separate PR, merge and deploy after preceding releases.
+
+Review: seven regression cases fail before the fix. All 504 non-integration
+curation/loader/export tests pass; format/lint pass. The complete 5,333,255-row
+audit changes only two observation and six binding rows, all HLA-BTN3A1 records
+for IPP/HMBPP from PMID 23872678 (DOI 10.1038/ni.2665, original abstract and
+Figures 4–6 checked). Existing non-peptide counts remain 304 observations / 218
+binding rows; the new totals are 306 / 224. Real old indexes now exclude these
+eight rows by default and preserve all eight with opt-in, with accurate flags.
+Raw compound names and reported restrictions are retained. CI exposed a stale
+integration-test whitelist; it now independently includes the same four specific
+BTN genes. Full gates remain pending. RNA host curation #358 remains independent
+while checksum-verified inputs are acquired.

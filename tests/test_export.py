@@ -510,7 +510,21 @@ def test_generate_observations_is_non_peptide_ligand_opt_in():
     for a in flagged_alleles:
         token = a.lower()
         assert any(
-            t in token for t in ("cd1", "mr1", "mica", "micb", "raet1", "ulbp", "nkg2", "hfe")
+            t in token
+            for t in (
+                "cd1",
+                "mr1",
+                "mica",
+                "micb",
+                "raet1",
+                "ulbp",
+                "nkg2",
+                "hfe",
+                "btn3a1",
+                "btn3a2",
+                "btn3a3",
+                "btn2a1",
+            )
         ), f"flagged allele {a!r} doesn't match any non-peptide MHC family"
 
 

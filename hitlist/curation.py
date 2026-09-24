@@ -1173,7 +1173,7 @@ def is_xenograft(source_organism: str, host: str, mhc_species: str) -> bool:
     )
 
 
-# ── Non-peptide-presenting MHC molecules (#228) ──────────────────────────
+# ── Restrictions outside peptide-MHC presentation (#228, #230) ───────────
 #
 # CD1, MR1, MIC, ULBP, RAET1, NKG2, and HFE are not peptide presenters.
 # CD1 (a/b/c/d/e) presents lipids and glycolipids to NKT and CD1-restricted
@@ -1202,6 +1202,11 @@ _NON_PEPTIDE_MHC_RE = re.compile(
     # defensive in case future curation drift puts it there; matches
     # the issue's stated whitelist.
     r"|\bNKG2[A-C]\b"
+    # Yuan et al., Nature 2023, PMID 37674084, DOI 10.1038/s41586-023-06525-3:
+    # BTN3A1 senses intracellular phosphoantigens in cooperation with BTN2A1;
+    # Figure 1 also implicates BTN3A2/3. These are not peptide-MHC presenters.
+    # Enumerate supported genes rather than classify every butyrophilin.
+    r"|\bBTN3A[123]\b|\bBTN2A1\b"
     r"|\bHFE\b",
     re.IGNORECASE,
 )
@@ -1209,9 +1214,10 @@ _NON_PEPTIDE_MHC_RE = re.compile(
 
 @cache
 def is_non_peptide_ligand(mhc_restriction: str) -> bool:
-    """True iff ``mhc_restriction`` names a non-peptide-presenting MHC molecule.
+    """Whether a restriction belongs to a known non-peptide-MHC system.
 
-    Detects CD1 family, MR1, MIC{A,B}, RAET1*, ULBP*, NKG2[A-C], and HFE
+    Detects CD1 family, MR1, MIC{A,B}, RAET1*, ULBP*, NKG2[A-C], HFE,
+    BTN3A1/2/3 and BTN2A1
     in any normalized restriction string ("mouse-CD1d", "human-MR1",
     "cattle-CD1b3", "chicken-CD1-2", "human-MR1 K43A mutant", etc.).
     Classical and class-Ib peptide presenters (HLA-A/B/C/E/F/G, H2-K/D/L,

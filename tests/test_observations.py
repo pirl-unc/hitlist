@@ -677,6 +677,49 @@ def test_exclude_non_peptide_ligand_works_with_projection(tmp_path, monkeypatch)
     assert out["peptide"].tolist() == ["SIINFEKL"]
 
 
+@pytest.mark.parametrize("stored_flag", [False, True])
+def test_phosphoantigen_filter_refreshes_stored_flags(tmp_path, monkeypatch, stored_flag):
+    import pandas as pd
+
+    from hitlist.observations import load_observations
+
+    data = {
+        "peptide": ["HMBPP", "SIINFEKL", "lipid-A"],
+        "mhc_restriction": ["HLA-BTN3A1", "HLA-A*02:01", "human-CD1d"],
+        "mhc_class": ["non classical", "I", "non classical"],
+        "reference_iri": ["r-0", "r-1", "r-2"],
+        "pmid": pd.array([1, 2, 3], dtype="Int64"),
+        "source": ["iedb"] * 3,
+        "mhc_species": ["Homo sapiens"] * 3,
+    }
+    if stored_flag:
+        # A pre-upgrade index knew about CD1, but not BTN3A1.
+        data["is_non_peptide_ligand"] = [False, False, True]
+    path = tmp_path / "observations.parquet"
+    pd.DataFrame(data).to_parquet(path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
+
+    default = load_observations(columns=["peptide"])
+    assert default.peptide.tolist() == ["SIINFEKL"]
+    assert default.columns.tolist() == ["peptide"]
+    optin = load_observations(exclude_non_peptide_ligand=False)
+    assert optin.peptide.tolist() == data["peptide"]
+    assert optin.is_non_peptide_ligand.tolist() == [True, False, True]
+    projected = load_observations(
+        columns=["is_non_peptide_ligand"], exclude_non_peptide_ligand=False
+    )
+    assert projected.is_non_peptide_ligand.tolist() == [True, False, True]
+    assert projected.columns.tolist() == ["is_non_peptide_ligand"]
+    empty = load_observations(
+        peptide="AAAAAAAAAAAAAAA",
+        columns=["is_non_peptide_ligand"],
+        exclude_non_peptide_ligand=False,
+    )
+    assert empty.empty
+    assert empty.columns.tolist() == ["is_non_peptide_ligand"]
+    assert empty.is_non_peptide_ligand.dtype == bool
+
+
 # ── #45 multi-allele restriction / set-membership filters ──────────────
 
 
