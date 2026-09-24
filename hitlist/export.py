@@ -1841,10 +1841,16 @@ def generate_observations_table(
                 # the whole study, not of the rows still awaiting a match.
                 # Dropping exact-allele matches here made SU-DHL-6 appear
                 # constant after DB and SU-DHL-4 left the pool (#556).
+                # Duplicate peptide rows add no variation; compact before
+                # retaining a second corpus-sized frame (#562).
                 _variance_df = (
                     _study_context
                     if _study_context is not None
-                    else _fillna_safe_for_categoricals(obs.loc[_obs_pc_in_pool, _tb_cols])
+                    else _fillna_safe_for_categoricals(
+                        obs.loc[
+                            _obs_pc_in_pool, ["_pmid_int", "_mhc_class_norm", *_disc_cols_all]
+                        ].drop_duplicates()
+                    )
                 )
                 # Per (pmid, class), drop discriminator columns whose
                 # value is identical across all study rows — those

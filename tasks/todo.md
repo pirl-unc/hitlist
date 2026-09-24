@@ -52,7 +52,13 @@ component splitter and build-token gate regression are fixed under #561. All
 individual peptide filters and output projection. The first run also retained
 an already-updated HeLa assertion in memory; it was stopped
 and the suite restarted on the final code. Full tests, exhaustive filtered/projected
-pattern checks, final-head CI and clean-main publication are in progress; the PR records their final outcomes.
+pattern checks, final-head CI and clean-main publication are in progress; the PR records their final outcomes. Local test.sh passed 1,995 tests (one
+skip), all 365 query patterns passed, nine QC checks and two build smoke tests
+passed. CI passed every compatibility/unit check, including 1,997 Python 3.11
+unit tests (two skips), then canceled the corpus phase without a failed assertion.
+During investigation, the full-study variance frame was compacted to distinct
+patterns (#562); all 14,120 exported audit patterns remain identical. The cause
+of cancellation is unconfirmed. Fresh final-head CI and publication remain gates.
 
 # September 24 curation sanity pass
 

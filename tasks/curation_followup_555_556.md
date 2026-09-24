@@ -49,6 +49,10 @@ already matched by allele. Exact distinguishing label tokens that name multiple
 samples veto a token-score winner. Explicit mapped statements that cannot identify
 one candidate preserve ambiguity instead of falling back to narrative guessing.
 A genotype-rejected text guess retains curated consensus rather than erasing it.
+The unfiltered variance frame retains only distinct discriminator patterns (#562):
+at most 6,603 across the curated corpus, rather than millions of repeated peptide
+rows. Comparing all 14,120 exported patterns before/after this compaction produces
+identical results; the filtered context path is unchanged.
 
 The audit collapsed every attribution input combination into 14,120 patterns
 weighted by their observation counts: 4,265,105 observations from the 191 curated
