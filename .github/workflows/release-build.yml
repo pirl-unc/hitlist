@@ -26,7 +26,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      TEST_SH_MAX: "2"
+      # The v2 corpus needs conservative concurrency on the hosted runner.
+      # Existing per-worker memory guards and both complete test phases remain.
+      TEST_SH_MAX: "1"
       PYTEST_ADDOPTS: "-ra"
       CORPUS_VERSION: v2
     steps:
@@ -79,7 +81,7 @@ jobs:
           ruff check scripts/release_artifacts.py scripts/ci_corpus.py
           ruff format --check scripts/release_artifacts.py scripts/ci_corpus.py
           test -z "$(git status --porcelain --untracked-files=no)"
-          ./deploy.sh --build-only
+          /usr/bin/time -v ./deploy.sh --build-only
           twine check dist/*.whl dist/*.tar.gz
           python scripts/release_artifacts.py write dist --corpus-dir "$HITLIST_DATA_DIR"
 

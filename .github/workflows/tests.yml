@@ -103,15 +103,12 @@ jobs:
       - name: Run unit tests (with coverage)
         if: matrix.python-version == '3.11'
         run: |
-          # Two passes so the memory-heavy integration tests don't OOM the
-          # 16 GB runner: each loads the full ~4.4M-row observations table, and
-          # the Arrow xdist fixture only shares numeric/categorical columns
-          # zero-copy — string columns still materialize per worker, so 4
-          # workers blow past RAM. Run non-integration with full parallelism,
-          # then integration capped at 2 workers (still exercises the
-          # cross-worker mmap fixture). Coverage accumulates via --cov-append.
-          pytest tests/ -m "not integration" -n auto --cov=hitlist
-          pytest tests/ -m integration -n 2 --cov=hitlist --cov-append --cov-report=xml
+          # The v2 corpus repeatedly lost its hosted runner with two corpus
+          # workers. String materialization is not shared by the Arrow mmap
+          # fixture. Keep every test, use one corpus worker and record resource
+          # usage; regular tests retain normal parallelism. Coverage accumulates.
+          /usr/bin/time -v pytest tests/ -m "not integration" -n auto --cov=hitlist
+          /usr/bin/time -v pytest tests/ -m integration -n 1 --cov=hitlist --cov-append --cov-report=xml
 
       - name: Run unit tests (no coverage)
         if: matrix.python-version != '3.11'
