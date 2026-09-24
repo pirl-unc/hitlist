@@ -235,11 +235,14 @@ def test_mapping_cache_rejects_parameter_changes(tmp_path, monkeypatch, override
     assert not _mapping_cache_is_valid(**params)
 
 
-def test_mapping_cache_rejects_builder_version_change(tmp_path, monkeypatch):
+@pytest.mark.parametrize("artifact_version", [1, 2])
+def test_mapping_cache_rejects_pre_worker_context_artifacts(
+    tmp_path, monkeypatch, artifact_version
+):
     import json
 
     meta = _seed_mapping_cache(tmp_path, monkeypatch)
-    meta["contract"]["artifact_version"] -= 1
+    meta["contract"]["artifact_version"] = artifact_version
     mappings_meta_path().write_text(json.dumps(meta))
 
     assert not _mapping_cache_is_valid(
