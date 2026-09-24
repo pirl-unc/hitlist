@@ -1,3 +1,39 @@
+# September 24 curation sanity pass
+
+Audit the complete packaged study/sample inventory for missing or contradictory
+gene knockout/knockdown and cytokine condition columns, invalid or implausible
+MHC typing, and mismatches between established cell lines, cultured primary
+cells and clinical specimens. Inspect actual deposited observation comments
+before trusting names or genotype inferred from prose. Treat heuristic flags
+as leads, not evidence. Verify actionable findings against original papers or
+deposits; retain unknown values and mixed-arm ambiguity when sources cannot
+resolve them. Keep cellular genotype distinct from selected ligand restriction
+(existing #520), and distinguish study-wide context from per-sample facts.
+
+Correct supported errors in YAML with source provenance and narrow regression
+coverage of exported metadata. File each confirmed problem in the appropriate
+repository, and record unresolved leads without manufacturing biological facts.
+Measure changed sample metadata and observation attribution against main.
+Bump the patch version, run formatting, lint and full tests, then review, open
+a PR, merge after CI and deploy from clean main. Inspect relevant open backlog
+after shipping without silently expanding this audit into unrelated work.
+
+- [x] Inventory all curated studies, sample fields and available evidence.
+- [x] Run condition, MHC and source-type checks; source-verify actionable leads.
+- [x] File issues; apply supported corrections and regression checks (#554–556).
+- [x] Record counts, findings, limitations and before/after impact in audit report.
+- [ ] Run format.sh, lint.sh and test.sh; review diff and final-head CI.
+- [ ] Merge PR, deploy to PyPI and inspect the next dependent work.
+
+Review: all seven regressions fail with main's curation; all 113 focused checks
+pass with the correction. Format/lint pass. The 34,547-row before/after audit
+and whole-corpus MHC token check are recorded in
+`tasks/curation_sanity_2026_09_24.md`. Only four studies change; unresolved
+source and matcher findings are explicitly tracked in #555/#556. Full tests,
+final-head CI and publication remain pending. The local memory gate initially
+refused tests; after stopping an obsolete audit process, the full suite started
+in an isolated environment from uv.lock with one worker.
+
 # September 22 backlog campaign
 
 ## #551 specification — isolated, checked NetMHCpan invocations

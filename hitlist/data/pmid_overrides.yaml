@@ -685,6 +685,8 @@
         mhc: "HLA class I"
       - sample_label: THP-1 cell line
         n_samples: 1
+        override: cell_line
+        note: "PMC5557337 Figure 2 compares cellular HLA from THP-1 with donor sHLA; this leukemia line must not inherit the study's healthy-biofluid override (#554)."
         source: acute monocytic leukemia line
         condition: unperturbed — comparison only
         condition_id: "thp_1_cell_line"
@@ -695,6 +697,8 @@
         mhc: "HLA-A*02:01 HLA-A*24:02 HLA-B*15:11 HLA-B*35:01 HLA-C*03:03"
       - sample_label: HEK293 cell line
         n_samples: 1
+        override: noncancer_cell_line
+        note: "PMC5557337 Figure 2 compares cellular HLA from HEK with donor sHLA; an adenovirus-transformed embryonic-kidney line is not a healthy clinical specimen (#554)."
         source: human embryonic kidney line
         condition: unperturbed — comparison only
         condition_id: "hek293_cell_line"
@@ -8085,15 +8089,12 @@
         mhc: "HLA class II"
 
   - pmid: 32161166
-    # Arm-resolution verdict (#366).
-    arm_resolution: curation_gap
+    arm_resolution: multi_arm_evidence
     arm_resolution_note: >
-      11,509 rows remain arm-ambiguous, but a per-row discriminator is present, so this is
-      unfinished curation rather than a limit of the deposit. Measured: varying per-row
-      fields: assay_comments (3 distinct). Whether that field varies WITH THE ARM (rather than
-      being study-level boilerplate that names every arm on every row) still needs per-study
-      checking -- that check is the work this verdict marks, and #366 records narrative fields
-      as a known dead end for exactly this reason.
+      Three exact deposited statements distinguish 2,650 control-only and 2,544
+      ERAP1-silenced-only rows from 6,315 shared rows. The shared statement must
+      remain arm-ambiguous. IEDB says siRNA, but the primary paper specifies
+      lentiviral shRNA for the profiled HeLa cells (PMC7196583, Figure 3; #554).
     study_label: "Chen 2020 — HLA-B*51:01 subpeptidome / ERAP1 KD in HeLa.ABC-KO"
     title: "Unconventional subpeptidome bound to HLA-B*51:01 regulated by ERAP1"
     override: cell_line
@@ -8105,31 +8106,49 @@
       Behcet's disease context. Mono-allelic via host knockout + single-allele
       transduction. IEDB's cell_name "HeLa cells-Epithelial cell" and
       source_tissue "Uterine Cervix" are correct for the host cell line
-      (paper-verified against full text); IEDB does not distinguish the
-      ERAP1-WT and ERAP1-KD arms at the metadata level.
+      (paper-verified against full text). Exact assay statements distinguish
+      the ERAP1-WT and ERAP1-KD arms when a peptide occurs in only one arm.
     perturbations:
+      - "HLA-A/HLA-B/HLA-C CRISPR knockout followed by HLA-B*51:01 transduction"
       - "ERAP1 shRNA knockdown"
+    elution_condition_ids:
+      "The epitope was eluted from HLA-B*51:01 expressing HeLa cells.":
+        - hela_abc_ko_hla_b_51_01_control_shrna
+      "The epitope was eluted from HLA-B*51:01 expressing HeLa cells following ERAP1 silencing by siRNA.":
+        - hela_abc_ko_hla_b_51_01_erap1_shrna
+      "The epitope was eluted from HLA-B*51:01 expressing HeLa cells and from these cells following ERAP1 silencing by siRNA.":
+        - hela_abc_ko_hla_b_51_01_control_shrna
+        - hela_abc_ko_hla_b_51_01_erap1_shrna
     ms_samples:
       - sample_label: "HeLa.ABC-KO-HLA-B*51:01 (control shRNA)"
-        n_samples: 1
+        n_samples: 2
         source: HeLa.ABC-KO (CRISPR triple HLA-ABC KO) transduced with HLA-B*51:01, control shRNA
-        condition: "unperturbed — mono-allelic"
+        condition: "HLA-A/HLA-B/HLA-C knockout then HLA-B*51:01 transduction; control shRNA"
         condition_id: "hela_abc_ko_hla_b_51_01_control_shrna"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
-        condition_control: "untreated"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC7196583 Experimental Procedures, Generation of HeLa.ABC-KO and ERAP1 silencing; Results and Figure 3 (two independent experiments)"
+        condition_control: "non_targeting"
+        condition_control_for: "hela_abc_ko_hla_b_51_01_erap1_shrna"
+        condition_combination: "sequential"
+        condition_knockout_genes: "HLA-A;HLA-B;HLA-C"
+        condition_transduction: "HLA-B"
         condition_mhc_context: "monoallelic"
         mhc_class: "I"
         mhc: "HLA-B*51:01"
       - sample_label: "HeLa.ABC-KO-HLA-B*51:01 (ERAP1 shRNA)"
-        n_samples: 1
+        n_samples: 2
         source: HeLa.ABC-KO (CRISPR triple HLA-ABC KO) transduced with HLA-B*51:01, ERAP1 shRNA knockdown
-        condition: "ERAP1 shRNA knockdown"
+        condition: "HLA-A/HLA-B/HLA-C knockout then HLA-B*51:01 transduction; ERAP1 shRNA knockdown"
         condition_id: "hela_abc_ko_hla_b_51_01_erap1_shrna"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
-        condition_combination: "single"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC7196583 Experimental Procedures, Generation of HeLa.ABC-KO and ERAP1 silencing; Results and Figure 3 (two independent experiments)"
+        condition_combination: "sequential"
+        condition_knockout_genes: "HLA-A;HLA-B;HLA-C"
         condition_knockdown_genes: "ERAP1"
+        condition_transduction: "HLA-B"
+        condition_mhc_context: "monoallelic"
         mhc_class: "I"
         mhc: "HLA-B*51:01"
 
@@ -8598,41 +8617,281 @@
 
   - pmid: 35561310
     study_label: "Bourne 2022 — DLBCL + EZH2i + decitabine + IFNg"
-    # Arm-resolution verdict (#451): recorded so this study is not
-    # re-investigated. Describes the deposited evidence, not the curation.
-    arm_resolution: curation_gap
+    arm_resolution: multi_arm_evidence
     arm_resolution_note: >
-      Two per-row discriminators vary and the two curated arms exploit neither. cell_name
-      takes 3 distinct values (DB-B cell 2,622; SU-DHL-4-B cell 2,583; SU-DHL-6-B cell 2,216)
-      while neither arm names a cell line, and mhc_restriction takes 9 values that split by
-      line and by class ('HLA-A*02:01;HLA-B*18:01;HLA-C*05:01' 2,487 rows; 'HLA-
-      DRB1*01:01;HLA-DRB1*04:01' 1,537) while both arms record mhc as 'unknown'.
-      assay_comments takes 63 distinct values sharing one prefix ('Cells were treated with
-      decitabine (DAC), tazemetostat (TAZ), IFN-gamma (IFN), or DMSO individually or in
-      combinations containing different subsets of these treatments.') and carrying the per-
-      row treatment list in the tail past this extract's 200-character truncation. The second
-      arm collapses every DAC/TAZ/IFN combination into a single label, so both the 63-way
-      treatment split and the 3-way line split are recoverable work rather than a limit of the
-      deposit.
+      The deposit identifies DB, SU-DHL-4 and SU-DHL-6 and five MS arms per
+      line: DMSO, IFN, IFN-DAC, IFN-TAZ and IFN-DAC-TAZ. Exact single-arm
+      statements resolve treatment; statements naming multiple arms remain
+      ambiguous, including variants with missing commas (#554).
     title: "Unmasking the suppressed immunopeptidome of EZH2-mutated diffuse large B-cell lymphomas through combination drug treatment"
     override: cell_line
+    note: >
+      PMC9327544 Cell culture and sources reports American Red Cross HLA
+      typing for each line. Figure 5 profiles five treatment arms in duplicate;
+      Drug treatments specifies 48 h followed by renewed treatment for 48 h.
+      Figure 5 gives 125 nM decitabine, 1 uM tazemetostat and 100 ng/mL IFN-gamma.
+      DMSO is the vehicle control, not an untreated clinical lymphoma sample.
+      Cell-culture genotypes are kept per line and are never pooled.
     perturbations: ["EZH2 inhibitor (tazemetostat)", "Decitabine", "IFN-gamma"]
+    elution_condition_ids:
+      "Cells were treated with decitabine (DAC), tazemetostat (TAZ), IFN-gamma (IFN), or DMSO individually or in combinations containing different subsets of these  treatments.  The epitope was eluted from cells receiving the following treatment(s):  DMSO.":
+        - db_dmso
+        - su_dhl_4_dmso
+        - su_dhl_6_dmso
+      "Cells were treated with decitabine (DAC), tazemetostat (TAZ), IFN-gamma (IFN), or DMSO individually or in combinations containing different subsets of these  treatments.  The epitope was eluted from cells receiving the following treatment(s):  IFN.":
+        - db_ifng
+        - su_dhl_4_ifng
+        - su_dhl_6_ifng
+      "Cells were treated with decitabine (DAC), tazemetostat (TAZ), IFN-gamma (IFN), or DMSO individually or in combinations containing different subsets of these  treatments.  The epitope was eluted from cells receiving the following treatment(s):  IFN-DAC.":
+        - db_ifng_dac
+        - su_dhl_4_ifng_dac
+        - su_dhl_6_ifng_dac
+      "Cells were treated with decitabine (DAC), tazemetostat (TAZ), IFN-gamma (IFN), or DMSO individually or in combinations containing different subsets of these  treatments.  The epitope was eluted from cells receiving the following treatment(s):  IFN-TAZ.":
+        - db_ifng_taz
+        - su_dhl_4_ifng_taz
+        - su_dhl_6_ifng_taz
+      "Cells were treated with decitabine (DAC), tazemetostat (TAZ), IFN-gamma (IFN), or DMSO individually or in combinations containing different subsets of these  treatments.  The epitope was eluted from cells receiving the following treatment(s):  IFN-DAC-TAZ.":
+        - db_ifng_dac_taz
+        - su_dhl_4_ifng_dac_taz
+        - su_dhl_6_ifng_dac_taz
     ms_samples:
-      - sample_label: "EZH2-mutant DLBCL (untreated)"
-        condition: "unperturbed"
-        condition_id: "ezh2_mutant_dlbcl_untreated"
+      - sample_label: "DB (DMSO)"
+        sample_group: "DB"
+        n_samples: 2
+        source: "DB diffuse large B-cell lymphoma cell line"
+        condition: "DMSO vehicle control; 48 h then refreshed for 48 h"
+        condition_id: "db_dmso"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
-        condition_control: "untreated"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC9327544 Cell culture and sources; Drug treatments; Figure 5"
+        condition_control: "vehicle"
+        condition_control_for: "db_ifng;db_ifng_dac;db_ifng_dac_taz;db_ifng_taz"
+        condition_drugs: "DMSO"
+        condition_material: "cultured"
+        condition_culture: "RPMI-1640"
         mhc_class: "I+II"
-        mhc: unknown
-      - sample_label: "DLBCL + tazemetostat/decitabine/IFNg combinations"
-        condition: "EZH2i + decitabine + IFNg (various combinations)"
-        condition_id: "dlbcl_tazemetostat_decitabine_ifng_combinations"
-        condition_status: "mixed"
-        condition_evidence: "curated_text"
+        mhc: "HLA-A*02:01 HLA-B*18:01 HLA-C*05:01 HLA-DRB1*03:01"
+      - sample_label: "DB (IFN)"
+        sample_group: "DB"
+        n_samples: 2
+        source: "DB diffuse large B-cell lymphoma cell line"
+        condition: "IFN-gamma 100 ng/mL; 48 h then refreshed for 48 h"
+        condition_id: "db_ifng"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC9327544 Cell culture and sources; Drug treatments; Figure 5"
+        condition_combination: "single"
+        condition_cytokines: "IFNG"
+        condition_material: "cultured"
+        condition_culture: "RPMI-1640"
         mhc_class: "I+II"
-        mhc: unknown
+        mhc: "HLA-A*02:01 HLA-B*18:01 HLA-C*05:01 HLA-DRB1*03:01"
+      - sample_label: "DB (IFN-DAC)"
+        sample_group: "DB"
+        n_samples: 2
+        source: "DB diffuse large B-cell lymphoma cell line"
+        condition: "IFN-gamma 100 ng/mL + decitabine 125 nM; 48 h then refreshed for 48 h"
+        condition_id: "db_ifng_dac"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC9327544 Cell culture and sources; Drug treatments; Figure 5"
+        condition_combination: "simultaneous"
+        condition_cytokines: "IFNG"
+        condition_drugs: "decitabine"
+        condition_material: "cultured"
+        condition_culture: "RPMI-1640"
+        mhc_class: "I+II"
+        mhc: "HLA-A*02:01 HLA-B*18:01 HLA-C*05:01 HLA-DRB1*03:01"
+      - sample_label: "DB (IFN-TAZ)"
+        sample_group: "DB"
+        n_samples: 2
+        source: "DB diffuse large B-cell lymphoma cell line"
+        condition: "IFN-gamma 100 ng/mL + tazemetostat 1 uM; 48 h then refreshed for 48 h"
+        condition_id: "db_ifng_taz"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC9327544 Cell culture and sources; Drug treatments; Figure 5"
+        condition_combination: "simultaneous"
+        condition_cytokines: "IFNG"
+        condition_drugs: "tazemetostat"
+        condition_material: "cultured"
+        condition_culture: "RPMI-1640"
+        mhc_class: "I+II"
+        mhc: "HLA-A*02:01 HLA-B*18:01 HLA-C*05:01 HLA-DRB1*03:01"
+      - sample_label: "DB (IFN-DAC-TAZ)"
+        sample_group: "DB"
+        n_samples: 2
+        source: "DB diffuse large B-cell lymphoma cell line"
+        condition: "IFN-gamma 100 ng/mL + decitabine 125 nM + tazemetostat 1 uM; 48 h then refreshed for 48 h"
+        condition_id: "db_ifng_dac_taz"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC9327544 Cell culture and sources; Drug treatments; Figure 5"
+        condition_combination: "simultaneous"
+        condition_cytokines: "IFNG"
+        condition_drugs: "decitabine;tazemetostat"
+        condition_material: "cultured"
+        condition_culture: "RPMI-1640"
+        mhc_class: "I+II"
+        mhc: "HLA-A*02:01 HLA-B*18:01 HLA-C*05:01 HLA-DRB1*03:01"
+      - sample_label: "SU-DHL-4 (DMSO)"
+        sample_group: "SU-DHL-4"
+        n_samples: 2
+        source: "SU-DHL-4 diffuse large B-cell lymphoma cell line"
+        condition: "DMSO vehicle control; 48 h then refreshed for 48 h"
+        condition_id: "su_dhl_4_dmso"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC9327544 Cell culture and sources; Drug treatments; Figure 5"
+        condition_control: "vehicle"
+        condition_control_for: "su_dhl_4_ifng;su_dhl_4_ifng_dac;su_dhl_4_ifng_dac_taz;su_dhl_4_ifng_taz"
+        condition_drugs: "DMSO"
+        condition_material: "cultured"
+        condition_culture: "RPMI-1640"
+        mhc_class: "I+II"
+        mhc: "HLA-A*02:01 HLA-B*15:01 HLA-C*03:04 HLA-DRB1*15:01"
+      - sample_label: "SU-DHL-4 (IFN)"
+        sample_group: "SU-DHL-4"
+        n_samples: 2
+        source: "SU-DHL-4 diffuse large B-cell lymphoma cell line"
+        condition: "IFN-gamma 100 ng/mL; 48 h then refreshed for 48 h"
+        condition_id: "su_dhl_4_ifng"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC9327544 Cell culture and sources; Drug treatments; Figure 5"
+        condition_combination: "single"
+        condition_cytokines: "IFNG"
+        condition_material: "cultured"
+        condition_culture: "RPMI-1640"
+        mhc_class: "I+II"
+        mhc: "HLA-A*02:01 HLA-B*15:01 HLA-C*03:04 HLA-DRB1*15:01"
+      - sample_label: "SU-DHL-4 (IFN-DAC)"
+        sample_group: "SU-DHL-4"
+        n_samples: 2
+        source: "SU-DHL-4 diffuse large B-cell lymphoma cell line"
+        condition: "IFN-gamma 100 ng/mL + decitabine 125 nM; 48 h then refreshed for 48 h"
+        condition_id: "su_dhl_4_ifng_dac"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC9327544 Cell culture and sources; Drug treatments; Figure 5"
+        condition_combination: "simultaneous"
+        condition_cytokines: "IFNG"
+        condition_drugs: "decitabine"
+        condition_material: "cultured"
+        condition_culture: "RPMI-1640"
+        mhc_class: "I+II"
+        mhc: "HLA-A*02:01 HLA-B*15:01 HLA-C*03:04 HLA-DRB1*15:01"
+      - sample_label: "SU-DHL-4 (IFN-TAZ)"
+        sample_group: "SU-DHL-4"
+        n_samples: 2
+        source: "SU-DHL-4 diffuse large B-cell lymphoma cell line"
+        condition: "IFN-gamma 100 ng/mL + tazemetostat 1 uM; 48 h then refreshed for 48 h"
+        condition_id: "su_dhl_4_ifng_taz"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC9327544 Cell culture and sources; Drug treatments; Figure 5"
+        condition_combination: "simultaneous"
+        condition_cytokines: "IFNG"
+        condition_drugs: "tazemetostat"
+        condition_material: "cultured"
+        condition_culture: "RPMI-1640"
+        mhc_class: "I+II"
+        mhc: "HLA-A*02:01 HLA-B*15:01 HLA-C*03:04 HLA-DRB1*15:01"
+      - sample_label: "SU-DHL-4 (IFN-DAC-TAZ)"
+        sample_group: "SU-DHL-4"
+        n_samples: 2
+        source: "SU-DHL-4 diffuse large B-cell lymphoma cell line"
+        condition: "IFN-gamma 100 ng/mL + decitabine 125 nM + tazemetostat 1 uM; 48 h then refreshed for 48 h"
+        condition_id: "su_dhl_4_ifng_dac_taz"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC9327544 Cell culture and sources; Drug treatments; Figure 5"
+        condition_combination: "simultaneous"
+        condition_cytokines: "IFNG"
+        condition_drugs: "decitabine;tazemetostat"
+        condition_material: "cultured"
+        condition_culture: "RPMI-1640"
+        mhc_class: "I+II"
+        mhc: "HLA-A*02:01 HLA-B*15:01 HLA-C*03:04 HLA-DRB1*15:01"
+      - sample_label: "SU-DHL-6 (DMSO)"
+        sample_group: "SU-DHL-6"
+        n_samples: 2
+        source: "SU-DHL-6 diffuse large B-cell lymphoma cell line"
+        condition: "DMSO vehicle control; 48 h then refreshed for 48 h"
+        condition_id: "su_dhl_6_dmso"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC9327544 Cell culture and sources; Drug treatments; Figure 5"
+        condition_control: "vehicle"
+        condition_control_for: "su_dhl_6_ifng;su_dhl_6_ifng_dac;su_dhl_6_ifng_dac_taz;su_dhl_6_ifng_taz"
+        condition_drugs: "DMSO"
+        condition_material: "cultured"
+        condition_culture: "RPMI-1640"
+        mhc_class: "I+II"
+        mhc: "HLA-A*02:01 HLA-A*23:01 HLA-B*15:01 HLA-B*49:01 HLA-C*03:03 HLA-C*07:01 HLA-DRB1*01:01 HLA-DRB1*04:01"
+      - sample_label: "SU-DHL-6 (IFN)"
+        sample_group: "SU-DHL-6"
+        n_samples: 2
+        source: "SU-DHL-6 diffuse large B-cell lymphoma cell line"
+        condition: "IFN-gamma 100 ng/mL; 48 h then refreshed for 48 h"
+        condition_id: "su_dhl_6_ifng"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC9327544 Cell culture and sources; Drug treatments; Figure 5"
+        condition_combination: "single"
+        condition_cytokines: "IFNG"
+        condition_material: "cultured"
+        condition_culture: "RPMI-1640"
+        mhc_class: "I+II"
+        mhc: "HLA-A*02:01 HLA-A*23:01 HLA-B*15:01 HLA-B*49:01 HLA-C*03:03 HLA-C*07:01 HLA-DRB1*01:01 HLA-DRB1*04:01"
+      - sample_label: "SU-DHL-6 (IFN-DAC)"
+        sample_group: "SU-DHL-6"
+        n_samples: 2
+        source: "SU-DHL-6 diffuse large B-cell lymphoma cell line"
+        condition: "IFN-gamma 100 ng/mL + decitabine 125 nM; 48 h then refreshed for 48 h"
+        condition_id: "su_dhl_6_ifng_dac"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC9327544 Cell culture and sources; Drug treatments; Figure 5"
+        condition_combination: "simultaneous"
+        condition_cytokines: "IFNG"
+        condition_drugs: "decitabine"
+        condition_material: "cultured"
+        condition_culture: "RPMI-1640"
+        mhc_class: "I+II"
+        mhc: "HLA-A*02:01 HLA-A*23:01 HLA-B*15:01 HLA-B*49:01 HLA-C*03:03 HLA-C*07:01 HLA-DRB1*01:01 HLA-DRB1*04:01"
+      - sample_label: "SU-DHL-6 (IFN-TAZ)"
+        sample_group: "SU-DHL-6"
+        n_samples: 2
+        source: "SU-DHL-6 diffuse large B-cell lymphoma cell line"
+        condition: "IFN-gamma 100 ng/mL + tazemetostat 1 uM; 48 h then refreshed for 48 h"
+        condition_id: "su_dhl_6_ifng_taz"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC9327544 Cell culture and sources; Drug treatments; Figure 5"
+        condition_combination: "simultaneous"
+        condition_cytokines: "IFNG"
+        condition_drugs: "tazemetostat"
+        condition_material: "cultured"
+        condition_culture: "RPMI-1640"
+        mhc_class: "I+II"
+        mhc: "HLA-A*02:01 HLA-A*23:01 HLA-B*15:01 HLA-B*49:01 HLA-C*03:03 HLA-C*07:01 HLA-DRB1*01:01 HLA-DRB1*04:01"
+      - sample_label: "SU-DHL-6 (IFN-DAC-TAZ)"
+        sample_group: "SU-DHL-6"
+        n_samples: 2
+        source: "SU-DHL-6 diffuse large B-cell lymphoma cell line"
+        condition: "IFN-gamma 100 ng/mL + decitabine 125 nM + tazemetostat 1 uM; 48 h then refreshed for 48 h"
+        condition_id: "su_dhl_6_ifng_dac_taz"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC9327544 Cell culture and sources; Drug treatments; Figure 5"
+        condition_combination: "simultaneous"
+        condition_cytokines: "IFNG"
+        condition_drugs: "decitabine;tazemetostat"
+        condition_material: "cultured"
+        condition_culture: "RPMI-1640"
+        mhc_class: "I+II"
+        mhc: "HLA-A*02:01 HLA-A*23:01 HLA-B*15:01 HLA-B*49:01 HLA-C*03:03 HLA-C*07:01 HLA-DRB1*01:01 HLA-DRB1*04:01"
 
   - pmid: 25892735
     study_label: "Alvarez-Navarro 2015 — HLA-A*29:02 ERAP1 variants"
@@ -9674,17 +9933,61 @@
   - pmid: 33717175
     study_label: "Venema 2021 — HLA-A29 uveitis ERAP2 comparison"
     title: "ERAP2 Increases the Abundance of a Peptide Submotif Highly Selective for the Birdshot Uveitis-Associated HLA-A29"
-    override: cell_line
+    override: ebv_lcl
+    arm_resolution: no_row_discriminator
+    arm_resolution_note: >
+      All 7,850 deposited rows share cell_name B cell, source_tissue Blood,
+      one EBV-LCL derivation comment and empty assay_comments. Restrictions
+      distinguish HLA-A29-selected and pan-class-I evidence, not ERAP2 genotype.
+      WT and KO pellets were combined after differential SILAC labeling;
+      the deposited rows do not identify a WT-only or KO-only arm (#554).
+    note: >
+      PMC7950316 Cell Lines, ERAP2 KO Generation, Figure 1 and first Results
+      section: one EBV-LCL from an 80-year-old female Birdshot uveitis patient,
+      lentivirally expressing retinal S-antigen (SAG), compared before and after
+      CRISPR ERAP2 knockout. This is an engineered cultured cell-line experiment,
+      not a comparison of naturally ERAP2-positive and ERAP2-negative patients.
+      The paper explicitly reports the same six-allele genotype for both arms.
+    perturbations:
+      - "SAG lentiviral transduction in both arms"
+      - "ERAP2 CRISPR knockout"
     ms_samples:
-      - sample_label: "APCs from ERAP2+ vs ERAP2- patients"
-        condition: "unperturbed — natural ERAP2 genotype"
-        condition_id: "apcs_from_erap2_vs_erap2_patients"
+      - sample_label: "Birdshot patient EBV-LCL ERAP2 WT (SAG-transduced)"
+        n_samples: 2
+        source: "EBV-immortalized B cells from one Birdshot uveitis patient"
+        condition: "SAG lentiviral transduction; ERAP2 WT; heavy Tyr/Phe SILAC"
+        condition_id: "birdshot_lcl_erap2_wt"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
-        condition_control: "untreated"
-        condition_background: "ERAP2_natural_genotype"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC7950316 Cell Lines, ERAP2 KO Generation, Cell Culture and HLA-Peptide Immunopurification; Figure 1 and first Results section"
+        condition_control: "other"
+        condition_control_for: "birdshot_lcl_erap2_ko"
+        condition_knockout_genes: "none"
+        condition_transduction: "SAG"
+        condition_overexpression_genes: "SAG"
+        condition_background: "ERAP1_hap10;ERAP2_hapA"
+        condition_labeling: "SILAC"
+        condition_material: "cultured"
+        condition_culture: "RPMI-1640"
         mhc_class: "I"
-        mhc: "HLA class I"
+        mhc: "HLA-A*03:01 HLA-A*29:02 HLA-B*40:01 HLA-B*44:03 HLA-C*03:04 HLA-C*16:01"
+      - sample_label: "Birdshot patient EBV-LCL ERAP2 KO (SAG-transduced)"
+        n_samples: 2
+        source: "EBV-immortalized B cells from the same Birdshot uveitis patient"
+        condition: "SAG lentiviral transduction then ERAP2 CRISPR knockout; light Tyr/Phe"
+        condition_id: "birdshot_lcl_erap2_ko"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC7950316 Cell Lines, ERAP2 KO Generation, Cell Culture and HLA-Peptide Immunopurification; Figure 1 and first Results section"
+        condition_combination: "sequential"
+        condition_knockout_genes: "ERAP2"
+        condition_transduction: "SAG"
+        condition_overexpression_genes: "SAG"
+        condition_background: "ERAP1_hap10;ERAP2_hapA"
+        condition_material: "cultured"
+        condition_culture: "RPMI-1640"
+        mhc_class: "I"
+        mhc: "HLA-A*03:01 HLA-A*29:02 HLA-B*40:01 HLA-B*44:03 HLA-C*03:04 HLA-C*16:01"
 
   - pmid: 33691108
     study_label: "Ruiz Cuevas 2021 — DLBCL cryptic MAPs"
