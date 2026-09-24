@@ -205,7 +205,7 @@ def test_cli_uses_six_alleles_and_reports_sample_contexts(monkeypatch, capsys):
 
 @pytest.mark.parametrize("empty", [False, True])
 @pytest.mark.parametrize("allele", ["HLA-A*02:01", "HLA-A0201"])
-def test_netmhcpan_result_preserves_requested_allele_spelling(monkeypatch, tmp_path, empty, allele):
+def test_netmhcpan_result_preserves_requested_allele_spelling(monkeypatch, empty, allele):
     tokens = ["x"] * 16
     tokens[1], tokens[2], tokens[10], tokens[12], tokens[15] = (
         "HLA-A02:01",
@@ -214,7 +214,6 @@ def test_netmhcpan_result_preserves_requested_allele_spelling(monkeypatch, tmp_p
         "0.4",
         "25.0",
     )
-    monkeypatch.setattr(predict, "Path", lambda path: tmp_path)
     monkeypatch.setattr(
         predict.subprocess,
         "run",
@@ -231,8 +230,7 @@ def test_netmhcpan_result_preserves_requested_allele_spelling(monkeypatch, tmp_p
         assert result.iloc[0]["presentation_percentile"] == 0.4
 
 
-def test_netmhcpan_rejects_a_result_for_a_different_allele(monkeypatch, tmp_path):
-    monkeypatch.setattr(predict, "Path", lambda path: tmp_path)
+def test_netmhcpan_rejects_a_result_for_a_different_allele(monkeypatch):
     monkeypatch.setattr(
         predict.subprocess,
         "run",

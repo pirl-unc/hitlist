@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import subprocess
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import numpy as np
 import pandas as pd
@@ -132,14 +133,16 @@ def _predict_netmhcpan(pairs: pd.DataFrame) -> pd.DataFrame:
     rows: list[dict] = []
     for allele, grp in pairs.groupby("allele"):
         peps = grp["peptide"].drop_duplicates().tolist()
-        pep_file = Path("/tmp") / f"hitlist_netmhcpan_{hash(allele) & 0xFFFF}.txt"
-        pep_file.write_text("\n".join(peps) + "\n")
-        result = subprocess.run(
-            ["netMHCpan", "-p", str(pep_file), "-a", _netmhcpan_allele_arg(allele), "-BA"],
-            capture_output=True,
-            text=True,
-            timeout=600,
-        )
+        with TemporaryDirectory(prefix="hitlist_netmhcpan_") as directory:
+            pep_file = Path(directory) / "peptides.txt"
+            pep_file.write_text("\n".join(peps) + "\n")
+            result = subprocess.run(
+                ["netMHCpan", "-p", str(pep_file), "-a", _netmhcpan_allele_arg(allele), "-BA"],
+                capture_output=True,
+                text=True,
+                timeout=600,
+                check=True,
+            )
         for line in result.stdout.splitlines():
             if "PEPLIST" not in line:
                 continue
