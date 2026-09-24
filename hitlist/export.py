@@ -1689,15 +1689,16 @@ def generate_observations_table(
                 # IEDB's per-peptide elution-condition enumeration is
                 # the one reliable arm discriminator it offers, so it
                 # outranks token scoring when present.
+                _condition_map = overrides.get(int(r["_pmid_int"]), {}).get(
+                    "elution_condition_ids", {}
+                )
                 best = _select_by_elution_conditions(
                     cands,
                     r["assay_comments"],
-                    curated_condition_ids=overrides.get(int(r["_pmid_int"]), {}).get(
-                        "elution_condition_ids"
-                    ),
+                    curated_condition_ids=_condition_map,
                 )
                 _attr = "elution_conditions"
-                if best is None:
+                if best is None and str(r["assay_comments"]).strip() not in _condition_map:
                     _attr = "discriminated"
                     best = _select_best_candidate(
                         cands,
@@ -1836,36 +1837,23 @@ def generate_observations_table(
                 if "restriction_evidence" in obs.columns:
                     _tb_cols.append("restriction_evidence")
                 _eligible_df = _fillna_safe_for_categoricals(obs.loc[_eligible_mask, _tb_cols])
-                _variance_df = _eligible_df
-                if _study_context is not None:
-                    # Mirror the preceding two attribution stages for the
-                    # compact context, keeping only their MHC result. A row
-                    # already resolved there does not enter class-pool
-                    # discriminator variation in an unfiltered export.
-                    _context_keys = pd.MultiIndex.from_frame(
-                        _study_context[["_pmid_int", "mhc_restriction"]]
+                # Whether a field distinguishes systems is a property of
+                # the whole study, not of the rows still awaiting a match.
+                # Dropping exact-allele matches here made SU-DHL-6 appear
+                # constant after DB and SU-DHL-4 left the pool (#556).
+                # Duplicate peptide rows add no variation; compact before
+                # retaining a second corpus-sized frame (#562).
+                _variance_df = (
+                    _study_context
+                    if _study_context is not None
+                    else _fillna_safe_for_categoricals(
+                        obs.loc[
+                            _obs_pc_in_pool, ["_pmid_int", "_mhc_class_norm", *_disc_cols_all]
+                        ].drop_duplicates()
                     )
-                    _context_mhc = (
-                        allele_df.set_index(["_pmid_int", "_allele"])["mhc"]
-                        .reindex(_context_keys)
-                        .set_axis(_study_context.index)
-                    )
-                    if _winner_meta:
-                        _context_tb_keys = pd.MultiIndex.from_frame(_study_context[_tiebreak_cols])
-                        _winner_mhc = pd.Series(
-                            {key: value["mhc"] for key, value in _winner_meta.items()}
-                        ).reindex(_context_tb_keys)
-                        _winner_mhc.index = _study_context.index
-                        _context_mhc = _winner_mhc.combine_first(_context_mhc)
-                    if not single_df.empty:
-                        _context_mhc = _context_mhc.fillna(
-                            _study_context["_pmid_int"].map(
-                                single_df.set_index("_pmid_int")["mhc_fb"]
-                            )
-                        )
-                    _variance_df = _study_context.loc[_context_mhc.fillna("") == ""]
+                )
                 # Per (pmid, class), drop discriminator columns whose
-                # value is identical across all eligible rows — those
+                # value is identical across all study rows — those
                 # can't differentiate samples and would otherwise inflate
                 # rarity-weighted scores with study-level boilerplate.
                 _varying_cols_per_key: dict[tuple, list[str]] = {}
@@ -1930,6 +1918,9 @@ def generate_observations_table(
                     # row-level discriminator, so say so rather than reporting
                     # that the class pool assigned it.
                     _pool_attr = "discriminated" if _grouped else "class_pool"
+                    _condition_map = overrides.get(int(_r["_pmid_int"]), {}).get(
+                        "elution_condition_ids", {}
+                    )
                     if len(_cands) == 1:
                         # Single-class candidate inside a multi-sample
                         # PMID — assign without scoring (no ambiguity).
@@ -1938,15 +1929,19 @@ def generate_observations_table(
                         _elution := _select_by_elution_conditions(
                             _cands,
                             _r["assay_comments"],
-                            curated_condition_ids=overrides.get(int(_r["_pmid_int"]), {}).get(
-                                "elution_condition_ids"
-                            ),
+                            curated_condition_ids=_condition_map,
                         )
                     ) is not None:
                         # Same per-peptide arm evidence as the
                         # allele-level path above.
                         _best_meta = _elution
                         _pool_attr = "elution_conditions"
+                    elif str(_r["assay_comments"]).strip() in _condition_map:
+                        # An explicit map that cannot single out an arm is
+                        # authoritative ambiguity, not permission to guess
+                        # again from narrative token scores (#555/#556).
+                        _best_meta = _consensus_meta(_cands, meta_cols)
+                        _pool_attr = str(_best_meta["sample_attribution"])
                     else:
                         _varying = _varying_cols_per_key.get(
                             (_r["_pmid_int"], _r["_mhc_class_norm"]), _disc_cols_all
@@ -2057,7 +2052,10 @@ def generate_observations_table(
                         )
                         is False
                     ):
-                        _best_meta = None
+                        # A rejected guess does not erase the study-level
+                        # consensus or make the row look uncurated (#556).
+                        _best_meta = _consensus_meta(_pool_cands, meta_cols)
+                        _pool_attr = str(_best_meta["sample_attribution"])
                     if _best_meta is not None:
                         _best_meta = {**_best_meta, "sample_attribution": _pool_attr}
                         _tb_winner[tuple(_r[column] for column in _tb_cols)] = _best_meta
@@ -3532,6 +3530,23 @@ def _select_best_candidate(
     ).lower()
     obs_tokens = _label_tokens(obs_text)
     if not obs_tokens:
+        return None
+
+    # Explicitly naming multiple samples is shared evidence, even if one
+    # label earns a larger rarity/length score ("plasma" versus "serum",
+    # #556). Compare exact distinguishing label tokens before fuzzy scoring;
+    # common words such as "healthy donor" identify neither candidate.
+    label_tokens = [_label_tokens(label) for label, _, _ in candidates]
+    label_frequency = {
+        token: sum(token in tokens for tokens in label_tokens)
+        for token in set().union(*label_tokens)
+    }
+    named_arms = set()
+    for tokens, candidate in zip(label_tokens, candidates):
+        distinctive = {token for token in tokens if label_frequency[token] == 1}
+        if distinctive and distinctive <= obs_tokens:
+            named_arms.add(_candidate_arm_identity(candidate[2]))
+    if len(named_arms) > 1:
         return None
 
     import re as _re

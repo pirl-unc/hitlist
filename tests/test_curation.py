@@ -2632,12 +2632,18 @@ def test_every_curated_mhc_token_names_an_mhc_designation():
         # a Species, neither of which is an MHC designation — so require
         # a real designation.  Whether the sample reaches the *allele*
         # join is a separate invariant, checked below.
-        for token in re.split(r"[\s;,]+", mhc):
-            if not token:
+        # Class-only components can accompany typed molecules: a study may
+        # report class-I ligands without typing them and explicitly type DR.
+        # Preserve each semicolon-delimited designation before word splitting.
+        for component in mhc.split(";"):
+            if is_class_only_token(component):
                 continue
-            parsed = _cached_parse(token)
-            if type(parsed).__name__ not in _MHC_DESIGNATION_TYPES:
-                empty.append((row["pmid"], row["sample_label"], token))
+            for token in re.split(r"[\s,]+", component):
+                if not token:
+                    continue
+                parsed = _cached_parse(token)
+                if type(parsed).__name__ not in _MHC_DESIGNATION_TYPES:
+                    empty.append((row["pmid"], row["sample_label"], token))
     assert not empty, f"curated mhc tokens that name nothing in the MHC ontology: {empty}"
 
 
@@ -2645,17 +2651,30 @@ def test_declared_mhc_class_agrees_with_the_sample_alleles():
     """#374: a sample's declared class must not contradict the class of
     its own alleles — three HLA-G transfectants were declared classical
     ``I`` and so were returned by ``--mhc-class I``."""
-    from hitlist.curation import extract_allele_tokens, mhc_class_of, normalize_mhc_class_token
+    from hitlist.curation import (
+        _cached_parse,
+        extract_allele_tokens,
+        is_class_only_token,
+        mhc_class_of,
+        normalize_mhc_class_token,
+    )
     from hitlist.export import generate_ms_samples_table
 
     unexpected: list = []
     flagged: set = set()
     for _, row in generate_ms_samples_table().iterrows():
         declared = normalize_mhc_class_token(str(row.get("mhc_class") or ""))
-        tokens = extract_allele_tokens(str(row.get("mhc") or ""))
-        if not declared or not tokens:
+        mhc = str(row.get("mhc") or "")
+        tokens = extract_allele_tokens(mhc)
+        if not declared:
             continue
         derived = {mhc_class_of(t) for t in tokens} - {""}
+        derived.update(
+            normalize_mhc_class_token(str(getattr(_cached_parse(part.strip()), "mhc_class", "")))
+            for part in mhc.split(";")
+            if is_class_only_token(part)
+        )
+        derived.discard("")
         if derived and derived != set(declared.split("+")):
             key = (int(row["pmid"]), str(row["sample_label"]))
             flagged.add(key)

@@ -12,6 +12,7 @@ ATTRIBUTION_FIELDS = [
     "sample_match_type",
     "condition_id",
     "sample_mhc",
+    "arm_resolution",
 ]
 
 
@@ -176,7 +177,7 @@ def test_class_filter_keeps_the_complete_study_sample_roster(
     assert selected.matched_sample_count.tolist() == [2]
 
 
-def test_exactly_matched_context_rows_do_not_create_class_pool_variation(tmp_path, monkeypatch):
+def test_exactly_matched_rows_remain_part_of_study_discriminator_context(tmp_path, monkeypatch):
     monkeypatch.setattr("hitlist.export.load_pmid_overrides", _ungrouped_overrides)
     _write_observations(
         tmp_path,
@@ -194,7 +195,84 @@ def test_exactly_matched_context_rows_do_not_create_class_pool_variation(tmp_pat
     complete = generate_observations_table().set_index("peptide")
     selected = generate_observations_table(peptide="AAAAAAAAA").set_index("peptide")
     assert complete.loc["LLLLLLLLL", "sample_label"] == "Beta cells"
+    assert complete.loc["AAAAAAAAA", "sample_label"] == "Alpha cells"
+    pd.testing.assert_frame_equal(
+        selected[ATTRIBUTION_FIELDS].astype(str),
+        complete.loc[["AAAAAAAAA"], ATTRIBUTION_FIELDS].astype(str),
+    )
+
+
+@pytest.mark.parametrize("treatment", ["IFN-DAC", "IFN-DAC, IFN-TAZ"])
+def test_bourne_class_pool_uses_lines_already_resolved_by_exact_allele(
+    tmp_path, monkeypatch, treatment
+):
+    from tests.test_curation_sanity_pass import BOURNE_PREFIX
+
+    _write_observations(
+        tmp_path,
+        monkeypatch,
+        [
+            {
+                "pmid": 35561310,
+                "peptide": peptide,
+                "cell_name": line + "-B cell",
+                "mhc_class": "II",
+                "mhc_restriction": restriction,
+                "assay_comments": BOURNE_PREFIX + treatment + ".",
+            }
+            for peptide, line, restriction in [
+                ("LLLLLLLLL", "DB", "HLA-DRB1*03:01"),
+                ("VVVVVVVVV", "SU-DHL-4", "HLA-DRB1*15:01"),
+                ("AAAAAAAAA", "SU-DHL-6", "HLA-DRB1*01:01;HLA-DRB1*04:01"),
+            ]
+        ],
+    )
+    complete = generate_observations_table().set_index("peptide")
+    target = complete.loc[["AAAAAAAAA"]]
+    assert target.iloc[0].sample_group == "SU-DHL-6"
+    assert target.iloc[0].condition_id == ("su_dhl_6_ifng_dac" if treatment == "IFN-DAC" else "")
+    assert target.iloc[0].sample_attribution == (
+        "elution_conditions" if treatment == "IFN-DAC" else "group_ambiguous"
+    )
+    for projection in (None, ["peptide", *ATTRIBUTION_FIELDS]):
+        selected = generate_observations_table(peptide="AAAAAAAAA", columns=projection).set_index(
+            "peptide"
+        )
+        pd.testing.assert_frame_equal(
+            selected[ATTRIBUTION_FIELDS].astype(str), target[ATTRIBUTION_FIELDS].astype(str)
+        )
+
+
+def test_shared_biofluids_cannot_be_first_picked_by_label_length(tmp_path, monkeypatch):
+    # PMID 27862975: both materials are explicitly reported for shared rows.
+    _write_observations(
+        tmp_path,
+        monkeypatch,
+        [
+            {
+                "pmid": 27862975,
+                "peptide": peptide,
+                "cell_name": "",
+                "mhc_restriction": "HLA class I",
+                "assay_comments": f"The epitope was eluted from {material}.",
+            }
+            for peptide, material in [
+                ("AAAAAAAAA", "serum and plasma"),
+                ("LLLLLLLLL", "serum"),
+                ("VVVVVVVVV", "plasma"),
+            ]
+        ],
+    )
+    complete = generate_observations_table().set_index("peptide")
+    assert complete.loc["AAAAAAAAA", "condition_id"] == ""
     assert complete.loc["AAAAAAAAA", "sample_label"] == ""
+    assert complete.loc["AAAAAAAAA", "sample_attribution"] == "pmid_ambiguous"
+    assert complete.loc["AAAAAAAAA", "arm_resolution"] == "multi_arm_evidence"
+    assert complete.loc["LLLLLLLLL", "sample_label"] == "healthy donor serum"
+    assert complete.loc["VVVVVVVVV", "sample_label"] == "healthy donor plasma"
+    selected = generate_observations_table(
+        peptide="AAAAAAAAA", columns=["peptide", *ATTRIBUTION_FIELDS]
+    ).set_index("peptide")
     pd.testing.assert_frame_equal(
         selected[ATTRIBUTION_FIELDS].astype(str),
         complete.loc[["AAAAAAAAA"], ATTRIBUTION_FIELDS].astype(str),

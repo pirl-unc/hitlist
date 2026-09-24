@@ -1416,3 +1416,31 @@ def test_curated_corpus_has_no_pooled_genotypes():
     assert found.empty, "curated samples pool multiple genotypes:\n" + found[
         ["pmid", "sample_label", "locus", "alleles"]
     ].to_string(index=False)
+
+
+@pytest.mark.parametrize("extra", ["", "; BOGUS-X"])
+def test_mhc_token_audit_preserves_class_only_component_beside_typed_allele(extra):
+    from hitlist.qc import mhc_token_audit
+
+    curated = pd.DataFrame(
+        [
+            {
+                "pmid": 36215666,
+                "sample_label": "HeLa-CIITA (Mock)",
+                "mhc": "HLA class I; HLA-DRB1*01:02" + extra,
+            }
+        ]
+    )
+    audit = mhc_token_audit(evidence_frames={}, curated_samples=curated)
+    if extra:
+        assert audit.token.tolist() == ["BOGUS-X"]
+        assert audit.status.tolist() == ["unrecognized"]
+    else:
+        assert audit.empty
+
+
+def test_build_token_gate_accepts_packaged_partial_class_typing():
+    from hitlist.builder import _validate_mhc_tokens
+
+    audit = _validate_mhc_tokens(pd.DataFrame(), pd.DataFrame())
+    assert audit.empty

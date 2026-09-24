@@ -91,15 +91,14 @@ def test_absent_sample_override_inherits_the_study_value():
 def test_row_conditional_rules_downgrade_the_inherited_origin():
     """``rules`` match per row, so a sample cannot claim the study value.
 
-    PMID 27846572 inherits ``cell_line`` while its rule routes every
-    Direct Ex Vivo fibroblast row to ``healthy``.  Reporting plain
-    ``study`` there asserts a value the build contradicts on 3,614 rows,
-    so the origin says the default is conditional instead.
+    PMID 27846572's C1R sample inherits ``cell_line`` from a study with
+    row-dependent rules. Its origin remains conditional; the primary
+    fibroblast now has an explicit sample override (#555).
     """
     samples = generate_ms_samples_table()
-    fibroblasts = _row(samples, 27846572, "primary fibroblasts")
-    assert fibroblasts["effective_override"] == "cell_line"
-    assert fibroblasts["effective_override_origin"] == "study_conditional"
+    c1r = _row(samples, 27846572, "C1R parental (B-lymphoblastoid)")
+    assert c1r["effective_override"] == "cell_line"
+    assert c1r["effective_override_origin"] == "study_conditional"
 
     overrides = load_pmid_overrides()
     conditional = samples[samples["effective_override_origin"] == "study_conditional"]
