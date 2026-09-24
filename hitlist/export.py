@@ -1191,7 +1191,11 @@ def generate_observations_table(
     FileNotFoundError
         If the observations table has not been built yet.
     """
-    from .observations import _source_organism_with_fallback, load_observations
+    from .observations import (
+        _load_attribution_context,
+        _source_organism_with_fallback,
+        load_observations,
+    )
 
     # --- Resolve gene query (may require HGNC lookup) up front ---
     resolved_gene_names, resolved_gene_ids = _resolve_gene_filters(gene, gene_name, gene_id)
@@ -1262,7 +1266,30 @@ def generate_observations_table(
     # have no MS data by construction, so they must never become a
     # candidate arm for an observation.  Restoring them to the sample
     # export (#437) is only safe because the join drops them here.
-    samples = _observation_eligible_samples(generate_ms_samples_table(mhc_class=mhc_class))
+    # Keep study membership independent of the observation class filter:
+    # a multi-sample study cannot become a single-sample fallback merely
+    # because the caller requested one of its classes (#532).
+    samples = _observation_eligible_samples(generate_ms_samples_table())
+
+    # Attribution is a fact about the study, not the rows a caller requests.
+    # A narrow query still needs the full study's discriminator variation to
+    # distinguish factual fields from constant narrative (#532). The context
+    # has distinct annotation patterns only; it is never added to output rows.
+    _study_context = None
+    _has_row_filters = min_allele_resolution or any(
+        value for key, value in obs_filters.items() if key != "exclude_non_peptide_ligand"
+    )
+    if _has_row_filters and not obs.empty and not samples.empty:
+        _sample_counts = samples.groupby("pmid").size()
+        _context_pmids = set(_sample_counts[_sample_counts > 1].index).intersection(
+            pd.to_numeric(obs["pmid"], errors="coerce").dropna()
+        )
+        if _context_pmids:
+            _study_context = _load_attribution_context(_context_pmids)
+            _study_context["_pmid_int"] = pd.to_numeric(_study_context["pmid"], errors="coerce")
+            _study_context["_mhc_class_norm"] = _study_context["mhc_class"].map(
+                normalize_mhc_class_token
+            )
 
     meta_cols = [
         "sample_label",
@@ -1372,7 +1399,10 @@ def generate_observations_table(
     # molecules keep exact identity: two known pairs that merely share DQA1
     # or DPA1 are not the same molecule.
     _observed_pairs_by_component: dict[str, set[str]] = {}
-    for _restriction in obs["mhc_restriction"].fillna("").astype(str).unique():
+    _pair_restrictions = set(obs["mhc_restriction"].fillna("").astype(str).unique())
+    if _study_context is not None:
+        _pair_restrictions.update(_study_context["mhc_restriction"].unique())
+    for _restriction in sorted(_pair_restrictions):
         _restriction_components = _normalized_allele_components(_restriction)
         if len(_restriction_components) <= 1:
             continue
@@ -1446,8 +1476,6 @@ def generate_observations_table(
     # The YAML writes ``non-classical``; the IEDB export writes ``non
     # classical``.  They never compared equal, so non-classical samples
     # were unreachable from every class-keyed path below (#363).
-    from .curation import normalize_mhc_class_token
-
     obs["_mhc_class_norm"] = (
         obs["mhc_class"].astype(str).map(normalize_mhc_class_token).astype("object")
     )
@@ -1536,6 +1564,7 @@ def generate_observations_table(
     # We score each candidate against those obs fields and pick the
     # highest-scoring sample per row. Ties fall back to the first-pick
     # already in place.
+    _winner_meta: dict[tuple, dict] = {}
     if _ambig_keys and not allele_df_full.empty:
         # Build per-key candidate list once: (pmid, allele) → list of
         # (sample_label, perturbation, meta_dict) tuples.
@@ -1559,7 +1588,7 @@ def generate_observations_table(
         _obs_keys_idx = pd.MultiIndex.from_arrays([obs["_pmid_int"], obs["mhc_restriction"]])
         _ambig_mask = pd.Series(_obs_keys_idx.isin(_ambig_index), index=obs.index)
 
-        if _ambig_mask.any():
+        if _ambig_mask.any() or _study_context is not None:
             # Cache per (pmid, allele, cell_name, source_tissue,
             # antigen_processing_comments, assay_comments) — distinct
             # tuples are bounded by IEDB's annotation cardinality, so
@@ -1581,6 +1610,11 @@ def generate_observations_table(
                 if col not in obs.columns:
                     obs[col] = ""
             _ambig_obs = _fillna_safe_for_categoricals(obs.loc[_ambig_mask, _tiebreak_cols])
+            if _study_context is not None:
+                _context_keys = pd.MultiIndex.from_frame(
+                    _study_context[["_pmid_int", "mhc_restriction"]]
+                )
+                _ambig_obs = _study_context.loc[_context_keys.isin(_ambig_index), _tiebreak_cols]
             _unique_ambig = _ambig_obs.drop_duplicates()
             # Which discriminator fields actually vary per (pmid, allele).
             # The class-pool path computes this to stop study-level
@@ -1599,7 +1633,6 @@ def generate_observations_table(
             for _key_g, _grp_g in _ambig_obs.groupby(["_pmid_int", "mhc_restriction"]):
                 _ambig_varying[_key_g] = {c for c in _disc_fields if _grp_g[c].nunique() > 1}
 
-            _winner_meta: dict[tuple, dict] = {}
             for _, r in _unique_ambig.iterrows():
                 key = (r["_pmid_int"], r["mhc_restriction"])
                 cands = _candidates_by_key.get(key)
@@ -1803,12 +1836,40 @@ def generate_observations_table(
                 if "restriction_evidence" in obs.columns:
                     _tb_cols.append("restriction_evidence")
                 _eligible_df = _fillna_safe_for_categoricals(obs.loc[_eligible_mask, _tb_cols])
+                _variance_df = _eligible_df
+                if _study_context is not None:
+                    # Mirror the preceding two attribution stages for the
+                    # compact context, keeping only their MHC result. A row
+                    # already resolved there does not enter class-pool
+                    # discriminator variation in an unfiltered export.
+                    _context_keys = pd.MultiIndex.from_frame(
+                        _study_context[["_pmid_int", "mhc_restriction"]]
+                    )
+                    _context_mhc = (
+                        allele_df.set_index(["_pmid_int", "_allele"])["mhc"]
+                        .reindex(_context_keys)
+                        .set_axis(_study_context.index)
+                    )
+                    if _winner_meta:
+                        _context_tb_keys = pd.MultiIndex.from_frame(_study_context[_tiebreak_cols])
+                        _winner_mhc = pd.Series(
+                            {key: value["mhc"] for key, value in _winner_meta.items()}
+                        ).reindex(_context_tb_keys)
+                        _winner_mhc.index = _study_context.index
+                        _context_mhc = _winner_mhc.combine_first(_context_mhc)
+                    if not single_df.empty:
+                        _context_mhc = _context_mhc.fillna(
+                            _study_context["_pmid_int"].map(
+                                single_df.set_index("_pmid_int")["mhc_fb"]
+                            )
+                        )
+                    _variance_df = _study_context.loc[_context_mhc.fillna("") == ""]
                 # Per (pmid, class), drop discriminator columns whose
                 # value is identical across all eligible rows — those
                 # can't differentiate samples and would otherwise inflate
                 # rarity-weighted scores with study-level boilerplate.
                 _varying_cols_per_key: dict[tuple, list[str]] = {}
-                for (_pmid_v_g, _cls_g), _grp in _eligible_df.groupby(
+                for (_pmid_v_g, _cls_g), _grp in _variance_df.groupby(
                     ["_pmid_int", "_mhc_class_norm"]
                 ):
                     _varying = [c for c in _disc_cols_all if _grp[c].nunique() > 1]
