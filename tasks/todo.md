@@ -1,5 +1,43 @@
 # September 22 backlog campaign
 
+## #543 specification — preserve configured caches in mapping workers
+
+A real cached FASTA maps one peptide sequentially but returns an unavailable
+proteome from a spawned worker: set_data_dir() changes process-local state
+that the mapping pool does not transfer. Prefetch already transfers the
+resolved data directory. Pass the parent's resolved data directory to a
+mapping worker initializer. Preserve the separately configurable on-disk
+index cache directory too, so fresh workers use the caller's cache settings.
+The conflicting-cache reproduction produces wrong protein IDs while marking
+the build available, so bump the mapping artifact contract to invalidate these
+previously valid but potentially incorrect cached mappings on the next build.
+Keep the platform's existing start method, worker counts, task ordering,
+chunk size, and mapping algorithms unchanged; explicit safe startup is #541.
+
+Exercise build_peptide_mappings with real FASTA files, a custom directory
+override, an unrelated environment fallback, and actual spawned workers.
+Compare complete sequential/parallel frames and metadata coverage, including
+empty and conflicting fallback caches. No network access or real cache writes
+are needed. Bump 1.62.53, review the bounded diff and run format/lint and full
+tests before shipping after #542. Keep active releases and dependencies intact.
+
+- [x] Reproduce the real worker cache miss and file #543.
+- [x] Add failing sequential/spawned build regressions.
+- [x] Transfer resolved cache settings and verify behavior on Python 3.9/3.12.
+- [ ] Run full required gates, review, open PR, merge/deploy and verify PyPI.
+
+Review: before the fix, spawned builds return zero rows from an empty fallback
+cache and all four wrong protein IDs from a conflicting fallback cache. After
+the fix, the complete 12-column mapping frames and per-proteome coverage match
+sequential builds in both cases; all four indexes are written into the caller's
+chosen index cache. Contract-1/2 artifacts are rejected for rebuild. Format/lint
+and 55 focused checks pass on Python 3.9 and 3.12. Full CI and clean-main release
+gates remain required; no installed dependency or active release tree changed.
+
+All five pre-restack CI jobs pass, including all 43 corpus checks without
+skips. Restack unchanged after #548 and updated #542; require fresh CI and
+verify the stable implementation patch before publication.
+
 ## #547 specification — preserve biological sample identity in reassignment
 
 The independent reassign-alleles path chooses one global winner per peptide,

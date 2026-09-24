@@ -72,7 +72,9 @@ _MAPPING_COLUMNS = (
 # Increment when mapping semantics change in a way not already represented by
 # `_mapping_artifact_contract` parameters. Metadata without this version is a
 # legacy artifact and must rebuild once on upgrade (#404).
-_MAPPING_ARTIFACT_VERSION = 2
+# Version 3 invalidates mappings potentially built from a spawned worker's
+# unrelated fallback cache instead of the parent's configured cache (#543).
+_MAPPING_ARTIFACT_VERSION = 3
 
 # Hard wall-clock deadline for the complete parent-side cache warm-up. This is
 # an internal safety invariant rather than an environment-variable tuning knob:
@@ -759,12 +761,18 @@ def build_peptide_mappings(
     else:
         from concurrent.futures import ProcessPoolExecutor
 
+        from .proteome import _PROTEOME_INDEX_DISK_CACHE_DIR
+
         # chunksize=2 keeps adjacent FASTA-clustered tasks on the same
         # worker, recovering some of #107's in-memory LRU benefit that a
         # default chunksize=1 round-robin would scatter.  Strain-variant
         # clusters of size ≥ 2 (the common case) get the 2nd member's
         # index from the same-process cache rather than rebuilding.
-        with ProcessPoolExecutor(max_workers=effective_workers) as pool:
+        with ProcessPoolExecutor(
+            max_workers=effective_workers,
+            initializer=_initialize_mapping_worker,
+            initargs=(str(data_dir()), str(_PROTEOME_INDEX_DISK_CACHE_DIR)),
+        ) as pool:
             for result in pool.map(_per_canonical_mapping_worker, mapping_tasks, chunksize=2):
                 if not result.proteome_available:
                     unavailable_proteomes.add(result.canonical)
@@ -1132,6 +1140,15 @@ def _supervise_prefetch_tasks(
             pool.join()
 
     return unavailable
+
+
+def _initialize_mapping_worker(data_directory: str, index_directory: str) -> None:
+    """Restore parent cache overrides in fresh worker processes (#543)."""
+    from .downloads import set_data_dir
+    from .proteome import set_disk_cache_dir
+
+    set_data_dir(data_directory)
+    set_disk_cache_dir(index_directory)
 
 
 def _per_canonical_mapping_worker(task: MappingTask) -> MappingResult:
