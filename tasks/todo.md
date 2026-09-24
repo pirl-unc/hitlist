@@ -30,7 +30,7 @@ must not interrupt the active 1.62.40 publication.
 
 - [x] Reproduce missing/stale/changed corpus provenance and the version guard.
 - [x] Implement sanitized manifests, immutable snapshot publication and CI reads.
-- [ ] Verify the real local corpus and publish a new matching corpus bundle.
+- [x] Verify the real local corpus and publish a new matching corpus bundle.
 - [ ] Run format/lint, meaningful regressions, workflow checks and fresh CI.
 - [ ] Review, merge and deploy after the existing queue; verify PyPI hashes.
 
@@ -46,12 +46,15 @@ integration tests, with no skips. Its unchanged memory guard observed
 5.24 GiB before two regular workers and 8.49 GiB before one corpus worker.
 The full integration run therefore executes #444's exclusion regression
 against the real corpus. Fresh CI validation remains required after the
-public corpus publication is authorized.
+public corpus is available.
 
-Publication of ci-corpus-v2 was rejected before execution by automatic
-approval review: this specific public data bundle needs explicit user
-authorization. The approval question is pending; no corpus was uploaded.
-Package releases from the reviewed queue continue independently using v1.
+The user explicitly approved public corpus publication. Published ci-corpus-v2
+with exactly five parquets and sanitized metadata, then downloaded the entire
+public bundle into a fresh directory. All five SHA-256 hashes and sizes match;
+the downloaded metadata is byte-identical to the approved manifest. The
+original artifact contract remains 5 and its original mhcgnomes version remains
+3.64.1. No original private build metadata was published. Package releases
+from the reviewed queue continue independently using v1 until this PR lands.
 
 ## #538 specification — release artifacts from the existing CI runner
 
