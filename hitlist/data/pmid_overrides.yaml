@@ -8671,7 +8671,7 @@
         condition_culture: "RPMI-1640"
         mhc_class: "I+II"
         mhc: "HLA-A*02:01 HLA-B*18:01 HLA-C*05:01 HLA-DRB1*03:01"
-      - sample_label: "DB (IFN)"
+      - sample_label: "DB (IFN-gamma)"
         sample_group: "DB"
         n_samples: 2
         source: "DB diffuse large B-cell lymphoma cell line"
@@ -8686,7 +8686,7 @@
         condition_culture: "RPMI-1640"
         mhc_class: "I+II"
         mhc: "HLA-A*02:01 HLA-B*18:01 HLA-C*05:01 HLA-DRB1*03:01"
-      - sample_label: "DB (IFN-DAC)"
+      - sample_label: "DB (IFN-gamma + decitabine)"
         sample_group: "DB"
         n_samples: 2
         source: "DB diffuse large B-cell lymphoma cell line"
@@ -8702,7 +8702,7 @@
         condition_culture: "RPMI-1640"
         mhc_class: "I+II"
         mhc: "HLA-A*02:01 HLA-B*18:01 HLA-C*05:01 HLA-DRB1*03:01"
-      - sample_label: "DB (IFN-TAZ)"
+      - sample_label: "DB (IFN-gamma + tazemetostat)"
         sample_group: "DB"
         n_samples: 2
         source: "DB diffuse large B-cell lymphoma cell line"
@@ -8718,7 +8718,7 @@
         condition_culture: "RPMI-1640"
         mhc_class: "I+II"
         mhc: "HLA-A*02:01 HLA-B*18:01 HLA-C*05:01 HLA-DRB1*03:01"
-      - sample_label: "DB (IFN-DAC-TAZ)"
+      - sample_label: "DB (IFN-gamma + decitabine + tazemetostat)"
         sample_group: "DB"
         n_samples: 2
         source: "DB diffuse large B-cell lymphoma cell line"
@@ -8750,7 +8750,7 @@
         condition_culture: "RPMI-1640"
         mhc_class: "I+II"
         mhc: "HLA-A*02:01 HLA-B*15:01 HLA-C*03:04 HLA-DRB1*15:01"
-      - sample_label: "SU-DHL-4 (IFN)"
+      - sample_label: "SU-DHL-4 (IFN-gamma)"
         sample_group: "SU-DHL-4"
         n_samples: 2
         source: "SU-DHL-4 diffuse large B-cell lymphoma cell line"
@@ -8765,7 +8765,7 @@
         condition_culture: "RPMI-1640"
         mhc_class: "I+II"
         mhc: "HLA-A*02:01 HLA-B*15:01 HLA-C*03:04 HLA-DRB1*15:01"
-      - sample_label: "SU-DHL-4 (IFN-DAC)"
+      - sample_label: "SU-DHL-4 (IFN-gamma + decitabine)"
         sample_group: "SU-DHL-4"
         n_samples: 2
         source: "SU-DHL-4 diffuse large B-cell lymphoma cell line"
@@ -8781,7 +8781,7 @@
         condition_culture: "RPMI-1640"
         mhc_class: "I+II"
         mhc: "HLA-A*02:01 HLA-B*15:01 HLA-C*03:04 HLA-DRB1*15:01"
-      - sample_label: "SU-DHL-4 (IFN-TAZ)"
+      - sample_label: "SU-DHL-4 (IFN-gamma + tazemetostat)"
         sample_group: "SU-DHL-4"
         n_samples: 2
         source: "SU-DHL-4 diffuse large B-cell lymphoma cell line"
@@ -8797,7 +8797,7 @@
         condition_culture: "RPMI-1640"
         mhc_class: "I+II"
         mhc: "HLA-A*02:01 HLA-B*15:01 HLA-C*03:04 HLA-DRB1*15:01"
-      - sample_label: "SU-DHL-4 (IFN-DAC-TAZ)"
+      - sample_label: "SU-DHL-4 (IFN-gamma + decitabine + tazemetostat)"
         sample_group: "SU-DHL-4"
         n_samples: 2
         source: "SU-DHL-4 diffuse large B-cell lymphoma cell line"
@@ -8829,7 +8829,7 @@
         condition_culture: "RPMI-1640"
         mhc_class: "I+II"
         mhc: "HLA-A*02:01 HLA-A*23:01 HLA-B*15:01 HLA-B*49:01 HLA-C*03:03 HLA-C*07:01 HLA-DRB1*01:01 HLA-DRB1*04:01"
-      - sample_label: "SU-DHL-6 (IFN)"
+      - sample_label: "SU-DHL-6 (IFN-gamma)"
         sample_group: "SU-DHL-6"
         n_samples: 2
         source: "SU-DHL-6 diffuse large B-cell lymphoma cell line"
@@ -8844,7 +8844,7 @@
         condition_culture: "RPMI-1640"
         mhc_class: "I+II"
         mhc: "HLA-A*02:01 HLA-A*23:01 HLA-B*15:01 HLA-B*49:01 HLA-C*03:03 HLA-C*07:01 HLA-DRB1*01:01 HLA-DRB1*04:01"
-      - sample_label: "SU-DHL-6 (IFN-DAC)"
+      - sample_label: "SU-DHL-6 (IFN-gamma + decitabine)"
         sample_group: "SU-DHL-6"
         n_samples: 2
         source: "SU-DHL-6 diffuse large B-cell lymphoma cell line"
@@ -8860,7 +8860,7 @@
         condition_culture: "RPMI-1640"
         mhc_class: "I+II"
         mhc: "HLA-A*02:01 HLA-A*23:01 HLA-B*15:01 HLA-B*49:01 HLA-C*03:03 HLA-C*07:01 HLA-DRB1*01:01 HLA-DRB1*04:01"
-      - sample_label: "SU-DHL-6 (IFN-TAZ)"
+      - sample_label: "SU-DHL-6 (IFN-gamma + tazemetostat)"
         sample_group: "SU-DHL-6"
         n_samples: 2
         source: "SU-DHL-6 diffuse large B-cell lymphoma cell line"
@@ -8876,7 +8876,7 @@
         condition_culture: "RPMI-1640"
         mhc_class: "I+II"
         mhc: "HLA-A*02:01 HLA-A*23:01 HLA-B*15:01 HLA-B*49:01 HLA-C*03:03 HLA-C*07:01 HLA-DRB1*01:01 HLA-DRB1*04:01"
-      - sample_label: "SU-DHL-6 (IFN-DAC-TAZ)"
+      - sample_label: "SU-DHL-6 (IFN-gamma + decitabine + tazemetostat)"
         sample_group: "SU-DHL-6"
         n_samples: 2
         source: "SU-DHL-6 diffuse large B-cell lymphoma cell line"
