@@ -1,5 +1,37 @@
 # September 22 backlog campaign
 
+## #551 specification — isolated, checked NetMHCpan invocations
+
+Two overlapping requests for one allele currently overwrite the same
+16-bit-hash-named /tmp input file. A deterministic nested-call reproduction
+changes the outer request's peptide from AAAAAAAAA to CCCCCCCCC. Separately,
+a failed command's partial stdout is parsed as a valid prediction because
+its exit status is ignored. These are invocation-lifecycle defects, not
+changes to the biological genotype or ranking model.
+
+Give each allele invocation a TemporaryDirectory and a closed peptide file
+within it. Run the existing command with check=True, retaining its arguments,
+capture settings and 600-second timeout. Leave existing parsing and allele
+identity validation intact. Temporary inputs must disappear after success,
+nonzero exit, missing executable and timeout. Preserve empty successful
+output behavior. Bump to 1.62.56 after the already-reviewed runtime PR.
+
+- [x] Reproduce input interference and ignored nonzero exit; file #551.
+- [x] Add deterministic overlap, failed-command and cleanup regressions.
+- [x] All five regressions fail before; implement the minimal wrapper fix.
+- [x] Format/lint pass; 122 focused tests pass on Python 3.12 and 121 on
+      Python 3.9 (one existing optional MHCflurry import skip); diff reviewed.
+- [ ] Pass final-head CI and the full clean-main test/build gates.
+- [ ] Merge, deploy both artifacts, and verify public PyPI hashes.
+
+Review: a private temporary directory spans only writing the input and the
+checked subprocess call; parsing occurs after cleanup. The failed-exit test
+uses a real Python subprocess with partial stdout, and the overlap test
+deterministically keeps two requests active without sleeps or timing races.
+Existing allele-spelling, empty-output, genotype membership and scoring tests
+still pass. No model execution, curation values, binder thresholds, genotype
+selection or predictor output columns change. Full CI/publication pending.
+
 ## #549 specification — supported GitHub Actions runtimes
 
 GitHub's September 2026 runner migration warns that our checkout, Python
