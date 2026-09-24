@@ -1313,6 +1313,49 @@ def test_source_species_filter_is_projection_independent(tmp_path, monkeypatch, 
         assert list(result.columns) == columns
 
 
+@pytest.mark.parametrize("loader", [load_observations, load_binding])
+@pytest.mark.parametrize("dtype", ["object", "string", "category"])
+def test_source_sentinels_share_fallback_across_filters_and_projected_flags(
+    tmp_path, monkeypatch, loader, dtype
+):
+    import pandas as pd
+
+    from hitlist import downloads
+
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
+    frame = pd.DataFrame(
+        {
+            "peptide": [letter * 9 for letter in "ACDEFG"],
+            "mhc_restriction": ["HLA-A*02:01"] * 6,
+            "mhc_species": ["Homo sapiens"] * 6,
+            "host": ["Homo sapiens"] * 6,
+            "source_organism": pd.Series(
+                ["unidentified", " Unknown ", "", None, "Mus musculus", "UNIDENTIFIED"], dtype=dtype
+            ),
+            "species": pd.Series(
+                ["Mus musculus"] * 4 + ["Homo sapiens", "unidentified"], dtype=dtype
+            ),
+        }
+    )
+    for filename in ("observations.parquet", "binding.parquet"):
+        frame.to_parquet(tmp_path / filename, index=False)
+
+    complete = loader(
+        columns=[*frame.columns, "source_species", "is_chimeric", "is_engineered_mhc", "xenograft"]
+    )
+    assert complete.source_species.tolist() == ["Mus musculus"] * 5 + [""]
+    assert complete.is_chimeric.tolist() == [True] * 5 + [False]
+    # Keep the raw evidence intact, including a conflicting but valid legacy input.
+    persisted = pd.read_parquet(tmp_path / "observations.parquet")
+    pd.testing.assert_series_equal(complete.source_organism, persisted.source_organism)
+    pd.testing.assert_series_equal(complete.species, persisted.species)
+    for flag in ["is_chimeric", "is_engineered_mhc", "xenograft"]:
+        narrow = loader(columns=["peptide", flag])
+        pd.testing.assert_frame_equal(narrow, complete[["peptide", flag]])
+    filtered = loader(source_species="mouse", columns=["peptide"])
+    assert filtered.peptide.tolist() == frame.peptide.tolist()[:5]
+
+
 def test_serotype_source_filter_separates_reported_from_derived(tmp_path, monkeypatch):
     """#458: a serotype query can be restricted to serological observations.
 
