@@ -1309,10 +1309,10 @@ def main() -> None:
     p_reassign.add_argument(
         "--max-alleles-per-sample",
         type=int,
-        default=30,
+        default=6,
         help=(
             "Skip samples with more alleles than this — likely pooled-donor "
-            "curation artifacts whose 'best allele' is meaningless (default: 30)"
+            "curation artifacts whose 'best allele' is meaningless (default: 6)"
         ),
     )
     p_reassign.add_argument("--output", "-o", help="Write CSV to file")
@@ -1805,7 +1805,7 @@ def _reassign(args: argparse.Namespace) -> None:
         sys.exit(1)
 
     print(
-        f"Scored {len(df):,} class-only peptides.  "
+        f"Scored {len(df):,} peptide/sample contexts.  "
         f"Strong binders: {df['is_strong_binder'].sum():,}  "
         f"Weak binders: {df['is_weak_binder'].sum():,}",
         file=sys.stderr,
