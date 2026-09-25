@@ -2339,9 +2339,9 @@ def generate_observations_table(
     # ``!= "pmid_class_pool"`` guard exists to refuse, and the column's
     # documented meaning ("class-based attribution ... union of class-matching
     # candidates") is what actually happened here.
-    obs.loc[_statement_vetoed & ~(obs["mhc"].astype(str) == ""), "sample_match_type"] = (
-        "pmid_class_pool"
-    )
+    # ``.ne("")`` rather than ``.astype(str) != ""``: ``mhc`` is a declared
+    # categorical and rebuilding its object array costs hundreds of MB here.
+    obs.loc[_statement_vetoed & obs["mhc"].ne(""), "sample_match_type"] = "pmid_class_pool"
 
     # --- Peptide-level allele evidence flag ---
     obs["has_peptide_level_allele"] = _compute_has_peptide_level_allele(
