@@ -325,20 +325,24 @@ def _atomic_write_parquet(df: pd.DataFrame, path: Path) -> None:
 #: - ``mhc_allele_set`` / ``serotypes`` / ``gene_names`` etc. —
 #:   semicolon-joined multi-value columns whose consumers split on ``;``.
 #:
-#:   The cardinality half of this rationale is false and was worth checking:
-#:   the list said "every donor set is roughly distinct", but on the built
-#:   corpus ``mhc_allele_set`` has 969 distinct values across 4.4M rows,
-#:   ``serotypes`` 638 and ``host_mhc_types`` 878. As plain strings they cost
-#:   ~700 MB.
+#:   The cardinality half of this rationale is false, and measuring it is how
+#:   #566 went wrong: the list says "every donor set is roughly distinct", but
+#:   the built corpus has 969 distinct ``mhc_allele_set`` values across 4.4M
+#:   rows, 638 ``serotypes`` and 878 ``host_mhc_types``. That looks like
+#:   several hundred MB left on the table. It is not, for two measured
+#:   reasons, and the list stays exactly as it is:
 #:
-#:   They still stay out, for the other reason. ``observations`` immediately
-#:   ``.astype("string")``\ s ``mhc_allele_set`` (identity refresh) and
-#:   ``serotypes`` (serotype refresh) across the whole frame, so encoding them
-#:   buys a dictionary and then pays to expand it again; and encoding at read
-#:   time at all requires converting the Arrow table ourselves, which holds
-#:   the table alongside the frame and measured worse than ``read_parquet``.
-#:   Correct list, wrong reason -- do not "fix" it from the cardinality
-#:   numbers alone without measuring the consumers (#566).
+#:   - ``observations`` immediately ``.astype("string")``\ s
+#:     ``mhc_allele_set`` (identity refresh) and ``serotypes`` (serotype
+#:     refresh) across the whole frame, so encoding them buys a dictionary and
+#:     then pays to expand it again.
+#:   - Encoding at read time means converting the Arrow table ourselves, which
+#:     holds the table alongside the frame; measured worse than
+#:     ``pd.read_parquet``. The zero-copy variants that do cut peak hand back
+#:     read-only buffers and break every ``df.loc[mask, col] = ...`` in the
+#:     load path.
+#:
+#:   Correct list, wrong reason. Do not act on the cardinality numbers alone.
 _CATEGORICAL_BUILD_COLUMNS: tuple[str, ...] = (
     "source",
     "mhc_class",

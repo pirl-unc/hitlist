@@ -627,46 +627,6 @@ _ATTRIBUTION_REPAIR_COLUMNS = (
 )
 
 
-#: ``bool`` columns in the built parquet that carry nulls. Arrow has no null
-#: slot in a numpy bool array, so ``read_parquet`` degrades them to ``object``
-#: -- one Python ``True``/``False``/``None`` pointer per row. ``has_ptm`` and
-#: ``is_potential_contaminant`` cost 146 MB and 108 MB that way on a 4.4M-row
-#: frame; as pandas' nullable ``boolean`` they cost about 9 MB each (#566).
-#:
-#: Detected from the file's own schema and null counts rather than hardcoded,
-#: and deliberately *not* applied to null-free ``bool`` columns: nullable
-#: ``boolean`` carries a mask byte per row, so converting the 16 columns that
-#: have no nulls would add memory instead of saving it.
-
-
-def _narrow_nullable_bools(frame: pd.DataFrame, path) -> pd.DataFrame:
-    """Restore ``bool``-in-parquet columns that pandas widened to ``object``.
-
-    Done on top of :func:`pandas.read_parquet` on purpose. Reading the table
-    with ``pq.read_table`` and converting it ourselves -- with or without
-    dictionary encoding, ``split_blocks`` or ``self_destruct`` -- holds the
-    whole Arrow table alongside the whole frame and measured ~5 GB *worse*
-    peak RSS on the integration suite than pandas' own reader (#566).
-    """
-    schema = pq.read_schema(path)
-    metadata = pq.ParquetFile(path).metadata
-    nulls: dict[str, int] = {}
-    for group in range(metadata.num_row_groups):
-        for column in range(metadata.num_columns):
-            chunk = metadata.row_group(group).column(column)
-            nulls[chunk.path_in_schema] = (
-                nulls.get(chunk.path_in_schema, 0) + chunk.statistics.null_count
-                if chunk.statistics is not None
-                else nulls.get(chunk.path_in_schema, 0)
-            )
-    for name in frame.columns:
-        if name not in schema.names or frame[name].dtype != object:
-            continue
-        if pa.types.is_boolean(schema.field(name).type) and nulls.get(name, 0):
-            frame[name] = frame[name].astype("boolean")
-    return frame
-
-
 def _repair_scoped_peptide_attributions(df: pd.DataFrame) -> pd.DataFrame:
     """Remove derived cross-cohort labels and their donor copies from old indexes."""
     from .curation import load_pmid_overrides
@@ -953,7 +913,6 @@ def _load_peptide_index(
         read_columns = [c for c in kept if c in parquet_columns]
 
     df = pd.read_parquet(path, columns=read_columns, filters=filters if filters else None)
-    df = _narrow_nullable_bools(df, path)
     df = _repair_scoped_peptide_attributions(df)
 
     # Refresh only derived identities. Reported restrictions stay intact,
