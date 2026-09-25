@@ -225,7 +225,14 @@ def reassign_class_only_alleles(
     # happens to fit under the allele-count limit (#520).
     class_only_mask = df["mhc_restriction"].fillna("").str.startswith("HLA class")
     multi_mask = df["is_monoallelic"].fillna(False).eq(False)
-    identified = df["sample_label"].fillna("").ne("")
+    # A named sample is not enough. The class-pool fallback fills
+    # ``sample_mhc`` with the study's class-wide union on rows it could not
+    # resolve to one arm's own candidates, and such a row keeps its curated
+    # label -- so the union would be scored as that sample's genotype and the
+    # winning allele attributed to a cell that may never have carried it.
+    identified = df["sample_label"].fillna("").ne("") & df["sample_match_type"].fillna("").ne(
+        "pmid_class_pool"
+    )
     target = df[class_only_mask & multi_mask & identified].copy()
     # The experiment's candidates remain the prediction scope. Independently
     # reported cellular background alleles do not become peptide restrictions.

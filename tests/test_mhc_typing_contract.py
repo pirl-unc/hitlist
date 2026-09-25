@@ -25,7 +25,7 @@ def _sample(label="C1R-B40", **changes):
     }
 
 
-def _install(monkeypatch, samples):
+def _install(monkeypatch, samples, **row_columns):
     entries = {31530632: {"ms_samples": samples}}
     monkeypatch.setattr(export, "load_pmid_overrides", lambda: entries)
     monkeypatch.setattr(curation, "load_pmid_overrides", lambda: entries)
@@ -44,6 +44,8 @@ def _install(monkeypatch, samples):
             "is_binding_assay": [False],
         }
     )
+    for column, value in row_columns.items():
+        rows[column] = [value]
     monkeypatch.setattr("hitlist.observations.load_observations", lambda **kwargs: rows.copy())
 
 
@@ -178,6 +180,11 @@ def test_gbm_partial_drb1_candidates_do_not_claim_complete_class_ii_typing():
     assert {"HLA-DQB1*02:01", "HLA-DPB1*04:01", "HLA-DRB3*01:01"} <= typed
     assert "HLA-DPA1" not in sample.mhc_genotype_complete_loci.split(";")
     assert "HLA-DRB3" not in sample.mhc_genotype_complete_loci.split(";")
+    # HB245 is a pan-HLA-II antibody and the paper reports DP/DQ as well as DR
+    # ligands, so a DRB1-only candidate list is neither this cell's typing nor
+    # a restriction the experiment selected. Claiming either would be false
+    # until the candidates themselves are corrected (issue filed).
+    assert sample.mhc_basis == ""
 
 
 def test_modc_genotype_names_p4_and_never_pools_a549_feeders():
@@ -251,3 +258,45 @@ def test_filtered_and_projected_typing_matches_complete_export(tmp_path, monkeyp
         selected.set_index("peptide").astype(str), full.loc[["AAAAAAAAA"]].astype(str)
     )
     assert selected.iloc[0].mhc_genotype == GENOTYPE
+
+
+def test_pooled_candidates_drop_the_basis_claim(monkeypatch):
+    """``mhc_basis`` describes one sample's own candidates, so it cannot
+    survive onto a row whose ``sample_mhc`` is the study's class-wide union
+    of two arms' selected restrictions."""
+    _install(
+        monkeypatch,
+        [
+            _sample("first", mhc="HLA-B*40:02", **{k: "" for k in TYPING if k != "mhc_basis"}),
+            _sample("second", mhc="HLA-B*35:03", **{k: "" for k in TYPING if k != "mhc_basis"}),
+        ],
+        mhc_restriction="HLA class I",
+    )
+    row = export.generate_observations_table().iloc[0]
+    assert row.sample_label == ""
+    assert row.sample_match_type == "pmid_class_pool"
+    assert row.sample_mhc == "HLA-B*35:03 HLA-B*40:02"
+    assert row.mhc_basis == ""
+
+
+def test_named_sample_without_candidates_keeps_its_own_typing_only(monkeypatch):
+    """A row resolved to an arm that reported no candidates inherits the
+    study pool in ``sample_mhc``. The cellular typing stays that arm's own
+    and the basis claim does not follow the pool."""
+    _install(
+        monkeypatch,
+        [
+            _sample("armA", mhc="HLA-A*02:01 HLA-B*07:02", **dict.fromkeys(TYPING, "")),
+            _sample("armB", mhc="", mhc_basis=""),
+        ],
+        mhc_restriction="HLA class I",
+        attributed_sample_label="armB",
+    )
+    row = export.generate_observations_table().iloc[0]
+    assert row.sample_label == "armB"
+    assert row.sample_attribution == "curated_sample_label"
+    assert row.sample_match_type == "pmid_class_pool"
+    assert row.sample_mhc == "HLA-A*02:01 HLA-B*07:02"
+    assert row.mhc_basis == ""
+    assert row.mhc_genotype == GENOTYPE
+    assert row.mhc_genotype_cell == "C1R-B*40:02"

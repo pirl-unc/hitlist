@@ -2144,6 +2144,15 @@ def generate_observations_table(
         )
         obs.loc[still_empty, "mhc"] = pool_lookup.reindex(sub_idx).fillna("").to_numpy()
 
+    # ``mhc_basis`` describes a sample's *own* reported candidates, which is
+    # why the load-time contract refuses it without them (#520).  A row whose
+    # curated ``mhc`` did not survive to here carries something else: either
+    # ``_consensus_meta`` blanked it because the arms disagreed, or the union
+    # above replaced it with the study's class pool.  Both leave a column the
+    # basis cannot describe -- two arms' selected restrictions joined into one
+    # string are not a selected restriction -- so the claim goes with them.
+    obs.loc[still_empty, "mhc_basis"] = ""
+
     # --- Provenance: how was each row matched? ---
     # Count samples per PMID for context. Single-column join → use .map()
     # to skip the merge's block-manager consolidation overhead.

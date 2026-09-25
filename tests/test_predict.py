@@ -116,6 +116,7 @@ def test_reassign_empty_when_no_class_only_rows(monkeypatch):
             "is_monoallelic": [False],
             "sample_mhc": ["HLA-A*02:01 HLA-B*07:02"],
             "sample_label": ["x"],
+            "sample_match_type": ["allele_match"],
             "pmid": [1],
         }
     )
