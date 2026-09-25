@@ -153,3 +153,68 @@ def test_elution_mapping_rejects_unsupported_or_ambiguous_ids(tmp_path, monkeypa
             curation.load_pmid_overrides()
     finally:
         curation.load_pmid_overrides.cache_clear()
+
+
+# ── PMID 33592498: the GBM lines share class-II alleles (#565) ──
+
+
+GBM_STATEMENT = "The epitope was eluted from the following conditions: {}."
+
+
+@pytest.mark.parametrize(
+    "deposited_line, condition_prefix",
+    [("HRGO02", "hrog02"), ("HROG17", "hrog17"), ("RA", "ra")],
+)
+def test_gbm_ciita_statement_picks_its_own_line_on_a_shared_class_ii_allele(
+    monkeypatch, deposited_line, condition_prefix
+):
+    """HLA-DRB4*01:03 is typed in both HROG02 and RA, so the pan-class-II
+    candidate lists leave those rows ambiguous on the allele key alone. The
+    deposited statement names the line; token scoring cannot, because "RA" is
+    two characters. Without the map the tie first-picks HROG02 for RA's rows.
+    """
+    monkeypatch.setattr(
+        "hitlist.observations.load_observations",
+        lambda **kwargs: pd.DataFrame(
+            [
+                {
+                    "peptide": "AAAAAAAAAAAAAAA",
+                    "pmid": 33592498,
+                    "mhc_restriction": "HLA-DRB4*01:03",
+                    "mhc_class": "II",
+                    "mhc_species": "Homo sapiens",
+                    "cell_name": "Glial cell",
+                    "assay_comments": GBM_STATEMENT.format(
+                        deposited_line + " cells treated with CIITA"
+                    ),
+                    "is_binding_assay": False,
+                    "source": "iedb",
+                }
+            ]
+        ),
+    )
+    row = generate_observations_table(exclude_non_peptide_ligand=False).iloc[0]
+    assert row.condition_id == condition_prefix + "_ciita_transduced_class_ii"
+    assert row.sample_attribution == "elution_conditions"
+    assert row.sample_match_type == "allele_match"
+
+
+def test_every_deposited_gbm_statement_is_curated():
+    """The map is keyed on exact deposited text, so a statement it misses
+    silently falls back to token scoring. IEDB carries nine for this study:
+    each line parental, each line CIITA-induced, and each line's pair."""
+    mapping = load_pmid_overrides()[33592498]["elution_condition_ids"]
+    expected = {
+        GBM_STATEMENT.format(text)
+        for line in ("HRGO02", "HROG17", "RA")
+        for text in (
+            f"{line} cells",
+            f"{line} cells treated with CIITA",
+            f"{line} cells, {line} cells treated with CIITA",
+        )
+    }
+    assert set(mapping) == expected
+    # A statement naming both arms must keep naming both, so the class-I rows
+    # it covers stay ambiguous rather than being handed to one arm.
+    both = mapping[GBM_STATEMENT.format("RA cells, RA cells treated with CIITA")]
+    assert {"ra_parental_class_i", "ra_ciita_transduced_class_i"} <= set(both)

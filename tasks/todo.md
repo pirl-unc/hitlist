@@ -4119,3 +4119,60 @@ Raw compound names and reported restrictions are retained. CI exposed a stale
 integration-test whitelist; it now independently includes the same four specific
 BTN genes. Full gates remain pending. RNA host curation #358 remains independent
 while checksum-verified inputs are acquired.
+
+# #565 — pan-HLA-II elutions need the cell's whole class-II typing
+
+PMID 33592498's three CIITA-transduced class-II arms listed a DRB1 pair as
+their experimental candidates while the elution used HB245, which the paper's
+Methods call an anti-pan HLA-II antibody. Every DP, DQ and DRB3/4 ligand in
+those elutions therefore matched no candidate of its own sample. The cells'
+class-II typing is known (Table 1) and already recorded in `mhc_genotype`, so
+the fix is to make the candidates that typing and say so with
+`mhc_basis: sample_typing` — the locus gap was created by the curation, not by
+the assay. Write DP and DQ as alpha/beta pairs, since that is how both the
+paper and the deposited restrictions name them, and the join keys on the
+deposited string. Do not widen any sample whose primary source was not read.
+
+- [x] Verify HB245's specificity, the DP/DQ ligand claim and each line's
+      class-II typing against PMC8724627 (Methods, Results, Table 1).
+- [x] Expand the three arms' candidates to the cell's class-II typing and set
+      the basis; extend the study's `hla_alleles` pool to match Table 1.
+- [x] Measure the attribution delta against origin/main for this study's rows.
+- [x] Curate `elution_condition_ids` so the now-shared class-II alleles reach
+      the line that was actually eluted.
+- [x] Audit the corpus for the same pan-antibody / subset-of-loci shape.
+- [x] Add regression tests, bump the patch version, run format/lint/test.
+
+Review: the paper is explicit — "Anti-pan HLA-I (HB95) and HLA-II (HB245)
+antibodies", the highlight "CIITA induces peptide presentation across the
+HLA-DP, -DQ, and -DR allotypes", and per-line motif deconvolution naming the
+DP and DQ combinations. Table 1 matches the curated `mhc_genotype` exactly,
+including the unknown second DPA1/DPB1 slot for HROG02.
+
+Measured over this study's 55,628 observation rows (the join is keyed per
+PMID, so the study's own rows reproduce what the full export computes for
+them): `sample_match_type` changes on 15,772 rows, all `pmid_class_pool` →
+`allele_match`, leaving none in the pool; `sample_mhc` on 39,739;
+`sample_attribution` on 26,376; `mhc_basis` on 39,646; `mhc_restriction` on 0.
+Expanding the candidates alone would have been worse than the bug for 1,457
+rows: HLA-DRB4*01:03 is typed in both HROG02 and RA, and the arm tie-break
+scores tokens of length 3 or more, so "RA" never matches and those rows
+first-picked HROG02. The deposited elution statements resolve them — the same
+per-row discriminator the study's `arm_resolution` verdict was filed against.
+After both changes no row's arm contradicts its deposited elution statement,
+down from 1,457.
+
+Audit: outside this study no sample's candidate list drops a locus of the
+assayed class that its own `mhc_genotype` reports. The only other pan-class-II
+elution with a locus gap is PMID 27869121's melanoma metastasis arm, whose
+`mhc` is the class designation `"HLA class II"` — no typing to narrow rather
+than a typing narrowed too far. The mono-allelic C1R / 721.221 / K562 panels
+list one molecule under a pan-class-I or pan-class-II pull by design and carry
+`mhc_basis: selected_restriction`.
+
+Follow-ups, not fixed here: the paper reports 165/651/83 HLA-II peptides in the
+parental lines and IEDB carries 585 class-II rows under the parental-only
+statements, but no parental class-II arm is curated, so those rows reach the
+CIITA arm or no arm at all — filed as #567. The `ip_antibody` string glosses HB245 as IVA12;
+ATCC lists IVA12 as HB-145, and the paper names no clone, so the gloss is
+unverified — the pan-HLA-II specificity it stands on is the paper's own words.

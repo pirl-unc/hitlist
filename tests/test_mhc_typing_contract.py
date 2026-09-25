@@ -170,21 +170,102 @@ def test_sarkizova_residual_c0102_does_not_expand_other_selected_alleles():
         assert not sample.get("mhc_genotype_complete_loci")
 
 
-def test_gbm_partial_drb1_candidates_do_not_claim_complete_class_ii_typing():
+def _assayed_loci(mhc_field, mhc_class):
+    """Loci of one MHC class named by an ``mhc`` / ``mhc_genotype`` field.
+
+    Pairs are decomposed, so ``HLA-DQA1*02:01/DQB1*02:02`` reports both
+    chains rather than the pair's own spelling.
+    """
+    return {
+        locus
+        for allele in curation.sample_mhc_candidates(mhc_field).exact
+        for component in curation.expand_allele_components(allele)
+        if (locus := curation.allele_locus(component))
+        and curation.mhc_class_of(component) == mhc_class
+    }
+
+
+def _class_ii_loci(mhc_field):
+    return _assayed_loci(mhc_field, "II")
+
+
+def test_gbm_pan_class_ii_candidates_carry_the_cells_whole_class_ii_typing():
+    """HB245 is pan-HLA-II and PMID 33592498 reports DP, DQ and DR ligands, so
+    every class-II molecule the cell is typed for is an experimental candidate
+    and the basis is the cell's own typing (#565)."""
     samples = export.generate_ms_samples_table()
-    sample = samples[
-        samples.pmid.eq(33592498) & samples.sample_label.eq("HROG02 CIITA-transduced (class II)")
-    ].iloc[0]
-    assert sample.mhc == "HLA-DRB1*03:01 HLA-DRB1*07:01"
-    typed = curation.sample_mhc_candidates(sample.mhc_genotype).exact
-    assert {"HLA-DQB1*02:01", "HLA-DPB1*04:01", "HLA-DRB3*01:01"} <= typed
-    assert "HLA-DPA1" not in sample.mhc_genotype_complete_loci.split(";")
-    assert "HLA-DRB3" not in sample.mhc_genotype_complete_loci.split(";")
-    # HB245 is a pan-HLA-II antibody and the paper reports DP/DQ as well as DR
-    # ligands, so a DRB1-only candidate list is neither this cell's typing nor
-    # a restriction the experiment selected. Claiming either would be false
-    # until the candidates themselves are corrected (issue filed).
-    assert sample.mhc_basis == ""
+    arms = samples[samples.pmid.eq(33592498) & samples.mhc_class.eq("II")]
+    assert len(arms) == 3
+    for sample in arms.itertuples():
+        assert sample.ip_antibody == "HB245/IVA12"
+        assert sample.mhc_basis == "sample_typing"
+        assert _class_ii_loci(sample.mhc) == _class_ii_loci(sample.mhc_genotype)
+        # The candidates are the class-II half of the typing only: a
+        # class-II pull cannot have presented the cell's class-I molecules.
+        assert not {
+            allele
+            for allele in curation.sample_mhc_candidates(sample.mhc).exact
+            if curation.mhc_class_of(allele) == "I"
+        }
+    hrog02 = arms[arms.sample_label.eq("HROG02 CIITA-transduced (class II)")].iloc[0]
+    # Table 1 leaves HROG02's second DPA1/DPB1 slot blank, so the candidates
+    # stay one DP molecule wide while DQ spans both chains' alleles.
+    assert "HLA-DPA1" not in hrog02.mhc_genotype_complete_loci.split(";")
+    assert "HLA-DRB3" not in hrog02.mhc_genotype_complete_loci.split(";")
+
+
+@pytest.mark.parametrize(
+    "sample_label, restrictions",
+    [
+        (
+            "HROG02 CIITA-transduced (class II)",
+            ("HLA-DPA1*01:03/DPB1*04:01", "HLA-DQA1*02:01/DQB1*02:02", "HLA-DRB3*01:01"),
+        ),
+        (
+            "HROG17 CIITA-transduced (class II)",
+            ("HLA-DPB1*11:01", "HLA-DQA1*01:01/DQB1*05:01", "HLA-DQA1*05:05/DQB1*03:01"),
+        ),
+        ("RA CIITA-transduced (class II)", ("HLA-DPA1*01:03/DPB1*04:01", "HLA-DRB4*01:03")),
+    ],
+)
+def test_deposited_gbm_class_ii_restrictions_are_candidates_of_their_own_arm(
+    sample_label, restrictions
+):
+    """The join keys on the deposited restriction string, and a heterodimer
+    only matches chain-first when the curated pair is written the same way
+    round. These are the DP/DQ/DRB3/4 restrictions IEDB carries for this
+    study; before #565 none of them could reach any arm."""
+    sample = next(
+        s
+        for s in curation.load_pmid_overrides()[33592498]["ms_samples"]
+        if s["sample_label"] == sample_label
+    )
+    candidates = {
+        component
+        for allele in curation.sample_mhc_candidates(sample["mhc"]).exact
+        for component in curation.expand_allele_components(allele)
+    }
+    assert set(restrictions) <= candidates
+
+
+def test_no_sample_drops_an_assayed_locus_its_own_typing_reports():
+    """A candidate list narrower than the cell's typing at the assayed class
+    means ligands from the missing locus can never match their own sample —
+    the #565 shape. ``selected_restriction`` is exempt by definition: there
+    the experiment, not the typing, chose the molecules."""
+    findings = []
+    for pmid, entry in curation.load_pmid_overrides().items():
+        for sample in entry.get("ms_samples") or []:
+            if sample.get("mhc_basis") == "selected_restriction":
+                continue
+            genotype, mhc = sample.get("mhc_genotype") or "", sample.get("mhc") or ""
+            mhc_class = sample.get("mhc_class")
+            if not genotype or not mhc or mhc_class not in ("I", "II"):
+                continue
+            typed, candidates = (_assayed_loci(field, mhc_class) for field in (genotype, mhc))
+            if missing := typed - candidates:
+                findings.append((pmid, sample.get("sample_label", ""), sorted(missing)))
+    assert findings == []
 
 
 def test_modc_genotype_names_p4_and_never_pools_a549_feeders():

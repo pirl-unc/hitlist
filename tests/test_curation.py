@@ -2986,7 +2986,14 @@ def test_species_axes_agreement_is_not_predicate_shaped():
 _KNOWN_POOLED_ALLELE_SAMPLES: set = set()
 
 #: Limits from that audit for a real per-sample genotype.
-_MAX_ALLELES_PER_SAMPLE = {"I": 6, "II": 10}
+#:
+#: Class II is twelve, not the audit's original ten: a fully heterozygous
+#: diploid class-II genotype is DRB1 x2, DRB3/4/5 x2, DQA1 x2, DQB1 x2,
+#: DPA1 x2 and DPB1 x2, and the original count left DRB3/4/5 out. Ten held
+#: only because no sample carried a complete class-II typing until #565.
+#: Writing DP and DQ as alpha/beta heterodimers caps at the same twelve:
+#: four DP pairs, four DQ pairs and the four DR chains.
+_MAX_ALLELES_PER_SAMPLE = {"I": 6, "II": 12}
 
 
 def test_no_sample_carries_a_pooled_allele_union():
