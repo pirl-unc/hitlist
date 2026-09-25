@@ -2151,7 +2151,9 @@ def generate_observations_table(
     # above replaced it with the study's class pool.  Both leave a column the
     # basis cannot describe -- two arms' selected restrictions joined into one
     # string are not a selected restriction -- so the claim goes with them.
-    obs.loc[still_empty, "mhc_basis"] = ""
+    # Column-wise, like the label join above: a bulk ``.loc`` setitem on this
+    # 4.4M-row frame consolidates blocks and copies it (#173, #244).
+    obs["mhc_basis"] = obs["mhc_basis"].where(~still_empty, "")
 
     # --- Provenance: how was each row matched? ---
     # Count samples per PMID for context. Single-column join → use .map()
