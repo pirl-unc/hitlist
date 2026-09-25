@@ -7,9 +7,15 @@ import pandas as pd
 import pytest
 
 from hitlist import predict
+from hitlist.curation import MHC_TYPING_COLUMNS
 
 
 def _observation(pmid, label, genotype, peptide="AAAAAAAAA"):
+    """One observation row as ``generate_observations_table`` emits it.
+
+    Carries the cellular-typing columns -- blank is what an unreviewed
+    study exports -- so the stub keeps the real export's contract (#520).
+    """
     return {
         "peptide": peptide,
         "pmid": pmid,
@@ -17,6 +23,7 @@ def _observation(pmid, label, genotype, peptide="AAAAAAAAA"):
         "sample_mhc": genotype,
         "mhc_restriction": "HLA class I",
         "is_monoallelic": False,
+        **dict.fromkeys(MHC_TYPING_COLUMNS, ""),
     }
 
 

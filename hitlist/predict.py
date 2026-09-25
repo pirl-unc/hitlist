@@ -227,9 +227,6 @@ def reassign_class_only_alleles(
     multi_mask = df["is_monoallelic"].fillna(False).eq(False)
     identified = df["sample_label"].fillna("").ne("")
     target = df[class_only_mask & multi_mask & identified].copy()
-    for column in MHC_TYPING_COLUMNS:
-        if column not in target:
-            target[column] = ""
     # The experiment's candidates remain the prediction scope. Independently
     # reported cellular background alleles do not become peptide restrictions.
     target["_alleles"] = target["sample_mhc"].map(_class_i_alleles)
