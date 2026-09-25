@@ -247,6 +247,10 @@ def test_parental_statement_never_claims_the_transduced_arm(monkeypatch):
     assert row.sample_label == ""
     assert row.sample_attribution == "elution_conditions_excluded"
     assert row.condition_transduction == ""
+    # Its sample_mhc is now a union across arms, so the confidence column has
+    # to say so: reporting allele_match over a pooled candidate set is exactly
+    # what predict's `!= "pmid_class_pool"` guard is there to refuse.
+    assert row.sample_match_type == "pmid_class_pool"
 
 
 def test_every_deposited_gbm_statement_is_curated():

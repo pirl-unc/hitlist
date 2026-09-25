@@ -2141,6 +2141,7 @@ def generate_observations_table(
     # rule ``_select_by_elution_conditions``'s callers already apply when a
     # mapped statement cannot single out one arm ("authoritative ambiguity,
     # not permission to guess again").
+    _statement_vetoed = pd.Series(False, index=obs.index)
     _statement_maps = {
         int(_pmid): _entry["elution_condition_ids"]
         for _pmid, _entry in overrides.items()
@@ -2160,6 +2161,7 @@ def generate_observations_table(
                     _statements[_rows].map(_map), _assigned[_rows], strict=True
                 )
             ]
+        _statement_vetoed = _vetoed
         if _vetoed.any():
             for _col in meta_cols:
                 if _col in _BOOL_META_COLS:
@@ -2257,6 +2259,17 @@ def generate_observations_table(
     obs.loc[(obs["sample_match_type"] == "unmatched") & _attributed, "sample_match_type"] = (
         "metadata_match"
     )
+
+    # A statement-vetoed row (stage 3d) reaches no arm and takes the class
+    # pool, so its ``sample_mhc`` is a union across arms. The allele checks
+    # above only ask whether *some* sample's candidates contain the row's
+    # restriction, and for these rows one does -- the very arm the deposit
+    # excludes -- so they would otherwise report ``allele_match`` over a
+    # pooled candidate set. That is the shape ``predict``'s
+    # ``!= "pmid_class_pool"`` guard exists to refuse, and the column's
+    # documented meaning ("class-based attribution ... union of class-matching
+    # candidates") is what actually happened here.
+    obs.loc[_statement_vetoed, "sample_match_type"] = "pmid_class_pool"
 
     # --- Peptide-level allele evidence flag ---
     obs["has_peptide_level_allele"] = _compute_has_peptide_level_allele(
