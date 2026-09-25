@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from hitlist.predict import _class_i_alleles, _class_ii_alleles
+from hitlist.predict import _class_i_alleles
 
 
 def test_predict_mhcflurry_scores_more_than_six_unique_pairs(monkeypatch):
@@ -87,12 +87,9 @@ def test_class_i_alleles_empty_on_sentinels():
         assert _class_i_alleles(s) == []
 
 
-def test_class_ii_alleles_parses_DRB_DPB_DQB():
-    assert _class_ii_alleles("HLA-A*02:01 HLA-DRB1*15:01 HLA-DPB1*04:01 HLA-DQB1*06:02") == [
-        "HLA-DRB1*15:01",
-        "HLA-DPB1*04:01",
-        "HLA-DQB1*06:02",
-    ]
+def test_class_i_candidates_keep_precision_and_accept_curated_separators():
+    assert _class_i_alleles("A*02:01; HLA-B*07:02 HLA-DRB1*15:01") == ["HLA-A*02:01", "HLA-B*07:02"]
+    assert _class_i_alleles("HLA-A2 HLA class I") == []
 
 
 def test_reassign_class_ii_not_implemented():
@@ -119,6 +116,7 @@ def test_reassign_empty_when_no_class_only_rows(monkeypatch):
             "is_monoallelic": [False],
             "sample_mhc": ["HLA-A*02:01 HLA-B*07:02"],
             "sample_label": ["x"],
+            "sample_match_type": ["allele_match"],
             "pmid": [1],
         }
     )

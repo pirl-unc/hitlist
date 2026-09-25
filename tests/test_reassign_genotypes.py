@@ -7,9 +7,15 @@ import pandas as pd
 import pytest
 
 from hitlist import predict
+from hitlist.curation import MHC_TYPING_COLUMNS
 
 
 def _observation(pmid, label, genotype, peptide="AAAAAAAAA"):
+    """One observation row as ``generate_observations_table`` emits it.
+
+    Carries the cellular-typing columns -- blank is what an unreviewed
+    study exports -- so the stub keeps the real export's contract (#520).
+    """
     return {
         "peptide": peptide,
         "pmid": pmid,
@@ -17,6 +23,8 @@ def _observation(pmid, label, genotype, peptide="AAAAAAAAA"):
         "sample_mhc": genotype,
         "mhc_restriction": "HLA class I",
         "is_monoallelic": False,
+        "sample_match_type": "allele_match",
+        **dict.fromkeys(MHC_TYPING_COLUMNS, ""),
     }
 
 
@@ -96,6 +104,40 @@ def test_equal_scores_have_a_stable_winner(monkeypatch):
         {"HLA-A*02:01": 0.1, "HLA-B*07:02": 0.1},
     )
     assert predict.reassign_class_only_alleles().iloc[0]["best_allele"] == "HLA-A*02:01"
+
+
+def test_unidentified_study_pool_is_not_a_predictor_genotype(monkeypatch):
+    calls = _install_predictions(monkeypatch, [_observation(1, "", "HLA-A*02:01 HLA-B*07:02")], {})
+    assert predict.reassign_class_only_alleles().empty
+    assert not calls
+
+
+def test_cellular_background_does_not_enter_selected_restriction_prediction(monkeypatch):
+    row = {
+        **_observation(31530632, "C1R", "HLA-B*40:02"),
+        "mhc_basis": "selected_restriction",
+        "mhc_genotype": "HLA-B*35:03 HLA-B*40:02 HLA-C*04:01",
+        "mhc_genotype_cell": "C1R-B*40:02",
+        "mhc_genotype_source": "PMID 31530632, Cell Lines",
+    }
+    calls = _install_predictions(monkeypatch, [row], {"HLA-B*40:02": 0.1})
+    result = predict.reassign_class_only_alleles().iloc[0]
+    assert calls[0].allele.tolist() == ["HLA-B*40:02"]
+    assert result.mhc_genotype == row["mhc_genotype"]
+    assert result.mhc_basis == "selected_restriction"
+
+
+def test_class_pool_union_is_not_predicted_against_its_named_sample(monkeypatch):
+    """A curated label on a pooled row does not make the pool that sample's
+    genotype: the class-pool fallback fills ``sample_mhc`` from every arm of
+    the study, so scoring it would hand one arm's allele to another (#520)."""
+    row = {
+        **_observation(1, "armB", "HLA-A*02:01 HLA-B*07:02"),
+        "sample_match_type": "pmid_class_pool",
+    }
+    calls = _install_predictions(monkeypatch, [row], {"HLA-A*02:01": 0.1})
+    assert predict.reassign_class_only_alleles().empty
+    assert not calls
 
 
 @pytest.mark.parametrize("missing", [np.nan, np.inf, -np.inf])

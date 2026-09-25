@@ -218,11 +218,25 @@ PMID_ENTRY_FIELDS = MappingProxyType(
 #: Adding a key means adding it here *and* pointing it at its reader. If a
 #: field is genuinely informational, say so in its description rather than
 #: leaving it out.
+MHC_TYPING_FIELDS = MappingProxyType(
+    {
+        "mhc_basis": "selected_restriction or sample_typing; blank means unreviewed",
+        "mhc_genotype": "independently sourced cellular MHC typing; never an observation restriction",
+        "mhc_genotype_cell": "the single cell line or donor whose cellular typing is recorded",
+        "mhc_genotype_complete_loci": "sorted semicolon-separated fully typed loci; blank is unknown",
+        "mhc_genotype_source": "source citation and location for the cellular typing and its scope",
+    }
+)
+MHC_TYPING_COLUMNS = (*MHC_TYPING_FIELDS, "mhc_genotype_reported_loci")
+MHC_GENOTYPE_COLUMNS = tuple(c for c in MHC_TYPING_COLUMNS if c != "mhc_basis")
+
+
 MS_SAMPLE_FIELDS = MappingProxyType(
     {
         "sample_label": "sample identity; the join key for observation attribution",
         "condition": "perturbation text; drives perturbation, APM flags, condition_category",
-        "mhc": "curated genotype; parsed for allele-level attribution and mhc_species",
+        "mhc": "reported experimental MHC candidates; may be a selected restriction, not a genotype",
+        **MHC_TYPING_FIELDS,
         "mhc_class": "class filter, and the class pool when mhc is blank",
         "n_samples": "replicate count; 0 marks an unprofiled arm (#437)",
         "profiled": "false marks an arm the paper describes but never ran (#437)",
@@ -378,6 +392,10 @@ def load_pmid_overrides() -> dict[int, dict]:
                     f"{sample_override!r} is invalid; expected null or one of "
                     f"{OVERRIDE_VALUES}"
                 )
+            try:
+                sample_mhc_metadata(sample)
+            except ValueError as exc:
+                raise ValueError(f"PMID {e.get('pmid')}: ms_samples[{i}]: {exc}") from exc
         unknown_entry_keys = sorted(set(e) - set(PMID_ENTRY_FIELDS))
         if unknown_entry_keys:
             raise ValueError(
@@ -2256,7 +2274,7 @@ def _mhc_field_spans(text: str) -> tuple:
 def sample_mhc_candidates(mhc_field) -> SampleMhcCandidates:
     """Classify a curated ``ms_samples[].mhc`` value by precision.
 
-    The single place a curated sample genotype is turned into attribution
+    The single place reported experimental MHC typing becomes attribution
     candidates, so the allele-level join and the peptide summary cannot
     drift apart about what a given designation means (#380).
 
@@ -2338,6 +2356,52 @@ def sample_mhc_candidates(mhc_field) -> SampleMhcCandidates:
     )
 
 
+def sample_mhc_metadata(sample: Mapping) -> dict[str, str]:
+    """Validate and export cellular typing separately from experiment candidates.
+
+    No fallback from ``mhc``: legacy values include selected restrictions and
+    pooled candidates. Complete loci are a source claim, never inferred from
+    the number of alleles. Typing a cell does not establish peptide binding.
+    """
+    result = {
+        field: "" if sample.get(field) is None else sample[field] for field in MHC_TYPING_FIELDS
+    }
+    for field, value in result.items():
+        if not isinstance(value, str) or value != value.strip():
+            raise ValueError(f"{field} must be a stripped string")
+    if result["mhc_basis"] not in ("", "selected_restriction", "sample_typing"):
+        raise ValueError("mhc_basis must be selected_restriction, sample_typing, or blank")
+    if result["mhc_basis"] and not sample.get("mhc"):
+        raise ValueError("mhc_basis requires experimental mhc candidates")
+
+    genotype = result["mhc_genotype"]
+    typing = sample_mhc_candidates(genotype)
+    provenance = ("mhc_genotype_cell", "mhc_genotype_source")
+    if genotype:
+        for field in provenance:
+            if not result[field]:
+                raise ValueError(f"mhc_genotype requires {field}")
+        if typing.is_empty:
+            raise ValueError("mhc_genotype must name reported MHC typing")
+    elif any(result[field] for field in (*provenance, "mhc_genotype_complete_loci")):
+        raise ValueError("cellular typing metadata requires mhc_genotype")
+
+    loci = {
+        locus
+        for allele in typing.exact
+        for component in expand_allele_components(allele)
+        if (locus := allele_locus(component))
+    }
+    result["mhc_genotype_reported_loci"] = ";".join(sorted(loci))
+    complete = result["mhc_genotype_complete_loci"]
+    if complete and (
+        complete != ";".join(sorted(set(complete.split(";"))))
+        or not set(complete.split(";")) <= loci
+    ):
+        raise ValueError("mhc_genotype_complete_loci must be sorted, unique reported loci")
+    return result
+
+
 def reported_mhc_fields_overlap(first, second) -> bool | None:
     """Whether two precisely reported molecule sets have a compatible member.
 
@@ -2398,30 +2462,12 @@ def reported_mhc_fields_overlap(first, second) -> bool | None:
 
 
 def _parse_sample_mhc_field(mhc_field) -> frozenset[str]:
-    """Parse a ``ms_samples[].mhc`` value into a normalized allele set.
+    """Normalized experimental candidates, including serotype members.
 
-    Thin wrapper over :func:`sample_mhc_candidates`, kept because the
-    per-peptide attribution path wants one flat candidate set rather than
-    the precision breakdown.  Returns
-    :attr:`SampleMhcCandidates.join_alleles`, so a serotype-typed sample
-    contributes its member alleles as candidates instead of dropping out
-    of the join entirely (#380).
-
-    ms_samples curators use mixed formats — some entries are
-    ``"HLA-A*01:01"`` (HLA-prefixed) and others are ``"A*02:01 A*24:02
-    B*15:01 ..."`` (bare, space-joined).  Both shapes carry valid donor
-    genotypes and normalize through mhcgnomes to the canonical form used
-    elsewhere (``HLA-A*02:01``).
-
-    Non-human genotypes are deliberately supported — ``"H-2Kb H-2Db"``,
-    ``"H-2Q1 H-2Q2"`` and ``"Patr-AL"`` all resolve.  An HLA-shaped regex
-    used to do the extraction, which silently returned nothing for every
-    one of them, so per-peptide attribution could never narrow a mouse
-    sample's candidate alleles.
-
-    Callers presenting the result to a reader as an *observed* allele
-    should use :func:`sample_mhc_candidates` directly and read
-    :attr:`SampleMhcCandidates.exact`, which excludes serotype members.
+    Uses the shared precision-aware parser for human and nonhuman typing.
+    This is not necessarily a cellular genotype or an observed restriction;
+    callers reporting named molecules should use ``sample_mhc_candidates``
+    and its ``exact`` field, which excludes serotype-derived candidates.
     """
     return sample_mhc_candidates(mhc_field).join_alleles
 
@@ -2430,15 +2476,9 @@ def _parse_sample_mhc_field(mhc_field) -> frozenset[str]:
 def _pmid_sample_alleles(pmid_int: int) -> dict[str, frozenset[str]]:
     """Map ``sample_label → frozenset(4-digit alleles)`` for a PMID's ms_samples.
 
-    Many studies curate the donor / patient genotype on each
-    ``ms_samples`` entry as the ``mhc:`` value — either as
-    ``"HLA-A*01:01"`` or as a bare space-joined string like
-    ``"A*02:01 A*24:02 B*15:01 ..."``.  Both shapes are accepted (see
-    :func:`_parse_sample_mhc_field`) and normalized to canonical
-    ``HLA-A*02:01`` form.  Per-peptide attribution overrides (#45) use
-    this map to narrow a row's candidate-allele set from the
-    disease-wide union down to the specific donor(s) the peptide was
-    observed in.
+    Reads experimental ``mhc`` candidates, never ``mhc_genotype``. Per-peptide
+    attribution uses this map to narrow candidates to the observed sample(s)
+    without adding cellular background alleles excluded by the experiment.
 
     Empty mapping if no override or no ms_samples entries are present.
     """
@@ -2567,12 +2607,11 @@ def _peptide_alleles_by_pmid(pmid: int) -> Mapping[str, frozenset[str]]:
 def sample_alleles_for_pmid(pmid: int | str) -> Mapping[str, frozenset[str]]:
     """Curated ``sample_label -> candidate alleles`` for one study's ms_samples.
 
-    The sample-level counterpart to :func:`peptide_alleles_for_pmid`: what
-    each curated sample of this study was typed to, before any per-peptide
-    narrowing.  Public because it is the direct answer to "what did this
-    study type its samples to?", and because every other way of asking had
-    to reach through the per-peptide functions, which return nothing for
-    the ~99% of studies with no ``peptide_attributions`` CSV.
+    The sample-level counterpart to :func:`peptide_alleles_for_pmid`, before
+    per-peptide narrowing. Reads experimental ``mhc`` candidates, which may
+    describe selected ligand restrictions rather than cellular genotypes.
+    Independent cellular typing is available through ``mhc_genotype`` in
+    :func:`hitlist.export.generate_ms_samples_table`.
 
     Values are :attr:`SampleMhcCandidates.join_alleles` — exact molecules
     plus, for a serotype-typed sample, that serotype's member alleles.

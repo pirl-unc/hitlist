@@ -1,3 +1,72 @@
+# #520 specification — cellular typing and experimental restriction
+
+Keep two biological facts separate. The existing `mhc` / exported `sample_mhc`
+is the reported MHC candidate set used to interpret the experiment; it can be
+a selected ligand restriction and must no longer be advertised as a complete
+cellular genotype. Preserve its attribution semantics and the raw observation
+restriction. Add an independently sourced, flat cellular-typing block:
+`mhc_genotype`, `mhc_genotype_cell`, `mhc_genotype_complete_loci`, and
+`mhc_genotype_source`. Derive reported loci with the existing MHC parser;
+missing completeness means unknown, never an absent allele. `mhc_basis`
+distinguishes source-reviewed selected restrictions from sample typing;
+blank means that this distinction has not yet been curated. Do not infer
+genotypes from unreviewed legacy values, pool cells/donors, or add background
+alleles to observation candidates merely because they are present in a cell.
+
+Use one field registry for validation and all export paths, including empty
+tables, projections, training rows and categorical conversion. Keep a genotype
+and its provenance together when candidates disagree. Reuse the existing
+precision-aware MHC parser in prediction, removing the duplicate prefix-based
+parsers. Predictor inputs must retain the experiment's candidate scope and an
+identified sample; an unresolved study pool is not a biological genotype.
+
+Read primary methods for the Lorente C1R example and a bounded engineered-host
+audit (C1R, B721.221 and HLA-II constructs), plus the incomplete class-II typing
+and moDC/A549 systems called out in the issue. Record verified background
+typing, selected restrictions, source locations and remaining unknowns without
+silently filling the whole catalogue from cell-line conventions. Source-only
+questions outside this contract stay explicit follow-ups.
+
+Prove that adding cellular typing does not change existing row attribution,
+reported restrictions or allele-support summaries. Cover partial class-II
+typing, distinct cell roles, ambiguous samples, selected-restriction prediction,
+and full/filtered/projected exports. Measure corpus impact against main in
+bounded batches. Review the implementation specifically for removable branches,
+duplicated field lists and redundant parsing. Bump the patch version, run
+format/lint/full tests and exact-head CI, then merge and publish verified
+clean-main artifacts through the established release workflow.
+
+- [x] Inspect issue, field consumers and baseline model; write this specification.
+- [x] Verify primary sources and record the bounded source audit.
+- [x] Add regression coverage and implement the shared typing contract.
+- [x] Audit complete-corpus behavior and simplify the final implementation.
+- [x] Pass format.sh, lint.sh, test.sh and final-head CI; review and open PR (#564).
+- [ ] Merge, deploy, verify public artifacts and review follow-up dependencies.
+
+Review: cellular typing is curated on six engineered-host / incomplete-typing
+studies (31530632, 31844290, 28228285, 31495665, 33592498, 35051231) from
+primary methods, and validated on YAML load. `mhc` values, attribution and
+allele-support summaries are unchanged: the curation diff is purely additive.
+`mhc_genotype*` travels through ms_samples, observations, training and
+projected exports from one registry; an ambiguous join blanks the whole
+typing block rather than pooling cells. Prediction now reuses the shared
+precision-aware parser (dropping the two prefix-based ones), requires a named
+sample, and keeps non-classical molecules out of a class-I predictor batch.
+
+Corpus impact measured against main: zero differing cells across 794 sample
+rows x 96 pre-#520 columns and 4,398,040 observation rows x the attribution
+columns (sample_mhc, sample_match_type, matched_sample_count,
+has_peptide_level_allele, restriction, class).
+
+Review (high) found `mhc_basis` outliving the candidates it describes: both
+`_consensus_meta`'s blanking and the class-pool union left the claim attached
+to a column that no longer held that sample's `mhc`, and reassignment keyed
+its "identified sample" guard on `sample_label`, which a class-pooled row
+keeps. Both fixed and covered. PMID 33592498's three pan-class-II arms
+claimed `sample_typing` over a DRB1-only candidate list against an HB245
+elution that the paper reports yielding DP, DQ and DR ligands; the false
+claim is blank and the candidate gap is filed as #565.
+
 # September 24 follow-up — source rosters and attribution (#555, #556)
 
 Resolve the six source/deposit leads in #555 and both attribution defects in

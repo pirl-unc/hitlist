@@ -204,3 +204,15 @@
   science, the assertion is wrong rather than the data.
 
 - When fixing test-framework deprecations, verify the oldest supported Python/pytest pair before propagating a stacked change. Class-scope fixtures that need no class state should be plain module functions; classmethod metadata differs before Python 3.10.
+
+- In a change whose point is to separate two conflated facts, justify every
+  blank field with the distinction the change draws — not the one it replaces.
+  Rule: #520 splits "what the cell carries" from "what the experiment
+  measured". Asked why two arms of PMID 35051231 carry no cellular typing, I
+  answered "nothing was measured there" — which is the *old* conflation wearing
+  the new field's name. The donors' genotypes are known and published; the
+  reason blank is right is narrower and structural: `profiled: false` arms have
+  no sample to type, and both donors' typing sits on their profiled arms in the
+  same study, so no fact is lost. A rationale that would equally justify the
+  bug you are fixing is not a rationale. Say which of the two facts is absent,
+  and where the other one lives.

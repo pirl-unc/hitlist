@@ -145,9 +145,10 @@ def _default_curated_mhc_samples() -> pd.DataFrame:
                     "pmid": pmid,
                     "sample_label": sample.get("sample_label", ""),
                     "mhc": sample.get("mhc", ""),
+                    "mhc_genotype": sample.get("mhc_genotype", ""),
                 }
             )
-    return pd.DataFrame(rows, columns=["pmid", "sample_label", "mhc"])
+    return pd.DataFrame(rows, columns=["pmid", "sample_label", "mhc", "mhc_genotype"])
 
 
 def mhc_token_audit(
@@ -165,7 +166,7 @@ def mhc_token_audit(
         corresponding columns are read from whichever built artifacts exist.
     curated_samples
         Optional frame containing curated ``pmid``, ``sample_label``, and
-        free-text ``mhc`` fields. When omitted, these are flattened from
+        free-text ``mhc`` and ``mhc_genotype`` fields. When omitted, these are flattened from
         ``pmid_overrides.yaml``.
 
     Returns
@@ -254,8 +255,9 @@ def mhc_token_audit(
         for field in evidence_fields:
             inspect_series(evidence_kind, field, frame)
 
-    if not curated_samples.empty and "mhc" in curated_samples.columns:
-        inspect_series("curation", "mhc", curated_samples, curated=True)
+    if not curated_samples.empty:
+        for field in ("mhc", "mhc_genotype"):
+            inspect_series("curation", field, curated_samples, curated=True)
         for finding in findings:
             if finding["evidence_kind"] == "curation" and finding["field"] == "mhc":
                 finding["field"] = "sample_mhc"

@@ -29,6 +29,10 @@
 #   ms_samples       - per-sample-type enumeration of what was profiled
 #                      by mass spectrometry and under what conditions
 #   mhc_class on ms_samples: "I", "II", or "I+II" for easy filtering
+#   mhc              - experimental MHC candidates, possibly a selected restriction
+#   mhc_basis        - selected_restriction or sample_typing; missing is unreviewed
+#   mhc_genotype*    - independent cellular typing, cell identity, source, and complete loci
+#                      (docs/pmid-curation.md); never a pooled donor/cell genotype
 #   aliases          - free-form dict for citation provenance / cross-references
 #                      (e.g. withdrawn_pmid, withdrawn_doi, corrected_doi,
 #                      hlapollo_dataset_name).  Use when the canonical PMID
@@ -1060,6 +1064,11 @@
         condition_control: "mock"
         mhc_class: I+II
         mhc: "HLA-A*03:01 HLA-A*26:01 HLA-B*07:02 HLA-C*07:02 HLA-DRB1*11:01 HLA-DRB1*15:01 HLA-DQB1*03:01 HLA-DQB1*06:02 HLA-DPB1*02:01 HLA-DPB1*16:01"
+        mhc_basis: "sample_typing"
+        mhc_genotype: "HLA-A*03:01 HLA-A*26:01 HLA-B*07:02 HLA-C*07:02 HLA-DPB1*02:01 HLA-DPB1*16:01 HLA-DQB1*03:01 HLA-DQB1*06:02 HLA-DRB1*11:01 HLA-DRB1*15:01"
+        mhc_genotype_cell: "P1"
+        mhc_genotype_complete_loci: "HLA-A;HLA-B;HLA-C;HLA-DPB1;HLA-DQB1;HLA-DRB1"
+        mhc_genotype_source: &mhc_source_35051231 "PMID 35051231 (PMC8806059), S1 Table (two reported typing slots per listed locus). Alpha-chain and DRB3/4/5 typing unreported. P4 is the moDC donor, distinct from A549 antigen-source feeders (Figure 5); their genotypes are not pooled. THP1 DQB1*06:02 has a trailing colon in S1, omitted here."
       - sample_label: P1 lung — Wisconsin-infected
         n_samples: 1
         source: TL1165
@@ -1071,6 +1080,11 @@
         condition_infection: "Influenza A virus"
         mhc_class: I+II
         mhc: "HLA-A*03:01 HLA-A*26:01 HLA-B*07:02 HLA-C*07:02 HLA-DRB1*11:01 HLA-DRB1*15:01 HLA-DQB1*03:01 HLA-DQB1*06:02 HLA-DPB1*02:01 HLA-DPB1*16:01"
+        mhc_basis: "sample_typing"
+        mhc_genotype: "HLA-A*03:01 HLA-A*26:01 HLA-B*07:02 HLA-C*07:02 HLA-DPB1*02:01 HLA-DPB1*16:01 HLA-DQB1*03:01 HLA-DQB1*06:02 HLA-DRB1*11:01 HLA-DRB1*15:01"
+        mhc_genotype_cell: "P1"
+        mhc_genotype_complete_loci: "HLA-A;HLA-B;HLA-C;HLA-DPB1;HLA-DQB1;HLA-DRB1"
+        mhc_genotype_source: *mhc_source_35051231
         reference_proteomes:
           - uniprot: UP000009255
             proteome_label: Influenza A virus
@@ -1093,6 +1107,11 @@
         condition_control: "mock"
         mhc_class: I+II
         mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*15:01 HLA-B*44:27 HLA-C*03:03 HLA-C*07:04 HLA-DRB1*04:01 HLA-DRB1*15:01 HLA-DQB1*03:02 HLA-DQB1*06:03 HLA-DPB1*03:01 HLA-DPB1*04:01"
+        mhc_basis: "sample_typing"
+        mhc_genotype: "HLA-A*01:01 HLA-A*02:01 HLA-B*15:01 HLA-B*44:27 HLA-C*03:03 HLA-C*07:04 HLA-DPB1*03:01 HLA-DPB1*04:01 HLA-DQB1*03:02 HLA-DQB1*06:03 HLA-DRB1*04:01 HLA-DRB1*15:01"
+        mhc_genotype_cell: "P2"
+        mhc_genotype_complete_loci: "HLA-A;HLA-B;HLA-C;HLA-DPB1;HLA-DQB1;HLA-DRB1"
+        mhc_genotype_source: *mhc_source_35051231
       - sample_label: P2 lung — Wisconsin-infected
         n_samples: 1
         source: TL1178
@@ -1104,6 +1123,11 @@
         condition_infection: "Influenza A virus"
         mhc_class: I+II
         mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*15:01 HLA-B*44:27 HLA-C*03:03 HLA-C*07:04 HLA-DRB1*04:01 HLA-DRB1*15:01 HLA-DQB1*03:02 HLA-DQB1*06:03 HLA-DPB1*03:01 HLA-DPB1*04:01"
+        mhc_basis: "sample_typing"
+        mhc_genotype: "HLA-A*01:01 HLA-A*02:01 HLA-B*15:01 HLA-B*44:27 HLA-C*03:03 HLA-C*07:04 HLA-DPB1*03:01 HLA-DPB1*04:01 HLA-DQB1*03:02 HLA-DQB1*06:03 HLA-DRB1*04:01 HLA-DRB1*15:01"
+        mhc_genotype_cell: "P2"
+        mhc_genotype_complete_loci: "HLA-A;HLA-B;HLA-C;HLA-DPB1;HLA-DQB1;HLA-DRB1"
+        mhc_genotype_source: *mhc_source_35051231
         reference_proteomes:
           - uniprot: UP000009255
             proteome_label: Influenza A virus
@@ -1118,6 +1142,11 @@
         condition_infection: "Influenza A virus"
         mhc_class: I+II
         mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*15:01 HLA-B*44:27 HLA-C*03:03 HLA-C*07:04 HLA-DRB1*04:01 HLA-DRB1*15:01 HLA-DQB1*03:02 HLA-DQB1*06:03 HLA-DPB1*03:01 HLA-DPB1*04:01"
+        mhc_basis: "sample_typing"
+        mhc_genotype: "HLA-A*01:01 HLA-A*02:01 HLA-B*15:01 HLA-B*44:27 HLA-C*03:03 HLA-C*07:04 HLA-DPB1*03:01 HLA-DPB1*04:01 HLA-DQB1*03:02 HLA-DQB1*06:03 HLA-DRB1*04:01 HLA-DRB1*15:01"
+        mhc_genotype_cell: "P2"
+        mhc_genotype_complete_loci: "HLA-A;HLA-B;HLA-C;HLA-DPB1;HLA-DQB1;HLA-DRB1"
+        mhc_genotype_source: *mhc_source_35051231
         reference_proteomes:
           - uniprot: UP000009255
             proteome_label: Influenza A virus
@@ -1131,6 +1160,11 @@
         condition_control: "mock"
         mhc_class: I+II
         mhc: "HLA-A*02:01 HLA-A*03:01 HLA-B*15:01 HLA-B*18:01 HLA-C*03:04 HLA-C*05:01 HLA-DRB1*11:01 HLA-DRB1*15:01 HLA-DQB1*03:01 HLA-DQB1*06:02 HLA-DPB1*01:01 HLA-DPB1*04:01"
+        mhc_basis: "sample_typing"
+        mhc_genotype: "HLA-A*02:01 HLA-A*03:01 HLA-B*15:01 HLA-B*18:01 HLA-C*03:04 HLA-C*05:01 HLA-DPB1*01:01 HLA-DPB1*04:01 HLA-DQB1*03:01 HLA-DQB1*06:02 HLA-DRB1*11:01 HLA-DRB1*15:01"
+        mhc_genotype_cell: "P3"
+        mhc_genotype_complete_loci: "HLA-A;HLA-B;HLA-C;HLA-DPB1;HLA-DQB1;HLA-DRB1"
+        mhc_genotype_source: *mhc_source_35051231
       - sample_label: P3 lung — Wisconsin-infected
         n_samples: 1
         source: TL1187
@@ -1142,6 +1176,11 @@
         condition_infection: "Influenza A virus"
         mhc_class: I+II
         mhc: "HLA-A*02:01 HLA-A*03:01 HLA-B*15:01 HLA-B*18:01 HLA-C*03:04 HLA-C*05:01 HLA-DRB1*11:01 HLA-DRB1*15:01 HLA-DQB1*03:01 HLA-DQB1*06:02 HLA-DPB1*01:01 HLA-DPB1*04:01"
+        mhc_basis: "sample_typing"
+        mhc_genotype: "HLA-A*02:01 HLA-A*03:01 HLA-B*15:01 HLA-B*18:01 HLA-C*03:04 HLA-C*05:01 HLA-DPB1*01:01 HLA-DPB1*04:01 HLA-DQB1*03:01 HLA-DQB1*06:02 HLA-DRB1*11:01 HLA-DRB1*15:01"
+        mhc_genotype_cell: "P3"
+        mhc_genotype_complete_loci: "HLA-A;HLA-B;HLA-C;HLA-DPB1;HLA-DQB1;HLA-DRB1"
+        mhc_genotype_source: *mhc_source_35051231
         reference_proteomes:
           - uniprot: UP000009255
             proteome_label: Influenza A virus
@@ -1156,6 +1195,11 @@
         condition_infection: "Influenza A virus"
         mhc_class: I+II
         mhc: "HLA-A*02:01 HLA-A*03:01 HLA-B*15:01 HLA-B*18:01 HLA-C*03:04 HLA-C*05:01 HLA-DRB1*11:01 HLA-DRB1*15:01 HLA-DQB1*03:01 HLA-DQB1*06:02 HLA-DPB1*01:01 HLA-DPB1*04:01"
+        mhc_basis: "sample_typing"
+        mhc_genotype: "HLA-A*02:01 HLA-A*03:01 HLA-B*15:01 HLA-B*18:01 HLA-C*03:04 HLA-C*05:01 HLA-DPB1*01:01 HLA-DPB1*04:01 HLA-DQB1*03:01 HLA-DQB1*06:02 HLA-DRB1*11:01 HLA-DRB1*15:01"
+        mhc_genotype_cell: "P3"
+        mhc_genotype_complete_loci: "HLA-A;HLA-B;HLA-C;HLA-DPB1;HLA-DQB1;HLA-DRB1"
+        mhc_genotype_source: *mhc_source_35051231
         reference_proteomes:
           - uniprot: UP000009255
             proteome_label: Influenza A virus
@@ -1169,6 +1213,11 @@
         condition_control: "mock"
         mhc_class: I+II
         mhc: "HLA-A*02:01 HLA-B*15:11 HLA-C*03:03 HLA-DRB1*01:01 HLA-DRB1*15:01 HLA-DQB1*05:01 HLA-DQB1*06:02 HLA-DPB1*02:01 HLA-DPB1*04:02"
+        mhc_basis: "sample_typing"
+        mhc_genotype: "HLA-A*02:01 HLA-B*15:11 HLA-C*03:03 HLA-DPB1*02:01 HLA-DPB1*04:02 HLA-DQB1*05:01 HLA-DQB1*06:02 HLA-DRB1*01:01 HLA-DRB1*15:01"
+        mhc_genotype_cell: "THP1"
+        mhc_genotype_complete_loci: "HLA-A;HLA-B;HLA-C;HLA-DPB1;HLA-DQB1;HLA-DRB1"
+        mhc_genotype_source: *mhc_source_35051231
       - sample_label: THP-1 macrophage — Wisconsin-infected
         n_samples: 3
         condition: PMA differentiation → influenza A/H3N2/Wisconsin
@@ -1180,6 +1229,11 @@
         condition_stimulation: "PMA"
         mhc_class: I+II
         mhc: "HLA-A*02:01 HLA-B*15:11 HLA-C*03:03 HLA-DRB1*01:01 HLA-DRB1*15:01 HLA-DQB1*05:01 HLA-DQB1*06:02 HLA-DPB1*02:01 HLA-DPB1*04:02"
+        mhc_basis: "sample_typing"
+        mhc_genotype: "HLA-A*02:01 HLA-B*15:11 HLA-C*03:03 HLA-DPB1*02:01 HLA-DPB1*04:02 HLA-DQB1*05:01 HLA-DQB1*06:02 HLA-DRB1*01:01 HLA-DRB1*15:01"
+        mhc_genotype_cell: "THP1"
+        mhc_genotype_complete_loci: "HLA-A;HLA-B;HLA-C;HLA-DPB1;HLA-DQB1;HLA-DRB1"
+        mhc_genotype_source: *mhc_source_35051231
         reference_proteomes:
           - uniprot: UP000009255
             proteome_label: Influenza A virus
@@ -1194,6 +1248,11 @@
         condition_stimulation: "PMA"
         mhc_class: I+II
         mhc: "HLA-A*02:01 HLA-B*15:11 HLA-C*03:03 HLA-DRB1*01:01 HLA-DRB1*15:01 HLA-DQB1*05:01 HLA-DQB1*06:02 HLA-DPB1*02:01 HLA-DPB1*04:02"
+        mhc_basis: "sample_typing"
+        mhc_genotype: "HLA-A*02:01 HLA-B*15:11 HLA-C*03:03 HLA-DPB1*02:01 HLA-DPB1*04:02 HLA-DQB1*05:01 HLA-DQB1*06:02 HLA-DRB1*01:01 HLA-DRB1*15:01"
+        mhc_genotype_cell: "THP1"
+        mhc_genotype_complete_loci: "HLA-A;HLA-B;HLA-C;HLA-DPB1;HLA-DQB1;HLA-DRB1"
+        mhc_genotype_source: *mhc_source_35051231
         reference_proteomes:
           - uniprot: UP000009255
             proteome_label: Influenza A virus
@@ -1210,6 +1269,11 @@
         condition_culture: "PromoCell_DC"
         mhc_class: I+II
         mhc: "HLA-A*01:01 HLA-B*51:01 HLA-B*57:01 HLA-C*06:02 HLA-C*07:01 HLA-DRB1*04:03 HLA-DRB1*07:01 HLA-DQB1*03:03 HLA-DQB1*03:05 HLA-DPB1*04:01 HLA-DPB1*14:01"
+        mhc_basis: "sample_typing"
+        mhc_genotype: "HLA-A*01:01 HLA-B*51:01 HLA-B*57:01 HLA-C*06:02 HLA-C*07:01 HLA-DPB1*04:01 HLA-DPB1*14:01 HLA-DQB1*03:03 HLA-DQB1*03:05 HLA-DRB1*04:03 HLA-DRB1*07:01"
+        mhc_genotype_cell: "P4"
+        mhc_genotype_complete_loci: "HLA-A;HLA-B;HLA-C;HLA-DPB1;HLA-DQB1;HLA-DRB1"
+        mhc_genotype_source: *mhc_source_35051231
         reference_proteomes:
           - uniprot: UP000009255
             proteome_label: Influenza A virus
@@ -1606,6 +1670,7 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*01:01"
+        mhc_basis: "selected_restriction"
       - sample_label: "721.221-HLA-A*02:01"
         n_samples: 1
         source: retroviral transduction of single HLA alleles into B721.221
@@ -1617,6 +1682,7 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*02:01"
+        mhc_basis: "selected_restriction"
       - sample_label: "721.221-HLA-A*02:03"
         n_samples: 1
         source: retroviral transduction of single HLA alleles into B721.221
@@ -1628,6 +1694,7 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*02:03"
+        mhc_basis: "selected_restriction"
       - sample_label: "721.221-HLA-A*02:07"
         n_samples: 1
         source: retroviral transduction of single HLA alleles into B721.221
@@ -1639,6 +1706,7 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*02:07"
+        mhc_basis: "selected_restriction"
       - sample_label: "721.221-HLA-A*03:01"
         n_samples: 1
         source: retroviral transduction of single HLA alleles into B721.221
@@ -1650,6 +1718,7 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*03:01"
+        mhc_basis: "selected_restriction"
       - sample_label: "721.221-HLA-A*11:01"
         n_samples: 1
         source: retroviral transduction of single HLA alleles into B721.221
@@ -1661,6 +1730,7 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*11:01"
+        mhc_basis: "selected_restriction"
       - sample_label: "721.221-HLA-A*24:02"
         n_samples: 1
         source: retroviral transduction of single HLA alleles into B721.221
@@ -1672,6 +1742,7 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*24:02"
+        mhc_basis: "selected_restriction"
       - sample_label: "721.221-HLA-A*29:02"
         n_samples: 1
         source: retroviral transduction of single HLA alleles into B721.221
@@ -1683,6 +1754,7 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*29:02"
+        mhc_basis: "selected_restriction"
       - sample_label: "721.221-HLA-A*31:01"
         n_samples: 1
         source: retroviral transduction of single HLA alleles into B721.221
@@ -1694,6 +1766,7 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*31:01"
+        mhc_basis: "selected_restriction"
       - sample_label: "721.221-HLA-A*68:02"
         n_samples: 1
         source: retroviral transduction of single HLA alleles into B721.221
@@ -1705,6 +1778,7 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*68:02"
+        mhc_basis: "selected_restriction"
       - sample_label: "721.221-HLA-B*07:02"
         n_samples: 1
         source: retroviral transduction of single HLA alleles into B721.221
@@ -1716,6 +1790,7 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*07:02"
+        mhc_basis: "selected_restriction"
       - sample_label: "721.221-HLA-B*35:01"
         n_samples: 1
         source: retroviral transduction of single HLA alleles into B721.221
@@ -1727,6 +1802,7 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*35:01"
+        mhc_basis: "selected_restriction"
       - sample_label: "721.221-HLA-B*44:03"
         n_samples: 1
         source: retroviral transduction of single HLA alleles into B721.221
@@ -1738,6 +1814,7 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*44:03"
+        mhc_basis: "selected_restriction"
       - sample_label: "721.221-HLA-B*51:01"
         n_samples: 1
         source: retroviral transduction of single HLA alleles into B721.221
@@ -1749,6 +1826,7 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*51:01"
+        mhc_basis: "selected_restriction"
       - sample_label: "721.221-HLA-B*54:01"
         n_samples: 1
         source: retroviral transduction of single HLA alleles into B721.221
@@ -1760,6 +1838,7 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*54:01"
+        mhc_basis: "selected_restriction"
       - sample_label: "721.221-HLA-B*57:01"
         n_samples: 1
         source: retroviral transduction of single HLA alleles into B721.221
@@ -1771,6 +1850,7 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*57:01"
+        mhc_basis: "selected_restriction"
       - sample_label: "validation cell lines (HCC1937, HCT116, HeLa)"
         source: "PMC5405381 Figure 3C-G: previously published multi-allelic cell-line datasets reused for validation"
         condition: unperturbed — standard culture
@@ -1855,6 +1935,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*01:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-A*01:01 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-A*01:01"
+        mhc_genotype_source: &mhc_source_31844290 "PMID 31844290 (PMC7008090), Cell lines; Peptide filtering; Supplementary Table 1. Curated transgene plus reported residual endogenous C*01:02; C*01:02 contaminants filtered from other allele datasets. Other loci and typing completeness unreported."
       - sample_label: "721.221-HLA-A*02:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -1866,6 +1950,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*02:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-A*02:01 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-A*02:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-A*02:02"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -1877,6 +1965,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*02:02"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-A*02:02 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-A*02:02"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-A*02:03"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -1888,6 +1980,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*02:03"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-A*02:03 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-A*02:03"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-A*02:04"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -1899,6 +1995,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*02:04"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-A*02:04 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-A*02:04"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-A*02:05"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -1910,6 +2010,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*02:05"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-A*02:05 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-A*02:05"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-A*02:06"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -1921,6 +2025,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*02:06"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-A*02:06 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-A*02:06"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-A*02:07"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -1932,6 +2040,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*02:07"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-A*02:07 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-A*02:07"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-A*02:11"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -1943,6 +2055,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*02:11"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-A*02:11 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-A*02:11"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-A*03:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -1954,6 +2070,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*03:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-A*03:01 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-A*03:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-A*11:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -1965,6 +2085,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*11:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-A*11:01 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-A*11:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-A*11:02"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -1976,6 +2100,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*11:02"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-A*11:02 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-A*11:02"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-A*23:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -1987,6 +2115,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*23:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-A*23:01 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-A*23:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-A*24:02"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -1998,6 +2130,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*24:02"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-A*24:02 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-A*24:02"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-A*24:07"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2009,6 +2145,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*24:07"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-A*24:07 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-A*24:07"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-A*25:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2020,6 +2160,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*25:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-A*25:01 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-A*25:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-A*26:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2031,6 +2175,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*26:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-A*26:01 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-A*26:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-A*29:02"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2042,6 +2190,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*29:02"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-A*29:02 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-A*29:02"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-A*30:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2053,6 +2205,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*30:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-A*30:01 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-A*30:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-A*30:02"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2064,6 +2220,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*30:02"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-A*30:02 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-A*30:02"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-A*31:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2075,6 +2235,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*31:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-A*31:01 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-A*31:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-A*32:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2086,6 +2250,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*32:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-A*32:01 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-A*32:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-A*33:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2097,6 +2265,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*33:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-A*33:01 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-A*33:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-A*33:03"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2108,6 +2280,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*33:03"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-A*33:03 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-A*33:03"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-A*34:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2119,6 +2295,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*34:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-A*34:01 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-A*34:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-A*34:02"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2130,6 +2310,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*34:02"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-A*34:02 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-A*34:02"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-A*36:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2141,6 +2325,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*36:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-A*36:01 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-A*36:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-A*66:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2152,6 +2340,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*66:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-A*66:01 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-A*66:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-A*68:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2163,6 +2355,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*68:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-A*68:01 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-A*68:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-A*68:02"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2174,6 +2370,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*68:02"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-A*68:02 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-A*68:02"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-A*74:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2185,6 +2385,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*74:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-A*74:01 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-A*74:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-B*07:02"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2196,6 +2400,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*07:02"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-B*07:02 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-B*07:02"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-B*07:04"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2207,6 +2415,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*07:04"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-B*07:04 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-B*07:04"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-B*08:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2218,6 +2430,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*08:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-B*08:01 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-B*08:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-B*13:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2229,6 +2445,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*13:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-B*13:01 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-B*13:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-B*13:02"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2240,6 +2460,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*13:02"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-B*13:02 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-B*13:02"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-B*14:02"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2251,6 +2475,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*14:02"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-B*14:02 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-B*14:02"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-B*15:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2262,6 +2490,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*15:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-B*15:01 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-B*15:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-B*15:02"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2273,6 +2505,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*15:02"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-B*15:02 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-B*15:02"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-B*15:03"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2284,6 +2520,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*15:03"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-B*15:03 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-B*15:03"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-B*15:10"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2295,6 +2535,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*15:10"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-B*15:10 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-B*15:10"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-B*15:17"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2306,6 +2550,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*15:17"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-B*15:17 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-B*15:17"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-B*18:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2317,6 +2565,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*18:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-B*18:01 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-B*18:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-B*27:05"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2328,6 +2580,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*27:05"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-B*27:05 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-B*27:05"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-B*35:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2339,6 +2595,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*35:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-B*35:01 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-B*35:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-B*35:03"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2350,6 +2610,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*35:03"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-B*35:03 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-B*35:03"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-B*35:07"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2361,6 +2625,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*35:07"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-B*35:07 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-B*35:07"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-B*37:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2372,6 +2640,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*37:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-B*37:01 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-B*37:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-B*38:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2383,6 +2655,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*38:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-B*38:01 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-B*38:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-B*38:02"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2394,6 +2670,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*38:02"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-B*38:02 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-B*38:02"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-B*40:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2405,6 +2685,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*40:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-B*40:01 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-B*40:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-B*40:02"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2416,6 +2700,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*40:02"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-B*40:02 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-B*40:02"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-B*40:06"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2427,6 +2715,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*40:06"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-B*40:06 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-B*40:06"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-B*42:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2438,6 +2730,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*42:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-B*42:01 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-B*42:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-B*44:02"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2449,6 +2745,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*44:02"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-B*44:02 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-B*44:02"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-B*44:03"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2460,6 +2760,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*44:03"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-B*44:03 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-B*44:03"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-B*45:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2471,6 +2775,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*45:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-B*45:01 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-B*45:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-B*46:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2482,6 +2790,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*46:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-B*46:01 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-B*46:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-B*49:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2493,6 +2805,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*49:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-B*49:01 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-B*49:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-B*50:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2504,6 +2820,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*50:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-B*50:01 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-B*50:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-B*51:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2515,6 +2835,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*51:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-B*51:01 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-B*51:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-B*52:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2526,6 +2850,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*52:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-B*52:01 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-B*52:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-B*53:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2537,6 +2865,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*53:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-B*53:01 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-B*53:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-B*54:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2548,6 +2880,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*54:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-B*54:01 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-B*54:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-B*55:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2559,6 +2895,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*55:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-B*55:01 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-B*55:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-B*55:02"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2570,6 +2910,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*55:02"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-B*55:02 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-B*55:02"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-B*56:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2581,6 +2925,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*56:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-B*56:01 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-B*56:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-B*57:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2592,6 +2940,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*57:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-B*57:01 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-B*57:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-B*57:03"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2603,6 +2955,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*57:03"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-B*57:03 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-B*57:03"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-B*58:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2614,6 +2970,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*58:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-B*58:01 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-B*58:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-B*58:02"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2625,6 +2985,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*58:02"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-B*58:02 HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-B*58:02"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-C*01:02"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2636,6 +3000,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-C*01:02"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-C*01:02"
+        mhc_genotype_cell: "721.221-HLA-C*01:02"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-C*02:02"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2647,6 +3015,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-C*02:02"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-C*01:02 HLA-C*02:02"
+        mhc_genotype_cell: "721.221-HLA-C*02:02"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-C*03:02"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2658,6 +3030,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-C*03:02"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-C*01:02 HLA-C*03:02"
+        mhc_genotype_cell: "721.221-HLA-C*03:02"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-C*03:03"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2669,6 +3045,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-C*03:03"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-C*01:02 HLA-C*03:03"
+        mhc_genotype_cell: "721.221-HLA-C*03:03"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-C*03:04"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2680,6 +3060,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-C*03:04"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-C*01:02 HLA-C*03:04"
+        mhc_genotype_cell: "721.221-HLA-C*03:04"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-C*04:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2691,6 +3075,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-C*04:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-C*01:02 HLA-C*04:01"
+        mhc_genotype_cell: "721.221-HLA-C*04:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-C*04:03"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2702,6 +3090,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-C*04:03"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-C*01:02 HLA-C*04:03"
+        mhc_genotype_cell: "721.221-HLA-C*04:03"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-C*05:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2713,6 +3105,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-C*05:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-C*01:02 HLA-C*05:01"
+        mhc_genotype_cell: "721.221-HLA-C*05:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-C*06:02"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2724,6 +3120,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-C*06:02"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-C*01:02 HLA-C*06:02"
+        mhc_genotype_cell: "721.221-HLA-C*06:02"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-C*07:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2735,6 +3135,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-C*07:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-C*01:02 HLA-C*07:01"
+        mhc_genotype_cell: "721.221-HLA-C*07:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-C*07:02"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2746,6 +3150,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-C*07:02"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-C*01:02 HLA-C*07:02"
+        mhc_genotype_cell: "721.221-HLA-C*07:02"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-C*07:04"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2757,6 +3165,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-C*07:04"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-C*01:02 HLA-C*07:04"
+        mhc_genotype_cell: "721.221-HLA-C*07:04"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-C*08:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2768,6 +3180,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-C*08:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-C*01:02 HLA-C*08:01"
+        mhc_genotype_cell: "721.221-HLA-C*08:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-C*08:02"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2779,6 +3195,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-C*08:02"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-C*01:02 HLA-C*08:02"
+        mhc_genotype_cell: "721.221-HLA-C*08:02"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-C*12:02"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2790,6 +3210,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-C*12:02"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-C*01:02 HLA-C*12:02"
+        mhc_genotype_cell: "721.221-HLA-C*12:02"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-C*12:03"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2801,6 +3225,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-C*12:03"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-C*01:02 HLA-C*12:03"
+        mhc_genotype_cell: "721.221-HLA-C*12:03"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-C*14:02"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2812,6 +3240,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-C*14:02"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-C*01:02 HLA-C*14:02"
+        mhc_genotype_cell: "721.221-HLA-C*14:02"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-C*14:03"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2823,6 +3255,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-C*14:03"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-C*01:02 HLA-C*14:03"
+        mhc_genotype_cell: "721.221-HLA-C*14:03"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-C*15:02"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2834,6 +3270,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-C*15:02"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-C*01:02 HLA-C*15:02"
+        mhc_genotype_cell: "721.221-HLA-C*15:02"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-C*16:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2845,6 +3285,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-C*16:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-C*01:02 HLA-C*16:01"
+        mhc_genotype_cell: "721.221-HLA-C*16:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-C*17:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2856,6 +3300,10 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-C*17:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-C*01:02 HLA-C*17:01"
+        mhc_genotype_cell: "721.221-HLA-C*17:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-G*01:01"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2867,6 +3315,10 @@
         condition_culture: "standard_culture"
         mhc_class: non-classical
         mhc: "HLA-G*01:01"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-C*01:02 HLA-G*01:01"
+        mhc_genotype_cell: "721.221-HLA-G*01:01"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-G*01:03"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2878,6 +3330,10 @@
         condition_culture: "standard_culture"
         mhc_class: non-classical
         mhc: "HLA-G*01:03"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-C*01:02 HLA-G*01:03"
+        mhc_genotype_cell: "721.221-HLA-G*01:03"
+        mhc_genotype_source: *mhc_source_31844290
       - sample_label: "721.221-HLA-G*01:04"
         n_samples: 1
         source: "79 new + 16 from Abelin 2017, 30-90M cells per allele"
@@ -2889,6 +3345,10 @@
         condition_culture: "standard_culture"
         mhc_class: non-classical
         mhc: "HLA-G*01:04"
+        mhc_basis: "selected_restriction"
+        mhc_genotype: "HLA-C*01:02 HLA-G*01:04"
+        mhc_genotype_cell: "721.221-HLA-G*01:04"
+        mhc_genotype_source: *mhc_source_31844290
   # --- Validation tumor cell lines (Supplementary Data 2) ---
   # CLL (3 samples, untreated only, CD19-sorted)
       - sample_label: CLL A (DFCI-5341)
@@ -4055,6 +4515,7 @@
         ip_antibody: "streptavidin (MAPTAC)"
         mhc_class: I
         mhc: "HLA-A*02:01"
+        mhc_basis: "selected_restriction"
       - sample_label: "MAPTAC-HLA-A*11:01"
         n_samples: 1
         source: cell line mixtures per allele
@@ -4067,6 +4528,7 @@
         ip_antibody: "streptavidin (MAPTAC)"
         mhc_class: I
         mhc: "HLA-A*11:01"
+        mhc_basis: "selected_restriction"
       - sample_label: "MAPTAC-HLA-A*32:01"
         n_samples: 1
         source: cell line mixtures per allele
@@ -4079,6 +4541,7 @@
         ip_antibody: "streptavidin (MAPTAC)"
         mhc_class: I
         mhc: "HLA-A*32:01"
+        mhc_basis: "selected_restriction"
       - sample_label: "MAPTAC-HLA-B*07:02"
         n_samples: 1
         source: cell line mixtures per allele
@@ -4091,6 +4554,7 @@
         ip_antibody: "streptavidin (MAPTAC)"
         mhc_class: I
         mhc: "HLA-B*07:02"
+        mhc_basis: "selected_restriction"
       - sample_label: "MAPTAC-HLA-B*45:01"
         n_samples: 1
         source: cell line mixtures per allele
@@ -4103,6 +4567,7 @@
         ip_antibody: "streptavidin (MAPTAC)"
         mhc_class: I
         mhc: "HLA-B*45:01"
+        mhc_basis: "selected_restriction"
       - sample_label: "MAPTAC-HLA-B*52:01"
         n_samples: 1
         source: cell line mixtures per allele
@@ -4115,6 +4580,7 @@
         ip_antibody: "streptavidin (MAPTAC)"
         mhc_class: I
         mhc: "HLA-B*52:01"
+        mhc_basis: "selected_restriction"
       - sample_label: "MAPTAC-HLA-C*03:03"
         n_samples: 1
         source: cell line mixtures per allele
@@ -4127,6 +4593,7 @@
         ip_antibody: "streptavidin (MAPTAC)"
         mhc_class: I
         mhc: "HLA-C*03:03"
+        mhc_basis: "selected_restriction"
       - sample_label: "MAPTAC-HLA-C*06:02"
         n_samples: 1
         source: cell line mixtures per allele
@@ -4139,6 +4606,7 @@
         ip_antibody: "streptavidin (MAPTAC)"
         mhc_class: I
         mhc: "HLA-C*06:02"
+        mhc_basis: "selected_restriction"
       - sample_label: "MAPTAC-HLA-DRB1*01:01"
         n_samples: 1
         source: "Expi293, A375, B721.221, K562, KG-1"
@@ -4151,6 +4619,7 @@
         mhc_class: II
         ip_antibody: "streptavidin (MAPTAC)"
         mhc: "HLA-DRB1*01:01"
+        mhc_basis: "selected_restriction"
       - sample_label: "MAPTAC-HLA-DRB1*03:01"
         n_samples: 1
         source: "Expi293"
@@ -4163,6 +4632,7 @@
         mhc_class: II
         ip_antibody: "streptavidin (MAPTAC)"
         mhc: "HLA-DRB1*03:01"
+        mhc_basis: "selected_restriction"
       - sample_label: "MAPTAC-HLA-DRB1*04:01"
         n_samples: 1
         source: "Expi293"
@@ -4175,6 +4645,7 @@
         mhc_class: II
         ip_antibody: "streptavidin (MAPTAC)"
         mhc: "HLA-DRB1*04:01"
+        mhc_basis: "selected_restriction"
       - sample_label: "MAPTAC-HLA-DRB1*07:01"
         n_samples: 1
         source: "Expi293, HEK293"
@@ -4187,6 +4658,7 @@
         mhc_class: II
         ip_antibody: "streptavidin (MAPTAC)"
         mhc: "HLA-DRB1*07:01"
+        mhc_basis: "selected_restriction"
       - sample_label: "MAPTAC-HLA-DRB1*11:01"
         n_samples: 1
         source: "Expi293, A375, HEK293, K562, KG-1"
@@ -4199,6 +4671,7 @@
         mhc_class: II
         ip_antibody: "streptavidin (MAPTAC)"
         mhc: "HLA-DRB1*11:01"
+        mhc_basis: "selected_restriction"
       - sample_label: "MAPTAC-HLA-DRB1*12:01 (dm-)"
         n_samples: 1
         source: "Expi293"
@@ -4212,6 +4685,7 @@
         mhc_class: II
         ip_antibody: "streptavidin (MAPTAC)"
         mhc: "HLA-DRB1*12:01"
+        mhc_basis: "selected_restriction"
       - sample_label: "MAPTAC-HLA-DRB1*12:01 (dm+)"
         n_samples: 1
         source: "Expi293"
@@ -4225,6 +4699,7 @@
         mhc_class: II
         ip_antibody: "streptavidin (MAPTAC)"
         mhc: "HLA-DRB1*12:01"
+        mhc_basis: "selected_restriction"
       - sample_label: "MAPTAC-HLA-DRB1*15:01"
         n_samples: 1
         source: "Expi293"
@@ -4237,6 +4712,7 @@
         mhc_class: II
         ip_antibody: "streptavidin (MAPTAC)"
         mhc: "HLA-DRB1*15:01"
+        mhc_basis: "selected_restriction"
       - sample_label: "MAPTAC-HLA-DRB3*01:01 (dm-)"
         n_samples: 1
         source: "Expi293"
@@ -4250,6 +4726,7 @@
         mhc_class: II
         ip_antibody: "streptavidin (MAPTAC)"
         mhc: "HLA-DRB3*01:01"
+        mhc_basis: "selected_restriction"
       - sample_label: "MAPTAC-HLA-DRB3*01:01 (dm+)"
         n_samples: 1
         source: "Expi293"
@@ -4263,6 +4740,7 @@
         mhc_class: II
         ip_antibody: "streptavidin (MAPTAC)"
         mhc: "HLA-DRB3*01:01"
+        mhc_basis: "selected_restriction"
       - sample_label: "MAPTAC-HLA-DPB1*06:01/DPA1*01:03 (dm-)"
         n_samples: 1
         source: "Expi293"
@@ -4276,6 +4754,7 @@
         mhc_class: II
         ip_antibody: "streptavidin (MAPTAC)"
         mhc: "HLA-DPB1*06:01/DPA1*01:03"
+        mhc_basis: "selected_restriction"
       - sample_label: "MAPTAC-HLA-DPB1*06:01/DPA1*01:03 (dm+)"
         n_samples: 1
         source: "Expi293"
@@ -4289,6 +4768,7 @@
         mhc_class: II
         ip_antibody: "streptavidin (MAPTAC)"
         mhc: "HLA-DPB1*06:01/DPA1*01:03"
+        mhc_basis: "selected_restriction"
       - sample_label: "MAPTAC-HLA-DQB1*06:04/DQA1*01:02 (dm-)"
         n_samples: 1
         source: "Expi293"
@@ -4302,6 +4782,7 @@
         mhc_class: II
         ip_antibody: "streptavidin (MAPTAC)"
         mhc: "HLA-DQB1*06:04/DQA1*01:02"
+        mhc_basis: "selected_restriction"
       - sample_label: "MAPTAC-HLA-DQB1*06:04/DQA1*01:02 (dm+)"
         n_samples: 1
         source: "Expi293"
@@ -4315,6 +4796,7 @@
         mhc_class: II
         ip_antibody: "streptavidin (MAPTAC)"
         mhc: "HLA-DQB1*06:04/DQA1*01:02"
+        mhc_basis: "selected_restriction"
       - sample_label: lung tissue (HLA-DR)
         n_samples: 1
         source: healthy donor
@@ -5708,6 +6190,11 @@
         mhc_class: "I"
         ip_antibody: "HB95/W6/32"
         mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*08:01 HLA-B*13:02 HLA-C*06:02 HLA-C*07:01"
+        mhc_basis: "sample_typing"
+        mhc_genotype: "HLA-A*01:01 HLA-A*02:01 HLA-B*08:01 HLA-B*13:02 HLA-C*06:02 HLA-C*07:01 HLA-DPA1*01:03 HLA-DPB1*04:01 HLA-DQA1*02:01 HLA-DQA1*05:01 HLA-DQB1*02:01 HLA-DQB1*02:02 HLA-DRB1*03:01 HLA-DRB1*07:01 HLA-DRB3*01:01 HLA-DRB4*01:03"
+        mhc_genotype_cell: "HROG02"
+        mhc_genotype_complete_loci: "HLA-A;HLA-B;HLA-C;HLA-DQA1;HLA-DQB1;HLA-DRB1"
+        mhc_genotype_source: &mhc_source_33592498 "PMID 33592498 (PMC8724627), HLA Typing and Table 1. High-resolution typing of the named GBM line; complete_loci records loci with both typing slots specified. Table x entries remain unknown; DRB3/4 coverage is partial. Cellular typing is not a claim of expression or peptide presentation."
       - sample_label: "HROG17 parental (class I)"
         n_samples: 1
         condition: "unperturbed"
@@ -5718,6 +6205,11 @@
         mhc_class: "I"
         ip_antibody: "HB95/W6/32"
         mhc: "HLA-A*11:01 HLA-A*66:01 HLA-B*14:02 HLA-B*40:02 HLA-C*01:02 HLA-C*08:02"
+        mhc_basis: "sample_typing"
+        mhc_genotype: "HLA-A*11:01 HLA-A*66:01 HLA-B*14:02 HLA-B*40:02 HLA-C*01:02 HLA-C*08:02 HLA-DPA1*01:03 HLA-DPA1*02:01 HLA-DPB1*04:01 HLA-DPB1*11:01 HLA-DQA1*01:01 HLA-DQA1*05:05 HLA-DQB1*03:01 HLA-DQB1*05:01 HLA-DRB1*01:02 HLA-DRB1*12:01 HLA-DRB3*02:02"
+        mhc_genotype_cell: "HROG17"
+        mhc_genotype_complete_loci: "HLA-A;HLA-B;HLA-C;HLA-DPA1;HLA-DPB1;HLA-DQA1;HLA-DQB1;HLA-DRB1"
+        mhc_genotype_source: *mhc_source_33592498
       - sample_label: "RA parental (class I)"
         n_samples: 1
         condition: "unperturbed"
@@ -5728,6 +6220,11 @@
         mhc_class: "I"
         ip_antibody: "HB95/W6/32"
         mhc: "HLA-A*02:01 HLA-A*24:02 HLA-B*35:03 HLA-B*51:01 HLA-C*04:01 HLA-C*14:02"
+        mhc_basis: "sample_typing"
+        mhc_genotype: "HLA-A*02:01 HLA-A*24:02 HLA-B*35:03 HLA-B*51:01 HLA-C*04:01 HLA-C*14:02 HLA-DPA1*01:03 HLA-DPA1*02:07 HLA-DPB1*04:01 HLA-DPB1*19:01 HLA-DQA1*03:01 HLA-DQA1*04:01 HLA-DQB1*03:02 HLA-DQB1*04:02 HLA-DRB1*04:01 HLA-DRB1*08:01 HLA-DRB4*01:03"
+        mhc_genotype_cell: "RA"
+        mhc_genotype_complete_loci: "HLA-A;HLA-B;HLA-C;HLA-DPA1;HLA-DPB1;HLA-DQA1;HLA-DQB1;HLA-DRB1"
+        mhc_genotype_source: *mhc_source_33592498
       # CIITA-transduced — class I, per cell line
       - sample_label: "HROG02 CIITA-transduced (class I)"
         n_samples: 1
@@ -5740,6 +6237,11 @@
         mhc_class: "I"
         ip_antibody: "HB95/W6/32"
         mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*08:01 HLA-B*13:02 HLA-C*06:02 HLA-C*07:01"
+        mhc_basis: "sample_typing"
+        mhc_genotype: "HLA-A*01:01 HLA-A*02:01 HLA-B*08:01 HLA-B*13:02 HLA-C*06:02 HLA-C*07:01 HLA-DPA1*01:03 HLA-DPB1*04:01 HLA-DQA1*02:01 HLA-DQA1*05:01 HLA-DQB1*02:01 HLA-DQB1*02:02 HLA-DRB1*03:01 HLA-DRB1*07:01 HLA-DRB3*01:01 HLA-DRB4*01:03"
+        mhc_genotype_cell: "HROG02"
+        mhc_genotype_complete_loci: "HLA-A;HLA-B;HLA-C;HLA-DQA1;HLA-DQB1;HLA-DRB1"
+        mhc_genotype_source: *mhc_source_33592498
       - sample_label: "HROG17 CIITA-transduced (class I)"
         n_samples: 1
         condition: "CIITA transduction"
@@ -5751,6 +6253,11 @@
         mhc_class: "I"
         ip_antibody: "HB95/W6/32"
         mhc: "HLA-A*11:01 HLA-A*66:01 HLA-B*14:02 HLA-B*40:02 HLA-C*01:02 HLA-C*08:02"
+        mhc_basis: "sample_typing"
+        mhc_genotype: "HLA-A*11:01 HLA-A*66:01 HLA-B*14:02 HLA-B*40:02 HLA-C*01:02 HLA-C*08:02 HLA-DPA1*01:03 HLA-DPA1*02:01 HLA-DPB1*04:01 HLA-DPB1*11:01 HLA-DQA1*01:01 HLA-DQA1*05:05 HLA-DQB1*03:01 HLA-DQB1*05:01 HLA-DRB1*01:02 HLA-DRB1*12:01 HLA-DRB3*02:02"
+        mhc_genotype_cell: "HROG17"
+        mhc_genotype_complete_loci: "HLA-A;HLA-B;HLA-C;HLA-DPA1;HLA-DPB1;HLA-DQA1;HLA-DQB1;HLA-DRB1"
+        mhc_genotype_source: *mhc_source_33592498
       - sample_label: "RA CIITA-transduced (class I)"
         n_samples: 1
         condition: "CIITA transduction"
@@ -5762,6 +6269,11 @@
         mhc_class: "I"
         ip_antibody: "HB95/W6/32"
         mhc: "HLA-A*02:01 HLA-A*24:02 HLA-B*35:03 HLA-B*51:01 HLA-C*04:01 HLA-C*14:02"
+        mhc_basis: "sample_typing"
+        mhc_genotype: "HLA-A*02:01 HLA-A*24:02 HLA-B*35:03 HLA-B*51:01 HLA-C*04:01 HLA-C*14:02 HLA-DPA1*01:03 HLA-DPA1*02:07 HLA-DPB1*04:01 HLA-DPB1*19:01 HLA-DQA1*03:01 HLA-DQA1*04:01 HLA-DQB1*03:02 HLA-DQB1*04:02 HLA-DRB1*04:01 HLA-DRB1*08:01 HLA-DRB4*01:03"
+        mhc_genotype_cell: "RA"
+        mhc_genotype_complete_loci: "HLA-A;HLA-B;HLA-C;HLA-DPA1;HLA-DPB1;HLA-DQA1;HLA-DQB1;HLA-DRB1"
+        mhc_genotype_source: *mhc_source_33592498
       # CIITA-transduced — class II (artificially induced), per cell line
       - sample_label: "HROG02 CIITA-transduced (class II)"
         n_samples: 1
@@ -5774,6 +6286,10 @@
         mhc_class: "II"
         ip_antibody: "HB245/IVA12"
         mhc: "HLA-DRB1*03:01 HLA-DRB1*07:01"
+        mhc_genotype: "HLA-A*01:01 HLA-A*02:01 HLA-B*08:01 HLA-B*13:02 HLA-C*06:02 HLA-C*07:01 HLA-DPA1*01:03 HLA-DPB1*04:01 HLA-DQA1*02:01 HLA-DQA1*05:01 HLA-DQB1*02:01 HLA-DQB1*02:02 HLA-DRB1*03:01 HLA-DRB1*07:01 HLA-DRB3*01:01 HLA-DRB4*01:03"
+        mhc_genotype_cell: "HROG02"
+        mhc_genotype_complete_loci: "HLA-A;HLA-B;HLA-C;HLA-DQA1;HLA-DQB1;HLA-DRB1"
+        mhc_genotype_source: *mhc_source_33592498
       - sample_label: "HROG17 CIITA-transduced (class II)"
         n_samples: 1
         condition: "CIITA transduction — HLA-II not naturally expressed in GBM"
@@ -5785,6 +6301,10 @@
         mhc_class: "II"
         ip_antibody: "HB245/IVA12"
         mhc: "HLA-DRB1*01:02 HLA-DRB1*12:01"
+        mhc_genotype: "HLA-A*11:01 HLA-A*66:01 HLA-B*14:02 HLA-B*40:02 HLA-C*01:02 HLA-C*08:02 HLA-DPA1*01:03 HLA-DPA1*02:01 HLA-DPB1*04:01 HLA-DPB1*11:01 HLA-DQA1*01:01 HLA-DQA1*05:05 HLA-DQB1*03:01 HLA-DQB1*05:01 HLA-DRB1*01:02 HLA-DRB1*12:01 HLA-DRB3*02:02"
+        mhc_genotype_cell: "HROG17"
+        mhc_genotype_complete_loci: "HLA-A;HLA-B;HLA-C;HLA-DPA1;HLA-DPB1;HLA-DQA1;HLA-DQB1;HLA-DRB1"
+        mhc_genotype_source: *mhc_source_33592498
       - sample_label: "RA CIITA-transduced (class II)"
         n_samples: 1
         condition: "CIITA transduction — HLA-II not naturally expressed in GBM"
@@ -5796,6 +6316,10 @@
         mhc_class: "II"
         ip_antibody: "HB245/IVA12"
         mhc: "HLA-DRB1*04:01 HLA-DRB1*08:01"
+        mhc_genotype: "HLA-A*02:01 HLA-A*24:02 HLA-B*35:03 HLA-B*51:01 HLA-C*04:01 HLA-C*14:02 HLA-DPA1*01:03 HLA-DPA1*02:07 HLA-DPB1*04:01 HLA-DPB1*19:01 HLA-DQA1*03:01 HLA-DQA1*04:01 HLA-DQB1*03:02 HLA-DQB1*04:02 HLA-DRB1*04:01 HLA-DRB1*08:01 HLA-DRB4*01:03"
+        mhc_genotype_cell: "RA"
+        mhc_genotype_complete_loci: "HLA-A;HLA-B;HLA-C;HLA-DPA1;HLA-DPB1;HLA-DQA1;HLA-DQB1;HLA-DRB1"
+        mhc_genotype_source: *mhc_source_33592498
 
   - pmid: 30315122
     study_label: "Faridi 2018 — cis/trans-spliced HLA-I peptides"
@@ -8473,6 +8997,10 @@
       condition_culture: RPMI-1640
       mhc_class: I
       mhc: HLA-B*40:02
+      mhc_basis: "selected_restriction"
+      mhc_genotype: "HLA-B*35:03 HLA-B*40:02 HLA-C*04:01"
+      mhc_genotype_cell: "C1R-B*40:02"
+      mhc_genotype_source: &mhc_source_31530632 "PMID 31530632 (PMC6823859), Cell Lines; Experimental Design and Strategy. Endogenous B*35:03/C*04:01 plus B*40:02 transgene; background ligands removed after W6/32 capture. Other loci and typing completeness unreported."
       sample_group: C1R
       n_samples: 3
     - sample_label: C1R HLA-B*40:02 (WT1, unedited ERAP2-positive clone)
@@ -8490,6 +9018,10 @@
       condition_culture: RPMI-1640
       mhc_class: I
       mhc: HLA-B*40:02
+      mhc_basis: "selected_restriction"
+      mhc_genotype: "HLA-B*35:03 HLA-B*40:02 HLA-C*04:01"
+      mhc_genotype_cell: "C1R-B*40:02"
+      mhc_genotype_source: *mhc_source_31530632
       sample_group: C1R
       n_samples: 3
       note: Unedited clone from the same ERAP2-targeting CRISPR transfection and limiting-dilution
@@ -8509,6 +9041,10 @@
       condition_culture: RPMI-1640
       mhc_class: I
       mhc: HLA-B*40:02
+      mhc_basis: "selected_restriction"
+      mhc_genotype: "HLA-B*35:03 HLA-B*40:02 HLA-C*04:01"
+      mhc_genotype_cell: "C1R-B*40:02"
+      mhc_genotype_source: *mhc_source_31530632
       sample_group: C1R
       n_samples: 3
       note: Unedited clone from the same ERAP2-targeting CRISPR transfection and limiting-dilution
@@ -8527,6 +9063,10 @@
       condition_culture: RPMI-1640
       mhc_class: I
       mhc: HLA-B*40:02
+      mhc_basis: "selected_restriction"
+      mhc_genotype: "HLA-B*35:03 HLA-B*40:02 HLA-C*04:01"
+      mhc_genotype_cell: "C1R-B*40:02"
+      mhc_genotype_source: *mhc_source_31530632
       sample_group: C1R
       n_samples: 3
     - sample_label: C1R HLA-B*40:02 (KO3, ERAP2 knockout clone)
@@ -8543,6 +9083,10 @@
       condition_culture: RPMI-1640
       mhc_class: I
       mhc: HLA-B*40:02
+      mhc_basis: "selected_restriction"
+      mhc_genotype: "HLA-B*35:03 HLA-B*40:02 HLA-C*04:01"
+      mhc_genotype_cell: "C1R-B*40:02"
+      mhc_genotype_source: *mhc_source_31530632
       sample_group: C1R
       n_samples: 3
     note: 'PMC6823859, Experimental Procedures: parental polyclonal C1R-B*40:02 WT; unedited ERAP2-positive
