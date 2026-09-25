@@ -91,7 +91,11 @@ def test_every_ambiguous_row_carries_a_verdict(full_observations_df):
     and is exactly what this issue exists to eliminate.
     """
     df = full_observations_df
-    ambiguous = df[df["sample_attribution"].isin(["pmid_ambiguous", "group_ambiguous"])]
+    ambiguous = df[
+        df["sample_attribution"].isin(
+            ["pmid_ambiguous", "group_ambiguous", "elution_conditions_excluded"]
+        )
+    ]
     if ambiguous.empty:
         pytest.skip("no ambiguous rows in this build")
     unexplained = ambiguous[ambiguous["arm_resolution"].isin([""])]

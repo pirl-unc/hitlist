@@ -251,6 +251,12 @@ def test_parental_statement_never_claims_the_transduced_arm(monkeypatch):
     # to say so: reporting allele_match over a pooled candidate set is exactly
     # what predict's `!= "pmid_class_pool"` guard is there to refuse.
     assert row.sample_match_type == "pmid_class_pool"
+    # Study-origin metadata is a property of the deposit, not of any arm, so
+    # it survives a row that reaches no arm (#373). Consensus across the
+    # study's class-II arms would not do: they are all CIITA-transduced, so it
+    # would hand back the transduction claim the veto just refused.
+    assert row.arm_resolution == "curation_gap"
+    assert (row.effective_override, row.effective_override_origin) == ("cell_line", "study")
 
 
 def test_every_deposited_gbm_statement_is_curated():
