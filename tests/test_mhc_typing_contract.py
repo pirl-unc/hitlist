@@ -248,6 +248,67 @@ def test_deposited_gbm_class_ii_restrictions_are_candidates_of_their_own_arm(
     assert set(restrictions) <= candidates
 
 
+@pytest.mark.parametrize(
+    "restriction, sample_label",
+    [
+        # The review case: IEDB deposits this one as a bare beta chain with no
+        # alpha partner, while the curated candidate is the heterodimer
+        # HLA-DPA1*01:03/DPB1*11:01. It reaches the arm because the join emits
+        # a key per component, not because the pair string matches (#151).
+        ("HLA-DPB1*11:01", "HROG17 CIITA-transduced (class II)"),
+        # The same arm reached by a full pair, which must keep working too.
+        ("HLA-DQA1*05:05/DQB1*03:01", "HROG17 CIITA-transduced (class II)"),
+        ("HLA-DRB3*01:01", "HROG02 CIITA-transduced (class II)"),
+    ],
+)
+def test_single_chain_gbm_restriction_reaches_its_arm_through_the_allele_join(
+    monkeypatch, restriction, sample_label
+):
+    """End-to-end, not just the component set.
+
+    The parametrized test above asserts the components the join *derives its
+    keys from*, which is an input to the behaviour: were the join to stop
+    applying ``_normalized_allele_components`` per candidate, that assertion
+    would keep passing while 2,509 HLA-DPB1*11:01 rows silently lost their arm
+    and fell back to ``pmid_class_pool`` against the study's pooled candidate
+    union. Checked by mutation — this test fails on all four claims there.
+
+    ``allele_exact`` is the claim, not ``elution_conditions``: each of these
+    restrictions is typed in exactly one of the three lines, so the key is
+    unambiguous and never reaches the arm tie-break. ``assay_comments`` is
+    left empty for that reason — the candidate list alone has to carry it.
+    """
+    monkeypatch.setattr(
+        "hitlist.observations.load_observations",
+        lambda **kwargs: pd.DataFrame(
+            [
+                {
+                    "peptide": "AAAAAAAAAAAAAAA",
+                    "pmid": 33592498,
+                    "mhc_restriction": restriction,
+                    "mhc_class": "II",
+                    "mhc_species": "Homo sapiens",
+                    "cell_name": "Glial cell",
+                    "source_tissue": "Central nervous system (CNS)",
+                    "antigen_processing_comments": "",
+                    "assay_comments": "",
+                    "is_binding_assay": False,
+                    "source": "iedb",
+                }
+            ]
+        ),
+    )
+    row = export.generate_observations_table(exclude_non_peptide_ligand=False).iloc[0]
+    assert row.sample_label == sample_label
+    assert row.sample_match_type == "allele_match"
+    assert row.sample_attribution == "allele_exact"
+    assert row.mhc_basis == "sample_typing"
+    # The row now reports the arm's whole class-II typing rather than the
+    # study's pooled DRB1 list, which is what #565 was about.
+    assert {"HLA-DP", "HLA-DQ", "HLA-DR"} <= {prefix[:6] for prefix in row.sample_mhc.split()}
+    assert row.mhc_genotype_cell == sample_label.split()[0]
+
+
 def test_no_sample_drops_an_assayed_locus_its_own_typing_reports():
     """A candidate list narrower than the cell's typing at the assayed class
     means ligands from the missing locus can never match their own sample —
