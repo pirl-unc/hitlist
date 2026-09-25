@@ -2123,6 +2123,53 @@ def generate_observations_table(
                             _lvals = _lvals.fillna("")
                         obs[_lcol] = obs[_lcol].where(~_label_hit, _lvals)
 
+    # 3d) A curated elution statement outranks the allele join.
+    #
+    # ``_select_by_elution_conditions`` is only reached for an *ambiguous*
+    # (pmid, allele) key and on the class-pool path below.  An allele typed in
+    # exactly one arm produces a unique key, takes the first-pick assignment
+    # above, and never consults the map -- so a peptide whose deposited
+    # statement names only the untransduced cells still lands on the
+    # transduced arm, reported as ``allele_exact``.  For PMID 33592498 that is
+    # 492 class-II rows asserting CIITA provenance the deposit contradicts
+    # (#565/#567): the parental lines do not express class II, which is what
+    # the transduction is for, so those are the authors' own background calls.
+    #
+    # Where a study curates an explicit statement map, the statement is the
+    # per-row evidence and an arm it excludes is a collision, not a match.
+    # Drop the attribution and let the pool below fill ``mhc`` -- the same
+    # rule ``_select_by_elution_conditions``'s callers already apply when a
+    # mapped statement cannot single out one arm ("authoritative ambiguity,
+    # not permission to guess again").
+    _statement_maps = {
+        int(_pmid): _entry["elution_condition_ids"]
+        for _pmid, _entry in overrides.items()
+        if _entry.get("elution_condition_ids")
+    }
+    if _statement_maps and "assay_comments" in obs.columns and "condition_id" in obs.columns:
+        _statements = obs["assay_comments"].astype("string").fillna("").str.strip()
+        _assigned = obs["condition_id"].astype("string").fillna("")
+        _vetoed = pd.Series(False, index=obs.index)
+        for _pmid, _map in _statement_maps.items():
+            _rows = (obs["_pmid_int"] == float(_pmid)).fillna(False)
+            if not _rows.any():
+                continue
+            _vetoed.loc[_rows] = [
+                bool(_arm) and isinstance(_allowed, list) and _arm not in _allowed
+                for _allowed, _arm in zip(
+                    _statements[_rows].map(_map), _assigned[_rows], strict=True
+                )
+            ]
+        if _vetoed.any():
+            for _col in meta_cols:
+                if _col in _BOOL_META_COLS:
+                    obs[_col] = obs[_col].where(~_vetoed, False)
+                else:
+                    obs[_col] = obs[_col].where(~_vetoed, "")
+            obs["sample_attribution"] = obs["sample_attribution"].where(
+                ~_vetoed, "elution_conditions_excluded"
+            )
+
     # 4) Class-pool fallback: for still-unmatched rows, fill sample_mhc
     #    with the union of all alleles from samples of the same class.
     still_empty = obs["mhc"] == ""

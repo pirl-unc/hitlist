@@ -4159,8 +4159,12 @@ rows: HLA-DRB4*01:03 is typed in both HROG02 and RA, and the arm tie-break
 scores tokens of length 3 or more, so "RA" never matches and those rows
 first-picked HROG02. The deposited elution statements resolve them — the same
 per-row discriminator the study's `arm_resolution` verdict was filed against.
-After both changes no row's arm contradicts its deposited elution statement,
-down from 1,457.
+Measured after both changes: 0 rows contradict their deposited elution
+statement, down from 571 on main. Reaching 0 took a third change the review
+caught — the statement map is only consulted for an *ambiguous* allele key, so
+an allele typed in one line alone skipped it and handed 492 parental-statement
+class-II rows to that line's CIITA arm as `allele_exact`. The exporter now
+vetoes an arm its own deposited statement excludes.
 
 Audit: outside this study no sample's candidate list drops a locus of the
 assayed class that its own `mhc_genotype` reports. The only other pan-class-II

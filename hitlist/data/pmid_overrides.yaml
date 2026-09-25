@@ -6164,11 +6164,14 @@
       boilerplate; elution_condition_ids maps all 9 to their arms. 6,985 rows still reach no
       single arm, but by evidence rather than by omission: their statement names the
       parental and the CIITA arm together, so the peptide really was eluted from both.
-      What remains is a narrower gap. The paper reports 165/651/83 HLA-II peptides in the
-      parental (CIITA-negative) lines, mostly background rather than true ligands, and IEDB
-      carries 585 class-II rows under the parental-only statements. No parental class-II arm
-      is curated, so those rows either fall to the CIITA class-II arm on a non-shared allele
-      or reach no arm at all on a shared one (#567).
+      Of those, 6,892 are class-I rows from the paired statements -- ambiguous by evidence.
+      The other 93 are class-II rows under parental-only statements, ambiguous by omission:
+      no parental class-II arm is curated, so there is no arm for them to reach (#567).
+      The paper reports 165/651/83 HLA-II peptides in the parental (CIITA-negative) lines,
+      mostly background rather than true ligands, and IEDB carries 585 class-II rows under
+      those statements. A further 492 of them would otherwise reach the CIITA class-II arm
+      on an allele typed in only that line, which the statement veto in the exporter now
+      refuses rather than asserting transduced provenance the deposit contradicts.
     # IEDB enumerates the elution condition per peptide, and the statement names
     # the cell line and whether CIITA was induced. That is the per-row
     # discriminator the arm_resolution verdict above says is present but unused.
@@ -6326,10 +6329,14 @@
       # cell expresses is an experimental candidate — the candidates are the
       # cell's own class-II typing (Table 1), hence mhc_basis: sample_typing.
       # DP and DQ are written as alpha/beta pairs because that is how the paper
-      # and the deposited restrictions name them; where both chains are
-      # heterozygous every cis and trans combination is listed, which is what
-      # the paper does for these cells (e.g. HROG02's four DQ combinations,
-      # HROG17's DPA1*02:01_DPB1*04:01, RA's DPA1*02:07_DPB1*19:01).
+      # and the deposited restrictions name them. Where both chains are
+      # heterozygous the trans combinations are listed only when they actually
+      # form: DQ alpha/beta pairing is restricted, so HROG17 carries its two
+      # cis pairs alone (DQA1*01:01/DQB1*05:01, DQA1*05:05/DQB1*03:01), which
+      # is also the pair set the paper reports for that line. DQA1*01 group
+      # alpha chains do not dimerise with DQB1*03 haplotype beta chains, nor
+      # DQA1*05 with DQB1*05. HROG02's and RA's listed combinations are all
+      # permissive, and DP pairing is not restricted this way.
       - sample_label: "HROG02 CIITA-transduced (class II)"
         n_samples: 1
         condition: "CIITA transduction — HLA-II not naturally expressed in GBM"
@@ -6356,7 +6363,7 @@
         condition_transduction: "CIITA"
         mhc_class: "II"
         ip_antibody: "HB245/IVA12"
-        mhc: "HLA-DPA1*01:03/DPB1*04:01 HLA-DPA1*01:03/DPB1*11:01 HLA-DPA1*02:01/DPB1*04:01 HLA-DPA1*02:01/DPB1*11:01 HLA-DQA1*01:01/DQB1*03:01 HLA-DQA1*01:01/DQB1*05:01 HLA-DQA1*05:05/DQB1*03:01 HLA-DQA1*05:05/DQB1*05:01 HLA-DRB1*01:02 HLA-DRB1*12:01 HLA-DRB3*02:02"
+        mhc: "HLA-DPA1*01:03/DPB1*04:01 HLA-DPA1*01:03/DPB1*11:01 HLA-DPA1*02:01/DPB1*04:01 HLA-DPA1*02:01/DPB1*11:01 HLA-DQA1*01:01/DQB1*05:01 HLA-DQA1*05:05/DQB1*03:01 HLA-DRB1*01:02 HLA-DRB1*12:01 HLA-DRB3*02:02"
         mhc_basis: "sample_typing"
         mhc_genotype: "HLA-A*11:01 HLA-A*66:01 HLA-B*14:02 HLA-B*40:02 HLA-C*01:02 HLA-C*08:02 HLA-DPA1*01:03 HLA-DPA1*02:01 HLA-DPB1*04:01 HLA-DPB1*11:01 HLA-DQA1*01:01 HLA-DQA1*05:05 HLA-DQB1*03:01 HLA-DQB1*05:01 HLA-DRB1*01:02 HLA-DRB1*12:01 HLA-DRB3*02:02"
         mhc_genotype_cell: "HROG17"

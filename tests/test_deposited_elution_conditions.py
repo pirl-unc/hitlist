@@ -162,16 +162,28 @@ GBM_STATEMENT = "The epitope was eluted from the following conditions: {}."
 
 
 @pytest.mark.parametrize(
-    "deposited_line, condition_prefix",
-    [("HRGO02", "hrog02"), ("HROG17", "hrog17"), ("RA", "ra")],
+    "deposited_line, condition_prefix, restriction",
+    [
+        # HLA-DPA1*01:03/DPB1*04:01 is typed in all three lines, so the key is
+        # ambiguous for every one of them and only the statement can resolve it.
+        ("HRGO02", "hrog02", "HLA-DPA1*01:03/DPB1*04:01"),
+        ("HROG17", "hrog17", "HLA-DPA1*01:03/DPB1*04:01"),
+        ("RA", "ra", "HLA-DPA1*01:03/DPB1*04:01"),
+        # HLA-DRB4*01:03 is typed in HROG02 and RA only -- the original case
+        # this map was curated for. HROG17 is deliberately absent: it carries
+        # DRB3*02:02, not DRB4, so asking it to claim a DRB4 ligand would be
+        # asking for an arm whose own candidate list excludes the restriction.
+        ("HRGO02", "hrog02", "HLA-DRB4*01:03"),
+        ("RA", "ra", "HLA-DRB4*01:03"),
+    ],
 )
 def test_gbm_ciita_statement_picks_its_own_line_on_a_shared_class_ii_allele(
-    monkeypatch, deposited_line, condition_prefix
+    monkeypatch, deposited_line, condition_prefix, restriction
 ):
-    """HLA-DRB4*01:03 is typed in both HROG02 and RA, so the pan-class-II
-    candidate lists leave those rows ambiguous on the allele key alone. The
-    deposited statement names the line; token scoring cannot, because "RA" is
-    two characters. Without the map the tie first-picks HROG02 for RA's rows.
+    """A class-II allele shared between these lines leaves the allele key
+    ambiguous; the deposited statement names the line and resolves it. Token
+    scoring cannot -- "RA" is two characters and the scorer wants three.
+    Without the map the tie first-picks HROG02 for RA's rows.
     """
     monkeypatch.setattr(
         "hitlist.observations.load_observations",
@@ -180,7 +192,7 @@ def test_gbm_ciita_statement_picks_its_own_line_on_a_shared_class_ii_allele(
                 {
                     "peptide": "AAAAAAAAAAAAAAA",
                     "pmid": 33592498,
-                    "mhc_restriction": "HLA-DRB4*01:03",
+                    "mhc_restriction": restriction,
                     "mhc_class": "II",
                     "mhc_species": "Homo sapiens",
                     "cell_name": "Glial cell",
@@ -197,6 +209,44 @@ def test_gbm_ciita_statement_picks_its_own_line_on_a_shared_class_ii_allele(
     assert row.condition_id == condition_prefix + "_ciita_transduced_class_ii"
     assert row.sample_attribution == "elution_conditions"
     assert row.sample_match_type == "allele_match"
+    # An arm may only be claimed for a restriction its own candidates contain.
+    # Without this the class-pool stage can rescue a row onto an arm that was
+    # never typed for the allele, and it still reports ``allele_match``.
+    assert restriction in row.sample_mhc.split()
+
+
+def test_parental_statement_never_claims_the_transduced_arm(monkeypatch):
+    """The parental lines do not express class II -- that is what the CIITA
+    transduction is for -- so a class-II peptide deposited under a
+    parental-only statement is the authors' own background call. An allele
+    typed in exactly one line makes the (pmid, allele) key unique, which skips
+    the tie-break where the statement map is read, and the row would be handed
+    the transduced arm as ``allele_exact``: 492 rows of asserted provenance the
+    deposit contradicts (#565/#567).
+    """
+    monkeypatch.setattr(
+        "hitlist.observations.load_observations",
+        lambda **kwargs: pd.DataFrame(
+            [
+                {
+                    "peptide": "AAAAAAAAAAAAAAA",
+                    "pmid": 33592498,
+                    # Typed in HROG17 alone, so the allele key is unique.
+                    "mhc_restriction": "HLA-DPB1*11:01",
+                    "mhc_class": "II",
+                    "mhc_species": "Homo sapiens",
+                    "cell_name": "Glial cell",
+                    "assay_comments": GBM_STATEMENT.format("HROG17 cells"),
+                    "is_binding_assay": False,
+                    "source": "iedb",
+                }
+            ]
+        ),
+    )
+    row = generate_observations_table(exclude_non_peptide_ligand=False).iloc[0]
+    assert row.sample_label == ""
+    assert row.sample_attribution == "elution_conditions_excluded"
+    assert row.condition_transduction == ""
 
 
 def test_every_deposited_gbm_statement_is_curated():

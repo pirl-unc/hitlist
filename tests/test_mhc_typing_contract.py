@@ -313,7 +313,17 @@ def test_no_sample_drops_an_assayed_locus_its_own_typing_reports():
     """A candidate list narrower than the cell's typing at the assayed class
     means ligands from the missing locus can never match their own sample —
     the #565 shape. ``selected_restriction`` is exempt by definition: there
-    the experiment, not the typing, chose the molecules."""
+    the experiment, not the typing, chose the molecules.
+
+    Read its coverage honestly before trusting it as a corpus-wide guard: it
+    can only compare samples that carry *both* a candidate list and an
+    independent ``mhc_genotype``, which today is a small minority of the
+    curated samples — most have no genotype curated yet, and the rest are
+    ``selected_restriction``. ``assert_covers`` below pins that number so the
+    guard cannot quietly shrink to nothing as samples are added; growing it is
+    a matter of curating more genotypes, not of loosening this test.
+    """
+    evaluated = 0
     findings = []
     for pmid, entry in curation.load_pmid_overrides().items():
         for sample in entry.get("ms_samples") or []:
@@ -323,10 +333,14 @@ def test_no_sample_drops_an_assayed_locus_its_own_typing_reports():
             mhc_class = sample.get("mhc_class")
             if not genotype or not mhc or mhc_class not in ("I", "II"):
                 continue
+            evaluated += 1
             typed, candidates = (_assayed_loci(field, mhc_class) for field in (genotype, mhc))
             if missing := typed - candidates:
                 findings.append((pmid, sample.get("sample_label", ""), sorted(missing)))
     assert findings == []
+    # Coverage, not a threshold to tune: if this drops, the guard above went
+    # quiet rather than the corpus getting cleaner.
+    assert evaluated >= 9, f"locus guard now evaluates only {evaluated} samples"
 
 
 def test_modc_genotype_names_p4_and_never_pools_a549_feeders():
