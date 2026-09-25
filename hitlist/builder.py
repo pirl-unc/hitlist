@@ -323,9 +323,22 @@ def _atomic_write_parquet(df: pd.DataFrame, path: Path) -> None:
 #: - ``pmid`` — already stored as ``Int64`` (8 bytes / row); ~38 MB on a
 #:   4.4 M-row frame, no further compression worthwhile.
 #: - ``mhc_allele_set`` / ``serotypes`` / ``gene_names`` etc. —
-#:   semicolon-joined multi-value columns; cardinality is high (every donor
-#:   set is roughly distinct), and the consumer code splits on ``;`` which
-#:   doesn't benefit from categorical lookup.
+#:   semicolon-joined multi-value columns whose consumers split on ``;``.
+#:
+#:   The cardinality half of this rationale is false and was worth checking:
+#:   the list said "every donor set is roughly distinct", but on the built
+#:   corpus ``mhc_allele_set`` has 969 distinct values across 4.4M rows,
+#:   ``serotypes`` 638 and ``host_mhc_types`` 878. As plain strings they cost
+#:   ~700 MB.
+#:
+#:   They still stay out, for the other reason. ``observations`` immediately
+#:   ``.astype("string")``\ s ``mhc_allele_set`` (identity refresh) and
+#:   ``serotypes`` (serotype refresh) across the whole frame, so encoding them
+#:   buys a dictionary and then pays to expand it again; and encoding at read
+#:   time at all requires converting the Arrow table ourselves, which holds
+#:   the table alongside the frame and measured worse than ``read_parquet``.
+#:   Correct list, wrong reason -- do not "fix" it from the cardinality
+#:   numbers alone without measuring the consumers (#566).
 _CATEGORICAL_BUILD_COLUMNS: tuple[str, ...] = (
     "source",
     "mhc_class",

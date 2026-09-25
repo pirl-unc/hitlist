@@ -216,3 +216,15 @@
   same study, so no fact is lost. A rationale that would equally justify the
   bug you are fixing is not a rationale. Say which of the two facts is absent,
   and where the other one lives.
+
+- Establish a benchmark's noise floor before you let it decide anything.
+  Rule: #566's peak-RSS numbers from the integration suite looked decisive and
+  were not. The same commit measured 16.25, 17.03, 20.38 and 17.57 GB across
+  runs, because the xdist fixture mmaps an Arrow file and mmap'd pages count
+  toward RSS, and four sibling repos' suites were competing for the machine. I
+  reported a 5 GB regression and a 2 GB improvement from that spread before
+  running the same code twice. Two runs of the unchanged baseline, first, would
+  have cost eight minutes and saved two retractions. A measurement that cannot
+  distinguish a change from itself cannot support a claim about the change --
+  and `memory_usage(deep=True)`, which is exact, was available the whole time
+  for the part of the question that mattered.
