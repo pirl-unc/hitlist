@@ -279,7 +279,10 @@ lookup_proteome("Mycobacterium tuberculosis")
 |---|---|
 | `peptide` | Amino acid sequence |
 | `mhc_restriction` | Allele from IEDB (may be `"HLA class I"` for multi-allelic studies) |
-| `sample_mhc` | Allele(s) known for the source sample — the **useful** field for training |
+| `sample_mhc` | Experimental MHC candidates; may be a selected restriction or an unresolved study/class pool, not a complete genotype |
+| `mhc_basis` | Source-reviewed `selected_restriction` or `sample_typing`; blank is unreviewed |
+| `mhc_genotype`, `mhc_genotype_cell`, `mhc_genotype_source` | Independently sourced cellular typing, its cell/donor identity and citation; never pooled across cells |
+| `mhc_genotype_reported_loci`, `mhc_genotype_complete_loci` | Loci with molecular typing versus explicitly complete typing; missing loci remain unknown |
 | `mhc_class` | Canonical `I`, `II`, or `non-classical`; molecule-derived when possible |
 | `mhc_class_reported` | Source-reported class, retained verbatim for auditability |
 | `mhc_class_source`, `mhc_class_corrected` | Whether class came from one molecule, a consistent donor set, or source fallback; whether it corrected the source |
@@ -303,9 +306,9 @@ lookup_proteome("Mycobacterium tuberculosis")
 
 | Value | Meaning | Training-grade? |
 |---|---|---|
-| `allele_match` | IEDB recorded a specific allele and it matched a curated sample genotype | **Yes** — high confidence |
-| `single_sample_fallback` | IEDB class-only but study has exactly 1 sample, so `sample_mhc` = that sample's full genotype | Yes (for deconvolution) |
-| `pmid_class_pool` | IEDB class-only + multiple samples — `sample_mhc` = union of all class-matching alleles across samples | Yes (for deconvolution), lower precision |
+| `allele_match` | IEDB recorded an allele matching the curated experimental candidates | Subject to the row's restriction evidence and sample attribution |
+| `single_sample_fallback` | Study has exactly one eligible sample; its reported candidates supply `sample_mhc` | Candidate set for that sample, with source precision retained |
+| `pmid_class_pool` | Class-based attribution; unresolved rows may carry the union of class-matching candidates | An unresolved pool must not be used as one sample's genotype |
 | `unmatched` | No curated sample for this PMID, or all samples have `mhc: unknown` | No — `sample_mhc` empty |
 
 ## Biological source classification
@@ -449,9 +452,9 @@ strongest first:
 | `n_mono_exact_rows` | Mono-allelic elution on the exact target allele (strongest) |
 | `n_multi_exact_rows` | Multi-allelic elution including the exact target allele |
 | `n_mono_serotype_rows` / `n_multi_serotype_rows` | Elution on a same-serotype allele |
-| `n_class_only_sample_allele_rows` | Class-only row whose sample genotype carries the target allele |
-| `n_class_only_sample_serotype_rows` | Class-only row whose sample genotype carries a same-serotype allele |
-| `n_unknown_allele_rows` | Class-only row with no usable sample genotype (weakest) |
+| `n_class_only_sample_allele_rows` | Class-only row whose experimental candidates include the target allele |
+| `n_class_only_sample_serotype_rows` | Class-only row whose experimental candidates include a matching serotype |
+| `n_unknown_allele_rows` | Class-only row with no usable reported candidates (weakest) |
 
 `best_support` names the strongest tier with any rows. A `cancer` / `healthy` /
 `adjacent` / `other` source breakdown (`n_cancer_rows`, ...) comes along for free,

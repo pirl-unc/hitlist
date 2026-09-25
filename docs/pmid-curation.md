@@ -89,7 +89,12 @@ not have.
 |---|---|
 | `sample_label` | Sample description. (`type:` is the **deprecated** name.) |
 | `n_samples` | Number of samples/replicates. (Use the `_samples` suffix — never a bare `n`.) |
-| `mhc` | Donor genotype (`HLA-A*…` or a space-joined allele list). |
+| `mhc` | Reported experimental MHC candidates (`HLA-A*…`, a space-joined list, or imprecise typing). May be a selected ligand restriction; never assume a complete cellular genotype. |
+| `mhc_basis` | `selected_restriction` or `sample_typing`; blank means this distinction has not been source-reviewed. `sample_typing` may cover only some loci. |
+| `mhc_genotype` | Independently sourced cellular MHC typing, including documented transgenes and background alleles. Missing means unknown; never copied automatically from `mhc`. |
+| `mhc_genotype_cell` | One named cell line or donor to which that typing belongs. An antigen-source feeder and its presenting cell are distinct. |
+| `mhc_genotype_complete_loci` | Sorted, unique, semicolon-separated loci fully typed at the source's reported resolution. Blank means completeness is unknown. Unlisted loci are not negative evidence. |
+| `mhc_genotype_source` | Citation and source location establishing the cellular typing and its scope. Required with `mhc_genotype`, as is `mhc_genotype_cell`. |
 | `mhc_class` | `"I"`, `"II"`, `"I+II"`, or `"non-classical"`. Use `non-classical` for class Ib / MHC-Ib molecules — HLA-E, HLA-F, HLA-G, MR1, CD1, H2-Q — so `--class I` does not return them. A declared class that contradicts the sample's own alleles fails CI. |
 | `condition` | Perturbation or `"unperturbed"`. |
 | `classification`, `reason` | Per-sample classification note + rationale. Exported as their own columns, and jointly as the legacy `notes` (classification if present, else reason). |
@@ -105,6 +110,32 @@ Every key an `ms_samples` entry may carry is declared in
 undeclared key.** Adding a field means adding it there together with its
 reader — otherwise it looks exactly like a field that works while reaching no
 consumer, which is how `override`, `note`, and `species` sat unread (#373).
+
+### Cellular typing versus experimental candidates (#520)
+
+These fields describe different facts. Lorente 2019's C1R-B*40:02 cells have
+reported B*35:03 and C*04:01 background expression, but the analyzed ligand
+set excludes background peptides. Its `mhc` remains `HLA-B*40:02`, while
+`mhc_genotype` records all three documented molecules. This preserves the
+selected restriction without asserting that every cellular allele presented
+every peptide. [Primary methods](https://pmc.ncbi.nlm.nih.gov/articles/PMC6823859/).
+
+The same field names are exported on samples, observations and training
+rows. Only legacy `mhc` is renamed to `sample_mhc`. The derived
+`mhc_genotype_reported_loci` lists loci carrying molecular typing; it does
+not imply complete coverage. `mhc_genotype_complete_loci` is a separate
+source claim, not a count-based inference or an expression measurement.
+For example, complete DRB1 typing does not exclude DRB3, DP or DQ products.
+
+Attribution and allele-support summaries continue to use experimental
+candidates and the observation's own restriction. Cellular typing cannot
+expand them. An ambiguous join preserves a cellular-typing block only when
+all candidates agree on its values, cell identity and provenance; the
+exporter never constructs a pooled cellular genotype. `sample_mhc` can still
+contain a study/class candidate pool for compatibility, which is why it must
+not be treated as a genotype. Allele reassignment requires a named sample,
+uses its experimental candidates, and carries the independent typing fields
+through its output. Unreviewed legacy records have blank cellular typing.
 
 ### The flat condition columns (#450)
 

@@ -98,6 +98,27 @@ def test_equal_scores_have_a_stable_winner(monkeypatch):
     assert predict.reassign_class_only_alleles().iloc[0]["best_allele"] == "HLA-A*02:01"
 
 
+def test_unidentified_study_pool_is_not_a_predictor_genotype(monkeypatch):
+    calls = _install_predictions(monkeypatch, [_observation(1, "", "HLA-A*02:01 HLA-B*07:02")], {})
+    assert predict.reassign_class_only_alleles().empty
+    assert not calls
+
+
+def test_cellular_background_does_not_enter_selected_restriction_prediction(monkeypatch):
+    row = {
+        **_observation(31530632, "C1R", "HLA-B*40:02"),
+        "mhc_basis": "selected_restriction",
+        "mhc_genotype": "HLA-B*35:03 HLA-B*40:02 HLA-C*04:01",
+        "mhc_genotype_cell": "C1R-B*40:02",
+        "mhc_genotype_source": "PMID 31530632, Cell Lines",
+    }
+    calls = _install_predictions(monkeypatch, [row], {"HLA-B*40:02": 0.1})
+    result = predict.reassign_class_only_alleles().iloc[0]
+    assert calls[0].allele.tolist() == ["HLA-B*40:02"]
+    assert result.mhc_genotype == row["mhc_genotype"]
+    assert result.mhc_basis == "selected_restriction"
+
+
 @pytest.mark.parametrize("missing", [np.nan, np.inf, -np.inf])
 def test_unscored_sample_does_not_borrow_another_samples_prediction(monkeypatch, missing):
     _install_predictions(

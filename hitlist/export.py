@@ -38,6 +38,8 @@ from .conditions import (
     empty_condition_columns,
 )
 from .curation import (
+    MHC_GENOTYPE_COLUMNS,
+    MHC_TYPING_COLUMNS,
     allele_to_all_serotypes,
     allele_to_serotype,
     expand_allele_components,
@@ -49,6 +51,7 @@ from .curation import (
     normalize_species,
     reported_mhc_fields_overlap,
     sample_mhc_candidates,
+    sample_mhc_metadata,
     serotype_to_alleles,
     species_axes_agreement,
 )
@@ -87,6 +90,7 @@ _ACQUISITION_FIELDS = (
 _CATEGORICAL_EXPORT_METADATA_COLS: tuple[str, ...] = (
     # ms_samples join metadata
     "mhc",  # → sample_mhc after rename
+    *MHC_TYPING_COLUMNS,
     "instrument",
     "instrument_type",
     "acquisition_mode",
@@ -246,6 +250,7 @@ _TRAINING_DEFAULTS = {
     "sample_label": "",
     "perturbation": "",
     "sample_mhc": "",
+    **dict.fromkeys(MHC_TYPING_COLUMNS, ""),
     "sample_note": "",
     "sample_group": "",
     "arm_resolution": "",
@@ -521,7 +526,7 @@ def _select_group(
         if len(hits) > 1:
             return None
 
-    # Carry each group's consensus genotype into the pseudo-candidate so the
+    # Carry each group's consensus experimental typing into the pseudo-candidate so the
     # scorer's allele term can fire.  It reads ``mhc`` off the candidate and
     # scores raw locus substrings against the row text, which is the most
     # reliable way to separate two cell lines — without it the term is dead
@@ -541,7 +546,7 @@ def _select_group(
                 # (#450).  The two concerns stay independently editable.
                 "condition_id": group,
                 "condition_category": group,
-                # Only when the group's arms agree: a genotype that differs
+                # Only when the group's arms agree: typing that differs
                 # between arms is not a property of the system.
                 "mhc": next(iter(group_mhc[group])) if len(group_mhc[group]) == 1 else "",
             },
@@ -587,6 +592,12 @@ def _consensus_meta(
             out[col] = next(iter(values))
         else:
             out[col] = False if col in _BOOL_META_COLS else ""
+
+    # A cellular typing belongs to one cell/donor and one source. Never keep
+    # completeness or provenance from one candidate beside another's alleles.
+    typings = {tuple(c[2].get(col, "") for col in MHC_GENOTYPE_COLUMNS) for c in candidates}
+    if len(typings) > 1:
+        out.update(dict.fromkeys(MHC_GENOTYPE_COLUMNS, ""))
 
     # Agreement is not enough for a claim that names an arm.  Several arms of
     # one study routinely share a sample-level ``override`` — PMID 34129938
@@ -829,6 +840,7 @@ def _empty_ms_samples_columns() -> list[str]:
         "effective_override",
         "effective_override_origin",
         "mhc",
+        *MHC_TYPING_COLUMNS,
         *_ACQUISITION_FIELDS,
         "instrument_type",
     ]
@@ -1009,6 +1021,7 @@ def generate_ms_samples_table(
                 "effective_override": effective_override,
                 "effective_override_origin": override_origin,
                 "mhc": sample.get("mhc") or "",
+                **sample_mhc_metadata(sample),
             }
             for field in _ACQUISITION_FIELDS:
                 row[field] = sample.get(field) or entry.get(field) or ""
@@ -1114,14 +1127,15 @@ def generate_observations_table(
     """Join per-peptide observations with per-sample metadata.
 
     Loads the built ``observations.parquet`` and enriches each row with
-    sample-level metadata (instrument, conditions, sample MHC genotype)
+    sample-level metadata (instrument, conditions, experimental MHC candidates
+    and independent cellular typing)
     from ``ms_samples`` in the YAML overrides.
 
     The join logic matches each peptide's ``mhc_restriction`` to the
     ``mhc`` field on ``ms_samples`` entries within the same PMID:
 
     - Mono-allelic samples: exact allele match
-    - Multi-allelic samples: peptide allele appears in sample's genotype
+    - Multi-allelic samples: peptide allele appears in the experimental candidates
     - Fallback: PMID-only match when no allele-level match is possible
 
     Parameters
@@ -1296,6 +1310,7 @@ def generate_observations_table(
         "perturbation",
         "condition_category",
         "mhc",
+        *MHC_TYPING_COLUMNS,
         "instrument",
         "instrument_type",
         "acquisition_mode",
@@ -3758,7 +3773,7 @@ def _query_mhc_class(target_allele: str = "", target_serotype: str = "") -> str:
 
 
 def _sample_alleles(sample_mhc: str, mhc_class: str = "") -> list[str]:
-    """Alleles the sample was actually typed to.
+    """Precisely named experimental MHC candidates, including selected restrictions.
 
     Deliberately :attr:`~hitlist.curation.SampleMhcCandidates.exact` only.
     The peptide summary uses this to decide whether a peptide matched a
@@ -3874,7 +3889,7 @@ def generate_ms_peptide_summary_table(
 
     Aimed at questions like "which PRAME peptides might be presented on A24
     in cancers?"  Groups the relevant observations one row per peptide and
-    splits support into exact-allele, same-serotype, class-only sample-genotype,
+    splits support into exact-allele, same-serotype, class-only sample-candidate,
     and unknown-allele buckets, plus a cancer/healthy/adjacent source breakdown.
 
     Exactly one of ``mhc_allele`` / ``serotype`` is required (a single value),

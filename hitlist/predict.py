@@ -15,8 +15,9 @@ Class-only peptides are those annotated in IEDB with
 ``mhc_restriction == "HLA class I"`` (or "HLA class II") — the paper
 authors knew the class but did not commit to a specific allele.  For
 peptides from multi-allelic samples, we can often recover the likely
-allele by running a binding predictor against the sample's curated
-HLA genotype.
+allele by running a binding predictor against the sample's experimental
+MHC candidates. Independently reported cellular typing is preserved as
+metadata; excluded background alleles do not enter the prediction.
 
 The TLAKFSPYL example from our audit: IEDB class-only, sample contains
 A*02:01 and A*24:02 (among others).  MHCflurry gives A*02:01 a rank
@@ -38,28 +39,27 @@ from tempfile import TemporaryDirectory
 import numpy as np
 import pandas as pd
 
+from .curation import MHC_TYPING_COLUMNS, mhc_class_of, sample_mhc_candidates
+
+_CONTEXT_COLUMNS = ["peptide", "pmid", "sample_label", "sample_mhc", *MHC_TYPING_COLUMNS]
+_RESULT_COLUMNS = [
+    *_CONTEXT_COLUMNS,
+    "n_alleles_tested",
+    "best_allele",
+    "best_affinity_nM",
+    "best_presentation_percentile",
+    "is_strong_binder",
+    "is_weak_binder",
+]
+
 
 def _class_i_alleles(mhc_field: str | None) -> list[str]:
-    """Extract class I alleles from a sample's mhc string."""
-    if not isinstance(mhc_field, str) or not mhc_field.strip():
-        return []
-    if mhc_field.startswith("HLA class") or mhc_field == "unknown":
-        return []
-    return list(
-        dict.fromkeys(
-            a
-            for a in mhc_field.split()
-            if a.startswith(("HLA-A", "HLA-B", "HLA-C", "HLA-E", "HLA-G"))
-        )
+    """Precisely reported human class-I candidates, using the shared parser."""
+    return sorted(
+        allele
+        for allele in sample_mhc_candidates(mhc_field).exact
+        if allele.startswith("HLA-") and mhc_class_of(allele) == "I"
     )
-
-
-def _class_ii_alleles(mhc_field: str | None) -> list[str]:
-    if not isinstance(mhc_field, str) or not mhc_field.strip():
-        return []
-    if mhc_field.startswith("HLA class") or mhc_field == "unknown":
-        return []
-    return [a for a in mhc_field.split() if a.startswith("HLA-D")]
 
 
 def _predict_mhcflurry(pairs: pd.DataFrame) -> pd.DataFrame:
@@ -182,10 +182,10 @@ def reassign_class_only_alleles(
 
     Loads the observations table, restricts to rows where
     ``mhc_restriction`` is class-only ("HLA class I" / "HLA class II")
-    and the sample has a curated multi-allelic genotype, runs the
-    requested predictor against each sample's alleles, and returns the
+    and a named sample has reported experimental candidates, runs the
+    requested predictor against those candidates, and returns the
     best allele per peptide/sample context. Shared peptides retain a separate
-    result for each PMID, sample label and genotype; predictions may be reused
+    result for each PMID, sample label and typing context; predictions may be reused
     across samples, but the selected allele must belong to that sample.
 
     Parameters
@@ -198,7 +198,7 @@ def reassign_class_only_alleles(
         class II support via NetMHCpan requires netMHCIIpan (not yet
         wired).
     max_alleles_per_sample
-        Skip samples whose genotype has more distinct alleles than this (likely
+        Skip samples whose candidate set has more distinct alleles than this (likely
         a pooled-donor curation artifact; see
         tasks/per_sample_allele_curation_audit.md).  Such samples can
         produce misleading "best allele" calls because the pool does
@@ -211,7 +211,8 @@ def reassign_class_only_alleles(
     pd.DataFrame, one row per distinct peptide/sample context, with columns:
         peptide, pmid, sample_label, sample_mhc, n_alleles_tested,
         best_allele, best_affinity_nM, best_presentation_percentile,
-        is_strong_binder, is_weak_binder. When no candidate has a finite rank,
+        is_strong_binder, is_weak_binder, plus the independent cellular-typing
+        columns from the observation export. When no candidate has a finite rank,
         prediction fields are null and both binder flags are false.
     """
     if mhc_class != "I":
@@ -220,32 +221,25 @@ def reassign_class_only_alleles(
     from .export import generate_observations_table
 
     df = generate_observations_table(mhc_class=mhc_class)
-    # Keep only class-only rows in multi-allelic samples
+    # A study-wide candidate union is not a biological sample, even when it
+    # happens to fit under the allele-count limit (#520).
     class_only_mask = df["mhc_restriction"].fillna("").str.startswith("HLA class")
     multi_mask = df["is_monoallelic"].fillna(False).eq(False)
-    target = df[class_only_mask & multi_mask].copy()
+    identified = df["sample_label"].fillna("").ne("")
+    target = df[class_only_mask & multi_mask & identified].copy()
+    for column in MHC_TYPING_COLUMNS:
+        if column not in target:
+            target[column] = ""
+    # The experiment's candidates remain the prediction scope. Independently
+    # reported cellular background alleles do not become peptide restrictions.
     target["_alleles"] = target["sample_mhc"].map(_class_i_alleles)
     target = target[target["_alleles"].map(len).between(1, max_alleles_per_sample)]
     # Filter before the empty-input return; no predictor needs an empty batch.
     target = target[target["peptide"].str.len().between(8, 12)]
     if target.empty:
-        return pd.DataFrame(
-            columns=[
-                "peptide",
-                "pmid",
-                "sample_label",
-                "sample_mhc",
-                "n_alleles_tested",
-                "best_allele",
-                "best_affinity_nM",
-                "best_presentation_percentile",
-                "is_strong_binder",
-                "is_weak_binder",
-            ]
-        )
+        return pd.DataFrame(columns=_RESULT_COLUMNS)
 
-    context_columns = ["peptide", "pmid", "sample_label", "sample_mhc"]
-    target = target[[*context_columns, "_alleles"]].drop_duplicates(context_columns)
+    target = target[[*_CONTEXT_COLUMNS, "_alleles"]].drop_duplicates(_CONTEXT_COLUMNS)
     target = target.reset_index(drop=True)
     target["_context_id"] = target.index
     candidates = target[["_context_id", "peptide", "_alleles"]].explode("_alleles")
@@ -285,17 +279,4 @@ def reassign_class_only_alleles(
     result["n_alleles_tested"] = result["_alleles"].map(len)
     result = result.drop(columns=["_alleles"])
 
-    return result[
-        [
-            "peptide",
-            "pmid",
-            "sample_label",
-            "sample_mhc",
-            "n_alleles_tested",
-            "best_allele",
-            "best_affinity_nM",
-            "best_presentation_percentile",
-            "is_strong_binder",
-            "is_weak_binder",
-        ]
-    ]
+    return result[_RESULT_COLUMNS]
