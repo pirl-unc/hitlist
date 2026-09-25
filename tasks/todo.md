@@ -40,7 +40,7 @@ clean-main artifacts through the established release workflow.
 - [x] Verify primary sources and record the bounded source audit.
 - [x] Add regression coverage and implement the shared typing contract.
 - [x] Audit complete-corpus behavior and simplify the final implementation.
-- [ ] Pass format.sh, lint.sh, test.sh and final-head CI; review and open PR.
+- [x] Pass format.sh, lint.sh, test.sh and final-head CI; review and open PR (#564).
 - [ ] Merge, deploy, verify public artifacts and review follow-up dependencies.
 
 Review: cellular typing is curated on six engineered-host / incomplete-typing
@@ -52,6 +52,20 @@ projected exports from one registry; an ambiguous join blanks the whole
 typing block rather than pooling cells. Prediction now reuses the shared
 precision-aware parser (dropping the two prefix-based ones), requires a named
 sample, and keeps non-classical molecules out of a class-I predictor batch.
+
+Corpus impact measured against main: zero differing cells across 794 sample
+rows x 96 pre-#520 columns and 4,398,040 observation rows x the attribution
+columns (sample_mhc, sample_match_type, matched_sample_count,
+has_peptide_level_allele, restriction, class).
+
+Review (high) found `mhc_basis` outliving the candidates it describes: both
+`_consensus_meta`'s blanking and the class-pool union left the claim attached
+to a column that no longer held that sample's `mhc`, and reassignment keyed
+its "identified sample" guard on `sample_label`, which a class-pooled row
+keeps. Both fixed and covered. PMID 33592498's three pan-class-II arms
+claimed `sample_typing` over a DRB1-only candidate list against an HB245
+elution that the paper reports yielding DP, DQ and DR ligands; the false
+claim is blank and the candidate gap is filed as #565.
 
 # September 24 follow-up — source rosters and attribution (#555, #556)
 
