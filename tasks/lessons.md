@@ -233,4 +233,7 @@
   adds the new array while the old array's pages are already resident. Size an
   object column by the RSS delta of a process that builds it, and remember
   that converting a column after the fact cannot return memory the allocator
-  has already touched — only never materializing it can.
+  has already touched — only never materializing it can. Corollary from the
+  review of that same PR: when you write down why an option was rejected,
+  check the reason applies to the option. The read-time blocker I recorded
+  says nothing about the build-time one, which is cheaper and untried.

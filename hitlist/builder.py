@@ -328,21 +328,29 @@ def _atomic_write_parquet(df: pd.DataFrame, path: Path) -> None:
 #:   The cardinality half of this rationale is false, and measuring it is how
 #:   #566 went wrong: the list says "every donor set is roughly distinct", but
 #:   the built corpus has 969 distinct ``mhc_allele_set`` values across 4.4M
-#:   rows, 638 ``serotypes`` and 878 ``host_mhc_types``. That looks like
-#:   several hundred MB left on the table. It is not, for two measured
-#:   reasons, and the list stays exactly as it is:
+#:   rows, 638 ``serotypes`` and 878 ``host_mhc_types``. As plain strings they
+#:   cost ~700 MB.
 #:
-#:   - ``observations`` immediately ``.astype("string")``\ s
-#:     ``mhc_allele_set`` (identity refresh) and ``serotypes`` (serotype
-#:     refresh) across the whole frame, so encoding them buys a dictionary and
-#:     then pays to expand it again.
-#:   - Encoding at read time means converting the Arrow table ourselves, which
-#:     holds the table alongside the frame; measured worse than
-#:     ``pd.read_parquet``. The zero-copy variants that do cut peak hand back
-#:     read-only buffers and break every ``df.loc[mask, col] = ...`` in the
-#:     load path.
+#:   What was measured, and what was not:
 #:
-#:   Correct list, wrong reason. Do not act on the cardinality numbers alone.
+#:   - Encoding them at *read* time is a loss. It requires converting the
+#:     Arrow table ourselves, which holds the table alongside the frame and
+#:     measured worse than ``pd.read_parquet``; the zero-copy variants that do
+#:     cut peak hand back read-only buffers and break every
+#:     ``df.loc[mask, col] = ...`` in the load path.
+#:   - Encoding them at *build* time -- i.e. adding them to this list -- was
+#:     not tried, and the read-time blocker above does not apply to it: a
+#:     ``category`` column survives ``to_parquet``/``read_parquet`` as a
+#:     category with no custom Arrow read (see the note above, and
+#:     ``observations`` relying on ``mhc_class`` arriving categorical).
+#:     Against it: ``load_observations`` expands ``mhc_allele_set`` when an
+#:     identity refresh is pending and ``serotypes`` when an alias refresh is
+#:     -- both conditional, both firing on today's corpus -- so some of the
+#:     saving is given back on load, and how much is unmeasured.
+#:
+#:   So the list is unchanged because the cheap option is untested, not
+#:   because it is known to fail. Measure the build-time variant before
+#:   changing it, and do not act on the cardinality numbers alone (#566).
 _CATEGORICAL_BUILD_COLUMNS: tuple[str, ...] = (
     "source",
     "mhc_class",
