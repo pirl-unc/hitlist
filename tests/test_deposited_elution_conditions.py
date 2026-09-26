@@ -247,10 +247,14 @@ def test_parental_statement_never_claims_the_transduced_arm(monkeypatch):
     assert row.sample_label == ""
     assert row.sample_attribution == "elution_conditions_excluded"
     assert row.condition_transduction == ""
-    # Its sample_mhc is now a union across arms, so the confidence column has
-    # to say so: reporting allele_match over a pooled candidate set is exactly
-    # what predict's `!= "pmid_class_pool"` guard is there to refuse.
+    # Its sample_mhc is a union across arms, so the join-provenance column says
+    # so rather than claiming allele_match over a pooled candidate set. (The
+    # predict guard that once motivated this reads `sample_mhc_origin` now --
+    # #564 -- so this assertion stands on `sample_match_type`'s own documented
+    # meaning, and the relabel is gated on the row having actually taken the
+    # pool rather than on the study merely having one.)
     assert row.sample_match_type == "pmid_class_pool"
+    assert row.sample_mhc_origin == "class_pool"
     # Study-origin metadata is a property of the deposit, not of any arm, so
     # it survives a row that reaches no arm (#373). Consensus across the
     # study's class-II arms would not do: they are all CIITA-transduced, so it

@@ -41,22 +41,19 @@ import pandas as pd
 
 from .curation import MHC_TYPING_COLUMNS, mhc_class_of, sample_mhc_candidates
 
-#: The context a prediction belongs to. Deliberately excludes ``mhc_basis``:
-#: the exporter blanks it on rows whose ``mhc`` was pool-filled while leaving it
-#: set on other rows of the same arm, so keying on it splits one
-#: peptide/sample context into two identically-predicted rows (#564). It is
-#: carried in the output, not keyed on.
-_CONTEXT_COLUMNS = [
-    "peptide",
-    "pmid",
-    "sample_label",
-    "sample_mhc",
-    *[_c for _c in MHC_TYPING_COLUMNS if _c != "mhc_basis"],
-]
-_CARRIED_COLUMNS = ["mhc_basis"]
+#: The context a prediction belongs to.
+#:
+#: ``mhc_basis`` stays in the key. #564's review proposed removing it, on the
+#: grounds that the exporter rewrites it per row and could split one context in
+#: two; under the ``sample_mhc_origin`` guard below it cannot, because the
+#: exporter blanks ``mhc_basis`` exactly where ``mhc`` was empty before the pool
+#: fill -- rows this function already excludes as ``class_pool`` or drops for
+#: having no candidates. Dropping it from the key is not neutral either: two
+#: rows of one context that genuinely disagree would be deduplicated to
+#: whichever landed first, making the reported basis depend on row order.
+_CONTEXT_COLUMNS = ["peptide", "pmid", "sample_label", "sample_mhc", *MHC_TYPING_COLUMNS]
 _RESULT_COLUMNS = [
     *_CONTEXT_COLUMNS,
-    *_CARRIED_COLUMNS,
     "n_alleles_tested",
     "best_allele",
     "best_affinity_nM",
@@ -262,9 +259,7 @@ def reassign_class_only_alleles(
     if target.empty:
         return pd.DataFrame(columns=_RESULT_COLUMNS)
 
-    target = target[[*_CONTEXT_COLUMNS, *_CARRIED_COLUMNS, "_alleles"]].drop_duplicates(
-        _CONTEXT_COLUMNS
-    )
+    target = target[[*_CONTEXT_COLUMNS, "_alleles"]].drop_duplicates(_CONTEXT_COLUMNS)
     target = target.reset_index(drop=True)
     target["_context_id"] = target.index
     candidates = target[["_context_id", "peptide", "_alleles"]].explode("_alleles")

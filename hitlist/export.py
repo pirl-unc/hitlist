@@ -234,6 +234,13 @@ SAMPLE_MATCH_TYPE_VALUES = (
 #: set would have dropped every grouped row.  One constant, the way
 #: :data:`hitlist.curation.MHC_ALLELE_PROVENANCE_VALUES` does it for that
 #: vocabulary.
+#: Every value :func:`generate_observations_table` can put in
+#: ``sample_mhc_origin``, pinned for the same reason as the two sets below: a
+#: consumer validating against a documented set breaks on an unlisted value.
+#: ``not_applicable`` is the training table's default for a binding row, which
+#: has no sample and so no candidate provenance.
+SAMPLE_MHC_ORIGIN_VALUES = ("sample", "class_pool", "not_applicable", "")
+
 SAMPLE_ATTRIBUTION_VALUES = (
     "curated_sample_label",
     "elution_conditions",
@@ -2259,9 +2266,15 @@ def generate_observations_table(
     # blank as "unreviewed", and the blanking below overloads it with "the claim
     # was dropped because these are not the arm's candidates". With this column
     # the two are distinguishable.
-    obs["sample_mhc_origin"] = ""
-    obs.loc[obs["mhc"].ne(""), "sample_mhc_origin"] = "sample"
-    obs.loc[still_empty & obs["mhc"].ne(""), "sample_mhc_origin"] = "class_pool"
+    # Built once: a bulk ``.loc`` setitem on this 4.4M-row frame consolidates
+    # blocks and copies it (#173, #244), and the second of the two would have
+    # been a strict-subset rewrite of the first.
+    _has_candidates = obs["mhc"].ne("")
+    obs["sample_mhc_origin"] = (
+        _has_candidates.map({True: "sample", False: ""})
+        .where(~(still_empty & _has_candidates), "class_pool")
+        .astype(str)
+    )
 
     # ``mhc_basis`` describes a sample's *own* reported candidates, which is
     # why the load-time contract refuses it without them (#520).  A row whose
@@ -2341,7 +2354,9 @@ def generate_observations_table(
     # candidates") is what actually happened here.
     # ``.ne("")`` rather than ``.astype(str) != ""``: ``mhc`` is a declared
     # categorical and rebuilding its object array costs hundreds of MB here.
-    obs.loc[_statement_vetoed & obs["mhc"].ne(""), "sample_match_type"] = "pmid_class_pool"
+    obs.loc[_statement_vetoed & obs["sample_mhc_origin"].eq("class_pool"), "sample_match_type"] = (
+        "pmid_class_pool"
+    )
 
     # --- Peptide-level allele evidence flag ---
     obs["has_peptide_level_allele"] = _compute_has_peptide_level_allele(
@@ -4116,7 +4131,6 @@ def generate_ms_peptide_summary_table(
     for col, default in {
         "sample_mhc": "",
         "sample_match_type": "",
-        "sample_mhc_origin": "",
         "is_monoallelic": False,
         "src_cancer": False,
         "src_adjacent_to_tumor": False,
