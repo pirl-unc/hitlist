@@ -32,6 +32,14 @@ one optional MHCflurry test skipped, one integration test deselected. Formatting
 and lint pass. The full unit suite is running with one worker after the memory
 preflight recovered to 11.23 GB available.
 
+Re-plan after CI run 36239737967: all 2,061 unit tests passed, then the
+integration process lost its runner with the same shutdown signal as the
+original PR. Resolve the #566 gate before merging: run CI integration through
+the existing serial fixture path (`-n 0`) so one consumer does not write and
+reload a full Arrow cache; keep every integration test and accumulated coverage.
+Enable unbuffered output for diagnostics and validate this change on the hosted
+runner, recording its actual test results and peak RSS before drawing conclusions.
+
 # #520 specification — cellular typing and experimental restriction
 
 Keep two biological facts separate. The existing `mhc` / exported `sample_mhc`
