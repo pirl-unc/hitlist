@@ -10,9 +10,13 @@ join in `generate_observations_table` treats that `mhc:` as one sample's
 pooled alleles — a meaningless operation.
 
 Limits for a real per-sample class-I genotype: **≤ 6 alleles**
-(heterozygous A/B/C).  Class II: **≤ 10 alleles** (DRB1/3/4/5 +
-DPA/DPB + DQA/DQB heterozygous pairs).  Anything above is a pooled
-union.
+(heterozygous A/B/C).  Class II: **≤ 12 alleles** — DRB1 x2, DRB3/4/5
+x2, DQA1 x2, DQB1 x2, DPA1 x2 and DPB1 x2, all heterozygous.  (This
+said 10 until #565, which dropped DRB3/4/5 from the count; the limit
+was never exercised because no sample carried a complete class-II
+typing.  Writing DP and DQ as alpha/beta heterodimers caps at the same
+12: four DP pairs, four DQ pairs and the four DR chains.)  Anything
+above is a pooled union.
 
 ## Audit results (pre-1.7.3 scan)
 

@@ -6158,12 +6158,58 @@
     # Arm-resolution verdict (#366).
     arm_resolution: curation_gap
     arm_resolution_note: >
-      17,510 rows remain arm-ambiguous, but a per-row discriminator is present, so this is
-      unfinished curation rather than a limit of the deposit. Measured: varying per-row
-      fields: cell_name (3 distinct), assay_comments (9 distinct). Whether that field varies
-      WITH THE ARM (rather than being study-level boilerplate that names every arm on every
-      row) still needs per-study checking -- that check is the work this verdict marks, and
-      #366 records narrative fields as a known dead end for exactly this reason.
+      The per-row discriminator this verdict marked has now been checked and curated (#565).
+      assay_comments carries 9 distinct statements and each one names the cell line and
+      whether CIITA was induced, so it does vary WITH THE ARM rather than being study-level
+      boilerplate; elution_condition_ids maps all 9 to their arms. 6,985 rows still reach no
+      single arm, but by evidence rather than by omission: their statement names the
+      parental and the CIITA arm together, so the peptide really was eluted from both.
+      Of those, 6,892 are class-I rows from the paired statements -- ambiguous by evidence.
+      The other 93 are class-II rows under parental-only statements, ambiguous by omission:
+      no parental class-II arm is curated, so there is no arm for them to reach (#567).
+      The paper reports 165/651/83 HLA-II peptides in the parental (CIITA-negative) lines,
+      mostly background rather than true ligands, and IEDB carries 585 class-II rows under
+      those statements. A further 492 of them would otherwise reach the CIITA class-II arm
+      on an allele typed in only that line, which the statement veto in the exporter now
+      refuses rather than asserting transduced provenance the deposit contradicts.
+    # IEDB enumerates the elution condition per peptide, and the statement names
+    # the cell line and whether CIITA was induced. That is the per-row
+    # discriminator the arm_resolution verdict above says is present but unused.
+    # Curating it is what keeps the pan-class-II candidate lists honest (#565):
+    # HLA-DRB4*01:03 and HLA-DPA1*01:03/DPB1*04:01 are typed in more than one of
+    # these lines, so without an exact-statement map the shared-allele rows tie
+    # on token scoring and first-pick an arm. "HRGO02" is IEDB's spelling and the
+    # key must match the deposited text exactly.
+    elution_condition_ids:
+      "The epitope was eluted from the following conditions: HRGO02 cells.":
+        - hrog02_parental_class_i
+      "The epitope was eluted from the following conditions: HROG17 cells.":
+        - hrog17_parental_class_i
+      "The epitope was eluted from the following conditions: RA cells.":
+        - ra_parental_class_i
+      "The epitope was eluted from the following conditions: HRGO02 cells treated with CIITA.":
+        - hrog02_ciita_transduced_class_i
+        - hrog02_ciita_transduced_class_ii
+      "The epitope was eluted from the following conditions: HROG17 cells treated with CIITA.":
+        - hrog17_ciita_transduced_class_i
+        - hrog17_ciita_transduced_class_ii
+      "The epitope was eluted from the following conditions: RA cells treated with CIITA.":
+        - ra_ciita_transduced_class_i
+        - ra_ciita_transduced_class_ii
+      # Both arms named: the peptide really was eluted from each, so these stay
+      # ambiguous for class I on purpose. Only the CIITA arm exists for class II.
+      "The epitope was eluted from the following conditions: HRGO02 cells, HRGO02 cells treated with CIITA.":
+        - hrog02_parental_class_i
+        - hrog02_ciita_transduced_class_i
+        - hrog02_ciita_transduced_class_ii
+      "The epitope was eluted from the following conditions: HROG17 cells, HROG17 cells treated with CIITA.":
+        - hrog17_parental_class_i
+        - hrog17_ciita_transduced_class_i
+        - hrog17_ciita_transduced_class_ii
+      "The epitope was eluted from the following conditions: RA cells, RA cells treated with CIITA.":
+        - ra_parental_class_i
+        - ra_ciita_transduced_class_i
+        - ra_ciita_transduced_class_ii
     study_label: "Bassani-Sternberg 2021 — GBM CIITA-transduced HLA-II"
     title: "CIITA-Transduced Glioblastoma Cells Uncover a Rich Repertoire of Clinically Relevant Tumor-Associated HLA-II Antigens"
     override: cell_line
@@ -6172,10 +6218,13 @@
       (CIITA-) and CIITA-transduced (CIITA+). GBM cells do not
       naturally express HLA-II — ALL class II data is from forced
       CIITA expression. Parental class I data is unperturbed.
+    # Study-wide typing pool, from Table 1. The class-II half was DRB1-only
+    # while the elution was pan-HLA-II, so a class-only HLA-II row would have
+    # been offered DR candidates alone (#565).
     hla_alleles:
-      HROG02: ["HLA-A*01:01", "HLA-A*02:01", "HLA-B*08:01", "HLA-B*13:02", "HLA-C*06:02", "HLA-C*07:01", "HLA-DRB1*03:01", "HLA-DRB1*07:01"]
-      HROG17: ["HLA-A*11:01", "HLA-A*66:01", "HLA-B*14:02", "HLA-B*40:02", "HLA-C*01:02", "HLA-C*08:02", "HLA-DRB1*01:02", "HLA-DRB1*12:01"]
-      RA: ["HLA-A*02:01", "HLA-A*24:02", "HLA-B*35:03", "HLA-B*51:01", "HLA-C*04:01", "HLA-C*14:02", "HLA-DRB1*04:01", "HLA-DRB1*08:01"]
+      HROG02: ["HLA-A*01:01", "HLA-A*02:01", "HLA-B*08:01", "HLA-B*13:02", "HLA-C*06:02", "HLA-C*07:01", "HLA-DPA1*01:03", "HLA-DPB1*04:01", "HLA-DQA1*02:01", "HLA-DQA1*05:01", "HLA-DQB1*02:01", "HLA-DQB1*02:02", "HLA-DRB1*03:01", "HLA-DRB1*07:01", "HLA-DRB3*01:01", "HLA-DRB4*01:03"]
+      HROG17: ["HLA-A*11:01", "HLA-A*66:01", "HLA-B*14:02", "HLA-B*40:02", "HLA-C*01:02", "HLA-C*08:02", "HLA-DPA1*01:03", "HLA-DPA1*02:01", "HLA-DPB1*04:01", "HLA-DPB1*11:01", "HLA-DQA1*01:01", "HLA-DQA1*05:05", "HLA-DQB1*03:01", "HLA-DQB1*05:01", "HLA-DRB1*01:02", "HLA-DRB1*12:01", "HLA-DRB3*02:02"]
+      RA: ["HLA-A*02:01", "HLA-A*24:02", "HLA-B*35:03", "HLA-B*51:01", "HLA-C*04:01", "HLA-C*14:02", "HLA-DPA1*01:03", "HLA-DPA1*02:07", "HLA-DPB1*04:01", "HLA-DPB1*19:01", "HLA-DQA1*03:01", "HLA-DQA1*04:01", "HLA-DQB1*03:02", "HLA-DQB1*04:02", "HLA-DRB1*04:01", "HLA-DRB1*08:01", "HLA-DRB4*01:03"]
     perturbations:
       - "CIITA transduction (flag-CIITA plasmid, G418 selection) — forces HLA-II expression on GBM"
     ms_samples:
@@ -6274,7 +6323,20 @@
         mhc_genotype_cell: "RA"
         mhc_genotype_complete_loci: "HLA-A;HLA-B;HLA-C;HLA-DPA1;HLA-DPB1;HLA-DQA1;HLA-DQB1;HLA-DRB1"
         mhc_genotype_source: *mhc_source_33592498
-      # CIITA-transduced — class II (artificially induced), per cell line
+      # CIITA-transduced — class II (artificially induced), per cell line.
+      # HB245 is a pan-HLA-II antibody (Methods: "Anti-pan HLA-I (HB95) and
+      # HLA-II (HB245) antibodies"), so every HLA-DP, -DQ and -DR molecule the
+      # cell expresses is an experimental candidate — the candidates are the
+      # cell's own class-II typing (Table 1), hence mhc_basis: sample_typing.
+      # DP and DQ are written as alpha/beta pairs because that is how the paper
+      # and the deposited restrictions name them. Where both chains are
+      # heterozygous the trans combinations are listed only when they actually
+      # form: DQ alpha/beta pairing is restricted, so HROG17 carries its two
+      # cis pairs alone (DQA1*01:01/DQB1*05:01, DQA1*05:05/DQB1*03:01), which
+      # is also the pair set the paper reports for that line. DQA1*01 group
+      # alpha chains do not dimerise with DQB1*03 haplotype beta chains, nor
+      # DQA1*05 with DQB1*05. HROG02's and RA's listed combinations are all
+      # permissive, and DP pairing is not restricted this way.
       - sample_label: "HROG02 CIITA-transduced (class II)"
         n_samples: 1
         condition: "CIITA transduction — HLA-II not naturally expressed in GBM"
@@ -6285,7 +6347,8 @@
         condition_transduction: "CIITA"
         mhc_class: "II"
         ip_antibody: "HB245/IVA12"
-        mhc: "HLA-DRB1*03:01 HLA-DRB1*07:01"
+        mhc: "HLA-DPA1*01:03/DPB1*04:01 HLA-DQA1*02:01/DQB1*02:01 HLA-DQA1*02:01/DQB1*02:02 HLA-DQA1*05:01/DQB1*02:01 HLA-DQA1*05:01/DQB1*02:02 HLA-DRB1*03:01 HLA-DRB1*07:01 HLA-DRB3*01:01 HLA-DRB4*01:03"
+        mhc_basis: "sample_typing"
         mhc_genotype: "HLA-A*01:01 HLA-A*02:01 HLA-B*08:01 HLA-B*13:02 HLA-C*06:02 HLA-C*07:01 HLA-DPA1*01:03 HLA-DPB1*04:01 HLA-DQA1*02:01 HLA-DQA1*05:01 HLA-DQB1*02:01 HLA-DQB1*02:02 HLA-DRB1*03:01 HLA-DRB1*07:01 HLA-DRB3*01:01 HLA-DRB4*01:03"
         mhc_genotype_cell: "HROG02"
         mhc_genotype_complete_loci: "HLA-A;HLA-B;HLA-C;HLA-DQA1;HLA-DQB1;HLA-DRB1"
@@ -6300,7 +6363,8 @@
         condition_transduction: "CIITA"
         mhc_class: "II"
         ip_antibody: "HB245/IVA12"
-        mhc: "HLA-DRB1*01:02 HLA-DRB1*12:01"
+        mhc: "HLA-DPA1*01:03/DPB1*04:01 HLA-DPA1*01:03/DPB1*11:01 HLA-DPA1*02:01/DPB1*04:01 HLA-DPA1*02:01/DPB1*11:01 HLA-DQA1*01:01/DQB1*05:01 HLA-DQA1*05:05/DQB1*03:01 HLA-DRB1*01:02 HLA-DRB1*12:01 HLA-DRB3*02:02"
+        mhc_basis: "sample_typing"
         mhc_genotype: "HLA-A*11:01 HLA-A*66:01 HLA-B*14:02 HLA-B*40:02 HLA-C*01:02 HLA-C*08:02 HLA-DPA1*01:03 HLA-DPA1*02:01 HLA-DPB1*04:01 HLA-DPB1*11:01 HLA-DQA1*01:01 HLA-DQA1*05:05 HLA-DQB1*03:01 HLA-DQB1*05:01 HLA-DRB1*01:02 HLA-DRB1*12:01 HLA-DRB3*02:02"
         mhc_genotype_cell: "HROG17"
         mhc_genotype_complete_loci: "HLA-A;HLA-B;HLA-C;HLA-DPA1;HLA-DPB1;HLA-DQA1;HLA-DQB1;HLA-DRB1"
@@ -6315,7 +6379,8 @@
         condition_transduction: "CIITA"
         mhc_class: "II"
         ip_antibody: "HB245/IVA12"
-        mhc: "HLA-DRB1*04:01 HLA-DRB1*08:01"
+        mhc: "HLA-DPA1*01:03/DPB1*04:01 HLA-DPA1*01:03/DPB1*19:01 HLA-DPA1*02:07/DPB1*04:01 HLA-DPA1*02:07/DPB1*19:01 HLA-DQA1*03:01/DQB1*03:02 HLA-DQA1*03:01/DQB1*04:02 HLA-DQA1*04:01/DQB1*03:02 HLA-DQA1*04:01/DQB1*04:02 HLA-DRB1*04:01 HLA-DRB1*08:01 HLA-DRB4*01:03"
+        mhc_basis: "sample_typing"
         mhc_genotype: "HLA-A*02:01 HLA-A*24:02 HLA-B*35:03 HLA-B*51:01 HLA-C*04:01 HLA-C*14:02 HLA-DPA1*01:03 HLA-DPA1*02:07 HLA-DPB1*04:01 HLA-DPB1*19:01 HLA-DQA1*03:01 HLA-DQA1*04:01 HLA-DQB1*03:02 HLA-DQB1*04:02 HLA-DRB1*04:01 HLA-DRB1*08:01 HLA-DRB4*01:03"
         mhc_genotype_cell: "RA"
         mhc_genotype_complete_loci: "HLA-A;HLA-B;HLA-C;HLA-DPA1;HLA-DPB1;HLA-DQA1;HLA-DQB1;HLA-DRB1"
