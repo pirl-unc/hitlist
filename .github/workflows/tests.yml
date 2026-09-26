@@ -62,6 +62,19 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev,alleles]"
 
+      - name: Provision memory for the full corpus
+        if: matrix.python-version == '3.11'
+        run: |
+          # The full export transiently exceeds the runner's 16 GiB RAM even
+          # without xdist (#566). Give that peak bounded disk-backed capacity.
+          # This VM and its swap file are discarded after the job.
+          swap_path="$RUNNER_TEMP/hitlist-corpus.swap"
+          sudo fallocate -l 8G "$swap_path"
+          sudo chmod 600 "$swap_path"
+          sudo mkswap "$swap_path"
+          sudo swapon "$swap_path"
+          free -h
+
       # ── Prebuilt observations corpus (integration tests) ──────────────
       # CI can't build the corpus (the ~15 GB IEDB/CEDAR sources aren't
       # here), so we restore the prebuilt parquets and provenance published by

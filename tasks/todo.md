@@ -40,6 +40,14 @@ reload a full Arrow cache; keep every integration test and accumulated coverage.
 Enable unbuffered output for diagnostics and validate this change on the hosted
 runner, recording its actual test results and peak RSS before drawing conclusions.
 
+Second re-plan: serial integration passes all 43 tests locally, but peaks at
+19,342,344,192 bytes RSS. Hosted run 36240670574 was SIGKILLed while building
+the first corpus fixture at 15,625,788 KiB RSS; avoiding the Arrow cache alone
+does not fit the build into the runner's RAM. Provision 8 GiB of swap only for
+the corpus CI job, retain all tests and the 25-minute timeout, and log memory
+availability. This addresses the runner's capacity while #566/#572 continue to
+track production-memory reduction. Require a successful measured hosted run.
+
 # #520 specification — cellular typing and experimental restriction
 
 Keep two biological facts separate. The existing `mhc` / exported `sample_mhc`
