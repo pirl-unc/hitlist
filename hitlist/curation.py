@@ -213,7 +213,7 @@ PMID_ENTRY_FIELDS = MappingProxyType(
 MHC_TYPING_FIELDS = MappingProxyType(
     {
         "mhc_basis": "read by export.generate_observations_table, which blanks it when sample_mhc is not that arm's; selected_restriction or sample_typing, blank means unreviewed on a sample and on an exported row can also mean the claim was dropped -- sample_mhc_origin tells them apart",
-        "mhc_genotype": "informational; exported by generate_ms_samples_table/generate_observations_table and scanned by qc.mhc_token_audit, never read for attribution -- independently sourced cellular typing, not an observation restriction",
+        "mhc_genotype": "informational; exported by generate_ms_samples_table/generate_observations_table and scanned by qc.mhc_token_audit/sample_ploidy_audit, never read for attribution -- independently sourced cellular typing at its reported molecular or serological precision",
         "mhc_genotype_cell": "informational; exported only. The single cell line or donor whose typing is recorded, and what _consensus_meta compares to refuse pooling two cells' typing",
         "mhc_genotype_complete_loci": "informational; exported only. Sorted semicolon-separated loci the source states are fully typed, validated against mhc_genotype_reported_loci on load; blank is unknown",
         "mhc_genotype_source": "informational; exported only. Citation and location establishing the typing and its scope, required by sample_mhc_metadata whenever mhc_genotype is set",
@@ -2376,15 +2376,11 @@ def sample_mhc_metadata(sample: Mapping) -> dict[str, str]:
             raise ValueError(f"{field} must be a stripped string")
     if result["mhc_basis"] not in ("", "selected_restriction", "sample_typing"):
         raise ValueError("mhc_basis must be selected_restriction, sample_typing, or blank")
-    _candidates = sample_mhc_candidates(sample.get("mhc"))
-    if result["mhc_basis"] and not (_candidates.exact or _candidates.serotypes):
-        # Not ``not sample.get("mhc")``: ``unknown`` and ``HLA class I`` are both
-        # legal, truthy ``mhc`` values that name no MHC entity, so a basis claim
-        # over either asserts "this sample's candidate list is its typing" about
-        # a sentinel. ``is_empty`` is not the test either -- it is False for a
-        # class designation. A serotype *is* allowed: serological typing is
-        # typing, just at lower resolution.
-        raise ValueError("mhc_basis requires experimental mhc candidates")
+    if result["mhc_basis"]:
+        candidates = sample_mhc_candidates(sample.get("mhc"))
+        # Class designations are nonempty parser results but name no candidate.
+        if not (candidates.exact or candidates.serotypes):
+            raise ValueError("mhc_basis requires experimental mhc candidates")
 
     genotype = result["mhc_genotype"]
     typing = sample_mhc_candidates(genotype)
@@ -2393,14 +2389,8 @@ def sample_mhc_metadata(sample: Mapping) -> dict[str, str]:
         for field in provenance:
             if not result[field]:
                 raise ValueError(f"mhc_genotype requires {field}")
-        if not typing.exact:
-            # ``is_empty`` is False for a serotype-only value, which loads but
-            # then exports blank ``mhc_genotype_reported_loci`` (derived from
-            # ``exact``) -- documented as "unknown" -- and makes any
-            # ``mhc_genotype_complete_loci`` unrecordable, since the subset
-            # check compares against an empty locus set. A cell's typing is
-            # molecular or it is not typing.
-            raise ValueError("mhc_genotype must name precisely reported MHC typing")
+        if not (typing.exact or typing.serotypes):
+            raise ValueError("mhc_genotype must name reported MHC typing")
     elif any(result[field] for field in (*provenance, "mhc_genotype_complete_loci")):
         raise ValueError("cellular typing metadata requires mhc_genotype")
 
@@ -2410,6 +2400,12 @@ def sample_mhc_metadata(sample: Mapping) -> dict[str, str]:
         for component in expand_allele_components(allele)
         if (locus := allele_locus(component))
     }
+    for serotype in typing.serotypes:
+        # Report the shared locus, never the inferred member alleles (#573).
+        # Cross-locus antigens such as Bw4 cannot establish either locus alone.
+        member_loci = {allele_locus(allele) for allele in serotype_to_alleles(serotype)}
+        if len(member_loci) == 1 and "" not in member_loci:
+            loci.update(member_loci)
     result["mhc_genotype_reported_loci"] = ";".join(sorted(loci))
     complete = result["mhc_genotype_complete_loci"]
     if complete and (

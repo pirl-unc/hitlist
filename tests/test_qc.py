@@ -1378,7 +1378,8 @@ def test_sample_ploidy_audit_flags_a_pooled_genotype():
     assert row["locus"] == "HLA-A" and row["n_alleles"] == 3
 
 
-def test_sample_ploidy_audit_charges_each_heterodimer_chain_to_its_own_locus():
+@pytest.mark.parametrize("field", ["mhc", "mhc_genotype"])
+def test_sample_ploidy_audit_charges_each_heterodimer_chain_to_its_own_locus(field):
     """A DP pair spans two loci, so three pairs are three alphas and three
     betas — not six alleles at one made-up locus."""
     from hitlist.qc import sample_ploidy_audit
@@ -1388,7 +1389,7 @@ def test_sample_ploidy_audit_charges_each_heterodimer_chain_to_its_own_locus():
             "ms_samples": [
                 {
                     "sample_label": "three DP transfectants pooled",
-                    "mhc": (
+                    field: (
                         "HLA-DPB1*02:01/DPA1*01:03 "
                         "HLA-DPB1*04:01/DPA1*01:03 "
                         "HLA-DPB1*04:02/DPA1*01:03"
@@ -1400,6 +1401,7 @@ def test_sample_ploidy_audit_charges_each_heterodimer_chain_to_its_own_locus():
     found = sample_ploidy_audit(pairs)
     # DPB1 has three distinct betas; DPA1 is the same alpha three times.
     assert list(found["locus"]) == ["HLA-DPB1"]
+    assert list(found["field"]) == [field]
     assert found.iloc[0]["n_alleles"] == 3
 
 

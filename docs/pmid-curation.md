@@ -91,7 +91,7 @@ not have.
 | `n_samples` | Number of samples/replicates. (Use the `_samples` suffix — never a bare `n`.) |
 | `mhc` | Reported experimental MHC candidates (`HLA-A*…`, a space-joined list, or imprecise typing). May be a selected ligand restriction; never assume a complete cellular genotype. |
 | `mhc_basis` | `selected_restriction` or `sample_typing`; blank means this distinction has not been source-reviewed. `sample_typing` may cover only some loci. |
-| `mhc_genotype` | Independently sourced cellular MHC typing, including documented transgenes and background alleles. Missing means unknown; never copied automatically from `mhc`. |
+| `mhc_genotype` | Independently sourced cellular MHC typing at its reported molecular or serological precision, including documented transgenes and background alleles. Missing means unknown; never copied automatically from `mhc`. |
 | `mhc_genotype_cell` | One named cell line or donor to which that typing belongs. An antigen-source feeder and its presenting cell are distinct. |
 | `mhc_genotype_complete_loci` | Sorted, unique, semicolon-separated loci fully typed at the source's reported resolution. Blank means completeness is unknown. Unlisted loci are not negative evidence. |
 | `mhc_genotype_source` | Citation and source location establishing the cellular typing and its scope. Required with `mhc_genotype`, as is `mhc_genotype_cell`. |
@@ -122,8 +122,12 @@ every peptide. [Primary methods](https://pmc.ncbi.nlm.nih.gov/articles/PMC682385
 
 The same field names are exported on samples, observations and training
 rows. Only legacy `mhc` is renamed to `sample_mhc`. The derived
-`mhc_genotype_reported_loci` lists loci carrying molecular typing; it does
-not imply complete coverage. `mhc_genotype_complete_loci` is a separate
+`mhc_genotype_reported_loci` lists loci identified by the reported typing; it does
+not imply complete coverage. A serotype contributes a locus only when all its
+catalog members share that locus: `HLA-DR15` establishes `HLA-DRB1`, while
+cross-locus `HLA-Bw4` establishes neither HLA-A nor HLA-B alone. The genotype
+retains the reported serotype and never becomes an inferred allele list.
+`mhc_genotype_complete_loci` is a separate
 source claim, not a count-based inference or an expression measurement.
 For example, complete DRB1 typing does not exclude DRB3, DP or DQ products.
 

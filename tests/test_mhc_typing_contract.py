@@ -466,15 +466,66 @@ def test_named_sample_without_candidates_keeps_its_own_typing_only(monkeypatch):
         # sample's candidate list is its typing" about a sentinel (#564).
         ({"mhc": "unknown"}, "mhc_basis requires"),
         ({"mhc": "HLA class I"}, "mhc_basis requires"),
-        # A serotype-only genotype loads but exports blank reported loci, which
-        # is documented as "unknown", and then makes any completeness claim
-        # unrecordable because the subset check compares against an empty set.
-        ({"mhc_genotype": "HLA-DR15", "mhc_genotype_complete_loci": ""}, "precisely reported"),
+        ({"mhc_genotype": "unknown"}, "must name reported MHC typing"),
+        ({"mhc_genotype": "HLA class I"}, "must name reported MHC typing"),
     ],
 )
-def test_sentinels_and_serotypes_are_not_typing(changes, message):
+def test_sentinels_are_not_typing(changes, message):
     with pytest.raises(ValueError, match=message):
         curation.sample_mhc_metadata(_sample(**changes))
+
+
+@pytest.mark.parametrize("basis", ["sample_typing", "selected_restriction"])
+def test_serological_candidates_can_have_a_basis(basis):
+    result = curation.sample_mhc_metadata(_sample(mhc="HLA-DR15", mhc_basis=basis))
+    assert result["mhc_basis"] == basis
+
+
+@pytest.mark.parametrize(
+    "genotype, loci",
+    [
+        ("HLA-A2", "HLA-A"),
+        ("HLA-DR15", "HLA-DRB1"),
+        ("HLA-DQ8", "HLA-DQB1"),
+        ("HLA-A*02:01 HLA-DR15", "HLA-A;HLA-DRB1"),
+        ("HLA-DRB1*15:01 HLA-DR15", "HLA-DRB1"),
+        # Bw4 spans HLA-A and HLA-B: neither locus is established by it alone.
+        ("HLA-Bw4", ""),
+        ("HLA-A*02:01 HLA-Bw4", "HLA-A"),
+    ],
+)
+def test_serological_cellular_typing_keeps_precision_and_reports_loci(genotype, loci):
+    result = curation.sample_mhc_metadata(_sample(mhc_genotype=genotype))
+    assert result["mhc_genotype"] == genotype
+    assert result["mhc_genotype_reported_loci"] == loci
+    assert result["mhc_genotype_complete_loci"] == ""
+
+
+def test_serological_completeness_must_name_an_unambiguous_reported_locus():
+    result = curation.sample_mhc_metadata(
+        _sample(mhc_genotype="HLA-DR15", mhc_genotype_complete_loci="HLA-DRB1")
+    )
+    assert result["mhc_genotype_complete_loci"] == "HLA-DRB1"
+    with pytest.raises(ValueError, match="reported loci"):
+        curation.sample_mhc_metadata(
+            _sample(mhc_genotype="HLA-Bw4", mhc_genotype_complete_loci="HLA-A;HLA-B")
+        )
+
+
+def test_serological_typing_exports_without_expanding_candidates(monkeypatch):
+    sample = _sample(mhc_genotype="HLA-DR15", mhc_genotype_complete_loci="HLA-DRB1")
+    _install(monkeypatch, [sample])
+    for frame, candidate_column in (
+        (export.generate_ms_samples_table(), "mhc"),
+        (export.generate_observations_table(), "sample_mhc"),
+    ):
+        row = frame.iloc[0]
+        assert row.mhc_genotype == "HLA-DR15"
+        assert row.mhc_genotype_reported_loci == "HLA-DRB1"
+        assert row.mhc_genotype_complete_loci == "HLA-DRB1"
+        assert row[candidate_column] == "HLA-B*40:02"
+        assert row.mhc_genotype_cell == sample["mhc_genotype_cell"]
+        assert row.mhc_genotype_source == sample["mhc_genotype_source"]
 
 
 def test_ploidy_audit_covers_the_field_that_claims_to_be_a_genotype():

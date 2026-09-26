@@ -341,8 +341,8 @@ def sample_ploidy_audit(overrides: Mapping[int, dict] | None = None) -> pd.DataF
     Returns
     -------
     pd.DataFrame
-        One row per offending (sample, locus), empty when the corpus is
-        clean.  ``n_alleles_total`` gives the sample's whole allele count
+        One row per offending (sample, field, locus), empty when the corpus is
+        clean.  ``n_alleles_total`` gives the audited field's whole allele count
         for context, since a badly pooled sample usually breaks several
         loci at once.
 
