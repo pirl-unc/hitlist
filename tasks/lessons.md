@@ -216,3 +216,24 @@
   same study, so no fact is lost. A rationale that would equally justify the
   bug you are fixing is not a rationale. Say which of the two facts is absent,
   and where the other one lives.
+
+- Establish a benchmark's noise floor before you let it decide anything, and
+  never size an object column with `memory_usage(deep=True)`.
+  Rule: #566 cost me three retracted claims from two different measurement
+  errors. (1) The integration suite's peak RSS measured the *unchanged*
+  baseline at 16.25, 17.03, 20.38 and 17.57 GB — the xdist fixture mmaps an
+  Arrow file and mmap'd pages count toward RSS — so a 2 GB "improvement" and a
+  5 GB "regression" were both noise. Two runs of the baseline first would have
+  cost eight minutes. (2) `memory_usage(deep=True)` reports 254 MB for two
+  `object` columns holding `True`/`False`/`None`, and I quoted a 93% saving
+  from narrowing them to nullable `boolean`. It charges ~28 bytes per element
+  for what are *interned singletons*: 4.4M rows hold exactly 2 distinct object
+  identities, the real cost is the 8-byte pointer array, and measured against
+  `ps` the "fix" made steady-state RSS worse by 56 MB, because an `astype`
+  adds the new array while the old array's pages are already resident. Size an
+  object column by the RSS delta of a process that builds it, and remember
+  that converting a column after the fact cannot return memory the allocator
+  has already touched — only never materializing it can. Corollary from the
+  review of that same PR: when you write down why an option was rejected,
+  check the reason applies to the option. The read-time blocker I recorded
+  says nothing about the build-time one, which is cheaper and untried.

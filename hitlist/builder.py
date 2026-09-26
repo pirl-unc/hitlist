@@ -323,9 +323,34 @@ def _atomic_write_parquet(df: pd.DataFrame, path: Path) -> None:
 #: - ``pmid`` — already stored as ``Int64`` (8 bytes / row); ~38 MB on a
 #:   4.4 M-row frame, no further compression worthwhile.
 #: - ``mhc_allele_set`` / ``serotypes`` / ``gene_names`` etc. —
-#:   semicolon-joined multi-value columns; cardinality is high (every donor
-#:   set is roughly distinct), and the consumer code splits on ``;`` which
-#:   doesn't benefit from categorical lookup.
+#:   semicolon-joined multi-value columns whose consumers split on ``;``.
+#:
+#:   The cardinality half of this rationale is false, and measuring it is how
+#:   #566 went wrong: the list says "every donor set is roughly distinct", but
+#:   the built corpus has 969 distinct ``mhc_allele_set`` values across 4.4M
+#:   rows, 638 ``serotypes`` and 878 ``host_mhc_types``. As plain strings they
+#:   cost ~700 MB.
+#:
+#:   What was measured, and what was not:
+#:
+#:   - Encoding them at *read* time is a loss. It requires converting the
+#:     Arrow table ourselves, which holds the table alongside the frame and
+#:     measured worse than ``pd.read_parquet``; the zero-copy variants that do
+#:     cut peak hand back read-only buffers and break every
+#:     ``df.loc[mask, col] = ...`` in the load path.
+#:   - Encoding them at *build* time -- i.e. adding them to this list -- was
+#:     not tried, and the read-time blocker above does not apply to it: a
+#:     ``category`` column survives ``to_parquet``/``read_parquet`` as a
+#:     category with no custom Arrow read (see the note above, and
+#:     ``observations`` relying on ``mhc_class`` arriving categorical).
+#:     Against it: ``load_observations`` expands ``mhc_allele_set`` when an
+#:     identity refresh is pending and ``serotypes`` when an alias refresh is
+#:     -- both conditional, both firing on today's corpus -- so some of the
+#:     saving is given back on load, and how much is unmeasured.
+#:
+#:   So the list is unchanged because the cheap option is untested, not
+#:   because it is known to fail. Measure the build-time variant before
+#:   changing it, and do not act on the cardinality numbers alone (#566).
 _CATEGORICAL_BUILD_COLUMNS: tuple[str, ...] = (
     "source",
     "mhc_class",
