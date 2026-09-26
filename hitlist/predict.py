@@ -41,6 +41,16 @@ import pandas as pd
 
 from .curation import MHC_TYPING_COLUMNS, mhc_class_of, sample_mhc_candidates
 
+#: The context a prediction belongs to.
+#:
+#: ``mhc_basis`` stays in the key. #564's review proposed removing it, on the
+#: grounds that the exporter rewrites it per row and could split one context in
+#: two; under the ``sample_mhc_origin`` guard below it cannot, because the
+#: exporter blanks ``mhc_basis`` exactly where ``mhc`` was empty before the pool
+#: fill -- rows this function already excludes as ``class_pool`` or drops for
+#: having no candidates. Dropping it from the key is not neutral either: two
+#: rows of one context that genuinely disagree would be deduplicated to
+#: whichever landed first, making the reported basis depend on row order.
 _CONTEXT_COLUMNS = ["peptide", "pmid", "sample_label", "sample_mhc", *MHC_TYPING_COLUMNS]
 _RESULT_COLUMNS = [
     *_CONTEXT_COLUMNS,
@@ -225,13 +235,19 @@ def reassign_class_only_alleles(
     # happens to fit under the allele-count limit (#520).
     class_only_mask = df["mhc_restriction"].fillna("").str.startswith("HLA class")
     multi_mask = df["is_monoallelic"].fillna(False).eq(False)
-    # A named sample is not enough. The class-pool fallback fills
-    # ``sample_mhc`` with the study's class-wide union on rows it could not
-    # resolve to one arm's own candidates, and such a row keeps its curated
-    # label -- so the union would be scored as that sample's genotype and the
-    # winning allele attributed to a cell that may never have carried it.
-    identified = df["sample_label"].fillna("").ne("") & df["sample_match_type"].fillna("").ne(
-        "pmid_class_pool"
+    # A named sample is not enough: the class-pool fallback fills ``sample_mhc``
+    # with the study's class-wide union on rows it could not resolve to one
+    # arm's own candidates, and such a row keeps its curated label, so the union
+    # would be scored as that sample's genotype and the winning allele
+    # attributed to a cell that may never have carried it.
+    #
+    # ``sample_match_type`` is the wrong way to ask. It reports whether the
+    # study *has* a class pool, not whether this row took it, so it excluded
+    # 14,532 class-only rows that carry their own arm's candidate list and zero
+    # rows carrying a union -- all of the cost, none of the protection (#564).
+    # ``sample_mhc_origin`` is the fact itself.
+    identified = df["sample_label"].fillna("").ne("") & df["sample_mhc_origin"].fillna("").ne(
+        "class_pool"
     )
     target = df[class_only_mask & multi_mask & identified].copy()
     # The experiment's candidates remain the prediction scope. Independently

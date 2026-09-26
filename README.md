@@ -280,7 +280,8 @@ lookup_proteome("Mycobacterium tuberculosis")
 | `peptide` | Amino acid sequence |
 | `mhc_restriction` | Allele from IEDB (may be `"HLA class I"` for multi-allelic studies) |
 | `sample_mhc` | Experimental MHC candidates; may be a selected restriction or an unresolved study/class pool, not a complete genotype |
-| `mhc_basis` | Source-reviewed `selected_restriction` or `sample_typing`; blank is unreviewed |
+| `sample_mhc_origin` | `sample` (this arm's own candidates), `class_pool` (the study's class-wide union), blank (none reached the row), or `not_applicable` on a binding row in the training table. The fact `sample_match_type` cannot give you: that column says whether the study *has* a pool, not whether this row took it |
+| `mhc_basis` | Source-reviewed `selected_restriction` or `sample_typing`. Blank on an *exported row* means either unreviewed or that the claim was dropped because `sample_mhc` is not that arm's — `sample_mhc_origin` tells you which |
 | `mhc_genotype`, `mhc_genotype_cell`, `mhc_genotype_source` | Independently sourced cellular typing, its cell/donor identity and citation; never pooled across cells |
 | `mhc_genotype_reported_loci`, `mhc_genotype_complete_loci` | Loci with molecular typing versus explicitly complete typing; missing loci remain unknown |
 | `mhc_class` | Canonical `I`, `II`, or `non-classical`; molecule-derived when possible |

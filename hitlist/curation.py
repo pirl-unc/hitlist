@@ -220,7 +220,7 @@ PMID_ENTRY_FIELDS = MappingProxyType(
 #: leaving it out.
 MHC_TYPING_FIELDS = MappingProxyType(
     {
-        "mhc_basis": "selected_restriction or sample_typing; blank means unreviewed",
+        "mhc_basis": "selected_restriction or sample_typing; blank means unreviewed on a sample, and on an exported row can also mean the claim was dropped because sample_mhc is not that arm's -- read sample_mhc_origin to tell them apart",
         "mhc_genotype": "independently sourced cellular MHC typing; never an observation restriction",
         "mhc_genotype_cell": "the single cell line or donor whose cellular typing is recorded",
         "mhc_genotype_complete_loci": "sorted semicolon-separated fully typed loci; blank is unknown",

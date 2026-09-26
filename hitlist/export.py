@@ -103,6 +103,7 @@ _CATEGORICAL_EXPORT_METADATA_COLS: tuple[str, ...] = (
     # different category sets cannot be compared.  Keeping it string-typed
     # preserves categorical-vs-string value comparison.
     "sample_match_type",
+    "sample_mhc_origin",
     "perturbation",
     "condition_category",
     # ms_samples provenance (#373): three curated values and a note that is
@@ -233,6 +234,13 @@ SAMPLE_MATCH_TYPE_VALUES = (
 #: set would have dropped every grouped row.  One constant, the way
 #: :data:`hitlist.curation.MHC_ALLELE_PROVENANCE_VALUES` does it for that
 #: vocabulary.
+#: Every value :func:`generate_observations_table` can put in
+#: ``sample_mhc_origin``, pinned for the same reason as the two sets below: a
+#: consumer validating against a documented set breaks on an unlisted value.
+#: ``not_applicable`` is the training table's default for a binding row, which
+#: has no sample and so no candidate provenance.
+SAMPLE_MHC_ORIGIN_VALUES = ("sample", "class_pool", "not_applicable", "")
+
 SAMPLE_ATTRIBUTION_VALUES = (
     "curated_sample_label",
     "elution_conditions",
@@ -271,6 +279,7 @@ _TRAINING_DEFAULTS = {
     # untreated arm for every predicted binder in the training table (#450).
     **empty_condition_columns(),
     "sample_match_type": "not_applicable",
+    "sample_mhc_origin": "not_applicable",
     "matched_sample_count": 0,
     "is_chimeric": False,
     "is_engineered_mhc": False,
@@ -2243,6 +2252,30 @@ def generate_observations_table(
         )
         obs.loc[still_empty, "mhc"] = pool_lookup.reindex(sub_idx).fillna("").to_numpy()
 
+    # Where ``sample_mhc`` came from, which is not recoverable from
+    # ``sample_match_type`` (#564).  That column says whether the study *has* a
+    # class pool, not whether this row took it, so a row attributed to one arm
+    # by the discriminator reads ``pmid_class_pool`` while carrying that arm's
+    # own candidates.  Measured on the corpus: 14,532 class-only rows have a
+    # resolved arm and its own candidate list while labelled ``pmid_class_pool``,
+    # and none carry a cross-arm union -- so a consumer using the match type to
+    # mean "these candidates are one sample's" drops all of the former to catch
+    # none of the latter.  ``predict`` did exactly that.
+    #
+    # Also the missing half of blank ``mhc_basis``: the field registry defines
+    # blank as "unreviewed", and the blanking below overloads it with "the claim
+    # was dropped because these are not the arm's candidates". With this column
+    # the two are distinguishable.
+    # Built once: a bulk ``.loc`` setitem on this 4.4M-row frame consolidates
+    # blocks and copies it (#173, #244), and the second of the two would have
+    # been a strict-subset rewrite of the first.
+    _has_candidates = obs["mhc"].ne("")
+    obs["sample_mhc_origin"] = (
+        _has_candidates.map({True: "sample", False: ""})
+        .where(~(still_empty & _has_candidates), "class_pool")
+        .astype(str)
+    )
+
     # ``mhc_basis`` describes a sample's *own* reported candidates, which is
     # why the load-time contract refuses it without them (#520).  A row whose
     # curated ``mhc`` did not survive to here carries something else: either
@@ -2321,7 +2354,9 @@ def generate_observations_table(
     # candidates") is what actually happened here.
     # ``.ne("")`` rather than ``.astype(str) != ""``: ``mhc`` is a declared
     # categorical and rebuilding its object array costs hundreds of MB here.
-    obs.loc[_statement_vetoed & obs["mhc"].ne(""), "sample_match_type"] = "pmid_class_pool"
+    obs.loc[_statement_vetoed & obs["sample_mhc_origin"].eq("class_pool"), "sample_match_type"] = (
+        "pmid_class_pool"
+    )
 
     # --- Peptide-level allele evidence flag ---
     obs["has_peptide_level_allele"] = _compute_has_peptide_level_allele(

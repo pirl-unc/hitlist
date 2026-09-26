@@ -13,8 +13,16 @@ from hitlist.curation import MHC_TYPING_COLUMNS
 def _observation(pmid, label, genotype, peptide="AAAAAAAAA"):
     """One observation row as ``generate_observations_table`` emits it.
 
-    Carries the cellular-typing columns -- blank is what an unreviewed
-    study exports -- so the stub keeps the real export's contract (#520).
+    Carries the cellular-typing columns -- blank is what an unreviewed study
+    exports -- so the stub keeps the real export's contract (#520).
+
+    ``sample_match_type`` is ``pmid_class_pool``, not ``allele_match``: a
+    class-only ``mhc_restriction`` is never a key in the allele index, so the
+    exporter cannot emit ``allele_match`` for one of these rows. The stub said
+    it could, which is how a guard keyed on that column passed its own
+    regression suite while dropping 14,532 corpus rows (#564). ``sample_mhc``
+    here is the sample's own candidate list, so ``sample_mhc_origin`` is
+    ``sample`` -- that is the distinction the guard now reads.
     """
     return {
         "peptide": peptide,
@@ -23,7 +31,8 @@ def _observation(pmid, label, genotype, peptide="AAAAAAAAA"):
         "sample_mhc": genotype,
         "mhc_restriction": "HLA class I",
         "is_monoallelic": False,
-        "sample_match_type": "allele_match",
+        "sample_match_type": "pmid_class_pool",
+        "sample_mhc_origin": "sample",
         **dict.fromkeys(MHC_TYPING_COLUMNS, ""),
     }
 
@@ -133,7 +142,7 @@ def test_class_pool_union_is_not_predicted_against_its_named_sample(monkeypatch)
     the study, so scoring it would hand one arm's allele to another (#520)."""
     row = {
         **_observation(1, "armB", "HLA-A*02:01 HLA-B*07:02"),
-        "sample_match_type": "pmid_class_pool",
+        "sample_mhc_origin": "class_pool",
     }
     calls = _install_predictions(monkeypatch, [row], {"HLA-A*02:01": 0.1})
     assert predict.reassign_class_only_alleles().empty
