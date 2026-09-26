@@ -103,6 +103,7 @@ _CATEGORICAL_EXPORT_METADATA_COLS: tuple[str, ...] = (
     # different category sets cannot be compared.  Keeping it string-typed
     # preserves categorical-vs-string value comparison.
     "sample_match_type",
+    "sample_mhc_origin",
     "perturbation",
     "condition_category",
     # ms_samples provenance (#373): three curated values and a note that is
@@ -271,6 +272,7 @@ _TRAINING_DEFAULTS = {
     # untreated arm for every predicted binder in the training table (#450).
     **empty_condition_columns(),
     "sample_match_type": "not_applicable",
+    "sample_mhc_origin": "not_applicable",
     "matched_sample_count": 0,
     "is_chimeric": False,
     "is_engineered_mhc": False,
@@ -2243,6 +2245,24 @@ def generate_observations_table(
         )
         obs.loc[still_empty, "mhc"] = pool_lookup.reindex(sub_idx).fillna("").to_numpy()
 
+    # Where ``sample_mhc`` came from, which is not recoverable from
+    # ``sample_match_type`` (#564).  That column says whether the study *has* a
+    # class pool, not whether this row took it, so a row attributed to one arm
+    # by the discriminator reads ``pmid_class_pool`` while carrying that arm's
+    # own candidates.  Measured on the corpus: 14,532 class-only rows have a
+    # resolved arm and its own candidate list while labelled ``pmid_class_pool``,
+    # and none carry a cross-arm union -- so a consumer using the match type to
+    # mean "these candidates are one sample's" drops all of the former to catch
+    # none of the latter.  ``predict`` did exactly that.
+    #
+    # Also the missing half of blank ``mhc_basis``: the field registry defines
+    # blank as "unreviewed", and the blanking below overloads it with "the claim
+    # was dropped because these are not the arm's candidates". With this column
+    # the two are distinguishable.
+    obs["sample_mhc_origin"] = ""
+    obs.loc[obs["mhc"].ne(""), "sample_mhc_origin"] = "sample"
+    obs.loc[still_empty & obs["mhc"].ne(""), "sample_mhc_origin"] = "class_pool"
+
     # ``mhc_basis`` describes a sample's *own* reported candidates, which is
     # why the load-time contract refuses it without them (#520).  A row whose
     # curated ``mhc`` did not survive to here carries something else: either
@@ -4096,6 +4116,7 @@ def generate_ms_peptide_summary_table(
     for col, default in {
         "sample_mhc": "",
         "sample_match_type": "",
+        "sample_mhc_origin": "",
         "is_monoallelic": False,
         "src_cancer": False,
         "src_adjacent_to_tumor": False,

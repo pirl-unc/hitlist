@@ -278,3 +278,90 @@ def test_every_deposited_gbm_statement_is_curated():
     # it covers stay ambiguous rather than being handed to one arm.
     both = mapping[GBM_STATEMENT.format("RA cells, RA cells treated with CIITA")]
     assert {"ra_parental_class_i", "ra_ciita_transduced_class_i"} <= set(both)
+
+
+# ── sample_mhc_origin: where a row's candidates came from (#564) ──
+
+
+@pytest.mark.parametrize(
+    "samples, restriction, expected_origin",
+    [
+        # One arm, its own candidates: the row carries that arm's list.
+        (
+            [{"sample_label": "solo", "mhc": "HLA-A*02:01", "mhc_class": "I"}],
+            "HLA-A*02:01",
+            "sample",
+        ),
+        # Two arms, a class-only row: no arm's candidates apply, so the class
+        # pool fills sample_mhc and the origin says so.
+        (
+            [
+                {"sample_label": "armA", "mhc": "HLA-A*02:01", "mhc_class": "I"},
+                {"sample_label": "armB", "mhc": "HLA-B*07:02", "mhc_class": "I"},
+            ],
+            "HLA class I",
+            "class_pool",
+        ),
+    ],
+)
+def test_sample_mhc_origin_distinguishes_a_pool_fill_from_an_arm(
+    monkeypatch, samples, restriction, expected_origin
+):
+    """``sample_match_type`` cannot answer this: it reports whether the study
+    *has* a class pool, not whether this row took it. That conflation excluded
+    14,532 class-only rows from reassignment -- every one of them carrying its
+    own arm's candidate list, and none carrying a union (#564).
+    """
+    entries = {777: {"ms_samples": samples}}
+    monkeypatch.setattr("hitlist.export.load_pmid_overrides", lambda: entries)
+    monkeypatch.setattr("hitlist.curation.load_pmid_overrides", lambda: entries)
+    monkeypatch.setattr(
+        "hitlist.observations.load_observations",
+        lambda **kwargs: pd.DataFrame(
+            [
+                {
+                    "peptide": "AAAAAAAAA",
+                    "pmid": 777,
+                    "mhc_restriction": restriction,
+                    "mhc_class": "I",
+                    "mhc_species": "Homo sapiens",
+                    "cell_name": "",
+                    "assay_comments": "",
+                    "is_binding_assay": False,
+                    "source": "iedb",
+                }
+            ]
+        ),
+    )
+    row = generate_observations_table(exclude_non_peptide_ligand=False).iloc[0]
+    assert row.sample_mhc_origin == expected_origin
+    assert bool(row.sample_mhc) is True
+
+
+def test_sample_mhc_origin_is_blank_when_there_are_no_candidates(monkeypatch):
+    """Blank means no candidates reached the row at all, which is different
+    from a pooled union and from an arm's own list."""
+    entries = {778: {"ms_samples": [{"sample_label": "x", "mhc": "", "mhc_class": "I"}]}}
+    monkeypatch.setattr("hitlist.export.load_pmid_overrides", lambda: entries)
+    monkeypatch.setattr("hitlist.curation.load_pmid_overrides", lambda: entries)
+    monkeypatch.setattr(
+        "hitlist.observations.load_observations",
+        lambda **kwargs: pd.DataFrame(
+            [
+                {
+                    "peptide": "AAAAAAAAA",
+                    "pmid": 778,
+                    "mhc_restriction": "HLA class I",
+                    "mhc_class": "I",
+                    "mhc_species": "Homo sapiens",
+                    "cell_name": "",
+                    "assay_comments": "",
+                    "is_binding_assay": False,
+                    "source": "iedb",
+                }
+            ]
+        ),
+    )
+    row = generate_observations_table(exclude_non_peptide_ligand=False).iloc[0]
+    assert row.sample_mhc == ""
+    assert row.sample_mhc_origin == ""
