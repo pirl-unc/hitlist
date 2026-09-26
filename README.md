@@ -311,6 +311,15 @@ lookup_proteome("Mycobacterium tuberculosis")
 | `pmid_class_pool` | Class-based attribution; unresolved rows may carry the union of class-matching candidates | An unresolved pool must not be used as one sample's genotype |
 | `unmatched` | No curated sample for this PMID, or all samples have `mhc: unknown` | No — `sample_mhc` empty |
 
+`sample_attribution` says *how* the row reached its sample, and one value is
+worth reading before trusting an arm. `elution_conditions_excluded` means the
+row's own deposited elution statement named arms that exclude the one its
+allele matched — for a pan-class-II elution of a line whose class-II arms are
+all transduced, a peptide deposited under the untransduced statement. Those
+rows carry no `sample_label` and take the class pool, because the arm they came
+from is named by the deposit and absent from curation (#565, #567). Treat them
+as unattributed, not as the arm their allele happens to fit.
+
 ## Biological source classification
 
 Every observation is classified by mutually-exclusive biological source category:

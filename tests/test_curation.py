@@ -2986,14 +2986,23 @@ def test_species_axes_agreement_is_not_predicate_shaped():
 _KNOWN_POOLED_ALLELE_SAMPLES: set = set()
 
 #: Limits from that audit for a real per-sample genotype.
-_MAX_ALLELES_PER_SAMPLE = {"I": 6, "II": 10}
+#:
+#: Class II is twelve, not the audit's original ten: a fully heterozygous
+#: diploid class-II genotype is DRB1 x2, DRB3/4/5 x2, DQA1 x2, DQB1 x2,
+#: DPA1 x2 and DPB1 x2, and the original count left DRB3/4/5 out. Ten held
+#: only because no sample carried a complete class-II typing until #565.
+#: Writing DP and DQ as alpha/beta heterodimers caps at the same twelve:
+#: four DP pairs, four DQ pairs and the four DR chains.
+_MAX_ALLELES_PER_SAMPLE = {"I": 6, "II": 12}
 
 
 def test_no_sample_carries_a_pooled_allele_union():
     """A per-sample ``mhc`` must be one donor's genotype, not a pool.
 
     tasks/per_sample_allele_curation_audit.md fixes the limits: 6 alleles
-    for class I (heterozygous A/B/C), 10 for class II.  Above that the
+    for class I (heterozygous A/B/C), 12 for class II (DRB1 x2, DRB3/4/5 x2,
+    DQA1 x2, DQB1 x2, DPA1 x2, DPB1 x2; the audit's original 10 left DRB3/4/5
+    out, and held only while no sample carried a complete class-II typing).  Above that the
     value is a union across donors, the sample-metadata join attributes
     every peptide against alleles no single animal carries, and
     ``predict.max_alleles_per_sample`` exists to skip such samples as

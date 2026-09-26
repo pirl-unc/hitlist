@@ -474,7 +474,9 @@ def test_only_a_resolved_row_names_an_arm(full_observations_df):
     # is the overhead the categorical dtype exists to avoid (#263) and enough
     # to OOM the 2-worker integration runner.
     has_id = ~df["condition_id"].isin([""])
-    ambiguous = df["sample_attribution"].isin(["pmid_ambiguous", "group_ambiguous"])
+    ambiguous = df["sample_attribution"].isin(
+        ["pmid_ambiguous", "group_ambiguous", "elution_conditions_excluded"]
+    )
     assert not (has_id & ambiguous).any(), "an ambiguous row asserts a condition_id"
     resolved = df["sample_attribution"].isin(
         [
@@ -514,7 +516,11 @@ def test_an_arms_own_record_does_not_outlive_the_arm(full_observations_df):
     candidate was cultured in RPMI-1640 then so was this peptide's arm.
     """
     df = full_observations_df
-    ambiguous = df[df["sample_attribution"].isin(["pmid_ambiguous", "group_ambiguous"])]
+    ambiguous = df[
+        df["sample_attribution"].isin(
+            ["pmid_ambiguous", "group_ambiguous", "elution_conditions_excluded"]
+        )
+    ]
     assert not ambiguous.empty
     for column in sorted(ARM_SPECIFIC_CONDITION_COLUMNS):
         offenders = ambiguous[~ambiguous[column].isin([""])]
