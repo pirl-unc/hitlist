@@ -205,6 +205,24 @@ PMID_ENTRY_FIELDS = MappingProxyType(
     }
 )
 
+#: The cellular-typing sub-registry of :data:`MS_SAMPLE_FIELDS` (#520), spread
+#: into it below. Kept above that registry's ``#:`` block on purpose: Sphinx
+#: binds a ``#:`` comment to the assignment that follows it, so defining this
+#: in between attributed the schema-guard rationale to this five-key subset and
+#: left the registry it governs undocumented.
+MHC_TYPING_FIELDS = MappingProxyType(
+    {
+        "mhc_basis": "read by export.generate_observations_table, which blanks it when sample_mhc is not that arm's; selected_restriction or sample_typing, blank means unreviewed on a sample and on an exported row can also mean the claim was dropped -- sample_mhc_origin tells them apart",
+        "mhc_genotype": "informational; exported by generate_ms_samples_table/generate_observations_table and scanned by qc.mhc_token_audit/sample_ploidy_audit, never read for attribution -- independently sourced cellular typing at its reported molecular or serological precision",
+        "mhc_genotype_cell": "informational; exported only. The single cell line or donor whose typing is recorded, and what _consensus_meta compares to refuse pooling two cells' typing",
+        "mhc_genotype_complete_loci": "informational; exported only. Sorted semicolon-separated loci the source states are fully typed, validated against mhc_genotype_reported_loci on load; blank is unknown",
+        "mhc_genotype_source": "informational; exported only. Citation and location establishing the typing and its scope, required by sample_mhc_metadata whenever mhc_genotype is set",
+    }
+)
+MHC_TYPING_COLUMNS = (*MHC_TYPING_FIELDS, "mhc_genotype_reported_loci")
+MHC_GENOTYPE_COLUMNS = tuple(c for c in MHC_TYPING_COLUMNS if c != "mhc_basis")
+
+
 #: Every key an ``ms_samples`` entry may carry, mapped to what reads it.
 #:
 #: This is the schema guard #373 asks for. Three keys — ``override``,
@@ -218,19 +236,6 @@ PMID_ENTRY_FIELDS = MappingProxyType(
 #: Adding a key means adding it here *and* pointing it at its reader. If a
 #: field is genuinely informational, say so in its description rather than
 #: leaving it out.
-MHC_TYPING_FIELDS = MappingProxyType(
-    {
-        "mhc_basis": "selected_restriction or sample_typing; blank means unreviewed on a sample, and on an exported row can also mean the claim was dropped because sample_mhc is not that arm's -- read sample_mhc_origin to tell them apart",
-        "mhc_genotype": "independently sourced cellular MHC typing; never an observation restriction",
-        "mhc_genotype_cell": "the single cell line or donor whose cellular typing is recorded",
-        "mhc_genotype_complete_loci": "sorted semicolon-separated fully typed loci; blank is unknown",
-        "mhc_genotype_source": "source citation and location for the cellular typing and its scope",
-    }
-)
-MHC_TYPING_COLUMNS = (*MHC_TYPING_FIELDS, "mhc_genotype_reported_loci")
-MHC_GENOTYPE_COLUMNS = tuple(c for c in MHC_TYPING_COLUMNS if c != "mhc_basis")
-
-
 MS_SAMPLE_FIELDS = MappingProxyType(
     {
         "sample_label": "sample identity; the join key for observation attribution",
@@ -2371,8 +2376,11 @@ def sample_mhc_metadata(sample: Mapping) -> dict[str, str]:
             raise ValueError(f"{field} must be a stripped string")
     if result["mhc_basis"] not in ("", "selected_restriction", "sample_typing"):
         raise ValueError("mhc_basis must be selected_restriction, sample_typing, or blank")
-    if result["mhc_basis"] and not sample.get("mhc"):
-        raise ValueError("mhc_basis requires experimental mhc candidates")
+    if result["mhc_basis"]:
+        candidates = sample_mhc_candidates(sample.get("mhc"))
+        # Class designations are nonempty parser results but name no candidate.
+        if not (candidates.exact or candidates.serotypes):
+            raise ValueError("mhc_basis requires experimental mhc candidates")
 
     genotype = result["mhc_genotype"]
     typing = sample_mhc_candidates(genotype)
@@ -2381,7 +2389,7 @@ def sample_mhc_metadata(sample: Mapping) -> dict[str, str]:
         for field in provenance:
             if not result[field]:
                 raise ValueError(f"mhc_genotype requires {field}")
-        if typing.is_empty:
+        if not (typing.exact or typing.serotypes):
             raise ValueError("mhc_genotype must name reported MHC typing")
     elif any(result[field] for field in (*provenance, "mhc_genotype_complete_loci")):
         raise ValueError("cellular typing metadata requires mhc_genotype")
@@ -2392,6 +2400,12 @@ def sample_mhc_metadata(sample: Mapping) -> dict[str, str]:
         for component in expand_allele_components(allele)
         if (locus := allele_locus(component))
     }
+    for serotype in typing.serotypes:
+        # Report the shared locus, never the inferred member alleles (#573).
+        # Cross-locus antigens such as Bw4 cannot establish either locus alone.
+        member_loci = {allele_locus(allele) for allele in serotype_to_alleles(serotype)}
+        if len(member_loci) == 1 and "" not in member_loci:
+            loci.update(member_loci)
     result["mhc_genotype_reported_loci"] = ";".join(sorted(loci))
     complete = result["mhc_genotype_complete_loci"]
     if complete and (

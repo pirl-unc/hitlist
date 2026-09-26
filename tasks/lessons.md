@@ -237,3 +237,18 @@
   review of that same PR: when you write down why an option was rejected,
   check the reason applies to the option. The read-time blocker I recorded
   says nothing about the build-time one, which is cheaper and untried.
+
+- Measure the claim, or do not make it. Reasoning about a corpus is not
+  evidence about it.
+  Rule: across one session on #520/#565/#566/#564 every claim I measured
+  survived review — 492 rows contradicting their deposited statement, 14,532
+  wrongly excluded and 0 unions, 0 differing cells against main — and nearly
+  every claim I reasoned to did not. A relayed "93% of rows" was 10%. A dtype
+  "saving" of 254 MB was a 56 MB regression, because `memory_usage(deep=True)`
+  charges per element for interned singletons. A 21→10 GB peak came from
+  zero-copy buffers that broke 14 tests. A CI failure I attributed twice — once
+  to a known flake, once to my own memory regression — was neither, and the
+  cross-branch run history said so in one query. Two changes were justified by
+  scenarios the same PR made unreachable. The pattern is specific: plausible
+  mechanisms at corpus scale are worth exactly what an unmeasured mechanism is
+  worth. Before writing a number in a PR body or a comment, run the thing.

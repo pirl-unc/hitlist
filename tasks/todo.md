@@ -1,3 +1,53 @@
+# PR #571 review and release
+
+Review the complete diff against main and the failed Python 3.11 CI job.
+Check validator acceptance at each supported typing precision, shared
+prediction parsing, and the two-field ploidy audit. Reproduce any defect with
+a focused regression before changing behavior; file confirmed problems as
+issues and link them from the PR. Preserve reported scientific facts and
+avoid expanding the curation scope. Keep the existing 1.62.63 patch bump.
+
+Use an isolated release environment with the locked dependencies. Run
+`./format.sh`, `./lint.sh`, and `./test.sh`, then verify CI on the final PR
+commit before merging. Deploy with `./deploy.sh` from a clean main checkout,
+verify the published version and artifacts, and inspect related open issues
+to identify the next dependency-ordered block of work.
+
+- [x] Identify PR, read project lessons, and establish the review plan.
+- [x] Review implementation and failed CI; reproduce and file findings.
+- [x] Fix findings and add focused regression coverage.
+- [ ] Pass formatting, lint, local tests, and final-commit CI.
+- [ ] Merge, deploy from clean main, and verify PyPI artifacts.
+- [ ] Record review results and prioritize follow-up issues.
+
+Review findings: #573 records inconsistent serological typing validation;
+preserve source precision and derive only unambiguous serotype loci. #574
+records pre-existing predictor eligibility for gene-only / one-field names,
+which needs a separate policy for unresolved candidate sets. The failed CI
+log shows 2,047 unit tests passing before a runner shutdown during integration;
+the existing runner-memory investigation is #566. No assertion failed there.
+Nine focused regressions failed against the original PR (including two error
+message assertions); after the fix the three focused suites pass: 94 passed,
+one optional MHCflurry test skipped, one integration test deselected. Formatting
+and lint pass. The full unit suite is running with one worker after the memory
+preflight recovered to 11.23 GB available.
+
+Re-plan after CI run 36239737967: all 2,061 unit tests passed, then the
+integration process lost its runner with the same shutdown signal as the
+original PR. Resolve the #566 gate before merging: run CI integration through
+the existing serial fixture path (`-n 0`) so one consumer does not write and
+reload a full Arrow cache; keep every integration test and accumulated coverage.
+Enable unbuffered output for diagnostics and validate this change on the hosted
+runner, recording its actual test results and peak RSS before drawing conclusions.
+
+Second re-plan: serial integration passes all 43 tests locally, but peaks at
+19,342,344,192 bytes RSS. Hosted run 36240670574 was SIGKILLed while building
+the first corpus fixture at 15,625,788 KiB RSS; avoiding the Arrow cache alone
+does not fit the build into the runner's RAM. Provision 8 GiB of swap only for
+the corpus CI job, retain all tests and the 25-minute timeout, and log memory
+availability. This addresses the runner's capacity while #566/#572 continue to
+track production-memory reduction. Require a successful measured hosted run.
+
 # #520 specification — cellular typing and experimental restriction
 
 Keep two biological facts separate. The existing `mhc` / exported `sample_mhc`

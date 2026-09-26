@@ -286,15 +286,16 @@ def mhc_token_audit(
     )
 
 
-#: A diploid genome carries at most two alleles at one locus.  Anything
-#: above this on a single curated sample means the ``mhc`` field is a union
-#: across several donors, transfectants, or mono-allelic constructs rather
-#: than one sample's genotype.
+#: A diploid genome carries at most two alleles at one locus.  Anything above
+#: this in one curated sample's ``mhc`` or ``mhc_genotype`` is a union across
+#: several donors, transfectants, or mono-allelic constructs rather than one
+#: sample's own molecules (#564).
 MAX_ALLELES_PER_LOCUS = 2
 
 _PLOIDY_AUDIT_COLUMNS = [
     "pmid",
     "sample_label",
+    "field",
     "locus",
     "n_alleles",
     "alleles",
@@ -306,10 +307,18 @@ _PLOIDY_AUDIT_COLUMNS = [
 def sample_ploidy_audit(overrides: Mapping[int, dict] | None = None) -> pd.DataFrame:
     """Flag curated samples carrying more alleles at a locus than a genome can.
 
-    A curated ``ms_samples[].mhc`` field is supposed to describe **one
-    sample's** genotype.  A diploid donor has at most two alleles at any
-    locus, so three or more is proof the field pools several donors,
-    transfectants, or mono-allelic constructs into a single entry.
+    Both ``mhc`` and ``mhc_genotype`` are audited (#564).  A diploid donor has
+    at most two alleles at any locus, so three or more is proof the field pools
+    several donors, transfectants, or mono-allelic constructs into one entry.
+
+    ``mhc_genotype`` is where that invariant now literally holds -- it is
+    defined as one cell's or donor's typing -- and it had no enforcement:
+    :func:`hitlist.curation.sample_mhc_metadata` validates completeness and
+    provenance and never counts alleles per locus, so pooling two donors'
+    typing onto one sample loaded cleanly.  ``mhc`` is still audited because a
+    selected ligand restriction is a subset of one cell's molecules, so three
+    at a locus means a union there too; what #520 changed is that a clean
+    ``mhc`` no longer implies the field *is* a genotype.
 
     That pooling is not cosmetic.  The allele-level join treats every
     listed allele as a candidate for every peptide in the sample, so a
@@ -332,8 +341,8 @@ def sample_ploidy_audit(overrides: Mapping[int, dict] | None = None) -> pd.DataF
     Returns
     -------
     pd.DataFrame
-        One row per offending (sample, locus), empty when the corpus is
-        clean.  ``n_alleles_total`` gives the sample's whole allele count
+        One row per offending (sample, field, locus), empty when the corpus is
+        clean.  ``n_alleles_total`` gives the audited field's whole allele count
         for context, since a badly pooled sample usually breaks several
         loci at once.
 
@@ -357,36 +366,38 @@ def sample_ploidy_audit(overrides: Mapping[int, dict] | None = None) -> pd.DataF
     findings: list[dict] = []
     for pmid, entry in overrides.items():
         for sample in entry.get("ms_samples") or []:
-            candidates = sample_mhc_candidates(sample.get("mhc"))
-            if not candidates.exact:
-                continue
-            by_locus: dict[str, set[str]] = {}
-            for allele in candidates.exact:
-                # A pair spans two loci; charge each chain to its own.
-                components = expand_allele_components(allele)
-                chains = [c for c in components if allele_locus(c)] or [allele]
-                for chain in chains:
-                    locus = allele_locus(chain)
-                    if locus:
-                        by_locus.setdefault(locus, set()).add(chain)
-            for locus, alleles in sorted(by_locus.items()):
-                if len(alleles) <= MAX_ALLELES_PER_LOCUS:
+            for field in ("mhc", "mhc_genotype"):
+                candidates = sample_mhc_candidates(sample.get(field))
+                if not candidates.exact:
                     continue
-                findings.append(
-                    {
-                        "pmid": pmid,
-                        "sample_label": sample.get("sample_label", ""),
-                        "locus": locus,
-                        "n_alleles": len(alleles),
-                        "alleles": " ".join(sorted(alleles)),
-                        "n_alleles_total": len(candidates.exact),
-                        "reason": (
-                            f"{len(alleles)} alleles at {locus}; a diploid sample carries at "
-                            f"most {MAX_ALLELES_PER_LOCUS}, so this mhc field pools several "
-                            "samples"
-                        ),
-                    }
-                )
+                by_locus: dict[str, set[str]] = {}
+                for allele in candidates.exact:
+                    # A pair spans two loci; charge each chain to its own.
+                    components = expand_allele_components(allele)
+                    chains = [c for c in components if allele_locus(c)] or [allele]
+                    for chain in chains:
+                        locus = allele_locus(chain)
+                        if locus:
+                            by_locus.setdefault(locus, set()).add(chain)
+                for locus, alleles in sorted(by_locus.items()):
+                    if len(alleles) <= MAX_ALLELES_PER_LOCUS:
+                        continue
+                    findings.append(
+                        {
+                            "pmid": pmid,
+                            "sample_label": sample.get("sample_label", ""),
+                            "field": field,
+                            "locus": locus,
+                            "n_alleles": len(alleles),
+                            "alleles": " ".join(sorted(alleles)),
+                            "n_alleles_total": len(candidates.exact),
+                            "reason": (
+                                f"{len(alleles)} alleles at {locus}; a diploid sample carries at "
+                                f"most {MAX_ALLELES_PER_LOCUS}, so this {field} field pools "
+                                "several samples"
+                            ),
+                        }
+                    )
     if not findings:
         return pd.DataFrame(columns=_PLOIDY_AUDIT_COLUMNS)
     return (

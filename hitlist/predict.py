@@ -39,7 +39,7 @@ from tempfile import TemporaryDirectory
 import numpy as np
 import pandas as pd
 
-from .curation import MHC_TYPING_COLUMNS, mhc_class_of, sample_mhc_candidates
+from .curation import MHC_TYPING_COLUMNS
 
 #: The context a prediction belongs to.
 #:
@@ -64,12 +64,18 @@ _RESULT_COLUMNS = [
 
 
 def _class_i_alleles(mhc_field: str | None) -> list[str]:
-    """Precisely reported human class-I candidates, using the shared parser."""
-    return sorted(
-        allele
-        for allele in sample_mhc_candidates(mhc_field).exact
-        if allele.startswith("HLA-") and mhc_class_of(allele) == "I"
-    )
+    """Human classical class-I candidates a class-I predictor can score.
+
+    A filter over :func:`hitlist.export._sample_alleles`, which is the shared
+    precision-aware parser -- ``exact`` candidates only, pair components
+    expanded, restricted to the requested class -- rather than a third copy of
+    that parsing (#564). The one thing added is ``HLA-``: the class filter alone
+    keeps a mouse ``H2-K*b`` or a macaque ``Mamu-A*01``, and this function's
+    callers hand the result to MHCflurry's human class-I models.
+    """
+    from .export import _sample_alleles
+
+    return [allele for allele in _sample_alleles(mhc_field or "", "I") if allele.startswith("HLA-")]
 
 
 def _predict_mhcflurry(pairs: pd.DataFrame) -> pd.DataFrame:

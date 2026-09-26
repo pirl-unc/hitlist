@@ -92,6 +92,12 @@ def test_class_i_candidates_keep_precision_and_accept_curated_separators():
     assert _class_i_alleles("HLA-A2 HLA class I") == []
 
 
+def test_class_i_candidates_exclude_nonhuman_and_nonclassical_molecules():
+    assert _class_i_alleles(
+        "HLA-A*02:01 H2-K*b Mamu-A*01 HLA-E*01:01 HLA-G*01:01 HLA-DRB1*15:01"
+    ) == ["HLA-A*02:01"]
+
+
 def test_reassign_class_ii_not_implemented():
     import pytest
 

@@ -45,6 +45,7 @@ jobs:
       # Changing this invalidates the cache below so CI pulls the new corpus.
       CORPUS_VERSION: v2
       PYTEST_ADDOPTS: "-ra"
+      PYTHONUNBUFFERED: "1"
 
     steps:
       - name: Checkout repository
@@ -60,6 +61,19 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[dev,alleles]"
+
+      - name: Provision memory for the full corpus
+        if: matrix.python-version == '3.11'
+        run: |
+          # The full export transiently exceeds the runner's 16 GiB RAM even
+          # without xdist (#566). Give that peak bounded disk-backed capacity.
+          # This VM and its swap file are discarded after the job.
+          swap_path="$RUNNER_TEMP/hitlist-corpus.swap"
+          sudo fallocate -l 8G "$swap_path"
+          sudo chmod 600 "$swap_path"
+          sudo mkswap "$swap_path"
+          sudo swapon "$swap_path"
+          free -h
 
       # ── Prebuilt observations corpus (integration tests) ──────────────
       # CI can't build the corpus (the ~15 GB IEDB/CEDAR sources aren't
@@ -103,12 +117,12 @@ jobs:
       - name: Run unit tests (with coverage)
         if: matrix.python-version == '3.11'
         run: |
-          # The v2 corpus repeatedly lost its hosted runner with two corpus
-          # workers. String materialization is not shared by the Arrow mmap
-          # fixture. Keep every test, use one corpus worker and record resource
+          # The v2 corpus still loses runners with one xdist worker (#566).
+          # The serial fixture skips writing and reloading a multi-worker Arrow
+          # cache for a single consumer. Keep every test and record resource
           # usage; regular tests retain normal parallelism. Coverage accumulates.
           /usr/bin/time -v pytest tests/ -m "not integration" -n auto --cov=hitlist
-          /usr/bin/time -v pytest tests/ -m integration -n 1 --cov=hitlist --cov-append --cov-report=xml
+          /usr/bin/time -v pytest tests/ -m integration -n 0 --cov=hitlist --cov-append --cov-report=xml
 
       - name: Run unit tests (no coverage)
         if: matrix.python-version != '3.11'
