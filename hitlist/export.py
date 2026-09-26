@@ -83,7 +83,12 @@ _ACQUISITION_FIELDS = (
 # categorical dtype.  Genuinely high-cardinality columns (peptide,
 # peptide_extended, *_iri, free-text comments) and semicolon-joined
 # multi-value columns (serotypes, mhc_allele_set, host_mhc_types,
-# apm_genes_perturbed) are intentionally excluded — mirrors
+# apm_genes_perturbed) are intentionally excluded.  The ``mhc_genotype*``
+# block below is the documented exception and not a loosening of that rule:
+# those columns are multi-value and one is free text, but every value comes
+# from one of ~120 curated samples, so the category set is bounded by curation
+# rather than by the corpus -- which is the property the rule is really about
+# (#564) — mirrors
 # ``builder._CATEGORICAL_BUILD_COLUMNS``.  Audited cardinalities are all
 # < 0.03% of rows; the biggest memory wins are mhc (479 MB),
 # mhc_class_label_severity (227 MB) and mhc_restriction (224 MB).

@@ -456,3 +456,51 @@ def test_named_sample_without_candidates_keeps_its_own_typing_only(monkeypatch):
     assert row.mhc_basis == ""
     assert row.mhc_genotype == GENOTYPE
     assert row.mhc_genotype_cell == "C1R-B*40:02"
+
+
+@pytest.mark.parametrize(
+    "changes, message",
+    [
+        # ``unknown`` and ``HLA class I`` are legal, truthy ``mhc`` values that
+        # name no MHC entity, so a basis claim over either asserts "this
+        # sample's candidate list is its typing" about a sentinel (#564).
+        ({"mhc": "unknown"}, "mhc_basis requires"),
+        ({"mhc": "HLA class I"}, "mhc_basis requires"),
+        # A serotype-only genotype loads but exports blank reported loci, which
+        # is documented as "unknown", and then makes any completeness claim
+        # unrecordable because the subset check compares against an empty set.
+        ({"mhc_genotype": "HLA-DR15", "mhc_genotype_complete_loci": ""}, "precisely reported"),
+    ],
+)
+def test_sentinels_and_serotypes_are_not_typing(changes, message):
+    with pytest.raises(ValueError, match=message):
+        curation.sample_mhc_metadata(_sample(**changes))
+
+
+def test_ploidy_audit_covers_the_field_that_claims_to_be_a_genotype():
+    """``mhc_genotype`` is defined as one cell's typing, and had no allele-count
+    enforcement: ``sample_mhc_metadata`` checks completeness and provenance and
+    never counts per locus, so pooling two donors' typing loaded cleanly (#564).
+    """
+    from hitlist import qc
+
+    pooled = {
+        1: {
+            "ms_samples": [
+                {
+                    "sample_label": "pooled typing",
+                    "mhc": "HLA-A*02:01",
+                    "mhc_class": "I",
+                    "mhc_genotype": "HLA-B*07:02 HLA-B*08:01 HLA-B*35:01",
+                    "mhc_genotype_cell": "two donors",
+                    "mhc_genotype_source": "synthetic",
+                }
+            ]
+        }
+    }
+    findings = qc.sample_ploidy_audit(pooled)
+    assert findings[["field", "locus", "n_alleles"]].to_dict("records") == [
+        {"field": "mhc_genotype", "locus": "HLA-B", "n_alleles": 3}
+    ]
+    # The real corpus stays clean on both fields.
+    assert qc.sample_ploidy_audit().empty
