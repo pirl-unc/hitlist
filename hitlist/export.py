@@ -2160,87 +2160,67 @@ def generate_observations_table(
         if _entry.get("elution_condition_ids")
     }
     if _statement_maps and "assay_comments" in obs.columns and "condition_id" in obs.columns:
-        _statements = obs["assay_comments"].astype("string").fillna("").str.strip()
-        _assigned = obs["condition_id"].astype("string").fillna("")
-        for _pmid, _map in _statement_maps.items():
-            _rows = (obs["_pmid_int"] == float(_pmid)).fillna(False)
-            if not _rows.any():
-                continue
-            _governed = {_arm for _arms in _map.values() for _arm in _arms}
-            _allowed_lists = _statements[_rows].map(_map).tolist()
-            _assigned_arms = _assigned[_rows].tolist()
-            # No ``strict=`` here: this package supports Python 3.9, where
-            # ``zip`` takes no keyword arguments, and ruff cannot catch it
-            # because B905 is in the ignore list (see qc.py's note). Both
-            # lists come from the same row selection, so they are aligned by
-            # construction.
-            _statement_vetoed.loc[_rows] = [
-                _arm in _governed and isinstance(_allowed, list) and _arm not in _allowed
-                for _allowed, _arm in zip(_allowed_lists, _assigned_arms)
-            ]
-    if _statement_vetoed.any():
-        # What survives on a vetoed row.
-        #
-        # Consensus across the study's arms *of that class* is the wrong set:
-        # for PMID 33592498 the only curated class-II arms are the transduced
-        # ones, so every one of them agrees on ``condition_transduction:
-        # CIITA`` and consensus would hand that back to a row whose statement
-        # says untransduced -- re-asserting precisely what the veto refuses.
-        # The row's own arm is the one the deposit names and curation lacks.
-        #
-        # So consensus runs over the arms the statement actually allows, which
-        # is usually empty here, and the study-origin fields that belong to the
-        # deposit rather than to any arm survive regardless (#373): the study's
-        # ``arm_resolution`` verdict, and an override whose origin is the study.
+        # Everything here stays scoped to the rows of a study that curates a
+        # map, and the metadata rewrite touches only the vetoed rows. The
+        # frame-wide shape of this cost more than the veto is worth: converting
+        # ``assay_comments`` (a declared categorical, ~190 MB as strings) over
+        # 4.4M rows, then building one Python list per meta column to rewrite
+        # 492 of them, is several hundred MB of transients -- enough to lose the
+        # 3.11 integration job, which runs with under a gigabyte to spare (#566).
         _study_level = ("arm_resolution", "effective_override", "effective_override_origin")
-        _allowed_by_statement = {}
-        for _pmid, _map in _statement_maps.items():
-            _allowed_by_statement[_pmid] = _map
         _blank = {_col: False if _col in _BOOL_META_COLS else "" for _col in meta_cols}
-        _statements_all = obs["assay_comments"].astype("string").fillna("").str.strip()
-
-        _vetoed_meta: dict[tuple[int, str, str], dict] = {}
-
-        def _meta_for(_pmid_v: int, _cls: str, _statement: str) -> dict:
-            _key = (_pmid_v, _cls, _statement)
-            if _key in _vetoed_meta:
-                return _vetoed_meta[_key]
-            _allowed = (_allowed_by_statement.get(_pmid_v) or {}).get(_statement) or []
-            _arms = [
-                ("", "", {_col: _r.get(_col, "") for _col in meta_cols})
-                for _, _r in samples[samples["pmid"].astype(int) == _pmid_v].iterrows()
-                if _cls in _sample_class_tokens(_r) and _r.get("condition_id", "") in _allowed
-            ]
-            _meta = _consensus_meta(_arms, meta_cols) if _arms else dict(_blank)
-            # Study-origin values are properties of the deposit, so they hold
-            # even when no arm of this class was named.
-            _study_rows = samples[samples["pmid"].astype(int) == _pmid_v]
-            for _col in _study_level:
-                if _meta.get(_col):
-                    continue
-                _values = {str(_r.get(_col, "") or "") for _, _r in _study_rows.iterrows()}
-                if len(_values) == 1:
-                    _meta[_col] = next(iter(_values))
-            if _meta.get("effective_override_origin") not in ("study", ""):
-                _meta["effective_override"] = ""
-                _meta["effective_override_origin"] = ""
-            _vetoed_meta[_key] = _meta
-            return _meta
-
-        _row_meta = [
-            _meta_for(int(_p), str(_c), str(_s)) if _v and pd.notna(_p) else _blank
-            for _v, _p, _c, _s in zip(
-                _statement_vetoed, obs["_pmid_int"], obs["_mhc_class_norm"], _statements_all
-            )
-        ]
-        for _col in meta_cols:
-            obs[_col] = obs[_col].where(
-                ~_statement_vetoed,
-                pd.Series([_m.get(_col, _blank[_col]) for _m in _row_meta], index=obs.index),
-            )
-        obs["sample_attribution"] = obs["sample_attribution"].where(
-            ~_statement_vetoed, "elution_conditions_excluded"
-        )
+        for _pmid, _map in _statement_maps.items():
+            _in_study = (obs["_pmid_int"] == float(_pmid)).fillna(False)
+            if not _in_study.any():
+                continue
+            _rows = obs.index[_in_study.to_numpy()]
+            _governed = {_arm for _arms in _map.values() for _arm in _arms}
+            _stmts = obs.loc[_rows, "assay_comments"].astype("string").fillna("").str.strip()
+            _assigned = obs.loc[_rows, "condition_id"].astype("string").fillna("")
+            _classes = obs.loc[_rows, "_mhc_class_norm"].astype("string").fillna("")
+            # No ``strict=`` on zip: this package supports Python 3.9, where it
+            # is not a parameter, and ruff cannot catch it because B905 is in
+            # the ignore list (see qc.py's note). All four sequences come from
+            # the same row selection, so they align by construction.
+            _groups: dict[tuple[str, str], list] = {}
+            for _idx, _stmt, _arm, _cls in zip(
+                _rows, _stmts.tolist(), _assigned.tolist(), _classes.tolist()
+            ):
+                _allowed = _map.get(_stmt)
+                if _arm in _governed and isinstance(_allowed, list) and _arm not in _allowed:
+                    _groups.setdefault((str(_cls), str(_stmt)), []).append(_idx)
+            if not _groups:
+                continue
+            _study_rows = samples[samples["pmid"].astype(int) == _pmid]
+            for (_cls, _stmt), _idxs in _groups.items():
+                # Consensus over the arms the statement *allows*, not over the
+                # study's arms of that class: for PMID 33592498 the only curated
+                # class-II arms are the transduced ones, so they all agree on
+                # ``condition_transduction: CIITA`` and consensus would hand
+                # back the claim the veto just refused.
+                _allowed_arms = _map.get(_stmt) or []
+                _arms = [
+                    ("", "", {_col: _r.get(_col, "") for _col in meta_cols})
+                    for _, _r in _study_rows.iterrows()
+                    if _cls in _sample_class_tokens(_r)
+                    and _r.get("condition_id", "") in _allowed_arms
+                ]
+                _meta = _consensus_meta(_arms, meta_cols) if _arms else dict(_blank)
+                # Study-origin values belong to the deposit, not to an arm, so
+                # they hold even when the statement named no arm of this class.
+                for _col in _study_level:
+                    if _meta.get(_col):
+                        continue
+                    _values = {str(_r.get(_col, "") or "") for _, _r in _study_rows.iterrows()}
+                    if len(_values) == 1:
+                        _meta[_col] = next(iter(_values))
+                if _meta.get("effective_override_origin") not in ("study", ""):
+                    _meta["effective_override"] = ""
+                    _meta["effective_override_origin"] = ""
+                for _col in meta_cols:
+                    obs.loc[_idxs, _col] = _meta.get(_col, _blank[_col])
+                obs.loc[_idxs, "sample_attribution"] = "elution_conditions_excluded"
+                _statement_vetoed.loc[_idxs] = True
 
     # 4) Class-pool fallback: for still-unmatched rows, fill sample_mhc
     #    with the union of all alleles from samples of the same class.
