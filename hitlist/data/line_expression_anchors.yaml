@@ -37,7 +37,9 @@
 #                     column. Omitted when expression_backend == "none".
 #   source_ids        list of source_id values from
 #                     hitlist/data/line_expression/sources.yaml that contribute
-#                     rows for this line (used for provenance, not resolution)
+#                     rows for this line. Resolution needs one of them to
+#                     have rows for expression_key, and a downloaded DepMap
+#                     matrix contributes only the lines that list its source.
 #   notes             free-text, human-readable
 
 lines:
@@ -252,13 +254,13 @@ lines:
     line_family: normal_immortalized
     lineage_tissue: "blood, myeloid"
     cancer_type: "chronic myeloid leukemia"
-    expression_backend: packaged_rnaseq
+    expression_backend: depmap_rna
     expression_key: "HAP1"
-    source_ids: ["Essletzbichler_2014_HAP1"]
-    notes: "Near-haploid KBM7-derived line widely used for KO panels. KBM7 parent is CML-derived, so cancer_type carries CML for tier-4 fallback."
+    source_ids: ["DepMap_24Q4_HAP1_gene", "DepMap_24Q4_transcript"]
+    notes: "Near-haploid KBM7-derived line widely used for KO panels. KBM7 parent is CML-derived, so cancer_type carries CML for tier-4 fallback. Gene RNA is DepMap's own row, shipped in the package (DepMap_24Q4_HAP1_gene) so HAP1 resolves without the optional bundle."
 
   - name: "HAP1-KO"
-    aliases: ["hap1 tap1 ko", "hap1 calr ko", "hap1 b2m ko", "hap1 ganab ko", "hap1 tapbp ko", "hap1 erap1 ko", "hap1 erap2 ko", "hap1 ko"]
+    aliases: ["hap1 tap2 ko", "hap1 irf2 ko", "hap1 pdia3 ko", "hap1 sppl3 ko", "hap1 canx ko", "hap1 tap1 ko", "hap1 calr ko", "hap1 b2m ko", "hap1 ganab ko", "hap1 tapbp ko", "hap1 erap1 ko", "hap1 erap2 ko", "hap1 ko"]
     parent_line: "HAP1"
     line_family: normal_immortalized
     lineage_tissue: "blood, myeloid"

@@ -1,3 +1,42 @@
+# #358 — measured HAP1 reference RNA (first half)
+
+Recovered from the uncommitted `/private/tmp/hitlist-358` worktree, whose
+committed history was only sibling fixes (#230, #289, #306, #357, #452, #508,
+#509, #522, #526), all since landed. Ship only the half with verified data:
+HAP1 is present in DepMap 24Q4 (ACH-002475, confirmed against Cellosaurus
+CVCL_Y019; default RNA profile PR-QtHaIL), so package its complete 19,193-gene
+row with original values, resolve HAP1 at tier 1 and the 12 Shapiro 2025 arms
+(PMID 40113210) at tier 2 via the parent, and keep the downloaded DepMap gene
+matrix from duplicating it. C1R (SRR7065975) and 721.221 (GSE228188 sgNT
+controls) have no certified quantification yet — the ENA read download failed
+partway — so their anchors, sources and quantification pipeline stay out and
+#358 stays open. Minor bump to 1.63.0 for the new data source.
+
+- [x] Port the HAP1 subset onto a fresh branch from main; drop C1R/721.221
+  anchors, sources, `reference_match_tier` and the quantification path.
+- [x] Regenerate the packaged CSV from the checksum-verified DepMap matrix
+  and confirm it is byte-identical (sha256 d1295f71...).
+- [x] Prove the builder source-selection regression fails without its fix.
+- [x] Review (#575): fix findings, file what is out of scope.
+- [x] Preserve the C1R/721.221 remainder on local branch
+  `wip/358-c1r-721221-rna`.
+- [ ] Pass format, lint, full tests, build smoke and final-commit CI.
+- [ ] Merge, deploy from clean main and verify PyPI.
+
+Review result: removed the stale-index compatibility layer rather than patch
+it. It only added newly packaged (line, source) pairs, so an index built by
+1.62.x with the DepMap bundle still returned HAP1 twice; it also raised
+KeyError on a parquet without `source_id`, skipped builder enrichment and
+doubled per-call cost. The root cause (the index is never compared with the
+installed packaged inputs) affects every packaged source and is #577. HAP1 is
+labelled `depmap_rna` (its values are DepMap's own RSEM row) and the CSV now
+carries only value columns, with metadata stamped from `sources.yaml`; values
+are unchanged. The report records a decompressed-content hash and a test ties
+the committed file to it. A new test proves the bundle still adds HAP1
+transcript rows. Engineered labels that match a parental alias resolving at
+tier 1 predate this PR and affect 11 curated SaOS-2/HeLa/THP-1/721.221
+samples; the curated HAP1 arms are correct. Filed as #576.
+
 # PR #571 review and release
 
 Review the complete diff against main and the failed Python 3.11 CI job.
@@ -16,9 +55,9 @@ to identify the next dependency-ordered block of work.
 - [x] Identify PR, read project lessons, and establish the review plan.
 - [x] Review implementation and failed CI; reproduce and file findings.
 - [x] Fix findings and add focused regression coverage.
-- [ ] Pass formatting, lint, local tests, and final-commit CI.
-- [ ] Merge, deploy from clean main, and verify PyPI artifacts.
-- [ ] Record review results and prioritize follow-up issues.
+- [x] Pass formatting, lint, local tests, and final-commit CI.
+- [x] Merge, deploy from clean main, and verify PyPI artifacts.
+- [x] Record review results and prioritize follow-up issues.
 
 Review findings: #573 records inconsistent serological typing validation;
 preserve source precision and derive only unambiguous serotype loci. #574
@@ -47,6 +86,36 @@ does not fit the build into the runner's RAM. Provision 8 GiB of swap only for
 the corpus CI job, retain all tests and the 25-minute timeout, and log memory
 availability. This addresses the runner's capacity while #566/#572 continue to
 track production-memory reduction. Require a successful measured hosted run.
+
+Review result: format and lint pass; the locked local environment passes 2,062
+unit tests (one optional dependency skip) and all 43 integration tests. Across
+all 794 curated samples, prediction candidates are unchanged, as are reported
+loci for all 121 currently typed samples. CI run 36241357275 passes on Python
+3.9–3.12 plus lint and documentation. The hosted integration run passes all 43
+tests in 416.19 seconds with peak RSS 15,127,100 KiB and 10 GiB total swap after
+the 8 GiB addition. This is a CI capacity fix, not a production-memory reduction.
+PR #571 merged as 0da0efb06589645eb717269f06d9e6c7ca45167f. Clean-main deployment
+of 1.62.63 from /private/tmp/hitlist-pr571-release passed 2,062 unit tests and
+43 integration tests (one optional unit skip), built and license-checked both
+distributions, and uploaded them to PyPI. Downloaded public wheel and sdist
+SHA-256 hashes match the tested local artifacts. The release worktree remains
+clean. Post-merge CI run 36242284304 also passes, including all 43 integration
+tests. Issue #573 closed with the merge; #574 tracks the pre-existing predictor
+precision gap separately.
+
+Post-release queue reviewed across hitlist, mhcgnomes, mhcflurry and pyensembl:
+
+- Next foundational block: measure and reduce full-export transient copies
+  (#566/#572), benefiting every corpus export and release gate. CI capacity is
+  now sufficient, but the production footprint has not been reduced.
+- Independent correctness fixes: predictor eligibility #574 and parental
+  class-II arm attribution #567. Neither depends on the memory refactor.
+- Shared parser dependencies: mhcgnomes #196 broad/split serotype membership
+  and #197 retired allele identity, followed by a parser release, dependency
+  update, and downstream corpus impact audit.
+- Upstream test reliability remains separate: pyensembl #398 shared-cache
+  isolation and mhcflurry #436/#437 ineffective tests. These do not block this
+  verified release.
 
 # #520 specification — cellular typing and experimental restriction
 
