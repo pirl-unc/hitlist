@@ -158,7 +158,7 @@ sources:
     pmid: null
     reference: "doi:10.25452/figshare.plus.27993248.v1 / ACH-002475 / PR-QtHaIL"
     study_label: "DepMap 24Q4 HAP1 gene TPM"
-    backend: packaged_rnaseq
+    backend: depmap_rna
     granularity: gene
     normalization: log2_tpm_plus_1
     quantifier: rsem

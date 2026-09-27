@@ -540,7 +540,9 @@ times the peptide appears in its protein.
 
 Fetch and build the optional DepMap 24Q4 gene/transcript expression bundle
 (about 4.7 GB). It provides RNA anchors for HeLa, A375, SaOS-2, THP-1 and
-K562. This release has no HEK293 model entry.
+K562, and HAP1 transcript rows. This release has no HEK293 model entry.
+HAP1's DepMap gene row ships with the package, so HAP1 and its engineered
+KO panel resolve without the bundle (tier 1 and tier 2 respectively).
 
 ```bash
 hitlist data fetch depmap

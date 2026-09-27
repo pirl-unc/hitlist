@@ -187,10 +187,15 @@ def test_tier5_caller_supplied_tissue_for_unknown_label():
     assert a.expression_key == "liver"
 
 
-def test_hap1_uses_packaged_parental_rna():
+def test_hap1_uses_packaged_depmap_rna(tmp_path, monkeypatch):
+    from hitlist import downloads
+
+    # Only packaged data: a stale index in the real data dir must not decide.
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
+    # DepMap's own HAP1 row ships in the package, so no bundle is needed.
     a = resolve_sample_expression_anchor("HAP1 wildtype")
     assert a.expression_match_tier == 1
-    assert a.expression_backend == "packaged_rnaseq"
+    assert a.expression_backend == "depmap_rna"
     assert a.expression_key == "HAP1"
 
 
@@ -501,7 +506,11 @@ def test_alias_starting_with_punctuation_matches_mid_string(installed_depmap):
     assert a.expression_parent_key == "K562"
 
 
-def test_longest_alias_wins_over_shorter_substring():
+def test_longest_alias_wins_over_shorter_substring(tmp_path, monkeypatch):
+    from hitlist import downloads
+
+    # Only packaged data: a stale index in the real data dir must not decide.
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
     # "HAP1 TAP1 KO" contains both the HAP1 alias (4 chars) and
     # HAP1-KO's "hap1 tap1 ko" alias (12 chars).  The longer one wins.
     # The engineered sample uses parental RNA with tier-2 provenance.

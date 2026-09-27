@@ -25,8 +25,13 @@ python scripts/package_apm_host_rna.py \
 ```
 
 The recipe refuses any input other than the original 24Q4 gene matrix
-(size and MD5), requires exactly one complete 19,193-gene ACH-002475 row,
-and writes a deterministic gzip file plus `apm_rna_build_report.yaml`.
+(size and MD5), requires exactly one ACH-002475 row, and writes a
+deterministic gzip file plus `apm_rna_build_report.yaml`. The report's
+`content_sha256` hashes the decompressed CSV, so it is comparable across
+zlib builds; `sha256` is the committed file. The CSV carries only value
+columns; `build_line_expression` stamps source metadata from `sources.yaml`.
+Installing the optional DepMap bundle adds HAP1 transcript rows, never a
+second copy of the gene row.
 
 These reference measurements do not establish expression in a particular
 immunopeptidomics sample, culture condition or knockout arm.

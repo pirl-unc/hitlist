@@ -7,8 +7,7 @@ HAP1 is present in DepMap 24Q4 (ACH-002475, confirmed against Cellosaurus
 CVCL_Y019; default RNA profile PR-QtHaIL), so package its complete 19,193-gene
 row with original values, resolve HAP1 at tier 1 and the 12 Shapiro 2025 arms
 (PMID 40113210) at tier 2 via the parent, and keep the downloaded DepMap gene
-matrix from duplicating it. An index built before this release must not hide
-the new packaged source. C1R (SRR7065975) and 721.221 (GSE228188 sgNT
+matrix from duplicating it. C1R (SRR7065975) and 721.221 (GSE228188 sgNT
 controls) have no certified quantification yet — the ENA read download failed
 partway — so their anchors, sources and quantification pipeline stay out and
 #358 stays open. Minor bump to 1.63.0 for the new data source.
@@ -17,11 +16,26 @@ partway — so their anchors, sources and quantification pipeline stay out and
   anchors, sources, `reference_match_tier` and the quantification path.
 - [x] Regenerate the packaged CSV from the checksum-verified DepMap matrix
   and confirm it is byte-identical (sha256 d1295f71...).
-- [x] Prove both regressions fail without their fix (builder source
-  selection; packaged sources surviving an older index).
+- [x] Prove the builder source-selection regression fails without its fix.
+- [x] Review (#575): fix findings, file what is out of scope.
+- [x] Preserve the C1R/721.221 remainder on local branch
+  `wip/358-c1r-721221-rna`.
 - [ ] Pass format, lint, full tests, build smoke and final-commit CI.
-- [ ] Review, merge, deploy from clean main and verify PyPI.
-- [ ] Preserve the C1R/721.221 remainder on a local branch and note it on #358.
+- [ ] Merge, deploy from clean main and verify PyPI.
+
+Review result: removed the stale-index compatibility layer rather than patch
+it. It only added newly packaged (line, source) pairs, so an index built by
+1.62.x with the DepMap bundle still returned HAP1 twice; it also raised
+KeyError on a parquet without `source_id`, skipped builder enrichment and
+doubled per-call cost. The root cause (the index is never compared with the
+installed packaged inputs) affects every packaged source and is #577. HAP1 is
+labelled `depmap_rna` (its values are DepMap's own RSEM row) and the CSV now
+carries only value columns, with metadata stamped from `sources.yaml`; values
+are unchanged. The report records a decompressed-content hash and a test ties
+the committed file to it. A new test proves the bundle still adds HAP1
+transcript rows. Engineered labels that match a parental alias resolving at
+tier 1 predate this PR and affect 11 curated SaOS-2/HeLa/THP-1/721.221
+samples; the curated HAP1 arms are correct. Filed as #576.
 
 # PR #571 review and release
 

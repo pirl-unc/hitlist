@@ -1,7 +1,8 @@
 sources:
 - source_id: DepMap_24Q4_HAP1_gene
   file: hap1_depmap24q4_gene_tpm.csv.gz
-  sha256: d1295f717a36970e91475f35796bc38cafb8f4537fc06b95f1367fe0eb8af2e8
+  sha256: 9c91022631272fdd626369b03b848162da30062004295cc7249fc3140d149918
+  content_sha256: 6145d307f9a1b77b428a1b8bcef90a85518d9d995bc81692f30bbf18e71a9c1b
   n_genes: 19193
   n_positive_genes: 15422
   sum_tpm: 950347.05
