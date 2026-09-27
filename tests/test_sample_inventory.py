@@ -25,12 +25,18 @@ from hitlist import curation
 from hitlist.curation import load_pmid_overrides, pmid_source_organism
 from hitlist.export import _observation_eligible_samples, generate_ms_samples_table
 
-#: The four records carrying explicit ``profiled: false`` curation (#437).
+#: Every record carrying explicit ``profiled: false`` curation (#437).
 UNPROFILED_SAMPLES = {
     (36589698, "healthy donor PBMCs"),
     (38920720, "tumor tissue"),
     (35051231, "P1 lung — X31-infected"),
     (35051231, "moDC cross-presentation — uninfected control"),
+    # Abelin 2017's three validation entries are datasets re-analysed from
+    # earlier publications, not specimens this paper ran: every one of its
+    # 27,102 deposited rows names a B721.221 transfectant (#558).
+    (28228285, "validation cell lines (HCC1937, HCT116, HeLa)"),
+    (28228285, "validation primary fibroblasts"),
+    (28228285, "validation PBMCs"),
 }
 
 

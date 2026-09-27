@@ -1876,6 +1876,7 @@
       # the 2,972 A*02:04 and B*44:02 rows reached "validation cell lines" (#558).
       - sample_label: "validation cell lines (HCC1937, HCT116, HeLa)"
         profiled: false
+        n_samples: 0
         source: "PMC5405381 Figure 3C-G: previously published multi-allelic cell-line datasets reused for validation; no observation is deposited under this PMID from them"
         condition: unperturbed — standard culture
         condition_id: "validation_cell_lines_hcc1937_hct116_fibroblasts"
@@ -1887,6 +1888,7 @@
         mhc: "HLA class I"
       - sample_label: validation primary fibroblasts
         profiled: false
+        n_samples: 0
         override: healthy
         source: "PMC5405381 Figure 3C-G: reused Bassani-Sternberg 2015 primary fibroblast dataset (PMC4349985, Cell culture); not a new Abelin specimen"
         condition: unperturbed
@@ -1898,6 +1900,7 @@
         mhc: "HLA class I"
       - sample_label: validation PBMCs
         profiled: false
+        n_samples: 0
         override: healthy
         source: "PMC5405381 Figure 3C-G: reused Caron 2015 healthy donor PBMC dataset (PMC4507788); not a new Abelin specimen"
         condition_material: "direct_ex_vivo"
