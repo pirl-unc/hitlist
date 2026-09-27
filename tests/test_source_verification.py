@@ -211,3 +211,110 @@ def test_abelin_attribution_survives_a_filtered_query(tmp_path, monkeypatch, que
         complete.loc[["AAAAAAAAD"], ATTRIBUTION_FIELDS].astype(str),
     )
     assert complete.loc["AAAAAAAAD", "sample_label"] == "721.221-HLA-A*02:04"
+
+
+# ── #559  Sherman 2008 chicken BF2 nomenclature ──────────────────────────────
+#
+# The paper names its two alleles BF2*2101 and BF2*1301 and gives their GenBank
+# accessions ("BF2*1301 (AF013494) and BF2*2101 (AF013493)").  IPD-MHC names the
+# same two sequences Gaga-BF2*021:01:01 (CHICKEN08580, cross-references
+# AF013493) and Gaga-BF2*004:01:01 (CHICKEN08568, cross-references AF013494) --
+# so the old haplotype-based names and the new sequence-based ones are related
+# by curated identity, not by padding or stripping a zero.  B21 happens to map
+# to allele group 021; B13 maps to 004, because B13's BF2 is B4's.
+#
+# IEDB deposits one allele under each convention, so each arm is curated under
+# the name its own rows carry.
+SHERMAN_DEPOSITED = {
+    # restriction -> (curated sample mhc, the paper's name, deposited statement)
+    "Gaga-BF2*021:01": (
+        "Gaga-BF2*021:01",
+        "BF2*2101",
+        "The epitope was eluted from BF2*2101 from transfected RP9 cells.",
+    ),
+    "Gaga-BF2*13:01": (
+        "Gaga-BF2*1301",
+        "BF2*1301",
+        "The epitope was eluted from BF2*1301 from transfected RP9 cells.",
+    ),
+}
+
+
+def _sherman_arms():
+    return {s["mhc"]: s for s in load_pmid_overrides()[18612635]["ms_samples"]}
+
+
+def test_sherman_arms_are_named_as_their_deposited_rows_are():
+    arms = _sherman_arms()
+    assert set(arms) == {curated for curated, _, _ in SHERMAN_DEPOSITED.values()}
+    for curated, paper_name, _ in SHERMAN_DEPOSITED.values():
+        assert paper_name in arms[curated]["sample_label"]
+        assert arms[curated]["mhc_basis"] == "selected_restriction"
+
+
+def test_sherman_zero_padding_is_not_a_nomenclature_rule():
+    """``021:01`` and ``21:01`` are separate strings to mhcgnomes, and the fix
+    must not depend on that changing -- or on stripping the zero, which would
+    also claim BF2*1301 is IPD's BF2*013:01 (a name IPD does not have)."""
+    import mhcgnomes
+
+    assert mhcgnomes.parse("Gaga-BF2*2101").to_string() == "Gaga-BF2*21:01"
+    assert mhcgnomes.parse("Gaga-BF2*021:01").to_string() == "Gaga-BF2*021:01"
+    assert mhcgnomes.parse("Gaga-BF2*1301").to_string() == "Gaga-BF2*13:01"
+
+
+@pytest.mark.parametrize("restriction", sorted(SHERMAN_DEPOSITED))
+def test_sherman_rows_reach_their_arm_with_their_restriction_intact(
+    tmp_path, monkeypatch, restriction
+):
+    curated, _, statement = SHERMAN_DEPOSITED[restriction]
+    _write_observations(
+        tmp_path,
+        monkeypatch,
+        [
+            {
+                "peptide": "SIINFEKLL",
+                "pmid": 18612635,
+                "mhc_restriction": restriction,
+                "mhc_species": "Gallus gallus",
+                "cell_name": "B cell",
+                "assay_comments": statement,
+            }
+        ],
+    )
+    result = generate_observations_table()
+    assert result.mhc_restriction.tolist() == [restriction]
+    assert result.sample_mhc.tolist() == [curated]
+    assert result.sample_attribution.tolist() == ["allele_exact"]
+    assert result.sample_match_type.tolist() == ["allele_match"]
+    assert result.arm_resolution.tolist() == ["resolved"]
+    assert "RP9 transduced with" in result.sample_label.iloc[0]
+
+
+def test_sherman_arms_stay_separate_under_a_filtered_query(tmp_path, monkeypatch):
+    _write_observations(
+        tmp_path,
+        monkeypatch,
+        [
+            {
+                "peptide": peptide,
+                "pmid": 18612635,
+                "mhc_restriction": restriction,
+                "mhc_species": "Gallus gallus",
+                "cell_name": "B cell",
+                "assay_comments": SHERMAN_DEPOSITED[restriction][2],
+            }
+            for peptide, restriction in [
+                ("AAAAAAAAA", "Gaga-BF2*021:01"),
+                ("LLLLLLLLL", "Gaga-BF2*13:01"),
+            ]
+        ],
+    )
+    complete = generate_observations_table().set_index("peptide")
+    assert complete.loc["AAAAAAAAA", "condition_id"] != complete.loc["LLLLLLLLL", "condition_id"]
+    for peptide in ("AAAAAAAAA", "LLLLLLLLL"):
+        selected = generate_observations_table(peptide=peptide).set_index("peptide")
+        pd.testing.assert_frame_equal(
+            selected[ATTRIBUTION_FIELDS].astype(str),
+            complete.loc[[peptide], ATTRIBUTION_FIELDS].astype(str),
+        )

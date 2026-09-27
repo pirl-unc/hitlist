@@ -5203,17 +5203,17 @@
     study_label: Sherman 2008 — chicken BF2 class I
     # Arm-resolution verdict (#451): recorded so this study is not
     # re-investigated. Describes the deposited evidence, not the curation.
-    arm_resolution: curation_gap
+    arm_resolution: resolved
     arm_resolution_note: >
-      Exactly the 34 BF2*2101 rows are ambiguous while all 30 BF2*1301 rows resolve, which
-      locates the gap precisely. assay_comments takes 2 distinct values that partition the
-      study by arm ('The epitope was eluted from BF2*2101 from transfected RP9 cells.', 34
-      rows; the BF2*1301 twin, 30 rows), and antigen_processing_comments (2 values) and
-      mhc_restriction (2 values) split on the same 34/30 boundary. The ambiguous rows spell
-      the allele 'Gaga-BF2*021:01' against the arm's curated 'Gaga-BF2*2101', a zero-padded
-      field-1 form the curated string does not match, whereas 'Gaga-BF2*13:01' does reach
-      'Gaga-BF2*1301'. The discriminator is present and unambiguous on every row; only allele-
-      name normalization stands between it and the arm.
+      All 64 rows reach their arm. Until #559 the 34 BF2*2101 rows did not: they spell the
+      allele 'Gaga-BF2*021:01' while the arm was curated 'Gaga-BF2*2101', which mhcgnomes
+      normalizes to 'Gaga-BF2*21:01' and keeps distinct, whereas 'Gaga-BF2*13:01' does reach
+      'Gaga-BF2*1301'. The two spellings are the same molecule under two nomenclatures, not
+      two alleles (see the study note), so the B21 arm is now curated under the IPD-MHC name
+      the deposit uses. assay_comments takes 2 distinct values that partition the study by arm
+      ('The epitope was eluted from BF2*2101 from transfected RP9 cells.', 34 rows; the
+      BF2*1301 twin, 30 rows), and antigen_processing_comments and mhc_restriction split on
+      the same 34/30 boundary. No reported restriction is rewritten.
     title: "Mass spectral data for 64 eluted peptides and structural modeling define peptide binding preferences for class I alleles in two chicken MHC-B haplotypes associated with opposite responses to Marek's disease"
     override:
     species: Gallus gallus (chicken)
@@ -5221,6 +5221,20 @@
       64 eluted peptides from two chicken MHC class I alleles in RP9 lymphoblastoid cell line transduced
       with BF2 cDNA. Haplotypes associated with resistance (B21) vs susceptibility (B13) to Marek's disease.
       In IEDB.
+      Nomenclature (#559): the paper writes the alleles BF2*2101 and BF2*1301 — the old chicken
+      system, where field 1 is the standard haplotype (B21, B13) rather than a sequence-derived
+      allele group. IPD-MHC names the same sequences from their GenBank accessions, which the paper
+      gives as "BF2*1301 (AF013494) and BF2*2101 (AF013493)": record CHICKEN08580, "Gaga-BF2*021:01:01",
+      cross-references AF013493, and record CHICKEN08568, "Gaga-BF2*004:01:01", cross-references
+      AF013494 (IPD-MHC release 2022-11-30, MHC.dat). So BF2*2101 is Gaga-BF2*021:01 and BF2*1301 is
+      Gaga-BF2*004:01 — the old name and the new one are related by curated sequence identity, never by
+      a string transform, and Afrache/Tregaskes/Kaufman 2020 (PMC6971145) exists precisely because the
+      old "standard haplotypes give different names to identical sequences" (B13's BF2 is B4's).
+      IEDB deposits the two in different styles: 'Gaga-BF2*021:01' (34 rows, the IPD name) and
+      'Gaga-BF2*13:01' (30 rows, the old name mechanically re-punctuated; IPD has no BF2*013:01).
+      Each arm is therefore curated under the name its own deposited rows carry, and no zero-padding
+      or zero-stripping rule is applied to either. The old-to-new mapping is proposed upstream as
+      curated aliases in pirl-unc/mhcgnomes#199, where it belongs; this study does not depend on it.
     ms_samples:
       - sample_label: RP9 transduced with BF2*2101 (B21 haplotype)
         source: chicken lymphoblastoid cell line
@@ -5230,7 +5244,17 @@
         condition_evidence: "curated_text"
         condition_control: "untreated"
         mhc_class: I
-        mhc: "Gaga-BF2*2101"
+        # The paper's BF2*2101 under its IPD-MHC name (CHICKEN08580, AF013493),
+        # which is also the spelling all 34 of its deposited rows carry.
+        mhc: "Gaga-BF2*021:01"
+        mhc_basis: "selected_restriction"
+        note: >
+          Peptides were eluted from affinity-purified FLAG-tagged BF2 protein, so this is a
+          selected restriction and not the host's genotype: the RP9 host is itself MHC-B
+          heterozygous, "RP9 cells are heterozygous at MHC-B bearing B2 and B15 haplotypes",
+          and the transduced allele is expressed in the presence of that heterologous TAP.
+          The host's own BF2 alleles are reported as haplotypes, not as typed alleles, so no
+          cellular genotype is asserted here.
       - sample_label: RP9 transduced with BF2*1301 (B13 haplotype)
         source: chicken lymphoblastoid cell line
         condition: unperturbed
@@ -5239,7 +5263,19 @@
         condition_evidence: "curated_text"
         condition_control: "untreated"
         mhc_class: I
+        # The old name, which is what all 30 of its deposited rows carry after
+        # mhcgnomes normalization ('Gaga-BF2*13:01'). IPD-MHC calls this same
+        # sequence Gaga-BF2*004:01 (CHICKEN08568, AF013494); adopting that name
+        # here would take the arm away from every row that reports it.
         mhc: "Gaga-BF2*1301"
+        mhc_basis: "selected_restriction"
+        note: >
+          Peptides were eluted from affinity-purified FLAG-tagged BF2 protein, so this is a
+          selected restriction and not the host's genotype: the RP9 host is itself MHC-B
+          heterozygous, "RP9 cells are heterozygous at MHC-B bearing B2 and B15 haplotypes",
+          and the transduced allele is expressed in the presence of that heterologous TAP.
+          The host's own BF2 alleles are reported as haplotypes, not as typed alleles, so no
+          cellular genotype is asserted here.
   - pmid: 33901176
     study_label: Halabi 2021 — chicken BLB2 class II + MDV
     title: "The dominantly expressed class II molecule from a resistant MHC haplotype presents only a few Marek's disease virus peptides by using an unprecedented binding motif"
