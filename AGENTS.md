@@ -24,7 +24,10 @@ Do not tell the user you are "done" or that changes are "complete" until all thr
 - `./lint.sh` - Checks linting and formatting (must pass)
 - `./test.sh` - Runs pytest with coverage (must pass)
 - `./deploy.sh` - Deploys to PyPI (gates on lint.sh and test.sh)
-- `./develop.sh` - Installs package in development mode
+- `./develop.sh` - Installs package in development mode, then runs `scripts/check_dev_install.py`,
+  which fails unless the environment holds exactly one editable install of this checkout whose
+  metadata matches the imported version (#553). Run the script directly after a version bump or
+  whenever `importlib.metadata`/pip disagree with `hitlist.__version__`; it never removes anything.
 
 ## Code Style
 
