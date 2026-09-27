@@ -44,6 +44,7 @@ from pathlib import Path
 import pandas as pd
 
 from .downloads import data_dir
+from .parquet_io import atomic_write_parquet
 from .proteome import DEFAULT_FLANK, ENSEMBL_CODING_GENE_BIOTYPES, SEED_KMER_LENGTH
 
 _MAPPING_COLUMNS = (
@@ -849,8 +850,7 @@ def build_peptide_mappings(
     # protein, position, proteome).
     mappings = mappings.drop_duplicates(subset=["peptide", "protein_id", "position", "proteome"])
 
-    out.parent.mkdir(parents=True, exist_ok=True)
-    mappings.to_parquet(out, index=False)
+    atomic_write_parquet(mappings, out)
 
     meta = {
         "observations": _obs_fingerprint(),

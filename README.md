@@ -370,7 +370,9 @@ hitlist data dirs                                       # every directory hitlis
 The data directory resolves in this order:
 
 1. `hitlist.downloads.set_data_dir()`
-2. the `HITLIST_DATA_DIR` env var — used verbatim, exactly as it always has been
+2. the `HITLIST_DATA_DIR` env var — the directory itself, exactly as it always
+   has been; whitespace is stripped, `~` is expanded, and an empty value means
+   unset (it used to resolve to the process's working directory)
 3. an existing, **populated** `~/.hitlist` — the legacy location, still fully
    supported, so an install that already has a corpus there keeps using it (and
    says so once per process)
@@ -378,16 +380,20 @@ The data directory resolves in this order:
    on macOS, `~/.cache/hitlist` on Linux, the convention pyensembl and the rest of
    the openvax ecosystem already use
 
-A `~/.hitlist` counts as **populated** when it contains at least one of
-`manifest.json`, `observations_meta.json`, `peptide_mappings_meta.json`, or an
-`observations` / `binding` / `bulk_proteomics` / `line_expression` /
-`peptide_mappings` parquet. Merely existing is not enough: older releases
-created `~/.hitlist` on *every* call to the path helper, and
-`<data dir>/proteomes/` and `<data dir>/gene_cache/` are still created eagerly,
-so plenty of installs have one holding nothing but empty folders.
+A `~/.hitlist` counts as **populated** when it holds a regular file at the top
+level, or a subdirectory holding a regular file. The test is structural on
+purpose — a list of known artifact names would drift, and would already have
+missed the user whose only data is `gene_cache/hgnc_lookups.json`.
 
-Nothing moves or rebuilds when you upgrade. To migrate deliberately, move the
-files to the new location or point `HITLIST_DATA_DIR` wherever you want them.
+Merely existing is not enough: older releases created `~/.hitlist` on *every*
+call to the path helper, and `<data dir>/proteomes/` and `<data dir>/gene_cache/`
+are still created eagerly, so plenty of installs have one holding nothing but
+empty folders.
+
+Nothing moves or rebuilds when you upgrade. To move an existing corpus, set
+`HITLIST_DATA_DIR` to the new location and copy the old directory's **entire**
+contents there. Moving only the parquets leaves `manifest.json` behind, which
+keeps rule 3 pointed at a `~/.hitlist` that no longer has any indexes in it.
 
 ### Build the observations table
 

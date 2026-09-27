@@ -39,7 +39,9 @@ def _isolated_home(tmp_path, monkeypatch):
     monkeypatch.setenv("XDG_CACHE_HOME", str(home / ".cache"))
     monkeypatch.delenv("HITLIST_DATA_DIR", raising=False)
     monkeypatch.setattr(downloads, "_override_data_dir", None)
-    monkeypatch.setattr(downloads, "_legacy_data_dir_notified", False)
+    # The resolution is memoized per process; a fixture that changes $HOME out
+    # from under it must not inherit another test's answer.
+    monkeypatch.setattr(downloads, "_data_dir_cache", {})
     assert home in downloads.default_data_dir().parents
     return home
 
@@ -59,10 +61,42 @@ def test_populated_legacy_dir_beats_the_datacache_default(_isolated_home, capsys
     assert downloads.data_dir() != downloads.default_data_dir()
 
 
-@pytest.mark.parametrize("marker", sorted(downloads._LEGACY_DATA_DIR_MARKERS))
-def test_every_declared_marker_makes_the_legacy_dir_populated(_isolated_home, marker, capsys):
-    """Each documented marker file on its own is enough to hold the location."""
+@pytest.mark.parametrize(
+    "marker",
+    [
+        "manifest.json",
+        "observations.parquet",
+        "binding.parquet",
+        "bulk_proteomics.parquet",
+        "line_expression.parquet",
+        "peptide_mappings.parquet",
+        "observations_meta.json",
+        "peptide_mappings_meta.json",
+        # Not an artifact hitlist knows about. The predicate is structural, so
+        # a corpus it has never heard of still holds the location — that is the
+        # point: a hand-maintained name list would orphan it.
+        "some-future-index.parquet",
+        "rebuild-1.30.40.log",
+    ],
+)
+def test_any_top_level_file_makes_the_legacy_dir_populated(_isolated_home, marker):
     legacy = _populate_legacy(_isolated_home, marker)
+    assert downloads.legacy_data_dir_is_populated()
+    assert downloads.data_dir() == legacy
+
+
+@pytest.mark.parametrize("subdir", ["gene_cache", "proteomes", "proteome_index_cache"])
+def test_a_file_inside_a_subdirectory_makes_the_legacy_dir_populated(_isolated_home, subdir):
+    """#291 review: ``genes._cache_path()`` writes real HGNC results into
+    ``gene_cache/hgnc_lookups.json`` and never touches ``manifest.json``.
+
+    A user who only ever called ``resolve_hgnc_symbol`` has a populated
+    ``~/.hitlist`` with not one of the eight artifact names in it. A closed
+    list read that as empty and silently relocated them.
+    """
+    legacy = _isolated_home / ".hitlist"
+    (legacy / subdir).mkdir(parents=True)
+    (legacy / subdir / "payload.json").write_text("{}\n")
     assert downloads.legacy_data_dir_is_populated()
     assert downloads.data_dir() == legacy
 
@@ -90,10 +124,11 @@ def test_legacy_dir_holding_only_empty_subdirs_does_not_win(_isolated_home):
     assert downloads.data_dir() == downloads.default_data_dir()
 
 
-def test_a_marker_that_is_a_directory_does_not_count(_isolated_home):
-    """Only files prove data; a directory named ``manifest.json`` does not."""
+def test_an_empty_directory_named_like_an_artifact_does_not_count(_isolated_home):
+    """Only data proves data; an empty directory named ``manifest.json`` does not."""
     (_isolated_home / ".hitlist" / "manifest.json").mkdir(parents=True)
     assert not downloads.legacy_data_dir_is_populated()
+    assert downloads.data_dir() == downloads.default_data_dir()
 
 
 def test_env_var_beats_a_populated_legacy_dir(_isolated_home, monkeypatch, tmp_path):
@@ -133,22 +168,41 @@ def test_set_data_dir_beats_everything(_isolated_home, monkeypatch, tmp_path):
     assert downloads.data_dir() == tmp_path / "explicit"
 
 
-def test_legacy_notice_fires_once_per_process(_isolated_home, capsys):
-    legacy = _populate_legacy(_isolated_home)
+def test_resolution_is_silent(_isolated_home, capsys):
+    """#291 review: ``observations_cache_is_current()`` documents itself as
+    doing "nothing else: no output, no writes", and ``data_dir()`` is its body.
+
+    A resolver that printed put two ``[hitlist]`` lines on stderr for every
+    library caller on every legacy install.
+    """
+    _populate_legacy(_isolated_home)
     for _ in range(5):
         downloads.data_dir()
-    err = capsys.readouterr().err
-    assert err.count(str(legacy)) == 1
-    assert "legacy data directory" in err
-    assert "fully supported" in err
-    # The notice has to say where to migrate to, or it is not actionable.
-    assert str(downloads.default_data_dir()) in err
-    assert "HITLIST_DATA_DIR" in err
+    downloads.data_dir_origin()
+    downloads.resolve_data_dir()
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == ""
 
 
-def test_no_notice_when_the_legacy_dir_is_not_in_use(_isolated_home, capsys):
-    downloads.data_dir()
-    assert capsys.readouterr().err == ""
+def test_legacy_notice_is_returned_not_printed(_isolated_home, capsys):
+    legacy = _populate_legacy(_isolated_home)
+    notice = downloads.legacy_data_dir_notice()
+    assert capsys.readouterr() == ("", "")
+    assert str(legacy) in notice
+    assert "legacy data directory" in notice
+    assert "fully supported" in notice
+    # It has to say where to migrate to, or it is not actionable.
+    assert str(downloads.default_data_dir()) in notice
+    assert "HITLIST_DATA_DIR" in notice
+    # #291 review: "move the files there" invites a half-migration — parquets
+    # moved, manifest.json left behind, rule 3 still pinning a now-empty
+    # ~/.hitlist and a multi-hour rebuild. Say "entire contents".
+    assert "entire" in notice
+
+
+def test_no_notice_when_the_legacy_dir_is_not_in_use(_isolated_home):
+    assert downloads.legacy_data_dir_notice() is None
 
 
 def test_resolution_creates_no_directory(_isolated_home):
@@ -160,18 +214,12 @@ def test_resolution_creates_no_directory(_isolated_home):
     before = sorted(p for p in _isolated_home.rglob("*"))
     resolved = downloads.data_dir()
     downloads.data_dir_origin()
+    downloads.legacy_data_dir_notice()
     downloads.default_data_dir()
     downloads.data_asset_dir()
     downloads.legacy_data_dir_is_populated()
     assert not resolved.exists()
     assert sorted(p for p in _isolated_home.rglob("*")) == before
-
-
-def test_ensure_data_dir_creates_on_the_write_path(_isolated_home):
-    resolved = downloads.data_dir()
-    assert not resolved.exists()
-    assert downloads.ensure_data_dir() == resolved
-    assert resolved.is_dir()
 
 
 def test_data_asset_dir_matches_where_datacache_actually_writes(_isolated_home):
@@ -192,9 +240,19 @@ def test_asset_dir_ignores_hitlist_data_dir(_isolated_home, monkeypatch, tmp_pat
     assert downloads.data_asset_dir() == downloads.default_data_dir()
 
 
-def test_fresh_install_unifies_the_two_locations(_isolated_home):
-    """With nothing overridden, indexes and mirrored assets share one dir."""
-    assert downloads.data_dir() == downloads.data_asset_dir()
+def test_fresh_install_resolves_to_where_datacache_itself_fetches(_isolated_home):
+    """With nothing overridden, indexes land where datacache puts assets.
+
+    Compared against datacache's own API rather than against
+    ``data_asset_dir()``, which is the same expression and would assert
+    nothing.
+    """
+    import datacache
+
+    expected = Path(datacache.expected_path(filename="x.csv", subdir="hitlist")).parent
+    assert downloads.data_dir() == expected
+    assert downloads.data_asset_dir() == expected
+    assert downloads.default_data_dir() == expected
 
 
 # ── The write path now owns directory creation ──────────────────────────────
@@ -259,3 +317,103 @@ def test_build_peptide_mappings_creates_the_data_dir(_unborn_data_dir):
     out = build_peptide_mappings(obs_override=obs, fetch_missing=False, verbose=False, force=True)
     assert out.is_file()
     assert mappings_meta_path().is_file()
+
+
+# ── $HITLIST_DATA_DIR normalisation (#291 review) ────────────────────────────
+
+
+def test_empty_env_var_means_unset_not_the_cwd(_isolated_home, monkeypatch):
+    """``Path("")`` is the process cwd — never what an empty value meant."""
+    _populate_legacy(_isolated_home)
+    monkeypatch.setenv("HITLIST_DATA_DIR", "")
+    assert downloads.data_dir() == downloads.legacy_data_dir()
+    assert downloads.data_dir_origin() == "legacy"
+
+
+def test_whitespace_only_env_var_means_unset(_isolated_home, monkeypatch):
+    monkeypatch.setenv("HITLIST_DATA_DIR", "   ")
+    assert downloads.data_dir() == downloads.default_data_dir()
+    assert downloads.data_dir_origin() == "default"
+
+
+def test_env_var_is_stripped(_isolated_home, monkeypatch, tmp_path):
+    configured = tmp_path / "configured"
+    monkeypatch.setenv("HITLIST_DATA_DIR", f"  {configured}\t")
+    assert downloads.data_dir() == configured
+
+
+def test_env_var_expands_a_leading_tilde(_isolated_home, monkeypatch):
+    monkeypatch.setenv("HITLIST_DATA_DIR", "~/hitlist-corpus")
+    assert downloads.data_dir() == _isolated_home / "hitlist-corpus"
+    assert "~" not in str(downloads.data_dir())
+
+
+# ── Memoization (#291 review) ────────────────────────────────────────────────
+
+
+def test_resolution_is_memoized(_isolated_home, monkeypatch):
+    """``data_dir()`` is the body of five path helpers and is called thousands
+    of times per process; the legacy probe must not be a per-call directory scan.
+    """
+    (_isolated_home / ".hitlist" / "proteomes").mkdir(parents=True)  # worst case: a miss
+    calls = []
+    real = downloads.legacy_data_dir_is_populated
+    monkeypatch.setattr(
+        downloads, "legacy_data_dir_is_populated", lambda: (calls.append(1), real())[1]
+    )
+    for _ in range(50):
+        downloads.data_dir()
+    assert len(calls) == 1
+
+
+def test_set_data_dir_invalidates_the_memo(_isolated_home, monkeypatch, tmp_path):
+    _populate_legacy(_isolated_home)
+    assert downloads.data_dir() == downloads.legacy_data_dir()
+    monkeypatch.setattr(downloads, "_override_data_dir", None, raising=False)
+    downloads.set_data_dir(tmp_path / "explicit")
+    assert downloads.data_dir() == tmp_path / "explicit"
+    assert downloads.data_dir_origin() == "override"
+
+
+def test_changing_the_env_var_invalidates_the_memo(_isolated_home, monkeypatch, tmp_path):
+    """The memo key covers the environment, so a changed value is honoured."""
+    assert downloads.data_dir() == downloads.default_data_dir()
+    monkeypatch.setenv("HITLIST_DATA_DIR", str(tmp_path / "later"))
+    assert downloads.data_dir() == tmp_path / "later"
+
+
+def test_reset_data_dir_cache_reflects_a_newly_created_corpus(_isolated_home):
+    assert downloads.data_dir() == downloads.default_data_dir()
+    _populate_legacy(_isolated_home)
+    assert downloads.data_dir() == downloads.default_data_dir()  # still memoized
+    downloads.reset_data_dir_cache()
+    assert downloads.data_dir() == downloads.legacy_data_dir()
+
+
+def test_every_origin_is_reachable(_isolated_home, monkeypatch, tmp_path):
+    """Drift guard for the public :data:`DATA_DIR_ORIGINS` contract."""
+    seen = {downloads.data_dir_origin()}
+    _populate_legacy(_isolated_home)
+    downloads.reset_data_dir_cache()
+    seen.add(downloads.data_dir_origin())
+    monkeypatch.setenv("HITLIST_DATA_DIR", str(tmp_path / "env"))
+    seen.add(downloads.data_dir_origin())
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path / "override")
+    seen.add(downloads.data_dir_origin())
+    assert seen == set(downloads.DATA_DIR_ORIGINS)
+
+
+def test_datacache_floor_buys_a_side_effect_free_path_resolver(tmp_path, monkeypatch):
+    """Guards the `datacache>=1.11.1` floor against being lowered again.
+
+    `packaged_or_cached()` resolves the asset path with `datacache.expected_path`
+    precisely because it creates nothing; the only alternative before 1.11.1 was
+    `datacache.build_path`, which mkdir's the cache dir.
+    """
+    import datacache
+
+    assert hasattr(datacache, "expected_path")
+    cache_root = tmp_path / "never-created"
+    resolved = datacache.expected_path(filename="x.csv", cache_root=str(cache_root))
+    assert Path(resolved).parent == cache_root
+    assert not cache_root.exists()

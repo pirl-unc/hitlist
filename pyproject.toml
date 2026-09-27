@@ -29,11 +29,12 @@ dependencies = [
     # On-demand caching of large externalized data assets (#303) into the
     # openvax-ecosystem cache dir (datacache.get_data_dir; #291).
     # Floor at 1.11.1 because `downloads.data_dir()` and `packaged_or_cached()`
-    # must resolve cache paths *without* touching the filesystem (#579): 1.11.1
-    # is the first release to expose `datacache.expected_path` / `resolve_path`
-    # and to document `get_data_dir` as creating nothing.  Before it the only
-    # option was `datacache.download.build_path`, which mkdir's the cache dir as
-    # a side effect.  1.11.1 declares requires-python >=3.9, matching our floor.
+    # must resolve cache paths *without* touching the filesystem (#579), and
+    # 1.11.1 is the first release to expose `datacache.expected_path` /
+    # `datacache.resolve_path`, both documented as resolving "without filesystem
+    # access or mutations", plus `get_data_dir` documented as creating nothing.
+    # Older releases offered only `build_path`, which mkdir's the cache dir as a
+    # side effect.  1.11.1 declares requires-python >=3.9, matching our floor.
     "datacache>=1.11.1",
     # Ensembl gene/transcript annotation: proteome indexing + ENSG→HGNC symbol
     # fill for line_expression. Release data is installed separately

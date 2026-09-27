@@ -131,15 +131,16 @@ openvax ecosystem shares — `~/Library/Caches/hitlist` on macOS,
 `~/.hitlist` keep using it; nothing has to move. Resolution order:
 
 1. `hitlist.downloads.set_data_dir()`
-2. the `HITLIST_DATA_DIR` env var (used verbatim)
+2. the `HITLIST_DATA_DIR` env var (the directory itself, stripped and
+   `~`-expanded; empty means unset)
 3. an existing, **populated** `~/.hitlist` (legacy — announced once per process)
 4. `datacache.get_data_dir(subdir="hitlist")`
 
-"Populated" means the directory holds at least one of `manifest.json`,
-`observations_meta.json`, `peptide_mappings_meta.json`, or one of the
-`observations` / `binding` / `bulk_proteomics` / `line_expression` /
-`peptide_mappings` parquets. An empty `~/.hitlist` — older releases created one
-on every call — does not count.
+"Populated" means the directory holds a regular file at the top level, or a
+subdirectory holding a regular file — a structural test, so an artifact added
+later cannot drift out of it. An empty `~/.hitlist`, or one holding only the
+empty `proteomes/` / `gene_cache/` directories older releases created eagerly,
+does not count.
 
 Mirrored data assets (paper-derived CSVs, #303) are fetched by `datacache` into
 its own cache dir, which `HITLIST_DATA_DIR` does not move; on a default install

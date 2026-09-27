@@ -1174,10 +1174,8 @@ def build_bulk_proteomics(verbose: bool = False) -> pd.DataFrame:
         frames.append(bj_peptide)
 
     if not frames:
-        out = _bulk_proteomics_path()
-        out.parent.mkdir(parents=True, exist_ok=True)
         empty = pd.DataFrame()
-        empty.to_parquet(out, index=False)
+        atomic_write_parquet(empty, _bulk_proteomics_path())
         return empty
 
     df = concat_non_empty(frames, _union_columns(frames), sort=False)
@@ -1277,9 +1275,7 @@ def build_bulk_proteomics(verbose: bool = False) -> pd.DataFrame:
     # which duplicates uniprot_acc) so the parquet schema is stable.
     df = df[[c for c in ordered_cols if c in df.columns]]
 
-    out = _bulk_proteomics_path()
-    out.parent.mkdir(parents=True, exist_ok=True)
-    df.to_parquet(out, index=False)
+    out = atomic_write_parquet(df, _bulk_proteomics_path())
     if verbose:
         n_prot = int((df["granularity"] == "protein").sum())
         n_pep = int((df["granularity"] == "peptide").sum())

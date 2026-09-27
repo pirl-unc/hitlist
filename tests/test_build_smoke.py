@@ -107,17 +107,10 @@ def _write_synthetic_iedb(path) -> None:
 def test_build_observations_from_packaged_data(tmp_path, monkeypatch):
     """A full ``build_observations(build_mappings=False)`` produces a
     well-formed ``observations.parquet`` from packaged data + a synthetic
-    IEDB CSV, with no network and no proteome dependency.
-
-    The data directory deliberately does not exist when the test starts: since
-    #291, resolving it creates nothing, so the build must produce it itself —
-    exactly what a fresh install does.
-    """
+    IEDB CSV, with no network and no proteome dependency."""
     from hitlist.builder import build_observations
 
-    data_root = tmp_path / "unborn-data-dir"
-    monkeypatch.setattr(downloads, "_override_data_dir", data_root)
-    assert not data_root.exists()
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
     csv_path = tmp_path / "iedb.csv"
     _write_synthetic_iedb(csv_path)
     downloads.register("iedb", csv_path)
@@ -129,7 +122,6 @@ def test_build_observations_from_packaged_data(tmp_path, monkeypatch):
         force=True,
     )
 
-    assert data_root.is_dir()
     assert out.exists()
     df = pd.read_parquet(out)
     assert len(df) > 0

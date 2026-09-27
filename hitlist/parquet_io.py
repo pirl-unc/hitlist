@@ -46,9 +46,12 @@ def atomic_write_parquet(
     import pyarrow.parquet as pq
 
     path = Path(path)
-    # The write path owns directory creation: resolving ``data_dir()`` is
-    # deliberately side-effect free (#291/#579), so the first build into a
-    # never-used cache dir lands here with no directory yet.
+    # This function is the single owner of data-directory creation on the
+    # index write path: resolving ``data_dir()`` is deliberately side-effect
+    # free (#291/#579), so the first build into a never-used cache dir arrives
+    # here with no directory yet.  Every canonical parquet — observations,
+    # binding, bulk_proteomics, line_expression, peptide_mappings — is written
+    # through here, so there is one place to get this right.
     path.parent.mkdir(parents=True, exist_ok=True)
     table = pa.Table.from_pandas(df, preserve_index=False)
     if metadata:

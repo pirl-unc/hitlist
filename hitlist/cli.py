@@ -30,6 +30,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -40,17 +41,18 @@ from .curation import (
     SEROTYPE_SOURCE_VALUES,
 )
 from .downloads import (
+    DATA_DIR_ENV_VAR,
     available_datasets,
     data_asset_dir,
-    data_dir,
-    data_dir_origin,
     fetch,
     get_path,
     info,
+    legacy_data_dir_notice,
     list_datasets,
     refresh,
     register,
     remove,
+    resolve_data_dir,
 )
 
 
@@ -73,23 +75,35 @@ _DIR_SUMMARY_STAT_LIMIT = 256
 def _dir_summary(path: Path) -> str:
     """Cheap one-line "what's in here" for a cache directory.
 
-    One ``scandir`` of the top level: sizes cover top-level files only, so a
-    directory with ``proteomes/`` or an index cache under it holds more than
-    the number shown — hence the explicit subdirectory count.
+    One ``os.scandir`` of the top level and nothing deeper.  Classification
+    comes from the dirent, so counting costs no ``stat`` calls; only the size
+    pass stats, and only when there are at most ``_DIR_SUMMARY_STAT_LIMIT``
+    files.  (``Path.iterdir`` + ``Path.is_file`` would stat every entry *before*
+    that guard could apply, which measured ~90 ms on a 7.5k-file index cache.)
+
+    Sizes cover top-level regular files only, so a directory with
+    ``proteomes/`` or an index cache under it holds more than the number shown
+    — hence the explicit subdirectory count.
     """
     try:
-        entries = list(path.iterdir())
+        with os.scandir(path) as it:
+            entries = list(it)
     except FileNotFoundError:
         return "not created yet"
     except OSError as err:
         return f"unreadable ({err.strerror or err})"
+    # Emptiness is decided by the entry count, not by the classification below:
+    # a dangling symlink, a socket or a FIFO is neither a file nor a directory,
+    # and reporting a directory that holds one as "empty" would be a lie.
+    if not entries:
+        return "empty"
     files = [e for e in entries if e.is_file()]
     n_subdirs = sum(1 for e in entries if e.is_dir())
-    if not files and not n_subdirs:
-        return "empty"
+    n_other = len(entries) - len(files) - n_subdirs
+    parts = []
     if len(files) > _DIR_SUMMARY_STAT_LIMIT:
-        parts = [f"{len(files):,} files (size not measured)"]
-    else:
+        parts.append(f"{len(files):,} files (size not measured)")
+    elif files:
         total = 0
         for f in files:
             # A concurrent build renames ``.partial``/``.tmp`` siblings into
@@ -98,16 +112,20 @@ def _dir_summary(path: Path) -> str:
             # traceback.
             with contextlib.suppress(OSError):
                 total += f.stat().st_size
-        parts = [f"{_fmt_size(total)} in {len(files):,} files"]
+        parts.append(f"{_fmt_size(total)} in {len(files):,} files")
     if n_subdirs:
         parts.append(f"{n_subdirs:,} subdirectories")
+    if n_other:
+        parts.append(f"{n_other:,} other entries")
     return ", ".join(parts)
 
 
-#: How each :func:`hitlist.downloads.data_dir_origin` value reads to a user.
+#: How each :data:`hitlist.downloads.DATA_DIR_ORIGINS` value reads to a user.
+#: ``test_cli_data_dirs`` asserts this covers the whole tuple, so a new
+#: resolution rule cannot quietly print a bare token.
 _DATA_DIR_ORIGIN_LABELS = {
     "override": "set_data_dir()",
-    "env": "$HITLIST_DATA_DIR",
+    "env": f"${DATA_DIR_ENV_VAR}",
     "legacy": "legacy ~/.hitlist, still supported",
     "default": "datacache default",
 }
@@ -121,16 +139,25 @@ def _data_location_lines() -> list[str]:
     diverge once the first is overridden or still on the legacy location — so
     they are printed as one line or two accordingly.
     """
-    from .proteome import proteome_index_cache_dir
+    from .proteome import default_proteome_index_cache_dir, proteome_index_cache_dir
 
-    built, assets = data_dir(), data_asset_dir()
-    origin = _DATA_DIR_ORIGIN_LABELS[data_dir_origin()]
-    rows = (
-        [("built indexes + assets", built, origin)]
-        if built == assets
-        else [("built indexes", built, origin), ("data assets", assets, "datacache")]
+    # One resolution, not two: `data_dir()` + `data_dir_origin()` would run it
+    # twice and could print a path that disagrees with its own explanation.
+    built, origin = resolve_data_dir()
+    assets = data_asset_dir()
+    why = _DATA_DIR_ORIGIN_LABELS.get(origin, origin)
+    index_cache = proteome_index_cache_dir()
+    index_why = (
+        "always ~/.hitlist"
+        if index_cache == default_proteome_index_cache_dir()
+        else "set_disk_cache_dir()"
     )
-    rows.append(("proteome index cache", proteome_index_cache_dir(), "always ~/.hitlist"))
+    rows = (
+        [("built indexes + assets", built, why)]
+        if built == assets
+        else [("built indexes", built, why), ("data assets", assets, "datacache")]
+    )
+    rows.append(("proteome index cache", index_cache, index_why))
     width = max(len(label) for label, _, _ in rows)
     return [
         f"  {label:<{width}}  {path}  ({why})  — {_dir_summary(path)}" for label, path, why in rows
@@ -1861,6 +1888,12 @@ def main() -> None:
     if args.command is None:
         _print_subgroup_help(parser)
         sys.exit(1)
+    # The library resolves the data directory silently (`data_dir()` backs
+    # `observations_cache_is_current()`, which promises no output); the CLI is
+    # where a user is told they are still on the legacy location (#291).
+    notice = legacy_data_dir_notice()
+    if notice:
+        print(notice, file=sys.stderr)
     if args.command == "data":
         _handle_data(args)
     elif args.command == "build":
