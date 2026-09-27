@@ -646,8 +646,9 @@ def test_every_statement_excluded_row_reports_the_same_record(
     assert result.condition_id == ""
     assert result.sample_attribution == "elution_conditions_excluded"
     # Never allele_match: whatever its allele matched is an arm the deposit
-    # excludes, so the candidates it reports are the class pool's.
-    assert result.sample_match_type == "pmid_class_pool"
+    # excludes, so the candidates it reports are the class pool's -- or, where
+    # the row's class has no pool at all, nothing, and ``pmid_class_pool``
+    # would claim a union that does not exist (#584 review 4).
     # The typing of an excluded arm never survives, not even when several of
     # them agree on it.
     assert result.mhc_basis == ""
@@ -668,6 +669,7 @@ def test_every_statement_excluded_row_reports_the_same_record(
     expected_pool = sorted({a["mhc"] for a in arms if a["mhc_class"] == row["mhc_class"]})
     assert sorted(result.sample_mhc.split()) == expected_pool
     assert result.sample_mhc_origin == ("class_pool" if expected_pool else "")
+    assert result.sample_match_type == ("pmid_class_pool" if expected_pool else "unmatched")
 
 
 # ── The refusal is decided from row data, not passed between stages ─────────
@@ -836,8 +838,10 @@ def test_a_refused_row_keeps_the_facts_every_arm_of_the_study_shares(monkeypatch
     antibody, which instrument, what the material was -- and ``conditions.py``
     already says a fact shared by every arm is not withheld.
     """
+    # Deliberately different per class, as PMID 33592498 is: HB95/W6/32 for
+    # class I, HB245/IVA12 for class II. A consensus over the whole study
+    # blanks a fact the row's own class agrees on perfectly (#584 review 4).
     shared = {
-        "ip_antibody": "W6/32",
         "instrument": "Orbitrap Fusion Lumos",
         "acquisition_mode": "DDA",
         "condition_material": "cultured",
@@ -848,11 +852,24 @@ def test_a_refused_row_keeps_the_facts_every_arm_of_the_study_shares(monkeypatch
             "arm_resolution": "curation_gap",
             "elution_condition_ids": {
                 _STMT.format("Alpha cells"): ["alpha"],
-                _STMT.format("Beta cells"): ["beta"],
+                _STMT.format("Beta cells"): ["beta", "beta2"],
             },
             "ms_samples": [
-                {**_arm("Alpha cells", "alpha", "HLA-A*02:01", "I"), **shared},
-                {**_arm("Beta cells", "beta", "HLA-DRB1*04:01", "II"), **shared},
+                {
+                    **_arm("Alpha cells", "alpha", "HLA-A*02:01", "I"),
+                    **shared,
+                    "ip_antibody": "W6/32",
+                },
+                {
+                    **_arm("Beta cells", "beta", "HLA-DRB1*04:01", "II"),
+                    **shared,
+                    "ip_antibody": "HB245/IVA12",
+                },
+                {
+                    **_arm("Beta two", "beta2", "HLA-DRB1*07:01", "II"),
+                    **shared,
+                    "ip_antibody": "HB245/IVA12",
+                },
             ],
         },
         {
@@ -862,10 +879,43 @@ def test_a_refused_row_keeps_the_facts_every_arm_of_the_study_shares(monkeypatch
         },
     )
     assert row.sample_attribution == "elution_conditions_excluded"
-    assert row.ip_antibody == "W6/32"
+    # The class-II antibody, because that is the row's class -- not blank from
+    # a study-wide consensus the two classes disagree on.
+    assert row.ip_antibody == "HB245/IVA12"
     assert row.instrument == "Orbitrap Fusion Lumos"
     assert row.acquisition_mode == "DDA"
     assert row.condition_material == "cultured"
     assert row.instrument_type != ""
     # Still no arm, and still none of its typing.
     assert (row.sample_label, row.condition_id, row.mhc_basis) == ("", "", "")
+
+
+def test_a_row_is_never_refused_for_missing_data(monkeypatch):
+    """Refusal needs positive evidence, not an absent field.
+
+    ``_mhc_class_norm`` is blank whenever the deposit does not say, and an arm
+    reached through a path that carries no ``condition_id`` -- stage 3c's
+    curated label, the single-sample fallback -- leaves the assigned arm blank
+    too. Asking "does any allowed arm have this row's class" of a blank class
+    answers no, and refusing on that answer turns a missing field into a
+    verdict about the deposit (#584 review 4).
+    """
+    entry = {
+        "arm_resolution": "curation_gap",
+        "elution_condition_ids": {_STMT.format("Alpha cells"): ["alpha"]},
+        "ms_samples": [
+            _arm("Alpha cells", "alpha", "HLA-A*02:01", "I"),
+            _arm("Beta cells", "beta", "HLA-DRB1*04:01", "II"),
+        ],
+    }
+    row = _run_one(
+        monkeypatch,
+        entry,
+        {
+            "peptide": "AAAAAAAAAAAAAAA",
+            "mhc_restriction": "",
+            "mhc_class": "",
+            "assay_comments": _STMT.format("Alpha cells"),
+        },
+    )
+    assert row.sample_attribution != "elution_conditions_excluded"

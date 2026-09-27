@@ -5283,11 +5283,14 @@
         condition_evidence: "curated_text"
         condition_control: "untreated"
         mhc_class: I
-        # The old name, which is what all 30 of its deposited rows carry after
-        # mhcgnomes normalization ('Gaga-BF2*13:01'). IPD-MHC calls this same
-        # sequence Gaga-BF2*004:01 (CHICKEN08568, AF013494); adopting that name
-        # here would take the arm away from every row that reports it.
-        mhc: "Gaga-BF2*1301"
+        # Exactly the spelling all 30 of its deposited rows carry. The paper's
+        # own name for it, BF2*1301, reaches them only through today's
+        # mhcgnomes normalization, which pirl-unc/mhcgnomes#199 may change; the
+        # paper's name is preserved in sample_label and in the note instead.
+        # IPD-MHC calls this same sequence Gaga-BF2*004:01 (CHICKEN08568,
+        # AF013494); adopting that name here would take the arm away from every
+        # row that reports it.
+        mhc: "Gaga-BF2*13:01"
         mhc_basis: "selected_restriction"
         note: *sherman_bf2_note_18612635
   - pmid: 33901176
@@ -6536,8 +6539,11 @@
           to these identifications"). Co-detection in the parental sample is a property of those
           particular peptides and is recoverable from their own assay_comments; it is not
           evidence of parental presentation, and it says nothing about the rest of this arm's
-          peptides. Class I is treated the other way round on the same statements, where both
-          conditions really do present.
+          peptides. Class I is treated the other way round on the same statements: both
+          conditions do present class I, so a class-I peptide named under both stays ambiguous
+          between them. The asymmetry between the two classes is the biology the paper reports,
+          not a curation shortcut -- the parental cells present class I and do not present
+          class II.
       - sample_label: "HROG17 CIITA-transduced (class II)"
         n_samples: 1
         condition: "CIITA transduction — HLA-II not naturally expressed in GBM"

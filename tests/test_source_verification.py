@@ -246,7 +246,7 @@ SHERMAN_DEPOSITED = {
         "The epitope was eluted from BF2*2101 from transfected RP9 cells.",
     ),
     "Gaga-BF2*13:01": (
-        "Gaga-BF2*1301",
+        "Gaga-BF2*13:01",
         "BF2*1301",
         "The epitope was eluted from BF2*1301 from transfected RP9 cells.",
     ),
@@ -258,9 +258,14 @@ def _sherman_arms():
 
 
 def test_sherman_arms_are_named_as_their_deposited_rows_are():
+    """Each arm's curated value is the deposit's own string, character for
+    character, so the join does not rest on how mhcgnomes spells either name
+    today -- pirl-unc/mhcgnomes#199 could change that (#584 review 4). The
+    paper's own names stay on the labels and in the note."""
     arms = _sherman_arms()
-    assert set(arms) == {curated for curated, _, _ in SHERMAN_DEPOSITED.values()}
-    for curated, paper_name, _ in SHERMAN_DEPOSITED.values():
+    assert set(arms) == set(SHERMAN_DEPOSITED)
+    for restriction, (curated, paper_name, _) in SHERMAN_DEPOSITED.items():
+        assert curated == restriction
         assert paper_name in arms[curated]["sample_label"]
         assert arms[curated]["mhc_basis"] == "selected_restriction"
 
@@ -288,7 +293,7 @@ def test_sherman_curation_invents_no_allele_by_padding_or_stripping():
     # the deposit's two conventions.
     for mhc, accession, ipd_name in (
         ("Gaga-BF2*021:01", "AF013493", "Gaga-BF2*021:01"),
-        ("Gaga-BF2*1301", "AF013494", "Gaga-BF2*004:01"),
+        ("Gaga-BF2*13:01", "AF013494", "Gaga-BF2*004:01"),
     ):
         note = _sherman_arms()[mhc]["note"]
         assert accession in note
