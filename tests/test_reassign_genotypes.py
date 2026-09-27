@@ -415,3 +415,89 @@ def test_netmhcpan_rejects_a_result_for_a_different_allele(monkeypatch):
         predict._predict_netmhcpan(
             pd.DataFrame({"peptide": ["AAAAAAAAA"], "allele": ["HLA-A*02:01"]})
         )
+
+
+def test_netmhcpan_receives_the_protein_not_the_reported_spelling(monkeypatch):
+    """#574: a finer-than-two-field candidate must not reach netMHCpan as-is.
+
+    ``_netmhcpan_allele_arg`` only strips ``*``, so a reported
+    ``HLA-A*02:01:01:02L`` became ``HLA-A02:01:01:02L`` -- an allele netMHCpan
+    does not know. Either it exits non-zero (``check=True`` raises
+    ``CalledProcessError``) or it answers for a different allele and the
+    identity check raises ``RuntimeError``. Scoring the protein avoids both.
+    """
+    requested = []
+
+    def fake_run(args, **kwargs):
+        allele = args[args.index("-a") + 1]
+        requested.append(allele)
+        if allele != "HLA-A02:01":
+            raise AssertionError(f"netMHCpan cannot resolve {allele!r}")
+        tokens = ["x"] * 16
+        tokens[1], tokens[2], tokens[10], tokens[12], tokens[15] = (
+            "HLA-A02:01",
+            "AAAAAAAAA",
+            "PEPLIST",
+            "0.4",
+            "25.0",
+        )
+        return SimpleNamespace(stdout=" ".join(tokens))
+
+    monkeypatch.setattr(predict.subprocess, "run", fake_run)
+    monkeypatch.setattr(
+        "hitlist.export.generate_observations_table",
+        lambda **kw: pd.DataFrame([_observation(1, "cell", "HLA-A*02:01:01:02L")]),
+    )
+    result = predict.reassign_class_only_alleles(method="netmhcpan")
+    assert requested == ["HLA-A02:01"]
+    assert result.iloc[0]["best_allele"] == "HLA-A*02:01"
+    # The reported precision is not lost -- it is what the context carries.
+    assert result.iloc[0]["sample_mhc"] == "HLA-A*02:01:01:02L"
+
+
+@pytest.mark.parametrize(
+    "pool,fragment",
+    [
+        ("HLA-A*02:01 HLA-B*27", "unresolved class-I candidates"),
+        ("HLA-A*24:02:01:02N", "no class-I candidate that could present a peptide"),
+        (
+            "HLA-A*01:01 HLA-A*02:01 HLA-B*07:02 HLA-B*08:01 HLA-C*07:01 HLA-C*07:02 HLA-A*24:02",
+            "more candidates than max_alleles_per_sample",
+        ),
+    ],
+)
+def test_every_abstention_reason_is_reported(monkeypatch, pool, fragment):
+    """#574: no abstention may look like an absence.
+
+    Three different reasons remove a context from the result, and each one is
+    indistinguishable from "this study had no class-only peptides" unless it is
+    named.
+    """
+    calls = _install_predictions(monkeypatch, [_observation(1, "cell", pool)], {})
+    with pytest.warns(UserWarning, match=r"Reassignment abstained") as recorded:
+        result = predict.reassign_class_only_alleles()
+    assert result.empty
+    assert calls == []
+    message = str(recorded[0].message)
+    assert fragment in message, message
+    assert "1 peptide/sample contexts" in message
+
+
+def test_abstention_tally_counts_contexts_after_the_length_filter(monkeypatch):
+    """Counted after the filters that decide what would have been predicted.
+
+    The short peptide is never a prediction candidate, so including it in the
+    tally would overstate what was lost; the two scorable-but-unresolved rows
+    of one context are one context and two observations.
+    """
+    rows = [
+        _observation(1, "cell", "HLA-A*02:01 HLA-B*27", peptide="AAAAAAAAA"),
+        _observation(1, "cell", "HLA-A*02:01 HLA-B*27", peptide="CCCCCCCCC"),
+        _observation(1, "cell", "HLA-A*02:01 HLA-B*27", peptide="AAA"),
+    ]
+    _install_predictions(monkeypatch, rows, {})
+    with pytest.warns(UserWarning, match=r"Reassignment abstained") as recorded:
+        predict.reassign_class_only_alleles()
+    message = str(recorded[0].message)
+    assert "2 peptide/sample contexts" in message, message
+    assert "2 observations" in message, message

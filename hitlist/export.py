@@ -3935,14 +3935,15 @@ def _query_mhc_class(target_allele: str = "", target_serotype: str = "") -> str:
     return next(iter(classes)) if len(classes) == 1 else ""
 
 
-def reported_class_alleles(sample_mhc: str, mhc_class: str = "") -> list[str]:
+def _sample_alleles(sample_mhc: str, mhc_class: str = "") -> list[str]:
     """Molecule designations a sample's MHC field names outright, for one class.
 
-    Public because :mod:`hitlist.predict` reads it, and a private name carrying
-    a cross-module contract is what this project's no-private-interfaces rule
-    exists to prevent (#564).  It was ``_sample_alleles``.
+    Module-private: every caller is in this file.  ``predict`` briefly imported
+    it, which is why it was public for one commit; it now asks
+    :func:`hitlist.curation.class_i_prediction_scope` instead, so there is no
+    cross-module contract left to document here (#574).
 
-    The guarantees a caller outside this module may rely on:
+    What callers in this module rely on:
 
     - :attr:`~hitlist.curation.SampleMhcCandidates.exact` designations only, so
       a serotype-typed sample never yields a named allele -- "this donor is
@@ -3954,11 +3955,11 @@ def reported_class_alleles(sample_mhc: str, mhc_class: str = "") -> list[str]:
       of a mixed ``I+II`` genotype -- are excluded.
     - The result is sorted and deduplicated.
 
-    It deliberately does **not** promise that a returned value identifies a
-    single protein.  ``exact`` means *the source named this outright*, so a
-    locus (``HLA-A``) or a one-field allele group (``HLA-A*02``) is returned
-    as-is; that is a faithful record of the reported precision, not a defect.
-    A consumer needing protein-level input must apply its own rule --
+    A returned value does not necessarily identify a single protein.  ``exact``
+    means *the source named this outright*, so a locus (``HLA-A``) or a
+    one-field allele group (``HLA-A*02``) is returned as-is; that is a faithful
+    record of the reported precision, not a defect.  A consumer needing
+    protein-level input applies its own rule --
     :func:`hitlist.curation.class_i_prediction_scope` is the one this project
     uses (#574).
 
@@ -3984,7 +3985,7 @@ def _sample_serotypes(sample_mhc: str, mhc_class: str = "") -> tuple[str, ...]:
 
     A study that typed only to ``HLA-DR15`` never named an allele, so the
     serotype is the finest true statement about it.  Kept apart from
-    :func:`reported_class_alleles` so a serotype match is reported as a serotype
+    :func:`_sample_alleles` so a serotype match is reported as a serotype
     match (#380).
     """
     serotypes = sample_mhc_candidates(sample_mhc).serotypes
@@ -4186,7 +4187,7 @@ def generate_ms_peptide_summary_table(
             for serotype in allele_to_all_serotypes(allele)
         )
         sample_mhc_text = str(row.get("sample_mhc", ""))
-        sample_allele_list = reported_class_alleles(sample_mhc_text, target_mhc_class)
+        sample_allele_list = _sample_alleles(sample_mhc_text, target_mhc_class)
         sample_serotype_keys = {
             _serotype_key(s)
             for allele in sample_allele_list

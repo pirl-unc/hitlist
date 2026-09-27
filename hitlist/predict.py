@@ -82,31 +82,63 @@ def _predictable_class_i_alleles(sample_mhc: str | None) -> list[str]:
     return list(scope.scorable) if scope.is_eligible else []
 
 
-def _warn_about_abstentions(sample_mhc: pd.Series) -> None:
-    """Report contexts dropped for an unresolved candidate space (#574).
+def _abstention_reason(sample_mhc, max_alleles_per_sample: int) -> str:
+    """Why this candidate list yields no prediction, or ``""`` if it does.
 
-    Abstaining is correct but invisible: the row simply does not appear in the
-    result, which looks identical to "this study had no class-only peptides".
-    A caller comparing counts across releases needs to see the difference, so
-    the designations responsible are named rather than merely counted.
+    Every reason is named.  A context that disappears for one of them looks
+    exactly like a study with no class-only peptides, which is the failure mode
+    the tally exists to prevent (#574).
     """
-    unresolved = {}
-    for field in sample_mhc.dropna().unique():
-        scope = class_i_prediction_scope(field)
-        if scope.unscorable and not scope.is_eligible:
-            unresolved[field] = scope.unscorable
-    if not unresolved:
+    scope = class_i_prediction_scope(sample_mhc)
+    if scope.is_eligible:
+        if len(scope.scorable) > max_alleles_per_sample:
+            return "more candidates than max_alleles_per_sample"
+        return ""
+    if scope.unscorable:
+        return "unresolved class-I candidates"
+    return "no class-I candidate that could present a peptide"
+
+
+def _warn_about_abstentions(target: pd.DataFrame, max_alleles_per_sample: int) -> None:
+    """Report contexts that reach the predictor boundary and get no prediction.
+
+    Counted after the peptide-length and allele-count filters, so the tally is
+    of contexts that would otherwise have been predicted -- counting before
+    them reported rows that were never candidates in the first place.  Both a
+    context count and an observation count are given: contexts are the unit of
+    the result, observations the unit of the input.
+    """
+    if target.empty:
         return
-    n_observations = int(sample_mhc.isin(unresolved).sum())
-    designations = sorted({name for names in unresolved.values() for name in names})
-    warnings.warn(
-        f"Skipped {n_observations:,} class-only observations from "
-        f"{len(unresolved):,} candidate lists whose class-I space is not "
-        f"resolved to scorable proteins, so no best allele can be chosen among "
-        f"them: {', '.join(designations[:10])}"
-        f"{', ...' if len(designations) > 10 else ''} (#574)",
-        stacklevel=2,
+    reasons = target["sample_mhc"].map(
+        lambda field: _abstention_reason(field, max_alleles_per_sample)
     )
+    skipped = target[reasons.ne("")]
+    if skipped.empty:
+        return
+    n_observations = len(skipped)
+    n_contexts = len(skipped[_CONTEXT_COLUMNS].drop_duplicates())
+    by_reason = reasons[reasons.ne("")].value_counts()
+    detail = "; ".join(
+        f"{reason} ({count:,} observations, e.g. "
+        f"{', '.join(sorted(_scope_designations(skipped, reasons, reason))[:4])})"
+        for reason, count in by_reason.items()
+    )
+    warnings.warn(
+        f"Reassignment abstained on {n_contexts:,} peptide/sample contexts "
+        f"({n_observations:,} observations): {detail} (#574)",
+        stacklevel=3,
+    )
+
+
+def _scope_designations(skipped: pd.DataFrame, reasons: pd.Series, reason: str) -> set[str]:
+    """Designations responsible for one abstention reason, for the message."""
+    fields = skipped.loc[reasons[reasons.eq(reason)].index, "sample_mhc"].unique()
+    names: set[str] = set()
+    for field in fields:
+        scope = class_i_prediction_scope(field)
+        names.update(scope.unscorable or scope.scorable or {str(field)})
+    return names
 
 
 def _predict_mhcflurry(pairs: pd.DataFrame) -> pd.DataFrame:
@@ -298,11 +330,13 @@ def reassign_class_only_alleles(
     # settle *whose* candidates these are, and this settles whether they name
     # proteins to score.  Six one-field allele groups pass every check up to
     # here and still describe no genotype a predictor can rank (#574).
-    _warn_about_abstentions(target["sample_mhc"])
-    target["_alleles"] = target["sample_mhc"].map(_predictable_class_i_alleles)
-    target = target[target["_alleles"].map(len).between(1, max_alleles_per_sample)]
     # Filter before the empty-input return; no predictor needs an empty batch.
     target = target[target["peptide"].str.len().between(8, 12)]
+    # Tally after the length filter and before the candidate filter, so it
+    # counts exactly the contexts that would otherwise have been predicted.
+    _warn_about_abstentions(target, max_alleles_per_sample)
+    target["_alleles"] = target["sample_mhc"].map(_predictable_class_i_alleles)
+    target = target[target["_alleles"].map(len).between(1, max_alleles_per_sample)]
     if target.empty:
         return pd.DataFrame(columns=_RESULT_COLUMNS)
 
