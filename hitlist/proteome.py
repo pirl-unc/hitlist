@@ -412,6 +412,18 @@ _INDEX_FORMAT_VERSION: int = 1
 _PROTEOME_INDEX_DISK_CACHE_DIR: Path = Path.home() / ".hitlist" / "proteome_index_cache"
 
 
+def proteome_index_cache_dir() -> Path:
+    """Directory holding the pickled proteome indexes (``*.pkl``).
+
+    A third location on top of :func:`hitlist.downloads.data_dir` and
+    :func:`hitlist.downloads.data_asset_dir`, and — unlike either — always under
+    ``~/.hitlist``: it predates #291 and is not moved by ``$HITLIST_DATA_DIR``
+    or :func:`hitlist.downloads.set_data_dir` (#591).  ``hitlist data dirs``
+    reports it so "where did my disk go?" has a complete answer.
+    """
+    return _PROTEOME_INDEX_DISK_CACHE_DIR
+
+
 def _resolve_disk_cache_max_gb() -> float:
     """Read the disk-cache cap (GB) from ``HITLIST_PROTEOME_INDEX_CACHE_GB``
     each call so tests can override via :func:`os.environ`.

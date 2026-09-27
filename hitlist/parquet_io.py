@@ -46,6 +46,10 @@ def atomic_write_parquet(
     import pyarrow.parquet as pq
 
     path = Path(path)
+    # The write path owns directory creation: resolving ``data_dir()`` is
+    # deliberately side-effect free (#291/#579), so the first build into a
+    # never-used cache dir lands here with no directory yet.
+    path.parent.mkdir(parents=True, exist_ok=True)
     table = pa.Table.from_pandas(df, preserve_index=False)
     if metadata:
         table = table.replace_schema_metadata({**(table.schema.metadata or {}), **metadata})

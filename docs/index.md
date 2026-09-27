@@ -122,9 +122,30 @@ hitlist data register iedb /path/to/file  # register a manual download
 hitlist data list               # registered datasets with size/date
 hitlist data info iedb          # detailed JSON metadata
 hitlist data path iedb          # resolve to file path
+hitlist data dirs               # every directory hitlist uses, and why
 ```
 
-Storage: `~/.hitlist/` (override with the `HITLIST_DATA_DIR` env var).
+Storage: hitlist keeps built indexes in the `datacache` cache directory the
+openvax ecosystem shares — `~/Library/Caches/hitlist` on macOS,
+`~/.cache/hitlist` on Linux. Installs that already have data in the legacy
+`~/.hitlist` keep using it; nothing has to move. Resolution order:
+
+1. `hitlist.downloads.set_data_dir()`
+2. the `HITLIST_DATA_DIR` env var (used verbatim)
+3. an existing, **populated** `~/.hitlist` (legacy — announced once per process)
+4. `datacache.get_data_dir(subdir="hitlist")`
+
+"Populated" means the directory holds at least one of `manifest.json`,
+`observations_meta.json`, `peptide_mappings_meta.json`, or one of the
+`observations` / `binding` / `bulk_proteomics` / `line_expression` /
+`peptide_mappings` parquets. An empty `~/.hitlist` — older releases created one
+on every call — does not count.
+
+Mirrored data assets (paper-derived CSVs, #303) are fetched by `datacache` into
+its own cache dir, which `HITLIST_DATA_DIR` does not move; on a default install
+that is the same directory as the indexes. `hitlist data dirs` prints every
+location, including the `~/.hitlist/proteome_index_cache` that proteome indexing
+maintains.
 
 ## Development
 

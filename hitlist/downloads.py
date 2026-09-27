@@ -17,7 +17,11 @@ download date, file size, row count where applicable). Supports both
 auto-fetchable datasets (UniProt proteomes, HPA downloads) and manually
 downloaded datasets (IEDB/CEDAR behind terms-of-use).
 
-Storage location: ``~/.hitlist/`` (override with ``HITLIST_DATA_DIR`` env var).
+Storage location: ``datacache``'s cache dir for the ``hitlist`` subdir
+(``~/Library/Caches/hitlist`` on macOS, ``~/.cache/hitlist`` on Linux), or the
+legacy ``~/.hitlist`` when an install already has a corpus there.  Override with
+the ``HITLIST_DATA_DIR`` env var or :func:`set_data_dir`; ``hitlist data dirs``
+prints what resolved and why.  See :func:`data_dir` for the full order (#291).
 
 Python API::
 
@@ -41,6 +45,7 @@ CLI::
     hitlist data register iedb /data/mhc_ligand_full.csv
     hitlist data fetch hpv16
     hitlist data list
+    hitlist data dirs   # every location hitlist reads/writes, and why
     hitlist data info iedb
     hitlist data path iedb
     hitlist data refresh hpv16
@@ -267,9 +272,49 @@ def download_to_file(
 
 
 # ── Data directory ──────────────────────────────────────────────────────────
+#
+# hitlist keeps data in two places on purpose, and ``hitlist data dirs`` prints
+# both (#291):
+#
+#   * :func:`data_dir` — everything this install *builds or downloads for
+#     itself*: the observations/binding/bulk_proteomics/line_expression
+#     parquets, ``manifest.json``, cached proteomes.
+#   * :func:`data_asset_dir` — the read-only paper-derived CSVs mirrored to the
+#     data-assets release and fetched through ``datacache`` (#303).
+#
+# On a fresh install the two are the same directory (datacache's cache dir).
+# They diverge only when ``$HITLIST_DATA_DIR``/:func:`set_data_dir` moves the
+# first one, or when this install still uses the legacy ``~/.hitlist``.
 
-_DEFAULT_DATA_DIR = Path.home() / ".hitlist"
+#: Name of the pre-#291 data directory under ``$HOME``.
+_LEGACY_DATA_DIR_NAME = ".hitlist"
+
+#: What makes a ``~/.hitlist`` "populated", i.e. a real corpus that
+#: :func:`data_dir` must keep using instead of the datacache default.
+#:
+#: It is a closed list of files hitlist writes *only* when it has real data —
+#: deliberately not "the directory is non-empty".  ``data_dir()`` used to
+#: ``mkdir`` its result on every single call, and ``_proteomes_dir()`` /
+#: ``genes._cache_path()`` still create empty subdirectories eagerly, so a great
+#: many installs have a ``~/.hitlist`` containing nothing but empty folders.
+#: Those must fall through to the new default rather than pin themselves to the
+#: legacy location forever.
+_LEGACY_DATA_DIR_MARKERS = (
+    "manifest.json",
+    "observations.parquet",
+    "binding.parquet",
+    "bulk_proteomics.parquet",
+    "line_expression.parquet",
+    "peptide_mappings.parquet",
+    "observations_meta.json",
+    "peptide_mappings_meta.json",
+)
+
 _override_data_dir: Path | None = None
+
+#: Set once the legacy-location notice has been printed, so a process that
+#: resolves ``data_dir()`` thousands of times mentions it exactly once.
+_legacy_data_dir_notified = False
 
 
 def set_data_dir(path: str | Path) -> None:
@@ -278,7 +323,9 @@ def set_data_dir(path: str | Path) -> None:
     Parameters
     ----------
     path
-        Directory to use for all data storage. Created if it doesn't exist.
+        Directory to use for all data storage. Created on first write, not
+        here — resolving a path never touches the filesystem (see
+        :func:`data_dir`).
 
     Example
     -------
@@ -289,15 +336,125 @@ def set_data_dir(path: str | Path) -> None:
     _override_data_dir = Path(path)
 
 
-def data_dir() -> Path:
-    """Return the hitlist data directory, creating it if needed.
+def legacy_data_dir() -> Path:
+    """Return ``~/.hitlist``: where hitlist kept its data before #291.
 
-    Priority: ``set_data_dir()`` > ``HITLIST_DATA_DIR`` env var > ``~/.hitlist/``.
+    Resolved on every call rather than at import so that pointing ``$HOME``
+    elsewhere (tests, containers) is respected.
+    """
+    return Path.home() / _LEGACY_DATA_DIR_NAME
+
+
+def legacy_data_dir_is_populated() -> bool:
+    """True when ``~/.hitlist`` holds a real corpus, not just empty folders.
+
+    "Populated" means the directory exists and contains at least one of
+    ``_LEGACY_DATA_DIR_MARKERS`` as a file.
+    """
+    d = legacy_data_dir()
+    if not d.is_dir():
+        return False
+    return any((d / name).is_file() for name in _LEGACY_DATA_DIR_MARKERS)
+
+
+def data_asset_dir() -> Path:
+    """Directory :func:`fetch_data_asset` caches mirrored data assets in (#303).
+
+    This is datacache's own cache dir for the ``hitlist`` subdir, computed with
+    datacache's helper so it cannot drift from what ``datacache.fetch_file``
+    actually writes to.  Note that ``datacache.download.build_path`` resolves it
+    *without* an ``envkey``, so — unlike :func:`data_dir` — it is not moved by
+    ``$HITLIST_DATA_DIR``.
+    """
+    from datacache import get_data_dir
+
+    return Path(get_data_dir("hitlist"))
+
+
+def default_data_dir() -> Path:
+    """The data directory a fresh install resolves to: datacache's cache dir.
+
+    ``~/Library/Caches/hitlist`` on macOS, ``~/.cache/hitlist`` on Linux — the
+    convention pyensembl and the rest of the openvax ecosystem already use
+    (#291).
+    """
+    from datacache import get_data_dir
+
+    # Deliberately no ``envkey="HITLIST_DATA_DIR"``: datacache would return
+    # ``$HITLIST_DATA_DIR/hitlist``, whereas hitlist has always used
+    # ``$HITLIST_DATA_DIR`` verbatim.  The env var is honoured one rule earlier,
+    # in ``_resolve_data_dir``, with its historical meaning intact.
+    return Path(get_data_dir(subdir="hitlist"))
+
+
+def _notify_legacy_data_dir(path: Path) -> None:
+    """Say — once per process — that the legacy data directory is in use."""
+    global _legacy_data_dir_notified
+    if _legacy_data_dir_notified:
+        return
+    _legacy_data_dir_notified = True
+    print(
+        f"[hitlist] Using the legacy data directory {path} — it holds this "
+        f"install's built indexes and stays fully supported; nothing has to move.\n"
+        f"[hitlist] New installs default to {default_data_dir()}. To migrate, move "
+        f"the files there or set HITLIST_DATA_DIR; `hitlist data dirs` shows both.",
+        file=sys.stderr,
+    )
+
+
+def _resolve_data_dir() -> tuple[Path, str]:
+    """Return ``(directory, origin)`` without touching the filesystem.
+
+    ``origin`` is one of ``"override"``, ``"env"``, ``"legacy"`` or
+    ``"default"`` — which of :func:`data_dir`'s four rules chose the path.
     """
     if _override_data_dir is not None:
-        d = _override_data_dir
-    else:
-        d = Path(os.environ.get("HITLIST_DATA_DIR", str(_DEFAULT_DATA_DIR)))
+        return Path(_override_data_dir), "override"
+    env = os.environ.get("HITLIST_DATA_DIR")
+    if env:
+        return Path(env), "env"
+    if legacy_data_dir_is_populated():
+        legacy = legacy_data_dir()
+        _notify_legacy_data_dir(legacy)
+        return legacy, "legacy"
+    return default_data_dir(), "default"
+
+
+def data_dir() -> Path:
+    """Return the hitlist data directory. Resolution only — creates nothing.
+
+    Priority:
+
+    1. :func:`set_data_dir` override
+    2. ``$HITLIST_DATA_DIR``, used verbatim as it always has been
+    3. an existing, *populated* ``~/.hitlist`` — the legacy location from
+       before #291.  It stays fully supported, so an install that already has a
+       corpus there keeps using it (and says so once per process); see
+       ``_LEGACY_DATA_DIR_MARKERS`` for what "populated" means.
+    4. ``datacache.get_data_dir(subdir="hitlist")`` — the openvax-ecosystem
+       cache dir a fresh install uses (#291).
+
+    Resolving must stay side-effect free: ``import hitlist`` may not touch the
+    filesystem (#579), a bare ``hitlist data dirs`` should not conjure
+    directories, and a ``mkdir`` here would make an empty ``~/.hitlist`` look
+    populated to rule 3 forever after.  Callers about to write use
+    :func:`ensure_data_dir` instead.
+    """
+    return _resolve_data_dir()[0]
+
+
+def data_dir_origin() -> str:
+    """Which of :func:`data_dir`'s rules chose the current directory.
+
+    ``"override"``, ``"env"``, ``"legacy"`` or ``"default"`` — what ``hitlist
+    data dirs`` reports so a user can see *why* their data is where it is.
+    """
+    return _resolve_data_dir()[1]
+
+
+def ensure_data_dir() -> Path:
+    """:func:`data_dir`, created if it doesn't exist — for callers about to write."""
+    d = data_dir()
     d.mkdir(parents=True, exist_ok=True)
     return d
 
@@ -1164,12 +1321,13 @@ def packaged_or_cached(packaged_path, filename: str) -> Path | None:
     if p.is_file():
         return p
     # The same path fetch_data_asset's ``datacache.fetch_file(..., subdir="hitlist")``
-    # writes to, computed with datacache's own helpers so the two cannot drift
-    # (``build_path`` itself is avoided: it creates the cache dir as a side effect).
-    from datacache import get_data_dir
-    from datacache.download import build_local_filename
+    # writes to, asked of datacache itself so the two cannot drift.
+    # ``expected_path`` (datacache >= 1.11.1) is documented to resolve the fetch
+    # destination "without filesystem access or mutations", so — unlike the old
+    # ``build_path`` — it does not create the cache dir as a side effect.
+    from datacache import expected_path
 
-    cached = Path(get_data_dir("hitlist")) / build_local_filename(filename=filename)
+    cached = Path(expected_path(filename=filename, subdir="hitlist"))
     return cached if cached.is_file() else None
 
 

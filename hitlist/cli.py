@@ -28,8 +28,10 @@ Usage::
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import sys
+from pathlib import Path
 
 from .cli_help import ColorArgumentParser
 from .curation import (
@@ -39,7 +41,9 @@ from .curation import (
 )
 from .downloads import (
     available_datasets,
+    data_asset_dir,
     data_dir,
+    data_dir_origin,
     fetch,
     get_path,
     info,
@@ -58,6 +62,89 @@ def _fmt_size(size: int) -> str:
     if size > 1_000:
         return f"{size / 1e3:.1f} KB"
     return f"{size} B"
+
+
+# Upper bound on how many top-level files ``_dir_summary`` will ``stat``.  The
+# proteome index cache routinely holds thousands, and ``hitlist data list``
+# should not spend a visible fraction of a second measuring them.
+_DIR_SUMMARY_STAT_LIMIT = 256
+
+
+def _dir_summary(path: Path) -> str:
+    """Cheap one-line "what's in here" for a cache directory.
+
+    One ``scandir`` of the top level: sizes cover top-level files only, so a
+    directory with ``proteomes/`` or an index cache under it holds more than
+    the number shown — hence the explicit subdirectory count.
+    """
+    try:
+        entries = list(path.iterdir())
+    except FileNotFoundError:
+        return "not created yet"
+    except OSError as err:
+        return f"unreadable ({err.strerror or err})"
+    files = [e for e in entries if e.is_file()]
+    n_subdirs = sum(1 for e in entries if e.is_dir())
+    if not files and not n_subdirs:
+        return "empty"
+    if len(files) > _DIR_SUMMARY_STAT_LIMIT:
+        parts = [f"{len(files):,} files (size not measured)"]
+    else:
+        total = 0
+        for f in files:
+            # A concurrent build renames ``.partial``/``.tmp`` siblings into
+            # place in this very directory, so a name listed a moment ago can
+            # be gone by the time we stat it. A summary line is not worth a
+            # traceback.
+            with contextlib.suppress(OSError):
+                total += f.stat().st_size
+        parts = [f"{_fmt_size(total)} in {len(files):,} files"]
+    if n_subdirs:
+        parts.append(f"{n_subdirs:,} subdirectories")
+    return ", ".join(parts)
+
+
+#: How each :func:`hitlist.downloads.data_dir_origin` value reads to a user.
+_DATA_DIR_ORIGIN_LABELS = {
+    "override": "set_data_dir()",
+    "env": "$HITLIST_DATA_DIR",
+    "legacy": "legacy ~/.hitlist, still supported",
+    "default": "datacache default",
+}
+
+
+def _data_location_lines() -> list[str]:
+    """Every directory hitlist reads or writes, and why it resolved there (#291).
+
+    ``data_dir()`` (built indexes) and ``data_asset_dir()`` (mirrored CSVs
+    fetched through datacache) are the same directory on a fresh install and
+    diverge once the first is overridden or still on the legacy location — so
+    they are printed as one line or two accordingly.
+    """
+    from .proteome import proteome_index_cache_dir
+
+    built, assets = data_dir(), data_asset_dir()
+    origin = _DATA_DIR_ORIGIN_LABELS[data_dir_origin()]
+    rows = (
+        [("built indexes + assets", built, origin)]
+        if built == assets
+        else [("built indexes", built, origin), ("data assets", assets, "datacache")]
+    )
+    rows.append(("proteome index cache", proteome_index_cache_dir(), "always ~/.hitlist"))
+    width = max(len(label) for label, _, _ in rows)
+    return [
+        f"  {label:<{width}}  {path}  ({why})  — {_dir_summary(path)}" for label, path, why in rows
+    ]
+
+
+def _print_data_locations() -> None:
+    print("Data directories:")
+    for line in _data_location_lines():
+        print(line)
+
+
+def _data_dirs(args: argparse.Namespace) -> None:
+    _print_data_locations()
 
 
 def _print_banner(stream=sys.stderr) -> None:
@@ -96,7 +183,7 @@ def _data_list(args: argparse.Namespace) -> None:
     datasets = list_datasets()
     if not datasets:
         print("No datasets registered.")
-        print(f"Data directory: {data_dir()}")
+        _print_data_locations()
         print("Run 'hitlist data available' to see known datasets.")
         return
     print(f"{'Name':<12} {'Size':>12}  {'Date':<12} Description")
@@ -107,7 +194,8 @@ def _data_list(args: argparse.Namespace) -> None:
         date = ds.get("registered", "")[:10]
         desc = ds.get("description", "")
         print(f"{name:<12} {size_str:>12}  {date:<12} {desc}")
-    print(f"\nData directory: {data_dir()}")
+    print()
+    _print_data_locations()
 
 
 def _data_available(args: argparse.Namespace) -> None:
@@ -118,6 +206,8 @@ def _data_available(args: argparse.Namespace) -> None:
     for name, desc in sorted(datasets.items()):
         status = "installed" if name in registered else ""
         print(f"{name:<12} {status:<12} {desc}")
+    print()
+    _print_data_locations()
 
 
 def _data_register(args: argparse.Namespace) -> None:
@@ -311,6 +401,10 @@ def _build_data_parser(sub: argparse._SubParsersAction) -> None:
 
     ds.add_parser("list", help="Show registered datasets")
     ds.add_parser("available", help="Show all known datasets")
+    ds.add_parser(
+        "dirs",
+        help="Show every directory hitlist reads/writes, and why it resolved there",
+    )
 
     p = ds.add_parser("register", help="Register a local file")
     p.add_argument("name", help="Dataset name")
@@ -637,6 +731,7 @@ def _handle_data(args: argparse.Namespace) -> None:
     handlers = {
         "list": _data_list,
         "available": _data_available,
+        "dirs": _data_dirs,
         "register": _data_register,
         "fetch": _data_fetch,
         "fetch-all": _data_fetch_all,

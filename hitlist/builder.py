@@ -15,7 +15,8 @@
 Runs the full scanner (with source classification from YAML overrides)
 on each registered data source, deduplicates by assay IRI, partitions
 rows by assay type, maps peptides to source proteins with flanking
-context, and writes TWO parquet indexes to ``~/.hitlist/``:
+context, and writes TWO parquet indexes to the data directory
+(:func:`hitlist.downloads.data_dir`):
 
 - ``observations.parquet`` — MS-eluted immunopeptidome rows (plus
   manually-curated supplementary data).
@@ -1008,6 +1009,8 @@ def build_observations(
         "with_flanking": with_flanking,
         "with_mappings": build_mappings,
     }
+    # No mkdir here: the observations/binding parquets were written into this
+    # very directory a few dozen lines up, so it exists by now.
     _meta_path().write_text(json.dumps(meta, indent=2, default=str) + "\n")
 
     return out_path
@@ -1032,7 +1035,7 @@ def build_bulk_proteomics(verbose: bool = False) -> pd.DataFrame:
     Source data ships inside the package under
     ``hitlist/data/bulk_proteomics/`` (CSV.gz + ``sources.yaml``). This
     function just reshapes it into the long parquet written to
-    ``~/.hitlist/``.
+    the data directory.
 
     Returns
     -------
@@ -1172,6 +1175,7 @@ def build_bulk_proteomics(verbose: bool = False) -> pd.DataFrame:
 
     if not frames:
         out = _bulk_proteomics_path()
+        out.parent.mkdir(parents=True, exist_ok=True)
         empty = pd.DataFrame()
         empty.to_parquet(out, index=False)
         return empty
@@ -1274,6 +1278,7 @@ def build_bulk_proteomics(verbose: bool = False) -> pd.DataFrame:
     df = df[[c for c in ordered_cols if c in df.columns]]
 
     out = _bulk_proteomics_path()
+    out.parent.mkdir(parents=True, exist_ok=True)
     df.to_parquet(out, index=False)
     if verbose:
         n_prot = int((df["granularity"] == "protein").sum())
