@@ -215,9 +215,12 @@ scan_supplementary()                 # DataFrame of curated paper-supplement pep
 
 `hitlist build observations` always produces three parquet files (use `--no-mappings` to skip `peptide_mappings.parquet`):
 
-- `~/.hitlist/observations.parquet` — one row per assay observation
-- `~/.hitlist/binding.parquet` — one row per binding-assay observation
-- `~/.hitlist/peptide_mappings.parquet` — one row per (peptide, protein, position)
+- `observations.parquet` — one row per assay observation
+- `binding.parquet` — one row per binding-assay observation
+- `peptide_mappings.parquet` — one row per (peptide, protein, position)
+
+They land in the data directory (`hitlist data dirs`; see
+[Where hitlist keeps data](#where-hitlist-keeps-data)).
 
 The mappings sidecar **preserves multi-mapping** so a peptide shared by MAGEA1/A4/A10/A12 keeps every paralog. Ensembl mappings include `gene_biotype`: the default index covers ordinary `protein_coding` genes plus the coding `IG_V/D/J/C_gene` and `TR_V/D/J/C_gene` biotypes, while excluding pseudogenes. These receptor records are germline segments; Ensembl does not contain a donor's recombined receptor, so peptides spanning a V(D)J junction cannot map. Observations additionally carry semicolon-joined identity columns:
 
@@ -264,7 +267,7 @@ ordinary_only = ProteomeIndex.from_ensembl(release=112, biotype="protein_coding"
 ```python
 from hitlist.downloads import (
     lookup_proteome,           # org string → registry entry (dict)
-    fetch_species_proteome,    # download FASTA and cache to ~/.hitlist/proteomes/
+    fetch_species_proteome,    # download FASTA and cache to <data dir>/proteomes/
     resolve_proteome_via_uniprot,  # direct UniProt REST lookup
     list_proteomes,            # manifest section
 )
@@ -351,7 +354,46 @@ hitlist data path <name>                                # print the registered p
 hitlist data remove <name> [--delete]                   # unregister (optionally delete file)
 hitlist data list                                       # show registered datasets
 hitlist data available                                  # show all known datasets
+hitlist data dirs                                       # every directory hitlist uses, and why
 ```
+
+### Where hitlist keeps data
+
+`hitlist data dirs` is the complete answer; the short version:
+
+| what | where |
+|---|---|
+| built indexes (`observations`/`binding`/`bulk_proteomics`/`line_expression` parquets, `manifest.json`, downloaded proteomes) | the data directory — see the resolution order below |
+| mirrored data assets (paper-derived CSVs) | `datacache`'s cache dir for the `hitlist` subdir; **not** moved by `HITLIST_DATA_DIR` |
+| proteome index cache (`*.pkl`) | always `~/.hitlist/proteome_index_cache` — not moved by `HITLIST_DATA_DIR` ([#591](https://github.com/pirl-unc/hitlist/issues/591)) |
+
+The data directory resolves in this order:
+
+1. `hitlist.downloads.set_data_dir()`
+2. the `HITLIST_DATA_DIR` env var — the directory itself, exactly as it always
+   has been; whitespace is stripped, `~` is expanded, and an empty value means
+   unset (it used to resolve to the process's working directory)
+3. an existing, **populated** `~/.hitlist` — the legacy location, still fully
+   supported, so an install that already has a corpus there keeps using it (and
+   says so once per process)
+4. otherwise `datacache.get_data_dir(subdir="hitlist")` — `~/Library/Caches/hitlist`
+   on macOS, `~/.cache/hitlist` on Linux, the convention pyensembl and the rest of
+   the openvax ecosystem already use
+
+A `~/.hitlist` counts as **populated** when it holds a regular file at the top
+level, or a subdirectory holding a regular file. The test is structural on
+purpose — a list of known artifact names would drift, and would already have
+missed the user whose only data is `gene_cache/hgnc_lookups.json`.
+
+Merely existing is not enough: older releases created `~/.hitlist` on *every*
+call to the path helper, and `<data dir>/proteomes/` and `<data dir>/gene_cache/`
+are still created eagerly, so plenty of installs have one holding nothing but
+empty folders.
+
+Nothing moves or rebuilds when you upgrade. To move an existing corpus, set
+`HITLIST_DATA_DIR` to the new location and copy the old directory's **entire**
+contents there. Moving only the parquets leaves `manifest.json` behind, which
+keeps rule 3 pointed at a `~/.hitlist` that no longer has any indexes in it.
 
 ### Build the observations table
 
@@ -392,7 +434,8 @@ export observations` remains as a backward-compatible alias.
 
 ### Canonical indexes and the training export
 
-Each `hitlist build observations` writes **three** parquet files to `~/.hitlist/`:
+Each `hitlist build observations` writes **three** parquet files to the data
+directory (`hitlist data dirs`):
 
 - `observations.parquet` — MS-eluted immunopeptidome (IEDB + CEDAR + curated supplementary).
 - `binding.parquet` — binding-assay rows (peptide microarray, refolding, MEDi, and

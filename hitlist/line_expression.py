@@ -45,7 +45,7 @@ Three building blocks live here:
    ``expression_backend``, ``expression_key``, ``expression_match_tier``,
    and ``expression_parent_key`` — the provenance contract from #140.
 
-3. **Data** — ``line_expression.parquet`` in ``~/.hitlist/`` (built by
+3. **Data** — ``line_expression.parquet`` in the data directory (built by
    :func:`hitlist.builder.build_line_expression`).  Without an index, reads
    use the packaged CSVs under ``hitlist/data/line_expression/`` enriched by
    :func:`enrich_line_expression_rows` to the same row shape a build writes,

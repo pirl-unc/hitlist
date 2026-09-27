@@ -25,7 +25,7 @@ Unlike the previous ``_add_flanking`` pass, this table preserves every
 - Repeat regions and tandem duplications within one protein
 - Short 8-mers with high collision rates
 
-The sidecar is stored at ``~/.hitlist/peptide_mappings.parquet`` with
+The sidecar is stored at ``<data dir>/peptide_mappings.parquet`` with
 pyarrow push-down filters on ``peptide``, ``gene_name``, ``gene_id``,
 ``protein_id`` and ``proteome``.
 """
@@ -44,6 +44,7 @@ from pathlib import Path
 import pandas as pd
 
 from .downloads import data_dir
+from .parquet_io import atomic_write_parquet
 from .proteome import DEFAULT_FLANK, ENSEMBL_CODING_GENE_BIOTYPES, SEED_KMER_LENGTH
 
 _MAPPING_COLUMNS = (
@@ -849,7 +850,7 @@ def build_peptide_mappings(
     # protein, position, proteome).
     mappings = mappings.drop_duplicates(subset=["peptide", "protein_id", "position", "proteome"])
 
-    mappings.to_parquet(out, index=False)
+    atomic_write_parquet(mappings, out)
 
     meta = {
         "observations": _obs_fingerprint(),
@@ -873,6 +874,7 @@ def build_peptide_mappings(
         "unmapped_organisms": dict(sorted(unmapped_organisms.items(), key=lambda x: -x[1])[:20]),
         "built_at": datetime.now(timezone.utc).isoformat(),
     }
+    # No mkdir here: ``out`` is this file's sibling and was just written.
     mappings_meta_path().write_text(json.dumps(meta, indent=2, default=str) + "\n")
 
     if verbose:

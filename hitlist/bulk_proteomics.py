@@ -12,7 +12,7 @@ Data flow:
 - **Source CSVs + metadata** ship inside the package under
   ``hitlist/data/bulk_proteomics/`` (always readable, no build needed).
 - **``bulk_proteomics.parquet``** is written by
-  :func:`hitlist.builder.build_bulk_proteomics` into ``~/.hitlist/`` as
+  :func:`hitlist.builder.build_bulk_proteomics` into the data directory as
   a long-form table with both protein- and peptide-level rows plus
   per-source acquisition metadata (instrument, digest, fragmentation,
   quantification, …) denormalized onto every row. The acquisition

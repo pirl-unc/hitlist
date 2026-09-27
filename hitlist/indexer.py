@@ -15,7 +15,7 @@
 Provides aggregated study counts and allele counts from
 :func:`hitlist.observations.load_observations`.  The legacy CSV-scan
 fallback (which wrote a per-source allele-counts cache to
-``~/.hitlist/index/``) was removed in v1.30.41 — the index is always
+``<data dir>/index/``) was removed in v1.30.41 — the index is always
 derived from ``observations.parquet`` so it reflects the full curated
 corpus (IEDB + CEDAR + supplements + curation overrides + per-peptide
 attribution) rather than the raw IEDB/CEDAR CSVs alone.

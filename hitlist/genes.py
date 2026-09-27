@@ -77,7 +77,7 @@ def _fetch_hgnc(query: str, timeout: int = 10) -> list[dict]:
 def resolve_hgnc_symbol(query: str) -> tuple[str, ...]:
     """Return the canonical HGNC symbols matching a query (via name/alias/prev).
 
-    Results are cached on disk under ``~/.hitlist/gene_cache/`` to avoid
+    Results are cached on disk under ``<data dir>/gene_cache/`` to avoid
     repeated REST calls.
     """
     if not query:
