@@ -14,8 +14,11 @@
 
 from __future__ import annotations
 
+import pathlib
+
 import pandas as pd
 import pytest
+import yaml
 
 
 def _write_obs_fixture(tmp_path, rows):
@@ -1446,3 +1449,210 @@ def test_build_token_gate_accepts_packaged_partial_class_typing():
 
     audit = _validate_mhc_tokens(pd.DataFrame(), pd.DataFrame())
     assert audit.empty
+
+
+# ── Engineering-drift audit (#586, #587 review) ────────────────────────────
+
+
+def _eng_study(*arms):
+    """One study whose arms all carry a condition block."""
+    return {
+        42: {
+            "ms_samples": [
+                {"condition_status": "annotated", "condition_evidence": "curated_text", **arm}
+                for arm in arms
+            ]
+        }
+    }
+
+
+def test_engineering_drift_flags_a_silent_arm_beside_an_asserting_sibling():
+    from hitlist.qc import engineering_drift_audit
+
+    found = engineering_drift_audit(
+        _eng_study(
+            {"condition_id": "engineered", "condition_mhc_context": "monoallelic"},
+            {"condition_id": "silent"},
+        )
+    )
+    assert list(found["condition_id"]) == ["silent"]
+    row = found.iloc[0]
+    assert row["column"] == "condition_mhc_context"
+    assert row["asserted_by"] == "engineered"
+    assert row["tier_at_risk"] and row["severity"] == "error"
+
+
+@pytest.mark.parametrize("column", ["condition_knockout_genes", "condition_transduction"])
+def test_engineering_drift_covers_the_whole_block_not_just_mhc_context(column):
+    """A dropped knockout costs the same tier as a dropped MHC context."""
+    from hitlist.qc import engineering_drift_audit
+
+    found = engineering_drift_audit(
+        _eng_study({"condition_id": "a", column: "B2M"}, {"condition_id": "b"})
+    )
+    assert list(found["column"]) == [column]
+
+
+def test_engineering_drift_accepts_none_as_a_claim_of_absence():
+    """``none`` is the documented remedy, so a curated wild-type arm passes."""
+    from hitlist.qc import engineering_drift_audit
+
+    assert engineering_drift_audit(
+        _eng_study(
+            {"condition_id": "ko", "condition_knockout_genes": "B2M"},
+            {"condition_id": "wt", "condition_knockout_genes": "none"},
+        )
+    ).empty
+
+
+def test_engineering_drift_ignores_two_arms_that_both_assert():
+    """``B2M`` beside ``B2M;TAP1`` is the experiment: both resolve at tier 2."""
+    from hitlist.qc import engineering_drift_audit
+
+    assert engineering_drift_audit(
+        _eng_study(
+            {"condition_id": "a", "condition_knockout_genes": "B2M"},
+            {"condition_id": "b", "condition_knockout_genes": "B2M;TAP1"},
+        )
+    ).empty
+
+
+def test_engineering_drift_exempts_an_unreported_arm():
+    """``unreported`` is the module's way to say nothing was recorded."""
+    from hitlist.qc import engineering_drift_audit
+
+    assert engineering_drift_audit(
+        _eng_study(
+            {"condition_id": "a", "condition_mhc_context": "monoallelic"},
+            {"condition_id": "b", "condition_status": "unreported"},
+        )
+    ).empty
+
+
+def test_engineering_drift_does_not_compare_different_materials():
+    from hitlist.qc import engineering_drift_audit
+
+    assert engineering_drift_audit(
+        _eng_study(
+            {"condition_id": "a", "condition_mhc_context": "monoallelic", "sample_group": "line1"},
+            {"condition_id": "b", "sample_group": "line2"},
+        )
+    ).empty
+
+
+def test_engineering_drift_compares_a_genotype_as_an_unordered_set():
+    """A different write order is not a different material."""
+    from hitlist.qc import engineering_drift_audit
+
+    found = engineering_drift_audit(
+        _eng_study(
+            {
+                "condition_id": "a",
+                "mhc_genotype": "HLA-A*01:01 HLA-B*07:02",
+                "condition_mhc_context": "monoallelic",
+            },
+            {"condition_id": "b", "mhc_genotype": "HLA-B*07:02 HLA-A*01:01"},
+        )
+    )
+    assert list(found["condition_id"]) == ["b"]
+
+
+def test_engineering_drift_reports_only_the_silent_arms():
+    """A large group reports its drifting arms, not all of its members."""
+    from hitlist.qc import engineering_drift_audit
+
+    arms = [{"condition_id": f"ok{i}", "condition_mhc_context": "monoallelic"} for i in range(8)]
+    arms.append({"condition_id": "drifted"})
+    found = engineering_drift_audit(_eng_study(*arms))
+    assert list(found["condition_id"]) == ["drifted"]
+    assert found.iloc[0]["n_asserting"] == 8
+
+
+def test_engineering_drift_warns_without_a_tier_claim_when_another_column_engineers():
+    """The message must be true for every case it can fire on."""
+    from hitlist.qc import engineering_drift_audit
+
+    found = engineering_drift_audit(
+        _eng_study(
+            {
+                "condition_id": "a",
+                "condition_knockout_genes": "B2M",
+                "condition_mhc_context": "monoallelic",
+            },
+            {"condition_id": "b", "condition_knockout_genes": "B2M"},
+        )
+    )
+    row = found.iloc[0]
+    assert not row["tier_at_risk"] and row["severity"] == "warn"
+    assert "anchor is unaffected" in row["reason"]
+
+
+def test_engineering_drift_skips_a_study_that_curates_no_condition_block():
+    from hitlist.qc import engineering_drift_audit
+
+    assert engineering_drift_audit(
+        {42: {"ms_samples": [{"sample_label": "a"}, {"sample_label": "b"}]}}
+    ).empty
+
+
+_ENGINEERING_DRIFT_BASELINE = (
+    pathlib.Path(__file__).parent / "data" / "engineering_drift_baseline.yaml"
+)
+
+
+def _baseline_entries():
+    doc = yaml.safe_load(_ENGINEERING_DRIFT_BASELINE.read_text()) or {}
+    return {(int(pmid), entry) for pmid, entries in doc.items() for entry in entries}
+
+
+def test_engineering_drift_the_586_studies_are_clean():
+    """The studies this audit was written for must carry no drift at all."""
+    from hitlist.qc import engineering_drift_audit
+
+    found = engineering_drift_audit()
+    for pmid in (26768311, 23543059):
+        assert found[found["pmid"] == pmid].empty, f"PMID {pmid} regressed"
+
+
+@pytest.mark.parametrize("n_dropped", [1, 3, 5])
+def test_engineering_drift_catches_a_partial_586_regression(n_dropped):
+    """One blanked arm is already the defect: the engineered flag is per arm.
+
+    The first cut of this rule disabled a group at the first intra-level
+    disagreement, so dropping four of five passed silently (#587 review).
+    """
+    from copy import deepcopy
+
+    from hitlist.curation import load_pmid_overrides
+    from hitlist.qc import engineering_drift_audit
+
+    study = deepcopy(load_pmid_overrides()[26768311])
+    dropped = 0
+    for arm in study["ms_samples"]:
+        if "vaccinia" in arm["sample_label"] and dropped < n_dropped:
+            del arm["condition_mhc_context"]
+            dropped += 1
+    assert dropped == n_dropped
+    found = engineering_drift_audit({26768311: study})
+    assert len(found) == n_dropped
+    assert set(found["column"]) == {"condition_mhc_context"}
+
+
+def test_engineering_drift_matches_its_recorded_baseline():
+    """Equality, so neither a new finding nor a stale exemption survives.
+
+    The audit is deliberately off the load path (#587 review): a false positive
+    here fails CI for whoever makes the edit instead of making the installed
+    package unimportable for every consumer.
+    """
+    from hitlist.qc import engineering_drift_audit
+
+    found = {
+        (int(r.pmid), f"{r.condition_id}|{r.column}")
+        for r in engineering_drift_audit().itertuples()
+    }
+    baseline = _baseline_entries()
+    assert found - baseline == set(), f"new engineering drift: {sorted(found - baseline)}"
+    assert baseline - found == set(), (
+        f"baseline entries no longer found: {sorted(baseline - found)}"
+    )

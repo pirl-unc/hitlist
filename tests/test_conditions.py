@@ -10,7 +10,6 @@ directly against the packaged curation.
 from __future__ import annotations
 
 import pathlib
-from copy import deepcopy
 from itertools import combinations
 
 import pandas as pd
@@ -39,7 +38,6 @@ from hitlist.conditions import (
     split_condition_tokens,
 )
 from hitlist.curation import MS_SAMPLE_FIELDS, load_pmid_overrides
-from hitlist.curation_yaml import load_curation_yaml
 from hitlist.export import (
     _empty_ms_samples_columns,
     generate_ms_samples_table,
@@ -232,165 +230,12 @@ def test_a_study_may_opt_out_entirely(tmp_path, monkeypatch):
         curation.load_pmid_overrides.cache_clear()
 
 
-# ── the sibling engineering guard (#586) ────────────────────────────────────
-
-
-def _study(*arms):
-    return [{"pmid": 42, "ms_samples": list(arms)}]
-
-
-def _untreated(cid="untreated", **extra):
-    return _arm(condition_id=cid, sample_label=cid, **extra)
-
-
-def _treated(cid="treated", agent="Vaccinia virus", **extra):
-    return _arm(
-        condition_id=cid, sample_label=cid, condition="infected", condition_infection=agent, **extra
-    )
-
-
-def _loads(tmp_path, monkeypatch, entries):
-    """Load synthetic entries, always clearing the loader's cache afterwards."""
-    load = _load_with(tmp_path, monkeypatch, entries)
-    try:
-        return load()
-    finally:
-        curation.load_pmid_overrides.cache_clear()
-
-
-def test_mhc_context_must_not_drop_on_a_treated_sibling(tmp_path, monkeypatch):
-    """The all-or-none rule passes here: both arms curate *some* column."""
-    with pytest.raises(ValueError, match="engineering block"):
-        _loads(
-            tmp_path,
-            monkeypatch,
-            _study(_untreated(condition_mhc_context="monoallelic"), _treated()),
-        )
-
-
-def test_a_dropped_knockout_on_a_treated_sibling_is_caught(tmp_path, monkeypatch):
-    """Scope is the whole engineering block, not condition_mhc_context alone.
-
-    A dropped ``condition_knockout_genes`` costs the same expression tier, and
-    was invisible while the engineering columns keyed material identity.
-    """
-    with pytest.raises(ValueError, match="engineering block"):
-        _loads(
-            tmp_path,
-            monkeypatch,
-            _study(_untreated(condition_knockout_genes="B2M"), _treated()),
-        )
-
-
-def test_treated_siblings_agreeing_on_the_engineering_block_are_accepted(tmp_path, monkeypatch):
-    assert 42 in _loads(
-        tmp_path,
-        monkeypatch,
-        _study(
-            _untreated(condition_mhc_context="monoallelic"),
-            _treated(condition_mhc_context="monoallelic"),
-        ),
-    )
-
-
-def test_a_capture_only_mhc_context_token_is_not_engineering_drift(tmp_path, monkeypatch):
-    """``soluble_mhc`` says how MHC was captured, not what was done to the cells.
-
-    It is outside ``ENGINEERED_MHC_CONTEXT_VALUES`` and moves no expression
-    tier, so ``monoallelic;soluble_mhc`` beside a sibling's ``monoallelic`` is
-    agreement.  Raising here would fail ``load_pmid_overrides()`` for the whole
-    package over a capture token — and would block #588, which proposes exactly
-    this pair (PMID 20112406 already carries ``monoallelic;soluble_mhc``).
-    """
-    assert 42 in _loads(
-        tmp_path,
-        monkeypatch,
-        _study(
-            _untreated(condition_mhc_context="monoallelic;soluble_mhc"),
-            _treated(condition_mhc_context="monoallelic"),
-        ),
-    )
-
-
-def test_none_and_blank_are_not_a_treatment_difference(tmp_path, monkeypatch):
-    """``none`` and ``""`` both assert nothing, per ``asserts_condition``.
-
-    Reading them as two treatment levels would invent a treatment axis and
-    flag a pair that differs only in how its absence was written.
-    """
-    assert 42 in _loads(
-        tmp_path,
-        monkeypatch,
-        _study(
-            _untreated("a", condition_infection="none", condition_mhc_context="monoallelic"),
-            _untreated("b", condition_infection=""),
-        ),
-    )
-
-
-def test_a_parental_arm_and_its_untreated_transfectant_are_not_compared(tmp_path, monkeypatch):
-    """The treatment-difference requirement is what makes this pair safe.
-
-    They share every non-engineering material column and differ legitimately in
-    the engineering block.  With neither arm treated there is no treatment axis,
-    so they are never compared — which is what lets the engineering columns stay
-    out of the identity key (#587 review).
-    """
-    assert 42 in _loads(
-        tmp_path,
-        monkeypatch,
-        _study(_untreated("parental"), _untreated("transfectant", condition_transfection="HLA-B")),
-    )
-
-
-def test_a_crossed_design_is_not_flagged(tmp_path, monkeypatch):
-    """PMID 39438697's shape: wild-type and knockout, each mock and infected.
-
-    Both engineering values appear at both treatment levels, so engineering is
-    not confounded with treatment and the disagreement is the design, not drift.
-    """
-    assert 42 in _loads(
-        tmp_path,
-        monkeypatch,
-        _study(
-            _untreated("wt_mock"),
-            _untreated("ko_mock", condition_knockout_genes="TAP1"),
-            _treated("wt_infected"),
-            _treated("ko_infected", condition_knockout_genes="TAP1"),
-        ),
-    )
-
-
-def test_the_packaged_curation_satisfies_the_engineering_guard():
-    """The guard runs inside the loader, so a clean load is the assertion.
-
-    Cleared on both sides: ``load_pmid_overrides`` is ``lru_cache``d, so in a
-    full-suite run an earlier test's cached mapping would satisfy this without
-    the validator ever running (#587 review).
-    """
-    curation.load_pmid_overrides.cache_clear()
-    try:
-        assert load_pmid_overrides()
-    finally:
-        curation.load_pmid_overrides.cache_clear()
-
-
-def test_the_packaged_curation_would_fail_the_guard_if_586_regressed(tmp_path, monkeypatch):
-    """Proves the assertion above has teeth, against real curated arms.
-
-    Re-drops ``condition_mhc_context`` from PMID 26768311's infected arms —
-    precisely the #586 defect — and requires the loader to reject it.
-    """
-    raw = load_curation_yaml(curation._data_path("pmid_overrides.yaml"))
-    study = deepcopy(next(e for e in raw if e.get("pmid") == 26768311))
-    dropped = 0
-    for arm in study["ms_samples"]:
-        if "vaccinia" in arm["sample_label"]:
-            del arm["condition_mhc_context"]
-            dropped += 1
-    assert dropped == 5, f"expected 5 infected arms, found {dropped}"
-    with pytest.raises(ValueError, match="engineering block"):
-        _loads(tmp_path, monkeypatch, [study])
+# ── material identity, the audit's grouping vocabulary (#586) ──────────────
+#
+# The rule itself lives in hitlist.qc.engineering_drift_audit and is tested in
+# tests/test_qc.py: it is an audit, not a load-time validator, so that a false
+# positive fails CI for whoever makes the edit rather than making the installed
+# package unimportable for every consumer (#587 review).
 
 
 def test_duplicate_yaml_keys_are_rejected(tmp_path, monkeypatch):

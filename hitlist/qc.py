@@ -409,6 +409,196 @@ def sample_ploidy_audit(overrides: Mapping[int, dict] | None = None) -> pd.DataF
     )
 
 
+_ENGINEERING_DRIFT_AUDIT_COLUMNS = [
+    "pmid",
+    "condition_id",
+    "sample_label",
+    "column",
+    "asserted_by",
+    "asserted_value",
+    "n_silent",
+    "n_asserting",
+    "tier_at_risk",
+    "severity",
+    "reason",
+]
+
+
+def _material_identity(sample: Mapping[str, object]) -> tuple:
+    """Which material an arm is, over :data:`~hitlist.conditions.MATERIAL_IDENTITY_COLUMNS`.
+
+    Multi-token columns compare as unordered sets, so a genotype written in a
+    different order is not a different material.  Condition cells read the same
+    from the record as from :func:`condition_columns_for_sample`, which is only
+    a strip, so one lookup serves both kinds of column.
+    """
+    from .conditions import (
+        MATERIAL_IDENTITY_COLUMNS,
+        MULTI_VALUE_CONDITION_COLUMNS,
+        TOKENIZED_MATERIAL_IDENTITY_COLUMNS,
+        split_condition_tokens,
+    )
+
+    identity = []
+    for column in MATERIAL_IDENTITY_COLUMNS:
+        value = str(sample.get(column) or "").strip()
+        if column in TOKENIZED_MATERIAL_IDENTITY_COLUMNS:
+            identity.append(tuple(sorted(value.split())))
+        elif column in MULTI_VALUE_CONDITION_COLUMNS:
+            identity.append(tuple(sorted(split_condition_tokens(value))))
+        else:
+            identity.append((value,))
+    return tuple(identity)
+
+
+def engineering_drift_audit(overrides: Mapping[int, dict] | None = None) -> pd.DataFrame:
+    """Flag arms silent on an engineering column a same-material sibling asserts.
+
+    ``condition_mhc_context``, the knockout/knockdown/overexpression/variant
+    columns and the transfection/transduction columns say the profiled material
+    is not the parental line.  Since #576 that is per arm: an arm whose
+    engineering block is blank does not satisfy
+    :func:`hitlist.conditions.is_engineered_material`, so
+    :func:`hitlist.line_expression.resolve_sample_expression_anchor` reports its
+    reference line's RNA at tier 1 — as RNA measured in the sample — while an
+    identically-engineered sibling correctly resolves at tier 2.  #586 is that
+    defect on five of ten arms of PMID 26768311.
+
+    ``""`` is *not established*, which is why silence is what this looks for.
+    ``none`` is a positive claim of absence and passes, so a genuine wild-type
+    arm beside a knockout sibling is annotated rather than flagged — the remedy
+    is always truthfully available, on every column, for every arm.  An arm
+    whose ``condition_status`` is ``unreported`` is exempt: that is the
+    module's documented way to say nothing was recorded.
+
+    This is an **audit, not a load-time rule**.  It ran inside
+    ``load_pmid_overrides`` in the first cut of #587, where a single false
+    positive would make the installed package unimportable for every consumer
+    — a catastrophic failure mode to buy a per-arm tier correction.  Here a
+    disagreement fails CI for whoever makes the edit, who can adjudicate it.
+
+    Deliberately **not** flagged:
+
+    - Two arms that both assert, but differ (``B2M`` beside ``B2M;TAP1``).
+      Both are engineered, both resolve at tier 2, and which genes a study
+      knocked out per arm is the experiment.
+    - Arms of different materials, per
+      :data:`~hitlist.conditions.MATERIAL_IDENTITY_COLUMNS`.
+    - Studies that curate no condition block at all, which
+      :func:`hitlist.conditions.validate_study_conditions` also skips.
+    - A ``condition_mhc_context`` naming only capture tokens (``soluble_mhc``,
+      ``refolded_mhc``) beside an engineered sibling.  Silence here is an empty
+      cell, not "no engineering token", because ``none`` is not permitted in
+      this column, so there would be no truthful remedy to offer an arm whose
+      MHC really was only captured — patient plasma sHLA is exactly that.  The
+      cost is a known miss: a transfectant curated ``soluble_mhc`` alone reads
+      as unengineered and is not flagged.
+
+    Material identity is thin in practice — ``sample_group`` is set on a
+    minority of arms — so arms of one study often group together on the
+    strength of blank columns.  That is why this reports rather than raises,
+    and why every finding is adjudicated rather than auto-remedied: ``none``
+    is a positive claim about an experiment, which someone must verify.
+
+    Parameters
+    ----------
+    overrides
+        Curated studies, defaulting to the packaged ``pmid_overrides.yaml``.
+
+    Returns
+    -------
+    pd.DataFrame
+        One row per (silent arm, engineering column), empty when the corpus is
+        clean.  ``asserted_by`` names the sibling ``condition_id``s that
+        establish the expectation.
+    """
+    from .conditions import (
+        CONDITION_COLUMNS,
+        ENGINEERING_CONDITION_COLUMNS,
+        asserts_condition,
+        condition_columns_for_sample,
+        is_engineered_material,
+    )
+    from .curation import load_pmid_overrides
+
+    if overrides is None:
+        overrides = load_pmid_overrides()
+    engineering_columns = sorted(ENGINEERING_CONDITION_COLUMNS)
+
+    findings: list[dict] = []
+    for pmid, entry in sorted(overrides.items()):
+        samples = entry.get("ms_samples") or []
+        if not any(column in sample for sample in samples for column in CONDITION_COLUMNS):
+            continue  # uncurated study; the loader opts it out too
+        groups: dict[tuple, list[tuple[Mapping[str, object], Mapping[str, str]]]] = {}
+        for sample in samples:
+            cells = condition_columns_for_sample(sample)
+            groups.setdefault(_material_identity(sample), []).append((sample, cells))
+        for arms in groups.values():
+            if len(arms) < 2:
+                continue
+            for column in engineering_columns:
+                # Three-way, per this module's missing-value contract: a named
+                # intervention asserts, ``none`` is a curated claim of absence
+                # and is neither, and only ``""`` is silence.
+                asserting = [(s, c) for s, c in arms if asserts_condition(c[column])]
+                silent = [
+                    (s, c)
+                    for s, c in arms
+                    if not c[column]
+                    and str(s.get("condition_status") or "").strip() != "unreported"
+                ]
+                if not asserting or not silent:
+                    continue
+                asserted_by = ";".join(
+                    sorted(str(s.get("condition_id") or "?") for s, _ in asserting)
+                )
+                asserted_value = ";".join(sorted({c[column] for _, c in asserting}))
+                for sample, cells in silent:
+                    # The tier consequence is real only where nothing else in
+                    # the block engineers this arm; otherwise the cost is a
+                    # under-recorded column, not a wrong anchor.
+                    tier_at_risk = not is_engineered_material(cells)
+                    consequence = (
+                        "Blank reads as 'not established', so this arm does not count as "
+                        "engineered material and takes its reference line's RNA at tier 1 "
+                        "while the sibling takes it at tier 2."
+                        if tier_at_risk
+                        else "Another engineering column still marks this arm engineered, so "
+                        "the anchor is unaffected; what is lost is which intervention it was."
+                    )
+                    findings.append(
+                        {
+                            "pmid": pmid,
+                            "condition_id": str(sample.get("condition_id") or "?"),
+                            "sample_label": str(sample.get("sample_label") or ""),
+                            "column": column,
+                            "asserted_by": asserted_by,
+                            "asserted_value": asserted_value,
+                            "n_silent": len(silent),
+                            "n_asserting": len(asserting),
+                            "tier_at_risk": tier_at_risk,
+                            "severity": "error" if tier_at_risk else "warn",
+                            "reason": (
+                                f"{column} is blank here but {asserted_value!r} on "
+                                f"same-material sibling(s) {asserted_by}.  {consequence}  "
+                                f"Record the real value, or 'none' if this arm genuinely "
+                                f"lacks it; if these are different materials, say so in "
+                                f"sample_group, or in mhc_genotype — which also requires "
+                                f"mhc_genotype_source and is checked against "
+                                f"mhc_genotype_complete_loci"
+                            ),
+                        }
+                    )
+    if not findings:
+        return pd.DataFrame(columns=_ENGINEERING_DRIFT_AUDIT_COLUMNS)
+    return (
+        pd.DataFrame(findings)
+        .sort_values(["pmid", "condition_id", "column"])
+        .reset_index(drop=True)[_ENGINEERING_DRIFT_AUDIT_COLUMNS]
+    )
+
+
 _SAMPLE_ATTRIBUTION_AUDIT_COLUMNS = [
     "pmid",
     "study_label",

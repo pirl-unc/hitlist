@@ -243,36 +243,51 @@ migration marked all 761 arms `curated_text` because that is what it did;
   still a knockout.
 - **`condition_control_for` must name a real sibling arm**, and only where
   the comparison is documented.
-- **The engineering block is constant across one material's treatment arms**
-  (#586). Arms that `MATERIAL_IDENTITY_COLUMNS` say are the same material, but
-  that differ along `TREATMENT_CONDITION_COLUMNS` (infection, cytokine, drug,
-  stimulation, antigen exposure), must agree on every
-  `ENGINEERING_CONDITION_COLUMNS` value: treating cells changes neither their
-  genome nor which MHC was introduced. The all-or-none rule above cannot see
-  this gap, because it is satisfied as soon as *some* condition column is
-  curated on every arm — and the cost is not cosmetic, since a blank means
-  "not established", so the arm stops satisfying `is_engineered_material()`
-  and resolves its expression anchor at tier 1 (parental RNA reported as the
-  sample's own) while its sibling correctly resolves at tier 2.
+#### The engineering-drift audit (not a loader rule)
 
-  Three limits are worth knowing before trusting it:
+`hitlist.qc.engineering_drift_audit` flags an arm that is **silent** on an
+`ENGINEERING_CONDITION_COLUMNS` value a same-material sibling **asserts**
+(#586). Since #576 the engineered flag is per arm, so one blanked arm is
+already the defect: `""` means "not established", the arm stops satisfying
+`is_engineered_material()`, and it takes its reference line's RNA at tier 1 —
+reported as RNA measured in the sample — while its sibling correctly resolves
+at tier 2.
 
-  - It raises only where engineering is **confounded** with treatment — every
-    arm sharing a treatment shares one engineering value, and at least two
-    treatments disagree. A crossed design (PMID 39438697 runs wild-type and
-    TAP1-knockout THP-1 against both Mtb and mock) breaks the confounding and
-    is never flagged, which also means a crossed design that *lost* a value
-    passes.
-  - `condition_mhc_context` contributes only its engineering tokens. The
-    capture-only ones — `soluble_mhc`, `refolded_mhc` — move no tier, so
-    `monoallelic;soluble_mhc` beside a sibling's `monoallelic` is agreement.
-  - Material identity rests mostly on `mhc_genotype` / `mhc_genotype_cell` and
-    the context columns: `sample_group` is curated on only 49 of 794 arms, and
-    `condition_material`'s vocabulary is physical states (`cultured`,
-    `frozen`, …), which cannot express *which line* something is. So when the
-    guard fires on arms that really are different materials, the remedy is to
-    name that in `sample_group` or `mhc_genotype` / `mhc_genotype_cell` — not
-    in `condition_material`.
+It is deliberately **not** enforced in `load_pmid_overrides()`. Material
+identity is thin, so false positives are expected; raising on one would make
+the installed package unimportable for every consumer, to buy a per-arm tier
+correction. As an audit, a disagreement fails CI for whoever makes the edit,
+who can adjudicate it. `tests/test_qc.py` asserts the findings equal
+`tests/data/engineering_drift_baseline.yaml`, so new drift fails and a fixed
+entry left in the baseline fails too.
+
+The three-way missing-value contract is what makes it actionable:
+
+| cell | read as | flagged? |
+| --- | --- | --- |
+| a named value | the intervention happened | no — it asserts |
+| `none` | a curated claim of absence | no — the remedy for a genuine wild-type arm |
+| `""` | not established | **yes**, beside an asserting sibling |
+
+An arm whose `condition_status` is `unreported` is exempt, that being the
+documented way to say nothing was recorded.
+
+Limits worth knowing before trusting it:
+
+- Two arms that both assert but differ (`B2M` beside `B2M;TAP1`) are the
+  experiment, not drift: both are engineered and both resolve at tier 2.
+- A `condition_mhc_context` naming only capture tokens (`soluble_mhc`,
+  `refolded_mhc`) is not treated as silence, because `none` is not permitted
+  in that column and patient-plasma sHLA really is capture-only — so there
+  would be no truthful remedy. The known cost: a transfectant curated
+  `soluble_mhc` alone reads as unengineered and is not flagged.
+- Material identity rests mostly on `mhc_genotype` / `mhc_genotype_cell` and
+  the context columns; `sample_group` is set on a minority of arms, and
+  `condition_material`'s vocabulary is physical states (`cultured`, `frozen`,
+  …), which cannot express *which line* something is. When two flagged arms
+  really are different materials, say so in `sample_group`, or in
+  `mhc_genotype` — which also requires `mhc_genotype_source` and is checked
+  against `mhc_genotype_complete_loci` — never in `condition_material`.
 
 #### On a row that reached no arm
 
