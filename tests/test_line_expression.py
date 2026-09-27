@@ -13,6 +13,7 @@ Covers:
 
 from __future__ import annotations
 
+import warnings
 from pathlib import Path
 
 import pandas as pd
@@ -54,7 +55,7 @@ _STARTER_LINES = {
 def installed_depmap(tmp_path, monkeypatch):
     """Resolver tests opt into actual synthetic RNA rows, not registry promises."""
     from hitlist import downloads
-    from hitlist.line_expression import _load_packaged_union
+    from hitlist.line_expression import _load_packaged_union, write_line_expression_index
 
     monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
     extra = pd.DataFrame(
@@ -69,9 +70,7 @@ def installed_depmap(tmp_path, monkeypatch):
             "log2_tpm": 1.0,
         }
     )
-    pd.concat([_load_packaged_union(), extra], ignore_index=True).to_parquet(
-        tmp_path / "line_expression.parquet", index=False
-    )
+    write_line_expression_index(pd.concat([_load_packaged_union(), extra], ignore_index=True))
 
 
 def test_registry_covers_starter_lines():
@@ -1465,3 +1464,124 @@ def test_cli_export_training_with_peptide_origin_flag_threads_through(monkeypatc
     _export_training(args)
     assert captured["with_peptide_origin"] is True
     assert captured["proteome_release"] == 114
+
+
+# ── Index staleness against the packaged inputs (#577) ─────────────────────
+
+
+def _unstamped_index(path: Path, pairs: list[tuple[str, str]]) -> None:
+    """An index as a release before the stamp wrote it: rows, no fingerprint."""
+    pd.DataFrame(pairs, columns=["line_key", "source_id"]).to_parquet(path, index=False)
+
+
+def test_index_without_a_stamp_is_stale(tmp_path, monkeypatch):
+    """The legacy case: an index built before a packaged source was added.
+
+    A 1.62.x index has no ``DepMap_24Q4_HAP1_gene`` rows, so trusting it keeps
+    HAP1 at tier 5 in a release that packages its RNA.
+    """
+    from hitlist import downloads
+    from hitlist import line_expression as le
+
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
+    _unstamped_index(
+        tmp_path / "line_expression.parquet",
+        [("GM12878", "ENCODE_GM12878_polyA_rnaseq")],
+    )
+
+    with pytest.warns(RuntimeWarning, match="hitlist build observations"):
+        anchor = resolve_sample_expression_anchor("HAP1 wildtype")
+    assert anchor.expression_match_tier == 1
+    assert le.load_line_expression(line_key="HAP1", granularity="gene").shape[0] == 19193
+
+
+def test_stale_index_rows_a_rebuild_would_drop_are_not_returned(tmp_path, monkeypatch):
+    """The other half of #577: rows the current builder no longer emits.
+
+    A 1.62.x index built with the optional DepMap bundle holds HAP1 under
+    ``DepMap_24Q4_gene``; 1.63's builder deliberately emits HAP1's gene row
+    only under the packaged ``DepMap_24Q4_HAP1_gene`` source.
+    """
+    from hitlist import downloads
+    from hitlist import line_expression as le
+
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
+    _unstamped_index(
+        tmp_path / "line_expression.parquet",
+        [("HAP1", "DepMap_24Q4_gene"), ("HeLa", "DepMap_24Q4_gene")],
+    )
+
+    with pytest.warns(RuntimeWarning, match="packaged line-expression inputs"):
+        rows = le.load_line_expression(line_key="HAP1")
+    assert set(rows.source_id) == {"DepMap_24Q4_HAP1_gene"}
+    # The stale index's own HeLa rows cannot pose as installed data either.
+    assert resolve_sample_expression_anchor("HeLa cells").expression_match_tier == 5
+
+
+def test_stale_index_warns_once_and_is_left_on_disk(tmp_path, monkeypatch):
+    """A read path warns, falls back, and writes nothing."""
+    import warnings
+
+    from hitlist import downloads
+    from hitlist import line_expression as le
+
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
+    path = tmp_path / "line_expression.parquet"
+    _unstamped_index(path, [("HeLa", "DepMap_24Q4_gene")])
+    before = path.read_bytes()
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        le.load_line_expression(line_key="GM12878")
+        resolve_sample_expression_anchor("HeLa cells")
+        le.load_line_expression(line_key="HAP1")
+    stale = [w for w in caught if "packaged line-expression inputs" in str(w.message)]
+    assert len(stale) == 1, [str(w.message) for w in caught]
+    assert path.read_bytes() == before
+
+
+def test_stamped_index_is_trusted_without_warning(tmp_path, monkeypatch):
+    from hitlist import downloads
+    from hitlist import line_expression as le
+
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
+    le.write_line_expression_index(
+        pd.DataFrame({"line_key": ["HeLa"], "source_id": ["DepMap_24Q4_gene"]})
+    )
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", RuntimeWarning)
+        assert resolve_sample_expression_anchor("HeLa cells").expression_match_tier == 1
+    assert le.line_expression_index_is_current()
+
+
+def test_builder_stamps_the_index_it_writes(tmp_path, monkeypatch):
+    from hitlist import downloads
+    from hitlist import line_expression as le
+    from hitlist.builder import build_line_expression
+
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
+    build_line_expression()
+    assert le.line_expression_index_is_current()
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", RuntimeWarning)
+        assert resolve_sample_expression_anchor("HAP1 wildtype").expression_match_tier == 1
+
+
+def test_fingerprint_covers_every_packaged_input():
+    """The fingerprint must move when any input a build consumed moves."""
+    from hitlist import line_expression as le
+
+    contents = le._packaged_input_bytes()
+    expected = {"line_expression_anchors.yaml", "sources.yaml"} | {
+        str(source["file"])
+        for source in load_line_expression_sources()
+        if source.get("build_status") == "packaged"
+    }
+    assert set(contents) == expected
+    current = le.packaged_line_expression_fingerprint()
+    assert le._fingerprint_of(contents) == current
+    for name in sorted(contents):
+        mutated = {**contents, name: contents[name] + b"drift"}
+        assert le._fingerprint_of(mutated) != current, name
+    assert le._fingerprint_of({**contents, "new_source.csv.gz": b"rows"}) != current

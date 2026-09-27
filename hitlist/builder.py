@@ -139,6 +139,14 @@ def _source_fingerprints(paths: dict[str, Path], *, fetch_missing_assets: bool =
         for csv in sorted(line_dir.glob("*.csv.gz")):
             fp[f"line_expression_csv:{csv.name}"] = _stat_fingerprint(csv)
 
+    # The content fingerprint the built index is stamped with (#577), so the
+    # rebuild this cache triggers and the staleness a reader reports rest on
+    # one piece of evidence: otherwise an install that preserved sizes and
+    # timestamps leaves readers warning "rebuild" at a build that no-ops.
+    from .line_expression import packaged_line_expression_fingerprint
+
+    fp["line_expression_packaged_inputs"] = packaged_line_expression_fingerprint()
+
     # DepMap inputs are registered via downloads.py and live outside the
     # repo; fingerprint by registered path so a re-register / re-download
     # forces a line-expression rebuild.
@@ -1767,6 +1775,7 @@ def build_line_expression(verbose: bool = False) -> pd.DataFrame:
         load_line_expression_anchors,
         load_line_expression_sources,
         resolve_line_key,
+        write_line_expression_index,
     )
 
     sources_by_id = {s.get("source_id"): s for s in load_line_expression_sources()}
@@ -1848,8 +1857,7 @@ def build_line_expression(verbose: bool = False) -> pd.DataFrame:
 
     if not frames:
         empty = pd.DataFrame(columns=_LINE_EXPRESSION_COLUMNS)
-        out = _line_expression_path()
-        _atomic_write_parquet(empty, out)
+        out = write_line_expression_index(empty)
         if verbose:
             print(f"  No line-expression sources present — wrote empty {out}")
         return empty
@@ -1880,8 +1888,7 @@ def build_line_expression(verbose: bool = False) -> pd.DataFrame:
 
     df = df[[c for c in _LINE_EXPRESSION_COLUMNS if c in df.columns]]
 
-    out = _line_expression_path()
-    _atomic_write_parquet(df, out)
+    out = write_line_expression_index(df)
 
     if verbose:
         n_gene = int((df["granularity"] == "gene").sum())

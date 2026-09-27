@@ -816,10 +816,11 @@ def test_attach_peptide_origin_demotes_engineered_rows_to_parent_rna(tmp_path, m
 
     from hitlist import downloads
     from hitlist.export import _attach_peptide_origin
+    from hitlist.line_expression import write_line_expression_index
 
     monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
-    pd.DataFrame({"line_key": ["HeLa"], "source_id": ["DepMap_24Q4_gene"]}).to_parquet(
-        tmp_path / "line_expression.parquet", index=False
+    write_line_expression_index(
+        pd.DataFrame({"line_key": ["HeLa"], "source_id": ["DepMap_24Q4_gene"]})
     )
     monkeypatch.setattr(
         "hitlist.mappings.load_peptide_mappings",

@@ -17,6 +17,7 @@ from hitlist.line_expression import (
     load_line_expression,
     load_line_expression_anchors,
     resolve_sample_expression_anchor,
+    write_line_expression_index,
 )
 
 
@@ -122,8 +123,7 @@ def every_registered_source(tmp_path):
         if entry.get("expression_key")
         for source_id in entry.get("source_ids") or []
     }
-    rows = pd.DataFrame(sorted(pairs), columns=["line_key", "source_id"])
-    rows.to_parquet(tmp_path / "line_expression.parquet", index=False)
+    write_line_expression_index(pd.DataFrame(sorted(pairs), columns=["line_key", "source_id"]))
     return pairs
 
 

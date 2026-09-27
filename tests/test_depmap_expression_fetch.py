@@ -11,6 +11,7 @@ from hitlist.line_expression import (
     compute_peptide_origin,
     load_line_expression,
     resolve_sample_expression_anchor,
+    write_line_expression_index,
 )
 
 
@@ -94,25 +95,26 @@ def test_uninstalled_and_rebuilt_expression_anchors_follow_actual_rows(tmp_path,
     monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
     before = resolve_sample_expression_anchor("HeLa cells")
     assert before.expression_match_tier == 5
-    path = tmp_path / "line_expression.parquet"
-    pd.DataFrame({"line_key": ["HeLa"], "source_id": ["DepMap_24Q4_gene"]}).to_parquet(path)
+    write_line_expression_index(
+        pd.DataFrame({"line_key": ["HeLa"], "source_id": ["DepMap_24Q4_gene"]})
+    )
     installed = resolve_sample_expression_anchor("HeLa cells")
     assert installed.expression_match_tier == 1
     assert installed.source_ids == ("DepMap_24Q4_gene",)
     parent = resolve_sample_expression_anchor("HeLa.ABC-KO-HLA-B*51:01")
     assert parent.expression_match_tier == 2
-    pd.DataFrame(
-        {"line_key": ["GM12878"], "source_id": ["ENCODE_GM12878_polyA_rnaseq"]}
-    ).to_parquet(path)
+    write_line_expression_index(
+        pd.DataFrame({"line_key": ["GM12878"], "source_id": ["ENCODE_GM12878_polyA_rnaseq"]})
+    )
     assert resolve_sample_expression_anchor("HeLa cells").expression_match_tier == 5
     assert resolve_sample_expression_anchor("C1R cells").expression_match_tier >= 4
 
 
 def test_available_rows_must_match_both_line_and_source(tmp_path, monkeypatch):
     monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
-    pd.DataFrame(
-        {"line_key": ["HeLa", "K562"], "source_id": ["unrelated", "DepMap_24Q4_gene"]}
-    ).to_parquet(tmp_path / "line_expression.parquet")
+    write_line_expression_index(
+        pd.DataFrame({"line_key": ["HeLa", "K562"], "source_id": ["unrelated", "DepMap_24Q4_gene"]})
+    )
     assert resolve_sample_expression_anchor("HeLa cells").expression_match_tier == 5
     assert resolve_sample_expression_anchor("C1R cells").expression_key == "K562"
 

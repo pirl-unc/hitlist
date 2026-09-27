@@ -565,6 +565,25 @@ files can still be fetched or registered under `depmap_rna`,
 `depmap_default_profiles`. RNA anchors report only sources with available
 rows; missing optional data falls back to the next applicable tier.
 
+`line_expression.parquet` is stamped with a content fingerprint of the
+packaged inputs it was built from — the anchor registry, `sources.yaml` and
+every packaged CSV. A release whose packaged inputs differ from the stamp (or
+an index built before stamping existed) would both hide newly packaged
+sources and keep rows the current builder no longer emits, so reads warn once
+and use the packaged sources instead of that index:
+
+```
+RuntimeWarning: Built line expression index at ~/.hitlist/line_expression.parquet
+was not built from this hitlist release's packaged line-expression inputs ...
+```
+
+Rebuild with `hitlist build observations` (which also rebuilds on its own when
+the packaged inputs change) or `hitlist data fetch depmap` when the optional
+bundle is registered; nothing is rewritten on a read. `hitlist.line_expression`
+exposes `packaged_line_expression_fingerprint()`,
+`line_expression_index_is_current()` and `write_line_expression_index()` for
+tooling that installs or checks an index of its own.
+
 ### A note on mono-allelic curation
 
 Mono-allelic is a **PMID-level** flag, not a per-sample property. Curation

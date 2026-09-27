@@ -478,6 +478,19 @@ def test_source_fingerprints_includes_packaged_line_expression_csvs():
     )
 
 
+def test_source_fingerprints_carry_the_packaged_line_expression_fingerprint():
+    """The build cache and the index stamp must agree on "packaged inputs" (#577).
+
+    A reader that reports a stale index names ``hitlist build observations`` as
+    the repair, so that build has to reach the same verdict from the same
+    evidence — not from sizes and timestamps an install could preserve.
+    """
+    from hitlist.line_expression import packaged_line_expression_fingerprint
+
+    fp = _source_fingerprints({})
+    assert fp["line_expression_packaged_inputs"] == packaged_line_expression_fingerprint()
+
+
 def test_source_fingerprints_includes_registered_depmap_inputs(tmp_path, monkeypatch):
     """A registered DepMap input must appear in the cache fingerprint so
     a re-registered file forces the next build to rebuild line_expression.parquet.

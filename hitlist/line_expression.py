@@ -50,6 +50,15 @@ Three building blocks live here:
    ``hitlist/data/line_expression/`` are readable before any build has
    happened so pure-registry workflows work out-of-the-box.
 
+   The index is only used while it matches this release's packaged inputs:
+   :func:`write_line_expression_index` stamps it with
+   :func:`packaged_line_expression_fingerprint`, and reads that find a
+   different (or absent) stamp warn once and use the packaged union instead —
+   otherwise an index built by an earlier release both hides sources that
+   release did not package and keeps rows the current builder no longer
+   emits (#577).  Read paths never rebuild; ``hitlist build observations``
+   and ``hitlist data fetch depmap`` do.
+
 Typical usage::
 
     from hitlist.line_expression import resolve_sample_expression_anchor
@@ -68,6 +77,7 @@ Typical usage::
 
 from __future__ import annotations
 
+import hashlib
 import warnings
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -84,6 +94,14 @@ from .curation_yaml import load_curation_yaml
 _DATA_MODULE = "hitlist.data.line_expression"
 _ANCHORS_RESOURCE = "hitlist.data"
 _ANCHORS_FILE = "line_expression_anchors.yaml"
+
+#: Parquet key-value metadata key holding
+#: :func:`packaged_line_expression_fingerprint` for the release that built the
+#: index.  Written by :func:`write_line_expression_index`, read by
+#: :func:`line_expression_index_is_current`.  It travels inside the file, so a
+#: copied or downloaded index (the CI corpus, a colleague's build) carries its
+#: own provenance rather than inheriting the reader's (#577).
+PACKAGED_INPUTS_METADATA_KEY = b"hitlist_packaged_line_expression_inputs"
 
 # Tier-3 class anchors — mapped by ``line_family``.  Keys MUST exist as a
 # ``name`` entry in the registry so downstream resolution has a target.
@@ -106,6 +124,157 @@ def line_expression_path() -> Path:
 def is_line_expression_built() -> bool:
     """Check whether the line expression parquet has been built."""
     return line_expression_path().exists()
+
+
+# ── Packaged-input fingerprint and index stamping (#577) ────────────────────
+
+
+@lru_cache(maxsize=1)
+def _packaged_input_bytes() -> dict[str, bytes]:
+    """Content of every packaged input a built index is derived from.
+
+    The anchor registry (which lines exist and which sources they draw on),
+    ``sources.yaml`` (the per-source metadata stamped onto every row) and each
+    packaged CSV.  Optional DepMap matrices are deliberately absent: they are
+    user-local, so an index that carries them is richer than the packaged
+    union, not inconsistent with it.
+    """
+    contents = {
+        _ANCHORS_FILE: (files(_ANCHORS_RESOURCE) / _ANCHORS_FILE).read_bytes(),
+        "sources.yaml": (files(_DATA_MODULE) / "sources.yaml").read_bytes(),
+    }
+    for _source_id, path in _iter_packaged_csvs():
+        if path.exists():
+            contents[path.name] = path.read_bytes()
+    return contents
+
+
+def _fingerprint_of(contents: dict[str, bytes]) -> str:
+    """Order-independent, name-aware digest of a set of input files."""
+    digest = hashlib.sha256()
+    for name, content in sorted(contents.items()):
+        digest.update(f"{name}:{len(content)}:".encode())
+        digest.update(hashlib.sha256(content).digest())
+    return digest.hexdigest()
+
+
+@lru_cache(maxsize=1)
+def packaged_line_expression_fingerprint() -> str:
+    """Content fingerprint of this release's packaged line-expression inputs.
+
+    A hash, not a version or an mtime: an index is built on one machine and
+    read on another (a downloaded CI corpus, a shared cache), so only the
+    bytes the build actually consumed can decide whether it is still the
+    index this release would produce.
+    """
+    return _fingerprint_of(_packaged_input_bytes())
+
+
+def write_line_expression_index(df: pd.DataFrame, path: Path | None = None) -> Path:
+    """Write a line-expression index stamped with the packaged-input fingerprint.
+
+    The one writer of ``line_expression.parquet``: the builder uses it, and so
+    should any test or tool that installs an index the resolver is meant to
+    trust — an unstamped file reads as stale (#577).  Written to a sibling
+    ``.partial`` and renamed, so concurrent readers never see a half-built
+    index.
+    """
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    out = Path(path) if path is not None else line_expression_path()
+    table = pa.Table.from_pandas(df, preserve_index=False)
+    metadata = {
+        **(table.schema.metadata or {}),
+        PACKAGED_INPUTS_METADATA_KEY: packaged_line_expression_fingerprint().encode(),
+    }
+    partial = out.with_suffix(out.suffix + ".partial")
+    pq.write_table(table.replace_schema_metadata(metadata), partial)
+    partial.replace(out)
+    return out
+
+
+def _stored_index_fingerprint(path: str) -> str | None:
+    """The fingerprint stamped on a built index; ``None`` when absent."""
+    import pyarrow.parquet as pq
+
+    metadata = pq.read_schema(path).metadata or {}
+    stamped = metadata.get(PACKAGED_INPUTS_METADATA_KEY)
+    return stamped.decode() if stamped else None
+
+
+def line_expression_index_is_current(path: Path | None = None) -> bool:
+    """Whether a built index matches this release's packaged inputs.
+
+    ``False`` when the index is missing, unreadable, unstamped (built before
+    :data:`PACKAGED_INPUTS_METADATA_KEY` existed) or stamped with another
+    release's inputs.  Reads then fall back to the packaged union; a rebuild
+    (``hitlist build observations``, or ``hitlist data fetch depmap`` when the
+    optional bundle is registered) restores the index.
+    """
+    p = Path(path) if path is not None else line_expression_path()
+    return _index_state(str(p), _artifact_signature(p)) == "current"
+
+
+def _artifact_signature(path: Path) -> tuple[int, int, int] | None:
+    """Identity of the file on disk, so a rebuild invalidates cached reads."""
+    if not path.exists():
+        return None
+    stat = path.stat()
+    return (stat.st_ino, stat.st_mtime_ns, stat.st_size)
+
+
+@lru_cache(maxsize=4)
+def _index_state(path: str, signature: tuple[int, int, int] | None) -> str:
+    """``"current"`` / ``"stale"`` / ``"unreadable"`` / ``"absent"``, warning once.
+
+    Cached per artifact identity — which changes on every rebuild — so the
+    staleness warning is emitted once per index per process rather than once
+    per read.
+    """
+    if signature is None:
+        return "absent"
+    expected = packaged_line_expression_fingerprint()
+    try:
+        stored = _stored_index_fingerprint(path)
+    except (ArrowInvalid, OSError, ValueError):
+        # Let the caller's own read report the failure, so a corrupt index
+        # keeps its existing "Failed to read ..." diagnostic.
+        return "unreadable"
+    if stored == expected:
+        return "current"
+    warnings.warn(
+        f"Built line expression index at {path} was not built from this "
+        f"hitlist release's packaged line-expression inputs "
+        f"({'no fingerprint' if stored is None else 'fingerprint mismatch'}); "
+        f"using the packaged sources instead, so optional DepMap rows are "
+        f"unavailable until you rebuild with `hitlist build observations` "
+        f"(or `hitlist data fetch depmap`).",
+        RuntimeWarning,
+        stacklevel=2,
+    )
+    return "stale"
+
+
+def _read_index(path: str, signature: tuple[int, int, int] | None, *, columns=None):
+    """Read the built index, or ``None`` when it cannot be trusted.
+
+    ``None`` means "use the packaged union": the index is absent, stale, or
+    unreadable.  Never writes — a read path that repaired the index would
+    rebuild under whatever process happened to read first.
+    """
+    if _index_state(path, signature) in ("absent", "stale"):
+        return None
+    try:
+        return pd.read_parquet(path, columns=columns)
+    except (ArrowInvalid, OSError, ValueError) as exc:
+        warnings.warn(
+            f"Failed to read built line expression parquet at {path}; "
+            f"falling back to packaged sources. {exc}",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        return None
 
 
 # ── YAML loaders ────────────────────────────────────────────────────────────
@@ -302,11 +471,7 @@ def _entry_has_exact_line_data(entry: dict) -> bool:
 
 def _available_expression_sources() -> frozenset[tuple[str, str]]:
     path = line_expression_path()
-    signature = None
-    if path.exists():
-        stat = path.stat()
-        signature = (stat.st_ino, stat.st_mtime_ns, stat.st_size)
-    return _expression_sources_at(str(path), signature)
+    return _expression_sources_at(str(path), _artifact_signature(path))
 
 
 @lru_cache(maxsize=4)
@@ -314,17 +479,7 @@ def _expression_sources_at(
     path: str, signature: tuple[int, int, int] | None
 ) -> frozenset[tuple[str, str]]:
     """Read source availability once per artifact identity, including rebuilds."""
-    rows = None
-    if signature is not None:
-        try:
-            rows = pd.read_parquet(path, columns=["line_key", "source_id"])
-        except (ArrowInvalid, OSError, ValueError) as exc:
-            warnings.warn(
-                f"Failed to read line expression availability at {path}; "
-                f"falling back to packaged sources. {exc}",
-                RuntimeWarning,
-                stacklevel=2,
-            )
+    rows = _read_index(path, signature, columns=["line_key", "source_id"])
     if rows is None:
         rows = _load_packaged_union()
     return frozenset(rows[["line_key", "source_id"]].itertuples(index=False, name=None))
@@ -591,20 +746,14 @@ def _load_packaged_union() -> pd.DataFrame:
 
 
 def _load_parquet_or_none() -> pd.DataFrame | None:
-    """Return the built parquet if readable, else ``None`` (with warning)."""
+    """Return the built parquet when it is readable and current, else ``None``.
+
+    ``None`` on an index that is missing, unreadable, or built from different
+    packaged inputs than this release ships (#577) — each case warns once and
+    the caller reads the packaged union instead.
+    """
     p = line_expression_path()
-    if not p.exists():
-        return None
-    try:
-        return pd.read_parquet(p)
-    except (ArrowInvalid, OSError, ValueError) as exc:
-        warnings.warn(
-            f"Failed to read built line expression parquet at {p}; "
-            f"falling back to packaged sources. {exc}",
-            RuntimeWarning,
-            stacklevel=2,
-        )
-        return None
+    return _read_index(str(p), _artifact_signature(p))
 
 
 def _apply_series_filter(df: pd.DataFrame, col: str, values) -> pd.DataFrame:
@@ -874,13 +1023,17 @@ def compute_peptide_origin(
 # Convenience re-exports for downstream callers.
 
 __all__ = [
+    "PACKAGED_INPUTS_METADATA_KEY",
     "SampleExpressionAnchor",
     "compute_peptide_origin",
     "is_line_expression_built",
+    "line_expression_index_is_current",
     "line_expression_path",
     "load_line_expression",
     "load_line_expression_anchors",
     "load_line_expression_sources",
+    "packaged_line_expression_fingerprint",
     "resolve_line_key",
     "resolve_sample_expression_anchor",
+    "write_line_expression_index",
 ]
