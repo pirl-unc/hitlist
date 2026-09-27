@@ -3794,6 +3794,47 @@ def test_sample_alleles_still_drops_class_and_locus_designations():
         assert _sample_serotypes(imprecise) == (), imprecise
 
 
+def test_sample_alleles_documented_behaviour():
+    """#574: each documented guarantee asserted on behaviour, not on delegation.
+
+    This briefly compared a public wrapper to the private function it
+    delegated to, which was true by construction and would have stayed true had
+    the behaviour been wrong.  The docstring's claims are pinned here instead.
+    """
+    from hitlist.export import _sample_alleles
+
+    # A serotype-typed sample yields no named allele: "this donor is DR15" must
+    # not become "this peptide was seen on DRB1*15:01".
+    assert _sample_alleles("HLA-DR15") == []
+
+    # A class-II pair contributes the pair token and both component chains.
+    pair = _sample_alleles("HLA-DRA1*01:01-DRB1*15:01", "II")
+    assert "HLA-DRA*01:01/DRB1*15:01" in pair
+    assert "HLA-DRB1*15:01" in pair
+    assert "HLA-DRA*01:01" in pair
+
+    # A supplied class excludes the other half of a mixed I+II genotype.
+    mixed = "HLA-A*02:01 HLA-DRB1*11:01"
+    assert _sample_alleles(mixed, "I") == ["HLA-A*02:01"]
+    assert _sample_alleles(mixed, "II") == ["HLA-DRB1*11:01"]
+    assert _sample_alleles(mixed) == ["HLA-A*02:01", "HLA-DRB1*11:01"]
+
+    # Sorted and deduplicated.
+    assert _sample_alleles("HLA-B*07:02 HLA-A*02:01 HLA-A*02:01") == [
+        "HLA-A*02:01",
+        "HLA-B*07:02",
+    ]
+
+    # It does NOT return protein-level precision: a locus and a one-field
+    # allele group come back as reported.  The docstring once claimed a locus
+    # was absent, which was false and is what #574 relied on.
+    assert _sample_alleles("HLA-A", "I") == ["HLA-A"]
+    assert _sample_alleles("HLA-A*02", "I") == ["HLA-A*02"]
+
+    # A class sentinel names no molecule at all, so it really is absent.
+    assert _sample_alleles("HLA class I", "I") == []
+
+
 def test_serotype_typed_samples_join_through_their_members():
     """A serotype-typed sample contributes candidate alleles to the join.
 
