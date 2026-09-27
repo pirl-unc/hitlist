@@ -376,37 +376,67 @@ def _expression_sources_at(
 
 
 #: Outcomes of :func:`_curated_engineering`.  ``unresolved`` means the label
-#: names no curated arm of a study that has engineered arms, so whether this
-#: material was engineered is unknown — it must not claim exact-line RNA.
+#: names no curated arm; it comes with the reference lines of the study's
+#: engineered arms, and a row anchored to one of those lines is not known to
+#: be unmodified, so it must not claim exact-line RNA.
 _ENGINEERED, _NOT_ENGINEERED, _UNRESOLVED = "engineered", "not_engineered", "unresolved"
 
 
-def _curated_engineering(pmid: object, sample_label: str) -> str:
+def _reference_line(entry: dict) -> str:
+    """The root registry line an entry derives from, following ``parent_line``.
+
+    ``HAP1-KO`` -> ``HAP1``; a root entry is its own reference line.  This is
+    how two labels are compared as *lines*: through the registry the resolver
+    matches them against, not as strings.
+    """
+    visited: set[str] = set()
+    current = entry
+    while True:
+        parent_name = current.get("parent_line")
+        parent = _anchor_by_name(parent_name) if parent_name else None
+        if parent is None or parent_name in visited:
+            return str(current.get("name") or "")
+        visited.add(parent_name)
+        current = parent
+
+
+def _curated_engineering(pmid: object, sample_label: str) -> tuple[str, frozenset[str]]:
     """What curation says about the material behind ``(pmid, sample_label)``.
 
-    ``engineered`` / ``not_engineered`` when the label names curated arms of
-    that study (no curated study reuses a label across arms that disagree; if
-    one did, any engineered arm wins, since tier 1 would claim a measurement
-    its curation cannot back).  When it names no arm: ``unresolved`` if the
-    study has any engineered arm — a row ``_consensus_meta`` could not assign
-    to one of HAP1's wild-type and knockout arms is not known to be wild
-    type — and ``not_engineered`` otherwise.  A missing or uncurated ``pmid``
-    gives ``not_engineered``: nothing then says the material was modified.
+    Returns ``(state, engineered_lines)``.  ``engineered`` / ``not_engineered``
+    when the label names curated arms of that study (no curated study reuses a
+    label across arms that disagree; if one did, any engineered arm wins,
+    since tier 1 would claim a measurement its curation cannot back).  When it
+    names no arm — a row ``_consensus_meta`` could not assign — the state is
+    ``unresolved`` with the reference lines (:func:`_reference_line`) the
+    study's engineered arms resolve to, possibly none, and the caller demotes
+    only a row anchored to one of *those* lines: an unassigned HAP1 row in
+    HAP1's wild-type-plus-knockout study, but not a JY row in a study whose
+    only engineered arm is a Raji transfectant.  A missing or uncurated
+    ``pmid`` gives ``not_engineered``.
     """
+    none = frozenset()
     if pmid is None or pd.isna(pmid):
-        return _NOT_ENGINEERED
+        return _NOT_ENGINEERED, none
     from .conditions import is_engineered_material
     from .curation import load_pmid_overrides
 
-    entry = load_pmid_overrides().get(int(pmid))
-    if not entry:
-        return _NOT_ENGINEERED
-    arms = entry.get("ms_samples") or []
+    study = load_pmid_overrides().get(int(pmid))
+    if not study:
+        return _NOT_ENGINEERED, none
+    arms = study.get("ms_samples") or []
     label = str(sample_label or "").strip()
     named = [a for a in arms if label and str(a.get("sample_label") or "").strip() == label]
     if named:
-        return _ENGINEERED if any(is_engineered_material(a) for a in named) else _NOT_ENGINEERED
-    return _UNRESOLVED if any(is_engineered_material(a) for a in arms) else _NOT_ENGINEERED
+        engineered = any(is_engineered_material(a) for a in named)
+        return (_ENGINEERED if engineered else _NOT_ENGINEERED), none
+    lines = frozenset(
+        _reference_line(match[0])
+        for arm in arms
+        if is_engineered_material(arm)
+        and (match := _find_anchor_by_label(str(arm.get("sample_label") or ""))) is not None
+    )
+    return _UNRESOLVED, lines
 
 
 def _resolve_via_parent(entry: dict) -> tuple[dict, str] | None:
@@ -485,9 +515,10 @@ def resolve_sample_expression_anchor(
         :data:`hitlist.conditions.ENGINEERING_CONDITION_COLUMNS`.  ``None``
         (the default) derives it from curation when ``pmid`` and
         ``sample_label`` name a curated ``ms_samples`` arm.  A label that
-        names no arm of a study with engineered arms is treated as possibly
-        engineered (tier 2, reason says the arm is unresolved); anything else
-        reads as not engineered.  ``True`` / ``False`` override.  An engineered
+        names no arm is treated as possibly engineered (tier 2, reason says
+        the arm is unresolved) when the study has an engineered arm of the
+        same reference line as this sample's anchor; anything else reads as
+        not engineered.  ``True`` / ``False`` override.  An engineered
         sample never resolves at tier 1: a label can match the reference
         line's alias — ``HeLa-CIITA (Mock)`` hits ``hela``, ``K562
         transfectant DPB1*01:01`` hits ``k562`` — and registry derivative
@@ -512,10 +543,10 @@ def resolve_sample_expression_anchor(
         Never ``None``; tier-6 is the no-match sentinel.
     """
     if engineered is None:
-        engineering = _curated_engineering(pmid, sample_label)
+        engineering, engineered_lines = _curated_engineering(pmid, sample_label)
     else:
         engineering = _ENGINEERED if engineered else _NOT_ENGINEERED
-    demoted = engineering != _NOT_ENGINEERED
+        engineered_lines = frozenset()
     label_parts = [p for p in (sample_label, cell_name) if p]
     joined_label = " ".join(label_parts)
 
@@ -529,15 +560,18 @@ def resolve_sample_expression_anchor(
         # material's, reported at tier 2 with that material as parent (#576).
         if _entry_has_exact_line_data(entry):
             name = str(entry.get("name") or entry["expression_key"])
+            unresolved = engineering == _UNRESOLVED and _reference_line(entry) in engineered_lines
+            demoted = engineering == _ENGINEERED or unresolved
             if engineering == _ENGINEERED:
                 reason = (
                     f"engineered material matched '{name}' on alias "
                     f"'{matched_alias}'; its reference RNA stands in"
                 )
-            elif engineering == _UNRESOLVED:
+            elif unresolved:
                 reason = (
-                    f"arm unresolved in a study that includes engineered arms; "
-                    f"'{name}' reference RNA stands in (alias '{matched_alias}')"
+                    f"arm unresolved in a study that includes engineered arms of "
+                    f"'{_reference_line(entry)}'; '{name}' reference RNA stands in "
+                    f"(alias '{matched_alias}')"
                 )
             else:
                 reason = f"exact line match on alias '{matched_alias}'"

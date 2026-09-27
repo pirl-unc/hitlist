@@ -529,10 +529,13 @@ reference line's alias — `HeLa-CIITA (Mock)`, `SaOS-2 + TP53 R175H`,
 `K562 transfectant DPB1*01:01/DPA1*02:01` — with `expression_parent_key`
 naming the material that supplied the RNA. `resolve_sample_expression_anchor`
 derives this itself when given the `pmid` and `sample_label` of a curated arm;
-pass `engineered=` to override. A row that names no arm of a study with
-engineered arms — an observation the export could not attribute to one of
-HAP1's wild-type and knockout arms, say — is not known to be wild type either,
-and also resolves at tier 2, with a reason saying the arm is unresolved.
+pass `engineered=` to override. A row that names no arm — an observation
+the export could not attribute to one of HAP1's wild-type and knockout arms,
+say — is not known to be unmodified when the study has an engineered arm of
+the *same reference line* as the row's anchor (lines are matched through the
+registry, so aliases count), and also resolves at tier 2 with a reason saying
+the arm is unresolved. An unattributed JY row keeps tier 1 in a study whose
+only engineered arm is a Raji transfectant.
 
 CLI:
 

@@ -206,6 +206,67 @@ def test_unresolved_arm_in_an_engineered_study_does_not_claim_exact_rna(
     assert "arm unresolved in a study that includes engineered arms" in reason
 
 
+@pytest.mark.parametrize(
+    ("pmid", "cell_name", "tier"),
+    [
+        # 38480730's only engineered arm is a Raji transfectant: an unassigned
+        # JY row cannot be that material, so it keeps JY's exact-line RNA.
+        (38480730, "JY", 1),
+        # 36010968's engineered arms are SaOS-2 TP53 transfectants: an
+        # unassigned SaOS-2 row may be one of them.
+        (36010968, "SaOS-2", 2),
+    ],
+)
+def test_unresolved_rows_demote_only_on_an_engineered_arms_line(
+    every_registered_source, monkeypatch, pmid, cell_name, tier
+):
+    """Lines are compared through the registry the resolver matches, not as strings."""
+    from hitlist.export import _attach_peptide_origin
+
+    monkeypatch.setattr(
+        "hitlist.mappings.load_peptide_mappings",
+        lambda peptide=None, columns=None, **_: pd.DataFrame(
+            columns=["peptide", "gene_name", "gene_id", "protein_id"]
+        ),
+    )
+    rows = pd.DataFrame(
+        {
+            "peptide": ["AAAAAAAAA"],
+            "sample_label": [""],
+            "pmid": [pmid],
+            "study_label": ["S"],
+            "cell_name": [cell_name],
+        }
+    )
+    out = _attach_peptide_origin(rows)
+    assert out.expression_match_tier.tolist() == [tier]
+
+
+@pytest.mark.parametrize(
+    ("cell_name", "tier"),
+    [
+        ("RaOS cells", 2),  # a registry alias of SaOS-2: same line, different string
+        ("THP-1", 1),  # a registered line with no engineered arm in the study
+    ],
+)
+def test_unresolved_rows_compare_lines_through_the_registry(
+    every_registered_source, monkeypatch, cell_name, tier
+):
+    """The engineered arm's line and the row's are matched, not string-compared."""
+    from hitlist import curation
+
+    study = {
+        "pmid": 1,
+        "ms_samples": [
+            {"sample_label": "SaOS-2 + TP53 R175H", "condition_transfection": "TP53"},
+            {"sample_label": "THP-1 wild type", "condition_knockout_genes": "none"},
+        ],
+    }
+    monkeypatch.setattr(curation, "load_pmid_overrides", lambda: {1: study})
+    anchor = resolve_sample_expression_anchor("", cell_name=cell_name, pmid=1)
+    assert anchor.expression_match_tier == tier
+
+
 def test_engineered_sample_never_resolves_at_tier_1(tmp_path, monkeypatch):
     """Not even through a derivative entry with RNA registered under it.
 
