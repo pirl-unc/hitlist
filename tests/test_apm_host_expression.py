@@ -140,10 +140,72 @@ def test_engineered_label_on_a_parental_alias_uses_parent_rna(every_registered_s
     assert engineered.matched_alias == parental.matched_alias
 
 
+def test_engineered_sample_keeps_tier_1_on_a_line_registered_in_its_own_right(
+    tmp_path, monkeypatch
+):
+    """A registry entry with a ``parent_line`` models the engineered material.
+
+    Data registered against it was measured in that material, so demoting it
+    would report a measurement as a surrogate and name the line as its own
+    parent.  Nothing in the registry has its own RNA yet (#358 would be the
+    first), so the rule is pinned here rather than through curation.
+    """
+    from hitlist import line_expression as le
+
+    monkeypatch.setattr(
+        le,
+        "_load_anchors_yaml",
+        lambda: [
+            {
+                "name": "HeLa",
+                "aliases": ["hela"],
+                "parent_line": None,
+                "line_family": "tumor_line",
+                "expression_backend": "depmap_rna",
+                "expression_key": "HeLa",
+                "source_ids": ["DepMap_24Q4_gene"],
+            },
+            {
+                "name": "HeLa-CIITA",
+                "aliases": ["hela-ciita"],
+                "parent_line": "HeLa",
+                "line_family": "tumor_line",
+                "expression_backend": "packaged_rnaseq",
+                "expression_key": "HeLa-CIITA",
+                "source_ids": ["Pearson_BLCL_panel"],
+            },
+        ],
+    )
+    write_line_expression_index(
+        pd.DataFrame(
+            {
+                "line_key": ["HeLa", "HeLa-CIITA"],
+                "source_id": ["DepMap_24Q4_gene", "Pearson_BLCL_panel"],
+            }
+        ),
+        tmp_path / "line_expression.parquet",
+    )
+    monkeypatch.setattr(le, "line_expression_path", lambda: tmp_path / "line_expression.parquet")
+
+    anchor = resolve_sample_expression_anchor("HeLa-CIITA (Mock)", engineered=True)
+    assert anchor.expression_match_tier == 1
+    assert anchor.expression_key == "HeLa-CIITA"
+    assert anchor.expression_parent_key is None
+
+
 def test_no_curated_engineered_sample_resolves_at_tier_1(every_registered_source):
     table = generate_sample_expression_table()
     engineered = engineered_material_mask(table)
-    offenders = table.loc[engineered & table.expression_match_tier.eq(1)]
+    # A line the registry models in its own right may carry RNA measured in
+    # the engineered material; a root entry's RNA never was.
+    derivative_keys = {
+        str(entry["expression_key"])
+        for entry in load_line_expression_anchors()
+        if entry.get("expression_key") and entry.get("parent_line")
+    }
+    offenders = table.loc[
+        engineered & table.expression_match_tier.eq(1) & ~table.expression_key.isin(derivative_keys)
+    ]
     assert offenders.empty, offenders[["pmid", "sample_label", "expression_key"]]
     # Not vacuous: without their curated engineering these labels would
     # claim the parental line's RNA as their own.
