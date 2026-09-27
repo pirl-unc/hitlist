@@ -1764,6 +1764,7 @@ def build_line_expression(verbose: bool = False) -> pd.DataFrame:
     from .line_expression import (
         _alias_to_expression_key,
         _load_packaged_union,
+        load_line_expression_anchors,
         load_line_expression_sources,
         resolve_line_key,
     )
@@ -1826,7 +1827,17 @@ def build_line_expression(verbose: bool = False) -> pd.DataFrame:
             continue
         if verbose:
             print(f"  Reading {key} from {p}")
-        long = _read_depmap_csv(p, granularity=granularity, line_keys=line_keys, profiles=profiles)
+        # The registry chooses the source for each line. In particular, the
+        # complete packaged HAP1 gene profile replaces its downloadable copy.
+        eligible = {
+            entry.get("expression_key")
+            for entry in load_line_expression_anchors()
+            if source_id in (entry.get("source_ids") or [])
+        }
+        selected_keys = {label: value for label, value in line_keys.items() if value in eligible}
+        long = _read_depmap_csv(
+            p, granularity=granularity, line_keys=selected_keys, profiles=profiles
+        )
         if long.empty:
             continue
         meta = sources_by_id.get(source_id) or {}

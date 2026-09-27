@@ -57,14 +57,14 @@ sources:
       - SAOS2
       - THP1
       - K562
-      - HAP1
     license: "CC BY 4.0 (Broad DepMap)"
     notes: >
       OmicsExpressionProteinCodingGenesTPMLogp1.csv from DepMap 24Q4.
       `hitlist data fetch depmap` downloads the matrices and mapping companions
       and builds the line index. Values are log2(TPM+1), not raw TPM; RSEM
       unstranded processing. The actual matrix includes HAP1 even though its
-      library is marked stranded. Model.csv has no HEK293 entry in this release.
+      library is marked stranded; that complete gene row ships separately as
+      DepMap_24Q4_HAP1_gene. Model.csv has no HEK293 entry in this release.
 
   - source_id: DepMap_24Q4_transcript
     pmid: null
@@ -153,3 +153,24 @@ sources:
       The paper compares parental HAP1 and engineered eHAP; these are distinct
       samples. No processed expression values are packaged here. FPKM must
       not be relabeled as TPM or attributed to kallisto.
+
+  - source_id: DepMap_24Q4_HAP1_gene
+    pmid: null
+    reference: "doi:10.25452/figshare.plus.27993248.v1 / ACH-002475 / PR-QtHaIL"
+    study_label: "DepMap 24Q4 HAP1 gene TPM"
+    backend: packaged_rnaseq
+    granularity: gene
+    normalization: log2_tpm_plus_1
+    quantifier: rsem
+    species: "Homo sapiens (human)"
+    build_status: packaged
+    file: hap1_depmap24q4_gene_tpm.csv.gz
+    cell_lines_covered: [HAP1]
+    license: "CC BY 4.0 (Broad DepMap)"
+    notes: >
+      Complete 19,193-gene row from the checksum-verified 24Q4 gene matrix,
+      with raw TPM reconstructed as 2**log2_tpm - 1 and zero values retained.
+      Default RNA profile PR-QtHaIL; RSEM unstranded quantification mode.
+      This independent parental reference is not RNA measured in the Shapiro
+      KO arms. The downloadable gene copy is excluded to avoid duplication;
+      optional transcript rows retain the original DepMap transcript source.

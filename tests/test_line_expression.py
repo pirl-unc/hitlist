@@ -187,13 +187,11 @@ def test_tier5_caller_supplied_tissue_for_unknown_label():
     assert a.expression_key == "liver"
 
 
-def test_tier5_hap1_inherits_tissue_from_registry():
-    # HAP1 sources are all placeholders; line_family == normal_immortalized
-    # has no class anchor; registry lineage_tissue is 'blood, myeloid'.
+def test_hap1_uses_packaged_parental_rna():
     a = resolve_sample_expression_anchor("HAP1 wildtype")
-    assert a.expression_match_tier == 5
-    assert a.expression_backend == "hpa_tissue"
-    assert a.expression_key == "blood, myeloid"
+    assert a.expression_match_tier == 1
+    assert a.expression_backend == "packaged_rnaseq"
+    assert a.expression_key == "HAP1"
 
 
 def test_tier6_truly_unknown():
@@ -478,8 +476,8 @@ def test_word_boundary_blocks_false_positives(label):
     [
         ("JY", 3, "GM12878"),  # tier-3 via EBV-LCL class anchor
         ("JY cells", 3, "GM12878"),
-        ("HAP1", 5, "blood, myeloid"),  # tier-5 (placeholder source, no parent)
-        ("HAP1 cells", 5, "blood, myeloid"),
+        ("HAP1", 1, "HAP1"),  # packaged measured reference
+        ("HAP1 cells", 1, "HAP1"),
         ("HeLa", 1, "HeLa"),
         ("hela cells", 1, "HeLa"),  # case-insensitive
         ("C1R", 3, "K562"),  # tier-3 via mono-allelic-host family
@@ -506,11 +504,11 @@ def test_alias_starting_with_punctuation_matches_mid_string(installed_depmap):
 def test_longest_alias_wins_over_shorter_substring():
     # "HAP1 TAP1 KO" contains both the HAP1 alias (4 chars) and
     # HAP1-KO's "hap1 tap1 ko" alias (12 chars).  The longer one wins.
-    # HAP1-KO has parent HAP1 (placeholder) and normal_immortalized family,
-    # so it falls through to tier 5 via HAP1's lineage_tissue.
+    # The engineered sample uses parental RNA with tier-2 provenance.
     a = resolve_sample_expression_anchor("HAP1 TAP1 KO")
-    assert a.expression_match_tier == 5
-    assert a.expression_key == "blood, myeloid"
+    assert a.expression_match_tier == 2
+    assert a.expression_key == "HAP1"
+    assert a.expression_parent_key == "HAP1"
     assert a.matched_alias == "hap1 tap1 ko"
 
 

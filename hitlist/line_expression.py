@@ -313,11 +313,17 @@ def _available_expression_sources() -> frozenset[tuple[str, str]]:
 def _expression_sources_at(
     path: str, signature: tuple[int, int, int] | None
 ) -> frozenset[tuple[str, str]]:
-    """Read source availability once per artifact identity, including rebuilds."""
-    rows = None
+    """Read source availability once per artifact identity, including rebuilds.
+
+    Packaged sources are always available, so an index built before a
+    release shipped a new reference (HAP1 in 1.63.0, #358) cannot hide it;
+    the built index adds whatever optional downloads it was built from.
+    """
+    keys = ["line_key", "source_id"]
+    available = set(_load_packaged_union()[keys].itertuples(index=False, name=None))
     if signature is not None:
         try:
-            rows = pd.read_parquet(path, columns=["line_key", "source_id"])
+            rows = pd.read_parquet(path, columns=keys)
         except (ArrowInvalid, OSError, ValueError) as exc:
             warnings.warn(
                 f"Failed to read line expression availability at {path}; "
@@ -325,9 +331,9 @@ def _expression_sources_at(
                 RuntimeWarning,
                 stacklevel=2,
             )
-    if rows is None:
-        rows = _load_packaged_union()
-    return frozenset(rows[["line_key", "source_id"]].itertuples(index=False, name=None))
+        else:
+            available.update(rows[keys].itertuples(index=False, name=None))
+    return frozenset(available)
 
 
 def _resolve_via_parent(entry: dict) -> tuple[dict, str] | None:
@@ -537,6 +543,7 @@ def _load_packaged_csv(path_str: str) -> pd.DataFrame:
     df = pd.read_csv(
         path,
         compression="gzip" if path.name.endswith(".gz") else None,
+        dtype={"line_key": str, "source_id": str, "gene_id": str, "transcript_id": str},
     )
     # Harmonize dtypes — gene_name / transcript_id may be empty strings in
     # the CSV; pandas reads them as NaN which is fine downstream.
@@ -587,6 +594,17 @@ def _load_parquet_or_none() -> pd.DataFrame | None:
         return None
 
 
+def _include_new_packaged_sources(df: pd.DataFrame) -> pd.DataFrame:
+    """Add source/line pairs shipped after an older index was built."""
+    packaged = _load_packaged_union()
+    keys = ["line_key", "source_id"]
+    existing = pd.MultiIndex.from_frame(df[keys])
+    missing = ~pd.MultiIndex.from_frame(packaged[keys]).isin(existing)
+    if not missing.any():
+        return df
+    return pd.concat([df, packaged.loc[missing]], ignore_index=True, sort=False)
+
+
 def _apply_series_filter(df: pd.DataFrame, col: str, values) -> pd.DataFrame:
     if values is None or col not in df.columns:
         return df
@@ -629,7 +647,11 @@ def load_line_expression(
         Project to a subset of columns.
     """
     parquet_df = _load_parquet_or_none()
-    df = parquet_df if parquet_df is not None else _load_packaged_union()
+    df = (
+        _include_new_packaged_sources(parquet_df)
+        if parquet_df is not None
+        else _load_packaged_union()
+    )
 
     df = _apply_series_filter(df, "line_key", line_key)
     df = _apply_series_filter(df, "gene_name", gene_name)
