@@ -71,10 +71,6 @@
 - ebv_lcl_vng_12286_dpb1_10_01_homozygous|condition_mhc_context|error
 - ebv_lcl_wew_12494_dpb1_04_01_homozygous|condition_mhc_context|error
 - ebv_lcl_wkd_3639_dpb1_05_01_homozygous|condition_mhc_context|error
-33592498:
-- hrog02_parental_class_i|condition_transduction|error
-- hrog17_parental_class_i|condition_transduction|error
-- ra_parental_class_i|condition_transduction|error
 34006841:
 - c1r_class_ii_lcl_endogenous_dr_dq_dp|condition_mhc_context|error
 34428180:
