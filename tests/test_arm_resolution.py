@@ -216,24 +216,26 @@ def test_resolved_studies_leave_no_row_without_an_arm(full_observations_df, tmp_
     resolved = [
         p for p, e in load_pmid_overrides().items() if e.get("arm_resolution") == "resolved"
     ]
-    measured = 0
-    for pmid in resolved:
-        rows = df[df["pmid"] == pmid]
-        if rows.empty:
-            continue
-        deposit = rows[[c for c in _DEPOSIT_COLUMNS if c in rows.columns]].copy()
-        path = tmp_path / f"observations_{pmid}.parquet"
-        deposit.to_parquet(path, index=False)
-        monkeypatch.setattr(observations, "observations_path", lambda p=path: p)
-        result = generate_observations_table(exclude_non_peptide_ligand=False)
-        assert len(result) == len(deposit)
-        stuck = result[result["condition_id"].eq("")]
+    deposit = df[df["pmid"].isin(resolved)]
+    if deposit.empty:
+        pytest.skip("no resolved study is present in this build")
+    # One export over every resolved study at once, not one per study.
+    # Attribution is scoped to a PMID -- the candidate pool, the statement map
+    # and the discriminator variance are all per (pmid, class) -- so replaying
+    # them together is the same measurement at a third of the cost, and this
+    # is the only CI leg that runs integration tests serially (#584 review 3).
+    deposit = deposit[[c for c in _DEPOSIT_COLUMNS if c in deposit.columns]].copy()
+    path = tmp_path / "observations_resolved.parquet"
+    deposit.to_parquet(path, index=False)
+    monkeypatch.setattr(observations, "observations_path", lambda: path)
+    result = generate_observations_table(exclude_non_peptide_ligand=False)
+    assert len(result) == len(deposit)
+    for pmid in sorted(set(deposit["pmid"])):
+        rows = result[result["pmid"] == pmid]
+        stuck = rows[rows["condition_id"].eq("")]
         assert stuck.empty, (
-            f"PMID {pmid} is recorded resolved but {len(stuck):,} of {len(result):,} deposited "
+            f"PMID {pmid} is recorded resolved but {len(stuck):,} of {len(rows):,} deposited "
             f"rows reach no arm: "
             f"{sorted(stuck['sample_attribution'].unique())}. Either the curation "
             f"regressed or the verdict is wrong"
         )
-        measured += 1
-    if not measured:
-        pytest.skip("no resolved study is present in this build")
