@@ -216,13 +216,17 @@ def test_gbm_ciita_statement_picks_its_own_line_on_a_shared_class_ii_allele(
 
 
 def test_parental_statement_never_claims_the_transduced_arm(monkeypatch):
-    """The parental lines do not express class II -- that is what the CIITA
-    transduction is for -- so a class-II peptide deposited under a
-    parental-only statement is the authors' own background call. An allele
-    typed in exactly one line makes the (pmid, allele) key unique, which skips
-    the tie-break where the statement map is read, and the row would be handed
-    the transduced arm as ``allele_exact``: 492 rows of asserted provenance the
-    deposit contradicts (#565/#567).
+    """A class-II peptide deposited under a parental-only statement came off
+    the parental sample, whatever the authors think it is.
+
+    An allele typed in exactly one line makes the (pmid, allele) key unique,
+    which skips the tie-break where the statement map is read, so before #565
+    the row was handed the transduced arm as ``allele_exact``: 492 rows of
+    asserted provenance the deposit contradicts. #565 refused that with the
+    statement veto but had no arm to offer instead; #567 curates the parental
+    class-II arms, so the row now reaches the sample it was eluted from and
+    carries the authors' background assessment in ``sample_note`` rather than
+    reaching nothing. The guarantee in the name is what both versions assert.
     """
     monkeypatch.setattr(
         "hitlist.observations.load_observations",
@@ -244,23 +248,130 @@ def test_parental_statement_never_claims_the_transduced_arm(monkeypatch):
         ),
     )
     row = generate_observations_table(exclude_non_peptide_ligand=False).iloc[0]
-    assert row.sample_label == ""
-    assert row.sample_attribution == "elution_conditions_excluded"
-    assert row.condition_transduction == ""
-    # Its sample_mhc is a union across arms, so the join-provenance column says
-    # so rather than claiming allele_match over a pooled candidate set. (The
-    # predict guard that once motivated this reads `sample_mhc_origin` now --
-    # #564 -- so this assertion stands on `sample_match_type`'s own documented
-    # meaning, and the relabel is gated on the row having actually taken the
-    # pool rather than on the study merely having one.)
-    assert row.sample_match_type == "pmid_class_pool"
-    assert row.sample_mhc_origin == "class_pool"
-    # Study-origin metadata is a property of the deposit, not of any arm, so
-    # it survives a row that reaches no arm (#373). Consensus across the
-    # study's class-II arms would not do: they are all CIITA-transduced, so it
-    # would hand back the transduction claim the veto just refused.
-    assert row.arm_resolution == "curation_gap"
+    assert row.sample_label == "HROG17 parental (class II)"
+    assert row.condition_id == "hrog17_parental_class_ii"
+    assert row.sample_attribution == "elution_conditions"
+    # Not the transduced twin, which is the whole point: the arm this row
+    # reaches states that no transduction was applied to it.
+    assert "ciita" not in row.condition_id
+    assert row.condition_transduction == "none"
+    # It reached a named arm, so its candidates are that arm's own typing
+    # rather than a pooled union across arms.
+    assert row.sample_match_type == "allele_match"
+    assert row.sample_mhc_origin == "sample"
+    assert "HLA-DPA1*01:03/DPB1*11:01" in row.sample_mhc.split()
+    # The authors' own reading of these peptides travels with the arm; it is
+    # recorded, not acted on.
+    assert "potential contaminants" in row.sample_note
+    assert row.arm_resolution == "multi_arm_evidence"
     assert (row.effective_override, row.effective_override_origin) == ("cell_line", "study")
+
+
+def test_statement_and_allele_disagreement_claims_no_arm(monkeypatch):
+    """Statement and allele pointing at different lines resolves to neither.
+
+    The deposited statement names RA while the restriction is typed in HROG17
+    alone. The statement is the per-row evidence, so the RA arms it names are
+    the only ones allowed, and none of them carries this allele; the HROG17
+    arms the allele key offers are exactly the ones the statement rules out.
+    Neither side may be preferred, so the row reaches no arm.
+    """
+    monkeypatch.setattr(
+        "hitlist.observations.load_observations",
+        lambda **kwargs: pd.DataFrame(
+            [
+                {
+                    "peptide": "AAAAAAAAAAAAAAA",
+                    "pmid": 33592498,
+                    "mhc_restriction": "HLA-DPB1*11:01",
+                    "mhc_class": "II",
+                    "mhc_species": "Homo sapiens",
+                    "cell_name": "Glial cell",
+                    "assay_comments": GBM_STATEMENT.format("RA cells"),
+                    "is_binding_assay": False,
+                    "source": "iedb",
+                }
+            ]
+        ),
+    )
+    row = generate_observations_table(exclude_non_peptide_ligand=False).iloc[0]
+    assert row.sample_label == ""
+    assert row.condition_id == ""
+    assert row.sample_attribution == "pmid_ambiguous"
+    # Study-origin metadata is a property of the deposit, not of any arm, so
+    # it survives a row that reaches no arm (#373).
+    assert (row.effective_override, row.effective_override_origin) == ("cell_line", "study")
+
+
+def _vetoable_overrides():
+    """A minimal study whose statement map can contradict an allele key.
+
+    The veto needs a shape no real curated study has to keep handy: one
+    statement that names arm A, a second that names arm B, and a row whose
+    unique (pmid, allele) key points at B while its statement is A's. Using a
+    synthetic study keeps the guard covered whatever the corpus's curation
+    state -- PMID 33592498 exercised it until #567 gave its parental class-II
+    rows an arm of their own, and a guard whose only test rides on one study's
+    open curation gap stops being tested the moment that gap is closed.
+    """
+    return {
+        99999567: {
+            "elution_condition_ids": {
+                "The epitope was eluted from Alpha cells.": ["alpha"],
+                "The epitope was eluted from Beta cells.": ["beta"],
+            },
+            "ms_samples": [
+                {
+                    "sample_label": "Alpha cells",
+                    "condition_id": "alpha",
+                    "mhc": "HLA-DRB1*01:01",
+                    "mhc_class": "II",
+                    "condition": "unperturbed",
+                },
+                {
+                    "sample_label": "Beta cells",
+                    "condition_id": "beta",
+                    "mhc": "HLA-DRB1*04:01",
+                    "mhc_class": "II",
+                    "condition": "unperturbed",
+                },
+            ],
+        }
+    }
+
+
+def test_statement_vetoes_an_arm_the_allele_key_would_have_claimed(monkeypatch):
+    """An arm the statement excludes is a collision, not a match (#565).
+
+    ``HLA-DRB1*04:01`` is typed in Beta alone, so the allele key is unique and
+    skips the tie-break where the map is read -- the row would be handed Beta
+    as ``allele_exact`` although its own statement names Alpha.
+    """
+    monkeypatch.setattr("hitlist.export.load_pmid_overrides", _vetoable_overrides)
+    monkeypatch.setattr(
+        "hitlist.observations.load_observations",
+        lambda **kwargs: pd.DataFrame(
+            [
+                {
+                    "peptide": "AAAAAAAAAAAAAAA",
+                    "pmid": 99999567,
+                    "mhc_restriction": "HLA-DRB1*04:01",
+                    "mhc_class": "II",
+                    "mhc_species": "Homo sapiens",
+                    "cell_name": "",
+                    "assay_comments": "The epitope was eluted from Alpha cells.",
+                    "is_binding_assay": False,
+                    "source": "iedb",
+                }
+            ]
+        ),
+    )
+    row = generate_observations_table(exclude_non_peptide_ligand=False).iloc[0]
+    assert row.sample_attribution == "elution_conditions_excluded"
+    assert row.condition_id == ""
+    assert row.sample_label != "Beta cells"
+    # The restriction itself is untouched -- only the arm claim is refused.
+    assert row.mhc_restriction == "HLA-DRB1*04:01"
 
 
 def test_every_deposited_gbm_statement_is_curated():

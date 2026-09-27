@@ -6218,22 +6218,23 @@
 
   - pmid: 33592498
     # Arm-resolution verdict (#366).
-    arm_resolution: curation_gap
+    arm_resolution: multi_arm_evidence
     arm_resolution_note: >
-      The per-row discriminator this verdict marked has now been checked and curated (#565).
       assay_comments carries 9 distinct statements and each one names the cell line and
       whether CIITA was induced, so it does vary WITH THE ARM rather than being study-level
-      boilerplate; elution_condition_ids maps all 9 to their arms. 6,985 rows still reach no
-      single arm, but by evidence rather than by omission: their statement names the
-      parental and the CIITA arm together, so the peptide really was eluted from both.
-      Of those, 6,892 are class-I rows from the paired statements -- ambiguous by evidence.
-      The other 93 are class-II rows under parental-only statements, ambiguous by omission:
-      no parental class-II arm is curated, so there is no arm for them to reach (#567).
-      The paper reports 165/651/83 HLA-II peptides in the parental (CIITA-negative) lines,
-      mostly background rather than true ligands, and IEDB carries 585 class-II rows under
-      those statements. A further 492 of them would otherwise reach the CIITA class-II arm
-      on an allele typed in only that line, which the statement veto in the exporter now
-      refuses rather than asserting transduced provenance the deposit contradicts.
+      boilerplate; elution_condition_ids maps all 9 to their arms (#565). With the three
+      parental class-II arms curated (#567), every statement now names exactly one arm per
+      class except the three that name both conditions, and the rows left ambiguous are
+      ambiguous BY EVIDENCE: their statement says the peptide was eluted from the parental
+      and the CIITA sample alike, in whichever class it was found. That is 6,892 class-I rows
+      and 330 class-II rows under the three paired statements.
+      The 585 class-II rows under the parental-only statements (152 HROG02, 401 HROG17, 32 RA)
+      now reach the parental arm they were eluted from. Before #567, 492 of them reached a
+      CIITA-transduced arm on an allele typed in one line only -- provenance the deposit
+      contradicts, which the exporter's statement veto refused -- and the remaining 93, on
+      alleles shared between lines, reached no arm at all. Their arm carries the authors'
+      own assessment that most are probable background; see the per-sample note. No general
+      exclusion rule is derived from that assessment, here or anywhere else.
     # IEDB enumerates the elution condition per peptide, and the statement names
     # the cell line and whether CIITA was induced. That is the per-row
     # discriminator the arm_resolution verdict above says is present but unused.
@@ -6245,10 +6246,13 @@
     elution_condition_ids:
       "The epitope was eluted from the following conditions: HRGO02 cells.":
         - hrog02_parental_class_i
+        - hrog02_parental_class_ii
       "The epitope was eluted from the following conditions: HROG17 cells.":
         - hrog17_parental_class_i
+        - hrog17_parental_class_ii
       "The epitope was eluted from the following conditions: RA cells.":
         - ra_parental_class_i
+        - ra_parental_class_ii
       "The epitope was eluted from the following conditions: HRGO02 cells treated with CIITA.":
         - hrog02_ciita_transduced_class_i
         - hrog02_ciita_transduced_class_ii
@@ -6259,17 +6263,22 @@
         - ra_ciita_transduced_class_i
         - ra_ciita_transduced_class_ii
       # Both arms named: the peptide really was eluted from each, so these stay
-      # ambiguous for class I on purpose. Only the CIITA arm exists for class II.
+      # ambiguous on purpose -- in both classes now that the parental class-II
+      # arms exist (#567). Naming only the transduced class-II arm here would say
+      # a peptide seen in both conditions came from the transduced one alone.
       "The epitope was eluted from the following conditions: HRGO02 cells, HRGO02 cells treated with CIITA.":
         - hrog02_parental_class_i
+        - hrog02_parental_class_ii
         - hrog02_ciita_transduced_class_i
         - hrog02_ciita_transduced_class_ii
       "The epitope was eluted from the following conditions: HROG17 cells, HROG17 cells treated with CIITA.":
         - hrog17_parental_class_i
+        - hrog17_parental_class_ii
         - hrog17_ciita_transduced_class_i
         - hrog17_ciita_transduced_class_ii
       "The epitope was eluted from the following conditions: RA cells, RA cells treated with CIITA.":
         - ra_parental_class_i
+        - ra_parental_class_ii
         - ra_ciita_transduced_class_i
         - ra_ciita_transduced_class_ii
     study_label: "Bassani-Sternberg 2021 — GBM CIITA-transduced HLA-II"
@@ -6278,8 +6287,13 @@
     note: >
       3 GBM cell lines (HROG02, HROG17, RA) profiled as parental
       (CIITA-) and CIITA-transduced (CIITA+). GBM cells do not
-      naturally express HLA-II — ALL class II data is from forced
-      CIITA expression. Parental class I data is unperturbed.
+      naturally express HLA-II, so the class-II repertoire this paper
+      reports comes from forced CIITA expression. Parental class I data
+      is unperturbed. The parental lines were nonetheless run through the
+      HLA-II affinity plate as well and yielded class-II identifications —
+      165, 651 and 83 peptides — which the authors read as mostly background
+      contaminants; those arms are curated with that assessment attached
+      rather than dropped (#567).
     # Study-wide typing pool, from Table 1. The class-II half was DRB1-only
     # while the elution was pan-HLA-II, so a class-only HLA-II row would have
     # been offered DR candidates alone (#565).
@@ -6298,6 +6312,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_transduction: "none"
         mhc_class: "I"
         ip_antibody: "HB95/W6/32"
         mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*08:01 HLA-B*13:02 HLA-C*06:02 HLA-C*07:01"
@@ -6313,6 +6328,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_transduction: "none"
         mhc_class: "I"
         ip_antibody: "HB95/W6/32"
         mhc: "HLA-A*11:01 HLA-A*66:01 HLA-B*14:02 HLA-B*40:02 HLA-C*01:02 HLA-C*08:02"
@@ -6328,6 +6344,7 @@
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
+        condition_transduction: "none"
         mhc_class: "I"
         ip_antibody: "HB95/W6/32"
         mhc: "HLA-A*02:01 HLA-A*24:02 HLA-B*35:03 HLA-B*51:01 HLA-C*04:01 HLA-C*14:02"
@@ -6336,6 +6353,77 @@
         mhc_genotype_cell: "RA"
         mhc_genotype_complete_loci: "HLA-A;HLA-B;HLA-C;HLA-DPA1;HLA-DPB1;HLA-DQA1;HLA-DQB1;HLA-DRB1"
         mhc_genotype_source: *mhc_source_33592498
+      # Parental (CIITA-) — class II (#567). Every lysate went through both
+      # affinity plates, parental included: "The lysates were loaded first
+      # through the HLA-I affinity plate and then through the HLA-II affinity
+      # plate by gravity at 4 °C", and the parental runs did yield class-II
+      # identifications. Those arms were missing, so the 585 class-II rows IEDB
+      # deposits under the parental-only statements had nowhere correct to go:
+      # 492 reached a CIITA-transduced arm on an allele typed in one line only,
+      # and 93 reached no arm at all. The elution statement is per-peptide
+      # evidence about which sample a peptide came off, so these arms exist to
+      # receive it. What the authors think those peptides ARE is recorded on the
+      # arm, below; it is not an exclusion rule, and none is invented here.
+      - sample_label: "HROG02 parental (class II)"
+        n_samples: 1
+        condition: "unperturbed"
+        condition_id: "hrog02_parental_class_ii"
+        condition_status: "annotated"
+        condition_evidence: "curated_text"
+        condition_control: "untreated"
+        condition_transduction: "none"
+        mhc_class: "II"
+        ip_antibody: "HB245/IVA12"
+        mhc: "HLA-DPA1*01:03/DPB1*04:01 HLA-DQA1*02:01/DQB1*02:01 HLA-DQA1*02:01/DQB1*02:02 HLA-DQA1*05:01/DQB1*02:01 HLA-DQA1*05:01/DQB1*02:02 HLA-DRB1*03:01 HLA-DRB1*07:01 HLA-DRB3*01:01 HLA-DRB4*01:03"
+        mhc_basis: "sample_typing"
+        mhc_genotype: "HLA-A*01:01 HLA-A*02:01 HLA-B*08:01 HLA-B*13:02 HLA-C*06:02 HLA-C*07:01 HLA-DPA1*01:03 HLA-DPB1*04:01 HLA-DQA1*02:01 HLA-DQA1*05:01 HLA-DQB1*02:01 HLA-DQB1*02:02 HLA-DRB1*03:01 HLA-DRB1*07:01 HLA-DRB3*01:01 HLA-DRB4*01:03"
+        mhc_genotype_cell: "HROG02"
+        mhc_genotype_complete_loci: "HLA-A;HLA-B;HLA-C;HLA-DQA1;HLA-DQB1;HLA-DRB1"
+        mhc_genotype_source: *mhc_source_33592498
+        note: &parental_class_ii_note_33592498 >
+          The authors' own reading of this arm: "While HROG02, HROG17, and RA cells express HLA-I,
+          they do not express HLA-DR, HLA-DP, and HLA-DQ molecules (supplemental Fig. S1)"; "As GBM
+          cells do not naturally express HLA-II molecules, only 165, 651, and 83 peptides were
+          identified in HROG02, HROG17, and RA cells, respectively"; "The majority of them were not
+          predicted to bind the respective HLA-II allotypes (rank <= 2%; MixMHCpred, Fig. 4, A–C and
+          supplemental Table S5), suggesting that a background level of potential contaminants
+          contributed to these identifications." Treat these peptides as probable background rather
+          than as evidence of HLA-II presentation. The candidate list is the line's own class-II
+          typing because the pull-down used a pan-HLA-II antibody; it is not a claim of expression.
+      - sample_label: "HROG17 parental (class II)"
+        n_samples: 1
+        condition: "unperturbed"
+        condition_id: "hrog17_parental_class_ii"
+        condition_status: "annotated"
+        condition_evidence: "curated_text"
+        condition_control: "untreated"
+        condition_transduction: "none"
+        mhc_class: "II"
+        ip_antibody: "HB245/IVA12"
+        mhc: "HLA-DPA1*01:03/DPB1*04:01 HLA-DPA1*01:03/DPB1*11:01 HLA-DPA1*02:01/DPB1*04:01 HLA-DPA1*02:01/DPB1*11:01 HLA-DQA1*01:01/DQB1*05:01 HLA-DQA1*05:05/DQB1*03:01 HLA-DRB1*01:02 HLA-DRB1*12:01 HLA-DRB3*02:02"
+        mhc_basis: "sample_typing"
+        mhc_genotype: "HLA-A*11:01 HLA-A*66:01 HLA-B*14:02 HLA-B*40:02 HLA-C*01:02 HLA-C*08:02 HLA-DPA1*01:03 HLA-DPA1*02:01 HLA-DPB1*04:01 HLA-DPB1*11:01 HLA-DQA1*01:01 HLA-DQA1*05:05 HLA-DQB1*03:01 HLA-DQB1*05:01 HLA-DRB1*01:02 HLA-DRB1*12:01 HLA-DRB3*02:02"
+        mhc_genotype_cell: "HROG17"
+        mhc_genotype_complete_loci: "HLA-A;HLA-B;HLA-C;HLA-DPA1;HLA-DPB1;HLA-DQA1;HLA-DQB1;HLA-DRB1"
+        mhc_genotype_source: *mhc_source_33592498
+        note: *parental_class_ii_note_33592498
+      - sample_label: "RA parental (class II)"
+        n_samples: 1
+        condition: "unperturbed"
+        condition_id: "ra_parental_class_ii"
+        condition_status: "annotated"
+        condition_evidence: "curated_text"
+        condition_control: "untreated"
+        condition_transduction: "none"
+        mhc_class: "II"
+        ip_antibody: "HB245/IVA12"
+        mhc: "HLA-DPA1*01:03/DPB1*04:01 HLA-DPA1*01:03/DPB1*19:01 HLA-DPA1*02:07/DPB1*04:01 HLA-DPA1*02:07/DPB1*19:01 HLA-DQA1*03:01/DQB1*03:02 HLA-DQA1*03:01/DQB1*04:02 HLA-DQA1*04:01/DQB1*03:02 HLA-DQA1*04:01/DQB1*04:02 HLA-DRB1*04:01 HLA-DRB1*08:01 HLA-DRB4*01:03"
+        mhc_basis: "sample_typing"
+        mhc_genotype: "HLA-A*02:01 HLA-A*24:02 HLA-B*35:03 HLA-B*51:01 HLA-C*04:01 HLA-C*14:02 HLA-DPA1*01:03 HLA-DPA1*02:07 HLA-DPB1*04:01 HLA-DPB1*19:01 HLA-DQA1*03:01 HLA-DQA1*04:01 HLA-DQB1*03:02 HLA-DQB1*04:02 HLA-DRB1*04:01 HLA-DRB1*08:01 HLA-DRB4*01:03"
+        mhc_genotype_cell: "RA"
+        mhc_genotype_complete_loci: "HLA-A;HLA-B;HLA-C;HLA-DPA1;HLA-DPB1;HLA-DQA1;HLA-DQB1;HLA-DRB1"
+        mhc_genotype_source: *mhc_source_33592498
+        note: *parental_class_ii_note_33592498
       # CIITA-transduced — class I, per cell line
       - sample_label: "HROG02 CIITA-transduced (class I)"
         n_samples: 1

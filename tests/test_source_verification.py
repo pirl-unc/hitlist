@@ -318,3 +318,143 @@ def test_sherman_arms_stay_separate_under_a_filtered_query(tmp_path, monkeypatch
             selected[ATTRIBUTION_FIELDS].astype(str),
             complete.loc[[peptide], ATTRIBUTION_FIELDS].astype(str),
         )
+
+
+# ── #567  PMID 33592498 parental (CIITA-negative) class-II arms ──────────────
+#
+# Every lysate, parental included, went through both affinity plates -- "The
+# lysates were loaded first through the HLA-I affinity plate and then through
+# the HLA-II affinity plate by gravity at 4 °C" -- and the parental runs
+# yielded class-II identifications the authors read as mostly background:
+# "As GBM cells do not naturally express HLA-II molecules, only 165, 651, and 83
+# peptides were identified in HROG02, HROG17, and RA cells, respectively." IEDB
+# deposits 585 of those rows under the three parental-only statements.
+GBM_PARENTAL_CLASS_II = {
+    # deposited line spelling -> (condition_id, sample_label)
+    "HRGO02 cells": ("hrog02_parental_class_ii", "HROG02 parental (class II)"),
+    "HROG17 cells": ("hrog17_parental_class_ii", "HROG17 parental (class II)"),
+    "RA cells": ("ra_parental_class_ii", "RA parental (class II)"),
+}
+
+GBM_STATEMENT = "The epitope was eluted from the following conditions: {condition}."
+
+
+def _gbm_entry():
+    return load_pmid_overrides()[33592498]
+
+
+def test_gbm_parental_class_ii_arms_are_curated():
+    arms = {s["condition_id"]: s for s in _gbm_entry()["ms_samples"]}
+    for condition_id, label in GBM_PARENTAL_CLASS_II.values():
+        arm = arms[condition_id]
+        assert arm["sample_label"] == label
+        assert arm["mhc_class"] == "II"
+        assert arm["condition"] == "unperturbed"
+        assert arm["condition_control"] == "untreated"
+        # Pan-HLA-II pull-down, so the candidates are the line's class-II typing.
+        assert arm["ip_antibody"] == "HB245/IVA12"
+        assert arm["mhc_basis"] == "sample_typing"
+        # The transduced twin of the same line offers the same candidates: same
+        # cells, same antibody. What differs is the condition, not the typing.
+        transduced = arms[condition_id.replace("parental", "ciita_transduced")]
+        assert arm["mhc"] == transduced["mhc"]
+        # And the authors' own reading of these peptides travels with the arm.
+        assert "background level of potential contaminants" in arm["note"]
+        assert "165, 651, and 83 peptides" in arm["note"]
+
+
+@pytest.mark.parametrize("line", sorted(GBM_PARENTAL_CLASS_II))
+def test_gbm_parental_statement_names_an_arm_in_each_class(line):
+    targets = _gbm_entry()["elution_condition_ids"][GBM_STATEMENT.format(condition=line)]
+    class_ii = GBM_PARENTAL_CLASS_II[line][0]
+    assert class_ii in targets
+    assert class_ii.replace("_class_ii", "_class_i") in targets
+    assert not [t for t in targets if "ciita" in t]
+
+
+@pytest.mark.parametrize(
+    "line, restriction",
+    [
+        # One allele typed in that line only, and one shared with another line:
+        # before #567 the first reached a CIITA-transduced arm until the
+        # statement veto refused it, and the second reached no arm at all.
+        ("HRGO02 cells", "HLA-DRB1*07:01"),
+        ("HRGO02 cells", "HLA-DRB4*01:03"),
+        ("HROG17 cells", "HLA-DRB1*01:02"),
+        ("HROG17 cells", "HLA-DPA1*01:03/DPB1*04:01"),
+        ("RA cells", "HLA-DRB1*08:01"),
+        ("RA cells", "HLA-DRB4*01:03"),
+    ],
+)
+def test_gbm_parental_class_ii_row_reaches_the_sample_it_was_eluted_from(
+    tmp_path, monkeypatch, line, restriction
+):
+    condition_id, label = GBM_PARENTAL_CLASS_II[line]
+    _write_observations(
+        tmp_path,
+        monkeypatch,
+        [
+            {
+                "peptide": "PEPTIDEKLM",
+                "pmid": 33592498,
+                "mhc_restriction": restriction,
+                "mhc_class": "II",
+                "assay_comments": GBM_STATEMENT.format(condition=line),
+            }
+        ],
+    )
+    result = generate_observations_table()
+    assert result.sample_label.tolist() == [label]
+    assert result.condition_id.tolist() == [condition_id]
+    assert result.sample_attribution.tolist() == ["elution_conditions"]
+    # The arm is unperturbed, and the row is kept as evidence with the
+    # authors' caveat attached -- it is not excluded.
+    assert result.condition_transduction.tolist() == ["none"]
+    assert "potential contaminants" in result.sample_note.iloc[0]
+
+
+@pytest.mark.parametrize("line", sorted(GBM_PARENTAL_CLASS_II))
+def test_gbm_paired_statement_no_longer_asserts_transduced_provenance(tmp_path, monkeypatch, line):
+    """A class-II peptide found in both conditions was eluted from both."""
+    both = f"{line}, {line} treated with CIITA"
+    _write_observations(
+        tmp_path,
+        monkeypatch,
+        [
+            {
+                "peptide": "PEPTIDEKLM",
+                "pmid": 33592498,
+                "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+                "mhc_class": "II",
+                "assay_comments": GBM_STATEMENT.format(condition=both),
+            }
+        ],
+    )
+    result = generate_observations_table()
+    assert result.condition_id.tolist() == [""]
+    assert result.sample_attribution.tolist() == ["pmid_ambiguous"]
+
+
+def test_gbm_parental_class_ii_attribution_survives_a_filtered_query(tmp_path, monkeypatch):
+    rows = [
+        {
+            "peptide": "PEPTIDEKL" + chr(ord("A") + i),
+            "pmid": 33592498,
+            "mhc_restriction": "HLA-DRB4*01:03",
+            "mhc_class": "II",
+            "assay_comments": GBM_STATEMENT.format(condition=line),
+        }
+        for i, line in enumerate(["HRGO02 cells", "RA cells"])
+    ]
+    _write_observations(tmp_path, monkeypatch, rows)
+    complete = generate_observations_table().set_index("peptide")
+    assert complete["sample_label"].tolist() == [
+        "HROG02 parental (class II)",
+        "RA parental (class II)",
+    ]
+    for peptide in complete.index:
+        selected = generate_observations_table(peptide=peptide).set_index("peptide")
+        pd.testing.assert_frame_equal(
+            selected[ATTRIBUTION_FIELDS].astype(str),
+            complete.loc[[peptide], ATTRIBUTION_FIELDS].astype(str),
+        )
