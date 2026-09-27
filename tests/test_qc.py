@@ -20,6 +20,16 @@ import pandas as pd
 import pytest
 import yaml
 
+from hitlist.conditions import (
+    ENGINEERING_CONDITION_COLUMNS,
+    NONE_PERMITTED_CONDITION_COLUMNS,
+)
+
+#: Engineering columns whose findings prescribe `none` as the remedy.
+_NONE_PERMITTED_ENGINEERING_COLUMNS = sorted(
+    ENGINEERING_CONDITION_COLUMNS & NONE_PERMITTED_CONDITION_COLUMNS
+)
+
 
 def _write_obs_fixture(tmp_path, rows):
     """Write a minimal observations.parquet fixture with the columns
@@ -418,6 +428,9 @@ def test_run_all_returns_named_dataframes(tmp_path, monkeypatch):
         # (#39 follow-up — proteome registry coverage is its own
         # diagnostic axis, not a rollup of the others).
         "proteome_coverage",
+        # #586: engineering drift is a curation axis of its own, and a curator
+        # running `hitlist qc` saw none of it while it was absent here.
+        "engineering_drift",
     }
     for v in results.values():
         assert isinstance(v, pd.DataFrame)
@@ -1478,7 +1491,8 @@ def test_engineering_drift_flags_a_silent_arm_beside_an_asserting_sibling():
     assert list(found["condition_id"]) == ["silent"]
     row = found.iloc[0]
     assert row["column"] == "condition_mhc_context"
-    assert row["asserted_by"] == "engineered"
+    assert row["asserted_by"] == "['engineered']"
+    assert row["asserted_values"] == "['monoallelic']"
     assert row["tier_at_risk"] and row["severity"] == "error"
 
 
@@ -1565,7 +1579,7 @@ def test_engineering_drift_reports_only_the_silent_arms():
     arms.append({"condition_id": "drifted"})
     found = engineering_drift_audit(_eng_study(*arms))
     assert list(found["condition_id"]) == ["drifted"]
-    assert found.iloc[0]["n_asserting"] == 8
+    assert found.iloc[0]["n_asserting_arms"] == 8
 
 
 def test_engineering_drift_warns_without_a_tier_claim_when_another_column_engineers():
@@ -1648,7 +1662,7 @@ def test_engineering_drift_matches_its_recorded_baseline():
     from hitlist.qc import engineering_drift_audit
 
     found = {
-        (int(r.pmid), f"{r.condition_id}|{r.column}")
+        (int(r.pmid), f"{r.condition_id}|{r.column}|{r.severity}")
         for r in engineering_drift_audit().itertuples()
     }
     baseline = _baseline_entries()
@@ -1656,3 +1670,195 @@ def test_engineering_drift_matches_its_recorded_baseline():
     assert baseline - found == set(), (
         f"baseline entries no longer found: {sorted(baseline - found)}"
     )
+
+
+def test_engineering_drift_ignores_a_capture_only_asserting_sibling():
+    """A sibling asserting only ``soluble_mhc`` is not engineered either.
+
+    Nothing engineers on either side, so no expression tier differs and there
+    is no engineering drift to report — grading it ``error`` with a tier claim
+    was false (#587 review 3, PMID 27862975).
+    """
+    from hitlist.qc import engineering_drift_audit
+
+    assert engineering_drift_audit(
+        _eng_study(
+            {"condition_id": "captured", "condition_mhc_context": "soluble_mhc"},
+            {"condition_id": "silent"},
+        )
+    ).empty
+
+
+def test_engineering_drift_exempts_a_mixed_arm():
+    """``mixed`` fills only facts true of every contributing condition.
+
+    A blank there is the contract being honoured, so flagging it would fail CI
+    for a PR that curated correctly (#587 review 3).
+    """
+    from hitlist.qc import engineering_drift_audit
+
+    assert engineering_drift_audit(
+        _eng_study(
+            {"condition_id": "a", "condition_mhc_context": "monoallelic"},
+            {"condition_id": "b", "condition_status": "mixed"},
+        )
+    ).empty
+
+
+def test_engineering_drift_skips_ms_excluded_studies(monkeypatch):
+    """Their arms reach zero observation rows, so no anchor is ever resolved."""
+    from hitlist import qc
+
+    study = _eng_study(
+        {"condition_id": "a", "condition_mhc_context": "monoallelic"},
+        {"condition_id": "b"},
+    )
+    assert not qc.engineering_drift_audit(study).empty
+    monkeypatch.setattr(qc, "ms_excluded_pmids", lambda: frozenset({42}))
+    assert qc.engineering_drift_audit(study).empty
+
+
+def test_engineering_drift_never_joins_distinct_cells_with_a_semicolon():
+    """``;`` separates tokens *within* a cell, so joining cells invents one.
+
+    PMID 31092671 reported ``ERAP1;ERAP1;ERAP2;ERAP2`` for three distinct arms;
+    a curator pasting that verbatim would pass validation and curate a
+    combination nobody performed (#587 review 3).
+    """
+    from hitlist.qc import engineering_drift_audit
+
+    found = engineering_drift_audit(
+        _eng_study(
+            {"condition_id": "a", "condition_knockout_genes": "ERAP1"},
+            {"condition_id": "b", "condition_knockout_genes": "ERAP2"},
+            {"condition_id": "c"},
+        )
+    )
+    assert list(found["condition_id"]) == ["c"]
+    values = found.iloc[0]["asserted_values"]
+    assert values == "['ERAP1', 'ERAP2']"
+    assert "ERAP1;ERAP2" not in values
+
+
+def test_engineering_drift_only_prescribes_a_remedy_the_loader_accepts():
+    """Every remedy must be something a curator can actually write.
+
+    Three times in #587 a rule shipped whose remedy or scope broke something;
+    the third was prescribing ``none`` for ``condition_mhc_context``, the one
+    engineering column ``NONE_PERMITTED_CONDITION_COLUMNS`` excludes — a
+    curator following it would stop the package loading.  This asserts the
+    property over every finding in the packaged corpus rather than the one
+    column that happened to be wrong.
+    """
+    from hitlist.conditions import NONE_PERMITTED_CONDITION_COLUMNS
+    from hitlist.qc import engineering_drift_audit
+
+    found = engineering_drift_audit()
+    assert not found.empty, "the corpus must exercise this"
+    offered_none = found[found["reason"].str.contains("or 'none' if")]
+    bad = set(offered_none["column"]) - set(NONE_PERMITTED_CONDITION_COLUMNS)
+    assert not bad, f"remedy prescribes 'none' where the loader rejects it: {sorted(bad)}"
+    for column in set(found["column"]) - set(NONE_PERMITTED_CONDITION_COLUMNS):
+        text = found[found["column"] == column].iloc[0]["reason"]
+        assert f"'none' is NOT permitted in {column}" in text
+
+
+def test_engineering_drift_baseline_entries_carry_a_severity():
+    """Severity is part of the key: a ``warn`` becoming an ``error`` is drift."""
+    for _pmid, entry in _baseline_entries():
+        assert len(entry.split("|")) == 3, entry
+        assert entry.rsplit("|", 1)[1] in {"warn", "error"}
+
+
+def _loads_cleanly(tmp_path, monkeypatch, arms):
+    """Run synthetic arms through the real loader; True when it accepts them."""
+    from hitlist import curation
+
+    path = tmp_path / "pmid_overrides.yaml"
+    path.write_text(yaml.safe_dump([{"pmid": 42, "ms_samples": arms}]))
+    real = curation._data_path
+    monkeypatch.setattr(
+        curation,
+        "_data_path",
+        lambda fn: str(path) if fn == "pmid_overrides.yaml" else real(fn),
+    )
+    curation.load_pmid_overrides.cache_clear()
+    try:
+        curation.load_pmid_overrides()
+        return True
+    except ValueError:
+        return False
+    finally:
+        curation.load_pmid_overrides.cache_clear()
+
+
+@pytest.mark.parametrize("column", _NONE_PERMITTED_ENGINEERING_COLUMNS)
+def test_the_none_remedy_actually_loads(tmp_path, monkeypatch, column):
+    """Writing the prescribed ``none`` must not break the package.
+
+    The remedy is only honest if the loader accepts it, and this is the trap
+    #587 hit three times in different forms.
+    """
+    arms = [
+        {
+            "sample_label": "engineered",
+            "condition_id": "engineered",
+            "condition_status": "annotated",
+            "condition_evidence": "curated_text",
+            column: "B2M" if "genes" in column else "unspecified",
+        },
+        {
+            "sample_label": "wt",
+            "condition_id": "wt",
+            "condition_status": "annotated",
+            "condition_evidence": "curated_text",
+            column: "none",
+        },
+    ]
+    assert _loads_cleanly(tmp_path, monkeypatch, arms)
+
+
+def test_the_separate_materials_remedy_actually_loads(tmp_path, monkeypatch):
+    """The mhc_genotype trio must load, and the message must not over-promise.
+
+    ``mhc_genotype_cell`` alone is rejected, and ``sample_group`` cannot split a
+    two-arm study at all — the message says both rather than naming a remedy
+    that fails.
+    """
+    from hitlist.qc import _engineering_remedy
+
+    def arm(cid, **extra):
+        return {
+            "sample_label": cid,
+            "condition_id": cid,
+            "condition_status": "annotated",
+            "condition_evidence": "curated_text",
+            **extra,
+        }
+
+    trio = [
+        arm(
+            "a",
+            mhc_genotype="HLA-A*02:01",
+            mhc_genotype_cell="C1R",
+            mhc_genotype_source="PMID 1 Methods",
+            condition_mhc_context="monoallelic",
+        ),
+        arm(
+            "b",
+            mhc_genotype="HLA-B*07:02",
+            mhc_genotype_cell="C1R-A2",
+            mhc_genotype_source="PMID 1 Methods",
+        ),
+    ]
+    assert _loads_cleanly(tmp_path, monkeypatch, trio)
+    assert not _loads_cleanly(
+        tmp_path, monkeypatch, [arm("a", mhc_genotype_cell="C1R"), arm("b")]
+    ), "mhc_genotype_cell alone is rejected, so the message must not prescribe it alone"
+    assert not _loads_cleanly(
+        tmp_path, monkeypatch, [arm("a", sample_group="g1"), arm("b", sample_group="g2")]
+    ), "a one-to-one sample_group is rejected, so the message must say so"
+
+    text = _engineering_remedy("condition_mhc_context")
+    assert "mhc_genotype_source" in text and "all three are required" in text
+    assert "must be set on every arm" in text and "two-arm study" in text

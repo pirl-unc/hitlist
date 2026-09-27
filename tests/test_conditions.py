@@ -29,7 +29,6 @@ from hitlist.conditions import (
     MATERIAL_IDENTITY_COLUMNS,
     MULTI_VALUE_CONDITION_COLUMNS,
     NONE_PERMITTED_CONDITION_COLUMNS,
-    TREATMENT_CONDITION_COLUMNS,
     asserts_condition,
     canonical_condition_token,
     engineered_material_mask,
@@ -730,32 +729,20 @@ def test_engineered_mhc_contexts_are_declared_vocabulary():
 _GUARD_NEUTRAL_CONDITION_COLUMNS = {"condition_control", "condition_combination"}
 
 
-def test_treatment_columns_are_the_expected_membership():
-    """Pin the actual names.
-
-    ``TREATMENT = INTERVENTION - ENGINEERING`` makes any set-algebra assertion
-    true by construction, so it proves nothing; what needs guarding is that the
-    subtraction still yields the columns the guard means by "a treatment".
-    """
-    assert set(TREATMENT_CONDITION_COLUMNS) == {
-        "condition_antigen_exposure",
-        "condition_cytokines",
-        "condition_drugs",
-        "condition_infection",
-        "condition_stimulation",
-    }
-    assert "condition_mhc_context" not in MATERIAL_IDENTITY_COLUMNS
-    assert not set(MATERIAL_IDENTITY_COLUMNS) & set(ENGINEERING_CONDITION_COLUMNS), (
-        "keying material identity on the columns under test would put every "
-        "disagreement in its own group, where nothing is ever compared"
-    )
-
-
 def test_every_condition_column_has_exactly_one_declared_role():
     """A new condition column cannot silently join neither side of the guard."""
     roles = {
         "material": set(MATERIAL_IDENTITY_COLUMNS) & set(CONDITION_COLUMNS),
-        "treatment": set(TREATMENT_CONDITION_COLUMNS),
+        # Interventions that act on a material without changing what it is.
+        # Pinned by name: the audit does not read them, so nothing else would
+        # notice a column silently joining or leaving this set.
+        "treatment": {
+            "condition_antigen_exposure",
+            "condition_cytokines",
+            "condition_drugs",
+            "condition_infection",
+            "condition_stimulation",
+        },
         "engineering": set(ENGINEERING_CONDITION_COLUMNS),
         "arm_specific": set(ARM_SPECIFIC_CONDITION_COLUMNS),
         "neutral": _GUARD_NEUTRAL_CONDITION_COLUMNS,
@@ -769,9 +756,9 @@ def test_every_condition_column_has_exactly_one_declared_role():
 def test_material_identity_columns_are_real_ms_sample_fields():
     """A typo degrades grouping silently instead of failing.
 
-    Five entries (``sample_group``, ``mhc_genotype``, ``mhc_genotype_cell``,
-    ``mhc_class``, ``species``) are not condition columns, so the registry
-    contract test above does not reach them.
+    Four entries (``sample_group``, ``mhc_genotype``, ``mhc_genotype_cell``,
+    ``species``) are not condition columns, so the registry contract test above
+    does not reach them.
     """
     for column in MATERIAL_IDENTITY_COLUMNS:
         assert column in MS_SAMPLE_FIELDS, f"{column} is not accepted by the loader"

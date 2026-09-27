@@ -243,6 +243,7 @@ migration marked all 761 arms `curated_text` because that is what it did;
   still a knockout.
 - **`condition_control_for` must name a real sibling arm**, and only where
   the comparison is documented.
+
 #### The engineering-drift audit (not a loader rule)
 
 `hitlist.qc.engineering_drift_audit` flags an arm that is **silent** on an
@@ -284,10 +285,20 @@ Limits worth knowing before trusting it:
 - Material identity rests mostly on `mhc_genotype` / `mhc_genotype_cell` and
   the context columns; `sample_group` is set on a minority of arms, and
   `condition_material`'s vocabulary is physical states (`cultured`, `frozen`,
-  …), which cannot express *which line* something is. When two flagged arms
-  really are different materials, say so in `sample_group`, or in
-  `mhc_genotype` — which also requires `mhc_genotype_source` and is checked
-  against `mhc_genotype_complete_loci` — never in `condition_material`.
+  …), which cannot express *which line* something is.
+
+When two flagged arms really are different materials, only two remedies load:
+
+| remedy | what the loader demands |
+| --- | --- |
+| `mhc_genotype` + `mhc_genotype_cell` + `mhc_genotype_source` | all three together — `mhc_genotype_cell` alone is rejected. `mhc_genotype` is audited for ploidy and against `mhc_genotype_complete_loci`. |
+| `sample_group` | on **every** arm of the study, and **not** one group per arm — so it cannot separate a two-arm study at all. |
+
+`condition_material` is never the answer, and for `condition_mhc_context`
+neither is `none`: that column is the one engineering column
+`NONE_PERMITTED_CONDITION_COLUMNS` excludes, so it has no way to state absence.
+An arm whose MHC genuinely is not introduced has no token to say so, and the
+finding stays — a documented gap in the vocabulary, not a curation error.
 
 #### On a row that reached no arm
 

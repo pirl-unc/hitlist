@@ -295,14 +295,6 @@ ENGINEERING_CONDITION_COLUMNS = frozenset(
     }
 )
 
-#: The interventions that act *on* a material without changing what it is:
-#: every intervention column :data:`ENGINEERING_CONDITION_COLUMNS` does not
-#: claim.  Derived rather than relisted, so the two sets stay complementary
-#: by construction — a new intervention column joins exactly one of them.
-#: Infection, cytokine, drug, stimulation and antigen exposure all perturb
-#: expression, but the cells on either side are the same cells (#586).
-TREATMENT_CONDITION_COLUMNS = INTERVENTION_CONDITION_COLUMNS - ENGINEERING_CONDITION_COLUMNS
-
 #: What an arm's material *is*, for asking whether two arms of one study
 #: describe one material.  Read by
 #: :func:`hitlist.qc.engineering_drift_audit`.

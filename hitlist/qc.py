@@ -31,6 +31,9 @@ print, write to CSV, or feed into a notebook:
 - :func:`sample_attribution_audit` — curated arms that were profiled but
   reach zero observation rows.  Catches curation that describes something
   the corpus cannot see.
+- :func:`engineering_drift_audit` — curated arms silent on an engineering
+  column that a same-material sibling asserts.  Catches the per-arm gap that
+  costs an expression-anchor tier (#586).
 
 Each function returns the same shape: a DataFrame with one row per
 finding plus a ``severity`` column (``info`` / ``warn`` / ``error``) so
@@ -44,6 +47,18 @@ from collections.abc import Mapping
 
 import pandas as pd
 
+from .conditions import (
+    CONDITION_COLUMNS,
+    ENGINEERING_CONDITION_COLUMNS,
+    MATERIAL_IDENTITY_COLUMNS,
+    MULTI_VALUE_CONDITION_COLUMNS,
+    NONE_PERMITTED_CONDITION_COLUMNS,
+    TOKENIZED_MATERIAL_IDENTITY_COLUMNS,
+    asserts_condition,
+    condition_columns_for_sample,
+    is_engineered_material,
+    split_condition_tokens,
+)
 from .curation import (
     _cached_parse,
     _flatten_hla_alleles,
@@ -415,13 +430,19 @@ _ENGINEERING_DRIFT_AUDIT_COLUMNS = [
     "sample_label",
     "column",
     "asserted_by",
-    "asserted_value",
-    "n_silent",
-    "n_asserting",
+    "asserted_values",
+    "n_silent_arms",
+    "n_asserting_arms",
     "tier_at_risk",
     "severity",
     "reason",
 ]
+
+#: Arms whose ``condition_status`` says a blank engineering cell is deliberate.
+#: ``unreported`` states that nothing was recorded; ``mixed`` fills only facts
+#: true of *every* contributing condition, so a blank is what the contract asks
+#: for.  Flagging either would fail CI for a PR that curated correctly.
+_ENGINEERING_DRIFT_EXEMPT_STATUSES = frozenset({"unreported", "mixed"})
 
 
 def _material_identity(sample: Mapping[str, object]) -> tuple:
@@ -432,13 +453,6 @@ def _material_identity(sample: Mapping[str, object]) -> tuple:
     from the record as from :func:`condition_columns_for_sample`, which is only
     a strip, so one lookup serves both kinds of column.
     """
-    from .conditions import (
-        MATERIAL_IDENTITY_COLUMNS,
-        MULTI_VALUE_CONDITION_COLUMNS,
-        TOKENIZED_MATERIAL_IDENTITY_COLUMNS,
-        split_condition_tokens,
-    )
-
     identity = []
     for column in MATERIAL_IDENTITY_COLUMNS:
         value = str(sample.get(column) or "").strip()
@@ -449,6 +463,39 @@ def _material_identity(sample: Mapping[str, object]) -> tuple:
         else:
             identity.append((value,))
     return tuple(identity)
+
+
+def _engineering_remedy(column: str) -> str:
+    """What a curator can *truthfully write* to resolve a finding on ``column``.
+
+    Branching matters because ``condition_mhc_context`` is the one engineering
+    column :data:`~hitlist.conditions.NONE_PERMITTED_CONDITION_COLUMNS` excludes.
+    Prescribing ``none`` there would tell a curator to write a token the loader
+    rejects, breaking the package for everyone — so where the vocabulary cannot
+    state absence, this says so instead of inventing a remedy.
+    """
+    # Every branch below has to be something the loader accepts, or a curator
+    # following it stops the package loading.  `sample_group` is opt-in per
+    # study, all-or-none, and rejects a one-to-one group/arm mapping, so on a
+    # two-arm study it cannot separate them at all; `mhc_genotype_cell` alone
+    # is rejected without the rest of the trio (#587 review 3).
+    separate = (
+        "if these are different materials, say so with mhc_genotype + "
+        "mhc_genotype_cell + mhc_genotype_source together -- all three are required, "
+        "and mhc_genotype is audited for ploidy and against mhc_genotype_complete_loci "
+        "-- or with sample_group, which must be set on every arm of the study and must "
+        "not give each arm its own group, so it cannot separate a two-arm study"
+    )
+    if column in NONE_PERMITTED_CONDITION_COLUMNS:
+        return (
+            f"record the real value; or 'none' if this arm genuinely lacks {column}; or {separate}"
+        )
+    return (
+        f"record the real value; or {separate}.  'none' is NOT permitted in {column}, so "
+        f"this column cannot state absence: an arm whose MHC really is not introduced has "
+        f"no token to say so, and leaving it blank keeps this finding.  That is a "
+        f"documented gap in the vocabulary, not a curation error"
+    )
 
 
 def engineering_drift_audit(overrides: Mapping[int, dict] | None = None) -> pd.DataFrame:
@@ -466,10 +513,9 @@ def engineering_drift_audit(overrides: Mapping[int, dict] | None = None) -> pd.D
 
     ``""`` is *not established*, which is why silence is what this looks for.
     ``none`` is a positive claim of absence and passes, so a genuine wild-type
-    arm beside a knockout sibling is annotated rather than flagged — the remedy
-    is always truthfully available, on every column, for every arm.  An arm
-    whose ``condition_status`` is ``unreported`` is exempt: that is the
-    module's documented way to say nothing was recorded.
+    arm beside a knockout sibling is annotated rather than flagged.  An arm
+    whose ``condition_status`` is ``unreported`` or ``mixed`` is exempt: both
+    are documented ways for a blank to be the right answer.
 
     This is an **audit, not a load-time rule**.  It ran inside
     ``load_pmid_overrides`` in the first cut of #587, where a single false
@@ -479,11 +525,16 @@ def engineering_drift_audit(overrides: Mapping[int, dict] | None = None) -> pd.D
 
     Deliberately **not** flagged:
 
+    - A column no asserting sibling actually *engineers*.  A sibling asserting
+      only ``soluble_mhc`` is not engineered either, so there is no tier to
+      differ and nothing this audit is about (#587 review 3).
     - Two arms that both assert, but differ (``B2M`` beside ``B2M;TAP1``).
       Both are engineered, both resolve at tier 2, and which genes a study
       knocked out per arm is the experiment.
     - Arms of different materials, per
       :data:`~hitlist.conditions.MATERIAL_IDENTITY_COLUMNS`.
+    - Studies excluded from MS (``exclude_from_ms``), whose arms reach zero
+      observation rows, so no anchor is ever resolved for them.
     - Studies that curate no condition block at all, which
       :func:`hitlist.conditions.validate_study_conditions` also skips.
     - A ``condition_mhc_context`` naming only capture tokens (``soluble_mhc``,
@@ -509,24 +560,19 @@ def engineering_drift_audit(overrides: Mapping[int, dict] | None = None) -> pd.D
     -------
     pd.DataFrame
         One row per (silent arm, engineering column), empty when the corpus is
-        clean.  ``asserted_by`` names the sibling ``condition_id``s that
-        establish the expectation.
+        clean.  ``asserted_by`` and ``asserted_values`` are *lists* rendered as
+        text, never ``;``-joined: ``;`` separates tokens **within** one cell, so
+        a join of two cells would read as one combination nobody performed.
     """
-    from .conditions import (
-        CONDITION_COLUMNS,
-        ENGINEERING_CONDITION_COLUMNS,
-        asserts_condition,
-        condition_columns_for_sample,
-        is_engineered_material,
-    )
-    from .curation import load_pmid_overrides
-
     if overrides is None:
         overrides = load_pmid_overrides()
     engineering_columns = sorted(ENGINEERING_CONDITION_COLUMNS)
+    excluded = ms_excluded_pmids()
 
     findings: list[dict] = []
     for pmid, entry in sorted(overrides.items()):
+        if pmid in excluded:
+            continue
         samples = entry.get("ms_samples") or []
         if not any(column in sample for sample in samples for column in CONDITION_COLUMNS):
             continue  # uncurated study; the loader opts it out too
@@ -538,25 +584,30 @@ def engineering_drift_audit(overrides: Mapping[int, dict] | None = None) -> pd.D
             if len(arms) < 2:
                 continue
             for column in engineering_columns:
-                # Three-way, per this module's missing-value contract: a named
-                # intervention asserts, ``none`` is a curated claim of absence
-                # and is neither, and only ``""`` is silence.
+                # Three-way, per the conditions module's missing-value contract:
+                # a named intervention asserts, ``none`` is a curated claim of
+                # absence and is neither, and only ``""`` is silence.
                 asserting = [(s, c) for s, c in arms if asserts_condition(c[column])]
                 silent = [
                     (s, c)
                     for s, c in arms
                     if not c[column]
-                    and str(s.get("condition_status") or "").strip() != "unreported"
+                    and str(s.get("condition_status") or "").strip()
+                    not in _ENGINEERING_DRIFT_EXEMPT_STATUSES
                 ]
                 if not asserting or not silent:
                     continue
-                asserted_by = ";".join(
-                    sorted(str(s.get("condition_id") or "?") for s, _ in asserting)
-                )
-                asserted_value = ";".join(sorted({c[column] for _, c in asserting}))
+                # A sibling asserting a capture-only mhc_context is not
+                # engineered either, so no tier differs and this is not
+                # engineering drift (#587 review 3).
+                if not any(is_engineered_material({column: c[column]}) for _, c in asserting):
+                    continue
+                asserted_by = repr(sorted(str(s.get("condition_id") or "?") for s, _ in asserting))
+                asserted_values = repr(sorted({c[column] for _, c in asserting}))
+                remedy = _engineering_remedy(column)
                 for sample, cells in silent:
                     # The tier consequence is real only where nothing else in
-                    # the block engineers this arm; otherwise the cost is a
+                    # the block engineers this arm; otherwise the cost is an
                     # under-recorded column, not a wrong anchor.
                     tier_at_risk = not is_engineered_material(cells)
                     consequence = (
@@ -574,19 +625,15 @@ def engineering_drift_audit(overrides: Mapping[int, dict] | None = None) -> pd.D
                             "sample_label": str(sample.get("sample_label") or ""),
                             "column": column,
                             "asserted_by": asserted_by,
-                            "asserted_value": asserted_value,
-                            "n_silent": len(silent),
-                            "n_asserting": len(asserting),
+                            "asserted_values": asserted_values,
+                            "n_silent_arms": len(silent),
+                            "n_asserting_arms": len(asserting),
                             "tier_at_risk": tier_at_risk,
                             "severity": "error" if tier_at_risk else "warn",
                             "reason": (
-                                f"{column} is blank here but {asserted_value!r} on "
-                                f"same-material sibling(s) {asserted_by}.  {consequence}  "
-                                f"Record the real value, or 'none' if this arm genuinely "
-                                f"lacks it; if these are different materials, say so in "
-                                f"sample_group, or in mhc_genotype — which also requires "
-                                f"mhc_genotype_source and is checked against "
-                                f"mhc_genotype_complete_loci"
+                                f"{column} is blank here but asserted on same-material "
+                                f"sibling(s) {asserted_by} as {asserted_values}.  "
+                                f"{consequence}  To resolve: {remedy}"
                             ),
                         }
                     )
@@ -1295,6 +1342,7 @@ def run_all(mhc_class: str | None = None) -> dict[str, pd.DataFrame]:
         "cross_reference": cross_reference(mhc_class=mhc_class),
         "discrepancies": discrepancies(mhc_class=mhc_class),
         "proteome_coverage": proteome_coverage(),
+        "engineering_drift": engineering_drift_audit(),
     }
 
 
