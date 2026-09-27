@@ -517,6 +517,26 @@ row so downstream tooling can distinguish "exact JY RNA" from "generic
 EBV-LCL stand-in" from "melanoma cohort surrogate" instead of treating
 them as equally trustworthy.
 
+Tier 1 requires that the profiled material *is* the registered line, so an
+engineered sample never resolves there. Engineering comes from curation, not
+from parsing the label: any intervention in `condition_knockout_genes`,
+`condition_knockdown_genes`, `condition_overexpression_genes`,
+`condition_genetic_variants`, `condition_transfection` or
+`condition_transduction`, or an introduced-MHC `condition_mhc_context`
+(`monoallelic`, `mhc_transfectant`, `mhc_coexpression`). Such a sample
+resolves at tier 2 against the same data even when its label matches the
+reference line's alias — `HeLa-CIITA (Mock)`, `SaOS-2 + TP53 R175H`,
+`K562 transfectant DPB1*01:01/DPA1*02:01` — with `expression_parent_key`
+naming the material that supplied the RNA. `resolve_sample_expression_anchor`
+derives this itself when given the `pmid` and `sample_label` of a curated arm;
+pass `engineered=` to override. A row that names no arm — an observation
+the export could not attribute to one of HAP1's wild-type and knockout arms,
+say — is not known to be unmodified when the study has an engineered arm of
+the *same reference line* as the row's anchor (lines are matched through the
+registry, so aliases count), and also resolves at tier 2 with a reason saying
+the arm is unresolved. An unattributed JY row keeps tier 1 in a study whose
+only engineered arm is a Raji transfectant.
+
 CLI:
 
 ```bash
@@ -554,6 +574,33 @@ files can still be fetched or registered under `depmap_rna`,
 `depmap_rna_transcript`, `depmap_models`, `depmap_profiles` and
 `depmap_default_profiles`. RNA anchors report only sources with available
 rows; missing optional data falls back to the next applicable tier.
+
+`line_expression.parquet` is stamped with a content fingerprint of every
+packaged build input — the anchor registry, `sources.yaml`, the packaged CSVs
+and the ENSG → HGNC symbol map — plus an index build version. Reads compare
+the stamp with the installed release and never rewrite the file:
+
+- **current**: the index is used as built.
+- **no stamp** (every index written before this release) **or same build
+  version with different packaged inputs**: reads use this release's packaged
+  sources plus the index's downloaded (e.g. DepMap) rows, re-enriched, for
+  the (line, source) pairs the current registry still lists and whose
+  provenance meets the current builder's invariants. An upgrade or an anchors
+  edit therefore does not cost a DepMap user HeLa or K562, while rows the
+  registry no longer lists (HAP1 under `DepMap_24Q4_gene`) are left out, as
+  are rows from before DepMap default-profile selection (#357): an index with
+  no `profile_id` column, or a transcript row without its `PR-…` profile.
+- **another build version, or an unreadable stamp**: packaged sources only.
+
+Without a usable index, the packaged sources are served in the same row shape
+a build writes (source metadata, `parent_line_key`, and gene symbols from the
+packaged map), so `gene_name` filters reach them. The first read of a
+non-current index warns once, naming what was left out and the cheapest
+rebuild: `hitlist data fetch depmap` when the index held downloaded rows and
+every DepMap file is still registered (a purely local rebuild); otherwise a
+local `hitlist.builder.build_line_expression()`, with the exact DepMap files
+a fetch would still download. `line_expression_index_is_current()` checks
+without warning; `is_line_expression_built()` only says a file exists.
 
 ### A note on mono-allelic curation
 

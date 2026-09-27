@@ -1200,14 +1200,33 @@ def register(name: str, path: str | Path, description: str | None = None) -> Pat
     return p
 
 
+def _depmap_file_is_registered(key: str) -> bool:
+    registered = _load_manifest().get("datasets", {}).get(key, {})
+    return bool(registered.get("path")) and Path(registered["path"]).exists()
+
+
+def unregistered_depmap_files() -> list[str]:
+    """File names ``hitlist data fetch depmap`` would download before rebuilding.
+
+    :func:`fetch` reuses every bundle file that is registered and still on
+    disk and downloads only the rest, so an empty list means the command is a
+    purely local rebuild of the line-expression index.  Answering this per
+    file lets a "rebuild your index" message say exactly what a fetch costs.
+    """
+    return [
+        filename
+        for key, (_file_id, filename) in _DEPMAP_FILES.items()
+        if not _depmap_file_is_registered(key)
+    ]
+
+
 def fetch(name: str, force: bool = False) -> Path:
     """Download a fetchable dataset."""
     if name == "depmap":
         from .builder import build_line_expression
 
         for key in _DEPMAP_FILES:
-            registered = _load_manifest().get("datasets", {}).get(key, {})
-            if not force and registered.get("path") and Path(registered["path"]).exists():
+            if not force and _depmap_file_is_registered(key):
                 continue
             fetch(key, force=force)
         build_line_expression(verbose=True)

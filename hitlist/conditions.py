@@ -48,6 +48,8 @@ from functools import lru_cache
 from os.path import dirname, join
 from types import MappingProxyType
 
+import pandas as pd
+
 from .curation_yaml import load_curation_yaml
 
 #: Completeness of *this record's* categorical annotation.
@@ -256,6 +258,40 @@ GENE_CONDITION_COLUMNS = frozenset(
         "condition_knockout_genes",
         "condition_knockdown_genes",
         "condition_overexpression_genes",
+    }
+)
+
+#: MHC-context tokens that mean MHC was introduced into the material: a
+#: transfected or transduced host (``mhc_transfectant``), a single allele
+#: expressed in an HLA-null or HLA-low host (``monoallelic`` — every curated
+#: arm with it is a transfectant or an engineered construct), or an allele
+#: co-expressed alongside the endogenous ones (``mhc_coexpression``).
+#: ``soluble_mhc`` and ``refolded_mhc`` describe how MHC was captured, not
+#: what was done to the cells, so on their own they are not engineering.
+ENGINEERED_MHC_CONTEXT_VALUES = frozenset({"monoallelic", "mhc_transfectant", "mhc_coexpression"})
+
+#: The columns that can say the material's own genome or transcriptome was
+#: modified, as opposed to what was added to its medium.
+#:
+#: This is the curated answer to "is this the parental line, or something
+#: engineered from it?", and it is what
+#: :func:`hitlist.line_expression.resolve_sample_expression_anchor` needs to
+#: keep a reference RNA profile labelled as a surrogate (tier 2) rather than
+#: as RNA measured in the sample (tier 1).  Every intervention in the six
+#: genetic columns counts; ``condition_mhc_context`` counts only for the
+#: introduced-MHC tokens in :data:`ENGINEERED_MHC_CONTEXT_VALUES`.  A
+#: cytokine, drug, infection or stimulation does perturb expression, but it
+#: does not make the profiled material a different line, so those columns
+#: are deliberately absent (#576).
+ENGINEERING_CONDITION_COLUMNS = frozenset(
+    {
+        "condition_knockout_genes",
+        "condition_knockdown_genes",
+        "condition_overexpression_genes",
+        "condition_genetic_variants",
+        "condition_transfection",
+        "condition_transduction",
+        "condition_mhc_context",
     }
 )
 
@@ -590,7 +626,7 @@ def validate_sample_conditions(sample: Mapping[str, object], pmid: object, index
             f"different claims and the audit reports them separately."
         )
 
-    interventions = [c for c in INTERVENTION_CONDITION_COLUMNS if values[c] and values[c] != "none"]
+    interventions = [c for c in INTERVENTION_CONDITION_COLUMNS if asserts_condition(values[c])]
     if values["condition_combination"] and not interventions:
         raise ValueError(
             f"{where} sets condition_combination="
@@ -691,6 +727,60 @@ def condition_columns_for_sample(sample: Mapping[str, object]) -> dict[str, str]
     the block is that a consumer can tell those apart.
     """
     return {column: str(sample.get(column) or "").strip() for column in CONDITION_COLUMNS}
+
+
+def asserts_condition(value: object) -> bool:
+    """Whether one condition cell asserts something.
+
+    The single reading of the missing-value contract in this module's
+    docstring: missing (``None``, NaN, ``pd.NA``), ``""`` (not established)
+    and ``none`` (a positive claim of absence) assert nothing; any other token
+    does — including ``unspecified``, which says the intervention happened and
+    only its target is unnamed.  Shared by validation and every consumer, so
+    "is an intervention named here?" has one answer (#576).
+    """
+    if value is None or (not isinstance(value, str) and pd.isna(value)):
+        return False
+    text = str(value).strip()
+    return bool(text) and text != "none"
+
+
+def _engineers_material(column: str, value: object) -> bool:
+    """Whether one cell of an :data:`ENGINEERING_CONDITION_COLUMNS` column engineers."""
+    if not asserts_condition(value):
+        return False
+    if column == "condition_mhc_context":
+        return not ENGINEERED_MHC_CONTEXT_VALUES.isdisjoint(split_condition_tokens(str(value)))
+    return column in ENGINEERING_CONDITION_COLUMNS
+
+
+def is_engineered_material(sample: Mapping[str, object]) -> bool:
+    """Whether one curated arm's material is engineered (see :data:`ENGINEERING_CONDITION_COLUMNS`).
+
+    Accepts a raw ``ms_samples`` record or an exported row; an absent column
+    reads as not established, which never invents engineering.
+    """
+    return any(_engineers_material(c, sample.get(c)) for c in ENGINEERING_CONDITION_COLUMNS)
+
+
+def engineered_material_mask(frame: pd.DataFrame) -> pd.Series:
+    """Row-wise :func:`is_engineered_material` for a frame of curated arms.
+
+    Reads whichever engineering columns the frame carries, so it works on the
+    samples table and on the observations frame alike (a row that reached no
+    arm carries the blank block, which is not engineering).  Tests each
+    column's *distinct* values rather than its rows: these are
+    low-cardinality, often categorical, columns on a frame that can hold
+    millions of observations, and ``isin`` then does the per-row work in one
+    vectorized pass.
+    """
+    mask = pd.Series(False, index=frame.index)
+    for column in sorted(ENGINEERING_CONDITION_COLUMNS & set(frame.columns)):
+        values = frame[column]
+        engineered = [v for v in pd.unique(values.dropna()) if _engineers_material(column, v)]
+        if engineered:
+            mask |= values.isin(engineered)
+    return mask
 
 
 def empty_condition_columns() -> dict[str, str]:

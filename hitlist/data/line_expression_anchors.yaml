@@ -41,6 +41,17 @@
 #                     have rows for expression_key, and a downloaded DepMap
 #                     matrix contributes only the lines that list its source.
 #   notes             free-text, human-readable
+#
+# Engineered material never resolves at tier 1 (#576).  A sample whose curated
+# condition block records a genetic intervention or introduced MHC gets its
+# matched entry's RNA at tier 2, with that entry as expression_parent_key --
+# even when the entry is a derivative with a parent_line.  Derivative entries
+# here are catch-alls (HAP1-KO covers eleven knockouts; C1R-HLA and
+# 721.221-HLA every transfectant), so RNA registered under one would otherwise
+# pose as exact RNA for all the others.  When RNA measured in one specific
+# engineered material is first registered (e.g. via #358), add a registry
+# marker that distinguishes such a material-specific entry from a catch-all,
+# and let only a sample that is that material claim tier 1 through it.
 
 lines:
   # ── Tumor / cancer cell lines with DepMap coverage ──────────────────────────
