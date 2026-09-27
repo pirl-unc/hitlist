@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import pathlib
 
+import pandas as pd
 import pytest
 import yaml
 
@@ -19,11 +20,16 @@ from hitlist.conditions import (
     ARM_SPECIFIC_CONDITION_COLUMNS,
     CLOSED_CONDITION_VOCABULARIES,
     CONDITION_COLUMNS,
+    CONDITION_MHC_CONTEXT_VALUES,
     CONDITION_STATUS_VALUES,
+    ENGINEERED_MHC_CONTEXT_VALUES,
     INTERVENTION_CONDITION_COLUMNS,
     MULTI_VALUE_CONDITION_COLUMNS,
     NONE_PERMITTED_CONDITION_COLUMNS,
+    asserts_condition,
     canonical_condition_token,
+    engineered_material_mask,
+    is_engineered_material,
     load_condition_vocabulary,
     split_condition_tokens,
 )
@@ -652,3 +658,54 @@ def test_no_source_calls_astype_str_on_a_categorical_column():
         + "\n  ".join(offenders)
         + "\nUse .eq(value), .isin([...]), .unique() or .str.* instead."
     )
+
+
+# ── Engineered material (#576) ───────────────────────────────────────────────
+
+
+@pytest.mark.parametrize("value", [None, float("nan"), pd.NA, "", "  ", "none"])
+def test_missing_blank_and_none_assert_nothing(value):
+    """Missing is not-established, never an intervention — NaN and pd.NA included."""
+    assert not asserts_condition(value)
+    assert not is_engineered_material({"condition_knockout_genes": value})
+
+
+def test_unspecified_still_asserts_an_intervention():
+    assert asserts_condition("unspecified")
+    assert is_engineered_material({"condition_transfection": "unspecified"})
+
+
+@pytest.mark.parametrize(
+    ("context", "engineered"),
+    [
+        ("monoallelic", True),
+        ("mhc_transfectant;monoallelic", True),
+        ("mhc_coexpression", True),
+        ("monoallelic;soluble_mhc", True),
+        ("soluble_mhc", False),
+        ("refolded_mhc", False),
+    ],
+)
+def test_introduced_mhc_is_engineered_material(context, engineered):
+    """A transfected or mono-allelic host is not the line it was made from."""
+    assert is_engineered_material({"condition_mhc_context": context}) is engineered
+
+
+def test_mask_agrees_with_the_record_predicate():
+    records = [
+        {"condition_mhc_context": "refolded_mhc", "condition_transduction": ""},
+        {"condition_mhc_context": "mhc_transfectant;monoallelic", "condition_transduction": None},
+        {"condition_mhc_context": None, "condition_transduction": "CIITA"},
+        {"condition_mhc_context": float("nan"), "condition_transduction": "none"},
+    ]
+    frame = pd.DataFrame(records)
+    frame["condition_mhc_context"] = frame["condition_mhc_context"].astype("category")
+    assert engineered_material_mask(frame).tolist() == [
+        is_engineered_material(record) for record in records
+    ]
+    assert engineered_material_mask(frame).tolist() == [False, True, True, False]
+
+
+def test_engineered_mhc_contexts_are_declared_vocabulary():
+    """A token outside the vocabulary could never match a curated arm."""
+    assert set(ENGINEERED_MHC_CONTEXT_VALUES) <= set(CONDITION_MHC_CONTEXT_VALUES)

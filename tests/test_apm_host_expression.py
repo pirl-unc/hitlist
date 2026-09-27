@@ -10,8 +10,15 @@ import yaml
 
 from hitlist import downloads
 from hitlist.builder import build_line_expression
+from hitlist.conditions import engineered_material_mask
 from hitlist.curation import load_pmid_overrides
-from hitlist.line_expression import load_line_expression, resolve_sample_expression_anchor
+from hitlist.export import generate_sample_expression_table
+from hitlist.line_expression import (
+    load_line_expression,
+    load_line_expression_anchors,
+    resolve_sample_expression_anchor,
+    write_line_expression_index,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -97,3 +104,239 @@ def test_downloaded_bundle_adds_hap1_transcripts_without_duplicating_genes(tmp_p
     anchor = resolve_sample_expression_anchor("HAP1 wildtype")
     assert anchor.expression_backend == "depmap_rna"
     assert anchor.source_ids == ("DepMap_24Q4_HAP1_gene", "DepMap_24Q4_transcript")
+
+
+# ── Engineered samples never take parental exact-line RNA (#576) ────────────
+
+
+@pytest.fixture
+def every_registered_source(tmp_path):
+    """An index holding rows for every source the registry names.
+
+    The guard below must hold whichever optional data a user installed, so it
+    runs against the most that could be installed: every (line, source) pair
+    the resolver can ever find.
+    """
+    pairs = {
+        (str(entry["expression_key"]), str(source_id))
+        for entry in load_line_expression_anchors()
+        if entry.get("expression_key")
+        for source_id in entry.get("source_ids") or []
+    }
+    write_line_expression_index(pd.DataFrame(sorted(pairs), columns=["line_key", "source_id"]))
+    return pairs
+
+
+def test_engineered_label_on_a_parental_alias_uses_parent_rna(every_registered_source):
+    parental = resolve_sample_expression_anchor("HeLa-CIITA (Mock)")
+    assert parental.expression_match_tier == 1
+    engineered = resolve_sample_expression_anchor("HeLa-CIITA (Mock)", engineered=True)
+    assert engineered.expression_match_tier == 2
+    assert engineered.expression_key == "HeLa"
+    assert engineered.expression_parent_key == "HeLa"
+    # Same data, honest provenance: only the tier and parent change.
+    assert engineered.expression_backend == parental.expression_backend
+    assert engineered.source_ids == parental.source_ids
+    assert engineered.matched_alias == parental.matched_alias
+
+
+def test_curated_engineering_is_the_default(every_registered_source):
+    """Not opt-in: ``pmid`` + ``sample_label`` of a curated arm is enough.
+
+    An external caller that never heard of ``engineered`` still gets honest
+    provenance for a curated engineered arm, and an explicit value overrides.
+    """
+    engineered = resolve_sample_expression_anchor("HeLa-CIITA (Mock)", pmid=36215666)
+    assert engineered.expression_match_tier == 2
+    assert engineered.expression_parent_key == "HeLa"
+    parental = resolve_sample_expression_anchor("HeLa naive (HLA-A*02:01)", pmid=19748539)
+    assert parental.expression_match_tier == 1
+    # Introduced MHC is engineering too: a K562 DPB1 transfectant is not K562.
+    transfectant = resolve_sample_expression_anchor(
+        "K562 transfectant DPB1*01:01/DPA1*02:01", pmid=32350084
+    )
+    assert transfectant.expression_match_tier == 2
+    assert transfectant.expression_parent_key == "K562"
+    forced = resolve_sample_expression_anchor("HeLa-CIITA (Mock)", pmid=36215666, engineered=False)
+    assert forced.expression_match_tier == 1
+
+
+@pytest.mark.parametrize("pmid", [None, float("nan"), pd.NA])
+def test_missing_pmid_means_no_curated_lookup(every_registered_source, pmid):
+    """An exported frame's missing PMID must not raise; main ignored pmid entirely."""
+    anchor = resolve_sample_expression_anchor("HeLa cells", pmid=pmid)
+    assert anchor.expression_match_tier == 1
+
+
+def test_unresolved_arm_in_an_engineered_study_does_not_claim_exact_rna(
+    every_registered_source, monkeypatch
+):
+    """A row ``_consensus_meta`` could not assign to one arm is not known to be wild type.
+
+    HAP1's study has one wild-type arm and eleven knockouts, so an unattributed
+    row's blanked condition block means "unknown".  A study with no engineered
+    arms keeps its exact-line anchor for the same kind of row.
+    """
+    from hitlist.export import _attach_peptide_origin
+
+    monkeypatch.setattr(
+        "hitlist.mappings.load_peptide_mappings",
+        lambda peptide=None, columns=None, **_: pd.DataFrame(
+            columns=["peptide", "gene_name", "gene_id", "protein_id"]
+        ),
+    )
+    rows = pd.DataFrame(
+        {
+            "peptide": ["AAAAAAAAA", "CCCCCCCCC", "DDDDDDDDD"],
+            "sample_label": ["", "HAP1 wildtype", ""],
+            "pmid": [40113210, 40113210, 19748539],
+            "study_label": ["S", "S", "T"],
+            "cell_name": ["HAP1", "HAP1", "HeLa"],
+            "condition_knockout_genes": ["", "none", ""],
+        }
+    )
+    out = _attach_peptide_origin(rows).set_index("peptide")
+
+    unresolved = out.loc["AAAAAAAAA"]
+    assert unresolved.expression_match_tier == 2
+    assert unresolved.expression_parent_key == "HAP1"
+    assert out.loc["CCCCCCCCC"].expression_match_tier == 1  # the resolved wild-type arm
+    assert out.loc["DDDDDDDDD"].expression_match_tier == 1  # no engineered arms in 19748539
+    reason = resolve_sample_expression_anchor("", cell_name="HAP1", pmid=40113210).reason
+    assert "arm unresolved in a study that includes engineered arms" in reason
+
+
+@pytest.mark.parametrize(
+    ("pmid", "cell_name", "tier"),
+    [
+        # 38480730's only engineered arm is a Raji transfectant: an unassigned
+        # JY row cannot be that material, so it keeps JY's exact-line RNA.
+        (38480730, "JY", 1),
+        # 36010968's engineered arms are SaOS-2 TP53 transfectants: an
+        # unassigned SaOS-2 row may be one of them.
+        (36010968, "SaOS-2", 2),
+    ],
+)
+def test_unresolved_rows_demote_only_on_an_engineered_arms_line(
+    every_registered_source, monkeypatch, pmid, cell_name, tier
+):
+    """Lines are compared through the registry the resolver matches, not as strings."""
+    from hitlist.export import _attach_peptide_origin
+
+    monkeypatch.setattr(
+        "hitlist.mappings.load_peptide_mappings",
+        lambda peptide=None, columns=None, **_: pd.DataFrame(
+            columns=["peptide", "gene_name", "gene_id", "protein_id"]
+        ),
+    )
+    rows = pd.DataFrame(
+        {
+            "peptide": ["AAAAAAAAA"],
+            "sample_label": [""],
+            "pmid": [pmid],
+            "study_label": ["S"],
+            "cell_name": [cell_name],
+        }
+    )
+    out = _attach_peptide_origin(rows)
+    assert out.expression_match_tier.tolist() == [tier]
+
+
+@pytest.mark.parametrize(
+    ("cell_name", "tier"),
+    [
+        ("RaOS cells", 2),  # a registry alias of SaOS-2: same line, different string
+        ("THP-1", 1),  # a registered line with no engineered arm in the study
+    ],
+)
+def test_unresolved_rows_compare_lines_through_the_registry(
+    every_registered_source, monkeypatch, cell_name, tier
+):
+    """The engineered arm's line and the row's are matched, not string-compared."""
+    from hitlist import curation
+
+    study = {
+        "pmid": 1,
+        "ms_samples": [
+            {"sample_label": "SaOS-2 + TP53 R175H", "condition_transfection": "TP53"},
+            {"sample_label": "THP-1 wild type", "condition_knockout_genes": "none"},
+        ],
+    }
+    monkeypatch.setattr(curation, "load_pmid_overrides", lambda: {1: study})
+    anchor = resolve_sample_expression_anchor("", cell_name=cell_name, pmid=1)
+    assert anchor.expression_match_tier == tier
+
+
+def test_engineered_sample_never_resolves_at_tier_1(tmp_path, monkeypatch):
+    """Not even through a derivative entry with RNA registered under it.
+
+    Registry derivative entries are catch-alls — ``HAP1-KO`` covers eleven
+    knockouts, ``C1R-HLA`` every C1R transfectant — so RNA registered under
+    one would pose as exact RNA for all the others.  The hit resolves at tier
+    2, naming the registered material as the reference.
+    """
+    from hitlist import line_expression as le
+
+    monkeypatch.setattr(
+        le,
+        "_load_anchors_yaml",
+        lambda: [
+            {
+                "name": "HeLa",
+                "aliases": ["hela"],
+                "parent_line": None,
+                "line_family": "tumor_line",
+                "expression_backend": "depmap_rna",
+                "expression_key": "HeLa",
+                "source_ids": ["DepMap_24Q4_gene"],
+            },
+            {
+                "name": "HeLa-CIITA",
+                "aliases": ["hela-ciita"],
+                "parent_line": "HeLa",
+                "line_family": "tumor_line",
+                "expression_backend": "packaged_rnaseq",
+                "expression_key": "HeLa-CIITA",
+                "source_ids": ["Pearson_BLCL_panel"],
+            },
+        ],
+    )
+    write_line_expression_index(
+        pd.DataFrame(
+            {
+                "line_key": ["HeLa", "HeLa-CIITA"],
+                "source_id": ["DepMap_24Q4_gene", "Pearson_BLCL_panel"],
+            }
+        ),
+    )
+
+    anchor = resolve_sample_expression_anchor("HeLa-CIITA (Mock)", engineered=True)
+    assert anchor.expression_match_tier == 2
+    assert anchor.expression_key == "HeLa-CIITA"
+    assert anchor.expression_parent_key == "HeLa-CIITA"
+
+
+def test_no_curated_engineered_sample_resolves_at_tier_1(every_registered_source):
+    table = generate_sample_expression_table()
+    engineered = engineered_material_mask(table)
+    offenders = table.loc[engineered & table.expression_match_tier.eq(1)]
+    assert offenders.empty, offenders[["pmid", "sample_label", "expression_key"]]
+    # Not vacuous: without their curated engineering these labels would
+    # claim the reference line's RNA as their own — knockouts, transfected
+    # genes and introduced MHC alike.
+    label_only = {
+        label
+        for label in table.loc[engineered, "sample_label"]
+        if resolve_sample_expression_anchor(label).expression_match_tier == 1
+    }
+    assert {
+        "SaOS-2 + TP53 R175H",
+        "HeLa-CIITA + T6BP siRNA",
+        "THP-1 TAP1 knockout + mock infection",
+        "K562 transfectant DPB1*01:01/DPA1*02:01",
+        "K562 transfected with DLA-88*501:01",
+        "HeLa-sHLA-HLA-A*02:01",
+    } <= label_only
+    hap1 = table.loc[table.pmid.eq(40113210)]
+    assert len(hap1) == 12
+    assert hap1.expression_match_tier.eq(hap1.condition_knockout_genes.ne("none") + 1).all()
