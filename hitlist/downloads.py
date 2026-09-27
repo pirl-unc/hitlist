@@ -1200,14 +1200,29 @@ def register(name: str, path: str | Path, description: str | None = None) -> Pat
     return p
 
 
+def _depmap_file_is_registered(key: str) -> bool:
+    registered = _load_manifest().get("datasets", {}).get(key, {})
+    return bool(registered.get("path")) and Path(registered["path"]).exists()
+
+
+def depmap_bundle_is_registered() -> bool:
+    """Whether ``hitlist data fetch depmap`` can rebuild without downloading.
+
+    True when every file of the DepMap bundle is registered and still on
+    disk.  :func:`fetch` reuses exactly those and downloads only what is
+    missing, so this is the question a "rebuild your line-expression index"
+    message has to answer before recommending it.
+    """
+    return all(_depmap_file_is_registered(key) for key in _DEPMAP_FILES)
+
+
 def fetch(name: str, force: bool = False) -> Path:
     """Download a fetchable dataset."""
     if name == "depmap":
         from .builder import build_line_expression
 
         for key in _DEPMAP_FILES:
-            registered = _load_manifest().get("datasets", {}).get(key, {})
-            if not force and registered.get("path") and Path(registered["path"]).exists():
+            if not force and _depmap_file_is_registered(key):
                 continue
             fetch(key, force=force)
         build_line_expression(verbose=True)

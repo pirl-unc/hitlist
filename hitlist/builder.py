@@ -51,6 +51,7 @@ from pathlib import Path
 import pandas as pd
 
 from .downloads import data_dir
+from .parquet_io import atomic_write_parquet
 
 #: Schema/semantic contract for observations + binding artifacts. Metadata
 #: without this exact value is legacy and must rebuild once on upgrade.
@@ -122,32 +123,17 @@ def _source_fingerprints(paths: dict[str, Path], *, fetch_missing_assets: bool =
             if csv_path.exists():
                 fp[f"supplementary_csv:{entry['file']}"] = _stat_fingerprint(csv_path)
 
-    # ── Line-expression cache fingerprints (issue #150) ─────────────────
-    # Anchor + sources YAML and every packaged CSV go in so edits to
-    # curation invalidate the build cache.  Optional DepMap files registered
-    # via the downloads manifest are fingerprinted by their on-disk path
-    # too, so a re-registered DepMap export forces a rebuild.
-    data_root = Path(__file__).parent / "data"
-    anchors_yaml = data_root / "line_expression_anchors.yaml"
-    if anchors_yaml.exists():
-        fp["line_expression_anchors"] = _stat_fingerprint(anchors_yaml)
-    line_dir = data_root / "line_expression"
-    if line_dir.exists():
-        sources_yaml = line_dir / "sources.yaml"
-        if sources_yaml.exists():
-            fp["line_expression_sources"] = _stat_fingerprint(sources_yaml)
-        for csv in sorted(line_dir.glob("*.csv.gz")):
-            fp[f"line_expression_csv:{csv.name}"] = _stat_fingerprint(csv)
+    # ── Line-expression cache fingerprints (issue #150, #577) ───────────
+    # The stamp a built line-expression index carries: a content hash of
+    # every packaged build input (anchor registry, sources.yaml, packaged
+    # CSVs, the ENSG -> symbol map) plus the index build version.  Recording
+    # the same mapping here means the rebuild a stale-index warning asks for
+    # is one this cache agrees is needed, from the same evidence.  A
+    # content hash also replaces the per-file stat entries it supersedes:
+    # sizes and timestamps can survive an install that changed the bytes.
+    from .line_expression import line_expression_index_stamp
 
-    # The content fingerprint the built index is stamped with (#577), so the
-    # rebuild this cache triggers and the staleness a reader reports rest on
-    # one piece of evidence: otherwise an install that preserved sizes and
-    # timestamps leaves readers warning "rebuild" at a build that no-ops.
-    # Wrapped in a mapping like every other entry, so a consumer scanning the
-    # fingerprint values can keep treating them uniformly.
-    from .line_expression import packaged_line_expression_fingerprint
-
-    fp["line_expression_packaged_inputs"] = {"sha256": packaged_line_expression_fingerprint()}
+    fp["line_expression_index"] = line_expression_index_stamp()
 
     # DepMap inputs are registered via downloads.py and live outside the
     # repo; fingerprint by registered path so a re-register / re-download
@@ -298,21 +284,6 @@ def _cache_meta() -> dict:
     if meta.exists():
         return json.loads(meta.read_text())
     return {}
-
-
-def _atomic_write_parquet(df: pd.DataFrame, path: Path) -> None:
-    """Write ``df`` to a sibling ``.partial`` file, then rename over ``path``.
-
-    Readers calling :func:`load_observations` / :func:`load_binding`
-    during a rebuild keep seeing whatever was on ``path`` before this
-    call until the rename atomically swaps in the new file.  This closes
-    the mid-rebuild window (#105) where the canonical parquet briefly
-    lacked its ``gene_names`` column between the initial write and the
-    re-annotate step.
-    """
-    partial = path.with_suffix(path.suffix + ".partial")
-    df.to_parquet(partial, index=False)
-    partial.replace(path)
 
 
 #: Columns whose distinct-value cardinality is small relative to row count —
@@ -1029,9 +1000,9 @@ def build_observations(
     # over the canonical path.  This keeps any prior index in place — and
     # queryable — throughout the rebuild; readers never see a half-written
     # or not-yet-annotated parquet.
-    _atomic_write_parquet(obs, out_path)
+    atomic_write_parquet(obs, out_path)
     print(f"\nWrote {out_path} ({out_path.stat().st_size / 1e6:.1f} MB)")
-    _atomic_write_parquet(binding, binding_out)
+    atomic_write_parquet(binding, binding_out)
     print(f"Wrote {binding_out} ({binding_out.stat().st_size / 1e6:.1f} MB)")
 
     if build_mappings:
@@ -1361,59 +1332,10 @@ def build_bulk_proteomics(verbose: bool = False) -> pd.DataFrame:
 # ── Line-expression index ──────────────────────────────────────────────────
 
 
-_LINE_EXPRESSION_COLUMNS = (
-    "backend",
-    "source_id",
-    "pmid",
-    "reference",
-    "study_label",
-    "line_key",
-    "parent_line_key",
-    "granularity",
-    "gene_id",
-    "gene_name",
-    "transcript_id",
-    "profile_id",
-    "tpm",
-    "log2_tpm",
-    "normalization",
-    "quantifier",
-    "species",
-    "license",
-)
-
-
 def _line_expression_path() -> Path:
     from .downloads import data_dir
 
     return data_dir() / "line_expression.parquet"
-
-
-def _parent_line_lookup() -> dict[str, str]:
-    """Map each ``expression_key`` to the registry's canonical line name."""
-    from .line_expression import load_line_expression_anchors
-
-    return {
-        str(entry.get("expression_key")): str(entry.get("name", ""))
-        for entry in load_line_expression_anchors()
-        if entry.get("expression_key")
-    }
-
-
-def _source_stamp(source: dict) -> dict:
-    """Per-source defaults stamped onto every row."""
-    pmid_raw = source.get("pmid")
-    return {
-        "backend": source.get("backend") or "",
-        "source_id": source.get("source_id") or "",
-        "pmid": int(pmid_raw) if pmid_raw is not None else pd.NA,
-        "reference": source.get("reference") or "",
-        "study_label": source.get("study_label") or "",
-        "normalization": source.get("normalization") or "",
-        "quantifier": source.get("quantifier") or "",
-        "species": source.get("species") or "",
-        "license": source.get("license") or "",
-    }
 
 
 def _read_depmap_csv(
@@ -1601,51 +1523,6 @@ def _harmonize_depmap_line_keys(
     return out.reset_index(drop=True)
 
 
-#: Packaged ENSG → HGNC symbol map used as the *primary* gene_name fill source.
-#: Pre-resolved offline (Ensembl 75 → 112 → 90, mygene.info for the tail) so the
-#: build doesn't need any pyensembl release data installed to fill ~98% of the
-#: blank symbols.  pyensembl is only a fallback for IDs absent from this file.
-_GENE_NAME_MAP_CSV = (
-    Path(__file__).parent / "data" / "line_expression" / "ensembl_gene_id_symbol.csv"
-)
-
-
-def _load_gene_name_map() -> dict[str, str]:
-    """Load the packaged ENSG (version-stripped) → HGNC symbol map.
-
-    Returns an empty dict when the CSV is absent so the build degrades to the
-    pyensembl path rather than hard-failing.
-    """
-    if not _GENE_NAME_MAP_CSV.exists():
-        return {}
-    m = pd.read_csv(_GENE_NAME_MAP_CSV, dtype=str).fillna("")
-    return {gid.split(".")[0]: nm for gid, nm in zip(m["gene_id"], m["gene_name"]) if gid and nm}
-
-
-def _fill_gene_names_from_csv(df: pd.DataFrame, *, verbose: bool = False) -> pd.DataFrame:
-    """Fill empty ``gene_name`` from the packaged ENSG → symbol CSV.
-
-    Primary fill source: portable, needs no pyensembl release data.  Leaves IDs
-    absent from the map blank for :func:`_fill_gene_names_via_ensembl` to retry.
-    """
-    if "gene_name" not in df.columns or "gene_id" not in df.columns:
-        return df
-    gn = df["gene_name"].astype("string").fillna("")
-    gid = df["gene_id"].astype("string").fillna("")
-    need = (gn.str.strip() == "") & gid.str.startswith("ENSG")
-    if not need.any():
-        return df
-    id2name = _load_gene_name_map()
-    if not id2name:
-        return df
-    filled = gid[need].map(lambda g: id2name.get(g.split(".")[0], ""))
-    df.loc[need, "gene_name"] = filled.to_numpy()
-    if verbose:
-        n_filled = int((filled != "").sum())
-        print(f"  Filled {n_filled:,} blank gene_names from packaged ENSG→symbol CSV")
-    return df
-
-
 #: Ensembl releases to consult (in order) when filling gene_name from gene_id.
 #: The packaged line-expression union is GRCh37/Ensembl-75-based (release 75
 #: resolves ~81% of the blanks); 112 (GRCh38, the proteome release) backfills a
@@ -1760,9 +1637,13 @@ def build_line_expression(verbose: bool = False) -> pd.DataFrame:
       via :mod:`hitlist.downloads`.
 
     Writes a long-form parquet keyed by ``(line_key, source_id,
-    granularity, gene_id/transcript_id)`` with per-source metadata
-    denormalized onto every row.  Atomic-rename write so concurrent
-    readers never see a half-built file.
+    granularity, gene_id/transcript_id)``.  Rows are shaped by
+    :func:`hitlist.line_expression.enrich_line_expression_rows` — the same
+    function readers apply to the packaged sources when no current index
+    exists — then gene symbols still blank get an optional pyensembl
+    backfill.  Written through
+    :func:`hitlist.line_expression.write_line_expression_index`, which
+    stamps the index for this release and renames atomically.
 
     Returns
     -------
@@ -1772,30 +1653,17 @@ def build_line_expression(verbose: bool = False) -> pd.DataFrame:
         dataset registered).
     """
     from .line_expression import (
+        LINE_EXPRESSION_COLUMNS,
         _alias_to_expression_key,
         _load_packaged_union,
+        enrich_line_expression_rows,
         load_line_expression_anchors,
-        load_line_expression_sources,
         resolve_line_key,
         write_line_expression_index,
     )
 
-    sources_by_id = {s.get("source_id"): s for s in load_line_expression_sources()}
-
-    frames: list[pd.DataFrame] = []
-
     # --- Packaged CSVs (already long-form) ---
-    packaged = _load_packaged_union()
-    if len(packaged):
-        for sid, group in packaged.groupby("source_id"):
-            meta = sources_by_id.get(sid) or {}
-            stamp = _source_stamp(meta)
-            enriched = group.copy()
-            for col, val in stamp.items():
-                if col == "source_id":
-                    continue
-                enriched[col] = val
-            frames.append(enriched)
+    frames: list[pd.DataFrame] = [_load_packaged_union()]
 
     # --- Optional DepMap gene / transcript matrices ---
     from .downloads import _load_manifest
@@ -1851,44 +1719,22 @@ def build_line_expression(verbose: bool = False) -> pd.DataFrame:
         )
         if long.empty:
             continue
-        meta = sources_by_id.get(source_id) or {}
-        stamp = _source_stamp(meta)
-        for col, val in stamp.items():
-            long[col] = val
+        long["source_id"] = source_id
         frames.append(long)
 
-    if not frames:
-        empty = pd.DataFrame(columns=_LINE_EXPRESSION_COLUMNS)
+    df = _concat_non_empty(frames, LINE_EXPRESSION_COLUMNS, sort=False)
+    if df.empty:
+        empty = pd.DataFrame(columns=list(LINE_EXPRESSION_COLUMNS))
         out = write_line_expression_index(empty)
         if verbose:
             print(f"  No line-expression sources present — wrote empty {out}")
         return empty
 
-    df = _concat_non_empty(frames, _LINE_EXPRESSION_COLUMNS, sort=False)
-
-    # Stamp parent_line_key from the registry so downstream callers can
-    # preserve tier-2 provenance without re-resolving.
-    parent_lookup = _parent_line_lookup()
-    df["parent_line_key"] = df["line_key"].map(parent_lookup).fillna("")
-
-    # Fill blank gene_name from the Ensembl gene ID (packaged-union rows carry
-    # ENSG but no HGNC symbol) so gene_name filters reach them.  Try the packaged
-    # ENSG→symbol CSV first (portable, ~98% coverage), then fall back to a live
-    # pyensembl lookup for any IDs the CSV doesn't cover (e.g. newly-added genes).
-    df = _fill_gene_names_from_csv(df, verbose=verbose)
+    # Source metadata, parent_line_key and packaged gene symbols: the shared
+    # row definition.  Then a live pyensembl lookup for IDs the packaged map
+    # does not cover (e.g. newly-added genes) — a build-only backfill.
+    df = enrich_line_expression_rows(df)
     df = _fill_gene_names_via_ensembl(df, verbose=verbose)
-
-    # Guarantee every canonical column exists before projection.
-    for col in _LINE_EXPRESSION_COLUMNS:
-        if col not in df.columns:
-            df[col] = "" if col not in {"pmid", "tpm", "log2_tpm"} else pd.NA
-
-    df["pmid"] = pd.to_numeric(df["pmid"], errors="coerce").astype("Int64")
-    df["tpm"] = pd.to_numeric(df["tpm"], errors="coerce").astype("float64")
-    df["log2_tpm"] = pd.to_numeric(df["log2_tpm"], errors="coerce").astype("float64")
-    df["profile_id"] = df["profile_id"].fillna("")
-
-    df = df[[c for c in _LINE_EXPRESSION_COLUMNS if c in df.columns]]
 
     out = write_line_expression_index(df)
 

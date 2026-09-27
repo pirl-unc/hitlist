@@ -517,15 +517,19 @@ row so downstream tooling can distinguish "exact JY RNA" from "generic
 EBV-LCL stand-in" from "melanoma cohort surrogate" instead of treating
 them as equally trustworthy.
 
-Tier 1 requires that the profiled material *is* the registered line. A
-sample whose curated condition block records a genetic modification
-(`condition_knockout_genes`, `condition_knockdown_genes`,
-`condition_overexpression_genes`, `condition_genetic_variants`,
-`condition_transfection`, `condition_transduction`) resolves at tier 2
-against the same data even when its label matches the parental line's
-alias — `HeLa-CIITA (Mock)`, `SaOS-2 + TP53 R175H`, `THP-1 TAP1 knockout`
-— with `expression_parent_key` naming the line that supplied the RNA. The
-engineering comes from curation, not from parsing the label.
+Tier 1 requires that the profiled material *is* the registered line, so an
+engineered sample never resolves there. Engineering comes from curation, not
+from parsing the label: any intervention in `condition_knockout_genes`,
+`condition_knockdown_genes`, `condition_overexpression_genes`,
+`condition_genetic_variants`, `condition_transfection` or
+`condition_transduction`, or an introduced-MHC `condition_mhc_context`
+(`monoallelic`, `mhc_transfectant`, `mhc_coexpression`). Such a sample
+resolves at tier 2 against the same data even when its label matches the
+reference line's alias — `HeLa-CIITA (Mock)`, `SaOS-2 + TP53 R175H`,
+`K562 transfectant DPB1*01:01/DPA1*02:01` — with `expression_parent_key`
+naming the material that supplied the RNA. `resolve_sample_expression_anchor`
+derives this itself when given the `pmid` and `sample_label` of a curated arm;
+pass `engineered=` to override.
 
 CLI:
 
@@ -565,24 +569,29 @@ files can still be fetched or registered under `depmap_rna`,
 `depmap_default_profiles`. RNA anchors report only sources with available
 rows; missing optional data falls back to the next applicable tier.
 
-`line_expression.parquet` is stamped with a content fingerprint of the
-packaged inputs it was built from — the anchor registry, `sources.yaml` and
-every packaged CSV. A release whose packaged inputs differ from the stamp (or
-an index built before stamping existed) would both hide newly packaged
-sources and keep rows the current builder no longer emits, so reads warn once
-and use the packaged sources instead of that index:
+`line_expression.parquet` is stamped with a content fingerprint of every
+packaged build input — the anchor registry, `sources.yaml`, the packaged CSVs
+and the ENSG → HGNC symbol map — plus an index build version. Reads compare
+the stamp with the installed release and never rewrite the file:
 
-```
-RuntimeWarning: Built line expression index at ~/.hitlist/line_expression.parquet
-was not built from this hitlist release's packaged line-expression inputs ...
-```
+- **current**: the index is used as built.
+- **same build version, different packaged inputs**: reads use this release's
+  packaged sources plus the index's downloaded (e.g. DepMap) rows for the
+  (line, source) pairs the current registry still lists — so an anchors edit
+  does not cost a DepMap user HeLa or K562, while rows the registry no longer
+  lists (HAP1 under `DepMap_24Q4_gene`) are left out.
+- **other build version, or no stamp** (indexes built before this release):
+  packaged sources only.
 
-Rebuild with `hitlist build observations` (which also rebuilds on its own when
-the packaged inputs change) or `hitlist data fetch depmap` when the optional
-bundle is registered; nothing is rewritten on a read. `hitlist.line_expression`
-exposes `packaged_line_expression_fingerprint()`,
-`line_expression_index_is_current()` and `write_line_expression_index()` for
-tooling that installs or checks an index of its own.
+Without a usable index, the packaged sources are served in the same row shape
+a build writes (source metadata, `parent_line_key`, and gene symbols from the
+packaged map), so `gene_name` filters reach them. The first read of a
+non-current index warns once, naming what was left out and how to rebuild:
+`hitlist data fetch depmap` when the index held downloaded rows (it reuses
+registered DepMap files rather than downloading them again, and says so when
+they are gone), otherwise `hitlist build observations` or
+`hitlist.builder.build_line_expression()`. `line_expression_index_is_current()`
+checks without warning.
 
 ### A note on mono-allelic curation
 

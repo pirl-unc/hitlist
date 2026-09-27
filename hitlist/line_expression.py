@@ -46,18 +46,18 @@ Three building blocks live here:
    and ``expression_parent_key`` — the provenance contract from #140.
 
 3. **Data** — ``line_expression.parquet`` in ``~/.hitlist/`` (built by
-   :func:`hitlist.builder.build_line_expression`). Packaged CSVs under
-   ``hitlist/data/line_expression/`` are readable before any build has
-   happened so pure-registry workflows work out-of-the-box.
+   :func:`hitlist.builder.build_line_expression`).  Without an index, reads
+   use the packaged CSVs under ``hitlist/data/line_expression/`` enriched by
+   :func:`enrich_line_expression_rows` to the same row shape a build writes,
+   so pure-registry workflows work out-of-the-box.
 
-   The index is only used while it matches this release's packaged inputs:
-   :func:`write_line_expression_index` stamps it with
-   :func:`packaged_line_expression_fingerprint`, and reads that find a
-   different (or absent) stamp warn once and use the packaged union instead —
-   otherwise an index built by an earlier release both hides sources that
-   release did not package and keeps rows the current builder no longer
-   emits (#577).  Read paths never rebuild; ``hitlist build observations``
-   and ``hitlist data fetch depmap`` do.
+   :func:`write_line_expression_index` stamps the index with the packaged
+   build inputs' fingerprint and :data:`LINE_EXPRESSION_BUILD_VERSION`.  An
+   index stamped by another build version, or not at all, is not used; one
+   that differs only in packaged inputs contributes its downloaded rows for
+   (line, source) pairs the current registry lists, alongside this release's
+   packaged rows.  Either way the first read warns once, saying what was
+   left out; reads never rebuild (#577).
 
 Typical usage::
 
@@ -78,6 +78,7 @@ Typical usage::
 from __future__ import annotations
 
 import hashlib
+import json
 import warnings
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -90,18 +91,51 @@ import pandas as pd
 from pyarrow.lib import ArrowInvalid
 
 from .curation_yaml import load_curation_yaml
+from .parquet_io import atomic_write_parquet
 
 _DATA_MODULE = "hitlist.data.line_expression"
 _ANCHORS_RESOURCE = "hitlist.data"
 _ANCHORS_FILE = "line_expression_anchors.yaml"
 
-#: Parquet key-value metadata key holding
-#: :func:`packaged_line_expression_fingerprint` for the release that built the
-#: index.  Written by :func:`write_line_expression_index`, read by
-#: :func:`line_expression_index_is_current`.  It travels inside the file, so a
-#: copied or downloaded index (the CI corpus, a colleague's build) carries its
-#: own provenance rather than inheriting the reader's (#577).
-PACKAGED_INPUTS_METADATA_KEY = b"hitlist_packaged_line_expression_inputs"
+#: Column order of ``line_expression.parquet``: the canonical row every reader
+#: sees, whether it came from a built index or from the packaged sources.
+LINE_EXPRESSION_COLUMNS = (
+    "backend",
+    "source_id",
+    "pmid",
+    "reference",
+    "study_label",
+    "line_key",
+    "parent_line_key",
+    "granularity",
+    "gene_id",
+    "gene_name",
+    "transcript_id",
+    "profile_id",
+    "tpm",
+    "log2_tpm",
+    "normalization",
+    "quantifier",
+    "species",
+    "license",
+)
+
+#: Version of the build logic and output schema of ``line_expression.parquet``.
+#: Bump it whenever :func:`hitlist.builder.build_line_expression` or
+#: :func:`enrich_line_expression_rows` changes what a row holds or how it is
+#: derived: an index stamped with another version is not used at all, while
+#: one that differs only in packaged inputs keeps its downloaded rows (#577).
+LINE_EXPRESSION_BUILD_VERSION = 1
+
+#: Parquet key-value metadata key holding :func:`line_expression_index_stamp`
+#: as JSON.  It travels inside the file, so a copied or downloaded index (the
+#: CI corpus, a colleague's build) carries its own provenance.
+INDEX_STAMP_METADATA_KEY = b"hitlist_line_expression_index"
+
+#: Packaged ENSG -> HGNC symbol map that fills blank ``gene_name`` values.
+#: Pre-resolved offline (Ensembl 75 -> 112 -> 90, mygene.info for the tail), so
+#: filling needs no pyensembl release data — which a read path must not need.
+_GENE_NAME_MAP_FILE = "ensembl_gene_id_symbol.csv"
 
 # Tier-3 class anchors — mapped by ``line_family``.  Keys MUST exist as a
 # ``name`` entry in the registry so downstream resolution has a target.
@@ -124,157 +158,6 @@ def line_expression_path() -> Path:
 def is_line_expression_built() -> bool:
     """Check whether the line expression parquet has been built."""
     return line_expression_path().exists()
-
-
-# ── Packaged-input fingerprint and index stamping (#577) ────────────────────
-
-
-@lru_cache(maxsize=1)
-def _packaged_input_bytes() -> dict[str, bytes]:
-    """Content of every packaged input a built index is derived from.
-
-    The anchor registry (which lines exist and which sources they draw on),
-    ``sources.yaml`` (the per-source metadata stamped onto every row) and each
-    packaged CSV.  Optional DepMap matrices are deliberately absent: they are
-    user-local, so an index that carries them is richer than the packaged
-    union, not inconsistent with it.
-    """
-    contents = {
-        _ANCHORS_FILE: (files(_ANCHORS_RESOURCE) / _ANCHORS_FILE).read_bytes(),
-        "sources.yaml": (files(_DATA_MODULE) / "sources.yaml").read_bytes(),
-    }
-    for _source_id, path in _iter_packaged_csvs():
-        if path.exists():
-            contents[path.name] = path.read_bytes()
-    return contents
-
-
-def _fingerprint_of(contents: dict[str, bytes]) -> str:
-    """Order-independent, name-aware digest of a set of input files."""
-    digest = hashlib.sha256()
-    for name, content in sorted(contents.items()):
-        digest.update(f"{name}:{len(content)}:".encode())
-        digest.update(hashlib.sha256(content).digest())
-    return digest.hexdigest()
-
-
-@lru_cache(maxsize=1)
-def packaged_line_expression_fingerprint() -> str:
-    """Content fingerprint of this release's packaged line-expression inputs.
-
-    A hash, not a version or an mtime: an index is built on one machine and
-    read on another (a downloaded CI corpus, a shared cache), so only the
-    bytes the build actually consumed can decide whether it is still the
-    index this release would produce.
-    """
-    return _fingerprint_of(_packaged_input_bytes())
-
-
-def write_line_expression_index(df: pd.DataFrame, path: Path | None = None) -> Path:
-    """Write a line-expression index stamped with the packaged-input fingerprint.
-
-    The one writer of ``line_expression.parquet``: the builder uses it, and so
-    should any test or tool that installs an index the resolver is meant to
-    trust — an unstamped file reads as stale (#577).  Written to a sibling
-    ``.partial`` and renamed, so concurrent readers never see a half-built
-    index.
-    """
-    import pyarrow as pa
-    import pyarrow.parquet as pq
-
-    out = Path(path) if path is not None else line_expression_path()
-    table = pa.Table.from_pandas(df, preserve_index=False)
-    metadata = {
-        **(table.schema.metadata or {}),
-        PACKAGED_INPUTS_METADATA_KEY: packaged_line_expression_fingerprint().encode(),
-    }
-    partial = out.with_suffix(out.suffix + ".partial")
-    pq.write_table(table.replace_schema_metadata(metadata), partial)
-    partial.replace(out)
-    return out
-
-
-def _stored_index_fingerprint(path: str) -> str | None:
-    """The fingerprint stamped on a built index; ``None`` when absent."""
-    import pyarrow.parquet as pq
-
-    metadata = pq.read_schema(path).metadata or {}
-    stamped = metadata.get(PACKAGED_INPUTS_METADATA_KEY)
-    return stamped.decode() if stamped else None
-
-
-def line_expression_index_is_current(path: Path | None = None) -> bool:
-    """Whether a built index matches this release's packaged inputs.
-
-    ``False`` when the index is missing, unreadable, unstamped (built before
-    :data:`PACKAGED_INPUTS_METADATA_KEY` existed) or stamped with another
-    release's inputs.  Reads then fall back to the packaged union; a rebuild
-    (``hitlist build observations``, or ``hitlist data fetch depmap`` when the
-    optional bundle is registered) restores the index.
-    """
-    p = Path(path) if path is not None else line_expression_path()
-    return _index_state(str(p), _artifact_signature(p)) == "current"
-
-
-def _artifact_signature(path: Path) -> tuple[int, int, int] | None:
-    """Identity of the file on disk, so a rebuild invalidates cached reads."""
-    if not path.exists():
-        return None
-    stat = path.stat()
-    return (stat.st_ino, stat.st_mtime_ns, stat.st_size)
-
-
-@lru_cache(maxsize=4)
-def _index_state(path: str, signature: tuple[int, int, int] | None) -> str:
-    """``"current"`` / ``"stale"`` / ``"unreadable"`` / ``"absent"``, warning once.
-
-    Cached per artifact identity — which changes on every rebuild — so the
-    staleness warning is emitted once per index per process rather than once
-    per read.
-    """
-    if signature is None:
-        return "absent"
-    expected = packaged_line_expression_fingerprint()
-    try:
-        stored = _stored_index_fingerprint(path)
-    except (ArrowInvalid, OSError, ValueError):
-        # Let the caller's own read report the failure, so a corrupt index
-        # keeps its existing "Failed to read ..." diagnostic.
-        return "unreadable"
-    if stored == expected:
-        return "current"
-    warnings.warn(
-        f"Built line expression index at {path} was not built from this "
-        f"hitlist release's packaged line-expression inputs "
-        f"({'no fingerprint' if stored is None else 'fingerprint mismatch'}); "
-        f"using the packaged sources instead, so optional DepMap rows are "
-        f"unavailable until you rebuild with `hitlist build observations` "
-        f"(or `hitlist data fetch depmap`).",
-        RuntimeWarning,
-        stacklevel=2,
-    )
-    return "stale"
-
-
-def _read_index(path: str, signature: tuple[int, int, int] | None, *, columns=None):
-    """Read the built index, or ``None`` when it cannot be trusted.
-
-    ``None`` means "use the packaged union": the index is absent, stale, or
-    unreadable.  Never writes — a read path that repaired the index would
-    rebuild under whatever process happened to read first.
-    """
-    if _index_state(path, signature) in ("absent", "stale"):
-        return None
-    try:
-        return pd.read_parquet(path, columns=columns)
-    except (ArrowInvalid, OSError, ValueError) as exc:
-        warnings.warn(
-            f"Failed to read built line expression parquet at {path}; "
-            f"falling back to packaged sources. {exc}",
-            RuntimeWarning,
-            stacklevel=2,
-        )
-        return None
 
 
 # ── YAML loaders ────────────────────────────────────────────────────────────
@@ -479,10 +362,32 @@ def _expression_sources_at(
     path: str, signature: tuple[int, int, int] | None
 ) -> frozenset[tuple[str, str]]:
     """Read source availability once per artifact identity, including rebuilds."""
-    rows = _read_index(path, signature, columns=["line_key", "source_id"])
-    if rows is None:
-        rows = _load_packaged_union()
+    rows = _line_expression_rows(Path(path), signature, columns=["line_key", "source_id"])
     return frozenset(rows[["line_key", "source_id"]].itertuples(index=False, name=None))
+
+
+def _curated_engineering(pmid: int | None, sample_label: str) -> bool:
+    """Whether ``(pmid, sample_label)`` names a curated arm whose material is engineered.
+
+    ``False`` when it names no curated arm: nothing then says the material was
+    modified.  No curated study reuses a label across arms that disagree about
+    engineering; if one did, any engineered arm makes the label engineered,
+    since tier 1 would claim a measurement its curation cannot back.
+    """
+    if pmid is None or not sample_label:
+        return False
+    from .conditions import is_engineered_material
+    from .curation import load_pmid_overrides
+
+    entry = load_pmid_overrides().get(int(pmid))
+    if not entry:
+        return False
+    label = sample_label.strip()
+    return any(
+        is_engineered_material(sample)
+        for sample in entry.get("ms_samples") or []
+        if str(sample.get("sample_label") or "").strip() == label
+    )
 
 
 def _resolve_via_parent(entry: dict) -> tuple[dict, str] | None:
@@ -529,7 +434,7 @@ def resolve_sample_expression_anchor(
     cell_name: str | None = None,
     pmid: int | None = None,
     study_label: str | None = None,
-    engineered: bool = False,
+    engineered: bool | None = None,
     lineage_tissue: str | None = None,
     cancer_type: str | None = None,
     cancer_type_backend: Callable[[str], dict] | None = None,
@@ -552,18 +457,19 @@ def resolve_sample_expression_anchor(
         Currently unused for resolution, accepted for forward
         compatibility with study-level overrides.
     engineered
-        Whether the sample's own material carries a genetic modification
-        (knockout, knockdown, overexpression, variant, transfection or
-        transduction), from the curated
-        :data:`hitlist.conditions.ENGINEERING_CONDITION_COLUMNS`.  A label
-        can match the *parental* line's alias — ``HeLa-CIITA (Mock)`` hits
-        ``hela``, ``THP-1 TAP1 knockout`` hits ``thp-1`` — so without this
-        the parental profile would be reported as tier-1 RNA measured in the
-        engineered sample.  With it, such a hit resolves at tier 2 against
-        the same data with ``expression_parent_key`` naming the line that
-        provided it (#576).  A hit on a registry entry that has its own
-        ``parent_line`` stays at tier 1: that entry models the engineered
-        material, so data registered against it was measured there.
+        Whether the sample's own material is engineered — a genetic
+        intervention or introduced MHC, per
+        :data:`hitlist.conditions.ENGINEERING_CONDITION_COLUMNS`.  ``None``
+        (the default) derives it from curation when ``pmid`` and
+        ``sample_label`` name a curated ``ms_samples`` arm, and reads as not
+        engineered otherwise; ``True`` / ``False`` override.  An engineered
+        sample never resolves at tier 1: a label can match the reference
+        line's alias — ``HeLa-CIITA (Mock)`` hits ``hela``, ``K562
+        transfectant DPB1*01:01`` hits ``k562`` — and registry derivative
+        entries are catch-alls (``HAP1-KO`` covers eleven knockouts), so RNA
+        registered under any entry is at best the reference material's.  Such
+        a hit resolves at tier 2 against the same data with
+        ``expression_parent_key`` naming that material (#576).
     lineage_tissue
         Fallback-5 tissue bucket when the sample doesn't hit the line
         registry at all and the caller has an explicit HPA tissue label.
@@ -580,6 +486,8 @@ def resolve_sample_expression_anchor(
     SampleExpressionAnchor
         Never ``None``; tier-6 is the no-match sentinel.
     """
+    if engineered is None:
+        engineered = _curated_engineering(pmid, sample_label)
     label_parts = [p for p in (sample_label, cell_name) if p]
     joined_label = " ".join(label_parts)
 
@@ -588,25 +496,21 @@ def resolve_sample_expression_anchor(
     if match is not None:
         entry, matched_alias = match
 
-        # Tier 1 — registry hit with exact-line data.  An engineered sample
-        # that matched a *root* entry gets the same data at tier 2: that entry
-        # describes the line the material was derived from, not the material
-        # that was profiled.  An entry with a ``parent_line`` models the
-        # engineered material itself, so data registered against it was
-        # measured there and tier 1 is the honest answer (#576).
+        # Tier 1 — registry hit with exact-line data, unless the sample's
+        # material is engineered: then the same data is the reference
+        # material's, reported at tier 2 with that material as parent (#576).
         if _entry_has_exact_line_data(entry):
             name = str(entry.get("name") or entry["expression_key"])
-            derived = engineered and not entry.get("parent_line")
             return SampleExpressionAnchor(
                 expression_backend=str(entry["expression_backend"]),
                 expression_key=str(entry["expression_key"]),
-                expression_match_tier=2 if derived else 1,
-                expression_parent_key=name if derived else None,
+                expression_match_tier=2 if engineered else 1,
+                expression_parent_key=name if engineered else None,
                 source_ids=_tier_source_ids(entry),
                 reason=(
-                    f"engineered derivative of '{name}' matched on alias "
-                    f"'{matched_alias}'; parental RNA stands in"
-                    if derived
+                    f"engineered material matched '{name}' on alias "
+                    f"'{matched_alias}'; its reference RNA stands in"
+                    if engineered
                     else f"exact line match on alias '{matched_alias}'"
                 ),
                 matched_alias=matched_alias,
@@ -751,15 +655,383 @@ def _load_packaged_union() -> pd.DataFrame:
     return pd.concat(frames, ignore_index=True, sort=False)
 
 
-def _load_parquet_or_none() -> pd.DataFrame | None:
-    """Return the built parquet when it is readable and current, else ``None``.
+# ── Canonical rows ──────────────────────────────────────────────────────────
 
-    ``None`` on an index that is missing, unreadable, or built from different
-    packaged inputs than this release ships (#577) — each case warns once and
-    the caller reads the packaged union instead.
+
+def _source_stamp(source: dict) -> dict:
+    """Per-source metadata stamped onto every row of that source."""
+    pmid_raw = source.get("pmid")
+    return {
+        "backend": source.get("backend") or "",
+        "source_id": source.get("source_id") or "",
+        "pmid": int(pmid_raw) if pmid_raw is not None else pd.NA,
+        "reference": source.get("reference") or "",
+        "study_label": source.get("study_label") or "",
+        "normalization": source.get("normalization") or "",
+        "quantifier": source.get("quantifier") or "",
+        "species": source.get("species") or "",
+        "license": source.get("license") or "",
+    }
+
+
+def _parent_line_lookup() -> dict[str, str]:
+    """Map each ``expression_key`` to the registry's canonical line name."""
+    return {
+        str(entry.get("expression_key")): str(entry.get("name", ""))
+        for entry in _load_anchors_yaml()
+        if entry.get("expression_key")
+    }
+
+
+@lru_cache(maxsize=1)
+def _gene_name_map() -> dict[str, str]:
+    """The packaged ENSG (version-stripped) -> HGNC symbol map."""
+    m = pd.read_csv(files(_DATA_MODULE) / _GENE_NAME_MAP_FILE, dtype=str).fillna("")
+    return {gid.split(".")[0]: nm for gid, nm in zip(m["gene_id"], m["gene_name"]) if gid and nm}
+
+
+def _fill_gene_names_from_packaged_map(df: pd.DataFrame) -> pd.DataFrame:
+    """Fill blank ``gene_name`` from :data:`_GENE_NAME_MAP_FILE`, in place.
+
+    IDs absent from the map stay blank; the builder's optional pyensembl pass
+    retries those.
     """
-    p = line_expression_path()
-    return _read_index(str(p), _artifact_signature(p))
+    gn = df["gene_name"].astype("string").fillna("")
+    gid = df["gene_id"].astype("string").fillna("")
+    need = (gn.str.strip() == "") & gid.str.startswith("ENSG")
+    if need.any():
+        id2name = _gene_name_map()
+        df.loc[need, "gene_name"] = (
+            gid[need].map(lambda g: id2name.get(g.split(".")[0], "")).to_numpy()
+        )
+    return df
+
+
+def enrich_line_expression_rows(rows: pd.DataFrame) -> pd.DataFrame:
+    """Canonical index rows from value rows: the one definition of a row.
+
+    Stamps each row's source metadata from ``sources.yaml`` (by ``source_id``),
+    ``parent_line_key`` from the anchor registry and blank ``gene_name`` from
+    the packaged ENSG -> HGNC map, then normalizes dtypes and orders
+    :data:`LINE_EXPRESSION_COLUMNS`.  The builder applies it to everything it
+    writes, and every read that cannot use a built index applies it to the
+    packaged sources — so a reader without an index sees the rows a build
+    would write, less only the builder's optional pyensembl backfill, which a
+    read path must not need (#577).
+    """
+    out = rows.copy()
+    for column in LINE_EXPRESSION_COLUMNS:
+        if column not in out.columns:
+            out[column] = pd.NA if column in {"pmid", "tpm", "log2_tpm"} else ""
+    stamps = {str(s.get("source_id") or ""): _source_stamp(s) for s in _load_sources_yaml()}
+    source_ids = out["source_id"].astype(str)
+    for column, default in _source_stamp({}).items():
+        if column == "source_id":
+            continue
+        values = {sid: stamp[column] for sid, stamp in stamps.items()}
+        out[column] = source_ids.map(values).where(source_ids.isin(values), default)
+    out["parent_line_key"] = out["line_key"].astype(str).map(_parent_line_lookup()).fillna("")
+    out = _fill_gene_names_from_packaged_map(out)
+    out["pmid"] = pd.to_numeric(out["pmid"], errors="coerce").astype("Int64")
+    out["tpm"] = pd.to_numeric(out["tpm"], errors="coerce").astype("float64")
+    out["log2_tpm"] = pd.to_numeric(out["log2_tpm"], errors="coerce").astype("float64")
+    out["profile_id"] = out["profile_id"].fillna("")
+    return out[list(LINE_EXPRESSION_COLUMNS)].reset_index(drop=True)
+
+
+@lru_cache(maxsize=1)
+def _packaged_rows() -> pd.DataFrame:
+    return enrich_line_expression_rows(_load_packaged_union())
+
+
+def packaged_line_expression_rows() -> pd.DataFrame:
+    """Every packaged source as canonical rows — what readers use without an index."""
+    return _packaged_rows().copy()
+
+
+# ── Index stamp and staleness (#577) ────────────────────────────────────────
+
+
+def _packaged_input_paths() -> dict[str, Path]:
+    """Every packaged file a built index is derived from, keyed by file name.
+
+    The anchor registry, ``sources.yaml``, each packaged source CSV and the
+    ENSG -> HGNC map: every packaged *build input*, not only the sources that
+    contribute rows, because each of them changes the bytes a build writes
+    (#582).  Optional DepMap matrices are deliberately absent: they are
+    user-local, so an index that carries them is richer than the packaged
+    sources, not inconsistent with them.
+    """
+    data = files(_DATA_MODULE)
+    paths = {
+        _ANCHORS_FILE: Path(str(files(_ANCHORS_RESOURCE) / _ANCHORS_FILE)),
+        "sources.yaml": Path(str(data / "sources.yaml")),
+        _GENE_NAME_MAP_FILE: Path(str(data / _GENE_NAME_MAP_FILE)),
+    }
+    for _source_id, path in _iter_packaged_csvs():
+        paths[path.name] = path
+    return paths
+
+
+def _fingerprint_of(paths: dict[str, Path]) -> str:
+    """Name-aware digest of files' contents, streamed rather than held in memory."""
+    digest = hashlib.sha256()
+    for name, path in sorted(paths.items()):
+        content = hashlib.sha256()
+        with open(path, "rb") as stream:
+            for chunk in iter(lambda: stream.read(1 << 20), b""):
+                content.update(chunk)
+        digest.update(f"{name}\0".encode())
+        digest.update(content.digest())
+    return digest.hexdigest()
+
+
+@lru_cache(maxsize=1)
+def packaged_line_expression_fingerprint() -> str:
+    """Content fingerprint of this release's packaged line-expression build inputs.
+
+    A hash, not a version or an mtime: an index is built on one machine and
+    read on another (a downloaded CI corpus, a shared cache), so only the
+    bytes the build consumed can say whether it is the index this release
+    would produce.
+    """
+    return _fingerprint_of(_packaged_input_paths())
+
+
+def line_expression_index_stamp() -> dict:
+    """What an index built by this release is stamped with.
+
+    ``packaged_inputs`` is :func:`packaged_line_expression_fingerprint` and
+    ``build_version`` is :data:`LINE_EXPRESSION_BUILD_VERSION`.  The builder's
+    observations cache records the same mapping, so the rebuild a stale-index
+    warning asks for is one ``hitlist build observations`` agrees is needed.
+    """
+    return {
+        "packaged_inputs": packaged_line_expression_fingerprint(),
+        "build_version": LINE_EXPRESSION_BUILD_VERSION,
+    }
+
+
+def write_line_expression_index(df: pd.DataFrame, path: Path | None = None) -> Path:
+    """Write ``df`` as a line-expression index stamped for this release.
+
+    The one writer of ``line_expression.parquet``: the builder uses it, and so
+    should any test or tool that installs an index the resolver is meant to
+    trust — an index without this release's stamp is treated as stale.
+    Atomic: concurrent readers never see a half-written index.
+    """
+    out = Path(path) if path is not None else line_expression_path()
+    stamp = json.dumps(line_expression_index_stamp(), sort_keys=True).encode()
+    return atomic_write_parquet(df, out, metadata={INDEX_STAMP_METADATA_KEY: stamp})
+
+
+def _artifact_signature(path: Path) -> tuple[int, int, int] | None:
+    """Identity of the file on disk, so a rebuild invalidates cached reads."""
+    if not path.exists():
+        return None
+    stat = path.stat()
+    return (stat.st_ino, stat.st_mtime_ns, stat.st_size)
+
+
+@lru_cache(maxsize=8)
+def _index_status(path: str, signature: tuple[int, int, int] | None) -> tuple[str, str]:
+    """Classify a built index: ``(state, detail)``.  Pure — never warns.
+
+    ``absent``; ``unreadable``; ``current``; ``inputs_changed`` (this build
+    version, other packaged inputs); ``outdated`` (unstamped, or another build
+    version).  Cached per artifact identity, which changes on every rebuild.
+    """
+    if signature is None:
+        return ("absent", "")
+    import pyarrow.parquet as pq
+
+    try:
+        raw = (pq.read_schema(path).metadata or {}).get(INDEX_STAMP_METADATA_KEY)
+        stamp = json.loads(raw) if raw else None
+    except (ArrowInvalid, OSError, ValueError) as exc:
+        return ("unreadable", str(exc))
+    if stamp is None:
+        return ("outdated", "it has no build stamp")
+    if stamp.get("build_version") != LINE_EXPRESSION_BUILD_VERSION:
+        return (
+            "outdated",
+            f"index format {stamp.get('build_version')}; this release writes "
+            f"{LINE_EXPRESSION_BUILD_VERSION}",
+        )
+    if stamp.get("packaged_inputs") != packaged_line_expression_fingerprint():
+        return ("inputs_changed", "")
+    return ("current", "")
+
+
+def line_expression_index_is_current(path: Path | None = None) -> bool:
+    """Whether a built index carries this release's stamp.
+
+    ``False`` when it is missing, unreadable, unstamped, or stamped with other
+    packaged inputs or another :data:`LINE_EXPRESSION_BUILD_VERSION`.  A pure
+    check: it never warns, so asking does not consume the one warning a read
+    of a stale index emits.
+    """
+    p = Path(path) if path is not None else line_expression_path()
+    return _index_status(str(p), _artifact_signature(p))[0] == "current"
+
+
+def _registered_pairs() -> frozenset[tuple[str, str]]:
+    """Every (line_key, source_id) pair the anchor registry lists."""
+    return frozenset(
+        (str(entry["expression_key"]), str(source_id))
+        for entry in _load_anchors_yaml()
+        if entry.get("expression_key")
+        for source_id in entry.get("source_ids") or []
+    )
+
+
+def _packaged_source_ids() -> frozenset[str]:
+    return frozenset(
+        str(s.get("source_id") or "")
+        for s in _load_sources_yaml()
+        if s.get("build_status") == "packaged"
+    )
+
+
+def _read_parquet_or_warn(path: Path, columns=None) -> pd.DataFrame | None:
+    try:
+        return pd.read_parquet(path, columns=columns)
+    except (ArrowInvalid, OSError, ValueError) as exc:
+        warnings.warn(
+            f"Failed to read built line expression parquet at {path}; "
+            f"falling back to packaged sources. {exc}",
+            RuntimeWarning,
+            stacklevel=3,
+        )
+        return None
+
+
+def _index_download_pairs(path: Path) -> frozenset[tuple[str, str]]:
+    """(line_key, source_id) pairs of the index's downloaded (non-packaged) rows."""
+    rows = _read_parquet_or_warn(path, columns=["line_key", "source_id"])
+    if rows is None:
+        return frozenset()
+    pairs = rows.drop_duplicates().astype(str).itertuples(index=False, name=None)
+    packaged = _packaged_source_ids()
+    return frozenset(pair for pair in pairs if pair[1] not in packaged)
+
+
+def _carried_download_rows(path: Path, columns=None) -> pd.DataFrame | None:
+    """The index's downloaded rows for pairs the current registry still lists.
+
+    Re-enriched against this release's registry and ``sources.yaml``, so a
+    carried row is the row a rebuild would write from the same download.
+    """
+    wanted = None if columns is None else sorted({*columns, "line_key", "source_id"})
+    rows = _read_parquet_or_warn(path, columns=wanted)
+    if rows is None:
+        return None
+    packaged = _packaged_source_ids()
+    allowed = {
+        f"{line}\t{source}" for line, source in _registered_pairs() if source not in packaged
+    }
+    key = rows["line_key"].astype(str) + "\t" + rows["source_id"].astype(str)
+    return enrich_line_expression_rows(rows[key.isin(allowed)])
+
+
+def _describe_pairs(pairs: frozenset[tuple[str, str]]) -> str:
+    lines = sorted({line for line, _ in pairs})
+    sources = sorted({source for _, source in pairs})
+    shown = ", ".join(lines[:6]) + (f" and {len(lines) - 6} more" if len(lines) > 6 else "")
+    return f"{shown} ({', '.join(sources)})"
+
+
+def _rebuild_hint(has_downloads: bool) -> str:
+    if not has_downloads:
+        return (
+            "Rebuild it with `hitlist build observations` or "
+            "`hitlist.builder.build_line_expression()` to silence this."
+        )
+    from .downloads import depmap_bundle_is_registered
+
+    if depmap_bundle_is_registered():
+        return (
+            "`hitlist data fetch depmap` rebuilds it from the registered DepMap "
+            "files without downloading them again."
+        )
+    return (
+        "`hitlist data fetch depmap` rebuilds it, but its DepMap files are no "
+        "longer registered on disk, so it will download them again (about 4.7 GB)."
+    )
+
+
+@lru_cache(maxsize=8)
+def _warn_about_index(path: str, signature: tuple[int, int, int] | None) -> None:
+    """The one warning a read of a non-current index emits, per artifact identity.
+
+    Said in terms of what the reader actually loses: DepMap is only mentioned
+    to someone whose index held downloaded rows.
+    """
+    state, detail = _index_status(path, signature)
+    if state == "unreadable":
+        message = (
+            f"Failed to read built line expression parquet at {path}; "
+            f"falling back to packaged sources. {detail}"
+        )
+    else:
+        held = _index_download_pairs(Path(path))
+        if state == "inputs_changed":
+            kept = held & _registered_pairs()
+            dropped = held - kept
+            message = (
+                f"Line expression index at {path} was built from different packaged "
+                f"line-expression inputs than this release ships; reads use this "
+                f"release's packaged sources"
+            )
+            if kept:
+                message += f" plus the index's downloaded rows for {_describe_pairs(kept)}"
+            if dropped:
+                message += (
+                    f", leaving out its rows for {_describe_pairs(dropped)}, which "
+                    f"the registry no longer lists"
+                )
+            message += "."
+        else:
+            message = (
+                f"Line expression index at {path} predates this release's index "
+                f"format ({detail}), so reads use the packaged sources instead"
+            )
+            message += (
+                f"; its downloaded rows for {_describe_pairs(held)} are not used "
+                f"until it is rebuilt."
+                if held
+                else ", which hold everything it contained."
+            )
+        message += " " + _rebuild_hint(bool(held))
+    warnings.warn(message, RuntimeWarning, stacklevel=4)
+
+
+def _line_expression_rows(
+    path: Path, signature: tuple[int, int, int] | None, columns=None
+) -> pd.DataFrame:
+    """The rows every reader sees — the one decision about the built index (#577).
+
+    ``current``: the index itself.  ``inputs_changed``: this release's packaged
+    rows plus the index's downloaded rows for (line, source) pairs the
+    registry still lists — a changed anchor file must not cost a DepMap user
+    HeLa or K562.  ``outdated``, ``unreadable`` or ``absent``: packaged rows.
+    Warns once per index per process, only here on the read path, and never
+    writes: a read that rebuilt the index would rebuild under whichever
+    process happened to read first.
+    """
+    state, _detail = _index_status(str(path), signature)
+    if state == "current":
+        rows = _read_parquet_or_warn(path, columns=columns)
+        if rows is not None:
+            return rows
+    elif state != "absent":
+        _warn_about_index(str(path), signature)
+    rows = _packaged_rows()
+    if state == "inputs_changed":
+        carried = _carried_download_rows(path, columns)
+        if carried is not None and not carried.empty:
+            rows = pd.concat([rows, carried], ignore_index=True)
+    return rows[list(columns)] if columns else rows.copy()
 
 
 def _apply_series_filter(df: pd.DataFrame, col: str, values) -> pd.DataFrame:
@@ -782,8 +1054,10 @@ def load_line_expression(
 ) -> pd.DataFrame:
     """Load per-line RNA/transcript TPM with optional filters.
 
-    Prefers ``line_expression.parquet`` when built; falls back to the
-    packaged CSVs under ``hitlist/data/line_expression/`` otherwise.
+    Reads ``line_expression.parquet`` when it matches this release, and the
+    packaged sources under ``hitlist/data/line_expression/`` — enriched to the
+    same row shape — when it is absent or stale (see
+    :func:`line_expression_index_is_current`).
 
     Parameters
     ----------
@@ -803,8 +1077,8 @@ def load_line_expression(
     columns
         Project to a subset of columns.
     """
-    parquet_df = _load_parquet_or_none()
-    df = parquet_df if parquet_df is not None else _load_packaged_union()
+    path = line_expression_path()
+    df = _line_expression_rows(path, _artifact_signature(path))
 
     df = _apply_series_filter(df, "line_key", line_key)
     df = _apply_series_filter(df, "gene_name", gene_name)
@@ -1029,16 +1303,21 @@ def compute_peptide_origin(
 # Convenience re-exports for downstream callers.
 
 __all__ = [
-    "PACKAGED_INPUTS_METADATA_KEY",
+    "INDEX_STAMP_METADATA_KEY",
+    "LINE_EXPRESSION_BUILD_VERSION",
+    "LINE_EXPRESSION_COLUMNS",
     "SampleExpressionAnchor",
     "compute_peptide_origin",
+    "enrich_line_expression_rows",
     "is_line_expression_built",
     "line_expression_index_is_current",
+    "line_expression_index_stamp",
     "line_expression_path",
     "load_line_expression",
     "load_line_expression_anchors",
     "load_line_expression_sources",
     "packaged_line_expression_fingerprint",
+    "packaged_line_expression_rows",
     "resolve_line_key",
     "resolve_sample_expression_anchor",
     "write_line_expression_index",

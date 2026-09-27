@@ -26,6 +26,7 @@ from hitlist.mappings import (
     mappings_meta_path,
 )
 from hitlist.observations import observations_cache_is_current
+from hitlist.parquet_io import atomic_write_parquet
 
 # ── observations ────────────────────────────────────────────────────────────
 
@@ -34,9 +35,7 @@ def _seed_observation_cache(tmp_path, monkeypatch, *, artifact_version=None):
     """A registered source plus the four parquets and metadata that match them."""
     monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
     for name in ("observations", "binding", "bulk_proteomics", "line_expression"):
-        builder._atomic_write_parquet(
-            pd.DataFrame({"peptide": ["AAAAAAAAA"]}), tmp_path / f"{name}.parquet"
-        )
+        atomic_write_parquet(pd.DataFrame({"peptide": ["AAAAAAAAA"]}), tmp_path / f"{name}.parquet")
     source = tmp_path / "iedb.csv"
     source.write_text("source")
     paths = {"iedb": source}
@@ -89,7 +88,7 @@ def test_observations_predicate_false_on_legacy_artifact_version(tmp_path, monke
 
 def test_observations_predicate_false_when_a_parquet_is_replaced(tmp_path, monkeypatch):
     _seed_observation_cache(tmp_path, monkeypatch)
-    builder._atomic_write_parquet(
+    atomic_write_parquet(
         pd.DataFrame({"peptide": ["AAAAAAAAA", "CCCCCCCCC"]}), tmp_path / "observations.parquet"
     )
 

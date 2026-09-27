@@ -2866,9 +2866,10 @@ _EXPRESSION_ANCHOR_COLUMNS = (
 )
 
 #: Grouping/merge key that carries curated engineering into the resolver
-#: inside :func:`_attach_peptide_origin`.  Dropped before returning: the
-#: fact it encodes reaches consumers as ``expression_match_tier`` 2 plus
-#: ``expression_parent_key``, which is the provenance contract (#140/#576).
+#: inside :func:`_attach_peptide_origin`.  Deleted right after the anchor
+#: merge: the fact it encodes reaches consumers as ``expression_match_tier``
+#: 2 plus ``expression_parent_key``, which is the provenance contract
+#: (#140/#576).
 _ENGINEERED_MATERIAL_COLUMN = "_expression_engineered_material"
 
 
@@ -2994,6 +2995,9 @@ def _attach_peptide_origin(
     if "pmid" in df.columns:
         df["pmid"] = df["pmid"].astype("Int64")
     df = df.merge(anchor_df, on=grouping_cols, how="left")
+    # The flag has done its job once it is in the anchor; deleting the column
+    # in place avoids a full-frame copy on a multi-million-row export.
+    del df[_ENGINEERED_MATERIAL_COLUMN]
 
     # ------------------------------------------------------------------
     # 2. Preload TPM tables for every distinct line_key.
@@ -3100,7 +3104,7 @@ def _attach_peptide_origin(
             elif isinstance(default, int):
                 df[col] = df[col].fillna(default).astype(int)
 
-    return df.drop(columns=[_ENGINEERED_MATERIAL_COLUMN])
+    return df
 
 
 def _apply_training_defaults(df: pd.DataFrame) -> pd.DataFrame:

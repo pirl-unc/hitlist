@@ -9,7 +9,6 @@ from hitlist.builder import (
     _CATEGORICAL_BUILD_COLUMNS,
     _CONCAT_PROMOTE_OPTIONS,
     _OBSERVATIONS_ARTIFACT_VERSION,
-    _atomic_write_parquet,
     _cache_is_valid,
     _compress_categoricals,
     _drop_duplicate_iris,
@@ -20,6 +19,7 @@ from hitlist.builder import (
     _source_fingerprints,
     _validate_mhc_tokens,
 )
+from hitlist.parquet_io import atomic_write_parquet
 from hitlist.supplement import load_supplementary_manifest
 
 
@@ -58,7 +58,7 @@ def test_cache_invalidates_curation_content_changes(isolated_curation, filename)
     path = isolated_curation / filename
     path.write_text(path.read_text() + "\n# review a\n")
     for name in ("observations", "binding", "bulk_proteomics", "line_expression"):
-        builder._atomic_write_parquet(
+        atomic_write_parquet(
             pd.DataFrame({"peptide": ["AAAAAAAAA"]}), builder.data_dir() / f"{name}.parquet"
         )
     _meta_path().write_text(
@@ -118,7 +118,7 @@ def test_curation_change_rebuilds_stored_evidence(isolated_curation, tmp_path, m
 
     def write_empty_index(path):
         frame = pd.DataFrame()
-        builder._atomic_write_parquet(frame, path)
+        atomic_write_parquet(frame, path)
         return frame
 
     monkeypatch.setattr(
@@ -428,14 +428,14 @@ def test_atomic_write_parquet_replaces_existing(tmp_path):
 
     path = tmp_path / "observations.parquet"
     first = pd.DataFrame({"peptide": ["AAA"], "gene_names": [""]})
-    _atomic_write_parquet(first, path)
+    atomic_write_parquet(first, path)
     assert path.exists()
     assert "gene_names" in set(pq.read_schema(path).names)
 
     second = pd.DataFrame(
         {"peptide": ["AAA", "BBB"], "gene_names": ["HER2", "PRAME"], "extra": [1, 2]}
     )
-    _atomic_write_parquet(second, path)
+    atomic_write_parquet(second, path)
 
     assert not path.with_suffix(".parquet.partial").exists()
     back = pd.read_parquet(path)
@@ -446,7 +446,7 @@ def test_atomic_write_parquet_replaces_existing(tmp_path):
 def test_atomic_write_parquet_no_partial_leftover(tmp_path):
     """``.partial`` must not remain after a successful atomic write."""
     path = tmp_path / "binding.parquet"
-    _atomic_write_parquet(pd.DataFrame({"peptide": ["X"]}), path)
+    atomic_write_parquet(pd.DataFrame({"peptide": ["X"]}), path)
     assert path.exists()
     assert not path.with_suffix(".parquet.partial").exists()
 
@@ -454,43 +454,21 @@ def test_atomic_write_parquet_no_partial_leftover(tmp_path):
 # ── Line-expression cache fingerprints (issue #150) ────────────────────────
 
 
-def test_source_fingerprints_includes_line_expression_anchors():
-    """Cache fingerprint must cover line_expression_anchors.yaml so curation
-    edits invalidate the build cache (issue #150).
-    """
-    fp = _source_fingerprints({})
-    assert "line_expression_anchors" in fp
-
-
-def test_source_fingerprints_includes_line_expression_sources_yaml():
-    fp = _source_fingerprints({})
-    assert "line_expression_sources" in fp
-
-
-def test_source_fingerprints_includes_packaged_line_expression_csvs():
-    """Every packaged CSV under hitlist/data/line_expression/ should be
-    fingerprinted.  GM12878 ships with the repo, so its key must appear.
-    """
-    fp = _source_fingerprints({})
-    csv_keys = [k for k in fp if k.startswith("line_expression_csv:")]
-    assert any("gm12878" in k.lower() for k in csv_keys), (
-        "expected packaged GM12878 CSV to be fingerprinted"
-    )
-
-
-def test_source_fingerprints_carry_the_packaged_line_expression_fingerprint():
-    """The build cache and the index stamp must agree on "packaged inputs" (#577).
+def test_source_fingerprints_carry_the_line_expression_index_stamp():
+    """The build cache and the index stamp agree on what makes an index stale (#577).
 
     A reader that reports a stale index names ``hitlist build observations`` as
-    the repair, so that build has to reach the same verdict from the same
-    evidence — not from sizes and timestamps an install could preserve.
+    one repair, so that build has to reach the same verdict from the same
+    evidence — a content hash of every packaged build input plus the index
+    build version, not sizes and timestamps an install could preserve.  The
+    per-file stat entries the stamp supersedes are gone.
     """
-    from hitlist.line_expression import packaged_line_expression_fingerprint
+    from hitlist.line_expression import line_expression_index_stamp
 
     fp = _source_fingerprints({})
-    assert fp["line_expression_packaged_inputs"] == {
-        "sha256": packaged_line_expression_fingerprint()
-    }
+    assert fp["line_expression_index"] == line_expression_index_stamp()
+    assert not [k for k in fp if k.startswith(("line_expression_csv:", "line_expression_anchors"))]
+    assert "line_expression_sources" not in fp
 
 
 def test_source_fingerprints_includes_registered_depmap_inputs(tmp_path, monkeypatch):
@@ -1066,7 +1044,7 @@ def test_fill_gene_names_via_ensembl_noop_when_pyensembl_missing(monkeypatch):
 def test_fill_gene_names_from_csv_fills_blank_from_ensg():
     """The packaged ENSG→symbol CSV fills blank gene_names without pyensembl;
     rows already named, or lacking an ENSG id, are untouched."""
-    from hitlist.builder import _fill_gene_names_from_csv
+    from hitlist.line_expression import _fill_gene_names_from_packaged_map
 
     df = pd.DataFrame(
         {
@@ -1074,7 +1052,7 @@ def test_fill_gene_names_from_csv_fills_blank_from_ensg():
             "gene_name": ["", "", "", "ALREADY"],  # 0/1 blank+ENSG; 2 no id; 3 named
         }
     )
-    out = _fill_gene_names_from_csv(df.copy())
+    out = _fill_gene_names_from_packaged_map(df.copy())
     assert out.loc[0, "gene_name"] == "TNFRSF12A"
     assert out.loc[1, "gene_name"] == "ZNF806"
     assert out.loc[2, "gene_name"] == ""  # no ENSG id -> left blank
@@ -1083,10 +1061,9 @@ def test_fill_gene_names_from_csv_fills_blank_from_ensg():
 
 def test_gene_name_map_csv_is_packaged_and_well_formed():
     """The shipped CSV exists, has the right header, and version-stripped keys."""
-    from hitlist.builder import _GENE_NAME_MAP_CSV, _load_gene_name_map
+    from hitlist.line_expression import _gene_name_map
 
-    assert _GENE_NAME_MAP_CSV.exists()
-    id2name = _load_gene_name_map()
+    id2name = _gene_name_map()
     assert len(id2name) > 9000  # ~9,127 resolved IDs
     assert id2name["ENSG00000006327"] == "TNFRSF12A"
     assert all(k.startswith("ENSG") and "." not in k for k in id2name)  # version-stripped

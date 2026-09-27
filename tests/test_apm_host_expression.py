@@ -140,15 +140,34 @@ def test_engineered_label_on_a_parental_alias_uses_parent_rna(every_registered_s
     assert engineered.matched_alias == parental.matched_alias
 
 
-def test_engineered_sample_keeps_tier_1_on_a_line_registered_in_its_own_right(
-    tmp_path, monkeypatch
-):
-    """A registry entry with a ``parent_line`` models the engineered material.
+def test_curated_engineering_is_the_default(every_registered_source):
+    """Not opt-in: ``pmid`` + ``sample_label`` of a curated arm is enough.
 
-    Data registered against it was measured in that material, so demoting it
-    would report a measurement as a surrogate and name the line as its own
-    parent.  Nothing in the registry has its own RNA yet (#358 would be the
-    first), so the rule is pinned here rather than through curation.
+    An external caller that never heard of ``engineered`` still gets honest
+    provenance for a curated engineered arm, and an explicit value overrides.
+    """
+    engineered = resolve_sample_expression_anchor("HeLa-CIITA (Mock)", pmid=36215666)
+    assert engineered.expression_match_tier == 2
+    assert engineered.expression_parent_key == "HeLa"
+    parental = resolve_sample_expression_anchor("HeLa naive (HLA-A*02:01)", pmid=19748539)
+    assert parental.expression_match_tier == 1
+    # Introduced MHC is engineering too: a K562 DPB1 transfectant is not K562.
+    transfectant = resolve_sample_expression_anchor(
+        "K562 transfectant DPB1*01:01/DPA1*02:01", pmid=32350084
+    )
+    assert transfectant.expression_match_tier == 2
+    assert transfectant.expression_parent_key == "K562"
+    forced = resolve_sample_expression_anchor("HeLa-CIITA (Mock)", pmid=36215666, engineered=False)
+    assert forced.expression_match_tier == 1
+
+
+def test_engineered_sample_never_resolves_at_tier_1(tmp_path, monkeypatch):
+    """Not even through a derivative entry with RNA registered under it.
+
+    Registry derivative entries are catch-alls — ``HAP1-KO`` covers eleven
+    knockouts, ``C1R-HLA`` every C1R transfectant — so RNA registered under
+    one would pose as exact RNA for all the others.  The hit resolves at tier
+    2, naming the registered material as the reference.
     """
     from hitlist import line_expression as le
 
@@ -183,32 +202,22 @@ def test_engineered_sample_keeps_tier_1_on_a_line_registered_in_its_own_right(
                 "source_id": ["DepMap_24Q4_gene", "Pearson_BLCL_panel"],
             }
         ),
-        tmp_path / "line_expression.parquet",
     )
-    monkeypatch.setattr(le, "line_expression_path", lambda: tmp_path / "line_expression.parquet")
 
     anchor = resolve_sample_expression_anchor("HeLa-CIITA (Mock)", engineered=True)
-    assert anchor.expression_match_tier == 1
+    assert anchor.expression_match_tier == 2
     assert anchor.expression_key == "HeLa-CIITA"
-    assert anchor.expression_parent_key is None
+    assert anchor.expression_parent_key == "HeLa-CIITA"
 
 
 def test_no_curated_engineered_sample_resolves_at_tier_1(every_registered_source):
     table = generate_sample_expression_table()
     engineered = engineered_material_mask(table)
-    # A line the registry models in its own right may carry RNA measured in
-    # the engineered material; a root entry's RNA never was.
-    derivative_keys = {
-        str(entry["expression_key"])
-        for entry in load_line_expression_anchors()
-        if entry.get("expression_key") and entry.get("parent_line")
-    }
-    offenders = table.loc[
-        engineered & table.expression_match_tier.eq(1) & ~table.expression_key.isin(derivative_keys)
-    ]
+    offenders = table.loc[engineered & table.expression_match_tier.eq(1)]
     assert offenders.empty, offenders[["pmid", "sample_label", "expression_key"]]
     # Not vacuous: without their curated engineering these labels would
-    # claim the parental line's RNA as their own.
+    # claim the reference line's RNA as their own — knockouts, transfected
+    # genes and introduced MHC alike.
     label_only = {
         label
         for label in table.loc[engineered, "sample_label"]
@@ -218,6 +227,9 @@ def test_no_curated_engineered_sample_resolves_at_tier_1(every_registered_source
         "SaOS-2 + TP53 R175H",
         "HeLa-CIITA + T6BP siRNA",
         "THP-1 TAP1 knockout + mock infection",
+        "K562 transfectant DPB1*01:01/DPA1*02:01",
+        "K562 transfected with DLA-88*501:01",
+        "HeLa-sHLA-HLA-A*02:01",
     } <= label_only
     hap1 = table.loc[table.pmid.eq(40113210)]
     assert len(hap1) == 12
