@@ -195,7 +195,15 @@ def test_gbm_pan_class_ii_candidates_carry_the_cells_whole_class_ii_typing():
     and the basis is the cell's own typing (#565)."""
     samples = export.generate_ms_samples_table()
     arms = samples[samples.pmid.eq(33592498) & samples.mhc_class.eq("II")]
-    assert len(arms) == 3
+    # Three lines, each with a parental and a CIITA-transduced class-II arm:
+    # every lysate went through the HLA-II affinity plate, parental included,
+    # and the parental runs yielded identifications of their own (#567).
+    assert len(arms) == 6
+    assert set(arms.sample_label) == {
+        f"{line} {condition} (class II)"
+        for line in ("HROG02", "HROG17", "RA")
+        for condition in ("parental", "CIITA-transduced")
+    }
     for sample in arms.itertuples():
         assert sample.ip_antibody == "HB245/IVA12"
         assert sample.mhc_basis == "sample_typing"
@@ -249,20 +257,20 @@ def test_deposited_gbm_class_ii_restrictions_are_candidates_of_their_own_arm(
 
 
 @pytest.mark.parametrize(
-    "restriction, sample_label",
+    "restriction, statement_line, sample_label",
     [
         # The review case: IEDB deposits this one as a bare beta chain with no
         # alpha partner, while the curated candidate is the heterodimer
         # HLA-DPA1*01:03/DPB1*11:01. It reaches the arm because the join emits
         # a key per component, not because the pair string matches (#151).
-        ("HLA-DPB1*11:01", "HROG17 CIITA-transduced (class II)"),
+        ("HLA-DPB1*11:01", "HROG17", "HROG17 CIITA-transduced (class II)"),
         # The same arm reached by a full pair, which must keep working too.
-        ("HLA-DQA1*05:05/DQB1*03:01", "HROG17 CIITA-transduced (class II)"),
-        ("HLA-DRB3*01:01", "HROG02 CIITA-transduced (class II)"),
+        ("HLA-DQA1*05:05/DQB1*03:01", "HROG17", "HROG17 CIITA-transduced (class II)"),
+        ("HLA-DRB3*01:01", "HRGO02", "HROG02 CIITA-transduced (class II)"),
     ],
 )
 def test_single_chain_gbm_restriction_reaches_its_arm_through_the_allele_join(
-    monkeypatch, restriction, sample_label
+    monkeypatch, restriction, statement_line, sample_label
 ):
     """End-to-end, not just the component set.
 
@@ -271,12 +279,15 @@ def test_single_chain_gbm_restriction_reaches_its_arm_through_the_allele_join(
     applying ``_normalized_allele_components`` per candidate, that assertion
     would keep passing while 2,509 HLA-DPB1*11:01 rows silently lost their arm
     and fell back to ``pmid_class_pool`` against the study's pooled candidate
-    union. Checked by mutation — this test fails on all four claims there.
+    union. ``sample_match_type == "allele_match"`` is what fails on that
+    mutation, because the class-pool stage would reach the same arm by the
+    statement and say so with ``pmid_class_pool``.
 
-    ``allele_exact`` is the claim, not ``elution_conditions``: each of these
-    restrictions is typed in exactly one of the three lines, so the key is
-    unambiguous and never reaches the arm tie-break. ``assay_comments`` is
-    left empty for that reason — the candidate list alone has to carry it.
+    Each of these restrictions is typed in exactly one of the three lines, so
+    the allele key names one line — but since #567 it names both of that line's
+    class-II arms, parental and transduced, which is honest: with no statement
+    a class-II peptide of that line could have come off either. The deposited
+    statement is what separates them, and every row of this study carries one.
     """
     monkeypatch.setattr(
         "hitlist.observations.load_observations",
@@ -291,7 +302,10 @@ def test_single_chain_gbm_restriction_reaches_its_arm_through_the_allele_join(
                     "cell_name": "Glial cell",
                     "source_tissue": "Central nervous system (CNS)",
                     "antigen_processing_comments": "",
-                    "assay_comments": "",
+                    "assay_comments": (
+                        "The epitope was eluted from the following conditions: "
+                        f"{statement_line} cells treated with CIITA."
+                    ),
                     "is_binding_assay": False,
                     "source": "iedb",
                 }
@@ -301,7 +315,7 @@ def test_single_chain_gbm_restriction_reaches_its_arm_through_the_allele_join(
     row = export.generate_observations_table(exclude_non_peptide_ligand=False).iloc[0]
     assert row.sample_label == sample_label
     assert row.sample_match_type == "allele_match"
-    assert row.sample_attribution == "allele_exact"
+    assert row.sample_attribution == "elution_conditions"
     assert row.mhc_basis == "sample_typing"
     # The row now reports the arm's whole class-II typing rather than the
     # study's pooled DRB1 list, which is what #565 was about.

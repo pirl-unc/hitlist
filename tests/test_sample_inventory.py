@@ -25,12 +25,18 @@ from hitlist import curation
 from hitlist.curation import load_pmid_overrides, pmid_source_organism
 from hitlist.export import _observation_eligible_samples, generate_ms_samples_table
 
-#: The four records carrying explicit ``profiled: false`` curation (#437).
+#: Every record carrying explicit ``profiled: false`` curation (#437).
 UNPROFILED_SAMPLES = {
     (36589698, "healthy donor PBMCs"),
     (38920720, "tumor tissue"),
     (35051231, "P1 lung — X31-infected"),
     (35051231, "moDC cross-presentation — uninfected control"),
+    # Abelin 2017's three validation entries are datasets re-analysed from
+    # earlier publications, not specimens this paper ran: every one of its
+    # 27,102 deposited rows names a B721.221 transfectant (#558).
+    (28228285, "validation cell lines (HCC1937, HCT116, HeLa)"),
+    (28228285, "validation primary fibroblasts"),
+    (28228285, "validation PBMCs"),
 }
 
 
@@ -193,10 +199,14 @@ def test_unprofiled_records_are_excluded_from_observation_attribution(full_obser
     """Restoring the metadata must not manufacture a peptide observation.
 
     These arms have no MS data by construction, so no evidence row may be
-    attributed to one.  None of the four is reachable through today's
-    allele-based paths, so this is the corpus-level regression guard that
-    stays true as their curation gains an ``mhc`` or a matching
-    ``attributed_sample_label``.
+    attributed to one.  The four original records are unreachable because
+    they carry no ``mhc`` at all; Abelin's three do carry one — the class-only
+    ``HLA class I`` — and were reachable, which is how 2,972 mono-allelic rows
+    came to be attributed to a validation dataset (#558).  They are excluded
+    now by ``profiled: false`` rather than by having nothing to match on, so
+    this corpus-level guard is what proves the exclusion holds for both
+    shapes, and stays true as any of their curation gains an ``mhc`` or a
+    matching ``attributed_sample_label``.
     """
     attributed = {
         (int(pmid), str(label))
