@@ -409,7 +409,32 @@ def clear_fasta_index_cache() -> None:
 # (treated as cache misses) and eventually evicted by the cap policy.
 _INDEX_FORMAT_VERSION: int = 1
 
-_PROTEOME_INDEX_DISK_CACHE_DIR: Path = Path.home() / ".hitlist" / "proteome_index_cache"
+
+def default_proteome_index_cache_dir() -> Path:
+    """``~/.hitlist/proteome_index_cache`` — where pickled indexes go by default.
+
+    The single source of this default: the module global below and
+    :func:`set_disk_cache_dir`'s ``None`` case both call it, so the literal is
+    spelled once.
+    """
+    return Path.home() / ".hitlist" / "proteome_index_cache"
+
+
+_PROTEOME_INDEX_DISK_CACHE_DIR: Path = default_proteome_index_cache_dir()
+
+
+def proteome_index_cache_dir() -> Path:
+    """Directory currently holding the pickled proteome indexes (``*.pkl``).
+
+    A third location on top of :func:`hitlist.downloads.data_dir` and
+    :func:`hitlist.downloads.data_asset_dir`.  Unless :func:`set_disk_cache_dir`
+    has moved it, it is :func:`default_proteome_index_cache_dir` — under
+    ``~/.hitlist`` whatever the data directory resolves to, because it predates
+    #291 and follows neither ``$HITLIST_DATA_DIR`` nor
+    :func:`hitlist.downloads.set_data_dir` (#591).  ``hitlist data dirs``
+    reports it so "where did my disk go?" has a complete answer.
+    """
+    return _PROTEOME_INDEX_DISK_CACHE_DIR
 
 
 def _resolve_disk_cache_max_gb() -> float:
@@ -432,15 +457,14 @@ def _resolve_disk_cache_max_gb() -> float:
 def set_disk_cache_dir(path: Path | str | None) -> None:
     """Override the on-disk proteome-index cache directory.
 
-    Pass ``None`` to revert to the default (~/.hitlist/proteome_index_cache).
+    Pass ``None`` to revert to :func:`default_proteome_index_cache_dir`.
     Tests use this to point at a tmp_path so they don't pollute the
     real cache and aren't affected by it.
     """
     global _PROTEOME_INDEX_DISK_CACHE_DIR
-    if path is None:
-        _PROTEOME_INDEX_DISK_CACHE_DIR = Path.home() / ".hitlist" / "proteome_index_cache"
-    else:
-        _PROTEOME_INDEX_DISK_CACHE_DIR = Path(path)
+    _PROTEOME_INDEX_DISK_CACHE_DIR = (
+        default_proteome_index_cache_dir() if path is None else Path(path)
+    )
 
 
 def clear_disk_cache() -> None:
