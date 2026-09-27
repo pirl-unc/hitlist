@@ -9,135 +9,256 @@ whose import was 1.62.56 from the intended checkout while
 ``importlib.metadata.version("hitlist")`` said 1.62.21, site-packages held
 editable registrations for five versions, and ``pip check`` passed.
 
-Every ``hitlist`` distribution visible to this interpreter must carry the
-imported version, and exactly one of them must be an installed (site-packages)
-editable install of this checkout.  The checkout itself is searched too:
-``python -c`` and ``python -m pytest`` started there put it first on sys.path,
-where setuptools leaves a generated ``hitlist.egg-info`` that
+Every ``hitlist`` metadata directory visible to this interpreter must carry the
+checkout's version, and exactly one of them must be an installed editable
+install of this checkout.  The checkout itself is searched too: ``python -c``
+and ``python -m pytest`` started there put it first on sys.path, where
+setuptools leaves a generated ``hitlist.egg-info`` that
 ``pip install --no-build-isolation -e .`` does not refresh.
 
-Nothing is ever removed.  On a mismatch this exits 1 and lists what to move
-aside.  It is a standalone script rather than a hitlist module so that a stale
-installed copy of hitlist cannot be the code that checks itself.
+This never imports hitlist -- the import has side effects (#579), and a broken
+install must still be diagnosed -- and never removes anything: on a mismatch it
+exits 1 and says what to move aside and whether to reinstall.  It is a
+standalone script, not a hitlist module, so a stale installed copy cannot be
+the code that checks itself.
 """
 
+import csv
+import email
 import importlib.metadata
+import importlib.util
 import json
+import os
+import runpy
 import shutil
 import subprocess
 import sys
+import sysconfig
 from pathlib import Path
 from typing import NamedTuple, Optional
 from urllib.parse import urlparse
 from urllib.request import url2pathname
 
-import hitlist
-
 ROOT = Path(__file__).resolve().parents[1]
+PACKAGE = "hitlist"
+
+
+class Registration(NamedTuple):
+    path: Path  # the metadata directory
+    installed: bool  # False for the checkout's own generated egg-info
+    source: Optional[Path]  # where an editable install points, if it is one
+    reasons: list  # why it does not match the checkout; empty when it does
 
 
 class Audit(NamedTuple):
     n_distributions: int
-    kept: Optional[Path]
+    kept: Optional[Path]  # the one matching installed registration, if any
     problems: list
-    to_move: list
+    to_move: list  # extra registrations and stale checkout metadata
+    reinstall: Optional[str]  # why ./develop.sh must be re-run, if it must
 
 
-def metadata_dir(distribution):
-    # importlib.metadata has no public accessor for where a distribution's
-    # metadata lives; PathDistribution has kept it in ``_path`` since 3.8.
-    return Path(distribution._path).resolve()
+def metadata_dirs(search_path):
+    """Every hitlist metadata directory on ``search_path``, in lookup order.
+
+    Matched by name as importlib.metadata matches them, case-insensitively:
+    ``hitlist-<version>.dist-info``, ``hitlist.egg-info`` and
+    ``hitlist-<version>[-pyX.Y].egg-info``.
+    """
+    found = []
+    for entry in search_path:
+        directory = Path(entry or os.curdir)
+        if not directory.is_dir():
+            continue
+        for child in sorted(directory.iterdir()):
+            stem, suffix = os.path.splitext(child.name.lower())
+            if (
+                suffix in (".dist-info", ".egg-info")
+                and stem.partition("-")[0] == PACKAGE
+                and child.is_dir()
+                and child.resolve() not in found
+            ):
+                found.append(child.resolve())
+    return found
 
 
-def editable_source(distribution):
-    """The directory an editable install points at (PEP 610), or None."""
-    direct_url = json.loads(distribution.read_text("direct_url.json") or "{}")
+def editable_source(text):
+    """Where a PEP 610 ``direct_url.json`` says an editable install points, or None."""
+    if text is None:
+        return None
+    direct_url = json.loads(text)
     if not direct_url.get("dir_info", {}).get("editable"):
         return None
     return Path(url2pathname(urlparse(direct_url["url"]).path)).resolve()
 
 
-def registration(path, distribution):
-    """The metadata directory plus the files its RECORD placed beside it.
-
-    Only a wheel install's RECORD lists what it put in site-packages; an
-    egg-info's file list names the checkout's own sources.  Entries outside
-    the directory (``../../../bin/hitlist``) are shared by every install.
-    """
-    names = {path.name}
-    if path.suffix == ".dist-info":
-        names.update(
-            entry.parts[0] for entry in distribution.files or () if not str(entry).startswith("..")
-        )
-    return sorted(path.parent / name for name in names if (path.parent / name).exists())
-
-
-def audit(root, version, module_file, search_path):
-    """Compare every hitlist distribution on ``search_path`` with the imported code."""
-    problems = []
-    to_move = []
-    if Path(module_file).resolve().parent != root / "hitlist":
-        problems.append(f"import hitlist resolves to {module_file}, not {root / 'hitlist'}")
-    distributions = {}
-    for distribution in importlib.metadata.distributions(name="hitlist", path=search_path):
-        distributions.setdefault(metadata_dir(distribution), distribution)
-    kept = None
-    for path, distribution in distributions.items():
-        reasons = []
-        if distribution.version != version:
-            reasons.append(f"version {distribution.version}, not the imported {version}")
-        if path.parent != root:
-            source = editable_source(distribution)
+def examine(path, root, version):
+    """Compare one metadata directory with the checkout at ``root``."""
+    distribution = importlib.metadata.Distribution.at(path)
+    reasons = []
+    text = distribution.read_text("METADATA") or distribution.read_text("PKG-INFO")
+    found_version = email.message_from_string(text)["Version"] if text else None
+    if found_version is None:
+        reasons.append("no METADATA or PKG-INFO version (half-written?)")
+    elif found_version != version:
+        reasons.append(f"version {found_version}, not the checkout's {version}")
+    installed = path.parent != root
+    source = None
+    if installed:
+        try:
+            source = editable_source(distribution.read_text("direct_url.json"))
+        except (AttributeError, KeyError, TypeError, ValueError) as error:
+            reasons.append(f"unreadable direct_url.json ({error!r}; half-written?)")
+        else:
             if source is None:
                 reasons.append("not an editable install")
             elif source != root:
                 reasons.append(f"editable install of {source}")
-            elif not reasons and kept is None:
-                kept = path
-            elif not reasons:
-                reasons.append(f"duplicate of {kept}")
-        if reasons:
-            problems.append(f"{path}: {'; '.join(reasons)}")
-            to_move.extend(registration(path, distribution))
-    if kept is None:
-        problems.append(f"no installed hitlist {version} is an editable install of {root}")
-    return Audit(len(distributions), kept, problems, to_move)
+    return Registration(path, installed, source, reasons)
+
+
+def owned_paths(path):
+    """The metadata directory plus what its install record says it put beside it.
+
+    A wheel's RECORD (relative to site-packages) or a legacy install's
+    installed-files.txt (relative to the egg-info) lists every installed file.
+    Only the metadata directory itself and the hitlist package directory are
+    listed whole; anything else -- the editable finder's bytecode in the shared
+    ``__pycache__``, say -- is listed file by file.  Entries outside the site
+    directory (``../../../bin/hitlist``, absolute paths) are skipped: other
+    installs share them.  A build-tree egg-info has no install record, so a
+    checkout's sources are never listed.
+    """
+    site = path.parent
+    distribution = importlib.metadata.Distribution.at(path)
+    if path.suffix == ".dist-info":
+        rows = csv.reader((distribution.read_text("RECORD") or "").splitlines())
+        base, entries = site, [row[0] for row in rows if row]
+    else:
+        base, entries = path, (distribution.read_text("installed-files.txt") or "").splitlines()
+    owned = {path}
+    for entry in entries:
+        if not entry or os.path.isabs(entry):
+            continue
+        target = Path(os.path.normpath(base / entry))
+        if target == site or not target.is_relative_to(site):
+            continue
+        top = target.relative_to(site).parts[0]
+        owned.add(site / top if top in (path.name, PACKAGE) else target)
+    return {owned_path for owned_path in owned if owned_path.exists()}
+
+
+def audit(root, version, module_file, search_path):
+    """Compare where ``import hitlist`` would load from, and all hitlist metadata, with root."""
+    problems = []
+    if module_file is None:
+        problems.append(f"import {PACKAGE} finds no regular package")
+    elif Path(module_file).resolve().parent != root / PACKAGE:
+        problems.append(f"import {PACKAGE} resolves to {module_file}, not {root / PACKAGE}")
+    registrations = [examine(path, root, version) for path in metadata_dirs(search_path)]
+    # The registration to keep is the one a reinstall repairs in place: a
+    # matching one, else one of this checkout, else whichever is found first.
+    # Every other installed registration is an extra and gets moved aside.
+    ranked = sorted(
+        (r for r in registrations if r.installed), key=lambda r: (bool(r.reasons), r.source != root)
+    )
+    keep = ranked[0] if ranked else None
+    kept_paths = owned_paths(keep.path) if keep else set()
+    to_move = []
+    for registration in registrations:
+        if registration is keep:
+            continue
+        if not registration.installed:
+            if registration.reasons:
+                problems.append(f"{registration.path}: {'; '.join(registration.reasons)}")
+                to_move.append(registration.path)
+            continue
+        reasons = registration.reasons or [f"duplicate of {keep.path}"]
+        problems.append(f"{registration.path}: extra registration; {'; '.join(reasons)}")
+        to_move.extend(sorted(owned_paths(registration.path) - kept_paths))
+    reinstall = None
+    if keep is None:
+        problems.append(f"no installed {PACKAGE} metadata for importlib.metadata or pip to find")
+        reinstall = f"re-run ./develop.sh in {root} to install this checkout"
+    elif keep.reasons:
+        problems.append(f"{keep.path}: {'; '.join(keep.reasons)}")
+        reinstall = (
+            f"re-run ./develop.sh in {root}; it reinstalls over {keep.path}, "
+            "so leave that one in place"
+        )
+        if keep.source is not None and keep.source != root:
+            reinstall += (
+                f". That re-points everyone using this environment from {keep.source} "
+                f"to {root}; use a separate environment if {keep.source} must keep working"
+            )
+    kept = keep.path if keep and not keep.reasons else None
+    return Audit(len(registrations), kept, problems, to_move, reinstall)
+
+
+def console_script(cli, version, scripts_dir):
+    """What ``hitlist --version`` on PATH reports, and what is wrong with it."""
+    problems = []
+    if Path(cli).resolve().parent != Path(scripts_dir).resolve():
+        problems.append(f"`{PACKAGE}` on PATH is {cli}, not this interpreter's (in {scripts_dir})")
+    try:
+        completed = subprocess.run([cli, "--version"], capture_output=True, text=True)
+    except OSError as error:
+        problems.append(
+            f"`{cli} --version` cannot run: {error} (also what a missing #! interpreter reports)"
+        )
+        return "did not run", problems
+    reported = completed.stdout.strip()
+    if completed.returncode != 0:
+        stderr = completed.stderr.strip().replace("\n", "\n      ")
+        problems.append(f"`{cli} --version` exited {completed.returncode}: {stderr}")
+    elif reported != f"{PACKAGE} {version}":
+        problems.append(f"`{cli} --version` reports {reported!r}, not '{PACKAGE} {version}'")
+    return reported, problems
 
 
 def main():
-    version = hitlist.__version__
+    version = runpy.run_path(str(ROOT / PACKAGE / "version.py"))["__version__"]
+    spec = importlib.util.find_spec(PACKAGE)
+    module_file = spec.origin if spec else None
+    if spec is None:
+        located = "not importable"
+    else:
+        located = module_file or f"namespace package {list(spec.submodule_search_locations)}"
     print(f"python            -> {sys.executable}")
-    print(f"import hitlist    -> {version}  ({hitlist.__file__})")
-    result = audit(ROOT, version, hitlist.__file__, [str(ROOT), *sys.path])
-    problems = list(result.problems)
+    print(f"checkout          -> {version}  ({ROOT})")
+    print(f"import {PACKAGE}    -> {located}")
+    result = audit(ROOT, version, module_file, [str(ROOT), *sys.path])
     if result.kept is not None:
         print(f"metadata          -> {version}  editable install of {ROOT}  ({result.kept})")
-    cli = shutil.which("hitlist")
+    problems = list(result.problems)
+    cli = shutil.which(PACKAGE)
     if cli is None:
-        print("WARNING: no `hitlist` on PATH")
+        print(f"WARNING: no `{PACKAGE}` on PATH")
     else:
-        reported = subprocess.run([cli, "--version"], capture_output=True, text=True).stdout.strip()
-        print(f"`hitlist` on PATH -> {cli}  ({reported})")
-        if reported != f"hitlist {version}":
-            problems.append(f"`hitlist` on PATH reports {reported!r}; another install shadows it")
+        reported, cli_problems = console_script(cli, version, sysconfig.get_path("scripts"))
+        print(f"`{PACKAGE}` on PATH -> {cli}  ({reported})")
+        problems += cli_problems
     if not problems:
         return 0
     sys.stdout.flush()  # keep the report above the error when both are piped
+    plural = "" if result.n_distributions == 1 else "s"
     print(
-        f"\nERROR: hitlist here is not one editable install of {ROOT} at {version} "
-        f"({result.n_distributions} hitlist distributions visible; #553):",
+        f"\nERROR: this environment's {PACKAGE} does not match {ROOT} at {version} "
+        f"({result.n_distributions} {PACKAGE} distribution{plural} visible; #553):",
         file=sys.stderr,
     )
     for problem in problems:
         print(f"  - {problem}", file=sys.stderr)
+    steps = []
     if result.to_move:
-        print(
-            "Nothing was removed. Move these out of the environment (or delete them), "
-            "then re-run ./develop.sh:",
-            file=sys.stderr,
-        )
-        for path in result.to_move:
-            print(f"  {path}", file=sys.stderr)
+        paths = "".join(f"\n       {path}" for path in result.to_move)
+        steps.append(f"Move these out of the environment (or delete them):{paths}")
+    if result.reinstall:
+        steps.append(result.reinstall[0].upper() + result.reinstall[1:] + ".")
+    if steps:
+        print("Nothing was removed. To fix:", file=sys.stderr)
+        for step_number, step in enumerate(steps, start=1):
+            print(f"  {step_number}. {step}", file=sys.stderr)
     return 1
 
 

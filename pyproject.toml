@@ -118,6 +118,14 @@ hitlist = [
 target-version = "py39"
 line-length = 100
 src = ["hitlist", "tests"]
+# The one list of files ./lint.sh, ./format.sh and CI check; they pass no paths.
+include = [
+    "hitlist/**/*.py",
+    "tests/**/*.py",
+    "scripts/ci_corpus.py",
+    "scripts/release_artifacts.py",
+    "scripts/check_dev_install.py",
+]
 
 [tool.ruff.lint]
 select = ["E", "W", "F", "I", "B", "C4", "UP", "SIM", "RUF"]

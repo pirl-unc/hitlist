@@ -22,15 +22,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev,alleles]"
 
-      - name: Lint with ruff
-        run: |
-          ruff check hitlist tests scripts/ci_corpus.py scripts/release_artifacts.py \
-            scripts/check_dev_install.py
-
-      - name: Check formatting with ruff
-        run: |
-          ruff format --check hitlist tests scripts/ci_corpus.py scripts/release_artifacts.py \
-            scripts/check_dev_install.py
+      - name: Lint and check formatting (pyproject's [tool.ruff] include list)
+        run: ./lint.sh
 
   test:
     runs-on: ubuntu-latest

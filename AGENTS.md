@@ -32,7 +32,8 @@ Do not tell the user you are "done" or that changes are "complete" until all thr
 ## Code Style
 
 - Use ruff for formatting and linting
-- Configuration is in `pyproject.toml` under `[tool.ruff]`
+- Configuration is in `pyproject.toml` under `[tool.ruff]`; its `include` list is the one set of
+  files `./format.sh`, `./lint.sh` and CI check (they pass no paths), so add a new linted script there
 - Line length: 100 characters
 - Target Python version: 3.9+
 - PMID overrides and tissue categories are YAML data, not Python code
