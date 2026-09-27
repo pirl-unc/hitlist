@@ -143,9 +143,11 @@ def _source_fingerprints(paths: dict[str, Path], *, fetch_missing_assets: bool =
     # rebuild this cache triggers and the staleness a reader reports rest on
     # one piece of evidence: otherwise an install that preserved sizes and
     # timestamps leaves readers warning "rebuild" at a build that no-ops.
+    # Wrapped in a mapping like every other entry, so a consumer scanning the
+    # fingerprint values can keep treating them uniformly.
     from .line_expression import packaged_line_expression_fingerprint
 
-    fp["line_expression_packaged_inputs"] = packaged_line_expression_fingerprint()
+    fp["line_expression_packaged_inputs"] = {"sha256": packaged_line_expression_fingerprint()}
 
     # DepMap inputs are registered via downloads.py and live outside the
     # repo; fingerprint by registered path so a re-register / re-download

@@ -488,7 +488,9 @@ def test_source_fingerprints_carry_the_packaged_line_expression_fingerprint():
     from hitlist.line_expression import packaged_line_expression_fingerprint
 
     fp = _source_fingerprints({})
-    assert fp["line_expression_packaged_inputs"] == packaged_line_expression_fingerprint()
+    assert fp["line_expression_packaged_inputs"] == {
+        "sha256": packaged_line_expression_fingerprint()
+    }
 
 
 def test_source_fingerprints_includes_registered_depmap_inputs(tmp_path, monkeypatch):
