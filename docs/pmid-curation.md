@@ -243,20 +243,36 @@ migration marked all 761 arms `curated_text` because that is what it did;
   still a knockout.
 - **`condition_control_for` must name a real sibling arm**, and only where
   the comparison is documented.
-- **`condition_mhc_context` is constant across one material's treatment
-  arms** (#586). Arms that `MATERIAL_IDENTITY_COLUMNS` say are the same
-  material, but that differ along `TREATMENT_CONDITION_COLUMNS` (infection,
-  cytokine, drug, stimulation, antigen exposure), must agree on it: treating
-  cells changes neither which MHC they express nor how it is captured. The
-  all-or-none rule above cannot see this gap, because it is satisfied as soon
-  as *some* condition column is curated on every arm — and the cost is not
-  cosmetic, since a blank means "not established", drops the arm out of
-  `ENGINEERING_CONDITION_COLUMNS`, and resolves its expression anchor at
-  tier 1 (parental RNA reported as the sample's own) while its sibling
-  correctly resolves at tier 2. Arms of genuinely different materials are
-  never compared, so a transfectant and its parental control do not collide —
-  but the difference must be recorded in a material column, not only in
-  `condition_mhc_context`.
+- **The engineering block is constant across one material's treatment arms**
+  (#586). Arms that `MATERIAL_IDENTITY_COLUMNS` say are the same material, but
+  that differ along `TREATMENT_CONDITION_COLUMNS` (infection, cytokine, drug,
+  stimulation, antigen exposure), must agree on every
+  `ENGINEERING_CONDITION_COLUMNS` value: treating cells changes neither their
+  genome nor which MHC was introduced. The all-or-none rule above cannot see
+  this gap, because it is satisfied as soon as *some* condition column is
+  curated on every arm — and the cost is not cosmetic, since a blank means
+  "not established", so the arm stops satisfying `is_engineered_material()`
+  and resolves its expression anchor at tier 1 (parental RNA reported as the
+  sample's own) while its sibling correctly resolves at tier 2.
+
+  Three limits are worth knowing before trusting it:
+
+  - It raises only where engineering is **confounded** with treatment — every
+    arm sharing a treatment shares one engineering value, and at least two
+    treatments disagree. A crossed design (PMID 39438697 runs wild-type and
+    TAP1-knockout THP-1 against both Mtb and mock) breaks the confounding and
+    is never flagged, which also means a crossed design that *lost* a value
+    passes.
+  - `condition_mhc_context` contributes only its engineering tokens. The
+    capture-only ones — `soluble_mhc`, `refolded_mhc` — move no tier, so
+    `monoallelic;soluble_mhc` beside a sibling's `monoallelic` is agreement.
+  - Material identity rests mostly on `mhc_genotype` / `mhc_genotype_cell` and
+    the context columns: `sample_group` is curated on only 49 of 794 arms, and
+    `condition_material`'s vocabulary is physical states (`cultured`,
+    `frozen`, …), which cannot express *which line* something is. So when the
+    guard fires on arms that really are different materials, the remedy is to
+    name that in `sample_group` or `mhc_genotype` / `mhc_genotype_cell` — not
+    in `condition_material`.
 
 #### On a row that reached no arm
 

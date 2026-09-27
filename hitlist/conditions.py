@@ -304,20 +304,32 @@ ENGINEERING_CONDITION_COLUMNS = frozenset(
 TREATMENT_CONDITION_COLUMNS = INTERVENTION_CONDITION_COLUMNS - ENGINEERING_CONDITION_COLUMNS
 
 #: What an arm's material *is*, for asking whether two arms of one study are
-#: one material under two treatments.  ``condition_mhc_context`` is
-#: deliberately excluded: it is the value :func:`validate_study_conditions`
-#: asserts is constant across such arms, and keying on it would put every
-#: disagreement in its own group, where nothing is ever compared (#586).
+#: one material under two treatments.
+#:
+#: Every :data:`ENGINEERING_CONDITION_COLUMNS` entry is deliberately *absent*.
+#: They are what :func:`validate_study_conditions` asserts agrees across such
+#: arms, and keying identity on the values under test would put every
+#: disagreement in its own group, where nothing is ever compared — the exact
+#: #586 defect, reappearing in whichever engineering column a curator dropped
+#: (#587 review).
+#:
+#: ``mhc`` is absent for a different reason: it records *reported experimental
+#: MHC candidates* and "may be a selected ligand restriction", so two arms of
+#: one material routinely carry different values.  The material facts are
+#: ``mhc_genotype`` and ``mhc_genotype_cell``, which name an independently
+#: sourced cellular typing and the line or donor it belongs to.
 MATERIAL_IDENTITY_COLUMNS = (
     # The curated sample *system* — a cell line, tissue or donor cohort
     # (#359).  Where a study curates it, two arms of different systems are
     # different materials however their condition columns read, which is what
-    # keeps two same-HLA lines in one study from ever being compared.
+    # keeps two same-HLA lines in one study from ever being compared.  Only
+    # 49 of 794 curated arms set it, so it narrows grouping where it is
+    # present and the remaining columns carry identity where it is not.
     "sample_group",
-    "mhc",
+    "mhc_genotype",
+    "mhc_genotype_cell",
     "mhc_class",
     "species",
-    *sorted(ENGINEERING_CONDITION_COLUMNS - {"condition_mhc_context"}),
     "condition_background",
     "condition_culture",
     "condition_material",
@@ -746,55 +758,163 @@ def validate_study_conditions(entry: Mapping[str, object]) -> None:
                     f"own condition_id {target!r}.  An arm is not its own comparator."
                 )
 
-    _validate_mhc_context_across_treatment_arms(pmid, samples)
+    _validate_engineering_across_treatment_arms(pmid, samples)
 
 
-def _identity(sample: Mapping[str, object], columns) -> tuple[str, ...]:
-    return tuple(str(sample.get(column) or "").strip() for column in columns)
+#: Sorted once: these drive a per-arm comprehension on every curated study.
+_SORTED_ENGINEERING_COLUMNS = tuple(sorted(ENGINEERING_CONDITION_COLUMNS))
+_SORTED_TREATMENT_COLUMNS = tuple(sorted(TREATMENT_CONDITION_COLUMNS))
 
 
-def _validate_mhc_context_across_treatment_arms(pmid: object, samples) -> None:
-    """``condition_mhc_context`` is constant across one material's treatment arms.
+def _asserted_tokens(cells: Mapping[str, str], column: str) -> tuple[str, ...]:
+    """The tokens one condition cell asserts, sorted; empty when it asserts nothing.
+
+    Routed through :func:`asserts_condition` so this shares the module's single
+    reading of the missing-value contract: ``""`` (not established) and ``none``
+    (a claim of absence) both assert nothing, and neither is a difference from
+    the other.  Sorting matters because these cells are unordered token sets.
+    """
+    value = cells.get(column, "")
+    if not asserts_condition(value):
+        return ()
+    return tuple(sorted(split_condition_tokens(value)))
+
+
+def _engineering_identity(cells: Mapping[str, str]) -> tuple[tuple[str, ...], ...]:
+    """What the engineering block claims was done to the material itself.
+
+    ``condition_mhc_context`` contributes only its
+    :data:`ENGINEERED_MHC_CONTEXT_VALUES` tokens.  The rest of that column's
+    vocabulary describes how MHC was *captured* — ``soluble_mhc``,
+    ``refolded_mhc`` — which is not an engineering claim and carries no tier
+    consequence, so ``monoallelic;soluble_mhc`` beside a sibling's
+    ``monoallelic`` is agreement, not drift (#587 review).
+    """
+    return tuple(
+        tuple(t for t in _asserted_tokens(cells, column) if t in ENGINEERED_MHC_CONTEXT_VALUES)
+        if column == "condition_mhc_context"
+        else _asserted_tokens(cells, column)
+        for column in _SORTED_ENGINEERING_COLUMNS
+    )
+
+
+def _material_identity(
+    sample: Mapping[str, object], cells: Mapping[str, str]
+) -> tuple[tuple[str, ...], ...]:
+    """Which material an arm is, over :data:`MATERIAL_IDENTITY_COLUMNS`."""
+    return tuple(
+        _asserted_tokens(cells, column)
+        if column in CONDITION_COLUMNS
+        else (str(sample.get(column) or "").strip(),)
+        for column in MATERIAL_IDENTITY_COLUMNS
+    )
+
+
+def _validate_engineering_across_treatment_arms(pmid: object, samples) -> None:
+    """The engineering block is constant across one material's treatment arms.
 
     The all-or-none rule above is satisfied as soon as *some* condition column
-    is curated on every arm, so it cannot see a study that annotates the MHC
-    context of its untreated arms and leaves it blank on the treated ones.
-    That gap is not cosmetic: ``""`` means *not established*, so the blank arm
-    stops counting as engineered material and resolves its expression anchor
-    at tier 1 — parental RNA reported as RNA measured in a transfectant —
-    while its sibling correctly resolves at tier 2 (#576, #586).
+    is curated on every arm, so it cannot see a study that records how its
+    untreated arms were engineered and leaves that blank on the treated ones.
+    The gap is not cosmetic: ``""`` means *not established*, so the blank arm
+    stops satisfying :func:`is_engineered_material` and resolves its expression
+    anchor at tier 1 — parental RNA reported as RNA measured in an engineered
+    line — while its sibling correctly resolves at tier 2 (#576, #586).
 
-    Arms are compared only when :data:`MATERIAL_IDENTITY_COLUMNS` say they are
-    the same material and :data:`TREATMENT_CONDITION_COLUMNS` say something
-    was done to one of them and not the other.  Arms of genuinely different
-    materials never meet, which is why a study's transfectant and its parental
-    control are not flagged: their materials differ in a material column.
+    Scope is the whole of :data:`ENGINEERING_CONDITION_COLUMNS`, not
+    ``condition_mhc_context`` alone: a dropped ``condition_knockout_genes``
+    costs exactly the same tier, and singling out one column would leave the
+    other six unguarded (#587 review).
+
+    **Why the treatment difference is required.**  Arms are compared only when
+    :data:`TREATMENT_CONDITION_COLUMNS` say something was done to one of them
+    and not the other.  That is what keeps a parental arm and its transfectant
+    sibling apart: they share every non-engineering material column and differ
+    legitimately in the engineering block, and with both untreated there is no
+    treatment axis, so they are never compared.  Dropping the requirement to
+    compare identically-treated siblings too would flag every such pair, which
+    is why the engineering columns can be removed from the identity key only
+    while it stands.
+
+    **Why confounding, not mere disagreement.**  A crossed design disagrees on
+    engineering across a treatment axis quite legitimately: PMID 39438697 runs
+    wild-type and TAP1-knockout THP-1 against Mtb and mock, so both engineering
+    values appear at both treatment levels.  What #586 looks like is narrower —
+    the engineering value is a *function* of the treatment, ``monoallelic``
+    appearing only on the uninfected arms and the blank only on the infected
+    ones.  So this raises only when engineering is perfectly confounded with
+    treatment: every arm sharing a treatment shares one engineering value, and
+    at least two treatments disagree.  A factorial design breaks the
+    confounding at the first treatment level that holds two engineering values,
+    and is never flagged.
+
+    The cost of that precision is a real false negative: a study where one arm
+    of a crossed design lost its engineering value still has two values at some
+    treatment level, so it passes.  This rule reports drift it can prove, not
+    every drift there is.  A single-arm study has no sibling at all, so nothing
+    structural can catch it (PMID 23543059 needed the paper).
     """
-    groups: dict[tuple[str, ...], list[Mapping[str, object]]] = {}
+    groups: dict[tuple, list[tuple[Mapping[str, object], Mapping[str, str]]]] = {}
     for sample in samples:
-        groups.setdefault(_identity(sample, MATERIAL_IDENTITY_COLUMNS), []).append(sample)
+        cells = condition_columns_for_sample(sample)
+        groups.setdefault(_material_identity(sample, cells), []).append((sample, cells))
     for arms in groups.values():
         if len(arms) < 2:
             continue
-        treatments = {_identity(a, sorted(TREATMENT_CONDITION_COLUMNS)) for a in arms}
-        contexts = {str(a.get("condition_mhc_context") or "").strip() for a in arms}
-        if len(treatments) < 2 or len(contexts) < 2:
+        by_treatment = _engineering_by_treatment(arms)
+        if by_treatment is None:
+            continue  # crossed: some treatment level holds two engineering values
+        if len(by_treatment) < 2:
+            # No treatment axis to be confounded with.  Subsumed by the two
+            # checks around it — one treatment level either disagrees, and is
+            # caught above, or agrees, and is caught below — but kept because
+            # it states the rule's scope where a reader looks for it.
             continue
+        if len(set(by_treatment.values())) < 2:
+            continue  # the engineering block agrees everywhere
+        # Keyed by condition_id: sample_label is not unique within a study, so
+        # two arms sharing one would collapse and the message would name fewer
+        # arms than disagree (#587 review).
         reported = {
-            str(a.get("sample_label") or "?"): str(a.get("condition_mhc_context") or "")
-            for a in arms
+            str(sample.get("condition_id") or "?"): {
+                column: cells[column] for column in _SORTED_ENGINEERING_COLUMNS if cells[column]
+            }
+            for sample, cells in arms
         }
         raise ValueError(
-            f"PMID {pmid}: {sorted(reported)} annotate one material but disagree on "
-            f"condition_mhc_context ({reported}) while differing only along a "
-            f"treatment axis ({sorted(TREATMENT_CONDITION_COLUMNS)}).  Treating cells "
-            f"does not change which MHC they express or how it is captured, and a "
-            f"blank reads as 'not established', which drops the arm out of "
-            f"ENGINEERING_CONDITION_COLUMNS and resolves its expression anchor a tier "
-            f"above its sibling's (#586).  If the materials really do differ, say so "
-            f"in a material column ({list(MATERIAL_IDENTITY_COLUMNS)}) rather than "
-            f"only in condition_mhc_context."
+            f"PMID {pmid}: these arms annotate one material but disagree on the "
+            f"engineering block while differing only along a treatment axis "
+            f"({list(_SORTED_TREATMENT_COLUMNS)}): {reported}.  Treating cells changes "
+            f"neither their genome nor which MHC was introduced, and a blank reads as "
+            f"'not established', so the blank arm stops satisfying "
+            f"is_engineered_material() and resolves its expression anchor a tier above "
+            f"its sibling's (#586).  If these really are different materials, name that "
+            f"in sample_group, or in mhc_genotype / mhc_genotype_cell — the columns that "
+            f"record which line an arm is — rather than leaving it implied by the "
+            f"engineering block alone."
         )
+
+
+def _treatment_identity(cells: Mapping[str, str]) -> tuple[tuple[str, ...], ...]:
+    """What was done *to* the material, over :data:`TREATMENT_CONDITION_COLUMNS`."""
+    return tuple(_asserted_tokens(cells, column) for column in _SORTED_TREATMENT_COLUMNS)
+
+
+def _engineering_by_treatment(arms) -> dict[tuple, tuple] | None:
+    """One engineering value per treatment level, or ``None`` when not confounded.
+
+    ``None`` says some treatment level holds two different engineering values,
+    so engineering is not a function of treatment — a crossed design, where the
+    disagreement is the experiment rather than drift.  Returning it explicitly
+    keeps the caller from having to pick an arbitrary member of a set.
+    """
+    by_treatment: dict[tuple, tuple] = {}
+    for _, cells in arms:
+        treatment = _treatment_identity(cells)
+        engineering = _engineering_identity(cells)
+        if by_treatment.setdefault(treatment, engineering) != engineering:
+            return None
+    return by_treatment
 
 
 def condition_columns_for_sample(sample: Mapping[str, object]) -> dict[str, str]:

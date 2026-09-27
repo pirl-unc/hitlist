@@ -12864,12 +12864,18 @@
       molecules (HeLa-sClass I cells) are inoculated with VACV").  Neither
       eluted allotype is HeLa's own: parental HeLa types A*68:02 / B*15:03 /
       C*12:03 (Cellosaurus CVCL_0030), so both A*02:01 and B*07:02 were
-      introduced.  mhc_transfectant rather than the monoallelic its sibling
-      study uses: this single arm pools two separately purified
+      introduced.  monoallelic, the same value the sibling study carries for
+      the same producers: this single arm pools two separately purified
       single-allotype elutions (Results: "581 sA2- and 132 sB7-associated
-      peptides"; our corpus carries 109 HLA-A*02:01 and 65 HLA-B*07:02 rows),
-      so introduced MHC is what every contributing sample shares while an
-      allele count is not a property of the pooled record.  Splitting the arm
+      peptides ... 109 A2- and 65 B7-restricted peptide sequences"), and each
+      producer secretes one allotype, so mono-allelicity holds of every
+      contributing sample — which is the test for a record that covers
+      several.  The two-allele `mhc` is the union across the merged arm, not
+      one cell's genotype; the per-row mhc_restriction carries the A2/B7
+      split.  condition_status stays `annotated` rather than `mixed`: both
+      producers underwent the same condition (VACV infection of a
+      soluble-HLA transfectant), so no alternative conditions are combined,
+      and the source does separate the peptides.  Splitting the arm
       into its sA2 and sB7 producers is a separate curation question and is
       not attempted here.  The study has no uninfected arm: the reported
       peptides are those "expressed only by VACV-infected but not uninfected
@@ -12885,7 +12891,7 @@
         condition_evidence: "curated_text"
         condition_combination: "single"
         condition_infection: "Vaccinia virus"
-        condition_mhc_context: "mhc_transfectant"
+        condition_mhc_context: "monoallelic"
         mhc_class: "I"
         mhc: "HLA-A*02:01 HLA-B*07:02"
   - pmid: 35623660
