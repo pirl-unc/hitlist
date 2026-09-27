@@ -1640,20 +1640,34 @@
       16 HLA class I alleles (10 HLA-A + 6 HLA-B) profiled on 721.221 transfectants (B721.221). >24,000
       peptides total. Sarkizova 2020 later re-used these 16 as part of their 95-allele panel (79 new +
       16 from this study). IEDB cell_name is "B cell" not "721.221".
+      Roster source: Figure 1D of PMC5405381 names the 16 alleles — A*02:01, A*01:01, A*03:01,
+      A*24:02, B*44:02, B*35:01, B*51:01, B*44:03, B*57:01, A*29:02, A*31:01, A*68:02, A*02:03,
+      A*02:07, A*02:04, B*54:01 — and its per-allele peptide bars run from ~900 to ~3550, matching
+      the deposit's 904..3573 rows per allele. Until #558 this roster carried A*11:01 and B*07:02,
+      which belong to the Sarkizova 95-allele panel and not to this study, in place of A*02:04 and
+      B*44:02; the deposit reported 1,901 A*02:04 and 1,071 B*44:02 rows with no arm to reach.
+      A*02:03/A*02:04 and B*44:02/B*44:03 are four distinct transfectants, never interchangeable.
+      Methods: "cells expressing HLA-A*02:01, -A*24:02, and -B*44:03 were purchased from the Fred
+      Hutchinson Research Cell Bank, University of Washington; cells expressing HLA-A*03:01 were a
+      gift from Dr. Marcus Altfeld and Dr. Wilfredo F. Garcia-Beltran, Ragon Institute; others were
+      a gift from Dr. E.L. Reinherz, Dana Farber Cancer Institute".
+      All 27,102 deposited rows carry one of the 16 "eluted from B721.221 cells tranfected with
+      HLA-<allele>" statements, so no deposited observation comes from the three validation
+      datasets below; they are marked unprofiled for that reason (#558).
     hla_alleles:
       profiled:
         - "HLA-A*01:01"
         - "HLA-A*02:01"
         - "HLA-A*02:03"
+        - "HLA-A*02:04"
         - "HLA-A*02:07"
         - "HLA-A*03:01"
-        - "HLA-A*11:01"
         - "HLA-A*24:02"
         - "HLA-A*29:02"
         - "HLA-A*31:01"
         - "HLA-A*68:02"
-        - "HLA-B*07:02"
         - "HLA-B*35:01"
+        - "HLA-B*44:02"
         - "HLA-B*44:03"
         - "HLA-B*51:01"
         - "HLA-B*54:01"
@@ -1695,6 +1709,18 @@
         mhc_class: I
         mhc: "HLA-A*02:03"
         mhc_basis: "selected_restriction"
+      - sample_label: "721.221-HLA-A*02:04"
+        n_samples: 1
+        source: retroviral transduction of single HLA alleles into B721.221
+        condition: unperturbed — standard culture
+        condition_id: "721_221_hla_a_02_04"
+        condition_status: "annotated"
+        condition_evidence: "curated_text"
+        condition_control: "untreated"
+        condition_culture: "standard_culture"
+        mhc_class: I
+        mhc: "HLA-A*02:04"
+        mhc_basis: "selected_restriction"
       - sample_label: "721.221-HLA-A*02:07"
         n_samples: 1
         source: retroviral transduction of single HLA alleles into B721.221
@@ -1718,18 +1744,6 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-A*03:01"
-        mhc_basis: "selected_restriction"
-      - sample_label: "721.221-HLA-A*11:01"
-        n_samples: 1
-        source: retroviral transduction of single HLA alleles into B721.221
-        condition: unperturbed — standard culture
-        condition_id: "721_221_hla_a_11_01"
-        condition_status: "annotated"
-        condition_evidence: "curated_text"
-        condition_control: "untreated"
-        condition_culture: "standard_culture"
-        mhc_class: I
-        mhc: "HLA-A*11:01"
         mhc_basis: "selected_restriction"
       - sample_label: "721.221-HLA-A*24:02"
         n_samples: 1
@@ -1779,18 +1793,6 @@
         mhc_class: I
         mhc: "HLA-A*68:02"
         mhc_basis: "selected_restriction"
-      - sample_label: "721.221-HLA-B*07:02"
-        n_samples: 1
-        source: retroviral transduction of single HLA alleles into B721.221
-        condition: unperturbed — standard culture
-        condition_id: "721_221_hla_b_07_02"
-        condition_status: "annotated"
-        condition_evidence: "curated_text"
-        condition_control: "untreated"
-        condition_culture: "standard_culture"
-        mhc_class: I
-        mhc: "HLA-B*07:02"
-        mhc_basis: "selected_restriction"
       - sample_label: "721.221-HLA-B*35:01"
         n_samples: 1
         source: retroviral transduction of single HLA alleles into B721.221
@@ -1802,6 +1804,18 @@
         condition_culture: "standard_culture"
         mhc_class: I
         mhc: "HLA-B*35:01"
+        mhc_basis: "selected_restriction"
+      - sample_label: "721.221-HLA-B*44:02"
+        n_samples: 1
+        source: retroviral transduction of single HLA alleles into B721.221
+        condition: unperturbed — standard culture
+        condition_id: "721_221_hla_b_44_02"
+        condition_status: "annotated"
+        condition_evidence: "curated_text"
+        condition_control: "untreated"
+        condition_culture: "standard_culture"
+        mhc_class: I
+        mhc: "HLA-B*44:02"
         mhc_basis: "selected_restriction"
       - sample_label: "721.221-HLA-B*44:03"
         n_samples: 1
@@ -1851,8 +1865,18 @@
         mhc_class: I
         mhc: "HLA-B*57:01"
         mhc_basis: "selected_restriction"
+      # The three validation entries are datasets this paper re-analysed from
+      # earlier publications, not specimens it ran. Every one of the 27,102 rows
+      # deposited under this PMID names a B721.221 transfectant, so none of them
+      # came from these datasets, whose own peptides are deposited under their own
+      # PMIDs. ``profiled: false`` keeps the comparison on the record while making
+      # them ineligible for attribution: their typing here is class-only, so an
+      # eligible arm with no allele to contradict would otherwise absorb any row
+      # whose reported allele the roster happens to lack — which is exactly how
+      # the 2,972 A*02:04 and B*44:02 rows reached "validation cell lines" (#558).
       - sample_label: "validation cell lines (HCC1937, HCT116, HeLa)"
-        source: "PMC5405381 Figure 3C-G: previously published multi-allelic cell-line datasets reused for validation"
+        profiled: false
+        source: "PMC5405381 Figure 3C-G: previously published multi-allelic cell-line datasets reused for validation; no observation is deposited under this PMID from them"
         condition: unperturbed — standard culture
         condition_id: "validation_cell_lines_hcc1937_hct116_fibroblasts"
         condition_status: "annotated"
@@ -1862,6 +1886,7 @@
         mhc_class: I
         mhc: "HLA class I"
       - sample_label: validation primary fibroblasts
+        profiled: false
         override: healthy
         source: "PMC5405381 Figure 3C-G: reused Bassani-Sternberg 2015 primary fibroblast dataset (PMC4349985, Cell culture); not a new Abelin specimen"
         condition: unperturbed
@@ -1872,6 +1897,7 @@
         mhc_class: I
         mhc: "HLA class I"
       - sample_label: validation PBMCs
+        profiled: false
         override: healthy
         source: "PMC5405381 Figure 3C-G: reused Caron 2015 healthy donor PBMC dataset (PMC4507788); not a new Abelin specimen"
         condition_material: "direct_ex_vivo"
