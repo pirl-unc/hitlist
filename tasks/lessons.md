@@ -1,5 +1,53 @@
 # Lessons
 
+## 2026-09-27
+
+- "Unreachable" is only as good as the condition it was measured under.
+  Rule: a review said the class-pool `_select_by_elution_conditions` branch was
+  unreachable after statement narrowing, and it was -- for a *mapped* statement.
+  For an unmapped one it is IEDB's generic "untreated X; treated X" resolver,
+  which needs no curated map at all, and deleting it cost PMID 32938616 and
+  33968037 46,247 arms between them. "Unreachable after the change I am about
+  to make" is not "unreachable". Before deleting a branch, name the inputs that
+  reach it and check the ones the claim did not cover -- here, every study
+  without a curated map, which is 2,313 of 2,319.
+
+- A comparison that reports "everything changed" or "nothing changed" is
+  broken until proven otherwise.
+  Rule: the corpus replay was wrong two ways before it was right. First it
+  compared rows positionally, and row order is not stable between exporter
+  runs, so it silently compared unrelated rows -- fixed by joining on a
+  7-column key and asserting the key is unique on both sides. Then it reported
+  all 4,398,346 rows changed, because `NaN != NaN` and two pass-through columns
+  are mostly null. Both produced a confident, plausible-looking number. The
+  check that catches this class is cheap: a diff must be able to show one row
+  it correctly calls unchanged *and* one it correctly calls changed before any
+  of its totals are quoted. Same failure mode as a green test that asserts
+  nothing. Twice before, the same measurement was wrong for reasons unrelated
+  to the code under test (`sys.path[0]` importing the installed package, a
+  concurrent agent overwriting the script) -- so the guard belongs in the
+  script: state which build was loaded, assert it, and print a per-invocation
+  OK line that gets checked.
+
+- Widen the population before believing a "no impact elsewhere" claim.
+  Rule: three review rounds of this PR measured 8 studies of 2,319 and each
+  reported "only the three targets change". The fourth measured all 2,319 and
+  found two more, because the change touched a branch every study runs through.
+  The eight were the studies I had reasoned were relevant, which is exactly the
+  set that cannot falsify the reasoning. If a change touches shared code, the
+  population is everything that executes it, not the part the change was aimed
+  at.
+
+- Attribute a CI slowdown before shaving anything.
+  Rule: `test (3.11)` cancelled twice at its 25-minute cap and the tempting fix
+  was to trim the tests I had added. The measurements said otherwise: on the
+  same pair of commits 3.9 went 5m22s to 11m52s while 3.12 got *faster*, the
+  exporter took 3.2s on both heads over an identical frame, and the local suite
+  moved +4% against CI's +46%. No code change can make one leg twice as slow
+  and another faster; that shape is the runner. The guard added in that PR cost
+  1.57s against a 63s shared fixture, so shaving it would have bought nothing
+  and hidden a real capacity problem.
+
 ## 2026-09-23
 
 - Give silent data-corruption fixes an independently shippable path. Keep

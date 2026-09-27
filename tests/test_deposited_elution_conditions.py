@@ -5,6 +5,7 @@ import pytest
 
 from hitlist.curation import load_pmid_overrides
 from hitlist.export import _select_by_elution_conditions, generate_observations_table
+from tests.deposited_statements import GBM_STATEMENT
 
 SINGLE_CONDITIONS = [
     ("1uM CDK4/6i", "palbociclib_1um"),
@@ -158,9 +159,6 @@ def test_elution_mapping_rejects_unsupported_or_ambiguous_ids(tmp_path, monkeypa
 # ── PMID 33592498: the GBM lines share class-II alleles (#565) ──
 
 
-GBM_STATEMENT = "The epitope was eluted from the following conditions: {}."
-
-
 @pytest.mark.parametrize(
     "deposited_line, condition_prefix, restriction",
     [
@@ -216,13 +214,17 @@ def test_gbm_ciita_statement_picks_its_own_line_on_a_shared_class_ii_allele(
 
 
 def test_parental_statement_never_claims_the_transduced_arm(monkeypatch):
-    """The parental lines do not express class II -- that is what the CIITA
-    transduction is for -- so a class-II peptide deposited under a
-    parental-only statement is the authors' own background call. An allele
-    typed in exactly one line makes the (pmid, allele) key unique, which skips
-    the tie-break where the statement map is read, and the row would be handed
-    the transduced arm as ``allele_exact``: 492 rows of asserted provenance the
-    deposit contradicts (#565/#567).
+    """A class-II peptide deposited under a parental-only statement came off
+    the parental sample, whatever the authors think it is.
+
+    An allele typed in exactly one line makes the (pmid, allele) key unique,
+    which skips the tie-break where the statement map is read, so before #565
+    the row was handed the transduced arm as ``allele_exact``: 492 rows of
+    asserted provenance the deposit contradicts. #565 refused that with the
+    statement veto but had no arm to offer instead; #567 curates the parental
+    class-II arms, so the row now reaches the sample it was eluted from and
+    carries the authors' background assessment in ``sample_note`` rather than
+    reaching nothing. The guarantee in the name is what both versions assert.
     """
     monkeypatch.setattr(
         "hitlist.observations.load_observations",
@@ -244,23 +246,155 @@ def test_parental_statement_never_claims_the_transduced_arm(monkeypatch):
         ),
     )
     row = generate_observations_table(exclude_non_peptide_ligand=False).iloc[0]
-    assert row.sample_label == ""
-    assert row.sample_attribution == "elution_conditions_excluded"
-    assert row.condition_transduction == ""
-    # Its sample_mhc is a union across arms, so the join-provenance column says
-    # so rather than claiming allele_match over a pooled candidate set. (The
-    # predict guard that once motivated this reads `sample_mhc_origin` now --
-    # #564 -- so this assertion stands on `sample_match_type`'s own documented
-    # meaning, and the relabel is gated on the row having actually taken the
-    # pool rather than on the study merely having one.)
-    assert row.sample_match_type == "pmid_class_pool"
-    assert row.sample_mhc_origin == "class_pool"
-    # Study-origin metadata is a property of the deposit, not of any arm, so
-    # it survives a row that reaches no arm (#373). Consensus across the
-    # study's class-II arms would not do: they are all CIITA-transduced, so it
-    # would hand back the transduction claim the veto just refused.
-    assert row.arm_resolution == "curation_gap"
+    assert row.sample_label == "HROG17 parental (class II)"
+    assert row.condition_id == "hrog17_parental_class_ii"
+    assert row.sample_attribution == "elution_conditions"
+    # Not the transduced twin, which is the whole point: the arm this row
+    # reaches states that no transduction was applied to it.
+    assert "ciita" not in row.condition_id
+    assert row.condition_transduction == "none"
+    # It reached a named arm, so its candidates are that arm's own typing
+    # rather than a pooled union across arms.
+    assert row.sample_match_type == "allele_match"
+    assert row.sample_mhc_origin == "sample"
+    assert "HLA-DPA1*01:03/DPB1*11:01" in row.sample_mhc.split()
+    # The authors' own reading of these peptides travels with the arm; it is
+    # recorded, not acted on.
+    assert "potential contaminants" in row.sample_note
+    assert row.arm_resolution == "multi_arm_evidence"
     assert (row.effective_override, row.effective_override_origin) == ("cell_line", "study")
+
+
+def test_statement_and_allele_disagreement_claims_no_arm(monkeypatch):
+    """Statement and allele pointing at different lines resolves to neither.
+
+    The deposited statement names RA while the restriction is typed in HROG17
+    alone. The statement is the per-row evidence, so the RA arms it names are
+    the only ones allowed, and none of them carries this allele; the HROG17
+    arms the allele key offers are exactly the ones the statement rules out.
+    Neither side may be preferred, so the row reaches no arm.
+    """
+    monkeypatch.setattr(
+        "hitlist.observations.load_observations",
+        lambda **kwargs: pd.DataFrame(
+            [
+                {
+                    "peptide": "AAAAAAAAAAAAAAA",
+                    "pmid": 33592498,
+                    "mhc_restriction": "HLA-DPB1*11:01",
+                    "mhc_class": "II",
+                    "mhc_species": "Homo sapiens",
+                    "cell_name": "Glial cell",
+                    "assay_comments": GBM_STATEMENT.format("RA cells"),
+                    "is_binding_assay": False,
+                    "source": "iedb",
+                }
+            ]
+        ),
+    )
+    row = generate_observations_table(exclude_non_peptide_ligand=False).iloc[0]
+    assert row.sample_label == ""
+    assert row.condition_id == ""
+    assert row.sample_attribution == "elution_conditions_excluded"
+    # None of the columns that carry a typing claim may survive either. Curating
+    # a second class-II arm per line made every single-line allele key ambiguous,
+    # so this row reached ``_consensus_meta``, which blanks ``condition_id`` and
+    # keeps everything the two excluded arms agree on -- HROG17's typing, cell and
+    # candidate list, reported as ``allele_match`` from a line the statement rules
+    # out (#584 review). The refusal has to be decided from the row's own
+    # statement and class, not from what survived an earlier stage.
+    assert row.sample_mhc_origin == "class_pool"
+    assert row.mhc_basis == ""
+    assert row.sample_match_type == "pmid_class_pool"
+    assert row.mhc_genotype_cell == ""
+    assert "HLA-DPA1*01:03/DPB1*11:01" in row.sample_mhc.split()
+    assert "HLA-DPA1*01:03/DPB1*19:01" in row.sample_mhc.split()
+    # Study-origin metadata is a property of the deposit, not of any arm, so
+    # it survives a row that reaches no arm (#373).
+    assert (row.effective_override, row.effective_override_origin) == ("cell_line", "study")
+    assert row.arm_resolution == "multi_arm_evidence"
+
+
+def _vetoable_overrides():
+    """A minimal study whose statement map can contradict an allele key.
+
+    The veto needs a shape no real curated study has to keep handy: one
+    statement that names arm A, a second that names arm B, and a row whose
+    unique (pmid, allele) key points at B while its statement is A's. Using a
+    synthetic study keeps the guard covered whatever the corpus's curation
+    state -- PMID 33592498 exercised it until #567 gave its parental class-II
+    rows an arm of their own, and a guard whose only test rides on one study's
+    open curation gap stops being tested the moment that gap is closed.
+    """
+    return {
+        99999567: {
+            "elution_condition_ids": {
+                "The epitope was eluted from Alpha cells.": ["alpha"],
+                "The epitope was eluted from Beta cells.": ["beta"],
+            },
+            "ms_samples": [
+                {
+                    "sample_label": "Alpha cells",
+                    "condition_id": "alpha",
+                    "mhc": "HLA-DRB1*01:01",
+                    "mhc_class": "II",
+                    "condition": "unperturbed",
+                },
+                {
+                    "sample_label": "Beta cells",
+                    "condition_id": "beta",
+                    "mhc": "HLA-DRB1*04:01",
+                    "mhc_class": "II",
+                    "condition": "unperturbed",
+                },
+            ],
+        }
+    }
+
+
+def test_statement_vetoes_an_arm_the_allele_key_would_have_claimed(monkeypatch):
+    """An arm the statement excludes is a collision, not a match (#565).
+
+    ``HLA-DRB1*04:01`` is typed in Beta alone, so the allele key is unique and
+    skips the tie-break where the map is read -- the row would be handed Beta
+    as ``allele_exact`` although its own statement names Alpha.
+    """
+    monkeypatch.setattr("hitlist.export.load_pmid_overrides", _vetoable_overrides)
+    monkeypatch.setattr(
+        "hitlist.observations.load_observations",
+        lambda **kwargs: pd.DataFrame(
+            [
+                {
+                    "peptide": "AAAAAAAAAAAAAAA",
+                    "pmid": 99999567,
+                    "mhc_restriction": "HLA-DRB1*04:01",
+                    "mhc_class": "II",
+                    "mhc_species": "Homo sapiens",
+                    "cell_name": "",
+                    "assay_comments": "The epitope was eluted from Alpha cells.",
+                    "is_binding_assay": False,
+                    "source": "iedb",
+                }
+            ]
+        ),
+    )
+    row = generate_observations_table(exclude_non_peptide_ligand=False).iloc[0]
+    assert row.sample_attribution == "elution_conditions_excluded"
+    assert row.condition_id == ""
+    assert row.sample_label != "Beta cells"
+    # And no arm at all, not even the one the statement allows (#581). The
+    # refusal record blanks the arm-specific half outright -- the label, the
+    # candidate list, the cellular typing -- rather than leaving it to what the
+    # arms happen to agree on, because with one arm in the class "agreement" is
+    # that arm's whole record. What the study's arms do agree on and is not
+    # arm-specific, such as its ``arm_resolution`` and a study-origin override,
+    # still survives (#584 review 3).
+    assert row.sample_label == ""
+    assert row.sample_mhc_origin == "class_pool"
+    assert row.mhc_basis == ""
+    assert set(row.sample_mhc.split()) == {"HLA-DRB1*01:01", "HLA-DRB1*04:01"}
+    # The restriction itself is untouched -- only the arm claim is refused.
+    assert row.mhc_restriction == "HLA-DRB1*04:01"
 
 
 def test_every_deposited_gbm_statement_is_curated():
@@ -369,3 +503,419 @@ def test_sample_mhc_origin_is_blank_when_there_are_no_candidates(monkeypatch):
     row = generate_observations_table(exclude_non_peptide_ligand=False).iloc[0]
     assert row.sample_mhc == ""
     assert row.sample_mhc_origin == ""
+
+
+# ── One resolution for every statement-excluded row (#584 review 2) ──────────
+#
+# Three stages can refuse a row -- the allele stage, the class-pool stage, and
+# the assigned-arm check that catches a unique allele key or a curated label --
+# and each used to build its own fallback metadata. They disagreed, so what a
+# vetoed row reported depended on which stage happened to notice it: an
+# excluded arm's label (#581), its typing, ``allele_match`` over a candidate
+# list the deposit rules out. These pin the single record all of them produce.
+
+_STMT = "The epitope was eluted from {}."
+
+
+def _arm(label, condition_id, mhc, mhc_class):
+    return {
+        "sample_label": label,
+        "condition_id": condition_id,
+        "mhc": mhc,
+        "mhc_class": mhc_class,
+        "condition": "unperturbed",
+    }
+
+
+#: (name, ms_samples, statement map, observation row). Every case is a row the
+#: deposited statement excludes, reached by a different route.
+VETO_SHAPES = [
+    (
+        # The row's class has exactly one arm, so "consensus" over the arms the
+        # statement allows was that arm's whole record -- #581, via the allele
+        # stage this time.
+        "single_arm_in_class",
+        [
+            _arm("Alpha cells", "alpha", "HLA-A*02:01", "I"),
+            _arm("Beta cells", "beta", "HLA-DRB1*04:01", "II"),
+        ],
+        {_STMT.format("Alpha cells"): ["alpha"], _STMT.format("Beta cells"): ["beta"]},
+        {"mhc_restriction": "HLA-DRB1*04:01", "mhc_class": "II"},
+    ),
+    (
+        # An arm the map never names, surviving narrowing alone on the
+        # class-pool path: the statement's own arm is class I, so no arm it
+        # names is a candidate at all.
+        "lone_unmapped_arm_class_pool",
+        [
+            _arm("Alpha cells", "alpha", "HLA-A*02:01", "I"),
+            _arm("Beta cells", "beta", "HLA-DRB1*04:01", "II"),
+            _arm("Gamma cells", "gamma", "HLA-DRB1*07:01", "II"),
+        ],
+        {_STMT.format("Alpha cells"): ["alpha"], _STMT.format("Beta cells"): ["beta"]},
+        {"mhc_restriction": "HLA class II", "mhc_class": "II"},
+    ),
+    (
+        # The same lone unmapped arm on the allele path, where its allele makes
+        # a unique key that never reaches the narrowing at all.
+        "lone_unmapped_arm_allele_key",
+        [
+            _arm("Alpha cells", "alpha", "HLA-A*02:01", "I"),
+            _arm("Beta cells", "beta", "HLA-DRB1*04:01", "II"),
+            _arm("Gamma cells", "gamma", "HLA-DRB1*07:01", "II"),
+        ],
+        {_STMT.format("Alpha cells"): ["alpha"], _STMT.format("Beta cells"): ["beta"]},
+        {"mhc_restriction": "HLA-DRB1*07:01", "mhc_class": "II"},
+    ),
+    (
+        # A class-II allele deposited under mhc_class "I", so the row's class
+        # has no pool to fall back on. ``sample_mhc`` is legitimately blank;
+        # the provenance columns still have to say the arm was refused.
+        "no_class_pool_for_the_rows_class",
+        [
+            _arm("Alpha cells", "alpha", "HLA-DRB1*01:01", "II"),
+            _arm("Beta cells", "beta", "HLA-DRB1*04:01", "II"),
+        ],
+        {_STMT.format("Alpha cells"): ["alpha"], _STMT.format("Beta cells"): ["beta"]},
+        {"mhc_restriction": "HLA-DRB1*04:01", "mhc_class": "I"},
+    ),
+    (
+        # Two excluded arms that agree on their typing: consensus keeps what
+        # every candidate shares, so agreement handed back the typing the veto
+        # had just refused.
+        "excluded_arms_sharing_a_typing",
+        [
+            _arm("Alpha cells", "alpha", "HLA-A*02:01", "I"),
+            _arm("Beta one", "beta1", "HLA-DRB1*04:01", "II"),
+            _arm("Beta two", "beta2", "HLA-DRB1*04:01", "II"),
+        ],
+        {_STMT.format("Alpha cells"): ["alpha"], _STMT.format("Beta cells"): ["beta1", "beta2"]},
+        {"mhc_restriction": "HLA-DRB1*04:01", "mhc_class": "II"},
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    "name, arms, condition_map, row",
+    VETO_SHAPES,
+    ids=[shape[0] for shape in VETO_SHAPES],
+)
+def test_every_statement_excluded_row_reports_the_same_record(
+    monkeypatch, name, arms, condition_map, row
+):
+    """Whichever stage refuses it, a vetoed row reads identically."""
+    pmid = 99999584
+    monkeypatch.setattr(
+        "hitlist.export.load_pmid_overrides",
+        lambda: {
+            pmid: {
+                "override": "cell_line",
+                "arm_resolution": "curation_gap",
+                "elution_condition_ids": condition_map,
+                "ms_samples": arms,
+            }
+        },
+    )
+    monkeypatch.setattr(
+        "hitlist.observations.load_observations",
+        lambda **kwargs: pd.DataFrame(
+            [
+                {
+                    "peptide": "AAAAAAAAAAAAAAA",
+                    "pmid": pmid,
+                    "mhc_species": "Homo sapiens",
+                    "cell_name": "",
+                    "source_tissue": "",
+                    "antigen_processing_comments": "",
+                    # Names the class-I arm, which this class-II row can never
+                    # have come from.
+                    "assay_comments": _STMT.format("Alpha cells"),
+                    "is_binding_assay": False,
+                    "source": "iedb",
+                    **row,
+                }
+            ]
+        ),
+    )
+    result = generate_observations_table(exclude_non_peptide_ligand=False).iloc[0]
+
+    # No arm, and never half of one: a label without a condition_id is the
+    # shape #581 reported.
+    assert result.sample_label == ""
+    assert result.sample_group == ""
+    assert result.condition_id == ""
+    assert result.sample_attribution == "elution_conditions_excluded"
+    # Never allele_match: whatever its allele matched is an arm the deposit
+    # excludes, so the candidates it reports are the class pool's -- or, where
+    # the row's class has no pool at all, nothing, and ``pmid_class_pool``
+    # would claim a union that does not exist (#584 review 4).
+    # The typing of an excluded arm never survives, not even when several of
+    # them agree on it.
+    assert result.mhc_basis == ""
+    assert result.mhc_genotype == ""
+    assert result.mhc_genotype_cell == ""
+    # Study-level facts do survive -- they belong to the deposit, not to an arm
+    # (#373) -- including when the row's class has no pool at all.
+    assert result.arm_resolution == "curation_gap"
+    assert (result.effective_override, result.effective_override_origin) == (
+        "cell_line",
+        "study",
+    )
+    # And the candidates are the class pool's union, or nothing when the row's
+    # class has none -- in which case ``sample_mhc_origin`` is blank too,
+    # because blank is how that column says nothing reached the row, and
+    # "class_pool" over an empty candidate list claims a pool that does not
+    # exist (#584 review 3).
+    expected_pool = sorted({a["mhc"] for a in arms if a["mhc_class"] == row["mhc_class"]})
+    assert sorted(result.sample_mhc.split()) == expected_pool
+    assert result.sample_mhc_origin == ("class_pool" if expected_pool else "")
+    assert result.sample_match_type == ("pmid_class_pool" if expected_pool else "unmatched")
+
+
+# ── The refusal is decided from row data, not passed between stages ─────────
+#
+# The statement, the row's class and its assigned arm are all the resolution
+# needs, and ``StatementMap`` is the single place a statement is normalised.
+# Carrying a key set between the narrowing stages and the resolution meant
+# three sites had to normalise identically and a second refusal rule had to
+# agree with the first; neither held (#584 review 3).
+
+
+def _run_one(monkeypatch, entry, row, pmid=99999585):
+    monkeypatch.setattr(
+        "hitlist.export.load_pmid_overrides",
+        lambda: {pmid: {"override": "cell_line", **entry}},
+    )
+    monkeypatch.setattr(
+        "hitlist.observations.load_observations",
+        lambda **kwargs: pd.DataFrame(
+            [
+                {
+                    "peptide": "AAAAAAAAAAAAAAA",
+                    "pmid": pmid,
+                    "mhc_species": "Homo sapiens",
+                    "cell_name": "",
+                    "source_tissue": "",
+                    "antigen_processing_comments": "",
+                    "is_binding_assay": False,
+                    "source": "iedb",
+                    **row,
+                }
+            ]
+        ),
+    )
+    return generate_observations_table(exclude_non_peptide_ligand=False).iloc[0]
+
+
+def test_a_named_arm_carrying_the_allele_beats_an_unmapped_one(monkeypatch):
+    """Never refused because an arm the statement does not name won earlier.
+
+    Alpha is named by the row's statement and carries its allele; Gamma is a
+    system the map says nothing about. Letting unmapped arms survive narrowing
+    alongside named ones handed the choice to the group stage, which reads the
+    row's ``cell_name`` and picked Gamma -- and the resolution then refused a
+    row that had a named arm carrying its allele all along. Two rows, because
+    the group stage only reads a field that varies across the study.
+    """
+    monkeypatch.setattr(
+        "hitlist.export.load_pmid_overrides",
+        lambda: {
+            99999585: {
+                "override": "cell_line",
+                "arm_resolution": "curation_gap",
+                "elution_condition_ids": {_STMT.format("Alpha cells"): ["alpha"]},
+                "ms_samples": [
+                    {**_arm("Alpha cells", "alpha", "HLA-A*02:01", "I"), "sample_group": "Alpha"},
+                    {**_arm("Gamma cells", "gamma", "HLA-A*02:01", "I"), "sample_group": "Gamma"},
+                ],
+            }
+        },
+    )
+    monkeypatch.setattr(
+        "hitlist.observations.load_observations",
+        lambda **kwargs: pd.DataFrame(
+            [
+                {
+                    "peptide": peptide,
+                    "pmid": 99999585,
+                    "mhc_restriction": "HLA-A*02:01",
+                    "mhc_class": "I",
+                    "mhc_species": "Homo sapiens",
+                    "cell_name": cell_name,
+                    "source_tissue": "",
+                    "antigen_processing_comments": "",
+                    "assay_comments": _STMT.format("Alpha cells"),
+                    "is_binding_assay": False,
+                    "source": "iedb",
+                }
+                for peptide, cell_name in [
+                    ("AAAAAAAAA", "Gamma cells"),
+                    ("LLLLLLLLL", "Alpha cells"),
+                ]
+            ]
+        ),
+    )
+    result = generate_observations_table(exclude_non_peptide_ligand=False).set_index("peptide")
+    for peptide in ("AAAAAAAAA", "LLLLLLLLL"):
+        assert result.loc[peptide, "sample_label"] == "Alpha cells"
+        assert result.loc[peptide, "condition_id"] == "alpha"
+        assert result.loc[peptide, "sample_attribution"] != "elution_conditions_excluded"
+
+
+def test_a_padded_statement_resolves_like_its_stripped_form(monkeypatch):
+    """One normalisation, in ``StatementMap`` and nowhere else.
+
+    The key set stored the raw ``assay_comments`` while the resolution looked
+    up the stripped statement, so a deposit that pads its text fell through
+    both and exported no ``sample_attribution`` at all -- neither refused nor
+    ambiguous. The restriction is class-only on purpose: with no allele to
+    first-pick an arm, the key was the only thing that could refuse the row.
+    """
+    entry = {
+        "arm_resolution": "curation_gap",
+        "elution_condition_ids": {
+            _STMT.format("Alpha cells"): ["alpha"],
+            _STMT.format("Beta cells"): ["beta1", "beta2"],
+        },
+        "ms_samples": [
+            _arm("Alpha cells", "alpha", "HLA-A*02:01", "I"),
+            _arm("Beta one", "beta1", "HLA-DRB1*04:01", "II"),
+            _arm("Beta two", "beta2", "HLA-DRB1*07:01", "II"),
+        ],
+    }
+    obs_row = {"mhc_restriction": "HLA class II", "mhc_class": "II"}
+    bare = _run_one(monkeypatch, entry, {**obs_row, "assay_comments": _STMT.format("Alpha cells")})
+    padded = _run_one(
+        monkeypatch,
+        entry,
+        {**obs_row, "assay_comments": "  " + _STMT.format("Alpha cells") + " "},
+    )
+    assert bare.sample_attribution == "elution_conditions_excluded"
+    assert padded.sample_attribution == bare.sample_attribution
+    assert padded.sample_label == bare.sample_label == ""
+    assert padded.condition_id == bare.condition_id == ""
+
+
+def test_a_contradicted_lone_survivor_lends_neither_label_nor_typing(monkeypatch):
+    """The rejected guess must not come back as the consensus (#581 again).
+
+    Narrowing leaves one arm, whose typing the row's own restriction then
+    contradicts. The guard that rejects the guess consensused over the
+    surviving candidates -- and with one survivor, that is the rejected arm.
+    """
+    row = _run_one(
+        monkeypatch,
+        {
+            "arm_resolution": "curation_gap",
+            "elution_condition_ids": {
+                _STMT.format("Alpha cells"): ["alpha"],
+                _STMT.format("Beta cells"): ["beta"],
+            },
+            "ms_samples": [
+                _arm("Alpha cells", "alpha", "HLA-A*02:01", "I"),
+                _arm("Beta cells", "beta", "HLA-A*01:01", "I"),
+            ],
+        },
+        {
+            "mhc_restriction": "HLA-A*03:01",
+            "mhc_class": "I",
+            "assay_comments": _STMT.format("Alpha cells"),
+        },
+    )
+    assert row.sample_label == ""
+    assert row.condition_id == ""
+    assert row.mhc_basis == ""
+    assert row.mhc_genotype == ""
+    assert row.sample_mhc_origin != "sample"
+
+
+def test_a_refused_row_keeps_the_facts_every_arm_of_the_study_shares(monkeypatch):
+    """Deposit-level facts are not arm claims, so a refusal does not drop them.
+
+    Blanking every column but three took refused rows out of every
+    ``--instrument-type`` and ``--acquisition-mode`` filter, silently. What the
+    study's own arms all agree on is a property of the deposit -- which
+    antibody, which instrument, what the material was -- and ``conditions.py``
+    already says a fact shared by every arm is not withheld.
+    """
+    # Deliberately different per class, as PMID 33592498 is: HB95/W6/32 for
+    # class I, HB245/IVA12 for class II. A consensus over the whole study
+    # blanks a fact the row's own class agrees on perfectly (#584 review 4).
+    shared = {
+        "instrument": "Orbitrap Fusion Lumos",
+        "acquisition_mode": "DDA",
+        "condition_material": "cultured",
+    }
+    row = _run_one(
+        monkeypatch,
+        {
+            "arm_resolution": "curation_gap",
+            "elution_condition_ids": {
+                _STMT.format("Alpha cells"): ["alpha"],
+                _STMT.format("Beta cells"): ["beta", "beta2"],
+            },
+            "ms_samples": [
+                {
+                    **_arm("Alpha cells", "alpha", "HLA-A*02:01", "I"),
+                    **shared,
+                    "ip_antibody": "W6/32",
+                },
+                {
+                    **_arm("Beta cells", "beta", "HLA-DRB1*04:01", "II"),
+                    **shared,
+                    "ip_antibody": "HB245/IVA12",
+                },
+                {
+                    **_arm("Beta two", "beta2", "HLA-DRB1*07:01", "II"),
+                    **shared,
+                    "ip_antibody": "HB245/IVA12",
+                },
+            ],
+        },
+        {
+            "mhc_restriction": "HLA-DRB1*04:01",
+            "mhc_class": "II",
+            "assay_comments": _STMT.format("Alpha cells"),
+        },
+    )
+    assert row.sample_attribution == "elution_conditions_excluded"
+    # The class-II antibody, because that is the row's class -- not blank from
+    # a study-wide consensus the two classes disagree on.
+    assert row.ip_antibody == "HB245/IVA12"
+    assert row.instrument == "Orbitrap Fusion Lumos"
+    assert row.acquisition_mode == "DDA"
+    assert row.condition_material == "cultured"
+    assert row.instrument_type != ""
+    # Still no arm, and still none of its typing.
+    assert (row.sample_label, row.condition_id, row.mhc_basis) == ("", "", "")
+
+
+def test_a_row_is_never_refused_for_missing_data(monkeypatch):
+    """Refusal needs positive evidence, not an absent field.
+
+    ``_mhc_class_norm`` is blank whenever the deposit does not say, and an arm
+    reached through a path that carries no ``condition_id`` -- stage 3c's
+    curated label, the single-sample fallback -- leaves the assigned arm blank
+    too. Asking "does any allowed arm have this row's class" of a blank class
+    answers no, and refusing on that answer turns a missing field into a
+    verdict about the deposit (#584 review 4).
+    """
+    entry = {
+        "arm_resolution": "curation_gap",
+        "elution_condition_ids": {_STMT.format("Alpha cells"): ["alpha"]},
+        "ms_samples": [
+            _arm("Alpha cells", "alpha", "HLA-A*02:01", "I"),
+            _arm("Beta cells", "beta", "HLA-DRB1*04:01", "II"),
+        ],
+    }
+    row = _run_one(
+        monkeypatch,
+        entry,
+        {
+            "peptide": "AAAAAAAAAAAAAAA",
+            "mhc_restriction": "",
+            "mhc_class": "",
+            "assay_comments": _STMT.format("Alpha cells"),
+        },
+    )
+    assert row.sample_attribution != "elution_conditions_excluded"
