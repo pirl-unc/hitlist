@@ -3725,52 +3725,71 @@ def test_sample_alleles_excludes_serotype_members():
     A serotype-typed study reported no allele, so expanding HLA-DR15 into
     DRB1*15:01 here would manufacture an observation the study never made.
     """
-    from hitlist.export import _sample_alleles, _sample_serotypes
+    from hitlist.export import _sample_serotypes, reported_class_alleles
 
-    assert _sample_alleles("HLA-DR15") == []
+    assert reported_class_alleles("HLA-DR15") == []
     assert _sample_serotypes("HLA-DR15") == ("HLA-DR15",)
 
     # An allele-typed sample is unaffected.
-    assert _sample_alleles("HLA-A*02:01 HLA-B*07:02") == ["HLA-A*02:01", "HLA-B*07:02"]
+    assert reported_class_alleles("HLA-A*02:01 HLA-B*07:02") == ["HLA-A*02:01", "HLA-B*07:02"]
     assert _sample_serotypes("HLA-A*02:01 HLA-B*07:02") == ()
 
     # A mixed I+II genotype is narrowed to the target/observation class
     # before class-only support is evaluated.
     mixed = "HLA-A*02:01 HLA-DRB1*11:01"
-    assert _sample_alleles(mixed, "I") == ["HLA-A*02:01"]
-    assert _sample_alleles(mixed, "II") == ["HLA-DRB1*11:01"]
+    assert reported_class_alleles(mixed, "I") == ["HLA-A*02:01"]
+    assert reported_class_alleles(mixed, "II") == ["HLA-DRB1*11:01"]
 
 
 def test_sample_alleles_still_drops_class_and_locus_designations():
     """Class sentinels and class-II loci name no allele, before or after
     #380 — the join has nothing to match them on."""
-    from hitlist.export import _sample_alleles, _sample_serotypes
+    from hitlist.export import _sample_serotypes, reported_class_alleles
 
     for imprecise in ("HLA class I", "MHC class II", "BoLA-DR", "SLA-DR", ""):
-        assert _sample_alleles(imprecise) == [], imprecise
+        assert reported_class_alleles(imprecise) == [], imprecise
         assert _sample_serotypes(imprecise) == (), imprecise
 
 
 def test_reported_class_alleles_is_the_public_cross_module_contract():
-    """#574: :mod:`hitlist.predict` must not import a private name from here.
+    """#574: each documented guarantee asserted on behaviour, not on delegation.
 
-    The guarantees the wrapper documents are the ones ``predict`` relies on to
-    build its eligibility rule, so they are pinned here rather than left to the
-    private helper's docstring: ``exact`` candidates only (a serotype never
-    becomes a named allele), class-II pairs contribute the pair and both chains,
-    and a supplied class excludes the other half of a mixed ``I+II`` genotype.
+    This used to compare the function to the private one it wrapped, which was
+    true by construction and would have stayed true had the behaviour been
+    wrong. The guarantees below are what :mod:`hitlist.predict` relies on.
     """
-    from hitlist.export import _sample_alleles, reported_class_alleles
+    from hitlist.export import reported_class_alleles
 
-    mixed = "HLA-A*02:01 HLA-DRB1*11:01"
-    for field, mhc_class in ((mixed, ""), (mixed, "I"), (mixed, "II"), ("HLA-DR15", "")):
-        assert reported_class_alleles(field, mhc_class) == _sample_alleles(field, mhc_class)
-
+    # A serotype-typed sample yields no named allele: "this donor is DR15" must
+    # not become "this peptide was seen on DRB1*15:01".
     assert reported_class_alleles("HLA-DR15") == []
-    assert reported_class_alleles(mixed, "I") == ["HLA-A*02:01"]
+
+    # A class-II pair contributes the pair token and both component chains.
     pair = reported_class_alleles("HLA-DRA1*01:01-DRB1*15:01", "II")
     assert "HLA-DRA*01:01/DRB1*15:01" in pair
     assert "HLA-DRB1*15:01" in pair
+    assert "HLA-DRA*01:01" in pair
+
+    # A supplied class excludes the other half of a mixed I+II genotype.
+    mixed = "HLA-A*02:01 HLA-DRB1*11:01"
+    assert reported_class_alleles(mixed, "I") == ["HLA-A*02:01"]
+    assert reported_class_alleles(mixed, "II") == ["HLA-DRB1*11:01"]
+    assert reported_class_alleles(mixed) == ["HLA-A*02:01", "HLA-DRB1*11:01"]
+
+    # Sorted and deduplicated.
+    assert reported_class_alleles("HLA-B*07:02 HLA-A*02:01 HLA-A*02:01") == [
+        "HLA-A*02:01",
+        "HLA-B*07:02",
+    ]
+
+    # It does NOT promise protein-level precision: a locus and a one-field
+    # allele group are returned as reported.  The docstring used to claim a
+    # locus was absent, which was false and is what #574 relied on.
+    assert reported_class_alleles("HLA-A", "I") == ["HLA-A"]
+    assert reported_class_alleles("HLA-A*02", "I") == ["HLA-A*02"]
+
+    # A class sentinel names no molecule at all, so it really is absent.
+    assert reported_class_alleles("HLA class I", "I") == []
 
 
 def test_serotype_typed_samples_join_through_their_members():

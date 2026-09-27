@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from hitlist.predict import class_i_prediction_scope
+from hitlist.curation import class_i_prediction_scope
 
 
 def _scorable(mhc_field):
@@ -90,11 +90,27 @@ def test_class_i_alleles_skips_class_ii():
     assert scope.is_eligible
 
 
-def test_class_i_alleles_empty_on_sentinels():
-    for s in ("", "unknown", "HLA class I", "HLA class II", None):
-        scope = class_i_prediction_scope(s)
-        assert scope.scorable == ()
-        assert not scope.is_eligible, s
+@pytest.mark.parametrize(
+    "sentinel,expected_unscorable",
+    [
+        ("", ()),
+        ("unknown", ()),
+        (None, ()),
+        # A class-II sentinel is a different candidate space, not an
+        # unresolved class-I one.
+        ("HLA class II", ()),
+        # A class-I sentinel *is* a class-I designation the source reported:
+        # it says class-I material is present and untyped, which is exactly an
+        # unresolved candidate space.  Alone it scores nothing either way; the
+        # value matters in the mixed case below.
+        ("HLA class I", ("human class I",)),
+    ],
+)
+def test_class_i_alleles_empty_on_sentinels(sentinel, expected_unscorable):
+    scope = class_i_prediction_scope(sentinel)
+    assert scope.scorable == (), f"{sentinel!r} must yield no scorable candidate"
+    assert scope.unscorable == expected_unscorable, f"{sentinel!r} unscorable"
+    assert not scope.is_eligible, f"{sentinel!r} must not be eligible"
 
 
 def test_class_i_candidates_keep_precision_and_accept_curated_separators():
@@ -105,15 +121,15 @@ def test_class_i_candidates_keep_precision_and_accept_curated_separators():
 
 
 def test_class_i_candidates_exclude_nonhuman_and_nonclassical_molecules():
-    """#574: the two exclusions are not the same kind of exclusion.
+    """#574: a class-I molecule the backends cannot score blocks the context.
 
-    ``HLA-E``/``HLA-G`` are class Ib, so they are not class-I ("Ia") candidates
-    at all and never reach this rule.  ``H2-K*b`` and ``Mamu-A*01`` *are*
-    class-I candidates that this module's wiring cannot score -- it hands
-    MHCflurry's human models the string, and ``_netmhcpan_allele_arg`` would
-    spell the mouse allele ``H2-Kb`` rather than netMHCpan's ``H-2-Kb``.  A
-    class-I candidate we cannot score leaves the candidate space unresolved, so
-    it belongs in ``unscorable`` and blocks the prediction.
+    ``H2-K*b`` and ``Mamu-A*01`` are class-I alleles this module's wiring cannot
+    score -- it hands MHCflurry's human models the string, and
+    ``_netmhcpan_allele_arg`` would spell the mouse allele ``H2-Kb`` rather than
+    netMHCpan's ``H-2-Kb``.  ``HLA-E``/``HLA-G`` are class ``Ib``: genuine
+    class-I presenting molecules that no wired predictor models.  All four leave
+    the class-I candidate space unresolved, so they belong in ``unscorable``.
+    Only the class-II allele is irrelevant to a class-I prediction.
     """
     scope = class_i_prediction_scope(
         "HLA-A*02:01 H2-K*b Mamu-A*01 HLA-E*01:01 HLA-G*01:01 HLA-DRB1*15:01"
@@ -121,8 +137,66 @@ def test_class_i_candidates_exclude_nonhuman_and_nonclassical_molecules():
     assert list(scope.scorable) == ["HLA-A*02:01"]
     # ``Mamu-A*01`` is a retired name; the parser resolves it to the current
     # ``Mamu-A1*001``, which is the designation that would reach a backend.
-    assert list(scope.unscorable) == ["H2-K*b", "Mamu-A1*001"]
+    assert list(scope.unscorable) == [
+        "H2-K*b",
+        "HLA-E*01:01",
+        "HLA-G*01:01",
+        "Mamu-A1*001",
+    ]
     assert not scope.is_eligible
+
+
+@pytest.mark.parametrize(
+    "field,expected_unscorable",
+    [
+        # A serotype reaches the boundary through `SampleMhcCandidates.
+        # serotypes`, not `exact`, so a partition built only from `exact`
+        # never saw it and silently predicted on the remainder.
+        ("HLA-A2 HLA-B*07:02", ("HLA-A2",)),
+        ("HLA-A3 supertype HLA-B*07:02", ("HLA-A3",)),
+        # A class-I sentinel reaches it through `imprecise`, likewise unseen.
+        ("HLA-A*02:01 HLA class I", ("human class I",)),
+        # A locus is `exact` but names no protein.
+        ("HLA-A*02:01 HLA-A", ("HLA-A",)),
+    ],
+)
+def test_imprecise_class_i_candidates_of_any_kind_block_prediction(field, expected_unscorable):
+    """#574: precision must be judged on every class-I designation.
+
+    Each of these has a resolvable class-I candidate beside something that
+    names no protein.  Scoring the resolvable one would pick a winner from a
+    candidate space we know is incomplete.
+    """
+    scope = class_i_prediction_scope(field)
+    assert scope.scorable, f"{field!r} should still expose its resolved candidate"
+    assert scope.unscorable == expected_unscorable, f"{field!r} unscorable"
+    assert not scope.is_eligible, f"{field!r} must not be eligible"
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        # A class-II allele, pair, serotype or locus is a different candidate
+        # space; none of them says anything is missing from the class-I one.
+        "HLA-A*02:01 HLA-DRB1*15:01",
+        "HLA-A*02:01 HLA-DRA1*01:01-DRB1*15:01",
+        "HLA-A*02:01 HLA-DR15",
+        "HLA-A*02:01 BoLA-DR",
+        "HLA-A*02:01 SLA-DR",
+        "HLA-A*02:01 HLA class II",
+    ],
+)
+def test_other_class_designations_do_not_block_a_class_i_prediction(field):
+    """The other side of the rule: only class-I gaps count against class I.
+
+    ``BoLA-DR`` and ``SLA-DR`` parse to a class-II locus, so despite being
+    imprecise they are not an unresolved *class-I* candidate.  Treating them as
+    one would abstain on every mixed-class genotype.
+    """
+    scope = class_i_prediction_scope(field)
+    assert list(scope.scorable) == ["HLA-A*02:01"], field
+    assert scope.unscorable == (), f"{field!r} must not poison the class-I space"
+    assert scope.is_eligible, field
 
 
 def test_gene_only_candidates_are_never_predictor_input():
@@ -175,29 +249,52 @@ def test_mixed_precise_and_unresolved_candidates_abstain_without_dropping_either
     assert not scope.is_eligible
 
 
-def test_finer_than_two_field_alleles_stay_scorable():
-    """Three- and four-field designations are *more* precise, not less.
+@pytest.mark.parametrize(
+    "fine,why",
+    [
+        ("HLA-A*02:01:01", "third field is a synonymous DNA substitution"),
+        ("HLA-A*02:01:01:02L", "L annotates low surface expression, not absence"),
+        ("HLA-A*24:02:01:02Q", "Q flags questionable expression, still expressed"),
+    ],
+)
+def test_finer_than_two_field_alleles_stay_scorable(fine, why):
+    """Extra fields refine the DNA sequence or annotate expression level.
 
-    The third field is a synonymous substitution, so the protein is the one the
-    two-field name denotes; rejecting these would abstain on better data.
+    Neither changes the binding groove, and ``L``/``Q`` molecules still reach
+    the cell surface, so all three remain candidates that could present the
+    peptide.  Rejecting them would abstain on better data.
     """
-    for fine in ("HLA-A*02:01:01", "HLA-A*02:01:01:02L"):
-        scope = class_i_prediction_scope(fine)
-        assert list(scope.scorable) == [fine], fine
-        assert scope.is_eligible, fine
+    scope = class_i_prediction_scope(fine)
+    assert list(scope.scorable) == [fine], why
+    assert scope.unscorable == (), why
+    assert scope.is_eligible, why
 
 
-def test_null_allele_is_not_a_presentation_candidate():
-    """A ``N``-suffixed allele is not expressed, so it presents no peptide.
+@pytest.mark.parametrize(
+    "absent,annotation",
+    [
+        ("HLA-A*24:02:01:02N", "N -- null, no product"),
+        ("HLA-B*44:02:01:02S", "S -- secreted, never membrane-bound"),
+        ("HLA-A*01:01:01:02C", "C -- cytoplasm only, never presented on"),
+    ],
+)
+def test_non_surface_alleles_are_dropped_not_counted_as_unresolved(absent, annotation):
+    """#574: a molecule that reaches no cell surface cannot be the answer.
 
-    Absent from curation today; pinned because a best-allele call naming a null
-    allele would be a biological falsehood, and because the backends have no
-    model for one.
+    Unlike an imprecise designation, dropping one of these does not make the
+    remaining set incomplete -- it could never have presented the peptide -- so
+    the context stays eligible on its expressed candidates rather than
+    abstaining.
     """
-    scope = class_i_prediction_scope("HLA-A*02:01 HLA-A*24:02:01:02N")
-    assert list(scope.scorable) == ["HLA-A*02:01"]
-    assert list(scope.unscorable) == ["HLA-A*24:02:01:02N"]
-    assert not scope.is_eligible
+    scope = class_i_prediction_scope(f"HLA-A*02:01 {absent}")
+    assert list(scope.scorable) == ["HLA-A*02:01"], annotation
+    assert scope.unscorable == (), annotation
+    assert scope.is_eligible, annotation
+
+    alone = class_i_prediction_scope(absent)
+    assert alone.scorable == (), annotation
+    assert alone.unscorable == (), annotation
+    assert not alone.is_eligible, annotation
 
 
 def test_mutation_selector_is_refused_rather_than_read_as_wild_type():
@@ -250,3 +347,116 @@ def test_reassign_empty_when_no_class_only_rows(monkeypatch):
         "best_presentation_percentile",
         "is_strong_binder",
     }
+
+
+def test_predict_imports_no_private_names_from_export_or_curation():
+    """Drift guard (#564/#574).
+
+    ``predict`` reached into ``export._sample_alleles``, so the contract it
+    depended on had no public name and no documented guarantees -- and the
+    docstring it was not bound by turned out to be wrong about loci, which is
+    how #574 survived. Anything ``predict`` needs from ``export`` or
+    ``curation`` gets a public name there.
+
+    Parsed rather than grepped so ``import public_name as _alias`` -- which is
+    a local naming choice, not a private dependency -- is not a false positive.
+    """
+    import ast
+    import pathlib
+
+    source = pathlib.Path(__file__).resolve().parents[1] / "hitlist" / "predict.py"
+    tree = ast.parse(source.read_text())
+    offenders = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.ImportFrom) or not node.module:
+            continue
+        if node.module.split(".")[-1] not in {"export", "curation"}:
+            continue
+        for alias in node.names:
+            if alias.name.startswith("_"):
+                offenders.append(f"predict.py:{node.lineno}: {node.module}.{alias.name}")
+    assert not offenders, (
+        "predict must depend on public, documented names from export/curation:\n"
+        + "\n".join(offenders)
+    )
+
+
+def test_abstained_contexts_are_reported_rather_than_silently_missing(monkeypatch):
+    """#574: an abstention must not look like an absence.
+
+    A skipped context simply does not appear in the result, which is
+    indistinguishable from "this study had no class-only peptides". The tally
+    names the designations responsible so a caller can tell the two apart.
+    """
+    from hitlist import predict
+    from hitlist.curation import MHC_TYPING_COLUMNS
+
+    rows = pd.DataFrame(
+        [
+            {
+                "peptide": "AAAAAAAAA",
+                "pmid": 1,
+                "sample_label": "cell",
+                "sample_mhc": "HLA-A*02:01 HLA-B*27",
+                "mhc_restriction": "HLA class I",
+                "is_monoallelic": False,
+                "sample_match_type": "pmid_class_pool",
+                "sample_mhc_origin": "sample",
+                **dict.fromkeys(MHC_TYPING_COLUMNS, ""),
+            }
+        ]
+    )
+    monkeypatch.setattr("hitlist.export.generate_observations_table", lambda **kw: rows)
+
+    with pytest.warns(UserWarning, match=r"HLA-B\*27") as recorded:
+        result = predict.reassign_class_only_alleles()
+    assert result.empty
+    assert "1 class-only observations" in str(recorded[0].message)
+
+
+def test_no_warning_when_every_context_is_resolved(monkeypatch):
+    """The tally must stay quiet on clean input, or it is noise."""
+    import warnings as _warnings
+
+    from hitlist import predict
+    from hitlist.curation import MHC_TYPING_COLUMNS
+
+    rows = pd.DataFrame(
+        [
+            {
+                "peptide": "AAAAAAAAA",
+                "pmid": 1,
+                "sample_label": "cell",
+                "sample_mhc": "HLA-A*02:01 HLA-B*07:02",
+                "mhc_restriction": "HLA class I",
+                "is_monoallelic": False,
+                "sample_match_type": "pmid_class_pool",
+                "sample_mhc_origin": "sample",
+                **dict.fromkeys(MHC_TYPING_COLUMNS, ""),
+            }
+        ]
+    )
+    monkeypatch.setattr("hitlist.export.generate_observations_table", lambda **kw: rows)
+    monkeypatch.setattr(
+        predict,
+        "_predict_mhcflurry",
+        lambda pairs: pairs.assign(affinity_nM=10.0, presentation_percentile=0.1),
+    )
+    with _warnings.catch_warnings():
+        _warnings.simplefilter("error")
+        assert len(predict.reassign_class_only_alleles()) == 1
+
+
+def test_class_i_prediction_scope_cache_is_cleared_between_builds():
+    """Registered in ``_clear_curation_caches`` like every other curation cache.
+
+    The scope resolves retired allele names through curated identity data, so a
+    rebuild in the same process must not answer from the previous YAML's
+    mapping.
+    """
+    from hitlist import curation
+
+    curation.class_i_prediction_scope("HLA-A*02:01")
+    assert curation.class_i_prediction_scope.cache_info().currsize > 0
+    curation._clear_curation_caches()
+    assert curation.class_i_prediction_scope.cache_info().currsize == 0

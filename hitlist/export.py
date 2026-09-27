@@ -3936,51 +3936,36 @@ def _query_mhc_class(target_allele: str = "", target_serotype: str = "") -> str:
 
 
 def reported_class_alleles(sample_mhc: str, mhc_class: str = "") -> list[str]:
-    """Precisely reported experimental MHC candidates of one class.
+    """Molecule designations a sample's MHC field names outright, for one class.
 
-    The public name for what :mod:`hitlist.predict` reads.  ``predict`` used to
-    import :func:`_sample_alleles`, and a private name carrying a cross-module
-    contract is what this project's no-private-interfaces rule exists to prevent
-    (#564): callers could depend on the behaviour but not on its documentation.
+    Public because :mod:`hitlist.predict` reads it, and a private name carrying
+    a cross-module contract is what this project's no-private-interfaces rule
+    exists to prevent (#564).  It was ``_sample_alleles``.
 
     The guarantees a caller outside this module may rely on:
 
-    - ``exact`` candidates only, so a serotype-typed sample never yields a named
-      allele -- "this donor is DR15" must not become "this peptide was seen on
-      DRB1*15:01" (#380).
+    - :attr:`~hitlist.curation.SampleMhcCandidates.exact` designations only, so
+      a serotype-typed sample never yields a named allele -- "this donor is
+      DR15" must not become "this peptide was seen on DRB1*15:01" (#380).  Ask
+      :func:`_sample_serotypes` for what such a study actually measured.
     - A class-II pair contributes the pair token *and* both component chains,
       which are part of the reported molecule rather than an inference.
-    - With ``mhc_class`` set, the other half of a mixed ``I+II`` genotype is
-      excluded.
-    - A designation naming no molecule (locus, class sentinel) is absent.
+    - With ``mhc_class`` set, designations of the other class -- the other half
+      of a mixed ``I+II`` genotype -- are excluded.
+    - The result is sorted and deduplicated.
 
-    What it deliberately does *not* promise is that every returned value
-    identifies a single protein: a ``Gene`` or a one-field allele group is a
-    faithful record of what the source named.  A consumer that needs
-    protein-level input must say so itself -- see
-    :func:`hitlist.predict.class_i_prediction_scope` (#574).
+    It deliberately does **not** promise that a returned value identifies a
+    single protein.  ``exact`` means *the source named this outright*, so a
+    locus (``HLA-A``) or a one-field allele group (``HLA-A*02``) is returned
+    as-is; that is a faithful record of the reported precision, not a defect.
+    A consumer needing protein-level input must apply its own rule --
+    :func:`hitlist.curation.class_i_prediction_scope` is the one this project
+    uses (#574).
 
     Returns
     -------
     list[str]
-        Sorted candidate designations; empty when the field named none.
-    """
-    return _sample_alleles(sample_mhc, mhc_class)
-
-
-def _sample_alleles(sample_mhc: str, mhc_class: str = "") -> list[str]:
-    """Precisely named experimental MHC candidates, including selected restrictions.
-
-    Deliberately :attr:`~hitlist.curation.SampleMhcCandidates.exact` only.
-    The peptide summary uses this to decide whether a peptide matched a
-    *reported allele*, so expanding a serotype here would turn "this donor
-    is DR15" into the false claim "this peptide was seen on DRB1*15:01".
-    A serotype-typed sample is reported through
-    :func:`_sample_serotypes` instead, which is what the study measured.
-    A class-II pair contributes the full pair and both component chains;
-    those components are part of the reported molecule rather than a
-    serotype inference.  When ``mhc_class`` is supplied, alleles from the
-    other half of a mixed ``I+II`` genotype are excluded.
+        Sorted designations; empty when the field named no molecule.
     """
     alleles = {
         component
@@ -3999,7 +3984,7 @@ def _sample_serotypes(sample_mhc: str, mhc_class: str = "") -> tuple[str, ...]:
 
     A study that typed only to ``HLA-DR15`` never named an allele, so the
     serotype is the finest true statement about it.  Kept apart from
-    :func:`_sample_alleles` so a serotype match is reported as a serotype
+    :func:`reported_class_alleles` so a serotype match is reported as a serotype
     match (#380).
     """
     serotypes = sample_mhc_candidates(sample_mhc).serotypes
@@ -4201,7 +4186,7 @@ def generate_ms_peptide_summary_table(
             for serotype in allele_to_all_serotypes(allele)
         )
         sample_mhc_text = str(row.get("sample_mhc", ""))
-        sample_allele_list = _sample_alleles(sample_mhc_text, target_mhc_class)
+        sample_allele_list = reported_class_alleles(sample_mhc_text, target_mhc_class)
         sample_serotype_keys = {
             _serotype_key(s)
             for allele in sample_allele_list

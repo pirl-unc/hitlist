@@ -40,16 +40,14 @@ Usage::
 from __future__ import annotations
 
 import subprocess
-from functools import lru_cache
+import warnings
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import NamedTuple
 
 import numpy as np
 import pandas as pd
-from mhcgnomes import parse
 
-from .curation import MHC_TYPING_COLUMNS
+from .curation import MHC_TYPING_COLUMNS, class_i_prediction_scope
 
 #: The context a prediction belongs to.
 #:
@@ -73,129 +71,42 @@ _RESULT_COLUMNS = [
 ]
 
 
-class ClassIPredictionScope(NamedTuple):
-    """How a reported class-I candidate list divides at the predictor boundary.
-
-    ``scorable`` and ``unscorable`` partition the class-I candidates of one
-    ``sample_mhc`` field.  Keeping the second half rather than dropping it is
-    the whole point (#574): a best allele chosen from ``scorable`` alone is a
-    claim about a candidate space that a non-empty ``unscorable`` shows we do
-    not have, so :attr:`is_eligible` requires it to be empty.
-    """
-
-    scorable: tuple[str, ...] = ()
-    unscorable: tuple[str, ...] = ()
-
-    @property
-    def is_eligible(self) -> bool:
-        """True when there is something to score and nothing unaccounted for."""
-        return bool(self.scorable) and not self.unscorable
-
-
-def _names_one_class_i_protein(allele: str) -> bool:
-    """True when ``allele`` identifies one HLA class-I protein a backend models.
-
-    Asked of mhcgnomes rather than of the string: the repo's rule is to prefer
-    the dependency's ontology over string shape.  Each clause rules out a
-    designation that :attr:`~hitlist.curation.SampleMhcCandidates.exact`
-    legitimately contains -- ``exact`` means *the source named this outright*,
-    not *this is one protein sequence*:
-
-    ``Allele``
-        excludes a ``Gene``: ``HLA-A`` is a locus, and no backend scores a
-        locus.
-    ``num_allele_fields >= 2``
-        excludes a one-field allele group.  ``HLA-B*27`` spans more than a
-        hundred proteins whose motifs differ, so it names no sequence to score.
-    ``is_human``
-        this module wires the human class-I models only.  MHCflurry is handed
-        the string for its human predictor, and :func:`_netmhcpan_allele_arg`
-        merely strips ``*``, which spells a mouse allele ``H2-Kb`` where
-        netMHCpan wants ``H-2-Kb``.  Supporting non-human backends needs a
-        per-backend name mapping, not a looser filter here.
-    ``not is_mutant``
-        an engineered molecule is not the wild-type protein its name contains.
-    ``not annotation_null`` / ``not is_pseudogene``
-        a null or pseudogene product does not reach the surface, so it presents
-        no peptide and no backend has a model for it.
-
-    Finer than two fields stays scorable: the third and fourth fields refine
-    the DNA sequence, not the protein, so a three-field name is better data
-    rather than worse.
-    """
-    parsed = parse(allele, raise_on_error=False)
-    return (
-        type(parsed).__name__ == "Allele"
-        and parsed.num_allele_fields >= 2
-        and parsed.is_human
-        and not parsed.is_mutant
-        and not parsed.annotation_null
-        and not parsed.is_pseudogene
-    )
-
-
-@lru_cache(maxsize=4096)
-def class_i_prediction_scope(sample_mhc: str | None) -> ClassIPredictionScope:
-    """Split a sample's reported class-I candidates by what a backend can score.
-
-    The single boundary where reported candidates become predictor input, so the
-    eligibility rule is stated once (#574).  Before this, the class and species
-    filters were the only gate and ``HLA-A`` or ``HLA-A*02`` reached MHCflurry
-    and NetMHCpan as if it named a protein.
-
-    The rule is all-or-nothing by design.  Dropping the unresolved candidates
-    and scoring the rest would answer a different question -- "which of the
-    alleles we happen to know binds this best?" -- and return it with the
-    confidence of the question actually asked.  Callers therefore abstain unless
-    :attr:`~ClassIPredictionScope.is_eligible`, emitting no prediction and no
-    best allele.  Source precision is preserved either way: nothing here
-    rewrites a candidate to a coarser or finer designation.
-
-    Candidates of another class are not in the partition at all.  A class-II
-    allele, or a class-Ib molecule such as ``HLA-E``, is excluded upstream by
-    :func:`hitlist.export.reported_class_alleles`; it is not an unscorable
-    class-I candidate and does not hold back a class-I prediction.
-
-    Parameters
-    ----------
-    sample_mhc
-        An exported ``sample_mhc`` value, or ``None``.
-
-    Returns
-    -------
-    ClassIPredictionScope
-        Both halves of the partition, in the parser's sorted order.
-
-    Raises
-    ------
-    ValueError
-        The field carries a mutation label that cannot be assigned to a
-        complete molecule.  Propagated from
-        :func:`~hitlist.curation.sample_mhc_candidates` rather than caught: a
-        mutant designation silently read as its wild type would fabricate a
-        restriction, so this boundary refuses it loudly (#574).
-
-    Examples
-    --------
-    >>> class_i_prediction_scope("HLA-A*02:01 HLA-B*07:02").is_eligible
-    True
-    >>> scope = class_i_prediction_scope("HLA-A*02:01 HLA-B*27")
-    >>> scope.scorable, scope.unscorable, scope.is_eligible
-    (('HLA-A*02:01',), ('HLA-B*27',), False)
-    """
-    from .export import reported_class_alleles
-
-    scorable: list[str] = []
-    unscorable: list[str] = []
-    for allele in reported_class_alleles(sample_mhc or "", "I"):
-        (scorable if _names_one_class_i_protein(allele) else unscorable).append(allele)
-    return ClassIPredictionScope(tuple(scorable), tuple(unscorable))
-
-
 def _predictable_class_i_alleles(sample_mhc: str | None) -> list[str]:
-    """Class-I candidates to score for one sample, or none if it must abstain."""
+    """Class-I candidates to score for one sample, or none if it must abstain.
+
+    The rule itself lives in :func:`hitlist.curation.class_i_prediction_scope`,
+    beside the parse it depends on; this is only the adapter that turns an
+    ineligible scope into "no candidates" for the row filter below.
+    """
     scope = class_i_prediction_scope(sample_mhc)
     return list(scope.scorable) if scope.is_eligible else []
+
+
+def _warn_about_abstentions(sample_mhc: pd.Series) -> None:
+    """Report contexts dropped for an unresolved candidate space (#574).
+
+    Abstaining is correct but invisible: the row simply does not appear in the
+    result, which looks identical to "this study had no class-only peptides".
+    A caller comparing counts across releases needs to see the difference, so
+    the designations responsible are named rather than merely counted.
+    """
+    unresolved = {}
+    for field in sample_mhc.dropna().unique():
+        scope = class_i_prediction_scope(field)
+        if scope.unscorable and not scope.is_eligible:
+            unresolved[field] = scope.unscorable
+    if not unresolved:
+        return
+    n_observations = int(sample_mhc.isin(unresolved).sum())
+    designations = sorted({name for names in unresolved.values() for name in names})
+    warnings.warn(
+        f"Skipped {n_observations:,} class-only observations from "
+        f"{len(unresolved):,} candidate lists whose class-I space is not "
+        f"resolved to scorable proteins, so no best allele can be chosen among "
+        f"them: {', '.join(designations[:10])}"
+        f"{', ...' if len(designations) > 10 else ''} (#574)",
+        stacklevel=2,
+    )
 
 
 def _predict_mhcflurry(pairs: pd.DataFrame) -> pd.DataFrame:
@@ -387,6 +298,7 @@ def reassign_class_only_alleles(
     # settle *whose* candidates these are, and this settles whether they name
     # proteins to score.  Six one-field allele groups pass every check up to
     # here and still describe no genotype a predictor can rank (#574).
+    _warn_about_abstentions(target["sample_mhc"])
     target["_alleles"] = target["sample_mhc"].map(_predictable_class_i_alleles)
     target = target[target["_alleles"].map(len).between(1, max_alleles_per_sample)]
     # Filter before the empty-input return; no predictor needs an empty batch.

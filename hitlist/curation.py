@@ -49,9 +49,10 @@ from dataclasses import dataclass
 from functools import cache, lru_cache
 from os.path import basename, dirname, join
 from types import MappingProxyType
+from typing import NamedTuple
 
 import pandas as pd
-from mhcgnomes import Species
+from mhcgnomes import Allele, Species
 
 from .cell_name_parser import parse_cell_name, registry_verdict
 from .conditions import CONDITION_FIELDS, validate_study_conditions
@@ -2361,6 +2362,147 @@ def sample_mhc_candidates(mhc_field) -> SampleMhcCandidates:
     )
 
 
+#: Expression annotations meaning the molecule never reaches the cell surface:
+#: ``N`` null, ``S`` secreted-only, ``C`` cytoplasm-only.  Such an allele cannot
+#: be the presenting molecule for an eluted peptide, so it is not a candidate at
+#: all.  ``L`` (low expression) and ``Q`` (questionable) *are* surface-expressed
+#: -- less of it, or less certainly -- so they stay candidates (#574).
+_NON_SURFACE_ANNOTATION_ATTRS = (
+    "annotation_null",
+    "annotation_secreted",
+    "annotation_cystosolic",  # mhcgnomes' spelling
+)
+
+
+class ClassIPredictionScope(NamedTuple):
+    """How a reported class-I candidate list divides at a predictor boundary.
+
+    ``scorable`` and ``unscorable`` partition the class-I designations of one
+    ``mhc`` field that could present a peptide.  Keeping the second half rather
+    than dropping it is the point (#574): a best allele chosen from ``scorable``
+    alone is a claim about a candidate space a non-empty ``unscorable`` shows we
+    do not have, so :attr:`is_eligible` requires it to be empty.
+    """
+
+    scorable: tuple[str, ...] = ()
+    unscorable: tuple[str, ...] = ()
+
+    @property
+    def is_eligible(self) -> bool:
+        """True when there is something to score and nothing unaccounted for."""
+        return bool(self.scorable) and not self.unscorable
+
+
+def _scope_entry(parsed, token: str) -> tuple[str, bool] | None:
+    """One class-I candidate as ``(designation, scorable)``, or ``None`` to drop.
+
+    ``None`` means the designation is not a candidate for presenting a peptide:
+    a non-surface expression variant.  Dropping such a molecule does not make
+    the remaining set incomplete, because it could never have been the answer.
+    """
+    if isinstance(parsed, Allele):
+        if any(getattr(parsed, attr) for attr in _NON_SURFACE_ANNOTATION_ATTRS):
+            return None
+        name = resolve_allele_identity(parsed.to_string()) or parsed.to_string()
+        scorable = (
+            parsed.mhc_class == "Ia"
+            and parsed.num_allele_fields >= 2
+            and parsed.is_human
+            and not parsed.is_mutant
+            and not parsed.is_pseudogene
+        )
+        return (name, scorable)
+    # A Gene, Serotype, MhcClass or Haplotype names no single protein.  It is a
+    # faithful record of what the source reported, and it is still a class-I
+    # designation, so it counts against completeness rather than vanishing.
+    name = parsed.to_string() if hasattr(parsed, "to_string") else token
+    return (normalize_allele(name) or name, False)
+
+
+@lru_cache(maxsize=4096)
+def class_i_prediction_scope(mhc_field: str | None) -> ClassIPredictionScope:
+    """Split a sample's reported class-I designations by what a backend can score.
+
+    The single place a reported MHC field becomes class-I predictor input, so
+    the eligibility rule is stated once and asked of the *parsed* designation
+    rather than re-derived from its string (#574).  It shares
+    :func:`sample_mhc_candidates`' parse, so a field is parsed once no matter
+    how many consumers ask.
+
+    A designation is ``scorable`` when it is an :class:`mhcgnomes.Allele` that
+    names one human classical class-I protein a binding predictor models:
+    classical class ``Ia`` (the predictors model no ``Ib`` molecule such as
+    ``HLA-E``), two or more allele fields (a one-field group such as ``HLA-B*27``
+    spans 100+ proteins with different motifs), human (this project wires the
+    human class-I models only), not a mutant, and not a pseudogene.  Three- and
+    four-field names stay scorable -- the extra fields refine the DNA sequence
+    or annotate expression level, not the protein's binding groove.
+
+    Everything else that could present a class-I peptide is ``unscorable``: a
+    ``Gene``, a serotype, a class sentinel, a class-Ib or non-human class-I
+    allele.  These are precisely the values :attr:`SampleMhcCandidates.exact`
+    and its sibling fields legitimately contain -- ``exact`` means *the source
+    named this outright*, not *this is one protein* -- and each one leaves the
+    class-I candidate space unresolved.
+
+    Two kinds of designation are excluded rather than counted against
+    completeness, because neither can be the presenting molecule:
+
+    - Anything that is not class I.  A class-II allele or pair, a class-II locus
+      such as ``BoLA-DR``, or a ``HLA class II`` sentinel is simply a different
+      candidate space and does not hold back a class-I prediction.
+    - A non-surface expression variant (``N``/``S``/``C``).  It reaches no cell
+      surface, so removing it leaves the remaining candidates complete.
+
+    Parameters
+    ----------
+    mhc_field
+        A curated ``ms_samples[].mhc`` or exported ``sample_mhc`` string, or
+        ``None``.  A string is required because the result is cached; callers
+        holding a list should join it as :func:`sample_mhc_candidates` does.
+
+    Returns
+    -------
+    ClassIPredictionScope
+        Both halves of the partition, each sorted and deduplicated.
+
+    Raises
+    ------
+    ValueError
+        The field carries a mutation label that cannot be assigned to a complete
+        molecule.  Propagated rather than caught: a mutant designation silently
+        read as its wild type would fabricate a restriction.
+
+    Examples
+    --------
+    >>> class_i_prediction_scope("HLA-A*02:01 HLA-B*07:02").is_eligible
+    True
+    >>> scope = class_i_prediction_scope("HLA-A2 HLA-B*07:02")
+    >>> scope.scorable, scope.unscorable, scope.is_eligible
+    (('HLA-B*07:02',), ('HLA-A2',), False)
+    >>> class_i_prediction_scope("HLA-A*02:01 HLA-DRB1*15:01").is_eligible
+    True
+
+    See Also
+    --------
+    sample_mhc_candidates : the precision classification this builds on.
+    """
+    if not isinstance(mhc_field, str):
+        return ClassIPredictionScope()
+    scorable: set[str] = set()
+    unscorable: set[str] = set()
+    for token, parsed in _mhc_field_spans(mhc_field):
+        if not parsed.is_class1:
+            continue
+        entry = _scope_entry(parsed, token)
+        if entry is None:
+            continue
+        name, is_scorable = entry
+        if name:
+            (scorable if is_scorable else unscorable).add(name)
+    return ClassIPredictionScope(tuple(sorted(scorable)), tuple(sorted(unscorable)))
+
+
 def sample_mhc_metadata(sample: Mapping) -> dict[str, str]:
     """Validate and export cellular typing separately from experiment candidates.
 
@@ -3447,6 +3589,7 @@ def _clear_curation_caches() -> None:
         _pmid_peptide_attributions,
         _peptide_typings_by_pmid,
         _peptide_alleles_by_pmid,
+        class_i_prediction_scope,
         expand_allele_set,
         restriction_evidence_for_row,
         classify_ms_row,
