@@ -36,6 +36,7 @@ from .conditions import (
     CONDITION_COLUMNS,
     condition_columns_for_sample,
     empty_condition_columns,
+    engineered_material_mask,
 )
 from .curation import (
     MHC_GENOTYPE_COLUMNS,
@@ -2816,12 +2817,16 @@ def generate_sample_expression_table(
     if samples.empty:
         return pd.DataFrame(columns=[*_SAMPLE_PROVENANCE_COLUMNS, *expression_cols])
 
+    # Curated engineering decides tier 1 vs tier 2, so it is read from the
+    # arm's own condition block rather than guessed from its label (#576).
+    engineered = engineered_material_mask(samples)
     rows: list[dict] = []
-    for _, s in samples.iterrows():
+    for position, (_, s) in enumerate(samples.iterrows()):
         anchor = resolve_sample_expression_anchor(
             str(s.get("sample_label") or ""),
             pmid=int(s["pmid"]) if pd.notna(s.get("pmid")) else None,
             study_label=str(s.get("study_label") or "") or None,
+            engineered=bool(engineered.iat[position]),
             cancer_type_backend=cancer_type_backend,
         )
         # Carry the full sample-provenance row through, plus the resolved
@@ -2859,6 +2864,12 @@ _EXPRESSION_ANCHOR_COLUMNS = (
     "expression_match_tier",
     "expression_parent_key",
 )
+
+#: Grouping/merge key that carries curated engineering into the resolver
+#: inside :func:`_attach_peptide_origin`.  Dropped before returning: the
+#: fact it encodes reaches consumers as ``expression_match_tier`` 2 plus
+#: ``expression_parent_key``, which is the provenance contract (#140/#576).
+_ENGINEERED_MATERIAL_COLUMN = "_expression_engineered_material"
 
 
 def _build_transcript_lookup(gene_names: set[str], release: int):
@@ -2948,7 +2959,14 @@ def _attach_peptide_origin(
             df[col] = pd.NA
         return df
     extra_resolver_cols = [c for c in ("cell_name", "source_tissue") if c in df.columns]
-    grouping_cols = [*sample_cols, *extra_resolver_cols]
+    df = df.copy()
+    # Curated engineering decides tier 1 vs tier 2 (#576), and it joins the
+    # grouping key rather than being read once per sample: two rows can share
+    # a ``sample_label`` and ``pmid`` while disagreeing about the arm — a row
+    # that reached no arm carries ``_consensus_meta``'s blank condition block
+    # — so the honest anchor differs between them.
+    df[_ENGINEERED_MATERIAL_COLUMN] = engineered_material_mask(df)
+    grouping_cols = [*sample_cols, *extra_resolver_cols, _ENGINEERED_MATERIAL_COLUMN]
     unique_samples = df[grouping_cols].drop_duplicates().reset_index(drop=True)
     anchor_records: list[dict] = []
     for _, s in unique_samples.iterrows():
@@ -2957,6 +2975,7 @@ def _attach_peptide_origin(
             cell_name=str(s.get("cell_name") or "") or None,
             pmid=int(s["pmid"]) if "pmid" in s and pd.notna(s.get("pmid")) else None,
             study_label=str(s.get("study_label") or "") or None,
+            engineered=bool(s[_ENGINEERED_MATERIAL_COLUMN]),
             lineage_tissue=str(s.get("source_tissue") or "") or None,
             cancer_type_backend=cancer_type_backend,
         )
@@ -2972,7 +2991,6 @@ def _attach_peptide_origin(
     if "pmid" in anchor_df.columns:
         anchor_df["pmid"] = anchor_df["pmid"].astype("Int64")
 
-    df = df.copy()
     if "pmid" in df.columns:
         df["pmid"] = df["pmid"].astype("Int64")
     df = df.merge(anchor_df, on=grouping_cols, how="left")
@@ -3082,7 +3100,7 @@ def _attach_peptide_origin(
             elif isinstance(default, int):
                 df[col] = df[col].fillna(default).astype(int)
 
-    return df
+    return df.drop(columns=[_ENGINEERED_MATERIAL_COLUMN])
 
 
 def _apply_training_defaults(df: pd.DataFrame) -> pd.DataFrame:

@@ -10,8 +10,14 @@ import yaml
 
 from hitlist import downloads
 from hitlist.builder import build_line_expression
+from hitlist.conditions import engineered_material_mask
 from hitlist.curation import load_pmid_overrides
-from hitlist.line_expression import load_line_expression, resolve_sample_expression_anchor
+from hitlist.export import generate_sample_expression_table
+from hitlist.line_expression import (
+    load_line_expression,
+    load_line_expression_anchors,
+    resolve_sample_expression_anchor,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -97,3 +103,60 @@ def test_downloaded_bundle_adds_hap1_transcripts_without_duplicating_genes(tmp_p
     anchor = resolve_sample_expression_anchor("HAP1 wildtype")
     assert anchor.expression_backend == "depmap_rna"
     assert anchor.source_ids == ("DepMap_24Q4_HAP1_gene", "DepMap_24Q4_transcript")
+
+
+# ── Engineered samples never take parental exact-line RNA (#576) ────────────
+
+
+@pytest.fixture
+def every_registered_source(tmp_path):
+    """An index holding rows for every source the registry names.
+
+    The guard below must hold whichever optional data a user installed, so it
+    runs against the most that could be installed: every (line, source) pair
+    the resolver can ever find.
+    """
+    pairs = {
+        (str(entry["expression_key"]), str(source_id))
+        for entry in load_line_expression_anchors()
+        if entry.get("expression_key")
+        for source_id in entry.get("source_ids") or []
+    }
+    rows = pd.DataFrame(sorted(pairs), columns=["line_key", "source_id"])
+    rows.to_parquet(tmp_path / "line_expression.parquet", index=False)
+    return pairs
+
+
+def test_engineered_label_on_a_parental_alias_uses_parent_rna(every_registered_source):
+    parental = resolve_sample_expression_anchor("HeLa-CIITA (Mock)")
+    assert parental.expression_match_tier == 1
+    engineered = resolve_sample_expression_anchor("HeLa-CIITA (Mock)", engineered=True)
+    assert engineered.expression_match_tier == 2
+    assert engineered.expression_key == "HeLa"
+    assert engineered.expression_parent_key == "HeLa"
+    # Same data, honest provenance: only the tier and parent change.
+    assert engineered.expression_backend == parental.expression_backend
+    assert engineered.source_ids == parental.source_ids
+    assert engineered.matched_alias == parental.matched_alias
+
+
+def test_no_curated_engineered_sample_resolves_at_tier_1(every_registered_source):
+    table = generate_sample_expression_table()
+    engineered = engineered_material_mask(table)
+    offenders = table.loc[engineered & table.expression_match_tier.eq(1)]
+    assert offenders.empty, offenders[["pmid", "sample_label", "expression_key"]]
+    # Not vacuous: without their curated engineering these labels would
+    # claim the parental line's RNA as their own.
+    label_only = {
+        label
+        for label in table.loc[engineered, "sample_label"]
+        if resolve_sample_expression_anchor(label).expression_match_tier == 1
+    }
+    assert {
+        "SaOS-2 + TP53 R175H",
+        "HeLa-CIITA + T6BP siRNA",
+        "THP-1 TAP1 knockout + mock infection",
+    } <= label_only
+    hap1 = table.loc[table.pmid.eq(40113210)]
+    assert len(hap1) == 12
+    assert hap1.expression_match_tier.eq(hap1.condition_knockout_genes.ne("none") + 1).all()

@@ -804,6 +804,48 @@ def test_attach_peptide_origin_passes_cell_name_and_tissue_to_resolver(tmp_path,
     assert call["lineage_tissue"] == "cervix, uterine"
 
 
+def test_attach_peptide_origin_demotes_engineered_rows_to_parent_rna(tmp_path, monkeypatch):
+    """Curated engineering reaches the resolver on the observations path (#576).
+
+    Two rows of one study share a ``sample_label`` and ``pmid``: an
+    unattributed row carrying ``_consensus_meta``'s blank condition block, and
+    the engineered arm. Parental RNA is the anchor for both, but only the
+    unattributed row may report it as exact-line evidence.
+    """
+    import pandas as pd
+
+    from hitlist import downloads
+    from hitlist.export import _attach_peptide_origin
+
+    monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
+    pd.DataFrame({"line_key": ["HeLa"], "source_id": ["DepMap_24Q4_gene"]}).to_parquet(
+        tmp_path / "line_expression.parquet", index=False
+    )
+    monkeypatch.setattr(
+        "hitlist.mappings.load_peptide_mappings",
+        lambda peptide=None, columns=None, **_: pd.DataFrame(
+            columns=["peptide", "gene_name", "gene_id", "protein_id"]
+        ),
+    )
+
+    df = pd.DataFrame(
+        {
+            "peptide": ["AAAAAAAAA", "CCCCCCCCC"],
+            "sample_label": ["HeLa", "HeLa"],
+            "pmid": [36215666, 36215666],
+            "study_label": ["S", "S"],
+            "condition_transduction": ["", "CIITA"],
+        }
+    )
+    out = _attach_peptide_origin(df)
+
+    assert out.expression_key.tolist() == ["HeLa", "HeLa"]
+    assert out.expression_match_tier.tolist() == [1, 2]
+    assert out.expression_parent_key.tolist() == ["", "HeLa"]
+    # The grouping flag is an implementation detail, not an export column.
+    assert not [c for c in out.columns if c.startswith("_expression")]
+
+
 # ── Class-II heterodimer component matching (issue #151) ───────────────────
 
 

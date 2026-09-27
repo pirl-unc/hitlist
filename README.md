@@ -517,6 +517,16 @@ row so downstream tooling can distinguish "exact JY RNA" from "generic
 EBV-LCL stand-in" from "melanoma cohort surrogate" instead of treating
 them as equally trustworthy.
 
+Tier 1 requires that the profiled material *is* the registered line. A
+sample whose curated condition block records a genetic modification
+(`condition_knockout_genes`, `condition_knockdown_genes`,
+`condition_overexpression_genes`, `condition_genetic_variants`,
+`condition_transfection`, `condition_transduction`) resolves at tier 2
+against the same data even when its label matches the parental line's
+alias — `HeLa-CIITA (Mock)`, `SaOS-2 + TP53 R175H`, `THP-1 TAP1 knockout`
+— with `expression_parent_key` naming the line that supplied the RNA. The
+engineering comes from curation, not from parsing the label.
+
 CLI:
 
 ```bash

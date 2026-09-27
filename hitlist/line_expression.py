@@ -374,6 +374,7 @@ def resolve_sample_expression_anchor(
     cell_name: str | None = None,
     pmid: int | None = None,
     study_label: str | None = None,
+    engineered: bool = False,
     lineage_tissue: str | None = None,
     cancer_type: str | None = None,
     cancer_type_backend: Callable[[str], dict] | None = None,
@@ -395,6 +396,17 @@ def resolve_sample_expression_anchor(
     pmid, study_label
         Currently unused for resolution, accepted for forward
         compatibility with study-level overrides.
+    engineered
+        Whether the sample's own material carries a genetic modification
+        (knockout, knockdown, overexpression, variant, transfection or
+        transduction), from the curated
+        :data:`hitlist.conditions.ENGINEERING_CONDITION_COLUMNS`.  A label
+        can match the *parental* line's alias — ``HeLa-CIITA (Mock)`` hits
+        ``hela``, ``THP-1 TAP1 knockout`` hits ``thp-1`` — so without this
+        the parental profile would be reported as tier-1 RNA measured in the
+        engineered sample.  With it, such a hit resolves at tier 2 against
+        the same data with ``expression_parent_key`` naming the line that
+        provided it (#576).
     lineage_tissue
         Fallback-5 tissue bucket when the sample doesn't hit the line
         registry at all and the caller has an explicit HPA tissue label.
@@ -419,15 +431,23 @@ def resolve_sample_expression_anchor(
     if match is not None:
         entry, matched_alias = match
 
-        # Tier 1 — registry hit with exact-line data.
+        # Tier 1 — registry hit with exact-line data.  An engineered sample
+        # gets the same data at tier 2: the matched entry describes the line
+        # the material was derived from, not the material that was profiled.
         if _entry_has_exact_line_data(entry):
+            name = str(entry.get("name") or entry["expression_key"])
             return SampleExpressionAnchor(
                 expression_backend=str(entry["expression_backend"]),
                 expression_key=str(entry["expression_key"]),
-                expression_match_tier=1,
-                expression_parent_key=None,
+                expression_match_tier=2 if engineered else 1,
+                expression_parent_key=name if engineered else None,
                 source_ids=_tier_source_ids(entry),
-                reason=f"exact line match on alias '{matched_alias}'",
+                reason=(
+                    f"engineered derivative of '{name}' matched on alias "
+                    f"'{matched_alias}'; parental RNA stands in"
+                    if engineered
+                    else f"exact line match on alias '{matched_alias}'"
+                ),
                 matched_alias=matched_alias,
             )
 

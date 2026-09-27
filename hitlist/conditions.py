@@ -48,6 +48,8 @@ from functools import lru_cache
 from os.path import dirname, join
 from types import MappingProxyType
 
+import pandas as pd
+
 from .curation_yaml import load_curation_yaml
 
 #: Completeness of *this record's* categorical annotation.
@@ -256,6 +258,28 @@ GENE_CONDITION_COLUMNS = frozenset(
         "condition_knockout_genes",
         "condition_knockdown_genes",
         "condition_overexpression_genes",
+    }
+)
+
+#: The intervention columns that change the material's own genome or
+#: transcriptome, as opposed to what was added to its medium.
+#:
+#: This is the curated answer to "is this the parental line, or something
+#: engineered from it?", and it is what
+#: :func:`hitlist.line_expression.resolve_sample_expression_anchor` needs to
+#: keep a parental RNA profile labelled as a surrogate (tier 2) rather than
+#: as RNA measured in the sample (tier 1).  A cytokine, drug, infection or
+#: stimulation does perturb expression, but it does not make the profiled
+#: material a different line, and the registry has no separate entry for it
+#: — so those columns are deliberately absent (#576).
+ENGINEERING_CONDITION_COLUMNS = frozenset(
+    {
+        "condition_knockout_genes",
+        "condition_knockdown_genes",
+        "condition_overexpression_genes",
+        "condition_genetic_variants",
+        "condition_transfection",
+        "condition_transduction",
     }
 )
 
@@ -691,6 +715,46 @@ def condition_columns_for_sample(sample: Mapping[str, object]) -> dict[str, str]
     the block is that a consumer can tell those apart.
     """
     return {column: str(sample.get(column) or "").strip() for column in CONDITION_COLUMNS}
+
+
+def is_engineered_value(value: object) -> bool:
+    """Whether one :data:`ENGINEERING_CONDITION_COLUMNS` cell claims engineering.
+
+    ``""`` (not established) and ``none`` (positive claim of absence) do not;
+    every other token does, including ``unspecified`` — the intervention
+    happened and only its target is unnamed, which still means the profiled
+    material is not the parental line.
+    """
+    if value is None:
+        return False
+    text = str(value).strip().casefold()
+    return bool(text) and text != "none"
+
+
+def engineered_material_mask(frame: pd.DataFrame) -> pd.Series:
+    """Per-row "this material is engineered" flag for a frame of curated arms.
+
+    Reads whichever of :data:`ENGINEERING_CONDITION_COLUMNS` the frame
+    carries, so it works on both the samples table and the observations
+    frame (a row that reached no arm carries the blank block and is
+    therefore not engineered — the same ``""``-is-not-absence contract this
+    module documents, read in the direction that cannot invent a knockout).
+
+    Returns a boolean ``pandas.Series`` aligned to ``frame``.
+    """
+    mask = pd.Series(False, index=frame.index)
+    for column in sorted(ENGINEERING_CONDITION_COLUMNS):
+        if column not in frame.columns:
+            continue
+        values = frame[column]
+        # Test the column's *distinct* values, not its rows: these are
+        # low-cardinality (often categorical) columns on a frame that can
+        # hold millions of observations, and ``isin`` then does the per-row
+        # work in one vectorized pass.
+        engineered = [v for v in pd.unique(values.dropna()) if is_engineered_value(v)]
+        if engineered:
+            mask |= values.isin(engineered)
+    return mask
 
 
 def empty_condition_columns() -> dict[str, str]:
