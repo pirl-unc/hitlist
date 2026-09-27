@@ -4,6 +4,15 @@ on:
     branches: [main]
   pull_request:
 
+env:
+  # Bump in lockstep with the corpus published by
+  # scripts/publish_ci_corpus.sh (tag ci-corpus-<CORPUS_VERSION>).
+  # Changing this invalidates the integration job's cache so CI pulls the
+  # new corpus.  release-build.yml carries its own copy of this value.
+  CORPUS_VERSION: v2
+  PYTEST_ADDOPTS: "-ra"
+  PYTHONUNBUFFERED: "1"
+
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -25,22 +34,21 @@ jobs:
       - name: Lint and check formatting (pyproject's [tool.ruff] include list)
         run: ./lint.sh
 
-  test:
+  # ── Unit tier ─────────────────────────────────────────────────────
+  # Every supported Python, no corpus.  Integration-marked tests are
+  # excluded by marker on every leg, so a corpus-dependent test can only
+  # fail in the `integration` job below, where a corpus actually exists.
+  unit:
     runs-on: ubuntu-latest
-    # Fail fast on a hang/OOM instead of burning the default 360-minute budget.
+    # Slowest leg observed over six recent runs is 3.11 at ~15.5 min
+    # (14m03s of pytest under coverage plus setup); hosted-runner speed
+    # varies ~2x for identical work, so this is ~1.6x the worst case.
+    # Fail fast on a hang instead of burning the default 360-minute budget.
     timeout-minutes: 25
     strategy:
       fail-fast: true
       matrix:
         python-version: ["3.9", "3.10", "3.11", "3.12"]
-
-    env:
-      # Bump in lockstep with the corpus published by
-      # scripts/publish_ci_corpus.sh (tag ci-corpus-<CORPUS_VERSION>).
-      # Changing this invalidates the cache below so CI pulls the new corpus.
-      CORPUS_VERSION: v2
-      PYTEST_ADDOPTS: "-ra"
-      PYTHONUNBUFFERED: "1"
 
     steps:
       - name: Checkout repository
@@ -60,12 +68,83 @@ jobs:
       - name: Check the editable install matches this checkout (#553)
         run: python scripts/check_dev_install.py
 
-      - name: Provision memory for the full corpus
+      - name: Run unit tests (with coverage)
         if: matrix.python-version == '3.11'
         run: |
-          # The full export transiently exceeds the runner's 16 GiB RAM even
-          # without xdist (#566). Give that peak bounded disk-backed capacity.
-          # This VM and its swap file are discarded after the job.
+          # Coverage is measured once, on 3.11, and combined with the
+          # integration job's half in the `coverage` job below.  Record
+          # resource usage so #566's memory trend stays visible.
+          /usr/bin/time -v pytest tests/ -m "not integration" -n auto --cov=hitlist
+          mv .coverage .coverage.unit
+
+      - name: Upload unit coverage data
+        if: matrix.python-version == '3.11'
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-unit
+          path: .coverage.unit
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Run unit tests (no coverage)
+        if: matrix.python-version != '3.11'
+        run: |
+          # Same marker filter as the 3.11 leg above. These legs have no
+          # corpus, so an integration test that forgot to guard for one
+          # would fail here for a reason that has nothing to do with the
+          # Python version under test. Exclude them by marker rather than
+          # relying on each test to skip itself.
+          pytest tests/ -m "not integration" -n auto
+
+  # ── Integration tier ──────────────────────────────────────────────
+  # Its own runner, so its 15 GB peak does not share a VM with the unit
+  # tier's 8 GB one, its wall clock does not share a `timeout-minutes`
+  # with theirs, and a lost runner is attributable to this job and
+  # re-runnable on its own (~11 min) instead of re-running the whole
+  # matrix (~23 min).  See #566.
+  #
+  # CI can't build the corpus (the ~15 GB IEDB/CEDAR sources aren't
+  # here), so we restore the prebuilt parquets and provenance published
+  # by scripts/publish_ci_corpus.sh as a public release.  Only this job
+  # runs the integration suite — the other Python versions exist for
+  # language-compat coverage, which the unit tier provides.  Forks also
+  # read the canonical public release.  Missing or inconsistent corpus
+  # provenance must fail before tests.
+  integration:
+    runs-on: ubuntu-latest
+    # Slowest integration phase observed over six recent runs is 8m43s,
+    # plus ~1.5 min of setup.  Every one of those runs hit the corpus
+    # cache, so the miss path is sized separately: release-build.yml
+    # downloads the same 356 MB of release assets with no cache at all and
+    # verifies them in 3-5 s, and saving the 254 MB cache entry afterwards
+    # costs well under a minute.  Worst case is therefore ~11 min either
+    # way, and this cap is ~1.8x that.
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,alleles]"
+
+      - name: Check the editable install matches this checkout (#553)
+        run: python scripts/check_dev_install.py
+
+      - name: Provision memory for the full corpus
+        run: |
+          # The full export transiently approaches the runner's 16 GB RAM
+          # even without xdist (#566). Give that peak bounded disk-backed
+          # capacity. This VM and its swap file are discarded after the job.
           swap_path="$RUNNER_TEMP/hitlist-corpus.swap"
           sudo fallocate -l 8G "$swap_path"
           sudo chmod 600 "$swap_path"
@@ -73,17 +152,7 @@ jobs:
           sudo swapon "$swap_path"
           free -h
 
-      # ── Prebuilt observations corpus (integration tests) ──────────────
-      # CI can't build the corpus (the ~15 GB IEDB/CEDAR sources aren't
-      # here), so we restore the prebuilt parquets and provenance published by
-      # scripts/publish_ci_corpus.sh as a public release.  Only the 3.11
-      # job runs the integration suite — the other versions exist for
-      # language-compat coverage, which the (non-integration) unit tests
-      # already provide — so the corpus pull is gated to 3.11 to keep
-      # 3.9/3.10/3.12 fast. Forks also read the canonical public release.
-      # Missing or inconsistent corpus provenance must fail before tests.
       - name: Restore corpus cache
-        if: matrix.python-version == '3.11'
         id: corpus-cache
         uses: actions/cache/restore@v6
         with:
@@ -91,7 +160,7 @@ jobs:
           key: hitlist-corpus-${{ env.CORPUS_VERSION }}
 
       - name: Download prebuilt corpus on cache miss
-        if: matrix.python-version == '3.11' && steps.corpus-cache.outputs.cache-hit != 'true'
+        if: steps.corpus-cache.outputs.cache-hit != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -101,34 +170,85 @@ jobs:
             --pattern observations_meta.json --dir ~/.hitlist --clobber
 
       - name: Verify corpus provenance and file hashes
-        if: matrix.python-version == '3.11'
         run: python scripts/ci_corpus.py verify ~/.hitlist
 
       # Verification runs on cache hits too; only verified downloads are saved.
       - name: Save corpus cache
-        if: matrix.python-version == '3.11' && steps.corpus-cache.outputs.cache-hit != 'true'
+        if: steps.corpus-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v6
         with:
           path: ~/.hitlist
           key: hitlist-corpus-${{ env.CORPUS_VERSION }}
 
-      - name: Run unit tests (with coverage)
-        if: matrix.python-version == '3.11'
+      - name: Run integration tests (with coverage)
         run: |
-          # The v2 corpus still loses runners with one xdist worker (#566).
-          # The serial fixture skips writing and reloading a multi-worker Arrow
-          # cache for a single consumer. Keep every test and record resource
-          # usage; regular tests retain normal parallelism. Coverage accumulates.
-          /usr/bin/time -v pytest tests/ -m "not integration" -n auto --cov=hitlist
-          /usr/bin/time -v pytest tests/ -m integration -n 0 --cov=hitlist --cov-append --cov-report=xml
+          # The v2 corpus repeatedly lost its hosted runner with two corpus
+          # workers, and still did with one (#566). The serial fixture also
+          # skips writing and reloading a multi-worker Arrow cache for a
+          # single consumer. Keep every test and record resource usage.
+          /usr/bin/time -v pytest tests/ -m integration -n 0 --cov=hitlist
+          mv .coverage .coverage.integration
 
-      - name: Run unit tests (no coverage)
-        if: matrix.python-version != '3.11'
+      - name: Report memory state after the integration suite
+        if: always()
+        run: free -h
+
+      - name: Upload integration coverage data
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-integration
+          path: .coverage.integration
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
+
+  # ── Coverage ──────────────────────────────────────────────────────
+  # The two tiers used to accumulate into one data file via --cov-append
+  # inside a single job. Split across jobs, they accumulate the same way
+  # through `coverage combine`, and Coveralls still receives exactly one
+  # report for the commit.
+  #
+  # No `if:` on purpose.  If either tier fails or loses its runner this job
+  # is skipped and the commit gets no Coveralls report, which is what the
+  # single combined job did too (its upload was the last step, after both
+  # pytest phases).  Running it anyway would combine a partial set and
+  # report a coverage *drop* caused by the failure, not by the diff.
+  coverage:
+    needs: [unit, integration]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      # `coverage xml` reads the measured sources at the paths recorded in
+      # the data files, which is this same $GITHUB_WORKSPACE checkout.
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install coverage
         run: |
-          pytest tests/ -n auto
+          python -m pip install --upgrade pip
+          pip install coverage
+
+      - name: Download coverage data from both test tiers
+        uses: actions/download-artifact@v7
+        with:
+          pattern: coverage-*
+          merge-multiple: true
+          path: coverage-data
+
+      - name: Combine unit and integration coverage
+        run: |
+          coverage combine coverage-data/.coverage.unit coverage-data/.coverage.integration
+          coverage report
+          coverage xml
 
       - name: Upload coverage to Coveralls
-        if: matrix.python-version == '3.11'
         uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
