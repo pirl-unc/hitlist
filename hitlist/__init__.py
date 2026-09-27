@@ -14,9 +14,9 @@
 
 Side effects at import time
 ---------------------------
-Importing ``hitlist`` (or any submodule) does two things:
+Importing ``hitlist`` (or any submodule) does one thing:
 
-1. Sets ``pandas.options.future.infer_string = True``.  This is the pandas 3.0
+- Sets ``pandas.options.future.infer_string = True``.  This is the pandas 3.0
    default, available as a future flag in 2.1+.  Cuts string-column memory
    ~5x at every layer of the build / load pipeline by switching pandas from
    ``object`` dtype (Python ``str`` references, ~50-100 bytes/cell) to
@@ -34,44 +34,20 @@ Importing ``hitlist`` (or any submodule) does two things:
    future pandas release that removes the option (after promoting it to the
    permanent default) won't break import.
 
-2. Removes the legacy ``~/.hitlist/index/`` cache directory if present.
-   That cache was a per-source CSV-scan artifact obsoleted in v1.30.41 when
-   ``get_index()`` started deriving counts from ``observations.parquet``
-   directly.  The cleanup is one-shot and idempotent — if the directory
-   isn't there, this is a no-op.  Wrapped in ``suppress`` so a permissions
-   issue can't break ``import hitlist``.
+It never touches the filesystem: no data directory is created or cleaned.
+Releases before the #579 fix ``rmtree``-d ``<data_dir>/index`` (a cache
+retired in 1.30.41) on every import, following ``HITLIST_DATA_DIR``.
+A leftover legacy ``index/`` directory is inert and safe to delete by hand.
 """
 
 import contextlib as _contextlib
-import shutil as _shutil
 
 import pandas as _pd
 
 with _contextlib.suppress(AttributeError):
     _pd.options.future.infer_string = True
 
-
-def _cleanup_legacy_index_dir() -> None:
-    """One-shot removal of the obsolete ``~/.hitlist/index/`` cache.
-
-    Pre-v1.30.41 hitlist wrote per-source allele-count parquets to this
-    directory as a CSV-scan cache.  ``get_index()`` now derives all
-    counts live from ``observations.parquet``, so the cache is dead
-    weight — but a pip upgrade leaves the inert files behind.  This
-    cleanup removes them so they don't mislead users browsing
-    ``~/.hitlist/`` looking for the source of "stale" indexes.
-    """
-    from .downloads import data_dir
-
-    legacy = data_dir() / "index"
-    if legacy.exists():
-        _shutil.rmtree(legacy, ignore_errors=True)
-
-
-with _contextlib.suppress(Exception):
-    _cleanup_legacy_index_dir()
-
-from .version import __version__  # noqa: E402  -- after side-effect setup
+from .version import __version__  # after the pandas flag, like every submodule
 
 # ── Curated public API ───────────────────────────────────────────────────────
 #
