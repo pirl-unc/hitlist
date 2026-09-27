@@ -295,6 +295,35 @@ ENGINEERING_CONDITION_COLUMNS = frozenset(
     }
 )
 
+#: The interventions that act *on* a material without changing what it is:
+#: every intervention column :data:`ENGINEERING_CONDITION_COLUMNS` does not
+#: claim.  Derived rather than relisted, so the two sets stay complementary
+#: by construction — a new intervention column joins exactly one of them.
+#: Infection, cytokine, drug, stimulation and antigen exposure all perturb
+#: expression, but the cells on either side are the same cells (#586).
+TREATMENT_CONDITION_COLUMNS = INTERVENTION_CONDITION_COLUMNS - ENGINEERING_CONDITION_COLUMNS
+
+#: What an arm's material *is*, for asking whether two arms of one study are
+#: one material under two treatments.  ``condition_mhc_context`` is
+#: deliberately excluded: it is the value :func:`validate_study_conditions`
+#: asserts is constant across such arms, and keying on it would put every
+#: disagreement in its own group, where nothing is ever compared (#586).
+MATERIAL_IDENTITY_COLUMNS = (
+    # The curated sample *system* — a cell line, tissue or donor cohort
+    # (#359).  Where a study curates it, two arms of different systems are
+    # different materials however their condition columns read, which is what
+    # keeps two same-HLA lines in one study from ever being compared.
+    "sample_group",
+    "mhc",
+    "mhc_class",
+    "species",
+    *sorted(ENGINEERING_CONDITION_COLUMNS - {"condition_mhc_context"}),
+    "condition_background",
+    "condition_culture",
+    "condition_material",
+    "condition_labeling",
+)
+
 #: A gene designation: HGNC-style symbols plus the hyphenated and
 #: locus-suffixed forms the sources actually use (``HLA-DM``, ``H2-K1``,
 #: ``TAX1BP1``).  Deliberately permissive about content and strict about
@@ -716,6 +745,56 @@ def validate_study_conditions(entry: Mapping[str, object]) -> None:
                     f"PMID {pmid}: ms_samples[{index}] condition_control_for names its "
                     f"own condition_id {target!r}.  An arm is not its own comparator."
                 )
+
+    _validate_mhc_context_across_treatment_arms(pmid, samples)
+
+
+def _identity(sample: Mapping[str, object], columns) -> tuple[str, ...]:
+    return tuple(str(sample.get(column) or "").strip() for column in columns)
+
+
+def _validate_mhc_context_across_treatment_arms(pmid: object, samples) -> None:
+    """``condition_mhc_context`` is constant across one material's treatment arms.
+
+    The all-or-none rule above is satisfied as soon as *some* condition column
+    is curated on every arm, so it cannot see a study that annotates the MHC
+    context of its untreated arms and leaves it blank on the treated ones.
+    That gap is not cosmetic: ``""`` means *not established*, so the blank arm
+    stops counting as engineered material and resolves its expression anchor
+    at tier 1 — parental RNA reported as RNA measured in a transfectant —
+    while its sibling correctly resolves at tier 2 (#576, #586).
+
+    Arms are compared only when :data:`MATERIAL_IDENTITY_COLUMNS` say they are
+    the same material and :data:`TREATMENT_CONDITION_COLUMNS` say something
+    was done to one of them and not the other.  Arms of genuinely different
+    materials never meet, which is why a study's transfectant and its parental
+    control are not flagged: their materials differ in a material column.
+    """
+    groups: dict[tuple[str, ...], list[Mapping[str, object]]] = {}
+    for sample in samples:
+        groups.setdefault(_identity(sample, MATERIAL_IDENTITY_COLUMNS), []).append(sample)
+    for arms in groups.values():
+        if len(arms) < 2:
+            continue
+        treatments = {_identity(a, sorted(TREATMENT_CONDITION_COLUMNS)) for a in arms}
+        contexts = {str(a.get("condition_mhc_context") or "").strip() for a in arms}
+        if len(treatments) < 2 or len(contexts) < 2:
+            continue
+        reported = {
+            str(a.get("sample_label") or "?"): str(a.get("condition_mhc_context") or "")
+            for a in arms
+        }
+        raise ValueError(
+            f"PMID {pmid}: {sorted(reported)} annotate one material but disagree on "
+            f"condition_mhc_context ({reported}) while differing only along a "
+            f"treatment axis ({sorted(TREATMENT_CONDITION_COLUMNS)}).  Treating cells "
+            f"does not change which MHC they express or how it is captured, and a "
+            f"blank reads as 'not established', which drops the arm out of "
+            f"ENGINEERING_CONDITION_COLUMNS and resolves its expression anchor a tier "
+            f"above its sibling's (#586).  If the materials really do differ, say so "
+            f"in a material column ({list(MATERIAL_IDENTITY_COLUMNS)}) rather than "
+            f"only in condition_mhc_context."
+        )
 
 
 def condition_columns_for_sample(sample: Mapping[str, object]) -> dict[str, str]:

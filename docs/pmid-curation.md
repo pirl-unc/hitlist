@@ -243,6 +243,20 @@ migration marked all 761 arms `curated_text` because that is what it did;
   still a knockout.
 - **`condition_control_for` must name a real sibling arm**, and only where
   the comparison is documented.
+- **`condition_mhc_context` is constant across one material's treatment
+  arms** (#586). Arms that `MATERIAL_IDENTITY_COLUMNS` say are the same
+  material, but that differ along `TREATMENT_CONDITION_COLUMNS` (infection,
+  cytokine, drug, stimulation, antigen exposure), must agree on it: treating
+  cells changes neither which MHC they express nor how it is captured. The
+  all-or-none rule above cannot see this gap, because it is satisfied as soon
+  as *some* condition column is curated on every arm — and the cost is not
+  cosmetic, since a blank means "not established", drops the arm out of
+  `ENGINEERING_CONDITION_COLUMNS`, and resolves its expression anchor at
+  tier 1 (parental RNA reported as the sample's own) while its sibling
+  correctly resolves at tier 2. Arms of genuinely different materials are
+  never compared, so a transfectant and its parental control do not collide —
+  but the difference must be recorded in a material column, not only in
+  `condition_mhc_context`.
 
 #### On a row that reached no arm
 

@@ -135,6 +135,32 @@ def test_tier2_hela_abc_ko_resolves_to_parent_hela(installed_depmap):
     assert a.expression_parent_key == "HeLa"
 
 
+@pytest.mark.parametrize(
+    ("pmid", "sample_label"),
+    [
+        (26768311, "HeLa-sHLA-HLA-A*01:01 + vaccinia (VACV)"),
+        (26768311, "HeLa-sHLA-HLA-A*02:01 + vaccinia (VACV)"),
+        (26768311, "HeLa-sHLA-HLA-B*07:02 + vaccinia (VACV)"),
+        (26768311, "HeLa-sHLA-HLA-B*35:01 + vaccinia (VACV)"),
+        (26768311, "HeLa-sHLA-HLA-B*45:01 + vaccinia (VACV)"),
+        (23543059, "HeLa-sClass I + vaccinia (VACV)"),
+    ],
+)
+def test_tier2_infected_shla_arms_do_not_claim_parental_hela_rna(
+    installed_depmap, pmid, sample_label
+):
+    """Their labels hit the ``hela`` alias, and their material is not HeLa (#586).
+
+    These arms left ``condition_mhc_context`` blank, so they resolved at tier 1
+    — parental HeLa RNA reported as RNA measured in an sHLA transfectant —
+    while their uninfected siblings resolved at tier 2 off the same data.
+    """
+    a = resolve_sample_expression_anchor(sample_label=sample_label, pmid=pmid)
+    assert a.expression_match_tier == 2
+    assert a.expression_key == "HeLa"
+    assert a.expression_parent_key == "HeLa"
+
+
 def test_hek293t_ace2_falls_back_when_parent_rna_is_unavailable(tmp_path, monkeypatch):
     from hitlist import downloads
 

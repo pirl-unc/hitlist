@@ -23,9 +23,12 @@ from hitlist.conditions import (
     CONDITION_MHC_CONTEXT_VALUES,
     CONDITION_STATUS_VALUES,
     ENGINEERED_MHC_CONTEXT_VALUES,
+    ENGINEERING_CONDITION_COLUMNS,
     INTERVENTION_CONDITION_COLUMNS,
+    MATERIAL_IDENTITY_COLUMNS,
     MULTI_VALUE_CONDITION_COLUMNS,
     NONE_PERMITTED_CONDITION_COLUMNS,
+    TREATMENT_CONDITION_COLUMNS,
     asserts_condition,
     canonical_condition_token,
     engineered_material_mask,
@@ -224,6 +227,85 @@ def test_a_study_may_opt_out_entirely(tmp_path, monkeypatch):
         assert 42 in load()
     finally:
         curation.load_pmid_overrides.cache_clear()
+
+
+# ── the sibling MHC-context guard (#586) ────────────────────────────────────
+
+
+def _sibling_arms(treated_extra=None, **untreated_extra):
+    """One material, two arms, the second one infected."""
+    treated = {"condition_id": "treated", "sample_label": "treated", "condition": "infected"}
+    treated.update({"condition_infection": "Vaccinia virus"})
+    treated.update(treated_extra or {})
+    untreated = {"condition_id": "untreated", "sample_label": "untreated"}
+    untreated.update(untreated_extra)
+    return [_arm(**untreated), _arm(**treated)]
+
+
+def test_mhc_context_must_not_drop_on_a_treated_sibling(tmp_path, monkeypatch):
+    """The all-or-none rule passes here: both arms curate *some* column."""
+    load = _load_with(
+        tmp_path,
+        monkeypatch,
+        [{"pmid": 42, "ms_samples": _sibling_arms(condition_mhc_context="monoallelic")}],
+    )
+    try:
+        with pytest.raises(ValueError, match="condition_mhc_context"):
+            load()
+    finally:
+        curation.load_pmid_overrides.cache_clear()
+
+
+def test_treated_siblings_agreeing_on_mhc_context_are_accepted(tmp_path, monkeypatch):
+    load = _load_with(
+        tmp_path,
+        monkeypatch,
+        [
+            {
+                "pmid": 42,
+                "ms_samples": _sibling_arms(
+                    treated_extra={"condition_mhc_context": "monoallelic"},
+                    condition_mhc_context="monoallelic",
+                ),
+            }
+        ],
+    )
+    try:
+        assert 42 in load()
+    finally:
+        curation.load_pmid_overrides.cache_clear()
+
+
+def test_a_transfectant_and_its_parental_control_are_not_siblings(tmp_path, monkeypatch):
+    """The guard must not demand one MHC context across *different* materials.
+
+    An untreated parental arm and a treated transfectant of it legitimately
+    disagree, and they are not compared because a material column says so.
+    """
+    load = _load_with(
+        tmp_path,
+        monkeypatch,
+        [
+            {
+                "pmid": 42,
+                "ms_samples": _sibling_arms(
+                    treated_extra={
+                        "condition_mhc_context": "mhc_transfectant",
+                        "condition_transfection": "unspecified",
+                    },
+                ),
+            }
+        ],
+    )
+    try:
+        assert 42 in load()
+    finally:
+        curation.load_pmid_overrides.cache_clear()
+
+
+def test_the_packaged_curation_satisfies_the_sibling_guard():
+    """The guard runs inside the loader, so a clean load is the assertion."""
+    assert load_pmid_overrides()
 
 
 def test_duplicate_yaml_keys_are_rejected(tmp_path, monkeypatch):
@@ -709,3 +791,34 @@ def test_mask_agrees_with_the_record_predicate():
 def test_engineered_mhc_contexts_are_declared_vocabulary():
     """A token outside the vocabulary could never match a curated arm."""
     assert set(ENGINEERED_MHC_CONTEXT_VALUES) <= set(CONDITION_MHC_CONTEXT_VALUES)
+
+
+def test_treatment_and_engineering_columns_partition_the_interventions():
+    """Complementary by construction, so a new column joins exactly one side."""
+    assert TREATMENT_CONDITION_COLUMNS.isdisjoint(ENGINEERING_CONDITION_COLUMNS)
+    assert set(INTERVENTION_CONDITION_COLUMNS) == TREATMENT_CONDITION_COLUMNS | (
+        ENGINEERING_CONDITION_COLUMNS & INTERVENTION_CONDITION_COLUMNS
+    )
+    assert "condition_mhc_context" not in MATERIAL_IDENTITY_COLUMNS
+
+
+@pytest.mark.parametrize(
+    ("pmid", "sample_label"),
+    [
+        (26768311, "HeLa-sHLA-HLA-A*01:01 + vaccinia (VACV)"),
+        (26768311, "HeLa-sHLA-HLA-A*02:01 + vaccinia (VACV)"),
+        (26768311, "HeLa-sHLA-HLA-B*07:02 + vaccinia (VACV)"),
+        (26768311, "HeLa-sHLA-HLA-B*35:01 + vaccinia (VACV)"),
+        (26768311, "HeLa-sHLA-HLA-B*45:01 + vaccinia (VACV)"),
+        (23543059, "HeLa-sClass I + vaccinia (VACV)"),
+    ],
+)
+def test_infected_shla_arms_are_engineered_material(pmid, sample_label):
+    """Infecting a transfectant does not remove the transfected HLA (#586).
+
+    These six arms left ``condition_mhc_context`` blank, so they read as
+    unengineered and claimed their parental line's RNA at tier 1 while their
+    engineered siblings resolved at tier 2.
+    """
+    arms = {s["sample_label"]: s for s in load_pmid_overrides()[pmid]["ms_samples"]}
+    assert is_engineered_material(arms[sample_label])
