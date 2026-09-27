@@ -297,10 +297,23 @@ def test_statement_and_allele_disagreement_claims_no_arm(monkeypatch):
     row = generate_observations_table(exclude_non_peptide_ligand=False).iloc[0]
     assert row.sample_label == ""
     assert row.condition_id == ""
-    assert row.sample_attribution == "pmid_ambiguous"
+    assert row.sample_attribution == "elution_conditions_excluded"
+    # None of the columns that carry a typing claim may survive either. Curating
+    # a second class-II arm per line made every single-line allele key ambiguous,
+    # so this row reached ``_consensus_meta``, which blanks ``condition_id`` and
+    # keeps everything the two excluded arms agree on -- HROG17's typing, cell and
+    # candidate list, reported as ``allele_match`` from a line the statement rules
+    # out (#584 review). The veto has to bite before that, not after it.
+    assert row.sample_mhc_origin == "class_pool"
+    assert row.mhc_basis == ""
+    assert row.sample_match_type == "pmid_class_pool"
+    assert row.mhc_genotype_cell == ""
+    assert "HLA-DPA1*01:03/DPB1*11:01" in row.sample_mhc.split()
+    assert "HLA-DPA1*01:03/DPB1*19:01" in row.sample_mhc.split()
     # Study-origin metadata is a property of the deposit, not of any arm, so
     # it survives a row that reaches no arm (#373).
     assert (row.effective_override, row.effective_override_origin) == ("cell_line", "study")
+    assert row.arm_resolution == "multi_arm_evidence"
 
 
 def _vetoable_overrides():
@@ -370,6 +383,16 @@ def test_statement_vetoes_an_arm_the_allele_key_would_have_claimed(monkeypatch):
     assert row.sample_attribution == "elution_conditions_excluded"
     assert row.condition_id == ""
     assert row.sample_label != "Beta cells"
+    # And no arm at all, not even the one the statement allows (#581). The
+    # veto's consensus used to be taken over the allowed arms, so a statement
+    # naming exactly one arm of the row's class handed that arm's whole record
+    # back -- ``sample_label``, ``sample_mhc``, the cellular typing -- to a row
+    # ``sample_attribution`` says reached none. It is the study's arms of this
+    # class that are consensused now, so only what they agree on survives.
+    assert row.sample_label == ""
+    assert row.sample_mhc_origin == "class_pool"
+    assert row.mhc_basis == ""
+    assert set(row.sample_mhc.split()) == {"HLA-DRB1*01:01", "HLA-DRB1*04:01"}
     # The restriction itself is untouched -- only the arm claim is refused.
     assert row.mhc_restriction == "HLA-DRB1*04:01"
 

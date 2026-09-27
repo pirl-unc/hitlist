@@ -199,10 +199,14 @@ def test_unprofiled_records_are_excluded_from_observation_attribution(full_obser
     """Restoring the metadata must not manufacture a peptide observation.
 
     These arms have no MS data by construction, so no evidence row may be
-    attributed to one.  None of the four is reachable through today's
-    allele-based paths, so this is the corpus-level regression guard that
-    stays true as their curation gains an ``mhc`` or a matching
-    ``attributed_sample_label``.
+    attributed to one.  The four original records are unreachable because
+    they carry no ``mhc`` at all; Abelin's three do carry one — the class-only
+    ``HLA class I`` — and were reachable, which is how 2,972 mono-allelic rows
+    came to be attributed to a validation dataset (#558).  They are excluded
+    now by ``profiled: false`` rather than by having nothing to match on, so
+    this corpus-level guard is what proves the exclusion holds for both
+    shapes, and stays true as any of their curation gains an ``mhc`` or a
+    matching ``attributed_sample_label``.
     """
     attributed = {
         (int(pmid), str(label))

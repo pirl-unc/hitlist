@@ -1877,7 +1877,15 @@
       - sample_label: "validation cell lines (HCC1937, HCT116, HeLa)"
         profiled: false
         n_samples: 0
-        source: "PMC5405381 Figure 3C-G: previously published multi-allelic cell-line datasets reused for validation; no observation is deposited under this PMID from them"
+        source: "PMC5405381 Figure 3C/3D/3F: previously published multi-allelic cell-line datasets reused for validation — \"the breast cancer cell line HCC1937 (C), colorectal cell line HCT116 (D), fibroblasts (E), HeLa cells (Bassani-Sternberg et al., 2015) (F)\"; the Results credit HeLa to Trolle et al. 2016 and HCC1937/HCT116 to Bassani-Sternberg et al. 2015. No observation is deposited under this PMID from them"
+        note: >
+          The three members are HCC1937, HCT116 and HeLa, which is what the label says and what
+          Figure 3C, 3D and 3F show. The trailing "fibroblasts" in this record's condition_id is
+          a frozen artefact from before #556 split panel 3E's fibroblast dataset into the
+          separate "validation primary fibroblasts" arm; condition_id is assigned once and never
+          re-derived from a label (docs/pmid-curation.md), so it is left alone rather than
+          renamed. Nothing can be mis-attributed through it: this arm is unprofiled and so is
+          not an attribution candidate at all.
         condition: unperturbed — standard culture
         condition_id: "validation_cell_lines_hcc1937_hct116_fibroblasts"
         condition_status: "annotated"
@@ -5251,13 +5259,22 @@
         # which is also the spelling all 34 of its deposited rows carry.
         mhc: "Gaga-BF2*021:01"
         mhc_basis: "selected_restriction"
-        note: >
+        note: &sherman_bf2_note_18612635 >
           Peptides were eluted from affinity-purified FLAG-tagged BF2 protein, so this is a
           selected restriction and not the host's genotype: the RP9 host is itself MHC-B
           heterozygous, "RP9 cells are heterozygous at MHC-B bearing B2 and B15 haplotypes",
           and the transduced allele is expressed in the presence of that heterologous TAP.
           The host's own BF2 alleles are reported as haplotypes, not as typed alleles, so no
           cellular genotype is asserted here.
+          Nomenclature: this study's two arms are curated under different conventions because
+          the deposit spells them that way, and the curated value is the join key. B21's allele
+          is the paper's BF2*2101 = IPD-MHC Gaga-BF2*021:01 (CHICKEN08580, GenBank AF013493);
+          B13's is the paper's BF2*1301 = IPD-MHC Gaga-BF2*004:01 (CHICKEN08568, GenBank
+          AF013494) -- NOT Gaga-BF2*013:01, which IPD-MHC does not have, because the old chicken
+          names are haplotype-based and B13's BF2 sequence is B4's. IEDB deposits the first under
+          its IPD name and the second as the old name re-punctuated, so a consumer reconciling
+          the two halves of this study should read both arms through that mapping rather than
+          through any string rule. Pending curated aliases upstream in pirl-unc/mhcgnomes#199.
       - sample_label: RP9 transduced with BF2*1301 (B13 haplotype)
         source: chicken lymphoblastoid cell line
         condition: unperturbed
@@ -5272,13 +5289,7 @@
         # here would take the arm away from every row that reports it.
         mhc: "Gaga-BF2*1301"
         mhc_basis: "selected_restriction"
-        note: >
-          Peptides were eluted from affinity-purified FLAG-tagged BF2 protein, so this is a
-          selected restriction and not the host's genotype: the RP9 host is itself MHC-B
-          heterozygous, "RP9 cells are heterozygous at MHC-B bearing B2 and B15 haplotypes",
-          and the transduced allele is expressed in the presence of that heterologous TAP.
-          The host's own BF2 alleles are reported as haplotypes, not as typed alleles, so no
-          cellular genotype is asserted here.
+        note: *sherman_bf2_note_18612635
   - pmid: 33901176
     study_label: Halabi 2021 — chicken BLB2 class II + MDV
     title: "The dominantly expressed class II molecule from a resistant MHC haplotype presents only a few Marek's disease virus peptides by using an unprecedented binding motif"
@@ -6265,23 +6276,25 @@
       "The epitope was eluted from the following conditions: RA cells treated with CIITA.":
         - ra_ciita_transduced_class_i
         - ra_ciita_transduced_class_ii
-      # Both arms named: the peptide really was eluted from each, so these stay
-      # ambiguous on purpose -- in both classes now that the parental class-II
-      # arms exist (#567). Naming only the transduced class-II arm here would say
-      # a peptide seen in both conditions came from the transduced one alone.
+      # Both conditions named. For class I the peptide really was eluted from
+      # each, so these stay ambiguous on purpose. For class II they are not:
+      # the paper establishes HLA-II presentation only in the transduced cells
+      # ("they do not express HLA-DR, HLA-DP, and HLA-DQ molecules") and reads
+      # the parental class-II identifications as background contaminants, so a
+      # peptide seen under both conditions is attributed to the arm where it
+      # is presented. The parental co-detection is recorded on that arm's note
+      # rather than turned into ambiguity. The parental class-II arms below
+      # exist for the rows deposited under a parental-only statement (#567).
       "The epitope was eluted from the following conditions: HRGO02 cells, HRGO02 cells treated with CIITA.":
         - hrog02_parental_class_i
-        - hrog02_parental_class_ii
         - hrog02_ciita_transduced_class_i
         - hrog02_ciita_transduced_class_ii
       "The epitope was eluted from the following conditions: HROG17 cells, HROG17 cells treated with CIITA.":
         - hrog17_parental_class_i
-        - hrog17_parental_class_ii
         - hrog17_ciita_transduced_class_i
         - hrog17_ciita_transduced_class_ii
       "The epitope was eluted from the following conditions: RA cells, RA cells treated with CIITA.":
         - ra_parental_class_i
-        - ra_parental_class_ii
         - ra_ciita_transduced_class_i
         - ra_ciita_transduced_class_ii
     study_label: "Bassani-Sternberg 2021 — GBM CIITA-transduced HLA-II"
@@ -6371,6 +6384,7 @@
         n_samples: 1
         condition: "unperturbed"
         condition_id: "hrog02_parental_class_ii"
+        condition_control_for: "hrog02_ciita_transduced_class_ii"
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
@@ -6397,6 +6411,7 @@
         n_samples: 1
         condition: "unperturbed"
         condition_id: "hrog17_parental_class_ii"
+        condition_control_for: "hrog17_ciita_transduced_class_ii"
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
@@ -6414,6 +6429,7 @@
         n_samples: 1
         condition: "unperturbed"
         condition_id: "ra_parental_class_ii"
+        condition_control_for: "ra_ciita_transduced_class_ii"
         condition_status: "annotated"
         condition_evidence: "curated_text"
         condition_control: "untreated"
@@ -6506,6 +6522,17 @@
         mhc_genotype_cell: "HROG02"
         mhc_genotype_complete_loci: "HLA-A;HLA-B;HLA-C;HLA-DQA1;HLA-DQB1;HLA-DRB1"
         mhc_genotype_source: *mhc_source_33592498
+        note: &ciita_class_ii_note_33592498 >
+          Peptides whose deposited statement names both the parental and the CIITA-treated
+          condition are attributed here, not left ambiguous between the two class-II arms:
+          the paper establishes HLA-II presentation only after transduction ("While HROG02,
+          HROG17, and RA cells express HLA-I, they do not express HLA-DR, HLA-DP, and HLA-DQ
+          molecules (supplemental Fig. S1)") and reads the parental class-II identifications
+          as background ("suggesting that a background level of potential contaminants
+          contributed to these identifications"). The parental co-detection is a property of
+          those peptides, recorded here; it is not evidence of parental presentation. Class I
+          is treated the other way round on the same statements, where both conditions really
+          do present.
       - sample_label: "HROG17 CIITA-transduced (class II)"
         n_samples: 1
         condition: "CIITA transduction — HLA-II not naturally expressed in GBM"
@@ -6522,6 +6549,7 @@
         mhc_genotype_cell: "HROG17"
         mhc_genotype_complete_loci: "HLA-A;HLA-B;HLA-C;HLA-DPA1;HLA-DPB1;HLA-DQA1;HLA-DQB1;HLA-DRB1"
         mhc_genotype_source: *mhc_source_33592498
+        note: *ciita_class_ii_note_33592498
       - sample_label: "RA CIITA-transduced (class II)"
         n_samples: 1
         condition: "CIITA transduction — HLA-II not naturally expressed in GBM"
@@ -6538,6 +6566,7 @@
         mhc_genotype_cell: "RA"
         mhc_genotype_complete_loci: "HLA-A;HLA-B;HLA-C;HLA-DPA1;HLA-DPB1;HLA-DQA1;HLA-DQB1;HLA-DRB1"
         mhc_genotype_source: *mhc_source_33592498
+        note: *ciita_class_ii_note_33592498
 
   - pmid: 30315122
     study_label: "Faridi 2018 — cis/trans-spliced HLA-I peptides"

@@ -171,3 +171,69 @@ def test_arm_not_recorded_studies_do_resolve_their_system(full_observations_df):
         assert (~rows["sample_group"].isin([""])).any(), (
             f"PMID {pmid} claims its system resolves, but no row carries a sample_group"
         )
+
+
+#: Columns the exporter derives. A ``resolved`` re-measurement must feed the
+#: attribution stages the deposit and nothing it produced last time, or the
+#: previous build's answer is quietly part of the input.
+_DEPOSIT_COLUMNS = (
+    "peptide",
+    "pmid",
+    "mhc_restriction",
+    "mhc_class",
+    "mhc_species",
+    "source",
+    "is_binding_assay",
+    "cell_name",
+    "source_tissue",
+    "antigen_processing_comments",
+    "assay_comments",
+    "restriction_evidence",
+    "attributed_sample_label",
+)
+
+
+@pytest.mark.integration
+def test_resolved_studies_leave_no_row_without_an_arm(full_observations_df, tmp_path, monkeypatch):
+    """`resolved` claims every row reaches an arm, so re-measure that.
+
+    The other verdicts are checked against the built corpus directly, but this
+    one cannot be: the built frame carries the attribution of whatever curation
+    was current when it was written, so a study whose arms changed since would
+    be judged on a stale answer — and `resolved` is exactly the verdict a
+    curation change earns. Re-running the exporter over the study's *deposited*
+    columns measures today's curation against the same rows instead.
+
+    PMID 18612635 is why this exists: its 34 `Gaga-BF2*021:01` rows sat at
+    `pmid_ambiguous` while the arm was curated under the paper's `BF2*2101`
+    spelling, and a two-row synthetic replay is not evidence about the deposit
+    (#559).
+    """
+    from hitlist import observations
+    from hitlist.export import generate_observations_table
+
+    df = full_observations_df
+    resolved = [
+        p for p, e in load_pmid_overrides().items() if e.get("arm_resolution") == "resolved"
+    ]
+    measured = 0
+    for pmid in resolved:
+        rows = df[df["pmid"] == pmid]
+        if rows.empty:
+            continue
+        deposit = rows[[c for c in _DEPOSIT_COLUMNS if c in rows.columns]].copy()
+        path = tmp_path / f"observations_{pmid}.parquet"
+        deposit.to_parquet(path, index=False)
+        monkeypatch.setattr(observations, "observations_path", lambda p=path: p)
+        result = generate_observations_table(exclude_non_peptide_ligand=False)
+        assert len(result) == len(deposit)
+        stuck = result[result["condition_id"].eq("")]
+        assert stuck.empty, (
+            f"PMID {pmid} is recorded resolved but {len(stuck):,} of {len(result):,} deposited "
+            f"rows reach no arm: "
+            f"{sorted(stuck['sample_attribution'].unique())}. Either the curation "
+            f"regressed or the verdict is wrong"
+        )
+        measured += 1
+    if not measured:
+        pytest.skip("no resolved study is present in this build")

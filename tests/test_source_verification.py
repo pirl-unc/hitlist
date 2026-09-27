@@ -15,6 +15,10 @@ import pytest
 from hitlist.curation import load_pmid_overrides
 from hitlist.export import generate_ms_samples_table, generate_observations_table
 
+# IEDB's own wording, including its "HRGO02" spelling, kept in one place and
+# shared with the elution-conditions suite rather than transcribed twice.
+from tests.test_deposited_elution_conditions import GBM_STATEMENT
+
 ATTRIBUTION_FIELDS = [
     "sample_label",
     "condition_id",
@@ -42,6 +46,21 @@ def _write_observations(tmp_path, monkeypatch, rows):
     pd.DataFrame([{**defaults, **row} for row in rows]).to_parquet(path, index=False)
     monkeypatch.setattr(observations, "observations_path", lambda: path)
     return path
+
+
+def _assert_attribution_matches(selected, complete, peptides):
+    """A filter must change neither the values nor their dtypes (#532).
+
+    ``.astype(str)`` on both sides was the whole comparison, which hides the
+    divergence this guards: ``sample_attribution`` and its neighbours are
+    declared categoricals, and a filtered export that rebuilt one as a plain
+    object column -- or with a different category set -- compared equal after
+    the cast while reading differently to every consumer.
+    """
+    left = selected.loc[peptides, ATTRIBUTION_FIELDS]
+    right = complete.loc[peptides, ATTRIBUTION_FIELDS]
+    pd.testing.assert_frame_equal(left.astype(str), right.astype(str))
+    assert list(left.dtypes.astype(str)) == list(right.dtypes.astype(str))
 
 
 # ── #558  Abelin 2017 mono-allelic B721.221 transfectants ────────────────────
@@ -206,10 +225,7 @@ def test_abelin_attribution_survives_a_filtered_query(tmp_path, monkeypatch, que
     complete = generate_observations_table().set_index("peptide")
     selected = generate_observations_table(**query).set_index("peptide")
     assert "AAAAAAAAD" in selected.index
-    pd.testing.assert_frame_equal(
-        selected.loc[["AAAAAAAAD"], ATTRIBUTION_FIELDS].astype(str),
-        complete.loc[["AAAAAAAAD"], ATTRIBUTION_FIELDS].astype(str),
-    )
+    _assert_attribution_matches(selected, complete, ["AAAAAAAAD"])
     assert complete.loc["AAAAAAAAD", "sample_label"] == "721.221-HLA-A*02:04"
 
 
@@ -252,15 +268,34 @@ def test_sherman_arms_are_named_as_their_deposited_rows_are():
         assert arms[curated]["mhc_basis"] == "selected_restriction"
 
 
-def test_sherman_zero_padding_is_not_a_nomenclature_rule():
-    """``021:01`` and ``21:01`` are separate strings to mhcgnomes, and the fix
-    must not depend on that changing -- or on stripping the zero, which would
-    also claim BF2*1301 is IPD's BF2*013:01 (a name IPD does not have)."""
+def test_sherman_curation_invents_no_allele_by_padding_or_stripping():
+    """No field-width rule is applied to either arm.
+
+    Asserting mhcgnomes' current spellings would pin a floor with no ceiling:
+    pirl-unc/mhcgnomes#199 proposes curated aliases that would legitimately
+    change them. What must hold whatever that issue does is the curation's own
+    claim -- that neither arm is named by transforming the other's digits.
+    ``Gaga-BF2*013:01`` is what padding BF2*1301 would produce and IPD-MHC has
+    no such allele (B13's BF2 sequence is B4's, so its IPD name is
+    ``Gaga-BF2*004:01``); ``Gaga-BF2*21:01`` is what stripping the B21 arm's
+    leading zero would leave.
+    """
     import mhcgnomes
 
-    assert mhcgnomes.parse("Gaga-BF2*2101").to_string() == "Gaga-BF2*21:01"
-    assert mhcgnomes.parse("Gaga-BF2*021:01").to_string() == "Gaga-BF2*021:01"
-    assert mhcgnomes.parse("Gaga-BF2*1301").to_string() == "Gaga-BF2*13:01"
+    arms = set(_sherman_arms())
+    assert "Gaga-BF2*013:01" not in arms
+    assert "Gaga-BF2*21:01" not in arms
+    # Two arms, two alleles, however the parser spells them today or after #199.
+    assert len({mhcgnomes.parse(mhc).to_string() for mhc in arms}) == 2
+    # And the IPD identity of each is on the record for a consumer reconciling
+    # the deposit's two conventions.
+    for mhc, accession, ipd_name in (
+        ("Gaga-BF2*021:01", "AF013493", "Gaga-BF2*021:01"),
+        ("Gaga-BF2*1301", "AF013494", "Gaga-BF2*004:01"),
+    ):
+        note = _sherman_arms()[mhc]["note"]
+        assert accession in note
+        assert ipd_name in note
 
 
 @pytest.mark.parametrize("restriction", sorted(SHERMAN_DEPOSITED))
@@ -314,10 +349,7 @@ def test_sherman_arms_stay_separate_under_a_filtered_query(tmp_path, monkeypatch
     assert complete.loc["AAAAAAAAA", "condition_id"] != complete.loc["LLLLLLLLL", "condition_id"]
     for peptide in ("AAAAAAAAA", "LLLLLLLLL"):
         selected = generate_observations_table(peptide=peptide).set_index("peptide")
-        pd.testing.assert_frame_equal(
-            selected[ATTRIBUTION_FIELDS].astype(str),
-            complete.loc[[peptide], ATTRIBUTION_FIELDS].astype(str),
-        )
+        _assert_attribution_matches(selected, complete, [peptide])
 
 
 # ── #567  PMID 33592498 parental (CIITA-negative) class-II arms ──────────────
@@ -335,8 +367,6 @@ GBM_PARENTAL_CLASS_II = {
     "HROG17 cells": ("hrog17_parental_class_ii", "HROG17 parental (class II)"),
     "RA cells": ("ra_parental_class_ii", "RA parental (class II)"),
 }
-
-GBM_STATEMENT = "The epitope was eluted from the following conditions: {condition}."
 
 
 def _gbm_entry():
@@ -365,7 +395,7 @@ def test_gbm_parental_class_ii_arms_are_curated():
 
 @pytest.mark.parametrize("line", sorted(GBM_PARENTAL_CLASS_II))
 def test_gbm_parental_statement_names_an_arm_in_each_class(line):
-    targets = _gbm_entry()["elution_condition_ids"][GBM_STATEMENT.format(condition=line)]
+    targets = _gbm_entry()["elution_condition_ids"][GBM_STATEMENT.format(line)]
     class_ii = GBM_PARENTAL_CLASS_II[line][0]
     assert class_ii in targets
     assert class_ii.replace("_class_ii", "_class_i") in targets
@@ -399,7 +429,7 @@ def test_gbm_parental_class_ii_row_reaches_the_sample_it_was_eluted_from(
                 "pmid": 33592498,
                 "mhc_restriction": restriction,
                 "mhc_class": "II",
-                "assay_comments": GBM_STATEMENT.format(condition=line),
+                "assay_comments": GBM_STATEMENT.format(line),
             }
         ],
     )
@@ -414,8 +444,19 @@ def test_gbm_parental_class_ii_row_reaches_the_sample_it_was_eluted_from(
 
 
 @pytest.mark.parametrize("line", sorted(GBM_PARENTAL_CLASS_II))
-def test_gbm_paired_statement_no_longer_asserts_transduced_provenance(tmp_path, monkeypatch, line):
-    """A class-II peptide found in both conditions was eluted from both."""
+def test_gbm_paired_statement_attributes_class_ii_to_the_transduced_arm(
+    tmp_path, monkeypatch, line
+):
+    """A class-II peptide seen under both conditions is presented in one.
+
+    The parental lines do not express HLA-II -- "they do not express HLA-DR,
+    HLA-DP, and HLA-DQ molecules" -- and the paper reads their class-II
+    identifications as background, so a peptide deposited under both
+    conditions is attributed to the arm that presented it rather than made
+    ambiguous between the two. Class I on the same statements is the other
+    way round: both conditions really do present, so those rows stay
+    ambiguous by evidence.
+    """
     both = f"{line}, {line} treated with CIITA"
     _write_observations(
         tmp_path,
@@ -426,13 +467,16 @@ def test_gbm_paired_statement_no_longer_asserts_transduced_provenance(tmp_path, 
                 "pmid": 33592498,
                 "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
                 "mhc_class": "II",
-                "assay_comments": GBM_STATEMENT.format(condition=both),
+                "assay_comments": GBM_STATEMENT.format(both),
             }
         ],
     )
     result = generate_observations_table()
-    assert result.condition_id.tolist() == [""]
-    assert result.sample_attribution.tolist() == ["pmid_ambiguous"]
+    expected = GBM_PARENTAL_CLASS_II[line][0].replace("parental", "ciita_transduced")
+    assert result.condition_id.tolist() == [expected]
+    assert result.condition_transduction.tolist() == ["CIITA"]
+    # The parental co-detection travels with the arm as a caveat.
+    assert "both the parental and the CIITA-treated" in result.sample_note.iloc[0]
 
 
 def test_gbm_parental_class_ii_attribution_survives_a_filtered_query(tmp_path, monkeypatch):
@@ -442,7 +486,7 @@ def test_gbm_parental_class_ii_attribution_survives_a_filtered_query(tmp_path, m
             "pmid": 33592498,
             "mhc_restriction": "HLA-DRB4*01:03",
             "mhc_class": "II",
-            "assay_comments": GBM_STATEMENT.format(condition=line),
+            "assay_comments": GBM_STATEMENT.format(line),
         }
         for i, line in enumerate(["HRGO02 cells", "RA cells"])
     ]
@@ -454,7 +498,4 @@ def test_gbm_parental_class_ii_attribution_survives_a_filtered_query(tmp_path, m
     ]
     for peptide in complete.index:
         selected = generate_observations_table(peptide=peptide).set_index("peptide")
-        pd.testing.assert_frame_equal(
-            selected[ATTRIBUTION_FIELDS].astype(str),
-            complete.loc[[peptide], ATTRIBUTION_FIELDS].astype(str),
-        )
+        _assert_attribution_matches(selected, complete, [peptide])
