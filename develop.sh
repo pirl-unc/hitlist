@@ -32,28 +32,11 @@ else
     pip install -e ".[dev]"
 fi
 
-# Say where it landed and which code the console script will run.  The failure
-# this guards against is not an install error -- it is an install that
-# succeeds into the wrong place, so the only useful confirmation is the
-# resolved path, not an exit code.
+# Say where it landed and which code the console script will run, and fail if
+# the environment's hitlist distribution metadata disagrees with that code.
+# The failure this guards against is not an install error -- it is an install
+# that succeeds into the wrong place, or leaves stale or duplicate metadata
+# behind (#553), so the install's exit status cannot confirm it.  The check never
+# removes anything; it names what to move aside.
 echo
-python - <<'PY'
-import shutil, subprocess, sys
-import hitlist
-
-print(f"import hitlist -> {hitlist.__version__}  ({hitlist.__file__})")
-cli = shutil.which("hitlist")
-if cli is None:
-    print("WARNING: no `hitlist` on PATH")
-    sys.exit(0)
-reported = subprocess.run([cli, "--version"], capture_output=True, text=True).stdout.strip()
-print(f"`hitlist` on PATH -> {cli}")
-print(f"                    {reported}")
-if hitlist.__version__ not in reported:
-    print(
-        f"\nWARNING: the console script reports {reported!r} but the importable "
-        f"package is {hitlist.__version__}.\n"
-        "Another install is shadowing this one; `pip uninstall hitlist` until "
-        "none remain, then re-run this script."
-    )
-PY
+python scripts/check_dev_install.py
