@@ -3751,6 +3751,28 @@ def test_sample_alleles_still_drops_class_and_locus_designations():
         assert _sample_serotypes(imprecise) == (), imprecise
 
 
+def test_reported_class_alleles_is_the_public_cross_module_contract():
+    """#574: :mod:`hitlist.predict` must not import a private name from here.
+
+    The guarantees the wrapper documents are the ones ``predict`` relies on to
+    build its eligibility rule, so they are pinned here rather than left to the
+    private helper's docstring: ``exact`` candidates only (a serotype never
+    becomes a named allele), class-II pairs contribute the pair and both chains,
+    and a supplied class excludes the other half of a mixed ``I+II`` genotype.
+    """
+    from hitlist.export import _sample_alleles, reported_class_alleles
+
+    mixed = "HLA-A*02:01 HLA-DRB1*11:01"
+    for field, mhc_class in ((mixed, ""), (mixed, "I"), (mixed, "II"), ("HLA-DR15", "")):
+        assert reported_class_alleles(field, mhc_class) == _sample_alleles(field, mhc_class)
+
+    assert reported_class_alleles("HLA-DR15") == []
+    assert reported_class_alleles(mixed, "I") == ["HLA-A*02:01"]
+    pair = reported_class_alleles("HLA-DRA1*01:01-DRB1*15:01", "II")
+    assert "HLA-DRA*01:01/DRB1*15:01" in pair
+    assert "HLA-DRB1*15:01" in pair
+
+
 def test_serotype_typed_samples_join_through_their_members():
     """A serotype-typed sample contributes candidate alleles to the join.
 

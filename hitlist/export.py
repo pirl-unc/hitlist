@@ -3935,6 +3935,39 @@ def _query_mhc_class(target_allele: str = "", target_serotype: str = "") -> str:
     return next(iter(classes)) if len(classes) == 1 else ""
 
 
+def reported_class_alleles(sample_mhc: str, mhc_class: str = "") -> list[str]:
+    """Precisely reported experimental MHC candidates of one class.
+
+    The public name for what :mod:`hitlist.predict` reads.  ``predict`` used to
+    import :func:`_sample_alleles`, and a private name carrying a cross-module
+    contract is what this project's no-private-interfaces rule exists to prevent
+    (#564): callers could depend on the behaviour but not on its documentation.
+
+    The guarantees a caller outside this module may rely on:
+
+    - ``exact`` candidates only, so a serotype-typed sample never yields a named
+      allele -- "this donor is DR15" must not become "this peptide was seen on
+      DRB1*15:01" (#380).
+    - A class-II pair contributes the pair token *and* both component chains,
+      which are part of the reported molecule rather than an inference.
+    - With ``mhc_class`` set, the other half of a mixed ``I+II`` genotype is
+      excluded.
+    - A designation naming no molecule (locus, class sentinel) is absent.
+
+    What it deliberately does *not* promise is that every returned value
+    identifies a single protein: a ``Gene`` or a one-field allele group is a
+    faithful record of what the source named.  A consumer that needs
+    protein-level input must say so itself -- see
+    :func:`hitlist.predict.class_i_prediction_scope` (#574).
+
+    Returns
+    -------
+    list[str]
+        Sorted candidate designations; empty when the field named none.
+    """
+    return _sample_alleles(sample_mhc, mhc_class)
+
+
 def _sample_alleles(sample_mhc: str, mhc_class: str = "") -> list[str]:
     """Precisely named experimental MHC candidates, including selected restrictions.
 
