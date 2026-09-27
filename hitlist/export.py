@@ -28,6 +28,7 @@ unified export surface for downstream training workflows.
 from __future__ import annotations
 
 import re
+from typing import NamedTuple
 
 import pandas as pd
 
@@ -332,6 +333,16 @@ def _fillna_safe_for_categoricals(df: pd.DataFrame, value: str = "") -> pd.DataF
 # next bool one should not have to rediscover the pyarrow constraint.
 _BOOL_META_COLS: frozenset[str] = frozenset()
 
+#: Meta columns a statement-excluded row keeps, when the study's own records
+#: agree on them.  They describe the deposit -- its arm-resolution verdict and
+#: its provenance override -- rather than any one arm, so a row that reached no
+#: arm still carries them (#373).
+_STUDY_LEVEL_META_COLS: tuple[str, ...] = (
+    "arm_resolution",
+    "effective_override",
+    "effective_override_origin",
+)
+
 
 # IEDB records, on some studies, exactly which experimental conditions a
 # peptide was eluted from: "The epitope was eluted from the following
@@ -411,10 +422,39 @@ def _select_by_elution_conditions(
     return matching[0][2]
 
 
+class StatementMap(NamedTuple):
+    """One study's curated elution-statement map, with its derived arm set.
+
+    Built once per PMID rather than per row and per stage: both the allele
+    stage and the class-pool stage narrow with it, and the veto resolution
+    reads it again.
+    """
+
+    targets: dict[str, list[str]]
+    governed: frozenset[str]
+
+    def allowed(self, assay_comments: str) -> list[str] | None:
+        """The arms this statement names, or ``None`` if it is unmapped."""
+        return self.targets.get(str(assay_comments).strip())
+
+
+def _statement_maps(overrides: dict[int, dict]) -> dict[int, StatementMap]:
+    return {
+        int(pmid): StatementMap(
+            targets=entry["elution_condition_ids"],
+            governed=frozenset(
+                arm for arms in entry["elution_condition_ids"].values() for arm in arms
+            ),
+        )
+        for pmid, entry in overrides.items()
+        if entry.get("elution_condition_ids")
+    }
+
+
 def _statement_allowed_candidates(
     candidates: list[tuple[str, str, dict]],
     assay_comments: str,
-    condition_map: dict[str, list[str]] | None,
+    statement_map: StatementMap | None,
 ) -> list[tuple[str, str, dict]] | None:
     """Narrow candidates to the arms the row's own elution statement allows.
 
@@ -429,24 +469,64 @@ def _statement_allowed_candidates(
     for every key to become ambiguous and take that path.
 
     Returns the surviving candidates, or ``None`` when the statement allows
-    none of them — the veto, whose outcome the caller records.  A statement
-    the map does not mention returns the candidates untouched, and so does an
-    arm the map never names anywhere: a map is a tie-breaker (#512), not an
-    exhaustive allow-list, which is what keeps PMID 32915178's and 32488085's
-    partial maps inert.
+    none of them — the veto, which the caller records for one resolution pass
+    to settle.
+
+    A statement the map does not mention narrows nothing, so a partial map
+    stays a tie-breaker (#512) rather than becoming an exhaustive allow-list —
+    PMID 32915178's and 32488085's maps included.  An arm the map never names
+    survives *alongside* an arm the statement names, for the same reason: the
+    map says nothing about it.  It cannot survive **alone**, though.  Reaching
+    that point means the statement named arms and none of them is a candidate
+    for this row, so the row belongs to a sample this key cannot offer; handing
+    it to whichever arm the map happens not to govern would be the collision
+    the veto exists to refuse, wearing an unmapped arm's label (#584 review 2).
     """
-    if not condition_map:
+    if statement_map is None:
         return candidates
-    targets = condition_map.get(str(assay_comments).strip())
+    targets = statement_map.allowed(assay_comments)
     if targets is None:
         return candidates
-    governed = {arm for arms in condition_map.values() for arm in arms}
-    kept = [
-        candidate
-        for candidate in candidates
-        if (_cid := candidate[2].get("condition_id")) in targets or _cid not in governed
-    ]
-    return kept or None
+    named = [c for c in candidates if c[2].get("condition_id") in targets]
+    if not named:
+        return None
+    unmapped = [c for c in candidates if c[2].get("condition_id") not in statement_map.governed]
+    return named + unmapped
+
+
+def _statement_excluded_meta(
+    study_samples: pd.DataFrame,
+    meta_cols: list[str],
+) -> dict:
+    """The one metadata record every statement-excluded row gets.
+
+    A vetoed row reached no arm, so every arm-specific column is blank: its
+    label, its condition block, its candidate list, its cellular typing and
+    the basis of that typing.  Three earlier versions of this built the
+    fallback three different ways — blank at the allele stage, consensus over
+    the class pool at the class-pool stage, consensus over allowed arms plus a
+    study-level restoration afterwards — and each disagreed with the others
+    about what survives (#584 review 2).  Consensus is the wrong tool at all
+    three: arms that happen to agree, or a class with exactly one arm, make it
+    hand back the very typing the veto refused (#581).
+
+    What does survive is what belongs to the *deposit* rather than to an arm,
+    and only where the study's own records agree on it.  ``sample_mhc`` is
+    filled afterwards from the class pool, like any row that reaches no arm.
+    """
+    meta = {col: (False if col in _BOOL_META_COLS else "") for col in meta_cols}
+    for col in _STUDY_LEVEL_META_COLS:
+        if col not in meta_cols:
+            continue
+        values = {str(row.get(col, "") or "") for _, row in study_samples.iterrows()}
+        if len(values) == 1:
+            meta[col] = next(iter(values))
+    # A sample-origin override names an arm as surely as a label does.
+    if meta.get("effective_override_origin") not in ("study", ""):
+        meta["effective_override"] = ""
+        meta["effective_override_origin"] = ""
+    meta["sample_attribution"] = "elution_conditions_excluded"
+    return meta
 
 
 def _candidate_arm_identity(meta: dict | None) -> str:
@@ -1432,6 +1512,12 @@ def generate_observations_table(
     # ambiguous — stating the study ran no perturbation when the deposit
     # plainly says otherwise (#392).
     overrides = load_pmid_overrides()
+    # Built once per study, read by both narrowing stages and by the veto
+    # resolution below. ``_vetoed_keys`` collects the (pmid, restriction,
+    # statement) triples whose candidates a statement ruled out entirely,
+    # whichever stage noticed; nothing else about those rows is decided here.
+    _stmt_maps = _statement_maps(overrides)
+    _vetoed_keys: set[tuple] = set()
     pmid_meta_df = pd.DataFrame(
         [
             {
@@ -1712,28 +1798,20 @@ def generate_observations_table(
                 # other stage reads them (#584 review). Every candidate here
                 # carries the row's allele by construction, so a statement
                 # that excludes all of them excludes the allele evidence too.
-                # The winner still has to be written: the merge above has
-                # already first-picked one of these arms, and skipping the
-                # entry would leave that pick standing. Blank meta hands the
-                # row on to the class-pool stage, which records the veto once
-                # and gives it the study union rather than one excluded arm's
-                # typing.
-                _stmt_map = overrides.get(int(r["_pmid_int"]), {}).get("elution_condition_ids", {})
-                _allowed = _statement_allowed_candidates(cands, r["assay_comments"], _stmt_map)
+                # Record the key and leave the metadata alone: one resolution
+                # pass settles every vetoed row the same way, whichever stage
+                # noticed (#584 review 2).
+                _allowed = _statement_allowed_candidates(
+                    cands, r["assay_comments"], _stmt_maps.get(int(r["_pmid_int"]))
+                )
                 if _allowed is None:
-                    _winner_meta[
+                    _vetoed_keys.add(
                         (
                             r["_pmid_int"],
-                            r["mhc_restriction"],
-                            r["cell_name"],
-                            r["source_tissue"],
-                            r["antigen_processing_comments"],
-                            r["assay_comments"],
+                            str(r["mhc_restriction"]),
+                            str(r["assay_comments"]),
                         )
-                    ] = {
-                        **{_c: (False if _c in _BOOL_META_COLS else "") for _c in meta_cols},
-                        "sample_attribution": "elution_conditions_excluded",
-                    }
+                    )
                     continue
                 cands = _allowed
                 # When the candidates span different arms, score only
@@ -1934,12 +2012,6 @@ def generate_observations_table(
                 ]
                 if "restriction_evidence" in obs.columns:
                     _tb_cols.append("restriction_evidence")
-                # Carried so this stage can see a row the allele stage already
-                # vetoed. Its own statement ruled out every arm that carries
-                # its allele, so the rest of the class pool is no better an
-                # answer -- an arm the statement names but that is typed for a
-                # different allele cannot have presented the peptide either.
-                _tb_cols.append("sample_attribution")
                 _eligible_df = _fillna_safe_for_categoricals(obs.loc[_eligible_mask, _tb_cols])
                 # Whether a field distinguishes systems is a property of
                 # the whole study, not of the rows still awaiting a match.
@@ -1996,26 +2068,21 @@ def generate_observations_table(
                     # sample the peptide came off, so it narrows the pool
                     # before the group stage, the scorer and the consensus
                     # fallback can read an arm it excludes.
-                    _stmt_map_pool = overrides.get(int(_r["_pmid_int"]), {}).get(
-                        "elution_condition_ids", {}
-                    )
-                    _allowed_pool = (
-                        None
-                        if _r.get("sample_attribution") == "elution_conditions_excluded"
-                        else _statement_allowed_candidates(
-                            _cands, _r["assay_comments"], _stmt_map_pool
-                        )
+                    _allowed_pool = _statement_allowed_candidates(
+                        _cands, _r["assay_comments"], _stmt_maps.get(int(_r["_pmid_int"]))
                     )
                     if _allowed_pool is None:
-                        # No arm the statement allows can have presented this
-                        # peptide. Keep what the study's arms of this class
-                        # agree on -- never one arm's identity, typing or
-                        # candidate list, which is what made a vetoed row
-                        # report a ``sample_label`` it was not attributed to
-                        # (#581) -- and say why it reached no arm.
-                        _vetoed_meta = _consensus_meta(_pool_cands, meta_cols)
-                        _vetoed_meta["sample_attribution"] = "elution_conditions_excluded"
-                        _tb_winner[tuple(_r[column] for column in _tb_cols)] = _vetoed_meta
+                        # No arm the statement allows is in this pool. Record
+                        # the key and leave the metadata to the one resolution
+                        # pass, so a vetoed row reads the same whichever stage
+                        # refused it (#584 review 2).
+                        _vetoed_keys.add(
+                            (
+                                _r["_pmid_int"],
+                                str(_r["mhc_restriction"]),
+                                str(_r["assay_comments"]),
+                            )
+                        )
                         continue
                     # Whether the statement did any of the work, so a winner it
                     # singled out reports ``elution_conditions`` rather than
@@ -2055,14 +2122,21 @@ def generate_observations_table(
                     # row-level discriminator, so say so rather than reporting
                     # that the class pool assigned it.
                     _pool_attr = "discriminated" if _grouped else "class_pool"
-                    _condition_map = overrides.get(int(_r["_pmid_int"]), {}).get(
-                        "elution_condition_ids", {}
+                    _condition_map = (
+                        _stmt_maps[int(_r["_pmid_int"])].targets
+                        if int(_r["_pmid_int"]) in _stmt_maps
+                        else {}
                     )
                     if len(_cands) == 1:
                         # Single-class candidate inside a multi-sample
                         # PMID — assign without scoring (no ambiguity).
                         _best_meta: dict | None = _cands[0][2]
                         if _stmt_narrowed:
+                            # The statement is what left one candidate, so the
+                            # attribution names it rather than the stage that
+                            # picked the survivor up. Each label says which
+                            # evidence actually made the choice: the statement
+                            # here, the group stage or the scorer below.
                             _pool_attr = "elution_conditions"
                     elif (
                         _elution := _select_by_elution_conditions(
@@ -2247,31 +2321,23 @@ def generate_observations_table(
                             _lvals = _lvals.fillna("")
                         obs[_lcol] = obs[_lcol].where(~_label_hit, _lvals)
 
-    # 3d) A row *assigned* an arm its own deposited statement excludes.
+    # 3d) Resolve every statement-excluded row, once.
     #
-    # The companion to ``_statement_allowed_candidates``, and not a duplicate
-    # of it: the two cover disjoint shapes.  Narrowing the candidate pool
-    # handles every row that went through a candidate list, which is where
-    # consensus could otherwise launder an excluded arm's typing into a row
-    # whose ``condition_id`` it had just blanked (#584 review).  It cannot
-    # help a row that never had a candidate list: an allele typed in exactly
-    # one arm produces a unique (pmid, allele) key, takes the merge's
-    # first-pick and reports ``allele_exact`` -- so a peptide whose statement
-    # names only the untransduced cells would still land on the transduced
-    # arm.  Stage 3c's curated per-row label arrives the same way, and this
-    # deliberately overrides it: both are per-row deposit evidence, and a
-    # label naming an arm the statement excludes is a contradiction in the
-    # deposit rather than a better guess.
+    # Two stages above can refuse a row: the allele stage, when the statement
+    # rules out every arm carrying its allele, and the class-pool stage, when
+    # it rules out every arm of its class.  A third shape reaches neither,
+    # because it never went through a candidate list at all -- an allele typed
+    # in exactly one arm makes a unique (pmid, allele) key and takes the
+    # merge's first pick, and stage 3c's curated per-row label arrives the same
+    # way.  This overrides that label deliberately: both are per-row deposit
+    # evidence, and a label naming an arm the statement excludes is a
+    # contradiction in the deposit rather than a better guess.
     #
-    # A map is a *tie-breaker* (#512), not an exhaustive allow-list, so only
-    # arms the map names somewhere can be vetoed -- which is what leaves PMID
-    # 32915178's and 32488085's partial maps inert.
-    _statement_maps = {
-        int(_pmid): _entry["elution_condition_ids"]
-        for _pmid, _entry in overrides.items()
-        if _entry.get("elution_condition_ids")
-    }
-    if _statement_maps and "assay_comments" in obs.columns and "condition_id" in obs.columns:
+    # All three land here, and all three get the same record from the same
+    # builder.  Resolving them where they were noticed is what let the three
+    # earlier versions drift apart on what a vetoed row reports.
+    _statement_vetoed = pd.Series(False, index=obs.index)
+    if _stmt_maps and "assay_comments" in obs.columns and "condition_id" in obs.columns:
         # Everything here stays scoped to the rows of a study that curates a
         # map, and the metadata rewrite touches only the vetoed rows. The
         # frame-wide shape of this cost more than the veto is worth: converting
@@ -2279,64 +2345,54 @@ def generate_observations_table(
         # 4.4M rows, then building one Python list per meta column to rewrite
         # 492 of them, is several hundred MB of transients -- enough to lose the
         # 3.11 integration job, which runs with under a gigabyte to spare (#566).
-        _study_level = ("arm_resolution", "effective_override", "effective_override_origin")
         _blank = {_col: False if _col in _BOOL_META_COLS else "" for _col in meta_cols}
-        for _pmid, _map in _statement_maps.items():
+        for _pmid, _smap in _stmt_maps.items():
             _in_study = (obs["_pmid_int"] == float(_pmid)).fillna(False)
             if not _in_study.any():
                 continue
             _rows = obs.index[_in_study.to_numpy()]
-            _governed = {_arm for _arms in _map.values() for _arm in _arms}
             _stmts = obs.loc[_rows, "assay_comments"].astype("string").fillna("").str.strip()
             _assigned = obs.loc[_rows, "condition_id"].astype("string").fillna("")
+            _restrictions = obs.loc[_rows, "mhc_restriction"].astype("string").fillna("")
             _classes = obs.loc[_rows, "_mhc_class_norm"].astype("string").fillna("")
             # No ``strict=`` on zip: this package supports Python 3.9, where it
             # is not a parameter, and ruff cannot catch it because B905 is in
-            # the ignore list (see qc.py's note). All four sequences come from
+            # the ignore list (see qc.py's note). All five sequences come from
             # the same row selection, so they align by construction.
-            _groups: dict[tuple[str, str], list] = {}
-            for _idx, _stmt, _arm, _cls in zip(
-                _rows, _stmts.tolist(), _assigned.tolist(), _classes.tolist()
+            _idxs: list = []
+            for _idx, _stmt, _arm, _restriction, _cls in zip(
+                _rows,
+                _stmts.tolist(),
+                _assigned.tolist(),
+                _restrictions.tolist(),
+                _classes.tolist(),
             ):
-                _allowed = _map.get(_stmt)
-                if _arm in _governed and isinstance(_allowed, list) and _arm not in _allowed:
-                    _groups.setdefault((str(_cls), str(_stmt)), []).append(_idx)
-            if not _groups:
+                _allowed = _smap.allowed(_stmt)
+                if _allowed is None:
+                    # An unmapped statement is evidence about nothing, so it
+                    # narrows nothing and refuses nothing. This is what keeps a
+                    # partial map a tie-breaker (#512).
+                    continue
+                # An arm the statement does not name, whether or not the map
+                # governs it elsewhere. Reaching one means no arm the statement
+                # *does* name was available to this row -- narrowing would have
+                # kept a named candidate and the statement would have chosen it
+                # -- so the row belongs to a sample this study cannot offer it.
+                # Restricting the refusal to governed arms let a lone unmapped
+                # arm collect rows whose statement names a different sample
+                # (#584 review 2); a blank arm is not a refusal, because that is
+                # what a statement naming several arms legitimately produces.
+                _refused = bool(_arm) and _arm not in _allowed
+                if _refused or (float(_pmid), _restriction, _stmt) in _vetoed_keys:
+                    _idxs.append(_idx)
+            if not _idxs:
                 continue
-            _study_rows = samples[samples["pmid"].astype(int) == _pmid]
-            for (_cls, _stmt), _idxs in _groups.items():
-                # Consensus over the study's arms of this class, not over the
-                # ones the statement allows.  A vetoed row reached no arm, so
-                # anything specific to one is a claim it cannot make -- and
-                # with a single allowed arm "consensus" is that arm's whole
-                # record, which is how a vetoed row came to report a
-                # ``sample_label`` it was not attributed to (#581).  What
-                # several arms agree on is a property of the study rather than
-                # of any one of them.  The reason this consensus used to be
-                # taken over allowed arms only -- that all of PMID 33592498's
-                # class-II arms were CIITA-transduced, so agreement handed back
-                # the transduction claim the veto had refused -- was a symptom
-                # of its missing parental class-II arms, which #567 curates.
-                _arms = [
-                    ("", "", {_col: _r.get(_col, "") for _col in meta_cols})
-                    for _, _r in _study_rows.iterrows()
-                    if _cls in _sample_class_tokens(_r)
-                ]
-                _meta = _consensus_meta(_arms, meta_cols) if _arms else dict(_blank)
-                # Study-origin values belong to the deposit, not to an arm, so
-                # they hold even when the statement named no arm of this class.
-                for _col in _study_level:
-                    if _meta.get(_col):
-                        continue
-                    _values = {str(_r.get(_col, "") or "") for _, _r in _study_rows.iterrows()}
-                    if len(_values) == 1:
-                        _meta[_col] = next(iter(_values))
-                if _meta.get("effective_override_origin") not in ("study", ""):
-                    _meta["effective_override"] = ""
-                    _meta["effective_override_origin"] = ""
-                for _col in meta_cols:
-                    obs.loc[_idxs, _col] = _meta.get(_col, _blank[_col])
-                obs.loc[_idxs, "sample_attribution"] = "elution_conditions_excluded"
+            _meta = _statement_excluded_meta(
+                samples[samples["pmid"].astype(int) == _pmid], meta_cols
+            )
+            for _col in meta_cols:
+                obs.loc[_idxs, _col] = _meta.get(_col, _blank[_col])
+            _statement_vetoed.loc[_idxs] = True
 
     # 4) Class-pool fallback: for still-unmatched rows, fill sample_mhc
     #    with the union of all alleles from samples of the same class.
@@ -2461,11 +2517,17 @@ def generate_observations_table(
     # candidates") is what actually happened here.
     # ``.ne("")`` rather than ``.astype(str) != ""``: ``mhc`` is a declared
     # categorical and rebuilding its object array costs hundreds of MB here.
-    obs.loc[
-        obs["sample_attribution"].eq("elution_conditions_excluded")
-        & obs["sample_mhc_origin"].eq("class_pool"),
-        "sample_match_type",
-    ] = "pmid_class_pool"
+    # A statement-vetoed row reached no arm, so whatever its allele matched is
+    # an arm the deposit excludes: the candidates it reports are the class
+    # pool's, and both provenance columns have to say so. Keying the relabel on
+    # ``sample_mhc_origin == "class_pool"`` instead left a vetoed row in a
+    # study with no pool for its class reporting ``allele_match`` over nothing
+    # (#584 review 2). ``predict``'s ``!= "pmid_class_pool"`` guard exists to
+    # refuse exactly this shape, and the column's documented meaning
+    # ("class-based attribution ... union of class-matching candidates") is
+    # what actually happened here.
+    obs.loc[_statement_vetoed, "sample_match_type"] = "pmid_class_pool"
+    obs.loc[_statement_vetoed, "sample_mhc_origin"] = "class_pool"
 
     # --- Peptide-level allele evidence flag ---
     obs["has_peptide_level_allele"] = _compute_has_peptide_level_allele(

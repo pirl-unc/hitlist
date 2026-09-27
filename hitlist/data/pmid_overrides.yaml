@@ -6523,16 +6523,18 @@
         mhc_genotype_complete_loci: "HLA-A;HLA-B;HLA-C;HLA-DQA1;HLA-DQB1;HLA-DRB1"
         mhc_genotype_source: *mhc_source_33592498
         note: &ciita_class_ii_note_33592498 >
-          Peptides whose deposited statement names both the parental and the CIITA-treated
-          condition are attributed here, not left ambiguous between the two class-II arms:
+          This arm's HLA-II repertoire is the one the transduction produced. It also receives
+          the peptides whose deposited statement names both the parental and the CIITA-treated
+          condition, rather than leaving those ambiguous between the two class-II arms, because
           the paper establishes HLA-II presentation only after transduction ("While HROG02,
           HROG17, and RA cells express HLA-I, they do not express HLA-DR, HLA-DP, and HLA-DQ
-          molecules (supplemental Fig. S1)") and reads the parental class-II identifications
-          as background ("suggesting that a background level of potential contaminants
-          contributed to these identifications"). The parental co-detection is a property of
-          those peptides, recorded here; it is not evidence of parental presentation. Class I
-          is treated the other way round on the same statements, where both conditions really
-          do present.
+          molecules (supplemental Fig. S1)") and reads the parental class-II identifications as
+          background ("suggesting that a background level of potential contaminants contributed
+          to these identifications"). Co-detection in the parental sample is a property of those
+          particular peptides and is recoverable from their own assay_comments; it is not
+          evidence of parental presentation, and it says nothing about the rest of this arm's
+          peptides. Class I is treated the other way round on the same statements, where both
+          conditions really do present.
       - sample_label: "HROG17 CIITA-transduced (class II)"
         n_samples: 1
         condition: "CIITA transduction — HLA-II not naturally expressed in GBM"

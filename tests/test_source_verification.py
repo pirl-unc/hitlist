@@ -14,10 +14,7 @@ import pytest
 
 from hitlist.curation import load_pmid_overrides
 from hitlist.export import generate_ms_samples_table, generate_observations_table
-
-# IEDB's own wording, including its "HRGO02" spelling, kept in one place and
-# shared with the elution-conditions suite rather than transcribed twice.
-from tests.test_deposited_elution_conditions import GBM_STATEMENT
+from tests.deposited_statements import GBM_STATEMENT
 
 ATTRIBUTION_FIELDS = [
     "sample_label",
