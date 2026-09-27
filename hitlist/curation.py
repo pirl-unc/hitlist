@@ -51,7 +51,7 @@ from os.path import basename, dirname, join
 from types import MappingProxyType
 
 import pandas as pd
-from mhcgnomes import Species
+from mhcgnomes import Allele, Species
 
 from .cell_name_parser import parse_cell_name, registry_verdict
 from .conditions import CONDITION_FIELDS, validate_study_conditions
@@ -2235,8 +2235,15 @@ class SampleMhcCandidates:
 
 
 @lru_cache(maxsize=4096)
-def _mhc_field_spans(text: str) -> tuple:
-    """Consume complete MHC designations before genotype separators (#528, #537)."""
+def _mhc_field_scan(text: str) -> tuple[tuple, tuple[str, ...]]:
+    """Split a field into recognized MHC spans and the tokens left over.
+
+    One pass, two answers.  The leftovers used to be discarded inside the loop,
+    which made an unrecognized designation indistinguishable from an absent one:
+    ``"HLA-A*02:01 HLA-B*07:NEW"`` looked exactly like ``"HLA-A*02:01"`` to
+    every consumer.  A consumer deciding whether a candidate space is complete
+    has to see them (#574), so they are returned alongside rather than dropped.
+    """
     from mhcgnomes import Mutation
 
     # Haplotype designations carry species but are not individual molecules;
@@ -2244,18 +2251,23 @@ def _mhc_field_spans(text: str) -> tuple:
     kinds = _MHC_MOLECULE_TYPES | _MHC_SEROTYPE_TYPES | _MHC_IMPRECISE_TYPES | {"Haplotype"}
     text = text.strip()
     if not text:
-        return ()
+        return ((), ())
     if ";" in text:
-        return tuple(span for part in text.split(";") for span in _mhc_field_spans(part))
+        parts = [_mhc_field_scan(part) for part in text.split(";")]
+        return (
+            tuple(span for spans, _ in parts for span in spans),
+            tuple(token for _, leftover in parts for token in leftover),
+        )
     if Mutation.parse(text, raise_on_error=False) is not None:
         raise ValueError(f"Unassigned mutation in sample MHC field: {text!r}")
     whole = _cached_parse(text)
     if type(whole).__name__ in kinds:
-        return ((text, whole),)
+        return (((text, whole),), ())
 
     # Commas inside mutation lists are optional to mhcgnomes.
     tokens = [token for token in re.split(r"[\s,]+", text) if token]
     spans = []
+    unparsed: list[str] = []
     start = 0
     while start < len(tokens):
         if Mutation.parse(tokens[start], raise_on_error=False) is not None or re.search(
@@ -2271,9 +2283,16 @@ def _mhc_field_spans(text: str) -> tuple:
                 break
         else:
             # Preserve the existing treatment of unrecognized non-mutation
-            # labels; an unresolved modifier cannot fabricate a genotype.
+            # labels; an unresolved modifier cannot fabricate a genotype.  It
+            # is reported rather than silently forgotten.
+            unparsed.append(tokens[start])
             start += 1
-    return tuple(spans)
+    return (tuple(spans), tuple(unparsed))
+
+
+def _mhc_field_spans(text: str) -> tuple:
+    """Consume complete MHC designations before genotype separators (#528, #537)."""
+    return _mhc_field_scan(text)[0]
 
 
 def sample_mhc_candidates(mhc_field) -> SampleMhcCandidates:
@@ -2359,6 +2378,241 @@ def sample_mhc_candidates(mhc_field) -> SampleMhcCandidates:
         serotype_alleles=frozenset(serotype_alleles),
         imprecise=tuple(imprecise),
     )
+
+
+#: Expression annotations meaning the molecule never reaches the cell surface:
+#: ``N`` null, ``S`` secreted-only, ``C`` cytoplasm-only.  Such an allele cannot
+#: be the presenting molecule for an eluted peptide, so it is not a candidate at
+#: all.  ``L`` (low expression) and ``Q`` (questionable) *are* surface-expressed
+#: -- less of it, or less certainly -- so they stay candidates (#574).
+_NON_SURFACE_ANNOTATION_ATTRS = (
+    "annotation_null",
+    "annotation_secreted",
+    "annotation_cystosolic",  # mhcgnomes' spelling
+)
+
+
+@dataclass(frozen=True)
+class ClassIPredictionScope:
+    """How a reported class-I candidate list divides at a predictor boundary.
+
+    ``scorable`` and ``unscorable`` partition the class-I designations of one
+    ``mhc`` field that could present a peptide.  Keeping the second half rather
+    than dropping it is the point (#574): a best allele chosen from ``scorable``
+    alone is a claim about a candidate space a non-empty ``unscorable`` shows we
+    do not have, so :attr:`is_eligible` requires it to be empty.
+
+    A dataclass rather than a ``NamedTuple`` so an empty scope is not falsy:
+    ``if scope:`` on a tuple subclass would silently mean "has candidates",
+    which is not the question any caller here is asking.
+    """
+
+    scorable: tuple[str, ...] = ()
+    unscorable: tuple[str, ...] = ()
+
+    @property
+    def is_eligible(self) -> bool:
+        """True when there is something to score and nothing unaccounted for."""
+        return bool(self.scorable) and not self.unscorable
+
+
+#: ``mhc_class`` values for class-I molecules that do not present peptides:
+#: ``Ic`` is the MIC/stress-ligand family and ``Id`` the CD1/MR1 lineage, which
+#: present lipids and metabolites.  Like a null allele, one of these cannot be
+#: the answer for an eluted peptide, so it is dropped rather than counted
+#: against completeness (#574).
+_NON_PEPTIDE_CLASS_I = frozenset({"Ic", "Id"})
+
+#: A class designation that mhcgnomes silently absorbs into a preceding allele:
+#: ``parse("HLA-A*02:01 class I")`` returns just the allele, so the sentinel --
+#: which says untyped class-I material is present -- vanishes.  Detected on the
+#: raw span text instead (pirl-unc/mhcgnomes#200).
+_CLASS_SENTINEL_RE = re.compile(r"\bclass\s+(I{1,3}|[12])\b", re.IGNORECASE)
+
+
+def _swallowed_class_sentinel(token: str, parsed) -> str | None:
+    """A class sentinel inside ``token`` that ``parsed`` does not account for.
+
+    ``"HLA-A*02:01 HLA class I"`` splits into two spans and needs nothing here.
+    ``"HLA-A*02:01 class I"`` and ``"... MHC class I"`` do not: mhcgnomes parses
+    the whole string to one ``Allele`` and drops the sentinel, which would make
+    an incompletely typed sample look completely typed.
+    """
+    if type(parsed).__name__ == "MhcClass":
+        return None  # the sentinel is the span; it is already accounted for
+    match = _CLASS_SENTINEL_RE.search(token)
+    if match is None:
+        return None
+    numeral = match.group(1).upper().replace("1", "I").replace("2", "II")
+    return f"class {numeral}"
+
+
+def _scope_entry(parsed, token: str) -> tuple[str, bool] | None:
+    """One class-I candidate as ``(designation, scorable)``, or ``None`` to drop.
+
+    Three outcomes, and the difference between the last two is what keeps the
+    rule honest:
+
+    ``(name, True)``
+        A human classical class-I protein a backend can score.
+    ``(name, False)``
+        A class-I designation that could present the peptide but cannot be
+        scored -- a locus, a serotype, a class sentinel, a haplotype, a
+        class-Ib or non-human allele.  It counts against completeness.
+    ``None``
+        Not a candidate for presenting this peptide at all, so dropping it
+        leaves the remaining set complete: another class entirely, a molecule
+        that presents something other than peptides (``Ic``/``Id``), a
+        pseudogene product, or a non-surface expression variant.
+    """
+    kind = type(parsed).__name__
+    if kind in ("Haplotype", "Species"):
+        # Neither names a molecule, and both span the classes -- a haplotype
+        # carries class-I genes by definition and a bare species names none of
+        # them.  ``is_class1`` is False for both, which is why routing them
+        # through the class gate made this branch unreachable (#574).
+        return (parsed.to_string(), False)
+    if not parsed.is_class1:
+        return None
+    if getattr(parsed, "is_pseudogene", False):
+        return None  # HLA-H, HLA-V and friends make no protein
+    if getattr(parsed, "mhc_class", None) in _NON_PEPTIDE_CLASS_I:
+        return None  # CD1, MR1, MICA/MICB present lipids/metabolites, not peptides
+    if isinstance(parsed, Allele):
+        if any(getattr(parsed, attr) for attr in _NON_SURFACE_ANNOTATION_ATTRS):
+            return None
+        reported = resolve_allele_identity(parsed.to_string()) or parsed.to_string()
+        if not (
+            parsed.mhc_class == "Ia"
+            and parsed.num_allele_fields >= 2
+            and parsed.is_human
+            and not parsed.is_mutant
+        ):
+            return (reported, False)
+        return (_protein_identity(reported, parsed), True)
+    # A Gene, Serotype or class sentinel names no single protein.
+    name = parsed.to_string() if hasattr(parsed, "to_string") else token
+    return (normalize_allele(name) or name, False)
+
+
+def _protein_identity(reported: str, parsed) -> str:
+    """The two-field protein a scorable designation denotes.
+
+    A backend scores a protein, and its allele vocabulary is two-field: handing
+    netMHCpan the reported ``HLA-A*02:01:01:02L`` spells an allele it does not
+    know, and the caller's own identity check then rejects the reply it gets
+    back.  The extra fields are synonymous DNA differences and an expression
+    annotation, neither of which changes the binding groove, so the protein is
+    the two-field name.  Collapsing here also makes ``A*02:01`` and
+    ``A*02:01:01`` one candidate rather than two (#574).
+
+    The reported precision is not lost -- it stays in ``sample_mhc``, which
+    every result row carries.
+    """
+    allele = _cached_parse(reported)
+    if not isinstance(allele, Allele):
+        allele = parsed
+    return allele.restrict_allele_fields(2).copy(annotations=()).to_string()
+
+
+def class_i_prediction_scope(mhc_field) -> ClassIPredictionScope:
+    """Split a sample's reported class-I designations by what a backend can score.
+
+    The single place a reported MHC field becomes class-I predictor input, so
+    the eligibility rule is stated once and asked of the *parsed* designation
+    rather than re-derived from its string (#574).  It shares
+    :func:`sample_mhc_candidates`' parse, so a field is parsed once no matter
+    how many consumers ask.
+
+    A designation is ``scorable`` when it is an :class:`mhcgnomes.Allele` that
+    names one human classical class-I protein a binding predictor models:
+    classical class ``Ia`` (the predictors model no ``Ib`` molecule such as
+    ``HLA-E``), two or more allele fields (a one-field group such as ``HLA-B*27``
+    spans 100+ proteins with different motifs), human (this project wires the
+    human class-I models only), not a mutant, and not a pseudogene.  Three- and
+    four-field names stay scorable -- the extra fields refine the DNA sequence
+    or annotate expression level, not the protein's binding groove.
+
+    Everything else that could present a class-I peptide is ``unscorable``: a
+    ``Gene``, a serotype, a class sentinel, a class-Ib or non-human class-I
+    allele.  These are precisely the values :attr:`SampleMhcCandidates.exact`
+    and its sibling fields legitimately contain -- ``exact`` means *the source
+    named this outright*, not *this is one protein* -- and each one leaves the
+    class-I candidate space unresolved.
+
+    Two kinds of designation are excluded rather than counted against
+    completeness, because neither can be the presenting molecule:
+
+    - Anything that is not class I.  A class-II allele or pair, a class-II locus
+      such as ``BoLA-DR``, or a ``HLA class II`` sentinel is simply a different
+      candidate space and does not hold back a class-I prediction.
+    - A non-surface expression variant (``N``/``S``/``C``).  It reaches no cell
+      surface, so removing it leaves the remaining candidates complete.
+
+    Parameters
+    ----------
+    mhc_field
+        A curated ``ms_samples[].mhc`` or exported ``sample_mhc`` string, or
+        ``None``.  A string is required because the result is cached; callers
+        holding a list should join it as :func:`sample_mhc_candidates` does.
+
+    Returns
+    -------
+    ClassIPredictionScope
+        Both halves of the partition, each sorted and deduplicated.
+
+    Raises
+    ------
+    ValueError
+        The field carries a mutation label that cannot be assigned to a complete
+        molecule.  Propagated rather than caught: a mutant designation silently
+        read as its wild type would fabricate a restriction.
+
+    Examples
+    --------
+    >>> class_i_prediction_scope("HLA-A*02:01 HLA-B*07:02").is_eligible
+    True
+    >>> scope = class_i_prediction_scope("HLA-A2 HLA-B*07:02")
+    >>> scope.scorable, scope.unscorable, scope.is_eligible
+    (('HLA-B*07:02',), ('HLA-A2',), False)
+    >>> class_i_prediction_scope("HLA-A*02:01 HLA-DRB1*15:01").is_eligible
+    True
+
+    See Also
+    --------
+    sample_mhc_candidates : the precision classification this builds on.
+    """
+    if isinstance(mhc_field, (list, tuple)):
+        # YAML lets a curated ``mhc`` be a list, as :func:`sample_mhc_candidates`
+        # accepts.  Joined here rather than inside the cached worker, because a
+        # list is an unhashable cache key and would raise before the body ran.
+        mhc_field = " ".join(str(item) for item in mhc_field if item)
+    if not isinstance(mhc_field, str):
+        return ClassIPredictionScope()
+    return _class_i_prediction_scope(mhc_field)
+
+
+@lru_cache(maxsize=4096)
+def _class_i_prediction_scope(mhc_field: str) -> ClassIPredictionScope:
+    """Cached worker for :func:`class_i_prediction_scope`; string keys only."""
+    spans, unparsed = _mhc_field_scan(mhc_field)
+    scorable: set[str] = set()
+    unscorable: set[str] = set()
+    for token, parsed in spans:
+        entry = _scope_entry(parsed, token)
+        if entry is not None and entry[0]:
+            (scorable if entry[1] else unscorable).add(entry[0])
+        sentinel = _swallowed_class_sentinel(token, parsed)
+        if sentinel is not None and sentinel == "class I":
+            unscorable.add(sentinel)
+    # A token the parser could not classify may well name class-I material --
+    # a new allele name, a typo, a local label.  Beside class-I candidates it
+    # leaves the space unresolved; with no class-I material at all there is
+    # nothing for it to be incomplete against, and a bare "unknown" stays the
+    # quiet no-candidates case it has always been.
+    if unparsed and (scorable or unscorable):
+        unscorable.update(unparsed)
+    return ClassIPredictionScope(tuple(sorted(scorable)), tuple(sorted(unscorable)))
 
 
 def sample_mhc_metadata(sample: Mapping) -> dict[str, str]:
@@ -3447,6 +3701,7 @@ def _clear_curation_caches() -> None:
         _pmid_peptide_attributions,
         _peptide_typings_by_pmid,
         _peptide_alleles_by_pmid,
+        _class_i_prediction_scope,
         expand_allele_set,
         restriction_evidence_for_row,
         classify_ms_row,
