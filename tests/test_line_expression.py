@@ -1520,8 +1520,6 @@ def test_stale_index_rows_a_rebuild_would_drop_are_not_returned(tmp_path, monkey
 
 def test_stale_index_warns_once_and_is_left_on_disk(tmp_path, monkeypatch):
     """A read path warns, falls back, and writes nothing."""
-    import warnings
-
     from hitlist import downloads
     from hitlist import line_expression as le
 
