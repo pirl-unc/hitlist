@@ -56,6 +56,7 @@ def installed_depmap(tmp_path, monkeypatch):
     """Resolver tests opt into actual synthetic RNA rows, not registry promises."""
     from hitlist import downloads
     from hitlist.line_expression import _load_packaged_union, write_line_expression_index
+    from hitlist.parquet_io import concat_non_empty
 
     monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
     extra = pd.DataFrame(
@@ -70,7 +71,9 @@ def installed_depmap(tmp_path, monkeypatch):
             "log2_tpm": 1.0,
         }
     )
-    write_line_expression_index(pd.concat([_load_packaged_union(), extra], ignore_index=True))
+    write_line_expression_index(
+        concat_non_empty([_load_packaged_union(), extra], extra.columns, sort=False)
+    )
 
 
 def test_registry_covers_starter_lines():
@@ -1469,20 +1472,41 @@ def test_cli_export_training_with_peptide_origin_flag_threads_through(monkeypatc
 # ── Index staleness against the packaged inputs (#577) ─────────────────────
 
 
-def _index(path: Path, pairs: list[tuple[str, str]], *, stamp: dict | None = None) -> None:
-    """An index holding ``pairs``; ``stamp=None`` writes it as releases before #577 did."""
+def _index(path: Path, pairs, *, stamp=None, profiled: bool = True) -> None:
+    """An index holding ``pairs``, written as some earlier release would have.
+
+    ``stamp=None`` omits the stamp (every index before #577).  ``profiled``
+    shapes it like a post-#357 build — a ``profile_id`` column, ``PR-...`` on
+    transcript rows and empty on gene rows — and ``profiled=False`` like a
+    pre-#357 build, which had no such column at all.
+    """
     import json
 
     from hitlist.line_expression import INDEX_STAMP_METADATA_KEY
     from hitlist.parquet_io import atomic_write_parquet
 
     frame = pd.DataFrame(pairs, columns=["line_key", "source_id"])
+    frame["granularity"] = [
+        "transcript" if "transcript" in source else "gene" for source in frame.source_id
+    ]
+    frame["gene_name"] = "TP53"
+    frame["tpm"] = 1.0
+    if profiled:
+        frame["profile_id"] = [
+            "PR-1" if granularity == "transcript" else "" for granularity in frame.granularity
+        ]
     metadata = None if stamp is None else {INDEX_STAMP_METADATA_KEY: json.dumps(stamp).encode()}
     atomic_write_parquet(frame, path, metadata=metadata)
 
 
 def _stale_warnings(caught) -> list[str]:
     return [str(w.message) for w in caught if "Line expression index at" in str(w.message)]
+
+
+def _packaged_count(line_key: str) -> int:
+    from hitlist.line_expression import _load_packaged_union
+
+    return int(_load_packaged_union().line_key.eq(line_key).sum())
 
 
 @pytest.fixture
@@ -1515,13 +1539,12 @@ def test_packaged_rows_are_enriched_without_an_index(isolated_index):
     assert all(by_id[gid] == name for gid, name in zip(raw.gene_id[covered], mapped[covered]))
     assert set(rows.backend) == {"encode_rnaseq"}
     assert set(rows.parent_line_key) == {"GM12878"}
-    # A symbol only the map supplies is now reachable by gene_name.
     symbol = mapped[covered].iloc[0]
     assert not load_line_expression(line_key="GM12878", gene_name=symbol).empty
 
 
-def test_unstamped_index_is_not_used(isolated_index):
-    """The legacy case: a 1.62.x index kept HAP1 at tier 5 in a release packaging it."""
+def test_legacy_index_with_only_packaged_rows_says_nothing_is_lost(isolated_index):
+    """A 1.62.x index kept HAP1 at tier 5 in a release that packages its RNA."""
     _index(isolated_index, [("GM12878", "ENCODE_GM12878_polyA_rnaseq")])
 
     with warnings.catch_warnings(record=True) as caught:
@@ -1529,42 +1552,103 @@ def test_unstamped_index_is_not_used(isolated_index):
         anchor = resolve_sample_expression_anchor("HAP1 wildtype")
     assert anchor.expression_match_tier == 1
     (message,) = _stale_warnings(caught)
-    assert "no build stamp" in message
-    # It held nothing the packaged sources lack, so it must not talk about DepMap.
+    assert "predates index stamping" in message
     assert "which hold everything it contained" in message
-    assert "DepMap" not in message and "depmap" not in message
+    assert "depmap" not in message.lower()
+    assert "build_line_expression()" in message
 
 
-@pytest.mark.parametrize("registered", [True, False])
-def test_outdated_index_names_the_downloads_it_hides(isolated_index, monkeypatch, registered):
-    from hitlist import downloads
+def test_legacy_index_after_default_profiles_carries_its_downloads(isolated_index):
+    """Every pre-#577 index is unstamped; a DepMap user must not lose HeLa or K562.
 
-    monkeypatch.setattr(downloads, "depmap_bundle_is_registered", lambda: registered)
+    A post-#357 index records DepMap's default profile on transcript rows, so
+    its downloads meet the current builder's invariants and are carried —
+    except rows the registry no longer lists (HAP1 under the gene matrix) and
+    a transcript row with no profile.
+    """
     _index(
         isolated_index,
-        [("HeLa", "DepMap_24Q4_gene"), ("GM12878", "ENCODE_GM12878_polyA_rnaseq")],
+        [
+            ("HeLa", "DepMap_24Q4_gene"),
+            ("K562", "DepMap_24Q4_transcript"),
+            ("HAP1", "DepMap_24Q4_gene"),
+            ("GM12878", "ENCODE_GM12878_polyA_rnaseq"),
+        ],
     )
-
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
-        anchor = resolve_sample_expression_anchor("HeLa cells")
-    assert anchor.expression_match_tier == 5
+        hela = resolve_sample_expression_anchor("HeLa cells")
+        k562 = load_line_expression(line_key="K562", source_id="DepMap_24Q4_transcript")
+        hap1 = load_line_expression(line_key="HAP1")
+        gm12878 = load_line_expression(line_key="GM12878")
+    assert hela.expression_match_tier == 1
+    assert hela.source_ids == ("DepMap_24Q4_gene",)
+    assert k562.profile_id.tolist() == ["PR-1"]
+    assert k562.backend.tolist() == ["depmap_rna"]  # re-enriched from sources.yaml
+    assert set(hap1.source_id) == {"DepMap_24Q4_HAP1_gene"}
+    assert len(gm12878) == _packaged_count("GM12878")  # packaged rows come from this release
     (message,) = _stale_warnings(caught)
-    assert "downloaded rows for HeLa (DepMap_24Q4_gene) are not used" in message
-    assert "hitlist data fetch depmap" in message
-    if registered:
-        assert "without downloading them again" in message
-    else:
-        assert "download them again (about 4.7 GB)" in message
+    assert "plus its downloaded rows for HeLa, K562" in message
+    assert "HAP1 (DepMap_24Q4_gene), which the registry no longer lists" in message
+    assert "#357" not in message
+
+
+def test_legacy_transcript_rows_without_a_profile_are_dropped(isolated_index):
+    """A post-#357 builder always records the transcript profile it chose."""
+    from hitlist.parquet_io import atomic_write_parquet
+
+    atomic_write_parquet(
+        pd.DataFrame(
+            {
+                "line_key": ["K562", "K562"],
+                "source_id": ["DepMap_24Q4_transcript"] * 2,
+                "granularity": ["transcript"] * 2,
+                "transcript_id": ["ENST1", "ENST2"],
+                "tpm": [1.0, 2.0],
+                "profile_id": ["PR-1", ""],
+            }
+        ),
+        isolated_index,
+    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        rows = load_line_expression(line_key="K562")
+    assert rows.transcript_id.tolist() == ["ENST1"]
+
+
+@pytest.mark.parametrize(
+    ("missing", "hint"),
+    [
+        ([], "rebuilds it locally from the registered DepMap files, downloading nothing"),
+        (
+            ["OmicsProfiles.csv"],
+            "would first download only the missing OmicsProfiles.csv",
+        ),
+    ],
+)
+def test_legacy_index_from_before_default_profiles_is_dropped(
+    isolated_index, monkeypatch, missing, hint
+):
+    """A pre-#357 index has no profile provenance: its downloads may pool profiles."""
+    from hitlist import downloads
+
+    monkeypatch.setattr(downloads, "unregistered_depmap_files", lambda: missing)
+    _index(
+        isolated_index,
+        [("HeLa", "DepMap_24Q4_gene"), ("K562", "DepMap_24Q4_transcript")],
+        profiled=False,
+    )
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        assert resolve_sample_expression_anchor("HeLa cells").expression_match_tier == 5
+        assert load_line_expression(line_key="K562", source_id="DepMap_24Q4_transcript").empty
+    (message,) = _stale_warnings(caught)
+    assert "built before DepMap default-profile selection (#357)" in message
+    assert hint in message
 
 
 def test_changed_inputs_keep_registered_downloads_and_drop_the_rest(isolated_index):
-    """Same build version, other packaged inputs: keep what the registry still lists.
-
-    A 1.63-style index built with the bundle holds HAP1 under
-    ``DepMap_24Q4_gene``, which the current registry no longer lists for HAP1,
-    alongside HeLa and K562 rows a changed anchor file must not cost anyone.
-    """
+    """Same build version, other packaged inputs: keep what the registry still lists."""
     from hitlist.line_expression import LINE_EXPRESSION_BUILD_VERSION
 
     _index(
@@ -1580,22 +1664,41 @@ def test_changed_inputs_keep_registered_downloads_and_drop_the_rest(isolated_ind
             "build_version": LINE_EXPRESSION_BUILD_VERSION,
         },
     )
-
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
+        warnings.simplefilter("error", FutureWarning)  # the carry concat must be quiet
         hap1 = load_line_expression(line_key="HAP1")
         hela = resolve_sample_expression_anchor("HeLa cells")
         gm12878 = load_line_expression(line_key="GM12878")
         k562 = load_line_expression(line_key="K562", source_id="DepMap_24Q4_transcript")
     assert set(hap1.source_id) == {"DepMap_24Q4_HAP1_gene"}
     assert hela.expression_match_tier == 1
-    assert hela.source_ids == ("DepMap_24Q4_gene",)
     assert len(k562) == 1 and k562.backend.iloc[0] == "depmap_rna"
-    # Packaged sources come from this release, never twice.
-    assert len(gm12878) == 23716
+    assert len(gm12878) == _packaged_count("GM12878")
     (message,) = _stale_warnings(caught)
-    assert "plus the index's downloaded rows for HeLa, K562" in message
-    assert "leaving out its rows for HAP1 (DepMap_24Q4_gene)" in message
+    assert "was built from other packaged line-expression inputs" in message
+    assert "plus its downloaded rows for HeLa, K562" in message
+
+
+def test_carried_rows_are_read_once_per_index(isolated_index, monkeypatch):
+    """An export reads the index once per line; carrying must not multiply that."""
+    from hitlist import line_expression as le
+
+    _index(isolated_index, [("HeLa", "DepMap_24Q4_gene"), ("K562", "DepMap_24Q4_gene")])
+    full_reads = []
+    read = le._read_parquet_or_warn
+
+    def counting(path, columns=None):
+        if columns is None:
+            full_reads.append(path)
+        return read(path, columns=columns)
+
+    monkeypatch.setattr(le, "_read_parquet_or_warn", counting)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        for line in ("HeLa", "K562", "GM12878", "HAP1", "HeLa"):
+            le.load_line_expression(line_key=line)
+    assert len(full_reads) == 1
 
 
 def test_other_build_version_uses_packaged_rows_only(isolated_index):
@@ -1617,6 +1720,13 @@ def test_other_build_version_uses_packaged_rows_only(isolated_index):
         assert resolve_sample_expression_anchor("HeLa cells").expression_match_tier == 5
     (message,) = _stale_warnings(caught)
     assert f"index format {LINE_EXPRESSION_BUILD_VERSION + 1}" in message
+
+
+@pytest.mark.parametrize("stamp", [[1, 2], "a string", 7])
+def test_a_stamp_that_is_not_an_object_reads_as_unreadable(isolated_index, stamp):
+    _index(isolated_index, [("HeLa", "DepMap_24Q4_gene")], stamp=stamp)
+    with pytest.warns(RuntimeWarning, match="not a JSON object"):
+        assert resolve_sample_expression_anchor("HeLa cells").expression_match_tier == 5
 
 
 def test_stale_index_warns_once_and_is_left_on_disk(isolated_index):
@@ -1657,6 +1767,19 @@ def test_stamped_index_is_trusted_without_warning(isolated_index):
     assert le.line_expression_index_is_current()
 
 
+def test_the_writer_only_stamps_real_index_rows(isolated_index):
+    """Whatever carries this release's stamp is in the canonical row shape."""
+    from hitlist.line_expression import LINE_EXPRESSION_COLUMNS, write_line_expression_index
+
+    write_line_expression_index(
+        pd.DataFrame({"line_key": ["HeLa"], "source_id": ["DepMap_24Q4_gene"], "stray": [1]})
+    )
+    written = pd.read_parquet(isolated_index)
+    assert tuple(written.columns) == LINE_EXPRESSION_COLUMNS
+    assert written.backend.tolist() == ["depmap_rna"]
+    assert written.parent_line_key.tolist() == ["HeLa"]
+
+
 def test_builder_stamps_the_index_it_writes(isolated_index):
     from hitlist import line_expression as le
     from hitlist.builder import build_line_expression
@@ -1675,7 +1798,7 @@ def test_fingerprint_covers_every_packaged_build_input(tmp_path):
     from hitlist import line_expression as le
 
     paths = le._packaged_input_paths()
-    assert set(paths) == {
+    assert {
         "line_expression_anchors.yaml",
         "sources.yaml",
         "ensembl_gene_id_symbol.csv",
@@ -1683,7 +1806,7 @@ def test_fingerprint_covers_every_packaged_build_input(tmp_path):
         str(source["file"])
         for source in load_line_expression_sources()
         if source.get("build_status") == "packaged"
-    }
+    } <= set(paths)
     current = le.packaged_line_expression_fingerprint()
     assert le._fingerprint_of(paths) == current
     for name, path in sorted(paths.items()):
@@ -1692,3 +1815,21 @@ def test_fingerprint_covers_every_packaged_build_input(tmp_path):
         with open(edited, "ab") as stream:
             stream.write(b"\n")
         assert le._fingerprint_of({**paths, name: edited}) != current, name
+
+
+def test_fingerprint_follows_an_in_process_edit(tmp_path, monkeypatch):
+    """Cached per file identity, not per process: an edit re-hashes (#577 review)."""
+    import shutil
+
+    from hitlist import line_expression as le
+
+    copies = {}
+    for name, path in le._packaged_input_paths().items():
+        copies[name] = tmp_path / name
+        shutil.copyfile(path, copies[name])
+    monkeypatch.setattr(le, "_packaged_input_paths", lambda: dict(copies))
+    before = le.packaged_line_expression_fingerprint()
+    assert le.packaged_line_expression_fingerprint() == before
+    with open(copies["line_expression_anchors.yaml"], "ab") as stream:
+        stream.write(b"# edited in process\n")
+    assert le.packaged_line_expression_fingerprint() != before

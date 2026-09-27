@@ -20,7 +20,9 @@ from hitlist.conditions import (
     ARM_SPECIFIC_CONDITION_COLUMNS,
     CLOSED_CONDITION_VOCABULARIES,
     CONDITION_COLUMNS,
+    CONDITION_MHC_CONTEXT_VALUES,
     CONDITION_STATUS_VALUES,
+    ENGINEERED_MHC_CONTEXT_VALUES,
     INTERVENTION_CONDITION_COLUMNS,
     MULTI_VALUE_CONDITION_COLUMNS,
     NONE_PERMITTED_CONDITION_COLUMNS,
@@ -702,3 +704,8 @@ def test_mask_agrees_with_the_record_predicate():
         is_engineered_material(record) for record in records
     ]
     assert engineered_material_mask(frame).tolist() == [False, True, True, False]
+
+
+def test_engineered_mhc_contexts_are_declared_vocabulary():
+    """A token outside the vocabulary could never match a curated arm."""
+    assert set(ENGINEERED_MHC_CONTEXT_VALUES) <= set(CONDITION_MHC_CONTEXT_VALUES)

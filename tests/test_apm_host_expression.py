@@ -161,6 +161,51 @@ def test_curated_engineering_is_the_default(every_registered_source):
     assert forced.expression_match_tier == 1
 
 
+@pytest.mark.parametrize("pmid", [None, float("nan"), pd.NA])
+def test_missing_pmid_means_no_curated_lookup(every_registered_source, pmid):
+    """An exported frame's missing PMID must not raise; main ignored pmid entirely."""
+    anchor = resolve_sample_expression_anchor("HeLa cells", pmid=pmid)
+    assert anchor.expression_match_tier == 1
+
+
+def test_unresolved_arm_in_an_engineered_study_does_not_claim_exact_rna(
+    every_registered_source, monkeypatch
+):
+    """A row ``_consensus_meta`` could not assign to one arm is not known to be wild type.
+
+    HAP1's study has one wild-type arm and eleven knockouts, so an unattributed
+    row's blanked condition block means "unknown".  A study with no engineered
+    arms keeps its exact-line anchor for the same kind of row.
+    """
+    from hitlist.export import _attach_peptide_origin
+
+    monkeypatch.setattr(
+        "hitlist.mappings.load_peptide_mappings",
+        lambda peptide=None, columns=None, **_: pd.DataFrame(
+            columns=["peptide", "gene_name", "gene_id", "protein_id"]
+        ),
+    )
+    rows = pd.DataFrame(
+        {
+            "peptide": ["AAAAAAAAA", "CCCCCCCCC", "DDDDDDDDD"],
+            "sample_label": ["", "HAP1 wildtype", ""],
+            "pmid": [40113210, 40113210, 19748539],
+            "study_label": ["S", "S", "T"],
+            "cell_name": ["HAP1", "HAP1", "HeLa"],
+            "condition_knockout_genes": ["", "none", ""],
+        }
+    )
+    out = _attach_peptide_origin(rows).set_index("peptide")
+
+    unresolved = out.loc["AAAAAAAAA"]
+    assert unresolved.expression_match_tier == 2
+    assert unresolved.expression_parent_key == "HAP1"
+    assert out.loc["CCCCCCCCC"].expression_match_tier == 1  # the resolved wild-type arm
+    assert out.loc["DDDDDDDDD"].expression_match_tier == 1  # no engineered arms in 19748539
+    reason = resolve_sample_expression_anchor("", cell_name="HAP1", pmid=40113210).reason
+    assert "arm unresolved in a study that includes engineered arms" in reason
+
+
 def test_engineered_sample_never_resolves_at_tier_1(tmp_path, monkeypatch):
     """Not even through a derivative entry with RNA registered under it.
 

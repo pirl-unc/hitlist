@@ -2963,9 +2963,12 @@ def _attach_peptide_origin(
     df = df.copy()
     # Curated engineering decides tier 1 vs tier 2 (#576), and it joins the
     # grouping key rather than being read once per sample: two rows can share
-    # a ``sample_label`` and ``pmid`` while disagreeing about the arm — a row
-    # that reached no arm carries ``_consensus_meta``'s blank condition block
-    # — so the honest anchor differs between them.
+    # a ``sample_label`` and ``pmid`` while disagreeing about the arm, so the
+    # honest anchor differs between them.  A row whose block says engineered
+    # is engineered.  Otherwise the resolver asks curation (``engineered=None``)
+    # rather than trusting a blank block: a row that reached no arm carries
+    # ``_consensus_meta``'s blanked block, which in a study with engineered
+    # arms (HAP1's wild type + 11 knockouts) means "unknown", not "wild type".
     df[_ENGINEERED_MATERIAL_COLUMN] = engineered_material_mask(df)
     grouping_cols = [*sample_cols, *extra_resolver_cols, _ENGINEERED_MATERIAL_COLUMN]
     unique_samples = df[grouping_cols].drop_duplicates().reset_index(drop=True)
@@ -2976,7 +2979,7 @@ def _attach_peptide_origin(
             cell_name=str(s.get("cell_name") or "") or None,
             pmid=int(s["pmid"]) if "pmid" in s and pd.notna(s.get("pmid")) else None,
             study_label=str(s.get("study_label") or "") or None,
-            engineered=bool(s[_ENGINEERED_MATERIAL_COLUMN]),
+            engineered=True if s[_ENGINEERED_MATERIAL_COLUMN] else None,
             lineage_tissue=str(s.get("source_tissue") or "") or None,
             cancer_type_backend=cancer_type_backend,
         )

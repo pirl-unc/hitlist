@@ -1205,15 +1205,19 @@ def _depmap_file_is_registered(key: str) -> bool:
     return bool(registered.get("path")) and Path(registered["path"]).exists()
 
 
-def depmap_bundle_is_registered() -> bool:
-    """Whether ``hitlist data fetch depmap`` can rebuild without downloading.
+def unregistered_depmap_files() -> list[str]:
+    """File names ``hitlist data fetch depmap`` would download before rebuilding.
 
-    True when every file of the DepMap bundle is registered and still on
-    disk.  :func:`fetch` reuses exactly those and downloads only what is
-    missing, so this is the question a "rebuild your line-expression index"
-    message has to answer before recommending it.
+    :func:`fetch` reuses every bundle file that is registered and still on
+    disk and downloads only the rest, so an empty list means the command is a
+    purely local rebuild of the line-expression index.  Answering this per
+    file lets a "rebuild your index" message say exactly what a fetch costs.
     """
-    return all(_depmap_file_is_registered(key) for key in _DEPMAP_FILES)
+    return [
+        filename
+        for key, (_file_id, filename) in _DEPMAP_FILES.items()
+        if not _depmap_file_is_registered(key)
+    ]
 
 
 def fetch(name: str, force: bool = False) -> Path:

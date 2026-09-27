@@ -807,10 +807,10 @@ def test_attach_peptide_origin_passes_cell_name_and_tissue_to_resolver(tmp_path,
 def test_attach_peptide_origin_demotes_engineered_rows_to_parent_rna(tmp_path, monkeypatch):
     """Curated engineering reaches the resolver on the observations path (#576).
 
-    Two rows of one study share a ``sample_label`` and ``pmid``: an
-    unattributed row carrying ``_consensus_meta``'s blank condition block, and
-    the engineered arm. Parental RNA is the anchor for both, but only the
-    unattributed row may report it as exact-line evidence.
+    Two rows share a ``sample_label`` and ``pmid`` but not an engineering
+    block, so the flag has to be part of the anchor grouping key.  The label
+    names a curated parental arm (PMID 19748539 has no engineered arms), so a
+    blank block resolves as exact-line RNA and an engineered one does not.
     """
     import pandas as pd
 
@@ -832,8 +832,8 @@ def test_attach_peptide_origin_demotes_engineered_rows_to_parent_rna(tmp_path, m
     df = pd.DataFrame(
         {
             "peptide": ["AAAAAAAAA", "CCCCCCCCC"],
-            "sample_label": ["HeLa", "HeLa"],
-            "pmid": [36215666, 36215666],
+            "sample_label": ["HeLa naive (HLA-A*02:01)"] * 2,
+            "pmid": [19748539, 19748539],
             "study_label": ["S", "S"],
             "condition_transduction": ["", "CIITA"],
         }
