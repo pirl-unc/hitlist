@@ -19,6 +19,13 @@ allele by running a binding predictor against the sample's experimental
 MHC candidates. Independently reported cellular typing is preserved as
 metadata; excluded background alleles do not enter the prediction.
 
+Recovery needs a candidate space we actually have.  Two conditions gate it:
+the row must belong to an identified sample rather than a study-wide pool
+(#520, #563), and every class-I candidate that sample reported must name a
+protein a backend can score (#574).  Where either fails the reassignment
+abstains — no prediction and no best allele — because the best of a
+knowingly incomplete candidate set is not the best.
+
 The TLAKFSPYL example from our audit: IEDB class-only, sample contains
 A*02:01 and A*24:02 (among others).  MHCflurry gives A*02:01 a rank
 of 0.03 (strong binder) vs A*24:02 at 2.65 — the peptide is almost
@@ -33,13 +40,14 @@ Usage::
 from __future__ import annotations
 
 import subprocess
+import warnings
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import numpy as np
 import pandas as pd
 
-from .curation import MHC_TYPING_COLUMNS
+from .curation import MHC_TYPING_COLUMNS, class_i_prediction_scope
 
 #: The context a prediction belongs to.
 #:
@@ -63,19 +71,74 @@ _RESULT_COLUMNS = [
 ]
 
 
-def _class_i_alleles(mhc_field: str | None) -> list[str]:
-    """Human classical class-I candidates a class-I predictor can score.
+def _predictable_class_i_alleles(sample_mhc: str | None) -> list[str]:
+    """Class-I candidates to score for one sample, or none if it must abstain.
 
-    A filter over :func:`hitlist.export._sample_alleles`, which is the shared
-    precision-aware parser -- ``exact`` candidates only, pair components
-    expanded, restricted to the requested class -- rather than a third copy of
-    that parsing (#564). The one thing added is ``HLA-``: the class filter alone
-    keeps a mouse ``H2-K*b`` or a macaque ``Mamu-A*01``, and this function's
-    callers hand the result to MHCflurry's human class-I models.
+    The rule itself lives in :func:`hitlist.curation.class_i_prediction_scope`,
+    beside the parse it depends on; this is only the adapter that turns an
+    ineligible scope into "no candidates" for the row filter below.
     """
-    from .export import _sample_alleles
+    scope = class_i_prediction_scope(sample_mhc)
+    return list(scope.scorable) if scope.is_eligible else []
 
-    return [allele for allele in _sample_alleles(mhc_field or "", "I") if allele.startswith("HLA-")]
+
+def _abstention_reason(sample_mhc, max_alleles_per_sample: int) -> str:
+    """Why this candidate list yields no prediction, or ``""`` if it does.
+
+    Every reason is named.  A context that disappears for one of them looks
+    exactly like a study with no class-only peptides, which is the failure mode
+    the tally exists to prevent (#574).
+    """
+    scope = class_i_prediction_scope(sample_mhc)
+    if scope.is_eligible:
+        if len(scope.scorable) > max_alleles_per_sample:
+            return "more candidates than max_alleles_per_sample"
+        return ""
+    if scope.unscorable:
+        return "unresolved class-I candidates"
+    return "no class-I candidate that could present a peptide"
+
+
+def _warn_about_abstentions(target: pd.DataFrame, max_alleles_per_sample: int) -> None:
+    """Report contexts that reach the predictor boundary and get no prediction.
+
+    Counted after the peptide-length and allele-count filters, so the tally is
+    of contexts that would otherwise have been predicted -- counting before
+    them reported rows that were never candidates in the first place.  Both a
+    context count and an observation count are given: contexts are the unit of
+    the result, observations the unit of the input.
+    """
+    if target.empty:
+        return
+    reasons = target["sample_mhc"].map(
+        lambda field: _abstention_reason(field, max_alleles_per_sample)
+    )
+    skipped = target[reasons.ne("")]
+    if skipped.empty:
+        return
+    n_observations = len(skipped)
+    n_contexts = len(skipped[_CONTEXT_COLUMNS].drop_duplicates())
+    by_reason = reasons[reasons.ne("")].value_counts()
+    detail = "; ".join(
+        f"{reason} ({count:,} observations, e.g. "
+        f"{', '.join(sorted(_scope_designations(skipped, reasons, reason))[:4])})"
+        for reason, count in by_reason.items()
+    )
+    warnings.warn(
+        f"Reassignment abstained on {n_contexts:,} peptide/sample contexts "
+        f"({n_observations:,} observations): {detail} (#574)",
+        stacklevel=3,
+    )
+
+
+def _scope_designations(skipped: pd.DataFrame, reasons: pd.Series, reason: str) -> set[str]:
+    """Designations responsible for one abstention reason, for the message."""
+    fields = skipped.loc[reasons[reasons.eq(reason)].index, "sample_mhc"].unique()
+    names: set[str] = set()
+    for field in fields:
+        scope = class_i_prediction_scope(field)
+        names.update(scope.unscorable or scope.scorable or {str(field)})
+    return names
 
 
 def _predict_mhcflurry(pairs: pd.DataFrame) -> pd.DataFrame:
@@ -198,9 +261,12 @@ def reassign_class_only_alleles(
 
     Loads the observations table, restricts to rows where
     ``mhc_restriction`` is class-only ("HLA class I" / "HLA class II")
-    and a named sample has reported experimental candidates, runs the
+    and a named sample has reported experimental candidates that
+    :func:`class_i_prediction_scope` finds fully resolved, runs the
     requested predictor against those candidates, and returns the
-    best allele per peptide/sample context. Shared peptides retain a separate
+    best allele per peptide/sample context. A context whose candidates are
+    not all scorable is omitted entirely rather than scored on the
+    resolved subset (#574). Shared peptides retain a separate
     result for each PMID, sample label and typing context; predictions may be reused
     across samples, but the selected allele must belong to that sample.
 
@@ -257,11 +323,20 @@ def reassign_class_only_alleles(
     )
     target = df[class_only_mask & multi_mask & identified].copy()
     # The experiment's candidates remain the prediction scope. Independently
-    # reported cellular background alleles do not become peptide restrictions.
-    target["_alleles"] = target["sample_mhc"].map(_class_i_alleles)
-    target = target[target["_alleles"].map(len).between(1, max_alleles_per_sample)]
+    # reported cellular background alleles do not become peptide restrictions,
+    # and cannot resolve a scope the experiment left unresolved (#563).
+    #
+    # An identified sample is necessary but not sufficient: the guards above
+    # settle *whose* candidates these are, and this settles whether they name
+    # proteins to score.  Six one-field allele groups pass every check up to
+    # here and still describe no genotype a predictor can rank (#574).
     # Filter before the empty-input return; no predictor needs an empty batch.
     target = target[target["peptide"].str.len().between(8, 12)]
+    # Tally after the length filter and before the candidate filter, so it
+    # counts exactly the contexts that would otherwise have been predicted.
+    _warn_about_abstentions(target, max_alleles_per_sample)
+    target["_alleles"] = target["sample_mhc"].map(_predictable_class_i_alleles)
+    target = target[target["_alleles"].map(len).between(1, max_alleles_per_sample)]
     if target.empty:
         return pd.DataFrame(columns=_RESULT_COLUMNS)
 

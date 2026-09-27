@@ -4102,18 +4102,37 @@ def _query_mhc_class(target_allele: str = "", target_serotype: str = "") -> str:
 
 
 def _sample_alleles(sample_mhc: str, mhc_class: str = "") -> list[str]:
-    """Precisely named experimental MHC candidates, including selected restrictions.
+    """Molecule designations a sample's MHC field names outright, for one class.
 
-    Deliberately :attr:`~hitlist.curation.SampleMhcCandidates.exact` only.
-    The peptide summary uses this to decide whether a peptide matched a
-    *reported allele*, so expanding a serotype here would turn "this donor
-    is DR15" into the false claim "this peptide was seen on DRB1*15:01".
-    A serotype-typed sample is reported through
-    :func:`_sample_serotypes` instead, which is what the study measured.
-    A class-II pair contributes the full pair and both component chains;
-    those components are part of the reported molecule rather than a
-    serotype inference.  When ``mhc_class`` is supplied, alleles from the
-    other half of a mixed ``I+II`` genotype are excluded.
+    Module-private: every caller is in this file.  ``predict`` briefly imported
+    it, which is why it was public for one commit; it now asks
+    :func:`hitlist.curation.class_i_prediction_scope` instead, so there is no
+    cross-module contract left to document here (#574).
+
+    What callers in this module rely on:
+
+    - :attr:`~hitlist.curation.SampleMhcCandidates.exact` designations only, so
+      a serotype-typed sample never yields a named allele -- "this donor is
+      DR15" must not become "this peptide was seen on DRB1*15:01" (#380).  Ask
+      :func:`_sample_serotypes` for what such a study actually measured.
+    - A class-II pair contributes the pair token *and* both component chains,
+      which are part of the reported molecule rather than an inference.
+    - With ``mhc_class`` set, designations of the other class -- the other half
+      of a mixed ``I+II`` genotype -- are excluded.
+    - The result is sorted and deduplicated.
+
+    A returned value does not necessarily identify a single protein.  ``exact``
+    means *the source named this outright*, so a locus (``HLA-A``) or a
+    one-field allele group (``HLA-A*02``) is returned as-is; that is a faithful
+    record of the reported precision, not a defect.  A consumer needing
+    protein-level input applies its own rule --
+    :func:`hitlist.curation.class_i_prediction_scope` is the one this project
+    uses (#574).
+
+    Returns
+    -------
+    list[str]
+        Sorted designations; empty when the field named no molecule.
     """
     alleles = {
         component

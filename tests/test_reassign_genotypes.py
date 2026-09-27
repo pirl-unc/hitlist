@@ -121,6 +121,128 @@ def test_unidentified_study_pool_is_not_a_predictor_genotype(monkeypatch):
     assert not calls
 
 
+@pytest.mark.parametrize(
+    "pool,label",
+    [
+        # PMID 24616531's real curated typing: six loci, all one field.
+        ("HLA-A*01 HLA-A*03 HLA-B*07 HLA-B*27 HLA-C*02 HLA-C*07", "pure_one_field"),
+        # PMID 28188227 / 29393594 / 29632046: a single allele group.
+        ("HLA-B*27", "pure_single_group"),
+        # PMID 32938616: five named proteins plus one unresolved group.
+        ("HLA-A*02:01 HLA-A*03:01 HLA-B*40:02 HLA-B*47 HLA-C*03:04 HLA-C*06:02", "mixed"),
+        # A locus names no protein at all.
+        ("HLA-A HLA-B HLA-C", "gene_only"),
+        # #574 via a serotype: it reaches the boundary through
+        # `SampleMhcCandidates.serotypes`, so a rule reading only `exact`
+        # never saw it and scored the remaining allele anyway.
+        ("HLA-A2 HLA-B*07:02", "serotype_plus_allele"),
+        # ... and via a class sentinel, which arrives through `imprecise`.
+        ("HLA-A*02:01 HLA class I", "sentinel_plus_allele"),
+        # A class-Ib molecule is a real class-I presenting protein that no
+        # wired predictor models.
+        ("HLA-A*02:01 HLA-E*01:01", "class_ib_plus_allele"),
+    ],
+)
+def test_unresolved_candidate_pool_never_invokes_a_predictor(monkeypatch, pool, label):
+    """#574/#563: an identified sample is necessary but not sufficient.
+
+    Every row here carries a curated label and its own candidate list, so the
+    identity guards (#520) let it through -- and the pool still fits under
+    ``max_alleles_per_sample``, which is exactly #563's point that a count limit
+    does not make a pool biological.  Precision is the other half: none of these
+    candidate spaces is resolved to proteins, so no prediction may be attempted
+    and no best allele emitted.  The mixed row is the one that matters most --
+    dropping ``HLA-B*47`` and scoring the remaining five would return a
+    confident winner chosen from an incomplete genotype.
+    """
+    calls = _install_predictions(
+        monkeypatch, [_observation(1, label, pool)], dict.fromkeys(pool.split(), 0.1)
+    )
+    result = predict.reassign_class_only_alleles()
+    assert result.empty
+    assert "best_allele" in result
+    assert calls == []
+
+
+@pytest.mark.parametrize(
+    "pool,expected",
+    [
+        ("HLA-A*02:01 HLA-DRB1*15:01", "HLA-A*02:01"),
+        ("HLA-A*02:01 HLA-DR15", "HLA-A*02:01"),
+        ("HLA-A*02:01 BoLA-DR", "HLA-A*02:01"),
+        ("HLA-A*02:01 HLA class II", "HLA-A*02:01"),
+        # A non-surface allele is dropped, not counted against completeness.
+        ("HLA-A*02:01 HLA-A*24:02:01:02N", "HLA-A*02:01"),
+        ("HLA-A*02:01 HLA-B*44:02:01:02S", "HLA-A*02:01"),
+    ],
+)
+def test_other_class_and_non_surface_candidates_do_not_block_prediction(
+    monkeypatch, pool, expected
+):
+    """The other side of the rule, end to end.
+
+    Abstention must be narrow: an imprecise *class-II* designation, or a
+    molecule that never reaches the cell surface, leaves the class-I candidate
+    space complete and the prediction must still run.
+    """
+    calls = _install_predictions(monkeypatch, [_observation(1, "cell", pool)], {expected: 0.1})
+    result = predict.reassign_class_only_alleles()
+    assert len(result) == 1, pool
+    assert result.iloc[0]["best_allele"] == expected, pool
+    assert calls[0].allele.tolist() == [expected], pool
+
+
+def test_resolved_pool_of_the_same_shape_still_predicts(monkeypatch):
+    """The abstention above must be about precision, not about six candidates.
+
+    Same locus count and same allele-count limit as the pure one-field case,
+    typed to two fields: this one predicts.
+    """
+    pool = "HLA-A*01:01 HLA-A*03:01 HLA-B*07:02 HLA-B*27:05 HLA-C*02:02 HLA-C*07:01"
+    calls = _install_predictions(
+        monkeypatch, [_observation(1, "resolved", pool)], dict.fromkeys(pool.split(), 0.1)
+    )
+    result = predict.reassign_class_only_alleles()
+    assert len(result) == 1
+    assert result.iloc[0]["n_alleles_tested"] == 6
+    assert sorted(calls[0].allele) == sorted(pool.split())
+
+
+def test_cellular_typing_cannot_resolve_an_unresolved_experimental_pool(monkeypatch):
+    """#563: the two typings are different data and must not substitute.
+
+    ``mhc_genotype`` is independently sourced cellular typing (#520); the
+    experiment's own candidate list is the prediction scope.  A precise genotype
+    beside an unresolved ``sample_mhc`` must neither supply candidates nor make
+    the context eligible, or the reassignment would claim a restriction the
+    experiment never narrowed to.
+    """
+    row = {
+        **_observation(1, "cell", "HLA-B*27"),
+        "mhc_genotype": "HLA-A*02:01 HLA-B*27:05 HLA-C*07:01",
+        "mhc_genotype_cell": "donor cell line",
+        "mhc_genotype_source": "PMID 1, Cell Lines",
+    }
+    calls = _install_predictions(monkeypatch, [row], {"HLA-A*02:01": 0.1, "HLA-B*27:05": 0.01})
+    assert predict.reassign_class_only_alleles().empty
+    assert calls == []
+
+
+def test_imprecise_cellular_typing_does_not_block_a_resolved_experiment(monkeypatch):
+    """The separation holds in the other direction too (#563).
+
+    An unresolved ``mhc_genotype`` is not part of the candidate space, so it
+    cannot force the experiment's own resolved candidates to abstain; it is
+    carried through as metadata unchanged.
+    """
+    row = {**_observation(1, "cell", "HLA-B*27:05"), "mhc_genotype": "HLA-A HLA-B*27"}
+    calls = _install_predictions(monkeypatch, [row], {"HLA-B*27:05": 0.01})
+    result = predict.reassign_class_only_alleles().iloc[0]
+    assert calls[0].allele.tolist() == ["HLA-B*27:05"]
+    assert result.best_allele == "HLA-B*27:05"
+    assert result.mhc_genotype == "HLA-A HLA-B*27"
+
+
 def test_cellular_background_does_not_enter_selected_restriction_prediction(monkeypatch):
     row = {
         **_observation(31530632, "C1R", "HLA-B*40:02"),
@@ -293,3 +415,89 @@ def test_netmhcpan_rejects_a_result_for_a_different_allele(monkeypatch):
         predict._predict_netmhcpan(
             pd.DataFrame({"peptide": ["AAAAAAAAA"], "allele": ["HLA-A*02:01"]})
         )
+
+
+def test_netmhcpan_receives_the_protein_not_the_reported_spelling(monkeypatch):
+    """#574: a finer-than-two-field candidate must not reach netMHCpan as-is.
+
+    ``_netmhcpan_allele_arg`` only strips ``*``, so a reported
+    ``HLA-A*02:01:01:02L`` became ``HLA-A02:01:01:02L`` -- an allele netMHCpan
+    does not know. Either it exits non-zero (``check=True`` raises
+    ``CalledProcessError``) or it answers for a different allele and the
+    identity check raises ``RuntimeError``. Scoring the protein avoids both.
+    """
+    requested = []
+
+    def fake_run(args, **kwargs):
+        allele = args[args.index("-a") + 1]
+        requested.append(allele)
+        if allele != "HLA-A02:01":
+            raise AssertionError(f"netMHCpan cannot resolve {allele!r}")
+        tokens = ["x"] * 16
+        tokens[1], tokens[2], tokens[10], tokens[12], tokens[15] = (
+            "HLA-A02:01",
+            "AAAAAAAAA",
+            "PEPLIST",
+            "0.4",
+            "25.0",
+        )
+        return SimpleNamespace(stdout=" ".join(tokens))
+
+    monkeypatch.setattr(predict.subprocess, "run", fake_run)
+    monkeypatch.setattr(
+        "hitlist.export.generate_observations_table",
+        lambda **kw: pd.DataFrame([_observation(1, "cell", "HLA-A*02:01:01:02L")]),
+    )
+    result = predict.reassign_class_only_alleles(method="netmhcpan")
+    assert requested == ["HLA-A02:01"]
+    assert result.iloc[0]["best_allele"] == "HLA-A*02:01"
+    # The reported precision is not lost -- it is what the context carries.
+    assert result.iloc[0]["sample_mhc"] == "HLA-A*02:01:01:02L"
+
+
+@pytest.mark.parametrize(
+    "pool,fragment",
+    [
+        ("HLA-A*02:01 HLA-B*27", "unresolved class-I candidates"),
+        ("HLA-A*24:02:01:02N", "no class-I candidate that could present a peptide"),
+        (
+            "HLA-A*01:01 HLA-A*02:01 HLA-B*07:02 HLA-B*08:01 HLA-C*07:01 HLA-C*07:02 HLA-A*24:02",
+            "more candidates than max_alleles_per_sample",
+        ),
+    ],
+)
+def test_every_abstention_reason_is_reported(monkeypatch, pool, fragment):
+    """#574: no abstention may look like an absence.
+
+    Three different reasons remove a context from the result, and each one is
+    indistinguishable from "this study had no class-only peptides" unless it is
+    named.
+    """
+    calls = _install_predictions(monkeypatch, [_observation(1, "cell", pool)], {})
+    with pytest.warns(UserWarning, match=r"Reassignment abstained") as recorded:
+        result = predict.reassign_class_only_alleles()
+    assert result.empty
+    assert calls == []
+    message = str(recorded[0].message)
+    assert fragment in message, message
+    assert "1 peptide/sample contexts" in message
+
+
+def test_abstention_tally_counts_contexts_after_the_length_filter(monkeypatch):
+    """Counted after the filters that decide what would have been predicted.
+
+    The short peptide is never a prediction candidate, so including it in the
+    tally would overstate what was lost; the two scorable-but-unresolved rows
+    of one context are one context and two observations.
+    """
+    rows = [
+        _observation(1, "cell", "HLA-A*02:01 HLA-B*27", peptide="AAAAAAAAA"),
+        _observation(1, "cell", "HLA-A*02:01 HLA-B*27", peptide="CCCCCCCCC"),
+        _observation(1, "cell", "HLA-A*02:01 HLA-B*27", peptide="AAA"),
+    ]
+    _install_predictions(monkeypatch, rows, {})
+    with pytest.warns(UserWarning, match=r"Reassignment abstained") as recorded:
+        predict.reassign_class_only_alleles()
+    message = str(recorded[0].message)
+    assert "2 peptide/sample contexts" in message, message
+    assert "2 observations" in message, message
