@@ -35,9 +35,9 @@ jobs:
         run: ./lint.sh
 
   # ── Unit tier ─────────────────────────────────────────────────────
-  # Every supported Python, no corpus.  Integration-marked tests skip
-  # themselves here (tests/conftest.py checks `is_built()`), which is why
-  # the non-3.11 legs can run the whole suite unfiltered.
+  # Every supported Python, no corpus.  Integration-marked tests are
+  # excluded by marker on every leg, so a corpus-dependent test can only
+  # fail in the `integration` job below, where a corpus actually exists.
   unit:
     runs-on: ubuntu-latest
     # Slowest leg observed over six recent runs is 3.11 at ~15.5 min
@@ -90,7 +90,12 @@ jobs:
       - name: Run unit tests (no coverage)
         if: matrix.python-version != '3.11'
         run: |
-          pytest tests/ -n auto
+          # Same marker filter as the 3.11 leg above. These legs have no
+          # corpus, so an integration test that forgot to guard for one
+          # would fail here for a reason that has nothing to do with the
+          # Python version under test. Exclude them by marker rather than
+          # relying on each test to skip itself.
+          pytest tests/ -m "not integration" -n auto
 
   # ── Integration tier ──────────────────────────────────────────────
   # Its own runner, so its 15 GB peak does not share a VM with the unit
@@ -108,9 +113,13 @@ jobs:
   # provenance must fail before tests.
   integration:
     runs-on: ubuntu-latest
-    # Slowest integration phase observed over six recent runs is 8m43s;
-    # plus ~1.5 min of setup and, on a cache miss, ~1 min of corpus
-    # download, i.e. ~11.5 min worst case.  This is ~1.7x that.
+    # Slowest integration phase observed over six recent runs is 8m43s,
+    # plus ~1.5 min of setup.  Every one of those runs hit the corpus
+    # cache, so the miss path is sized separately: release-build.yml
+    # downloads the same 356 MB of release assets with no cache at all and
+    # verifies them in 3-5 s, and saving the 254 MB cache entry afterwards
+    # costs well under a minute.  Worst case is therefore ~11 min either
+    # way, and this cap is ~1.8x that.
     timeout-minutes: 20
 
     steps:
@@ -198,6 +207,12 @@ jobs:
   # inside a single job. Split across jobs, they accumulate the same way
   # through `coverage combine`, and Coveralls still receives exactly one
   # report for the commit.
+  #
+  # No `if:` on purpose.  If either tier fails or loses its runner this job
+  # is skipped and the commit gets no Coveralls report, which is what the
+  # single combined job did too (its upload was the last step, after both
+  # pytest phases).  Running it anyway would combine a partial set and
+  # report a coverage *drop* caused by the failure, not by the diff.
   coverage:
     needs: [unit, integration]
     runs-on: ubuntu-latest
