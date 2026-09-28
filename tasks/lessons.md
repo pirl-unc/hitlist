@@ -2,6 +2,12 @@
 
 ## 2026-09-28
 
+- Keep closing keywords out of incidental cross-references. Writing "memory
+  fix #610" in #609's description made GitHub close the still-unmerged memory
+  PR when #609 merged. Use "memory PR #610" or "Refs #610" unless automatic
+  closure is intentional, and inspect the closing event's `closer` before
+  attributing an unexpected closure to a person.
+
 - Closing a memory investigation does not close the memory problem. Report
   correctness, runtime, live allocation and Linux peak RSS separately; do not
   call a difference smaller than measured run-to-run variation a reduction.

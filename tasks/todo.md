@@ -25,8 +25,8 @@ diagnostic only, never substituted for the Linux outcome. If this hypothesis
 fails, record the measured reason and re-plan before broadening the change.
 
 - [x] Review previous measurements and identify retained join-frame hypothesis.
-- [ ] Measure distinct buffers retained by local frames on the full corpus.
-- [ ] Implement the smallest ownership/lifetime fix and verify output equivalence.
+- [x] Measure distinct buffers retained by local frames on the full corpus.
+- [x] Implement the smallest ownership/lifetime fix and verify output equivalence.
 - [ ] Run required checks and paired Linux measurements beyond observed noise.
 - [ ] Bump version, open PR, verify current-head CI, merge and deploy from clean main.
 - [ ] Record review and triage next relevant work.
@@ -38,11 +38,33 @@ Local capacity re-plan: the shared machine fell below 0.3 GiB free. Clean-main
 clean-main Release build workflow now runs the full format/lint/test/build gate
 for cache release a6b5704. The duplicate local unit run was stopped after 1,245
 passes and is explicitly not a full-suite pass. The corpus probe's unchanged
-5 GiB preflight also waits. Move the exact full-output comparison to a temporary
-CI workflow on this PR: same dependencies and verified corpus, pinned baseline
-3dcee2d and candidate in separate Python processes, including hashes, dtypes,
-index, categorical dictionaries/order. Remove the temporary workflow after its
-artifact and successful run are recorded; keep the production fix minimal.
+5 GiB preflight initially waited. A temporary CI comparison was prepared, but
+the local budget recovered and the queued probes completed first; remove that
+unused workflow and retain the two-line production fix.
+
+Full-corpus comparison: all 4,398,040 rows and 125 columns have equal value hashes,
+dtypes, column/index order and categorical dictionaries/order. The two staging
+frames hold 2,191,330,805 and 1,814,481,686 distinct Arrow bytes absent from `obs`
+at the pre-categorical checkpoint: 4,005,812,491 bytes of obsolete buffers. The
+candidate releases those references. This local ownership measurement diagnoses
+the mechanism; the Linux process peaks below establish the practical result.
+
+| Full integration run | Baseline peak RSS (kB) | Candidate peak RSS (kB) |
+| --- | ---: | ---: |
+| first | 15,212,300 | 12,976,868 |
+| repeat | 15,162,020 | 13,280,028 |
+| mean | 15,187,160 | 13,128,448 |
+
+Mean peak RSS falls 2,058,712 kB (13.56%). All four runs pass the same 45 corpus
+tests with identical dependency versions. Candidate spread is 303,160 kB;
+the worst candidate is still 1,881,992 kB below the best baseline. Both candidate
+revisions have identical export.py content; the repeat includes the cache fix.
+All Python 3.9/3.10/3.11/3.12 unit CI gates and combined coverage also pass on
+31a759e. Final-head checks and both PyPI publications remain required.
+
+Metadata correction: #609's incidental phrase "memory fix #610" automatically
+closed #610 on merge. GitHub's ClosedEvent.closer identifies PR #609. Correct the
+reference to "memory PR #610" and reopen #610; this was not a user cancellation.
 
 The small lifetime regression fails on d470c7f: both completed full-length joins
 are still alive when final derived annotations run. Releasing each temporary
