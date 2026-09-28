@@ -1,0 +1,89 @@
+name: Export parity probe
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/export-parity-probe.yml
+
+permissions:
+  contents: read
+
+jobs:
+  parity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install one dependency environment
+        run: pip install -e '.[dev]'
+      - name: Provision the same corpus memory capacity as integration CI
+        run: |
+          swap_path="$RUNNER_TEMP/hitlist-parity.swap"
+          sudo fallocate -l 8G "$swap_path"
+          sudo chmod 600 "$swap_path"
+          sudo mkswap "$swap_path"
+          sudo swapon "$swap_path"
+          free -h
+      - name: Download and verify the pinned corpus
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          corpus_dir="$RUNNER_TEMP/hitlist-parity-corpus"
+          mkdir -p "$corpus_dir"
+          gh release download ci-corpus-v2 --repo pirl-unc/hitlist \
+            --pattern '*.parquet' --pattern observations_meta.json --dir "$corpus_dir"
+          python scripts/ci_corpus.py verify "$corpus_dir"
+          echo "HITLIST_DATA_DIR=$corpus_dir" >> "$GITHUB_ENV"
+      - name: Compare every column, dtype, category dictionary and index
+        run: |
+          baseline_dir="$RUNNER_TEMP/hitlist-baseline"
+          git worktree add --detach "$baseline_dir" 3dcee2d930ebdd0f3df6c9a975e631c73d5ae567
+          cat > "$RUNNER_TEMP/export_digest.py" <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+          import subprocess
+          import sys
+          import time
+
+          root = Path(sys.argv[1]).resolve()
+          sys.path.insert(0, str(root))
+          import hitlist
+          from hitlist.export import generate_observations_table
+          import pandas as pd
+          import pyarrow as pa
+
+          assert Path(hitlist.__file__).resolve().parent.parent == root
+          commit = subprocess.check_output(['git', '-C', str(root), 'rev-parse', 'HEAD'], text=True).strip()
+          print(json.dumps({'root': str(root), 'commit': commit, 'version': hitlist.__version__, 'pandas': pd.__version__, 'pyarrow': pa.__version__}), flush=True)
+          start = time.monotonic()
+          frame = generate_observations_table()
+          print(json.dumps({'build_seconds': time.monotonic() - start, 'shape': list(frame.shape), 'arrow_peak_bytes': pa.default_memory_pool().max_memory()}), flush=True)
+          digest = {'shape': list(frame.shape), 'columns': list(frame.columns), 'cols': {}}
+          for name in frame.columns:
+              series = frame[name]
+              entry = {'dtype': str(series.dtype), 'hash': hashlib.sha256(pd.util.hash_pandas_object(series, index=False).to_numpy().tobytes()).hexdigest()}
+              if isinstance(series.dtype, pd.CategoricalDtype):
+                  entry.update(categories=series.cat.categories.tolist(), ordered=series.cat.ordered)
+              digest['cols'][name] = entry
+          digest['index'] = hashlib.sha256(pd.util.hash_pandas_object(pd.Series(frame.index), index=False).to_numpy().tobytes()).hexdigest()
+          Path(sys.argv[2]).write_text(json.dumps(digest, indent=2, sort_keys=True))
+          print('OK:', sys.argv[2], flush=True)
+          PY
+          mkdir -p parity-results
+          /usr/bin/time -v python "$RUNNER_TEMP/export_digest.py" "$baseline_dir" parity-results/baseline.json
+          /usr/bin/time -v python "$RUNNER_TEMP/export_digest.py" "$GITHUB_WORKSPACE" parity-results/candidate.json
+          cmp parity-results/baseline.json parity-results/candidate.json
+          echo 'All columns, dtypes, category dictionaries/order, shape and index match.'
+      - uses: actions/upload-artifact@v7
+        with:
+          name: export-parity-${{ github.sha }}
+          path: parity-results
+          if-no-files-found: error
+          retention-days: 7

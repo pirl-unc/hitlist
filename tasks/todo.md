@@ -33,6 +33,17 @@ fails, record the measured reason and re-plan before broadening the change.
 
 ## Review
 
+Local capacity re-plan: the shared machine fell below 0.3 GiB free. Clean-main
+`./deploy.sh` refused both memory preflights (0.28 then 0.17 GiB); the existing
+clean-main Release build workflow now runs the full format/lint/test/build gate
+for cache release a6b5704. The duplicate local unit run was stopped after 1,245
+passes and is explicitly not a full-suite pass. The corpus probe's unchanged
+5 GiB preflight also waits. Move the exact full-output comparison to a temporary
+CI workflow on this PR: same dependencies and verified corpus, pinned baseline
+3dcee2d and candidate in separate Python processes, including hashes, dtypes,
+index, categorical dictionaries/order. Remove the temporary workflow after its
+artifact and successful run are recorded; keep the production fix minimal.
+
 The small lifetime regression fails on d470c7f: both completed full-length joins
 are still alive when final derived annotations run. Releasing each temporary
 immediately after column assignment fixes that failure; all 11 targeted tests
