@@ -30,6 +30,7 @@ from __future__ import annotations
 import re
 from typing import NamedTuple
 
+import numpy as np
 import pandas as pd
 
 from .conditions import (
@@ -305,6 +306,31 @@ def _fillna_scalar_safe(series: pd.Series, value) -> pd.Series:
     if isinstance(series.dtype, pd.CategoricalDtype) and value not in series.cat.categories:
         series = series.cat.add_categories([value])
     return series.fillna(value)
+
+
+def _fillna_series_safe(primary: pd.Series, fallback: pd.Series) -> pd.Series:
+    """``primary.fillna(fallback)`` that tolerates Categorical dtype on either side.
+
+    ``Series.fillna(Series)`` between two Categoricals demands *identical*
+    category sets and raises ``TypeError: Cannot set a Categorical with another,
+    without identical categories`` otherwise.  The block-wise
+    ``DataFrame.fillna(DataFrame)`` that the per-column coalesce replaced (#566)
+    upcast instead and succeeded, so casting either side out of ``category``
+    first is what keeps the two forms equivalent -- the same move
+    :func:`_fillna_safe_for_categoricals` makes for the scalar-fill idiom.
+
+    Unreachable from ``generate_ms_samples_table()`` today, which hands the join
+    no categorical columns, so on the current corpus both branches are no-ops.
+    It is not unreachable in principle: ``_CATEGORICAL_EXPORT_METADATA_COLS``
+    already names ``condition_id``, ``mhc``, ``perturbation`` and ``note``, and
+    a column narrowed there beside a ``_fb`` shadow narrowed to the *subset* of
+    values the single-sample studies use is precisely the mismatched pair.
+    """
+    if isinstance(primary.dtype, pd.CategoricalDtype):
+        primary = primary.astype("string")
+    if isinstance(fallback.dtype, pd.CategoricalDtype):
+        fallback = fallback.astype("string")
+    return primary.fillna(fallback)
 
 
 def _fillna_safe_for_categoricals(df: pd.DataFrame, value: str = "") -> pd.DataFrame:
@@ -849,6 +875,33 @@ def _consensus_meta(
     return out
 
 
+#: Distinguishes "the winner dict has no such key" from "it has the key and its
+#: value is None/NaN", which ``dict.get(col)`` alone conflates.  The #245
+#: semantics turn on exactly that difference.
+_ABSENT = object()
+
+
+def _winner_positions(
+    obs: pd.DataFrame,
+    mask: pd.Series,
+    tiebreak_cols: list[str],
+    winners: dict[tuple, dict],
+) -> np.ndarray:
+    """Position in ``winners`` for each row of ``obs[mask]``; ``-1`` where none.
+
+    This is the lookup ``DataFrame.reindex`` performs internally for a unique
+    index -- ``winners``' keys are unique by construction -- without
+    materializing the reindexed frames.  The two multi-row-count indexes it
+    builds are scoped to this function so they are released on return rather
+    than living for the whole of :func:`apply_winners_vectorized`.
+    """
+    winner_index = pd.MultiIndex.from_tuples(list(winners), names=tiebreak_cols)
+    # Categorical-safe fillna so missing entries don't blow up index construction.
+    sub = _fillna_safe_for_categoricals(obs.loc[mask, tiebreak_cols])
+    sub_idx = pd.MultiIndex.from_arrays([sub[c] for c in tiebreak_cols], names=tiebreak_cols)
+    return winner_index.get_indexer(sub_idx)
+
+
 def apply_winners_vectorized(
     obs: pd.DataFrame,
     mask: pd.Series,
@@ -882,48 +935,51 @@ def apply_winners_vectorized(
 
     Rows whose key is not in ``winners`` are likewise preserved.
 
-    The strict-equivalence guarantee requires a parallel **presence**
-    DataFrame alongside the values — ``~pd.isna(matched[col])`` would
+    The strict-equivalence guarantee requires tracking **presence**
+    separately from the values — ``~pd.isna(joined[col])`` would
     conflate "key absent" with "key present, value is NaN" and silently
     skip the latter.  See PR #245 review.
 
-    Replaces ~13M Python-level ``obs.at`` lookups with two vectorized
-    ``MultiIndex.reindex`` calls (values + presence) per invocation.
+    Replaces ~13M Python-level ``obs.at`` lookups with one vectorized
+    ``MultiIndex.get_indexer`` over the rows.  The per-column loops below are
+    over ``winners`` (~800 entries), not over rows.
+
+    Memory shape (#566): the values and the presence flags are held on the
+    ``winners`` side, at one row per winner, and joined to the masked rows
+    through a single array of integer *positions*.  Reindexing them onto the
+    masked rows instead — one ``len(obs[mask]) x len(meta_cols)`` object frame
+    of values plus a parallel bool frame — was the join's second-largest
+    transient on the 4.4M-row corpus: 1.94 GB for the values frame, 1.27 GB of
+    per-column ``to_numpy`` copies off it and 0.90 GB for the key frame, all to
+    carry the same information as one 35 MB ``int64`` array.
+
+    Correctness note (#602): the two-frame form also had to overwrite the
+    presence frame's index with the values frame's, and
+    ``DataFrame.from_dict(orient="index")`` **reorders** its index when the
+    winner dicts have heterogeneous key sets — it groups rows by key-set
+    signature.  The two frames then disagreed about which winner each row
+    belonged to, and a row could be handed the presence flags of an unrelated
+    winner, writing ``NaN`` over a value the contract says to preserve.  Both
+    real call sites pass heterogeneous key sets (``_consensus_meta`` carries
+    keys ``_select_best_candidate`` does not), so the precondition is live;
+    the reordering happens not to trigger on the current corpus, which is why
+    this rewrite leaves the export byte-identical.  Positions cannot desync
+    because there is only one of them.  See
+    ``test_heterogeneous_winner_key_sets_do_not_misalign_presence``.
     """
     if not winners:
         return
 
-    # Values DataFrame keyed by tiebreak tuple.  NaN-fill any meta_col
-    # that no winner dict carried (so the column exists for the reindex
-    # below; presence_df below tracks which entries are real).
-    winners_df = pd.DataFrame.from_dict(winners, orient="index")
-    for col in meta_cols:
-        if col not in winners_df.columns:
-            winners_df[col] = pd.NA
-    winners_df = winners_df[meta_cols]
-    winners_df.index = pd.MultiIndex.from_tuples(winners_df.index, names=tiebreak_cols)
-
-    # Per-(key, col) presence.  ``True`` iff that winner dict had ``col``
-    # as an explicit key.  Distinguishes "winner had col=NaN" (write
-    # NaN through) from "winner didn't carry col at all" (keep obs).
-    presence_df = pd.DataFrame.from_dict(
-        {k: {col: col in v for col in meta_cols} for k, v in winners.items()},
-        orient="index",
-    )
-    presence_df = presence_df[meta_cols]
-    presence_df.index = winners_df.index
-
-    # Build the join key from obs[mask].  Categorical-safe fillna so
-    # missing entries don't blow up index construction.
-    sub = _fillna_safe_for_categoricals(obs.loc[mask, tiebreak_cols])
-    sub_idx = pd.MultiIndex.from_arrays([sub[c] for c in tiebreak_cols], names=tiebreak_cols)
-
-    matched_vals = winners_df.reindex(sub_idx)
-    # ``fill_value=False`` for unmatched keys: those rows get presence=False
-    # for every col → preserved.
-    matched_pres = presence_df.reindex(sub_idx, fill_value=False)
-    matched_vals.index = sub.index
-    matched_pres.index = sub.index
+    positions = _winner_positions(obs, mask, tiebreak_cols, winners)
+    if not (positions >= 0).any():
+        return
+    winner_dicts = list(winners.values())
+    # ``get_indexer`` returns -1 for an unmatched row and NumPy resolves -1 to
+    # the last element, so one sentinel slot at the end of each per-winner
+    # array makes unmatched rows gather "absent" without a separate mask: the
+    # whole column becomes one take instead of a ``matched.copy()`` plus two
+    # fancy-index passes per meta col.
+    sentinel = len(winner_dicts)
 
     # Per-col fill at NumPy level: copy current obs values for the masked
     # slice, overwrite at positions where the winner had ``col``
@@ -933,12 +989,28 @@ def apply_winners_vectorized(
     # ``.where()`` triggers on bool / numeric meta_cols when the
     # intermediate falls through object dtype).
     for col in meta_cols:
-        present_arr = matched_pres[col].to_numpy().astype(bool, copy=False)
+        # Presence is a fact about the winner dict, not about the row: ``True``
+        # iff that dict had ``col`` as an explicit key.  Distinguishes "winner
+        # had col=NaN" (write NaN through) from "winner didn't carry col at
+        # all" (keep obs), so it is tracked per winner rather than inferred
+        # from the joined value -- hence the ``_ABSENT`` sentinel rather than
+        # ``dict.get(col)``, which cannot tell a missing key from a null value.
+        values_by_winner = np.empty(sentinel + 1, dtype=object)
+        present_by_winner = np.zeros(sentinel + 1, dtype=bool)
+        any_present = False
+        for i, winner in enumerate(winner_dicts):
+            value = winner.get(col, _ABSENT)
+            if value is not _ABSENT:
+                values_by_winner[i] = value
+                present_by_winner[i] = True
+                any_present = True
+        if not any_present:
+            continue
+        present_arr = present_by_winner[positions]
         if not present_arr.any():
             continue
-        win_arr = matched_vals[col].to_numpy()
         cur_arr = obs.loc[mask, col].to_numpy().copy()
-        cur_arr[present_arr] = win_arr[present_arr]
+        cur_arr[present_arr] = values_by_winner[positions[present_arr]]
         obs.loc[mask, col] = cur_arr
 
 
@@ -1995,6 +2067,17 @@ def generate_observations_table(
             apply_winners_vectorized(obs, _ambig_mask, _tiebreak_cols, _winner_meta, meta_cols)
 
     # 3) Single-PMID fallback. Same pattern, single-level index on PMID.
+    #
+    # ``meta_cols`` is splatted together from three constants maintained in
+    # other modules, so a name landing in two of them would create one shadow
+    # column and have the coalesce below ``pop`` it twice — a ``KeyError``
+    # thrown from a loop 30 lines away from the cause.  Say it here instead.
+    if len(set(meta_cols)) != len(meta_cols):
+        duplicated = sorted({c for c in meta_cols if meta_cols.count(c) > 1})
+        raise ValueError(
+            "meta_cols must be unique; each entry gets exactly one '_fb' shadow "
+            f"column and the coalesce consumes it once. Duplicated: {duplicated}"
+        )
     fb_cols = [c + "_fb" for c in meta_cols]
     if not single_df.empty:
         single_lookup = single_df.set_index("_pmid_int")[fb_cols]
@@ -2007,23 +2090,36 @@ def generate_observations_table(
             obs[col] = pd.NA
 
     # Coalesce: allele match > single-PMID fallback > "" (or False for
-    # bool meta cols). Block-wise variants of fillna minimize the number
-    # of consolidation passes (#30).
+    # bool meta cols), one column at a time, consuming each ``_fb`` shadow
+    # with ``pop`` as it is read.
+    #
+    # #30 did this block-wise to cut consolidation passes, and on the 4.4M-row
+    # corpus that was the export's single largest allocation — 4.29 GB (#566,
+    # #572).  ``obs[str_meta_cols]`` and ``obs[str_fb_cols]`` each copy ~40
+    # object columns into a consolidated block, and the chained ``fillna``
+    # builds two more, so four 4.4M x 40 pointer blocks are live at once
+    # alongside both sets still on ``obs``.  Column-wise the transient is one
+    # 4.4M array, and popping the shadow returns its memory here rather than at
+    # the batched drop ~60% of the build later, so the ~40 dead object columns
+    # no longer ride through the class-pool, curated-label and statement
+    # stages.
     str_meta_cols = [c for c in meta_cols if c not in _BOOL_META_COLS]
     bool_meta_cols = [c for c in meta_cols if c in _BOOL_META_COLS]
 
-    if str_meta_cols:
-        str_fb_cols = [c + "_fb" for c in str_meta_cols]
-        primary = obs[str_meta_cols]
-        fallback = obs[str_fb_cols].rename(columns=dict(zip(str_fb_cols, str_meta_cols)))
-        obs[str_meta_cols] = primary.fillna(fallback).fillna("")
+    for col in str_meta_cols:
+        # Both fills go through the categorical-safe helpers: the block form
+        # this replaced upcast a Categorical/Categorical pair, where the
+        # column-wise ``Series.fillna(Series)`` would demand identical category
+        # sets and raise.
+        coalesced = _fillna_series_safe(obs[col], obs.pop(col + "_fb"))
+        obs[col] = _fillna_scalar_safe(coalesced, "")
 
     # Bool meta columns (e.g. apm_perturbed) need ``False`` not ``""`` —
     # otherwise pyarrow rejects the mixed bool/str column on parquet
     # write. Tiny loop (typically 1 column), per-col is fine.
     for col in bool_meta_cols:
-        bool_fb = col + "_fb"
-        obs[col] = obs[col].where(obs[col].notna(), obs[bool_fb])
+        bool_fb = obs.pop(col + "_fb")
+        obs[col] = obs[col].where(obs[col].notna(), bool_fb)
         obs[col] = obs[col].astype("boolean").fillna(False).astype(bool)
 
     # 3b) Class-pool tie-break: for obs rows whose mhc_restriction is a
@@ -2681,11 +2777,23 @@ def generate_observations_table(
     else:
         obs["is_engineered_mhc"] = False
 
-    # Single batched drop at the end — folds in the fb_cols that earlier
-    # versions dropped immediately after the coalesce loop. Pandas'
-    # ``drop`` call cost is dominated by block consolidation, so one
-    # bigger drop is cheaper than two smaller ones (#30).
-    obs.drop(columns=[*fb_cols, "_pmid_int", "_mhc_class_norm"], inplace=True)
+    # The ``_fb`` shadows are gone already: the coalesce above consumes each
+    # one with ``pop`` so ~40 object columns no longer ride from there to here
+    # just to be dropped (#566).  Only the two join keys are left.
+    obs.drop(columns=["_pmid_int", "_mhc_class_norm"], inplace=True)
+
+    # "No shadow reaches the export" used to be enforced by that single drop
+    # naming ``fb_cols``; the coalesce's ``pop`` calls now enforce it 48 times
+    # over, and a stage that adds a ``*_fb`` column after the coalesce -- the
+    # way ``single_df["sample_attribution_fb"]`` is set ad hoc above -- would
+    # ship it into observations.parquet with nothing to catch it.  Restore the
+    # chokepoint as a check.
+    shadows = [c for c in obs.columns if c.endswith("_fb")]
+    if shadows:
+        raise AssertionError(
+            "single-PMID fallback shadow columns must be consumed by the coalesce, "
+            f"not exported: {sorted(shadows)}"
+        )
     result = obs
 
     # --- Tighten dtypes: low-cardinality metadata → categorical (#263) ---

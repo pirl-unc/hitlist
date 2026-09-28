@@ -24,6 +24,14 @@ requires-python = ">=3.9"
 dependencies = [
     "pandas",
     "pyarrow",
+    # Imported directly by builder, export, predict and proteome — until #602
+    # only transitively present via pandas' own pin, which is a dependency we
+    # do not control and could narrow.  Everything we call (`np.searchsorted`,
+    # `np.frombuffer`, `np.unique`, `np.empty`/`zeros`/`full`, the fixed-width
+    # scalar types) has been stable since numpy 1.x, so the floor is set by our
+    # `requires-python = ">=3.9"` rather than by any feature: 1.22 is the
+    # oldest release whose wheels cover that whole range.
+    "numpy>=1.22",
     "PyYAML",
     "tqdm",
     # On-demand caching of large externalized data assets (#303) into the

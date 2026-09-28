@@ -6,6 +6,7 @@ from hitlist.export import (
     _classify_instrument,
     _extract_allele_strings,
     _fillna_scalar_safe,
+    _fillna_series_safe,
     generate_ms_observations_table,
     generate_ms_peptide_summary_table,
     generate_ms_samples_table,
@@ -69,6 +70,46 @@ def test_fillna_scalar_safe_non_categorical_passthrough():
     s = pd.Series(["a", None])
     out = _fillna_scalar_safe(s, "x")
     assert list(out) == ["a", "x"]
+
+
+def test_series_fillna_between_mismatched_categoricals_raises():
+    """Pin the pandas behaviour ``_fillna_series_safe`` exists to absorb.
+
+    This is the trap the export's per-column coalesce would hit if anyone
+    replaced the helper with a plain ``Series.fillna(Series)``: the block-wise
+    ``DataFrame.fillna(DataFrame)`` it replaced upcast such a pair and
+    succeeded, so the failure would look like a refactor that "kept the
+    semantics". If a future pandas stops raising here, the helper becomes
+    belt-and-braces rather than load-bearing and this test should say so.
+    """
+    primary = pd.Series(pd.Categorical(["x", None], categories=["", "x"]))
+    shadow = pd.Series(pd.Categorical([None, ""], categories=[""]))
+    with pytest.raises(TypeError, match="without identical categories"):
+        primary.fillna(shadow)
+
+
+def test_fillna_series_safe_tolerates_mismatched_categorical_shadow():
+    """A ``_fb`` shadow narrowed to a subset of the primary's categories.
+
+    ``generate_ms_samples_table()`` hands the join no categorical columns
+    today, so this pair is not currently produced -- but
+    ``_CATEGORICAL_EXPORT_METADATA_COLS`` already names ``condition_id``,
+    ``mhc``, ``perturbation`` and ``note``, and the loader handing these over
+    dictionary-encoded (#566's remaining direction) makes exactly this shape:
+    a primary carrying every arm's values beside a shadow carrying only the
+    single-sample studies'.
+    """
+    primary = pd.Series(pd.Categorical(["x", None, None], categories=["", "x"]))
+    shadow = pd.Series(pd.Categorical([None, "fb", None], categories=["fb"]))
+    out = _fillna_scalar_safe(_fillna_series_safe(primary, shadow), "")
+    assert list(out) == ["x", "fb", ""]
+
+
+def test_fillna_series_safe_non_categorical_matches_plain_fillna():
+    """The current corpus's path: both sides plain strings, helper is a no-op."""
+    primary = pd.Series(["x", None, None])
+    shadow = pd.Series([None, "fb", None])
+    assert list(_fillna_series_safe(primary, shadow)) == list(primary.fillna(shadow))
 
 
 def test_ms_samples_table_columns():
@@ -394,6 +435,21 @@ def test_generate_observations_monoallelic_filter(full_observations_df):
     assert len(df_multi) > 0, "Multi-allelic filter returned no rows"
     assert len(df_mono) < len(df_all), "Mono-allelic filter did not reduce row count"
     assert len(df_multi) < len(df_all), "Multi-allelic filter did not reduce row count"
+
+
+def test_export_ships_no_fallback_shadow_columns(full_observations_df):
+    """No ``*_fb`` column reaches the export (#566).
+
+    The single-PMID fallback writes one ``<col>_fb`` shadow per meta column
+    and the coalesce consumes each with ``pop``. That used to be guaranteed by
+    one ``drop`` naming ``fb_cols``; it is now 48 separate ``pop`` calls, and
+    ``single_df["sample_attribution_fb"]`` shows shadows also get set outside
+    the list comprehension that names them. A stage adding one after the
+    coalesce would ship it into observations.parquet, so assert the invariant
+    on the built frame rather than trusting the call sites.
+    """
+    shadows = [c for c in full_observations_df.columns if c.endswith("_fb")]
+    assert shadows == []
 
 
 def test_generate_observations_provenance_columns(full_observations_df):
