@@ -1,3 +1,82 @@
+# Unmatched alleles and the #566 memory axis — 2026-09-28
+
+Two asks: explain the 1,057,558 `unmatched` rows (23.8% of the corpus), and
+find what dominates #566's 15.2 GB integration peak. Both answered; five
+releases shipped (1.63.7 -> 1.63.11).
+
+## The unmatched rows: a code defect, not the curation backlog
+
+87.6% (925,276 rows over 73 studies) are in *curated* PMIDs, so #33/#35/#36
+were never the cause. `classify_allele_resolution` counted allele fields --
+HLA's convention -- against species that name an allele by haplotype, so
+`H2-K*b` (one sequence, no finer form) was called truncated and
+`expand_allele_set` refused it. Zero of the 164,027 rows in that bucket were
+human. Validating the lone field against the species' haplotype roster
+recovered **163,973 observation rows and 15,376 binding rows** across 582
+PMIDs and 71,013 peptides; 84,498 of them sit in uncurated PMIDs, so no
+curation work could have reached them. Shipped in 1.63.10 (#597/#598).
+
+Concentration, for whoever takes the remainder: top 10 PMIDs are 68.0% of the
+unmatched mass, top 50 are 96.2%. Largest single deposit is PMID 29557506
+(206,497 rows).
+
+## #566: the peak is the frame's shape
+
+14.7 GB of live Arrow string buffers, peaking at the very end of the build
+immediately before the categorical tightening releases all but 0.29 GB. Of
+that, **3.28 GB is pure Arrow offsets** (8 bytes/row/column, ~100 string-ish
+columns, independent of content) against 5.4 GB of end-state live content.
+125 columns x 4.4M rows in one pandas frame is the cost, which is why every
+lever measured is worth 1-2 GB and none is worth 6.
+
+Four directions measured and rejected, all recorded on #566:
+- narrowing metadata columns *later* -- cannot help, the pages are touched
+- narrowing them *earlier* -- **+337 MB CI peak RSS** while cutting live bytes
+  1.3 GB (the #569 `astype` trap)
+- dictionary-encoded loading -- paired A/B measured **-10,856 kB, 0.11x the
+  job's own noise spread**
+- #603's two whole-frame copies -- real waste, but early in the build, so they
+  cannot move a peak that occurs at the end
+
+**Accepted: "fits in 16 GB with ~800 MB margin, monitored."** CI peak RSS is a
+stable instrument (98 MB spread over five runs), so drift shows in the job
+logs. If headroom is ever genuinely needed, a larger runner is the honest
+answer. The only structural alternative is not materializing the enriched
+table in one frame -- an export-design question that must not be smuggled in
+as a memory optimization.
+
+#602 still earned its merge: bit-identical output, 13% faster, and it fixes a
+latent misalignment bug (`from_dict(orient="index")` reorders against
+insertion-ordered presence rows when winner key sets are heterogeneous --
+689/3000 divergence on main, 0/3000 after). Both call sites pass heterogeneous
+key sets on today's corpus; the reordering just does not happen to trigger.
+
+## Released
+
+1.63.7 #586 · 1.63.8 batch notes · 1.63.9 #590 (a live indefinite hang:
+`fetch_file` inherited `timeout=None`, reintroducing #255/#402 on the newer
+datacache path) · 1.63.10 #597 · 1.63.11 #566 partial.
+
+## Open, with reasons
+
+- **#599** -- 270,743 rows refused *with a candidate pool already in hand*;
+  `expand_allele_set` returns `unmatched` before consulting `host_mhc_types`,
+  so `HLA-DR` gets nothing while `HLA class II` in the same study gets the
+  pool. Larger than what 1.63.10 fixed. Deferred because narrowing a
+  gene-level restriction against donor typing is a design decision about what
+  `mhc_restriction` may be rewritten to, carrying the #455 serotype hazard.
+- **#600** -- three HLA-only predicates (`_filter_alleles_by_class`,
+  `_parse_host_mhc_types`, `_flatten_hla_alleles`) plus the `donor_set`
+  short-circuit; fixing any without the others starts emitting unresolved
+  donor sets.
+- **#603** (row-selection copies), **#604** (Haplotype parses, 15,875 rows),
+  **#605** (13 `fillna("")`-on-categorical sites, four in `export.py`),
+  **#606** (non-roster single-molecule designations, 7 rows),
+  **#589** (downloads.py consolidation; ~254 of 1,796 lines are replaceable by
+  datacache, the other 77% is registry and domain logic that is not caching).
+- Upstream: mhcgnomes#201 (`H2-IEg7` dispatched to `Haplotype` while every
+  sibling parses as a `Pair`).
+
 # Batch review — 2026-09-26/27
 
 Asked to pick a path to "fixing all known problems" from 33 open issues and do
