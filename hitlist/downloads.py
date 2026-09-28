@@ -1315,22 +1315,28 @@ class _ExternalDataAssetsView:
 EXTERNAL_DATA_ASSETS = _ExternalDataAssetsView()
 
 
-def _sha256(path: Path) -> str:
-    import hashlib
-
-    h = hashlib.sha256()
-    with open(path, "rb") as f:
-        for chunk in iter(lambda: f.read(1 << 20), b""):
-            h.update(chunk)
-    return h.hexdigest()
-
-
 def fetch_data_asset(filename: str, *, force: bool = False, verbose: bool = True) -> Path:
     """Fetch a mirrored data asset into the datacache cache dir (#303).
 
     Uses ``datacache.fetch_file`` (openvax ecosystem cache; #291) so the file is
     stored under ``datacache.get_data_dir('hitlist')`` and reused across runs.
-    Verifies the sha256 and re-fetches once on mismatch (partial/corrupt cache).
+
+    Every guard is delegated rather than re-implemented (#590):
+
+    - ``timeout`` is :data:`_DOWNLOAD_SOCKET_TIMEOUT`, the same bound the
+      hand-rolled downloader has carried since #255/#402. Without it
+      ``fetch_file`` defaults to ``timeout=None`` and a stalled TCP connection
+      hangs with no wall-clock limit -- the exact failure those issues were
+      filed for, reintroduced on this newer path.
+    - ``expected_sha256`` validates the staged bytes *before* they are published
+      into the cache, and revalidates a cache hit without re-hashing the file
+      here. The previous hand-rolled loop published a corrupt file, noticed, and
+      re-fetched; it also re-hashed all 26 assets on every
+      :func:`fetch_all_data_assets` call. A mismatch now raises
+      ``datacache.FileValidationError`` naming the path and reason; ``force=True``
+      is the documented repair.
+    - ``show_progress`` reaches the assets that are never packaged and therefore
+      always downloaded (#341), where silence reads as a hang.
     """
     assets = _data_assets_registry()["assets"]
     if filename not in assets:
@@ -1340,19 +1346,17 @@ def fetch_data_asset(filename: str, *, force: bool = False, verbose: bool = True
     meta = assets[filename]
     if verbose:
         print(f"Fetching {filename} ({meta['source']}) via datacache...")
-    path = Path(datacache.fetch_file(meta["url"], filename=filename, subdir="hitlist", force=force))
-    if _sha256(path) != meta["sha256"]:
-        if verbose:
-            print(f"  checksum mismatch for {filename}; re-fetching...")
-        path = Path(
-            datacache.fetch_file(meta["url"], filename=filename, subdir="hitlist", force=True)
+    return Path(
+        datacache.fetch_file(
+            meta["url"],
+            filename=filename,
+            subdir="hitlist",
+            force=force,
+            timeout=_DOWNLOAD_SOCKET_TIMEOUT,
+            expected_sha256=meta["sha256"],
+            show_progress=verbose,
         )
-        if _sha256(path) != meta["sha256"]:
-            raise RuntimeError(
-                f"checksum mismatch for {filename} after re-fetch "
-                f"(expected {meta['sha256'][:12]}...); the data-assets release may have changed."
-            )
-    return path
+    )
 
 
 def fetch_all_data_assets(*, force: bool = False, verbose: bool = True) -> dict[str, Path]:

@@ -2,6 +2,57 @@
 
 ## 2026-09-27
 
+- A rule is only as good as the remedy it prescribes. Check what it tells
+  someone to do, not only what it catches.
+  Rule: one PR shipped this trap six times. (1) A sibling-agreement check
+  compared whole `condition_mhc_context` cells, so completing the `soluble_mhc`
+  annotation the same PR had just filed as #588 would have made
+  `load_pmid_overrides()` raise for the entire package. (2) Moved to the load
+  path, it rejected ordinary designs -- an untreated wild-type arm beside a
+  treated knockout -- because the engineering columns had left the material key,
+  so nothing distinguished the two lines. (3) Its finding text told curators to
+  write `none` into `condition_mhc_context`, the one engineering column
+  `NONE_PERMITTED_CONDITION_COLUMNS` excludes. (4) It also said "say so in
+  `sample_group`", which is all-or-none per study and rejects a one-to-one
+  group/arm mapping, so a two-arm study fails either way. (5)+(6) #593 and #588
+  kept prescribing superseded values in their *bodies* after the corrections
+  landed only in comments. Every instance passed its own tests, because tests
+  assert what a rule catches and say nothing about what it forbids. Two fixes:
+  run each prescribed remedy through the real loader in a committed test -- that
+  closed instances 1-4 as a class -- and re-ask the question of every issue and
+  PR body after any behaviour change, which is the half no test reaches.
+  A reader lands on the body, not on the correction below it.
+
+- Show a new test failing before you trust it, and put the guard where a
+  false positive costs the author rather than every consumer.
+  Rule: a build-smoke assertion added to prove "the build creates its own data
+  directory" passed with the entire fix reverted, because `register()` creates
+  that directory two lines earlier; the mutation proof reported for it cannot
+  have run. A partition test asserting `TREATMENT = INTERVENTION - ENGINEERING`
+  is disjoint from `ENGINEERING` was true by construction and could never fail.
+  A test that cannot be shown to fail is not evidence, and the check is cheap:
+  break the thing, watch the named test go red, restore. Placement is the same
+  judgement one level up -- a curation rule inside `load_pmid_overrides()` makes
+  the installed package unimportable for everyone on a false positive, to catch
+  an oversight worth one expression tier; the same rule as a `qc` audit plus a
+  corpus test fails CI for whoever makes the edit, who can adjudicate it. Prefer
+  the guard whose false positives land on the person able to judge them.
+
+- A signal about the work decays on someone else's action. Re-check its
+  subject before quoting it.
+  Rule: four shapes of the same failure in one batch, all of which look like
+  success. A CI monitor pinned to a commit kept reporting `unit (3.12): success`
+  after the tip moved -- twice by its author's own push, once because *I* pushed
+  a version bump onto its head, so "stop the monitors I superseded" is not
+  enough; ask the API what the tip is now. A regenerated baseline that ate a
+  newline was unparseable YAML, which is a file that looks like a ratchet. An
+  issue body still prescribing a value the data had moved past. And a diff whose
+  `-`/`+` pair was a block *moved* between jobs, which I read as a change and
+  reported as a regression that did not exist -- settled only by reading the
+  file at `origin/main`. Ask what a given green thing is asserting, and against
+  which version of the subject.
+
+
 - "Unreachable" is only as good as the condition it was measured under.
   Rule: a review said the class-pool `_select_by_elution_conditions` branch was
   unreachable after statement narrowing, and it was -- for a *mapped* statement.
