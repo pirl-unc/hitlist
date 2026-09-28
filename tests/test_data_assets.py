@@ -84,12 +84,37 @@ def test_fetch_data_asset_unknown_raises():
         downloads.fetch_data_asset("not_a_real_asset.csv")
 
 
-def test_fetch_data_asset_checksum_mismatch_raises(monkeypatch, tmp_path):
-    bad = tmp_path / "bad.csv"
-    bad.write_text("corrupt")  # wrong content → sha256 won't match the registry
+def test_the_registry_sha256_actually_rejects_a_corrupt_file(tmp_path):
+    """#590: the guard hitlist now delegates has teeth.
 
-    monkeypatch.setattr("datacache.fetch_file", lambda *a, **k: str(bad))
-    with pytest.raises(RuntimeError, match="checksum mismatch"):
+    ``fetch_data_asset`` no longer hashes anything itself -- it hands
+    ``expected_sha256`` to datacache, which validates staged bytes before
+    publishing them. Passing a keyword is worth nothing if the keyword does
+    not reject bad content, so exercise datacache's validator with a
+    registry hash directly rather than trusting the argument.
+    """
+    import datacache
+
+    bad = tmp_path / "bad.csv"
+    bad.write_text("corrupt")
+    expected = downloads.data_assets()["ccle_nusinow_2020.csv.gz"]["sha256"]
+    with pytest.raises(datacache.FileValidationError):
+        datacache.validate_file(bad, expected_sha256=expected)
+
+
+def test_fetch_data_asset_does_not_swallow_a_validation_failure(monkeypatch, tmp_path):
+    """The old code caught a mismatch and re-fetched, publishing the corrupt
+    file first. datacache raises instead, and that must reach the caller --
+    ``force=True`` is the documented repair, not a silent retry."""
+    import datacache
+
+    def raising_fetch_file(url, **kwargs):
+        raise datacache.FileValidationError(
+            tmp_path / "ccle_nusinow_2020.csv.gz", "sha256 mismatch"
+        )
+
+    monkeypatch.setattr(datacache, "fetch_file", raising_fetch_file)
+    with pytest.raises(datacache.FileValidationError, match="sha256 mismatch"):
         downloads.fetch_data_asset("ccle_nusinow_2020.csv.gz", verbose=False)
 
 
@@ -179,3 +204,68 @@ def test_asset_path_prefers_the_installed_copy(tmp_path):
 
     real = curation._asset_path("peptide_attributions/sarkizova_2020_patient_cohort.csv")
     assert real.endswith("sarkizova_2020_patient_cohort.csv")
+
+
+# ── #590: every guard is delegated to datacache, not re-implemented ──────────
+#
+# The omissions these pin were invisible: the call worked, so nothing failed.
+# A stalled connection hung with no bound (``timeout`` defaults to None, the
+# #255/#402 failure), a corrupt file was published before being noticed, and
+# every asset was re-hashed on every call. Assert the arguments reach
+# ``fetch_file``, because a missing keyword is exactly what regressed.
+
+
+def _captured_fetch_file_kwargs(monkeypatch, tmp_path, filename):
+    """Call fetch_data_asset with fetch_file stubbed; return its kwargs."""
+    import datacache
+
+    seen = {}
+    target = tmp_path / filename
+    target.write_bytes(b"")
+
+    def fake_fetch_file(url, **kwargs):
+        seen["url"] = url
+        seen.update(kwargs)
+        return str(target)
+
+    monkeypatch.setattr(datacache, "fetch_file", fake_fetch_file)
+    downloads.fetch_data_asset(filename, verbose=False)
+    return seen
+
+
+def test_fetch_data_asset_bounds_the_transfer_and_validates_before_publishing(
+    monkeypatch, tmp_path
+):
+    filename = sorted(downloads.data_assets())[0]
+    seen = _captured_fetch_file_kwargs(monkeypatch, tmp_path, filename)
+
+    # A stalled connection must fail, not hang: fetch_file's own default is None.
+    assert seen["timeout"] == downloads._DOWNLOAD_SOCKET_TIMEOUT
+    assert seen["timeout"] is not None
+
+    # datacache validates staged bytes before os.replace, so a corrupt file is
+    # never published and a cache hit is revalidated without re-hashing here.
+    assert seen["expected_sha256"] == downloads.data_assets()[filename]["sha256"]
+
+    assert seen["subdir"] == "hitlist"
+
+
+def test_fetch_data_asset_shows_progress_only_when_verbose(monkeypatch, tmp_path):
+    filename = sorted(downloads.data_assets())[0]
+    assert _captured_fetch_file_kwargs(monkeypatch, tmp_path, filename)["show_progress"] is False
+
+    import datacache
+
+    seen = {}
+    target = tmp_path / filename
+    target.write_bytes(b"")
+    monkeypatch.setattr(
+        datacache, "fetch_file", lambda url, **kw: (seen.update(kw), str(target))[1]
+    )
+    downloads.fetch_data_asset(filename, verbose=True)
+    assert seen["show_progress"] is True
+
+
+def test_downloads_no_longer_hand_rolls_asset_hashing():
+    """The verify loop and its helper are gone, not merely unused."""
+    assert not hasattr(downloads, "_sha256")
