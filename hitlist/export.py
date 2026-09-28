@@ -1850,6 +1850,9 @@ def generate_observations_table(
         allele_matched_df = allele_lookup.reindex(allele_keys)
         allele_matched_df.index = obs.index
         obs[meta_cols] = allele_matched_df
+        # The assigned columns own their buffers now. Keeping this frame alive
+        # retains the original strings after attribution replaces them on obs.
+        del allele_matched_df
     else:
         for col in meta_cols:
             obs[col] = pd.NA
@@ -2085,6 +2088,9 @@ def generate_observations_table(
         single_matched_df = single_lookup.reindex(single_keys)
         single_matched_df.index = obs.index
         obs[fb_cols] = single_matched_df
+        # Otherwise popping the fallback columns below cannot free their buffers:
+        # this local would keep every shadow alive until the entire export returns.
+        del single_matched_df
     else:
         for col in fb_cols:
             obs[col] = pd.NA

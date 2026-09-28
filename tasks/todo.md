@@ -1,3 +1,83 @@
+# #566 — measure and release retained join buffers (2026-09-28)
+
+The prior PR improved correctness/runtime but did not demonstrate lower hosted
+Linux peak RSS. The export retains `allele_matched_df` and `single_matched_df`
+until return even after output columns have been overwritten or popped. Measure
+whether these references keep distinct Arrow buffers alive at the final peak.
+
+## Specification
+
+Start from pinned main d470c7f and the verified ci-corpus-v2 parquets, using the
+same dependency environment for baseline and candidate. Inspect buffer addresses
+at the pre-categorical stage to distinguish aliases from distinct allocations.
+If ownership confirms the hypothesis, release each temporary reindexed frame
+immediately after assigning its columns. Preserve values, nulls, row/index order,
+column order, categorical vocabularies/order, filters, and public dtypes. Keep
+the fix minimal; no new lazy/chunked public API or scientific-model changes.
+
+Prove full-output equivalence with independent per-column value hashes and dtype
+metadata, plus index and category dictionaries. Add a focused lifetime regression
+only if it can fail on the old implementation without a fragile timing/RSS
+threshold. Run format, lint, unit and integration tests. Compare Linux peak RSS
+for pinned baseline/candidate with identical inputs/dependencies; examine swap
+if the baseline is constrained by the 16 GB runner. Local live-byte deltas are
+diagnostic only, never substituted for the Linux outcome. If this hypothesis
+fails, record the measured reason and re-plan before broadening the change.
+
+- [x] Review previous measurements and identify retained join-frame hypothesis.
+- [x] Measure distinct buffers retained by local frames on the full corpus.
+- [x] Implement the smallest ownership/lifetime fix and verify output equivalence.
+- [x] Run format/lint, full unit/integration CI and paired Linux measurements beyond noise.
+- [ ] Bump version, open PR, verify current-head CI, merge and deploy from clean main.
+- [ ] Record review and triage next relevant work.
+
+## Review
+
+Local capacity re-plan: the shared machine fell below 0.3 GiB free. Clean-main
+`./deploy.sh` refused both memory preflights (0.28 then 0.17 GiB); the existing
+clean-main Release build workflow now runs the full format/lint/test/build gate
+for cache release a6b5704. The duplicate local unit run was stopped after 1,245
+passes and is explicitly not a full-suite pass. The corpus probe's unchanged
+5 GiB preflight initially waited. A temporary CI comparison was prepared, but
+the local budget recovered and the queued probes completed first. The unused
+workflow has been removed, retaining the two-line production fix.
+
+Full-corpus comparison: all 4,398,040 rows and 125 columns have equal value hashes,
+dtypes, column/index order and categorical dictionaries/order. The two staging
+frames hold 2,191,330,805 and 1,814,481,686 distinct Arrow bytes absent from `obs`
+at the pre-categorical checkpoint: 4,005,812,491 bytes of obsolete buffers. The
+candidate releases those references. This local ownership measurement diagnoses
+the mechanism; the Linux process peaks below establish the practical result.
+
+| Full integration run | Baseline peak RSS (kB) | Candidate peak RSS (kB) |
+| --- | ---: | ---: |
+| first | 15,212,300 | 12,976,868 |
+| repeat | 15,162,020 | 13,280,028 |
+| mean | 15,187,160 | 13,128,448 |
+
+Mean peak RSS falls 2,058,712 kB (13.56%). All four runs pass the same 45 corpus
+tests with identical dependency versions. Candidate spread is 303,160 kB;
+the worst candidate is still 1,881,992 kB below the best baseline. Both candidate
+revisions have identical export.py content; the repeat includes the cache fix.
+All Python 3.9/3.10/3.11/3.12 unit CI gates and combined coverage pass on
+0ba961e. Its third integration validation also passes all 45 tests at 13,127,728
+kB peak RSS, consistent with the paired measurements. Both PyPI publications
+and final clean-main release gates remain required.
+
+Metadata correction: #609's incidental phrase "memory fix #610" automatically
+closed #610 on merge. GitHub's ClosedEvent.closer identifies PR #609. The
+reference has been corrected to "memory PR #610" and #610 is reopened; this was
+not a user cancellation.
+
+The small lifetime regression fails on d470c7f: both completed full-length joins
+are still alive when final derived annotations run. Releasing each temporary
+immediately after column assignment fixes that failure; all 11 targeted tests
+pass on pandas 2.3.3 and 3.0.5. Repeated measurements and full-output equivalence
+are recorded above; final release gates and publication remain pending.
+The cache prerequisite is PR #609 / version 1.63.13; this memory fix reserves
+1.63.14 and will ship after it. The cache branch is now included so final-head
+CI also covers both fixes together.
+
 # #591 and #566 — cache resolution and measured build memory (2026-09-28)
 
 Scope: first ship the independently testable proteome-cache fix (#591), then
@@ -26,18 +106,31 @@ CLI labels, and real spawned workers. Show new regressions failing on baseline.
 - [x] Inspect #591, #566, #602, #589, local instructions and existing lessons.
 - [x] Check in the implementation plan before editing code.
 - [x] Add failing regression coverage and implement #591.
-- [ ] Run format, lint and full unit tests; bump version and check editable metadata.
-- [ ] Open PR, verify final-head CI, merge and deploy from clean main.
-- [ ] Investigate #566 with pinned baseline/candidate and identical corpus/dependencies.
+- [x] Run format/lint and unit CI; bump version and check editable metadata.
+- [x] Open #609, verify final-head CI and merge as a6b5704.
+- [ ] Run full clean-main release gate and publish 1.63.13 to PyPI.
+- [x] Investigate #566 with pinned baseline/candidate and identical corpus/dependencies.
 - [ ] Ship a verified memory improvement; record Linux peak RSS separately from live bytes.
-- [ ] Review next dependent/urgent issues in hitlist and relevant upstream repos.
+- [x] Review next dependent/urgent issues in hitlist and relevant upstream repos.
 
 ## Review
 
 The four new cache regressions fail on the original implementation; all 128
 targeted cache/proteome/worker/CLI tests pass after the change. Format and lint
-pass. Full unit tests are running in a private Python 3.12 environment using
-the lockfile (pandas 3.0.5); the targeted run also covered shared pandas 2.3.3.
+pass. Full unit CI passed on Python 3.9/3.10/3.11/3.12 and all 45 integration
+tests passed. The private local lockfile run (pandas 3.0.5) was stopped after
+1,245 passes under severe machine pressure; it is not a full-suite pass. The
+clean-main Release build workflow 36450642510 passed format/lint and 2,391
+unit tests (one optional-data skip), but its 37m16s unit phase left too little
+time for integration before the job's 45-minute limit. Filed #612 with the
+measured phase timings. Local memory recovered to about 16 GiB available, so
+the existing `./deploy.sh` is being retried from clean main with two workers,
+the verified corpus and every gate intact. Targeted tests also covered pandas
+2.3.3.
+Next queue: datacache #74 (empty-body rejection) and #75 (inspection/provenance)
+unblock hitlist #589's downloader/unified-view consolidation; #611 tracks the
+remaining curated-label join buffers without claiming another RSS saving.
+
 Version 1.63.13 leaves 1.63.12 reserved by the already-open documentation PR
 #608. The isolated editable-install check passes at 1.63.13.
 
