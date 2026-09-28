@@ -35,10 +35,62 @@ fails, record the measured reason and re-plan before broadening the change.
 
 The small lifetime regression fails on d470c7f: both completed full-length joins
 are still alive when final derived annotations run. Releasing each temporary
-immediately after column assignment fixes that failure. Full-corpus buffer
-accounting, equivalence and Linux RSS validation remain pending; no memory
-reduction is claimed yet. The cache prerequisite is PR #609 / version 1.63.13;
-this memory fix reserves 1.63.14 and will ship after it.
+immediately after column assignment fixes that failure; all 11 targeted tests
+pass on pandas 2.3.3 and 3.0.5. The first hosted integration comparison is
+15,212,300 kB peak RSS on cache-only 3dcee2d versus 12,976,868 kB on 9ca791b
+(14.7% lower), with identical installed dependency versions and all 45 corpus
+tests passing. Repeated measurements and full-output equivalence remain pending.
+The cache prerequisite is PR #609 / version 1.63.13; this memory fix reserves
+1.63.14 and will ship after it. The cache branch is now included so final-head
+CI also covers both fixes together.
+
+# #591 and #566 — cache resolution and measured build memory (2026-09-28)
+
+Scope: first ship the independently testable proteome-cache fix (#591), then
+address #566 with comparable Linux peak-RSS measurements and full-output
+equivalence checks. #589's downloader consolidation is a separate follow-up.
+
+## #591 specification
+
+Resolve the default proteome index cache lazily as
+`downloads.data_dir() / "proteome_index_cache"`. An explicit
+`set_disk_cache_dir(path)` remains highest priority; `set_disk_cache_dir(None)`
+restores dynamic resolution, including subsequent environment/data-dir changes.
+Use the resolver for reads, writes, eviction, clearing, spawned-worker settings,
+and CLI reporting. Path queries must remain silent and create nothing.
+
+Preserve existing unconfigured caches through the existing populated-legacy
+rule in `data_dir()`, which already recognizes files in the proteome-cache
+subdirectory. Explicit data-dir overrides take precedence even when a legacy
+cache exists. Do not move or delete old files automatically; document that an
+explicit relocation uses the chosen destination and the old cache remains.
+
+Verify actual tiny-FASTA writes and cold reads, clearing/eviction isolation,
+dynamic defaults and explicit overrides, legacy reuse, fresh-install paths,
+CLI labels, and real spawned workers. Show new regressions failing on baseline.
+
+- [x] Inspect #591, #566, #602, #589, local instructions and existing lessons.
+- [x] Check in the implementation plan before editing code.
+- [x] Add failing regression coverage and implement #591.
+- [ ] Run format, lint and full unit tests; bump version and check editable metadata.
+- [ ] Open PR, verify final-head CI, merge and deploy from clean main.
+- [ ] Investigate #566 with pinned baseline/candidate and identical corpus/dependencies.
+- [ ] Ship a verified memory improvement; record Linux peak RSS separately from live bytes.
+- [ ] Review next dependent/urgent issues in hitlist and relevant upstream repos.
+
+## Review
+
+The four new cache regressions fail on the original implementation; all 128
+targeted cache/proteome/worker/CLI tests pass after the change. Format and lint
+pass. Full unit tests are running in a private Python 3.12 environment using
+the lockfile (pandas 3.0.5); the targeted run also covered shared pandas 2.3.3.
+Version 1.63.13 leaves 1.63.12 reserved by the already-open documentation PR
+#608. The isolated editable-install check passes at 1.63.13.
+
+#602's 84,840 kB difference is smaller than observed run-to-run spread; no
+CI-memory improvement is established by that PR. Next hypothesis to measure:
+the two full-length join-result frames remain referenced until return, retaining
+old Arrow buffers after their columns are replaced on the output frame.
 
 # Batch review — 2026-09-26/27
 

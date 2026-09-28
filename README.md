@@ -365,7 +365,7 @@ hitlist data dirs                                       # every directory hitlis
 |---|---|
 | built indexes (`observations`/`binding`/`bulk_proteomics`/`line_expression` parquets, `manifest.json`, downloaded proteomes) | the data directory — see the resolution order below |
 | mirrored data assets (paper-derived CSVs) | `datacache`'s cache dir for the `hitlist` subdir; **not** moved by `HITLIST_DATA_DIR` |
-| proteome index cache (`*.pkl`) | always `~/.hitlist/proteome_index_cache` — not moved by `HITLIST_DATA_DIR` ([#591](https://github.com/pirl-unc/hitlist/issues/591)) |
+| proteome index cache (`*.pkl`) | `<data directory>/proteome_index_cache`, unless explicitly set with `hitlist.proteome.set_disk_cache_dir()` |
 
 The data directory resolves in this order:
 
@@ -390,7 +390,15 @@ call to the path helper, and `<data dir>/proteomes/` and `<data dir>/gene_cache/
 are still created eagerly, so plenty of installs have one holding nothing but
 empty folders.
 
-Nothing moves or rebuilds when you upgrade. To move an existing corpus, set
+Unconfigured installs keep their existing populated legacy directory, including
+one containing only proteome index cache files. The proteome cache now follows
+`HITLIST_DATA_DIR` and `set_data_dir()`; an existing explicit data-dir setting
+therefore also selects the proteome cache location. Old cache files remain in
+place. Copy `proteome_index_cache/` into the selected data directory to reuse
+them, or let the cache rebuild. `set_disk_cache_dir(None)` restores this default
+and follows subsequent data-dir changes.
+
+To move an existing corpus, set
 `HITLIST_DATA_DIR` to the new location and copy the old directory's **entire**
 contents there. Moving only the parquets leaves `manifest.json` behind, which
 keeps rule 3 pointed at a `~/.hitlist` that no longer has any indexes in it.

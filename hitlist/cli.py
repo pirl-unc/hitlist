@@ -149,7 +149,7 @@ def _data_location_lines() -> list[str]:
     why = _DATA_DIR_ORIGIN_LABELS.get(origin, origin)
     index_cache = proteome_index_cache_dir()
     index_why = (
-        "always ~/.hitlist"
+        "data directory"
         if index_cache == default_proteome_index_cache_dir()
         else "set_disk_cache_dir()"
     )

@@ -411,30 +411,30 @@ _INDEX_FORMAT_VERSION: int = 1
 
 
 def default_proteome_index_cache_dir() -> Path:
-    """``~/.hitlist/proteome_index_cache`` — where pickled indexes go by default.
+    """Pickled indexes under the currently resolved hitlist data directory.
 
-    The single source of this default: the module global below and
-    :func:`set_disk_cache_dir`'s ``None`` case both call it, so the literal is
-    spelled once.
+    Resolution is silent and creates nothing. Existing unconfigured installs
+    retain their populated legacy directory through ``downloads.data_dir()``.
     """
-    return Path.home() / ".hitlist" / "proteome_index_cache"
+    from .downloads import data_dir
+
+    return data_dir() / "proteome_index_cache"
 
 
-_PROTEOME_INDEX_DISK_CACHE_DIR: Path = default_proteome_index_cache_dir()
+_PROTEOME_INDEX_DISK_CACHE_DIR: Path | None = None
 
 
 def proteome_index_cache_dir() -> Path:
     """Directory currently holding the pickled proteome indexes (``*.pkl``).
 
-    A third location on top of :func:`hitlist.downloads.data_dir` and
-    :func:`hitlist.downloads.data_asset_dir`.  Unless :func:`set_disk_cache_dir`
-    has moved it, it is :func:`default_proteome_index_cache_dir` — under
-    ``~/.hitlist`` whatever the data directory resolves to, because it predates
-    #291 and follows neither ``$HITLIST_DATA_DIR`` nor
-    :func:`hitlist.downloads.set_data_dir` (#591).  ``hitlist data dirs``
-    reports it so "where did my disk go?" has a complete answer.
+    An explicit :func:`set_disk_cache_dir` override wins. Otherwise follow
+    :func:`hitlist.downloads.data_dir` on each call, including changes made
+    after import through ``HITLIST_DATA_DIR`` or ``set_data_dir()`` (#591).
+    Selecting a different directory never moves or deletes the old cache.
     """
-    return _PROTEOME_INDEX_DISK_CACHE_DIR
+    if _PROTEOME_INDEX_DISK_CACHE_DIR is not None:
+        return _PROTEOME_INDEX_DISK_CACHE_DIR
+    return default_proteome_index_cache_dir()
 
 
 def _resolve_disk_cache_max_gb() -> float:
@@ -457,14 +457,12 @@ def _resolve_disk_cache_max_gb() -> float:
 def set_disk_cache_dir(path: Path | str | None) -> None:
     """Override the on-disk proteome-index cache directory.
 
-    Pass ``None`` to revert to :func:`default_proteome_index_cache_dir`.
+    Pass ``None`` to follow :func:`default_proteome_index_cache_dir` dynamically.
     Tests use this to point at a tmp_path so they don't pollute the
     real cache and aren't affected by it.
     """
     global _PROTEOME_INDEX_DISK_CACHE_DIR
-    _PROTEOME_INDEX_DISK_CACHE_DIR = (
-        default_proteome_index_cache_dir() if path is None else Path(path)
-    )
+    _PROTEOME_INDEX_DISK_CACHE_DIR = None if path is None else Path(path)
 
 
 def clear_disk_cache() -> None:
@@ -475,9 +473,10 @@ def clear_disk_cache() -> None:
     clean state for tests + manual reset.  No-op when the cache dir
     doesn't exist yet.
     """
-    if _PROTEOME_INDEX_DISK_CACHE_DIR.exists():
+    cache_dir = proteome_index_cache_dir()
+    if cache_dir.exists():
         for pattern in ("*.pkl", "*.tmp"):
-            for f in _PROTEOME_INDEX_DISK_CACHE_DIR.glob(pattern):
+            for f in cache_dir.glob(pattern):
                 with contextlib.suppress(FileNotFoundError):
                     f.unlink()
 
@@ -650,7 +649,7 @@ def _load_index_from_disk(cache_key: tuple) -> ProteomeIndex | None:
     """
     if _resolve_disk_cache_max_gb() <= 0:
         return None
-    cache_path = _PROTEOME_INDEX_DISK_CACHE_DIR / _disk_cache_filename(cache_key)
+    cache_path = proteome_index_cache_dir() / _disk_cache_filename(cache_key)
     if not cache_path.is_file():
         return None
     try:
@@ -679,7 +678,8 @@ def _write_index_to_disk(cache_key: tuple, idx: ProteomeIndex) -> None:
     """
     if _resolve_disk_cache_max_gb() <= 0:
         return
-    cache_path = _PROTEOME_INDEX_DISK_CACHE_DIR / _disk_cache_filename(cache_key)
+    cache_dir = proteome_index_cache_dir()
+    cache_path = cache_dir / _disk_cache_filename(cache_key)
     # Bind tmp_path before the try so the failure path's cleanup can
     # safely reference it.  Without this, an exception raised by
     # ``mkdir()`` (permission denied, disk full) before the
@@ -687,12 +687,12 @@ def _write_index_to_disk(cache_key: tuple, idx: ProteomeIndex) -> None:
     # clause and crash the build.
     tmp_path: Path | None = None
     try:
-        _PROTEOME_INDEX_DISK_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        cache_dir.mkdir(parents=True, exist_ok=True)
         # NamedTemporaryFile in same dir → ``os.replace`` is atomic on
         # POSIX (same filesystem guaranteed).  Don't use ``delete=True``
         # because we want the rename, not auto-cleanup.
         with tempfile.NamedTemporaryFile(
-            dir=_PROTEOME_INDEX_DISK_CACHE_DIR,
+            dir=cache_dir,
             prefix=cache_path.name + ".",
             suffix=".tmp",
             delete=False,
@@ -730,11 +730,12 @@ def _evict_disk_cache_if_over_cap() -> None:
     cap_bytes = int(_resolve_disk_cache_max_gb() * 1024**3)
     if cap_bytes <= 0:
         return
-    if not _PROTEOME_INDEX_DISK_CACHE_DIR.is_dir():
+    cache_dir = proteome_index_cache_dir()
+    if not cache_dir.is_dir():
         return
     files = []
     total = 0
-    for f in _PROTEOME_INDEX_DISK_CACHE_DIR.glob("*.pkl"):
+    for f in cache_dir.glob("*.pkl"):
         try:
             stat = f.stat()
         except FileNotFoundError:

@@ -767,7 +767,7 @@ def build_peptide_mappings(
         import multiprocessing as mp
         from concurrent.futures import ProcessPoolExecutor
 
-        from .proteome import _PROTEOME_INDEX_DISK_CACHE_DIR
+        from .proteome import proteome_index_cache_dir
 
         # chunksize=2 keeps adjacent FASTA-clustered tasks on the same
         # worker, recovering some of #107's in-memory LRU benefit that a
@@ -780,7 +780,7 @@ def build_peptide_mappings(
             # Match supervised prefetch's fresh-process startup on every OS.
             mp_context=mp.get_context("spawn"),
             initializer=_initialize_mapping_worker,
-            initargs=(str(data_dir()), str(_PROTEOME_INDEX_DISK_CACHE_DIR)),
+            initargs=(str(data_dir()), str(proteome_index_cache_dir())),
         ) as pool:
             for result in pool.map(_per_canonical_mapping_worker, mapping_tasks, chunksize=2):
                 if not result.proteome_available:
