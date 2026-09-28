@@ -295,6 +295,43 @@ ENGINEERING_CONDITION_COLUMNS = frozenset(
     }
 )
 
+#: What an arm's material *is*, for asking whether two arms of one study
+#: describe one material.  Read by
+#: :func:`hitlist.qc.engineering_drift_audit`.
+#:
+#: Every :data:`ENGINEERING_CONDITION_COLUMNS` entry is deliberately *absent*.
+#: They are what the audit compares, and keying identity on the values under
+#: test would put every disagreement in its own group, where nothing is ever
+#: compared — the exact #586 defect, reappearing in whichever engineering
+#: column a curator dropped (#587 review).
+#:
+#: ``mhc`` and ``mhc_class`` are absent for a different reason: they record
+#: what was *eluted* — "may be a selected ligand restriction; never assume a
+#: complete cellular genotype" — not what the cells are, so two arms of one
+#: material routinely differ there.  The material facts are ``mhc_genotype``
+#: and ``mhc_genotype_cell``, an independently sourced cellular typing and the
+#: line or donor it belongs to.
+MATERIAL_IDENTITY_COLUMNS = (
+    # The curated sample *system* — a cell line, tissue or donor cohort
+    # (#359).  Where a study curates it, two arms of different systems are
+    # different materials however their condition columns read, which is what
+    # keeps two same-HLA lines in one study from ever being compared.  A
+    # minority of arms set it, so it narrows grouping where present and the
+    # remaining columns carry identity where it is not.
+    "sample_group",
+    "mhc_genotype",
+    "mhc_genotype_cell",
+    "species",
+    "condition_background",
+    "condition_culture",
+    "condition_material",
+    "condition_labeling",
+)
+
+#: Material-identity columns compared as unordered token sets rather than raw
+#: strings, so a different write order is not a different material.
+TOKENIZED_MATERIAL_IDENTITY_COLUMNS = frozenset({"mhc_genotype"})
+
 #: A gene designation: HGNC-style symbols plus the hyphenated and
 #: locus-suffixed forms the sources actually use (``HLA-DM``, ``H2-K1``,
 #: ``TAX1BP1``).  Deliberately permissive about content and strict about

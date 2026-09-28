@@ -10,6 +10,7 @@ directly against the packaged curation.
 from __future__ import annotations
 
 import pathlib
+from itertools import combinations
 
 import pandas as pd
 import pytest
@@ -23,7 +24,9 @@ from hitlist.conditions import (
     CONDITION_MHC_CONTEXT_VALUES,
     CONDITION_STATUS_VALUES,
     ENGINEERED_MHC_CONTEXT_VALUES,
+    ENGINEERING_CONDITION_COLUMNS,
     INTERVENTION_CONDITION_COLUMNS,
+    MATERIAL_IDENTITY_COLUMNS,
     MULTI_VALUE_CONDITION_COLUMNS,
     NONE_PERMITTED_CONDITION_COLUMNS,
     asserts_condition,
@@ -224,6 +227,14 @@ def test_a_study_may_opt_out_entirely(tmp_path, monkeypatch):
         assert 42 in load()
     finally:
         curation.load_pmid_overrides.cache_clear()
+
+
+# ── material identity, the audit's grouping vocabulary (#586) ──────────────
+#
+# The rule itself lives in hitlist.qc.engineering_drift_audit and is tested in
+# tests/test_qc.py: it is an audit, not a load-time validator, so that a false
+# positive fails CI for whoever makes the edit rather than making the installed
+# package unimportable for every consumer (#587 review).
 
 
 def test_duplicate_yaml_keys_are_rejected(tmp_path, monkeypatch):
@@ -709,3 +720,67 @@ def test_mask_agrees_with_the_record_predicate():
 def test_engineered_mhc_contexts_are_declared_vocabulary():
     """A token outside the vocabulary could never match a curated arm."""
     assert set(ENGINEERED_MHC_CONTEXT_VALUES) <= set(CONDITION_MHC_CONTEXT_VALUES)
+
+
+#: Condition columns the sibling guard deliberately gives no role: they
+#: describe the annotation's shape rather than what the material is or what was
+#: done to it.  Asserted by *equality* below, so this cannot quietly become a
+#: dumping ground for a column nobody classified.
+_GUARD_NEUTRAL_CONDITION_COLUMNS = {"condition_control", "condition_combination"}
+
+
+def test_every_condition_column_has_exactly_one_declared_role():
+    """A new condition column cannot silently join neither side of the guard."""
+    roles = {
+        "material": set(MATERIAL_IDENTITY_COLUMNS) & set(CONDITION_COLUMNS),
+        # Interventions that act on a material without changing what it is.
+        # Pinned by name: the audit does not read them, so nothing else would
+        # notice a column silently joining or leaving this set.
+        "treatment": {
+            "condition_antigen_exposure",
+            "condition_cytokines",
+            "condition_drugs",
+            "condition_infection",
+            "condition_stimulation",
+        },
+        "engineering": set(ENGINEERING_CONDITION_COLUMNS),
+        "arm_specific": set(ARM_SPECIFIC_CONDITION_COLUMNS),
+        "neutral": _GUARD_NEUTRAL_CONDITION_COLUMNS,
+    }
+    for left, right in combinations(sorted(roles), 2):
+        overlap = roles[left] & roles[right]
+        assert not overlap, f"{left} and {right} both claim {sorted(overlap)}"
+    assert set().union(*roles.values()) == set(CONDITION_COLUMNS)
+
+
+def test_material_identity_columns_are_real_ms_sample_fields():
+    """A typo degrades grouping silently instead of failing.
+
+    Four entries (``sample_group``, ``mhc_genotype``, ``mhc_genotype_cell``,
+    ``species``) are not condition columns, so the registry contract test above
+    does not reach them.
+    """
+    for column in MATERIAL_IDENTITY_COLUMNS:
+        assert column in MS_SAMPLE_FIELDS, f"{column} is not accepted by the loader"
+
+
+@pytest.mark.parametrize(
+    ("pmid", "sample_label"),
+    [
+        (26768311, "HeLa-sHLA-HLA-A*01:01 + vaccinia (VACV)"),
+        (26768311, "HeLa-sHLA-HLA-A*02:01 + vaccinia (VACV)"),
+        (26768311, "HeLa-sHLA-HLA-B*07:02 + vaccinia (VACV)"),
+        (26768311, "HeLa-sHLA-HLA-B*35:01 + vaccinia (VACV)"),
+        (26768311, "HeLa-sHLA-HLA-B*45:01 + vaccinia (VACV)"),
+        (23543059, "HeLa-sClass I + vaccinia (VACV)"),
+    ],
+)
+def test_infected_shla_arms_are_engineered_material(pmid, sample_label):
+    """Infecting a transfectant does not remove the transfected HLA (#586).
+
+    These six arms left ``condition_mhc_context`` blank, so they read as
+    unengineered and claimed their parental line's RNA at tier 1 while their
+    engineered siblings resolved at tier 2.
+    """
+    arms = {s["sample_label"]: s for s in load_pmid_overrides()[pmid]["ms_samples"]}
+    assert is_engineered_material(arms[sample_label])

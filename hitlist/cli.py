@@ -1632,6 +1632,25 @@ def main() -> None:
     )
     p_qc_sa.add_argument("--output", "-o", help="Write CSV to file")
 
+    p_qc_ed = qc_sub.add_parser(
+        "engineering-drift",
+        help=(
+            "Curated arms silent on an engineering column that a same-material "
+            "sibling asserts (#586). A blank reads as 'not established', so the "
+            "arm stops counting as engineered material and takes its reference "
+            "line's RNA at tier 1 while the sibling takes it at tier 2."
+        ),
+    )
+    p_qc_ed.add_argument(
+        "--severity",
+        choices=["warn", "error"],
+        help=(
+            "Filter to one severity level. 'error' is an arm nothing else "
+            "engineers, so an expression tier really differs (default: all)."
+        ),
+    )
+    p_qc_ed.add_argument("--output", "-o", help="Write CSV to file")
+
     # ── pmhc subcommand ────────────────────────────────────────────────
     p_pmhc = sub.add_parser(
         "pmhc",
@@ -2023,6 +2042,11 @@ def _qc(args: argparse.Namespace) -> None:
         if getattr(args, "actionable_only", False) and not df.empty:
             settled = {"axis_mismatch", "no_row_discriminator", "multi_arm_evidence"}
             df = df[~df["arm_resolution"].isin(settled)].reset_index(drop=True)
+    elif cmd == "engineering-drift":
+        df = qc.engineering_drift_audit()
+        sev = getattr(args, "severity", None)
+        if sev is not None and not df.empty:
+            df = df[df["severity"] == sev].reset_index(drop=True)
     else:
         print(f"Unknown qc subcommand: {cmd}", file=sys.stderr)
         sys.exit(1)

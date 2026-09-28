@@ -244,6 +244,62 @@ migration marked all 761 arms `curated_text` because that is what it did;
 - **`condition_control_for` must name a real sibling arm**, and only where
   the comparison is documented.
 
+#### The engineering-drift audit (not a loader rule)
+
+`hitlist.qc.engineering_drift_audit` flags an arm that is **silent** on an
+`ENGINEERING_CONDITION_COLUMNS` value a same-material sibling **asserts**
+(#586). Since #576 the engineered flag is per arm, so one blanked arm is
+already the defect: `""` means "not established", the arm stops satisfying
+`is_engineered_material()`, and it takes its reference line's RNA at tier 1 —
+reported as RNA measured in the sample — while its sibling correctly resolves
+at tier 2.
+
+It is deliberately **not** enforced in `load_pmid_overrides()`. Material
+identity is thin, so false positives are expected; raising on one would make
+the installed package unimportable for every consumer, to buy a per-arm tier
+correction. As an audit, a disagreement fails CI for whoever makes the edit,
+who can adjudicate it. `tests/test_qc.py` asserts the findings equal
+`tests/data/engineering_drift_baseline.yaml`, so new drift fails and a fixed
+entry left in the baseline fails too.
+
+The three-way missing-value contract is what makes it actionable:
+
+| cell | read as | flagged? |
+| --- | --- | --- |
+| a named value | the intervention happened | no — it asserts |
+| `none` | a curated claim of absence | no — the remedy for a genuine wild-type arm |
+| `""` | not established | **yes**, beside an asserting sibling |
+
+An arm whose `condition_status` is `unreported` is exempt, that being the
+documented way to say nothing was recorded.
+
+Limits worth knowing before trusting it:
+
+- Two arms that both assert but differ (`B2M` beside `B2M;TAP1`) are the
+  experiment, not drift: both are engineered and both resolve at tier 2.
+- A `condition_mhc_context` naming only capture tokens (`soluble_mhc`,
+  `refolded_mhc`) is not treated as silence, because `none` is not permitted
+  in that column and patient-plasma sHLA really is capture-only — so there
+  would be no truthful remedy. The known cost: a transfectant curated
+  `soluble_mhc` alone reads as unengineered and is not flagged.
+- Material identity rests mostly on `mhc_genotype` / `mhc_genotype_cell` and
+  the context columns; `sample_group` is set on a minority of arms, and
+  `condition_material`'s vocabulary is physical states (`cultured`, `frozen`,
+  …), which cannot express *which line* something is.
+
+When two flagged arms really are different materials, only two remedies load:
+
+| remedy | what the loader demands |
+| --- | --- |
+| `mhc_genotype` + `mhc_genotype_cell` + `mhc_genotype_source` | all three together — `mhc_genotype_cell` alone is rejected. `mhc_genotype` is audited for ploidy and against `mhc_genotype_complete_loci`. |
+| `sample_group` | on **every** arm of the study, and **not** one group per arm — so it cannot separate a two-arm study at all. |
+
+`condition_material` is never the answer, and for `condition_mhc_context`
+neither is `none`: that column is the one engineering column
+`NONE_PERMITTED_CONDITION_COLUMNS` excludes, so it has no way to state absence.
+An arm whose MHC genuinely is not introduced has no token to say so, and the
+finding stays — a documented gap in the vocabulary, not a curation error.
+
 #### On a row that reached no arm
 
 `_consensus_meta` keeps what every candidate arm agrees on and blanks the

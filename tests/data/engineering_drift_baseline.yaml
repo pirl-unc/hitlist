@@ -1,0 +1,100 @@
+# Known `engineering_drift_audit` findings in the packaged curation.
+#
+# Each entry is `<condition_id>|<engineering column>|<severity>`: an arm silent
+# on a column that a same-material sibling asserts.  `error` means nothing else
+# engineers that arm, so an expression-anchor tier really differs; `warn` means
+# another column still marks it engineered and only the record is thin.
+# Severity is part of the key on purpose -- a baselined `warn` that becomes an
+# `error` is a real regression and must not reuse an existing entry.
+#
+# These are pre-existing curation debt the audit revealed, not defects it
+# introduced.  pirl-unc/hitlist#593 tracks adjudicating each one, and explains
+# why expression tiers are NOT demoted on silence in the meantime: that would
+# key off a grouping we know is unreliable.  Each remedy is a curation
+# statement someone must verify against the source, which is why they are
+# recorded here rather than guessed at in bulk.
+#
+# tests/test_qc.py asserts the audit's findings EQUAL this file, so a new
+# finding fails CI for whoever introduces it, and an entry fixed in the YAML but
+# left here fails too.  Never add an entry to silence a flag.
+27371725:
+- wt_bmdc_classical_h2_kb_h2_db|condition_knockout_genes|error
+- wt_bmdc_non_classical_h2_q1_q2|condition_knockout_genes|error
+29769354:
+- cells_erap2_negative_baseline|condition_overexpression_genes|error
+30573663:
+- mouse_splenocytes_wt|condition_knockout_genes|error
+30778243:
+- c1r_class_ii_lcl_endogenous_dr_dq_dp|condition_mhc_context|error
+31092671:
+- 721_221_b_51_01_wildtype|condition_knockout_genes|error
+31495665:
+- healthy_donor_pbmcs_hla_dr|condition_mhc_context|error
+- healthy_donor_pbmcs_hla_dr|condition_transfection|error
+- lung_tissue_hla_dr|condition_mhc_context|error
+- lung_tissue_hla_dr|condition_transfection|error
+- maptac_hla_a_02_01|condition_mhc_context|warn
+- maptac_hla_a_11_01|condition_mhc_context|warn
+- maptac_hla_a_32_01|condition_mhc_context|warn
+- maptac_hla_b_07_02|condition_mhc_context|warn
+- maptac_hla_b_45_01|condition_mhc_context|warn
+- maptac_hla_b_52_01|condition_mhc_context|warn
+- maptac_hla_c_03_03|condition_mhc_context|warn
+- maptac_hla_c_06_02|condition_mhc_context|warn
+- maptac_hla_drb1_01_01|condition_transfection|warn
+- maptac_hla_drb1_03_01|condition_transfection|warn
+- maptac_hla_drb1_04_01|condition_transfection|warn
+- maptac_hla_drb1_07_01|condition_transfection|warn
+- maptac_hla_drb1_11_01|condition_transfection|warn
+- maptac_hla_drb1_15_01|condition_transfection|warn
+- spleen_tissue_hla_dr|condition_mhc_context|error
+- spleen_tissue_hla_dr|condition_transfection|error
+32161166:
+- hela_abc_ko_hla_b_51_01_control_shrna|condition_knockdown_genes|warn
+32350084:
+- ebv_lcl_ast_5085_dpb1_04_02_homozygous|condition_mhc_context|error
+- ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous|condition_mhc_context|error
+- ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous|condition_mhc_context|error
+- ebv_lcl_bzq_12290_dpb1_13_01_homozygous|condition_mhc_context|error
+- ebv_lcl_ccc_12493_dpb1_09_01_homozygous|condition_mhc_context|error
+- ebv_lcl_clk_3987_dpb1_03_01_homozygous|condition_mhc_context|error
+- ebv_lcl_etv_11197_dpb1_14_01_homozygous|condition_mhc_context|error
+- ebv_lcl_faq_3528_dpb1_02_01_homozygous|condition_mhc_context|error
+- ebv_lcl_hhc_5852_dpb1_04_01_homozygous|condition_mhc_context|error
+- ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous|condition_mhc_context|error
+- ebv_lcl_mhx_1699_dpb1_04_01_homozygous|condition_mhc_context|error
+- ebv_lcl_mpf_174_dpb1_03_01_homozygous|condition_mhc_context|error
+- ebv_lcl_nag_12292_dpb1_01_01_homozygous|condition_mhc_context|error
+- ebv_lcl_ree_7929_dpb1_02_01_homozygous_dpa1_hete|condition_mhc_context|error
+- ebv_lcl_tqp_8275_dpb1_05_01_homozygous|condition_mhc_context|error
+- ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous|condition_mhc_context|error
+- ebv_lcl_vng_12286_dpb1_10_01_homozygous|condition_mhc_context|error
+- ebv_lcl_wew_12494_dpb1_04_01_homozygous|condition_mhc_context|error
+- ebv_lcl_wkd_3639_dpb1_05_01_homozygous|condition_mhc_context|error
+34006841:
+- c1r_class_ii_lcl_endogenous_dr_dq_dp|condition_mhc_context|error
+34428180:
+- c57bl_6_hepatocytes_aav_hc_kd|condition_knockout_genes|warn
+- skin_grafts_7_days_post_transplant|condition_knockout_genes|error
+- skin_grafts_7_days_post_transplant|condition_mhc_context|error
+- skin_grafts_7_days_post_transplant|condition_transduction|error
+- tap1ko_hepatocytes_aav_hc_kd_ycac|condition_transduction|warn
+36010968:
+- saos_2_osteosarcoma_tp53_null_vector_control|condition_genetic_variants|error
+- saos_2_osteosarcoma_tp53_null_vector_control|condition_transfection|error
+36215666:
+- hela_ciita_control_sirna|condition_knockdown_genes|warn
+- hela_ciita_mock|condition_knockdown_genes|warn
+36796642:
+- lung_and_colorectal_tumor_tissue_hla_i_multi_all|condition_mhc_context|error
+38480730:
+- hela_cervical_carcinoma|condition_transfection|error
+- human_plasma_commercial_pool|condition_transfection|error
+- jy_ebv_lcl_titration_series|condition_transfection|error
+- raji_burkitt_s_lymphoma_ebv_lcl|condition_transfection|error
+- sk_mel_37_melanoma|condition_transfection|error
+39438697:
+- primary_human_monocyte_derived_macrophages_mock|condition_knockout_genes|error
+- primary_human_monocyte_derived_macrophages_mtb_i|condition_knockout_genes|error
+- thp_1_wild_type_mock_infection|condition_knockout_genes|error
+- thp_1_wild_type_mtb_h37rv_infection|condition_knockout_genes|error

@@ -12574,15 +12574,27 @@
       HeLa is a cervical-carcinoma line.  IEDB cell_name "HeLa cells-Epithelial
       cell".  #33b/#35.
       MONO-ALLELIC, one line per allotype.  The study used five separate HeLa
-      transfectants each secreting a single soluble HLA heavy chain (Methods:
+      transfectants each secreting a single soluble HLA heavy chain (Results:
       "HeLa cells expressing secreted HLA A*01;01, A*02;01, B*07;02, B*35;01 and
-      B*45;01"; supernatants contain "sA1, sA2, sB7, sB35 *or* sB45"), following
-      the Prilliman 1997 (PMID 9089095) secreted-HLA system.  Mono-allelicity
+      B*45;01 molecules were infected with VACV"; Methods: supernatants contain
+      "sA1, sA2, sB7, sB35 or sB45"), following the Prilliman 1997
+      (PMID 9089095) secreted-HLA system, cited as ref 34 here and as ref 58 by
+      the companion study Gilchuk 2013 (PMID 23543059).  Mono-allelicity
       comes from the secreted-versus-membrane distinction, NOT from
       allotype-specific capture: purification used W6/32, a pan-class-I
       antibody, so only the untagged secreted chain is recovered while
       endogenous membrane HLA stays behind.  Distinct from Trolle 2016
       (PMID 26783342), the same lab's later VLDLr-tagged construct.
+      ONE MATERIAL ON BOTH SIDES OF THE INFECTION AXIS (#586): the infected and
+      uninfected arms are the same five transfectants, so condition_mhc_context
+      is a property of the producer line and not of the treatment (Results:
+      "soluble class I molecules were affinity purified from culture
+      supernatants of infected cells or uninfected controls").  The five
+      "+ vaccinia" arms previously left it blank — "not established" — and so
+      resolved their RNA anchor at tier 1, reporting parental HeLa RNA as RNA
+      measured in an sHLA transfectant, while their uninfected siblings
+      resolved at tier 2.  Infecting a transfectant does not remove the
+      transfected HLA, and the paper reports no separate uninfected producer.
       PRIOR CURATION ERROR: this entry listed all five allotypes as one
       genotype on two pooled samples, taken from the union of
       mhc_restriction values in our corpus rather than from the paper.  That
@@ -12598,7 +12610,8 @@
         condition: "unperturbed — mono-allelic"
         condition_id: "hela_shla_hla_a_01_01_uninfected"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC4920078 Results, 'VACV infection induces a profound self peptidome shift' para. 1; Materials and Methods, 'Large-scale cell culture and VACV infection' and 'Isolation and fractionation of class I-associated peptides'"
         condition_control: "untreated"
         condition_mhc_context: "monoallelic"
         mhc_class: "I"
@@ -12609,9 +12622,11 @@
         condition: "vaccinia (VACV) infection"
         condition_id: "hela_shla_hla_a_01_01_vaccinia_vacv"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC4920078 Results, 'VACV infection induces a profound self peptidome shift' para. 1; Materials and Methods, 'Large-scale cell culture and VACV infection' and 'Isolation and fractionation of class I-associated peptides'"
         condition_combination: "single"
         condition_infection: "Vaccinia virus"
+        condition_mhc_context: "monoallelic"
         mhc_class: "I"
         mhc: "HLA-A*01:01"
       - sample_label: "HeLa-sHLA-HLA-A*02:01 uninfected"
@@ -12620,7 +12635,8 @@
         condition: "unperturbed — mono-allelic"
         condition_id: "hela_shla_hla_a_02_01_uninfected"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC4920078 Results, 'VACV infection induces a profound self peptidome shift' para. 1; Materials and Methods, 'Large-scale cell culture and VACV infection' and 'Isolation and fractionation of class I-associated peptides'"
         condition_control: "untreated"
         condition_mhc_context: "monoallelic"
         mhc_class: "I"
@@ -12631,9 +12647,11 @@
         condition: "vaccinia (VACV) infection"
         condition_id: "hela_shla_hla_a_02_01_vaccinia_vacv"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC4920078 Results, 'VACV infection induces a profound self peptidome shift' para. 1; Materials and Methods, 'Large-scale cell culture and VACV infection' and 'Isolation and fractionation of class I-associated peptides'"
         condition_combination: "single"
         condition_infection: "Vaccinia virus"
+        condition_mhc_context: "monoallelic"
         mhc_class: "I"
         mhc: "HLA-A*02:01"
       - sample_label: "HeLa-sHLA-HLA-B*07:02 uninfected"
@@ -12642,7 +12660,8 @@
         condition: "unperturbed — mono-allelic"
         condition_id: "hela_shla_hla_b_07_02_uninfected"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC4920078 Results, 'VACV infection induces a profound self peptidome shift' para. 1; Materials and Methods, 'Large-scale cell culture and VACV infection' and 'Isolation and fractionation of class I-associated peptides'"
         condition_control: "untreated"
         condition_mhc_context: "monoallelic"
         mhc_class: "I"
@@ -12653,9 +12672,11 @@
         condition: "vaccinia (VACV) infection"
         condition_id: "hela_shla_hla_b_07_02_vaccinia_vacv"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC4920078 Results, 'VACV infection induces a profound self peptidome shift' para. 1; Materials and Methods, 'Large-scale cell culture and VACV infection' and 'Isolation and fractionation of class I-associated peptides'"
         condition_combination: "single"
         condition_infection: "Vaccinia virus"
+        condition_mhc_context: "monoallelic"
         mhc_class: "I"
         mhc: "HLA-B*07:02"
       - sample_label: "HeLa-sHLA-HLA-B*35:01 uninfected"
@@ -12664,7 +12685,8 @@
         condition: "unperturbed — mono-allelic"
         condition_id: "hela_shla_hla_b_35_01_uninfected"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC4920078 Results, 'VACV infection induces a profound self peptidome shift' para. 1; Materials and Methods, 'Large-scale cell culture and VACV infection' and 'Isolation and fractionation of class I-associated peptides'"
         condition_control: "untreated"
         condition_mhc_context: "monoallelic"
         mhc_class: "I"
@@ -12675,9 +12697,11 @@
         condition: "vaccinia (VACV) infection"
         condition_id: "hela_shla_hla_b_35_01_vaccinia_vacv"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC4920078 Results, 'VACV infection induces a profound self peptidome shift' para. 1; Materials and Methods, 'Large-scale cell culture and VACV infection' and 'Isolation and fractionation of class I-associated peptides'"
         condition_combination: "single"
         condition_infection: "Vaccinia virus"
+        condition_mhc_context: "monoallelic"
         mhc_class: "I"
         mhc: "HLA-B*35:01"
       - sample_label: "HeLa-sHLA-HLA-B*45:01 uninfected"
@@ -12686,7 +12710,8 @@
         condition: "unperturbed — mono-allelic"
         condition_id: "hela_shla_hla_b_45_01_uninfected"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC4920078 Results, 'VACV infection induces a profound self peptidome shift' para. 1; Materials and Methods, 'Large-scale cell culture and VACV infection' and 'Isolation and fractionation of class I-associated peptides'"
         condition_control: "untreated"
         condition_mhc_context: "monoallelic"
         mhc_class: "I"
@@ -12697,9 +12722,11 @@
         condition: "vaccinia (VACV) infection"
         condition_id: "hela_shla_hla_b_45_01_vaccinia_vacv"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC4920078 Results, 'VACV infection induces a profound self peptidome shift' para. 1; Materials and Methods, 'Large-scale cell culture and VACV infection' and 'Isolation and fractionation of class I-associated peptides'"
         condition_combination: "single"
         condition_infection: "Vaccinia virus"
+        condition_mhc_context: "monoallelic"
         mhc_class: "I"
         mhc: "HLA-B*45:01"
   - pmid: 33123756
@@ -13025,12 +13052,39 @@
     study_label: "Gilchuk 2013 — HeLa-sClass I + vaccinia ligandome"
     title: "Discovering naturally processed antigenic determinants that confer protective T cell immunity"
     override: cell_line
+    mono_allelic_method: "sHLA (secreted, W6/32-purified)"
     note: >
       HLA class I ligandome from HeLa cells engineered to secrete soluble
       HLA (HeLa-sClass I, HLA-A*02:01 + B*07:02), inoculated with vaccinia
       virus (VACV).  HeLa is a cervical-carcinoma line.  Typing from IEDB's
       recorded mhc_restriction in our corpus.  IEDB cell_name
       "HeLa cells-Epithelial cell".  #33c/#36.
+      ENGINEERED MATERIAL (#586): the producers are the same secreted-HLA
+      transfectants as the companion study Spencer 2015 (PMID 26768311) —
+      Methods: "Soluble HLA class I (sA2.1 and sB7.2) production and harvest
+      were as described previously (58)", ref 58 being Prilliman 1997
+      (PMID 9089095) — and this paper calls them engineered outright
+      (Figure 1 legend: "HeLa cells engineered to secrete soluble HLA class I
+      molecules (HeLa-sClass I cells) are inoculated with VACV").  Neither
+      eluted allotype is HeLa's own: parental HeLa types A*68:02 / B*15:03 /
+      C*12:03 (Cellosaurus CVCL_0030), so both A*02:01 and B*07:02 were
+      introduced.  monoallelic, the same value the sibling study carries for
+      the same producers: this single arm pools two separately purified
+      single-allotype elutions (Results: "581 sA2- and 132 sB7-associated
+      peptides ... 109 A2- and 65 B7-restricted peptide sequences"), and each
+      producer secretes one allotype, so mono-allelicity holds of every
+      contributing sample — which is the test for a record that covers
+      several.  The two-allele `mhc` is the union across the merged arm, not
+      one cell's genotype; the per-row mhc_restriction carries the A2/B7
+      split.  condition_status stays `annotated` rather than `mixed`: both
+      producers underwent the same condition (VACV infection of a
+      soluble-HLA transfectant), so no alternative conditions are combined,
+      and the source does separate the peptides.  Splitting the arm
+      into its sA2 and sB7 producers is a separate curation question and is
+      not attempted here.  The study has no uninfected arm: the reported
+      peptides are those "expressed only by VACV-infected but not uninfected
+      cells", so the uninfected elutions are a subtraction control, not a
+      deposited arm.
     ms_samples:
       - sample_label: "HeLa-sClass I + vaccinia (VACV)"
         n_samples: 1
@@ -13038,9 +13092,11 @@
         condition: "vaccinia (VACV) infection"
         condition_id: "hela_sclass_i_vaccinia_vacv"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC3635741 Figure 1 legend; Methods, 'Large-scale cell culture and VACV infection' and 'Isolation and fractionation of class I-associated peptides'; Results, 'Many novel naturally processed determinants' para. 1"
         condition_combination: "single"
         condition_infection: "Vaccinia virus"
+        condition_mhc_context: "monoallelic"
         mhc_class: "I"
         mhc: "HLA-A*02:01 HLA-B*07:02"
   - pmid: 35623660
