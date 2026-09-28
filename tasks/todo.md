@@ -27,7 +27,7 @@ fails, record the measured reason and re-plan before broadening the change.
 - [x] Review previous measurements and identify retained join-frame hypothesis.
 - [x] Measure distinct buffers retained by local frames on the full corpus.
 - [x] Implement the smallest ownership/lifetime fix and verify output equivalence.
-- [ ] Run required checks and paired Linux measurements beyond observed noise.
+- [x] Run format/lint, full unit/integration CI and paired Linux measurements beyond noise.
 - [ ] Bump version, open PR, verify current-head CI, merge and deploy from clean main.
 - [ ] Record review and triage next relevant work.
 
@@ -59,11 +59,13 @@ Mean peak RSS falls 2,058,712 kB (13.56%). All four runs pass the same 45 corpus
 tests with identical dependency versions. Candidate spread is 303,160 kB;
 the worst candidate is still 1,881,992 kB below the best baseline. Both candidate
 revisions have identical export.py content; the repeat includes the cache fix.
-All Python 3.9/3.10/3.11/3.12 unit CI gates and combined coverage also pass on
-31a759e. Final-head checks and both PyPI publications remain required.
+All Python 3.9/3.10/3.11/3.12 unit CI gates and combined coverage pass on
+0ba961e. Its third integration validation also passes all 45 tests at 13,127,728
+kB peak RSS, consistent with the paired measurements. Both PyPI publications
+and final clean-main release gates remain required.
 
 Metadata correction: #609's incidental phrase "memory fix #610" automatically
-closed #610 on merge. GitHub's ClosedEvent.closer identifies PR #609. Correct the
+closed #610 on merge. GitHub's ClosedEvent.closer identifies PR #609. The
 reference has been corrected to "memory PR #610" and #610 is reopened; this was
 not a user cancellation.
 
@@ -109,7 +111,7 @@ CLI labels, and real spawned workers. Show new regressions failing on baseline.
 - [ ] Run full clean-main release gate and publish 1.63.13 to PyPI.
 - [x] Investigate #566 with pinned baseline/candidate and identical corpus/dependencies.
 - [ ] Ship a verified memory improvement; record Linux peak RSS separately from live bytes.
-- [ ] Review next dependent/urgent issues in hitlist and relevant upstream repos.
+- [x] Review next dependent/urgent issues in hitlist and relevant upstream repos.
 
 ## Review
 
@@ -118,8 +120,17 @@ targeted cache/proteome/worker/CLI tests pass after the change. Format and lint
 pass. Full unit CI passed on Python 3.9/3.10/3.11/3.12 and all 45 integration
 tests passed. The private local lockfile run (pandas 3.0.5) was stopped after
 1,245 passes under severe machine pressure; it is not a full-suite pass. The
-clean-main Release build workflow 36450642510 now runs the required release
-scripts and both full test phases. Targeted tests also covered pandas 2.3.3.
+clean-main Release build workflow 36450642510 passed format/lint and 2,391
+unit tests (one optional-data skip), but its 37m16s unit phase left too little
+time for integration before the job's 45-minute limit. Filed #612 with the
+measured phase timings. Local memory recovered to about 16 GiB available, so
+the existing `./deploy.sh` is being retried from clean main with two workers,
+the verified corpus and every gate intact. Targeted tests also covered pandas
+2.3.3.
+Next queue: datacache #74 (empty-body rejection) and #75 (inspection/provenance)
+unblock hitlist #589's downloader/unified-view consolidation; #611 tracks the
+remaining curated-label join buffers without claiming another RSS saving.
+
 Version 1.63.13 leaves 1.63.12 reserved by the already-open documentation PR
 #608. The isolated editable-install check passes at 1.63.13.
 
