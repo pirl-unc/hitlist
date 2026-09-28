@@ -953,21 +953,68 @@ def test_classify_allele_resolution_haplotype_allele_is_exact():
     assert classify_allele_resolution("RT1-Bb*l") == "four_digit"
 
 
+def test_classify_allele_resolution_covers_designations_no_roster_lists():
+    """#597: the predicate is "not a numeric group", not "is a roster key".
+
+    mhcgnomes' H2 roster has 25 keys, so a roster lookup would still refuse the
+    classic H2 point mutants and the wild-derived alleles -- every one of which
+    names a single molecule, which is the whole defect. ``H2-K*wm7`` is in the
+    corpus today.
+
+    ``H2-T23*b`` is why the roster's *member lists* are not consulted either:
+    that table records which allele each gene carries in a haplotype, not which
+    alleles exist (haplotype ``a`` lists ``K*k`` and ``D*d``, H2-a being a
+    recombinant), so requiring ``gene*field`` to appear under ``field`` would
+    reject 205 real corpus rows.
+    """
+    for restriction in ("H2-K*wm7", "H2-Kbm1", "H2-K*bm1", "H2-Kbm8", "H2-Dbm13", "H2-Kj"):
+        assert classify_allele_resolution(restriction) == "four_digit", restriction
+    assert classify_allele_resolution("H2-T23*b") == "four_digit"
+
+
+def test_classify_allele_resolution_haplotype_parses_are_pinned_not_endorsed():
+    """Pins today's answer for ``Haplotype`` parses; see #604. NOT an endorsement.
+
+    ``classify_allele_resolution`` dispatches on ``Allele`` / ``Pair`` /
+    ``Serotype`` / ``MhcClass`` and lets ``mhcgnomes.Haplotype`` fall through
+    to ``"unresolved"``. That is very likely the wrong answer for 15,596 corpus
+    rows: ``H2-b class I`` parses as a haplotype carrying a populated
+    ``alleles`` tuple, so it is a class-scoped statement over a *known* allele
+    list -- strictly more informative than ``H2 class I``, which resolves to
+    ``class_only``. Expanding it needs class filtering of a non-HLA allele list
+    (#600) and a provenance value for reference-table candidates (#599), so
+    #597's PR deferred it rather than take both decisions in passing.
+
+    This test exists so the behaviour cannot drift unnoticed before #604 lands,
+    not because ``"unresolved"`` is correct. When #604 is fixed, change it.
+    """
+    for restriction in ("H2-b class I", "H2-b class II", "H2-d class II", "H2-z/d class II"):
+        assert classify_allele_resolution(restriction) == "unresolved", restriction
+    # Empty-roster haplotypes, the other half of #604.
+    for restriction in ("RT1-Dn", "RT1-Du", "RT1-Dl", "H2-IEg7"):
+        assert classify_allele_resolution(restriction) == "unresolved", restriction
+    # A bare gene is genuinely unresolved -- this one is not pending #604.
+    assert classify_allele_resolution("H2-Q2") == "unresolved"
+
+
 def test_classify_allele_resolution_truncated_allele_group_stays_two_digit():
     """The #597 widening must not promote a genuinely truncated allele.
 
-    A numeric first field is an IPD allele *group* that stands for every
-    member below it, which is strictly coarser than one molecule. ``SLA-1*04``
-    is the case that separates "reads the haplotype roster" from "accepts any
-    single field": pig declares 68 haplotypes (``Hp-1a.0``, ``Lr-0.01``, ...)
-    and ``04`` is not one of them.
+    A numeric first field is an IPD allele *group* standing for every member
+    below it, which is strictly coarser than one molecule. These are the whole
+    residual: after the widening only 48 observation rows stay ``two_digit``,
+    and every one carries a numeric group.
     """
-    assert classify_allele_resolution("HLA-A*02") == "two_digit"
-    assert classify_allele_resolution("SLA-1*04") == "two_digit"
-    assert classify_allele_resolution("Anpl-UAA*20") == "two_digit"
-    # A haplotype-level statement about a whole genome is not an allele at all.
-    assert classify_allele_resolution("H2-b class I") == "unresolved"
-    assert classify_allele_resolution("H2-Q2") == "unresolved"
+    for restriction in (
+        "HLA-A*02",
+        "SLA-1*04",
+        "AnasPlat-UAA*76",
+        "Anpl-UAA*20",
+        "Gaga-BF2*21",
+        "Mamu-B*098",
+        "RLA-A*01",
+    ):
+        assert classify_allele_resolution(restriction) == "two_digit", restriction
 
 
 def test_allele_resolution_rank_ordering():
@@ -1669,10 +1716,10 @@ def test_expand_allele_set_two_digit_is_unmatched():
     """Two-digit / serological / unresolved restrictions are emitted as
     unmatched until catalog-based expansion lands (planned follow-up)."""
     for restriction in ("HLA-A*02", "HLA-A2", "SLA-1*04", ""):
-        allele_set, prov, n = expand_allele_set(restriction)
+        allele_set, prov, n_alleles = expand_allele_set(restriction)
         assert allele_set == ""
         assert prov == "unmatched"
-        assert n == 0
+        assert n_alleles == 0
 
 
 def test_expand_allele_set_haplotype_allele_is_exact():
@@ -1680,7 +1727,7 @@ def test_expand_allele_set_haplotype_allele_is_exact():
 
     ``expand_allele_set`` refuses every resolution other than ``four_digit``
     and ``class_only``, so mislabelling ``H2-Kb`` as truncated emptied the
-    candidate set for 163,973 observation rows and 15,376 binding rows --
+    candidate set for 163,979 observation rows and 15,378 binding rows --
     15.5% of the corpus' unmatched mass, and 84.5% of its unmatched *mouse*
     rows, measured on the 1.63.7 replay of ``observations.parquet`` /
     ``binding.parquet``. The set needs no inference: the restriction names one
@@ -1694,8 +1741,8 @@ def test_expand_allele_set_haplotype_allele_is_exact():
         ("H2-AA*b/AB*b", "H2-AA*b/AB*b"),
         ("RT1-Bb*l", "RT1-Bb*l"),
     ):
-        allele_set, prov, n = expand_allele_set(restriction)
-        assert (allele_set, prov, n) == (expected, "exact", 1), restriction
+        allele_set, prov, n_alleles = expand_allele_set(restriction)
+        assert (allele_set, prov, n_alleles) == (expected, "exact", 1), restriction
 
 
 def test_expand_allele_set_pmid_with_only_free_text_alleles():

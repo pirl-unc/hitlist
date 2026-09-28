@@ -33,8 +33,22 @@ _NONE_PERMITTED_ENGINEERING_COLUMNS = sorted(
 
 def _write_obs_fixture(tmp_path, rows):
     """Write a minimal observations.parquet fixture with the columns
-    the qc functions actually project."""
+    the qc functions actually project.
+
+    Low-cardinality columns are written as ``category``, because that is the
+    dtype a real build produces: ``builder._CATEGORICAL_BUILD_COLUMNS`` casts
+    them and the parquet dictionary-encodes them, so ``load_observations``
+    hands qc a categorical. A fixture of plain strings is a dtype production
+    never has, and it silently hid a sort regression on ``allele_resolution``
+    that only categoricals expose (#597). The list is imported rather than
+    copied so the fixture follows the build.
+    """
+    from hitlist.builder import _CATEGORICAL_BUILD_COLUMNS
+
     df = pd.DataFrame(rows)
+    for column in _CATEGORICAL_BUILD_COLUMNS:
+        if column in df.columns:
+            df[column] = df[column].astype("category")
     path = tmp_path / "observations.parquet"
     df.to_parquet(path, index=False)
     return path

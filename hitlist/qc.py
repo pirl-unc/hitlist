@@ -850,21 +850,35 @@ def resolution_histogram(
             ]
         )
 
+    # ``observed=True``: all three keys arrive from the parquet as dictionary-
+    # encoded categoricals, and the default takes their Cartesian product. On
+    # the built corpus that is 112 rows of which 84 are combinations that never
+    # occur, plus an all-NaN block for a class with no rows -- and two pandas
+    # FutureWarnings. The frame this function documents is one row per observed
+    # combination (#597).
     counts = (
-        df.groupby(["mhc_class", "source", "allele_resolution"], dropna=False)
+        df.groupby(["mhc_class", "source", "allele_resolution"], dropna=False, observed=True)
         .size()
         .reset_index(name="n_observations")
     )
-    class_totals = counts.groupby("mhc_class")["n_observations"].transform("sum")
+    class_totals = counts.groupby("mhc_class", observed=True)["n_observations"].transform("sum")
     counts["pct_within_class"] = (counts["n_observations"] / class_totals * 100).round(2)
 
     # Order buckets most-resolved to least so output is readable. The ordering
     # comes from :func:`hitlist.curation.allele_resolution_rank` rather than a
     # literal copy of it: the copy this replaced predated ``donor_set`` and
     # never gained it, so the second-most-specific tier -- the one covering
-    # every row narrowed to a donor's typing -- fell to the ``fillna(99)``
+    # every row narrowed to a donor's typing -- fell to a ``fillna(99)``
     # default and sorted *below* ``unresolved`` (#597).
-    counts["_bucket_rank"] = counts["allele_resolution"].map(allele_resolution_rank)
+    #
+    # ``.astype("int64")`` is load-bearing, not tidying. ``allele_resolution``
+    # is categorical here, and ``Categorical.map`` returns a *Categorical* when
+    # the mapping is total -- whose categories keep the original alphabetical
+    # order, so ``sort_values`` would order by allele_resolution's spelling and
+    # put ``class_only`` first. The literal dict this replaced escaped that
+    # only by accident: leaving ``donor_set`` unmapped forced a NaN, which
+    # forced the float64 fallback, which sorted numerically.
+    counts["_bucket_rank"] = counts["allele_resolution"].map(allele_resolution_rank).astype("int64")
     counts = counts.sort_values(["mhc_class", "_bucket_rank", "source"], kind="stable").drop(
         columns="_bucket_rank"
     )
@@ -1692,7 +1706,15 @@ def proteome_coverage(
             pid = str(entry.get("proteome_id", ""))
         return (True, kind, pid)
 
-    resolved = grouped["source_organism"].map(_resolve)
+    # Iterate rather than ``Series.map``: ``source_organism`` is one of
+    # ``builder._CATEGORICAL_BUILD_COLUMNS``, so ``load_observations`` hands it
+    # over as a ``category``, and ``Categorical.map`` tries to build new
+    # *categories* out of ``_resolve``'s tuples -- which raises
+    # ``NotImplementedError: initializing a Series from a MultiIndex``. That
+    # made ``qc.proteome_coverage()`` fail outright on the built corpus; the
+    # tests missed it because the fixture wrote plain strings, a dtype
+    # production never has (#597).
+    resolved = [_resolve(organism) for organism in grouped["source_organism"]]
     grouped["has_proteome"] = [r[0] for r in resolved]
     grouped["proteome_kind"] = [r[1] for r in resolved]
     grouped["proteome_id"] = [r[2] for r in resolved]
