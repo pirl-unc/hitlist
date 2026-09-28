@@ -1644,11 +1644,11 @@ def _names_one_molecule(allele) -> bool:
     identifies an allele by the haplotype it belongs to — ``H2-Kb`` is the
     H2-K molecule of haplotype ``b``, one sequence, and no finer designation
     exists — so counting its fields against HLA's two-field convention
-    mislabels it as truncated. That cost the corpus every mouse observation:
-    :func:`expand_allele_set` refuses anything that is not ``four_digit`` or
-    ``class_only``, so 163,973 rows naming an exact H2 or RT1 molecule
-    carried an empty ``mhc_allele_set`` and ``mhc_allele_provenance ==
-    "unmatched"`` (#597).
+    mislabels it as truncated. :func:`expand_allele_set` refuses anything that
+    is not ``four_digit`` or ``class_only``, so every one of the 163,973
+    observation rows naming an exact H2 or RT1 molecule -- 84.5% of the
+    corpus' unattributed mouse rows -- carried an empty ``mhc_allele_set``
+    and ``mhc_allele_provenance == "unmatched"`` (#597).
 
     ``mhcgnomes`` ships the per-species haplotype roster
     (``Species.haplotypes``, from its ``haplotypes.yaml``), so read that table
