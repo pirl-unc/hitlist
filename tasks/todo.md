@@ -39,8 +39,8 @@ clean-main Release build workflow now runs the full format/lint/test/build gate
 for cache release a6b5704. The duplicate local unit run was stopped after 1,245
 passes and is explicitly not a full-suite pass. The corpus probe's unchanged
 5 GiB preflight initially waited. A temporary CI comparison was prepared, but
-the local budget recovered and the queued probes completed first; remove that
-unused workflow and retain the two-line production fix.
+the local budget recovered and the queued probes completed first. The unused
+workflow has been removed, retaining the two-line production fix.
 
 Full-corpus comparison: all 4,398,040 rows and 125 columns have equal value hashes,
 dtypes, column/index order and categorical dictionaries/order. The two staging
@@ -64,15 +64,14 @@ All Python 3.9/3.10/3.11/3.12 unit CI gates and combined coverage also pass on
 
 Metadata correction: #609's incidental phrase "memory fix #610" automatically
 closed #610 on merge. GitHub's ClosedEvent.closer identifies PR #609. Correct the
-reference to "memory PR #610" and reopen #610; this was not a user cancellation.
+reference has been corrected to "memory PR #610" and #610 is reopened; this was
+not a user cancellation.
 
 The small lifetime regression fails on d470c7f: both completed full-length joins
 are still alive when final derived annotations run. Releasing each temporary
 immediately after column assignment fixes that failure; all 11 targeted tests
-pass on pandas 2.3.3 and 3.0.5. The first hosted integration comparison is
-15,212,300 kB peak RSS on cache-only 3dcee2d versus 12,976,868 kB on 9ca791b
-(14.7% lower), with identical installed dependency versions and all 45 corpus
-tests passing. Repeated measurements and full-output equivalence remain pending.
+pass on pandas 2.3.3 and 3.0.5. Repeated measurements and full-output equivalence
+are recorded above; final release gates and publication remain pending.
 The cache prerequisite is PR #609 / version 1.63.13; this memory fix reserves
 1.63.14 and will ship after it. The cache branch is now included so final-head
 CI also covers both fixes together.
@@ -105,9 +104,10 @@ CLI labels, and real spawned workers. Show new regressions failing on baseline.
 - [x] Inspect #591, #566, #602, #589, local instructions and existing lessons.
 - [x] Check in the implementation plan before editing code.
 - [x] Add failing regression coverage and implement #591.
-- [ ] Run format, lint and full unit tests; bump version and check editable metadata.
-- [ ] Open PR, verify final-head CI, merge and deploy from clean main.
-- [ ] Investigate #566 with pinned baseline/candidate and identical corpus/dependencies.
+- [x] Run format/lint and unit CI; bump version and check editable metadata.
+- [x] Open #609, verify final-head CI and merge as a6b5704.
+- [ ] Run full clean-main release gate and publish 1.63.13 to PyPI.
+- [x] Investigate #566 with pinned baseline/candidate and identical corpus/dependencies.
 - [ ] Ship a verified memory improvement; record Linux peak RSS separately from live bytes.
 - [ ] Review next dependent/urgent issues in hitlist and relevant upstream repos.
 
@@ -115,8 +115,11 @@ CLI labels, and real spawned workers. Show new regressions failing on baseline.
 
 The four new cache regressions fail on the original implementation; all 128
 targeted cache/proteome/worker/CLI tests pass after the change. Format and lint
-pass. Full unit tests are running in a private Python 3.12 environment using
-the lockfile (pandas 3.0.5); the targeted run also covered shared pandas 2.3.3.
+pass. Full unit CI passed on Python 3.9/3.10/3.11/3.12 and all 45 integration
+tests passed. The private local lockfile run (pandas 3.0.5) was stopped after
+1,245 passes under severe machine pressure; it is not a full-suite pass. The
+clean-main Release build workflow 36450642510 now runs the required release
+scripts and both full test phases. Targeted tests also covered pandas 2.3.3.
 Version 1.63.13 leaves 1.63.12 reserved by the already-open documentation PR
 #608. The isolated editable-install check passes at 1.63.13.
 
