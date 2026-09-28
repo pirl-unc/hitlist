@@ -1620,14 +1620,25 @@ def extract_allele_tokens(text: str) -> list[str]:
 #: (or a specific subset via per-peptide attribution) — strictly more
 #: specific than ``class_only`` (which is "any allele in this class")
 #: but less specific than ``four_digit`` (which is "this exact allele").
-ALLELE_RESOLUTION_ORDER: list[str] = [
+#: A tuple, not a list: it is public and is now shared *by reference* into
+#: three ``argparse`` ``choices=`` calls, where a caller mutating it would
+#: silently reshape the CLI.
+ALLELE_RESOLUTION_ORDER: tuple[str, ...] = (
     "four_digit",
     "donor_set",
     "two_digit",
     "serological",
     "class_only",
     "unresolved",
-]
+)
+
+#: The tiers that are meaningful as a ``--min-allele-resolution`` floor.
+#: ``unresolved`` is the least specific tier, so a floor there admits every
+#: row and the filter silently does nothing -- a user who passes it believes
+#: they narrowed the export and did not (#597).
+ALLELE_RESOLUTION_FLOORS: tuple[str, ...] = tuple(
+    r for r in ALLELE_RESOLUTION_ORDER if r != "unresolved"
+)
 
 _RESOLUTION_RANK: dict[str, int] = {v: i for i, v in enumerate(ALLELE_RESOLUTION_ORDER)}
 
@@ -1649,31 +1660,62 @@ def _names_one_molecule(allele: Allele) -> bool:
     empty ``mhc_allele_set`` and ``mhc_allele_provenance == "unmatched"``
     (#597).
 
-    The test is "the field does not start with a digit", which is a property
-    of IPD nomenclature rather than a list to maintain: a numeric first field
-    is an allele group and is always truncatable, and a letter-led one is not.
-    Two measurements back it. Across all 672 species ``mhcgnomes`` knows, none
-    of the 138 haplotype-roster keys starts with a digit; and no allele
-    anywhere in its tables carries two or more fields whose *first* field is
-    non-numeric, so a letter-led lone field is never the prefix of some longer
-    designation. It therefore keeps ``SLA-1*04``, ``AnasPlat-UAA*76`` and
-    ``Gaga-BF2*21`` at ``two_digit`` exactly as a roster lookup would, while
-    additionally covering the designations no roster lists — the classic H2
-    point mutants ``H2-Kbm1`` / ``H2-Kbm8`` / ``H2-Dbm13`` and wild-derived
-    alleles like ``H2-K*wm7``, each of which names one molecule.
+    So the lone field has to *name a haplotype*, and that name is validated
+    against the species' roster (``Species.haplotypes``). A shape test is not
+    enough, and an earlier revision of this change learned that the hard way:
+    "any field that does not start with a digit" accepted ``H2-K*x``,
+    ``H2-D*nonsense`` and ``Mamu-A*ab`` as ``four_digit``, so
+    :func:`expand_allele_set` returned them as an ``exact`` set of size 1 and a
+    mistyped deposit became indistinguishable from a real allele — it even
+    passed ``--min-allele-resolution four_digit``. An unattributed row is
+    honest; a typo presented as an exact molecule is not.
 
-    Deliberately *not* cross-checked against ``Species.haplotypes``' member
-    lists. That table records which allele each gene carries **in a given
-    haplotype**, not which alleles exist: haplotype ``a`` lists ``K*k`` and
-    ``D*d`` because H2-a is a recombinant, so a gene routinely carries a
-    letter other than the haplotype's own. Requiring ``gene*field`` to appear
-    under ``field`` therefore rejects real molecules — measured, it drops
-    ``H2-T23*b`` (205 corpus rows), which is absent from the ``b`` list only
-    because that haplotype carries ``Qa1*a``.
+    This is the one question the roster *can* answer: "is this string a
+    haplotype name of this species?" Note the contrast with its member lists,
+    which are **not** consulted. Those record which allele each gene carries
+    **in** a haplotype, not which alleles exist — haplotype ``a`` lists
+    ``K*k`` and ``D*d`` because H2-a is a recombinant, so a gene routinely
+    carries a letter other than the haplotype's own. Requiring ``gene*field``
+    to appear under ``field`` rejects real molecules: measured, it drops
+    ``H2-T23*b`` (205 corpus rows), absent from the ``b`` list only because
+    that haplotype carries ``Qa1*a``.
+
+    Mutant and wild-derived forms are **not** decomposed into a base
+    haplotype, so ``H2-Kbm1`` / ``H2-Kbm8`` / ``H2-Dbm13`` (the C57BL/6
+    ``bm`` point-mutant series) and ``H2-K*wm7`` stay ``two_digit`` -- see the
+    follow-up issue. A ``<base>m<n>`` split is not reliable: ``wm7`` has the
+    same shape as ``bm1`` and a different meaning, being an atomic haplotype
+    of the Japanese wild mouse *Mus musculus molossinus* rather than "mutant 7
+    of haplotype ``w``" -- there is no haplotype ``w``. A regex cannot tell
+    those apart, and it would equally accept ``H2-K*bm999``. Measured, the
+    split also buys nothing: it recovers **0** additional corpus rows over
+    roster-only, because the ``bm`` series appears in no row and ``wm7``'s 7
+    rows fail it either way.
     """
     if allele.num_allele_fields != 1:
         return allele.num_allele_fields >= 2
-    return not str(allele.allele_fields[0])[:1].isdigit()
+    return allele.allele_fields[0] in allele.species.haplotypes
+
+
+def _side_resolution(side) -> str:
+    """Resolution tier of one molecule, or of one chain of a class-II pair.
+
+    The single place the tiers are decided, so the standalone-allele path and
+    the pair-chain path cannot drift apart. They used to compute the tiers
+    separately, and an interim revision of this change left a comment claiming
+    they shared a helper when only the ``four_digit`` test did.
+
+    A ``Gene`` -- or anything else that is not an ``Allele`` -- names no allele
+    and is ``unresolved``. That is reachable: mhcgnomes parses
+    ``"HLA-DPA1*01:03/DPB1"`` into a ``Pair`` with a ``Gene`` beta chain. There
+    is deliberately no branch below for an ``Allele`` carrying *zero* fields:
+    mhcgnomes returns a ``Gene`` for every gene-only spelling
+    (``"HLA-A"``, ``"HLA-A*"``, ``"H2-K*"``, ...), so no such ``Allele``
+    exists to handle.
+    """
+    if not isinstance(side, Allele):
+        return "unresolved"
+    return "four_digit" if _names_one_molecule(side) else "two_digit"
 
 
 @cache
@@ -1716,31 +1758,35 @@ def classify_allele_resolution(mhc_restriction: str) -> str:
     # empty alias kept for compatibility), so the import cannot fail, and the
     # regex only ever ran for strings mhcgnomes *refused* -- where a
     # hand-rolled pattern second-guessing the parser is a silent-wrong-answer
-    # machine: it called anything matching ``HLA-...*...:...`` ``four_digit``
-    # sight unseen. Measured over the 1,474-string vocabulary of both parquet
-    # artifacts plus every curated allele token: exactly 5 strings reached it,
-    # all with **0 corpus rows**, and only ``HLA-B23`` got a non-``unresolved``
-    # answer -- a ``host_mhc_types`` token that ``_parse_host_mhc_types``
-    # discards before this function ever sees it (#597).
+    # machine: it read resolution off the *shape* of a string mhcgnomes had
+    # already rejected, calling anything matching ``HLA-...*...:...``
+    # ``four_digit`` and anything matching ``HLA-<letter><digits>``
+    # ``serological``, both sight unseen.
+    #
+    # Measured over the 1,474-string vocabulary of both parquet artifacts plus
+    # every curated allele token, exactly 5 strings reached it, all with **0
+    # corpus rows**. One verdict changes: ``HLA-B23`` went ``serological`` ->
+    # ``unresolved``, and ``unresolved`` is the correct answer -- mhcgnomes'
+    # serotype table knows ``B21``, ``B22`` and ``B27`` but no ``B23``, so the
+    # old answer was the regex inventing a specificity that does not exist.
+    # That verdict flows on to ``_is_resolved_allele`` and hence to
+    # ``restriction_evidence_for_row`` / ``is_monoallelic``; ``supplement.py``
+    # calls those with its own ``mhc_restriction`` values, and none of the 5
+    # appears there (its restrictions are well-formed HLA alleles, or blank),
+    # so no row's evidence claim moves (#597).
     result = _cached_parse(mhc_restriction)
     if isinstance(result, Allele):
-        return "four_digit" if _names_one_molecule(result) else "two_digit"
+        return _side_resolution(result)
     if isinstance(result, Pair):
-        # Either side can be a Gene (e.g. "HLA-DRA/DRB1",
-        # "HLA-DPA1*01:03/DPB1") — Gene has no allele fields, so the
-        # isinstance guard is what keeps the attribute access safe. Pair
-        # resolution is the *min* of the two sides; a gene-only side means the
-        # pair is not even two-digit resolved and falls through to
-        # "unresolved". Both tiers ask ``_names_one_molecule`` / the field
-        # count of the *same* helper so the two sides cannot drift apart.
-        sides = (result.alpha, result.beta)
-        if not all(isinstance(side, Allele) for side in sides):
-            return "unresolved"
-        if all(_names_one_molecule(side) for side in sides):
-            return "four_digit"
-        if all(side.num_allele_fields >= 1 for side in sides):
-            return "two_digit"
-        return "unresolved"
+        # A pair is only as resolved as its coarser chain, so take the worse of
+        # the two ranks. Either side can be a Gene ("HLA-DRA/DRB1",
+        # "HLA-DPA1*01:03/DPB1"), which names no allele at all and so pins the
+        # whole pair to "unresolved" -- ``_side_resolution`` handles that, which
+        # is why there is no isinstance guard here.
+        return max(
+            (_side_resolution(result.alpha), _side_resolution(result.beta)),
+            key=allele_resolution_rank,
+        )
     if isinstance(result, Serotype):
         return "serological"
     if isinstance(result, MhcClass):

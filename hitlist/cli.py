@@ -36,7 +36,7 @@ from pathlib import Path
 
 from .cli_help import ColorArgumentParser
 from .curation import (
-    ALLELE_RESOLUTION_ORDER,
+    ALLELE_RESOLUTION_FLOORS,
     MHC_ALLELE_PROVENANCE_VALUES,
     RESTRICTION_EVIDENCE_VALUES,
     SEROTYPE_SOURCE_VALUES,
@@ -893,7 +893,7 @@ def main() -> None:
     )
     p_obs.add_argument(
         "--min-allele-resolution",
-        choices=ALLELE_RESOLUTION_ORDER,
+        choices=ALLELE_RESOLUTION_FLOORS,
         help="Minimum allele resolution",
     )
     p_obs.add_argument(
@@ -1087,7 +1087,7 @@ def main() -> None:
     )
     p_bind.add_argument(
         "--min-allele-resolution",
-        choices=ALLELE_RESOLUTION_ORDER,
+        choices=ALLELE_RESOLUTION_FLOORS,
         help="Minimum allele resolution",
     )
     p_bind.add_argument(
@@ -1262,7 +1262,7 @@ def main() -> None:
     )
     p_training.add_argument(
         "--min-allele-resolution",
-        choices=ALLELE_RESOLUTION_ORDER,
+        choices=ALLELE_RESOLUTION_FLOORS,
         help="Minimum allele resolution",
     )
     p_training.add_argument(

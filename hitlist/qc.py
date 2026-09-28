@@ -993,7 +993,10 @@ def species_axis_audit() -> pd.DataFrame:
         "is_engineered_mhc",
         "xenograft",
     ]
-    for key, grp in df.groupby(group_keys, dropna=False):
+    # ``observed=True``: the group keys are categoricals off the parquet, and
+    # the default walks their Cartesian product, inventing empty groups and
+    # emitting a FutureWarning per call (#597).
+    for key, grp in df.groupby(group_keys, dropna=False, observed=True):
         host_org, src_sp, mhc_sp, engineered, xeno = key
         pmids = sorted({int(p) for p in grp["pmid"].dropna().unique()})
         # ``review`` = chimeric with a populated host whose genus matches
@@ -1295,7 +1298,8 @@ def discrepancies(
     else:
         group_keys = ["pmid", "mhc_class"]
 
-    grouped = df.groupby(group_keys, dropna=False)
+    # ``observed=True`` -- see the note in ``species_axis_audit`` (#597).
+    grouped = df.groupby(group_keys, dropna=False, observed=True)
     out = grouped.agg(
         n_rows=("peptide", "size"),
         suspect_class_label_n=("mhc_class_label_suspect", "sum"),
@@ -1683,7 +1687,8 @@ def proteome_coverage(
         )
 
     df["source_organism"] = df["source_organism"].fillna("")
-    grouped = df.groupby("source_organism", as_index=False).agg(
+    # ``observed=True`` -- ``source_organism`` is categorical (#597).
+    grouped = df.groupby("source_organism", as_index=False, observed=True).agg(
         n_rows=("source_organism", "size"),
         n_pmids=("pmid", "nunique"),
     )

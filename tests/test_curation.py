@@ -3,7 +3,9 @@ import re
 import pytest
 
 from hitlist.curation import (
+    ALLELE_RESOLUTION_FLOORS,
     ALLELE_RESOLUTION_ORDER,
+    _is_resolved_allele,
     allele_resolution_rank,
     allele_to_all_serotypes,
     allele_to_serotype,
@@ -953,22 +955,39 @@ def test_classify_allele_resolution_haplotype_allele_is_exact():
     assert classify_allele_resolution("RT1-Bb*l") == "four_digit"
 
 
-def test_classify_allele_resolution_covers_designations_no_roster_lists():
-    """#597: the predicate is "not a numeric group", not "is a roster key".
+def test_classify_allele_resolution_rejects_unvalidated_haplotype_letters():
+    """#597: the lone field must *name a haplotype*, not merely look like one.
 
-    mhcgnomes' H2 roster has 25 keys, so a roster lookup would still refuse the
-    classic H2 point mutants and the wild-derived alleles -- every one of which
-    names a single molecule, which is the whole defect. ``H2-K*wm7`` is in the
-    corpus today.
+    An interim revision of this change tested only the field's shape ("does not
+    start with a digit"), which validates nothing: mhcgnomes builds an ``Allele``
+    out of ``H2-K*<anything letter-led>`` without consulting its own tables, so
+    a mistyped deposit shipped as a confidently resolved single molecule and
+    passed ``--min-allele-resolution four_digit``. An unattributed row is
+    honest; a typo presented as an exact molecule is not.
+    """
+    for restriction in ("H2-K*x", "H2-K*zzz", "H2-D*nonsense", "H2-K*q7", "Mamu-A*ab"):
+        assert classify_allele_resolution(restriction) == "two_digit", restriction
+        assert expand_allele_set(restriction) == ("", "unmatched", 0), restriction
 
-    ``H2-T23*b`` is why the roster's *member lists* are not consulted either:
-    that table records which allele each gene carries in a haplotype, not which
-    alleles exist (haplotype ``a`` lists ``K*k`` and ``D*d``, H2-a being a
-    recombinant), so requiring ``gene*field`` to appear under ``field`` would
-    reject 205 real corpus rows.
+
+def test_classify_allele_resolution_does_not_decompose_mutant_haplotypes():
+    """#597/#606: ``<base>m<n>`` is not split to reach a roster key.
+
+    ``wm7`` and ``bm1`` have the same shape and different meanings -- ``wm7`` is
+    an atomic haplotype of the Japanese wild mouse *Mus musculus molossinus*,
+    not "mutant 7 of haplotype ``w``", and there is no haplotype ``w`` -- so a
+    regex cannot tell a real mutant series from a typo, and would equally accept
+    ``H2-K*bm999``. Measured, the split also recovers 0 additional corpus rows
+    over roster-only. #606 tracks the 7 rows this leaves behind.
+
+    ``H2-T23*b`` guards the other side: the roster's *member* lists are not
+    consulted, because they record which allele each gene carries in a
+    haplotype rather than which alleles exist (haplotype ``a`` lists ``K*k`` and
+    ``D*d``, H2-a being a recombinant), so a gene check would reject 205 real
+    corpus rows.
     """
     for restriction in ("H2-K*wm7", "H2-Kbm1", "H2-K*bm1", "H2-Kbm8", "H2-Dbm13", "H2-Kj"):
-        assert classify_allele_resolution(restriction) == "four_digit", restriction
+        assert classify_allele_resolution(restriction) == "two_digit", restriction
     assert classify_allele_resolution("H2-T23*b") == "four_digit"
 
 
@@ -991,10 +1010,30 @@ def test_classify_allele_resolution_haplotype_parses_are_pinned_not_endorsed():
     for restriction in ("H2-b class I", "H2-b class II", "H2-d class II", "H2-z/d class II"):
         assert classify_allele_resolution(restriction) == "unresolved", restriction
     # Empty-roster haplotypes, the other half of #604.
-    for restriction in ("RT1-Dn", "RT1-Du", "RT1-Dl", "H2-IEg7"):
+    for restriction in ("RT1-Dn", "RT1-Du", "RT1-Dl"):
         assert classify_allele_resolution(restriction) == "unresolved", restriction
     # A bare gene is genuinely unresolved -- this one is not pending #604.
     assert classify_allele_resolution("H2-Q2") == "unresolved"
+
+
+def test_classify_allele_resolution_h2_ie_family_is_inconsistent_upstream():
+    """Pins ``H2-IEg7``; the cause is pirl-unc/mhcgnomes#201, NOT #604.
+
+    ``H2-IEg7`` is the only member of the mouse I-E / I-A heterodimer family
+    that ``mhcgnomes.parse`` dispatches to ``Haplotype`` -- and to one with an
+    empty ``alleles`` tuple. Every sibling becomes a ``Pair`` or an ``Allele``
+    and so resolves to ``four_digit``, including ``H2-IAg7``, which carries the
+    same ``g7`` haplotype. So the 93 corpus rows reading ``H2-IEg7`` differ from
+    their family for a reason that lives in the parse, not in this dispatch,
+    which is why the string is not special-cased here.
+
+    Grouping it with #604's populated class-scoped haplotypes would record the
+    wrong diagnosis: this is not "a statement over a known allele list", it is
+    the same I-E heterodimer as ``H2-IEk``.
+    """
+    assert classify_allele_resolution("H2-IEg7") == "unresolved"
+    for sibling in ("H2-IEk", "H2-IEb", "H2-IEd", "H2-IEs", "H2-IAg7", "H2-IAb", "H2-IAd"):
+        assert classify_allele_resolution(sibling) == "four_digit", sibling
 
 
 def test_classify_allele_resolution_truncated_allele_group_stays_two_digit():
@@ -1015,6 +1054,46 @@ def test_classify_allele_resolution_truncated_allele_group_stays_two_digit():
         "RLA-A*01",
     ):
         assert classify_allele_resolution(restriction) == "two_digit", restriction
+
+
+def test_classify_allele_resolution_unparseable_strings_are_unresolved():
+    """#597: deleting the regex fallback made mhcgnomes the only authority.
+
+    The regex behind the old ``except ImportError`` read resolution off the
+    *shape* of a string mhcgnomes had already refused. ``HLA-B23`` is the one
+    verdict that moved (``serological`` -> ``unresolved``) and the new one is
+    right: mhcgnomes' serotype table knows ``B21``, ``B22`` and ``B27`` but no
+    ``B23``, so the old answer invented a specificity that does not exist.
+
+    These are the only 5 strings that reached the fallback across the 1,474
+    entries of both parquet vocabularies plus every curated allele token, and
+    none of them appears as any row's ``mhc_restriction``.
+    """
+    for restriction in ("HLA-B23", "class", "unknown", "Carassius", "gibelio"):
+        assert classify_allele_resolution(restriction) == "unresolved", restriction
+    # The verdict flows to the mono-allelic / evidence gate, so pin that too.
+    assert not _is_resolved_allele("HLA-B23")
+    # A serotype mhcgnomes does know is unaffected.
+    assert classify_allele_resolution("HLA-B27") == "serological"
+    assert _is_resolved_allele("HLA-B27")
+
+
+def test_allele_resolution_floors_exclude_unresolved():
+    """#597: a ``--min-allele-resolution`` floor must be able to exclude something.
+
+    ``unresolved`` is the least specific tier, so a floor there admits every row
+    and the filter silently does nothing. The CLI derives its ``choices`` from
+    :data:`ALLELE_RESOLUTION_FLOORS` for that reason.
+    """
+    assert "unresolved" not in ALLELE_RESOLUTION_FLOORS
+    assert set(ALLELE_RESOLUTION_FLOORS) == set(ALLELE_RESOLUTION_ORDER) - {"unresolved"}
+    # Order is preserved, so the CLI lists tiers most- to least-specific.
+    assert list(ALLELE_RESOLUTION_FLOORS) == [
+        r for r in ALLELE_RESOLUTION_ORDER if r != "unresolved"
+    ]
+    # Public and shared by reference into three argparse calls, so immutable.
+    assert isinstance(ALLELE_RESOLUTION_ORDER, tuple)
+    assert isinstance(ALLELE_RESOLUTION_FLOORS, tuple)
 
 
 def test_allele_resolution_rank_ordering():

@@ -50,21 +50,27 @@ def _write_obs_fixture(tmp_path, rows):
     before the cast, and ``""`` is forced into the category list even when no
     row uses it.
 
-    The second half is what keeps the fixture usable. A dozen call sites across
-    the package do ``df[col].fillna("")`` on these columns, and under pandas 2.x
-    -- which CI's 3.9/3.10/3.11 legs use, while this machine has 3.0.5 --
-    pandas validates the fill value against the categories *whether or not any
-    NaN is present*, raising ``TypeError: Cannot setitem on a Categorical with
-    a new category ()``. Production survives that only because ``""`` happens
-    to be a category on today's corpus; see #605, which tracks the pattern.
-    Forcing ``""`` in reproduces the corpus rather than papering over it.
+    Forcing ``""`` in is what keeps the fixture usable, and it is not a
+    workaround: ``builder._compress_categoricals`` pre-adds ``""`` to every one
+    of these columns **on purpose**, with a comment naming the ``fillna("")``
+    call sites in ``export.py`` / ``supplement.py`` / ``scanner.py`` that would
+    otherwise raise. Under pandas 2.x -- which CI's 3.9/3.10/3.11 legs use,
+    while this machine has 3.0.5 -- ``Categorical.fillna`` validates the fill
+    value against the categories *whether or not any NaN is present*, so a
+    column without ``""`` raises ``TypeError: Cannot setitem on a Categorical
+    with a new category ()``. So the builder maintains an invariant those call
+    sites depend on; reproducing it here is reproducing the corpus. #605 tracks
+    the fact that the dependency is undocumented at the 13 call sites, not a
+    crash waiting to happen.
     """
     from hitlist.builder import _CATEGORICAL_BUILD_COLUMNS
 
     df = pd.DataFrame(rows)
     for column in _CATEGORICAL_BUILD_COLUMNS:
         if column in df.columns:
-            values = df[column].astype("object").fillna("")
+            # ``to_numpy(dtype=object)``: handing ``pd.Categorical`` an object
+            # *Series* makes pandas infer its dtype and warn (#597).
+            values = df[column].astype("object").fillna("").to_numpy(dtype=object)
             df[column] = pd.Categorical(values, categories=sorted(set(values) | {""}))
     path = tmp_path / "observations.parquet"
     df.to_parquet(path, index=False)
@@ -170,7 +176,7 @@ def test_resolution_histogram_orders_every_public_resolution_tier(tmp_path, monk
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
 
     df = qc.resolution_histogram()
-    assert list(df["allele_resolution"]) == ALLELE_RESOLUTION_ORDER
+    assert list(df["allele_resolution"]) == list(ALLELE_RESOLUTION_ORDER)
 
 
 def test_resolution_histogram_filters(tmp_path, monkeypatch):
