@@ -42,13 +42,30 @@ def _write_obs_fixture(tmp_path, rows):
     never has, and it silently hid a sort regression on ``allele_resolution``
     that only categoricals expose (#597). The list is imported rather than
     copied so the fixture follows the build.
+
+    Two details of that dtype are reproduced deliberately, because getting them
+    wrong invents shapes the corpus cannot exhibit. Measured on
+    ``observations.parquet``, every one of these columns comes back with **0**
+    NaN and with ``""`` **among its categories**. So NaN is filled with ``""``
+    before the cast, and ``""`` is forced into the category list even when no
+    row uses it.
+
+    The second half is what keeps the fixture usable. A dozen call sites across
+    the package do ``df[col].fillna("")`` on these columns, and under pandas 2.x
+    -- which CI's 3.9/3.10/3.11 legs use, while this machine has 3.0.5 --
+    pandas validates the fill value against the categories *whether or not any
+    NaN is present*, raising ``TypeError: Cannot setitem on a Categorical with
+    a new category ()``. Production survives that only because ``""`` happens
+    to be a category on today's corpus; see #605, which tracks the pattern.
+    Forcing ``""`` in reproduces the corpus rather than papering over it.
     """
     from hitlist.builder import _CATEGORICAL_BUILD_COLUMNS
 
     df = pd.DataFrame(rows)
     for column in _CATEGORICAL_BUILD_COLUMNS:
         if column in df.columns:
-            df[column] = df[column].astype("category")
+            values = df[column].astype("object").fillna("")
+            df[column] = pd.Categorical(values, categories=sorted(set(values) | {""}))
     path = tmp_path / "observations.parquet"
     df.to_parquet(path, index=False)
     return path
@@ -112,8 +129,11 @@ def test_resolution_histogram_buckets_and_pct(tmp_path, monkeypatch):
     # 3 distinct (mhc_class, source, allele_resolution) combinations for class I,
     # 1 for class II = 4 rows total.
     assert len(df) == 4
-    # pct_within_class sums to 100 per class.
-    for _cls, group in df.groupby("mhc_class"):
+    # pct_within_class sums to 100 per class. ``observed=True`` because
+    # ``mhc_class`` is categorical: the default groups over every *category*,
+    # so an unused one yields an empty group whose percentages sum to 0 and
+    # fails an assertion about classes that have rows (#597).
+    for _cls, group in df.groupby("mhc_class", observed=True):
         assert abs(group["pct_within_class"].sum() - 100) < 0.5
 
     # Most-resolved bucket (four_digit) sorts first within each class.
