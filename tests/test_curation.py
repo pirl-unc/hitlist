@@ -934,11 +934,40 @@ def test_classify_allele_resolution_pair_gene_gene_does_not_crash():
     assert classify_allele_resolution("HLA-DPA1*01:03/DPB1") == "unresolved"
 
 
-def test_classify_allele_resolution_mouse():
-    # H-2Kb is a valid mouse allele. mhcgnomes parses it as two_digit;
-    # regex fallback returns unresolved (not HLA). Either is acceptable
-    # since hla_only filters these out before they reach output.
-    assert classify_allele_resolution("H-2Kb") in ("two_digit", "unresolved")
+def test_classify_allele_resolution_haplotype_allele_is_exact():
+    """#597: a haplotype-designated allele names one molecule, so it is
+    ``four_digit`` even though it carries a single allele field.
+
+    Mouse, rat, pig, chicken and horse nomenclature identifies an allele by
+    its haplotype -- ``H2-Kb`` is the H2-K molecule of haplotype ``b``, one
+    sequence, with no finer form to resolve to. Counting fields against HLA's
+    two-field convention called these truncated, which made
+    :func:`expand_allele_set` refuse every mouse observation in the corpus.
+    """
+    for restriction in ("H2-K*b", "H2-Kb", "H-2Kb", "H2-D*b", "H2-K*d", "H2-L*d"):
+        assert classify_allele_resolution(restriction) == "four_digit", restriction
+    # Class II arrives as a Pair; both chains are haplotype-designated.
+    assert classify_allele_resolution("H2-AA*b/AB*b") == "four_digit"
+    assert classify_allele_resolution("H2-EA*k/EB*k") == "four_digit"
+    # Rat uses the same convention under the RT1 prefix.
+    assert classify_allele_resolution("RT1-Bb*l") == "four_digit"
+
+
+def test_classify_allele_resolution_truncated_allele_group_stays_two_digit():
+    """The #597 widening must not promote a genuinely truncated allele.
+
+    A numeric first field is an IPD allele *group* that stands for every
+    member below it, which is strictly coarser than one molecule. ``SLA-1*04``
+    is the case that separates "reads the haplotype roster" from "accepts any
+    single field": pig declares 68 haplotypes (``Hp-1a.0``, ``Lr-0.01``, ...)
+    and ``04`` is not one of them.
+    """
+    assert classify_allele_resolution("HLA-A*02") == "two_digit"
+    assert classify_allele_resolution("SLA-1*04") == "two_digit"
+    assert classify_allele_resolution("Anpl-UAA*20") == "two_digit"
+    # A haplotype-level statement about a whole genome is not an allele at all.
+    assert classify_allele_resolution("H2-b class I") == "unresolved"
+    assert classify_allele_resolution("H2-Q2") == "unresolved"
 
 
 def test_allele_resolution_rank_ordering():
@@ -966,6 +995,18 @@ def test_classify_ms_row_includes_allele_resolution():
         mhc_restriction="HLA class I",
     )
     assert flags["allele_resolution"] == "class_only"
+
+
+def test_classify_ms_row_haplotype_allele_resolution():
+    """The #597 widening reaches the row-level flags the scanner writes."""
+    flags = classify_ms_row(
+        "No immunization",
+        "healthy",
+        "Direct Ex Vivo",
+        "Spleen",
+        mhc_restriction="H2-K*b",
+    )
+    assert flags["allele_resolution"] == "four_digit"
 
 
 # ── Serotype mapping ──────────────────────────────────────────────────
@@ -1627,11 +1668,34 @@ def test_expand_allele_set_class_only_no_curation_is_unmatched():
 def test_expand_allele_set_two_digit_is_unmatched():
     """Two-digit / serological / unresolved restrictions are emitted as
     unmatched until catalog-based expansion lands (planned follow-up)."""
-    for restriction in ("HLA-A*02", "HLA-A2", ""):
+    for restriction in ("HLA-A*02", "HLA-A2", "SLA-1*04", ""):
         allele_set, prov, n = expand_allele_set(restriction)
         assert allele_set == ""
         assert prov == "unmatched"
         assert n == 0
+
+
+def test_expand_allele_set_haplotype_allele_is_exact():
+    """#597: a haplotype-designated allele already names its candidate set.
+
+    ``expand_allele_set`` refuses every resolution other than ``four_digit``
+    and ``class_only``, so mislabelling ``H2-Kb`` as truncated emptied the
+    candidate set for 163,973 observation rows and 15,376 binding rows --
+    15.5% of the corpus' unmatched mass, and 84.5% of its unmatched *mouse*
+    rows, measured on the 1.63.7 replay of ``observations.parquet`` /
+    ``binding.parquet``. The set needs no inference: the restriction names one
+    molecule, so it *is* the set.
+    """
+    for restriction, expected in (
+        ("H2-K*b", "H2-K*b"),
+        ("H2-Kb", "H2-K*b"),
+        ("H-2Kb", "H2-K*b"),
+        ("H2-D*b", "H2-D*b"),
+        ("H2-AA*b/AB*b", "H2-AA*b/AB*b"),
+        ("RT1-Bb*l", "RT1-Bb*l"),
+    ):
+        allele_set, prov, n = expand_allele_set(restriction)
+        assert (allele_set, prov, n) == (expected, "exact", 1), restriction
 
 
 def test_expand_allele_set_pmid_with_only_free_text_alleles():

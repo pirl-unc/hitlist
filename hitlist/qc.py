@@ -62,6 +62,7 @@ from .conditions import (
 from .curation import (
     _cached_parse,
     _flatten_hla_alleles,
+    allele_resolution_rank,
     is_class_only_token,
     load_pmid_overrides,
     ms_excluded_pmids,
@@ -857,15 +858,13 @@ def resolution_histogram(
     class_totals = counts.groupby("mhc_class")["n_observations"].transform("sum")
     counts["pct_within_class"] = (counts["n_observations"] / class_totals * 100).round(2)
 
-    # Order buckets most-resolved to least so output is readable.
-    bucket_order = {
-        "four_digit": 0,
-        "two_digit": 1,
-        "serological": 2,
-        "class_only": 3,
-        "unresolved": 4,
-    }
-    counts["_bucket_rank"] = counts["allele_resolution"].map(bucket_order).fillna(99)
+    # Order buckets most-resolved to least so output is readable. The ordering
+    # comes from :func:`hitlist.curation.allele_resolution_rank` rather than a
+    # literal copy of it: the copy this replaced predated ``donor_set`` and
+    # never gained it, so the second-most-specific tier -- the one covering
+    # every row narrowed to a donor's typing -- fell to the ``fillna(99)``
+    # default and sorted *below* ``unresolved`` (#597).
+    counts["_bucket_rank"] = counts["allele_resolution"].map(allele_resolution_rank)
     counts = counts.sort_values(["mhc_class", "_bucket_rank", "source"], kind="stable").drop(
         columns="_bucket_rank"
     )

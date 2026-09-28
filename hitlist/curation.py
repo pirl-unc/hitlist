@@ -1632,6 +1632,38 @@ ALLELE_RESOLUTION_ORDER: list[str] = [
 _RESOLUTION_RANK: dict[str, int] = {v: i for i, v in enumerate(ALLELE_RESOLUTION_ORDER)}
 
 
+def _names_one_molecule(allele) -> bool:
+    """True when a parsed ``mhcgnomes`` allele designates a single molecule.
+
+    Two or more allele fields always do: ``HLA-A*02:01`` is one protein,
+    whereas its one-field form ``HLA-A*02`` is an IPD allele *group* standing
+    for every ``HLA-A*02:xx``, which is a strictly coarser statement.
+
+    One field is the complete designation when it names a **haplotype** rather
+    than an allele group. Mouse, rat, pig, chicken and horse MHC nomenclature
+    identifies an allele by the haplotype it belongs to — ``H2-Kb`` is the
+    H2-K molecule of haplotype ``b``, one sequence, and no finer designation
+    exists — so counting its fields against HLA's two-field convention
+    mislabels it as truncated. That cost the corpus every mouse observation:
+    :func:`expand_allele_set` refuses anything that is not ``four_digit`` or
+    ``class_only``, so 163,973 rows naming an exact H2 or RT1 molecule
+    carried an empty ``mhc_allele_set`` and ``mhc_allele_provenance ==
+    "unmatched"`` (#597).
+
+    ``mhcgnomes`` ships the per-species haplotype roster
+    (``Species.haplotypes``, from its ``haplotypes.yaml``), so read that table
+    instead of inferring from the field's shape. It is also what keeps the
+    test honest for species that use *numeric* first fields alongside a
+    haplotype roster: ``SLA-1*04`` is truncatable and ``04`` is not among
+    pig haplotypes (``Hp-1a.0``, ``Lr-0.01``, ...), so it stays ``two_digit``.
+    """
+    if len(allele.allele_fields) >= 2:
+        return True
+    if len(allele.allele_fields) != 1:
+        return False
+    return allele.allele_fields[0] in allele.species.haplotypes
+
+
 @cache
 def classify_allele_resolution(mhc_restriction: str) -> str:
     """Classify the resolution level of an MHC restriction annotation.
@@ -1647,6 +1679,11 @@ def classify_allele_resolution(mhc_restriction: str) -> str:
     mhc_restriction
         IEDB "MHC Restriction" field value, or a semicolon-joined
         multi-allele set emitted post-#45 (``"HLA-A*02:01;HLA-A*03:01;..."``).
+
+    ``"four_digit"`` means "names one molecule", not literally "has four
+    digits": a haplotype-designated allele such as ``H2-Kb`` carries a single
+    field and is still exact, because mouse nomenclature has no finer form.
+    See :func:`_names_one_molecule`.
 
     Returns
     -------
@@ -1673,7 +1710,7 @@ def classify_allele_resolution(mhc_restriction: str) -> str:
             from mhcgnomes.serotype import Serotype
 
             if isinstance(result, Allele):
-                if len(result.allele_fields) >= 2:
+                if _names_one_molecule(result):
                     return "four_digit"
                 return "two_digit"
             if isinstance(result, Pair):
@@ -1682,15 +1719,10 @@ def classify_allele_resolution(mhc_restriction: str) -> str:
                 # guard the attribute access. Pair resolution is the *min*
                 # of the two sides; a gene-only side means the pair is not
                 # even two-digit resolved and falls through to "unresolved".
-                alpha_fields = (
-                    len(result.alpha.allele_fields) if isinstance(result.alpha, Allele) else 0
-                )
-                beta_fields = (
-                    len(result.beta.allele_fields) if isinstance(result.beta, Allele) else 0
-                )
-                if alpha_fields >= 2 and beta_fields >= 2:
+                sides = (result.alpha, result.beta)
+                if all(isinstance(side, Allele) and _names_one_molecule(side) for side in sides):
                     return "four_digit"
-                if alpha_fields >= 1 and beta_fields >= 1:
+                if all(isinstance(side, Allele) and len(side.allele_fields) >= 1 for side in sides):
                     return "two_digit"
                 return "unresolved"
             if isinstance(result, Serotype):
@@ -3153,6 +3185,9 @@ def expand_allele_set(
     Logic:
 
     - ``four_digit`` rows use the derived identity with provenance ``exact``.
+      That tier is "names one molecule", so it includes haplotype-designated
+      non-human alleles (``H2-Kb``, ``H2-AA*b/AB*b``, ``RT1-Bb*l``) whose
+      single allele field is the complete designation (#597).
     - ``class_only`` rows (e.g. ``"HLA class I"``) are expanded against,
       in priority order:
 

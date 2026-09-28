@@ -107,6 +107,38 @@ def test_resolution_histogram_buckets_and_pct(tmp_path, monkeypatch):
     assert class_i.iloc[0]["allele_resolution"] == "four_digit"
 
 
+def test_resolution_histogram_orders_every_public_resolution_tier(tmp_path, monkeypatch):
+    """#597: the bucket ordering must cover the whole public vocabulary.
+
+    The literal rank map this replaced predated ``donor_set``, so the
+    second-most-specific tier fell to an ``fillna(99)`` default and sorted
+    below ``unresolved``.  Asserting the emitted order equals
+    ``ALLELE_RESOLUTION_ORDER`` fails on the next tier added rather than
+    silently demoting it, which is the point (cf. the #455 round-trip rule).
+    """
+    from hitlist import qc
+    from hitlist.curation import ALLELE_RESOLUTION_ORDER
+
+    obs_path = _write_obs_fixture(
+        tmp_path,
+        [
+            {
+                "peptide": "AAAAAAAAA" + chr(ord("A") + i),
+                "mhc_class": "I",
+                "source": "iedb",
+                "allele_resolution": resolution,
+                "mhc_restriction": "HLA-A*02:01",
+                "pmid": i + 1,
+            }
+            for i, resolution in enumerate(ALLELE_RESOLUTION_ORDER)
+        ],
+    )
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
+
+    df = qc.resolution_histogram()
+    assert list(df["allele_resolution"]) == ALLELE_RESOLUTION_ORDER
+
+
 def test_resolution_histogram_filters(tmp_path, monkeypatch):
     """Class filter narrows the result correctly."""
     from hitlist import qc
