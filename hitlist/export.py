@@ -850,37 +850,6 @@ def _consensus_meta(
     return out
 
 
-def _narrow_metadata_to_categorical(obs: pd.DataFrame) -> None:
-    """Narrow the low-cardinality metadata columns of ``obs`` to ``category``.
-
-    Idempotent and in place: a column already categorical, absent, or not
-    string-typed is left alone, so the export can call this the moment a
-    column's values are final rather than once at the end.
-
-    ``""`` is pre-added to the category set so the export pipeline's
-    ``fillna("")`` idioms don't raise the out-of-category ``TypeError`` (same
-    pattern as ``builder._compress_categoricals``).
-
-    Why the timing matters (#566): under pandas 3 these columns arrive as
-    Arrow-backed strings, which store every row's bytes, and the export's peak
-    is the *live* Arrow total at the end of the build — 15.16 GB measured
-    against a 16 GB CI runner, of which narrowing releases all but 0.29 GB.
-    A column narrowed on arrival costs its codes for the rest of the build
-    instead of its bytes.
-    """
-    for col in _CATEGORICAL_EXPORT_METADATA_COLS:
-        if col not in obs.columns:
-            continue
-        if isinstance(obs[col].dtype, pd.CategoricalDtype):
-            continue
-        if not pd.api.types.is_string_dtype(obs[col]):
-            continue
-        cat = obs[col].astype("category")
-        if "" not in cat.cat.categories:
-            cat = cat.cat.add_categories([""])
-        obs[col] = cat
-
-
 def apply_winners_vectorized(
     obs: pd.DataFrame,
     mask: pd.Series,
@@ -1525,17 +1494,6 @@ def generate_observations_table(
                 lambda a: allele_resolution_rank(classify_allele_resolution(a)) <= min_rank
             )
         ]
-
-    # Narrow on arrival, not on departure (#566).  Nine of the metadata columns
-    # this export narrows come off the parquet as Arrow-backed strings, and the
-    # join only ever *reads* them — ``reference_title``,
-    # ``antigen_processing_comments`` and ``assay_comments`` feed the
-    # discriminator, the rest are carried through.  Narrowing them at the end
-    # of a ~4-minute build meant the corpus paid 1.8 GB of string bytes for the
-    # whole of it; narrowing them here costs one ``int16`` code per row instead.
-    # This is the only row-dropping step between the read and the departure
-    # narrowing, so the category sets are identical either way.
-    _narrow_metadata_to_categorical(obs)
 
     # --- Load sample metadata ---
     # Explicitly unprofiled arms are curated metadata, not evidence: they
@@ -2748,10 +2706,20 @@ def generate_observations_table(
 
     # --- Tighten dtypes: low-cardinality metadata → categorical (#263) ---
     # Done on ``obs`` (the owned frame, pre-rename) so the assignment never
-    # hits a SettingWithCopy slice.  The columns the parquet delivers were
-    # already narrowed on arrival; this call catches the ones the join itself
-    # produced, which it writes until the stage above.
-    _narrow_metadata_to_categorical(obs)
+    # hits a SettingWithCopy slice.  ``""`` is pre-added to the category set
+    # so the export pipeline's ``fillna("")`` idioms don't raise the
+    # out-of-category ``TypeError`` (same pattern as builder._compress_categoricals).
+    for col in _CATEGORICAL_EXPORT_METADATA_COLS:
+        if col not in obs.columns:
+            continue
+        if isinstance(obs[col].dtype, pd.CategoricalDtype):
+            continue
+        if not pd.api.types.is_string_dtype(obs[col]):
+            continue
+        cat = obs[col].astype("category")
+        if "" not in cat.cat.categories:
+            cat = cat.cat.add_categories([""])
+        obs[col] = cat
 
     # --- Post-join filters ---
     if instrument_type and "instrument_type" in result.columns:
