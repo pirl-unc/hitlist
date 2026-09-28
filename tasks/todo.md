@@ -1,3 +1,64 @@
+# Batch review — 2026-09-26/27
+
+Asked to pick a path to "fixing all known problems" from 33 open issues and do
+it. Shipped fourteen issues across 1.63.0-1.63.7; opened six more, all
+pre-existing defects found by reading code nobody had reason to examine.
+
+Released, in order: 1.63.0 HAP1 reference RNA (#358 first half) · 1.63.1 #553
+develop-install metadata check · 1.63.2 #579 import no longer deletes
+`<data_dir>/index` · 1.63.3 #574 + #563 predictor eligibility · 1.63.4 #576 +
+#577 + #582 expression-anchor provenance and index staleness · 1.63.5 #558 +
+#559 + #567 + #581 source-verified curation · 1.63.6 #291 datacache data dir ·
+1.63.7 #586 sibling MHC context + the engineering-drift audit. #566's
+wall-clock axis merged separately and ships no package content.
+
+- [x] Wave 1, four parallel agents on disjoint files: predictor boundary,
+  expression anchors, curation, dev-install check.
+- [x] Every PR reviewed, most more than once. #584 took four rounds, #587 four,
+  #592 two. Every round found something real; none was ceremony.
+- [x] #566 promoted mid-batch when it stopped being a nuisance and started
+  blocking merges — #584's `test (3.11)` was cancelled twice at the 25-minute
+  cap on one unchanged commit. Splitting unit/integration/coverage took the
+  test tier 22m56s → 14m40s, and #584 then passed unchanged.
+- [x] Deployed each release from a clean main worktree, verifying PyPI hashes
+  against the local build every time.
+
+What the review rounds were for, since four rounds on one PR needs justifying:
+they caught a 46,247-arm regression (a branch deleted on a reachability claim
+that held only for mapped statements), a load-time validator that rejected
+ordinary study designs, deposit facts silently dropped from refused rows, and a
+remedy string that told curators to write a value the loader rejects. None of
+those were visible in a passing test suite. The escalating gate is what found
+them: six columns of three studies → every column of three studies → every
+column of all 2,319. Each widening found something the previous one could not,
+because the population had been chosen by the reasoning under test.
+
+Left open deliberately, with reasons:
+
+- #566 memory axis. The integration phase still peaks at 15.2 GB of 16 GB. A
+  separate job is a separate runner, not a bigger one. Closing it means
+  trimming the corpus fixture's residency, which is library work.
+- #593, 66 findings across 15 studies, recorded as an equality-asserted
+  baseline. Two shapes: genuine wild-type arms needing an explicit `none`, and
+  different materials grouped together because `sample_group` is unset. The
+  second is the majority and its remedy changes attribution (#359), so the
+  grouping must be fixed before the tiers. Expression tiers are deliberately
+  *not* demoted on silence for exactly that reason — demoting on an unreliable
+  grouping would report the wrong line's RNA as a surrogate. The baseline fired
+  correctly on first contact when #584 curated three of its entries away.
+- #591, a third cache location: the proteome index cache is pinned to
+  `~/.hitlist/proteome_index_cache` and ignores `HITLIST_DATA_DIR`. Largest of
+  the three at 7,500+ files; moving it orphans an existing cache.
+- #588 `soluble_mhc` completion; #572 the object-dtype join, which wants a
+  quiet machine and its own diff; #358's C1R/721.221 half, still blocked on the
+  ENA read download.
+- Upstream: mhcgnomes#199 chicken BF2 aliases, tsarina#180.
+
+Process note worth keeping: four agents sharing one scratch directory
+overwrote each other's measurement scripts mid-run, silently corrupting two
+corpus replays. Private per-task scratch directories, and a script that states
+and asserts which build it loaded.
+
 # #358 — measured HAP1 reference RNA (first half)
 
 Recovered from the uncommitted `/private/tmp/hitlist-358` worktree, whose
