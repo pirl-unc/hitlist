@@ -1,3 +1,45 @@
+# #566 — measure and release retained join buffers (2026-09-28)
+
+The prior PR improved correctness/runtime but did not demonstrate lower hosted
+Linux peak RSS. The export retains `allele_matched_df` and `single_matched_df`
+until return even after output columns have been overwritten or popped. Measure
+whether these references keep distinct Arrow buffers alive at the final peak.
+
+## Specification
+
+Start from pinned main d470c7f and the verified ci-corpus-v2 parquets, using the
+same dependency environment for baseline and candidate. Inspect buffer addresses
+at the pre-categorical stage to distinguish aliases from distinct allocations.
+If ownership confirms the hypothesis, release each temporary reindexed frame
+immediately after assigning its columns. Preserve values, nulls, row/index order,
+column order, categorical vocabularies/order, filters, and public dtypes. Keep
+the fix minimal; no new lazy/chunked public API or scientific-model changes.
+
+Prove full-output equivalence with independent per-column value hashes and dtype
+metadata, plus index and category dictionaries. Add a focused lifetime regression
+only if it can fail on the old implementation without a fragile timing/RSS
+threshold. Run format, lint, unit and integration tests. Compare Linux peak RSS
+for pinned baseline/candidate with identical inputs/dependencies; examine swap
+if the baseline is constrained by the 16 GB runner. Local live-byte deltas are
+diagnostic only, never substituted for the Linux outcome. If this hypothesis
+fails, record the measured reason and re-plan before broadening the change.
+
+- [x] Review previous measurements and identify retained join-frame hypothesis.
+- [ ] Measure distinct buffers retained by local frames on the full corpus.
+- [ ] Implement the smallest ownership/lifetime fix and verify output equivalence.
+- [ ] Run required checks and paired Linux measurements beyond observed noise.
+- [ ] Bump version, open PR, verify current-head CI, merge and deploy from clean main.
+- [ ] Record review and triage next relevant work.
+
+## Review
+
+The small lifetime regression fails on d470c7f: both completed full-length joins
+are still alive when final derived annotations run. Releasing each temporary
+immediately after column assignment fixes that failure. Full-corpus buffer
+accounting, equivalence and Linux RSS validation remain pending; no memory
+reduction is claimed yet. The cache prerequisite is PR #609 / version 1.63.13;
+this memory fix reserves 1.63.14 and will ship after it.
+
 # Batch review — 2026-09-26/27
 
 Asked to pick a path to "fixing all known problems" from 33 open issues and do
