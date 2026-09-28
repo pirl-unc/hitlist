@@ -546,6 +546,10 @@ source = { editable = "." }
 dependencies = [
     { name = "datacache" },
     { name = "mhcgnomes" },
+    { name = "numpy", version = "2.0.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.10.*'" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
+    { name = "numpy", version = "2.5.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "pandas", version = "2.3.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "pandas", version = "3.0.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "pyarrow", version = "21.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
@@ -568,6 +572,7 @@ dev = [
 requires-dist = [
     { name = "datacache", specifier = ">=1.11.1" },
     { name = "mhcgnomes", specifier = ">=3.64.4" },
+    { name = "numpy", specifier = ">=1.22" },
     { name = "pandas" },
     { name = "pyarrow" },
     { name = "pyensembl" },

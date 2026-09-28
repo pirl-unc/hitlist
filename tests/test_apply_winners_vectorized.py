@@ -172,3 +172,61 @@ def test_duplicate_keys_in_obs_all_get_winner():
     assert obs.loc[0, "tissue"] == "NEW"
     assert obs.loc[1, "tissue"] == "NEW"
     assert obs.loc[2, "tissue"] == "OLD"
+
+
+def test_heterogeneous_winner_key_sets_do_not_misalign_presence():
+    """Winners carrying different key sets must not swap presence flags (#602).
+
+    The two-frame implementation this replaced built a values frame with
+    ``DataFrame.from_dict(winners, orient="index")`` and a separate presence
+    frame, then overwrote the presence frame's index with the values frame's.
+    ``from_dict`` **reorders** its index when the inner dicts have
+    heterogeneous key sets -- it groups rows by key-set signature -- so with
+    the winners below its index came out ``[("A",), ("Q",), ("B",)]`` against
+    the presence frame's insertion order ``[("A",), ("B",), ("Q",)]``. Row
+    ``B`` was then handed row ``Q``'s presence flags, read ``tissue`` as
+    present, and wrote ``NaN`` over ``T1`` -- a value the contract says to
+    preserve, silently turned into missing data.
+
+    Heterogeneous key sets are not hypothetical: both production call sites
+    pass them, because ``_consensus_meta`` carries keys the
+    ``_select_best_candidate`` branch does not. ``("Q",)`` standing for a
+    winner whose key matches no observation is likewise ordinary -- the
+    per-PMID paths build winners per candidate arm, not per matched row.
+    """
+    obs = pd.DataFrame({"k": ["A", "B"], "tissue": ["T0", "T1"], "label": ["L0", "L1"]})
+    apply_winners_vectorized(
+        obs,
+        mask=pd.Series([True, True]),
+        tiebreak_cols=["k"],
+        winners={
+            ("A",): {"tissue": "NEW_tissue"},
+            ("B",): {"label": "NEW_label"},
+            ("Q",): {"tissue": "NEW_tissue"},
+        },
+        meta_cols=["tissue", "label"],
+    )
+    assert obs.loc[0, "tissue"] == "NEW_tissue"
+    assert obs.loc[0, "label"] == "L0"
+    assert obs.loc[1, "tissue"] == "T1"  # the cell the old form overwrote with NaN
+    assert obs.loc[1, "label"] == "NEW_label"
+
+
+def test_winner_key_matching_no_obs_row_is_inert():
+    """A winner whose key appears in no masked row changes nothing.
+
+    Guards the sentinel slot: ``get_indexer`` returns ``-1`` for such rows and
+    NumPy resolves ``-1`` to the last element, so the per-winner arrays carry
+    one extra "absent" slot at the end. An off-by-one there would let
+    unmatched rows gather the *last winner's* value instead.
+    """
+    obs = pd.DataFrame({"k": ["A", "B"], "tissue": ["T0", "T1"]})
+    before = obs.copy()
+    apply_winners_vectorized(
+        obs,
+        mask=pd.Series([True, True]),
+        tiebreak_cols=["k"],
+        winners={("Q",): {"tissue": "NEW_tissue"}},
+        meta_cols=["tissue"],
+    )
+    pd.testing.assert_frame_equal(obs, before)
