@@ -179,7 +179,7 @@ def test_locations_resolve_the_data_dir_exactly_once(_split_locations, monkeypat
 
 
 def test_index_cache_label_follows_set_disk_cache_dir(tmp_path, monkeypatch, capsys):
-    """ "always ~/.hitlist" is a lie once `set_disk_cache_dir()` has moved it."""
+    """Report whether the cache follows the data directory or an override."""
     from hitlist import proteome
 
     monkeypatch.setattr(downloads, "_override_data_dir", tmp_path / "built")
@@ -190,11 +190,10 @@ def test_index_cache_label_follows_set_disk_cache_dir(tmp_path, monkeypatch, cap
     assert "set_disk_cache_dir()" in moved[0]
     assert "always ~/.hitlist" not in moved[0]
 
-    monkeypatch.setattr(
-        proteome, "_PROTEOME_INDEX_DISK_CACHE_DIR", proteome.default_proteome_index_cache_dir()
-    )
+    proteome.set_disk_cache_dir(None)
     default = [ln for ln in cli._data_location_lines() if "proteome index cache" in ln]
-    assert "always ~/.hitlist" in default[0]
+    assert "data directory" in default[0]
+    assert str(tmp_path / "built" / "proteome_index_cache") in default[0]
 
 
 def test_dir_summary_does_not_stat_entries_past_the_limit(tmp_path, monkeypatch):

@@ -145,8 +145,12 @@ does not count.
 Mirrored data assets (paper-derived CSVs, #303) are fetched by `datacache` into
 its own cache dir, which `HITLIST_DATA_DIR` does not move; on a default install
 that is the same directory as the indexes. `hitlist data dirs` prints every
-location, including the `~/.hitlist/proteome_index_cache` that proteome indexing
-maintains.
+location, including `<data directory>/proteome_index_cache`. This cache follows
+`HITLIST_DATA_DIR` and `set_data_dir()` unless `proteome.set_disk_cache_dir()`
+explicitly overrides it; passing `None` restores the dynamic default. Existing
+unconfigured legacy caches remain in use. Explicitly relocating the data
+directory leaves old files in place; copy `proteome_index_cache/` into the new
+directory to reuse those indexes.
 
 ## Development
 

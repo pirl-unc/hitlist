@@ -1,5 +1,13 @@
 # Lessons
 
+## 2026-09-28
+
+- Closing a memory investigation does not close the memory problem. Report
+  correctness, runtime, live allocation and Linux peak RSS separately; do not
+  call a difference smaller than measured run-to-run variation a reduction.
+  Keep the capacity issue open until comparable measurements establish useful
+  headroom on the runner that is actually failing.
+
 ## 2026-09-27
 
 - A rule is only as good as the remedy it prescribes. Check what it tells
