@@ -688,6 +688,51 @@ def _repair_scoped_peptide_attributions(df: pd.DataFrame) -> pd.DataFrame:
     return df.loc[keep]
 
 
+#: Columns the parquet stores as plain strings that
+#: ``export._CATEGORICAL_EXPORT_METADATA_COLS`` narrows to ``category`` anyway,
+#: so handing them over dictionary-encoded changes no exported dtype or value
+#: (#566).  Under pandas 3's ``future.infer_string`` a plain-string column
+#: arrives as an ``ArrowStringArray``, which stores every row's bytes plus an
+#: 8-byte offset; asking pyarrow for a dictionary means that flat array is never
+#: built, rather than being built and converted afterwards -- the distinction
+#: between the two is why the equivalent conversion after the read cost 337 MB
+#: of CI peak RSS while never materializing it does not.
+#:
+#: Deliberately excludes the columns the export leaves as strings
+#: (``host_mhc_types``, ``mhc_allele_set``, ``serotypes``, ``reference_iri``):
+#: encoding those would change the exported dtype and therefore the published
+#: artifact, which is a contract decision rather than an optimization.
+#: ``mhc_restriction`` and ``cell_line_name`` are on the list too but the
+#: parquet already stores them dictionary-encoded, so they need no request.
+_DICTIONARY_ON_READ_COLUMNS: frozenset[str] = frozenset(
+    {
+        "antigen_processing_comments",
+        "assay_comments",
+        "attributed_sample_label",
+        "monoallelic_host",
+        "reference_title",
+        "submission_id",
+        "supplementary_file",
+    }
+)
+
+
+def _dictionary_on_read_columns(
+    parquet_columns: set[str], read_columns: list[str] | None
+) -> list[str]:
+    """Which of :data:`_DICTIONARY_ON_READ_COLUMNS` this read actually touches.
+
+    Restricted to what the file has -- ``_load_peptide_index`` serves the
+    binding and bulk-proteomics parquets too, and pyarrow rejects a
+    ``read_dictionary`` entry naming a column the schema lacks -- and to what
+    the caller projected.
+    """
+    wanted = _DICTIONARY_ON_READ_COLUMNS & set(parquet_columns)
+    if read_columns is not None:
+        wanted &= set(read_columns)
+    return sorted(wanted)
+
+
 def _load_peptide_index(
     path: Path,
     *,
@@ -912,7 +957,12 @@ def _load_peptide_index(
         # ``df.columns`` themselves (mirrors the no-filter path above).
         read_columns = [c for c in kept if c in parquet_columns]
 
-    df = pd.read_parquet(path, columns=read_columns, filters=filters if filters else None)
+    df = pd.read_parquet(
+        path,
+        columns=read_columns,
+        filters=filters if filters else None,
+        read_dictionary=_dictionary_on_read_columns(parquet_columns, read_columns) or None,
+    )
     df = _repair_scoped_peptide_attributions(df)
 
     # Refresh only derived identities. Reported restrictions stay intact,
