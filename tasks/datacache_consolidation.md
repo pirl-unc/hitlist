@@ -69,3 +69,17 @@ is created on reuse. Focused tests pass against the published package. Both
 hitlist stages pass the full Python 3.9-3.12 unit CI matrix, all 45 corpus
 integration tests and combined coverage. Clean-main release gates and hitlist
 PyPI publication remain required; record the final artifact checks in each PR.
+
+## Release-capacity re-plan
+
+The local deployment was stopped after the user reported memory pressure. Its
+partial result was 1,185 passes and an ENOSPC failure while writing a tiny test
+Parquet file; it is not a successful gate. Do not run further heavy local tests.
+Use the existing clean-main Release build workflow and verify its source/run
+provenance and artifact hashes before uploading the exact distributions.
+
+The already-filed #612 records a passing 37-minute unit phase followed by a
+45-minute workflow timeout during integration. Increase that workflow's total
+budget to 90 minutes, retaining one worker, both complete test phases, memory
+guards and source/artifact verification. Validate the workflow on this PR and
+again on clean main. This changes scheduling capacity, not test requirements.

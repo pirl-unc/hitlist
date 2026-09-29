@@ -2,6 +2,14 @@
 
 ## 2026-09-29
 
+- On a shared workstation, a successful memory preflight is only a momentary
+  capacity check. Other jobs can start during a long test run. When the user
+  reports pressure, measure this task's processes, stop its heavy work and move
+  release validation to CI. Resident memory alone excludes compressed/swapped
+  pages; do not use a small RSS snapshot to deny contributing to the pressure.
+  Keep the original failure/interruption in the record and never count a partial
+  run as passing.
+
 - Parameterized test data must be deterministic at collection time. gzip.compress
   embeds the current timestamp by default; putting its bytes in pytest parameters
   gave xdist workers different node IDs across a one-second boundary. Use mtime=0

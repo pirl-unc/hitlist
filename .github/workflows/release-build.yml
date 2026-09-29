@@ -26,7 +26,9 @@ jobs:
   build:
     if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # A serial unit phase has taken 37 minutes before integration/setup (#612).
+    # Allow both complete phases with headroom for hosted-runner variation.
+    timeout-minutes: 90
     env:
       # The v2 corpus needs conservative concurrency on the hosted runner.
       # Existing per-worker memory guards and both complete test phases remain.

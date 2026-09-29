@@ -27,7 +27,11 @@ optional-dependency/data skips each). Integration peak RSS is 13,165,756 kB and
 13,098,972 kB respectively. These are validation runs, not new paired memory
 benchmarks. #617 merged as 7df2947; its clean-main deployment passed formatting
 and lint, then started full tests after the memory retry found 13.95 GiB free.
-Publication receipts belong in the PR descriptions once PyPI hashes match.
+The local test run was subsequently stopped after the user's memory-pressure
+report: 1,185 passes and an ENOSPC failure, not a passing gate. Remaining heavy
+checks run in CI. The release-capacity re-plan also addresses #612's measured
+timeout by increasing the workflow budget while retaining every check and one
+worker. Publication receipts belong in the PR descriptions once PyPI hashes match.
 No cache or biological labels were moved.
 
 The registry prerequisite, datacache 1.15.0 / openvax/datacache#84, is merged
