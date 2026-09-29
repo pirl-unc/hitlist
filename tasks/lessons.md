@@ -1,5 +1,22 @@
 # Lessons
 
+## 2026-09-29
+
+- Parameterized test data must be deterministic at collection time. gzip.compress
+  embeds the current timestamp by default; putting its bytes in pytest parameters
+  gave xdist workers different node IDs across a one-second boundary. Use mtime=0
+  for fixed gzip fixtures and verify collection under multiple workers.
+
+- Do not recommend a training identity or split key from its name or docstring.
+  Reproduce its uniqueness across distinct donors, samples and alternate protein
+  mappings first. #614 shows six donor observations sharing two evidence_row_id
+  values; using that key alone can erase genotype-specific observations. #616
+  shows that paper-level splitting also fails when experiments are reused across
+  papers. Training readiness requires observation-identity and dataset-lineage
+  audits in addition to peptide overlap checks. Preserve assay endpoint and unit
+  when selecting binding labels; a numeric value alone can be a half-life in
+  minutes, not an affinity (#615).
+
 ## 2026-09-28
 
 - Keep closing keywords out of incidental cross-references. Writing "memory

@@ -49,7 +49,7 @@ from .downloads import (
     get_path,
     info,
     legacy_data_dir_notice,
-    list_datasets,
+    list_cache_files,
     refresh,
     register,
     remove,
@@ -208,27 +208,35 @@ def _print_subgroup_help(parser: argparse.ArgumentParser) -> None:
 
 
 def _data_list(args: argparse.Namespace) -> None:
-    datasets = list_datasets()
-    if not datasets:
-        print("No datasets registered.")
-        _print_data_locations()
-        print("Run 'hitlist data available' to see known datasets.")
+    rows = list_cache_files(
+        verify=getattr(args, "verify", False),
+        include_unregistered=getattr(args, "all", False) or getattr(args, "json", False),
+    )
+    if getattr(args, "json", False):
+        print(json.dumps(rows, indent=2))
         return
-    print(f"{'Name':<12} {'Size':>12}  {'Date':<12} Description")
-    print("-" * 75)
-
-    for name, ds in sorted(datasets.items()):
-        size_str = _fmt_size(ds.get("size_bytes", 0))
-        date = ds.get("registered", "")[:10]
-        desc = ds.get("description", "")
-        print(f"{name:<12} {size_str:>12}  {date:<12} {desc}")
-    print()
+    print(f"{'Status':<14} {'Size':>12}  {'Integrity':<12} Path")
+    for row in rows:
+        size = _fmt_size(row["size_bytes"]) if row["size_bytes"] is not None else "—"
+        integrity = "verified" if row["verified"] else "unchecked"
+        print(f"{row['status']:<14} {size:>12}  {integrity:<12} {row['path']}")
+        if row["names"]:
+            print(f"  name: {', '.join(row['names'])}")
+        if row["source_url"]:
+            print(f"  source: {row['source_url']}  fetched: {row['fetched_at']}")
+        if row["error"] and row["status"] != "missing":
+            print(f"  {row['error']}")
     _print_data_locations()
 
 
 def _data_available(args: argparse.Namespace) -> None:
     datasets = available_datasets()
-    registered = set(list_datasets().keys())
+    registered = {
+        name
+        for row in list_cache_files(include_unregistered=False)
+        if row["status"] == "available"
+        for name in row["names"]
+    }
     print(f"{'Name':<12} {'Status':<12} Description")
     print("-" * 75)
     for name, desc in sorted(datasets.items()):
@@ -427,7 +435,10 @@ def _build_data_parser(sub: argparse._SubParsersAction) -> None:
     dp.set_defaults(_subgroup_parser=dp)
     ds = dp.add_subparsers(dest="data_command")
 
-    ds.add_parser("list", help="Show registered datasets")
+    p = ds.add_parser("list", help="Show registered datasets or the complete cache inventory")
+    p.add_argument("--all", action="store_true", help="Inspect files across all cache locations")
+    p.add_argument("--verify", action="store_true", help="Verify trusted mirrored-asset hashes")
+    p.add_argument("--json", action="store_true", help="Print the complete inventory as JSON")
     ds.add_parser("available", help="Show all known datasets")
     ds.add_parser(
         "dirs",

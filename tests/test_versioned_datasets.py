@@ -16,9 +16,9 @@ from __future__ import annotations
 
 import io
 import zipfile
-from contextlib import contextmanager
 
 import pytest
+import requests
 
 from hitlist import downloads
 from hitlist.downloads import (
@@ -27,12 +27,6 @@ from hitlist.downloads import (
     VersionedDatasetError,
     VersionedDatasetRegistry,
 )
-
-
-@contextmanager
-def _fake_response(payload: bytes):
-    yield io.BytesIO(payload)
-
 
 # ── IEDB / CEDAR are now auto-fetchable ───────────────────────────────────────
 
@@ -53,11 +47,14 @@ def test_fetch_iedb_streams_unzips_and_notes_terms(tmp_path, monkeypatch, capsys
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w") as z:
         z.writestr("mhc_ligand_full_single_file.csv", b"peptide,allele\nSIINFEKL,H2-Kb\n")
-    monkeypatch.setattr(
-        downloads.urllib.request,
-        "urlopen",
-        lambda url, timeout=None: _fake_response(buf.getvalue()),
-    )
+
+    def respond(url, **kwargs):
+        response = requests.Response()
+        response.status_code = 200
+        response.raw = io.BytesIO(buf.getvalue())
+        return response
+
+    monkeypatch.setattr(requests, "get", respond)
     downloads.set_data_dir(tmp_path)
     try:
         path = downloads.fetch("iedb")

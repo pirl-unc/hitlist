@@ -352,7 +352,9 @@ hitlist data refresh <name>                             # re-download
 hitlist data info <name>                                # detailed metadata (JSON)
 hitlist data path <name>                                # print the registered path
 hitlist data remove <name> [--delete]                   # unregister (optionally delete file)
-hitlist data list                                       # show registered datasets
+hitlist data list                                       # registered datasets + mirrored assets
+hitlist data list --all --json                          # every cache file and its provenance
+hitlist data list --verify                              # verify trusted mirrored-asset hashes
 hitlist data available                                  # show all known datasets
 hitlist data dirs                                       # every directory hitlist uses, and why
 ```
@@ -360,6 +362,9 @@ hitlist data dirs                                       # every directory hitlis
 ### Where hitlist keeps data
 
 `hitlist data dirs` is the complete answer; the short version:
+
+See [downloads and cache inspection](docs/downloads.md) for resumability,
+read-only inventory, integrity statuses, and the Python download adapter.
 
 | what | where |
 |---|---|

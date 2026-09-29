@@ -234,7 +234,7 @@ def test_fetch_species_proteome_offline_does_not_download(tmp_path, monkeypatch)
     def fail_download(*_args, **_kwargs):
         raise AssertionError("fetch_missing=False must not download")
 
-    monkeypatch.setattr(downloads, "_download_to_file", fail_download)
+    monkeypatch.setattr(downloads, "download_to_file", fail_download)
 
     result = downloads.fetch_species_proteome(
         "Sarcophilus harrisii",

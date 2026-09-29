@@ -18,44 +18,32 @@ from __future__ import annotations
 import gzip
 import io
 import zipfile
-from contextlib import contextmanager
+
+import requests
 
 from hitlist import downloads
 
 
-@contextmanager
-def _fake_response(payload: bytes):
-    """Mimic the context-manager object returned by urlopen() (no headers)."""
-    yield io.BytesIO(payload)
-
-
 def _serve(monkeypatch, payload: bytes) -> dict:
-    """Monkeypatch urlopen to return *payload*; return a call counter."""
-    calls = {"n": 0}
+    """Serve bytes at the HTTP boundary used by datacache."""
+    calls = {"n_requests": 0}
 
-    def fake_urlopen(url, timeout=None):
-        calls["n"] += 1
-        return _fake_response(payload)
+    def fake_get(url, **kwargs):
+        calls["n_requests"] += 1
+        response = requests.Response()
+        response.status_code = 200
+        response.raw = io.BytesIO(payload)
+        return response
 
-    monkeypatch.setattr(downloads.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(requests, "get", fake_get)
     return calls
 
 
 def _no_network(monkeypatch) -> None:
-    """Make any urlopen call fail loudly (proves the cache short-circuit)."""
-
-    def boom(url, timeout=None):
+    def boom(url, **kwargs):
         raise AssertionError(f"unexpected network call to {url}")
 
-    monkeypatch.setattr(downloads.urllib.request, "urlopen", boom)
-
-
-def test_is_compressed_heuristic(tmp_path):
-    assert downloads._is_compressed("http://x/f.tsv.zip", tmp_path / "f.tsv")
-    assert downloads._is_compressed("http://x/f.tsv.gz", tmp_path / "f.tsv")
-    # dest keeps the archive suffix -> leave compressed.
-    assert not downloads._is_compressed("http://x/f.gz", tmp_path / "f.gz")
-    assert not downloads._is_compressed("http://x/f.tsv", tmp_path / "f.tsv")
+    monkeypatch.setattr(requests, "get", boom)
 
 
 def test_cache_hit_short_circuits(tmp_path, monkeypatch, capsys):
@@ -78,7 +66,7 @@ def test_fresh_download_streams_and_reports(tmp_path, monkeypatch, capsys):
 
     assert out == dest
     assert dest.read_bytes() == b">sp|P1\nACDEF\n"
-    assert calls["n"] == 1
+    assert calls["n_requests"] == 1
     assert "downloading from" in capsys.readouterr().out
 
 
@@ -110,6 +98,14 @@ def test_decompress_gz(tmp_path, monkeypatch):
     assert dest.read_bytes() == b"col1\tcol2\n1\t2\n"
     # The compressed archive is cleaned up, only the expanded file remains.
     assert not dest.with_name(dest.name + ".gz").exists()
+
+
+def test_decompress_leaves_archive_destination_compressed(tmp_path, monkeypatch):
+    dest = tmp_path / "genes.tsv.gz"
+    payload = gzip.compress(b"col1\tcol2\n1\t2\n")
+    _serve(monkeypatch, payload)
+    downloads.download_to_file("http://x/genes.tsv.gz", dest, decompress=True, verbose=False)
+    assert dest.read_bytes() == payload
 
 
 def test_decompress_zip_picks_named_member(tmp_path, monkeypatch):
