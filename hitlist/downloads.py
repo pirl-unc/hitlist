@@ -1198,7 +1198,7 @@ def fetch_data_asset(filename: str, *, force: bool = False, verbose: bool = True
             expected_sha256=meta["sha256"],
             expected_size=meta["size_bytes"],
             raw=True,
-            resume=True,
+            resume=os.name == "posix",
             record_provenance=True,
             show_progress=verbose,
         )

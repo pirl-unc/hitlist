@@ -32,7 +32,7 @@ files have distinct statuses. Availability is not a check for remote updates.
 Mirrored assets appear in `data available` and can be addressed by filename
 with `data info`, `data path` and `data fetch`. Their registry supplies trusted
 sizes and SHA-256 digests. These downloads now resume automatically after an
-interruption. Corrupt completed files require an explicit `--force` refresh.
+interruption on POSIX filesystems; other platforms use ordinary atomic downloads. Corrupt completed files require an explicit `--force` refresh.
 
 ```python
 from hitlist.downloads import download_to_file
