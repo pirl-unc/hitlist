@@ -97,7 +97,8 @@ def test_retry_then_success_and_provenance(http_source, tmp_path):
 
 
 @pytest.mark.parametrize(
-    "suffix, payload", [(".gz", gzip.compress(b"expanded")), (".html", b"<html>raw</html>")]
+    "suffix, payload",
+    [(".gz", gzip.compress(b"expanded", mtime=0)), (".html", b"<html>raw</html>")],
 )
 def test_default_keeps_raw_bytes(http_source, tmp_path, suffix, payload):
     url, state = http_source
@@ -110,7 +111,7 @@ def test_default_keeps_raw_bytes(http_source, tmp_path, suffix, payload):
 def test_literal_decompression_and_failed_transform(http_source, tmp_path):
     url, state = http_source
     dest = tmp_path / "data.txt"
-    state["payload"] = gzip.compress(b"expanded")
+    state["payload"] = gzip.compress(b"expanded", mtime=0)
     # Query-bearing URLs were raw in hitlist even with decompress=True.
     downloads.download_to_file(url + "/data.gz?query=1", dest, decompress=True, verbose=False)
     assert dest.read_bytes() == state["payload"]
