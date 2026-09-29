@@ -55,7 +55,6 @@ CLI::
 from __future__ import annotations
 
 import contextlib
-import hashlib
 import json
 import os
 import sys
@@ -63,6 +62,8 @@ import tempfile
 from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
+
+from datacache import VersionedFileRegistry
 
 # Socket inactivity bound; mapping prefetch separately enforces a wall-clock
 # deadline (#255/#402). Transfer, retry and publication belong to datacache.
@@ -1535,158 +1536,56 @@ class VersionedDatasetError(RuntimeError):
     """Unknown dataset/version, or a download failure, in a registry."""
 
 
-class VersionedDatasetRegistry:
-    """Download + cache for versioned, version-pinned external datasets.
+class VersionedDatasetRegistry(VersionedFileRegistry):
+    """Hitlist-compatible fixed-path registry backed by datacache.
 
-    Parameters
-    ----------
-    datasets
-        Mapping of ``name -> spec`` where each spec has::
-
-            {
-                "filename": "local_name.tsv",      # name on disk (post-decompress)
-                "urls": {"v23": "https://...zip", "latest": "https://..."},
-                "default_version": "v23",          # used when caller passes version=None
-                "description": "...",              # optional, for status()
-            }
-
-    cache_dir
-        Zero-arg callable returning the cache root :class:`~pathlib.Path`
-        (created on demand by the caller). The on-disk layout is
-        ``<cache>/<name>/<version>/<filename>`` plus a ``<cache>/manifest.json``
-        provenance file.
-    error_cls
-        Exception type raised for unknown datasets/versions and download
-        failures. Defaults to :class:`VersionedDatasetError`; consumers may pass
-        their own subclass to preserve their public error type.
+    Keeps the filename/urls/default_version mapping, callable cache_dir,
+    configurable error_cls, Path results and legacy root manifest/status keys.
+    Existing files are reused in place. Shared datacache machinery owns version
+    resolution, cache paths, writer locking and atomic receipt publication.
     """
 
     def __init__(self, datasets, *, cache_dir, error_cls=VersionedDatasetError):
-        self._datasets = datasets
-        self._cache_dir = cache_dir
-        self._error_cls = error_cls
-
-    # -- dataset / version resolution --
-
-    def _dataset(self, name: str) -> dict:
-        try:
-            return self._datasets[name]
-        except KeyError:
-            known = ", ".join(sorted(self._datasets))
-            raise self._error_cls(f"unknown dataset {name!r}; known: {known}") from None
-
-    def resolve_version(self, name: str, version: str | None = None) -> str:
-        """Return the concrete version for *name*, applying its default."""
-        spec = self._dataset(name)
-        if version is None:
-            version = spec["default_version"]
-        if version not in spec["urls"]:
-            avail = ", ".join(sorted(spec["urls"]))
-            raise self._error_cls(f"{name!r} has no version {version!r}; available: {avail}")
-        return version
-
-    # -- cache paths / manifest --
-
-    def _manifest_path(self) -> Path:
-        return self._cache_dir() / "manifest.json"
-
-    def _read_manifest(self) -> dict:
-        path = self._manifest_path()
-        if not path.exists():
-            return {}
-        try:
-            return json.loads(path.read_text())
-        except (json.JSONDecodeError, OSError):
-            return {}
-
-    def _write_manifest(self, manifest: dict) -> None:
-        # Atomic write (temp + os.replace), same as the module-level
-        # _save_manifest (#331): an interrupted/concurrent write must never
-        # truncate manifest.json, or _read_manifest silently returns {} and all
-        # provenance (sha256/bytes/url) vanishes.
-        p = self._manifest_path()
-        p.parent.mkdir(parents=True, exist_ok=True)
-        fd, tmp = tempfile.mkstemp(dir=str(p.parent), prefix=".manifest-", suffix=".tmp")
-        try:
-            with os.fdopen(fd, "w") as f:
-                f.write(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
-            os.replace(tmp, str(p))
-        except BaseException:
-            if os.path.exists(tmp):
-                os.remove(tmp)
-            raise
-
-    def local_path(self, name: str, version: str | None = None) -> Path:
-        """Expected cache path for *name*/*version* (may not exist yet)."""
-        version = self.resolve_version(name, version)
-        spec = self._dataset(name)
-        return self._cache_dir() / name / version / spec["filename"]
-
-    def is_cached(self, name: str, version: str | None = None) -> bool:
-        return self.local_path(name, version).exists()
-
-    # -- fetch --
+        super().__init__(datasets, cache_dir=cache_dir, error_cls=error_cls)
 
     def download(
         self, name: str, version: str | None = None, *, force: bool = False, verbose: bool = True
     ) -> Path:
-        """Download *name*/*version* into the cache and record it in the manifest.
-
-        A cached copy is reused unless ``force``. The transfer + ``.zip``/``.gz``
-        decompression are delegated to :func:`download_to_file`.
-        """
+        # Snapshot a dynamic root once, including status messages and the
+        # transfer/receipt transaction. The shared object carries no mutable
+        # installation state; creating this bound view is inexpensive.
         version = self.resolve_version(name, version)
-        spec = self._dataset(name)
-        dest = self.local_path(name, version)
-        url = spec["urls"][version]
-
-        was_cached = dest.exists() and not force
-        try:
-            download_to_file(url, dest, label=name, verbose=verbose, force=force, decompress=True)
-        except Exception as e:  # surface network/HTTP/decompress failures uniformly
-            raise self._error_cls(f"failed to download {name} ({url}): {e}") from e
-
-        # A cache hit needs no manifest churn (and no fresh sha256 of a large
-        # file); download_to_file already printed the cache-status line.
-        if was_cached:
-            return dest
-
-        manifest = self._read_manifest()
-        manifest[name] = {
-            "version": version,
-            "url": url,
-            "path": str(dest),
-            "bytes": dest.stat().st_size,
-            "sha256": hashlib.sha256(dest.read_bytes()).hexdigest(),
-            "downloaded_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        }
-        self._write_manifest(manifest)
-        return dest
+        root = Path(self._cache_dir())
+        registry = VersionedFileRegistry(
+            self._datasets, cache_dir=lambda: root, error_cls=self._error_cls
+        )
+        dest = registry.local_path(name, version)
+        url = self._datasets[name]["urls"][version]
+        cached = dest.exists() and not force
+        if verbose:
+            if cached:
+                print(f"  [{name}] already cached ({dest.stat().st_size:,} bytes)")
+            else:
+                print(f"  [{name}] downloading from {url}")
+        expand = any(
+            url.lower().endswith(suffix) and not dest.name.lower().endswith(suffix)
+            for suffix in (".gz", ".zip")
+        )
+        return registry.download(
+            name,
+            version,
+            force=force,
+            raw=not expand,
+            decompress=expand,
+            timeout=_DOWNLOAD_SOCKET_TIMEOUT,
+            show_progress=verbose and sys.stderr.isatty(),
+            record_provenance=True,
+        )
 
     def ensure(self, name: str, version: str | None = None) -> Path:
-        """Return a local path to *name*/*version*, downloading if absent."""
-        path = self.local_path(name, version)
-        return path if path.exists() else self.download(name, version)
-
-    def status(self) -> list[dict]:
-        """Return one status row per dataset (for a ``... list`` CLI command)."""
-        manifest = self._read_manifest()
-        rows = []
-        for name, spec in sorted(self._datasets.items()):
-            default_v = spec["default_version"]
-            path = self._cache_dir() / name / default_v / spec["filename"]
-            record = manifest.get(name, {})
-            rows.append(
-                {
-                    "name": name,
-                    "description": spec.get("description", ""),
-                    "default_version": default_v,
-                    "available_versions": sorted(spec["urls"]),
-                    "cached": path.exists(),
-                    "cached_version": record.get("version") if record else None,
-                    "bytes": record.get("bytes") if path.exists() else None,
-                    "downloaded_at": record.get("downloaded_at") if path.exists() else None,
-                    "path": str(path),
-                }
-            )
-        return rows
+        """Reuse silently, or download with the established status messages."""
+        version = self.resolve_version(name, version)
+        root = Path(self._cache_dir())
+        registry = type(self)(self._datasets, cache_dir=lambda: root, error_cls=self._error_cls)
+        path = registry.local_path(name, version)
+        return path if path.exists() else registry.download(name, version)

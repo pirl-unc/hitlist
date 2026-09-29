@@ -47,3 +47,23 @@ integration with the verified CI corpus). Review the diff and current-head CI,
 merge, deploy from clean main, and verify published wheel/sdist hashes on PyPI.
 Only then mark the release complete. Finish the independent curation/training
 assessment during long validation runs.
+
+## Registry implementation decision
+
+The bundle adapter would add a second namespace, symlink publication and parallel
+receipts. Instead, datacache #83 / PR #84 now supplies VersionedFileRegistry,
+which preserves the established fixed paths and manifest schema directly. It
+also fixes the reproduced concurrent manifest lost-update race (hitlist #618).
+Hitlist will subclass that shared implementation solely for its public error
+default, human messages, 300-second timeout and literal-URL transform policy.
+The shared base owns version resolution, paths, cache reuse, bounded-memory
+receipt hashing, locking and atomic manifest writes. Bump hitlist to 1.63.16
+and require the published datacache 1.15.0. Compare old/new public outputs on
+legacy fixtures and run normal format/lint/full unit/integration/release gates.
+
+Registry review: datacache 1.15.0 shipped from clean master with 764 tests
+and both full CI matrices passing. Published wheel/sdist hashes match. The
+hitlist adapter's offline legacy results were compared directly with released
+1.63.14; paths, Path returns and status dictionaries match, and no cache metadata
+is created on reuse. Focused tests pass against the published package. Full
+hitlist gates and PyPI publication remain pending.

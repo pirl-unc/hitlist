@@ -8,9 +8,11 @@ Spec: [datacache_consolidation.md](datacache_consolidation.md).
 - [x] Add read-only unified inventory and resumable mirrored assets.
 - [x] Test public behavior and interrupted HTTP downloads; bump version/lock.
 - [ ] Run format, lint, full tests; review, merge and publish first release.
-- [ ] Migrate versioned registry with legacy path/manifest compatibility tests.
+- [x] Migrate versioned registry with legacy path/manifest compatibility tests.
 - [ ] Run all gates, review, merge and publish registry release.
-- [ ] Finish curation/training-source assessment and dependency/urgency review.
+- [x] Finish curation/training-source assessment; user supplied #614/#615/#616 and
+      #18 findings for discussion after #589 ships.
+- [ ] Complete dependency/urgency review after publication.
 
 Review: transfer and inventory regressions pass, including real HTTP resume across
 separate calls with/without a trusted hash, 429/503 retries, failed-refresh

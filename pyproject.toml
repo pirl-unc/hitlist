@@ -34,8 +34,8 @@ dependencies = [
     "numpy>=1.22",
     "PyYAML",
     "tqdm",
-    # Raw transfers, resumability and read-only inspection/provenance (#589).
-    "datacache>=1.14.0",
+    # Shared fixed-path registry, downloads, resumability and cache inspection (#589).
+    "datacache>=1.15.0",
     # Ensembl gene/transcript annotation: proteome indexing + ENSG→HGNC symbol
     # fill for line_expression. Release data is installed separately
     # (`pyensembl install --release 112 --species homo_sapiens`); the build
