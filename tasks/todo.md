@@ -7,17 +7,41 @@ Spec: [datacache_consolidation.md](datacache_consolidation.md).
 - [x] Replace custom transfer/retry/decompression with the datacache adapter.
 - [x] Add read-only unified inventory and resumable mirrored assets.
 - [x] Test public behavior and interrupted HTTP downloads; bump version/lock.
-- [ ] Run format, lint, full tests; review, merge and publish first release.
-- [ ] Migrate versioned registry with legacy path/manifest compatibility tests.
-- [ ] Run all gates, review, merge and publish registry release.
-- [ ] Finish curation/training-source assessment and dependency/urgency review.
+- [x] Run format/lint and full unit/integration CI; review and merge #617.
+- [ ] Publish first release (1.63.15) from clean main.
+- [x] Migrate versioned registry with legacy path/manifest compatibility tests.
+- [x] Run registry format/lint, compatibility comparisons and full unit/integration CI.
+- [ ] Merge and publish registry release (1.63.16) from clean main.
+- [x] Finish curation/training-source assessment; user supplied #614/#615/#616 and
+      #18 findings for discussion after #589 ships.
+- [x] Review dependency/urgency after upstream publication; return to the user's
+      training-data discussion after both hitlist releases ship.
 
 Review: transfer and inventory regressions pass, including real HTTP resume across
 separate calls with/without a trusted hash, 429/503 retries, failed-refresh
 preservation, raw/expanded archive behavior, offline cross-root inventory,
-receipt trust semantics and unchanged legacy files. Format/lint pass. Full
-unit/integration validation is pending; the first local memory preflight
-refused with 0.17 GiB available. No cache or biological labels were moved.
+receipt trust semantics and unchanged legacy files. Both stages pass format/lint,
+the Python 3.9-3.12 unit matrix, combined coverage and all 45 corpus integration
+tests. Python 3.12 reports 2,405 unit passes for #617 and 2,412 for #620 (two
+optional-dependency/data skips each). Integration peak RSS is 13,165,756 kB and
+13,098,972 kB respectively. These are validation runs, not new paired memory
+benchmarks. #617 merged as 7df2947; its clean-main deployment passed formatting
+and lint, then started full tests after the memory retry found 13.95 GiB free.
+The local test run was subsequently stopped after the user's memory-pressure
+report: 1,185 passes and an ENOSPC failure, not a passing gate. Remaining heavy
+checks run in CI. The release-capacity re-plan also addresses #612's measured
+timeout by increasing the workflow budget while retaining every check and one
+worker. Publication receipts belong in the PR descriptions once PyPI hashes match.
+No cache or biological labels were moved.
+
+The registry prerequisite, datacache 1.15.0 / openvax/datacache#84, is merged
+and published with matching wheel/sdist hashes. It supplies the fixed-path
+registry and fixes the independently reproduced lost manifest update (#618).
+Hitlist's direct comparison against 1.63.14 confirms matching legacy paths,
+returns, status dictionaries and offline reuse. The requested next discussion
+is observation identity (#614), dataset lineage/splits (#616), targeted biology
+(#593/#588/#599), QC export (#18), and endpoint selection (#615); those defects
+are not resolved by this infrastructure work.
 
 # #566 — measure and release retained join buffers (2026-09-28)
 

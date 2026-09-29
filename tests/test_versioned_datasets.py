@@ -14,7 +14,9 @@
 
 from __future__ import annotations
 
+import gzip
 import io
+import json
 import zipfile
 
 import pytest
@@ -82,19 +84,15 @@ def _datasets():
 
 
 def _stub_dl(monkeypatch, content=b"DATA", counter=None):
-    def _impl(url, dest, *, label="", verbose=True, force=False, decompress=False):
-        from pathlib import Path
-
-        dest = Path(dest)
-        if dest.exists() and not force:
-            return dest
+    def respond(url, **kwargs):
         if counter is not None:
             counter["n"] += 1
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        dest.write_bytes(content)
-        return dest
+        response = requests.Response()
+        response.status_code = 200
+        response.raw = io.BytesIO(content)
+        return response
 
-    monkeypatch.setattr(downloads, "download_to_file", _impl)
+    monkeypatch.setattr(requests, "get", respond)
 
 
 def test_resolve_version_default_and_errors(tmp_path):
@@ -177,10 +175,108 @@ def test_custom_error_cls(tmp_path):
 
 
 def test_download_failure_wrapped(tmp_path, monkeypatch):
-    def _boom(url, dest, *, label="", verbose=True, force=False, decompress=False):
+    def _boom(url, **kwargs):
         raise OSError("network down")
 
-    monkeypatch.setattr(downloads, "download_to_file", _boom)
+    monkeypatch.setattr(requests, "get", _boom)
     reg = VersionedDatasetRegistry(_datasets(), cache_dir=lambda: tmp_path)
     with pytest.raises(VersionedDatasetError, match="failed to download"):
         reg.download("thing")
+
+
+def test_legacy_cache_is_reused_without_mutation(tmp_path, monkeypatch, capsys):
+    reg = VersionedDatasetRegistry(_datasets(), cache_dir=lambda: tmp_path)
+    path = reg.local_path("thing")
+    path.parent.mkdir(parents=True)
+    path.write_bytes(b"old cache")
+    receipt = {"thing": {"version": "v1", "bytes": 5, "downloaded_at": "2020-01-01"}}
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(json.dumps(receipt))
+    before = {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in (path, manifest)}
+    monkeypatch.setattr(requests, "get", lambda *a, **k: pytest.fail("network on cache hit"))
+    assert reg.ensure("thing") == path
+    assert capsys.readouterr().out == ""
+    assert reg.download("thing") == path
+    assert "already cached" in capsys.readouterr().out
+    assert reg.status() == [
+        {
+            "name": "thing",
+            "description": "A versioned thing",
+            "default_version": "v2",
+            "available_versions": ["v1", "v2"],
+            "cached": True,
+            "cached_version": "v1",
+            "bytes": 5,
+            "downloaded_at": "2020-01-01",
+            "path": str(path),
+        }
+    ]
+    assert before == {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in (path, manifest)}
+    assert not list(tmp_path.glob(".*")), "read-only reuse created metadata/locks"
+
+
+@pytest.mark.parametrize("method", ["download", "ensure"])
+def test_dynamic_registry_root_is_resolved_once(tmp_path, monkeypatch, method):
+    calls = []
+
+    def root():
+        calls.append(1)
+        return tmp_path / str(len(calls))
+
+    _stub_dl(monkeypatch)
+    reg = VersionedDatasetRegistry(_datasets(), cache_dir=root)
+    path = getattr(reg, method)("thing")
+    assert calls == [1]
+    assert path == tmp_path / "1/thing/v2/thing.tsv"
+    assert json.loads((tmp_path / "1/manifest.json").read_text())["thing"]["path"] == str(path)
+
+
+@pytest.mark.parametrize(
+    "suffix, filename, expanded",
+    [
+        (".gz", "file.tsv", True),
+        (".gz", "file.tsv.gz", False),
+        (".gz?query=1", "file.tsv", False),
+    ],
+)
+def test_registry_preserves_literal_decompression_policy(
+    tmp_path, monkeypatch, suffix, filename, expanded
+):
+    payload = gzip.compress(b"reference")
+    _stub_dl(monkeypatch, content=payload)
+    reg = VersionedDatasetRegistry(
+        {
+            "data": {
+                "filename": filename,
+                "default_version": "v1",
+                "urls": {"v1": "http://x/data" + suffix},
+            }
+        },
+        cache_dir=lambda: tmp_path,
+    )
+    path = reg.download("data", verbose=False)
+    assert path.read_bytes() == (b"reference" if expanded else payload)
+
+
+def test_registry_failed_refresh_retains_legacy_bytes_and_custom_error(tmp_path, monkeypatch):
+    class CustomError(VersionedDatasetError):
+        pass
+
+    reg = VersionedDatasetRegistry(_datasets(), cache_dir=lambda: tmp_path, error_cls=CustomError)
+    path = reg.local_path("thing")
+    path.parent.mkdir(parents=True)
+    path.write_bytes(b"old cache")
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text('{"legacy": {}}')
+    error = OSError("broken transport")
+
+    def fail(*args, **kwargs):
+        assert kwargs["timeout"] == 300.0
+        raise error
+
+    monkeypatch.setattr(requests, "get", fail)
+    with pytest.raises(CustomError) as raised:
+        reg.download("thing", force=True, verbose=False)
+    assert raised.value.__cause__ is error
+    assert path.read_bytes() == b"old cache"
+    assert manifest.read_text() == '{"legacy": {}}'

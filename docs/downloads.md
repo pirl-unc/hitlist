@@ -1,6 +1,6 @@
 # Downloads and cache inspection
 
-Hitlist requires datacache 1.14.0 or later. It supplies dataset definitions,
+Hitlist requires datacache 1.15.0 or later. It supplies dataset definitions,
 cache locations and biological metadata; datacache handles streaming transfers,
 bounded retries, decompression, integrity checks and atomic publication.
 
@@ -58,3 +58,21 @@ and Retry-After handling. Socket inactivity remains bounded at 300 seconds.
 Empty responses are rejected. Failed acquisition, validation or decompression
 leaves an existing destination intact. `download_to_file` returns a `Path` and
 wraps failures in `RuntimeError` with the original exception as its cause.
+
+## Versioned registry compatibility
+
+`hitlist.downloads.VersionedDatasetRegistry` now delegates its internals to
+datacache's `VersionedFileRegistry`. Its existing filename/urls/default_version
+definitions, callable cache root, error_cls, Path results and status keys remain
+supported. Files stay at `<root>/<name>/<version>/<filename>` and the existing
+root `manifest.json` remains readable. A missing `local_path()` still resolves
+without creating directories. `ensure()` reuses cached files silently.
+
+Legacy cache hits do not hash or rewrite receipts. Downloads retain hitlist's
+300-second timeout, progress/cache messages and literal-URL decompression
+policy. New receipts are hashed with bounded memory; concurrent writers to a
+root serialize so they cannot discard each other's manifest entries (#618).
+File and receipt publication are separate: a failed transfer preserves both,
+while a receipt-write failure after a successful transfer leaves the new file
+installed and the previous receipt intact. No generation directories, migration
+copies or path aliases are introduced.

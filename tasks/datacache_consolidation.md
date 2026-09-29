@@ -47,3 +47,39 @@ integration with the verified CI corpus). Review the diff and current-head CI,
 merge, deploy from clean main, and verify published wheel/sdist hashes on PyPI.
 Only then mark the release complete. Finish the independent curation/training
 assessment during long validation runs.
+
+## Registry implementation decision
+
+The bundle adapter would add a second namespace, symlink publication and parallel
+receipts. Instead, datacache #83 / PR #84 now supplies VersionedFileRegistry,
+which preserves the established fixed paths and manifest schema directly. It
+also fixes the reproduced concurrent manifest lost-update race (hitlist #618).
+Hitlist will subclass that shared implementation solely for its public error
+default, human messages, 300-second timeout and literal-URL transform policy.
+The shared base owns version resolution, paths, cache reuse, bounded-memory
+receipt hashing, locking and atomic manifest writes. Bump hitlist to 1.63.16
+and require the published datacache 1.15.0. Compare old/new public outputs on
+legacy fixtures and run normal format/lint/full unit/integration/release gates.
+
+Registry review: datacache 1.15.0 shipped from clean master with 764 tests
+and both full CI matrices passing. Published wheel/sdist hashes match. The
+hitlist adapter's offline legacy results were compared directly with released
+1.63.14; paths, Path returns and status dictionaries match, and no cache metadata
+is created on reuse. Focused tests pass against the published package. Both
+hitlist stages pass the full Python 3.9-3.12 unit CI matrix, all 45 corpus
+integration tests and combined coverage. Clean-main release gates and hitlist
+PyPI publication remain required; record the final artifact checks in each PR.
+
+## Release-capacity re-plan
+
+The local deployment was stopped after the user reported memory pressure. Its
+partial result was 1,185 passes and an ENOSPC failure while writing a tiny test
+Parquet file; it is not a successful gate. Do not run further heavy local tests.
+Use the existing clean-main Release build workflow and verify its source/run
+provenance and artifact hashes before uploading the exact distributions.
+
+The already-filed #612 records a passing 37-minute unit phase followed by a
+45-minute workflow timeout during integration. Increase that workflow's total
+budget to 90 minutes, retaining one worker, both complete test phases, memory
+guards and source/artifact verification. Validate the workflow on this PR and
+again on clean main. This changes scheduling capacity, not test requirements.
