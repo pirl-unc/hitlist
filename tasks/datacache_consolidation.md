@@ -65,5 +65,7 @@ Registry review: datacache 1.15.0 shipped from clean master with 764 tests
 and both full CI matrices passing. Published wheel/sdist hashes match. The
 hitlist adapter's offline legacy results were compared directly with released
 1.63.14; paths, Path returns and status dictionaries match, and no cache metadata
-is created on reuse. Focused tests pass against the published package. Full
-hitlist gates and PyPI publication remain pending.
+is created on reuse. Focused tests pass against the published package. Both
+hitlist stages pass the full Python 3.9-3.12 unit CI matrix, all 45 corpus
+integration tests and combined coverage. Clean-main release gates and hitlist
+PyPI publication remain required; record the final artifact checks in each PR.
