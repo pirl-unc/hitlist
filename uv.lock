@@ -487,7 +487,7 @@ toml = [
 
 [[package]]
 name = "datacache"
-version = "1.11.1"
+version = "1.14.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "appdirs" },
@@ -497,9 +497,9 @@ dependencies = [
     { name = "requests", version = "2.34.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "typechecks" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/8e/25/10e68d920bcc1569c97a411a85602453ba5651e2d423a124ac8e893794ec/datacache-1.11.1.tar.gz", hash = "sha256:83fd5f902ee4623e4707ea7a9e01efedf2e497ef0de542df6594a4e0c6d2011a", size = 115197, upload-time = "2026-09-26T23:03:52.212Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c2/c1/5139efbe2bd09ecb991cf9b9b64d2dc4bf083f832131142b92631f2d0f7a/datacache-1.14.0.tar.gz", hash = "sha256:d429942284bae2546cdea4bf252b9281f8bfa7d62b989377521e66c161b7a884", size = 154660, upload-time = "2026-09-28T20:20:28.083Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/4d/dd/2957305e124aea14b7216e69a8c4d8326397b9c74ffac063e4ae63b76617/datacache-1.11.1-py3-none-any.whl", hash = "sha256:a46a0908e3197c18b19cde461ed679a5179a95f67eba7bdb452cf558dd27222b", size = 46663, upload-time = "2026-09-26T23:03:50.829Z" },
+    { url = "https://files.pythonhosted.org/packages/69/59/c0a63104cae31fdfbbfd5249d5449d1978a93c38919e9e43fe2bb3cafe29/datacache-1.14.0-py3-none-any.whl", hash = "sha256:08295118dc8c1b9bd7fe0295f708713a70d120deade57fece0c5e99c9451a207", size = 64093, upload-time = "2026-09-28T20:20:26.673Z" },
 ]
 
 [[package]]
@@ -570,7 +570,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "datacache", specifier = ">=1.11.1" },
+    { name = "datacache", specifier = ">=1.14.0" },
     { name = "mhcgnomes", specifier = ">=3.64.4" },
     { name = "numpy", specifier = ">=1.22" },
     { name = "pandas" },

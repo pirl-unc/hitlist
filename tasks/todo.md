@@ -1,3 +1,24 @@
+# #589 — datacache consolidation (2026-09-29)
+
+Spec: [datacache_consolidation.md](datacache_consolidation.md).
+
+- [x] Verify datacache 1.14.0 APIs and existing hitlist path/return contracts.
+- [x] Write implementation and compatibility specification before code.
+- [x] Replace custom transfer/retry/decompression with the datacache adapter.
+- [x] Add read-only unified inventory and resumable mirrored assets.
+- [x] Test public behavior and interrupted HTTP downloads; bump version/lock.
+- [ ] Run format, lint, full tests; review, merge and publish first release.
+- [ ] Migrate versioned registry with legacy path/manifest compatibility tests.
+- [ ] Run all gates, review, merge and publish registry release.
+- [ ] Finish curation/training-source assessment and dependency/urgency review.
+
+Review: transfer and inventory regressions pass, including real HTTP resume across
+separate calls with/without a trusted hash, 429/503 retries, failed-refresh
+preservation, raw/expanded archive behavior, offline cross-root inventory,
+receipt trust semantics and unchanged legacy files. Format/lint pass. Full
+unit/integration validation is pending; the first local memory preflight
+refused with 0.17 GiB available. No cache or biological labels were moved.
+
 # #566 — measure and release retained join buffers (2026-09-28)
 
 The prior PR improved correctness/runtime but did not demonstrate lower hosted

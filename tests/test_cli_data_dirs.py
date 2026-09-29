@@ -40,6 +40,7 @@ def _split_locations(tmp_path, monkeypatch):
     monkeypatch.setattr(downloads, "_override_data_dir", built)
     monkeypatch.setattr(downloads, "_data_dir_cache", {})
     monkeypatch.setattr(cli, "data_asset_dir", lambda: assets)
+    monkeypatch.setattr(downloads, "data_asset_dir", lambda: assets)
     monkeypatch.setattr("hitlist.proteome._PROTEOME_INDEX_DISK_CACHE_DIR", tmp_path / "index-cache")
     return built, assets
 
@@ -70,7 +71,7 @@ def test_data_dirs_reports_the_proteome_index_cache(_split_locations, capsys, tm
 def test_data_list_footer_reports_the_asset_dir(_split_locations, monkeypatch, capsys):
     """The #291 gap itself: ``data list`` used to print only ``data_dir()``."""
     _, assets = _split_locations
-    monkeypatch.setattr(cli, "list_datasets", dict)
+    monkeypatch.setattr(downloads, "list_datasets", dict)
     cli._data_list(argparse.Namespace())
     assert str(assets) in capsys.readouterr().out
 
@@ -80,9 +81,16 @@ def test_data_list_footer_reports_the_asset_dir_with_datasets(
 ):
     built, assets = _split_locations
     monkeypatch.setattr(
-        cli,
+        downloads,
         "list_datasets",
-        lambda: {"iedb": {"size_bytes": 10, "registered": "2026-01-01", "description": "d"}},
+        lambda: {
+            "iedb": {
+                "path": str(built / "iedb.csv"),
+                "size_bytes": 10,
+                "registered": "2026-01-01",
+                "description": "d",
+            }
+        },
     )
     out_dir_line = cli._data_list(argparse.Namespace())
     assert out_dir_line is None
@@ -93,7 +101,7 @@ def test_data_list_footer_reports_the_asset_dir_with_datasets(
 
 def test_data_available_footer_reports_both(_split_locations, monkeypatch, capsys):
     built, assets = _split_locations
-    monkeypatch.setattr(cli, "list_datasets", dict)
+    monkeypatch.setattr(downloads, "list_datasets", dict)
     monkeypatch.setattr(cli, "available_datasets", lambda: {"iedb": "IEDB"})
     cli._data_available(argparse.Namespace())
     out = capsys.readouterr().out

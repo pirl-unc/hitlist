@@ -119,7 +119,9 @@ context = overlay_targets(full, target_peptides=my_cta_set, label="cta")
 hitlist data available          # list known datasets (IEDB/CEDAR + fetchable viral proteomes)
 hitlist data fetch hpv16        # auto-download a viral proteome from UniProt
 hitlist data register iedb /path/to/file  # register a manual download
-hitlist data list               # registered datasets with size/date
+hitlist data list               # registered datasets + mirrored assets with cache status
+hitlist data list --all --json   # all cache files with inspection/provenance
+hitlist data list --verify      # verify trusted mirrored-asset hashes
 hitlist data info iedb          # detailed JSON metadata
 hitlist data path iedb          # resolve to file path
 hitlist data dirs               # every directory hitlist uses, and why
