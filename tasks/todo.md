@@ -1,3 +1,42 @@
+# #613 — retain the index just written (2026-09-29)
+
+## Specification
+
+Honor the documented oversized-entry exception after a successful atomic index
+write. Pass the exact new cache path to eviction and exclude it from deletion;
+mtime alone cannot identify that path because reads also update mtime. Evict
+other entries oldest-first until the cap is met or only the protected entry
+remains. An oversized index can therefore exceed the cap by itself and still
+serve a later disk hit. Bind this eviction to the write's directory. An explicit
+prune without a protected entry continues to enforce the cap in the current
+directory. Preserve zero-cap disabling, atomic writes, filenames and cache roots.
+
+Use tiny FASTAs and byte-sized synthetic entries to verify cold reload, a single
+oversized entry, older entries with misleading mtimes, and ordinary LRU pruning.
+Show the cold-reload regression fails before fixing production code. Full suites
+and release validation run in CI to avoid workstation memory pressure.
+
+- [x] Confirm #613 is open and #589 is merged and published in 1.63.16.
+- [x] Write this specification and check in the implementation plan.
+- [x] Add failing regressions and protect the successfully written cache path.
+- [x] Bump version, run format/lint and focused tests; inspect the final diff.
+- [ ] Open PR, pass full CI, merge and publish from clean main with verified artifacts.
+- [ ] Record release proof and start the human class-I training-data PR (#614/#616).
+
+## Review
+
+Three real-write regressions fail on unmodified 1.63.16: a single oversized
+index disappears, as does one written beside older entries; misleading future
+mtimes retain an old entry instead of the new one. All 21 focused cache tests
+pass after the fix, including disk reload with rebuilding forbidden, ordinary
+LRU pruning, zero-cap disabling and changing roots mid-write. Format/lint and
+the editable-install check pass at 1.63.17; the lockfile uses a dynamic project
+version and needs no change. Full CI and publication remain pending.
+
+Training scope is human class-I affinity, processing and presentation;
+retain class-II and non-human evidence with explicit scope flags. Stable donor
+observations and source-backed experimental lineage precede model-ready claims.
+
 # #589 — datacache consolidation (2026-09-29)
 
 Spec: [datacache_consolidation.md](datacache_consolidation.md).
@@ -8,10 +47,10 @@ Spec: [datacache_consolidation.md](datacache_consolidation.md).
 - [x] Add read-only unified inventory and resumable mirrored assets.
 - [x] Test public behavior and interrupted HTTP downloads; bump version/lock.
 - [x] Run format/lint and full unit/integration CI; review and merge #617.
-- [ ] Publish first release (1.63.15) from clean main.
+- [x] Publish first release (1.63.15) from clean main.
 - [x] Migrate versioned registry with legacy path/manifest compatibility tests.
 - [x] Run registry format/lint, compatibility comparisons and full unit/integration CI.
-- [ ] Merge and publish registry release (1.63.16) from clean main.
+- [x] Merge and publish registry release (1.63.16) from clean main.
 - [x] Finish curation/training-source assessment; user supplied #614/#615/#616 and
       #18 findings for discussion after #589 ships.
 - [x] Review dependency/urgency after upstream publication; return to the user's
@@ -33,6 +72,13 @@ checks run in CI. The release-capacity re-plan also addresses #612's measured
 timeout by increasing the workflow budget while retaining every check and one
 worker. Publication receipts belong in the PR descriptions once PyPI hashes match.
 No cache or biological labels were moved.
+
+Publication verified: #617 shipped 1.63.15 after clean-main release run
+36612458305 (2,406 unit passes, one skip, 45 integration passes). #620 merged
+as 96035cf and shipped 1.63.16 after clean-main release run 36618631704 (2,413
+unit passes, one skip, 45 integration passes). Both runs passed format/lint and
+the full deploy.sh build gate; published PyPI wheel/sdist sizes and SHA-256 hashes
+match the verified CI artifacts. #589, #618 and #612 are closed.
 
 The registry prerequisite, datacache 1.15.0 / openvax/datacache#84, is merged
 and published with matching wheel/sdist hashes. It supplies the fixed-path
