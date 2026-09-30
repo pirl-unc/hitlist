@@ -709,28 +709,29 @@ def _write_index_to_disk(cache_key: tuple, idx: ProteomeIndex) -> None:
             with contextlib.suppress(FileNotFoundError):
                 tmp_path.unlink()
         return
-    _evict_disk_cache_if_over_cap()
+    _evict_disk_cache_if_over_cap(protected_path=cache_path)
 
 
-def _evict_disk_cache_if_over_cap() -> None:
+def _evict_disk_cache_if_over_cap(*, protected_path: Path | None = None) -> None:
     """Evict oldest-mtime cache files until total size ≤ cap.
 
-    Called after every successful write.  Uses file mtime as the LRU
-    proxy — ``_load_index_from_disk`` touches mtime on every hit, so
+    Called after every successful write with the exact path just written.
+    Uses file mtime as the LRU proxy — ``_load_index_from_disk`` touches
+    mtime on every hit, so
     it's a recency-of-use signal even though it doubles as the
     last-modified timestamp.
 
-    Caveat: when a single newly-written entry alone exceeds the cap,
-    we may end up slightly over.  The eviction loop walks oldest-first
-    and stops once under cap; it never deletes the entry it just
-    wrote (that would defeat the purpose of writing it).  Practically
-    this only matters if the user sets the cap below their largest
-    proteome's index size — at which point caching is moot anyway.
+    A protected entry is never deleted by this pass, even if it alone exceeds
+    the cap. Other entries are evicted oldest-first until the cap is met or
+    only the protected entry remains. Protection uses the path, not mtime:
+    another cache hit can have a later mtime than the write. Prune that path's
+    directory so a concurrent root change cannot redirect the write's cleanup.
+    Without a protected path, strictly prune the currently selected directory.
     """
     cap_bytes = int(_resolve_disk_cache_max_gb() * 1024**3)
     if cap_bytes <= 0:
         return
-    cache_dir = proteome_index_cache_dir()
+    cache_dir = protected_path.parent if protected_path is not None else proteome_index_cache_dir()
     if not cache_dir.is_dir():
         return
     files = []
@@ -749,6 +750,8 @@ def _evict_disk_cache_if_over_cap() -> None:
     for _mtime, size, f in files:
         if total <= cap_bytes:
             break
+        if f == protected_path:
+            continue
         with contextlib.suppress(FileNotFoundError):
             f.unlink()
             total -= size

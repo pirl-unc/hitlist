@@ -88,3 +88,30 @@ def test_disk_operations_use_the_current_data_directory(tmp_path, monkeypatch):
     assert not partial.exists()
     assert len(list((roots[0] / "proteome_index_cache").glob("*.pkl"))) == 1
     assert not (Path.home() / ".hitlist").exists()
+
+
+def test_write_eviction_stays_in_the_written_directory(tmp_path, monkeypatch):
+    """Changing the selected root mid-write cannot redirect its eviction pass."""
+    first = tmp_path / "first"
+    second = tmp_path / "second"
+    first.mkdir()
+    second.mkdir()
+    stale = first / "stale.pkl"
+    untouched = second / "unrelated.pkl"
+    stale.write_bytes(b"old")
+    untouched.write_bytes(b"unrelated")
+    proteome.set_disk_cache_dir(first)
+    monkeypatch.setenv("HITLIST_PROTEOME_INDEX_CACHE_GB", str(1 / 1024**3))
+    real_replace = proteome.os.replace
+
+    def replace_then_switch_root(source, destination):
+        real_replace(source, destination)
+        proteome.set_disk_cache_dir(second)
+
+    monkeypatch.setattr(proteome.os, "replace", replace_then_switch_root)
+    fasta = tmp_path / "test.fasta"
+    fasta.write_text(">sp|P|TEST\nACDEFGHIKLMNPQRSTVWY\n")
+    proteome.ProteomeIndex.from_fasta(fasta, lengths=(5,), verbose=False)
+    assert len(list(first.glob("*.pkl"))) == 1
+    assert not stale.exists()
+    assert untouched.read_bytes() == b"unrelated"
