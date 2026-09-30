@@ -67,7 +67,8 @@ from .parquet_io import atomic_write_parquet, concat_non_empty
 #:    before this still holds them, which is why it must rebuild.
 #: 6: Peptide-to-patient maps respect source-cohort restrictions (#534),
 #:    preventing false labels and donor copies of monoallelic observations.
-_OBSERVATIONS_ARTIFACT_VERSION = 6
+#: 7: Every retained observation links to all contributors before deduplication.
+_OBSERVATIONS_ARTIFACT_VERSION = 7
 
 
 def _source_paths() -> dict[str, Path]:
@@ -236,6 +237,7 @@ def _parquet_fingerprints() -> dict:
         ("binding", _binding_path()),
         ("bulk_proteomics", _bulk_proteomics_path()),
         ("line_expression", _line_expression_path()),
+        ("contributors", data_dir() / "observation_contributors.parquet"),
     ):
         if p.exists():
             stat = p.stat()
@@ -267,6 +269,8 @@ def _cache_is_valid(
     if not _bulk_proteomics_path().exists():
         return False
     if not _line_expression_path().exists():
+        return False
+    if not (data_dir() / "observation_contributors.parquet").exists():
         return False
     stored = json.loads(meta.read_text())
     if stored.get("artifact_version") != _OBSERVATIONS_ARTIFACT_VERSION:
@@ -445,7 +449,7 @@ def _union_columns(frames) -> list[str]:
     return out
 
 
-def _drop_duplicate_iris(df: pd.DataFrame, label: str) -> pd.DataFrame:
+def _drop_duplicate_iris(df: pd.DataFrame, label: str, *, provenance=None) -> pd.DataFrame:
     """Drop cross-source duplicates by ``assay_iri`` (#146).
 
     Replaces the prior per-source-loop ``ms_seen_iris: set[str]`` Python
@@ -478,7 +482,7 @@ def _drop_duplicate_iris(df: pd.DataFrame, label: str) -> pd.DataFrame:
         return df
     # Compare by path so the same assay matches across IEDB / CEDAR
     # hosts (#351).  Non-IRI values are left untouched.
-    primary = primary.str.replace(_IRI_ORIGIN_RE, "", regex=True)
+    primary = primary.str.strip().str.replace(_IRI_ORIGIN_RE, "", regex=True)
     # Per-donor split rows (#236) share assay_iri but differ in
     # ``attributed_sample_label`` — fold the label into the dedup key so
     # the split survives.  Empty label (non-attributed rows) preserves
@@ -489,16 +493,32 @@ def _drop_duplicate_iris(df: pd.DataFrame, label: str) -> pd.DataFrame:
     else:
         key = primary
     before = len(df)
+    if provenance is not None:
+        identified = primary.ne("")
+        if "provenance_id" in df:
+            missing_assay = (
+                df["assay_iri"].astype("string").fillna("").str.strip().eq("")
+                if "assay_iri" in df
+                else pd.Series(True, index=df.index)
+            )
+            provenance.retain_duplicates(
+                df.loc[identified, ["provenance_id"]],
+                key.loc[identified],
+                "database_copy",
+                uncertain_keys=set(key.loc[identified & missing_assay]),
+            )
     # ``Series.duplicated`` is the boolean-mask analog of ``drop_duplicates``;
     # avoids round-tripping through a temporary ``_iri_key`` column.
-    df = df[~key.duplicated(keep="first")].reset_index(drop=True)
+    df = df[primary.eq("") | ~key.duplicated(keep="first")].reset_index(drop=True)
     dropped = before - len(df)
     if dropped:
         print(f"  Deduplicated {dropped:,} {label} rows by assay_iri (cross-source overlap)")
     return df
 
 
-def _drop_supplementary_duplicates(supp: pd.DataFrame, obs: pd.DataFrame) -> pd.DataFrame:
+def _drop_supplementary_duplicates(
+    supp: pd.DataFrame, obs: pd.DataFrame, *, provenance=None
+) -> pd.DataFrame:
     """Anti-join supplementary rows against IEDB/CEDAR rows on
     ``(peptide, mhc_restriction, pmid)`` — IEDB/CEDAR wins when the
     triple is shared (#45 supplements are intentionally redundant
@@ -545,6 +565,17 @@ def _drop_supplementary_duplicates(supp: pd.DataFrame, obs: pd.DataFrame) -> pd.
         )
     supp = supp.astype({"peptide": str, "mhc_restriction": str})
     supp["pmid"] = pd.to_numeric(supp["pmid"], errors="coerce").astype("Int64")
+    if provenance is not None and not obs.empty and "provenance_id" in obs:
+        candidates = obs[[*join_cols, "provenance_id"]].assign(
+            peptide=lambda d: d["peptide"].astype(str),
+            mhc_restriction=lambda d: d["mhc_restriction"].astype("string").fillna(""),
+            pmid=lambda d: pd.to_numeric(d["pmid"], errors="coerce").astype("Int64"),
+        )
+        matches = supp[[*join_cols, "provenance_id"]].merge(candidates, on=join_cols)
+        for source, target in matches[["provenance_id_x", "provenance_id_y"]].itertuples(
+            index=False, name=None
+        ):
+            provenance.redirect(source, target, "supplementary_overlap")
     return (
         supp.merge(obs_keys, on=join_cols, how="left", indicator=True)
         .query("_merge == 'left_only'")
@@ -713,7 +744,31 @@ def build_observations(
         Path to ``observations.parquet`` (the MS index).  The binding
         index is written alongside at ``binding.parquet``.
     """
+    from .provenance import ContributorCollector
+
+    with ContributorCollector() as provenance:
+        return _build_observations(
+            with_flanking,
+            proteome_release,
+            force,
+            fetch_missing_proteomes,
+            use_uniprot_search,
+            build_mappings,
+            provenance,
+        )
+
+
+def _build_observations(
+    with_flanking,
+    proteome_release,
+    force,
+    fetch_missing_proteomes,
+    use_uniprot_search,
+    build_mappings,
+    provenance,
+):
     from .curation import _clear_curation_caches
+    from .provenance import contributors_path, file_digest
 
     # A rebuild in a long-lived Python process must use the same current
     # curation whose fingerprints will be written into its metadata.
@@ -789,6 +844,7 @@ def build_observations(
             cedar_path=paths[name] if name == "cedar" else None,
             mhc_species=None,  # builder indexes all species; downstream filters per-call
             classify_source=True,
+            provenance=provenance,
         )
         df["source"] = name
 
@@ -849,7 +905,7 @@ def build_observations(
         # bounded by the post-dedup obs frame size.
         obs = ms_table.to_pandas()
         del ms_table
-        obs = _drop_duplicate_iris(obs, label="MS")
+        obs = _drop_duplicate_iris(obs, label="MS", provenance=provenance)
         _compress_categoricals(obs, strict=True)
     else:
         obs = pd.DataFrame()
@@ -859,7 +915,7 @@ def build_observations(
         binding_tables.clear()
         binding = binding_table.to_pandas()
         del binding_table
-        binding = _drop_duplicate_iris(binding, label="binding")
+        binding = _drop_duplicate_iris(binding, label="binding", provenance=provenance)
         _compress_categoricals(binding, strict=True)
     else:
         binding = pd.DataFrame()
@@ -867,11 +923,11 @@ def build_observations(
     # --- Supplementary data (MS only — manually curated from papers) ---
     from .supplement import scan_supplementary
 
-    supp = scan_supplementary(classify_source=True)
+    supp = scan_supplementary(classify_source=True, provenance=provenance)
     if not supp.empty:
         supp["source"] = "supplement"
         before = len(supp)
-        supp = _drop_supplementary_duplicates(supp, obs)
+        supp = _drop_supplementary_duplicates(supp, obs, provenance=provenance)
         dupes = before - len(supp)
         if dupes:
             print(f"  Deduplicated {dupes:,} supplementary rows (already in IEDB/CEDAR)")
@@ -956,10 +1012,15 @@ def build_observations(
     # over the canonical path.  This keeps any prior index in place — and
     # queryable — throughout the rebuild; readers never see a half-written
     # or not-yet-annotated parquet.
+    provenance_meta = provenance.write((obs, binding), contributors_path())
     atomic_write_parquet(obs, out_path)
     print(f"\nWrote {out_path} ({out_path.stat().st_size / 1e6:.1f} MB)")
     atomic_write_parquet(binding, binding_out)
     print(f"Wrote {binding_out} ({binding_out.stat().st_size / 1e6:.1f} MB)")
+    provenance_meta["indexes"] = {
+        "observations": file_digest(out_path),
+        "binding": file_digest(binding_out),
+    }
 
     if build_mappings:
         # Rewrite mappings cache fingerprint to reflect the just-renamed
@@ -982,6 +1043,7 @@ def build_observations(
     # Save metadata
     meta = {
         "artifact_version": _OBSERVATIONS_ARTIFACT_VERSION,
+        "provenance": provenance_meta,
         # Serotype and class projections are only as current as the library
         # that computed them, which is a property of the build rather than of
         # the observation. Recording it makes a rebuild that silently changes

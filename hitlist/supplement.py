@@ -85,7 +85,7 @@ def load_supplementary_manifest() -> list[dict]:
     return entries
 
 
-def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
+def scan_supplementary(classify_source: bool = True, *, provenance=None) -> pd.DataFrame:
     """Load all supplementary CSVs and return a scanner-compatible DataFrame.
 
     For each entry in the manifest, reads the CSV, fills missing columns
@@ -129,6 +129,16 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
         df = pd.read_csv(csv_path, dtype=str).fillna("")
         if "peptide" not in df.columns:
             continue
+
+        if provenance is not None:
+            dataset = f"supplement:{entry['file']}"
+            provenance.register_source(dataset, csv_path, description=entry.get("source", ""))
+            source_ids = []
+            for row_number, values in enumerate(df.itertuples(index=False, name=None), 1):
+                fields = dict(zip(df.columns, values))
+                fields["manifest"] = entry
+                source_ids.append(provenance.record(dataset, row_number, fields, list(values)))
+            df["provenance_id"] = [provenance.observe(value) for value in source_ids]
 
         df["peptide"] = df["peptide"].str.strip()
         df = df[df["peptide"] != ""]
@@ -243,6 +253,9 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
         )
 
         # Classify per-unique-allele, then map back onto every row.
+        if provenance is not None:
+            record["provenance_id"] = df["provenance_id"].to_numpy()
+
         # Within a single supplementary entry the non-allele inputs are
         # constant (from manifest defaults), so classify_ms_row varies
         # only by mhc_restriction.  Set expansion (issue #137) is also
@@ -393,6 +406,10 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
     dedupe_cols = ["peptide", "mhc_restriction", "pmid"]
     if "supplementary_file" in result.columns:
         dedupe_cols.append("supplementary_file")
+    if provenance is not None:
+        provenance.retain_duplicates(
+            result, pd.MultiIndex.from_frame(result[dedupe_cols]), "within_file_overlap"
+        )
     result = result.drop_duplicates(subset=dedupe_cols)
 
     return result

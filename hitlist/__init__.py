@@ -56,6 +56,12 @@ from .version import __version__  # after the pandas flag, like every submodule
 # are only imported on first attribute access. Listed in ``__all__`` so the API
 # is discoverable via ``dir(hitlist)`` / autocomplete and stable across refactors.
 _PUBLIC_API: dict[str, str] = {
+    "load_contributors": ".provenance",
+    "load_lineage": ".lineage",
+    "write_training_bundle": ".training_bundle",
+    "verify_training_bundle": ".training_bundle",
+    "audit_training_bundles": ".training_bundle",
+    "audit_splits": ".split_audit",
     # Public enumerations shared by scanners, APIs, and CLIs.
     "MHC_ALLELE_PROVENANCE_VALUES": ".curation",
     "normalize_serotype_query": ".curation",

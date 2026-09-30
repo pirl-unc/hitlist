@@ -2401,6 +2401,9 @@ def test_generate_training_table_projection_preserves_evidence_identity(tmp_path
         "evidence_kind",
         "evidence_row_id",
         "evidence_source_id",
+        "provenance_id",
+        "provenance_status",
+        "lineage_context_id",
     ]
 
 
@@ -2474,6 +2477,7 @@ def test_export_training_cli_helper(monkeypatch):
         "map_source_proteins": True,
         "with_peptide_origin": False,
         "proteome_release": 112,
+        "columns": None,
     }
 
 

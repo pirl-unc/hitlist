@@ -1,3 +1,27 @@
+# #622 / #616 — contributor retention and training lineage (2026-09-30)
+
+Specification: [training-provenance-spec.md](training-provenance-spec.md).
+
+- [x] Inspect requirements, all dedup paths, export/index contracts and lessons.
+- [x] Create feature branch and write the implementation/verification spec.
+- [x] Capture and retain source contributors through every deduplication stage.
+- [x] Add evidence-backed lineage entities, aliases and explicit uncertainty.
+- [x] Add the shared export bundle/manifest and split audit API/CLI.
+- [x] Verify fixture parity, legacy behavior, tamper detection and known reuse.
+- [x] Bump version; run format, lint, test.sh and editable-install verification.
+- [ ] Open PR, pass full CI, review and follow the release workflow.
+
+## Review
+
+Implemented for 1.64.0. Local format/lint and editable-install verification pass;
+`./test.sh` focused regression selection: 237 passed. Full matrix and corpus CI
+remain required. Added #624 for the reproduced blank-identifier data loss and
+included its narrow fix. Raw corpus rebuild/performance has not been measured.
+
+#614 shipped in #623 / 1.63.18: PR CI and clean-main
+release run 36754196130 passed; both published artifact hashes matched the tested
+wheel/sdist. This also shipped the previously merged #613 cache fix.
+
 # #614 — donor-aware training observation identity (2026-09-30)
 
 Specification: [observation-identity-spec.md](observation-identity-spec.md).
@@ -7,8 +31,8 @@ Specification: [observation-identity-spec.md](observation-identity-spec.md).
 - [x] Add failing donor/mapping/projection regressions and implement stable IDs.
 - [x] Verify the real six-observation reproducer; document migration and limits.
 - [x] Bump version, run format/lint/focused tests and inspect the diff.
-- [ ] Pass full CI, merge and deploy from clean main; verify PyPI artifacts.
-- [ ] Record review/release evidence and identify the next dependency block.
+- [x] Pass full CI, merge and deploy from clean main; verify PyPI artifacts.
+- [x] Record review/release evidence and identify the next dependency block.
 
 ## Review
 
