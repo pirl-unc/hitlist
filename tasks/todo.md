@@ -1,3 +1,34 @@
+# #614 — donor-aware training observation identity (2026-09-30)
+
+Specification: [observation-identity-spec.md](observation-identity-spec.md).
+
+- [x] Read #614/#616/#622, relevant lessons, current code and release workflow.
+- [x] Create feature branch; write specification and check in the plan.
+- [x] Add failing donor/mapping/projection regressions and implement stable IDs.
+- [x] Verify the real six-observation reproducer; document migration and limits.
+- [x] Bump version, run format/lint/focused tests and inspect the diff.
+- [ ] Pass full CI, merge and deploy from clean main; verify PyPI artifacts.
+- [ ] Record review/release evidence and identify the next dependency block.
+
+## Review
+
+The real PMID 31844290/SLLQHLIGL reproducer fails on main with six observations
+and two IDs; it passes with six observation IDs and the same two source IDs.
+Use readable, percent-escaped source/arm compound IDs following user feedback.
+The eight identity tests cover donor separation, mapping/projection, filtering,
+row order, display renames, ambiguous/missing curation, categorical nulls and
+delimiter escaping. Non-attributed IDs and legacy locator fallbacks are retained.
+Format/lint pass. The surrounding export suite passed 343 tests before the final
+readable-encoding revision; complete current-head validation is delegated to CI.
+The final encoding passes all eight identity tests and 11 focused tests through
+`test.sh`. A narrow-column scan of every attributed row in the local index finds
+144,408 observations, 81,357 source IDs and 144,408 distinct new IDs. Every row
+resolves to a persistent curated arm; none uses the label fallback in this index.
+The version is 1.63.18; the editable-install verifier passes in a fresh lockfile
+environment after preserving stale build metadata in /tmp and reinstalling this
+checkout. Scope is #614; contributor retention and experimental lineage remain
+tracked by #622 and #616. Merge/publication evidence is still pending.
+
 # #613 — retain the index just written (2026-09-29)
 
 ## Specification

@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import re
 from typing import NamedTuple
+from urllib.parse import quote
 
 import numpy as np
 import pandas as pd
@@ -3518,6 +3519,49 @@ def _attach_peptide_origin(
     return df
 
 
+def _attributed_training_ids(df: pd.DataFrame, source_ids: list[str]) -> list[str]:
+    """Distinguish explicit source attributions without inferring specimen identity.
+
+    Resolve against the original label, not the export's heuristic/pool metadata.
+    The full curation lookup makes keys independent of filters and row order.
+    """
+    ids = source_ids.copy()
+    if "attributed_sample_label" not in df.columns:
+        return ids
+    labels = df["attributed_sample_label"].astype("string").fillna("")
+    positions = np.flatnonzero(labels.str.strip().ne("").to_numpy(dtype=bool))
+    if not len(positions):
+        return ids
+
+    arms = {}
+    for pmid, entry in load_pmid_overrides().items():
+        for sample in entry.get("ms_samples", []):
+            label = str(sample.get("sample_label") or "").strip()
+            key = (str(pmid), label)
+            # A repeated label is ambiguous even if one entry has no arm ID.
+            arms[key] = "" if key in arms else str(sample.get("condition_id") or "").strip()
+
+    pmids = (
+        pd.to_numeric(df["pmid"].iloc[positions], errors="coerce")
+        .astype("Int64")
+        .astype("string")
+        .fillna("")
+        if "pmid" in df.columns
+        else [""] * len(positions)
+    )
+    for position, pmid, label in zip(positions, pmids, labels.iloc[positions]):
+        arm = arms.get((pmid, label.strip()), "")
+        basis, value = ("arm", arm) if arm else ("label", label)
+        kind, locator = source_ids[position].split(":", 1)
+        # Escape the separators (and literal percent signs) while keeping a
+        # source URL readable. This is a compound key, not a content digest.
+        ids[position] = (
+            f"{kind}:attributed:v1:{quote(locator, safe=':/')}"
+            f"|{basis}:{pmid}:{quote(value, safe='')}"
+        )
+    return ids
+
+
 def _apply_training_defaults(df: pd.DataFrame) -> pd.DataFrame:
     """Normalize the mixed MS/binding export schema."""
     from .observations import _source_organism_with_fallback
@@ -3590,24 +3634,24 @@ def _apply_training_defaults(df: pd.DataFrame) -> pd.DataFrame:
     result["is_engineered_mhc"] = result["is_engineered_mhc"].astype(bool)
     result["is_non_peptide_ligand"] = result["is_non_peptide_ligand"].astype(bool)
 
-    # Stable evidence-row identifier.  Prefer ``assay_iri`` (row-level, from
+    # Common source identifier. Prefer ``assay_iri`` (assay-level, from
     # IEDB/CEDAR's "Assay IRI" column or the synthesized supplement string
-    # — unique per source MS row), then fall back to ``reference_iri``
+    # — shared by per-donor observations), then fall back to ``reference_iri``
     # (study-level for IEDB/CEDAR) for older parquets that predate #146,
     # and finally to a positional ``row:{idx}`` sentinel for rows missing
     # both identifiers.  See issue #146.
     assay_series = (
-        result["assay_iri"].fillna("").astype(str)
+        result["assay_iri"].astype("string").fillna("")
         if "assay_iri" in result.columns
         else pd.Series([""] * len(result), index=result.index)
     )
     ref_series = (
-        result["reference_iri"].fillna("").astype(str)
+        result["reference_iri"].astype("string").fillna("")
         if "reference_iri" in result.columns
         else pd.Series([""] * len(result), index=result.index)
     )
     if "evidence_kind" in result.columns:
-        evidence_kind = result["evidence_kind"].fillna("").astype(str)
+        evidence_kind = result["evidence_kind"].astype("string").fillna("")
         ids: list[str] = []
         for idx, (kind, assay, ref) in enumerate(zip(evidence_kind, assay_series, ref_series)):
             if assay.strip():
@@ -3616,7 +3660,8 @@ def _apply_training_defaults(df: pd.DataFrame) -> pd.DataFrame:
                 ids.append(f"{kind}:{ref}")
             else:
                 ids.append(f"{kind}:row:{idx}")
-        result["evidence_row_id"] = ids
+        result["evidence_source_id"] = ids
+        result["evidence_row_id"] = _attributed_training_ids(result, ids)
 
     return result
 
@@ -3702,8 +3747,7 @@ def _project_training_columns(df: pd.DataFrame, columns: list[str] | None) -> pd
     if columns is None:
         return df
     identity_cols = ["evidence_kind"]
-    if "evidence_row_id" in df.columns:
-        identity_cols.append("evidence_row_id")
+    identity_cols.extend(c for c in ("evidence_row_id", "evidence_source_id") if c in df.columns)
     requested = list(dict.fromkeys([*columns, *identity_cols]))
     available = [c for c in requested if c in df.columns]
     return df[available]
@@ -3759,6 +3803,17 @@ def generate_training_table(
     ``transcript_id`` / ``position`` / ``n_flank`` / ``c_flank`` from
     ``peptide_mappings.parquet``.
     Suitable for flank-aware model pipelines such as Presto.
+
+    ``evidence_row_id`` distinguishes explicit per-donor/sample attributions
+    on a shared assay. Attributed IDs use a versioned compound key of the source ID
+    and persistent curated arm (PMID + condition_id), or the original label
+    scoped to its PMID when no unique curated arm is available. Rows without
+    explicit attribution retain their pre-1.63.18 IDs. ``evidence_source_id``
+    retains the common, pre-1.63.18 source ID for all rows. Both IDs and
+    ``evidence_kind`` survive ``columns`` projection; mapping alternatives
+    share them. Neither key establishes specimen identity or independence.
+    Legacy indexes without assay IRIs retain reference/positional fallbacks,
+    which cannot guarantee unique, filter-stable observation identity.
 
     .. deprecated:: 1.24.1
        The ``explode_mappings`` kwarg is the previous name for

@@ -2396,7 +2396,12 @@ def test_generate_training_table_projection_preserves_evidence_identity(tmp_path
     pd.DataFrame(columns=obs_data.columns).to_parquet(tmp_path / "binding.parquet", index=False)
 
     df = generate_training_table(include_evidence="ms", columns=["peptide"])
-    assert df.columns.tolist() == ["peptide", "evidence_kind", "evidence_row_id"]
+    assert df.columns.tolist() == [
+        "peptide",
+        "evidence_kind",
+        "evidence_row_id",
+        "evidence_source_id",
+    ]
 
 
 def test_export_training_cli_helper(monkeypatch):
