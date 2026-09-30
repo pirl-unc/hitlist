@@ -135,6 +135,29 @@ presto = generate_training_table(
 
 `generate_observations_table()` remains available as a backward-compatible alias.
 
+Training exports preserve `evidence_row_id`, `evidence_source_id` and `evidence_kind`
+even with a narrow `columns=` projection. Group mapping alternatives by
+`evidence_row_id` to avoid counting protein mappings as additional observations.
+Since 1.63.18, explicitly attributed donor/sample observations sharing an assay
+have distinct, readable IDs, for example:
+`ms:attributed:v1:http://www.iedb.org/assay/7578387|arm:31844290:mel3_13240_006`.
+The compound key uses the original
+source identifier and persistent curated `(pmid, condition_id)` when the original
+attributed label uniquely identifies an arm; otherwise it uses the original
+label scoped to its PMID (`|label:<pmid>:<escaped-label>`). Source locators and
+attribution values are percent-escaped to avoid delimiter collisions.
+Renaming a label while retaining its curated arm ID
+preserves the ID. Resolving a previously unmatched label to an arm changes its ID.
+IDs do not depend on row order, current filters or mapping alternatives.
+
+`evidence_source_id` retains the previous common `<kind>:<assay_iri>` identifier
+for migration and source tracing. Rows without explicit attribution also retain
+that value as `evidence_row_id`. Older indexes lacking assay IRIs still fall back
+to reference IRIs or row positions; those legacy fallbacks cannot guarantee
+unique, filter-stable observation IDs. An observation/curated arm ID is not a
+verified biological specimen ID or proof of experimental independence. Complete
+contributor retention and cross-study lineage remain separate work (#622, #616).
+
 Gene queries can mix symbols and Ensembl IDs: `gene=["PRAME", "ENSG00000198681"]` selects
 peptides matching either gene. An additional `peptide=` filter narrows that union. Mapping-expanded
 training exports retain only mappings for the selected genes, even when a peptide also maps to

@@ -1,5 +1,13 @@
 # Lessons
 
+## 2026-09-30
+
+- Prefer readable compound observation IDs when the source and curated arm
+  already have stable identifiers. A full cryptographic digest hides the useful
+  provenance and makes compatibility tests hard to review. Use explicit
+  namespaces and percent-escaped components to avoid delimiter collisions;
+  reserve content hashes for integrity checks and artifact fingerprints.
+
 ## 2026-09-29
 
 - On a shared workstation, a successful memory preflight is only a momentary
