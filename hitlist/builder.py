@@ -275,6 +275,13 @@ def _cache_is_valid(
     stored = json.loads(meta.read_text())
     if stored.get("artifact_version") != _OBSERVATIONS_ARTIFACT_VERSION:
         return False
+    from .provenance import SCHEMA_VERSION
+
+    contract = stored.get("provenance", {})
+    if contract.get("schema_version") != SCHEMA_VERSION:
+        return False
+    if not {"contributors", "indexes", "sources"} <= contract.keys():
+        return False
     if stored.get("sources") != _source_fingerprints(
         paths, fetch_missing_assets=fetch_missing_assets
     ):

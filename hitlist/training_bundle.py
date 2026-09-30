@@ -316,6 +316,8 @@ def write_training_bundle(directory, *, split_policy="report_only", **training_o
 
 def verify_training_bundle(directory) -> dict:
     """Verify schema, bytes, contributor coverage and observation relationships."""
+    import pyarrow.parquet as pq
+
     from .lineage import validate_lineage
 
     directory = Path(directory)
@@ -331,9 +333,13 @@ def verify_training_bundle(directory) -> dict:
         }:
             raise ValueError(f"Training bundle artifact mismatch: {filename}")
     validate_lineage(json.loads((directory / FILES["lineage"]).read_text()))
+    training_path = directory / FILES["training"]
+    available = set(pq.read_schema(training_path).names)
+    required = {"evidence_row_id", "evidence_source_id", "evidence_kind", "provenance_id"}
+    if not required <= available:
+        raise ValueError("Training bundle lacks required identity columns")
     training = pd.read_parquet(
-        directory / FILES["training"],
-        columns=["evidence_row_id", "evidence_source_id", "evidence_kind", "provenance_id"],
+        training_path, columns=[c for c in IDENTITY_COLUMNS if c in available]
     )
     identities = pd.read_parquet(directory / FILES["identities"])
     contributors = pd.read_parquet(
@@ -347,9 +353,14 @@ def verify_training_bundle(directory) -> dict:
         raise ValueError("Duplicate observation identities in bundle")
     if set(training.evidence_row_id) != set(identities.evidence_row_id):
         raise ValueError("Training/identity observation mismatch")
-    for column in ("provenance_id", "evidence_source_id", "evidence_kind"):
-        expected = training.evidence_row_id.map(identities.set_index("evidence_row_id")[column])
-        if training[column].tolist() != expected.tolist():
+    identity_index = identities.set_index("evidence_row_id")
+    for column in (c for c in training if c != "evidence_row_id"):
+        expected = training.evidence_row_id.map(identity_index[column])
+        actual = training[column]
+        # Column encodings may differ after projection/serialization; compare
+        # values, preserving the difference between absent and empty metadata.
+        values_equal = actual.astype("string").eq(expected.astype("string")).fillna(False)
+        if not (values_equal | (actual.isna() & expected.isna())).all():
             raise ValueError(f"Training/identity {column} mismatch")
     expected = set(identities.provenance_id) - {""}
     if set(contributors.provenance_id) != expected:

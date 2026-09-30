@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 
 from hitlist.export import generate_training_table
-from hitlist.provenance import contributors_path, load_contributors
+from hitlist.provenance import contributors_path, file_digest, load_contributors
 from hitlist.training_bundle import (
     audit_training_bundles,
     verify_training_bundle,
@@ -170,6 +170,31 @@ def test_copied_artifacts_accept_new_mtimes_but_hash_checks_detect_same_size_tam
     os.utime(path, ns=(stat.st_atime_ns, stat.st_mtime_ns))
     with pytest.raises(ValueError, match="Provenance artifact mismatch"):
         load_contributors()
+
+
+def test_bundle_verification_rejects_conflicting_projected_identity_fields(built_index, tmp_path):
+    directory = tmp_path / "bundle"
+    write_training_bundle(directory, include_evidence="ms", columns=["peptide", "pmid"])
+    path = directory / "training.parquet"
+    frame = pd.read_parquet(path)
+    frame["pmid"] = 12345678
+    frame.to_parquet(path, index=False)
+    manifest_path = directory / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["artifacts"]["training"].update(file_digest(path))
+    manifest_path.write_text(json.dumps(manifest))
+    with pytest.raises(ValueError, match="Training/identity pmid mismatch"):
+        verify_training_bundle(directory)
+
+
+def test_cache_rejects_missing_contributor_contract(built_index):
+    from hitlist.builder import _cache_is_valid, _source_paths
+
+    path = built_index / "observations_meta.json"
+    metadata = json.loads(path.read_text())
+    del metadata["provenance"]
+    path.write_text(json.dumps(metadata))
+    assert not _cache_is_valid(_source_paths())
 
 
 def test_cli_bundle_and_split_audit(built_index, tmp_path, monkeypatch):

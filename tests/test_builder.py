@@ -71,6 +71,12 @@ def test_cache_invalidates_curation_content_changes(isolated_curation, filename)
         json.dumps(
             {
                 "artifact_version": _OBSERVATIONS_ARTIFACT_VERSION,
+                "provenance": {
+                    "schema_version": 1,
+                    "sources": {},
+                    "indexes": {},
+                    "contributors": {},
+                },
                 "sources": _source_fingerprints({}),
                 "parquets": builder._parquet_fingerprints(),
             }
@@ -193,6 +199,12 @@ def test_cache_valid_when_sources_unchanged(tmp_path, monkeypatch):
         json.dumps(
             {
                 "artifact_version": _OBSERVATIONS_ARTIFACT_VERSION,
+                "provenance": {
+                    "schema_version": 1,
+                    "sources": {},
+                    "indexes": {},
+                    "contributors": {},
+                },
                 "sources": {},
                 "n_rows": 100,
                 "n_peptides": 50,
@@ -314,6 +326,12 @@ def test_cache_invalid_when_parquet_fingerprint_changes(tmp_path, monkeypatch):
         json.dumps(
             {
                 "artifact_version": _OBSERVATIONS_ARTIFACT_VERSION,
+                "provenance": {
+                    "schema_version": 1,
+                    "sources": {},
+                    "indexes": {},
+                    "contributors": {},
+                },
                 "sources": {},
                 "parquets": builder._parquet_fingerprints(),
             }

@@ -52,6 +52,12 @@ def _seed_observation_cache(tmp_path, monkeypatch, *, artifact_version=None):
                 "artifact_version": (
                     _OBSERVATIONS_ARTIFACT_VERSION if artifact_version is None else artifact_version
                 ),
+                "provenance": {
+                    "schema_version": 1,
+                    "sources": {},
+                    "indexes": {},
+                    "contributors": {},
+                },
                 "sources": builder._source_fingerprints(paths, fetch_missing_assets=False),
                 "parquets": builder._parquet_fingerprints(),
             }
