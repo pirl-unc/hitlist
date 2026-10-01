@@ -198,19 +198,24 @@ def test_legacy_cache_is_reused_without_mutation(tmp_path, monkeypatch, capsys):
     assert capsys.readouterr().out == ""
     assert reg.download("thing") == path
     assert "already cached" in capsys.readouterr().out
-    assert reg.status() == [
-        {
-            "name": "thing",
-            "description": "A versioned thing",
-            "default_version": "v2",
-            "available_versions": ["v1", "v2"],
-            "cached": True,
-            "cached_version": "v1",
-            "bytes": 5,
-            "downloaded_at": "2020-01-01",
-            "path": str(path),
-        }
-    ]
+    status = reg.status()
+    assert len(status) == 1
+    row = status[0]
+    # datacache >=1.16 reports unknown provenance explicitly; older releases
+    # omit these fields. Neither representation may invent a URL or checksum.
+    assert row.get("url") is None
+    assert row.get("sha256") is None
+    assert {key: value for key, value in row.items() if key not in {"url", "sha256"}} == {
+        "name": "thing",
+        "description": "A versioned thing",
+        "default_version": "v2",
+        "available_versions": ["v1", "v2"],
+        "cached": True,
+        "cached_version": "v1",
+        "bytes": 5,
+        "downloaded_at": "2020-01-01",
+        "path": str(path),
+    }
     assert before == {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in (path, manifest)}
     assert not list(tmp_path.glob(".*")), "read-only reuse created metadata/locks"
 

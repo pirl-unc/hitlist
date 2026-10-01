@@ -1,3 +1,34 @@
+# #627 — legacy cache status compatibility
+
+## Specification
+
+Unblock the #615 release after current datacache added explicit null `url` and
+`sha256` status fields for legacy receipts. Accept absence or None for exactly
+those two fields, while checking all remaining status fields exactly. Preserve
+the no-network assertion and byte/mtime comparisons for both the cached file
+and receipt, plus the assertion that reads create no locks or metadata. Do not
+change runtime behavior, suppress failures, or pin away the development build.
+Verify the same test against released and current-development datacache, then
+run format/lint/test.sh and full CI. Every PR bumps the version, so this narrow
+follow-up publishes 1.64.2 including the already-merged #615 changes.
+
+- [x] Inspect the failed release log and current datacache implementation.
+- [x] File #627, create a feature branch and check in the revised plan.
+- [x] Update the compatibility assertion and verify both dependency versions.
+- [ ] Pass required checks, merge the follow-up and publish verified artifacts.
+
+## Review
+
+Release run 36809092586 stopped before integration/build/upload: 1 failed,
+2,474 passed, 1 skipped. The sole failure is the older exact status shape;
+datacache development commit 153c19a returns the two additional null fields.
+No 1.64.1 artifacts were published. Original PR #626 passed all PR checks and
+merged as 8cffeb7; its filters and 19 new regressions passed the release suite.
+The fix passes `./test.sh` with 35 tests against datacache development commit
+153c19a and 16 registry tests against datacache 1.15.0. Both ran through the
+normal memory preflight in the isolated environment. Format/lint, diff checks
+and the 1.64.2 editable-install verifier pass; full CI/release remain required.
+
 # #615 — binding filters in unified training exports
 
 ## Specification
