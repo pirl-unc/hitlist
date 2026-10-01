@@ -30,15 +30,42 @@ check their hashes/sizes on PyPI. Re-read related open issues after shipping.
 
 - [x] Inspect source, issue requirements, existing regression and lessons.
 - [x] Create feature branch, write specification and check in the plan.
-- [ ] Demonstrate baseline lifetime failures; implement the minimal release.
-- [ ] Pass focused tests, format/lint and editable version verification.
-- [ ] Verify full-output parity and repeated Linux RSS with identical dependencies.
+- [x] Demonstrate baseline lifetime failures; implement the minimal release.
+- [x] Pass focused tests, format/lint and editable version verification.
+- [x] Verify full-output parity and repeated Linux RSS with identical dependencies.
 - [ ] Pass final-head CI, merge and publish verified 1.64.3 artifacts.
 - [ ] Record review evidence and identify the next dependency block.
 
 ## Review
 
-Pending implementation and measurements. Prior #615/#627 work is shipped in
+Linux comparison [run 36877044705](https://github.com/pirl-unc/hitlist/actions/runs/36877044705)
+compares baseline `0d0f9ba` with candidate `0044eba`. Both fresh-process pairs
+passed full-output parity: 4,398,040 rows x 125 columns, all per-column value/null
+fingerprints, dtypes, categories/order, column order and index. All four output
+fingerprints agree; both runners installed identical dependencies (pandas 3.0.6).
+The saved experiment script/workflow and dependency lists are in the run's two
+`issue-611-comparison-*` artifacts and remain reproducible from commit `0044eba`.
+The final production source is byte-identical to the measured candidate.
+
+| Repeat | Baseline peak RSS (KiB) | Candidate peak RSS (KiB) |
+| --- | ---: | ---: |
+| 1 | 12,920,532 | 11,829,028 |
+| 2, reversed order | 12,932,344 | 11,930,776 |
+| Mean | 12,926,438 | 11,879,902 |
+
+Mean peak RSS fell 1,046,536 KiB (8.10%). Baseline spread is 11,812 KiB;
+candidate spread is 101,748 KiB. Even the worst candidate is 989,756 KiB below
+the best baseline. Export time was 70.5–71.3 seconds across the four runs; no
+runtime improvement is claimed. Peak RSS was sampled before output hashing.
+This measures standalone full exports, separately from pytest integration RSS.
+
+Both baseline lifetime runs failed exactly the hit/no-hit cases and passed the
+absent/blank cases. The candidate passed all eight lifetime/attribution regressions through
+`./test.sh`. Local format/lint and isolated editable-install
+verification pass. The local test preflight refused at 0.15 GB; no heavy local
+work ran. Full final-head CI and the clean-main release gate remain required.
+
+Prior #615/#627 work is shipped in
 1.64.2 via PRs #626/#628: release run 36814043601 passed format/lint, 2,475 tests
 (1 skipped) and 46 integration tests. Both published distributions matched the
 trusted release artifact hashes and sizes.
