@@ -1,3 +1,75 @@
+# #611 — release completed curated-label metadata
+
+## Specification
+
+Release the full-length `_label_matched` frame immediately after the curated
+sample-label coalesce, including when nonempty labels have no curated hits.
+Preserve attribution precedence, every returned value and dtype, row/index and
+column order, category dictionaries/order, and the public API. Keep the change
+minimal: remove the obsolete owning reference after its last use rather than
+rewrite matching or allocation behavior. Bump the patch version to 1.64.3.
+
+Extend the existing weak-reference lifetime regression to track the label join
+separately from the allele/fallback joins. Exercise an actual curated label hit,
+nonempty labels with no hits, blank labels and an absent label column. Check the
+exact/fallback/unmatched output and assert completed joins are gone before final
+annotation. Demonstrate failure on baseline for both hit/no-hit paths, then pass
+all cases with the fix and nearby attribution regressions through test.sh.
+
+Use verified ci-corpus-v2 on Linux for full-population output parity and repeated
+RSS measurements. Run baseline 0d0f9ba and candidate in fresh processes sharing
+one dependency environment; compare all column value fingerprints, dtypes,
+categorical dictionaries/order, index and column order. Record export peak RSS
+before fingerprinting so verification does not inflate the measured export.
+Repeat each revision twice and report the spread; live Arrow ownership is not
+an RSS claim. A temporary PR-only workflow may carry this experiment and its
+artifacts; remove it from the final diff after capturing reproducible evidence.
+Run format/lint, the complete Python CI matrix and integration suite, then merge
+and run the clean-main release gate. Publish only verified release artifacts and
+check their hashes/sizes on PyPI. Re-read related open issues after shipping.
+
+- [x] Inspect source, issue requirements, existing regression and lessons.
+- [x] Create feature branch, write specification and check in the plan.
+- [x] Demonstrate baseline lifetime failures; implement the minimal release.
+- [x] Pass focused tests, format/lint and editable version verification.
+- [x] Verify full-output parity and repeated Linux RSS with identical dependencies.
+- [ ] Pass final-head CI, merge and publish verified 1.64.3 artifacts.
+- [ ] Record review evidence and identify the next dependency block.
+
+## Review
+
+Linux comparison [run 36877044705](https://github.com/pirl-unc/hitlist/actions/runs/36877044705)
+compares baseline `0d0f9ba` with candidate `0044eba`. Both fresh-process pairs
+passed full-output parity: 4,398,040 rows x 125 columns, all per-column value/null
+fingerprints, dtypes, categories/order, column order and index. All four output
+fingerprints agree; both runners installed identical dependencies (pandas 3.0.6).
+The saved experiment script/workflow and dependency lists are in the run's two
+`issue-611-comparison-*` artifacts and remain reproducible from commit `0044eba`.
+The final production source is byte-identical to the measured candidate.
+
+| Repeat | Baseline peak RSS (KiB) | Candidate peak RSS (KiB) |
+| --- | ---: | ---: |
+| 1 | 12,920,532 | 11,829,028 |
+| 2, reversed order | 12,932,344 | 11,930,776 |
+| Mean | 12,926,438 | 11,879,902 |
+
+Mean peak RSS fell 1,046,536 KiB (8.10%). Baseline spread is 11,812 KiB;
+candidate spread is 101,748 KiB. Even the worst candidate is 989,756 KiB below
+the best baseline. Export time was 70.5–71.3 seconds across the four runs; no
+runtime improvement is claimed. Peak RSS was sampled before output hashing.
+This measures standalone full exports, separately from pytest integration RSS.
+
+Both baseline lifetime runs failed exactly the hit/no-hit cases and passed the
+absent/blank cases. The candidate passed all eight lifetime/attribution regressions through
+`./test.sh`. Local format/lint and isolated editable-install
+verification pass. The local test preflight refused at 0.15 GB; no heavy local
+work ran. Full final-head CI and the clean-main release gate remain required.
+
+Prior #615/#627 work is shipped in
+1.64.2 via PRs #626/#628: release run 36814043601 passed format/lint, 2,475 tests
+(1 skipped) and 46 integration tests. Both published distributions matched the
+trusted release artifact hashes and sizes.
+
 # #627 — legacy cache status compatibility
 
 ## Specification
@@ -15,7 +87,7 @@ follow-up publishes 1.64.2 including the already-merged #615 changes.
 - [x] Inspect the failed release log and current datacache implementation.
 - [x] File #627, create a feature branch and check in the revised plan.
 - [x] Update the compatibility assertion and verify both dependency versions.
-- [ ] Pass required checks, merge the follow-up and publish verified artifacts.
+- [x] Pass required checks, merge the follow-up and publish verified artifacts.
 
 ## Review
 
@@ -61,8 +133,8 @@ memory pressure. Bump to 1.64.1, merge the PR, and publish verified artifacts.
 - [x] Inspect #615, existing filters, CLI, manifests and project lessons.
 - [x] Create feature branch, specify behavior and check in the plan.
 - [x] Add failing regressions, implement API/CLI forwarding and documentation.
-- [ ] Run format/lint/test.sh, review compatibility and verify editable version.
-- [ ] Pass full CI, merge, deploy from clean main and verify PyPI artifacts.
+- [x] Run format/lint/test.sh, review compatibility and verify editable version.
+- [x] Pass full CI, merge, deploy from clean main and verify PyPI artifacts.
 
 ## Review
 
