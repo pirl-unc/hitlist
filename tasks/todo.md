@@ -1,3 +1,53 @@
+# Literature-backed cross-species experimental context
+
+## Specification
+
+Curate independent primary-literature evidence for the experimental systems
+currently suggested by species-axis flags and the packaged study/arm narratives.
+Start with a reproducible inventory: existing curated cross-species arms and
+PMIDs reached by the current heuristic flags in the available observation corpus.
+Use bounded column/batch reads; do not materialize the full export locally.
+Record the corpus/version and inventory coverage, including unresolved studies.
+
+Read Methods, experimental figures and supplements for each candidate study.
+Distinguish the material actually used for deposited MS observations from other
+experiments in the same paper. Keep presenting cells, in-vivo host, MHC origin
+and peptide-source proteome separate. A difference in species, a parsed allele
+or a mismatch-derived flag is a search lead, never literature evidence. Curate
+xenograft passage, transgenic/transfected MHC, cross-presentation/foreign antigen,
+native controls and unresolved contexts with their precise sample/arm scope.
+Record source URLs/identifiers and section/table/figure locations; paraphrase
+rather than copying long source text. No absent mention becomes a negative claim.
+
+After inventory, refine the minimal data/reader schema in this specification
+before implementation. Prefer existing curation/export contracts where they can
+represent independent evidence accurately. Any new structured field must have
+a declared reader and validation, retain unknowns, and reach attributed samples
+without broadcasting an arm-specific fact across a PMID. Preserve existing raw
+species flags and observations; this pass supplies evidence for later matching,
+not an automatic exception inferred from mismatches or a broad #600 rewrite.
+
+Verify source-to-arm citations and regressions for true xenografts, engineered
+MHC, foreign-antigen controls, mixed/unattributed rows and missing evidence.
+Run format/lint/test.sh, full CI and a clean-main release; bump at least patch,
+merge via PR, publish trusted artifacts and verify PyPI hashes. File discovered
+problems on the appropriate repo and link them rather than silently expanding
+scope. Record what is established and what remains unresolved.
+
+- [x] Read instructions, lessons and existing species/curation contracts.
+- [x] Create curation branch, preserve the correction and write this plan.
+- [ ] Inventory candidate studies/arms and define the reviewed population.
+- [ ] Read primary sources and record scoped evidence and unresolved cases.
+- [ ] Refine the data/reader contract, curate evidence and add regressions.
+- [ ] Verify coverage, format/lint/tests and pass final-head CI.
+- [ ] Merge, release, verify published artifacts and review next dependencies.
+
+## Review
+
+Pending inventory and literature review. Previous #611 work shipped in PR #629 /
+1.64.3: release run 36880294742 passed format/lint, 2,478 tests (one skip), and
+46 integration tests; both PyPI artifacts match the trusted release manifest.
+
 # #611 — release completed curated-label metadata
 
 ## Specification
@@ -33,8 +83,8 @@ check their hashes/sizes on PyPI. Re-read related open issues after shipping.
 - [x] Demonstrate baseline lifetime failures; implement the minimal release.
 - [x] Pass focused tests, format/lint and editable version verification.
 - [x] Verify full-output parity and repeated Linux RSS with identical dependencies.
-- [ ] Pass final-head CI, merge and publish verified 1.64.3 artifacts.
-- [ ] Record review evidence and identify the next dependency block.
+- [x] Pass final-head CI, merge and publish verified 1.64.3 artifacts.
+- [x] Record review evidence and identify the next dependency block.
 
 ## Review
 

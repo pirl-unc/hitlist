@@ -1,0 +1,34 @@
+name: Species context inventory
+on:
+  push:
+    branches: [curation/literature-species-context]
+    paths:
+      - .github/workflows/species-context-inventory.yml
+      - scripts/inventory_species_context.py
+permissions:
+  contents: read
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - run: pip install -e .
+      - name: Download and verify the corpus
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/corpus"
+          gh release download ci-corpus-v2 --repo pirl-unc/hitlist --pattern '*.parquet' --pattern observations_meta.json --dir "$RUNNER_TEMP/corpus"
+          python scripts/ci_corpus.py verify "$RUNNER_TEMP/corpus"
+          echo "HITLIST_DATA_DIR=$RUNNER_TEMP/corpus" >> "$GITHUB_ENV"
+      - run: python scripts/inventory_species_context.py
+      - uses: actions/upload-artifact@v7
+        with:
+          name: species-context-inventory
+          path: species-context-inventory/
+          retention-days: 30
+          if-no-files-found: error
