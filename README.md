@@ -155,8 +155,15 @@ for migration and source tracing. Rows without explicit attribution also retain
 that value as `evidence_row_id`. Older indexes lacking assay IRIs still fall back
 to reference IRIs or row positions; those legacy fallbacks cannot guarantee
 unique, filter-stable observation IDs. An observation/curated arm ID is not a
-verified biological specimen ID or proof of experimental independence. Complete
-contributor retention and cross-study lineage remain separate work (#622, #616).
+verified biological specimen ID or proof of experimental independence.
+
+Since 1.64.0, rebuilt indexes retain every source contributor, and training
+exports carry `provenance_id` and reviewed experimental lineage. Create a
+versioned bundle with `hitlist export training --bundle DIR`, then compare
+partitions with `hitlist audit-splits`. Unknown specimen/donor identities remain
+explicit, and incomplete coverage cannot certify independence. See
+[Training provenance and split audits](docs/training-provenance.md) for the
+manifest contract, policies and legacy-index limitations (#622, #616).
 
 Gene queries can mix symbols and Ensembl IDs: `gene=["PRAME", "ENSG00000198681"]` selects
 peptides matching either gene. An additional `peptide=` filter narrows that union. Mapping-expanded

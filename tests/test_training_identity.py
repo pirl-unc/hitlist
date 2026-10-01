@@ -92,6 +92,9 @@ def test_donor_observations_survive_mapping_expansion_and_projection(donor_expor
             "evidence_kind",
             "evidence_row_id",
             "evidence_source_id",
+            "provenance_id",
+            "provenance_status",
+            "lineage_context_id",
         ]
         assert set(projected.evidence_row_id) == set(compact.evidence_row_id)
         assert len(projected) == (6 if mapped else 3)

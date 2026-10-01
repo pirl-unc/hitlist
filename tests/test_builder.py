@@ -57,7 +57,13 @@ def test_cache_invalidates_curation_content_changes(isolated_curation, filename)
 
     path = isolated_curation / filename
     path.write_text(path.read_text() + "\n# review a\n")
-    for name in ("observations", "binding", "bulk_proteomics", "line_expression"):
+    for name in (
+        "observations",
+        "binding",
+        "bulk_proteomics",
+        "line_expression",
+        "observation_contributors",
+    ):
         atomic_write_parquet(
             pd.DataFrame({"peptide": ["AAAAAAAAA"]}), builder.data_dir() / f"{name}.parquet"
         )
@@ -65,6 +71,12 @@ def test_cache_invalidates_curation_content_changes(isolated_curation, filename)
         json.dumps(
             {
                 "artifact_version": _OBSERVATIONS_ARTIFACT_VERSION,
+                "provenance": {
+                    "schema_version": 1,
+                    "sources": {},
+                    "indexes": {},
+                    "contributors": {},
+                },
                 "sources": _source_fingerprints({}),
                 "parquets": builder._parquet_fingerprints(),
             }
@@ -182,10 +194,17 @@ def test_cache_valid_when_sources_unchanged(tmp_path, monkeypatch):
     (tmp_path / "binding.parquet").write_bytes(b"fake parquet")
     (tmp_path / "bulk_proteomics.parquet").write_bytes(b"fake parquet")
     (tmp_path / "line_expression.parquet").write_bytes(b"fake parquet")
+    (tmp_path / "observation_contributors.parquet").write_bytes(b"fake parquet")
     _meta_path().write_text(
         json.dumps(
             {
                 "artifact_version": _OBSERVATIONS_ARTIFACT_VERSION,
+                "provenance": {
+                    "schema_version": 1,
+                    "sources": {},
+                    "indexes": {},
+                    "contributors": {},
+                },
                 "sources": {},
                 "n_rows": 100,
                 "n_peptides": 50,
@@ -300,12 +319,19 @@ def test_cache_invalid_when_parquet_fingerprint_changes(tmp_path, monkeypatch):
     bind_p.write_bytes(b"original binding")
     bulk_p.write_bytes(b"original bulk")
     le_p.write_bytes(b"original line expression")
+    (tmp_path / "observation_contributors.parquet").write_bytes(b"contributors")
 
     monkeypatch.setattr(builder, "_source_fingerprints", lambda paths, **_kw: {})
     _meta_path().write_text(
         json.dumps(
             {
                 "artifact_version": _OBSERVATIONS_ARTIFACT_VERSION,
+                "provenance": {
+                    "schema_version": 1,
+                    "sources": {},
+                    "indexes": {},
+                    "contributors": {},
+                },
                 "sources": {},
                 "parquets": builder._parquet_fingerprints(),
             }

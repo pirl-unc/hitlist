@@ -3568,6 +3568,13 @@ def _apply_training_defaults(df: pd.DataFrame) -> pd.DataFrame:
 
     result = df.copy()
 
+    if "provenance_id" not in result:
+        result["provenance_id"] = ""
+    result["provenance_id"] = result["provenance_id"].astype("string").fillna("")
+    result["provenance_status"] = result["provenance_id"].map(
+        lambda value: "indexed" if value else "legacy_missing"
+    )
+
     if "sample_mhc" not in result.columns and "mhc" in result.columns:
         result = result.rename(columns={"mhc": "sample_mhc", "note": "sample_note"})
 
@@ -3747,7 +3754,17 @@ def _project_training_columns(df: pd.DataFrame, columns: list[str] | None) -> pd
     if columns is None:
         return df
     identity_cols = ["evidence_kind"]
-    identity_cols.extend(c for c in ("evidence_row_id", "evidence_source_id") if c in df.columns)
+    identity_cols.extend(
+        c
+        for c in (
+            "evidence_row_id",
+            "evidence_source_id",
+            "provenance_id",
+            "provenance_status",
+            "lineage_context_id",
+        )
+        if c in df.columns
+    )
     requested = list(dict.fromkeys([*columns, *identity_cols]))
     available = [c for c in requested if c in df.columns]
     return df[available]
@@ -3929,6 +3946,14 @@ def generate_training_table(
         result = pd.concat(parts, ignore_index=True, sort=False)
 
     result = _apply_training_defaults(result)
+    if result["provenance_id"].ne("").any():
+        from .provenance import _contributor_contract
+
+        if _contributor_contract() is None:
+            raise ValueError("Provenance metadata missing; rebuild observations")
+    from .lineage import attach_lineage
+
+    result = attach_lineage(result, copy=False)
 
     if map_source_proteins:
         mappings = _load_training_mappings_for_peptides(

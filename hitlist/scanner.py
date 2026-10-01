@@ -292,6 +292,8 @@ def scan(
     classify_source: bool = True,
     min_allele_resolution: str | None = None,
     human_only: bool | None = None,
+    *,
+    provenance=None,
 ) -> pd.DataFrame:
     """Scan IEDB/CEDAR for matching peptides, or profile entire dataset.
 
@@ -373,12 +375,16 @@ def scan(
 
     rows: list[dict] = []
     seen: set[str] = set()
+    scan_id = provenance.begin_scan() if provenance is not None else None
 
     for source_path in source_paths:
         if not source_path.exists():
             continue
+        dataset = "iedb" if iedb_path is not None and source_path == Path(iedb_path) else "cedar"
+        if provenance is not None:
+            provenance.register_source(dataset, source_path)
         reader, c, p, fh = _open_csv(source_path)
-        for row in _progress(reader, p, f"Scanning {p.name}", fh=fh):
+        for row_number, row in enumerate(_progress(reader, p, f"Scanning {p.name}", fh=fh), 1):
             if peptides is not None:
                 pep_raw = _safe_col(row, c["epitope_name"])
                 # Match the targeted-peptide filter against either the
@@ -393,10 +399,19 @@ def scan(
             # identity — deduping on "" would collapse every blank-IRI row
             # (distinct observations) into one. _safe_col guards short rows.
             iri = _safe_col(row, c["assay_iri"])
+            record_id = ""
+            if provenance is not None:
+                record_id = provenance.record(
+                    dataset, row_number, {name: _safe_col(row, col) for name, col in c.items()}, row
+                )
             if iri:
-                if iri in seen:
-                    continue
-                seen.add(iri)
+                if provenance is not None:
+                    if provenance.duplicate_assay(scan_id, iri, record_id):
+                        continue
+                else:
+                    if iri in seen:
+                        continue
+                    seen.add(iri)
 
             src_org = _safe_col(row, c["source_organism"])
             species = _safe_col(row, c["species"])
@@ -627,6 +642,8 @@ def scan(
                     donor_record["mhc_allele_provenance"] = donor_prov
                     donor_record["mhc_allele_set_size"] = donor_size
                     donor_record["attributed_sample_label"] = sample_label
+                    if provenance is not None:
+                        donor_record["provenance_id"] = provenance.observe(record_id, sample_label)
                     # Promote a narrowed class-only set to ``mhc_restriction``
                     # (#45).  An exact source restriction remains unchanged;
                     # the curated donor label is independent metadata (#414).
@@ -651,6 +668,8 @@ def scan(
             record["mhc_allele_provenance"] = set_provenance
             record["mhc_allele_set_size"] = set_size
             record["attributed_sample_label"] = ""
+            if provenance is not None:
+                record["provenance_id"] = provenance.observe(record_id)
 
             # Promote set to ``mhc_restriction`` (#45).  ``mhc_restriction``
             # is the actual presenting MHC for the row — when we have a

@@ -9,6 +9,7 @@ nav:
   - How Curation Works: curation-process.md
   - Source Classification: source-classification.md
   - PMID Curation Overrides: pmid-curation.md
+  - Training Provenance and Split Audits: training-provenance.md
 
 theme:
   name: readthedocs

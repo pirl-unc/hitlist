@@ -34,7 +34,13 @@ from hitlist.parquet_io import atomic_write_parquet
 def _seed_observation_cache(tmp_path, monkeypatch, *, artifact_version=None):
     """A registered source plus the four parquets and metadata that match them."""
     monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
-    for name in ("observations", "binding", "bulk_proteomics", "line_expression"):
+    for name in (
+        "observations",
+        "binding",
+        "bulk_proteomics",
+        "line_expression",
+        "observation_contributors",
+    ):
         atomic_write_parquet(pd.DataFrame({"peptide": ["AAAAAAAAA"]}), tmp_path / f"{name}.parquet")
     source = tmp_path / "iedb.csv"
     source.write_text("source")
@@ -46,6 +52,12 @@ def _seed_observation_cache(tmp_path, monkeypatch, *, artifact_version=None):
                 "artifact_version": (
                     _OBSERVATIONS_ARTIFACT_VERSION if artifact_version is None else artifact_version
                 ),
+                "provenance": {
+                    "schema_version": 1,
+                    "sources": {},
+                    "indexes": {},
+                    "contributors": {},
+                },
                 "sources": builder._source_fingerprints(paths, fetch_missing_assets=False),
                 "parquets": builder._parquet_fingerprints(),
             }

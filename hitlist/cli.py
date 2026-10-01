@@ -1385,7 +1385,23 @@ def main() -> None:
             "available (default: 112)."
         ),
     )
-    p_training.add_argument("--output", "-o", help="Write to file (.csv or .parquet)")
+    training_destination = p_training.add_mutually_exclusive_group()
+    training_destination.add_argument("--output", "-o", help="Write to file (.csv or .parquet)")
+    training_destination.add_argument(
+        "--bundle", help="Write a new directory with a verified manifest"
+    )
+    p_training.add_argument(
+        "--columns", nargs="+", help="Project training columns; identity is retained"
+    )
+    from .split_audit import POLICIES
+
+    p_training.add_argument("--split-policy", choices=sorted(POLICIES), default="report_only")
+    p_audit = sub.add_parser(
+        "audit-splits", help="Audit partitions supplied as verified training bundles"
+    )
+    p_audit.add_argument("--partition", action="append", required=True, metavar="NAME=DIRECTORY")
+    p_audit.add_argument("--policy", choices=sorted(POLICIES), default="report_only")
+    p_audit.add_argument("--output", "-o", help="Write the JSON audit report")
 
     p_bulk_prot = export_sub.add_parser(
         "bulk-proteomics",
@@ -1933,6 +1949,8 @@ def main() -> None:
         _report(args)
     elif args.command == "export":
         _export(args)
+    elif args.command == "audit-splits":
+        _handle_split_audit(args)
     elif args.command == "reassign-alleles":
         _reassign(args)
     elif args.command == "qc":
@@ -2451,34 +2469,65 @@ def _export_training(args: argparse.Namespace):
     """Run the ``hitlist export training`` subcommand."""
     from .export import generate_training_table
 
-    return generate_training_table(
-        include_evidence=getattr(args, "include_evidence", "both"),
-        mhc_class=getattr(args, "mhc_class", None),
-        species=getattr(args, "species", None),
-        source_species=getattr(args, "source_species", None),
-        host_species=getattr(args, "host_species", None),
-        exclude_chimeric=getattr(args, "exclude_chimeric", False),
-        source=getattr(args, "source", None),
-        instrument_type=getattr(args, "instrument_type", None),
-        acquisition_mode=getattr(args, "acquisition_mode", None),
-        is_mono_allelic=getattr(args, "mono_allelic", None),
-        min_allele_resolution=getattr(args, "min_allele_resolution", None),
-        mhc_allele=getattr(args, "mhc_allele", None),
-        mhc_allele_in_set=getattr(args, "mhc_allele_in_set", None),
-        mhc_allele_provenance=getattr(args, "mhc_allele_provenance", None),
-        restriction_evidence=getattr(args, "restriction_evidence", None),
-        serotype_source=getattr(args, "serotype_source", None),
-        gene=getattr(args, "gene", None),
-        gene_name=getattr(args, "gene_name", None),
-        gene_id=getattr(args, "gene_id", None),
-        peptide=getattr(args, "peptide", None),
-        serotype=getattr(args, "serotype", None),
-        length_min=getattr(args, "length_min", None),
-        length_max=getattr(args, "length_max", None),
-        map_source_proteins=getattr(args, "map_source_proteins", False),
-        with_peptide_origin=getattr(args, "with_peptide_origin", False),
-        proteome_release=getattr(args, "proteome_release", 112),
-    )
+    options = {
+        "include_evidence": getattr(args, "include_evidence", "both"),
+        "mhc_class": getattr(args, "mhc_class", None),
+        "species": getattr(args, "species", None),
+        "source_species": getattr(args, "source_species", None),
+        "host_species": getattr(args, "host_species", None),
+        "exclude_chimeric": getattr(args, "exclude_chimeric", False),
+        "source": getattr(args, "source", None),
+        "instrument_type": getattr(args, "instrument_type", None),
+        "acquisition_mode": getattr(args, "acquisition_mode", None),
+        "is_mono_allelic": getattr(args, "mono_allelic", None),
+        "min_allele_resolution": getattr(args, "min_allele_resolution", None),
+        "mhc_allele": getattr(args, "mhc_allele", None),
+        "mhc_allele_in_set": getattr(args, "mhc_allele_in_set", None),
+        "mhc_allele_provenance": getattr(args, "mhc_allele_provenance", None),
+        "restriction_evidence": getattr(args, "restriction_evidence", None),
+        "serotype_source": getattr(args, "serotype_source", None),
+        "gene": getattr(args, "gene", None),
+        "gene_name": getattr(args, "gene_name", None),
+        "gene_id": getattr(args, "gene_id", None),
+        "peptide": getattr(args, "peptide", None),
+        "serotype": getattr(args, "serotype", None),
+        "length_min": getattr(args, "length_min", None),
+        "length_max": getattr(args, "length_max", None),
+        "map_source_proteins": getattr(args, "map_source_proteins", False),
+        "with_peptide_origin": getattr(args, "with_peptide_origin", False),
+        "proteome_release": getattr(args, "proteome_release", 112),
+        "columns": getattr(args, "columns", None),
+    }
+    if getattr(args, "bundle", None):
+        from .training_bundle import write_training_bundle
+
+        return write_training_bundle(args.bundle, split_policy=args.split_policy, **options)
+    if getattr(args, "split_policy", "report_only") != "report_only":
+        raise ValueError("--split-policy requires --bundle; use audit-splits to check partitions")
+    return generate_training_table(**options)
+
+
+def _handle_split_audit(args):
+    from .training_bundle import audit_training_bundles
+
+    try:
+        partitions = {}
+        for value in args.partition:
+            name, separator, directory = value.partition("=")
+            if not separator or not name or not directory or name in partitions:
+                raise ValueError("Each partition must be a unique NAME=DIRECTORY")
+            partitions[name] = directory
+        report = audit_training_bundles(partitions, policy=args.policy)
+        content = json.dumps(report, indent=2, sort_keys=True) + "\n"
+        if args.output:
+            Path(args.output).write_text(content)
+        else:
+            print(content, end="")
+    except (ValueError, OSError) as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
+    if report["verdict"] in {"fail", "inconclusive"}:
+        sys.exit(2)
 
 
 def _export_progress(msg: str) -> None:
@@ -2663,7 +2712,10 @@ def _export(args: argparse.Namespace) -> None:
         )
         try:
             df = _export_training(args)
-        except (ValueError, FileNotFoundError) as e:
+            if getattr(args, "bundle", None):
+                print(f"Wrote training bundle manifest to {df}")
+                return
+        except (ValueError, OSError) as e:
             print(f"Error: {e}", file=sys.stderr)
             sys.exit(1)
     elif cmd in ("bulk", "bulk-proteomics"):
