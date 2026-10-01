@@ -3,11 +3,13 @@
 import weakref
 
 import pandas as pd
+import pytest
 
 from hitlist import export
 
 
-def test_reindexed_metadata_is_released_before_final_annotations(tmp_path, monkeypatch):
+@pytest.mark.parametrize("labels", [None, "blank", "hit", "no_hit"])
+def test_reindexed_metadata_is_released_before_final_annotations(tmp_path, monkeypatch, labels):
     overrides = {
         99999001: {
             "study_label": "synthetic",
@@ -38,6 +40,12 @@ def test_reindexed_metadata_is_released_before_final_annotations(tmp_path, monke
             "qualitative_measurement": ["Positive"] * 3,
         }
     )
+    if labels is not None:
+        observations["attributed_sample_label"] = {
+            "blank": ["", "", ""],
+            "hit": ["sample", "unknown", "sample"],
+            "no_hit": ["unknown", "unknown", "sample"],
+        }[labels]
     path = tmp_path / "observations.parquet"
     observations.to_parquet(path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
@@ -48,9 +56,12 @@ def test_reindexed_metadata_is_released_before_final_annotations(tmp_path, monke
     def track_join(self, *args, **kwargs):
         result = reindex(self, *args, **kwargs)
         if "_pmid_int" in self.index.names:
-            for column in ("sample_label", "sample_label_fb"):
-                if column in result.columns and len(result) == len(observations):
-                    joined[column] = weakref.ref(result)
+            if "_label" in self.index.names:
+                joined["curated_label"] = weakref.ref(result)
+            else:
+                for column in ("sample_label", "sample_label_fb"):
+                    if column in result.columns and len(result) == len(observations):
+                        joined[column] = weakref.ref(result)
         return result
 
     monkeypatch.setattr(pd.DataFrame, "reindex", track_join)
@@ -58,7 +69,10 @@ def test_reindexed_metadata_is_released_before_final_annotations(tmp_path, monke
     checked = []
 
     def check_lifetime(*args, **kwargs):
-        assert set(joined) == {"sample_label", "sample_label_fb"}
+        expected = {"sample_label", "sample_label_fb"}
+        if labels in ("hit", "no_hit"):
+            expected.add("curated_label")
+        assert set(joined) == expected
         retained = [name for name, reference in joined.items() if reference() is not None]
         assert not retained, f"Completed joins still retain full-length metadata: {retained}"
         checked.append(True)
@@ -68,4 +82,8 @@ def test_reindexed_metadata_is_released_before_final_annotations(tmp_path, monke
     result = export.generate_observations_table()
     assert checked == [True]
     assert result["sample_label"].tolist() == ["sample", "sample", ""]
-    assert result["sample_attribution"].tolist() == ["allele_exact", "single_sample_pmid", ""]
+    assert result["sample_attribution"].tolist() == [
+        "curated_sample_label" if labels == "hit" else "allele_exact",
+        "single_sample_pmid",
+        "",
+    ]

@@ -2549,6 +2549,9 @@ def generate_observations_table(
                         else:
                             _lvals = _lvals.fillna("")
                         obs[_lcol] = obs[_lcol].where(~_label_hit, _lvals)
+                # The coalesce owns its output; do not retain the full-length
+                # metadata shadow through later annotation and categorization.
+                del _label_matched
 
     # 3d) Resolve every statement-excluded row, once and from row data alone.
     #

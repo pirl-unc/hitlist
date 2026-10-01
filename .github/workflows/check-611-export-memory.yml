@@ -1,0 +1,110 @@
+name: Issue 611 export comparison
+on:
+  pull_request:
+    paths:
+      - .github/workflows/check-611-export-memory.yml
+      - scripts/check_611_export_memory.py
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        repeat: [1, 2]
+    env:
+      BASELINE_SHA: 0d0f9ba2ff054b007d3b55842a65ed6de635d2a0
+      PYTHONHASHSEED: '0'
+      PYTHONUNBUFFERED: '1'
+      TEST_SH_MAX: '1'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - name: Install one dependency environment for both revisions
+        run: |
+          pip install -e '.[dev,alleles]'
+          mkdir -p results
+          pip freeze --exclude-editable > results/dependencies.txt
+          cp scripts/check_611_export_memory.py results/
+          cp .github/workflows/check-611-export-memory.yml results/
+          git worktree add --detach "$RUNNER_TEMP/baseline" "$BASELINE_SHA"
+      - name: Prove the baseline fails the new lifetime regression
+        run: |
+          cp tests/test_export_join_lifetime.py "$RUNNER_TEMP/baseline/tests/"
+          cd "$RUNNER_TEMP/baseline"
+          export PYTHONPATH="$PWD"
+          python -c 'from hitlist import export; print(export.__file__)'
+          set +e
+          ./test.sh -k test_reindexed_metadata_is_released_before_final_annotations --junitxml="$GITHUB_WORKSPACE/results/baseline-lifetime.xml" > "$GITHUB_WORKSPACE/results/baseline-lifetime.log" 2>&1
+          status=$?
+          set -e
+          cat "$GITHUB_WORKSPACE/results/baseline-lifetime.log"
+          test "$status" = 1
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          root = ET.parse(Path(os.environ['GITHUB_WORKSPACE']) / 'results/baseline-lifetime.xml')
+          cases = root.findall('.//testcase')
+          assert len(cases) == 4, len(cases)
+          failures = [case for case in cases if case.find('failure') is not None]
+          assert {case.get('name').split('[')[1] for case in failures} == {'hit]', 'no_hit]'}
+          for case in failures:
+              assert "Completed joins still retain full-length metadata: ['curated_label']" in case.find('failure').get('message')
+          assert not root.findall('.//error')
+          assert not root.findall('.//skipped')
+          PY
+      - name: Run candidate lifetime and neighboring attribution tests
+        run: ./test.sh -k 'reindexed_metadata_is_released or curated_sample_label or unmatched_curated_label or curated_label_keeps or bola_prediction_label'
+      - name: Provision full-corpus memory
+        run: |
+          sudo fallocate -l 8G "$RUNNER_TEMP/hitlist-corpus.swap"
+          sudo chmod 600 "$RUNNER_TEMP/hitlist-corpus.swap"
+          sudo mkswap "$RUNNER_TEMP/hitlist-corpus.swap"
+          sudo swapon "$RUNNER_TEMP/hitlist-corpus.swap"
+          free -h
+      - name: Download and verify ci-corpus-v2
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/corpus"
+          gh release download ci-corpus-v2 --repo pirl-unc/hitlist --pattern '*.parquet' --pattern observations_meta.json --dir "$RUNNER_TEMP/corpus"
+          python scripts/ci_corpus.py verify "$RUNNER_TEMP/corpus" | tee results/corpus-verification.txt
+          echo "HITLIST_DATA_DIR=$RUNNER_TEMP/corpus" >> "$GITHUB_ENV"
+      - name: Measure fresh export processes in alternating order
+        env:
+          REPEAT: ${{ matrix.repeat }}
+        run: |
+          if [ "$REPEAT" = 1 ]; then
+            python scripts/check_611_export_memory.py "$RUNNER_TEMP/baseline" results/baseline.json
+            python scripts/check_611_export_memory.py "$GITHUB_WORKSPACE" results/candidate.json
+          else
+            python scripts/check_611_export_memory.py "$GITHUB_WORKSPACE" results/candidate.json
+            python scripts/check_611_export_memory.py "$RUNNER_TEMP/baseline" results/baseline.json
+          fi
+      - name: Require full-output parity
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          baseline = json.loads(Path('results/baseline.json').read_text())
+          candidate = json.loads(Path('results/candidate.json').read_text())
+          assert baseline['fingerprint'] == candidate['fingerprint'], 'Full export differs'
+          print('Full-output parity:', baseline['fingerprint']['n_rows'], 'rows x', baseline['fingerprint']['n_columns'], 'columns')
+          for label, result in [('baseline', baseline), ('candidate', candidate)]:
+              print(label, result['commit'], result['peak_rss_kib'], 'KiB peak RSS;', result['elapsed_seconds'], 'seconds')
+          PY
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: issue-611-comparison-${{ matrix.repeat }}
+          path: results/
+          retention-days: 30
+          if-no-files-found: error
