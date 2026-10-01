@@ -577,11 +577,82 @@ hitlist export binding --mhc-allele HLA-A*02:01 --serotype Bw4
 
 MS-specific filters (`--mono-allelic`, `--instrument-type`, `--acquisition-mode`) apply only to the MS slice. Binding rows never gain fake sample context; they remain tagged as `evidence_kind="binding"` with `sample_match_type="not_applicable"`.
 
+Binding-specific filters (`--assay-method`, `--response-measured`,
+`--measurement-units`, `--has-quantitative-value` / `--qualitative-only`, and
+`--quantitative-value-min` / `--quantitative-value-max`) apply only to the binding
+slice. With `--include-evidence both`, they retain the independently selected MS
+rows; with `ms`, they have no effect. Methods use case-insensitive substring
+matching; endpoints and units use case-insensitive exact matching. Multiple
+values select any listed value; different filters combine with AND. Numeric
+bounds are inclusive and exclude missing values. No units are converted and
+inequality qualifiers are preserved. The same options work with `--bundle DIR`
+and are recorded in its manifest.
+
 ```bash
 hitlist export training --include-evidence both --gene PRAME --class I -o prame_training.csv
 hitlist export training --include-evidence ms --mono-allelic --class I -o mono_ms.csv
 hitlist export training --include-evidence both --explode-mappings -o presto_training.parquet
 ```
+
+### Selecting MHC-I affinity measurements
+
+Choose an explicit endpoint allowlist and units. This example selects human
+MHC-I IC50 and KD measurements reported in nM; it deliberately excludes EC50,
+KD proxies such as `dissociation constant KD (~IC50)`, broad `MHC binding`
+labels, half-life, structure and thermal-stability endpoints. Inspect the
+reported vocabulary and define the endpoint policy for your model. IC50 and KD
+remain distinct endpoints even when selected together.
+
+```python
+from hitlist.export import generate_training_table
+
+affinity = generate_training_table(
+    include_evidence="binding",
+    mhc_class="I",
+    species="human",
+    min_allele_resolution="four_digit",
+    response_measured=[
+        "half maximal inhibitory concentration (IC50)",
+        "dissociation constant KD",
+    ],
+    measurement_units="nM",
+    has_quantitative_value=True,
+)
+
+# Explicit policy for a model that accepts only exact, positive numeric targets.
+# Preserve endpoint and original measurement columns alongside every target.
+exact = affinity[
+    affinity.measurement_inequality.eq("=") & affinity.quantitative_value.gt(0)
+].copy()
+censored = affinity[affinity.measurement_inequality.isin(["<", "<=", ">", ">="])].copy()
+unresolved_qualifier = affinity[
+    ~affinity.measurement_inequality.isin(["=", "<", "<=", ">", ">="])
+].copy()
+```
+
+Equivalent selection before the exact/censored partition:
+
+```bash
+hitlist export training --include-evidence binding --class I --species human \
+    --min-allele-resolution four_digit \
+    --response-measured 'half maximal inhibitory concentration (IC50)' \
+    --response-measured 'dissociation constant KD' \
+    --measurement-units nM --has-quantitative-value -o affinity.parquet
+```
+
+`has_quantitative_value=True` alone includes any endpoint with a number, including
+half-life or thermal stability. Unit selection alone also does not identify an
+affinity endpoint. Numeric bounds filter the **reported number**: a `>5000` row
+passes `quantitative_value_max=5000`, but its measurement remains greater than
+5000. Use censored rows only with a model/loss that handles their bounds; do not
+replace their qualifiers with equality. Blank or unfamiliar qualifiers need
+review. `has_quantitative_value=False` (`--qualitative-only`) selects rows without
+a numeric value, preserving `qualitative_measurement`; those labels need their
+own explicit policy and are not invented numeric targets. The canonical indexes
+retain all endpoint families. Column projection is optional; retain
+`response_measured`, `measurement_units`, `quantitative_measurement`,
+`quantitative_value`, `measurement_inequality`, and `qualitative_measurement`
+when passing selected measurements downstream.
 
 ### Sample-level expression anchors (issue #140)
 

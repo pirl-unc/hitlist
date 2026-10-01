@@ -1168,62 +1168,7 @@ def main() -> None:
             "epitopes Bw4/Bw6/C1/C2).  Space-separated, comma-separated, or repeated."
         ),
     )
-    p_bind.add_argument(
-        "--assay-method",
-        action="extend",
-        nargs="+",
-        help=(
-            "Filter to rows whose IEDB/CEDAR assay_method matches (case-"
-            "insensitive substring).  Examples: 'purified MHC/direct/"
-            "fluorescence', 'cellular MHC/direct'.  Repeatable."
-        ),
-    )
-    p_bind.add_argument(
-        "--response-measured",
-        action="extend",
-        nargs="+",
-        help=(
-            "Filter to rows whose IEDB/CEDAR Response-measured matches "
-            "(case-insensitive exact match).  Examples: 'qualitative "
-            "binding', 'dissociation constant KD', 'half life', 'ligand "
-            "presentation'.  Combine with --assay-method and "
-            "--measurement-units to disambiguate IC50 vs Kd vs t_half. "
-            "Repeatable."
-        ),
-    )
-    p_bind.add_argument(
-        "--measurement-units",
-        action="extend",
-        nargs="+",
-        help=(
-            "Filter to rows reporting in these units (case-insensitive "
-            "exact match).  Pair with --quantitative-value-{min,max} to "
-            "avoid mixing unit systems (e.g. nM vs log10(nM))."
-        ),
-    )
-    p_bind.add_argument(
-        "--quantitative-value-min",
-        type=float,
-        help="Inclusive lower bound on quantitative_value.  Excludes NaN.",
-    )
-    p_bind.add_argument(
-        "--quantitative-value-max",
-        type=float,
-        help="Inclusive upper bound on quantitative_value.  Excludes NaN.",
-    )
-    p_bind.add_argument(
-        "--has-quantitative-value",
-        dest="has_quantitative_value",
-        action="store_true",
-        default=None,
-        help="Keep only rows with a non-NaN quantitative_value (IC50/EC50/Kd rows).",
-    )
-    p_bind.add_argument(
-        "--qualitative-only",
-        dest="has_quantitative_value",
-        action="store_false",
-        help="Keep only qualitative-tier rows (no numeric value reported).",
-    )
+    _add_binding_measurement_args(p_bind)
     p_bind.add_argument("--output", "-o", help="Write to file (.csv or .parquet)")
 
     p_training = export_sub.add_parser(
@@ -1241,6 +1186,7 @@ def main() -> None:
     )
     p_training.add_argument("--class", dest="mhc_class", help="MHC class (I, II, or non-classical)")
     p_training.add_argument("--species", help="Filter by MHC species")
+    _add_binding_measurement_args(p_training)
     _add_export_species_axis_args(p_training)
     p_training.add_argument(
         "--source",
@@ -2450,6 +2396,72 @@ def _export_bulk(args: argparse.Namespace):
     return pd.concat(frames, ignore_index=True, sort=False) if frames else pd.DataFrame()
 
 
+def _add_binding_measurement_args(parser: argparse.ArgumentParser) -> None:
+    """Register binding-only filters shared by binding and training exports."""
+    parser.add_argument(
+        "--assay-method",
+        action="extend",
+        nargs="+",
+        help=(
+            "Filter binding rows whose IEDB/CEDAR assay_method matches (case-"
+            "insensitive substring).  Examples: 'purified MHC/direct/"
+            "fluorescence', 'cellular MHC/direct'.  Repeatable."
+        ),
+    )
+    parser.add_argument(
+        "--response-measured",
+        action="extend",
+        nargs="+",
+        help=(
+            "Filter binding rows whose IEDB/CEDAR Response-measured matches "
+            "(case-insensitive exact match).  Examples: 'qualitative "
+            "binding', 'dissociation constant KD', 'half life', 'ligand "
+            "presentation'.  Combine with --assay-method and "
+            "--measurement-units to disambiguate IC50 vs Kd vs t_half. "
+            "Repeatable."
+        ),
+    )
+    parser.add_argument(
+        "--measurement-units",
+        action="extend",
+        nargs="+",
+        help=(
+            "Filter binding rows reporting in these units (case-insensitive "
+            "exact match).  Pair with --quantitative-value-{min,max} to "
+            "avoid mixing unit systems (e.g. nM vs log10(nM))."
+        ),
+    )
+    parser.add_argument(
+        "--quantitative-value-min",
+        type=float,
+        help=(
+            "Binding-only inclusive lower bound on the reported value; "
+            "excludes NaN, preserves inequalities."
+        ),
+    )
+    parser.add_argument(
+        "--quantitative-value-max",
+        type=float,
+        help=(
+            "Binding-only inclusive upper bound on the reported value; "
+            "excludes NaN, preserves inequalities."
+        ),
+    )
+    parser.add_argument(
+        "--has-quantitative-value",
+        dest="has_quantitative_value",
+        action="store_true",
+        default=None,
+        help="Keep binding rows with a numeric value, regardless of endpoint or units.",
+    )
+    parser.add_argument(
+        "--qualitative-only",
+        dest="has_quantitative_value",
+        action="store_false",
+        help="Keep binding rows with no numeric value reported.",
+    )
+
+
 def _add_export_species_axis_args(parser: argparse.ArgumentParser) -> None:
     """Keep independent species-axis filters available on every evidence export."""
     parser.add_argument(
@@ -2493,6 +2505,12 @@ def _export_training(args: argparse.Namespace):
         "serotype": getattr(args, "serotype", None),
         "length_min": getattr(args, "length_min", None),
         "length_max": getattr(args, "length_max", None),
+        "assay_method": getattr(args, "assay_method", None),
+        "response_measured": getattr(args, "response_measured", None),
+        "measurement_units": getattr(args, "measurement_units", None),
+        "has_quantitative_value": getattr(args, "has_quantitative_value", None),
+        "quantitative_value_min": getattr(args, "quantitative_value_min", None),
+        "quantitative_value_max": getattr(args, "quantitative_value_max", None),
         "map_source_proteins": getattr(args, "map_source_proteins", False),
         "with_peptide_origin": getattr(args, "with_peptide_origin", False),
         "proteome_release": getattr(args, "proteome_release", 112),

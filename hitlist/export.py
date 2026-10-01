@@ -3009,9 +3009,9 @@ def generate_binding_table(
         ``measurement_units`` to avoid mixing unit systems.
     has_quantitative_value
         When True, keep only rows with a non-NaN ``quantitative_value``
-        (a quick "give me only the IC50/EC50/Kd rows" filter).  When
-        False, keep only qualitative-tier rows.  ``None`` leaves the
-        axis unfiltered.
+        regardless of endpoint or units. When False, keep rows without
+        a numeric value. ``None`` leaves the axis unfiltered. Numeric
+        presence alone does not identify affinity measurements.
     mhc_allele_in_set
         Filter to rows whose ``mhc_allele_set`` (issue #137 expanded
         candidate-allele set) contains any of the listed alleles.  Use
@@ -3798,6 +3798,12 @@ def generate_training_table(
     columns: list[str] | None = None,
     explode_mappings: bool | None = None,
     *,
+    assay_method: str | list[str] | None = None,
+    response_measured: str | list[str] | None = None,
+    measurement_units: str | list[str] | None = None,
+    has_quantitative_value: bool | None = None,
+    quantitative_value_min: float | None = None,
+    quantitative_value_max: float | None = None,
     exclude_class_label_suspect: bool = False,
     exclude_class_label_implausible: bool = False,
     exclude_non_peptide_ligand: bool = True,
@@ -3857,6 +3863,23 @@ def generate_training_table(
 
     Parameters
     ----------
+    assay_method, response_measured, measurement_units
+        Binding-only filters, with the matching semantics of
+        :func:`generate_binding_table`: case-insensitive substring for
+        methods, case-insensitive exact membership for endpoints and units.
+        In ``both`` mode they leave the MS branch unchanged; in ``ms``
+        mode they have no effect. Measurement fields and inequality
+        qualifiers are preserved unless explicitly omitted by ``columns``.
+    has_quantitative_value
+        Binding-only numeric-presence filter: True keeps non-null values,
+        False keeps missing values, and None leaves the axis unfiltered.
+        A numeric value alone does not identify an affinity measurement;
+        select an explicit endpoint allowlist and units as well.
+    quantitative_value_min, quantitative_value_max
+        Binding-only inclusive bounds on the reported numeric value.
+        Missing values are excluded. Bounds do not interpret inequality
+        qualifiers or convert units; a reported ``>5000`` remains a
+        censored bound, not an exact value of 5000.
     exclude_class_label_suspect
         Drop rows whose curated MHC class disagrees with the peptide
         length severely enough to be flagged ``suspect`` — the strict
@@ -3936,7 +3959,15 @@ def generate_training_table(
         # extra copy is unnecessary churn. The earlier ms.copy() above
         # is kept since generate_observations_table can return a view
         # of obs from upstream filter chains.
-        binding = generate_binding_table(**shared_kwargs)
+        binding = generate_binding_table(
+            assay_method=assay_method,
+            response_measured=response_measured,
+            measurement_units=measurement_units,
+            has_quantitative_value=has_quantitative_value,
+            quantitative_value_min=quantitative_value_min,
+            quantitative_value_max=quantitative_value_max,
+            **shared_kwargs,
+        )
         binding["evidence_kind"] = "binding"
         parts.append(binding)
 

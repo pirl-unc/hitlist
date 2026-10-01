@@ -1,3 +1,48 @@
+# #615 — binding filters in unified training exports
+
+## Specification
+
+Expose `assay_method`, `response_measured`, `measurement_units`,
+`has_quantitative_value`, and inclusive `quantitative_value_min/max` as new
+keyword-only parameters on `generate_training_table`. Forward these only to
+`generate_binding_table`, before composition, mapping expansion and projection.
+Keep existing defaults and binding matching semantics: case-insensitive method
+substring, endpoint/unit exact membership, and numeric presence/bounds. In
+`both` mode MS selection is unchanged; in `ms` mode these filters have no effect.
+
+Share the existing binding CLI option registration with the training CLI and
+forward the six options through ordinary exports and bundles. Bundle manifests
+already capture effective API parameters; verify the selected filters and rows
+are recorded. Preserve endpoint, units, original measurement, qualitative label
+and inequality; no endpoint inference, unit conversion, censor reinterpretation
+or new restrictions on the canonical indexes. Fix misleading numeric-presence
+help text as part of the documented #615 selection semantics.
+
+Document a human MHC-I example with explicit IC50/KD endpoint membership and nM
+units. Separate exact numeric targets from censored bounds and qualitative-only
+labels; require an explicit downstream policy rather than treating all numbers
+as affinity. Cover mixed endpoints, nM non-affinity rows, log units, inequalities,
+inclusive bounds, method matching, boolean tri-state, mixed/MS-only modes,
+projection/mapping, CLI parsing and bundle option retention with small fixtures.
+Use bounded local checks and full CI/release validation to avoid workstation
+memory pressure. Bump to 1.64.1, merge the PR, and publish verified artifacts.
+
+- [x] Inspect #615, existing filters, CLI, manifests and project lessons.
+- [x] Create feature branch, specify behavior and check in the plan.
+- [x] Add failing regressions, implement API/CLI forwarding and documentation.
+- [ ] Run format/lint/test.sh, review compatibility and verify editable version.
+- [ ] Pass full CI, merge, deploy from clean main and verify PyPI artifacts.
+
+## Review
+
+Implemented for 1.64.1 with 19 new fixture-based regressions. All three evidence
+modes reproduced the unsupported-argument failure before implementation.
+Format/lint pass. The surrounding local `test.sh` selection was interrupted
+after 15 passing tests when workstation memory became scarce; this is not a
+passing run. A subsequent unsandboxed memory preflight refused at 0.10 GB free.
+The isolated editable-install verifier passes at 1.64.1. Full validation is
+delegated to CI and the clean-main release build.
+
 # #622 / #616 — contributor retention and training lineage (2026-09-30)
 
 Specification: [training-provenance-spec.md](training-provenance-spec.md).
@@ -9,13 +54,16 @@ Specification: [training-provenance-spec.md](training-provenance-spec.md).
 - [x] Add the shared export bundle/manifest and split audit API/CLI.
 - [x] Verify fixture parity, legacy behavior, tamper detection and known reuse.
 - [x] Bump version; run format, lint, test.sh and editable-install verification.
-- [ ] Open PR, pass full CI, review and follow the release workflow.
+- [x] Open PR, pass full CI, review and follow the release workflow.
 
 ## Review
 
-Implemented for 1.64.0. Local format/lint and editable-install verification pass;
+Shipped in PR #625 / 1.64.0. Full Python 3.9–3.12 CI passed. Clean-main release
+run 36798035261 passed format/lint, 2,456 tests (1 skipped), and 46 integration
+tests; published wheel/sdist hashes and sizes matched the trusted manifest.
+Local format/lint and editable-install verification pass;
 `./test.sh` focused regression selection: 237 passed. Full matrix and corpus CI
-remain required. Added #624 for the reproduced blank-identifier data loss and
+passed. Added #624 for the reproduced blank-identifier data loss and
 included its narrow fix. Raw corpus rebuild/performance has not been measured.
 
 #614 shipped in #623 / 1.63.18: PR CI and clean-main
