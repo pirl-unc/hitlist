@@ -1,5 +1,17 @@
 # Lessons
 
+## 2026-10-01
+
+- Generalize allele matching to species compatibility, not just acceptance of
+  non-human allele syntax. Keep candidate identity/class validation separate
+  from compatibility with the observation's evidenced presenting-MHC context.
+  Source proteome, presenting cells, host and MHC species are distinct axes;
+  documented xenografts or engineered MHC explain particular differences, not
+  arbitrary cross-species assignments. Do not use a mismatch-derived xeno flag
+  as its own evidence that the mismatch is valid. Preserve reported evidence,
+  exclude incompatible inferred candidates with an auditable reason, and keep
+  missing context explicitly uncertain rather than silently deleting rows.
+
 ## 2026-09-30
 
 - Prefer readable compound observation IDs when the source and curated arm

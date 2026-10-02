@@ -2892,7 +2892,9 @@ def test_hla_g_transfectants_are_non_classical():
 #: proteome species — engineered chimeric systems (#46), not errors.
 _KNOWN_CHIMERIC_SAMPLES = {
     (26740625, "DCs from lymph nodes (HLA-DR1 transgenic mouse)"),
-    (26811146, "cell line expressing HLA-B*27:05"),
+    # Human C1R cells presenting macaque Mamu-B*008:01. The sibling HLA-B27
+    # arm is human on both axes and therefore does not belong here (#630).
+    (26811146, "cell line expressing Mamu-B*008:01"),
     # Barnea 2017 (MCP): HLA-B*27 + human beta2m transgenic RAT spleen, in
     # vivo.  Host and eluted proteome are rat, the restricting molecule is a
     # human transgene — the textbook chimera.  Both arms became visible only
@@ -2900,6 +2902,9 @@ _KNOWN_CHIMERIC_SAMPLES = {
     # that the entry carrying these samples was silently discarded at load.
     (28188227, "HLA-B27 transgenic rat spleen (WT)"),
     (28188227, "HLA-B27 transgenic rat spleen (ERAP1 KO)"),
+    # Yair-Sabag 2018 also contains rat spleens carrying human HLA-B27;
+    # these must stay separate from the paper's human HeLa/C1R transfectants.
+    (29393594, "HLA-B27 transgenic rat spleens"),
 }
 
 

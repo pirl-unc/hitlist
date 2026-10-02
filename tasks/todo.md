@@ -1,3 +1,94 @@
+# Literature-backed cross-species experimental context
+
+## Specification
+
+Curate independent primary-literature evidence for the experimental systems
+currently suggested by species-axis flags and the packaged study/arm narratives.
+Start with a reproducible inventory: existing curated cross-species arms and
+PMIDs reached by the current heuristic flags in the available observation corpus.
+Use bounded column/batch reads; do not materialize the full export locally.
+Record the corpus/version and inventory coverage, including unresolved studies.
+
+Read Methods, experimental figures and supplements for each candidate study.
+Distinguish the material actually used for deposited MS observations from other
+experiments in the same paper. Keep presenting cells, in-vivo host, MHC origin
+and peptide-source proteome separate. A difference in species, a parsed allele
+or a mismatch-derived flag is a search lead, never literature evidence. Curate
+xenograft passage, transgenic/transfected MHC, cross-presentation/foreign antigen,
+native controls and unresolved contexts with their precise sample/arm scope.
+Record source URLs/identifiers and section/table/figure locations; paraphrase
+rather than copying long source text. No absent mention becomes a negative claim.
+
+After inventory, refine the minimal data/reader schema in this specification
+before implementation. Prefer existing curation/export contracts where they can
+represent independent evidence accurately. Any new structured field must have
+a declared reader and validation, retain unknowns, and reach attributed samples
+without broadcasting an arm-specific fact across a PMID. Preserve existing raw
+species flags and observations; this pass supplies evidence for later matching,
+not an automatic exception inferred from mismatches or a broad #600 rewrite.
+
+The literature result is a separate, packaged `species_contexts.yaml` registry,
+not a reinterpretation of the mismatch-derived flags. One record identifies a
+PMID plus a stable context ID and optional curated `condition_id` targets. It
+records review status (`resolved`, `partial`, or `unresolved`), exact experimental
+scope, controlled context kinds, and independent primary-source reference and
+location. Its biological axes are distinct: presenting material species, host
+species at harvest, earlier lineage host, introduced MHC species, and supported
+foreign-source species. Candidate source species from the inventory are recorded
+separately, so a reviewed but unsupported candidate does not become accepted.
+
+Expose the complete registry as a table. Attach a record to `ms_samples` and
+observation/training metadata only through an exact `(pmid, condition_id)` link;
+study-level records without that link remain visible in the audit table but do
+not annotate observations. On ambiguous observations, consensus may retain only
+axis facts shared by every candidate arm; context identity, review status, scope
+and citation are arm claims and must be blanked. Validate schema keys, controlled
+values, source requirements, record identity, condition links and reviewed/queue
+coverage. The frozen inventory manifest records ci-corpus-v2 / Hitlist 1.64.3,
+21 reviewed PMIDs, 95,442 of 96,838 flagged rows (98.56%), 204 queued PMIDs and
+423 flagged rows with no PMID. Counts describe review coverage, never truth.
+
+Verify source-to-arm citations and regressions for true xenografts, engineered
+MHC, foreign-antigen controls, mixed/unattributed rows and missing evidence.
+Run format/lint/test.sh, full CI and a clean-main release; bump at least patch,
+merge via PR, publish trusted artifacts and verify PyPI hashes. File discovered
+problems on the appropriate repo and link them rather than silently expanding
+scope. Record what is established and what remains unresolved.
+
+- [x] Read instructions, lessons and existing species/curation contracts.
+- [x] Create curation branch, preserve the correction and write this plan.
+- [x] Inventory candidate studies/arms and define the reviewed population.
+- [x] Read primary sources and record scoped evidence and unresolved cases.
+- [x] Refine the data/reader contract, curate evidence and add regressions.
+- [x] Verify coverage, format/lint/tests and pass final-head CI.
+- [ ] Merge, release, verify published artifacts and review next dependencies.
+
+## Review
+
+PR #631 closes #630 with 29 scoped records across 21 literature-reviewed PMIDs.
+Those studies cover every previously curated candidate and 95,442 of 96,838
+flagged corpus rows (98.56%). The frozen manifest retains the remaining 204
+candidate PMIDs and 423 rows without a PMID as an explicit review queue rather
+than silently treating them as resolved.
+
+The registry keeps presenting material, in-vivo host, earlier lineage host,
+introduced MHC and supported foreign-source species separate. Evidence reaches
+exports only through exact PMID/condition links; ambiguous observations retain
+only facts shared by all candidate arms. Literature review corrected PMID
+26811146 to human C1R transfectants, separated human and transgenic-rat material
+in PMID 29393594, and distinguished PDX-derived culture from patient biopsies in
+PMID 39111711. The deposited PDX statement supports two treatment arms and is
+therefore retained as explicit multi-arm evidence instead of being assigned to
+one arm.
+
+Local `./format.sh`, `./lint.sh`, focused regressions and `./develop.sh` pass.
+`./test.sh` correctly stopped at its memory preflight with 0.10 GB available, so
+the complete suite ran in GitHub Actions. Source-head run 36962565337 passed the
+Python 3.9-3.12 matrix, 46 full-corpus integration tests and combined coverage.
+An earlier full-corpus run exposed three unclassified PMID 39111711 statements;
+the exact deposited wording and multi-arm case are now pinned by regressions.
+Merge, clean-main release and published-artifact verification remain pending.
+
 # #611 — release completed curated-label metadata
 
 ## Specification
@@ -33,8 +124,8 @@ check their hashes/sizes on PyPI. Re-read related open issues after shipping.
 - [x] Demonstrate baseline lifetime failures; implement the minimal release.
 - [x] Pass focused tests, format/lint and editable version verification.
 - [x] Verify full-output parity and repeated Linux RSS with identical dependencies.
-- [ ] Pass final-head CI, merge and publish verified 1.64.3 artifacts.
-- [ ] Record review evidence and identify the next dependency block.
+- [x] Pass final-head CI, merge and publish verified 1.64.3 artifacts.
+- [x] Record review evidence and identify the next dependency block.
 
 ## Review
 

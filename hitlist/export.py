@@ -60,6 +60,12 @@ from .curation import (
     species_axes_agreement,
 )
 from .curation import normalize_serotype_query as _normalize_serotype_query
+from .species_contexts import (
+    ARM_SPECIFIC_SPECIES_CONTEXT_COLUMNS,
+    SPECIES_CONTEXT_COLUMNS,
+    empty_species_context_columns,
+    species_context_for_sample,
+)
 
 # MS acquisition metadata fields.  Each may appear at the PMID level
 # (study-wide default) or on individual ``ms_samples`` entries.
@@ -128,6 +134,9 @@ _CATEGORICAL_EXPORT_METADATA_COLS: tuple[str, ...] = (
     # cells stay categorical here (unlike apm_genes_perturbed) because they
     # are sorted and canonical, so equal cells really are one category.
     *CONDITION_COLUMNS,
+    # Independently reviewed literature contexts are also bounded by the
+    # curation registry, including the free-text scope and citation fields.
+    *SPECIES_CONTEXT_COLUMNS,
     # PMID-level / derived low-cardinality metadata
     "quantification_method",
     "mhc_class_label_severity",
@@ -287,6 +296,7 @@ _TRAINING_DEFAULTS = {
     # to report.  "" says exactly that; any other default would assert an
     # untreated arm for every predicted binder in the training table (#450).
     **empty_condition_columns(),
+    **empty_species_context_columns(),
     "sample_match_type": "not_applicable",
     "sample_mhc_origin": "not_applicable",
     "matched_sample_count": 0,
@@ -557,6 +567,7 @@ def _blank_arm_identity(meta: dict) -> dict:
         "mhc",
         "mhc_basis",
         *ARM_SPECIFIC_CONDITION_COLUMNS,
+        *ARM_SPECIFIC_SPECIES_CONTEXT_COLUMNS,
         *MHC_GENOTYPE_COLUMNS,
     ):
         if col in meta:
@@ -863,6 +874,8 @@ def _consensus_meta(
     # do survive, which is the point of consensusing at all.
     for _arm_col in ARM_SPECIFIC_CONDITION_COLUMNS:
         out[_arm_col] = ""
+    for _arm_col in ARM_SPECIFIC_SPECIES_CONTEXT_COLUMNS:
+        out[_arm_col] = ""
 
     # If every surviving candidate belongs to one sample system, the system is
     # known and only the arm is not — say so, whichever stage narrowed them.
@@ -1131,6 +1144,7 @@ def _empty_ms_samples_columns() -> list[str]:
     return [
         *base,
         *CONDITION_COLUMNS,
+        *SPECIES_CONTEXT_COLUMNS,
         *apm_columns_for_sample(""),
         "condition_category",
         "is_control_arm",
@@ -1317,6 +1331,14 @@ def generate_ms_samples_table(
             # legacy ``perturbation`` / ``condition_category`` / ``apm_*``
             # classifiers below keep their documented meanings alongside.
             row.update(condition_columns_for_sample(sample))
+            # The literature registry is separate from the mismatch-derived
+            # flags and links only through a stable curated arm identity.
+            row.update(
+                species_context_for_sample(
+                    pmid_int,
+                    str(sample.get("condition_id") or ""),
+                )
+            )
             # APM perturbation block — one boolean per gene + union
             # (#202).  Per-gene flags come from this sample's own
             # condition; the study's panel-level list is reported in the
@@ -1618,6 +1640,10 @@ def generate_observations_table(
         # knowable where the row reached a sample; ``_consensus_meta`` keeps
         # only what every candidate arm agrees on when it did not.
         *CONDITION_COLUMNS,
+        # Primary-literature evidence for cross-species experimental context.
+        # Exact arm links attach it; consensus retains only shared biological
+        # axes and clears the review record's identity/provenance.
+        *SPECIES_CONTEXT_COLUMNS,
         # Curated provenance (#373).  These describe the curation, not the
         # built classification flags, which stay PMID- and rule-driven at
         # build time.
@@ -3166,6 +3192,7 @@ _SAMPLE_PROVENANCE_COLUMNS = (
     # retyped.  This tuple has already drifted from the plain samples export
     # twice; a hand-copied list of 23 more names would be the third time.
     *CONDITION_COLUMNS,
+    *SPECIES_CONTEXT_COLUMNS,
     # Curated provenance (#373).  Omitting these is how one CLI flag used to
     # change which curation a user got back; the comment above says exactly
     # that about the species axes, and the same drift recurred here.
