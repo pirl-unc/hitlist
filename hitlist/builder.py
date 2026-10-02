@@ -68,7 +68,7 @@ from .parquet_io import atomic_write_parquet, concat_non_empty
 #: 6: Peptide-to-patient maps respect source-cohort restrictions (#534),
 #:    preventing false labels and donor copies of monoallelic observations.
 #: 7: Every retained observation links to all contributors before deduplication.
-_OBSERVATIONS_ARTIFACT_VERSION = 7
+_OBSERVATIONS_ARTIFACT_VERSION = 8
 
 
 def _source_paths() -> dict[str, Path]:

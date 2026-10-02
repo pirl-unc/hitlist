@@ -443,6 +443,12 @@ restriction and provenance; the mapping adds only `attributed_sample_label`.
 This preserves independent facts such as a predicted restriction that differs
 from the sample's measured genotype.
 
+Gene/locus restrictions use `peptide_locus_match`, `sample_locus_match` or
+`pmid_locus_pool` for compatible candidates from the corresponding typing tier.
+They retain the reported restriction, resolution and evidence even for a
+singleton candidate. See [allele candidates](allele-candidates.md) for matching,
+class-II chains/pairs, rebuilding persisted artifacts and measured coverage.
+
 ## Adding a new override
 
 **One entry per PMID.** The loader keys its mapping by PMID and rejects a file

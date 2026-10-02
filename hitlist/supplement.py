@@ -29,6 +29,7 @@ from pathlib import Path
 import pandas as pd
 
 from .curation import (
+    CLASS_ONLY_CANDIDATE_PROVENANCES,
     classify_ms_row,
     expand_allele_set,
     is_non_peptide_ligand,
@@ -263,7 +264,9 @@ def scan_supplementary(classify_source: bool = True, *, provenance=None) -> pd.D
         # pmid + mhc_class don't vary within an entry.
         unique_alleles = record["mhc_restriction"].unique()
 
-        def _set_for(allele: str, _record=record, _pmid=pmid) -> dict:
+        def _set_for(
+            allele: str, _record=record, _pmid=pmid, _mhc_species_context=mhc_species_context
+        ) -> dict:
             mhc_class_filter = ""
             # Pull per-allele class from the just-built ``record`` if the
             # supplement CSV carries one; otherwise let set expansion
@@ -274,7 +277,9 @@ def scan_supplementary(classify_source: bool = True, *, provenance=None) -> pd.D
                 cls_match = _record.loc[_record["mhc_restriction"] == allele, "mhc_class"]
                 if len(cls_match):
                     mhc_class_filter = str(cls_match.iloc[0])
-            allele_set, prov, size = expand_allele_set(allele, "", _pmid, mhc_class_filter)
+            allele_set, prov, size = expand_allele_set(
+                allele, "", _pmid, mhc_class_filter, species_context=_mhc_species_context
+            )
             return {
                 "mhc_allele_set": allele_set,
                 "mhc_allele_provenance": prov,
@@ -342,14 +347,12 @@ def scan_supplementary(classify_source: bool = True, *, provenance=None) -> pd.D
 
         # Promote set → mhc_restriction (#45) for class-only supplement
         # rows where PMID-pool expansion produced a tightened set.  When
-        # provenance is "exact" the row was already 4-digit and the
-        # restriction is unchanged; for "pmid_class_pool" / "sample_*"
-        # the multi-allele set IS the actual presenting MHC.  See the
-        # parallel block in scanner.py for the IEDB path.
+        # Retain historical class-only promotion, as in scanner.py. Gene/locus
+        # candidates never replace the reported restriction or its precision.
         if "mhc_allele_set" in record.columns and "mhc_allele_provenance" in record.columns:
             promote_mask = (
                 (record["mhc_allele_set_size"].fillna(0) > 0)
-                & (record["mhc_allele_provenance"] != "exact")
+                & record["mhc_allele_provenance"].isin(CLASS_ONLY_CANDIDATE_PROVENANCES)
                 & record["mhc_allele_set"].notna()
                 & (record["mhc_allele_set"] != "")
             )

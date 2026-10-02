@@ -131,6 +131,7 @@ include = [
     "tests/**/*.py",
     "scripts/ci_corpus.py",
     "scripts/species_context_inventory.py",
+    "scripts/allele_candidate_audit.py",
     "scripts/release_artifacts.py",
     "scripts/check_dev_install.py",
 ]

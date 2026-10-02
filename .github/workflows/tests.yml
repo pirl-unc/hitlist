@@ -172,6 +172,17 @@ jobs:
       - name: Verify corpus provenance and file hashes
         run: python scripts/ci_corpus.py verify ~/.hitlist
 
+      - name: Audit retained allele restrictions and blank rows
+        run: python scripts/allele_candidate_audit.py ~/.hitlist/observations.parquet candidate-audit
+
+      - name: Upload allele candidate coverage audit
+        uses: actions/upload-artifact@v7
+        with:
+          name: allele-candidate-audit
+          path: candidate-audit/
+          if-no-files-found: error
+          retention-days: 30
+
       # Verification runs on cache hits too; only verified downloads are saved.
       - name: Save corpus cache
         if: steps.corpus-cache.outputs.cache-hit != 'true'

@@ -51,7 +51,7 @@ from os.path import basename, dirname, join
 from types import MappingProxyType
 
 import pandas as pd
-from mhcgnomes import Allele, MhcClass, Pair, Serotype, Species
+from mhcgnomes import Allele, Class2Locus, Gene, MhcClass, Pair, Serotype, Species
 
 from .cell_name_parser import parse_cell_name, registry_verdict
 from .conditions import CONDITION_FIELDS, validate_study_conditions
@@ -1758,7 +1758,7 @@ def classify_allele_resolution(mhc_restriction: str) -> str:
     # token must parse as a 4-digit allele; otherwise we fall through.
     if ";" in mhc_restriction:
         tokens = [t.strip() for t in mhc_restriction.split(";") if t.strip()]
-        if len(tokens) > 1 and all(_looks_like_four_digit_allele(t) for t in tokens):
+        if len(tokens) > 1 and all(_is_exact_allele_candidate(t) for t in tokens):
             return "donor_set"
 
     # No ``except ImportError`` and no regex fallback behind it. ``mhcgnomes``
@@ -2182,27 +2182,43 @@ def _is_resolved_allele(mhc_restriction: str) -> bool:
 # ── Exact-allele set expansion (issue #137) ────────────────────────────────
 
 
-def _looks_like_four_digit_allele(s: str) -> bool:
-    """Quick syntactic check that a string is a 4-digit-ish HLA allele.
+def _is_exact_allele_candidate(s: str, species_context: str = "") -> bool:
+    """A complete allele designation, or a pair with both chains complete.
 
-    Used to filter free-text descriptions out of YAML ``hla_alleles`` blocks
-    (e.g. PMID 33858848 has ``class_i: "51 HLA-I allotypes (...)"`` that we
-    never want to treat as an allele).  We only require the obvious
-    structural markers ``HLA-`` + ``*`` + ``:``; mhcgnomes parses the
-    string for downstream allele logic.
+    Share the reported-resolution predicate across all species (#600). A
+    partial pair, allele group or swallowed class sentinel is not exact typing.
     """
     if not isinstance(s, str):
         return False
-    s = s.strip()
-    return s.startswith("HLA-") and "*" in s and ":" in s
+    parsed, _, _ = _parse_with_context(s.strip(), species_context)
+    if _swallowed_class_sentinel(s, parsed):
+        return False
+    if isinstance(parsed, Allele):
+        return _side_resolution(parsed) == "four_digit"
+    if isinstance(parsed, Pair):
+        return all(_side_resolution(side) == "four_digit" for side in (parsed.alpha, parsed.beta))
+    return False
+
+
+def _exact_typing_tokens(text: str) -> frozenset[str]:
+    """Consume full designations before splitting genotype separators.
+
+    Malformed mutation text must not yield a fabricated wild-type candidate.
+    The original field remains available as evidence even when no token qualifies.
+    """
+    try:
+        spans = _mhc_field_spans(text)
+    except ValueError:
+        return frozenset()
+    return frozenset(token for token, _ in spans if _is_exact_allele_candidate(token))
 
 
 def _flatten_hla_alleles(value) -> set[str]:
-    """Recursively collect 4-digit allele strings from a curated ``hla_alleles`` value.
+    """Recursively collect exact designations from a curated ``hla_alleles`` value.
 
     Tolerates the four shapes seen in pmid_overrides.yaml:
     flat list, dict-of-lists keyed by donor / cell line, dict-of-strings
-    (free-text descriptions are filtered out by the syntactic check),
+    (free-text descriptions are filtered out by the ontology predicate),
     and **space-separated multi-allele genotype strings** like
     ``"HLA-A*01:01 HLA-B*07:02 HLA-C*12:03"`` — used in ~32% of
     ms_samples to encode a donor's genotype as one field. Without
@@ -2213,17 +2229,7 @@ def _flatten_hla_alleles(value) -> set[str]:
     if value is None:
         return out
     if isinstance(value, str):
-        s = value.strip()
-        tokens = s.split()
-        if len(tokens) > 1:
-            # Multi-allele genotype string: keep only the tokens that
-            # look like real alleles (drops noise like 'or' / commas
-            # in free-text fields that happened to have HLA in them).
-            for tok in tokens:
-                if _looks_like_four_digit_allele(tok):
-                    out.add(tok)
-        elif _looks_like_four_digit_allele(s):
-            out.add(s)
+        out.update(_exact_typing_tokens(value))
     elif isinstance(value, list):
         for v in value:
             out |= _flatten_hla_alleles(v)
@@ -3182,39 +3188,64 @@ def attribute_peptide_to_sample_alleles(pmid: int | str, peptide: str) -> frozen
     return peptide_alleles_for_pmid(pmid).get(peptide, frozenset())
 
 
-_HOST_MHC_SPLIT_RE = re.compile(r"[;,]")
-
-
 def _parse_host_mhc_types(host_mhc_types: str) -> frozenset[str]:
-    """Parse IEDB ``Host | MHC Types Present`` into a set of 4-digit alleles.
+    """Parse IEDB ``Host | MHC Types Present`` into exact designations.
 
     IEDB uses ``;``-separated ``HLA-A*01:01;HLA-B*13:02;...`` strings.
     Free-text or non-allele tokens are dropped.
     """
     if not host_mhc_types:
         return frozenset()
-    parts = _HOST_MHC_SPLIT_RE.split(host_mhc_types)
-    return frozenset(p.strip() for p in parts if _looks_like_four_digit_allele(p))
+    return _exact_typing_tokens(host_mhc_types)
 
 
-def _filter_alleles_by_class(alleles: frozenset[str], mhc_class: str) -> set[str]:
+def _filter_alleles_by_class(alleles, mhc_class: str) -> set[str]:
     """Filter a candidate allele set to those matching the row's MHC class.
 
-    ``mhc_class`` is the IEDB ``Class`` field (``"I"``, ``"II"``, ``"non
-    classical"``, or ``""``).  Classical class I = HLA-A/B/C; class II =
-    any HLA-D*.  Non-classical class I (E/F/G) is treated as class I for
-    set expansion since restrictions like ``"HLA class I"`` could legitimately
-    map to those.  Empty ``mhc_class`` disables filtering.
+    Broad class I includes non-classical class-I molecules. An explicit
+    non-classical label retains only that subclass. Empty class disables filtering.
+    Membership comes from the ontology, independently of species prefix.
     """
-    if not mhc_class or mhc_class == "non classical":
+    token = normalize_mhc_class_token(mhc_class)
+    if not token or token == "I+II":
         return set(alleles)
-    if mhc_class == "I":
-        return {
-            a for a in alleles if a[:5] in ("HLA-A", "HLA-B", "HLA-C", "HLA-E", "HLA-F", "HLA-G")
-        }
-    if mhc_class == "II":
-        return {a for a in alleles if a.startswith("HLA-D")}
-    return set(alleles)
+    out = set()
+    for allele in alleles:
+        parsed = _cached_parse(allele)
+        if (
+            (token == "I" and getattr(parsed, "is_class1", False))
+            or (token == "II" and getattr(parsed, "is_class2", False))
+            or (token == "non-classical" and _molecule_class(parsed) == "non-classical")
+        ):
+            out.add(allele)
+    return out
+
+
+# Only these historical class-only expansions replace the reported restriction.
+# Gene/locus candidate inference always retains the original coarse evidence.
+CLASS_ONLY_CANDIDATE_PROVENANCES = frozenset(
+    {"peptide_attribution", "sample_allele_match", "pmid_class_pool"}
+)
+
+
+def _candidate_matches_restriction(candidate: str, restriction, species: str) -> bool:
+    """Intersect an exact designation with evidenced species, class and locus."""
+    parsed = _cached_parse(candidate)
+    if species and not species_compatible(parsed.species.name, species):
+        return False
+    if restriction.is_class1 and not parsed.is_class1:
+        return False
+    if restriction.is_class2 and not parsed.is_class2:
+        return False
+    chains = (parsed.alpha, parsed.beta) if isinstance(parsed, Pair) else (parsed,)
+    if isinstance(restriction, Gene):
+        return any(
+            chain.gene.name == restriction.name and chain.gene.mutations == restriction.mutations
+            for chain in chains
+        )
+    if isinstance(restriction, Class2Locus):
+        return all(chain.gene.name in restriction.gene_names for chain in chains)
+    return True
 
 
 @lru_cache(maxsize=16384)
@@ -3224,6 +3255,8 @@ def expand_allele_set(
     pmid: int | str = "",
     mhc_class: str = "",
     attributed_alleles: frozenset[str] = frozenset(),
+    *,
+    species_context: str = "",
 ) -> tuple[str, str, int]:
     """Expand a (possibly coarse) MHC restriction to a candidate exact-allele
     set with provenance.
@@ -3252,10 +3285,17 @@ def expand_allele_set(
       3. The per-PMID ``hla_alleles`` block. Provenance: ``pmid_class_pool``.
 
       In all cases the candidate set is filtered to the row's MHC class.
-    - All other resolutions (``two_digit``, ``serological``,
-      ``unresolved``) are returned as ``unmatched``.  Two-digit and
-      serotype expansion against an external IPD-IMGT/HLA catalog is a
-      planned follow-up.
+    - Gene/locus restrictions use the same typing precedence, intersected with
+      reported species, class and locus. Provenance is ``peptide_locus_match``,
+      ``sample_locus_match`` or ``pmid_locus_pool``; the reported restriction
+      stays coarse. Supplied chains/pairs remain intact; no partner is invented.
+    - Blank, two-digit, serological and other unresolved restrictions remain
+      ``unmatched``. No catalog or haplotype expansion is performed.
+
+    A nonempty strongest typing tier never falls through to a broader pool if
+    its compatible intersection is empty. Generic class labels have unknown
+    species unless curated context supplies it; explicit MHC species dominates
+    host/source species, including engineered and xenogeneic experiments.
 
     Note: ``attributed_alleles`` is taken as a hashable ``frozenset`` so the
     lru_cache key stays cheap. Pass ``frozenset()`` (the default) when no
@@ -3276,10 +3316,26 @@ def expand_allele_set(
     if resolution == "four_digit":
         return resolve_allele_identity(mhc_restriction), "exact", 1
 
-    if resolution != "class_only":
+    species_context = species_context or pmid_mhc_species_context(pmid)
+    restriction, _, _ = _parse_with_context(mhc_restriction, species_context)
+    locus_inference = isinstance(restriction, (Gene, Class2Locus))
+    if not locus_inference and resolution != "class_only":
         return "", "unmatched", 0
 
+    species = ""
+    if species_context or getattr(restriction, "species_source", "") != "default":
+        species = restriction.species.name
+
     sample_alleles = _parse_host_mhc_types(host_mhc_types)
+    if locus_inference and not attributed_alleles and host_mhc_types and not sample_alleles:
+        # An incomplete donor designation is still a stronger typing tier.
+        # Do not replace its missing fields/chains with a study-wide union.
+        try:
+            spans = _mhc_field_spans(host_mhc_types)
+        except ValueError:
+            return "", "unmatched", 0
+        if any(isinstance(parsed, (Allele, Gene, Pair, Serotype)) for _, parsed in spans):
+            return "", "unmatched", 0
     pmid_int: int | None = None
     if pmid:
         with contextlib.suppress(ValueError, TypeError):
@@ -3290,18 +3346,22 @@ def expand_allele_set(
     if not candidates:
         return "", "unmatched", 0
 
-    candidates = _filter_alleles_by_class(
-        {resolve_allele_identity(a) for a in candidates}, mhc_class
-    )
+    candidates = {
+        resolve_allele_identity(a, species_context)
+        for a in candidates
+        if _is_exact_allele_candidate(a, species_context)
+    }
+    candidates = {a for a in candidates if _candidate_matches_restriction(a, restriction, species)}
+    candidates = _filter_alleles_by_class(candidates, mhc_class)
     if not candidates:
         return "", "unmatched", 0
 
     if attributed_alleles:
-        provenance = "peptide_attribution"
+        provenance = "peptide_locus_match" if locus_inference else "peptide_attribution"
     elif sample_alleles:
-        provenance = "sample_allele_match"
+        provenance = "sample_locus_match" if locus_inference else "sample_allele_match"
     else:
-        provenance = "pmid_class_pool"
+        provenance = "pmid_locus_pool" if locus_inference else "pmid_class_pool"
     return ";".join(sorted(candidates)), provenance, len(candidates)
 
 
