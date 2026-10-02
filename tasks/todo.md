@@ -60,14 +60,34 @@ scope. Record what is established and what remains unresolved.
 - [x] Inventory candidate studies/arms and define the reviewed population.
 - [x] Read primary sources and record scoped evidence and unresolved cases.
 - [x] Refine the data/reader contract, curate evidence and add regressions.
-- [ ] Verify coverage, format/lint/tests and pass final-head CI.
+- [x] Verify coverage, format/lint/tests and pass final-head CI.
 - [ ] Merge, release, verify published artifacts and review next dependencies.
 
 ## Review
 
-Pending inventory and literature review. Previous #611 work shipped in PR #629 /
-1.64.3: release run 36880294742 passed format/lint, 2,478 tests (one skip), and
-46 integration tests; both PyPI artifacts match the trusted release manifest.
+PR #631 closes #630 with 29 scoped records across 21 literature-reviewed PMIDs.
+Those studies cover every previously curated candidate and 95,442 of 96,838
+flagged corpus rows (98.56%). The frozen manifest retains the remaining 204
+candidate PMIDs and 423 rows without a PMID as an explicit review queue rather
+than silently treating them as resolved.
+
+The registry keeps presenting material, in-vivo host, earlier lineage host,
+introduced MHC and supported foreign-source species separate. Evidence reaches
+exports only through exact PMID/condition links; ambiguous observations retain
+only facts shared by all candidate arms. Literature review corrected PMID
+26811146 to human C1R transfectants, separated human and transgenic-rat material
+in PMID 29393594, and distinguished PDX-derived culture from patient biopsies in
+PMID 39111711. The deposited PDX statement supports two treatment arms and is
+therefore retained as explicit multi-arm evidence instead of being assigned to
+one arm.
+
+Local `./format.sh`, `./lint.sh`, focused regressions and `./develop.sh` pass.
+`./test.sh` correctly stopped at its memory preflight with 0.10 GB available, so
+the complete suite ran in GitHub Actions. Source-head run 36962565337 passed the
+Python 3.9-3.12 matrix, 46 full-corpus integration tests and combined coverage.
+An earlier full-corpus run exposed three unclassified PMID 39111711 statements;
+the exact deposited wording and multi-arm case are now pinned by regressions.
+Merge, clean-main release and published-artifact verification remain pending.
 
 # #611 — release completed curated-label metadata
 
