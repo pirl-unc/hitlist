@@ -104,17 +104,41 @@ def test_literature_context_reaches_an_exactly_attributed_observation(monkeypatc
                 "pmid": 39111711,
                 "mhc_class": "I",
                 "mhc_restriction": "HLA-A*02:01",
+                "assay_comments": "The epitope was eluted from a tumor tissue sample "
+                "obtained from a patient with liposarcoma.",
+            }
+        ],
+    ).iloc[0]
+    assert result.condition_id == "patient_tumor_biopsies"
+    assert result.sample_attribution == "elution_conditions"
+    assert result.species_context_id == "native_human_tumor_biopsies"
+    assert result.presenting_species == "Homo sapiens"
+    assert result.lineage_host_species == ""
+
+
+def test_deposited_pdx_statement_preserves_both_reported_culture_arms(monkeypatch):
+    result = _export(
+        monkeypatch,
+        [
+            {
+                "pmid": 39111711,
+                "mhc_class": "I",
+                "mhc_restriction": "HLA-A*02:01",
                 "assay_comments": (
                     "The epitope was detected in a patient-derived xenograft cell line "
-                    "that had been treated with IFN-gamma to up-regulate HLA class I "
-                    "expression."
+                    "that had been treated with IFN-\N{GREEK SMALL LETTER GAMMA} to "
+                    "up-regulate HLA class I "
+                    "expression. The epitope was also present in untreated cells, but "
+                    "greater numbers of cells were needed to detect the epitope in the "
+                    "absence of IFN-\N{GREEK SMALL LETTER GAMMA}."
                 ),
             }
         ],
     ).iloc[0]
-    assert result.condition_id == "pdx_derived_cell_line_ifn_gamma"
-    assert result.sample_attribution == "elution_conditions"
-    assert result.species_context_id == "pdx_derived_human_cell_line"
+    assert result.condition_id == ""
+    assert result.sample_attribution == "pmid_ambiguous"
+    assert result.arm_resolution == "multi_arm_evidence"
+    assert result.species_context_id == ""
     assert result.presenting_species == "Homo sapiens"
     assert result.lineage_host_species == "Mus musculus"
 

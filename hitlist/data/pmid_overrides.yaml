@@ -11963,6 +11963,13 @@
 
   - pmid: 39111711
     study_label: "Salek 2024 — optiPRM neoantigen detection"
+    arm_resolution: multi_arm_evidence
+    arm_resolution_note: >
+      Five biopsy observations name one patient-tumor material and map to that
+      arm. The remaining PDX-derived-line observation explicitly says the
+      peptide was detected after IFN-gamma treatment and was also present in
+      untreated cells. It therefore belongs to both cultured arms; choosing one
+      would contradict the deposited evidence.
     title: "optiPRM: A Targeted Immunopeptidomics LC-MS Workflow With Ultra-High Sensitivity for Detection of Mutation-Derived Tumor Neoepitopes From Limited Input Material"
     override:
     note: >
@@ -11971,11 +11978,12 @@
       5 neoantigens validated across samples. Optimized PRM with nanospray source
       and micro-pillar array columns.
     elution_condition_ids:
-      "The epitope was detected in a patient-derived xenograft cell line that had been treated with IFN-gamma to up-regulate HLA class I expression.":
+      "The epitope was detected in a patient-derived xenograft cell line that had been treated with IFN-γ to up-regulate HLA class I expression. The epitope was also present in untreated cells, but greater numbers of cells were needed to detect the epitope in the absence of IFN-γ.":
         - pdx_derived_cell_line_ifn_gamma
+        - pdx_derived_cell_line_untreated
       "The epitope was eluted from a tumor tissue sample obtained from a patient with liposarcoma.":
         - patient_tumor_biopsies
-      "The epitope was eluted from a tumor tissue sample obtained from a patient with osteosarcoma with lung metastasis.":
+      "The epitope was eluted from a tumor tissue sample obtained from a patient with osteosarcoma and lung metastasis.":
         - patient_tumor_biopsies
       "The epitope was eluted from a tumor tissue sample obtained from a patient with small intestine carcinoma.":
         - patient_tumor_biopsies
