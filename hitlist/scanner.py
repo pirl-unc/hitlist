@@ -34,7 +34,12 @@ try:
 except ImportError:
     _tqdm = None
 
-from .curation import classify_ms_row, expand_allele_set, restriction_evidence_for_row
+from .curation import (
+    CLASS_ONLY_CANDIDATE_PROVENANCES,
+    classify_ms_row,
+    expand_allele_set,
+    restriction_evidence_for_row,
+)
 from .peptide_modifications import parse_peptide_modifications
 
 # Sentinel so we can tell "user didn't pass mhc_species" apart from
@@ -636,6 +641,7 @@ def scan(
                         pmid,
                         row_mhc_class,
                         donor_alleles,
+                        species_context=mhc_species_context,
                     )
                     donor_record = dict(record)
                     donor_record["mhc_allele_set"] = donor_allele_set
@@ -647,7 +653,7 @@ def scan(
                     # Promote a narrowed class-only set to ``mhc_restriction``
                     # (#45).  An exact source restriction remains unchanged;
                     # the curated donor label is independent metadata (#414).
-                    if donor_size > 0 and donor_prov != "exact":
+                    if donor_size > 0 and donor_prov in CLASS_ONLY_CANDIDATE_PROVENANCES:
                         donor_annotation = resolve_mhc_annotation(
                             donor_allele_set,
                             reported_mhc_class,
@@ -663,6 +669,7 @@ def scan(
                 pmid,
                 row_mhc_class,
                 frozenset(),
+                species_context=mhc_species_context,
             )
             record["mhc_allele_set"] = allele_set
             record["mhc_allele_provenance"] = set_provenance
@@ -671,17 +678,10 @@ def scan(
             if provenance is not None:
                 record["provenance_id"] = provenance.observe(record_id)
 
-            # Promote set to ``mhc_restriction`` (#45).  ``mhc_restriction``
-            # is the actual presenting MHC for the row — when we have a
-            # tighter upper bound from the donor's typed alleles or a
-            # per-peptide attribution, that bound IS the restriction.
-            # The class label ("HLA class I") is reserved for rows where
-            # no donor typing AND no curated PMID pool exists, i.e. the
-            # presenter genuinely is unknown.  Set size 1 → single
-            # 4-digit allele (row is allele-resolved).  Set size > 1 →
-            # semicolon-joined (multi-allele attribution like
-            # ``gene_names``).  See #45 for the design rationale.
-            if set_size > 0 and set_provenance != "exact":
+            # Retain historical class-only promotion (#45). New gene/locus
+            # inference remains a separate candidate set even for a singleton;
+            # it never upgrades the reported restriction's precision (#599).
+            if set_size > 0 and set_provenance in CLASS_ONLY_CANDIDATE_PROVENANCES:
                 promoted_annotation = resolve_mhc_annotation(
                     allele_set,
                     reported_mhc_class,

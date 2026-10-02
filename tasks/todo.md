@@ -41,14 +41,39 @@ unique count. Verify the Ramarathinam paper scope against primary evidence.
 
 - [x] Read instructions, lessons, candidate pipeline and primary-source evidence.
 - [x] Create branch and write the implementation and verification specification.
-- [ ] Add failing regressions, implement candidate intersection and preserve evidence.
-- [ ] Add reproducible coverage audit and document measured paper/peptide gains.
+- [x] Add failing regressions, implement candidate intersection and preserve evidence.
+- [x] Add reproducible coverage audit and document measured paper/peptide gains.
 - [ ] Run format, lint and test.sh; pass final-head CI and bump patch version.
 - [ ] Merge via PR, deploy from clean main, verify PyPI and review next dependencies.
 
 ## Review
 
-Pending implementation and validation.
+Implemented parsed species/class/locus intersection with tier precedence and
+no fallback on incompatible typing. New locus provenance never promotes the
+reported restriction, including singleton candidates and per-donor scanner
+splits. Non-human exact typing shares the reported-resolution predicate;
+class-II pairs remain intact without synthesizing partners. Genus-level BoLA
+context is narrowed to evidenced cattle while explicit engineered MHC survives
+an incompatible host context. Observation build artifact version is now 8.
+
+The verified raw ci-corpus-v2 artifact has 4,440,428 rows and the same SHA256 as
+the older local snapshot. A bounded replay gains 134,052 gene/locus rows across
+29 PMIDs, covering 98,810 distinct sequences; 60,847 previously lacked candidates
+anywhere in the corpus. Shared non-human checks gain another 6,164 class-only
+rows. Combined first-candidate coverage gains 66,134 global sequences. Every one
+of 135,446 blank rows stays unmatched. Counts and all paper gains are documented
+in docs/allele-candidates.md; CI uploads the fingerprinted audit report. This
+replay does not reconstruct old class-only statements already promoted in the
+persisted artifact. Filed #632 to reconcile the paper/deposit coverage difference
+for Ramarathinam without inventing evidence.
+
+Focused verification: 419 tests pass. Six scanner/supplement preservation tests
+fail when historical promotion is deliberately extended to the new provenance
+values, proving they guard the inference/evidence boundary. ./format.sh and
+./lint.sh pass. ./test.sh stopped before tests with 0.12 GB available; full CI
+and clean-main release remain required. ./develop.sh refreshed the editable
+install to 1.64.5 and its metadata check passes after moving the stale local
+1.64.4 egg-info aside (known #553 behavior). Merge/release remain pending.
 
 # Literature-backed cross-species experimental context
 

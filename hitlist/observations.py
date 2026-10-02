@@ -268,7 +268,13 @@ def load_observations(
           IEDB ``Host | MHC Types Present``
         - ``"pmid_class_pool"`` — set = curated per-PMID pool when no
           per-row donor typing was recorded
-        - ``"unmatched"`` — set empty (no donor typing or pool curation)
+        - ``"peptide_locus_match"`` / ``"sample_locus_match"`` /
+          ``"pmid_locus_pool"`` — exact typing from the corresponding tier,
+          intersected with reported MHC species, class and gene/locus. These
+          candidate sets retain the original coarse restriction and resolution;
+          even a singleton does not establish an exact allele assignment.
+        - ``"unmatched"`` — set empty (no compatible exact typing or no
+          supported restriction statement; blanks stay unmatched)
 
         Use ``"exact"`` for strict allele-resolved training data;
         ``"peptide_attribution"`` for sample-narrowed multi-allelic

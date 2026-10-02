@@ -338,6 +338,12 @@ lookup_proteome("Mycobacterium tuberculosis")
 
 ### `sample_match_type` — join provenance
 
+Reported gene/locus restrictions such as HLA-DR, DQ and DP also retain a separate
+species/class/locus-compatible `mhc_allele_set`, with explicit inference provenance.
+See [allele candidate matching and coverage](docs/allele-candidates.md). These
+candidates do not upgrade the reported restriction or establish a measured
+peptide-to-allele assignment.
+
 | Value | Meaning | Training-grade? |
 |---|---|---|
 | `allele_match` | IEDB recorded an allele matching the curated experimental candidates | Subject to the row's restriction evidence and sample attribution |
