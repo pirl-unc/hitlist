@@ -75,6 +75,13 @@ and clean-main release remain required. ./develop.sh refreshed the editable
 install to 1.64.5 and its metadata check passes after moving the stale local
 1.64.4 egg-info aside (known #553 behavior). Merge/release remain pending.
 
+Source-head CI 37023468657 passed Python 3.9-3.12, integration and coverage;
+its uploaded audit reproduces every local count. Final review added a regression
+for incomplete donor typing falling through to the PMID pool. All three cases
+(partial pair, allele group, serotype) failed before the guard. Incomplete
+donor designations now block broader-pool locus inference as well as rejecting
+invented partners. Final-head CI is required after this correction.
+
 # Literature-backed cross-species experimental context
 
 ## Specification

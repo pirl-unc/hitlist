@@ -17,7 +17,9 @@ Typing precedence is peptide-specific attribution, donor typing, then the
 curated PMID pool. Matching chooses the strongest nonempty exact-typing tier
 first. If its compatible intersection is empty, the row stays `unmatched`;
 it never falls back to a broader pool. A PMID pool is a study-wide candidate
-union, not a donor genotype. Explicit MHC species remains authoritative in
+union, not a donor genotype. Incomplete donor alleles, serotypes and partial
+pairs also block locus inference from a broader pool; missing fields or chains
+are not filled from other samples. Explicit MHC species remains authoritative in
 engineered or xenogeneic material; host and peptide-source species cannot
 license incompatible MHC candidates. Curated context refines generic labels
 and genus-level designations, while absent context stays unknown. The parser's

@@ -111,6 +111,12 @@ def test_imprecise_or_misleading_typing_is_not_an_exact_candidate(typing):
     assert curation.expand_allele_set("HLA-DR", typing) == ("", "unmatched", 0)
 
 
+@pytest.mark.parametrize("typing", ["HLA-DRA*01:01/DRB1", "HLA-DRB1*12", "HLA-DR3"])
+def test_incomplete_donor_typing_does_not_fall_back_to_pmid_pool(monkeypatch, typing):
+    monkeypatch.setattr(curation, "_pmid_allele_pool", lambda _: frozenset({"HLA-DRB1*12:01"}))
+    assert curation.expand_allele_set("HLA-DR", typing, 999, "II") == ("", "unmatched", 0)
+
+
 def test_typing_does_not_synthesize_class_ii_partners():
     assert curation.expand_allele_set("HLA-DQ", "HLA-DQA1*05:01;HLA-DQB1*03:01") == (
         "HLA-DQA1*05:01;HLA-DQB1*03:01",

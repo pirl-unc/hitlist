@@ -3327,6 +3327,15 @@ def expand_allele_set(
         species = restriction.species.name
 
     sample_alleles = _parse_host_mhc_types(host_mhc_types)
+    if locus_inference and not attributed_alleles and host_mhc_types and not sample_alleles:
+        # An incomplete donor designation is still a stronger typing tier.
+        # Do not replace its missing fields/chains with a study-wide union.
+        try:
+            spans = _mhc_field_spans(host_mhc_types)
+        except ValueError:
+            return "", "unmatched", 0
+        if any(isinstance(parsed, (Allele, Gene, Pair, Serotype)) for _, parsed in spans):
+            return "", "unmatched", 0
     pmid_int: int | None = None
     if pmid:
         with contextlib.suppress(ValueError, TypeError):
