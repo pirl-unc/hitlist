@@ -1,3 +1,55 @@
+# Restriction-compatible allele candidates (#599, shared #600 checks)
+
+## Specification
+
+Retain reported gene/locus evidence (including HLA-DR, DQ, DP and DRB1) and
+derive a separate candidate set from available exact typing. Match the parsed
+restriction's species, broad MHC class and gene/locus against parsed candidates.
+Explicit restriction species wins over presenting-cell/host/source species;
+generic class labels use curated MHC species context when available and retain
+unknown species when none is evidenced. Never use mismatch-derived xeno flags.
+Species compatibility follows the ontology's ancestor/subspecies relation.
+
+Select the strongest available typing tier before intersecting: peptide-specific
+typing, donor typing, then curated PMID pool. An incompatible nonempty tier must
+remain unmatched rather than falling through to a broader pool. Accept exact
+non-human designations with the same molecule-resolution predicate used for
+reported restrictions. Use ontology class membership rather than HLA prefixes.
+Reject low-resolution typing, partial pairs and arbitrary free text. Preserve
+reported single chains and supplied complete pairs as candidates; never synthesize
+partners or cross-product independent alpha/beta typings. A gene constraint may
+match its chain within a supplied pair; a locus constraint requires every chain
+of a supplied pair to belong to that locus.
+
+New gene/locus inference uses explicit peptide_locus_match, sample_locus_match
+or pmid_locus_pool provenance. It never replaces mhc_restriction, derived reported
+identity, allele_resolution or restriction evidence, even for a singleton set.
+Retain legacy class-only promotion behavior while making its candidate checks
+species-aware. Blank restrictions remain unmatched and receive a separate audit
+population. Serotype, low-resolution catalog and haplotype expansion remain
+follow-ups. Invalidate persisted observation candidates through the artifact
+schema version and document that existing artifacts require rebuilding.
+
+Add regressions for all supported loci, DR secondary beta genes, species/class
+conflicts, no-fallback precedence, non-human donor sets, partial/full class-II
+pairs, scanner and supplement evidence preservation, and blank restrictions.
+Build a bounded-memory reproducible before/after audit, with input fingerprints
+and code version, reporting rows and distinct peptide sequences per paper and
+globally. Distinguish candidate coverage from measured allele assignment and
+count blanks separately; do not combine per-paper unique counts into a global
+unique count. Verify the Ramarathinam paper scope against primary evidence.
+
+- [x] Read instructions, lessons, candidate pipeline and primary-source evidence.
+- [x] Create branch and write the implementation and verification specification.
+- [ ] Add failing regressions, implement candidate intersection and preserve evidence.
+- [ ] Add reproducible coverage audit and document measured paper/peptide gains.
+- [ ] Run format, lint and test.sh; pass final-head CI and bump patch version.
+- [ ] Merge via PR, deploy from clean main, verify PyPI and review next dependencies.
+
+## Review
+
+Pending implementation and validation.
+
 # Literature-backed cross-species experimental context
 
 ## Specification
@@ -61,7 +113,7 @@ scope. Record what is established and what remains unresolved.
 - [x] Read primary sources and record scoped evidence and unresolved cases.
 - [x] Refine the data/reader contract, curate evidence and add regressions.
 - [x] Verify coverage, format/lint/tests and pass final-head CI.
-- [ ] Merge, release, verify published artifacts and review next dependencies.
+- [x] Merge, release, verify published artifacts and review next dependencies.
 
 ## Review
 
@@ -87,7 +139,11 @@ the complete suite ran in GitHub Actions. Source-head run 36962565337 passed the
 Python 3.9-3.12 matrix, 46 full-corpus integration tests and combined coverage.
 An earlier full-corpus run exposed three unclassified PMID 39111711 statements;
 the exact deposited wording and multi-arm case are now pinned by regressions.
-Merge, clean-main release and published-artifact verification remain pending.
+Final-head run 36964228569 passed; PR #631 merged as 39ea8f6. Clean-main release
+run 36965801751 passed 2,490 unit tests (one skipped), 46 integration tests,
+format/lint and artifact validation. PyPI 1.64.4 wheel and sdist hashes/sizes
+match the release manifest. Candidate restriction narrowing is the next
+foundational block, with haplotype and broader coarse-restriction work following.
 
 # #611 — release completed curated-label metadata
 
