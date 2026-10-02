@@ -130,6 +130,7 @@ include = [
     "hitlist/**/*.py",
     "tests/**/*.py",
     "scripts/ci_corpus.py",
+    "scripts/species_context_inventory.py",
     "scripts/release_artifacts.py",
     "scripts/check_dev_install.py",
 ]

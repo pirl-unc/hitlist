@@ -119,6 +119,8 @@ CONDITION_MHC_CONTEXT_VALUES = (
     "monoallelic",
     # MHC introduced into a host line (mono-allelic or not).
     "mhc_transfectant",
+    # MHC introduced into the germline of an animal model.
+    "mhc_transgenic",
     # Soluble MHC recovered from supernatant, plasma, serum or a biofluid.
     "soluble_mhc",
     # MHC refolded in vitro around a peptide pool.
@@ -268,7 +270,9 @@ GENE_CONDITION_COLUMNS = frozenset(
 #: co-expressed alongside the endogenous ones (``mhc_coexpression``).
 #: ``soluble_mhc`` and ``refolded_mhc`` describe how MHC was captured, not
 #: what was done to the cells, so on their own they are not engineering.
-ENGINEERED_MHC_CONTEXT_VALUES = frozenset({"monoallelic", "mhc_transfectant", "mhc_coexpression"})
+ENGINEERED_MHC_CONTEXT_VALUES = frozenset(
+    {"monoallelic", "mhc_transfectant", "mhc_transgenic", "mhc_coexpression"}
+)
 
 #: The columns that can say the material's own genome or transcriptome was
 #: modified, as opposed to what was added to its medium.

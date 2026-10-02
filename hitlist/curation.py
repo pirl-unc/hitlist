@@ -524,7 +524,15 @@ def load_pmid_overrides() -> dict[int, dict]:
             f"replaces the earlier one, discarding its ms_samples."
         )
 
-    return {int(e["pmid"]): e for e in entries}
+    result = {int(e["pmid"]): e for e in entries}
+    # Literature-derived species contexts live in their own registry so the
+    # mismatch flags cannot validate themselves.  Validate their arm links
+    # here, after every condition_id is known, without making that leaf module
+    # import the curation stack and create a cycle.
+    from .species_contexts import validate_species_context_condition_links
+
+    validate_species_context_condition_links(result)
+    return result
 
 
 @lru_cache(maxsize=1)

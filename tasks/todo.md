@@ -27,6 +27,27 @@ without broadcasting an arm-specific fact across a PMID. Preserve existing raw
 species flags and observations; this pass supplies evidence for later matching,
 not an automatic exception inferred from mismatches or a broad #600 rewrite.
 
+The literature result is a separate, packaged `species_contexts.yaml` registry,
+not a reinterpretation of the mismatch-derived flags. One record identifies a
+PMID plus a stable context ID and optional curated `condition_id` targets. It
+records review status (`resolved`, `partial`, or `unresolved`), exact experimental
+scope, controlled context kinds, and independent primary-source reference and
+location. Its biological axes are distinct: presenting material species, host
+species at harvest, earlier lineage host, introduced MHC species, and supported
+foreign-source species. Candidate source species from the inventory are recorded
+separately, so a reviewed but unsupported candidate does not become accepted.
+
+Expose the complete registry as a table. Attach a record to `ms_samples` and
+observation/training metadata only through an exact `(pmid, condition_id)` link;
+study-level records without that link remain visible in the audit table but do
+not annotate observations. On ambiguous observations, consensus may retain only
+axis facts shared by every candidate arm; context identity, review status, scope
+and citation are arm claims and must be blanked. Validate schema keys, controlled
+values, source requirements, record identity, condition links and reviewed/queue
+coverage. The frozen inventory manifest records ci-corpus-v2 / Hitlist 1.64.3,
+21 reviewed PMIDs, 95,442 of 96,838 flagged rows (98.56%), 204 queued PMIDs and
+423 flagged rows with no PMID. Counts describe review coverage, never truth.
+
 Verify source-to-arm citations and regressions for true xenografts, engineered
 MHC, foreign-antigen controls, mixed/unattributed rows and missing evidence.
 Run format/lint/test.sh, full CI and a clean-main release; bump at least patch,
@@ -36,9 +57,9 @@ scope. Record what is established and what remains unresolved.
 
 - [x] Read instructions, lessons and existing species/curation contracts.
 - [x] Create curation branch, preserve the correction and write this plan.
-- [ ] Inventory candidate studies/arms and define the reviewed population.
-- [ ] Read primary sources and record scoped evidence and unresolved cases.
-- [ ] Refine the data/reader contract, curate evidence and add regressions.
+- [x] Inventory candidate studies/arms and define the reviewed population.
+- [x] Read primary sources and record scoped evidence and unresolved cases.
+- [x] Refine the data/reader contract, curate evidence and add regressions.
 - [ ] Verify coverage, format/lint/tests and pass final-head CI.
 - [ ] Merge, release, verify published artifacts and review next dependencies.
 

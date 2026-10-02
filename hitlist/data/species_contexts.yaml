@@ -1,0 +1,534 @@
+schema_version: 1
+inventory:
+  corpus: ci-corpus-v2
+  hitlist_version: 1.64.3
+  reviewed_on: "2026-10-01"
+  selection: >-
+    Every PMID already carrying a curated cross-species sample, plus the ten
+    known-PMID studies with the most rows flagged by is_chimeric,
+    is_engineered_mhc, or xenograft. The flags selected papers for review; they
+    were not accepted as evidence.
+  n_observation_rows: 4398040
+  n_flagged_rows: 96838
+  n_flagged_pmids: 223
+  n_candidate_pmids: 225
+  n_reviewed_pmids: 21
+  n_reviewed_flagged_rows: 95442
+  reviewed_flagged_fraction: "0.9856"
+  n_review_queue_pmids: 204
+  n_missing_pmid_flagged_rows: 423
+  reviewed_pmids: [18512783, 20112406, 21209280, 22299025, 22544926, 22898188, 26495903, 26740625, 26811146, 26992070, 27893789, 28188227, 28315936, 29314611, 29393594, 29615400, 30484775, 30573663, 32502341, 33725478, 39111711]
+  review_queue_pmids: [1318201, 1319610, 1323833, 1371527, 1378019, 1380674, 1383319, 1578131, 1656276, 1697879, 1721832, 1737923, 2459204, 2477244, 2480232, 2809202, 7500030, 7511673, 7514128, 7519208, 7521666, 7522161, 7537302, 7595200, 7604034, 7650494, 7708669, 7743181, 7814870, 7947455, 8084337, 8144888, 8144889, 8171015, 8228825, 8265661, 8268130, 8315383, 8370082, 8437623, 8477806, 8606061, 8625990, 8726461, 8746565, 8806802, 8871645, 8906823, 8920873, 8921955, 8947604, 8958276, 8981922, 8982766, 8982770, 9036993, 9040010, 9064319, 9096370, 9130268, 9144467, 9174606, 9297530, 9368599, 9418131, 9521085, 9529148, 9529149, 9551903, 9627000, 9652824, 9693969, 9759870, 9759881, 9846695, 9916705, 9933100, 10190902, 10233671, 10380706, 10430937, 10452992, 10477598, 10583947, 10590255, 10807784, 10894169, 10958351, 11009082, 11180106, 11207252, 11441068, 11465105, 11535811, 11564833, 11801660, 11859148, 11884537, 11905843, 12042320, 12083518, 12083519, 12124879, 12391225, 12406194, 12538696, 12542794, 12548559, 12571864, 12589760, 12648094, 12663770, 12682247, 12727928, 12734347, 12756272, 12778490, 12845499, 12882830, 12939341, 12960328, 14530340, 14595439, 14734614, 14978103, 15096478, 15096482, 15118850, 15240697, 15565337, 15651071, 15845547, 16075062, 16105036, 16393994, 16423049, 16479539, 16493087, 16849447, 17517108, 17620420, 17848196, 17944901, 18160138, 18250455, 18361933, 18426793, 19206147, 19676074, 19700193, 19789338, 19949070, 19950171, 20017190, 20093428, 20309862, 20705101, 20934997, 21037588, 22039305, 22403068, 22467652, 22537173, 22539795, 22944299, 22973070, 23209377, 23382674, 23455500, 23578666, 23885222, 24029580, 24127554, 24244658, 24806963, 24958902, 25135637, 25156726, 25348595, 25413013, 25428506, 25958206, 26085090, 26703475, 27054574, 27550523, 28711866, 28935714, 29550802, 29588316, 29599287, 29974988, 30305319, 30425106, 30778481, 31213507, 31666297, 31776204, 31796585, 32102875, 33539685, 33637105, 34526989, 34987519]
+
+records:
+  - pmid: 18512783
+    species_context_id: ben_dr10_ebv_lcl_review
+    condition_ids: [ben_dr10_ebv_lcl]
+    species_context_status: partial
+    species_context_scope: BEN-DR10 human EBV-transformed B-lymphoblastoid cells
+    species_context_kind: native
+    species_context_reference: "https://doi.org/10.1002/art.23503 — Methods, HLA-DR10 peptide isolation"
+    presenting_species: Homo sapiens
+    in_vivo_host_species: ""
+    lineage_host_species: ""
+    introduced_mhc_species: ""
+    supported_foreign_species: ""
+    reviewed_candidate_species: Bos taurus
+    species_context_note: >-
+      The paper supports a human EBV-LCL and human HLA-DR10. It does not
+      independently establish the single bovine source assignment as biological
+      material presented in this experiment.
+
+  - pmid: 20112406
+    species_context_id: soluble_hla_b27_human_producers
+    condition_ids: [soluble_hla_b_27_05_chondrocytic_hela_producer]
+    species_context_status: partial
+    species_context_scope: soluble HLA-B*27:05 secreted by cultured chondrocytic or HeLa producer cells
+    species_context_kind: native
+    species_context_reference: "https://doi.org/10.1002/art.27257 — Methods and abstract"
+    presenting_species: Homo sapiens
+    in_vivo_host_species: ""
+    lineage_host_species: ""
+    introduced_mhc_species: ""
+    supported_foreign_species: ""
+    reviewed_candidate_species: Canis lupus familiaris;Mus musculus;Pan troglodytes;Rattus norvegicus
+    species_context_note: >-
+      The MS material is soluble human HLA made by human producer cells. The
+      paper does not support the four rare non-human source assignments as
+      experimental species inputs.
+
+  - pmid: 21209280
+    species_context_id: human_221_cells_expressing_patr_al
+    condition_ids: [transfected_cells_expressing_patr_al]
+    species_context_status: partial
+    species_context_scope: human 721.221 cells secreting transfected chimpanzee Patr-AL
+    species_context_kind: mhc_transfectant
+    species_context_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC3124313/ — Methods, Characterization of Patr-AL and HLA-A peptide pools"
+    presenting_species: Homo sapiens
+    in_vivo_host_species: ""
+    lineage_host_species: ""
+    introduced_mhc_species: Pan troglodytes
+    supported_foreign_species: ""
+    reviewed_candidate_species: Bos taurus;Homo sapiens
+    species_context_note: >-
+      Human source peptides on Patr-AL are explained by the human transfectant.
+      Bovine peptide-source assignments and records labeling the host as
+      chimpanzee are not independently supported by the MS methods.
+
+  - pmid: 22299025
+    species_context_id: human_b_and_t_lymphocyte_cultures
+    condition_ids: []
+    species_context_status: partial
+    species_context_scope: cloned human B and activated CD4 T lymphocytes used for HLA-DR peptide elution
+    species_context_kind: native
+    species_context_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC3267721/ — Cell culture reagents and antibodies; HLA-DR peptide elution"
+    presenting_species: Homo sapiens
+    in_vivo_host_species: ""
+    lineage_host_species: ""
+    introduced_mhc_species: ""
+    supported_foreign_species: ""
+    reviewed_candidate_species: Mus musculus
+    species_context_note: >-
+      The source describes human lymphocyte cultures. Although B-cell medium
+      contained fetal bovine serum, it does not establish mouse material as the
+      biological origin of the 41 mouse-assigned peptide records.
+
+  - pmid: 22544926
+    species_context_id: human_endothelial_cell_review
+    condition_ids: []
+    species_context_status: unresolved
+    species_context_scope: human vascular endothelial-cell HLA ligand experiments
+    species_context_kind: ""
+    species_context_reference: "https://doi.org/10.4049/jimmunol.1101506 — Materials and Methods"
+    presenting_species: Homo sapiens
+    in_vivo_host_species: ""
+    lineage_host_species: ""
+    introduced_mhc_species: ""
+    supported_foreign_species: ""
+    reviewed_candidate_species: Bos taurus;Mus musculus
+    species_context_note: >-
+      The accessible primary-source description establishes human endothelial
+      cells but does not independently explain the isolated bovine and mouse
+      peptide-source assignments.
+
+  - pmid: 22898188
+    species_context_id: tap_impaired_hla_e_human_cells
+    condition_ids: [tap_deficient_cells_expressing_hla_e_01_03]
+    species_context_status: partial
+    species_context_scope: TAP-impaired human cells used to isolate the alternative HLA-E repertoire
+    species_context_kind: native
+    species_context_reference: "https://doi.org/10.1016/j.molimm.2012.07.009 — Methods and abstract"
+    presenting_species: Homo sapiens
+    in_vivo_host_species: ""
+    lineage_host_species: ""
+    introduced_mhc_species: ""
+    supported_foreign_species: ""
+    reviewed_candidate_species: Gallus gallus
+    species_context_note: >-
+      The HLA-E peptidome came from human TAP-impaired cells. The paper does not
+      independently establish chicken material as a source in that MS system.
+
+  - pmid: 26495903
+    species_context_id: mouse_a20_and_spleen_mhcii
+    condition_ids: []
+    species_context_status: partial
+    species_context_scope: murine A20 lymphoma cells and BALB/c or C57BL/6 spleens
+    species_context_kind: native
+    species_context_reference: "https://onlinelibrary.wiley.com/doi/10.1002/eji.201545930 — abstract; Supporting Figure 1 and Tables 1B, 2D, 3B"
+    presenting_species: Mus musculus
+    in_vivo_host_species: Mus musculus
+    lineage_host_species: ""
+    introduced_mhc_species: ""
+    supported_foreign_species: ""
+    reviewed_candidate_species: Bos taurus
+    species_context_note: >-
+      The authors explicitly report species-level protein-assignment ambiguity
+      in the supplements. That ambiguity does not establish bovine biological
+      material in the mouse MHC-II eluates.
+
+  - pmid: 26740625
+    species_context_id: hla_dr1_transgenic_mouse_dcs
+    condition_ids: [dcs_from_lymph_nodes_hla_dr1_transgenic_mouse]
+    species_context_status: partial
+    species_context_scope: dendritic cells isolated from HLA-DR1 transgenic mice
+    species_context_kind: mhc_transgenic
+    species_context_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC4786700/ — Experimental Procedures, Mice and Treatment; Mouse cDC Preparation"
+    presenting_species: Mus musculus
+    in_vivo_host_species: Mus musculus
+    lineage_host_species: ""
+    introduced_mhc_species: Homo sapiens
+    supported_foreign_species: ""
+    reviewed_candidate_species: Homo sapiens;Mus musculus
+    species_context_note: >-
+      Mouse-source ligands on human HLA-DR1 are supported by the transgenic
+      system. The methods searched mouse proteins and compared conserved human
+      orthologues; they do not establish human tissue as peptide input for the
+      44 human-source assignments.
+
+  - pmid: 26811146
+    species_context_id: human_c1r_expressing_hla_b27
+    condition_ids: [cell_line_expressing_hla_b_27_05]
+    species_context_status: resolved
+    species_context_scope: human HMy2.C1R cells transfected with HLA-B*27:05
+    species_context_kind: mhc_transfectant
+    species_context_reference: "https://doi.org/10.1021/acs.jproteome.5b01146 — Supporting Information S3; IEDB assay 2736686"
+    presenting_species: Homo sapiens
+    in_vivo_host_species: ""
+    lineage_host_species: ""
+    introduced_mhc_species: Homo sapiens
+    supported_foreign_species: ""
+    reviewed_candidate_species: Homo sapiens
+    species_context_note: >-
+      The presenting line is human C1R. Macaca mulatta is the origin of the
+      comparison MHC allele, not the source species of either cultured arm.
+
+  - pmid: 26811146
+    species_context_id: human_c1r_expressing_mamu_b08
+    condition_ids: [cell_line_expressing_mamu_b_008_01]
+    species_context_status: resolved
+    species_context_scope: human HMy2.C1R cells transfected with Mamu-B*008:01
+    species_context_kind: mhc_transfectant
+    species_context_reference: "https://doi.org/10.1021/acs.jproteome.5b01146 — Supporting Information S2; IEDB assay 2736686"
+    presenting_species: Homo sapiens
+    in_vivo_host_species: ""
+    lineage_host_species: ""
+    introduced_mhc_species: Macaca mulatta
+    supported_foreign_species: ""
+    reviewed_candidate_species: Homo sapiens
+    species_context_note: >-
+      Human-source peptides on macaque MHC are expected in this explicitly
+      transfected human cell system.
+
+  - pmid: 26992070
+    species_context_id: human_cell_lines_and_sera_review
+    condition_ids: [ca46_b_cell_lymphoma, healthy_volunteer_sera, hek293_human_embryonic_kidney, hl_60_acute_myeloid_leukemia, maver_1_mantle_cell_lymphoma, melanoma_patient_sera, rpmi8226_multiple_myeloma, thp_1_acute_monocytic_leukemia]
+    species_context_status: partial
+    species_context_scope: six human cell lines plus melanoma-patient and healthy-volunteer serum
+    species_context_kind: native
+    species_context_reference: "https://doi.org/10.1002/pmic.201500445 — Experimental Section and Figure 2"
+    presenting_species: Homo sapiens
+    in_vivo_host_species: Homo sapiens
+    lineage_host_species: ""
+    introduced_mhc_species: ""
+    supported_foreign_species: ""
+    reviewed_candidate_species: Mus musculus
+    species_context_note: >-
+      The sampled cellular and soluble-HLA systems are human. The paper does
+      not establish mouse material as the origin of the single mouse-assigned
+      peptide record.
+
+  - pmid: 27893789
+    species_context_id: human_c1r_expressing_dla88
+    condition_ids: [c1r_transfected_with_dla_88_501_01]
+    species_context_status: partial
+    species_context_scope: human C1R cells transfected with canine DLA-88*501:01
+    species_context_kind: mhc_transfectant
+    species_context_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC5125661/ — Materials and Methods, Cell Lines; Transfection and Cell Culturing; Table 1"
+    presenting_species: Homo sapiens
+    in_vivo_host_species: ""
+    lineage_host_species: ""
+    introduced_mhc_species: Canis lupus familiaris
+    supported_foreign_species: ""
+    reviewed_candidate_species: Canis lupus familiaris;Homo sapiens
+    species_context_note: >-
+      Human-source ligands on canine MHC are supported by the transfectant. The
+      cells themselves are not canine, so canine source-protein assignments
+      require peptide-level evidence and are not validated by this context.
+
+  - pmid: 27893789
+    species_context_id: human_k562_expressing_dla88
+    condition_ids: [k562_transfected_with_dla_88_501_01]
+    species_context_status: partial
+    species_context_scope: human K562 cells transfected with canine DLA-88*501:01
+    species_context_kind: mhc_transfectant
+    species_context_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC5125661/ — Materials and Methods, Cell Lines; Transfection and Cell Culturing; Table 1"
+    presenting_species: Homo sapiens
+    in_vivo_host_species: ""
+    lineage_host_species: ""
+    introduced_mhc_species: Canis lupus familiaris
+    supported_foreign_species: ""
+    reviewed_candidate_species: Canis lupus familiaris;Homo sapiens
+    species_context_note: >-
+      Human-source ligands on canine MHC are supported by the transfectant. The
+      cells themselves are not canine, so canine source-protein assignments
+      require peptide-level evidence and are not validated by this context.
+
+  - pmid: 28188227
+    species_context_id: hla_b27_transgenic_rat_spleens
+    condition_ids: [hla_b27_transgenic_rat_spleen_erap1_ko, hla_b27_transgenic_rat_spleen_wt]
+    species_context_status: partial
+    species_context_scope: spleens from HLA-B*27:05 and human beta-2-microglobulin transgenic rats
+    species_context_kind: mhc_transgenic
+    species_context_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC5383784/ — Experimental Procedures and Table I"
+    presenting_species: Rattus norvegicus
+    in_vivo_host_species: Rattus norvegicus
+    lineage_host_species: ""
+    introduced_mhc_species: Homo sapiens
+    supported_foreign_species: ""
+    reviewed_candidate_species: Homo sapiens;Rattus norvegicus
+    species_context_note: >-
+      Rat-source peptides on human HLA-B27 are supported. The MS search used the
+      rat proteome; the 51 human source assignments are not independently shown
+      to be human peptide inputs by the transgene alone.
+
+  - pmid: 28315936
+    species_context_id: mouse_p815_expressing_equine_mhc
+    condition_ids: []
+    species_context_status: partial
+    species_context_scope: mouse P815 clones transfected with Eqca-16*00101 or Eqca-1*00201
+    species_context_kind: mhc_transfectant
+    species_context_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC5555743/ — Materials and Methods, MHC purification and peptide elution"
+    presenting_species: Mus musculus
+    in_vivo_host_species: ""
+    lineage_host_species: ""
+    introduced_mhc_species: Equus caballus
+    supported_foreign_species: ""
+    reviewed_candidate_species: Mus musculus
+    species_context_note: >-
+      Mouse-source ligands on equine MHC are explained by the P815 transfectant.
+      The source does not support records that label the presenting host itself
+      as horse.
+
+  - pmid: 29314611
+    species_context_id: human_hla_ii_cell_lines_and_plasma
+    condition_ids: [cell_lines_class_ii, nhl_patient_plasma_shla]
+    species_context_status: partial
+    species_context_scope: human Maver-1 and DOHH2 cells plus human plasma soluble HLA-II
+    species_context_kind: native
+    species_context_reference: "https://doi.org/10.1002/pmic.201700246 — Experimental Section and abstract"
+    presenting_species: Homo sapiens
+    in_vivo_host_species: Homo sapiens
+    lineage_host_species: ""
+    introduced_mhc_species: ""
+    supported_foreign_species: ""
+    reviewed_candidate_species: Gallus gallus
+    species_context_note: >-
+      The study describes human cells and plasma. It does not independently
+      establish chicken material as the source of the 18 chicken-assigned
+      peptide records.
+
+  - pmid: 29393594
+    species_context_id: human_cells_expressing_hla_b27
+    condition_ids: [human_cells_expressing_hla_b27]
+    species_context_status: resolved
+    species_context_scope: HeLa and C1R human cells stably expressing HLA-B*27:05, B*27:09, or C67S variants
+    species_context_kind: mhc_transfectant
+    species_context_reference: "https://doi.org/10.1002/pmic.201700249 — Experimental Section; PRIDE PXD007756"
+    presenting_species: Homo sapiens
+    in_vivo_host_species: ""
+    lineage_host_species: ""
+    introduced_mhc_species: Homo sapiens
+    supported_foreign_species: ""
+    reviewed_candidate_species: Homo sapiens
+    species_context_note: >-
+      These are cultured human transfectants and must be kept distinct from the
+      transgenic-rat spleen preparations in the same paper.
+
+  - pmid: 29393594
+    species_context_id: hla_b27_transgenic_rat_spleens_lys_p2
+    condition_ids: [hla_b27_transgenic_rat_spleens_lys_p2]
+    species_context_status: partial
+    species_context_scope: HLA-B*27:05 and HLA-B*27:05-C67S transgenic rat spleens
+    species_context_kind: mhc_transgenic
+    species_context_reference: "https://doi.org/10.1002/pmic.201700249 — Experimental Section; PRIDE PXD007756"
+    presenting_species: Rattus norvegicus
+    in_vivo_host_species: Rattus norvegicus
+    lineage_host_species: ""
+    introduced_mhc_species: Homo sapiens
+    supported_foreign_species: ""
+    reviewed_candidate_species: Homo sapiens;Rattus norvegicus
+    species_context_note: >-
+      Rat-source peptides on human HLA-B27 are supported. The paper does not
+      make a human peptide-source assignment in rat spleen valid merely because
+      the transgene is human.
+
+  - pmid: 29615400
+    species_context_id: human_cells_expressing_mouse_h2q
+    condition_ids: []
+    species_context_status: resolved
+    species_context_scope: human HeLa and 721.221 cells transfected with soluble H-2Dq or H-2Kq
+    species_context_kind: mhc_transfectant
+    species_context_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC5984706/ — Methods, Cell lines, transfection, and production of MHC complexes"
+    presenting_species: Homo sapiens
+    in_vivo_host_species: ""
+    lineage_host_species: ""
+    introduced_mhc_species: Mus musculus
+    supported_foreign_species: ""
+    reviewed_candidate_species: Homo sapiens
+    species_context_note: >-
+      Human-source ligands on mouse H-2q are supported for the transfected
+      human-cell experiments.
+
+  - pmid: 29615400
+    species_context_id: native_mouse_h2q_tumors
+    condition_ids: []
+    species_context_status: resolved
+    species_context_scope: MMTV-PyMT tumors grown in FVB mice and harvested for native H-2q elution
+    species_context_kind: native
+    species_context_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC5984706/ — Methods, MMTV-PyMT tumors and MHC peptide isolation"
+    presenting_species: Mus musculus
+    in_vivo_host_species: Mus musculus
+    lineage_host_species: ""
+    introduced_mhc_species: ""
+    supported_foreign_species: ""
+    reviewed_candidate_species: Mus musculus
+    species_context_note: >-
+      This native mouse-tumor arm is a separate experiment from the human-cell
+      H-2q transfectants.
+
+  - pmid: 30484775
+    species_context_id: human_helam_tapbpr_immunopeptidome
+    condition_ids: [cells_tapbpr_manipulation]
+    species_context_status: resolved
+    species_context_scope: human HeLaM cells expressing TAPBPR variants for immunopeptidomic analysis
+    species_context_kind: native
+    species_context_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC6307860/ — Methods, Cell culture; Immunopeptidomic analysis"
+    presenting_species: Homo sapiens
+    in_vivo_host_species: ""
+    lineage_host_species: ""
+    introduced_mhc_species: ""
+    supported_foreign_species: ""
+    reviewed_candidate_species: ""
+    species_context_note: >-
+      The curated MS arm is a human HeLaM immunopeptidome and is distinct from
+      the paper's peptide-exchange assays in other species systems.
+
+  - pmid: 30484775
+    species_context_id: mouse_mhc_ovalbumin_assay
+    condition_ids: []
+    species_context_status: resolved
+    species_context_scope: mouse MHC assay using an ovalbumin-derived model peptide
+    species_context_kind: exogenous_antigen
+    species_context_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC6307860/ — peptide-exchange assay Methods"
+    presenting_species: Mus musculus
+    in_vivo_host_species: ""
+    lineage_host_species: ""
+    introduced_mhc_species: ""
+    supported_foreign_species: Gallus gallus
+    reviewed_candidate_species: Gallus gallus
+    species_context_note: >-
+      The one chicken-source/mouse-MHC candidate belongs to an ovalbumin model
+      peptide assay, not to the human HeLaM immunopeptidome. PMID-wide context
+      would conflate those experiments.
+
+  - pmid: 30573663
+    species_context_id: human_lg2_hla_do_cell_culture
+    condition_ids: []
+    species_context_status: resolved
+    species_context_scope: human LG-2 wild-type and HLA-DO knockout cell cultures
+    species_context_kind: culture_supplement
+    species_context_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC6398211/ — Methods, CRISPR/Cas9 knockout and cell culture; database search"
+    presenting_species: Homo sapiens
+    in_vivo_host_species: ""
+    lineage_host_species: ""
+    introduced_mhc_species: ""
+    supported_foreign_species: Bos taurus
+    reviewed_candidate_species: Bos taurus
+    species_context_note: >-
+      LG-2 cells were grown with fetal bovine serum, the search included a
+      bovine FASTA, and the paper discusses extracellular medium components.
+      Bovine-source candidates are independently plausible for this culture arm.
+
+  - pmid: 30573663
+    species_context_id: mouse_splenic_b_cells_h2o
+    condition_ids: [mouse_splenocytes_do_ko, mouse_splenocytes_wt]
+    species_context_status: partial
+    species_context_scope: splenic B cells from H2-O-deficient and wild-type mice
+    species_context_kind: native
+    species_context_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC6398211/ — Methods, mice and mouse B-cell isolation"
+    presenting_species: Mus musculus
+    in_vivo_host_species: Mus musculus
+    lineage_host_species: ""
+    introduced_mhc_species: ""
+    supported_foreign_species: ""
+    reviewed_candidate_species: Bos taurus
+    species_context_note: >-
+      The ex vivo mouse B-cell MHC-II preparation is supported. The primary
+      source does not independently establish the single bovine-source record
+      in this mouse arm.
+
+  - pmid: 32502341
+    species_context_id: human_ebv_b_lcl_tmt
+    condition_ids: [b_lcl_tmt]
+    species_context_status: resolved
+    species_context_scope: cultured human EBV-transformed B-LCL used for the deposited TMT preparation
+    species_context_kind: native
+    species_context_reference: "https://doi.org/10.1021/acs.analchem.0c01545 — Supporting Figures S1-S3; PRIDE PXD017918"
+    presenting_species: Homo sapiens
+    in_vivo_host_species: ""
+    lineage_host_species: ""
+    introduced_mhc_species: ""
+    supported_foreign_species: ""
+    reviewed_candidate_species: Homo sapiens
+    species_context_note: >-
+      This is the deposited B-LCL material and is separate from the paper's
+      B-ALL xenograft model.
+
+  - pmid: 32502341
+    species_context_id: human_b_all_in_nsg_mouse
+    condition_ids: [b_all_10h080_xenograft]
+    species_context_status: resolved
+    species_context_scope: human B-ALL 10H080 expanded in NSG mice and recovered from mouse spleens
+    species_context_kind: xenograft
+    species_context_reference: "https://doi.org/10.1021/acs.analchem.0c01545 — Supporting Figures S4-S5; US20230158132, Examples 1 and 3"
+    presenting_species: Homo sapiens
+    in_vivo_host_species: Mus musculus
+    lineage_host_species: ""
+    introduced_mhc_species: ""
+    supported_foreign_species: ""
+    reviewed_candidate_species: Homo sapiens
+    species_context_note: >-
+      The leukemic cells were transplanted into NSG mice and isolated from
+      spleens 30-60 days later, so this arm is a literature-supported xenograft.
+
+  - pmid: 33725478
+    species_context_id: mouse_dcs_with_ova_and_hel
+    condition_ids: []
+    species_context_status: resolved
+    species_context_scope: mouse dendritic-cell antigen processing and immunization with ovalbumin or hen egg lysozyme
+    species_context_kind: exogenous_antigen
+    species_context_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC8046741/ — Methods, in vitro antigen processing of HEL and OVA; mouse immunization"
+    presenting_species: Mus musculus
+    in_vivo_host_species: Mus musculus
+    lineage_host_species: ""
+    introduced_mhc_species: ""
+    supported_foreign_species: Gallus gallus
+    reviewed_candidate_species: Gallus gallus
+    species_context_note: >-
+      Chicken-source candidates are independently explained by deliberate OVA
+      and HEL exposure in mouse antigen-processing experiments.
+
+  - pmid: 39111711
+    species_context_id: pdx_derived_human_cell_line
+    condition_ids: [pdx_derived_cell_line_ifn_gamma, pdx_derived_cell_line_untreated]
+    species_context_status: resolved
+    species_context_scope: cultured human pancreatic-cancer cell line derived after passage as a patient-derived xenograft
+    species_context_kind: xenograft_derived_culture
+    species_context_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC11405902/ — Experimental Design; PDX Cell Line; Figure 3; https://pmc.ncbi.nlm.nih.gov/articles/PMC5215250/ — Methods"
+    presenting_species: Homo sapiens
+    in_vivo_host_species: ""
+    lineage_host_species: Mus musculus
+    introduced_mhc_species: ""
+    supported_foreign_species: ""
+    reviewed_candidate_species: Homo sapiens
+    species_context_note: >-
+      Xenograft passage is part of the lineage, but the material subjected to
+      immunopeptidomics was a cultured human PDX-derived cell line. IFN-gamma
+      treated and untreated cultures are distinct arms.
+
+  - pmid: 39111711
+    species_context_id: native_human_tumor_biopsies
+    condition_ids: [patient_tumor_biopsies]
+    species_context_status: resolved
+    species_context_scope: three snap-frozen human tumor biopsies
+    species_context_kind: native
+    species_context_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC11405902/ — Experimental Design; Patient Tumor Material"
+    presenting_species: Homo sapiens
+    in_vivo_host_species: Homo sapiens
+    lineage_host_species: ""
+    introduced_mhc_species: ""
+    supported_foreign_species: ""
+    reviewed_candidate_species: Homo sapiens
+    species_context_note: >-
+      These are direct patient tumor specimens and are separate from the
+      PDX-derived cultured cell line.

@@ -6872,7 +6872,7 @@
       came from.
     title: "Comparative Analysis of the Endogenous Peptidomes Displayed by HLA-B*27 and Mamu-B*08: Two MHC Class I Alleles Associated with Elite Control of HIV/SIV Infection"
     override: cell_line
-    species: "Macaca mulatta (rhesus macaque)"
+    species: "Homo sapiens (human)"
     note: >
       Comparative immunopeptidome of HIV/SIV elite controller alleles.
       Cell line transfectants expressing individual alleles. Several
@@ -6881,19 +6881,27 @@
       profiled: ["Mamu-B*008:01", "HLA-B*27:05"]
     ms_samples:
       - sample_label: "cell line expressing Mamu-B*008:01"
+        source: "human HMy2.C1R lymphoid cells transfected with Mamu-B*008:01"
         condition: "unperturbed"
         condition_id: "cell_line_expressing_mamu_b_008_01"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "doi:10.1021/acs.jproteome.5b01146, Supporting Information S2; IEDB assay 2736686"
         condition_control: "untreated"
+        condition_mhc_context: "mhc_transfectant"
+        condition_material: "cultured"
         mhc_class: "I"
         mhc: "Mamu-B*008:01"
       - sample_label: "cell line expressing HLA-B*27:05"
+        source: "human HMy2.C1R lymphoid cells transfected with HLA-B*27:05"
         condition: "unperturbed"
         condition_id: "cell_line_expressing_hla_b_27_05"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "doi:10.1021/acs.jproteome.5b01146, Supporting Information S3; IEDB assay 2736686"
         condition_control: "untreated"
+        condition_mhc_context: "mhc_transfectant"
+        condition_material: "cultured"
         mhc_class: "I"
         mhc: "HLA-B*27:05"
 
@@ -8588,16 +8596,39 @@
   - pmid: 29393594
     study_label: "Yair-Sabag 2018 — HLA-B27 Lys-P2 ligands"
     title: "HLA-B27 peptide repertoire with lysine at P2"
-    override: cell_line
+    override:
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      The primary source and PRIDE PXD007756 contain human HeLa/C1R transfectants and
+      HLA-B27 transgenic rat spleens. IEDB host_organism distinguishes human from rat rows,
+      but the sample-attribution join does not yet consume that axis. Keeping two arms
+      prevents the former single cell-line arm from broadcasting over the rat experiment.
     ms_samples:
-      - sample_label: "cell lines expressing HLA-B27"
-        condition: "unperturbed"
-        condition_id: "cell_lines_expressing_hla_b27"
-        condition_status: "annotated"
-        condition_evidence: "curated_text"
-        condition_control: "untreated"
+      - sample_label: "human HeLa/C1R transfectants expressing HLA-B27"
+        species: Homo sapiens
+        source: "human HeLa and HMy2.C1R lines expressing HLA-B*27:05, HLA-B*27:09, or C67S variants"
+        condition: "unperturbed — mixed HLA-B27 transfectants"
+        condition_id: "human_cells_expressing_hla_b27"
+        condition_status: "mixed"
+        condition_evidence: "primary_source"
+        condition_reference: "doi:10.1002/pmic.201700249, Experimental Section; PRIDE PXD007756"
+        condition_mhc_context: "mhc_transfectant"
+        condition_material: "cultured"
         mhc_class: "I"
-        mhc: "HLA-B*27"
+        mhc: "HLA-B*27:05 HLA-B*27:09"
+        override: cell_line
+      - sample_label: "HLA-B27 transgenic rat spleens"
+        species: Rattus norvegicus
+        source: "spleens from HLA-B*27:05 and HLA-B*27:05-C67S transgenic rats"
+        condition: "unperturbed — mixed HLA-B27 transgenic rat spleens"
+        condition_id: "hla_b27_transgenic_rat_spleens_lys_p2"
+        condition_status: "mixed"
+        condition_evidence: "primary_source"
+        condition_reference: "doi:10.1002/pmic.201700249, Experimental Section; PRIDE PXD007756"
+        condition_mhc_context: "mhc_transgenic"
+        condition_material: "direct_ex_vivo"
+        mhc_class: "I"
+        mhc: "HLA-B*27:05"
 
   - pmid: 32357974
     study_label: "Mei 2020 — deamidated HLA peptides from deglycosylation"
@@ -11932,19 +11963,6 @@
 
   - pmid: 39111711
     study_label: "Salek 2024 — optiPRM neoantigen detection"
-    # Arm-resolution verdict (#451): recorded so this study is not
-    # re-investigated. Describes the deposited evidence, not the curation.
-    arm_resolution: curation_gap
-    arm_resolution_note: >
-      All 6 rows are ambiguous and assay_comments (4 distinct values) names the arm on every
-      one of them. 'The epitope was detected in a patient-derived xenograft cell line that had
-      been treated with IFN-gamma to up-regulate HLA class I expression.' is the PDX arm; the
-      other three ('The epitope was eluted from a tumor tissue sample obtained from a patient
-      with liposarcoma.', 2 rows; osteosarcoma with lung metastasis, 2 rows; small intestine
-      carcinoma, 1 row) are the patient biopsy arm. source_tissue also varies over 4 values
-      (Lung 2, Other 2, Pancreas 1, Small Intestine 1) and mhc_restriction over 4 patient
-      genotypes, while both curated arms carry only 'HLA class I'. The PDX versus biopsy split
-      is exactly the curated axis and it is recorded per row.
     title: "optiPRM: A Targeted Immunopeptidomics LC-MS Workflow With Ultra-High Sensitivity for Detection of Mutation-Derived Tumor Neoepitopes From Limited Input Material"
     override:
     note: >
@@ -11952,6 +11970,15 @@
       limited input. Patient-derived xenograft and 3 patient tumor biopsies.
       5 neoantigens validated across samples. Optimized PRM with nanospray source
       and micro-pillar array columns.
+    elution_condition_ids:
+      "The epitope was detected in a patient-derived xenograft cell line that had been treated with IFN-gamma to up-regulate HLA class I expression.":
+        - pdx_derived_cell_line_ifn_gamma
+      "The epitope was eluted from a tumor tissue sample obtained from a patient with liposarcoma.":
+        - patient_tumor_biopsies
+      "The epitope was eluted from a tumor tissue sample obtained from a patient with osteosarcoma with lung metastasis.":
+        - patient_tumor_biopsies
+      "The epitope was eluted from a tumor tissue sample obtained from a patient with small intestine carcinoma.":
+        - patient_tumor_biopsies
     ip_antibody: W6/32
     acquisition_mode: PRM
     instrument: "Orbitrap Exploris 480"
@@ -11960,23 +11987,40 @@
     search_engine: "Skyline"
     quantification_method: optiPRM
     ms_samples:
-      - sample_label: "patient-derived xenograft"
-        condition: "unperturbed — PDX tumor"
-        condition_id: "patient_derived_xenograft"
+      - sample_label: "PDX-derived cell line (untreated)"
+        source: "cultured human PDA-161 cell line derived after passage as a PDX"
+        condition: "unperturbed — untreated PDX-derived cell line"
+        condition_id: "pdx_derived_cell_line_untreated"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC11405902, PDX Cell Line and Figure 3; PMC5215250, Methods"
         condition_control: "untreated"
-        condition_material: "in_vivo"
+        condition_control_for: "pdx_derived_cell_line_ifn_gamma"
+        condition_material: "cultured"
+        mhc_class: "I"
+        mhc: "HLA class I"
+      - sample_label: "PDX-derived cell line + IFN-gamma"
+        source: "cultured human PDA-161 cell line derived after passage as a PDX"
+        condition: "IFN-gamma 333 IU/mL for 48 h"
+        condition_id: "pdx_derived_cell_line_ifn_gamma"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC11405902, PDX Cell Line and Figure 3; PMC5215250, Methods"
+        condition_combination: "single"
+        condition_cytokines: "IFNG"
+        condition_material: "cultured"
         mhc_class: "I"
         mhc: "HLA class I"
       - sample_label: "patient tumor biopsies"
         n_samples: 3
-        condition: "unperturbed — fresh tumor biopsies"
+        source: "three patient tumors, snap-frozen after resection"
+        condition: "unperturbed — snap-frozen tumor biopsies"
         condition_id: "patient_tumor_biopsies"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC11405902, Patient Tumor Material"
         condition_control: "untreated"
-        condition_material: "fresh"
+        condition_material: "frozen"
         mhc_class: "I"
         mhc: "HLA class I"
 

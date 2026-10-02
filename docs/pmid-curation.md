@@ -6,6 +6,11 @@ per-sample metadata (HLA genotype, perturbation, instrument) that MS pipelines
 need. Overrides live in `hitlist/data/pmid_overrides.yaml` as data, loaded at
 runtime by `curation.load_pmid_overrides()` — no code changes to add a study.
 
+Cross-species experimental evidence is maintained in the separate
+[`species_contexts.yaml` registry](species-contexts.md). Keeping that evidence
+separate prevents the species-mismatch flags used to find candidates from also
+serving as their own validation.
+
 Each entry is keyed by `pmid` (or `submission_id` for unpublished IEDB
 submissions) and curated against the paper's Methods. The file currently covers
 **159 PMIDs**, accounting for ~89.5% of all observations.

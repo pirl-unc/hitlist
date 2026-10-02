@@ -691,6 +691,7 @@ def test_unspecified_still_asserts_an_intervention():
     [
         ("monoallelic", True),
         ("mhc_transfectant;monoallelic", True),
+        ("mhc_transgenic", True),
         ("mhc_coexpression", True),
         ("monoallelic;soluble_mhc", True),
         ("soluble_mhc", False),
