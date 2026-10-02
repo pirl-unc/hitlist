@@ -10,6 +10,20 @@ from hitlist.species_contexts import (
 )
 from tests.test_curation_sanity_pass import _export
 
+OPTI_PDX_STATEMENT = (
+    "The epitope was detected in a patient-derived xenograft cell line that had been treated "
+    "with IFN-\N{GREEK SMALL LETTER GAMMA} to up-regulate HLA class I expression. The epitope "
+    "was also present in untreated cells, but greater numbers of cells were needed to detect "
+    "the epitope in the absence of IFN-\N{GREEK SMALL LETTER GAMMA}."
+)
+OPTI_BIOPSY_STATEMENTS = (
+    "The epitope was eluted from a tumor tissue sample obtained from a patient with liposarcoma.",
+    "The epitope was eluted from a tumor tissue sample obtained from a patient with "
+    "osteosarcoma and lung metastasis.",
+    "The epitope was eluted from a tumor tissue sample obtained from a patient with small "
+    "intestine carcinoma.",
+)
+
 
 def test_review_manifest_records_coverage_and_explicit_queue():
     payload = load_species_contexts()
@@ -104,8 +118,7 @@ def test_literature_context_reaches_an_exactly_attributed_observation(monkeypatc
                 "pmid": 39111711,
                 "mhc_class": "I",
                 "mhc_restriction": "HLA-A*02:01",
-                "assay_comments": "The epitope was eluted from a tumor tissue sample "
-                "obtained from a patient with liposarcoma.",
+                "assay_comments": OPTI_BIOPSY_STATEMENTS[0],
             }
         ],
     ).iloc[0]
@@ -124,14 +137,7 @@ def test_deposited_pdx_statement_preserves_both_reported_culture_arms(monkeypatc
                 "pmid": 39111711,
                 "mhc_class": "I",
                 "mhc_restriction": "HLA-A*02:01",
-                "assay_comments": (
-                    "The epitope was detected in a patient-derived xenograft cell line "
-                    "that had been treated with IFN-\N{GREEK SMALL LETTER GAMMA} to "
-                    "up-regulate HLA class I "
-                    "expression. The epitope was also present in untreated cells, but "
-                    "greater numbers of cells were needed to detect the epitope in the "
-                    "absence of IFN-\N{GREEK SMALL LETTER GAMMA}."
-                ),
+                "assay_comments": OPTI_PDX_STATEMENT,
             }
         ],
     ).iloc[0]
@@ -141,6 +147,17 @@ def test_deposited_pdx_statement_preserves_both_reported_culture_arms(monkeypatc
     assert result.species_context_id == ""
     assert result.presenting_species == "Homo sapiens"
     assert result.lineage_host_species == "Mus musculus"
+
+
+def test_every_deposited_opti_prm_statement_has_an_exact_arm_mapping():
+    mapping = load_pmid_overrides()[39111711]["elution_condition_ids"]
+    assert mapping == {
+        OPTI_PDX_STATEMENT: [
+            "pdx_derived_cell_line_ifn_gamma",
+            "pdx_derived_cell_line_untreated",
+        ],
+        **{statement: ["patient_tumor_biopsies"] for statement in OPTI_BIOPSY_STATEMENTS},
+    }
 
 
 def test_unmapped_mixed_study_does_not_broadcast_an_arm_context(monkeypatch):
