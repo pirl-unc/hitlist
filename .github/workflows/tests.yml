@@ -29,7 +29,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev,alleles]"
+          pip install -e ".[dev,alleles,cta]"
 
       - name: Lint and check formatting (pyproject's [tool.ruff] include list)
         run: ./lint.sh
@@ -63,7 +63,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev,alleles]"
+          pip install -e ".[dev,alleles,cta]"
 
       - name: Check the editable install matches this checkout (#553)
         run: python scripts/check_dev_install.py
@@ -135,7 +135,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev,alleles]"
+          pip install -e ".[dev,alleles,cta]"
 
       - name: Check the editable install matches this checkout (#553)
         run: python scripts/check_dev_install.py

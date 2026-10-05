@@ -68,6 +68,7 @@ from .curation import (
     ms_excluded_pmids,
     normalize_allele,
 )
+from .pandas_utils import fillna_scalar_safe
 
 _MHC_AUDIT_COLUMNS = [
     "evidence_kind",
@@ -1274,7 +1275,7 @@ def discrepancies(
     df["_len"] = df["peptide"].str.len()
     nonstandard_re = re.compile(r"[^ACDEFGHIKLMNPQRSTVWY]")
     df["_nonstandard"] = df["peptide"].astype(str).str.contains(nonstandard_re)
-    df["_class_only"] = df["mhc_restriction"].fillna("").str.startswith("HLA class")
+    df["_class_only"] = fillna_scalar_safe(df["mhc_restriction"], "").str.startswith("HLA class")
     df["_mono_class_only"] = df["is_monoallelic"].fillna(False) & df["_class_only"]
     # Borderline (bulged class-I 13-14aa or short class-II 8-10aa) is
     # uncommon-but-real biology and doesn't fire the binary suspect
@@ -1293,7 +1294,7 @@ def discrepancies(
         df["_class_pool"] = False
 
     if by == "sample":
-        df["cell_name"] = df["cell_name"].fillna("").replace("", "(no cell_name)")
+        df["cell_name"] = fillna_scalar_safe(df["cell_name"], "").replace("", "(no cell_name)")
         group_keys = ["pmid", "mhc_class", "cell_name"]
     else:
         group_keys = ["pmid", "mhc_class"]
@@ -1686,7 +1687,7 @@ def proteome_coverage(
             ]
         )
 
-    df["source_organism"] = df["source_organism"].fillna("")
+    df["source_organism"] = fillna_scalar_safe(df["source_organism"], "")
     # ``observed=True`` -- ``source_organism`` is categorical (#597).
     grouped = df.groupby("source_organism", as_index=False, observed=True).agg(
         n_rows=("source_organism", "size"),

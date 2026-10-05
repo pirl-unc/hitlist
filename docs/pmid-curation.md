@@ -69,6 +69,13 @@ A representative entry:
 | `ip_antibody`, `acquisition_mode`, `instrument`, `fragmentation`, `labeling`, `search_engine`, `fdr`, `quantification_method` | MS-acquisition metadata (study-wide defaults; overridable per `ms_samples` entry). |
 | `perturbations` | Non-standard processing (gene KO, cytokines, infection, …). |
 
+Observation and training exports carry curated `search_engine` and `fdr` values
+from the resolved MS arm. An ambiguous row retains a value only when every
+candidate arm agrees; binding evidence receives blanks. `fdr` preserves the raw
+source description, including PSM-, peptide-, or protein-level thresholds and
+heterogeneous methods. A blank means uncurated, and a nonblank description is
+not a standardized peptide-level quality guarantee.
+
 Every top-level key is declared in `curation.PMID_ENTRY_FIELDS`, mapped to what
 reads it, and **loading rejects an undeclared key** — the study-level twin of the
 `MS_SAMPLE_FIELDS` guard. Its absence is why four keys above ended up curated

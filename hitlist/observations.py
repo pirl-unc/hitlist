@@ -80,6 +80,7 @@ import pyarrow.parquet as pq
 
 from .curation import normalize_serotype_query as _normalize_serotype_query
 from .downloads import data_dir
+from .pandas_utils import fillna_scalar_safe
 
 
 @lru_cache(maxsize=8)
@@ -589,11 +590,13 @@ def _attach_species_axes(df: pd.DataFrame) -> pd.DataFrame:
     # literal "nan"/"None", which then survives the .dropna()/.fillna("") below
     # and gets normalized into a phantom species value instead of blank.
     host = (
-        df["host"].fillna("").astype(str) if "host" in df.columns else pd.Series("", index=df.index)
+        fillna_scalar_safe(df["host"], "").astype(str)
+        if "host" in df.columns
+        else pd.Series("", index=df.index)
     )
     src = _source_organism_with_fallback(df)
     mhc = (
-        df["mhc_species"].fillna("").astype(str)
+        fillna_scalar_safe(df["mhc_species"], "").astype(str)
         if "mhc_species" in df.columns
         else pd.Series("", index=df.index)
     )
@@ -985,7 +988,7 @@ def _load_peptide_index(
                 "mhc_allele_in_set filter received no usable allele values "
                 "after normalization; pass at least one non-empty allele."
             )
-        padded = ";" + df["mhc_allele_set"].fillna("").astype(str) + ";"
+        padded = ";" + fillna_scalar_safe(df["mhc_allele_set"], "").astype(str) + ";"
         mask = pd.Series(False, index=df.index)
         for allele in wanted_set:
             mask |= padded.str.contains(f";{re.escape(allele)};", regex=True)

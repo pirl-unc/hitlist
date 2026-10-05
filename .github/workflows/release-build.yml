@@ -54,7 +54,7 @@ jobs:
       - name: Install release tools and current development dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev,alleles]" build twine
+          pip install -e ".[dev,alleles,cta]" build twine
           # --upgrade alone retains an installed PyPI wheel with the same version.
           pip uninstall --yes datacache gtfparse serializable mhcflurry pyensembl mhcgnomes
           pip install --upgrade \

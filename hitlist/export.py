@@ -60,6 +60,7 @@ from .curation import (
     species_axes_agreement,
 )
 from .curation import normalize_serotype_query as _normalize_serotype_query
+from .pandas_utils import fillna_scalar_safe as _fillna_scalar_safe
 from .species_contexts import (
     ARM_SPECIFIC_SPECIES_CONTEXT_COLUMNS,
     SPECIES_CONTEXT_COLUMNS,
@@ -112,6 +113,8 @@ _CATEGORICAL_EXPORT_METADATA_COLS: tuple[str, ...] = (
     "fragmentation",
     "labeling",
     "ip_antibody",
+    "search_engine",
+    "fdr",
     # NB: ``sample_label`` is deliberately NOT categoricalized — it's a
     # sample-identity column that consumers compare element-wise against
     # ``cell_name`` (itself already categorical), and two categoricals with
@@ -291,6 +294,8 @@ _TRAINING_DEFAULTS = {
     "fragmentation": "",
     "labeling": "",
     "ip_antibody": "",
+    "search_engine": "",
+    "fdr": "",
     "quantification_method": "",
     # Binding evidence has no MS sample, so it has no experimental condition
     # to report.  "" says exactly that; any other default would assert an
@@ -304,19 +309,6 @@ _TRAINING_DEFAULTS = {
     "is_engineered_mhc": False,
     "is_non_peptide_ligand": False,
 }
-
-
-def _fillna_scalar_safe(series: pd.Series, value) -> pd.Series:
-    """``series.fillna(value)`` that tolerates Categorical dtype.
-
-    Filling a Categorical with a value not already in its category set
-    raises ``TypeError``; widening the categories first keeps the fill
-    working without dropping the memory-saving categorical encoding (#263).
-    No-op widening for non-categorical columns.
-    """
-    if isinstance(series.dtype, pd.CategoricalDtype) and value not in series.cat.categories:
-        series = series.cat.add_categories([value])
-    return series.fillna(value)
 
 
 def _fillna_series_safe(primary: pd.Series, fallback: pd.Series) -> pd.Series:
@@ -1623,6 +1615,8 @@ def generate_observations_table(
         "fragmentation",
         "labeling",
         "ip_antibody",
+        "search_engine",
+        "fdr",
         # APM perturbation block (#202) — propagated through the join
         # so consumers can filter / pivot on individual genes.  These
         # describe the matched sample's own condition, so they are only
@@ -1728,7 +1722,7 @@ def generate_observations_table(
     # molecules keep exact identity: two known pairs that merely share DQA1
     # or DPA1 are not the same molecule.
     _observed_pairs_by_component: dict[str, set[str]] = {}
-    _pair_restrictions = set(obs["mhc_restriction"].fillna("").astype(str).unique())
+    _pair_restrictions = set(_fillna_scalar_safe(obs["mhc_restriction"], "").astype(str).unique())
     if _study_context is not None:
         _pair_restrictions.update(_study_context["mhc_restriction"].unique())
     for _restriction in sorted(_pair_restrictions):
@@ -3134,15 +3128,15 @@ def generate_binding_table(
     # sparse and don't benefit from pyarrow push-down filters.
     if assay_method is not None and "assay_method" in df.columns:
         wanted = {m.casefold() for m in _to_list(assay_method)}
-        method_col = df["assay_method"].fillna("").astype(str).str.casefold()
+        method_col = _fillna_scalar_safe(df["assay_method"], "").astype(str).str.casefold()
         df = df[method_col.apply(lambda m: any(w in m for w in wanted))]
     if response_measured is not None and "response_measured" in df.columns:
         wanted_responses = {r.casefold() for r in _to_list(response_measured)}
-        response_col = df["response_measured"].fillna("").astype(str).str.casefold()
+        response_col = _fillna_scalar_safe(df["response_measured"], "").astype(str).str.casefold()
         df = df[response_col.isin(wanted_responses)]
     if measurement_units is not None and "measurement_units" in df.columns:
         wanted_units = {u.casefold() for u in _to_list(measurement_units)}
-        units_col = df["measurement_units"].fillna("").astype(str).str.casefold()
+        units_col = _fillna_scalar_safe(df["measurement_units"], "").astype(str).str.casefold()
         df = df[units_col.isin(wanted_units)]
     if has_quantitative_value is not None and "quantitative_value" in df.columns:
         if has_quantitative_value:
@@ -4119,7 +4113,9 @@ def _compute_has_peptide_level_allele(
         # Note: post-v1.30.44, ``_compress_categoricals`` pre-adds ``""`` to
         # every compressed column's categories so this ``fillna("")`` works
         # against the categorical without an out-of-category TypeError.
-        result = result & ~allele_resolution.fillna("").isin({"class_only", "serological"})
+        result = result & ~_fillna_scalar_safe(allele_resolution, "").isin(
+            {"class_only", "serological"}
+        )
     return result.astype(bool)
 
 
@@ -4142,8 +4138,8 @@ def _compute_is_chimeric(
     """
     from .curation import is_chimeric_system
 
-    src = source_organism.fillna("").astype(str).to_numpy()
-    mhc = mhc_species.fillna("").astype(str).to_numpy()
+    src = _fillna_scalar_safe(source_organism, "").astype(str).to_numpy()
+    mhc = _fillna_scalar_safe(mhc_species, "").astype(str).to_numpy()
     pairs = pd.MultiIndex.from_arrays([src, mhc])
     unique_pairs = pairs.unique()
     decisions = pd.Series(
@@ -4178,9 +4174,9 @@ def _compute_is_engineered_mhc(
     """
     from .curation import is_engineered_mhc
 
-    src = source_organism.fillna("").astype(str).to_numpy()
-    mhc = mhc_species.fillna("").astype(str).to_numpy()
-    hst = host.fillna("").astype(str).to_numpy()
+    src = _fillna_scalar_safe(source_organism, "").astype(str).to_numpy()
+    mhc = _fillna_scalar_safe(mhc_species, "").astype(str).to_numpy()
+    hst = _fillna_scalar_safe(host, "").astype(str).to_numpy()
     triples = pd.MultiIndex.from_arrays([src, mhc, hst])
     unique_triples = triples.unique()
     decisions = pd.Series(

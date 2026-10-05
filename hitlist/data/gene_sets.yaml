@@ -8,21 +8,20 @@
 
 gene_sets:
   # Cancer-testis antigens — germline/reproductive-restricted genes re-expressed
-  # in cancer.  NOT hand-maintained here: sourced from the `cancerdata` package,
-  # which holds the authoritative candidate list (CTpedia + daSilva2017; ~359
-  # genes) and applies the HPA reproductive/thymus tissue-restriction filter
+  # in cancer.  NOT hand-maintained here: sourced from the `oncoref` package,
+  # which holds the authoritative candidate list (published resources and
+  # supplementary nominations) and applies the HPA reproductive/thymus tissue-restriction filter
   # (protein + RNA modalities, with confidence tiers).  load_gene_set("CTA") ->
-  # cancerdata.cta.CTA_gene_names() = the restriction-PASSING, expressed panel
-  # (~263 genes).  cancerdata is an optional dependency (not yet on PyPI; install
-  # from git — see the error message in genes._genes_from_provider).
+  # oncoref.cta.cta_gene_names() = the restriction-PASSING, expressed panel
+  # OncoRef is an optional dependency (install hitlist[cta]).
   #
   # To change the filtering (candidates, restriction thresholds, manual
-  # overrides), edit `cancerdata`, not this file — that's where the
+  # overrides), edit `oncoref`, not this file — that's where the
   # candidate->filter->override pipeline lives.
   CTA:
     description: >
       Cancer-testis antigens — germline-restricted genes re-expressed in cancer.
-      Sourced from cancerdata (CTpedia + daSilva2017 candidates, HPA
+      Sourced from oncoref (CTpedia + daSilva2017 candidates, HPA
       reproductive/thymus restriction filter).
-    source: "cancerdata.cta.CTA_gene_names()"
-    provider: cancerdata
+    source: "oncoref.cta.cta_gene_names()"
+    provider: oncoref

@@ -16,52 +16,52 @@ from hitlist.genes import (
 
 
 @pytest.fixture
-def fake_cancerdata(monkeypatch):
+def fake_oncoref(monkeypatch):
     expected = ["PRAME", "MAGEA4", "CAGE1", "BRDT", *[f"CTA{i}" for i in range(201)]]
-    package = types.ModuleType("cancerdata")
-    cta = types.ModuleType("cancerdata.cta")
-    cta.CTA_gene_names = lambda: list(expected)
+    package = types.ModuleType("oncoref")
+    cta = types.ModuleType("oncoref.cta")
+    cta.cta_gene_names = lambda: list(expected)
     package.cta = cta
-    monkeypatch.setitem(sys.modules, "cancerdata", package)
-    monkeypatch.setitem(sys.modules, "cancerdata.cta", cta)
+    monkeypatch.setitem(sys.modules, "oncoref", package)
+    monkeypatch.setitem(sys.modules, "oncoref.cta", cta)
     return expected
 
 
-def test_load_gene_set_cta_sourced_from_cancerdata(fake_cancerdata):
-    """The CTA set delegates to the cancerdata package (its CTpedia/daSilva2017
+def test_load_gene_set_cta_sourced_from_oncoref(fake_oncoref):
+    """The CTA set delegates to the oncoref package (its CTpedia/daSilva2017
     candidates filtered by HPA reproductive/thymus restriction) — a single
     source of truth, not a hand-maintained duplicate."""
     genes = load_gene_set("CTA")
-    assert set(genes) == set(fake_cancerdata)
-    assert len(genes) > 200  # the full restriction-filtered panel, not a subset
+    assert set(genes) == set(fake_oncoref)
+    assert genes == sorted(fake_oncoref)
     for expected in ("PRAME", "MAGEA4", "CAGE1", "BRDT"):
         assert expected in genes
     assert len(genes) == len(set(genes))
 
 
-def test_load_gene_set_is_case_insensitive(fake_cancerdata):
+def test_load_gene_set_is_case_insensitive(fake_oncoref):
     assert load_gene_set("cta") == load_gene_set("CTA")
 
 
 def test_load_gene_set_missing_optional_provider_is_actionable(monkeypatch):
     from hitlist.genes import _genes_from_provider
 
-    monkeypatch.delitem(sys.modules, "cancerdata", raising=False)
-    monkeypatch.delitem(sys.modules, "cancerdata.cta", raising=False)
+    monkeypatch.delitem(sys.modules, "oncoref", raising=False)
+    monkeypatch.delitem(sys.modules, "oncoref.cta", raising=False)
     real_import = __import__
 
-    def import_without_cancerdata(name, *args, **kwargs):
-        if name == "cancerdata":
+    def import_without_oncoref(name, *args, **kwargs):
+        if name == "oncoref":
             raise ImportError("not installed")
         return real_import(name, *args, **kwargs)
 
-    monkeypatch.setattr("builtins.__import__", import_without_cancerdata)
+    monkeypatch.setattr("builtins.__import__", import_without_oncoref)
 
     with pytest.raises(
         RuntimeError,
-        match=r"pip install git\+https://github.com/pirl-unc/cancerdata",
+        match=r'pip install "hitlist\[cta\]"',
     ):
-        _genes_from_provider("cancerdata", set_name="CTA")
+        _genes_from_provider("oncoref", set_name="CTA")
 
 
 def test_load_gene_set_unknown_raises():
@@ -133,3 +133,11 @@ def test_resolve_gene_query_uses_hgnc_synonyms(monkeypatch):
 def test_resolve_gene_query_empty():
     assert resolve_gene_query("") == {"names": set(), "ids": set()}
     assert resolve_gene_query("  ") == {"names": set(), "ids": set()}
+
+
+def test_cta_provider_matches_real_oncoref_default_panel():
+    cta = pytest.importorskip("oncoref.cta")
+    expected = cta.cta_gene_names()
+    assert expected
+    assert load_gene_set("CTA") == sorted(expected)
+    assert not set(load_gene_set("CTA")) & cta.cta_warning_gene_names()
