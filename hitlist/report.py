@@ -30,6 +30,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from .pandas_utils import fillna_scalar_safe
+
 
 def generate_report(
     df: pd.DataFrame,
@@ -161,7 +163,7 @@ def generate_report(
         if len(cancer) > 0:
             p("── Cancer Disease Breakdown ──")
             p()
-            nonempty = cancer[cancer["disease"].fillna("").str.strip() != ""]
+            nonempty = cancer[fillna_scalar_safe(cancer["disease"], "").str.strip() != ""]
             p(
                 f"  Rows with disease annotation: {len(nonempty):,} / {len(cancer):,} "
                 f"({len(nonempty) / len(cancer) * 100:.1f}%)"
@@ -193,7 +195,7 @@ def generate_report(
 
     # ── Cell line inventory ─────────────────────────────────────────────
     if "cell_line_name" in df.columns:
-        cl_data = df[df["cell_line_name"].fillna("").str.strip() != ""]
+        cl_data = df[fillna_scalar_safe(df["cell_line_name"], "").str.strip() != ""]
         if len(cl_data) > 0:
             p("── Cell Line Inventory ──")
             p()

@@ -806,6 +806,14 @@ hitlist qc proteome-coverage --missing-only --min-rows 100
 ./deploy.sh     # lint + test + build + upload to PyPI
 ```
 
+`test.sh` refuses to start pytest when the memory probe fails (exit 2), and
+distinguishes this from measured low capacity (exit 1). `--retry-memory` retries
+only low capacity. An explicit `TEST_SH_ALLOW_UNKNOWN_MEMORY=1` permits one
+worker with an unavailable probe; it does not bypass measured low capacity.
+
+The optional `CTA` gene set uses OncoRef's canonical default panel, including its
+reviewed specificity exclusions. Install it with `pip install "hitlist[cta]"`.
+
 When local memory cannot support the corpus tests, the **Release build** GitHub
 workflow runs the same gates on a hosted runner. It requires the full CI corpus,
 installs the current development heads of the six sibling libraries, and records

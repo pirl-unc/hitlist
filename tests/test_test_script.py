@@ -73,7 +73,6 @@ def _marker(invocation):
     ),
     [
         (100_000, 400_000, False, 1, 0, 3, 1),
-        (100_000, 400_000, True, 1, 0, 1, 1),
         # Enough real memory backs the final (post TEST_SH_MIN-floor,
         # TEST_SH_MAX-ceiling) worker count in both passes here -- unlike an
         # earlier version of this case (10_000 speculative pages), which
@@ -165,13 +164,66 @@ def test_light_pass_runs_but_integration_pass_aborts_on_its_own_higher_budget(tm
     assert "need ~5.0GB" in result.stderr
 
 
-def test_probe_unavailable_still_proceeds_rather_than_aborting(tmp_path):
-    """When the memory probe itself fails, there's no evidence of scarcity
-    to abort on -- must keep falling back to mem_cap=1, not refuse to run."""
+@pytest.mark.parametrize("retry", [False, True])
+def test_probe_unavailable_refuses_to_start_pytest(tmp_path, retry):
     env = _stub_env(tmp_path, 100, 100, probe_fails=True, worker_min=1, worker_max=0)
+    (tmp_path / "sleep").write_text("#!/bin/sh\nexit 99\n")
+    (tmp_path / "sleep").chmod(0o755)
+    args = ["bash", str(SCRIPT), *(["--retry-memory"] if retry else [])]
+    result = subprocess.run(args, env=env, capture_output=True, text=True)
+    assert result.returncode == 2
+    assert result.stdout == ""
+    assert "probe unavailable" in result.stderr
+    assert "TEST_SH_ALLOW_UNKNOWN_MEMORY=1" in result.stderr
+    assert "retrying once" not in result.stderr
+
+
+@pytest.mark.parametrize("has_xdist", [False, True])
+@pytest.mark.parametrize("allow_unknown", ["0", "1"])
+def test_zero_worker_floor_cannot_bypass_measured_low_capacity(tmp_path, has_xdist, allow_unknown):
+    env = _stub_env(tmp_path, 0, 0, False, 0, 0, TEST_SH_ALLOW_UNKNOWN_MEMORY=allow_unknown)
+    if not has_xdist:
+        (tmp_path / "python").write_text(
+            '#!/bin/sh\nif [ "$1" = "-c" ]; then exit 1; fi\nprintf "%s\\n" "$@"\n'
+        )
     result = subprocess.run(["bash", str(SCRIPT)], env=env, capture_output=True, text=True)
+    assert result.returncode == 1
+    assert result.stdout == ""
+    assert "need ~2.5GB for 1 worker(s)" in result.stderr
+
+
+def test_unknown_memory_requires_explicit_optin_and_one_worker(tmp_path):
+    env = _stub_env(tmp_path, 100, 100, True, 8, 0, TEST_SH_ALLOW_UNKNOWN_MEMORY="1")
+    result = subprocess.run(["bash", str(SCRIPT), "--all"], env=env, capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
     assert "probe unavailable" in result.stderr
+    assert "explicit opt-in" in result.stderr
+    assert all(
+        call[:4] == ["-m", "pytest", "-n", "1"]
+        for call in _split_invocations(result.stdout.splitlines())
+    )
+
+
+@pytest.mark.parametrize("vm_stat_body", ["exit 1", "echo garbled", "echo 'Pages free: bogus.'"])
+def test_failed_or_malformed_vm_stat_is_a_probe_failure(tmp_path, vm_stat_body):
+    env = _stub_env(tmp_path, 600_000, 0, False, 1, 1)
+    (tmp_path / "vm_stat").write_text(f"#!/bin/sh\n{vm_stat_body}\n")
+    result = subprocess.run(["bash", str(SCRIPT)], env=env, capture_output=True, text=True)
+    assert result.returncode == 2
+    assert not result.stdout
+    assert "probe unavailable" in result.stderr
+
+
+def test_losing_probe_after_light_phase_never_starts_integration(tmp_path):
+    env = _retry_env(tmp_path, has_xdist=True)
+    _memory_sequence(tmp_path, [600_000])
+    result = subprocess.run(
+        ["bash", str(SCRIPT), "--all", "--retry-memory"], env=env, capture_output=True, text=True
+    )
+    assert result.returncode == 2
+    assert [_marker(call) for call in _split_invocations(result.stdout.splitlines())] == [
+        "not integration"
+    ]
 
 
 def test_extra_args_are_forwarded_to_every_pass(tmp_path):

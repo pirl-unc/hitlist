@@ -60,6 +60,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Canonical CTA panel, kept optional for users who do not query gene sets.
+cta = ["oncoref>=1.8.207"]
 # Backward-compatible alias: allele parsing is now installed by default.
 alleles = []
 dev = [

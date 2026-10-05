@@ -119,21 +119,21 @@ def _genes_from_provider(provider: str, *, set_name: str) -> list[str]:
     """Resolve a gene set whose membership is COMPUTED by another package rather
     than listed statically — keeps a single source of truth for curated sets.
 
-    ``cancerdata`` → the CTA panel: its CTpedia/daSilva2017 candidate list
+    ``oncoref`` → the CTA panel: its CTpedia/daSilva2017 candidate list
     filtered by HPA reproductive/thymus tissue-restriction (protein + RNA
-    modalities).  cancerdata isn't on PyPI yet, so it's an OPTIONAL dependency;
+    modalities).  OncoRef is an OPTIONAL dependency;
     a missing install raises a clear, actionable error.
     """
-    if provider == "cancerdata":
+    if provider == "oncoref":
         try:
-            from cancerdata import cta
+            from oncoref import cta
         except ImportError as e:
             raise RuntimeError(
-                f"gene set {set_name!r} is sourced from the 'cancerdata' package, "
+                f"gene set {set_name!r} is sourced from the 'oncoref' package, "
                 f"which is not installed.  Install it with:\n"
-                f"    pip install git+https://github.com/pirl-unc/cancerdata.git"
+                f'    pip install "hitlist[cta]"'
             ) from e
-        return sorted(cta.CTA_gene_names())
+        return sorted(cta.cta_gene_names())
     raise RuntimeError(f"gene set {set_name!r} has unknown provider {provider!r}")
 
 
@@ -141,7 +141,7 @@ def load_gene_set(name: str) -> list[str]:
     """Expand a named gene set (e.g. ``"CTA"``) to its list of HGNC symbols.
 
     A set either lists ``genes:`` statically or names a ``provider:`` that
-    computes the membership (e.g. ``cancerdata`` for the HPA-filtered CTA panel).
+    computes the membership (e.g. ``oncoref`` for the HPA-filtered CTA panel).
     Case-insensitive on the set name.  Raises ``KeyError`` (with the available
     names) when the set is unknown, so the CLI can report a clear error.
     """

@@ -48,6 +48,7 @@ import numpy as np
 import pandas as pd
 
 from .curation import MHC_TYPING_COLUMNS, class_i_prediction_scope
+from .pandas_utils import fillna_scalar_safe
 
 #: The context a prediction belongs to.
 #:
@@ -305,7 +306,7 @@ def reassign_class_only_alleles(
     df = generate_observations_table(mhc_class=mhc_class)
     # A study-wide candidate union is not a biological sample, even when it
     # happens to fit under the allele-count limit (#520).
-    class_only_mask = df["mhc_restriction"].fillna("").str.startswith("HLA class")
+    class_only_mask = fillna_scalar_safe(df["mhc_restriction"], "").str.startswith("HLA class")
     multi_mask = df["is_monoallelic"].fillna(False).eq(False)
     # A named sample is not enough: the class-pool fallback fills ``sample_mhc``
     # with the study's class-wide union on rows it could not resolve to one
@@ -318,9 +319,9 @@ def reassign_class_only_alleles(
     # 14,532 class-only rows that carry their own arm's candidate list and zero
     # rows carrying a union -- all of the cost, none of the protection (#564).
     # ``sample_mhc_origin`` is the fact itself.
-    identified = df["sample_label"].fillna("").ne("") & df["sample_mhc_origin"].fillna("").ne(
-        "class_pool"
-    )
+    identified = fillna_scalar_safe(df["sample_label"], "").ne("") & fillna_scalar_safe(
+        df["sample_mhc_origin"], ""
+    ).ne("class_pool")
     target = df[class_only_mask & multi_mask & identified].copy()
     # The experiment's candidates remain the prediction scope. Independently
     # reported cellular background alleles do not become peptide restrictions,

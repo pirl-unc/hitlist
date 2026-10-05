@@ -1,3 +1,88 @@
+# Correctness gates, categorical reads, CTA provider and QC export (2026-10-05)
+
+## Specification
+
+Ship the reproducible correctness defects in #634, #635, #605 and #619, plus the
+existing-metadata export gap in #18, as one patch release. Preserve biological
+restriction evidence, sample attribution and raw source QC descriptions.
+
+Memory preflights must fail before pytest when a platform probe is unavailable,
+failed or malformed. Distinguish that from measured low capacity; only an
+explicit opt-in may run with unknown capacity, using a single worker. Normal
+CPU/worker ceilings, serial fallback and bounded low-memory phase retries retain
+their behavior. Exercise failed commands, malformed output, opt-in, and loss of
+the probe between phases with subprocess stubs that prove pytest did not start.
+
+Audit categorical blank-fills across QC, observations, prediction, query,
+reports and exports. Use one shared dtype-safe scalar fill, preserving category
+encoding rather than materializing whole string columns as objects. Tests must
+cover categorical columns without the blank category, both with and without
+nulls, and public consumer paths on pandas 2.x and 3.x.
+
+Migrate the packaged CTA registry and provider to current OncoRef's canonical
+cta_gene_names API. Keep it optional, provide an installable extra and actionable
+missing-dependency message, and validate against the real packaged OncoRef data
+as well as dependency-error/unit fixtures. Avoid hard-coded panel counts or
+duplicate biological filtering logic.
+
+Propagate curated search_engine and fdr through observation attribution and
+training defaults using the same exact-arm/consensus semantics as other MS
+acquisition metadata. Preserve heterogeneous raw FDR strings; unmatched or
+disagreeing arms cannot acquire invented QC, and binding rows receive blanks.
+Exercise exact matches, ambiguous disagreement/agreement, projection and the
+mixed MS/binding training API. Source-reading/backfill remains under #18.
+
+- [x] Inspect current issues, project instructions, release gates and provider API.
+- [x] Create feature branch and record implementation/verification scope.
+- [x] Add failing regressions for each defect and establish baseline failures.
+- [x] Implement minimal shared fixes and review every affected consumer.
+- [x] Bump 1.64.5 to 1.64.6; verify editable-install metadata.
+- [ ] Run format.sh, lint.sh, test.sh and focused cross-pandas checks.
+- [ ] Open PR, verify final-head CI, review and merge.
+- [ ] Run deploy.sh from clean main; verify release gates and PyPI artifacts.
+- [ ] Record results and inspect relevant sibling issues for the next work block.
+
+## Review
+
+Re-plan after final-head CI: all 46 integration cases passed, but the unit
+matrix exposed pandas 3's categorical replace behavior on the final added
+sample-discrepancy case. A blank category is not enough for replacing it with
+the display placeholder. Add the actual placeholder as a category and use a
+value mask, preserving encoding. Re-run the complete focused set on both
+pandas 2.3.3 and 3.0.5, then require a fresh matrix and release run on the
+corrected head. The original release run is cancelled, not a passing gate.
+
+The corrected placeholder mask passes all 60 focused cases on both pandas
+2.3.3 and 3.0.5, including null and existing blank cell names. Format/lint
+pass again. The actual OncoRef panel is identical to the provider output and
+has no warning-only candidates. Fresh full CI remains required.
+
+The initial regressions found 26 failures. Corrected the species-axis test's
+helper name and supplied the prediction/report fixture's required columns;
+public consumer tests then reproduce the actual categorical failures. The
+baseline QC regressions fail because search_engine/fdr are absent, and the real
+OncoRef provider fails on the retired cancerdata import.
+
+The first fixed focused run passes 177 tests (one optional predictor skip).
+The shared pandas 2.3.3 environment passes all 11 categorical consumer cases.
+The isolated lockfile environment uses pandas 3.0.5 and OncoRef 1.8.207; its
+editable metadata correctly reports 1.64.6. Format/lint pass. A sandboxed
+test.sh run refuses the unavailable memory probe as intended; the unsandboxed
+run establishes 3.70 GB available and starts one worker with unchanged budgets.
+
+Also reproduced and filed #635: TEST_SH_MIN=0 launches serial -n 0 pytest with
+zero measured memory. Enforce at least one process's budget, including when
+unknown-memory opt-in is set. Full final-head validation and shipping pending.
+
+All 58 focused regressions pass in the isolated pandas 3.0.5/OncoRef environment.
+A mutation replacing safe fills with plain Series.fillna makes all seven public
+categorical consumer regressions fail on pandas 2.3.3, confirming their coverage.
+The local full-suite attempt was deliberately interrupted after 467 passes /
+262 seconds: the sole worker reached 6,756,736 KiB RSS against a 2.5 GB preflight
+budget, with measured free+speculative memory about 0.08 GB. This is an incomplete
+run, not a passing gate or an observed OOM. Full validation moves to CI without
+lowering or overriding memory thresholds.
+
 # Restriction-compatible allele candidates (#599, shared #600 checks)
 
 ## Specification

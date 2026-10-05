@@ -43,6 +43,8 @@
 #                               worker-count target -- lower it to relax the guard
 #   TEST_SH_MAX                 hard ceiling on workers, both passes (default: unset)
 #   TEST_SH_MEMORY_RETRY_DELAY_SECONDS  delay for --retry-memory (default: 120)
+#   TEST_SH_ALLOW_UNKNOWN_MEMORY       explicit opt-in to one worker when the
+#                                      memory probe fails (default: 0)
 #
 # --retry-memory retries a refused memory preflight once per phase, before
 # pytest starts. A passed phase is never replayed and test failures are not retried.
@@ -54,6 +56,7 @@ INTEGRATION_PER_WORKER_GB="${INTEGRATION_PER_WORKER_GB:-5}"
 TEST_SH_MIN="${TEST_SH_MIN:-1}"
 TEST_SH_MAX="${TEST_SH_MAX:-0}"
 TEST_SH_MEMORY_RETRY_DELAY_SECONDS="${TEST_SH_MEMORY_RETRY_DELAY_SECONDS:-120}"
+TEST_SH_ALLOW_UNKNOWN_MEMORY="${TEST_SH_ALLOW_UNKNOWN_MEMORY:-0}"
 
 log() { printf '[test.sh] %s\n' "$*" >&2; }
 
@@ -89,19 +92,20 @@ cpu_cap() {
 mac_available_bytes() {
     local page_size
     page_size=$(sysctl -n hw.pagesize 2>/dev/null) || return 1
+    [[ "$page_size" =~ ^[0-9]+$ ]] && (( page_size > 0 )) || return 1
     vm_stat 2>/dev/null | awk -v ps="$page_size" '
-        /Pages free/        { gsub(/\./, "", $3); free     = $3 }
-        /Pages speculative/ { gsub(/\./, "", $3); spec     = $3 }
+        /Pages free/        { gsub(/\./, "", $3); free = $3; found=1; if ($3 !~ /^[0-9]+$/) invalid=1 }
+        /Pages speculative/ { gsub(/\./, "", $3); spec = $3; if ($3 !~ /^[0-9]+$/) invalid=1 }
         # Inactive pages may require eviction and swap I/O to reclaim.
         # Counting them as free overcommits a busy machine (#440).
-        END { print (free + spec) * ps }
+        END { if (!found || invalid) exit 1; printf "%.0f\n", (free + spec) * ps }
     '
 }
 
 linux_available_bytes() {
     [[ -r /proc/meminfo ]] || return 1
     awk '
-        /^MemAvailable:/ { print $2 * 1024; found=1; exit }
+        /^MemAvailable:/ { if ($2 !~ /^[0-9]+$/) exit 1; printf "%.0f\n", $2 * 1024; found=1; exit }
         END              { if (!found) exit 1 }
     ' /proc/meminfo
 }
@@ -123,11 +127,15 @@ CPU_CAP=$(cpu_cap "$CPUS")
 worker_count() {
     local per_worker_gb="$1"
     local avail mem_cap avail_gb workers probed=1
-    if avail=$(available_bytes 2>/dev/null) && [[ -n "$avail" ]]; then
+    if avail=$(available_bytes 2>/dev/null) && [[ "$avail" =~ ^[0-9]+$ ]]; then
         mem_cap=$(awk -v b="$avail" -v g="$per_worker_gb" 'BEGIN { print int(b / 1024^3 / g) }')
         avail_gb=$(awk -v b="$avail" 'BEGIN { printf "%.2f", b / 1024^3 }')
         mem_note="ram_free=${avail_gb}GB mem_cap=${mem_cap}"
     else
+        if [[ "$TEST_SH_ALLOW_UNKNOWN_MEMORY" != "1" ]]; then
+            echo "probe_failed 0 memory probe unavailable or invalid; cannot establish worker capacity -- restore the probe, or explicitly set TEST_SH_ALLOW_UNKNOWN_MEMORY=1 to accept unknown capacity"
+            return
+        fi
         probed=0
         mem_cap=1
         mem_note="ram_free=? (probe unavailable) mem_cap=1"
@@ -137,6 +145,12 @@ worker_count() {
     if (( TEST_SH_MAX > 0 && workers > TEST_SH_MAX )); then workers=$TEST_SH_MAX; fi
     # Serial fallback still consumes one worker's budget (#526).
     if (( ! use_xdist )); then workers=1; fi
+    # -n 0 still executes serial pytest and consumes one process's budget (#635).
+    if (( workers < 1 )); then workers=1; fi
+    if (( ! probed )); then
+        workers=1
+        mem_note="${mem_note} (explicit opt-in; capacity unknown)"
+    fi
     # TEST_SH_MIN (and, on a low-CPU box, TEST_SH_MAX) can each force workers
     # above what mem_cap actually supports. Check the worker count that
     # would really run, after every floor/ceiling has applied, not just the
@@ -145,7 +159,7 @@ worker_count() {
     if (( probed )) && (( workers > mem_cap )); then
         local need_gb
         need_gb=$(awk -v g="$per_worker_gb" -v w="$workers" 'BEGIN { printf "%.1f", g * w }')
-        echo "abort 0 only ${avail_gb}GB available, need ~${need_gb}GB for ${workers} worker(s) at ${per_worker_gb}GB each -- free memory and retry (or lower TEST_SH_MIN / raise PER_WORKER_GB to accept the risk)"
+        echo "abort 0 only ${avail_gb}GB available, need ~${need_gb}GB for ${workers} worker(s) at ${per_worker_gb}GB each -- free memory and retry (or lower TEST_SH_MIN if it forces extra workers)"
         return
     fi
     echo "ok ${workers} ${mem_note}"
@@ -188,8 +202,14 @@ run_pytest() {
     local status workers mem_note attempted_retry=0
     while true; do
         read -r status workers mem_note < <(worker_count "$per_worker_gb")
-        if [[ "$status" != "abort" ]]; then
+        if [[ "$status" == "probe_failed" ]]; then
+            log "$mem_note (#634)"
+            return 2
+        elif [[ "$status" == "ok" ]]; then
             break
+        elif [[ "$status" != "abort" ]]; then
+            log "Memory preflight returned an invalid result (#634)"
+            return 2
         fi
         log "${mem_note} (#483)"
         if (( ! retry_memory || attempted_retry )); then

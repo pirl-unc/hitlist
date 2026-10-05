@@ -1,5 +1,14 @@
 # Lessons
 
+## 2026-10-05
+
+- Re-run every newly added categorical consumer case on both supported pandas
+  majors before pushing. A pandas 2 pass does not establish pandas 3 behavior:
+  replacing a blank categorical cell name with a display placeholder passed
+  on 2.3.3 but failed on 3.0.5. Add the actual destination category before
+  assigning, and test both null and existing blank inputs. A final test added
+  after the broader verification needs the same cross-version check.
+
 ## 2026-10-01
 
 - Generalize allele matching to species compatibility, not just acceptance of
