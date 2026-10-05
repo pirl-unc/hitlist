@@ -114,6 +114,13 @@ of installed indexes, canonical bulk/supplement CSVs, and external files over
 integration is unaffected. A child suite with a configured sentinel corpus
 proves isolation, explicit overrides, integration access and pre-read refusal.
 
+Platform-budget re-plan before final verification: #603 records a ~19.5 GB
+macOS integration physical footprint and large RSS variation under compression.
+The Linux 11.6 GiB RSS observation cannot justify the same budget on macOS.
+Use 14 GiB for Linux and 24 GiB for macOS/unknown platforms (both overrideable),
+and regress the macOS refusal even with 19.8 GiB available. Cancel the obsolete
+head's validations and require fresh full gates on this corrected source.
+
 # Correctness gates, categorical reads, CTA provider and QC export (2026-10-05)
 
 ## Specification

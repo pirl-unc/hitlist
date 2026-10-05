@@ -38,7 +38,8 @@
 #
 # Tunables (env vars):
 #   PER_WORKER_GB               non-integration per-worker budget in GB (default: 2.5)
-#   INTEGRATION_PER_WORKER_GB   integration per-worker budget in GiB (default: 14)
+#   INTEGRATION_PER_WORKER_GB   integration per-worker budget in GiB
+#                               (default: Linux 14, macOS/other 24)
 #   TEST_SH_MIN                 floor on workers (default: 1); also the preflight guard's
 #                               worker-count target -- lower it to relax the guard
 #   TEST_SH_MAX                 hard ceiling on workers, both passes (default: unset)
@@ -54,10 +55,6 @@
 set -eo pipefail
 
 PER_WORKER_GB="${PER_WORKER_GB:-2.5}"
-# Hosted full-corpus validation peaked at ~11.6 GiB RSS (#636). Include
-# headroom instead of the former 5 GiB estimate. Ordinary units use tiny
-# test-owned inputs; the full bulk/supplement corpora are integration tests.
-INTEGRATION_PER_WORKER_GB="${INTEGRATION_PER_WORKER_GB:-14}"
 TEST_SH_MIN="${TEST_SH_MIN:-1}"
 TEST_SH_MAX="${TEST_SH_MAX:-0}"
 TEST_SH_MEMORY_RETRY_DELAY_SECONDS="${TEST_SH_MEMORY_RETRY_DELAY_SECONDS:-120}"
@@ -71,6 +68,16 @@ case "$(uname -s)" in
     Linux)  OS=linux ;;
     *)      OS=unknown ;;
 esac
+
+# Linux full-corpus validation peaked at ~11.6 GiB RSS (#636). macOS
+# compressed pages make RSS an underestimate: the measured integration
+# physical footprint was ~19.5 GB (#603). Include platform-specific headroom.
+# Ordinary units use tiny inputs; full bulk/supplement data is integration.
+if [[ "$OS" == "linux" ]]; then
+    INTEGRATION_PER_WORKER_GB="${INTEGRATION_PER_WORKER_GB:-14}"
+else
+    INTEGRATION_PER_WORKER_GB="${INTEGRATION_PER_WORKER_GB:-24}"
+fi
 
 cpu_count() {
     local n=""

@@ -814,8 +814,10 @@ worker with an unavailable probe; it does not bypass measured low capacity.
 Ordinary tests use fresh data directories and small fixtures, so an installed
 corpus cannot inflate their memory use. Full bulk-proteomics and supplementary
 data assertions run in the integration phase. The default budgets are 2.5 GiB
-per unit worker and 14 GiB per integration worker; the latter includes headroom
-above the observed 11.6 GiB full-corpus peak. Each phase reports its elapsed time
+per unit worker, and 14 GiB per integration worker on Linux or 24 GiB on macOS.
+These include headroom above the Linux 11.6 GiB RSS peak and macOS ~19.5 GB
+physical footprint; compression makes macOS RSS alone an underestimate.
+Each phase reports its elapsed time
 and process peak RSS with `/usr/bin/time` (disable with `TEST_SH_PROFILE=0`).
 Peak RSS is not the sum of simultaneous workers' memory. A preflight is a
 capacity check; it cannot reserve memory against other programs starting later.
