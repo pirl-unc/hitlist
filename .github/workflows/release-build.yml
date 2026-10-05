@@ -14,6 +14,12 @@ on:
       - tests/test_release_artifacts.py
       - tests/test_xdist_cache.py
       - tests/xdist_cache.py
+      - test.sh
+      - hitlist/curation_yaml.py
+      - hitlist/supplement.py
+      - tests/conftest.py
+      - tests/test_bulk_proteomics.py
+      - tests/test_supplement.py
 
 permissions:
   contents: read
@@ -26,7 +32,7 @@ jobs:
   build:
     if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    # A serial unit phase has taken 37 minutes before integration/setup (#612).
+    # Historical serial unit phases took ~49 minutes (#636).
     # Allow both complete phases with headroom for hosted-runner variation.
     timeout-minutes: 90
     env:

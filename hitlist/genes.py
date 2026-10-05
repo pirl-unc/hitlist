@@ -121,8 +121,8 @@ def _genes_from_provider(provider: str, *, set_name: str) -> list[str]:
 
     ``oncoref`` → the CTA panel: its CTpedia/daSilva2017 candidate list
     filtered by HPA reproductive/thymus tissue-restriction (protein + RNA
-    modalities).  OncoRef is an OPTIONAL dependency;
-    a missing install raises a clear, actionable error.
+    modalities). OncoRef is a normal dependency, loaded only for this query;
+    a broken install raises a clear, actionable error.
     """
     if provider == "oncoref":
         try:
@@ -130,8 +130,8 @@ def _genes_from_provider(provider: str, *, set_name: str) -> list[str]:
         except ImportError as e:
             raise RuntimeError(
                 f"gene set {set_name!r} is sourced from the 'oncoref' package, "
-                f"which is not installed.  Install it with:\n"
-                f'    pip install "hitlist[cta]"'
+                f"which could not be imported. Repair the install with:\n"
+                f'    pip install --upgrade "hitlist"'
             ) from e
         return sorted(cta.cta_gene_names())
     raise RuntimeError(f"gene set {set_name!r} has unknown provider {provider!r}")

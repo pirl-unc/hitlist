@@ -1,3 +1,119 @@
+# Efficient tests, realistic memory budgets and default CTAs (2026-10-05)
+
+## Specification
+
+Resolve #636 through measured causes of excess unit-worker memory and runtime.
+The baseline release on 6fc6229 ran 2,556 unit cases in 2,954.85 seconds and
+46 integration cases in 606.15 seconds; the original local attempt was stopped
+after 467 passes when its worker reached 6,756,736 KiB RSS. Preserve these
+observations as distinct measurements, not comparable platform benchmarks.
+
+First audit unit-test corpus access with a bounded read-interception diagnostic
+that refuses real observation/binding/mapping reads before materializing them.
+Profile representative safe stages twice on the same interpreter, dependencies,
+inputs, coverage settings and worker count. Attribute cache retention and slow
+calls from measurements. Do not rerun the known oversized suite locally.
+
+Make unit tests independent of installed corpora and persistent user state.
+Use small test-owned inputs for unit contracts; retain genuine corpus assertions
+in the integration phase. Account for every relocated case and every skip so
+isolation cannot silently remove coverage. Add regressions that fail on the
+old behavior with a corpus present and protect repeatable unit resource use.
+
+Reduce the measured dominant costs with minimal changes. Set documented
+per-worker budgets using comparable baseline/head observations and headroom;
+keep unavailable-probe refusal, actual worker budgeting and phase retries.
+Do not lower thresholds or discard full release checks to advertise speed.
+Record unit and integration timings/peak resource usage separately on the
+hosted runner, including the current development dependency revisions.
+
+Inspect release duplication after profiling. Retain publication's clean-main
+source, full-suite, corpus, license and exact-artifact provenance requirements.
+Prefer eliminating redundant computation inside a run and parallelizing
+independent safe work; any cross-run reuse must prove the complete tested
+source, dependencies, data and artifact identity, not merely a matching version.
+
+Make CTA support part of the default install through canonical OncoRef, retaining
+lazy query-time imports and the existing cta extra as a compatibility alias.
+Use OncoRef's packaged panel without copying scientific membership into hitlist.
+Verify a normal install's dependency metadata and real CTA query.
+
+- [x] Review project lessons, original issue, baseline logs and current state.
+- [x] Create a feature branch and record the profiling/verification contract.
+- [x] Audit real corpus reads and measure safe baseline stages twice.
+- [x] Re-plan around the measured causes; add failing resource/isolation cases.
+- [x] Implement minimal runtime/memory changes and worker budgets; full CI verification pending.
+- [x] Make canonical CTAs available in the default install; retain the cta alias.
+- [ ] Bump the patch, run format/lint/test, compare full CI stage measurements.
+- [ ] Review final-head CI, merge, release from clean main and verify PyPI files.
+- [ ] Record final evidence and dependency-ordered next work.
+
+## Review
+
+Planning checkpoint: unit release runs are much slower with the corpus installed,
+but runner differences, serial concurrency, coverage and Git dependency heads
+are confounders. Real-corpus access is a hypothesis until the bounded audit
+identifies actual callers. No memory improvement or speedup is claimed yet.
+
+Measured re-plan: #638 records eight intercepted full peptide CSV reads in
+unmarked unit tests. Retain all canonical-data assertions as integration cases,
+share the repeated bulk parquet build, and clear bulk caches at the module
+boundary before the observations fixture warms. Add small CSV/parquet fixtures
+for filter and CLI contracts. Explicitly isolate the empty-index schema and
+not-built tests; keep auditing for other hidden reads. Native safe YAML parsing
+is 7.4–7.6 times faster in two matched parse-only trials (0.406/0.417 seconds
+versus 0.055/0.056); use it with the same duplicate-key guard and test the Python
+fallback and unsafe-tag rejection. This is a parser measurement, not a release
+speedup. Keep both full release runs; avoid cross-run validation reuse.
+
+The continued audit stopped intentionally after 1,350 passes and six intercepted
+reads: two CLI mapping reads, two expression-index reads, the species summary,
+and the real supplementary CSV scan. Ordinary tests get a fresh test-owned data
+directory, while integration and explicit directory-resolution fixtures retain
+their behavior. Thirteen supplementary corpus assertions currently scan the
+reference data independently (twelve classified, one unclassified). Share the
+classified result without modifying its callers' assertions. Before modifying
+the scanner, measure duplicate MHC annotation calls on small matched inputs;
+memoize only within one entry and on both restriction and reported class, so
+reported-class conflicts and row ordering remain unchanged.
+
+A focused cProfile of the three-row Bourne query finds another dominant cost:
+three exports spend 15.69 seconds, including 21,627 iterrows calls and repeated
+group construction across every curated study. Restrict attribution candidates
+to the PMIDs actually present in the loaded observations before those loops.
+Retain every eligible arm and class within each present PMID, plus the existing
+full-study discriminator context: filtering unrelated studies must not turn a
+multi-arm study into a single-arm fallback. Add an unrelated-study regression,
+compare the identical covered query stage twice, and run all existing query
+context/attribution parity regressions. This is additional measured scope, not
+an inferred biological simplification.
+
+Local evidence before PR: the unrelated-candidate regression fails on the old
+behavior (the unrelated allele is scanned twice); restoring the old conftest
+makes the corpus-isolation regression fail (one child case fails, integration
+and explicit override still pass). YAML-native and supplementary-input reuse
+regressions also fail before their changes. The 96 focused query/YAML/CTA cases
+pass in 2.34 seconds. The final attribution change reduces the same two covered
+Bourne cases from 44.01/42.62 seconds to 6.38/6.40, with identical inputs,
+interpreter, dependencies and one serial worker. Stage peaks are 278.1/278.2 MB
+afterward versus 295.7/301.5 MB before; these stage measurements do not establish
+a full-suite memory estimate. The 100K-row supplementary comparison preserves
+the entire frame and reduces 100K record-annotation calls to two; times are
+0.724/0.748 seconds before, 0.689/0.662 after. No memory reduction is claimed.
+
+Version is 1.64.7, lockfile refreshed without dependency upgrades, editable
+metadata check passes, and format/lint pass. The required local test.sh gate
+refuses 0.39 GiB available against its unchanged 2.5 GiB unit budget; it runs
+zero tests. Full coverage, resource measurements and release validation move
+to hosted CI. Do not treat the preflight refusal or earlier partial diagnostics
+as a passing gate. #638/#639/#640 record the discovered causes alongside #636.
+
+Keep the audit's prevention in the suite: the unit fixture also rejects reads
+of installed indexes, canonical bulk/supplement CSVs, and external files over
+10 MiB before pandas/Arrow allocate them. Test-owned files remain allowed and
+integration is unaffected. A child suite with a configured sentinel corpus
+proves isolation, explicit overrides, integration access and pre-read refusal.
+
 # Correctness gates, categorical reads, CTA provider and QC export (2026-10-05)
 
 ## Specification

@@ -35,6 +35,8 @@ def _stub_env(
         PATH=f"{tmp_path}{os.pathsep}{os.environ['PATH']}",
         PER_WORKER_GB="2.5",
         INTEGRATION_PER_WORKER_GB="5",
+        # Stubbed pytest calls test scheduling, not OS resource accounting.
+        TEST_SH_PROFILE="0",
         TEST_SH_MIN=str(worker_min),
         TEST_SH_MAX=str(worker_max),
         **extra_env,
@@ -134,6 +136,17 @@ def test_default_invocation_is_a_single_non_integration_pass(tmp_path):
     assert "--cov=hitlist/" in invocation
     assert "--cov-report=term-missing" in invocation
     assert "--cov-append" not in invocation
+
+
+def test_default_integration_budget_covers_observed_full_corpus_peak(tmp_path):
+    env = _stub_env(tmp_path, 800_000, 0, False, 1, 1)
+    del env["INTEGRATION_PER_WORKER_GB"]
+    result = subprocess.run(["bash", str(SCRIPT), "--all"], env=env, capture_output=True, text=True)
+    assert result.returncode == 1
+    assert "need ~14.0GB" in result.stderr
+    assert [_marker(call) for call in _split_invocations(result.stdout.splitlines())] == [
+        "not integration"
+    ]
 
 
 def test_aborts_with_a_clear_message_when_memory_cant_cover_even_one_worker(tmp_path):

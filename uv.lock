@@ -1168,6 +1168,7 @@ dependencies = [
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.10.*'" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
     { name = "numpy", version = "2.5.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "oncoref" },
     { name = "pandas", version = "2.3.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "pandas", version = "3.0.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "pyarrow", version = "21.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
@@ -1178,9 +1179,6 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
-cta = [
-    { name = "oncoref" },
-]
 dev = [
     { name = "pytest", version = "8.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "pytest", version = "9.1.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
@@ -1194,7 +1192,7 @@ requires-dist = [
     { name = "datacache", specifier = ">=1.15.0" },
     { name = "mhcgnomes", specifier = ">=3.64.4" },
     { name = "numpy", specifier = ">=1.22" },
-    { name = "oncoref", marker = "extra == 'cta'", specifier = ">=1.8.207" },
+    { name = "oncoref", specifier = ">=1.8.207" },
     { name = "pandas" },
     { name = "pyarrow" },
     { name = "pyensembl" },

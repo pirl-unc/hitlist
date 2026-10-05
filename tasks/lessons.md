@@ -2,6 +2,17 @@
 
 ## 2026-10-05
 
+- A named reference query that users expect in the normal install should not
+  require discovering an extra without a concrete benefit. For CTA support,
+  use the canonical packaged provider as a normal dependency while keeping
+  its loading lazy; do not copy a static biological list to avoid the package.
+
+- Optimize elapsed release time from measured phase costs. A unit run with
+  an installed corpus is not automatically comparable to a no-corpus matrix
+  job: coverage, concurrency, dependency revisions and runner variation
+  differ. Audit actual reads before attributing the slowdown, and preserve
+  full verification when reducing redundant work.
+
 - Re-run every newly added categorical consumer case on both supported pandas
   majors before pushing. A pandas 2 pass does not establish pandas 3 behavior:
   replacing a blank categorical cell name with a display placeholder passed

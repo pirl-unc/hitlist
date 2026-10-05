@@ -57,11 +57,13 @@ dependencies = [
     # disagreed; this makes the declared floor match the tested one.
     # 3.64.4 preserves chain mutation selectors in complete pairs (#528).
     "mhcgnomes>=3.64.4",
+    # Canonical bundled CTA panel; imported only when a gene set is queried.
+    "oncoref>=1.8.207",
 ]
 
 [project.optional-dependencies]
-# Canonical CTA panel, kept optional for users who do not query gene sets.
-cta = ["oncoref>=1.8.207"]
+# Backward-compatible alias: the canonical CTA panel is installed by default.
+cta = []
 # Backward-compatible alias: allele parsing is now installed by default.
 alleles = []
 dev = [

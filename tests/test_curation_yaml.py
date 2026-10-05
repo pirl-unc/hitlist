@@ -9,6 +9,8 @@ under it, and guard against a new loader bypassing it.
 from __future__ import annotations
 
 import re
+import subprocess
+import sys
 from importlib.resources import files
 from pathlib import Path
 
@@ -109,3 +111,41 @@ def test_loader_class_keeps_its_original_home():
     from hitlist.curation import UniqueKeyLoader as legacy_name
 
     assert legacy_name is UniqueKeyLoader
+
+
+def test_native_safe_loader_is_used_when_available():
+    if hasattr(yaml, "CSafeLoader"):
+        assert issubclass(UniqueKeyLoader, yaml.CSafeLoader)
+
+
+@pytest.mark.parametrize("path", PACKAGED_YAML, ids=lambda p: p.name)
+def test_native_parser_preserves_packaged_values(path):
+    assert load_curation_yaml(path) == yaml.safe_load(path.read_text())
+
+
+def test_safe_python_fallback_without_libyaml():
+    """Exercise import-time backend selection without changing global loader identity."""
+    code = """
+import yaml
+if hasattr(yaml, "CSafeLoader"):
+    del yaml.CSafeLoader
+from hitlist.curation_yaml import UniqueKeyLoader
+assert issubclass(UniqueKeyLoader, yaml.SafeLoader)
+assert yaml.load("answer: 42", Loader=UniqueKeyLoader) == {"answer": 42}
+for document in ("k: 1\\nk: 2", "!!python/object:builtins.object {}"):
+    try:
+        yaml.load(document, Loader=UniqueKeyLoader)
+    except yaml.constructor.ConstructorError:
+        pass
+    else:
+        raise AssertionError(document)
+"""
+    result = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+
+
+def test_native_loader_rejects_unsafe_tags(tmp_path):
+    path = tmp_path / "unsafe.yaml"
+    path.write_text("!!python/object:builtins.object {}")
+    with pytest.raises(yaml.constructor.ConstructorError):
+        load_curation_yaml(path)
