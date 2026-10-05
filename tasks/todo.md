@@ -44,6 +44,19 @@ mixed MS/binding training API. Source-reading/backfill remains under #18.
 
 ## Review
 
+Re-plan after final-head CI: all 46 integration cases passed, but the unit
+matrix exposed pandas 3's categorical replace behavior on the final added
+sample-discrepancy case. A blank category is not enough for replacing it with
+the display placeholder. Add the actual placeholder as a category and use a
+value mask, preserving encoding. Re-run the complete focused set on both
+pandas 2.3.3 and 3.0.5, then require a fresh matrix and release run on the
+corrected head. The original release run is cancelled, not a passing gate.
+
+The corrected placeholder mask passes all 60 focused cases on both pandas
+2.3.3 and 3.0.5, including null and existing blank cell names. Format/lint
+pass again. The actual OncoRef panel is identical to the provider output and
+has no warning-only candidates. Fresh full CI remains required.
+
 The initial regressions found 26 failures. Corrected the species-axis test's
 helper name and supplied the prediction/report fixture's required columns;
 public consumer tests then reproduce the actual categorical failures. The

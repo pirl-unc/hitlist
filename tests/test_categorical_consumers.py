@@ -47,8 +47,11 @@ def test_proteome_qc_handles_categories_without_blank(categorical_frame, monkeyp
     assert dict(zip(result.source_organism, result.n_rows)) == {"Homo sapiens": 1, "": 1}
 
 
-def test_sample_discrepancies_handle_categories_without_blank(categorical_frame, monkeypatch):
-    categorical_frame["cell_name"] = pd.Categorical(["JY", None])
+@pytest.mark.parametrize("missing_name", [None, ""])
+def test_sample_discrepancies_handle_categories_without_placeholder(
+    categorical_frame, monkeypatch, missing_name
+):
+    categorical_frame["cell_name"] = pd.Categorical(["JY", missing_name])
     categorical_frame["mhc_class_label_suspect"] = [False, False]
     categorical_frame["mhc_class_label_severity"] = ["ok", "ok"]
     monkeypatch.setattr(observations, "is_built", lambda: True)

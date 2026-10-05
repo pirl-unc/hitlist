@@ -1294,7 +1294,8 @@ def discrepancies(
         df["_class_pool"] = False
 
     if by == "sample":
-        df["cell_name"] = fillna_scalar_safe(df["cell_name"], "").replace("", "(no cell_name)")
+        cell_names = fillna_scalar_safe(df["cell_name"], "(no cell_name)")
+        df["cell_name"] = cell_names.mask(cell_names.eq(""), "(no cell_name)")
         group_keys = ["pmid", "mhc_class", "cell_name"]
     else:
         group_keys = ["pmid", "mhc_class"]
