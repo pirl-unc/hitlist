@@ -1,5 +1,14 @@
 # Lessons
 
+## 2026-10-06
+
+- Keep repository ownership explicit when a requested workflow spans packages.
+  Hitlist accepts expression tables and exports auditable presentation evidence;
+  it does not assemble vaccines. Tsarina and Vaxrank own downstream target
+  selection and construct assembly. Mentions of their capabilities are context,
+  not authorization to move those responsibilities into Hitlist. For this
+  expression-table follow-up, deliver the evidence bundle only.
+
 ## 2026-10-05
 
 - A named reference query that users expect in the normal install should not

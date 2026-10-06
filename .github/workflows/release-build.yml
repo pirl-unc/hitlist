@@ -23,6 +23,14 @@ on:
       - hitlist/provenance.py
       - hitlist/builder.py
       - tests/test_provenance.py
+      - hitlist/cta_expression.py
+      - hitlist/evidence_bundle.py
+      - hitlist/tissue_blacklist.py
+      - hitlist/cli_evidence.py
+      - hitlist/data/tissue_blacklist.yaml
+      - tests/test_cta_expression.py
+      - tests/test_cta_evidence_bundle.py
+      - tests/test_tissue_blacklist.py
 
 permissions:
   contents: read

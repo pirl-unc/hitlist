@@ -56,6 +56,10 @@ from .version import __version__  # after the pandas flag, like every submodule
 # are only imported on first attribute access. Listed in ``__all__`` so the API
 # is discoverable via ``dir(hitlist)`` / autocomplete and stable across refactors.
 _PUBLIC_API: dict[str, str] = {
+    "write_cta_evidence_bundle": ".evidence_bundle",
+    "write_tissue_blacklist_bundle": ".evidence_bundle",
+    "verify_evidence_bundle": ".evidence_bundle",
+    "build_tissue_blacklist": ".tissue_blacklist",
     "load_contributors": ".provenance",
     "load_lineage": ".lineage",
     "write_training_bundle": ".training_bundle",

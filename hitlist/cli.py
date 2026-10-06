@@ -1349,6 +1349,10 @@ def main() -> None:
     p_audit.add_argument("--policy", choices=sorted(POLICIES), default="report_only")
     p_audit.add_argument("--output", "-o", help="Write the JSON audit report")
 
+    from .cli_evidence import add_evidence_parsers
+
+    add_evidence_parsers(sub, export_sub)
+
     p_bulk_prot = export_sub.add_parser(
         "bulk-proteomics",
         help=(
@@ -1895,6 +1899,10 @@ def main() -> None:
         _report(args)
     elif args.command == "export":
         _export(args)
+    elif args.command == "verify-evidence-bundle":
+        from .cli_evidence import handle_evidence
+
+        handle_evidence(args)
     elif args.command == "audit-splits":
         _handle_split_audit(args)
     elif args.command == "reassign-alleles":
@@ -2623,6 +2631,11 @@ def _export(args: argparse.Namespace) -> None:
     )
 
     cmd = args.export_command
+    if cmd in {"cta-evidence", "tissue-blacklist"}:
+        from .cli_evidence import handle_evidence
+
+        handle_evidence(args)
+        return
     t0 = _time.perf_counter()
 
     # Deprecation notices for legacy export subcommands.  Behavior is
