@@ -407,13 +407,11 @@ def test_ms_samples_parquet_roundtrip(tmp_path):
     assert 32161166 in rt["pmid"].values  # Chen 2020
 
 
-def test_scan_supplementary_parquet_roundtrip(tmp_path):
+def test_scan_supplementary_parquet_roundtrip(tmp_path, full_supplementary_df):
     """scan_supplementary output should survive a parquet round-trip."""
     import pandas as pd
 
-    from hitlist.supplement import scan_supplementary
-
-    df = scan_supplementary()
+    df = full_supplementary_df
     out = tmp_path / "supp.parquet"
     df.to_parquet(out, index=False)
     rt = pd.read_parquet(out)
@@ -1097,7 +1095,7 @@ def test_alpha_chain_only_restriction_also_matches(tmp_path, monkeypatch):
     assert df.iloc[0]["sample_match_type"] == "allele_match"
 
 
-def test_species_summary_columns():
+def test_species_summary_columns(tmp_path, monkeypatch):
     """Summary sources from observations.parquet (#117, v1.15.0).
 
     Old columns (n_studies / n_sample_types / n_samples) came from
@@ -1105,8 +1103,9 @@ def test_species_summary_columns():
     by orders of magnitude. Replaced with parquet-derived counts.
 
     The empty-index path still returns the canonical column set — this
-    test runs regardless of whether observations.parquet is built.
+    test uses its own empty directory regardless of any installed corpus.
     """
+    monkeypatch.setattr("hitlist.downloads._override_data_dir", tmp_path)
     df = generate_species_summary()
     expected = {
         "species",

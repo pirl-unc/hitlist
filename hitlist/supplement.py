@@ -180,11 +180,20 @@ def scan_supplementary(classify_source: bool = True, *, provenance=None) -> pd.D
         species_default = defaults.get("species", "")
         mhc_species_context = pmid_mhc_species_context(pmid) or normalize_species(species_default)
 
-        annotations = [
-            resolve_mhc_annotation(restriction, reported_class, mhc_species_context)
-            for restriction, reported_class in zip(df["mhc_restriction"], df["mhc_class"])
-        ]
-        identity = pd.DataFrame([annotation.as_record_fields() for annotation in annotations])
+        # A supplement repeats a small set of MHC inputs across hundreds of
+        # thousands of peptides. Resolve each input once within this entry;
+        # reported class is part of the key so conflicts remain row-specific.
+        identity_by_input = {
+            (restriction, reported_class): resolve_mhc_annotation(
+                restriction, reported_class, mhc_species_context
+            ).as_record_fields()
+            for restriction, reported_class in df[["mhc_restriction", "mhc_class"]]
+            .drop_duplicates()
+            .itertuples(index=False, name=None)
+        }
+        identity = pd.DataFrame(
+            identity_by_input[key] for key in zip(df["mhc_restriction"], df["mhc_class"])
+        )
 
         # Include the supplementary filename in the synthesized IRI so the
         # same peptide / allele seen in, e.g. ``gomez_zepeda_2024_jy.csv`` and

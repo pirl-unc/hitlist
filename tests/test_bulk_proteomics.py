@@ -20,6 +20,29 @@ def isolated_hitlist_data_dir(tmp_path, monkeypatch):
     monkeypatch.setattr(downloads, "_override_data_dir", tmp_path / "hitlist-data")
 
 
+@pytest.fixture(scope="module", autouse=True)
+def release_bulk_caches():
+    """Do not retain the bulk corpus alongside the later observations corpus (#638)."""
+    caches = (_bp._load_bj, _bp._load_bj_protein, _bp._load_ccle, _bp._read_parquet_cached)
+    for cache in caches:
+        cache.cache_clear()
+    yield
+    for cache in caches:
+        cache.cache_clear()
+
+
+@pytest.fixture(scope="module")
+def built_bulk_data(tmp_path_factory):
+    """Both full-data round-trip cases validate one test-owned build."""
+    from hitlist.builder import build_bulk_proteomics
+
+    root = tmp_path_factory.mktemp("canonical-bulk")
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(downloads, "_override_data_dir", root)
+        df = build_bulk_proteomics(verbose=False)
+    return df, root / "bulk_proteomics.parquet"
+
+
 def test_read_parquet_cached_memoizes_and_invalidates_on_rebuild(tmp_path):
     """The parquet read is memoized by (path, mtime, size) so repeated loads
     are free, but a rebuild (new signature) returns a fresh frame."""
@@ -77,6 +100,7 @@ _BJ_PER_ROW_AXES = {
 }
 
 
+@pytest.mark.integration
 def test_available_cell_lines():
     cells = available_cell_lines()
     # Union across both indices
@@ -92,6 +116,7 @@ def test_available_cell_lines():
     assert "HEK293" in cells
 
 
+@pytest.mark.integration
 def test_available_protein_cell_lines():
     cells = available_protein_cell_lines()
     assert "MDA-MB-231" in cells
@@ -101,11 +126,13 @@ def test_available_protein_cell_lines():
     assert "HEK293" in cells
 
 
+@pytest.mark.integration
 def test_available_peptide_cell_lines():
     cells = available_peptide_cell_lines()
     assert set(cells) == {"A549", "HCT116", "HEK293", "HeLa", "MCF7"}
 
 
+@pytest.mark.integration
 def test_load_bulk_proteomics_full():
     df = load_bulk_proteomics()
     assert len(df) > 50_000, f"expected >50K rows across 7 cell lines, got {len(df)}"
@@ -122,6 +149,7 @@ def test_load_bulk_proteomics_full():
     assert set(df["source"]) == {"CCLE_Nusinow_2020", "Bekker-Jensen_2017"}
 
 
+@pytest.mark.integration
 def test_load_bulk_proteomics_filter_cell_line():
     df = load_bulk_proteomics(cell_line="MDA-MB-231")
     assert len(df) > 5_000
@@ -131,18 +159,21 @@ def test_load_bulk_proteomics_filter_cell_line():
     assert len(df2) == len(df)
 
 
+@pytest.mark.integration
 def test_load_bulk_proteomics_filter_gene():
     df = load_bulk_proteomics(gene_name="TP53")
     assert len(df) >= 5, f"TP53 should be detected in most cell lines, got {len(df)}"
     assert set(df["gene_symbol"]) == {"TP53"}
 
 
+@pytest.mark.integration
 def test_load_bulk_proteomics_combined_filter():
     df = load_bulk_proteomics(cell_line="HCT116", gene_name=["KRAS", "TP53"])
     assert set(df["cell_line_name"]) == {"HCT116"}
     assert set(df["gene_symbol"]).issubset({"KRAS", "TP53"})
 
 
+@pytest.mark.integration
 def test_load_bulk_peptides_full():
     df = load_bulk_peptides()
     assert len(df) > 500_000, f"expected >500K peptide rows across 5 cell lines, got {len(df)}"
@@ -161,6 +192,7 @@ def test_load_bulk_peptides_full():
     assert set(df["source"]) == {"Bekker-Jensen_2017"}
 
 
+@pytest.mark.integration
 def test_load_bulk_peptides_mixed_digest():
     """Peptide index now includes HeLa non-tryptic arms (Chymo/GluC/LysC)."""
     df = load_bulk_peptides()
@@ -201,6 +233,7 @@ def test_load_bulk_peptides_mixed_digest():
     assert tryp_pct > 0.97, f"Trypsin C-term K/R specificity {tryp_pct:.3f} < 0.97"
 
 
+@pytest.mark.integration
 def test_load_bulk_peptides_fig1b_axes_complete():
     """The Fig 1b fractionation sweep (14/39/46/70) must all be present.
 
@@ -225,6 +258,7 @@ def test_load_bulk_peptides_fig1b_axes_complete():
     assert enrichments == {"none", "TiO2"}, enrichments
 
 
+@pytest.mark.integration
 def test_load_bulk_peptides_default_filters_out_tio2():
     """Default load_bulk_peptides() excludes TiO2-enriched rows.
 
@@ -240,6 +274,7 @@ def test_load_bulk_peptides_default_filters_out_tio2():
     )
 
 
+@pytest.mark.integration
 def test_load_bulk_peptides_enrichment_opt_in():
     """Explicit enrichment="TiO2" returns only phospho rows, mostly phospho-modified."""
     df = load_bulk_peptides(enrichment="TiO2")
@@ -253,6 +288,7 @@ def test_load_bulk_peptides_enrichment_opt_in():
     assert phospho_pct > 0.5, f"TiO2 rows should be >50% phospho-modified; got {phospho_pct:.2%}"
 
 
+@pytest.mark.integration
 def test_load_bulk_peptides_enrichment_union():
     """enrichment=None returns both populations (baseline + TiO2)."""
     default = load_bulk_peptides()
@@ -265,6 +301,7 @@ def test_load_bulk_peptides_enrichment_union():
     assert set(both["enrichment"]) == {"none", "TiO2"}
 
 
+@pytest.mark.integration
 def test_load_bulk_peptides_filter_by_enzyme():
     """digestion_enzyme filter narrows rows to the requested digest."""
     lysc = load_bulk_peptides(digestion_enzyme="LysC")
@@ -274,6 +311,7 @@ def test_load_bulk_peptides_filter_by_enzyme():
     assert set(lysc["cell_line_name"]) == {"HeLa"}
 
 
+@pytest.mark.integration
 def test_load_bulk_peptides_filter_by_fractions():
     """n_fractions_in_run filter selects the requested fractionation depth."""
     df70 = load_bulk_peptides(n_fractions_in_run=70)
@@ -284,6 +322,7 @@ def test_load_bulk_peptides_filter_by_fractions():
     assert set(df70["digestion_enzyme"]).issubset({"Trypsin/P (cleaves K/R except before P)"})
 
 
+@pytest.mark.integration
 def test_load_bulk_peptides_fractionation_ph_axis():
     """fractionation_ph column populated; pH 10 default, pH 8 only on Tryp-Phos-pH8."""
     # Non-enriched rows are all pH 10.
@@ -308,6 +347,7 @@ def test_load_bulk_peptides_fractionation_ph_axis():
     assert ph8["modifications"].str.contains("Phospho", na=False).mean() > 0.6
 
 
+@pytest.mark.integration
 def test_load_bulk_peptides_fractionation_ph_unpooled_from_v1_14_0():
     """Tryp-Phos-pH8 and Tryp-Phos-pH10 are now distinct arms, not pooled.
 
@@ -329,6 +369,7 @@ def test_load_bulk_peptides_fractionation_ph_unpooled_from_v1_14_0():
     )
 
 
+@pytest.mark.integration
 def test_load_bulk_proteomics_ccle_has_ph_10():
     """CCLE rows get ``fractionation_ph=10.0`` from the source-level default."""
     ccle = load_bulk_proteomics(source="CCLE_Nusinow_2020")
@@ -336,6 +377,7 @@ def test_load_bulk_proteomics_ccle_has_ph_10():
     assert set(ccle["fractionation_ph"].dropna().unique()) == {10.0}
 
 
+@pytest.mark.integration
 def test_load_bulk_peptides_tryptic_counts_preserved():
     """Per-cell-line tryptic counts from the prior ingest are preserved.
 
@@ -363,6 +405,7 @@ def test_load_bulk_peptides_tryptic_counts_preserved():
         )
 
 
+@pytest.mark.integration
 def test_load_bulk_peptides_filter_cell_line():
     df = load_bulk_peptides(cell_line="HeLa")
     assert len(df) > 100_000
@@ -371,12 +414,14 @@ def test_load_bulk_peptides_filter_cell_line():
     assert len(load_bulk_peptides(cell_line="hela")) == len(df)
 
 
+@pytest.mark.integration
 def test_load_bulk_peptides_filter_gene():
     df = load_bulk_peptides(gene_name="TP53")
     assert len(df) > 10, f"TP53 should have peptides across ≥3 cell lines, got {len(df)}"
     assert set(df["gene_symbol"]) == {"TP53"}
 
 
+@pytest.mark.integration
 def test_load_bulk_peptides_intra_protein_bias():
     """Core use case: within-protein peptide detectability differs by cell line."""
     df = load_bulk_peptides(gene_name="TP53")
@@ -389,6 +434,7 @@ def test_load_bulk_peptides_intra_protein_bias():
     assert (df["end_position"] >= df["start_position"]).all()
 
 
+@pytest.mark.integration
 def test_load_bulk_peptides_filter_uniprot():
     # TP53 → P04637
     df = load_bulk_peptides(uniprot_acc="P04637")
@@ -396,6 +442,7 @@ def test_load_bulk_peptides_filter_uniprot():
     assert set(df["uniprot_acc"]) == {"P04637"}
 
 
+@pytest.mark.integration
 def test_load_bulk_proteomics_hela_via_bekker_jensen():
     """HeLa abundance is derived from Bekker-Jensen peptide intensities."""
     df = load_bulk_proteomics(cell_line="HeLa")
@@ -405,6 +452,7 @@ def test_load_bulk_proteomics_hela_via_bekker_jensen():
     assert df["abundance_percentile"].between(0, 1).all()
 
 
+@pytest.mark.integration
 def test_load_bulk_proteomics_source_filter():
     ccle = load_bulk_proteomics(cell_line="A549", source="CCLE_Nusinow_2020")
     bj = load_bulk_proteomics(cell_line="A549", source="Bekker-Jensen_2017")
@@ -459,13 +507,13 @@ def test_load_bulk_sources_harmonized_fields():
         assert isinstance(s.get("n_fractions"), int)
 
 
-def test_build_bulk_proteomics_parquet():
+@pytest.mark.integration
+def test_build_bulk_proteomics_parquet(built_bulk_data, monkeypatch):
     """build_bulk_proteomics writes a unified long-form parquet."""
     import pandas as pd
 
-    from hitlist.builder import build_bulk_proteomics
-
-    df = build_bulk_proteomics(verbose=False)
+    df, path = built_bulk_data
+    monkeypatch.setattr(_bp, "bulk_proteomics_path", lambda: path)
     assert is_bulk_proteomics_built()
     assert len(df) > 1_000_000
     # Both granularities present
@@ -519,11 +567,11 @@ def test_build_bulk_proteomics_parquet():
     assert roundtrip.shape == df.shape
 
 
-def test_loaders_read_from_parquet_when_built():
+@pytest.mark.integration
+def test_loaders_read_from_parquet_when_built(built_bulk_data, monkeypatch):
     """Once built, loaders return rows with the harmonized metadata columns."""
-    from hitlist.builder import build_bulk_proteomics
-
-    build_bulk_proteomics(verbose=False)
+    _, path = built_bulk_data
+    monkeypatch.setattr(_bp, "bulk_proteomics_path", lambda: path)
     proteins = load_bulk_proteomics()
     peptides = load_bulk_peptides()
     for df in (proteins, peptides):
@@ -621,6 +669,7 @@ def test_load_bulk_proteomics_falls_back_when_parquet_unreadable(tmp_path, monke
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.integration
 def test_load_bulk_peptides_length_bounds():
     """length_min / length_max restrict to the inclusive window."""
     df = load_bulk_peptides(length_min=8, length_max=11)
@@ -632,6 +681,7 @@ def test_load_bulk_peptides_length_bounds():
     assert (nine_mers["length"] == 9).all()
 
 
+@pytest.mark.integration
 def test_load_bulk_peptides_length_min_only():
     """length_min alone excludes shorter peptides."""
     df = load_bulk_peptides(length_min=15)
@@ -639,6 +689,7 @@ def test_load_bulk_peptides_length_min_only():
     assert (df["length"] >= 15).all()
 
 
+@pytest.mark.integration
 def test_load_bulk_peptides_length_max_only():
     """length_max alone excludes longer peptides."""
     df = load_bulk_peptides(length_max=12)
@@ -646,6 +697,7 @@ def test_load_bulk_peptides_length_max_only():
     assert (df["length"] <= 12).all()
 
 
+@pytest.mark.integration
 def test_load_bulk_proteomics_abundance_percentile_min():
     """abundance_percentile_min returns only rows at or above the cutoff."""
     top_decile = load_bulk_proteomics(cell_line="HeLa", abundance_percentile_min=0.9)
@@ -655,6 +707,7 @@ def test_load_bulk_proteomics_abundance_percentile_min():
     assert top_decile["abundance_percentile"].notna().all()
 
 
+@pytest.mark.integration
 def test_load_bulk_proteomics_abundance_percentile_window():
     """Both min + max bounds work as a window."""
     mid = load_bulk_proteomics(
@@ -666,6 +719,7 @@ def test_load_bulk_proteomics_abundance_percentile_window():
     assert mid["abundance_percentile"].between(0.4, 0.6).all()
 
 
+@pytest.mark.integration
 def test_load_bulk_proteomics_percentile_preserves_cell_line_filter():
     """Percentile filter composes with other filters."""
     tryp_top = load_bulk_proteomics(
@@ -683,6 +737,7 @@ def test_load_bulk_proteomics_percentile_preserves_cell_line_filter():
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.integration
 def test_export_bulk_cli_peptide_granularity():
     """_export_bulk returns a peptide frame filtered by the CLI kwargs."""
     import argparse
@@ -711,6 +766,7 @@ def test_export_bulk_cli_peptide_granularity():
     assert set(df["granularity"]) == {"peptide"}
 
 
+@pytest.mark.integration
 def test_export_bulk_cli_enrichment_both():
     """--enrichment both returns TiO2 + baseline rows."""
     import argparse
@@ -736,6 +792,7 @@ def test_export_bulk_cli_enrichment_both():
     assert {"none", "TiO2"}.issubset(set(df["enrichment"].unique()))
 
 
+@pytest.mark.integration
 def test_export_bulk_cli_both_granularity_tagged():
     """--granularity both yields peptide + protein rows tagged by column."""
     import argparse
@@ -763,6 +820,7 @@ def test_export_bulk_cli_both_granularity_tagged():
     assert "protein" in gran
 
 
+@pytest.mark.integration
 def test_export_bulk_cli_bounds():
     """--length-min/max and --abundance-percentile-min are plumbed through."""
     import argparse

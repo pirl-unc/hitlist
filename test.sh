@@ -38,13 +38,16 @@
 #
 # Tunables (env vars):
 #   PER_WORKER_GB               non-integration per-worker budget in GB (default: 2.5)
-#   INTEGRATION_PER_WORKER_GB   integration per-worker budget in GB (default: 5)
+#   INTEGRATION_PER_WORKER_GB   integration per-worker budget in GiB
+#                               (default: Linux 14, macOS/other 24)
 #   TEST_SH_MIN                 floor on workers (default: 1); also the preflight guard's
 #                               worker-count target -- lower it to relax the guard
 #   TEST_SH_MAX                 hard ceiling on workers, both passes (default: unset)
 #   TEST_SH_MEMORY_RETRY_DELAY_SECONDS  delay for --retry-memory (default: 120)
 #   TEST_SH_ALLOW_UNKNOWN_MEMORY       explicit opt-in to one worker when the
 #                                      memory probe fails (default: 0)
+#   TEST_SH_PROFILE                   report elapsed time and peak RSS per phase
+#                                      using /usr/bin/time (default: 1)
 #
 # --retry-memory retries a refused memory preflight once per phase, before
 # pytest starts. A passed phase is never replayed and test failures are not retried.
@@ -52,11 +55,11 @@
 set -eo pipefail
 
 PER_WORKER_GB="${PER_WORKER_GB:-2.5}"
-INTEGRATION_PER_WORKER_GB="${INTEGRATION_PER_WORKER_GB:-5}"
 TEST_SH_MIN="${TEST_SH_MIN:-1}"
 TEST_SH_MAX="${TEST_SH_MAX:-0}"
 TEST_SH_MEMORY_RETRY_DELAY_SECONDS="${TEST_SH_MEMORY_RETRY_DELAY_SECONDS:-120}"
 TEST_SH_ALLOW_UNKNOWN_MEMORY="${TEST_SH_ALLOW_UNKNOWN_MEMORY:-0}"
+TEST_SH_PROFILE="${TEST_SH_PROFILE:-1}"
 
 log() { printf '[test.sh] %s\n' "$*" >&2; }
 
@@ -65,6 +68,16 @@ case "$(uname -s)" in
     Linux)  OS=linux ;;
     *)      OS=unknown ;;
 esac
+
+# Linux full-corpus validation peaked at ~11.6 GiB RSS (#636). macOS
+# compressed pages make RSS an underestimate: the measured integration
+# physical footprint was ~19.5 GB (#603). Include platform-specific headroom.
+# Ordinary units use tiny inputs; full bulk/supplement data is integration.
+if [[ "$OS" == "linux" ]]; then
+    INTEGRATION_PER_WORKER_GB="${INTEGRATION_PER_WORKER_GB:-14}"
+else
+    INTEGRATION_PER_WORKER_GB="${INTEGRATION_PER_WORKER_GB:-24}"
+fi
 
 cpu_count() {
     local n=""
@@ -224,7 +237,17 @@ run_pytest() {
         xdist_flags=(-n "$workers")
     fi
     log "→ exec python -m pytest ${xdist_flags[*]:-} ${filter_args[*]:-} $* tests ${extra[*]:-}"
-    python -m pytest "${xdist_flags[@]}" "${filter_args[@]}" "$@" tests "${extra[@]}"
+    local pytest_command=(python -m pytest "${xdist_flags[@]}" "${filter_args[@]}" "$@" tests "${extra[@]}")
+    if [[ "$TEST_SH_PROFILE" == "1" && -x /usr/bin/time ]]; then
+        log "Resource profile for '${marker}' (peak RSS is a process peak, not summed worker RAM)"
+        case "$OS" in
+            linux) /usr/bin/time -v "${pytest_command[@]}" ;;
+            macos) /usr/bin/time -l "${pytest_command[@]}" ;;
+            *) "${pytest_command[@]}" ;;
+        esac
+    else
+        "${pytest_command[@]}"
+    fi
 }
 
 if (( run_all )); then

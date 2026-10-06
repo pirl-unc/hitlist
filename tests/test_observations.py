@@ -21,10 +21,10 @@ def test_binding_path():
     assert p.parent == observations_path().parent
 
 
-def test_load_observations_not_built():
-    if not is_built():
-        with pytest.raises(FileNotFoundError, match="not built"):
-            load_observations()
+def test_load_observations_not_built(tmp_path, monkeypatch):
+    monkeypatch.setattr("hitlist.downloads._override_data_dir", tmp_path)
+    with pytest.raises(FileNotFoundError, match="not built"):
+        load_observations()
 
 
 @pytest.mark.integration

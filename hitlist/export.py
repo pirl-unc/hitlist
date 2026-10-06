@@ -1582,6 +1582,11 @@ def generate_observations_table(
     # a multi-sample study cannot become a single-sample fallback merely
     # because the caller requested one of its classes (#532).
     samples = _observation_eligible_samples(generate_ms_samples_table())
+    # Unrelated studies cannot match these rows. Avoid building their allele,
+    # class and discriminator pools, but retain every arm/class of each present
+    # study so narrow queries do not change attribution (#532).
+    present_pmids = pd.to_numeric(obs["pmid"], errors="coerce").dropna().unique()
+    samples = samples[samples["pmid"].isin(present_pmids)]
 
     # Attribution is a fact about the study, not the rows a caller requests.
     # A narrow query still needs the full study's discriminator variation to

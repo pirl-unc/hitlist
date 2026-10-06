@@ -43,7 +43,7 @@ def test_load_gene_set_is_case_insensitive(fake_oncoref):
     assert load_gene_set("cta") == load_gene_set("CTA")
 
 
-def test_load_gene_set_missing_optional_provider_is_actionable(monkeypatch):
+def test_load_gene_set_broken_provider_install_is_actionable(monkeypatch):
     from hitlist.genes import _genes_from_provider
 
     monkeypatch.delitem(sys.modules, "oncoref", raising=False)
@@ -59,7 +59,7 @@ def test_load_gene_set_missing_optional_provider_is_actionable(monkeypatch):
 
     with pytest.raises(
         RuntimeError,
-        match=r'pip install "hitlist\[cta\]"',
+        match=r'pip install --upgrade "hitlist"',
     ):
         _genes_from_provider("oncoref", set_name="CTA")
 
@@ -136,7 +136,8 @@ def test_resolve_gene_query_empty():
 
 
 def test_cta_provider_matches_real_oncoref_default_panel():
-    cta = pytest.importorskip("oncoref.cta")
+    from oncoref import cta
+
     expected = cta.cta_gene_names()
     assert expected
     assert load_gene_set("CTA") == sorted(expected)

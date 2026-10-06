@@ -811,8 +811,20 @@ distinguishes this from measured low capacity (exit 1). `--retry-memory` retries
 only low capacity. An explicit `TEST_SH_ALLOW_UNKNOWN_MEMORY=1` permits one
 worker with an unavailable probe; it does not bypass measured low capacity.
 
-The optional `CTA` gene set uses OncoRef's canonical default panel, including its
-reviewed specificity exclusions. Install it with `pip install "hitlist[cta]"`.
+Ordinary tests use fresh data directories and small fixtures, so an installed
+corpus cannot inflate their memory use. Full bulk-proteomics and supplementary
+data assertions run in the integration phase. The default budgets are 2.5 GiB
+per unit worker, and 14 GiB per integration worker on Linux or 24 GiB on macOS.
+These include headroom above the Linux 11.6 GiB RSS peak and macOS ~19.5 GB
+physical footprint; compression makes macOS RSS alone an underestimate.
+Each phase reports its elapsed time
+and process peak RSS with `/usr/bin/time` (disable with `TEST_SH_PROFILE=0`).
+Peak RSS is not the sum of simultaneous workers' memory. A preflight is a
+capacity check; it cannot reserve memory against other programs starting later.
+
+The `CTA` gene set is available in the default install and uses OncoRef's canonical
+bundled panel, including its reviewed specificity exclusions. The `cta` extra
+remains a compatibility alias. OncoRef is loaded only when querying the gene set.
 
 When local memory cannot support the corpus tests, the **Release build** GitHub
 workflow runs the same gates on a hosted runner. It requires the full CI corpus,

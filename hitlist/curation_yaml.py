@@ -31,8 +31,13 @@ if TYPE_CHECKING:
     from importlib.abc import Traversable
 
 
-class UniqueKeyLoader(yaml.SafeLoader):
-    """``SafeLoader`` that rejects a mapping key declared twice."""
+class UniqueKeyLoader(getattr(yaml, "CSafeLoader", yaml.SafeLoader)):
+    """Safe native parser (Python fallback) rejecting duplicate mapping keys.
+
+    Curation registries are parsed repeatedly after edits and in isolated tests.
+    LibYAML avoids paying for Python tokenization while the same Python mapping
+    constructor enforces our data-loss guard on either backend.
+    """
 
     def construct_mapping(self, node, deep=False):
         seen = set()
