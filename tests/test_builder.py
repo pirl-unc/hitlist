@@ -251,7 +251,7 @@ def test_cache_invalid_when_observations_parquet_missing(tmp_path, monkeypatch):
 
 def test_observations_cache_hit_still_validates_mapping_sidecar(tmp_path, monkeypatch):
     """#404: a current observations parquet must not hide stale mappings."""
-    from hitlist import builder, downloads, mappings
+    from hitlist import builder, downloads, mappings, provenance
 
     monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
     observations = tmp_path / "observations.parquet"
@@ -281,6 +281,11 @@ def test_observations_cache_hit_still_validates_mapping_sidecar(tmp_path, monkey
         return tmp_path / "peptide_mappings.parquet"
 
     monkeypatch.setattr(mappings, "build_peptide_mappings", validate_mappings)
+
+    def no_scratch():
+        pytest.fail("A current observations index must not allocate provenance scratch")
+
+    monkeypatch.setattr(provenance, "ContributorCollector", no_scratch)
 
     result = builder.build_observations(
         proteome_release=113,

@@ -138,6 +138,7 @@ include = [
     "scripts/allele_candidate_audit.py",
     "scripts/release_artifacts.py",
     "scripts/check_dev_install.py",
+    "scripts/benchmark_provenance.py",
 ]
 
 [tool.ruff.lint]
