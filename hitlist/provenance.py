@@ -145,7 +145,13 @@ class ContributorCollector:
 
     def _execute(self, sql, parameters=()):
         self._check_space()
-        return self.db.execute(sql, parameters)
+        try:
+            return self.db.execute(sql, parameters)
+        except sqlite3.Error as error:
+            translated = self._translate_error(error)
+            if translated is not None:
+                raise translated from error
+            raise
 
     def _close(self):
         if self.db is not None:
@@ -218,9 +224,6 @@ class ContributorCollector:
 
     def __exit__(self, exc_type, error, traceback):
         self._close()
-        translated = self._translate_error(error)
-        if translated is not None:
-            raise translated from error
 
     def register_source(self, dataset: str, path: Path, *, description=""):
         snapshot = {
@@ -418,6 +421,11 @@ class ContributorCollector:
                     raise ValueError("Source changed during build; rebuild observations")
             temporary.replace(path)
             self._published = True
+        except (sqlite3.Error, OSError) as error:
+            translated = self._translate_error(error)
+            if translated is not None:
+                raise translated from error
+            raise
         finally:
             temporary.unlink(missing_ok=True)
         return {

@@ -79,6 +79,15 @@ observation, binding and metadata artifact set. The collector's error translatio
 is explicitly limited to failures before its publication, avoiding a false claim
 that later builder failures preserve an already replaced contributor file.
 
+Release re-plan: the first PR release job failed during dependency resolution,
+before tests. Current PyEnsembl main requires gtfparse<3, whereas the workflow
+requires current gtfparse master (3.0.2). Existing openvax/pyensembl#451 records
+this conflict; an uncommitted `deps/gtfparse-3` checkout already exists, so avoid
+changing that work. Keep the development-dependency requirement intact and
+resolve the upstream compatibility blocker before rerunning release validation.
+Final review also limits capacity-error translation to collector SQL/export
+operations, so failures in other build stages keep their original diagnostics.
+
 # Efficient tests, realistic memory budgets and default CTAs (2026-10-05)
 
 ## Specification

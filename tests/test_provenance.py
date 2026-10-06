@@ -372,6 +372,13 @@ def test_failure_after_publication_is_not_misreported_as_preserving_old_output(t
     assert output.exists()
 
 
+def test_unrelated_build_failure_is_not_misreported_as_provenance_capacity():
+    mapping_failure = OSError(errno.ENOSPC, "mapping sidecar volume is full")
+    with pytest.raises(OSError) as caught, ContributorCollector():
+        raise mapping_failure
+    assert caught.value is mapping_failure
+
+
 def test_setup_failure_removes_owned_scratch(tmp_path):
     with (
         pytest.raises(ProvenanceStorageError),
