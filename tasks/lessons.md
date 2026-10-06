@@ -1,5 +1,20 @@
 # Lessons
 
+## 2026-10-06
+
+- Dependency compatibility has three separate checks: declared bounds, the
+  committed lockfile, and the environment actually running tests. Inspect and
+  validate all three before calling an upgrade handled; permissive bounds and
+  a manually upgraded environment do not prevent uv sync from restoring an
+  obsolete transitive cap.
+
+- Keep repository ownership explicit when a requested workflow spans packages.
+  Hitlist accepts expression tables and exports auditable presentation evidence;
+  it does not assemble vaccines. Tsarina and Vaxrank own downstream target
+  selection and construct assembly. Mentions of their capabilities are context,
+  not authorization to move those responsibilities into Hitlist. For this
+  expression-table follow-up, deliver the evidence bundle only.
+
 ## 2026-10-05
 
 - A named reference query that users expect in the normal install should not

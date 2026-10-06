@@ -10,6 +10,7 @@ nav:
   - Source Classification: source-classification.md
   - PMID Curation Overrides: pmid-curation.md
   - Training Provenance and Split Audits: training-provenance.md
+  - CTA Expression Evidence and Tissue Blacklists: cta-evidence.md
 
 theme:
   name: readthedocs

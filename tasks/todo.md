@@ -1,3 +1,115 @@
+# Expression-table CTA evidence bundles (2026-10-06)
+
+## Scope and ownership
+
+Finish and publish bounded-provenance PR #646 first. This follow-up belongs to
+Hitlist and stops at a reproducible evidence bundle. Tsarina and Vaxrank own
+ranking for treatment, vaccine assembly, and construct optimization. Do not add
+vaccine sequence generation or substitute population prevalence for the supplied
+expression measurements.
+
+## Specification
+
+Accept gene or transcript TPM tables without VCF/BAM. Require explicit input
+columns/identifier level and retain original rows, source hashes, normalized
+identifiers, mapping reference/version, expression values, and every exclusion
+reason. Resolve gene identifiers through OncoRef and transcripts through the
+recorded reference; never infer transcript expression from gene expression or
+silently sum duplicate/ambiguous identifiers. Intersect with the live canonical
+OncoRef strict/extended CTA definitions and snapshot the relevant HPA evidence.
+Support configurable gene-pattern exclusions with exact exceptions (MAGE*
+except MAGEA4), without redefining CTA membership or the self background.
+
+For expressed eligible CTAs, export the exact observed peptide evidence and all
+reference-protein/transcript mappings. Keep CTA-only shared sequences distinct
+from non-CTA matches and retain all occurrences/coordinates. Report reference
+coverage explicitly; a missing/partial mapping cannot establish specificity.
+Preserve sample/donor/HLA context and raw contributor records; MS support must
+have positive assay-modality evidence (existing Hitlist #644). Prediction is not
+an observation. Gene selection never narrows the reference background.
+
+Export a reusable sequence blacklist independently of the selected genes and
+patient HLA: exact MS-observed sequences in heart, brain or lung in at least two
+distinct people across those tissues, regardless of allele. Keep per-tissue and
+union donor counts, evidence rows, source locations, and identity resolution.
+Collapse repeated samples, assays and aliases of one donor. Do not use PMIDs,
+assay counts, aggregate sample labels or sample-count fallbacks as people.
+Unresolved/pooled identities remain an explicit review category and never imply
+absence of risk. The user confirmed nonmalignant tissue only; tumor observations do not
+trigger this blacklist. Record that choice as an explicit policy.
+
+Current IEDB HLA Ligand Atlas rows omit the donor axis (recorded in the Marcu
+33858848 curation), so a correct two-person rule requires the primary release's
+sample_hits and peptides tables, with donor metadata and source hashes. Reuse
+canonical Hitlist source/provenance mechanisms where possible; do not invent
+patient IDs from per-tissue IEDB records. Official primary-source format:
+https://hla-ligand-atlas.org/data (release 2020.12; CC-BY 4.0). Inspect its actual
+schema and independent counts before implementation. Preserve exact observed
+sequences; no inferred nested epitopes. Document the downstream blacklist as
+forbidden contiguous sequences, including within longer antigen segments.
+
+The bundle must include expression-resolution/selection tables, CTA/HPA
+reference evidence, peptide summaries, complete mappings, presentation rows,
+raw contributors, tissue-risk/blacklist evidence, source metadata, parameters,
+versions, and a hash manifest with a verifier. Missing provenance must be
+explicit or fail a strict full-provenance request. Write to a new destination
+through staging and reject input changes, mismatched artifacts or overwrites.
+Bound scans and contributor copies; do not require a second full index build or
+load irrelevant raw source payloads into memory merely to export a subset.
+
+## Plan
+
+- [x] Merge and publish PR #646 as 1.64.8; verify exact PyPI artifacts.
+- [x] Record corrected repository ownership in tasks/lessons.md.
+- [x] Inspect existing exports, contributor bundles, mappings and donor identities.
+- [x] Confirm blacklist tissue policy and inspect the official donor-level data.
+- [x] File focused Hitlist #647 and link the known modality/identity limitations.
+- [x] Finalize CLI/API and schema; checkpoint the concrete plan before code.
+- [x] Add failing contracts for identifier/CTA/exclusion and risk/specificity behavior.
+- [x] Implement expression selection and complete, bounded evidence export.
+- [x] Implement/audit donor-level essential-tissue sequence blacklist.
+- [x] Verify full provenance, input stability, manifest hashes and atomic publication.
+- [x] Validate real inputs and reconcile blacklist counts independently.
+- [x] Document downstream bundle consumption; bump version.
+- [ ] Run format.sh, lint.sh and test.sh; verify final-head CI.
+- [ ] Merge, deploy from clean main and verify PyPI artifacts.
+
+## Review
+
+Version 1.65.0 adds expression and standalone blacklist CLI/API exports.
+The supplied Atlas snapshot has 967,449 sample hits and 223,246 peptide records;
+170,615 heart/brain/cerebellum/lung observations cover 84,754 sequences.
+The two-donor rule yields 26,487 forbidden sequences. An independent stdlib CSV
+implementation matched every sequence and donor-union count; portable raw-source,
+artifact-hash and scientific-relationship verification passes. The snapshot is
+not presented as an exhaustive survey of all MS studies. Actual OncoRef PRAME,
+MAGEA3, MAGEA4 and ACTB resolution and an Ensembl 112 PRAME transcript were checked;
+the complete real CTA/HPA snapshot serializes successfully.
+
+Upgraded the task's isolated environment to pandas 3.0.6, gtfparse 3.0.2,
+PyEnsembl 2.24.1; dependency validation passes. Hitlist already permits these
+versions. The committed uv.lock also needed a refresh: it now selects pandas
+3.0.6 on Python >=3.11 (retaining 2.3.3 on older supported Python), gtfparse
+3.0.2, PyEnsembl 2.26.0, datacache 1.16.1 and serializable 1.3.0. Polars
+and simplejson are no longer needed in the locked dependency graph (#648). PyEnsembl's separate-session fix is merged. Pandas 2.3.3 compatibility
+was checked in a separate environment. Empty mapping selections exposed #649:
+Arrow compared large_string against an untyped empty set. The reader now returns
+an empty schema-only table without scanning data. The local full `./test.sh` passed (2,611 tests, 1 skipped); final feature checks
+pass on both pandas majors. Format/lint and documentation builds pass. A
+mutation check proves older-bundle verification requires its captured tissue
+policy: removing that argument fails the changed-policy regression. PR #650
+tracks final-head CI and deployment. No full local index rebuild is claimed.
+
+PR #646 merged at 9090611; clean-main release run 37530144788 passed all
+2,576 unit and 96 integration tests. PyPI 1.64.8 wheel/sdist were downloaded
+and their bytes match the tested CI artifacts. No vaccine
+assembly is in scope. Existing sample_identity.py deliberately falls back to a
+PMID for summary counting; that is not adequate evidence of distinct people for
+this blacklist. Initial real-data validation found four Atlas sequences containing
+selenocysteine (U); preserve these exact sequences, rather than rejecting the
+snapshot or substituting another residue. The current reviewed lineage registry mainly establishes
+experimental origins, so its missing donor identities must remain visible.
+
 # Bounded provenance builds — #643 (2026-10-06)
 
 ## Specification
@@ -40,9 +152,9 @@ do not repeat the known 58 GB failure on this nearly full workstation.
 - [x] Implement compressed records, bounded traversal and storage controls.
 - [x] Verify exact baseline/head parity and report measured time/disk/memory.
 - [x] Document configuration, limits and diagnostics; bump the patch version.
-- [ ] Run ./format.sh, ./lint.sh and ./test.sh; verify full final-head CI.
-- [ ] Merge PR and deploy from clean main; verify the PyPI release.
-- [ ] Record review evidence and dependency-ordered follow-up issues.
+- [x] Run ./format.sh, ./lint.sh and ./test.sh; verify full final-head CI.
+- [x] Merge PR and deploy from clean main; verify the PyPI release.
+- [x] Record review evidence and dependency-ordered follow-up issues (#647, #644, #645).
 
 ## Review
 

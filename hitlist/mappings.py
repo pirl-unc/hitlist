@@ -332,6 +332,15 @@ def load_peptide_mappings(
     if proteome is not None:
         filters.append(("proteome", "in", _as_list(proteome)))
 
+    # An explicit empty selection is empty, not a null-typed Arrow IN set.
+    # Read only the schema: pandas 3 writes large_string columns, which Arrow
+    # cannot compare against an untyped empty array.
+    if any(operator == "in" and not values for _, operator, values in filters):
+        import pyarrow as pa
+        import pyarrow.parquet as pq
+
+        table = pa.Table.from_batches([], schema=pq.read_schema(path))
+        return (table.select(columns) if columns is not None else table).to_pandas()
     return pd.read_parquet(path, columns=columns, filters=filters if filters else None)
 
 
