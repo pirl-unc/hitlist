@@ -48,6 +48,51 @@ missing or inconsistent claimed capture requires a rebuild. Older indexes stay
 readable with `legacy_missing`; historical source contributors cannot be
 recovered from an already deduplicated index.
 
+### Build resources
+
+Contributor capture compresses original source payloads losslessly. Export walks
+256 retained observations at a time, resolving ancestry in indexed disk tables
+before reading payloads. Multiple paths, relation flags, donor labels and every
+original source row remain intact. The output uses Zstandard-compressed Parquet;
+its schema and readable contributor IDs are unchanged.
+
+The private SQLite scratch database has a **16 GiB default hard limit**, reduced
+at startup when needed to leave the free-space reserve. Graph traversal uses the
+same capped database; it does not perform a corpus-wide sort or create separate
+recursive-query spill files. SQLite uses an 8 MiB page-cache target. Export buffers
+up to 4 MiB of decoded payloads or 10,000 links, plus one potentially larger source
+row and Arrow/Parquet encoding overhead.
+
+| Environment variable | Default | Meaning |
+| --- | --- | --- |
+| `HITLIST_PROVENANCE_SCRATCH_DIR` | Python temporary directory (`TMPDIR` where set) | Filesystem for the private contributor database. |
+| `HITLIST_PROVENANCE_MAX_GB` | `16` | Maximum database size in GiB, including graph work tables; fractional values are accepted. |
+| `HITLIST_PROVENANCE_MIN_FREE_GB` | `1` | Free-space reserve checked before work and periodically on both scratch and output filesystems. This is a check, not a filesystem reservation. |
+
+For example, to use a larger scratch volume with a 12 GiB database budget:
+
+```bash
+HITLIST_PROVENANCE_SCRATCH_DIR=/volumes/scratch \
+HITLIST_PROVENANCE_MAX_GB=12 hitlist build observations --force
+```
+
+The database cap covers **temporary provenance storage**, not source downloads,
+other build stages, existing artifacts, or the new output Parquet. Lossless final
+output necessarily grows with the evidence, and the observation/binding DataFrames
+still consume memory proportional to the corpus. Leave capacity for both the old
+artifact and its replacement during publication. A given corpus is not guaranteed
+to fit the default cap.
+
+Capacity failures report the location, effective budget and recovery settings.
+The collector removes its own scratch and partial contributor output and leaves
+the previously published contributor artifact untouched. Scratch is disposable,
+with journaling disabled; it is not a restart checkpoint. Retry the build after
+freeing space or selecting a larger volume/budget. Fresh cached observations do
+not allocate contributor scratch.
+
+Publication of the complete multi-file index as a single generation is tracked
+separately in [#645](https://github.com/pirl-unc/hitlist/issues/645).
+
 ## Reviewed lineage
 
 `hitlist/data/specimen_lineage.yaml` is a versioned registry of typed entities,

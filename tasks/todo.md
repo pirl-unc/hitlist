@@ -1,3 +1,93 @@
+# Bounded provenance builds — #643 (2026-10-06)
+
+## Specification
+
+Preserve the existing contributor schema, readable identities, complete original
+JSON source fields/rows, ancestry relation flags, donor labels, deterministic
+ordering and lossless deduplication semantics. Do not change scientific filters
+or mark a scoped index as a complete rebuild. Existing published contributors
+must survive any failed provenance capture/export.
+
+The current collector duplicates uncompressed source payloads in SQLite, then
+executes a corpus-wide recursive UNION/DISTINCT/ORDER BY over those payloads.
+The issue reports 41.46 GB of database plus at least 13 GB of SQLite scratch.
+Replace payload storage with fast lossless compression and flatten only small
+ordered batches of retained roots. Keep visited/frontier sets in explicitly
+indexed scratch tables, deduplicate narrow graph identities before loading any
+payload, and reuse their pages between batches. Avoid implicit SQLite sort or
+recursive work files. Bound SQLite's page cache and output buffers; separately
+measure scanner/build memory so no whole-build memory guarantee is inferred.
+
+Use a private, disposable database with journaling disabled and an enforced
+max_page_count limit; it is never a recoverable/published artifact. Provide a
+documented scratch directory (falling back to TMPDIR), scratch-byte budget and
+free-space reserve. Check capacity before allocating and periodically during
+capture/export, translate actual SQLite/filesystem full errors, and clean up
+owned scratch/partial files. The database cap does not cap the final lossless
+Parquet artifact or the observation DataFrames; state this explicitly.
+
+Measure baseline/head in fresh processes on identical deterministic graphs and
+a bounded real CSV sample. Compare every contributor cell, ancestry chains,
+multiple paths/cycles, donor expansions, retained/excluded roots, empty output,
+Unicode/large rows and changed-source checks. Prove resource-limit failures
+leave old artifacts intact and the configured scratch cap is enforced. Inspect
+query plans for hidden temporary materialization. Use small inputs locally;
+do not repeat the known 58 GB failure on this nearly full workstation.
+
+- [x] Read issue, collector/scanner/build flow, project instructions and lessons.
+- [x] Create feature branch and record specification/checkpoint before code.
+- [x] Benchmark the old collector and add meaningful failing regressions.
+- [x] Implement compressed records, bounded traversal and storage controls.
+- [x] Verify exact baseline/head parity and report measured time/disk/memory.
+- [x] Document configuration, limits and diagnostics; bump the patch version.
+- [ ] Run ./format.sh, ./lint.sh and ./test.sh; verify full final-head CI.
+- [ ] Merge PR and deploy from clean main; verify the PyPI release.
+- [ ] Record review evidence and dependency-ordered follow-up issues.
+
+## Review
+
+Planning checkpoint: change the provenance collector first, where #643 measured
+the storage explosion. No performance or full-corpus fit claim until measured.
+
+Two fresh-process trials of each revision used the first 100,000 logical IEDB
+rows, identical source payloads and a deterministic 80,000-root graph with
+30,000/100,000-row parity comparisons (all columns, including exact JSON text).
+This measures contributor capture/export, not scientific classification or a
+full-corpus rebuild. Baseline database: 407,969,792 bytes; new: 118,153,216 bytes
+(-71%). Peak process RSS: 395,182,080–395,427,840 bytes versus
+252,313,600–253,100,032 (-36%). Output: 23,775,314 versus 7,652,532 bytes (-68%).
+Capture: 3.90–4.08 versus 5.76–5.77 seconds; export: 4.37–4.65 versus 2.15
+seconds. Compression trades capture CPU for space; total collector time is
+only modestly faster (8.27–8.73 versus 7.91–7.92 seconds).
+
+Independent graph-oracle tests cover cycles, duplicate edges, multiple labels
+and relation paths across batch sizes 1, 7 and 256. SQLite bytecode checks find
+no implicit sorter, ephemeral table or automatic index in traversal/export.
+Real max_page_count exhaustion and injected filesystem/progress failures retain
+old output and remove owned scratch/partials. Large Unicode rows round-trip
+within a 256 KiB scratch cap. The collector now writes Zstandard Parquet and
+checks both scratch and output filesystems. Fresh-index reuse skips scratch.
+
+Focused scanner/build suite: 85 passed; expanded collector suite: 19 passed.
+Format/lint pass. Version 1.64.8 editable-install audit passes in the isolated
+repository environment. Local ./test.sh refused before tests: 0.19 GiB free
+versus the required 2.5 GiB for one worker. Do not override that guard; full
+verification and release use the existing CI workflows with memory preflights.
+
+Filed #645 for the pre-existing non-atomic publication of the contributor,
+observation, binding and metadata artifact set. The collector's error translation
+is explicitly limited to failures before its publication, avoiding a false claim
+that later builder failures preserve an already replaced contributor file.
+
+Release re-plan: the first PR release job failed during dependency resolution,
+before tests. Current PyEnsembl main requires gtfparse<3, whereas the workflow
+requires current gtfparse master (3.0.2). Existing openvax/pyensembl#451 records
+this conflict; an uncommitted `deps/gtfparse-3` checkout already exists, so avoid
+changing that work. Keep the development-dependency requirement intact and
+resolve the upstream compatibility blocker before rerunning release validation.
+Final review also limits capacity-error translation to collector SQL/export
+operations, so failures in other build stages keep their original diagnostics.
+
 # Efficient tests, realistic memory budgets and default CTAs (2026-10-05)
 
 ## Specification

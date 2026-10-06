@@ -751,31 +751,8 @@ def build_observations(
         Path to ``observations.parquet`` (the MS index).  The binding
         index is written alongside at ``binding.parquet``.
     """
-    from .provenance import ContributorCollector
-
-    with ContributorCollector() as provenance:
-        return _build_observations(
-            with_flanking,
-            proteome_release,
-            force,
-            fetch_missing_proteomes,
-            use_uniprot_search,
-            build_mappings,
-            provenance,
-        )
-
-
-def _build_observations(
-    with_flanking,
-    proteome_release,
-    force,
-    fetch_missing_proteomes,
-    use_uniprot_search,
-    build_mappings,
-    provenance,
-):
     from .curation import _clear_curation_caches
-    from .provenance import contributors_path, file_digest
+    from .provenance import ContributorCollector
 
     # A rebuild in a long-lived Python process must use the same current
     # curation whose fingerprints will be written into its metadata.
@@ -819,8 +796,37 @@ def _build_observations(
         print("\nUse --force to rebuild.")
         return out_path
 
+    # A fresh cache needs no scratch allocation or disk-space preflight.
+    with ContributorCollector() as provenance:
+        return _build_observations(
+            paths,
+            out_path,
+            binding_out,
+            with_flanking,
+            proteome_release,
+            force,
+            fetch_missing_proteomes,
+            use_uniprot_search,
+            build_mappings,
+            provenance,
+        )
+
+
+def _build_observations(
+    paths,
+    out_path,
+    binding_out,
+    with_flanking,
+    proteome_release,
+    force,
+    fetch_missing_proteomes,
+    use_uniprot_search,
+    build_mappings,
+    provenance,
+):
     import pyarrow as pa
 
+    from .provenance import contributors_path, file_digest
     from .scanner import scan
 
     # Buffer per-source partitions as pyarrow Tables, not pandas frames.

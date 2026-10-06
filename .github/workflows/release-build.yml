@@ -20,6 +20,9 @@ on:
       - tests/conftest.py
       - tests/test_bulk_proteomics.py
       - tests/test_supplement.py
+      - hitlist/provenance.py
+      - hitlist/builder.py
+      - tests/test_provenance.py
 
 permissions:
   contents: read
