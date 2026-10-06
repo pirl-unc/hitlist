@@ -214,7 +214,9 @@ def _expression_links(expression, mappings, level):
     return links
 
 
-def _peptide_summary(mappings, cta_ids, evidence, tissue_risk, *, use_captured_identities=False):
+def _peptide_summary(
+    mappings, cta_ids, evidence, tissue_risk, *, use_captured_identities=False, tissue_policy=None
+):
     summary, annotated = summarize_cta_mappings(
         mappings, cta_ids, use_captured_identities=use_captured_identities
     )
@@ -254,7 +256,10 @@ def _peptide_summary(mappings, cta_ids, evidence, tissue_risk, *, use_captured_i
     tissue = evidence.get("source_tissue", pd.Series("", index=evidence.index))
     donor_status = evidence.get("donor_status", pd.Series("unknown", index=evidence.index))
     unresolved = evidence[
-        benign & primary & _tissue_groups(tissue).ne("") & donor_status.ne("resolved")
+        benign
+        & primary
+        & _tissue_groups(tissue, tissue_policy).ne("")
+        & donor_status.ne("resolved")
     ]
     summary["n_unresolved_essential_tissue_observations"] = (
         summary.peptide.map(unresolved.groupby("peptide").size()).fillna(0).astype(int)
@@ -490,6 +495,7 @@ def verify_evidence_bundle(directory):
             read("presentation"),
             summary,
             use_captured_identities=True,
+            tissue_policy=manifest["policy"],
         )
         _equal_frame(read("peptides"), expected, "peptide specificity and tissue risk")
         _equal_frame(read("mappings"), mappings, "mapping CTA annotations")

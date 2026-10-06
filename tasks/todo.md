@@ -91,8 +91,11 @@ PyEnsembl 2.24.1; dependency validation passes. Hitlist already permits these
 versions. PyEnsembl's separate-session fix is merged. Pandas 2.3.3 compatibility
 was checked in a separate environment. Empty mapping selections exposed #649:
 Arrow compared large_string against an untyped empty set. The reader now returns
-an empty schema-only table without scanning data. Full unit and CI/release checks
-are tracked below; no full local index rebuild is claimed.
+an empty schema-only table without scanning data. The local full `./test.sh` passed (2,611 tests, 1 skipped); final feature checks
+pass on both pandas majors. Format/lint and documentation builds pass. A
+mutation check proves older-bundle verification requires its captured tissue
+policy: removing that argument fails the changed-policy regression. PR #650
+tracks final-head CI and deployment. No full local index rebuild is claimed.
 
 PR #646 merged at 9090611; clean-main release run 37530144788 passed all
 2,576 unit and 96 integration tests. PyPI 1.64.8 wheel/sdist were downloaded

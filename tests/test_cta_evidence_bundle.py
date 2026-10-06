@@ -263,3 +263,36 @@ def test_negative_assay_and_unknown_modality_are_not_positive_ms():
         }
     )
     assert _positive_ms(rows).tolist() == [True, False, True, False, False]
+
+
+def test_verification_uses_captured_tissue_policy_after_installed_policy_changes(
+    mapped_index, reference, atlas_dir, tmp_path, monkeypatch
+):
+    from hitlist import export, tissue_blacklist
+
+    original = export.generate_training_table
+
+    def essential_tissue(**kwargs):
+        frame = original(**kwargs)
+        frame["source_tissue"] = "Heart"
+        frame["src_healthy_tissue"] = True
+        frame["src_cell_line"] = False
+        return frame
+
+    monkeypatch.setattr(export, "generate_training_table", essential_tissue)
+    expression = tmp_path / "expression.tsv"
+    expression.write_text("gene\ttpm\nPRAME\t10\n")
+    target = tmp_path / "portable"
+    write_cta_evidence_bundle(
+        target, expression, atlas_dir=atlas_dir, id_column="gene", tpm_column="tpm"
+    )
+    assert (
+        pd.read_parquet(target / "peptides.parquet")
+        .iloc[0]
+        .n_unresolved_essential_tissue_observations
+        == 2
+    )
+    changed_policy = tissue_blacklist.tissue_blacklist_policy()
+    changed_policy["tissue_groups"]["heart"] = ["Myocardium"]
+    monkeypatch.setattr(tissue_blacklist, "tissue_blacklist_policy", lambda: changed_policy)
+    verify_evidence_bundle(target)
