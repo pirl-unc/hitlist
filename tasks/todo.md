@@ -88,7 +88,10 @@ the complete real CTA/HPA snapshot serializes successfully.
 
 Upgraded the task's isolated environment to pandas 3.0.6, gtfparse 3.0.2,
 PyEnsembl 2.24.1; dependency validation passes. Hitlist already permits these
-versions. PyEnsembl's separate-session fix is merged. Pandas 2.3.3 compatibility
+versions. The committed uv.lock also needed a refresh: it now selects pandas
+3.0.6 on Python >=3.11 (retaining 2.3.3 on older supported Python), gtfparse
+3.0.2, PyEnsembl 2.26.0, datacache 1.16.1 and serializable 1.3.0. Polars
+and simplejson are no longer needed in the locked dependency graph (#648). PyEnsembl's separate-session fix is merged. Pandas 2.3.3 compatibility
 was checked in a separate environment. Empty mapping selections exposed #649:
 Arrow compared large_string against an untyped empty set. The reader now returns
 an empty schema-only table without scanning data. The local full `./test.sh` passed (2,611 tests, 1 skipped); final feature checks
