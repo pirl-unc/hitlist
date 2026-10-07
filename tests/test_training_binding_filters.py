@@ -106,16 +106,16 @@ def test_training_binding_endpoint_selection_preserves_measurements(endpoint_ind
 @pytest.mark.parametrize(
     "filters,selected",
     [
-        ({}, "ACDEFGHIKL"),
+        ({}, "ACDEFGIKL"),
         ({"assay_method": "CELLULAR"}, "L"),
         ({"response_measured": KD.upper()}, "E"),
         ({"response_measured": [IC50, KD]}, "ACDEIK"),
         ({"measurement_units": "NM"}, "ACDEFK"),
         ({"measurement_units": ["nM", "min"]}, "ACDEFGK"),
-        ({"has_quantitative_value": True}, "ACDEFGHI"),
+        ({"has_quantitative_value": True}, "ACDEFGI"),
         ({"has_quantitative_value": False}, "KL"),
         ({"quantitative_value_min": 100.0}, "DE"),
-        ({"quantitative_value_max": 12.5}, "AGHI"),
+        ({"quantitative_value_max": 12.5}, "AGI"),
         ({"response_measured": "IC50"}, ""),
     ],
 )

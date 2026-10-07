@@ -5,7 +5,7 @@
 
 A curated, harmonized, **ML-training-ready** MHC ligand mass-spectrometry dataset.
 
-hitlist ingests immunopeptidome data from [IEDB](https://www.iedb.org/), [CEDAR](https://cedar.iedb.org/), and paper supplementary tables (PRIDE/jPOSTrepo); partitions MS-eluted observations from in-vitro binding-assay measurements into two separate parquet files (so downstream consumers never silently conflate them); joins every MS observation to expert-curated sample metadata (HLA genotype, tissue, disease, perturbation, instrument); and ships both indexes as parquet + a pandas-friendly Python API.
+hitlist ingests immunopeptidome data from [IEDB](https://www.iedb.org/), [CEDAR](https://cedar.iedb.org/), and paper supplementary tables (PRIDE/jPOSTrepo); partitions positive MS observations, binding measurements, and other assays into separate parquet files; joins every MS observation to expert-curated sample metadata (HLA genotype, tissue, disease, perturbation, instrument); and ships the indexes as parquet + a pandas-friendly Python API.
 
 ## What's in the two indexes
 
@@ -30,7 +30,7 @@ After `hitlist build observations` (snapshot of the shipping 1.10.x default buil
 | **Total binding rows** (peptide microarray, refolding, MEDi, qualitative-tier) | **895,785** |
 | **Unique peptides** | **258,199** |
 
-The two indexes share the schema (including gene annotations from the peptide-mappings sidecar), but supplementary curation is MS-only — binding is pure IEDB/CEDAR.
+Since 1.66.0, `other_assays.parquet` retains structural, non-MS ligand, unknown/conflicting and negative-MS evidence. All three partitions share the peptide-mapping sidecar. The historical counts above predate this correction; rebuild on upgrade. See [assay modality and MS admission](docs/assay-modality.md).
 
 ### Human MHC-I breakdown
 

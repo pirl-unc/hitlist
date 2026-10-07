@@ -170,3 +170,7 @@ Input changes during export cause failure. The manifest is published last;
 consumers must require it and verify the bundle before use. Gene/transcript
 resolution and the peptide reference only establish specificity within the
 recorded reference release, not all possible patient variants or unannotated ORFs.
+
+Assay admission and migration are documented in [assay modality](assay-modality.md).
+New bundles retain binding/other assays as excluded evidence with provenance and
+record MS policy version 2; these records never contribute to presentation counts.

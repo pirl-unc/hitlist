@@ -73,7 +73,7 @@ def _write_obs_fixture(tmp_path, rows):
             values = df[column].astype("object").fillna("").to_numpy(dtype=object)
             df[column] = pd.Categorical(values, categories=sorted(set(values) | {""}))
     path = tmp_path / "observations.parquet"
-    df.to_parquet(path, index=False)
+    df.assign(assay_method="mass spectrometry").to_parquet(path, index=False)
     return path
 
 
@@ -1016,7 +1016,7 @@ def test_discrepancies_by_sample_groups_per_cell_name(tmp_path, monkeypatch):
         ]
     )
     obs_path = tmp_path / "observations.parquet"
-    pd.DataFrame(rows).to_parquet(obs_path, index=False)
+    pd.DataFrame(rows).assign(assay_method="mass spectrometry").to_parquet(obs_path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
     monkeypatch.setattr("hitlist.curation.load_pmid_overrides", lambda: {})
     monkeypatch.setattr("hitlist.qc.load_pmid_overrides", lambda: {})
@@ -1043,7 +1043,7 @@ def test_discrepancies_by_sample_no_cell_name_falls_back_to_placeholder(tmp_path
         _disc_fixture_row(f"P{i:09d}", "I", 9, mhc_restriction="HLA-A*02:01") for i in range(60)
     ]
     obs_path = tmp_path / "observations.parquet"
-    pd.DataFrame(rows).to_parquet(obs_path, index=False)
+    pd.DataFrame(rows).assign(assay_method="mass spectrometry").to_parquet(obs_path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
     monkeypatch.setattr("hitlist.curation.load_pmid_overrides", lambda: {})
     monkeypatch.setattr("hitlist.qc.load_pmid_overrides", lambda: {})

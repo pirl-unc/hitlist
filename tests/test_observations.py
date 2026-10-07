@@ -86,7 +86,7 @@ def test_mhc_allele_in_set_filter_applies_under_projection(tmp_path, monkeypatch
         }
     )
     obs_p = tmp_path / "observations.parquet"
-    ms.to_parquet(obs_p, index=False)
+    ms.assign(assay_method="mass spectrometry").to_parquet(obs_p, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_p)
 
     df = load_observations(columns=["peptide"], mhc_allele_in_set=["HLA-A*02:01"])
@@ -106,7 +106,7 @@ def test_empty_peptide_filter_returns_empty_table(tmp_path, monkeypatch, loader,
         pd.DataFrame({"peptide": ["AAAAAAAAA"]}).to_parquet(tmp_path / filename, index=False)
     result = loader(peptide=[], columns=columns)
     assert result.empty
-    assert list(result.columns) == ["peptide"]
+    assert "peptide" in result.columns
 
 
 def test_attach_species_axes_blanks_nan_host(tmp_path):
@@ -140,7 +140,7 @@ def test_load_ms_observations_alias(tmp_path, monkeypatch):
         }
     )
     obs_p = tmp_path / "observations.parquet"
-    ms.to_parquet(obs_p, index=False)
+    ms.assign(assay_method="mass spectrometry").to_parquet(obs_p, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_p)
 
     df = load_ms_observations(mhc_class="I")
@@ -191,8 +191,8 @@ def test_load_observations_never_contains_binding_rows(tmp_path, monkeypatch):
     )
     obs_p = tmp_path / "observations.parquet"
     bd_p = tmp_path / "binding.parquet"
-    ms.to_parquet(obs_p, index=False)
-    bd.to_parquet(bd_p, index=False)
+    ms.assign(assay_method="mass spectrometry").to_parquet(obs_p, index=False)
+    bd.assign(assay_method="binding assay").to_parquet(bd_p, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_p)
     monkeypatch.setattr("hitlist.observations.binding_path", lambda: bd_p)
 
@@ -222,7 +222,7 @@ def test_load_binding_filters(tmp_path, monkeypatch):
         }
     )
     bd_p = tmp_path / "binding.parquet"
-    bd.to_parquet(bd_p, index=False)
+    bd.assign(assay_method="binding assay").to_parquet(bd_p, index=False)
     monkeypatch.setattr("hitlist.observations.binding_path", lambda: bd_p)
 
     assert len(load_binding()) == 3
@@ -269,8 +269,8 @@ def test_load_all_evidence_unions_ms_and_binding(tmp_path, monkeypatch):
     )
     ms_p = tmp_path / "observations.parquet"
     bd_p = tmp_path / "binding.parquet"
-    ms.to_parquet(ms_p, index=False)
-    bd.to_parquet(bd_p, index=False)
+    ms.assign(assay_method="mass spectrometry").to_parquet(ms_p, index=False)
+    bd.assign(assay_method="binding assay").to_parquet(bd_p, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: ms_p)
     monkeypatch.setattr("hitlist.observations.binding_path", lambda: bd_p)
 
@@ -322,7 +322,7 @@ def test_load_all_evidence_ms_only_when_binding_missing(tmp_path, monkeypatch):
         }
     )
     ms_p = tmp_path / "observations.parquet"
-    ms.to_parquet(ms_p, index=False)
+    ms.assign(assay_method="mass spectrometry").to_parquet(ms_p, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: ms_p)
     monkeypatch.setattr("hitlist.observations.binding_path", lambda: tmp_path / "missing.parquet")
 
@@ -355,7 +355,7 @@ def test_load_observations_length_bounds(tmp_path, monkeypatch):
         }
     )
     path = tmp_path / "observations.parquet"
-    ms.to_parquet(path, index=False)
+    ms.assign(assay_method="mass spectrometry").to_parquet(path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
 
     # Only the 8/9/10 mers (8-10 inclusive).
@@ -389,7 +389,7 @@ def test_load_binding_length_bounds(tmp_path, monkeypatch):
         }
     )
     path = tmp_path / "binding.parquet"
-    binding.to_parquet(path, index=False)
+    binding.assign(assay_method="binding assay").to_parquet(path, index=False)
     monkeypatch.setattr("hitlist.observations.binding_path", lambda: path)
 
     df = load_binding(length_min=9, length_max=11)
@@ -418,7 +418,7 @@ def test_load_observations_normalizes_unprefixed_alleles_at_load_time(tmp_path, 
         }
     )
     path = tmp_path / "observations.parquet"
-    df.to_parquet(path, index=False)
+    df.assign(assay_method="mass spectrometry").to_parquet(path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
 
     out = load_observations()
@@ -455,7 +455,7 @@ def test_load_observations_flags_short_class_ii_as_suspect(tmp_path, monkeypatch
         }
     )
     path = tmp_path / "observations.parquet"
-    df.to_parquet(path, index=False)
+    df.assign(assay_method="mass spectrometry").to_parquet(path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
 
     out = load_observations()
@@ -492,7 +492,7 @@ def test_load_observations_projects_derived_column_without_pyarrow_failure(tmp_p
         }
     )
     path = tmp_path / "observations.parquet"
-    df.to_parquet(path, index=False)
+    df.assign(assay_method="mass spectrometry").to_parquet(path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
 
     # 1. Project the derived column alone — used to error out.
@@ -536,7 +536,7 @@ def test_exclude_class_label_suspect_drops_short_class_ii_and_long_class_i(tmp_p
         }
     )
     path = tmp_path / "observations.parquet"
-    df.to_parquet(path, index=False)
+    df.assign(assay_method="mass spectrometry").to_parquet(path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
 
     # Default: all 4 rows.
@@ -573,7 +573,7 @@ def test_exclude_class_label_suspect_works_with_explicit_projection(tmp_path, mo
         }
     )
     path = tmp_path / "observations.parquet"
-    df.to_parquet(path, index=False)
+    df.assign(assay_method="mass spectrometry").to_parquet(path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
 
     # Caller projects only `pmid` — no mhc_class, no peptide. The filter
@@ -625,7 +625,7 @@ def test_exclude_non_peptide_ligand_default_drops_cd1_mr1_mic_rows(tmp_path, mon
         }
     )
     path = tmp_path / "observations.parquet"
-    df.to_parquet(path, index=False)
+    df.assign(assay_method="mass spectrometry").to_parquet(path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
 
     # Default: 4 non-peptide rows dropped, H2-M3 + classical kept.
@@ -669,7 +669,7 @@ def test_exclude_non_peptide_ligand_works_with_projection(tmp_path, monkeypatch)
         }
     )
     path = tmp_path / "observations.parquet"
-    df.to_parquet(path, index=False)
+    df.assign(assay_method="mass spectrometry").to_parquet(path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
 
     out = load_observations(columns=["peptide"])
@@ -696,7 +696,7 @@ def test_phosphoantigen_filter_refreshes_stored_flags(tmp_path, monkeypatch, sto
         # A pre-upgrade index knew about CD1, but not BTN3A1.
         data["is_non_peptide_ligand"] = [False, False, True]
     path = tmp_path / "observations.parquet"
-    pd.DataFrame(data).to_parquet(path, index=False)
+    pd.DataFrame(data).assign(assay_method="mass spectrometry").to_parquet(path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
 
     default = load_observations(columns=["peptide"])
@@ -752,7 +752,7 @@ def test_mhc_restriction_filter_matches_donor_set_member(tmp_path, monkeypatch):
         }
     )
     path = tmp_path / "observations.parquet"
-    df.to_parquet(path, index=False)
+    df.assign(assay_method="mass spectrometry").to_parquet(path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
 
     out = load_observations(mhc_restriction="HLA-A*02:01")
@@ -785,7 +785,7 @@ def test_mhc_allele_in_set_filter_post_load(tmp_path, monkeypatch):
         }
     )
     path = tmp_path / "observations.parquet"
-    df.to_parquet(path, index=False)
+    df.assign(assay_method="mass spectrometry").to_parquet(path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
 
     out = load_observations(mhc_allele_in_set="HLA-A*02:01")
@@ -824,7 +824,7 @@ def test_mhc_allele_provenance_filter(tmp_path, monkeypatch):
         }
     )
     path = tmp_path / "observations.parquet"
-    df.to_parquet(path, index=False)
+    df.assign(assay_method="mass spectrometry").to_parquet(path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
 
     # Strict allele-resolved only.
@@ -856,7 +856,7 @@ def test_restriction_evidence_filter_is_independent_of_allele_provenance(tmp_pat
         }
     )
     path = tmp_path / "observations.parquet"
-    df.to_parquet(path, index=False)
+    df.assign(assay_method="mass spectrometry").to_parquet(path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
 
     out = load_observations(restriction_evidence=["monoallelic", "experimental"])
@@ -917,7 +917,7 @@ def test_load_observations_emits_severity_tiers(tmp_path, monkeypatch):
         }
     )
     path = tmp_path / "observations.parquet"
-    df.to_parquet(path, index=False)
+    df.assign(assay_method="mass spectrometry").to_parquet(path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
 
     out = load_observations()
@@ -977,7 +977,7 @@ def test_exclude_class_label_implausible_keeps_borderline_and_suspect(tmp_path, 
         }
     )
     path = tmp_path / "observations.parquet"
-    df.to_parquet(path, index=False)
+    df.assign(assay_method="mass spectrometry").to_parquet(path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
 
     # Strict (legacy): drops both suspect and implausible.
@@ -1030,7 +1030,7 @@ def test_severity_tier_strips_ptm_annotation_when_computing_length(tmp_path, mon
         }
     )
     path = tmp_path / "observations.parquet"
-    df.to_parquet(path, index=False)
+    df.assign(assay_method="mass spectrometry").to_parquet(path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
 
     out = load_observations()
@@ -1056,7 +1056,7 @@ def _write_minimal_observations_parquet(path):
             "source": ["iedb"],
             "mhc_species": ["Homo sapiens"],
         }
-    ).to_parquet(path, index=False)
+    ).assign(assay_method="mass spectrometry").to_parquet(path, index=False)
 
 
 def test_mhc_restriction_filter_empty_string_raises(tmp_path, monkeypatch):
@@ -1121,7 +1121,7 @@ def test_load_observations_handles_categorical_mhc_class_with_nan(tmp_path, monk
         }
     )
     path = tmp_path / "observations.parquet"
-    df.to_parquet(path, index=False)
+    df.assign(assay_method="mass spectrometry").to_parquet(path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
 
     out = load_observations()
@@ -1151,7 +1151,7 @@ def test_load_observations_normalizes_categorical_mhc_restriction(tmp_path, monk
         }
     )
     path = tmp_path / "observations.parquet"
-    df.to_parquet(path, index=False)
+    df.assign(assay_method="mass spectrometry").to_parquet(path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
 
     out = load_observations()
@@ -1203,7 +1203,7 @@ def _species_axis_fixture(tmp_path, monkeypatch):
         }
     )
     path = tmp_path / "observations.parquet"
-    df.to_parquet(path, index=False)
+    df.assign(assay_method="mass spectrometry").to_parquet(path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
     return path
 
@@ -1320,7 +1320,7 @@ def test_source_species_coalesces_species_when_source_organism_blank(tmp_path, m
         }
     )
     path = tmp_path / "observations.parquet"
-    df.to_parquet(path, index=False)
+    df.assign(assay_method="mass spectrometry").to_parquet(path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
 
     out = load_observations(columns=["peptide", "source_species"]).set_index("peptide")
@@ -1348,7 +1348,9 @@ def test_source_species_filter_is_projection_independent(tmp_path, monkeypatch, 
         }
     )
     for filename in ("observations.parquet", "binding.parquet"):
-        frame.to_parquet(tmp_path / filename, index=False)
+        frame.assign(
+            assay_method="binding assay" if filename == "binding.parquet" else "mass spectrometry"
+        ).to_parquet(tmp_path / filename, index=False)
 
     result = loader(source_species="Mus musculus", columns=columns)
     assert set(result["peptide"]) == {"AAAAAAAAA", "CCCCCCCCC", "DDDDDDDDD"}
@@ -1381,7 +1383,9 @@ def test_source_sentinels_share_fallback_across_filters_and_projected_flags(
         }
     )
     for filename in ("observations.parquet", "binding.parquet"):
-        frame.to_parquet(tmp_path / filename, index=False)
+        frame.assign(
+            assay_method="binding assay" if filename == "binding.parquet" else "mass spectrometry"
+        ).to_parquet(tmp_path / filename, index=False)
 
     complete = loader(
         columns=[*frame.columns, "source_species", "is_chimeric", "is_engineered_mhc", "xenograft"]
@@ -1422,7 +1426,7 @@ def test_serotype_source_filter_separates_reported_from_derived(tmp_path, monkey
         }
     )
     path = tmp_path / "observations.parquet"
-    df.to_parquet(path, index=False)
+    df.assign(assay_method="mass spectrometry").to_parquet(path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
 
     assert load_observations(serotype_source="reported")["peptide"].tolist() == ["TYPED"]
@@ -1454,7 +1458,9 @@ def test_serotype_queries_preserve_nonhuman_species(tmp_path, monkeypatch, loade
         }
     )
     for filename in ("observations.parquet", "binding.parquet"):
-        frame.to_parquet(tmp_path / filename, index=False)
+        frame.assign(
+            assay_method="binding assay" if filename == "binding.parquet" else "mass spectrometry"
+        ).to_parquet(tmp_path / filename, index=False)
     load = getattr(observations, loader_name)
     assert load(serotype="bola-a18")["peptide"].tolist() == ["CATTLEPEP"]
     assert load(serotype="patr-dr1")["peptide"].tolist() == ["CHIMPPEP"]

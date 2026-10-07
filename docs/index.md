@@ -10,13 +10,14 @@ paper supplementary tables.
 hitlist scans the raw exports, **fills missing provenance** and **corrects
 mislabels** from expert per-study curation, **classifies every observation by
 biological source** (cancer tissue, healthy tissue, cell line, tumor-adjacent,
-EBV-LCL, …), partitions MS-elution evidence from in-vitro binding into two
+EBV-LCL, …), partitions positive MS, binding, and other assays into three
 separate parquet files, maps peptides to source proteins with flanking context,
 and ships everything as parquet plus a pandas-friendly Python API. The curation
 overrides and classification rules are YAML data files, not hardcoded Python.
 
 New here? Start with **[How curation works](curation-process.md)** for the
-end-to-end pipeline and the ideas behind it.
+end-to-end pipeline and the ideas behind it. See [assay modality](assay-modality.md)
+for MS admission and migration after #644.
 
 ## Install
 

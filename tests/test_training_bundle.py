@@ -17,7 +17,7 @@ from tests.test_scanner import _write_tiny_iedb_csv
 
 
 @pytest.fixture
-def built_index(tmp_path, monkeypatch, _isolated_curation_root):
+def built_index(tmp_path, monkeypatch, _isolated_curation_root, request):
     from hitlist import builder, downloads, supplement
     from hitlist.parquet_io import atomic_write_parquet
 
@@ -25,12 +25,18 @@ def built_index(tmp_path, monkeypatch, _isolated_curation_root):
     (_isolated_curation_root / "pmid_overrides.yaml").write_text("[]\n")
     monkeypatch.setattr(downloads, "_override_data_dir", indexes)
     source = tmp_path / "iedb.csv"
+    extra_rows = []
+    if getattr(request, "param", False):
+        structural = _row("http://iedb.org/assay/3")
+        structural[22], structural[23] = "x-ray crystallography", "3D structure"
+        extra_rows.append(structural)
     _write_tiny_iedb_csv(
         source,
         [
             _row("http://iedb.org/assay/1"),
             _row("http://iedb.org/assay/1", "source copy"),
             _row("http://iedb.org/assay/2", "independent"),
+            *extra_rows,
         ],
     )
     downloads.register("iedb", source)

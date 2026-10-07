@@ -25,6 +25,7 @@ def _write_obs_fixture(tmp_path):
     df = pd.DataFrame(
         {
             "peptide": ["AAAAAAAAA", "BBBBBBBBB"],
+            "assay_method": ["mass spectrometry"] * 2,
             "pmid": [1, 2],
             "mhc_class": ["I", "I"],
             "mhc_restriction": ["HLA-A*02:01", "HLA-B*07:02"],
@@ -77,6 +78,7 @@ def test_run_report_from_csv_uses_scanner(tmp_path, monkeypatch):
         return pd.DataFrame(
             {
                 "peptide": ["X"],
+                "assay_method": ["mass spectrometry"],
                 "pmid": [1],
                 "mhc_class": ["I"],
                 "mhc_restriction": ["HLA-A*02:01"],
@@ -110,6 +112,7 @@ def test_drop_excluded_ms_rows_only_drops_ms_rows_for_excluded_pmids(monkeypatch
             "pmid": [100, 100, 200],
             "peptide": ["MSDROPPED", "BINDINGKEPT", "MSKEPT"],
             "is_binding_assay": [False, True, False],
+            "assay_method": ["mass spectrometry", "binding assay", "mass spectrometry"],
         }
     )
     out = report_mod._drop_excluded_ms_rows(df)
@@ -156,6 +159,7 @@ def test_run_report_from_csv_drops_excluded_ms_rows(monkeypatch):
                 "src_cancer": [False] * 3,
                 "src_healthy_tissue": [False] * 3,
                 "is_binding_assay": [False, True, False],
+                "assay_method": ["mass spectrometry", "binding assay", "mass spectrometry"],
             }
         )
 
@@ -171,7 +175,7 @@ def test_run_report_from_csv_drops_excluded_ms_rows(monkeypatch):
     monkeypatch.setattr(report_mod, "generate_report", fake_generate_report)
 
     report_mod.run_report(from_csv=True)
-    assert sorted(captured["df"]["peptide"]) == ["KEPTBINDING", "KEPTMS"]
+    assert sorted(captured["df"]["peptide"]) == ["KEPTMS"]
 
 
 def test_run_report_no_observations_parquet_prints_hint(tmp_path, monkeypatch, capsys):

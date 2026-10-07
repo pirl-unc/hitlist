@@ -78,6 +78,8 @@ _PUBLIC_API: dict[str, str] = {
     "load_ms_observations": ".observations",
     "load_observations": ".observations",
     "load_binding": ".observations",
+    "load_other_assays": ".observations",
+    "assay_annotations": ".assays",
     "load_all_evidence": ".observations",
     # Curated MHC typing. `sample_alleles_for_pmid` is the sample-level
     # answer, available for every study; the peptide-level functions below

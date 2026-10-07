@@ -12,7 +12,7 @@
 
 """Load the built peptide indexes with optional filters.
 
-Two parallel parquet indexes are built by
+Three parallel parquet indexes are built by
 :func:`hitlist.builder.build_observations`:
 
 - ``observations.parquet`` — MS-eluted immunopeptidome rows (IEDB +
@@ -22,9 +22,10 @@ Two parallel parquet indexes are built by
   microarray, quantitative-tier measurements).  Load with
   :func:`load_binding`.
 
-The two indexes share the same schema but are never mixed: MS and
-binding data go to separate files so downstream consumers cannot
-accidentally conflate them.  Only the MS index gets supplementary
+- ``other_assays.parquet`` — structural, non-MS ligand, unknown/conflicting,
+  and negative-MS evidence. Load with :func:`load_other_assays`.
+
+The indexes share the same schema but keep evidence modalities separate.  Only the MS index gets supplementary
 data and sample-level metadata joins (see :mod:`hitlist.export`).
 
 Usage::
@@ -149,6 +150,20 @@ def _load_attribution_context(pmids) -> pd.DataFrame:
 def binding_path() -> Path:
     """Path to the binding-assay parquet file."""
     return data_dir() / "binding.parquet"
+
+
+def other_assays_path() -> Path:
+    """Path to retained structural, non-MS ligand, unknown and negative-MS assays."""
+    return data_dir() / "other_assays.parquet"
+
+
+def load_other_assays(**filters) -> pd.DataFrame:
+    """Load other assays with the same keyword filters as load_observations.
+
+    Retains assay_modality and raw method/response/polarity fields. These rows
+    are excluded from the MS/binding training union. A rebuilt index is required.
+    """
+    return _load_peptide_index(other_assays_path(), index_name="Other assays", **filters)
 
 
 def is_built() -> bool:
@@ -456,17 +471,17 @@ def load_all_evidence(
     exclude_non_peptide_ligand: bool = True,
     columns: list[str] | None = None,
 ) -> pd.DataFrame:
-    """Union of MS observations + binding assays with an ``evidence_kind`` column.
+    """Union of MS, binding and other assays with an ``evidence_kind`` column.
 
-    Applies the same filters to both indexes, tags each row with
-    ``evidence_kind ∈ {"ms", "binding"}``, and concatenates.  Missing
+    Applies the same filters to all indexes, tags each row with
+    ``evidence_kind ∈ {"ms", "binding", "other"}``, and concatenates.  Missing
     indexes are silently skipped — the result is whatever has been built
     (both, one, or empty).
 
     Filter semantics match :func:`load_observations`.  Column projection
     via ``columns=`` will always also include ``evidence_kind`` in the
     output, even if not listed, so downstream consumers can always tell
-    the two row populations apart.
+    the evidence populations apart.
 
     Returns
     -------
@@ -508,6 +523,11 @@ def load_all_evidence(
         binding["evidence_kind"] = "binding"
         parts.append(binding)
 
+    if other_assays_path().exists():
+        other = load_other_assays(**kwargs)
+        other["evidence_kind"] = "other"
+        parts.append(other)
+
     if not parts:
         return pd.DataFrame({"evidence_kind": pd.Series(dtype=str)})
     return pd.concat(parts, ignore_index=True, sort=False)
@@ -518,6 +538,16 @@ def load_all_evidence(
 # caller-supplied ``columns=[...]`` projection can pull the deps in
 # (otherwise pyarrow rejects the pushdown with "No match for FieldRef").
 _DERIVED_COLUMN_DEPS: dict[str, tuple[str, ...]] = {
+    **dict.fromkeys(
+        ("assay_modality", "assay_modality_source", "is_ms_observation", "is_binding_assay"),
+        (
+            "assay_method",
+            "response_measured",
+            "source",
+            "qualitative_measurement",
+            "assay_comments",
+        ),
+    ),
     "mhc_class_label_suspect": ("mhc_class", "peptide"),
     "mhc_class_label_severity": ("mhc_class", "peptide"),
     # Stored at scan time post-#228, but recomputable from
@@ -701,27 +731,27 @@ def _load_peptide_index(
     path: Path,
     *,
     index_name: str,
-    mhc_class: str | None,
-    species: str | None,
+    mhc_class: str | None = None,
+    species: str | None = None,
     source_species: str | list[str] | None = None,
     host_species: str | list[str] | None = None,
     exclude_chimeric: bool = False,
-    source: str | None,
-    mhc_restriction: str | list[str] | None,
-    mhc_allele_in_set: str | list[str] | None,
-    mhc_allele_provenance: str | list[str] | None,
-    restriction_evidence: str | list[str] | None,
-    serotype_source: str | list[str] | None,
-    gene_name: str | list[str] | None,
-    gene_id: str | list[str] | None,
-    peptide: str | list[str] | None,
-    serotype: str | list[str] | None,
-    length_min: int | None,
-    length_max: int | None,
-    exclude_class_label_suspect: bool,
-    exclude_class_label_implausible: bool,
-    exclude_non_peptide_ligand: bool,
-    columns: list[str] | None,
+    source: str | None = None,
+    mhc_restriction: str | list[str] | None = None,
+    mhc_allele_in_set: str | list[str] | None = None,
+    mhc_allele_provenance: str | list[str] | None = None,
+    restriction_evidence: str | list[str] | None = None,
+    serotype_source: str | list[str] | None = None,
+    gene_name: str | list[str] | None = None,
+    gene_id: str | list[str] | None = None,
+    peptide: str | list[str] | None = None,
+    serotype: str | list[str] | None = None,
+    length_min: int | None = None,
+    length_max: int | None = None,
+    exclude_class_label_suspect: bool = False,
+    exclude_class_label_implausible: bool = False,
+    exclude_non_peptide_ligand: bool = True,
+    columns: list[str] | None = None,
 ) -> pd.DataFrame:
     """Shared loader for the observations and binding parquets.
 
@@ -869,7 +899,7 @@ def _load_peptide_index(
         kept: list[str] = []
         for c in read_columns:
             if c in _DERIVED_COLUMN_DEPS and (
-                c not in parquet_columns or c == "is_non_peptide_ligand"
+                c not in parquet_columns or c in {"is_non_peptide_ligand", "is_binding_assay"}
             ):
                 requested_derived.append(c)
                 for dep in _DERIVED_COLUMN_DEPS[c]:
@@ -921,7 +951,38 @@ def _load_peptide_index(
         # ``df.columns`` themselves (mirrors the no-filter path above).
         read_columns = [c for c in kept if c in parquet_columns]
 
-    df = pd.read_parquet(path, columns=read_columns, filters=filters if filters else None)
+    from .assays import assay_expression
+
+    predicate = pq.filters_to_expression(filters) if filters else None
+    kind = {"Observations": "ms", "Binding": "binding"}.get(index_name)
+    if kind:
+        modality = assay_expression(parquet_columns, kind)
+        predicate = modality if predicate is None else predicate & modality
+    df = pd.read_parquet(path, columns=read_columns, filters=predicate)
+    # Arrow has already established admission, including for projected legacy
+    # reads. Recompute annotations only when they are requested or unstored.
+    from .assays import ANNOTATION_COLUMNS, annotate_assays
+
+    if columns is None or set(columns) & set(ANNOTATION_COLUMNS):
+        if kind == "ms":
+            df["assay_modality"] = "ms"
+            df["is_ms_observation"] = True
+            df["is_binding_assay"] = False
+            if "assay_modality_source" not in df:
+                method = df.get("assay_method", pd.Series("", index=df.index))
+                df["assay_modality_source"] = "assay_method"
+                df.loc[
+                    method.astype("string").fillna("").str.strip().eq(""), "assay_modality_source"
+                ] = "curated_ms_supplement"
+        elif not set(ANNOTATION_COLUMNS) <= set(df):
+            annotate_assays(df)
+            if kind == "binding":
+                legacy = df.assay_modality.ne("binding")
+                df["assay_modality_source"] = df.assay_modality_source.astype("string")
+                df.loc[legacy, "assay_modality_source"] = "legacy_binding_flag"
+                df["assay_modality"] = "binding"
+                df["is_binding_assay"] = True
+                df["is_ms_observation"] = False
     df = _repair_scoped_peptide_attributions(df)
 
     # Refresh only derived identities. Reported restrictions stay intact,

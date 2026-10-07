@@ -148,7 +148,7 @@ def test_observation_join_keeps_mutant_and_wild_type_arms_distinct(
             }
             for label, allele in arms.items()
         ]
-    ).to_parquet(path, index=False)
+    ).assign(assay_method="mass spectrometry").to_parquet(path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
 
     result = generate_ms_observations_table().set_index("mhc_restriction")

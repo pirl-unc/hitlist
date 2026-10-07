@@ -78,7 +78,7 @@ _IEDB_FIELD_HEADER = [
 def _write_synthetic_iedb(path) -> None:
     rows = []
     for i in range(20):
-        r = [""] * 21
+        r = [""] * len(_IEDB_FIELD_HEADER)
         r[0] = f"http://iedb.org/assay/{1000 + i}"
         r[1] = f"http://iedb.org/reference/{i % 5}"
         r[2] = str(33858848 + i % 3)
@@ -95,6 +95,8 @@ def _write_synthetic_iedb(path) -> None:
             r[18] = "Direct Ex Vivo"
         r[19] = "HLA-A*02:01"
         r[20] = "I"
+        r[21] = "mass spectrometry"
+        r[22] = "ligand presentation"
         rows.append(r)
     with open(path, "w", newline="") as f:
         w = csv.writer(f)

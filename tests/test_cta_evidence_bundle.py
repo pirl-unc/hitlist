@@ -342,3 +342,44 @@ def test_bundle_api_infers_columns_from_explicit_file(mapped_index, reference, a
         "tpm_column": True,
         "level": True,
     }
+
+
+def test_ms_policy_version_is_explicit_and_legacy_bundles_remain_verifiable(
+    mapped_index, reference, atlas_dir, tmp_path
+):
+    expression = tmp_path / "expression.tsv"
+    expression.write_text("gene\ttpm\nPRAME\t10\n")
+    target = tmp_path / "evidence"
+    write_cta_evidence_bundle(
+        target, expression, atlas_dir=atlas_dir, id_column="gene", tpm_column="tpm"
+    )
+    path = target / "manifest.json"
+    manifest = json.loads(path.read_text())
+    assert manifest.pop("ms_policy_version") == 2
+    path.write_text(json.dumps(manifest))
+    verify_evidence_bundle(target)
+    manifest["ms_policy_version"] = 999
+    path.write_text(json.dumps(manifest))
+    with pytest.raises(ValueError, match="Unsupported MS evidence policy"):
+        verify_evidence_bundle(target)
+
+
+@pytest.mark.parametrize("built_index", [True], indirect=True)
+def test_built_structural_evidence_is_exported_with_contributors(
+    mapped_index, reference, atlas_dir, tmp_path
+):
+    expression = tmp_path / "expression.tsv"
+    expression.write_text("gene\ttpm\nPRAME\t10\n")
+    target = tmp_path / "evidence"
+    write_cta_evidence_bundle(
+        target, expression, atlas_dir=atlas_dir, id_column="gene", tpm_column="tpm"
+    )
+    manifest = verify_evidence_bundle(target)
+    assert manifest["ms_policy_version"] == 2
+    assert len(pd.read_parquet(target / "presentation.parquet")) == 2
+    excluded = pd.read_parquet(target / "excluded_observations.parquet")
+    assert excluded.assay_modality.tolist() == ["structural"]
+    assert excluded.evidence_kind.tolist() == ["other"]
+    assert excluded.assay_iri.tolist() == ["http://iedb.org/assay/3"]
+    assert len(pd.read_parquet(target / "contributors.parquet")) == 4
+    assert pd.read_parquet(target / "peptides.parquet").iloc[0].n_ms_observations == 2

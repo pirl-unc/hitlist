@@ -23,9 +23,11 @@ context, and writes TWO parquet indexes to the data directory
 - ``binding.parquet`` — binding-assay rows (peptide microarray,
   refolding, MEDi, and quantitative-tier measurements).
 
-The two indexes are never mixed.  Supplementary data is MS-only and
-only contributes to observations.parquet.  Both indexes carry the
-same gene/protein annotations from the peptide-mappings sidecar.
+- ``other_assays.parquet`` — structural, non-MS ligand, unknown/conflicting
+  assays and explicit negative MS results, retained with source contributors.
+
+Modality is independent of result polarity. Curated supplements are MS-only.
+All three indexes use the same peptide-mappings sidecar.
 
 Usage::
 
@@ -68,7 +70,8 @@ from .parquet_io import atomic_write_parquet, concat_non_empty
 #: 6: Peptide-to-patient maps respect source-cohort restrictions (#534),
 #:    preventing false labels and donor copies of monoallelic observations.
 #: 7: Every retained observation links to all contributors before deduplication.
-_OBSERVATIONS_ARTIFACT_VERSION = 8
+#: 9: Positive MS modality, separate other-assay retention and provenance (#644).
+_OBSERVATIONS_ARTIFACT_VERSION = 9
 
 
 def _source_paths() -> dict[str, Path]:
@@ -212,6 +215,10 @@ def _binding_path() -> Path:
     return data_dir() / "binding.parquet"
 
 
+def _other_assays_path() -> Path:
+    return data_dir() / "other_assays.parquet"
+
+
 def _bulk_proteomics_path() -> Path:
     return data_dir() / "bulk_proteomics.parquet"
 
@@ -235,6 +242,7 @@ def _parquet_fingerprints() -> dict:
     for label, p in (
         ("observations", _observations_path()),
         ("binding", _binding_path()),
+        ("other_assays", _other_assays_path()),
         ("bulk_proteomics", _bulk_proteomics_path()),
         ("line_expression", _line_expression_path()),
         ("contributors", data_dir() / "observation_contributors.parquet"),
@@ -265,6 +273,8 @@ def _cache_is_valid(
     if not _observations_path().exists():
         return False
     if not _binding_path().exists():
+        return False
+    if not _other_assays_path().exists():
         return False
     if not _bulk_proteomics_path().exists():
         return False
@@ -368,6 +378,8 @@ _CATEGORICAL_BUILD_COLUMNS: tuple[str, ...] = (
     "cell_type",
     "culture_condition",
     "assay_method",
+    "assay_modality",
+    "assay_modality_source",
     "response_measured",
     "measurement_units",
     "measurement_inequality",
@@ -687,11 +699,14 @@ def _report_mhc_identity_summary(df: pd.DataFrame, label: str) -> None:
             print(f"    context conflict {restriction}: {n_records:,} rows")
 
 
-def _validate_mhc_tokens(obs: pd.DataFrame, binding: pd.DataFrame) -> pd.DataFrame:
+def _validate_mhc_tokens(obs: pd.DataFrame, binding: pd.DataFrame, other=None) -> pd.DataFrame:
     """Audit all MHC token surfaces and reject newly unrecognized values."""
     from .qc import mhc_token_audit
 
-    audit = mhc_token_audit(evidence_frames={"ms": obs, "binding": binding})
+    frames = {"ms": obs, "binding": binding}
+    if other is not None:
+        frames["other"] = other
+    audit = mhc_token_audit(evidence_frames=frames)
     if audit.empty:
         print("  MHC token audit: no findings")
         return audit
@@ -826,6 +841,7 @@ def _build_observations(
 ):
     import pyarrow as pa
 
+    from .assays import ANNOTATION_COLUMNS, annotate_assays
     from .provenance import contributors_path, file_digest
     from .scanner import scan
 
@@ -846,6 +862,8 @@ def _build_observations(
     # a DataFrame.  Categorical compression is applied at that boundary.
     ms_tables: list[pa.Table] = []
     binding_tables: list[pa.Table] = []
+    other_tables: list[pa.Table] = []
+    empty_schema = pd.DataFrame()
 
     for name in ("iedb", "cedar"):
         if name not in paths:
@@ -861,17 +879,16 @@ def _build_observations(
         )
         df["source"] = name
 
-        # Partition into MS vs binding — the two indexes are written
-        # separately so downstream consumers cannot accidentally mix
-        # immunopeptidome elution with affinity/microarray measurements.
-        if "is_binding_assay" in df.columns:
-            ms_df = df[~df["is_binding_assay"]].copy()
-            bd_df = df[df["is_binding_assay"]].copy()
-        else:
-            ms_df = df
-            bd_df = df.iloc[0:0].copy()
+        # A false binding flag never establishes MS modality. Retain all
+        # remaining assays independently, including explicit negative MS.
+        if not set(ANNOTATION_COLUMNS) <= set(df):
+            annotate_assays(df)
+        empty_schema = df.iloc[:0].copy()
+        ms_df = df[df["is_ms_observation"]].copy()
+        bd_df = df[df["is_binding_assay"]].copy()
+        other_df = df[~(df["is_ms_observation"] | df["is_binding_assay"])].copy()
         del df  # free the source scan's frame before the next source's scan
-        n_ms, n_bd = len(ms_df), len(bd_df)
+        n_ms, n_bd, n_other = len(ms_df), len(bd_df), len(other_df)
 
         # Normalize ``pmid`` to ``Int64`` *per-partition* before the
         # Arrow conversion.  The scanner emits ``pmid`` as object dtype
@@ -880,7 +897,7 @@ def _build_observations(
         # type per column and chokes on the mixed shapes (#232).  The
         # full-frame normalization at the bottom of this function is
         # kept as defensive scaffolding but is now a no-op.
-        for frame in (ms_df, bd_df):
+        for frame in (ms_df, bd_df, other_df):
             if "pmid" in frame.columns:
                 frame["pmid"] = pd.to_numeric(frame["pmid"], errors="coerce").astype("Int64")
 
@@ -890,6 +907,7 @@ def _build_observations(
         # ``Table.to_pandas``).
         _compress_categoricals(ms_df)
         _compress_categoricals(bd_df)
+        _compress_categoricals(other_df)
 
         # Convert to Arrow eagerly and free the pandas frame.  Holding the
         # accumulated partitions as Arrow keeps the per-source memory cost
@@ -898,10 +916,12 @@ def _build_observations(
             ms_tables.append(pa.Table.from_pandas(ms_df, preserve_index=False))
         if n_bd:
             binding_tables.append(pa.Table.from_pandas(bd_df, preserve_index=False))
-        del ms_df, bd_df
-        print(f"  {n_ms:,} MS rows + {n_bd:,} binding rows from {name}")
+        if n_other:
+            other_tables.append(pa.Table.from_pandas(other_df, preserve_index=False))
+        del ms_df, bd_df, other_df
+        print(f"  {n_ms:,} MS + {n_bd:,} binding + {n_other:,} other assay rows from {name}")
 
-    if not ms_tables and not binding_tables:
+    if not ms_tables and not binding_tables and not other_tables:
         raise RuntimeError("No data scanned.")
 
     # ``pa.concat_tables`` is zero-copy when schemas match (which they do,
@@ -921,7 +941,7 @@ def _build_observations(
         obs = _drop_duplicate_iris(obs, label="MS", provenance=provenance)
         _compress_categoricals(obs, strict=True)
     else:
-        obs = pd.DataFrame()
+        obs = empty_schema.copy()
 
     if binding_tables:
         binding_table = pa.concat_tables(binding_tables, promote_options=_CONCAT_PROMOTE_OPTIONS)
@@ -931,7 +951,17 @@ def _build_observations(
         binding = _drop_duplicate_iris(binding, label="binding", provenance=provenance)
         _compress_categoricals(binding, strict=True)
     else:
-        binding = pd.DataFrame()
+        binding = empty_schema.copy()
+
+    if other_tables:
+        other_table = pa.concat_tables(other_tables, promote_options=_CONCAT_PROMOTE_OPTIONS)
+        other_tables.clear()
+        other = other_table.to_pandas()
+        del other_table
+        other = _drop_duplicate_iris(other, label="other assays", provenance=provenance)
+        _compress_categoricals(other, strict=True)
+    else:
+        other = empty_schema.copy()
 
     # --- Supplementary data (MS only — manually curated from papers) ---
     from .supplement import scan_supplementary
@@ -939,6 +969,14 @@ def _build_observations(
     supp = scan_supplementary(classify_source=True, provenance=provenance)
     if not supp.empty:
         supp["source"] = "supplement"
+        if not set(ANNOTATION_COLUMNS) <= set(supp):
+            annotate_assays(supp)
+        # Keep explicit conflicting/negative supplementary records auditable.
+        binding = pd.concat([binding, supp[supp.is_binding_assay]], ignore_index=True)
+        other = pd.concat(
+            [other, supp[~(supp.is_ms_observation | supp.is_binding_assay)]], ignore_index=True
+        )
+        supp = supp[supp.is_ms_observation].copy()
         before = len(supp)
         supp = _drop_supplementary_duplicates(supp, obs, provenance=provenance)
         dupes = before - len(supp)
@@ -957,26 +995,27 @@ def _build_observations(
 
     # Honor the curated exclude_from_ms flag (#444).  Applied to the MS
     # frame only and deliberately not to ``binding`` — ``binding`` is the
-    # complementary mask of the same scan and is never derived from
-    # ``obs``, so the two indexes cannot drift on this point.
+    # independently classified binding partition of the same scan.
     obs = _drop_excluded_from_ms(obs, "MS observations")
 
     _report_mhc_identity_summary(obs, "MS")
     _report_mhc_identity_summary(binding, "binding")
-    _validate_mhc_tokens(obs, binding)
+    _report_mhc_identity_summary(other, "other assays")
+    _validate_mhc_tokens(obs, binding, other)
 
     print(f"\nMS observations: {len(obs):,} rows")
     if len(obs):
         print(f"  Unique peptides: {obs['peptide'].nunique():,}")
         print(f"  Unique alleles:  {obs['mhc_restriction'].nunique():,}")
         print(f"  Species:         {obs['mhc_species'].nunique()}")
+    print(f"Other assay rows: {len(other):,}")
     print(f"Binding rows:    {len(binding):,}")
     if len(binding):
         print(f"  Unique peptides: {binding['peptide'].nunique():,}")
         print(f"  Unique alleles:  {binding['mhc_restriction'].nunique():,}")
 
     # Fix mixed types for parquet compatibility
-    for frame in (obs, binding):
+    for frame in (obs, binding, other):
         if "pmid" in frame.columns:
             frame["pmid"] = pd.to_numeric(frame["pmid"], errors="coerce").astype("Int64")
 
@@ -1000,6 +1039,7 @@ def _build_observations(
             force=force,
             obs_override=obs,
             binding_override=binding,
+            other_override=other,
         )
 
         # Issue #238: gene/protein columns are NO LONGER attached to
@@ -1025,14 +1065,18 @@ def _build_observations(
     # over the canonical path.  This keeps any prior index in place — and
     # queryable — throughout the rebuild; readers never see a half-written
     # or not-yet-annotated parquet.
-    provenance_meta = provenance.write((obs, binding), contributors_path())
+    provenance_meta = provenance.write((obs, binding, other), contributors_path())
     atomic_write_parquet(obs, out_path)
     print(f"\nWrote {out_path} ({out_path.stat().st_size / 1e6:.1f} MB)")
     atomic_write_parquet(binding, binding_out)
     print(f"Wrote {binding_out} ({binding_out.stat().st_size / 1e6:.1f} MB)")
+    other_out = _other_assays_path()
+    atomic_write_parquet(other, other_out)
+    print(f"Wrote {other_out} ({other_out.stat().st_size / 1e6:.1f} MB)")
     provenance_meta["indexes"] = {
         "observations": file_digest(out_path),
         "binding": file_digest(binding_out),
+        "other_assays": file_digest(other_out),
     }
 
     if build_mappings:
@@ -1069,6 +1113,7 @@ def _build_observations(
         "n_alleles": int(obs["mhc_restriction"].nunique()) if len(obs) else 0,
         "n_species": int(obs["mhc_species"].nunique()) if len(obs) else 0,
         "n_binding_rows": len(binding),
+        "n_other_assay_rows": len(other),
         "n_binding_peptides": int(binding["peptide"].nunique()) if len(binding) else 0,
         "n_bulk_rows": len(bulk_df),
         "n_bulk_protein_rows": int((bulk_df["granularity"] == "protein").sum())

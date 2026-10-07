@@ -255,6 +255,9 @@ def scan_supplementary(classify_source: bool = True, *, provenance=None) -> pd.D
                 "quantitative_measurement": "",
                 "quantitative_value": float("nan"),
                 "is_binding_assay": False,
+                "is_ms_observation": True,
+                "assay_modality": "ms",
+                "assay_modality_source": "curated_ms_supplement",
                 "is_non_peptide_ligand": [
                     is_non_peptide_ligand(a) for a in df["mhc_restriction"].to_numpy()
                 ],

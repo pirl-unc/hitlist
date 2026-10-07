@@ -37,6 +37,7 @@ def _seed_observation_cache(tmp_path, monkeypatch, *, artifact_version=None):
     for name in (
         "observations",
         "binding",
+        "other_assays",
         "bulk_proteomics",
         "line_expression",
         "observation_contributors",

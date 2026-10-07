@@ -982,7 +982,7 @@ def test_beta_chain_only_restriction_joins_heterodimer_sample(tmp_path, monkeypa
         }
     )
     obs_path = tmp_path / "observations.parquet"
-    obs_data.to_parquet(obs_path, index=False)
+    obs_data.assign(assay_method="mass spectrometry").to_parquet(obs_path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
 
     df = generate_observations_table()
@@ -1035,7 +1035,7 @@ def test_heterodimer_string_still_matches_directly(tmp_path, monkeypatch):
         }
     )
     obs_path = tmp_path / "observations.parquet"
-    obs_data.to_parquet(obs_path, index=False)
+    obs_data.assign(assay_method="mass spectrometry").to_parquet(obs_path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
 
     df = generate_observations_table()
@@ -1087,7 +1087,7 @@ def test_alpha_chain_only_restriction_also_matches(tmp_path, monkeypatch):
         }
     )
     obs_path = tmp_path / "observations.parquet"
-    obs_data.to_parquet(obs_path, index=False)
+    obs_data.assign(assay_method="mass spectrometry").to_parquet(obs_path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
 
     df = generate_observations_table()
@@ -1257,7 +1257,7 @@ def test_observations_join_with_synthetic_fixture(tmp_path, monkeypatch):
         }
     )
     obs_path = tmp_path / "observations.parquet"
-    obs_data.to_parquet(obs_path, index=False)
+    obs_data.assign(assay_method="mass spectrometry").to_parquet(obs_path, index=False)
 
     # Monkeypatch the observations path
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
@@ -1295,7 +1295,7 @@ def test_generate_observations_has_peptide_level_allele_uses_resolution(tmp_path
         }
     )
     obs_path = tmp_path / "observations.parquet"
-    obs_data.to_parquet(obs_path, index=False)
+    obs_data.assign(assay_method="mass spectrometry").to_parquet(obs_path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
 
     df = generate_observations_table()
@@ -1396,7 +1396,7 @@ def test_generate_observations_gene_filter_requires_mappings(tmp_path, monkeypat
         }
     )
     obs_path = tmp_path / "observations.parquet"
-    obs_data.to_parquet(obs_path, index=False)
+    obs_data.assign(assay_method="mass spectrometry").to_parquet(obs_path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
     # Also redirect mappings_path to a non-existent file so the test
     # exercises the missing-mappings error path instead of accidentally
@@ -1441,7 +1441,7 @@ def test_generate_observations_gene_filter_matches(tmp_path, monkeypatch):
         }
     )
     obs_path = tmp_path / "observations.parquet"
-    obs_data.to_parquet(obs_path, index=False)
+    obs_data.assign(assay_method="mass spectrometry").to_parquet(obs_path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
 
     # Build the long-form mappings sidecar
@@ -1499,7 +1499,9 @@ def mixed_gene_indexes(tmp_path, monkeypatch):
                 "source": ["iedb"] * 3,
                 "assay_iri": [f"{kind}:{i}" for i in range(3)],
             }
-        ).to_parquet(tmp_path / filename, index=False)
+        ).assign(assay_method="mass spectrometry" if kind == "ms" else "binding assay").to_parquet(
+            tmp_path / filename, index=False
+        )
     pd.DataFrame(
         {
             "peptide": ["AAAAAAAAA", "CCCCCCCCC", "AAAAAAAAA", "DDDDDDDDD"],
@@ -1608,7 +1610,7 @@ def test_generate_observations_mhc_allele_filter(tmp_path, monkeypatch):
         }
     )
     obs_path = tmp_path / "observations.parquet"
-    obs_data.to_parquet(obs_path, index=False)
+    obs_data.assign(assay_method="mass spectrometry").to_parquet(obs_path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
 
     df = generate_observations_table(mhc_allele="HLA-A*02:01")
@@ -1642,7 +1644,7 @@ def test_generate_observations_serotype_filter(tmp_path, monkeypatch):
         }
     )
     obs_path = tmp_path / "observations.parquet"
-    obs_data.to_parquet(obs_path, index=False)
+    obs_data.assign(assay_method="mass spectrometry").to_parquet(obs_path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
 
     # Locus-specific match
@@ -1942,7 +1944,7 @@ def test_generate_training_table_unifies_ms_and_binding(tmp_path, monkeypatch):
         }
     )
     obs_path = tmp_path / "observations.parquet"
-    obs_data.to_parquet(obs_path, index=False)
+    obs_data.assign(assay_method="mass spectrometry").to_parquet(obs_path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
 
     bd_path = _make_binding_fixture(tmp_path)
@@ -1999,7 +2001,7 @@ def test_generate_training_table_threads_allele_set_filters(tmp_path, monkeypatc
         }
     )
     obs_path = tmp_path / "observations.parquet"
-    obs_data.to_parquet(obs_path, index=False)
+    obs_data.assign(assay_method="mass spectrometry").to_parquet(obs_path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
 
     # Binding fixture: 3 exact rows + 1 sample_allele_match (matches the
@@ -2110,7 +2112,7 @@ def test_evidence_row_id_prefers_assay_iri_when_present(tmp_path, monkeypatch):
         }
     )
     obs_path = tmp_path / "observations.parquet"
-    obs_data.to_parquet(obs_path, index=False)
+    obs_data.assign(assay_method="mass spectrometry").to_parquet(obs_path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
 
     df = generate_training_table(include_evidence="ms")
@@ -2152,7 +2154,7 @@ def test_evidence_row_id_falls_back_to_reference_iri_for_older_parquets(tmp_path
         }
     )
     obs_path = tmp_path / "observations.parquet"
-    obs_data.to_parquet(obs_path, index=False)
+    obs_data.assign(assay_method="mass spectrometry").to_parquet(obs_path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
 
     df = generate_training_table(include_evidence="ms")
@@ -2185,7 +2187,7 @@ def test_evidence_row_id_positional_fallback_for_missing_both(tmp_path, monkeypa
         }
     )
     obs_path = tmp_path / "observations.parquet"
-    obs_data.to_parquet(obs_path, index=False)
+    obs_data.assign(assay_method="mass spectrometry").to_parquet(obs_path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
 
     df = generate_training_table(include_evidence="ms")
@@ -2218,7 +2220,7 @@ def test_generate_training_table_explodes_mappings(tmp_path, monkeypatch):
         }
     )
     obs_path = tmp_path / "observations.parquet"
-    obs_data.to_parquet(obs_path, index=False)
+    obs_data.assign(assay_method="mass spectrometry").to_parquet(obs_path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
 
     mappings_data = pd.DataFrame(
@@ -2296,7 +2298,7 @@ def test_generate_training_table_exploded_mappings_respect_gene_filter(tmp_path,
         }
     )
     obs_path = tmp_path / "observations.parquet"
-    obs_data.to_parquet(obs_path, index=False)
+    obs_data.assign(assay_method="mass spectrometry").to_parquet(obs_path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
 
     pd.DataFrame(columns=obs_data.columns).to_parquet(tmp_path / "binding.parquet", index=False)
@@ -2389,7 +2391,7 @@ def test_generate_training_table_projection_preserves_evidence_identity(tmp_path
         }
     )
     obs_path = tmp_path / "observations.parquet"
-    obs_data.to_parquet(obs_path, index=False)
+    obs_data.assign(assay_method="mass spectrometry").to_parquet(obs_path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
 
     pd.DataFrame(columns=obs_data.columns).to_parquet(tmp_path / "binding.parquet", index=False)
@@ -3338,7 +3340,7 @@ def _write_obs(tmp_path, monkeypatch, rows):
     import pandas as pd
 
     obs_path = tmp_path / "observations.parquet"
-    pd.DataFrame(rows).to_parquet(obs_path, index=False)
+    pd.DataFrame(rows).assign(assay_method="mass spectrometry").to_parquet(obs_path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
     return obs_path
 
@@ -3557,7 +3559,7 @@ def test_non_classical_samples_reach_the_class_pool(tmp_path, monkeypatch):
             "is_binding_assay": [False],
             "qualitative_measurement": ["Positive"],
         }
-    ).to_parquet(obs_path, index=False)
+    ).assign(assay_method="mass spectrometry").to_parquet(obs_path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: obs_path)
 
     row = generate_observations_table().iloc[0]

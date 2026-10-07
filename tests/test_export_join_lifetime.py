@@ -47,7 +47,7 @@ def test_reindexed_metadata_is_released_before_final_annotations(tmp_path, monke
             "no_hit": ["unknown", "unknown", "sample"],
         }[labels]
     path = tmp_path / "observations.parquet"
-    observations.to_parquet(path, index=False)
+    observations.assign(assay_method="mass spectrometry").to_parquet(path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
 
     joined = {}

@@ -58,6 +58,8 @@ def test_stored_aliases_filter_symmetrically_without_rewriting_source(
             "mhc_allele_set_size": [1, 1, 1],
             "serotypes": ["", "HLA-B44;HLA-Bw4", "HLA-A2"],
         }
+    ).assign(
+        assay_method="binding assay" if loader is load_binding else "mass spectrometry"
     ).to_parquet(path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
     monkeypatch.setattr("hitlist.observations.binding_path", lambda: path)
@@ -92,7 +94,7 @@ def test_stored_current_name_refreshes_retired_catalog_membership(tmp_path, monk
             "mhc_restriction": ["HLA-B*15:11"],
             "serotypes": ["HLA-B75"],
         }
-    ).to_parquet(path, index=False)
+    ).assign(assay_method="mass spectrometry").to_parquet(path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
     result = load_observations(serotype="HLA-B15", columns=["peptide", "serotypes"])
     assert list(result.peptide) == ["ACDEFGHIK"]
@@ -109,7 +111,7 @@ def test_alias_duplicates_collapse_without_increasing_genotype(tmp_path, monkeyp
             "mhc_allele_set": ["HLA-B*44:01;HLA-B*44:02"],
             "mhc_allele_set_size": [2],
         }
-    ).to_parquet(path, index=False)
+    ).assign(assay_method="mass spectrometry").to_parquet(path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
     result = load_observations(columns=columns)
     assert list(result.mhc_allele_set_size) == [1]

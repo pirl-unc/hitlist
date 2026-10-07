@@ -419,7 +419,7 @@ def test_filtered_and_projected_typing_matches_complete_export(tmp_path, monkeyp
         }
         for peptide in ["AAAAAAAAA", "LLLLLLLLL"]
     ]
-    pd.DataFrame(rows).to_parquet(path, index=False)
+    pd.DataFrame(rows).assign(assay_method="mass spectrometry").to_parquet(path, index=False)
     monkeypatch.setattr(observations, "observations_path", lambda: path)
     columns = ["peptide", "sample_mhc", *curation.MHC_TYPING_COLUMNS]
     full = export.generate_observations_table(columns=columns).set_index("peptide")
