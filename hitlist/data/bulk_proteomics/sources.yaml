@@ -55,8 +55,8 @@ sources:
       not usable for intra-protein peptide-detectability modeling.
 
   - source_id: Bekker-Jensen_2017
-    pmid: 28591648
-    reference: "PMID:28591648"
+    pmid: 28601559
+    reference: "PMID:28601559"
     study_label: "Bekker-Jensen 2017"
     title: "An Optimized Shotgun Strategy for the Rapid Generation of Comprehensive Human Proteomes"
     species: "Homo sapiens (human)"
@@ -78,7 +78,10 @@ sources:
     # and scripts/ingest_bekker_jensen_2017.py::_parse_experiment.
     fractionation_ph: 10.0
     quantification: "label-free MaxQuant LFQ; peptide-level intensity + derived protein-level sum"
-    search_engine: "MaxQuant 1.5.x (Andromeda)"
+    search_engine: "MaxQuant 1.5.3.19 (deposited parameters; paper reports 1.5.3.6)"
+    search_enzyme: "Trypsin/P"
+    max_missed_cleavages: 3
+    detectability_curation: "detectability.yaml"
     fdr: "1% peptide and protein"
     cell_lines_covered:
       - A549
@@ -107,23 +110,20 @@ sources:
       # The paper also ran HeLa with non-tryptic enzymes for comparison.
       - enzyme: "Chymotrypsin"
         digestion_enzyme: "Chymotrypsin"
-        cleavage_rule: "C-term of F, W, Y, L, M (not before P)"
+        cleavage_rule: "MaxQuant Chymotrypsin+: C-term of F, W, Y, L, M including before P"
         maxquant_spec: "Chymotrypsin+"
         cell_line: HeLa
         included_in_index: true
       - enzyme: "GluC"
         digestion_enzyme: "GluC"
-        # MaxQuant spec "GluC;D.P" — GluC in ammonium bicarbonate buffer
-        # cleaves C-terminal to both E and D, with no cleavage before P.
-        # In the packaged peptides ~96% of GluC C-termini are E and ~1%
-        # are D; both are biologically expected.
-        cleavage_rule: "C-term of E (and D, in bicarbonate buffer; not before P)"
+        # Exact MaxQuant search rule, not an inferred buffer-dependent biological rule.
+        cleavage_rule: "GluC cuts after E; D.P additionally cuts the D-P pair"
         maxquant_spec: "GluC;D.P"
         cell_line: HeLa
         included_in_index: true
       - enzyme: "LysC"
         digestion_enzyme: "LysC"
-        cleavage_rule: "C-term of K (not before P)"
+        cleavage_rule: "MaxQuant LysC/P: C-term of K including before P"
         maxquant_spec: "LysC/P"
         cell_line: HeLa
         included_in_index: true
@@ -138,6 +138,12 @@ sources:
       - name: "SY5Y-46fracs-E1/E2"
         reason: "SH-SY5Y neuroblastoma; not in Fig 1b's 5-cell-line panel"
     note: >
+      Legacy digestion_enzyme strings are retained as source labels for API compatibility;
+      the long Trypsin/P label incorrectly says except before P. Use search_enzyme /
+      maxquant_spec for theoretical digestion. Nonzero peptide intensity may include
+      match-between-runs, and modifications are annotated across the whole deposit.
+      HeLa 46-fraction rows pool three distinct experiments and their stored replicate
+      counts are unresolved (#654). Do not infer a comparable depth ladder from these rows.
       Comprehensive over the Figure 1b design matrix: HeLa across four
       enzymes (Trypsin/P, Chymotrypsin, GluC, LysC), four fractionation
       depths (14/39/46/70), and ± TiO2 phospho enrichment; plus the 46-

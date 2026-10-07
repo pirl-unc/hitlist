@@ -1,0 +1,265 @@
+# Curated from original search metadata; see #361 and #654.
+source: Bekker-Jensen_2017
+reference: PMID:28601559
+instrument: Q Exactive family (paper reports HF; exact per-run model unresolved)
+fragmentation: HCD
+acquisition_mode: DDA
+labeling: label-free
+search_engine: MaxQuant 1.5.3.19 (deposited parameters)
+detection_basis: nonzero peptide intensity; may include match-between-runs
+protein_observation_basis: same-scope leading-razor peptide assignment; abundance is peptide-intensity
+  sum
+provenance:
+  project: https://www.ebi.ac.uk/pride/archive/projects/PXD004452
+  article: https://pmc.ncbi.nlm.nih.gov/articles/PMC5493283/
+  archive: https://ftp.pride.ebi.ac.uk/pride/data/archive/2017/06/PXD004452/SearchResults.zip
+  members:
+    parameters.txt:
+      sha256: d1d760c86966a60c1ad6aabc4967978de97bb75dfe333d77eca30812db26f4c1
+      size_bytes: 1678
+    summary.txt:
+      sha256: 5eb5c41af2c7929be8a9354bf7c9fcb021ead7f47c07d0774a146b352e1a8860
+      size_bytes: 587345
+  search_reference_status: 'unavailable: only local HUMAN.fasta path; no release or checksum'
+  unrecorded_search_constraints:
+  - max_peptide_length
+  - max_peptide_mass_da
+  fixed_modifications:
+  - Carbamidomethyl (C)
+  variable_modifications:
+  - Oxidation (M)
+  - Acetyl (Protein N-term)
+  - Gln->pyro-Glu
+  - Phospho (STY)
+  multi_modifications:
+  - Deamidation (NQ)
+  match_between_runs: true
+  modification_scope: CSV modification annotations are global to the deposit, not per arm
+  replicate_unit: distinct MaxQuant experiment labels, not proof of independent biological replicates
+  comparison_policy: 'no automatic comparison groups: different protocols and reused 14-fraction experiments'
+  issue: https://github.com/pirl-unc/hitlist/issues/654
+search_constraints:
+  Trypsin/P:
+    min_peptide_length: 7
+    max_missed_cleavages: 3
+    enzyme_mode: Specific
+  Chymotrypsin+:
+    min_peptide_length: 7
+    max_missed_cleavages: 4
+    enzyme_mode: Specific
+  GluC;D.P:
+    min_peptide_length: 7
+    max_missed_cleavages: 3
+    enzyme_mode: Specific
+  LysC/P:
+    min_peptide_length: 7
+    max_missed_cleavages: 2
+    enzyme_mode: Specific
+scopes:
+- protocol_id: PXD004452/Tryp-14Frac-A+Tryp-14Frac-B+Tryp-14Frac-C
+  cell_line_name: HeLa
+  digestion_enzyme: Trypsin/P
+  reported_digestion_enzyme: Trypsin/P (cleaves K/R except before P)
+  search_enzyme: Trypsin/P
+  n_fractions_in_run: 14
+  enrichment: none
+  fractionation_ph: 10.0
+  n_replicates_possible: 3
+  n_acquisition_runs: 42
+  experiment_ids:
+  - Tryp-14Frac-A
+  - Tryp-14Frac-B
+  - Tryp-14Frac-C
+  replicate_count_status: available
+  raw_file_ids_sha256: 55db0864a56e64d11a7b3f86673b43b84562e96a46d1d532d512ebe1ec8eb02e
+  protocol_note: Reused Kelstrup 2014 experiments; not a depth step of the newer protocols.
+- protocol_id: PXD004452/Tryp-70fracs
+  cell_line_name: HeLa
+  digestion_enzyme: Trypsin/P
+  reported_digestion_enzyme: Trypsin/P (cleaves K/R except before P)
+  search_enzyme: Trypsin/P
+  n_fractions_in_run: 70
+  enrichment: none
+  fractionation_ph: 10.0
+  n_replicates_possible: 1
+  n_acquisition_runs: 70
+  experiment_ids:
+  - Tryp-70fracs
+  replicate_count_status: available
+  raw_file_ids_sha256: fe4a593660cc088bb957f11cf8f1d3cce672fa3f2c7e47bf103c5a5e6809c533
+- protocol_id: PXD004452/HeLa-46fracs-IT-E1+HeLa-46fracs-IT-E2+Tryp-46fracs
+  cell_line_name: HeLa
+  digestion_enzyme: Trypsin/P
+  reported_digestion_enzyme: Trypsin/P (cleaves K/R except before P)
+  search_enzyme: Trypsin/P
+  n_fractions_in_run: 46
+  enrichment: none
+  fractionation_ph: 10.0
+  n_replicates_possible: 3
+  n_acquisition_runs: 138
+  experiment_ids:
+  - HeLa-46fracs-IT-E1
+  - HeLa-46fracs-IT-E2
+  - Tryp-46fracs
+  replicate_count_status: unresolved_aggregate
+  raw_file_ids_sha256: 59aa15701b8485f6188318247dbd6c576b996d5e2276d7484438b13f64546408
+  protocol_note: Mixed pool of Tryp-46fracs and HeLa-46fracs-IT-E1/E2; old ingest collapsed distinct E1
+    identities. Per-peptide replicate count cannot be recovered.
+- protocol_id: PXD004452/Tryp-Phos-pH8
+  cell_line_name: HeLa
+  digestion_enzyme: Trypsin/P
+  reported_digestion_enzyme: Trypsin/P (cleaves K/R except before P)
+  search_enzyme: Trypsin/P
+  n_fractions_in_run: 12
+  enrichment: TiO2
+  fractionation_ph: 8.0
+  n_replicates_possible: 1
+  n_acquisition_runs: 12
+  experiment_ids:
+  - Tryp-Phos-pH8
+  replicate_count_status: available
+  raw_file_ids_sha256: fd213104bb533d23a3ed151b7e84df82345ae92665a9ddc8781abb0e68c258c9
+- protocol_id: PXD004452/Tryp-Phos-pH10
+  cell_line_name: HeLa
+  digestion_enzyme: Trypsin/P
+  reported_digestion_enzyme: Trypsin/P (cleaves K/R except before P)
+  search_enzyme: Trypsin/P
+  n_fractions_in_run: 12
+  enrichment: TiO2
+  fractionation_ph: 10.0
+  n_replicates_possible: 1
+  n_acquisition_runs: 12
+  experiment_ids:
+  - Tryp-Phos-pH10
+  replicate_count_status: available
+  raw_file_ids_sha256: 2e109063fb7de4268cfc218eca0557f6148437ab002131d48628536ffe21c488
+- protocol_id: PXD004452/Chymo-39fracs
+  cell_line_name: HeLa
+  digestion_enzyme: Chymotrypsin+
+  reported_digestion_enzyme: Chymotrypsin
+  search_enzyme: Chymotrypsin+
+  n_fractions_in_run: 39
+  enrichment: none
+  fractionation_ph: 10.0
+  n_replicates_possible: 1
+  n_acquisition_runs: 39
+  experiment_ids:
+  - Chymo-39fracs
+  replicate_count_status: available
+  raw_file_ids_sha256: 568eae4bf40efa72dd6671c0a66d11d33c469377c22d76f24e170a06d096d79e
+- protocol_id: PXD004452/GluC-39fracs
+  cell_line_name: HeLa
+  digestion_enzyme: GluC;D.P
+  reported_digestion_enzyme: GluC
+  search_enzyme: GluC;D.P
+  n_fractions_in_run: 39
+  enrichment: none
+  fractionation_ph: 10.0
+  n_replicates_possible: 1
+  n_acquisition_runs: 39
+  experiment_ids:
+  - GluC-39fracs
+  replicate_count_status: available
+  raw_file_ids_sha256: ee450c9b87f5000cae8fc1d6ce08551210534877f63c8c125fb0c580a2d8f08d
+- protocol_id: PXD004452/LysC-39fracs
+  cell_line_name: HeLa
+  digestion_enzyme: LysC/P
+  reported_digestion_enzyme: LysC
+  search_enzyme: LysC/P
+  n_fractions_in_run: 39
+  enrichment: none
+  fractionation_ph: 10.0
+  n_replicates_possible: 1
+  n_acquisition_runs: 39
+  experiment_ids:
+  - LysC-39fracs
+  replicate_count_status: available
+  raw_file_ids_sha256: d075ff06d90c01923d47d39d9cf87654694319bede50ea4506b21ac6c6dff4c9
+- protocol_id: PXD004452/Tryp-39fracs
+  cell_line_name: HeLa
+  digestion_enzyme: Trypsin/P
+  reported_digestion_enzyme: Trypsin/P (cleaves K/R except before P)
+  search_enzyme: Trypsin/P
+  n_fractions_in_run: 39
+  enrichment: none
+  fractionation_ph: 10.0
+  n_replicates_possible: 1
+  n_acquisition_runs: 40
+  experiment_ids:
+  - Tryp-39fracs
+  replicate_count_status: available
+  raw_file_ids_sha256: ecc7e66a9c38db55d6c68c69d80930596361f55b214eb7d1ff6f401bccbbbc93
+- protocol_id: PXD004452/Phospho-50fracs
+  cell_line_name: HeLa
+  digestion_enzyme: Trypsin/P
+  reported_digestion_enzyme: Trypsin/P (cleaves K/R except before P)
+  search_enzyme: Trypsin/P
+  n_fractions_in_run: 50
+  enrichment: TiO2
+  fractionation_ph: 10.0
+  n_replicates_possible: 1
+  n_acquisition_runs: 50
+  experiment_ids:
+  - Phospho-50fracs
+  replicate_count_status: available
+  raw_file_ids_sha256: 1a5aa72197a77a9bda9e1b067d5de4c3da3cdb5c778a52a11ed793dc6b7a0aca
+- protocol_id: PXD004452/A549-46fracs-E1+A549-46fracs-E2
+  cell_line_name: A549
+  digestion_enzyme: Trypsin/P
+  reported_digestion_enzyme: Trypsin/P (cleaves K/R except before P)
+  search_enzyme: Trypsin/P
+  n_fractions_in_run: 46
+  enrichment: none
+  fractionation_ph: 10.0
+  n_replicates_possible: 2
+  n_acquisition_runs: 92
+  experiment_ids:
+  - A549-46fracs-E1
+  - A549-46fracs-E2
+  replicate_count_status: available
+  raw_file_ids_sha256: fb04eea11e524f510f19387e3900aca83c746f5eaa219c40b4aa8c854f8c08ec
+- protocol_id: PXD004452/HCT116-46fracs-E1+HCT116-46fracs-E2
+  cell_line_name: HCT116
+  digestion_enzyme: Trypsin/P
+  reported_digestion_enzyme: Trypsin/P (cleaves K/R except before P)
+  search_enzyme: Trypsin/P
+  n_fractions_in_run: 46
+  enrichment: none
+  fractionation_ph: 10.0
+  n_replicates_possible: 2
+  n_acquisition_runs: 92
+  experiment_ids:
+  - HCT116-46fracs-E1
+  - HCT116-46fracs-E2
+  replicate_count_status: available
+  raw_file_ids_sha256: 4d9313c5d6ccb0d735d614ab61ed06e844242c709146ec50dcbe66268048f412
+- protocol_id: PXD004452/HEK293-46fracs-E1+HEK293-46fracs-E2
+  cell_line_name: HEK293
+  digestion_enzyme: Trypsin/P
+  reported_digestion_enzyme: Trypsin/P (cleaves K/R except before P)
+  search_enzyme: Trypsin/P
+  n_fractions_in_run: 46
+  enrichment: none
+  fractionation_ph: 10.0
+  n_replicates_possible: 2
+  n_acquisition_runs: 92
+  experiment_ids:
+  - HEK293-46fracs-E1
+  - HEK293-46fracs-E2
+  replicate_count_status: available
+  raw_file_ids_sha256: 926ef02575a710cdb02787a7cc7ed8cb702ff68b195265caec639cd9826c5b87
+- protocol_id: PXD004452/MCF7-46fracs-E1+MCF7-46fracs-E2
+  cell_line_name: MCF7
+  digestion_enzyme: Trypsin/P
+  reported_digestion_enzyme: Trypsin/P (cleaves K/R except before P)
+  search_enzyme: Trypsin/P
+  n_fractions_in_run: 46
+  enrichment: none
+  fractionation_ph: 10.0
+  n_replicates_possible: 2
+  n_acquisition_runs: 92
+  experiment_ids:
+  - MCF7-46fracs-E1
+  - MCF7-46fracs-E2
+  replicate_count_status: available
+  raw_file_ids_sha256: 28af3409e69e41dcbafe72d7638dd5dd1c8bbc088f94ca9fee243ea3c27405eb

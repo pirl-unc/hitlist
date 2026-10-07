@@ -164,3 +164,5 @@ directory to reuse those indexes.
 ./test.sh       # pytest with coverage
 ./deploy.sh     # lint + test + build + upload to PyPI
 ```
+
+For Presto training, see [search-scoped bulk MS detectability datasets](detectability.md): occurrence-preserving digests, scoped observations, verified search references, and bounded evidence exports.

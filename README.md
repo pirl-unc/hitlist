@@ -860,3 +860,5 @@ twine upload "$release_dir"/*.whl "$release_dir"/*.tar.gz
 and stops before upload. It does not mark a release as published.
 
 See [docs/pmid-curation.md](docs/pmid-curation.md) for the curation YAML format and per-study overrides.
+
+For Presto training, see [search-scoped bulk MS detectability datasets](docs/detectability.md): occurrence-preserving digests, scoped observations, verified search references, and bounded evidence exports.
