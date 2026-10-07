@@ -126,10 +126,13 @@ Peptide rows need uppercase unmodified `peptide`, `search_enzyme`,
 `detection_basis`, and `protein_observation_basis` in the selected scope.
 `n_replicates_detected` may be nullable; complete `replicate_id` values can
 establish counts directly. Conflicting aggregate counts are rejected.
+Input tables must contain all admitted observations for each declared scope;
+pre-filtering positive evidence by gene or parent can create false absence
+labels for shared peptides. Table hashes establish identity, not completeness.
 
 DataFrame batches carry `attrs["detectability"]`. The export manifest preserves
 reference and observation-table hashes, all query parameters, selected source
-curation, search/acquisition controls, artifact checksum, and candidate counts.
+curation, search/acquisition controls, library versions, artifact checksum, and candidate counts.
 Retain that manifest with the Parquet file; a CSV alone loses provenance.
 
 ## Optional comparable depth groups

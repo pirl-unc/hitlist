@@ -14,6 +14,7 @@ import pandas as pd
 
 from .proteome import canonical_search_enzyme, digest_occurrences
 from .provenance import file_digest
+from .version import __version__
 
 # Neutral monoisotopic residue masses; add H2O for an intact peptide.
 _RESIDUE_MASS = dict(
@@ -186,12 +187,12 @@ def _fasta_records(path, *, max_protein_residues, max_reference_bytes):
             raise ValueError(f"Invalid protein sequence: {accession}")
         return accession, gene.group(1) if gene else "", sequence
 
-    with opener(path, "rt") as stream:
-        while line := stream.readline(max_protein_residues + 2):
+    with opener(path, "rt", encoding="utf-8", newline="") as stream:
+        while line := stream.readline(max_protein_residues + 3):
             n_bytes += len(line.encode())
             if n_bytes > max_reference_bytes:
                 raise ValueError("Decompressed FASTA exceeds max_reference_bytes")
-            if len(line) > max_protein_residues + 1:
+            if len(line) > max_protein_residues + 2:
                 raise ValueError("FASTA line exceeds max_protein_residues")
             if line.startswith(">"):
                 if header is not None:
@@ -521,6 +522,8 @@ def iter_detectability_training_set(
         raise ValueError("Detected replicate count exceeds possible replicates")
     metadata = {
         "schema_version": 1,
+        "hitlist_version": __version__,
+        "pandas_version": pd.__version__,
         "label": "observed_in_selected_search_scope",
         "search_space": asdict(contract),
         "search_reference": {"path": str(reference), **reference_digest},

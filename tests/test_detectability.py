@@ -483,3 +483,18 @@ def test_narrow_length_window_bounds_large_missed_cleavage_allowance():
     rows = list(digest_occurrences("AAK" * 1000, min_len=3, max_len=3, max_missed=1000000))
     assert len(rows) == 1000
     assert all(row.peptide == "AAK" and row.n_missed_cleavages == 0 for row in rows)
+
+
+def test_compressed_reference_cap_counts_crlf_bytes(tmp_path):
+    import gzip
+
+    from hitlist.detectability import _fasta_records
+
+    payload = b">P1\r\nA\r\nA\r\nA\r\n"
+    path = tmp_path / "reference.fasta.gz"
+    path.write_bytes(gzip.compress(payload, mtime=0))
+    with pytest.raises(ValueError, match="Decompressed FASTA"):
+        list(_fasta_records(path, max_protein_residues=100, max_reference_bytes=len(payload) - 1))
+    assert list(
+        _fasta_records(path, max_protein_residues=100, max_reference_bytes=len(payload))
+    ) == [("P1", "", "AAA")]
