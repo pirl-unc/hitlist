@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from .proteome import canonical_search_enzyme, digest_occurrences
+from .proteome import DEFAULT_FLANK, canonical_search_enzyme, digest_occurrences
 from .provenance import file_digest
 from .version import __version__
 
@@ -405,7 +405,7 @@ def iter_detectability_training_set(
     protocol_id=None,
     peptide_observations=None,
     protein_observations=None,
-    flank=15,
+    flank=DEFAULT_FLANK,
     batch_size=25000,
     max_candidates=2000000,
     max_protein_residues=1000000,

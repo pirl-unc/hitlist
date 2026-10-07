@@ -149,3 +149,9 @@ scopes (25,000-row parser batches). It is a source-control audit, not a historic
 training export with an invented FASTA. A real searched reference was found in
 PXD013455, Human-ReferenceProteome-Canonical-Isoform-71591.fasta; its observations
 and mqpar-celllines.xml are distinct from the original search.
+
+The first full release gate passed 2,727 tests but caught the repository-wide
+flank-default invariant: the new API used literal 15 instead of importing
+DEFAULT_FLANK (also 15). The implementation now uses that shared constant;
+this changes no generated dataset values. The existing invariant regression
+and affected tests are rerun before a fresh complete CI/release gate.
