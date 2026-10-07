@@ -31,9 +31,11 @@ def _stale_rows():
     ]
 
 
-def _write_rows(tmp_path, monkeypatch, rows):
+def _write_rows(tmp_path, monkeypatch, rows, *, loader=load_observations):
     path = tmp_path / "index.parquet"
-    pd.DataFrame(rows).to_parquet(path, index=False)
+    pd.DataFrame(rows).assign(
+        assay_method="binding assay" if loader is load_binding else "mass spectrometry"
+    ).to_parquet(path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
     monkeypatch.setattr("hitlist.observations.binding_path", lambda: path)
 
@@ -43,7 +45,7 @@ def _write_rows(tmp_path, monkeypatch, rows):
 def test_old_exact_rows_lose_false_labels_and_extra_donor_copies(
     tmp_path, monkeypatch, loader, columns
 ):
-    _write_rows(tmp_path, monkeypatch, _stale_rows())
+    _write_rows(tmp_path, monkeypatch, _stale_rows(), loader=loader)
     result = loader(columns=columns)
     assert len(result) == 2
     if columns is not None:

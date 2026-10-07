@@ -175,7 +175,13 @@ def _selected_mapping_rows(expression):
 
 
 def _positive_ms(frame):
-    """Positive assay evidence, not the legacy nonbinding partition (#644)."""
+    from .assays import positive_ms_mask
+
+    return positive_ms_mask(frame)
+
+
+def _legacy_positive_ms(frame):
+    """Verify the policy recorded by bundles exported before modality version 2."""
     method = (
         frame.get("assay_method", pd.Series("", index=frame.index))
         .astype("string")
@@ -316,8 +322,18 @@ def write_cta_evidence_bundle(
         peptides = sorted(set(selected.peptide))
         mappings = load_peptide_mappings(peptide=peptides)
         complete = generate_training_table(
-            include_evidence="ms", species="Homo sapiens", peptide=peptides
+            include_evidence="both", species="Homo sapiens", peptide=peptides
         )
+        from .export import _apply_training_defaults
+        from .lineage import attach_lineage
+        from .observations import load_other_assays, other_assays_path
+
+        if other_assays_path().exists():
+            other = load_other_assays(species="Homo sapiens", peptide=peptides)
+            other["evidence_kind"] = "other"
+            other = attach_lineage(_apply_training_defaults(other), copy=False)
+            if len(other):
+                complete = pd.concat([complete, other], ignore_index=True, sort=False)
         if complete.provenance_id.isna().any() or complete.provenance_id.eq("").any():
             raise ValueError(
                 "Full source contributors are required; legacy observations cannot form this bundle"
@@ -360,6 +376,7 @@ def write_cta_evidence_bundle(
             "coverage": _coverage(identities, contributors),
             "n_blacklisted_peptides": int(risk.blacklisted.sum()),
             "scope": "Indexed peptide sequences mapping to eligible expressed CTAs; full human multi-mapping; Atlas blacklist independent of expression and HLA",
+            "ms_policy_version": 2,
             "ms_policy": "Positive mass-spectrometry method or curated MS-only supplement; explicit non-MS excluded",
             "interpretation": "CTA-specific means all resolved human mappings are CTAs, including sharing between CTAs. Missing observations do not establish safety. Assembly and treatment ranking belong downstream.",
         }
@@ -491,9 +508,13 @@ def verify_evidence_bundle(directory):
             raise ValueError("Evidence bundle contributor coverage mismatch")
         if _coverage(identities, contributors) != manifest["coverage"]:
             raise ValueError("Evidence bundle provenance counts mismatch")
-        if not _positive_ms(read("presentation")).all():
+        policy_version = manifest.get("ms_policy_version", 1)
+        if policy_version not in (1, 2):
+            raise ValueError("Unsupported MS evidence policy version")
+        positive_ms = _positive_ms if policy_version == 2 else _legacy_positive_ms
+        if not positive_ms(read("presentation")).all():
             raise ValueError("Non-MS evidence appears in presentation table")
-        if _positive_ms(read("excluded_observations")).any():
+        if positive_ms(read("excluded_observations")).any():
             raise ValueError("Positive MS evidence appears in excluded observations")
         expected, mappings = _peptide_summary(
             read("mappings"),

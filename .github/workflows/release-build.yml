@@ -22,6 +22,10 @@ on:
       - tests/test_supplement.py
       - hitlist/provenance.py
       - hitlist/builder.py
+      - hitlist/assays.py
+      - hitlist/observations.py
+      - hitlist/mappings.py
+      - tests/test_assays.py
       - tests/test_provenance.py
       - hitlist/cta_expression.py
       - hitlist/expression_inputs.py

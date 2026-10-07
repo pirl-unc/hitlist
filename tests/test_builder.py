@@ -60,6 +60,7 @@ def test_cache_invalidates_curation_content_changes(isolated_curation, filename)
     for name in (
         "observations",
         "binding",
+        "other_assays",
         "bulk_proteomics",
         "line_expression",
         "observation_contributors",
@@ -192,6 +193,7 @@ def test_cache_valid_when_sources_unchanged(tmp_path, monkeypatch):
 
     (tmp_path / "observations.parquet").write_bytes(b"fake parquet")
     (tmp_path / "binding.parquet").write_bytes(b"fake parquet")
+    (tmp_path / "other_assays.parquet").write_bytes(b"fake parquet")
     (tmp_path / "bulk_proteomics.parquet").write_bytes(b"fake parquet")
     (tmp_path / "line_expression.parquet").write_bytes(b"fake parquet")
     (tmp_path / "observation_contributors.parquet").write_bytes(b"fake parquet")
@@ -243,6 +245,7 @@ def test_cache_invalid_when_observations_parquet_missing(tmp_path, monkeypatch):
     monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
 
     (tmp_path / "binding.parquet").write_bytes(b"fake parquet")
+    (tmp_path / "other_assays.parquet").write_bytes(b"fake parquet")
     _meta_path().write_text(json.dumps({"sources": {}, "n_rows": 0}))
     monkeypatch.setattr(builder, "_source_fingerprints", lambda paths, **_kw: {})
 
@@ -322,6 +325,7 @@ def test_cache_invalid_when_parquet_fingerprint_changes(tmp_path, monkeypatch):
     le_p = tmp_path / "line_expression.parquet"
     obs_p.write_bytes(b"original observations")
     bind_p.write_bytes(b"original binding")
+    (tmp_path / "other_assays.parquet").write_bytes(b"original other assays")
     bulk_p.write_bytes(b"original bulk")
     le_p.write_bytes(b"original line expression")
     (tmp_path / "observation_contributors.parquet").write_bytes(b"contributors")
@@ -542,6 +546,7 @@ def test_cache_invalid_when_line_expression_parquet_missing(tmp_path, monkeypatc
 
     (tmp_path / "observations.parquet").write_bytes(b"fake parquet")
     (tmp_path / "binding.parquet").write_bytes(b"fake parquet")
+    (tmp_path / "other_assays.parquet").write_bytes(b"fake parquet")
     (tmp_path / "bulk_proteomics.parquet").write_bytes(b"fake parquet")
     # Intentionally no line_expression.parquet
     _meta_path().write_text(json.dumps({"sources": {}, "n_rows": 100}))
@@ -612,6 +617,8 @@ def _full_obs_fixture(n_rows: int = 50) -> pd.DataFrame:
             "cell_type": ["B cell"] * n_rows,
             "culture_condition": ["unperturbed"] * n_rows,
             "assay_method": ["mass spectrometry"] * n_rows,
+            "assay_modality": ["ms"] * n_rows,
+            "assay_modality_source": ["assay_method"] * n_rows,
             "response_measured": [""] * n_rows,
             "measurement_units": [""] * n_rows,
             "measurement_inequality": [""] * n_rows,

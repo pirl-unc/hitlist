@@ -53,7 +53,7 @@ def donor_export(tmp_path, monkeypatch):
         ]
     )
     path = tmp_path / "observations.parquet"
-    rows.to_parquet(path, index=False)
+    rows.assign(assay_method="mass spectrometry").to_parquet(path, index=False)
     mappings = pd.DataFrame(
         [
             {"peptide": "SIINFEKL", "protein_id": protein, "position": position}
@@ -111,7 +111,7 @@ def test_donor_ids_ignore_order_filters_and_display_renames(donor_export):
         )
 
     expected = identities(original)
-    rows.iloc[::-1].to_parquet(path, index=False)
+    rows.iloc[::-1].assign(assay_method="mass spectrometry").to_parquet(path, index=False)
     reordered = generate_training_table(include_evidence="ms")
     pd.testing.assert_series_equal(identities(reordered), expected)
 
@@ -124,13 +124,13 @@ def test_donor_ids_ignore_order_filters_and_display_renames(donor_export):
     assert unsplit.evidence_row_id == unsplit.evidence_source_id == "ms:assay:other"
 
     # A source subset with only one donor must retain that donor's identity.
-    rows.iloc[[0]].to_parquet(path, index=False)
+    rows.iloc[[0]].assign(assay_method="mass spectrometry").to_parquet(path, index=False)
     single = generate_training_table(include_evidence="ms")
     assert single.evidence_row_id.iloc[0] == original.evidence_row_id.iloc[0]
 
     rows.loc[rows.attributed_sample_label == "Donor A", "attributed_sample_label"] = "Renamed A"
     overrides[99999101]["ms_samples"][0]["sample_label"] = "Renamed A"
-    rows.to_parquet(path, index=False)
+    rows.assign(assay_method="mass spectrometry").to_parquet(path, index=False)
     renamed = generate_training_table(include_evidence="ms")
     assert renamed.evidence_row_id.tolist() == original.evidence_row_id.tolist()
 

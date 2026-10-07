@@ -68,6 +68,7 @@ def _inputs(*, proteome_release=None):
         for name in (
             "observations.parquet",
             "binding.parquet",
+            "other_assays.parquet",
             "observations_meta.json",
             "peptide_mappings.parquet",
             "peptide_mappings_meta.json",

@@ -31,7 +31,9 @@ def _write_observations(tmp_path, monkeypatch, rows):
         "antigen_processing_comments": "",
         "assay_comments": "",
     }
-    pd.DataFrame([{**defaults, **row} for row in rows]).to_parquet(path, index=False)
+    pd.DataFrame([{**defaults, **row} for row in rows]).assign(
+        assay_method="mass spectrometry"
+    ).to_parquet(path, index=False)
     monkeypatch.setattr(observations, "observations_path", lambda: path)
     return path
 

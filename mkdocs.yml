@@ -7,6 +7,7 @@ repo_name: pirl-unc/hitlist
 nav:
   - Home: index.md
   - How Curation Works: curation-process.md
+  - Assay Modality and MS Evidence: assay-modality.md
   - Source Classification: source-classification.md
   - PMID Curation Overrides: pmid-curation.md
   - Training Provenance and Split Audits: training-provenance.md

@@ -58,7 +58,7 @@ def _write_obs_fixture(tmp_path):
         }
     )
     obs_path = tmp_path / "observations.parquet"
-    df.to_parquet(obs_path, index=False)
+    df.assign(assay_method="mass spectrometry").to_parquet(obs_path, index=False)
 
     # Sidecar peptide_mappings.parquet — long-form (one row per peptide x
     # protein).  Schema must include the columns load_peptide_mappings
@@ -446,7 +446,7 @@ def test_pmhc_query_normalizes_unprefixed_alleles(tmp_path, monkeypatch):
         }
     )
     obs_path = tmp_path / "observations.parquet"
-    df.to_parquet(obs_path, index=False)
+    df.assign(assay_method="mass spectrometry").to_parquet(obs_path, index=False)
     # Sidecar peptide_mappings.parquet — needed post-#238 for pmhc_query
     # to resolve the gene → peptide filter.
     mappings = pd.DataFrame(
@@ -646,7 +646,7 @@ def test_pmhc_query_warns_on_unresolved_source_organism(
         }
     )
     obs_path = tmp_path / "observations.parquet"
-    obs.to_parquet(obs_path, index=False)
+    obs.assign(assay_method="mass spectrometry").to_parquet(obs_path, index=False)
     mappings_path = tmp_path / "peptide_mappings.parquet"
     mappings.to_parquet(mappings_path, index=False)
     _patch_paths(monkeypatch, obs_path, mappings_path)
@@ -984,7 +984,7 @@ def _write_serotype_obs_fixture(tmp_path):
         }
     )
     obs_path = tmp_path / "observations.parquet"
-    df.to_parquet(obs_path, index=False)
+    df.assign(assay_method="mass spectrometry").to_parquet(obs_path, index=False)
 
     mappings = pd.DataFrame(
         {
@@ -1448,7 +1448,7 @@ def test_query_prediction_respects_normalized_genotype(tmp_path, monkeypatch, al
     _patch_paths(monkeypatch, obs_path, mappings_path)
     obs = pd.read_parquet(obs_path)
     obs.loc[obs["peptide"] == "KLVVVGAGGV", "mhc_restriction"] = "HLA-A*02:01;HLA-B*07:02"
-    obs.to_parquet(obs_path, index=False)
+    obs.assign(assay_method="mass spectrometry").to_parquet(obs_path, index=False)
     calls = []
 
     def fake_predict(pairs):
@@ -1588,7 +1588,9 @@ def test_query_n_samples_distinct_from_n_references(tmp_path, monkeypatch):
             "protein_id": ["ENSP00000358548"],
         }
     )
-    obs.to_parquet(tmp_path / "observations.parquet", index=False)
+    obs.assign(assay_method="mass spectrometry").to_parquet(
+        tmp_path / "observations.parquet", index=False
+    )
     mappings.to_parquet(tmp_path / "peptide_mappings.parquet", index=False)
     _patch_paths(
         monkeypatch, tmp_path / "observations.parquet", tmp_path / "peptide_mappings.parquet"
@@ -1668,7 +1670,9 @@ def test_query_n_samples_uses_composite_of_cell_line_and_host(tmp_path, monkeypa
             "protein_id": ["ENSP00000358548"],
         }
     )
-    obs.to_parquet(tmp_path / "observations.parquet", index=False)
+    obs.assign(assay_method="mass spectrometry").to_parquet(
+        tmp_path / "observations.parquet", index=False
+    )
     mappings.to_parquet(tmp_path / "peptide_mappings.parquet", index=False)
     _patch_paths(
         monkeypatch,
@@ -1714,7 +1718,9 @@ def test_query_n_samples_falls_back_to_pmid_when_no_metadata(tmp_path, monkeypat
             "protein_id": ["ENSP00000358548"],
         }
     )
-    obs.to_parquet(tmp_path / "observations.parquet", index=False)
+    obs.assign(assay_method="mass spectrometry").to_parquet(
+        tmp_path / "observations.parquet", index=False
+    )
     mappings.to_parquet(tmp_path / "peptide_mappings.parquet", index=False)
     _patch_paths(
         monkeypatch,
@@ -1761,7 +1767,9 @@ def test_query_n_samples_counts_distinct_cell_types_from_one_donor(tmp_path, mon
             "protein_id": ["ENSP00000358548"],
         }
     )
-    obs.to_parquet(tmp_path / "observations.parquet", index=False)
+    obs.assign(assay_method="mass spectrometry").to_parquet(
+        tmp_path / "observations.parquet", index=False
+    )
     mappings.to_parquet(tmp_path / "peptide_mappings.parquet", index=False)
     _patch_paths(
         monkeypatch,
@@ -1808,7 +1816,9 @@ def test_query_n_samples_uses_monoallelic_host_when_cell_line_name_empty(tmp_pat
             "protein_id": ["ENSP00000358548"],
         }
     )
-    obs.to_parquet(tmp_path / "observations.parquet", index=False)
+    obs.assign(assay_method="mass spectrometry").to_parquet(
+        tmp_path / "observations.parquet", index=False
+    )
     mappings.to_parquet(tmp_path / "peptide_mappings.parquet", index=False)
     _patch_paths(
         monkeypatch,
@@ -1893,7 +1903,7 @@ def _write_obs_fixture_with_cell_type(tmp_path):
         }
     )
     obs_path = tmp_path / "observations.parquet"
-    obs.to_parquet(obs_path, index=False)
+    obs.assign(assay_method="mass spectrometry").to_parquet(obs_path, index=False)
 
     mappings = pd.DataFrame(
         {
@@ -1981,7 +1991,7 @@ def _write_context_fixture(tmp_path):
         }
     )
     obs_path = tmp_path / "observations.parquet"
-    df.to_parquet(obs_path, index=False)
+    df.assign(assay_method="mass spectrometry").to_parquet(obs_path, index=False)
     mappings = pd.DataFrame(
         {
             "peptide": ["AAAAAAAAA", "CCCCCCCCC", "DDDDDDDDD", "EEEEEEEEE"],
@@ -2076,7 +2086,7 @@ def test_tissue_distribution(tmp_path, monkeypatch):
         }
     )
     obs_path = tmp_path / "observations.parquet"
-    df.to_parquet(obs_path, index=False)
+    df.assign(assay_method="mass spectrometry").to_parquet(obs_path, index=False)
     mappings = pd.DataFrame(
         {
             "peptide": peps,
@@ -2158,7 +2168,7 @@ def test_tissue_distribution_grand_total_unions_across_sections(tmp_path, monkey
         }
     )
     obs_path = tmp_path / "observations.parquet"
-    df.to_parquet(obs_path, index=False)
+    df.assign(assay_method="mass spectrometry").to_parquet(obs_path, index=False)
     mappings = pd.DataFrame(
         {
             "peptide": ["PPPPPPPPP"],
@@ -2210,7 +2220,7 @@ def test_gene_distribution_rolls_up_per_gene_with_panel_total(tmp_path, monkeypa
         }
     )
     obs_path = tmp_path / "observations.parquet"
-    obs.to_parquet(obs_path, index=False)
+    obs.assign(assay_method="mass spectrometry").to_parquet(obs_path, index=False)
     # Long-form mappings: one row per peptide x gene (matches the real parquet).
     mappings = pd.DataFrame(
         {
@@ -2271,7 +2281,7 @@ def test_tissue_distribution_anatomical_rollup(tmp_path, monkeypatch):
         }
     )
     obs_path = tmp_path / "observations.parquet"
-    df.to_parquet(obs_path, index=False)
+    df.assign(assay_method="mass spectrometry").to_parquet(obs_path, index=False)
     mappings = pd.DataFrame(
         {
             "peptide": peps,
@@ -2325,7 +2335,7 @@ def test_tissue_distribution_show_empty(tmp_path, monkeypatch):
         }
     )
     obs_path = tmp_path / "observations.parquet"
-    df.to_parquet(obs_path, index=False)
+    df.assign(assay_method="mass spectrometry").to_parquet(obs_path, index=False)
     mappings = pd.DataFrame(
         {
             "peptide": ["AAAAAAAAA"],
@@ -2375,7 +2385,7 @@ def test_tissue_distribution_unknown_type_falls_back_to_tissue(tmp_path, monkeyp
         }
     )
     obs_path = tmp_path / "observations.parquet"
-    df.to_parquet(obs_path, index=False)
+    df.assign(assay_method="mass spectrometry").to_parquet(obs_path, index=False)
     mappings = pd.DataFrame(
         {
             "peptide": peps,
@@ -2445,7 +2455,7 @@ def _write_unlabelled_fixture(tmp_path):
         }
     )
     obs_path = tmp_path / "observations.parquet"
-    obs.to_parquet(obs_path, index=False)
+    obs.assign(assay_method="mass spectrometry").to_parquet(obs_path, index=False)
 
     mappings = pd.DataFrame(
         {
@@ -2508,7 +2518,7 @@ def test_retired_allele_aggregation_retains_reported_names(
     df = pd.read_parquet(obs_path)
     df.loc[0, "mhc_restriction"] = "HLA-B*44:01"
     df.loc[1, "mhc_restriction"] = "HLA-B*44:02"
-    df.to_parquet(obs_path, index=False)
+    df.assign(assay_method="mass spectrometry").to_parquet(obs_path, index=False)
     _patch_paths(monkeypatch, obs_path, mappings_path)
 
     def score(pairs):

@@ -1,3 +1,102 @@
+# Assay modality correctness — #644; then detectability training — #361 (2026-10-07)
+
+## Specification
+
+The user requested #644 first and #361 next, each through a versioned PR and
+release. #644 remains open on 1.65.1. A bounded scan of the local legacy indexes
+confirms the MS partition includes fluorescence binding, thermodynamic/kinetic
+assays, crystallography, microscopy and non-MS ligand methods. Conversely the
+binding partition includes some explicitly MS rows because qualitative tiers
+and comments overrode assay method. Preserve raw fields and contributor lineage.
+
+Implement one modality contract shared by scans, builds, readers, reports and
+CTA exports. Separate `assay_modality` (ms, binding, structural, non_ms_ligand,
+other, unknown) from result polarity and record `assay_modality_source`.
+Structured methods/responses take precedence over legacy comment/tier heuristics.
+Explicit MS method plus a compatible ligand response establishes MS modality;
+negative outcomes are never positive presentation evidence. Blank methods on
+registered curated MS-only supplements retain their explicit source basis.
+Missing/conflicting evidence never defaults to MS; a false binding flag is not
+proof of MS. Keep fluorescence/stability/kinetic binding assays in binding;
+retain structural, non-MS ligand, unknown and negative-MS rows in a separate
+`other_assays.parquet`, accessible through `load_other_assays` with normal
+filters. Expose these rows in the explicitly broad `load_all_evidence` union,
+without broadening the MS/binding training API's accepted modalities.
+
+Build all three disjoint partitions, preserve contributor links and mapping
+coverage, add the third artifact to freshness/provenance fingerprints, and bump
+the observation semantic version. Old indexes must fail freshness checks. Reads
+must prevent legacy non-MS leakage even under column projection; recovered
+binding/other rows require a rebuild for complete new partitions. Avoid broad
+whole-frame copies solely for filtering. New scans and report paths must agree
+on MS admission. Keep experimental restriction and biological-source attribution
+separate from this assay-category correction. Whole-generation publication is
+already tracked separately in #645; do not claim it is fixed here.
+
+Regression cases include the reported PAGE4/MAGE fluorescence, crystallography,
+thermal stability and microscopy examples; valid cellular/secreted MS; Edman,
+coelution and T-cell ligand detection; missing/conflicting metadata; negative MS
+and positive tiers; curated supplements; scan/build/report/bundle parity;
+projected old-index reads; contributor integrity and cache invalidation. Audit
+real assay signatures and a bounded fresh raw scan, retaining explicit scope.
+
+## Plan
+
+- [x] Verify issues remain open; inspect code, lessons and actual assay signatures.
+- [x] Create isolated feature branch and checkpoint the modality design.
+- [x] Add failing regressions for the shared contract and end-to-end partitions.
+- [x] Implement modality, retention, read/report consistency and freshness.
+- [x] Audit real inputs and update fixtures to state their intended modality.
+- [ ] Document the contract, bump version, run format/lint/test and pandas 2/3 checks.
+- [ ] Open #644 PR, pass final-head gates, merge and publish verified artifacts.
+- [ ] Inspect #361's primary source/search metadata and Presto prototype; write its detailed spec.
+- [ ] Implement and verify bounded candidate generation and condition-scoped labels.
+- [ ] Ship #361 separately with full validation and PyPI verification.
+
+## #644 CI follow-up
+
+The first integration run passed 94 tests and exposed two historical fixture/
+assertion assumptions. The resolved-study replay now preserves raw assay method,
+response and outcome; its bounded real-data replay passed for 12,813 admitted
+MS rows across three studies. Species coverage now checks exact admitted MS
+counts and the presence of uncurated studies instead of retaining a >100 PMID
+threshold inflated by non-MS evidence; the real-corpus test passes (47 mouse
+class-I MS PMIDs). No scientific admission rule was relaxed. Format/lint pass;
+new final-head CI and the full local unit suite are required after this patch.
+
+## #644 implementation review (before PR)
+
+- Version 1.66.0; observation semantic artifact version 9. All three partitions
+  retain contributors and participate in mapping/cache contracts. Arrow applies
+  admission before pandas, including projected legacy reads. CTA policy v2 keeps
+  non-MS evidence auditable; old bundle verification retains its recorded policy.
+- Regressions initially failed on the old classifier. Focused affected exports:
+  331 passed. Broader fixture checks: 458 passed with three remaining binding
+  fixture failures corrected and verified in the subsequent 195-test checks.
+- Pandas 2.3.3 and 3.0.6: 195 focused tests passed each; additional real-build
+  structural CTA export passed both versions. Format/lint and editable-install/
+  dependency checks passed. The first full suite identified missing-modality
+  synthetic fixtures; they now state their intended assay method. Final local
+  full-suite attempts were refused by the unchanged memory guard (0.18–0.19 GiB
+  available vs 2.5 GiB required). Complete verification remains assigned to CI.
+- Bounded column audit: legacy observations contain 4,418,452 positive MS,
+  19,222 structured/fallback binding and 2,754 other rows; legacy binding contains
+  110,621 explicit positive-MS rows. This audit used four raw fields, omitting
+  comment-only heuristics, and is not a rebuilt index. Fresh raw IEDB records
+  1584690, 2007100 and 17935045 reproduce structural/binding/binding classification
+  with no positive MS admission (original data rows 131001, 241187, 4155792).
+- No full local corpus rebuild, shared-environment change, or claim of fixing
+  whole-generation publication (#645). CI and publication evidence will be
+  recorded on the PR after final-head checks.
+
+## Review
+
+Prior defaults PR #652 is merged and published as 1.65.1. Clean-main release
+37638770041 passed 2,634 units (one skip), 96 integrations, format/lint and
+artifact checks; PyPI wheel/sdist bytes matched. This task starts from clean
+main a96b1e5. The shared Python environment is distinct from the task's isolated
+release environment; preserve editable checkouts and compatible current versions.
+
 # Expression input defaults (2026-10-07)
 
 ## Specification and plan

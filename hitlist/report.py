@@ -406,7 +406,9 @@ def _run_report_from_csv(
         mhc_species="Homo sapiens",
         classify_source=True,
     )
-    df = _drop_excluded_ms_rows(df)
+    from .assays import positive_ms_mask
+
+    df = _drop_excluded_ms_rows(df[positive_ms_mask(df)])
     return generate_report(df, mhc_class_filter=mhc_class, output=output)
 
 
@@ -430,11 +432,9 @@ def _drop_excluded_ms_rows(df: pd.DataFrame) -> pd.DataFrame:
     excluded = ms_excluded_pmids()
     if not excluded:
         return df
-    is_ms = (
-        ~df["is_binding_assay"].fillna(False).astype(bool)
-        if "is_binding_assay" in df.columns
-        else pd.Series(True, index=df.index)
-    )
+    from .assays import positive_ms_mask
+
+    is_ms = positive_ms_mask(df)
     mask = is_ms & df["pmid"].isin(excluded)
     if not mask.any():
         return df

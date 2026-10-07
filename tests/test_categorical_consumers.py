@@ -93,7 +93,7 @@ def test_binding_filters_accept_categories_without_blank(tmp_path, monkeypatch, 
             field: pd.Categorical([value, None]),
         }
     )
-    frame.to_parquet(tmp_path / "binding.parquet", index=False)
+    frame.assign(is_binding_assay=True).to_parquet(tmp_path / "binding.parquet", index=False)
     result = export.generate_binding_table(**{field: value})
     assert list(result.peptide) == ["AAAAAAAAA"]
 

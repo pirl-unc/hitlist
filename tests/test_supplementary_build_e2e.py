@@ -88,7 +88,7 @@ def _write_observations_fixture(tmp_path):
         }
     )
     path = tmp_path / "observations.parquet"
-    df.to_parquet(path, index=False)
+    df.assign(assay_method="mass spectrometry").to_parquet(path, index=False)
     return path
 
 

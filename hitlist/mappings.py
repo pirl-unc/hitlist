@@ -242,13 +242,17 @@ def known_gene_identifiers() -> frozenset[str]:
 def _obs_fingerprint() -> dict:
     """Fingerprint both indexes the mappings were built from.
 
-    The mappings sidecar covers peptides from observations.parquet AND
-    binding.parquet, so both must invalidate the cache when they change.
+    The mappings sidecar covers MS, binding and other-assay peptides; changes
+    to any present partition must invalidate the cache.
     """
-    from .observations import binding_path, observations_path
+    from .observations import binding_path, observations_path, other_assays_path
 
     fp: dict = {}
-    for label, p in (("observations", observations_path()), ("binding", binding_path())):
+    for label, p in (
+        ("observations", observations_path()),
+        ("binding", binding_path()),
+        ("other_assays", other_assays_path()),
+    ):
         if p.exists():
             stat = p.stat()
             fp[label] = {"path": str(p), "size": stat.st_size, "mtime": stat.st_mtime}
@@ -509,6 +513,7 @@ def build_peptide_mappings(
     verbose: bool = True,
     obs_override: pd.DataFrame | None = None,
     binding_override: pd.DataFrame | None = None,
+    other_override: pd.DataFrame | None = None,
 ) -> Path:
     """Build ``peptide_mappings.parquet`` from the already-built observations table.
 
@@ -532,7 +537,14 @@ def build_peptide_mappings(
     """
     from .builder import _collect_pmid_extra_proteomes
     from .downloads import fetch_proteome_by_upid, lookup_proteome
-    from .observations import is_binding_built, is_built, load_binding, load_observations
+    from .observations import (
+        is_binding_built,
+        is_built,
+        load_binding,
+        load_observations,
+        load_other_assays,
+        other_assays_path,
+    )
     from .proteome import ProteomeIndex
 
     out = mappings_path()
@@ -542,6 +554,8 @@ def build_peptide_mappings(
         obs = obs_override[cols].copy()
         if binding_override is not None and len(binding_override):
             obs = pd.concat([obs, binding_override[cols]], ignore_index=True)
+        if other_override is not None and len(other_override):
+            obs = pd.concat([obs, other_override[cols]], ignore_index=True)
     else:
         if not is_built():
             raise FileNotFoundError(
@@ -562,8 +576,12 @@ def build_peptide_mappings(
             binding = load_binding(columns=cols)
             if len(binding):
                 obs = pd.concat([obs, binding], ignore_index=True)
+        if other_assays_path().exists():
+            other = load_other_assays(columns=cols)
+            if len(other):
+                obs = pd.concat([obs, other], ignore_index=True)
     print(
-        f"\nBuilding peptide mappings for {len(obs):,} rows (MS + binding, "
+        f"\nBuilding peptide mappings for {len(obs):,} rows (MS + binding + other assays, "
         f"{obs['peptide'].nunique():,} unique peptides) ..."
     )
 

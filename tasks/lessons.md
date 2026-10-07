@@ -2,6 +2,11 @@
 
 ## 2026-10-07
 
+- Shared-environment maintenance is scoped to the OpenVax stack and its
+  dependencies. Preserve editable checkouts, upgrade mutually compatible stable
+  versions together, and leave unrelated notebook/AI packages outside the work.
+  Keep repository-local release environments clearly separate.
+
 - Standard input formats should work with defaults. Do not demand file and
   column flags when a unique conventional file/header identifies them. Share
   inference between CLI/API, preserve explicit overrides, record the resolved

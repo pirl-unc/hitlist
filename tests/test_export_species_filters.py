@@ -27,9 +27,9 @@ def species_indexes(tmp_path, monkeypatch):
         }
     )
     for kind, filename in (("ms", "observations.parquet"), ("binding", "binding.parquet")):
-        rows.assign(assay_iri=[f"{kind}:{i}" for i in range(6)]).to_parquet(
-            tmp_path / filename, index=False
-        )
+        rows.assign(assay_iri=[f"{kind}:{i}" for i in range(6)]).assign(
+            assay_method="mass spectrometry" if kind == "ms" else "binding assay"
+        ).to_parquet(tmp_path / filename, index=False)
     return rows
 
 

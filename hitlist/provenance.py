@@ -438,7 +438,7 @@ class ContributorCollector:
 
 def _contributor_contract(*, verify_hashes=False):
     """Check captured artifacts using stats, or hashes for contributor reads."""
-    from .builder import _binding_path, _cache_meta, _observations_path
+    from .builder import _binding_path, _cache_meta, _observations_path, _other_assays_path
 
     metadata = _cache_meta()
     contract = metadata.get("provenance")
@@ -446,11 +446,18 @@ def _contributor_contract(*, verify_hashes=False):
         return None
     if contract.get("schema_version") != SCHEMA_VERSION:
         raise ValueError("Unsupported contributor schema; rebuild observations")
-    for name, path, expected in [
+    if metadata.get("artifact_version", 0) >= 9 and "other_assays" not in contract["indexes"]:
+        raise ValueError("Provenance contract missing other assays; rebuild observations")
+    artifacts = [
         ("contributors", contributors_path(), contract["contributors"]),
         ("observations", _observations_path(), contract["indexes"]["observations"]),
         ("binding", _binding_path(), contract["indexes"]["binding"]),
-    ]:
+    ]
+    if "other_assays" in contract["indexes"]:
+        artifacts.append(
+            ("other_assays", _other_assays_path(), contract["indexes"]["other_assays"])
+        )
+    for name, path, expected in artifacts:
         matches = path.exists() and path.stat().st_size == expected["size_bytes"]
         if matches:
             stamp = metadata.get("parquets", {}).get(name, {})

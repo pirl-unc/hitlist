@@ -362,11 +362,11 @@ def scan(
     if cedar_path is not None:
         source_paths.append(Path(cedar_path))
 
+    from .assays import assay_annotations
     from .curation import (
         allele_resolution_rank,
         attribute_peptide_to_per_sample_typings,
         classify_allele_resolution,
-        is_binding_assay,
         is_non_peptide_ligand,
         normalize_species,
         peptide_attribution_applies_to_row,
@@ -563,7 +563,7 @@ def scan(
                 "measurement_inequality": _safe_col(row, c["measurement_inequality"]),
                 "quantitative_measurement": _safe_col(row, c["quantitative_measurement"]),
                 "quantitative_value": _parse_float(_safe_col(row, c["quantitative_measurement"])),
-                "is_binding_assay": is_binding_assay(
+                **assay_annotations(
                     _safe_col(row, c["qualitative_measurement"]),
                     _safe_col(row, c["assay_comments"]),
                     _safe_col(row, c["assay_method"]),

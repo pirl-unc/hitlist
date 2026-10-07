@@ -3791,28 +3791,19 @@ def is_binding_assay(
     assay_method: str = "",
     response_measured: str = "",
 ) -> bool:
-    """Classify whether an observation is from a binding assay vs MS elution.
+    """Identify binding assays; False alone never establishes MS evidence."""
+    from .assays import assay_annotations
 
-    Returns True for binding assay data (peptide microarrays, refolding
-    assays, MEDi display, etc.) which should be excluded from
-    immunopeptidome-focused analyses.
+    return assay_annotations(
+        qualitative_measurement, assay_comments, assay_method, response_measured
+    )["is_binding_assay"]
 
-    Structured IEDB fields take precedence when their combination identifies
-    the modality directly. In particular, peptide half-life measured on
-    purified MHC is a biochemical stability/binding assay even when its
-    qualitative result is the otherwise-ambiguous plain ``"Positive"``.
 
-    The last two parameters are optional to preserve source compatibility for
-    existing two-argument callers. All four inputs are low-cardinality or
-    highly repetitive, so caching the tuple remains cheap relative to the
-    millions of scanner calls.
-    """
-    method = " ".join(str(assay_method or "").casefold().split())
-    response = " ".join(str(response_measured or "").casefold().replace("-", " ").split())
-    is_purified_mhc = method == "purified mhc" or method.startswith("purified mhc/")
-    if is_purified_mhc and response == "half life":
-        return True
-
+def _legacy_is_binding_assay(
+    qualitative_measurement: str,
+    assay_comments: str,
+) -> bool:
+    """Comment/tier binding fallback when structured modality is unresolved."""
     qm = qualitative_measurement.strip() if qualitative_measurement else ""
     # Negative results and quantitative tiers are binding assays
     if qm in ("Negative", "Positive-High", "Positive-Intermediate", "Positive-Low"):
