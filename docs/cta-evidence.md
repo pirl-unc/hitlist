@@ -11,23 +11,62 @@ predict presentation in this workflow.
 
 ```bash
 hitlist export cta-evidence \
-  --expression patient.tsv --id-column gene --tpm-column TPM \
-  --expression-level gene --min-tpm 2 \
+  --expression patient.tsv \
   --atlas-dir hla_2020.12 --bundle patient-evidence
 
 hitlist verify-evidence-bundle patient-evidence
 ```
 
-CSV, TSV, TAB and Salmon SF files, optionally gzip compressed, are accepted.
-Choose the columns explicitly; values must be TPM, not raw read counts. The
-default definition is OncoRef's strict CTA set; `--cta-definition extended`
+Identifier and TPM columns and the gene/transcript level are detected from
+conventional headers. With exactly one conventional file in the working
+directory, `--expression` can also be omitted. The search accepts
+`expression.tsv`, `expression.csv`, `expression.tab`, `expression.sf`,
+`quant.sf`, `abundance.tsv`, `*.genes.results` and `*.isoforms.results`,
+including their `.gz` variants. An explicit directory uses the same search.
+It does not search subdirectories or choose between multiple candidates.
+An explicit file can have any basename with one of these supported extensions.
+
+| Input | Identifier and level | Expression default |
+| --- | --- | --- |
+| Gene table | `ensembl_gene_id`/`gene_id`, `gene`, `symbol`, `gene_symbol` or `gene_name`; stable ID preferred | One `TPM`, `TPM_<sample>` or `<sample>_TPM` column |
+| Transcript table | `ensembl_transcript_id`/`transcript_id` or `transcript` | One TPM-labelled column |
+| [Salmon `quant.sf`](https://salmon.readthedocs.io/en/latest/file_formats.html) | `Name`, transcript | `TPM` |
+| [kallisto `abundance.tsv`](https://pachterlab.github.io/kallisto/manual) | `target_id`, transcript | `tpm` |
+| [RSEM results](https://deweylab.github.io/RSEM/rsem-calculate-expression.html) | `gene_id` for genes; `transcript_id` for isoforms | `TPM`; auxiliary posterior estimates and confidence intervals do not count as samples |
+
+Header matching ignores case, surrounding spaces, and differences between
+spaces, hyphens and underscores. Neutral `Name`, `target_id` or `id` columns
+containing Ensembl transcript IDs infer transcript level; Ensembl gene IDs
+infer gene level, including gene-aggregated quantifier output. Other neutral
+identifiers default to genes unless a recognized quantifier schema establishes
+transcript level. Mixed gene/transcript identifiers require a level override.
+
+Use `--id-column`, `--tpm-column` and `--expression-level gene|transcript` to
+override detection. Explicit column names are exact. Generic tables containing
+both gene and transcript axes require an identifier or level choice; tables
+with several sample TPM columns require a TPM column choice. For example:
+
+```bash
+hitlist export cta-evidence --expression cohort.tsv \
+  --id-column gene_id --tpm-column patient_123_TPM \
+  --atlas-dir hla_2020.12 --bundle patient-evidence
+```
+
+The CLI reports the resolved path, columns and level. The manifest retains
+these choices and `inferred_inputs` flags; the Python
+`resolve_expression_table()` and `write_cta_evidence_bundle()` APIs use the
+same defaults. Actual expression measurements must be supplied: no patient
+values are synthesized. Values must be TPM; counts and FPKM are never inferred
+as TPM. The default minimum is 2 TPM (`--min-tpm`).
+
+The default definition is OncoRef's strict CTA set; `--cta-definition extended`
 selects its extended set. Original cells, input row numbers, file hashes,
 canonical identities, measured TPM and selection reasons are retained.
 Missing TPM is unmeasured. Duplicate resolved identifiers fail rather than
 silently sum aliases. A gene TPM does not establish an expressed isoform.
 
-For transcript inputs, set `--expression-level transcript` and identify the
-transcript column. Versioned Ensembl transcript IDs are retained and resolved
+For transcript inputs, the detected or explicit transcript column supplies
+versioned Ensembl transcript IDs, which are retained and resolved
 against the installed `--ensembl-release` (default 112). Only mappings to the
 named, eligible transcript are used to select peptides. All mappings for those
 peptides are then exported, including unselected isoforms and non-CTA proteins.

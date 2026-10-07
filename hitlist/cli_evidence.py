@@ -1,5 +1,6 @@
 """Expression-table evidence and independently reusable tissue-blacklist CLI."""
 
+import json
 import sys
 
 
@@ -10,12 +11,18 @@ def add_evidence_parsers(sub, export_sub):
     )
     cta.add_argument(
         "--expression",
-        required=True,
-        help="One sample's gene/transcript TPM table (CSV/TSV/Salmon SF)",
+        help="TPM table or directory; default: one conventional expression/quantifier file in the current directory",
     )
-    cta.add_argument("--id-column", required=True)
-    cta.add_argument("--tpm-column", required=True)
-    cta.add_argument("--expression-level", choices=["gene", "transcript"], default="gene")
+    cta.add_argument("--id-column", help="Override automatic identifier-column detection")
+    cta.add_argument(
+        "--tpm-column", help="Override automatic TPM-column detection or choose a sample"
+    )
+    cta.add_argument(
+        "--expression-level",
+        choices=["auto", "gene", "transcript"],
+        default="auto",
+        help="Default: infer from identifier headers, values or quantifier format",
+    )
     cta.add_argument("--min-tpm", type=float, default=2.0)
     cta.add_argument("--cta-definition", choices=["strict", "extended"], default="strict")
     cta.add_argument("--ensembl-release", type=int, default=112)
@@ -86,6 +93,10 @@ def handle_evidence(args):
                 if args.no_gene_exclusions
                 else tuple(args.exclude_gene_pattern or ["MAGE*"]),
                 allow_genes=tuple(args.allow_gene or ["MAGEA4"]),
+            )
+            expression = json.loads(path.read_text())["expression"]
+            print(
+                f"Expression: {expression['input']['path']} ({expression['level']}; ID={expression['id_column']}; TPM={expression['tpm_column']})"
             )
         print(f"Wrote verified evidence bundle: {path}")
     except (ValueError, OSError, ImportError) as error:
