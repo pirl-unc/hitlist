@@ -22,6 +22,11 @@ on:
       - tests/test_supplement.py
       - hitlist/provenance.py
       - hitlist/builder.py
+      - hitlist/detectability.py
+      - hitlist/proteome.py
+      - hitlist/data/bulk_proteomics/**
+      - tests/test_detectability.py
+      - tests/test_proteome.py
       - hitlist/assays.py
       - hitlist/observations.py
       - hitlist/mappings.py
