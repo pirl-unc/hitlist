@@ -296,3 +296,49 @@ def test_verification_uses_captured_tissue_policy_after_installed_policy_changes
     changed_policy["tissue_groups"]["heart"] = ["Myocardium"]
     monkeypatch.setattr(tissue_blacklist, "tissue_blacklist_policy", lambda: changed_policy)
     verify_evidence_bundle(target)
+
+
+def test_cta_cli_uses_defaults_and_records_resolved_input(
+    mapped_index, reference, atlas_dir, tmp_path, monkeypatch, capsys
+):
+    import sys
+
+    from hitlist.cli import main
+
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "expression.tsv").write_text("gene\tTPM\nPRAME\t10\n")
+    target = tmp_path / "defaults"
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "hitlist",
+            "export",
+            "cta-evidence",
+            "--atlas-dir",
+            str(atlas_dir),
+            "--bundle",
+            str(target),
+        ],
+    )
+    main()
+    manifest = verify_evidence_bundle(target)
+    assert all(manifest["expression"]["inferred_inputs"].values())
+    assert manifest["expression"]["id_column"] == "gene"
+    assert manifest["expression"]["tpm_column"] == "TPM"
+    assert "ID=gene; TPM=TPM" in capsys.readouterr().out
+    assert pd.read_parquet(target / "expression_mappings.parquet").expression_tpm.tolist() == [10]
+
+
+def test_bundle_api_infers_columns_from_explicit_file(mapped_index, reference, atlas_dir, tmp_path):
+    path = tmp_path / "patient.csv"
+    path.write_text("gene,TPM\nPRAME,10\n")
+    target = tmp_path / "api"
+    write_cta_evidence_bundle(target, path, atlas_dir=atlas_dir)
+    manifest = verify_evidence_bundle(target)
+    assert manifest["expression"]["inferred_inputs"] == {
+        "path": False,
+        "id_column": True,
+        "tpm_column": True,
+        "level": True,
+    }

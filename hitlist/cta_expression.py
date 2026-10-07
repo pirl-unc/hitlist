@@ -13,6 +13,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from .expression_inputs import expression_input_path, infer_expression_columns
 from .provenance import file_digest
 
 
@@ -64,38 +65,38 @@ def _canonical_mapping_gene(identifier):
 
 
 def resolve_expression_table(
-    path,
+    path=None,
     *,
-    id_column,
-    tpm_column,
-    level="gene",
+    id_column=None,
+    tpm_column=None,
+    level="auto",
     definition="strict",
     min_tpm=2.0,
     ensembl_release=112,
     exclude_gene_patterns=("MAGE*",),
     allow_genes=("MAGEA4",),
 ):
-    """Resolve one sample's explicit gene/transcript TPM column, without VCF/BAM.
+    """Resolve one sample's gene/transcript TPM column, without VCF/BAM.
 
     CSV and TSV (including gzip) are accepted. Original columns and logical
     input-row numbers survive in the audit. Missing TPM is unmeasured, never an
     inclusion request. Duplicate resolved genes/transcripts fail rather than
     silently sum alias copies; distinct transcripts keep their own TPMs.
-    Exclusions affect eligibility only, not the canonical CTA background.
+    Conventional files, identifier headers and TPM columns are inferred when
+    unambiguous; explicit arguments override inference. Exclusions affect
+    eligibility only, not the canonical CTA background.
     """
-    if level not in {"gene", "transcript"}:
-        raise ValueError("Expression level must be gene or transcript")
     if not math.isfinite(min_tpm) or min_tpm < 0:
         raise ValueError("min_tpm must be finite and nonnegative")
     for values in (exclude_gene_patterns, allow_genes):
         if isinstance(values, str) or any(not isinstance(x, str) or not x.strip() for x in values):
             raise ValueError("Gene exclusions and exceptions must be sequences of nonempty strings")
-    path = Path(path)
+    path, inferred_path = expression_input_path(path)
     before = file_digest(path)
     suffix = path.with_suffix("").suffix if path.suffix == ".gz" else path.suffix
-    if suffix.lower() not in {".csv", ".tsv", ".tab", ".sf"}:
+    if suffix.lower() not in {".csv", ".tsv", ".tab", ".sf", ".results"}:
         raise ValueError(
-            "Expression input must be CSV or tab-separated TSV/TAB/SF (optionally .gz)"
+            "Expression input must be CSV or tab-separated TSV/TAB/SF/RESULTS (optionally .gz)"
         )
     separator = "," if suffix.lower() == ".csv" else "\t"
     opener = gzip.open if path.suffix == ".gz" else open
@@ -104,10 +105,9 @@ def resolve_expression_table(
     if not header or len(header) != len(set(header)) or any(not name.strip() for name in header):
         raise ValueError("Expression columns must have unique, nonempty names")
     frame = pd.read_csv(path, sep=separator, dtype=str, keep_default_na=False)
-    if id_column == tpm_column or not {id_column, tpm_column} <= set(frame):
-        raise ValueError(
-            "Specify distinct identifier and TPM columns present in the expression table"
-        )
+    id_column, tpm_column, level, inferred = infer_expression_columns(
+        frame, id_column=id_column, tpm_column=tpm_column, level=level
+    )
     frame = frame.rename(columns={name: f"input:{name}" for name in frame.columns})
     frame.insert(0, "input_row", range(1, len(frame) + 1))
     frame["original_identifier"] = frame[f"input:{id_column}"]
@@ -163,6 +163,7 @@ def resolve_expression_table(
         raise ValueError("Expression input changed during resolution")
     metadata = {
         "input": {"path": str(path.resolve()), **before},
+        "inferred_inputs": {"path": inferred_path, **inferred},
         "level": level,
         "id_column": id_column,
         "tpm_column": tpm_column,

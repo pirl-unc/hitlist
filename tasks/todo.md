@@ -1,3 +1,52 @@
+# Expression input defaults (2026-10-07)
+
+## Specification and plan
+
+The user corrected mandatory input flags after 1.65.0. Provide the same defaults
+through CLI and Python API, keeping all explicit overrides. With no file path,
+look only for conventional expression.tsv/csv/tab, quant.sf, abundance.tsv and
+RSEM *.genes.results / *.isoforms.results (including gzip) in the working
+directory; an explicit directory uses the same search. Require exactly one
+candidate. Do not recurse, choose the newest file, invent patient measurements,
+or treat unrelated numeric files as expression.
+
+Detect identifier headers case-insensitively (gene IDs/symbols, transcript IDs,
+and neutral quantifier Name/target_id headers). Prefer stable gene IDs over
+symbols, recognize standard Salmon/kallisto/RSEM profiles, and infer Ensembl
+transcript IDs in neutral columns. Generic tables containing both gene and
+transcript columns require an explicit level or identifier column. Infer a
+single TPM-labelled value column; multiple sample TPM columns or no TPM-labelled
+column require --tpm-column. Never infer TPM from read counts or FPKM. Explicit
+column names remain exact and authoritative. Record the resolved path, columns,
+level and whether each was inferred in manifest expression metadata.
+RSEM's documented posterior estimates and uncertainty columns describe the same
+sample: choose ordinary TPM by default while retaining explicit estimator overrides.
+
+- [x] Inspect CLI/API and OncoRef's existing column conventions; checkpoint plan.
+- [x] Add regression tests that fail under 1.65.0 defaults.
+- [x] Implement shared path/column/level resolution with provenance.
+- [x] Exercise gene/quantifier, ambiguous, override, gzip and CLI/API cases.
+- [x] Update documentation and bump version to 1.65.1.
+- [ ] Run format/lint/test and validate pandas 2/3 plus final-head CI.
+- [ ] Merge and deploy from clean main; verify published artifact bytes.
+
+## Review
+
+Issue #651 tracks this fix. The first ten regression cases failed against the
+required-argument implementation and now pass. Format/lint pass; 99 focused
+checks pass on pandas 3.0.6 and 52 evidence checks pass on pandas 2.3.3.
+CLI/API exports verify the selected values and manifest provenance. Standard
+quantifier fixtures follow their primary format documentation, including RSEM
+posterior estimates and uncertainty fields. The isolated 1.65.1 editable install
+and dependency consistency checks pass. Local ./test.sh correctly refused its
+memory preflight (0.24 GiB available versus 2.5 GiB required); full-suite and
+release checks must pass in CI before merge and publication.
+
+Preceding PR #650 shipped as 1.65.0 from main 1a0c9f5. Release run 37537861454
+passed 2,613 unit tests (one skip) and 96 integration tests. Both PyPI artifacts
+were downloaded and matched the tested CI bytes. This follow-up corrects input
+usability, retaining expression units, specificity and blacklist policies.
+
 # Expression-table CTA evidence bundles (2026-10-06)
 
 ## Scope and ownership
@@ -71,8 +120,8 @@ load irrelevant raw source payloads into memory merely to export a subset.
 - [x] Verify full provenance, input stability, manifest hashes and atomic publication.
 - [x] Validate real inputs and reconcile blacklist counts independently.
 - [x] Document downstream bundle consumption; bump version.
-- [ ] Run format.sh, lint.sh and test.sh; verify final-head CI.
-- [ ] Merge, deploy from clean main and verify PyPI artifacts.
+- [x] Run format.sh, lint.sh and test.sh; verify final-head CI.
+- [x] Merge, deploy from clean main and verify PyPI artifacts.
 
 ## Review
 

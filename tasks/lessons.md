@@ -1,5 +1,13 @@
 # Lessons
 
+## 2026-10-07
+
+- Standard input formats should work with defaults. Do not demand file and
+  column flags when a unique conventional file/header identifies them. Share
+  inference between CLI/API, preserve explicit overrides, record the resolved
+  choices in provenance, and ask only when a real ambiguity remains. Never
+  substitute invented patient expression or raw counts for missing TPM.
+
 ## 2026-10-06
 
 - Dependency compatibility has three separate checks: declared bounds, the

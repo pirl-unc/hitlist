@@ -24,6 +24,7 @@ on:
       - hitlist/builder.py
       - tests/test_provenance.py
       - hitlist/cta_expression.py
+      - hitlist/expression_inputs.py
       - hitlist/evidence_bundle.py
       - hitlist/tissue_blacklist.py
       - hitlist/cli_evidence.py

@@ -285,7 +285,13 @@ def _peptide_summary(
 
 
 def write_cta_evidence_bundle(
-    directory, expression_path, *, atlas_dir, id_column, tpm_column, **expression_options
+    directory,
+    expression_path=None,
+    *,
+    atlas_dir,
+    id_column=None,
+    tpm_column=None,
+    **expression_options,
 ):
     """Export observed CTA peptide evidence, reference sharing and tissue risk.
 
