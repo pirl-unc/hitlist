@@ -1140,13 +1140,14 @@ def test_species_summary_class_filter():
 
 @pytest.mark.integration
 def test_species_summary_covers_non_curated_species():
-    """Mouse has hundreds of PMIDs in the parquet; the summary must reflect that.
+    """Coverage comes from admitted MS evidence, including uncurated studies.
 
-    Before #117, non-human species showed ``0`` in ``n_samples`` because
-    ``pmid_overrides.yaml`` only has a handful of curated mouse entries.
-    The parquet-derived summary must surface the full coverage.
+    The old >100 PMID threshold included non-MS assays (#644). Compare exact
+    counts with the admitted source rows rather than preserving contaminated
+    historical coverage numbers.
     """
-    from hitlist.observations import is_built
+    from hitlist.curation import load_pmid_overrides
+    from hitlist.observations import is_built, load_observations
 
     if not is_built():
         pytest.skip("Observations table not built")
@@ -1154,12 +1155,14 @@ def test_species_summary_covers_non_curated_species():
     mouse = df[df["species"] == "Mus musculus"]
     assert len(mouse) == 1, "mouse should appear exactly once for class I"
     mouse_row = mouse.iloc[0]
-    # Real mouse data has at least 100 PMIDs (typically ~388 for class I).
-    assert int(mouse_row["n_pmids"]) > 100, (
-        f"Mus musculus I should have many PMIDs in the parquet, got {mouse_row['n_pmids']}"
+    admitted = load_observations(mhc_class="I", species="Mus musculus", columns=["peptide", "pmid"])
+    assert set(admitted.pmid.dropna()) - set(load_pmid_overrides()), (
+        "The corpus should include MS studies outside the curated sample inventory"
     )
-    assert int(mouse_row["n_peptides"]) > 10_000
-    assert int(mouse_row["n_observations"]) > 10_000
+    assert int(mouse_row["n_pmids"]) == admitted.pmid.nunique()
+    assert int(mouse_row["n_peptides"]) == admitted.peptide.nunique()
+    assert int(mouse_row["n_observations"]) == len(admitted)
+    assert len(admitted) > 10_000
 
 
 @pytest.mark.integration

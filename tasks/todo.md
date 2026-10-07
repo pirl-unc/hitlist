@@ -53,6 +53,17 @@ real assay signatures and a bounded fresh raw scan, retaining explicit scope.
 - [ ] Implement and verify bounded candidate generation and condition-scoped labels.
 - [ ] Ship #361 separately with full validation and PyPI verification.
 
+## #644 CI follow-up
+
+The first integration run passed 94 tests and exposed two historical fixture/
+assertion assumptions. The resolved-study replay now preserves raw assay method,
+response and outcome; its bounded real-data replay passed for 12,813 admitted
+MS rows across three studies. Species coverage now checks exact admitted MS
+counts and the presence of uncurated studies instead of retaining a >100 PMID
+threshold inflated by non-MS evidence; the real-corpus test passes (47 mouse
+class-I MS PMIDs). No scientific admission rule was relaxed. Format/lint pass;
+new final-head CI and the full local unit suite are required after this patch.
+
 ## #644 implementation review (before PR)
 
 - Version 1.66.0; observation semantic artifact version 9. All three partitions
