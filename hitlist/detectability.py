@@ -275,8 +275,10 @@ def _first_seen_depth(all_rows, selected, search_space_id):
     if "comparison_group" not in selected:
         return {}, "unavailable_no_comparable_protocol_group"
     groups = selected.comparison_group.dropna().unique()
-    if len(groups) != 1 or not groups[0]:
+    if len(groups) == 0:
         return {}, "unavailable_no_comparable_protocol_group"
+    if len(groups) != 1 or not groups[0] or selected.comparison_group.isna().any():
+        raise ValueError("Selected scope requires one complete comparison_group or none")
     related = all_rows.loc[all_rows.comparison_group.eq(groups[0])]
     _scope_value(related, "comparison_provenance")
     invariant = [c for c in _SCOPE_COLUMNS if c not in ("n_fractions_in_run", "protocol_id")]
@@ -303,6 +305,15 @@ def _first_seen_depth(all_rows, selected, search_space_id):
         raise ValueError(
             "Comparison controls must document LC gradient, load, preparation and acquisition method"
         )
+    for column in ("lc_gradient_minutes", "peptide_load_ug"):
+        value = controls[column]
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(value)
+            or value <= 0
+        ):
+            raise ValueError(f"Comparison {column} must be finite and positive")
     if "experiment_ids" not in related or related.experiment_ids.isna().any():
         raise ValueError("Comparison requires experiment_ids to detect reused experiments")
     protocols = related[["protocol_id", "n_fractions_in_run", "experiment_ids"]].drop_duplicates()
@@ -525,6 +536,10 @@ def iter_detectability_training_set(
             "flank": flank,
             "require_protein_observed": require_protein_observed,
             "max_candidates": max_candidates,
+            "batch_size": batch_size,
+            "max_protein_residues": max_protein_residues,
+            "max_reference_bytes": max_reference_bytes,
+            "max_observation_rows": max_observation_rows,
         },
     }
     metadata["search_space_id"] = contract.identifier
@@ -549,6 +564,9 @@ def iter_detectability_training_set(
         parent = parent_rows.get(accession)
         if require_protein_observed and parent is None:
             continue
+        gene = (parent or {}).get("gene_symbol", fasta_gene)
+        if pd.isna(gene) or not gene:
+            gene = fasta_gene
         for candidate in digest_occurrences(sequence, contract.enzyme, lower, upper, max_missed):
             peptide = candidate.peptide
             if set(peptide) - _RESIDUE_MASS.keys():
@@ -569,7 +587,7 @@ def iter_detectability_training_set(
                 {
                     "peptide": peptide,
                     "uniprot_acc": accession,
-                    "gene_symbol": (parent or {}).get("gene_symbol", fasta_gene),
+                    "gene_symbol": gene,
                     "start_position": start,
                     "end_position": end,
                     "n_flank": sequence[max(0, start - 1 - flank) : start - 1],

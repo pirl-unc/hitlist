@@ -138,3 +138,14 @@ parent occurrences retained, comparable-only depth labels, chunked historical
 source adapter, stable schemas, iterator, materializer, and atomic Parquet +
 manifest export with a hard storage cap. Historical pooled replicate counts
 are nullable; source evidence and limitations are retained in curated YAML.
+
+
+Validation checkpoint: 150 focused tests pass on pandas 3, with the earlier
+148-test set also passing on pandas 2. Format and lint pass. The full test script
+was invoked but its unchanged memory guard refused 0.71/0.68 GiB available
+against 2.5 GiB required; full CI and release checks must pass before merge.
+A chunked real-source audit covers all 2,047,003 peptide rows across 14 curated
+scopes (25,000-row parser batches). It is a source-control audit, not a historical
+training export with an invented FASTA. A real searched reference was found in
+PXD013455, Human-ReferenceProteome-Canonical-Isoform-71591.fasta; its observations
+and mqpar-celllines.xml are distinct from the original search.

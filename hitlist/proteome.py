@@ -1614,6 +1614,8 @@ def digest_occurrences(
     for first in range(len(cuts) - 1):
         for last in range(first + 1, min(first + max_missed + 2, len(cuts))):
             start, end = cuts[first], cuts[last]
+            if end - start > max_len:
+                break
             if min_len <= end - start <= max_len:
                 yield DigestedPeptide(seq[start:end], start + 1, end, last - first - 1)
 

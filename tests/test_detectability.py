@@ -452,3 +452,34 @@ def test_duplicate_or_missing_reference_parents_fail_before_first_batch(search_i
         search_inputs[key]["search_space_id"] = contract.identifier
     with pytest.raises(ValueError, match="Duplicate protein"):
         next(iter_detectability_training_set(**search_inputs, batch_size=1))
+
+
+def test_partial_comparison_metadata_is_not_silently_accepted(search_inputs):
+    import pandas as pd
+
+    from hitlist.detectability import build_detectability_training_set
+
+    _add_comparison(search_inputs)
+    search_inputs["peptide_observations"].loc[0, "comparison_group"] = pd.NA
+    with pytest.raises(ValueError, match="complete comparison_group"):
+        build_detectability_training_set(**search_inputs)
+
+
+def test_invalid_comparison_load_is_rejected(search_inputs):
+    import json
+
+    from hitlist.detectability import build_detectability_training_set
+
+    _add_comparison(search_inputs)
+    frame = search_inputs["peptide_observations"]
+    controls = json.loads(frame.comparison_controls.iloc[0])
+    controls["peptide_load_ug"] = -1
+    frame["comparison_controls"] = json.dumps(controls)
+    with pytest.raises(ValueError, match="finite and positive"):
+        build_detectability_training_set(**search_inputs)
+
+
+def test_narrow_length_window_bounds_large_missed_cleavage_allowance():
+    rows = list(digest_occurrences("AAK" * 1000, min_len=3, max_len=3, max_missed=1000000))
+    assert len(rows) == 1000
+    assert all(row.peptide == "AAK" and row.n_missed_cleavages == 0 for row in rows)
