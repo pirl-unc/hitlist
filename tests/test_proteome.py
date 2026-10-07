@@ -671,7 +671,7 @@ def test_kmers_for_genes_unknown_gene():
 
 
 def test_digest_trypsin_basic():
-    """Trypsin/P cleaves K/R, not before P."""
+    """Classical Trypsin cleaves K/R, not before P."""
     from hitlist.proteome import digest
 
     # Layout: M(0) E(1) R(2) K(3) P(4) K(5) L(6) A(7) S(8) R(9) P(10) E(11) K(12)
@@ -683,7 +683,7 @@ def test_digest_trypsin_basic():
     #   K@12 → end of seq → NO
     # Result: [0:3]=MER, [3:6]=KPK, [6:13]=LASRPEK
     seq = "MERKPKLASRPEK"
-    peps = digest(seq, enzyme="Trypsin/P (cleaves K/R except before P)", min_len=2, max_missed=0)
+    peps = digest(seq, enzyme="Trypsin", min_len=2, max_missed=0)
     assert peps == {"MER", "KPK", "LASRPEK"}
 
 
@@ -692,17 +692,17 @@ def test_digest_trypsin_aliases():
     from hitlist.proteome import digest
 
     seq = "MERKASRLEK"
-    canonical = digest(seq, enzyme="Trypsin/P (cleaves K/R except before P)", min_len=2)
-    for alias in ("Trypsin", "Trypsin/P", "trypsin"):
+    canonical = digest(seq, enzyme="Trypsin/P", min_len=2)
+    for alias in ("Trypsin/P", "trypsin/p"):
         assert digest(seq, enzyme=alias, min_len=2) == canonical
 
 
 def test_digest_chymotrypsin_plus_includes_m():
-    """MaxQuant Chymotrypsin+ cleaves F/W/Y/L/M, not before P."""
+    """MaxQuant Chymotrypsin+ includes F/W/Y/L/M."""
     from hitlist.proteome import digest
 
     seq = "AFAWAYALAMAP"
-    peps = digest(seq, enzyme="Chymotrypsin", min_len=2, max_missed=0)
+    peps = digest(seq, enzyme="Chymotrypsin+", min_len=2, max_missed=0)
     # Interior cuts produce peptides ending in F/W/Y/L/M; the trailing
     # fragment "AP" is the protein tail after the last M@9 cut and is
     # allowed to end in whatever residue is at the C-terminus.
@@ -710,16 +710,18 @@ def test_digest_chymotrypsin_plus_includes_m():
     assert c_terms.issubset(set("FWYLMAP"))
 
 
-def test_digest_gluc_cleaves_both_e_and_d():
-    """GluC in hitlist is the bicarbonate variant ``GluC;D.P`` — cleaves E AND D."""
+def test_digest_gluc_dp_matches_maxquant_specificity_pairs():
+    """The search union cleaves E and D-P pairs, not every D (#654)."""
     from hitlist.proteome import digest
 
-    seq = "AAEAADAAAEP"
-    peps = digest(seq, enzyme="GluC", min_len=2, max_missed=0)
-    # E@2 → cut ; D@5 → cut ; E@9 before P → NO cut → segments AAE, AAD, AAAEP
-    assert peps == {"AAE", "AAD", "AAAEP"}
-    # D-ending peptide proves bicarbonate rule (phosphate GluC would be E-only).
-    assert any(p.endswith("D") for p in peps)
+    seq = "AAEAADAAAEPAAADPAAA"
+    assert digest(seq, enzyme="GluC;D.P", min_len=2, max_missed=0) == {
+        "AAE",
+        "AADAAAE",
+        "PAAAD",
+        "PAAA",
+    }
+    assert digest(seq, enzyme="GluC", min_len=2, max_missed=0) == {"AAE", "AADAAAE", "PAAADPAAA"}
 
 
 def test_digest_lysc_cleaves_k_p():
@@ -727,8 +729,8 @@ def test_digest_lysc_cleaves_k_p():
     from hitlist.proteome import digest
 
     seq = "AAAKPAAAK"
-    tryp = digest(seq, enzyme="Trypsin/P", min_len=2, max_missed=0)
-    lysc = digest(seq, enzyme="LysC", min_len=2, max_missed=0)
+    tryp = digest(seq, enzyme="Trypsin", min_len=2, max_missed=0)
+    lysc = digest(seq, enzyme="LysC/P", min_len=2, max_missed=0)
     # Trypsin: K@3 before P → NO cut → one long peptide.
     assert "AAAKPAAAK" in tryp
     # LysC: K@3 before P → cut → AAAK + PAAAK.

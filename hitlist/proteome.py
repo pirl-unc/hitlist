@@ -1520,123 +1520,116 @@ def proteome_kmer_set(
 # In-silico protease digest (#104).
 # ---------------------------------------------------------------------------
 #
-# Every enzyme in hitlist's bulk proteomics index (sources.yaml) has subtly
-# different cleavage rules. GluC is buffer-dependent (E-only in phosphate,
-# E+D in ammonium bicarbonate). LysC cleaves K-P bonds (unlike trypsin).
-# Chymotrypsin-plus includes M as an aliphatic target (unlike strict
-# chymotrypsin). This helper centralizes the rules so callers building
-# theoretical-negative peptide sets (e.g. MS-detectability training) don't
-# re-derive them by hand (and drift into subtle buffer/variant bugs).
-#
-# Canonical enzyme strings match ``sources.yaml::digestion_enzyme`` and
-# ``ancillary_digests[].digestion_enzyme`` so dispatch keys align with the
-# row-level values downstream consumers already filter on.
-
-
-# (canonical name, aliases) → (cleavage residues, forbidden P1' residues,
-# optional custom check for edge cases like "P allowed"). "forbidden P1'
-# of 'P'" encodes the "not before P" rule shared by Trypsin, Chymotrypsin,
-# and GluC. LysC's MaxQuant spec explicitly allows K-P cleavage.
-_ENZYME_RULES: dict[str, tuple[str, str]] = {
-    # Canonical string (matches sources.yaml). (cleavage_residues, forbidden_p1_prime)
-    "Trypsin/P (cleaves K/R except before P)": ("KR", "P"),
-    "Chymotrypsin": ("FWYLM", "P"),  # MaxQuant "Chymotrypsin+" — includes M
-    "GluC": ("ED", "P"),  # MaxQuant "GluC;D.P" — bicarbonate buffer
-    "LysC": ("K", ""),  # MaxQuant "LysC/P" — cleaves K-P too
+# MaxQuant/Andromeda specificity pairs, verified against Cox Lab's own table:
+# https://github.com/cox-labs/PluginTutorial/blob/25bdb094d6b23c1f4c3e07aa4c766e43fa4bee5b/PluginTutorial/conf/enzymes.xml
+# (cleavage residues, excluded following residues, required following residues).
+_ENZYME_RULES = {
+    "Trypsin": ("KR", "P", ""),
+    "Trypsin/P": ("KR", "", ""),
+    "Chymotrypsin": ("FWY", "", ""),
+    "Chymotrypsin+": ("FWYLM", "", ""),
+    "GluC": ("E", "", ""),
+    "D.P": ("D", "", "P"),
+    "LysC": ("K", "P", ""),
+    "LysC/P": ("K", "", ""),
 }
+_ENZYME_ALIASES = {name.lower(): name for name in _ENZYME_RULES}
+_ENZYME_ALIASES["chymo"] = "Chymotrypsin+"
 
-# Short aliases for ergonomics.
-_ENZYME_ALIASES: dict[str, str] = {
-    "Trypsin/P": "Trypsin/P (cleaves K/R except before P)",
-    "Trypsin": "Trypsin/P (cleaves K/R except before P)",
-    "trypsin": "Trypsin/P (cleaves K/R except before P)",
-    "chymotrypsin": "Chymotrypsin",
-    "Chymotrypsin+": "Chymotrypsin",
-    "chymo": "Chymotrypsin",
-    "gluc": "GluC",
-    "GluC;D.P": "GluC",
-    "lysc": "LysC",
-    "LysC/P": "LysC",
-}
+
+def canonical_search_enzyme(enzyme: str) -> str:
+    """Resolve exact search definitions, including unions such as GluC;D.P.
+
+    Biological digest labels in older bulk tables are not search definitions.
+    In particular, Trypsin and Trypsin/P have different proline specificity.
+    """
+    if not isinstance(enzyme, str):
+        raise TypeError("enzyme must be a search-enzyme name")
+    names = []
+    for component in enzyme.split(";"):
+        canonical = _ENZYME_ALIASES.get(component.strip().lower())
+        if canonical is None:
+            raise ValueError(
+                f"Unknown enzyme {enzyme!r}. Use an exact search definition: "
+                f"{sorted(_ENZYME_RULES)}, or a semicolon-separated union. "
+                "The legacy 'Trypsin/P (cleaves K/R except before P)' label is "
+                "contradictory: choose Trypsin or Trypsin/P explicitly."
+            )
+        if canonical not in names:
+            names.append(canonical)
+    return ";".join(sorted(names))
+
+
+@dataclass(frozen=True)
+class DigestedPeptide:
+    """One occurrence; positions are 1-based, inclusive, like MaxQuant exports."""
+
+    peptide: str
+    start_position: int
+    end_position: int
+    n_missed_cleavages: int
+
+
+def digest_occurrences(
+    seq: str,
+    enzyme: str = "Trypsin/P",
+    min_len: int = 7,
+    max_len: int = 30,
+    max_missed: int = 2,
+):
+    """Yield theoretical fully specific peptide occurrences, preserving repeats.
+
+    Uses MaxQuant's exact enzyme definitions. Trypsin excludes K/R-P cleavage;
+    Trypsin/P permits it. Chymotrypsin+ includes F/W/Y/L/M and permits cleavage
+    before P. GluC cleaves after E (including E-P); GluC;D.P additionally cleaves
+    D-P pairs, not every D. LysC excludes K-P; LysC/P permits it.
+
+    A theoretical digest alone cannot label an unobserved peptide as a valid
+    negative: the actual search database/settings, protein observation and
+    acquisition scope also have to match. ``max_missed=2`` is a caller-selected
+    default, not a claim about any study's search settings (#654).
+    """
+    from numbers import Integral
+
+    if not isinstance(seq, str):
+        raise TypeError("seq must be a protein sequence string")
+    for name, value, minimum in (
+        ("min_len", min_len, 1),
+        ("max_len", max_len, 1),
+        ("max_missed", max_missed, 0),
+    ):
+        if isinstance(value, bool) or not isinstance(value, Integral) or value < minimum:
+            raise ValueError(f"{name} must be an integer >= {minimum}")
+    if min_len > max_len:
+        raise ValueError("min_len cannot exceed max_len")
+    rules = [_ENZYME_RULES[name] for name in canonical_search_enzyme(enzyme).split(";")]
+    cuts = [0]
+    for position, (left, right) in enumerate(zip(seq, seq[1:]), start=1):
+        if any(
+            left in residues and right not in excluded and (not required or right in required)
+            for residues, excluded, required in rules
+        ):
+            cuts.append(position)
+    cuts.append(len(seq))
+    for first in range(len(cuts) - 1):
+        for last in range(first + 1, min(first + max_missed + 2, len(cuts))):
+            start, end = cuts[first], cuts[last]
+            if min_len <= end - start <= max_len:
+                yield DigestedPeptide(seq[start:end], start + 1, end, last - first - 1)
 
 
 def digest(
     seq: str,
-    enzyme: str = "Trypsin/P (cleaves K/R except before P)",
+    enzyme: str = "Trypsin/P",
     min_len: int = 7,
     max_len: int = 30,
     max_missed: int = 2,
 ) -> set[str]:
-    """In-silico protease digest of a protein sequence.
+    """Return unique sequences from :func:`digest_occurrences`.
 
-    Returns the set of peptides the specified enzyme would theoretically
-    produce, up to ``max_missed`` missed cleavages. Dispatches on the
-    canonical enzyme strings from ``hitlist/data/bulk_proteomics/sources.yaml``
-    so the result is directly comparable to observed peptides from
-    :func:`hitlist.bulk_proteomics.load_bulk_peptides` filtered on the
-    same ``digestion_enzyme`` value.
-
-    Parameters
-    ----------
-    seq
-        Protein sequence (amino acid letters, no non-residue chars).
-    enzyme
-        Canonical enzyme name. Accepted values (canonical form or alias):
-
-        - ``"Trypsin/P (cleaves K/R except before P)"`` / ``"Trypsin"`` /
-          ``"Trypsin/P"`` / ``"trypsin"`` — cleaves C-term K/R, not before P.
-        - ``"Chymotrypsin"`` / ``"Chymotrypsin+"`` / ``"chymo"`` —
-          MaxQuant's permissive variant; cleaves C-term F/W/Y/L/M, not
-          before P. (MaxQuant's strict ``Chymotrypsin`` without the ``+``
-          is F/W/Y only; not currently supported.)
-        - ``"GluC"`` / ``"GluC;D.P"`` / ``"gluc"`` — MaxQuant's
-          bicarbonate-buffer variant: cleaves C-term E or D, not before
-          P. This matches the Bekker-Jensen 2017 ingest.
-        - ``"LysC"`` / ``"LysC/P"`` / ``"lysc"`` — cleaves C-term K,
-          allowed before P (unlike trypsin).
-    min_len, max_len
-        Inclusive peptide length bounds. Defaults match typical
-        detectability-training-set inputs (7-30 aa).
-    max_missed
-        Maximum missed cleavages. Default 2 matches MaxQuant defaults
-        used by Bekker-Jensen + CCLE.
-
-    Returns
-    -------
-    set[str]
-        Unique peptide sequences.
-
-    Examples
-    --------
-    >>> prame = "MERRRLWGSIQSRYI..."
-    >>> tryptic = digest(prame, enzyme="Trypsin/P")
-    >>> observed = set(load_bulk_peptides(gene_name="PRAME",
-    ...     digestion_enzyme="Trypsin/P (cleaves K/R except before P)",
-    ... )["peptide"])
-    >>> positives = observed & tryptic
-    >>> negatives = tryptic - observed
+    Search enzymes follow MaxQuant definitions, including the distinction between
+    classical Trypsin and Trypsin/P. For training, use occurrence-preserving
+    candidates plus the actual search-space, protein and acquisition controls;
+    set subtraction alone does not establish valid absence labels.
     """
-    canonical = _ENZYME_ALIASES.get(enzyme, enzyme)
-    if canonical not in _ENZYME_RULES:
-        known = sorted(set(_ENZYME_RULES) | set(_ENZYME_ALIASES))
-        raise ValueError(f"Unknown enzyme {enzyme!r}. Accepted: {known}")
-    cleavage_residues, forbidden_p1_prime = _ENZYME_RULES[canonical]
-
-    # Find cleavage positions (0-based indices of where to cut AFTER).
-    cuts: list[int] = [0]
-    for i in range(len(seq) - 1):
-        if seq[i] in cleavage_residues:
-            if forbidden_p1_prime and seq[i + 1] in forbidden_p1_prime:
-                continue
-            cuts.append(i + 1)
-    cuts.append(len(seq))
-
-    # Emit peptides with up to max_missed missed internal cleavages.
-    peps: set[str] = set()
-    n_cuts = len(cuts)
-    for i in range(n_cuts - 1):
-        for j in range(i + 1, min(i + 2 + max_missed, n_cuts)):
-            p = seq[cuts[i] : cuts[j]]
-            if min_len <= len(p) <= max_len:
-                peps.add(p)
-    return peps
+    return {row.peptide for row in digest_occurrences(seq, enzyme, min_len, max_len, max_missed)}

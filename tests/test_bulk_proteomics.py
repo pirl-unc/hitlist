@@ -540,7 +540,7 @@ def test_build_bulk_proteomics_parquet(built_bulk_data, monkeypatch):
     assert (ccle_rows["labeling"].str.contains("TMT")).all()
     assert (bj_rows["labeling"] == "label-free").all()
     # pmid is an integer with real PMIDs
-    assert set(df["pmid"].dropna().unique()) == {31978347, 28591648}
+    assert set(df["pmid"].dropna().unique()) == {31978347, 28601559}
     # Evidence kind stamped so downstream can filter a unified index
     assert set(df["evidence_kind"]) == {"bulk_proteomics"}
     # --- Fig 1b design matrix completeness assertions ---

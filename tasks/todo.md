@@ -1,3 +1,17 @@
+# Detectability follow-up — #361 / #654
+
+See [the detailed specification](detectability-spec.md). User confirmed protocol-
+scoped labels and first-seen depth only within demonstrably comparable protocols.
+
+- [x] Audit original PRIDE search parameters/summary with bounded range requests.
+- [x] Review Presto's proposed contract; no implemented prototype was found.
+- [x] File source correctness defects as #654; checkpoint the specification.
+- [ ] Resolve primary enzyme/search reference definitions and finalize API defaults.
+- [ ] Implement occurrence-preserving digest and validated scoped dataset joins.
+- [ ] Verify controls, ambiguity, graded labels, bounds and pandas compatibility.
+- [ ] Complete #653 release; rebase this follow-up onto its merged main.
+- [ ] Version, PR, full checks, merge, PyPI publish and artifact verification.
+
 # Assay modality correctness — #644; then detectability training — #361 (2026-10-07)
 
 ## Specification

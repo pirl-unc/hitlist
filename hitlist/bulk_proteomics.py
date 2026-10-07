@@ -24,7 +24,7 @@ Three loaders, each with its own granularity:
 
 - ``load_bulk_proteomics`` — protein-level abundance per cell line.
   Union of CCLE (Nusinow et al. 2020, PMID 31978347; TMT-normalized)
-  and Bekker-Jensen (PMID 28591648; label-free sum-of-intensities).
+  and Bekker-Jensen (PMID 28601559; label-free sum-of-intensities).
   Use the ``source=`` filter to pick one.
 
 - ``load_bulk_peptides`` — peptide-level detection per cell line
@@ -87,14 +87,36 @@ def _load_ccle() -> pd.DataFrame:
 
 @lru_cache(maxsize=1)
 def _load_bj_protein() -> pd.DataFrame:
-    return pd.read_csv(
-        _bulk_data_path("bekker_jensen_2017_protein_abundance.csv.gz"), compression="gzip"
+    return _correct_bj_reference(
+        pd.read_csv(
+            _bulk_data_path("bekker_jensen_2017_protein_abundance.csv.gz"), compression="gzip"
+        )
     )
 
 
 @lru_cache(maxsize=1)
 def _load_bj() -> pd.DataFrame:
-    return pd.read_csv(_bulk_data_path("bekker_jensen_2017_peptides.csv.gz"), compression="gzip")
+    return _correct_bj_reference(
+        pd.read_csv(_bulk_data_path("bekker_jensen_2017_peptides.csv.gz"), compression="gzip")
+    )
+
+
+def _correct_bj_reference(df: pd.DataFrame) -> pd.DataFrame:
+    """Correct the unrelated historical PMID while preserving its reported value."""
+    if "source" not in df or "reference" not in df:
+        return df
+    selected = df["source"].eq("Bekker-Jensen_2017")
+    if not selected.any():
+        return df
+    df = df.copy()
+    if "reported_reference" not in df:
+        df["reported_reference"] = df["reference"].astype("string")
+    df["reference"] = df["reference"].astype("string")
+    df.loc[selected, "reference"] = "PMID:28601559"
+    if "pmid" in df:
+        df["pmid"] = df["pmid"].astype("Int64")
+        df.loc[selected, "pmid"] = 28601559
+    return df
 
 
 @lru_cache(maxsize=1)
@@ -130,7 +152,7 @@ def _read_parquet_cached(path_str: str, mtime_ns: int, size: int) -> pd.DataFram
     the returned frame before filtering, so sharing the cached object is
     safe.
     """
-    return pd.read_parquet(path_str)
+    return _correct_bj_reference(pd.read_parquet(path_str))
 
 
 def _load_parquet_or_none() -> pd.DataFrame | None:
@@ -492,7 +514,7 @@ def load_bulk_peptides(
     Identifies which peptides *within* a protein were ever observed by
     deep shotgun MS on a given cell line — the intra-protein
     detectability prior for MHC-ligandome analyses. Source: Bekker-Jensen
-    et al. 2017 (PMID 28591648) across the full Figure 1b design
+    et al. 2017 (PMID 28601559) across the full Figure 1b design
     matrix: HeLa across four enzymes (Trypsin/P + Chymotrypsin / GluC /
     LysC), four fractionation depths (14, 39, 46, 70), and ± TiO2
     phospho enrichment; plus the 46-fraction tryptic panel for A549,
@@ -600,3 +622,24 @@ def available_protein_cell_lines() -> list[str]:
 def available_peptide_cell_lines() -> list[str]:
     """Cell lines covered by the peptide-level index (load_bulk_peptides)."""
     return sorted(_load_bj()["cell_line"].unique().tolist())
+
+
+def build_detectability_training_set(**kwargs):
+    """Build search-scoped candidates; see :mod:`hitlist.detectability`."""
+    from .detectability import build_detectability_training_set as build
+
+    return build(**kwargs)
+
+
+def iter_detectability_training_set(**kwargs):
+    """Stream search-scoped candidate batches; see :mod:`hitlist.detectability`."""
+    from .detectability import iter_detectability_training_set as iterate
+
+    return iterate(**kwargs)
+
+
+def export_detectability_training_set(output_dir, **kwargs):
+    """Write a bounded Parquet dataset and provenance manifest atomically."""
+    from .detectability import export_detectability_training_set as export
+
+    return export(output_dir, **kwargs)

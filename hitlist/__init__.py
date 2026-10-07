@@ -96,6 +96,10 @@ _PUBLIC_API: dict[str, str] = {
     "generate_training_table": ".export",
     # Proteome enumeration + gene sets.
     "ProteomeIndex": ".proteome",
+    "DetectabilitySearchSpace": ".detectability",
+    "build_detectability_training_set": ".detectability",
+    "iter_detectability_training_set": ".detectability",
+    "export_detectability_training_set": ".detectability",
     "load_gene_set": ".genes",
     "list_gene_sets": ".genes",
     # Dataset registry (download / register / resolve).

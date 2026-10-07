@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Rebuild the Bekker-Jensen 2017 (PMID 28591648, PXD004452) bulk
+"""Rebuild the Bekker-Jensen 2017 (PMID 28601559, PXD004452) bulk
 proteomics CSVs to be *comprehensive* over the paper's Figure 1b
 design matrix — every experiment in ``peptides.txt`` that corresponds
 to a HeLa (or 5-line panel) arm on the three axes:
@@ -604,7 +604,7 @@ def extract(verbose: bool = True) -> tuple[pd.DataFrame, pd.DataFrame]:
                     "modifications": mod_str,
                     "_replicates": set(),
                     "source": "Bekker-Jensen_2017",
-                    "reference": "PMID:28591648",
+                    "reference": "PMID:28601559",
                 }
                 kept_rows += 1
             pep_rows[key]["_replicates"].add(axes["replicate"])
@@ -680,7 +680,7 @@ def extract(verbose: bool = True) -> tuple[pd.DataFrame, pd.DataFrame]:
                 ),
                 "log2_intensity": math.log2(intensity),
                 "source": "Bekker-Jensen_2017",
-                "reference": "PMID:28591648",
+                "reference": "PMID:28601559",
             }
         )
 
