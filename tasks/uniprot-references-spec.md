@@ -44,8 +44,10 @@ proteome; reviewed/unreviewed; isoforms), source/build provenance, immutable
 download URL, size, SHA256, sequence counts and license. No mutable `latest`
 alias. The requested human collection has a pinned default release.
 
-Reuse datacache's fixed-path registry, atomic/resumable transfer and integrity
-checks. Add a UniProt-specific API that resolves/fetches a release, reports its
+Reuse datacache's atomic/resumable transfer and integrity checks directly.
+Its general fixed-path registry has a last-version-only root receipt; the
+UniProt catalog and per-file receipts avoid that ambiguity without introducing
+a second writable manifest. Add a UniProt-specific API that resolves/fetches a release, reports its
 metadata and lists all available/cached releases. Files coexist under the
 Hitlist data directory with collection and release in their paths. On cache
 reuse, verify the trusted catalog hash; corruption raises and explicit force
@@ -61,7 +63,11 @@ to managed files, with unrelated/manual FASTAs untouched.
 Enforce a per-asset limit and a total UniProt-cache budget before transfer,
 including partial downloads and replacement headroom; never silently evict
 historical versions. Serialize writers so concurrent fetches cannot bypass the
-budget. Use a plain installed FASTA so existing FASTA consumers can use it.
+budget. Defaults are 256 MiB per asset and 1 GiB total logical file bytes, with
+2 MiB control/transfer headroom per new download. POSIX transfers resume;
+other platforms abort oversized transfers within one bounded chunk, already
+reserved in that headroom. These are file-byte limits, not filesystem quotas.
+Use a plain installed FASTA so existing FASTA consumers can use it.
 Keep large reference payloads outside wheel/sdist and Git history.
 
 Reference descriptors/provenance must be consumable by detectability exports
