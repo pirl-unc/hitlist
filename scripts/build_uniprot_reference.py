@@ -73,7 +73,12 @@ def fasta_records(source):
 
 
 def dat_fasta(record, taxonomy_id):
-    if re.search(rb"\nOX   NCBI_TaxID=" + str(taxonomy_id).encode() + rb";", record) is None:
+    # Historical TrEMBL OX lines can include evidence annotations before the
+    # semicolon, with their evidence list continuing onto additional OX lines.
+    # Match the complete numeric source taxon; OH organism-host lines and taxon
+    # prefixes must never admit a record to the selected reference.
+    taxon = re.search(rb"(?m)^OX   NCBI_TaxID=(\d+)(?=;|[ \t]+\{)", record)
+    if taxon is None or int(taxon.group(1)) != taxonomy_id:
         return None
     text = record.decode("utf-8")
     accession = re.search(r"\nAC   (\w+);", text).group(1)

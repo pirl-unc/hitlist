@@ -86,3 +86,42 @@ collections:
           url: https://github.com/pirl-unc/hitlist/releases/download/uniprot-references-v1/uniprot-human-2026_03.receipt.json
           sha256: 444a7fd56b3ac8f4275456a3c19c27484bfdc6eb90dc8a3ceb35e2e19f081620
           size_bytes: 3719
+      '2015_10':
+        filename: uniprot-human-2015_10.fasta
+        size_bytes: 82758858
+        sha256: b657a37c551326bf91a118dfa52acfab96a4f65bf2052d761d5b5f7b6252020a
+        n_sequences: 170921
+        sequence_counts:
+          n_reviewed_canonical_sequences: 20196
+          n_reviewed_isoform_sequences: 21935
+          n_unreviewed_canonical_sequences: 128790
+        source_metadata:
+          url: https://ftp.uniprot.org/pub/databases/uniprot/previous_releases/release-2015_10/knowledgebase/RELEASE.metalink
+          sha256: 105124a795ae9ffeda90f6a599206a9bb1288fe193073b39b2d966a20ea0bf18
+        sources:
+        - url: https://ftp.uniprot.org/pub/databases/uniprot/previous_releases/release-2015_10/knowledgebase/uniprot_sprot-only2015_10.tar.gz
+          size_bytes: 1473521091
+          md5: 5ec54827ce179421278826c09f9bc2e6
+          sha256: a1486881b84a419aa92f8ff1df6348ec8c03aab1588d38ad9aa814b7357bd85a
+          members:
+          - name: uniprot_sprot.fasta.gz
+            size_bytes: 83140421
+          - name: uniprot_sprot_varsplic.fasta.gz
+            size_bytes: 7970830
+        - url: https://ftp.uniprot.org/pub/databases/uniprot/previous_releases/release-2015_10/knowledgebase/knowledgebase2015_10.tar.gz
+          size_bytes: 31820941423
+          md5: ccf2882074ba5d9c9ffa6f98f4c5d6af
+          sha256: dcc29d06e2fcd285ca6b82feb4ed224e3565da3b2055673cf5e0d9b2dc069b36
+          members:
+          - name: uniprot_trembl.dat.gz
+            size_bytes: 31238684750
+        builder_sha256: d47f763c83e465f6fac0d2e23ee13ae91c6288ccd041803f428e3658c99691b2
+        license: CC-BY-4.0
+        license_url: https://www.uniprot.org/help/license
+        attribution: The UniProt Consortium; human-only selection and FASTA conversion by Hitlist
+        release_date: '2015-10-14'
+        url: https://github.com/pirl-unc/hitlist/releases/download/uniprot-references-v1/uniprot-human-2015_10.fasta
+        build_receipt:
+          url: https://github.com/pirl-unc/hitlist/releases/download/uniprot-references-v1/uniprot-human-2015_10.receipt.json
+          sha256: 4180b702ca270df24363c4ed7bf8946aec85b6c62bebc7fd99580a7dbd91d222
+          size_bytes: 2018

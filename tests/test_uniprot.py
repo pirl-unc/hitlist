@@ -17,6 +17,22 @@ import yaml
 from hitlist import cli, downloads, uniprot
 
 
+def test_packaged_historical_catalog_preserves_default_and_archive_provenance():
+    human = uniprot.uniprot_catalog()["collections"]["human"]
+    assert human["default_release"] == "2026_03"
+    historical = human["releases"]["2015_10"]
+    assert historical["size_bytes"] == 82758858
+    assert historical["n_sequences"] == sum(historical["sequence_counts"].values()) == 170921
+    assert historical["sha256"] == (
+        "b657a37c551326bf91a118dfa52acfab96a4f65bf2052d761d5b5f7b6252020a"
+    )
+    assert historical["release_date"] == "2015-10-14"
+    for source in historical["sources"]:
+        assert "/release-2015_10/" in source["url"]
+        assert source["size_bytes"] > 0 and source["md5"] and source["sha256"]
+    assert historical["build_receipt"]["url"].endswith("2015_10.receipt.json")
+
+
 @pytest.fixture
 def references(tmp_path, monkeypatch):
     payloads = {

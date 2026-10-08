@@ -7,6 +7,7 @@ isoforms; it is broader than the representative/reference-proteome subset.
 
 ```bash
 hitlist data uniprot list --json
+hitlist data uniprot fetch --release 2015_10
 hitlist data uniprot fetch --release 2026_03
 hitlist data uniprot path --release 2026_03
 hitlist data uniprot info --release 2026_03 --verify
@@ -24,13 +25,20 @@ sequences: 20,431 reviewed canonical entries, 22,131 reviewed isoforms and
 190,275 unreviewed canonical entries. The source transfer used 53,402,733
 compressed bytes; installation retains the plain FASTA, its license notice and small receipts.
 
-The requested historical **2015_10** asset is still pending recovery of its
-official archive ([#658](https://github.com/pirl-unc/hitlist/issues/658)). Both
-local and GitHub-hosted HTTPS retrieval timed out, and the FTP archive link
-could not be entered. It is not represented by a current or reconstructed
-mixed-version FASTA. Compatibility with the original Bekker-Jensen peptides
-supports that release as a candidate; it does not establish the study's exact
-search database or the unobserved search space ([#654](https://github.com/pirl-unc/hitlist/issues/654)).
+The historical **2015_10** asset is **82,758,858 bytes (78.93 MiB)** and contains
+170,921 sequences: 20,196 reviewed canonical entries, 21,935 reviewed isoforms
+and 128,790 unreviewed canonical entries. It was extracted from the complete
+official release archives, with their published size and MD5 checks verified
+before publication. The receipt records source and output SHA256s. Users
+download only this human FASTA, not the 31.8 GB all-species source archive.
+An independent exact-sequence audit matches all **661,142 distinct peptides**
+across the 14 packaged Bekker-Jensen scopes (2,047,003 observation rows), keeping
+I/L distinct. Reviewed canonical sequences alone explain 649,785; adding reviewed
+isoforms explains 657,123. The complete human selection explains all 661,142.
+The [audit receipt and script](https://github.com/pirl-unc/hitlist/releases/tag/uniprot-references-v1)
+record the input hashes, comparison and bounded resource usage.
+Sequence compatibility does not establish the original Bekker-Jensen search
+database or its unobserved search space ([#654](https://github.com/pirl-unc/hitlist/issues/654)).
 
 ## Python
 
@@ -43,12 +51,12 @@ from hitlist import (
 )
 from hitlist.proteome import ProteomeIndex
 
-path = fetch_uniprot_reference("2026_03")
-reference = uniprot_info("2026_03", verify=True)
+path = fetch_uniprot_reference("2015_10")
+reference = uniprot_info("2015_10", verify=True)
 index = ProteomeIndex.from_fasta(path)
 
 # Offline operations: no download, directory creation, or repair.
-path = uniprot_path("2026_03")  # requires existing, checksum-verified bytes
+path = uniprot_path("2015_10")  # requires existing, checksum-verified bytes
 releases = list_uniprot_references(verify=True)
 ```
 
@@ -112,8 +120,9 @@ against the independent search endpoint, validates gzip completion, and bounds
 input/output bytes and sequence-record memory. For `2015_10`, `--source archive`
 streams official all-species archives, validates their published sizes/MD5s,
 records SHA256s, and compares human counts with official release statistics.
-It never stores or expands the full archive on disk. Historical extraction
-remains unvalidated against a complete real archive until that source recovers.
+It never stores or expands the full archive on disk. The complete 2015_10
+archive extraction is validated; annotated and wrapped taxonomy records have
+regression coverage, including an original historical UniSave entry.
 
 Publish the verified FASTA and receipt as immutable named assets; add their
 URL, size, SHA256 and provenance to `hitlist/data/uniprot_references.yaml`.

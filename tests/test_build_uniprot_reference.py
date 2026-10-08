@@ -4,6 +4,7 @@ import gzip
 import hashlib
 import io
 import tarfile
+from pathlib import Path
 
 import pytest
 from scripts import build_uniprot_reference as build
@@ -76,6 +77,55 @@ def test_dat_taxonomy_filter_preserves_accession_gene_and_sequence_version(monke
         == b">tr|A0AAA1|ONE_HUMAN Example OS=Homo sapiens (Human) OX=9606 GN=GENE SV=2\nAAKCCK\n"
     )
     assert writer.counts["n_unreviewed_canonical_sequences"] == 1
+
+
+@pytest.mark.parametrize(
+    "taxonomy",
+    [
+        b"OX   NCBI_TaxID=9606;",
+        b"OX   NCBI_TaxID=9606 {ECO:0000313|Ensembl:ENSP00000400220};",
+        b"OX   NCBI_TaxID=9606 {ECO:0000313|Ensembl:ENSP00000400220,\n"
+        b"OX   ECO:0000313|Proteomes:UP000005640};",
+    ],
+)
+def test_historical_taxonomy_evidence_does_not_exclude_human_records(monkeypatch, taxonomy):
+    record = DAT.replace(b"OX   NCBI_TaxID=9606;", taxonomy)
+    output, writer, _ = extract(
+        monkeypatch, archive_bytes({"uniprot_trembl.dat": record}), reviewed=False
+    )
+    assert writer.counts["n_unreviewed_canonical_sequences"] == 1
+    assert output.endswith(b"\nAAKCCK\n")
+
+
+@pytest.mark.parametrize(
+    "taxonomy",
+    [
+        b"OX   NCBI_TaxID=96060;",
+        b"OX   NCBI_TaxID=96060 {ECO:0000313|Proteomes:EXAMPLE};",
+        b"OX   NCBI_TaxID=9606suffix;",
+        b"OX   NCBI_TaxID=10090;\nOH   NCBI_TaxID=9606; Homo sapiens (Human).",
+        b"OH   NCBI_TaxID=9606; Homo sapiens (Human).",
+    ],
+)
+def test_historical_taxonomy_requires_exact_source_taxon(taxonomy):
+    assert build.dat_fasta(DAT.replace(b"OX   NCBI_TaxID=9606;", taxonomy), 9606) is None
+
+
+def test_real_2015_10_trembl_entry_with_taxonomy_evidence(monkeypatch):
+    data = (Path(__file__).parent / "data" / "uniprot" / "E9PBK2.24.txt").read_bytes()
+    assert hashlib.sha256(data).hexdigest() == (
+        "f1bacfbf32638227c41f518478827fcc43da2cd33dccfe7412b206ea637de6e1"
+    )
+    output, writer, _ = extract(
+        monkeypatch,
+        archive_bytes({"uniprot_trembl.dat.gz": gzip.compress(data, mtime=0)}),
+        reviewed=False,
+    )
+    assert writer.counts["n_unreviewed_canonical_sequences"] == 1
+    header, sequence = next(build.fasta_records(io.BytesIO(output)))
+    assert header.startswith("tr|E9PBK2|E9PBK2_HUMAN ")
+    assert "OX=9606 GN=SMG7 SV=1" in header
+    assert sequence == ("MSLQSAQYLRQAEVLKADMTDSKLGPAEVWTSRQALQDLYQKMLVTDLEYALDKKVEQDLGTSVCPVSHCYTK")
 
 
 def test_record_boundaries_cross_read_chunks(monkeypatch):
