@@ -1,3 +1,22 @@
+# Historical references and canine generalization
+
+See [the specification](historical-and-canine-spec.md).
+
+- [x] Inspect #658/#660/#661, current main and existing work; create isolated branch.
+- [ ] Add real historical taxonomy regression and fix annotated OX parsing.
+- [ ] Stream and validate full 2015_10 extraction; independently audit sequences and coverage.
+- [ ] Publish historical asset, add catalog entry and verify managed fetch/reuse.
+- [ ] Version, format, lint, full tests and final-head CI; merge and deploy to PyPI.
+- [ ] Locate/review canine patch and primary sources; specify #660 implementation.
+- [ ] Ship offline supplementary inputs and canine ligand curation (#660).
+- [ ] Specify and implement explicit species/reference/policy evidence bundles (#661).
+- [ ] Verify canine releases, document results and review follow-up dependencies.
+
+## Review
+
+Pending historical extraction and release validation. Existing managed cache
+support shipped in 1.68.0; the historical archive is not yet a catalog asset.
+
 # Versioned UniProt references
 
 See [the detailed specification](uniprot-references-spec.md).
