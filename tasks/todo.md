@@ -8,7 +8,9 @@ See [the detailed specification](uniprot-references-spec.md).
 - [x] Independently acquire 2026_03 with release/count validation and a complete build receipt.
 - [x] Implement release catalog, bounded verified cache, API/CLI and inventory integration.
 - [x] Add client/extractor/provenance regressions and document supported releases.
-- [ ] Publish the managed 2026_03 asset and validate real managed fetch/reuse.
+- [x] Publish the managed 2026_03 asset and validate real managed fetch/reuse.
+- [x] Verify wheel/sdist contain the catalog and exclude sequence payloads.
+- [x] Correct the duplicate-key YAML-loader violation caught by full CI.
 - [ ] Version, format, lint, full tests, PR and final-head checks.
 - [ ] Merge, deploy to PyPI and verify published artifacts; review follow-up queue.
 
@@ -23,6 +25,10 @@ records the compressed source checksum, final checksum, exact builder checksum,
 release headers and licensing. This is not a historical-reference substitute.
 The isolated `.venv` resolves pandas 3.0.6, gtfparse 3.0.2, PyEnsembl 2.26.0 and
 datacache 1.16.1; compatibility inspection passes. Shared editables are untouched.
+Real managed download/reuse verifies 127,857,385 total cached bytes, including
+the FASTA's license statement and receipt. Local `test.sh` refused at 1.90 GiB
+available versus its unchanged 2.5 GiB minimum; full checks run in CI. The user
+confirmed shipping 2026_03 cache support independently of historical #658.
 
 # Detectability follow-up — #361 / #654
 

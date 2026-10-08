@@ -14,8 +14,9 @@ import tempfile
 from pathlib import Path
 
 import datacache
-import yaml
 from filelock import FileLock
+
+from .curation_yaml import load_curation_yaml
 
 DEFAULT_COLLECTION = "human"
 DEFAULT_MAX_ASSET_BYTES = 256 * 2**20
@@ -39,8 +40,7 @@ def _component(value):
 
 def uniprot_catalog() -> dict:
     """Return the bundled, pinned catalog; never contact UniProt or create a cache."""
-    with _CATALOG_PATH.open() as handle:
-        catalog = yaml.safe_load(handle)
+    catalog = load_curation_yaml(_CATALOG_PATH)
     if catalog.get("schema_version") != 1:
         raise ValueError("Unsupported UniProt catalog schema")
     notice = catalog.get("license_statement", "")

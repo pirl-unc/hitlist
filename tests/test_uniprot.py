@@ -345,3 +345,10 @@ def test_catalog_rejects_unsafe_or_unpinned_definitions(references, field, value
     path.write_text(yaml.safe_dump(catalog))
     with pytest.raises(ValueError):
         uniprot.uniprot_catalog()
+
+
+def test_duplicate_catalog_keys_never_silently_replace_pinned_definitions(references):
+    path = references[2]
+    path.write_text(path.read_text() + "\ncollections: {}\n")
+    with pytest.raises(yaml.constructor.ConstructorError, match="duplicate key"):
+        uniprot.uniprot_catalog()

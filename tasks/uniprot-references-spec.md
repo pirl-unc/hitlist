@@ -99,9 +99,13 @@ both the workstation and GitHub Actions (run 37811660769); the FTP release
 symlink points to an inaccessible directory. Keep historical recovery open.
 Prepare the independently verified REST release 2026_03 as the first available
 managed asset; never substitute it for a request for 2015_10. The optional
-user preference question offered shipping this foundational cache now or
-keeping it in draft; absent a reply, the recommended first option applies.
+user explicitly confirmed shipping the cache with 2026_03 and keeping 2015_10
+recovery open in #658. A later retry of the historical extraction remains
+independent of this release's acceptance criteria.
 
-Focused client/CLI/inventory/detectability tests passed (114 initially), with
-additional extractor and exported-provenance regressions added. Full checks
-and release still pending.
+Focused client/extractor/CLI/inventory/detectability/public-API tests passed
+(180). The first full CI run found one shared-loader integration failure:
+the new catalog used plain safe YAML parsing rather than the existing
+duplicate-key-rejecting curation loader. All other unit tests passed (2774 on
+Python 3.12). Use the shared loader, add a duplicate-catalog regression and
+repeat the complete final-head checks before merge. Full release still pending.
