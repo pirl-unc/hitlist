@@ -259,6 +259,47 @@ def test_reference_identity_is_verified(search_inputs):
         build_detectability_training_set(**search_inputs)
 
 
+def test_export_adds_exact_uniprot_asset_provenance_without_changing_search_contract(
+    search_inputs, monkeypatch, tmp_path
+):
+    import json
+
+    import yaml
+
+    from hitlist import uniprot
+    from hitlist.detectability import export_detectability_training_set
+    from hitlist.provenance import file_digest
+
+    catalog = tmp_path / "uniprot.yaml"
+    catalog.write_text(
+        yaml.safe_dump(
+            {
+                "schema_version": 1,
+                "collections": {
+                    "human": {
+                        "taxonomy_id": 9606,
+                        "selection": {"canonical": "all"},
+                        "default_release": "2015_10",
+                        "releases": {
+                            "2015_10": {
+                                "filename": "human.fasta",
+                                "url": "https://example.test/human.fasta",
+                                **file_digest(search_inputs["search_fasta"]),
+                            }
+                        },
+                    }
+                },
+            }
+        )
+    )
+    monkeypatch.setattr(uniprot, "_CATALOG_PATH", catalog)
+    out = export_detectability_training_set(tmp_path / "managed-export", **search_inputs)
+    manifest = json.loads((out / "manifest.json").read_text())
+    assert manifest["search_reference"]["uniprot"]["release"] == "2015_10"
+    assert manifest["search_space"]["provenance"] == "test search settings"
+    assert manifest["search_space_id"] == search_inputs["search_space"].identifier
+
+
 def test_empty_search_window_has_stable_schema(search_inputs):
     from hitlist.detectability import build_detectability_training_set
 

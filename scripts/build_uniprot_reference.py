@@ -13,6 +13,7 @@ import hashlib
 import json
 import re
 import tarfile
+import tempfile
 import time
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -95,7 +96,11 @@ class FastaWriter:
         self.size_bytes = 0
         self.sha256 = hashlib.sha256()
         self.accessions = set()
-        self.counts = {"reviewed_canonical": 0, "reviewed_isoforms": 0, "unreviewed_canonical": 0}
+        self.counts = {
+            "n_reviewed_canonical_sequences": 0,
+            "n_reviewed_isoform_sequences": 0,
+            "n_unreviewed_canonical_sequences": 0,
+        }
 
     def write(self, header, sequence, kind):
         accession = header.split("|")[1]
@@ -156,7 +161,11 @@ def extract_archive(url, expected, writer, taxonomy_id, *, reviewed):
                         raise ValueError(
                             "Historical FASTA taxon-code selection currently supports human only"
                         )
-                    kind = "reviewed_isoforms" if "varsplic" in name else "reviewed_canonical"
+                    kind = (
+                        "n_reviewed_isoform_sequences"
+                        if "varsplic" in name
+                        else "n_reviewed_canonical_sequences"
+                    )
                     for header, sequence in fasta_records(source):
                         if re.match(r"sp\|[^|]+\|\S+_HUMAN(?:\s|$)", header):
                             writer.write(header, sequence, kind)
@@ -164,7 +173,7 @@ def extract_archive(url, expected, writer, taxonomy_id, *, reviewed):
                     for record in records(source, b"\n//\n"):
                         result = dat_fasta(record, taxonomy_id)
                         if result is not None:
-                            writer.write(*result, "unreviewed_canonical")
+                            writer.write(*result, "n_unreviewed_canonical_sequences")
                 source.close()
             # Consume gzip trailers and any tar padding before accepting hashes.
             while expanded.read(CHUNK_BYTES):
@@ -178,62 +187,131 @@ def extract_archive(url, expected, writer, taxonomy_id, *, reviewed):
     return {"url": url, **expected, "sha256": reader.sha256.hexdigest(), "members": members}
 
 
+def _require_release(response, release):
+    actual = response.headers.get("X-UniProt-Release")
+    if actual != release:
+        raise ValueError(f"Requested UniProt {release}, server returned {actual}")
+
+
+def extract_rest(release, writer):
+    base = "https://rest.uniprot.org/uniprotkb/"
+    query = "query=%28organism_id%3A9606%29"
+    count_url = base + "search?" + query + "&format=tsv&fields=accession&size=1"
+    with urllib.request.urlopen(count_url, timeout=60) as response:
+        _require_release(response, release)
+        expected_canonical = int(response.headers["X-Total-Results"])
+        count_receipt = {"url": count_url, "headers": dict(response.headers)}
+        response.read(2**20)
+    url = base + "stream?" + query + "&format=fasta&includeIsoform=true&compressed=true"
+    with urllib.request.urlopen(url, timeout=60) as response:
+        _require_release(response, release)
+        headers = dict(response.headers)
+        reader = HashedReader(response, MAX_OUTPUT_BYTES)
+        for header, sequence in fasta_records(gzip.GzipFile(fileobj=reader)):
+            # Current isoform headers omit OX=, but canonical entries carry it.
+            if not re.match(r"(?:sp|tr)\|[^|]+\|\S+_HUMAN(?:\s|$)", header):
+                raise ValueError(f"Unexpected human FASTA header: {header}")
+            accession = header.split("|")[1]
+            kind = (
+                "n_reviewed_isoform_sequences"
+                if "-" in accession
+                else "n_reviewed_canonical_sequences"
+                if header.startswith("sp|")
+                else "n_unreviewed_canonical_sequences"
+            )
+            if kind == "n_reviewed_isoform_sequences" and not header.startswith("sp|"):
+                raise ValueError("Unexpected unreviewed isoform")
+            writer.write(header, sequence, kind)
+    canonical = (
+        writer.counts["n_reviewed_canonical_sequences"]
+        + writer.counts["n_unreviewed_canonical_sequences"]
+    )
+    if canonical != expected_canonical or writer.counts["n_reviewed_isoform_sequences"] == 0:
+        raise ValueError(
+            f"Incomplete REST human reference: {writer.counts}; expected {expected_canonical} canonical entries"
+        )
+    return [
+        {
+            "url": url,
+            "headers": headers,
+            "size_bytes": reader.size_bytes,
+            "sha256": reader.sha256.hexdigest(),
+            "canonical_count_check": count_receipt,
+        }
+    ]
+
+
 def main():
+    builder_sha256 = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, required=True)
-    parser.add_argument("--release", default="2015_10", choices=["2015_10"])
+    parser.add_argument("--release", default="2015_10")
+    parser.add_argument("--source", choices=["archive", "rest"], default="archive")
     args = parser.parse_args()
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    base = f"https://ftp.uniprot.org/pub/databases/uniprot/previous_releases/release-{args.release}/knowledgebase/"
-    with urllib.request.urlopen(base + "RELEASE.metalink", timeout=60) as response:
-        metalink = response.read(2**20)
-    tree = ET.fromstring(metalink)
     files = {}
-    for element in tree.iter():
-        if element.tag.rsplit("}", 1)[-1] == "file":
-            fields = {child.tag.rsplit("}", 1)[-1]: child for child in element.iter()}
-            files[element.attrib["name"]] = {
-                "size_bytes": int(fields["size"].text),
-                "md5": fields["hash"].text,
-            }
+    source_metadata = None
+    if re.fullmatch(r"\d{4}_\d{2}", args.release) is None:
+        parser.error("--release must be an explicit YYYY_NN release")
+    if args.source == "archive":
+        if args.release != "2015_10":
+            parser.error("Historical extraction currently validates 2015_10 counts only")
+        base = f"https://ftp.uniprot.org/pub/databases/uniprot/previous_releases/release-{args.release}/knowledgebase/"
+        with urllib.request.urlopen(base + "RELEASE.metalink", timeout=60) as response:
+            metalink = response.read(2**20)
+        source_metadata = {
+            "url": base + "RELEASE.metalink",
+            "sha256": hashlib.sha256(metalink).hexdigest(),
+        }
+        tree = ET.fromstring(metalink)
+        for element in tree.iter():
+            if element.tag.rsplit("}", 1)[-1] == "file":
+                fields = {child.tag.rsplit("}", 1)[-1]: child for child in element.iter()}
+                files[element.attrib["name"]] = {
+                    "size_bytes": int(fields["size"].text),
+                    "md5": fields["hash"].text,
+                }
     output = args.output_dir / f"uniprot-human-{args.release}.fasta"
-    partial = output.with_suffix(".partial")
+    if output.exists():
+        raise FileExistsError(output)
+    staging = tempfile.NamedTemporaryFile(dir=args.output_dir, prefix=".uniprot-", delete=False)  # noqa: SIM115 -- closed by the with below, cleaned by finally
+    partial = Path(staging.name)
     try:
-        with partial.open("xb") as handle:
+        with staging as handle:
             writer = FastaWriter(handle)
-            sources = []
-            for name, reviewed in [
-                (f"uniprot_sprot-only{args.release}.tar.gz", True),
-                (f"knowledgebase{args.release}.tar.gz", False),
-            ]:
-                sources.append(
-                    extract_archive(base + name, files[name], writer, 9606, reviewed=reviewed)
-                )
-        if (
-            writer.counts["reviewed_canonical"] != 20196
-            or writer.counts["unreviewed_canonical"] != 128790
+            if args.source == "rest":
+                sources = extract_rest(args.release, writer)
+            else:
+                sources = []
+                for name, reviewed in [
+                    (f"uniprot_sprot-only{args.release}.tar.gz", True),
+                    (f"knowledgebase{args.release}.tar.gz", False),
+                ]:
+                    sources.append(
+                        extract_archive(base + name, files[name], writer, 9606, reviewed=reviewed)
+                    )
+        if args.source == "archive" and (
+            writer.counts["n_reviewed_canonical_sequences"] != 20196
+            or writer.counts["n_unreviewed_canonical_sequences"] != 128790
         ):
             raise ValueError(
                 f"Counts differ from official human release statistics: {writer.counts}"
             )
-        if writer.counts["reviewed_isoforms"] == 0:
+        if writer.counts["n_reviewed_isoform_sequences"] == 0:
             raise ValueError("No reviewed isoforms found")
         receipt = {
             "schema_version": 1,
             "release": args.release,
             "taxonomy_id": 9606,
             "selection": "All human Swiss-Prot and TrEMBL canonical entries plus reviewed isoforms",
-            "source_metadata": {
-                "url": base + "RELEASE.metalink",
-                "sha256": hashlib.sha256(metalink).hexdigest(),
-            },
+            "source_metadata": source_metadata,
             "sources": sources,
             "filename": output.name,
             "size_bytes": writer.size_bytes,
             "sha256": writer.sha256.hexdigest(),
             "sequence_counts": writer.counts,
             "n_sequences": sum(writer.counts.values()),
-            "builder_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+            "builder_sha256": builder_sha256,
             "license": "CC-BY-4.0",
             "license_url": "https://www.uniprot.org/help/license",
             "attribution": "The UniProt Consortium; human-only selection and FASTA conversion by Hitlist",

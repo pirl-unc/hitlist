@@ -56,6 +56,13 @@ from .version import __version__  # after the pandas flag, like every submodule
 # are only imported on first attribute access. Listed in ``__all__`` so the API
 # is discoverable via ``dir(hitlist)`` / autocomplete and stable across refactors.
 _PUBLIC_API: dict[str, str] = {
+    "fetch_uniprot_reference": ".uniprot",
+    "uniprot_path": ".uniprot",
+    "uniprot_info": ".uniprot",
+    "list_uniprot_references": ".uniprot",
+    "remove_uniprot_reference": ".uniprot",
+    "uniprot_cache_dir": ".uniprot",
+    "uniprot_catalog": ".uniprot",
     "write_cta_evidence_bundle": ".evidence_bundle",
     "write_tissue_blacklist_bundle": ".evidence_bundle",
     "verify_evidence_bundle": ".evidence_bundle",

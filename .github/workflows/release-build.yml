@@ -41,6 +41,12 @@ on:
       - tests/test_cta_expression.py
       - tests/test_cta_evidence_bundle.py
       - tests/test_tissue_blacklist.py
+      - hitlist/uniprot.py
+      - hitlist/cli_uniprot.py
+      - hitlist/data/uniprot_references.yaml
+      - tests/test_uniprot.py
+      - tests/test_build_uniprot_reference.py
+      - scripts/build_uniprot_reference.py
 
 permissions:
   contents: read

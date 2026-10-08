@@ -1,0 +1,88 @@
+# Pinned managed assets; retain existing release definitions and bytes.
+schema_version: 1
+license_statement: |
+  We have chosen to apply the Creative Commons Attribution 4.0 International
+  (CC BY 4.0) License (https://creativecommons.org/licenses/by/4.0/) to all
+  copyrightable parts of our databases.
+
+  All databases and documents in the UniProt FTP directory may be copied and
+  redistributed freely, without advance permission, provided that this copyright
+  statement is reproduced with each copy.
+
+  Attribution: The UniProt Consortium. Hitlist performed human-only selection
+  and FASTA line formatting. Source/release provenance is in the Hitlist catalog
+  and the accompanying build receipt.
+collections:
+  human:
+    taxonomy_id: 9606
+    selection:
+      canonical_entries: all Swiss-Prot and TrEMBL entries for taxonomy 9606
+      reviewed_isoforms: true
+      reference_proteome_subset: false
+    default_release: '2026_03'
+    releases:
+      '2026_03':
+        filename: uniprot-human-2026_03.fasta
+        size_bytes: 127856511
+        sha256: 02eecbba941194d2004720ddb02555f4647ceae883ac2bbda82e9287ac45a2eb
+        n_sequences: 232837
+        sequence_counts:
+          n_reviewed_canonical_sequences: 20431
+          n_reviewed_isoform_sequences: 22131
+          n_unreviewed_canonical_sequences: 190275
+        sources:
+        - url: https://rest.uniprot.org/uniprotkb/stream?query=%28organism_id%3A9606%29&format=fasta&includeIsoform=true&compressed=true
+          headers:
+            Vary: accept,accept-encoding,x-uniprot-release,x-api-deployment-date, User-Agent
+            Cache-Control: public, max-age=43200
+            Content-Type: text/plain;format=fasta
+            Access-Control-Allow-Credentials: 'true'
+            Access-Control-Expose-Headers: Link, X-Total-Results, X-UniProt-Release, X-UniProt-Release-Date,
+              X-API-Deployment-Date
+            X-API-Deployment-Date: 23-September-2026
+            strict-transport-security: max-age=31536000; includeSubDomains; preload
+            Date: Thu, 08 Oct 2026 16:57:58 GMT
+            Access-Control-Max-Age: '1728000'
+            X-UniProt-Release: '2026_03'
+            Transfer-Encoding: chunked
+            Access-Control-Allow-Origin: '*'
+            Connection: close
+            Access-Control-Allow-Methods: GET, PUT, POST, DELETE, PATCH, OPTIONS
+            Access-Control-Allow-Headers: DNT,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization
+            X-UniProt-Release-Date: 02-September-2026
+          size_bytes: 53402733
+          sha256: 596240d0b9864c5e007997551d373b218a469d9bbc10c5f31aebe7251fd3becd
+          canonical_count_check:
+            url: https://rest.uniprot.org/uniprotkb/search?query=%28organism_id%3A9606%29&format=tsv&fields=accession&size=1
+            headers:
+              Vary: accept,accept-encoding,x-uniprot-release,x-api-deployment-date, User-Agent
+              Cache-Control: public, max-age=43200
+              x-cache: miss cached
+              Content-Type: text/plain;format=tsv
+              Access-Control-Allow-Credentials: 'true'
+              Access-Control-Expose-Headers: Link, X-Total-Results, X-UniProt-Release, X-UniProt-Release-Date,
+                X-API-Deployment-Date
+              X-API-Deployment-Date: 07-October-2026
+              strict-transport-security: max-age=31536000; includeSubDomains; preload
+              Date: Thu, 08 Oct 2026 16:53:58 GMT
+              Access-Control-Max-Age: '1728000'
+              X-UniProt-Release: '2026_03'
+              Link: <https://rest.uniprot.org/uniprotkb/search?format=tsv&fields=accession&query=%28organism_id%3A9606%29&cursor=verqtw3fkbzjjfcasyq2mijuvezq3ylgqhb3ykqmykqp19&size=1>;
+                rel="next"
+              X-Total-Results: '210706'
+              Transfer-Encoding: chunked
+              Access-Control-Allow-Origin: '*'
+              Access-Control-Allow-Methods: GET, PUT, POST, DELETE, PATCH, OPTIONS
+              Access-Control-Allow-Headers: DNT,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization
+              X-UniProt-Release-Date: 02-September-2026
+              Connection: close
+        builder_sha256: 1579fe2ec58277a3028d25b3bd37d4ab539aca785e1c81f6ca7d147991c0595e
+        license: CC-BY-4.0
+        license_url: https://www.uniprot.org/help/license
+        attribution: The UniProt Consortium; human-only selection and FASTA conversion by Hitlist
+        release_date: '2026-09-02'
+        url: https://github.com/pirl-unc/hitlist/releases/download/uniprot-references-v1/uniprot-human-2026_03.fasta
+        build_receipt:
+          url: https://github.com/pirl-unc/hitlist/releases/download/uniprot-references-v1/uniprot-human-2026_03.receipt.json
+          sha256: 444a7fd56b3ac8f4275456a3c19c27484bfdc6eb90dc8a3ceb35e2e19f081620
+          size_bytes: 3719

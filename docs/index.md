@@ -116,6 +116,9 @@ context = overlay_targets(full, target_peptides=my_cta_set, label="cta")
 
 ## Data management
 
+See [versioned UniProt references](uniprot-references.md) for pinned human FASTAs,
+source provenance and bounded download/cache storage.
+
 ```bash
 hitlist data available          # list known datasets (IEDB/CEDAR + fetchable viral proteomes)
 hitlist data fetch hpv16        # auto-download a viral proteome from UniProt

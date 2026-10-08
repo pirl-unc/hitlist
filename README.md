@@ -393,6 +393,8 @@ hitlist data list --all --json                          # every cache file and i
 hitlist data list --verify                              # verify trusted mirrored-asset hashes
 hitlist data available                                  # show all known datasets
 hitlist data dirs                                       # every directory hitlist uses, and why
+hitlist data uniprot list --json                         # pinned UniProt releases and cache status
+hitlist data uniprot fetch --release 2026_03              # download a verified human reference
 ```
 
 ### Where hitlist keeps data
@@ -401,12 +403,15 @@ hitlist data dirs                                       # every directory hitlis
 
 See [downloads and cache inspection](docs/downloads.md) for resumability,
 read-only inventory, integrity statuses, and the Python download adapter.
+See [versioned UniProt references](docs/uniprot-references.md) for release
+provenance, managed downloads and cache budgets.
 
 | what | where |
 |---|---|
 | built indexes (`observations`/`binding`/`bulk_proteomics`/`line_expression` parquets, `manifest.json`, downloaded proteomes) | the data directory — see the resolution order below |
 | mirrored data assets (paper-derived CSVs) | `datacache`'s cache dir for the `hitlist` subdir; **not** moved by `HITLIST_DATA_DIR` |
 | proteome index cache (`*.pkl`) | `<data directory>/proteome_index_cache`, unless explicitly set with `hitlist.proteome.set_disk_cache_dir()` |
+| pinned UniProt FASTAs | `<data directory>/uniprot/<collection>/<release>/`; 1 GiB default cache budget |
 
 The data directory resolves in this order:
 

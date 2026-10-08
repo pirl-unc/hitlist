@@ -64,9 +64,10 @@ Enforce a per-asset limit and a total UniProt-cache budget before transfer,
 including partial downloads and replacement headroom; never silently evict
 historical versions. Serialize writers so concurrent fetches cannot bypass the
 budget. Defaults are 256 MiB per asset and 1 GiB total logical file bytes, with
-2 MiB control/transfer headroom per new download. POSIX transfers resume;
-other platforms abort oversized transfers within one bounded chunk, already
-reserved in that headroom. These are file-byte limits, not filesystem quotas.
+2 MiB control/transfer headroom per new download. New transfers use datacache's
+bounded POSIX resumable downloader. Inspection and cached reads are portable;
+new non-POSIX downloads fail explicitly because the general downloader checks
+size only after writing. These are file-byte limits, not filesystem quotas.
 Use a plain installed FASTA so existing FASTA consumers can use it.
 Keep large reference payloads outside wheel/sdist and Git history.
 
@@ -93,4 +94,14 @@ the exact FASTA hash and reference identity in any supported integration.
 
 ## Review
 
-Pending source extraction and implementation.
+The 2015_10 source is currently blocked by official HTTPS TLS timeouts from
+both the workstation and GitHub Actions (run 37811660769); the FTP release
+symlink points to an inaccessible directory. Keep historical recovery open.
+Prepare the independently verified REST release 2026_03 as the first available
+managed asset; never substitute it for a request for 2015_10. The optional
+user preference question offered shipping this foundational cache now or
+keeping it in draft; absent a reply, the recommended first option applies.
+
+Focused client/CLI/inventory/detectability tests passed (114 initially), with
+additional extractor and exported-provenance regressions added. Full checks
+and release still pending.

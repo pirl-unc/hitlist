@@ -21,6 +21,7 @@ def list_cache_files(*, verify: bool = False, include_unregistered: bool = True)
     """
     from .downloads import data_asset_dir, data_assets, data_dir, list_datasets
     from .proteome import proteome_index_cache_dir
+    from .uniprot import list_uniprot_references
 
     entries = {}
 
@@ -40,6 +41,14 @@ def list_cache_files(*, verify: bool = False, include_unregistered: bool = True)
     assets_root = data_asset_dir()
     for name, metadata in data_assets().items():
         add(assets_root / name, "mirrored asset", name, metadata)
+    for reference in list_uniprot_references():
+        if reference["status"] != "missing":
+            add(
+                reference["path"],
+                "UniProt reference",
+                f"uniprot/{reference['collection']}/{reference['release']}",
+                reference,
+            )
 
     roots = [(data_dir(), "built data"), (assets_root, "data asset cache")]
     legacy = Path.home() / ".hitlist"
@@ -94,11 +103,18 @@ def list_cache_files(*, verify: bool = False, include_unregistered: bool = True)
     rows = []
     for entry in entries.values():
         meta = entry.get("metadata", {})
-        state = datacache.inspect_file(
-            entry["path"],
-            expected_size=meta.get("size_bytes"),
-            expected_sha256=meta.get("sha256") if verify else None,
-        )
+        if "UniProt reference" in entry["kinds"] and meta.get("status") == "corrupt":
+            # Preserve managed-path errors (including symlink escapes), rather
+            # than following a link and blessing an external file's hash.
+            state = datacache.FileInspection(
+                str(entry["path"]), "corrupt", error=ValueError(meta["error"])
+            )
+        else:
+            state = datacache.inspect_file(
+                entry["path"],
+                expected_size=meta.get("size_bytes"),
+                expected_sha256=meta.get("sha256") if verify else None,
+            )
         rows.append(
             {
                 "path": state.path,
