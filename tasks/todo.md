@@ -3,19 +3,39 @@
 See [the specification](historical-and-canine-spec.md).
 
 - [x] Inspect #658/#660/#661, current main and existing work; create isolated branch.
-- [ ] Add real historical taxonomy regression and fix annotated OX parsing.
-- [ ] Stream and validate full 2015_10 extraction; independently audit sequences and coverage.
+- [x] Add real historical taxonomy regression and fix annotated OX parsing.
+- [x] Stream and validate full 2015_10 extraction; independently audit sequences and coverage.
 - [ ] Publish historical asset, add catalog entry and verify managed fetch/reuse.
 - [ ] Version, format, lint, full tests and final-head CI; merge and deploy to PyPI.
-- [ ] Locate/review canine patch and primary sources; specify #660 implementation.
+- [x] Locate/review canine patch and primary sources.
+- [ ] Specify #660 implementation after historical release.
 - [ ] Ship offline supplementary inputs and canine ligand curation (#660).
 - [ ] Specify and implement explicit species/reference/policy evidence bundles (#661).
 - [ ] Verify canine releases, document results and review follow-up dependencies.
 
 ## Review
 
-Pending historical extraction and release validation. Existing managed cache
-support shipped in 1.68.0; the historical archive is not yet a catalog asset.
+Historical extraction succeeded in Actions run 37844637820 with complete source
+size/MD5 checks and the expected 170,921 sequences. The 82,758,858-byte FASTA's
+SHA256 is `b657a37c551326bf91a118dfa52acfab96a4f65bf2052d761d5b5f7b6252020a`.
+An independent bounded audit matches all 661,142 distinct original Bekker-Jensen
+peptides across the 14 packaged scopes (2,047,003 rows), using exact substrings
+with I/L distinct. Swiss-Prot canonical explains 649,785; adding isoforms explains
+657,123; the complete human selection explains all. Peak RSS was 70,516,736 bytes,
+scratch SQLite 16,891,904 bytes, runtime 110 seconds. The E9PBK2 header and
+73-residue sequence also match the independent historical UniSave fixture.
+This establishes compatibility, not original search-database identity (#654).
+
+The taxonomy regressions failed before the parser fix; all 49 focused tests now
+pass. Format/lint pass. Local `test.sh` refused at 1.38 GiB available against its
+unchanged 2.5 GiB guard; require the complete unit/integration CI and clean-main
+release workflow before deployment. Historical asset publication, real managed
+download/reuse, final-head checks and PyPI verification are release gates.
+
+Canine source review independently verified all six original workbooks against
+published MD5s: 3,580 human-host monoallelic rows and 12,779 endogenous canine
+tumor rows from four dogs. Two Lola IPs are one donor. Preserve all reported
+8–30-residue observations, not only the paper's 8–14-residue summary subset.
 
 # Versioned UniProt references
 
