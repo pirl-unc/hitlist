@@ -117,8 +117,9 @@ def test_one_line_when_the_two_locations_coincide(tmp_path, monkeypatch, capsys)
     monkeypatch.setattr(cli, "data_asset_dir", lambda: shared)
     monkeypatch.setattr("hitlist.proteome._PROTEOME_INDEX_DISK_CACHE_DIR", tmp_path / "index-cache")
     lines = cli._data_location_lines()
-    assert sum(str(shared) in line for line in lines) == 1
+    assert sum(str(shared) in line for line in lines) == 2
     assert "built indexes + assets" in lines[0]
+    assert any("UniProt references" in line and str(shared / "uniprot") in line for line in lines)
 
 
 def test_dirs_subcommand_parses_and_dispatches(monkeypatch):

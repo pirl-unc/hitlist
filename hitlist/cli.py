@@ -159,6 +159,7 @@ def _data_location_lines() -> list[str]:
         else [("built indexes", built, why), ("data assets", assets, "datacache")]
     )
     rows.append(("proteome index cache", index_cache, index_why))
+    rows.append(("UniProt references", built / "uniprot", "data directory"))
     width = max(len(label) for label, _, _ in rows)
     return [
         f"  {label:<{width}}  {path}  ({why})  — {_dir_summary(path)}" for label, path, why in rows
@@ -434,6 +435,9 @@ def _build_data_parser(sub: argparse._SubParsersAction) -> None:
     dp = sub.add_parser("data", help="Manage external datasets")
     dp.set_defaults(_subgroup_parser=dp)
     ds = dp.add_subparsers(dest="data_command")
+    from .cli_uniprot import add_uniprot_parser
+
+    add_uniprot_parser(ds)
 
     p = ds.add_parser("list", help="Show registered datasets or the complete cache inventory")
     p.add_argument("--all", action="store_true", help="Inspect files across all cache locations")
@@ -767,7 +771,10 @@ _DEPRECATED_DATA_SUBCOMMANDS = {
 
 
 def _handle_data(args: argparse.Namespace) -> None:
+    from .cli_uniprot import handle_uniprot
+
     handlers = {
+        "uniprot": handle_uniprot,
         "list": _data_list,
         "available": _data_available,
         "dirs": _data_dirs,

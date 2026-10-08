@@ -36,6 +36,7 @@ dependencies = [
     "tqdm",
     # Shared fixed-path registry, downloads, resumability and cache inspection (#589).
     "datacache>=1.15.0",
+    "filelock>=3.13",
     # Ensembl gene/transcript annotation: proteome indexing + ENSG→HGNC symbol
     # fill for line_expression. Release data is installed separately
     # (`pyensembl install --release 112 --species homo_sapiens`); the build
@@ -138,6 +139,7 @@ include = [
     "scripts/allele_candidate_audit.py",
     "scripts/release_artifacts.py",
     "scripts/check_dev_install.py",
+    "scripts/build_uniprot_reference.py",
     "scripts/benchmark_provenance.py",
 ]
 

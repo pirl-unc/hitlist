@@ -1,0 +1,38 @@
+name: Build UniProt reference asset
+
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: Official source (archive currently supports 2015_10)
+        type: choice
+        options: [rest, archive]
+        default: rest
+      release:
+        description: Explicit UniProt release, which must match upstream metadata
+        default: '2026_03'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Stream and verify the explicit source release
+        env:
+          UNIPROT_SOURCE: ${{ inputs.source }}
+          UNIPROT_RELEASE: ${{ inputs.release }}
+        run: python scripts/build_uniprot_reference.py --source "$UNIPROT_SOURCE" --release "$UNIPROT_RELEASE" --output-dir "$RUNNER_TEMP/uniprot"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: uniprot-human-${{ inputs.release }}
+          path: ${{ runner.temp }}/uniprot/
+          if-no-files-found: error
+          retention-days: 7

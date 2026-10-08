@@ -520,6 +520,9 @@ def iter_detectability_training_set(
     _integer("n_replicates_possible", possible, 1)
     if any(not pd.isna(value) and value > possible for value in observed.values()):
         raise ValueError("Detected replicate count exceeds possible replicates")
+    from .uniprot import uniprot_reference_for_digest
+
+    uniprot_reference = uniprot_reference_for_digest(**reference_digest)
     metadata = {
         "schema_version": 1,
         "hitlist_version": __version__,
@@ -546,6 +549,8 @@ def iter_detectability_training_set(
         },
     }
     metadata["search_space_id"] = contract.identifier
+    if uniprot_reference is not None:
+        metadata["search_reference"]["uniprot"] = uniprot_reference
     if first_depth_status == "comparable_protocol_group":
         group = _scope_value(selected, "comparison_group")
         related = peptide_observations.loc[peptide_observations.comparison_group.eq(group)]

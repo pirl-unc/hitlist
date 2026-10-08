@@ -1,3 +1,35 @@
+# Versioned UniProt references
+
+See [the detailed specification](uniprot-references-spec.md).
+
+- [x] Confirm requested managed-download packaging and inspect existing registries.
+- [x] Create isolated feature branch; record provenance and resource-bound design.
+- [ ] Recover and validate historical 2015_10 (upstream outage; tracked separately in #658).
+- [x] Independently acquire 2026_03 with release/count validation and a complete build receipt.
+- [x] Implement release catalog, bounded verified cache, API/CLI and inventory integration.
+- [x] Add client/extractor/provenance regressions and document supported releases.
+- [x] Publish the managed 2026_03 asset and validate real managed fetch/reuse.
+- [x] Verify wheel/sdist contain the catalog and exclude sequence payloads.
+- [x] Correct the duplicate-key YAML-loader violation caught by full CI.
+- [ ] Version, format, lint, full tests, PR and final-head checks.
+- [ ] Merge, deploy to PyPI and verify published artifacts; review follow-up queue.
+
+## Review
+
+The verified 2026_03 human FASTA is 127,856,511 bytes, SHA256
+`02eecbba941194d2004720ddb02555f4647ceae883ac2bbda82e9287ac45a2eb`.
+It contains 20,431 reviewed canonical sequences, 22,131 reviewed isoforms and
+190,275 unreviewed canonical sequences (232,837 total). Canonical counts agree
+with UniProt's search endpoint; both endpoints identify 2026_03. The receipt
+records the compressed source checksum, final checksum, exact builder checksum,
+release headers and licensing. This is not a historical-reference substitute.
+The isolated `.venv` resolves pandas 3.0.6, gtfparse 3.0.2, PyEnsembl 2.26.0 and
+datacache 1.16.1; compatibility inspection passes. Shared editables are untouched.
+Real managed download/reuse verifies 127,857,385 total cached bytes, including
+the FASTA's license statement and receipt. Local `test.sh` refused at 1.90 GiB
+available versus its unchanged 2.5 GiB minimum; full checks run in CI. The user
+confirmed shipping 2026_03 cache support independently of historical #658.
+
 # Detectability follow-up — #361 / #654
 
 See [the detailed specification](detectability-spec.md). User confirmed protocol-
