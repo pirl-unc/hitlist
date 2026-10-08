@@ -1,3 +1,27 @@
+# Canine ligand curation and evidence bundles
+
+Implementation specifications: [offline curation](canine-curation-spec.md) and
+[species-scoped evidence design](canine-evidence-design.md).
+
+- [x] Independently review the original paper, six checked workbooks and existing patch.
+- [x] Write the offline API, sample/species, donor/IP and source-provenance contract.
+- [x] Prepare an isolated worktree and lockfile-based environment.
+- [ ] Verify historical 1.68.1 is published before beginning canine implementation.
+- [ ] Add failing offline/source/species/lineage regression fixtures.
+- [ ] Implement reviewed local scanner inputs and deterministic workbook curation.
+- [ ] Curate exact experimental arms, species mechanisms and donor/specimen links.
+- [ ] Validate all 16,359 real observations and complete contributor coverage.
+- [ ] Version, format, lint, focused tests and full final-head CI.
+- [ ] Merge and deploy #660; verify published artifact bytes.
+- [ ] Finalize and implement #661 against the frozen #660 observation boundary.
+
+## Review
+
+The historical-reference PR #662 merged at
+`1b0efc92aaa82a96a5f42bcfe83b6695173dbc20` after all PR checks passed.
+Its clean-main deployment remains a gate before canine implementation starts.
+No canine implementation changes have been made yet.
+
 # Historical references and canine generalization
 
 See [the specification](historical-and-canine-spec.md).
