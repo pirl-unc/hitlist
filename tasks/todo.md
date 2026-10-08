@@ -1,3 +1,15 @@
+# Versioned UniProt references
+
+See [the detailed specification](uniprot-references-spec.md).
+
+- [x] Confirm requested managed-download packaging and inspect existing registries.
+- [x] Create isolated feature branch; record provenance and resource-bound design.
+- [ ] Recover and validate the official historical human reference and build receipt.
+- [ ] Implement release catalog, bounded verified cache, API/CLI and inventory integration.
+- [ ] Add regressions and real managed-asset validation; document supported releases.
+- [ ] Version, format, lint, full tests, PR and final-head checks.
+- [ ] Merge, deploy to PyPI and verify published artifacts; review follow-up queue.
+
 # Detectability follow-up — #361 / #654
 
 See [the detailed specification](detectability-spec.md). User confirmed protocol-
