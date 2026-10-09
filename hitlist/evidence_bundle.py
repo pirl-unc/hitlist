@@ -445,6 +445,10 @@ def verify_evidence_bundle(directory):
     directory = Path(directory)
     manifest = json.loads((directory / "manifest.json").read_text())
     kind = manifest.get("kind")
+    if kind == "species_expression":
+        from .species_evidence import verify_species_evidence_bundle
+
+        return verify_species_evidence_bundle(directory)
     if manifest.get("schema_version") != 1 or kind not in {"tissue_blacklist", "cta_expression"}:
         raise ValueError("Unsupported evidence bundle schema")
     files = _TISSUE_FILES | (_CTA_FILES if kind == "cta_expression" else set())

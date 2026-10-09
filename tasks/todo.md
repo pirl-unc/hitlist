@@ -1,3 +1,40 @@
+# Species-scoped evidence implementation — #661
+
+Concrete contract: [species-evidence-contract.md](species-evidence-contract.md).
+The input is an explicit local manifest; existing human defaults remain intact.
+
+- [x] Specify pinned reference, expression, source-occurrence, observation and policy inputs.
+- [x] Demonstrate an initial failing offline contract test.
+- [x] Implement bounded full-reference mapping, expression audits and frozen replay.
+- [x] Exercise ambiguity, provenance, missing normal coverage and resource failures.
+- [x] Replay a real scoped canine source against the full supplied dog reference.
+- [x] Document the contract and review the resulting consumer workflow.
+- [ ] Bump version, format, lint, tests, then final-head CI.
+- [ ] Merge and deploy after #663; verify published artifacts.
+
+## Species-bundle review
+
+The new public API preserves schema-1 human bundle replay and does not consult
+live indexes, OncoRef or the human Atlas. Initial contract tests failed before
+implementation. The focused suite includes missing normal coverage even when
+testis expression is fully measured, distinct donor counting across alleles,
+shared heart/testis proteins, incorrect contributor links, and semantic replay
+after artifact checksums are recomputed. Format and lint pass. Final-head full
+CI remains a release gate; a memory-preflighted local unit run is in progress.
+
+Real scoped replay used all 61,398 supplied validated Canvax occurrences and the
+complete NCBI GCF_011100685.1 AR106 protein FASTA (SHA256
+`478ff85988e53be0f8c36fcf290a4d512792bbdb8148a0c5132e1022e15eeb49`).
+All eight curated study arms contributed three observations: 24 complete source
+records yielded 116 exact mappings; three reported strings had no exact match.
+The nine human-host DLA observations stayed separate from 15 native dog ligands
+without peptide-level allele assignment. Missing canine normal MS remained
+explicit. This exercised reference/MS interoperability without inventing matched
+expression candidates or claiming spectrum reanalysis. Write plus two offline
+replays took 33.233 seconds with measured process peak RSS 715,128,832 bytes;
+the portable output occupied 71,018,621 bytes. These are scoped measurements,
+not a full-corpus memory claim.
+
 # Canine ligand curation and evidence bundles
 
 Implementation specifications: [offline curation](canine-curation-spec.md) and

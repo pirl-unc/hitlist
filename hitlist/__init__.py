@@ -65,6 +65,7 @@ _PUBLIC_API: dict[str, str] = {
     "uniprot_cache_dir": ".uniprot",
     "uniprot_catalog": ".uniprot",
     "write_cta_evidence_bundle": ".evidence_bundle",
+    "write_species_evidence_bundle": ".species_evidence",
     "write_tissue_blacklist_bundle": ".evidence_bundle",
     "verify_evidence_bundle": ".evidence_bundle",
     "build_tissue_blacklist": ".tissue_blacklist",
