@@ -1,3 +1,50 @@
+# Species-scoped evidence implementation — #661
+
+Concrete contract: [species-evidence-contract.md](species-evidence-contract.md).
+The input is an explicit local manifest; existing human defaults remain intact.
+
+- [x] Specify pinned reference, expression, source-occurrence, observation and policy inputs.
+- [x] Demonstrate an initial failing offline contract test.
+- [x] Implement bounded full-reference mapping, expression audits and frozen replay.
+- [x] Exercise ambiguity, provenance, missing normal coverage and resource failures.
+- [x] Replay a real scoped canine source against the full supplied dog reference.
+- [x] Document the contract and review the resulting consumer workflow.
+- [ ] Bump version, format, lint, tests, then final-head CI.
+- [ ] Merge and deploy after #663; verify published artifacts.
+
+## Species-bundle review
+
+Review of downstream Tsarina #209 exposed that the shared MS predicate admits
+explicit unknown outcomes. Filed Hitlist #665 rather than silently changing
+historical human replay. Five failing species regressions precede a stricter
+new-mode gate: known-positive results or a blank under the curated ligand-table
+contract; explicit unknowns stay excluded. Re-run final-head release checks.
+
+The new public API preserves schema-1 human bundle replay and does not consult
+live indexes, OncoRef or the human Atlas. Initial contract tests failed before
+implementation. The focused suite includes missing normal coverage even when
+testis expression is fully measured, distinct donor counting across alleles,
+shared heart/testis proteins, incorrect contributor links, and semantic replay
+after artifact checksums are recomputed. Format and lint pass. Final-head full
+CI remains a release gate; a memory-preflighted local unit run is in progress.
+
+Real scoped replay used all 61,398 supplied validated Canvax occurrences and the
+complete NCBI GCF_011100685.1 AR106 protein FASTA (SHA256
+`478ff85988e53be0f8c36fcf290a4d512792bbdb8148a0c5132e1022e15eeb49`).
+All eight curated study arms contributed three observations: 24 complete source
+records yielded 116 exact mappings; three reported strings had no exact match.
+The nine human-host DLA observations stayed separate from 15 native dog ligands
+without peptide-level allele assignment. Missing canine normal MS remained
+explicit. This exercised reference/MS interoperability without inventing matched
+expression candidates or claiming spectrum reanalysis. Write plus two offline
+replays on final 1.70.0 code took 33.571 seconds from the frozen input manifest,
+with measured process peak RSS 468,746,240 bytes; the portable output occupied
+71,020,311 bytes. Input preparation is outside that timing. These are scoped
+measurements, not a full-corpus memory claim. All 92 final focused/human tests
+pass on pandas 2.3.3 and 3.0.6. The earlier complete local unit run passed
+2,842 tests (one skip); final-head rerun/CI also cover the six subsequent
+contributor/outcome regression cases.
+
 # Canine ligand curation and evidence bundles
 
 Implementation specifications: [offline curation](canine-curation-spec.md) and

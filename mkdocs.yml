@@ -15,6 +15,7 @@ nav:
   - Versioned UniProt References: uniprot-references.md
   - CTA Expression Evidence and Tissue Blacklists: cta-evidence.md
   - Offline Canine Ligand Curation: canine-ligands.md
+  - Species-scoped Evidence Bundles: species-evidence.md
 
 theme:
   name: readthedocs
