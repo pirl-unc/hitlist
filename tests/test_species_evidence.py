@@ -542,3 +542,38 @@ def test_contributor_identity_cannot_be_swapped_between_peptides(inputs, tmp_pat
     update(inputs, "contributors", change)
     with pytest.raises(ValueError, match="Contributor peptide contradicts"):
         bundle(inputs, tmp_path)
+
+
+@pytest.mark.parametrize("outcome", ["unknown", "", "inconclusive"])
+def test_ms_method_alone_does_not_establish_detection(inputs, tmp_path, outcome):
+    def change(frame):
+        frame.loc[0, "qualitative_measurement"] = outcome
+
+    update(inputs, "observations", change)
+    out = bundle(inputs, tmp_path)
+    assert len(pd.read_parquet(out / "presentation.parquet")) == 1
+    excluded = pd.read_parquet(out / "excluded_observations.parquet")
+    assert excluded.loc[excluded.provenance_id.eq("prov:0"), "exclusion_reason"].tolist() == [
+        "unestablished_ms_outcome"
+    ]
+
+
+def test_curated_ligand_table_blank_outcome_preserves_observed_status(inputs, tmp_path):
+    def change(frame):
+        frame.loc[0, ["qualitative_measurement", "assay_method"]] = ""
+
+    update(inputs, "observations", change)
+    out = bundle(inputs, tmp_path)
+    row = pd.read_parquet(out / "presentation.parquet").set_index("provenance_id").loc["prov:0"]
+    assert row.ms_outcome_status == "curated_ligand_table"
+
+
+def test_unknown_normal_outcome_cannot_establish_blacklist(inputs, tmp_path):
+    def change(frame):
+        frame.loc[frame.donor_id.eq("d2"), "qualitative_measurement"] = "unknown"
+
+    update(inputs, "normal", change)
+    out = bundle(inputs, tmp_path)
+    risk = pd.read_parquet(out / "tissue_risk.parquet")
+    assert risk.n_donors.tolist() == [1]
+    assert not risk.blacklisted.any()

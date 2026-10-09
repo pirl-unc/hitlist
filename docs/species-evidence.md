@@ -184,7 +184,15 @@ are retained. `lineage` is an explicit Hitlist schema-1 lineage JSON registry;
 an empty registry leaves donor/specimen/acquisition identities unknown.
 Lineage is recomputed using only this frozen registry.
 
-Positive-MS admission is recomputed from original assay fields. Fluorescence,
+Positive-MS admission is recomputed from original assay fields and result.
+Species schema 1 accepts `Positive`, `Positive-High`, `Positive-Intermediate`,
+or `Positive-Low` (case-insensitive), or a blank outcome under the existing
+curated observed-MS-supplement contract. A structured MS method with a blank,
+unknown or inconclusive result alone does not establish detection. Explicit
+unknowns remain excluded even in a supplement. The outcome status is preserved
+alongside modality; this stricter species gate does not change human replay.
+See [the shared-contract follow-up #665](https://github.com/pirl-unc/hitlist/issues/665).
+Fluorescence,
 structural and other non-MS assays remain excluded evidence. Native presentation
 requires both source and presenting taxon to match the reference. Heterologous
 MHC observations are separately labeled. Unknowns remain unknown. Exact support

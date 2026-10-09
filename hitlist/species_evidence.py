@@ -113,6 +113,25 @@ OBSERVATION_FIELDS = {
 }
 
 
+def _established_ms(frame):
+    """Species schema 1: modality and established outcome are separate gates.
+
+    Blank outcomes in the existing curated observed-ligand-table contract are
+    source-supported observations. A structured method alone is insufficient;
+    explicit unknown outcomes never qualify (#665). Human replay is unchanged.
+    """
+    frame = annotate_assays(frame.copy())
+    outcome = frame.qualitative_measurement.astype("string").fillna("").str.strip().str.casefold()
+    positive = outcome.isin(["positive", "positive-high", "positive-intermediate", "positive-low"])
+    curated = outcome.eq("") & frame.assay_modality_source.eq("curated_ms_supplement")
+    frame["ms_outcome_status"] = "unestablished"
+    frame.loc[outcome.str.startswith("negative"), "ms_outcome_status"] = "negative"
+    frame.loc[positive, "ms_outcome_status"] = "positive_result"
+    frame.loc[curated, "ms_outcome_status"] = "curated_ligand_table"
+    frame["is_ms_observation"] &= positive | curated
+    return frame
+
+
 def _json(path, max_bytes):
     if path.stat().st_size > max_bytes:
         raise ValueError("JSON exceeds max_json_bytes")
@@ -286,10 +305,14 @@ def _observations(paths, limits, taxon):
             and observed_strings[row.provenance_id] != {reported}
         ):
             raise ValueError("Contributor peptide contradicts its linked observation")
-    frame = annotate_assays(frame.copy())
+    frame = _established_ms(frame)
     valid_sequence = frame.peptide.astype("string").str.fullmatch("[ACDEFGHIKLMNPQRSTVWY]{5,50}")
     frame["exclusion_reason"] = ""
     frame.loc[~frame.is_ms_observation, "exclusion_reason"] = "not_positive_ms"
+    frame.loc[
+        frame.assay_modality.eq("ms") & frame.ms_outcome_status.eq("unestablished"),
+        "exclusion_reason",
+    ] = "unestablished_ms_outcome"
     frame.loc[~valid_sequence, "exclusion_reason"] = "invalid_or_unresolved_sequence"
     frame["evidence_kind"] = frame.is_ms_observation.map({True: "ms", False: "other"})
     frame = attach_lineage(
@@ -414,7 +437,7 @@ def _normal(paths, manifest, limits):
         raise ValueError("Normal source_record_id must identify unique source rows")
     if "is_cell_line" not in frame or not frame.is_cell_line.map(lambda v: type(v) is bool).all():
         raise ValueError("Normal is_cell_line must be an explicit boolean")
-    frame = annotate_assays(frame.copy())
+    frame = _established_ms(frame)
     frame["assay_modality"] = frame.is_ms_observation.map(
         {True: "mass_spectrometry", False: "not_positive_ms"}
     )

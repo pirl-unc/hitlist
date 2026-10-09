@@ -14,6 +14,12 @@ The input is an explicit local manifest; existing human defaults remain intact.
 
 ## Species-bundle review
 
+Review of downstream Tsarina #209 exposed that the shared MS predicate admits
+explicit unknown outcomes. Filed Hitlist #665 rather than silently changing
+historical human replay. Five failing species regressions precede a stricter
+new-mode gate: known-positive results or a blank under the curated ligand-table
+contract; explicit unknowns stay excluded. Re-run final-head release checks.
+
 The new public API preserves schema-1 human bundle replay and does not consult
 live indexes, OncoRef or the human Atlas. Initial contract tests failed before
 implementation. The focused suite includes missing normal coverage even when
@@ -31,9 +37,13 @@ The nine human-host DLA observations stayed separate from 15 native dog ligands
 without peptide-level allele assignment. Missing canine normal MS remained
 explicit. This exercised reference/MS interoperability without inventing matched
 expression candidates or claiming spectrum reanalysis. Write plus two offline
-replays took 33.233 seconds with measured process peak RSS 715,128,832 bytes;
-the portable output occupied 71,018,621 bytes. These are scoped measurements,
-not a full-corpus memory claim.
+replays on final 1.70.0 code took 33.571 seconds from the frozen input manifest,
+with measured process peak RSS 468,746,240 bytes; the portable output occupied
+71,020,311 bytes. Input preparation is outside that timing. These are scoped
+measurements, not a full-corpus memory claim. All 92 final focused/human tests
+pass on pandas 2.3.3 and 3.0.6. The earlier complete local unit run passed
+2,842 tests (one skip); final-head rerun/CI also cover the six subsequent
+contributor/outcome regression cases.
 
 # Canine ligand curation and evidence bundles
 
