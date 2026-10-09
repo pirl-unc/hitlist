@@ -72,7 +72,12 @@ def load_supplementary_manifest() -> list[dict]:
         return []
     entries = load_curation_yaml(_MANIFEST_PATH)
     entries = entries if entries else []
+    _validate_ms_entries(entries)
+    return entries
 
+
+def _validate_ms_entries(entries):
+    """Apply the same scientific admission check to every input manifest."""
     excluded = ms_excluded_pmids()
     conflicts = sorted({int(e["pmid"]) for e in entries if int(e["pmid"]) in excluded})
     if conflicts:
@@ -83,10 +88,16 @@ def load_supplementary_manifest() -> list[dict]:
             f"remove exclude_from_ms (the supplementary rows are real elution data) "
             f"or remove the supplementary entry (the study genuinely isn't one)."
         )
-    return entries
 
 
-def scan_supplementary(classify_source: bool = True, *, provenance=None) -> pd.DataFrame:
+def scan_supplementary(
+    classify_source: bool = True,
+    *,
+    provenance=None,
+    entries=None,
+    directory=None,
+    allow_download=True,
+) -> pd.DataFrame:
     """Load all supplementary CSVs and return a scanner-compatible DataFrame.
 
     For each entry in the manifest, reads the CSV, fills missing columns
@@ -98,6 +109,14 @@ def scan_supplementary(classify_source: bool = True, *, provenance=None) -> pd.D
     classify_source
         Run source classification (default True).  When False, only
         allele resolution and species are computed.
+    entries, directory
+        Explicitly reviewed MS manifest entries and their local CSV directory.
+        These retain the same curation checks and contributor graph as packaged
+        sources. Optional ``sha256`` and ``size_bytes`` pin each input file.
+        Explicit entries never fall back to the global download registry.
+    allow_download
+        False fails on missing files without accessing the network. The default
+        preserves on-demand acquisition for the packaged manifest only.
 
     Returns
     -------
@@ -105,7 +124,10 @@ def scan_supplementary(classify_source: bool = True, *, provenance=None) -> pd.D
         Same column schema as :func:`hitlist.scanner.scan` output.
         Empty DataFrame if no supplementary data is configured.
     """
-    entries = load_supplementary_manifest()
+    explicit_entries = entries is not None
+    entries = list(entries) if explicit_entries else load_supplementary_manifest()
+    _validate_ms_entries(entries)
+    supplement_directory = _SUPP_DIR if directory is None else Path(directory)
     if not entries:
         return pd.DataFrame()
 
@@ -113,10 +135,19 @@ def scan_supplementary(classify_source: bool = True, *, provenance=None) -> pd.D
 
     for entry in entries:
         pmid = entry["pmid"]
-        csv_path = _SUPP_DIR / entry["file"]
+        if explicit_entries and (
+            not isinstance(entry["file"], str)
+            or not entry["file"]
+            or Path(entry["file"]).name != entry["file"]
+            or entry["file"] in {".", ".."}
+        ):
+            raise ValueError("Explicit supplementary filename must be one local component")
+        csv_path = supplement_directory / entry["file"]
         defaults = entry.get("defaults", {})
 
         if not csv_path.exists():
+            if explicit_entries or not allow_download:
+                raise FileNotFoundError(csv_path)
             # Large supplementary CSVs are externalized from the wheel (#303);
             # fetch them on demand via datacache. Files that are neither packaged
             # nor externalized are genuinely absent — skip as before.
@@ -127,19 +158,38 @@ def scan_supplementary(classify_source: bool = True, *, provenance=None) -> pd.D
             else:
                 continue
 
+        expected = {key: entry[key] for key in ("sha256", "size_bytes") if key in entry}
+        if expected:
+            from .provenance import file_digest
+
+            before = file_digest(csv_path)
+            if any(before[key] != value for key, value in expected.items()):
+                raise ValueError(f"Supplementary checksum/size mismatch: {csv_path.name}")
         df = pd.read_csv(csv_path, dtype=str).fillna("")
+        if expected:
+            after = file_digest(csv_path)
+            if after != before:
+                raise ValueError(
+                    f"Supplementary checksum/size changed during read: {csv_path.name}"
+                )
         if "peptide" not in df.columns:
+            if explicit_entries:
+                raise ValueError(f"Supplementary file lacks peptide column: {csv_path.name}")
             continue
 
         if provenance is not None:
             dataset = f"supplement:{entry['file']}"
             provenance.register_source(dataset, csv_path, description=entry.get("source", ""))
-            source_ids = []
+            observation_ids = []
             for row_number, values in enumerate(df.itertuples(index=False, name=None), 1):
                 fields = dict(zip(df.columns, values))
                 fields["manifest"] = entry
-                source_ids.append(provenance.record(dataset, row_number, fields, list(values)))
-            df["provenance_id"] = [provenance.observe(value) for value in source_ids]
+                source_id = provenance.record(dataset, row_number, fields, list(values))
+                label = fields.get(
+                    "attributed_sample_label", defaults.get("attributed_sample_label", "")
+                )
+                observation_ids.append(provenance.observe(source_id, sample_label=label))
+            df["provenance_id"] = observation_ids
 
         df["peptide"] = df["peptide"].str.strip()
         df = df[df["peptide"] != ""]
@@ -268,6 +318,10 @@ def scan_supplementary(classify_source: bool = True, *, provenance=None) -> pd.D
         # Classify per-unique-allele, then map back onto every row.
         if provenance is not None:
             record["provenance_id"] = df["provenance_id"].to_numpy()
+        if "attributed_sample_label" in defaults:
+            record["attributed_sample_label"] = defaults["attributed_sample_label"]
+        if "attributed_sample_label" in df.columns:
+            record["attributed_sample_label"] = df["attributed_sample_label"].to_numpy()
 
         # Within a single supplementary entry the non-allele inputs are
         # constant (from manifest defaults), so classify_ms_row varies
@@ -421,6 +475,10 @@ def scan_supplementary(classify_source: bool = True, *, provenance=None) -> pd.D
     dedupe_cols = ["peptide", "mhc_restriction", "pmid"]
     if "supplementary_file" in result.columns:
         dedupe_cols.append("supplementary_file")
+    if "attributed_sample_label" in result.columns:
+        # One explicit CSV may contain observations from several named arms.
+        # Their identical peptide/restriction pairs are distinct observations.
+        dedupe_cols.append("attributed_sample_label")
     if provenance is not None:
         provenance.retain_duplicates(
             result, pd.MultiIndex.from_frame(result[dedupe_cols]), "within_file_overlap"
