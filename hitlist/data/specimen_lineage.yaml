@@ -1,6 +1,7 @@
 schema_version: 1
-description: Reviewed experimental lineage. Omitted biological axes are unknown. These initial links
-  establish dataset origin only; no physical specimen, donor, or acquisition IDs are inferred.
+description: Reviewed experimental lineage. Omitted biological axes are unknown. Origin-only
+  links do not infer biological identities; later donor/specimen links require explicit primary-source
+  evidence. Separate immunoprecipitations do not establish separate donors or raw acquisitions.
 entities:
 - identity_id: origin:MSV000080527:721_221_hla_a_01_01
   kind: experimental_origin
@@ -138,6 +139,118 @@ entities:
   evidence_note: Cell culture and Results identify the primary fibroblast immunopeptidome; biological
     replicates do not establish donor count. Liepe 2016 main text, primary human fibroblasts citation
     (6), reuses this dataset.
+- identity_id: donor:pmid:42199926:163828a
+  kind: donor
+  namespace: PMID:42199926:donor
+  reported_id: 163828A
+  evidence_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ \u2014 Table 1 and Results"
+  evidence_note: One named dog and its primary tumor; Lola H58A and BB7.6 are two IPs from the same
+    osteosarcoma tumor.
+- identity_id: specimen:pmid:42199926:163828a
+  kind: specimen
+  namespace: PMID:42199926:specimen
+  reported_id: 163828A tumor
+  evidence_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ \u2014 Table 1 and Results"
+  evidence_note: One named dog and its primary tumor; Lola H58A and BB7.6 are two IPs from the same
+    osteosarcoma tumor.
+- identity_id: donor:pmid:42199926:bogey
+  kind: donor
+  namespace: PMID:42199926:donor
+  reported_id: Bogey
+  evidence_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ \u2014 Table 1 and Results"
+  evidence_note: One named dog and its primary tumor; Lola H58A and BB7.6 are two IPs from the same
+    osteosarcoma tumor.
+- identity_id: specimen:pmid:42199926:bogey
+  kind: specimen
+  namespace: PMID:42199926:specimen
+  reported_id: Bogey tumor
+  evidence_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ \u2014 Table 1 and Results"
+  evidence_note: One named dog and its primary tumor; Lola H58A and BB7.6 are two IPs from the same
+    osteosarcoma tumor.
+- identity_id: donor:pmid:42199926:lily
+  kind: donor
+  namespace: PMID:42199926:donor
+  reported_id: Lily
+  evidence_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ \u2014 Table 1 and Results"
+  evidence_note: One named dog and its primary tumor; Lola H58A and BB7.6 are two IPs from the same
+    osteosarcoma tumor.
+- identity_id: specimen:pmid:42199926:lily
+  kind: specimen
+  namespace: PMID:42199926:specimen
+  reported_id: Lily tumor
+  evidence_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ \u2014 Table 1 and Results"
+  evidence_note: One named dog and its primary tumor; Lola H58A and BB7.6 are two IPs from the same
+    osteosarcoma tumor.
+- identity_id: donor:pmid:42199926:lola
+  kind: donor
+  namespace: PMID:42199926:donor
+  reported_id: Lola
+  evidence_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ \u2014 Table 1 and Results"
+  evidence_note: One named dog and its primary tumor; Lola H58A and BB7.6 are two IPs from the same
+    osteosarcoma tumor.
+- identity_id: specimen:pmid:42199926:lola
+  kind: specimen
+  namespace: PMID:42199926:specimen
+  reported_id: Lola tumor
+  evidence_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ \u2014 Table 1 and Results"
+  evidence_note: One named dog and its primary tumor; Lola H58A and BB7.6 are two IPs from the same
+    osteosarcoma tumor.
+- identity_id: origin:PXD074485:hct116_dla_88_003_02
+  kind: experimental_origin
+  namespace: PRIDE:PXD074485:IP
+  reported_id: HCT116 DLA-88*003:02
+  evidence_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ \u2014 Data S1-S6"
+  evidence_note: Distinct reported immunoprecipitation dataset. Worksheet identity does not establish
+    a raw acquisition or donor identity.
+- identity_id: origin:PXD074485:hct116_dla_88_012_01
+  kind: experimental_origin
+  namespace: PRIDE:PXD074485:IP
+  reported_id: HCT116 DLA-88*012:01
+  evidence_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ \u2014 Data S1-S6"
+  evidence_note: Distinct reported immunoprecipitation dataset. Worksheet identity does not establish
+    a raw acquisition or donor identity.
+- identity_id: origin:PXD074485:hct116_dla_88_501_01
+  kind: experimental_origin
+  namespace: PRIDE:PXD074485:IP
+  reported_id: HCT116 DLA-88*501:01
+  evidence_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ \u2014 Data S1-S6"
+  evidence_note: Distinct reported immunoprecipitation dataset. Worksheet identity does not establish
+    a raw acquisition or donor identity.
+- identity_id: origin:PXD074485:lola_h58a
+  kind: experimental_origin
+  namespace: PRIDE:PXD074485:IP
+  reported_id: Lola H58A
+  evidence_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ \u2014 Data S1-S6"
+  evidence_note: Distinct reported immunoprecipitation dataset. Worksheet identity does not establish
+    a raw acquisition or donor identity.
+- identity_id: origin:PXD074485:lola_bb7_6
+  kind: experimental_origin
+  namespace: PRIDE:PXD074485:IP
+  reported_id: Lola BB7.6
+  evidence_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ \u2014 Data S1-S6"
+  evidence_note: Distinct reported immunoprecipitation dataset. Worksheet identity does not establish
+    a raw acquisition or donor identity.
+- identity_id: origin:PXD074485:163828a_bb7_6
+  kind: experimental_origin
+  namespace: PRIDE:PXD074485:IP
+  reported_id: 163828A BB7.6
+  evidence_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ \u2014 Data S1-S6"
+  evidence_note: Distinct reported immunoprecipitation dataset. Worksheet identity does not establish
+    a raw acquisition or donor identity.
+- identity_id: origin:PXD074485:lily_h58a
+  kind: experimental_origin
+  namespace: PRIDE:PXD074485:IP
+  reported_id: Lily H58A
+  evidence_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ \u2014 Data S1-S6"
+  evidence_note: Distinct reported immunoprecipitation dataset. Worksheet identity does not establish
+    a raw acquisition or donor identity.
+- identity_id: origin:PXD074485:bogey_bb7_6
+  kind: experimental_origin
+  namespace: PRIDE:PXD074485:IP
+  reported_id: Bogey BB7.6
+  evidence_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ \u2014 Data S1-S6"
+  evidence_note: Distinct reported immunoprecipitation dataset. Worksheet identity does not establish
+    a raw acquisition or donor identity.
 aliases: []
 contexts:
 - pmid: 28228285
@@ -378,3 +491,108 @@ contexts:
     ids:
     - origin:pmid:25576301:fibroblast_immunopeptidome
   evidence_reference: https://kclpure.kcl.ac.uk/ws/portalfiles/portal/77732670/Liepe_et_al_main_text_Science_final_3.pdf
+
+- pmid: 42199926
+  condition_id: hct116_dla_88_003_02
+  evidence_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ \u2014 Table 1, Results\
+    \ and Data S1-S6"
+  experimental_origin:
+    status: resolved
+    ids:
+    - origin:PXD074485:hct116_dla_88_003_02
+- pmid: 42199926
+  condition_id: hct116_dla_88_012_01
+  evidence_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ \u2014 Table 1, Results\
+    \ and Data S1-S6"
+  experimental_origin:
+    status: resolved
+    ids:
+    - origin:PXD074485:hct116_dla_88_012_01
+- pmid: 42199926
+  condition_id: hct116_dla_88_501_01
+  evidence_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ \u2014 Table 1, Results\
+    \ and Data S1-S6"
+  experimental_origin:
+    status: resolved
+    ids:
+    - origin:PXD074485:hct116_dla_88_501_01
+- pmid: 42199926
+  condition_id: lola_h58a
+  evidence_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ \u2014 Table 1, Results\
+    \ and Data S1-S6"
+  experimental_origin:
+    status: resolved
+    ids:
+    - origin:PXD074485:lola_h58a
+  donor:
+    status: resolved
+    ids:
+    - donor:pmid:42199926:lola
+  specimen:
+    status: resolved
+    ids:
+    - specimen:pmid:42199926:lola
+- pmid: 42199926
+  condition_id: lola_bb7_6
+  evidence_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ \u2014 Table 1, Results\
+    \ and Data S1-S6"
+  experimental_origin:
+    status: resolved
+    ids:
+    - origin:PXD074485:lola_bb7_6
+  donor:
+    status: resolved
+    ids:
+    - donor:pmid:42199926:lola
+  specimen:
+    status: resolved
+    ids:
+    - specimen:pmid:42199926:lola
+- pmid: 42199926
+  condition_id: 163828a_bb7_6
+  evidence_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ \u2014 Table 1, Results\
+    \ and Data S1-S6"
+  experimental_origin:
+    status: resolved
+    ids:
+    - origin:PXD074485:163828a_bb7_6
+  donor:
+    status: resolved
+    ids:
+    - donor:pmid:42199926:163828a
+  specimen:
+    status: resolved
+    ids:
+    - specimen:pmid:42199926:163828a
+- pmid: 42199926
+  condition_id: lily_h58a
+  evidence_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ \u2014 Table 1, Results\
+    \ and Data S1-S6"
+  experimental_origin:
+    status: resolved
+    ids:
+    - origin:PXD074485:lily_h58a
+  donor:
+    status: resolved
+    ids:
+    - donor:pmid:42199926:lily
+  specimen:
+    status: resolved
+    ids:
+    - specimen:pmid:42199926:lily
+- pmid: 42199926
+  condition_id: bogey_bb7_6
+  evidence_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ \u2014 Table 1, Results\
+    \ and Data S1-S6"
+  experimental_origin:
+    status: resolved
+    ids:
+    - origin:PXD074485:bogey_bb7_6
+  donor:
+    status: resolved
+    ids:
+    - donor:pmid:42199926:bogey
+  specimen:
+    status: resolved
+    ids:
+    - specimen:pmid:42199926:bogey

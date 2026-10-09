@@ -8,16 +8,19 @@ inventory:
     known-PMID studies with the most rows flagged by is_chimeric,
     is_engineered_mhc, or xenograft. The flags selected papers for review; they
     were not accepted as evidence.
+    PMID 42199926 was additionally reviewed from original canine/DLA workbooks
+    on 2026-10-08. Observation/flagged-row coverage remains the original v2
+    corpus snapshot; candidate and reviewed PMID counts include this addition.
   n_observation_rows: 4398040
   n_flagged_rows: 96838
   n_flagged_pmids: 223
-  n_candidate_pmids: 225
-  n_reviewed_pmids: 21
+  n_candidate_pmids: 226
+  n_reviewed_pmids: 22
   n_reviewed_flagged_rows: 95442
   reviewed_flagged_fraction: "0.9856"
   n_review_queue_pmids: 204
   n_missing_pmid_flagged_rows: 423
-  reviewed_pmids: [18512783, 20112406, 21209280, 22299025, 22544926, 22898188, 26495903, 26740625, 26811146, 26992070, 27893789, 28188227, 28315936, 29314611, 29393594, 29615400, 30484775, 30573663, 32502341, 33725478, 39111711]
+  reviewed_pmids: [18512783, 20112406, 21209280, 22299025, 22544926, 22898188, 26495903, 26740625, 26811146, 26992070, 27893789, 28188227, 28315936, 29314611, 29393594, 29615400, 30484775, 30573663, 32502341, 33725478, 39111711, 42199926]
   review_queue_pmids: [1318201, 1319610, 1323833, 1371527, 1378019, 1380674, 1383319, 1578131, 1656276, 1697879, 1721832, 1737923, 2459204, 2477244, 2480232, 2809202, 7500030, 7511673, 7514128, 7519208, 7521666, 7522161, 7537302, 7595200, 7604034, 7650494, 7708669, 7743181, 7814870, 7947455, 8084337, 8144888, 8144889, 8171015, 8228825, 8265661, 8268130, 8315383, 8370082, 8437623, 8477806, 8606061, 8625990, 8726461, 8746565, 8806802, 8871645, 8906823, 8920873, 8921955, 8947604, 8958276, 8981922, 8982766, 8982770, 9036993, 9040010, 9064319, 9096370, 9130268, 9144467, 9174606, 9297530, 9368599, 9418131, 9521085, 9529148, 9529149, 9551903, 9627000, 9652824, 9693969, 9759870, 9759881, 9846695, 9916705, 9933100, 10190902, 10233671, 10380706, 10430937, 10452992, 10477598, 10583947, 10590255, 10807784, 10894169, 10958351, 11009082, 11180106, 11207252, 11441068, 11465105, 11535811, 11564833, 11801660, 11859148, 11884537, 11905843, 12042320, 12083518, 12083519, 12124879, 12391225, 12406194, 12538696, 12542794, 12548559, 12571864, 12589760, 12648094, 12663770, 12682247, 12727928, 12734347, 12756272, 12778490, 12845499, 12882830, 12939341, 12960328, 14530340, 14595439, 14734614, 14978103, 15096478, 15096482, 15118850, 15240697, 15565337, 15651071, 15845547, 16075062, 16105036, 16393994, 16423049, 16479539, 16493087, 16849447, 17517108, 17620420, 17848196, 17944901, 18160138, 18250455, 18361933, 18426793, 19206147, 19676074, 19700193, 19789338, 19949070, 19950171, 20017190, 20093428, 20309862, 20705101, 20934997, 21037588, 22039305, 22403068, 22467652, 22537173, 22539795, 22944299, 22973070, 23209377, 23382674, 23455500, 23578666, 23885222, 24029580, 24127554, 24244658, 24806963, 24958902, 25135637, 25156726, 25348595, 25413013, 25428506, 25958206, 26085090, 26703475, 27054574, 27550523, 28711866, 28935714, 29550802, 29588316, 29599287, 29974988, 30305319, 30425106, 30778481, 31213507, 31666297, 31776204, 31796585, 32102875, 33539685, 33637105, 34526989, 34987519]
 
 records:
@@ -532,3 +535,38 @@ records:
     species_context_note: >-
       These are direct patient tumor specimens and are separate from the
       PDX-derived cultured cell line.
+
+  - pmid: 42199926
+    species_context_id: hct116_dla_transductants
+    condition_ids:
+    - hct116_dla_88_003_02
+    - hct116_dla_88_012_01
+    - hct116_dla_88_501_01
+    species_context_status: resolved
+    species_context_scope: Three DLA-transduced HCT116 HLA-I KO cell lines
+    species_context_kind: mhc_transfectant
+    species_context_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ \u2014 Results, Table\
+      \ 1, Figure 1 and STAR Methods"
+    presenting_species: Homo sapiens
+    in_vivo_host_species: ''
+    introduced_mhc_species: Canis lupus familiaris
+    species_context_note: Human peptide-source cells express introduced canine MHC; this is not native
+      canine protein translation. DLA-88*501:01 construct is reported with AA21 P > L.
+  - pmid: 42199926
+    species_context_id: native_canine_tumors
+    condition_ids:
+    - 163828a_bb7_6
+    - bogey_bb7_6
+    - lily_h58a
+    - lola_bb7_6
+    - lola_h58a
+    species_context_status: resolved
+    species_context_scope: Five IPs from four canine tumors; two Lola IPs share a specimen
+    species_context_kind: native
+    species_context_reference: "https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ \u2014 Results, Table\
+      \ 1, Figure 1 and STAR Methods"
+    presenting_species: Canis lupus familiaris
+    in_vivo_host_species: Canis lupus familiaris
+    introduced_mhc_species: ''
+    species_context_note: Endogenous dog tumors; donor RNA typing does not establish individual peptide
+      restrictions. Added from offline source review after the v2 corpus coverage snapshot.

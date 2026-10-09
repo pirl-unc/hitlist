@@ -58,6 +58,162 @@
 #   quantification_method - targeted quantification approach, if any
 #                      (hipMHC, SureQuant-IsoMHC, TOMAHAQ, MRM/AQUA, optiPRM, etc.)
 
+# ── Canine tumors and human-host DLA experiments ────────────────────────────
+
+  - pmid: 42199926
+    study_label: Kaabinejadian 2026 — canine tumors and DLA-transduced HCT116
+    title: Presentation of identical tumor antigen peptides by canine and human MHC class I
+    species: ''
+    restriction_evidence_rules:
+    - condition:
+        Cell Name:
+        - HCT116
+        - HCT116 HLA-I KO
+        MHC Restriction:
+        - DLA-88*003:02
+        - DLA-88*012:01
+        - DLA-88*501:01
+        - Calu-88*003:02
+        - Calu-88*012:01
+        - Calu-88*501:01
+      evidence: monoallelic
+    search_engine: PEAKS Studio 11.5
+    fdr: 1% decoy-fusion filtered identifications
+    arm_resolution: resolved
+    arm_resolution_note: Original Data S1-S6 observation worksheets identify eight experimental arms;
+      the curated CSVs carry exact sample labels.
+    note: 'Mixed-source study: human HCT116 HLA-I KO cells expressing canine DLA versus four native
+      canine tumors. No whole-paper source-proteome fill or allele pool. Five tumor IPs retain unassigned
+      peptide restrictions, including two IPs from the same Lola tumor. Reported RNA typing remains
+      contextual in the source profile/rows, including the DLA-88L locus qualification in Bogey. Human-TAA
+      comparisons do not establish canine CTA membership.'
+    ms_samples:
+    - sample_label: HCT116 DLA-88*003:02
+      species: Homo sapiens
+      profiled: true
+      source: mmc2.xlsx / DLA-88-00302; colorectal carcinoma cell line
+      condition_id: hct116_dla_88_003_02
+      condition: HLA class I knockout and DLA transduction
+      condition_status: partial
+      condition_evidence: primary_source
+      condition_reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ — Results, Table 1, STAR
+        Methods, Data S1-S6
+      condition_material: cultured;frozen
+      mhc_class: I
+      mhc: DLA-88*003:02
+      ip_antibody: BB7.6
+      mhc_basis: selected_restriction
+      condition_knockout_genes: HLA-A;HLA-B;HLA-C
+      condition_transduction: DLA-88
+      condition_mhc_context: mhc_transfectant;monoallelic
+    - sample_label: HCT116 DLA-88*012:01
+      species: Homo sapiens
+      profiled: true
+      source: mmc2.xlsx / DLA-88-01201; colorectal carcinoma cell line
+      condition_id: hct116_dla_88_012_01
+      condition: HLA class I knockout and DLA transduction
+      condition_status: partial
+      condition_evidence: primary_source
+      condition_reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ — Results, Table 1, STAR
+        Methods, Data S1-S6
+      condition_material: cultured;frozen
+      mhc_class: I
+      mhc: DLA-88*012:01
+      ip_antibody: BB7.6
+      mhc_basis: selected_restriction
+      condition_knockout_genes: HLA-A;HLA-B;HLA-C
+      condition_transduction: DLA-88
+      condition_mhc_context: mhc_transfectant;monoallelic
+    - sample_label: HCT116 DLA-88*501:01
+      species: Homo sapiens
+      profiled: true
+      source: mmc2.xlsx / DLA-88-50101; colorectal carcinoma cell line
+      condition_id: hct116_dla_88_501_01
+      condition: HLA class I knockout and DLA transduction; reported construct DLA-88*501:01 (AA21 P
+        > L); numbering convention not resolved
+      condition_status: partial
+      condition_evidence: primary_source
+      condition_reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ — Results, Table 1, STAR
+        Methods, Data S1-S6
+      condition_material: cultured;frozen
+      mhc_class: I
+      mhc: DLA-88*501:01
+      ip_antibody: BB7.6
+      mhc_basis: selected_restriction
+      condition_knockout_genes: HLA-A;HLA-B;HLA-C
+      condition_transduction: DLA-88
+      condition_mhc_context: mhc_transfectant;monoallelic
+    - sample_label: Lola H58A
+      species: Canis lupus familiaris
+      profiled: true
+      source: mmc3.xlsx / All Peptides; osteosarcoma
+      condition_id: lola_h58a
+      condition: Primary canine tumor immunoprecipitation
+      condition_status: partial
+      condition_evidence: primary_source
+      condition_reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ — Results, Table 1, STAR
+        Methods, Data S1-S6
+      condition_material: direct_ex_vivo;frozen
+      mhc_class: I
+      mhc: unknown
+      ip_antibody: H58A
+    - sample_label: Lola BB7.6
+      species: Canis lupus familiaris
+      profiled: true
+      source: mmc4.xlsx / All Peptides; osteosarcoma
+      condition_id: lola_bb7_6
+      condition: Primary canine tumor immunoprecipitation
+      condition_status: partial
+      condition_evidence: primary_source
+      condition_reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ — Results, Table 1, STAR
+        Methods, Data S1-S6
+      condition_material: direct_ex_vivo;frozen
+      mhc_class: I
+      mhc: unknown
+      ip_antibody: BB7.6
+    - sample_label: 163828A BB7.6
+      species: Canis lupus familiaris
+      profiled: true
+      source: mmc5.xlsx / All Peptides; anal sac carcinoma
+      condition_id: 163828a_bb7_6
+      condition: Primary canine tumor immunoprecipitation
+      condition_status: partial
+      condition_evidence: primary_source
+      condition_reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ — Results, Table 1, STAR
+        Methods, Data S1-S6
+      condition_material: direct_ex_vivo;frozen
+      mhc_class: I
+      mhc: unknown
+      ip_antibody: BB7.6
+    - sample_label: Lily H58A
+      species: Canis lupus familiaris
+      profiled: true
+      source: mmc6.xlsx / All Peptides; anal sac carcinoma
+      condition_id: lily_h58a
+      condition: Primary canine tumor immunoprecipitation
+      condition_status: partial
+      condition_evidence: primary_source
+      condition_reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ — Results, Table 1, STAR
+        Methods, Data S1-S6
+      condition_material: direct_ex_vivo;frozen
+      mhc_class: I
+      mhc: unknown
+      ip_antibody: H58A
+    - sample_label: Bogey BB7.6
+      species: Canis lupus familiaris
+      profiled: true
+      source: mmc7.xlsx / All Peptides; oral melanoma
+      condition_id: bogey_bb7_6
+      condition: Primary canine tumor immunoprecipitation
+      condition_status: partial
+      condition_evidence: primary_source
+      condition_reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ — Results, Table 1, STAR
+        Methods, Data S1-S6
+      condition_material: direct_ex_vivo;frozen
+      mhc_class: I
+      mhc: unknown
+      ip_antibody: BB7.6
+
 # ── Gold-standard healthy tissue ────────────────────────────────────────────
 
   - pmid: 33858848

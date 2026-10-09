@@ -1180,7 +1180,11 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
+curation = [
+    { name = "openpyxl" },
+]
 dev = [
+    { name = "openpyxl" },
     { name = "pytest", version = "8.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "pytest", version = "9.1.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "pytest-cov" },
@@ -1195,6 +1199,8 @@ requires-dist = [
     { name = "mhcgnomes", specifier = ">=3.64.4" },
     { name = "numpy", specifier = ">=1.22" },
     { name = "oncoref", specifier = ">=1.8.207" },
+    { name = "openpyxl", marker = "extra == 'curation'", specifier = ">=3.1.5" },
+    { name = "openpyxl", marker = "extra == 'dev'", specifier = ">=3.1.5" },
     { name = "pandas" },
     { name = "pyarrow" },
     { name = "pyensembl" },
@@ -1205,7 +1211,7 @@ requires-dist = [
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.16,<0.17" },
     { name = "tqdm" },
 ]
-provides-extras = ["cta", "alleles", "dev"]
+provides-extras = ["cta", "alleles", "curation", "dev"]
 
 [[package]]
 name = "idna"

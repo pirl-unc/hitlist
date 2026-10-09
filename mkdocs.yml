@@ -14,6 +14,7 @@ nav:
   - Bulk MS Detectability Datasets: detectability.md
   - Versioned UniProt References: uniprot-references.md
   - CTA Expression Evidence and Tissue Blacklists: cta-evidence.md
+  - Offline Canine Ligand Curation: canine-ligands.md
 
 theme:
   name: readthedocs

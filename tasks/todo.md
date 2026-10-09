@@ -1,3 +1,44 @@
+# Canine ligand curation and evidence bundles
+
+Implementation specifications: [offline curation](canine-curation-spec.md) and
+[species-scoped evidence design](canine-evidence-design.md).
+
+- [x] Independently review the original paper, six checked workbooks and existing patch.
+- [x] Write the offline API, sample/species, donor/IP and source-provenance contract.
+- [x] Prepare an isolated worktree and lockfile-based environment.
+- [x] Verify historical 1.68.1 is published before beginning canine implementation.
+- [x] Add failing offline/source/species/lineage regression fixtures.
+- [x] Implement reviewed local scanner inputs and deterministic workbook curation.
+- [x] Curate exact experimental arms, species mechanisms and donor/specimen links.
+- [x] Validate all 16,359 real observations and complete contributor coverage.
+- [ ] Version, format, lint, focused tests and full final-head CI.
+- [ ] Merge and deploy #660; verify published artifact bytes.
+- [ ] Finalize and implement #661 against the frozen #660 observation boundary.
+
+## Review
+
+The historical-reference PR #662 merged at
+`1b0efc92aaa82a96a5f42bcfe83b6695173dbc20` after all PR checks passed.
+Clean-main release run 37849519239 passed format/lint, 2,787 unit tests (one
+skip) and 96 integration tests. Downloaded PyPI wheel/sdist bytes match the
+tested artifacts. Historical 1.68.1 was published before canine implementation.
+
+Eight offline API regressions failed before implementation. The broader canine,
+curation, conditions, provenance and lineage suite passes 420 tests; the final
+39 focused cases pass on pandas 2 and 3. Format/lint pass. Local `test.sh`
+refused at 2.11 GiB available against the unchanged 2.5 GiB minimum; full
+final-head CI remains required. The package version is 1.69.0.
+
+The real offline replay retained 16,359 observations and contributors: 3,580
+human-host monoallelic DLA rows and 12,779 unassigned canine rows, 12,181 distinct
+canine strings and four resolved dog donors. The two Lola IPs retain one donor,
+one tumor specimen and two experiment origins. Combined source scan and scoped
+observation enrichment took 5.3 seconds with 567,951,360-byte peak RSS on this
+machine. This is not a full corpus rebuild or raw-spectrum reanalysis.
+The reviewed mixed-source study has no whole-paper source-proteome fill or
+allele pool. The documented HCT116/DLA chimeras were added to the existing
+species-mismatch regression's explicit, staleness-checked exceptions.
+
 # Historical references and canine generalization
 
 See [the specification](historical-and-canine-spec.md).
@@ -5,10 +46,10 @@ See [the specification](historical-and-canine-spec.md).
 - [x] Inspect #658/#660/#661, current main and existing work; create isolated branch.
 - [x] Add real historical taxonomy regression and fix annotated OX parsing.
 - [x] Stream and validate full 2015_10 extraction; independently audit sequences and coverage.
-- [ ] Publish historical asset, add catalog entry and verify managed fetch/reuse.
-- [ ] Version, format, lint, full tests and final-head CI; merge and deploy to PyPI.
+- [x] Publish historical asset, add catalog entry and verify managed fetch/reuse.
+- [x] Version, format, lint, full tests and final-head CI; merge and deploy to PyPI.
 - [x] Locate/review canine patch and primary sources.
-- [ ] Specify #660 implementation after historical release.
+- [x] Specify #660 implementation after historical release.
 - [ ] Ship offline supplementary inputs and canine ligand curation (#660).
 - [ ] Specify and implement explicit species/reference/policy evidence bundles (#661).
 - [ ] Verify canine releases, document results and review follow-up dependencies.

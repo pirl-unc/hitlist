@@ -29,7 +29,7 @@ def test_review_manifest_records_coverage_and_explicit_queue():
     payload = load_species_contexts()
     inventory = payload["inventory"]
     assert inventory["corpus"] == "ci-corpus-v2"
-    assert inventory["n_reviewed_pmids"] == 21
+    assert inventory["n_reviewed_pmids"] == 22
     assert inventory["n_reviewed_flagged_rows"] == 95442
     assert inventory["n_flagged_rows"] == 96838
     assert inventory["reviewed_flagged_fraction"] == "0.9856"
@@ -40,7 +40,7 @@ def test_review_manifest_records_coverage_and_explicit_queue():
 
 def test_complete_registry_includes_unattached_and_unresolved_reviews():
     contexts = generate_species_contexts_table()
-    assert contexts.pmid.nunique() == 21
+    assert contexts.pmid.nunique() == 22
     # This review is useful before observation attribution exists: the audit
     # table carries it, while an empty condition_ids prevents PMID broadcast.
     equine = contexts[contexts.species_context_id == "mouse_p815_expressing_equine_mhc"].iloc[0]
