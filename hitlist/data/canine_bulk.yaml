@@ -1,0 +1,65 @@
+schema_version: 1
+sources:
+  pfizer_2026_03:
+    adapter: pfizer
+    source_taxon: 9615
+    version: '2026-03-23'
+    study: '10.1038/s41597-026-07512-9'
+    accessions: [MSV000099744, PXD070290]
+    license: unresolved; original assets are acquired explicitly, not redistributed in Hitlist
+    instrument: Orbitrap Fusion Eclipse
+    acquisition_mode: DDA
+    digestion_enzyme: LysC followed by trypsin
+    labeling: TMT11plex
+    reference_role: deposited searched FASTA; UniProt release unstated; no isoforms
+    mapping_background_complete: false
+    confidence_scope: study-level FDR; individual peptide q-values unavailable in the protein table
+    limitations:
+      - ProteinGroup is a reported representative; underlying peptide/protein alternatives are unavailable in this table.
+      - BioReplicate identifies a tissue pool, not a dog. The design uses three males and three females; per-tissue pool membership is unresolved.
+      - Abundance normalization is retained as source-reported; IBAQ and rIBAQ are distinct native fields.
+      - Peptide/PSM exports are unavailable in this flat file. Deposited pdResult/msf databases are separate inputs, not implicit downloads.
+      - No DLA immunoprecipitation or presentation blacklist coverage.
+    assets:
+      table:
+        filename: t04_protein_postbridge_ibaq_pd.txt
+        url: https://massive.ucsd.edu/ProteoSAFe/DownloadResultFile?file=f.MSV000099744/updates/2026-03-23_jfederspiel_6c91304a/other/t04_protein_postbridge_ibaq_pd.txt
+        size_bytes: 48196601
+        sha256: ae2953c3fe3c31bc5fa06a9a0b222815376faea25489e6626af3736b7f4cbef2
+      reference:
+        filename: Dog_UP000002254_9615_noisoform.fasta
+        url: https://massive.ucsd.edu/ProteoSAFe/DownloadResultFile?file=f.MSV000099744/sequence/Dog_UP000002254_9615_noisoform.fasta
+        size_bytes: 14659832
+        sha256: d8488bf283de653efcff2e5de6d413b116e1ba4a2eb89298bd31205e72fef682
+  labrador_2024_01:
+    adapter: peptideatlas
+    source_taxon: 9615
+    version: '2024-01-build-573'
+    study: '10.1038/s41597-026-06647-z'
+    accessions: [PXD052932]
+    license: unresolved; original assets are acquired explicitly, not redistributed in Hitlist
+    instrument: timsTOF Pro / Q Exactive; original sample instrument ID retained
+    acquisition_mode: DDA
+    digestion_enzyme: trypsin
+    labeling: label-free
+    reference_role: deposited PeptideAtlas biosequence/search set UP000805418_2023-09-25_ENS-ROS_Cfam_1.0_dup_CONTAM_targetdecoy; includes contaminants and decoys
+    mapping_background_complete: false
+    confidence_scope: experiment model-based PSM FDR 0.001; peptide best_probability is not a per-PSM q-value
+    library_accessions: [PXD052902, SAL00328, SAL00329, SAL00330]
+    limitations:
+      - Tissue experiments combine a female stillborn and a six-month-old male euthanized for hip dysplasia; per-dog detections are unresolved.
+      - Plasma/urine have separate adult donor scopes. Experiment IDs and n_runs do not identify independent animals.
+      - Protein identification groups retain inferred membership; they do not establish every group's protein independently.
+      - Spectral library membership is distinct from these DDA experiment detections.
+      - No DLA immunoprecipitation or presentation blacklist coverage.
+    assets:
+      table:
+        filename: atlas_build_573.tsv.zip
+        url: https://peptideatlas.org/builds/canine/202401/atlas_build_573.tsv.zip
+        size_bytes: 61131184
+        sha256: 023da7591e93ddf8a45e05ecaf22a1b1a0bb151a1d1c06275876a800284eae17
+      reference:
+        filename: Canis_familiaris.fasta
+        url: https://peptideatlas.org/builds/canine/202401/Canis_familiaris.fasta
+        size_bytes: 100883145
+        sha256: 371ce3f718f18081bda673484c3ec9545bb105b780cca7dd412d1784e2c70966

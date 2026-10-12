@@ -1,5 +1,7 @@
 # Offline canine ligand curation
 
+For non-MHC tissue protein and peptide evidence, see [canine bulk proteomics](canine-bulk.md).
+
 Hitlist curates the original MS observation worksheets from
 [Kaabinejadian et al., PMID 42199926](https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/)
 through an explicit offline API. Supply the six original `mmc2.xlsx` through
