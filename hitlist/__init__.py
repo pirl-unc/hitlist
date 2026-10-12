@@ -56,6 +56,11 @@ from .version import __version__  # after the pandas flag, like every submodule
 # are only imported on first attribute access. Listed in ``__all__`` so the API
 # is discoverable via ``dir(hitlist)`` / autocomplete and stable across refactors.
 _PUBLIC_API: dict[str, str] = {
+    "curate_canine_bulk": ".canine_bulk",
+    "canine_bulk_catalog": ".canine_bulk",
+    "fetch_canine_bulk_asset": ".canine_bulk",
+    "load_bulk_evidence": ".canine_bulk",
+    "verify_bulk_evidence": ".canine_bulk",
     "curate_canine_ligands": ".canine_ligands",
     "fetch_uniprot_reference": ".uniprot",
     "uniprot_path": ".uniprot",

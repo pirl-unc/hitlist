@@ -1,3 +1,49 @@
+# Canine bulk-MS source curation — #666
+
+Contract: [canine-bulk-spec.md](canine-bulk-spec.md). Isolated checkout; release
+after #667. Bulk protein/peptide evidence never becomes DLA presentation.
+
+- [x] Review original studies, deposit inventories and checked source layouts.
+- [x] Specify source scope, bounded storage, native measurements and identities.
+- [x] Add failing offline source/ambiguity/resource regression fixtures.
+- [x] Implement shared managed-asset checks, catalog, import and bounded reads.
+- [x] Replay real source data and audit missing presentation coverage.
+- [ ] Document APIs and limitations; format, lint, full tests and final-head CI.
+- [ ] Merge after #667, deploy from clean main and verify PyPI bytes.
+
+## Review
+
+Pfizer flat-file evidence is protein-level only; Labrador
+archive tissue observations are experiment aggregates with unresolved per-dog
+attribution. Neither source supplies naturally presented nonmalignant DLA ligands.
+Four initial API tests failed before implementation. Four additional failures
+proved nonfinite/overflow handling and semantic view verification before fixing
+those edges. The 52 canine-source/shared-reference tests pass on pandas 2 and
+the full pandas 3 unit suite passes 2,893 tests (one skip). Format and lint pass.
+The source database retains controls, all reported protein alternatives, source
+cells and native quantities. Scoped literature inspection did not establish a
+two-dog nonmalignant heart/brain/lung DLA panel; coverage remains missing.
+
+Filed #668 for the Pfizer vendor peptide extraction still required by #666.
+The public flat table has no peptide evidence. Its 86 GB pdResult input exceeds
+this machine's currently available scratch space, and the inspected endpoint
+did not honor Range. No pool expansion or peptide inference substitutes for
+that unresolved data dependency; this PR must not close #666.
+
+Final Pfizer replay retains 313,263 protein records and 38 pool identities.
+Import, verification and a heart query took 14.679 seconds with 190,889,984-byte
+process peak RSS; output occupied 75,664,448 bytes. This is a scoped measurement,
+not a full-corpus resource claim. All 8,579 heart rows belong to one pool and
+none qualify as positive presentation evidence.
+
+Final Labrador replay preserves 528,272 experiment peptide records, 1,009,420
+protein mappings, 775,003 modified-peptide records, 18 samples and the complete
+131,774-entry deposited reference. Import, verification and heart query took
+94.782 seconds with 287,883,264-byte process peak RSS; output occupied 572,242,014
+bytes. Heart retains 48,007 records: 47,693 target detections, 278 contaminant-only
+and 36 decoy-only records. All remain one unresolved aggregate experiment and
+none qualify as presentation evidence. Release/integration CI remains required.
+
 # Positive MS outcomes, then canine normal-tissue curation
 
 Plan: [positive-ms-outcomes-spec.md](positive-ms-outcomes-spec.md). Core canine
@@ -9,8 +55,8 @@ the older unchecked release items below are historical records.
 - [x] Reproduce unknown-result admission with regression tests.
 - [x] Implement shared outcome classification and versioned portable replay.
 - [x] Audit live/projected/scanner/tissue paths and stored outcome vocabulary.
-- [ ] Pass format, lint, full tests and final-head CI; review the complete diff.
-- [ ] Merge, deploy from clean main, and verify published artifact bytes.
+- [x] Pass format, lint, full tests and final-head CI; review the complete diff.
+- [x] Merge, deploy from clean main, and verify published artifact bytes.
 - [ ] Implement and ship the next canine data dependency (#666) in separate PRs.
 
 ## Review
@@ -40,6 +86,11 @@ is unchanged in that snapshot (4,418,452 and 110,621 respectively). This is an
 outcome-only comparison, not an assertion that those old partitions are correct.
 Normal source paths were reviewed: the human Atlas has an explicit observed-hit
 contract; the species normal gate already excludes unestablished outcomes.
+
+Shipped in #667 at c5766c84cc60ea45000494b97354743a245143c2 as 1.70.1.
+Clean-main release run 38196796458 passed format/lint, 2,867 unit tests (one
+skip) and 96 integration tests. Downloaded public PyPI wheel and sdist bytes
+match the verified clean-main artifact manifest.
 
 # Species-scoped evidence implementation — #661
 

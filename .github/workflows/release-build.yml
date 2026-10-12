@@ -28,6 +28,10 @@ on:
       - tests/test_detectability.py
       - tests/test_proteome.py
       - hitlist/assays.py
+      - hitlist/canine_bulk.py
+      - hitlist/managed_assets.py
+      - hitlist/data/canine_bulk.yaml
+      - tests/test_canine_bulk.py
       - hitlist/observations.py
       - hitlist/mappings.py
       - tests/test_assays.py

@@ -9,7 +9,6 @@ from __future__ import annotations
 import copy
 import os
 import re
-import stat
 import tempfile
 from pathlib import Path
 
@@ -102,15 +101,9 @@ def _path(reference):
 
 
 def _check_path(path):
-    # A configured data directory may itself be a link. Within our managed
-    # subtree, links could escape the budget or redirect deletion/publication.
-    root = uniprot_cache_dir()
-    for relative in reversed(path.relative_to(root).parents):
-        candidate = root / relative
-        if candidate.is_symlink():
-            raise ValueError(f"Symlinks are not supported in the UniProt cache: {candidate}")
-    if root.is_symlink() or path.is_symlink():
-        raise ValueError(f"Symlinks are not supported in the UniProt cache: {path}")
+    from .managed_assets import check_cache_path
+
+    check_cache_path(uniprot_cache_dir(), path)
 
 
 def uniprot_info(release=None, *, collection=DEFAULT_COLLECTION, verify=False) -> dict:
@@ -169,27 +162,9 @@ def uniprot_path(release=None, *, collection=DEFAULT_COLLECTION) -> Path:
 
 
 def _cache_bytes():
-    """Count all regular bytes, including hidden partials and unrelated files.
+    from .managed_assets import cache_bytes
 
-    Refuse unknown file types and traversal errors rather than undercounting.
-    This is a logical byte budget, not a filesystem block/quota measurement.
-    """
-    root = uniprot_cache_dir()
-    _check_path(root)
-    total = 0
-
-    def fail(error):
-        raise error
-
-    for directory, dirs, files in os.walk(root, onerror=fail):
-        for name in dirs + files:
-            path = Path(directory) / name
-            info = path.lstat()
-            if stat.S_ISREG(info.st_mode):
-                total += info.st_size
-            elif not stat.S_ISDIR(info.st_mode):
-                raise ValueError(f"Unsupported file type in UniProt cache: {path}")
-    return total
+    return cache_bytes(uniprot_cache_dir())
 
 
 def _write_license(path, statement):

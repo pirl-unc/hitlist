@@ -473,15 +473,22 @@ def load_bulk_proteomics(
     return df.reset_index(drop=True)
 
 
-def load_bulk_sources() -> list[dict]:
+def load_bulk_sources(*, include_canine=False) -> list[dict]:
     """Per-source metadata for the bulk proteomics indices.
 
-    Returns a list of dicts with keys: ``source_id``, ``reference``,
+    By default, returns a list of dicts with keys: ``source_id``, ``reference``,
     ``pmid``, ``study_label``, ``species``, ``title``, ``granularity``,
     ``digestion``, ``digestion_enzyme``, ``instrument``, ``fragmentation``,
     ``acquisition_mode``, ``labeling``, ``fractionation``, ``n_fractions``,
     ``quantification``, ``search_engine``, ``fdr``, ``cell_lines_covered``,
     ``note``.
+
+    With ``include_canine=True``, append the source records from
+    :func:`hitlist.canine_bulk.canine_bulk_catalog`. These use that catalog's
+    versioned schema (``source_taxon``, ``study``, ``assets``, ``limitations``)
+    rather than the legacy cell-line index schema. Missing protocol details
+    and cell-line fields are not fabricated. Use their ``source_id`` with
+    :func:`hitlist.canine_bulk.curate_canine_bulk` to obtain tissue/pool evidence.
 
     The acquisition fields (``instrument``, ``fragmentation``,
     ``acquisition_mode``, ``labeling``, ``search_engine``, ``fdr``) use
@@ -494,7 +501,26 @@ def load_bulk_sources() -> list[dict]:
     could have been observed), and the instrument/fractionation determine
     dynamic range and sensitivity limits.
     """
-    return [dict(s) for s in _load_sources_yaml()]
+    sources = [dict(s) for s in _load_sources_yaml()]
+    if include_canine:
+        from .canine_bulk import canine_bulk_catalog
+
+        sources.extend(
+            {"source_id": key, **value} for key, value in canine_bulk_catalog()["sources"].items()
+        )
+    return sources
+
+
+def load_bulk_evidence(directory, *, table="peptides", tissue=None, peptide=None, max_rows=250000):
+    """Read a checked source bundle with tissue/pool scope and source-native units.
+
+    See :func:`hitlist.canine_bulk.curate_canine_bulk`. Existing cell-line loaders
+    retain their original defaults; this explicit source query never loads a
+    human dataset or interprets bulk peptides as MHC ligands.
+    """
+    from .canine_bulk import load_bulk_evidence as read
+
+    return read(directory, table=table, tissue=tissue, peptide=peptide, max_rows=max_rows)
 
 
 def load_bulk_peptides(
