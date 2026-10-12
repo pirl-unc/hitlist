@@ -34,7 +34,9 @@ _NON_MS_LIGAND_METHOD = r"edman|coelution|t cell recognition"
 
 
 def _text(value):
-    return str(value).strip().lower() if isinstance(value, str) else ""
+    if isinstance(value, str):
+        return value.strip().lower()
+    return "" if pd.isna(value) else str(value).strip().lower()
 
 
 def _matches(value, pattern, *, negate=False):

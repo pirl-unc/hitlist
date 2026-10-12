@@ -17,6 +17,7 @@ import pytest
         (None, "", "supplement", True, "curated_ligand_table"),
         ("unknown", "", "supplement", False, "unestablished"),
         ("inconclusive", "", "supplement", False, "unestablished"),
+        (9, "", "supplement", False, "unestablished"),
         ("Negative", "", "supplement", False, "negative"),
         ("", "mass spectrometry", "supplement", False, "unestablished"),
     ],
