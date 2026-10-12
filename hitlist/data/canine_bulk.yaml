@@ -7,7 +7,16 @@ sources:
     study: '10.1038/s41597-026-07512-9'
     accessions: [MSV000099744, PXD070290]
     license: unresolved; original assets are acquired explicitly, not redistributed in Hitlist
-    instrument: Orbitrap Fusion Eclipse
+    instrument: 'unresolved (publication: Orbitrap Fusion Eclipse; deposit: Orbitrap Fusion Lumos)'
+    instrument_status: conflicting_reports
+    instrument_reports:
+      publication:
+        value: Orbitrap Fusion Eclipse
+        url: https://www.nature.com/articles/s41597-026-07512-9
+        note: The acquisition section reports Eclipse, while its real-time-search description also mentions Lumos.
+      deposit:
+        value: Orbitrap Fusion Lumos
+        url: https://proteomecentral.proteomexchange.org/cgi/GetDataset?ID=PXD070290
     acquisition_mode: DDA
     digestion_enzyme: LysC followed by trypsin
     labeling: TMT11plex
@@ -20,6 +29,7 @@ sources:
       - Abundance normalization is retained as source-reported; IBAQ and rIBAQ are distinct native fields.
       - Peptide/PSM exports are unavailable in this flat file. Deposited pdResult/msf databases are separate inputs, not implicit downloads.
       - No DLA immunoprecipitation or presentation blacklist coverage.
+      - Publication and deposit instrument reports conflict; the protein table does not resolve the acquisition model per record.
     assets:
       table:
         filename: t04_protein_postbridge_ibaq_pd.txt

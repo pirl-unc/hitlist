@@ -180,6 +180,26 @@ def test_pfizer_pools_are_not_donors_or_peptide_detections(sources, tmp_path):
     assert len(load_bulk_evidence(target, table="samples")) == 1
 
 
+def test_pfizer_conflicting_instrument_reports_survive_curation(sources, tmp_path):
+    from hitlist.canine_bulk import curate_canine_bulk, load_bulk_evidence, verify_bulk_evidence
+
+    target = tmp_path / "instrument-conflict"
+    curate_canine_bulk("pfizer_2026_03", target, local_assets=sources["pfizer_2026_03"])
+    source = verify_bulk_evidence(target)["source"]
+    assert source["instrument_status"] == "conflicting_reports"
+    reports = source["instrument_reports"]
+    assert reports["publication"]["value"] == "Orbitrap Fusion Eclipse"
+    assert reports["publication"]["url"] == "https://www.nature.com/articles/s41597-026-07512-9"
+    assert reports["deposit"]["value"] == "Orbitrap Fusion Lumos"
+    assert (
+        reports["deposit"]["url"]
+        == "https://proteomecentral.proteomexchange.org/cgi/GetDataset?ID=PXD070290"
+    )
+    assert source["instrument"].startswith("unresolved")
+    assert "Eclipse" in source["instrument"] and "Lumos" in source["instrument"]
+    assert load_bulk_evidence(target, table="proteins").instrument.eq(source["instrument"]).all()
+
+
 def test_checked_inputs_atomic_output_and_bounded_query(sources, tmp_path):
     from hitlist.canine_bulk import curate_canine_bulk, load_bulk_evidence
 
