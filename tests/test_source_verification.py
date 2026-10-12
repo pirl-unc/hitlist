@@ -41,7 +41,7 @@ def _write_observations(tmp_path, monkeypatch, rows):
         "assay_comments": "",
     }
     pd.DataFrame([{**defaults, **row} for row in rows]).assign(
-        assay_method="mass spectrometry"
+        assay_method="mass spectrometry", qualitative_measurement="Positive"
     ).to_parquet(path, index=False)
     monkeypatch.setattr(observations, "observations_path", lambda: path)
     return path

@@ -159,6 +159,7 @@ def test_scanner_preserves_locus_evidence(tmp_path, monkeypatch, classify_source
     row[0], row[2], row[5] = "http://iedb.org/assay/locus", "99900003", "PEPTIDE"
     row[19], row[20], row[21] = "HLA-DRB1", "II", TYPING
     row[22] = "mass spectrometry"
+    row[14] = "Positive"
     _write_tiny_iedb_csv(path, [row])
     if attributed:
         monkeypatch.setattr(curation, "peptide_attribution_applies_to_row", lambda *_: True)

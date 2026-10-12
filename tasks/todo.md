@@ -24,6 +24,12 @@ positive outcome explicitly. Format and lint pass. Local full test.sh correctly
 refused at 0.66 GiB available against the unchanged 2.5 GiB guard, so complete
 validation and release gates move to CI. No memory guard was bypassed.
 
+First full CI found 45 attribution/build fixture failures: four additional
+fixture helpers omitted the outcome. Their positive intent is now explicit;
+all 153 tests in the affected modules pass. The final focused assay/bundle/species/
+report set passes 106 tests. Superseded CI runs were canceled before restarting
+validation on the corrected head; no failed or canceled gate counts as passing.
+
 # Species-scoped evidence implementation — #661
 
 Concrete contract: [species-evidence-contract.md](species-evidence-contract.md).

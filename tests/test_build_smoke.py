@@ -97,6 +97,7 @@ def _write_synthetic_iedb(path) -> None:
         r[20] = "I"
         r[21] = "mass spectrometry"
         r[22] = "ligand presentation"
+        r[_IEDB_FIELD_HEADER.index("Qualitative Measurement")] = "Positive"
         rows.append(r)
     with open(path, "w", newline="") as f:
         w = csv.writer(f)
