@@ -1,3 +1,24 @@
+# Pfizer canine instrument provenance — #670
+
+Contract: [pfizer-instrument-spec.md](pfizer-instrument-spec.md). Preserve the
+publication/deposit conflict explicitly; do not guess the acquisition model.
+
+- [x] Compare primary publication and deposit metadata; file #670.
+- [x] Prove the missing conflict metadata with an offline regression.
+- [x] Preserve both reports in the catalog, manifest and normalized rows.
+- [ ] Document, version, format, lint and run final-head tests/CI.
+- [ ] Merge after 1.71.0, deploy from clean main and verify PyPI bytes.
+
+## Review
+
+The new regression failed with missing `instrument_status` before the data
+correction. The catalog now preserves both cited reports and their conflict;
+the existing importer snapshots that metadata and exposes the unresolved model.
+No view/schema changes or rewriting of previously frozen bundles is involved.
+All 53 canine/reference tests pass on pandas 2 and 3. Format, lint, strict docs
+build and the guarded local full unit suite pass: 2,894 tests, one skip.
+Final-head CI and clean-main release validation remain required.
+
 # Canine bulk-MS source curation — #666
 
 Contract: [canine-bulk-spec.md](canine-bulk-spec.md). Isolated checkout; release

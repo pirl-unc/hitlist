@@ -48,6 +48,16 @@ they are not downloaded implicitly or inferred from protein abundance.
 The outstanding extraction and protein-group reconciliation are tracked in
 [#668](https://github.com/pirl-unc/hitlist/issues/668).
 
+Since 1.71.1, the Pfizer instrument is explicitly unresolved: the
+[publication](https://www.nature.com/articles/s41597-026-07512-9) reports Fusion
+Eclipse acquisition (and mentions Lumos in its real-time-search description),
+while the [deposit record](https://proteomecentral.proteomexchange.org/cgi/GetDataset?ID=PXD070290)
+lists Fusion Lumos. The manifest preserves both cited `instrument_reports` and
+`instrument_status: conflicting_reports`; normalized rows carry the unresolved
+value. Raw/run metadata is needed to settle the conflict. Existing frozen
+bundles keep their original metadata snapshot; curate a new bundle to adopt
+the corrected provenance.
+
 Every directory contains `bulk.sqlite`, the byte-exact `reference.fasta`, and a
 manifest with original asset hashes, source/version/protocol, limitations, table
 counts, resource bounds and artifact hashes. Original table columns and logical
