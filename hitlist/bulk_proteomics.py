@@ -476,12 +476,19 @@ def load_bulk_proteomics(
 def load_bulk_sources(*, include_canine=False) -> list[dict]:
     """Per-source metadata for the bulk proteomics indices.
 
-    Returns a list of dicts with keys: ``source_id``, ``reference``,
+    By default, returns a list of dicts with keys: ``source_id``, ``reference``,
     ``pmid``, ``study_label``, ``species``, ``title``, ``granularity``,
     ``digestion``, ``digestion_enzyme``, ``instrument``, ``fragmentation``,
     ``acquisition_mode``, ``labeling``, ``fractionation``, ``n_fractions``,
     ``quantification``, ``search_engine``, ``fdr``, ``cell_lines_covered``,
     ``note``.
+
+    With ``include_canine=True``, append the source records from
+    :func:`hitlist.canine_bulk.canine_bulk_catalog`. These use that catalog's
+    versioned schema (``source_taxon``, ``study``, ``assets``, ``limitations``)
+    rather than the legacy cell-line index schema. Missing protocol details
+    and cell-line fields are not fabricated. Use their ``source_id`` with
+    :func:`hitlist.canine_bulk.curate_canine_bulk` to obtain tissue/pool evidence.
 
     The acquisition fields (``instrument``, ``fragmentation``,
     ``acquisition_mode``, ``labeling``, ``search_engine``, ``fdr``) use

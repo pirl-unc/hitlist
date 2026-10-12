@@ -55,8 +55,8 @@ the older unchecked release items below are historical records.
 - [x] Reproduce unknown-result admission with regression tests.
 - [x] Implement shared outcome classification and versioned portable replay.
 - [x] Audit live/projected/scanner/tissue paths and stored outcome vocabulary.
-- [ ] Pass format, lint, full tests and final-head CI; review the complete diff.
-- [ ] Merge, deploy from clean main, and verify published artifact bytes.
+- [x] Pass format, lint, full tests and final-head CI; review the complete diff.
+- [x] Merge, deploy from clean main, and verify published artifact bytes.
 - [ ] Implement and ship the next canine data dependency (#666) in separate PRs.
 
 ## Review
@@ -86,6 +86,11 @@ is unchanged in that snapshot (4,418,452 and 110,621 respectively). This is an
 outcome-only comparison, not an assertion that those old partitions are correct.
 Normal source paths were reviewed: the human Atlas has an explicit observed-hit
 contract; the species normal gate already excludes unestablished outcomes.
+
+Shipped in #667 at c5766c84cc60ea45000494b97354743a245143c2 as 1.70.1.
+Clean-main release run 38196796458 passed format/lint, 2,867 unit tests (one
+skip) and 96 integration tests. Downloaded public PyPI wheel and sdist bytes
+match the verified clean-main artifact manifest.
 
 # Species-scoped evidence implementation — #661
 
