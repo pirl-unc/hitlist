@@ -200,6 +200,97 @@ def test_pfizer_conflicting_instrument_reports_survive_curation(sources, tmp_pat
     assert load_bulk_evidence(target, table="proteins").instrument.eq(source["instrument"]).all()
 
 
+def test_sample_annotations_follow_reviewed_catalog(sources, tmp_path):
+    from hitlist.canine_bulk import (
+        canine_bulk_catalog,
+        curate_canine_bulk,
+        load_bulk_evidence,
+        verify_bulk_evidence,
+    )
+
+    source_id = "pfizer_2026_03"
+    rewrite_source(sources, source_id, lambda text: text.replace("Heart", "ReviewedHeart"))
+    source = canine_bulk_catalog()["sources"][source_id]
+    source["tissue_groups"] = {"reviewedheart": "heart"}
+    source["default_sample_context"] = "pool"
+    source["sample_context_by_id"] = {"pool-heart": "reviewed"}
+    source["sample_contexts"] = {
+        "pool": {
+            "donor_id": "",
+            "donor_status": "pooled",
+            "developmental_stage": "unknown",
+            "health_context": "reported normal tissue pools",
+            "tissue_status": "nonmalignant",
+            "is_cell_line": False,
+        }
+    }
+    source["sample_contexts"]["reviewed"] = {
+        **source["sample_contexts"]["pool"],
+        "developmental_stage": "reviewed stage",
+        "health_context": "reviewed health context",
+    }
+    target = tmp_path / "reviewed"
+    curate_canine_bulk(source_id, target, local_assets=sources[source_id])
+    sample = load_bulk_evidence(target, table="samples").iloc[0]
+    assert sample.source_tissue == "ReviewedHeart"
+    assert sample.tissue_group == "heart"
+    assert sample.developmental_stage == "reviewed stage"
+    assert sample.health_context == "reviewed health context"
+    assert not sample.is_cell_line
+    frozen = verify_bulk_evidence(target)["source"]
+    assert frozen["sample_contexts"] == source["sample_contexts"]
+    assert frozen["sample_context_by_id"] == source["sample_context_by_id"]
+
+
+def test_sample_label_does_not_infer_adult_cohort(sources, tmp_path):
+    from hitlist.canine_bulk import curate_canine_bulk, load_bulk_evidence
+
+    source_id = "labrador_2024_01"
+    rewrite_source(
+        sources, source_id, lambda text: text.replace("Heart", "Plasma_neonate"), "sample.tsv"
+    )
+    target = tmp_path / "neonate"
+    curate_canine_bulk(source_id, target, local_assets=sources[source_id])
+    sample = load_bulk_evidence(target, table="samples").set_index("source_sample_id").loc["S1"]
+    assert "stillborn" in sample.developmental_stage
+    assert "hip dysplasia" in sample.health_context
+    assert sample.tissue_group == ""
+
+
+@pytest.mark.parametrize("sample_id", ["10478", "10479", "10480", "10481", "10829"])
+def test_reviewed_adult_sample_ids_select_context(sources, tmp_path, sample_id):
+    from hitlist.canine_bulk import curate_canine_bulk, load_bulk_evidence
+
+    source_id = "labrador_2024_01"
+    for member in ("sample.tsv", "atlas_search_batch.tsv"):
+        rewrite_source(sources, source_id, lambda text: text.replace("S1", sample_id), member)
+    target = tmp_path / "adult"
+    curate_canine_bulk(source_id, target, local_assets=sources[source_id])
+    samples = load_bulk_evidence(target, table="samples").set_index("source_sample_id")
+    assert samples.loc[sample_id].developmental_stage == "adult; 1-8 years"
+    assert "separate from tissue donors" in samples.loc[sample_id].health_context
+    assert "stillborn" in samples.loc["S2"].developmental_stage
+    assert samples.donor_id.eq("").all()
+
+
+def test_sample_curation_catalog_is_complete():
+    from hitlist.canine_bulk import _SAMPLE_COLUMNS, canine_bulk_catalog
+
+    for source in canine_bulk_catalog()["sources"].values():
+        contexts = source["sample_contexts"]
+        assert source["default_sample_context"] in contexts
+        for context in contexts.values():
+            assert set(context) == set(_SAMPLE_COLUMNS[4:])
+            assert type(context["is_cell_line"]) is bool
+            assert all(isinstance(context[name], str) for name in _SAMPLE_COLUMNS[4:-1])
+        for sample_id, context_name in source.get("sample_context_by_id", {}).items():
+            assert isinstance(sample_id, str) and sample_id
+            assert context_name in contexts
+        for tissue, group in source["tissue_groups"].items():
+            assert isinstance(tissue, str) and tissue == tissue.lower()
+            assert isinstance(group, str) and group
+
+
 def test_checked_inputs_atomic_output_and_bounded_query(sources, tmp_path):
     from hitlist.canine_bulk import curate_canine_bulk, load_bulk_evidence
 

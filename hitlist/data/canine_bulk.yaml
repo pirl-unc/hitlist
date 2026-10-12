@@ -23,6 +23,21 @@ sources:
     reference_role: deposited searched FASTA; UniProt release unstated; no isoforms
     mapping_background_complete: false
     confidence_scope: study-level FDR; individual peptide q-values unavailable in the protein table
+    tissue_groups:
+      heart: heart
+      brain: brain
+      lung: lung
+      cerebellum: brain
+      cerebral_cortex: brain
+    default_sample_context: pooled
+    sample_contexts:
+      pooled:
+        donor_id: ''
+        donor_status: pooled
+        developmental_stage: unknown
+        health_context: reported normal tissue pools
+        tissue_status: nonmalignant
+        is_cell_line: false
     limitations:
       - ProteinGroup is a reported representative; underlying peptide/protein alternatives are unavailable in this table.
       - BioReplicate identifies a tissue pool, not a dog. The design uses three males and three females; per-tissue pool membership is unresolved.
@@ -56,6 +71,34 @@ sources:
     mapping_background_complete: false
     confidence_scope: experiment model-based PSM FDR 0.001; peptide best_probability is not a per-PSM q-value
     library_accessions: [PXD052902, SAL00328, SAL00329, SAL00330]
+    tissue_groups:
+      heart: heart
+      brain: brain
+      lung: lung
+      cerebellum: brain
+      cerebral_cortex: brain
+    default_sample_context: tissue
+    sample_context_by_id:
+      '10478': adult_fluids  # Plasma depleted
+      '10479': adult_fluids  # Plasma undepleted
+      '10480': adult_fluids  # Urine depleted
+      '10481': adult_fluids  # Urine undepleted
+      '10829': adult_fluids  # Plasma_depleted_timsTOF
+    sample_contexts:
+      tissue:
+        donor_id: ''
+        donor_status: aggregate_unresolved
+        developmental_stage: female stillborn; male juvenile, 6 months
+        health_context: female stillborn; male euthanized for hip dysplasia
+        tissue_status: nonmalignant
+        is_cell_line: false
+      adult_fluids:
+        donor_id: ''
+        donor_status: aggregate_unresolved
+        developmental_stage: adult; 1-8 years
+        health_context: healthy adult plasma/urine cohort; separate from tissue donors
+        tissue_status: nonmalignant
+        is_cell_line: false
     limitations:
       - Tissue experiments combine a female stillborn and a six-month-old male euthanized for hip dysplasia; per-dog detections are unresolved.
       - Plasma/urine have separate adult donor scopes. Experiment IDs and n_runs do not identify independent animals.

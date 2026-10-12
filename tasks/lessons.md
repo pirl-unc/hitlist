@@ -1,5 +1,12 @@
 # Lessons
 
+## 2026-10-12
+
+- Keep reviewed source biology in curation YAML, including tissue groups and
+  sample age/health scope. Format adapters should apply explicit source IDs and
+  contexts, not infer donor demographics from tissue-label prefixes. Compare
+  all real sample fields before shipping a data-only relocation.
+
 ## 2026-10-07
 
 - Shared-environment maintenance is scoped to the OpenVax stack and its

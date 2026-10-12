@@ -222,16 +222,6 @@ def _validate_links(db):
                 raise ValueError("Reported observation counts must be nonnegative integers")
 
 
-def _tissue_group(name):
-    return {
-        "heart": "heart",
-        "brain": "brain",
-        "lung": "lung",
-        "cerebellum": "brain",
-        "cerebral_cortex": "brain",
-    }.get(name.lower(), "")
-
-
 def _samples(db, source):
     db.execute(
         "CREATE TABLE samples ("
@@ -247,34 +237,16 @@ def _samples(db, source):
     for identity, tissue in rows:
         if not identity or not tissue:
             raise ValueError("Source samples need explicit sample and tissue identities")
-        adult = atlas and (
-            tissue.lower().startswith("plasma") or tissue.lower().startswith("urine")
+        context_name = source.get("sample_context_by_id", {}).get(
+            identity, source["default_sample_context"]
         )
-        developmental = (
-            ("adult; 1-8 years" if adult else "female stillborn; male juvenile, 6 months")
-            if atlas
-            else "unknown"
-        )
-        health = (
-            (
-                "healthy adult plasma/urine cohort; separate from tissue donors"
-                if adult
-                else "female stillborn; male euthanized for hip dysplasia"
-            )
-            if atlas
-            else "reported normal tissue pools"
-        )
+        context = source["sample_contexts"][context_name]
         values = (
             source["source_id"] + ":" + identity,
             identity,
             tissue,
-            _tissue_group(tissue),
-            "",
-            "aggregate_unresolved" if atlas else "pooled",
-            developmental,
-            health,
-            "nonmalignant",
-            "0",
+            source["tissue_groups"].get(tissue.lower(), ""),
+            *(context[name] for name in _SAMPLE_COLUMNS[4:]),
         )
         db.execute("INSERT INTO samples VALUES (" + ",".join("?" for _ in values) + ")", values)
 
