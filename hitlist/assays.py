@@ -17,7 +17,10 @@ ANNOTATION_COLUMNS = (
     "assay_modality_source",
     "is_binding_assay",
     "is_ms_observation",
+    "ms_outcome_status",
 )
+MS_POLICY_VERSION = 3
+_POSITIVE_OUTCOME = r"^positive(?:-high|-intermediate|-low)?$"
 _MS_METHOD = r"mass[ -]+spectrometry"
 _LIGAND_RESPONSE = r"^(?:ligand presentation|mhc ligand elution|elution)?$"
 _STRUCTURE = r"3d structure|crystallograph|electron microscopy|nuclear magnetic resonance"
@@ -31,7 +34,9 @@ _NON_MS_LIGAND_METHOD = r"edman|coelution|t cell recognition"
 
 
 def _text(value):
-    return str(value).strip().lower() if isinstance(value, str) else ""
+    if isinstance(value, str):
+        return value.strip().lower()
+    return "" if pd.isna(value) else str(value).strip().lower()
 
 
 def _matches(value, pattern, *, negate=False):
@@ -96,11 +101,20 @@ def assay_annotations(
         _text, (qualitative_measurement, assay_comments, assay_method, response_measured, source)
     )
     modality, basis = _classify(outcome, comments, method, response, source)
+    status = "unestablished"
+    if outcome.startswith("negative"):
+        status = "negative"
+    elif _matches(outcome, _POSITIVE_OUTCOME):
+        status = "positive_result"
+    elif not outcome and basis == "curated_ms_supplement":
+        status = "curated_ligand_table"
     return {
         "assay_modality": modality,
         "assay_modality_source": basis,
         "is_binding_assay": modality == "binding",
-        "is_ms_observation": modality == "ms" and not outcome.startswith("negative"),
+        "is_ms_observation": modality == "ms"
+        and status in ("positive_result", "curated_ligand_table"),
+        "ms_outcome_status": status,
     }
 
 
@@ -111,17 +125,19 @@ def annotate_assays(frame):
         for column in ASSAY_COLUMNS
     ]
     # Cache the small modality vocabulary, never an unbounded corpus of comments.
-    modalities, bases, binding, ms = [], [], [], []
+    modalities, bases, binding, ms, outcomes = [], [], [], [], []
     for row in zip(*values):
         record = assay_annotations(*row)
         modalities.append(record["assay_modality"])
         bases.append(record["assay_modality_source"])
         binding.append(record["is_binding_assay"])
         ms.append(record["is_ms_observation"])
+        outcomes.append(record["ms_outcome_status"])
     frame["assay_modality"] = pd.Categorical(modalities)
     frame["assay_modality_source"] = pd.Categorical(bases)
     frame["is_binding_assay"] = pd.Series(binding, index=frame.index, dtype=bool)
     frame["is_ms_observation"] = pd.Series(ms, index=frame.index, dtype=bool)
+    frame["ms_outcome_status"] = pd.Series(outcomes, index=frame.index, dtype=str)
     return frame
 
 
@@ -129,6 +145,17 @@ def positive_ms_mask(frame):
     """Recompute admission from source evidence, including on legacy exports."""
     inputs = frame.reindex(columns=ASSAY_COLUMNS)
     return annotate_assays(inputs)["is_ms_observation"]
+
+
+def ms_exclusion_reasons(frame):
+    """Explain admission failures using freshly computed annotations."""
+    reasons = pd.Series("not_positive_ms", index=frame.index)
+    reasons.loc[frame.is_ms_observation] = ""
+    for status in ("negative", "unestablished"):
+        reasons.loc[frame.assay_modality.eq("ms") & frame.ms_outcome_status.eq(status)] = (
+            f"{status}_ms_outcome"
+        )
+    return reasons
 
 
 def assay_expression(columns, kind):
@@ -147,10 +174,15 @@ def assay_expression(columns, kind):
         if kind == "binding" and "is_binding_assay" in columns
         else ds.scalar(False)
     )
-    for condition, modality, _ in reversed(rules):
-        accepted = pc.if_else(condition, ds.scalar(modality == kind), accepted)
-    if kind == "ms":
-        accepted = accepted & _matches(field("qualitative_measurement"), r"^negative", negate=True)
+    outcome = field("qualitative_measurement")
+    for condition, modality, basis in reversed(rules):
+        qualifies = ds.scalar(modality == kind)
+        if kind == "ms":
+            qualifies = qualifies & (
+                _matches(outcome, _POSITIVE_OUTCOME)
+                | (_matches(outcome, r"^$") & ds.scalar(basis == "curated_ms_supplement"))
+            )
+        accepted = pc.if_else(condition, qualifies, accepted)
     return accepted
 
 

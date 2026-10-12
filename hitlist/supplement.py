@@ -308,6 +308,7 @@ def scan_supplementary(
                 "is_ms_observation": True,
                 "assay_modality": "ms",
                 "assay_modality_source": "curated_ms_supplement",
+                "ms_outcome_status": "curated_ligand_table",
                 "is_non_peptide_ligand": [
                     is_non_peptide_ligand(a) for a in df["mhc_restriction"].to_numpy()
                 ],

@@ -1,3 +1,46 @@
+# Positive MS outcomes, then canine normal-tissue curation
+
+Plan: [positive-ms-outcomes-spec.md](positive-ms-outcomes-spec.md). Core canine
+curation and species bundles shipped through #663/#664 as 1.69.0/1.70.0;
+the older unchecked release items below are historical records.
+
+- [x] Confirm merged canine releases and inspect Hitlist/downstream open issues.
+- [x] Specify #665 admission, old-bundle replay and follow-on scope before code.
+- [x] Reproduce unknown-result admission with regression tests.
+- [x] Implement shared outcome classification and versioned portable replay.
+- [x] Audit live/projected/scanner/tissue paths and stored outcome vocabulary.
+- [ ] Pass format, lint, full tests and final-head CI; review the complete diff.
+- [ ] Merge, deploy from clean main, and verify published artifact bytes.
+- [ ] Implement and ship the next canine data dependency (#666) in separate PRs.
+
+## Review
+
+Fifteen initial regressions failed before implementation; 97 focused assay,
+species and human-bundle cases then passed. The new shared outcome field keeps
+MS modality separate from detection and new human bundles capture policy 3;
+versions 1 and 2 replay their historical admissions. Existing species schema-1
+regressions pass unchanged. Small existing positive-MS fixtures now declare their
+positive outcome explicitly. Format and lint pass. Local full test.sh correctly
+refused at 0.66 GiB available against the unchanged 2.5 GiB guard, so complete
+validation and release gates move to CI. No memory guard was bypassed.
+
+First full CI found 45 attribution/build fixture failures: four additional
+fixture helpers omitted the outcome. Their positive intent is now explicit;
+all 153 tests in the affected modules pass. The final focused assay/bundle/species/
+report set passes 106 tests. Superseded CI runs were canceled before restarting
+validation on the corrected head; no failed or canceled gate counts as passing.
+
+Final review found a scalar-only edge case: numeric outcomes were normalized to
+blank and could qualify as curated supplement results. Its regression failed
+before correction; scalar normalization now retains nonmissing numeric values,
+matching pandas and Arrow. All 99 focused assay/human/species bundle tests pass.
+A bounded read-only audit checked every row of the stored observation (4,440,428)
+and binding (892,827) artifacts: policy-2 versus policy-3 positive-MS admission
+is unchanged in that snapshot (4,418,452 and 110,621 respectively). This is an
+outcome-only comparison, not an assertion that those old partitions are correct.
+Normal source paths were reviewed: the human Atlas has an explicit observed-hit
+contract; the species normal gate already excludes unestablished outcomes.
+
 # Species-scoped evidence implementation — #661
 
 Concrete contract: [species-evidence-contract.md](species-evidence-contract.md).

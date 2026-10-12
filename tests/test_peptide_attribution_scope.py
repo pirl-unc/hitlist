@@ -34,7 +34,8 @@ def _stale_rows():
 def _write_rows(tmp_path, monkeypatch, rows, *, loader=load_observations):
     path = tmp_path / "index.parquet"
     pd.DataFrame(rows).assign(
-        assay_method="binding assay" if loader is load_binding else "mass spectrometry"
+        assay_method="binding assay" if loader is load_binding else "mass spectrometry",
+        qualitative_measurement="Positive",
     ).to_parquet(path, index=False)
     monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
     monkeypatch.setattr("hitlist.observations.binding_path", lambda: path)

@@ -191,7 +191,8 @@ curated observed-MS-supplement contract. A structured MS method with a blank,
 unknown or inconclusive result alone does not establish detection. Explicit
 unknowns remain excluded even in a supplement. The outcome status is preserved
 alongside modality; this stricter species gate does not change human replay.
-See [the shared-contract follow-up #665](https://github.com/pirl-unc/hitlist/issues/665).
+Hitlist 1.70.1 applies this outcome rule to new shared-path exports too; historical
+human bundles retain their saved policy ([#665](https://github.com/pirl-unc/hitlist/issues/665)).
 Fluorescence,
 structural and other non-MS assays remain excluded evidence. Native presentation
 requires both source and presenting taxon to match the reference. Heterologous

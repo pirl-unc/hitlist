@@ -30,6 +30,7 @@ def _row(assay, sample="original sample"):
     row[5], row[8], row[10] = "SLYNTVATL", "Homo sapiens", "Cellular MHC ligand presentation"
     row[17], row[19], row[20] = sample, "HLA-A*02:01", "I"
     row[22] = "mass spectrometry"
+    row[14] = "Positive"
     return row
 
 

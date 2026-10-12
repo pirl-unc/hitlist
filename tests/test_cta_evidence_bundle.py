@@ -355,7 +355,7 @@ def test_ms_policy_version_is_explicit_and_legacy_bundles_remain_verifiable(
     )
     path = target / "manifest.json"
     manifest = json.loads(path.read_text())
-    assert manifest.pop("ms_policy_version") == 2
+    assert manifest.pop("ms_policy_version") == 3
     path.write_text(json.dumps(manifest))
     verify_evidence_bundle(target)
     manifest["ms_policy_version"] = 999
@@ -375,7 +375,7 @@ def test_built_structural_evidence_is_exported_with_contributors(
         target, expression, atlas_dir=atlas_dir, id_column="gene", tpm_column="tpm"
     )
     manifest = verify_evidence_bundle(target)
-    assert manifest["ms_policy_version"] == 2
+    assert manifest["ms_policy_version"] == 3
     assert len(pd.read_parquet(target / "presentation.parquet")) == 2
     excluded = pd.read_parquet(target / "excluded_observations.parquet")
     assert excluded.assay_modality.tolist() == ["structural"]
@@ -383,3 +383,57 @@ def test_built_structural_evidence_is_exported_with_contributors(
     assert excluded.assay_iri.tolist() == ["http://iedb.org/assay/3"]
     assert len(pd.read_parquet(target / "contributors.parquet")) == 4
     assert pd.read_parquet(target / "peptides.parquet").iloc[0].n_ms_observations == 2
+
+
+@pytest.mark.parametrize("policy_version", [1, 2, 3])
+def test_unknown_outcome_new_admission_and_saved_policy_replay(
+    mapped_index, reference, atlas_dir, tmp_path, monkeypatch, policy_version
+):
+    from hitlist import evidence_bundle, export
+    from hitlist.assays import ANNOTATION_COLUMNS
+
+    original = export.generate_training_table
+
+    def unknown(**kwargs):
+        frame = original(**kwargs)
+        frame["qualitative_measurement"] = "unknown"
+        return frame
+
+    monkeypatch.setattr(export, "generate_training_table", unknown)
+    expression = tmp_path / "expression.tsv"
+    expression.write_text("gene\tTPM\nPRAME\t10\n")
+    target = tmp_path / "evidence"
+    # Simulate an export with the historical admission contract. Then remove
+    # new annotations, so replay cannot depend on a current derived flag.
+    with monkeypatch.context() as saved:
+        saved.setattr(evidence_bundle, "MS_POLICY_VERSION", policy_version)
+        if policy_version < 3:
+            saved.setattr(evidence_bundle, "_positive_ms", evidence_bundle._modality_positive_ms)
+        write_cta_evidence_bundle(target, expression, atlas_dir=atlas_dir)
+    presentation = pd.read_parquet(target / "presentation.parquet")
+    excluded = pd.read_parquet(target / "excluded_observations.parquet")
+    assert len(presentation) == (2 if policy_version < 3 else 0)
+    assert len(excluded) == (0 if policy_version < 3 else 2)
+    assert len(pd.read_parquet(target / "contributors.parquet")) == 3
+    if policy_version < 3:
+        presentation.drop(columns=list(ANNOTATION_COLUMNS)).to_parquet(
+            target / "presentation.parquet", index=False
+        )
+        rehash(target, "presentation.parquet")
+    else:
+        assert excluded.ms_outcome_status.tolist() == ["unestablished"] * 2
+        assert excluded.exclusion_reason.tolist() == ["unestablished_ms_outcome"] * 2
+    assert verify_evidence_bundle(target)["ms_policy_version"] == policy_version
+    if policy_version < 3:
+        path = target / "manifest.json"
+        manifest = json.loads(path.read_text())
+        manifest["ms_policy_version"] = 3
+        path.write_text(json.dumps(manifest))
+        with pytest.raises(ValueError, match="Non-MS evidence"):
+            verify_evidence_bundle(target)
+    else:
+        excluded["exclusion_reason"] = "invented"
+        excluded.to_parquet(target / "excluded_observations.parquet", index=False)
+        rehash(target, "excluded_observations.parquet")
+        with pytest.raises(ValueError, match="MS exclusion reasons"):
+            verify_evidence_bundle(target)

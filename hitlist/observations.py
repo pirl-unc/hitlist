@@ -539,7 +539,13 @@ def load_all_evidence(
 # (otherwise pyarrow rejects the pushdown with "No match for FieldRef").
 _DERIVED_COLUMN_DEPS: dict[str, tuple[str, ...]] = {
     **dict.fromkeys(
-        ("assay_modality", "assay_modality_source", "is_ms_observation", "is_binding_assay"),
+        (
+            "assay_modality",
+            "assay_modality_source",
+            "is_ms_observation",
+            "is_binding_assay",
+            "ms_outcome_status",
+        ),
         (
             "assay_method",
             "response_measured",
@@ -899,7 +905,8 @@ def _load_peptide_index(
         kept: list[str] = []
         for c in read_columns:
             if c in _DERIVED_COLUMN_DEPS and (
-                c not in parquet_columns or c in {"is_non_peptide_ligand", "is_binding_assay"}
+                c not in parquet_columns
+                or c in {"is_non_peptide_ligand", "is_binding_assay", "ms_outcome_status"}
             ):
                 requested_derived.append(c)
                 for dep in _DERIVED_COLUMN_DEPS[c]:
@@ -974,6 +981,12 @@ def _load_peptide_index(
                 df.loc[
                     method.astype("string").fillna("").str.strip().eq(""), "assay_modality_source"
                 ] = "curated_ms_supplement"
+            if columns is None or "ms_outcome_status" in columns:
+                outcome = df.get("qualitative_measurement", pd.Series("", index=df.index))
+                df["ms_outcome_status"] = "positive_result"
+                df.loc[
+                    outcome.astype("string").fillna("").str.strip().eq(""), "ms_outcome_status"
+                ] = "curated_ligand_table"
         elif not set(ANNOTATION_COLUMNS) <= set(df):
             annotate_assays(df)
             if kind == "binding":

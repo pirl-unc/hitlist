@@ -3,6 +3,38 @@ import pytest
 
 
 @pytest.mark.parametrize(
+    "outcome,method,source,accepted,status",
+    [
+        ("unknown", "mass spectrometry", "iedb", False, "unestablished"),
+        ("inconclusive", "mass spectrometry", "iedb", False, "unestablished"),
+        ("", "mass spectrometry", "iedb", False, "unestablished"),
+        (None, "mass spectrometry", "iedb", False, "unestablished"),
+        ("positive-ish", "mass spectrometry", "iedb", False, "unestablished"),
+        ("Negative-High", "mass spectrometry", "iedb", False, "negative"),
+        (" Positive-Intermediate ", "mass spectrometry", "iedb", True, "positive_result"),
+        ("Positive-High", "mass spectrometry", "iedb", True, "positive_result"),
+        ("", "", "supplement", True, "curated_ligand_table"),
+        (None, "", "supplement", True, "curated_ligand_table"),
+        ("unknown", "", "supplement", False, "unestablished"),
+        ("inconclusive", "", "supplement", False, "unestablished"),
+        (9, "", "supplement", False, "unestablished"),
+        ("Negative", "", "supplement", False, "negative"),
+        ("", "mass spectrometry", "supplement", False, "unestablished"),
+    ],
+)
+def test_established_outcome_required(outcome, method, source, accepted, status):
+    from hitlist.assays import annotate_assays, assay_annotations, positive_ms_mask
+
+    values = {"qualitative_measurement": outcome, "assay_method": method, "source": source}
+    annotation = assay_annotations(**values)
+    assert annotation["is_ms_observation"] is accepted
+    assert annotation["ms_outcome_status"] == status
+    frame = pd.DataFrame([values])
+    assert positive_ms_mask(frame).tolist() == [accepted]
+    assert annotate_assays(frame).ms_outcome_status.tolist() == [status]
+
+
+@pytest.mark.parametrize(
     "method,response",
     [
         ("cellular MHC/direct/fluorescence", "qualitative binding"),
@@ -83,7 +115,17 @@ def test_arrow_filter_matches_scalar_rules_under_projection(tmp_path, categorica
     for method in (None, "", " MaSs Spectrometry ", "fluorescence", "x-ray crystallography"):
         for response in (None, "", "ligand presentation", "qualitative binding", "3D structure"):
             for source in ("iedb", "supplement"):
-                for outcome in (None, "Positive", "Positive-Low", "Negative"):
+                for outcome in (
+                    None,
+                    "",
+                    "Positive",
+                    "Positive-Low",
+                    "Negative",
+                    "Unknown",
+                    "inconclusive",
+                    "positive-ish",
+                    " Positive-Intermediate ",
+                ):
                     rows.append((method, response, source, outcome))
     frame = pd.DataFrame(
         rows, columns=["assay_method", "response_measured", "source", "qualitative_measurement"]
@@ -135,6 +177,8 @@ def test_build_partitions_retains_all_source_contributors(
         ("electron microscopy", "3D structure", "Positive"),
         ("Edman degradation", "ligand presentation", "Positive"),
         ("mass spectrometry", "ligand presentation", "Negative"),
+        ("mass spectrometry", "ligand presentation", "unknown"),
+        ("mass spectrometry", "ligand presentation", ""),
         ("", "", "Positive"),
     ]
     rows = []
@@ -163,10 +207,17 @@ def test_build_partitions_retains_all_source_contributors(
     builder.build_observations()
     assert len(mapping_inputs["obs_override"]) == 1
     assert len(mapping_inputs["binding_override"]) == 2
-    assert len(mapping_inputs["other_override"]) == 5
+    assert len(mapping_inputs["other_override"]) == 7
     evidence = load_all_evidence()
-    assert evidence.groupby("evidence_kind").size().to_dict() == {"ms": 1, "binding": 2, "other": 5}
-    assert len(load_contributors(evidence.provenance_id)) == 9
+    assert evidence.groupby("evidence_kind").size().to_dict() == {"ms": 1, "binding": 2, "other": 7}
+    assert len(load_contributors(evidence.provenance_id)) == 11
+    unestablished = load_other_assays()
+    unestablished = unestablished[unestablished.assay_modality.eq("ms")]
+    assert unestablished.ms_outcome_status.tolist() == [
+        "negative",
+        "unestablished",
+        "unestablished",
+    ]
     assert set(load_other_assays().assay_modality) == {
         "structural",
         "non_ms_ligand",
@@ -246,3 +297,25 @@ def test_bundle_policy_version_preserves_legacy_interpretation():
     )
     assert _legacy_positive_ms(rows).all()
     assert not _positive_ms(rows).any()
+
+
+def test_projected_legacy_read_rejects_unknown_and_refreshes_outcome(tmp_path, monkeypatch):
+    from hitlist.observations import load_observations
+
+    path = tmp_path / "observations.parquet"
+    frame = pd.DataFrame(
+        {
+            "peptide": ["KNOWN", "CURATED", "UNKNOWN", "NEGATIVE"],
+            "assay_method": ["mass spectrometry", "", "mass spectrometry", "mass spectrometry"],
+            "source": ["iedb", "supplement", "iedb", "iedb"],
+            "qualitative_measurement": ["Positive", "", "unknown", "Negative"],
+            "is_ms_observation": [True] * 4,
+            "ms_outcome_status": ["stale"] * 4,
+        }
+    )
+    frame.to_parquet(path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: path)
+    assert load_observations(columns=["peptide"]).peptide.tolist() == ["KNOWN", "CURATED"]
+    projected = load_observations(columns=["peptide", "ms_outcome_status"])
+    assert projected.ms_outcome_status.tolist() == ["positive_result", "curated_ligand_table"]
+    assert load_observations().ms_outcome_status.tolist() == projected.ms_outcome_status.tolist()

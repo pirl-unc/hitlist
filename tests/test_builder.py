@@ -619,10 +619,11 @@ def _full_obs_fixture(n_rows: int = 50) -> pd.DataFrame:
             "assay_method": ["mass spectrometry"] * n_rows,
             "assay_modality": ["ms"] * n_rows,
             "assay_modality_source": ["assay_method"] * n_rows,
+            "ms_outcome_status": ["positive_result"] * n_rows,
             "response_measured": [""] * n_rows,
             "measurement_units": [""] * n_rows,
             "measurement_inequality": [""] * n_rows,
-            "qualitative_measurement": [""] * n_rows,
+            "qualitative_measurement": ["Positive"] * n_rows,
             "species": ["Homo sapiens"] * n_rows,
             "source_organism": ["Homo sapiens"] * n_rows,
             # NOT in the categorical allowlist — must stay object / numeric:

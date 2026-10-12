@@ -7,15 +7,24 @@ PAGE4 fluorescence and MAGE crystallography/thermal-stability records.
 
 | Partition | Admission | Reader |
 |---|---|---|
-| `observations.parquet` | Explicit mass-spectrometry method with a compatible ligand response, or a curated MS-only supplement without a method; no explicit negative outcome | `load_observations` / `load_ms_observations` |
+| `observations.parquet` | Established MS modality and a known positive outcome, or a blank outcome in a curated observed-MS supplement without a method | `load_observations` / `load_ms_observations` |
 | `binding.parquet` | Binding, affinity, kinetic or stability evidence | `load_binding` |
-| `other_assays.parquet` | Structural, non-MS ligand, unknown/conflicting assays, and negative MS results | `load_other_assays` |
+| `other_assays.parquet` | Structural, non-MS ligand, unknown/conflicting assays, and negative or unestablished MS results | `load_other_assays` |
 
 The shared `assay_annotations` function records `assay_modality`,
-`assay_modality_source`, `is_binding_assay`, and `is_ms_observation`.
+`assay_modality_source`, `is_binding_assay`, `is_ms_observation`, and `ms_outcome_status`.
 Modality and outcome are independent: a negative MS result still has modality
 `ms`, but is not an observed positive ligand. Positive-High/Intermediate/Low
 results and binding-related comments cannot override an explicit MS method.
+
+Starting in 1.70.1, a method alone does not establish detection (#665). Only
+`Positive`, `Positive-High`, `Positive-Intermediate`, and `Positive-Low` qualify,
+ignoring case and surrounding whitespace. A blank outcome qualifies only under
+the curated observed-MS-supplement contract. Explicit unknown, inconclusive,
+unrecognized and negative outcomes remain excluded, including in supplements.
+`ms_outcome_status` records `positive_result`, `curated_ligand_table`, `negative`,
+or `unestablished`, independently of modality. New CTA bundles retain specific
+`negative_ms_outcome` and `unestablished_ms_outcome` exclusion reasons.
 
 Structured methods/responses take precedence. Fluorescence binding and thermal
 stability remain binding evidence; crystallography and electron microscopy
@@ -48,12 +57,15 @@ contributors and access to the shared peptide-mapping sidecar. Ordinary
 MS/binding training exports retain their existing `ms`, `binding`, and `both`
 options. CTA bundles include non-MS records in `excluded_observations.parquet`
 with provenance and never count them as presentation. New CTA manifests record
-`ms_policy_version=2`; standalone verification of older bundles uses their
+`ms_policy_version=3`; standalone verification of older bundles uses their
 original policy and does not reclassify them as current-policy exports.
+Policy 2 retains its nonnegative-outcome rule; policy 1 retains the original
+modality heuristic. Successful historical replay does not mean an old bundle
+passes current admission. Re-export evidence to apply the corrected policy.
 
 ## Upgrade and rebuild
 
-Run `hitlist build observations` after upgrading. Observation artifact version 9
+Run `hitlist build observations` after upgrading. Observation artifact version 10
 invalidates earlier builds, and the new partition participates in cache and
 contributor-integrity checks. Rebuild affected downstream exports and designs.
 
