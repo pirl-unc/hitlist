@@ -1,3 +1,24 @@
+# Canine sample curation in YAML — #672
+
+Contract: [canine-sample-curation-spec.md](canine-sample-curation-spec.md).
+Keep all 56 real sample annotations unchanged while moving source facts to YAML.
+
+- [x] Identify the repository-rule violation and file #672.
+- [x] Write the explicit sample-context contract before implementation.
+- [x] Prove regressions, move source facts and check frozen replay.
+- [x] Recurate both real sources and compare every sample field.
+- [ ] Version, format, lint, full tests, docs and final-head CI.
+- [ ] Merge after 1.71.1, deploy and verify public PyPI bytes.
+
+## Review
+
+Both initial regressions failed before the fix. All 61 canine/reference tests
+pass on pandas 2 and 3; formatting, lint and strict documentation build pass.
+Real-source imports preserve every normalized sample field for all 38 Pfizer
+pools and 18 Labrador samples. Previously frozen bundles pass verification.
+The guarded full local unit suite passes 2,902 tests (one skip). Final-head CI,
+merge and the clean-main 1.71.2 release remain required; 1.71.1 is published.
+
 # Pfizer canine instrument provenance — #670
 
 Contract: [pfizer-instrument-spec.md](pfizer-instrument-spec.md). Preserve the
@@ -6,8 +27,8 @@ publication/deposit conflict explicitly; do not guess the acquisition model.
 - [x] Compare primary publication and deposit metadata; file #670.
 - [x] Prove the missing conflict metadata with an offline regression.
 - [x] Preserve both reports in the catalog, manifest and normalized rows.
-- [ ] Document, version, format, lint and run final-head tests/CI.
-- [ ] Merge after 1.71.0, deploy from clean main and verify PyPI bytes.
+- [x] Document, version, format, lint and run final-head tests/CI.
+- [x] Merge after 1.71.0, deploy from clean main and verify PyPI bytes.
 
 ## Review
 
@@ -17,7 +38,9 @@ the existing importer snapshots that metadata and exposes the unresolved model.
 No view/schema changes or rewriting of previously frozen bundles is involved.
 All 53 canine/reference tests pass on pandas 2 and 3. Format, lint, strict docs
 build and the guarded local full unit suite pass: 2,894 tests, one skip.
-Final-head CI and clean-main release validation remain required.
+Final-head CI and clean-main release 38202949295 passed 2,894 unit tests
+(one skip) and 96 integration tests. PR #671 merged as 670d51e and 1.71.1
+was published; both public PyPI distributions match the tested artifacts.
 
 # Canine bulk-MS source curation — #666
 
@@ -29,8 +52,8 @@ after #667. Bulk protein/peptide evidence never becomes DLA presentation.
 - [x] Add failing offline source/ambiguity/resource regression fixtures.
 - [x] Implement shared managed-asset checks, catalog, import and bounded reads.
 - [x] Replay real source data and audit missing presentation coverage.
-- [ ] Document APIs and limitations; format, lint, full tests and final-head CI.
-- [ ] Merge after #667, deploy from clean main and verify PyPI bytes.
+- [x] Document APIs and limitations; format, lint, full tests and final-head CI.
+- [x] Merge after #667, deploy from clean main and verify PyPI bytes.
 
 ## Review
 
@@ -63,7 +86,10 @@ protein mappings, 775,003 modified-peptide records, 18 samples and the complete
 94.782 seconds with 287,883,264-byte process peak RSS; output occupied 572,242,014
 bytes. Heart retains 48,007 records: 47,693 target detections, 278 contaminant-only
 and 36 decoy-only records. All remain one unresolved aggregate experiment and
-none qualify as presentation evidence. Release/integration CI remains required.
+none qualify as presentation evidence. PR #669 merged as ed40f6b; clean-main
+release 38200219304 passed 2,893 unit tests (one skip) and 96 integration tests.
+Published 1.71.0 and verified both public PyPI files against tested artifacts.
+Issue #666 remains partial because #668 is still outstanding.
 
 # Positive MS outcomes, then canine normal-tissue curation
 

@@ -58,6 +58,13 @@ value. Raw/run metadata is needed to settle the conflict. Existing frozen
 bundles keep their original metadata snapshot; curate a new bundle to adopt
 the corrected provenance.
 
+Since 1.71.2, `canine_bulk.yaml` holds tissue groups and named sample contexts.
+Each source selects a default context; `sample_context_by_id` assigns the five
+Labrador adult-fluid experiments by their original sample IDs. Tissue names do
+not infer age or health. These reviewed values are frozen into each new bundle's
+manifest and sample rows. All 56 existing sample/pool annotations are preserved;
+older bundles continue to replay their own frozen metadata.
+
 Every directory contains `bulk.sqlite`, the byte-exact `reference.fasta`, and a
 manifest with original asset hashes, source/version/protocol, limitations, table
 counts, resource bounds and artifact hashes. Original table columns and logical
