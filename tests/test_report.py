@@ -26,6 +26,7 @@ def _write_obs_fixture(tmp_path):
         {
             "peptide": ["AAAAAAAAA", "BBBBBBBBB"],
             "assay_method": ["mass spectrometry"] * 2,
+            "qualitative_measurement": ["Positive"] * 2,
             "pmid": [1, 2],
             "mhc_class": ["I", "I"],
             "mhc_restriction": ["HLA-A*02:01", "HLA-B*07:02"],
@@ -79,6 +80,7 @@ def test_run_report_from_csv_uses_scanner(tmp_path, monkeypatch):
             {
                 "peptide": ["X"],
                 "assay_method": ["mass spectrometry"],
+                "qualitative_measurement": ["Positive"],
                 "pmid": [1],
                 "mhc_class": ["I"],
                 "mhc_restriction": ["HLA-A*02:01"],
@@ -113,6 +115,7 @@ def test_drop_excluded_ms_rows_only_drops_ms_rows_for_excluded_pmids(monkeypatch
             "peptide": ["MSDROPPED", "BINDINGKEPT", "MSKEPT"],
             "is_binding_assay": [False, True, False],
             "assay_method": ["mass spectrometry", "binding assay", "mass spectrometry"],
+            "qualitative_measurement": ["Positive"] * 3,
         }
     )
     out = report_mod._drop_excluded_ms_rows(df)
@@ -160,6 +163,7 @@ def test_run_report_from_csv_drops_excluded_ms_rows(monkeypatch):
                 "src_healthy_tissue": [False] * 3,
                 "is_binding_assay": [False, True, False],
                 "assay_method": ["mass spectrometry", "binding assay", "mass spectrometry"],
+                "qualitative_measurement": ["Positive"] * 3,
             }
         )
 

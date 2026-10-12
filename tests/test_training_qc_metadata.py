@@ -57,7 +57,7 @@ def qc_indexes(tmp_path, monkeypatch):
             "assay_iri": [f"ms:{i}" for i in range(5)],
         }
     )
-    rows.assign(assay_method="mass spectrometry").to_parquet(
+    rows.assign(assay_method="mass spectrometry", qualitative_measurement="Positive").to_parquet(
         tmp_path / "observations.parquet", index=False
     )
     rows.iloc[[0]].assign(assay_iri="binding:1").assign(assay_method="binding assay").to_parquet(

@@ -71,7 +71,8 @@ from .parquet_io import atomic_write_parquet, concat_non_empty
 #:    preventing false labels and donor copies of monoallelic observations.
 #: 7: Every retained observation links to all contributors before deduplication.
 #: 9: Positive MS modality, separate other-assay retention and provenance (#644).
-_OBSERVATIONS_ARTIFACT_VERSION = 9
+#: 10: Established positive outcomes; unknown MS results remain other evidence (#665).
+_OBSERVATIONS_ARTIFACT_VERSION = 10
 
 
 def _source_paths() -> dict[str, Path]:
@@ -380,6 +381,7 @@ _CATEGORICAL_BUILD_COLUMNS: tuple[str, ...] = (
     "assay_method",
     "assay_modality",
     "assay_modality_source",
+    "ms_outcome_status",
     "response_measured",
     "measurement_units",
     "measurement_inequality",

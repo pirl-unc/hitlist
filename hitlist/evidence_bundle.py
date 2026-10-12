@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from .assays import MS_POLICY_VERSION, annotate_assays, ms_exclusion_reasons
 from .cta_expression import resolve_expression_table, summarize_cta_mappings
 from .provenance import file_digest
 from .tissue_blacklist import (
@@ -202,6 +203,15 @@ def _legacy_positive_ms(frame):
     return accepted
 
 
+def _modality_positive_ms(frame):
+    """Replay policy 2: established modality, but any nonnegative outcome."""
+    annotations = annotate_assays(frame.copy())
+    outcome = frame.get("qualitative_measurement", pd.Series("", index=frame.index))
+    return annotations.assay_modality.eq("ms") & ~outcome.astype("string").fillna(
+        ""
+    ).str.strip().str.lower().str.startswith("negative")
+
+
 def _expression_links(expression, mappings, level):
     selected = expression.loc[
         expression.selected, ["input_row", "gene_id", "transcript_id", "tpm"]
@@ -338,10 +348,11 @@ def write_cta_evidence_bundle(
             raise ValueError(
                 "Full source contributors are required; legacy observations cannot form this bundle"
             )
+        complete = annotate_assays(complete)
         accepted = _positive_ms(complete)
         presentation = complete[accepted].copy()
         excluded = complete[~accepted].copy()
-        excluded["exclusion_reason"] = "not_positive_ms"
+        excluded["exclusion_reason"] = ms_exclusion_reasons(excluded)
         identities = _identity_table(complete)
         contributors = _stream_contributors(
             identities.provenance_id, staging / "contributors.parquet"
@@ -376,8 +387,8 @@ def write_cta_evidence_bundle(
             "coverage": _coverage(identities, contributors),
             "n_blacklisted_peptides": int(risk.blacklisted.sum()),
             "scope": "Indexed peptide sequences mapping to eligible expressed CTAs; full human multi-mapping; Atlas blacklist independent of expression and HLA",
-            "ms_policy_version": 2,
-            "ms_policy": "Positive mass-spectrometry method or curated MS-only supplement; explicit non-MS excluded",
+            "ms_policy_version": MS_POLICY_VERSION,
+            "ms_policy": "Established MS modality and known positive outcome, or blank outcome in a curated observed-MS supplement; unknown and negative outcomes excluded",
             "interpretation": "CTA-specific means all resolved human mappings are CTAs, including sharing between CTAs. Missing observations do not establish safety. Assembly and treatment ranking belong downstream.",
         }
 
@@ -513,13 +524,30 @@ def verify_evidence_bundle(directory):
         if _coverage(identities, contributors) != manifest["coverage"]:
             raise ValueError("Evidence bundle provenance counts mismatch")
         policy_version = manifest.get("ms_policy_version", 1)
-        if policy_version not in (1, 2):
+        if policy_version not in (1, 2, 3):
             raise ValueError("Unsupported MS evidence policy version")
-        positive_ms = _positive_ms if policy_version == 2 else _legacy_positive_ms
+        positive_ms = {1: _legacy_positive_ms, 2: _modality_positive_ms, 3: _positive_ms}[
+            policy_version
+        ]
         if not positive_ms(read("presentation")).all():
             raise ValueError("Non-MS evidence appears in presentation table")
         if positive_ms(read("excluded_observations")).any():
             raise ValueError("Positive MS evidence appears in excluded observations")
+        if policy_version == 3:
+            from .assays import ANNOTATION_COLUMNS
+
+            for name, frame in (("presentation", presentation), ("excluded", excluded)):
+                expected_annotations = annotate_assays(frame.copy())
+                _equal_frame(
+                    frame.reindex(columns=ANNOTATION_COLUMNS),
+                    expected_annotations[list(ANNOTATION_COLUMNS)],
+                    f"{name} assay outcomes",
+                )
+            _equal_frame(
+                excluded[["exclusion_reason"]],
+                ms_exclusion_reasons(annotate_assays(excluded.copy())).to_frame("exclusion_reason"),
+                "MS exclusion reasons",
+            )
         expected, mappings = _peptide_summary(
             read("mappings"),
             set(manifest["expression"]["cta_gene_ids"]),

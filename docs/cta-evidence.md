@@ -94,8 +94,9 @@ between several CTAs and still be CTA-specific. The bundle separately records
 mapping coordinate and transcript, and `has_non_cta_match`.
 
 `presentation.parquet` contains positive mass-spectrometry modality evidence:
-an explicit MS assay method or a curated MS-only supplement without a conflicting
-method. Legacy nonbinding rows with other modalities are retained in
+an explicit MS assay method and established positive outcome, or a blank outcome
+under the curated observed-MS supplement contract without a conflicting method.
+Unknown, inconclusive and negative outcomes and rows with other modalities are retained in
 `excluded_observations.parquet` and their raw contributors remain available
 ([modality issue #644](https://github.com/pirl-unc/hitlist/issues/644)). Sample HLA
 typing is not an experimentally assigned peptide restriction. All observed HLA

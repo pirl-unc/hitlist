@@ -1,3 +1,29 @@
+# Positive MS outcomes, then canine normal-tissue curation
+
+Plan: [positive-ms-outcomes-spec.md](positive-ms-outcomes-spec.md). Core canine
+curation and species bundles shipped through #663/#664 as 1.69.0/1.70.0;
+the older unchecked release items below are historical records.
+
+- [x] Confirm merged canine releases and inspect Hitlist/downstream open issues.
+- [x] Specify #665 admission, old-bundle replay and follow-on scope before code.
+- [x] Reproduce unknown-result admission with regression tests.
+- [x] Implement shared outcome classification and versioned portable replay.
+- [ ] Audit live/projected/scanner/tissue paths and stored outcome vocabulary.
+- [ ] Pass format, lint, full tests and final-head CI; review the complete diff.
+- [ ] Merge, deploy from clean main, and verify published artifact bytes.
+- [ ] Implement and ship the next canine data dependency (#666) in separate PRs.
+
+## Review
+
+Fifteen initial regressions failed before implementation; 97 focused assay,
+species and human-bundle cases then passed. The new shared outcome field keeps
+MS modality separate from detection and new human bundles capture policy 3;
+versions 1 and 2 replay their historical admissions. Existing species schema-1
+regressions pass unchanged. Small existing positive-MS fixtures now declare their
+positive outcome explicitly. Format and lint pass. Local full test.sh correctly
+refused at 0.66 GiB available against the unchanged 2.5 GiB guard, so complete
+validation and release gates move to CI. No memory guard was bypassed.
+
 # Species-scoped evidence implementation — #661
 
 Concrete contract: [species-evidence-contract.md](species-evidence-contract.md).
