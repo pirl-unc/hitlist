@@ -2,6 +2,10 @@ schema_version: 1
 sources:
   pfizer_2026_03:
     adapter: pfizer
+    orfdata:
+      dataset_id: pfizer-atlas-dog-protein
+      version: '2026-10-12.1'
+      registry_sha256: 1893d200c40fcecc3d605ef80a104100a75e3f27f133c06a623cd790de461db2
     source_taxon: 9615
     version: '2026-03-23'
     study: '10.1038/s41597-026-07512-9'

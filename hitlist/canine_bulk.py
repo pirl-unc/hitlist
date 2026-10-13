@@ -34,6 +34,7 @@ _LIMITS = {
     "max_records": 5_000_000,
     "max_output_bytes": 2 * 2**30,
     "max_protein_residues": 1_000_000,
+    "max_upstream_bytes": 2 * 2**30,
 }
 _TABLE_KEYS = {
     "sample": "sample_id",
@@ -405,11 +406,16 @@ def _reference(db, path, limits):
 
 
 def curate_canine_bulk(
-    source_id, output_dir, *, local_assets=None, allow_download=False, limits=None
+    source_id,
+    output_dir,
+    *,
+    local_assets=None,
+    allow_download=False,
+    limits=None,
+    provider="source",
+    orfdata_cache_root=None,
 ):
-    """Import a reviewed source without treating bulk-MS rows as DLA ligands."""
-    from .version import __version__
-
+    """Import source assets or explicitly select a pinned orfdata release, offline by default."""
     bounds = {**_LIMITS, **(limits or {})}
     if set(bounds) != set(_LIMITS):
         raise ValueError("Unknown bulk input/output limit")
@@ -419,6 +425,14 @@ def curate_canine_bulk(
     if target.exists():
         raise FileExistsError(target)
     source = _source(source_id)
+    if provider == "orfdata":
+        from .canine_orfdata import curate_orfdata
+
+        if local_assets is not None:
+            raise ValueError("orfdata uses its verified registry cache, not local_assets")
+        return curate_orfdata(source, target, bounds, allow_download, orfdata_cache_root)
+    if provider != "source" or orfdata_cache_root is not None:
+        raise ValueError("Unknown provider or orfdata cache supplied to source provider")
     paths = {}
     if set(local_assets or {}) - set(source["assets"]):
         raise ValueError("Unknown local source asset")
@@ -435,6 +449,13 @@ def curate_canine_bulk(
             raise ValueError(f"Supply checked local_assets[{name!r}] or explicitly allow_download")
         _check_asset(path, spec)
         paths[name] = path
+    return _write_bundle(source, target, bounds, paths)
+
+
+def _write_bundle(source, target, bounds, paths, upstream=None):
+    """Publish the same frozen schema for original and verified shared inputs."""
+    from .version import __version__
+
     target.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=f".{target.name}-", dir=target.parent))
     previous_field_limit = csv.field_size_limit()
@@ -525,6 +546,8 @@ def curate_canine_bulk(
             "n_records_by_table": counts,
             "artifacts": {n: file_digest(staging / n) for n in ("bulk.sqlite", "reference.fasta")},
         }
+        if upstream is not None:
+            manifest["upstream"] = upstream
         (staging / "manifest.json").write_text(
             json.dumps(manifest, indent=2, sort_keys=True) + "\n"
         )

@@ -1,5 +1,6 @@
 include LICENSE
 include README.md
+recursive-include tests/data/canine_orfdata *.md *.json *.tsv *.fasta
 
 # Large paper-derived data files (#303) are fetched on demand via datacache,
 # not shipped in the sdist (they blew the PyPI project size quota).  Kept in

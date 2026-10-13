@@ -36,6 +36,8 @@ dependencies = [
     "tqdm",
     # Shared fixed-path registry, downloads, resumability and cache inspection (#589).
     "datacache>=1.15.0",
+    # Explicit shared canine protein/reference acquisition; imports stay lazy.
+    "orfdata[data]>=0.10.0",
     "filelock>=3.13",
     # Ensembl gene/transcript annotation: proteome indexing + ENSG→HGNC symbol
     # fill for line_expression. Release data is installed separately

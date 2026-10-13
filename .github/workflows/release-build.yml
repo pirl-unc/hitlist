@@ -29,9 +29,12 @@ on:
       - tests/test_proteome.py
       - hitlist/assays.py
       - hitlist/canine_bulk.py
+      - hitlist/canine_orfdata.py
       - hitlist/managed_assets.py
       - hitlist/data/canine_bulk.yaml
       - tests/test_canine_bulk.py
+      - tests/test_canine_orfdata.py
+      - tests/data/canine_orfdata/**
       - hitlist/observations.py
       - hitlist/mappings.py
       - tests/test_assays.py

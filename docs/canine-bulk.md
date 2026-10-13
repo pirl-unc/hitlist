@@ -25,6 +25,43 @@ automatically evicted. Local assets are checked without modifying them. The
 catalog is available through `canine_bulk_catalog()` and
 `load_bulk_sources(include_canine=True)` in `hitlist.bulk_proteomics`.
 
+The Pfizer summary can also be acquired through the shared orfdata registry:
+
+```python
+curate_canine_bulk(
+    "pfizer_2026_03", "dog-pfizer",
+    provider="orfdata", allow_download=True,
+    orfdata_cache_root="/path/to/openvax-cache",  # Optional cache override.
+)
+```
+
+This selects the reviewed `pfizer-atlas-dog-protein` release `2026-10-12.1`,
+with pinned registry metadata and source/artifact checksums. Without
+`allow_download=True`, both the dataset and reference must already be installed
+in that orfdata cache. Use orfdata's `DatasetRegistry.download(...)` and
+`download_reference(...)` for separate acquisition; `local_assets` belongs to
+the original source provider and cannot be combined with `provider="orfdata"`.
+The default provider remains `"source"`.
+
+The adapter selects native iBAQ and rIBAQ separately, joins each pair by original
+source identity, and verifies a byte-exact reconstruction of the original
+protein table. It then uses the existing Hitlist writer and YAML sample contexts.
+Protein rows, IDs, native strings, pool scope and reference sequences retain
+their existing meaning. `manifest.json` additionally records the upstream
+package version, dataset manifest, artifact digest, access terms and searched
+reference specification. Readers and verification use that frozen bundle offline;
+they do not require the current upstream catalog or reinterpret old generations.
+Imports through the two providers describe the same study and must not be counted
+as independent evidence. Peptide/group enrichment remains a later source release.
+
+The pinned quantitative download is 84.4 MB and expands to 1.40 GB; its matching
+FASTA is 14.7 MB. The adapter uses disk staging for source-row ordering and needs
+additional scratch/output space. `max_upstream_bytes` (default 2 GiB) bounds the
+installed upstream artifact, `max_input_bytes` bounds the declared compressed
+download and original assets, and `max_output_bytes` bounds each staging database
+and the final bundle. These are artifact bounds, not a total cache/disk quota;
+orfdata's existing cache entries are retained. No vendor database is acquired.
+
 | Source ID | Available records | Scope and limitations |
 |---|---|---|
 | `pfizer_2026_03` | Protein-abundance table and deposited no-isoform search FASTA | Tissue pools; `BioReplicate` is not a dog. The reported protein representative does not resolve underlying protein-group alternatives. This table contains no peptide detections. |
