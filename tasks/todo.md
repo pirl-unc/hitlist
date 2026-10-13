@@ -1,3 +1,32 @@
+# orfdata canine protein consumer — #668 stage A
+
+Contract: [orfdata-canine-spec.md](orfdata-canine-spec.md).
+
+- [x] Inspect released upstream APIs and write the bounded consumer contract.
+- [x] Add failing offline consumer tests using real source fixtures.
+- [x] Implement explicit provider and immutable upstream receipt.
+- [x] Reconcile complete real source rows, sample contexts and reference bytes.
+- [ ] Version, format, lint, full tests, pandas checks and final-head CI.
+- [ ] Merge, deploy from clean main and verify public PyPI artifacts.
+- [ ] Update integration milestones and identify the next remaining dependency.
+
+## Review
+
+The initial real-fixture test failed because `provider` was not supported.
+The implemented route reconstructs the exact original table checksum from the
+published orfdata artifact and retains the matching FASTA bytes. Full replay:
+313,263 raw rows (14 fields including source row), 313,263 normalized rows
+(41 fields), 38 sample rows (10 fields), 20,649 sequence rows and all context
+fields match the original-source route, with zero differences. Peptide rows
+remain empty. The upstream adapter phase took 35.4 seconds in this local run;
+the OS denied the resource profiler's memory read, so no RSS result is claimed.
+
+All 52 focused canine tests pass on pandas 3.0.6 and 2.3.3; formatting, lint and
+isolated dependency checks pass. The guarded full unit suite is running.
+Final-head CI, merge, clean-main release and public artifact verification remain
+required. #668 remains open for later peptide/group enrichment; #674 tracks the
+independent normal-tissue DLA gap. This PR changes no biological sample curation.
+
 # Canine sample curation in YAML — #672
 
 Contract: [canine-sample-curation-spec.md](canine-sample-curation-spec.md).

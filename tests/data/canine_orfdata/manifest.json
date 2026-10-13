@@ -1,0 +1,117 @@
+{
+  "dataset_id": "fixture-pfizer-atlas-dog-protein",
+  "version": "2026-10-12.1",
+  "title": "Actual source slice: Pfizer/Oziolor dog native protein-group abundance",
+  "references": [
+    {
+      "taxon_id": 9615,
+      "species": "dog",
+      "genome_build": null,
+      "annotation_name": "uniprot",
+      "annotation_version": null,
+      "assembly_accession": null,
+      "strain": null,
+      "strain_taxon_id": null,
+      "sequence_sha256": "7b420e878fa062cc0cd6a30cd7e2a6cd9bfcd83282fec5e67b501f6be114c520",
+      "taxonomy_version": "ncbi-2026-10-12",
+      "source_sha256": null
+    }
+  ],
+  "sources": [
+    {
+      "asset_id": "protein.tsv",
+      "url": "https://massive.ucsd.edu/ProteoSAFe/DownloadResultFile?file=f.MSV000099744/updates/2026-03-23_jfederspiel_6c91304a/other/t04_protein_postbridge_ibaq_pd.txt",
+      "sha256": "d9db1487a47fa021309a9219e5eb9d9e0b89bd922e5856b0ceb62e79227f22be",
+      "size": 861,
+      "access_terms": "MassIVE dataset CC0-1.0; source numeric table",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "redistributable": true,
+      "metadata": {
+        "deposit": "https://massive.ucsd.edu/ProteoSAFe/dataset.jsp?task=062b109e9adf461ba619369dd0d85aa9",
+        "attribution": "Oziolor et al. and Joel D. Federspiel, Pfizer",
+        "source_update": "2026-03-23",
+        "terms_verified": "2026-10-12",
+        "fixture_of_sha256": "ae2953c3fe3c31bc5fa06a9a0b222815376faea25489e6626af3736b7f4cbef2",
+        "original_source_lines": [
+          2,
+          3,
+          4,
+          684,
+          9431
+        ]
+      }
+    },
+    {
+      "asset_id": "search.fasta",
+      "url": "https://massive.ucsd.edu/ProteoSAFe/DownloadResultFile?file=f.MSV000099744/sequence/Dog_UP000002254_9615_noisoform.fasta",
+      "sha256": "7b420e878fa062cc0cd6a30cd7e2a6cd9bfcd83282fec5e67b501f6be114c520",
+      "size": 2417,
+      "access_terms": "UniProt Consortium CC-BY-4.0; deposited search FASTA",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "redistributable": true,
+      "metadata": {
+        "deposit": "https://massive.ucsd.edu/ProteoSAFe/dataset.jsp?task=062b109e9adf461ba619369dd0d85aa9",
+        "attribution": "UniProt Consortium",
+        "source_update": "deposited original FASTA; UniProt release unspecified",
+        "terms_verified": "2026-10-12",
+        "fixture_of_sha256": "d8488bf283de653efcff2e5de6d413b116e1ba4a2eb89298bd31205e72fef682",
+        "original_source_lines": null
+      }
+    }
+  ],
+  "citations": [
+    "https://doi.org/10.1038/s41597-026-07512-9",
+    "https://massive.ucsd.edu/ProteoSAFe/dataset.jsp?task=062b109e9adf461ba619369dd0d85aa9",
+    "https://www.uniprot.org/help/license"
+  ],
+  "assay_kinds": [
+    "digest_ms"
+  ],
+  "coverage": {
+    "accession": "MSV000099744",
+    "family": "pfizer-nonclinical-atlas-2026",
+    "source_counts": {
+      "rows": 5,
+      "IBAQ:positive": 3,
+      "rIBAQ:positive": 3,
+      "IBAQ:zero": 1,
+      "rIBAQ:zero": 1,
+      "IBAQ:missing": 1,
+      "rIBAQ:missing": 1,
+      "groups": 3,
+      "assays": 4,
+      "absent_matrix_cells": 7
+    },
+    "search_sequences": 3,
+    "source_table": "t04_protein_postbridge_ibaq_pd.txt",
+    "target_resolution": "protein_group",
+    "search_space": "deposited UniProt FASTA without spliced isoforms",
+    "nc_orf_search": "not established; missing groups do not establish ORF absence",
+    "sample_pairing": "RNA and peptide imports pending; no same-material pairing inferred",
+    "missingness": "NA is missing; zero is measured zero; absent group/sample combinations have no observation",
+    "pooling": "tissue by sex for rodents; tissue for human/dog; individual member IDs unresolved",
+    "strain_or_breed_reported": [
+      "beagle"
+    ],
+    "reference_limits": "No genomic assembly or UniProt release declared; exact deposited FASTA pinned",
+    "measurement_limits": "Intensity quantities; no calibrated copies per cell; no implicit cross-species absolute comparison",
+    "fixture_only": true
+  },
+  "processing": {
+    "importer": "pfizer-protein-v1",
+    "software": "orfdata",
+    "version": "0.6.0",
+    "source_update": "2026-03-23",
+    "operations": [
+      "retain native IBAQ and rIBAQ",
+      "preserve NA, zeros and source row/column",
+      "retain transformed Abundance and sumIBAQ as source text",
+      "resolve reported representative in pinned FASTA without assigning group abundance"
+    ],
+    "parameters": {
+      "aggregate_replicates": false,
+      "infer_group_members": false
+    }
+  },
+  "schema": "orfdata.measurements.v1"
+}
