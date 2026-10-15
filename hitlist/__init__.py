@@ -115,6 +115,12 @@ _PUBLIC_API: dict[str, str] = {
     "build_detectability_training_set": ".detectability",
     "iter_detectability_training_set": ".detectability",
     "export_detectability_training_set": ".detectability",
+    "recover_pxd013455_sources": ".pxd013455",
+    "build_pxd013455_observations": ".pxd013455",
+    "build_pxd013455_bundle": ".pxd013455_publication",
+    "verify_pxd013455_bundle": ".pxd013455_publication",
+    "audit_pxd013455_candidates": ".pxd013455_publication",
+    "export_pxd013455_archive": ".pxd013455_publication",
     "load_gene_set": ".genes",
     "list_gene_sets": ".genes",
     # Dataset registry (download / register / resolve).

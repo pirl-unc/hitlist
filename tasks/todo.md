@@ -1,3 +1,25 @@
+# Scoped PXD013455 publication — 2026-10-15
+
+Specification: [pxd013455-publication-spec.md](pxd013455-publication-spec.md).
+
+- [x] Locate the primary public deposit and original/reanalysis publications.
+- [x] Write the recovery/publication contract before implementation.
+- [x] Recover and hash source settings/reference/results using datacache.
+- [ ] Rebuild and independently validate the documented scope.
+- [ ] Publish legible source, label-policy and scope/support artifacts.
+- [ ] Test, review, version, merge, deploy and verify public downloads.
+
+## Review
+
+Datacache #122 shipped as 1.27.0 and recovered the complete selected ZIP members
+without downloading the 35.4 GB archive. A decompression boundary regression
+found during importer tests is fixed in datacache #124. Source reconstruction
+reproduces 172,033 observations (150,855 MS/MS and 21,178 matching), 12,287 parents
+and all 46 raw-file/fraction assignments. Paper review corrected the pH default
+with explicit source attribution (#688). The new source and publication tests
+pass 43 cases, including independent audit failures and prior-generation reuse.
+Full candidate audit, complete software gates and public release remain required.
+
 # Dataset qualification series — 2026-10-15
 
 Specification: [atomic-generations-spec.md](atomic-generations-spec.md).

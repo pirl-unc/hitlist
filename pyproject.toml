@@ -35,7 +35,7 @@ dependencies = [
     "PyYAML",
     "tqdm",
     # Shared downloads/registry and transactional materialization generations (#645).
-    "datacache>=1.25.1",
+    "datacache>=1.27.1",
     # Explicit shared canine protein/reference acquisition; imports stay lazy.
     "orfdata[data]>=0.10.0",
     "filelock>=3.13",

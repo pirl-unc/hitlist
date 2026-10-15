@@ -1,3 +1,12 @@
+# Public-source reconstruction — 2026-10-15
+
+When a prior curation receipt describes a generated archive but no durable URL,
+search its proteomics deposit and publication supplements and reconstruct from
+pinned public inputs. Do not assume the user possesses an agent-generated
+artifact. Preserve the distinction between old receipt claims and independently
+recovered/validated source bytes; publish a durable download and reproduction
+recipe so the same handoff problem cannot recur.
+
 # Lessons
 
 ## 2026-10-14
