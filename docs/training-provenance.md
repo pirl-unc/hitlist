@@ -140,7 +140,7 @@ Existing destinations are never overwritten.
 
 New bundles require **current indexes** before loading the training table. The
 read-only preflight checks the observation source/curation/artifact contract and
-any mapping sidecar consumed by expansion or gene filters. Mapping freshness is
+any mapping sidecar consumed by expansion, gene filters or peptide-origin enrichment. Freshness is
 checked against its recorded build settings. Missing registered sources are
 unverifiable, not current. Stale, incomplete or missing indexes require
 `hitlist build observations`; the exporter does not rebuild or download inputs.

@@ -51,6 +51,7 @@ def test_real_stale_schema_requires_rebuild(current_indexes, monkeypatch):
     [
         {"map_source_proteins": True},
         {"explode_mappings": True},
+        {"with_peptide_origin": True},
         {"gene": "PRAME"},
         {"gene_name": "PRAME"},
         {"gene_id": "ENSG00000185686"},

@@ -228,7 +228,14 @@ def _input_validation(options, *, require_current_indexes):
     mapping_settings = None
     if any(
         options.get(name)
-        for name in ("map_source_proteins", "explode_mappings", "gene", "gene_name", "gene_id")
+        for name in (
+            "map_source_proteins",
+            "explode_mappings",
+            "with_peptide_origin",
+            "gene",
+            "gene_name",
+            "gene_id",
+        )
     ):
         # Training consumes the existing sidecar. `proteome_release` selects
         # transcript enrichment, not the release/settings used to build it.

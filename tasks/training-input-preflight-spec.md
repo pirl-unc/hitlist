@@ -9,7 +9,7 @@ never represents stale/unknown inputs as current. CLI spelling:
 
 Use the existing quiet observation-cache predicate: `True` is current, `False`
 is stale, `None` is unverifiable because sources are unavailable. Validate the
-mapping sidecar only when mapping expansion or gene filtering consumes it,
+mapping sidecar when mapping expansion, gene filtering or peptide-origin enrichment consumes it,
 including the deprecated expansion alias. Check against its recorded build
 settings, not the unrelated transcript-enrichment release argument. Missing or
 invalid mapping contract metadata fails closed. No preflight downloads,

@@ -1,3 +1,30 @@
+# Review and ship Hitlist training-readiness PR — 2026-10-14
+
+- [x] Review the full diff, caller contracts, failure paths and regression coverage.
+- [x] File discovered defects; fix them with meaningful before/after evidence.
+- [ ] Finish formatting, lint, full tests and exact-head CI.
+- [ ] Merge the reviewed PR and validate/build from clean main.
+- [ ] Publish verified release artifacts and confirm their public bytes/version.
+- [ ] Record the release receipt and next dependency in the readiness tracker.
+
+## Review/release scope
+
+Review index admission and archival/offline compatibility in Hitlist #682, and
+missing detectability masks/provenance in Presto #72. Preserve existing user
+worktrees and caches; use isolated checkouts and CI for memory-heavy checks.
+Do not treat software release as certification of the training corpus.
+Hitlist uses its existing clean-main release workflow and PyPI upload. Presto
+has no release workflow and its distribution name collides with an unrelated
+PyPI project; prepare verified GitHub wheel/source artifacts while resolving
+the requested publication destination. Never upload to the unrelated project.
+A release must identify the merged SHA, test results and artifact hashes.
+
+Review found #683: origin enrichment consumes mappings without expansion or a
+gene filter. The exact preflight function previously returned `mappings=not_used`
+for this option with absent mappings; it now rejects it. The real cache-backed
+regression joins the admission parameter cases. Prior-head CI passed 2,931 unit
+tests (two skips) and 96 integration tests; rerun CI for this reviewed head.
+
 # Training input preflight — #679 / training release series #678
 
 Specification: [training-input-preflight-spec.md](training-input-preflight-spec.md).
@@ -7,7 +34,7 @@ Specification: [training-input-preflight-spec.md](training-input-preflight-spec.
 - [x] Add meaningful regressions and demonstrate the previous failure.
 - [x] Implement bundle freshness policy, manifest record and CLI parity.
 - [ ] Version, format, lint, full tests and final-head CI.
-- [ ] Open the first PR and record validation and remaining series dependencies.
+- [x] Open the first PR and record validation and remaining series dependencies.
 
 ## Review
 
