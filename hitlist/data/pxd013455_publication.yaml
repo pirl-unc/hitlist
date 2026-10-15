@@ -1,6 +1,6 @@
 schema_version: 1
 dataset_id: pxd013455-hela-tryp46-v1
 url: https://github.com/pirl-unc/hitlist/releases/download/pxd013455-hela-tryp46-v1/pxd013455-hela-tryp46-v1.tar.gz
-sha256: 22b2e42b851d534cb52d8255e2369e4e3f7336b1f52bfc79b3a6faa7e6d7b56e
-size_bytes: 84673188
-manifest_sha256: 144dd2ebcd502ed3890eaff5bec221e993a40e0f3f6cf19ff0d5d7033de92950
+sha256: 9684ae010280fa84ee952439613391fe8f8bce04cceb8818d296615ef636bc9b
+size_bytes: 84673182
+manifest_sha256: 441f3c66c6e6bc6a90c7cb8c54d0131676c3cb4e7a04ddbd9346061ad8f9d84b

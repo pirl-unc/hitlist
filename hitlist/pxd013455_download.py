@@ -3,8 +3,8 @@
 from pathlib import Path
 
 import datacache
-import yaml
 
+from .curation_yaml import load_curation_yaml
 from .downloads import data_dir
 from .pxd013455_publication import verify_pxd013455_bundle
 
@@ -17,8 +17,7 @@ def load_pxd013455_bundle(*, data_root=None, force=False):
     Source reconstruction is separate. Failed downloads, extraction or inventory
     validation preserve the previous generation; verified reuse works offline.
     """
-    with PUBLICATION.open() as handle:
-        publication = yaml.safe_load(handle)
+    publication = load_curation_yaml(PUBLICATION)
     root = Path(data_root or data_dir()) / "scoped-proteomics" / "pxd013455-hela-tryp46"
     return Path(
         datacache.install_archive(

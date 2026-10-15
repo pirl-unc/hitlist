@@ -13,8 +13,8 @@ from pathlib import Path, PureWindowsPath
 
 import datacache
 import pandas as pd
-import yaml
 
+from .curation_yaml import load_curation_yaml
 from .detectability import DetectabilitySearchSpace
 from .downloads import data_dir
 from .provenance import file_digest
@@ -23,8 +23,7 @@ CATALOG = Path(__file__).parent / "data" / "pxd013455.yaml"
 
 
 def _catalog():
-    with CATALOG.open() as handle:
-        return yaml.safe_load(handle)
+    return load_curation_yaml(CATALOG)
 
 
 def recover_pxd013455_sources(*, data_root=None):
