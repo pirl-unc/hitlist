@@ -320,6 +320,15 @@ def test_real_mapping_only_build_publishes_a_complete_generation(tiny_dataset, m
     assert json.loads(mappings.mappings_meta_path().read_text())["unmapped_organisms"]
     # A current standalone mapping build is quiet and does not publish again.
     assert mappings.build_peptide_mappings(fetch_missing=False, verbose=False) == path
+    old_mapping = path.read_bytes()
+    # Overrides are only valid inside the full builder, even on a cache hit.
+    with pytest.raises(ValueError, match="Frame overrides require"):
+        mappings.build_peptide_mappings(
+            obs_override=pd.read_parquet(builder._observations_path()),
+            fetch_missing=False,
+            verbose=False,
+        )
+    assert path.read_bytes() == old_mapping
 
 
 def test_sidecar_update_rejects_an_intervening_generation(tiny_dataset, monkeypatch):

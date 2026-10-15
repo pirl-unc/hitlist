@@ -559,45 +559,39 @@ def build_peptide_mappings(
     )
     from .proteome import ProteomeIndex
 
-    if not is_staging(root=data_dir()) and (
-        force
-        or not _cache_is_valid(
-            release=release,
-            use_uniprot=use_uniprot,
-            fetch_missing=fetch_missing,
-            flank=flank,
-        )
-    ):
-        # Legacy flat builds are unchanged; generation builds run this callback
-        # once inside private staging. Overrides are internal to a full build.
+    if not is_staging(root=data_dir()):
+        # Overrides are internal to a full build, even when the previously
+        # published mappings happen to satisfy this call's cache contract.
         from .dataset import _inspection
 
         if _inspection(data_dir()).status == "available":
-            if (
-                obs_override is not None
-                or binding_override is not None
-                or other_override is not None
-            ):
+            if any(frame is not None for frame in (obs_override, binding_override, other_override)):
                 raise ValueError("Frame overrides require a complete staged observations build")
-            return update_dataset(
-                ("peptide_mappings.parquet", "peptide_mappings_meta.json"),
-                lambda: build_peptide_mappings(
-                    release=release,
-                    fetch_missing=fetch_missing,
-                    use_uniprot=use_uniprot,
-                    force=True,
-                    flank=flank,
-                    verbose=verbose,
-                ),
-                root=data_dir(),
-                metadata_updates={"with_mappings": True},
-                options={
-                    "release": release,
-                    "fetch_missing": fetch_missing,
-                    "use_uniprot": use_uniprot,
-                    "flank": flank,
-                },
-            )
+            if force or not _cache_is_valid(
+                release=release,
+                use_uniprot=use_uniprot,
+                fetch_missing=fetch_missing,
+                flank=flank,
+            ):
+                return update_dataset(
+                    ("peptide_mappings.parquet", "peptide_mappings_meta.json"),
+                    lambda: build_peptide_mappings(
+                        release=release,
+                        fetch_missing=fetch_missing,
+                        use_uniprot=use_uniprot,
+                        force=True,
+                        flank=flank,
+                        verbose=verbose,
+                    ),
+                    root=data_dir(),
+                    metadata_updates={"with_mappings": True},
+                    options={
+                        "release": release,
+                        "fetch_missing": fetch_missing,
+                        "use_uniprot": use_uniprot,
+                        "flank": flank,
+                    },
+                )
 
     out = mappings_path()
     if obs_override is not None:

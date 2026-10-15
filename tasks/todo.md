@@ -31,6 +31,9 @@ Review found that an explicit independent expression output unnecessarily
 resolved the default cache. A regression demonstrated the failure with a damaged
 default generation; independent destinations now remain independent, while writes
 to managed generation paths still publish safely or reject old generations.
+The actual mapping writer also reproduced an external-frame override bypass
+when its previous sidecar was already current; the staged-only override guard
+now applies before considering a cache hit. Old-generation bytes remain intact.
 Exact-head CI and clean-main release remain required.
 
 Datacache 1.25.1 provides public materialize/inspect_materialization APIs;
