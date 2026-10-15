@@ -59,12 +59,72 @@ first-token identifier. The reference must contain the searched target proteins;
 do not mix decoys into a target-only training reference without an explicit
 search contract for that target subset.
 
+## Reproducible PXD013455 reanalysis
+
+The recovered HeLa 46-fraction scope has an exact searched FASTA, effective
+parameters, peptide results and paper supplements. Rebuild and inspect it with:
+
+For the published artifact, `hitlist.load_pxd013455_bundle()` downloads and
+verifies the pinned 84,673,182-byte portable archive through datacache, without
+rebuilding sources. The archive SHA-256 is
+`9684ae010280fa84ee952439613391fe8f8bce04cceb8818d296615ef636bc9b`;
+the manifest SHA-256 is
+`441f3c66c6e6bc6a90c7cb8c54d0131676c3cb4e7a04ddbd9346061ad8f9d84b`.
+The [data release](https://github.com/pirl-unc/hitlist/releases/tag/pxd013455-hela-tryp46-v1)
+contains the archive and inspection reports. To reproduce from original inputs:
+
+```python
+from pathlib import Path
+from hitlist import build_pxd013455_bundle, export_pxd013455_archive, verify_pxd013455_bundle
+
+paths = build_pxd013455_bundle()
+directory = Path(paths["manifest.json"]).parent
+manifest = verify_pxd013455_bundle(directory)
+archive = export_pxd013455_archive()
+```
+
+Sources, intermediate observations, complete publications and portable archives
+are immutable datacache generations under the shared Hitlist data directory.
+The large PRIDE ZIP is read by bounded member ranges, retaining compressed and
+expanded hashes, CRC32 and HTTP validator receipts. The source catalog records
+every pinned URL and checksum; rebuilding never substitutes a modern FASTA.
+Changed inputs or damaged caches fail until explicitly rebuilt with `force=True`.
+
+The bundle contains source observations, observed parents, candidates with stable
+IDs and positive source-observation links, the searched reference, raw-run
+inventory, supplementary workbooks, source registry, label policy, coverage,
+independent validation and a readable inventory. `manifest.json` hashes every
+artifact. `audit_pxd013455_candidates(directory)` rechecks every coordinate,
+flank, digestion boundary, sequence label and observation link. A downloaded
+bundle should be verified against its published manifest SHA-256, not merely
+its own self-reported inventory. Use `datacache.install_archive` with the public
+archive hash and size and `validator=verify_pxd013455_bundle` to share downloads.
+
+The sources yield 172,033 accepted sequences: 150,855 MS/MS identifications and
+21,178 match-between-runs identifications. Their evidence types remain distinct.
+The single aggregate opportunity does not establish a biological replicate;
+specimen, donor and replicate identity remain unresolved. No graded depth or
+reproducibility target is created, and no partition or independence claim is
+implied by this publication. Presto must freeze and audit actual membership.
+
+The [original paper](https://doi.org/10.1016/j.cels.2017.05.009) reports a pH 8
+fractionation buffer, correcting the earlier unsupported pH 10 default for this
+scope ([#688](https://github.com/pirl-unc/hitlist/issues/688)). This is reported
+buffer pH, not a measured gradient/eluate pH. Effective results report MaxQuant
+1.6.0.16 while the standalone XML reports 1.6.0.1; both are retained. The reference
+contains 93,588 accessions including 21,997 isoforms, despite its `71591` filename.
+The [reanalysis paper](https://doi.org/10.1038/s41597-021-00890-2) and both papers'
+supplementary tables are citable entries in the source registry. These are
+reanalysis labels; they do not resolve the original PXD004452 search reference.
+
 ## Historical Bekker-Jensen input
 
-Defaults select HeLa, Trypsin/P, 46 fractions, no enrichment, pH 10, 7–30 residues,
+Legacy defaults select HeLa, Trypsin/P, 46 fractions, no enrichment, pH 10, 7–30 residues,
 at most two missed cleavages, and observed parents only. They resolve the
 packaged observation scope, but **cannot supply the missing historical FASTA or
 unrecorded search limits**. Calling without a verified search contract fails.
+The pH default is under source review in #688 and must not be reused as verified
+protocol metadata for the recovered reanalysis above.
 
 The original [PXD004452 deposit](https://www.ebi.ac.uk/pride/archive/projects/PXD004452)
 records only a local `HUMAN.fasta` filename, no FASTA checksum or UniProt release.

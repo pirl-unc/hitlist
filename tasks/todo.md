@@ -1,3 +1,39 @@
+# Scoped PXD013455 publication — 2026-10-15
+
+Specification: [pxd013455-publication-spec.md](pxd013455-publication-spec.md).
+
+- [x] Locate the primary public deposit and original/reanalysis publications.
+- [x] Write the recovery/publication contract before implementation.
+- [x] Recover and hash source settings/reference/results using datacache.
+- [x] Rebuild and independently validate the documented scope.
+- [ ] Publish legible source, label-policy and scope/support artifacts.
+- [ ] Test, review, version, merge, deploy and verify public downloads.
+
+## Review
+
+Datacache #122 shipped as 1.27.0 and recovered the complete selected ZIP members
+without downloading the 35.4 GB archive. A decompression boundary regression
+found during importer tests is fixed in datacache #124. Source reconstruction
+reproduces 172,033 observations (150,855 MS/MS and 21,178 matching), 12,287 parents
+and all 46 raw-file/fraction assignments. Paper review corrected the pH default
+with explicit source attribution (#688). The new source and publication tests
+pass 43 cases, including independent audit failures and prior-generation reuse.
+Full candidate audit, complete software gates and public release remain required.
+
+The full audit now passes for 1,656,863 candidate occurrences, including 203,635
+observed occurrences and 163,994 distinct observed sequences. A separate forced
+rebuild reproduced the census. The 23-file portable archive is 84,673,182 bytes,
+SHA256 9684ae010280fa84ee952439613391fe8f8bce04cceb8818d296615ef636bc9b;
+manifest SHA256 441f3c66c6e6bc6a90c7cb8c54d0131676c3cb4e7a04ddbd9346061ad8f9d84b.
+The pinned published-download API avoids rebuilding sources and verifies archive
+and inventory hashes through datacache. The expanded focused suite passes 178
+tests. First CI unit jobs hit a transient index propagation delay for datacache
+1.27.1; the dependency is now discoverable. The next full unit run passed 3,016
+cases and caught one YAML duplicate-key guard violation. Both new registry
+readers now use the mandatory guard; 102 focused source/registry cases pass.
+The corrected source recipe was rebuilt and audited before repinning the archive.
+Final-head CI and public release remain required.
+
 # Dataset qualification series — 2026-10-15
 
 Specification: [atomic-generations-spec.md](atomic-generations-spec.md).
