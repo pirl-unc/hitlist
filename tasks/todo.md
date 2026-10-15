@@ -4,11 +4,22 @@ Specification: [current-corpus-publication-spec.md](current-corpus-publication-s
 
 - [x] Reproduce the current/legacy inventory mismatch and inspect consumers.
 - [x] Record portable-generation contract and actual-corpus scope before edits.
-- [ ] Implement complete datacache snapshots and versioned public manifests.
-- [ ] Add current-builder, stale-mapping, corruption and legacy regressions.
+- [x] Implement complete datacache snapshots and versioned public manifests.
+- [x] Add current-builder, stale-mapping, corruption and legacy regressions.
 - [ ] Verify, review, version, merge and deploy the publication tooling.
 - [ ] Rebuild independently from pinned sources, publish and verify actual corpus.
 - [ ] Freeze actual cohorts and publish coverage/lineage/leakage limitations.
+
+## Review
+
+The tooling now pins one generation, validates every recorded generation hash,
+all six index fingerprints, captured contributor hashes and source-matched
+mapping metadata. Public manifest v2 retains all seven parquets, portable mapping
+metadata, original source hashes and a readable inventory; v1 remains supported.
+Datacache owns publication and hash-pinned downloads. Release receipts include the
+complete verified inventory. The real-builder/fault/download/release regression
+set passes 70 tests, with format/lint passing. Full final-head gates and the actual
+new corpus remain pending; workflows still use the verified v2 legacy release.
 
 # Scoped PXD013455 publication — 2026-10-15
 

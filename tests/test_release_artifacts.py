@@ -61,6 +61,20 @@ def release_bundle(tmp_path, monkeypatch):
     corpus.mkdir()
     for filename in CORPUS_FILES:
         (corpus / filename).write_bytes(b"corpus")
+    (corpus / "observations_meta.json").write_text(
+        json.dumps(
+            {
+                "ci_corpus_manifest_version": 1,
+                "artifact_version": 5,
+                "mhcgnomes_version": "3.64.4",
+                "files": {
+                    name: release_artifacts.file_digest(corpus / name)
+                    for name in CORPUS_FILES
+                    if name != "observations_meta.json"
+                },
+            }
+        )
+    )
     monkeypatch.setenv("GITHUB_RUN_ID", "123")
     write_manifest(dist, corpus, root)
     manifest = json.loads((dist / "release.json").read_text())

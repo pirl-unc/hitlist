@@ -79,13 +79,17 @@ def installed_dependencies():
 
 def write_manifest(directory, corpus_dir, root=ROOT):
     source = source_state(root)
-    corpus = {name: file_digest(corpus_dir / name) for name in CORPUS_FILES}
+    corpus_tools = runpy.run_path(str(ROOT / "scripts" / "ci_corpus.py"))
+    corpus_manifest = corpus_tools["verify_manifest"](corpus_dir)
+    names = (*corpus_tools["public_files"](corpus_manifest), "observations_meta.json")
+    corpus = {name: file_digest(corpus_dir / name) for name in names}
     manifest = {
         "workflow_run_id": os.environ.get("GITHUB_RUN_ID"),
         "source_commit": source["commit"],
         "version": source["version"],
         "files": distribution_files(directory, source["version"]),
         "corpus": corpus,
+        "corpus_manifest": corpus_manifest,
         "dependencies": installed_dependencies(),
     }
     (directory / "release.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
@@ -100,7 +104,15 @@ def verify_manifest(directory, root=ROOT):
         raise ValueError("Artifacts do not match the current main commit and version")
     if manifest["files"] != distribution_files(directory, source["version"]):
         raise ValueError("Distribution checksum or size differs from the tested artifact")
-    if set(manifest["corpus"]) != set(CORPUS_FILES):
+    if "corpus_manifest" in manifest:
+        corpus_tools = runpy.run_path(str(ROOT / "scripts" / "ci_corpus.py"))
+        public = manifest["corpus_manifest"]
+        names = (*corpus_tools["public_files"](public), "observations_meta.json")
+        if any(manifest["corpus"].get(name) != digest for name, digest in public["files"].items()):
+            raise ValueError("Release corpus hashes disagree with the public corpus manifest")
+    else:
+        names = CORPUS_FILES  # Existing release receipts retain their original v1 inventory.
+    if set(manifest["corpus"]) != set(names):
         raise ValueError("Release provenance is missing required corpus files")
     run_id = str(manifest["workflow_run_id"])
     if not run_id.isdigit():
