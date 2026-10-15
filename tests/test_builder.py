@@ -153,8 +153,10 @@ def test_curation_change_rebuilds_stored_evidence(isolated_curation, tmp_path, m
     overrides.write_text(
         "- pmid: 33858848\n  restriction_evidence: predicted\n  override: healthy\n"
     )
-    builder.build_observations(build_mappings=False)
-    second = pd.read_parquet(path)
+    rebuilt = builder.build_observations(build_mappings=False)
+    assert rebuilt != path
+    pd.testing.assert_frame_equal(first, pd.read_parquet(path))
+    second = pd.read_parquet(rebuilt)
     assert set(second.loc[second.pmid == 33858848, "restriction_evidence"]) == {"predicted"}
     assert not second.loc[second.pmid == 33858848, "src_cancer"].any()
     identity_columns = ["assay_iri", "peptide", "pmid", "mhc_restriction"]

@@ -11,6 +11,7 @@ import pandas as pd
 
 from .assays import MS_POLICY_VERSION, annotate_assays, ms_exclusion_reasons
 from .cta_expression import resolve_expression_table, summarize_cta_mappings
+from .dataset import dataset_snapshot
 from .provenance import file_digest
 from .tissue_blacklist import (
     _tissue_groups,
@@ -300,6 +301,7 @@ def _peptide_summary(
     return summary, annotated
 
 
+@dataset_snapshot()
 def write_cta_evidence_bundle(
     directory,
     expression_path=None,

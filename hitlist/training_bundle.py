@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from .dataset import dataset_path, dataset_snapshot
 from .lineage import AXES, LINEAGE_COLUMNS, lineage_path, load_lineage
 from .provenance import (
     CONTRIBUTOR_COLUMNS,
@@ -57,6 +58,7 @@ def _write_json(path, value):
     Path(path).write_text(json.dumps(value, indent=2, sort_keys=True, allow_nan=False) + "\n")
 
 
+@dataset_snapshot()
 def _inputs(*, proteome_release=None):
     from .builder import _cache_meta, _curation_fingerprints
     from .downloads import data_dir
@@ -64,7 +66,7 @@ def _inputs(*, proteome_release=None):
     # Record both the build's curation and the curation used now to enrich
     # training rows. An old index must never acquire a fictitious new build hash.
     paths = {
-        name: data_dir() / name
+        name: dataset_path(name, root=data_dir())
         for name in (
             "observations.parquet",
             "binding.parquet",
@@ -76,6 +78,10 @@ def _inputs(*, proteome_release=None):
             "line_expression.parquet",
         )
     }
+    generation = dataset_path("observations.parquet").parent
+    if generation != data_dir().absolute():
+        for name in ("README.md", ".datacache-manifest.json"):
+            paths[name] = generation / name
     paths["specimen_lineage.yaml"] = lineage_path()
     from .line_expression import _packaged_input_paths
 
@@ -97,16 +103,21 @@ def _inputs(*, proteome_release=None):
     for name, entry in curation.items():
         if entry.get("path"):
             paths[name] = Path(entry["path"])
-    return {
-        "files": {
-            name: {"path": str(path), **file_digest(path)}
-            if path.exists()
-            else {"path": str(path), "missing": True}
-            for name, path in paths.items()
-        },
-        "build_metadata": _cache_meta(),
-        "current_curation": curation,
+    files = {
+        name: {"path": str(path), **file_digest(path)}
+        if path.exists()
+        else {"path": str(path), "missing": True}
+        for name, path in paths.items()
     }
+    if generation != data_dir().absolute():
+        receipt = json.loads((generation / ".datacache-manifest.json").read_text())
+        for name, expected in receipt["outputs"].items():
+            if name in files and (
+                files[name].get("sha256") != expected["sha256"]
+                or files[name].get("size_bytes") != expected["size"]
+            ):
+                raise ValueError(f"Dataset generation hash mismatch: {name}; rebuild observations")
+    return {"files": files, "build_metadata": _cache_meta(), "current_curation": curation}
 
 
 def _identity_table(training):
@@ -273,6 +284,7 @@ def _input_validation(options, *, require_current_indexes):
     return result
 
 
+@dataset_snapshot()
 def write_training_bundle(
     directory, *, split_policy="report_only", require_current_indexes=True, **training_options
 ) -> Path:

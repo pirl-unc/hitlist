@@ -21,6 +21,8 @@ from urllib.parse import quote
 
 import pandas as pd
 
+from .dataset import dataset_path, dataset_snapshot
+
 SCHEMA_VERSION = 1
 RELATIONS = {
     "assay_copy": 1,
@@ -58,7 +60,7 @@ def file_digest(path: Path) -> dict:
 def contributors_path() -> Path:
     from .downloads import data_dir
 
-    return data_dir() / "observation_contributors.parquet"
+    return dataset_path("observation_contributors.parquet", root=data_dir())
 
 
 class ProvenanceStorageError(RuntimeError):
@@ -436,6 +438,7 @@ class ContributorCollector:
         }
 
 
+@dataset_snapshot()
 def _contributor_contract(*, verify_hashes=False):
     """Check captured artifacts using stats, or hashes for contributor reads."""
     from .builder import _binding_path, _cache_meta, _observations_path, _other_assays_path
@@ -470,6 +473,7 @@ def _contributor_contract(*, verify_hashes=False):
     return contract
 
 
+@dataset_snapshot()
 def load_contributors(provenance_ids=None) -> pd.DataFrame:
     """Load source contributors after verifying sidecar and index content hashes.
 

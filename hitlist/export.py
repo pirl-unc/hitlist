@@ -60,6 +60,7 @@ from .curation import (
     species_axes_agreement,
 )
 from .curation import normalize_serotype_query as _normalize_serotype_query
+from .dataset import dataset_snapshot
 from .pandas_utils import fillna_scalar_safe as _fillna_scalar_safe
 from .species_contexts import (
     ARM_SPECIFIC_SPECIES_CONTEXT_COLUMNS,
@@ -1145,6 +1146,7 @@ def _empty_ms_samples_columns() -> list[str]:
     ]
 
 
+@dataset_snapshot()
 def generate_ms_samples_table(
     mhc_class: str | None = None,
     apm_only: bool = False,
@@ -1392,6 +1394,7 @@ def _observation_eligible_samples(samples: pd.DataFrame) -> pd.DataFrame:
     return samples[samples["profiled"] != "false"].reset_index(drop=True)
 
 
+@dataset_snapshot()
 def generate_observations_table(
     mhc_class: str | None = None,
     species: str | None = None,
@@ -2872,6 +2875,7 @@ def generate_observations_table(
     return result
 
 
+@dataset_snapshot()
 def generate_ms_observations_table(
     mhc_class: str | None = None,
     species: str | None = None,
@@ -2942,6 +2946,7 @@ def generate_ms_observations_table(
     )
 
 
+@dataset_snapshot()
 def generate_binding_table(
     mhc_class: str | None = None,
     species: str | None = None,
@@ -3206,6 +3211,7 @@ _SAMPLE_PROVENANCE_COLUMNS = (
 )
 
 
+@dataset_snapshot()
 def generate_sample_expression_table(
     mhc_class: str | None = None,
     cancer_type_backend=None,
@@ -3799,6 +3805,7 @@ def _project_training_columns(df: pd.DataFrame, columns: list[str] | None) -> pd
     return df[available]
 
 
+@dataset_snapshot()
 def generate_training_table(
     include_evidence: str = "both",
     mhc_class: str | None = None,
@@ -4626,6 +4633,7 @@ def _best_support_label(summary_row: pd.Series) -> str:
     return ""
 
 
+@dataset_snapshot()
 def generate_ms_peptide_summary_table(
     mhc_class: str | None = None,
     species: str | None = None,
@@ -4871,6 +4879,7 @@ def generate_ms_peptide_summary_table(
     return result
 
 
+@dataset_snapshot()
 def generate_species_summary(mhc_class: str | None = None) -> pd.DataFrame:
     """Summarize MS-elution data coverage by species and MHC class.
 
@@ -4941,6 +4950,7 @@ def generate_species_summary(mhc_class: str | None = None) -> pd.DataFrame:
     return summary
 
 
+@dataset_snapshot()
 def validate_mhc_alleles() -> pd.DataFrame:
     """Parse all MHC alleles in pmid_overrides with mhcgnomes.
 
@@ -5056,6 +5066,7 @@ def _mhc_class_matches(sample_class: str, filter_class: str, sample_row=None) ->
     return normalize_mhc_class_token(filter_class) in parts
 
 
+@dataset_snapshot()
 def count_peptides_by_study(
     source: str | None = None,
 ) -> pd.DataFrame:
@@ -5081,6 +5092,7 @@ def count_peptides_by_study(
     return study_df
 
 
+@dataset_snapshot()
 def collect_alleles_from_data(
     source: str | None = None,
 ) -> pd.DataFrame:

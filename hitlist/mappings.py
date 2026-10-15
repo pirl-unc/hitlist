@@ -43,6 +43,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from .dataset import dataset_cache_check, dataset_path, dataset_snapshot
 from .downloads import data_dir
 from .parquet_io import atomic_write_parquet
 from .proteome import DEFAULT_FLANK, ENSEMBL_CODING_GENE_BIOTYPES, SEED_KMER_LENGTH
@@ -149,12 +150,12 @@ class MappingResult:
 
 def mappings_path() -> Path:
     """Path to the peptide mappings sidecar."""
-    return data_dir() / "peptide_mappings.parquet"
+    return dataset_path("peptide_mappings.parquet", root=data_dir())
 
 
 def mappings_meta_path() -> Path:
     """Path to the mappings metadata JSON."""
-    return data_dir() / "peptide_mappings_meta.json"
+    return dataset_path("peptide_mappings_meta.json", root=data_dir())
 
 
 def _mapping_artifact_contract(
@@ -182,6 +183,7 @@ def is_mappings_built() -> bool:
     return mappings_path().exists()
 
 
+@dataset_cache_check
 def mappings_cache_is_current(
     *,
     release: int = 112,
@@ -239,6 +241,7 @@ def known_gene_identifiers() -> frozenset[str]:
     return _known_gene_identifiers((st.st_size, st.st_mtime_ns))
 
 
+@dataset_snapshot()
 def _obs_fingerprint() -> dict:
     """Fingerprint both indexes the mappings were built from.
 
@@ -255,10 +258,17 @@ def _obs_fingerprint() -> dict:
     ):
         if p.exists():
             stat = p.stat()
-            fp[label] = {"path": str(p), "size": stat.st_size, "mtime": stat.st_mtime}
+            fp[label] = {
+                # Generation-relative identity survives datacache publication.
+                # Legacy flat fingerprints retain their historical shape.
+                "path": str(p) if p.parent == data_dir().absolute() else p.name,
+                "size": stat.st_size,
+                "mtime": stat.st_mtime,
+            }
     return fp
 
 
+@dataset_cache_check
 def _cache_is_valid(
     *,
     release: int,
@@ -286,6 +296,7 @@ def _cache_is_valid(
     )
 
 
+@dataset_snapshot()
 def load_peptide_mappings(
     peptide: str | list[str] | None = None,
     gene_name: str | list[str] | None = None,
@@ -536,6 +547,7 @@ def build_peptide_mappings(
         reading from disk (the standalone / cache-only path).
     """
     from .builder import _collect_pmid_extra_proteomes
+    from .dataset import is_staging, update_dataset
     from .downloads import fetch_proteome_by_upid, lookup_proteome
     from .observations import (
         is_binding_built,
@@ -546,6 +558,40 @@ def build_peptide_mappings(
         other_assays_path,
     )
     from .proteome import ProteomeIndex
+
+    if not is_staging(root=data_dir()):
+        # Overrides are internal to a full build, even when the previously
+        # published mappings happen to satisfy this call's cache contract.
+        from .dataset import _inspection
+
+        if _inspection(data_dir()).status == "available":
+            if any(frame is not None for frame in (obs_override, binding_override, other_override)):
+                raise ValueError("Frame overrides require a complete staged observations build")
+            if force or not _cache_is_valid(
+                release=release,
+                use_uniprot=use_uniprot,
+                fetch_missing=fetch_missing,
+                flank=flank,
+            ):
+                return update_dataset(
+                    ("peptide_mappings.parquet", "peptide_mappings_meta.json"),
+                    lambda: build_peptide_mappings(
+                        release=release,
+                        fetch_missing=fetch_missing,
+                        use_uniprot=use_uniprot,
+                        force=True,
+                        flank=flank,
+                        verbose=verbose,
+                    ),
+                    root=data_dir(),
+                    metadata_updates={"with_mappings": True},
+                    options={
+                        "release": release,
+                        "fetch_missing": fetch_missing,
+                        "use_uniprot": use_uniprot,
+                        "flank": flank,
+                    },
+                )
 
     out = mappings_path()
     if obs_override is not None:

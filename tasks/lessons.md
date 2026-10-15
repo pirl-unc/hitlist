@@ -472,3 +472,11 @@
   scenarios the same PR made unreachable. The pattern is specific: plausible
   mechanisms at corpus scale are worth exactly what an unmeasured mechanism is
   worth. Before writing a number in a PR body or a comment, run the thing.
+
+
+- Respect a narrowed consumer scope throughout a multi-repository series.
+  The 2026-10-15 instruction explicitly defers MHCflurry; work only on Hitlist
+  and its Presto consumer now. Use datacache for acquisition and publication,
+  and make source citations, cell types, MHC allele sets, conditions and assays
+  inspectable by humans alongside hashes, policies, partitions and audits.
+  Passing software tests is not evidence that the actual corpus is qualified.

@@ -1,3 +1,46 @@
+# Dataset qualification series — 2026-10-15
+
+Specification: [atomic-generations-spec.md](atomic-generations-spec.md).
+
+- [x] Inspect publication, datacache storage, consumer contracts and live trackers.
+- [x] Create an isolated feature worktree and record the approved scope/contract.
+- [x] Add failure-injection and reader-consistency regressions for #645.
+- [x] Implement datacache generations, pinned reads and safe standalone updates.
+- [ ] Review, version, format, lint, full tests and exact-head CI.
+- [ ] Merge and deploy Hitlist; verify public distribution bytes and release receipt.
+- [ ] Presto #71: frozen inputs, explicit assay policy and retained parent lineage.
+- [ ] Hitlist #681 / Presto #70: durable scoped detectability data and consumer.
+- [ ] Hitlist #680: pinned corpus, fixed partitions, human inventory and leakage audit.
+- [ ] Presto #48/#53: measured output support and bounded real-data qualification.
+
+## Review
+
+The regression-only run failed after contributor publication, demonstrating changed
+old bytes. Seven output-write interruption tests pass after implementation;
+additional coverage verifies final publication/validation failures, pinned readers,
+legacy migration, damaged-store recovery, standalone updates and concurrent exports.
+Format/lint pass. Full local test.sh refused 0.13 GiB available; no guard bypass.
+The broader focused suite passed 254 tests (four integration cases excluded).
+Review also checks mapping bytes against the published generation receipt, so
+same-size sidecar tampering cannot be re-certified by a new training export.
+The existing CI corpus publisher's outdated inventory/flat paths are tracked
+in #685 for the actual corpus publication stage. Initial full Python 3.9 CI passed 2,954 tests and found one obsolete assay-test
+mapping stub that captured frames without producing its declared outputs. The
+stub now writes both mapping artifacts; publication validation stays strict.
+Review found that an explicit independent expression output unnecessarily
+resolved the default cache. A regression demonstrated the failure with a damaged
+default generation; independent destinations now remain independent, while writes
+to managed generation paths still publish safely or reject old generations.
+The actual mapping writer also reproduced an external-frame override bypass
+when its previous sidecar was already current; the staged-only override guard
+now applies before considering a cache hit. Old-generation bytes remain intact.
+Exact-head CI and clean-main release remain required.
+
+Datacache 1.25.1 provides public materialize/inspect_materialization APIs;
+use its complete-generation publication and retain prior files. MHCflurry is
+explicitly deferred. The prior #682/#72 releases are shipped, but #678 remains
+open until concrete data/model acceptance artifacts exist.
+
 # Review and ship Hitlist training-readiness PR — 2026-10-14
 
 - [x] Review the full diff, caller contracts, failure paths and regression coverage.

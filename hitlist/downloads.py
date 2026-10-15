@@ -1319,7 +1319,9 @@ def fetch(name: str, force: bool = False) -> Path:
                 continue
             fetch(key, force=force)
         build_line_expression(verbose=True)
-        output = data_dir() / "line_expression.parquet"
+        from .line_expression import line_expression_path
+
+        output = line_expression_path()
         register("depmap", output, description="DepMap 24Q4 line-expression index")
         return output
     if name not in FETCHABLE_DATASETS:

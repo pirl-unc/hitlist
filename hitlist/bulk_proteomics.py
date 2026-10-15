@@ -54,6 +54,7 @@ import pandas as pd
 from pyarrow.lib import ArrowInvalid
 
 from .curation_yaml import load_curation_yaml
+from .dataset import dataset_path, dataset_snapshot
 
 _DATA_MODULE = "hitlist.data.bulk_proteomics"
 
@@ -62,7 +63,7 @@ def bulk_proteomics_path() -> Path:
     """Path to the built ``bulk_proteomics.parquet`` in ``data_dir()``."""
     from .downloads import data_dir
 
-    return data_dir() / "bulk_proteomics.parquet"
+    return dataset_path("bulk_proteomics.parquet", root=data_dir())
 
 
 def is_bulk_proteomics_built() -> bool:
@@ -349,6 +350,7 @@ def _apply_enrichment_filter(df: pd.DataFrame, enrichment) -> pd.DataFrame:
     return df[df["enrichment"] == enrichment]
 
 
+@dataset_snapshot()
 def load_bulk_proteomics(
     cell_line: str | Iterable[str] | None = None,
     gene_name: str | Iterable[str] | None = None,

@@ -68,6 +68,7 @@ from .curation import (
     ms_excluded_pmids,
     normalize_allele,
 )
+from .dataset import dataset_snapshot
 from .pandas_utils import fillna_scalar_safe
 
 _MHC_AUDIT_COLUMNS = [
@@ -127,6 +128,7 @@ def _split_mhc_audit_tokens(value: object, *, curated: bool = False) -> list[str
     return tokens
 
 
+@dataset_snapshot()
 def _default_mhc_audit_frames() -> dict[str, pd.DataFrame]:
     """Read only audit columns that exist in each built evidence parquet."""
     import pyarrow.parquet as pq
@@ -663,6 +665,7 @@ _SAMPLE_ATTRIBUTION_AUDIT_COLUMNS = [
 ]
 
 
+@dataset_snapshot()
 def sample_attribution_audit(
     samples: pd.DataFrame | None = None,
     observations: pd.DataFrame | None = None,
@@ -886,6 +889,7 @@ def resolution_histogram(
     return counts.reset_index(drop=True)
 
 
+@dataset_snapshot()
 def normalization_drift() -> pd.DataFrame:
     """Find alleles in pmid_overrides whose normalized form differs from input.
 
@@ -932,6 +936,7 @@ def normalization_drift() -> pd.DataFrame:
     )
 
 
+@dataset_snapshot()
 def species_axis_audit() -> pd.DataFrame:
     """Audit the #46 multi-axis species columns for chimeric / suspicious rows.
 
@@ -1026,6 +1031,7 @@ def species_axis_audit() -> pd.DataFrame:
     )
 
 
+@dataset_snapshot()
 def cross_reference(mhc_class: str | None = None) -> pd.DataFrame:
     """Find allele/data mismatches between curation YAML and observations.
 
@@ -1148,6 +1154,7 @@ def cross_reference(mhc_class: str | None = None) -> pd.DataFrame:
     )
 
 
+@dataset_snapshot()
 def discrepancies(
     mhc_class: str | None = None,
     min_rows: int = 50,
@@ -1346,6 +1353,7 @@ def discrepancies(
     return out[output_cols].reset_index(drop=True)
 
 
+@dataset_snapshot()
 def run_all(mhc_class: str | None = None) -> dict[str, pd.DataFrame]:
     """Run every QC check and return a name → DataFrame mapping.
 
@@ -1438,6 +1446,7 @@ def _curation_plan_columns(available_optional: list[str]) -> list[str]:
     ]
 
 
+@dataset_snapshot()
 def curation_plan(
     mhc_class: str | None = None,
     min_rows: int = 50,
@@ -1619,6 +1628,7 @@ def curation_plan(
     return plan[output_cols].reset_index(drop=True)
 
 
+@dataset_snapshot()
 def proteome_coverage(
     min_rows: int = 1,
     use_uniprot: bool = False,

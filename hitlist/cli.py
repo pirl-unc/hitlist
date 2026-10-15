@@ -158,6 +158,11 @@ def _data_location_lines() -> list[str]:
         if built == assets
         else [("built indexes", built, why), ("data assets", assets, "datacache")]
     )
+    from .dataset import dataset_snapshot
+
+    with dataset_snapshot(root=built) as generation:
+        if generation != built:
+            rows.append(("current dataset", generation, "datacache generation"))
     rows.append(("proteome index cache", index_cache, index_why))
     rows.append(("UniProt references", built / "uniprot", "data directory"))
     width = max(len(label) for label, _, _ in rows)

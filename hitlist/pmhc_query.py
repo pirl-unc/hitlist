@@ -31,6 +31,7 @@ import time
 
 import pandas as pd
 
+from .dataset import dataset_snapshot
 from .genes import resolve_gene_query
 from .pandas_utils import fillna_scalar_safe
 from .sample_identity import (
@@ -84,6 +85,7 @@ def _progress(msg: str, verbose: bool) -> None:
         print(f"[pmhc] {msg}", file=sys.stderr, flush=True)
 
 
+@dataset_snapshot()
 def query(
     proteins: list[str] | None = None,
     alleles: list[str] | None = None,
@@ -932,6 +934,7 @@ def tissue_distribution(
     return res
 
 
+@dataset_snapshot()
 def query_by_samples(
     samples_to_alleles: dict[str, list[str]],
     proteins: list[str] | None = None,
