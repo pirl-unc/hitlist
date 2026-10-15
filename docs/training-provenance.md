@@ -138,6 +138,21 @@ retains audit fields even when the training projection omits them. The manifest
 is published last; an interrupted directory without it is not a valid bundle.
 Existing destinations are never overwritten.
 
+New bundles require **current indexes** before loading the training table. The
+read-only preflight checks the observation source/curation/artifact contract and
+any mapping sidecar consumed by expansion, gene filters or peptide-origin enrichment. Freshness is
+checked against its recorded build settings. Missing registered sources are
+unverifiable, not current. Stale, incomplete or missing indexes require
+`hitlist build observations`; the exporter does not rebuild or download inputs.
+
+For an explicitly historical export, use `require_current_indexes=False` in
+Python or `--allow-stale-indexes` with `--bundle`. The manifest's
+`input_validation` records this policy and the actual statuses; the opt-out
+does not certify freshness. Ordinary table reads remain available for legacy
+indexes. Verification of an already frozen bundle stays offline and does not
+require the original sources or a currently matching local cache. Manifests
+created before this preflight was introduced have no freshness certification.
+
 Schema version 1 records output SHA-256 hashes and byte sizes, all effective
 training options, Hitlist/dependency versions, source/build metadata, input-index
 and current-curation hashes, the requested split policy, row/observation counts

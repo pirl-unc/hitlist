@@ -214,13 +214,76 @@ def _coverage(identities, contributors):
     }
 
 
-def write_training_bundle(directory, *, split_policy="report_only", **training_options) -> Path:
+def _input_validation(options, *, require_current_indexes):
+    """Check freshness without reading tables, rebuilding or fetching assets."""
+    from .mappings import mappings_cache_is_current, mappings_meta_path
+    from .observations import observations_cache_is_current
+
+    try:
+        current = observations_cache_is_current()
+        observation_status = {True: "current", False: "stale", None: "unverifiable"}[current]
+    except (OSError, ValueError):
+        observation_status = "invalid"
+    mapping_status = "not_used"
+    mapping_settings = None
+    if any(
+        options.get(name)
+        for name in (
+            "map_source_proteins",
+            "explode_mappings",
+            "with_peptide_origin",
+            "gene",
+            "gene_name",
+            "gene_id",
+        )
+    ):
+        # Training consumes the existing sidecar. `proteome_release` selects
+        # transcript enrichment, not the release/settings used to build it.
+        mapping_status = "stale"
+        try:
+            metadata = json.loads(mappings_meta_path().read_text())
+            contract = metadata.get("contract") if isinstance(metadata, dict) else None
+            fields = {"release": int, "flank": int, "fetch_missing": bool, "use_uniprot": bool}
+            if isinstance(contract, dict) and all(
+                type(contract.get(name)) is kind for name, kind in fields.items()
+            ):
+                mapping_settings = {name: contract[name] for name in fields}
+                if mappings_cache_is_current(**mapping_settings):
+                    mapping_status = "current"
+        except (OSError, ValueError):
+            pass
+    result = {
+        "require_current_indexes": require_current_indexes,
+        "observations": observation_status,
+        "mappings": mapping_status,
+        "mapping_settings": mapping_settings,
+        "scope": "Index freshness only; not label, coverage or partition certification.",
+    }
+    if require_current_indexes and (
+        observation_status != "current" or mapping_status not in {"current", "not_used"}
+    ):
+        raise ValueError(
+            "Training bundles require current input indexes: "
+            f"observations={observation_status}, mappings={mapping_status}. "
+            "Register available source files and run 'hitlist build observations' "
+            "(including consumed peptide mappings). For an explicitly historical export, "
+            "set require_current_indexes=False or use --allow-stale-indexes with --bundle; "
+            "the manifest will retain these unresolved freshness statuses."
+        )
+    return result
+
+
+def write_training_bundle(
+    directory, *, split_policy="report_only", require_current_indexes=True, **training_options
+) -> Path:
     """Write a new reproducible training bundle using the ordinary export API.
 
     A requested column projection affects only ``training.parquet``; the
     identities table retains the fields needed for audits. Contributor links
     never multiply training rows. The destination must not already exist.
-    Legacy indexes explicitly report missing contributor coverage.
+    New bundles require current observations and consumed mapping indexes.
+    ``require_current_indexes=False`` explicitly permits historical inputs;
+    their freshness and missing contributor coverage remain in the manifest.
     """
     from .export import _project_training_columns, generate_training_table
     from .version import __version__
@@ -230,6 +293,8 @@ def write_training_bundle(directory, *, split_policy="report_only", **training_o
         raise FileExistsError(f"Training bundle already exists: {destination}")
     if split_policy not in POLICIES:
         raise ValueError(f"Unknown split policy: {split_policy}")
+    if not isinstance(require_current_indexes, bool):
+        raise ValueError("require_current_indexes must be a boolean")
     bound = inspect.signature(generate_training_table).bind(**training_options)
     bound.apply_defaults()
     options = bound.arguments
@@ -238,6 +303,7 @@ def write_training_bundle(directory, *, split_policy="report_only", **training_o
     json.dumps(options, allow_nan=False)
     if options.get("cancer_type_backend") is not None:
         raise ValueError("Bundles require the default reproducible cancer_type_backend")
+    validation = _input_validation(options, require_current_indexes=require_current_indexes)
     input_options = (
         {"proteome_release": options["proteome_release"]} if options["with_peptide_origin"] else {}
     )
@@ -278,6 +344,13 @@ def write_training_bundle(directory, *, split_policy="report_only", **training_o
         _write_json(staging / FILES["lineage"], load_lineage())
         if _inputs(**input_options) != inputs:
             raise ValueError("Training inputs changed during export; retry from stable indexes")
+        if (
+            _input_validation(options, require_current_indexes=require_current_indexes)
+            != validation
+        ):
+            raise ValueError(
+                "Training input freshness changed during export; retry from stable indexes"
+            )
         manifest = {
             "schema_version": SCHEMA_VERSION,
             "hitlist_version": __version__,
@@ -289,6 +362,7 @@ def write_training_bundle(directory, *, split_policy="report_only", **training_o
             "split_policy": split_policy,
             "randomness": {"used": False, "seed": None},
             "inputs": inputs,
+            "input_validation": validation,
             "artifacts": {
                 key: {"file": filename, **file_digest(staging / filename)}
                 for key, filename in FILES.items()
