@@ -31,7 +31,7 @@ def test_rejects_stale_or_unverifiable_before_generation(tmp_path, monkeypatch, 
     monkeypatch.setattr(observations, "observations_cache_is_current", lambda: status)
     _stop_at_generator(monkeypatch)
     destination = tmp_path / "missing-parent" / "bundle"
-    with pytest.raises(ValueError, match="current.*indexes"):
+    with pytest.raises(ValueError, match=r"current.*indexes"):
         write_training_bundle(destination)
     assert not destination.parent.exists()
 
