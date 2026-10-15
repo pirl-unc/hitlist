@@ -4,15 +4,20 @@ Specification: [training-input-preflight-spec.md](training-input-preflight-spec.
 
 - [x] Audit source/cache semantics and file remaining cross-repository issues.
 - [x] Create isolated feature worktree and write the bounded contract.
-- [ ] Add meaningful regressions and demonstrate the previous failure.
-- [ ] Implement bundle freshness policy, manifest record and CLI parity.
+- [x] Add meaningful regressions and demonstrate the previous failure.
+- [x] Implement bundle freshness policy, manifest record and CLI parity.
 - [ ] Version, format, lint, full tests and final-head CI.
 - [ ] Open the first PR and record validation and remaining series dependencies.
 
 ## Review
 
-Pending. Full local testing requires adequate available memory; do not bypass
-the guard or count a refusal as a pass. Shared sources/cache remain intact.
+Regression-only CI on 10cda44 failed all 12 intended admission cases, with
+2,916 passing tests and two skips in the Python 3.12 job. Stale/unknown inputs
+reached the sentinel generator instead of failing before corpus generation.
+Implementation, CLI/archive/offline-verification coverage and documentation
+are now present; formatting and lint pass. Full local testing requires adequate
+available memory; do not bypass the guard or count a refusal as a pass. Shared
+sources/cache remain intact. Final implementation-head CI remains required.
 
 # orfdata canine protein consumer — #668 stage A
 

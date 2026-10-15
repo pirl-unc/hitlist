@@ -1344,6 +1344,11 @@ def main() -> None:
         "--bundle", help="Write a new directory with a verified manifest"
     )
     p_training.add_argument(
+        "--allow-stale-indexes",
+        action="store_true",
+        help="Allow historical/unverifiable indexes in --bundle; record their freshness",
+    )
+    p_training.add_argument(
         "--columns", nargs="+", help="Project training columns; identity is retained"
     )
     from .split_audit import POLICIES
@@ -2534,7 +2539,14 @@ def _export_training(args: argparse.Namespace):
     if getattr(args, "bundle", None):
         from .training_bundle import write_training_bundle
 
-        return write_training_bundle(args.bundle, split_policy=args.split_policy, **options)
+        return write_training_bundle(
+            args.bundle,
+            split_policy=args.split_policy,
+            require_current_indexes=not getattr(args, "allow_stale_indexes", False),
+            **options,
+        )
+    if getattr(args, "allow_stale_indexes", False):
+        raise ValueError("--allow-stale-indexes requires --bundle")
     if getattr(args, "split_policy", "report_only") != "report_only":
         raise ValueError("--split-policy requires --bundle; use audit-splits to check partitions")
     return generate_training_table(**options)

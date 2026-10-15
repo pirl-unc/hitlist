@@ -6,6 +6,7 @@ import pandas as pd
 import pytest
 
 from hitlist.export import generate_training_table
+from hitlist.proteome import DEFAULT_FLANK
 from hitlist.provenance import contributors_path, file_digest, load_contributors
 from hitlist.training_bundle import (
     audit_training_bundles,
@@ -54,6 +55,21 @@ def built_index(tmp_path, monkeypatch, _isolated_curation_root, request):
         builder, "build_line_expression", lambda **kw: empty(builder._line_expression_path())
     )
     builder.build_observations(build_mappings=False)
+    from hitlist import mappings
+
+    pd.DataFrame({"peptide": ["SLYNTVATL"] * 2, "protein_id": ["P1", "P2"]}).to_parquet(
+        mappings.mappings_path(), index=False
+    )
+    mappings.mappings_meta_path().write_text(
+        json.dumps(
+            {
+                "observations": mappings._obs_fingerprint(),
+                "contract": mappings._mapping_artifact_contract(
+                    release=112, use_uniprot=False, fetch_missing=True, flank=DEFAULT_FLANK
+                ),
+            }
+        )
+    )
     monkeypatch.setattr(
         "hitlist.export._load_training_mappings_for_peptides",
         lambda *a, **kw: pd.DataFrame({"peptide": ["SLYNTVATL"] * 2, "protein_id": ["P1", "P2"]}),
@@ -85,6 +101,9 @@ def test_real_build_bundle_projection_and_mapping_parity(built_index, tmp_path):
     assert manifest["coverage"]["n_contributor_links"] == 3
     assert manifest["training_options"]["exclude_non_peptide_ligand"] is True
     assert manifest["randomness"] == {"used": False, "seed": None}
+    assert manifest["input_validation"]["require_current_indexes"] is True
+    assert manifest["input_validation"]["observations"] == "current"
+    assert manifest["input_validation"]["mappings"] == "current"
     assert manifest["inputs"]["build_metadata"]["provenance"]["sources"]["iedb"]["sha256"]
     with pytest.raises(FileExistsError):
         write_training_bundle(directory)
@@ -114,9 +133,13 @@ def test_empty_and_legacy_bundles_are_explicit(built_index, tmp_path):
     (built_index / "observations_meta.json").unlink()
     contributors_path().unlink()
     legacy = tmp_path / "legacy"
-    write_training_bundle(legacy, include_evidence="ms")
+    with pytest.raises(ValueError, match="current input indexes"):
+        write_training_bundle(legacy, include_evidence="ms")
+    write_training_bundle(legacy, include_evidence="ms", require_current_indexes=False)
     manifest = verify_training_bundle(legacy)
     assert manifest["coverage"]["n_observations_with_contributors"] == 0
+    assert manifest["input_validation"]["require_current_indexes"] is False
+    assert manifest["input_validation"]["observations"] == "stale"
     assert set(pd.read_parquet(legacy / "identities.parquet").provenance_status) == {
         "legacy_missing"
     }
@@ -191,6 +214,48 @@ def test_bundle_verification_rejects_conflicting_projected_identity_fields(built
     manifest_path.write_text(json.dumps(manifest))
     with pytest.raises(ValueError, match="Training/identity pmid mismatch"):
         verify_training_bundle(directory)
+
+
+def test_frozen_bundle_verification_does_not_recheck_mutable_local_inputs(
+    built_index, tmp_path, monkeypatch
+):
+    from hitlist import observations
+
+    directory = tmp_path / "bundle"
+    write_training_bundle(directory, include_evidence="ms")
+    monkeypatch.setattr(observations, "observations_cache_is_current", lambda: False)
+    assert verify_training_bundle(directory)["input_validation"]["observations"] == "current"
+    manifest_path = directory / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    del manifest["input_validation"]  # Existing schema-v1 bundles predate preflight.
+    manifest_path.write_text(json.dumps(manifest))
+    assert "input_validation" not in verify_training_bundle(directory)
+
+
+def test_freshness_change_during_export_cleans_up(built_index, tmp_path, monkeypatch):
+    from hitlist import observations
+
+    statuses = iter([True, False])
+    monkeypatch.setattr(observations, "observations_cache_is_current", lambda: next(statuses))
+    directory = tmp_path / "bundle"
+    with pytest.raises(ValueError, match="current input indexes"):
+        write_training_bundle(directory, include_evidence="ms")
+    assert not directory.exists()
+    assert not list(tmp_path.glob(".bundle-*"))
+
+
+def test_cli_archival_opt_out_requires_bundle(tmp_path, monkeypatch, capsys):
+    from hitlist.cli import main
+
+    output = tmp_path / "training.csv"
+    monkeypatch.setattr(
+        sys, "argv", ["hitlist", "export", "training", "--allow-stale-indexes", "-o", str(output)]
+    )
+    with pytest.raises(SystemExit) as exc:
+        main()
+    assert exc.value.code == 1
+    assert "--allow-stale-indexes requires --bundle" in capsys.readouterr().err
+    assert not output.exists()
 
 
 def test_cache_rejects_missing_contributor_contract(built_index):

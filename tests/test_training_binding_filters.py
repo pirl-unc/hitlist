@@ -172,6 +172,7 @@ def test_training_binding_cli_and_bundle(endpoint_indexes, tmp_path, monkeypatch
             "5000",
             "--output" if destination == "csv" else "--bundle",
             str(output),
+            *(["--allow-stale-indexes"] if destination == "bundle" else []),
         ],
     )
     cli.main()
@@ -180,6 +181,8 @@ def test_training_binding_cli_and_bundle(endpoint_indexes, tmp_path, monkeypatch
     else:
         result = pd.read_parquet(output / "training.parquet")
         manifest = verify_training_bundle(output)
+        assert manifest["input_validation"]["require_current_indexes"] is False
+        assert manifest["input_validation"]["observations"] == "unverifiable"
         for key, value in AFFINITY_FILTERS.items():
             assert manifest["training_options"][key] == (
                 [value] if key in {"assay_method", "measurement_units"} else value
