@@ -80,6 +80,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from .curation import normalize_serotype_query as _normalize_serotype_query
+from .dataset import dataset_cache_check, dataset_path, dataset_snapshot
 from .downloads import data_dir
 from .pandas_utils import fillna_scalar_safe
 
@@ -108,7 +109,7 @@ def _unique_restrictions_for(path: Path) -> tuple[str, ...]:
 
 def observations_path() -> Path:
     """Path to the MS-eluted observations parquet file."""
-    return data_dir() / "observations.parquet"
+    return dataset_path("observations.parquet", root=data_dir())
 
 
 _ATTRIBUTION_CONTEXT_COLUMNS = (
@@ -149,14 +150,15 @@ def _load_attribution_context(pmids) -> pd.DataFrame:
 
 def binding_path() -> Path:
     """Path to the binding-assay parquet file."""
-    return data_dir() / "binding.parquet"
+    return dataset_path("binding.parquet", root=data_dir())
 
 
 def other_assays_path() -> Path:
     """Path to retained structural, non-MS ligand, unknown and negative-MS assays."""
-    return data_dir() / "other_assays.parquet"
+    return dataset_path("other_assays.parquet", root=data_dir())
 
 
+@dataset_snapshot()
 def load_other_assays(**filters) -> pd.DataFrame:
     """Load other assays with the same keyword filters as load_observations.
 
@@ -176,6 +178,7 @@ def is_binding_built() -> bool:
     return binding_path().exists()
 
 
+@dataset_cache_check
 def observations_cache_is_current() -> bool | None:
     """Whether the built MS/binding indexes are current, without building anything.
 
@@ -204,6 +207,7 @@ def observations_cache_is_current() -> bool | None:
     return _cache_is_valid(paths, fetch_missing_assets=False)
 
 
+@dataset_snapshot()
 def load_observations(
     mhc_class: str | None = None,
     species: str | None = None,
@@ -388,6 +392,7 @@ load_ms_observations.__doc__ = (
 )
 
 
+@dataset_snapshot()
 def load_binding(
     mhc_class: str | None = None,
     species: str | None = None,
@@ -448,6 +453,7 @@ def load_binding(
     )
 
 
+@dataset_snapshot()
 def load_all_evidence(
     mhc_class: str | None = None,
     species: str | None = None,

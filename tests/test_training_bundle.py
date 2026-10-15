@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 import sys
 
 import pandas as pd
@@ -27,7 +28,7 @@ def built_index(tmp_path, monkeypatch, _isolated_curation_root, request):
     monkeypatch.setattr(downloads, "_override_data_dir", indexes)
     source = tmp_path / "iedb.csv"
     extra_rows = []
-    if getattr(request, "param", False):
+    if getattr(request, "param", False) is True:
         structural = _row("http://iedb.org/assay/3")
         structural[22], structural[23] = "x-ray crystallography", "3D structure"
         extra_rows.append(structural)
@@ -54,22 +55,44 @@ def built_index(tmp_path, monkeypatch, _isolated_curation_root, request):
     monkeypatch.setattr(
         builder, "build_line_expression", lambda **kw: empty(builder._line_expression_path())
     )
-    builder.build_observations(build_mappings=False)
+    generation = builder.build_observations(build_mappings=False).parent
     from hitlist import mappings
+    from hitlist.dataset import update_dataset
 
-    pd.DataFrame({"peptide": ["SLYNTVATL"] * 2, "protein_id": ["P1", "P2"]}).to_parquet(
-        mappings.mappings_path(), index=False
-    )
-    mappings.mappings_meta_path().write_text(
-        json.dumps(
-            {
-                "observations": mappings._obs_fingerprint(),
-                "contract": mappings._mapping_artifact_contract(
-                    release=112, use_uniprot=False, fetch_missing=True, flank=DEFAULT_FLANK
-                ),
-            }
+    # Most cases intentionally exercise editable legacy indexes and their
+    # corruption checks. A separate parameter exercises immutable generations.
+    use_generation = getattr(request, "param", False) == "generation"
+    if not use_generation:
+        legacy = tmp_path / "legacy-indexes"
+        legacy.mkdir()
+        shutil.copy2(indexes / "manifest.json", legacy / "manifest.json")
+        for path in generation.iterdir():
+            if path.name.endswith((".parquet", ".json")) and not path.name.startswith("."):
+                shutil.copy2(path, legacy / path.name)
+        monkeypatch.setattr(downloads, "_override_data_dir", legacy)
+        indexes = legacy
+
+    def write_mappings():
+        pd.DataFrame({"peptide": ["SLYNTVATL"] * 2, "protein_id": ["P1", "P2"]}).to_parquet(
+            mappings.mappings_path(), index=False
         )
+        mappings.mappings_meta_path().write_text(
+            json.dumps(
+                {
+                    "observations": mappings._obs_fingerprint(),
+                    "contract": mappings._mapping_artifact_contract(
+                        release=112, use_uniprot=False, fetch_missing=True, flank=DEFAULT_FLANK
+                    ),
+                }
+            )
+        )
+        return mappings.mappings_path()
+
+    installed = update_dataset(
+        ("peptide_mappings.parquet", "peptide_mappings_meta.json"), write_mappings
     )
+    if use_generation:
+        indexes = installed.parent
     monkeypatch.setattr(
         "hitlist.export._load_training_mappings_for_peptides",
         lambda *a, **kw: pd.DataFrame({"peptide": ["SLYNTVATL"] * 2, "protein_id": ["P1", "P2"]}),
@@ -77,6 +100,7 @@ def built_index(tmp_path, monkeypatch, _isolated_curation_root, request):
     return indexes
 
 
+@pytest.mark.parametrize("built_index", [False, "generation"], indirect=True)
 def test_real_build_bundle_projection_and_mapping_parity(built_index, tmp_path):
     compact = generate_training_table(include_evidence="ms")
     assert len(compact) == 2
@@ -310,3 +334,45 @@ def test_cli_bundle_and_split_audit(built_index, tmp_path, monkeypatch):
         main()
     assert exc.value.code == 2
     assert json.loads(output.read_text())["verdict"] == "fail"
+
+
+@pytest.mark.parametrize("built_index", ["generation"], indirect=True)
+def test_export_remains_bound_to_generation_published_at_start(built_index, tmp_path, monkeypatch):
+    from hitlist import builder, training_bundle
+    from hitlist.dataset import dataset_path
+
+    original = training_bundle._inputs
+    calls = []
+    published = []
+
+    def inputs(**kwargs):
+        value = original(**kwargs)
+        calls.append(value)
+        if len(calls) == 1:
+            published.append(builder._write_bulk_index(pd.DataFrame()))
+        return value
+
+    monkeypatch.setattr(training_bundle, "_inputs", inputs)
+    directory = tmp_path / "bundle"
+    write_training_bundle(directory, include_evidence="ms")
+    assert published[0].parent != built_index
+    assert dataset_path("observations.parquet").parent == published[0].parent
+    manifest = verify_training_bundle(directory)
+    assert manifest["inputs"]["files"]["observations.parquet"]["path"] == str(
+        built_index / "observations.parquet"
+    )
+    assert len(calls) == 2
+    assert calls[0] == calls[1]
+
+
+@pytest.mark.parametrize("built_index", ["generation"], indirect=True)
+def test_bundle_checks_mapping_bytes_against_generation_receipt(built_index, tmp_path):
+    path = built_index / "peptide_mappings.parquet"
+    stat = path.stat()
+    data = bytearray(path.read_bytes())
+    data[20] ^= 1
+    path.write_bytes(data)
+    os.utime(path, ns=(stat.st_atime_ns, stat.st_mtime_ns))
+    with pytest.raises(ValueError, match="Dataset generation hash mismatch: peptide_mappings"):
+        write_training_bundle(tmp_path / "bundle", include_evidence="ms", map_source_proteins=True)
+    assert not (tmp_path / "bundle").exists()

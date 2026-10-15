@@ -209,3 +209,63 @@ inconclusive claims, 1 for invalid input, and 0 otherwise. Missing columns,
 pooled/ambiguous material and incomplete registry coverage never prove
 independence. The audit describes supplied partitions and makes no claim about
 historical model weights or external predictors' training data.
+
+
+## Complete index generations
+
+Starting with Hitlist 1.74, an observations rebuild publishes all its indexes
+and metadata together using `datacache.materialize`. The store is
+`<hitlist data directory>/dataset/bundles/<UTC publication time>/`. Run
+`hitlist data dirs` to see the current generation. Each directory contains a
+README describing its tables and source records, plus datacache's
+`.datacache-manifest.json` with sizes, SHA-256 hashes and dependency receipts.
+
+Observations, binding, other assays, contributors, bulk proteomics, line
+expression and optional peptide mappings are staged and checked before one
+atomic directory rename publishes them. A failed rebuild leaves the previous
+complete generation usable. Old generations and registered source files remain
+in place. A returned build path names that immutable generation, so obtain a
+new path after rebuilding instead of expecting an old path to change.
+
+Loaders and exports pin one generation for their multi-file reads. To group
+several calls into one snapshot:
+
+```python
+from hitlist import dataset_snapshot, load_observations, load_binding, load_contributors
+
+with dataset_snapshot() as generation:
+    observations = load_observations(peptide="SLYNTVATL")
+    binding = load_binding(peptide="SLYNTVATL")
+    contributors = load_contributors(observations.provenance_id)
+    print(generation)
+```
+
+Standalone mapping, bulk and expression updates also publish a complete new
+generation, carrying the unchanged indexes forward. If another writer replaces
+their parent while an update is prepared, the update fails explicitly and can
+be retried. Do not edit or add files inside a published generation. Corrupt
+stores fail explicitly; they never fall back to individual older/flat files.
+A full `hitlist build observations --force` can replace a damaged generation.
+
+Existing flat indexes remain readable until the first generation is published,
+and migration leaves those files intact. Legacy writers that overwrite flat
+files cannot provide snapshot isolation; use the current builder and path APIs.
+Consumers that constructed `<data_dir>/observations.parquet` themselves should
+use `hitlist.observations.observations_path()` or the directory returned by
+`dataset_snapshot()`. An omitted mappings sidecar stays absent rather than being
+borrowed from an old dataset.
+
+Budget disk for retained old outputs, private copies of registered CSV sources,
+new outputs and the contributor scratch database. Datacache removes its current
+private input copies after a successful build and preserves completed inputs
+on failures for retry; it never deletes caller-owned source files. Prior
+generations are not automatically pruned, because a reader may still use one.
+Atomic visibility assumes a local filesystem with atomic directory rename; it
+is not a guarantee against filesystem corruption or power-loss damage.
+
+The datacache receipt records consistency, not scientific qualification.
+Source PMIDs and assay IRIs, cell types, cellular MHC typing, experimental
+restriction sets, conditions, endpoints, units and censoring keep their separate
+meanings in the data. A qualified training release still needs frozen partition
+assignments, source-linked coverage reports and leakage audits, with unresolved
+lineage stated explicitly.

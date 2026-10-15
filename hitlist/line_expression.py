@@ -91,6 +91,7 @@ import pandas as pd
 from pyarrow.lib import ArrowInvalid
 
 from .curation_yaml import load_curation_yaml
+from .dataset import dataset_path
 from .parquet_io import atomic_write_parquet, concat_non_empty
 
 _DATA_MODULE = "hitlist.data.line_expression"
@@ -152,7 +153,7 @@ def line_expression_path() -> Path:
     """Path to the built ``line_expression.parquet`` in ``data_dir()``."""
     from .downloads import data_dir
 
-    return data_dir() / "line_expression.parquet"
+    return dataset_path("line_expression.parquet", root=data_dir())
 
 
 def is_line_expression_built() -> bool:
@@ -905,11 +906,30 @@ def write_line_expression_index(df: pd.DataFrame, path: Path | None = None) -> P
     builder's output and a test fixture alike.  Atomic: concurrent readers
     never see a half-written index.
     """
-    out = Path(path) if path is not None else line_expression_path()
+    from .dataset import STORE_NAME, update_dataset
+    from .downloads import data_dir
+
+    frame = enrich_line_expression_rows(df)
     stamp = json.dumps(line_expression_index_stamp(), sort_keys=True).encode()
-    return atomic_write_parquet(
-        enrich_line_expression_rows(df), out, metadata={INDEX_STAMP_METADATA_KEY: stamp}
-    )
+
+    def write():
+        return atomic_write_parquet(
+            frame, line_expression_path(), metadata={INDEX_STAMP_METADATA_KEY: stamp}
+        )
+
+    if path is None or Path(path).absolute() == line_expression_path().absolute():
+        return update_dataset(
+            ("line_expression.parquet",),
+            write,
+            metadata_updates={
+                "n_line_expression_rows": len(frame),
+                "n_line_expression_lines": int(frame.line_key.nunique()) if len(frame) else 0,
+            },
+        )
+    out = Path(path)
+    if (data_dir().absolute() / STORE_NAME / "bundles") in out.absolute().parents:
+        raise ValueError("Published dataset generations are immutable; rebuild the current index")
+    return atomic_write_parquet(frame, out, metadata={INDEX_STAMP_METADATA_KEY: stamp})
 
 
 def _artifact_signature(path: Path) -> tuple[int, int, int] | None:

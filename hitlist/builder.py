@@ -53,6 +53,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from .dataset import dataset_cache_check, dataset_path, dataset_snapshot
 from .downloads import data_dir
 from .parquet_io import atomic_write_parquet, concat_non_empty
 
@@ -209,25 +210,26 @@ def _curation_fingerprints(*, fetch_missing_assets: bool = True) -> dict:
 
 
 def _observations_path() -> Path:
-    return data_dir() / "observations.parquet"
+    return dataset_path("observations.parquet", root=data_dir())
 
 
 def _binding_path() -> Path:
-    return data_dir() / "binding.parquet"
+    return dataset_path("binding.parquet", root=data_dir())
 
 
 def _other_assays_path() -> Path:
-    return data_dir() / "other_assays.parquet"
+    return dataset_path("other_assays.parquet", root=data_dir())
 
 
 def _bulk_proteomics_path() -> Path:
-    return data_dir() / "bulk_proteomics.parquet"
+    return dataset_path("bulk_proteomics.parquet", root=data_dir())
 
 
 def _meta_path() -> Path:
-    return data_dir() / "observations_meta.json"
+    return dataset_path("observations_meta.json", root=data_dir())
 
 
+@dataset_snapshot()
 def _parquet_fingerprints() -> dict:
     """Size + mtime of the four index parquets, for cache validation.
 
@@ -246,7 +248,7 @@ def _parquet_fingerprints() -> dict:
         ("other_assays", _other_assays_path()),
         ("bulk_proteomics", _bulk_proteomics_path()),
         ("line_expression", _line_expression_path()),
-        ("contributors", data_dir() / "observation_contributors.parquet"),
+        ("contributors", dataset_path("observation_contributors.parquet", root=data_dir())),
     ):
         if p.exists():
             stat = p.stat()
@@ -254,6 +256,7 @@ def _parquet_fingerprints() -> dict:
     return fp
 
 
+@dataset_cache_check
 def _cache_is_valid(
     paths: dict[str, Path], with_flanking: bool = False, *, fetch_missing_assets: bool = True
 ) -> bool:
@@ -281,7 +284,7 @@ def _cache_is_valid(
         return False
     if not _line_expression_path().exists():
         return False
-    if not (data_dir() / "observation_contributors.parquet").exists():
+    if not (dataset_path("observation_contributors.parquet", root=data_dir())).exists():
         return False
     stored = json.loads(meta.read_text())
     if stored.get("artifact_version") != _OBSERVATIONS_ARTIFACT_VERSION:
@@ -301,6 +304,7 @@ def _cache_is_valid(
     return not (stored_parquets is not None and stored_parquets != _parquet_fingerprints())
 
 
+@dataset_snapshot()
 def _cache_meta() -> dict:
     """Load the observations_meta.json for user-facing info."""
     meta = _meta_path()
@@ -769,7 +773,8 @@ def build_observations(
         index is written alongside at ``binding.parquet``.
     """
     from .curation import _clear_curation_caches
-    from .provenance import ContributorCollector
+    from .dataset import INDEX_FILES, MAPPING_FILES, publish_dataset
+    from .provenance import ContributorCollector, file_digest
 
     # A rebuild in a long-lived Python process must use the same current
     # curation whose fingerprints will be written into its metadata.
@@ -780,9 +785,9 @@ def build_observations(
             "No IEDB/CEDAR data registered. Use: hitlist data register iedb /path/to/file.csv"
         )
 
-    out_path = _observations_path()
-    binding_out = _binding_path()
     if not force and _cache_is_valid(paths, with_flanking=with_flanking):
+        out_path = _observations_path()
+        binding_out = _binding_path()
         if build_mappings:
             # The observations and mappings artifacts have independent cache
             # contracts. A package upgrade can change mapping semantics while
@@ -811,22 +816,58 @@ def build_observations(
                 f"{b_size:.1f} MB → {binding_out}"
             )
         print("\nUse --force to rebuild.")
-        return out_path
+        return _observations_path()
 
-    # A fresh cache needs no scratch allocation or disk-space preflight.
-    with ContributorCollector() as provenance:
-        return _build_observations(
-            paths,
-            out_path,
-            binding_out,
-            with_flanking,
-            proteome_release,
-            force,
-            fetch_missing_proteomes,
-            use_uniprot_search,
-            build_mappings,
-            provenance,
-        )
+    fingerprints = _source_fingerprints(paths)
+    sources = {
+        name: {
+            "path": str(path),
+            "sha256": (digest := file_digest(path))["sha256"],
+            "size": digest["size_bytes"],
+        }
+        for name, path in paths.items()
+    }
+
+    def build(copied_paths):
+        with ContributorCollector() as provenance:
+            _build_observations(
+                copied_paths,
+                _observations_path(),
+                _binding_path(),
+                with_flanking,
+                proteome_release,
+                force,
+                fetch_missing_proteomes,
+                use_uniprot_search,
+                build_mappings,
+                provenance,
+            )
+        if _source_fingerprints(paths) != fingerprints:
+            raise RuntimeError("Dataset inputs changed during the build; retry with stable sources")
+        # The scanner reads datacache-owned copies. Freshness and source locators
+        # refer to the registered originals, never deleted staging paths.
+        metadata = json.loads(_meta_path().read_text())
+        metadata["sources"] = fingerprints
+        for name, path in paths.items():
+            metadata["provenance"]["sources"][name]["path"] = str(path)
+        _meta_path().write_text(json.dumps(metadata, indent=2, default=str) + "\n")
+
+    files = (*INDEX_FILES, *(MAPPING_FILES if build_mappings else ()))
+    published = publish_dataset(
+        sources,
+        files,
+        build,
+        root=data_dir(),
+        options={
+            "artifact_version": _OBSERVATIONS_ARTIFACT_VERSION,
+            "proteome_release": proteome_release,
+            "build_mappings": build_mappings,
+            "fetch_missing_proteomes": fetch_missing_proteomes,
+            "use_uniprot_search": use_uniprot_search,
+        },
+    )
+    print(f"Published complete dataset: {published['observations.parquet'].parent}")
+    return published["observations.parquet"]
 
 
 def _build_observations(
@@ -1297,7 +1338,7 @@ def build_bulk_proteomics(verbose: bool = False) -> pd.DataFrame:
 
     if not frames:
         empty = pd.DataFrame()
-        atomic_write_parquet(empty, _bulk_proteomics_path())
+        _write_bulk_index(empty)
         return empty
 
     df = concat_non_empty(frames, _union_columns(frames), sort=False)
@@ -1397,7 +1438,7 @@ def build_bulk_proteomics(verbose: bool = False) -> pd.DataFrame:
     # which duplicates uniprot_acc) so the parquet schema is stable.
     df = df[[c for c in ordered_cols if c in df.columns]]
 
-    out = atomic_write_parquet(df, _bulk_proteomics_path())
+    out = _write_bulk_index(df)
     if verbose:
         n_prot = int((df["granularity"] == "protein").sum())
         n_pep = int((df["granularity"] == "peptide").sum())
@@ -1407,13 +1448,29 @@ def build_bulk_proteomics(verbose: bool = False) -> pd.DataFrame:
     return df
 
 
+def _write_bulk_index(df):
+    from .dataset import update_dataset
+
+    granularity = df.get("granularity", pd.Series(dtype=str))
+    return update_dataset(
+        ("bulk_proteomics.parquet",),
+        lambda: atomic_write_parquet(df, _bulk_proteomics_path()),
+        root=data_dir(),
+        metadata_updates={
+            "n_bulk_rows": len(df),
+            "n_bulk_protein_rows": int(granularity.eq("protein").sum()),
+            "n_bulk_peptide_rows": int(granularity.eq("peptide").sum()),
+        },
+    )
+
+
 # ── Line-expression index ──────────────────────────────────────────────────
 
 
 def _line_expression_path() -> Path:
     from .downloads import data_dir
 
-    return data_dir() / "line_expression.parquet"
+    return dataset_path("line_expression.parquet", root=data_dir())
 
 
 def _read_depmap_csv(
