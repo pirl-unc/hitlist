@@ -1,3 +1,19 @@
+# Training input preflight — #679 / training release series #678
+
+Specification: [training-input-preflight-spec.md](training-input-preflight-spec.md).
+
+- [x] Audit source/cache semantics and file remaining cross-repository issues.
+- [x] Create isolated feature worktree and write the bounded contract.
+- [ ] Add meaningful regressions and demonstrate the previous failure.
+- [ ] Implement bundle freshness policy, manifest record and CLI parity.
+- [ ] Version, format, lint, full tests and final-head CI.
+- [ ] Open the first PR and record validation and remaining series dependencies.
+
+## Review
+
+Pending. Full local testing requires adequate available memory; do not bypass
+the guard or count a refusal as a pass. Shared sources/cache remain intact.
+
 # orfdata canine protein consumer — #668 stage A
 
 Contract: [orfdata-canine-spec.md](orfdata-canine-spec.md).
