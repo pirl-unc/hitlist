@@ -64,6 +64,15 @@ search contract for that target subset.
 The recovered HeLa 46-fraction scope has an exact searched FASTA, effective
 parameters, peptide results and paper supplements. Rebuild and inspect it with:
 
+For the published artifact, `hitlist.load_pxd013455_bundle()` downloads and
+verifies the pinned 84,673,188-byte portable archive through datacache, without
+rebuilding sources. The archive SHA-256 is
+`22b2e42b851d534cb52d8255e2369e4e3f7336b1f52bfc79b3a6faa7e6d7b56e`;
+the manifest SHA-256 is
+`144dd2ebcd502ed3890eaff5bec221e993a40e0f3f6cf19ff0d5d7033de92950`.
+The [data release](https://github.com/pirl-unc/hitlist/releases/tag/pxd013455-hela-tryp46-v1)
+contains the archive and inspection reports. To reproduce from original inputs:
+
 ```python
 from pathlib import Path
 from hitlist import build_pxd013455_bundle, export_pxd013455_archive, verify_pxd013455_bundle

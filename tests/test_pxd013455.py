@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
+import yaml
 
 from hitlist import pxd013455 as pxd
 from hitlist import pxd013455_publication as publication
@@ -397,3 +398,33 @@ def test_public_inventory_rejects_missing_pins_paths_and_mutation(
         publication.verify_pxd013455_bundle(
             root, expected_sha256="0" * 64 if damage == "pin" else None
         )
+
+
+def test_published_download_is_shared_pinned_and_preserves_previous_generation(
+    publication_bundle, tmp_path, monkeypatch
+):
+    from hitlist import pxd013455_download as download
+
+    archive = Path(publication.export_pxd013455_archive(data_root=tmp_path))
+    registry = tmp_path / "published.yaml"
+    registry.write_text(
+        yaml.safe_dump(
+            {
+                "url": archive.as_uri(),
+                **file_digest(archive),
+                "manifest_sha256": file_digest(publication_bundle["manifest.json"])["sha256"],
+            }
+        )
+    )
+    monkeypatch.setattr(download, "PUBLICATION", registry)
+    directory = download.load_pxd013455_bundle(data_root=tmp_path)
+    assert (
+        publication.verify_pxd013455_bundle(directory)["dataset_id"] == "pxd013455-hela-tryp46-v1"
+    )
+    assert download.load_pxd013455_bundle(data_root=tmp_path) == directory
+    original = (directory / "candidates.parquet").read_bytes()
+    archive.write_bytes(b"incomplete refresh")
+    with pytest.raises(ValueError):
+        download.load_pxd013455_bundle(data_root=tmp_path, force=True)
+    assert (directory / "candidates.parquet").read_bytes() == original
+    assert download.load_pxd013455_bundle(data_root=tmp_path) == directory

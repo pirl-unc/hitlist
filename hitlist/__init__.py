@@ -121,6 +121,7 @@ _PUBLIC_API: dict[str, str] = {
     "verify_pxd013455_bundle": ".pxd013455_publication",
     "audit_pxd013455_candidates": ".pxd013455_publication",
     "export_pxd013455_archive": ".pxd013455_publication",
+    "load_pxd013455_bundle": ".pxd013455_download",
     "load_gene_set": ".genes",
     "list_gene_sets": ".genes",
     # Dataset registry (download / register / resolve).

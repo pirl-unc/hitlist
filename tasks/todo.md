@@ -5,7 +5,7 @@ Specification: [pxd013455-publication-spec.md](pxd013455-publication-spec.md).
 - [x] Locate the primary public deposit and original/reanalysis publications.
 - [x] Write the recovery/publication contract before implementation.
 - [x] Recover and hash source settings/reference/results using datacache.
-- [ ] Rebuild and independently validate the documented scope.
+- [x] Rebuild and independently validate the documented scope.
 - [ ] Publish legible source, label-policy and scope/support artifacts.
 - [ ] Test, review, version, merge, deploy and verify public downloads.
 
@@ -19,6 +19,16 @@ and all 46 raw-file/fraction assignments. Paper review corrected the pH default
 with explicit source attribution (#688). The new source and publication tests
 pass 43 cases, including independent audit failures and prior-generation reuse.
 Full candidate audit, complete software gates and public release remain required.
+
+The full audit now passes for 1,656,863 candidate occurrences, including 203,635
+observed occurrences and 163,994 distinct observed sequences. A separate forced
+rebuild reproduced the census. The 23-file portable archive is 84,673,188 bytes,
+SHA256 22b2e42b851d534cb52d8255e2369e4e3f7336b1f52bfc79b3a6faa7e6d7b56e;
+manifest SHA256 144dd2ebcd502ed3890eaff5bec221e993a40e0f3f6cf19ff0d5d7033de92950.
+The pinned published-download API avoids rebuilding sources and verifies archive
+and inventory hashes through datacache. The expanded focused suite passes 178
+tests. First CI unit jobs hit a transient index propagation delay for datacache
+1.27.1; the dependency is now discoverable, and final-head CI remains required.
 
 # Dataset qualification series — 2026-10-15
 
