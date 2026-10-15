@@ -867,3 +867,34 @@ and stops before upload. It does not mark a release as published.
 See [docs/pmid-curation.md](docs/pmid-curation.md) for the curation YAML format and per-study overrides.
 
 For Presto training, see [search-scoped bulk MS detectability datasets](docs/detectability.md): occurrence-preserving digests, scoped observations, verified search references, and bounded evidence exports.
+
+### Publishing a complete CI corpus
+
+`scripts/publish_ci_corpus.sh VERSION` resolves the current dataset generation
+under `HITLIST_DATA_DIR`, validates its recorded hashes and mapping inputs, and
+publishes a portable snapshot through datacache before uploading it. Existing
+release tags are never overwritten. Set `HITLIST_CI_CORPUS_CACHE_DIR` only when
+an explicit shared cache location is needed. An explicitly selected legacy flat
+directory retains its original artifact contract.
+
+Public manifest v2 includes observations, binding, other assays, contributors,
+bulk proteomics, line expression, mappings, portable mapping metadata and README.
+Source byte hashes, original assay/reference fields and mapping limitations remain
+inspectable; private filesystem paths are omitted. The downloaded snapshot is an
+archival CI fixture, not a fresh local build or a qualified training partition.
+The existing public v1 manifest remains readable.
+
+For a pinned download into shared datacache storage:
+
+```bash
+python scripts/ci_corpus.py install \
+  --manifest-url RELEASE_URL/observations_meta.json \
+  --manifest-sha256 PUBLISHED_MANIFEST_SHA256
+```
+
+The command returns the verified bundle directory to use as `HITLIST_DATA_DIR`.
+It requires the manifest pin before following artifact URLs, verifies every file,
+and reuses the installed bytes offline. Adopt a new workflow corpus tag/pin only
+after downloading and verifying the actual published snapshot. Actual training
+cohorts, source lineage, frozen assignments and output support are qualified
+separately under #678/#680.
