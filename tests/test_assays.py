@@ -203,7 +203,15 @@ def test_build_partitions_retains_all_source_contributors(
         builder, "build_line_expression", lambda **kw: empty(builder._line_expression_path())
     )
     mapping_inputs = {}
-    monkeypatch.setattr(mappings, "build_peptide_mappings", lambda **kw: mapping_inputs.update(kw))
+
+    def capture_mappings(**kwargs):
+        mapping_inputs.update(kwargs)
+        empty(mappings.mappings_path())
+        # The builder fills the final evidence fingerprints after writing the
+        # indexes. Even a test double must produce the declared output pair.
+        mappings.mappings_meta_path().write_text("{}\n")
+
+    monkeypatch.setattr(mappings, "build_peptide_mappings", capture_mappings)
     builder.build_observations()
     assert len(mapping_inputs["obs_override"]) == 1
     assert len(mapping_inputs["binding_override"]) == 2

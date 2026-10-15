@@ -24,8 +24,10 @@ The broader focused suite passed 254 tests (four integration cases excluded).
 Review also checks mapping bytes against the published generation receipt, so
 same-size sidecar tampering cannot be re-certified by a new training export.
 The existing CI corpus publisher's outdated inventory/flat paths are tracked
-in #685 for the actual corpus publication stage. Exact-head CI and clean-main
-release remain required.
+in #685 for the actual corpus publication stage. Initial full Python 3.9 CI passed 2,954 tests and found one obsolete assay-test
+mapping stub that captured frames without producing its declared outputs. The
+stub now writes both mapping artifacts; publication validation stays strict.
+Exact-head CI and clean-main release remain required.
 
 Datacache 1.25.1 provides public materialize/inspect_materialization APIs;
 use its complete-generation publication and retain prior files. MHCflurry is
