@@ -1,3 +1,15 @@
+# Current CI corpus publication — 2026-10-15
+
+Specification: [current-corpus-publication-spec.md](current-corpus-publication-spec.md).
+
+- [x] Reproduce the current/legacy inventory mismatch and inspect consumers.
+- [x] Record portable-generation contract and actual-corpus scope before edits.
+- [ ] Implement complete datacache snapshots and versioned public manifests.
+- [ ] Add current-builder, stale-mapping, corruption and legacy regressions.
+- [ ] Verify, review, version, merge and deploy the publication tooling.
+- [ ] Rebuild independently from pinned sources, publish and verify actual corpus.
+- [ ] Freeze actual cohorts and publish coverage/lineage/leakage limitations.
+
 # Scoped PXD013455 publication — 2026-10-15
 
 Specification: [pxd013455-publication-spec.md](pxd013455-publication-spec.md).
