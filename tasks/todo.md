@@ -27,6 +27,10 @@ The existing CI corpus publisher's outdated inventory/flat paths are tracked
 in #685 for the actual corpus publication stage. Initial full Python 3.9 CI passed 2,954 tests and found one obsolete assay-test
 mapping stub that captured frames without producing its declared outputs. The
 stub now writes both mapping artifacts; publication validation stays strict.
+Review found that an explicit independent expression output unnecessarily
+resolved the default cache. A regression demonstrated the failure with a damaged
+default generation; independent destinations now remain independent, while writes
+to managed generation paths still publish safely or reject old generations.
 Exact-head CI and clean-main release remain required.
 
 Datacache 1.25.1 provides public materialize/inspect_materialization APIs;

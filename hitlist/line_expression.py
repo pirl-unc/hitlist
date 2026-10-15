@@ -917,19 +917,25 @@ def write_line_expression_index(df: pd.DataFrame, path: Path | None = None) -> P
             frame, line_expression_path(), metadata={INDEX_STAMP_METADATA_KEY: stamp}
         )
 
-    if path is None or Path(path).absolute() == line_expression_path().absolute():
-        return update_dataset(
-            ("line_expression.parquet",),
-            write,
-            metadata_updates={
-                "n_line_expression_rows": len(frame),
-                "n_line_expression_lines": int(frame.line_key.nunique()) if len(frame) else 0,
-            },
-        )
-    out = Path(path)
-    if (data_dir().absolute() / STORE_NAME / "bundles") in out.absolute().parents:
-        raise ValueError("Published dataset generations are immutable; rebuild the current index")
-    return atomic_write_parquet(frame, out, metadata={INDEX_STAMP_METADATA_KEY: stamp})
+    if path is not None:
+        out = Path(path)
+        managed = data_dir().absolute() / STORE_NAME / "bundles"
+        if managed not in out.absolute().parents:
+            # Explicit independent outputs do not depend on the current cache,
+            # which may be absent or damaged. Only managed generations are immutable.
+            return atomic_write_parquet(frame, out, metadata={INDEX_STAMP_METADATA_KEY: stamp})
+        if out.absolute() != line_expression_path().absolute():
+            raise ValueError(
+                "Published dataset generations are immutable; rebuild the current index"
+            )
+    return update_dataset(
+        ("line_expression.parquet",),
+        write,
+        metadata_updates={
+            "n_line_expression_rows": len(frame),
+            "n_line_expression_lines": int(frame.line_key.nunique()) if len(frame) else 0,
+        },
+    )
 
 
 def _artifact_signature(path: Path) -> tuple[int, int, int] | None:

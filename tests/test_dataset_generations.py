@@ -341,3 +341,14 @@ def test_sidecar_update_rejects_an_intervening_generation(tiny_dataset, monkeypa
         builder._write_bulk_index(pd.DataFrame())
     assert builder._bulk_proteomics_path() == intervening[1]
     assert builder._cache_meta()["n_bulk_rows"] == 1
+
+
+def test_explicit_expression_output_is_independent_of_a_broken_default_cache(
+    tiny_dataset, tmp_path
+):
+    from hitlist.line_expression import write_line_expression_index
+
+    builder.build_observations().write_bytes(b"corrupt")
+    destination = tmp_path / "independent-expression.parquet"
+    assert write_line_expression_index(pd.DataFrame(), destination) == destination
+    assert destination.exists()
