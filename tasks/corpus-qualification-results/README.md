@@ -11,6 +11,7 @@ training-readiness or held-out performance reports.
 | [environment-posix.json](environment-posix.json) | Current environment; pip check passed | 2.55 | `2e672bd00a59e00f2c137627132bd011b4039c866f39299ac3a6cd3159a5bcc9` |
 | [reference.json](reference.json) | Current human Ensembl-112 reference; complete | 218.19 | `05a5331266bfda09e5ea3c178feccbd9948f227bdd64adc407087f42d9ad78b2` |
 | [sources.json](sources.json) | Current source registration; complete | 72.02 | `fdd32b334856db03202fa717506c72c2b6cbbcbda8037fe8e81d7d8efeb1477a` |
+| [indexes.json](indexes.json) | Current independent indexes; mappings pending | 2026.60 | `c26fa421b55bff5bb90114260f09a81a07a5c45e1b812decbd56f2e7c8185823` |
 
 The source receipt pins both original CSVs (14,719,407,889 bytes total) and 26
 paper assets (including citation descriptions and public URLs). The source export
@@ -27,6 +28,13 @@ Its subsequent reference build failed on the volume's unsupported hard link. Tha
 failure is preserved remotely in the original run's reference receipt; its
 successful environment receipt does not qualify the failed reference output.
 
-The independent observation indexes are building. Mappings, a complete public
-portable generation, actual cohort partitions and coverage/leakage reports are
-still pending. No incomplete index generation is published as a corpus.
+The independent indexes completed successfully: 4,486,991 MS observations,
+814,268 binding rows and 26,537 other assay rows. The generation also contains
+bulk proteomics, line expression and the full observation-contributor table.
+These are build counts, not qualified independent training examples. The index
+stage took 2,026.60 seconds; observed peak runner RSS was 32,400,773,120 bytes
+(worker processes are excluded from that metric). The index receipt was downloaded
+and independently hash-verified. Human-reference mappings are now running over
+1,506,664 unique peptides from 5,327,266 assay rows. A complete public portable
+generation, actual cohort partitions and coverage/leakage reports remain pending.
+No incomplete index generation is published as a corpus.

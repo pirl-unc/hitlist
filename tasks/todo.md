@@ -22,7 +22,8 @@ receipts are downloaded and independently hash-verified; see
 [the receipt inventory](corpus-qualification-results/README.md). The source stage
 verified both raw CSVs and 26 paper assets. The complete human reference is indexed
 on POSIX scratch and shared through datacache (#125 tracks the Modal hard-link
-limitation). Actual observation indexes are now building. The full local suite
+limitation). Actual observation indexes completed (4,486,991 MS / 814,268 binding / 26,537 other
+assay rows); the verified mapping stage is running. The full local suite
 passed 3,035 tests; final code CI passed all four Python unit jobs and integration
 at a889bf9. Corpus publication and cohort qualification remain pending.
 
