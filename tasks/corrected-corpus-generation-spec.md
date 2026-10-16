@@ -47,3 +47,13 @@ Acceptance is software and artifact delivery, not a fabricated scientific pass:
 full format/lint/test and integration/release gates, exact-head review, merged PR,
 clean-main PyPI deployment and independent public downloads. #678/#680 remain open
 where biological independence or target-specific fitting evidence remains missing.
+
+Comparison contract: hash-verify the original public v3 observations and the new
+index-stage observations before reading them. Stream aligned batches of 8,192
+rows; require identical schema, row count and peptide/source/assay/provenance keys.
+Fail if those identity/order invariants differ, rather than comparing unrelated
+rows. Compare every field with null and NaN equality; publish changed field counts,
+per-study counts, and every changed cell with original/corrected values plus PMID,
+reference title/IRI, source and supplement. Keep unchanged artifact hashes explicit.
+Write reports atomically through datacache with script/input hashes and timestamps.
+This audits producer changes; it does not establish biological independence.
