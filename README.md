@@ -898,3 +898,15 @@ and reuses the installed bytes offline. Adopt a new workflow corpus tag/pin only
 after downloading and verifying the actual published snapshot. Actual training
 cohorts, source lineage, frozen assignments and output support are qualified
 separately under #678/#680.
+
+### Bulk peptide reproducibility
+
+`load_bulk_peptides(min_reproducibility=...)` uses the curated deposited experiment
+inventory. `n_experiments_possible` and `n_experiments_detected` state the unit;
+legacy `n_replicates_*` names are compatibility aliases for those experiment counts.
+`n_acquisition_runs` is separate and `n_biological_replicates` remains unknown.
+The HeLa 46-fraction pool has three known experiment labels but an unresolved
+per-peptide count; its reproducibility fraction is null. Any threshold, including
+zero, excludes unresolved/invalid fractions. Omit the threshold to retain them.
+Inspect `replicate_count_status`, experiment IDs, source reference/hash and the
+preserved `reported_n_replicates_*` fields before interpreting replication.

@@ -154,6 +154,9 @@ include = [
     "scripts/human_cohort_modal.py",
     "scripts/ingest_bekker_jensen_2017.py",
     "scripts/audit_bulk_fractionation.py",
+    "scripts/audit_bulk_replicates.py",
+    "scripts/verify_bulk_replicates.py",
+    "scripts/publish_bulk_replicates.py",
     "scripts/verify_bulk_fractionation.py",
 ]
 

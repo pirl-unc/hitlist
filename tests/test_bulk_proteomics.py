@@ -856,15 +856,15 @@ def test_export_bulk_cli_bounds():
 
 def _bulk_peptides_fixture():
     """Synthetic bulk peptide rows covering one multi-replicate arm
-    (3-replicate Tryp-14frac) and one single-replicate arm (Tryp-46frac)."""
+    (3-replicate Tryp-14frac) and one single-replicate arm (Tryp-70frac)."""
     return pd.DataFrame(
         {
             "peptide": [
-                # Multi-replicate arm: max(n_replicates_detected) == 3
+                # Three deposited MaxQuant experiments in the reviewed inventory
                 "PEP_3_OF_3",  # detected in all 3
                 "PEP_2_OF_3",  # detected in 2/3
                 "PEP_1_OF_3",  # detected in 1/3
-                # Single-replicate arm: max == 1
+                # One deposited MaxQuant experiment
                 "PEP_1_OF_1",  # the only thing that can exist here
             ],
             "cell_line_name": ["HeLa"] * 4,
@@ -874,7 +874,7 @@ def _bulk_peptides_fixture():
             "start_position": [1, 2, 3, 4],
             "end_position": [10, 11, 12, 13],
             "digestion_enzyme": ["Trypsin/P"] * 4,
-            "n_fractions_in_run": [14, 14, 14, 46],
+            "n_fractions_in_run": [14, 14, 14, 70],
             "enrichment": ["none"] * 4,
             "fractionation_ph": [10.0] * 4,
             "modifications": [""] * 4,
@@ -886,11 +886,7 @@ def _bulk_peptides_fixture():
 
 
 def test_load_bulk_peptides_adds_n_replicates_possible(monkeypatch):
-    """v1.30.8 / #97: ``n_replicates_possible`` is computed per-arm as
-    the max of ``n_replicates_detected``. The single-replicate arm
-    (Tryp-46frac) gets ``n_replicates_possible == 1``; the
-    multi-replicate arm (Tryp-14frac with 3 replicates in the data)
-    gets ``n_replicates_possible == 3`` for every row."""
+    """Source-backed inventories give 3 experiments at 14 fractions and 1 at 70."""
     monkeypatch.setattr("hitlist.bulk_proteomics._load_bj", _bulk_peptides_fixture)
     monkeypatch.setattr("hitlist.bulk_proteomics._load_parquet_or_none", lambda: None)
 

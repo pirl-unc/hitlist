@@ -81,8 +81,8 @@ def query_source(bulk_data, request):
         ({"length_min": 9, "length_max": 11}, ["B", "C", "F"]),
         ({"length_min": 15}, ["D"]),
         ({"length_max": 8}, ["A"]),
-        # G2 supplies the arm's 3-replicate denominator even after the gene filter.
-        ({"gene_name": "G1", "min_reproducibility": 1}, ["C", "D", "F"]),
+        # Curated inventory: HeLa 46 is unresolved; A549 is one of two experiments.
+        ({"gene_name": "G1", "min_reproducibility": 1}, ["D"]),
         ({"cell_line": [], "enrichment": None}, []),
     ],
 )
