@@ -1,0 +1,7 @@
+{
+  "bekker_jensen_2017_peptides.csv.gz": {
+    "sha256": "3ec65dd05e8ec58c3293e0fb5720570197a8b152cd14778130bae4224106e3d3",
+    "size": 35074080,
+    "url": "https://github.com/pirl-unc/hitlist/releases/download/data-assets-v1/bekker_jensen_2017_peptides.csv.gz"
+  }
+}
