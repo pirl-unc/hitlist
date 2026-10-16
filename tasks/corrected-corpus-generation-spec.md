@@ -57,3 +57,9 @@ per-study counts, and every changed cell with original/corrected values plus PMI
 reference title/IRI, source and supplement. Keep unchanged artifact hashes explicit.
 Write reports atomically through datacache with script/input hashes and timestamps.
 This audits producer changes; it does not establish biological independence.
+
+Historical recovery (#698) must remain independent of current launcher settings.
+Pin the original materialization receipt SHA-256 and remote bundle in the recovery
+script; validate that receipt before any download. Remove its import of the current
+run/options. Verify changed current settings cannot alter the recovered contract,
+and reject tampered original receipt bytes. Original public artifacts stay intact.

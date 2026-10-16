@@ -18,9 +18,9 @@ from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
-RUN_ID = "2d794b88453e75e4ae548326c4ffaaea05748d7df81140fcd24dbf0c8053ff71"
-MAPPING_RECEIPT_SHA256 = "bb3177fea10370a13ff101f8babec125252896e450c84e5300968994ef7f02c0"
-MAPPING_RECEIPT = "receipts/mappings/bundles/2026-10-16T02-46-56Z/receipt.json"
+RUN_ID = "a6933c31825caf35475ba38ae243551bb815d65ba03ee93d9ddb768869e4b5a0"
+MAPPING_RECEIPT_SHA256 = "727eb4bf4ca52e12ad5ed5a486df3c672308e7e573c0ffd9a6af3a10158aefe5"
+MAPPING_RECEIPT = "receipts/mappings/bundles/2026-10-16T07-07-53Z/receipt.json"
 OPTIONS = {
     "include_evidence": "both",
     "species": "Homo sapiens",
@@ -274,8 +274,8 @@ def main():
     import hitlist
     from hitlist import verify_training_bundle, write_training_bundle
 
-    if hitlist.__version__ != "1.76.0":
-        raise ValueError("Qualification requires the pinned published Hitlist 1.76.0 producer")
+    if hitlist.__version__ != "1.78.0":
+        raise ValueError("Qualification requires the pinned published Hitlist 1.78.0 producer")
     receipt_path = root / MAPPING_RECEIPT
     recipe = digest(__file__)
     options = {

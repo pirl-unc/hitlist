@@ -6,15 +6,24 @@ import json
 import time
 from pathlib import Path
 
-from qualify_human_cohort import OPTIONS, RUN_ID, digest, encode, publish_receipt
+from qualify_human_cohort import digest, encode, publish_receipt
 
 ROOT = Path(__file__).resolve().parents[1]
 ORIGINAL = ROOT / "tasks/human-cohort-results/original-materialization.json"
+ORIGINAL_SHA256 = "97efb51348ed35ed80dfbd4cb3a17748d20a51b278e2dec51d4318d9ca12c228"
 REMOTE = (
-    f"hitlist-qualification/runs/{RUN_ID}/human-cohort/"
+    "hitlist-qualification/runs/"
+    "2d794b88453e75e4ae548326c4ffaaea05748d7df81140fcd24dbf0c8053ff71/human-cohort/"
     "0c0d3f8546913331a790414f545794ce75b65f91f98cf564ad1f6c824df658a9/"
     "artifacts/bundles/2026-10-16T03-49-57Z"
 )
+
+
+def original_contract(path=ORIGINAL):
+    if digest(path)["sha256"] != ORIGINAL_SHA256:
+        raise ValueError("Original materialization receipt differs from its frozen hash")
+    manifest = json.loads(Path(path).read_text())
+    return manifest, manifest["definition"]["transform"]["options"]
 
 
 def main():
@@ -24,10 +33,7 @@ def main():
     from hitlist import verify_training_bundle
     from hitlist.downloads import data_dir
 
-    manifest = json.loads(ORIGINAL.read_text())
-    options = manifest["definition"]["transform"]["options"]
-    if options["parent_run_id"] != RUN_ID or options["training_options"] != OPTIONS:
-        raise ValueError("Original export does not match the registered cohort")
+    manifest, options = original_contract()
     manifest_pin = digest(ORIGINAL)
     destination = data_dir() / "human-cohort-recovery" / manifest_pin["sha256"]
     volume = modal.Volume.from_name("presto-data", create_if_missing=False)

@@ -80,3 +80,27 @@ def test_actual_receipt_materialization_preserves_success_and_failure(
     assert json.loads(Path(paths["receipt.json"]).read_text()) == result
     assert Path(paths["export.log"]).read_bytes() == log.read_bytes()
     validate_file(paths["export.log"], cohort_script.digest(log)["sha256"])
+
+
+def test_historical_recovery_ignores_current_launcher_and_rejects_changed_receipt(
+    tmp_path, monkeypatch, cohort_script
+):
+    import sys
+
+    monkeypatch.setattr(cohort_script, "RUN_ID", "a-new-generation")
+    monkeypatch.setattr(cohort_script, "OPTIONS", {"length_min": 99})
+    monkeypatch.setitem(sys.modules, "qualify_human_cohort", cohort_script)
+    path = Path(__file__).parents[1] / "scripts" / "recover_human_cohort.py"
+    spec = importlib.util.spec_from_file_location("recover_human_cohort", path)
+    recovery = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(recovery)
+    manifest, options = recovery.original_contract()
+    assert options["parent_run_id"] in recovery.REMOTE
+    assert options["training_options"]["length_min"] == 8
+    assert manifest["outputs"]["manifest.json"]["sha256"] == (
+        "039efc7854098951b5c10b3fb5b38294452eeb425e367ed1fafdeebddf34b38d"
+    )
+    altered = tmp_path / "altered.json"
+    altered.write_bytes(recovery.ORIGINAL.read_bytes() + b" ")
+    with pytest.raises(ValueError, match="frozen hash"):
+        recovery.original_contract(altered)

@@ -4,12 +4,12 @@
 - [x] Implement released-producer/reference pins and fail-closed verification.
 - [ ] Run focused gates, freeze source and execute the six bounded stages.
 - [ ] Publish and independently verify complete generation and human inspection artifacts.
-- [ ] Run full gates, review, merge and deploy1.79.0; register new consumer qualification.
+- [ ] Run full gates, review, merge and deploy 1.79.0; register new consumer qualification.
 
 ## Corrected-generation prelaunch review
 
 Format/lint and 15 focused qualification tests pass. Only the Hitlist package pin
-changes (1.76 to1.78); the historical baseline lock remains intact. Reused
+changes (1.76 to 1.78); the historical baseline lock remains intact. Reused
 reference bytes and original receipt are hash-checked, cache-format library
 versions must agree, and observations/mappings rebuild independently. Full
 software gates and all actual corpus stages remain required.

@@ -1,0 +1,505 @@
+{
+  "receipt": {
+    "artifacts": {
+      "asset:abelin_2019_dr_tissue.csv": {
+        "path": "/data/hitlist-qualification/runs/a6933c31825caf35475ba38ae243551bb815d65ba03ee93d9ddb768869e4b5a0/cache/hitlist/abelin_2019_dr_tissue.csv",
+        "sha256": "f95bb24097fc26a3272b3fb9942ae7dc8e4800b5a6cea2d9a6d92530d33b073c",
+        "size_bytes": 210368
+      },
+      "asset:abelin_2019_maptac_class1.csv": {
+        "path": "/data/hitlist-qualification/runs/a6933c31825caf35475ba38ae243551bb815d65ba03ee93d9ddb768869e4b5a0/cache/hitlist/abelin_2019_maptac_class1.csv",
+        "sha256": "74ec46e105ae406d89971fe2c87d3e03b36c8f650f8d78695425dd467bca9c42",
+        "size_bytes": 246822
+      },
+      "asset:abelin_2019_maptac_class2.csv": {
+        "path": "/data/hitlist-qualification/runs/a6933c31825caf35475ba38ae243551bb815d65ba03ee93d9ddb768869e4b5a0/cache/hitlist/abelin_2019_maptac_class2.csv",
+        "sha256": "a9b6454f05c24c11113bde92d35f3222d60eb0746ef8e6ac34ed2b0b6daa1c47",
+        "size_bytes": 1638237
+      },
+      "asset:bekker_jensen_2017_peptides.csv.gz": {
+        "path": "/data/hitlist-qualification/runs/a6933c31825caf35475ba38ae243551bb815d65ba03ee93d9ddb768869e4b5a0/cache/hitlist/bekker_jensen_2017_peptides.csv.gz",
+        "sha256": "3ec65dd05e8ec58c3293e0fb5720570197a8b152cd14778130bae4224106e3d3",
+        "size_bytes": 35074080
+      },
+      "asset:bekker_jensen_2017_protein_abundance.csv.gz": {
+        "path": "/data/hitlist-qualification/runs/a6933c31825caf35475ba38ae243551bb815d65ba03ee93d9ddb768869e4b5a0/cache/hitlist/bekker_jensen_2017_protein_abundance.csv.gz",
+        "sha256": "17628f1a9c3ed5e3ee1ad7aab4480008000a6beb2c042928f3fbdf699366bc45",
+        "size_bytes": 4410669
+      },
+      "asset:ccle_nusinow_2020.csv.gz": {
+        "path": "/data/hitlist-qualification/runs/a6933c31825caf35475ba38ae243551bb815d65ba03ee93d9ddb768869e4b5a0/cache/hitlist/ccle_nusinow_2020.csv.gz",
+        "sha256": "1cd9bdd7b40e1a22593c0045f5ba1d785004b64943c4845d4311bc44e7f97d82",
+        "size_bytes": 1671535
+      },
+      "asset:gm12878_encode_rnaseq_tpm.csv.gz": {
+        "path": "/data/hitlist-qualification/runs/a6933c31825caf35475ba38ae243551bb815d65ba03ee93d9ddb768869e4b5a0/cache/hitlist/gm12878_encode_rnaseq_tpm.csv.gz",
+        "sha256": "b3d605f3426d283ecf166bd6a38006dc40d4d3aa9c4050c40f7f2101ff60d8ab",
+        "size_bytes": 271557
+      },
+      "asset:gomez_zepeda_2024_hela.csv": {
+        "path": "/data/hitlist-qualification/runs/a6933c31825caf35475ba38ae243551bb815d65ba03ee93d9ddb768869e4b5a0/cache/hitlist/gomez_zepeda_2024_hela.csv",
+        "sha256": "56ea133ccd210f4267b366756d2693279349b962b95087e787f2c00cdc8f6709",
+        "size_bytes": 261764
+      },
+      "asset:gomez_zepeda_2024_jy.csv": {
+        "path": "/data/hitlist-qualification/runs/a6933c31825caf35475ba38ae243551bb815d65ba03ee93d9ddb768869e4b5a0/cache/hitlist/gomez_zepeda_2024_jy.csv",
+        "sha256": "9eecfa2a8deeb75dc504caecfe659fb8cbbb58625180046ab2a68782d7cfa8b2",
+        "size_bytes": 577082
+      },
+      "asset:gomez_zepeda_2024_plasma.csv": {
+        "path": "/data/hitlist-qualification/runs/a6933c31825caf35475ba38ae243551bb815d65ba03ee93d9ddb768869e4b5a0/cache/hitlist/gomez_zepeda_2024_plasma.csv",
+        "sha256": "133fa549b65cd962a10648e72c4185dd5be1e2706b1f6388067d7ffbc6048718",
+        "size_bytes": 33847
+      },
+      "asset:gomez_zepeda_2024_raji.csv": {
+        "path": "/data/hitlist-qualification/runs/a6933c31825caf35475ba38ae243551bb815d65ba03ee93d9ddb768869e4b5a0/cache/hitlist/gomez_zepeda_2024_raji.csv",
+        "sha256": "6e9b2d322aec33ff69a20050c842ce97111521576d0b012c206ec5507110c672",
+        "size_bytes": 668528
+      },
+      "asset:gomez_zepeda_2024_skmel37.csv": {
+        "path": "/data/hitlist-qualification/runs/a6933c31825caf35475ba38ae243551bb815d65ba03ee93d9ddb768869e4b5a0/cache/hitlist/gomez_zepeda_2024_skmel37.csv",
+        "sha256": "c2d04f556f1bc39cee8856fc753a03739b5baf344e478cd973c7339496a1d207",
+        "size_bytes": 286030
+      },
+      "asset:sarkizova_2020_patient_cohort.csv": {
+        "path": "/data/hitlist-qualification/runs/a6933c31825caf35475ba38ae243551bb815d65ba03ee93d9ddb768869e4b5a0/cache/hitlist/sarkizova_2020_patient_cohort.csv",
+        "sha256": "f37af217074c08f23a9521c791bba5230a4cf849bf2871bfc20bed1aaaef0729",
+        "size_bytes": 1073141
+      },
+      "asset:shapiro_2025_hap1_b2m_ko.csv": {
+        "path": "/data/hitlist-qualification/runs/a6933c31825caf35475ba38ae243551bb815d65ba03ee93d9ddb768869e4b5a0/cache/hitlist/shapiro_2025_hap1_b2m_ko.csv",
+        "sha256": "5d32d27ba14100925f3647644e6cb8c9ee2024e2dd4512b5e03b685c451c4364",
+        "size_bytes": 7650
+      },
+      "asset:shapiro_2025_hap1_calr_ko.csv": {
+        "path": "/data/hitlist-qualification/runs/a6933c31825caf35475ba38ae243551bb815d65ba03ee93d9ddb768869e4b5a0/cache/hitlist/shapiro_2025_hap1_calr_ko.csv",
+        "sha256": "6246a14486388806dc20f0bc7150be19653498f1fedffb6e7e45a51e4a4a0a69",
+        "size_bytes": 232191
+      },
+      "asset:shapiro_2025_hap1_canx_ko.csv": {
+        "path": "/data/hitlist-qualification/runs/a6933c31825caf35475ba38ae243551bb815d65ba03ee93d9ddb768869e4b5a0/cache/hitlist/shapiro_2025_hap1_canx_ko.csv",
+        "sha256": "8672e8c0d7bc0fd637a22a5b9d19f5b3020ff5d9c5d4f8fa1eecfbe36186d96b",
+        "size_bytes": 217182
+      },
+      "asset:shapiro_2025_hap1_erap1_ko.csv": {
+        "path": "/data/hitlist-qualification/runs/a6933c31825caf35475ba38ae243551bb815d65ba03ee93d9ddb768869e4b5a0/cache/hitlist/shapiro_2025_hap1_erap1_ko.csv",
+        "sha256": "596a10f1eadeee71d2c24f4fa1b512862775672b2bc4999b5a726624d1d8a170",
+        "size_bytes": 125926
+      },
+      "asset:shapiro_2025_hap1_ganab_ko.csv": {
+        "path": "/data/hitlist-qualification/runs/a6933c31825caf35475ba38ae243551bb815d65ba03ee93d9ddb768869e4b5a0/cache/hitlist/shapiro_2025_hap1_ganab_ko.csv",
+        "sha256": "5b6cec7cafafe17e823ca9789d5859ac2877f9120fdbe18c7621a330605bf2d2",
+        "size_bytes": 151604
+      },
+      "asset:shapiro_2025_hap1_irf2_ko.csv": {
+        "path": "/data/hitlist-qualification/runs/a6933c31825caf35475ba38ae243551bb815d65ba03ee93d9ddb768869e4b5a0/cache/hitlist/shapiro_2025_hap1_irf2_ko.csv",
+        "sha256": "91836f74a6868cac49b5638add348792d1920521b2e701be66ced1d5adfbdab5",
+        "size_bytes": 70407
+      },
+      "asset:shapiro_2025_hap1_pdia3_ko.csv": {
+        "path": "/data/hitlist-qualification/runs/a6933c31825caf35475ba38ae243551bb815d65ba03ee93d9ddb768869e4b5a0/cache/hitlist/shapiro_2025_hap1_pdia3_ko.csv",
+        "sha256": "a24382e88da5dc06c877a5e1027db6ab26a765911840ffc173613fc2560ab608",
+        "size_bytes": 95826
+      },
+      "asset:shapiro_2025_hap1_sppl3_ko.csv": {
+        "path": "/data/hitlist-qualification/runs/a6933c31825caf35475ba38ae243551bb815d65ba03ee93d9ddb768869e4b5a0/cache/hitlist/shapiro_2025_hap1_sppl3_ko.csv",
+        "sha256": "38d66d6ca3dd12f1e13e0e448cf06cac6b9c229ccf2682f440fe8a8fb74da4a8",
+        "size_bytes": 199225
+      },
+      "asset:shapiro_2025_hap1_tap1_ko.csv": {
+        "path": "/data/hitlist-qualification/runs/a6933c31825caf35475ba38ae243551bb815d65ba03ee93d9ddb768869e4b5a0/cache/hitlist/shapiro_2025_hap1_tap1_ko.csv",
+        "sha256": "babd57cb0fad48365369bbcb64f6c4fcb8a372f7bce6fd1e08e9d987c0e5bb38",
+        "size_bytes": 120243
+      },
+      "asset:shapiro_2025_hap1_tap2_ko.csv": {
+        "path": "/data/hitlist-qualification/runs/a6933c31825caf35475ba38ae243551bb815d65ba03ee93d9ddb768869e4b5a0/cache/hitlist/shapiro_2025_hap1_tap2_ko.csv",
+        "sha256": "d0163b980196dd24fbb6f8a24d026d410f049a2cd9bf7e572c97d1896ed33867",
+        "size_bytes": 42720
+      },
+      "asset:shapiro_2025_hap1_tapbp_ko.csv": {
+        "path": "/data/hitlist-qualification/runs/a6933c31825caf35475ba38ae243551bb815d65ba03ee93d9ddb768869e4b5a0/cache/hitlist/shapiro_2025_hap1_tapbp_ko.csv",
+        "sha256": "86773579291c8fa0d51e8b5b0dbc57a2bf07646695f2eb21449f27bdcc154766",
+        "size_bytes": 59337
+      },
+      "asset:shapiro_2025_hap1_wildtype.csv": {
+        "path": "/data/hitlist-qualification/runs/a6933c31825caf35475ba38ae243551bb815d65ba03ee93d9ddb768869e4b5a0/cache/hitlist/shapiro_2025_hap1_wildtype.csv",
+        "sha256": "ee2fe18ad0b10382d400670e3d2215c71714aad9234ac95b89bb9410055bdafb",
+        "size_bytes": 250548
+      },
+      "asset:strazar_2023_hla2.csv": {
+        "path": "/data/hitlist-qualification/runs/a6933c31825caf35475ba38ae243551bb815d65ba03ee93d9ddb768869e4b5a0/cache/hitlist/strazar_2023_hla2.csv",
+        "sha256": "3dc547ae7cd4cfd735794e30c52430bb33f52d3960644d24bf07e44d6496e085",
+        "size_bytes": 13932615
+      },
+      "cedar": {
+        "path": "/data/hitlist-qualification/runs/a6933c31825caf35475ba38ae243551bb815d65ba03ee93d9ddb768869e4b5a0/inputs/bundles/2026-10-16T06-03-43Z/cedar",
+        "sha256": "3b137c99686c0df9f930a4e287995e818e289f7df47c6eeb56dbcb1c7f39d8e6",
+        "size_bytes": 6945931753
+      },
+      "iedb": {
+        "path": "/data/hitlist-qualification/runs/a6933c31825caf35475ba38ae243551bb815d65ba03ee93d9ddb768869e4b5a0/inputs/bundles/2026-10-16T06-03-43Z/iedb",
+        "sha256": "957337189072a918fe38a216cfa4893cb08a74c35027ce0489252dd446eb6ad8",
+        "size_bytes": 7773476136
+      }
+    },
+    "contributor_free_space_reserve_gib": 1,
+    "contributor_scratch_limit_gib": 16,
+    "cpu_limit": 8,
+    "details": {
+      "depmap_registered": false,
+      "paper_asset_registry": {
+        "abelin_2019_dr_tissue.csv": {
+          "bundled": true,
+          "sha256": "f95bb24097fc26a3272b3fb9942ae7dc8e4800b5a6cea2d9a6d92530d33b073c",
+          "size_bytes": 210368,
+          "source": "Abelin et al. 2019, Immunity \u2014 MAPTAC immunopeptidome",
+          "url": "https://github.com/pirl-unc/hitlist/releases/download/data-assets-v1/abelin_2019_dr_tissue.csv"
+        },
+        "abelin_2019_maptac_class1.csv": {
+          "bundled": true,
+          "sha256": "74ec46e105ae406d89971fe2c87d3e03b36c8f650f8d78695425dd467bca9c42",
+          "size_bytes": 246822,
+          "source": "Abelin et al. 2019, Immunity \u2014 MAPTAC immunopeptidome",
+          "url": "https://github.com/pirl-unc/hitlist/releases/download/data-assets-v1/abelin_2019_maptac_class1.csv"
+        },
+        "abelin_2019_maptac_class2.csv": {
+          "bundled": false,
+          "sha256": "a9b6454f05c24c11113bde92d35f3222d60eb0746ef8e6ac34ed2b0b6daa1c47",
+          "size_bytes": 1638237,
+          "source": "Abelin et al. 2019, Immunity \u2014 MAPTAC immunopeptidome",
+          "url": "https://github.com/pirl-unc/hitlist/releases/download/data-assets-v1/abelin_2019_maptac_class2.csv"
+        },
+        "bekker_jensen_2017_peptides.csv.gz": {
+          "bundled": false,
+          "sha256": "3ec65dd05e8ec58c3293e0fb5720570197a8b152cd14778130bae4224106e3d3",
+          "size_bytes": 35074080,
+          "source": "Bekker-Jensen et al. 2017, Cell Syst \u2014 deep HeLa proteome",
+          "url": "https://github.com/pirl-unc/hitlist/releases/download/data-assets-v1/bekker_jensen_2017_peptides.csv.gz"
+        },
+        "bekker_jensen_2017_protein_abundance.csv.gz": {
+          "bundled": false,
+          "sha256": "17628f1a9c3ed5e3ee1ad7aab4480008000a6beb2c042928f3fbdf699366bc45",
+          "size_bytes": 4410669,
+          "source": "Bekker-Jensen et al. 2017, Cell Syst \u2014 deep HeLa proteome",
+          "url": "https://github.com/pirl-unc/hitlist/releases/download/data-assets-v1/bekker_jensen_2017_protein_abundance.csv.gz"
+        },
+        "ccle_nusinow_2020.csv.gz": {
+          "bundled": false,
+          "sha256": "1cd9bdd7b40e1a22593c0045f5ba1d785004b64943c4845d4311bc44e7f97d82",
+          "size_bytes": 1671535,
+          "source": "Nusinow et al. 2020, Cell \u2014 CCLE proteomics",
+          "url": "https://github.com/pirl-unc/hitlist/releases/download/data-assets-v1/ccle_nusinow_2020.csv.gz"
+        },
+        "gm12878_encode_rnaseq_tpm.csv.gz": {
+          "bundled": true,
+          "sha256": "b3d605f3426d283ecf166bd6a38006dc40d4d3aa9c4050c40f7f2101ff60d8ab",
+          "size_bytes": 271557,
+          "source": "ENCODE GM12878 lymphoblastoid RNA-seq (TPM)",
+          "url": "https://github.com/pirl-unc/hitlist/releases/download/data-assets-v1/gm12878_encode_rnaseq_tpm.csv.gz"
+        },
+        "gomez_zepeda_2024_hela.csv": {
+          "bundled": true,
+          "sha256": "56ea133ccd210f4267b366756d2693279349b962b95087e787f2c00cdc8f6709",
+          "size_bytes": 261764,
+          "source": "Gomez-Zepeda et al. 2024 \u2014 immunopeptidome",
+          "url": "https://github.com/pirl-unc/hitlist/releases/download/data-assets-v1/gomez_zepeda_2024_hela.csv"
+        },
+        "gomez_zepeda_2024_jy.csv": {
+          "bundled": true,
+          "sha256": "9eecfa2a8deeb75dc504caecfe659fb8cbbb58625180046ab2a68782d7cfa8b2",
+          "size_bytes": 577082,
+          "source": "Gomez-Zepeda et al. 2024 \u2014 immunopeptidome",
+          "url": "https://github.com/pirl-unc/hitlist/releases/download/data-assets-v1/gomez_zepeda_2024_jy.csv"
+        },
+        "gomez_zepeda_2024_plasma.csv": {
+          "bundled": true,
+          "sha256": "133fa549b65cd962a10648e72c4185dd5be1e2706b1f6388067d7ffbc6048718",
+          "size_bytes": 33847,
+          "source": "Gomez-Zepeda et al. 2024 \u2014 immunopeptidome",
+          "url": "https://github.com/pirl-unc/hitlist/releases/download/data-assets-v1/gomez_zepeda_2024_plasma.csv"
+        },
+        "gomez_zepeda_2024_raji.csv": {
+          "bundled": true,
+          "sha256": "6e9b2d322aec33ff69a20050c842ce97111521576d0b012c206ec5507110c672",
+          "size_bytes": 668528,
+          "source": "Gomez-Zepeda et al. 2024 \u2014 immunopeptidome",
+          "url": "https://github.com/pirl-unc/hitlist/releases/download/data-assets-v1/gomez_zepeda_2024_raji.csv"
+        },
+        "gomez_zepeda_2024_skmel37.csv": {
+          "bundled": true,
+          "sha256": "c2d04f556f1bc39cee8856fc753a03739b5baf344e478cd973c7339496a1d207",
+          "size_bytes": 286030,
+          "source": "Gomez-Zepeda et al. 2024 \u2014 immunopeptidome",
+          "url": "https://github.com/pirl-unc/hitlist/releases/download/data-assets-v1/gomez_zepeda_2024_skmel37.csv"
+        },
+        "sarkizova_2020_patient_cohort.csv": {
+          "bundled": true,
+          "sha256": "f37af217074c08f23a9521c791bba5230a4cf849bf2871bfc20bed1aaaef0729",
+          "size_bytes": 1073141,
+          "source": "Sarkizova et al. 2020, Nat Biotechnol \u2014 per-peptide patient attribution",
+          "url": "https://github.com/pirl-unc/hitlist/releases/download/data-assets-v1/sarkizova_2020_patient_cohort.csv"
+        },
+        "shapiro_2025_hap1_b2m_ko.csv": {
+          "bundled": true,
+          "sha256": "5d32d27ba14100925f3647644e6cb8c9ee2024e2dd4512b5e03b685c451c4364",
+          "size_bytes": 7650,
+          "source": "Shapiro et al. 2025 \u2014 HAP1 antigen-processing KO immunopeptidome",
+          "url": "https://github.com/pirl-unc/hitlist/releases/download/data-assets-v1/shapiro_2025_hap1_b2m_ko.csv"
+        },
+        "shapiro_2025_hap1_calr_ko.csv": {
+          "bundled": true,
+          "sha256": "6246a14486388806dc20f0bc7150be19653498f1fedffb6e7e45a51e4a4a0a69",
+          "size_bytes": 232191,
+          "source": "Shapiro et al. 2025 \u2014 HAP1 antigen-processing KO immunopeptidome",
+          "url": "https://github.com/pirl-unc/hitlist/releases/download/data-assets-v1/shapiro_2025_hap1_calr_ko.csv"
+        },
+        "shapiro_2025_hap1_canx_ko.csv": {
+          "bundled": true,
+          "sha256": "8672e8c0d7bc0fd637a22a5b9d19f5b3020ff5d9c5d4f8fa1eecfbe36186d96b",
+          "size_bytes": 217182,
+          "source": "Shapiro et al. 2025 \u2014 HAP1 antigen-processing KO immunopeptidome",
+          "url": "https://github.com/pirl-unc/hitlist/releases/download/data-assets-v1/shapiro_2025_hap1_canx_ko.csv"
+        },
+        "shapiro_2025_hap1_erap1_ko.csv": {
+          "bundled": true,
+          "sha256": "596a10f1eadeee71d2c24f4fa1b512862775672b2bc4999b5a726624d1d8a170",
+          "size_bytes": 125926,
+          "source": "Shapiro et al. 2025 \u2014 HAP1 antigen-processing KO immunopeptidome",
+          "url": "https://github.com/pirl-unc/hitlist/releases/download/data-assets-v1/shapiro_2025_hap1_erap1_ko.csv"
+        },
+        "shapiro_2025_hap1_ganab_ko.csv": {
+          "bundled": true,
+          "sha256": "5b6cec7cafafe17e823ca9789d5859ac2877f9120fdbe18c7621a330605bf2d2",
+          "size_bytes": 151604,
+          "source": "Shapiro et al. 2025 \u2014 HAP1 antigen-processing KO immunopeptidome",
+          "url": "https://github.com/pirl-unc/hitlist/releases/download/data-assets-v1/shapiro_2025_hap1_ganab_ko.csv"
+        },
+        "shapiro_2025_hap1_irf2_ko.csv": {
+          "bundled": true,
+          "sha256": "91836f74a6868cac49b5638add348792d1920521b2e701be66ced1d5adfbdab5",
+          "size_bytes": 70407,
+          "source": "Shapiro et al. 2025 \u2014 HAP1 antigen-processing KO immunopeptidome",
+          "url": "https://github.com/pirl-unc/hitlist/releases/download/data-assets-v1/shapiro_2025_hap1_irf2_ko.csv"
+        },
+        "shapiro_2025_hap1_pdia3_ko.csv": {
+          "bundled": true,
+          "sha256": "a24382e88da5dc06c877a5e1027db6ab26a765911840ffc173613fc2560ab608",
+          "size_bytes": 95826,
+          "source": "Shapiro et al. 2025 \u2014 HAP1 antigen-processing KO immunopeptidome",
+          "url": "https://github.com/pirl-unc/hitlist/releases/download/data-assets-v1/shapiro_2025_hap1_pdia3_ko.csv"
+        },
+        "shapiro_2025_hap1_sppl3_ko.csv": {
+          "bundled": true,
+          "sha256": "38d66d6ca3dd12f1e13e0e448cf06cac6b9c229ccf2682f440fe8a8fb74da4a8",
+          "size_bytes": 199225,
+          "source": "Shapiro et al. 2025 \u2014 HAP1 antigen-processing KO immunopeptidome",
+          "url": "https://github.com/pirl-unc/hitlist/releases/download/data-assets-v1/shapiro_2025_hap1_sppl3_ko.csv"
+        },
+        "shapiro_2025_hap1_tap1_ko.csv": {
+          "bundled": true,
+          "sha256": "babd57cb0fad48365369bbcb64f6c4fcb8a372f7bce6fd1e08e9d987c0e5bb38",
+          "size_bytes": 120243,
+          "source": "Shapiro et al. 2025 \u2014 HAP1 antigen-processing KO immunopeptidome",
+          "url": "https://github.com/pirl-unc/hitlist/releases/download/data-assets-v1/shapiro_2025_hap1_tap1_ko.csv"
+        },
+        "shapiro_2025_hap1_tap2_ko.csv": {
+          "bundled": true,
+          "sha256": "d0163b980196dd24fbb6f8a24d026d410f049a2cd9bf7e572c97d1896ed33867",
+          "size_bytes": 42720,
+          "source": "Shapiro et al. 2025 \u2014 HAP1 antigen-processing KO immunopeptidome",
+          "url": "https://github.com/pirl-unc/hitlist/releases/download/data-assets-v1/shapiro_2025_hap1_tap2_ko.csv"
+        },
+        "shapiro_2025_hap1_tapbp_ko.csv": {
+          "bundled": true,
+          "sha256": "86773579291c8fa0d51e8b5b0dbc57a2bf07646695f2eb21449f27bdcc154766",
+          "size_bytes": 59337,
+          "source": "Shapiro et al. 2025 \u2014 HAP1 antigen-processing KO immunopeptidome",
+          "url": "https://github.com/pirl-unc/hitlist/releases/download/data-assets-v1/shapiro_2025_hap1_tapbp_ko.csv"
+        },
+        "shapiro_2025_hap1_wildtype.csv": {
+          "bundled": true,
+          "sha256": "ee2fe18ad0b10382d400670e3d2215c71714aad9234ac95b89bb9410055bdafb",
+          "size_bytes": 250548,
+          "source": "Shapiro et al. 2025 \u2014 HAP1 antigen-processing KO immunopeptidome",
+          "url": "https://github.com/pirl-unc/hitlist/releases/download/data-assets-v1/shapiro_2025_hap1_wildtype.csv"
+        },
+        "strazar_2023_hla2.csv": {
+          "bundled": false,
+          "sha256": "3dc547ae7cd4cfd735794e30c52430bb33f52d3960644d24bf07e44d6496e085",
+          "size_bytes": 13932615,
+          "source": "Strazar et al. 2023, Immunity \u2014 HLA-II immunopeptidome",
+          "url": "https://github.com/pirl-unc/hitlist/releases/download/data-assets-v1/strazar_2023_hla2.csv"
+        }
+      },
+      "source_pins": {
+        "cedar": {
+          "export_date_status": "unverified; local mtime is not an export-date claim",
+          "filename": "cedar_mhc_ligand_full.csv",
+          "remote_path": "hitlist-qualification/raw-sources/3b137c99686c0df9f930a4e287995e818e289f7df47c6eeb56dbcb1c7f39d8e6/cedar_mhc_ligand_full.csv",
+          "sha256": "3b137c99686c0df9f930a4e287995e818e289f7df47c6eeb56dbcb1c7f39d8e6",
+          "size_bytes": 6945931753
+        },
+        "iedb": {
+          "export_date_status": "unverified; local mtime is not an export-date claim",
+          "filename": "iedb_mhc_ligand_full.csv",
+          "remote_path": "hitlist-qualification/raw-sources/957337189072a918fe38a216cfa4893cb08a74c35027ce0489252dd446eb6ad8/iedb_mhc_ligand_full.csv",
+          "sha256": "957337189072a918fe38a216cfa4893cb08a74c35027ce0489252dd446eb6ad8",
+          "size_bytes": 7773476136
+        }
+      }
+    },
+    "disk_free_bytes_after": 409600000000,
+    "disk_free_bytes_before": 409600000000,
+    "ephemeral_disk_request_mib": 524288,
+    "finished_utc": "2026-10-16T06:04:05.202382+00:00",
+    "gpu": "none",
+    "memory_limit_mib": 65536,
+    "options": {
+      "HITLIST_BUILD_WORKERS": "2",
+      "HITLIST_DATA_DIR": "/data/hitlist-qualification/runs/a6933c31825caf35475ba38ae243551bb815d65ba03ee93d9ddb768869e4b5a0/hitlist",
+      "PYENSEMBL_CACHE_DIR": "/data/hitlist-qualification/runs/a6933c31825caf35475ba38ae243551bb815d65ba03ee93d9ddb768869e4b5a0/references"
+    },
+    "platform": "Linux-4.19.0-gvisor-x86_64-with-glibc2.31",
+    "process_peak_rss_bytes": 239017984,
+    "python": "3.12.1 (main, Jan 11 2024, 10:22:40) [GCC 10.2.1 20210110]",
+    "recipes": {
+      "ci_corpus.py": {
+        "path": "/opt/qualification/ci_corpus.py",
+        "sha256": "0e916ee0ca574f04507a5d403ecd09efdf68c0b6b4481309d81e64f9ecd5b3ef",
+        "size_bytes": 17332
+      },
+      "qualify_corpus.py": {
+        "path": "/opt/qualification/qualify_corpus.py",
+        "sha256": "a373bb800f3e3e8e3fdc5f7afb2e3003ea3a48fb536a6ee80fec92bb13532231",
+        "size_bytes": 14916
+      },
+      "reference.json": {
+        "path": "/opt/qualification/reference.json",
+        "sha256": "b6e71706014363fe630b23856359e2f994cd0401edbe64186fd2ac2489aa0a01",
+        "size_bytes": 485
+      },
+      "requirements.txt": {
+        "path": "/opt/qualification/requirements.txt",
+        "sha256": "842a0bc41d2bdfe1ff75d5c5bef16c8501ec2a46525ae32e9f579d8b6ceb9cf1",
+        "size_bytes": 85739
+      },
+      "sources.json": {
+        "path": "/opt/qualification/sources.json",
+        "sha256": "c40063ede9c32baf178f570913e72435b258ad511dae9c5162abf9bfa7afe2e7",
+        "size_bytes": 804
+      }
+    },
+    "rss_scope": "runner process only; worker processes excluded",
+    "run_id": "a6933c31825caf35475ba38ae243551bb815d65ba03ee93d9ddb768869e4b5a0",
+    "runtime_seconds": 71.88690858,
+    "schema_version": 1,
+    "stage": "sources",
+    "started_utc": "2026-10-16T06:02:53.315431+00:00",
+    "status": "success",
+    "versions": {
+      "PyYAML": "6.0.3",
+      "Pygments": "2.17.2",
+      "adjustText": "1.4.0",
+      "ahocorasick_rs": "1.0.3",
+      "aiohttp": "3.9.1",
+      "aiosignal": "1.3.1",
+      "aiostream": "0.4.4",
+      "anyio": "4.2.0",
+      "asgiref": "3.5.2",
+      "asttokens": "2.4.1",
+      "attrs": "23.2.0",
+      "certifi": "2026.7.22",
+      "charset-normalizer": "3.5.2",
+      "click": "8.1.7",
+      "cloudpickle": "2.2.0",
+      "commonmark": "0.9.1",
+      "contourpy": "1.4.0",
+      "cycler": "0.12.1",
+      "datacache": "1.27.1",
+      "decorator": "5.1.1",
+      "et_xmlfile": "2.0.0",
+      "executing": "2.0.1",
+      "fastapi": "0.88.0",
+      "fastprogress": "1.0.0",
+      "filelock": "4.2.0",
+      "fonttools": "4.67.0",
+      "frozenlist": "1.4.1",
+      "grpclib": "0.4.7",
+      "gtfparse": "3.0.4",
+      "h2": "4.1.0",
+      "hitlist": "1.78.0",
+      "hpack": "4.0.0",
+      "hyperframe": "6.0.1",
+      "idna": "3.20",
+      "importlib-metadata": "4.8.1",
+      "ipython": "8.20.0",
+      "jedi": "0.19.1",
+      "kiwisolver": "1.5.1",
+      "matplotlib": "3.11.2",
+      "matplotlib-inline": "0.1.6",
+      "matplotlib-venn": "1.1.2",
+      "memoized-property": "1.0.3",
+      "mhcgnomes": "3.64.5",
+      "multidict": "6.0.4",
+      "numpy": "2.5.4",
+      "oncoref": "1.9.11",
+      "openpyxl": "3.1.5",
+      "orfdata": "0.27.1",
+      "packaging": "26.3",
+      "pandas": "3.0.6",
+      "parso": "0.8.3",
+      "pexpect": "4.9.0",
+      "pillow": "12.3.0",
+      "pip": "23.3.2",
+      "platformdirs": "4.13.2",
+      "prompt-toolkit": "3.0.43",
+      "protobuf": "4.25.2",
+      "ptyprocess": "0.7.0",
+      "pure-eval": "0.2.2",
+      "pyarrow": "26.0.0",
+      "pydantic": "1.10.14",
+      "pyensembl": "2.27.3",
+      "pyfaidx": "0.9.0.4",
+      "pyparsing": "3.3.3",
+      "python-dateutil": "2.9.0.post0",
+      "python-multipart": "0.0.6",
+      "requests": "2.34.2",
+      "rich": "12.3.0",
+      "scipy": "1.18.1",
+      "serializable": "1.3.1",
+      "setuptools": "69.0.3",
+      "six": "1.17.0",
+      "sniffio": "1.3.0",
+      "stack-data": "0.6.3",
+      "starlette": "0.22.0",
+      "tblib": "1.7.0",
+      "tinytimer": "0.0.0",
+      "toml": "0.10.2",
+      "tqdm": "4.70.1",
+      "traitlets": "5.14.1",
+      "typechecks": "0.1.0",
+      "typeguard": "4.1.5",
+      "typer": "0.6.1",
+      "types-certifi": "2021.10.8.3",
+      "types-toml": "0.10.4",
+      "typing_extensions": "4.9.0",
+      "urllib3": "2.8.0",
+      "wcwidth": "0.2.13",
+      "wheel": "0.42.0",
+      "yarl": "1.9.4",
+      "zipp": "3.17.0"
+    }
+  },
+  "receipt_files": {
+    "build.log": {
+      "path": "/data/hitlist-qualification/runs/a6933c31825caf35475ba38ae243551bb815d65ba03ee93d9ddb768869e4b5a0/receipts/sources/bundles/2026-10-16T06-04-05Z/build.log",
+      "sha256": "d5beb08cae23ef0e9aa172afc15139687619af2742c14c195edfba51e1755dfb",
+      "size_bytes": 12681
+    },
+    "receipt.json": {
+      "path": "/data/hitlist-qualification/runs/a6933c31825caf35475ba38ae243551bb815d65ba03ee93d9ddb768869e4b5a0/receipts/sources/bundles/2026-10-16T06-04-05Z/receipt.json",
+      "sha256": "0466162b040d6f03651b0bda17745babdac3277f48818206167dfa23d97d0663",
+      "size_bytes": 24598
+    }
+  }
+}

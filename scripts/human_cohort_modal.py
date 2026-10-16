@@ -10,7 +10,7 @@ volume = modal.Volume.from_name("presto-data", create_if_missing=False)
 image = (
     modal.Image.debian_slim(python_version="3.12")
     .pip_install_from_requirements(
-        str(ROOT / "tasks/corpus-qualification-requirements.txt"),
+        str(ROOT / "tasks/corrected-corpus-requirements.txt"),
         extra_options="--require-hashes",
     )
     .run_commands("python -m pip check")
