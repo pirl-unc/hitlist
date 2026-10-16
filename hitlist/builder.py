@@ -1322,7 +1322,13 @@ def build_bulk_proteomics(verbose: bool = False) -> pd.DataFrame:
         frames.append(bj_protein)
 
     # --- Bekker-Jensen peptide-level ---
-    bj_peptide = _load_bj().copy()
+    from .bulk_replicates import (
+        INTEGER_REPLICATE_COLUMNS,
+        REPLICATE_COLUMNS,
+        curate_replicate_counts,
+    )
+
+    bj_peptide = curate_replicate_counts(_load_bj())
     if len(bj_peptide):
         bj_peptide["granularity"] = "peptide"
         bj_peptide["log2_intensity"] = np.nan
@@ -1359,6 +1365,7 @@ def build_bulk_proteomics(verbose: bool = False) -> pd.DataFrame:
         "n_fractions",
         "n_fractions_in_run",
         "n_replicates_detected",
+        *INTEGER_REPLICATE_COLUMNS,
         "pmid",
     )
     for col in int_cols:
@@ -1410,6 +1417,7 @@ def build_bulk_proteomics(verbose: bool = False) -> pd.DataFrame:
         "abundance_percentile",
         "n_peptides",
         "n_replicates_detected",
+        *REPLICATE_COLUMNS,
         # acquisition metadata (harmonized with ms_samples schema)
         "instrument",
         "instrument_type",

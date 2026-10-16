@@ -1,3 +1,11 @@
+# Source-backed bulk experiment counts — #699
+
+- [x] Review existing source inventory and specify explicit experiment/count semantics.
+- [x] Implement nullable source-backed counts and consistent filtering/build paths.
+- [x] Verify supported, unresolved, invalid, mixed-source and CSV/parquet regressions.
+- [ ] Freeze/run/publish/independently verify the complete real-source audit.
+- [ ] Format/lint/full CI/integration, review, merge, deploy 1.81.0 and verify PyPI.
+
 # Bekker-Jensen fractionation evidence — #688
 
 - [x] Audit every legacy scope against pinned primary methods and supplements.
