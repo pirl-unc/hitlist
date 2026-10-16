@@ -1,0 +1,117 @@
+{
+  "files": {
+    "README.md": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/ci-corpus-v4/README.md",
+      "sha256": "01bdac0dc3854df34379548923e6a125e3b5e9298c9c2fe0bf90022b8f8df759",
+      "size_bytes": 1367
+    },
+    "binding.parquet": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/ci-corpus-v4/binding.parquet",
+      "sha256": "2b3f6ea2dd647e7fc54d214eef420feaebc4e81fab97ffc0565a2de1f8695ba0",
+      "size_bytes": 17096569
+    },
+    "bulk_proteomics.parquet": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/ci-corpus-v4/bulk_proteomics.parquet",
+      "sha256": "9e3d52301fe014205bc65e7a8e4554f4e75ce7caa7de8ed184d517d6688df86b",
+      "size_bytes": 45394459
+    },
+    "line_expression.parquet": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/ci-corpus-v4/line_expression.parquet",
+      "sha256": "d2a2cbf00fdd5cbd285bcd88ed06c511f09ed3404c4b705e5108af407b3feddf",
+      "size_bytes": 730671
+    },
+    "observation_contributors.parquet": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/ci-corpus-v4/observation_contributors.parquet",
+      "sha256": "41ff93e08bc6ea4af692fee16044726af26c4e20ec650ec6c7cd851974b71db1",
+      "size_bytes": 628447260
+    },
+    "observations.parquet": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/ci-corpus-v4/observations.parquet",
+      "sha256": "a665f37c0b5917fefb6d12eade530d7e2001de1f0ee73479b21d2c393d173ab4",
+      "size_bytes": 145685701
+    },
+    "observations_meta.json": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/ci-corpus-v4/observations_meta.json",
+      "sha256": "2318bc53cdae228285218991d58fbcc2bd7266327cec1dd3ed9a03b1c944a5b7",
+      "size_bytes": 12146
+    },
+    "other_assays.parquet": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/ci-corpus-v4/other_assays.parquet",
+      "sha256": "c40f5227ded408830885ecba8336dbdd701172df9573b0d32e5e8a5f8fc947c2",
+      "size_bytes": 1259717
+    },
+    "peptide_mappings.parquet": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/ci-corpus-v4/peptide_mappings.parquet",
+      "sha256": "057c9f01da3aea46816aa9d164c24951e45b42c4cf5d8dc84f44ab201ec1fcc9",
+      "size_bytes": 176051509
+    },
+    "peptide_mappings_meta.json": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/ci-corpus-v4/peptide_mappings_meta.json",
+      "sha256": "c188f0f874c8d997ace15c79eca7365e0805f985cd0de9f28c6ec2f0128c8542",
+      "size_bytes": 90848
+    },
+    "comparison-changed-cells.tsv": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/ci-corpus-v4/comparison-changed-cells.tsv",
+      "sha256": "5ad69f1f99f76edb56f0a58d00f5ba956552cd85f222186e7d51ff8c8f23bc3c",
+      "size_bytes": 23179714
+    },
+    "comparison-field-counts.tsv": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/ci-corpus-v4/comparison-field-counts.tsv",
+      "sha256": "769346c114bf5e896f5a856aa8df69e50ef15e666bb0462e7418cc02dc6e8e3f",
+      "size_bytes": 1348
+    },
+    "comparison-study-counts.tsv": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/ci-corpus-v4/comparison-study-counts.tsv",
+      "sha256": "eef3c71b168fd5f6824aea4f47e296e83fd7f06db8ca1d25f08d13361f278927",
+      "size_bytes": 70
+    },
+    "comparison-summary.json": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/ci-corpus-v4/comparison-summary.json",
+      "sha256": "77be98d78db7077edfc2fbdee74c29adf00a447a36f03427e36d2656b8679b8c",
+      "size_bytes": 1295
+    },
+    "QUALIFICATION.md": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/ci-corpus-v4/QUALIFICATION.md",
+      "sha256": "7a32a9364153d530a79797474fbd3056c28179529b5a2387187a3f9f09994717",
+      "size_bytes": 3006
+    },
+    "build-receipts.tar.gz": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/ci-corpus-v4/build-receipts.tar.gz",
+      "sha256": "504696750ab5a10a185a9ceefac1050db1d43c2f977c9ef0a16ef9405df75409",
+      "size_bytes": 126382
+    },
+    "publication.json": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/ci-corpus-v4/publication.json",
+      "sha256": "ceaf3fcd59c21435caa1ff83f12d658cdf1e0f41af23088629a7a248636e3e34",
+      "size_bytes": 4454
+    },
+    "SHA256SUMS": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/ci-corpus-v4/SHA256SUMS",
+      "sha256": "30e07e1b3f73a9ba3e64b5edc37ee542d1c7541b7a260947db5d476c703de50f",
+      "size_bytes": 1511
+    }
+  },
+  "downloaded": {
+    "README.md": "/Users/iskander/.hitlist/corrected-corpus/public-downloads/v4/bundles/2026-10-16T07-20-43Z/README.md",
+    "binding.parquet": "/Users/iskander/.hitlist/corrected-corpus/public-downloads/v4/bundles/2026-10-16T07-20-43Z/binding.parquet",
+    "bulk_proteomics.parquet": "/Users/iskander/.hitlist/corrected-corpus/public-downloads/v4/bundles/2026-10-16T07-20-43Z/bulk_proteomics.parquet",
+    "line_expression.parquet": "/Users/iskander/.hitlist/corrected-corpus/public-downloads/v4/bundles/2026-10-16T07-20-43Z/line_expression.parquet",
+    "observation_contributors.parquet": "/Users/iskander/.hitlist/corrected-corpus/public-downloads/v4/bundles/2026-10-16T07-20-43Z/observation_contributors.parquet",
+    "observations.parquet": "/Users/iskander/.hitlist/corrected-corpus/public-downloads/v4/bundles/2026-10-16T07-20-43Z/observations.parquet",
+    "observations_meta.json": "/Users/iskander/.hitlist/corrected-corpus/public-downloads/v4/bundles/2026-10-16T07-20-43Z/observations_meta.json",
+    "other_assays.parquet": "/Users/iskander/.hitlist/corrected-corpus/public-downloads/v4/bundles/2026-10-16T07-20-43Z/other_assays.parquet",
+    "peptide_mappings.parquet": "/Users/iskander/.hitlist/corrected-corpus/public-downloads/v4/bundles/2026-10-16T07-20-43Z/peptide_mappings.parquet",
+    "peptide_mappings_meta.json": "/Users/iskander/.hitlist/corrected-corpus/public-downloads/v4/bundles/2026-10-16T07-20-43Z/peptide_mappings_meta.json",
+    "comparison-changed-cells.tsv": "/Users/iskander/.hitlist/corrected-corpus/public-downloads/v4/bundles/2026-10-16T07-20-43Z/comparison-changed-cells.tsv",
+    "comparison-field-counts.tsv": "/Users/iskander/.hitlist/corrected-corpus/public-downloads/v4/bundles/2026-10-16T07-20-43Z/comparison-field-counts.tsv",
+    "comparison-study-counts.tsv": "/Users/iskander/.hitlist/corrected-corpus/public-downloads/v4/bundles/2026-10-16T07-20-43Z/comparison-study-counts.tsv",
+    "comparison-summary.json": "/Users/iskander/.hitlist/corrected-corpus/public-downloads/v4/bundles/2026-10-16T07-20-43Z/comparison-summary.json",
+    "QUALIFICATION.md": "/Users/iskander/.hitlist/corrected-corpus/public-downloads/v4/bundles/2026-10-16T07-20-43Z/QUALIFICATION.md",
+    "build-receipts.tar.gz": "/Users/iskander/.hitlist/corrected-corpus/public-downloads/v4/bundles/2026-10-16T07-20-43Z/build-receipts.tar.gz",
+    "publication.json": "/Users/iskander/.hitlist/corrected-corpus/public-downloads/v4/bundles/2026-10-16T07-20-43Z/publication.json",
+    "SHA256SUMS": "/Users/iskander/.hitlist/corrected-corpus/public-downloads/v4/bundles/2026-10-16T07-20-43Z/SHA256SUMS"
+  },
+  "native_manifest_sha256": "2318bc53cdae228285218991d58fbcc2bd7266327cec1dd3ed9a03b1c944a5b7",
+  "native_inventory_verified": true,
+  "native_artifact_version": 10
+}

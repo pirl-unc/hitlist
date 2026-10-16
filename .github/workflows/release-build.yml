@@ -74,8 +74,8 @@ jobs:
       # Existing per-worker memory guards and both complete test phases remain.
       TEST_SH_MAX: "1"
       PYTEST_ADDOPTS: "-ra"
-      CORPUS_VERSION: v3
-      CORPUS_MANIFEST_SHA256: 7f7f4035d8ec080b26385710d447633dba36ac5cce49008e48e14cf8894f20d5
+      CORPUS_VERSION: v4
+      CORPUS_MANIFEST_SHA256: 2318bc53cdae228285218991d58fbcc2bd7266327cec1dd3ed9a03b1c944a5b7
     steps:
       - uses: actions/checkout@v7
         with:
