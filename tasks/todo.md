@@ -4,7 +4,8 @@ Specification: [corpus-qualification-spec.md](corpus-qualification-spec.md).
 
 - [x] Ship complete-generation publication and public pinned installer (1.76.0).
 - [x] Hash raw source snapshots, inspect existing remote inputs and define limits.
-- [ ] Stage/verify raw pins and freeze producer/environment/source receipts.
+- [x] Freeze the producer dependency hashes and verify the bounded cloud environment.
+- [ ] Complete raw-source transfer and verify remote content pins.
 - [ ] Build separate current indexes, then verified human-reference mappings.
 - [ ] Publish complete corpus; verify downloads and CI compatibility.
 - [ ] Freeze actual cohort membership and publish coverage/leakage/lineage audits.
