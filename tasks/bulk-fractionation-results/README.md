@@ -15,7 +15,7 @@ The tables retain HeLa, A549, HCT116, HEK293 and MCF7 cell-line identities, dige
 
 ## Downloadable evidence
 
-The [public artifact release](https://github.com/pirl-unc/hitlist/releases/tag/bulk-fractionation-review-v1) contains:
+The [public artifact release](https://github.com/pirl-unc/hitlist/releases/tag/bulk-fractionation-review-v1) contains 15 independently re-downloaded and hash-verified assets:
 
 - `peptides.csv.gz` and `proteins.csv.gz`: complete corrected tables, with original annotations retained.
 - `scope-counts.tsv`: complete before/after counts by granularity and exact curated scope.
