@@ -1,0 +1,3696 @@
+{
+  "source_manifest_sha256": "7f7f4035d8ec080b26385710d447633dba36ac5cce49008e48e14cf8894f20d5",
+  "source_observations_sha256": "3faca5334ba9a03ba584bf72da6d856886634dc269cd4172a97e5258c5909ab8",
+  "rows": [
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*02:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the FAQ 3528 and K562-DPB1*02:01 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 331,
+      "named_lines": [
+        "FAQ 3528",
+        "K562-DPB1*02:01"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*02:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the FAQ 3528 and REE 7929 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1582,
+      "named_lines": [
+        "FAQ 3528",
+        "REE 7929"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*02:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the FAQ 3528 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 2460,
+      "named_lines": [
+        "FAQ 3528"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*02:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the FAQ 3528, K562-DPB1*02:01, and REE 7929 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 528,
+      "named_lines": [
+        "FAQ 3528",
+        "K562-DPB1*02:01",
+        "REE 7929"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*02:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the REE 7929 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 996,
+      "named_lines": [
+        "REE 7929"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*02:01",
+      "mhc_class": "II",
+      "cell_name": "K562-Myeloid cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the K562-DPB1*02:01 and REE 7929 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "monoallelic",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone",
+      "n_observations": 43,
+      "named_lines": [
+        "K562-DPB1*02:01",
+        "REE 7929"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*02:01",
+      "mhc_class": "II",
+      "cell_name": "K562-Myeloid cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the K562-DPB1*02:01 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "monoallelic",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone",
+      "n_observations": 1986,
+      "named_lines": [
+        "K562-DPB1*02:01"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*03:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the CLK 3987 and K562-DPB1*03:01 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 259,
+      "named_lines": [
+        "CLK 3987",
+        "K562-DPB1*03:01"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*03:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the CLK 3987 and MPF 174 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1347,
+      "named_lines": [
+        "CLK 3987",
+        "MPF 174"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*03:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the CLK 3987 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1840,
+      "named_lines": [
+        "CLK 3987"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*03:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the CLK 3987, K562-DPB1*03:01, and MPF 174 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 666,
+      "named_lines": [
+        "CLK 3987",
+        "K562-DPB1*03:01",
+        "MPF 174"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*03:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the MPF 174 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1213,
+      "named_lines": [
+        "MPF 174"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*03:01",
+      "mhc_class": "II",
+      "cell_name": "K562-Myeloid cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the K562-DPB1*03:01 and MPF 174 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "monoallelic",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone",
+      "n_observations": 254,
+      "named_lines": [
+        "K562-DPB1*03:01",
+        "MPF 174"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*03:01",
+      "mhc_class": "II",
+      "cell_name": "K562-Myeloid cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the K562-DPB1*03:01 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "monoallelic",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone",
+      "n_observations": 2222,
+      "named_lines": [
+        "K562-DPB1*03:01"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436 and AZP 2877 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 5,
+      "named_lines": [
+        "ASY 3436",
+        "AZP 2877"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436 and HHC 5852 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 5,
+      "named_lines": [
+        "ASY 3436",
+        "HHC 5852"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436 and JTD 5000 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 3,
+      "named_lines": [
+        "ASY 3436",
+        "JTD 5000"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436 and K562-DPB1*04:01 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1,
+      "named_lines": [
+        "ASY 3436",
+        "K562-DPB1*04:01"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436 and MHX 1699 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 6,
+      "named_lines": [
+        "ASY 3436",
+        "MHX 1699"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436 and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 20,
+      "named_lines": [
+        "ASY 3436",
+        "UKM 7264"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 87,
+      "named_lines": [
+        "ASY 3436"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, AZP 2877, HHC 5852, JTD 5000, K562-DPB1*04:01, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 67,
+      "named_lines": [
+        "ASY 3436",
+        "AZP 2877",
+        "HHC 5852",
+        "JTD 5000",
+        "K562-DPB1*04:01",
+        "MHX 1699",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, AZP 2877, HHC 5852, JTD 5000, K562-DPB1*04:01, MHX 1699, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1,
+      "named_lines": [
+        "ASY 3436",
+        "AZP 2877",
+        "HHC 5852",
+        "JTD 5000",
+        "K562-DPB1*04:01",
+        "MHX 1699",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, AZP 2877, HHC 5852, JTD 5000, K562-DPB1*04:01, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 22,
+      "named_lines": [
+        "ASY 3436",
+        "AZP 2877",
+        "HHC 5852",
+        "JTD 5000",
+        "K562-DPB1*04:01",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, AZP 2877, HHC 5852, JTD 5000, K562-DPB1*04:01, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 2,
+      "named_lines": [
+        "ASY 3436",
+        "AZP 2877",
+        "HHC 5852",
+        "JTD 5000",
+        "K562-DPB1*04:01",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, AZP 2877, HHC 5852, JTD 5000, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 38,
+      "named_lines": [
+        "ASY 3436",
+        "AZP 2877",
+        "HHC 5852",
+        "JTD 5000",
+        "MHX 1699",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, AZP 2877, HHC 5852, JTD 5000, MHX 1699, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 4,
+      "named_lines": [
+        "ASY 3436",
+        "AZP 2877",
+        "HHC 5852",
+        "JTD 5000",
+        "MHX 1699",
+        "UKM 7264"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, AZP 2877, HHC 5852, JTD 5000, MHX 1699, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1,
+      "named_lines": [
+        "ASY 3436",
+        "AZP 2877",
+        "HHC 5852",
+        "JTD 5000",
+        "MHX 1699",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, AZP 2877, HHC 5852, JTD 5000, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 14,
+      "named_lines": [
+        "ASY 3436",
+        "AZP 2877",
+        "HHC 5852",
+        "JTD 5000",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, AZP 2877, HHC 5852, K562-DPB1*04:01, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 11,
+      "named_lines": [
+        "ASY 3436",
+        "AZP 2877",
+        "HHC 5852",
+        "K562-DPB1*04:01",
+        "MHX 1699",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, AZP 2877, HHC 5852, K562-DPB1*04:01, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 8,
+      "named_lines": [
+        "ASY 3436",
+        "AZP 2877",
+        "HHC 5852",
+        "K562-DPB1*04:01",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, AZP 2877, HHC 5852, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 20,
+      "named_lines": [
+        "ASY 3436",
+        "AZP 2877",
+        "HHC 5852",
+        "MHX 1699",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, AZP 2877, HHC 5852, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 5,
+      "named_lines": [
+        "ASY 3436",
+        "AZP 2877",
+        "HHC 5852",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, AZP 2877, HHC 5852, and MHX 1699 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 3,
+      "named_lines": [
+        "ASY 3436",
+        "AZP 2877",
+        "HHC 5852",
+        "MHX 1699"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, AZP 2877, HHC 5852, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1,
+      "named_lines": [
+        "ASY 3436",
+        "AZP 2877",
+        "HHC 5852",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, AZP 2877, JTD 5000, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1,
+      "named_lines": [
+        "ASY 3436",
+        "AZP 2877",
+        "JTD 5000",
+        "MHX 1699",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, AZP 2877, JTD 5000, MHX 1699, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 5,
+      "named_lines": [
+        "ASY 3436",
+        "AZP 2877",
+        "JTD 5000",
+        "MHX 1699",
+        "UKM 7264"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, AZP 2877, JTD 5000, and MHX 1699 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1,
+      "named_lines": [
+        "ASY 3436",
+        "AZP 2877",
+        "JTD 5000",
+        "MHX 1699"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, AZP 2877, MHX 1699, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 3,
+      "named_lines": [
+        "ASY 3436",
+        "AZP 2877",
+        "MHX 1699",
+        "UKM 7264"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, AZP 2877, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1,
+      "named_lines": [
+        "ASY 3436",
+        "AZP 2877",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, AZP 2877, and MHX 1699 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1,
+      "named_lines": [
+        "ASY 3436",
+        "AZP 2877",
+        "MHX 1699"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, AZP 2877, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 6,
+      "named_lines": [
+        "ASY 3436",
+        "AZP 2877",
+        "UKM 7264"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, AZP 2877, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1,
+      "named_lines": [
+        "ASY 3436",
+        "AZP 2877",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, HHC 5852, JTD 5000, K562-DPB1*04:01, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 23,
+      "named_lines": [
+        "ASY 3436",
+        "HHC 5852",
+        "JTD 5000",
+        "K562-DPB1*04:01",
+        "MHX 1699",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, HHC 5852, JTD 5000, K562-DPB1*04:01, MHX 1699, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1,
+      "named_lines": [
+        "ASY 3436",
+        "HHC 5852",
+        "JTD 5000",
+        "K562-DPB1*04:01",
+        "MHX 1699",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, HHC 5852, JTD 5000, K562-DPB1*04:01, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1,
+      "named_lines": [
+        "ASY 3436",
+        "HHC 5852",
+        "JTD 5000",
+        "K562-DPB1*04:01",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, HHC 5852, JTD 5000, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 29,
+      "named_lines": [
+        "ASY 3436",
+        "HHC 5852",
+        "JTD 5000",
+        "MHX 1699",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, HHC 5852, JTD 5000, MHX 1699, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1,
+      "named_lines": [
+        "ASY 3436",
+        "HHC 5852",
+        "JTD 5000",
+        "MHX 1699",
+        "UKM 7264"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, HHC 5852, JTD 5000, MHX 1699, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 3,
+      "named_lines": [
+        "ASY 3436",
+        "HHC 5852",
+        "JTD 5000",
+        "MHX 1699",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, HHC 5852, JTD 5000, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 3,
+      "named_lines": [
+        "ASY 3436",
+        "HHC 5852",
+        "JTD 5000",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, HHC 5852, JTD 5000, and MHX 1699 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 2,
+      "named_lines": [
+        "ASY 3436",
+        "HHC 5852",
+        "JTD 5000",
+        "MHX 1699"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, HHC 5852, JTD 5000, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1,
+      "named_lines": [
+        "ASY 3436",
+        "HHC 5852",
+        "JTD 5000",
+        "UKM 7264"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, HHC 5852, JTD 5000, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1,
+      "named_lines": [
+        "ASY 3436",
+        "HHC 5852",
+        "JTD 5000",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, HHC 5852, K562-DPB1*04:01, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 12,
+      "named_lines": [
+        "ASY 3436",
+        "HHC 5852",
+        "K562-DPB1*04:01",
+        "MHX 1699",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, HHC 5852, K562-DPB1*04:01, MHX 1699, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 2,
+      "named_lines": [
+        "ASY 3436",
+        "HHC 5852",
+        "K562-DPB1*04:01",
+        "MHX 1699",
+        "UKM 7264"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, HHC 5852, K562-DPB1*04:01, MHX 1699, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 6,
+      "named_lines": [
+        "ASY 3436",
+        "HHC 5852",
+        "K562-DPB1*04:01",
+        "MHX 1699",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, HHC 5852, K562-DPB1*04:01, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 4,
+      "named_lines": [
+        "ASY 3436",
+        "HHC 5852",
+        "K562-DPB1*04:01",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, HHC 5852, K562-DPB1*04:01, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1,
+      "named_lines": [
+        "ASY 3436",
+        "HHC 5852",
+        "K562-DPB1*04:01",
+        "UKM 7264"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, HHC 5852, K562-DPB1*04:01, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1,
+      "named_lines": [
+        "ASY 3436",
+        "HHC 5852",
+        "K562-DPB1*04:01",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, HHC 5852, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 16,
+      "named_lines": [
+        "ASY 3436",
+        "HHC 5852",
+        "MHX 1699",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, HHC 5852, MHX 1699, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 6,
+      "named_lines": [
+        "ASY 3436",
+        "HHC 5852",
+        "MHX 1699",
+        "UKM 7264"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, HHC 5852, MHX 1699, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 7,
+      "named_lines": [
+        "ASY 3436",
+        "HHC 5852",
+        "MHX 1699",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, HHC 5852, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 3,
+      "named_lines": [
+        "ASY 3436",
+        "HHC 5852",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, HHC 5852, and MHX 1699 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 5,
+      "named_lines": [
+        "ASY 3436",
+        "HHC 5852",
+        "MHX 1699"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, HHC 5852, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 2,
+      "named_lines": [
+        "ASY 3436",
+        "HHC 5852",
+        "UKM 7264"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, HHC 5852, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 4,
+      "named_lines": [
+        "ASY 3436",
+        "HHC 5852",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, JTD 5000, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1,
+      "named_lines": [
+        "ASY 3436",
+        "JTD 5000",
+        "MHX 1699",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, JTD 5000, MHX 1699, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 4,
+      "named_lines": [
+        "ASY 3436",
+        "JTD 5000",
+        "MHX 1699",
+        "UKM 7264"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, JTD 5000, and K562-DPB1*04:01 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1,
+      "named_lines": [
+        "ASY 3436",
+        "JTD 5000",
+        "K562-DPB1*04:01"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, JTD 5000, and MHX 1699 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 4,
+      "named_lines": [
+        "ASY 3436",
+        "JTD 5000",
+        "MHX 1699"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, JTD 5000, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1,
+      "named_lines": [
+        "ASY 3436",
+        "JTD 5000",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, K562-DPB1*04:01, MHX 1699, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1,
+      "named_lines": [
+        "ASY 3436",
+        "K562-DPB1*04:01",
+        "MHX 1699",
+        "UKM 7264"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, K562-DPB1*04:01, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1,
+      "named_lines": [
+        "ASY 3436",
+        "K562-DPB1*04:01",
+        "UKM 7264"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, MHX 1699, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 3,
+      "named_lines": [
+        "ASY 3436",
+        "MHX 1699",
+        "UKM 7264"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436, MHX 1699, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1,
+      "named_lines": [
+        "ASY 3436",
+        "MHX 1699",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877 and HHC 5852 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 260,
+      "named_lines": [
+        "AZP 2877",
+        "HHC 5852"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877 and K562-DPB1*04:01 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 8,
+      "named_lines": [
+        "AZP 2877",
+        "K562-DPB1*04:01"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877 and MHX 1699 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 12,
+      "named_lines": [
+        "AZP 2877",
+        "MHX 1699"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877 and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 14,
+      "named_lines": [
+        "AZP 2877",
+        "UKM 7264"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877 and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 40,
+      "named_lines": [
+        "AZP 2877",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 425,
+      "named_lines": [
+        "AZP 2877"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877, HHC 5852, JTD 5000, K562-DPB1*04:01, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 11,
+      "named_lines": [
+        "AZP 2877",
+        "HHC 5852",
+        "JTD 5000",
+        "K562-DPB1*04:01",
+        "MHX 1699",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877, HHC 5852, JTD 5000, K562-DPB1*04:01, MHX 1699, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 2,
+      "named_lines": [
+        "AZP 2877",
+        "HHC 5852",
+        "JTD 5000",
+        "K562-DPB1*04:01",
+        "MHX 1699",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877, HHC 5852, JTD 5000, K562-DPB1*04:01, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 13,
+      "named_lines": [
+        "AZP 2877",
+        "HHC 5852",
+        "JTD 5000",
+        "K562-DPB1*04:01",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877, HHC 5852, JTD 5000, K562-DPB1*04:01, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1,
+      "named_lines": [
+        "AZP 2877",
+        "HHC 5852",
+        "JTD 5000",
+        "K562-DPB1*04:01",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877, HHC 5852, JTD 5000, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 5,
+      "named_lines": [
+        "AZP 2877",
+        "HHC 5852",
+        "JTD 5000",
+        "MHX 1699",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877, HHC 5852, JTD 5000, MHX 1699, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1,
+      "named_lines": [
+        "AZP 2877",
+        "HHC 5852",
+        "JTD 5000",
+        "MHX 1699",
+        "UKM 7264"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877, HHC 5852, JTD 5000, MHX 1699, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1,
+      "named_lines": [
+        "AZP 2877",
+        "HHC 5852",
+        "JTD 5000",
+        "MHX 1699",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877, HHC 5852, JTD 5000, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 8,
+      "named_lines": [
+        "AZP 2877",
+        "HHC 5852",
+        "JTD 5000",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877, HHC 5852, JTD 5000, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1,
+      "named_lines": [
+        "AZP 2877",
+        "HHC 5852",
+        "JTD 5000",
+        "UKM 7264"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877, HHC 5852, JTD 5000, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 2,
+      "named_lines": [
+        "AZP 2877",
+        "HHC 5852",
+        "JTD 5000",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877, HHC 5852, K562-DPB1*04:01, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 26,
+      "named_lines": [
+        "AZP 2877",
+        "HHC 5852",
+        "K562-DPB1*04:01",
+        "MHX 1699",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877, HHC 5852, K562-DPB1*04:01, MHX 1699, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 2,
+      "named_lines": [
+        "AZP 2877",
+        "HHC 5852",
+        "K562-DPB1*04:01",
+        "MHX 1699",
+        "UKM 7264"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877, HHC 5852, K562-DPB1*04:01, MHX 1699, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 9,
+      "named_lines": [
+        "AZP 2877",
+        "HHC 5852",
+        "K562-DPB1*04:01",
+        "MHX 1699",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877, HHC 5852, K562-DPB1*04:01, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 111,
+      "named_lines": [
+        "AZP 2877",
+        "HHC 5852",
+        "K562-DPB1*04:01",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877, HHC 5852, K562-DPB1*04:01, and MHX 1699 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 2,
+      "named_lines": [
+        "AZP 2877",
+        "HHC 5852",
+        "K562-DPB1*04:01",
+        "MHX 1699"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877, HHC 5852, K562-DPB1*04:01, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 4,
+      "named_lines": [
+        "AZP 2877",
+        "HHC 5852",
+        "K562-DPB1*04:01",
+        "UKM 7264"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877, HHC 5852, K562-DPB1*04:01, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 66,
+      "named_lines": [
+        "AZP 2877",
+        "HHC 5852",
+        "K562-DPB1*04:01",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877, HHC 5852, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 55,
+      "named_lines": [
+        "AZP 2877",
+        "HHC 5852",
+        "MHX 1699",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877, HHC 5852, MHX 1699, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 6,
+      "named_lines": [
+        "AZP 2877",
+        "HHC 5852",
+        "MHX 1699",
+        "UKM 7264"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877, HHC 5852, MHX 1699, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 30,
+      "named_lines": [
+        "AZP 2877",
+        "HHC 5852",
+        "MHX 1699",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877, HHC 5852, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 138,
+      "named_lines": [
+        "AZP 2877",
+        "HHC 5852",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877, HHC 5852, and K562-DPB1*04:01 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 30,
+      "named_lines": [
+        "AZP 2877",
+        "HHC 5852",
+        "K562-DPB1*04:01"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877, HHC 5852, and MHX 1699 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 10,
+      "named_lines": [
+        "AZP 2877",
+        "HHC 5852",
+        "MHX 1699"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877, HHC 5852, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 19,
+      "named_lines": [
+        "AZP 2877",
+        "HHC 5852",
+        "UKM 7264"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877, HHC 5852, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 161,
+      "named_lines": [
+        "AZP 2877",
+        "HHC 5852",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877, JTD 5000, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1,
+      "named_lines": [
+        "AZP 2877",
+        "JTD 5000",
+        "MHX 1699",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877, JTD 5000, MHX 1699, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 3,
+      "named_lines": [
+        "AZP 2877",
+        "JTD 5000",
+        "MHX 1699",
+        "UKM 7264"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877, JTD 5000, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1,
+      "named_lines": [
+        "AZP 2877",
+        "JTD 5000",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877, K562-DPB1*04:01, and MHX 1699 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1,
+      "named_lines": [
+        "AZP 2877",
+        "K562-DPB1*04:01",
+        "MHX 1699"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877, K562-DPB1*04:01, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1,
+      "named_lines": [
+        "AZP 2877",
+        "K562-DPB1*04:01",
+        "UKM 7264"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877, K562-DPB1*04:01, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 3,
+      "named_lines": [
+        "AZP 2877",
+        "K562-DPB1*04:01",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1,
+      "named_lines": [
+        "AZP 2877",
+        "MHX 1699",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877, MHX 1699, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 4,
+      "named_lines": [
+        "AZP 2877",
+        "MHX 1699",
+        "UKM 7264"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877, MHX 1699, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 3,
+      "named_lines": [
+        "AZP 2877",
+        "MHX 1699",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 2,
+      "named_lines": [
+        "AZP 2877",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the HHC 5852 and JTD 5000 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 3,
+      "named_lines": [
+        "HHC 5852",
+        "JTD 5000"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the HHC 5852 and K562-DPB1*04:01 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 215,
+      "named_lines": [
+        "HHC 5852",
+        "K562-DPB1*04:01"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the HHC 5852 and MHX 1699 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 514,
+      "named_lines": [
+        "HHC 5852",
+        "MHX 1699"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the HHC 5852 and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 79,
+      "named_lines": [
+        "HHC 5852",
+        "UKM 7264"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the HHC 5852 and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 468,
+      "named_lines": [
+        "HHC 5852",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the HHC 5852 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 2554,
+      "named_lines": [
+        "HHC 5852"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the HHC 5852, JTD 5000, K562-DPB1*04:01, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 13,
+      "named_lines": [
+        "HHC 5852",
+        "JTD 5000",
+        "K562-DPB1*04:01",
+        "MHX 1699",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the HHC 5852, JTD 5000, K562-DPB1*04:01, MHX 1699, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 11,
+      "named_lines": [
+        "HHC 5852",
+        "JTD 5000",
+        "K562-DPB1*04:01",
+        "MHX 1699",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the HHC 5852, JTD 5000, K562-DPB1*04:01, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 4,
+      "named_lines": [
+        "HHC 5852",
+        "JTD 5000",
+        "K562-DPB1*04:01",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the HHC 5852, JTD 5000, K562-DPB1*04:01, and MHX 1699 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1,
+      "named_lines": [
+        "HHC 5852",
+        "JTD 5000",
+        "K562-DPB1*04:01",
+        "MHX 1699"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the HHC 5852, JTD 5000, K562-DPB1*04:01, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 4,
+      "named_lines": [
+        "HHC 5852",
+        "JTD 5000",
+        "K562-DPB1*04:01",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the HHC 5852, JTD 5000, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 16,
+      "named_lines": [
+        "HHC 5852",
+        "JTD 5000",
+        "MHX 1699",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the HHC 5852, JTD 5000, MHX 1699, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 3,
+      "named_lines": [
+        "HHC 5852",
+        "JTD 5000",
+        "MHX 1699",
+        "UKM 7264"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the HHC 5852, JTD 5000, MHX 1699, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 21,
+      "named_lines": [
+        "HHC 5852",
+        "JTD 5000",
+        "MHX 1699",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the HHC 5852, JTD 5000, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 11,
+      "named_lines": [
+        "HHC 5852",
+        "JTD 5000",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the HHC 5852, JTD 5000, and MHX 1699 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 10,
+      "named_lines": [
+        "HHC 5852",
+        "JTD 5000",
+        "MHX 1699"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the HHC 5852, JTD 5000, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1,
+      "named_lines": [
+        "HHC 5852",
+        "JTD 5000",
+        "UKM 7264"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the HHC 5852, JTD 5000, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 10,
+      "named_lines": [
+        "HHC 5852",
+        "JTD 5000",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the HHC 5852, K562-DPB1*04:01, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 49,
+      "named_lines": [
+        "HHC 5852",
+        "K562-DPB1*04:01",
+        "MHX 1699",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the HHC 5852, K562-DPB1*04:01, MHX 1699, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 9,
+      "named_lines": [
+        "HHC 5852",
+        "K562-DPB1*04:01",
+        "MHX 1699",
+        "UKM 7264"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the HHC 5852, K562-DPB1*04:01, MHX 1699, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 94,
+      "named_lines": [
+        "HHC 5852",
+        "K562-DPB1*04:01",
+        "MHX 1699",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the HHC 5852, K562-DPB1*04:01, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 50,
+      "named_lines": [
+        "HHC 5852",
+        "K562-DPB1*04:01",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the HHC 5852, K562-DPB1*04:01, and MHX 1699 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 83,
+      "named_lines": [
+        "HHC 5852",
+        "K562-DPB1*04:01",
+        "MHX 1699"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the HHC 5852, K562-DPB1*04:01, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 18,
+      "named_lines": [
+        "HHC 5852",
+        "K562-DPB1*04:01",
+        "UKM 7264"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the HHC 5852, K562-DPB1*04:01, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 81,
+      "named_lines": [
+        "HHC 5852",
+        "K562-DPB1*04:01",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the HHC 5852, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 103,
+      "named_lines": [
+        "HHC 5852",
+        "MHX 1699",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the HHC 5852, MHX 1699, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 44,
+      "named_lines": [
+        "HHC 5852",
+        "MHX 1699",
+        "UKM 7264"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the HHC 5852, MHX 1699, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 278,
+      "named_lines": [
+        "HHC 5852",
+        "MHX 1699",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the HHC 5852, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 142,
+      "named_lines": [
+        "HHC 5852",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the JTD 5000 and K562-DPB1*04:01 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 2,
+      "named_lines": [
+        "JTD 5000",
+        "K562-DPB1*04:01"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the JTD 5000 and MHX 1699 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 14,
+      "named_lines": [
+        "JTD 5000",
+        "MHX 1699"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the JTD 5000 and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1,
+      "named_lines": [
+        "JTD 5000",
+        "UKM 7264"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the JTD 5000 and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 6,
+      "named_lines": [
+        "JTD 5000",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the JTD 5000 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 97,
+      "named_lines": [
+        "JTD 5000"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the JTD 5000, K562-DPB1*04:01, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1,
+      "named_lines": [
+        "JTD 5000",
+        "K562-DPB1*04:01",
+        "MHX 1699",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the JTD 5000, K562-DPB1*04:01, MHX 1699, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 4,
+      "named_lines": [
+        "JTD 5000",
+        "K562-DPB1*04:01",
+        "MHX 1699",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the JTD 5000, K562-DPB1*04:01, and MHX 1699 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1,
+      "named_lines": [
+        "JTD 5000",
+        "K562-DPB1*04:01",
+        "MHX 1699"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the JTD 5000, K562-DPB1*04:01, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 5,
+      "named_lines": [
+        "JTD 5000",
+        "K562-DPB1*04:01",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the JTD 5000, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1,
+      "named_lines": [
+        "JTD 5000",
+        "MHX 1699",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the JTD 5000, MHX 1699, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 3,
+      "named_lines": [
+        "JTD 5000",
+        "MHX 1699",
+        "UKM 7264"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the JTD 5000, MHX 1699, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 3,
+      "named_lines": [
+        "JTD 5000",
+        "MHX 1699",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the JTD 5000, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 2,
+      "named_lines": [
+        "JTD 5000",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the MHX 1699 and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 35,
+      "named_lines": [
+        "MHX 1699",
+        "UKM 7264"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the MHX 1699 and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 211,
+      "named_lines": [
+        "MHX 1699",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the MHX 1699 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1553,
+      "named_lines": [
+        "MHX 1699"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 14,
+      "named_lines": [
+        "MHX 1699",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the UKM 7264 and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 36,
+      "named_lines": [
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the UKM 7264 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 176,
+      "named_lines": [
+        "UKM 7264"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the WEW 12494 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 861,
+      "named_lines": [
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "K562-Myeloid cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the K562-DPB1*04:01 and MHX 1699 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "monoallelic",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone",
+      "n_observations": 104,
+      "named_lines": [
+        "K562-DPB1*04:01",
+        "MHX 1699"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "K562-Myeloid cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the K562-DPB1*04:01 and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "monoallelic",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone",
+      "n_observations": 5,
+      "named_lines": [
+        "K562-DPB1*04:01",
+        "UKM 7264"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "K562-Myeloid cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the K562-DPB1*04:01 and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "monoallelic",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone",
+      "n_observations": 71,
+      "named_lines": [
+        "K562-DPB1*04:01",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "K562-Myeloid cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the K562-DPB1*04:01 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "monoallelic",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone",
+      "n_observations": 2063,
+      "named_lines": [
+        "K562-DPB1*04:01"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "K562-Myeloid cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the K562-DPB1*04:01, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "monoallelic",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone",
+      "n_observations": 3,
+      "named_lines": [
+        "K562-DPB1*04:01",
+        "MHX 1699",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "K562-Myeloid cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the K562-DPB1*04:01, MHX 1699, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "monoallelic",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone",
+      "n_observations": 8,
+      "named_lines": [
+        "K562-DPB1*04:01",
+        "MHX 1699",
+        "UKM 7264"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "K562-Myeloid cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the K562-DPB1*04:01, MHX 1699, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "monoallelic",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone",
+      "n_observations": 38,
+      "named_lines": [
+        "K562-DPB1*04:01",
+        "MHX 1699",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:01",
+      "mhc_class": "II",
+      "cell_name": "K562-Myeloid cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the K562-DPB1*04:01, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "monoallelic",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone",
+      "n_observations": 4,
+      "named_lines": [
+        "K562-DPB1*04:01",
+        "UKM 7264",
+        "WEW 12494"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:02",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AST 5085 and K562-DPB1*04:02 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 762,
+      "named_lines": [
+        "AST 5085",
+        "K562-DPB1*04:02"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:02",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AST 5085 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 2190,
+      "named_lines": [
+        "AST 5085"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*04:02",
+      "mhc_class": "II",
+      "cell_name": "K562-Myeloid cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the K562-DPB1*04:02 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "monoallelic",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone",
+      "n_observations": 3414,
+      "named_lines": [
+        "K562-DPB1*04:02"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*01:03/DPB1*06:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the JTD 5000 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1294,
+      "named_lines": [
+        "JTD 5000"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*02:01/DPB1*01:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the NAG 12292 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1880,
+      "named_lines": [
+        "NAG 12292"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*02:01/DPB1*01:01",
+      "mhc_class": "II",
+      "cell_name": "K562-Myeloid cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the K562-DPB1*01:01 and NAG 12292 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "monoallelic",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone",
+      "n_observations": 648,
+      "named_lines": [
+        "K562-DPB1*01:01",
+        "NAG 12292"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*02:01/DPB1*01:01",
+      "mhc_class": "II",
+      "cell_name": "K562-Myeloid cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the K562-DPB1*01:01 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "monoallelic",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone",
+      "n_observations": 3377,
+      "named_lines": [
+        "K562-DPB1*01:01"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*02:01/DPB1*09:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the CCC 12493 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 4154,
+      "named_lines": [
+        "CCC 12493"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*02:01/DPB1*10:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436 and VNG 12286 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 930,
+      "named_lines": [
+        "ASY 3436",
+        "VNG 12286"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*02:01/DPB1*10:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ASY 3436 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 906,
+      "named_lines": [
+        "ASY 3436"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*02:01/DPB1*10:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the VNG 12286 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 3761,
+      "named_lines": [
+        "VNG 12286"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*02:01/DPB1*13:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the BZQ 12290 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 3741,
+      "named_lines": [
+        "BZQ 12290"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*02:01/DPB1*14:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877 and ETV 11197 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1252,
+      "named_lines": [
+        "AZP 2877",
+        "ETV 11197"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*02:01/DPB1*14:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877 and K562-DPB1*14:01 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 49,
+      "named_lines": [
+        "AZP 2877",
+        "K562-DPB1*14:01"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*02:01/DPB1*14:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 910,
+      "named_lines": [
+        "AZP 2877"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*02:01/DPB1*14:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the AZP 2877, ETV 11197, and K562-DPB1*14:01 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 418,
+      "named_lines": [
+        "AZP 2877",
+        "ETV 11197",
+        "K562-DPB1*14:01"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*02:01/DPB1*14:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ETV 11197 and K562-DPB1*14:01 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 637,
+      "named_lines": [
+        "ETV 11197",
+        "K562-DPB1*14:01"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*02:01/DPB1*14:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the ETV 11197 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 3175,
+      "named_lines": [
+        "ETV 11197"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*02:01/DPB1*14:01",
+      "mhc_class": "II",
+      "cell_name": "K562-Myeloid cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the K562-DPB1*14:01 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "monoallelic",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone",
+      "n_observations": 3363,
+      "named_lines": [
+        "K562-DPB1*14:01"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*02:01/DPB1*17:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the UKM 7264 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 3309,
+      "named_lines": [
+        "UKM 7264"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*02:02/DPB1*05:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the TQP 8275 and WKD 3639 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1551,
+      "named_lines": [
+        "TQP 8275",
+        "WKD 3639"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*02:02/DPB1*05:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the TQP 8275 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 1670,
+      "named_lines": [
+        "TQP 8275"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*02:02/DPB1*05:01",
+      "mhc_class": "II",
+      "cell_name": "B cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the WKD 3639 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "unknown",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone (EBV transformed, B-LCL)",
+      "n_observations": 3236,
+      "named_lines": [
+        "WKD 3639"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*02:02/DPB1*05:01",
+      "mhc_class": "II",
+      "cell_name": "K562-Myeloid cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the K562-DPB1*05:01 and TQP 8275 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "monoallelic",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone",
+      "n_observations": 195,
+      "named_lines": [
+        "K562-DPB1*05:01",
+        "TQP 8275"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*02:02/DPB1*05:01",
+      "mhc_class": "II",
+      "cell_name": "K562-Myeloid cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the K562-DPB1*05:01 and WKD 3639 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "monoallelic",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone",
+      "n_observations": 433,
+      "named_lines": [
+        "K562-DPB1*05:01",
+        "WKD 3639"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*02:02/DPB1*05:01",
+      "mhc_class": "II",
+      "cell_name": "K562-Myeloid cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the K562-DPB1*05:01 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "monoallelic",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone",
+      "n_observations": 3599,
+      "named_lines": [
+        "K562-DPB1*05:01"
+      ]
+    },
+    {
+      "pmid": 32350084,
+      "mhc_restriction": "HLA-DPA1*02:02/DPB1*05:01",
+      "mhc_class": "II",
+      "cell_name": "K562-Myeloid cell",
+      "source_tissue": "Blood",
+      "assay_comments": "The epitope was eluted from the K562-DPB1*05:01, TQP 8275, and WKD 3639 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.",
+      "restriction_evidence": "monoallelic",
+      "assay_method": "cellular MHC/mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone",
+      "n_observations": 627,
+      "named_lines": [
+        "K562-DPB1*05:01",
+        "TQP 8275",
+        "WKD 3639"
+      ]
+    },
+    {
+      "pmid": 33981976,
+      "mhc_restriction": "HLA-A*01:01;HLA-A*02:01;HLA-B*18:01;HLA-B*45:01;HLA-C*05:01;HLA-C*07:01",
+      "mhc_class": "I",
+      "cell_name": "HCT 116-Epithelial cell",
+      "source_tissue": "Colon",
+      "assay_comments": "",
+      "restriction_evidence": "unknown",
+      "assay_method": "mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone",
+      "n_observations": 11043,
+      "named_lines": []
+    },
+    {
+      "pmid": 33981976,
+      "mhc_restriction": "HLA-A*01:01;HLA-A*02:01;HLA-B*18:01;HLA-B*45:01;HLA-C*05:01;HLA-C*07:01",
+      "mhc_class": "I",
+      "cell_name": "HCT 116-Epithelial cell",
+      "source_tissue": "Colon",
+      "assay_comments": "Treatment with 5-azacytidine stabilized HLA mediated presentation.",
+      "restriction_evidence": "unknown",
+      "assay_method": "mass spectrometry",
+      "response_measured": "ligand presentation",
+      "culture_condition": "Cell Line / Clone",
+      "n_observations": 6,
+      "named_lines": []
+    }
+  ]
+}

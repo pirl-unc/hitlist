@@ -1,3 +1,44 @@
+# Separate real corpus qualification — 2026-10-15
+
+Specification: [corpus-qualification-spec.md](corpus-qualification-spec.md).
+
+- [x] Ship complete-generation publication and public pinned installer (1.76.0).
+- [x] Hash raw source snapshots, inspect existing remote inputs and define limits.
+- [x] Freeze the producer dependency hashes and verify the bounded cloud environment.
+- [x] Complete raw-source transfer and verify remote content pins.
+- [x] Build separate current indexes, then verified human-reference mappings.
+- [x] Publish complete corpus and verify every public download.
+- [ ] Fix actual-corpus curation regressions and pass final integration CI.
+- [ ] Freeze actual cohort membership and publish coverage/leakage/lineage audits.
+- [ ] Hand exact pins to canonical Presto preflight/fitting and held-out baselines.
+- [ ] Review/version/format/lint/test/merge/deploy any code or workflow changes.
+
+## Review
+
+Source snapshots total 14,719,407,889 bytes; export dates remain unverified. Existing
+remote exports differ in size and are not accepted as the pinned sources. The
+old caches remain untouched. Current-generation publication shipped in #690 as
+1.76.0 with verified public PyPI bytes. Current source/environment/reference stage
+receipts are downloaded and independently hash-verified; see
+[the receipt inventory](corpus-qualification-results/README.md). The source stage
+verified both raw CSVs and 26 paper assets. The complete human reference is indexed
+on POSIX scratch and shared through datacache (#125 tracks the Modal hard-link
+limitation). Actual observation indexes completed (4,486,991 MS / 814,268 binding / 26,537 other
+assay rows); human-reference mappings and complete portable publication finished.
+All ten ci-corpus-v3 public files were independently downloaded and hash-verified.
+The test/release workflows now consume the pinned full inventory through datacache.
+The full local suite
+passed 3,035 tests; final code CI passed all four Python unit jobs and integration
+at a889bf9. Final workflow CI exposed #694: missing/stale arm verdicts in 90,455 rows.
+The complete source replay now resolves 62,512 sole-line observations, retains
+16,894 multi-line observations and all 11,049 treatment-uncertain HCT 116 rows.
+It also exposed and fixed reversed complete-pair identity (#696). All 196 source
+statements are curated; the 202-context regression fixture and focused set pass
+16 tests. Format/lint pass. Local full-test attempts could not establish enough
+free memory (one sandboxed probe failure, then 1.61 GiB versus required 2.5 GiB);
+release CI runs ./format.sh, ./lint.sh and ./test.sh --all without relaxing guards.
+Actual cohort qualification and final release gates remain pending.
+
 # Current CI corpus publication — 2026-10-15
 
 Specification: [current-corpus-publication-spec.md](current-corpus-publication-spec.md).

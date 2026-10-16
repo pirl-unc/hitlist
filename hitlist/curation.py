@@ -2788,7 +2788,11 @@ def reported_mhc_fields_overlap(first, second) -> bool | None:
 
     def compatible(left, right):
         if isinstance(left, Pair) and isinstance(right, Pair):
-            return compatible(left.alpha, right.alpha) and compatible(left.beta, right.beta)
+            # Parsers may retain a beta/alpha input order. Pair identity is
+            # determined by the two chains, not their positions (#696).
+            return (compatible(left.alpha, right.alpha) and compatible(left.beta, right.beta)) or (
+                compatible(left.alpha, right.beta) and compatible(left.beta, right.alpha)
+            )
         if isinstance(left, Pair):
             return compatible(left.alpha, right) or compatible(left.beta, right)
         if isinstance(right, Pair):

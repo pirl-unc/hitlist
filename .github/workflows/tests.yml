@@ -9,7 +9,8 @@ env:
   # scripts/publish_ci_corpus.sh (tag ci-corpus-<CORPUS_VERSION>).
   # Changing this invalidates the integration job's cache so CI pulls the
   # new corpus.  release-build.yml carries its own copy of this value.
-  CORPUS_VERSION: v2
+  CORPUS_VERSION: v3
+  CORPUS_MANIFEST_SHA256: 7f7f4035d8ec080b26385710d447633dba36ac5cce49008e48e14cf8894f20d5
   PYTEST_ADDOPTS: "-ra"
   PYTHONUNBUFFERED: "1"
 
@@ -157,23 +158,17 @@ jobs:
         uses: actions/cache/restore@v6
         with:
           path: ~/.hitlist
-          key: hitlist-corpus-${{ env.CORPUS_VERSION }}
+          key: hitlist-corpus-${{ env.CORPUS_VERSION }}-${{ env.CORPUS_MANIFEST_SHA256 }}
 
-      - name: Download prebuilt corpus on cache miss
-        if: steps.corpus-cache.outputs.cache-hit != 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install and verify the complete pinned corpus through datacache
         run: |
-          mkdir -p ~/.hitlist
-          gh release download "ci-corpus-${CORPUS_VERSION}" \
-            --repo pirl-unc/hitlist --pattern '*.parquet' \
-            --pattern observations_meta.json --dir ~/.hitlist --clobber
-
-      - name: Verify corpus provenance and file hashes
-        run: python scripts/ci_corpus.py verify ~/.hitlist
+          corpus_dir=$(python scripts/ci_corpus.py install \
+            --manifest-url "https://github.com/pirl-unc/hitlist/releases/download/ci-corpus-${CORPUS_VERSION}/observations_meta.json" \
+            --manifest-sha256 "$CORPUS_MANIFEST_SHA256")
+          echo "HITLIST_DATA_DIR=$corpus_dir" >> "$GITHUB_ENV"
 
       - name: Audit retained allele restrictions and blank rows
-        run: python scripts/allele_candidate_audit.py ~/.hitlist/observations.parquet candidate-audit
+        run: python scripts/allele_candidate_audit.py "$HITLIST_DATA_DIR/observations.parquet" candidate-audit
 
       - name: Upload allele candidate coverage audit
         uses: actions/upload-artifact@v7
@@ -189,7 +184,7 @@ jobs:
         uses: actions/cache/save@v6
         with:
           path: ~/.hitlist
-          key: hitlist-corpus-${{ env.CORPUS_VERSION }}
+          key: hitlist-corpus-${{ env.CORPUS_VERSION }}-${{ env.CORPUS_MANIFEST_SHA256 }}
 
       - name: Run integration tests (with coverage)
         run: |

@@ -1,0 +1,14 @@
+[
+  {
+    "url": "https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=EXT_ID%3A32350084%20AND%20SRC%3AMED&format=json&resultType=core",
+    "filename": "van-balen-europepmc.json",
+    "sha256": "b5360c814d8ef90f7b428709bac4f97ddbaa56adfc4a0b981044907eee8cf09f",
+    "size_bytes": 10740
+  },
+  {
+    "url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC8082087/fullTextXML",
+    "filename": "becker-fulltext.xml",
+    "sha256": "fa24d45dc3907300340f5f654295d496a65304402908ff21ca891e1f9075895d",
+    "size_bytes": 147317
+  }
+]
