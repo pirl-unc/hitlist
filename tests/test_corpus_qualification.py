@@ -2,6 +2,7 @@
 
 import importlib.util
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -69,3 +70,24 @@ def test_failed_stage_retains_previous_generation_and_failure_log(runner, monkey
     assert "injected build failure" in (current / "build.log").read_text()
     with pytest.raises(ValueError, match="did not succeed"):
         runner.previous(root, "indexes")
+
+
+def test_local_reference_is_verified_and_cannot_mutate_shared_input(runner, tmp_path):
+    source = tmp_path / "captured.fa"
+    source.write_text(">captured\nACDEFGHIK\n")
+    original = os.environ["PYENSEMBL_CACHE_DIR"]
+    artifacts = {source.name: runner.digest(source)}
+    with runner.local_reference(artifacts, tmp_path / "scratch") as genome:
+        local = Path(genome.download_cache.cache_directory_path) / source.name
+        assert local.read_bytes() == source.read_bytes()
+        assert local != source
+        local.write_text("local indexing work\n")
+    assert source.read_text() == ">captured\nACDEFGHIK\n"
+    assert os.environ["PYENSEMBL_CACHE_DIR"] == original
+    artifacts[source.name]["sha256"] = "0" * 64
+    with (
+        pytest.raises(ValueError, match="Content mismatch"),
+        runner.local_reference(artifacts, tmp_path / "bad-scratch"),
+    ):
+        pytest.fail("Unverified reference must never reach the mapping stage")
+    assert os.environ["PYENSEMBL_CACHE_DIR"] == original

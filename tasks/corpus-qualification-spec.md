@@ -71,3 +71,13 @@ scientific qualification or claimed-output evidence is missing. Every code chang
 lands via a versioned PR with format/lint/full tests, merge and PyPI verification.
 This branch will carry reproducibility scripts, actual qualification receipts and
 any reviewable workflow migration; independent defects get their own issues/PRs.
+
+## Reference filesystem correction
+
+The remote reference stage downloaded and parsed Ensembl-112, but first SQLite
+publication failed because Modal Volumes reject hard links (datacache issue #125).
+Keep downloads shared through datacache; build the annotation/sequence indexes on
+local POSIX scratch. Publish the complete closed reference cache as an immutable,
+hash-verified datacache bundle. Mapping stages consume verified local scratch
+copies of that bundle; do not weaken atomic/no-clobber publication or precreate an
+empty public database. Preserve the failed stage receipt and original downloads.

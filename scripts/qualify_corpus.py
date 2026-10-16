@@ -126,21 +126,58 @@ def perform(stage, root):
         )
         return dataset_inventory(), {"mapping_status": "not_built"}
     if stage == "reference":
+        from datacache import install_bundle
         from pyensembl import EnsemblRelease
 
         genome = EnsemblRelease(112, species="homo_sapiens")
         genome.download(show_progress=True)
         files = [genome.gtf_path, *genome.protein_fasta_paths, *genome.transcript_fasta_paths]
-        artifacts = {Path(path).name: digest(path) for path in files}
-        genome.index(show_progress=True)
-        validate(artifacts)
-        return artifacts, {"species": "homo_sapiens", "ensembl_release": 112}
+        raw_artifacts = {Path(path).name: digest(path) for path in files}
+        # Modal Volumes cannot hard-link a newly created SQLite index (#125).
+        # Build on private POSIX scratch, then publish the complete cache through
+        # datacache; never weaken atomic visibility or concurrent-creator safety.
+        with (
+            tempfile.TemporaryDirectory(prefix="qualification-reference-") as local,
+            local_reference(raw_artifacts, local) as staged,
+        ):
+            staged.index(show_progress=True)
+            staged.db.connection.close()
+            cache = Path(staged.download_cache.cache_directory_path)
+            generated = {
+                path.name: digest(path)
+                for path in sorted(cache.iterdir())
+                if path.is_file()
+                and not path.name.startswith(".")
+                and not path.name.endswith(".lock")
+            }
+            validate(raw_artifacts)
+            paths = install_bundle(
+                root / "reference-bundle",
+                {
+                    name: {
+                        "path": pin["path"],
+                        "sha256": pin["sha256"],
+                        "size": pin["size_bytes"],
+                    }
+                    for name, pin in generated.items()
+                },
+            )
+        return {name: digest(path) for name, path in paths.items()}, {
+            "species": "homo_sapiens",
+            "ensembl_release": 112,
+            "raw_sources": raw_artifacts,
+            "index_build_filesystem": "local POSIX scratch; immutable shared datacache publication",
+        }
     if stage == "mappings":
         from hitlist.mappings import build_peptide_mappings
 
         previous(root, "indexes")
-        previous(root, "reference")
-        build_peptide_mappings(release=112, fetch_missing=False, use_uniprot=False)
+        reference = previous(root, "reference")
+        with (
+            tempfile.TemporaryDirectory(prefix="qualification-mapping-reference-") as local,
+            local_reference(reference["artifacts"], local),
+        ):
+            build_peptide_mappings(release=112, fetch_missing=False, use_uniprot=False)
         return dataset_inventory(), {
             "reference_scope": "human Ensembl 112 only; other missing references are limitations",
             "fetch_missing": False,
@@ -158,6 +195,32 @@ def perform(stage, root):
             path.name: digest(path) for path in sorted(directory.iterdir()) if path.is_file()
         }, {"portable_directory": str(directory), "qualification": "build_only"}
     raise ValueError(stage)
+
+
+@contextlib.contextmanager
+def local_reference(artifacts, directory):
+    """Stage a verified complete Ensembl cache on local POSIX scratch."""
+    from pyensembl import EnsemblRelease
+
+    key = "PYENSEMBL_CACHE_DIR"
+    original = os.environ.get(key)
+    os.environ[key] = str(directory)
+    try:
+        genome = EnsemblRelease(112, species="homo_sapiens")
+        cache = Path(genome.download_cache.cache_directory_path)
+        cache.mkdir(parents=True, exist_ok=True)
+        for name, pin in artifacts.items():
+            if Path(name).name != name:
+                raise ValueError(f"Reference cache member must be a basename: {name}")
+            target = cache / name
+            shutil.copyfile(pin["path"], target)
+            validate({name: {**pin, "path": str(target)}})
+        yield genome
+    finally:
+        if original is None:
+            os.environ.pop(key, None)
+        else:
+            os.environ[key] = original
 
 
 class Tee:
