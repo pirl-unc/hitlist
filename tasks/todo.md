@@ -1,3 +1,23 @@
+# Human-cohort export recovery — #695
+
+- [x] Preserve the original failed launcher and immutable generation inventory.
+- [x] Fix receipt input pinning and test success/failure publication with datacache.
+- [x] Recover and independently verify all ten original files and native lineage.
+- [x] Record measured coverage and unresolved independence/cell/condition metadata.
+- [x] Run format/lint and full local suite (3,039 passed).
+- [x] Publish and independently verify all fourteen public baseline files.
+- [ ] Final CI, review, merge and PyPI release.
+
+# Actual human-cohort qualification — 2026-10-15
+
+Specification: [human-cohort-qualification-spec.md](human-cohort-qualification-spec.md).
+
+- [x] Pin the completed parent corpus and write the bounded cohort contract.
+- [ ] Export and verify the actual human-source/HLA compact training bundle.
+- [ ] Publish readable source/context and observation-weighted lineage coverage.
+- [ ] Hand exact pins to Presto frozen membership and qualification.
+- [ ] Format/lint/full tests, review, merge, deploy and verify public artifacts.
+
 # Separate real corpus qualification — 2026-10-15
 
 Specification: [corpus-qualification-spec.md](corpus-qualification-spec.md).

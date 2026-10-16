@@ -1,0 +1,75 @@
+{
+  "n_verified_assets": 14,
+  "files": {
+    "README.md": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/human-cohort-baseline-v1/README.md",
+      "sha256": "4d617fd15ce708fabee5dbd4cf61e1a1eee685a98500293f4d6d8526676ec4d1",
+      "size": 1189
+    },
+    "contributors.parquet": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/human-cohort-baseline-v1/contributors.parquet",
+      "sha256": "dfbe4bfcd96cc5e07772497201c1c12ad9b4aac620dd92f090aa5de3723b0b8e",
+      "size": 2066297045
+    },
+    "coverage.json": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/human-cohort-baseline-v1/coverage.json",
+      "sha256": "c4d9779c44485048766d0d48e463364114a110f9f936e19233ce6354a608b585",
+      "size": 5974
+    },
+    "field_counts.tsv": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/human-cohort-baseline-v1/field_counts.tsv",
+      "sha256": "d9244ccbf51f64f3a832dc44cd32dbe092e83a3094953d8db533409b5b379e7b",
+      "size": 45125655
+    },
+    "identities.parquet": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/human-cohort-baseline-v1/identities.parquet",
+      "sha256": "eb9010f7cd960c7d49e1290ac2111c107b589b3c6b73d832b952cfd402e7dff1",
+      "size": 141061466
+    },
+    "inspection.tsv": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/human-cohort-baseline-v1/inspection.tsv",
+      "sha256": "2582752ace1cd9757ff15c7575fbc1ee9047660d1ff73be28cf984d7eaaca1bb",
+      "size": 773197
+    },
+    "lineage.json": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/human-cohort-baseline-v1/lineage.json",
+      "sha256": "75858cf562f65013aaae2325ea95deb70f826ea07f2373d394e8182ce459a1a5",
+      "size": 31901
+    },
+    "manifest.json": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/human-cohort-baseline-v1/manifest.json",
+      "sha256": "039efc7854098951b5c10b3fb5b38294452eeb425e367ed1fafdeebddf34b38d",
+      "size": 33968
+    },
+    "source_contexts.tsv": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/human-cohort-baseline-v1/source_contexts.tsv",
+      "sha256": "0bf3bf8ab443ede360a1535a299ec71435f3aec0150bf0d7f836e4b95024bdc1",
+      "size": 147917141
+    },
+    "training.parquet": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/human-cohort-baseline-v1/training.parquet",
+      "sha256": "51e37fc5f81e3e32b9080cf096feaabe82f9001c1b90c61b5af40fae26d07d4c",
+      "size": 187997976
+    },
+    "QUALIFICATION.md": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/human-cohort-baseline-v1/QUALIFICATION.md",
+      "sha256": "01e234d08c3e4b462d6047d042929bf64d64b99fbab7ad298af0e12424114699",
+      "size": 2502
+    },
+    "SHA256SUMS": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/human-cohort-baseline-v1/SHA256SUMS",
+      "sha256": "6a86dda3bd8f934d6cd4d508ead9184e402a5164e2ee98ad1f5c9ecc6c01ed38",
+      "size": 1074
+    },
+    "publication.json": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/human-cohort-baseline-v1/publication.json",
+      "sha256": "6aa917f4b7341b3afabc527b7505ddb92c672b7523cf91e98ebb904693abada4",
+      "size": 2766
+    },
+    "recovery-receipt.json": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/human-cohort-baseline-v1/recovery-receipt.json",
+      "sha256": "db2951ae80cb9cd0adf790fcbb1bf687696c5059b82ae49773bff30936307186",
+      "size": 12073
+    }
+  }
+}

@@ -1,0 +1,319 @@
+{
+  "artifacts": {
+    "README.md": {
+      "path": "/Users/iskander/.hitlist/human-cohort-recovery/97efb51348ed35ed80dfbd4cb3a17748d20a51b278e2dec51d4318d9ca12c228/artifacts/bundles/2026-10-16T04-21-50Z/README.md",
+      "sha256": "4d617fd15ce708fabee5dbd4cf61e1a1eee685a98500293f4d6d8526676ec4d1",
+      "size_bytes": 1189
+    },
+    "contributors.parquet": {
+      "path": "/Users/iskander/.hitlist/human-cohort-recovery/97efb51348ed35ed80dfbd4cb3a17748d20a51b278e2dec51d4318d9ca12c228/artifacts/bundles/2026-10-16T04-21-50Z/contributors.parquet",
+      "sha256": "dfbe4bfcd96cc5e07772497201c1c12ad9b4aac620dd92f090aa5de3723b0b8e",
+      "size_bytes": 2066297045
+    },
+    "coverage.json": {
+      "path": "/Users/iskander/.hitlist/human-cohort-recovery/97efb51348ed35ed80dfbd4cb3a17748d20a51b278e2dec51d4318d9ca12c228/artifacts/bundles/2026-10-16T04-21-50Z/coverage.json",
+      "sha256": "c4d9779c44485048766d0d48e463364114a110f9f936e19233ce6354a608b585",
+      "size_bytes": 5974
+    },
+    "field_counts.tsv": {
+      "path": "/Users/iskander/.hitlist/human-cohort-recovery/97efb51348ed35ed80dfbd4cb3a17748d20a51b278e2dec51d4318d9ca12c228/artifacts/bundles/2026-10-16T04-21-50Z/field_counts.tsv",
+      "sha256": "d9244ccbf51f64f3a832dc44cd32dbe092e83a3094953d8db533409b5b379e7b",
+      "size_bytes": 45125655
+    },
+    "identities.parquet": {
+      "path": "/Users/iskander/.hitlist/human-cohort-recovery/97efb51348ed35ed80dfbd4cb3a17748d20a51b278e2dec51d4318d9ca12c228/artifacts/bundles/2026-10-16T04-21-50Z/identities.parquet",
+      "sha256": "eb9010f7cd960c7d49e1290ac2111c107b589b3c6b73d832b952cfd402e7dff1",
+      "size_bytes": 141061466
+    },
+    "inspection.tsv": {
+      "path": "/Users/iskander/.hitlist/human-cohort-recovery/97efb51348ed35ed80dfbd4cb3a17748d20a51b278e2dec51d4318d9ca12c228/artifacts/bundles/2026-10-16T04-21-50Z/inspection.tsv",
+      "sha256": "2582752ace1cd9757ff15c7575fbc1ee9047660d1ff73be28cf984d7eaaca1bb",
+      "size_bytes": 773197
+    },
+    "lineage.json": {
+      "path": "/Users/iskander/.hitlist/human-cohort-recovery/97efb51348ed35ed80dfbd4cb3a17748d20a51b278e2dec51d4318d9ca12c228/artifacts/bundles/2026-10-16T04-21-50Z/lineage.json",
+      "sha256": "75858cf562f65013aaae2325ea95deb70f826ea07f2373d394e8182ce459a1a5",
+      "size_bytes": 31901
+    },
+    "manifest.json": {
+      "path": "/Users/iskander/.hitlist/human-cohort-recovery/97efb51348ed35ed80dfbd4cb3a17748d20a51b278e2dec51d4318d9ca12c228/artifacts/bundles/2026-10-16T04-21-50Z/manifest.json",
+      "sha256": "039efc7854098951b5c10b3fb5b38294452eeb425e367ed1fafdeebddf34b38d",
+      "size_bytes": 33968
+    },
+    "source_contexts.tsv": {
+      "path": "/Users/iskander/.hitlist/human-cohort-recovery/97efb51348ed35ed80dfbd4cb3a17748d20a51b278e2dec51d4318d9ca12c228/artifacts/bundles/2026-10-16T04-21-50Z/source_contexts.tsv",
+      "sha256": "0bf3bf8ab443ede360a1535a299ec71435f3aec0150bf0d7f836e4b95024bdc1",
+      "size_bytes": 147917141
+    },
+    "training.parquet": {
+      "path": "/Users/iskander/.hitlist/human-cohort-recovery/97efb51348ed35ed80dfbd4cb3a17748d20a51b278e2dec51d4318d9ca12c228/artifacts/bundles/2026-10-16T04-21-50Z/training.parquet",
+      "sha256": "51e37fc5f81e3e32b9080cf096feaabe82f9001c1b90c61b5af40fae26d07d4c",
+      "size_bytes": 187997976
+    }
+  },
+  "coverage": {
+    "evidence_kinds": {
+      "binding": 25896,
+      "ms": 4045567
+    },
+    "fields": {
+      "acquisition_status": {
+        "n_distinct_nonempty_values": 1,
+        "n_missing_observations": 0,
+        "n_nonempty_observations": 4071463
+      },
+      "allele_resolution": {
+        "n_distinct_nonempty_values": 5,
+        "n_missing_observations": 0,
+        "n_nonempty_observations": 4071463
+      },
+      "assay_method": {
+        "n_distinct_nonempty_values": 17,
+        "n_missing_observations": 489384,
+        "n_nonempty_observations": 3582079
+      },
+      "attributed_sample_label": {
+        "n_distinct_nonempty_values": 11,
+        "n_missing_observations": 4018333,
+        "n_nonempty_observations": 53130
+      },
+      "cell_line_name": {
+        "n_distinct_nonempty_values": 133,
+        "n_missing_observations": 1605059,
+        "n_nonempty_observations": 2466404
+      },
+      "cell_name": {
+        "n_distinct_nonempty_values": 157,
+        "n_missing_observations": 32916,
+        "n_nonempty_observations": 4038547
+      },
+      "cell_type": {
+        "n_distinct_nonempty_values": 28,
+        "n_missing_observations": 1281272,
+        "n_nonempty_observations": 2790191
+      },
+      "condition_id": {
+        "n_distinct_nonempty_values": 437,
+        "n_missing_observations": 2090691,
+        "n_nonempty_observations": 1980772
+      },
+      "culture_condition": {
+        "n_distinct_nonempty_values": 5,
+        "n_missing_observations": 25915,
+        "n_nonempty_observations": 4045548
+      },
+      "donor_status": {
+        "n_distinct_nonempty_values": 1,
+        "n_missing_observations": 0,
+        "n_nonempty_observations": 4071463
+      },
+      "evidence_kind": {
+        "n_distinct_nonempty_values": 2,
+        "n_missing_observations": 0,
+        "n_nonempty_observations": 4071463
+      },
+      "experimental_origin_status": {
+        "n_distinct_nonempty_values": 2,
+        "n_missing_observations": 0,
+        "n_nonempty_observations": 4071463
+      },
+      "host": {
+        "n_distinct_nonempty_values": 7,
+        "n_missing_observations": 0,
+        "n_nonempty_observations": 4071463
+      },
+      "measurement_inequality": {
+        "n_distinct_nonempty_values": 3,
+        "n_missing_observations": 4063610,
+        "n_nonempty_observations": 7853
+      },
+      "measurement_units": {
+        "n_distinct_nonempty_values": 5,
+        "n_missing_observations": 4057237,
+        "n_nonempty_observations": 14226
+      },
+      "mhc_allele_provenance": {
+        "n_distinct_nonempty_values": 7,
+        "n_missing_observations": 0,
+        "n_nonempty_observations": 4071463
+      },
+      "mhc_allele_set": {
+        "n_distinct_nonempty_values": 895,
+        "n_missing_observations": 685383,
+        "n_nonempty_observations": 3386080
+      },
+      "mhc_class": {
+        "n_distinct_nonempty_values": 3,
+        "n_missing_observations": 0,
+        "n_nonempty_observations": 4071463
+      },
+      "mhc_restriction": {
+        "n_distinct_nonempty_values": 870,
+        "n_missing_observations": 135446,
+        "n_nonempty_observations": 3936017
+      },
+      "mhc_species": {
+        "n_distinct_nonempty_values": 1,
+        "n_missing_observations": 0,
+        "n_nonempty_observations": 4071463
+      },
+      "pmid": {
+        "n_distinct_nonempty_values": 1081,
+        "n_missing_observations": 13155,
+        "n_nonempty_observations": 4058308
+      },
+      "qualitative_measurement": {
+        "n_distinct_nonempty_values": 5,
+        "n_missing_observations": 489384,
+        "n_nonempty_observations": 3582079
+      },
+      "reference_iri": {
+        "n_distinct_nonempty_values": 490510,
+        "n_missing_observations": 0,
+        "n_nonempty_observations": 4071463
+      },
+      "reference_title": {
+        "n_distinct_nonempty_values": 1109,
+        "n_missing_observations": 1308,
+        "n_nonempty_observations": 4070155
+      },
+      "response_measured": {
+        "n_distinct_nonempty_values": 11,
+        "n_missing_observations": 489384,
+        "n_nonempty_observations": 3582079
+      },
+      "restriction_evidence": {
+        "n_distinct_nonempty_values": 3,
+        "n_missing_observations": 0,
+        "n_nonempty_observations": 4071463
+      },
+      "sample_attribution": {
+        "n_distinct_nonempty_values": 9,
+        "n_missing_observations": 106903,
+        "n_nonempty_observations": 3964560
+      },
+      "source": {
+        "n_distinct_nonempty_values": 3,
+        "n_missing_observations": 0,
+        "n_nonempty_observations": 4071463
+      },
+      "source_organism": {
+        "n_distinct_nonempty_values": 1,
+        "n_missing_observations": 0,
+        "n_nonempty_observations": 4071463
+      },
+      "source_tissue": {
+        "n_distinct_nonempty_values": 48,
+        "n_missing_observations": 79834,
+        "n_nonempty_observations": 3991629
+      },
+      "specimen_status": {
+        "n_distinct_nonempty_values": 1,
+        "n_missing_observations": 0,
+        "n_nonempty_observations": 4071463
+      },
+      "supplementary_file": {
+        "n_distinct_nonempty_values": 21,
+        "n_missing_observations": 3582079,
+        "n_nonempty_observations": 489384
+      }
+    },
+    "limitations": [
+      "Coverage is observation-weighted, not evidence of donor/specimen independence.",
+      "Compact observations do not supply protein/flank context; the parent corpus pins mappings.",
+      "Only human MHC and reported human peptide sources, lengths 8-25, are included.",
+      "No partition or model-quality claim is made by this export."
+    ],
+    "lineage_statuses": {
+      "acquisition_status": {
+        "unknown": 4071463
+      },
+      "donor_status": {
+        "unknown": 4071463
+      },
+      "experimental_origin_status": {
+        "resolved": 57188,
+        "unknown": 4014275
+      },
+      "specimen_status": {
+        "unknown": 4071463
+      }
+    },
+    "mhc_classes": {
+      "I": 2711461,
+      "II": 1353735,
+      "non-classical": 6267
+    },
+    "missing_display_value": "<missing>; original values remain in training.parquet",
+    "n_observations": 4071463,
+    "n_preview_rows": 1378,
+    "n_source_contexts": 495197,
+    "n_training_rows": 4071463,
+    "preview_policy": "first 250 export-ordered observations per evidence kind and MHC class; not representative",
+    "unavailable_fields": []
+  },
+  "limitations": [
+    "Original receipt failed; original runtime and RSS were not recovered.",
+    "Baseline producer 1.76.0 predates the curation corrections in #694/#696.",
+    "No partitions or independent-experiment training-readiness claim."
+  ],
+  "native_coverage": {
+    "lineage": {
+      "acquisition": {
+        "n_distinct_resolved_identities": 0,
+        "n_resolved_observations": 0,
+        "n_unresolved_observations": 4071463
+      },
+      "donor": {
+        "n_distinct_resolved_identities": 0,
+        "n_resolved_observations": 0,
+        "n_unresolved_observations": 4071463
+      },
+      "experimental_origin": {
+        "n_distinct_resolved_identities": 17,
+        "n_resolved_observations": 57188,
+        "n_unresolved_observations": 4014275
+      },
+      "specimen": {
+        "n_distinct_resolved_identities": 0,
+        "n_resolved_observations": 0,
+        "n_unresolved_observations": 4071463
+      }
+    },
+    "n_contributor_links": 7646178,
+    "n_observations": 4071463,
+    "n_observations_with_contributors": 4071463,
+    "n_source_records": 7605968,
+    "n_unresolved_contributor_links": 0
+  },
+  "options": {
+    "mapping_receipt_sha256": "bb3177fea10370a13ff101f8babec125252896e450c84e5300968994ef7f02c0",
+    "parent_run_id": "2d794b88453e75e4ae548326c4ffaaea05748d7df81140fcd24dbf0c8053ff71",
+    "recipe_sha256": "0fae406167883685c7b9dd805c71e87a5a3858db1f096bfbabe75643eb5404c9",
+    "training_options": {
+      "exclude_non_peptide_ligand": true,
+      "include_evidence": "both",
+      "length_max": 25,
+      "length_min": 8,
+      "map_source_proteins": false,
+      "source_species": "Homo sapiens",
+      "species": "Homo sapiens",
+      "with_peptide_origin": false
+    }
+  },
+  "original_export_peak_rss_bytes": null,
+  "original_export_producer": "hitlist 1.76.0",
+  "original_export_runtime_seconds": null,
+  "original_materialization": {
+    "sha256": "97efb51348ed35ed80dfbd4cb3a17748d20a51b278e2dec51d4318d9ca12c228",
+    "size_bytes": 3766
+  },
+  "original_recipe_sha256": "0fae406167883685c7b9dd805c71e87a5a3858db1f096bfbabe75643eb5404c9",
+  "original_run_status": "receipt_publication_failed",
+  "recovery_recipe": {
+    "sha256": "84cd600582d291fc0a9208b3a81f758d3d5000ff592b57a67de2ef485b88314b",
+    "size_bytes": 3387
+  },
+  "recovery_runtime_seconds": 244.1372295409965,
+  "status": "recovered_verified_export"
+}

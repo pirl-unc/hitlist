@@ -1,0 +1,145 @@
+✓ Initialized. View run at 
+https://modal.com/apps/iskandr/main/ap-r1NV5PemoZjD94k52tEGEb
+✓ Created objects.
+├── ✓ Uploaded /private/tmp/hitlist-human-cohort/scripts/human_cohort_modal.py
+├── ✓ Uploaded /private/tmp/hitlist-human-cohort/scripts/qualify_human_cohort.py
+├── ✓ Uploaded /private/tmp/hitlist-human-cohort/scripts/qualify_corpus.py
+└── ✓ Created Function execute.
+
+[1ACopying:   0%|          | 0.00/7.34k [00:00<?, ?B/s]
+[1A                                                    
+[1A
+[1ACopying:   0%|          | 0.00/13.6k [00:00<?, ?B/s]
+[1A                                                    
+[1A
+[1AVerifying:   0%|          | 0.00/179M [00:00<?, ?B/s]
+[1AVerifying:  73%|#######3  | 131M/179M [00:00<00:00, 1.36GB/s]
+[1A                                                             
+[1A
+[1AVerifying:   0%|          | 0.00/135M [00:00<?, ?B/s]
+[1A                                                     
+[1A
+[1AVerifying:   0%|          | 0.00/1.92G [00:00<?, ?B/s]
+[1AVerifying:   7%|6         | 133M/1.92G [00:00<00:01, 1.39GB/s]
+[1AVerifying:  13%|#3        | 266M/1.92G [00:00<00:01, 1.26GB/s]
+[1AVerifying:  20%|#9        | 388M/1.92G [00:00<00:01, 1.26GB/s]
+[1AVerifying:  26%|##5       | 511M/1.92G [00:00<00:01, 1.27GB/s]
+[1AVerifying:  33%|###2      | 641M/1.92G [00:00<00:01, 1.30GB/s]
+[1AVerifying:  39%|###9      | 771M/1.92G [00:00<00:00, 1.32GB/s]
+[1AVerifying:  46%|####5     | 902M/1.92G [00:00<00:00, 1.34GB/s]
+[1AVerifying:  53%|#####2    | 1.01G/1.92G [00:00<00:00, 1.36GB/s]
+[1AVerifying:  60%|#####9    | 1.15G/1.92G [00:00<00:00, 1.39GB/s]
+[1AVerifying:  67%|######6   | 1.28G/1.92G [00:01<00:00, 1.40GB/s]
+[1AVerifying:  74%|#######3  | 1.42G/1.92G [00:01<00:00, 1.41GB/s]
+[1AVerifying:  80%|########  | 1.55G/1.92G [00:01<00:00, 1.41GB/s]
+[1AVerifying:  87%|########7 | 1.68G/1.92G [00:01<00:00, 1.42GB/s]
+[1AVerifying:  94%|#########4| 1.82G/1.92G [00:01<00:00, 1.42GB/s]
+[1A                                                               
+[1A
+[1AVerifying:   0%|          | 0.00/31.2k [00:00<?, ?B/s]
+[1A                                                      
+[1A
+[1AVerifying:   0%|          | 0.00/33.2k [00:00<?, ?B/s]
+[1A                                                      
+[1A
+[1AVerifying:   0%|          | 0.00/5.83k [00:00<?, ?B/s]
+[1A                                                      
+[1A
+[1AVerifying:   0%|          | 0.00/141M [00:00<?, ?B/s]
+[1AVerifying:  99%|#########8| 139M/141M [00:00<00:00, 1.45GB/s]
+[1A                                                             
+[1A
+[1AVerifying:   0%|          | 0.00/43.0M [00:00<?, ?B/s]
+[1A                                                      
+[1A
+[1AVerifying:   0%|          | 0.00/755k [00:00<?, ?B/s]
+[1A                                                     
+[1A
+[1AVerifying:   0%|          | 0.00/1.16k [00:00<?, ?B/s]
+[1A                                                      
+[1ATraceback (most recent call last):
+  File "/opt/qualification/qualify_human_cohort.py", line 368, in <module>
+    main()
+  File "/opt/qualification/qualify_human_cohort.py", line 343, in main
+    saved = materialize(
+            ^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/datacache/materialization.py", line 348, in materialize
+    definition, acquisition = _definition(sources, transform, outputs)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/datacache/materialization.py", line 64, in _definition
+    for name, spec in _inventory(sources).items():
+                      ^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/datacache/materialization.py", line 40, in _inventory
+    raise ValueError('sources and outputs must be nonempty mappings')
+ValueError: sources and outputs must be nonempty mappings
+Traceback (most recent call last):
+  File "/pkg/modal/_runtime/container_io_manager.py", line 987, in handle_input_exception
+    yield
+  File "/pkg/modal/_container_entrypoint.py", line 189, in run_input_sync
+    values = io_context.call_function_sync()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/pkg/modal/_runtime/container_io_manager.py", line 266, in call_function_sync
+    expected_value_or_values = self.finalized_function.callable(*args, **kwargs)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/human_cohort_modal.py", line 39, in execute
+    subprocess.run([sys.executable, "/opt/qualification/qualify_human_cohort.py"], check=True)
+  File "/usr/local/lib/python3.12/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['/usr/local/bin/python', '/opt/qualification/qualify_human_cohort.py']' returned non-zero exit status 1.
+Stopping app - uncaught exception raised locally: CalledProcessError(1, ['/usr/local/bin/python', '/opt/qualification/qualify_human_cohort.py']).
+╭───────────────────── Traceback (most recent call last) ──────────────────────╮
+│ /private/tmp/hitlist-human-cohort/scripts/human_cohort_modal.py:46 in main   │
+│                                                                              │
+│   45 def main():                                                             │
+│ ❱ 46 │   execute.remote()                                                    │
+│   47                                                                         │
+│                                                                              │
+│ /Users/iskander/code/shared-virtual-env/lib/python3.12/site-packages/modal/_ │
+│ object.py:49 in wrapped                                                      │
+│                                                                              │
+│    48 │   │   await self.hydrate()                                           │
+│ ❱  49 │   │   return await method(self, *args, **kwargs)                     │
+│    50                                                                        │
+│                                                                              │
+│ /Users/iskander/code/shared-virtual-env/lib/python3.12/site-packages/modal/_ │
+│ functions.py:2067 in remote                                                  │
+│                                                                              │
+│   2066 │   │                                                                 │
+│ ❱ 2067 │   │   return await self._call_function(args, kwargs)                │
+│   2068                                                                       │
+│                                                                              │
+│ /Users/iskander/code/shared-virtual-env/lib/python3.12/site-packages/modal/_ │
+│ functions.py:2004 in _call_function                                          │
+│                                                                              │
+│   2003 │   │                                                                 │
+│ ❱ 2004 │   │   return await invocation.run_function()                        │
+│   2005                                                                       │
+│                                                                              │
+│ /Users/iskander/code/shared-virtual-env/lib/python3.12/site-packages/modal/_ │
+│ functions.py:515 in run_function                                             │
+│                                                                              │
+│    514 │   │   │   # No more retries left.                                   │
+│ ❱  515 │   │   │   return await _process_result(                             │
+│    516 │   │   │   │   await_response.output.result, await_response.output.d │
+│                                                                              │
+│ /Users/iskander/code/shared-virtual-env/lib/python3.12/site-packages/modal/_ │
+│ utils/function_utils.py:572 in _process_result                               │
+│                                                                              │
+│   571 │   │   │                                                              │
+│ ❱ 572 │   │   │   raise exc_with_hints(exc)                                  │
+│   573                                                                        │
+│                                                                              │
+│     ...Remote call to Modal Function (ta-01M51CD1TGRMFFJEZPER82P57R)...      │
+│                                                                              │
+│ /root/human_cohort_modal.py:39 in execute                                    │
+│                                                                              │
+│ ❱ 39 subprocess.run([sys.executable, "/opt/qualification/qualify_human_cohor │
+│                                                                              │
+│                                                                              │
+│ /usr/local/lib/python3.12/subprocess.py:571 in run                           │
+│                                                                              │
+│ ❱ 571 raise CalledProcessError(retcode, process.args,                        │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+CalledProcessError: Command '['/usr/local/bin/python', 
+'/opt/qualification/qualify_human_cohort.py']' returned non-zero exit status 1.
