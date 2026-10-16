@@ -6143,3 +6143,15 @@ statements, but no parental class-II arm is curated, so those rows reach the
 CIITA arm or no arm at all — filed as #567. The `ip_antibody` string glosses HB245 as IVA12;
 ATCC lists IVA12 as HB-145, and the paper names no clone, so the gloss is
 unverified — the pan-HLA-II specificity it stands on is the paper's own words.
+
+# Prioritized donor/specimen qualification — 2026-10-16
+
+Spec: [human-lineage-spec.md](human-lineage-spec.md).
+
+- [x] Inspect published cohort gaps and primary Atlas source documentation.
+- [x] File the primary donor-source gap and define the bounded artifact contract.
+- [ ] Pin source tables through datacache and inspect source/sample semantics.
+- [ ] Implement the all-tissue donor-aware reader without changing existing scope.
+- [ ] Add regressions, publish the frozen donor cohort and independently verify it.
+- [ ] Format, lint, full tests, final-head CI, merge, clean-main deploy and public checks.
+- [ ] Update #680/#678 and proceed to assay-context applicability in Presto #126.

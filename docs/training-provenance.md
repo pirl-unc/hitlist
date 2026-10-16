@@ -269,3 +269,29 @@ restriction sets, conditions, endpoints, units and censoring keep their separate
 meanings in the data. A qualified training release still needs frozen partition
 assignments, source-linked coverage reports and leakage audits, with unresolved
 lineage stated explicitly.
+
+## Direct donor evidence from the HLA Ligand Atlas
+
+`hitlist.load_atlas_observations()` downloads pinned release 2020.12 tables through
+`datacache` and returns `(observations, sources)` for **all tissues**. Supply a
+local snapshot directory to read without network access. The existing essential-
+tissue exclusion reader keeps its heart/brain/lung scope.
+
+The primary table reports each peptide hit's donor, tissue and HLA class. The API
+preserves source rows, peptide-reference rows, original donor typing and hashes;
+`evidence_row_id` identifies the semantic source hit independently of table order.
+`source_record_id` points to its physical row in the hashed release table.
+`reported_sample_group_id` explicitly means the donor/tissue/HLA-class triplet.
+Physical specimen and acquisition identity remain unknown. The directly reported
+`donor_id` can group all tissues and classes from one person into one partition.
+
+Donor typing remains in `sample_alleles`; `mhc_restriction` remains unspecified.
+These are positive eluted-ligand observations, not binding affinity measurements
+or negative labels for unobserved peptides. The source used binding predictions
+in quality control; that must be disclosed when benchmarking such predictors.
+This primary source overlaps the same study's IEDB records. Do not append it as
+independent data or infer historical IEDB donor identities by sequence matching.
+
+Primary references: [Atlas data contract](https://hla-ligand-atlas.org/data),
+[Marcu et al.](https://doi.org/10.1136/jitc-2020-002071),
+[PRIDE PXD019643](https://www.ebi.ac.uk/pride/archive/projects/PXD019643).
