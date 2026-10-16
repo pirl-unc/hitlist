@@ -6143,3 +6143,26 @@ statements, but no parental class-II arm is curated, so those rows reach the
 CIITA arm or no arm at all — filed as #567. The `ip_antibody` string glosses HB245 as IVA12;
 ATCC lists IVA12 as HB-145, and the paper names no clone, so the gloss is
 unverified — the pan-HLA-II specificity it stands on is the paper's own words.
+
+# Prioritized donor/specimen qualification — 2026-10-16
+
+Spec: [human-lineage-spec.md](human-lineage-spec.md).
+
+- [x] Inspect published cohort gaps and primary Atlas source documentation.
+- [x] File the primary donor-source gap and define the bounded artifact contract.
+- [x] Pin source tables through datacache and inspect source/sample semantics.
+- [x] Implement the all-tissue donor-aware reader without changing existing scope.
+- [ ] Add regressions, publish the frozen donor cohort and independently verify it.
+- [ ] Format, lint, full tests, final-head CI, merge, clean-main deploy and public checks.
+- [ ] Update #680/#678 and proceed to assay-context applicability in Presto #126.
+
+
+## Primary donor cohort review
+
+All 967,449 raw source hits independently verify against the native donor and
+peptide tables; 17 artifacts pass. The 15/3/3-donor split is disjoint by donor and
+reported sample group, with 94,920 shared peptide pair entries explicitly reported.
+The first donor summary failed and is preserved under #703. The successful v2
+changes only donor summary typing plus recipe/execution metadata; every other
+artifact remains byte-identical. Thirty focused tests and formatting/lint pass.
+Publication, complete local/CI validation, merge and PyPI verification remain gates.

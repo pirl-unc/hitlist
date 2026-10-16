@@ -489,3 +489,11 @@ recipe so the same handoff problem cannot recur.
   and make source citations, cell types, MHC allele sets, conditions and assays
   inspectable by humans alongside hashes, policies, partitions and audits.
   Passing software tests is not evidence that the actual corpus is qualified.
+
+## 2026-10-16 — independence priority
+
+When the user prioritizes donor/specimen independence, work from directly reported
+source identities before additional model fitting. A portable cohort, software test
+pass or peptide-disjoint split is not biological qualification. Recover primary
+sample tables where an aggregator has discarded donor identity, and keep source
+sample groups, physical specimens and acquisition runs as separate claims.

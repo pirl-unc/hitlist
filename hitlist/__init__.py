@@ -75,6 +75,8 @@ _PUBLIC_API: dict[str, str] = {
     "write_tissue_blacklist_bundle": ".evidence_bundle",
     "verify_evidence_bundle": ".evidence_bundle",
     "build_tissue_blacklist": ".tissue_blacklist",
+    "load_atlas_observations": ".atlas",
+    "atlas_sources": ".atlas",
     "load_contributors": ".provenance",
     "load_lineage": ".lineage",
     "write_training_bundle": ".training_bundle",

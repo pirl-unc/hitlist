@@ -1,0 +1,201 @@
+{
+  "actual_audit_commit": "fc5748b452330873a845e0fc11f7f0d7ed22fce1",
+  "downloaded": {
+    "README.md": "/Users/iskander/.hitlist/atlas-lineage/public-verification/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-26-10Z/README.md",
+    "SHA256SUMS": "/Users/iskander/.hitlist/atlas-lineage/public-verification/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-26-10Z/SHA256SUMS",
+    "atlas.py": "/Users/iskander/.hitlist/atlas-lineage/public-verification/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-26-10Z/atlas.py",
+    "atlas_reader.py": "/Users/iskander/.hitlist/atlas-lineage/public-verification/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-26-10Z/atlas_reader.py",
+    "audit.json": "/Users/iskander/.hitlist/atlas-lineage/public-verification/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-26-10Z/audit.json",
+    "audit.py": "/Users/iskander/.hitlist/atlas-lineage/public-verification/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-26-10Z/audit.py",
+    "coverage.json": "/Users/iskander/.hitlist/atlas-lineage/public-verification/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-26-10Z/coverage.json",
+    "donors.tsv": "/Users/iskander/.hitlist/atlas-lineage/public-verification/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-26-10Z/donors.tsv",
+    "donors.tsv.gz": "/Users/iskander/.hitlist/atlas-lineage/public-verification/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-26-10Z/donors.tsv.gz",
+    "independent-verification.json": "/Users/iskander/.hitlist/atlas-lineage/public-verification/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-26-10Z/independent-verification.json",
+    "initial-audit-receipt.json": "/Users/iskander/.hitlist/atlas-lineage/public-verification/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-26-10Z/initial-audit-receipt.json",
+    "initial-verification-failure.txt": "/Users/iskander/.hitlist/atlas-lineage/public-verification/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-26-10Z/initial-verification-failure.txt",
+    "initial_failed_recipe.py": "/Users/iskander/.hitlist/atlas-lineage/public-verification/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-26-10Z/initial_failed_recipe.py",
+    "label-policy.json": "/Users/iskander/.hitlist/atlas-lineage/public-verification/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-26-10Z/label-policy.json",
+    "observations.tsv.gz": "/Users/iskander/.hitlist/atlas-lineage/public-verification/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-26-10Z/observations.tsv.gz",
+    "overlap.json": "/Users/iskander/.hitlist/atlas-lineage/public-verification/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-26-10Z/overlap.json",
+    "peptides.tsv.gz": "/Users/iskander/.hitlist/atlas-lineage/public-verification/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-26-10Z/peptides.tsv.gz",
+    "plan.md": "/Users/iskander/.hitlist/atlas-lineage/public-verification/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-26-10Z/plan.md",
+    "publication.json": "/Users/iskander/.hitlist/atlas-lineage/public-verification/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-26-10Z/publication.json",
+    "publish.py": "/Users/iskander/.hitlist/atlas-lineage/public-verification/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-26-10Z/publish.py",
+    "sample-groups.tsv": "/Users/iskander/.hitlist/atlas-lineage/public-verification/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-26-10Z/sample-groups.tsv",
+    "sample_hits.tsv.gz": "/Users/iskander/.hitlist/atlas-lineage/public-verification/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-26-10Z/sample_hits.tsv.gz",
+    "shared-peptides.tsv.gz": "/Users/iskander/.hitlist/atlas-lineage/public-verification/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-26-10Z/shared-peptides.tsv.gz",
+    "source-registry.json": "/Users/iskander/.hitlist/atlas-lineage/public-verification/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-26-10Z/source-registry.json",
+    "source_catalog.yaml": "/Users/iskander/.hitlist/atlas-lineage/public-verification/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-26-10Z/source_catalog.yaml",
+    "split-policy.json": "/Users/iskander/.hitlist/atlas-lineage/public-verification/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-26-10Z/split-policy.json",
+    "verify.py": "/Users/iskander/.hitlist/atlas-lineage/public-verification/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-26-10Z/verify.py"
+  },
+  "files": {
+    "README.md": {
+      "sha256": "2121f3008c7cdff648a9cf736923e2efa17cba97383bbe7af8054b028ac4a618",
+      "size": 5249,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/atlas-donor-lineage-v1/README.md"
+    },
+    "SHA256SUMS": {
+      "sha256": "50780998afca1aa6e91788d46cb88b6ba6b3a03d6444ccf73e604fed4cdf0595",
+      "size": 2157,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/atlas-donor-lineage-v1/SHA256SUMS"
+    },
+    "atlas.py": {
+      "sha256": "31e81425bebee500a3d80ada5ebc02af0794027647e1160545599885f365db59",
+      "size": 5480,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/atlas-donor-lineage-v1/atlas.py"
+    },
+    "atlas_reader.py": {
+      "sha256": "78f4b120661c106aadd3f8836b5f6e2daa5226bb789050a02cfb78f9a98278e9",
+      "size": 11340,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/atlas-donor-lineage-v1/atlas_reader.py"
+    },
+    "audit.json": {
+      "sha256": "82b6391ff7dfab36e41396c310070e58ce87ba31820f6768f7366ca10a5a56c7",
+      "size": 1123,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/atlas-donor-lineage-v1/audit.json"
+    },
+    "audit.py": {
+      "sha256": "b1d5c94ba37285892947242925681152e32dad9590716b96fc5e4db23df3e344",
+      "size": 10270,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/atlas-donor-lineage-v1/audit.py"
+    },
+    "coverage.json": {
+      "sha256": "d14a53fac4eaf9136e649fb5218f61711d31e1b080776753b95790287a346e1d",
+      "size": 1097,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/atlas-donor-lineage-v1/coverage.json"
+    },
+    "donors.tsv": {
+      "sha256": "af6af4a6a0fa670ee121fe4a350ad3ece83f4cce29e289d582aeaae0be88a3e3",
+      "size": 5285,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/atlas-donor-lineage-v1/donors.tsv"
+    },
+    "donors.tsv.gz": {
+      "sha256": "753c8ba45bdd4d9026decc4cd837325a66b2d1ea93d28d437c66aabe5c45a5b3",
+      "size": 1190,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/atlas-donor-lineage-v1/donors.tsv.gz"
+    },
+    "independent-verification.json": {
+      "sha256": "26fe646c2c115f6e29cabb03a9ea9747d51a47450e982510a02348445ec9fe17",
+      "size": 431,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/atlas-donor-lineage-v1/independent-verification.json"
+    },
+    "initial-audit-receipt.json": {
+      "sha256": "afafaa4961b275e2cf1a8bf9b9e2270aa3ed8d406270ef9f077a304773634c58",
+      "size": 5166,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/atlas-donor-lineage-v1/initial-audit-receipt.json"
+    },
+    "initial-verification-failure.txt": {
+      "sha256": "2078374ef25bff72c98677d2bb33545bacbe8bf286453f8bb08e4e02c5134013",
+      "size": 560,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/atlas-donor-lineage-v1/initial-verification-failure.txt"
+    },
+    "initial_failed_recipe.py": {
+      "sha256": "4e0056c4754296e431f6c1e97cbb39fbd3581bef075435fbab5c922302022208",
+      "size": 10213,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/atlas-donor-lineage-v1/initial_failed_recipe.py"
+    },
+    "label-policy.json": {
+      "sha256": "17a626f8cfca8260c29537dd8a02318cdf19d5dcb95aae445ea4745a59064fe7",
+      "size": 990,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/atlas-donor-lineage-v1/label-policy.json"
+    },
+    "observations.tsv.gz": {
+      "sha256": "66824d4a5b1b79c87dedd8e5d5d3b547e2b505b0279678f5734e71359b9c3c22",
+      "size": 29522709,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/atlas-donor-lineage-v1/observations.tsv.gz"
+    },
+    "overlap.json": {
+      "sha256": "21a135b90b808a0440746d4dd9bf17d09448e6698c2cd3e7bce27d335b202074",
+      "size": 949,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/atlas-donor-lineage-v1/overlap.json"
+    },
+    "peptides.tsv.gz": {
+      "sha256": "daeb0c0146e3037c6e4b2b58663a7a9dc6bce821ef1995e817f70367a0ad28c3",
+      "size": 2104709,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/atlas-donor-lineage-v1/peptides.tsv.gz"
+    },
+    "plan.md": {
+      "sha256": "13bbb00002a8621bc5a370cb77e825714b0366e343a2f5f25d58cd8fa4e6e3ab",
+      "size": 3942,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/atlas-donor-lineage-v1/plan.md"
+    },
+    "publication.json": {
+      "sha256": "d46545d17d5452aae74ebdb5f0c9e6eab6257791612099ebc46675ac31f9320d",
+      "size": 7151,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/atlas-donor-lineage-v1/publication.json"
+    },
+    "publish.py": {
+      "sha256": "295c4883f6d734fd4071df4e2726f6b81232d4805707d2df9a687983d67bb268",
+      "size": 5947,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/atlas-donor-lineage-v1/publish.py"
+    },
+    "sample-groups.tsv": {
+      "sha256": "950d7f7ea7deedcdfcf80c445a52b786633e4f8e30f487efb7f8d431dc9db6ab",
+      "size": 49316,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/atlas-donor-lineage-v1/sample-groups.tsv"
+    },
+    "sample_hits.tsv.gz": {
+      "sha256": "0e8771113cae27c620b2b9619f035675ddcc87b8d7dfac50750e71ab60eb0167",
+      "size": 3167689,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/atlas-donor-lineage-v1/sample_hits.tsv.gz"
+    },
+    "shared-peptides.tsv.gz": {
+      "sha256": "264628769293475e07d41956b80bd39a4e9849991dd27b2d12321e7381f44c54",
+      "size": 562836,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/atlas-donor-lineage-v1/shared-peptides.tsv.gz"
+    },
+    "source-registry.json": {
+      "sha256": "9f41210190847566bed971a799f5948968ac88e200e43378c47bee0b82db026a",
+      "size": 33279,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/atlas-donor-lineage-v1/source-registry.json"
+    },
+    "source_catalog.yaml": {
+      "sha256": "6b4aa8a5396195ab34081a1589f4155e4407c703ce85eb4708c3228f5258fda4",
+      "size": 702,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/atlas-donor-lineage-v1/source_catalog.yaml"
+    },
+    "split-policy.json": {
+      "sha256": "29915ada2d4232aecc1bc69f19b517173d53699dc8107a364bdb0abba1556fef",
+      "size": 1365,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/atlas-donor-lineage-v1/split-policy.json"
+    },
+    "verify.py": {
+      "sha256": "3e484dab538b18ba5789298828cb6f47ace9055e9cb2c805a5768d9ccb33a085",
+      "size": 9192,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/atlas-donor-lineage-v1/verify.py"
+    }
+  },
+  "n_verified_public_assets": 27,
+  "paths": {
+    "README.md": "/Users/iskander/.hitlist/atlas-lineage/publication/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-25-19Z/README.md",
+    "SHA256SUMS": "/Users/iskander/.hitlist/atlas-lineage/publication/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-25-19Z/SHA256SUMS",
+    "atlas.py": "/Users/iskander/.hitlist/atlas-lineage/publication/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-25-19Z/atlas.py",
+    "atlas_reader.py": "/Users/iskander/.hitlist/atlas-lineage/publication/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-25-19Z/atlas_reader.py",
+    "audit.json": "/Users/iskander/.hitlist/atlas-lineage/publication/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-25-19Z/audit.json",
+    "audit.py": "/Users/iskander/.hitlist/atlas-lineage/publication/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-25-19Z/audit.py",
+    "coverage.json": "/Users/iskander/.hitlist/atlas-lineage/publication/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-25-19Z/coverage.json",
+    "donors.tsv": "/Users/iskander/.hitlist/atlas-lineage/publication/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-25-19Z/donors.tsv",
+    "donors.tsv.gz": "/Users/iskander/.hitlist/atlas-lineage/publication/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-25-19Z/donors.tsv.gz",
+    "independent-verification.json": "/Users/iskander/.hitlist/atlas-lineage/publication/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-25-19Z/independent-verification.json",
+    "initial-audit-receipt.json": "/Users/iskander/.hitlist/atlas-lineage/publication/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-25-19Z/initial-audit-receipt.json",
+    "initial-verification-failure.txt": "/Users/iskander/.hitlist/atlas-lineage/publication/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-25-19Z/initial-verification-failure.txt",
+    "initial_failed_recipe.py": "/Users/iskander/.hitlist/atlas-lineage/publication/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-25-19Z/initial_failed_recipe.py",
+    "label-policy.json": "/Users/iskander/.hitlist/atlas-lineage/publication/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-25-19Z/label-policy.json",
+    "observations.tsv.gz": "/Users/iskander/.hitlist/atlas-lineage/publication/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-25-19Z/observations.tsv.gz",
+    "overlap.json": "/Users/iskander/.hitlist/atlas-lineage/publication/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-25-19Z/overlap.json",
+    "peptides.tsv.gz": "/Users/iskander/.hitlist/atlas-lineage/publication/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-25-19Z/peptides.tsv.gz",
+    "plan.md": "/Users/iskander/.hitlist/atlas-lineage/publication/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-25-19Z/plan.md",
+    "publication.json": "/Users/iskander/.hitlist/atlas-lineage/publication/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-25-19Z/publication.json",
+    "publish.py": "/Users/iskander/.hitlist/atlas-lineage/publication/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-25-19Z/publish.py",
+    "sample-groups.tsv": "/Users/iskander/.hitlist/atlas-lineage/publication/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-25-19Z/sample-groups.tsv",
+    "sample_hits.tsv.gz": "/Users/iskander/.hitlist/atlas-lineage/publication/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-25-19Z/sample_hits.tsv.gz",
+    "shared-peptides.tsv.gz": "/Users/iskander/.hitlist/atlas-lineage/publication/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-25-19Z/shared-peptides.tsv.gz",
+    "source-registry.json": "/Users/iskander/.hitlist/atlas-lineage/publication/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-25-19Z/source-registry.json",
+    "source_catalog.yaml": "/Users/iskander/.hitlist/atlas-lineage/publication/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-25-19Z/source_catalog.yaml",
+    "split-policy.json": "/Users/iskander/.hitlist/atlas-lineage/publication/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-25-19Z/split-policy.json",
+    "verify.py": "/Users/iskander/.hitlist/atlas-lineage/publication/fa42b693e3ddce25e1b62190ee565795175b8b1e/bundles/2026-10-16T18-25-19Z/verify.py"
+  },
+  "publication_commit": "fa42b693e3ddce25e1b62190ee565795175b8b1e",
+  "release": "https://github.com/pirl-unc/hitlist/releases/tag/atlas-donor-lineage-v1"
+}

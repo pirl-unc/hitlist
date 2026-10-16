@@ -158,6 +158,11 @@ def load_atlas_tissue_evidence(directory, *, batch_size=25000):
     relationships. Only the configured essential tissues are materialized.
     The manifest records snapshot coverage, not a claim of exhaustive MS data.
     """
+    return _load_atlas_evidence(directory, batch_size=batch_size, essential_tissues=True)
+
+
+def _load_atlas_evidence(directory, *, batch_size=25000, essential_tissues=False):
+    """Shared source reader; the public tissue API retains its original filter."""
     if type(batch_size) is not int or batch_size < 1:
         raise ValueError("batch_size must be a positive integer")
     directory = Path(directory)
@@ -190,7 +195,7 @@ def load_atlas_tissue_evidence(directory, *, batch_size=25000):
             raise ValueError("Atlas sample hit has no donor reference")
         if not frame.hla_class.isin(["HLA-I", "HLA-II"]).all():
             raise ValueError("Atlas sample hit has an unknown HLA class")
-        selected = frame[_tissue_groups(frame.tissue).ne("")].copy()
+        selected = frame[_tissue_groups(frame.tissue).ne("")].copy() if essential_tissues else frame
         if len(selected):
             frames.append(selected)
     hits = (
