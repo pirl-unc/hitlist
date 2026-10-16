@@ -215,6 +215,9 @@ def run(stage):
         "python": sys.version,
         "cpu_limit": 8,
         "memory_limit_mib": 65536,
+        "ephemeral_disk_request_mib": 524288,
+        "contributor_scratch_limit_gib": 16,
+        "contributor_free_space_reserve_gib": 1,
         "gpu": "none",
         "disk_free_bytes_before": shutil.disk_usage(root).free,
         "options": {

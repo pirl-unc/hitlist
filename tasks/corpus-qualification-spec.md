@@ -31,6 +31,9 @@ Use an isolated Linux Python 3.12 image; install frozen requirements and run pip
 check. Capture installed versions, source code, options, UTC timestamps, CPU/RAM,
 runtime and peak resource observations. No GPU or model fitting in this build.
 One job at a time, at most 8 CPUs / 64 GiB RAM and a 90-minute deadline per stage.
+Modal requires at least 524,288 MiB of ephemeral disk for this function; the first
+200,000 MiB request was rejected before execution. Request the provider minimum,
+while retaining the 16 GiB contributor scratch cap and 1 GiB free-space reserve.
 Persist each completed atomic generation and stage receipt to the shared volume;
 failures must leave previous complete outputs intact and retain actionable logs.
 Do not bypass contributor disk/memory safeguards or use stale-cache opt-outs.
