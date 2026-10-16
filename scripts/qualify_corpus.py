@@ -1,4 +1,4 @@
-"""Bounded, separately cached reconstruction with the published 1.76.0 producer.
+"""Bounded, separately cached reconstruction with the published 1.78.0 producer.
 
 Run through qualification_modal.py. This runner never imports the source checkout
 as the producer. Each stage records its actual environment, inputs and outputs.
@@ -80,8 +80,8 @@ def dataset_inventory():
 def perform(stage, root):
     import hitlist
 
-    if hitlist.__version__ != "1.76.0":
-        raise ValueError(f"Expected the published Hitlist 1.76.0, found {hitlist.__version__}")
+    if hitlist.__version__ != "1.78.0":
+        raise ValueError(f"Expected the published Hitlist 1.78.0, found {hitlist.__version__}")
     checked = subprocess.run(
         [sys.executable, "-m", "pip", "check"], check=True, capture_output=True, text=True
     )
@@ -129,6 +129,9 @@ def perform(stage, root):
         from datacache import install_bundle
         from pyensembl import EnsemblRelease
 
+        frozen = CONFIG / "reference.json"
+        if frozen.exists():
+            return reuse_reference(root, frozen)
         genome = EnsemblRelease(112, species="homo_sapiens")
         genome.download(show_progress=True)
         files = [genome.gtf_path, *genome.protein_fasta_paths, *genome.transcript_fasta_paths]
@@ -195,6 +198,48 @@ def perform(stage, root):
             path.name: digest(path) for path in sorted(directory.iterdir()) if path.is_file()
         }, {"portable_directory": str(directory), "qualification": "build_only"}
     raise ValueError(stage)
+
+
+def reuse_reference(root, pin_file):
+    """Verify a frozen reference receipt and publish its unchanged cache bytes."""
+    from datacache import install_bundle
+
+    pin = json.loads(Path(pin_file).read_text())
+    validate({"reference_receipt": pin["receipt"]})
+    receipt = json.loads(Path(pin["receipt"]["path"]).read_text())
+    if receipt.get("status") != "success" or receipt.get("stage") != "reference":
+        raise ValueError("A successful reference-stage receipt is required")
+    details = receipt.get("details", {})
+    if details.get("species") != "homo_sapiens" or details.get("ensembl_release") != 112:
+        raise ValueError("Frozen reference must be human Ensembl release 112")
+    expected = pin["compatible_versions"]
+    required = {"pyensembl", "pyfaidx", "gtfparse", "serializable", "numpy", "pandas"}
+    if set(expected) != required:
+        raise ValueError("Frozen reference must pin every cache-format dependency")
+    for name, version in expected.items():
+        if receipt["versions"].get(name) != version:
+            raise ValueError(f"Original reference dependency mismatch: {name}")
+        if importlib.metadata.version(name) != version:
+            raise ValueError(f"Current reference dependency mismatch: {name}")
+    artifacts = receipt["artifacts"]
+    if not artifacts or any(Path(name).name != name for name in artifacts):
+        raise ValueError("Frozen reference requires nonempty basename-only artifacts")
+    validate(artifacts)
+    paths = install_bundle(
+        root / "reference-bundle",
+        {
+            name: {"path": value["path"], "sha256": value["sha256"], "size": value["size_bytes"]}
+            for name, value in artifacts.items()
+        },
+    )
+    return {name: digest(path) for name, path in paths.items()}, {
+        **details,
+        "reference_mode": "reused verified immutable sequence/reference cache only",
+        "original_reference_receipt": pin["receipt"],
+        "original_reference_versions": receipt["versions"],
+        "compatible_versions": expected,
+        "observation_and_peptide_mapping_reuse": False,
+    }
 
 
 @contextlib.contextmanager
