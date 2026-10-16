@@ -1,3 +1,23 @@
+# Separate real corpus qualification — 2026-10-15
+
+Specification: [corpus-qualification-spec.md](corpus-qualification-spec.md).
+
+- [x] Ship complete-generation publication and public pinned installer (1.76.0).
+- [x] Hash raw source snapshots, inspect existing remote inputs and define limits.
+- [ ] Stage/verify raw pins and freeze producer/environment/source receipts.
+- [ ] Build separate current indexes, then verified human-reference mappings.
+- [ ] Publish complete corpus; verify downloads and CI compatibility.
+- [ ] Freeze actual cohort membership and publish coverage/leakage/lineage audits.
+- [ ] Hand exact pins to canonical Presto preflight/fitting and held-out baselines.
+- [ ] Review/version/format/lint/test/merge/deploy any code or workflow changes.
+
+## Review
+
+Source snapshots total 14,719,407,889 bytes; export dates remain unverified. Existing
+remote exports differ in size and are not accepted as the pinned sources. The
+old caches remain untouched. Current-generation publication shipped in #690 as
+1.76.0 with verified public PyPI bytes; actual reconstruction is this next stage.
+
 # Current CI corpus publication — 2026-10-15
 
 Specification: [current-corpus-publication-spec.md](current-corpus-publication-spec.md).

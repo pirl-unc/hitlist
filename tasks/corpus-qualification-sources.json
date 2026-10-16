@@ -1,0 +1,16 @@
+{
+  "cedar": {
+    "export_date_status": "unverified; local mtime is not an export-date claim",
+    "filename": "cedar_mhc_ligand_full.csv",
+    "remote_path": "hitlist-qualification/raw-sources/3b137c99686c0df9f930a4e287995e818e289f7df47c6eeb56dbcb1c7f39d8e6/cedar_mhc_ligand_full.csv",
+    "sha256": "3b137c99686c0df9f930a4e287995e818e289f7df47c6eeb56dbcb1c7f39d8e6",
+    "size_bytes": 6945931753
+  },
+  "iedb": {
+    "export_date_status": "unverified; local mtime is not an export-date claim",
+    "filename": "iedb_mhc_ligand_full.csv",
+    "remote_path": "hitlist-qualification/raw-sources/957337189072a918fe38a216cfa4893cb08a74c35027ce0489252dd446eb6ad8/iedb_mhc_ligand_full.csv",
+    "sha256": "957337189072a918fe38a216cfa4893cb08a74c35027ce0489252dd446eb6ad8",
+    "size_bytes": 7773476136
+  }
+}
