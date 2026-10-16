@@ -52,3 +52,12 @@ to historical IEDB observations or silently replace their frozen inputs.
 - Existing essential-tissue counts and rows stay identical on the same sources.
 - Publish the executed recipe, exact version/commit, runtime and memory, hashes,
   source tables, output tables and an independent verification receipt.
+
+## Re-plan after independent summary failure
+
+The complete native-row replay passed before verification found misassigned typing
+in 19/21 donor summary rows. The initial recipe `209c7a4` and its failed-verifier
+receipt are immutable. Use a new v2 recipe with grouped typing aggregation and
+consistency validation; preserve native rows and partitions exactly. Verify all
+output fields and summary typing before any public publication. No historical
+training data or fitted result is affected.

@@ -87,3 +87,30 @@ def test_default_source_route_uses_pinned_datacache_generation(atlas_dir, monkey
     assert destination == tmp_path / "hla-ligand-atlas/2020.12/sources"
     assert set(assets) == {"donors.tsv.gz", "peptides.tsv.gz", "sample_hits.tsv.gz"}
     assert all(len(asset["sha256"]) == 64 and asset["size"] > 0 for asset in assets.values())
+
+
+def test_summary_typing_follows_donor_groups_with_reordered_categories(atlas_dir):
+    from scripts.audit_atlas_lineage_v2 import donor_summary
+
+    frame, _ = load_atlas_observations(atlas_dir)
+    frame["partition"] = "train"
+    frame["donor_id"] = frame.donor_id.cat.reorder_categories(
+        list(reversed(frame.donor_id.cat.categories))
+    )
+    frame["sample_alleles"] = frame.sample_alleles.cat.reorder_categories(
+        list(reversed(frame.sample_alleles.cat.categories))
+    )
+    summary = donor_summary(frame).set_index("donor_id")
+    assert summary.loc["hla-ligand-atlas:D1", "sample_alleles"] == "A*02:01"
+    assert summary.loc["hla-ligand-atlas:D2", "sample_alleles"] == "B*07:02;DRB1*01:01"
+    assert summary.n_observations.sum() == len(frame)
+
+
+def test_summary_refuses_inconsistent_typing_for_one_donor(atlas_dir):
+    from scripts.audit_atlas_lineage_v2 import donor_summary
+
+    frame, _ = load_atlas_observations(atlas_dir)
+    frame["partition"] = "train"
+    frame.loc[0, "sample_alleles"] = "B*07:02;DRB1*01:01"
+    with pytest.raises(ValueError, match="inconsistent"):
+        donor_summary(frame)
