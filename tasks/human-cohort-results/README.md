@@ -28,8 +28,13 @@ These are observation counts, not independent specimens or training examples.
 
 This is the 1.76.0 baseline, before #694/#696 curation corrections. It must not
 be relabeled as containing those fixes. It has no frozen partitions or model
-qualification claim. Publish it as human-cohort-baseline-v1 with explicit limits;
+qualification claim. It is published as [human-cohort-baseline-v1](https://github.com/pirl-unc/hitlist/releases/tag/human-cohort-baseline-v1) with explicit limits;
 a corrected source generation and actual consumer audits remain under #680/#678.
 
 Validation: format/lint; receipt/coverage regressions pass (four tests), then
 ./test.sh passes 3,039 tests. Final-head CI and release remain required.
+
+All fourteen public files were independently re-downloaded and verified through
+datacache. [public-artifacts.json](public-artifacts.json) pins every public URL,
+SHA-256 and byte count. The source bundle manifest is
+`039efc7854098951b5c10b3fb5b38294452eeb425e367ed1fafdeebddf34b38d`.

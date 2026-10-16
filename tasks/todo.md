@@ -5,7 +5,8 @@
 - [x] Recover and independently verify all ten original files and native lineage.
 - [x] Record measured coverage and unresolved independence/cell/condition metadata.
 - [x] Run format/lint and full local suite (3,039 passed).
-- [ ] Publish/verify all public baseline assets; final CI, review, merge, PyPI.
+- [x] Publish and independently verify all fourteen public baseline files.
+- [ ] Final CI, review, merge and PyPI release.
 
 # Actual human-cohort qualification — 2026-10-15
 
