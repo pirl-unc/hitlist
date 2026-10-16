@@ -1,0 +1,138 @@
+{
+  "actual_audit_commit": "832c95a10d98ab3e37535c7a4362014e4a6518df",
+  "downloaded": {
+    "README.md": "/Users/iskander/.hitlist/bulk-replicates/public-verification/7ad80f70ca6e1d024f16960a20cd9f5b9d192f2f/bundles/2026-10-16T16-02-28Z/README.md",
+    "SHA256SUMS": "/Users/iskander/.hitlist/bulk-replicates/public-verification/7ad80f70ca6e1d024f16960a20cd9f5b9d192f2f/bundles/2026-10-16T16-02-28Z/SHA256SUMS",
+    "audit.json": "/Users/iskander/.hitlist/bulk-replicates/public-verification/7ad80f70ca6e1d024f16960a20cd9f5b9d192f2f/bundles/2026-10-16T16-02-28Z/audit.json",
+    "audit.py": "/Users/iskander/.hitlist/bulk-replicates/public-verification/7ad80f70ca6e1d024f16960a20cd9f5b9d192f2f/bundles/2026-10-16T16-02-28Z/audit.py",
+    "fractionation.py": "/Users/iskander/.hitlist/bulk-replicates/public-verification/7ad80f70ca6e1d024f16960a20cd9f5b9d192f2f/bundles/2026-10-16T16-02-28Z/fractionation.py",
+    "independent-verification.json": "/Users/iskander/.hitlist/bulk-replicates/public-verification/7ad80f70ca6e1d024f16960a20cd9f5b9d192f2f/bundles/2026-10-16T16-02-28Z/independent-verification.json",
+    "peptides.csv.gz": "/Users/iskander/.hitlist/bulk-replicates/public-verification/7ad80f70ca6e1d024f16960a20cd9f5b9d192f2f/bundles/2026-10-16T16-02-28Z/peptides.csv.gz",
+    "plan.md": "/Users/iskander/.hitlist/bulk-replicates/public-verification/7ad80f70ca6e1d024f16960a20cd9f5b9d192f2f/bundles/2026-10-16T16-02-28Z/plan.md",
+    "projection.py": "/Users/iskander/.hitlist/bulk-replicates/public-verification/7ad80f70ca6e1d024f16960a20cd9f5b9d192f2f/bundles/2026-10-16T16-02-28Z/projection.py",
+    "publication.json": "/Users/iskander/.hitlist/bulk-replicates/public-verification/7ad80f70ca6e1d024f16960a20cd9f5b9d192f2f/bundles/2026-10-16T16-02-28Z/publication.json",
+    "publish.py": "/Users/iskander/.hitlist/bulk-replicates/public-verification/7ad80f70ca6e1d024f16960a20cd9f5b9d192f2f/bundles/2026-10-16T16-02-28Z/publish.py",
+    "registry.yaml": "/Users/iskander/.hitlist/bulk-replicates/public-verification/7ad80f70ca6e1d024f16960a20cd9f5b9d192f2f/bundles/2026-10-16T16-02-28Z/registry.yaml",
+    "scope-counts.tsv": "/Users/iskander/.hitlist/bulk-replicates/public-verification/7ad80f70ca6e1d024f16960a20cd9f5b9d192f2f/bundles/2026-10-16T16-02-28Z/scope-counts.tsv",
+    "scope-evidence.tsv": "/Users/iskander/.hitlist/bulk-replicates/public-verification/7ad80f70ca6e1d024f16960a20cd9f5b9d192f2f/bundles/2026-10-16T16-02-28Z/scope-evidence.tsv",
+    "source-registry.json": "/Users/iskander/.hitlist/bulk-replicates/public-verification/7ad80f70ca6e1d024f16960a20cd9f5b9d192f2f/bundles/2026-10-16T16-02-28Z/source-registry.json",
+    "summary-receipt.json": "/Users/iskander/.hitlist/bulk-replicates/public-verification/7ad80f70ca6e1d024f16960a20cd9f5b9d192f2f/bundles/2026-10-16T16-02-28Z/summary-receipt.json",
+    "summary.txt": "/Users/iskander/.hitlist/bulk-replicates/public-verification/7ad80f70ca6e1d024f16960a20cd9f5b9d192f2f/bundles/2026-10-16T16-02-28Z/summary.txt",
+    "verify.py": "/Users/iskander/.hitlist/bulk-replicates/public-verification/7ad80f70ca6e1d024f16960a20cd9f5b9d192f2f/bundles/2026-10-16T16-02-28Z/verify.py"
+  },
+  "files": {
+    "README.md": {
+      "sha256": "dc7aa966b7acba7292e974f8b9f3525a3971e9e010ebe897cde4c3ed40feea38",
+      "size": 6137,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/bulk-experiment-counts-v1/README.md"
+    },
+    "SHA256SUMS": {
+      "sha256": "ec6ab8f4b0a74ad2351a5fc7de7541152932c4268ef7454a291c698f48a312b1",
+      "size": 1379,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/bulk-experiment-counts-v1/SHA256SUMS"
+    },
+    "audit.json": {
+      "sha256": "da4b412730e44651bca4d7c470166c05ccb18a09352bfdc6a8afb084c7d9a08d",
+      "size": 2908,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/bulk-experiment-counts-v1/audit.json"
+    },
+    "audit.py": {
+      "sha256": "6cbd455a43a11acbba79b046164db59aa0d7ead6f7f6d120034d395e9e7dc4c3",
+      "size": 10617,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/bulk-experiment-counts-v1/audit.py"
+    },
+    "fractionation.py": {
+      "sha256": "08a2e1c9ad16659e46ea6620f83b619a178d374b7af6bf832b808f3179ec1c6d",
+      "size": 4274,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/bulk-experiment-counts-v1/fractionation.py"
+    },
+    "independent-verification.json": {
+      "sha256": "a60749421c18b2914af7295d5e09fdb7e8e5c1ab5dbaf77343a7ed64bb1683f5",
+      "size": 519,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/bulk-experiment-counts-v1/independent-verification.json"
+    },
+    "peptides.csv.gz": {
+      "sha256": "760000129927a762c4de97f3e4c92f608a2dfe17e3d7201d0345adcee0703d4a",
+      "size": 44147940,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/bulk-experiment-counts-v1/peptides.csv.gz"
+    },
+    "plan.md": {
+      "sha256": "faeea0609db8b9b9c7dae8279acb6831e4ffe5ac11322cb08857ba08a6acea0e",
+      "size": 3152,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/bulk-experiment-counts-v1/plan.md"
+    },
+    "projection.py": {
+      "sha256": "b7633c1d94fa2e6b8e48dc71da0d91d31273d1c2fad2e1e008ed475d1bdcb94f",
+      "size": 5158,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/bulk-experiment-counts-v1/projection.py"
+    },
+    "publication.json": {
+      "sha256": "be6bed1cc7ac560ce1576fc2d028226415797379dd95d36ed0919c45457ab0cc",
+      "size": 4908,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/bulk-experiment-counts-v1/publication.json"
+    },
+    "publish.py": {
+      "sha256": "5ce84a3d19a0f644d09b3a4c907ed1d4b1cf8d689d91fbd55a8744c3cd910c86",
+      "size": 5591,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/bulk-experiment-counts-v1/publish.py"
+    },
+    "registry.yaml": {
+      "sha256": "1936194860c47917681448a75401569258f0cf4ea5a46a295a6bfabf4db8073b",
+      "size": 12315,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/bulk-experiment-counts-v1/registry.yaml"
+    },
+    "scope-counts.tsv": {
+      "sha256": "cb3bd771e589c24385b077de8ebaf7c22a88253ea9c542081cabeb0f191e52b0",
+      "size": 1359,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/bulk-experiment-counts-v1/scope-counts.tsv"
+    },
+    "scope-evidence.tsv": {
+      "sha256": "113a91f0968c6c4f950a61b931f0769cc7c817652aaa68a045b6c22e1ee162d4",
+      "size": 4810,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/bulk-experiment-counts-v1/scope-evidence.tsv"
+    },
+    "source-registry.json": {
+      "sha256": "ce69c897637836cdb1369f1f26949d0365b9a8cc1c642c0b7a2cea6b5e8b00de",
+      "size": 271,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/bulk-experiment-counts-v1/source-registry.json"
+    },
+    "summary-receipt.json": {
+      "sha256": "6be4c196f8d61755a3a9a65a708c2bcb5fd11da1b0a1812d8dc6c17874c3e750",
+      "size": 893,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/bulk-experiment-counts-v1/summary-receipt.json"
+    },
+    "summary.txt": {
+      "sha256": "5eb5c41af2c7929be8a9354bf7c9fcb021ead7f47c07d0774a146b352e1a8860",
+      "size": 587345,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/bulk-experiment-counts-v1/summary.txt"
+    },
+    "verify.py": {
+      "sha256": "799b4d85c3f687ddc38c5037888aab92f4a7494aeac3abfd86807bb7debd7d84",
+      "size": 8254,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/bulk-experiment-counts-v1/verify.py"
+    }
+  },
+  "n_verified_public_assets": 18,
+  "paths": {
+    "README.md": "/Users/iskander/.hitlist/bulk-replicates/publication/7ad80f70ca6e1d024f16960a20cd9f5b9d192f2f/bundles/2026-10-16T16-02-13Z/README.md",
+    "SHA256SUMS": "/Users/iskander/.hitlist/bulk-replicates/publication/7ad80f70ca6e1d024f16960a20cd9f5b9d192f2f/bundles/2026-10-16T16-02-13Z/SHA256SUMS",
+    "audit.json": "/Users/iskander/.hitlist/bulk-replicates/publication/7ad80f70ca6e1d024f16960a20cd9f5b9d192f2f/bundles/2026-10-16T16-02-13Z/audit.json",
+    "audit.py": "/Users/iskander/.hitlist/bulk-replicates/publication/7ad80f70ca6e1d024f16960a20cd9f5b9d192f2f/bundles/2026-10-16T16-02-13Z/audit.py",
+    "fractionation.py": "/Users/iskander/.hitlist/bulk-replicates/publication/7ad80f70ca6e1d024f16960a20cd9f5b9d192f2f/bundles/2026-10-16T16-02-13Z/fractionation.py",
+    "independent-verification.json": "/Users/iskander/.hitlist/bulk-replicates/publication/7ad80f70ca6e1d024f16960a20cd9f5b9d192f2f/bundles/2026-10-16T16-02-13Z/independent-verification.json",
+    "peptides.csv.gz": "/Users/iskander/.hitlist/bulk-replicates/publication/7ad80f70ca6e1d024f16960a20cd9f5b9d192f2f/bundles/2026-10-16T16-02-13Z/peptides.csv.gz",
+    "plan.md": "/Users/iskander/.hitlist/bulk-replicates/publication/7ad80f70ca6e1d024f16960a20cd9f5b9d192f2f/bundles/2026-10-16T16-02-13Z/plan.md",
+    "projection.py": "/Users/iskander/.hitlist/bulk-replicates/publication/7ad80f70ca6e1d024f16960a20cd9f5b9d192f2f/bundles/2026-10-16T16-02-13Z/projection.py",
+    "publication.json": "/Users/iskander/.hitlist/bulk-replicates/publication/7ad80f70ca6e1d024f16960a20cd9f5b9d192f2f/bundles/2026-10-16T16-02-13Z/publication.json",
+    "publish.py": "/Users/iskander/.hitlist/bulk-replicates/publication/7ad80f70ca6e1d024f16960a20cd9f5b9d192f2f/bundles/2026-10-16T16-02-13Z/publish.py",
+    "registry.yaml": "/Users/iskander/.hitlist/bulk-replicates/publication/7ad80f70ca6e1d024f16960a20cd9f5b9d192f2f/bundles/2026-10-16T16-02-13Z/registry.yaml",
+    "scope-counts.tsv": "/Users/iskander/.hitlist/bulk-replicates/publication/7ad80f70ca6e1d024f16960a20cd9f5b9d192f2f/bundles/2026-10-16T16-02-13Z/scope-counts.tsv",
+    "scope-evidence.tsv": "/Users/iskander/.hitlist/bulk-replicates/publication/7ad80f70ca6e1d024f16960a20cd9f5b9d192f2f/bundles/2026-10-16T16-02-13Z/scope-evidence.tsv",
+    "source-registry.json": "/Users/iskander/.hitlist/bulk-replicates/publication/7ad80f70ca6e1d024f16960a20cd9f5b9d192f2f/bundles/2026-10-16T16-02-13Z/source-registry.json",
+    "summary-receipt.json": "/Users/iskander/.hitlist/bulk-replicates/publication/7ad80f70ca6e1d024f16960a20cd9f5b9d192f2f/bundles/2026-10-16T16-02-13Z/summary-receipt.json",
+    "summary.txt": "/Users/iskander/.hitlist/bulk-replicates/publication/7ad80f70ca6e1d024f16960a20cd9f5b9d192f2f/bundles/2026-10-16T16-02-13Z/summary.txt",
+    "verify.py": "/Users/iskander/.hitlist/bulk-replicates/publication/7ad80f70ca6e1d024f16960a20cd9f5b9d192f2f/bundles/2026-10-16T16-02-13Z/verify.py"
+  },
+  "publication_commit": "7ad80f70ca6e1d024f16960a20cd9f5b9d192f2f",
+  "release": "https://github.com/pirl-unc/hitlist/releases/tag/bulk-experiment-counts-v1"
+}

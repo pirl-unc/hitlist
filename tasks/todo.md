@@ -3,13 +3,14 @@
 Local full test.sh passes 3,074 tests; format/lint and 60 focused regressions pass.
 Clean audit 832c95a preserves all 2,047,003 rows. Exactly 217,514 pooled HeLa rows
 have unresolved numerators and corrected inventory totals; the primary summary
-confirms all 14 experiment/acquisition inventories and hashes. Public verification,
-CI/integration and PyPI release remain.
+confirms all 14 experiment/acquisition inventories and hashes. All 18 public assets
+independently download/hash-verify; every public row and count replays against the
+original source. CI/integration and PyPI release remain.
 
 - [x] Review existing source inventory and specify explicit experiment/count semantics.
 - [x] Implement nullable source-backed counts and consistent filtering/build paths.
 - [x] Verify supported, unresolved, invalid, mixed-source and CSV/parquet regressions.
-- [ ] Publish/verify the completed clean real-source audit (all rows independently checked).
+- [x] Publish/verify the completed clean real-source audit (all rows independently checked).
 - [ ] Format/lint/full CI/integration, review, merge, deploy 1.81.0 and verify PyPI.
 
 # Bekker-Jensen fractionation evidence — #688
