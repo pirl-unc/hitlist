@@ -159,14 +159,7 @@ _ENZYME_TOKENS = {
 }
 
 
-# High-pH reverse-phase SPE default (pH 10.0). Bekker-Jensen 2017 Methods
-# use pH 10 for every high-pH SPE fractionation except the two explicit
-# Tryp-Phos pH-comparison experiments. See sources.yaml for rationale and
-# the per-source default discussion.
-DEFAULT_FRACTIONATION_PH = 10.0
-
-
-def _parse_experiment(name: str) -> dict | None:
+def _parse_experiment_axes(name: str) -> dict | None:
     """Return axis dict for an experiment name or None if it should be skipped.
 
     Raises ValueError on unparseable names (explicit failure, not silent drop).
@@ -190,7 +183,7 @@ def _parse_experiment(name: str) -> dict | None:
             "digestion_enzyme": TRYPTIC_ENZYME,
             "n_fractions_in_run": int(m.group(1)),
             "enrichment": "none",
-            "fractionation_ph": DEFAULT_FRACTIONATION_PH,
+            "fractionation_ph": None,
             "replicate": f"E{m.group(2)}",
         }
 
@@ -205,7 +198,7 @@ def _parse_experiment(name: str) -> dict | None:
             "digestion_enzyme": TRYPTIC_ENZYME,
             "n_fractions_in_run": int(m.group(2)),
             "enrichment": "none",
-            "fractionation_ph": DEFAULT_FRACTIONATION_PH,
+            "fractionation_ph": None,
             "replicate": f"E{m.group(3)}",
         }
 
@@ -222,7 +215,7 @@ def _parse_experiment(name: str) -> dict | None:
             "digestion_enzyme": TRYPTIC_ENZYME,
             "n_fractions_in_run": int(m.group(1)),
             "enrichment": "none",
-            "fractionation_ph": DEFAULT_FRACTIONATION_PH,
+            "fractionation_ph": None,
             "replicate": rep,
         }
 
@@ -251,7 +244,7 @@ def _parse_experiment(name: str) -> dict | None:
             "digestion_enzyme": TRYPTIC_ENZYME,
             "n_fractions_in_run": 50,
             "enrichment": "TiO2",
-            "fractionation_ph": DEFAULT_FRACTIONATION_PH,
+            "fractionation_ph": None,
             "replicate": "E1",
         }
 
@@ -267,7 +260,7 @@ def _parse_experiment(name: str) -> dict | None:
             "digestion_enzyme": enzyme,
             "n_fractions_in_run": int(m.group(2)),
             "enrichment": "none",
-            "fractionation_ph": DEFAULT_FRACTIONATION_PH,
+            "fractionation_ph": None,
             "replicate": "E1",
         }
 
@@ -275,6 +268,16 @@ def _parse_experiment(name: str) -> dict | None:
         f"Unrecognised experiment name {name!r} -- add a case to _parse_experiment "
         f"or extend SKIP_PREFIXES."
     )
+
+
+def _parse_experiment(name: str) -> dict | None:
+    """Attach YAML-reviewed pH to the exact deposited experiment identity."""
+    from hitlist.bulk_fractionation import experiment_fractionation_ph
+
+    axes = _parse_experiment_axes(name)
+    if axes is not None:
+        axes["fractionation_ph"] = experiment_fractionation_ph(name)
+    return axes
 
 
 # ---------------------------------------------------------------------------
@@ -355,8 +358,7 @@ def _fetch_peptides_txt_stream(verbose: bool = True) -> io.TextIOWrapper:
     info = zf.getinfo("peptides.txt")
     if verbose:
         print(
-            f"  peptides.txt: uncompressed={info.file_size:,} "
-            f"compressed={info.compress_size:,}",
+            f"  peptides.txt: uncompressed={info.file_size:,} compressed={info.compress_size:,}",
             flush=True,
         )
 
@@ -385,9 +387,7 @@ def _fetch_peptides_txt_stream(verbose: bool = True) -> io.TextIOWrapper:
     with urllib.request.urlopen(req) as resp:
         compressed = resp.read()
     if len(compressed) != info.compress_size:
-        raise RuntimeError(
-            f"expected {info.compress_size} compressed bytes, got {len(compressed)}"
-        )
+        raise RuntimeError(f"expected {info.compress_size} compressed bytes, got {len(compressed)}")
     if verbose:
         print(f"  decompressing {len(compressed):,} bytes...", flush=True)
     raw = zlib.decompress(compressed, -zlib.MAX_WBITS)
@@ -479,7 +479,7 @@ def extract(verbose: bool = True) -> tuple[pd.DataFrame, pd.DataFrame]:
                 f"enz={axes['digestion_enzyme'][:12]:12s} "
                 f"fracs={axes['n_fractions_in_run']:3d} "
                 f"enrich={axes['enrichment']:5s} "
-                f"pH={axes['fractionation_ph']:4.1f} rep={axes['replicate']}"
+                f"pH={axes['fractionation_ph']} rep={axes['replicate']}"
             )
         print(f"\n=== Skipped {len(skipped_experiments)} out-of-scope experiments ===")
         for exp in sorted(skipped_experiments):
@@ -675,9 +675,7 @@ def extract(verbose: bool = True) -> tuple[pd.DataFrame, pd.DataFrame]:
                 "n_fractions_in_run": fracs,
                 "enrichment": enrich,
                 "fractionation_ph": ph,
-                "n_peptides": len(
-                    prot_peptides[(cell, enzyme, fracs, enrich, ph, uniprot)]
-                ),
+                "n_peptides": len(prot_peptides[(cell, enzyme, fracs, enrich, ph, uniprot)]),
                 "log2_intensity": math.log2(intensity),
                 "source": "Bekker-Jensen_2017",
                 "reference": "PMID:28601559",
@@ -699,7 +697,9 @@ def extract(verbose: bool = True) -> tuple[pd.DataFrame, pd.DataFrame]:
         "enrichment",
         "fractionation_ph",
     ]
-    prot_df["abundance_percentile"] = prot_df.groupby(grp_cols)["log2_intensity"].rank(pct=True)
+    prot_df["abundance_percentile"] = prot_df.groupby(grp_cols, dropna=False)[
+        "log2_intensity"
+    ].rank(pct=True)
     prot_df = prot_df[
         [
             "cell_line",
@@ -730,11 +730,10 @@ def print_sanity_checks(pep_df: pd.DataFrame, prot_df: pd.DataFrame) -> None:
         pep_df.groupby(
             ["digestion_enzyme", "n_fractions_in_run", "enrichment", "fractionation_ph"],
             as_index=False,
+            dropna=False,
         )
         .size()
-        .sort_values(
-            ["digestion_enzyme", "n_fractions_in_run", "enrichment", "fractionation_ph"]
-        )
+        .sort_values(["digestion_enzyme", "n_fractions_in_run", "enrichment", "fractionation_ph"])
     )
     for _, r in grp.iterrows():
         print(
@@ -781,6 +780,7 @@ def print_sanity_checks(pep_df: pd.DataFrame, prot_df: pd.DataFrame) -> None:
                 "fractionation_ph",
             ],
             as_index=False,
+            dropna=False,
         )
         .size()
         .sort_values(

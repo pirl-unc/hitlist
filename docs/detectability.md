@@ -119,12 +119,30 @@ reanalysis labels; they do not resolve the original PXD004452 search reference.
 
 ## Historical Bekker-Jensen input
 
-Legacy defaults select HeLa, Trypsin/P, 46 fractions, no enrichment, pH 10, 7–30 residues,
-at most two missed cleavages, and observed parents only. They resolve the
+Defaults select HeLa, Trypsin/P, 46 fractions, no enrichment, 7–30 residues,
+at most two missed cleavages, and observed parents only. pH has no implicit
+numeric default: the uniquely selected curated scope supplies it. These resolve the
 packaged observation scope, but **cannot supply the missing historical FASTA or
 unrecorded search limits**. Calling without a verified search contract fails.
-The pH default is under source review in #688 and must not be reused as verified
-protocol metadata for the recovered reanalysis above.
+
+The [primary methods](https://pmc.ncbi.nlm.nih.gov/articles/PMC5493283/#sec4.4.4)
+and deposited experiment identities support distinct pH annotations (#688):
+
+| Legacy scopes | Reviewed pH | Evidence basis |
+| --- | --- | --- |
+| Ordinary 39/46/70-fraction arms | 8 | Paper-reported buffer C; not measured gradient/eluate pH |
+| `Tryp-Phos-pH8` / `Tryp-Phos-pH10` | 8 / 10 | Deposited experiment labels; not measured pH |
+| Reused 14-fraction experiments | Unknown | Table S1 attributes these to Kelstrup 2014 |
+| `Phospho-50fracs` | Unknown | Exact mapping to the described enrichment protocol remains unresolved |
+
+CSV fallback, cached-parquet reads and new builds apply the same reviewed YAML
+registry. `legacy_fractionation_ph` preserves the old annotation;
+`fractionation_protocol_id`, `fractionation_ph_basis`,
+`fractionation_ph_reference` and `fractionation_ph_evidence_id` expose attribution.
+Numeric pH filters exclude unknowns; unfiltered bulk queries retain every row.
+Packaged candidate generation rejects unresolved pH scopes. CCLE's separately
+sourced annotation is unchanged. These corrections do not establish protocol
+comparability, biological independence, or the original searched reference.
 
 The original [PXD004452 deposit](https://www.ebi.ac.uk/pride/archive/projects/PXD004452)
 records only a local `HUMAN.fasta` filename, no FASTA checksum or UniProt release.

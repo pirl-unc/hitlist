@@ -1238,10 +1238,8 @@ def build_bulk_proteomics(verbose: bool = False) -> pd.DataFrame:
             "digestion_enzyme": s.get("digestion_enzyme", "") or "",
             "fractionation": s.get("fractionation", "") or "",
             "n_fractions": int(s["n_fractions"]) if s.get("n_fractions") else pd.NA,
-            # Default high-pH RPLC buffer pH; source-level default is used
-            # for rows that don't carry a per-row value (CCLE; BJ rows at
-            # the implicit pH 10). Explicit per-row values (e.g. BJ
-            # Tryp-Phos-pH8 = 8.0) override via ``_stamp_bj_per_row``.
+            # Source-level pH applies only where reviewed per-row metadata
+            # is absent. Bekker-Jensen has no blanket numeric default.
             "fractionation_ph": float(ph) if ph is not None else pd.NA,
             "quantification": s.get("quantification", "") or "",
         }
@@ -1274,8 +1272,7 @@ def build_bulk_proteomics(verbose: bool = False) -> pd.DataFrame:
             if k == "digestion_enzyme" and has_per_row_enzyme:
                 continue
             if k == "fractionation_ph" and has_per_row_ph:
-                # Per-row pH is authoritative (Tryp-Phos-pH8 = 8.0,
-                # everything else 10.0). Don't overwrite.
+                # Preserve reviewed pH and explicit unknowns.
                 continue
             if k == "digestion" and has_per_row_enzyme:
                 df["digestion"] = df["digestion_enzyme"].apply(
@@ -1430,6 +1427,11 @@ def build_bulk_proteomics(verbose: bool = False) -> pd.DataFrame:
         "n_fractions",
         "n_fractions_in_run",
         "fractionation_ph",
+        "legacy_fractionation_ph",
+        "fractionation_protocol_id",
+        "fractionation_ph_basis",
+        "fractionation_ph_reference",
+        "fractionation_ph_evidence_id",
         "enrichment",
         "modifications",
         "quantification",

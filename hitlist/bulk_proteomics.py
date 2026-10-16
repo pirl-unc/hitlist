@@ -88,7 +88,7 @@ def _load_ccle() -> pd.DataFrame:
 
 @lru_cache(maxsize=1)
 def _load_bj_protein() -> pd.DataFrame:
-    return _correct_bj_reference(
+    return _curate_bj_metadata(
         pd.read_csv(
             _bulk_data_path("bekker_jensen_2017_protein_abundance.csv.gz"), compression="gzip"
         )
@@ -97,7 +97,7 @@ def _load_bj_protein() -> pd.DataFrame:
 
 @lru_cache(maxsize=1)
 def _load_bj() -> pd.DataFrame:
-    return _correct_bj_reference(
+    return _curate_bj_metadata(
         pd.read_csv(_bulk_data_path("bekker_jensen_2017_peptides.csv.gz"), compression="gzip")
     )
 
@@ -118,6 +118,12 @@ def _correct_bj_reference(df: pd.DataFrame) -> pd.DataFrame:
         df["pmid"] = df["pmid"].astype("Int64")
         df.loc[selected, "pmid"] = 28601559
     return df
+
+
+def _curate_bj_metadata(df: pd.DataFrame) -> pd.DataFrame:
+    from .bulk_fractionation import curate_fractionation_ph
+
+    return curate_fractionation_ph(_correct_bj_reference(df))
 
 
 @lru_cache(maxsize=1)
@@ -153,7 +159,7 @@ def _read_parquet_cached(path_str: str, mtime_ns: int, size: int) -> pd.DataFram
     the returned frame before filtering, so sharing the cached object is
     safe.
     """
-    return _correct_bj_reference(pd.read_parquet(path_str))
+    return _curate_bj_metadata(pd.read_parquet(path_str))
 
 
 def _load_parquet_or_none() -> pd.DataFrame | None:
@@ -401,12 +407,13 @@ def load_bulk_proteomics(
         into TiO2 explicitly. CCLE is not phospho-enriched so the
         filter is a no-op there.
     fractionation_ph
-        Filter by the high-pH reverse-phase SPE fractionation buffer
-        pH: ``10.0`` is the default everywhere in the deposit except
-        the explicit Bekker-Jensen ``Tryp-Phos-pH8`` TiO2 arm, which is
-        stamped ``8.0``. Most queries should leave this unset (default
-        ``None`` = all pH values included). Pass a single float or an
-        iterable of floats to restrict.
+        Filter by reviewed fractionation pH, retaining its source basis.
+        Bekker-Jensen ordinary 39/46/70-fraction arms use reported buffer
+        pH 8; named phosphopeptide arms retain their label-derived 8/10
+        values, and unresolved protocols are null. CCLE's separately
+        sourced pH 10 is unchanged. A float or iterable excludes unknowns;
+        ``None`` retains all rows. See ``fractionation_ph_basis/reference``
+        and the preserved ``legacy_fractionation_ph`` annotations.
     abundance_percentile_min, abundance_percentile_max
         Inclusive bounds (0.0 to 1.0) on within-arm abundance rank. Useful
         for training-set construction: ``abundance_percentile_min=0.9``
@@ -577,10 +584,14 @@ def load_bulk_peptides(
         ``"none"`` (baseline, the **default**), ``"TiO2"`` (phospho
         enrichment), or ``None`` to include both populations.
     fractionation_ph
-        Filter by high-pH SPE buffer pH. Every arm in the deposit is
-        at pH 10 except the explicit ``Tryp-Phos-pH8`` TiO2 arm, which
-        is stamped ``8.0``. Pass ``8.0`` or ``10.0`` (float) or an
-        iterable to restrict; ``None`` (default) returns all pH values.
+        Filter by reviewed fractionation pH. Ordinary 39/46/70-fraction
+        arms carry the paper's reported buffer pH 8; named 12-fraction
+        phosphopeptide arms retain their label-derived 8/10 distinction.
+        Reused 14-fraction and unresolved 50-fraction protocols are unknown.
+        Numeric filters exclude unknowns; ``None`` retains them. Inspect
+        ``fractionation_ph_basis`` and ``fractionation_ph_reference`` before
+        comparing protocols. Original CSV annotations remain separately in
+        ``legacy_fractionation_ph``.
     length_min, length_max
         Inclusive peptide length bounds. Typical usage:
         ``length_min=8, length_max=11`` for MHC-I-compatible peptides;

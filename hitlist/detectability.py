@@ -401,7 +401,7 @@ def iter_detectability_training_set(
     length=(7, 30),
     require_protein_observed=True,
     enrichment="none",
-    fractionation_ph=10.0,
+    fractionation_ph=None,
     protocol_id=None,
     peptide_observations=None,
     protein_observations=None,
@@ -731,6 +731,7 @@ def export_detectability_training_set(output_dir, *, max_output_bytes=1024**3, *
 def _packaged_observations(cell_line, enzyme, depth, enrichment, ph, contract, max_rows):
     from importlib.resources import files
 
+    from .bulk_fractionation import curate_fractionation_ph
     from .bulk_proteomics import _bulk_data_path
     from .curation_yaml import load_curation_yaml
 
@@ -743,11 +744,13 @@ def _packaged_observations(cell_line, enzyme, depth, enrichment, ph, contract, m
         and canonical_search_enzyme(arm["digestion_enzyme"]) == canonical_search_enzyme(enzyme)
         and arm["n_fractions_in_run"] == depth
         and arm["enrichment"] == enrichment
-        and arm["fractionation_ph"] == ph
+        and (ph is None or arm["fractionation_ph"] == ph)
     ]
     if len(matches) != 1:
         raise ValueError("No curated packaged detectability scope matches these controls")
     arm = matches[0]
+    if arm["fractionation_ph"] is None:
+        raise ValueError("Packaged scope has unresolved fractionation pH provenance")
     known = policy["search_constraints"][arm["search_enzyme"]]
     if (
         contract.min_peptide_length != known["min_peptide_length"]
@@ -764,12 +767,13 @@ def _packaged_observations(cell_line, enzyme, depth, enrichment, ph, contract, m
         chunks = []
         n_rows = 0
         for chunk in pd.read_csv(path, chunksize=25000):
+            chunk = curate_fractionation_ph(chunk)
             mask = (
                 chunk.cell_line.str.casefold().eq(cell_line.casefold())
                 & chunk.digestion_enzyme.eq(arm["reported_digestion_enzyme"])
                 & chunk.n_fractions_in_run.eq(depth)
                 & chunk.enrichment.eq(enrichment)
-                & chunk.fractionation_ph.eq(ph)
+                & chunk.fractionation_protocol_id.eq(arm["protocol_id"])
             )
             chunk = chunk.loc[mask].copy().rename(columns={"cell_line": "cell_line_name"})
             n_rows += len(chunk)

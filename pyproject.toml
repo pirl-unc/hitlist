@@ -152,6 +152,8 @@ include = [
     "scripts/qualify_human_cohort.py",
     "scripts/recover_human_cohort.py",
     "scripts/human_cohort_modal.py",
+    "scripts/ingest_bekker_jensen_2017.py",
+    "scripts/audit_bulk_fractionation.py",
 ]
 
 [tool.ruff.lint]

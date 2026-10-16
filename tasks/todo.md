@@ -1,3 +1,10 @@
+# Bekker-Jensen fractionation evidence — #688
+
+- [x] Audit every legacy scope against pinned primary methods and supplements.
+- [x] Implement one YAML-backed correction across loaders, builder and ingest.
+- [ ] Publish full-data preservation and per-scope evidence audits via datacache.
+- [ ] Format/lint/full and integration checks, review, merge and deploy 1.80.0.
+
 # Corrected frozen corpus generation
 
 - [x] Specify immutable baseline, released producer and source/reference reuse boundaries.
