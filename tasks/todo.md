@@ -5,7 +5,7 @@ Specification: [corpus-qualification-spec.md](corpus-qualification-spec.md).
 - [x] Ship complete-generation publication and public pinned installer (1.76.0).
 - [x] Hash raw source snapshots, inspect existing remote inputs and define limits.
 - [x] Freeze the producer dependency hashes and verify the bounded cloud environment.
-- [ ] Complete raw-source transfer and verify remote content pins.
+- [x] Complete raw-source transfer and verify remote content pins.
 - [ ] Build separate current indexes, then verified human-reference mappings.
 - [ ] Publish complete corpus; verify downloads and CI compatibility.
 - [ ] Freeze actual cohort membership and publish coverage/leakage/lineage audits.
@@ -17,7 +17,14 @@ Specification: [corpus-qualification-spec.md](corpus-qualification-spec.md).
 Source snapshots total 14,719,407,889 bytes; export dates remain unverified. Existing
 remote exports differ in size and are not accepted as the pinned sources. The
 old caches remain untouched. Current-generation publication shipped in #690 as
-1.76.0 with verified public PyPI bytes; actual reconstruction is this next stage.
+1.76.0 with verified public PyPI bytes. Current source/environment/reference stage
+receipts are downloaded and independently hash-verified; see
+[the receipt inventory](corpus-qualification-results/README.md). The source stage
+verified both raw CSVs and 26 paper assets. The complete human reference is indexed
+on POSIX scratch and shared through datacache (#125 tracks the Modal hard-link
+limitation). Actual observation indexes are now building. The full local suite
+passed 3,035 tests; final code CI passed all four Python unit jobs and integration
+at a889bf9. Corpus publication and cohort qualification remain pending.
 
 # Current CI corpus publication — 2026-10-15
 
