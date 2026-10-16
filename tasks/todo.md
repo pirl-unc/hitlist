@@ -6,7 +6,7 @@ Specification: [corpus-qualification-spec.md](corpus-qualification-spec.md).
 - [x] Hash raw source snapshots, inspect existing remote inputs and define limits.
 - [x] Freeze the producer dependency hashes and verify the bounded cloud environment.
 - [x] Complete raw-source transfer and verify remote content pins.
-- [ ] Build separate current indexes, then verified human-reference mappings.
+- [x] Build separate current indexes, then verified human-reference mappings.
 - [ ] Publish complete corpus; verify downloads and CI compatibility.
 - [ ] Freeze actual cohort membership and publish coverage/leakage/lineage audits.
 - [ ] Hand exact pins to canonical Presto preflight/fitting and held-out baselines.
@@ -23,9 +23,12 @@ receipts are downloaded and independently hash-verified; see
 verified both raw CSVs and 26 paper assets. The complete human reference is indexed
 on POSIX scratch and shared through datacache (#125 tracks the Modal hard-link
 limitation). Actual observation indexes completed (4,486,991 MS / 814,268 binding / 26,537 other
-assay rows); the verified mapping stage is running. The full local suite
+assay rows); human-reference mappings and complete portable publication finished.
+All ten ci-corpus-v3 public files were independently downloaded and hash-verified.
+The test/release workflows now consume the pinned full inventory through datacache.
+The full local suite
 passed 3,035 tests; final code CI passed all four Python unit jobs and integration
-at a889bf9. Corpus publication and cohort qualification remain pending.
+at a889bf9. Final workflow CI and actual cohort qualification remain pending.
 
 # Current CI corpus publication — 2026-10-15
 
