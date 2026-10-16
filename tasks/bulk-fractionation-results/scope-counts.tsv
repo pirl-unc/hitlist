@@ -1,0 +1,29 @@
+granularity	fractionation_protocol_id	cell_line	digestion_enzyme	n_fractions_in_run	enrichment	legacy_fractionation_ph	fractionation_ph	fractionation_ph_basis	fractionation_ph_reference	n_rows
+peptides	PXD004452/A549-46fracs-E1+A549-46fracs-E2	A549	Trypsin/P (cleaves K/R except before P)	46	none	10.0	8.0	paper_reported_buffer	https://pmc.ncbi.nlm.nih.gov/articles/PMC5493283/#sec4.4.4	214925
+peptides	PXD004452/Chymo-39fracs	HeLa	Chymotrypsin	39	none	10.0	8.0	paper_reported_buffer	https://pmc.ncbi.nlm.nih.gov/articles/PMC5493283/#sec4.4.4	99980
+peptides	PXD004452/GluC-39fracs	HeLa	GluC	39	none	10.0	8.0	paper_reported_buffer	https://pmc.ncbi.nlm.nih.gov/articles/PMC5493283/#sec4.4.4	85909
+peptides	PXD004452/HCT116-46fracs-E1+HCT116-46fracs-E2	HCT116	Trypsin/P (cleaves K/R except before P)	46	none	10.0	8.0	paper_reported_buffer	https://pmc.ncbi.nlm.nih.gov/articles/PMC5493283/#sec4.4.4	237738
+peptides	PXD004452/HEK293-46fracs-E1+HEK293-46fracs-E2	HEK293	Trypsin/P (cleaves K/R except before P)	46	none	10.0	8.0	paper_reported_buffer	https://pmc.ncbi.nlm.nih.gov/articles/PMC5493283/#sec4.4.4	242564
+peptides	PXD004452/HeLa-46fracs-IT-E1+HeLa-46fracs-IT-E2+Tryp-46fracs	HeLa	Trypsin/P (cleaves K/R except before P)	46	none	10.0	8.0	paper_reported_buffer	https://pmc.ncbi.nlm.nih.gov/articles/PMC5493283/#sec4.4.4	217514
+peptides	PXD004452/LysC-39fracs	HeLa	LysC	39	none	10.0	8.0	paper_reported_buffer	https://pmc.ncbi.nlm.nih.gov/articles/PMC5493283/#sec4.4.4	90835
+peptides	PXD004452/MCF7-46fracs-E1+MCF7-46fracs-E2	MCF7	Trypsin/P (cleaves K/R except before P)	46	none	10.0	8.0	paper_reported_buffer	https://pmc.ncbi.nlm.nih.gov/articles/PMC5493283/#sec4.4.4	206130
+peptides	PXD004452/Phospho-50fracs	HeLa	Trypsin/P (cleaves K/R except before P)	50	TiO2	10.0		unresolved_scope_mapping	https://pmc.ncbi.nlm.nih.gov/articles/PMC5493283/#sec4.4.5	39448
+peptides	PXD004452/Tryp-14Frac-A+Tryp-14Frac-B+Tryp-14Frac-C	HeLa	Trypsin/P (cleaves K/R except before P)	14	none	10.0		unresolved_reused_protocol	https://doi.org/10.1016/j.cels.2017.05.009	207570
+peptides	PXD004452/Tryp-39fracs	HeLa	Trypsin/P (cleaves K/R except before P)	39	none	10.0	8.0	paper_reported_buffer	https://pmc.ncbi.nlm.nih.gov/articles/PMC5493283/#sec4.4.4	165033
+peptides	PXD004452/Tryp-70fracs	HeLa	Trypsin/P (cleaves K/R except before P)	70	none	10.0	8.0	paper_reported_buffer	https://pmc.ncbi.nlm.nih.gov/articles/PMC5493283/#sec4.4.4	179639
+peptides	PXD004452/Tryp-Phos-pH10	HeLa	Trypsin/P (cleaves K/R except before P)	12	TiO2	10.0	10.0	deposit_experiment_label	https://ftp.pride.ebi.ac.uk/pride/data/archive/2017/06/PXD004452/SearchResults.zip	30761
+peptides	PXD004452/Tryp-Phos-pH8	HeLa	Trypsin/P (cleaves K/R except before P)	12	TiO2	8.0	8.0	deposit_experiment_label	https://ftp.pride.ebi.ac.uk/pride/data/archive/2017/06/PXD004452/SearchResults.zip	28957
+proteins	PXD004452/A549-46fracs-E1+A549-46fracs-E2	A549	Trypsin/P (cleaves K/R except before P)	46	none	10.0	8.0	paper_reported_buffer	https://pmc.ncbi.nlm.nih.gov/articles/PMC5493283/#sec4.4.4	14329
+proteins	PXD004452/Chymo-39fracs	HeLa	Chymotrypsin	39	none	10.0	8.0	paper_reported_buffer	https://pmc.ncbi.nlm.nih.gov/articles/PMC5493283/#sec4.4.4	9335
+proteins	PXD004452/GluC-39fracs	HeLa	GluC	39	none	10.0	8.0	paper_reported_buffer	https://pmc.ncbi.nlm.nih.gov/articles/PMC5493283/#sec4.4.4	9777
+proteins	PXD004452/HCT116-46fracs-E1+HCT116-46fracs-E2	HCT116	Trypsin/P (cleaves K/R except before P)	46	none	10.0	8.0	paper_reported_buffer	https://pmc.ncbi.nlm.nih.gov/articles/PMC5493283/#sec4.4.4	14627
+proteins	PXD004452/HEK293-46fracs-E1+HEK293-46fracs-E2	HEK293	Trypsin/P (cleaves K/R except before P)	46	none	10.0	8.0	paper_reported_buffer	https://pmc.ncbi.nlm.nih.gov/articles/PMC5493283/#sec4.4.4	14642
+proteins	PXD004452/HeLa-46fracs-IT-E1+HeLa-46fracs-IT-E2+Tryp-46fracs	HeLa	Trypsin/P (cleaves K/R except before P)	46	none	10.0	8.0	paper_reported_buffer	https://pmc.ncbi.nlm.nih.gov/articles/PMC5493283/#sec4.4.4	13511
+proteins	PXD004452/LysC-39fracs	HeLa	LysC	39	none	10.0	8.0	paper_reported_buffer	https://pmc.ncbi.nlm.nih.gov/articles/PMC5493283/#sec4.4.4	10950
+proteins	PXD004452/MCF7-46fracs-E1+MCF7-46fracs-E2	MCF7	Trypsin/P (cleaves K/R except before P)	46	none	10.0	8.0	paper_reported_buffer	https://pmc.ncbi.nlm.nih.gov/articles/PMC5493283/#sec4.4.4	14090
+proteins	PXD004452/Phospho-50fracs	HeLa	Trypsin/P (cleaves K/R except before P)	50	TiO2	10.0		unresolved_scope_mapping	https://pmc.ncbi.nlm.nih.gov/articles/PMC5493283/#sec4.4.5	7232
+proteins	PXD004452/Tryp-14Frac-A+Tryp-14Frac-B+Tryp-14Frac-C	HeLa	Trypsin/P (cleaves K/R except before P)	14	none	10.0		unresolved_reused_protocol	https://doi.org/10.1016/j.cels.2017.05.009	11557
+proteins	PXD004452/Tryp-39fracs	HeLa	Trypsin/P (cleaves K/R except before P)	39	none	10.0	8.0	paper_reported_buffer	https://pmc.ncbi.nlm.nih.gov/articles/PMC5493283/#sec4.4.4	11053
+proteins	PXD004452/Tryp-70fracs	HeLa	Trypsin/P (cleaves K/R except before P)	70	none	10.0	8.0	paper_reported_buffer	https://pmc.ncbi.nlm.nih.gov/articles/PMC5493283/#sec4.4.4	12392
+proteins	PXD004452/Tryp-Phos-pH10	HeLa	Trypsin/P (cleaves K/R except before P)	12	TiO2	10.0	10.0	deposit_experiment_label	https://ftp.pride.ebi.ac.uk/pride/data/archive/2017/06/PXD004452/SearchResults.zip	6461
+proteins	PXD004452/Tryp-Phos-pH8	HeLa	Trypsin/P (cleaves K/R except before P)	12	TiO2	8.0	8.0	deposit_experiment_label	https://ftp.pride.ebi.ac.uk/pride/data/archive/2017/06/PXD004452/SearchResults.zip	6255
