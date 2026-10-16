@@ -1,0 +1,25 @@
+{
+  "32350084": {
+    "n_observations": 79406,
+    "n_resolved_observations": 62512,
+    "attribution": {
+      "elution_conditions": 62512,
+      "pmid_ambiguous": 16894
+    },
+    "verdict": {
+      "multi_arm_evidence": 79406
+    },
+    "n_distinct_assay_comments": 196
+  },
+  "33981976": {
+    "n_observations": 11049,
+    "n_resolved_observations": 0,
+    "attribution": {
+      "group_ambiguous": 11049
+    },
+    "verdict": {
+      "arm_not_recorded": 11049
+    },
+    "n_distinct_assay_comments": 2
+  }
+}

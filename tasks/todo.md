@@ -7,7 +7,8 @@ Specification: [corpus-qualification-spec.md](corpus-qualification-spec.md).
 - [x] Freeze the producer dependency hashes and verify the bounded cloud environment.
 - [x] Complete raw-source transfer and verify remote content pins.
 - [x] Build separate current indexes, then verified human-reference mappings.
-- [ ] Publish complete corpus; verify downloads and CI compatibility.
+- [x] Publish complete corpus and verify every public download.
+- [ ] Fix actual-corpus curation regressions and pass final integration CI.
 - [ ] Freeze actual cohort membership and publish coverage/leakage/lineage audits.
 - [ ] Hand exact pins to canonical Presto preflight/fitting and held-out baselines.
 - [ ] Review/version/format/lint/test/merge/deploy any code or workflow changes.
@@ -28,7 +29,15 @@ All ten ci-corpus-v3 public files were independently downloaded and hash-verifie
 The test/release workflows now consume the pinned full inventory through datacache.
 The full local suite
 passed 3,035 tests; final code CI passed all four Python unit jobs and integration
-at a889bf9. Final workflow CI and actual cohort qualification remain pending.
+at a889bf9. Final workflow CI exposed #694: missing/stale arm verdicts in 90,455 rows.
+The complete source replay now resolves 62,512 sole-line observations, retains
+16,894 multi-line observations and all 11,049 treatment-uncertain HCT 116 rows.
+It also exposed and fixed reversed complete-pair identity (#696). All 196 source
+statements are curated; the 202-context regression fixture and focused set pass
+16 tests. Format/lint pass. Local full-test attempts could not establish enough
+free memory (one sandboxed probe failure, then 1.61 GiB versus required 2.5 GiB);
+release CI runs ./format.sh, ./lint.sh and ./test.sh --all without relaxing guards.
+Actual cohort qualification and final release gates remain pending.
 
 # Current CI corpus publication — 2026-10-15
 

@@ -1,0 +1,18 @@
+{
+  "deposit.parquet": {
+    "sha256": "8691d868e52bcaceac136e5ffa65c0c845a64307b061c7d3020fe36c4624f659",
+    "size": 2012399
+  },
+  "replay.parquet": {
+    "sha256": "a6a78c48e19a87271ddb86a303b6b84a8545b3683e5619d187e26848e8ba8b93",
+    "size": 2100756
+  },
+  "contexts.tsv": {
+    "sha256": "1b167ec58598971b2feb6b1d2cbf31cbfbe2975a3c18165ddf513d923d1ab2ec",
+    "size": 42726
+  },
+  "summary.json": {
+    "sha256": "4795b74f9a05df4ce2db25b707d8d552a1edd76ae68bee6e583cb82bd5c8c893",
+    "size": 513
+  }
+}
