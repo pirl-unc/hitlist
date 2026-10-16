@@ -148,6 +148,8 @@ include = [
     "scripts/qualify_corpus.py",
     "scripts/qualification_modal.py",
     "scripts/qualification_transport.py",
+    "scripts/qualify_human_cohort.py",
+    "scripts/human_cohort_modal.py",
 ]
 
 [tool.ruff.lint]

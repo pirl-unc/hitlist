@@ -1,3 +1,13 @@
+# Actual human-cohort qualification — 2026-10-15
+
+Specification: [human-cohort-qualification-spec.md](human-cohort-qualification-spec.md).
+
+- [x] Pin the completed parent corpus and write the bounded cohort contract.
+- [ ] Export and verify the actual human-source/HLA compact training bundle.
+- [ ] Publish readable source/context and observation-weighted lineage coverage.
+- [ ] Hand exact pins to Presto frozen membership and qualification.
+- [ ] Format/lint/full tests, review, merge, deploy and verify public artifacts.
+
 # Separate real corpus qualification — 2026-10-15
 
 Specification: [corpus-qualification-spec.md](corpus-qualification-spec.md).
