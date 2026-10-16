@@ -1,0 +1,22 @@
+{
+  "changed-cells.tsv": {
+    "path": "/Users/iskander/.hitlist/corrected-corpus/field-comparison/bundles/2026-10-16T07-01-31Z/changed-cells.tsv",
+    "sha256": "5ad69f1f99f76edb56f0a58d00f5ba956552cd85f222186e7d51ff8c8f23bc3c",
+    "size_bytes": 23179714
+  },
+  "field-counts.tsv": {
+    "path": "/Users/iskander/.hitlist/corrected-corpus/field-comparison/bundles/2026-10-16T07-01-31Z/field-counts.tsv",
+    "sha256": "769346c114bf5e896f5a856aa8df69e50ef15e666bb0462e7418cc02dc6e8e3f",
+    "size_bytes": 1348
+  },
+  "study-counts.tsv": {
+    "path": "/Users/iskander/.hitlist/corrected-corpus/field-comparison/bundles/2026-10-16T07-01-31Z/study-counts.tsv",
+    "sha256": "eef3c71b168fd5f6824aea4f47e296e83fd7f06db8ca1d25f08d13361f278927",
+    "size_bytes": 70
+  },
+  "summary.json": {
+    "path": "/Users/iskander/.hitlist/corrected-corpus/field-comparison/bundles/2026-10-16T07-01-31Z/summary.json",
+    "sha256": "77be98d78db7077edfc2fbdee74c29adf00a447a36f03427e36d2656b8679b8c",
+    "size_bytes": 1295
+  }
+}

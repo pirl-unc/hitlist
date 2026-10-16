@@ -1,0 +1,39 @@
+{
+  "n_observations": 4486991,
+  "n_changed_observations": 79406,
+  "n_changed_cells": 79406,
+  "n_fields": 71,
+  "changed_fields": {
+    "restriction_evidence": 79406
+  },
+  "identity_fields": [
+    "peptide",
+    "pmid",
+    "assay_iri",
+    "provenance_id",
+    "source",
+    "supplementary_file"
+  ],
+  "identity_and_order_unchanged": true,
+  "runtime_seconds": 37.9943572920165,
+  "n_rows_per_batch": 8192,
+  "inputs": {
+    "original": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/ci-corpus-v3/observations.parquet",
+      "sha256": "3faca5334ba9a03ba584bf72da6d856886634dc269cd4172a97e5258c5909ab8",
+      "size_bytes": 145690607,
+      "path": "/Users/iskander/.hitlist/ci-corpus-downloads/corpora/7f7f4035d8ec080b26385710d447633dba36ac5cce49008e48e14cf8894f20d5/bundles/2026-10-16T03-22-13Z/observations.parquet"
+    },
+    "corrected": {
+      "path": "/private/tmp/hitlist-corrected-observations.parquet",
+      "sha256": "a665f37c0b5917fefb6d12eade530d7e2001de1f0ee73479b21d2c393d173ab4",
+      "size_bytes": 145685701,
+      "producer_version": "1.78.0",
+      "source_commit": "fb64a0c199d91d07f8f7e1fd0da1189b91488a08"
+    }
+  },
+  "recipe": {
+    "sha256": "6d63f6c43adc3c4fb768c6a443d8249cd245ec06784f2b97b4378a353a396b07",
+    "size_bytes": 6593
+  }
+}

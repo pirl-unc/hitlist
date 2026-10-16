@@ -1,0 +1,50 @@
+{
+  "n_observations": 4071463,
+  "n_changed_observations": 89567,
+  "n_changed_cells": 662897,
+  "n_fields": 161,
+  "changed_fields": {
+    "restriction_evidence": 78744,
+    "sample_label": 61917,
+    "sample_mhc": 71749,
+    "sample_attribution": 72740,
+    "condition_id": 61917,
+    "condition_status": 61917,
+    "condition_evidence": 61917,
+    "condition_mhc_context": 19857,
+    "arm_resolution": 89567,
+    "sample_group": 10823,
+    "sample_mhc_origin": 71749
+  },
+  "identity_fields": [
+    "peptide",
+    "pmid",
+    "assay_iri",
+    "provenance_id",
+    "source",
+    "supplementary_file",
+    "evidence_row_id"
+  ],
+  "identity_and_order_unchanged": true,
+  "runtime_seconds": 100.46252979099518,
+  "n_rows_per_batch": 8192,
+  "inputs": {
+    "original": {
+      "path": "/Users/iskander/.hitlist/human-cohort-public-downloads/baseline-v1/bundles/2026-10-16T04-40-17Z/training.parquet",
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/human-cohort-baseline-v1/training.parquet",
+      "sha256": "51e37fc5f81e3e32b9080cf096feaabe82f9001c1b90c61b5af40fae26d07d4c",
+      "size_bytes": 187997976
+    },
+    "corrected": {
+      "path": "/Users/iskander/.hitlist/corrected-human-cohort/cloud-downloads/b180eba804532f633a6d61bb350584dbe24f8df4b4b96f02c6ec492c60144372/bundles/2026-10-16T07-35-06Z/training.parquet",
+      "sha256": "f902341e90c1c57defc93f4bc540ffcbea1b41061afb4492ddd8aaa7642c65bd",
+      "size_bytes": 188175209,
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/human-cohort-corrected-v1/training.parquet",
+      "producer_version": "1.78.0"
+    }
+  },
+  "recipe": {
+    "sha256": "4ee8087dc8a2e4fd4c55e8014e6f3af8b3a1528ed7094411119b90995e79dbec",
+    "size_bytes": 6781
+  }
+}

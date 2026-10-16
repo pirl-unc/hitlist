@@ -1,0 +1,119 @@
+{
+  "schema_version": 1,
+  "status": "corrected_export_not_training_qualified",
+  "producer_version": "1.78.0",
+  "export_recipe_commit": "8fc7f86dcf840feb2c945e9da472198514e83d50",
+  "native_manifest_sha256": "b180eba804532f633a6d61bb350584dbe24f8df4b4b96f02c6ec492c60144372",
+  "parent_corpus_manifest_sha256": "2318bc53cdae228285218991d58fbcc2bd7266327cec1dd3ed9a03b1c944a5b7",
+  "files": {
+    "README.md": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/human-cohort-corrected-v1/README.md",
+      "sha256": "4d617fd15ce708fabee5dbd4cf61e1a1eee685a98500293f4d6d8526676ec4d1",
+      "size_bytes": 1189
+    },
+    "contributors.parquet": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/human-cohort-corrected-v1/contributors.parquet",
+      "sha256": "dfbe4bfcd96cc5e07772497201c1c12ad9b4aac620dd92f090aa5de3723b0b8e",
+      "size_bytes": 2066297045
+    },
+    "coverage.json": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/human-cohort-corrected-v1/coverage.json",
+      "sha256": "30caeb920b7d6821d4c51ea626579ad0fccd3f2c9adfe8cdd1e5c76326c86e48",
+      "size_bytes": 5974
+    },
+    "field_counts.tsv": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/human-cohort-corrected-v1/field_counts.tsv",
+      "sha256": "bb6f55745e47ce001d8f4607e23e8d420a2f35f78e24cc0ed98de52111090dc4",
+      "size_bytes": 45127225
+    },
+    "identities.parquet": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/human-cohort-corrected-v1/identities.parquet",
+      "sha256": "6020667400ae4834f9a800479142b54f7c225f9e37ebb972a5a0a168b9c82001",
+      "size_bytes": 141119541
+    },
+    "inspection.tsv": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/human-cohort-corrected-v1/inspection.tsv",
+      "sha256": "2582752ace1cd9757ff15c7575fbc1ee9047660d1ff73be28cf984d7eaaca1bb",
+      "size_bytes": 773197
+    },
+    "lineage.json": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/human-cohort-corrected-v1/lineage.json",
+      "sha256": "75858cf562f65013aaae2325ea95deb70f826ea07f2373d394e8182ce459a1a5",
+      "size_bytes": 31901
+    },
+    "manifest.json": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/human-cohort-corrected-v1/manifest.json",
+      "sha256": "b180eba804532f633a6d61bb350584dbe24f8df4b4b96f02c6ec492c60144372",
+      "size_bytes": 33972
+    },
+    "source_contexts.tsv": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/human-cohort-corrected-v1/source_contexts.tsv",
+      "sha256": "7c2cbdcb6c25fc70b31dca62353dd89a23cd582d7b6af52d79a7aad9798360a8",
+      "size_bytes": 147926094
+    },
+    "training.parquet": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/human-cohort-corrected-v1/training.parquet",
+      "sha256": "f902341e90c1c57defc93f4bc540ffcbea1b41061afb4492ddd8aaa7642c65bd",
+      "size_bytes": 188175209
+    },
+    "comparison-summary.json": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/human-cohort-corrected-v1/comparison-summary.json",
+      "sha256": "e4323718bc8406f5f98b95010c42fe02207865eae1543346a55bf6626b22f47d",
+      "size_bytes": 1744
+    },
+    "comparison-field-counts.tsv": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/human-cohort-corrected-v1/comparison-field-counts.tsv",
+      "sha256": "c170acd3b323010e2ba6506b42d0d451cb634a9fc220cbadd9e7fa167e20dc65",
+      "size_bytes": 3245
+    },
+    "comparison-study-counts.tsv": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/human-cohort-corrected-v1/comparison-study-counts.tsv",
+      "sha256": "0686042dc45343bf2f2e4516c7a273247e3c6a9b940b042ad3f7396cef0b4711",
+      "size_bytes": 444
+    },
+    "export-receipt.json": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/human-cohort-corrected-v1/export-receipt.json",
+      "sha256": "93bfe2e104391b9f3c45f25ef993775b3d825a98ced65530d1f73d558cc3fe3c",
+      "size_bytes": 14623
+    },
+    "comparison-changed-cells.tsv.gz": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/human-cohort-corrected-v1/comparison-changed-cells.tsv.gz",
+      "sha256": "b9ca62e4f33667f8e9c1209bb13edcabbb9c9c3493bcd8bea811e0385bd5762e",
+      "size_bytes": 12158792
+    },
+    "comparison-value-changes.tsv": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/human-cohort-corrected-v1/comparison-value-changes.tsv",
+      "sha256": "f59a27cc1c4d9e8dd33f6c7c0ed94952c946284b04affde46c904cf7b8b2e928",
+      "size_bytes": 22124
+    },
+    "comparison-preview.tsv": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/human-cohort-corrected-v1/comparison-preview.tsv",
+      "sha256": "5ad7a35a0d9a67af20b28f878a95c340dd59363847715e427c2d1ea077add910",
+      "size_bytes": 14404
+    },
+    "reproduce.tar.gz": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/human-cohort-corrected-v1/reproduce.tar.gz",
+      "sha256": "613f691db8eed0f345027eacef28f445bf196f5765eb8c82abd65fe78af91831",
+      "size_bytes": 56251
+    },
+    "QUALIFICATION.md": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/human-cohort-corrected-v1/QUALIFICATION.md",
+      "sha256": "3d28233e08f2083b1f87872ac8a7e5b5016d3d47254653fb33e0d051be1d400f",
+      "size_bytes": 4642
+    }
+  },
+  "comparison": {
+    "n_observations": 4071463,
+    "n_changed_observations": 89567,
+    "n_changed_cells": 662897,
+    "n_value_transitions": 78,
+    "n_preview_cells": 39,
+    "identity_and_order_unchanged": true
+  },
+  "qualification_issues": [
+    "hitlist#678",
+    "hitlist#680",
+    "presto#48",
+    "presto#53"
+  ]
+}

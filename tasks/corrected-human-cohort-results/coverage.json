@@ -1,0 +1,201 @@
+{
+  "evidence_kinds": {
+    "binding": 25896,
+    "ms": 4045567
+  },
+  "fields": {
+    "acquisition_status": {
+      "n_distinct_nonempty_values": 1,
+      "n_missing_observations": 0,
+      "n_nonempty_observations": 4071463
+    },
+    "allele_resolution": {
+      "n_distinct_nonempty_values": 5,
+      "n_missing_observations": 0,
+      "n_nonempty_observations": 4071463
+    },
+    "assay_method": {
+      "n_distinct_nonempty_values": 17,
+      "n_missing_observations": 489384,
+      "n_nonempty_observations": 3582079
+    },
+    "attributed_sample_label": {
+      "n_distinct_nonempty_values": 11,
+      "n_missing_observations": 4018333,
+      "n_nonempty_observations": 53130
+    },
+    "cell_line_name": {
+      "n_distinct_nonempty_values": 133,
+      "n_missing_observations": 1605059,
+      "n_nonempty_observations": 2466404
+    },
+    "cell_name": {
+      "n_distinct_nonempty_values": 157,
+      "n_missing_observations": 32916,
+      "n_nonempty_observations": 4038547
+    },
+    "cell_type": {
+      "n_distinct_nonempty_values": 28,
+      "n_missing_observations": 1281272,
+      "n_nonempty_observations": 2790191
+    },
+    "condition_id": {
+      "n_distinct_nonempty_values": 463,
+      "n_missing_observations": 2028774,
+      "n_nonempty_observations": 2042689
+    },
+    "culture_condition": {
+      "n_distinct_nonempty_values": 5,
+      "n_missing_observations": 25915,
+      "n_nonempty_observations": 4045548
+    },
+    "donor_status": {
+      "n_distinct_nonempty_values": 1,
+      "n_missing_observations": 0,
+      "n_nonempty_observations": 4071463
+    },
+    "evidence_kind": {
+      "n_distinct_nonempty_values": 2,
+      "n_missing_observations": 0,
+      "n_nonempty_observations": 4071463
+    },
+    "experimental_origin_status": {
+      "n_distinct_nonempty_values": 2,
+      "n_missing_observations": 0,
+      "n_nonempty_observations": 4071463
+    },
+    "host": {
+      "n_distinct_nonempty_values": 7,
+      "n_missing_observations": 0,
+      "n_nonempty_observations": 4071463
+    },
+    "measurement_inequality": {
+      "n_distinct_nonempty_values": 3,
+      "n_missing_observations": 4063610,
+      "n_nonempty_observations": 7853
+    },
+    "measurement_units": {
+      "n_distinct_nonempty_values": 5,
+      "n_missing_observations": 4057237,
+      "n_nonempty_observations": 14226
+    },
+    "mhc_allele_provenance": {
+      "n_distinct_nonempty_values": 7,
+      "n_missing_observations": 0,
+      "n_nonempty_observations": 4071463
+    },
+    "mhc_allele_set": {
+      "n_distinct_nonempty_values": 895,
+      "n_missing_observations": 685383,
+      "n_nonempty_observations": 3386080
+    },
+    "mhc_class": {
+      "n_distinct_nonempty_values": 3,
+      "n_missing_observations": 0,
+      "n_nonempty_observations": 4071463
+    },
+    "mhc_restriction": {
+      "n_distinct_nonempty_values": 870,
+      "n_missing_observations": 135446,
+      "n_nonempty_observations": 3936017
+    },
+    "mhc_species": {
+      "n_distinct_nonempty_values": 1,
+      "n_missing_observations": 0,
+      "n_nonempty_observations": 4071463
+    },
+    "pmid": {
+      "n_distinct_nonempty_values": 1081,
+      "n_missing_observations": 13155,
+      "n_nonempty_observations": 4058308
+    },
+    "qualitative_measurement": {
+      "n_distinct_nonempty_values": 5,
+      "n_missing_observations": 489384,
+      "n_nonempty_observations": 3582079
+    },
+    "reference_iri": {
+      "n_distinct_nonempty_values": 490510,
+      "n_missing_observations": 0,
+      "n_nonempty_observations": 4071463
+    },
+    "reference_title": {
+      "n_distinct_nonempty_values": 1109,
+      "n_missing_observations": 1308,
+      "n_nonempty_observations": 4070155
+    },
+    "response_measured": {
+      "n_distinct_nonempty_values": 11,
+      "n_missing_observations": 489384,
+      "n_nonempty_observations": 3582079
+    },
+    "restriction_evidence": {
+      "n_distinct_nonempty_values": 4,
+      "n_missing_observations": 0,
+      "n_nonempty_observations": 4071463
+    },
+    "sample_attribution": {
+      "n_distinct_nonempty_values": 9,
+      "n_missing_observations": 106903,
+      "n_nonempty_observations": 3964560
+    },
+    "source": {
+      "n_distinct_nonempty_values": 3,
+      "n_missing_observations": 0,
+      "n_nonempty_observations": 4071463
+    },
+    "source_organism": {
+      "n_distinct_nonempty_values": 1,
+      "n_missing_observations": 0,
+      "n_nonempty_observations": 4071463
+    },
+    "source_tissue": {
+      "n_distinct_nonempty_values": 48,
+      "n_missing_observations": 79834,
+      "n_nonempty_observations": 3991629
+    },
+    "specimen_status": {
+      "n_distinct_nonempty_values": 1,
+      "n_missing_observations": 0,
+      "n_nonempty_observations": 4071463
+    },
+    "supplementary_file": {
+      "n_distinct_nonempty_values": 21,
+      "n_missing_observations": 3582079,
+      "n_nonempty_observations": 489384
+    }
+  },
+  "limitations": [
+    "Coverage is observation-weighted, not evidence of donor/specimen independence.",
+    "Compact observations do not supply protein/flank context; the parent corpus pins mappings.",
+    "Only human MHC and reported human peptide sources, lengths 8-25, are included.",
+    "No partition or model-quality claim is made by this export."
+  ],
+  "lineage_statuses": {
+    "acquisition_status": {
+      "unknown": 4071463
+    },
+    "donor_status": {
+      "unknown": 4071463
+    },
+    "experimental_origin_status": {
+      "resolved": 57188,
+      "unknown": 4014275
+    },
+    "specimen_status": {
+      "unknown": 4071463
+    }
+  },
+  "mhc_classes": {
+    "I": 2711461,
+    "II": 1353735,
+    "non-classical": 6267
+  },
+  "missing_display_value": "<missing>; original values remain in training.parquet",
+  "n_observations": 4071463,
+  "n_preview_rows": 1378,
+  "n_source_contexts": 495220,
+  "n_training_rows": 4071463,
+  "preview_policy": "first 250 export-ordered observations per evidence kind and MHC class; not representative",
+  "unavailable_fields": []
+}

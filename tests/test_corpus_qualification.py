@@ -91,3 +91,93 @@ def test_local_reference_is_verified_and_cannot_mutate_shared_input(runner, tmp_
     ):
         pytest.fail("Unverified reference must never reach the mapping stage")
     assert os.environ["PYENSEMBL_CACHE_DIR"] == original
+
+
+@pytest.fixture
+def frozen_reference(runner, tmp_path, monkeypatch):
+    versions = dict.fromkeys(
+        ("pyensembl", "pyfaidx", "gtfparse", "serializable", "numpy", "pandas"), "1.2.3"
+    )
+    actual_version = runner.importlib.metadata.version
+    monkeypatch.setattr(
+        runner.importlib.metadata,
+        "version",
+        lambda name: versions[name] if name in versions else actual_version(name),
+    )
+    source = tmp_path / "reference.fa"
+    source.write_text(">reference\nACDEFGHIK\n")
+    receipt = {
+        "status": "success",
+        "stage": "reference",
+        "details": {"species": "homo_sapiens", "ensembl_release": 112},
+        "versions": dict(versions),
+        "artifacts": {source.name: runner.digest(source)},
+    }
+    receipt_path = tmp_path / "receipt.json"
+    pin_path = tmp_path / "reference.json"
+
+    def save():
+        receipt_path.write_text(json.dumps(receipt))
+        pin_path.write_text(
+            json.dumps({"receipt": runner.digest(receipt_path), "compatible_versions": versions})
+        )
+
+    save()
+    return source, receipt_path, pin_path, receipt, save
+
+
+def test_frozen_reference_reuses_exact_bytes_and_preserves_origin(
+    runner, tmp_path, frozen_reference
+):
+    source, _, pin_path, receipt, _ = frozen_reference
+    outputs, details = runner.reuse_reference(tmp_path / "new-run", pin_path)
+    published = Path(outputs[source.name]["path"])
+    assert published.read_bytes() == source.read_bytes()
+    assert published != source
+    assert outputs[source.name]["sha256"] == receipt["artifacts"][source.name]["sha256"]
+    assert details["original_reference_versions"] == receipt["versions"]
+    assert details["observation_and_peptide_mapping_reuse"] is False
+    with runner.local_reference(outputs, tmp_path / "scratch") as genome:
+        local = Path(genome.download_cache.cache_directory_path) / source.name
+        local.write_text("local work must not mutate the reused public reference")
+    assert published.read_bytes() == source.read_bytes()
+
+
+@pytest.mark.parametrize(
+    "damage,match",
+    [
+        ("receipt_bytes", "Content mismatch"),
+        ("source_bytes", "Content mismatch"),
+        ("failed_stage", "successful reference-stage"),
+        ("different_release", "human Ensembl release 112"),
+        ("original_library", "Original reference dependency mismatch"),
+        ("current_library", "Current reference dependency mismatch"),
+        ("empty_artifacts", "nonempty basename-only"),
+    ],
+)
+def test_frozen_reference_rejects_unqualified_reuse(
+    runner, tmp_path, monkeypatch, frozen_reference, damage, match
+):
+    source, receipt_path, pin_path, receipt, save = frozen_reference
+    if damage == "receipt_bytes":
+        receipt_path.write_text("modified receipt")
+    elif damage == "source_bytes":
+        source.write_text("modified sequence bytes")
+    elif damage == "failed_stage":
+        receipt["status"] = "failed"
+        save()
+    elif damage == "different_release":
+        receipt["details"]["ensembl_release"] = 113
+        save()
+    elif damage == "original_library":
+        receipt["versions"]["pyensembl"] = "0.0.1"
+        save()
+    elif damage == "current_library":
+        monkeypatch.setattr(runner.importlib.metadata, "version", lambda _: "0.0.1")
+    elif damage == "empty_artifacts":
+        receipt["artifacts"] = {}
+        save()
+    root = tmp_path / "rejected-run"
+    with pytest.raises(ValueError, match=match):
+        runner.reuse_reference(root, pin_path)
+    assert not root.exists()

@@ -9,8 +9,8 @@ env:
   # scripts/publish_ci_corpus.sh (tag ci-corpus-<CORPUS_VERSION>).
   # Changing this invalidates the integration job's cache so CI pulls the
   # new corpus.  release-build.yml carries its own copy of this value.
-  CORPUS_VERSION: v3
-  CORPUS_MANIFEST_SHA256: 7f7f4035d8ec080b26385710d447633dba36ac5cce49008e48e14cf8894f20d5
+  CORPUS_VERSION: v4
+  CORPUS_MANIFEST_SHA256: 2318bc53cdae228285218991d58fbcc2bd7266327cec1dd3ed9a03b1c944a5b7
   PYTEST_ADDOPTS: "-ra"
   PYTHONUNBUFFERED: "1"
 
