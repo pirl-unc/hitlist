@@ -81,3 +81,15 @@ local POSIX scratch. Publish the complete closed reference cache as an immutable
 hash-verified datacache bundle. Mapping stages consume verified local scratch
 copies of that bundle; do not weaken atomic/no-clobber publication or precreate an
 empty public database. Preserve the failed stage receipt and original downloads.
+
+## Transport refinement
+
+The first raw IEDB upload has transferred 5.55 GB and will be allowed to finish.
+For the remaining CEDAR source, create a deterministic gzip transport in shared
+datacache while streaming and verifying the original uncompressed SHA-256. This
+adds a small compressed artifact, not another 6.95 GB local CSV. Upload the
+compressed file, then expand on bounded cloud scratch with a second raw hash/size
+check and atomic publication into the private transport namespace. Never overwrite
+a different existing raw input. The published producer recipe and raw content pins
+stay unchanged; the normal sources stage still validates and installs the raw
+inputs into its immutable datacache generation before any corpus build.

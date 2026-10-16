@@ -147,6 +147,7 @@ include = [
     "scripts/benchmark_provenance.py",
     "scripts/qualify_corpus.py",
     "scripts/qualification_modal.py",
+    "scripts/qualification_transport.py",
 ]
 
 [tool.ruff.lint]
