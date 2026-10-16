@@ -1,3 +1,12 @@
+# Human-cohort export recovery — #695
+
+- [x] Preserve the original failed launcher and immutable generation inventory.
+- [x] Fix receipt input pinning and test success/failure publication with datacache.
+- [x] Recover and independently verify all ten original files and native lineage.
+- [x] Record measured coverage and unresolved independence/cell/condition metadata.
+- [x] Run format/lint and full local suite (3,039 passed).
+- [ ] Publish/verify all public baseline assets; final CI, review, merge, PyPI.
+
 # Actual human-cohort qualification — 2026-10-15
 
 Specification: [human-cohort-qualification-spec.md](human-cohort-qualification-spec.md).

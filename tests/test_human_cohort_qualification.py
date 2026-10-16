@@ -63,3 +63,20 @@ def test_duplicate_observations_cannot_inflate_inspection_counts(tmp_path, cohor
     pd.concat([frame, frame.iloc[:1]]).to_parquet(tmp_path / "training.parquet", index=False)
     with pytest.raises(ValueError, match="duplicate observation IDs"):
         cohort_script.inspection_reports(tmp_path)
+
+
+@pytest.mark.parametrize("status", ["success", "failed"])
+def test_actual_receipt_materialization_preserves_success_and_failure(
+    tmp_path, cohort_script, status
+):
+    import json
+
+    from datacache import validate_file
+
+    log = tmp_path / "export.log"
+    log.write_text("observed export output\n")
+    result = {"status": status, "error": "injected export failure" if status == "failed" else None}
+    paths = cohort_script.publish_receipt(tmp_path / "receipts", result, log)
+    assert json.loads(Path(paths["receipt.json"]).read_text()) == result
+    assert Path(paths["export.log"]).read_bytes() == log.read_bytes()
+    validate_file(paths["export.log"], cohort_script.digest(log)["sha256"])

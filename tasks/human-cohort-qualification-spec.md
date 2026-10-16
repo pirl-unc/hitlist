@@ -63,3 +63,14 @@ inspection reports; keep #678 open while unresolved qualification remains.
 
 Version 1.78.0, separate PR after #692; format/lint/full tests, final-head CI,
 merge and PyPI verification remain required.
+
+## Receipt failure and recovery (#695)
+
+The export completed and verified all ten artifacts at 2026-10-16T03:49:57Z,
+but the receipt materialization rejected an empty input map. Preserve the failed
+Modal launcher log. Publish receipts from hash-pinned serialized result/log inputs,
+including failures, and exercise that path with real datacache in tests. Recover
+only the original generation pinned by its datacache manifest hash and verify all
+native/source hashes. Record recovery as recovery, not a successful original run;
+original runtime/RSS were lost and must stay unknown. No export rerun is needed.
+Keep producer 1.76.0 and the newly discovered #694 curation limits explicit.

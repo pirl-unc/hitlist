@@ -233,6 +233,31 @@ def inspection_reports(directory):
     return coverage
 
 
+def publish_receipt(destination, result, log):
+    """Publish actual result/log bytes as hash-pinned datacache inputs (#695)."""
+    from datacache import materialize
+
+    with tempfile.TemporaryDirectory(prefix="cohort-receipt-") as temporary:
+        result_path = Path(temporary) / "result.json"
+        result_path.write_bytes(encode(result))
+        sources = {"receipt.json": result_path, "export.log": Path(log)}
+
+        def builder(inputs, outputs):
+            for name in sources:
+                shutil.copyfile(inputs[name], outputs[name])
+
+        return materialize(
+            destination,
+            {
+                name: {"path": str(path), "sha256": digest(path)["sha256"]}
+                for name, path in sources.items()
+            },
+            transform={"version": "human-cohort-receipt-v2"},
+            outputs={name: {} for name in sources},
+            builder=builder,
+        )
+
+
 def main():
     root = Path("/data/hitlist-qualification/runs") / RUN_ID
     os.environ.update(
@@ -336,18 +361,8 @@ def main():
             finished_utc=datetime.now(timezone.utc).isoformat(),
         )
 
-        def save_receipt(inputs, outputs):
-            Path(outputs["receipt.json"]).write_bytes(encode(result))
-            shutil.copyfile(log, outputs["export.log"])
+        saved = publish_receipt(destination / "receipts", result, log)
 
-        saved = materialize(
-            destination / "receipts",
-            {},
-            transform={"version": "human-cohort-receipt-v1", "options": options},
-            outputs={"receipt.json": {}, "export.log": {}},
-            builder=save_receipt,
-            force=True,
-        )
     print(
         encode(
             {
