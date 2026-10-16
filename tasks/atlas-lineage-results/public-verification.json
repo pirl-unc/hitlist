@@ -1,0 +1,12 @@
+{
+  "donor_disjoint_verdict": "pass",
+  "method": "independent standard-library raw-row join, identity, partition, coverage and overlap verification; no Hitlist imports",
+  "n_artifacts_verified": 17,
+  "n_donors": 21,
+  "n_reported_sample_groups": 418,
+  "n_shared_peptide_pair_rows": 94920,
+  "n_source_rows_verified": 967449,
+  "peptide_disjoint_verdict": "fail",
+  "physical_specimen_identity": "unknown",
+  "verified": true
+}

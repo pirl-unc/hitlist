@@ -88,3 +88,13 @@ primary bytes remain in shared datacache; source code holds compact receipts.
 
 Public evidence: https://github.com/pirl-unc/hitlist/releases/tag/atlas-donor-lineage-v1
 (publication and public verification remain required at this snapshot).
+
+
+## Public verification
+
+All **27 public assets** were independently downloaded through datacache and
+hash-verified. The downloaded 17-artifact core then passed the independent full
+967,449-row replay, donor typing, counts and every overlap entry. See
+`publication.json` and `public-verification.json` for exact public URLs and hashes.
+Source cohort publication is complete; software PR #704 still requires complete
+local/CI checks, merge and a verified clean-main PyPI release.
