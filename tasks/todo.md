@@ -1,3 +1,17 @@
+# Bekker-Jensen fractionation evidence — #688
+
+- [x] Audit every legacy scope against pinned primary methods and supplements.
+- [x] Implement one YAML-backed correction across loaders, builder and ingest.
+- [x] Publish all 15 datacache artifacts and verify downloads plus all 2,203,214 serialized peptide/protein-arm rows.
+- [ ] Format/lint/full and integration checks, review, merge and deploy 1.80.0.
+
+Review: all original rows, quantities and order are preserved. The source-backed
+projection distinguishes reported buffer pH, deposited experiment labels and
+unknown protocols; 98 focused cases pass on pandas 2 and 3. Local full tests
+were refused by the capacity guard (0.27 GB available), so full/integration and
+clean-main deployment validation run in CI. Separate replicate-denominator
+inference is tracked in #699.
+
 # Corrected frozen corpus generation
 
 - [x] Specify immutable baseline, released producer and source/reference reuse boundaries.

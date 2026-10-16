@@ -1,0 +1,17 @@
+{
+  "bekker_jensen_2017_peptides.csv.gz": {
+    "sha256": "3ec65dd05e8ec58c3293e0fb5720570197a8b152cd14778130bae4224106e3d3",
+    "size": 35074080,
+    "url": "https://github.com/pirl-unc/hitlist/releases/download/data-assets-v1/bekker_jensen_2017_peptides.csv.gz"
+  },
+  "bekker_jensen_2017_protein_abundance.csv.gz": {
+    "sha256": "17628f1a9c3ed5e3ee1ad7aab4480008000a6beb2c042928f3fbdf699366bc45",
+    "size": 4410669,
+    "url": "https://github.com/pirl-unc/hitlist/releases/download/data-assets-v1/bekker_jensen_2017_protein_abundance.csv.gz"
+  },
+  "paper.xml": {
+    "sha256": "b29852c7016d078ce23c9ba0e3907456c11ba9944131c7f83d8d642bec03f3f6",
+    "size": 172771,
+    "url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC5493283/fullTextXML"
+  }
+}

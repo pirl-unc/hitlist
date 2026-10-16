@@ -55,6 +55,33 @@ search_constraints:
     min_peptide_length: 7
     max_missed_cleavages: 2
     enzyme_mode: Specific
+fractionation_ph_evidence:
+  paper_buffer_c_ph8:
+    basis: paper_reported_buffer
+    reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC5493283/#sec4.4.4
+    section: Offline High pH Reversed-Phase HPLC Fractionation
+    source_xml_sha256: b29852c7016d078ce23c9ba0e3907456c11ba9944131c7f83d8d642bec03f3f6
+    meaning: Reported buffer C pH for the paper's 39/46/70-fraction method; not measured gradient or eluate pH.
+    supplement: Table S1 (mmc2.xlsx), Sheet1 rows 7-12; Table S8 (mmc9.xlsx), Sheet1 rows 5 and 7-9.
+    limitation: Paper-level protocol attribution; pooled experiment identities and independence remain unresolved.
+  reused_14_fraction_unresolved:
+    basis: unresolved_reused_protocol
+    reference: https://doi.org/10.1016/j.cels.2017.05.009
+    section: Table S1 (mmc2.xlsx), Sheet1 rows 4-6 and 17
+    meaning: Reused Kelstrup 2014 experiments; the newer paper's buffer pH cannot establish the original protocol.
+    original_reference: https://doi.org/10.1021/pr500985w
+  named_phosphopeptide_arm:
+    basis: deposit_experiment_label
+    reference: https://ftp.pride.ebi.ac.uk/pride/data/archive/2017/06/PXD004452/SearchResults.zip
+    section: summary.txt, Experiment column, Tryp-Phos-pH8 and Tryp-Phos-pH10
+    meaning: Retained numeric pH explicitly encoded in the deposited experiment name; not a measured buffer or eluate pH.
+    source_member_sha256: 5eb5c41af2c7929be8a9354bf7c9fcb021ead7f47c07d0774a146b352e1a8860
+  phospho_50_fraction_unresolved:
+    basis: unresolved_scope_mapping
+    reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC5493283/#sec4.4.5
+    section: Phosphopeptide Enrichment; deposited Phospho-50fracs scope
+    meaning: The methods describe 46 fractions and four concatenated supernatants, but exact linkage to the named 50-run scope is not established here.
+    limitation: Remove the unsupported pH 10 default; no numeric assignment from the experiment name alone.
 scopes:
 - protocol_id: PXD004452/Tryp-14Frac-A+Tryp-14Frac-B+Tryp-14Frac-C
   cell_line_name: HeLa
@@ -63,7 +90,9 @@ scopes:
   search_enzyme: Trypsin/P
   n_fractions_in_run: 14
   enrichment: none
-  fractionation_ph: 10.0
+  legacy_fractionation_ph: 10.0
+  fractionation_ph: null
+  fractionation_ph_evidence_id: reused_14_fraction_unresolved
   n_replicates_possible: 3
   n_acquisition_runs: 42
   experiment_ids:
@@ -80,7 +109,9 @@ scopes:
   search_enzyme: Trypsin/P
   n_fractions_in_run: 70
   enrichment: none
-  fractionation_ph: 10.0
+  legacy_fractionation_ph: 10.0
+  fractionation_ph: 8.0
+  fractionation_ph_evidence_id: paper_buffer_c_ph8
   n_replicates_possible: 1
   n_acquisition_runs: 70
   experiment_ids:
@@ -94,7 +125,9 @@ scopes:
   search_enzyme: Trypsin/P
   n_fractions_in_run: 46
   enrichment: none
-  fractionation_ph: 10.0
+  legacy_fractionation_ph: 10.0
+  fractionation_ph: 8.0
+  fractionation_ph_evidence_id: paper_buffer_c_ph8
   n_replicates_possible: 3
   n_acquisition_runs: 138
   experiment_ids:
@@ -112,7 +145,9 @@ scopes:
   search_enzyme: Trypsin/P
   n_fractions_in_run: 12
   enrichment: TiO2
+  legacy_fractionation_ph: 8.0
   fractionation_ph: 8.0
+  fractionation_ph_evidence_id: named_phosphopeptide_arm
   n_replicates_possible: 1
   n_acquisition_runs: 12
   experiment_ids:
@@ -126,7 +161,9 @@ scopes:
   search_enzyme: Trypsin/P
   n_fractions_in_run: 12
   enrichment: TiO2
+  legacy_fractionation_ph: 10.0
   fractionation_ph: 10.0
+  fractionation_ph_evidence_id: named_phosphopeptide_arm
   n_replicates_possible: 1
   n_acquisition_runs: 12
   experiment_ids:
@@ -140,7 +177,9 @@ scopes:
   search_enzyme: Chymotrypsin+
   n_fractions_in_run: 39
   enrichment: none
-  fractionation_ph: 10.0
+  legacy_fractionation_ph: 10.0
+  fractionation_ph: 8.0
+  fractionation_ph_evidence_id: paper_buffer_c_ph8
   n_replicates_possible: 1
   n_acquisition_runs: 39
   experiment_ids:
@@ -154,7 +193,9 @@ scopes:
   search_enzyme: GluC;D.P
   n_fractions_in_run: 39
   enrichment: none
-  fractionation_ph: 10.0
+  legacy_fractionation_ph: 10.0
+  fractionation_ph: 8.0
+  fractionation_ph_evidence_id: paper_buffer_c_ph8
   n_replicates_possible: 1
   n_acquisition_runs: 39
   experiment_ids:
@@ -168,7 +209,9 @@ scopes:
   search_enzyme: LysC/P
   n_fractions_in_run: 39
   enrichment: none
-  fractionation_ph: 10.0
+  legacy_fractionation_ph: 10.0
+  fractionation_ph: 8.0
+  fractionation_ph_evidence_id: paper_buffer_c_ph8
   n_replicates_possible: 1
   n_acquisition_runs: 39
   experiment_ids:
@@ -182,7 +225,9 @@ scopes:
   search_enzyme: Trypsin/P
   n_fractions_in_run: 39
   enrichment: none
-  fractionation_ph: 10.0
+  legacy_fractionation_ph: 10.0
+  fractionation_ph: 8.0
+  fractionation_ph_evidence_id: paper_buffer_c_ph8
   n_replicates_possible: 1
   n_acquisition_runs: 40
   experiment_ids:
@@ -196,7 +241,9 @@ scopes:
   search_enzyme: Trypsin/P
   n_fractions_in_run: 50
   enrichment: TiO2
-  fractionation_ph: 10.0
+  legacy_fractionation_ph: 10.0
+  fractionation_ph: null
+  fractionation_ph_evidence_id: phospho_50_fraction_unresolved
   n_replicates_possible: 1
   n_acquisition_runs: 50
   experiment_ids:
@@ -210,7 +257,9 @@ scopes:
   search_enzyme: Trypsin/P
   n_fractions_in_run: 46
   enrichment: none
-  fractionation_ph: 10.0
+  legacy_fractionation_ph: 10.0
+  fractionation_ph: 8.0
+  fractionation_ph_evidence_id: paper_buffer_c_ph8
   n_replicates_possible: 2
   n_acquisition_runs: 92
   experiment_ids:
@@ -225,7 +274,9 @@ scopes:
   search_enzyme: Trypsin/P
   n_fractions_in_run: 46
   enrichment: none
-  fractionation_ph: 10.0
+  legacy_fractionation_ph: 10.0
+  fractionation_ph: 8.0
+  fractionation_ph_evidence_id: paper_buffer_c_ph8
   n_replicates_possible: 2
   n_acquisition_runs: 92
   experiment_ids:
@@ -240,7 +291,9 @@ scopes:
   search_enzyme: Trypsin/P
   n_fractions_in_run: 46
   enrichment: none
-  fractionation_ph: 10.0
+  legacy_fractionation_ph: 10.0
+  fractionation_ph: 8.0
+  fractionation_ph_evidence_id: paper_buffer_c_ph8
   n_replicates_possible: 2
   n_acquisition_runs: 92
   experiment_ids:
@@ -255,7 +308,9 @@ scopes:
   search_enzyme: Trypsin/P
   n_fractions_in_run: 46
   enrichment: none
-  fractionation_ph: 10.0
+  legacy_fractionation_ph: 10.0
+  fractionation_ph: 8.0
+  fractionation_ph_evidence_id: paper_buffer_c_ph8
   n_replicates_possible: 2
   n_acquisition_runs: 92
   experiment_ids:

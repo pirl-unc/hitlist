@@ -411,7 +411,7 @@ def test_packaged_adapter_preserves_pool_and_source_provenance(tmp_path, monkeyp
     peptide = pd.DataFrame(
         [
             {**common, "peptide": "AAAAAAK", "n_replicates_detected": 2},
-            {**common, "peptide": "AAAAAAR", "n_replicates_detected": 1, "fractionation_ph": 8.0},
+            {**common, "peptide": "AAAAAAR", "n_replicates_detected": 1, "fractionation_ph": 6.0},
         ]
     )
     protein = pd.DataFrame([{**common, "n_peptides": 1, "abundance_percentile": 1.0}])
@@ -432,9 +432,12 @@ def test_packaged_adapter_preserves_pool_and_source_provenance(tmp_path, monkeyp
         provenance="synthetic contract for adapter test",
     )
     peptides, proteins, provenance = _packaged_observations(
-        "HeLa", "Trypsin/P", 46, "none", 10.0, contract, 100
+        "HeLa", "Trypsin/P", 46, "none", 8.0, contract, 100
     )
     assert peptides.peptide.tolist() == ["AAAAAAK"]
+    assert peptides.fractionation_ph.tolist() == [8.0]
+    assert peptides.legacy_fractionation_ph.tolist() == [10.0]
+    assert peptides.fractionation_ph_basis.tolist() == ["paper_reported_buffer"]
     assert peptides.n_replicates_detected.isna().all()
     assert peptides.reported_n_replicates_detected.tolist() == [2]
     assert peptides.n_replicates_possible.tolist() == [3]
@@ -451,7 +454,7 @@ def test_packaged_adapter_preserves_pool_and_source_provenance(tmp_path, monkeyp
     )
     assert proteins.search_space_id.tolist() == [contract.identifier]
     with pytest.raises(ValueError, match="max_observation_rows"):
-        _packaged_observations("HeLa", "Trypsin/P", 46, "none", 10.0, contract, 0)
+        _packaged_observations("HeLa", "Trypsin/P", 46, "none", 8.0, contract, 0)
 
 
 def test_legacy_bulk_reference_correction_retains_original():

@@ -324,16 +324,21 @@ def test_load_bulk_peptides_filter_by_fractions():
 
 @pytest.mark.integration
 def test_load_bulk_peptides_fractionation_ph_axis():
-    """fractionation_ph column populated; pH 10 default, pH 8 only on Tryp-Phos-pH8."""
-    # Non-enriched rows are all pH 10.
+    """Reported buffer pH, label-derived pH and unresolved protocols stay distinct."""
     df = load_bulk_peptides()
     ph_values = set(df["fractionation_ph"].dropna().unique())
-    assert ph_values == {10.0}, f"non-enriched rows should all be pH 10, got {ph_values}"
+    assert ph_values == {8.0}
+    reused = df.n_fractions_in_run.eq(14)
+    assert reused.any() and df.loc[reused, "fractionation_ph"].isna().all()
+    assert set(df.loc[reused, "fractionation_ph_basis"]) == {"unresolved_reused_protocol"}
+    assert df.loc[~reused, "fractionation_ph"].eq(8.0).all()
+    assert df.legacy_fractionation_ph.eq(10.0).all()
 
     # TiO2 arm splits pH 8 vs pH 10.
     tio2 = load_bulk_peptides(enrichment="TiO2")
     tio2_ph = set(tio2["fractionation_ph"].dropna().unique())
     assert tio2_ph == {8.0, 10.0}, f"TiO2 arm should have both pH 8 and pH 10 arms, got {tio2_ph}"
+    assert tio2.loc[tio2.n_fractions_in_run.eq(50), "fractionation_ph"].isna().all()
 
     # pH=8.0 filter returns only the Tryp-Phos-pH8 arm.
     ph8 = load_bulk_peptides(enrichment="TiO2", fractionation_ph=8.0)

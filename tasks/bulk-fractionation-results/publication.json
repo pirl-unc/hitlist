@@ -1,0 +1,118 @@
+{
+  "tag": "bulk-fractionation-review-v1",
+  "release": "https://github.com/pirl-unc/hitlist/releases/tag/bulk-fractionation-review-v1",
+  "n_verified_public_assets": 15,
+  "actual_audit_commit": "dad214358c640ece1afc4dafd283211df766bbce",
+  "publication_commit": "c8dcbce1bed879f07dd478582833a021358a5b0f",
+  "files": {
+    "audit.json": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/bulk-fractionation-review-v1/audit.json",
+      "sha256": "a79c239737672bbaa034105ad0f04f054873b5e5b4c84aa1be459835a1a4491d",
+      "size": 2922
+    },
+    "audit.py": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/bulk-fractionation-review-v1/audit.py",
+      "sha256": "bced1dca079ad22fc9484649a5f3831caef2f6b614aac9701e302d9e103c9d2e",
+      "size": 9461
+    },
+    "loader.py": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/bulk-fractionation-review-v1/loader.py",
+      "sha256": "7e961b3ded8c2953732ba191eed949b9ef47b9f381e98f393537e63b73d536c2",
+      "size": 29254
+    },
+    "peptides.csv.gz": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/bulk-fractionation-review-v1/peptides.csv.gz",
+      "sha256": "a7a64d9d0d6f2cb0758691c1efe15bba3ecc2bd923c84d9a90a12c3a1e688733",
+      "size": 37661777
+    },
+    "projection.py": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/bulk-fractionation-review-v1/projection.py",
+      "sha256": "08a2e1c9ad16659e46ea6620f83b619a178d374b7af6bf832b808f3179ec1c6d",
+      "size": 4274
+    },
+    "proteins.csv.gz": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/bulk-fractionation-review-v1/proteins.csv.gz",
+      "sha256": "0a5b35bf54236c8f58034b2a55fea89e8491ea9a2e17161d92b29051950ceb8c",
+      "size": 4733333
+    },
+    "registry.yaml": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/bulk-fractionation-review-v1/registry.yaml",
+      "sha256": "1936194860c47917681448a75401569258f0cf4ea5a46a295a6bfabf4db8073b",
+      "size": 12315
+    },
+    "scope-counts.tsv": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/bulk-fractionation-review-v1/scope-counts.tsv",
+      "sha256": "46c2c1fc710a21aed67c9c7846a4334c7a3ee7d6a2a8040623f52ade29a110d2",
+      "size": 5474
+    },
+    "scope-evidence.tsv": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/bulk-fractionation-review-v1/scope-evidence.tsv",
+      "sha256": "3b4f651df6bd5d6d780010926477219fd5997bccda9b7fa955d643c6bc77cf1c",
+      "size": 7667
+    },
+    "source-registry.json": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/bulk-fractionation-review-v1/source-registry.json",
+      "sha256": "f5ded602844fda3b9a4fd7a1ba0a4f194d152a756a683e6091d7bb02f44687f0",
+      "size": 765
+    },
+    "README.md": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/bulk-fractionation-review-v1/README.md",
+      "sha256": "dc5c44be1bd4fa8705a575afdb2e4b4fd408b7684bb028dc889ac5cedb5a1428",
+      "size": 4389
+    },
+    "independent-verification.json": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/bulk-fractionation-review-v1/independent-verification.json",
+      "sha256": "05490e0fb90ad986cb0cac47ab8cb87f774856fe351b2a3102d890ec612dcb9e",
+      "size": 315
+    },
+    "verify.py": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/bulk-fractionation-review-v1/verify.py",
+      "sha256": "b5ac005499f31885fbc767851150046ee4cf1cb0bef132d224d63e0d563d6923",
+      "size": 4203
+    },
+    "publication.json": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/bulk-fractionation-review-v1/publication.json",
+      "sha256": "308448a4e58711c6d97d6a83eeb274621f1b0b7721df9bc20568622a4ac6371f",
+      "size": 3729
+    },
+    "SHA256SUMS": {
+      "url": "https://github.com/pirl-unc/hitlist/releases/download/bulk-fractionation-review-v1/SHA256SUMS",
+      "sha256": "9eda98abb95ab1bed0495e46b117023192185597bec10c826184636c3f47acdc",
+      "size": 1138
+    }
+  },
+  "paths": {
+    "audit.json": "/Users/iskander/.hitlist/bulk-fractionation/publication/c8dcbce1bed879f07dd478582833a021358a5b0f/bundles/2026-10-16T11-29-34Z/audit.json",
+    "audit.py": "/Users/iskander/.hitlist/bulk-fractionation/publication/c8dcbce1bed879f07dd478582833a021358a5b0f/bundles/2026-10-16T11-29-34Z/audit.py",
+    "loader.py": "/Users/iskander/.hitlist/bulk-fractionation/publication/c8dcbce1bed879f07dd478582833a021358a5b0f/bundles/2026-10-16T11-29-34Z/loader.py",
+    "peptides.csv.gz": "/Users/iskander/.hitlist/bulk-fractionation/publication/c8dcbce1bed879f07dd478582833a021358a5b0f/bundles/2026-10-16T11-29-34Z/peptides.csv.gz",
+    "projection.py": "/Users/iskander/.hitlist/bulk-fractionation/publication/c8dcbce1bed879f07dd478582833a021358a5b0f/bundles/2026-10-16T11-29-34Z/projection.py",
+    "proteins.csv.gz": "/Users/iskander/.hitlist/bulk-fractionation/publication/c8dcbce1bed879f07dd478582833a021358a5b0f/bundles/2026-10-16T11-29-34Z/proteins.csv.gz",
+    "registry.yaml": "/Users/iskander/.hitlist/bulk-fractionation/publication/c8dcbce1bed879f07dd478582833a021358a5b0f/bundles/2026-10-16T11-29-34Z/registry.yaml",
+    "scope-counts.tsv": "/Users/iskander/.hitlist/bulk-fractionation/publication/c8dcbce1bed879f07dd478582833a021358a5b0f/bundles/2026-10-16T11-29-34Z/scope-counts.tsv",
+    "scope-evidence.tsv": "/Users/iskander/.hitlist/bulk-fractionation/publication/c8dcbce1bed879f07dd478582833a021358a5b0f/bundles/2026-10-16T11-29-34Z/scope-evidence.tsv",
+    "source-registry.json": "/Users/iskander/.hitlist/bulk-fractionation/publication/c8dcbce1bed879f07dd478582833a021358a5b0f/bundles/2026-10-16T11-29-34Z/source-registry.json",
+    "README.md": "/Users/iskander/.hitlist/bulk-fractionation/publication/c8dcbce1bed879f07dd478582833a021358a5b0f/bundles/2026-10-16T11-29-34Z/README.md",
+    "independent-verification.json": "/Users/iskander/.hitlist/bulk-fractionation/publication/c8dcbce1bed879f07dd478582833a021358a5b0f/bundles/2026-10-16T11-29-34Z/independent-verification.json",
+    "verify.py": "/Users/iskander/.hitlist/bulk-fractionation/publication/c8dcbce1bed879f07dd478582833a021358a5b0f/bundles/2026-10-16T11-29-34Z/verify.py",
+    "publication.json": "/Users/iskander/.hitlist/bulk-fractionation/publication/c8dcbce1bed879f07dd478582833a021358a5b0f/bundles/2026-10-16T11-29-34Z/publication.json",
+    "SHA256SUMS": "/Users/iskander/.hitlist/bulk-fractionation/publication/c8dcbce1bed879f07dd478582833a021358a5b0f/bundles/2026-10-16T11-29-34Z/SHA256SUMS"
+  },
+  "downloaded": {
+    "audit.json": "/Users/iskander/.hitlist/bulk-fractionation/public-verification/v1/bundles/2026-10-16T11-29-53Z/audit.json",
+    "audit.py": "/Users/iskander/.hitlist/bulk-fractionation/public-verification/v1/bundles/2026-10-16T11-29-53Z/audit.py",
+    "loader.py": "/Users/iskander/.hitlist/bulk-fractionation/public-verification/v1/bundles/2026-10-16T11-29-53Z/loader.py",
+    "peptides.csv.gz": "/Users/iskander/.hitlist/bulk-fractionation/public-verification/v1/bundles/2026-10-16T11-29-53Z/peptides.csv.gz",
+    "projection.py": "/Users/iskander/.hitlist/bulk-fractionation/public-verification/v1/bundles/2026-10-16T11-29-53Z/projection.py",
+    "proteins.csv.gz": "/Users/iskander/.hitlist/bulk-fractionation/public-verification/v1/bundles/2026-10-16T11-29-53Z/proteins.csv.gz",
+    "registry.yaml": "/Users/iskander/.hitlist/bulk-fractionation/public-verification/v1/bundles/2026-10-16T11-29-53Z/registry.yaml",
+    "scope-counts.tsv": "/Users/iskander/.hitlist/bulk-fractionation/public-verification/v1/bundles/2026-10-16T11-29-53Z/scope-counts.tsv",
+    "scope-evidence.tsv": "/Users/iskander/.hitlist/bulk-fractionation/public-verification/v1/bundles/2026-10-16T11-29-53Z/scope-evidence.tsv",
+    "source-registry.json": "/Users/iskander/.hitlist/bulk-fractionation/public-verification/v1/bundles/2026-10-16T11-29-53Z/source-registry.json",
+    "README.md": "/Users/iskander/.hitlist/bulk-fractionation/public-verification/v1/bundles/2026-10-16T11-29-53Z/README.md",
+    "independent-verification.json": "/Users/iskander/.hitlist/bulk-fractionation/public-verification/v1/bundles/2026-10-16T11-29-53Z/independent-verification.json",
+    "verify.py": "/Users/iskander/.hitlist/bulk-fractionation/public-verification/v1/bundles/2026-10-16T11-29-53Z/verify.py",
+    "publication.json": "/Users/iskander/.hitlist/bulk-fractionation/public-verification/v1/bundles/2026-10-16T11-29-53Z/publication.json",
+    "SHA256SUMS": "/Users/iskander/.hitlist/bulk-fractionation/public-verification/v1/bundles/2026-10-16T11-29-53Z/SHA256SUMS"
+  }
+}

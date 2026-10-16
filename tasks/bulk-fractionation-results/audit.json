@@ -1,0 +1,78 @@
+{
+  "commit": "dad214358c640ece1afc4dafd283211df766bbce",
+  "dirty": false,
+  "hitlist_version": "1.80.0",
+  "limitations": "Source-level protocol annotation only. No measured eluate pH, comparable depth ladder, original FASTA recovery or new detectability qualification.",
+  "n_reviewed_scopes": 14,
+  "pandas": "2.3.3",
+  "preservation": "Every original row/order and all fields other than reference/pH are unchanged; both prior annotations are retained separately.",
+  "process_peak_rss_bytes": 273481728,
+  "python": "3.12.6",
+  "runtime_seconds": 64.87346749997232,
+  "scope": "Original-analysis bulk proteomics summaries; not MHC ligands. No MHC allele set applies. Cell lines retained; donor/specimen/biological-replicate identities remain unresolved.",
+  "tables": {
+    "peptides": {
+      "all_original_references_preserved": true,
+      "corrected": {
+        "sha256": "a7a64d9d0d6f2cb0758691c1efe15bba3ecc2bd923c84d9a90a12c3a1e688733",
+        "size_bytes": 37661777
+      },
+      "n_changed_ph_rows": 1987285,
+      "n_corrected_reference_rows": 2047003,
+      "n_other_changed_cells": 0,
+      "n_rows": 2047003,
+      "n_unknown_ph_rows": 247018,
+      "original": {
+        "sha256": "3ec65dd05e8ec58c3293e0fb5720570197a8b152cd14778130bae4224106e3d3",
+        "size": 35074080,
+        "url": "https://github.com/pirl-unc/hitlist/releases/download/data-assets-v1/bekker_jensen_2017_peptides.csv.gz"
+      },
+      "stable_columns": [
+        "peptide",
+        "cell_line",
+        "uniprot_acc",
+        "gene_symbol",
+        "length",
+        "start_position",
+        "end_position",
+        "digestion_enzyme",
+        "n_fractions_in_run",
+        "enrichment",
+        "modifications",
+        "n_replicates_detected",
+        "source"
+      ],
+      "stable_row_order_sha256": "c6b9ece80971a08be9b3e381bfe875afcf98c24af6b1db3004432e0d6628a7aa"
+    },
+    "proteins": {
+      "all_original_references_preserved": true,
+      "corrected": {
+        "sha256": "0a5b35bf54236c8f58034b2a55fea89e8491ea9a2e17161d92b29051950ceb8c",
+        "size_bytes": 4733333
+      },
+      "n_changed_ph_rows": 143495,
+      "n_corrected_reference_rows": 156211,
+      "n_other_changed_cells": 0,
+      "n_rows": 156211,
+      "n_unknown_ph_rows": 18789,
+      "original": {
+        "sha256": "17628f1a9c3ed5e3ee1ad7aab4480008000a6beb2c042928f3fbdf699366bc45",
+        "size": 4410669,
+        "url": "https://github.com/pirl-unc/hitlist/releases/download/data-assets-v1/bekker_jensen_2017_protein_abundance.csv.gz"
+      },
+      "stable_columns": [
+        "cell_line",
+        "gene_symbol",
+        "uniprot_acc",
+        "digestion_enzyme",
+        "n_fractions_in_run",
+        "enrichment",
+        "n_peptides",
+        "log2_intensity",
+        "abundance_percentile",
+        "source"
+      ],
+      "stable_row_order_sha256": "03825eac593d07d36847929df6a41a257a6558278e15afd1179ae13f51665621"
+    }
+  }
+}

@@ -622,7 +622,7 @@ def _add_export_bulk_proteomics_args(p: argparse.ArgumentParser) -> None:
         action="extend",
         nargs="+",
         type=float,
-        help="Filter by high-pH SPE buffer pH (8.0 or 10.0).",
+        help="Filter by reviewed fractionation pH; unknown values are excluded.",
     )
     p.add_argument(
         "--length-min", type=int, help="Minimum peptide length (inclusive; peptide rows only)."
