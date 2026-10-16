@@ -34,13 +34,15 @@ def compare(old_path, new_path, outputs):
     fields = old.schema_arrow.names
     if not set(CONTEXT) <= set(fields):
         raise ValueError("Missing source identity/citation fields")
+    keys = (*KEYS, "evidence_row_id") if "evidence_row_id" in fields else KEYS
+    context_fields = (*CONTEXT, "evidence_row_id") if "evidence_row_id" in fields else CONTEXT
     field_counts, study_counts = Counter(), Counter()
     n_rows = n_changed = 0
     started = time.monotonic()
     with Path(outputs["changed-cells.tsv"]).open("w", newline="") as stream:
         writer = csv.DictWriter(
             stream,
-            fieldnames=["row_index", *CONTEXT, "field", "original_value", "corrected_value"],
+            fieldnames=["row_index", *context_fields, "field", "original_value", "corrected_value"],
             delimiter="\t",
         )
         writer.writeheader()
@@ -56,7 +58,7 @@ def compare(old_path, new_path, outputs):
                     left[field] = left[field].astype(object)
                     right[field] = right[field].astype(object)
             equal = (left.eq(right) | (left.isna() & right.isna())).fillna(False)
-            if not equal[list(KEYS)].all().all():
+            if not equal[list(keys)].all().all():
                 raise ValueError("Observation identity/order changed; explicit join required")
             changed = ~equal
             n_changed += int(changed.any(axis=1).sum())
@@ -66,7 +68,7 @@ def compare(old_path, new_path, outputs):
                 for index in indexes:
                     context = {
                         key: "" if pd.isna(left.at[index, key]) else left.at[index, key]
-                        for key in CONTEXT
+                        for key in context_fields
                     }
                     study_counts[str(context["pmid"]), field] += 1
                     writer.writerow(
@@ -105,7 +107,7 @@ def compare(old_path, new_path, outputs):
         "n_changed_cells": sum(field_counts.values()),
         "n_fields": len(fields),
         "changed_fields": {key: value for key, value in field_counts.items() if value},
-        "identity_fields": list(KEYS),
+        "identity_fields": list(keys),
         "identity_and_order_unchanged": True,
         "runtime_seconds": time.monotonic() - started,
         "n_rows_per_batch": 8192,

@@ -52,3 +52,18 @@ def test_nonaligned_inputs_fail_instead_of_claiming_unchanged_ids(tmp_path, mism
     new.to_parquet(tmp_path / "new.parquet")
     with pytest.raises(ValueError, match=r"differ|changed"):
         audit.compare(tmp_path / "old.parquet", tmp_path / "new.parquet", outputs)
+
+
+def test_native_training_observation_ids_are_validated_and_retained(tmp_path):
+    old, new, outputs = fixture(tmp_path)
+    old["evidence_row_id"] = new["evidence_row_id"] = ["ms:1", "ms:2"]
+    old.to_parquet(tmp_path / "old.parquet")
+    new.to_parquet(tmp_path / "new.parquet")
+    result = audit.compare(tmp_path / "old.parquet", tmp_path / "new.parquet", outputs)
+    assert "evidence_row_id" in result["identity_fields"]
+    changes = pd.read_csv(outputs["changed-cells.tsv"], sep="\t")
+    assert changes.iloc[0].evidence_row_id == "ms:1"
+    new.loc[0, "evidence_row_id"] = "different-observation"
+    new.to_parquet(tmp_path / "new.parquet")
+    with pytest.raises(ValueError, match="identity/order changed"):
+        audit.compare(tmp_path / "old.parquet", tmp_path / "new.parquet", outputs)

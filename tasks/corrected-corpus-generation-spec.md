@@ -63,3 +63,10 @@ Pin the original materialization receipt SHA-256 and remote bundle in the recove
 script; validate that receipt before any download. Remove its import of the current
 run/options. Verify changed current settings cannot alter the recovered contract,
 and reject tampered original receipt bytes. Original public artifacts stay intact.
+
+Apply the same bounded comparison to both native human training exports, adding
+`evidence_row_id` to mandatory identity/order validation and every changed-cell
+context when present. Compare every exported cell/condition/MHC/label/lineage field.
+If identities or schema differ, stop and explicitly audit additions/removals rather
+than claiming preservation. The raw-index comparison's already published recipe
+and outputs remain immutable; the export audit records its own recipe/input hashes.
