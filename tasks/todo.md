@@ -3,7 +3,7 @@
 - [x] Specify immutable baseline, released producer and source/reference reuse boundaries.
 - [x] Implement released-producer/reference pins and fail-closed verification.
 - [x] Run focused gates, freeze source and execute the six bounded stages.
-- [ ] Publish and independently verify complete generation and human inspection artifacts.
+- [x] Publish and independently verify complete generation and human inspection artifacts.
 - [ ] Run full gates, review, merge and deploy 1.79.0; register new consumer qualification.
 
 ## Corrected-generation prelaunch review
@@ -14,8 +14,11 @@ reference bytes and original receipt are hash-checked, cache-format library
 versions must agree, and observations/mappings rebuild independently. All six stages succeeded; the complete public v4 corpus and all 18 assets were
 independently verified. The field audit covers all 4,486,991 MHC-MS rows and
 71 columns; exactly 79,406 predicted-restriction evidence cells changed.
-Twenty focused tests pass, including historical recovery isolation (#698).
-The corrected human export is running; final-head CI and deployment remain.
+Twenty-one focused tests pass, including historical recovery isolation (#698)
+and native observation-ID preservation. The corrected human export is complete:
+4,071,463 observations; 89,567 rows change only in metadata. All 21 public assets
+and the native consumer bundle independently verify. Presto has a frozen new
+qualification recipe using released 0.1.13. Final-head CI and deployment remain.
 
 # Human-cohort export recovery — #695
 

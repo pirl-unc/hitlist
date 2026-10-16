@@ -67,6 +67,9 @@ Optional DepMap matrices are absent. Unknown experimental origins, donors,
 specimens and acquisitions remain unknown. Positive elution is not detectability
 supervision. #678/#680 remain open for endpoint and independence qualification.
 
-Format/lint and 20 focused qualification/comparison/recovery tests pass. The local
+Format/lint and 21 focused qualification/comparison/recovery tests pass. The local
 full-suite memory guard refused insufficient capacity; it was not bypassed.
-Full CI, final-head review, merge and clean-main PyPI distribution remain required.
+Full CI at c72138a passed all four unit Python versions, 96 integration tests,
+coverage and the clean release build. Final-head review, merge and clean-main
+PyPI distribution remain required. The [corrected human cohort](../corrected-human-cohort-results/README.md)
+is also public with all 21 assets and its native consumer verification complete.
