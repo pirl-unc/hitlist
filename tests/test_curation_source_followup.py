@@ -77,14 +77,18 @@ def test_sarango_single_and_shared_arms_in_both_mhc_classes(monkeypatch, mhc_cla
     typing = sample_mhc_candidates(samples[0]["mhc"])
     assert typing.join_alleles == frozenset({"HLA-DRB1*01:02"})
     assert typing.imprecise == ("HLA class I",)
-    assert [s.get("condition_knockdown_genes", "") for s in samples] == ["", "", "TAX1BP1"]
+    assert [s.get("condition_knockdown_genes", "") for s in samples] == [
+        "none",
+        "none",
+        "TAX1BP1",
+    ]
     assert [s.get("condition_control", "") for s in samples] == ["mock", "non_targeting", ""]
     ids = {
         "Mock": "hela_ciita_mock",
         "siCTRL": "hela_ciita_control_sirna",
         "siT6BP": "hela_ciita_t6bp_sirna",
     }
-    rows, expected = [], []
+    rows, expected, expected_knockdown = [], [], []
     for arms, suffix in [
         *[(a, "") for a in SARANGO_PLAIN],
         *[
@@ -106,12 +110,18 @@ def test_sarango_single_and_shared_arms_in_both_mhc_classes(monkeypatch, mhc_cla
             }
         )
         expected.append(ids.get(arms, ""))
+        if arms == "siT6BP":
+            expected_knockdown.append("TAX1BP1")
+        elif "siT6BP" in arms:
+            expected_knockdown.append("")
+        else:
+            expected_knockdown.append("none")
     assert len(rows) == 21
     result = _export(monkeypatch, rows)
     assert result.condition_id.tolist() == expected
+    assert result.condition_knockdown_genes.tolist() == expected_knockdown
     shared = result[pd.Series(expected).eq("")]
     assert shared.sample_label.eq("").all()
-    assert shared.condition_knockdown_genes.eq("").all()
     assert shared.sample_attribution.eq("pmid_ambiguous").all()
     assert result.mhc_restriction.eq(restriction).all()
 

@@ -23,7 +23,7 @@ def test_chen_host_knockout_is_distinct_from_erap1_knockdown(monkeypatch):
     control, knockdown = samples
     assert control["condition_control"] == "non_targeting"
     assert control["condition_control_for"] == knockdown["condition_id"]
-    assert not control.get("condition_knockdown_genes")
+    assert control["condition_knockdown_genes"] == "none"
     assert knockdown["condition_knockdown_genes"] == "ERAP1"
     for sample in samples:
         assert sample["condition_knockout_genes"] == "HLA-A;HLA-B;HLA-C"
@@ -55,7 +55,7 @@ def test_chen_host_knockout_is_distinct_from_erap1_knockdown(monkeypatch):
         knockdown["condition_id"],
         "",
     ]
-    assert result.condition_knockdown_genes.tolist() == ["", "ERAP1", ""]
+    assert result.condition_knockdown_genes.tolist() == ["none", "ERAP1", ""]
     assert result.iloc[2].sample_label == ""
 
 
