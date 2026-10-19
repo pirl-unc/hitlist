@@ -151,10 +151,42 @@ snapshot. `./test.sh` was attempted, but the sandbox denied its macOS
 `sysctl hw.pagesize` memory probe, so it stopped before pytest. CI and the
 release workflow must run the full suite and corpus validation.
 
-## Later candidates
+## PR 5: #642 empty-fallback export fragmentation (1.82.6)
 
-- [ ] #642: reproduce current export fragmentation, measure an equivalent
-  change and its full-corpus memory effect before claiming a fix.
+Specification: when no single-sample PMID fallback exists, the export currently
+inserts every `<meta>_fb` column as all missing and pops each one immediately
+during coalescing. This generates pandas fragmentation warnings and allocates
+dozens of full-length object arrays with no information. In that branch,
+coalesce the already-present allele-match columns straight to their scalar
+defaults (`""` or `False`) using the existing categorical-safe helper.
+Preserve the nonempty fallback path and column-wise bounded-memory coalescing,
+the exported schema, values, dtypes, row order and pandas 2/3 compatibility.
+Reproduce warnings and output on a small public scanner export, compare
+matched baseline/candidate memory and time, then check full-corpus CI memory.
+If the full-corpus validation cannot run or regresses, do not claim #642
+closed: record the partial finding and keep the PR unmerged.
+
+- [x] Add a realistic empty-fallback export regression checking semantic and
+  dtype parity, zero `_fb` leaks, and warning behavior; run it on the parent.
+- [x] Implement the branch simplification and compare matched small-export
+  warning counts, output hashes, elapsed time and peak memory.
+- [x] Run format, lint, focused and full tests; review the diff.
+- [ ] Open a versioned PR stacked on #606, pass full-corpus CI, merge in
+  sequence, deploy from clean main and verify PyPI hashes.
+
+Review to date: the public-format scanner fixture failed with
+`PerformanceWarning` at the empty `_fb` insertion on the parent and passes
+with the branch simplification. All 520 selected non-integration candidate,
+export and curation tests pass; `./format.sh` and `./lint.sh` pass. A matched
+2,000-row/140-column export in alternating fresh processes returned the same
+full-frame/dtype digest (`873088e5...`) both times: parent warnings 36/36,
+candidate 0/0; elapsed 0.448/0.427 s versus 0.386/0.390 s; peak process
+RSS 255/252 MB versus 255/254 MB. These small runs establish warning removal
+and parity, not a full-corpus memory saving. The available October corpus
+has 69 eligible single-sample curated PMIDs, so its unfiltered build takes
+the unchanged nonempty-fallback branch. `./test.sh` was attempted but the
+sandbox denied its `sysctl hw.pagesize` memory probe, so it stopped before
+pytest; the full CI profile remains the release gate.
 
 ## Review
 
