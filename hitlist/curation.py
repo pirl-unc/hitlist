@@ -1689,9 +1689,11 @@ def _names_one_molecule(allele: Allele) -> bool:
     empty ``mhc_allele_set`` and ``mhc_allele_provenance == "unmatched"``
     (#597).
 
-    So the lone field has to *name a haplotype*, and that name is validated
-    against the species' roster (``Species.haplotypes``). A shape test is not
-    enough, and an earlier revision of this change learned that the hard way:
+    A lone field can name a species haplotype in ``Species.haplotypes`` or a
+    gene-specific entry in ``Species.get_known_allele``. Numeric-only catalog
+    entries are excluded: ``SahaI*49`` and siblings are parsing components of
+    compound labels, not endorsed standalone molecules. A shape test alone is
+    not enough, and an earlier revision learned that the hard way:
     "any field that does not start with a digit" accepted ``H2-K*x``,
     ``H2-D*nonsense`` and ``Mamu-A*ab`` as ``four_digit``, so
     :func:`expand_allele_set` returned them as an ``exact`` set of size 1 and a
@@ -1699,9 +1701,10 @@ def _names_one_molecule(allele: Allele) -> bool:
     passed ``--min-allele-resolution four_digit``. An unattributed row is
     honest; a typo presented as an exact molecule is not.
 
-    This is the one question the roster *can* answer: "is this string a
-    haplotype name of this species?" Note the contrast with its member lists,
-    which are **not** consulted. Those record which allele each gene carries
+    The roster answers whether a field names a haplotype of this species;
+    the known-allele table covers published, non-roster molecules such as
+    ``H2-K*wm7`` and ``AnasPlat-UAA*sd`` (#606). The roster's member lists
+    are **not** consulted. They record which allele each gene carries
     **in** a haplotype, not which alleles exist — haplotype ``a`` lists
     ``K*k`` and ``D*d`` because H2-a is a recombinant, so a gene routinely
     carries a letter other than the haplotype's own. Requiring ``gene*field``
@@ -1710,20 +1713,16 @@ def _names_one_molecule(allele: Allele) -> bool:
     that haplotype carries ``Qa1*a``.
 
     Mutant and wild-derived forms are **not** decomposed into a base
-    haplotype, so ``H2-Kbm1`` / ``H2-Kbm8`` / ``H2-Dbm13`` (the C57BL/6
-    ``bm`` point-mutant series) and ``H2-K*wm7`` stay ``two_digit`` -- see the
-    follow-up issue. A ``<base>m<n>`` split is not reliable: ``wm7`` has the
-    same shape as ``bm1`` and a different meaning, being an atomic haplotype
-    of the Japanese wild mouse *Mus musculus molossinus* rather than "mutant 7
-    of haplotype ``w``" -- there is no haplotype ``w``. A regex cannot tell
-    those apart, and it would equally accept ``H2-K*bm999``. Measured, the
-    split also buys nothing: it recovers **0** additional corpus rows over
-    roster-only, because the ``bm`` series appears in no row and ``wm7``'s 7
-    rows fail it either way.
+    haplotype. The ``bm`` series and ``wm7`` look similar but have different
+    origins; a pattern would also accept invented ``H2-K*bm999``. Only the
+    upstream catalog's source-backed, gene-specific names qualify.
     """
     if allele.num_allele_fields != 1:
         return allele.num_allele_fields >= 2
-    return allele.allele_fields[0] in allele.species.haplotypes
+    field = allele.allele_fields[0]
+    return field in allele.species.haplotypes or (
+        not field.isdigit() and allele.species.get_known_allele(allele.gene.name, field) is not None
+    )
 
 
 def _side_resolution(side) -> str:
@@ -1783,7 +1782,7 @@ def classify_allele_resolution(mhc_restriction: str) -> str:
             return "donor_set"
 
     # No ``except ImportError`` and no regex fallback behind it. ``mhcgnomes``
-    # is a core dependency (``mhcgnomes>=3.64.4``; the ``alleles`` extra is an
+    # is a core dependency (``mhcgnomes>=3.64.6``; the ``alleles`` extra is an
     # empty alias kept for compatibility), so the import cannot fail, and the
     # regex only ever ran for strings mhcgnomes *refused* -- where a
     # hand-rolled pattern second-guessing the parser is a silent-wrong-answer
