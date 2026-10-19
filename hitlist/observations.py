@@ -682,12 +682,12 @@ _ATTRIBUTION_REPAIR_COLUMNS = (
 )
 
 
-def _repair_scoped_peptide_attributions(df: pd.DataFrame) -> pd.DataFrame:
-    """Remove derived cross-cohort labels and their donor copies from old indexes."""
+def _repair_scoped_peptide_attributions(df: pd.DataFrame) -> pd.Series | None:
+    """Clear stale cross-cohort labels; return a keep mask for duplicate copies."""
     from .curation import load_pmid_overrides
 
     if df.empty or "pmid" not in df or "attributed_sample_label" not in df:
-        return df
+        return None
     invalid = pd.Series(False, index=df.index)
     pmids = pd.to_numeric(df["pmid"], errors="coerce")
     for pmid, entry in load_pmid_overrides().items():
@@ -717,7 +717,7 @@ def _repair_scoped_peptide_attributions(df: pd.DataFrame) -> pd.DataFrame:
         )
         invalid.loc[selected] = ~(allowed | promoted)
     if not invalid.any():
-        return df
+        return None
     if any(column not in df for column in ("assay_iri", "peptide")):
         raise ValueError(
             "Rebuild the peptide indexes to repair out-of-scope patient attributions: "
@@ -740,7 +740,7 @@ def _repair_scoped_peptide_attributions(df: pd.DataFrame) -> pd.DataFrame:
     )
     keep = pd.Series(True, index=df.index)
     keep.loc[duplicates.index] = ~duplicates
-    return df.loc[keep]
+    return keep if not keep.all() else None
 
 
 def _load_peptide_index(
@@ -1006,7 +1006,14 @@ def _load_peptide_index(
                 df["assay_modality"] = "binding"
                 df["is_binding_assay"] = True
                 df["is_ms_observation"] = False
-    df = _repair_scoped_peptide_attributions(df)
+    # Carry the duplicate decision through the row-wise post-load filters.
+    # A private object key cannot collide with a parquet or requested column.
+    # Combining it with the normalized non-peptide mask below makes the
+    # default full-index load perform one whole-frame row selection (#603).
+    repair_keep_column = object()
+    repair_keep = _repair_scoped_peptide_attributions(df)
+    if repair_keep is not None:
+        df[repair_keep_column] = repair_keep.to_numpy(dtype=bool)
 
     # Refresh only derived identities. Reported restrictions stay intact,
     # including on indexes built before the retirement rule (#456).
@@ -1190,6 +1197,7 @@ def _load_peptide_index(
     # ``columns=`` projections work and stale parquets stay correct.
     # Derived again at scan time and in :func:`_apply_training_defaults`
     # — same regex everywhere, redundancy is intentional.
+    non_peptide_keep = None
     if "mhc_restriction" in df.columns:
         from .curation import is_non_peptide_ligand
 
@@ -1201,7 +1209,15 @@ def _load_peptide_index(
             df["mhc_restriction"].map(flag_map).astype("boolean").fillna(False).astype(bool)
         )
         if exclude_non_peptide_ligand:
-            df = df[~df["is_non_peptide_ligand"]]
+            non_peptide_keep = ~df["is_non_peptide_ligand"]
+
+    if repair_keep_column in df.columns:
+        repair_keep = df.pop(repair_keep_column)
+        non_peptide_keep = (
+            repair_keep if non_peptide_keep is None else repair_keep & non_peptide_keep
+        )
+    if non_peptide_keep is not None:
+        df = df.loc[non_peptide_keep]
 
     # ── Multi-axis species columns + filters (#46) ───────────────────────
     # Disambiguate the three species axes that the legacy single ``species``
