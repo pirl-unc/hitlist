@@ -2621,10 +2621,7 @@ def generate_observations_table(
             _assigned = obs.loc[_rows, "condition_id"].astype("string").fillna("")
             _classes = obs.loc[_rows, "_mhc_class_norm"].astype("string").fillna("")
             _labels = obs.loc[_rows, "sample_label"].astype("string").fillna("")
-            # No ``strict=`` on zip: this package supports Python 3.9, where it
-            # is not a parameter, and ruff cannot catch it because B905 is in
-            # the ignore list (see qc.py's note). All five sequences come from
-            # the same row selection, so they align by construction.
+            # All five sequences come from the same row selection and align.
             _by_class: dict[str, list] = {}
             for _idx, _stmt, _arm, _cls, _label in zip(
                 _rows,

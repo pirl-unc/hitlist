@@ -1,3 +1,62 @@
+# PR 9: #684 Python 3.10-3.14 support policy (1.82.10)
+
+Specification: align the supported Python minimum with the approved OpenVax
+policy while keeping no upper bound. Set `requires-python` and Ruff target to
+3.10, update the local contributor rule and stale Python 3.9 comments, and run
+the unit CI matrix on 3.10 through 3.14. Keep the full-corpus integration
+runner on its current tested Python, with editable-install and full unit tests
+on every matrix leg. Refresh the tracked uv lock using the existing resolver
+without forcing incompatible versions; inspect dependency markers and any
+material lock churn. Verify actual 3.10 and 3.14 dependency installs and tests
+where feasible, then format, lint, full local tests and CI. Bump to 1.82.10,
+stack on #716, merge only after 1.82.9 publishes, and release from clean main.
+
+CI gate adjustment (#718): on final head `f17101e`, all five unit legs
+passed; the integration log records **96 passed** and pytest exit status 0
+after 18m34s, then GitHub canceled the job at its 20-minute cap before
+coverage upload. The retry repeated this exact pattern. Carry the narrow
+30-minute integration cap from draft #719 into this PR so its own final head
+can be green; preserve every test and workflow step. Close the redundant
+stacked draft #719 after this change is pushed. Repeat format/lint/local tests,
+then require final-head CI and the clean-main release.
+
+- [x] Audit all supported-version declarations, dependency markers and lockfile.
+- [x] Change metadata, CI, contributor guidance, comments, version and lockfile.
+- [x] Run format, lint, local tests, 3.10/3.14 installs and tests; review diff.
+- [x] Raise the integration CI cap to 30 minutes without changing its suite.
+- [ ] Open PR, validate full CI and release, merge and publish in order.
+
+## Review
+
+The version declaration, Ruff target, CI matrix, contributor rule and tracked
+uv lock all used the old floor. `uv lock` resolves 64 packages for >=3.10;
+its 1,016 removed lines primarily discard Python 3.9-only wheel and branch
+entries, while synchronizing stale datacache/mhcgnomes records with declared
+floors. `uv lock --check` passes. Ruff's new 3.10 target activates six rules;
+the compatible import/type changes and `itertools.pairwise` preserve behavior.
+`./format.sh` and `./lint.sh` pass. Local `./test.sh` passes 3,129 unit tests
+at 89% coverage on Python 3.12. Isolated lockfile installs on Python 3.10
+and 3.14 both pass the editable-install check and 92 focused proteome,
+CLI/version and installer tests. A broader 3.14 run exposed native argparse
+color introduced in that interpreter; disabling it within Hitlist's existing
+custom-color parser restores the established help output. The twelve localhost
+HTTP fixture errors in that run came from the sandbox denying a loopback
+socket bind. With loopback access, the full 3.14 unit suite passes: 3,128
+passed, one skipped; the five CLI-help tests also pass on both endpoints.
+The post-fix 3.12 `./test.sh` rerun passes 3,129 tests at 89% coverage. Full
+CI, including the five-version unit matrix and corpus integration gate,
+remains pending.
+
+The #718 follow-up changes only the integration timeout/comment in the test
+workflow. Two final-head attempts were canceled at the 20-minute job cap;
+the retry reached 96 passing integration tests and pytest exit status 0
+after 18m34s in pytest. The cap is now 30 minutes, preserving all
+steps. Format and lint pass. A new local `./test.sh` attempt was refused at
+0.53 GB free because separate active `mhctools` tests consume several GB;
+the previous full 3.12 and 3.14 suites passed on the same application code,
+and the isolated #719 branch's identical timeout change passed 57 focused
+tests plus the full 3,129-test local suite. Final-head CI remains required.
+
 # PR 8: #593 source-backed control absences (1.82.9)
 
 Specification: adjudicate five small same-material control studies

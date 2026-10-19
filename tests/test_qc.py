@@ -54,8 +54,7 @@ def _write_obs_fixture(tmp_path, rows):
     workaround: ``builder._compress_categoricals`` pre-adds ``""`` to every one
     of these columns **on purpose**, with a comment naming the ``fillna("")``
     call sites in ``export.py`` / ``supplement.py`` / ``scanner.py`` that would
-    otherwise raise. Under pandas 2.x -- which CI's 3.9/3.10/3.11 legs use,
-    while this machine has 3.0.5 -- ``Categorical.fillna`` validates the fill
+    otherwise raise. Under pandas 2.x, ``Categorical.fillna`` validates the fill
     value against the categories *whether or not any NaN is present*, so a
     column without ``""`` raises ``TypeError: Cannot setitem on a Categorical
     with a new category ()``. So the builder maintains an invariant those call

@@ -18,9 +18,14 @@ classifiers = [
     "Operating System :: OS Independent",
     "Intended Audience :: Science/Research",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "pandas",
     "pyarrow",
@@ -29,8 +34,8 @@ dependencies = [
     # do not control and could narrow.  Everything we call (`np.searchsorted`,
     # `np.frombuffer`, `np.unique`, `np.empty`/`zeros`/`full`, the fixed-width
     # scalar types) has been stable since numpy 1.x, so the floor is set by our
-    # `requires-python = ">=3.9"` rather than by any feature: 1.22 is the
-    # oldest release whose wheels cover that whole range.
+    # supported Python baseline rather than by any feature: 1.22 predates
+    # that baseline and leaves compatible current NumPy releases available.
     "numpy>=1.22",
     "PyYAML",
     "tqdm",
@@ -132,7 +137,7 @@ hitlist = [
 ]
 
 [tool.ruff]
-target-version = "py39"
+target-version = "py310"
 line-length = 100
 src = ["hitlist", "tests"]
 # The one list of files ./lint.sh, ./format.sh and CI check; they pass no paths.

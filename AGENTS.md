@@ -35,7 +35,7 @@ Do not tell the user you are "done" or that changes are "complete" until all thr
 - Configuration is in `pyproject.toml` under `[tool.ruff]`; its `include` list is the one set of
   files `./format.sh`, `./lint.sh` and CI check (they pass no paths), so add a new linted script there
 - Line length: 100 characters
-- Target Python version: 3.9+
+- Target Python version: 3.10+; CI tests 3.10 through 3.14
 - PMID overrides and tissue categories are YAML data, not Python code
 - Count fields must carry an explicit unit suffix — use `n_samples`, `n_peptides`,
   `n_alleles`, `n_donors`, etc. Never name a count field just `n`; a bare `n` is
