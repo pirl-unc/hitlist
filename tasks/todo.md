@@ -58,7 +58,7 @@ columns, independent of content) against 5.4 GB of end-state live content.
 125 columns x 4.4M rows in one pandas frame was the cost. The column-level
 levers measured in this pass were worth 1-2 GB, not the 6 GB initially sought.
 
-Four directions measured in this pass, all recorded on #566:
+Four approaches evaluated in this pass, all recorded on #566:
 
 - narrowing metadata columns *later* -- cannot help, the pages are touched
 - narrowing them *earlier* -- **+337 MB CI peak RSS** while cutting live bytes
@@ -71,8 +71,8 @@ Four directions measured in this pass, all recorded on #566:
 At the time this pass ended, the recommendation was to accept roughly 800 MB
 of runner margin and monitor the peak (98 MB spread over five runs). That
 recommendation was superseded by #610: releasing retained join frames cut the
-same v2 integration peak from a 15.19 GB baseline mean to 13.13 GB, with all
-four paired runs below the baseline range. #566 then closed. These numbers do
+same v2 integration peak from a 15.19 GB baseline mean to 13.13 GB; both
+candidate runs were below both baseline runs. #566 then closed. These numbers do
 not establish the memory margin for current corpus generations or runners.
 
 #602 still earned its merge: bit-identical output, 13% faster, and it fixes a
