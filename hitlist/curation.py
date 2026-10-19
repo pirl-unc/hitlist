@@ -290,6 +290,12 @@ MHC_ALLELE_PROVENANCE_VALUES = (
     "peptide_attribution",
     "sample_allele_match",
     "pmid_class_pool",
+    "peptide_locus_match",
+    "sample_locus_match",
+    "pmid_locus_pool",
+    "peptide_serotype_match",
+    "sample_serotype_match",
+    "pmid_serotype_pool",
     "unmatched",
 )
 
@@ -3226,14 +3232,14 @@ def _filter_alleles_by_class(alleles, mhc_class: str) -> set[str]:
 
 
 # Only these historical class-only expansions replace the reported restriction.
-# Gene/locus candidate inference always retains the original coarse evidence.
+# Gene/locus and serotype inference always retain the original coarse evidence.
 CLASS_ONLY_CANDIDATE_PROVENANCES = frozenset(
     {"peptide_attribution", "sample_allele_match", "pmid_class_pool"}
 )
 
 
 def _candidate_matches_restriction(candidate: str, restriction, species: str) -> bool:
-    """Intersect an exact designation with evidenced species, class and locus."""
+    """Intersect an exact designation with evidenced species, class and restriction."""
     parsed = _cached_parse(candidate)
     if species and not species_compatible(parsed.species.name, species):
         return False
@@ -3249,6 +3255,11 @@ def _candidate_matches_restriction(candidate: str, restriction, species: str) ->
         )
     if isinstance(restriction, Class2Locus):
         return all(chain.gene.name in restriction.gene_names for chain in chains)
+    if isinstance(restriction, Serotype):
+        return any(
+            restriction.to_string() in allele_to_all_serotypes(chain.to_string())
+            for chain in chains
+        )
     return True
 
 
@@ -3293,8 +3304,13 @@ def expand_allele_set(
       reported species, class and locus. Provenance is ``peptide_locus_match``,
       ``sample_locus_match`` or ``pmid_locus_pool``; the reported restriction
       stays coarse. Supplied chains/pairs remain intact; no partner is invented.
-    - Blank, two-digit, serological and other unresolved restrictions remain
-      ``unmatched``. No catalog or haplotype expansion is performed.
+    - Serological restrictions use the same typing precedence, intersected
+      with the known membership of each exact candidate. Provenance is
+      ``peptide_serotype_match``, ``sample_serotype_match`` or
+      ``pmid_serotype_pool``. The reported serotype remains unchanged; no
+      catalog members are added to the candidate pool.
+    - Blank, two-digit and other unresolved restrictions remain ``unmatched``.
+      No catalog or haplotype expansion is performed.
 
     A nonempty strongest typing tier never falls through to a broader pool if
     its compatible intersection is empty. Generic class labels have unknown
@@ -3323,7 +3339,8 @@ def expand_allele_set(
     species_context = species_context or pmid_mhc_species_context(pmid)
     restriction, _, _ = _parse_with_context(mhc_restriction, species_context)
     locus_inference = isinstance(restriction, (Gene, Class2Locus))
-    if not locus_inference and resolution != "class_only":
+    serotype_inference = isinstance(restriction, Serotype) and resolution == "serological"
+    if not (locus_inference or serotype_inference) and resolution != "class_only":
         return "", "unmatched", 0
 
     species = ""
@@ -3331,7 +3348,12 @@ def expand_allele_set(
         species = restriction.species.name
 
     sample_alleles = _parse_host_mhc_types(host_mhc_types)
-    if locus_inference and not attributed_alleles and host_mhc_types and not sample_alleles:
+    if (
+        (locus_inference or serotype_inference)
+        and not attributed_alleles
+        and host_mhc_types
+        and not sample_alleles
+    ):
         # An incomplete donor designation is still a stronger typing tier.
         # Do not replace its missing fields/chains with a study-wide union.
         try:
@@ -3360,12 +3382,13 @@ def expand_allele_set(
     if not candidates:
         return "", "unmatched", 0
 
-    if attributed_alleles:
-        provenance = "peptide_locus_match" if locus_inference else "peptide_attribution"
-    elif sample_alleles:
-        provenance = "sample_locus_match" if locus_inference else "sample_allele_match"
+    if locus_inference:
+        provenances = ("peptide_locus_match", "sample_locus_match", "pmid_locus_pool")
+    elif serotype_inference:
+        provenances = ("peptide_serotype_match", "sample_serotype_match", "pmid_serotype_pool")
     else:
-        provenance = "pmid_locus_pool" if locus_inference else "pmid_class_pool"
+        provenances = ("peptide_attribution", "sample_allele_match", "pmid_class_pool")
+    provenance = provenances[0 if attributed_alleles else 1 if sample_alleles else 2]
     return ";".join(sorted(candidates)), provenance, len(candidates)
 
 

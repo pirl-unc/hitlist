@@ -35,6 +35,68 @@ def test_locus_candidates_keep_chains_and_supplied_pairs(restriction, expected):
     assert n_alleles == len(expected)
 
 
+@pytest.mark.parametrize(
+    "restriction,typing,expected",
+    [
+        ("HLA-A2", "HLA-A*02:01;HLA-A*24:02", "HLA-A*02:01"),
+        ("HLA-A24", "HLA-A*24:02;HLA-A*02:01", "HLA-A*24:02"),
+        ("HLA-Bw4", "HLA-A*24:02;HLA-B*57:01;HLA-B*07:02", "HLA-A*24:02;HLA-B*57:01"),
+        ("HLA-DR15", "HLA-DRA*01:01/DRB1*15:01;HLA-DRB1*04:01", "HLA-DRA*01:01/DRB1*15:01"),
+        ("BoLA-A18", "BoLA-6*013:01;HLA-A*02:01", "BoLA-6*013:01"),
+    ],
+)
+def test_serotype_intersects_existing_exact_typing(restriction, typing, expected):
+    result = curation.expand_allele_set(restriction, typing)
+    assert result == (
+        (expected, "sample_serotype_match", len(expected.split(";")))
+        if expected
+        else ("", "unmatched", 0)
+    )
+
+
+def test_serotype_respects_strongest_typing_tier(monkeypatch):
+    monkeypatch.setattr(curation, "_pmid_allele_pool", lambda _: frozenset({"HLA-A*02:01"}))
+    assert curation.expand_allele_set("HLA-A2", "HLA-A*24:02", 999) == ("", "unmatched", 0)
+    assert curation.expand_allele_set(
+        "HLA-A2", "HLA-A*24:02", 999, attributed_alleles=frozenset({"HLA-A*02:01"})
+    ) == ("HLA-A*02:01", "peptide_serotype_match", 1)
+    assert curation.expand_allele_set("HLA-A2", pmid=999) == (
+        "HLA-A*02:01",
+        "pmid_serotype_pool",
+        1,
+    )
+    assert curation.expand_allele_set("HLA-A2", "HLA-A*02", 999) == ("", "unmatched", 0)
+
+
+def test_serotype_does_not_expand_catalog_or_cross_class(monkeypatch):
+    monkeypatch.setattr(curation, "_pmid_allele_pool", lambda _: frozenset({"HLA-A*02:01"}))
+    assert curation.expand_allele_set("HLA-A2") == ("", "unmatched", 0)
+    assert curation.expand_allele_set("HLA-A2", "HLA-A*02:01", mhc_class="II") == (
+        "",
+        "unmatched",
+        0,
+    )
+    assert curation.expand_allele_set("HLA-B23", "HLA-B*23:01", 999) == (
+        "",
+        "unmatched",
+        0,
+    )
+    assert curation.expand_allele_set("BoLA-A18", "HLA-A*02:01") == ("", "unmatched", 0)
+
+
+def test_candidate_provenance_vocabulary_covers_inferred_sets():
+    from hitlist.curation import MHC_ALLELE_PROVENANCE_VALUES
+
+    assert {"peptide_locus_match", "sample_locus_match", "pmid_locus_pool"} <= set(
+        MHC_ALLELE_PROVENANCE_VALUES
+    )
+    assert {
+        "peptide_serotype_match",
+        "sample_serotype_match",
+        "pmid_serotype_pool",
+    } <= set(MHC_ALLELE_PROVENANCE_VALUES)
+
+
 @pytest.mark.parametrize("tier", ["donor", "peptide"])
 def test_incompatible_strongest_tier_does_not_fall_back(monkeypatch, tier):
     monkeypatch.setattr(curation, "_pmid_allele_pool", lambda _: frozenset({"HLA-DRB1*12:01"}))
@@ -197,6 +259,32 @@ def test_scanner_preserves_locus_evidence(tmp_path, monkeypatch, classify_source
     assert generate_observations_table(min_allele_resolution="four_digit").empty
 
 
+def test_scanner_keeps_reported_serotype_separate_from_candidates(tmp_path, monkeypatch):
+    from hitlist.observations import load_observations
+    from hitlist.scanner import scan
+    from tests.test_scanner import _write_tiny_iedb_csv
+
+    path = tmp_path / "iedb.csv"
+    row = [""] * 23
+    row[0], row[2], row[5] = "http://iedb.org/assay/serotype", "99900004", "PEPTIDE"
+    row[19], row[20], row[21] = "HLA-A2", "I", "HLA-A*02:01;HLA-A*24:02"
+    row[22], row[14] = "mass spectrometry", "Positive"
+    _write_tiny_iedb_csv(path, [row])
+    frame = scan(peptides=None, iedb_path=path, cedar_path=None, mhc_species=None)
+    result = frame.iloc[0]
+    assert result["mhc_restriction"] == "HLA-A2"
+    assert result["allele_resolution"] == "serological"
+    assert result["mhc_allele_set"] == "HLA-A*02:01"
+    assert result["mhc_allele_provenance"] == "sample_serotype_match"
+    parquet_path = tmp_path / "observations.parquet"
+    frame.to_parquet(parquet_path, index=False)
+    monkeypatch.setattr("hitlist.observations.observations_path", lambda: parquet_path)
+    assert list(
+        load_observations(columns=["peptide"], mhc_allele_in_set="HLA-A*02:01").peptide
+    ) == ["PEPTIDE"]
+    assert load_observations(columns=["peptide"], mhc_restriction="HLA-A*02:01").empty
+
+
 @pytest.mark.parametrize("classify_source", [False, True])
 def test_supplement_preserves_locus_evidence(tmp_path, monkeypatch, classify_source):
     path = tmp_path / "loci.csv"
@@ -215,3 +303,24 @@ def test_supplement_preserves_locus_evidence(tmp_path, monkeypatch, classify_sou
     assert result.loc["PEPTIDE", "mhc_allele_set"] == "HLA-DRB1*12:01"
     assert result.loc["PEPTIDE", "mhc_allele_provenance"] == "pmid_locus_pool"
     assert result.loc["BLANK", "mhc_allele_set"] == ""
+
+
+def test_supplement_keeps_reported_serotype_separate_from_candidates(tmp_path, monkeypatch):
+    path = tmp_path / "serotypes.csv"
+    path.write_text("peptide,mhc_restriction,mhc_class\nPEPTIDE,HLA-A2,I\n")
+    monkeypatch.setattr(supplement, "_SUPP_DIR", tmp_path)
+    monkeypatch.setattr(
+        supplement,
+        "load_supplementary_manifest",
+        lambda: [{"pmid": 999, "file": path.name, "defaults": {}}],
+    )
+    monkeypatch.setattr(
+        curation,
+        "_pmid_allele_pool",
+        lambda _: frozenset({"HLA-A*02:01", "HLA-A*24:02"}),
+    )
+    result = supplement.scan_supplementary().iloc[0]
+    assert result["mhc_restriction"] == "HLA-A2"
+    assert result["allele_resolution"] == "serological"
+    assert result["mhc_allele_set"] == "HLA-A*02:01"
+    assert result["mhc_allele_provenance"] == "pmid_serotype_pool"

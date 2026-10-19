@@ -293,6 +293,10 @@ def load_observations(
           intersected with reported MHC species, class and gene/locus. These
           candidate sets retain the original coarse restriction and resolution;
           even a singleton does not establish an exact allele assignment.
+        - ``"peptide_serotype_match"`` / ``"sample_serotype_match"`` /
+          ``"pmid_serotype_pool"`` — exact typing from the corresponding tier,
+          intersected with the reported serotype's catalogued membership.
+          The reported serotype stays separate from the inferred candidate set.
         - ``"unmatched"`` — set empty (no compatible exact typing or no
           supported restriction statement; blanks stay unmatched)
 
