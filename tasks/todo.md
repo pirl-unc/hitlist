@@ -4442,3 +4442,20 @@ statements, but no parental class-II arm is curated, so those rows reach the
 CIITA arm or no arm at all — filed as #567. The `ip_antibody` string glosses HB245 as IVA12;
 ATCC lists IVA12 as HB-145, and the paper names no clone, so the gloss is
 unverified — the pan-HLA-II specificity it stands on is the paper's own words.
+# PR #608 review, refresh, and release — 2026-10-18
+
+Specification: preserve the September 28 allele and memory measurements as
+historical findings, reconcile every claim that reads as current advice with
+the released code and issue states, and land the documentation on current
+`main`. Keep the measured numbers attributed to the v2 corpus and the old CI
+runner; do not imply that those figures describe the current corpus or runner.
+Preserve subsequent task notes when resolving the old branch's conflicts. Bump
+the package patch version once against current `main`, then use the repository's
+format, lint, test, PR, merge, and clean-main deployment gates.
+
+- [ ] Review the PR diff and verify the measured claims against source records.
+- [ ] Merge current `main`; reconcile the historical notes and issue status.
+- [ ] Review the resulting diff and run format, lint, and tests.
+- [ ] Push the updated PR, verify CI, merge, and publish the release to PyPI.
+- [ ] Record the final review and release result here.
+
