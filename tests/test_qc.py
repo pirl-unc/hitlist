@@ -1706,6 +1706,26 @@ def test_engineering_drift_the_586_studies_are_clean():
         assert found[found["pmid"] == pmid].empty, f"PMID {pmid} regressed"
 
 
+@pytest.mark.parametrize(
+    ("pmid", "condition_id", "column"),
+    [
+        (27371725, "wt_bmdc_classical_h2_kb_h2_db", "condition_knockout_genes"),
+        (27371725, "wt_bmdc_non_classical_h2_q1_q2", "condition_knockout_genes"),
+        (30573663, "mouse_splenocytes_wt", "condition_knockout_genes"),
+        (31092671, "721_221_b_51_01_wildtype", "condition_knockout_genes"),
+        (32161166, "hela_abc_ko_hla_b_51_01_control_shrna", "condition_knockdown_genes"),
+        (36215666, "hela_ciita_control_sirna", "condition_knockdown_genes"),
+        (36215666, "hela_ciita_mock", "condition_knockdown_genes"),
+    ],
+)
+def test_source_backed_controls_explicitly_exclude_sibling_perturbation(pmid, condition_id, column):
+    """WT, mock and non-targeting controls assert absence on the named axis (#593)."""
+    from hitlist.curation import load_pmid_overrides
+
+    arms = {arm["condition_id"]: arm for arm in load_pmid_overrides()[pmid]["ms_samples"]}
+    assert arms[condition_id][column] == "none"
+
+
 @pytest.mark.parametrize("n_dropped", [1, 3, 5])
 def test_engineering_drift_catches_a_partial_586_regression(n_dropped):
     """One blanked arm is already the defect: the engineered flag is per arm.

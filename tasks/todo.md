@@ -1,3 +1,51 @@
+# PR 8: #593 source-backed control absences (1.82.9)
+
+Specification: adjudicate five small same-material control studies
+identified by `engineering_drift_audit`: WT ERAAP BMDCs (two class scopes,
+PMID 27371725), WT H2-O splenic cells (30573663), WT 721.221-B*51:01
+(31092671), control shRNA in
+HeLa.ABC-KO.B51 (32161166), and siCTRL/Mock HeLa-CIITA (36215666).
+Primary methods describe each as a control without the sibling's named
+knockout or knockdown. Record `none` only for that specific
+axis, preserving other engineered facts and all arm/row identity. Remove
+exactly seven corresponding entries from the audit baseline (66 -> 59),
+verify no new findings or expression-tier changes, and leave the remaining
+study-grouping and vocabulary debt in #593 open. Bump to 1.82.9, run format,
+lint and tests, open a PR stacked on #714, then merge and publish after
+1.82.8. Include source citations and the measured audit delta in the PR.
+
+- [x] Verify all five primary sources and seven exact audit findings.
+- [x] Add the seven source-backed `none` values and remove matching baseline entries.
+- [x] Check audit equality, engineered/material and expression parity; run gates.
+- [ ] Review diff, open PR, pass CI, merge and release 1.82.9 in order.
+
+## Review
+
+Source review found that PMID 29769354's ERAP2-negative comparison includes a
+PF-GFP transductant. A blank overexpression field there cannot safely become
+`none` while the curated arm fails to distinguish nontransduced PF from
+PF-GFP. Keep that finding in #593 and track the arm identity in #715; do
+not assert a false absence to clear the audit. The other five studies have
+source-backed WT, mock or non-targeting controls.
+The initial six-study plan was trimmed to five after reviewing PF-GFP.
+Seven new parameter cases fail before the
+change and pass after it. The audit baseline equality test passes at 59
+findings (43 error, 16 warn), down from 66 (47 error, 19 warn). A structured
+before/after check finds only seven new `none` fields; every arm retains its
+prior engineered-material verdict, so expression-anchor tier selection is
+unchanged. The PF/PF-GFP ambiguity is filed as #715 and recorded on #593.
+`./format.sh` and `./lint.sh` pass; 553 broader curation, conditions,
+expression and QC tests pass. The first full-unit run exposed three stale
+assertions that treated control knockdown fields as blank. Existing Chen and
+Sarango source/export tests now expect explicit `none` on control arms and
+on shared Mock+siCTRL rows, while shared statements including siT6BP remain
+blank. Eleven targeted checks pass after that correction. The full local
+unit suite passes: 3,129 tests, 89% coverage. `./format.sh` and `./lint.sh`
+pass after the final changes. The direct development-install check reports
+that the shared editable environment targets the original checkout at
+1.82.2; this isolated PR checkout does not repoint it. CI integration
+remains required before merge.
+
 # PR 7: #656 cancel superseded PR validation (1.82.8)
 
 Specification: add workflow-level concurrency to `tests.yml` keyed by its

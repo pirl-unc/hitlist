@@ -17,17 +17,10 @@
 # tests/test_qc.py asserts the audit's findings EQUAL this file, so a new
 # finding fails CI for whoever introduces it, and an entry fixed in the YAML but
 # left here fails too.  Never add an entry to silence a flag.
-27371725:
-- wt_bmdc_classical_h2_kb_h2_db|condition_knockout_genes|error
-- wt_bmdc_non_classical_h2_q1_q2|condition_knockout_genes|error
 29769354:
 - cells_erap2_negative_baseline|condition_overexpression_genes|error
-30573663:
-- mouse_splenocytes_wt|condition_knockout_genes|error
 30778243:
 - c1r_class_ii_lcl_endogenous_dr_dq_dp|condition_mhc_context|error
-31092671:
-- 721_221_b_51_01_wildtype|condition_knockout_genes|error
 31495665:
 - healthy_donor_pbmcs_hla_dr|condition_mhc_context|error
 - healthy_donor_pbmcs_hla_dr|condition_transfection|error
@@ -49,8 +42,6 @@
 - maptac_hla_drb1_15_01|condition_transfection|warn
 - spleen_tissue_hla_dr|condition_mhc_context|error
 - spleen_tissue_hla_dr|condition_transfection|error
-32161166:
-- hela_abc_ko_hla_b_51_01_control_shrna|condition_knockdown_genes|warn
 32350084:
 - ebv_lcl_ast_5085_dpb1_04_02_homozygous|condition_mhc_context|error
 - ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous|condition_mhc_context|error
@@ -82,9 +73,6 @@
 36010968:
 - saos_2_osteosarcoma_tp53_null_vector_control|condition_genetic_variants|error
 - saos_2_osteosarcoma_tp53_null_vector_control|condition_transfection|error
-36215666:
-- hela_ciita_control_sirna|condition_knockdown_genes|warn
-- hela_ciita_mock|condition_knockdown_genes|warn
 36796642:
 - lung_and_colorectal_tumor_tissue_hla_i_multi_all|condition_mhc_context|error
 38480730:
