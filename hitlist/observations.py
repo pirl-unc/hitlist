@@ -297,6 +297,8 @@ def load_observations(
           ``"pmid_serotype_pool"`` — exact typing from the corresponding tier,
           intersected with the reported serotype's catalogued membership.
           The reported serotype stays separate from the inferred candidate set.
+        - ``"haplotype_roster"`` — exact members of a populated, class-scoped
+          mhcgnomes haplotype roster; the reported haplotype stays unchanged.
         - ``"unmatched"`` — set empty (no compatible exact typing or no
           supported restriction statement; blanks stay unmatched)
 

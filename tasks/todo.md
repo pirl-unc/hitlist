@@ -78,9 +78,45 @@ before pytest. Full-corpus CI remains the release gate.
 
 ## Later candidates
 
-- [ ] #604: distinguish populated, class-scoped haplotype member lists from
-  empty or ambiguous haplotypes; establish evidence/provenance and test corpus
-  effects before changing resolution.
+## PR 3: #604 populated class-scoped haplotype rosters (1.82.4)
+
+Specification: treat a parsed `Haplotype` as a class-level restriction only
+when it has a populated allele roster and exactly one of `is_class1` or
+`is_class2`. Derive its class from that explicit scope. The roster's exact
+members are the candidate set, filtered by the haplotype and row class, with
+new `haplotype_roster` provenance. Preserve the reported haplotype text and
+never label roster members `exact` or synthesize class-II pairs from chains.
+Do not fall back to a PMID pool or guess identities for empty-roster RT1/ELA
+forms, the upstream `H2-IEg7` parse gap, or a haplotype spanning both classes.
+The roster is the source-backed bound; any later donor-typing intersection
+needs a separate model of paired class-II molecules.
+
+- [x] Add regression cases for populated class I/II rosters, class mismatch,
+  empty and ambiguous haplotypes, reported identity and CLI provenance.
+- [x] Implement resolution, class derivation and roster candidates with the
+  smallest shared changes; validate scanner/supplement behavior.
+- [x] Compare behavior on the available historical corpus vocabulary and
+  record exact affected counts without projecting them onto newer corpora.
+- [ ] Bump to 1.82.4, run format/lint/test and focused gates, review diff,
+  open a PR stacked on #709, then retarget after preceding merges.
+- [ ] Verify CI, merge and deploy from clean main with PyPI hash checks.
+
+Review to date: before the change, eight focused expectations failed because
+populated class-scoped haplotypes were `unresolved` and `unmatched`. They now
+pass; empty/class-ambiguous rosters remain unmatched, and source text survives
+scanner and supplement paths. The local September `artifact_version 5` corpus
+contains 4,440,428 observation and 892,827 binding rows. A streaming
+vocabulary audit found 15,537 observation plus 59 binding rows with populated
+class-scoped rosters; every one returns `haplotype_roster` when replayed with
+its actual row class, typing and PMID. The remaining 51 observation plus 228
+binding haplotype rows remain unresolved. This exactly reconciles #604's
+15,596/279 historical split; it is not a count for the current v4 corpus.
+`./format.sh`, `./lint.sh` and 337 focused tests pass. `./test.sh` was
+attempted but the macOS memory preflight stopped before pytest at 1.43 GB
+free versus its 2.5 GB unit floor; full CI is required.
+
+## Later candidates
+
 - [ ] #606: prefer a verified upstream mhcgnomes roster update, or an explicit
   source-backed allow-list with a staleness guard; never use a shape regex.
 - [ ] #642: reproduce current export fragmentation, measure an equivalent
