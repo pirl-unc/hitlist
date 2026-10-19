@@ -36,10 +36,45 @@ unparseable restrictions unmatched, and keep class/locus behavior unchanged.
 
 ## PR 2: #603 index row selection
 
-- [ ] Trace every post-load filter and repair transform; specify a single
-  equivalent selection point with parity tests for order, indices and values.
-- [ ] Benchmark against unchanged code under matched memory conditions.
-- [ ] Version, validate, review, merge and deploy in a separate PR.
+Specification: `_repair_scoped_peptide_attributions` currently returns a
+filtered whole frame, then the default non-peptide filter selects the entire
+remaining frame again. Have repair mutate labels and return a positional
+keep vector for duplicate donor copies. Carry that one boolean vector as a
+temporary frame column across the intervening row-wise serotype, allele-set,
+length and class-label filters; at the existing non-peptide point, pop it and
+intersect it with the normalized non-peptide mask. This retains the current
+normalization order and performs one default whole-frame selection. When a
+caller opts into non-peptide rows, still apply the donor-copy repair. The
+temporary column must never leak into projected or full output; preserve row
+order, original index, dtypes and values. Do not change parquet pushdown or
+source identity rules.
+
+- [x] Add a mixed fixture exercising invalid donor duplicates and non-peptide
+  rows together, with default/opt-in, projection and intervening filters;
+  assert order, index, values and temporary-column absence against the old
+  two-filter semantics.
+- [x] Implement the deferred mask and run focused parity tests.
+- [x] Benchmark matched baseline/candidate loads, comparing output hashes,
+  time and observed memory; use full-corpus CI for the release gate and avoid
+  unsupported memory claims.
+- [ ] Bump version to 1.82.3, run format/lint/test gates and complete diff
+  review, then open a separate PR based on #708 (retarget to main after merge).
+- [ ] Verify CI, merge, deploy from clean main and verify PyPI artifacts.
+
+Review to date: the mixed default/opt-in, projection and intervening-filter
+fixture passed on both the unchanged parent and the candidate. All 128 focused
+observation, attribution-scope and export-filter tests pass on the candidate.
+A separate 80,000-row, 16 Arrow-string-column sample returned exactly 79,362
+rows and the same full-frame and dtype SHA-256 on both versions in alternating
+fresh-process runs. Sampled process peak RSS was 608/616 MB on the parent and
+593/582 MB on the candidate; elapsed times were 0.742/1.068 s and
+0.913/0.797 s respectively. These paired small-sample figures show parity
+and no observed memory increase; they do not estimate the full-corpus peak,
+and the timing difference is within run variation. `./format.sh` and
+`./lint.sh` pass; 86 observation/attribution tests also pass with pandas'
+future Arrow string inference enabled. `./test.sh` was attempted but its
+macOS memory preflight stopped at 0.38 GB free versus the 2.5 GB unit floor,
+before pytest. Full-corpus CI remains the release gate.
 
 ## Later candidates
 

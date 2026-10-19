@@ -61,6 +61,50 @@ def test_old_exact_rows_lose_false_labels_and_extra_donor_copies(
         ]
 
 
+@pytest.mark.parametrize("loader", [load_observations, load_binding])
+def test_repair_and_non_peptide_filters_preserve_row_selection(tmp_path, monkeypatch, loader):
+    rows = _stale_rows()
+    for row in rows:
+        row["mhc_allele_set"] = (
+            "HLA-A*02:01;HLA-A*03:01"
+            if row["mhc_allele_provenance"] == "peptide_attribution"
+            else "HLA-G*01:01"
+        )
+        row["serotypes"] = "HLA-A2"
+    rows.append(
+        {
+            **rows[0],
+            "pmid": 123,
+            "peptide": "GPI-mannoside",
+            "assay_iri": "http://www.iedb.org/assay/536",
+            "mhc_restriction": "human-CD1d",
+            "mhc_class": "non classical",
+            "mhc_allele_set": "",
+            "mhc_allele_provenance": "unmatched",
+            "attributed_sample_label": "",
+            "serotypes": "",
+        }
+    )
+    _write_rows(tmp_path, monkeypatch, rows, loader=loader)
+
+    default = loader()
+    assert default.index.tolist() == [0, 2]
+    assert default.attributed_sample_label.tolist() == ["", "MEL3 (13240-006)"]
+    assert default.is_non_peptide_ligand.tolist() == [False, False]
+    assert all(isinstance(column, str) for column in default.columns)
+
+    opt_in = loader(exclude_non_peptide_ligand=False)
+    assert opt_in.index.tolist() == [0, 2, 3]
+    assert opt_in.is_non_peptide_ligand.tolist() == [False, False, True]
+    assert all(isinstance(column, str) for column in opt_in.columns)
+    projected = loader(columns=["peptide", "is_non_peptide_ligand"])
+    assert projected.index.tolist() == [0, 2]
+    assert projected.columns.tolist() == ["peptide", "is_non_peptide_ligand"]
+    assert loader(serotype="HLA-A2").index.tolist() == [0, 2]
+    assert loader(mhc_allele_in_set="HLA-A*02:01").index.tolist() == [2]
+    assert loader(length_min=8, length_max=13).index.tolist() == [0, 2]
+
+
 def test_valid_multi_patient_and_unscoped_exact_rows_are_preserved(tmp_path, monkeypatch):
     patient = _stale_rows()[-1]
     bovine = {
