@@ -1,3 +1,70 @@
+# Open defect PR series — 2026-10-19
+
+Specification: ship independent, versioned PRs against current `main`, in this
+order where evidence permits: #599 serotype candidate intersection, #603 index
+row-selection memory waste, #604 populated class-scoped haplotypes, and #606
+non-roster exact molecules. Investigate #642 only after measuring its current
+mechanism. Preserve reported MHC restrictions and explicit provenance; never
+promote an unverified designation or invent an allele from a catalog alone.
+For each PR, compare baseline and changed behavior, run format/lint/tests and
+CI, review the diff, merge, and publish the corresponding clean-main PyPI
+release. Close an issue only for the portion verified as fixed; record remaining
+cases in the issue. If full local integration is blocked by the memory guard,
+use the existing release workflow and verify its artifact and PyPI hashes.
+
+## PR 1: #599 serotype candidate intersection (1.82.2)
+
+Input is a parsed serotype and the existing strongest exact typing tier:
+peptide attribution, donor typing, then PMID pool. Match candidates through
+the current mhcgnomes-backed allele-to-serotype map, retaining species and
+class checks. Do not expand a serotype into all catalog members; do not fall
+through from an incompatible stronger typing tier to a broader pool. Emit
+`peptide_serotype_match`, `sample_serotype_match`, or
+`pmid_serotype_pool` as appropriate. Preserve `mhc_restriction` so consumers
+cannot mistake inferred candidates for reported exact typing. Leave blank and
+unparseable restrictions unmatched, and keep class/locus behavior unchanged.
+
+- [x] Add focused positive and negative tests across typing tiers, broad and
+  public serotypes, species/class guards, absent catalog membership, and
+  source-restriction preservation in scanner/supplement paths.
+- [x] Implement the smallest shared intersection change and document the new
+  provenance values.
+- [ ] Run focused tests, `./format.sh`, `./lint.sh`, and `./test.sh`; inspect
+  behavior and complete a code review.
+- [ ] Open PR, verify CI, merge, deploy 1.82.2 from clean main, and confirm
+  PyPI artifact hashes and issue status.
+
+## PR 2: #603 index row selection
+
+- [ ] Trace every post-load filter and repair transform; specify a single
+  equivalent selection point with parity tests for order, indices and values.
+- [ ] Benchmark against unchanged code under matched memory conditions.
+- [ ] Version, validate, review, merge and deploy in a separate PR.
+
+## Later candidates
+
+- [ ] #604: distinguish populated, class-scoped haplotype member lists from
+  empty or ambiguous haplotypes; establish evidence/provenance and test corpus
+  effects before changing resolution.
+- [ ] #606: prefer a verified upstream mhcgnomes roster update, or an explicit
+  source-backed allow-list with a staleness guard; never use a shape regex.
+- [ ] #642: reproduce current export fragmentation, measure an equivalent
+  change and its full-corpus memory effect before claiming a fix.
+
+## Review
+
+PR 1 review: the pre-change serotype cases returned `unmatched`; 325 focused
+curation, scanner, supplement and CLI tests now pass. `./format.sh` and
+`./lint.sh` pass. Two `./test.sh` attempts stopped at the existing macOS
+memory preflight (2.34 GB and 0.51 GB free, below its 2.5 GB unit threshold)
+before running tests; full suite and corpus validation must run in PR CI and
+the clean-main release workflow. The change intersects only the strongest
+exact-typing tier. A missing catalog membership remains unmatched; it is not
+filled by enumerating a serotype's possible alleles. The reported restriction
+survives both scanner and supplement paths. The review also found that the
+public/CLI provenance vocabulary lacked the previously emitted locus values;
+both the locus and new serotype values are now included.
+
 # PR #608 review, refresh, and release — 2026-10-18
 
 Specification: preserve the September 28 allele and memory measurements as
