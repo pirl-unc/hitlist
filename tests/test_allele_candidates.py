@@ -1,5 +1,8 @@
 """Candidate inference must retain the precision of the paper's statement."""
 
+import warnings
+
+import pandas as pd
 import pytest
 
 from hitlist import curation, supplement
@@ -295,7 +298,18 @@ def test_scanner_preserves_locus_evidence(tmp_path, monkeypatch, classify_source
     assert load_observations(columns=["peptide"], mhc_restriction=candidate).empty
     from hitlist.export import generate_observations_table
 
-    assert generate_observations_table(min_allele_resolution="four_digit").empty
+    # #642: this public-format one-row export has no single-PMID fallback.
+    # Inserting dozens of all-missing `_fb` columns used to fragment even
+    # its empty filtered frame and trigger pandas' PerformanceWarning.
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", pd.errors.PerformanceWarning)
+        enriched = generate_observations_table()
+        filtered = generate_observations_table(min_allele_resolution="four_digit")
+    assert list(enriched["mhc_restriction"]) == ["HLA-DRB1"]
+    assert list(enriched["mhc_allele_set"]) == [candidate]
+    assert enriched.loc[0, "sample_attribution"] == ""
+    assert not any(col.endswith("_fb") for col in enriched.columns)
+    assert filtered.empty
 
 
 def test_scanner_keeps_reported_serotype_separate_from_candidates(tmp_path, monkeypatch):

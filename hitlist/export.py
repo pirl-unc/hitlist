@@ -2120,9 +2120,8 @@ def generate_observations_table(
         # Otherwise popping the fallback columns below cannot free their buffers:
         # this local would keep every shadow alive until the entire export returns.
         del single_matched_df
-    else:
-        for col in fb_cols:
-            obs[col] = pd.NA
+    # With no single-PMID sample, every fallback value would be missing.
+    # Skip those full-length shadow columns and coalesce directly below.
 
     # Coalesce: allele match > single-PMID fallback > "" (or False for
     # bool meta cols), one column at a time, consuming each ``_fb`` shadow
@@ -2146,15 +2145,18 @@ def generate_observations_table(
         # this replaced upcast a Categorical/Categorical pair, where the
         # column-wise ``Series.fillna(Series)`` would demand identical category
         # sets and raise.
-        coalesced = _fillna_series_safe(obs[col], obs.pop(col + "_fb"))
+        coalesced = (
+            _fillna_series_safe(obs[col], obs.pop(col + "_fb")) if not single_df.empty else obs[col]
+        )
         obs[col] = _fillna_scalar_safe(coalesced, "")
 
     # Bool meta columns (e.g. apm_perturbed) need ``False`` not ``""`` —
     # otherwise pyarrow rejects the mixed bool/str column on parquet
     # write. Tiny loop (typically 1 column), per-col is fine.
     for col in bool_meta_cols:
-        bool_fb = obs.pop(col + "_fb")
-        obs[col] = obs[col].where(obs[col].notna(), bool_fb)
+        if not single_df.empty:
+            bool_fb = obs.pop(col + "_fb")
+            obs[col] = obs[col].where(obs[col].notna(), bool_fb)
         obs[col] = obs[col].astype("boolean").fillna(False).astype(bool)
 
     # 3b) Class-pool tie-break: for obs rows whose mhc_restriction is a
