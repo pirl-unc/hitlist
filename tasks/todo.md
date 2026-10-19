@@ -1,3 +1,37 @@
+# PR 7: #656 cancel superseded PR validation (1.82.8)
+
+Specification: add workflow-level concurrency to `tests.yml` keyed by its
+workflow and `github.ref`, cancelling in-progress runs only for
+`pull_request` events. In `release-build.yml`, keep its existing per-ref
+group but make cancellation conditional on the same event. GitHub documents
+PR refs as `refs/pull/<number>/merge`, stable across revisions and distinct
+from `refs/heads/main` used by clean-main dispatches. Distinct workflow
+prefixes keep test and release-build groups separate. Preserve complete
+validation on the newest PR head and do not interrupt main publication
+builds. Bump to 1.82.8 and review the four-event group/cancellation matrix.
+Run format, lint, unit tests and CI; the changed release workflow must pass
+its own PR build. Stack on #713, then merge and publish after 1.82.7.
+
+- [x] Confirm the current workflow triggers and concurrency semantics.
+- [x] Change only workflow concurrency and version; inspect the four-event matrix.
+- [x] Run format, lint, test gates and review the scoped diff.
+- [ ] Open PR, pass tests and release-build CI, merge in order, publish 1.82.8.
+
+## Review
+
+GitHub's workflow/concurrency documentation confirms that an open PR uses a
+stable `refs/pull/<number>/merge` ref, while a clean-main dispatch uses
+`refs/heads/main`. A parsed four-event matrix yields separate `tests-` and
+`release-build-` groups; each PR cancels only its own older runs, and main
+push/dispatch runs preserve in-progress work. `./format.sh` and `./lint.sh`
+pass. The 49 release-artifact and corpus tests pass. Local `./test.sh` was
+attempted but its memory preflight stopped at 2.32 GB free, below the 2.5 GB
+one-worker floor; CI remains the full validation gate. The direct
+development-install check reports that the shared editable install still
+targets the original checkout at 1.82.2; this isolated PR checkout does not
+repoint it. The diff touches only both concurrency blocks, the patch version
+and this plan.
+
 # PR 6: #588 soluble HLA capture context (1.82.7)
 
 Specification: add the existing `soluble_mhc` capture token to the ten
