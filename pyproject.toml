@@ -59,7 +59,8 @@ dependencies = [
     # 3.41-3.53. So the floor was de facto 3.54.0 and only pyproject
     # disagreed; this makes the declared floor match the tested one.
     # 3.64.4 preserves chain mutation selectors in complete pairs (#528).
-    "mhcgnomes>=3.64.4",
+    # 3.64.6 catalogs source-backed, gene-specific non-roster alleles (#606).
+    "mhcgnomes>=3.64.6",
     # Canonical bundled CTA panel; imported only when a gene set is queried.
     "oncoref>=1.8.207",
 ]

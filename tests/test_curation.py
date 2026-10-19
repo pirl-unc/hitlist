@@ -970,24 +970,39 @@ def test_classify_allele_resolution_rejects_unvalidated_haplotype_letters():
         assert expand_allele_set(restriction) == ("", "unmatched", 0), restriction
 
 
-def test_classify_allele_resolution_does_not_decompose_mutant_haplotypes():
-    """#597/#606: ``<base>m<n>`` is not split to reach a roster key.
+@pytest.mark.parametrize(
+    "restriction,canonical",
+    [
+        ("H2-Kwm7", "H2-K*wm7"),
+        ("H2-K*wm7", "H2-K*wm7"),
+        ("H2-Kbm1", "H2-K*bm1"),
+        ("H2-K*bm1", "H2-K*bm1"),
+        ("H2-Kbm8", "H2-K*bm8"),
+        ("H2-Dbm13", "H2-D*bm13"),
+        ("Anpl-UAA*SD", "AnasPlat-UAA*sd"),
+    ],
+)
+def test_source_backed_non_roster_alleles_name_exact_molecules(restriction, canonical):
+    """#606: upstream's exact, gene-specific catalog validates these names."""
+    assert classify_allele_resolution(restriction) == "four_digit"
+    assert expand_allele_set(restriction) == (canonical, "exact", 1)
 
-    ``wm7`` and ``bm1`` have the same shape and different meanings -- ``wm7`` is
-    an atomic haplotype of the Japanese wild mouse *Mus musculus molossinus*,
-    not "mutant 7 of haplotype ``w``", and there is no haplotype ``w`` -- so a
-    regex cannot tell a real mutant series from a typo, and would equally accept
-    ``H2-K*bm999``. Measured, the split also recovers 0 additional corpus rows
-    over roster-only. #606 tracks the 7 rows this leaves behind.
 
-    ``H2-T23*b`` guards the other side: the roster's *member* lists are not
-    consulted, because they record which allele each gene carries in a
-    haplotype rather than which alleles exist (haplotype ``a`` lists ``K*k`` and
-    ``D*d``, H2-a being a recombinant), so a gene check would reject 205 real
-    corpus rows.
-    """
-    for restriction in ("H2-K*wm7", "H2-Kbm1", "H2-K*bm1", "H2-Kbm8", "H2-Dbm13", "H2-Kj"):
+def test_non_roster_catalog_does_not_decompose_or_guess_names():
+    """Unknown shapes and wrong-gene variants cannot borrow a known entry."""
+    for restriction in (
+        "H2-K*bm999",
+        "H2-K*wm999",
+        "H2-D*bm1",
+        "H2-Kj",
+        "AnasPlat-UAA*invented",
+        # Upstream catalogs these solely to parse compound SahaI*49/82 labels.
+        "SahaI*49",
+    ):
         assert classify_allele_resolution(restriction) == "two_digit", restriction
+        assert expand_allele_set(restriction) == ("", "unmatched", 0), restriction
+    # Roster names remain accepted, including a gene absent from that
+    # haplotype's member list; this is a separate source of exact names.
     assert classify_allele_resolution("H2-T23*b") == "four_digit"
 
 

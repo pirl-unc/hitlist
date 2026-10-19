@@ -115,10 +115,44 @@ binding haplotype rows remain unresolved. This exactly reconciles #604's
 attempted but the macOS memory preflight stopped before pytest at 1.43 GB
 free versus its 2.5 GB unit floor; full CI is required.
 
+## PR 4: #606 source-backed non-roster alleles (1.82.5)
+
+Specification: require mhcgnomes 3.64.6, whose exact, gene-specific
+`known_alleles.yaml` entries cite the primary evidence for H2-Kbm1, Kbm8,
+Kwm7, Dbm13 and AnasPlat-UAA*sd (upstream #207/#209). Accept a parsed
+single-field allele as one molecule when its field either names a species
+haplotype or matches a nonnumeric `Species.get_known_allele(gene, field)`.
+Numeric-only catalog entries such as SahaI*49 are parser components, not
+endorsed standalone molecules. Keep numeric
+IPD allele groups and invented or wrong-gene spellings coarse. Preserve
+canonical allele text and reported restriction. Compare the historical
+vocabulary before and after to identify every newly promoted designation.
+Do not add a Hitlist-specific allow-list or infer names from a pattern.
+
+- [x] Add focused resolution, exact-candidate, and negative-control tests;
+  verify they fail against the unchanged downstream implementation.
+- [x] Implement the one-field catalog check, dependency floor, version bump,
+  and documentation correction; review the full diff.
+- [x] Run `./format.sh`, `./lint.sh`, focused tests and `./test.sh`; record any
+  memory-gate refusal and rely on CI for unavailable full-corpus testing.
+- [ ] Merge and deploy mhcgnomes 3.64.6 first. Then open the stacked Hitlist
+  PR, pass CI, merge in order, and publish 1.82.5 from clean main.
+
+Review to date: seven positive spellings failed at `two_digit` before the
+change and now yield one canonical exact candidate each. Invented names,
+wrong-gene names, numeric IPD groups and SahaI*49 (an upstream parsing
+component, not a standalone allele) remain unmatched. All 350 focused
+curation, floor-check and candidate tests pass with upstream 3.64.6 source;
+`./format.sh` and `./lint.sh` pass. The available October corpus has
+4,486,991 observation and 814,268 binding rows. A streaming check of its
+previously `two_digit` rows finds exactly four newly promoted binding rows,
+all `H2-K*wm7`; no observation rows or other designations change in that
+snapshot. `./test.sh` was attempted, but the sandbox denied its macOS
+`sysctl hw.pagesize` memory probe, so it stopped before pytest. CI and the
+release workflow must run the full suite and corpus validation.
+
 ## Later candidates
 
-- [ ] #606: prefer a verified upstream mhcgnomes roster update, or an explicit
-  source-backed allow-list with a staleness guard; never use a shape regex.
 - [ ] #642: reproduce current export fragmentation, measure an equivalent
   change and its full-corpus memory effect before claiming a fix.
 
