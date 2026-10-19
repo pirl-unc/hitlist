@@ -168,7 +168,7 @@ class ContributorCollector:
             return None
         if self._capacity_error is not None:
             return self._capacity_error
-        # Python 3.9/3.10 do not expose sqlite_errorcode on exceptions.
+        # Python 3.10 does not expose sqlite_errorcode on exceptions.
         if isinstance(error, sqlite3.Error) and (
             getattr(error, "sqlite_errorcode", None) == 13
             or str(error) == "database or disk is full"

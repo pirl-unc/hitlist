@@ -80,12 +80,11 @@ from __future__ import annotations
 import hashlib
 import json
 import warnings
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from functools import lru_cache
 from importlib.resources import files
 from pathlib import Path
-from typing import Callable
 
 import pandas as pd
 from pyarrow.lib import ArrowInvalid

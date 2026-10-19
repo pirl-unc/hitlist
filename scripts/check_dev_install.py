@@ -35,7 +35,7 @@ import subprocess
 import sys
 import sysconfig
 from pathlib import Path
-from typing import NamedTuple, Optional
+from typing import NamedTuple
 from urllib.parse import urlparse
 from urllib.request import url2pathname
 
@@ -46,16 +46,16 @@ PACKAGE = "hitlist"
 class Registration(NamedTuple):
     path: Path  # the metadata directory
     installed: bool  # False for the checkout's own generated egg-info
-    source: Optional[Path]  # where an editable install points, if it is one
+    source: Path | None  # where an editable install points, if it is one
     reasons: list  # why it does not match the checkout; empty when it does
 
 
 class Audit(NamedTuple):
     n_distributions: int
-    kept: Optional[Path]  # the one matching installed registration, if any
+    kept: Path | None  # the one matching installed registration, if any
     problems: list
     to_move: list  # extra registrations and stale checkout metadata
-    reinstall: Optional[str]  # why ./develop.sh must be re-run, if it must
+    reinstall: str | None  # why ./develop.sh must be re-run, if it must
 
 
 def metadata_dirs(search_path):

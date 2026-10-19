@@ -58,6 +58,7 @@ from collections import OrderedDict
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from functools import cached_property, lru_cache
+from itertools import pairwise
 from pathlib import Path
 
 import numpy as np
@@ -1604,7 +1605,7 @@ def digest_occurrences(
         raise ValueError("min_len cannot exceed max_len")
     rules = [_ENZYME_RULES[name] for name in canonical_search_enzyme(enzyme).split(";")]
     cuts = [0]
-    for position, (left, right) in enumerate(zip(seq, seq[1:]), start=1):
+    for position, (left, right) in enumerate(pairwise(seq), start=1):
         if any(
             left in residues and right not in excluded and (not required or right in required)
             for residues, excluded, required in rules

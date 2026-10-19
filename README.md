@@ -103,6 +103,8 @@ hitlist export training --include-evidence both --class I --species "Homo sapien
 
 ## Python API
 
+Hitlist supports Python 3.10 and newer; CI tests Python 3.10 through 3.14.
+
 `hitlist build observations` checks the source files and the curation inputs that define stored
 annotations, including study overrides, tissue/cell-line metadata, and peptide-attribution CSVs.
 Editing these inputs triggers a rebuild without `--force`. Upgrading from an older cache that

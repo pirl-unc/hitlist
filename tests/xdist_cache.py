@@ -29,8 +29,9 @@ import contextlib
 import fcntl
 import os
 import pickle
+from collections.abc import Callable
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -137,8 +138,6 @@ def load_or_build_mmapped_arrow(
         table = pa.Table.from_pandas(df, preserve_index=True)
         tmp_path = cache_path.with_suffix(cache_path.suffix + ".tmp")
         try:
-            # Comma-form (not parenthesized) ``with`` — parenthesized
-            # context managers are a SyntaxError on Python 3.9.
             with pa.OSFile(str(tmp_path), "wb") as sink, ipc.new_file(sink, table.schema) as writer:
                 writer.write_table(table)
             os.replace(tmp_path, cache_path)
