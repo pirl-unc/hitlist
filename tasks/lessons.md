@@ -118,6 +118,9 @@ recipe so the same handoff problem cannot recur.
 
 ## 2026-09-28
 
+The measurements below use the then-current `ci-corpus-v2` and CI runner;
+they are historical evidence, not current capacity estimates.
+
 - Keep closing keywords out of incidental cross-references. Writing "memory
   fix #610" in #609's description made GitHub close the still-unmerged memory
   PR when #609 merged. Use "memory PR #610" or "Refs #610" unless automatic
@@ -129,6 +132,82 @@ recipe so the same handoff problem cannot recur.
   call a difference smaller than measured run-to-run variation a reduction.
   Keep the capacity issue open until comparable measurements establish useful
   headroom on the runner that is actually failing.
+
+- "Live bytes" and "touched pages" are different quantities and need different
+  instruments. Linux peak RSS is the second one.
+  Rule: #566's then-current peak held 14.7 GB of live Arrow string buffers,
+  and the proposed narrowing made it worse. Narrowing 9 metadata columns to
+  `category` on arrival cut the live Arrow peak 13.19 -> 11.85 GB *and cost
+  337 MB of CI peak RSS*,
+  above every baseline run, because `astype` allocates the factorization and
+  codes while the string buffer is still resident: live bytes fall, touched
+  pages do not, and peak RSS counts touched pages the allocator has not
+  returned. That is the #569 `astype` trap reappearing through a *better*
+  instrument -- `tracemalloc` + `pyarrow.total_allocated_bytes()` is exact to
+  the byte for live data and structurally blind to this. Four instruments were
+  tried on unchanged code: `ru_maxrss` gave 5.16-17.20 GB (macOS compresses
+  inactive pages), `phys_footprint` +/-0.22 GB but counts compressed pages at
+  compressed size, live-bytes byte-identical across three runs, and CI
+  `/usr/bin/time -v` +/-0.083 GB. Only the last answers the question. Confirm
+  any memory win on the instrument that defines the problem before believing it.
+
+- Bound a direction before optimizing inside it, and prefer the arithmetic that
+  says what cannot be won.
+  Rule: #572 proposed removing five object-dtype columns from a 4.4M-row join.
+  Measured, those five are 178 MB -- 1.2% of the peak -- and the coalesce they
+  ride in is the largest single allocation (4.29 GB) because of its *block
+  form*, identical whichever ~40 columns they are. The number that closed the
+  direction was arithmetic nobody had done: 4,398,040 rows x 8 bytes x ~100
+  string-ish columns = 3.28 GiB of pure Arrow *offsets*, before a single
+  character of content, against 5.4 GB of end-state live content. The peak is
+  the frame's shape, not its strings, which bounded the column-level levers
+  tested in that pass. #572 remains open, and #610 later found a separate
+  retained-frame lifetime fix worth about 2 GB of Linux peak RSS. Ask what
+  the floor is before spending effort on the ceiling.
+
+- An extrapolation is worth measuring even when it will not change the
+  decision, if you are going to carry it as a fact.
+  Rule: the dictionary-encoding direction was bounded at ~1.7 GB of local
+  touched pages and predicted to land inside CI noise. A paired A/B on the
+  identical tree, one kwarg apart, measured **-10,856 kB (-0.07%), 0.11x the
+  job's own spread** -- so 0.89 GB of local touched pages bought 10.9 MB of CI
+  peak RSS, a 1.2% transfer ratio, *below* the two points the estimate came
+  from. The conclusion held and the magnitude was optimistic by two orders.
+  Nine minutes of CI replaced "~1.7 GB, probably below the noise" with a
+  measured 10.9 MB. Where a number will be quoted later, measure it now.
+
+- Widening a predicate for coverage can destroy the validation that made it
+  safe. Check what the new form accepts, not only what it recovers.
+  Rule: #597 classified a roster-validated lone allele field as one molecule,
+  because mouse/rat nomenclature names an allele by haplotype (`H2-K*b` is one
+  sequence, and HLA's field-counting called it truncated). Validating that
+  field against the species' haplotype roster recovered 163,973 v2 rows. Replacing
+  the roster with "any non-numeric field" -- to also catch mutants the roster
+  omits -- recovered 6 more rows and made `H2-K*x`, `H2-D*nonsense` and
+  `Mamu-A*ab` return `("...", "exact", 1)`: mhcgnomes parses any letter-led
+  designation into an `Allele` without checking its own tables, so a typo
+  became indistinguishable from a real molecule and passed
+  `--min-allele-resolution four_digit`. An unattributed row is honest; a typo
+  presented as an exact molecule is not. The rejected shortcut also failed on
+  semantics: `wm7` is an *atomic* haplotype of the Japanese wild mouse, not
+  "mutant 7 of haplotype w" -- there is no haplotype w -- so no regex can
+  separate a real mutant series from a wild-derived haplotype from a typo.
+
+- A test fixture that does not reproduce production's dtype makes every test
+  built on it decorative.
+  Rule: `tests/test_qc.py` wrote `allele_resolution` as a plain string column;
+  the built corpus stores it dictionary-encoded, so `load_observations` returns
+  `category`. Under that real dtype, `Series.map(callable)` returns a
+  *Categorical* whose categories keep alphabetical order, so a histogram sort
+  ordered `class_only` first -- and a "fix" that completed the rank map made it
+  worse, because the previous version only worked by accident (an unmapped
+  value forced a NaN and a float64 fallback where numeric sorting worked).
+  Correcting the fixture to the production dtype immediately exposed
+  `qc.proteome_coverage()` as broken on that corpus
+  (`Series.map` with a tuple-returning function raises `NotImplementedError` on
+  categorical), a production function that had been passing its tests for as
+  long as every fixture wrote plain strings. The consumer and fixture were
+  corrected in #597.
 
 ## 2026-09-27
 

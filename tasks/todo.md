@@ -1,3 +1,106 @@
+# PR #608 review, refresh, and release — 2026-10-18
+
+Specification: preserve the September 28 allele and memory measurements as
+historical findings, reconcile every claim that reads as current advice with
+the released code and issue states, and land the documentation on current
+`main`. Keep the measured numbers attributed to the v2 corpus and the old CI
+runner; do not imply that those figures describe the current corpus or runner.
+Preserve subsequent task notes when resolving the old branch's conflicts. Bump
+the package patch version once against current `main`, then use the repository's
+format, lint, test, PR, merge, and clean-main deployment gates.
+
+- [x] Review the PR diff and verify the measured claims against source records.
+- [x] Merge current `main`; reconcile the historical notes and issue status.
+- [ ] Review the resulting diff and run format, lint, and tests.
+- [ ] Push the updated PR, verify CI, merge, and publish the release to PyPI.
+- [ ] Record the final review and release result here.
+
+## Review
+
+The original PR's historical measurements agree with the linked #566/#597
+investigations, but its unqualified 800 MB runner-margin recommendation and
+"open" issue list became misleading after subsequent releases. This refresh
+pins the measurements to `ci-corpus-v2`, records #610's measured 2.06 GB Linux
+peak-RSS reduction, reconciles issue states, and preserves the newer mainline
+notes. The PR diff against current `main` remains documentation plus the
+required 1.82.1 patch bump. Format, lint, tests, CI, merge, and publication
+remain to be verified.
+
+# Unmatched alleles and the #566 memory axis — 2026-09-28
+
+These measurements describe the September 2026 `ci-corpus-v2` artifact and
+the then-current 16 GB integration runner. Two asks: explain the 1,057,558
+`unmatched` rows (23.8% of that corpus), and find what dominated #566's
+15.2 GB integration peak. Both were answered after five releases shipped
+(1.63.7 -> 1.63.11). Later releases and corpus generations are tracked below.
+
+## The unmatched rows: a code defect, not the curation backlog
+
+87.6% (925,276 rows over 73 studies) are in *curated* PMIDs, so #33/#35/#36
+were never the cause. `classify_allele_resolution` counted allele fields --
+HLA's convention -- against species that name an allele by haplotype, so
+`H2-K*b` (one sequence, no finer form) was called truncated and
+`expand_allele_set` refused it. Zero of the 164,027 rows in that bucket were
+human. Validating the lone field against the species' haplotype roster
+recovered **163,973 observation rows and 15,376 binding rows** across 582
+PMIDs and 71,013 peptides; 84,498 of them sit in uncurated PMIDs, so no
+curation work could have reached them. Shipped in 1.63.10 (#597/#598).
+
+In that snapshot, the top 10 PMIDs were 68.0% of the unmatched mass, and the
+top 50 were 96.2%. The largest deposit was PMID 29557506 (206,497 rows).
+
+## #566: the peak is the frame's shape
+
+14.7 GB of live Arrow string buffers peaked at the very end of the v2 build,
+immediately before the categorical tightening releases all but 0.29 GB. Of
+that, **3.28 GiB was pure Arrow offsets** (8 bytes/row/column, ~100 string-ish
+columns, independent of content) against 5.4 GB of end-state live content.
+125 columns x 4.4M rows in one pandas frame was the cost. The column-level
+levers measured in this pass were worth 1-2 GB, not the 6 GB initially sought.
+
+Four approaches evaluated in this pass, all recorded on #566:
+
+- narrowing metadata columns *later* -- cannot help, the pages are touched
+- narrowing them *earlier* -- **+337 MB CI peak RSS** while cutting live bytes
+  1.3 GB (the #569 `astype` trap)
+- dictionary-encoded loading -- paired A/B measured **-10,856 kB, 0.11x the
+  job's own noise spread**
+- #603's two whole-frame row-selection copies -- real waste, but early in the
+  build, so removing them alone could not move that end-of-build peak
+
+At the time this pass ended, the recommendation was to accept roughly 800 MB
+of runner margin and monitor the peak (98 MB spread over five runs). That
+recommendation was superseded by #610: releasing retained join frames cut the
+same v2 integration peak from a 15.19 GB baseline mean to 13.13 GB; both
+candidate runs were below both baseline runs. #566 then closed. These numbers do
+not establish the memory margin for current corpus generations or runners.
+
+#602 still earned its merge: bit-identical output, 13% faster, and it fixes a
+latent misalignment bug (`from_dict(orient="index")` reorders against
+insertion-ordered presence rows when winner key sets are heterogeneous --
+689/3000 divergence on main, 0/3000 after). Both call sites pass heterogeneous
+key sets on the v2 corpus; the reordering just did not happen to trigger.
+
+## Released
+
+1.63.7 #586 · 1.63.8 batch notes · 1.63.9 #590 (a live indefinite hang:
+`fetch_file` inherited `timeout=None`, reintroducing #255/#402 on the newer
+datacache path) · 1.63.10 #597 · 1.63.11 #566 partial.
+
+## Follow-up status as of 2026-10-18
+
+- **#599** remains open for serotype and coarse-restriction cases. Its
+  270,743-row measurement is from the earlier v2 artifact; #633 shipped the
+  gene/locus intersection and shared species/class checks from **#600** in
+  1.64.5. The old `HLA-DR` example no longer describes the released path.
+- **#603** (row-selection copies), **#604** (Haplotype parse results), and
+  **#606** (non-roster single-molecule designations) remain open. #604's
+  current issue title reports 15,596 rows, replacing the earlier 15,875
+  estimate. **#605** (categorical `fillna`) and **#589** (download
+  consolidation) are closed.
+- Upstream mhcgnomes#201 remains open (`H2-IEg7` dispatches to `Haplotype`
+  while its siblings parse as a `Pair`).
+
 # Source-backed bulk experiment counts — #699
 
 Local full test.sh passes 3,074 tests; format/lint and 60 focused regressions pass.
