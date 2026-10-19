@@ -991,28 +991,13 @@ def test_classify_allele_resolution_does_not_decompose_mutant_haplotypes():
     assert classify_allele_resolution("H2-T23*b") == "four_digit"
 
 
-def test_classify_allele_resolution_haplotype_parses_are_pinned_not_endorsed():
-    """Pins today's answer for ``Haplotype`` parses; see #604. NOT an endorsement.
-
-    ``classify_allele_resolution`` dispatches on ``Allele`` / ``Pair`` /
-    ``Serotype`` / ``MhcClass`` and lets ``mhcgnomes.Haplotype`` fall through
-    to ``"unresolved"``. That is very likely the wrong answer for 15,596 corpus
-    rows: ``H2-b class I`` parses as a haplotype carrying a populated
-    ``alleles`` tuple, so it is a class-scoped statement over a *known* allele
-    list -- strictly more informative than ``H2 class I``, which resolves to
-    ``class_only``. Expanding it needs class filtering of a non-HLA allele list
-    (#600) and a provenance value for reference-table candidates (#599), so
-    #597's PR deferred it rather than take both decisions in passing.
-
-    This test exists so the behaviour cannot drift unnoticed before #604 lands,
-    not because ``"unresolved"`` is correct. When #604 is fixed, change it.
-    """
+def test_class_scoped_haplotype_rosters_have_class_resolution():
+    """#604: a populated roster bounds a class-scoped restriction."""
     for restriction in ("H2-b class I", "H2-b class II", "H2-d class II", "H2-z/d class II"):
+        assert classify_allele_resolution(restriction) == "class_only", restriction
+    # Empty-roster and class-ambiguous haplotypes still name no candidate set.
+    for restriction in ("RT1-Dn", "RT1-Du", "RT1-Dl", "ELA-A1 class I", "H2-b"):
         assert classify_allele_resolution(restriction) == "unresolved", restriction
-    # Empty-roster haplotypes, the other half of #604.
-    for restriction in ("RT1-Dn", "RT1-Du", "RT1-Dl"):
-        assert classify_allele_resolution(restriction) == "unresolved", restriction
-    # A bare gene is genuinely unresolved -- this one is not pending #604.
     assert classify_allele_resolution("H2-Q2") == "unresolved"
 
 

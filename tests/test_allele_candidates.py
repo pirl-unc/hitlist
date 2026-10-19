@@ -94,7 +94,46 @@ def test_candidate_provenance_vocabulary_covers_inferred_sets():
         "peptide_serotype_match",
         "sample_serotype_match",
         "pmid_serotype_pool",
+        "haplotype_roster",
     } <= set(MHC_ALLELE_PROVENANCE_VALUES)
+
+
+@pytest.mark.parametrize(
+    "restriction,expected",
+    [
+        ("H2-b class I", "H2-D*b;H2-K*b;H2-Q7*b;H2-T23*a"),
+        ("H2-b class II", "H2-AA*b;H2-AB*b;H2-EB*b"),
+        ("H2-d class II", "H2-AA*d;H2-AB*d;H2-EA*d;H2-EB*d"),
+        ("B19 class I", "Gaga-BF1*012:02;Gaga-BF2*015:02"),
+    ],
+)
+def test_class_scoped_haplotype_uses_only_its_roster(restriction, expected):
+    from hitlist.curation import mhc_class_of, resolve_mhc_annotation
+
+    alleles, provenance, n_alleles = curation.expand_allele_set(restriction)
+    assert (alleles, provenance, n_alleles) == (
+        expected,
+        "haplotype_roster",
+        len(expected.split(";")),
+    )
+    annotation = resolve_mhc_annotation(restriction)
+    assert annotation.restriction == restriction
+    assert annotation.allele_resolution == "class_only"
+    assert annotation.mhc_class == mhc_class_of(restriction)
+    assert annotation.mhc_class in {"I", "II"}
+
+
+@pytest.mark.parametrize(
+    "restriction",
+    ["RT1-Dn", "H2-IEg7", "ELA-A1 class I", "H2-b", "H2-Q2"],
+)
+def test_haplotype_without_scoped_roster_is_not_expanded(restriction, monkeypatch):
+    monkeypatch.setattr(curation, "_pmid_allele_pool", lambda _: frozenset({"H2-K*b"}))
+    assert curation.expand_allele_set(restriction, pmid=999) == ("", "unmatched", 0)
+
+
+def test_haplotype_conflicting_row_class_is_unmatched():
+    assert curation.expand_allele_set("H2-b class I", mhc_class="II") == ("", "unmatched", 0)
 
 
 @pytest.mark.parametrize("tier", ["donor", "peptide"])
@@ -324,3 +363,35 @@ def test_supplement_keeps_reported_serotype_separate_from_candidates(tmp_path, m
     assert result["allele_resolution"] == "serological"
     assert result["mhc_allele_set"] == "HLA-A*02:01"
     assert result["mhc_allele_provenance"] == "pmid_serotype_pool"
+
+
+def test_scanner_keeps_haplotype_statement_and_roster_candidates(tmp_path):
+    from hitlist.scanner import scan
+    from tests.test_scanner import _write_tiny_iedb_csv
+
+    path = tmp_path / "iedb.csv"
+    row = [""] * 23
+    row[0], row[2], row[5] = "http://iedb.org/assay/haplotype", "99900005", "SIINFEKL"
+    row[19], row[20], row[22], row[14] = "H2-b class I", "I", "mass spectrometry", "Positive"
+    _write_tiny_iedb_csv(path, [row])
+    result = scan(peptides=None, iedb_path=path, cedar_path=None, mhc_species=None).iloc[0]
+    assert result["mhc_restriction"] == "H2-b class I"
+    assert result["allele_resolution"] == "class_only"
+    assert result["mhc_allele_set"] == "H2-D*b;H2-K*b;H2-Q7*b;H2-T23*a"
+    assert result["mhc_allele_provenance"] == "haplotype_roster"
+
+
+def test_supplement_keeps_haplotype_statement_and_roster_candidates(tmp_path, monkeypatch):
+    path = tmp_path / "haplotypes.csv"
+    path.write_text("peptide,mhc_restriction,mhc_class\nSIINFEKL,H2-b class II,II\n")
+    monkeypatch.setattr(supplement, "_SUPP_DIR", tmp_path)
+    monkeypatch.setattr(
+        supplement,
+        "load_supplementary_manifest",
+        lambda: [{"pmid": 999, "file": path.name, "defaults": {}}],
+    )
+    result = supplement.scan_supplementary().iloc[0]
+    assert result["mhc_restriction"] == "H2-b class II"
+    assert result["allele_resolution"] == "class_only"
+    assert result["mhc_allele_set"] == "H2-AA*b;H2-AB*b;H2-EB*b"
+    assert result["mhc_allele_provenance"] == "haplotype_roster"

@@ -51,7 +51,7 @@ from os.path import basename, dirname, join
 from types import MappingProxyType
 
 import pandas as pd
-from mhcgnomes import Allele, Class2Locus, Gene, MhcClass, Pair, Serotype, Species
+from mhcgnomes import Allele, Class2Locus, Gene, Haplotype, MhcClass, Pair, Serotype, Species
 
 from .cell_name_parser import parse_cell_name, registry_verdict
 from .conditions import CONDITION_FIELDS, validate_study_conditions
@@ -296,6 +296,7 @@ MHC_ALLELE_PROVENANCE_VALUES = (
     "peptide_serotype_match",
     "sample_serotype_match",
     "pmid_serotype_pool",
+    "haplotype_roster",
     "unmatched",
 )
 
@@ -800,7 +801,21 @@ class MhcAnnotation:
         }
 
 
+def _class_scoped_haplotype(parsed) -> str:
+    """Class of a populated haplotype roster, or blank when it is ambiguous."""
+    if not isinstance(parsed, Haplotype) or not parsed.alleles:
+        return ""
+    if parsed.is_class1 and not parsed.is_class2:
+        return "I"
+    if parsed.is_class2 and not parsed.is_class1:
+        return "II"
+    return ""
+
+
 def _molecule_class(parsed) -> str:
+    haplotype_class = _class_scoped_haplotype(parsed)
+    if haplotype_class:
+        return haplotype_class
     if type(parsed).__name__ not in _MHC_MOLECULE_TYPES:
         return ""
     return _FINE_MHC_CLASS_TO_TOKEN.get(str(getattr(parsed, "mhc_class", "")), "")
@@ -1434,7 +1449,7 @@ def mhc_class_spellings(mhc_class: str) -> tuple[str, ...]:
 
 @cache
 def mhc_class_of(mhc_restriction: str, species_context: str = "") -> str:
-    """Canonical MHC class for an allele / gene / pair, via mhcgnomes.
+    """Canonical MHC class for a molecule or class-scoped haplotype.
 
     Returns ``"I"``, ``"II"``, ``"non-classical"`` or ``""`` (unknown).
 
@@ -1804,6 +1819,8 @@ def classify_allele_resolution(mhc_restriction: str) -> str:
     if isinstance(result, Serotype):
         return "serological"
     if isinstance(result, MhcClass):
+        return "class_only"
+    if _class_scoped_haplotype(result):
         return "class_only"
     return "unresolved"
 
@@ -3309,8 +3326,11 @@ def expand_allele_set(
       ``peptide_serotype_match``, ``sample_serotype_match`` or
       ``pmid_serotype_pool``. The reported serotype remains unchanged; no
       catalog members are added to the candidate pool.
+    - A populated, class-scoped haplotype uses only its mhcgnomes roster
+      members with ``haplotype_roster`` provenance. Empty or ambiguous
+      haplotypes remain unmatched; no class-II partner is synthesized.
     - Blank, two-digit and other unresolved restrictions remain ``unmatched``.
-      No catalog or haplotype expansion is performed.
+      No unrestricted catalog expansion is performed.
 
     A nonempty strongest typing tier never falls through to a broader pool if
     its compatible intersection is empty. Generic class labels have unknown
@@ -3338,6 +3358,18 @@ def expand_allele_set(
 
     species_context = species_context or pmid_mhc_species_context(pmid)
     restriction, _, _ = _parse_with_context(mhc_restriction, species_context)
+    haplotype_class = _class_scoped_haplotype(restriction)
+    if haplotype_class:
+        candidates = {
+            resolve_allele_identity(allele.to_string())
+            for allele in restriction.alleles
+            if _is_exact_allele_candidate(allele.to_string())
+        }
+        candidates = _filter_alleles_by_class(candidates, haplotype_class)
+        candidates = _filter_alleles_by_class(candidates, mhc_class)
+        if not candidates:
+            return "", "unmatched", 0
+        return ";".join(sorted(candidates)), "haplotype_roster", len(candidates)
     locus_inference = isinstance(restriction, (Gene, Class2Locus))
     serotype_inference = isinstance(restriction, Serotype) and resolution == "serological"
     if not (locus_inference or serotype_inference) and resolution != "class_only":
