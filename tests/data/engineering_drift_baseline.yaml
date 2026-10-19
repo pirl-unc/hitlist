@@ -81,8 +81,3 @@
 - jy_ebv_lcl_titration_series|condition_transfection|error
 - raji_burkitt_s_lymphoma_ebv_lcl|condition_transfection|error
 - sk_mel_37_melanoma|condition_transfection|error
-39438697:
-- primary_human_monocyte_derived_macrophages_mock|condition_knockout_genes|error
-- primary_human_monocyte_derived_macrophages_mtb_i|condition_knockout_genes|error
-- thp_1_wild_type_mock_infection|condition_knockout_genes|error
-- thp_1_wild_type_mtb_h37rv_infection|condition_knockout_genes|error

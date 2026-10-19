@@ -1,3 +1,33 @@
+# PR 10: #593 Leddy TAP1-control claims (1.82.11)Specification: the SureQuant source (PMID 39438697, PMC12012165 Figure 5
+and its author-supplied `conditions_table_TAP.csv`) distinguishes parental
+wild-type from TAP1-knockout THP-1 macrophages. Its other comparison uses
+primary human monocyte-derived macrophages, with no gene knockout reported.
+Record `condition_knockout_genes: "none"` only on those four non-knockout arms,
+and attach primary-source evidence to each. Preserve the existing sample
+identities, infection states and all observed data. Remove exactly their four
+known #593 findings, assert the loaded control claims, and verify that no
+engineered-material verdict or expression-anchor tier changes. Bump 1.82.11;
+stack on #717, merge and publish only after 1.82.10 reaches PyPI.
+
+- [x] Read the source and review the four curated arms and audit entries.
+- [x] Add the four claims, evidence and narrow regression coverage.
+- [x] Compare audit, verdict and tier before/after; run format/lint and focused tests.
+- [ ] Run the full `./test.sh` gate when memory permits, and require CI.
+- [ ] Review diff, open PR, require final CI, merge and publish in sequence.
+
+## Review
+
+The source names the parental WT and TAP1-KO THP-1 lines separately, and
+Figure 5a describes primary human monocyte-derived macrophages. The four
+source-backed `none` claims remove exactly the four PMID 39438697 drift
+entries: the global audit is 55 findings in nine studies (39 error, 16 warn),
+down from 59 in ten (43/16). The loaded arms retain their pre-change
+`is_engineered_material()` verdict (`False` on all four) and expression
+anchor tiers (5/5 for THP-1, 6/6 for primary hMDMs). `./format.sh` and
+`./lint.sh` pass; all 22 engineering-drift tests pass. `./test.sh` was
+attempted but its #483 memory guard refused at 1.00 GB free versus 2.5 GB
+required, so full local verification and CI remain pending.
+
 # PR 9: #684 Python 3.10-3.14 support policy (1.82.10)
 
 Specification: align the supported Python minimum with the approved OpenVax
