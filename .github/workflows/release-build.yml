@@ -14,6 +14,46 @@ on:
       - tests/test_release_artifacts.py
       - tests/test_xdist_cache.py
       - tests/xdist_cache.py
+      - test.sh
+      - hitlist/curation_yaml.py
+      - hitlist/supplement.py
+      - tests/conftest.py
+      - tests/test_bulk_proteomics.py
+      - tests/test_supplement.py
+      - hitlist/provenance.py
+      - hitlist/builder.py
+      - hitlist/detectability.py
+      - hitlist/proteome.py
+      - hitlist/data/bulk_proteomics/**
+      - tests/test_detectability.py
+      - tests/test_proteome.py
+      - hitlist/assays.py
+      - hitlist/canine_bulk.py
+      - hitlist/canine_orfdata.py
+      - hitlist/managed_assets.py
+      - hitlist/data/canine_bulk.yaml
+      - tests/test_canine_bulk.py
+      - tests/test_canine_orfdata.py
+      - tests/data/canine_orfdata/**
+      - hitlist/observations.py
+      - hitlist/mappings.py
+      - tests/test_assays.py
+      - tests/test_provenance.py
+      - hitlist/cta_expression.py
+      - hitlist/expression_inputs.py
+      - hitlist/evidence_bundle.py
+      - hitlist/tissue_blacklist.py
+      - hitlist/cli_evidence.py
+      - hitlist/data/tissue_blacklist.yaml
+      - tests/test_cta_expression.py
+      - tests/test_cta_evidence_bundle.py
+      - tests/test_tissue_blacklist.py
+      - hitlist/uniprot.py
+      - hitlist/cli_uniprot.py
+      - hitlist/data/uniprot_references.yaml
+      - tests/test_uniprot.py
+      - tests/test_build_uniprot_reference.py
+      - scripts/build_uniprot_reference.py
 
 permissions:
   contents: read
@@ -26,13 +66,16 @@ jobs:
   build:
     if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # Historical serial unit phases took ~49 minutes (#636).
+    # Allow both complete phases with headroom for hosted-runner variation.
+    timeout-minutes: 90
     env:
-      # The v2 corpus needs conservative concurrency on the hosted runner.
+      # The complete corpus needs conservative concurrency on the hosted runner.
       # Existing per-worker memory guards and both complete test phases remain.
       TEST_SH_MAX: "1"
       PYTEST_ADDOPTS: "-ra"
-      CORPUS_VERSION: v2
+      CORPUS_VERSION: v4
+      CORPUS_MANIFEST_SHA256: 2318bc53cdae228285218991d58fbcc2bd7266327cec1dd3ed9a03b1c944a5b7
     steps:
       - uses: actions/checkout@v7
         with:
@@ -52,7 +95,7 @@ jobs:
       - name: Install release tools and current development dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev,alleles]" build twine
+          pip install -e ".[dev,alleles,cta]" build twine
           # --upgrade alone retains an installed PyPI wheel with the same version.
           pip uninstall --yes datacache gtfparse serializable mhcflurry pyensembl mhcgnomes
           pip install --upgrade \
@@ -66,15 +109,11 @@ jobs:
           python -c 'from scripts.release_artifacts import installed_dependencies; installed_dependencies()'
 
       - name: Require the integration corpus
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          corpus_dir="$RUNNER_TEMP/hitlist-ci-corpus"
-          mkdir -p "$corpus_dir"
-          gh release download "ci-corpus-$CORPUS_VERSION" \
-            --repo pirl-unc/hitlist --pattern '*.parquet' \
-            --pattern observations_meta.json --dir "$corpus_dir"
-          python scripts/ci_corpus.py verify "$corpus_dir"
+          corpus_dir=$(python scripts/ci_corpus.py install \
+            --manifest-url "https://github.com/pirl-unc/hitlist/releases/download/ci-corpus-${CORPUS_VERSION}/observations_meta.json" \
+            --manifest-sha256 "$CORPUS_MANIFEST_SHA256" \
+            --cache-dir "$RUNNER_TEMP/hitlist-ci-corpus")
           echo "HITLIST_DATA_DIR=$corpus_dir" >> "$GITHUB_ENV"
 
       - name: Format, test and build the release artifacts

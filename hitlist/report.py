@@ -30,6 +30,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from .pandas_utils import fillna_scalar_safe
+
 
 def generate_report(
     df: pd.DataFrame,
@@ -161,7 +163,7 @@ def generate_report(
         if len(cancer) > 0:
             p("── Cancer Disease Breakdown ──")
             p()
-            nonempty = cancer[cancer["disease"].fillna("").str.strip() != ""]
+            nonempty = cancer[fillna_scalar_safe(cancer["disease"], "").str.strip() != ""]
             p(
                 f"  Rows with disease annotation: {len(nonempty):,} / {len(cancer):,} "
                 f"({len(nonempty) / len(cancer) * 100:.1f}%)"
@@ -193,7 +195,7 @@ def generate_report(
 
     # ── Cell line inventory ─────────────────────────────────────────────
     if "cell_line_name" in df.columns:
-        cl_data = df[df["cell_line_name"].fillna("").str.strip() != ""]
+        cl_data = df[fillna_scalar_safe(df["cell_line_name"], "").str.strip() != ""]
         if len(cl_data) > 0:
             p("── Cell Line Inventory ──")
             p()
@@ -404,7 +406,9 @@ def _run_report_from_csv(
         mhc_species="Homo sapiens",
         classify_source=True,
     )
-    df = _drop_excluded_ms_rows(df)
+    from .assays import positive_ms_mask
+
+    df = _drop_excluded_ms_rows(df[positive_ms_mask(df)])
     return generate_report(df, mhc_class_filter=mhc_class, output=output)
 
 
@@ -428,11 +432,9 @@ def _drop_excluded_ms_rows(df: pd.DataFrame) -> pd.DataFrame:
     excluded = ms_excluded_pmids()
     if not excluded:
         return df
-    is_ms = (
-        ~df["is_binding_assay"].fillna(False).astype(bool)
-        if "is_binding_assay" in df.columns
-        else pd.Series(True, index=df.index)
-    )
+    from .assays import positive_ms_mask
+
+    is_ms = positive_ms_mask(df)
     mask = is_ms & df["pmid"].isin(excluded)
     if not mask.any():
         return df

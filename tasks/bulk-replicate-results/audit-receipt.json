@@ -1,0 +1,62 @@
+{
+  "commit": "832c95a10d98ab3e37535c7a4362014e4a6518df",
+  "files": {
+    "audit.json": {
+      "sha256": "da4b412730e44651bca4d7c470166c05ccb18a09352bfdc6a8afb084c7d9a08d",
+      "size_bytes": 2908
+    },
+    "audit.py": {
+      "sha256": "6cbd455a43a11acbba79b046164db59aa0d7ead6f7f6d120034d395e9e7dc4c3",
+      "size_bytes": 10617
+    },
+    "fractionation.py": {
+      "sha256": "08a2e1c9ad16659e46ea6620f83b619a178d374b7af6bf832b808f3179ec1c6d",
+      "size_bytes": 4274
+    },
+    "peptides.csv.gz": {
+      "sha256": "760000129927a762c4de97f3e4c92f608a2dfe17e3d7201d0345adcee0703d4a",
+      "size_bytes": 44147940
+    },
+    "projection.py": {
+      "sha256": "b7633c1d94fa2e6b8e48dc71da0d91d31273d1c2fad2e1e008ed475d1bdcb94f",
+      "size_bytes": 5158
+    },
+    "registry.yaml": {
+      "sha256": "1936194860c47917681448a75401569258f0cf4ea5a46a295a6bfabf4db8073b",
+      "size_bytes": 12315
+    },
+    "scope-counts.tsv": {
+      "sha256": "cb3bd771e589c24385b077de8ebaf7c22a88253ea9c542081cabeb0f191e52b0",
+      "size_bytes": 1359
+    },
+    "scope-evidence.tsv": {
+      "sha256": "113a91f0968c6c4f950a61b931f0769cc7c817652aaa68a045b6c22e1ee162d4",
+      "size_bytes": 4810
+    },
+    "source-registry.json": {
+      "sha256": "ce69c897637836cdb1369f1f26949d0365b9a8cc1c642c0b7a2cea6b5e8b00de",
+      "size_bytes": 271
+    },
+    "summary-receipt.json": {
+      "sha256": "6be4c196f8d61755a3a9a65a708c2bcb5fd11da1b0a1812d8dc6c17874c3e750",
+      "size_bytes": 893
+    },
+    "summary.txt": {
+      "sha256": "5eb5c41af2c7929be8a9354bf7c9fcb021ead7f47c07d0774a146b352e1a8860",
+      "size_bytes": 587345
+    }
+  },
+  "paths": {
+    "audit.json": "/Users/iskander/.hitlist/bulk-replicates/audit/832c95a10d98ab3e37535c7a4362014e4a6518df/bundles/2026-10-16T15-58-42Z/audit.json",
+    "audit.py": "/Users/iskander/.hitlist/bulk-replicates/audit/832c95a10d98ab3e37535c7a4362014e4a6518df/bundles/2026-10-16T15-58-42Z/audit.py",
+    "fractionation.py": "/Users/iskander/.hitlist/bulk-replicates/audit/832c95a10d98ab3e37535c7a4362014e4a6518df/bundles/2026-10-16T15-58-42Z/fractionation.py",
+    "peptides.csv.gz": "/Users/iskander/.hitlist/bulk-replicates/audit/832c95a10d98ab3e37535c7a4362014e4a6518df/bundles/2026-10-16T15-58-42Z/peptides.csv.gz",
+    "projection.py": "/Users/iskander/.hitlist/bulk-replicates/audit/832c95a10d98ab3e37535c7a4362014e4a6518df/bundles/2026-10-16T15-58-42Z/projection.py",
+    "registry.yaml": "/Users/iskander/.hitlist/bulk-replicates/audit/832c95a10d98ab3e37535c7a4362014e4a6518df/bundles/2026-10-16T15-58-42Z/registry.yaml",
+    "scope-counts.tsv": "/Users/iskander/.hitlist/bulk-replicates/audit/832c95a10d98ab3e37535c7a4362014e4a6518df/bundles/2026-10-16T15-58-42Z/scope-counts.tsv",
+    "scope-evidence.tsv": "/Users/iskander/.hitlist/bulk-replicates/audit/832c95a10d98ab3e37535c7a4362014e4a6518df/bundles/2026-10-16T15-58-42Z/scope-evidence.tsv",
+    "source-registry.json": "/Users/iskander/.hitlist/bulk-replicates/audit/832c95a10d98ab3e37535c7a4362014e4a6518df/bundles/2026-10-16T15-58-42Z/source-registry.json",
+    "summary-receipt.json": "/Users/iskander/.hitlist/bulk-replicates/audit/832c95a10d98ab3e37535c7a4362014e4a6518df/bundles/2026-10-16T15-58-42Z/summary-receipt.json",
+    "summary.txt": "/Users/iskander/.hitlist/bulk-replicates/audit/832c95a10d98ab3e37535c7a4362014e4a6518df/bundles/2026-10-16T15-58-42Z/summary.txt"
+  }
+}

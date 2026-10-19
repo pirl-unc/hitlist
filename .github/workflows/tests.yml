@@ -9,7 +9,8 @@ env:
   # scripts/publish_ci_corpus.sh (tag ci-corpus-<CORPUS_VERSION>).
   # Changing this invalidates the integration job's cache so CI pulls the
   # new corpus.  release-build.yml carries its own copy of this value.
-  CORPUS_VERSION: v2
+  CORPUS_VERSION: v4
+  CORPUS_MANIFEST_SHA256: 2318bc53cdae228285218991d58fbcc2bd7266327cec1dd3ed9a03b1c944a5b7
   PYTEST_ADDOPTS: "-ra"
   PYTHONUNBUFFERED: "1"
 
@@ -29,7 +30,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev,alleles]"
+          pip install -e ".[dev,alleles,cta]"
 
       - name: Lint and check formatting (pyproject's [tool.ruff] include list)
         run: ./lint.sh
@@ -63,7 +64,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev,alleles]"
+          pip install -e ".[dev,alleles,cta]"
 
       - name: Check the editable install matches this checkout (#553)
         run: python scripts/check_dev_install.py
@@ -135,7 +136,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev,alleles]"
+          pip install -e ".[dev,alleles,cta]"
 
       - name: Check the editable install matches this checkout (#553)
         run: python scripts/check_dev_install.py
@@ -157,20 +158,25 @@ jobs:
         uses: actions/cache/restore@v6
         with:
           path: ~/.hitlist
-          key: hitlist-corpus-${{ env.CORPUS_VERSION }}
+          key: hitlist-corpus-${{ env.CORPUS_VERSION }}-${{ env.CORPUS_MANIFEST_SHA256 }}
 
-      - name: Download prebuilt corpus on cache miss
-        if: steps.corpus-cache.outputs.cache-hit != 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install and verify the complete pinned corpus through datacache
         run: |
-          mkdir -p ~/.hitlist
-          gh release download "ci-corpus-${CORPUS_VERSION}" \
-            --repo pirl-unc/hitlist --pattern '*.parquet' \
-            --pattern observations_meta.json --dir ~/.hitlist --clobber
+          corpus_dir=$(python scripts/ci_corpus.py install \
+            --manifest-url "https://github.com/pirl-unc/hitlist/releases/download/ci-corpus-${CORPUS_VERSION}/observations_meta.json" \
+            --manifest-sha256 "$CORPUS_MANIFEST_SHA256")
+          echo "HITLIST_DATA_DIR=$corpus_dir" >> "$GITHUB_ENV"
 
-      - name: Verify corpus provenance and file hashes
-        run: python scripts/ci_corpus.py verify ~/.hitlist
+      - name: Audit retained allele restrictions and blank rows
+        run: python scripts/allele_candidate_audit.py "$HITLIST_DATA_DIR/observations.parquet" candidate-audit
+
+      - name: Upload allele candidate coverage audit
+        uses: actions/upload-artifact@v7
+        with:
+          name: allele-candidate-audit
+          path: candidate-audit/
+          if-no-files-found: error
+          retention-days: 30
 
       # Verification runs on cache hits too; only verified downloads are saved.
       - name: Save corpus cache
@@ -178,7 +184,7 @@ jobs:
         uses: actions/cache/save@v6
         with:
           path: ~/.hitlist
-          key: hitlist-corpus-${{ env.CORPUS_VERSION }}
+          key: hitlist-corpus-${{ env.CORPUS_VERSION }}-${{ env.CORPUS_MANIFEST_SHA256 }}
 
       - name: Run integration tests (with coverage)
         run: |

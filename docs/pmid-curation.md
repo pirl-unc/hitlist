@@ -6,6 +6,11 @@ per-sample metadata (HLA genotype, perturbation, instrument) that MS pipelines
 need. Overrides live in `hitlist/data/pmid_overrides.yaml` as data, loaded at
 runtime by `curation.load_pmid_overrides()` — no code changes to add a study.
 
+Cross-species experimental evidence is maintained in the separate
+[`species_contexts.yaml` registry](species-contexts.md). Keeping that evidence
+separate prevents the species-mismatch flags used to find candidates from also
+serving as their own validation.
+
 Each entry is keyed by `pmid` (or `submission_id` for unpublished IEDB
 submissions) and curated against the paper's Methods. The file currently covers
 **159 PMIDs**, accounting for ~89.5% of all observations.
@@ -63,6 +68,13 @@ A representative entry:
 | `n_samples`, `n_tissues` | Informational counts. Read by nothing, but named per the count-suffix rule; they were bare `samples:` / `tissues:` until the study-level guard went in. |
 | `ip_antibody`, `acquisition_mode`, `instrument`, `fragmentation`, `labeling`, `search_engine`, `fdr`, `quantification_method` | MS-acquisition metadata (study-wide defaults; overridable per `ms_samples` entry). |
 | `perturbations` | Non-standard processing (gene KO, cytokines, infection, …). |
+
+Observation and training exports carry curated `search_engine` and `fdr` values
+from the resolved MS arm. An ambiguous row retains a value only when every
+candidate arm agrees; binding evidence receives blanks. `fdr` preserves the raw
+source description, including PSM-, peptide-, or protein-level thresholds and
+heterogeneous methods. A blank means uncurated, and a nonblank description is
+not a standardized peptide-level quality guarantee.
 
 Every top-level key is declared in `curation.PMID_ENTRY_FIELDS`, mapped to what
 reads it, and **loading rejects an undeclared key** — the study-level twin of the
@@ -437,6 +449,12 @@ that sample's typing and records the corresponding `mhc_allele_provenance`
 restriction and provenance; the mapping adds only `attributed_sample_label`.
 This preserves independent facts such as a predicted restriction that differs
 from the sample's measured genotype.
+
+Gene/locus restrictions use `peptide_locus_match`, `sample_locus_match` or
+`pmid_locus_pool` for compatible candidates from the corresponding typing tier.
+They retain the reported restriction, resolution and evidence even for a
+singleton candidate. See [allele candidates](allele-candidates.md) for matching,
+class-II chains/pairs, rebuilding persisted artifacts and measured coverage.
 
 ## Adding a new override
 

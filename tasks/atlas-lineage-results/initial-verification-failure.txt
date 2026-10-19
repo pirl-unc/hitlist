@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/private/tmp/hitlist-human-lineage/scripts/verify_atlas_lineage.py", line 223, in <module>
+    main()
+  File "/private/tmp/hitlist-human-lineage/scripts/verify_atlas_lineage.py", line 217, in main
+    result = verify(json.loads(args.receipt.read_text()))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/private/tmp/hitlist-human-lineage/scripts/verify_atlas_lineage.py", line 161, in verify
+    assert row["sample_alleles"] == ";".join(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

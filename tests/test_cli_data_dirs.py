@@ -40,6 +40,7 @@ def _split_locations(tmp_path, monkeypatch):
     monkeypatch.setattr(downloads, "_override_data_dir", built)
     monkeypatch.setattr(downloads, "_data_dir_cache", {})
     monkeypatch.setattr(cli, "data_asset_dir", lambda: assets)
+    monkeypatch.setattr(downloads, "data_asset_dir", lambda: assets)
     monkeypatch.setattr("hitlist.proteome._PROTEOME_INDEX_DISK_CACHE_DIR", tmp_path / "index-cache")
     return built, assets
 
@@ -70,7 +71,7 @@ def test_data_dirs_reports_the_proteome_index_cache(_split_locations, capsys, tm
 def test_data_list_footer_reports_the_asset_dir(_split_locations, monkeypatch, capsys):
     """The #291 gap itself: ``data list`` used to print only ``data_dir()``."""
     _, assets = _split_locations
-    monkeypatch.setattr(cli, "list_datasets", dict)
+    monkeypatch.setattr(downloads, "list_datasets", dict)
     cli._data_list(argparse.Namespace())
     assert str(assets) in capsys.readouterr().out
 
@@ -80,9 +81,16 @@ def test_data_list_footer_reports_the_asset_dir_with_datasets(
 ):
     built, assets = _split_locations
     monkeypatch.setattr(
-        cli,
+        downloads,
         "list_datasets",
-        lambda: {"iedb": {"size_bytes": 10, "registered": "2026-01-01", "description": "d"}},
+        lambda: {
+            "iedb": {
+                "path": str(built / "iedb.csv"),
+                "size_bytes": 10,
+                "registered": "2026-01-01",
+                "description": "d",
+            }
+        },
     )
     out_dir_line = cli._data_list(argparse.Namespace())
     assert out_dir_line is None
@@ -93,7 +101,7 @@ def test_data_list_footer_reports_the_asset_dir_with_datasets(
 
 def test_data_available_footer_reports_both(_split_locations, monkeypatch, capsys):
     built, assets = _split_locations
-    monkeypatch.setattr(cli, "list_datasets", dict)
+    monkeypatch.setattr(downloads, "list_datasets", dict)
     monkeypatch.setattr(cli, "available_datasets", lambda: {"iedb": "IEDB"})
     cli._data_available(argparse.Namespace())
     out = capsys.readouterr().out
@@ -109,8 +117,9 @@ def test_one_line_when_the_two_locations_coincide(tmp_path, monkeypatch, capsys)
     monkeypatch.setattr(cli, "data_asset_dir", lambda: shared)
     monkeypatch.setattr("hitlist.proteome._PROTEOME_INDEX_DISK_CACHE_DIR", tmp_path / "index-cache")
     lines = cli._data_location_lines()
-    assert sum(str(shared) in line for line in lines) == 1
+    assert sum(str(shared) in line for line in lines) == 2
     assert "built indexes + assets" in lines[0]
+    assert any("UniProt references" in line and str(shared / "uniprot") in line for line in lines)
 
 
 def test_dirs_subcommand_parses_and_dispatches(monkeypatch):
@@ -179,7 +188,7 @@ def test_locations_resolve_the_data_dir_exactly_once(_split_locations, monkeypat
 
 
 def test_index_cache_label_follows_set_disk_cache_dir(tmp_path, monkeypatch, capsys):
-    """ "always ~/.hitlist" is a lie once `set_disk_cache_dir()` has moved it."""
+    """Report whether the cache follows the data directory or an override."""
     from hitlist import proteome
 
     monkeypatch.setattr(downloads, "_override_data_dir", tmp_path / "built")
@@ -190,11 +199,10 @@ def test_index_cache_label_follows_set_disk_cache_dir(tmp_path, monkeypatch, cap
     assert "set_disk_cache_dir()" in moved[0]
     assert "always ~/.hitlist" not in moved[0]
 
-    monkeypatch.setattr(
-        proteome, "_PROTEOME_INDEX_DISK_CACHE_DIR", proteome.default_proteome_index_cache_dir()
-    )
+    proteome.set_disk_cache_dir(None)
     default = [ln for ln in cli._data_location_lines() if "proteome index cache" in ln]
-    assert "always ~/.hitlist" in default[0]
+    assert "data directory" in default[0]
+    assert str(tmp_path / "built" / "proteome_index_cache") in default[0]
 
 
 def test_dir_summary_does_not_stat_entries_past_the_limit(tmp_path, monkeypatch):

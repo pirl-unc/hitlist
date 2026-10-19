@@ -55,169 +55,19 @@ CLI::
 from __future__ import annotations
 
 import contextlib
-import gzip
-import hashlib
 import json
 import os
-import shutil
 import sys
 import tempfile
-import time
-import urllib.error
-import urllib.request
-import zipfile
 from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
 
-from tqdm.auto import tqdm
+from datacache import VersionedFileRegistry
 
-# ── Download helper (timeout + retry) ────────────────────────────────────────
-#
-# UniProt / HPA / IEDB FASTAs and TSVs are fetched over plain HTTP.  We use
-# ``urlopen(timeout=...)`` + ``shutil.copyfileobj`` rather than
-# ``urlretrieve`` (which takes no timeout) so a stalled TCP connection raises
-# ``socket.timeout`` instead of blocking forever — important now that the
-# parallel mapping pre-fetch (#254) downloads serially in the orchestrator,
-# where one hung connection would stall every worker.  See issue #255.
-
-# Connect/read socket timeout for a single download operation, in seconds.
-# This is a safety invariant, not a user-tuning knob: accepting arbitrary
-# process-state values allowed NaN/inf/negative timeouts that either disabled
-# the guard or crashed inside ``socket.settimeout``.  Mapping prefetch has a
-# separate hard wall-clock deadline supervised from another process (#402).
+# Socket inactivity bound; mapping prefetch separately enforces a wall-clock
+# deadline (#255/#402). Transfer, retry and publication belong to datacache.
 _DOWNLOAD_SOCKET_TIMEOUT = 300.0
-
-# Backoff (seconds) before each retry.  Its length is the retry count, so the
-# total number of attempts is ``len(_DOWNLOAD_RETRY_BACKOFF) + 1``.  Tests
-# monkeypatch this to disable sleeping.
-_DOWNLOAD_RETRY_BACKOFF: tuple[float, ...] = (5.0, 30.0)
-
-# Streaming read size for downloads — caps memory at one chunk (vs reading the
-# whole response) and gives the progress bar a smooth update cadence.
-_DOWNLOAD_CHUNK_SIZE = 1 << 16  # 64 KiB
-
-
-def _download_to_file(url: str, dest: Path, *, label: str = "", verbose: bool = True) -> None:
-    """Download ``url`` to ``dest`` atomically, with a timeout and retries.
-
-    Streams the response into a sibling ``.tmp`` file and ``shutil.move``s it
-    into place only on success, so a partial download never clobbers a good
-    cached file.  Transient failures (timeouts, connection resets, transient
-    HTTP errors) are retried with the backoff schedule in
-    ``_DOWNLOAD_RETRY_BACKOFF``.  Raises ``RuntimeError`` if every attempt
-    fails.
-    """
-    timeout = _DOWNLOAD_SOCKET_TIMEOUT
-    tmp = dest.with_suffix(dest.suffix + ".tmp")
-    what = label or url
-    last_err: Exception | None = None
-    attempts = len(_DOWNLOAD_RETRY_BACKOFF) + 1
-    try:
-        for attempt in range(attempts):
-            try:
-                # Note: comma form, not parenthesized — parenthesized context
-                # managers are a SyntaxError on Python 3.9, which we still
-                # support.
-                with urllib.request.urlopen(url, timeout=timeout) as resp, open(tmp, "wb") as fh:
-                    # Real HTTP responses expose Content-Length via .headers;
-                    # fall back to an indeterminate bar when it's absent.
-                    headers = getattr(resp, "headers", None)
-                    raw = headers.get("Content-Length") if headers is not None else None
-                    total = int(raw) if raw and str(raw).isdigit() else None
-                    with tqdm(
-                        total=total,
-                        unit="B",
-                        unit_scale=True,
-                        unit_divisor=1024,
-                        desc=what,
-                        leave=False,
-                        # Quiet under verbose=False and on non-TTYs (CI, pipes,
-                        # the pytest capture) — tqdm with disable=True is a cheap
-                        # pass-through, so the chunked copy stays the hot path.
-                        disable=not verbose or not sys.stderr.isatty(),
-                    ) as bar:
-                        for chunk in iter(lambda: resp.read(_DOWNLOAD_CHUNK_SIZE), b""):
-                            fh.write(chunk)
-                            bar.update(len(chunk))
-                # A clean 200 with an empty body (e.g. a withdrawn UniProt
-                # proteome ID) would otherwise be moved into place and cached
-                # as a permanent "valid" 0-byte file. Treat it as a retryable
-                # OSError instead of silently succeeding.
-                if tmp.stat().st_size == 0:
-                    raise OSError(f"empty response body from {url}")
-                shutil.move(str(tmp), str(dest))
-                return
-            except (urllib.error.URLError, OSError) as err:
-                # socket.timeout is an OSError subclass, so a stalled
-                # connection lands here instead of hanging forever.
-                last_err = err
-                if tmp.exists():
-                    tmp.unlink()
-                # A 4xx is a permanent client error (bad/withdrawn proteome
-                # ID, wrong URL) — retrying just wastes the backoff window, so
-                # fail fast.  Timeouts, connection resets, and 5xx are
-                # transient and worth retrying.
-                permanent = isinstance(err, urllib.error.HTTPError) and 400 <= err.code < 500
-                if permanent or attempt >= len(_DOWNLOAD_RETRY_BACKOFF):
-                    break
-                backoff = _DOWNLOAD_RETRY_BACKOFF[attempt]
-                if verbose:
-                    print(
-                        f"  [{what}] download failed ({err}); retrying in "
-                        f"{backoff:g}s ({attempt + 1}/{len(_DOWNLOAD_RETRY_BACKOFF)})"
-                    )
-                time.sleep(backoff)
-    finally:
-        if tmp.exists():
-            tmp.unlink()
-    raise RuntimeError(f"Failed to download {url}: {last_err}") from last_err
-
-
-def _is_compressed(url: str, dest: Path) -> bool:
-    """True if *url* is a ``.zip``/``.gz`` archive to expand into *dest*.
-
-    Mirrors datacache's heuristic: only decompress when *dest* doesn't itself
-    carry the archive suffix, so a deliberately-kept ``foo.gz`` cache file is
-    left compressed.
-    """
-    u = url.lower()
-    name = dest.name.lower()
-    return (u.endswith(".zip") and not name.endswith(".zip")) or (
-        u.endswith(".gz") and not name.endswith(".gz")
-    )
-
-
-def _decompress_to(src: Path, dest: Path) -> None:
-    """Expand a downloaded ``.zip``/``.gz`` *src* into *dest* atomically.
-
-    Streams into a sibling ``.tmp`` then ``shutil.move``s it into place, so a
-    partial/failed decompress never clobbers a good cached file.  ``.zip``
-    archives extract the member matching ``dest.name`` if present, else the
-    largest member (matching datacache's behaviour).  The compression kind is
-    inferred from *src*'s suffix.
-    """
-    tmp = dest.with_suffix(dest.suffix + ".tmp")
-    try:
-        if src.name.lower().endswith(".zip"):
-            with zipfile.ZipFile(src) as z:
-                names = z.namelist()
-                if not names:
-                    raise RuntimeError(f"empty zip archive: {src}")
-                member = (
-                    dest.name
-                    if dest.name in names
-                    else max(z.infolist(), key=lambda i: i.file_size).filename
-                )
-                with z.open(member) as zf, open(tmp, "wb") as fh:
-                    shutil.copyfileobj(zf, fh)
-        else:  # .gz
-            with gzip.open(src, "rb") as gz, open(tmp, "wb") as fh:
-                shutil.copyfileobj(gz, fh)
-        shutil.move(str(tmp), str(dest))
-    finally:
-        if tmp.exists():
-            tmp.unlink()
 
 
 def download_to_file(
@@ -228,46 +78,50 @@ def download_to_file(
     verbose: bool = True,
     force: bool = False,
     decompress: bool = False,
+    expected_sha256: str | None = None,
+    expected_size: int | None = None,
+    resume: bool = False,
 ) -> Path:
-    """Download *url* to *dest* with a progress bar and cache reporting.
+    """Fetch into the existing cache path using datacache's atomic downloader.
 
-    The reusable entry point behind hitlist's (and tsarina's) fetch commands —
-    bundles cache reuse, status messaging, a streaming ``tqdm`` progress bar,
-    and optional decompression.  Returns the local path.
-
-    - Reuses a cached *dest* unless ``force``, printing a one-line cache-status
-      message when ``verbose``.
-    - Streams the transfer (chunked, never buffering the whole file in memory)
-      with the timeout + retry + atomic-move semantics of the underlying
-      downloader; the progress bar is suppressed on non-TTYs / ``verbose=False``.
-    - When ``decompress`` and *url* is a ``.zip``/``.gz`` archive whose suffix
-      *dest* doesn't carry, expands it into *dest* (streamed to disk).
+    Raw bytes are the default, including archives and HTML. With ``decompress``
+    enabled, expand a literal .gz/.zip URL unless dest retains its archive suffix.
+    Integrity expectations describe installed bytes and are checked on reuse too.
+    ``resume`` requires a raw HTTP(S) download and expected_size; prefer a trusted
+    SHA-256. Without one datacache requires strong ETags on all accepted responses.
+    Cache hits never write provenance; new transfers record it for inspection.
     """
+    import datacache
+
     dest = Path(dest)
     name = label or dest.name
-    if dest.exists() and not force:
-        if verbose:
-            print(f"  [{name}] already cached ({dest.stat().st_size:,} bytes)")
-        return dest
-
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    if verbose:
+    cached = dest.exists() and not force
+    if verbose and not cached:
         print(f"  [{name}] downloading from {url}")
-
-    if decompress and _is_compressed(url, dest):
-        # Fetch the archive alongside dest, then expand it in.  Both the
-        # download and the decompress write through their own .tmp + move, so a
-        # failure at either step leaves the prior cache (if any) intact.
-        suffix = ".zip" if url.lower().endswith(".zip") else ".gz"
-        archive = dest.with_name(dest.name + suffix)
-        try:
-            _download_to_file(url, archive, label=name, verbose=verbose)
-            _decompress_to(archive, dest)
-        finally:
-            if archive.exists():
-                archive.unlink()
-    else:
-        _download_to_file(url, dest, label=name, verbose=verbose)
+    # Preserve hitlist's literal-URL opt-in, including query-bearing endpoints
+    # whose query ends in an archive name (IEDB/CEDAR).
+    source, target = url.lower(), dest.name.lower()
+    expand = decompress and any(
+        source.endswith(suffix) and not target.endswith(suffix) for suffix in (".gz", ".zip")
+    )
+    try:
+        datacache.fetch_file(
+            url,
+            destination=dest,
+            force=force,
+            decompress=expand,
+            raw=not expand,
+            timeout=_DOWNLOAD_SOCKET_TIMEOUT,
+            show_progress=verbose and sys.stderr.isatty(),
+            expected_sha256=expected_sha256,
+            expected_size=expected_size,
+            resume=resume,
+            record_provenance=True,
+        )
+    except Exception as error:
+        raise RuntimeError(f"Failed to download {url}: {error}") from error
+    if verbose and cached:
+        print(f"  [{name}] already cached ({dest.stat().st_size:,} bytes)")
     return dest
 
 
@@ -909,6 +763,7 @@ def resolve_proteome_via_uniprot(
     """
     import json
     import urllib.parse
+    import urllib.request
 
     if not organism:
         return None
@@ -1167,7 +1022,7 @@ def fetch_species_proteome(
 
     if verbose:
         print(f"  [{canonical}] fetching UniProt {proteome_id} ...")
-    _download_to_file(url, dest, label=canonical, verbose=verbose)
+    download_to_file(url, dest, label=canonical, verbose=verbose, force=True)
 
     size = dest.stat().st_size
     if verbose:
@@ -1245,7 +1100,7 @@ def fetch_proteome_by_upid(
             return None
         if verbose:
             print(f"  [{name}] fetching UniProt {upid} ...")
-        _download_to_file(url, dest, label=name, verbose=verbose)
+        download_to_file(url, dest, label=name, verbose=verbose, force=True)
         if verbose:
             print(f"  [{name}] downloaded {dest.stat().st_size:,} bytes → {dest}")
 
@@ -1283,6 +1138,7 @@ def _data_assets_registry() -> dict:
     assets = {
         a["filename"]: {
             "sha256": a["sha256"],
+            "size_bytes": a["size_bytes"],
             "source": a.get("source", ""),
             "bundled": bool(a.get("bundled", True)),
             "url": f"{base_url}/{a['filename']}",
@@ -1321,22 +1177,9 @@ def fetch_data_asset(filename: str, *, force: bool = False, verbose: bool = True
     Uses ``datacache.fetch_file`` (openvax ecosystem cache; #291) so the file is
     stored under ``datacache.get_data_dir('hitlist')`` and reused across runs.
 
-    Every guard is delegated rather than re-implemented (#590):
-
-    - ``timeout`` is :data:`_DOWNLOAD_SOCKET_TIMEOUT`, the same bound the
-      hand-rolled downloader has carried since #255/#402. Without it
-      ``fetch_file`` defaults to ``timeout=None`` and a stalled TCP connection
-      hangs with no wall-clock limit -- the exact failure those issues were
-      filed for, reintroduced on this newer path.
-    - ``expected_sha256`` validates the staged bytes *before* they are published
-      into the cache, and revalidates a cache hit without re-hashing the file
-      here. The previous hand-rolled loop published a corrupt file, noticed, and
-      re-fetched; it also re-hashed all 26 assets on every
-      :func:`fetch_all_data_assets` call. A mismatch now raises
-      ``datacache.FileValidationError`` naming the path and reason; ``force=True``
-      is the documented repair.
-    - ``show_progress`` reaches the assets that are never packaged and therefore
-      always downloaded (#341), where silence reads as a hang.
+    datacache verifies the registry's size and SHA-256 before publication and on
+    reuse, bounds socket inactivity, resumes interrupted raw HTTP transfers, and
+    records source provenance. ``force=True`` explicitly repairs a corrupt cache.
     """
     assets = _data_assets_registry()["assets"]
     if filename not in assets:
@@ -1354,6 +1197,10 @@ def fetch_data_asset(filename: str, *, force: bool = False, verbose: bool = True
             force=force,
             timeout=_DOWNLOAD_SOCKET_TIMEOUT,
             expected_sha256=meta["sha256"],
+            expected_size=meta["size_bytes"],
+            raw=True,
+            resume=os.name == "posix",
+            record_provenance=True,
             show_progress=verbose,
         )
     )
@@ -1472,10 +1319,14 @@ def fetch(name: str, force: bool = False) -> Path:
                 continue
             fetch(key, force=force)
         build_line_expression(verbose=True)
-        output = data_dir() / "line_expression.parquet"
+        from .line_expression import line_expression_path
+
+        output = line_expression_path()
         register("depmap", output, description="DepMap 24Q4 line-expression index")
         return output
     if name not in FETCHABLE_DATASETS:
+        if name in data_assets():
+            return fetch_data_asset(name, force=force)
         if name in MANUAL_DATASETS:
             info = MANUAL_DATASETS[name]
             raise ValueError(
@@ -1525,6 +1376,13 @@ def get_path(name: str) -> Path:
     """Resolve a dataset name to its local file path."""
     manifest = _load_manifest()
     entry = manifest.get("datasets", {}).get(name)
+    if entry is None and name in data_assets():
+        path = data_asset_dir() / name
+        if not path.exists():
+            raise FileNotFoundError(
+                f"Mirrored asset missing: {path}; fetch with hitlist data fetch {name}"
+            )
+        return path
     if entry is None:
         hint = ""
         if name in FETCHABLE_DATASETS:
@@ -1548,9 +1406,28 @@ def get_path(name: str) -> Path:
 
 def info(name: str) -> dict:
     """Get detailed metadata for a registered dataset."""
+    import datacache
+
     manifest = _load_manifest()
     entry = manifest.get("datasets", {}).get(name)
     if entry is None:
+        if name in data_assets():
+            meta = data_assets()[name]
+            state = datacache.inspect_file(
+                data_asset_dir() / name, expected_size=meta["size_bytes"]
+            )
+            return {
+                **meta,
+                "type": "mirrored asset",
+                "path": state.path,
+                "status": "installed" if state.status == "available" else state.status,
+                "cache_status": state.status,
+                "verified": state.verified,
+                "source_url": state.source_url,
+                "fetched_at": state.fetched_at,
+                "recorded_sha256": state.recorded_sha256,
+                "error": str(state.error) if state.error else None,
+            }
         # Return known info even if not registered
         if name == "depmap":
             return {
@@ -1565,7 +1442,16 @@ def info(name: str) -> dict:
             return {**MANUAL_DATASETS[name], "status": "not installed", "type": "manual download"}
         raise KeyError(f"Unknown dataset '{name}'")
     result = dict(entry)
-    result["status"] = "installed"
+    state = datacache.inspect_file(entry["path"])
+    result.update(
+        status="installed" if state.status == "available" else state.status,
+        cache_status=state.status,
+        verified=state.verified,
+        source_url=state.source_url,
+        fetched_at=state.fetched_at,
+        recorded_sha256=state.recorded_sha256,
+        error=str(state.error) if state.error else None,
+    )
     if name in FETCHABLE_DATASETS:
         result["type"] = "auto-fetch"
         result["usage"] = FETCHABLE_DATASETS[name].get("usage", "")
@@ -1580,6 +1466,13 @@ def list_datasets() -> dict[str, dict]:
     return dict(_load_manifest().get("datasets", {}))
 
 
+def list_cache_files(*, verify: bool = False, include_unregistered: bool = True) -> list[dict]:
+    """Inspect files across all cache locations; see :mod:`hitlist.cache_inventory`."""
+    from .cache_inventory import list_cache_files as inventory
+
+    return inventory(verify=verify, include_unregistered=include_unregistered)
+
+
 def available_datasets() -> dict[str, str]:
     """Return all known dataset names with descriptions."""
     result = {
@@ -1589,6 +1482,8 @@ def available_datasets() -> dict[str, str]:
         result[name] = ds["description"] + " [auto-fetch]"
     for name, ds in MANUAL_DATASETS.items():
         result[name] = ds["description"] + " [manual download]"
+    for name, asset in data_assets().items():
+        result.setdefault(name, asset["source"] + " [mirrored asset]")
     return result
 
 
@@ -1643,158 +1538,56 @@ class VersionedDatasetError(RuntimeError):
     """Unknown dataset/version, or a download failure, in a registry."""
 
 
-class VersionedDatasetRegistry:
-    """Download + cache for versioned, version-pinned external datasets.
+class VersionedDatasetRegistry(VersionedFileRegistry):
+    """Hitlist-compatible fixed-path registry backed by datacache.
 
-    Parameters
-    ----------
-    datasets
-        Mapping of ``name -> spec`` where each spec has::
-
-            {
-                "filename": "local_name.tsv",      # name on disk (post-decompress)
-                "urls": {"v23": "https://...zip", "latest": "https://..."},
-                "default_version": "v23",          # used when caller passes version=None
-                "description": "...",              # optional, for status()
-            }
-
-    cache_dir
-        Zero-arg callable returning the cache root :class:`~pathlib.Path`
-        (created on demand by the caller). The on-disk layout is
-        ``<cache>/<name>/<version>/<filename>`` plus a ``<cache>/manifest.json``
-        provenance file.
-    error_cls
-        Exception type raised for unknown datasets/versions and download
-        failures. Defaults to :class:`VersionedDatasetError`; consumers may pass
-        their own subclass to preserve their public error type.
+    Keeps the filename/urls/default_version mapping, callable cache_dir,
+    configurable error_cls, Path results and legacy root manifest/status keys.
+    Existing files are reused in place. Shared datacache machinery owns version
+    resolution, cache paths, writer locking and atomic receipt publication.
     """
 
     def __init__(self, datasets, *, cache_dir, error_cls=VersionedDatasetError):
-        self._datasets = datasets
-        self._cache_dir = cache_dir
-        self._error_cls = error_cls
-
-    # -- dataset / version resolution --
-
-    def _dataset(self, name: str) -> dict:
-        try:
-            return self._datasets[name]
-        except KeyError:
-            known = ", ".join(sorted(self._datasets))
-            raise self._error_cls(f"unknown dataset {name!r}; known: {known}") from None
-
-    def resolve_version(self, name: str, version: str | None = None) -> str:
-        """Return the concrete version for *name*, applying its default."""
-        spec = self._dataset(name)
-        if version is None:
-            version = spec["default_version"]
-        if version not in spec["urls"]:
-            avail = ", ".join(sorted(spec["urls"]))
-            raise self._error_cls(f"{name!r} has no version {version!r}; available: {avail}")
-        return version
-
-    # -- cache paths / manifest --
-
-    def _manifest_path(self) -> Path:
-        return self._cache_dir() / "manifest.json"
-
-    def _read_manifest(self) -> dict:
-        path = self._manifest_path()
-        if not path.exists():
-            return {}
-        try:
-            return json.loads(path.read_text())
-        except (json.JSONDecodeError, OSError):
-            return {}
-
-    def _write_manifest(self, manifest: dict) -> None:
-        # Atomic write (temp + os.replace), same as the module-level
-        # _save_manifest (#331): an interrupted/concurrent write must never
-        # truncate manifest.json, or _read_manifest silently returns {} and all
-        # provenance (sha256/bytes/url) vanishes.
-        p = self._manifest_path()
-        p.parent.mkdir(parents=True, exist_ok=True)
-        fd, tmp = tempfile.mkstemp(dir=str(p.parent), prefix=".manifest-", suffix=".tmp")
-        try:
-            with os.fdopen(fd, "w") as f:
-                f.write(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
-            os.replace(tmp, str(p))
-        except BaseException:
-            if os.path.exists(tmp):
-                os.remove(tmp)
-            raise
-
-    def local_path(self, name: str, version: str | None = None) -> Path:
-        """Expected cache path for *name*/*version* (may not exist yet)."""
-        version = self.resolve_version(name, version)
-        spec = self._dataset(name)
-        return self._cache_dir() / name / version / spec["filename"]
-
-    def is_cached(self, name: str, version: str | None = None) -> bool:
-        return self.local_path(name, version).exists()
-
-    # -- fetch --
+        super().__init__(datasets, cache_dir=cache_dir, error_cls=error_cls)
 
     def download(
         self, name: str, version: str | None = None, *, force: bool = False, verbose: bool = True
     ) -> Path:
-        """Download *name*/*version* into the cache and record it in the manifest.
-
-        A cached copy is reused unless ``force``. The transfer + ``.zip``/``.gz``
-        decompression are delegated to :func:`download_to_file`.
-        """
+        # Snapshot a dynamic root once, including status messages and the
+        # transfer/receipt transaction. The shared object carries no mutable
+        # installation state; creating this bound view is inexpensive.
         version = self.resolve_version(name, version)
-        spec = self._dataset(name)
-        dest = self.local_path(name, version)
-        url = spec["urls"][version]
-
-        was_cached = dest.exists() and not force
-        try:
-            download_to_file(url, dest, label=name, verbose=verbose, force=force, decompress=True)
-        except Exception as e:  # surface network/HTTP/decompress failures uniformly
-            raise self._error_cls(f"failed to download {name} ({url}): {e}") from e
-
-        # A cache hit needs no manifest churn (and no fresh sha256 of a large
-        # file); download_to_file already printed the cache-status line.
-        if was_cached:
-            return dest
-
-        manifest = self._read_manifest()
-        manifest[name] = {
-            "version": version,
-            "url": url,
-            "path": str(dest),
-            "bytes": dest.stat().st_size,
-            "sha256": hashlib.sha256(dest.read_bytes()).hexdigest(),
-            "downloaded_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        }
-        self._write_manifest(manifest)
-        return dest
+        root = Path(self._cache_dir())
+        registry = VersionedFileRegistry(
+            self._datasets, cache_dir=lambda: root, error_cls=self._error_cls
+        )
+        dest = registry.local_path(name, version)
+        url = self._datasets[name]["urls"][version]
+        cached = dest.exists() and not force
+        if verbose:
+            if cached:
+                print(f"  [{name}] already cached ({dest.stat().st_size:,} bytes)")
+            else:
+                print(f"  [{name}] downloading from {url}")
+        expand = any(
+            url.lower().endswith(suffix) and not dest.name.lower().endswith(suffix)
+            for suffix in (".gz", ".zip")
+        )
+        return registry.download(
+            name,
+            version,
+            force=force,
+            raw=not expand,
+            decompress=expand,
+            timeout=_DOWNLOAD_SOCKET_TIMEOUT,
+            show_progress=verbose and sys.stderr.isatty(),
+            record_provenance=True,
+        )
 
     def ensure(self, name: str, version: str | None = None) -> Path:
-        """Return a local path to *name*/*version*, downloading if absent."""
-        path = self.local_path(name, version)
-        return path if path.exists() else self.download(name, version)
-
-    def status(self) -> list[dict]:
-        """Return one status row per dataset (for a ``... list`` CLI command)."""
-        manifest = self._read_manifest()
-        rows = []
-        for name, spec in sorted(self._datasets.items()):
-            default_v = spec["default_version"]
-            path = self._cache_dir() / name / default_v / spec["filename"]
-            record = manifest.get(name, {})
-            rows.append(
-                {
-                    "name": name,
-                    "description": spec.get("description", ""),
-                    "default_version": default_v,
-                    "available_versions": sorted(spec["urls"]),
-                    "cached": path.exists(),
-                    "cached_version": record.get("version") if record else None,
-                    "bytes": record.get("bytes") if path.exists() else None,
-                    "downloaded_at": record.get("downloaded_at") if path.exists() else None,
-                    "path": str(path),
-                }
-            )
-        return rows
+        """Reuse silently, or download with the established status messages."""
+        version = self.resolve_version(name, version)
+        root = Path(self._cache_dir())
+        registry = type(self)(self._datasets, cache_dir=lambda: root, error_cls=self._error_cls)
+        path = registry.local_path(name, version)
+        return path if path.exists() else registry.download(name, version)

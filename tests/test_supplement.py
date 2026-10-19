@@ -1,9 +1,39 @@
 import pytest
 
+from hitlist import supplement
 from hitlist.supplement import (
     load_supplementary_manifest,
     scan_supplementary,
 )
+
+
+def test_annotation_reuse_preserves_reported_class_and_row_order(tmp_path, monkeypatch):
+    """One annotation per distinct input, including conflicting reported classes."""
+    (tmp_path / "tiny.csv").write_text(
+        "peptide,mhc_restriction,mhc_class\n"
+        "AAAA,HLA-A*02:01,I\nBBBB,HLA-A*02:01,II\n"
+        "CCCC,HLA-A*02:01,I\nDDDD,HLA class II,II\nEEEE,HLA class II,II\n"
+    )
+    monkeypatch.setattr(supplement, "_SUPP_DIR", tmp_path)
+    monkeypatch.setattr(
+        supplement,
+        "load_supplementary_manifest",
+        lambda: [{"pmid": 99999999, "file": "tiny.csv", "defaults": {"species": "Homo sapiens"}}],
+    )
+    original = supplement.resolve_mhc_annotation
+    calls = []
+
+    def counted(*args):
+        calls.append(args)
+        return original(*args)
+
+    monkeypatch.setattr(supplement, "resolve_mhc_annotation", counted)
+    result = scan_supplementary(classify_source=False)
+    assert result["peptide"].tolist() == ["AAAA", "BBBB", "CCCC", "DDDD", "EEEE"]
+    assert result["mhc_class_reported"].tolist() == ["I", "II", "I", "II", "II"]
+    assert result["mhc_class"].tolist() == ["I", "I", "I", "II", "II"]
+    assert result["mhc_class_corrected"].tolist() == [False, True, False, False, False]
+    assert len(calls) == len(set(calls)) == 3
 
 
 def test_load_manifest():
@@ -60,15 +90,15 @@ def test_load_supplementary_manifest_allows_pmids_that_are_not_excluded(tmp_path
     assert entries[0]["pmid"] == 11111111
 
 
-def test_scan_supplementary_not_empty():
+def test_scan_supplementary_not_empty(full_supplementary_df):
     """Scanning supplementary data should produce rows."""
-    df = scan_supplementary()
+    df = full_supplementary_df
     assert len(df) > 0
 
 
-def test_scan_supplementary_schema():
+def test_scan_supplementary_schema(full_supplementary_df):
     """Supplementary scan output should match scanner output schema."""
-    df = scan_supplementary()
+    df = full_supplementary_df
     # Core peptide columns
     assert "peptide" in df.columns
     assert "mhc_class" in df.columns
@@ -140,9 +170,9 @@ def test_scan_supplementary_schema():
         assert (df.loc[exact_mask, "mhc_allele_set_size"] == 1).all()
 
 
-def test_scan_supplementary_gomez_zepeda():
+def test_scan_supplementary_gomez_zepeda(full_supplementary_df):
     """Gomez-Zepeda data should include multiple cell lines."""
-    df = scan_supplementary()
+    df = full_supplementary_df
     gz = df[df["pmid"] == 38480730]
     assert len(gz) > 50000, f"Expected >50000 GZ peptides, got {len(gz)}"
 
@@ -156,24 +186,24 @@ def test_scan_supplementary_gomez_zepeda():
     assert "Raji" in cell_names
 
 
-def test_supplementary_file_column_is_populated():
+def test_supplementary_file_column_is_populated(full_supplementary_df):
     """Every supplementary row carries the originating CSV filename (issue #147).
 
     Needed so peptides seen in multiple sample CSVs from one paper don't
     collapse onto one arbitrary sample context at dedupe time.
     """
-    df = scan_supplementary()
+    df = full_supplementary_df
     assert "supplementary_file" in df.columns
     assert (df["supplementary_file"] != "").all()
 
 
-def test_gomez_zepeda_shared_peptide_survives_in_all_sample_files():
+def test_gomez_zepeda_shared_peptide_survives_in_all_sample_files(full_supplementary_df):
     """Peptides presented by multiple Gomez-Zepeda cell lines must keep
     one row per CSV after dedupe (issue #147).  Pre-fix the key was
     (peptide, mhc_restriction, pmid) so shared (peptide, allele) pairs
     across JY / HeLa / Raji collapsed to a single arbitrary row.
     """
-    df = scan_supplementary()
+    df = full_supplementary_df
     gz = df[df["pmid"] == 38480730]
     assert not gz.empty
 
@@ -231,11 +261,11 @@ def test_gomez_zepeda_plasma_sample_exists():
     assert plasma[0]["mhc_class"] == "I"
 
 
-def test_gomez_zepeda_src_flags_by_cell_line():
+def test_gomez_zepeda_src_flags_by_cell_line(full_supplementary_df):
     """Existing src_ebv_lcl / src_cancer flags must still be set correctly
     after the #147 dedupe + curation changes.
     """
-    df = scan_supplementary()
+    df = full_supplementary_df
     gz = df[df["pmid"] == 38480730]
 
     # JY rows should be EBV-LCL, not cancer.
@@ -251,9 +281,9 @@ def test_gomez_zepeda_src_flags_by_cell_line():
     assert hela.iloc[0]["src_cancer"] is True or hela.iloc[0]["src_cancer"] == True  # noqa: E712
 
 
-def test_scan_supplementary_strazar():
+def test_scan_supplementary_strazar(full_supplementary_df):
     """Stražar 2023 should load as class II mono-allelic Expi293F data."""
-    df = scan_supplementary()
+    df = full_supplementary_df
     st = df[df["pmid"] == 37301199]
     assert len(st) == 308418
     assert set(st["mhc_class"]) == {"II"}
@@ -265,9 +295,9 @@ def test_scan_supplementary_strazar():
     assert (st["mhc_species"] == "Homo sapiens").all()
 
 
-def test_scan_supplementary_contaminant_flag():
+def test_scan_supplementary_contaminant_flag(full_supplementary_df):
     """is_potential_contaminant should be present and meaningful."""
-    df = scan_supplementary()
+    df = full_supplementary_df
     assert "is_potential_contaminant" in df.columns
     gz = df[df["pmid"] == 38480730]
     # Should have both True and False values
@@ -278,14 +308,14 @@ def test_scan_supplementary_contaminant_flag():
     assert (contams["mhc_restriction"] == "").all(), "Contaminants should have no allele"
 
 
-def test_scan_supplementary_synthetic_iri():
+def test_scan_supplementary_synthetic_iri(full_supplementary_df):
     """Supplementary rows should have synthetic reference IRIs."""
-    df = scan_supplementary()
+    df = full_supplementary_df
     for iri in df["reference_iri"].head(10):
         assert iri.startswith("supplement:"), f"Expected supplement: prefix, got {iri}"
 
 
-def test_scan_supplementary_dedup_within():
+def test_scan_supplementary_dedup_within(full_supplementary_df):
     """No duplicate rows within a single supplementary file.
 
     Issue #147: the dedupe key used to be ``(peptide, mhc_restriction, pmid)``,
@@ -294,11 +324,12 @@ def test_scan_supplementary_dedup_within():
     within one CSV no duplicates remain but the *same* pair can still
     appear in distinct CSVs (one row per sample).
     """
-    df = scan_supplementary()
+    df = full_supplementary_df
     dupes = df.duplicated(subset=["peptide", "mhc_restriction", "pmid", "supplementary_file"])
     assert not dupes.any(), f"Found {dupes.sum()} within-file duplicate rows"
 
 
+@pytest.mark.integration
 def test_scan_supplementary_no_classify():
     """scan_supplementary(classify_source=False) should skip classification."""
     df = scan_supplementary(classify_source=False)
@@ -309,9 +340,9 @@ def test_scan_supplementary_no_classify():
     assert "src_cancer" not in df.columns
 
 
-def test_scan_supplementary_mhc_species_propagation():
+def test_scan_supplementary_mhc_species_propagation(full_supplementary_df):
     """Supplementary rows should have mhc_species even without allele assignment."""
-    df = scan_supplementary()
+    df = full_supplementary_df
     gz = df[df["pmid"] == 38480730]
     # Rows without mhc_restriction should still have mhc_species from host
     no_allele = gz[gz["mhc_restriction"] == ""]

@@ -43,6 +43,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from .dataset import dataset_cache_check, dataset_path, dataset_snapshot
 from .downloads import data_dir
 from .parquet_io import atomic_write_parquet
 from .proteome import DEFAULT_FLANK, ENSEMBL_CODING_GENE_BIOTYPES, SEED_KMER_LENGTH
@@ -149,12 +150,12 @@ class MappingResult:
 
 def mappings_path() -> Path:
     """Path to the peptide mappings sidecar."""
-    return data_dir() / "peptide_mappings.parquet"
+    return dataset_path("peptide_mappings.parquet", root=data_dir())
 
 
 def mappings_meta_path() -> Path:
     """Path to the mappings metadata JSON."""
-    return data_dir() / "peptide_mappings_meta.json"
+    return dataset_path("peptide_mappings_meta.json", root=data_dir())
 
 
 def _mapping_artifact_contract(
@@ -182,6 +183,7 @@ def is_mappings_built() -> bool:
     return mappings_path().exists()
 
 
+@dataset_cache_check
 def mappings_cache_is_current(
     *,
     release: int = 112,
@@ -239,22 +241,34 @@ def known_gene_identifiers() -> frozenset[str]:
     return _known_gene_identifiers((st.st_size, st.st_mtime_ns))
 
 
+@dataset_snapshot()
 def _obs_fingerprint() -> dict:
     """Fingerprint both indexes the mappings were built from.
 
-    The mappings sidecar covers peptides from observations.parquet AND
-    binding.parquet, so both must invalidate the cache when they change.
+    The mappings sidecar covers MS, binding and other-assay peptides; changes
+    to any present partition must invalidate the cache.
     """
-    from .observations import binding_path, observations_path
+    from .observations import binding_path, observations_path, other_assays_path
 
     fp: dict = {}
-    for label, p in (("observations", observations_path()), ("binding", binding_path())):
+    for label, p in (
+        ("observations", observations_path()),
+        ("binding", binding_path()),
+        ("other_assays", other_assays_path()),
+    ):
         if p.exists():
             stat = p.stat()
-            fp[label] = {"path": str(p), "size": stat.st_size, "mtime": stat.st_mtime}
+            fp[label] = {
+                # Generation-relative identity survives datacache publication.
+                # Legacy flat fingerprints retain their historical shape.
+                "path": str(p) if p.parent == data_dir().absolute() else p.name,
+                "size": stat.st_size,
+                "mtime": stat.st_mtime,
+            }
     return fp
 
 
+@dataset_cache_check
 def _cache_is_valid(
     *,
     release: int,
@@ -282,6 +296,7 @@ def _cache_is_valid(
     )
 
 
+@dataset_snapshot()
 def load_peptide_mappings(
     peptide: str | list[str] | None = None,
     gene_name: str | list[str] | None = None,
@@ -332,6 +347,15 @@ def load_peptide_mappings(
     if proteome is not None:
         filters.append(("proteome", "in", _as_list(proteome)))
 
+    # An explicit empty selection is empty, not a null-typed Arrow IN set.
+    # Read only the schema: pandas 3 writes large_string columns, which Arrow
+    # cannot compare against an untyped empty array.
+    if any(operator == "in" and not values for _, operator, values in filters):
+        import pyarrow as pa
+        import pyarrow.parquet as pq
+
+        table = pa.Table.from_batches([], schema=pq.read_schema(path))
+        return (table.select(columns) if columns is not None else table).to_pandas()
     return pd.read_parquet(path, columns=columns, filters=filters if filters else None)
 
 
@@ -500,6 +524,7 @@ def build_peptide_mappings(
     verbose: bool = True,
     obs_override: pd.DataFrame | None = None,
     binding_override: pd.DataFrame | None = None,
+    other_override: pd.DataFrame | None = None,
 ) -> Path:
     """Build ``peptide_mappings.parquet`` from the already-built observations table.
 
@@ -522,9 +547,51 @@ def build_peptide_mappings(
         reading from disk (the standalone / cache-only path).
     """
     from .builder import _collect_pmid_extra_proteomes
+    from .dataset import is_staging, update_dataset
     from .downloads import fetch_proteome_by_upid, lookup_proteome
-    from .observations import is_binding_built, is_built, load_binding, load_observations
+    from .observations import (
+        is_binding_built,
+        is_built,
+        load_binding,
+        load_observations,
+        load_other_assays,
+        other_assays_path,
+    )
     from .proteome import ProteomeIndex
+
+    if not is_staging(root=data_dir()):
+        # Overrides are internal to a full build, even when the previously
+        # published mappings happen to satisfy this call's cache contract.
+        from .dataset import _inspection
+
+        if _inspection(data_dir()).status == "available":
+            if any(frame is not None for frame in (obs_override, binding_override, other_override)):
+                raise ValueError("Frame overrides require a complete staged observations build")
+            if force or not _cache_is_valid(
+                release=release,
+                use_uniprot=use_uniprot,
+                fetch_missing=fetch_missing,
+                flank=flank,
+            ):
+                return update_dataset(
+                    ("peptide_mappings.parquet", "peptide_mappings_meta.json"),
+                    lambda: build_peptide_mappings(
+                        release=release,
+                        fetch_missing=fetch_missing,
+                        use_uniprot=use_uniprot,
+                        force=True,
+                        flank=flank,
+                        verbose=verbose,
+                    ),
+                    root=data_dir(),
+                    metadata_updates={"with_mappings": True},
+                    options={
+                        "release": release,
+                        "fetch_missing": fetch_missing,
+                        "use_uniprot": use_uniprot,
+                        "flank": flank,
+                    },
+                )
 
     out = mappings_path()
     if obs_override is not None:
@@ -533,6 +600,8 @@ def build_peptide_mappings(
         obs = obs_override[cols].copy()
         if binding_override is not None and len(binding_override):
             obs = pd.concat([obs, binding_override[cols]], ignore_index=True)
+        if other_override is not None and len(other_override):
+            obs = pd.concat([obs, other_override[cols]], ignore_index=True)
     else:
         if not is_built():
             raise FileNotFoundError(
@@ -553,8 +622,12 @@ def build_peptide_mappings(
             binding = load_binding(columns=cols)
             if len(binding):
                 obs = pd.concat([obs, binding], ignore_index=True)
+        if other_assays_path().exists():
+            other = load_other_assays(columns=cols)
+            if len(other):
+                obs = pd.concat([obs, other], ignore_index=True)
     print(
-        f"\nBuilding peptide mappings for {len(obs):,} rows (MS + binding, "
+        f"\nBuilding peptide mappings for {len(obs):,} rows (MS + binding + other assays, "
         f"{obs['peptide'].nunique():,} unique peptides) ..."
     )
 
@@ -767,7 +840,7 @@ def build_peptide_mappings(
         import multiprocessing as mp
         from concurrent.futures import ProcessPoolExecutor
 
-        from .proteome import _PROTEOME_INDEX_DISK_CACHE_DIR
+        from .proteome import proteome_index_cache_dir
 
         # chunksize=2 keeps adjacent FASTA-clustered tasks on the same
         # worker, recovering some of #107's in-memory LRU benefit that a
@@ -780,7 +853,7 @@ def build_peptide_mappings(
             # Match supervised prefetch's fresh-process startup on every OS.
             mp_context=mp.get_context("spawn"),
             initializer=_initialize_mapping_worker,
-            initargs=(str(data_dir()), str(_PROTEOME_INDEX_DISK_CACHE_DIR)),
+            initargs=(str(data_dir()), str(proteome_index_cache_dir())),
         ) as pool:
             for result in pool.map(_per_canonical_mapping_worker, mapping_tasks, chunksize=2):
                 if not result.proteome_available:

@@ -1,0 +1,210 @@
+{
+  "artifacts": {
+    "Homo_sapiens.GRCh38.112.chr_patch_hapl_scaff.gtf.db": {
+      "path": "/data/hitlist-qualification/runs/2d794b88453e75e4ae548326c4ffaaea05748d7df81140fcd24dbf0c8053ff71/reference-bundle/bundles/2026-10-16T01-48-37Z/Homo_sapiens.GRCh38.112.chr_patch_hapl_scaff.gtf.db",
+      "sha256": "be8049a1afd3ccc9c1a8a8cd5fbb390fdadbd473457bd647a7f95235a5ca458a",
+      "size_bytes": 1005494272
+    },
+    "Homo_sapiens.GRCh38.112.chr_patch_hapl_scaff.gtf.gz": {
+      "path": "/data/hitlist-qualification/runs/2d794b88453e75e4ae548326c4ffaaea05748d7df81140fcd24dbf0c8053ff71/reference-bundle/bundles/2026-10-16T01-48-37Z/Homo_sapiens.GRCh38.112.chr_patch_hapl_scaff.gtf.gz",
+      "sha256": "9068bd52a9def32ac22b248393461b9f52931f29404a94b397ecc7ddbc2fce38",
+      "size_bytes": 60149702
+    },
+    "Homo_sapiens.GRCh38.cdna.all.fa.gz": {
+      "path": "/data/hitlist-qualification/runs/2d794b88453e75e4ae548326c4ffaaea05748d7df81140fcd24dbf0c8053ff71/reference-bundle/bundles/2026-10-16T01-48-37Z/Homo_sapiens.GRCh38.cdna.all.fa.gz",
+      "sha256": "0bb3012f45e2474b8ce79911c47de0fc216bd574c60f1ddc8a8d911cd8a32b4d",
+      "size_bytes": 79435386
+    },
+    "Homo_sapiens.GRCh38.cdna.all.fa.gz.pickle": {
+      "path": "/data/hitlist-qualification/runs/2d794b88453e75e4ae548326c4ffaaea05748d7df81140fcd24dbf0c8053ff71/reference-bundle/bundles/2026-10-16T01-48-37Z/Homo_sapiens.GRCh38.cdna.all.fa.gz.pickle",
+      "sha256": "fe16c25e39a4ced29d3c7d8785488b7a17a4683139d04cfe98e6aded42c68966",
+      "size_bytes": 401287849
+    },
+    "Homo_sapiens.GRCh38.ncrna.fa.gz": {
+      "path": "/data/hitlist-qualification/runs/2d794b88453e75e4ae548326c4ffaaea05748d7df81140fcd24dbf0c8053ff71/reference-bundle/bundles/2026-10-16T01-48-37Z/Homo_sapiens.GRCh38.ncrna.fa.gz",
+      "sha256": "16b9e32d047653e42a5d3b8843b30eefea1a08f7984568746d8db15ada26540b",
+      "size_bytes": 19887296
+    },
+    "Homo_sapiens.GRCh38.ncrna.fa.gz.pickle": {
+      "path": "/data/hitlist-qualification/runs/2d794b88453e75e4ae548326c4ffaaea05748d7df81140fcd24dbf0c8053ff71/reference-bundle/bundles/2026-10-16T01-48-37Z/Homo_sapiens.GRCh38.ncrna.fa.gz.pickle",
+      "sha256": "ef81101a6751abc5e1e4aa50832cb6546a1aad1985bf2fc63be6d34d92a3439c",
+      "size_bytes": 85330405
+    },
+    "Homo_sapiens.GRCh38.pep.all.fa.gz": {
+      "path": "/data/hitlist-qualification/runs/2d794b88453e75e4ae548326c4ffaaea05748d7df81140fcd24dbf0c8053ff71/reference-bundle/bundles/2026-10-16T01-48-37Z/Homo_sapiens.GRCh38.pep.all.fa.gz",
+      "sha256": "2868236131342d14afbfa8dbd8a5e3fb56ba85210fdca196b65db3e17c7ece83",
+      "size_bytes": 14904881
+    },
+    "Homo_sapiens.GRCh38.pep.all.fa.gz.pickle": {
+      "path": "/data/hitlist-qualification/runs/2d794b88453e75e4ae548326c4ffaaea05748d7df81140fcd24dbf0c8053ff71/reference-bundle/bundles/2026-10-16T01-48-37Z/Homo_sapiens.GRCh38.pep.all.fa.gz.pickle",
+      "sha256": "b60a492f50405221eed37c0a32031539eb2a45153252bfb8c41baf10cf02b803",
+      "size_bytes": 53902311
+    }
+  },
+  "contributor_free_space_reserve_gib": 1,
+  "contributor_scratch_limit_gib": 16,
+  "cpu_limit": 8,
+  "details": {
+    "ensembl_release": 112,
+    "index_build_filesystem": "local POSIX scratch; immutable shared datacache publication",
+    "raw_sources": {
+      "Homo_sapiens.GRCh38.112.chr_patch_hapl_scaff.gtf.gz": {
+        "path": "/data/hitlist-qualification/runs/2d794b88453e75e4ae548326c4ffaaea05748d7df81140fcd24dbf0c8053ff71/references/pyensembl/GRCh38/ensembl112/Homo_sapiens.GRCh38.112.chr_patch_hapl_scaff.gtf.gz",
+        "sha256": "9068bd52a9def32ac22b248393461b9f52931f29404a94b397ecc7ddbc2fce38",
+        "size_bytes": 60149702
+      },
+      "Homo_sapiens.GRCh38.cdna.all.fa.gz": {
+        "path": "/data/hitlist-qualification/runs/2d794b88453e75e4ae548326c4ffaaea05748d7df81140fcd24dbf0c8053ff71/references/pyensembl/GRCh38/ensembl112/Homo_sapiens.GRCh38.cdna.all.fa.gz",
+        "sha256": "0bb3012f45e2474b8ce79911c47de0fc216bd574c60f1ddc8a8d911cd8a32b4d",
+        "size_bytes": 79435386
+      },
+      "Homo_sapiens.GRCh38.ncrna.fa.gz": {
+        "path": "/data/hitlist-qualification/runs/2d794b88453e75e4ae548326c4ffaaea05748d7df81140fcd24dbf0c8053ff71/references/pyensembl/GRCh38/ensembl112/Homo_sapiens.GRCh38.ncrna.fa.gz",
+        "sha256": "16b9e32d047653e42a5d3b8843b30eefea1a08f7984568746d8db15ada26540b",
+        "size_bytes": 19887296
+      },
+      "Homo_sapiens.GRCh38.pep.all.fa.gz": {
+        "path": "/data/hitlist-qualification/runs/2d794b88453e75e4ae548326c4ffaaea05748d7df81140fcd24dbf0c8053ff71/references/pyensembl/GRCh38/ensembl112/Homo_sapiens.GRCh38.pep.all.fa.gz",
+        "sha256": "2868236131342d14afbfa8dbd8a5e3fb56ba85210fdca196b65db3e17c7ece83",
+        "size_bytes": 14904881
+      }
+    },
+    "species": "homo_sapiens"
+  },
+  "disk_free_bytes_after": 409600000000,
+  "disk_free_bytes_before": 409600000000,
+  "ephemeral_disk_request_mib": 524288,
+  "finished_utc": "2026-10-16T01:48:41.354961+00:00",
+  "gpu": "none",
+  "memory_limit_mib": 65536,
+  "options": {
+    "HITLIST_BUILD_WORKERS": "2",
+    "HITLIST_DATA_DIR": "/data/hitlist-qualification/runs/2d794b88453e75e4ae548326c4ffaaea05748d7df81140fcd24dbf0c8053ff71/hitlist",
+    "PYENSEMBL_CACHE_DIR": "/data/hitlist-qualification/runs/2d794b88453e75e4ae548326c4ffaaea05748d7df81140fcd24dbf0c8053ff71/references"
+  },
+  "platform": "Linux-4.19.0-gvisor-x86_64-with-glibc2.31",
+  "process_peak_rss_bytes": 4617650176,
+  "python": "3.12.1 (main, Jan 11 2024, 10:22:40) [GCC 10.2.1 20210110]",
+  "recipes": {
+    "ci_corpus.py": {
+      "path": "/opt/qualification/ci_corpus.py",
+      "sha256": "0e916ee0ca574f04507a5d403ecd09efdf68c0b6b4481309d81e64f9ecd5b3ef",
+      "size_bytes": 17332
+    },
+    "qualify_corpus.py": {
+      "path": "/opt/qualification/qualify_corpus.py",
+      "sha256": "f862c3271e87ed78e09a1155e19d666b3b6ef34240e0d74b7cff588e5805542a",
+      "size_bytes": 12688
+    },
+    "requirements.txt": {
+      "path": "/opt/qualification/requirements.txt",
+      "sha256": "a23497ea0c27f5ecb6f961699f6e5165fbc2d9ab8213f524cb61a6da436458c9",
+      "size_bytes": 85807
+    },
+    "sources.json": {
+      "path": "/opt/qualification/sources.json",
+      "sha256": "c40063ede9c32baf178f570913e72435b258ad511dae9c5162abf9bfa7afe2e7",
+      "size_bytes": 804
+    }
+  },
+  "rss_scope": "runner process only; worker processes excluded",
+  "run_id": "2d794b88453e75e4ae548326c4ffaaea05748d7df81140fcd24dbf0c8053ff71",
+  "runtime_seconds": 218.187643996,
+  "schema_version": 1,
+  "stage": "reference",
+  "started_utc": "2026-10-16T01:45:03.167302+00:00",
+  "status": "success",
+  "versions": {
+    "PyYAML": "6.0.3",
+    "Pygments": "2.17.2",
+    "adjustText": "1.4.0",
+    "ahocorasick_rs": "1.0.3",
+    "aiohttp": "3.9.1",
+    "aiosignal": "1.3.1",
+    "aiostream": "0.4.4",
+    "anyio": "4.2.0",
+    "asgiref": "3.5.2",
+    "asttokens": "2.4.1",
+    "attrs": "23.2.0",
+    "certifi": "2026.7.22",
+    "charset-normalizer": "3.5.2",
+    "click": "8.1.7",
+    "cloudpickle": "2.2.0",
+    "commonmark": "0.9.1",
+    "contourpy": "1.4.0",
+    "cycler": "0.12.1",
+    "datacache": "1.27.1",
+    "decorator": "5.1.1",
+    "et_xmlfile": "2.0.0",
+    "executing": "2.0.1",
+    "fastapi": "0.88.0",
+    "fastprogress": "1.0.0",
+    "filelock": "4.2.0",
+    "fonttools": "4.67.0",
+    "frozenlist": "1.4.1",
+    "grpclib": "0.4.7",
+    "gtfparse": "3.0.4",
+    "h2": "4.1.0",
+    "hitlist": "1.76.0",
+    "hpack": "4.0.0",
+    "hyperframe": "6.0.1",
+    "idna": "3.20",
+    "importlib-metadata": "4.8.1",
+    "ipython": "8.20.0",
+    "jedi": "0.19.1",
+    "kiwisolver": "1.5.1",
+    "matplotlib": "3.11.2",
+    "matplotlib-inline": "0.1.6",
+    "matplotlib-venn": "1.1.2",
+    "memoized-property": "1.0.3",
+    "mhcgnomes": "3.64.5",
+    "multidict": "6.0.4",
+    "numpy": "2.5.4",
+    "oncoref": "1.9.11",
+    "openpyxl": "3.1.5",
+    "orfdata": "0.27.1",
+    "packaging": "26.3",
+    "pandas": "3.0.6",
+    "parso": "0.8.3",
+    "pexpect": "4.9.0",
+    "pillow": "12.3.0",
+    "pip": "23.3.2",
+    "platformdirs": "4.13.2",
+    "prompt-toolkit": "3.0.43",
+    "protobuf": "4.25.2",
+    "ptyprocess": "0.7.0",
+    "pure-eval": "0.2.2",
+    "pyarrow": "26.0.0",
+    "pydantic": "1.10.14",
+    "pyensembl": "2.27.3",
+    "pyfaidx": "0.9.0.4",
+    "pyparsing": "3.3.3",
+    "python-dateutil": "2.9.0.post0",
+    "python-multipart": "0.0.6",
+    "requests": "2.34.2",
+    "rich": "12.3.0",
+    "scipy": "1.18.1",
+    "serializable": "1.3.1",
+    "setuptools": "69.0.3",
+    "six": "1.17.0",
+    "sniffio": "1.3.0",
+    "stack-data": "0.6.3",
+    "starlette": "0.22.0",
+    "tblib": "1.7.0",
+    "tinytimer": "0.0.0",
+    "toml": "0.10.2",
+    "tqdm": "4.70.1",
+    "traitlets": "5.14.1",
+    "typechecks": "0.1.0",
+    "typeguard": "4.1.5",
+    "typer": "0.6.1",
+    "types-certifi": "2021.10.8.3",
+    "types-toml": "0.10.4",
+    "typing_extensions": "4.9.0",
+    "urllib3": "2.8.0",
+    "wcwidth": "0.2.13",
+    "wheel": "0.42.0",
+    "yarl": "1.9.4",
+    "zipp": "3.17.0"
+  }
+}

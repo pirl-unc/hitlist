@@ -1,0 +1,20 @@
+# Explicit anatomical scope for sequence-level essential-tissue evidence.
+# Atlas terminology: https://hla-ligand-atlas.org/data (2020.12).
+# Brain includes cerebellum; spinal cord and peripheral nerves are not silently
+# relabeled as brain. An unrecognized tissue remains visible but unqualified.
+schema_version: 1
+min_donors: 2
+tissue_status: nonmalignant
+tissue_groups:
+  heart:
+    - Heart
+    - Myocardium
+    - Cardiac muscle
+  brain:
+    - Brain
+    - Cerebellum
+    - Cerebrum
+    - Cerebral cortex
+  lung:
+    - Lung
+    - Lung parenchyma

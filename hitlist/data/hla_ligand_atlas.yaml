@@ -1,0 +1,18 @@
+schema_version: 1
+release: '2020.12'
+source_url: https://hla-ligand-atlas.org/data
+publication: https://doi.org/10.1136/jitc-2020-002071
+license: CC-BY-4.0
+files:
+  peptides.tsv.gz:
+    url: https://hla-ligand-atlas.org/rel/2020.12/peptides.tsv.gz
+    sha256: daeb0c0146e3037c6e4b2b58663a7a9dc6bce821ef1995e817f70367a0ad28c3
+    size: 2104709
+  donors.tsv.gz:
+    url: https://hla-ligand-atlas.org/rel/2020.12/donors.tsv.gz
+    sha256: 753c8ba45bdd4d9026decc4cd837325a66b2d1ea93d28d437c66aabe5c45a5b3
+    size: 1190
+  sample_hits.tsv.gz:
+    url: https://hla-ligand-atlas.org/rel/2020.12/sample_hits.tsv.gz
+    sha256: 0e8771113cae27c620b2b9619f035675ddcc87b8d7dfac50750e71ab60eb0167
+    size: 3167689

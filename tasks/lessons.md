@@ -1,12 +1,144 @@
+# Public-source reconstruction — 2026-10-15
+
+When a prior curation receipt describes a generated archive but no durable URL,
+search its proteomics deposit and publication supplements and reconstruct from
+pinned public inputs. Do not assume the user possesses an agent-generated
+artifact. Preserve the distinction between old receipt claims and independently
+recovered/validated source bytes; publish a durable download and reproduction
+recipe so the same handoff problem cannot recur.
+
 # Lessons
+
+## 2026-10-14
+
+- When the user requests review, iteration and deployment, keep ownership through
+  passing final-head checks, merge, clean-main build and verified publication.
+  A draft PR or running CI is an intermediate checkpoint, not completion.
+  Check the actual package namespace and release destination before publishing.
+
+## 2026-10-12
+
+- Keep reviewed source biology in curation YAML, including tissue groups and
+  sample age/health scope. Format adapters should apply explicit source IDs and
+  contexts, not infer donor demographics from tissue-label prefixes. Compare
+  all real sample fields before shipping a data-only relocation.
+
+## 2026-10-07
+
+- Shared-environment maintenance is scoped to the OpenVax stack and its
+  dependencies. Preserve editable checkouts, upgrade mutually compatible stable
+  versions together, and leave unrelated notebook/AI packages outside the work.
+  Keep repository-local release environments clearly separate.
+
+- Standard input formats should work with defaults. Do not demand file and
+  column flags when a unique conventional file/header identifies them. Share
+  inference between CLI/API, preserve explicit overrides, record the resolved
+  choices in provenance, and ask only when a real ambiguity remains. Never
+  substitute invented patient expression or raw counts for missing TPM.
+
+## 2026-10-06
+
+- Dependency compatibility has three separate checks: declared bounds, the
+  committed lockfile, and the environment actually running tests. Inspect and
+  validate all three before calling an upgrade handled; permissive bounds and
+  a manually upgraded environment do not prevent uv sync from restoring an
+  obsolete transitive cap.
+
+- Keep repository ownership explicit when a requested workflow spans packages.
+  Hitlist accepts expression tables and exports auditable presentation evidence;
+  it does not assemble vaccines. Tsarina and Vaxrank own downstream target
+  selection and construct assembly. Mentions of their capabilities are context,
+  not authorization to move those responsibilities into Hitlist. For this
+  expression-table follow-up, deliver the evidence bundle only.
+
+## 2026-10-05
+
+- A named reference query that users expect in the normal install should not
+  require discovering an extra without a concrete benefit. For CTA support,
+  use the canonical packaged provider as a normal dependency while keeping
+  its loading lazy; do not copy a static biological list to avoid the package.
+
+- Optimize elapsed release time from measured phase costs. A unit run with
+  an installed corpus is not automatically comparable to a no-corpus matrix
+  job: coverage, concurrency, dependency revisions and runner variation
+  differ. Audit actual reads before attributing the slowdown, and preserve
+  full verification when reducing redundant work.
+
+- Re-run every newly added categorical consumer case on both supported pandas
+  majors before pushing. A pandas 2 pass does not establish pandas 3 behavior:
+  replacing a blank categorical cell name with a display placeholder passed
+  on 2.3.3 but failed on 3.0.5. Add the actual destination category before
+  assigning, and test both null and existing blank inputs. A final test added
+  after the broader verification needs the same cross-version check.
+
+## 2026-10-01
+
+- Generalize allele matching to species compatibility, not just acceptance of
+  non-human allele syntax. Keep candidate identity/class validation separate
+  from compatibility with the observation's evidenced presenting-MHC context.
+  Source proteome, presenting cells, host and MHC species are distinct axes;
+  documented xenografts or engineered MHC explain particular differences, not
+  arbitrary cross-species assignments. Do not use a mismatch-derived xeno flag
+  as its own evidence that the mismatch is valid. Preserve reported evidence,
+  exclude incompatible inferred candidates with an auditable reason, and keep
+  missing context explicitly uncertain rather than silently deleting rows.
+
+## 2026-09-30
+
+- Prefer readable compound observation IDs when the source and curated arm
+  already have stable identifiers. A full cryptographic digest hides the useful
+  provenance and makes compatibility tests hard to review. Use explicit
+  namespaces and percent-escaped components to avoid delimiter collisions;
+  reserve content hashes for integrity checks and artifact fingerprints.
+
+## 2026-09-29
+
+- On a shared workstation, a successful memory preflight is only a momentary
+  capacity check. Other jobs can start during a long test run. When the user
+  reports pressure, measure this task's processes, stop its heavy work and move
+  release validation to CI. Resident memory alone excludes compressed/swapped
+  pages; do not use a small RSS snapshot to deny contributing to the pressure.
+  Keep the original failure/interruption in the record and never count a partial
+  run as passing.
+
+- Parameterized test data must be deterministic at collection time. gzip.compress
+  embeds the current timestamp by default; putting its bytes in pytest parameters
+  gave xdist workers different node IDs across a one-second boundary. Use mtime=0
+  for fixed gzip fixtures and verify collection under multiple workers.
+
+- Do not recommend a training identity or split key from its name or docstring.
+  Reproduce its uniqueness across distinct donors, samples and alternate protein
+  mappings first. #614 shows six donor observations sharing two evidence_row_id
+  values; using that key alone can erase genotype-specific observations. #616
+  shows that paper-level splitting also fails when experiments are reused across
+  papers. Training readiness requires observation-identity and dataset-lineage
+  audits in addition to peptide overlap checks. Preserve assay endpoint and unit
+  when selecting binding labels; a numeric value alone can be a half-life in
+  minutes, not an affinity (#615).
 
 ## 2026-09-28
 
+The measurements below use the then-current `ci-corpus-v2` and CI runner;
+they are historical evidence, not current capacity estimates.
+
+- Keep closing keywords out of incidental cross-references. Writing "memory
+  fix #610" in #609's description made GitHub close the still-unmerged memory
+  PR when #609 merged. Use "memory PR #610" or "Refs #610" unless automatic
+  closure is intentional, and inspect the closing event's `closer` before
+  attributing an unexpected closure to a person.
+
+- Closing a memory investigation does not close the memory problem. Report
+  correctness, runtime, live allocation and Linux peak RSS separately; do not
+  call a difference smaller than measured run-to-run variation a reduction.
+  Keep the capacity issue open until comparable measurements establish useful
+  headroom on the runner that is actually failing.
+
 - "Live bytes" and "touched pages" are different quantities and need different
   instruments. Linux peak RSS is the second one.
-  Rule: #566's peak is 14.7 GB of live Arrow string buffers, and the obvious
-  fix makes it worse. Narrowing 9 metadata columns to `category` on arrival cut
-  the live Arrow peak 13.19 -> 11.85 GB *and cost 337 MB of CI peak RSS*,
+  Rule: #566's then-current peak held 14.7 GB of live Arrow string buffers,
+  and the proposed narrowing made it worse. Narrowing 9 metadata columns to
+  `category` on arrival cut the live Arrow peak 13.19 -> 11.85 GB *and cost
+  337 MB of CI peak RSS*,
   above every baseline run, because `astype` allocates the factorization and
   codes while the string buffer is still resident: live bytes fall, touched
   pages do not, and peak RSS counts touched pages the allocator has not
@@ -25,12 +157,13 @@
   Measured, those five are 178 MB -- 1.2% of the peak -- and the coalesce they
   ride in is the largest single allocation (4.29 GB) because of its *block
   form*, identical whichever ~40 columns they are. The number that closed the
-  issue was arithmetic nobody had done: 4,398,040 rows x 8 bytes x ~100
-  string-ish columns = 3.28 GB of pure Arrow *offsets*, before a single
+  direction was arithmetic nobody had done: 4,398,040 rows x 8 bytes x ~100
+  string-ish columns = 3.28 GiB of pure Arrow *offsets*, before a single
   character of content, against 5.4 GB of end-state live content. The peak is
-  the frame's shape, not its strings, which is why every lever found is worth
-  1-2 GB and none is worth 6. Ask what the floor is before spending effort on
-  the ceiling.
+  the frame's shape, not its strings, which bounded the column-level levers
+  tested in that pass. #572 remains open, and #610 later found a separate
+  retained-frame lifetime fix worth about 2 GB of Linux peak RSS. Ask what
+  the floor is before spending effort on the ceiling.
 
 - An extrapolation is worth measuring even when it will not change the
   decision, if you are going to carry it as a fact.
@@ -40,15 +173,15 @@
   job's own spread** -- so 0.89 GB of local touched pages bought 10.9 MB of CI
   peak RSS, a 1.2% transfer ratio, *below* the two points the estimate came
   from. The conclusion held and the magnitude was optimistic by two orders.
-  Nine minutes of CI replaced "~1.7 GB, probably below the noise" with
-  "~20 MB". Where a number will be quoted later, measure it now.
+  Nine minutes of CI replaced "~1.7 GB, probably below the noise" with a
+  measured 10.9 MB. Where a number will be quoted later, measure it now.
 
 - Widening a predicate for coverage can destroy the validation that made it
   safe. Check what the new form accepts, not only what it recovers.
-  Rule: #597's fix classified a lone non-numeric allele field as one molecule,
+  Rule: #597 classified a roster-validated lone allele field as one molecule,
   because mouse/rat nomenclature names an allele by haplotype (`H2-K*b` is one
   sequence, and HLA's field-counting called it truncated). Validating that
-  field against the species' haplotype roster recovers 163,973 rows. Replacing
+  field against the species' haplotype roster recovered 163,973 v2 rows. Replacing
   the roster with "any non-numeric field" -- to also catch mutants the roster
   omits -- recovered 6 more rows and made `H2-K*x`, `H2-D*nonsense` and
   `Mamu-A*ab` return `("...", "exact", 1)`: mhcgnomes parses any letter-led
@@ -70,11 +203,11 @@
   worse, because the previous version only worked by accident (an unmapped
   value forced a NaN and a float64 fallback where numeric sorting worked).
   Correcting the fixture to the production dtype immediately exposed
-  `qc.proteome_coverage()` as **broken outright on the real corpus**
+  `qc.proteome_coverage()` as broken on that corpus
   (`Series.map` with a tuple-returning function raises `NotImplementedError` on
   categorical), a production function that had been passing its tests for as
-  long as every fixture wrote plain strings.
-
+  long as every fixture wrote plain strings. The consumer and fixture were
+  corrected in #597.
 
 ## 2026-09-27
 
@@ -427,3 +560,19 @@
   scenarios the same PR made unreachable. The pattern is specific: plausible
   mechanisms at corpus scale are worth exactly what an unmeasured mechanism is
   worth. Before writing a number in a PR body or a comment, run the thing.
+
+
+- Respect a narrowed consumer scope throughout a multi-repository series.
+  The 2026-10-15 instruction explicitly defers MHCflurry; work only on Hitlist
+  and its Presto consumer now. Use datacache for acquisition and publication,
+  and make source citations, cell types, MHC allele sets, conditions and assays
+  inspectable by humans alongside hashes, policies, partitions and audits.
+  Passing software tests is not evidence that the actual corpus is qualified.
+
+## 2026-10-16 — independence priority
+
+When the user prioritizes donor/specimen independence, work from directly reported
+source identities before additional model fitting. A portable cohort, software test
+pass or peptide-disjoint split is not biological qualification. Recover primary
+sample tables where an aggregator has discarded donor identity, and keep source
+sample groups, physical specimens and acquisition runs as separate claims.

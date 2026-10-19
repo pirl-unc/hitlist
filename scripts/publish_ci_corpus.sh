@@ -17,7 +17,7 @@
 #   ./scripts/publish_ci_corpus.sh <version>      # e.g. v1, v2, ...
 #
 # Run this from a machine that has the corpus built (``hitlist build`` →
-# ``~/.hitlist/*.parquet``).  Bump <version> whenever the builder logic or
+# the current datacache generation under ``~/.hitlist/dataset``).  Bump <version> whenever the builder logic or
 # source data changes enough to matter for the integration tests, then bump
 # ``CORPUS_VERSION`` in both test and release workflows to match so CI
 # invalidates its cache and pulls the new corpus.
@@ -36,36 +36,26 @@ if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
     exit 1
 fi
 
-SNAPSHOT_DIR="$(mktemp -d)"
-trap 'rm -rf -- "$SNAPSHOT_DIR"' EXIT
-# The original metadata contains private source paths. Export only verified
-# build provenance, retaining its original artifact contract, into the snapshot.
-python "$SCRIPT_DIR/ci_corpus.py" write "$DATA_DIR" \
-    --output "$SNAPSHOT_DIR/observations_meta.json"
-
-# The parquets the integration suite needs.  observations.parquet is the
-# gate (``is_built()``); the rest back specific fixtures.
-FILES=(
-    observations.parquet
-    peptide_mappings.parquet
-    binding.parquet
-    bulk_proteomics.parquet
-    line_expression.parquet
-)
-
-paths=()
-for f in "${FILES[@]}"; do
-    p="${DATA_DIR}/${f}"
-    if [[ ! -f "$p" ]]; then
-        echo "error: missing ${p}" >&2
-        echo "  build the corpus first (hitlist build), or set HITLIST_DATA_DIR." >&2
-        exit 1
-    fi
-    cp "$p" "$SNAPSHOT_DIR/$f"
-    paths+=("$SNAPSHOT_DIR/$f")
-done
-paths+=("$SNAPSHOT_DIR/observations_meta.json")
+# Resolve one generation and retain its complete verified portable copy in
+# shared datacache storage. An existing flat corpus remains explicitly archival.
+snapshot_command=(python "$SCRIPT_DIR/ci_corpus.py" snapshot "$DATA_DIR")
+if [[ -n "${HITLIST_CI_CORPUS_CACHE_DIR:-}" ]]; then
+    snapshot_command+=(--cache-dir "$HITLIST_CI_CORPUS_CACHE_DIR")
+fi
+SNAPSHOT_DIR=$("${snapshot_command[@]}")
 python "$SCRIPT_DIR/ci_corpus.py" verify "$SNAPSHOT_DIR"
+FILES=$(python - "$SNAPSHOT_DIR" <<'PYFILES'
+import json
+import pathlib
+import sys
+manifest = json.loads((pathlib.Path(sys.argv[1]) / "observations_meta.json").read_text())
+print("\n".join([*sorted(manifest["files"]), "observations_meta.json"]))
+PYFILES
+)
+paths=()
+while IFS= read -r filename; do
+    paths+=("${SNAPSHOT_DIR}/${filename}")
+done <<< "$FILES"
 
 total=$(du -ch "${paths[@]}" | tail -1 | cut -f1)
 echo "Publishing corpus (${total}) to ${REPO} release ${TAG}:"
@@ -76,6 +66,6 @@ gh release create "$TAG" "${paths[@]}" \
     --repo "$REPO" \
     --latest=false \
     --title "CI corpus ${VERSION}" \
-    --notes "Prebuilt hitlist observations corpus for CI integration tests. Includes original build contract and SHA-256 provenance for all five parquets. IEDB/CEDAR-derived; see scripts/publish_ci_corpus.sh."
+    --notes "Prebuilt hitlist observations corpus for CI integration tests. Includes original build contract and SHA-256 provenance for the complete versioned inventory, including contributor and mapping metadata when captured. IEDB/CEDAR-derived; see scripts/publish_ci_corpus.sh."
 
 echo "Done. Ensure CORPUS_VERSION=${VERSION} in both test and release workflows."

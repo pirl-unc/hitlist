@@ -29,6 +29,9 @@ def allele_indexes(tmp_path, monkeypatch):
                 "source": ["iedb"] * 3,
                 "assay_iri": [f"{kind}:{i}" for i in range(3)],
             }
+        ).assign(
+            assay_method="mass spectrometry" if kind == "ms" else "binding assay",
+            qualitative_measurement="Positive",
         ).to_parquet(tmp_path / filename, index=False)
 
 

@@ -53,3 +53,11 @@
   hla_status: "TAP-deficient, expresses HLA-A*02:01"
   endogenous_alleles:
     - "HLA-A*02:01"
+
+# PMID 42199926, Figure 1 and STAR Methods: engineered variant only.
+- name: HCT116 HLA-I KO
+  aliases:
+  - hct116 hla-i ko
+  hla_status: CRISPR knockout of HLA class I heavy chains, verified by flow cytometry, Western blot
+    and NGS
+  endogenous_alleles: []

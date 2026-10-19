@@ -246,6 +246,10 @@ def test_fetch_data_asset_bounds_the_transfer_and_validates_before_publishing(
     # datacache validates staged bytes before os.replace, so a corrupt file is
     # never published and a cache hit is revalidated without re-hashing here.
     assert seen["expected_sha256"] == downloads.data_assets()[filename]["sha256"]
+    assert seen["expected_size"] == downloads.data_assets()[filename]["size_bytes"]
+    assert seen["resume"] is True
+    assert seen["raw"] is True
+    assert seen["record_provenance"] is True
 
     assert seen["subdir"] == "hitlist"
 

@@ -1,0 +1,17 @@
+{
+  "verified": true,
+  "n_reviewed_scopes": 14,
+  "counts": {
+    "n_rows": 2047003,
+    "n_unknown_numerators": 217514,
+    "n_changed_denominators": 217514,
+    "n_legacy_pass_zero": 2047003,
+    "n_qualified_pass_zero": 1829489,
+    "n_legacy_pass_half": 2030253,
+    "n_qualified_pass_half": 1812739,
+    "n_legacy_pass_all": 1643350,
+    "n_qualified_pass_all": 1533246
+  },
+  "all_original_rows_order_and_non_count_values_preserved": true,
+  "primary_summary_experiments_and_acquisition_hashes_verified": true
+}

@@ -1,8 +1,38 @@
+# PR #608 review, refresh, and release — 2026-10-18
+
+Specification: preserve the September 28 allele and memory measurements as
+historical findings, reconcile every claim that reads as current advice with
+the released code and issue states, and land the documentation on current
+`main`. Keep the measured numbers attributed to the v2 corpus and the old CI
+runner; do not imply that those figures describe the current corpus or runner.
+Preserve subsequent task notes when resolving the old branch's conflicts. Bump
+the package patch version once against current `main`, then use the repository's
+format, lint, test, PR, merge, and clean-main deployment gates.
+
+- [x] Review the PR diff and verify the measured claims against source records.
+- [x] Merge current `main`; reconcile the historical notes and issue status.
+- [ ] Review the resulting diff and run format, lint, and tests.
+- [ ] Push the updated PR, verify CI, merge, and publish the release to PyPI.
+- [ ] Record the final review and release result here.
+
+## Review
+
+The original PR's historical measurements agree with the linked #566/#597
+investigations, but its unqualified 800 MB runner-margin recommendation and
+"open" issue list became misleading after subsequent releases. This refresh
+pins the measurements to `ci-corpus-v2`, records #610's measured 2.06 GB Linux
+peak-RSS reduction, reconciles issue states, and preserves the newer mainline
+notes. The PR diff against current `main` remains documentation plus the
+required 1.82.1 patch bump. Format, lint, tests, CI, merge, and publication
+remain to be verified.
+
 # Unmatched alleles and the #566 memory axis — 2026-09-28
 
-Two asks: explain the 1,057,558 `unmatched` rows (23.8% of the corpus), and
-find what dominates #566's 15.2 GB integration peak. Both answered; five
-releases shipped (1.63.7 -> 1.63.11).
+These measurements describe the September 2026 `ci-corpus-v2` artifact and
+the then-current 16 GB integration runner. Two asks: explain the 1,057,558
+`unmatched` rows (23.8% of that corpus), and find what dominated #566's
+15.2 GB integration peak. Both were answered after five releases shipped
+(1.63.7 -> 1.63.11). Later releases and corpus generations are tracked below.
 
 ## The unmatched rows: a code defect, not the curation backlog
 
@@ -16,40 +46,40 @@ recovered **163,973 observation rows and 15,376 binding rows** across 582
 PMIDs and 71,013 peptides; 84,498 of them sit in uncurated PMIDs, so no
 curation work could have reached them. Shipped in 1.63.10 (#597/#598).
 
-Concentration, for whoever takes the remainder: top 10 PMIDs are 68.0% of the
-unmatched mass, top 50 are 96.2%. Largest single deposit is PMID 29557506
-(206,497 rows).
+In that snapshot, the top 10 PMIDs were 68.0% of the unmatched mass, and the
+top 50 were 96.2%. The largest deposit was PMID 29557506 (206,497 rows).
 
 ## #566: the peak is the frame's shape
 
-14.7 GB of live Arrow string buffers, peaking at the very end of the build
+14.7 GB of live Arrow string buffers peaked at the very end of the v2 build,
 immediately before the categorical tightening releases all but 0.29 GB. Of
-that, **3.28 GB is pure Arrow offsets** (8 bytes/row/column, ~100 string-ish
+that, **3.28 GiB was pure Arrow offsets** (8 bytes/row/column, ~100 string-ish
 columns, independent of content) against 5.4 GB of end-state live content.
-125 columns x 4.4M rows in one pandas frame is the cost, which is why every
-lever measured is worth 1-2 GB and none is worth 6.
+125 columns x 4.4M rows in one pandas frame was the cost. The column-level
+levers measured in this pass were worth 1-2 GB, not the 6 GB initially sought.
 
-Four directions measured and rejected, all recorded on #566:
+Four directions measured in this pass, all recorded on #566:
+
 - narrowing metadata columns *later* -- cannot help, the pages are touched
 - narrowing them *earlier* -- **+337 MB CI peak RSS** while cutting live bytes
   1.3 GB (the #569 `astype` trap)
 - dictionary-encoded loading -- paired A/B measured **-10,856 kB, 0.11x the
   job's own noise spread**
-- #603's two whole-frame copies -- real waste, but early in the build, so they
-  cannot move a peak that occurs at the end
+- #603's two whole-frame row-selection copies -- real waste, but early in the
+  build, so removing them alone could not move that end-of-build peak
 
-**Accepted: "fits in 16 GB with ~800 MB margin, monitored."** CI peak RSS is a
-stable instrument (98 MB spread over five runs), so drift shows in the job
-logs. If headroom is ever genuinely needed, a larger runner is the honest
-answer. The only structural alternative is not materializing the enriched
-table in one frame -- an export-design question that must not be smuggled in
-as a memory optimization.
+At the time this pass ended, the recommendation was to accept roughly 800 MB
+of runner margin and monitor the peak (98 MB spread over five runs). That
+recommendation was superseded by #610: releasing retained join frames cut the
+same v2 integration peak from a 15.19 GB baseline mean to 13.13 GB, with all
+four paired runs below the baseline range. #566 then closed. These numbers do
+not establish the memory margin for current corpus generations or runners.
 
 #602 still earned its merge: bit-identical output, 13% faster, and it fixes a
 latent misalignment bug (`from_dict(orient="index")` reorders against
 insertion-ordered presence rows when winner key sets are heterogeneous --
 689/3000 divergence on main, 0/3000 after). Both call sites pass heterogeneous
-key sets on today's corpus; the reordering just does not happen to trigger.
+key sets on the v2 corpus; the reordering just did not happen to trigger.
 
 ## Released
 
@@ -57,25 +87,1799 @@ key sets on today's corpus; the reordering just does not happen to trigger.
 `fetch_file` inherited `timeout=None`, reintroducing #255/#402 on the newer
 datacache path) · 1.63.10 #597 · 1.63.11 #566 partial.
 
-## Open, with reasons
+## Follow-up status as of 2026-10-18
 
-- **#599** -- 270,743 rows refused *with a candidate pool already in hand*;
-  `expand_allele_set` returns `unmatched` before consulting `host_mhc_types`,
-  so `HLA-DR` gets nothing while `HLA class II` in the same study gets the
-  pool. Larger than what 1.63.10 fixed. Deferred because narrowing a
-  gene-level restriction against donor typing is a design decision about what
-  `mhc_restriction` may be rewritten to, carrying the #455 serotype hazard.
-- **#600** -- three HLA-only predicates (`_filter_alleles_by_class`,
-  `_parse_host_mhc_types`, `_flatten_hla_alleles`) plus the `donor_set`
-  short-circuit; fixing any without the others starts emitting unresolved
-  donor sets.
-- **#603** (row-selection copies), **#604** (Haplotype parses, 15,875 rows),
-  **#605** (13 `fillna("")`-on-categorical sites, four in `export.py`),
-  **#606** (non-roster single-molecule designations, 7 rows),
-  **#589** (downloads.py consolidation; ~254 of 1,796 lines are replaceable by
-  datacache, the other 77% is registry and domain logic that is not caching).
-- Upstream: mhcgnomes#201 (`H2-IEg7` dispatched to `Haplotype` while every
-  sibling parses as a `Pair`).
+- **#599** remains open for serotype and coarse-restriction cases. Its
+  270,743-row measurement is from the earlier v2 artifact; #633 shipped the
+  gene/locus intersection and shared species/class checks from **#600** in
+  1.64.5. The old `HLA-DR` example no longer describes the released path.
+- **#603** (row-selection copies), **#604** (Haplotype parse results), and
+  **#606** (non-roster single-molecule designations) remain open. #604's
+  current issue title reports 15,596 rows, replacing the earlier 15,875
+  estimate. **#605** (categorical `fillna`) and **#589** (download
+  consolidation) are closed.
+- Upstream mhcgnomes#201 remains open (`H2-IEg7` dispatches to `Haplotype`
+  while its siblings parse as a `Pair`).
+
+# Source-backed bulk experiment counts — #699
+
+Local full test.sh passes 3,074 tests; format/lint and 60 focused regressions pass.
+Clean audit 832c95a preserves all 2,047,003 rows. Exactly 217,514 pooled HeLa rows
+have unresolved numerators and corrected inventory totals; the primary summary
+confirms all 14 experiment/acquisition inventories and hashes. All 18 public assets
+independently download/hash-verify; every public row and count replays against the
+original source. CI/integration and PyPI release remain.
+
+- [x] Review existing source inventory and specify explicit experiment/count semantics.
+- [x] Implement nullable source-backed counts and consistent filtering/build paths.
+- [x] Verify supported, unresolved, invalid, mixed-source and CSV/parquet regressions.
+- [x] Publish/verify the completed clean real-source audit (all rows independently checked).
+- [ ] Format/lint/full CI/integration, review, merge, deploy 1.81.0 and verify PyPI.
+
+# Bekker-Jensen fractionation evidence — #688
+
+- [x] Audit every legacy scope against pinned primary methods and supplements.
+- [x] Implement one YAML-backed correction across loaders, builder and ingest.
+- [x] Publish all 15 datacache artifacts and verify downloads plus all 2,203,214 serialized peptide/protein-arm rows.
+- [ ] Format/lint/full and integration checks, review, merge and deploy 1.80.0.
+
+Review: all original rows, quantities and order are preserved. The source-backed
+projection distinguishes reported buffer pH, deposited experiment labels and
+unknown protocols; 98 focused cases pass on pandas 2 and 3. Local full tests
+were refused by the capacity guard (0.27 GB available), so full/integration and
+clean-main deployment validation run in CI. Separate replicate-denominator
+inference is tracked in #699.
+
+# Corrected frozen corpus generation
+
+- [x] Specify immutable baseline, released producer and source/reference reuse boundaries.
+- [x] Implement released-producer/reference pins and fail-closed verification.
+- [x] Run focused gates, freeze source and execute the six bounded stages.
+- [x] Publish and independently verify complete generation and human inspection artifacts.
+- [ ] Run full gates, review, merge and deploy 1.79.0; register new consumer qualification.
+
+## Corrected-generation prelaunch review
+
+Format/lint and 15 focused qualification tests pass. Only the Hitlist package pin
+changes (1.76 to 1.78); the historical baseline lock remains intact. Reused
+reference bytes and original receipt are hash-checked, cache-format library
+versions must agree, and observations/mappings rebuild independently. All six stages succeeded; the complete public v4 corpus and all 18 assets were
+independently verified. The field audit covers all 4,486,991 MHC-MS rows and
+71 columns; exactly 79,406 predicted-restriction evidence cells changed.
+Twenty-one focused tests pass, including historical recovery isolation (#698)
+and native observation-ID preservation. The corrected human export is complete:
+4,071,463 observations; 89,567 rows change only in metadata. All 21 public assets
+and the native consumer bundle independently verify. Presto has a frozen new
+qualification recipe using released 0.1.13. Final-head CI and deployment remain.
+
+# Human-cohort export recovery — #695
+
+- [x] Preserve the original failed launcher and immutable generation inventory.
+- [x] Fix receipt input pinning and test success/failure publication with datacache.
+- [x] Recover and independently verify all ten original files and native lineage.
+- [x] Record measured coverage and unresolved independence/cell/condition metadata.
+- [x] Run format/lint and full local suite (3,039 passed).
+- [x] Publish and independently verify all fourteen public baseline files.
+- [ ] Final CI, review, merge and PyPI release.
+
+# Actual human-cohort qualification — 2026-10-15
+
+Specification: [human-cohort-qualification-spec.md](human-cohort-qualification-spec.md).
+
+- [x] Pin the completed parent corpus and write the bounded cohort contract.
+- [ ] Export and verify the actual human-source/HLA compact training bundle.
+- [ ] Publish readable source/context and observation-weighted lineage coverage.
+- [ ] Hand exact pins to Presto frozen membership and qualification.
+- [ ] Format/lint/full tests, review, merge, deploy and verify public artifacts.
+
+# Separate real corpus qualification — 2026-10-15
+
+Specification: [corpus-qualification-spec.md](corpus-qualification-spec.md).
+
+- [x] Ship complete-generation publication and public pinned installer (1.76.0).
+- [x] Hash raw source snapshots, inspect existing remote inputs and define limits.
+- [x] Freeze the producer dependency hashes and verify the bounded cloud environment.
+- [x] Complete raw-source transfer and verify remote content pins.
+- [x] Build separate current indexes, then verified human-reference mappings.
+- [x] Publish complete corpus and verify every public download.
+- [ ] Fix actual-corpus curation regressions and pass final integration CI.
+- [ ] Freeze actual cohort membership and publish coverage/leakage/lineage audits.
+- [ ] Hand exact pins to canonical Presto preflight/fitting and held-out baselines.
+- [ ] Review/version/format/lint/test/merge/deploy any code or workflow changes.
+
+## Review
+
+Source snapshots total 14,719,407,889 bytes; export dates remain unverified. Existing
+remote exports differ in size and are not accepted as the pinned sources. The
+old caches remain untouched. Current-generation publication shipped in #690 as
+1.76.0 with verified public PyPI bytes. Current source/environment/reference stage
+receipts are downloaded and independently hash-verified; see
+[the receipt inventory](corpus-qualification-results/README.md). The source stage
+verified both raw CSVs and 26 paper assets. The complete human reference is indexed
+on POSIX scratch and shared through datacache (#125 tracks the Modal hard-link
+limitation). Actual observation indexes completed (4,486,991 MS / 814,268 binding / 26,537 other
+assay rows); human-reference mappings and complete portable publication finished.
+All ten ci-corpus-v3 public files were independently downloaded and hash-verified.
+The test/release workflows now consume the pinned full inventory through datacache.
+The full local suite
+passed 3,035 tests; final code CI passed all four Python unit jobs and integration
+at a889bf9. Final workflow CI exposed #694: missing/stale arm verdicts in 90,455 rows.
+The complete source replay now resolves 62,512 sole-line observations, retains
+16,894 multi-line observations and all 11,049 treatment-uncertain HCT 116 rows.
+It also exposed and fixed reversed complete-pair identity (#696). All 196 source
+statements are curated; the 202-context regression fixture and focused set pass
+16 tests. Format/lint pass. Local full-test attempts could not establish enough
+free memory (one sandboxed probe failure, then 1.61 GiB versus required 2.5 GiB);
+release CI runs ./format.sh, ./lint.sh and ./test.sh --all without relaxing guards.
+Actual cohort qualification and final release gates remain pending.
+
+# Current CI corpus publication — 2026-10-15
+
+Specification: [current-corpus-publication-spec.md](current-corpus-publication-spec.md).
+
+- [x] Reproduce the current/legacy inventory mismatch and inspect consumers.
+- [x] Record portable-generation contract and actual-corpus scope before edits.
+- [x] Implement complete datacache snapshots and versioned public manifests.
+- [x] Add current-builder, stale-mapping, corruption and legacy regressions.
+- [ ] Verify, review, version, merge and deploy the publication tooling.
+- [ ] Rebuild independently from pinned sources, publish and verify actual corpus.
+- [ ] Freeze actual cohorts and publish coverage/lineage/leakage limitations.
+
+## Review
+
+The tooling now pins one generation, validates every recorded generation hash,
+all six index fingerprints, captured contributor hashes and source-matched
+mapping metadata. Public manifest v2 retains all seven parquets, portable mapping
+metadata, original source hashes and a readable inventory; v1 remains supported.
+Datacache owns publication and hash-pinned downloads. Release receipts include the
+complete verified inventory. The real-builder/fault/download/release regression
+set passes 70 tests, with format/lint passing. Full final-head gates and the actual
+new corpus remain pending; workflows still use the verified v2 legacy release.
+
+# Scoped PXD013455 publication — 2026-10-15
+
+Specification: [pxd013455-publication-spec.md](pxd013455-publication-spec.md).
+
+- [x] Locate the primary public deposit and original/reanalysis publications.
+- [x] Write the recovery/publication contract before implementation.
+- [x] Recover and hash source settings/reference/results using datacache.
+- [x] Rebuild and independently validate the documented scope.
+- [ ] Publish legible source, label-policy and scope/support artifacts.
+- [ ] Test, review, version, merge, deploy and verify public downloads.
+
+## Review
+
+Datacache #122 shipped as 1.27.0 and recovered the complete selected ZIP members
+without downloading the 35.4 GB archive. A decompression boundary regression
+found during importer tests is fixed in datacache #124. Source reconstruction
+reproduces 172,033 observations (150,855 MS/MS and 21,178 matching), 12,287 parents
+and all 46 raw-file/fraction assignments. Paper review corrected the pH default
+with explicit source attribution (#688). The new source and publication tests
+pass 43 cases, including independent audit failures and prior-generation reuse.
+Full candidate audit, complete software gates and public release remain required.
+
+The full audit now passes for 1,656,863 candidate occurrences, including 203,635
+observed occurrences and 163,994 distinct observed sequences. A separate forced
+rebuild reproduced the census. The 23-file portable archive is 84,673,182 bytes,
+SHA256 9684ae010280fa84ee952439613391fe8f8bce04cceb8818d296615ef636bc9b;
+manifest SHA256 441f3c66c6e6bc6a90c7cb8c54d0131676c3cb4e7a04ddbd9346061ad8f9d84b.
+The pinned published-download API avoids rebuilding sources and verifies archive
+and inventory hashes through datacache. The expanded focused suite passes 178
+tests. First CI unit jobs hit a transient index propagation delay for datacache
+1.27.1; the dependency is now discoverable. The next full unit run passed 3,016
+cases and caught one YAML duplicate-key guard violation. Both new registry
+readers now use the mandatory guard; 102 focused source/registry cases pass.
+The corrected source recipe was rebuilt and audited before repinning the archive.
+Final-head CI and public release remain required.
+
+# Dataset qualification series — 2026-10-15
+
+Specification: [atomic-generations-spec.md](atomic-generations-spec.md).
+
+- [x] Inspect publication, datacache storage, consumer contracts and live trackers.
+- [x] Create an isolated feature worktree and record the approved scope/contract.
+- [x] Add failure-injection and reader-consistency regressions for #645.
+- [x] Implement datacache generations, pinned reads and safe standalone updates.
+- [ ] Review, version, format, lint, full tests and exact-head CI.
+- [ ] Merge and deploy Hitlist; verify public distribution bytes and release receipt.
+- [ ] Presto #71: frozen inputs, explicit assay policy and retained parent lineage.
+- [ ] Hitlist #681 / Presto #70: durable scoped detectability data and consumer.
+- [ ] Hitlist #680: pinned corpus, fixed partitions, human inventory and leakage audit.
+- [ ] Presto #48/#53: measured output support and bounded real-data qualification.
+
+## Review
+
+The regression-only run failed after contributor publication, demonstrating changed
+old bytes. Seven output-write interruption tests pass after implementation;
+additional coverage verifies final publication/validation failures, pinned readers,
+legacy migration, damaged-store recovery, standalone updates and concurrent exports.
+Format/lint pass. Full local test.sh refused 0.13 GiB available; no guard bypass.
+The broader focused suite passed 254 tests (four integration cases excluded).
+Review also checks mapping bytes against the published generation receipt, so
+same-size sidecar tampering cannot be re-certified by a new training export.
+The existing CI corpus publisher's outdated inventory/flat paths are tracked
+in #685 for the actual corpus publication stage. Initial full Python 3.9 CI passed 2,954 tests and found one obsolete assay-test
+mapping stub that captured frames without producing its declared outputs. The
+stub now writes both mapping artifacts; publication validation stays strict.
+Review found that an explicit independent expression output unnecessarily
+resolved the default cache. A regression demonstrated the failure with a damaged
+default generation; independent destinations now remain independent, while writes
+to managed generation paths still publish safely or reject old generations.
+The actual mapping writer also reproduced an external-frame override bypass
+when its previous sidecar was already current; the staged-only override guard
+now applies before considering a cache hit. Old-generation bytes remain intact.
+Exact-head CI and clean-main release remain required.
+
+Datacache 1.25.1 provides public materialize/inspect_materialization APIs;
+use its complete-generation publication and retain prior files. MHCflurry is
+explicitly deferred. The prior #682/#72 releases are shipped, but #678 remains
+open until concrete data/model acceptance artifacts exist.
+
+# Review and ship Hitlist training-readiness PR — 2026-10-14
+
+- [x] Review the full diff, caller contracts, failure paths and regression coverage.
+- [x] File discovered defects; fix them with meaningful before/after evidence.
+- [ ] Finish formatting, lint, full tests and exact-head CI.
+- [ ] Merge the reviewed PR and validate/build from clean main.
+- [ ] Publish verified release artifacts and confirm their public bytes/version.
+- [ ] Record the release receipt and next dependency in the readiness tracker.
+
+## Review/release scope
+
+Review index admission and archival/offline compatibility in Hitlist #682, and
+missing detectability masks/provenance in Presto #72. Preserve existing user
+worktrees and caches; use isolated checkouts and CI for memory-heavy checks.
+Do not treat software release as certification of the training corpus.
+Hitlist uses its existing clean-main release workflow and PyPI upload. Presto
+has no release workflow and its distribution name collides with an unrelated
+PyPI project; prepare verified GitHub wheel/source artifacts while resolving
+the requested publication destination. Never upload to the unrelated project.
+A release must identify the merged SHA, test results and artifact hashes.
+
+Review found #683: origin enrichment consumes mappings without expansion or a
+gene filter. The exact preflight function previously returned `mappings=not_used`
+for this option with absent mappings; it now rejects it. The real cache-backed
+regression joins the admission parameter cases. Prior-head CI passed 2,931 unit
+tests (two skips) and 96 integration tests; rerun CI for this reviewed head.
+
+# Training input preflight — #679 / training release series #678
+
+Specification: [training-input-preflight-spec.md](training-input-preflight-spec.md).
+
+- [x] Audit source/cache semantics and file remaining cross-repository issues.
+- [x] Create isolated feature worktree and write the bounded contract.
+- [x] Add meaningful regressions and demonstrate the previous failure.
+- [x] Implement bundle freshness policy, manifest record and CLI parity.
+- [ ] Version, format, lint, full tests and final-head CI.
+- [x] Open the first PR and record validation and remaining series dependencies.
+
+## Review
+
+Regression-only CI on 10cda44 failed all 12 intended admission cases, with
+2,916 passing tests and two skips in the Python 3.12 job. Stale/unknown inputs
+reached the sentinel generator instead of failing before corpus generation.
+Implementation, CLI/archive/offline-verification coverage and documentation
+are now present; formatting and lint pass. Full local testing requires adequate
+available memory; do not bypass the guard or count a refusal as a pass. Shared
+sources/cache remain intact. Final implementation-head CI remains required.
+
+# orfdata canine protein consumer — #668 stage A
+
+Contract: [orfdata-canine-spec.md](orfdata-canine-spec.md).
+
+- [x] Inspect released upstream APIs and write the bounded consumer contract.
+- [x] Add failing offline consumer tests using real source fixtures.
+- [x] Implement explicit provider and immutable upstream receipt.
+- [x] Reconcile complete real source rows, sample contexts and reference bytes.
+- [ ] Version, format, lint, full tests, pandas checks and final-head CI.
+- [ ] Merge, deploy from clean main and verify public PyPI artifacts.
+- [ ] Update integration milestones and identify the next remaining dependency.
+
+## Review
+
+The initial real-fixture test failed because `provider` was not supported.
+The implemented route reconstructs the exact original table checksum from the
+published orfdata artifact and retains the matching FASTA bytes. Full replay:
+313,263 raw rows (14 fields including source row), 313,263 normalized rows
+(41 fields), 38 sample rows (10 fields), 20,649 sequence rows and all context
+fields match the original-source route, with zero differences. Peptide rows
+remain empty. The upstream adapter phase took 35.4 seconds in this local run;
+the OS denied the resource profiler's memory read, so no RSS result is claimed.
+
+All 52 focused canine tests pass on pandas 3.0.6 and 2.3.3; formatting, lint and
+isolated dependency checks pass. The guarded full unit suite is running.
+Final-head CI, merge, clean-main release and public artifact verification remain
+required. #668 remains open for later peptide/group enrichment; #674 tracks the
+independent normal-tissue DLA gap. This PR changes no biological sample curation.
+
+# Canine sample curation in YAML — #672
+
+Contract: [canine-sample-curation-spec.md](canine-sample-curation-spec.md).
+Keep all 56 real sample annotations unchanged while moving source facts to YAML.
+
+- [x] Identify the repository-rule violation and file #672.
+- [x] Write the explicit sample-context contract before implementation.
+- [x] Prove regressions, move source facts and check frozen replay.
+- [x] Recurate both real sources and compare every sample field.
+- [ ] Version, format, lint, full tests, docs and final-head CI.
+- [ ] Merge after 1.71.1, deploy and verify public PyPI bytes.
+
+## Review
+
+Both initial regressions failed before the fix. All 61 canine/reference tests
+pass on pandas 2 and 3; formatting, lint and strict documentation build pass.
+Real-source imports preserve every normalized sample field for all 38 Pfizer
+pools and 18 Labrador samples. Previously frozen bundles pass verification.
+The guarded full local unit suite passes 2,902 tests (one skip). Final-head CI,
+merge and the clean-main 1.71.2 release remain required; 1.71.1 is published.
+
+# Pfizer canine instrument provenance — #670
+
+Contract: [pfizer-instrument-spec.md](pfizer-instrument-spec.md). Preserve the
+publication/deposit conflict explicitly; do not guess the acquisition model.
+
+- [x] Compare primary publication and deposit metadata; file #670.
+- [x] Prove the missing conflict metadata with an offline regression.
+- [x] Preserve both reports in the catalog, manifest and normalized rows.
+- [x] Document, version, format, lint and run final-head tests/CI.
+- [x] Merge after 1.71.0, deploy from clean main and verify PyPI bytes.
+
+## Review
+
+The new regression failed with missing `instrument_status` before the data
+correction. The catalog now preserves both cited reports and their conflict;
+the existing importer snapshots that metadata and exposes the unresolved model.
+No view/schema changes or rewriting of previously frozen bundles is involved.
+All 53 canine/reference tests pass on pandas 2 and 3. Format, lint, strict docs
+build and the guarded local full unit suite pass: 2,894 tests, one skip.
+Final-head CI and clean-main release 38202949295 passed 2,894 unit tests
+(one skip) and 96 integration tests. PR #671 merged as 670d51e and 1.71.1
+was published; both public PyPI distributions match the tested artifacts.
+
+# Canine bulk-MS source curation — #666
+
+Contract: [canine-bulk-spec.md](canine-bulk-spec.md). Isolated checkout; release
+after #667. Bulk protein/peptide evidence never becomes DLA presentation.
+
+- [x] Review original studies, deposit inventories and checked source layouts.
+- [x] Specify source scope, bounded storage, native measurements and identities.
+- [x] Add failing offline source/ambiguity/resource regression fixtures.
+- [x] Implement shared managed-asset checks, catalog, import and bounded reads.
+- [x] Replay real source data and audit missing presentation coverage.
+- [x] Document APIs and limitations; format, lint, full tests and final-head CI.
+- [x] Merge after #667, deploy from clean main and verify PyPI bytes.
+
+## Review
+
+Pfizer flat-file evidence is protein-level only; Labrador
+archive tissue observations are experiment aggregates with unresolved per-dog
+attribution. Neither source supplies naturally presented nonmalignant DLA ligands.
+Four initial API tests failed before implementation. Four additional failures
+proved nonfinite/overflow handling and semantic view verification before fixing
+those edges. The 52 canine-source/shared-reference tests pass on pandas 2 and
+the full pandas 3 unit suite passes 2,893 tests (one skip). Format and lint pass.
+The source database retains controls, all reported protein alternatives, source
+cells and native quantities. Scoped literature inspection did not establish a
+two-dog nonmalignant heart/brain/lung DLA panel; coverage remains missing.
+
+Filed #668 for the Pfizer vendor peptide extraction still required by #666.
+The public flat table has no peptide evidence. Its 86 GB pdResult input exceeds
+this machine's currently available scratch space, and the inspected endpoint
+did not honor Range. No pool expansion or peptide inference substitutes for
+that unresolved data dependency; this PR must not close #666.
+
+Final Pfizer replay retains 313,263 protein records and 38 pool identities.
+Import, verification and a heart query took 14.679 seconds with 190,889,984-byte
+process peak RSS; output occupied 75,664,448 bytes. This is a scoped measurement,
+not a full-corpus resource claim. All 8,579 heart rows belong to one pool and
+none qualify as positive presentation evidence.
+
+Final Labrador replay preserves 528,272 experiment peptide records, 1,009,420
+protein mappings, 775,003 modified-peptide records, 18 samples and the complete
+131,774-entry deposited reference. Import, verification and heart query took
+94.782 seconds with 287,883,264-byte process peak RSS; output occupied 572,242,014
+bytes. Heart retains 48,007 records: 47,693 target detections, 278 contaminant-only
+and 36 decoy-only records. All remain one unresolved aggregate experiment and
+none qualify as presentation evidence. PR #669 merged as ed40f6b; clean-main
+release 38200219304 passed 2,893 unit tests (one skip) and 96 integration tests.
+Published 1.71.0 and verified both public PyPI files against tested artifacts.
+Issue #666 remains partial because #668 is still outstanding.
+
+# Positive MS outcomes, then canine normal-tissue curation
+
+Plan: [positive-ms-outcomes-spec.md](positive-ms-outcomes-spec.md). Core canine
+curation and species bundles shipped through #663/#664 as 1.69.0/1.70.0;
+the older unchecked release items below are historical records.
+
+- [x] Confirm merged canine releases and inspect Hitlist/downstream open issues.
+- [x] Specify #665 admission, old-bundle replay and follow-on scope before code.
+- [x] Reproduce unknown-result admission with regression tests.
+- [x] Implement shared outcome classification and versioned portable replay.
+- [x] Audit live/projected/scanner/tissue paths and stored outcome vocabulary.
+- [x] Pass format, lint, full tests and final-head CI; review the complete diff.
+- [x] Merge, deploy from clean main, and verify published artifact bytes.
+- [ ] Implement and ship the next canine data dependency (#666) in separate PRs.
+
+## Review
+
+Fifteen initial regressions failed before implementation; 97 focused assay,
+species and human-bundle cases then passed. The new shared outcome field keeps
+MS modality separate from detection and new human bundles capture policy 3;
+versions 1 and 2 replay their historical admissions. Existing species schema-1
+regressions pass unchanged. Small existing positive-MS fixtures now declare their
+positive outcome explicitly. Format and lint pass. Local full test.sh correctly
+refused at 0.66 GiB available against the unchanged 2.5 GiB guard, so complete
+validation and release gates move to CI. No memory guard was bypassed.
+
+First full CI found 45 attribution/build fixture failures: four additional
+fixture helpers omitted the outcome. Their positive intent is now explicit;
+all 153 tests in the affected modules pass. The final focused assay/bundle/species/
+report set passes 106 tests. Superseded CI runs were canceled before restarting
+validation on the corrected head; no failed or canceled gate counts as passing.
+
+Final review found a scalar-only edge case: numeric outcomes were normalized to
+blank and could qualify as curated supplement results. Its regression failed
+before correction; scalar normalization now retains nonmissing numeric values,
+matching pandas and Arrow. All 99 focused assay/human/species bundle tests pass.
+A bounded read-only audit checked every row of the stored observation (4,440,428)
+and binding (892,827) artifacts: policy-2 versus policy-3 positive-MS admission
+is unchanged in that snapshot (4,418,452 and 110,621 respectively). This is an
+outcome-only comparison, not an assertion that those old partitions are correct.
+Normal source paths were reviewed: the human Atlas has an explicit observed-hit
+contract; the species normal gate already excludes unestablished outcomes.
+
+Shipped in #667 at c5766c84cc60ea45000494b97354743a245143c2 as 1.70.1.
+Clean-main release run 38196796458 passed format/lint, 2,867 unit tests (one
+skip) and 96 integration tests. Downloaded public PyPI wheel and sdist bytes
+match the verified clean-main artifact manifest.
+
+# Species-scoped evidence implementation — #661
+
+Concrete contract: [species-evidence-contract.md](species-evidence-contract.md).
+The input is an explicit local manifest; existing human defaults remain intact.
+
+- [x] Specify pinned reference, expression, source-occurrence, observation and policy inputs.
+- [x] Demonstrate an initial failing offline contract test.
+- [x] Implement bounded full-reference mapping, expression audits and frozen replay.
+- [x] Exercise ambiguity, provenance, missing normal coverage and resource failures.
+- [x] Replay a real scoped canine source against the full supplied dog reference.
+- [x] Document the contract and review the resulting consumer workflow.
+- [ ] Bump version, format, lint, tests, then final-head CI.
+- [ ] Merge and deploy after #663; verify published artifacts.
+
+## Species-bundle review
+
+Review of downstream Tsarina #209 exposed that the shared MS predicate admits
+explicit unknown outcomes. Filed Hitlist #665 rather than silently changing
+historical human replay. Five failing species regressions precede a stricter
+new-mode gate: known-positive results or a blank under the curated ligand-table
+contract; explicit unknowns stay excluded. Re-run final-head release checks.
+
+The new public API preserves schema-1 human bundle replay and does not consult
+live indexes, OncoRef or the human Atlas. Initial contract tests failed before
+implementation. The focused suite includes missing normal coverage even when
+testis expression is fully measured, distinct donor counting across alleles,
+shared heart/testis proteins, incorrect contributor links, and semantic replay
+after artifact checksums are recomputed. Format and lint pass. Final-head full
+CI remains a release gate; a memory-preflighted local unit run is in progress.
+
+Real scoped replay used all 61,398 supplied validated Canvax occurrences and the
+complete NCBI GCF_011100685.1 AR106 protein FASTA (SHA256
+`478ff85988e53be0f8c36fcf290a4d512792bbdb8148a0c5132e1022e15eeb49`).
+All eight curated study arms contributed three observations: 24 complete source
+records yielded 116 exact mappings; three reported strings had no exact match.
+The nine human-host DLA observations stayed separate from 15 native dog ligands
+without peptide-level allele assignment. Missing canine normal MS remained
+explicit. This exercised reference/MS interoperability without inventing matched
+expression candidates or claiming spectrum reanalysis. Write plus two offline
+replays on final 1.70.0 code took 33.571 seconds from the frozen input manifest,
+with measured process peak RSS 468,746,240 bytes; the portable output occupied
+71,020,311 bytes. Input preparation is outside that timing. These are scoped
+measurements, not a full-corpus memory claim. All 92 final focused/human tests
+pass on pandas 2.3.3 and 3.0.6. The earlier complete local unit run passed
+2,842 tests (one skip); final-head rerun/CI also cover the six subsequent
+contributor/outcome regression cases.
+
+# Canine ligand curation and evidence bundles
+
+Implementation specifications: [offline curation](canine-curation-spec.md) and
+[species-scoped evidence design](canine-evidence-design.md).
+
+- [x] Independently review the original paper, six checked workbooks and existing patch.
+- [x] Write the offline API, sample/species, donor/IP and source-provenance contract.
+- [x] Prepare an isolated worktree and lockfile-based environment.
+- [x] Verify historical 1.68.1 is published before beginning canine implementation.
+- [x] Add failing offline/source/species/lineage regression fixtures.
+- [x] Implement reviewed local scanner inputs and deterministic workbook curation.
+- [x] Curate exact experimental arms, species mechanisms and donor/specimen links.
+- [x] Validate all 16,359 real observations and complete contributor coverage.
+- [ ] Version, format, lint, focused tests and full final-head CI.
+- [ ] Merge and deploy #660; verify published artifact bytes.
+- [ ] Finalize and implement #661 against the frozen #660 observation boundary.
+
+## Review
+
+The historical-reference PR #662 merged at
+`1b0efc92aaa82a96a5f42bcfe83b6695173dbc20` after all PR checks passed.
+Clean-main release run 37849519239 passed format/lint, 2,787 unit tests (one
+skip) and 96 integration tests. Downloaded PyPI wheel/sdist bytes match the
+tested artifacts. Historical 1.68.1 was published before canine implementation.
+
+Eight offline API regressions failed before implementation. The broader canine,
+curation, conditions, provenance and lineage suite passes 420 tests; the final
+39 focused cases pass on pandas 2 and 3. Format/lint pass. Local `test.sh`
+refused at 2.11 GiB available against the unchanged 2.5 GiB minimum; full
+final-head CI remains required. The package version is 1.69.0.
+
+The real offline replay retained 16,359 observations and contributors: 3,580
+human-host monoallelic DLA rows and 12,779 unassigned canine rows, 12,181 distinct
+canine strings and four resolved dog donors. The two Lola IPs retain one donor,
+one tumor specimen and two experiment origins. Combined source scan and scoped
+observation enrichment took 5.3 seconds with 567,951,360-byte peak RSS on this
+machine. This is not a full corpus rebuild or raw-spectrum reanalysis.
+The reviewed mixed-source study has no whole-paper source-proteome fill or
+allele pool. The documented HCT116/DLA chimeras were added to the existing
+species-mismatch regression's explicit, staleness-checked exceptions.
+
+# Historical references and canine generalization
+
+See [the specification](historical-and-canine-spec.md).
+
+- [x] Inspect #658/#660/#661, current main and existing work; create isolated branch.
+- [x] Add real historical taxonomy regression and fix annotated OX parsing.
+- [x] Stream and validate full 2015_10 extraction; independently audit sequences and coverage.
+- [x] Publish historical asset, add catalog entry and verify managed fetch/reuse.
+- [x] Version, format, lint, full tests and final-head CI; merge and deploy to PyPI.
+- [x] Locate/review canine patch and primary sources.
+- [x] Specify #660 implementation after historical release.
+- [ ] Ship offline supplementary inputs and canine ligand curation (#660).
+- [ ] Specify and implement explicit species/reference/policy evidence bundles (#661).
+- [ ] Verify canine releases, document results and review follow-up dependencies.
+
+## Review
+
+Historical extraction succeeded in Actions run 37844637820 with complete source
+size/MD5 checks and the expected 170,921 sequences. The 82,758,858-byte FASTA's
+SHA256 is `b657a37c551326bf91a118dfa52acfab96a4f65bf2052d761d5b5f7b6252020a`.
+An independent bounded audit matches all 661,142 distinct original Bekker-Jensen
+peptides across the 14 packaged scopes (2,047,003 rows), using exact substrings
+with I/L distinct. Swiss-Prot canonical explains 649,785; adding isoforms explains
+657,123; the complete human selection explains all. Peak RSS was 70,516,736 bytes,
+scratch SQLite 16,891,904 bytes, runtime 110 seconds. The E9PBK2 header and
+73-residue sequence also match the independent historical UniSave fixture.
+This establishes compatibility, not original search-database identity (#654).
+
+The taxonomy regressions failed before the parser fix; all 49 focused tests now
+pass. Format/lint pass. Local `test.sh` refused at 1.38 GiB available against its
+unchanged 2.5 GiB guard; require the complete unit/integration CI and clean-main
+release workflow before deployment. Historical asset publication, real managed
+download/reuse, final-head checks and PyPI verification are release gates.
+
+Canine source review independently verified all six original workbooks against
+published MD5s: 3,580 human-host monoallelic rows and 12,779 endogenous canine
+tumor rows from four dogs. Two Lola IPs are one donor. Preserve all reported
+8–30-residue observations, not only the paper's 8–14-residue summary subset.
+
+# Versioned UniProt references
+
+See [the detailed specification](uniprot-references-spec.md).
+
+- [x] Confirm requested managed-download packaging and inspect existing registries.
+- [x] Create isolated feature branch; record provenance and resource-bound design.
+- [ ] Recover and validate historical 2015_10 (upstream outage; tracked separately in #658).
+- [x] Independently acquire 2026_03 with release/count validation and a complete build receipt.
+- [x] Implement release catalog, bounded verified cache, API/CLI and inventory integration.
+- [x] Add client/extractor/provenance regressions and document supported releases.
+- [x] Publish the managed 2026_03 asset and validate real managed fetch/reuse.
+- [x] Verify wheel/sdist contain the catalog and exclude sequence payloads.
+- [x] Correct the duplicate-key YAML-loader violation caught by full CI.
+- [ ] Version, format, lint, full tests, PR and final-head checks.
+- [ ] Merge, deploy to PyPI and verify published artifacts; review follow-up queue.
+
+## Review
+
+The verified 2026_03 human FASTA is 127,856,511 bytes, SHA256
+`02eecbba941194d2004720ddb02555f4647ceae883ac2bbda82e9287ac45a2eb`.
+It contains 20,431 reviewed canonical sequences, 22,131 reviewed isoforms and
+190,275 unreviewed canonical sequences (232,837 total). Canonical counts agree
+with UniProt's search endpoint; both endpoints identify 2026_03. The receipt
+records the compressed source checksum, final checksum, exact builder checksum,
+release headers and licensing. This is not a historical-reference substitute.
+The isolated `.venv` resolves pandas 3.0.6, gtfparse 3.0.2, PyEnsembl 2.26.0 and
+datacache 1.16.1; compatibility inspection passes. Shared editables are untouched.
+Real managed download/reuse verifies 127,857,385 total cached bytes, including
+the FASTA's license statement and receipt. Local `test.sh` refused at 1.90 GiB
+available versus its unchanged 2.5 GiB minimum; full checks run in CI. The user
+confirmed shipping 2026_03 cache support independently of historical #658.
+
+# Detectability follow-up — #361 / #654
+
+See [the detailed specification](detectability-spec.md). User confirmed protocol-
+scoped labels and first-seen depth only within demonstrably comparable protocols.
+
+- [x] Audit original PRIDE search parameters/summary with bounded range requests.
+- [x] Review Presto's proposed contract; no implemented prototype was found.
+- [x] File source correctness defects as #654; checkpoint the specification.
+- [x] Resolve primary enzyme definitions and API defaults; document unrecoverable original FASTA.
+- [x] Implement occurrence-preserving digest and validated scoped dataset joins.
+- [x] Verify controls, ambiguity, graded labels, bounds and pandas compatibility.
+- [x] Complete #653 release (1.66.0, verified PyPI); rebase onto merged main.
+- [ ] Version, PR, full checks, merge, PyPI publish and artifact verification.
+
+# Assay modality correctness — #644; then detectability training — #361 (2026-10-07)
+
+## Specification
+
+The user requested #644 first and #361 next, each through a versioned PR and
+release. #644 remains open on 1.65.1. A bounded scan of the local legacy indexes
+confirms the MS partition includes fluorescence binding, thermodynamic/kinetic
+assays, crystallography, microscopy and non-MS ligand methods. Conversely the
+binding partition includes some explicitly MS rows because qualitative tiers
+and comments overrode assay method. Preserve raw fields and contributor lineage.
+
+Implement one modality contract shared by scans, builds, readers, reports and
+CTA exports. Separate `assay_modality` (ms, binding, structural, non_ms_ligand,
+other, unknown) from result polarity and record `assay_modality_source`.
+Structured methods/responses take precedence over legacy comment/tier heuristics.
+Explicit MS method plus a compatible ligand response establishes MS modality;
+negative outcomes are never positive presentation evidence. Blank methods on
+registered curated MS-only supplements retain their explicit source basis.
+Missing/conflicting evidence never defaults to MS; a false binding flag is not
+proof of MS. Keep fluorescence/stability/kinetic binding assays in binding;
+retain structural, non-MS ligand, unknown and negative-MS rows in a separate
+`other_assays.parquet`, accessible through `load_other_assays` with normal
+filters. Expose these rows in the explicitly broad `load_all_evidence` union,
+without broadening the MS/binding training API's accepted modalities.
+
+Build all three disjoint partitions, preserve contributor links and mapping
+coverage, add the third artifact to freshness/provenance fingerprints, and bump
+the observation semantic version. Old indexes must fail freshness checks. Reads
+must prevent legacy non-MS leakage even under column projection; recovered
+binding/other rows require a rebuild for complete new partitions. Avoid broad
+whole-frame copies solely for filtering. New scans and report paths must agree
+on MS admission. Keep experimental restriction and biological-source attribution
+separate from this assay-category correction. Whole-generation publication is
+already tracked separately in #645; do not claim it is fixed here.
+
+Regression cases include the reported PAGE4/MAGE fluorescence, crystallography,
+thermal stability and microscopy examples; valid cellular/secreted MS; Edman,
+coelution and T-cell ligand detection; missing/conflicting metadata; negative MS
+and positive tiers; curated supplements; scan/build/report/bundle parity;
+projected old-index reads; contributor integrity and cache invalidation. Audit
+real assay signatures and a bounded fresh raw scan, retaining explicit scope.
+
+## Plan
+
+- [x] Verify issues remain open; inspect code, lessons and actual assay signatures.
+- [x] Create isolated feature branch and checkpoint the modality design.
+- [x] Add failing regressions for the shared contract and end-to-end partitions.
+- [x] Implement modality, retention, read/report consistency and freshness.
+- [x] Audit real inputs and update fixtures to state their intended modality.
+- [ ] Document the contract, bump version, run format/lint/test and pandas 2/3 checks.
+- [ ] Open #644 PR, pass final-head gates, merge and publish verified artifacts.
+- [ ] Inspect #361's primary source/search metadata and Presto prototype; write its detailed spec.
+- [ ] Implement and verify bounded candidate generation and condition-scoped labels.
+- [ ] Ship #361 separately with full validation and PyPI verification.
+
+## #644 CI follow-up
+
+The first integration run passed 94 tests and exposed two historical fixture/
+assertion assumptions. The resolved-study replay now preserves raw assay method,
+response and outcome; its bounded real-data replay passed for 12,813 admitted
+MS rows across three studies. Species coverage now checks exact admitted MS
+counts and the presence of uncurated studies instead of retaining a >100 PMID
+threshold inflated by non-MS evidence; the real-corpus test passes (47 mouse
+class-I MS PMIDs). No scientific admission rule was relaxed. Format/lint pass;
+new final-head CI and the full local unit suite are required after this patch.
+
+## #644 implementation review (before PR)
+
+- Version 1.66.0; observation semantic artifact version 9. All three partitions
+  retain contributors and participate in mapping/cache contracts. Arrow applies
+  admission before pandas, including projected legacy reads. CTA policy v2 keeps
+  non-MS evidence auditable; old bundle verification retains its recorded policy.
+- Regressions initially failed on the old classifier. Focused affected exports:
+  331 passed. Broader fixture checks: 458 passed with three remaining binding
+  fixture failures corrected and verified in the subsequent 195-test checks.
+- Pandas 2.3.3 and 3.0.6: 195 focused tests passed each; additional real-build
+  structural CTA export passed both versions. Format/lint and editable-install/
+  dependency checks passed. The first full suite identified missing-modality
+  synthetic fixtures; they now state their intended assay method. Final local
+  full-suite attempts were refused by the unchanged memory guard (0.18–0.19 GiB
+  available vs 2.5 GiB required). Complete verification remains assigned to CI.
+- Bounded column audit: legacy observations contain 4,418,452 positive MS,
+  19,222 structured/fallback binding and 2,754 other rows; legacy binding contains
+  110,621 explicit positive-MS rows. This audit used four raw fields, omitting
+  comment-only heuristics, and is not a rebuilt index. Fresh raw IEDB records
+  1584690, 2007100 and 17935045 reproduce structural/binding/binding classification
+  with no positive MS admission (original data rows 131001, 241187, 4155792).
+- No full local corpus rebuild, shared-environment change, or claim of fixing
+  whole-generation publication (#645). CI and publication evidence will be
+  recorded on the PR after final-head checks.
+
+## Review
+
+Prior defaults PR #652 is merged and published as 1.65.1. Clean-main release
+37638770041 passed 2,634 units (one skip), 96 integrations, format/lint and
+artifact checks; PyPI wheel/sdist bytes matched. This task starts from clean
+main a96b1e5. The shared Python environment is distinct from the task's isolated
+release environment; preserve editable checkouts and compatible current versions.
+
+# Expression input defaults (2026-10-07)
+
+## Specification and plan
+
+The user corrected mandatory input flags after 1.65.0. Provide the same defaults
+through CLI and Python API, keeping all explicit overrides. With no file path,
+look only for conventional expression.tsv/csv/tab, quant.sf, abundance.tsv and
+RSEM *.genes.results / *.isoforms.results (including gzip) in the working
+directory; an explicit directory uses the same search. Require exactly one
+candidate. Do not recurse, choose the newest file, invent patient measurements,
+or treat unrelated numeric files as expression.
+
+Detect identifier headers case-insensitively (gene IDs/symbols, transcript IDs,
+and neutral quantifier Name/target_id headers). Prefer stable gene IDs over
+symbols, recognize standard Salmon/kallisto/RSEM profiles, and infer Ensembl
+transcript IDs in neutral columns. Generic tables containing both gene and
+transcript columns require an explicit level or identifier column. Infer a
+single TPM-labelled value column; multiple sample TPM columns or no TPM-labelled
+column require --tpm-column. Never infer TPM from read counts or FPKM. Explicit
+column names remain exact and authoritative. Record the resolved path, columns,
+level and whether each was inferred in manifest expression metadata.
+RSEM's documented posterior estimates and uncertainty columns describe the same
+sample: choose ordinary TPM by default while retaining explicit estimator overrides.
+
+- [x] Inspect CLI/API and OncoRef's existing column conventions; checkpoint plan.
+- [x] Add regression tests that fail under 1.65.0 defaults.
+- [x] Implement shared path/column/level resolution with provenance.
+- [x] Exercise gene/quantifier, ambiguous, override, gzip and CLI/API cases.
+- [x] Update documentation and bump version to 1.65.1.
+- [ ] Run format/lint/test and validate pandas 2/3 plus final-head CI.
+- [ ] Merge and deploy from clean main; verify published artifact bytes.
+
+## Review
+
+Issue #651 tracks this fix. The first ten regression cases failed against the
+required-argument implementation and now pass. Format/lint pass; 99 focused
+checks pass on pandas 3.0.6 and 52 evidence checks pass on pandas 2.3.3.
+CLI/API exports verify the selected values and manifest provenance. Standard
+quantifier fixtures follow their primary format documentation, including RSEM
+posterior estimates and uncertainty fields. The isolated 1.65.1 editable install
+and dependency consistency checks pass. Local ./test.sh correctly refused its
+memory preflight (0.24 GiB available versus 2.5 GiB required); full-suite and
+release checks must pass in CI before merge and publication.
+
+Preceding PR #650 shipped as 1.65.0 from main 1a0c9f5. Release run 37537861454
+passed 2,613 unit tests (one skip) and 96 integration tests. Both PyPI artifacts
+were downloaded and matched the tested CI bytes. This follow-up corrects input
+usability, retaining expression units, specificity and blacklist policies.
+
+# Expression-table CTA evidence bundles (2026-10-06)
+
+## Scope and ownership
+
+Finish and publish bounded-provenance PR #646 first. This follow-up belongs to
+Hitlist and stops at a reproducible evidence bundle. Tsarina and Vaxrank own
+ranking for treatment, vaccine assembly, and construct optimization. Do not add
+vaccine sequence generation or substitute population prevalence for the supplied
+expression measurements.
+
+## Specification
+
+Accept gene or transcript TPM tables without VCF/BAM. Require explicit input
+columns/identifier level and retain original rows, source hashes, normalized
+identifiers, mapping reference/version, expression values, and every exclusion
+reason. Resolve gene identifiers through OncoRef and transcripts through the
+recorded reference; never infer transcript expression from gene expression or
+silently sum duplicate/ambiguous identifiers. Intersect with the live canonical
+OncoRef strict/extended CTA definitions and snapshot the relevant HPA evidence.
+Support configurable gene-pattern exclusions with exact exceptions (MAGE*
+except MAGEA4), without redefining CTA membership or the self background.
+
+For expressed eligible CTAs, export the exact observed peptide evidence and all
+reference-protein/transcript mappings. Keep CTA-only shared sequences distinct
+from non-CTA matches and retain all occurrences/coordinates. Report reference
+coverage explicitly; a missing/partial mapping cannot establish specificity.
+Preserve sample/donor/HLA context and raw contributor records; MS support must
+have positive assay-modality evidence (existing Hitlist #644). Prediction is not
+an observation. Gene selection never narrows the reference background.
+
+Export a reusable sequence blacklist independently of the selected genes and
+patient HLA: exact MS-observed sequences in heart, brain or lung in at least two
+distinct people across those tissues, regardless of allele. Keep per-tissue and
+union donor counts, evidence rows, source locations, and identity resolution.
+Collapse repeated samples, assays and aliases of one donor. Do not use PMIDs,
+assay counts, aggregate sample labels or sample-count fallbacks as people.
+Unresolved/pooled identities remain an explicit review category and never imply
+absence of risk. The user confirmed nonmalignant tissue only; tumor observations do not
+trigger this blacklist. Record that choice as an explicit policy.
+
+Current IEDB HLA Ligand Atlas rows omit the donor axis (recorded in the Marcu
+33858848 curation), so a correct two-person rule requires the primary release's
+sample_hits and peptides tables, with donor metadata and source hashes. Reuse
+canonical Hitlist source/provenance mechanisms where possible; do not invent
+patient IDs from per-tissue IEDB records. Official primary-source format:
+https://hla-ligand-atlas.org/data (release 2020.12; CC-BY 4.0). Inspect its actual
+schema and independent counts before implementation. Preserve exact observed
+sequences; no inferred nested epitopes. Document the downstream blacklist as
+forbidden contiguous sequences, including within longer antigen segments.
+
+The bundle must include expression-resolution/selection tables, CTA/HPA
+reference evidence, peptide summaries, complete mappings, presentation rows,
+raw contributors, tissue-risk/blacklist evidence, source metadata, parameters,
+versions, and a hash manifest with a verifier. Missing provenance must be
+explicit or fail a strict full-provenance request. Write to a new destination
+through staging and reject input changes, mismatched artifacts or overwrites.
+Bound scans and contributor copies; do not require a second full index build or
+load irrelevant raw source payloads into memory merely to export a subset.
+
+## Plan
+
+- [x] Merge and publish PR #646 as 1.64.8; verify exact PyPI artifacts.
+- [x] Record corrected repository ownership in tasks/lessons.md.
+- [x] Inspect existing exports, contributor bundles, mappings and donor identities.
+- [x] Confirm blacklist tissue policy and inspect the official donor-level data.
+- [x] File focused Hitlist #647 and link the known modality/identity limitations.
+- [x] Finalize CLI/API and schema; checkpoint the concrete plan before code.
+- [x] Add failing contracts for identifier/CTA/exclusion and risk/specificity behavior.
+- [x] Implement expression selection and complete, bounded evidence export.
+- [x] Implement/audit donor-level essential-tissue sequence blacklist.
+- [x] Verify full provenance, input stability, manifest hashes and atomic publication.
+- [x] Validate real inputs and reconcile blacklist counts independently.
+- [x] Document downstream bundle consumption; bump version.
+- [x] Run format.sh, lint.sh and test.sh; verify final-head CI.
+- [x] Merge, deploy from clean main and verify PyPI artifacts.
+
+## Review
+
+Version 1.65.0 adds expression and standalone blacklist CLI/API exports.
+The supplied Atlas snapshot has 967,449 sample hits and 223,246 peptide records;
+170,615 heart/brain/cerebellum/lung observations cover 84,754 sequences.
+The two-donor rule yields 26,487 forbidden sequences. An independent stdlib CSV
+implementation matched every sequence and donor-union count; portable raw-source,
+artifact-hash and scientific-relationship verification passes. The snapshot is
+not presented as an exhaustive survey of all MS studies. Actual OncoRef PRAME,
+MAGEA3, MAGEA4 and ACTB resolution and an Ensembl 112 PRAME transcript were checked;
+the complete real CTA/HPA snapshot serializes successfully.
+
+Upgraded the task's isolated environment to pandas 3.0.6, gtfparse 3.0.2,
+PyEnsembl 2.24.1; dependency validation passes. Hitlist already permits these
+versions. The committed uv.lock also needed a refresh: it now selects pandas
+3.0.6 on Python >=3.11 (retaining 2.3.3 on older supported Python), gtfparse
+3.0.2, PyEnsembl 2.26.0, datacache 1.16.1 and serializable 1.3.0. Polars
+and simplejson are no longer needed in the locked dependency graph (#648). PyEnsembl's separate-session fix is merged. Pandas 2.3.3 compatibility
+was checked in a separate environment. Empty mapping selections exposed #649:
+Arrow compared large_string against an untyped empty set. The reader now returns
+an empty schema-only table without scanning data. The local full `./test.sh` passed (2,611 tests, 1 skipped); final feature checks
+pass on both pandas majors. Format/lint and documentation builds pass. A
+mutation check proves older-bundle verification requires its captured tissue
+policy: removing that argument fails the changed-policy regression. PR #650
+tracks final-head CI and deployment. No full local index rebuild is claimed.
+
+PR #646 merged at 9090611; clean-main release run 37530144788 passed all
+2,576 unit and 96 integration tests. PyPI 1.64.8 wheel/sdist were downloaded
+and their bytes match the tested CI artifacts. No vaccine
+assembly is in scope. Existing sample_identity.py deliberately falls back to a
+PMID for summary counting; that is not adequate evidence of distinct people for
+this blacklist. Initial real-data validation found four Atlas sequences containing
+selenocysteine (U); preserve these exact sequences, rather than rejecting the
+snapshot or substituting another residue. The current reviewed lineage registry mainly establishes
+experimental origins, so its missing donor identities must remain visible.
+
+# Bounded provenance builds — #643 (2026-10-06)
+
+## Specification
+
+Preserve the existing contributor schema, readable identities, complete original
+JSON source fields/rows, ancestry relation flags, donor labels, deterministic
+ordering and lossless deduplication semantics. Do not change scientific filters
+or mark a scoped index as a complete rebuild. Existing published contributors
+must survive any failed provenance capture/export.
+
+The current collector duplicates uncompressed source payloads in SQLite, then
+executes a corpus-wide recursive UNION/DISTINCT/ORDER BY over those payloads.
+The issue reports 41.46 GB of database plus at least 13 GB of SQLite scratch.
+Replace payload storage with fast lossless compression and flatten only small
+ordered batches of retained roots. Keep visited/frontier sets in explicitly
+indexed scratch tables, deduplicate narrow graph identities before loading any
+payload, and reuse their pages between batches. Avoid implicit SQLite sort or
+recursive work files. Bound SQLite's page cache and output buffers; separately
+measure scanner/build memory so no whole-build memory guarantee is inferred.
+
+Use a private, disposable database with journaling disabled and an enforced
+max_page_count limit; it is never a recoverable/published artifact. Provide a
+documented scratch directory (falling back to TMPDIR), scratch-byte budget and
+free-space reserve. Check capacity before allocating and periodically during
+capture/export, translate actual SQLite/filesystem full errors, and clean up
+owned scratch/partial files. The database cap does not cap the final lossless
+Parquet artifact or the observation DataFrames; state this explicitly.
+
+Measure baseline/head in fresh processes on identical deterministic graphs and
+a bounded real CSV sample. Compare every contributor cell, ancestry chains,
+multiple paths/cycles, donor expansions, retained/excluded roots, empty output,
+Unicode/large rows and changed-source checks. Prove resource-limit failures
+leave old artifacts intact and the configured scratch cap is enforced. Inspect
+query plans for hidden temporary materialization. Use small inputs locally;
+do not repeat the known 58 GB failure on this nearly full workstation.
+
+- [x] Read issue, collector/scanner/build flow, project instructions and lessons.
+- [x] Create feature branch and record specification/checkpoint before code.
+- [x] Benchmark the old collector and add meaningful failing regressions.
+- [x] Implement compressed records, bounded traversal and storage controls.
+- [x] Verify exact baseline/head parity and report measured time/disk/memory.
+- [x] Document configuration, limits and diagnostics; bump the patch version.
+- [x] Run ./format.sh, ./lint.sh and ./test.sh; verify full final-head CI.
+- [x] Merge PR and deploy from clean main; verify the PyPI release.
+- [x] Record review evidence and dependency-ordered follow-up issues (#647, #644, #645).
+
+## Review
+
+Planning checkpoint: change the provenance collector first, where #643 measured
+the storage explosion. No performance or full-corpus fit claim until measured.
+
+Two fresh-process trials of each revision used the first 100,000 logical IEDB
+rows, identical source payloads and a deterministic 80,000-root graph with
+30,000/100,000-row parity comparisons (all columns, including exact JSON text).
+This measures contributor capture/export, not scientific classification or a
+full-corpus rebuild. Baseline database: 407,969,792 bytes; new: 118,153,216 bytes
+(-71%). Peak process RSS: 395,182,080–395,427,840 bytes versus
+252,313,600–253,100,032 (-36%). Output: 23,775,314 versus 7,652,532 bytes (-68%).
+Capture: 3.90–4.08 versus 5.76–5.77 seconds; export: 4.37–4.65 versus 2.15
+seconds. Compression trades capture CPU for space; total collector time is
+only modestly faster (8.27–8.73 versus 7.91–7.92 seconds).
+
+Independent graph-oracle tests cover cycles, duplicate edges, multiple labels
+and relation paths across batch sizes 1, 7 and 256. SQLite bytecode checks find
+no implicit sorter, ephemeral table or automatic index in traversal/export.
+Real max_page_count exhaustion and injected filesystem/progress failures retain
+old output and remove owned scratch/partials. Large Unicode rows round-trip
+within a 256 KiB scratch cap. The collector now writes Zstandard Parquet and
+checks both scratch and output filesystems. Fresh-index reuse skips scratch.
+
+Focused scanner/build suite: 85 passed; expanded collector suite: 19 passed.
+Format/lint pass. Version 1.64.8 editable-install audit passes in the isolated
+repository environment. Local ./test.sh refused before tests: 0.19 GiB free
+versus the required 2.5 GiB for one worker. Do not override that guard; full
+verification and release use the existing CI workflows with memory preflights.
+
+Filed #645 for the pre-existing non-atomic publication of the contributor,
+observation, binding and metadata artifact set. The collector's error translation
+is explicitly limited to failures before its publication, avoiding a false claim
+that later builder failures preserve an already replaced contributor file.
+
+Release re-plan: the first PR release job failed during dependency resolution,
+before tests. Current PyEnsembl main requires gtfparse<3, whereas the workflow
+requires current gtfparse master (3.0.2). Existing openvax/pyensembl#451 records
+this conflict; an uncommitted `deps/gtfparse-3` checkout already exists, so avoid
+changing that work. Keep the development-dependency requirement intact and
+resolve the upstream compatibility blocker before rerunning release validation.
+Final review also limits capacity-error translation to collector SQL/export
+operations, so failures in other build stages keep their original diagnostics.
+
+# Efficient tests, realistic memory budgets and default CTAs (2026-10-05)
+
+## Specification
+
+Resolve #636 through measured causes of excess unit-worker memory and runtime.
+The baseline release on 6fc6229 ran 2,556 unit cases in 2,954.85 seconds and
+46 integration cases in 606.15 seconds; the original local attempt was stopped
+after 467 passes when its worker reached 6,756,736 KiB RSS. Preserve these
+observations as distinct measurements, not comparable platform benchmarks.
+
+First audit unit-test corpus access with a bounded read-interception diagnostic
+that refuses real observation/binding/mapping reads before materializing them.
+Profile representative safe stages twice on the same interpreter, dependencies,
+inputs, coverage settings and worker count. Attribute cache retention and slow
+calls from measurements. Do not rerun the known oversized suite locally.
+
+Make unit tests independent of installed corpora and persistent user state.
+Use small test-owned inputs for unit contracts; retain genuine corpus assertions
+in the integration phase. Account for every relocated case and every skip so
+isolation cannot silently remove coverage. Add regressions that fail on the
+old behavior with a corpus present and protect repeatable unit resource use.
+
+Reduce the measured dominant costs with minimal changes. Set documented
+per-worker budgets using comparable baseline/head observations and headroom;
+keep unavailable-probe refusal, actual worker budgeting and phase retries.
+Do not lower thresholds or discard full release checks to advertise speed.
+Record unit and integration timings/peak resource usage separately on the
+hosted runner, including the current development dependency revisions.
+
+Inspect release duplication after profiling. Retain publication's clean-main
+source, full-suite, corpus, license and exact-artifact provenance requirements.
+Prefer eliminating redundant computation inside a run and parallelizing
+independent safe work; any cross-run reuse must prove the complete tested
+source, dependencies, data and artifact identity, not merely a matching version.
+
+Make CTA support part of the default install through canonical OncoRef, retaining
+lazy query-time imports and the existing cta extra as a compatibility alias.
+Use OncoRef's packaged panel without copying scientific membership into hitlist.
+Verify a normal install's dependency metadata and real CTA query.
+
+- [x] Review project lessons, original issue, baseline logs and current state.
+- [x] Create a feature branch and record the profiling/verification contract.
+- [x] Audit real corpus reads and measure safe baseline stages twice.
+- [x] Re-plan around the measured causes; add failing resource/isolation cases.
+- [x] Implement minimal runtime/memory changes and worker budgets; full CI verification pending.
+- [x] Make canonical CTAs available in the default install; retain the cta alias.
+- [ ] Bump the patch, run format/lint/test, compare full CI stage measurements.
+- [ ] Review final-head CI, merge, release from clean main and verify PyPI files.
+- [ ] Record final evidence and dependency-ordered next work.
+
+## Review
+
+Planning checkpoint: unit release runs are much slower with the corpus installed,
+but runner differences, serial concurrency, coverage and Git dependency heads
+are confounders. Real-corpus access is a hypothesis until the bounded audit
+identifies actual callers. No memory improvement or speedup is claimed yet.
+
+Measured re-plan: #638 records eight intercepted full peptide CSV reads in
+unmarked unit tests. Retain all canonical-data assertions as integration cases,
+share the repeated bulk parquet build, and clear bulk caches at the module
+boundary before the observations fixture warms. Add small CSV/parquet fixtures
+for filter and CLI contracts. Explicitly isolate the empty-index schema and
+not-built tests; keep auditing for other hidden reads. Native safe YAML parsing
+is 7.4–7.6 times faster in two matched parse-only trials (0.406/0.417 seconds
+versus 0.055/0.056); use it with the same duplicate-key guard and test the Python
+fallback and unsafe-tag rejection. This is a parser measurement, not a release
+speedup. Keep both full release runs; avoid cross-run validation reuse.
+
+The continued audit stopped intentionally after 1,350 passes and six intercepted
+reads: two CLI mapping reads, two expression-index reads, the species summary,
+and the real supplementary CSV scan. Ordinary tests get a fresh test-owned data
+directory, while integration and explicit directory-resolution fixtures retain
+their behavior. Thirteen supplementary corpus assertions currently scan the
+reference data independently (twelve classified, one unclassified). Share the
+classified result without modifying its callers' assertions. Before modifying
+the scanner, measure duplicate MHC annotation calls on small matched inputs;
+memoize only within one entry and on both restriction and reported class, so
+reported-class conflicts and row ordering remain unchanged.
+
+A focused cProfile of the three-row Bourne query finds another dominant cost:
+three exports spend 15.69 seconds, including 21,627 iterrows calls and repeated
+group construction across every curated study. Restrict attribution candidates
+to the PMIDs actually present in the loaded observations before those loops.
+Retain every eligible arm and class within each present PMID, plus the existing
+full-study discriminator context: filtering unrelated studies must not turn a
+multi-arm study into a single-arm fallback. Add an unrelated-study regression,
+compare the identical covered query stage twice, and run all existing query
+context/attribution parity regressions. This is additional measured scope, not
+an inferred biological simplification.
+
+Local evidence before PR: the unrelated-candidate regression fails on the old
+behavior (the unrelated allele is scanned twice); restoring the old conftest
+makes the corpus-isolation regression fail (one child case fails, integration
+and explicit override still pass). YAML-native and supplementary-input reuse
+regressions also fail before their changes. The 96 focused query/YAML/CTA cases
+pass in 2.34 seconds. The final attribution change reduces the same two covered
+Bourne cases from 44.01/42.62 seconds to 6.38/6.40, with identical inputs,
+interpreter, dependencies and one serial worker. Stage peaks are 278.1/278.2 MB
+afterward versus 295.7/301.5 MB before; these stage measurements do not establish
+a full-suite memory estimate. The 100K-row supplementary comparison preserves
+the entire frame and reduces 100K record-annotation calls to two; times are
+0.724/0.748 seconds before, 0.689/0.662 after. No memory reduction is claimed.
+
+Version is 1.64.7, lockfile refreshed without dependency upgrades, editable
+metadata check passes, and format/lint pass. The required local test.sh gate
+refuses 0.39 GiB available against its unchanged 2.5 GiB unit budget; it runs
+zero tests. Full coverage, resource measurements and release validation move
+to hosted CI. Do not treat the preflight refusal or earlier partial diagnostics
+as a passing gate. #638/#639/#640 record the discovered causes alongside #636.
+
+Keep the audit's prevention in the suite: the unit fixture also rejects reads
+of installed indexes, canonical bulk/supplement CSVs, and external files over
+10 MiB before pandas/Arrow allocate them. Test-owned files remain allowed and
+integration is unaffected. A child suite with a configured sentinel corpus
+proves isolation, explicit overrides, integration access and pre-read refusal.
+
+Platform-budget re-plan before final verification: #603 records a ~19.5 GB
+macOS integration physical footprint and large RSS variation under compression.
+The Linux 11.6 GiB RSS observation cannot justify the same budget on macOS.
+Use 14 GiB for Linux and 24 GiB for macOS/unknown platforms (both overrideable),
+and regress the macOS refusal even with 19.8 GiB available. Cancel the obsolete
+head's validations and require fresh full gates on this corrected source.
+
+# Correctness gates, categorical reads, CTA provider and QC export (2026-10-05)
+
+## Specification
+
+Ship the reproducible correctness defects in #634, #635, #605 and #619, plus the
+existing-metadata export gap in #18, as one patch release. Preserve biological
+restriction evidence, sample attribution and raw source QC descriptions.
+
+Memory preflights must fail before pytest when a platform probe is unavailable,
+failed or malformed. Distinguish that from measured low capacity; only an
+explicit opt-in may run with unknown capacity, using a single worker. Normal
+CPU/worker ceilings, serial fallback and bounded low-memory phase retries retain
+their behavior. Exercise failed commands, malformed output, opt-in, and loss of
+the probe between phases with subprocess stubs that prove pytest did not start.
+
+Audit categorical blank-fills across QC, observations, prediction, query,
+reports and exports. Use one shared dtype-safe scalar fill, preserving category
+encoding rather than materializing whole string columns as objects. Tests must
+cover categorical columns without the blank category, both with and without
+nulls, and public consumer paths on pandas 2.x and 3.x.
+
+Migrate the packaged CTA registry and provider to current OncoRef's canonical
+cta_gene_names API. Keep it optional, provide an installable extra and actionable
+missing-dependency message, and validate against the real packaged OncoRef data
+as well as dependency-error/unit fixtures. Avoid hard-coded panel counts or
+duplicate biological filtering logic.
+
+Propagate curated search_engine and fdr through observation attribution and
+training defaults using the same exact-arm/consensus semantics as other MS
+acquisition metadata. Preserve heterogeneous raw FDR strings; unmatched or
+disagreeing arms cannot acquire invented QC, and binding rows receive blanks.
+Exercise exact matches, ambiguous disagreement/agreement, projection and the
+mixed MS/binding training API. Source-reading/backfill remains under #18.
+
+- [x] Inspect current issues, project instructions, release gates and provider API.
+- [x] Create feature branch and record implementation/verification scope.
+- [x] Add failing regressions for each defect and establish baseline failures.
+- [x] Implement minimal shared fixes and review every affected consumer.
+- [x] Bump 1.64.5 to 1.64.6; verify editable-install metadata.
+- [ ] Run format.sh, lint.sh, test.sh and focused cross-pandas checks.
+- [ ] Open PR, verify final-head CI, review and merge.
+- [ ] Run deploy.sh from clean main; verify release gates and PyPI artifacts.
+- [ ] Record results and inspect relevant sibling issues for the next work block.
+
+## Review
+
+Re-plan after final-head CI: all 46 integration cases passed, but the unit
+matrix exposed pandas 3's categorical replace behavior on the final added
+sample-discrepancy case. A blank category is not enough for replacing it with
+the display placeholder. Add the actual placeholder as a category and use a
+value mask, preserving encoding. Re-run the complete focused set on both
+pandas 2.3.3 and 3.0.5, then require a fresh matrix and release run on the
+corrected head. The original release run is cancelled, not a passing gate.
+
+The corrected placeholder mask passes all 60 focused cases on both pandas
+2.3.3 and 3.0.5, including null and existing blank cell names. Format/lint
+pass again. The actual OncoRef panel is identical to the provider output and
+has no warning-only candidates. Fresh full CI remains required.
+
+The initial regressions found 26 failures. Corrected the species-axis test's
+helper name and supplied the prediction/report fixture's required columns;
+public consumer tests then reproduce the actual categorical failures. The
+baseline QC regressions fail because search_engine/fdr are absent, and the real
+OncoRef provider fails on the retired cancerdata import.
+
+The first fixed focused run passes 177 tests (one optional predictor skip).
+The shared pandas 2.3.3 environment passes all 11 categorical consumer cases.
+The isolated lockfile environment uses pandas 3.0.5 and OncoRef 1.8.207; its
+editable metadata correctly reports 1.64.6. Format/lint pass. A sandboxed
+test.sh run refuses the unavailable memory probe as intended; the unsandboxed
+run establishes 3.70 GB available and starts one worker with unchanged budgets.
+
+Also reproduced and filed #635: TEST_SH_MIN=0 launches serial -n 0 pytest with
+zero measured memory. Enforce at least one process's budget, including when
+unknown-memory opt-in is set. Full final-head validation and shipping pending.
+
+All 58 focused regressions pass in the isolated pandas 3.0.5/OncoRef environment.
+A mutation replacing safe fills with plain Series.fillna makes all seven public
+categorical consumer regressions fail on pandas 2.3.3, confirming their coverage.
+The local full-suite attempt was deliberately interrupted after 467 passes /
+262 seconds: the sole worker reached 6,756,736 KiB RSS against a 2.5 GB preflight
+budget, with measured free+speculative memory about 0.08 GB. This is an incomplete
+run, not a passing gate or an observed OOM. Full validation moves to CI without
+lowering or overriding memory thresholds.
+
+# Restriction-compatible allele candidates (#599, shared #600 checks)
+
+## Specification
+
+Retain reported gene/locus evidence (including HLA-DR, DQ, DP and DRB1) and
+derive a separate candidate set from available exact typing. Match the parsed
+restriction's species, broad MHC class and gene/locus against parsed candidates.
+Explicit restriction species wins over presenting-cell/host/source species;
+generic class labels use curated MHC species context when available and retain
+unknown species when none is evidenced. Never use mismatch-derived xeno flags.
+Species compatibility follows the ontology's ancestor/subspecies relation.
+
+Select the strongest available typing tier before intersecting: peptide-specific
+typing, donor typing, then curated PMID pool. An incompatible nonempty tier must
+remain unmatched rather than falling through to a broader pool. Accept exact
+non-human designations with the same molecule-resolution predicate used for
+reported restrictions. Use ontology class membership rather than HLA prefixes.
+Reject low-resolution typing, partial pairs and arbitrary free text. Preserve
+reported single chains and supplied complete pairs as candidates; never synthesize
+partners or cross-product independent alpha/beta typings. A gene constraint may
+match its chain within a supplied pair; a locus constraint requires every chain
+of a supplied pair to belong to that locus.
+
+New gene/locus inference uses explicit peptide_locus_match, sample_locus_match
+or pmid_locus_pool provenance. It never replaces mhc_restriction, derived reported
+identity, allele_resolution or restriction evidence, even for a singleton set.
+Retain legacy class-only promotion behavior while making its candidate checks
+species-aware. Blank restrictions remain unmatched and receive a separate audit
+population. Serotype, low-resolution catalog and haplotype expansion remain
+follow-ups. Invalidate persisted observation candidates through the artifact
+schema version and document that existing artifacts require rebuilding.
+
+Add regressions for all supported loci, DR secondary beta genes, species/class
+conflicts, no-fallback precedence, non-human donor sets, partial/full class-II
+pairs, scanner and supplement evidence preservation, and blank restrictions.
+Build a bounded-memory reproducible before/after audit, with input fingerprints
+and code version, reporting rows and distinct peptide sequences per paper and
+globally. Distinguish candidate coverage from measured allele assignment and
+count blanks separately; do not combine per-paper unique counts into a global
+unique count. Verify the Ramarathinam paper scope against primary evidence.
+
+- [x] Read instructions, lessons, candidate pipeline and primary-source evidence.
+- [x] Create branch and write the implementation and verification specification.
+- [x] Add failing regressions, implement candidate intersection and preserve evidence.
+- [x] Add reproducible coverage audit and document measured paper/peptide gains.
+- [ ] Run format, lint and test.sh; pass final-head CI and bump patch version.
+- [ ] Merge via PR, deploy from clean main, verify PyPI and review next dependencies.
+
+## Review
+
+Implemented parsed species/class/locus intersection with tier precedence and
+no fallback on incompatible typing. New locus provenance never promotes the
+reported restriction, including singleton candidates and per-donor scanner
+splits. Non-human exact typing shares the reported-resolution predicate;
+class-II pairs remain intact without synthesizing partners. Genus-level BoLA
+context is narrowed to evidenced cattle while explicit engineered MHC survives
+an incompatible host context. Observation build artifact version is now 8.
+
+The verified raw ci-corpus-v2 artifact has 4,440,428 rows and the same SHA256 as
+the older local snapshot. A bounded replay gains 134,052 gene/locus rows across
+29 PMIDs, covering 98,810 distinct sequences; 60,847 previously lacked candidates
+anywhere in the corpus. Shared non-human checks gain another 6,164 class-only
+rows. Combined first-candidate coverage gains 66,134 global sequences. Every one
+of 135,446 blank rows stays unmatched. Counts and all paper gains are documented
+in docs/allele-candidates.md; CI uploads the fingerprinted audit report. This
+replay does not reconstruct old class-only statements already promoted in the
+persisted artifact. Filed #632 to reconcile the paper/deposit coverage difference
+for Ramarathinam without inventing evidence.
+
+Focused verification: 419 tests pass. Six scanner/supplement preservation tests
+fail when historical promotion is deliberately extended to the new provenance
+values, proving they guard the inference/evidence boundary. ./format.sh and
+./lint.sh pass. ./test.sh stopped before tests with 0.12 GB available; full CI
+and clean-main release remain required. ./develop.sh refreshed the editable
+install to 1.64.5 and its metadata check passes after moving the stale local
+1.64.4 egg-info aside (known #553 behavior). Merge/release remain pending.
+
+Source-head CI 37023468657 passed Python 3.9-3.12, integration and coverage;
+its uploaded audit reproduces every local count. Final review added a regression
+for incomplete donor typing falling through to the PMID pool. All three cases
+(partial pair, allele group, serotype) failed before the guard. Incomplete
+donor designations now block broader-pool locus inference as well as rejecting
+invented partners. Final-head CI is required after this correction.
+
+# Literature-backed cross-species experimental context
+
+## Specification
+
+Curate independent primary-literature evidence for the experimental systems
+currently suggested by species-axis flags and the packaged study/arm narratives.
+Start with a reproducible inventory: existing curated cross-species arms and
+PMIDs reached by the current heuristic flags in the available observation corpus.
+Use bounded column/batch reads; do not materialize the full export locally.
+Record the corpus/version and inventory coverage, including unresolved studies.
+
+Read Methods, experimental figures and supplements for each candidate study.
+Distinguish the material actually used for deposited MS observations from other
+experiments in the same paper. Keep presenting cells, in-vivo host, MHC origin
+and peptide-source proteome separate. A difference in species, a parsed allele
+or a mismatch-derived flag is a search lead, never literature evidence. Curate
+xenograft passage, transgenic/transfected MHC, cross-presentation/foreign antigen,
+native controls and unresolved contexts with their precise sample/arm scope.
+Record source URLs/identifiers and section/table/figure locations; paraphrase
+rather than copying long source text. No absent mention becomes a negative claim.
+
+After inventory, refine the minimal data/reader schema in this specification
+before implementation. Prefer existing curation/export contracts where they can
+represent independent evidence accurately. Any new structured field must have
+a declared reader and validation, retain unknowns, and reach attributed samples
+without broadcasting an arm-specific fact across a PMID. Preserve existing raw
+species flags and observations; this pass supplies evidence for later matching,
+not an automatic exception inferred from mismatches or a broad #600 rewrite.
+
+The literature result is a separate, packaged `species_contexts.yaml` registry,
+not a reinterpretation of the mismatch-derived flags. One record identifies a
+PMID plus a stable context ID and optional curated `condition_id` targets. It
+records review status (`resolved`, `partial`, or `unresolved`), exact experimental
+scope, controlled context kinds, and independent primary-source reference and
+location. Its biological axes are distinct: presenting material species, host
+species at harvest, earlier lineage host, introduced MHC species, and supported
+foreign-source species. Candidate source species from the inventory are recorded
+separately, so a reviewed but unsupported candidate does not become accepted.
+
+Expose the complete registry as a table. Attach a record to `ms_samples` and
+observation/training metadata only through an exact `(pmid, condition_id)` link;
+study-level records without that link remain visible in the audit table but do
+not annotate observations. On ambiguous observations, consensus may retain only
+axis facts shared by every candidate arm; context identity, review status, scope
+and citation are arm claims and must be blanked. Validate schema keys, controlled
+values, source requirements, record identity, condition links and reviewed/queue
+coverage. The frozen inventory manifest records ci-corpus-v2 / Hitlist 1.64.3,
+21 reviewed PMIDs, 95,442 of 96,838 flagged rows (98.56%), 204 queued PMIDs and
+423 flagged rows with no PMID. Counts describe review coverage, never truth.
+
+Verify source-to-arm citations and regressions for true xenografts, engineered
+MHC, foreign-antigen controls, mixed/unattributed rows and missing evidence.
+Run format/lint/test.sh, full CI and a clean-main release; bump at least patch,
+merge via PR, publish trusted artifacts and verify PyPI hashes. File discovered
+problems on the appropriate repo and link them rather than silently expanding
+scope. Record what is established and what remains unresolved.
+
+- [x] Read instructions, lessons and existing species/curation contracts.
+- [x] Create curation branch, preserve the correction and write this plan.
+- [x] Inventory candidate studies/arms and define the reviewed population.
+- [x] Read primary sources and record scoped evidence and unresolved cases.
+- [x] Refine the data/reader contract, curate evidence and add regressions.
+- [x] Verify coverage, format/lint/tests and pass final-head CI.
+- [x] Merge, release, verify published artifacts and review next dependencies.
+
+## Review
+
+PR #631 closes #630 with 29 scoped records across 21 literature-reviewed PMIDs.
+Those studies cover every previously curated candidate and 95,442 of 96,838
+flagged corpus rows (98.56%). The frozen manifest retains the remaining 204
+candidate PMIDs and 423 rows without a PMID as an explicit review queue rather
+than silently treating them as resolved.
+
+The registry keeps presenting material, in-vivo host, earlier lineage host,
+introduced MHC and supported foreign-source species separate. Evidence reaches
+exports only through exact PMID/condition links; ambiguous observations retain
+only facts shared by all candidate arms. Literature review corrected PMID
+26811146 to human C1R transfectants, separated human and transgenic-rat material
+in PMID 29393594, and distinguished PDX-derived culture from patient biopsies in
+PMID 39111711. The deposited PDX statement supports two treatment arms and is
+therefore retained as explicit multi-arm evidence instead of being assigned to
+one arm.
+
+Local `./format.sh`, `./lint.sh`, focused regressions and `./develop.sh` pass.
+`./test.sh` correctly stopped at its memory preflight with 0.10 GB available, so
+the complete suite ran in GitHub Actions. Source-head run 36962565337 passed the
+Python 3.9-3.12 matrix, 46 full-corpus integration tests and combined coverage.
+An earlier full-corpus run exposed three unclassified PMID 39111711 statements;
+the exact deposited wording and multi-arm case are now pinned by regressions.
+Final-head run 36964228569 passed; PR #631 merged as 39ea8f6. Clean-main release
+run 36965801751 passed 2,490 unit tests (one skipped), 46 integration tests,
+format/lint and artifact validation. PyPI 1.64.4 wheel and sdist hashes/sizes
+match the release manifest. Candidate restriction narrowing is the next
+foundational block, with haplotype and broader coarse-restriction work following.
+
+# #611 — release completed curated-label metadata
+
+## Specification
+
+Release the full-length `_label_matched` frame immediately after the curated
+sample-label coalesce, including when nonempty labels have no curated hits.
+Preserve attribution precedence, every returned value and dtype, row/index and
+column order, category dictionaries/order, and the public API. Keep the change
+minimal: remove the obsolete owning reference after its last use rather than
+rewrite matching or allocation behavior. Bump the patch version to 1.64.3.
+
+Extend the existing weak-reference lifetime regression to track the label join
+separately from the allele/fallback joins. Exercise an actual curated label hit,
+nonempty labels with no hits, blank labels and an absent label column. Check the
+exact/fallback/unmatched output and assert completed joins are gone before final
+annotation. Demonstrate failure on baseline for both hit/no-hit paths, then pass
+all cases with the fix and nearby attribution regressions through test.sh.
+
+Use verified ci-corpus-v2 on Linux for full-population output parity and repeated
+RSS measurements. Run baseline 0d0f9ba and candidate in fresh processes sharing
+one dependency environment; compare all column value fingerprints, dtypes,
+categorical dictionaries/order, index and column order. Record export peak RSS
+before fingerprinting so verification does not inflate the measured export.
+Repeat each revision twice and report the spread; live Arrow ownership is not
+an RSS claim. A temporary PR-only workflow may carry this experiment and its
+artifacts; remove it from the final diff after capturing reproducible evidence.
+Run format/lint, the complete Python CI matrix and integration suite, then merge
+and run the clean-main release gate. Publish only verified release artifacts and
+check their hashes/sizes on PyPI. Re-read related open issues after shipping.
+
+- [x] Inspect source, issue requirements, existing regression and lessons.
+- [x] Create feature branch, write specification and check in the plan.
+- [x] Demonstrate baseline lifetime failures; implement the minimal release.
+- [x] Pass focused tests, format/lint and editable version verification.
+- [x] Verify full-output parity and repeated Linux RSS with identical dependencies.
+- [x] Pass final-head CI, merge and publish verified 1.64.3 artifacts.
+- [x] Record review evidence and identify the next dependency block.
+
+## Review
+
+Linux comparison [run 36877044705](https://github.com/pirl-unc/hitlist/actions/runs/36877044705)
+compares baseline `0d0f9ba` with candidate `0044eba`. Both fresh-process pairs
+passed full-output parity: 4,398,040 rows x 125 columns, all per-column value/null
+fingerprints, dtypes, categories/order, column order and index. All four output
+fingerprints agree; both runners installed identical dependencies (pandas 3.0.6).
+The saved experiment script/workflow and dependency lists are in the run's two
+`issue-611-comparison-*` artifacts and remain reproducible from commit `0044eba`.
+The final production source is byte-identical to the measured candidate.
+
+| Repeat | Baseline peak RSS (KiB) | Candidate peak RSS (KiB) |
+| --- | ---: | ---: |
+| 1 | 12,920,532 | 11,829,028 |
+| 2, reversed order | 12,932,344 | 11,930,776 |
+| Mean | 12,926,438 | 11,879,902 |
+
+Mean peak RSS fell 1,046,536 KiB (8.10%). Baseline spread is 11,812 KiB;
+candidate spread is 101,748 KiB. Even the worst candidate is 989,756 KiB below
+the best baseline. Export time was 70.5–71.3 seconds across the four runs; no
+runtime improvement is claimed. Peak RSS was sampled before output hashing.
+This measures standalone full exports, separately from pytest integration RSS.
+
+Both baseline lifetime runs failed exactly the hit/no-hit cases and passed the
+absent/blank cases. The candidate passed all eight lifetime/attribution regressions through
+`./test.sh`. Local format/lint and isolated editable-install
+verification pass. The local test preflight refused at 0.15 GB; no heavy local
+work ran. Full final-head CI and the clean-main release gate remain required.
+
+Prior #615/#627 work is shipped in
+1.64.2 via PRs #626/#628: release run 36814043601 passed format/lint, 2,475 tests
+(1 skipped) and 46 integration tests. Both published distributions matched the
+trusted release artifact hashes and sizes.
+
+# #627 — legacy cache status compatibility
+
+## Specification
+
+Unblock the #615 release after current datacache added explicit null `url` and
+`sha256` status fields for legacy receipts. Accept absence or None for exactly
+those two fields, while checking all remaining status fields exactly. Preserve
+the no-network assertion and byte/mtime comparisons for both the cached file
+and receipt, plus the assertion that reads create no locks or metadata. Do not
+change runtime behavior, suppress failures, or pin away the development build.
+Verify the same test against released and current-development datacache, then
+run format/lint/test.sh and full CI. Every PR bumps the version, so this narrow
+follow-up publishes 1.64.2 including the already-merged #615 changes.
+
+- [x] Inspect the failed release log and current datacache implementation.
+- [x] File #627, create a feature branch and check in the revised plan.
+- [x] Update the compatibility assertion and verify both dependency versions.
+- [x] Pass required checks, merge the follow-up and publish verified artifacts.
+
+## Review
+
+Release run 36809092586 stopped before integration/build/upload: 1 failed,
+2,474 passed, 1 skipped. The sole failure is the older exact status shape;
+datacache development commit 153c19a returns the two additional null fields.
+No 1.64.1 artifacts were published. Original PR #626 passed all PR checks and
+merged as 8cffeb7; its filters and 19 new regressions passed the release suite.
+The fix passes `./test.sh` with 35 tests against datacache development commit
+153c19a and 16 registry tests against datacache 1.15.0. Both ran through the
+normal memory preflight in the isolated environment. Format/lint, diff checks
+and the 1.64.2 editable-install verifier pass; full CI/release remain required.
+
+# #615 — binding filters in unified training exports
+
+## Specification
+
+Expose `assay_method`, `response_measured`, `measurement_units`,
+`has_quantitative_value`, and inclusive `quantitative_value_min/max` as new
+keyword-only parameters on `generate_training_table`. Forward these only to
+`generate_binding_table`, before composition, mapping expansion and projection.
+Keep existing defaults and binding matching semantics: case-insensitive method
+substring, endpoint/unit exact membership, and numeric presence/bounds. In
+`both` mode MS selection is unchanged; in `ms` mode these filters have no effect.
+
+Share the existing binding CLI option registration with the training CLI and
+forward the six options through ordinary exports and bundles. Bundle manifests
+already capture effective API parameters; verify the selected filters and rows
+are recorded. Preserve endpoint, units, original measurement, qualitative label
+and inequality; no endpoint inference, unit conversion, censor reinterpretation
+or new restrictions on the canonical indexes. Fix misleading numeric-presence
+help text as part of the documented #615 selection semantics.
+
+Document a human MHC-I example with explicit IC50/KD endpoint membership and nM
+units. Separate exact numeric targets from censored bounds and qualitative-only
+labels; require an explicit downstream policy rather than treating all numbers
+as affinity. Cover mixed endpoints, nM non-affinity rows, log units, inequalities,
+inclusive bounds, method matching, boolean tri-state, mixed/MS-only modes,
+projection/mapping, CLI parsing and bundle option retention with small fixtures.
+Use bounded local checks and full CI/release validation to avoid workstation
+memory pressure. Bump to 1.64.1, merge the PR, and publish verified artifacts.
+
+- [x] Inspect #615, existing filters, CLI, manifests and project lessons.
+- [x] Create feature branch, specify behavior and check in the plan.
+- [x] Add failing regressions, implement API/CLI forwarding and documentation.
+- [x] Run format/lint/test.sh, review compatibility and verify editable version.
+- [x] Pass full CI, merge, deploy from clean main and verify PyPI artifacts.
+
+## Review
+
+Implemented for 1.64.1 with 19 new fixture-based regressions. All three evidence
+modes reproduced the unsupported-argument failure before implementation.
+Format/lint pass. The surrounding local `test.sh` selection was interrupted
+after 15 passing tests when workstation memory became scarce; this is not a
+passing run. A subsequent unsandboxed memory preflight refused at 0.10 GB free.
+The isolated editable-install verifier passes at 1.64.1. Full validation is
+delegated to CI and the clean-main release build.
+
+# #622 / #616 — contributor retention and training lineage (2026-09-30)
+
+Specification: [training-provenance-spec.md](training-provenance-spec.md).
+
+- [x] Inspect requirements, all dedup paths, export/index contracts and lessons.
+- [x] Create feature branch and write the implementation/verification spec.
+- [x] Capture and retain source contributors through every deduplication stage.
+- [x] Add evidence-backed lineage entities, aliases and explicit uncertainty.
+- [x] Add the shared export bundle/manifest and split audit API/CLI.
+- [x] Verify fixture parity, legacy behavior, tamper detection and known reuse.
+- [x] Bump version; run format, lint, test.sh and editable-install verification.
+- [x] Open PR, pass full CI, review and follow the release workflow.
+
+## Review
+
+Shipped in PR #625 / 1.64.0. Full Python 3.9–3.12 CI passed. Clean-main release
+run 36798035261 passed format/lint, 2,456 tests (1 skipped), and 46 integration
+tests; published wheel/sdist hashes and sizes matched the trusted manifest.
+Local format/lint and editable-install verification pass;
+`./test.sh` focused regression selection: 237 passed. Full matrix and corpus CI
+passed. Added #624 for the reproduced blank-identifier data loss and
+included its narrow fix. Raw corpus rebuild/performance has not been measured.
+
+#614 shipped in #623 / 1.63.18: PR CI and clean-main
+release run 36754196130 passed; both published artifact hashes matched the tested
+wheel/sdist. This also shipped the previously merged #613 cache fix.
+
+# #614 — donor-aware training observation identity (2026-09-30)
+
+Specification: [observation-identity-spec.md](observation-identity-spec.md).
+
+- [x] Read #614/#616/#622, relevant lessons, current code and release workflow.
+- [x] Create feature branch; write specification and check in the plan.
+- [x] Add failing donor/mapping/projection regressions and implement stable IDs.
+- [x] Verify the real six-observation reproducer; document migration and limits.
+- [x] Bump version, run format/lint/focused tests and inspect the diff.
+- [x] Pass full CI, merge and deploy from clean main; verify PyPI artifacts.
+- [x] Record review/release evidence and identify the next dependency block.
+
+## Review
+
+The real PMID 31844290/SLLQHLIGL reproducer fails on main with six observations
+and two IDs; it passes with six observation IDs and the same two source IDs.
+Use readable, percent-escaped source/arm compound IDs following user feedback.
+The eight identity tests cover donor separation, mapping/projection, filtering,
+row order, display renames, ambiguous/missing curation, categorical nulls and
+delimiter escaping. Non-attributed IDs and legacy locator fallbacks are retained.
+Format/lint pass. The surrounding export suite passed 343 tests before the final
+readable-encoding revision; complete current-head validation is delegated to CI.
+The final encoding passes all eight identity tests and 11 focused tests through
+`test.sh`. A narrow-column scan of every attributed row in the local index finds
+144,408 observations, 81,357 source IDs and 144,408 distinct new IDs. Every row
+resolves to a persistent curated arm; none uses the label fallback in this index.
+The version is 1.63.18; the editable-install verifier passes in a fresh lockfile
+environment after preserving stale build metadata in /tmp and reinstalling this
+checkout. Scope is #614; contributor retention and experimental lineage remain
+tracked by #622 and #616. Merge/publication evidence is still pending.
+
+# #613 — retain the index just written (2026-09-29)
+
+## Specification
+
+Honor the documented oversized-entry exception after a successful atomic index
+write. Pass the exact new cache path to eviction and exclude it from deletion;
+mtime alone cannot identify that path because reads also update mtime. Evict
+other entries oldest-first until the cap is met or only the protected entry
+remains. An oversized index can therefore exceed the cap by itself and still
+serve a later disk hit. Bind this eviction to the write's directory. An explicit
+prune without a protected entry continues to enforce the cap in the current
+directory. Preserve zero-cap disabling, atomic writes, filenames and cache roots.
+
+Use tiny FASTAs and byte-sized synthetic entries to verify cold reload, a single
+oversized entry, older entries with misleading mtimes, and ordinary LRU pruning.
+Show the cold-reload regression fails before fixing production code. Full suites
+and release validation run in CI to avoid workstation memory pressure.
+
+- [x] Confirm #613 is open and #589 is merged and published in 1.63.16.
+- [x] Write this specification and check in the implementation plan.
+- [x] Add failing regressions and protect the successfully written cache path.
+- [x] Bump version, run format/lint and focused tests; inspect the final diff.
+- [ ] Open PR, pass full CI, merge and publish from clean main with verified artifacts.
+- [ ] Record release proof and start the human class-I training-data PR (#614/#616).
+
+## Review
+
+Three real-write regressions fail on unmodified 1.63.16: a single oversized
+index disappears, as does one written beside older entries; misleading future
+mtimes retain an old entry instead of the new one. All 21 focused cache tests
+pass after the fix, including disk reload with rebuilding forbidden, ordinary
+LRU pruning, zero-cap disabling and changing roots mid-write. Format/lint and
+the editable-install check pass at 1.63.17; the lockfile uses a dynamic project
+version and needs no change. Full CI and publication remain pending.
+
+Training scope is human class-I affinity, processing and presentation;
+retain class-II and non-human evidence with explicit scope flags. Stable donor
+observations and source-backed experimental lineage precede model-ready claims.
+
+# #589 — datacache consolidation (2026-09-29)
+
+Spec: [datacache_consolidation.md](datacache_consolidation.md).
+
+- [x] Verify datacache 1.14.0 APIs and existing hitlist path/return contracts.
+- [x] Write implementation and compatibility specification before code.
+- [x] Replace custom transfer/retry/decompression with the datacache adapter.
+- [x] Add read-only unified inventory and resumable mirrored assets.
+- [x] Test public behavior and interrupted HTTP downloads; bump version/lock.
+- [x] Run format/lint and full unit/integration CI; review and merge #617.
+- [x] Publish first release (1.63.15) from clean main.
+- [x] Migrate versioned registry with legacy path/manifest compatibility tests.
+- [x] Run registry format/lint, compatibility comparisons and full unit/integration CI.
+- [x] Merge and publish registry release (1.63.16) from clean main.
+- [x] Finish curation/training-source assessment; user supplied #614/#615/#616 and
+      #18 findings for discussion after #589 ships.
+- [x] Review dependency/urgency after upstream publication; return to the user's
+      training-data discussion after both hitlist releases ship.
+
+Review: transfer and inventory regressions pass, including real HTTP resume across
+separate calls with/without a trusted hash, 429/503 retries, failed-refresh
+preservation, raw/expanded archive behavior, offline cross-root inventory,
+receipt trust semantics and unchanged legacy files. Both stages pass format/lint,
+the Python 3.9-3.12 unit matrix, combined coverage and all 45 corpus integration
+tests. Python 3.12 reports 2,405 unit passes for #617 and 2,412 for #620 (two
+optional-dependency/data skips each). Integration peak RSS is 13,165,756 kB and
+13,098,972 kB respectively. These are validation runs, not new paired memory
+benchmarks. #617 merged as 7df2947; its clean-main deployment passed formatting
+and lint, then started full tests after the memory retry found 13.95 GiB free.
+The local test run was subsequently stopped after the user's memory-pressure
+report: 1,185 passes and an ENOSPC failure, not a passing gate. Remaining heavy
+checks run in CI. The release-capacity re-plan also addresses #612's measured
+timeout by increasing the workflow budget while retaining every check and one
+worker. Publication receipts belong in the PR descriptions once PyPI hashes match.
+No cache or biological labels were moved.
+
+Publication verified: #617 shipped 1.63.15 after clean-main release run
+36612458305 (2,406 unit passes, one skip, 45 integration passes). #620 merged
+as 96035cf and shipped 1.63.16 after clean-main release run 36618631704 (2,413
+unit passes, one skip, 45 integration passes). Both runs passed format/lint and
+the full deploy.sh build gate; published PyPI wheel/sdist sizes and SHA-256 hashes
+match the verified CI artifacts. #589, #618 and #612 are closed.
+
+The registry prerequisite, datacache 1.15.0 / openvax/datacache#84, is merged
+and published with matching wheel/sdist hashes. It supplies the fixed-path
+registry and fixes the independently reproduced lost manifest update (#618).
+Hitlist's direct comparison against 1.63.14 confirms matching legacy paths,
+returns, status dictionaries and offline reuse. The requested next discussion
+is observation identity (#614), dataset lineage/splits (#616), targeted biology
+(#593/#588/#599), QC export (#18), and endpoint selection (#615); those defects
+are not resolved by this infrastructure work.
+
+# #566 — measure and release retained join buffers (2026-09-28)
+
+The prior PR improved correctness/runtime but did not demonstrate lower hosted
+Linux peak RSS. The export retains `allele_matched_df` and `single_matched_df`
+until return even after output columns have been overwritten or popped. Measure
+whether these references keep distinct Arrow buffers alive at the final peak.
+
+## Specification
+
+Start from pinned main d470c7f and the verified ci-corpus-v2 parquets, using the
+same dependency environment for baseline and candidate. Inspect buffer addresses
+at the pre-categorical stage to distinguish aliases from distinct allocations.
+If ownership confirms the hypothesis, release each temporary reindexed frame
+immediately after assigning its columns. Preserve values, nulls, row/index order,
+column order, categorical vocabularies/order, filters, and public dtypes. Keep
+the fix minimal; no new lazy/chunked public API or scientific-model changes.
+
+Prove full-output equivalence with independent per-column value hashes and dtype
+metadata, plus index and category dictionaries. Add a focused lifetime regression
+only if it can fail on the old implementation without a fragile timing/RSS
+threshold. Run format, lint, unit and integration tests. Compare Linux peak RSS
+for pinned baseline/candidate with identical inputs/dependencies; examine swap
+if the baseline is constrained by the 16 GB runner. Local live-byte deltas are
+diagnostic only, never substituted for the Linux outcome. If this hypothesis
+fails, record the measured reason and re-plan before broadening the change.
+
+- [x] Review previous measurements and identify retained join-frame hypothesis.
+- [x] Measure distinct buffers retained by local frames on the full corpus.
+- [x] Implement the smallest ownership/lifetime fix and verify output equivalence.
+- [x] Run format/lint, full unit/integration CI and paired Linux measurements beyond noise.
+- [ ] Bump version, open PR, verify current-head CI, merge and deploy from clean main.
+- [ ] Record review and triage next relevant work.
+
+## Review
+
+Local capacity re-plan: the shared machine fell below 0.3 GiB free. Clean-main
+`./deploy.sh` refused both memory preflights (0.28 then 0.17 GiB); the existing
+clean-main Release build workflow now runs the full format/lint/test/build gate
+for cache release a6b5704. The duplicate local unit run was stopped after 1,245
+passes and is explicitly not a full-suite pass. The corpus probe's unchanged
+5 GiB preflight initially waited. A temporary CI comparison was prepared, but
+the local budget recovered and the queued probes completed first. The unused
+workflow has been removed, retaining the two-line production fix.
+
+Full-corpus comparison: all 4,398,040 rows and 125 columns have equal value hashes,
+dtypes, column/index order and categorical dictionaries/order. The two staging
+frames hold 2,191,330,805 and 1,814,481,686 distinct Arrow bytes absent from `obs`
+at the pre-categorical checkpoint: 4,005,812,491 bytes of obsolete buffers. The
+candidate releases those references. This local ownership measurement diagnoses
+the mechanism; the Linux process peaks below establish the practical result.
+
+| Full integration run | Baseline peak RSS (kB) | Candidate peak RSS (kB) |
+| --- | ---: | ---: |
+| first | 15,212,300 | 12,976,868 |
+| repeat | 15,162,020 | 13,280,028 |
+| mean | 15,187,160 | 13,128,448 |
+
+Mean peak RSS falls 2,058,712 kB (13.56%). All four runs pass the same 45 corpus
+tests with identical dependency versions. Candidate spread is 303,160 kB;
+the worst candidate is still 1,881,992 kB below the best baseline. Both candidate
+revisions have identical export.py content; the repeat includes the cache fix.
+All Python 3.9/3.10/3.11/3.12 unit CI gates and combined coverage pass on
+0ba961e. Its third integration validation also passes all 45 tests at 13,127,728
+kB peak RSS, consistent with the paired measurements. Both PyPI publications
+and final clean-main release gates remain required.
+
+Metadata correction: #609's incidental phrase "memory fix #610" automatically
+closed #610 on merge. GitHub's ClosedEvent.closer identifies PR #609. The
+reference has been corrected to "memory PR #610" and #610 is reopened; this was
+not a user cancellation.
+
+The small lifetime regression fails on d470c7f: both completed full-length joins
+are still alive when final derived annotations run. Releasing each temporary
+immediately after column assignment fixes that failure; all 11 targeted tests
+pass on pandas 2.3.3 and 3.0.5. Repeated measurements and full-output equivalence
+are recorded above; final release gates and publication remain pending.
+The cache prerequisite is PR #609 / version 1.63.13; this memory fix reserves
+1.63.14 and will ship after it. The cache branch is now included so final-head
+CI also covers both fixes together.
+
+# #591 and #566 — cache resolution and measured build memory (2026-09-28)
+
+Scope: first ship the independently testable proteome-cache fix (#591), then
+address #566 with comparable Linux peak-RSS measurements and full-output
+equivalence checks. #589's downloader consolidation is a separate follow-up.
+
+## #591 specification
+
+Resolve the default proteome index cache lazily as
+`downloads.data_dir() / "proteome_index_cache"`. An explicit
+`set_disk_cache_dir(path)` remains highest priority; `set_disk_cache_dir(None)`
+restores dynamic resolution, including subsequent environment/data-dir changes.
+Use the resolver for reads, writes, eviction, clearing, spawned-worker settings,
+and CLI reporting. Path queries must remain silent and create nothing.
+
+Preserve existing unconfigured caches through the existing populated-legacy
+rule in `data_dir()`, which already recognizes files in the proteome-cache
+subdirectory. Explicit data-dir overrides take precedence even when a legacy
+cache exists. Do not move or delete old files automatically; document that an
+explicit relocation uses the chosen destination and the old cache remains.
+
+Verify actual tiny-FASTA writes and cold reads, clearing/eviction isolation,
+dynamic defaults and explicit overrides, legacy reuse, fresh-install paths,
+CLI labels, and real spawned workers. Show new regressions failing on baseline.
+
+- [x] Inspect #591, #566, #602, #589, local instructions and existing lessons.
+- [x] Check in the implementation plan before editing code.
+- [x] Add failing regression coverage and implement #591.
+- [x] Run format/lint and unit CI; bump version and check editable metadata.
+- [x] Open #609, verify final-head CI and merge as a6b5704.
+- [ ] Run full clean-main release gate and publish 1.63.13 to PyPI.
+- [x] Investigate #566 with pinned baseline/candidate and identical corpus/dependencies.
+- [ ] Ship a verified memory improvement; record Linux peak RSS separately from live bytes.
+- [x] Review next dependent/urgent issues in hitlist and relevant upstream repos.
+
+## Review
+
+The four new cache regressions fail on the original implementation; all 128
+targeted cache/proteome/worker/CLI tests pass after the change. Format and lint
+pass. Full unit CI passed on Python 3.9/3.10/3.11/3.12 and all 45 integration
+tests passed. The private local lockfile run (pandas 3.0.5) was stopped after
+1,245 passes under severe machine pressure; it is not a full-suite pass. The
+clean-main Release build workflow 36450642510 passed format/lint and 2,391
+unit tests (one optional-data skip), but its 37m16s unit phase left too little
+time for integration before the job's 45-minute limit. Filed #612 with the
+measured phase timings. Local memory recovered to about 16 GiB available, so
+the existing `./deploy.sh` is being retried from clean main with two workers,
+the verified corpus and every gate intact. Targeted tests also covered pandas
+2.3.3.
+Next queue: datacache #74 (empty-body rejection) and #75 (inspection/provenance)
+unblock hitlist #589's downloader/unified-view consolidation; #611 tracks the
+remaining curated-label join buffers without claiming another RSS saving.
+
+Version 1.63.13 leaves 1.63.12 reserved by the already-open documentation PR
+#608. The isolated editable-install check passes at 1.63.13.
+
+#602's 84,840 kB difference is smaller than observed run-to-run spread; no
+CI-memory improvement is established by that PR. Next hypothesis to measure:
+the two full-length join-result frames remain referenced until return, retaining
+old Arrow buffers after their columns are replaced on the output frame.
 
 # Batch review — 2026-09-26/27
 
@@ -4442,20 +6246,26 @@ statements, but no parental class-II arm is curated, so those rows reach the
 CIITA arm or no arm at all — filed as #567. The `ip_antibody` string glosses HB245 as IVA12;
 ATCC lists IVA12 as HB-145, and the paper names no clone, so the gloss is
 unverified — the pan-HLA-II specificity it stands on is the paper's own words.
-# PR #608 review, refresh, and release — 2026-10-18
 
-Specification: preserve the September 28 allele and memory measurements as
-historical findings, reconcile every claim that reads as current advice with
-the released code and issue states, and land the documentation on current
-`main`. Keep the measured numbers attributed to the v2 corpus and the old CI
-runner; do not imply that those figures describe the current corpus or runner.
-Preserve subsequent task notes when resolving the old branch's conflicts. Bump
-the package patch version once against current `main`, then use the repository's
-format, lint, test, PR, merge, and clean-main deployment gates.
+# Prioritized donor/specimen qualification — 2026-10-16
 
-- [ ] Review the PR diff and verify the measured claims against source records.
-- [ ] Merge current `main`; reconcile the historical notes and issue status.
-- [ ] Review the resulting diff and run format, lint, and tests.
-- [ ] Push the updated PR, verify CI, merge, and publish the release to PyPI.
-- [ ] Record the final review and release result here.
+Spec: [human-lineage-spec.md](human-lineage-spec.md).
 
+- [x] Inspect published cohort gaps and primary Atlas source documentation.
+- [x] File the primary donor-source gap and define the bounded artifact contract.
+- [x] Pin source tables through datacache and inspect source/sample semantics.
+- [x] Implement the all-tissue donor-aware reader without changing existing scope.
+- [ ] Add regressions, publish the frozen donor cohort and independently verify it.
+- [ ] Format, lint, full tests, final-head CI, merge, clean-main deploy and public checks.
+- [ ] Update #680/#678 and proceed to assay-context applicability in Presto #126.
+
+
+## Primary donor cohort review
+
+All 967,449 raw source hits independently verify against the native donor and
+peptide tables; 17 artifacts pass. The 15/3/3-donor split is disjoint by donor and
+reported sample group, with 94,920 shared peptide pair entries explicitly reported.
+The first donor summary failed and is preserved under #703. The successful v2
+changes only donor summary typing plus recipe/execution metadata; every other
+artifact remains byte-identical. Thirty focused tests and formatting/lint pass.
+Publication, complete local/CI validation, merge and PyPI verification remain gates.

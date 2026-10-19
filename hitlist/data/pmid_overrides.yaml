@@ -58,6 +58,162 @@
 #   quantification_method - targeted quantification approach, if any
 #                      (hipMHC, SureQuant-IsoMHC, TOMAHAQ, MRM/AQUA, optiPRM, etc.)
 
+# ── Canine tumors and human-host DLA experiments ────────────────────────────
+
+  - pmid: 42199926
+    study_label: Kaabinejadian 2026 — canine tumors and DLA-transduced HCT116
+    title: Presentation of identical tumor antigen peptides by canine and human MHC class I
+    species: ''
+    restriction_evidence_rules:
+    - condition:
+        Cell Name:
+        - HCT116
+        - HCT116 HLA-I KO
+        MHC Restriction:
+        - DLA-88*003:02
+        - DLA-88*012:01
+        - DLA-88*501:01
+        - Calu-88*003:02
+        - Calu-88*012:01
+        - Calu-88*501:01
+      evidence: monoallelic
+    search_engine: PEAKS Studio 11.5
+    fdr: 1% decoy-fusion filtered identifications
+    arm_resolution: resolved
+    arm_resolution_note: Original Data S1-S6 observation worksheets identify eight experimental arms;
+      the curated CSVs carry exact sample labels.
+    note: 'Mixed-source study: human HCT116 HLA-I KO cells expressing canine DLA versus four native
+      canine tumors. No whole-paper source-proteome fill or allele pool. Five tumor IPs retain unassigned
+      peptide restrictions, including two IPs from the same Lola tumor. Reported RNA typing remains
+      contextual in the source profile/rows, including the DLA-88L locus qualification in Bogey. Human-TAA
+      comparisons do not establish canine CTA membership.'
+    ms_samples:
+    - sample_label: HCT116 DLA-88*003:02
+      species: Homo sapiens
+      profiled: true
+      source: mmc2.xlsx / DLA-88-00302; colorectal carcinoma cell line
+      condition_id: hct116_dla_88_003_02
+      condition: HLA class I knockout and DLA transduction
+      condition_status: partial
+      condition_evidence: primary_source
+      condition_reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ — Results, Table 1, STAR
+        Methods, Data S1-S6
+      condition_material: cultured;frozen
+      mhc_class: I
+      mhc: DLA-88*003:02
+      ip_antibody: BB7.6
+      mhc_basis: selected_restriction
+      condition_knockout_genes: HLA-A;HLA-B;HLA-C
+      condition_transduction: DLA-88
+      condition_mhc_context: mhc_transfectant;monoallelic
+    - sample_label: HCT116 DLA-88*012:01
+      species: Homo sapiens
+      profiled: true
+      source: mmc2.xlsx / DLA-88-01201; colorectal carcinoma cell line
+      condition_id: hct116_dla_88_012_01
+      condition: HLA class I knockout and DLA transduction
+      condition_status: partial
+      condition_evidence: primary_source
+      condition_reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ — Results, Table 1, STAR
+        Methods, Data S1-S6
+      condition_material: cultured;frozen
+      mhc_class: I
+      mhc: DLA-88*012:01
+      ip_antibody: BB7.6
+      mhc_basis: selected_restriction
+      condition_knockout_genes: HLA-A;HLA-B;HLA-C
+      condition_transduction: DLA-88
+      condition_mhc_context: mhc_transfectant;monoallelic
+    - sample_label: HCT116 DLA-88*501:01
+      species: Homo sapiens
+      profiled: true
+      source: mmc2.xlsx / DLA-88-50101; colorectal carcinoma cell line
+      condition_id: hct116_dla_88_501_01
+      condition: HLA class I knockout and DLA transduction; reported construct DLA-88*501:01 (AA21 P
+        > L); numbering convention not resolved
+      condition_status: partial
+      condition_evidence: primary_source
+      condition_reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ — Results, Table 1, STAR
+        Methods, Data S1-S6
+      condition_material: cultured;frozen
+      mhc_class: I
+      mhc: DLA-88*501:01
+      ip_antibody: BB7.6
+      mhc_basis: selected_restriction
+      condition_knockout_genes: HLA-A;HLA-B;HLA-C
+      condition_transduction: DLA-88
+      condition_mhc_context: mhc_transfectant;monoallelic
+    - sample_label: Lola H58A
+      species: Canis lupus familiaris
+      profiled: true
+      source: mmc3.xlsx / All Peptides; osteosarcoma
+      condition_id: lola_h58a
+      condition: Primary canine tumor immunoprecipitation
+      condition_status: partial
+      condition_evidence: primary_source
+      condition_reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ — Results, Table 1, STAR
+        Methods, Data S1-S6
+      condition_material: direct_ex_vivo;frozen
+      mhc_class: I
+      mhc: unknown
+      ip_antibody: H58A
+    - sample_label: Lola BB7.6
+      species: Canis lupus familiaris
+      profiled: true
+      source: mmc4.xlsx / All Peptides; osteosarcoma
+      condition_id: lola_bb7_6
+      condition: Primary canine tumor immunoprecipitation
+      condition_status: partial
+      condition_evidence: primary_source
+      condition_reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ — Results, Table 1, STAR
+        Methods, Data S1-S6
+      condition_material: direct_ex_vivo;frozen
+      mhc_class: I
+      mhc: unknown
+      ip_antibody: BB7.6
+    - sample_label: 163828A BB7.6
+      species: Canis lupus familiaris
+      profiled: true
+      source: mmc5.xlsx / All Peptides; anal sac carcinoma
+      condition_id: 163828a_bb7_6
+      condition: Primary canine tumor immunoprecipitation
+      condition_status: partial
+      condition_evidence: primary_source
+      condition_reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ — Results, Table 1, STAR
+        Methods, Data S1-S6
+      condition_material: direct_ex_vivo;frozen
+      mhc_class: I
+      mhc: unknown
+      ip_antibody: BB7.6
+    - sample_label: Lily H58A
+      species: Canis lupus familiaris
+      profiled: true
+      source: mmc6.xlsx / All Peptides; anal sac carcinoma
+      condition_id: lily_h58a
+      condition: Primary canine tumor immunoprecipitation
+      condition_status: partial
+      condition_evidence: primary_source
+      condition_reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ — Results, Table 1, STAR
+        Methods, Data S1-S6
+      condition_material: direct_ex_vivo;frozen
+      mhc_class: I
+      mhc: unknown
+      ip_antibody: H58A
+    - sample_label: Bogey BB7.6
+      species: Canis lupus familiaris
+      profiled: true
+      source: mmc7.xlsx / All Peptides; oral melanoma
+      condition_id: bogey_bb7_6
+      condition: Primary canine tumor immunoprecipitation
+      condition_status: partial
+      condition_evidence: primary_source
+      condition_reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/ — Results, Table 1, STAR
+        Methods, Data S1-S6
+      condition_material: direct_ex_vivo;frozen
+      mhc_class: I
+      mhc: unknown
+      ip_antibody: BB7.6
+
 # ── Gold-standard healthy tissue ────────────────────────────────────────────
 
   - pmid: 33858848
@@ -5711,6 +5867,874 @@
     study_label: "van Balen 2020 — HLA-DP allelic variant immunopeptidomes"
     title: "Immunopeptidome Analysis of HLA-DPB1 Allelic Variants Reveals New Functional Hierarchies"
     override: cell_line
+    restriction_evidence: predicted
+    # Re-audited against all deposited statements in ci-corpus-v3 (#694).
+    # IEDB assay comments name source lines; motif-predicted restrictions do
+    # not identify their complete cellular genotype. Existing typing is retained.
+    arm_resolution: multi_arm_evidence
+    arm_resolution_note: >
+      The pinned 79,406-row capture contains 196 distinct elution statements naming
+      exactly the 26 already curated cell lines (19 EBV-LCLs and seven K562
+      transfectants; PMID 32350084, DOI 10.4049/jimmunol.2000192).
+      62,512 rows name one line; 16,894 name two or more. The exact statement
+      map resolves the former and preserves the latter as multiple-source evidence.
+      Reported motif-predicted restrictions are not used to choose a source line.
+      The map records source membership, not donor identity or new cellular typing.
+    elution_condition_ids:
+      "The epitope was eluted from the AST 5085 and K562-DPB1*04:02 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_ast_5085_dpb1_04_02_homozygous"
+        - "k562_transfectant_dpb1_04_02_dpa1_01_03"
+      "The epitope was eluted from the AST 5085 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_ast_5085_dpb1_04_02_homozygous"
+      "The epitope was eluted from the ASY 3436 and AZP 2877 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+      "The epitope was eluted from the ASY 3436 and HHC 5852 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+      "The epitope was eluted from the ASY 3436 and JTD 5000 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+      "The epitope was eluted from the ASY 3436 and K562-DPB1*04:01 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+      "The epitope was eluted from the ASY 3436 and MHX 1699 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+      "The epitope was eluted from the ASY 3436 and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+      "The epitope was eluted from the ASY 3436 and VNG 12286 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_vng_12286_dpb1_10_01_homozygous"
+      "The epitope was eluted from the ASY 3436 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+      "The epitope was eluted from the ASY 3436, AZP 2877, HHC 5852, JTD 5000, K562-DPB1*04:01, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the ASY 3436, AZP 2877, HHC 5852, JTD 5000, K562-DPB1*04:01, MHX 1699, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the ASY 3436, AZP 2877, HHC 5852, JTD 5000, K562-DPB1*04:01, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the ASY 3436, AZP 2877, HHC 5852, JTD 5000, K562-DPB1*04:01, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the ASY 3436, AZP 2877, HHC 5852, JTD 5000, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the ASY 3436, AZP 2877, HHC 5852, JTD 5000, MHX 1699, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+      "The epitope was eluted from the ASY 3436, AZP 2877, HHC 5852, JTD 5000, MHX 1699, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the ASY 3436, AZP 2877, HHC 5852, JTD 5000, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the ASY 3436, AZP 2877, HHC 5852, K562-DPB1*04:01, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the ASY 3436, AZP 2877, HHC 5852, K562-DPB1*04:01, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the ASY 3436, AZP 2877, HHC 5852, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the ASY 3436, AZP 2877, HHC 5852, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the ASY 3436, AZP 2877, HHC 5852, and MHX 1699 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+      "The epitope was eluted from the ASY 3436, AZP 2877, HHC 5852, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the ASY 3436, AZP 2877, JTD 5000, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the ASY 3436, AZP 2877, JTD 5000, MHX 1699, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+      "The epitope was eluted from the ASY 3436, AZP 2877, JTD 5000, and MHX 1699 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+      "The epitope was eluted from the ASY 3436, AZP 2877, MHX 1699, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+      "The epitope was eluted from the ASY 3436, AZP 2877, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the ASY 3436, AZP 2877, and MHX 1699 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+      "The epitope was eluted from the ASY 3436, AZP 2877, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+      "The epitope was eluted from the ASY 3436, AZP 2877, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the ASY 3436, HHC 5852, JTD 5000, K562-DPB1*04:01, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the ASY 3436, HHC 5852, JTD 5000, K562-DPB1*04:01, MHX 1699, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the ASY 3436, HHC 5852, JTD 5000, K562-DPB1*04:01, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the ASY 3436, HHC 5852, JTD 5000, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the ASY 3436, HHC 5852, JTD 5000, MHX 1699, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+      "The epitope was eluted from the ASY 3436, HHC 5852, JTD 5000, MHX 1699, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the ASY 3436, HHC 5852, JTD 5000, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the ASY 3436, HHC 5852, JTD 5000, and MHX 1699 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+      "The epitope was eluted from the ASY 3436, HHC 5852, JTD 5000, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+      "The epitope was eluted from the ASY 3436, HHC 5852, JTD 5000, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the ASY 3436, HHC 5852, K562-DPB1*04:01, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the ASY 3436, HHC 5852, K562-DPB1*04:01, MHX 1699, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+      "The epitope was eluted from the ASY 3436, HHC 5852, K562-DPB1*04:01, MHX 1699, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the ASY 3436, HHC 5852, K562-DPB1*04:01, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the ASY 3436, HHC 5852, K562-DPB1*04:01, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+      "The epitope was eluted from the ASY 3436, HHC 5852, K562-DPB1*04:01, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the ASY 3436, HHC 5852, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the ASY 3436, HHC 5852, MHX 1699, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+      "The epitope was eluted from the ASY 3436, HHC 5852, MHX 1699, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the ASY 3436, HHC 5852, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the ASY 3436, HHC 5852, and MHX 1699 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+      "The epitope was eluted from the ASY 3436, HHC 5852, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+      "The epitope was eluted from the ASY 3436, HHC 5852, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the ASY 3436, JTD 5000, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the ASY 3436, JTD 5000, MHX 1699, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+      "The epitope was eluted from the ASY 3436, JTD 5000, and K562-DPB1*04:01 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+      "The epitope was eluted from the ASY 3436, JTD 5000, and MHX 1699 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+      "The epitope was eluted from the ASY 3436, JTD 5000, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the ASY 3436, K562-DPB1*04:01, MHX 1699, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+      "The epitope was eluted from the ASY 3436, K562-DPB1*04:01, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+      "The epitope was eluted from the ASY 3436, MHX 1699, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+      "The epitope was eluted from the ASY 3436, MHX 1699, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_asy_3436_dpb1_04_01_10_01_heterozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the AZP 2877 and ETV 11197 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_etv_11197_dpb1_14_01_homozygous"
+      "The epitope was eluted from the AZP 2877 and HHC 5852 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+      "The epitope was eluted from the AZP 2877 and K562-DPB1*04:01 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+      "The epitope was eluted from the AZP 2877 and K562-DPB1*14:01 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "k562_transfectant_dpb1_14_01_dpa1_02_01"
+      "The epitope was eluted from the AZP 2877 and MHX 1699 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+      "The epitope was eluted from the AZP 2877 and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+      "The epitope was eluted from the AZP 2877 and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the AZP 2877 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+      "The epitope was eluted from the AZP 2877, ETV 11197, and K562-DPB1*14:01 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_etv_11197_dpb1_14_01_homozygous"
+        - "k562_transfectant_dpb1_14_01_dpa1_02_01"
+      "The epitope was eluted from the AZP 2877, HHC 5852, JTD 5000, K562-DPB1*04:01, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the AZP 2877, HHC 5852, JTD 5000, K562-DPB1*04:01, MHX 1699, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the AZP 2877, HHC 5852, JTD 5000, K562-DPB1*04:01, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the AZP 2877, HHC 5852, JTD 5000, K562-DPB1*04:01, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the AZP 2877, HHC 5852, JTD 5000, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the AZP 2877, HHC 5852, JTD 5000, MHX 1699, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+      "The epitope was eluted from the AZP 2877, HHC 5852, JTD 5000, MHX 1699, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the AZP 2877, HHC 5852, JTD 5000, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the AZP 2877, HHC 5852, JTD 5000, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+      "The epitope was eluted from the AZP 2877, HHC 5852, JTD 5000, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the AZP 2877, HHC 5852, K562-DPB1*04:01, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the AZP 2877, HHC 5852, K562-DPB1*04:01, MHX 1699, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+      "The epitope was eluted from the AZP 2877, HHC 5852, K562-DPB1*04:01, MHX 1699, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the AZP 2877, HHC 5852, K562-DPB1*04:01, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the AZP 2877, HHC 5852, K562-DPB1*04:01, and MHX 1699 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+      "The epitope was eluted from the AZP 2877, HHC 5852, K562-DPB1*04:01, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+      "The epitope was eluted from the AZP 2877, HHC 5852, K562-DPB1*04:01, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the AZP 2877, HHC 5852, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the AZP 2877, HHC 5852, MHX 1699, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+      "The epitope was eluted from the AZP 2877, HHC 5852, MHX 1699, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the AZP 2877, HHC 5852, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the AZP 2877, HHC 5852, and K562-DPB1*04:01 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+      "The epitope was eluted from the AZP 2877, HHC 5852, and MHX 1699 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+      "The epitope was eluted from the AZP 2877, HHC 5852, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+      "The epitope was eluted from the AZP 2877, HHC 5852, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the AZP 2877, JTD 5000, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the AZP 2877, JTD 5000, MHX 1699, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+      "The epitope was eluted from the AZP 2877, JTD 5000, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the AZP 2877, K562-DPB1*04:01, and MHX 1699 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+      "The epitope was eluted from the AZP 2877, K562-DPB1*04:01, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+      "The epitope was eluted from the AZP 2877, K562-DPB1*04:01, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the AZP 2877, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the AZP 2877, MHX 1699, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+      "The epitope was eluted from the AZP 2877, MHX 1699, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the AZP 2877, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_azp_2877_dpb1_04_01_14_01_heterozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the BZQ 12290 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_bzq_12290_dpb1_13_01_homozygous"
+      "The epitope was eluted from the CCC 12493 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_ccc_12493_dpb1_09_01_homozygous"
+      "The epitope was eluted from the CLK 3987 and K562-DPB1*03:01 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_clk_3987_dpb1_03_01_homozygous"
+        - "k562_transfectant_dpb1_03_01_dpa1_01_03"
+      "The epitope was eluted from the CLK 3987 and MPF 174 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_clk_3987_dpb1_03_01_homozygous"
+        - "ebv_lcl_mpf_174_dpb1_03_01_homozygous"
+      "The epitope was eluted from the CLK 3987 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_clk_3987_dpb1_03_01_homozygous"
+      "The epitope was eluted from the CLK 3987, K562-DPB1*03:01, and MPF 174 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_clk_3987_dpb1_03_01_homozygous"
+        - "k562_transfectant_dpb1_03_01_dpa1_01_03"
+        - "ebv_lcl_mpf_174_dpb1_03_01_homozygous"
+      "The epitope was eluted from the ETV 11197 and K562-DPB1*14:01 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_etv_11197_dpb1_14_01_homozygous"
+        - "k562_transfectant_dpb1_14_01_dpa1_02_01"
+      "The epitope was eluted from the ETV 11197 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_etv_11197_dpb1_14_01_homozygous"
+      "The epitope was eluted from the FAQ 3528 and K562-DPB1*02:01 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_faq_3528_dpb1_02_01_homozygous"
+        - "k562_transfectant_dpb1_02_01_dpa1_01_03"
+      "The epitope was eluted from the FAQ 3528 and REE 7929 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_faq_3528_dpb1_02_01_homozygous"
+        - "ebv_lcl_ree_7929_dpb1_02_01_homozygous_dpa1_hete"
+      "The epitope was eluted from the FAQ 3528 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_faq_3528_dpb1_02_01_homozygous"
+      "The epitope was eluted from the FAQ 3528, K562-DPB1*02:01, and REE 7929 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_faq_3528_dpb1_02_01_homozygous"
+        - "k562_transfectant_dpb1_02_01_dpa1_01_03"
+        - "ebv_lcl_ree_7929_dpb1_02_01_homozygous_dpa1_hete"
+      "The epitope was eluted from the HHC 5852 and JTD 5000 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+      "The epitope was eluted from the HHC 5852 and K562-DPB1*04:01 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+      "The epitope was eluted from the HHC 5852 and MHX 1699 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+      "The epitope was eluted from the HHC 5852 and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+      "The epitope was eluted from the HHC 5852 and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the HHC 5852 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+      "The epitope was eluted from the HHC 5852, JTD 5000, K562-DPB1*04:01, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the HHC 5852, JTD 5000, K562-DPB1*04:01, MHX 1699, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the HHC 5852, JTD 5000, K562-DPB1*04:01, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the HHC 5852, JTD 5000, K562-DPB1*04:01, and MHX 1699 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+      "The epitope was eluted from the HHC 5852, JTD 5000, K562-DPB1*04:01, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the HHC 5852, JTD 5000, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the HHC 5852, JTD 5000, MHX 1699, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+      "The epitope was eluted from the HHC 5852, JTD 5000, MHX 1699, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the HHC 5852, JTD 5000, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the HHC 5852, JTD 5000, and MHX 1699 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+      "The epitope was eluted from the HHC 5852, JTD 5000, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+      "The epitope was eluted from the HHC 5852, JTD 5000, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the HHC 5852, K562-DPB1*04:01, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the HHC 5852, K562-DPB1*04:01, MHX 1699, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+      "The epitope was eluted from the HHC 5852, K562-DPB1*04:01, MHX 1699, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the HHC 5852, K562-DPB1*04:01, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the HHC 5852, K562-DPB1*04:01, and MHX 1699 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+      "The epitope was eluted from the HHC 5852, K562-DPB1*04:01, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+      "The epitope was eluted from the HHC 5852, K562-DPB1*04:01, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the HHC 5852, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the HHC 5852, MHX 1699, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+      "The epitope was eluted from the HHC 5852, MHX 1699, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the HHC 5852, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_hhc_5852_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the JTD 5000 and K562-DPB1*04:01 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+      "The epitope was eluted from the JTD 5000 and MHX 1699 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+      "The epitope was eluted from the JTD 5000 and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+      "The epitope was eluted from the JTD 5000 and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the JTD 5000 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+      "The epitope was eluted from the JTD 5000, K562-DPB1*04:01, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the JTD 5000, K562-DPB1*04:01, MHX 1699, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the JTD 5000, K562-DPB1*04:01, and MHX 1699 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+      "The epitope was eluted from the JTD 5000, K562-DPB1*04:01, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the JTD 5000, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the JTD 5000, MHX 1699, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+      "The epitope was eluted from the JTD 5000, MHX 1699, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the JTD 5000, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_jtd_5000_dpb1_04_01_06_01_heterozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the K562-DPB1*01:01 and NAG 12292 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "k562_transfectant_dpb1_01_01_dpa1_02_01"
+        - "ebv_lcl_nag_12292_dpb1_01_01_homozygous"
+      "The epitope was eluted from the K562-DPB1*01:01 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "k562_transfectant_dpb1_01_01_dpa1_02_01"
+      "The epitope was eluted from the K562-DPB1*02:01 and REE 7929 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "k562_transfectant_dpb1_02_01_dpa1_01_03"
+        - "ebv_lcl_ree_7929_dpb1_02_01_homozygous_dpa1_hete"
+      "The epitope was eluted from the K562-DPB1*02:01 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "k562_transfectant_dpb1_02_01_dpa1_01_03"
+      "The epitope was eluted from the K562-DPB1*03:01 and MPF 174 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "k562_transfectant_dpb1_03_01_dpa1_01_03"
+        - "ebv_lcl_mpf_174_dpb1_03_01_homozygous"
+      "The epitope was eluted from the K562-DPB1*03:01 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "k562_transfectant_dpb1_03_01_dpa1_01_03"
+      "The epitope was eluted from the K562-DPB1*04:01 and MHX 1699 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+      "The epitope was eluted from the K562-DPB1*04:01 and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+      "The epitope was eluted from the K562-DPB1*04:01 and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the K562-DPB1*04:01 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+      "The epitope was eluted from the K562-DPB1*04:01, MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the K562-DPB1*04:01, MHX 1699, and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+      "The epitope was eluted from the K562-DPB1*04:01, MHX 1699, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the K562-DPB1*04:01, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "k562_transfectant_dpb1_04_01_dpa1_01_03"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the K562-DPB1*04:02 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "k562_transfectant_dpb1_04_02_dpa1_01_03"
+      "The epitope was eluted from the K562-DPB1*05:01 and TQP 8275 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "k562_transfectant_dpb1_05_01_dpa1_02_02"
+        - "ebv_lcl_tqp_8275_dpb1_05_01_homozygous"
+      "The epitope was eluted from the K562-DPB1*05:01 and WKD 3639 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "k562_transfectant_dpb1_05_01_dpa1_02_02"
+        - "ebv_lcl_wkd_3639_dpb1_05_01_homozygous"
+      "The epitope was eluted from the K562-DPB1*05:01 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "k562_transfectant_dpb1_05_01_dpa1_02_02"
+      "The epitope was eluted from the K562-DPB1*05:01, TQP 8275, and WKD 3639 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "k562_transfectant_dpb1_05_01_dpa1_02_02"
+        - "ebv_lcl_tqp_8275_dpb1_05_01_homozygous"
+        - "ebv_lcl_wkd_3639_dpb1_05_01_homozygous"
+      "The epitope was eluted from the K562-DPB1*14:01 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "k562_transfectant_dpb1_14_01_dpa1_02_01"
+      "The epitope was eluted from the MHX 1699 and UKM 7264 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+      "The epitope was eluted from the MHX 1699 and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the MHX 1699 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+      "The epitope was eluted from the MHX 1699, UKM 7264, and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_mhx_1699_dpb1_04_01_homozygous"
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the MPF 174 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_mpf_174_dpb1_03_01_homozygous"
+      "The epitope was eluted from the NAG 12292 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_nag_12292_dpb1_01_01_homozygous"
+      "The epitope was eluted from the REE 7929 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_ree_7929_dpb1_02_01_homozygous_dpa1_hete"
+      "The epitope was eluted from the TQP 8275 and WKD 3639 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_tqp_8275_dpb1_05_01_homozygous"
+        - "ebv_lcl_wkd_3639_dpb1_05_01_homozygous"
+      "The epitope was eluted from the TQP 8275 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_tqp_8275_dpb1_05_01_homozygous"
+      "The epitope was eluted from the UKM 7264 and WEW 12494 cell lines using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the UKM 7264 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_ukm_7264_dpb1_04_01_17_01_heterozygous"
+      "The epitope was eluted from the VNG 12286 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_vng_12286_dpb1_10_01_homozygous"
+      "The epitope was eluted from the WEW 12494 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_wew_12494_dpb1_04_01_homozygous"
+      "The epitope was eluted from the WKD 3639 cell line using the pan-HLA-DP Ab B7/21. MHC Allele binding was predicted based on analysis of binding motif.":
+        - "ebv_lcl_wkd_3639_dpb1_05_01_homozygous"
     note: >
       19 HLA-DP-typed EBV-LCLs (15 DPB1-homozygous, 4 heterozygous) plus 7
       HLA-DP-transduced K562 transfectants, each profiled separately — so
@@ -6872,7 +7896,7 @@
       came from.
     title: "Comparative Analysis of the Endogenous Peptidomes Displayed by HLA-B*27 and Mamu-B*08: Two MHC Class I Alleles Associated with Elite Control of HIV/SIV Infection"
     override: cell_line
-    species: "Macaca mulatta (rhesus macaque)"
+    species: "Homo sapiens (human)"
     note: >
       Comparative immunopeptidome of HIV/SIV elite controller alleles.
       Cell line transfectants expressing individual alleles. Several
@@ -6881,19 +7905,27 @@
       profiled: ["Mamu-B*008:01", "HLA-B*27:05"]
     ms_samples:
       - sample_label: "cell line expressing Mamu-B*008:01"
+        source: "human HMy2.C1R lymphoid cells transfected with Mamu-B*008:01"
         condition: "unperturbed"
         condition_id: "cell_line_expressing_mamu_b_008_01"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "doi:10.1021/acs.jproteome.5b01146, Supporting Information S2; IEDB assay 2736686"
         condition_control: "untreated"
+        condition_mhc_context: "mhc_transfectant"
+        condition_material: "cultured"
         mhc_class: "I"
         mhc: "Mamu-B*008:01"
       - sample_label: "cell line expressing HLA-B*27:05"
+        source: "human HMy2.C1R lymphoid cells transfected with HLA-B*27:05"
         condition: "unperturbed"
         condition_id: "cell_line_expressing_hla_b_27_05"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "doi:10.1021/acs.jproteome.5b01146, Supporting Information S3; IEDB assay 2736686"
         condition_control: "untreated"
+        condition_mhc_context: "mhc_transfectant"
+        condition_material: "cultured"
         mhc_class: "I"
         mhc: "HLA-B*27:05"
 
@@ -8588,16 +9620,39 @@
   - pmid: 29393594
     study_label: "Yair-Sabag 2018 — HLA-B27 Lys-P2 ligands"
     title: "HLA-B27 peptide repertoire with lysine at P2"
-    override: cell_line
+    override:
+    arm_resolution: curation_gap
+    arm_resolution_note: >
+      The primary source and PRIDE PXD007756 contain human HeLa/C1R transfectants and
+      HLA-B27 transgenic rat spleens. IEDB host_organism distinguishes human from rat rows,
+      but the sample-attribution join does not yet consume that axis. Keeping two arms
+      prevents the former single cell-line arm from broadcasting over the rat experiment.
     ms_samples:
-      - sample_label: "cell lines expressing HLA-B27"
-        condition: "unperturbed"
-        condition_id: "cell_lines_expressing_hla_b27"
-        condition_status: "annotated"
-        condition_evidence: "curated_text"
-        condition_control: "untreated"
+      - sample_label: "human HeLa/C1R transfectants expressing HLA-B27"
+        species: Homo sapiens
+        source: "human HeLa and HMy2.C1R lines expressing HLA-B*27:05, HLA-B*27:09, or C67S variants"
+        condition: "unperturbed — mixed HLA-B27 transfectants"
+        condition_id: "human_cells_expressing_hla_b27"
+        condition_status: "mixed"
+        condition_evidence: "primary_source"
+        condition_reference: "doi:10.1002/pmic.201700249, Experimental Section; PRIDE PXD007756"
+        condition_mhc_context: "mhc_transfectant"
+        condition_material: "cultured"
         mhc_class: "I"
-        mhc: "HLA-B*27"
+        mhc: "HLA-B*27:05 HLA-B*27:09"
+        override: cell_line
+      - sample_label: "HLA-B27 transgenic rat spleens"
+        species: Rattus norvegicus
+        source: "spleens from HLA-B*27:05 and HLA-B*27:05-C67S transgenic rats"
+        condition: "unperturbed — mixed HLA-B27 transgenic rat spleens"
+        condition_id: "hla_b27_transgenic_rat_spleens_lys_p2"
+        condition_status: "mixed"
+        condition_evidence: "primary_source"
+        condition_reference: "doi:10.1002/pmic.201700249, Experimental Section; PRIDE PXD007756"
+        condition_mhc_context: "mhc_transgenic"
+        condition_material: "direct_ex_vivo"
+        mhc_class: "I"
+        mhc: "HLA-B*27:05"
 
   - pmid: 32357974
     study_label: "Mei 2020 — deamidated HLA peptides from deglycosylation"
@@ -9106,29 +10161,34 @@
 
   - pmid: 33981976
     study_label: "Becker 2021 — NMD inhibition + 5-azacytidine on CRC"
-    # Arm-resolution verdict (#451): recorded so this study is not
-    # re-investigated. Describes the deposited evidence, not the curation.
-    arm_resolution: no_row_discriminator
+    # Re-audited against the larger v3 capture and primary PMC8082087 (#694).
+    arm_resolution: arm_not_recorded
     arm_resolution_note: >
-      Measured: cell_name takes 1 distinct value ('HCT 116-Epithelial cell'), source_tissue 1
-      ('Colon'), and antigen_processing_comments and assay_comments are absent from every row
-      (0 distinct). mhc_restriction is a single pooled six-allele string on all 11,043 rows.
-      The curated contrast is untreated versus 5-azacytidine, a treatment axis IEDB records in
-      no per-row field here, so nothing separates one arm from the other.
+      All 11,049 deposited rows identify HCT 116 and one pooled six-allele
+      restriction. Processing comments are blank. Assay comments are blank on
+      11,043 rows; six state that 5-azacytidine stabilized HLA-mediated presentation.
+      This comparative treatment-effect statement does not enumerate the condition(s)
+      in which each peptide was observed; absence of a comment does not mean control.
+      The cellular system is known, but individual DMSO versus drug membership
+      remains unrecorded in this capture. PMC8082087 (DOI 10.1016/j.isci.2021.102389)
+      identifies DMSO solvent controls, not untreated controls. No arm is guessed.
     title: "NMD inhibition augments presentation of frameshift-derived neoepitopes"
     override: cell_line
     perturbations:
       - "5-azacytidine (NMD inhibitor / DNMT inhibitor)"
     ms_samples:
-      - sample_label: "colorectal carcinoma cell lines (untreated)"
-        condition: "unperturbed"
-        condition_id: "colorectal_carcinoma_cell_lines_untreated"
+      - sample_label: "HCT 116 (DMSO vehicle control)"
+        sample_group: "HCT 116"
+        condition: "unperturbed — DMSO vehicle control"
+        condition_id: "hct116_dmso_vehicle_control"
         condition_status: "annotated"
         condition_evidence: "curated_text"
-        condition_control: "untreated"
+        condition_control: "vehicle"
+        condition_control_for: "colorectal_carcinoma_cell_lines_5_azacytidine"
         mhc_class: "I"
         mhc: "HLA-A*01:01 HLA-A*02:01 HLA-B*18:01 HLA-B*45:01 HLA-C*05:01 HLA-C*07:01"
-      - sample_label: "colorectal carcinoma cell lines + 5-azacytidine"
+      - sample_label: "HCT 116 + 5-azacytidine"
+        sample_group: "HCT 116"
         condition: "5-azacytidine treatment"
         condition_id: "colorectal_carcinoma_cell_lines_5_azacytidine"
         condition_status: "annotated"
@@ -11932,19 +12992,13 @@
 
   - pmid: 39111711
     study_label: "Salek 2024 — optiPRM neoantigen detection"
-    # Arm-resolution verdict (#451): recorded so this study is not
-    # re-investigated. Describes the deposited evidence, not the curation.
-    arm_resolution: curation_gap
+    arm_resolution: multi_arm_evidence
     arm_resolution_note: >
-      All 6 rows are ambiguous and assay_comments (4 distinct values) names the arm on every
-      one of them. 'The epitope was detected in a patient-derived xenograft cell line that had
-      been treated with IFN-gamma to up-regulate HLA class I expression.' is the PDX arm; the
-      other three ('The epitope was eluted from a tumor tissue sample obtained from a patient
-      with liposarcoma.', 2 rows; osteosarcoma with lung metastasis, 2 rows; small intestine
-      carcinoma, 1 row) are the patient biopsy arm. source_tissue also varies over 4 values
-      (Lung 2, Other 2, Pancreas 1, Small Intestine 1) and mhc_restriction over 4 patient
-      genotypes, while both curated arms carry only 'HLA class I'. The PDX versus biopsy split
-      is exactly the curated axis and it is recorded per row.
+      Five biopsy observations name one patient-tumor material and map to that
+      arm. The remaining PDX-derived-line observation explicitly says the
+      peptide was detected after IFN-gamma treatment and was also present in
+      untreated cells. It therefore belongs to both cultured arms; choosing one
+      would contradict the deposited evidence.
     title: "optiPRM: A Targeted Immunopeptidomics LC-MS Workflow With Ultra-High Sensitivity for Detection of Mutation-Derived Tumor Neoepitopes From Limited Input Material"
     override:
     note: >
@@ -11952,6 +13006,16 @@
       limited input. Patient-derived xenograft and 3 patient tumor biopsies.
       5 neoantigens validated across samples. Optimized PRM with nanospray source
       and micro-pillar array columns.
+    elution_condition_ids:
+      "The epitope was detected in a patient-derived xenograft cell line that had been treated with IFN-γ to up-regulate HLA class I expression. The epitope was also present in untreated cells, but greater numbers of cells were needed to detect the epitope in the absence of IFN-γ.":
+        - pdx_derived_cell_line_ifn_gamma
+        - pdx_derived_cell_line_untreated
+      "The epitope was eluted from a tumor tissue sample obtained from a patient with liposarcoma.":
+        - patient_tumor_biopsies
+      "The epitope was eluted from a tumor tissue sample obtained from a patient with osteosarcoma and lung metastasis.":
+        - patient_tumor_biopsies
+      "The epitope was eluted from a tumor tissue sample obtained from a patient with small intestine carcinoma.":
+        - patient_tumor_biopsies
     ip_antibody: W6/32
     acquisition_mode: PRM
     instrument: "Orbitrap Exploris 480"
@@ -11960,23 +13024,40 @@
     search_engine: "Skyline"
     quantification_method: optiPRM
     ms_samples:
-      - sample_label: "patient-derived xenograft"
-        condition: "unperturbed — PDX tumor"
-        condition_id: "patient_derived_xenograft"
+      - sample_label: "PDX-derived cell line (untreated)"
+        source: "cultured human PDA-161 cell line derived after passage as a PDX"
+        condition: "unperturbed — untreated PDX-derived cell line"
+        condition_id: "pdx_derived_cell_line_untreated"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC11405902, PDX Cell Line and Figure 3; PMC5215250, Methods"
         condition_control: "untreated"
-        condition_material: "in_vivo"
+        condition_control_for: "pdx_derived_cell_line_ifn_gamma"
+        condition_material: "cultured"
+        mhc_class: "I"
+        mhc: "HLA class I"
+      - sample_label: "PDX-derived cell line + IFN-gamma"
+        source: "cultured human PDA-161 cell line derived after passage as a PDX"
+        condition: "IFN-gamma 333 IU/mL for 48 h"
+        condition_id: "pdx_derived_cell_line_ifn_gamma"
+        condition_status: "annotated"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC11405902, PDX Cell Line and Figure 3; PMC5215250, Methods"
+        condition_combination: "single"
+        condition_cytokines: "IFNG"
+        condition_material: "cultured"
         mhc_class: "I"
         mhc: "HLA class I"
       - sample_label: "patient tumor biopsies"
         n_samples: 3
-        condition: "unperturbed — fresh tumor biopsies"
+        source: "three patient tumors, snap-frozen after resection"
+        condition: "unperturbed — snap-frozen tumor biopsies"
         condition_id: "patient_tumor_biopsies"
         condition_status: "annotated"
-        condition_evidence: "curated_text"
+        condition_evidence: "primary_source"
+        condition_reference: "PMC11405902, Patient Tumor Material"
         condition_control: "untreated"
-        condition_material: "fresh"
+        condition_material: "frozen"
         mhc_class: "I"
         mhc: "HLA class I"
 

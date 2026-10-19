@@ -5,7 +5,7 @@
 
 A curated, harmonized, **ML-training-ready** MHC ligand mass-spectrometry dataset.
 
-hitlist ingests immunopeptidome data from [IEDB](https://www.iedb.org/), [CEDAR](https://cedar.iedb.org/), and paper supplementary tables (PRIDE/jPOSTrepo); partitions MS-eluted observations from in-vitro binding-assay measurements into two separate parquet files (so downstream consumers never silently conflate them); joins every MS observation to expert-curated sample metadata (HLA genotype, tissue, disease, perturbation, instrument); and ships both indexes as parquet + a pandas-friendly Python API.
+hitlist ingests immunopeptidome data from [IEDB](https://www.iedb.org/), [CEDAR](https://cedar.iedb.org/), and paper supplementary tables (PRIDE/jPOSTrepo); partitions positive MS observations, binding measurements, and other assays into separate parquet files; joins every MS observation to expert-curated sample metadata (HLA genotype, tissue, disease, perturbation, instrument); and ships the indexes as parquet + a pandas-friendly Python API.
 
 ## What's in the two indexes
 
@@ -30,7 +30,7 @@ After `hitlist build observations` (snapshot of the shipping 1.10.x default buil
 | **Total binding rows** (peptide microarray, refolding, MEDi, qualitative-tier) | **895,785** |
 | **Unique peptides** | **258,199** |
 
-The two indexes share the schema (including gene annotations from the peptide-mappings sidecar), but supplementary curation is MS-only — binding is pure IEDB/CEDAR.
+Since 1.66.0, `other_assays.parquet` retains structural, non-MS ligand, unknown/conflicting and negative-MS evidence. All three partitions share the peptide-mapping sidecar. The historical counts above predate this correction; rebuild on upgrade. See [assay modality and MS admission](docs/assay-modality.md).
 
 ### Human MHC-I breakdown
 
@@ -134,6 +134,36 @@ presto = generate_training_table(
 ```
 
 `generate_observations_table()` remains available as a backward-compatible alias.
+
+Training exports preserve `evidence_row_id`, `evidence_source_id` and `evidence_kind`
+even with a narrow `columns=` projection. Group mapping alternatives by
+`evidence_row_id` to avoid counting protein mappings as additional observations.
+Since 1.63.18, explicitly attributed donor/sample observations sharing an assay
+have distinct, readable IDs, for example:
+`ms:attributed:v1:http://www.iedb.org/assay/7578387|arm:31844290:mel3_13240_006`.
+The compound key uses the original
+source identifier and persistent curated `(pmid, condition_id)` when the original
+attributed label uniquely identifies an arm; otherwise it uses the original
+label scoped to its PMID (`|label:<pmid>:<escaped-label>`). Source locators and
+attribution values are percent-escaped to avoid delimiter collisions.
+Renaming a label while retaining its curated arm ID
+preserves the ID. Resolving a previously unmatched label to an arm changes its ID.
+IDs do not depend on row order, current filters or mapping alternatives.
+
+`evidence_source_id` retains the previous common `<kind>:<assay_iri>` identifier
+for migration and source tracing. Rows without explicit attribution also retain
+that value as `evidence_row_id`. Older indexes lacking assay IRIs still fall back
+to reference IRIs or row positions; those legacy fallbacks cannot guarantee
+unique, filter-stable observation IDs. An observation/curated arm ID is not a
+verified biological specimen ID or proof of experimental independence.
+
+Since 1.64.0, rebuilt indexes retain every source contributor, and training
+exports carry `provenance_id` and reviewed experimental lineage. Create a
+versioned bundle with `hitlist export training --bundle DIR`, then compare
+partitions with `hitlist audit-splits`. Unknown specimen/donor identities remain
+explicit, and incomplete coverage cannot certify independence. See
+[Training provenance and split audits](docs/training-provenance.md) for the
+manifest contract, policies and legacy-index limitations (#622, #616).
 
 Gene queries can mix symbols and Ensembl IDs: `gene=["PRAME", "ENSG00000198681"]` selects
 peptides matching either gene. An additional `peptide=` filter narrows that union. Mapping-expanded
@@ -308,6 +338,12 @@ lookup_proteome("Mycobacterium tuberculosis")
 
 ### `sample_match_type` — join provenance
 
+Reported gene/locus restrictions such as HLA-DR, DQ and DP also retain a separate
+species/class/locus-compatible `mhc_allele_set`, with explicit inference provenance.
+See [allele candidate matching and coverage](docs/allele-candidates.md). These
+candidates do not upgrade the reported restriction or establish a measured
+peptide-to-allele assignment.
+
 | Value | Meaning | Training-grade? |
 |---|---|---|
 | `allele_match` | IEDB recorded an allele matching the curated experimental candidates | Subject to the row's restriction evidence and sample attribution |
@@ -352,20 +388,30 @@ hitlist data refresh <name>                             # re-download
 hitlist data info <name>                                # detailed metadata (JSON)
 hitlist data path <name>                                # print the registered path
 hitlist data remove <name> [--delete]                   # unregister (optionally delete file)
-hitlist data list                                       # show registered datasets
+hitlist data list                                       # registered datasets + mirrored assets
+hitlist data list --all --json                          # every cache file and its provenance
+hitlist data list --verify                              # verify trusted mirrored-asset hashes
 hitlist data available                                  # show all known datasets
 hitlist data dirs                                       # every directory hitlist uses, and why
+hitlist data uniprot list --json                         # pinned UniProt releases and cache status
+hitlist data uniprot fetch --release 2026_03              # download a verified human reference
 ```
 
 ### Where hitlist keeps data
 
 `hitlist data dirs` is the complete answer; the short version:
 
+See [downloads and cache inspection](docs/downloads.md) for resumability,
+read-only inventory, integrity statuses, and the Python download adapter.
+See [versioned UniProt references](docs/uniprot-references.md) for release
+provenance, managed downloads and cache budgets.
+
 | what | where |
 |---|---|
 | built indexes (`observations`/`binding`/`bulk_proteomics`/`line_expression` parquets, `manifest.json`, downloaded proteomes) | the data directory — see the resolution order below |
 | mirrored data assets (paper-derived CSVs) | `datacache`'s cache dir for the `hitlist` subdir; **not** moved by `HITLIST_DATA_DIR` |
-| proteome index cache (`*.pkl`) | always `~/.hitlist/proteome_index_cache` — not moved by `HITLIST_DATA_DIR` ([#591](https://github.com/pirl-unc/hitlist/issues/591)) |
+| proteome index cache (`*.pkl`) | `<data directory>/proteome_index_cache`, unless explicitly set with `hitlist.proteome.set_disk_cache_dir()` |
+| pinned UniProt FASTAs | `<data directory>/uniprot/<collection>/<release>/`; 1 GiB default cache budget |
 
 The data directory resolves in this order:
 
@@ -390,7 +436,15 @@ call to the path helper, and `<data dir>/proteomes/` and `<data dir>/gene_cache/
 are still created eagerly, so plenty of installs have one holding nothing but
 empty folders.
 
-Nothing moves or rebuilds when you upgrade. To move an existing corpus, set
+Unconfigured installs keep their existing populated legacy directory, including
+one containing only proteome index cache files. The proteome cache now follows
+`HITLIST_DATA_DIR` and `set_data_dir()`; an existing explicit data-dir setting
+therefore also selects the proteome cache location. Old cache files remain in
+place. Copy `proteome_index_cache/` into the selected data directory to reuse
+them, or let the cache rebuild. `set_disk_cache_dir(None)` restores this default
+and follows subsequent data-dir changes.
+
+To move an existing corpus, set
 `HITLIST_DATA_DIR` to the new location and copy the old directory's **entire**
 contents there. Moving only the parquets leaves `manifest.json` behind, which
 keeps rule 3 pointed at a `~/.hitlist` that no longer has any indexes in it.
@@ -534,11 +588,82 @@ hitlist export binding --mhc-allele HLA-A*02:01 --serotype Bw4
 
 MS-specific filters (`--mono-allelic`, `--instrument-type`, `--acquisition-mode`) apply only to the MS slice. Binding rows never gain fake sample context; they remain tagged as `evidence_kind="binding"` with `sample_match_type="not_applicable"`.
 
+Binding-specific filters (`--assay-method`, `--response-measured`,
+`--measurement-units`, `--has-quantitative-value` / `--qualitative-only`, and
+`--quantitative-value-min` / `--quantitative-value-max`) apply only to the binding
+slice. With `--include-evidence both`, they retain the independently selected MS
+rows; with `ms`, they have no effect. Methods use case-insensitive substring
+matching; endpoints and units use case-insensitive exact matching. Multiple
+values select any listed value; different filters combine with AND. Numeric
+bounds are inclusive and exclude missing values. No units are converted and
+inequality qualifiers are preserved. The same options work with `--bundle DIR`
+and are recorded in its manifest.
+
 ```bash
 hitlist export training --include-evidence both --gene PRAME --class I -o prame_training.csv
 hitlist export training --include-evidence ms --mono-allelic --class I -o mono_ms.csv
 hitlist export training --include-evidence both --explode-mappings -o presto_training.parquet
 ```
+
+### Selecting MHC-I affinity measurements
+
+Choose an explicit endpoint allowlist and units. This example selects human
+MHC-I IC50 and KD measurements reported in nM; it deliberately excludes EC50,
+KD proxies such as `dissociation constant KD (~IC50)`, broad `MHC binding`
+labels, half-life, structure and thermal-stability endpoints. Inspect the
+reported vocabulary and define the endpoint policy for your model. IC50 and KD
+remain distinct endpoints even when selected together.
+
+```python
+from hitlist.export import generate_training_table
+
+affinity = generate_training_table(
+    include_evidence="binding",
+    mhc_class="I",
+    species="human",
+    min_allele_resolution="four_digit",
+    response_measured=[
+        "half maximal inhibitory concentration (IC50)",
+        "dissociation constant KD",
+    ],
+    measurement_units="nM",
+    has_quantitative_value=True,
+)
+
+# Explicit policy for a model that accepts only exact, positive numeric targets.
+# Preserve endpoint and original measurement columns alongside every target.
+exact = affinity[
+    affinity.measurement_inequality.eq("=") & affinity.quantitative_value.gt(0)
+].copy()
+censored = affinity[affinity.measurement_inequality.isin(["<", "<=", ">", ">="])].copy()
+unresolved_qualifier = affinity[
+    ~affinity.measurement_inequality.isin(["=", "<", "<=", ">", ">="])
+].copy()
+```
+
+Equivalent selection before the exact/censored partition:
+
+```bash
+hitlist export training --include-evidence binding --class I --species human \
+    --min-allele-resolution four_digit \
+    --response-measured 'half maximal inhibitory concentration (IC50)' \
+    --response-measured 'dissociation constant KD' \
+    --measurement-units nM --has-quantitative-value -o affinity.parquet
+```
+
+`has_quantitative_value=True` alone includes any endpoint with a number, including
+half-life or thermal stability. Unit selection alone also does not identify an
+affinity endpoint. Numeric bounds filter the **reported number**: a `>5000` row
+passes `quantitative_value_max=5000`, but its measurement remains greater than
+5000. Use censored rows only with a model/loss that handles their bounds; do not
+replace their qualifiers with equality. Blank or unfamiliar qualifiers need
+review. `has_quantitative_value=False` (`--qualitative-only`) selects rows without
+a numeric value, preserving `qualitative_measurement`; those labels need their
+own explicit policy and are not invented numeric targets. The canonical indexes
+retain all endpoint families. Column projection is optional; retain
+`response_measured`, `measurement_units`, `quantitative_measurement`,
+`quantitative_value`, `measurement_inequality`, and `qualitative_measurement`
+when passing selected measurements downstream.
 
 ### Sample-level expression anchors (issue #140)
 
@@ -686,6 +811,26 @@ hitlist qc proteome-coverage --missing-only --min-rows 100
 ./deploy.sh     # lint + test + build + upload to PyPI
 ```
 
+`test.sh` refuses to start pytest when the memory probe fails (exit 2), and
+distinguishes this from measured low capacity (exit 1). `--retry-memory` retries
+only low capacity. An explicit `TEST_SH_ALLOW_UNKNOWN_MEMORY=1` permits one
+worker with an unavailable probe; it does not bypass measured low capacity.
+
+Ordinary tests use fresh data directories and small fixtures, so an installed
+corpus cannot inflate their memory use. Full bulk-proteomics and supplementary
+data assertions run in the integration phase. The default budgets are 2.5 GiB
+per unit worker, and 14 GiB per integration worker on Linux or 24 GiB on macOS.
+These include headroom above the Linux 11.6 GiB RSS peak and macOS ~19.5 GB
+physical footprint; compression makes macOS RSS alone an underestimate.
+Each phase reports its elapsed time
+and process peak RSS with `/usr/bin/time` (disable with `TEST_SH_PROFILE=0`).
+Peak RSS is not the sum of simultaneous workers' memory. A preflight is a
+capacity check; it cannot reserve memory against other programs starting later.
+
+The `CTA` gene set is available in the default install and uses OncoRef's canonical
+bundled panel, including its reviewed specificity exclusions. The `cta` extra
+remains a compatibility alias. OncoRef is loaded only when querying the gene set.
+
 When local memory cannot support the corpus tests, the **Release build** GitHub
 workflow runs the same gates on a hosted runner. It requires the full CI corpus,
 installs the current development heads of the six sibling libraries, and records
@@ -720,3 +865,48 @@ twine upload "$release_dir"/*.whl "$release_dir"/*.tar.gz
 and stops before upload. It does not mark a release as published.
 
 See [docs/pmid-curation.md](docs/pmid-curation.md) for the curation YAML format and per-study overrides.
+
+For Presto training, see [search-scoped bulk MS detectability datasets](docs/detectability.md): occurrence-preserving digests, scoped observations, verified search references, and bounded evidence exports.
+
+### Publishing a complete CI corpus
+
+`scripts/publish_ci_corpus.sh VERSION` resolves the current dataset generation
+under `HITLIST_DATA_DIR`, validates its recorded hashes and mapping inputs, and
+publishes a portable snapshot through datacache before uploading it. Existing
+release tags are never overwritten. Set `HITLIST_CI_CORPUS_CACHE_DIR` only when
+an explicit shared cache location is needed. An explicitly selected legacy flat
+directory retains its original artifact contract.
+
+Public manifest v2 includes observations, binding, other assays, contributors,
+bulk proteomics, line expression, mappings, portable mapping metadata and README.
+Source byte hashes, original assay/reference fields and mapping limitations remain
+inspectable; private filesystem paths are omitted. The downloaded snapshot is an
+archival CI fixture, not a fresh local build or a qualified training partition.
+The existing public v1 manifest remains readable.
+
+For a pinned download into shared datacache storage:
+
+```bash
+python scripts/ci_corpus.py install \
+  --manifest-url RELEASE_URL/observations_meta.json \
+  --manifest-sha256 PUBLISHED_MANIFEST_SHA256
+```
+
+The command returns the verified bundle directory to use as `HITLIST_DATA_DIR`.
+It requires the manifest pin before following artifact URLs, verifies every file,
+and reuses the installed bytes offline. Adopt a new workflow corpus tag/pin only
+after downloading and verifying the actual published snapshot. Actual training
+cohorts, source lineage, frozen assignments and output support are qualified
+separately under #678/#680.
+
+### Bulk peptide reproducibility
+
+`load_bulk_peptides(min_reproducibility=...)` uses the curated deposited experiment
+inventory. `n_experiments_possible` and `n_experiments_detected` state the unit;
+legacy `n_replicates_*` names are compatibility aliases for those experiment counts.
+`n_acquisition_runs` is separate and `n_biological_replicates` remains unknown.
+The HeLa 46-fraction pool has three known experiment labels but an unresolved
+per-peptide count; its reproducibility fraction is null. Any threshold, including
+zero, excludes unresolved/invalid fractions. Omit the threshold to retain them.
+Inspect `replicate_count_status`, experiment IDs, source reference/hash and the
+preserved `reported_n_replicates_*` fields before interpreting replication.

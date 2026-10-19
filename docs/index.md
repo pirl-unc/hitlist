@@ -10,13 +10,14 @@ paper supplementary tables.
 hitlist scans the raw exports, **fills missing provenance** and **corrects
 mislabels** from expert per-study curation, **classifies every observation by
 biological source** (cancer tissue, healthy tissue, cell line, tumor-adjacent,
-EBV-LCL, …), partitions MS-elution evidence from in-vitro binding into two
+EBV-LCL, …), partitions positive MS, binding, and other assays into three
 separate parquet files, maps peptides to source proteins with flanking context,
 and ships everything as parquet plus a pandas-friendly Python API. The curation
 overrides and classification rules are YAML data files, not hardcoded Python.
 
 New here? Start with **[How curation works](curation-process.md)** for the
-end-to-end pipeline and the ideas behind it.
+end-to-end pipeline and the ideas behind it. See [assay modality](assay-modality.md)
+for MS admission and migration after #644.
 
 ## Install
 
@@ -115,11 +116,16 @@ context = overlay_targets(full, target_peptides=my_cta_set, label="cta")
 
 ## Data management
 
+See [versioned UniProt references](uniprot-references.md) for pinned human FASTAs,
+source provenance and bounded download/cache storage.
+
 ```bash
 hitlist data available          # list known datasets (IEDB/CEDAR + fetchable viral proteomes)
 hitlist data fetch hpv16        # auto-download a viral proteome from UniProt
 hitlist data register iedb /path/to/file  # register a manual download
-hitlist data list               # registered datasets with size/date
+hitlist data list               # registered datasets + mirrored assets with cache status
+hitlist data list --all --json   # all cache files with inspection/provenance
+hitlist data list --verify      # verify trusted mirrored-asset hashes
 hitlist data info iedb          # detailed JSON metadata
 hitlist data path iedb          # resolve to file path
 hitlist data dirs               # every directory hitlist uses, and why
@@ -145,8 +151,12 @@ does not count.
 Mirrored data assets (paper-derived CSVs, #303) are fetched by `datacache` into
 its own cache dir, which `HITLIST_DATA_DIR` does not move; on a default install
 that is the same directory as the indexes. `hitlist data dirs` prints every
-location, including the `~/.hitlist/proteome_index_cache` that proteome indexing
-maintains.
+location, including `<data directory>/proteome_index_cache`. This cache follows
+`HITLIST_DATA_DIR` and `set_data_dir()` unless `proteome.set_disk_cache_dir()`
+explicitly overrides it; passing `None` restores the dynamic default. Existing
+unconfigured legacy caches remain in use. Explicitly relocating the data
+directory leaves old files in place; copy `proteome_index_cache/` into the new
+directory to reuse those indexes.
 
 ## Development
 
@@ -157,3 +167,5 @@ maintains.
 ./test.sh       # pytest with coverage
 ./deploy.sh     # lint + test + build + upload to PyPI
 ```
+
+For Presto training, see [search-scoped bulk MS detectability datasets](detectability.md): occurrence-preserving digests, scoped observations, verified search references, and bounded evidence exports.

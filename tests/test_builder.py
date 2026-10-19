@@ -57,7 +57,14 @@ def test_cache_invalidates_curation_content_changes(isolated_curation, filename)
 
     path = isolated_curation / filename
     path.write_text(path.read_text() + "\n# review a\n")
-    for name in ("observations", "binding", "bulk_proteomics", "line_expression"):
+    for name in (
+        "observations",
+        "binding",
+        "other_assays",
+        "bulk_proteomics",
+        "line_expression",
+        "observation_contributors",
+    ):
         atomic_write_parquet(
             pd.DataFrame({"peptide": ["AAAAAAAAA"]}), builder.data_dir() / f"{name}.parquet"
         )
@@ -65,6 +72,12 @@ def test_cache_invalidates_curation_content_changes(isolated_curation, filename)
         json.dumps(
             {
                 "artifact_version": _OBSERVATIONS_ARTIFACT_VERSION,
+                "provenance": {
+                    "schema_version": 1,
+                    "sources": {},
+                    "indexes": {},
+                    "contributors": {},
+                },
                 "sources": _source_fingerprints({}),
                 "parquets": builder._parquet_fingerprints(),
             }
@@ -140,8 +153,10 @@ def test_curation_change_rebuilds_stored_evidence(isolated_curation, tmp_path, m
     overrides.write_text(
         "- pmid: 33858848\n  restriction_evidence: predicted\n  override: healthy\n"
     )
-    builder.build_observations(build_mappings=False)
-    second = pd.read_parquet(path)
+    rebuilt = builder.build_observations(build_mappings=False)
+    assert rebuilt != path
+    pd.testing.assert_frame_equal(first, pd.read_parquet(path))
+    second = pd.read_parquet(rebuilt)
     assert set(second.loc[second.pmid == 33858848, "restriction_evidence"]) == {"predicted"}
     assert not second.loc[second.pmid == 33858848, "src_cancer"].any()
     identity_columns = ["assay_iri", "peptide", "pmid", "mhc_restriction"]
@@ -180,12 +195,20 @@ def test_cache_valid_when_sources_unchanged(tmp_path, monkeypatch):
 
     (tmp_path / "observations.parquet").write_bytes(b"fake parquet")
     (tmp_path / "binding.parquet").write_bytes(b"fake parquet")
+    (tmp_path / "other_assays.parquet").write_bytes(b"fake parquet")
     (tmp_path / "bulk_proteomics.parquet").write_bytes(b"fake parquet")
     (tmp_path / "line_expression.parquet").write_bytes(b"fake parquet")
+    (tmp_path / "observation_contributors.parquet").write_bytes(b"fake parquet")
     _meta_path().write_text(
         json.dumps(
             {
                 "artifact_version": _OBSERVATIONS_ARTIFACT_VERSION,
+                "provenance": {
+                    "schema_version": 1,
+                    "sources": {},
+                    "indexes": {},
+                    "contributors": {},
+                },
                 "sources": {},
                 "n_rows": 100,
                 "n_peptides": 50,
@@ -224,6 +247,7 @@ def test_cache_invalid_when_observations_parquet_missing(tmp_path, monkeypatch):
     monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
 
     (tmp_path / "binding.parquet").write_bytes(b"fake parquet")
+    (tmp_path / "other_assays.parquet").write_bytes(b"fake parquet")
     _meta_path().write_text(json.dumps({"sources": {}, "n_rows": 0}))
     monkeypatch.setattr(builder, "_source_fingerprints", lambda paths, **_kw: {})
 
@@ -232,7 +256,7 @@ def test_cache_invalid_when_observations_parquet_missing(tmp_path, monkeypatch):
 
 def test_observations_cache_hit_still_validates_mapping_sidecar(tmp_path, monkeypatch):
     """#404: a current observations parquet must not hide stale mappings."""
-    from hitlist import builder, downloads, mappings
+    from hitlist import builder, downloads, mappings, provenance
 
     monkeypatch.setattr(downloads, "_override_data_dir", tmp_path)
     observations = tmp_path / "observations.parquet"
@@ -262,6 +286,11 @@ def test_observations_cache_hit_still_validates_mapping_sidecar(tmp_path, monkey
         return tmp_path / "peptide_mappings.parquet"
 
     monkeypatch.setattr(mappings, "build_peptide_mappings", validate_mappings)
+
+    def no_scratch():
+        pytest.fail("A current observations index must not allocate provenance scratch")
+
+    monkeypatch.setattr(provenance, "ContributorCollector", no_scratch)
 
     result = builder.build_observations(
         proteome_release=113,
@@ -298,14 +327,22 @@ def test_cache_invalid_when_parquet_fingerprint_changes(tmp_path, monkeypatch):
     le_p = tmp_path / "line_expression.parquet"
     obs_p.write_bytes(b"original observations")
     bind_p.write_bytes(b"original binding")
+    (tmp_path / "other_assays.parquet").write_bytes(b"original other assays")
     bulk_p.write_bytes(b"original bulk")
     le_p.write_bytes(b"original line expression")
+    (tmp_path / "observation_contributors.parquet").write_bytes(b"contributors")
 
     monkeypatch.setattr(builder, "_source_fingerprints", lambda paths, **_kw: {})
     _meta_path().write_text(
         json.dumps(
             {
                 "artifact_version": _OBSERVATIONS_ARTIFACT_VERSION,
+                "provenance": {
+                    "schema_version": 1,
+                    "sources": {},
+                    "indexes": {},
+                    "contributors": {},
+                },
                 "sources": {},
                 "parquets": builder._parquet_fingerprints(),
             }
@@ -511,6 +548,7 @@ def test_cache_invalid_when_line_expression_parquet_missing(tmp_path, monkeypatc
 
     (tmp_path / "observations.parquet").write_bytes(b"fake parquet")
     (tmp_path / "binding.parquet").write_bytes(b"fake parquet")
+    (tmp_path / "other_assays.parquet").write_bytes(b"fake parquet")
     (tmp_path / "bulk_proteomics.parquet").write_bytes(b"fake parquet")
     # Intentionally no line_expression.parquet
     _meta_path().write_text(json.dumps({"sources": {}, "n_rows": 100}))
@@ -581,10 +619,13 @@ def _full_obs_fixture(n_rows: int = 50) -> pd.DataFrame:
             "cell_type": ["B cell"] * n_rows,
             "culture_condition": ["unperturbed"] * n_rows,
             "assay_method": ["mass spectrometry"] * n_rows,
+            "assay_modality": ["ms"] * n_rows,
+            "assay_modality_source": ["assay_method"] * n_rows,
+            "ms_outcome_status": ["positive_result"] * n_rows,
             "response_measured": [""] * n_rows,
             "measurement_units": [""] * n_rows,
             "measurement_inequality": [""] * n_rows,
-            "qualitative_measurement": [""] * n_rows,
+            "qualitative_measurement": ["Positive"] * n_rows,
             "species": ["Homo sapiens"] * n_rows,
             "source_organism": ["Homo sapiens"] * n_rows,
             # NOT in the categorical allowlist — must stay object / numeric:

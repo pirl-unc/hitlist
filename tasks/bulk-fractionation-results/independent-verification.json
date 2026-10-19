@@ -1,0 +1,15 @@
+{
+  "tables": {
+    "peptides": {
+      "n_rows": 2047003,
+      "n_changed_ph_rows": 1987285,
+      "n_unknown_ph_rows": 247018
+    },
+    "proteins": {
+      "n_rows": 156211,
+      "n_changed_ph_rows": 143495,
+      "n_unknown_ph_rows": 18789
+    }
+  },
+  "all_serialized_rows_and_other_fields_verified": true
+}

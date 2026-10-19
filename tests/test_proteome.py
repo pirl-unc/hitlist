@@ -671,7 +671,7 @@ def test_kmers_for_genes_unknown_gene():
 
 
 def test_digest_trypsin_basic():
-    """Trypsin/P cleaves K/R, not before P."""
+    """Classical Trypsin cleaves K/R, not before P."""
     from hitlist.proteome import digest
 
     # Layout: M(0) E(1) R(2) K(3) P(4) K(5) L(6) A(7) S(8) R(9) P(10) E(11) K(12)
@@ -683,7 +683,7 @@ def test_digest_trypsin_basic():
     #   K@12 → end of seq → NO
     # Result: [0:3]=MER, [3:6]=KPK, [6:13]=LASRPEK
     seq = "MERKPKLASRPEK"
-    peps = digest(seq, enzyme="Trypsin/P (cleaves K/R except before P)", min_len=2, max_missed=0)
+    peps = digest(seq, enzyme="Trypsin", min_len=2, max_missed=0)
     assert peps == {"MER", "KPK", "LASRPEK"}
 
 
@@ -692,17 +692,17 @@ def test_digest_trypsin_aliases():
     from hitlist.proteome import digest
 
     seq = "MERKASRLEK"
-    canonical = digest(seq, enzyme="Trypsin/P (cleaves K/R except before P)", min_len=2)
-    for alias in ("Trypsin", "Trypsin/P", "trypsin"):
+    canonical = digest(seq, enzyme="Trypsin/P", min_len=2)
+    for alias in ("Trypsin/P", "trypsin/p"):
         assert digest(seq, enzyme=alias, min_len=2) == canonical
 
 
 def test_digest_chymotrypsin_plus_includes_m():
-    """MaxQuant Chymotrypsin+ cleaves F/W/Y/L/M, not before P."""
+    """MaxQuant Chymotrypsin+ includes F/W/Y/L/M."""
     from hitlist.proteome import digest
 
     seq = "AFAWAYALAMAP"
-    peps = digest(seq, enzyme="Chymotrypsin", min_len=2, max_missed=0)
+    peps = digest(seq, enzyme="Chymotrypsin+", min_len=2, max_missed=0)
     # Interior cuts produce peptides ending in F/W/Y/L/M; the trailing
     # fragment "AP" is the protein tail after the last M@9 cut and is
     # allowed to end in whatever residue is at the C-terminus.
@@ -710,16 +710,18 @@ def test_digest_chymotrypsin_plus_includes_m():
     assert c_terms.issubset(set("FWYLMAP"))
 
 
-def test_digest_gluc_cleaves_both_e_and_d():
-    """GluC in hitlist is the bicarbonate variant ``GluC;D.P`` — cleaves E AND D."""
+def test_digest_gluc_dp_matches_maxquant_specificity_pairs():
+    """The search union cleaves E and D-P pairs, not every D (#654)."""
     from hitlist.proteome import digest
 
-    seq = "AAEAADAAAEP"
-    peps = digest(seq, enzyme="GluC", min_len=2, max_missed=0)
-    # E@2 → cut ; D@5 → cut ; E@9 before P → NO cut → segments AAE, AAD, AAAEP
-    assert peps == {"AAE", "AAD", "AAAEP"}
-    # D-ending peptide proves bicarbonate rule (phosphate GluC would be E-only).
-    assert any(p.endswith("D") for p in peps)
+    seq = "AAEAADAAAEPAAADPAAA"
+    assert digest(seq, enzyme="GluC;D.P", min_len=2, max_missed=0) == {
+        "AAE",
+        "AADAAAE",
+        "PAAAD",
+        "PAAA",
+    }
+    assert digest(seq, enzyme="GluC", min_len=2, max_missed=0) == {"AAE", "AADAAAE", "PAAADPAAA"}
 
 
 def test_digest_lysc_cleaves_k_p():
@@ -727,8 +729,8 @@ def test_digest_lysc_cleaves_k_p():
     from hitlist.proteome import digest
 
     seq = "AAAKPAAAK"
-    tryp = digest(seq, enzyme="Trypsin/P", min_len=2, max_missed=0)
-    lysc = digest(seq, enzyme="LysC", min_len=2, max_missed=0)
+    tryp = digest(seq, enzyme="Trypsin", min_len=2, max_missed=0)
+    lysc = digest(seq, enzyme="LysC/P", min_len=2, max_missed=0)
     # Trypsin: K@3 before P → NO cut → one long peptide.
     assert "AAAKPAAAK" in tryp
     # LysC: K@3 before P → cut → AAAK + PAAAK.
@@ -926,32 +928,59 @@ def test_disk_cache_corrupt_pickle_falls_back_to_rebuild(tmp_path, isolated_disk
     assert "sp|P|A" in loaded.proteins
 
 
-def test_disk_cache_eviction_under_cap(tmp_path, isolated_disk_cache, monkeypatch):
-    """Total cache size > cap → oldest-mtime files are evicted on next write."""
-    from hitlist.proteome import _PROTEOME_INDEX_DISK_CACHE_DIR, clear_fasta_index_cache
+@pytest.mark.parametrize("existing_mtimes", [(), (1, 2), (4_000_000_000, 4_000_000_000)])
+def test_disk_cache_retains_oversized_write(tmp_path, monkeypatch, existing_mtimes):
+    """An oversized index survives its own eviction pass and serves a cold hit."""
+    import os
+    from unittest.mock import patch
 
-    # Tiny cap so the second write triggers eviction.
-    monkeypatch.setenv("HITLIST_PROTEOME_INDEX_CACHE_GB", str(1 / 1024 / 1024))  # 1 MB cap
+    from hitlist.proteome import clear_fasta_index_cache, proteome_index_cache_dir
 
-    # Write a series of distinct FASTAs so each produces its own cache file.
-    fastas = []
-    for i in range(4):
-        f = tmp_path / f"f_{i}.fasta"
-        f.write_text(f">sp|P{i:05d}|A\n{'ACDEFGHIKLMNPQRSTVWY' * 200}\n")
-        fastas.append(f)
-        clear_fasta_index_cache()
-        ProteomeIndex.from_fasta(f, lengths=(5,), verbose=False)
+    monkeypatch.setenv("HITLIST_PROTEOME_INDEX_CACHE_GB", str(4 / 1024**3))
+    cache_dir = proteome_index_cache_dir()
+    cache_dir.mkdir()
+    previous = []
+    for i, mtime in enumerate(existing_mtimes):
+        path = cache_dir / f"previous-{i}.pkl"
+        path.write_bytes(b"old")
+        # Reads touch mtimes: an existing entry may appear newer than this write.
+        os.utime(path, (mtime, mtime))
+        previous.append(path)
 
-    cache_files = list(_PROTEOME_INDEX_DISK_CACHE_DIR.glob("*.pkl"))
-    total = sum(p.stat().st_size for p in cache_files)
-    cap_bytes = int((1 / 1024 / 1024) * 1024**3)
-    # Eviction may leave us slightly over cap if a single index exceeds
-    # the cap on its own (we never delete the file we just wrote since
-    # the eviction loop touches oldest-first and stops once under cap).
-    # The strict invariant: total ≤ cap + size of newest entry.
-    if cache_files:
-        newest = max(cache_files, key=lambda p: p.stat().st_mtime)
-        assert total <= cap_bytes + newest.stat().st_size
+    fasta = tmp_path / "p.fasta"
+    fasta.write_text(">sp|P|A\nACDEFGHIKLMNPQRSTVWY\n")
+    original = ProteomeIndex.from_fasta(fasta, lengths=(5,), verbose=False)
+    cache_files = list(cache_dir.glob("*.pkl"))
+    assert len(cache_files) == 1
+    assert cache_files[0].stat().st_size > 4
+    assert all(not path.exists() for path in previous)
+
+    clear_fasta_index_cache()
+    with patch.object(ProteomeIndex, "_build", side_effect=AssertionError("rebuilt")):
+        cached = ProteomeIndex.from_fasta(fasta, lengths=(5,), verbose=False)
+    assert cached is not original
+    assert cached.proteins == original.proteins
+    assert cached.lookup("ACDEF") == original.lookup("ACDEF")
+
+
+def test_disk_cache_eviction_under_cap(tmp_path, monkeypatch):
+    """Pruning stops at the cap and respects recency among unprotected entries."""
+    import os
+
+    from hitlist.proteome import _evict_disk_cache_if_over_cap, proteome_index_cache_dir
+
+    monkeypatch.setenv("HITLIST_PROTEOME_INDEX_CACHE_GB", str(8 / 1024**3))
+    cache_dir = proteome_index_cache_dir()
+    cache_dir.mkdir()
+    paths = [cache_dir / f"{name}.pkl" for name in ("old", "recent", "new")]
+    for path, mtime in zip(paths, (2, 3, 1)):
+        path.write_bytes(b"1234")
+        os.utime(path, (mtime, mtime))
+    _evict_disk_cache_if_over_cap(protected_path=paths[2])
+    assert not paths[0].exists()
+    assert paths[1].exists()
+    assert paths[2].exists()
+    assert sum(path.stat().st_size for path in cache_dir.glob("*.pkl")) == 8
 
 
 def test_disk_cache_disabled_when_cap_zero(tmp_path, isolated_disk_cache, monkeypatch):

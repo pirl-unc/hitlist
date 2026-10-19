@@ -31,7 +31,9 @@ import time
 
 import pandas as pd
 
+from .dataset import dataset_snapshot
 from .genes import resolve_gene_query
+from .pandas_utils import fillna_scalar_safe
 from .sample_identity import (
     DONOR_ID_COLUMN,
     DONOR_TYPE_ID_COLUMN,
@@ -83,6 +85,7 @@ def _progress(msg: str, verbose: bool) -> None:
         print(f"[pmhc] {msg}", file=sys.stderr, flush=True)
 
 
+@dataset_snapshot()
 def query(
     proteins: list[str] | None = None,
     alleles: list[str] | None = None,
@@ -412,14 +415,14 @@ def query(
     #    narrowed obs to the matched peptides.
     for col in ("gene_names", "gene_ids"):
         if col in df.columns:
-            df[col] = df[col].fillna("").astype(str)
+            df[col] = fillna_scalar_safe(df[col], "").astype(str)
 
     # 3b. Group equivalent identities without discarding reported names.
     #     Retired B*44:01 and current B*44:02 describe the same molecule;
     #     alias field extensions must not invent additional typing (#456).
     from .curation import best_4digit_for_serotype, resolve_allele_identity
 
-    df["reported_mhc_restrictions"] = df["mhc_restriction"].fillna("")
+    df["reported_mhc_restrictions"] = fillna_scalar_safe(df["mhc_restriction"], "")
     df["mhc_restriction"] = df["reported_mhc_restrictions"].map(resolve_allele_identity)
 
     # 3c. For rows whose stored allele is a serotype (HLA-A2, HLA-DR4, ...),
@@ -518,7 +521,7 @@ def query(
     #     by legitimate viral / bacterial peptides presented on host MHC.
     #     Low signal, removed.)
     if "source_species" in df.columns:
-        unknown_mask = df["source_species"].fillna("").eq("")
+        unknown_mask = fillna_scalar_safe(df["source_species"], "").eq("")
         n_unknown = int(unknown_mask.sum())
         if n_unknown and verbose:
             _progress(
@@ -931,6 +934,7 @@ def tissue_distribution(
     return res
 
 
+@dataset_snapshot()
 def query_by_samples(
     samples_to_alleles: dict[str, list[str]],
     proteins: list[str] | None = None,
@@ -1348,7 +1352,7 @@ def _normalize_species_column(s: pd.Series) -> pd.Series:
     target values pre-declared as categories raises (or warns) on
     newer pandas.  Casting to object first makes the replace safe.
     """
-    return s.fillna("").astype(str).replace({"": "unknown", "unidentified": "unknown"})
+    return fillna_scalar_safe(s, "").astype(str).replace({"": "unknown", "unidentified": "unknown"})
 
 
 # Order species sections so the most common case (human) leads, mouse/rat

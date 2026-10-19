@@ -29,6 +29,7 @@ from pathlib import Path
 import pandas as pd
 
 from .curation import (
+    CLASS_ONLY_CANDIDATE_PROVENANCES,
     classify_ms_row,
     expand_allele_set,
     is_non_peptide_ligand,
@@ -71,7 +72,12 @@ def load_supplementary_manifest() -> list[dict]:
         return []
     entries = load_curation_yaml(_MANIFEST_PATH)
     entries = entries if entries else []
+    _validate_ms_entries(entries)
+    return entries
 
+
+def _validate_ms_entries(entries):
+    """Apply the same scientific admission check to every input manifest."""
     excluded = ms_excluded_pmids()
     conflicts = sorted({int(e["pmid"]) for e in entries if int(e["pmid"]) in excluded})
     if conflicts:
@@ -82,10 +88,16 @@ def load_supplementary_manifest() -> list[dict]:
             f"remove exclude_from_ms (the supplementary rows are real elution data) "
             f"or remove the supplementary entry (the study genuinely isn't one)."
         )
-    return entries
 
 
-def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
+def scan_supplementary(
+    classify_source: bool = True,
+    *,
+    provenance=None,
+    entries=None,
+    directory=None,
+    allow_download=True,
+) -> pd.DataFrame:
     """Load all supplementary CSVs and return a scanner-compatible DataFrame.
 
     For each entry in the manifest, reads the CSV, fills missing columns
@@ -97,6 +109,14 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
     classify_source
         Run source classification (default True).  When False, only
         allele resolution and species are computed.
+    entries, directory
+        Explicitly reviewed MS manifest entries and their local CSV directory.
+        These retain the same curation checks and contributor graph as packaged
+        sources. Optional ``sha256`` and ``size_bytes`` pin each input file.
+        Explicit entries never fall back to the global download registry.
+    allow_download
+        False fails on missing files without accessing the network. The default
+        preserves on-demand acquisition for the packaged manifest only.
 
     Returns
     -------
@@ -104,7 +124,10 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
         Same column schema as :func:`hitlist.scanner.scan` output.
         Empty DataFrame if no supplementary data is configured.
     """
-    entries = load_supplementary_manifest()
+    explicit_entries = entries is not None
+    entries = list(entries) if explicit_entries else load_supplementary_manifest()
+    _validate_ms_entries(entries)
+    supplement_directory = _SUPP_DIR if directory is None else Path(directory)
     if not entries:
         return pd.DataFrame()
 
@@ -112,10 +135,19 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
 
     for entry in entries:
         pmid = entry["pmid"]
-        csv_path = _SUPP_DIR / entry["file"]
+        if explicit_entries and (
+            not isinstance(entry["file"], str)
+            or not entry["file"]
+            or Path(entry["file"]).name != entry["file"]
+            or entry["file"] in {".", ".."}
+        ):
+            raise ValueError("Explicit supplementary filename must be one local component")
+        csv_path = supplement_directory / entry["file"]
         defaults = entry.get("defaults", {})
 
         if not csv_path.exists():
+            if explicit_entries or not allow_download:
+                raise FileNotFoundError(csv_path)
             # Large supplementary CSVs are externalized from the wheel (#303);
             # fetch them on demand via datacache. Files that are neither packaged
             # nor externalized are genuinely absent — skip as before.
@@ -126,9 +158,38 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
             else:
                 continue
 
+        expected = {key: entry[key] for key in ("sha256", "size_bytes") if key in entry}
+        if expected:
+            from .provenance import file_digest
+
+            before = file_digest(csv_path)
+            if any(before[key] != value for key, value in expected.items()):
+                raise ValueError(f"Supplementary checksum/size mismatch: {csv_path.name}")
         df = pd.read_csv(csv_path, dtype=str).fillna("")
+        if expected:
+            after = file_digest(csv_path)
+            if after != before:
+                raise ValueError(
+                    f"Supplementary checksum/size changed during read: {csv_path.name}"
+                )
         if "peptide" not in df.columns:
+            if explicit_entries:
+                raise ValueError(f"Supplementary file lacks peptide column: {csv_path.name}")
             continue
+
+        if provenance is not None:
+            dataset = f"supplement:{entry['file']}"
+            provenance.register_source(dataset, csv_path, description=entry.get("source", ""))
+            observation_ids = []
+            for row_number, values in enumerate(df.itertuples(index=False, name=None), 1):
+                fields = dict(zip(df.columns, values))
+                fields["manifest"] = entry
+                source_id = provenance.record(dataset, row_number, fields, list(values))
+                label = fields.get(
+                    "attributed_sample_label", defaults.get("attributed_sample_label", "")
+                )
+                observation_ids.append(provenance.observe(source_id, sample_label=label))
+            df["provenance_id"] = observation_ids
 
         df["peptide"] = df["peptide"].str.strip()
         df = df[df["peptide"] != ""]
@@ -169,11 +230,20 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
         species_default = defaults.get("species", "")
         mhc_species_context = pmid_mhc_species_context(pmid) or normalize_species(species_default)
 
-        annotations = [
-            resolve_mhc_annotation(restriction, reported_class, mhc_species_context)
-            for restriction, reported_class in zip(df["mhc_restriction"], df["mhc_class"])
-        ]
-        identity = pd.DataFrame([annotation.as_record_fields() for annotation in annotations])
+        # A supplement repeats a small set of MHC inputs across hundreds of
+        # thousands of peptides. Resolve each input once within this entry;
+        # reported class is part of the key so conflicts remain row-specific.
+        identity_by_input = {
+            (restriction, reported_class): resolve_mhc_annotation(
+                restriction, reported_class, mhc_species_context
+            ).as_record_fields()
+            for restriction, reported_class in df[["mhc_restriction", "mhc_class"]]
+            .drop_duplicates()
+            .itertuples(index=False, name=None)
+        }
+        identity = pd.DataFrame(
+            identity_by_input[key] for key in zip(df["mhc_restriction"], df["mhc_class"])
+        )
 
         # Include the supplementary filename in the synthesized IRI so the
         # same peptide / allele seen in, e.g. ``gomez_zepeda_2024_jy.csv`` and
@@ -235,6 +305,10 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
                 "quantitative_measurement": "",
                 "quantitative_value": float("nan"),
                 "is_binding_assay": False,
+                "is_ms_observation": True,
+                "assay_modality": "ms",
+                "assay_modality_source": "curated_ms_supplement",
+                "ms_outcome_status": "curated_ligand_table",
                 "is_non_peptide_ligand": [
                     is_non_peptide_ligand(a) for a in df["mhc_restriction"].to_numpy()
                 ],
@@ -243,6 +317,13 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
         )
 
         # Classify per-unique-allele, then map back onto every row.
+        if provenance is not None:
+            record["provenance_id"] = df["provenance_id"].to_numpy()
+        if "attributed_sample_label" in defaults:
+            record["attributed_sample_label"] = defaults["attributed_sample_label"]
+        if "attributed_sample_label" in df.columns:
+            record["attributed_sample_label"] = df["attributed_sample_label"].to_numpy()
+
         # Within a single supplementary entry the non-allele inputs are
         # constant (from manifest defaults), so classify_ms_row varies
         # only by mhc_restriction.  Set expansion (issue #137) is also
@@ -250,7 +331,9 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
         # pmid + mhc_class don't vary within an entry.
         unique_alleles = record["mhc_restriction"].unique()
 
-        def _set_for(allele: str, _record=record, _pmid=pmid) -> dict:
+        def _set_for(
+            allele: str, _record=record, _pmid=pmid, _mhc_species_context=mhc_species_context
+        ) -> dict:
             mhc_class_filter = ""
             # Pull per-allele class from the just-built ``record`` if the
             # supplement CSV carries one; otherwise let set expansion
@@ -261,7 +344,9 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
                 cls_match = _record.loc[_record["mhc_restriction"] == allele, "mhc_class"]
                 if len(cls_match):
                     mhc_class_filter = str(cls_match.iloc[0])
-            allele_set, prov, size = expand_allele_set(allele, "", _pmid, mhc_class_filter)
+            allele_set, prov, size = expand_allele_set(
+                allele, "", _pmid, mhc_class_filter, species_context=_mhc_species_context
+            )
             return {
                 "mhc_allele_set": allele_set,
                 "mhc_allele_provenance": prov,
@@ -329,14 +414,12 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
 
         # Promote set → mhc_restriction (#45) for class-only supplement
         # rows where PMID-pool expansion produced a tightened set.  When
-        # provenance is "exact" the row was already 4-digit and the
-        # restriction is unchanged; for "pmid_class_pool" / "sample_*"
-        # the multi-allele set IS the actual presenting MHC.  See the
-        # parallel block in scanner.py for the IEDB path.
+        # Retain historical class-only promotion, as in scanner.py. Gene/locus
+        # candidates never replace the reported restriction or its precision.
         if "mhc_allele_set" in record.columns and "mhc_allele_provenance" in record.columns:
             promote_mask = (
                 (record["mhc_allele_set_size"].fillna(0) > 0)
-                & (record["mhc_allele_provenance"] != "exact")
+                & record["mhc_allele_provenance"].isin(CLASS_ONLY_CANDIDATE_PROVENANCES)
                 & record["mhc_allele_set"].notna()
                 & (record["mhc_allele_set"] != "")
             )
@@ -393,6 +476,14 @@ def scan_supplementary(classify_source: bool = True) -> pd.DataFrame:
     dedupe_cols = ["peptide", "mhc_restriction", "pmid"]
     if "supplementary_file" in result.columns:
         dedupe_cols.append("supplementary_file")
+    if "attributed_sample_label" in result.columns:
+        # One explicit CSV may contain observations from several named arms.
+        # Their identical peptide/restriction pairs are distinct observations.
+        dedupe_cols.append("attributed_sample_label")
+    if provenance is not None:
+        provenance.retain_duplicates(
+            result, pd.MultiIndex.from_frame(result[dedupe_cols]), "within_file_overlap"
+        )
     result = result.drop_duplicates(subset=dedupe_cols)
 
     return result

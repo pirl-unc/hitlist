@@ -24,7 +24,7 @@ Three loaders, each with its own granularity:
 
 - ``load_bulk_proteomics`` — protein-level abundance per cell line.
   Union of CCLE (Nusinow et al. 2020, PMID 31978347; TMT-normalized)
-  and Bekker-Jensen (PMID 28591648; label-free sum-of-intensities).
+  and Bekker-Jensen (PMID 28601559; label-free sum-of-intensities).
   Use the ``source=`` filter to pick one.
 
 - ``load_bulk_peptides`` — peptide-level detection per cell line
@@ -54,6 +54,7 @@ import pandas as pd
 from pyarrow.lib import ArrowInvalid
 
 from .curation_yaml import load_curation_yaml
+from .dataset import dataset_path, dataset_snapshot
 
 _DATA_MODULE = "hitlist.data.bulk_proteomics"
 
@@ -62,7 +63,7 @@ def bulk_proteomics_path() -> Path:
     """Path to the built ``bulk_proteomics.parquet`` in ``data_dir()``."""
     from .downloads import data_dir
 
-    return data_dir() / "bulk_proteomics.parquet"
+    return dataset_path("bulk_proteomics.parquet", root=data_dir())
 
 
 def is_bulk_proteomics_built() -> bool:
@@ -87,14 +88,42 @@ def _load_ccle() -> pd.DataFrame:
 
 @lru_cache(maxsize=1)
 def _load_bj_protein() -> pd.DataFrame:
-    return pd.read_csv(
-        _bulk_data_path("bekker_jensen_2017_protein_abundance.csv.gz"), compression="gzip"
+    return _curate_bj_metadata(
+        pd.read_csv(
+            _bulk_data_path("bekker_jensen_2017_protein_abundance.csv.gz"), compression="gzip"
+        )
     )
 
 
 @lru_cache(maxsize=1)
 def _load_bj() -> pd.DataFrame:
-    return pd.read_csv(_bulk_data_path("bekker_jensen_2017_peptides.csv.gz"), compression="gzip")
+    return _curate_bj_metadata(
+        pd.read_csv(_bulk_data_path("bekker_jensen_2017_peptides.csv.gz"), compression="gzip")
+    )
+
+
+def _correct_bj_reference(df: pd.DataFrame) -> pd.DataFrame:
+    """Correct the unrelated historical PMID while preserving its reported value."""
+    if "source" not in df or "reference" not in df:
+        return df
+    selected = df["source"].eq("Bekker-Jensen_2017")
+    if not selected.any():
+        return df
+    df = df.copy()
+    if "reported_reference" not in df:
+        df["reported_reference"] = df["reference"].astype("string")
+    df["reference"] = df["reference"].astype("string")
+    df.loc[selected, "reference"] = "PMID:28601559"
+    if "pmid" in df:
+        df["pmid"] = df["pmid"].astype("Int64")
+        df.loc[selected, "pmid"] = 28601559
+    return df
+
+
+def _curate_bj_metadata(df: pd.DataFrame) -> pd.DataFrame:
+    from .bulk_fractionation import curate_fractionation_ph
+
+    return curate_fractionation_ph(_correct_bj_reference(df))
 
 
 @lru_cache(maxsize=1)
@@ -130,7 +159,7 @@ def _read_parquet_cached(path_str: str, mtime_ns: int, size: int) -> pd.DataFram
     the returned frame before filtering, so sharing the cached object is
     safe.
     """
-    return pd.read_parquet(path_str)
+    return _curate_bj_metadata(pd.read_parquet(path_str))
 
 
 def _load_parquet_or_none() -> pd.DataFrame | None:
@@ -225,74 +254,26 @@ def _apply_length_bounds(
     return df[df["length"].between(lo, hi)]
 
 
-# Arm-defining axes for the Bekker-Jensen 2017 design matrix. Two rows
-# share an arm when these five values match — i.e. they came from the
-# same biological sample (cell line) processed under the same enzyme,
-# fractionation depth, enrichment regime, and high-pH SPE buffer pH.
-# Replicates within an arm are then independent runs of that arm.
-_BJ_ARM_KEYS = (
-    "cell_line_name",
-    "digestion_enzyme",
-    "n_fractions_in_run",
-    "enrichment",
-    "fractionation_ph",
-)
-
-
 def _add_n_replicates_possible(df: pd.DataFrame) -> pd.DataFrame:
-    """Add a per-arm ``n_replicates_possible`` column derived from the
-    existing ``n_replicates_detected`` column (#97).
+    """Project reviewed experiment totals and nullable per-peptide counts (#699)."""
+    from .bulk_replicates import curate_replicate_counts
 
-    Compute strategy: for every arm (group of rows sharing the five
-    ``_BJ_ARM_KEYS``), ``n_replicates_possible`` is the **max** of
-    ``n_replicates_detected`` across the arm's peptides. This relies
-    on the empirical property of deep shotgun MS that housekeeping
-    proteins are detected in every replicate of an arm — so within
-    any arm there is at least one peptide whose detected count equals
-    the true total. Bekker-Jensen 2017's depth (12-70 fractions,
-    ~10K-90K peptides per arm) makes this hold by orders of magnitude.
-
-    With both columns present, callers can compute
-    ``reproducibility_fraction = n_replicates_detected / n_replicates_possible``
-    and gate sensibly. The single-replicate arms (Tryp-39/46/70 fracs
-    and the non-tryptic 39-frac arms) end up with
-    ``n_replicates_possible == 1``, so a "≥2 replicates" filter
-    correctly excludes them rather than excluding their highly-confident
-    single-replicate detections.
-
-    Skipped silently when ``n_replicates_detected`` is absent (e.g. on
-    pre-#94 parquets or on the protein-level granularity).
-    """
-    if "n_replicates_detected" not in df.columns:
-        return df
-    available_keys = [k for k in _BJ_ARM_KEYS if k in df.columns]
-    if not available_keys:
-        return df
-    df = df.copy()
-    df["n_replicates_possible"] = df.groupby(available_keys, dropna=False)[
-        "n_replicates_detected"
-    ].transform("max")
-    return df
+    return curate_replicate_counts(df)
 
 
 def _apply_reproducibility_filter(
     df: pd.DataFrame, min_reproducibility: float | None
 ) -> pd.DataFrame:
-    """Keep rows where ``n_replicates_detected / n_replicates_possible >=
-    min_reproducibility`` (#97).
+    """Keep only qualified experiment fractions meeting a finite [0, 1] cutoff."""
+    import math
 
-    Silently passes through when either denominator/numerator column is
-    missing, or when ``min_reproducibility`` is ``None``. Division-by-zero
-    is impossible because every arm is required to have at least one
-    detection (otherwise the row wouldn't be in the index at all), so
-    ``n_replicates_possible >= 1`` everywhere.
-    """
     if min_reproducibility is None:
         return df
-    if "n_replicates_detected" not in df.columns or "n_replicates_possible" not in df.columns:
-        return df
-    fraction = df["n_replicates_detected"] / df["n_replicates_possible"]
-    return df[fraction >= min_reproducibility]
+    if not math.isfinite(min_reproducibility) or not 0 <= min_reproducibility <= 1:
+        raise ValueError("min_reproducibility must be finite and between 0 and 1")
+    if "reproducibility_fraction" not in df:
+        return df.iloc[:0]
+    return df[df.reproducibility_fraction.ge(min_reproducibility).fillna(False)]
 
 
 def _apply_percentile_bounds(
@@ -327,6 +308,7 @@ def _apply_enrichment_filter(df: pd.DataFrame, enrichment) -> pd.DataFrame:
     return df[df["enrichment"] == enrichment]
 
 
+@dataset_snapshot()
 def load_bulk_proteomics(
     cell_line: str | Iterable[str] | None = None,
     gene_name: str | Iterable[str] | None = None,
@@ -377,12 +359,13 @@ def load_bulk_proteomics(
         into TiO2 explicitly. CCLE is not phospho-enriched so the
         filter is a no-op there.
     fractionation_ph
-        Filter by the high-pH reverse-phase SPE fractionation buffer
-        pH: ``10.0`` is the default everywhere in the deposit except
-        the explicit Bekker-Jensen ``Tryp-Phos-pH8`` TiO2 arm, which is
-        stamped ``8.0``. Most queries should leave this unset (default
-        ``None`` = all pH values included). Pass a single float or an
-        iterable of floats to restrict.
+        Filter by reviewed fractionation pH, retaining its source basis.
+        Bekker-Jensen ordinary 39/46/70-fraction arms use reported buffer
+        pH 8; named phosphopeptide arms retain their label-derived 8/10
+        values, and unresolved protocols are null. CCLE's separately
+        sourced pH 10 is unchanged. A float or iterable excludes unknowns;
+        ``None`` retains all rows. See ``fractionation_ph_basis/reference``
+        and the preserved ``legacy_fractionation_ph`` annotations.
     abundance_percentile_min, abundance_percentile_max
         Inclusive bounds (0.0 to 1.0) on within-arm abundance rank. Useful
         for training-set construction: ``abundance_percentile_min=0.9``
@@ -451,15 +434,22 @@ def load_bulk_proteomics(
     return df.reset_index(drop=True)
 
 
-def load_bulk_sources() -> list[dict]:
+def load_bulk_sources(*, include_canine=False) -> list[dict]:
     """Per-source metadata for the bulk proteomics indices.
 
-    Returns a list of dicts with keys: ``source_id``, ``reference``,
+    By default, returns a list of dicts with keys: ``source_id``, ``reference``,
     ``pmid``, ``study_label``, ``species``, ``title``, ``granularity``,
     ``digestion``, ``digestion_enzyme``, ``instrument``, ``fragmentation``,
     ``acquisition_mode``, ``labeling``, ``fractionation``, ``n_fractions``,
     ``quantification``, ``search_engine``, ``fdr``, ``cell_lines_covered``,
     ``note``.
+
+    With ``include_canine=True``, append the source records from
+    :func:`hitlist.canine_bulk.canine_bulk_catalog`. These use that catalog's
+    versioned schema (``source_taxon``, ``study``, ``assets``, ``limitations``)
+    rather than the legacy cell-line index schema. Missing protocol details
+    and cell-line fields are not fabricated. Use their ``source_id`` with
+    :func:`hitlist.canine_bulk.curate_canine_bulk` to obtain tissue/pool evidence.
 
     The acquisition fields (``instrument``, ``fragmentation``,
     ``acquisition_mode``, ``labeling``, ``search_engine``, ``fdr``) use
@@ -472,7 +462,26 @@ def load_bulk_sources() -> list[dict]:
     could have been observed), and the instrument/fractionation determine
     dynamic range and sensitivity limits.
     """
-    return [dict(s) for s in _load_sources_yaml()]
+    sources = [dict(s) for s in _load_sources_yaml()]
+    if include_canine:
+        from .canine_bulk import canine_bulk_catalog
+
+        sources.extend(
+            {"source_id": key, **value} for key, value in canine_bulk_catalog()["sources"].items()
+        )
+    return sources
+
+
+def load_bulk_evidence(directory, *, table="peptides", tissue=None, peptide=None, max_rows=250000):
+    """Read a checked source bundle with tissue/pool scope and source-native units.
+
+    See :func:`hitlist.canine_bulk.curate_canine_bulk`. Existing cell-line loaders
+    retain their original defaults; this explicit source query never loads a
+    human dataset or interprets bulk peptides as MHC ligands.
+    """
+    from .canine_bulk import load_bulk_evidence as read
+
+    return read(directory, table=table, tissue=tissue, peptide=peptide, max_rows=max_rows)
 
 
 def load_bulk_peptides(
@@ -492,7 +501,7 @@ def load_bulk_peptides(
     Identifies which peptides *within* a protein were ever observed by
     deep shotgun MS on a given cell line — the intra-protein
     detectability prior for MHC-ligandome analyses. Source: Bekker-Jensen
-    et al. 2017 (PMID 28591648) across the full Figure 1b design
+    et al. 2017 (PMID 28601559) across the full Figure 1b design
     matrix: HeLa across four enzymes (Trypsin/P + Chymotrypsin / GluC /
     LysC), four fractionation depths (14, 39, 46, 70), and ± TiO2
     phospho enrichment; plus the 46-fraction tryptic panel for A549,
@@ -527,24 +536,31 @@ def load_bulk_peptides(
         ``"none"`` (baseline, the **default**), ``"TiO2"`` (phospho
         enrichment), or ``None`` to include both populations.
     fractionation_ph
-        Filter by high-pH SPE buffer pH. Every arm in the deposit is
-        at pH 10 except the explicit ``Tryp-Phos-pH8`` TiO2 arm, which
-        is stamped ``8.0``. Pass ``8.0`` or ``10.0`` (float) or an
-        iterable to restrict; ``None`` (default) returns all pH values.
+        Filter by reviewed fractionation pH. Ordinary 39/46/70-fraction
+        arms carry the paper's reported buffer pH 8; named 12-fraction
+        phosphopeptide arms retain their label-derived 8/10 distinction.
+        Reused 14-fraction and unresolved 50-fraction protocols are unknown.
+        Numeric filters exclude unknowns; ``None`` retains them. Inspect
+        ``fractionation_ph_basis`` and ``fractionation_ph_reference`` before
+        comparing protocols. Original CSV annotations remain separately in
+        ``legacy_fractionation_ph``.
     length_min, length_max
         Inclusive peptide length bounds. Typical usage:
         ``length_min=8, length_max=11`` for MHC-I-compatible peptides;
         ``length_min=7, length_max=30`` for the detectability-training
         input range. Leave unset for no length filter.
     min_reproducibility
-        Keep peptides whose detected-replicate fraction
-        (``n_replicates_detected / n_replicates_possible``) is at
-        least this value. ``0.5`` keeps "≥ half the replicates";
-        ``1.0`` keeps "every replicate". The denominator is computed
-        per-arm before any other filters (#97), so single-replicate
-        arms have denominator 1 and a ``min_reproducibility=1.0``
-        filter still keeps their detections rather than dropping the
-        whole arm.
+        Keep peptides with a qualified detected-experiment fraction at least this
+        value (finite, between 0 and 1). Totals come from the curated deposited
+        experiment inventory, never the maximum observed detection count. The
+        legacy ``n_replicates_*`` columns are compatibility names for experiment
+        counts, not biological replicates. Pooled HeLa 46-fraction per-peptide
+        counts and unsupported/invalid counts remain unknown and are excluded by
+        every threshold, including zero. ``None`` preserves all observations.
+        Inspect ``replicate_count_status``, ``replicate_experiment_ids``, source
+        reference/hash and preserved ``reported_n_replicates_*`` fields. Separate
+        ``n_acquisition_runs`` and unknown ``n_biological_replicates`` prevent
+        interpreting fractions or experiments as independent biological samples.
 
     Returns
     -------
@@ -552,7 +568,8 @@ def load_bulk_peptides(
         peptide, cell_line_name, uniprot_acc, gene_symbol, length,
         start_position, end_position, digestion_enzyme,
         n_fractions_in_run, enrichment, fractionation_ph, modifications,
-        n_replicates_detected, n_replicates_possible (#97), source,
+        n_replicates_detected, n_replicates_possible, reproducibility_fraction,
+        n_experiments_detected, n_experiments_possible, replicate_count_status, source,
         reference (plus acquisition metadata when the parquet is built).
     """
     if enrichment == _ENRICHMENT_DEFAULT:
@@ -564,11 +581,8 @@ def load_bulk_peptides(
     else:
         df = _load_bj().copy().rename(columns={"cell_line": "cell_line_name"})
 
-    # Compute n_replicates_possible BEFORE the user filters narrow the
-    # frame — the per-arm denominator is a property of the experimental
-    # design, not of the row subset the user happens to be asking about.
-    # If the parquet build later starts emitting this column directly,
-    # the recompute here is idempotent.
+    # Source-backed counts are independent of query filters. Reapplication to
+    # a current parquet retains the original reported values and is idempotent.
     df = _add_n_replicates_possible(df)
 
     df = _apply_cell_line_filter(df, cell_line)
@@ -600,3 +614,24 @@ def available_protein_cell_lines() -> list[str]:
 def available_peptide_cell_lines() -> list[str]:
     """Cell lines covered by the peptide-level index (load_bulk_peptides)."""
     return sorted(_load_bj()["cell_line"].unique().tolist())
+
+
+def build_detectability_training_set(**kwargs):
+    """Build search-scoped candidates; see :mod:`hitlist.detectability`."""
+    from .detectability import build_detectability_training_set as build
+
+    return build(**kwargs)
+
+
+def iter_detectability_training_set(**kwargs):
+    """Stream search-scoped candidate batches; see :mod:`hitlist.detectability`."""
+    from .detectability import iter_detectability_training_set as iterate
+
+    return iterate(**kwargs)
+
+
+def export_detectability_training_set(output_dir, **kwargs):
+    """Write a bounded Parquet dataset and provenance manifest atomically."""
+    from .detectability import export_detectability_training_set as export
+
+    return export(output_dir, **kwargs)

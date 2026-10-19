@@ -31,9 +31,47 @@ def _write_observations(tmp_path, monkeypatch, rows):
         "antigen_processing_comments": "",
         "assay_comments": "",
     }
-    pd.DataFrame([{**defaults, **row} for row in rows]).to_parquet(path, index=False)
+    pd.DataFrame([{**defaults, **row} for row in rows]).assign(
+        assay_method="mass spectrometry", qualitative_measurement="Positive"
+    ).to_parquet(path, index=False)
     monkeypatch.setattr(observations, "observations_path", lambda: path)
     return path
+
+
+def test_attribution_does_not_build_candidates_for_unrelated_studies(tmp_path, monkeypatch):
+    from hitlist import export
+
+    _write_observations(
+        tmp_path,
+        monkeypatch,
+        [{"pmid": 99999991, "peptide": "AAAAAAAAA", "mhc_restriction": "HLA-A*02:01"}],
+    )
+    monkeypatch.setattr(
+        export,
+        "load_pmid_overrides",
+        lambda: {
+            99999991: {
+                "ms_samples": [{"sample_label": "relevant", "mhc": "HLA-A*02:01", "mhc_class": "I"}]
+            },
+            99999992: {
+                "ms_samples": [
+                    {"sample_label": "unrelated", "mhc": "HLA-B*07:02", "mhc_class": "I"}
+                ]
+            },
+        },
+    )
+    original = export.sample_mhc_candidates
+    scanned = []
+
+    def counted(value):
+        scanned.append(value)
+        return original(value)
+
+    monkeypatch.setattr(export, "sample_mhc_candidates", counted)
+    result = generate_observations_table()
+    assert result["sample_label"].tolist() == ["relevant"]
+    assert "HLA-A*02:01" in scanned
+    assert "HLA-B*07:02" not in scanned
 
 
 @pytest.mark.parametrize("restriction", ["HLA class I", "HLA-A*11:01"])

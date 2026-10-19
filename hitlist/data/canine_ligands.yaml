@@ -1,0 +1,266 @@
+# Reviewed original MS observation sheets only; human-TAA comparison sheets are excluded.
+schema_version: 1
+mhc_class: I
+mhc_species: Canis lupus familiaris
+pmid: 42199926
+doi: 10.1016/j.isci.2026.115975
+study_label: Kaabinejadian 2026 — canine tumors and DLA-transduced HCT116
+source_reference: https://pmc.ncbi.nlm.nih.gov/articles/PMC13200046/
+raw_accession: PXD074485
+source_version: 2026-05-15-publication
+reported_fdr_threshold: 0.01
+fdr_scope: PEAKS decoy-fusion filtered identifications
+sequence_length_min: 8
+sequence_length_max: 30
+identification_method: DB Search
+assets:
+- url: https://ars.els-cdn.com/content/image/1-s2.0-S2589004226013507-mmc2.xlsx
+  size_bytes: 146626
+  sha256: 8a80e7eda8749cb60a79b78baf7d43e02f4edab25db600132a1aa3d073b73e1b
+  md5: f35767b126d70517b7189b62f5e3d449
+  file: mmc2.xlsx
+  header:
+  - Peptide
+  - Length
+  - Accession
+  - Found By
+  sheets:
+  - sheet: DLA-88-00302
+    file: mmc2-DLA-88-00302.csv
+    condition_id: hct116_dla_88_003_02
+    sample_label: HCT116 DLA-88*003:02
+    donor_label: ''
+    histology: colorectal carcinoma cell line
+    ip_antibody: BB7.6
+    mhc_restriction: DLA-88*003:02
+    reported_dla_typing: DLA-88*003:02
+    construct_description: ''
+    n_observations: 811
+    context: heterologous_human_host_monoallelic
+    search_database: Swiss-Prot human + iRT; exact release and FASTA hash unresolved
+    defaults:
+      host: Homo sapiens
+      species: Homo sapiens
+      source_organism: Homo sapiens
+      culture_condition: Cell Line / Clone
+      cell_name: HCT116 HLA-I KO
+      source_tissue: colon
+      disease: cancer
+      process_type: No immunization
+      attributed_sample_label: HCT116 DLA-88*003:02
+  - sheet: DLA-88-01201
+    file: mmc2-DLA-88-01201.csv
+    condition_id: hct116_dla_88_012_01
+    sample_label: HCT116 DLA-88*012:01
+    donor_label: ''
+    histology: colorectal carcinoma cell line
+    ip_antibody: BB7.6
+    mhc_restriction: DLA-88*012:01
+    reported_dla_typing: DLA-88*012:01
+    construct_description: ''
+    n_observations: 912
+    context: heterologous_human_host_monoallelic
+    search_database: Swiss-Prot human + iRT; exact release and FASTA hash unresolved
+    defaults:
+      host: Homo sapiens
+      species: Homo sapiens
+      source_organism: Homo sapiens
+      culture_condition: Cell Line / Clone
+      cell_name: HCT116 HLA-I KO
+      source_tissue: colon
+      disease: cancer
+      process_type: No immunization
+      attributed_sample_label: HCT116 DLA-88*012:01
+  - sheet: DLA-88-50101
+    file: mmc2-DLA-88-50101.csv
+    condition_id: hct116_dla_88_501_01
+    sample_label: HCT116 DLA-88*501:01
+    donor_label: ''
+    histology: colorectal carcinoma cell line
+    ip_antibody: BB7.6
+    mhc_restriction: DLA-88*501:01
+    reported_dla_typing: DLA-88*501:01
+    construct_description: DLA-88*501:01 (AA21 P > L); numbering convention not resolved
+    n_observations: 1857
+    context: heterologous_human_host_monoallelic
+    search_database: Swiss-Prot human + iRT; exact release and FASTA hash unresolved
+    defaults:
+      host: Homo sapiens
+      species: Homo sapiens
+      source_organism: Homo sapiens
+      culture_condition: Cell Line / Clone
+      cell_name: HCT116 HLA-I KO
+      source_tissue: colon
+      disease: cancer
+      process_type: No immunization
+      attributed_sample_label: HCT116 DLA-88*501:01
+- url: https://ars.els-cdn.com/content/image/1-s2.0-S2589004226013507-mmc3.xlsx
+  size_bytes: 34912
+  sha256: a87ff80df3ee7179b0bdc86c5fc49b00ad2c89cb40ca73133b97dc746096c25b
+  md5: 2f6c9be0a448f2e5e4484937a2c3c72d
+  file: mmc3.xlsx
+  header:
+  - Peptide
+  - Length
+  - Accession
+  - Found By
+  sheets:
+  - sheet: All Peptides
+    file: mmc3-All_Peptides.csv
+    condition_id: lola_h58a
+    sample_label: Lola H58A
+    donor_label: Lola
+    histology: osteosarcoma
+    ip_antibody: H58A
+    mhc_restriction: MHC class I
+    reported_dla_typing: DLA-88*501:01
+    construct_description: ''
+    n_observations: 207
+    context: endogenous_canine_primary
+    search_database: UniProt dog + CanFam3/CanFam4/Basenji/GreatDane + iRT; exact FASTA hashes unresolved
+    defaults:
+      host: Canis lupus familiaris
+      species: Canis lupus familiaris
+      source_organism: Canis lupus familiaris
+      culture_condition: Direct Ex Vivo
+      cell_name: ''
+      source_tissue: bone
+      disease: cancer
+      process_type: No immunization
+      attributed_sample_label: Lola H58A
+- url: https://ars.els-cdn.com/content/image/1-s2.0-S2589004226013507-mmc4.xlsx
+  size_bytes: 45078
+  sha256: 32eda8030256186a2c89df7bd58836d9e65ff5f060e1f1763673f92fed1f4052
+  md5: 05fb9a5efb46cb5bafb51a3344ddb298
+  file: mmc4.xlsx
+  header:
+  - Peptide
+  - Length
+  - Accession
+  - Found By
+  sheets:
+  - sheet: All Peptides
+    file: mmc4-All_Peptides.csv
+    condition_id: lola_bb7_6
+    sample_label: Lola BB7.6
+    donor_label: Lola
+    histology: osteosarcoma
+    ip_antibody: BB7.6
+    mhc_restriction: MHC class I
+    reported_dla_typing: DLA-88*501:01
+    construct_description: ''
+    n_observations: 330
+    context: endogenous_canine_primary
+    search_database: UniProt dog + CanFam3/CanFam4/Basenji/GreatDane + iRT; exact FASTA hashes unresolved
+    defaults:
+      host: Canis lupus familiaris
+      species: Canis lupus familiaris
+      source_organism: Canis lupus familiaris
+      culture_condition: Direct Ex Vivo
+      cell_name: ''
+      source_tissue: bone
+      disease: cancer
+      process_type: No immunization
+      attributed_sample_label: Lola BB7.6
+- url: https://ars.els-cdn.com/content/image/1-s2.0-S2589004226013507-mmc5.xlsx
+  size_bytes: 145684
+  sha256: c76b3712e2840f153812b4c3c3f84ec40040e224d7caf829a8563c677f0727ec
+  md5: b1e8ea293c375dba6d87f773739fbcfe
+  file: mmc5.xlsx
+  header:
+  - Peptides
+  - Length
+  - Accession
+  - Found By
+  sheets:
+  - sheet: All Peptides
+    file: mmc5-All_Peptides.csv
+    condition_id: 163828a_bb7_6
+    sample_label: 163828A BB7.6
+    donor_label: 163828A
+    histology: anal sac carcinoma
+    ip_antibody: BB7.6
+    mhc_restriction: MHC class I
+    reported_dla_typing: DLA-88*004:02 (homozygous)
+    construct_description: ''
+    n_observations: 1671
+    context: endogenous_canine_primary
+    search_database: UniProt dog + CanFam3/CanFam4/Basenji/GreatDane + iRT; exact FASTA hashes unresolved
+    defaults:
+      host: Canis lupus familiaris
+      species: Canis lupus familiaris
+      source_organism: Canis lupus familiaris
+      culture_condition: Direct Ex Vivo
+      cell_name: ''
+      source_tissue: anal sac
+      disease: cancer
+      process_type: No immunization
+      attributed_sample_label: 163828A BB7.6
+- url: https://ars.els-cdn.com/content/image/1-s2.0-S2589004226013507-mmc6.xlsx
+  size_bytes: 18698
+  sha256: 62248335784c8958333b2ce917e13a901e9b731577a78a13452b6349185d763a
+  md5: 6ec87549db66ba7d90738b6661a32393
+  file: mmc6.xlsx
+  header:
+  - Peptide
+  - Length
+  - Accession
+  - Found By
+  sheets:
+  - sheet: All Peptides
+    file: mmc6-All_Peptides.csv
+    condition_id: lily_h58a
+    sample_label: Lily H58A
+    donor_label: Lily
+    histology: anal sac carcinoma
+    ip_antibody: H58A
+    mhc_restriction: MHC class I
+    reported_dla_typing: DLA-88*004:02;DLA-88*501:01;DLA-88*501:02
+    construct_description: ''
+    n_observations: 60
+    context: endogenous_canine_primary
+    search_database: UniProt dog + CanFam3/CanFam4/Basenji/GreatDane + iRT; exact FASTA hashes unresolved
+    defaults:
+      host: Canis lupus familiaris
+      species: Canis lupus familiaris
+      source_organism: Canis lupus familiaris
+      culture_condition: Direct Ex Vivo
+      cell_name: ''
+      source_tissue: anal sac
+      disease: cancer
+      process_type: No immunization
+      attributed_sample_label: Lily H58A
+- url: https://ars.els-cdn.com/content/image/1-s2.0-S2589004226013507-mmc7.xlsx
+  size_bytes: 624158
+  sha256: 2992966f4b9e1901cfc11bd6c75ed3bc2439d69dea529491434c2e3cd0cfdb30
+  md5: 7fc92e8cf5522ba5e99002ad541bd375
+  file: mmc7.xlsx
+  header:
+  - Peptide
+  - Length
+  - Accession
+  - Found By
+  sheets:
+  - sheet: All Peptides
+    file: mmc7-All_Peptides.csv
+    condition_id: bogey_bb7_6
+    sample_label: Bogey BB7.6
+    donor_label: Bogey
+    histology: oral melanoma
+    ip_antibody: BB7.6
+    mhc_restriction: MHC class I
+    reported_dla_typing: DLA-88*003:02;DLA-88*006:01;DLA-88*017:01 (reported DLA-88L locus)
+    construct_description: ''
+    n_observations: 10511
+    context: endogenous_canine_primary
+    search_database: UniProt dog + CanFam3/CanFam4/Basenji/GreatDane + iRT; exact FASTA hashes unresolved
+    defaults:
+      host: Canis lupus familiaris
+      species: Canis lupus familiaris
+      source_organism: Canis lupus familiaris
+      culture_condition: Direct Ex Vivo
+      cell_name: ''
+      source_tissue: oral cavity
+      disease: cancer
+      process_type: No immunization
+      attributed_sample_label: Bogey BB7.6

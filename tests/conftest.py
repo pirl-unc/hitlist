@@ -57,6 +57,56 @@ def pytest_configure(config):
         pytest.exit(message, returncode=1)
 
 
+@pytest.fixture(autouse=True)
+def isolated_unit_data_dir(request, tmp_path, tmp_path_factory, monkeypatch):
+    """Ordinary tests cannot pick up a developer's or CI's installed corpus.
+
+    Tests can override this with their own paths or explicitly exercise directory
+    resolution. Integration tests retain the configured canonical corpus.
+    """
+    if request.node.get_closest_marker("integration") is None:
+        import pandas as pd
+        import pyarrow.parquet as pq
+
+        from hitlist import downloads
+
+        corpus = downloads.data_dir().resolve()
+        owned = tmp_path_factory.getbasetemp().resolve()
+        package_data = Path(downloads.__file__).resolve().parent / "data"
+        reference_dirs = {
+            package_data / "bulk_proteomics",
+            package_data / "supplementary",
+        }
+
+        def bounded_read(original):
+            def read(source, *args, **kwargs):
+                try:
+                    path = Path(source).resolve()
+                except TypeError:
+                    return original(source, *args, **kwargs)
+                if (
+                    owned not in path.parents
+                    and path.is_file()
+                    and (
+                        path.parent == corpus
+                        or path.parent in reference_dirs
+                        or path.stat().st_size > 10 * 1024**2
+                    )
+                ):
+                    raise RuntimeError(
+                        f"Full reference data requires an integration test: {path}. "
+                        "Use small test-owned fixtures for unit contracts."
+                    )
+                return original(source, *args, **kwargs)
+
+            return read
+
+        monkeypatch.setattr(pd, "read_csv", bounded_read(pd.read_csv))
+        monkeypatch.setattr(pd, "read_parquet", bounded_read(pd.read_parquet))
+        monkeypatch.setattr(pq, "read_table", bounded_read(pq.read_table))
+        monkeypatch.setattr(downloads, "_override_data_dir", tmp_path / "hitlist-data")
+
+
 @pytest.fixture
 def _isolated_curation_root(tmp_path, monkeypatch):
     """Shared base for a test-isolated curation YAML tree (#471, #474).
@@ -104,6 +154,14 @@ def _build_full_observations_df():
 
 
 @pytest.fixture(scope="session")
+def full_supplementary_df():
+    """One canonical classified scan, shared by read-only full-data assertions."""
+    from hitlist.supplement import scan_supplementary
+
+    return scan_supplementary()
+
+
+@pytest.fixture(scope="session")
 def full_observations_df(tmp_path_factory, worker_id):
     """Built observations table with no filters applied.
 
@@ -147,7 +205,7 @@ def full_observations_df(tmp_path_factory, worker_id):
 def pytest_collection_modifyitems(config, items):
     """Auto-tag tests that depend on the built observations corpus.
 
-    Any test that requests ``full_observations_df`` is implicitly an
+    Any test that requests ``full_observations_df`` or ``full_supplementary_df`` is implicitly an
     integration test — it cannot run without the built parquet, takes
     seconds-to-minutes per call after the session fixture warms, and
     is the dominant cost driver for ``./test.sh``. Marking them
@@ -161,5 +219,7 @@ def pytest_collection_modifyitems(config, items):
     """
     integration = pytest.mark.integration
     for item in items:
-        if "full_observations_df" in getattr(item, "fixturenames", ()):
+        if {"full_observations_df", "full_supplementary_df"}.intersection(
+            getattr(item, "fixturenames", ())
+        ):
             item.add_marker(integration)

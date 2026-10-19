@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import re
 from typing import NamedTuple
+from urllib.parse import quote
 
 import numpy as np
 import pandas as pd
@@ -59,6 +60,14 @@ from .curation import (
     species_axes_agreement,
 )
 from .curation import normalize_serotype_query as _normalize_serotype_query
+from .dataset import dataset_snapshot
+from .pandas_utils import fillna_scalar_safe as _fillna_scalar_safe
+from .species_contexts import (
+    ARM_SPECIFIC_SPECIES_CONTEXT_COLUMNS,
+    SPECIES_CONTEXT_COLUMNS,
+    empty_species_context_columns,
+    species_context_for_sample,
+)
 
 # MS acquisition metadata fields.  Each may appear at the PMID level
 # (study-wide default) or on individual ``ms_samples`` entries.
@@ -105,6 +114,8 @@ _CATEGORICAL_EXPORT_METADATA_COLS: tuple[str, ...] = (
     "fragmentation",
     "labeling",
     "ip_antibody",
+    "search_engine",
+    "fdr",
     # NB: ``sample_label`` is deliberately NOT categoricalized — it's a
     # sample-identity column that consumers compare element-wise against
     # ``cell_name`` (itself already categorical), and two categoricals with
@@ -127,6 +138,9 @@ _CATEGORICAL_EXPORT_METADATA_COLS: tuple[str, ...] = (
     # cells stay categorical here (unlike apm_genes_perturbed) because they
     # are sorted and canonical, so equal cells really are one category.
     *CONDITION_COLUMNS,
+    # Independently reviewed literature contexts are also bounded by the
+    # curation registry, including the free-text scope and citation fields.
+    *SPECIES_CONTEXT_COLUMNS,
     # PMID-level / derived low-cardinality metadata
     "quantification_method",
     "mhc_class_label_severity",
@@ -281,11 +295,14 @@ _TRAINING_DEFAULTS = {
     "fragmentation": "",
     "labeling": "",
     "ip_antibody": "",
+    "search_engine": "",
+    "fdr": "",
     "quantification_method": "",
     # Binding evidence has no MS sample, so it has no experimental condition
     # to report.  "" says exactly that; any other default would assert an
     # untreated arm for every predicted binder in the training table (#450).
     **empty_condition_columns(),
+    **empty_species_context_columns(),
     "sample_match_type": "not_applicable",
     "sample_mhc_origin": "not_applicable",
     "matched_sample_count": 0,
@@ -293,19 +310,6 @@ _TRAINING_DEFAULTS = {
     "is_engineered_mhc": False,
     "is_non_peptide_ligand": False,
 }
-
-
-def _fillna_scalar_safe(series: pd.Series, value) -> pd.Series:
-    """``series.fillna(value)`` that tolerates Categorical dtype.
-
-    Filling a Categorical with a value not already in its category set
-    raises ``TypeError``; widening the categories first keeps the fill
-    working without dropping the memory-saving categorical encoding (#263).
-    No-op widening for non-categorical columns.
-    """
-    if isinstance(series.dtype, pd.CategoricalDtype) and value not in series.cat.categories:
-        series = series.cat.add_categories([value])
-    return series.fillna(value)
 
 
 def _fillna_series_safe(primary: pd.Series, fallback: pd.Series) -> pd.Series:
@@ -556,6 +560,7 @@ def _blank_arm_identity(meta: dict) -> dict:
         "mhc",
         "mhc_basis",
         *ARM_SPECIFIC_CONDITION_COLUMNS,
+        *ARM_SPECIFIC_SPECIES_CONTEXT_COLUMNS,
         *MHC_GENOTYPE_COLUMNS,
     ):
         if col in meta:
@@ -862,6 +867,8 @@ def _consensus_meta(
     # do survive, which is the point of consensusing at all.
     for _arm_col in ARM_SPECIFIC_CONDITION_COLUMNS:
         out[_arm_col] = ""
+    for _arm_col in ARM_SPECIFIC_SPECIES_CONTEXT_COLUMNS:
+        out[_arm_col] = ""
 
     # If every surviving candidate belongs to one sample system, the system is
     # known and only the arm is not — say so, whichever stage narrowed them.
@@ -1130,6 +1137,7 @@ def _empty_ms_samples_columns() -> list[str]:
     return [
         *base,
         *CONDITION_COLUMNS,
+        *SPECIES_CONTEXT_COLUMNS,
         *apm_columns_for_sample(""),
         "condition_category",
         "is_control_arm",
@@ -1138,6 +1146,7 @@ def _empty_ms_samples_columns() -> list[str]:
     ]
 
 
+@dataset_snapshot()
 def generate_ms_samples_table(
     mhc_class: str | None = None,
     apm_only: bool = False,
@@ -1316,6 +1325,14 @@ def generate_ms_samples_table(
             # legacy ``perturbation`` / ``condition_category`` / ``apm_*``
             # classifiers below keep their documented meanings alongside.
             row.update(condition_columns_for_sample(sample))
+            # The literature registry is separate from the mismatch-derived
+            # flags and links only through a stable curated arm identity.
+            row.update(
+                species_context_for_sample(
+                    pmid_int,
+                    str(sample.get("condition_id") or ""),
+                )
+            )
             # APM perturbation block — one boolean per gene + union
             # (#202).  Per-gene flags come from this sample's own
             # condition; the study's panel-level list is reported in the
@@ -1377,6 +1394,7 @@ def _observation_eligible_samples(samples: pd.DataFrame) -> pd.DataFrame:
     return samples[samples["profiled"] != "false"].reset_index(drop=True)
 
 
+@dataset_snapshot()
 def generate_observations_table(
     mhc_class: str | None = None,
     species: str | None = None,
@@ -1567,6 +1585,11 @@ def generate_observations_table(
     # a multi-sample study cannot become a single-sample fallback merely
     # because the caller requested one of its classes (#532).
     samples = _observation_eligible_samples(generate_ms_samples_table())
+    # Unrelated studies cannot match these rows. Avoid building their allele,
+    # class and discriminator pools, but retain every arm/class of each present
+    # study so narrow queries do not change attribution (#532).
+    present_pmids = pd.to_numeric(obs["pmid"], errors="coerce").dropna().unique()
+    samples = samples[samples["pmid"].isin(present_pmids)]
 
     # Attribution is a fact about the study, not the rows a caller requests.
     # A narrow query still needs the full study's discriminator variation to
@@ -1600,6 +1623,8 @@ def generate_observations_table(
         "fragmentation",
         "labeling",
         "ip_antibody",
+        "search_engine",
+        "fdr",
         # APM perturbation block (#202) — propagated through the join
         # so consumers can filter / pivot on individual genes.  These
         # describe the matched sample's own condition, so they are only
@@ -1617,6 +1642,10 @@ def generate_observations_table(
         # knowable where the row reached a sample; ``_consensus_meta`` keeps
         # only what every candidate arm agrees on when it did not.
         *CONDITION_COLUMNS,
+        # Primary-literature evidence for cross-species experimental context.
+        # Exact arm links attach it; consensus retains only shared biological
+        # axes and clears the review record's identity/provenance.
+        *SPECIES_CONTEXT_COLUMNS,
         # Curated provenance (#373).  These describe the curation, not the
         # built classification flags, which stay PMID- and rule-driven at
         # build time.
@@ -1701,7 +1730,7 @@ def generate_observations_table(
     # molecules keep exact identity: two known pairs that merely share DQA1
     # or DPA1 are not the same molecule.
     _observed_pairs_by_component: dict[str, set[str]] = {}
-    _pair_restrictions = set(obs["mhc_restriction"].fillna("").astype(str).unique())
+    _pair_restrictions = set(_fillna_scalar_safe(obs["mhc_restriction"], "").astype(str).unique())
     if _study_context is not None:
         _pair_restrictions.update(_study_context["mhc_restriction"].unique())
     for _restriction in sorted(_pair_restrictions):
@@ -1850,6 +1879,9 @@ def generate_observations_table(
         allele_matched_df = allele_lookup.reindex(allele_keys)
         allele_matched_df.index = obs.index
         obs[meta_cols] = allele_matched_df
+        # The assigned columns own their buffers now. Keeping this frame alive
+        # retains the original strings after attribution replaces them on obs.
+        del allele_matched_df
     else:
         for col in meta_cols:
             obs[col] = pd.NA
@@ -2085,6 +2117,9 @@ def generate_observations_table(
         single_matched_df = single_lookup.reindex(single_keys)
         single_matched_df.index = obs.index
         obs[fb_cols] = single_matched_df
+        # Otherwise popping the fallback columns below cannot free their buffers:
+        # this local would keep every shadow alive until the entire export returns.
+        del single_matched_df
     else:
         for col in fb_cols:
             obs[col] = pd.NA
@@ -2542,6 +2577,9 @@ def generate_observations_table(
                         else:
                             _lvals = _lvals.fillna("")
                         obs[_lcol] = obs[_lcol].where(~_label_hit, _lvals)
+                # The coalesce owns its output; do not retain the full-length
+                # metadata shadow through later annotation and categorization.
+                del _label_matched
 
     # 3d) Resolve every statement-excluded row, once and from row data alone.
     #
@@ -2837,6 +2875,7 @@ def generate_observations_table(
     return result
 
 
+@dataset_snapshot()
 def generate_ms_observations_table(
     mhc_class: str | None = None,
     species: str | None = None,
@@ -2907,6 +2946,7 @@ def generate_ms_observations_table(
     )
 
 
+@dataset_snapshot()
 def generate_binding_table(
     mhc_class: str | None = None,
     species: str | None = None,
@@ -3002,9 +3042,9 @@ def generate_binding_table(
         ``measurement_units`` to avoid mixing unit systems.
     has_quantitative_value
         When True, keep only rows with a non-NaN ``quantitative_value``
-        (a quick "give me only the IC50/EC50/Kd rows" filter).  When
-        False, keep only qualitative-tier rows.  ``None`` leaves the
-        axis unfiltered.
+        regardless of endpoint or units. When False, keep rows without
+        a numeric value. ``None`` leaves the axis unfiltered. Numeric
+        presence alone does not identify affinity measurements.
     mhc_allele_in_set
         Filter to rows whose ``mhc_allele_set`` (issue #137 expanded
         candidate-allele set) contains any of the listed alleles.  Use
@@ -3098,15 +3138,15 @@ def generate_binding_table(
     # sparse and don't benefit from pyarrow push-down filters.
     if assay_method is not None and "assay_method" in df.columns:
         wanted = {m.casefold() for m in _to_list(assay_method)}
-        method_col = df["assay_method"].fillna("").astype(str).str.casefold()
+        method_col = _fillna_scalar_safe(df["assay_method"], "").astype(str).str.casefold()
         df = df[method_col.apply(lambda m: any(w in m for w in wanted))]
     if response_measured is not None and "response_measured" in df.columns:
         wanted_responses = {r.casefold() for r in _to_list(response_measured)}
-        response_col = df["response_measured"].fillna("").astype(str).str.casefold()
+        response_col = _fillna_scalar_safe(df["response_measured"], "").astype(str).str.casefold()
         df = df[response_col.isin(wanted_responses)]
     if measurement_units is not None and "measurement_units" in df.columns:
         wanted_units = {u.casefold() for u in _to_list(measurement_units)}
-        units_col = df["measurement_units"].fillna("").astype(str).str.casefold()
+        units_col = _fillna_scalar_safe(df["measurement_units"], "").astype(str).str.casefold()
         df = df[units_col.isin(wanted_units)]
     if has_quantitative_value is not None and "quantitative_value" in df.columns:
         if has_quantitative_value:
@@ -3156,6 +3196,7 @@ _SAMPLE_PROVENANCE_COLUMNS = (
     # retyped.  This tuple has already drifted from the plain samples export
     # twice; a hand-copied list of 23 more names would be the third time.
     *CONDITION_COLUMNS,
+    *SPECIES_CONTEXT_COLUMNS,
     # Curated provenance (#373).  Omitting these is how one CLI flag used to
     # change which curation a user got back; the comment above says exactly
     # that about the species axes, and the same drift recurred here.
@@ -3170,6 +3211,7 @@ _SAMPLE_PROVENANCE_COLUMNS = (
 )
 
 
+@dataset_snapshot()
 def generate_sample_expression_table(
     mhc_class: str | None = None,
     cancer_type_backend=None,
@@ -3512,11 +3554,61 @@ def _attach_peptide_origin(
     return df
 
 
+def _attributed_training_ids(df: pd.DataFrame, source_ids: list[str]) -> list[str]:
+    """Distinguish explicit source attributions without inferring specimen identity.
+
+    Resolve against the original label, not the export's heuristic/pool metadata.
+    The full curation lookup makes keys independent of filters and row order.
+    """
+    ids = source_ids.copy()
+    if "attributed_sample_label" not in df.columns:
+        return ids
+    labels = df["attributed_sample_label"].astype("string").fillna("")
+    positions = np.flatnonzero(labels.str.strip().ne("").to_numpy(dtype=bool))
+    if not len(positions):
+        return ids
+
+    arms = {}
+    for pmid, entry in load_pmid_overrides().items():
+        for sample in entry.get("ms_samples", []):
+            label = str(sample.get("sample_label") or "").strip()
+            key = (str(pmid), label)
+            # A repeated label is ambiguous even if one entry has no arm ID.
+            arms[key] = "" if key in arms else str(sample.get("condition_id") or "").strip()
+
+    pmids = (
+        pd.to_numeric(df["pmid"].iloc[positions], errors="coerce")
+        .astype("Int64")
+        .astype("string")
+        .fillna("")
+        if "pmid" in df.columns
+        else [""] * len(positions)
+    )
+    for position, pmid, label in zip(positions, pmids, labels.iloc[positions]):
+        arm = arms.get((pmid, label.strip()), "")
+        basis, value = ("arm", arm) if arm else ("label", label)
+        kind, locator = source_ids[position].split(":", 1)
+        # Escape the separators (and literal percent signs) while keeping a
+        # source URL readable. This is a compound key, not a content digest.
+        ids[position] = (
+            f"{kind}:attributed:v1:{quote(locator, safe=':/')}"
+            f"|{basis}:{pmid}:{quote(value, safe='')}"
+        )
+    return ids
+
+
 def _apply_training_defaults(df: pd.DataFrame) -> pd.DataFrame:
     """Normalize the mixed MS/binding export schema."""
     from .observations import _source_organism_with_fallback
 
     result = df.copy()
+
+    if "provenance_id" not in result:
+        result["provenance_id"] = ""
+    result["provenance_id"] = result["provenance_id"].astype("string").fillna("")
+    result["provenance_status"] = result["provenance_id"].map(
+        lambda value: "indexed" if value else "legacy_missing"
+    )
 
     if "sample_mhc" not in result.columns and "mhc" in result.columns:
         result = result.rename(columns={"mhc": "sample_mhc", "note": "sample_note"})
@@ -3584,24 +3676,24 @@ def _apply_training_defaults(df: pd.DataFrame) -> pd.DataFrame:
     result["is_engineered_mhc"] = result["is_engineered_mhc"].astype(bool)
     result["is_non_peptide_ligand"] = result["is_non_peptide_ligand"].astype(bool)
 
-    # Stable evidence-row identifier.  Prefer ``assay_iri`` (row-level, from
+    # Common source identifier. Prefer ``assay_iri`` (assay-level, from
     # IEDB/CEDAR's "Assay IRI" column or the synthesized supplement string
-    # — unique per source MS row), then fall back to ``reference_iri``
+    # — shared by per-donor observations), then fall back to ``reference_iri``
     # (study-level for IEDB/CEDAR) for older parquets that predate #146,
     # and finally to a positional ``row:{idx}`` sentinel for rows missing
     # both identifiers.  See issue #146.
     assay_series = (
-        result["assay_iri"].fillna("").astype(str)
+        result["assay_iri"].astype("string").fillna("")
         if "assay_iri" in result.columns
         else pd.Series([""] * len(result), index=result.index)
     )
     ref_series = (
-        result["reference_iri"].fillna("").astype(str)
+        result["reference_iri"].astype("string").fillna("")
         if "reference_iri" in result.columns
         else pd.Series([""] * len(result), index=result.index)
     )
     if "evidence_kind" in result.columns:
-        evidence_kind = result["evidence_kind"].fillna("").astype(str)
+        evidence_kind = result["evidence_kind"].astype("string").fillna("")
         ids: list[str] = []
         for idx, (kind, assay, ref) in enumerate(zip(evidence_kind, assay_series, ref_series)):
             if assay.strip():
@@ -3610,7 +3702,8 @@ def _apply_training_defaults(df: pd.DataFrame) -> pd.DataFrame:
                 ids.append(f"{kind}:{ref}")
             else:
                 ids.append(f"{kind}:row:{idx}")
-        result["evidence_row_id"] = ids
+        result["evidence_source_id"] = ids
+        result["evidence_row_id"] = _attributed_training_ids(result, ids)
 
     return result
 
@@ -3696,13 +3789,23 @@ def _project_training_columns(df: pd.DataFrame, columns: list[str] | None) -> pd
     if columns is None:
         return df
     identity_cols = ["evidence_kind"]
-    if "evidence_row_id" in df.columns:
-        identity_cols.append("evidence_row_id")
+    identity_cols.extend(
+        c
+        for c in (
+            "evidence_row_id",
+            "evidence_source_id",
+            "provenance_id",
+            "provenance_status",
+            "lineage_context_id",
+        )
+        if c in df.columns
+    )
     requested = list(dict.fromkeys([*columns, *identity_cols]))
     available = [c for c in requested if c in df.columns]
     return df[available]
 
 
+@dataset_snapshot()
 def generate_training_table(
     include_evidence: str = "both",
     mhc_class: str | None = None,
@@ -3731,6 +3834,12 @@ def generate_training_table(
     columns: list[str] | None = None,
     explode_mappings: bool | None = None,
     *,
+    assay_method: str | list[str] | None = None,
+    response_measured: str | list[str] | None = None,
+    measurement_units: str | list[str] | None = None,
+    has_quantitative_value: bool | None = None,
+    quantitative_value_min: float | None = None,
+    quantitative_value_max: float | None = None,
     exclude_class_label_suspect: bool = False,
     exclude_class_label_implausible: bool = False,
     exclude_non_peptide_ligand: bool = True,
@@ -3753,6 +3862,17 @@ def generate_training_table(
     ``transcript_id`` / ``position`` / ``n_flank`` / ``c_flank`` from
     ``peptide_mappings.parquet``.
     Suitable for flank-aware model pipelines such as Presto.
+
+    ``evidence_row_id`` distinguishes explicit per-donor/sample attributions
+    on a shared assay. Attributed IDs use a versioned compound key of the source ID
+    and persistent curated arm (PMID + condition_id), or the original label
+    scoped to its PMID when no unique curated arm is available. Rows without
+    explicit attribution retain their pre-1.63.18 IDs. ``evidence_source_id``
+    retains the common, pre-1.63.18 source ID for all rows. Both IDs and
+    ``evidence_kind`` survive ``columns`` projection; mapping alternatives
+    share them. Neither key establishes specimen identity or independence.
+    Legacy indexes without assay IRIs retain reference/positional fallbacks,
+    which cannot guarantee unique, filter-stable observation identity.
 
     .. deprecated:: 1.24.1
        The ``explode_mappings`` kwarg is the previous name for
@@ -3779,6 +3899,23 @@ def generate_training_table(
 
     Parameters
     ----------
+    assay_method, response_measured, measurement_units
+        Binding-only filters, with the matching semantics of
+        :func:`generate_binding_table`: case-insensitive substring for
+        methods, case-insensitive exact membership for endpoints and units.
+        In ``both`` mode they leave the MS branch unchanged; in ``ms``
+        mode they have no effect. Measurement fields and inequality
+        qualifiers are preserved unless explicitly omitted by ``columns``.
+    has_quantitative_value
+        Binding-only numeric-presence filter: True keeps non-null values,
+        False keeps missing values, and None leaves the axis unfiltered.
+        A numeric value alone does not identify an affinity measurement;
+        select an explicit endpoint allowlist and units as well.
+    quantitative_value_min, quantitative_value_max
+        Binding-only inclusive bounds on the reported numeric value.
+        Missing values are excluded. Bounds do not interpret inequality
+        qualifiers or convert units; a reported ``>5000`` remains a
+        censored bound, not an exact value of 5000.
     exclude_class_label_suspect
         Drop rows whose curated MHC class disagrees with the peptide
         length severely enough to be flagged ``suspect`` — the strict
@@ -3858,7 +3995,15 @@ def generate_training_table(
         # extra copy is unnecessary churn. The earlier ms.copy() above
         # is kept since generate_observations_table can return a view
         # of obs from upstream filter chains.
-        binding = generate_binding_table(**shared_kwargs)
+        binding = generate_binding_table(
+            assay_method=assay_method,
+            response_measured=response_measured,
+            measurement_units=measurement_units,
+            has_quantitative_value=has_quantitative_value,
+            quantitative_value_min=quantitative_value_min,
+            quantitative_value_max=quantitative_value_max,
+            **shared_kwargs,
+        )
         binding["evidence_kind"] = "binding"
         parts.append(binding)
 
@@ -3868,6 +4013,14 @@ def generate_training_table(
         result = pd.concat(parts, ignore_index=True, sort=False)
 
     result = _apply_training_defaults(result)
+    if result["provenance_id"].ne("").any():
+        from .provenance import _contributor_contract
+
+        if _contributor_contract() is None:
+            raise ValueError("Provenance metadata missing; rebuild observations")
+    from .lineage import attach_lineage
+
+    result = attach_lineage(result, copy=False)
 
     if map_source_proteins:
         mappings = _load_training_mappings_for_peptides(
@@ -3972,7 +4125,9 @@ def _compute_has_peptide_level_allele(
         # Note: post-v1.30.44, ``_compress_categoricals`` pre-adds ``""`` to
         # every compressed column's categories so this ``fillna("")`` works
         # against the categorical without an out-of-category TypeError.
-        result = result & ~allele_resolution.fillna("").isin({"class_only", "serological"})
+        result = result & ~_fillna_scalar_safe(allele_resolution, "").isin(
+            {"class_only", "serological"}
+        )
     return result.astype(bool)
 
 
@@ -3995,8 +4150,8 @@ def _compute_is_chimeric(
     """
     from .curation import is_chimeric_system
 
-    src = source_organism.fillna("").astype(str).to_numpy()
-    mhc = mhc_species.fillna("").astype(str).to_numpy()
+    src = _fillna_scalar_safe(source_organism, "").astype(str).to_numpy()
+    mhc = _fillna_scalar_safe(mhc_species, "").astype(str).to_numpy()
     pairs = pd.MultiIndex.from_arrays([src, mhc])
     unique_pairs = pairs.unique()
     decisions = pd.Series(
@@ -4031,9 +4186,9 @@ def _compute_is_engineered_mhc(
     """
     from .curation import is_engineered_mhc
 
-    src = source_organism.fillna("").astype(str).to_numpy()
-    mhc = mhc_species.fillna("").astype(str).to_numpy()
-    hst = host.fillna("").astype(str).to_numpy()
+    src = _fillna_scalar_safe(source_organism, "").astype(str).to_numpy()
+    mhc = _fillna_scalar_safe(mhc_species, "").astype(str).to_numpy()
+    hst = _fillna_scalar_safe(host, "").astype(str).to_numpy()
     triples = pd.MultiIndex.from_arrays([src, mhc, hst])
     unique_triples = triples.unique()
     decisions = pd.Series(
@@ -4478,6 +4633,7 @@ def _best_support_label(summary_row: pd.Series) -> str:
     return ""
 
 
+@dataset_snapshot()
 def generate_ms_peptide_summary_table(
     mhc_class: str | None = None,
     species: str | None = None,
@@ -4723,6 +4879,7 @@ def generate_ms_peptide_summary_table(
     return result
 
 
+@dataset_snapshot()
 def generate_species_summary(mhc_class: str | None = None) -> pd.DataFrame:
     """Summarize MS-elution data coverage by species and MHC class.
 
@@ -4793,6 +4950,7 @@ def generate_species_summary(mhc_class: str | None = None) -> pd.DataFrame:
     return summary
 
 
+@dataset_snapshot()
 def validate_mhc_alleles() -> pd.DataFrame:
     """Parse all MHC alleles in pmid_overrides with mhcgnomes.
 
@@ -4908,6 +5066,7 @@ def _mhc_class_matches(sample_class: str, filter_class: str, sample_row=None) ->
     return normalize_mhc_class_token(filter_class) in parts
 
 
+@dataset_snapshot()
 def count_peptides_by_study(
     source: str | None = None,
 ) -> pd.DataFrame:
@@ -4933,6 +5092,7 @@ def count_peptides_by_study(
     return study_df
 
 
+@dataset_snapshot()
 def collect_alleles_from_data(
     source: str | None = None,
 ) -> pd.DataFrame:

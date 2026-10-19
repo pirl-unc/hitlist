@@ -68,6 +68,8 @@ from .curation import (
     ms_excluded_pmids,
     normalize_allele,
 )
+from .dataset import dataset_snapshot
+from .pandas_utils import fillna_scalar_safe
 
 _MHC_AUDIT_COLUMNS = [
     "evidence_kind",
@@ -126,6 +128,7 @@ def _split_mhc_audit_tokens(value: object, *, curated: bool = False) -> list[str
     return tokens
 
 
+@dataset_snapshot()
 def _default_mhc_audit_frames() -> dict[str, pd.DataFrame]:
     """Read only audit columns that exist in each built evidence parquet."""
     import pyarrow.parquet as pq
@@ -662,6 +665,7 @@ _SAMPLE_ATTRIBUTION_AUDIT_COLUMNS = [
 ]
 
 
+@dataset_snapshot()
 def sample_attribution_audit(
     samples: pd.DataFrame | None = None,
     observations: pd.DataFrame | None = None,
@@ -885,6 +889,7 @@ def resolution_histogram(
     return counts.reset_index(drop=True)
 
 
+@dataset_snapshot()
 def normalization_drift() -> pd.DataFrame:
     """Find alleles in pmid_overrides whose normalized form differs from input.
 
@@ -931,6 +936,7 @@ def normalization_drift() -> pd.DataFrame:
     )
 
 
+@dataset_snapshot()
 def species_axis_audit() -> pd.DataFrame:
     """Audit the #46 multi-axis species columns for chimeric / suspicious rows.
 
@@ -1025,6 +1031,7 @@ def species_axis_audit() -> pd.DataFrame:
     )
 
 
+@dataset_snapshot()
 def cross_reference(mhc_class: str | None = None) -> pd.DataFrame:
     """Find allele/data mismatches between curation YAML and observations.
 
@@ -1147,6 +1154,7 @@ def cross_reference(mhc_class: str | None = None) -> pd.DataFrame:
     )
 
 
+@dataset_snapshot()
 def discrepancies(
     mhc_class: str | None = None,
     min_rows: int = 50,
@@ -1274,7 +1282,7 @@ def discrepancies(
     df["_len"] = df["peptide"].str.len()
     nonstandard_re = re.compile(r"[^ACDEFGHIKLMNPQRSTVWY]")
     df["_nonstandard"] = df["peptide"].astype(str).str.contains(nonstandard_re)
-    df["_class_only"] = df["mhc_restriction"].fillna("").str.startswith("HLA class")
+    df["_class_only"] = fillna_scalar_safe(df["mhc_restriction"], "").str.startswith("HLA class")
     df["_mono_class_only"] = df["is_monoallelic"].fillna(False) & df["_class_only"]
     # Borderline (bulged class-I 13-14aa or short class-II 8-10aa) is
     # uncommon-but-real biology and doesn't fire the binary suspect
@@ -1293,7 +1301,8 @@ def discrepancies(
         df["_class_pool"] = False
 
     if by == "sample":
-        df["cell_name"] = df["cell_name"].fillna("").replace("", "(no cell_name)")
+        cell_names = fillna_scalar_safe(df["cell_name"], "(no cell_name)")
+        df["cell_name"] = cell_names.mask(cell_names.eq(""), "(no cell_name)")
         group_keys = ["pmid", "mhc_class", "cell_name"]
     else:
         group_keys = ["pmid", "mhc_class"]
@@ -1344,6 +1353,7 @@ def discrepancies(
     return out[output_cols].reset_index(drop=True)
 
 
+@dataset_snapshot()
 def run_all(mhc_class: str | None = None) -> dict[str, pd.DataFrame]:
     """Run every QC check and return a name → DataFrame mapping.
 
@@ -1436,6 +1446,7 @@ def _curation_plan_columns(available_optional: list[str]) -> list[str]:
     ]
 
 
+@dataset_snapshot()
 def curation_plan(
     mhc_class: str | None = None,
     min_rows: int = 50,
@@ -1617,6 +1628,7 @@ def curation_plan(
     return plan[output_cols].reset_index(drop=True)
 
 
+@dataset_snapshot()
 def proteome_coverage(
     min_rows: int = 1,
     use_uniprot: bool = False,
@@ -1686,7 +1698,7 @@ def proteome_coverage(
             ]
         )
 
-    df["source_organism"] = df["source_organism"].fillna("")
+    df["source_organism"] = fillna_scalar_safe(df["source_organism"], "")
     # ``observed=True`` -- ``source_organism`` is categorical (#597).
     grouped = df.groupby("source_organism", as_index=False, observed=True).agg(
         n_rows=("source_organism", "size"),

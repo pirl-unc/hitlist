@@ -9,18 +9,23 @@ from hitlist import downloads, mappings, proteome
 
 
 @pytest.mark.parametrize("fallback_has_proteomes", [False, True])
+@pytest.mark.parametrize("explicit_index_cache", [False, True])
 @pytest.mark.filterwarnings("error::DeprecationWarning")
 def test_spawned_build_preserves_configured_cache(
-    tmp_path, monkeypatch, fallback_has_proteomes, threaded_parent
+    tmp_path, monkeypatch, fallback_has_proteomes, explicit_index_cache, threaded_parent
 ):
     configured = tmp_path / "configured"
     fallback = tmp_path / "fallback"
     configured.mkdir()
     fallback.mkdir()
-    index_cache = tmp_path / "indexes"
+    index_cache = (
+        tmp_path / "indexes" if explicit_index_cache else configured / "proteome_index_cache"
+    )
     monkeypatch.setenv("HITLIST_DATA_DIR", str(fallback))
     monkeypatch.setattr(downloads, "_override_data_dir", configured)
-    monkeypatch.setattr(proteome, "_PROTEOME_INDEX_DISK_CACHE_DIR", index_cache)
+    monkeypatch.setattr(
+        proteome, "_PROTEOME_INDEX_DISK_CACHE_DIR", index_cache if explicit_index_cache else None
+    )
     monkeypatch.setenv("HITLIST_PROTEOME_INDEX_CACHE_GB", "1")
 
     labels = [f"Synthetic {i}" for i in range(4)]

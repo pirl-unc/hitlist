@@ -34,16 +34,11 @@ dependencies = [
     "numpy>=1.22",
     "PyYAML",
     "tqdm",
-    # On-demand caching of large externalized data assets (#303) into the
-    # openvax-ecosystem cache dir (datacache.get_data_dir; #291).
-    # Floor at 1.11.1 because `downloads.data_dir()` and `packaged_or_cached()`
-    # must resolve cache paths *without* touching the filesystem (#579), and
-    # 1.11.1 is the first release to expose `datacache.expected_path` /
-    # `datacache.resolve_path`, both documented as resolving "without filesystem
-    # access or mutations", plus `get_data_dir` documented as creating nothing.
-    # Older releases offered only `build_path`, which mkdir's the cache dir as a
-    # side effect.  1.11.1 declares requires-python >=3.9, matching our floor.
-    "datacache>=1.11.1",
+    # Shared downloads/registry and transactional materialization generations (#645).
+    "datacache>=1.27.1",
+    # Explicit shared canine protein/reference acquisition; imports stay lazy.
+    "orfdata[data]>=0.10.0",
+    "filelock>=3.13",
     # Ensembl gene/transcript annotation: proteome indexing + ENSG→HGNC symbol
     # fill for line_expression. Release data is installed separately
     # (`pyensembl install --release 112 --species homo_sapiens`); the build
@@ -65,12 +60,18 @@ dependencies = [
     # disagreed; this makes the declared floor match the tested one.
     # 3.64.4 preserves chain mutation selectors in complete pairs (#528).
     "mhcgnomes>=3.64.4",
+    # Canonical bundled CTA panel; imported only when a gene set is queried.
+    "oncoref>=1.8.207",
 ]
 
 [project.optional-dependencies]
+# Backward-compatible alias: the canonical CTA panel is installed by default.
+cta = []
 # Backward-compatible alias: allele parsing is now installed by default.
 alleles = []
+curation = ["openpyxl>=3.1.5"]
 dev = [
+    "openpyxl>=3.1.5",
     "pytest",
     "pytest-cov",
     "pytest-xdist",
@@ -138,8 +139,29 @@ include = [
     "hitlist/**/*.py",
     "tests/**/*.py",
     "scripts/ci_corpus.py",
+    "scripts/species_context_inventory.py",
+    "scripts/allele_candidate_audit.py",
     "scripts/release_artifacts.py",
     "scripts/check_dev_install.py",
+    "scripts/build_uniprot_reference.py",
+    "scripts/benchmark_provenance.py",
+    "scripts/qualify_corpus.py",
+    "scripts/compare_corpus_generations.py",
+    "scripts/qualification_modal.py",
+    "scripts/qualification_transport.py",
+    "scripts/qualify_human_cohort.py",
+    "scripts/recover_human_cohort.py",
+    "scripts/human_cohort_modal.py",
+    "scripts/ingest_bekker_jensen_2017.py",
+    "scripts/audit_bulk_fractionation.py",
+    "scripts/audit_bulk_replicates.py",
+    "scripts/audit_atlas_lineage.py",
+    "scripts/audit_atlas_lineage_v2.py",
+    "scripts/verify_atlas_lineage.py",
+    "scripts/publish_atlas_lineage.py",
+    "scripts/verify_bulk_replicates.py",
+    "scripts/publish_bulk_replicates.py",
+    "scripts/verify_bulk_fractionation.py",
 ]
 
 [tool.ruff.lint]

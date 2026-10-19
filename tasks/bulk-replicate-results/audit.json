@@ -1,0 +1,77 @@
+{
+  "commit": "832c95a10d98ab3e37535c7a4362014e4a6518df",
+  "corrected": {
+    "sha256": "760000129927a762c4de97f3e4c92f608a2dfe17e3d7201d0345adcee0703d4a",
+    "size_bytes": 44147940
+  },
+  "counts": {
+    "n_changed_denominators": 217514,
+    "n_legacy_pass_all": 1643350,
+    "n_legacy_pass_half": 2030253,
+    "n_legacy_pass_zero": 2047003,
+    "n_qualified_pass_all": 1533246,
+    "n_qualified_pass_half": 1812739,
+    "n_qualified_pass_zero": 1829489,
+    "n_rows": 2047003,
+    "n_unknown_numerators": 217514
+  },
+  "dirty": false,
+  "historical_maxima_by_scope": {
+    "PXD004452/A549-46fracs-E1+A549-46fracs-E2": 2,
+    "PXD004452/Chymo-39fracs": 1,
+    "PXD004452/GluC-39fracs": 1,
+    "PXD004452/HCT116-46fracs-E1+HCT116-46fracs-E2": 2,
+    "PXD004452/HEK293-46fracs-E1+HEK293-46fracs-E2": 2,
+    "PXD004452/HeLa-46fracs-IT-E1+HeLa-46fracs-IT-E2+Tryp-46fracs": 2,
+    "PXD004452/LysC-39fracs": 1,
+    "PXD004452/MCF7-46fracs-E1+MCF7-46fracs-E2": 2,
+    "PXD004452/Phospho-50fracs": 1,
+    "PXD004452/Tryp-14Frac-A+Tryp-14Frac-B+Tryp-14Frac-C": 3,
+    "PXD004452/Tryp-39fracs": 1,
+    "PXD004452/Tryp-70fracs": 1,
+    "PXD004452/Tryp-Phos-pH10": 1,
+    "PXD004452/Tryp-Phos-pH8": 1
+  },
+  "hitlist_version": "1.81.0",
+  "limitations": "HeLa 46 pooled per-peptide counts unresolved; biological replicate/donor/specimen independence unknown. No new fitting or PXD013455 artifact changes.",
+  "n_reviewed_scopes": 14,
+  "pandas": "2.3.3",
+  "preservation": "All rows/order, non-count quantities and reviewed pH/reference evidence unchanged; original detected counts retained separately.",
+  "process_peak_rss_bytes": 403210240,
+  "python": "3.12.6",
+  "runtime_seconds": 84.41320520901354,
+  "scope": "Original-analysis bulk MS, not MHC ligands; MHC allele set not applicable. Experiment labels and acquisition runs are not biological replicates.",
+  "source": {
+    "sha256": "3ec65dd05e8ec58c3293e0fb5720570197a8b152cd14778130bae4224106e3d3",
+    "size": 35074080,
+    "url": "https://github.com/pirl-unc/hitlist/releases/download/data-assets-v1/bekker_jensen_2017_peptides.csv.gz"
+  },
+  "stable_columns": [
+    "peptide",
+    "cell_line",
+    "uniprot_acc",
+    "gene_symbol",
+    "length",
+    "start_position",
+    "end_position",
+    "digestion_enzyme",
+    "n_fractions_in_run",
+    "enrichment",
+    "fractionation_ph",
+    "modifications",
+    "source",
+    "reference",
+    "reported_reference",
+    "legacy_fractionation_ph",
+    "fractionation_protocol_id",
+    "fractionation_ph_basis",
+    "fractionation_ph_reference",
+    "fractionation_ph_evidence_id"
+  ],
+  "stable_row_order_sha256": "b0b8dd9c78ae282fc9a5addd96a6493d1916a4a60428f329caa72df163b79249",
+  "summary": {
+    "archive": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2017/06/PXD004452/SearchResults.zip",
+    "sha256": "5eb5c41af2c7929be8a9354bf7c9fcb021ead7f47c07d0774a146b352e1a8860",
+    "size_bytes": 587345
+  }
+}

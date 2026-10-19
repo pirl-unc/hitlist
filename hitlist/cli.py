@@ -49,7 +49,7 @@ from .downloads import (
     get_path,
     info,
     legacy_data_dir_notice,
-    list_datasets,
+    list_cache_files,
     refresh,
     register,
     remove,
@@ -149,7 +149,7 @@ def _data_location_lines() -> list[str]:
     why = _DATA_DIR_ORIGIN_LABELS.get(origin, origin)
     index_cache = proteome_index_cache_dir()
     index_why = (
-        "always ~/.hitlist"
+        "data directory"
         if index_cache == default_proteome_index_cache_dir()
         else "set_disk_cache_dir()"
     )
@@ -158,7 +158,13 @@ def _data_location_lines() -> list[str]:
         if built == assets
         else [("built indexes", built, why), ("data assets", assets, "datacache")]
     )
+    from .dataset import dataset_snapshot
+
+    with dataset_snapshot(root=built) as generation:
+        if generation != built:
+            rows.append(("current dataset", generation, "datacache generation"))
     rows.append(("proteome index cache", index_cache, index_why))
+    rows.append(("UniProt references", built / "uniprot", "data directory"))
     width = max(len(label) for label, _, _ in rows)
     return [
         f"  {label:<{width}}  {path}  ({why})  — {_dir_summary(path)}" for label, path, why in rows
@@ -208,27 +214,35 @@ def _print_subgroup_help(parser: argparse.ArgumentParser) -> None:
 
 
 def _data_list(args: argparse.Namespace) -> None:
-    datasets = list_datasets()
-    if not datasets:
-        print("No datasets registered.")
-        _print_data_locations()
-        print("Run 'hitlist data available' to see known datasets.")
+    rows = list_cache_files(
+        verify=getattr(args, "verify", False),
+        include_unregistered=getattr(args, "all", False) or getattr(args, "json", False),
+    )
+    if getattr(args, "json", False):
+        print(json.dumps(rows, indent=2))
         return
-    print(f"{'Name':<12} {'Size':>12}  {'Date':<12} Description")
-    print("-" * 75)
-
-    for name, ds in sorted(datasets.items()):
-        size_str = _fmt_size(ds.get("size_bytes", 0))
-        date = ds.get("registered", "")[:10]
-        desc = ds.get("description", "")
-        print(f"{name:<12} {size_str:>12}  {date:<12} {desc}")
-    print()
+    print(f"{'Status':<14} {'Size':>12}  {'Integrity':<12} Path")
+    for row in rows:
+        size = _fmt_size(row["size_bytes"]) if row["size_bytes"] is not None else "—"
+        integrity = "verified" if row["verified"] else "unchecked"
+        print(f"{row['status']:<14} {size:>12}  {integrity:<12} {row['path']}")
+        if row["names"]:
+            print(f"  name: {', '.join(row['names'])}")
+        if row["source_url"]:
+            print(f"  source: {row['source_url']}  fetched: {row['fetched_at']}")
+        if row["error"] and row["status"] != "missing":
+            print(f"  {row['error']}")
     _print_data_locations()
 
 
 def _data_available(args: argparse.Namespace) -> None:
     datasets = available_datasets()
-    registered = set(list_datasets().keys())
+    registered = {
+        name
+        for row in list_cache_files(include_unregistered=False)
+        if row["status"] == "available"
+        for name in row["names"]
+    }
     print(f"{'Name':<12} {'Status':<12} Description")
     print("-" * 75)
     for name, desc in sorted(datasets.items()):
@@ -426,8 +440,14 @@ def _build_data_parser(sub: argparse._SubParsersAction) -> None:
     dp = sub.add_parser("data", help="Manage external datasets")
     dp.set_defaults(_subgroup_parser=dp)
     ds = dp.add_subparsers(dest="data_command")
+    from .cli_uniprot import add_uniprot_parser
 
-    ds.add_parser("list", help="Show registered datasets")
+    add_uniprot_parser(ds)
+
+    p = ds.add_parser("list", help="Show registered datasets or the complete cache inventory")
+    p.add_argument("--all", action="store_true", help="Inspect files across all cache locations")
+    p.add_argument("--verify", action="store_true", help="Verify trusted mirrored-asset hashes")
+    p.add_argument("--json", action="store_true", help="Print the complete inventory as JSON")
     ds.add_parser("available", help="Show all known datasets")
     ds.add_parser(
         "dirs",
@@ -602,7 +622,7 @@ def _add_export_bulk_proteomics_args(p: argparse.ArgumentParser) -> None:
         action="extend",
         nargs="+",
         type=float,
-        help="Filter by high-pH SPE buffer pH (8.0 or 10.0).",
+        help="Filter by reviewed fractionation pH; unknown values are excluded.",
     )
     p.add_argument(
         "--length-min", type=int, help="Minimum peptide length (inclusive; peptide rows only)."
@@ -756,7 +776,10 @@ _DEPRECATED_DATA_SUBCOMMANDS = {
 
 
 def _handle_data(args: argparse.Namespace) -> None:
+    from .cli_uniprot import handle_uniprot
+
     handlers = {
+        "uniprot": handle_uniprot,
         "list": _data_list,
         "available": _data_available,
         "dirs": _data_dirs,
@@ -1157,62 +1180,7 @@ def main() -> None:
             "epitopes Bw4/Bw6/C1/C2).  Space-separated, comma-separated, or repeated."
         ),
     )
-    p_bind.add_argument(
-        "--assay-method",
-        action="extend",
-        nargs="+",
-        help=(
-            "Filter to rows whose IEDB/CEDAR assay_method matches (case-"
-            "insensitive substring).  Examples: 'purified MHC/direct/"
-            "fluorescence', 'cellular MHC/direct'.  Repeatable."
-        ),
-    )
-    p_bind.add_argument(
-        "--response-measured",
-        action="extend",
-        nargs="+",
-        help=(
-            "Filter to rows whose IEDB/CEDAR Response-measured matches "
-            "(case-insensitive exact match).  Examples: 'qualitative "
-            "binding', 'dissociation constant KD', 'half life', 'ligand "
-            "presentation'.  Combine with --assay-method and "
-            "--measurement-units to disambiguate IC50 vs Kd vs t_half. "
-            "Repeatable."
-        ),
-    )
-    p_bind.add_argument(
-        "--measurement-units",
-        action="extend",
-        nargs="+",
-        help=(
-            "Filter to rows reporting in these units (case-insensitive "
-            "exact match).  Pair with --quantitative-value-{min,max} to "
-            "avoid mixing unit systems (e.g. nM vs log10(nM))."
-        ),
-    )
-    p_bind.add_argument(
-        "--quantitative-value-min",
-        type=float,
-        help="Inclusive lower bound on quantitative_value.  Excludes NaN.",
-    )
-    p_bind.add_argument(
-        "--quantitative-value-max",
-        type=float,
-        help="Inclusive upper bound on quantitative_value.  Excludes NaN.",
-    )
-    p_bind.add_argument(
-        "--has-quantitative-value",
-        dest="has_quantitative_value",
-        action="store_true",
-        default=None,
-        help="Keep only rows with a non-NaN quantitative_value (IC50/EC50/Kd rows).",
-    )
-    p_bind.add_argument(
-        "--qualitative-only",
-        dest="has_quantitative_value",
-        action="store_false",
-        help="Keep only qualitative-tier rows (no numeric value reported).",
-    )
+    _add_binding_measurement_args(p_bind)
     p_bind.add_argument("--output", "-o", help="Write to file (.csv or .parquet)")
 
     p_training = export_sub.add_parser(
@@ -1230,6 +1198,7 @@ def main() -> None:
     )
     p_training.add_argument("--class", dest="mhc_class", help="MHC class (I, II, or non-classical)")
     p_training.add_argument("--species", help="Filter by MHC species")
+    _add_binding_measurement_args(p_training)
     _add_export_species_axis_args(p_training)
     p_training.add_argument(
         "--source",
@@ -1374,7 +1343,32 @@ def main() -> None:
             "available (default: 112)."
         ),
     )
-    p_training.add_argument("--output", "-o", help="Write to file (.csv or .parquet)")
+    training_destination = p_training.add_mutually_exclusive_group()
+    training_destination.add_argument("--output", "-o", help="Write to file (.csv or .parquet)")
+    training_destination.add_argument(
+        "--bundle", help="Write a new directory with a verified manifest"
+    )
+    p_training.add_argument(
+        "--allow-stale-indexes",
+        action="store_true",
+        help="Allow historical/unverifiable indexes in --bundle; record their freshness",
+    )
+    p_training.add_argument(
+        "--columns", nargs="+", help="Project training columns; identity is retained"
+    )
+    from .split_audit import POLICIES
+
+    p_training.add_argument("--split-policy", choices=sorted(POLICIES), default="report_only")
+    p_audit = sub.add_parser(
+        "audit-splits", help="Audit partitions supplied as verified training bundles"
+    )
+    p_audit.add_argument("--partition", action="append", required=True, metavar="NAME=DIRECTORY")
+    p_audit.add_argument("--policy", choices=sorted(POLICIES), default="report_only")
+    p_audit.add_argument("--output", "-o", help="Write the JSON audit report")
+
+    from .cli_evidence import add_evidence_parsers
+
+    add_evidence_parsers(sub, export_sub)
 
     p_bulk_prot = export_sub.add_parser(
         "bulk-proteomics",
@@ -1922,6 +1916,12 @@ def main() -> None:
         _report(args)
     elif args.command == "export":
         _export(args)
+    elif args.command == "verify-evidence-bundle":
+        from .cli_evidence import handle_evidence
+
+        handle_evidence(args)
+    elif args.command == "audit-splits":
+        _handle_split_audit(args)
     elif args.command == "reassign-alleles":
         _reassign(args)
     elif args.command == "qc":
@@ -2421,6 +2421,72 @@ def _export_bulk(args: argparse.Namespace):
     return pd.concat(frames, ignore_index=True, sort=False) if frames else pd.DataFrame()
 
 
+def _add_binding_measurement_args(parser: argparse.ArgumentParser) -> None:
+    """Register binding-only filters shared by binding and training exports."""
+    parser.add_argument(
+        "--assay-method",
+        action="extend",
+        nargs="+",
+        help=(
+            "Filter binding rows whose IEDB/CEDAR assay_method matches (case-"
+            "insensitive substring).  Examples: 'purified MHC/direct/"
+            "fluorescence', 'cellular MHC/direct'.  Repeatable."
+        ),
+    )
+    parser.add_argument(
+        "--response-measured",
+        action="extend",
+        nargs="+",
+        help=(
+            "Filter binding rows whose IEDB/CEDAR Response-measured matches "
+            "(case-insensitive exact match).  Examples: 'qualitative "
+            "binding', 'dissociation constant KD', 'half life', 'ligand "
+            "presentation'.  Combine with --assay-method and "
+            "--measurement-units to disambiguate IC50 vs Kd vs t_half. "
+            "Repeatable."
+        ),
+    )
+    parser.add_argument(
+        "--measurement-units",
+        action="extend",
+        nargs="+",
+        help=(
+            "Filter binding rows reporting in these units (case-insensitive "
+            "exact match).  Pair with --quantitative-value-{min,max} to "
+            "avoid mixing unit systems (e.g. nM vs log10(nM))."
+        ),
+    )
+    parser.add_argument(
+        "--quantitative-value-min",
+        type=float,
+        help=(
+            "Binding-only inclusive lower bound on the reported value; "
+            "excludes NaN, preserves inequalities."
+        ),
+    )
+    parser.add_argument(
+        "--quantitative-value-max",
+        type=float,
+        help=(
+            "Binding-only inclusive upper bound on the reported value; "
+            "excludes NaN, preserves inequalities."
+        ),
+    )
+    parser.add_argument(
+        "--has-quantitative-value",
+        dest="has_quantitative_value",
+        action="store_true",
+        default=None,
+        help="Keep binding rows with a numeric value, regardless of endpoint or units.",
+    )
+    parser.add_argument(
+        "--qualitative-only",
+        dest="has_quantitative_value",
+        action="store_false",
+        help="Keep binding rows with no numeric value reported.",
+    )
+
+
 def _add_export_species_axis_args(parser: argparse.ArgumentParser) -> None:
     """Keep independent species-axis filters available on every evidence export."""
     parser.add_argument(
@@ -2440,34 +2506,78 @@ def _export_training(args: argparse.Namespace):
     """Run the ``hitlist export training`` subcommand."""
     from .export import generate_training_table
 
-    return generate_training_table(
-        include_evidence=getattr(args, "include_evidence", "both"),
-        mhc_class=getattr(args, "mhc_class", None),
-        species=getattr(args, "species", None),
-        source_species=getattr(args, "source_species", None),
-        host_species=getattr(args, "host_species", None),
-        exclude_chimeric=getattr(args, "exclude_chimeric", False),
-        source=getattr(args, "source", None),
-        instrument_type=getattr(args, "instrument_type", None),
-        acquisition_mode=getattr(args, "acquisition_mode", None),
-        is_mono_allelic=getattr(args, "mono_allelic", None),
-        min_allele_resolution=getattr(args, "min_allele_resolution", None),
-        mhc_allele=getattr(args, "mhc_allele", None),
-        mhc_allele_in_set=getattr(args, "mhc_allele_in_set", None),
-        mhc_allele_provenance=getattr(args, "mhc_allele_provenance", None),
-        restriction_evidence=getattr(args, "restriction_evidence", None),
-        serotype_source=getattr(args, "serotype_source", None),
-        gene=getattr(args, "gene", None),
-        gene_name=getattr(args, "gene_name", None),
-        gene_id=getattr(args, "gene_id", None),
-        peptide=getattr(args, "peptide", None),
-        serotype=getattr(args, "serotype", None),
-        length_min=getattr(args, "length_min", None),
-        length_max=getattr(args, "length_max", None),
-        map_source_proteins=getattr(args, "map_source_proteins", False),
-        with_peptide_origin=getattr(args, "with_peptide_origin", False),
-        proteome_release=getattr(args, "proteome_release", 112),
-    )
+    options = {
+        "include_evidence": getattr(args, "include_evidence", "both"),
+        "mhc_class": getattr(args, "mhc_class", None),
+        "species": getattr(args, "species", None),
+        "source_species": getattr(args, "source_species", None),
+        "host_species": getattr(args, "host_species", None),
+        "exclude_chimeric": getattr(args, "exclude_chimeric", False),
+        "source": getattr(args, "source", None),
+        "instrument_type": getattr(args, "instrument_type", None),
+        "acquisition_mode": getattr(args, "acquisition_mode", None),
+        "is_mono_allelic": getattr(args, "mono_allelic", None),
+        "min_allele_resolution": getattr(args, "min_allele_resolution", None),
+        "mhc_allele": getattr(args, "mhc_allele", None),
+        "mhc_allele_in_set": getattr(args, "mhc_allele_in_set", None),
+        "mhc_allele_provenance": getattr(args, "mhc_allele_provenance", None),
+        "restriction_evidence": getattr(args, "restriction_evidence", None),
+        "serotype_source": getattr(args, "serotype_source", None),
+        "gene": getattr(args, "gene", None),
+        "gene_name": getattr(args, "gene_name", None),
+        "gene_id": getattr(args, "gene_id", None),
+        "peptide": getattr(args, "peptide", None),
+        "serotype": getattr(args, "serotype", None),
+        "length_min": getattr(args, "length_min", None),
+        "length_max": getattr(args, "length_max", None),
+        "assay_method": getattr(args, "assay_method", None),
+        "response_measured": getattr(args, "response_measured", None),
+        "measurement_units": getattr(args, "measurement_units", None),
+        "has_quantitative_value": getattr(args, "has_quantitative_value", None),
+        "quantitative_value_min": getattr(args, "quantitative_value_min", None),
+        "quantitative_value_max": getattr(args, "quantitative_value_max", None),
+        "map_source_proteins": getattr(args, "map_source_proteins", False),
+        "with_peptide_origin": getattr(args, "with_peptide_origin", False),
+        "proteome_release": getattr(args, "proteome_release", 112),
+        "columns": getattr(args, "columns", None),
+    }
+    if getattr(args, "bundle", None):
+        from .training_bundle import write_training_bundle
+
+        return write_training_bundle(
+            args.bundle,
+            split_policy=args.split_policy,
+            require_current_indexes=not getattr(args, "allow_stale_indexes", False),
+            **options,
+        )
+    if getattr(args, "allow_stale_indexes", False):
+        raise ValueError("--allow-stale-indexes requires --bundle")
+    if getattr(args, "split_policy", "report_only") != "report_only":
+        raise ValueError("--split-policy requires --bundle; use audit-splits to check partitions")
+    return generate_training_table(**options)
+
+
+def _handle_split_audit(args):
+    from .training_bundle import audit_training_bundles
+
+    try:
+        partitions = {}
+        for value in args.partition:
+            name, separator, directory = value.partition("=")
+            if not separator or not name or not directory or name in partitions:
+                raise ValueError("Each partition must be a unique NAME=DIRECTORY")
+            partitions[name] = directory
+        report = audit_training_bundles(partitions, policy=args.policy)
+        content = json.dumps(report, indent=2, sort_keys=True) + "\n"
+        if args.output:
+            Path(args.output).write_text(content)
+        else:
+            print(content, end="")
+    except (ValueError, OSError) as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
+    if report["verdict"] in {"fail", "inconclusive"}:
+        sys.exit(2)
 
 
 def _export_progress(msg: str) -> None:
@@ -2545,6 +2655,11 @@ def _export(args: argparse.Namespace) -> None:
     )
 
     cmd = args.export_command
+    if cmd in {"cta-evidence", "tissue-blacklist"}:
+        from .cli_evidence import handle_evidence
+
+        handle_evidence(args)
+        return
     t0 = _time.perf_counter()
 
     # Deprecation notices for legacy export subcommands.  Behavior is
@@ -2652,7 +2767,10 @@ def _export(args: argparse.Namespace) -> None:
         )
         try:
             df = _export_training(args)
-        except (ValueError, FileNotFoundError) as e:
+            if getattr(args, "bundle", None):
+                print(f"Wrote training bundle manifest to {df}")
+                return
+        except (ValueError, OSError) as e:
             print(f"Error: {e}", file=sys.stderr)
             sys.exit(1)
     elif cmd in ("bulk", "bulk-proteomics"):

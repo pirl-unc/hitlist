@@ -1,0 +1,24 @@
+{
+  "32350084": {
+    "n_observations": 79406,
+    "n_resolved_observations": 0,
+    "attribution": {
+      "pmid_ambiguous": 79406
+    },
+    "verdict": {
+      "": 79406
+    },
+    "n_distinct_assay_comments": 196
+  },
+  "33981976": {
+    "n_observations": 11049,
+    "n_resolved_observations": 0,
+    "attribution": {
+      "pmid_ambiguous": 11049
+    },
+    "verdict": {
+      "no_row_discriminator": 11049
+    },
+    "n_distinct_assay_comments": 2
+  }
+}

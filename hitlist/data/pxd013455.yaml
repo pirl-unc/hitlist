@@ -1,0 +1,153 @@
+schema_version: 1
+dataset_id: pxd013455-hela-tryp46-v1
+experiment: Hela_1_Bekker-Jensen_Tryp_46Fractions
+original_accession: PXD004452
+reanalysis_accession: PXD013455
+citations:
+  original:
+    pmid: '28601559'
+    doi: 10.1016/j.cels.2017.05.009
+    url: https://pubmed.ncbi.nlm.nih.gov/28601559/
+  reanalysis:
+    pmid: '33893311'
+    doi: 10.1038/s41597-021-00890-2
+    url: https://www.nature.com/articles/s41597-021-00890-2
+cell_context:
+  cell_line_name: HeLa
+  cell_type: epithelial cervical carcinoma cell line
+  tissue: cervix
+  organism: Homo sapiens
+  cell_conditions: cultured in DMEM with serum supplementation; no perturbation assignment established
+  condition_provenance: original paper, Experimental Model and Subject Details, Cells
+  authentication_status: original authors report no specific cell-line authentication
+  specimen_id: null
+  donor_id: null
+  mhc_allele_set: null
+  mhc_allele_set_status: not_applicable_shotgun_proteomics
+  sample_annotation_source: reanalysis Supplementary Table 1, Supplementary-Table-1-samples-l!A118:G118
+search_space:
+  fasta_sha256: 88e76d6479481fe18f4420c1d5f3082b6d7bfbf4c091316cf42506a64471b9cc
+  enzyme: Trypsin/P
+  max_missed_cleavages: 2
+  min_peptide_length: 7
+  max_peptide_length: null
+  max_peptide_mass_da: 4600.0
+  fixed_residue_modifications:
+    C: 57.021464
+  provenance: PXD013455 txt-celllines.zip/txt/parameters.txt and txt/summary.txt; pinned hashes in source_registry.json
+scope:
+  source: PXD013455
+  cell_line_name: HeLa
+  digestion_enzyme: Trypsin/P
+  n_fractions_in_run: 46
+  enrichment: none
+  fractionation_ph: 8.0
+  protocol_id: PXD013455:Hela_1_Bekker-Jensen_Tryp_46Fractions
+fractionation_ph_provenance:
+  meaning: reported fractionation buffer C pH; not measured gradient or eluate pH
+  source: original paper, Offline High pH Reversed-Phase HPLC Fractionation
+  previous_artifact_value: 10.0
+  correction: previous value was an unsupported default
+acquisition:
+  instrument: Q Exactive HF (original paper; selected raw files carry QE3 prefix)
+  fragmentation: HCD
+  acquisition_mode: DDA
+  labeling: label-free
+  search_engine: MaxQuant 1.6.0.16
+  detection_basis: positive experiment intensity; MS/MS and matching retained separately
+  protein_observation_basis: same-scope accepted peptides assigned to leading razor proteins
+expected_counts:
+  n_source_rows: 713496
+  n_positive_intensity_rows: 175134
+  n_reverse_or_contaminant_rows: 3101
+  n_observations: 172033
+  n_msms_observations: 150855
+  n_matching_observations: 21178
+  n_observed_parents: 12287
+  n_raw_files: 46
+  n_reference_sequences: 93588
+  n_candidate_occurrences: 1656863
+  n_observed_candidate_occurrences: 203635
+  n_distinct_observed_candidate_sequences: 163994
+files:
+  searched.fasta:
+    url: https://ftp.pride.ebi.ac.uk/pride/data/archive/2019/07/PXD013455/Human-ReferenceProteome-Canonical-Isoform-71591.fasta
+    sha256: 88e76d6479481fe18f4420c1d5f3082b6d7bfbf4c091316cf42506a64471b9cc
+    size_bytes: 46989754
+    original_name: Human-ReferenceProteome-Canonical-Isoform-71591.fasta
+  mqpar-celllines.xml:
+    url: https://ftp.pride.ebi.ac.uk/pride/data/archive/2019/07/PXD013455/mqpar-celllines.xml
+    sha256: df650867a840d0bd834a8130c00196c0454a244a00b1f5be3dac53d575d6f367
+    size_bytes: 609198
+  experimentalDesignTemplate-celllines.txt:
+    url: https://ftp.pride.ebi.ac.uk/pride/data/archive/2019/07/PXD013455/experimentalDesignTemplate-celllines.txt
+    sha256: 7c3f80c1afa9e868f91e780edd5aaa72b6f43951a16c8976baa99e74b2e4a590
+    size_bytes: 254201
+supporting_files:
+  jarnuczak-2021-paper.xml:
+    url: https://www.ebi.ac.uk/europepmc/webservices/rest/PMC8065022/fullTextXML
+    sha256: b190c2667bd47f8c45788a3e7d3846849c02653e4c13c6bf2e93a32cae2b75f4
+    size_bytes: 131286
+  bekker-jensen-2017-paper.xml:
+    url: https://www.ebi.ac.uk/europepmc/webservices/rest/PMC5493283/fullTextXML
+    sha256: b29852c7016d078ce23c9ba0e3907456c11ba9944131c7f83d8d642bec03f3f6
+    size_bytes: 172771
+  jarnuczak-2021-supplements.zip:
+    url: https://www.ebi.ac.uk/europepmc/webservices/rest/PMC8065022/supplementaryFiles
+    sha256: 10ae0b7a01a3fbcc642586b95c520cab0cc75208974b92402b080f6159c3e18d
+    size_bytes: 912556
+  bekker-jensen-2017-supplements.zip:
+    url: https://www.ebi.ac.uk/europepmc/webservices/rest/PMC5493283/supplementaryFiles
+    sha256: 676212c95223fe16074ad733a667cf180c277419241ebfe0fdc80d8b279566b6
+    size_bytes: 94253707
+supplement_tables:
+  41597_2021_890_MOESM1_ESM.xlsx:
+    archive: jarnuczak-2021-supplements.zip
+    sha256: f6ddcb22edd10b0bd5883eded155b98a901cf22ace4d8570ddd641291bf7eec5
+    size_bytes: 35614
+    attribution: reanalysis Supplementary Table 1, Supplementary-Table-1-samples-l!A118:G118
+  mmc2.xlsx:
+    archive: bekker-jensen-2017-supplements.zip
+    sha256: a97f88e188206cad8cbe1fd222638ec104d07c5e8d4b4d105e675704cd7ee55c
+    size_bytes: 14847
+    attribution: original Table S1, Sheet1!A1:G17; selected experiment row 7
+  mmc9.xlsx:
+    archive: bekker-jensen-2017-supplements.zip
+    sha256: f00a32ec18278d41b91a1b33307a35da00e84aab128971f4629e5c411e4c7dc6
+    size_bytes: 14406
+    attribution: original Table S8, Sheet1!A1:E16; additional scope inventory
+members:
+  parameters:
+    archive_url: https://ftp.pride.ebi.ac.uk/pride/data/archive/2019/07/PXD013455/txt-celllines.zip
+    member: txt/parameters.txt
+    sha256: 4b00211bcabda41c079f4a901aeea4e3e88496e494df31b7bb69b0f5d65a8779
+    size_bytes: 3557
+    compressed_sha256: 9afdfcc399cc918ff7fa364fa321b30d397f596c0b570a30e04d45571d365167
+    compressed_size_bytes: 1163
+    crc32: 2547b4ce
+  summary:
+    archive_url: https://ftp.pride.ebi.ac.uk/pride/data/archive/2019/07/PXD013455/txt-celllines.zip
+    member: txt/summary.txt
+    sha256: 48cc1cf6551ef58dd0e34e8efea5d39205083a330f9d58c19b234a9594e9f71e
+    size_bytes: 1524343
+    compressed_sha256: 3bd17800387aaa2ca30cdb10c892926754df379aefbd9059c4073d77818e1066
+    compressed_size_bytes: 397662
+    crc32: b9d4aac1
+  peptides:
+    archive_url: https://ftp.pride.ebi.ac.uk/pride/data/archive/2019/07/PXD013455/txt-celllines.zip
+    member: txt/peptides.txt
+    sha256: 4b19b9248aa2fa3a498fa3a16320afbfcc1d8a9a81b33cadbe15357f65435a20
+    size_bytes: 3105083523
+    compressed_sha256: be1a03a2a7d942196b762552e8669af9965dcc0b3fbb981050ea79f8cd6d632d
+    compressed_size_bytes: 417911174
+    crc32: c25e63aa
+limitations:
+  - The original PXD004452 search FASTA remains unresolved; these are reanalysis labels.
+  - Match-between-runs detections are not direct MS/MS identifications.
+  - Leading-razor assignment does not independently establish every possible parent.
+  - Biological specimen, donor and replicate independence are unresolved.
+  - No first-seen depth labels or cross-protocol comparability are established.
+  - A single cultured HeLa scope cannot establish prospective or cross-tissue detectability.
+  - Search-engine output and standalone XML report different MaxQuant versions.
+  - Source rows outside the chosen length, mass and digestion window do not become candidate labels.
+  - Fractionation pH denotes the paper's reported buffer, not a measured gradient pH.

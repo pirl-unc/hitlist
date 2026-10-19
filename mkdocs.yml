@@ -7,8 +7,16 @@ repo_name: pirl-unc/hitlist
 nav:
   - Home: index.md
   - How Curation Works: curation-process.md
+  - Assay Modality and MS Evidence: assay-modality.md
   - Source Classification: source-classification.md
   - PMID Curation Overrides: pmid-curation.md
+  - Training Provenance and Split Audits: training-provenance.md
+  - Bulk MS Detectability Datasets: detectability.md
+  - Versioned UniProt References: uniprot-references.md
+  - CTA Expression Evidence and Tissue Blacklists: cta-evidence.md
+  - Offline Canine Ligand Curation: canine-ligands.md
+  - Canine Bulk Proteomics: canine-bulk.md
+  - Species-scoped Evidence Bundles: species-evidence.md
 
 theme:
   name: readthedocs
