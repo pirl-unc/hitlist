@@ -27,8 +27,13 @@ the compatible import/type changes and `itertools.pairwise` preserve behavior.
 `./format.sh` and `./lint.sh` pass. Local `./test.sh` passes 3,129 unit tests
 at 89% coverage on Python 3.12. Isolated lockfile installs on Python 3.10
 and 3.14 both pass the editable-install check and 92 focused proteome,
-CLI/version and installer tests. Full CI, including five unit matrix legs and
-the corpus integration gate, remains pending.
+CLI/version and installer tests. A broader 3.14 run exposed native argparse
+color introduced in that interpreter; disabling it within Hitlist's existing
+custom-color parser restores the established help output. The twelve localhost
+HTTP fixture errors in that run came from the sandbox denying a loopback
+socket bind. With loopback access, the full 3.14 unit suite passes: 3,128
+passed, one skipped; the five CLI-help tests also pass on both endpoints.
+The post-fix 3.12 `./test.sh` rerun and full CI remain pending.
 
 # PR 8: #593 source-backed control absences (1.82.9)
 

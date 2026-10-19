@@ -86,4 +86,8 @@ class ColorArgumentParser(argparse.ArgumentParser):
 
     def __init__(self, *args, **kwargs):
         kwargs.setdefault("formatter_class", SubtleHelpFormatter)
+        # Python 3.14 added argparse's own colors. Keep this parser's subtle
+        # ANSI treatment in charge of the complete help output.
+        if sys.version_info >= (3, 14):
+            kwargs["color"] = False
         super().__init__(*args, **kwargs)
