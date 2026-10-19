@@ -703,6 +703,19 @@ def test_introduced_mhc_is_engineered_material(context, engineered):
     assert is_engineered_material({"condition_mhc_context": context}) is engineered
 
 
+@pytest.mark.parametrize(
+    ("pmid", "n_arms"),
+    [(26768311, 10), (23543059, 1), (26783342, 5)],
+)
+def test_source_backed_soluble_hla_capture_context(pmid, n_arms):
+    """Supernatant-purified sHLA carries both material and capture context (#588)."""
+    samples = load_pmid_overrides()[pmid]["ms_samples"]
+    assert len(samples) == n_arms
+    for sample in samples:
+        assert sample["condition_mhc_context"] == "monoallelic;soluble_mhc"
+        assert is_engineered_material(sample)
+
+
 def test_mask_agrees_with_the_record_predicate():
     records = [
         {"condition_mhc_context": "refolded_mhc", "condition_transduction": ""},

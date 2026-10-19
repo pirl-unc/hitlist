@@ -1,3 +1,42 @@
+# PR 6: #588 soluble HLA capture context (1.82.7)
+
+Specification: add the existing `soluble_mhc` capture token to the ten
+Spencer 2015 and one Gilchuk 2013 arms whose primary-source methods and
+current notes already establish supernatant W6/32 purification, plus five
+Trolle 2016 arms whose source describes VLDLr-tagged soluble HLA purified
+from supernatant. Keep the
+`monoallelic` material token, arm identities, and all expression inputs
+unchanged. Check the rest of the override inventory for an equally explicit
+omission, but do not infer capture from a study name alone. Pin the eleven
+values in a regression and verify that engineering and expression-anchor
+semantics are unchanged. Bump to 1.82.7, review the scoped diff, run format,
+lint, focused and full tests, then open a separate PR stacked on #712.
+Merge only after 1.82.6 publishes; release from clean main and verify PyPI
+artifact hashes.
+
+- [x] Confirm the three primary-source methods and count exactly sixteen affected arms.
+- [x] Add focused regression and update only the source-backed context values.
+- [x] Check curation/audit and expression parity; run format, lint and tests.
+- [ ] Review, open PR, pass CI, merge in order, publish 1.82.7 and close #588.
+
+## Review
+
+The inventory sweep found only these sixteen arms with an explicit
+secreted/supernatant source and missing `soluble_mhc`: 10 in PMID 26768311,
+one in 23543059 and five in 26783342. The Trolle 2016 Methods establish
+supernatant purification by the VLDLr tag (PMC4744552); the Spencer and
+Gilchuk source references are already recorded on the eleven arms.
+The three new parameter cases fail on the parent and pass with the fix. A
+structured YAML comparison confirms the sixteen context strings are the only
+curation changes and `is_engineered_material` is unchanged for every arm;
+the expression resolver uses that predicate. Existing expression-anchor and
+engineering-drift tests pass. `./format.sh` and `./lint.sh` pass, as do 262
+focused conditions/expression/QC tests and the full local `./test.sh` unit
+suite (3,122 passed; 89% coverage). The direct development-install check
+reports that the shared editable install still targets the original checkout
+at 1.82.2; this temporary PR checkout intentionally does not repoint it.
+Clean CI must supply the integration gate.
+
 # Open defect PR series — 2026-10-19
 
 Specification: ship independent, versioned PRs against current `main`, in this
