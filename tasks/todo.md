@@ -12,18 +12,18 @@ publish only after 1.82.10 reaches PyPI.
 
 - [x] Confirm timeout-only cancellations and the successful retry duration.
 - [x] Change the integration timeout/comment and version, preserving all steps.
-- [ ] Run format, lint, tests and review the complete diff.
+- [x] Run format, lint, tests and review the complete diff.
 - [ ] Open PR, pass CI, merge in order, publish 1.82.11 and close #718.
 
 ## Review
 
 The diff changes only the integration job's comment and 20→30-minute cap,
 plus the patch version and this plan. `./format.sh`, `./lint.sh` and 57
-release/corpus tests pass. Local `./test.sh` was attempted twice but its
-memory preflight declined at 1.11 GB and then 0.31 GB available, below its
-2.5 GB minimum. A separate active `mhctools` pytest run owns two large
-workers; leave it alone and retry when memory becomes available. Full CI is
-required before merge.
+release/corpus tests pass. Local `./test.sh` initially declined at 1.11 GB
+and then 0.31 GB available because a separate `mhctools` pytest run owned
+two large workers. After that run finished, the memory guard admitted two
+workers and the full local suite passed: 3,129 tests, 89% coverage. Full CI
+remains required before merge.
 
 # PR 9: #684 Python 3.10-3.14 support policy (1.82.10)
 
