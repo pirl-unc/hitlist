@@ -1,3 +1,30 @@
+# PR 10: #718 integration CI timeout headroom (1.82.11)
+
+Specification: retain the complete serial full-corpus integration suite and
+its memory diagnostics, but raise its 20-minute GitHub Actions job cap to 30
+minutes. Two unrelated PR heads canceled at exactly 20 minutes during hosted
+runner slowdowns on 2026-10-19; a retry of #714 passed in 17m42s. Thirty
+minutes gives measured variation headroom while bounding a hang far below
+GitHub's six-hour default. Update the workflow's stale duration comment,
+bump Hitlist to 1.82.11, run format/lint/tests, and check the YAML diff.
+Open a separate draft PR stacked on #717, verify its full CI, then merge and
+publish only after 1.82.10 reaches PyPI.
+
+- [x] Confirm timeout-only cancellations and the successful retry duration.
+- [x] Change the integration timeout/comment and version, preserving all steps.
+- [ ] Run format, lint, tests and review the complete diff.
+- [ ] Open PR, pass CI, merge in order, publish 1.82.11 and close #718.
+
+## Review
+
+The diff changes only the integration job's comment and 20→30-minute cap,
+plus the patch version and this plan. `./format.sh`, `./lint.sh` and 57
+release/corpus tests pass. Local `./test.sh` was attempted twice but its
+memory preflight declined at 1.11 GB and then 0.31 GB available, below its
+2.5 GB minimum. A separate active `mhctools` pytest run owns two large
+workers; leave it alone and retry when memory becomes available. Full CI is
+required before merge.
+
 # PR 9: #684 Python 3.10-3.14 support policy (1.82.10)
 
 Specification: align the supported Python minimum with the approved OpenVax
