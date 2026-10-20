@@ -33,7 +33,7 @@ Hitlist data/provenance improvement; it makes no model-quality claim.
       explicit collision, ambiguity and exclusion states; add focused regressions.
 - [x] Independently replay the actual source joins and publish observation-weighted
       coverage and overlap for the frozen Atlas donor cohort.
-- [ ] Review the science and diff, bump the version, run ./format.sh, ./lint.sh,
+- [x] Review the science and diff, bump the version, run ./format.sh, ./lint.sh,
       ./test.sh and relevant source-data verification.
 - [ ] Open the Hitlist PR, require final-head CI, merge, deploy from clean main,
       verify PyPI and any public audit artifacts, then update #705/#680.
@@ -54,8 +54,9 @@ inconclusive. The complete crosswalk and frozen source snapshots are in
 `tasks/atlas-crosswalk-results/`. The independent replay passes all source
 rows, counts, partitions and output hashes. Six focused crosswalk tests and
 ten existing Atlas lineage tests pass. `./format.sh` and `./lint.sh` pass.
-`./test.sh` was attempted but its #483 memory preflight refused with 0.23 GB
-available versus 2.5 GB required; final-head CI remains necessary.
+The first `./test.sh` attempt hit the #483 memory preflight at 0.23 GB free;
+after memory recovered, the full unit gate passed: 3,137 tests at 89%
+coverage. Final-head integration CI remains necessary.
 
 # PR 10: #593 Leddy TAP1-control claims (1.82.11)Specification: the SureQuant source (PMID 39438697, PMC12012165 Figure 5
 and its author-supplied `conditions_table_TAP.csv`) distinguishes parental
