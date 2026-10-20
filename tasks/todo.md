@@ -1,3 +1,63 @@
+# Atlas acquisition lineage and exact-cohort audit (#705, #680)
+
+## Specification
+
+The published Atlas donor cohort is a source-only, donor-disjoint positive-ligand
+cohort. Its donor/tissue/class group is not a physical specimen or an acquisition.
+Review the community SDRF, official PRIDE file inventory, primary Atlas sample-hit
+tables and the publication's QC rules before linking any run to a reported group.
+Keep primary and community annotations distinct. Preserve the original donor
+cohort and the historical Presto partitions as immutable inputs.
+
+Produce a versioned, content-bound Hitlist audit that retains each original SDRF
+row and inventory record, explicit file-alias evidence, accepted/rejected/
+unresolved joins, and the mapping from QC-included source rows to the published
+Atlas observations. Require uniqueness at every claimed join. Report coverage by
+HLA class, donor and frozen partition, including unknown specimen/acquisition
+counts and known cross-partition reuse. A source-name, tissue label, genotype or
+filename alone never becomes a specimen or acquisition identity. If the public
+sources cannot establish a claim, publish the gap and an inconclusive verdict.
+
+Use pinned sources through datacache, a clean deterministic recipe, independent
+verification and source-cited readable reports. Keep source-only positive labels,
+peptide restriction uncertainty, and the old donor split unchanged. This PR is a
+Hitlist data/provenance improvement; it makes no model-quality claim.
+
+## Plan
+
+- [x] Inspect the exact public source schemas, hashes, aliases and QC inclusion
+      evidence; record a source-by-source join contract and observed limits.
+- [x] Reproduce the current unresolved filename and group mappings with a
+      source-backed report before changing any lineage assignment.
+- [x] Implement pinned acquisition and a deterministic crosswalk/audit with
+      explicit collision, ambiguity and exclusion states; add focused regressions.
+- [x] Independently replay the actual source joins and publish observation-weighted
+      coverage and overlap for the frozen Atlas donor cohort.
+- [x] Review the science and diff, bump the version, run ./format.sh, ./lint.sh,
+      ./test.sh and relevant source-data verification.
+- [ ] Open the Hitlist PR, require final-head CI, merge, deploy from clean main,
+      verify PyPI and any public audit artifacts, then update #705/#680.
+
+## Review
+
+The community SDRF changed in place on 2026-10-20. Its new exact bytes cover
+both HLA classes, and all 1,468 SDRF peak files now exactly match unique PRIDE
+inventory records; the old 731 filename mismatches are historical, not current.
+Of 418 published groups, all have a community context but five have multiple
+source names. There are 1,466 exact `.raw` stem matches, two unresolved raw
+aliases, three peak files outside the SDRF, and 483 result records without a
+source-backed QC join. No public input links each published peptide to a
+specific included run or physical specimen, so all 967,449 observation-level
+acquisition/specimen statuses remain unknown. The frozen split's candidate
+peak-file sets have no cross-partition reuse, but actual run independence is
+inconclusive. The complete crosswalk and frozen source snapshots are in
+`tasks/atlas-crosswalk-results/`. The independent replay passes all source
+rows, counts, partitions and output hashes. Six focused crosswalk tests and
+ten existing Atlas lineage tests pass. `./format.sh` and `./lint.sh` pass.
+The first `./test.sh` attempt hit the #483 memory preflight at 0.23 GB free;
+after memory recovered, the full unit gate passed: 3,137 tests at 89%
+coverage. Final-head integration CI remains necessary.
+
 # PR 10: #593 Leddy TAP1-control claims (1.82.11)Specification: the SureQuant source (PMID 39438697, PMC12012165 Figure 5
 and its author-supplied `conditions_table_TAP.csv`) distinguishes parental
 wild-type from TAP1-knockout THP-1 macrophages. Its other comparison uses

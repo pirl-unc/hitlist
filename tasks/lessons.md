@@ -9,6 +9,13 @@ recipe so the same handoff problem cannot recur.
 
 # Lessons
 
+## 2026-10-19
+
+- Keep this workspace's work scoped to Hitlist when the user says "do just
+  hitlist here." A reference to an upstream PR or issue is context for Hitlist
+  work, not authorization to review, merge, or release that other repository.
+  Confirm the repository before taking an action that changes remote state.
+
 ## 2026-10-14
 
 - When the user requests review, iteration and deployment, keep ownership through

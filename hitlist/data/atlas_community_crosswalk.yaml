@@ -1,0 +1,16 @@
+schema_version: 1
+source_accession: PXD019643
+observed: '2026-10-20'
+note: >-
+  The community SDRF changed in place after the 2026-10-16 snapshot. These
+  hashes select the expanded two-class version; PRIDE does not publish a
+  checksum for the SDRF inventory record.
+files:
+  community.sdrf.tsv:
+    url: https://ftp.pride.ebi.ac.uk/pride/data/archive/2021/04/PXD019643/PXD019643_community_annotated.sdrf.tsv
+    sha256: baa1907cc847abc382683492970eef9da6fbbb24ef4448dab6dbe76357c67fb2
+    size: 1177127
+  files-all.json:
+    url: https://www.ebi.ac.uk/pride/ws/archive/v3/projects/PXD019643/files/all
+    sha256: 3bac909670e737f9f71d8bb5aad1f5e26b33f68f2c3b8bace1a350f8d6b987b0
+    size: 4512613

@@ -1,0 +1,482 @@
+{
+  "coverage_by_donor_and_class": {
+    "AUT01-DN02/HLA-I": {
+      "n_candidate_context_observations": 13779,
+      "n_multiple_source_name_observations": 0,
+      "n_observations": 13779,
+      "n_reported_sample_groups": 7,
+      "n_unknown_acquisition_observations": 13779,
+      "n_unknown_qc_inclusion_observations": 13779,
+      "n_unknown_specimen_observations": 13779
+    },
+    "AUT01-DN02/HLA-II": {
+      "n_candidate_context_observations": 10308,
+      "n_multiple_source_name_observations": 0,
+      "n_observations": 10308,
+      "n_reported_sample_groups": 7,
+      "n_unknown_acquisition_observations": 10308,
+      "n_unknown_qc_inclusion_observations": 10308,
+      "n_unknown_specimen_observations": 10308
+    },
+    "AUT01-DN03/HLA-I": {
+      "n_candidate_context_observations": 21842,
+      "n_multiple_source_name_observations": 0,
+      "n_observations": 21842,
+      "n_reported_sample_groups": 12,
+      "n_unknown_acquisition_observations": 21842,
+      "n_unknown_qc_inclusion_observations": 21842,
+      "n_unknown_specimen_observations": 21842
+    },
+    "AUT01-DN03/HLA-II": {
+      "n_candidate_context_observations": 27061,
+      "n_multiple_source_name_observations": 0,
+      "n_observations": 27061,
+      "n_reported_sample_groups": 12,
+      "n_unknown_acquisition_observations": 27061,
+      "n_unknown_qc_inclusion_observations": 27061,
+      "n_unknown_specimen_observations": 27061
+    },
+    "AUT01-DN04/HLA-I": {
+      "n_candidate_context_observations": 21436,
+      "n_multiple_source_name_observations": 0,
+      "n_observations": 21436,
+      "n_reported_sample_groups": 12,
+      "n_unknown_acquisition_observations": 21436,
+      "n_unknown_qc_inclusion_observations": 21436,
+      "n_unknown_specimen_observations": 21436
+    },
+    "AUT01-DN04/HLA-II": {
+      "n_candidate_context_observations": 42660,
+      "n_multiple_source_name_observations": 0,
+      "n_observations": 42660,
+      "n_reported_sample_groups": 13,
+      "n_unknown_acquisition_observations": 42660,
+      "n_unknown_qc_inclusion_observations": 42660,
+      "n_unknown_specimen_observations": 42660
+    },
+    "AUT01-DN05/HLA-I": {
+      "n_candidate_context_observations": 24545,
+      "n_multiple_source_name_observations": 0,
+      "n_observations": 24545,
+      "n_reported_sample_groups": 7,
+      "n_unknown_acquisition_observations": 24545,
+      "n_unknown_qc_inclusion_observations": 24545,
+      "n_unknown_specimen_observations": 24545
+    },
+    "AUT01-DN05/HLA-II": {
+      "n_candidate_context_observations": 20903,
+      "n_multiple_source_name_observations": 0,
+      "n_observations": 20903,
+      "n_reported_sample_groups": 7,
+      "n_unknown_acquisition_observations": 20903,
+      "n_unknown_qc_inclusion_observations": 20903,
+      "n_unknown_specimen_observations": 20903
+    },
+    "AUT01-DN06/HLA-I": {
+      "n_candidate_context_observations": 28670,
+      "n_multiple_source_name_observations": 0,
+      "n_observations": 28670,
+      "n_reported_sample_groups": 14,
+      "n_unknown_acquisition_observations": 28670,
+      "n_unknown_qc_inclusion_observations": 28670,
+      "n_unknown_specimen_observations": 28670
+    },
+    "AUT01-DN06/HLA-II": {
+      "n_candidate_context_observations": 40865,
+      "n_multiple_source_name_observations": 0,
+      "n_observations": 40865,
+      "n_reported_sample_groups": 19,
+      "n_unknown_acquisition_observations": 40865,
+      "n_unknown_qc_inclusion_observations": 40865,
+      "n_unknown_specimen_observations": 40865
+    },
+    "AUT01-DN08/HLA-I": {
+      "n_candidate_context_observations": 26335,
+      "n_multiple_source_name_observations": 0,
+      "n_observations": 26335,
+      "n_reported_sample_groups": 16,
+      "n_unknown_acquisition_observations": 26335,
+      "n_unknown_qc_inclusion_observations": 26335,
+      "n_unknown_specimen_observations": 26335
+    },
+    "AUT01-DN08/HLA-II": {
+      "n_candidate_context_observations": 47056,
+      "n_multiple_source_name_observations": 0,
+      "n_observations": 47056,
+      "n_reported_sample_groups": 18,
+      "n_unknown_acquisition_observations": 47056,
+      "n_unknown_qc_inclusion_observations": 47056,
+      "n_unknown_specimen_observations": 47056
+    },
+    "AUT01-DN09/HLA-I": {
+      "n_candidate_context_observations": 16302,
+      "n_multiple_source_name_observations": 0,
+      "n_observations": 16302,
+      "n_reported_sample_groups": 14,
+      "n_unknown_acquisition_observations": 16302,
+      "n_unknown_qc_inclusion_observations": 16302,
+      "n_unknown_specimen_observations": 16302
+    },
+    "AUT01-DN09/HLA-II": {
+      "n_candidate_context_observations": 42430,
+      "n_multiple_source_name_observations": 0,
+      "n_observations": 42430,
+      "n_reported_sample_groups": 18,
+      "n_unknown_acquisition_observations": 42430,
+      "n_unknown_qc_inclusion_observations": 42430,
+      "n_unknown_specimen_observations": 42430
+    },
+    "AUT01-DN11/HLA-I": {
+      "n_candidate_context_observations": 50199,
+      "n_multiple_source_name_observations": 0,
+      "n_observations": 50199,
+      "n_reported_sample_groups": 22,
+      "n_unknown_acquisition_observations": 50199,
+      "n_unknown_qc_inclusion_observations": 50199,
+      "n_unknown_specimen_observations": 50199
+    },
+    "AUT01-DN11/HLA-II": {
+      "n_candidate_context_observations": 54830,
+      "n_multiple_source_name_observations": 0,
+      "n_observations": 54830,
+      "n_reported_sample_groups": 24,
+      "n_unknown_acquisition_observations": 54830,
+      "n_unknown_qc_inclusion_observations": 54830,
+      "n_unknown_specimen_observations": 54830
+    },
+    "AUT01-DN12/HLA-I": {
+      "n_candidate_context_observations": 56974,
+      "n_multiple_source_name_observations": 0,
+      "n_observations": 56974,
+      "n_reported_sample_groups": 20,
+      "n_unknown_acquisition_observations": 56974,
+      "n_unknown_qc_inclusion_observations": 56974,
+      "n_unknown_specimen_observations": 56974
+    },
+    "AUT01-DN12/HLA-II": {
+      "n_candidate_context_observations": 58355,
+      "n_multiple_source_name_observations": 0,
+      "n_observations": 58355,
+      "n_reported_sample_groups": 22,
+      "n_unknown_acquisition_observations": 58355,
+      "n_unknown_qc_inclusion_observations": 58355,
+      "n_unknown_specimen_observations": 58355
+    },
+    "AUT01-DN13/HLA-I": {
+      "n_candidate_context_observations": 36760,
+      "n_multiple_source_name_observations": 3312,
+      "n_observations": 36760,
+      "n_reported_sample_groups": 22,
+      "n_unknown_acquisition_observations": 36760,
+      "n_unknown_qc_inclusion_observations": 36760,
+      "n_unknown_specimen_observations": 36760
+    },
+    "AUT01-DN13/HLA-II": {
+      "n_candidate_context_observations": 75990,
+      "n_multiple_source_name_observations": 8159,
+      "n_observations": 75990,
+      "n_reported_sample_groups": 22,
+      "n_unknown_acquisition_observations": 75990,
+      "n_unknown_qc_inclusion_observations": 75990,
+      "n_unknown_specimen_observations": 75990
+    },
+    "AUT01-DN14/HLA-I": {
+      "n_candidate_context_observations": 27514,
+      "n_multiple_source_name_observations": 0,
+      "n_observations": 27514,
+      "n_reported_sample_groups": 18,
+      "n_unknown_acquisition_observations": 27514,
+      "n_unknown_qc_inclusion_observations": 27514,
+      "n_unknown_specimen_observations": 27514
+    },
+    "AUT01-DN14/HLA-II": {
+      "n_candidate_context_observations": 40690,
+      "n_multiple_source_name_observations": 0,
+      "n_observations": 40690,
+      "n_reported_sample_groups": 20,
+      "n_unknown_acquisition_observations": 40690,
+      "n_unknown_qc_inclusion_observations": 40690,
+      "n_unknown_specimen_observations": 40690
+    },
+    "AUT01-DN15/HLA-I": {
+      "n_candidate_context_observations": 22147,
+      "n_multiple_source_name_observations": 0,
+      "n_observations": 22147,
+      "n_reported_sample_groups": 14,
+      "n_unknown_acquisition_observations": 22147,
+      "n_unknown_qc_inclusion_observations": 22147,
+      "n_unknown_specimen_observations": 22147
+    },
+    "AUT01-DN15/HLA-II": {
+      "n_candidate_context_observations": 30451,
+      "n_multiple_source_name_observations": 0,
+      "n_observations": 30451,
+      "n_reported_sample_groups": 16,
+      "n_unknown_acquisition_observations": 30451,
+      "n_unknown_qc_inclusion_observations": 30451,
+      "n_unknown_specimen_observations": 30451
+    },
+    "AUT01-DN16/HLA-I": {
+      "n_candidate_context_observations": 5545,
+      "n_multiple_source_name_observations": 5545,
+      "n_observations": 5545,
+      "n_reported_sample_groups": 1,
+      "n_unknown_acquisition_observations": 5545,
+      "n_unknown_qc_inclusion_observations": 5545,
+      "n_unknown_specimen_observations": 5545
+    },
+    "AUT01-DN17/HLA-I": {
+      "n_candidate_context_observations": 13805,
+      "n_multiple_source_name_observations": 0,
+      "n_observations": 13805,
+      "n_reported_sample_groups": 12,
+      "n_unknown_acquisition_observations": 13805,
+      "n_unknown_qc_inclusion_observations": 13805,
+      "n_unknown_specimen_observations": 13805
+    },
+    "AUT01-DN17/HLA-II": {
+      "n_candidate_context_observations": 21421,
+      "n_multiple_source_name_observations": 0,
+      "n_observations": 21421,
+      "n_reported_sample_groups": 17,
+      "n_unknown_acquisition_observations": 21421,
+      "n_unknown_qc_inclusion_observations": 21421,
+      "n_unknown_specimen_observations": 21421
+    },
+    "OVA01-DN278/HLA-I": {
+      "n_candidate_context_observations": 6673,
+      "n_multiple_source_name_observations": 6673,
+      "n_observations": 6673,
+      "n_reported_sample_groups": 1,
+      "n_unknown_acquisition_observations": 6673,
+      "n_unknown_qc_inclusion_observations": 6673,
+      "n_unknown_specimen_observations": 6673
+    },
+    "OVA01-DN281/HLA-I": {
+      "n_candidate_context_observations": 4661,
+      "n_multiple_source_name_observations": 4661,
+      "n_observations": 4661,
+      "n_reported_sample_groups": 1,
+      "n_unknown_acquisition_observations": 4661,
+      "n_unknown_qc_inclusion_observations": 4661,
+      "n_unknown_specimen_observations": 4661
+    },
+    "THY01-DN1/HLA-I": {
+      "n_candidate_context_observations": 6831,
+      "n_multiple_source_name_observations": 0,
+      "n_observations": 6831,
+      "n_reported_sample_groups": 1,
+      "n_unknown_acquisition_observations": 6831,
+      "n_unknown_qc_inclusion_observations": 6831,
+      "n_unknown_specimen_observations": 6831
+    },
+    "THY01-DN1/HLA-II": {
+      "n_candidate_context_observations": 10077,
+      "n_multiple_source_name_observations": 0,
+      "n_observations": 10077,
+      "n_reported_sample_groups": 1,
+      "n_unknown_acquisition_observations": 10077,
+      "n_unknown_qc_inclusion_observations": 10077,
+      "n_unknown_specimen_observations": 10077
+    },
+    "THY01-DN3/HLA-I": {
+      "n_candidate_context_observations": 7426,
+      "n_multiple_source_name_observations": 0,
+      "n_observations": 7426,
+      "n_reported_sample_groups": 1,
+      "n_unknown_acquisition_observations": 7426,
+      "n_unknown_qc_inclusion_observations": 7426,
+      "n_unknown_specimen_observations": 7426
+    },
+    "THY01-DN3/HLA-II": {
+      "n_candidate_context_observations": 8112,
+      "n_multiple_source_name_observations": 0,
+      "n_observations": 8112,
+      "n_reported_sample_groups": 1,
+      "n_unknown_acquisition_observations": 8112,
+      "n_unknown_qc_inclusion_observations": 8112,
+      "n_unknown_specimen_observations": 8112
+    },
+    "THY01-DN4/HLA-I": {
+      "n_candidate_context_observations": 6383,
+      "n_multiple_source_name_observations": 0,
+      "n_observations": 6383,
+      "n_reported_sample_groups": 1,
+      "n_unknown_acquisition_observations": 6383,
+      "n_unknown_qc_inclusion_observations": 6383,
+      "n_unknown_specimen_observations": 6383
+    },
+    "THY01-DN4/HLA-II": {
+      "n_candidate_context_observations": 8693,
+      "n_multiple_source_name_observations": 0,
+      "n_observations": 8693,
+      "n_reported_sample_groups": 1,
+      "n_unknown_acquisition_observations": 8693,
+      "n_unknown_qc_inclusion_observations": 8693,
+      "n_unknown_specimen_observations": 8693
+    },
+    "THY01-DN5/HLA-I": {
+      "n_candidate_context_observations": 6143,
+      "n_multiple_source_name_observations": 0,
+      "n_observations": 6143,
+      "n_reported_sample_groups": 1,
+      "n_unknown_acquisition_observations": 6143,
+      "n_unknown_qc_inclusion_observations": 6143,
+      "n_unknown_specimen_observations": 6143
+    },
+    "THY01-DN5/HLA-II": {
+      "n_candidate_context_observations": 9313,
+      "n_multiple_source_name_observations": 0,
+      "n_observations": 9313,
+      "n_reported_sample_groups": 1,
+      "n_unknown_acquisition_observations": 9313,
+      "n_unknown_qc_inclusion_observations": 9313,
+      "n_unknown_specimen_observations": 9313
+    },
+    "THY01-DN6/HLA-I": {
+      "n_candidate_context_observations": 5533,
+      "n_multiple_source_name_observations": 0,
+      "n_observations": 5533,
+      "n_reported_sample_groups": 1,
+      "n_unknown_acquisition_observations": 5533,
+      "n_unknown_qc_inclusion_observations": 5533,
+      "n_unknown_specimen_observations": 5533
+    },
+    "THY01-DN6/HLA-II": {
+      "n_candidate_context_observations": 8731,
+      "n_multiple_source_name_observations": 0,
+      "n_observations": 8731,
+      "n_reported_sample_groups": 1,
+      "n_unknown_acquisition_observations": 8731,
+      "n_unknown_qc_inclusion_observations": 8731,
+      "n_unknown_specimen_observations": 8731
+    }
+  },
+  "coverage_by_partition_and_class": {
+    "test/HLA-I": {
+      "n_candidate_context_observations": 48244,
+      "n_multiple_source_name_observations": 4661,
+      "n_observations": 48244,
+      "n_reported_sample_groups": 27,
+      "n_unknown_acquisition_observations": 48244,
+      "n_unknown_qc_inclusion_observations": 48244,
+      "n_unknown_specimen_observations": 48244
+    },
+    "test/HLA-II": {
+      "n_candidate_context_observations": 73111,
+      "n_multiple_source_name_observations": 0,
+      "n_observations": 73111,
+      "n_reported_sample_groups": 29,
+      "n_unknown_acquisition_observations": 73111,
+      "n_unknown_qc_inclusion_observations": 73111,
+      "n_unknown_specimen_observations": 73111
+    },
+    "train/HLA-I": {
+      "n_candidate_context_observations": 305072,
+      "n_multiple_source_name_observations": 15530,
+      "n_observations": 305072,
+      "n_reported_sample_groups": 140,
+      "n_unknown_acquisition_observations": 305072,
+      "n_unknown_qc_inclusion_observations": 305072,
+      "n_unknown_specimen_observations": 305072
+    },
+    "train/HLA-II": {
+      "n_candidate_context_observations": 407007,
+      "n_multiple_source_name_observations": 8159,
+      "n_observations": 407007,
+      "n_reported_sample_groups": 158,
+      "n_unknown_acquisition_observations": 407007,
+      "n_unknown_qc_inclusion_observations": 407007,
+      "n_unknown_specimen_observations": 407007
+    },
+    "val/HLA-I": {
+      "n_candidate_context_observations": 56187,
+      "n_multiple_source_name_observations": 0,
+      "n_observations": 56187,
+      "n_reported_sample_groups": 31,
+      "n_unknown_acquisition_observations": 56187,
+      "n_unknown_qc_inclusion_observations": 56187,
+      "n_unknown_specimen_observations": 56187
+    },
+    "val/HLA-II": {
+      "n_candidate_context_observations": 77828,
+      "n_multiple_source_name_observations": 0,
+      "n_observations": 77828,
+      "n_reported_sample_groups": 33,
+      "n_unknown_acquisition_observations": 77828,
+      "n_unknown_qc_inclusion_observations": 77828,
+      "n_unknown_specimen_observations": 77828
+    }
+  },
+  "inputs": {
+    "catalog.yaml": {
+      "sha256": "b9ec117345e34767f80dbaa08aad61540e111edcfcba45041676c729a197f404",
+      "size_bytes": 698
+    },
+    "community.sdrf.tsv": {
+      "sha256": "baa1907cc847abc382683492970eef9da6fbbb24ef4448dab6dbe76357c67fb2",
+      "size_bytes": 1177127
+    },
+    "files-all.json": {
+      "sha256": "3bac909670e737f9f71d8bb5aad1f5e26b33f68f2c3b8bace1a350f8d6b987b0",
+      "size_bytes": 4512613
+    },
+    "sample_hits.tsv.gz": {
+      "sha256": "0e8771113cae27c620b2b9619f035675ddcc87b8d7dfac50750e71ab60eb0167",
+      "size_bytes": 3167689
+    }
+  },
+  "limits": [
+    "The community SDRF and PRIDE inventory are separate from the primary Atlas release.",
+    "A matching donor/tissue/class is contextual; it does not identify peptide-producing runs.",
+    "The primary sample-hit table contains no source-name, result-file or run reference.",
+    "PRIDE includes runs excluded by upstream QC; result-file inventory presence is not inclusion.",
+    "Source names and technical replicate labels do not establish physical specimen identity.",
+    "Candidate file sets are donor-disjoint in this Atlas cohort; actual acquisition reuse remains unknown."
+  ],
+  "n_candidate_peak_files_in_multiple_partitions": 0,
+  "n_candidate_peak_files_in_primary_groups": 1276,
+  "n_exact_peak_matches": 1468,
+  "n_exact_raw_stem_matches": 1466,
+  "n_inventory_records": 3426,
+  "n_inventory_result_records_without_qc_join": 483,
+  "n_primary_groups": 418,
+  "n_primary_groups_with_candidate_context": 418,
+  "n_primary_groups_with_multiple_source_names": 5,
+  "n_sdrf_donor_tissue_class_groups": 482,
+  "n_sdrf_rows": 1468,
+  "n_sdrf_source_names": 492,
+  "n_unannotated_peak_records": 3,
+  "n_unresolved_raw_aliases": 2,
+  "outputs": {
+    "community.sdrf.tsv.gz": {
+      "sha256": "252a7b30ef684428f8cb242d1e100a8d6e014c084fbc3b5e91cde732c49afc31",
+      "size_bytes": 33884
+    },
+    "files-all.json.gz": {
+      "sha256": "ce68e10e00d9e4bd6d0d9d785b8e743e419b0076a892167d8a37e9462d23a74c",
+      "size_bytes": 367085
+    },
+    "inventory-crosswalk.tsv.gz": {
+      "sha256": "b44a1e076db8f1594d69a6f5df7b025f440c26c6d2bfc0536fe2c0420bdfb7ae",
+      "size_bytes": 181743
+    },
+    "primary-group-crosswalk.tsv.gz": {
+      "sha256": "facda52b901625a74af788248cf8f466503f3836a1602245e2ddad4799ba09a8",
+      "size_bytes": 12917
+    },
+    "sdrf-file-crosswalk.tsv.gz": {
+      "sha256": "7f2deaec3b340ad8c6ecf34cedd8f9944d34050dfa0a906f93b57a5127900591",
+      "size_bytes": 117418
+    }
+  },
+  "source_accession": "PXD019643",
+  "verdicts": {
+    "candidate_peak_file_partition_reuse": "none_observed",
+    "observation_to_acquisition": "inconclusive",
+    "physical_specimen_identity": "inconclusive",
+    "primary_group_to_sdrf_context": "complete",
+    "qc_included_run_to_primary_group": "inconclusive",
+    "sdrf_to_pride_peak_file": "pass"
+  }
+}
