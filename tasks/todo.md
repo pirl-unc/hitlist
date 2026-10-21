@@ -6794,6 +6794,6 @@ The raw exports are excluded from Git; two content-pinned source ZIPs and a
 deterministic aggregate report are committed. An independent streaming probe
 reproduced both source assay/study/outcome/context counts and the complete
 CEDAR-to-IEDB assay-ID overlap. Four focused tests, format and lint pass.
-`./test.sh` was attempted twice but its #483 memory preflight refused at
-1.80 GB and 0.42 GB free, below the 2.5 GB one-worker requirement. Full local
-tests, final-head CI, merge and clean-main PyPI deploy remain pending.
+`./test.sh` initially met the #483 memory preflight several times; after free
+memory recovered, the unmodified full gate passed: 3,143 tests at 89%
+coverage. Final-head CI, merge and clean-main PyPI deploy remain pending.
