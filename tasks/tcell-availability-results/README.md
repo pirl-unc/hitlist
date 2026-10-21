@@ -1,7 +1,11 @@
 # IEDB/CEDAR T-cell assay availability, 2026-10-20
 
 This is a source availability audit for [#723](https://github.com/pirl-unc/hitlist/issues/723),
-not a frozen training export. It reads the public T-cell CSV metric exports from
+not a frozen training export. Hitlist also exposes a row-level assay metadata
+export through `python -m hitlist.tcell_assays OUTPUT_DIR` and the
+`iter_tcell_assay_metadata` / `write_tcell_assay_metadata` Python APIs. That
+export excludes antigen and allele identities and remains separate from the
+MS/binding training table. The audit reads the public T-cell CSV metric exports from
 the [IEDB database export](https://www.iedb.org/database_export_v3.php) and
 [CEDAR database export](https://cedar.iedb.org/database_export_v3.php).
 IEDB's [query API](https://query-api.iedb.org/docs/swagger/) also identifies

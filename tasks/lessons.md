@@ -9,6 +9,13 @@ recipe so the same handoff problem cannot recur.
 
 # Lessons
 
+## 2026-10-21
+
+- A source availability count does not make the counted assays usable through
+  Hitlist. When a user asks for the data, provide a row-level API and a
+  reproducible local export with explicit source identity, outcome semantics,
+  and versioned provenance. Describe audit-only work as audit-only.
+
 ## 2026-10-19
 
 - Keep this workspace's work scoped to Hitlist when the user says "do just

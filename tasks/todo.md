@@ -6797,3 +6797,47 @@ CEDAR-to-IEDB assay-ID overlap. Four focused tests, format and lint pass.
 `./test.sh` initially met the #483 memory preflight several times; after free
 memory recovered, the unmodified full gate passed: 3,143 tests at 89%
 coverage. Final-head CI, merge and clean-main PyPI deploy remain pending.
+
+# Row-level T-cell assay metadata from the pinned audit (#723) — 2026-10-21
+
+## Specification
+
+Make the exact IEDB/CEDAR source snapshot behind the availability report
+accessible through a public streaming Hitlist API and a reproducible local
+Parquet/JSON export. Verify both source hashes before yielding any rows. Use
+IEDB as the one-row-per-assay source of the union, and verify that every CEDAR
+ID occurs there; keep the CEDAR membership as a flag, not a second assay row.
+Preserve source assay/reference IDs, exact reported qualitative outcome,
+method/readout, quantitative value/units/inequality, experimental context,
+restriction evidence code and coarse restriction-name resolution. Do not
+conflate multimer, functional and other assay families. Keep physical specimen
+and receptor identities explicitly unknown. This row-level interface excludes
+antigen sequences, antigen IDs/source organisms and allele names; it is an
+assay metadata export, not an epitope-specific training target or a change to
+`generate_training_table`.
+
+## Plan
+
+- [x] Inspect the source schema, existing audit, source acquisition and public
+      API conventions; validate export column names against the pinned files.
+- [x] Implement source-pinned streaming reader and deterministic local export
+      with source manifest and CEDAR membership deduplication.
+- [x] Add focused fixture tests for hash/schema failures, exact outcomes,
+      context, unknowns, deduplication, and export receipt.
+- [x] Run against the real pinned source snapshots and reconcile row counts
+      with the availability audit; document usage and limitations.
+- [ ] Run format, lint, full tests; review diff, bump patch version, create PR,
+      merge after final-head CI, and deploy from clean main.
+
+## Review
+
+The new local Parquet export has 578,529 rows, including 157,263 CEDAR
+memberships. IEDB and CEDAR match on every projected assay field and reference
+ID for their shared IDs. The output has 27 columns, occupies 4.0 MB, and has
+SHA-256 `5929eb6120b32207df89b58de4245ef6bf9eacbaad32cbb3cd25e2bd2088db62`.
+It was built from the two catalog-pinned ZIPs at `/private/tmp/iedb_tcell_full_v3.zip`
+and `/private/tmp/cedar_tcell_full_v3.zip`; the local output is
+`/private/tmp/hitlist-tcell-metadata-20261020`. Ten focused tests and the
+3,152-test standard suite pass on the pre-version-bump implementation. The
+export intentionally omits antigen/allele identities and remains separate
+from peptide-specific training labels.
