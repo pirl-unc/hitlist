@@ -6743,3 +6743,57 @@ The first donor summary failed and is preserved under #703. The successful v2
 changes only donor summary typing plus recipe/execution metadata; every other
 artifact remains byte-identical. Thirty focused tests and formatting/lint pass.
 Publication, complete local/CI validation, merge and PyPI verification remain gates.
+
+# T-cell and processing evidence availability audit (#723)
+
+## Specification
+
+Measure what the public IEDB and CEDAR T-cell assay exports actually contain
+before connecting new target families to the native training interface. Treat
+the published source export as the unit of evidence: pin its bytes, record its
+header contract, source and date, and derive counts from distinct assay IDs
+rather than duplicated join rows. Separate measured positive, negative and
+unknown results; method/readout families; restriction resolution; contributor
+studies; and the availability of experimental context and quantitative units.
+Do not turn unobserved MS peptides into T-cell negatives or infer a unique
+specimen/run from donor genotype. Preserve Atlas's existing donor labels and
+leave unresolved specimen/acquisition links explicitly unknown.
+
+This first PR will publish a reproducible availability report and a narrow
+source acquisition/audit recipe. The report decides which evidence families can
+support a subsequent frozen training export and records source gaps without
+claiming measured processing or receptor-specific supervision prematurely.
+After source coverage is known, implement the first eligible native functional
+export with independent tests for target routing, context, units and censoring.
+
+## Plan
+
+- [x] Inspect official IEDB/CEDAR export endpoints and schemas; record source
+      versions, provenance, file hashes and distinct assay identity semantics.
+- [x] Audit source-backed T-cell endpoints, outcomes, restriction resolution,
+      study coverage and contextual field availability; inspect processing
+      evidence separately.
+- [x] Build a deterministic, source-pinned audit with readable aggregate reports
+      and independent verification, keeping raw assays out of Git.
+- [x] Add focused regression tests for source parsing, counting and unknowns;
+      document residual Atlas specimen/run uncertainty and the next export gate.
+- [ ] Review the diff and version bump; run format, lint and full tests; open a
+      PR, require final-head CI, merge and deploy from clean main.
+
+## Review
+
+IEDB has 578,529 unique T-cell assay IDs in 12,357 references. CEDAR has
+157,263 IDs, all shared with IEDB, so the union stays 578,529. IEDB reports
+363,584 negative and 214,945 positive-tier outcomes. Source method/readout
+fields support distinct availability counts for multimer, functional and
+other T-cell assays; none contain direct-processing keywords. This is not a
+claim that no processing assays exist in other entities or study supplements.
+Only 135,751 names have simple two-field HLA syntax; the evidence-code table
+shows many such names come from prediction or have undetermined provenance.
+The raw exports are excluded from Git; two content-pinned source ZIPs and a
+deterministic aggregate report are committed. An independent streaming probe
+reproduced both source assay/study/outcome/context counts and the complete
+CEDAR-to-IEDB assay-ID overlap. Four focused tests, format and lint pass.
+`./test.sh` initially met the #483 memory preflight several times; after free
+memory recovered, the unmodified full gate passed: 3,143 tests at 89%
+coverage. Final-head CI, merge and clean-main PyPI deploy remain pending.

@@ -583,3 +583,11 @@ source identities before additional model fitting. A portable cohort, software t
 pass or peptide-disjoint split is not biological qualification. Recover primary
 sample tables where an aggregator has discarded donor identity, and keep source
 sample groups, physical specimens and acquisition runs as separate claims.
+
+## 2026-10-20 — identity axes and prioritization
+
+When every published row already carries a donor label, use that direct field;
+an allele set only gives a candidate match within a bounded roster. Record
+missing specimen and run lineage as separate unresolved axes, then move to the
+highest-yield missing measured modality instead of treating the narrower gap as
+a blocker for every downstream use.

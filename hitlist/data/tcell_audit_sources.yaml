@@ -1,0 +1,15 @@
+schema_version: 1
+observed: '2026-10-20'
+note: >-
+  Public IEDB and CEDAR T-cell CSV metric exports. These URLs are mutable;
+  hashes pin the bytes inspected for the availability audit. The ZIP members
+  contain source assay records and are not shipped with Hitlist.
+files:
+  iedb_tcell_full_v3.zip:
+    url: https://www.iedb.org/downloader.php?file_name=doc/tcell_full_v3.zip
+    sha256: 2e4c6e9df6ec3bb1a151cd7c65cb93f709d50f699321ca9e97a4dd2319b2d952
+    size: 45120781
+  cedar_tcell_full_v3.zip:
+    url: https://cedar.iedb.org/downloader.php?file_name=doc/tcell_full_v3.zip
+    sha256: 98e858b2a7fb8f220b694750ff2ae1de59f2ff871ade5f16d19816c2499c2ce9
+    size: 14506291

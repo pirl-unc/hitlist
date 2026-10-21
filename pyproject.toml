@@ -164,6 +164,7 @@ include = [
     "scripts/audit_atlas_lineage.py",
     "scripts/audit_atlas_lineage_v2.py",
     "scripts/audit_atlas_crosswalk.py",
+    "scripts/audit_tcell_availability.py",
     "scripts/verify_atlas_lineage.py",
     "scripts/verify_atlas_crosswalk.py",
     "scripts/publish_atlas_lineage.py",
