@@ -6889,3 +6889,58 @@ single-worker budget. Retry when unrelated memory pressure recedes.
 The local Parquet result is 595,072 bytes with SHA-256
 `9870d110d8b1df04f8119175338ad2f1ddf7b8c155a28fad34d491037697c501`;
 the source ZIPs and raw rows are not committed.
+
+# Standardized human-origin functional training bundle (#723, #729) — 2026-10-21
+
+## Specification
+
+Turn the existing bounded human-origin peptide functional assay export into a
+frozen, model-facing bundle while retaining the source-faithful assay rows.
+Write `assays.parquet` with every currently eligible source assay,
+`training.parquet` with one standardized assay-level qualitative-response
+example per unambiguous row, `excluded.parquet` with source IDs and exclusion
+reason, and a versioned manifest with pinned source hashes, output hashes and
+coverage counts. Keep target meaning tied to the source method/readout;
+retain original qualitative tiers and quantitative strings, units and
+inequalities. Type subject counts only where source strings are valid whole
+numbers. Flag qualitative/subject-count disagreement rather than silently
+using a binary label. The standard MHC input is populated only when a single
+two-field HLA name has one of the selected experimental restriction codes;
+retain the raw reported name and evidence code separately. It remains a
+source-supported candidate, not independent row-level proof. Preserve
+reference ID as a study grouping key and specimen/receptor identities as
+unknown. Do not create a holdout split or claim specimen independence.
+
+The bundle stays within the existing human-origin, direct-peptide cellular
+scope. Other source organisms and assay families remain outside this target.
+The training examples are assay records, not individual people or MS labels.
+
+## Plan
+
+- [x] Inspect existing training bundle contracts and audit the pinned source
+      for label/count and missingness patterns; file the discovered problem.
+- [x] Implement deterministic bundle writing and verification, with stable
+      schema and complete provenance.
+- [x] Add focused tests for routing, exclusions, typed counts, MHC input
+      gating, exact source preservation, tamper rejection and atomicity.
+- [x] Run the real pinned sources, reconcile every source assay to either the
+      training or excluded table, and document the consumer contract.
+- [ ] Review diff; bump patch version; run format/lint/full tests; open PR,
+      merge after final-head CI, and deploy from clean main.
+
+## Review
+
+The pinned source bundle contains 47,593 evidence assays, 47,421 typed
+training rows and 172 excluded rows with a single observed reason:
+qualitative result versus responding-subject-count disagreement (#729).
+Training rows have 22,134 positive and 25,287 negative assay-level labels;
+2,155 retain a candidate single-HLA input under the selected evidence rule.
+The 47,421 rows cover 2,333 reference groups. Family coverage is 14,241
+activation/proliferation, 4,970 cytotoxicity and 28,210 soluble-factor
+release examples. The training Parquet SHA-256 is
+`e9be7fd7fc9998549c0465f6b0fb05aaeb50965188b5fd34b5293cde58076d5a`.
+The bundle verifier recalculates routing from every source-faithful assay row
+and passes on the real pinned source. Focused tests pass; full project gates,
+PR and release remain pending.
+Default datacache acquisition and explicit local ZIP inputs produced identical
+training and evidence Parquet hashes.
