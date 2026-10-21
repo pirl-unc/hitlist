@@ -101,6 +101,27 @@ hitlist export training --include-evidence both --class I --species "Homo sapien
 
 `hitlist export training` does **not** create a new canonical store. It composes the existing `observations.parquet`, `binding.parquet`, and `peptide_mappings.parquet` indexes into one training-facing export surface. The low-level indexes keep their semantic boundaries; the training export gives downstream consumers one obvious API/CLI path when they want model-ready tables.
 
+### Pinned T-cell assay metadata
+
+The [IEDB/CEDAR T-cell availability audit](tasks/tcell-availability-results/README.md)
+also has a row-level interface. It verifies the pinned source ZIPs and writes
+one local Parquet row per IEDB assay, with a `cedar_present` flag for the
+overlapping CEDAR rows:
+
+```bash
+python -m hitlist.tcell_assays /path/to/tcell-assay-metadata
+```
+
+For downloaded ZIPs, pass both `--iedb /path/to/tcell_full_v3.zip` and
+`--cedar /path/to/cedar_tcell_full_v3.zip`. In Python, call
+`hitlist.iter_tcell_assay_metadata(...)` to stream rows or
+`hitlist.write_tcell_assay_metadata(...)` to write `assays.parquet` and
+`manifest.json`. The manifest includes source hashes, row counts and output
+hash. Exact reported outcomes, method/readout, measurement strings and assay
+context are preserved. Antigen identities and sequences, source organisms and
+allele names are excluded. This metadata is separate from
+`generate_training_table`; its outcomes are not MS/binding labels.
+
 ## Python API
 
 Hitlist supports Python 3.10 and newer; CI tests Python 3.10 through 3.14.
