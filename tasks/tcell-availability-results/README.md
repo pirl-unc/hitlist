@@ -82,14 +82,17 @@ Hitlist describes antigen-processing *context* for some MS assays; this is not
 a direct cleavage/transport measurement. Direct processing needs a separate
 source-specific inventory before it can become a target family.
 
-The next #723 change should freeze a native cellular evidence export with
-source assay IDs and reference IDs; exact qualitative values; method/readout;
-quantitative value, units and qualifier; effector/APC and stimulation context;
-antigen format; and explicit restriction evidence. It must separate multimer,
-functional, receptor-specific and processing targets, check shared-ID content
-across IEDB/CEDAR, and audit independence at the study and applicable donor or
-specimen level. This availability report does not qualify the data for a
-Presto training run by itself.
+The bounded human-origin peptide functional export is available via
+`python -m hitlist.tcell_functional OUTPUT_DIR` and the corresponding public
+iterator/writer APIs. It retains the peptide-to-assay-to-outcome link for
+direct peptide cellular assays while keeping MHC evidence and specimen
+uncertainty explicit. It does not turn the full availability count into a
+functional training set; other antigen origins, antigen formats, multimers,
+receptor-specific and direct-processing targets remain outside that export.
+The remaining #723 work includes separate target-family exports, study and
+specimen independence audits where source identities permit them, and
+downstream training integration. This availability report alone does not
+qualify the data for a Presto training run.
 
 For the separate Atlas MS cohort, every published row already has a donor
 label. The [Atlas crosswalk audit](../atlas-crosswalk-results/README.md) still

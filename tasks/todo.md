@@ -6841,3 +6841,51 @@ and `/private/tmp/cedar_tcell_full_v3.zip`; the local output is
 3,152-test standard suite pass on the pre-version-bump implementation. The
 export intentionally omits antigen/allele identities and remains separate
 from peptide-specific training labels.
+
+# Human-origin peptide functional evidence (#723) — 2026-10-21
+
+## Specification
+
+The pinned IEDB/CEDAR rows contain epitope, assay antigen, outcome and
+reported MHC restriction fields. Add a source-pinned local export for the
+bounded human-origin subset: unmodified canonical linear peptides, tested as
+the same peptide, with a cellular functional readout. Retain exact source
+qualitative result, method, readout, context, reference and restriction
+evidence. Represent allele assignment conservatively: an exact HLA name is
+still a reported restriction, and a narrow evidence-code subset can be
+flagged for experimental restriction support without asserting that each row
+independently established the restriction. Preserve unknown specimen
+and receptor lineage. Exclude multimer/binding, processing, nonhuman and
+ambiguous antigen-format rows. Keep the raw export local, not in Git. Do not
+change the existing metadata API or imply that all 578,529 assays are
+peptide-specific training examples.
+
+## Plan
+
+- [x] Confirm source links and measure eligible source subsets without
+      disclosing sequences.
+- [x] Implement a deterministic streaming functional export and manifest
+      with explicit target and MHC assignment status.
+- [x] Add focused tests for source filters, outcome fidelity, restriction
+      status, CEDAR deduplication and atomic failure.
+- [x] Run the real pinned sources and reconcile counts; document usage and
+      unresolved donor/specimen linkage.
+- [ ] Review diff; bump version; run format, lint and full tests; open PR,
+      merge after final-head CI and deploy from clean main.
+
+## Review
+
+The pinned source export yields 47,593 one-per-assay human-origin peptide
+cellular outcomes, including 29,075 CEDAR-overlap IDs. These span 2,334
+reference IDs and 18,051 distinct peptide sequences. Exact source outcomes
+are 25,416 Negative, 18,675 Positive, 2,630 Positive-Low, 678 Positive-High
+and 194 Positive-Intermediate. 2,158 rows have a single named HLA plus one
+of the two selected experimental restriction evidence codes. These source
+codes may be applied across related assays in a reference, so the status is
+not a row-level independent restriction measurement. Specimen IDs remain
+unknown. Eight focused tests pass; format and lint pass. The full `./test.sh`
+preflight initially refused to start with 0.27 GB free, below its 2.5 GB
+single-worker budget. Retry when unrelated memory pressure recedes.
+The local Parquet result is 595,072 bytes with SHA-256
+`9870d110d8b1df04f8119175338ad2f1ddf7b8c155a28fad34d491037697c501`;
+the source ZIPs and raw rows are not committed.

@@ -598,3 +598,12 @@ an allele set only gives a candidate match within a bounded roster. Record
 missing specimen and run lineage as separate unresolved axes, then move to the
 highest-yield missing measured modality instead of treating the narrower gap as
 a blocker for every downstream use.
+
+## 2026-10-21 — preserve source links for the intended consumer
+
+An availability count and a row-level metadata export still leave training
+consumers blocked when the source's peptide and restriction links are dropped.
+Before calling source data available, trace the source fields through to a
+usable target-specific export, and state which source rows remain excluded and
+why. Keep source-reported restriction separate from directly supported allele
+assignment and retain unresolved specimen identity.

@@ -80,6 +80,8 @@ _PUBLIC_API: dict[str, str] = {
     "tcell_assay_sources": ".tcell_assays",
     "iter_tcell_assay_metadata": ".tcell_assays",
     "write_tcell_assay_metadata": ".tcell_assays",
+    "iter_human_tcell_functional_assays": ".tcell_functional",
+    "write_human_tcell_functional_assays": ".tcell_functional",
     "load_contributors": ".provenance",
     "load_lineage": ".lineage",
     "write_training_bundle": ".training_bundle",

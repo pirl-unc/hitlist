@@ -107,7 +107,9 @@ def _check_pin(path: Path, spec: dict):
         raise ValueError(f"Source hash differs from pinned bytes: {path.name}")
 
 
-def _source_rows(path: Path, *, source: str) -> Iterator[tuple[str, str, dict[str, str]]]:
+def _source_rows(
+    path: Path, *, source: str, extra_fields: tuple[str, ...] = ()
+) -> Iterator[tuple[str, str, dict[str, str]]]:
     """Stream validated two-header rows, projected to the allowlisted cells."""
     with zipfile.ZipFile(path) as archive:
         if archive.namelist() != [MEMBER]:
@@ -123,7 +125,7 @@ def _source_rows(path: Path, *, source: str) -> Iterator[tuple[str, str, dict[st
                 raise ValueError(f"Invalid T-cell double header: {path.name}")
             assay_header = f"Assay ID | {source} IRI"
             reference_header = f"Reference | {source} IRI"
-            required = {assay_header, reference_header, *_PARITY_FIELDS}
+            required = {assay_header, reference_header, *_PARITY_FIELDS, *extra_fields}
             missing = required - set(headers)
             if missing:
                 raise ValueError(f"Missing T-cell columns: {sorted(missing)}")
@@ -145,8 +147,8 @@ def _source_rows(path: Path, *, source: str) -> Iterator[tuple[str, str, dict[st
                 yield assay_id, reference_id, cells
 
 
-def _parity_digest(cells: dict[str, str]) -> bytes:
-    values = [cells[name] for name in _PARITY_FIELDS]
+def _parity_digest(cells: dict[str, str], extra_fields: tuple[str, ...] = ()) -> bytes:
+    values = [cells[name] for name in (*_PARITY_FIELDS, *extra_fields)]
     return hashlib.blake2b(
         json.dumps(values, ensure_ascii=False, separators=(",", ":")).encode(), digest_size=16
     ).digest()
@@ -161,6 +163,24 @@ def iter_tcell_assay_metadata(
     the pinned public files. Both hashes are checked before any row is yielded.
     The CEDAR projection must match IEDB for every shared assay ID.
     """
+    for row, _ in _iter_assays_with_cells(
+        iedb_path=iedb_path,
+        cedar_path=cedar_path,
+        data_root=data_root,
+        catalog_path=catalog_path,
+    ):
+        yield row
+
+
+def _iter_assays_with_cells(
+    *,
+    iedb_path=None,
+    cedar_path=None,
+    data_root=None,
+    catalog_path=None,
+    extra_fields: tuple[str, ...] = (),
+) -> Iterator[tuple[dict, dict[str, str]]]:
+    """Share pinned-source validation with narrowly scoped row projections."""
     if (iedb_path is None) != (cedar_path is None):
         raise ValueError("Provide both iedb_path and cedar_path, or neither")
     catalog = load_curation_yaml(catalog_path or CATALOG_PATH)
@@ -172,14 +192,18 @@ def iter_tcell_assay_metadata(
     for name in (IEDB_NAME, CEDAR_NAME):
         _check_pin(Path(paths[name]), catalog["files"][name])
     cedar = {
-        assay_id: (reference_id, _parity_digest(cells))
-        for assay_id, reference_id, cells in _source_rows(Path(paths[CEDAR_NAME]), source="CEDAR")
+        assay_id: (reference_id, _parity_digest(cells, extra_fields))
+        for assay_id, reference_id, cells in _source_rows(
+            Path(paths[CEDAR_NAME]), source="CEDAR", extra_fields=extra_fields
+        )
     }
     unmatched = set(cedar)
-    for assay_id, reference_id, cells in _source_rows(Path(paths[IEDB_NAME]), source="IEDB"):
+    for assay_id, reference_id, cells in _source_rows(
+        Path(paths[IEDB_NAME]), source="IEDB", extra_fields=extra_fields
+    ):
         in_cedar = assay_id in cedar
         if in_cedar:
-            if cedar[assay_id] != (reference_id, _parity_digest(cells)):
+            if cedar[assay_id] != (reference_id, _parity_digest(cells, extra_fields)):
                 raise ValueError(f"IEDB/CEDAR assay metadata differs: {assay_id}")
             unmatched.remove(assay_id)
         restriction_name = cells["MHC Restriction | Name"]
@@ -202,7 +226,7 @@ def iter_tcell_assay_metadata(
             "specimen_identity_status": "not_in_export",
             "receptor_identity_status": "not_in_export",
         }
-        yield row
+        yield row, cells
     if unmatched:
         raise ValueError(f"CEDAR assay IDs absent from IEDB: {len(unmatched)}")
 
