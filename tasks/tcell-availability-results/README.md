@@ -94,6 +94,12 @@ specimen independence audits where source identities permit them, and
 downstream training integration. This availability report alone does not
 qualify the data for a Presto training run.
 
+The follow-up `hitlist.tcell_training` bundle standardizes the bounded
+human-origin direct-peptide cellular subset into a typed training table while
+preserving the full source-faithful assay table and explicit exclusions. Its
+manifest reports per-family positive/negative coverage and missing lineage;
+it does not assert independent specimens or a certified model holdout.
+
 For the separate Atlas MS cohort, every published row already has a donor
 label. The [Atlas crosswalk audit](../atlas-crosswalk-results/README.md) still
 marks peptide-to-acquisition and physical-specimen identities unknown. That

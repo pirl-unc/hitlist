@@ -607,3 +607,12 @@ Before calling source data available, trace the source fields through to a
 usable target-specific export, and state which source rows remain excluded and
 why. Keep source-reported restriction separate from directly supported allele
 assignment and retain unresolved specimen identity.
+
+## 2026-10-21 — make training eligibility an audited contract
+
+A source-faithful assay export can still hide label conflicts and ambiguous
+model inputs. Before describing data as trainable, define the exact target,
+keep assay-level results separate from subject-level counts, audit any
+disagreement, and publish a typed model-facing table plus exclusions and
+provenance. A reported MHC name needs its own evidence status and must not
+silently become an assured allele input.

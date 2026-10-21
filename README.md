@@ -155,6 +155,36 @@ supports study-group splits, but physical
 specimen IDs are absent, so specimen independence cannot be established here.
 The raw Parquet export is local and is not bundled in the wheel.
 
+For a frozen model-facing bundle, run:
+
+```bash
+python -m hitlist.tcell_training /path/to/human-tcell-training
+```
+
+This writes `evidence/assays.parquet` with the source-faithful functional rows,
+`training.parquet` with a typed assay-level qualitative-response target,
+`excluded.parquet` with source IDs and eligibility reasons, and `manifest.json`
+with source/output hashes and per-readout-family coverage. The training table
+has a stable `example_id`, `peptide`, boolean `target_value`, original result
+tier, explicit assay unit and peptide antigen format, method/readout,
+effector/APC and stimulation context, source IDs,
+reference-based `study_group_id`, and typed nullable subject counts. It keeps
+quantitative strings, inequalities and units as source fields rather than
+inventing a numeric target. A single HLA allele is populated as `mhc_allele`
+only when the reported name and selected experimental restriction evidence
+support that candidate; the raw reported name and evidence code remain next to
+it. These codes can be assigned across related assays in a reference and do
+not certify independent restriction for each row.
+
+Rows with disagreement between the qualitative result and reported number of
+responding subjects are retained in `evidence/assays.parquet` and listed in
+`excluded.parquet`, not silently assigned a training label. The bundle does
+not create a train/test partition; specimens remain unresolved. Use
+`hitlist.verify_human_tcell_training_bundle(path)` to check file hashes,
+source pins, schemas and that every assay was routed exactly once. This is a
+separate cellular-response target, not a new MS or binding label in
+`generate_training_table`.
+
 ## Python API
 
 Hitlist supports Python 3.10 and newer; CI tests Python 3.10 through 3.14.

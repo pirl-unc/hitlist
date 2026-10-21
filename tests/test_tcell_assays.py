@@ -21,6 +21,11 @@ from hitlist.tcell_functional import (
     iter_human_tcell_functional_assays,
     write_human_tcell_functional_assays,
 )
+from hitlist.tcell_training import (
+    TRAINING_SCHEMA,
+    verify_human_tcell_training_bundle,
+    write_human_tcell_training_bundle,
+)
 
 
 def _zip(path, records, *, cedar=False, omit=None):
@@ -239,4 +244,98 @@ def test_functional_export_checks_peptide_link_parity_and_is_atomic(tmp_path):
     output = tmp_path / "functional"
     with pytest.raises(ValueError, match="metadata differs"):
         write_human_tcell_functional_assays(output, **paths)
+    assert not output.exists()
+
+
+def test_training_bundle_preserves_evidence_and_routes_ambiguous_labels(tmp_path):
+    peptide = {"Epitope | Name": "AAAAAAAAA", "Assay Antigen | Name": "AAAAAAAAA"}
+    records = [
+        ("1", {**peptide}),
+        ("2", {**peptide, "Assay | Qualitative Measurement": "Negative"}),
+        (
+            "3",
+            {
+                **peptide,
+                "Assay | Qualitative Measurement": "Positive",
+                "Assay | Number of Subjects Positive": "0",
+            },
+        ),
+        (
+            "4",
+            {
+                **peptide,
+                "Assay | Qualitative Measurement": "Negative",
+                "Assay | Number of Subjects Positive": "0",
+                "MHC Restriction | Evidence Code": "MHC binding prediction",
+            },
+        ),
+        (
+            "5",
+            {**peptide, "Assay | Number of Subjects Positive": ""},
+        ),
+        (
+            "6",
+            {**peptide, "Assay | Number of Subjects Tested": "many"},
+        ),
+        (
+            "7",
+            {
+                **peptide,
+                "Assay | Number of Subjects Tested": "1",
+                "Assay | Number of Subjects Positive": "2",
+            },
+        ),
+    ]
+    paths = _sources(tmp_path, iedb=records, cedar=records[:2])
+    output = tmp_path / "bundle"
+    manifest = write_human_tcell_training_bundle(output, **paths, batch_size=2)
+    assert manifest["n_assays"] == 7
+    assert manifest["n_training_examples"] == 3
+    assert manifest["n_positive_examples"] == 2
+    assert manifest["n_negative_examples"] == 1
+    assert manifest["n_excluded_assays"] == 4
+    assert manifest["exclusion_counts"] == {
+        "invalid_reported_subject_count": 1,
+        "positive_subjects_exceed_tested": 1,
+        "qualitative_subject_count_disagreement": 2,
+    }
+    assert manifest["n_examples_with_mhc_allele"] == 2
+    assert manifest["family_coverage"]["soluble_factor_release"] == {
+        "n_examples": 3,
+        "n_positive_examples": 2,
+        "n_negative_examples": 1,
+        "n_examples_with_mhc_allele": 2,
+    }
+    assert (
+        verify_human_tcell_training_bundle(output, catalog_path=paths["catalog_path"]) == manifest
+    )
+    assert pq.read_table(output / "evidence" / "assays.parquet").num_rows == 7
+    training = pq.read_table(output / "training.parquet")
+    assert training.schema == TRAINING_SCHEMA
+    assert training.column("source_assay_id").to_pylist() == ["1", "4", "5"]
+    assert training.column("example_unit").to_pylist() == ["assay"] * 3
+    assert training.column("antigen_format").to_pylist() == ["direct_linear_peptide"] * 3
+    assert training.column("target_value").to_pylist() == [True, False, True]
+    assert training.column("mhc_allele").to_pylist() == ["HLA-A*02:01", None, "HLA-A*02:01"]
+    assert training.column("n_subjects_tested").to_pylist() == [2, 2, 2]
+    assert training.column("study_group_id").to_pylist() == ["10", "10", "10"]
+    excluded = pq.read_table(output / "excluded.parquet")
+    assert excluded.column("source_assay_id").to_pylist() == ["2", "3", "6", "7"]
+    with pytest.raises(FileExistsError):
+        write_human_tcell_training_bundle(output, **paths)
+    (output / "training.parquet").write_bytes((output / "training.parquet").read_bytes() + b"x")
+    with pytest.raises(ValueError, match="file hash differs"):
+        verify_human_tcell_training_bundle(output, catalog_path=paths["catalog_path"])
+
+
+def test_training_bundle_is_atomic_on_shared_source_mismatch(tmp_path):
+    peptide = {"Epitope | Name": "AAAAAAAAA", "Assay Antigen | Name": "AAAAAAAAA"}
+    paths = _sources(
+        tmp_path,
+        iedb=[("1", peptide)],
+        cedar=[("1", {**peptide, "Assay Antigen | Name": "CCCCCCCCC"})],
+    )
+    output = tmp_path / "bundle"
+    with pytest.raises(ValueError, match="metadata differs"):
+        write_human_tcell_training_bundle(output, **paths)
     assert not output.exists()
