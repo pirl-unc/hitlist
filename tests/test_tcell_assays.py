@@ -17,6 +17,10 @@ from hitlist.tcell_assays import (
     iter_tcell_assay_metadata,
     write_tcell_assay_metadata,
 )
+from hitlist.tcell_functional import (
+    iter_human_tcell_functional_assays,
+    write_human_tcell_functional_assays,
+)
 
 
 def _zip(path, records, *, cedar=False, omit=None):
@@ -28,6 +32,12 @@ def _zip(path, records, *, cedar=False, omit=None):
         "MHC Restriction | Name",
         "Epitope | Name",
         "Assay Antigen | Name",
+        "Epitope | Source Organism IRI",
+        "Epitope | Object Type",
+        "Epitope | Modified residues",
+        "Epitope | Modifications",
+        "Assay Antigen | Epitope Relation",
+        "Assay Antigen | Source Organism IRI",
     ]
     names = list(dict.fromkeys(name for name in names if name != omit))
     output = io.StringIO(newline="")
@@ -51,6 +61,11 @@ def _zip(path, records, *, cedar=False, omit=None):
             "MHC Restriction | Evidence Code": "Single allele present",
             "Epitope | Name": "SYNTHETIC_SEQUENCE",
             "Assay Antigen | Name": "SYNTHETIC_SEQUENCE",
+            "Assay Antigen | Object Type": "Linear peptide",
+            "Epitope | Source Organism IRI": "http://purl.obolibrary.org/obo/NCBITaxon_9606",
+            "Epitope | Object Type": "Linear peptide",
+            "Assay Antigen | Epitope Relation": "Epitope",
+            "Assay Antigen | Source Organism IRI": "http://purl.obolibrary.org/obo/NCBITaxon_9606",
         }
         row.update(overrides)
         writer.writerow([row.get(name, "") for name in names])
@@ -161,3 +176,67 @@ def test_local_export_has_manifest_and_exact_rows(tmp_path):
     ]
     with pytest.raises(FileExistsError):
         write_tcell_assay_metadata(output, **paths)
+
+
+def test_functional_export_links_direct_human_peptide_to_outcome(tmp_path):
+    peptide = {"Epitope | Name": "AAAAAAAAA", "Assay Antigen | Name": "AAAAAAAAA"}
+    records = [
+        ("1", {**peptide}),
+        (
+            "2",
+            {
+                **peptide,
+                "Assay | Qualitative Measurement": "Negative",
+                "MHC Restriction | Evidence Code": "MHC binding prediction",
+            },
+        ),
+        (
+            "3",
+            {
+                **peptide,
+                "Assay | Method": "multimer/tetramer",
+                "Assay | Response measured": "qualitative binding",
+            },
+        ),
+        ("4", {**peptide, "Epitope | Source Organism IRI": "other_taxon"}),
+        ("5", {**peptide, "Assay Antigen | Name": "CCCCCCCCC"}),
+        ("6", {**peptide, "Epitope | Modified residues": "modified"}),
+        ("7", {**peptide, "MHC Restriction | Name": "HLA class I"}),
+        ("8", {**peptide, "Assay Antigen | Source Organism IRI": "other_taxon"}),
+    ]
+    paths = _sources(tmp_path, iedb=records, cedar=records[:2])
+    rows = list(iter_human_tcell_functional_assays(**paths))
+    assert [row["source_assay_id"] for row in rows] == ["1", "2", "7"]
+    assert [row["response_observed"] for row in rows] == [True, False, True]
+    assert [row["mhc_assignment_status"] for row in rows] == [
+        "single_hla_experimental_restriction_evidence",
+        "single_hla_reported_only",
+        "no_single_hla_assignment",
+    ]
+    assert rows[0]["peptide_sequence"] == "AAAAAAAAA"
+    assert rows[0]["reported_mhc_name"] == "HLA-A*02:01"
+    assert rows[0]["source_reference_id"] == "10"
+    assert rows[0]["assay_method"] == "ELISPOT"
+    assert rows[0]["specimen_identity_status"] == "not_in_export"
+
+    output = tmp_path / "functional"
+    manifest = write_human_tcell_functional_assays(output, **paths, batch_size=2)
+    assert manifest["n_assays"] == 3
+    assert manifest["n_cedar_assays"] == 2
+    assert manifest["n_assays_with_experimental_restriction_evidence"] == 1
+    table = pq.read_table(output / "assays.parquet")
+    assert table.column("response_observed").to_pylist() == [True, False, True]
+    assert json.loads((output / "manifest.json").read_text()) == manifest
+
+
+def test_functional_export_checks_peptide_link_parity_and_is_atomic(tmp_path):
+    peptide = {"Epitope | Name": "AAAAAAAAA", "Assay Antigen | Name": "AAAAAAAAA"}
+    paths = _sources(
+        tmp_path,
+        iedb=[("1", peptide)],
+        cedar=[("1", {**peptide, "Assay Antigen | Name": "CCCCCCCCC"})],
+    )
+    output = tmp_path / "functional"
+    with pytest.raises(ValueError, match="metadata differs"):
+        write_human_tcell_functional_assays(output, **paths)
+    assert not output.exists()

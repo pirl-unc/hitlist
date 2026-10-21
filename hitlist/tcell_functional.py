@@ -1,0 +1,211 @@
+"""Pinned human-origin peptide T-cell functional assay evidence.
+
+Rows are source-reported cellular assay outcomes, not binding or MS labels.
+This deliberately narrow export keeps antigen identity linked to the assay.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import re
+import tempfile
+from collections import Counter
+from collections.abc import Iterator
+from pathlib import Path
+
+import pyarrow as pa
+import pyarrow.parquet as pq
+
+from .curation_yaml import load_curation_yaml
+from .tcell_assays import CATALOG_PATH, EXPORT_COLUMNS, _iter_assays_with_cells
+
+HUMAN_TAXON_IRI = "http://purl.obolibrary.org/obo/NCBITaxon_9606"
+CANONICAL_PEPTIDE = re.compile(r"^[ACDEFGHIKLMNPQRSTVWY]{5,40}$")
+EXPERIMENTAL_RESTRICTION_CODES = frozenset(
+    {"Single allele present", "T cell assay -Mismatched MHC molecules"}
+)
+EXTRA_FIELDS = (
+    "Epitope | Source Organism IRI",
+    "Epitope | Object Type",
+    "Epitope | Name",
+    "Epitope | Modified residues",
+    "Epitope | Modifications",
+    "Assay Antigen | Epitope Relation",
+    "Assay Antigen | Name",
+    "Assay Antigen | Source Organism IRI",
+)
+FUNCTIONAL_FAMILIES = frozenset(
+    {"soluble_factor_release", "activation_or_proliferation", "cytotoxicity"}
+)
+FUNCTIONAL_COLUMNS = (
+    *EXPORT_COLUMNS,
+    "peptide_sequence",
+    "reported_mhc_name",
+    "mhc_assignment_status",
+    "response_observed",
+)
+FUNCTIONAL_SCHEMA = pa.schema(
+    [
+        (name, pa.bool_() if name in {"cedar_present", "response_observed"} else pa.string())
+        for name in FUNCTIONAL_COLUMNS
+    ]
+)
+
+
+def _eligible(row: dict, cells: dict[str, str]) -> bool:
+    peptide = cells["Epitope | Name"]
+    return (
+        cells["Epitope | Source Organism IRI"] == HUMAN_TAXON_IRI
+        and cells["Epitope | Object Type"] == "Linear peptide"
+        and CANONICAL_PEPTIDE.fullmatch(peptide) is not None
+        and not cells["Epitope | Modified residues"]
+        and not cells["Epitope | Modifications"]
+        and row["antigen_object_type"] == "Linear peptide"
+        and cells["Assay Antigen | Epitope Relation"] == "Epitope"
+        and cells["Assay Antigen | Name"] == peptide
+        and cells["Assay Antigen | Source Organism IRI"] == HUMAN_TAXON_IRI
+        and row["assay_family"] in FUNCTIONAL_FAMILIES
+        and row["qualitative_measurement"]
+        in {"Negative", "Positive", "Positive-Low", "Positive-Intermediate", "Positive-High"}
+    )
+
+
+def iter_human_tcell_functional_assays(
+    *, iedb_path=None, cedar_path=None, data_root=None, catalog_path=None
+) -> Iterator[dict]:
+    """Yield directly tested human-origin peptides with cellular outcomes.
+
+    The measured target is the source's assay-specific cellular response.
+    A named HLA allele is flagged for two experimental restriction evidence
+    codes. These codes may be applied across assays in a reference, so the flag
+    does not certify that this particular assay independently measured the
+    allele restriction. Specimen IDs are absent.
+    """
+    for metadata, cells in _iter_assays_with_cells(
+        iedb_path=iedb_path,
+        cedar_path=cedar_path,
+        data_root=data_root,
+        catalog_path=catalog_path,
+        extra_fields=EXTRA_FIELDS,
+    ):
+        if not _eligible(metadata, cells):
+            continue
+        restriction_status = (
+            "single_hla_experimental_restriction_evidence"
+            if metadata["restriction_name_resolution"] == "single_hla_two_field_name"
+            and metadata["restriction_evidence_code"] in EXPERIMENTAL_RESTRICTION_CODES
+            else "single_hla_reported_only"
+            if metadata["restriction_name_resolution"] == "single_hla_two_field_name"
+            else "no_single_hla_assignment"
+        )
+        yield {
+            **metadata,
+            "peptide_sequence": cells["Epitope | Name"],
+            "reported_mhc_name": cells["MHC Restriction | Name"],
+            "mhc_assignment_status": restriction_status,
+            "response_observed": metadata["qualitative_measurement"] != "Negative",
+        }
+
+
+def write_human_tcell_functional_assays(
+    output_dir,
+    *,
+    iedb_path=None,
+    cedar_path=None,
+    data_root=None,
+    catalog_path=None,
+    batch_size=25000,
+) -> dict:
+    """Write a local Parquet table and source manifest atomically."""
+    if batch_size < 1:
+        raise ValueError("batch_size must be positive")
+    destination = Path(output_dir)
+    if destination.exists():
+        raise FileExistsError(destination)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    catalog = load_curation_yaml(catalog_path or CATALOG_PATH)
+    with tempfile.TemporaryDirectory(prefix=f".{destination.name}-", dir=destination.parent) as tmp:
+        staging = Path(tmp)
+        table_path = staging / "assays.parquet"
+        counts = Counter()
+        writer = None
+        batch = []
+        try:
+            for row in iter_human_tcell_functional_assays(
+                iedb_path=iedb_path,
+                cedar_path=cedar_path,
+                data_root=data_root,
+                catalog_path=catalog_path,
+            ):
+                batch.append(row)
+                counts["n_assays"] += 1
+                counts["n_cedar_assays"] += int(row["cedar_present"])
+                counts["n_assays_with_experimental_restriction_evidence"] += int(
+                    row["mhc_assignment_status"] == "single_hla_experimental_restriction_evidence"
+                )
+                if len(batch) >= batch_size:
+                    writer = _write_batch(writer, table_path, batch)
+                    batch.clear()
+            if batch or writer is None:
+                writer = _write_batch(writer, table_path, batch)
+        finally:
+            if writer is not None:
+                writer.close()
+        digest = hashlib.sha256(table_path.read_bytes()).hexdigest()
+        manifest = {
+            "schema_version": 1,
+            "source_observed": catalog["observed"],
+            "sources": catalog["files"],
+            "n_assays": counts["n_assays"],
+            "n_cedar_assays": counts["n_cedar_assays"],
+            "n_assays_with_experimental_restriction_evidence": counts[
+                "n_assays_with_experimental_restriction_evidence"
+            ],
+            "parquet_sha256": digest,
+            "target_policy": "reported_human_peptide_cellular_response",
+            "restriction_policy": "reported_name_with_separate_experimental_evidence_status",
+            "independence_policy": "study_id_available_specimen_id_unknown",
+        }
+        (staging / "manifest.json").write_text(
+            json.dumps(manifest, indent=2, sort_keys=True) + "\n"
+        )
+        os.replace(staging, destination)
+    return manifest
+
+
+def _write_batch(writer, path: Path, rows: list[dict]):
+    if writer is None:
+        writer = pq.ParquetWriter(path, FUNCTIONAL_SCHEMA, compression="zstd")
+    writer.write_table(pa.Table.from_pylist(rows, schema=FUNCTIONAL_SCHEMA))
+    return writer
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("output_dir", type=Path)
+    parser.add_argument("--iedb", type=Path)
+    parser.add_argument("--cedar", type=Path)
+    args = parser.parse_args()
+    manifest = write_human_tcell_functional_assays(
+        args.output_dir, iedb_path=args.iedb, cedar_path=args.cedar
+    )
+    print(
+        json.dumps(
+            {
+                key: manifest[key]
+                for key in (
+                    "n_assays",
+                    "n_cedar_assays",
+                    "n_assays_with_experimental_restriction_evidence",
+                )
+            },
+            sort_keys=True,
+        )
+    )
+
+
+if __name__ == "__main__":
+    main()

@@ -122,6 +122,39 @@ context are preserved. Antigen identities and sequences, source organisms and
 allele names are excluded. This metadata is separate from
 `generate_training_table`; its outcomes are not MS/binding labels.
 
+### Human-origin peptide T-cell functional evidence
+
+The same pinned source snapshot contains peptide-specific cellular outcomes.
+Hitlist exposes a narrow local export for unmodified human-origin linear
+peptides that were directly tested as peptides in a functional T-cell assay:
+
+```bash
+python -m hitlist.tcell_functional /path/to/human-tcell-functional
+```
+
+The command accepts the same `--iedb` and `--cedar` ZIP options as the metadata
+export. In Python, use `hitlist.iter_human_tcell_functional_assays(...)` or
+`hitlist.write_human_tcell_functional_assays(...)`. Each row links a peptide
+sequence, exact qualitative outcome, method/readout, experimental context,
+source assay/reference IDs and reported MHC name. `response_observed` maps
+`Negative` to `False` and all source `Positive` tiers to `True`; the original
+qualitative tier stays in `qualitative_measurement`. This is a cellular response
+target under the reported assay conditions. It is not a binding, presentation,
+processing or receptor-sequence target.
+Each row is an assay record, which may aggregate multiple tested subjects;
+`reported_n_subjects_tested` and `reported_n_subjects_positive` remain source
+strings rather than inferred independent person-level examples.
+
+`mhc_assignment_status` separates a reported single two-field HLA name with
+experimental restriction evidence from a reported name with weaker evidence
+or no single-HLA assignment. [IEDB's curation rules](https://curationwiki.iedb.org/wiki/index.php/Curation_Manual2.0)
+can apply a restriction evidence code
+to related assays in the same reference, so this flag is not proof that the
+particular assay independently established restriction. The reference ID
+supports study-group splits, but physical
+specimen IDs are absent, so specimen independence cannot be established here.
+The raw Parquet export is local and is not bundled in the wheel.
+
 ## Python API
 
 Hitlist supports Python 3.10 and newer; CI tests Python 3.10 through 3.14.
