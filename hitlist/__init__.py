@@ -61,6 +61,8 @@ _PUBLIC_API: dict[str, str] = {
     "list_tasks": ".evidence_catalog",
     "describe_task": ".evidence_catalog",
     "describe_catalog": ".evidence_catalog",
+    "write_mhc_evidence_package": ".mhc_evidence",
+    "verify_mhc_evidence_package": ".mhc_evidence",
     "dataset_snapshot": ".dataset",
     "curate_canine_bulk": ".canine_bulk",
     "canine_bulk_catalog": ".canine_bulk",
