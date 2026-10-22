@@ -8,6 +8,7 @@ nav:
   - Home: index.md
   - How Curation Works: curation-process.md
   - Assay Modality and MS Evidence: assay-modality.md
+  - Evidence Catalog: evidence-catalog.md
   - Source Classification: source-classification.md
   - PMID Curation Overrides: pmid-curation.md
   - Training Provenance and Split Audits: training-provenance.md

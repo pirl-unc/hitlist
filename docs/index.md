@@ -18,6 +18,8 @@ overrides and classification rules are YAML data files, not hardcoded Python.
 New here? Start with **[How curation works](curation-process.md)** for the
 end-to-end pipeline and the ideas behind it. See [assay modality](assay-modality.md)
 for MS admission and migration after #644.
+The [evidence catalog](evidence-catalog.md) defines the versioned Hitlist 2.0
+logical fields, row grains and task requirements across all current modalities.
 
 ## Install
 

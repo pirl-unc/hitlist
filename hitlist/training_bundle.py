@@ -189,7 +189,9 @@ def _contributor_identities(identities, contributors):
         .groupby("provenance_id")["pmid"]
         .agg(lambda values: json.dumps(sorted(str(value) for value in values)))
     )
-    identities["contributor_pmids"] = identities.provenance_id.map(paper_sets).fillna("[]")
+    identities["contributor_pmids"] = (
+        identities.provenance_id.map(paper_sets).astype("string").fillna("[]")
+    )
     identities["contributor_study_status"] = identities.provenance_id.map(
         lambda value: "resolved" if value in captured and value not in missing else "unknown"
     )

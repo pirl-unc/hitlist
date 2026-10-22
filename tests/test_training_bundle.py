@@ -152,6 +152,7 @@ def test_empty_and_legacy_bundles_are_explicit(built_index, tmp_path):
     empty = tmp_path / "empty"
     write_training_bundle(empty, include_evidence="ms", peptide="NOTPRESENT")
     assert verify_training_bundle(empty)["coverage"]["n_observations"] == 0
+    assert "contributor_pmids" in pd.read_parquet(empty / "identities.parquet")
     path = built_index / "observations.parquet"
     pd.read_parquet(path).drop(columns="provenance_id").to_parquet(path, index=False)
     (built_index / "observations_meta.json").unlink()
@@ -167,6 +168,7 @@ def test_empty_and_legacy_bundles_are_explicit(built_index, tmp_path):
     assert set(pd.read_parquet(legacy / "identities.parquet").provenance_status) == {
         "legacy_missing"
     }
+    assert set(pd.read_parquet(legacy / "identities.parquet").contributor_pmids) == {"[]"}
 
 
 @pytest.mark.parametrize("artifact", ["observation_contributors.parquet", "observations.parquet"])

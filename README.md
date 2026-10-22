@@ -1,5 +1,10 @@
 # hitlist
 
+The [Hitlist 2.0 evidence catalog](docs/evidence-catalog.md) now declares
+logical assay, context and provenance types across MHC, T-cell, bulk MS and
+expression data. It is a contract for the staged migration, not a new training
+export in this release.
+
 [![Tests](https://github.com/pirl-unc/hitlist/actions/workflows/tests.yml/badge.svg)](https://github.com/pirl-unc/hitlist/actions/workflows/tests.yml)
 [![PyPI](https://img.shields.io/pypi/v/hitlist.svg)](https://pypi.org/project/hitlist/)
 
