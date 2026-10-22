@@ -34,7 +34,6 @@ def test_catalog_covers_current_data_grains_without_double_counting():
     availability = describe_evidence("tcell_availability")
     assert functional["source_population"] == multimer["source_population"]
     assert functional["source_population"] == availability["source_population"]
-    assert functional["source_view"] == multimer["source_view"] == "tcell_availability"
     assert "peptide_sequence" not in {field["name"] for field in availability["fields"]}
     assert len(availability["assay_families"]) == 5
     assert set(functional["assay_families"]).isdisjoint(multimer["assay_families"])

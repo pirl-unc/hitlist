@@ -56,7 +56,6 @@ class Evidence:
     fields: tuple[str, ...]
     index_required: tuple[str, ...]
     native_selector: str = ""
-    source_view: str = ""
     assay_families: tuple[str, ...] = ()
     status: str = "v2_contract_only"
 
@@ -298,7 +297,6 @@ EVIDENCE = (
         ("cellular_functional_response",),
         _TCELL_SOURCE + _ASSAY + _MEASUREMENT + _TCELL_CONTEXT + ("peptide_sequence",),
         ("source_assay_id", "peptide_sequence", "endpoint"),
-        source_view="tcell_availability",
         assay_families=(
             "soluble_factor_release",
             "activation_or_proliferation",
@@ -315,7 +313,6 @@ EVIDENCE = (
         ("pmhc_multimer_cell_binding",),
         _TCELL_SOURCE + _ASSAY + _MEASUREMENT + _TCELL_CONTEXT + ("peptide_sequence",),
         ("source_assay_id", "peptide_sequence", "endpoint"),
-        source_view="tcell_availability",
         assay_families=("pmhc_multimer",),
     ),
     Evidence(
@@ -590,11 +587,6 @@ def _validate_catalog() -> None:
             raise ValueError(f"Duplicate assay family on {item.name}")
         if set(item.fields) - _FIELD_BY_NAME.keys() or set(item.index_required) - set(item.fields):
             raise ValueError(f"Invalid fields on {item.name}")
-        if item.source_view and (
-            item.source_view not in _EVIDENCE_BY_NAME
-            or _EVIDENCE_BY_NAME[item.source_view].source_population != item.source_population
-        ):
-            raise ValueError(f"Invalid source view on {item.name}")
     for task in TASKS:
         if len(set(task.required)) != len(task.required):
             raise ValueError(f"Duplicate task requirement: {task.name}")
