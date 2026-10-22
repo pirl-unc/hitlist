@@ -10,7 +10,6 @@ import argparse
 import hashlib
 import json
 import os
-import re
 import tempfile
 from collections import Counter
 from collections.abc import Iterator
@@ -20,23 +19,9 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from .curation_yaml import load_curation_yaml
-from .tcell_assays import CATALOG_PATH, EXPORT_COLUMNS, _iter_assays_with_cells
+from .tcell_assays import CATALOG_PATH, EXPORT_COLUMNS
+from .tcell_peptides import iter_human_direct_peptide_tcell_assays
 
-HUMAN_TAXON_IRI = "http://purl.obolibrary.org/obo/NCBITaxon_9606"
-CANONICAL_PEPTIDE = re.compile(r"^[ACDEFGHIKLMNPQRSTVWY]{5,40}$")
-EXPERIMENTAL_RESTRICTION_CODES = frozenset(
-    {"Single allele present", "T cell assay -Mismatched MHC molecules"}
-)
-EXTRA_FIELDS = (
-    "Epitope | Source Organism IRI",
-    "Epitope | Object Type",
-    "Epitope | Name",
-    "Epitope | Modified residues",
-    "Epitope | Modifications",
-    "Assay Antigen | Epitope Relation",
-    "Assay Antigen | Name",
-    "Assay Antigen | Source Organism IRI",
-)
 FUNCTIONAL_FAMILIES = frozenset(
     {"soluble_factor_release", "activation_or_proliferation", "cytotoxicity"}
 )
@@ -55,24 +40,6 @@ FUNCTIONAL_SCHEMA = pa.schema(
 )
 
 
-def _eligible(row: dict, cells: dict[str, str]) -> bool:
-    peptide = cells["Epitope | Name"]
-    return (
-        cells["Epitope | Source Organism IRI"] == HUMAN_TAXON_IRI
-        and cells["Epitope | Object Type"] == "Linear peptide"
-        and CANONICAL_PEPTIDE.fullmatch(peptide) is not None
-        and not cells["Epitope | Modified residues"]
-        and not cells["Epitope | Modifications"]
-        and row["antigen_object_type"] == "Linear peptide"
-        and cells["Assay Antigen | Epitope Relation"] == "Epitope"
-        and cells["Assay Antigen | Name"] == peptide
-        and cells["Assay Antigen | Source Organism IRI"] == HUMAN_TAXON_IRI
-        and row["assay_family"] in FUNCTIONAL_FAMILIES
-        and row["qualitative_measurement"]
-        in {"Negative", "Positive", "Positive-Low", "Positive-Intermediate", "Positive-High"}
-    )
-
-
 def iter_human_tcell_functional_assays(
     *, iedb_path=None, cedar_path=None, data_root=None, catalog_path=None
 ) -> Iterator[dict]:
@@ -84,30 +51,16 @@ def iter_human_tcell_functional_assays(
     does not certify that this particular assay independently measured the
     allele restriction. Specimen IDs are absent.
     """
-    for metadata, cells in _iter_assays_with_cells(
+    for row in iter_human_direct_peptide_tcell_assays(
+        assay_families=FUNCTIONAL_FAMILIES,
         iedb_path=iedb_path,
         cedar_path=cedar_path,
         data_root=data_root,
         catalog_path=catalog_path,
-        extra_fields=EXTRA_FIELDS,
     ):
-        if not _eligible(metadata, cells):
-            continue
-        restriction_status = (
-            "single_hla_experimental_restriction_evidence"
-            if metadata["restriction_name_resolution"] == "single_hla_two_field_name"
-            and metadata["restriction_evidence_code"] in EXPERIMENTAL_RESTRICTION_CODES
-            else "single_hla_reported_only"
-            if metadata["restriction_name_resolution"] == "single_hla_two_field_name"
-            else "no_single_hla_assignment"
-        )
-        yield {
-            **metadata,
-            "peptide_sequence": cells["Epitope | Name"],
-            "reported_mhc_name": cells["MHC Restriction | Name"],
-            "mhc_assignment_status": restriction_status,
-            "response_observed": metadata["qualitative_measurement"] != "Negative",
-        }
+        assay = row.copy()
+        assay["response_observed"] = assay.pop("qualitative_signal_observed")
+        yield assay
 
 
 def write_human_tcell_functional_assays(

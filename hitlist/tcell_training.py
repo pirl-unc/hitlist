@@ -1,4 +1,4 @@
-"""Frozen, assay-level training bundle for human-origin peptide T-cell responses."""
+"""Frozen assay-level training bundles for human-origin peptide T-cell assays."""
 
 from __future__ import annotations
 
@@ -16,10 +16,13 @@ import pyarrow.parquet as pq
 from .curation_yaml import load_curation_yaml
 from .tcell_assays import CATALOG_PATH
 from .tcell_functional import FUNCTIONAL_SCHEMA, write_human_tcell_functional_assays
+from .tcell_multimer import MULTIMER_SCHEMA, write_human_tcell_multimer_assays
 from .version import __version__
 
 TASK = "assay_specific_tcell_qualitative_response"
 FORMAT = "hitlist-human-tcell-training-v1"
+MULTIMER_TASK = "assay_specific_pmhc_multimer_cell_binding"
+MULTIMER_FORMAT = "hitlist-human-tcell-multimer-training-v1"
 TRAINING_COLUMNS = (
     "example_id",
     "example_unit",
@@ -91,9 +94,11 @@ def _subject_count(value: str) -> int | None:
     return count
 
 
-def _route(row: dict) -> tuple[dict | None, str | None]:
+def _route(
+    row: dict, *, task: str = TASK, observed_field: str = "response_observed"
+) -> tuple[dict | None, str | None]:
     """Separate ambiguous binary targets without changing source evidence."""
-    if row["response_observed"] != (row["qualitative_measurement"] != "Negative"):
+    if row[observed_field] != (row["qualitative_measurement"] != "Negative"):
         raise ValueError("Source qualitative result and derived response disagree")
     try:
         n_tested = _subject_count(row["reported_n_subjects_tested"])
@@ -102,7 +107,7 @@ def _route(row: dict) -> tuple[dict | None, str | None]:
         return None, "invalid_reported_subject_count"
     if n_tested is not None and n_positive is not None and n_positive > n_tested:
         return None, "positive_subjects_exceed_tested"
-    target = row["response_observed"]
+    target = row[observed_field]
     if n_positive is not None and target != (n_positive > 0):
         return None, "qualitative_subject_count_disagreement"
     mhc_allele = (
@@ -114,7 +119,7 @@ def _route(row: dict) -> tuple[dict | None, str | None]:
         {
             "example_id": f"iedb:tcell:{row['source_assay_id']}",
             "example_unit": "assay",
-            "task": TASK,
+            "task": task,
             "target_value": target,
             "source_qualitative_result": row["qualitative_measurement"],
             "label_consistency_status": (
@@ -173,9 +178,13 @@ def _flush(writer, path: Path, rows: list[dict], schema: pa.Schema):
     return writer
 
 
-def write_human_tcell_training_bundle(
+def _write_training_bundle(
     output_dir,
     *,
+    evidence_writer,
+    format_name,
+    task,
+    observed_field,
     iedb_path=None,
     cedar_path=None,
     data_root=None,
@@ -191,7 +200,7 @@ def write_human_tcell_training_bundle(
     destination.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix=f".{destination.name}-", dir=destination.parent) as tmp:
         staging = Path(tmp)
-        evidence_manifest = write_human_tcell_functional_assays(
+        evidence_manifest = evidence_writer(
             staging / "evidence",
             iedb_path=iedb_path,
             cedar_path=cedar_path,
@@ -210,7 +219,7 @@ def write_human_tcell_training_bundle(
             source = pq.ParquetFile(staging / "evidence" / "assays.parquet")
             for batch in source.iter_batches(batch_size=batch_size):
                 for row in batch.to_pylist():
-                    example, reason = _route(row)
+                    example, reason = _route(row, task=task, observed_field=observed_field)
                     if reason is not None:
                         excluded_rows.append(
                             {
@@ -282,7 +291,7 @@ def write_human_tcell_training_bundle(
             for name, value in sorted(families.items())
         }
         manifest = {
-            "format": FORMAT,
+            "format": format_name,
             "schema_version": 1,
             "hitlist_version": __version__,
             "parquet_batch_size": batch_size,
@@ -297,7 +306,7 @@ def write_human_tcell_training_bundle(
             "family_coverage": family_coverage,
             "n_examples_with_mhc_allele": counts["n_examples_with_mhc_allele"],
             "n_study_groups": len(studies),
-            "target_policy": TASK,
+            "target_policy": task,
             "mhc_policy": "single_hla_experimental_evidence_candidate_only",
             "split_policy": "unsplit_study_group_available_specimen_unknown",
         }
@@ -308,11 +317,66 @@ def write_human_tcell_training_bundle(
     return manifest
 
 
-def verify_human_tcell_training_bundle(directory, *, catalog_path=None) -> dict:
+def write_human_tcell_training_bundle(
+    output_dir,
+    *,
+    task="functional",
+    iedb_path=None,
+    cedar_path=None,
+    data_root=None,
+    catalog_path=None,
+    batch_size=25000,
+) -> dict:
+    """Write a human peptide assay bundle for ``functional`` or ``multimer``."""
+    if task not in {"functional", "multimer"}:
+        raise ValueError("task must be 'functional' or 'multimer'")
+    is_multimer = task == "multimer"
+    return _write_training_bundle(
+        output_dir,
+        evidence_writer=(
+            write_human_tcell_multimer_assays
+            if is_multimer
+            else write_human_tcell_functional_assays
+        ),
+        format_name=MULTIMER_FORMAT if is_multimer else FORMAT,
+        task=MULTIMER_TASK if is_multimer else TASK,
+        observed_field="multimer_binding_observed" if is_multimer else "response_observed",
+        iedb_path=iedb_path,
+        cedar_path=cedar_path,
+        data_root=data_root,
+        catalog_path=catalog_path,
+        batch_size=batch_size,
+    )
+
+
+def write_human_tcell_multimer_training_bundle(
+    output_dir,
+    *,
+    iedb_path=None,
+    cedar_path=None,
+    data_root=None,
+    catalog_path=None,
+    batch_size=25000,
+) -> dict:
+    """Write a distinct qualitative multimer cell-binding training bundle."""
+    return write_human_tcell_training_bundle(
+        output_dir,
+        task="multimer",
+        iedb_path=iedb_path,
+        cedar_path=cedar_path,
+        data_root=data_root,
+        catalog_path=catalog_path,
+        batch_size=batch_size,
+    )
+
+
+def _verify_training_bundle(
+    directory, *, format_name, task, observed_field, evidence_schema, catalog_path=None
+) -> dict:
     """Verify a bundle's source pins, hashes, schema and row routing."""
     root = Path(directory)
     manifest = json.loads((root / "manifest.json").read_text())
-    if manifest.get("format") != FORMAT or manifest.get("schema_version") != 1:
+    if manifest.get("format") != format_name or manifest.get("schema_version") != 1:
         raise ValueError("Unknown T-cell training bundle format")
     catalog = load_curation_yaml(catalog_path or CATALOG_PATH)
     evidence = manifest["evidence_manifest"]
@@ -337,7 +401,7 @@ def verify_human_tcell_training_bundle(directory, *, catalog_path=None) -> dict:
     training = pq.read_table(root / "training.parquet")
     excluded = pq.read_table(root / "excluded.parquet")
     if (
-        assays.schema != FUNCTIONAL_SCHEMA
+        assays.schema != evidence_schema
         or training.schema != TRAINING_SCHEMA
         or excluded.schema != EXCLUDED_SCHEMA
     ):
@@ -361,7 +425,7 @@ def verify_human_tcell_training_bundle(directory, *, catalog_path=None) -> dict:
         raise ValueError("T-cell assays are duplicated or missing from routing")
     expected_training, expected_excluded = [], []
     for row in assays.to_pylist():
-        example, reason = _route(row)
+        example, reason = _route(row, task=task, observed_field=observed_field)
         if reason is None:
             expected_training.append(example)
         else:
@@ -405,17 +469,40 @@ def verify_human_tcell_training_bundle(directory, *, catalog_path=None) -> dict:
         raise ValueError("T-cell family coverage differs")
     if manifest["n_study_groups"] != len({row["study_group_id"] for row in expected_training}):
         raise ValueError("T-cell study group count differs")
+    if manifest["target_policy"] != task:
+        raise ValueError("T-cell target policy differs")
     return manifest
+
+
+def verify_human_tcell_training_bundle(directory, *, task="functional", catalog_path=None) -> dict:
+    """Verify a ``functional`` or ``multimer`` bundle against source evidence."""
+    if task not in {"functional", "multimer"}:
+        raise ValueError("task must be 'functional' or 'multimer'")
+    is_multimer = task == "multimer"
+    return _verify_training_bundle(
+        directory,
+        format_name=MULTIMER_FORMAT if is_multimer else FORMAT,
+        task=MULTIMER_TASK if is_multimer else TASK,
+        observed_field="multimer_binding_observed" if is_multimer else "response_observed",
+        evidence_schema=MULTIMER_SCHEMA if is_multimer else FUNCTIONAL_SCHEMA,
+        catalog_path=catalog_path,
+    )
+
+
+def verify_human_tcell_multimer_training_bundle(directory, *, catalog_path=None) -> dict:
+    """Verify the multimer cell-binding bundle against source evidence and pins."""
+    return verify_human_tcell_training_bundle(directory, task="multimer", catalog_path=catalog_path)
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("output_dir", type=Path)
+    parser.add_argument("--task", choices=("functional", "multimer"), default="functional")
     parser.add_argument("--iedb", type=Path)
     parser.add_argument("--cedar", type=Path)
     args = parser.parse_args()
     manifest = write_human_tcell_training_bundle(
-        args.output_dir, iedb_path=args.iedb, cedar_path=args.cedar
+        args.output_dir, task=args.task, iedb_path=args.iedb, cedar_path=args.cedar
     )
     print(
         json.dumps(

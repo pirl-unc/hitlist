@@ -6944,3 +6944,59 @@ and passes on the real pinned source. Focused tests pass; full project gates,
 PR and release remain pending.
 Default datacache acquisition and explicit local ZIP inputs produced identical
 training and evidence Parquet hashes.
+
+# Human-origin peptide multimer evidence (#723) — 2026-10-21
+
+## Specification
+
+Add a second, distinct assay-level training task for qualitative peptide–MHC
+multimer binding to tested T cells. Use the same pinned IEDB/CEDAR ZIPs and the
+same human-origin, unmodified canonical, directly tested linear-peptide filter
+as the functional bundle. Require source method `multimer/tetramer` and readout
+`qualitative binding`. Preserve the 8,432 eligible source assays as local
+evidence, route the 9 assays whose qualitative result disagrees with reported
+positive-subject count to an explicit exclusion table, and expose the other
+8,423 through the existing typed training schema with a distinct task name.
+Keep MHC assignment conservative, retain original reported restriction and
+assay context, and make study grouping and unknown specimen/receptor lineage
+visible. This is a cell-binding assay outcome, not a cellular functional
+response, peptide–MHC affinity measurement, or receptor-sequence label.
+Do not add pathogen-origin rows or combine task labels in one table.
+
+Expose the common human direct-peptide source projection through a documented
+public iterator used by both task-specific exports, rather than sharing a
+private predicate between modules. Implement a separate versioned local
+bundle/API so the existing functional bundle remains byte-for-byte stable.
+The new verifier must check pinned source
+receipts, file hashes, schemas, source-to-training/exclusion routing, and
+coverage counts. Test the real pinned files without committing raw sequences.
+
+## Plan
+
+- [x] Audit source eligibility, readout semantics, count disagreements, and
+      MHC-name/evidence coverage without displaying peptide sequences.
+- [x] Add multimer evidence and training writers using the shared validation
+      and row schema, with an independent task and manifest.
+- [x] Add focused tests for family separation, count exclusions, MHC gating,
+      source parity, verifier tampering, and atomic failure.
+- [x] Run the pinned source ZIPs, reconcile all rows and document the output.
+- [ ] Bump version, run format/lint/full tests, open PR, merge after final-head
+      CI, and deploy the verified artifacts from clean main.
+
+## Review
+
+The pinned source has 36,268 multimer assays in IEDB; 8,432 meet the bounded
+human direct-peptide filter and all report qualitative binding. All 8,432
+source rows appear in the evidence table; 8,423 enter the separate training
+task (3,129 positive and 5,294 negative) and 9 are excluded for reported
+qualitative/subject-count disagreement (#731). The 8,423 training rows cover
+660 source reference groups; 1,899 have a candidate single HLA under the
+selected restriction-evidence rule. CEDAR duplicates 7,625 of the evidence
+IDs and adds no independent rows. The training Parquet SHA-256 is
+`d108664e7129136cb83c897f2ac19018062ca2229bbb6f61ebfbf3bd3fb07eda`.
+The verifier passes on the real pinned files. Rebuilding the existing
+functional bundle after the public-iterator refactor produced byte-identical
+evidence, training and excluded Parquet files compared with version 1.82.16.
+The public API accepts an assay-family name or collection and the general
+bundle writer/verifier select `functional` or `multimer` explicitly. Twelve
+focused tests, `./format.sh`, `./lint.sh`, and all 3,167 standard tests pass.

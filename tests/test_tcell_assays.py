@@ -10,6 +10,7 @@ import pyarrow.parquet as pq
 import pytest
 import yaml
 
+import hitlist
 from hitlist.tcell_assays import (
     CEDAR_NAME,
     IEDB_NAME,
@@ -21,9 +22,14 @@ from hitlist.tcell_functional import (
     iter_human_tcell_functional_assays,
     write_human_tcell_functional_assays,
 )
+from hitlist.tcell_multimer import iter_human_tcell_multimer_assays
+from hitlist.tcell_peptides import iter_human_direct_peptide_tcell_assays
 from hitlist.tcell_training import (
+    MULTIMER_TASK,
     TRAINING_SCHEMA,
+    verify_human_tcell_multimer_training_bundle,
     verify_human_tcell_training_bundle,
+    write_human_tcell_multimer_training_bundle,
     write_human_tcell_training_bundle,
 )
 
@@ -338,4 +344,118 @@ def test_training_bundle_is_atomic_on_shared_source_mismatch(tmp_path):
     output = tmp_path / "bundle"
     with pytest.raises(ValueError, match="metadata differs"):
         write_human_tcell_training_bundle(output, **paths)
+    assert not output.exists()
+
+
+def test_public_human_peptide_iterator_and_distinct_multimer_training(tmp_path):
+    peptide = {"Epitope | Name": "AAAAAAAAA", "Assay Antigen | Name": "AAAAAAAAA"}
+    multimer = {
+        "Assay | Method": "multimer/tetramer",
+        "Assay | Response measured": "qualitative binding",
+    }
+    records = [
+        ("1", peptide),
+        ("2", {**peptide, **multimer}),
+        (
+            "3",
+            {
+                **peptide,
+                **multimer,
+                "Assay | Qualitative Measurement": "Negative",
+                "Assay | Number of Subjects Positive": "0",
+            },
+        ),
+        (
+            "4",
+            {
+                **peptide,
+                **multimer,
+                "Assay | Number of Subjects Positive": "0",
+            },
+        ),
+        (
+            "5",
+            {
+                **peptide,
+                **multimer,
+                "MHC Restriction | Evidence Code": "MHC binding prediction",
+            },
+        ),
+        ("6", {**peptide, **multimer, "Assay | Response measured": "binding kinetics"}),
+        ("7", {**peptide, **multimer, "Epitope | Source Organism IRI": "other_taxon"}),
+        ("8", {**peptide, **multimer, "Assay Antigen | Name": "CCCCCCCCC"}),
+    ]
+    paths = _sources(tmp_path, iedb=records, cedar=records[:2])
+    assert hitlist.iter_human_direct_peptide_tcell_assays is iter_human_direct_peptide_tcell_assays
+    assert (
+        hitlist.write_human_tcell_multimer_training_bundle
+        is write_human_tcell_multimer_training_bundle
+    )
+    with pytest.raises(ValueError, match="task must"):
+        write_human_tcell_training_bundle(tmp_path / "invalid", task="other", **paths)
+    with pytest.raises(ValueError, match="assay_families"):
+        list(iter_human_direct_peptide_tcell_assays(assay_families={"unknown"}, **paths))
+    common = list(iter_human_direct_peptide_tcell_assays(**paths))
+    assert [row["source_assay_id"] for row in common] == ["1", "2", "3", "4", "5", "6"]
+    selected = list(
+        iter_human_direct_peptide_tcell_assays(
+            assay_families="pmhc_multimer", response_measured="qualitative binding", **paths
+        )
+    )
+    assert [row["source_assay_id"] for row in selected] == ["2", "3", "4", "5"]
+    assert [row["source_assay_id"] for row in iter_human_tcell_functional_assays(**paths)] == ["1"]
+    multimer_rows = list(iter_human_tcell_multimer_assays(**paths))
+    assert [row["source_assay_id"] for row in multimer_rows] == ["2", "3", "4", "5"]
+    assert [row["multimer_binding_observed"] for row in multimer_rows] == [
+        True,
+        False,
+        True,
+        True,
+    ]
+    output = tmp_path / "multimer_bundle"
+    manifest = write_human_tcell_multimer_training_bundle(output, **paths, batch_size=2)
+    assert (
+        verify_human_tcell_training_bundle(
+            output, task="multimer", catalog_path=paths["catalog_path"]
+        )
+        == manifest
+    )
+    with pytest.raises(ValueError, match="Unknown T-cell training bundle format"):
+        verify_human_tcell_training_bundle(output, catalog_path=paths["catalog_path"])
+    assert manifest["n_assays"] == 4
+    assert manifest["n_training_examples"] == 3
+    assert manifest["n_positive_examples"] == 2
+    assert manifest["n_negative_examples"] == 1
+    assert manifest["n_excluded_assays"] == 1
+    assert manifest["exclusion_counts"] == {"qualitative_subject_count_disagreement": 1}
+    assert manifest["n_examples_with_mhc_allele"] == 2
+    assert (
+        verify_human_tcell_multimer_training_bundle(output, catalog_path=paths["catalog_path"])
+        == manifest
+    )
+    training = pq.read_table(output / "training.parquet")
+    assert training.schema == TRAINING_SCHEMA
+    assert training.column("source_assay_id").to_pylist() == ["2", "3", "5"]
+    assert training.column("task").to_pylist() == [MULTIMER_TASK] * 3
+    assert training.column("mhc_allele").to_pylist() == ["HLA-A*02:01", "HLA-A*02:01", None]
+    assert pq.read_table(output / "excluded.parquet").column("source_assay_id").to_pylist() == ["4"]
+    (output / "training.parquet").write_bytes((output / "training.parquet").read_bytes() + b"x")
+    with pytest.raises(ValueError, match="file hash differs"):
+        verify_human_tcell_multimer_training_bundle(output, catalog_path=paths["catalog_path"])
+
+
+def test_multimer_training_is_atomic_on_source_mismatch(tmp_path):
+    peptide = {"Epitope | Name": "AAAAAAAAA", "Assay Antigen | Name": "AAAAAAAAA"}
+    multimer = {
+        "Assay | Method": "multimer/tetramer",
+        "Assay | Response measured": "qualitative binding",
+    }
+    paths = _sources(
+        tmp_path,
+        iedb=[("1", {**peptide, **multimer})],
+        cedar=[("1", {**peptide, **multimer, "Assay Antigen | Name": "CCCCCCCCC"})],
+    )
+    output = tmp_path / "multimer_bundle"
+    with pytest.raises(ValueError, match="metadata differs"):
+        write_human_tcell_multimer_training_bundle(output, **paths)
     assert not output.exists()

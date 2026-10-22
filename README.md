@@ -122,6 +122,13 @@ context are preserved. Antigen identities and sequences, source organisms and
 allele names are excluded. This metadata is separate from
 `generate_training_table`; its outcomes are not MS/binding labels.
 
+For source-linked peptide assays across the human-origin direct-peptide
+families, `hitlist.iter_human_direct_peptide_tcell_assays(...)` is the common
+public iterator. Its `assay_families` and `response_measured` filters select
+source assay groups; `qualitative_signal_observed` is only a source-tier
+projection and is not a shared training target. The task-specific exports
+below assign measured target meanings.
+
 ### Human-origin peptide T-cell functional evidence
 
 The same pinned source snapshot contains peptide-specific cellular outcomes.
@@ -184,6 +191,32 @@ not create a train/test partition; specimens remain unresolved. Use
 source pins, schemas and that every assay was routed exactly once. This is a
 separate cellular-response target, not a new MS or binding label in
 `generate_training_table`.
+
+### Human-origin peptide multimer binding evidence
+
+The same pinned source snapshot also contains directly tested human-origin
+peptide–MHC multimer/tetramer assays whose reported readout is `qualitative
+binding`. Export those assays and their source context with
+`hitlist.iter_human_tcell_multimer_assays(...)` or
+`hitlist.write_human_tcell_multimer_assays(...)`. For a separate model-facing
+bundle with the same typed training columns as the functional bundle, run:
+
+```bash
+python -m hitlist.tcell_training /path/to/human-tcell-multimer-training --task multimer
+```
+
+The public `hitlist.write_human_tcell_multimer_training_bundle(...)` and
+`hitlist.verify_human_tcell_multimer_training_bundle(...)` APIs write and
+check its evidence, training, exclusion and manifest files. The general
+`hitlist.write_human_tcell_training_bundle(..., task="multimer")` and
+`hitlist.verify_human_tcell_training_bundle(..., task="multimer")` calls use
+the same contract. Its task value is
+`assay_specific_pmhc_multimer_cell_binding`; a positive tier indicates a
+source-reported multimer signal on tested cells. It does not report cellular
+activation, peptide–MHC affinity, or a paired receptor-sequence result.
+The same conservative MHC candidate and unknown specimen/receptor policies
+apply. Qualitative/subject-count disagreements remain in source evidence and
+are excluded from binary training labels ([#731](https://github.com/pirl-unc/hitlist/issues/731)).
 
 ## Python API
 
