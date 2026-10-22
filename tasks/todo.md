@@ -7165,7 +7165,7 @@ quantitative-source acceptance cases are assigned to dependent PR 5 (#746).
       without losing the parent package or native source bytes.
 - [x] Add focused regressions and independent full-corpus parity/coverage report.
 - [x] Bump version, run format/lint/full tests, review diff and final-head CI.
-- [ ] Open PR after PR 3 ships; merge and deploy from clean main before PR 5.
+- [x] Open PR after PR 3 ships; merge and deploy from clean main before PR 5.
 
 ## Review
 
@@ -7205,8 +7205,12 @@ gate remains required before merge.
 The final-head PR #747 CI passed build, lint, all five Python unit legs,
 integration and coverage on the exact merged code. PR #747 merged as
 `7cd7186741478af6c2c2c46c45b70f6707627aec`; the 1.82.21 clean-main
-release workflow is running. PyPI publication and exact-hash verification
-remain the last PR 4 gate.
+release workflow #39828013399 passed on that exact merge. Its tested wheel
+and sdist passed provenance, license and metadata checks. PyPI 1.82.21 serves
+the identical SHA-256s: wheel
+`3ab0984b47f27126644b0cf765cf778435065cc9134f68708b64e98098816a92`
+and sdist
+`0edc97a1c791da3398ad6898c3304c74d842468255a12a18de4dfce944a626e6`.
 
 # Hitlist 2.0 external quantitative MS — PR 5 of 7 (#746)
 
