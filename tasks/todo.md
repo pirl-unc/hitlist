@@ -7259,8 +7259,8 @@ local `./test.sh` gate passes: 3,214 passed, one skipped, 88% coverage in
 # Hitlist 2.0 T-cell evidence — PR 6 of 7 (#738)
 
 Spec: [pr6-tcell-evidence-spec.md](pr6-tcell-evidence-spec.md).
-This stacked worktree starts on PR 5's exact head; open PR 6 only after
-1.82.22 publishes and rebase on its merged main commit.
+This branch is rebased onto PR 5's exact merged main commit. Open PR 6 after
+1.82.22 publishes.
 
 - [x] Verify both pinned T-cell ZIP hashes and independently replay the existing
       availability and bounded training counts.
@@ -7272,8 +7272,9 @@ This stacked worktree starts on PR 5's exact head; open PR 6 only after
       eligibility funnel with explicit exclusions and source-linked claims.
 - [x] Independently replay all source rows, family counts, CEDAR overlap,
       candidate statuses and source fields; add focused offline fixtures.
-- [ ] Bump 1.82.23, run format/lint/full tests and final-head CI; review, merge,
-      deploy clean main and verify PyPI exact hashes before PR 7.
+- [x] Bump 1.82.23 and run format/lint/full local tests on the rebased branch.
+- [ ] Run final-head CI; review, merge, deploy clean main and verify PyPI exact
+      hashes before PR 7.
 
 ## Review
 
@@ -7304,4 +7305,7 @@ pass; 29 focused catalog, T-cell, external and availability tests pass. The
 isolated editable install is 1.82.23 and `uv pip check` passes. The first
 `./test.sh` attempt stopped at the existing #483 preflight (0.19 GiB free
 versus 2.5 GiB required). The retry passes all 3,218 tests with one skip and
-87% coverage in 1m58s. Final-head hosted CI remains pending.
+87% coverage in 1m58s. After rebasing onto merged PR 5, the source tree
+is byte-identical to the audited head; format/lint and `./test.sh` pass again
+with 3,218 tests, one skip and 87% coverage in 2m42s. Final-head hosted CI
+remains pending.
