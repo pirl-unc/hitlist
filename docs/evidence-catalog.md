@@ -4,8 +4,9 @@ The [Hitlist 2.0 plan](https://github.com/pirl-unc/hitlist/issues/733)
 defines one evidence vocabulary without claiming that each indexed row is
 ready to train a model. The MHC, biological-context and supporting-measurement
 migrations now materialize typed results, measurements, arms, factors, protocol
-claims, lineage and mapping alternatives. Later PRs add external quantitative
-sources, T-cell assays and the common query and training interface.
+claims, lineage and mapping alternatives. The first external quantitative
+source generation adds assay-scoped channels and source-backed derivations.
+Later PRs add T-cell assays and the common query and training interface.
 
 ## Discover types and requirements
 
@@ -32,6 +33,8 @@ recipe will report those eligibility failures per row.
 | `tcell_functional_peptide`, `tcell_multimer_peptide` | Bounded training projections | One qualified source assay ID |
 | `bulk_ms_peptide`, `bulk_ms_protein` | Bulk Parquet, selected by granularity | One source result, with separate measurement representations |
 | `line_expression_gene`, `line_expression_transcript` | Line-expression Parquet, selected by granularity | One gene or transcript result in a source profile |
+| `external_mhc_peptide_quantity`, `external_digest_peptide_quantity` | PXD057588 workbooks and typed quantitative relations | One peptide result per assay-scoped channel; fold change is a second representation |
+| `external_source_cell`, `external_panel_sequence`, `external_assay_channel`, `external_contrast`, `external_derivation_input` | Pinned external source generation | Provenance, independently keyed panels and quantity lineage |
 | `peptide_protein_occurrence` | Peptide mappings Parquet | One peptide/protein/position alternative |
 | `source_contributor`, `reviewed_lineage`, `curated_material_arm` | Contributor Parquet and curated registries | Linked provenance/context |
 | `assay_context`, `curated_study`, `arm_factor`, `arm_mhc_claim`, `arm_control_link`, `protocol_claim`, `curation_amendment` | Corrected human cohort and versioned curation | Assay context or one source claim |
@@ -165,6 +168,49 @@ records source hashes, count reconciliation and the independent field/value
 parity audit. External quantitative MS panels with actual channel/material
 claims enter through the dependent source-generation work in
 [issue #746](https://github.com/pirl-unc/hitlist/issues/746).
+
+## External quantitative source generation
+
+`write_external_evidence_package(supporting_package, destination,
+source_roots={"pxd057588": source_directory})` appends a reviewed source to one
+verified generation. Original source directories are ingestion inputs; the
+result includes the entire supporting predecessor, its manifest, all 17
+hash-pinned original PXD057588/PXD009092 assets and typed relations. The
+source adapter declares its required assets, schema version, physical
+relations and reconciliation rules under the common package contract.
+`verify_external_evidence_package` checks the complete file inventory,
+predecessor, source receipts, typed schemas and row conservation.
+
+The six PXD057588 workbooks contain 35,772 primary peptide rows: 10,662
+MHC-bound and 25,110 global-digest rows. They supply 309,126 positive raw
+TMT intensity cells and 200,724 source-reported log2 fold changes. The latter
+are second representations on treated-channel results, with one treated and
+three control intensity links each. The source's 32 contrasts retain their
+assay-scoped channel maps, control membership and normalization universe.
+Tables 7–10 and 12 use an unscaled peptide control mean; Table 11 first uses
+channel totals over all retained rows. The package records both published and
+independently replayed fold changes, with error under 1e-8 log2. A table's
+complete-case filter says which rows the source retained; it does not create
+observations or measured zeroes for discarded peptides.
+
+Every populated workbook cell remains in `source_cells`; 62,911 sequence
+records across 15 panels retain their own panel keys. A significance panel on
+the same spreadsheet row is not automatically the primary peptide. Original
+parent strings remain literal source labels, not verified protein mappings.
+The 72×45 community SDRF is positional, preserving repeated headers. It
+annotates six of 50 deposited RAW files and does not establish treatment or
+specimen links for other assays. A project-level instrument claim stays at
+project scope. Table 10's measured macrophages are distinct from MHC-I-loss
+tumor partners; conflicting Table 8 and Table 10 source statements remain
+separate assertions. Matching channel labels across tables do not establish
+sample identity.
+
+The [external-source conversion report](../tasks/external-v2-evidence-results/README.md)
+reconciles every source cell and derived value. The other candidate datasets
+in #746 remain discoverable as deferred source contracts until their original
+quantities, material links and rights are reviewed. The PXD057588 quantitative
+generation is source evidence; training eligibility remains a later explicit
+recipe decision.
 
 The two T-cell projections share the availability source population. The
 157,263 CEDAR T-cell IDs that overlap IEDB are contributor evidence, not extra

@@ -1,0 +1,137 @@
+{
+  "excluded_partial_download": {
+    "attempts": [
+      "curl max-time60 timed out after6567782bytes",
+      "resumed curl max-time900 timed out; archive not inspected/admitted"
+    ],
+    "expected_bytes": 51736986,
+    "name": "PXD009092/SEARCH.7z",
+    "observed_partial_bytes": 10231503,
+    "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2018/10/PXD009092/SEARCH.7z"
+  },
+  "failed_discovery": [
+    "PMC supplementary endpoint returned HTML download challenge rather than XLSX",
+    "EuropePMC fullTextXML and legacy NCBI OA retrieval failed"
+  ],
+  "files": [
+    {
+      "name": "PXD057588/project.json",
+      "source_file_mtime_utc": "2026-10-22T14:07:00.557959+00:00"
+    },
+    {
+      "name": "PXD057588/files.json",
+      "source_file_mtime_utc": "2026-10-22T14:08:48.932320+00:00"
+    },
+    {
+      "name": "PXD009092/project.json",
+      "source_file_mtime_utc": "2026-10-22T14:08:47.485474+00:00"
+    },
+    {
+      "name": "PXD009092/files.json",
+      "source_file_mtime_utc": "2026-10-22T14:10:31.073542+00:00"
+    },
+    {
+      "name": "PXD057588/community.sdrf.tsv",
+      "source_file_mtime_utc": "2026-10-22T14:11:25.762635+00:00"
+    },
+    {
+      "name": "PXD057588/table7.metadata.json",
+      "source_file_mtime_utc": "2026-10-22T14:37:32.466859+00:00"
+    },
+    {
+      "license": {
+        "name": "CC BY",
+        "url": "https://creativecommons.org/licenses/by/4.0/",
+        "value": 52
+      },
+      "name": "PXD057588/table7.xlsx",
+      "publisher_md5_verified": "7b230245d19d47fe0d23dfb82e1aca7a",
+      "publisher_version": 1,
+      "source_file_mtime_utc": "2026-10-22T14:38:08.675636+00:00",
+      "supplement_doi": "10.1158/0008-5472.30883082"
+    },
+    {
+      "name": "PXD057588/table8.metadata.json",
+      "source_file_mtime_utc": "2026-10-22T14:37:34.233163+00:00"
+    },
+    {
+      "license": {
+        "name": "CC BY",
+        "url": "https://creativecommons.org/licenses/by/4.0/",
+        "value": 52
+      },
+      "name": "PXD057588/table8.xlsx",
+      "publisher_md5_verified": "e7afb4c34f853522637d76800be60bfd",
+      "publisher_version": 1,
+      "source_file_mtime_utc": "2026-10-22T14:38:11.123059+00:00",
+      "supplement_doi": "10.1158/0008-5472.30883079"
+    },
+    {
+      "name": "PXD057588/table9.metadata.json",
+      "source_file_mtime_utc": "2026-10-22T14:37:35.977520+00:00"
+    },
+    {
+      "license": {
+        "name": "CC BY",
+        "url": "https://creativecommons.org/licenses/by/4.0/",
+        "value": 52
+      },
+      "name": "PXD057588/table9.xlsx",
+      "publisher_md5_verified": "df07d5f9aeb3a076d5d14a7a562f407c",
+      "publisher_version": 1,
+      "source_file_mtime_utc": "2026-10-22T14:38:12.996740+00:00",
+      "supplement_doi": "10.1158/0008-5472.30883076"
+    },
+    {
+      "name": "PXD057588/table10.metadata.json",
+      "source_file_mtime_utc": "2026-10-22T14:37:37.683545+00:00"
+    },
+    {
+      "license": {
+        "name": "CC BY",
+        "url": "https://creativecommons.org/licenses/by/4.0/",
+        "value": 52
+      },
+      "name": "PXD057588/table10.xlsx",
+      "publisher_md5_verified": "82ec4a7bad9c8ae0299efdea68fa4fd6",
+      "publisher_version": 1,
+      "source_file_mtime_utc": "2026-10-22T14:38:15.135303+00:00",
+      "supplement_doi": "10.1158/0008-5472.30883115"
+    },
+    {
+      "name": "PXD057588/table11.metadata.json",
+      "source_file_mtime_utc": "2026-10-22T14:37:39.403611+00:00"
+    },
+    {
+      "license": {
+        "name": "CC BY",
+        "url": "https://creativecommons.org/licenses/by/4.0/",
+        "value": 52
+      },
+      "name": "PXD057588/table11.xlsx",
+      "publisher_md5_verified": "4f74d85c3bc1acc3ccb6fd5fa4b7196a",
+      "publisher_version": 1,
+      "source_file_mtime_utc": "2026-10-22T14:38:24.785930+00:00",
+      "supplement_doi": "10.1158/0008-5472.30883112"
+    },
+    {
+      "name": "PXD057588/table12.metadata.json",
+      "source_file_mtime_utc": "2026-10-22T14:37:41.110921+00:00"
+    },
+    {
+      "license": {
+        "name": "CC BY",
+        "url": "https://creativecommons.org/licenses/by/4.0/",
+        "value": 52
+      },
+      "name": "PXD057588/table12.xlsx",
+      "publisher_md5_verified": "e3a68bcd31f0a44d925ef4b8e985c9b5",
+      "publisher_version": 1,
+      "source_file_mtime_utc": "2026-10-22T14:38:19.125418+00:00",
+      "supplement_doi": "10.1158/0008-5472.30883109"
+    }
+  ],
+  "frozen_at_utc": "2026-10-22T14:47:20.568217+00:00",
+  "successful_alternative": "Official AACR Figshare title search and public file API",
+  "timestamps_are_local_file_mtimes_not_server_timestamps": true
+}

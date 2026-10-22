@@ -1,0 +1,377 @@
+{
+  "absolute_tolerance_log2": 1e-08,
+  "expected_n_fold_change_cells": 200724,
+  "input_assets_sha256": "14419b00aeff8caebdc67917522e329b63b07d1ea85bbb59e15ef0c07bc3a27c",
+  "source_policy_reference": "https://pmc.ncbi.nlm.nih.gov/articles/PMC12616400/",
+  "source_policy_locator": "Materials and methods / MS data processing / Immunopeptidome data and Global proteome data",
+  "tables": [
+    {
+      "table": 7,
+      "n_rows": 2824,
+      "parent_column": "I",
+      "policy": "unscaled",
+      "contrasts": [
+        {
+          "sample": "M1_1",
+          "fc_column": "K",
+          "control_samples": [
+            "U1",
+            "U2",
+            "U3"
+          ],
+          "expected_fc_header": "M1_1"
+        },
+        {
+          "sample": "M1_2",
+          "fc_column": "L",
+          "control_samples": [
+            "U1",
+            "U2",
+            "U3"
+          ],
+          "expected_fc_header": "M1_2"
+        },
+        {
+          "sample": "M1_3",
+          "fc_column": "M",
+          "control_samples": [
+            "U1",
+            "U2",
+            "U3"
+          ],
+          "expected_fc_header": "M1_3"
+        }
+      ]
+    },
+    {
+      "table": 8,
+      "n_rows": 3554,
+      "parent_column": "I",
+      "policy": "unscaled",
+      "contrasts": [
+        {
+          "sample": "M2_1",
+          "fc_column": "K",
+          "control_samples": [
+            "U1",
+            "U2",
+            "U3"
+          ],
+          "expected_fc_header": "M2_1"
+        },
+        {
+          "sample": "M2_2",
+          "fc_column": "L",
+          "control_samples": [
+            "U1",
+            "U2",
+            "U3"
+          ],
+          "expected_fc_header": "M2_2"
+        },
+        {
+          "sample": "M2_3",
+          "fc_column": "M",
+          "control_samples": [
+            "U1",
+            "U2",
+            "U3"
+          ],
+          "expected_fc_header": "M2_3"
+        }
+      ]
+    },
+    {
+      "table": 9,
+      "n_rows": 1309,
+      "parent_column": "K",
+      "policy": "unscaled",
+      "contrasts": [
+        {
+          "sample": "G1+",
+          "fc_column": "M",
+          "control_samples": [
+            "R_ctrl_1",
+            "R_ctrl_2",
+            "R_ctrl_3"
+          ],
+          "expected_fc_header": "G1+"
+        },
+        {
+          "sample": "G2+",
+          "fc_column": "N",
+          "control_samples": [
+            "R_ctrl_1",
+            "R_ctrl_2",
+            "R_ctrl_3"
+          ],
+          "expected_fc_header": "G2+"
+        },
+        {
+          "sample": "G3+",
+          "fc_column": "O",
+          "control_samples": [
+            "R_ctrl_1",
+            "R_ctrl_2",
+            "R_ctrl_3"
+          ],
+          "expected_fc_header": "G3+"
+        },
+        {
+          "sample": "C1+",
+          "fc_column": "R",
+          "control_samples": [
+            "R_ctrl_1",
+            "R_ctrl_2",
+            "R_ctrl_3"
+          ],
+          "expected_fc_header": "C1+"
+        },
+        {
+          "sample": "C2+",
+          "fc_column": "S",
+          "control_samples": [
+            "R_ctrl_1",
+            "R_ctrl_2",
+            "R_ctrl_3"
+          ],
+          "expected_fc_header": "C2+"
+        },
+        {
+          "sample": "C3+",
+          "fc_column": "T",
+          "control_samples": [
+            "R_ctrl_1",
+            "R_ctrl_2",
+            "R_ctrl_3"
+          ],
+          "expected_fc_header": "C3+"
+        }
+      ]
+    },
+    {
+      "table": 10,
+      "n_rows": 2613,
+      "parent_column": "N",
+      "policy": "unscaled",
+      "contrasts": [
+        {
+          "sample": "G1",
+          "fc_column": "P",
+          "control_samples": [
+            "U1",
+            "U2",
+            "U3"
+          ],
+          "expected_fc_header": "G1"
+        },
+        {
+          "sample": "G2",
+          "fc_column": "Q",
+          "control_samples": [
+            "U1",
+            "U2",
+            "U3"
+          ],
+          "expected_fc_header": "G2"
+        },
+        {
+          "sample": "G3",
+          "fc_column": "R",
+          "control_samples": [
+            "U1",
+            "U2",
+            "U3"
+          ],
+          "expected_fc_header": "G3"
+        },
+        {
+          "sample": "G4",
+          "fc_column": "S",
+          "control_samples": [
+            "U1",
+            "U2",
+            "U3"
+          ],
+          "expected_fc_header": "G4"
+        },
+        {
+          "sample": "C1",
+          "fc_column": "V",
+          "control_samples": [
+            "U1",
+            "U2",
+            "U3"
+          ],
+          "expected_fc_header": "C1"
+        },
+        {
+          "sample": "C2",
+          "fc_column": "W",
+          "control_samples": [
+            "U1",
+            "U2",
+            "U3"
+          ],
+          "expected_fc_header": "C2"
+        },
+        {
+          "sample": "C3",
+          "fc_column": "X",
+          "control_samples": [
+            "U1",
+            "U2",
+            "U3"
+          ],
+          "expected_fc_header": "C3"
+        },
+        {
+          "sample": "C4",
+          "fc_column": "Y",
+          "control_samples": [
+            "U1",
+            "U2",
+            "U3"
+          ],
+          "expected_fc_header": "C4"
+        }
+      ]
+    },
+    {
+      "table": 11,
+      "n_rows": 25110,
+      "parent_column": "L",
+      "policy": "total_signal",
+      "contrasts": [
+        {
+          "sample": "G1+",
+          "fc_column": "O",
+          "control_samples": [
+            "R_ctrl_1",
+            "R_ctrl_2",
+            "R_ctrl_3"
+          ],
+          "expected_fc_header": "G1."
+        },
+        {
+          "sample": "G2+",
+          "fc_column": "P",
+          "control_samples": [
+            "R_ctrl_1",
+            "R_ctrl_2",
+            "R_ctrl_3"
+          ],
+          "expected_fc_header": "G2."
+        },
+        {
+          "sample": "G3+",
+          "fc_column": "Q",
+          "control_samples": [
+            "R_ctrl_1",
+            "R_ctrl_2",
+            "R_ctrl_3"
+          ],
+          "expected_fc_header": "G3."
+        },
+        {
+          "sample": "C1+",
+          "fc_column": "T",
+          "control_samples": [
+            "R_ctrl_1",
+            "R_ctrl_2",
+            "R_ctrl_3"
+          ],
+          "expected_fc_header": "C1."
+        },
+        {
+          "sample": "C2+",
+          "fc_column": "U",
+          "control_samples": [
+            "R_ctrl_1",
+            "R_ctrl_2",
+            "R_ctrl_3"
+          ],
+          "expected_fc_header": "C2."
+        },
+        {
+          "sample": "C3+",
+          "fc_column": "V",
+          "control_samples": [
+            "R_ctrl_1",
+            "R_ctrl_2",
+            "R_ctrl_3"
+          ],
+          "expected_fc_header": "C3."
+        }
+      ]
+    },
+    {
+      "table": 12,
+      "n_rows": 362,
+      "parent_column": "O",
+      "policy": "unscaled",
+      "contrasts": [
+        {
+          "sample": "G1-",
+          "fc_column": "Q",
+          "control_samples": [
+            "G_ctrl_1",
+            "G_ctrl_2",
+            "G_ctrl_3"
+          ],
+          "expected_fc_header": "G1."
+        },
+        {
+          "sample": "G2-",
+          "fc_column": "R",
+          "control_samples": [
+            "G_ctrl_1",
+            "G_ctrl_2",
+            "G_ctrl_3"
+          ],
+          "expected_fc_header": "G2."
+        },
+        {
+          "sample": "G3-",
+          "fc_column": "S",
+          "control_samples": [
+            "G_ctrl_1",
+            "G_ctrl_2",
+            "G_ctrl_3"
+          ],
+          "expected_fc_header": "G3."
+        },
+        {
+          "sample": "C1-",
+          "fc_column": "V",
+          "control_samples": [
+            "C_ctrl_1",
+            "C_ctrl_2",
+            "C_ctrl_3"
+          ],
+          "expected_fc_header": "C1."
+        },
+        {
+          "sample": "C2-",
+          "fc_column": "W",
+          "control_samples": [
+            "C_ctrl_1",
+            "C_ctrl_2",
+            "C_ctrl_3"
+          ],
+          "expected_fc_header": "C2."
+        },
+        {
+          "sample": "C3-",
+          "fc_column": "X",
+          "control_samples": [
+            "C_ctrl_1",
+            "C_ctrl_2",
+            "C_ctrl_3"
+          ],
+          "expected_fc_header": "C3."
+        }
+      ]
+    }
+  ]
+}

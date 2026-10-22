@@ -283,6 +283,29 @@ def test_supporting_package_rejects_source_tampering(tmp_path):
         verify_supporting_evidence_package(target)
 
 
+def test_supporting_manifest_remains_verifiable_inside_successor(tmp_path):
+    target, _, _, _ = _package(tmp_path)
+    nested = target / "manifests" / "supporting.json"
+    nested.write_bytes((target / "manifest.json").read_bytes())
+    assert (
+        verify_supporting_evidence_package(target, manifest_path="manifests/supporting.json")[
+            "reconciliation"
+        ]["n_bulk_results"]
+        == 4
+    )
+    with pytest.raises(ValueError, match="file inventory"):
+        verify_supporting_evidence_package(target)
+    with pytest.raises(ValueError, match="Invalid supporting package manifest path"):
+        verify_supporting_evidence_package(target, manifest_path="../manifest.json")
+
+
+def test_supporting_generation_snapshots_ingestion_assets(tmp_path):
+    target, _, root, receipt = _package(tmp_path)
+    (root / "line_expression_anchors.yaml").write_text("lines: []\n")
+    receipt.write_text("changed after publication\n")
+    verify_supporting_evidence_package(target)
+
+
 def test_supporting_writer_rejects_unreviewed_source_asset(tmp_path):
     _, parent, root, receipt = _package(tmp_path)
     (root / "line_expression_anchors.yaml").write_text("lines: []\n")
