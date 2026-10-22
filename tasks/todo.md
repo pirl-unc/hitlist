@@ -7062,7 +7062,7 @@ PR 1 shipped as 1.82.18; this PR targets 1.82.19.
       provide a machine-readable report of differences and exclusions.
 - [x] Add offline fixtures and corpus verification, bump 1.82.19, run format,
       lint and full tests; review count and labeling parity.
-- [ ] Open PR, pass final-head CI, merge and deploy from clean main.
+- [x] Open PR, pass final-head CI, merge and deploy from clean main.
 
 ## Review
 
@@ -7089,4 +7089,58 @@ install reports 1.82.19 consistently. `./format.sh` and `./lint.sh` pass;
 source-link audit requires registered datasets, positive source row locators,
 source record IDs and raw payloads on every contributor link; it produced
 the identical manifest hash as the previous build. Final-head
-CI, merge and PyPI deployment remain.
+CI, merge and PyPI deployment were pending at that review point.
+
+PR #742 passed build, lint, all five Python unit legs, integration and
+coverage, then merged as `e7c74d9`. The clean-main release workflow
+#39806405579 passed the full corpus gate and bound both distributions to that
+commit and the pinned v4 manifest. Their hashes and license metadata passed
+verification; PyPI 1.82.19 serves the exact wheel and sdist hashes. Local
+`./deploy.sh` passed lint and all 3,189 unit tests but its macOS integration
+memory guard refused at 8.64 GiB free against 24 GiB, then again at 7.33 GiB;
+the hosted clean-main workflow supplied the full integration gate.
+
+# Hitlist 2.0 biological context graph — PR 3 of 6 (#736)
+
+Spec: [pr3-context-evidence-spec.md](pr3-context-evidence-spec.md).
+Parent: #733. PR 2 shipped as 1.82.19; this PR targets 1.82.20.
+
+- [x] Audit the hash-pinned cohort and curation source revisions before code.
+- [x] Specify the physical package, relation grains, null semantics and
+      conservation rules.
+- [x] Fix historical MHC package verification across catalog evolution (#743).
+- [x] Materialize curated arms, concurrent factors, MHC roles, scoped protocol
+      claims, assay context/lineage links and the curation amendment ledger.
+- [x] Preserve all native cohort and curation source assets, map every field,
+      and reconcile all observation, source and arm links.
+- [x] Add focused fixtures and a full pinned-corpus conversion report; bump
+      1.82.20, format, lint, and review the diff.
+- [ ] Pass the full test gate locally or on final-head CI.
+- [ ] Open PR, pass final-head CI, merge and deploy from clean main.
+
+## Review
+
+Preimplementation audit: all 4,071,463 cohort assay IDs are in the 5,327,796
+v4 MHC results, and all 71 shared native fields match cell for cell by ID.
+The cohort adds 90 fields at that grain. All 2,042,689 assigned condition
+rows map to 489 current curated arms without an orphan; 318 curated arms have
+no linked cohort row. The cohort used a historical PMID registry. Current
+curation keeps all 807 arm keys and adds 35 source-backed field changes on 27
+arms; eight changed arms reach 23,064 cohort rows. Both curation revisions and
+the original 161-column cohort table must survive the migration. No donor,
+specimen or acquisition identity is established by these exports.
+
+The audited full package manifest has SHA-256
+`0d16dd1b9fd0708087d9f04df5c4c57c0f3166f48db513d41816c9bda2685e6b`.
+It retains all 5,327,796 MHC results, 4,071,463 bounded cohort contexts and
+7,646,178 cohort contributor links. All observation, contributor and historical
+arm references resolve. Its 807 arms and 216 studies per curation revision,
+2,339 factor claims, 2,074 MHC claims, 342 protocol claims, 168 lineage claims,
+88 control links and 35 amendments match the independent source audit.
+Independent comparison of all 94 typed context/identity projection fields
+found zero mismatches across the 4,071,463 source rows. Focused tests pass
+(22), and `./format.sh` and `./lint.sh` pass. The wheel/sdist build contains
+the historical curation YAML, new module and license. The local `./test.sh`
+attempt was blocked before collection by the existing #483 macOS memory
+preflight (0.74 GiB available; 2.5 GiB required); final-head CI and a retry
+remain necessary.

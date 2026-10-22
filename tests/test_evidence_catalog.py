@@ -51,6 +51,18 @@ def test_catalog_covers_current_data_grains_without_double_counting():
     assert describe_evidence("source_contributor")["materialized_artifact"] == (
         "native/observation_contributors.parquet"
     )
+    for name in (
+        "assay_context",
+        "curated_study",
+        "curated_material_arm",
+        "arm_control_link",
+        "arm_factor",
+        "arm_mhc_claim",
+        "protocol_claim",
+        "curation_amendment",
+        "reviewed_lineage",
+    ):
+        assert describe_evidence(name)["status"] == "v2_materialized"
 
 
 def test_labels_and_biological_state_have_distinct_roles():
@@ -61,6 +73,8 @@ def test_labels_and_biological_state_have_distinct_roles():
     assert fields["gene_perturbation"]["role"] == "biological_context"
     assert fields["assay_readout"]["role"] == "protocol"
     assert fields["instrument"]["role"] == "protocol"
+    assert fields["arm_id"]["role"] == "biological_context"
+    assert fields["sample_attribution"]["role"] == "provenance"
     assert fields["qualitative_result"]["role"] == "target"
     assert fields["candidate_mhc_set"]["name"] != fields["peptide_mhc_restriction"]["name"]
     assert fields["reported_mhc"]["name"] != fields["tested_mhc"]["name"]
@@ -138,5 +152,5 @@ def test_catalog_import_does_not_build_or_download(tmp_path):
         text=True,
         cwd=Path(__file__).parents[1],
     )
-    assert probe.stdout.strip() == "2"
+    assert probe.stdout.strip() == "3"
     assert not data_root.exists()

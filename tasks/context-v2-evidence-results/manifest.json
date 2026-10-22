@@ -1,0 +1,1774 @@
+{
+  "catalog_schema_version": 3,
+  "cohort_manifest_sha256": "b180eba804532f633a6d61bb350584dbe24f8df4b4b96f02c6ec492c60144372",
+  "cohort_source_access": "public_pinned_release",
+  "cohort_source_license_status": "unverified",
+  "current_curation_sha256": "f563a8f1a6224d668bf06aed2f034b439ec9a1b607f78f883ace21e053850b09",
+  "field_disposition": {
+    "cohort_identities": {
+      "acquisition_ids": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "acquisition_status": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "assay_iri": {
+        "relation": "cohort_native/identities.parquet",
+        "status": "native_source_preserved"
+      },
+      "attributed_sample_label": {
+        "relation": "cohort_native/identities.parquet",
+        "status": "native_source_preserved"
+      },
+      "condition_id": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "contributor_pmids": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "contributor_resolution": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "contributor_study_status": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "donor_ids": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "donor_status": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "evidence_kind": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "evidence_row_id": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "evidence_source_id": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "experimental_origin_ids": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "experimental_origin_status": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "has_peptide_level_allele": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "lineage_context_id": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "lineage_status": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "mhc_restriction": {
+        "relation": "cohort_native/identities.parquet",
+        "status": "native_source_preserved"
+      },
+      "peptide": {
+        "relation": "cohort_native/identities.parquet",
+        "status": "native_source_preserved"
+      },
+      "pmid": {
+        "relation": "cohort_native/identities.parquet",
+        "status": "native_source_preserved"
+      },
+      "provenance_id": {
+        "relation": "cohort_native/identities.parquet",
+        "status": "native_source_preserved"
+      },
+      "provenance_status": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "reference_iri": {
+        "relation": "cohort_native/identities.parquet",
+        "status": "native_source_preserved"
+      },
+      "sample_attribution": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "specimen_ids": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "specimen_status": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      }
+    },
+    "cohort_training": {
+      "acquisition_ids": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "acquisition_mode": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "acquisition_status": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "allele_resolution": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "antigen_processing_comments": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "apm_genes_perturbed": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "apm_perturbed": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "arm_resolution": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "assay_comments": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "assay_iri": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "assay_method": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "assay_modality": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "assay_modality_source": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "attributed_sample_label": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "cell_line_name": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "cell_name": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "cell_type": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "condition_antigen_exposure": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "condition_background": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "condition_category": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "condition_combination": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "condition_control": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "condition_control_for": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "condition_culture": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "condition_cytokines": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "condition_drugs": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "condition_evidence": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "condition_genetic_variants": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "condition_id": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "condition_infection": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "condition_knockdown_genes": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "condition_knockout_genes": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "condition_labeling": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "condition_material": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "condition_mhc_context": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "condition_overexpression_genes": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "condition_reference": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "condition_status": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "condition_stimulation": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "condition_transduction": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "condition_transfection": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "culture_condition": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "disease": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "disease_stage": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "donor_ids": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "donor_status": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "effective_override": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "effective_override_origin": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "evidence_kind": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "evidence_row_id": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "evidence_source_id": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "experimental_origin_ids": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "experimental_origin_status": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "fdr": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "fragmentation": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "has_peptide_level_allele": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "has_ptm": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "host": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "host_age": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "host_mhc_types": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "host_organism": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "in_vivo_host_species": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "instrument": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "instrument_type": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "introduced_mhc_species": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "ip_antibody": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "is_binding_assay": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "is_chimeric": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "is_control_arm": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "is_engineered_mhc": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "is_monoallelic": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "is_ms_observation": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "is_non_peptide_ligand": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "is_potential_contaminant": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "labeling": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "lineage_context_id": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "lineage_host_species": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "lineage_status": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "matched_sample_count": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "measurement_inequality": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "measurement_units": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "mhc_allele_provenance": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "mhc_allele_set": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "mhc_allele_set_size": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "mhc_basis": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "mhc_class": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "mhc_class_corrected": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "mhc_class_label_severity": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "mhc_class_label_suspect": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "mhc_class_reported": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "mhc_class_source": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "mhc_genotype": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "mhc_genotype_cell": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "mhc_genotype_complete_loci": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "mhc_genotype_reported_loci": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "mhc_genotype_source": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "mhc_restriction": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "mhc_species": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "mhc_species_context_disagrees": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "mhc_species_source": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "monoallelic_host": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "ms_outcome_status": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "peptide": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "peptide_extended": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "peptide_modifications": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "perturbation": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "pmid": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "presenting_species": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "process_type": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "provenance_id": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "provenance_status": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "qualitative_measurement": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "quantification_method": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "quantitative_measurement": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "quantitative_value": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "reference_iri": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "reference_title": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "response_measured": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "restriction_evidence": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "reviewed_candidate_species": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "sample_attribution": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "sample_group": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "sample_label": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "sample_match_type": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "sample_mhc": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "sample_mhc_origin": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "sample_note": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "search_engine": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "serotype": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "serotype_source": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "serotypes": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "source": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "source_organism": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "source_species": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "source_tissue": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "species": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "species_context_id": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "species_context_kind": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "species_context_note": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "species_context_reference": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "species_context_scope": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "species_context_status": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "specimen_ids": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "specimen_status": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "src_activated_apc": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "src_adjacent_to_tumor": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "src_cancer": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "src_cell_line": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "src_ebv_lcl": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "src_ex_vivo": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "src_healthy_reproductive": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "src_healthy_reproductive_female": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "src_healthy_reproductive_male": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "src_healthy_thymus": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "src_healthy_tissue": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "study_apm_genes": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "study_apm_perturbed": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "submission_id": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "supplementary_file": {
+        "relations": [
+          "native/observations.parquet",
+          "native/binding.parquet",
+          "native/other_assays.parquet"
+        ],
+        "status": "mhc_native_preserved"
+      },
+      "supported_foreign_species": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      },
+      "xenograft": {
+        "relation": "typed/assay_context.parquet",
+        "status": "typed"
+      }
+    },
+    "curated_sample": {
+      "classification": {
+        "relation": "curation/*.yaml",
+        "status": "source_only"
+      },
+      "condition": {
+        "relation": "typed/curated_arms.parquet",
+        "status": "typed"
+      },
+      "condition_antigen_exposure": {
+        "relation": "typed/arm_factors.parquet",
+        "status": "typed"
+      },
+      "condition_background": {
+        "relation": "typed/arm_factors.parquet",
+        "status": "typed"
+      },
+      "condition_combination": {
+        "relation": "typed/curated_arms.parquet",
+        "status": "typed"
+      },
+      "condition_control": {
+        "relation": "typed/arm_factors.parquet",
+        "status": "typed"
+      },
+      "condition_control_for": {
+        "relation": "typed/arm_control_links.parquet",
+        "status": "typed"
+      },
+      "condition_culture": {
+        "relation": "typed/arm_factors.parquet",
+        "status": "typed"
+      },
+      "condition_cytokines": {
+        "relation": "typed/arm_factors.parquet",
+        "status": "typed"
+      },
+      "condition_drugs": {
+        "relation": "typed/arm_factors.parquet",
+        "status": "typed"
+      },
+      "condition_evidence": {
+        "relation": "typed/curated_arms.parquet",
+        "status": "typed"
+      },
+      "condition_genetic_variants": {
+        "relation": "typed/arm_factors.parquet",
+        "status": "typed"
+      },
+      "condition_id": {
+        "relation": "typed/curated_arms.parquet",
+        "status": "typed"
+      },
+      "condition_infection": {
+        "relation": "typed/arm_factors.parquet",
+        "status": "typed"
+      },
+      "condition_knockdown_genes": {
+        "relation": "typed/arm_factors.parquet",
+        "status": "typed"
+      },
+      "condition_knockout_genes": {
+        "relation": "typed/arm_factors.parquet",
+        "status": "typed"
+      },
+      "condition_labeling": {
+        "relation": "typed/arm_factors.parquet",
+        "status": "typed"
+      },
+      "condition_material": {
+        "relation": "typed/arm_factors.parquet",
+        "status": "typed"
+      },
+      "condition_mhc_context": {
+        "relation": "typed/arm_mhc_claims.parquet",
+        "status": "typed"
+      },
+      "condition_overexpression_genes": {
+        "relation": "typed/arm_factors.parquet",
+        "status": "typed"
+      },
+      "condition_reference": {
+        "relation": "typed/curated_arms.parquet",
+        "status": "typed"
+      },
+      "condition_status": {
+        "relation": "typed/curated_arms.parquet",
+        "status": "typed"
+      },
+      "condition_stimulation": {
+        "relation": "typed/arm_factors.parquet",
+        "status": "typed"
+      },
+      "condition_transduction": {
+        "relation": "typed/arm_factors.parquet",
+        "status": "typed"
+      },
+      "condition_transfection": {
+        "relation": "typed/arm_factors.parquet",
+        "status": "typed"
+      },
+      "ip_antibody": {
+        "relation": "typed/protocol_claims.parquet",
+        "status": "typed"
+      },
+      "labeling": {
+        "relation": "typed/protocol_claims.parquet",
+        "status": "typed"
+      },
+      "mhc": {
+        "relation": "typed/arm_mhc_claims.parquet",
+        "status": "typed"
+      },
+      "mhc_basis": {
+        "relation": "typed/arm_mhc_claims.parquet",
+        "status": "typed"
+      },
+      "mhc_class": {
+        "relation": "typed/curated_arms.parquet",
+        "status": "typed"
+      },
+      "mhc_genotype": {
+        "relation": "typed/arm_mhc_claims.parquet",
+        "status": "typed"
+      },
+      "mhc_genotype_cell": {
+        "relation": "typed/arm_mhc_claims.parquet",
+        "status": "typed"
+      },
+      "mhc_genotype_complete_loci": {
+        "relation": "typed/arm_mhc_claims.parquet",
+        "status": "typed"
+      },
+      "mhc_genotype_source": {
+        "relation": "typed/arm_mhc_claims.parquet",
+        "status": "typed"
+      },
+      "n_samples": {
+        "relation": "curation/*.yaml",
+        "status": "source_only"
+      },
+      "note": {
+        "relation": "curation/*.yaml",
+        "status": "source_only"
+      },
+      "override": {
+        "relation": "curation/*.yaml",
+        "status": "source_only"
+      },
+      "peptides": {
+        "relation": "curation/*.yaml",
+        "status": "source_only"
+      },
+      "profiled": {
+        "relation": "typed/curated_arms.parquet",
+        "status": "typed"
+      },
+      "reason": {
+        "relation": "curation/*.yaml",
+        "status": "source_only"
+      },
+      "reference_proteomes": {
+        "relation": "curation/*.yaml",
+        "status": "source_only"
+      },
+      "sample_group": {
+        "relation": "curation/*.yaml",
+        "status": "source_only"
+      },
+      "sample_label": {
+        "relation": "typed/curated_arms.parquet",
+        "status": "typed"
+      },
+      "source": {
+        "relation": "typed/curated_arms.parquet",
+        "status": "typed"
+      },
+      "species": {
+        "relation": "typed/curated_arms.parquet",
+        "status": "typed"
+      }
+    },
+    "curated_study": {
+      "acquisition_mode": {
+        "relation": "typed/protocol_claims.parquet",
+        "status": "typed"
+      },
+      "aliases": {
+        "relation": "curation/*.yaml",
+        "status": "source_only"
+      },
+      "arm_resolution": {
+        "relation": "typed/curated_studies.parquet",
+        "status": "typed"
+      },
+      "arm_resolution_note": {
+        "relation": "typed/curated_studies.parquet",
+        "status": "typed"
+      },
+      "cell_name": {
+        "relation": "typed/curated_studies.parquet",
+        "status": "typed"
+      },
+      "culture_condition": {
+        "relation": "typed/curated_studies.parquet",
+        "status": "typed"
+      },
+      "disease": {
+        "relation": "typed/curated_studies.parquet",
+        "status": "typed"
+      },
+      "donors": {
+        "relation": "curation/*.yaml",
+        "status": "source_only"
+      },
+      "elution_condition_ids": {
+        "relation": "curation/*.yaml",
+        "status": "source_only"
+      },
+      "exclude_from_ms": {
+        "relation": "curation/*.yaml",
+        "status": "source_only"
+      },
+      "fdr": {
+        "relation": "typed/protocol_claims.parquet",
+        "status": "typed"
+      },
+      "fragmentation": {
+        "relation": "typed/protocol_claims.parquet",
+        "status": "typed"
+      },
+      "hla_alleles": {
+        "relation": "curation/*.yaml",
+        "status": "source_only"
+      },
+      "instrument": {
+        "relation": "typed/protocol_claims.parquet",
+        "status": "typed"
+      },
+      "ip_antibody": {
+        "relation": "typed/protocol_claims.parquet",
+        "status": "typed"
+      },
+      "labeling": {
+        "relation": "typed/protocol_claims.parquet",
+        "status": "typed"
+      },
+      "mono_allelic_host": {
+        "relation": "curation/*.yaml",
+        "status": "source_only"
+      },
+      "mono_allelic_method": {
+        "relation": "curation/*.yaml",
+        "status": "source_only"
+      },
+      "ms_samples": {
+        "relation": "typed/curated_arms.parquet",
+        "status": "typed"
+      },
+      "n_samples": {
+        "relation": "curation/*.yaml",
+        "status": "source_only"
+      },
+      "n_tissues": {
+        "relation": "curation/*.yaml",
+        "status": "source_only"
+      },
+      "note": {
+        "relation": "typed/curated_studies.parquet",
+        "status": "typed"
+      },
+      "override": {
+        "relation": "curation/*.yaml",
+        "status": "source_only"
+      },
+      "peptide_attribution_restrictions": {
+        "relation": "curation/*.yaml",
+        "status": "source_only"
+      },
+      "peptide_attributions": {
+        "relation": "curation/*.yaml",
+        "status": "source_only"
+      },
+      "perturbations": {
+        "relation": "curation/*.yaml",
+        "status": "source_only"
+      },
+      "pmid": {
+        "relation": "typed/curated_studies.parquet",
+        "status": "typed"
+      },
+      "quantification_method": {
+        "relation": "typed/protocol_claims.parquet",
+        "status": "typed"
+      },
+      "restriction_evidence": {
+        "relation": "curation/*.yaml",
+        "status": "source_only"
+      },
+      "restriction_evidence_rules": {
+        "relation": "curation/*.yaml",
+        "status": "source_only"
+      },
+      "rules": {
+        "relation": "curation/*.yaml",
+        "status": "source_only"
+      },
+      "search_engine": {
+        "relation": "typed/protocol_claims.parquet",
+        "status": "typed"
+      },
+      "source_organism": {
+        "relation": "typed/curated_studies.parquet",
+        "status": "typed"
+      },
+      "source_tissue": {
+        "relation": "typed/curated_studies.parquet",
+        "status": "typed"
+      },
+      "species": {
+        "relation": "typed/curated_studies.parquet",
+        "status": "typed"
+      },
+      "study_label": {
+        "relation": "typed/curated_studies.parquet",
+        "status": "typed"
+      },
+      "title": {
+        "relation": "typed/curated_studies.parquet",
+        "status": "typed"
+      }
+    }
+  },
+  "files": {
+    "cohort_native/contributors.parquet": {
+      "sha256": "dfbe4bfcd96cc5e07772497201c1c12ad9b4aac620dd92f090aa5de3723b0b8e",
+      "size_bytes": 2066297045
+    },
+    "cohort_native/identities.parquet": {
+      "sha256": "6020667400ae4834f9a800479142b54f7c225f9e37ebb972a5a0a168b9c82001",
+      "size_bytes": 141119541
+    },
+    "cohort_native/lineage.json": {
+      "sha256": "75858cf562f65013aaae2325ea95deb70f826ea07f2373d394e8182ce459a1a5",
+      "size_bytes": 31901
+    },
+    "cohort_native/manifest.json": {
+      "sha256": "b180eba804532f633a6d61bb350584dbe24f8df4b4b96f02c6ec492c60144372",
+      "size_bytes": 33972
+    },
+    "cohort_native/training.parquet": {
+      "sha256": "f902341e90c1c57defc93f4bc540ffcbea1b41061afb4492ddd8aaa7642c65bd",
+      "size_bytes": 188175209
+    },
+    "curation/pmid_overrides_1_78.yaml": {
+      "sha256": "5223fc63d0a0a563f469641b2abb58578a359b9bfac32218ce2611aa9cc8ef27",
+      "size_bytes": 745987
+    },
+    "curation/pmid_overrides_current.yaml": {
+      "sha256": "f563a8f1a6224d668bf06aed2f034b439ec9a1b607f78f883ace21e053850b09",
+      "size_bytes": 747015
+    },
+    "curation/specimen_lineage.yaml": {
+      "sha256": "03300e7732c49a6c5359c211a9c8703beba0927003900c98881a25f3f34da276",
+      "size_bytes": 25870
+    },
+    "manifests/mhc.json": {
+      "sha256": "efa5ea38cbed460a0a860d5ea2780314ead808a6b3eba064cff18228e2596674",
+      "size_bytes": 24598
+    },
+    "native/README.md": {
+      "sha256": "01bdac0dc3854df34379548923e6a125e3b5e9298c9c2fe0bf90022b8f8df759",
+      "size_bytes": 1367
+    },
+    "native/binding.parquet": {
+      "sha256": "2b3f6ea2dd647e7fc54d214eef420feaebc4e81fab97ffc0565a2de1f8695ba0",
+      "size_bytes": 17096569
+    },
+    "native/bulk_proteomics.parquet": {
+      "sha256": "9e3d52301fe014205bc65e7a8e4554f4e75ce7caa7de8ed184d517d6688df86b",
+      "size_bytes": 45394459
+    },
+    "native/line_expression.parquet": {
+      "sha256": "d2a2cbf00fdd5cbd285bcd88ed06c511f09ed3404c4b705e5108af407b3feddf",
+      "size_bytes": 730671
+    },
+    "native/observation_contributors.parquet": {
+      "sha256": "41ff93e08bc6ea4af692fee16044726af26c4e20ec650ec6c7cd851974b71db1",
+      "size_bytes": 628447260
+    },
+    "native/observations.parquet": {
+      "sha256": "a665f37c0b5917fefb6d12eade530d7e2001de1f0ee73479b21d2c393d173ab4",
+      "size_bytes": 145685701
+    },
+    "native/observations_meta.json": {
+      "sha256": "2318bc53cdae228285218991d58fbcc2bd7266327cec1dd3ed9a03b1c944a5b7",
+      "size_bytes": 12146
+    },
+    "native/other_assays.parquet": {
+      "sha256": "c40f5227ded408830885ecba8336dbdd701172df9573b0d32e5e8a5f8fc947c2",
+      "size_bytes": 1259717
+    },
+    "native/peptide_mappings.parquet": {
+      "sha256": "057c9f01da3aea46816aa9d164c24951e45b42c4cf5d8dc84f44ab201ec1fcc9",
+      "size_bytes": 176051509
+    },
+    "native/peptide_mappings_meta.json": {
+      "sha256": "c188f0f874c8d997ace15c79eca7365e0805f985cd0de9f28c6ec2f0128c8542",
+      "size_bytes": 90848
+    },
+    "typed/arm_control_links.parquet": {
+      "sha256": "d2808a92c52f330a7efa0c7117e1b863cf829c55fc20e0c40dece35df4aac332",
+      "size_bytes": 4916
+    },
+    "typed/arm_factors.parquet": {
+      "sha256": "a6c1f7f3decb6c0d51c4b6a7a4277d80e5fd84545e4e5798a52f46deb1ab4526",
+      "size_bytes": 43718
+    },
+    "typed/arm_mhc_claims.parquet": {
+      "sha256": "47374ec6feabde4035a1a3d6d202b9c1ead8926b26984953cb2e2212e2b11eac",
+      "size_bytes": 43943
+    },
+    "typed/assay_context.parquet": {
+      "sha256": "a8b30d17a19a252f5dd5c03a3f17318a006713d35e172dbde7913f3f44a39eab",
+      "size_bytes": 63755382
+    },
+    "typed/curated_arms.parquet": {
+      "sha256": "1974a9066261080df688006adda471fd11736287f8aff1b37880e64d88016ed8",
+      "size_bytes": 47356
+    },
+    "typed/curated_studies.parquet": {
+      "sha256": "34af4b944737cae98e62bb599727ee8b9a0c242bb661f5ed89d91c9e2613fb90",
+      "size_bytes": 70080
+    },
+    "typed/curation_amendments.parquet": {
+      "sha256": "292208a5da61cbe4bacdb3cc3c9f56c5d698777962140235bf6a14fd5f8e15b9",
+      "size_bytes": 3699
+    },
+    "typed/lineage_claims.parquet": {
+      "sha256": "c773accbf621037a7d1c2d8dfb2efd5eef3d3457f29296007412535d56f9c100",
+      "size_bytes": 4464
+    },
+    "typed/mhc_measurements.parquet": {
+      "sha256": "fc2e65c1ed5aad1460a0907c2774b6c8679dcbed663bf4bcb152c7c66d2df819",
+      "size_bytes": 30274921
+    },
+    "typed/mhc_observations.parquet": {
+      "sha256": "31f1c671147bf4c283cf439ba4706d2664e070bb9e3eac38778b19871c7c2913",
+      "size_bytes": 110352724
+    },
+    "typed/protocol_claims.parquet": {
+      "sha256": "09ef9ae174b6a443127834a67d18fa889d6a9b9b06d69740d1f44f49f1d5598a",
+      "size_bytes": 9438
+    }
+  },
+  "historical_curation_sha256": "5223fc63d0a0a563f469641b2abb58578a359b9bfac32218ce2611aa9cc8ef27",
+  "hitlist_version": "1.82.20",
+  "parent_manifest_sha256": "efa5ea38cbed460a0a860d5ea2780314ead808a6b3eba064cff18228e2596674",
+  "reconciliation": {
+    "assay_context_schema": "observation_id: string\ncohort_row_index: int64\narm_id: string\narm_link_status: string\nmhc_class_label_severity: string\nmhc_class_label_suspect: bool\nhost_organism: large_string\nsource_species: large_string\nis_chimeric: bool\nis_engineered_mhc: bool\nxenograft: bool\nquantification_method: dictionary<values=string, indices=int8, ordered=0>\nstudy_apm_perturbed: bool\nstudy_apm_genes: large_string\nsample_label: large_string\nperturbation: dictionary<values=string, indices=int8, ordered=0>\ncondition_category: dictionary<values=string, indices=int8, ordered=0>\nsample_mhc: dictionary<values=string, indices=int16, ordered=0>\nmhc_basis: dictionary<values=string, indices=int8, ordered=0>\nmhc_genotype: dictionary<values=string, indices=int8, ordered=0>\nmhc_genotype_cell: dictionary<values=string, indices=int8, ordered=0>\nmhc_genotype_complete_loci: dictionary<values=string, indices=int8, ordered=0>\nmhc_genotype_source: dictionary<values=string, indices=int8, ordered=0>\nmhc_genotype_reported_loci: dictionary<values=string, indices=int8, ordered=0>\ninstrument: dictionary<values=string, indices=int8, ordered=0>\ninstrument_type: dictionary<values=string, indices=int8, ordered=0>\nacquisition_mode: dictionary<values=string, indices=int8, ordered=0>\nfragmentation: dictionary<values=string, indices=int8, ordered=0>\nlabeling: dictionary<values=string, indices=int8, ordered=0>\nip_antibody: dictionary<values=string, indices=int8, ordered=0>\nsearch_engine: dictionary<values=string, indices=int8, ordered=0>\nfdr: dictionary<values=string, indices=int8, ordered=0>\napm_perturbed: dictionary<values=string, indices=int8, ordered=0>\napm_genes_perturbed: large_string\nis_control_arm: dictionary<values=string, indices=int8, ordered=0>\nsample_attribution: dictionary<values=string, indices=int8, ordered=0>\ncondition_id: dictionary<values=string, indices=int16, ordered=0>\ncondition_status: dictionary<values=string, indices=int8, ordered=0>\ncondition_evidence: dictionary<values=string, indices=int8, ordered=0>\ncondition_reference: dictionary<values=string, indices=int8, ordered=0>\ncondition_control: dictionary<values=string, indices=int8, ordered=0>\ncondition_control_for: dictionary<values=string, indices=int8, ordered=0>\ncondition_combination: dictionary<values=string, indices=int8, ordered=0>\ncondition_knockout_genes: dictionary<values=string, indices=int8, ordered=0>\ncondition_knockdown_genes: dictionary<values=string, indices=int8, ordered=0>\ncondition_overexpression_genes: dictionary<values=string, indices=int8, ordered=0>\ncondition_genetic_variants: dictionary<values=string, indices=int8, ordered=0>\ncondition_transfection: dictionary<values=string, indices=int8, ordered=0>\ncondition_transduction: dictionary<values=string, indices=int8, ordered=0>\ncondition_cytokines: dictionary<values=string, indices=int8, ordered=0>\ncondition_drugs: dictionary<values=string, indices=int8, ordered=0>\ncondition_infection: dictionary<values=string, indices=int8, ordered=0>\ncondition_stimulation: dictionary<values=string, indices=int8, ordered=0>\ncondition_antigen_exposure: dictionary<values=string, indices=int8, ordered=0>\ncondition_background: dictionary<values=string, indices=int8, ordered=0>\ncondition_mhc_context: dictionary<values=string, indices=int8, ordered=0>\ncondition_culture: dictionary<values=string, indices=int8, ordered=0>\ncondition_material: dictionary<values=string, indices=int8, ordered=0>\ncondition_labeling: dictionary<values=string, indices=int8, ordered=0>\nspecies_context_id: dictionary<values=string, indices=int8, ordered=0>\nspecies_context_status: dictionary<values=string, indices=int8, ordered=0>\nspecies_context_scope: dictionary<values=string, indices=int8, ordered=0>\nspecies_context_kind: dictionary<values=string, indices=int8, ordered=0>\nspecies_context_reference: dictionary<values=string, indices=int8, ordered=0>\npresenting_species: dictionary<values=string, indices=int8, ordered=0>\nin_vivo_host_species: dictionary<values=string, indices=int8, ordered=0>\nlineage_host_species: dictionary<values=string, indices=int8, ordered=0>\nintroduced_mhc_species: dictionary<values=string, indices=int8, ordered=0>\nsupported_foreign_species: dictionary<values=string, indices=int8, ordered=0>\nreviewed_candidate_species: dictionary<values=string, indices=int8, ordered=0>\nspecies_context_note: dictionary<values=string, indices=int8, ordered=0>\neffective_override: dictionary<values=string, indices=int8, ordered=0>\neffective_override_origin: dictionary<values=string, indices=int8, ordered=0>\nsample_note: dictionary<values=string, indices=int8, ordered=0>\narm_resolution: dictionary<values=string, indices=int8, ordered=0>\nsample_group: dictionary<values=string, indices=int8, ordered=0>\nsample_mhc_origin: dictionary<values=string, indices=int8, ordered=0>\nmatched_sample_count: int64\nsample_match_type: dictionary<values=string, indices=int8, ordered=0>\nhas_peptide_level_allele: bool\nevidence_kind: large_string\nprovenance_status: large_string\nevidence_source_id: large_string\nevidence_row_id: large_string\nlineage_context_id: dictionary<values=string, indices=int8, ordered=0>\nlineage_status: dictionary<values=string, indices=int8, ordered=0>\nexperimental_origin_ids: dictionary<values=string, indices=int8, ordered=0>\nexperimental_origin_status: dictionary<values=string, indices=int8, ordered=0>\nspecimen_ids: dictionary<values=string, indices=int8, ordered=0>\nspecimen_status: dictionary<values=string, indices=int8, ordered=0>\ndonor_ids: dictionary<values=string, indices=int8, ordered=0>\ndonor_status: dictionary<values=string, indices=int8, ordered=0>\nacquisition_ids: dictionary<values=string, indices=int8, ordered=0>\nacquisition_status: dictionary<values=string, indices=int8, ordered=0>\ncontributor_resolution: large_string\ncontributor_pmids: large_string\ncontributor_study_status: large_string\n-- schema metadata --\npandas: '{\"index_columns\": [], \"column_indexes\": [], \"columns\": [{\"name\":' + 23947",
+    "by_lineage_status": [
+      {
+        "axis": "acquisition",
+        "n_observations": 4071463,
+        "status": "unknown"
+      },
+      {
+        "axis": "donor",
+        "n_observations": 4071463,
+        "status": "unknown"
+      },
+      {
+        "axis": "experimental_origin",
+        "n_observations": 57188,
+        "status": "resolved"
+      },
+      {
+        "axis": "experimental_origin",
+        "n_observations": 4014275,
+        "status": "unknown"
+      },
+      {
+        "axis": "specimen",
+        "n_observations": 4071463,
+        "status": "unknown"
+      }
+    ],
+    "by_sample_attribution": {
+      "allele_exact": 782847,
+      "class_pool": 48975,
+      "curated_sample_label": 53130,
+      "discriminated": 542444,
+      "elution_conditions": 201850,
+      "group_ambiguous": 151282,
+      "pmid_ambiguous": 1770589,
+      "serotype_expansion": 5031,
+      "single_sample_pmid": 408412,
+      "unreported": 106903
+    },
+    "current_sample_fields": [
+      "classification",
+      "condition",
+      "condition_antigen_exposure",
+      "condition_background",
+      "condition_combination",
+      "condition_control",
+      "condition_control_for",
+      "condition_culture",
+      "condition_cytokines",
+      "condition_drugs",
+      "condition_evidence",
+      "condition_genetic_variants",
+      "condition_id",
+      "condition_infection",
+      "condition_knockdown_genes",
+      "condition_knockout_genes",
+      "condition_labeling",
+      "condition_material",
+      "condition_mhc_context",
+      "condition_overexpression_genes",
+      "condition_reference",
+      "condition_status",
+      "condition_stimulation",
+      "condition_transduction",
+      "condition_transfection",
+      "ip_antibody",
+      "labeling",
+      "mhc",
+      "mhc_basis",
+      "mhc_class",
+      "mhc_genotype",
+      "mhc_genotype_cell",
+      "mhc_genotype_complete_loci",
+      "mhc_genotype_source",
+      "n_samples",
+      "note",
+      "override",
+      "peptides",
+      "profiled",
+      "reason",
+      "reference_proteomes",
+      "sample_group",
+      "sample_label",
+      "source",
+      "species"
+    ],
+    "current_study_fields": [
+      "acquisition_mode",
+      "aliases",
+      "arm_resolution",
+      "arm_resolution_note",
+      "cell_name",
+      "culture_condition",
+      "disease",
+      "donors",
+      "elution_condition_ids",
+      "exclude_from_ms",
+      "fdr",
+      "fragmentation",
+      "hla_alleles",
+      "instrument",
+      "ip_antibody",
+      "labeling",
+      "mono_allelic_host",
+      "mono_allelic_method",
+      "ms_samples",
+      "n_samples",
+      "n_tissues",
+      "note",
+      "override",
+      "peptide_attribution_restrictions",
+      "peptide_attributions",
+      "perturbations",
+      "pmid",
+      "quantification_method",
+      "restriction_evidence",
+      "restriction_evidence_rules",
+      "rules",
+      "search_engine",
+      "source_organism",
+      "source_tissue",
+      "species",
+      "study_label",
+      "title"
+    ],
+    "historical_sample_fields": [
+      "classification",
+      "condition",
+      "condition_antigen_exposure",
+      "condition_background",
+      "condition_combination",
+      "condition_control",
+      "condition_control_for",
+      "condition_culture",
+      "condition_cytokines",
+      "condition_drugs",
+      "condition_evidence",
+      "condition_genetic_variants",
+      "condition_id",
+      "condition_infection",
+      "condition_knockdown_genes",
+      "condition_knockout_genes",
+      "condition_labeling",
+      "condition_material",
+      "condition_mhc_context",
+      "condition_overexpression_genes",
+      "condition_reference",
+      "condition_status",
+      "condition_stimulation",
+      "condition_transduction",
+      "condition_transfection",
+      "ip_antibody",
+      "labeling",
+      "mhc",
+      "mhc_basis",
+      "mhc_class",
+      "mhc_genotype",
+      "mhc_genotype_cell",
+      "mhc_genotype_complete_loci",
+      "mhc_genotype_source",
+      "n_samples",
+      "note",
+      "override",
+      "peptides",
+      "profiled",
+      "reason",
+      "reference_proteomes",
+      "sample_group",
+      "sample_label",
+      "source",
+      "species"
+    ],
+    "historical_study_fields": [
+      "acquisition_mode",
+      "aliases",
+      "arm_resolution",
+      "arm_resolution_note",
+      "cell_name",
+      "culture_condition",
+      "disease",
+      "donors",
+      "elution_condition_ids",
+      "exclude_from_ms",
+      "fdr",
+      "fragmentation",
+      "hla_alleles",
+      "instrument",
+      "ip_antibody",
+      "labeling",
+      "mono_allelic_host",
+      "mono_allelic_method",
+      "ms_samples",
+      "n_samples",
+      "n_tissues",
+      "note",
+      "override",
+      "peptide_attribution_restrictions",
+      "peptide_attributions",
+      "perturbations",
+      "pmid",
+      "quantification_method",
+      "restriction_evidence",
+      "restriction_evidence_rules",
+      "rules",
+      "search_engine",
+      "source_organism",
+      "source_tissue",
+      "species",
+      "study_label",
+      "title"
+    ],
+    "n_arm_control_links": 88,
+    "n_arm_factors": 2339,
+    "n_arm_mhc_claims": 2074,
+    "n_assay_context_rows": 4071463,
+    "n_cohort_ids_not_in_mhc": 0,
+    "n_cohort_rows_without_contributors": 0,
+    "n_condition_link_rows": 2042689,
+    "n_contributor_links": 7646178,
+    "n_curated_arms_per_revision": 807,
+    "n_curated_studies_per_revision": 216,
+    "n_curation_amendments": 35,
+    "n_lineage_claims": 168,
+    "n_mhc_assays": 5327796,
+    "n_orphan_contributor_ids": 0,
+    "n_protocol_claims": 342
+  },
+  "relation_keys": {
+    "cohort_contributor_observation_id": "provenance_id",
+    "cohort_observation_id": "provenance_id",
+    "curated_arm": [
+      "study_pmid",
+      "condition_id"
+    ],
+    "mhc_observation_id": "observation_id",
+    "typed_assay_context_id": "observation_id"
+  },
+  "schema_version": 2,
+  "source_registry": {
+    "cohort_time_pmid_curation": {
+      "access": "bundled_source_snapshot",
+      "license_status": "unverified",
+      "sha256": "5223fc63d0a0a563f469641b2abb58578a359b9bfac32218ce2611aa9cc8ef27"
+    },
+    "corrected_human_cohort": {
+      "access": "public_pinned_release",
+      "license_status": "unverified",
+      "manifest_sha256": "b180eba804532f633a6d61bb350584dbe24f8df4b4b96f02c6ec492c60144372",
+      "native_artifacts": [
+        "cohort_native/training.parquet",
+        "cohort_native/identities.parquet",
+        "cohort_native/contributors.parquet",
+        "cohort_native/lineage.json"
+      ]
+    },
+    "current_pmid_curation": {
+      "access": "bundled_source_snapshot",
+      "license_status": "unverified",
+      "sha256": "f563a8f1a6224d668bf06aed2f034b439ec9a1b607f78f883ace21e053850b09"
+    },
+    "reviewed_lineage": {
+      "access": "bundled_source_snapshot",
+      "license_status": "unverified",
+      "sha256": "03300e7732c49a6c5359c211a9c8703beba0927003900c98881a25f3f34da276"
+    }
+  }
+}
