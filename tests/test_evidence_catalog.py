@@ -45,6 +45,12 @@ def test_catalog_covers_current_data_grains_without_double_counting():
         "granularity=protein",
     }
     assert len({item["native_artifact"] for item in bulk}) == 1
+    mhc = describe_evidence("mhc_positive_ms")
+    assert mhc["status"] == "v2_materialized"
+    assert mhc["materialized_artifact"] == "typed/mhc_observations.parquet"
+    assert describe_evidence("source_contributor")["materialized_artifact"] == (
+        "native/observation_contributors.parquet"
+    )
 
 
 def test_labels_and_biological_state_have_distinct_roles():
@@ -57,6 +63,8 @@ def test_labels_and_biological_state_have_distinct_roles():
     assert fields["instrument"]["role"] == "protocol"
     assert fields["qualitative_result"]["role"] == "target"
     assert fields["candidate_mhc_set"]["name"] != fields["peptide_mhc_restriction"]["name"]
+    assert fields["reported_mhc"]["name"] != fields["tested_mhc"]["name"]
+    assert fields["is_potential_contaminant"]["role"] == "annotation"
     assert "explicit_absence" in fields["cytokine_exposure"]["null_states"]
     assert "explicit_absence" not in fields["donor_id"]["null_states"]
 
@@ -73,6 +81,7 @@ def test_index_requirements_are_weaker_than_task_requirements():
     multimer = describe_task("tcell_multimer_cell_binding")
     assert ms["evidence"] == ("mhc_positive_ms",)
     assert "outcome_status" in ms["required"]
+    assert {"is_non_peptide_ligand", "is_potential_contaminant"} <= set(ms["required"])
     assert "qualitative_result" not in ms["required"]  # curated MS tables may leave it blank
     assert functional["evidence"] != multimer["evidence"]
     assert all(describe_task(name)["status"] == "v2_contract_only" for name in list_tasks())
@@ -129,5 +138,5 @@ def test_catalog_import_does_not_build_or_download(tmp_path):
         text=True,
         cwd=Path(__file__).parents[1],
     )
-    assert probe.stdout.strip() == "1"
+    assert probe.stdout.strip() == "2"
     assert not data_root.exists()

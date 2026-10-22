@@ -1,10 +1,10 @@
 # Evidence catalog (Hitlist 2.0 design)
 
-The first step of [the Hitlist 2.0 plan](https://github.com/pirl-unc/hitlist/issues/733)
-defines the evidence vocabulary without changing source data or claiming that
-each row is ready to train a model. The [parent issue](https://github.com/pirl-unc/hitlist/issues/733)
-tracks six sequential PRs. This release supplies the catalog contract; later
-PRs normalize rows and add the common query and training interface.
+The [Hitlist 2.0 plan](https://github.com/pirl-unc/hitlist/issues/733)
+defines one evidence vocabulary without claiming that each indexed row is
+ready to train a model. The MHC assay migration now materializes typed results
+and measurements. Later PRs add biological context, supporting modalities,
+T-cell assays and the common query and training interface.
 
 ## Discover types and requirements
 
@@ -18,8 +18,8 @@ catalog = describe_catalog()  # JSON-serializable; no assay read or download
 ```
 
 Unknown types and fields raise errors. A field listed here is a **logical v2
-field** to be supplied by the migration; it is not a claim that today's native
-Parquet has that column on every row. Every task currently reports
+field**; its evidence status says whether it has a v2 materialization or is
+still a contract. It is not a claim that every row has a value. Every task reports
 `status="v2_contract_only"`. In particular, an indexable observation can lack
 a task's peptide, endpoint, unit or cellular identity. The later training
 recipe will report those eligibility failures per row.
@@ -33,6 +33,44 @@ recipe will report those eligibility failures per row.
 | `line_expression_gene`, `line_expression_transcript` | Line-expression Parquet, selected by granularity | One gene/transcript profile measurement |
 | `peptide_protein_occurrence` | Peptide mappings Parquet | One peptide/protein/position alternative |
 | `source_contributor`, `reviewed_lineage`, `curated_material_arm` | Contributor Parquet and curated registries | Linked provenance/context |
+
+## MHC evidence package
+
+`write_mhc_evidence_package(source_dir, destination)` takes a complete portable
+v4 corpus and writes one self-contained package. It keeps all native corpus
+files, including contributor `original_fields` and `source_row_values`, then
+adds `typed/mhc_observations.parquet` and `typed/mhc_measurements.parquet`.
+The package manifest binds all files by hash, names the row/link keys and
+assigns every one of the 71 native MHC fields to a typed, deferred or
+source-only disposition. Its source registry retains the 23 raw source snapshot
+hashes and states that original row payloads are available through the
+contributor relation while upstream file access and license remain unverified.
+It is published only after row and link reconciliation and
+`verify_mhc_evidence_package` succeed.
+
+```python
+from hitlist import write_mhc_evidence_package, verify_mhc_evidence_package
+
+manifest_path = write_mhc_evidence_package(pinned_v4_directory, output_directory)
+manifest = verify_mhc_evidence_package(manifest_path.parent)
+print(manifest["reconciliation"])
+```
+
+The pinned v4 conversion contains 5,327,796 distinct MHC results and the same
+number of measurement rows across the three partitions. All 9,381,101 source
+contributor links resolve, with no result lacking a link. The `mhc_other`
+partition stays queryable: its 23,537 negative MS rows do not become positive
+presentation labels, and structural or non-MS ligand results remain in their
+own modalities. A source `positive_result` is interpreted within its assay
+family. Tested MHC, raw reported MHC, a candidate set, and peptide restriction
+remain distinct; this migration does not assign a peptide-level restricting
+allele. A missing assay method on a curated MS supplement stays missing, with
+the admission basis recorded separately. Peptide modifications, non-peptide
+ligand and potential contaminant flags are typed inputs to future eligibility
+rules.
+
+The [v4 MHC reconciliation report](https://github.com/pirl-unc/hitlist/blob/main/tasks/mhc-v2-evidence-results/README.md)
+records source, partition and link parity for the 1.82.19 package.
 
 The two T-cell projections share the availability source population. The
 157,263 CEDAR T-cell IDs that overlap IEDB are contributor evidence, not extra

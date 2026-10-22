@@ -7014,7 +7014,7 @@ Spec: [v2-evidence-system-spec.md](v2-evidence-system-spec.md). Parent: #733.
 - [x] Add focused contract tests and no-corpus import verification.
 - [x] Document the catalog, pinned baselines and migration sequence.
 - [x] Run format, lint and full tests; review diff and bump patch version.
-- [ ] Open PR, pass final-head CI, merge and deploy from clean main.
+- [x] Open PR, pass final-head CI, merge and deploy from clean main.
 
 CI discovery: every Python unit matrix leg fails when a training bundle has
 no contributor PMIDs. Record this independently, fix the empty mapped-column
@@ -7023,7 +7023,7 @@ full gate before merging PR 1.
 
 - [x] File the empty-contributor bundle bug (#741) and link its fix from PR 1.
 - [x] Fix the dtype and verify both empty and legacy bundle cases locally.
-- [ ] Verify the fix in the final-head CI matrix.
+- [x] Verify the fix in the final-head CI matrix.
 
 ## Review
 
@@ -7038,4 +7038,55 @@ the required 2.5 GiB for one worker. A later full run passed: 3,177 passed,
 one skipped, 89% coverage. The five CI unit legs initially exposed #741 in
 empty and legacy bundles. The source fix casts the mapped PMID field to a
 string dtype before filling `[]`, and the two affected test paths now pass
-locally. Final-head CI remains pending.
+locally. Final-head CI passed build, lint, all five Python unit legs,
+integration and coverage. PR #740 merged as `95a693a`; the clean-main
+release workflow #39789897982 passed both test phases and produced verified
+artifacts. PyPI 1.82.18 serves the exact wheel and sdist hashes. The local
+`./deploy.sh` run passed unit tests but its integration memory preflight
+refused at 9.71 GiB free against the 24 GiB macOS requirement, so the
+repository's clean-main release artifact workflow provided the full gate.
+
+# Hitlist 2.0 MHC observation graph — PR 2 of 6 (#735)
+
+Spec: [pr2-mhc-evidence-spec.md](pr2-mhc-evidence-spec.md). Parent: #733.
+PR 1 shipped as 1.82.18; this PR targets 1.82.19.
+
+- [x] Pin and verify the public v4 corpus; inspect exact schemas, identities,
+      field coverage and contributor relationships before implementation.
+- [x] Write the PR 2 specification and identify unresolved design risks.
+- [x] Implement one content-bound logical package with typed MHC results,
+      measurements and source links; preserve all native fields and contributors.
+- [x] Publish a complete native-field disposition map and explicit MHC-role,
+      method, endpoint and null-status policies.
+- [x] Reconcile every v4 result and contributor link by partition/source and
+      provide a machine-readable report of differences and exclusions.
+- [x] Add offline fixtures and corpus verification, bump 1.82.19, run format,
+      lint and full tests; review count and labeling parity.
+- [ ] Open PR, pass final-head CI, merge and deploy from clean main.
+
+## Review
+
+The hash-pinned v4 package reports 5,327,796 distinct result IDs across
+4,486,991 MS, 814,268 binding and 26,537 other assay rows, with no ID
+collisions. All 9,381,101 contributor links resolve, and every result has a
+link. These structural checks preceded the v2 package build.
+
+The first full v4 conversion exposed native `pmid: int64` against the typed
+text reference field. Preserve the integer in the original Parquet and
+convert explicitly for the typed representation; keep the regression in the
+offline fixture before rerunning the corpus conversion.
+
+The 1.82.19 conversion now passes on the full pinned v4 source. The package
+manifest in `tasks/mhc-v2-evidence-results/` hashes 12 files and reports
+5,327,796 typed result/measurement pairs, 9,381,101 preserved contributor
+links, 23 source snapshots, zero orphan links and zero missing source links.
+An independent rowwise check of all 5,327,796 source rows found zero changed
+IDs, peptide/modification fields, MHC text, source IDs, assay class/outcome,
+reported value/unit/inequality or quality flags. All three partition/source
+counts equal v4. Fifteen focused catalog/package tests pass. The local editable
+install reports 1.82.19 consistently. `./format.sh` and `./lint.sh` pass;
+`./test.sh` passes 3,188 tests with one skip and 88% coverage. The final
+source-link audit requires registered datasets, positive source row locators,
+source record IDs and raw payloads on every contributor link; it produced
+the identical manifest hash as the previous build. Final-head
+CI, merge and PyPI deployment remain.

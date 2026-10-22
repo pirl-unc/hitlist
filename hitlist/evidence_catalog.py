@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 FIELD_ROLES = frozenset(
     {
         "identity",
@@ -21,6 +21,7 @@ FIELD_ROLES = frozenset(
         "provenance",
         "lineage",
         "relation",
+        "annotation",
     }
 )
 VALUE_KINDS = frozenset({"identifier", "text", "number", "boolean", "category", "set", "sequence"})
@@ -58,6 +59,7 @@ class Evidence:
     native_selector: str = ""
     assay_families: tuple[str, ...] = ()
     status: str = "v2_contract_only"
+    materialized_artifact: str = ""
 
 
 @dataclass(frozen=True)
@@ -84,12 +86,21 @@ def _field(name, role, value_kind, meaning, *null_states):
 
 FIELDS = (
     _field("observation_id", "identity", "identifier", "One typed result at its declared grain"),
+    _field("measurement_id", "identity", "identifier", "One reported result measurement"),
     _field("source_record_id", "provenance", "identifier", "Original source row locator"),
     _field("source_assay_id", "provenance", "identifier", "Reported source assay identifier"),
     _field("source_reference_id", "provenance", "identifier", "Source publication or deposit"),
+    _field("source_reference_iri", "provenance", "identifier", "Unmodified source reference IRI"),
     _field("source_dataset", "provenance", "identifier", "Pinned source release"),
+    _field("source_file", "provenance", "identifier", "Reported supplemental source file"),
+    _field("source_pmid", "provenance", "identifier", "Source PMID rendered as text"),
+    _field("native_partition", "provenance", "identifier", "Original corpus partition"),
+    _field("native_row_index", "provenance", "number", "Zero-based row within original partition"),
     _field("assay_family", "protocol", "category", "Method/readout family, not a training label"),
+    _field("assay_modality", "protocol", "category", "Source-classified MHC assay modality"),
     _field("endpoint", "target", "category", "Measured endpoint with task-specific meaning"),
+    _field("endpoint_reported", "target", "text", "Unchanged source readout text"),
+    _field("endpoint_basis", "provenance", "category", "Reported, curated or unreported endpoint"),
     _field("qualitative_result", "target", "category", "Reported outcome, with original tier"),
     _field(
         "outcome_status",
@@ -99,13 +110,35 @@ FIELDS = (
     ),
     _field("quantitative_raw", "target", "text", "Unmodified numeric source cell"),
     _field("quantitative_value", "target", "number", "Parsed numeric value"),
+    _field("quantitative_status", "target", "category", "Reported, unresolved or unreported value"),
+    _field("qualitative_status", "target", "category", "Reported or unreported qualitative tier"),
     _field("measurement_unit", "target", "category", "Reported unit, before any conversion"),
+    _field("unit_status", "target", "category", "Reported, unreported or inapplicable unit"),
     _field("measurement_inequality", "target", "category", "Reported censoring or comparison"),
+    _field("inequality_status", "target", "category", "Status of reported censoring"),
     _field("peptide_sequence", "molecular_input", "sequence", "Directly reported peptide sequence"),
+    _field(
+        "peptide_modifications_raw", "molecular_input", "text", "Reported peptide modification text"
+    ),
+    _field("has_ptm", "molecular_input", "boolean", "Reported peptide modification indicator"),
+    _field("peptide_extended", "molecular_input", "sequence", "Reported extended peptide text"),
+    _field("is_non_peptide_ligand", "molecular_input", "boolean", "Native non-peptide ligand flag"),
+    _field(
+        "is_potential_contaminant", "annotation", "boolean", "Native potential-contaminant flag"
+    ),
     _field("protein_id", "molecular_input", "identifier", "Source protein identity"),
     _field("gene_id", "molecular_input", "identifier", "Source gene identity"),
     _field("transcript_id", "molecular_input", "identifier", "Source transcript identity"),
     _field("tested_mhc", "molecular_input", "identifier", "MHC molecule tested in the assay"),
+    _field(
+        "reported_mhc",
+        "biological_context",
+        "text",
+        "Original MHC restriction field without role promotion",
+    ),
+    _field(
+        "candidate_mhc_set_raw", "biological_context", "text", "Unparsed source candidate-set text"
+    ),
     _field(
         "candidate_mhc_set",
         "biological_context",
@@ -132,6 +165,12 @@ FIELDS = (
         "unresolved",
     ),
     _field("restriction_evidence", "provenance", "category", "Basis for a restriction claim"),
+    _field(
+        "peptide_restriction_status",
+        "biological_context",
+        "category",
+        "Evidence status of peptide-level assignment",
+    ),
     _field("material_id", "biological_context", "identifier", "Sample or experimental material"),
     _field("cell_type", "biological_context", "category", "Reported or curated cell identity"),
     _field("condition_id", "biological_context", "identifier", "Experimental arm"),
@@ -159,6 +198,9 @@ FIELDS = (
     _field("exposure_duration", "biological_context", "text", "Reported duration with unit"),
     _field("assay_method", "protocol", "category", "Reported assay method"),
     _field("assay_readout", "protocol", "category", "Reported response measured"),
+    _field(
+        "assay_modality_basis", "provenance", "category", "Source of assay-family classification"
+    ),
     _field("capture_method", "protocol", "category", "Ligand or protein capture"),
     _field("digestion_enzyme", "protocol", "category", "Protein digestion enzyme"),
     _field("instrument", "protocol", "text", "MS instrument identity"),
@@ -209,6 +251,30 @@ _MHC = (
     "cellular_mhc_genotype",
     "restriction_evidence",
 )
+_MHC_MATERIALIZED = (
+    "measurement_id",
+    "source_reference_iri",
+    "source_file",
+    "source_pmid",
+    "native_partition",
+    "native_row_index",
+    "assay_modality",
+    "assay_modality_basis",
+    "endpoint_reported",
+    "endpoint_basis",
+    "qualitative_status",
+    "quantitative_status",
+    "unit_status",
+    "inequality_status",
+    "peptide_modifications_raw",
+    "has_ptm",
+    "peptide_extended",
+    "is_non_peptide_ligand",
+    "is_potential_contaminant",
+    "reported_mhc",
+    "candidate_mhc_set_raw",
+    "peptide_restriction_status",
+)
 _MATERIAL = ("material_id", "cell_type", "condition_id", "gene_perturbation", "cytokine_exposure")
 _MS_PROTOCOL = (
     "capture_method",
@@ -241,10 +307,13 @@ EVIDENCE = (
             "outcome_status",
             "peptide_sequence",
             *_MHC,
+            *_MHC_MATERIALIZED,
             *_MATERIAL,
             *_MS_PROTOCOL,
         ),
         ("observation_id", "source_dataset", "peptide_sequence", "endpoint"),
+        status="v2_materialized",
+        materialized_artifact="typed/mhc_observations.parquet",
     ),
     Evidence(
         "mhc_binding",
@@ -254,8 +323,10 @@ EVIDENCE = (
         "binding.parquet",
         "mhc_v4",
         ("qualitative_binding", "affinity", "kinetics", "stability"),
-        _SOURCE + _ASSAY + _MEASUREMENT + ("peptide_sequence",) + _MHC,
+        _SOURCE + _ASSAY + _MEASUREMENT + ("peptide_sequence",) + _MHC + _MHC_MATERIALIZED,
         ("observation_id", "source_dataset", "endpoint"),
+        status="v2_materialized",
+        materialized_artifact="typed/mhc_observations.parquet",
     ),
     Evidence(
         "mhc_other",
@@ -265,9 +336,16 @@ EVIDENCE = (
         "other_assays.parquet",
         "mhc_v4",
         ("negative_or_unestablished_ms", "structural", "non_ms_ligand", "other"),
-        _SOURCE + _ASSAY + _MEASUREMENT + ("outcome_status", "peptide_sequence") + _MHC,
+        _SOURCE
+        + _ASSAY
+        + _MEASUREMENT
+        + ("outcome_status", "peptide_sequence")
+        + _MHC
+        + _MHC_MATERIALIZED,
         ("observation_id", "source_dataset", "endpoint"),
         assay_families=("ms", "structural", "non_ms_ligand", "unresolved"),
+        status="v2_materialized",
+        materialized_artifact="typed/mhc_observations.parquet",
     ),
     Evidence(
         "tcell_availability",
@@ -424,6 +502,8 @@ EVIDENCE = (
         (),
         ("observation_id", "source_record_id", "source_dataset", "contributor_status"),
         ("observation_id", "source_record_id"),
+        status="v2_materialized",
+        materialized_artifact="native/observation_contributors.parquet",
     ),
     Evidence(
         "curated_material_arm",
@@ -454,8 +534,14 @@ TASKS = (
     Task(
         "mhc_positive_presentation",
         ("mhc_positive_ms",),
-        ("peptide_sequence", "endpoint", "outcome_status"),
-        "Positive MS admission or reviewed observed-MS supplement only; other MS outcomes excluded.",
+        (
+            "peptide_sequence",
+            "endpoint",
+            "outcome_status",
+            "is_non_peptide_ligand",
+            "is_potential_contaminant",
+        ),
+        "Positive MS admission or reviewed observed-MS supplement, with peptide and contaminant flags applied; other MS outcomes excluded.",
     ),
     Task(
         "mhc_quantitative_binding",
