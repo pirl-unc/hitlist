@@ -19,9 +19,17 @@ from tests.test_mhc_evidence import _source
 
 
 def _cohort_fixture(
-    tmp_path, *, bad_arm=False, duplicate_id=False, extra_field=False, class_pool=False
+    tmp_path,
+    *,
+    bad_arm=False,
+    duplicate_id=False,
+    extra_field=False,
+    class_pool=False,
+    augment_source=None,
 ):
     source = _source(tmp_path)
+    if augment_source is not None:
+        augment_source(source)
     mhc_package = tmp_path / "mhc"
     write_mhc_evidence_package(source, mhc_package)
     cohort = tmp_path / "cohort"
@@ -266,3 +274,24 @@ def test_class_pool_link_stays_coarse_and_package_detects_tampering(tmp_path):
         stream.write(b"tampered")
     with pytest.raises(ValueError, match="artifact mismatch"):
         verify_context_evidence_package(target)
+
+
+def test_historical_context_manifest_verifies_inside_successor_package(tmp_path):
+    mhc, cohort, old, current, lineage = _cohort_fixture(tmp_path)
+    target = tmp_path / "context"
+    write_context_evidence_package(
+        mhc,
+        cohort,
+        target,
+        historical_curation_path=old,
+        current_curation_path=current,
+        lineage_file=lineage,
+    )
+    nested = target / "manifests" / "context.json"
+    nested.write_bytes((target / "manifest.json").read_bytes())
+    (target / "typed" / "later_source.txt").write_text("new source")
+    assert verify_context_evidence_package(target, manifest_path="manifests/context.json") == (
+        json.loads(nested.read_text())
+    )
+    with pytest.raises(ValueError, match="Invalid context package manifest path"):
+        verify_context_evidence_package(target, manifest_path="../context/manifest.json")

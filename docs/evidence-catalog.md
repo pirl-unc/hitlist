@@ -2,10 +2,10 @@
 
 The [Hitlist 2.0 plan](https://github.com/pirl-unc/hitlist/issues/733)
 defines one evidence vocabulary without claiming that each indexed row is
-ready to train a model. The MHC assay and biological-context migrations now
-materialize typed results, measurements, arms, factors, protocol claims and
-lineage. Later PRs add supporting modalities, T-cell assays and the common
-query and training interface.
+ready to train a model. The MHC, biological-context and supporting-measurement
+migrations now materialize typed results, measurements, arms, factors, protocol
+claims, lineage and mapping alternatives. Later PRs add external quantitative
+sources, T-cell assays and the common query and training interface.
 
 ## Discover types and requirements
 
@@ -30,8 +30,8 @@ recipe will report those eligibility failures per row.
 | `mhc_positive_ms`, `mhc_binding`, `mhc_other` | Three Parquet partitions | One MHC assay result |
 | `tcell_availability` | Pinned assay metadata export | One distinct IEDB assay ID |
 | `tcell_functional_peptide`, `tcell_multimer_peptide` | Bounded training projections | One qualified source assay ID |
-| `bulk_ms_peptide`, `bulk_ms_protein` | Bulk Parquet, selected by granularity | One material/protocol measurement |
-| `line_expression_gene`, `line_expression_transcript` | Line-expression Parquet, selected by granularity | One gene/transcript profile measurement |
+| `bulk_ms_peptide`, `bulk_ms_protein` | Bulk Parquet, selected by granularity | One source result, with separate measurement representations |
+| `line_expression_gene`, `line_expression_transcript` | Line-expression Parquet, selected by granularity | One gene or transcript result in a source profile |
 | `peptide_protein_occurrence` | Peptide mappings Parquet | One peptide/protein/position alternative |
 | `source_contributor`, `reviewed_lineage`, `curated_material_arm` | Contributor Parquet and curated registries | Linked provenance/context |
 | `assay_context`, `curated_study`, `arm_factor`, `arm_mhc_claim`, `arm_control_link`, `protocol_claim`, `curation_amendment` | Corrected human cohort and versioned curation | Assay context or one source claim |
@@ -120,6 +120,51 @@ capture/expression context have distinct roles. Study protocol defaults and
 arm overrides remain separate; no instrument setting is promoted to a
 per-run claim. Donor, specimen and acquisition identity remain unknown in this
 cohort export.
+
+## Supporting-measurement package
+
+`write_supporting_evidence_package(context_package, destination)` augments a
+verified context generation with typed bulk MS, RNA expression, peptide-to-protein
+occurrences, mapping coverage, source protocol scopes and line-anchor claims. It
+embeds the complete parent generation and its exact manifest, plus the pinned
+bulk/expression CSV and YAML source assets. Large CSVs externalized from the
+Python wheel must be available in the Hitlist data-asset cache or supplied under
+`source_root` during ingestion. Consumers of the output generation need only its
+top-level manifest and tables. `verify_supporting_evidence_package` checks all
+parent and source hashes, schemas, grains and row counts.
+
+The v4 bulk index has 2,047,003 peptide rows reporting detection and replicate
+coverage, without peptide intensity values. Its 156,211 Bekker-Jensen protein
+rows have label-free log2 intensity; 66,074 CCLE protein rows have TMT-normalized
+relative log2 abundance. Protein percentiles are a second representation of the
+same source result. These are distinct scales; none is MHC presentation or a
+measurement of a paired immunopeptidomics specimen. The source's 19 observed
+enzyme/fraction/enrichment combinations remain separate. A legacy Trypsin/P
+display string is preserved raw, while reviewed MaxQuant search enzyme claims
+live in source-scoped protocol rows. An unreported search specification stays
+unreported.
+
+The 42,909 line-expression rows are gene results in two measured profiles,
+GM12878 and HAP1. ENCODE's reported TPM and DepMap's reported log2(TPM+1) are
+marked as such; their alternate representations remain derived values on the
+same result. The source anchor registry includes other lines and parent/family
+fallbacks, but it creates no extra expression rows or exact specimen pairs.
+There are no transcript results in the pinned v4 generation.
+
+The 6,205,013 peptide/protein-position occurrences represent 1,145,721 mapped
+peptides, with all alternative protein, transcript, position and flank claims
+retained. Of 1,506,664 eligible unique peptides in the three MHC source
+partitions, 360,943 have no retained mapping; they remain assay evidence with
+an explicit `unmapped` coverage row. The 313 unique strings on
+non-peptide-ligand rows are kept in the native assays and do not enter this
+eligible mapping denominator. A mapping row or technical fraction never adds
+an independent assay or donor.
+
+The companion [supporting conversion report](../tasks/supporting-v2-evidence-results/README.md)
+records source hashes, count reconciliation and the independent field/value
+parity audit. External quantitative MS panels with actual channel/material
+claims enter through the dependent source-generation work in
+[issue #746](https://github.com/pirl-unc/hitlist/issues/746).
 
 The two T-cell projections share the availability source population. The
 157,263 CEDAR T-cell IDs that overlap IEDB are contributor evidence, not extra

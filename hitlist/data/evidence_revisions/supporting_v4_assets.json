@@ -1,0 +1,51 @@
+{
+  "assets": {
+    "bulk_proteomics/bekker_jensen_2017_peptides.csv.gz": {
+      "sha256": "3ec65dd05e8ec58c3293e0fb5720570197a8b152cd14778130bae4224106e3d3",
+      "size_bytes": 35074080
+    },
+    "bulk_proteomics/bekker_jensen_2017_protein_abundance.csv.gz": {
+      "sha256": "17628f1a9c3ed5e3ee1ad7aab4480008000a6beb2c042928f3fbdf699366bc45",
+      "size_bytes": 4410669
+    },
+    "bulk_proteomics/ccle_nusinow_2020.csv.gz": {
+      "sha256": "1cd9bdd7b40e1a22593c0045f5ba1d785004b64943c4845d4311bc44e7f97d82",
+      "size_bytes": 1671535
+    },
+    "bulk_proteomics/detectability.yaml": {
+      "sha256": "1936194860c47917681448a75401569258f0cf4ea5a46a295a6bfabf4db8073b",
+      "size_bytes": 12315
+    },
+    "bulk_proteomics/sources.yaml": {
+      "sha256": "26a410b2839d6ad6ea0701066434919ea3ab90fb05c636e20391499212b2fc52",
+      "size_bytes": 8115
+    },
+    "line_expression/apm_rna_build_report.yaml": {
+      "sha256": "443361d7803837c8a8de7139a68415d303a1e5aae10ea457eda9935ccb7c71a8",
+      "size_bytes": 306
+    },
+    "line_expression/ensembl_gene_id_symbol.csv": {
+      "sha256": "cd5a8f42cd45137ffd3de580f395d42107e6ff4b77a80b0a746b9508c0f4c0e2",
+      "size_bytes": 257327
+    },
+    "line_expression/gm12878_encode_rnaseq_tpm.csv.gz": {
+      "sha256": "b3d605f3426d283ecf166bd6a38006dc40d4d3aa9c4050c40f7f2101ff60d8ab",
+      "size_bytes": 271557
+    },
+    "line_expression/hap1_depmap24q4_gene_tpm.csv.gz": {
+      "sha256": "9c91022631272fdd626369b03b848162da30062004295cc7249fc3140d149918",
+      "size_bytes": 253816
+    },
+    "line_expression/sources.yaml": {
+      "sha256": "7e3ea4f05481ae1d810cf8bbbf2f0cb1e7b41b4f7c779629a413525a7b013ea2",
+      "size_bytes": 7621
+    },
+    "line_expression_anchors.yaml": {
+      "sha256": "b736261a977b416b40623848a410b2b9ff16c56527bea392592996480f8f678e",
+      "size_bytes": 13122
+    }
+  },
+  "generation": "v4-supporting-sources-2026-10-16",
+  "note": "Hashes bind the packaged/curated source assets used by the pinned v4 supporting modalities; rights are source-specific and preserved in sources.yaml.",
+  "schema_version": 1
+}

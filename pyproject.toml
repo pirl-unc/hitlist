@@ -107,6 +107,7 @@ include = ["hitlist*"]
 hitlist = [
     "data/*.yaml",
     "data/evidence_revisions/*.yaml",
+    "data/evidence_revisions/*.json",
     "data/supplementary/*.yaml",
     "data/supplementary/*.csv",
     "data/bulk_proteomics/*.csv.gz",

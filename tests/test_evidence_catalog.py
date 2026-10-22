@@ -61,8 +61,21 @@ def test_catalog_covers_current_data_grains_without_double_counting():
         "protocol_claim",
         "curation_amendment",
         "reviewed_lineage",
+        "bulk_ms_peptide",
+        "bulk_ms_protein",
+        "line_expression_gene",
+        "peptide_protein_occurrence",
+        "peptide_mapping_coverage",
+        "bulk_protocol_scope",
+        "line_expression_source",
+        "line_anchor_claim",
     ):
         assert describe_evidence(name)["status"] == "v2_materialized"
+    assert describe_evidence("bulk_ms_peptide")["endpoints"] == ("bulk_peptide_detection",)
+    assert describe_evidence("line_expression_gene")["index_required_any_of"] == (
+        ("gene_id", "gene_name"),
+    )
+    assert describe_evidence("line_expression_transcript")["status"] == "v2_contract_only"
 
 
 def test_labels_and_biological_state_have_distinct_roles():
@@ -75,6 +88,9 @@ def test_labels_and_biological_state_have_distinct_roles():
     assert fields["instrument"]["role"] == "protocol"
     assert fields["arm_id"]["role"] == "biological_context"
     assert fields["sample_attribution"]["role"] == "provenance"
+    assert fields["material_link_status"]["role"] == "relation"
+    assert fields["search_enzyme"]["role"] == "protocol"
+    assert fields["quantity_scale"]["role"] == "target"
     assert fields["qualitative_result"]["role"] == "target"
     assert fields["candidate_mhc_set"]["name"] != fields["peptide_mhc_restriction"]["name"]
     assert fields["reported_mhc"]["name"] != fields["tested_mhc"]["name"]
@@ -98,6 +114,8 @@ def test_index_requirements_are_weaker_than_task_requirements():
     assert {"is_non_peptide_ligand", "is_potential_contaminant"} <= set(ms["required"])
     assert "qualitative_result" not in ms["required"]  # curated MS tables may leave it blank
     assert functional["evidence"] != multimer["evidence"]
+    assert describe_task("gene_expression")["required_any_of"] == (("gene_id", "gene_name"),)
+    assert "material_id" not in describe_task("bulk_peptide_detection")["required"]
     assert all(describe_task(name)["status"] == "v2_contract_only" for name in list_tasks())
 
 
@@ -131,7 +149,9 @@ def test_baselines_have_explicit_generation_and_count_units():
         baselines["tcell_functional_peptide"].n_rows + baselines["tcell_multimer_peptide"].n_rows
         == 55_844
     )
-    assert baselines["bulk_v4"].count_unit == "measurement_rows"
+    assert baselines["bulk_v4"].count_unit == "source_result_rows"
+    assert baselines["peptide_protein_occurrence"].n_rows == 6_205_013
+    assert baselines["peptide_mapping_coverage"].n_rows == 1_506_664
     assert all(item.generation for item in BASELINES)
 
 
@@ -152,5 +172,5 @@ def test_catalog_import_does_not_build_or_download(tmp_path):
         text=True,
         cwd=Path(__file__).parents[1],
     )
-    assert probe.stdout.strip() == "3"
+    assert probe.stdout.strip() == "4"
     assert not data_root.exists()

@@ -7115,8 +7115,8 @@ Parent: #733. PR 2 shipped as 1.82.19; this PR targets 1.82.20.
       and reconcile all observation, source and arm links.
 - [x] Add focused fixtures and a full pinned-corpus conversion report; bump
       1.82.20, format, lint, and review the diff.
-- [ ] Pass the full test gate locally or on final-head CI.
-- [ ] Open PR, pass final-head CI, merge and deploy from clean main.
+- [x] Pass the full test gate locally or on final-head CI.
+- [x] Open PR, pass final-head CI, merge and deploy from clean main.
 
 ## Review
 
@@ -7144,3 +7144,60 @@ the historical curation YAML, new module and license. The local `./test.sh`
 attempt was blocked before collection by the existing #483 macOS memory
 preflight (0.74 GiB available; 2.5 GiB required); final-head CI and a retry
 remain necessary.
+
+PR #744 passed the complete final-head CI gate, including all five Python
+unit legs and corpus integration, and merged as `95dc872`. Clean-main release
+workflow #39816816221 passed its full gate on that exact commit. The tested
+wheel and sdist passed provenance, license and metadata checks; PyPI 1.82.20
+serves the identical SHA-256 hashes.
+
+# Hitlist 2.0 supporting modalities — PR 4 of 7 (#737)
+
+Spec: [pr4-supporting-evidence-spec.md](pr4-supporting-evidence-spec.md).
+Depends on PR 3 (#744) merging and publishing 1.82.20. The new external
+quantitative-source acceptance cases are assigned to dependent PR 5 (#746).
+
+- [x] Audit pinned v4 bulk, expression and mapping source schemas, grains,
+      endpoint population and source-specific quantity scales.
+- [x] Specify source preservation, typed identities, protocol scopes, material
+      relation precision, per-family required fields and conservation checks.
+- [x] Implement the versioned supporting evidence package and catalog entries
+      without losing the parent package or native source bytes.
+- [x] Add focused regressions and independent full-corpus parity/coverage report.
+- [ ] Bump version, run format/lint/full tests, review diff and final-head CI.
+- [ ] Open PR after PR 3 ships; merge and deploy from clean main before PR 5.
+
+## Review
+
+Pinned source audit: `bulk_proteomics.parquet` has 2,269,288 rows, split into
+2,047,003 Bekker-Jensen peptide detections without intensity, 156,211
+Bekker-Jensen protein abundance rows with log2 intensity, and 66,074 CCLE
+protein rows with a distinct normalized log2 abundance. The table spans 19
+observed source/grain/enzyme/fraction/enrichment combinations. The legacy
+Trypsin/P display label contradicts the reviewed MaxQuant search rule (#745),
+so typed search semantics and raw source text must remain separate.
+`line_expression.parquet` has 42,909 gene rows in two profiles (GM12878 and
+HAP1), and no populated transcript ID. The anchor registry lists 21 lines,
+but names and fallback tiers do not create measured rows or paired specimens.
+`peptide_mappings.parquet` has 6,205,013 occurrence rows across 1,145,721
+mapped peptides. The three native MHC partitions have 1,506,973 nonempty
+peptide strings, of which 1,506,664 remain eligible after removing flagged
+non-peptide-ligand rows. Thus 360,943 eligible peptides have no retained
+mapping; all remain assay evidence. These counts are source/sequence counts,
+not independent subjects or training admission.
+
+The final 1.82.21 package manifest has SHA-256
+`70f1cdb2124aea18f1ec4051dfecb58c73c34324dd06cb8d0b225b2b6a9fdb9c`.
+It hashes the complete context predecessor, 11 pinned supporting source assets,
+and all typed relations. The source and typed row counts reconcile for all
+2,269,288 bulk, 42,909 gene-expression and 6,205,013 mapping rows. A second
+streaming check found zero copied-field mismatches across 19 bulk fields,
+11 expression fields and all 12 mapping fields. A separate measurement replay
+checked all bulk endpoints/representations and both expression representations
+on every source row. Focused tests pass (16), as do `./format.sh` and
+`./lint.sh`. An isolated editable installation reports only this checkout at
+1.82.21. The wheel includes the new module, pinned source receipt and license;
+large externalized bulk CSVs remain ingestion assets. The local `./test.sh`
+attempt stopped before collection at the existing #483 memory preflight (0.25
+GiB free versus 2.5 GiB required for one worker); the final-head CI full test
+gate remains required before merge.
