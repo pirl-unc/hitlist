@@ -100,6 +100,14 @@ preserving the full source-faithful assay table and explicit exclusions. Its
 manifest reports per-family positive/negative coverage and missing lineage;
 it does not assert independent specimens or a certified model holdout.
 
+A separate `--task multimer` bundle uses the same public human direct-peptide
+source projection for `multimer/tetramer` assays with a `qualitative binding`
+readout. It keeps cell-binding labels separate from functional responses and
+retains ambiguous source rows outside binary training (#731). The common
+source iterator is `hitlist.iter_human_direct_peptide_tcell_assays(...)`;
+callers can filter assay families and exact reported readout without treating
+all source outcomes as one target.
+
 For the separate Atlas MS cohort, every published row already has a donor
 label. The [Atlas crosswalk audit](../atlas-crosswalk-results/README.md) still
 marks peptide-to-acquisition and physical-specimen identities unknown. That

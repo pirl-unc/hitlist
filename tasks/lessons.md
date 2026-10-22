@@ -16,6 +16,16 @@ recipe so the same handoff problem cannot recur.
   reproducible local export with explicit source identity, outcome semantics,
   and versioned provenance. Describe audit-only work as audit-only.
 
+- When the user asks to keep adding data after one bounded export ships,
+  inspect the next measured family in the pinned source and deliver it as a
+  distinct training task if its assay meaning is coherent. Do not merge a
+  binding readout into functional-response labels just to increase row count.
+
+- A shared source filter used by multiple public exports needs a public,
+  documented data API rather than a cross-module import of a private helper.
+  Keep the common iterator general across coherent assay families within its
+  declared source scope, then add task-specific wrappers for measured labels.
+
 ## 2026-10-19
 
 - Keep this workspace's work scoped to Hitlist when the user says "do just
