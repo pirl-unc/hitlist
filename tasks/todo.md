@@ -7255,3 +7255,35 @@ older predecessor hardlink behavior. Sixteen focused tests and format/lint pass.
 The isolated editable install is 1.82.22 and `uv pip check` passes. The full
 local `./test.sh` gate passes: 3,214 passed, one skipped, 88% coverage in
 5m17s. Final-head CI and clean-main publication remain pending.
+
+# Hitlist 2.0 T-cell evidence — PR 6 of 7 (#738)
+
+Spec: [pr6-tcell-evidence-spec.md](pr6-tcell-evidence-spec.md).
+This stacked worktree starts on PR 5's exact head; open PR 6 only after
+1.82.22 publishes and rebase on its merged main commit.
+
+- [x] Verify both pinned T-cell ZIP hashes and independently replay the existing
+      availability and bounded training counts.
+- [x] Audit the full IEDB/CEDAR field intersection and the CEDAR-only mutation
+      field; file the preservation gap as #750.
+- [ ] Implement one verified successor generation with native ZIP snapshots,
+      typed assay/measurement/context/contributor relations and field disposition.
+- [ ] Materialize the 578,529-row availability and 55,844-row bounded training
+      eligibility funnel with explicit exclusions and source-linked claims.
+- [ ] Independently replay all source rows, family counts, CEDAR overlap,
+      candidate statuses and source fields; add focused offline fixtures.
+- [ ] Bump 1.82.23, run format/lint/full tests and final-head CI; review, merge,
+      deploy clean main and verify PyPI exact hashes before PR 7.
+
+## Review
+
+The pinned ZIPs match their 2026-10-20 receipts. The existing metadata export
+replays 578,529 IEDB assays and 157,263 shared CEDAR IDs. The bounded exports
+contain 47,593 direct functional and 8,432 multimer source rows; 172 and nine
+respectively are currently excluded for qualitative/subject-count disagreement,
+leaving 47,421 and 8,423 training examples. Of these, 4,054 carry conservative
+candidate single-HLA assignments, without specimen IDs. A separate first-fail
+funnel accounts for every IEDB assay and recovers all 56,025 direct candidates.
+All 157,263 shared IDs match on the 158 common source columns. CEDAR has one
+additional `Epitope | Mutation` column, populated on 30,639 overlap rows,
+including 17 current training IDs. Preserve this contributor claim (#750).
