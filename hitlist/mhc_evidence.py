@@ -20,10 +20,12 @@ import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.parquet as pq
 
-from .evidence_catalog import SCHEMA_VERSION as CATALOG_SCHEMA_VERSION
 from .provenance import CONTRIBUTOR_COLUMNS, file_digest
 
 PACKAGE_SCHEMA_VERSION = 1
+# The MHC package's field map is the catalog-v2 contract. A later catalog
+# adds other relations without changing this immutable package's semantics.
+MHC_CATALOG_SCHEMA_VERSION = 2
 MHC_PARTITIONS = {
     "observations.parquet": "mhc_positive_ms",
     "binding.parquet": "mhc_binding",
@@ -577,13 +579,15 @@ def _write_typed(source_dir, typed_dir, audit_path, known_sources):
         audit.close()
 
 
-def verify_mhc_evidence_package(directory):
-    """Verify a portable MHC package's hashes, schemas and row inventory."""
+def verify_mhc_evidence_package(directory, *, manifest_path="manifest.json"):
+    """Verify an MHC manifest, including one preserved inside a later package."""
     directory = Path(directory)
-    manifest = json.loads((directory / "manifest.json").read_text())
+    if Path(manifest_path).is_absolute() or ".." in Path(manifest_path).parts:
+        raise ValueError("Invalid MHC package manifest path")
+    manifest = json.loads((directory / manifest_path).read_text())
     if manifest.get("schema_version") != PACKAGE_SCHEMA_VERSION:
         raise ValueError("Unsupported MHC evidence package schema")
-    if manifest.get("catalog_schema_version") != CATALOG_SCHEMA_VERSION:
+    if manifest.get("catalog_schema_version") != MHC_CATALOG_SCHEMA_VERSION:
         raise ValueError("MHC evidence package catalog schema mismatch")
     if manifest.get("native_field_disposition") != _native_disposition():
         raise ValueError("MHC native field disposition mismatch")
@@ -678,7 +682,7 @@ def write_mhc_evidence_package(source_dir, destination):
 
         manifest = {
             "schema_version": PACKAGE_SCHEMA_VERSION,
-            "catalog_schema_version": CATALOG_SCHEMA_VERSION,
+            "catalog_schema_version": MHC_CATALOG_SCHEMA_VERSION,
             "hitlist_version": __version__,
             "source_manifest": source_manifest_digest,
             "source_artifact_version": source_manifest["artifact_version"],

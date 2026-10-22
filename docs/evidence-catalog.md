@@ -2,9 +2,10 @@
 
 The [Hitlist 2.0 plan](https://github.com/pirl-unc/hitlist/issues/733)
 defines one evidence vocabulary without claiming that each indexed row is
-ready to train a model. The MHC assay migration now materializes typed results
-and measurements. Later PRs add biological context, supporting modalities,
-T-cell assays and the common query and training interface.
+ready to train a model. The MHC assay and biological-context migrations now
+materialize typed results, measurements, arms, factors, protocol claims and
+lineage. Later PRs add supporting modalities, T-cell assays and the common
+query and training interface.
 
 ## Discover types and requirements
 
@@ -33,6 +34,7 @@ recipe will report those eligibility failures per row.
 | `line_expression_gene`, `line_expression_transcript` | Line-expression Parquet, selected by granularity | One gene/transcript profile measurement |
 | `peptide_protein_occurrence` | Peptide mappings Parquet | One peptide/protein/position alternative |
 | `source_contributor`, `reviewed_lineage`, `curated_material_arm` | Contributor Parquet and curated registries | Linked provenance/context |
+| `assay_context`, `curated_study`, `arm_factor`, `arm_mhc_claim`, `arm_control_link`, `protocol_claim`, `curation_amendment` | Corrected human cohort and versioned curation | Assay context or one source claim |
 
 ## MHC evidence package
 
@@ -71,6 +73,53 @@ rules.
 
 The [v4 MHC reconciliation report](https://github.com/pirl-unc/hitlist/blob/main/tasks/mhc-v2-evidence-results/README.md)
 records source, partition and link parity for the 1.82.19 package.
+
+## Biological context package
+
+`write_context_evidence_package(mhc_package, cohort_bundle, destination)`
+augments a verified MHC package into one atomic generation. The output keeps
+the original MHC native files, the complete corrected human-cohort training,
+identity, contributor and lineage files, the cohort-time PMID curation, and
+the current PMID curation. It binds every file by hash. A later catalog/query
+reader opens only this generation; source directories are ingestion inputs,
+not query-time sidecars.
+
+```python
+from hitlist import write_context_evidence_package, verify_context_evidence_package
+
+path = write_context_evidence_package(mhc_package, cohort_bundle, output_directory)
+manifest = verify_context_evidence_package(path.parent)
+print(manifest["reconciliation"]["n_condition_link_rows"])
+```
+
+The corrected cohort covers 4,071,463 of the 5,327,796 MHC assay results.
+All 71 fields it shares with the pinned v4 assay rows match by source ID,
+including nulls; its 90 additional columns are context, protocol, lineage and
+quality assertions at the same assay grain. The 2,042,689 cohort rows with a
+`condition_id` point to 489 reviewed `(PMID, condition_id)` arms. The package
+also retains 318 curated arms with no linked assay row in that bounded human
+cohort. Each assay link retains `sample_attribution`; 48,975 linked rows use
+`class_pool`, which is coarser than a direct sample statement. A missing arm
+link does not mean an untreated arm.
+
+Curated arms are study-arm keys, not physical specimens. The source revision
+used for the cohort and the current curation revision retain the same 807 arm
+keys. The later revision adds 35 source-backed cell changes on 27 arms,
+including explicit control absences and soluble-MHC capture context. The
+typed amendment relation shows both values rather than rewriting the 1.78.0
+cohort table. `arm_factors` keeps concurrent interventions as distinct claims;
+`none` means sourced explicit absence, while a blank field remains unreported.
+When dose or duration appears only in prose, it remains in the raw condition
+text; this migration does not parse or infer a numeric exposure from it.
+Each typed claim retains whether its basis is curated text, a primary source,
+independent cellular typing, or a broader study/arm curation statement.
+Curated studies and documented control-to-comparison links have their own
+typed relations; an untreated label alone is not a comparator link.
+MHC candidates, selected restriction, independent cellular genotype and
+capture/expression context have distinct roles. Study protocol defaults and
+arm overrides remain separate; no instrument setting is promoted to a
+per-run claim. Donor, specimen and acquisition identity remain unknown in this
+cohort export.
 
 The two T-cell projections share the availability source population. The
 157,263 CEDAR T-cell IDs that overlap IEDB are contributor evidence, not extra

@@ -1,6 +1,7 @@
 """Source-faithful MHC migration and portable package failure modes."""
 
 import json
+import shutil
 
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -233,3 +234,16 @@ def test_mhc_package_verifier_detects_artifact_change(tmp_path):
         stream.write(b"tamper")
     with pytest.raises(ValueError, match="artifact mismatch"):
         verify_mhc_evidence_package(target)
+
+
+def test_mhc_package_manifest_remains_verifiable_inside_later_generation(tmp_path):
+    source = _source(tmp_path)
+    target = tmp_path / "package"
+    write_mhc_evidence_package(source, target)
+    (target / "manifests").mkdir()
+    shutil.copy2(target / "manifest.json", target / "manifests" / "mhc.json")
+    (target / "manifest.json").unlink()
+    manifest = verify_mhc_evidence_package(target, manifest_path="manifests/mhc.json")
+    assert manifest["catalog_schema_version"] == 2
+    with pytest.raises(ValueError, match="Invalid MHC package manifest path"):
+        verify_mhc_evidence_package(target, manifest_path="../outside.json")

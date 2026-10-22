@@ -106,6 +106,7 @@ include = ["hitlist*"]
 [tool.setuptools.package-data]
 hitlist = [
     "data/*.yaml",
+    "data/evidence_revisions/*.yaml",
     "data/supplementary/*.yaml",
     "data/supplementary/*.csv",
     "data/bulk_proteomics/*.csv.gz",
