@@ -626,3 +626,13 @@ keep assay-level results separate from subject-level counts, audit any
 disagreement, and publish a typed model-facing table plus exclusions and
 provenance. A reported MHC name needs its own evidence status and must not
 silently become an assured allele input.
+
+## 2026-10-22 — organize evidence before preserving consumer APIs
+
+The user explicitly prioritized a major, extensible evidence schema over
+compatibility with current consumers. For each source, retain its original
+bytes and claims, distinguish assays from measurements and context, and expose
+field requirements and missingness by task. Treat consumer migration as a
+downstream concern. Before claiming a new source is usable, reconcile every
+native row or cell and keep uncertain identities and contradictory labels
+queryable rather than replacing them with inferred values.

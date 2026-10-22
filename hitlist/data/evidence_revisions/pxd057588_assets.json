@@ -1,0 +1,107 @@
+{
+  "assets": {
+    "PXD009092/files.json": {
+      "decompress": false,
+      "sha256": "e7350ef7f6445856a944bc48a93d58c2b3abd3b06bd89ff8222e7abed94fe666",
+      "size": 21979,
+      "url": "https://www.ebi.ac.uk/pride/ws/archive/v2/projects/PXD009092/files?pageSize=100&page=0"
+    },
+    "PXD009092/project.json": {
+      "decompress": false,
+      "sha256": "998f54e5c155f38495a976e5e303dbe7cf4435ed633160d37a75f9190f0253f6",
+      "size": 4482,
+      "url": "https://www.ebi.ac.uk/pride/ws/archive/v2/projects/PXD009092"
+    },
+    "PXD057588/community.sdrf.tsv": {
+      "decompress": false,
+      "sha256": "aee9a69ca50680d5b28f14cb9d690a959cc52f092706360f7da3bf4dd22f2b36",
+      "size": 74964,
+      "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2025/09/PXD057588/PXD057588_community_annotated.sdrf.tsv"
+    },
+    "PXD057588/files.json": {
+      "decompress": false,
+      "sha256": "c917212a934ca63cdf175d914d052fbf09e15dc4d888394866c925b8feacfaa1",
+      "size": 76652,
+      "url": "https://www.ebi.ac.uk/pride/ws/archive/v2/projects/PXD057588/files?pageSize=100&page=0"
+    },
+    "PXD057588/project.json": {
+      "decompress": false,
+      "sha256": "850033757534f5bc1917f62581d7be6562fc81607432edf0568eeed9cf438389",
+      "size": 6788,
+      "url": "https://www.ebi.ac.uk/pride/ws/archive/v2/projects/PXD057588"
+    },
+    "PXD057588/table10.metadata.json": {
+      "decompress": false,
+      "sha256": "e84d8c2a3903a0e3ef8a57ac43816f69935919f90de84bfe71d9b6f540ec02af",
+      "size": 7886,
+      "url": "https://api.figshare.com/v2/articles/30883115"
+    },
+    "PXD057588/table10.xlsx": {
+      "decompress": false,
+      "sha256": "e3fb52b188af1910caddb040f502172f6c72f4847d33b9d67c16947d8201e427",
+      "size": 1089805,
+      "url": "https://ndownloader.figshare.com/files/60367172"
+    },
+    "PXD057588/table11.metadata.json": {
+      "decompress": false,
+      "sha256": "a8edab2989b7c583c3e8aaae7ba77fd415637f311ed99c379f0e8e5388725ddf",
+      "size": 7894,
+      "url": "https://api.figshare.com/v2/articles/30883112"
+    },
+    "PXD057588/table11.xlsx": {
+      "decompress": false,
+      "sha256": "7f5a4055a777b21bb163f963b936535dd5d39ebac59be1ed9d2783d62012b27f",
+      "size": 8257435,
+      "url": "https://ndownloader.figshare.com/files/60367169"
+    },
+    "PXD057588/table12.metadata.json": {
+      "decompress": false,
+      "sha256": "6d53b36cff3940d5135c80f0419967a6227d7e214096e923f02f9f92be149f24",
+      "size": 7859,
+      "url": "https://api.figshare.com/v2/articles/30883109"
+    },
+    "PXD057588/table12.xlsx": {
+      "decompress": false,
+      "sha256": "1e26a5a592111a1e5ac8aac6539c0bdbecc1faffca0c7221cb9e1dbd03d7976e",
+      "size": 155027,
+      "url": "https://ndownloader.figshare.com/files/60367166"
+    },
+    "PXD057588/table7.metadata.json": {
+      "decompress": false,
+      "sha256": "bbb8a9d3786f890cee8ea301313ad655817191dffc863e8fb41a78cf560b6e10",
+      "size": 7866,
+      "url": "https://api.figshare.com/v2/articles/30883082"
+    },
+    "PXD057588/table7.xlsx": {
+      "decompress": false,
+      "sha256": "e9f25e1b6e98fea35f5f16f64f6ad0ed836f9e376b82fc866bf0db7a66f45ec9",
+      "size": 640446,
+      "url": "https://ndownloader.figshare.com/files/60367139"
+    },
+    "PXD057588/table8.metadata.json": {
+      "decompress": false,
+      "sha256": "327cd6123f9033c25b7846f87516658d83803aab813b2295d81bc725ff059476",
+      "size": 7865,
+      "url": "https://api.figshare.com/v2/articles/30883079"
+    },
+    "PXD057588/table8.xlsx": {
+      "decompress": false,
+      "sha256": "e52118c3d46157f0a125c071e4ae7f0c9a16fd7675125d91cc028f056c37a99a",
+      "size": 726277,
+      "url": "https://ndownloader.figshare.com/files/60367136"
+    },
+    "PXD057588/table9.metadata.json": {
+      "decompress": false,
+      "sha256": "6ba57d9fcd88d5c55b62d0b821dd9f5827b0edb1caee89c97e36e855d7a8afd6",
+      "size": 7875,
+      "url": "https://api.figshare.com/v2/articles/30883076"
+    },
+    "PXD057588/table9.xlsx": {
+      "decompress": false,
+      "sha256": "1ef503226f3b0ccd4f1fc8b33aed10e83502396d4c01f52c558bfc159c6fc07f",
+      "size": 431467,
+      "url": "https://ndownloader.figshare.com/files/60367133"
+    }
+  },
+  "role": "immutable input receipts; not biological metadata registry"
+}

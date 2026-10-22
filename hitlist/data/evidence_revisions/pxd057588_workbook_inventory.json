@@ -1,0 +1,2227 @@
+[
+  {
+    "blank_parent_labels": 0,
+    "channel_total_cv": 0.24537516773908322,
+    "channels": [
+      {
+        "blank_cells": 0,
+        "channel_cell": "B4",
+        "column": "B",
+        "maximum": 150232251.308789,
+        "minimum": 425.207749630738,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 2824,
+        "sample_cell": "B5",
+        "source_channel_label": 126,
+        "source_sample_label": "U3",
+        "sum": 3661478695.366862,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "C4",
+        "column": "C",
+        "maximum": 97783018.7671004,
+        "minimum": 524.38255437298,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 2824,
+        "sample_cell": "C5",
+        "source_channel_label": "127N",
+        "source_sample_label": "U1",
+        "sum": 2780629615.881604,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "D4",
+        "column": "D",
+        "maximum": 179079010.26988,
+        "minimum": 768.388986621096,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 2824,
+        "sample_cell": "D5",
+        "source_channel_label": "127C",
+        "source_sample_label": "M1_3",
+        "sum": 6239892485.056037,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "E4",
+        "column": "E",
+        "maximum": 185314642.788362,
+        "minimum": 665.082579675292,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 2824,
+        "sample_cell": "E5",
+        "source_channel_label": "128N",
+        "source_sample_label": "U2",
+        "sum": 4052570577.098474,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "F4",
+        "column": "F",
+        "maximum": 153051901.309936,
+        "minimum": 444.270465600586,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 2824,
+        "sample_cell": "F5",
+        "source_channel_label": "128C",
+        "source_sample_label": "M1_2",
+        "sum": 4671422984.599129,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "G4",
+        "column": "G",
+        "maximum": 143085255.403228,
+        "minimum": 381.247676293945,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 2824,
+        "sample_cell": "G5",
+        "source_channel_label": "129N",
+        "source_sample_label": "M1_1",
+        "sum": 4769299895.980368,
+        "zero_cells": 0
+      }
+    ],
+    "distinct_nonblank_parent_labels": 2139,
+    "distinct_sequence_labels": 2824,
+    "formula_cells": 0,
+    "header_cells": [
+      {
+        "cell": "A1",
+        "value": "Supplememtary Table 7 Peptide quantification in TMT labeled pro-flammatory macrophages and na\u00efve macrophage"
+      },
+      {
+        "cell": "A2",
+        "value": "Result filtered with peptide sequences with no empty values in any samples. \"U\" denotes untreated samples, M1 denotes pro-inflammatory macrophages."
+      },
+      {
+        "cell": "A3",
+        "value": "Raw TMT intensities of M1 macrophage and Untreated macrophage (n=3), result filtered for no NA values in any samples"
+      },
+      {
+        "cell": "K3",
+        "value": "Log2Fold change of M1 macrophage pMHC abundance compared to untreated macrophage"
+      },
+      {
+        "cell": "R3",
+        "value": "Signigicantly upregulated peptides in M1 macrophages vs. untreated macrophages using t test"
+      },
+      {
+        "cell": "A4",
+        "value": "TMTpro"
+      },
+      {
+        "cell": "B4",
+        "value": 126
+      },
+      {
+        "cell": "C4",
+        "value": "127N"
+      },
+      {
+        "cell": "D4",
+        "value": "127C"
+      },
+      {
+        "cell": "E4",
+        "value": "128N"
+      },
+      {
+        "cell": "F4",
+        "value": "128C"
+      },
+      {
+        "cell": "G4",
+        "value": "129N"
+      },
+      {
+        "cell": "K4",
+        "value": "Log2Fold Change"
+      },
+      {
+        "cell": "R4",
+        "value": "M1 upregulated"
+      },
+      {
+        "cell": "A5",
+        "value": "Sequence"
+      },
+      {
+        "cell": "B5",
+        "value": "U3"
+      },
+      {
+        "cell": "C5",
+        "value": "U1"
+      },
+      {
+        "cell": "D5",
+        "value": "M1_3"
+      },
+      {
+        "cell": "E5",
+        "value": "U2"
+      },
+      {
+        "cell": "F5",
+        "value": "M1_2"
+      },
+      {
+        "cell": "G5",
+        "value": "M1_1"
+      },
+      {
+        "cell": "H5",
+        "value": "Type"
+      },
+      {
+        "cell": "I5",
+        "value": "Protein"
+      },
+      {
+        "cell": "K5",
+        "value": "M1_1"
+      },
+      {
+        "cell": "L5",
+        "value": "M1_2"
+      },
+      {
+        "cell": "M5",
+        "value": "M1_3"
+      },
+      {
+        "cell": "N5",
+        "value": "p value"
+      },
+      {
+        "cell": "O5",
+        "value": "adj.p value"
+      },
+      {
+        "cell": "P5",
+        "value": "GeneName"
+      },
+      {
+        "cell": "R5",
+        "value": "Sequence"
+      },
+      {
+        "cell": "S5",
+        "value": "M1_1"
+      },
+      {
+        "cell": "T5",
+        "value": "M1_2"
+      },
+      {
+        "cell": "U5",
+        "value": "M1_3"
+      },
+      {
+        "cell": "V5",
+        "value": "p value"
+      },
+      {
+        "cell": "W5",
+        "value": "adj.p value"
+      },
+      {
+        "cell": "X5",
+        "value": "GeneName"
+      }
+    ],
+    "independently_keyed_sequence_blocks": [
+      {
+        "distinct_sequence_labels": 2824,
+        "populated_sequence_rows": 2824,
+        "same_row_sequence_disagreements_with_primary": 0,
+        "sequence_header_cell": "A5"
+      },
+      {
+        "distinct_sequence_labels": 716,
+        "populated_sequence_rows": 716,
+        "same_row_sequence_disagreements_with_primary": 713,
+        "sequence_header_cell": "R5"
+      }
+    ],
+    "primary_block_range": "A5:I2829",
+    "primary_rows": 2824,
+    "quantity_cells": 16944,
+    "reported_sheet_shape": [
+      2829,
+      24
+    ],
+    "sequence_length_min_max": [
+      8,
+      12
+    ],
+    "sheet": "Supplementary Table 7",
+    "table": 7
+  },
+  {
+    "blank_parent_labels": 0,
+    "channel_total_cv": 0.1738103919097181,
+    "channels": [
+      {
+        "blank_cells": 0,
+        "channel_cell": "B4",
+        "column": "B",
+        "maximum": 54760803.7418622,
+        "minimum": 390.465074057234,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 3554,
+        "sample_cell": "B5",
+        "source_channel_label": 126,
+        "source_sample_label": "U2",
+        "sum": 2405613763.7169724,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "C4",
+        "column": "C",
+        "maximum": 103827429.291021,
+        "minimum": 359.498536495129,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 3554,
+        "sample_cell": "C5",
+        "source_channel_label": "127N",
+        "source_sample_label": "U1",
+        "sum": 2874501702.1772137,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "D4",
+        "column": "D",
+        "maximum": 115455561.235771,
+        "minimum": 842.469972221332,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 3554,
+        "sample_cell": "D5",
+        "source_channel_label": "128C",
+        "source_sample_label": "M2_3",
+        "sum": 3156563476.041264,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "E4",
+        "column": "E",
+        "maximum": 96247254.245033,
+        "minimum": 424.710442079044,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 3554,
+        "sample_cell": "E5",
+        "source_channel_label": "129N",
+        "source_sample_label": "M2_2",
+        "sum": 2822419641.2535944,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "F4",
+        "column": "F",
+        "maximum": 42148891.8267026,
+        "minimum": 367.285327148438,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 3554,
+        "sample_cell": "F5",
+        "source_channel_label": "130C",
+        "source_sample_label": "U3",
+        "sum": 1766259402.2273498,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "G4",
+        "column": "G",
+        "maximum": 63748416.3344064,
+        "minimum": 478.199846832274,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 3554,
+        "sample_cell": "G5",
+        "source_channel_label": 131,
+        "source_sample_label": "M2_1",
+        "sum": 2408928066.5608907,
+        "zero_cells": 0
+      }
+    ],
+    "distinct_nonblank_parent_labels": 2562,
+    "distinct_sequence_labels": 3554,
+    "formula_cells": 0,
+    "header_cells": [
+      {
+        "cell": "C1",
+        "value": "Supplementary Table 8 Peptide quantification in TMT labeled anti-flammatory macrophages and na\u00efve macrophage"
+      },
+      {
+        "cell": "A2",
+        "value": "Result filtered with peptide sequences with no empty values in any samples. \"U\" denotes untreated samples, M2 denotes pro-inflammatory macrophages."
+      },
+      {
+        "cell": "A3",
+        "value": "Raw TMT intensities of M2 macrophage and Untreated macrophage (n=3), result filtered for no NA values in any samples"
+      },
+      {
+        "cell": "K3",
+        "value": "Log2Fold change of M2 macrophage pMHC abundance compared to untreated macrophage"
+      },
+      {
+        "cell": "R3",
+        "value": "Signigicantly upregulated peptides in M2 macrophages vs. untreated macrophages using t test"
+      },
+      {
+        "cell": "A4",
+        "value": "TMT6"
+      },
+      {
+        "cell": "B4",
+        "value": 126
+      },
+      {
+        "cell": "C4",
+        "value": "127N"
+      },
+      {
+        "cell": "D4",
+        "value": "128C"
+      },
+      {
+        "cell": "E4",
+        "value": "129N"
+      },
+      {
+        "cell": "F4",
+        "value": "130C"
+      },
+      {
+        "cell": "G4",
+        "value": 131
+      },
+      {
+        "cell": "K4",
+        "value": "Log2Fold Change"
+      },
+      {
+        "cell": "R4",
+        "value": "M2 upregulated"
+      },
+      {
+        "cell": "A5",
+        "value": "Sequence"
+      },
+      {
+        "cell": "B5",
+        "value": "U2"
+      },
+      {
+        "cell": "C5",
+        "value": "U1"
+      },
+      {
+        "cell": "D5",
+        "value": "M2_3"
+      },
+      {
+        "cell": "E5",
+        "value": "M2_2"
+      },
+      {
+        "cell": "F5",
+        "value": "U3"
+      },
+      {
+        "cell": "G5",
+        "value": "M2_1"
+      },
+      {
+        "cell": "H5",
+        "value": "Type"
+      },
+      {
+        "cell": "I5",
+        "value": "Protein"
+      },
+      {
+        "cell": "K5",
+        "value": "M2_1"
+      },
+      {
+        "cell": "L5",
+        "value": "M2_2"
+      },
+      {
+        "cell": "M5",
+        "value": "M2_3"
+      },
+      {
+        "cell": "N5",
+        "value": "p value"
+      },
+      {
+        "cell": "O5",
+        "value": "adj.p value"
+      },
+      {
+        "cell": "P5",
+        "value": "GeneName"
+      },
+      {
+        "cell": "R5",
+        "value": "Sequence"
+      },
+      {
+        "cell": "S5",
+        "value": "M2_1"
+      },
+      {
+        "cell": "T5",
+        "value": "M2_2"
+      },
+      {
+        "cell": "U5",
+        "value": "M2_3"
+      },
+      {
+        "cell": "V5",
+        "value": "p value"
+      },
+      {
+        "cell": "W5",
+        "value": "adj.p value"
+      },
+      {
+        "cell": "X5",
+        "value": "GeneName"
+      }
+    ],
+    "independently_keyed_sequence_blocks": [
+      {
+        "distinct_sequence_labels": 3554,
+        "populated_sequence_rows": 3554,
+        "same_row_sequence_disagreements_with_primary": 0,
+        "sequence_header_cell": "A5"
+      },
+      {
+        "distinct_sequence_labels": 157,
+        "populated_sequence_rows": 157,
+        "same_row_sequence_disagreements_with_primary": 157,
+        "sequence_header_cell": "R5"
+      }
+    ],
+    "primary_block_range": "A5:I3559",
+    "primary_rows": 3554,
+    "quantity_cells": 21324,
+    "reported_sheet_shape": [
+      3559,
+      24
+    ],
+    "sequence_length_min_max": [
+      8,
+      12
+    ],
+    "sheet": "Supplementary Table 8",
+    "table": 8
+  },
+  {
+    "blank_parent_labels": 0,
+    "channel_total_cv": 0.13195889928912607,
+    "channels": [
+      {
+        "blank_cells": 0,
+        "channel_cell": "B4",
+        "column": "B",
+        "maximum": 21996522.9478327,
+        "minimum": 480.752584031268,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 1309,
+        "sample_cell": "B5",
+        "source_channel_label": "128N",
+        "source_sample_label": "G3+",
+        "sum": 566448877.7193323,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "C4",
+        "column": "C",
+        "maximum": 23509619.2444797,
+        "minimum": 332.022541867305,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 1309,
+        "sample_cell": "C5",
+        "source_channel_label": "128C",
+        "source_sample_label": "G2+",
+        "sum": 579643597.1886069,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "D4",
+        "column": "D",
+        "maximum": 29300245.3841187,
+        "minimum": 335.190294790682,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 1309,
+        "sample_cell": "D5",
+        "source_channel_label": "129N",
+        "source_sample_label": "R_ctrl_1",
+        "sum": 598832698.4257677,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "E4",
+        "column": "E",
+        "maximum": 19056259.1886502,
+        "minimum": 311.920274583103,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 1309,
+        "sample_cell": "E5",
+        "source_channel_label": "132C",
+        "source_sample_label": "R_ctrl_3",
+        "sum": 410693634.188684,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "F4",
+        "column": "F",
+        "maximum": 29350651.3652934,
+        "minimum": 511.235566784415,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 1309,
+        "sample_cell": "F5",
+        "source_channel_label": "133N",
+        "source_sample_label": "G1+",
+        "sum": 609959570.260375,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "G4",
+        "column": "G",
+        "maximum": 19739093.4238523,
+        "minimum": 444.378143885622,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 1309,
+        "sample_cell": "G5",
+        "source_channel_label": "133C",
+        "source_sample_label": "C3+",
+        "sum": 475816802.8667296,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "H4",
+        "column": "H",
+        "maximum": 22736356.6965726,
+        "minimum": 514.260834952074,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 1309,
+        "sample_cell": "H5",
+        "source_channel_label": "134N",
+        "source_sample_label": "R_ctrl_2",
+        "sum": 605547892.4258968,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "I4",
+        "column": "I",
+        "maximum": 15395688.553825,
+        "minimum": 563.267211074344,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 1309,
+        "sample_cell": "I5",
+        "source_channel_label": "134C",
+        "source_sample_label": "C1+",
+        "sum": 450010451.2273779,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "J4",
+        "column": "J",
+        "maximum": 21465031.530548,
+        "minimum": 375.74520812094,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 1309,
+        "sample_cell": "J5",
+        "source_channel_label": "135N",
+        "source_sample_label": "C2+",
+        "sum": 506311255.079563,
+        "zero_cells": 0
+      }
+    ],
+    "distinct_nonblank_parent_labels": 1096,
+    "distinct_sequence_labels": 1309,
+    "formula_cells": 0,
+    "header_cells": [
+      {
+        "cell": "A1",
+        "value": "Supplementary Table 9 Peptide quantification in TMT labeled GL261 or CT2A co-cultured macrophages and na\u00efve macrophage"
+      },
+      {
+        "cell": "A2",
+        "value": "Result filtered with peptide sequences with no empty values in any samples. \"R_ctrl\" denotes untreated macrophages, G+ denotes macrophages post co-culture with GL261 and C+ denotes macrophages post-co-culture with CT2A"
+      },
+      {
+        "cell": "A3",
+        "value": "Raw TMT intensities of untreated, GL261 co-cultured and CT2A co-cultured macrophages (n=3)"
+      },
+      {
+        "cell": "M3",
+        "value": "Log2Fold Change of co-cultured macrophages vs. untreated macrophages using t test"
+      },
+      {
+        "cell": "Z3",
+        "value": "Upregulated pMHC peptides in response to CT2A co-culture"
+      },
+      {
+        "cell": "AH3",
+        "value": "Upregulated pMHC peptides in response to GL261 co-culture"
+      },
+      {
+        "cell": "A4",
+        "value": "TMT pro"
+      },
+      {
+        "cell": "B4",
+        "value": "128N"
+      },
+      {
+        "cell": "C4",
+        "value": "128C"
+      },
+      {
+        "cell": "D4",
+        "value": "129N"
+      },
+      {
+        "cell": "E4",
+        "value": "132C"
+      },
+      {
+        "cell": "F4",
+        "value": "133N"
+      },
+      {
+        "cell": "G4",
+        "value": "133C"
+      },
+      {
+        "cell": "H4",
+        "value": "134N"
+      },
+      {
+        "cell": "I4",
+        "value": "134C"
+      },
+      {
+        "cell": "J4",
+        "value": "135N"
+      },
+      {
+        "cell": "M4",
+        "value": "Log2Fold Change"
+      },
+      {
+        "cell": "Z4",
+        "value": "CT2A Co-culture induced "
+      },
+      {
+        "cell": "AH4",
+        "value": "GL261 Co-culture induced"
+      },
+      {
+        "cell": "A5",
+        "value": "Sequence"
+      },
+      {
+        "cell": "B5",
+        "value": "G3+"
+      },
+      {
+        "cell": "C5",
+        "value": "G2+"
+      },
+      {
+        "cell": "D5",
+        "value": "R_ctrl_1"
+      },
+      {
+        "cell": "E5",
+        "value": "R_ctrl_3"
+      },
+      {
+        "cell": "F5",
+        "value": "G1+"
+      },
+      {
+        "cell": "G5",
+        "value": "C3+"
+      },
+      {
+        "cell": "H5",
+        "value": "R_ctrl_2"
+      },
+      {
+        "cell": "I5",
+        "value": "C1+"
+      },
+      {
+        "cell": "J5",
+        "value": "C2+"
+      },
+      {
+        "cell": "K5",
+        "value": "Protein"
+      },
+      {
+        "cell": "M5",
+        "value": "G1+"
+      },
+      {
+        "cell": "N5",
+        "value": "G2+"
+      },
+      {
+        "cell": "O5",
+        "value": "G3+"
+      },
+      {
+        "cell": "P5",
+        "value": "p value GL261"
+      },
+      {
+        "cell": "Q5",
+        "value": "adj.p value GL261"
+      },
+      {
+        "cell": "R5",
+        "value": "C1+"
+      },
+      {
+        "cell": "S5",
+        "value": "C2+"
+      },
+      {
+        "cell": "T5",
+        "value": "C3+"
+      },
+      {
+        "cell": "U5",
+        "value": "p value CT2A"
+      },
+      {
+        "cell": "V5",
+        "value": "adj.p value CT2A"
+      },
+      {
+        "cell": "W5",
+        "value": "Source Protein"
+      },
+      {
+        "cell": "X5",
+        "value": "GeneName"
+      },
+      {
+        "cell": "Z5",
+        "value": "Sequence"
+      },
+      {
+        "cell": "AA5",
+        "value": "C1."
+      },
+      {
+        "cell": "AB5",
+        "value": "C2."
+      },
+      {
+        "cell": "AC5",
+        "value": "C3."
+      },
+      {
+        "cell": "AD5",
+        "value": "p value CT2A"
+      },
+      {
+        "cell": "AE5",
+        "value": "adj.p value CT2A"
+      },
+      {
+        "cell": "AF5",
+        "value": "GeneName"
+      },
+      {
+        "cell": "AH5",
+        "value": "Sequence"
+      },
+      {
+        "cell": "AI5",
+        "value": "G1."
+      },
+      {
+        "cell": "AJ5",
+        "value": "G2."
+      },
+      {
+        "cell": "AK5",
+        "value": "G3."
+      },
+      {
+        "cell": "AL5",
+        "value": "p value GL261"
+      },
+      {
+        "cell": "AM5",
+        "value": "adj.p value GL261"
+      },
+      {
+        "cell": "AN5",
+        "value": "GeneName"
+      }
+    ],
+    "independently_keyed_sequence_blocks": [
+      {
+        "distinct_sequence_labels": 1309,
+        "populated_sequence_rows": 1309,
+        "same_row_sequence_disagreements_with_primary": 0,
+        "sequence_header_cell": "A5"
+      },
+      {
+        "distinct_sequence_labels": 75,
+        "populated_sequence_rows": 75,
+        "same_row_sequence_disagreements_with_primary": 75,
+        "sequence_header_cell": "Z5"
+      },
+      {
+        "distinct_sequence_labels": 60,
+        "populated_sequence_rows": 60,
+        "same_row_sequence_disagreements_with_primary": 60,
+        "sequence_header_cell": "AH5"
+      }
+    ],
+    "primary_block_range": "A5:K1314",
+    "primary_rows": 1309,
+    "quantity_cells": 11781,
+    "reported_sheet_shape": [
+      1314,
+      40
+    ],
+    "sequence_length_min_max": [
+      8,
+      12
+    ],
+    "sheet": "Supplementary Table 9",
+    "table": 9
+  },
+  {
+    "blank_parent_labels": 0,
+    "channel_total_cv": 0.17171654232701478,
+    "channels": [
+      {
+        "blank_cells": 0,
+        "channel_cell": "B4",
+        "column": "B",
+        "maximum": 205498140.789373,
+        "minimum": 598.180967669677,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 2613,
+        "sample_cell": "B5",
+        "source_channel_label": 126,
+        "source_sample_label": "G1",
+        "sum": 4750421357.236573,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "C4",
+        "column": "C",
+        "maximum": 219158663.527519,
+        "minimum": 803.103913611122,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 2613,
+        "sample_cell": "C5",
+        "source_channel_label": "127N",
+        "source_sample_label": "G3",
+        "sum": 4592863693.979787,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "D4",
+        "column": "D",
+        "maximum": 187808453.32924,
+        "minimum": 552.46161762597,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 2613,
+        "sample_cell": "D5",
+        "source_channel_label": "127C",
+        "source_sample_label": "C4",
+        "sum": 3674824051.25204,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "E4",
+        "column": "E",
+        "maximum": 214757329.307236,
+        "minimum": 980.177227455451,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 2613,
+        "sample_cell": "E5",
+        "source_channel_label": "128N",
+        "source_sample_label": "G2",
+        "sum": 4712025721.748089,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "F4",
+        "column": "F",
+        "maximum": 138806440.073299,
+        "minimum": 334.35442734375,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 2613,
+        "sample_cell": "F5",
+        "source_channel_label": "128C",
+        "source_sample_label": "U3",
+        "sum": 3148927696.6986685,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "G4",
+        "column": "G",
+        "maximum": 205297589.865359,
+        "minimum": 572.059528033447,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 2613,
+        "sample_cell": "G5",
+        "source_channel_label": "129N",
+        "source_sample_label": "C1",
+        "sum": 3399519414.27718,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "H4",
+        "column": "H",
+        "maximum": 146858483.893308,
+        "minimum": 618.722807629393,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 2613,
+        "sample_cell": "H5",
+        "source_channel_label": "129C",
+        "source_sample_label": "U2",
+        "sum": 3018466042.4173007,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "I4",
+        "column": "I",
+        "maximum": 190848117.452374,
+        "minimum": 795.370778695676,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 2613,
+        "sample_cell": "I5",
+        "source_channel_label": "130N",
+        "source_sample_label": "C3",
+        "sum": 3030470355.8330154,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "J4",
+        "column": "J",
+        "maximum": 153894559.577052,
+        "minimum": 621.690263342284,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 2613,
+        "sample_cell": "J5",
+        "source_channel_label": "130C",
+        "source_sample_label": "U1",
+        "sum": 3748678352.552752,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "K4",
+        "column": "K",
+        "maximum": 223872823.369566,
+        "minimum": 811.308409570311,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 2613,
+        "sample_cell": "K5",
+        "source_channel_label": "131C",
+        "source_sample_label": "C2",
+        "sum": 4627962492.034235,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "L4",
+        "column": "L",
+        "maximum": 163532021.985647,
+        "minimum": 863.094052734373,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 2613,
+        "sample_cell": "L5",
+        "source_channel_label": "132N",
+        "source_sample_label": "G4",
+        "sum": 4270202707.644612,
+        "zero_cells": 0
+      }
+    ],
+    "distinct_nonblank_parent_labels": 1997,
+    "distinct_sequence_labels": 2613,
+    "formula_cells": 0,
+    "header_cells": [
+      {
+        "cell": "E1",
+        "value": "Supplementary Table 10 Peptide quantification in TMT labeled GL261 or CT2A KO co-cultured macrophages and na\u00efve macrophage"
+      },
+      {
+        "cell": "A2",
+        "value": "Result filtered with peptide sequences with no empty values in any samples. \"U\" denotes untreated macrophages, G denotes macrophages post co-culture with GL261-KO and C denotes macrophages post-co-culture with CT2A-KO"
+      },
+      {
+        "cell": "A3",
+        "value": "Raw TMT intensities of untreated, MHC-I knock-out GL261 co-cultured and MHC-I knock-out CT2A co-cultured macrophages (n=3)"
+      },
+      {
+        "cell": "P3",
+        "value": "Log2Fold Change of co-cultured macrophages vs. untreated macrophages using t test"
+      },
+      {
+        "cell": "AE3",
+        "value": "Upregulated pMHC peptides in response to MHC-I knock-out CT2A co-culture"
+      },
+      {
+        "cell": "AN3",
+        "value": "Upregulated pMHC peptides in response to MHC-I knock-out GL261 co-culture"
+      },
+      {
+        "cell": "A4",
+        "value": "TMTpro"
+      },
+      {
+        "cell": "B4",
+        "value": 126
+      },
+      {
+        "cell": "C4",
+        "value": "127N"
+      },
+      {
+        "cell": "D4",
+        "value": "127C"
+      },
+      {
+        "cell": "E4",
+        "value": "128N"
+      },
+      {
+        "cell": "F4",
+        "value": "128C"
+      },
+      {
+        "cell": "G4",
+        "value": "129N"
+      },
+      {
+        "cell": "H4",
+        "value": "129C"
+      },
+      {
+        "cell": "I4",
+        "value": "130N"
+      },
+      {
+        "cell": "J4",
+        "value": "130C"
+      },
+      {
+        "cell": "K4",
+        "value": "131C"
+      },
+      {
+        "cell": "L4",
+        "value": "132N"
+      },
+      {
+        "cell": "P4",
+        "value": "Log2Fold Change"
+      },
+      {
+        "cell": "AE4",
+        "value": "CT2A-KO Co-culture induced"
+      },
+      {
+        "cell": "AN4",
+        "value": "GL261-KO Co-culture induced"
+      },
+      {
+        "cell": "A5",
+        "value": "Sequence"
+      },
+      {
+        "cell": "B5",
+        "value": "G1"
+      },
+      {
+        "cell": "C5",
+        "value": "G3"
+      },
+      {
+        "cell": "D5",
+        "value": "C4"
+      },
+      {
+        "cell": "E5",
+        "value": "G2"
+      },
+      {
+        "cell": "F5",
+        "value": "U3"
+      },
+      {
+        "cell": "G5",
+        "value": "C1"
+      },
+      {
+        "cell": "H5",
+        "value": "U2"
+      },
+      {
+        "cell": "I5",
+        "value": "C3"
+      },
+      {
+        "cell": "J5",
+        "value": "U1"
+      },
+      {
+        "cell": "K5",
+        "value": "C2"
+      },
+      {
+        "cell": "L5",
+        "value": "G4"
+      },
+      {
+        "cell": "M5",
+        "value": "Type"
+      },
+      {
+        "cell": "N5",
+        "value": "Protein"
+      },
+      {
+        "cell": "P5",
+        "value": "G1"
+      },
+      {
+        "cell": "Q5",
+        "value": "G2"
+      },
+      {
+        "cell": "R5",
+        "value": "G3"
+      },
+      {
+        "cell": "S5",
+        "value": "G4"
+      },
+      {
+        "cell": "T5",
+        "value": "p value GL261-KO"
+      },
+      {
+        "cell": "U5",
+        "value": "adj.p value GL261"
+      },
+      {
+        "cell": "V5",
+        "value": "C1"
+      },
+      {
+        "cell": "W5",
+        "value": "C2"
+      },
+      {
+        "cell": "X5",
+        "value": "C3"
+      },
+      {
+        "cell": "Y5",
+        "value": "C4"
+      },
+      {
+        "cell": "Z5",
+        "value": "p value CT2A-KO"
+      },
+      {
+        "cell": "AA5",
+        "value": "adj.p value CT2A"
+      },
+      {
+        "cell": "AB5",
+        "value": "Source Protein"
+      },
+      {
+        "cell": "AC5",
+        "value": "GeneName"
+      },
+      {
+        "cell": "AE5",
+        "value": "Sequence"
+      },
+      {
+        "cell": "AF5",
+        "value": "C1"
+      },
+      {
+        "cell": "AG5",
+        "value": "C2"
+      },
+      {
+        "cell": "AH5",
+        "value": "C3"
+      },
+      {
+        "cell": "AI5",
+        "value": "C4"
+      },
+      {
+        "cell": "AJ5",
+        "value": "p value CT2A-KO"
+      },
+      {
+        "cell": "AK5",
+        "value": "adj.p value CT2A"
+      },
+      {
+        "cell": "AL5",
+        "value": "GeneName"
+      },
+      {
+        "cell": "AN5",
+        "value": "Sequence"
+      },
+      {
+        "cell": "AO5",
+        "value": "G1"
+      },
+      {
+        "cell": "AP5",
+        "value": "G2"
+      },
+      {
+        "cell": "AQ5",
+        "value": "G3"
+      },
+      {
+        "cell": "AR5",
+        "value": "G4"
+      },
+      {
+        "cell": "AS5",
+        "value": "p value GL261-KO"
+      },
+      {
+        "cell": "AT5",
+        "value": "adj.p value GL261"
+      },
+      {
+        "cell": "AU5",
+        "value": "GeneName"
+      }
+    ],
+    "independently_keyed_sequence_blocks": [
+      {
+        "distinct_sequence_labels": 2613,
+        "populated_sequence_rows": 2613,
+        "same_row_sequence_disagreements_with_primary": 0,
+        "sequence_header_cell": "A5"
+      },
+      {
+        "distinct_sequence_labels": 124,
+        "populated_sequence_rows": 124,
+        "same_row_sequence_disagreements_with_primary": 124,
+        "sequence_header_cell": "AE5"
+      },
+      {
+        "distinct_sequence_labels": 741,
+        "populated_sequence_rows": 741,
+        "same_row_sequence_disagreements_with_primary": 741,
+        "sequence_header_cell": "AN5"
+      }
+    ],
+    "primary_block_range": "A5:N2618",
+    "primary_rows": 2613,
+    "quantity_cells": 28743,
+    "reported_sheet_shape": [
+      2618,
+      47
+    ],
+    "sequence_length_min_max": [
+      8,
+      12
+    ],
+    "sheet": "Supplementary Table 10",
+    "table": 10
+  },
+  {
+    "blank_parent_labels": 0,
+    "channel_total_cv": 0.041789431189550995,
+    "channels": [
+      {
+        "blank_cells": 0,
+        "channel_cell": "B4",
+        "column": "B",
+        "maximum": 2746283055.03055,
+        "minimum": 14425.9931571538,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 25110,
+        "sample_cell": "B5",
+        "source_channel_label": "128N",
+        "source_sample_label": "C2+",
+        "sum": 448809606371.5505,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "C4",
+        "column": "C",
+        "maximum": 2873942553.45494,
+        "minimum": 13867.4841422629,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 25110,
+        "sample_cell": "C5",
+        "source_channel_label": "128C",
+        "source_sample_label": "R_ctrl_3",
+        "sum": 400488790802.9636,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "D4",
+        "column": "D",
+        "maximum": 2391581890.16666,
+        "minimum": 14351.1805150029,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 25110,
+        "sample_cell": "D5",
+        "source_channel_label": "129N",
+        "source_sample_label": "C3+",
+        "sum": 441851464199.9426,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "E4",
+        "column": "E",
+        "maximum": 3019772615.53057,
+        "minimum": 12282.8957109375,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 25110,
+        "sample_cell": "E5",
+        "source_channel_label": "132C",
+        "source_sample_label": "R_ctrl_2",
+        "sum": 413136811263.41943,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "F4",
+        "column": "F",
+        "maximum": 2758252238.8967,
+        "minimum": 13637.6106055666,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 25110,
+        "sample_cell": "F5",
+        "source_channel_label": "133N",
+        "source_sample_label": "G1+",
+        "sum": 399159787652.05396,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "G4",
+        "column": "G",
+        "maximum": 3156977992.27666,
+        "minimum": 14303.1088212891,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 25110,
+        "sample_cell": "G5",
+        "source_channel_label": "133C",
+        "source_sample_label": "G2+",
+        "sum": 447609759546.2059,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "H4",
+        "column": "H",
+        "maximum": 2843998020.06152,
+        "minimum": 14392.064961914,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 25110,
+        "sample_cell": "H5",
+        "source_channel_label": "134N",
+        "source_sample_label": "G3+",
+        "sum": 417295187253.0289,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "I4",
+        "column": "I",
+        "maximum": 3024164505.37552,
+        "minimum": 13956.789,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 25110,
+        "sample_cell": "I5",
+        "source_channel_label": "134C",
+        "source_sample_label": "R_ctrl_1",
+        "sum": 426404071872.04596,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "J4",
+        "column": "J",
+        "maximum": 2539929412.98293,
+        "minimum": 15614.15769375,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 25110,
+        "sample_cell": "J5",
+        "source_channel_label": "135N",
+        "source_sample_label": "C1+",
+        "sum": 426506784322.46094,
+        "zero_cells": 0
+      }
+    ],
+    "distinct_nonblank_parent_labels": 4495,
+    "distinct_sequence_labels": 25110,
+    "formula_cells": 0,
+    "header_cells": [
+      {
+        "cell": "A1",
+        "value": "Supplementary Table 11 Protein expression quantification in TMT labeled GL261 or CT2A co-cultured macrophages and na\u00efve macrophage"
+      },
+      {
+        "cell": "A2",
+        "value": "Result filtered with peptide sequences with no empty values in any samples. \"R_ctrl\" denotes untreated macrophages, G+ denotes macrophages post co-culture with GL261 and C+ denotes macrophages post-co-culture with CT2A"
+      },
+      {
+        "cell": "A3",
+        "value": "Raw TMT intensities of global protein expression of untreated, GL261 co-cultured and CT2A co-cultured macrophages (n=3)"
+      },
+      {
+        "cell": "N3",
+        "value": "Log2Fold Change of global protein expression of co-cultured macrophages vs. untreated macrophages using t test"
+      },
+      {
+        "cell": "A4",
+        "value": "TMT pro"
+      },
+      {
+        "cell": "B4",
+        "value": "128N"
+      },
+      {
+        "cell": "C4",
+        "value": "128C"
+      },
+      {
+        "cell": "D4",
+        "value": "129N"
+      },
+      {
+        "cell": "E4",
+        "value": "132C"
+      },
+      {
+        "cell": "F4",
+        "value": "133N"
+      },
+      {
+        "cell": "G4",
+        "value": "133C"
+      },
+      {
+        "cell": "H4",
+        "value": "134N"
+      },
+      {
+        "cell": "I4",
+        "value": "134C"
+      },
+      {
+        "cell": "J4",
+        "value": "135N"
+      },
+      {
+        "cell": "N4",
+        "value": "Log2Fold Change"
+      },
+      {
+        "cell": "A5",
+        "value": "Sequence"
+      },
+      {
+        "cell": "B5",
+        "value": "C2+"
+      },
+      {
+        "cell": "C5",
+        "value": "R_ctrl_3"
+      },
+      {
+        "cell": "D5",
+        "value": "C3+"
+      },
+      {
+        "cell": "E5",
+        "value": "R_ctrl_2"
+      },
+      {
+        "cell": "F5",
+        "value": "G1+"
+      },
+      {
+        "cell": "G5",
+        "value": "G2+"
+      },
+      {
+        "cell": "H5",
+        "value": "G3+"
+      },
+      {
+        "cell": "I5",
+        "value": "R_ctrl_1"
+      },
+      {
+        "cell": "J5",
+        "value": "C1+"
+      },
+      {
+        "cell": "K5",
+        "value": "Type"
+      },
+      {
+        "cell": "L5",
+        "value": "Protein"
+      },
+      {
+        "cell": "N5",
+        "value": "Sequence"
+      },
+      {
+        "cell": "O5",
+        "value": "G1."
+      },
+      {
+        "cell": "P5",
+        "value": "G2."
+      },
+      {
+        "cell": "Q5",
+        "value": "G3."
+      },
+      {
+        "cell": "R5",
+        "value": "p value GL261"
+      },
+      {
+        "cell": "S5",
+        "value": "adj.p value GL261"
+      },
+      {
+        "cell": "T5",
+        "value": "C1."
+      },
+      {
+        "cell": "U5",
+        "value": "C2."
+      },
+      {
+        "cell": "V5",
+        "value": "C3."
+      },
+      {
+        "cell": "W5",
+        "value": "p value CT2A"
+      },
+      {
+        "cell": "X5",
+        "value": "adj.p value CT2A"
+      },
+      {
+        "cell": "Y5",
+        "value": "Source Protein"
+      },
+      {
+        "cell": "Z5",
+        "value": "GeneName"
+      }
+    ],
+    "independently_keyed_sequence_blocks": [
+      {
+        "distinct_sequence_labels": 25110,
+        "populated_sequence_rows": 25110,
+        "same_row_sequence_disagreements_with_primary": 0,
+        "sequence_header_cell": "A5"
+      },
+      {
+        "distinct_sequence_labels": 25110,
+        "populated_sequence_rows": 25110,
+        "same_row_sequence_disagreements_with_primary": 0,
+        "sequence_header_cell": "N5"
+      }
+    ],
+    "primary_block_range": "A5:L25115",
+    "primary_rows": 25110,
+    "quantity_cells": 225990,
+    "reported_sheet_shape": [
+      25115,
+      26
+    ],
+    "sequence_length_min_max": [
+      6,
+      53
+    ],
+    "sheet": "Supplementary Table 11",
+    "table": 11
+  },
+  {
+    "blank_parent_labels": 0,
+    "channel_total_cv": 0.3470535735221859,
+    "channels": [
+      {
+        "blank_cells": 0,
+        "channel_cell": "B4",
+        "column": "B",
+        "maximum": 6105263.25868605,
+        "minimum": 1807.01799609375,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 362,
+        "sample_cell": "B5",
+        "source_channel_label": "129C",
+        "source_sample_label": "G_ctrl_1",
+        "sum": 50162822.566342585,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "C4",
+        "column": "C",
+        "maximum": 6082451.85150442,
+        "minimum": 1297.13814778877,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 362,
+        "sample_cell": "C5",
+        "source_channel_label": "130N",
+        "source_sample_label": "G_ctrl_2",
+        "sum": 54041318.42868327,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "D4",
+        "column": "D",
+        "maximum": 6019179.81528318,
+        "minimum": 1353.72388916016,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 362,
+        "sample_cell": "D5",
+        "source_channel_label": "130C",
+        "source_sample_label": "C3-",
+        "sum": 65605134.66430686,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "E4",
+        "column": "E",
+        "maximum": 5642547.52075486,
+        "minimum": 2000.65671697997,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 362,
+        "sample_cell": "E5",
+        "source_channel_label": "131N",
+        "source_sample_label": "C_ctrl_3",
+        "sum": 57744069.77590099,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "F4",
+        "column": "F",
+        "maximum": 5890989.56977285,
+        "minimum": 2373.76954522704,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 362,
+        "sample_cell": "F5",
+        "source_channel_label": "131C",
+        "source_sample_label": "C2-",
+        "sum": 66177350.30695442,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "G4",
+        "column": "G",
+        "maximum": 5999760.68924891,
+        "minimum": 881.318232238767,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 362,
+        "sample_cell": "G5",
+        "source_channel_label": "132N",
+        "source_sample_label": "C1-",
+        "sum": 65015665.85093442,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "H4",
+        "column": "H",
+        "maximum": 5616353.73179587,
+        "minimum": 1369.6481277832,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 362,
+        "sample_cell": "H5",
+        "source_channel_label": "132C",
+        "source_sample_label": "C_ctrl_2",
+        "sum": 55535337.71603453,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "I4",
+        "column": "I",
+        "maximum": 10311264.7724625,
+        "minimum": 1430.30665722656,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 362,
+        "sample_cell": "I5",
+        "source_channel_label": "133N",
+        "source_sample_label": "G3-",
+        "sum": 119942011.87761831,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "J4",
+        "column": "J",
+        "maximum": 8673945.31739997,
+        "minimum": 1140.2370890625,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 362,
+        "sample_cell": "J5",
+        "source_channel_label": "133C",
+        "source_sample_label": "G2-",
+        "sum": 103199509.03026159,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "K4",
+        "column": "K",
+        "maximum": 4609626.94223451,
+        "minimum": 1717.70283137488,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 362,
+        "sample_cell": "K5",
+        "source_channel_label": "134N",
+        "source_sample_label": "C_ctrl_1",
+        "sum": 41721992.78022225,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "L4",
+        "column": "L",
+        "maximum": 7385409.25196247,
+        "minimum": 2977.58796328126,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 362,
+        "sample_cell": "L5",
+        "source_channel_label": "134C",
+        "source_sample_label": "G_ctrl_3",
+        "sum": 78749554.51875581,
+        "zero_cells": 0
+      },
+      {
+        "blank_cells": 0,
+        "channel_cell": "M4",
+        "column": "M",
+        "maximum": 10701711.0318738,
+        "minimum": 750.151907226565,
+        "negative_cells": 0,
+        "nonnumeric_nonblank_cells": 0,
+        "numeric_cells": 362,
+        "sample_cell": "M5",
+        "source_channel_label": "135N",
+        "source_sample_label": "G1-",
+        "sum": 117511062.37311435,
+        "zero_cells": 0
+      }
+    ],
+    "distinct_nonblank_parent_labels": 348,
+    "distinct_sequence_labels": 362,
+    "formula_cells": 0,
+    "header_cells": [
+      {
+        "cell": "A1",
+        "value": "Supplementary Table 12 Peptide quantification in TMT labeled GL261 or CT2A before and after co-culture"
+      },
+      {
+        "cell": "A2",
+        "value": "Result filtered with peptide sequences with no empty values in any samples. \"G_ctrl\" denotes untreated GL261, G- denotes GL261 post co-culture, \"C_ctrl\" denotes untreated CT2A, C- denotes CT2A post-coculture"
+      },
+      {
+        "cell": "A3",
+        "value": "Raw TMT intensites of pMHC from GL261 and CT2A post co-culture vs. untreated GL261 or CT2A cells"
+      },
+      {
+        "cell": "Q3",
+        "value": "Log2Fold Change of co-cultured tumor cells vs. untreated tumor cells, significance in difference determined by t test"
+      },
+      {
+        "cell": "AD3",
+        "value": "Significantly upregulated peptides in co-cultured CT2A cells "
+      },
+      {
+        "cell": "AL3",
+        "value": "Significantly upregulated peptides in co-cultured GL261 cells "
+      },
+      {
+        "cell": "A4",
+        "value": "TMT pro"
+      },
+      {
+        "cell": "B4",
+        "value": "129C"
+      },
+      {
+        "cell": "C4",
+        "value": "130N"
+      },
+      {
+        "cell": "D4",
+        "value": "130C"
+      },
+      {
+        "cell": "E4",
+        "value": "131N"
+      },
+      {
+        "cell": "F4",
+        "value": "131C"
+      },
+      {
+        "cell": "G4",
+        "value": "132N"
+      },
+      {
+        "cell": "H4",
+        "value": "132C"
+      },
+      {
+        "cell": "I4",
+        "value": "133N"
+      },
+      {
+        "cell": "J4",
+        "value": "133C"
+      },
+      {
+        "cell": "K4",
+        "value": "134N"
+      },
+      {
+        "cell": "L4",
+        "value": "134C"
+      },
+      {
+        "cell": "M4",
+        "value": "135N"
+      },
+      {
+        "cell": "Q4",
+        "value": "Log2Fold Change"
+      },
+      {
+        "cell": "AD4",
+        "value": "Co-culture induced CT2A peptides"
+      },
+      {
+        "cell": "AL4",
+        "value": "Co-culture induced GL261 peptides"
+      },
+      {
+        "cell": "A5",
+        "value": "Sequence"
+      },
+      {
+        "cell": "B5",
+        "value": "G_ctrl_1"
+      },
+      {
+        "cell": "C5",
+        "value": "G_ctrl_2"
+      },
+      {
+        "cell": "D5",
+        "value": "C3-"
+      },
+      {
+        "cell": "E5",
+        "value": "C_ctrl_3"
+      },
+      {
+        "cell": "F5",
+        "value": "C2-"
+      },
+      {
+        "cell": "G5",
+        "value": "C1-"
+      },
+      {
+        "cell": "H5",
+        "value": "C_ctrl_2"
+      },
+      {
+        "cell": "I5",
+        "value": "G3-"
+      },
+      {
+        "cell": "J5",
+        "value": "G2-"
+      },
+      {
+        "cell": "K5",
+        "value": "C_ctrl_1"
+      },
+      {
+        "cell": "L5",
+        "value": "G_ctrl_3"
+      },
+      {
+        "cell": "M5",
+        "value": "G1-"
+      },
+      {
+        "cell": "N5",
+        "value": "Type"
+      },
+      {
+        "cell": "O5",
+        "value": "Protein"
+      },
+      {
+        "cell": "Q5",
+        "value": "G1."
+      },
+      {
+        "cell": "R5",
+        "value": "G2."
+      },
+      {
+        "cell": "S5",
+        "value": "G3."
+      },
+      {
+        "cell": "T5",
+        "value": "p value GL261"
+      },
+      {
+        "cell": "U5",
+        "value": "adj.p value GL261"
+      },
+      {
+        "cell": "V5",
+        "value": "C1."
+      },
+      {
+        "cell": "W5",
+        "value": "C2."
+      },
+      {
+        "cell": "X5",
+        "value": "C3."
+      },
+      {
+        "cell": "Y5",
+        "value": "p value CT2A"
+      },
+      {
+        "cell": "Z5",
+        "value": "adj.p value CT2A"
+      },
+      {
+        "cell": "AA5",
+        "value": "Source Protein"
+      },
+      {
+        "cell": "AB5",
+        "value": "GeneName"
+      },
+      {
+        "cell": "AD5",
+        "value": "Sequence"
+      },
+      {
+        "cell": "AE5",
+        "value": "C1."
+      },
+      {
+        "cell": "AF5",
+        "value": "C2."
+      },
+      {
+        "cell": "AG5",
+        "value": "C3."
+      },
+      {
+        "cell": "AH5",
+        "value": "p value CT2A"
+      },
+      {
+        "cell": "AI5",
+        "value": "adj.p value CT2A"
+      },
+      {
+        "cell": "AJ5",
+        "value": "GeneName"
+      },
+      {
+        "cell": "AL5",
+        "value": "Sequence"
+      },
+      {
+        "cell": "AM5",
+        "value": "G1."
+      },
+      {
+        "cell": "AN5",
+        "value": "G2."
+      },
+      {
+        "cell": "AO5",
+        "value": "G3."
+      },
+      {
+        "cell": "AP5",
+        "value": "p value GL261"
+      },
+      {
+        "cell": "AQ5",
+        "value": "adj.p value GL261"
+      },
+      {
+        "cell": "AR5",
+        "value": "GeneName"
+      }
+    ],
+    "independently_keyed_sequence_blocks": [
+      {
+        "distinct_sequence_labels": 362,
+        "populated_sequence_rows": 362,
+        "same_row_sequence_disagreements_with_primary": 0,
+        "sequence_header_cell": "A5"
+      },
+      {
+        "distinct_sequence_labels": 48,
+        "populated_sequence_rows": 48,
+        "same_row_sequence_disagreements_with_primary": 48,
+        "sequence_header_cell": "AD5"
+      },
+      {
+        "distinct_sequence_labels": 108,
+        "populated_sequence_rows": 108,
+        "same_row_sequence_disagreements_with_primary": 108,
+        "sequence_header_cell": "AL5"
+      }
+    ],
+    "primary_block_range": "A5:O367",
+    "primary_rows": 362,
+    "quantity_cells": 4344,
+    "reported_sheet_shape": [
+      367,
+      44
+    ],
+    "sequence_length_min_max": [
+      8,
+      12
+    ],
+    "sheet": "Supplementary Table 12",
+    "table": 12
+  }
+]

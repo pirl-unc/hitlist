@@ -7164,8 +7164,8 @@ quantitative-source acceptance cases are assigned to dependent PR 5 (#746).
 - [x] Implement the versioned supporting evidence package and catalog entries
       without losing the parent package or native source bytes.
 - [x] Add focused regressions and independent full-corpus parity/coverage report.
-- [ ] Bump version, run format/lint/full tests, review diff and final-head CI.
-- [ ] Open PR after PR 3 ships; merge and deploy from clean main before PR 5.
+- [x] Bump version, run format/lint/full tests, review diff and final-head CI.
+- [x] Open PR after PR 3 ships; merge and deploy from clean main before PR 5.
 
 ## Review
 
@@ -7201,3 +7201,57 @@ large externalized bulk CSVs remain ingestion assets. The local `./test.sh`
 attempt stopped before collection at the existing #483 memory preflight (0.25
 GiB free versus 2.5 GiB required for one worker); the final-head CI full test
 gate remains required before merge.
+
+The final-head PR #747 CI passed build, lint, all five Python unit legs,
+integration and coverage on the exact merged code. PR #747 merged as
+`7cd7186741478af6c2c2c46c45b70f6707627aec`; the 1.82.21 clean-main
+release workflow #39828013399 passed on that exact merge. Its tested wheel
+and sdist passed provenance, license and metadata checks. PyPI 1.82.21 serves
+the identical SHA-256s: wheel
+`3ab0984b47f27126644b0cf765cf778435065cc9134f68708b64e98098816a92`
+and sdist
+`0edc97a1c791da3398ad6898c3304c74d842468255a12a18de4dfce944a626e6`.
+
+# Hitlist 2.0 external quantitative MS — PR 5 of 7 (#746)
+
+Spec: [pr5-external-quantitative-source-spec.md](pr5-external-quantitative-source-spec.md).
+Depends on PR 4 (#747) merged and PyPI 1.82.21 published. Develop the next
+source generation on merged main; do not merge until publication completes.
+
+- [x] Audit the pinned 17 original source assets, six workbooks, community SDRF,
+      table/panel grains, 32 contrasts and independent quantity reconciliation.
+- [x] Specify source-cell and typed-measurement identities, material/partner
+      precision, derivation inputs, protocol scopes and conservation gates.
+- [x] Implement the generic external-source generation and PXD057588 adapter,
+      preserving the parent generation and all original source bytes.
+- [x] Add offline ambiguity tests, all-cell/quantity replay and a pinned result
+      report; keep related unqualified sources explicit as deferred contracts.
+- [ ] Bump 1.82.22, run format/lint/full tests, review diff and final-head CI.
+- [ ] Open PR after 1.82.21 ships, merge and deploy from clean main before PR 6.
+
+## Review
+
+Initial source audit: the 17 pinned files total 11,532,567 bytes; all staged
+originals match the published SHA-256 and size receipt. Six workbooks contain
+35,772 primary sequence rows, 309,126 positive intensity cells, 200,724
+reported log2 fold-change cells under 32 contrasts, and 62,911 sequence-block
+records across all primary and additional panels. The community SDRF has 72
+rows × 45 positional columns and covers six of 50 raw files. The separate
+Presto scalar replay verified every fold change within 1e-8 log2, but no
+training admission or exact cross-assay specimen pairing follows from that
+arithmetic audit. Source methods distinguish MHC elution from global digest
+quantities and table-specific normalization; the same nine TMT channel labels
+have eight different sample-name mappings between Tables 9 and 11.
+
+The final 87-file package manifest in
+[external-v2-evidence-results](external-v2-evidence-results/README.md) has
+SHA-256 `daff7930e193c6dbde1fe84c065b024187232147fa006d9348e297766e95e69c`.
+An independent streaming replay checked all 851,830 source cells, 62,911 panel
+records, 35,772 primary rows, 309,126 intensity results, 200,724 fold-change
+representations, 802,896 derivation inputs and 3,240 SDRF cells with zero
+projection mismatches. Maximum fold-change error was 2.55e-14 log2. Embedded
+source assets have independent inodes from ingestion inputs; issue #748 tracks
+older predecessor hardlink behavior. Sixteen focused tests and format/lint pass.
+The isolated editable install is 1.82.22 and `uv pip check` passes. The full
+local `./test.sh` gate passes: 3,214 passed, one skipped, 88% coverage in
+5m17s. Final-head CI and clean-main publication remain pending.

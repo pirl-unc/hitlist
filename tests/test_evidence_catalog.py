@@ -26,8 +26,12 @@ def test_catalog_covers_current_data_grains_without_double_counting():
     relations = set(list_evidence(kind="relation"))
     assert {"mhc_positive_ms", "mhc_binding", "mhc_other", "tcell_availability"} <= observations
     assert {"bulk_ms_peptide", "bulk_ms_protein", "line_expression_gene"} <= observations
+    assert {"external_mhc_peptide_quantity", "external_digest_peptide_quantity"} <= observations
     assert {"tcell_functional_peptide", "tcell_multimer_peptide"} <= projections
     assert {"peptide_protein_occurrence", "source_contributor", "reviewed_lineage"} <= relations
+    assert {"external_source_cell", "external_panel_sequence", "external_derivation_input"} <= (
+        relations
+    )
 
     functional = describe_evidence("tcell_functional_peptide")
     multimer = describe_evidence("tcell_multimer_peptide")
@@ -69,6 +73,17 @@ def test_catalog_covers_current_data_grains_without_double_counting():
         "bulk_protocol_scope",
         "line_expression_source",
         "line_anchor_claim",
+        "external_mhc_peptide_quantity",
+        "external_digest_peptide_quantity",
+        "external_source_cell",
+        "external_panel_sequence",
+        "external_assay_channel",
+        "external_contrast",
+        "external_derivation_input",
+        "external_context_assertion",
+        "external_sdrf_cell",
+        "external_deposited_file",
+        "external_source_asset",
     ):
         assert describe_evidence(name)["status"] == "v2_materialized"
     assert describe_evidence("bulk_ms_peptide")["endpoints"] == ("bulk_peptide_detection",)
@@ -76,6 +91,19 @@ def test_catalog_covers_current_data_grains_without_double_counting():
         ("gene_id", "gene_name"),
     )
     assert describe_evidence("line_expression_transcript")["status"] == "v2_contract_only"
+    external = describe_evidence("external_mhc_peptide_quantity")
+    digest = describe_evidence("external_digest_peptide_quantity")
+    assert external["source_population"] == digest["source_population"] == "pxd057588"
+    assert external["endpoints"] != digest["endpoints"]
+    assert digest["native_selector"] == "table=11"
+    for candidate in (
+        "external_proteasome_fragment_quantity",
+        "external_paired_protein_quantity",
+        "external_calibrated_target_quantity",
+    ):
+        contract = describe_evidence(candidate)
+        assert contract["status"] == "v2_contract_only"
+        assert contract["materialized_artifact"] == ""
 
 
 def test_labels_and_biological_state_have_distinct_roles():
@@ -91,6 +119,10 @@ def test_labels_and_biological_state_have_distinct_roles():
     assert fields["material_link_status"]["role"] == "relation"
     assert fields["search_enzyme"]["role"] == "protocol"
     assert fields["quantity_scale"]["role"] == "target"
+    assert fields["measured_pool"]["role"] == "target"
+    assert fields["partner_population"]["role"] == "biological_context"
+    assert fields["normalization_policy"]["role"] == "protocol"
+    assert fields["source_cell"]["role"] == "provenance"
     assert fields["qualitative_result"]["role"] == "target"
     assert fields["candidate_mhc_set"]["name"] != fields["peptide_mhc_restriction"]["name"]
     assert fields["reported_mhc"]["name"] != fields["tested_mhc"]["name"]
@@ -116,6 +148,11 @@ def test_index_requirements_are_weaker_than_task_requirements():
     assert functional["evidence"] != multimer["evidence"]
     assert describe_task("gene_expression")["required_any_of"] == (("gene_id", "gene_name"),)
     assert "material_id" not in describe_task("bulk_peptide_detection")["required"]
+    assert (
+        "normalization_universe"
+        in describe_task("external_digest_peptide_relative_quantity")["required"]
+    )
+    assert "material_link_precision" in describe_task("external_mhc_relative_quantity")["required"]
     assert all(describe_task(name)["status"] == "v2_contract_only" for name in list_tasks())
 
 
@@ -152,6 +189,10 @@ def test_baselines_have_explicit_generation_and_count_units():
     assert baselines["bulk_v4"].count_unit == "source_result_rows"
     assert baselines["peptide_protein_occurrence"].n_rows == 6_205_013
     assert baselines["peptide_mapping_coverage"].n_rows == 1_506_664
+    assert baselines["pxd057588"].n_rows == 35_772
+    assert baselines["external_mhc_peptide_quantity"].n_rows == 83_136
+    assert baselines["external_digest_peptide_quantity"].n_rows == 225_990
+    assert baselines["external_source_cell"].n_rows == 851_830
     assert all(item.generation for item in BASELINES)
 
 
@@ -172,5 +213,5 @@ def test_catalog_import_does_not_build_or_download(tmp_path):
         text=True,
         cwd=Path(__file__).parents[1],
     )
-    assert probe.stdout.strip() == "4"
+    assert probe.stdout.strip() == "5"
     assert not data_root.exists()

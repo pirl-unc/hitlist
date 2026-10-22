@@ -912,10 +912,13 @@ def _source_registry(reconciliation, files):
     }
 
 
-def verify_supporting_evidence_package(directory):
-    """Verify every source asset, predecessor manifest and typed relation."""
+def verify_supporting_evidence_package(directory, *, manifest_path="manifest.json"):
+    """Verify a supporting generation, including one embedded in its successor."""
     directory = Path(directory)
-    manifest = json.loads((directory / "manifest.json").read_text())
+    manifest_location = Path(manifest_path)
+    if manifest_location.is_absolute() or ".." in manifest_location.parts:
+        raise ValueError("Invalid supporting package manifest path")
+    manifest = json.loads((directory / manifest_location).read_text())
     if manifest.get("schema_version") != PACKAGE_SCHEMA_VERSION:
         raise ValueError("Unsupported supporting evidence package schema")
     if manifest.get("catalog_schema_version") != CATALOG_SCHEMA_VERSION:
@@ -923,13 +926,14 @@ def verify_supporting_evidence_package(directory):
     if manifest.get("field_disposition") != _field_disposition():
         raise ValueError("Supporting source field disposition mismatch")
     files = manifest.get("files", {})
-    actual_files = {
-        str(path.relative_to(directory))
-        for path in directory.rglob("*")
-        if path.is_file() and path != directory / "manifest.json"
-    }
-    if set(files) != actual_files:
-        raise ValueError("Supporting package file inventory mismatch")
+    if manifest_location == Path("manifest.json"):
+        actual_files = {
+            str(path.relative_to(directory))
+            for path in directory.rglob("*")
+            if path.is_file() and path != directory / "manifest.json"
+        }
+        if set(files) != actual_files:
+            raise ValueError("Supporting package file inventory mismatch")
     for relative, expected in files.items():
         path = Path(relative)
         if path.is_absolute() or ".." in path.parts or file_digest(directory / path) != expected:
@@ -1041,11 +1045,11 @@ def write_supporting_evidence_package(
         _link_or_copy(context_package / "manifest.json", staging / "manifests" / "context.json")
         asset_dir = staging / "assets"
         asset_dir.mkdir()
-        _link_or_copy(source_asset_receipt, asset_dir / "receipt.json")
+        shutil.copy2(source_asset_receipt, asset_dir / "receipt.json")
         for relative in receipt["assets"]:
             target = asset_dir / relative
             target.parent.mkdir(parents=True, exist_ok=True)
-            _link_or_copy(source_paths[relative], target)
+            shutil.copy2(source_paths[relative], target)
         typed = staging / "typed"
         native = staging / "native"
         expression, expression_counts, expression_profiles = _write_expression(native, typed)
