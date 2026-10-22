@@ -7255,3 +7255,57 @@ older predecessor hardlink behavior. Sixteen focused tests and format/lint pass.
 The isolated editable install is 1.82.22 and `uv pip check` passes. The full
 local `./test.sh` gate passes: 3,214 passed, one skipped, 88% coverage in
 5m17s. Final-head CI and clean-main publication remain pending.
+
+# Hitlist 2.0 T-cell evidence — PR 6 of 7 (#738)
+
+Spec: [pr6-tcell-evidence-spec.md](pr6-tcell-evidence-spec.md).
+This branch is rebased onto PR 5's exact merged main commit. Open PR 6 after
+1.82.22 publishes.
+
+- [x] Verify both pinned T-cell ZIP hashes and independently replay the existing
+      availability and bounded training counts.
+- [x] Audit the full IEDB/CEDAR field intersection and the CEDAR-only mutation
+      field; file the preservation gap as #750.
+- [x] Implement one verified successor generation with native ZIP snapshots,
+      typed assay/measurement/context/contributor relations and field disposition.
+- [x] Materialize the 578,529-row availability and 55,844-row bounded training
+      eligibility funnel with explicit exclusions and source-linked claims.
+- [x] Independently replay all source rows, family counts, CEDAR overlap,
+      candidate statuses and source fields; add focused offline fixtures.
+- [x] Bump 1.82.23 and run format/lint/full local tests on the rebased branch.
+- [ ] Run final-head CI; review, merge, deploy clean main and verify PyPI exact
+      hashes before PR 7.
+
+## Review
+
+The pinned ZIPs match their 2026-10-20 receipts. The existing metadata export
+replays 578,529 IEDB assays and 157,263 shared CEDAR IDs. The bounded exports
+contain 47,593 direct functional and 8,432 multimer source rows; 172 and nine
+respectively are currently excluded for qualitative/subject-count disagreement,
+leaving 47,421 and 8,423 training examples. Of these, 4,054 carry conservative
+candidate single-HLA assignments, without specimen IDs. A separate first-fail
+funnel accounts for every IEDB assay and recovers all 56,025 direct candidates.
+All 157,263 shared IDs match on the 158 common source columns. CEDAR has one
+additional `Epitope | Mutation` column, populated on 30,639 overlap rows,
+including 17 current training IDs. Preserve this contributor claim (#750).
+
+The final 99-file package manifest in
+[tcell-v2-evidence-results](tcell-v2-evidence-results/README.md) has SHA-256
+`4c3275ca6da9a9e1de084fcc1a8d1243d4e67b1e9c3ed4d6307cbcce5c3738e3`.
+It embeds both exact original ZIPs and the verified external predecessor.
+Independent source replay compares all 578,529 assay rows with the prior
+metadata export, all 55,844 examples with the prior functional/multimer
+bundles, 735,792 source-contributor locators, 30,639 mutation claims, and
+every reported outcome, antigen and eligibility key; mismatches are zero.
+Two offline fixtures cover source disagreement, pooled antigen exclusion,
+unknown HLA and distinct functional/multimer labels. The source mutation
+field remains linked to CEDAR without changing the 17 affected examples.
+The nested-predecessor verifier regression, `./format.sh` and `./lint.sh`
+pass; 29 focused catalog, T-cell, external and availability tests pass. The
+isolated editable install is 1.82.23 and `uv pip check` passes. The first
+`./test.sh` attempt stopped at the existing #483 preflight (0.19 GiB free
+versus 2.5 GiB required). The retry passes all 3,218 tests with one skip and
+87% coverage in 1m58s. After rebasing onto merged PR 5, the source tree
+is byte-identical to the audited head; format/lint and `./test.sh` pass again
+with 3,218 tests, one skip and 87% coverage in 2m42s. Final-head hosted CI
+remains pending.

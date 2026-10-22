@@ -78,22 +78,24 @@ def _verify_source(adapter, destination):
     _source_paths(adapter, destination / "assets")
 
 
-def verify_external_evidence_package(directory):
-    """Verify parent, assets, source relations and exact package inventory."""
+def verify_external_evidence_package(directory, *, manifest_path="manifest.json"):
+    """Verify an external generation, including one embedded in its successor."""
     directory = Path(directory)
-    manifest = json.loads((directory / "manifest.json").read_text())
+    manifest_location = _safe_relative(manifest_path)
+    manifest = json.loads((directory / manifest_location).read_text())
     if manifest.get("schema_version") != PACKAGE_SCHEMA_VERSION:
         raise ValueError("Unsupported external evidence package schema")
     if manifest.get("catalog_schema_version") != CATALOG_SCHEMA_VERSION:
         raise ValueError("Unsupported external evidence catalog schema")
     files = manifest.get("files", {})
-    actual = {
-        str(path.relative_to(directory))
-        for path in directory.rglob("*")
-        if path.is_file() and path != directory / "manifest.json"
-    }
-    if set(files) != actual:
-        raise ValueError("External package file inventory mismatch")
+    if manifest_location == Path("manifest.json"):
+        actual = {
+            str(path.relative_to(directory))
+            for path in directory.rglob("*")
+            if path.is_file() and path != directory / "manifest.json"
+        }
+        if set(files) != actual:
+            raise ValueError("External package file inventory mismatch")
     for relative, expected in files.items():
         path = _safe_relative(relative)
         if file_digest(directory / path) != expected:

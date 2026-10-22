@@ -4,9 +4,9 @@ The [Hitlist 2.0 plan](https://github.com/pirl-unc/hitlist/issues/733)
 defines one evidence vocabulary without claiming that each indexed row is
 ready to train a model. The MHC, biological-context and supporting-measurement
 migrations now materialize typed results, measurements, arms, factors, protocol
-claims, lineage and mapping alternatives. The first external quantitative
-source generation adds assay-scoped channels and source-backed derivations.
-Later PRs add T-cell assays and the common query and training interface.
+claims, lineage and mapping alternatives. The external quantitative and T-cell
+generations add assay-scoped channels, source-backed derivations and bounded
+cellular-response eligibility. The common query and training interface follows.
 
 ## Discover types and requirements
 
@@ -29,8 +29,9 @@ recipe will report those eligibility failures per row.
 | Logical type | Native materialization | Grain |
 | --- | --- | --- |
 | `mhc_positive_ms`, `mhc_binding`, `mhc_other` | Three Parquet partitions | One MHC assay result |
-| `tcell_availability` | Pinned assay metadata export | One distinct IEDB assay ID |
-| `tcell_functional_peptide`, `tcell_multimer_peptide` | Bounded training projections | One qualified source assay ID |
+| `tcell_availability` | Typed T-cell assay relation plus original IEDB/CEDAR ZIPs | One distinct IEDB assay ID |
+| `tcell_functional_peptide`, `tcell_multimer_peptide` | Bounded typed examples and full eligibility relation | One qualified source assay ID |
+| `tcell_reported_outcome`, `tcell_antigen_claim`, `tcell_source_contributor`, `tcell_cedar_mutation_claim`, `tcell_eligibility` | Typed T-cell source generation | Reported result, antigen, contributor, source claim or qualification state at its declared grain |
 | `bulk_ms_peptide`, `bulk_ms_protein` | Bulk Parquet, selected by granularity | One source result, with separate measurement representations |
 | `line_expression_gene`, `line_expression_transcript` | Line-expression Parquet, selected by granularity | One gene or transcript result in a source profile |
 | `external_mhc_peptide_quantity`, `external_digest_peptide_quantity` | PXD057588 workbooks and typed quantitative relations | One peptide result per assay-scoped channel; fold change is a second representation |
@@ -218,6 +219,38 @@ assays. A peptide/protein mapping is a relation, not another assay row.
 Bulk protein and peptide views share one physical file but have different
 measurement grains. Line expression is measured abundance on a stated scale;
 a same-named cell line is not proof of the same specimen or intervention arm.
+
+## T-cell evidence package
+
+`write_tcell_evidence_package(external_package, destination, iedb_path=...,
+cedar_path=...)` appends the pinned 2026-10-20 T-cell sources to the verified
+external generation. The output embeds the complete predecessor and both exact
+original ZIPs. `verify_tcell_evidence_package` checks those assets, the parent,
+all typed schemas, row counts and the exact file inventory. Each of the 578,529
+IEDB assay IDs has an assay, reported outcome, antigen claim and eligibility
+row. CEDAR contributes 157,263 source records for overlapping IDs, giving
+735,792 source-contributor rows without increasing the assay count.
+
+The typed assay family counts are 396,243 soluble factor release, 103,103
+activation or proliferation, 24,962 cytotoxicity, 36,268 multimer and 17,953
+other assays. Reported qualitative tiers, numeric source text, units and
+inequality stay separate from task labels. Source fields not typed remain
+recoverable from the embedded original CSV by assay source-row locator; the
+generation records the disposition of all 161 IEDB and 162 CEDAR fields.
+CEDAR's extra `Epitope | Mutation` field yields 30,639 source claims, including
+17 of the bounded training IDs (#750). It is retained with CEDAR provenance,
+without an inferred biological interpretation or automatic label change.
+
+The eligibility relation gives every IEDB assay a first-failure reason and all
+applicable gate reasons. It retains 56,025 directly tested human peptide
+candidates; 47,593 are functional source rows and 8,432 are multimer source
+rows. Existing source outcome and subject-count disagreement policies exclude
+172 and nine of those respectively, leaving 47,421 functional and 8,423
+multimer examples. The 4,054 candidate single-HLA assignments retain their
+evidence status. No specimen identity is supplied, and availability metadata
+does not become a peptide label. The
+[T-cell conversion report](../tasks/tcell-v2-evidence-results/README.md)
+records independent row and source-field reconciliation.
 
 ## Roles and null meanings
 
