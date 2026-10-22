@@ -7000,3 +7000,29 @@ evidence, training and excluded Parquet files compared with version 1.82.16.
 The public API accepts an assay-family name or collection and the general
 bundle writer/verifier select `functional` or `multimer` explicitly. Twelve
 focused tests, `./format.sh`, `./lint.sh`, and all 3,167 standard tests pass.
+
+# Hitlist 2.0 evidence catalog — PR 1 of 6 (#734)
+
+Spec: [v2-evidence-system-spec.md](v2-evidence-system-spec.md). Parent: #733.
+
+- [x] Verify current main and its T-cell exports; create the parent and six
+      native GitHub sub-issues with sequential PR boundaries.
+- [x] Write the architecture and PR 1 specification before implementation.
+- [x] Add the immutable, versioned catalog and strict introspection interface.
+- [x] Declare current artifact grains, field roles, null meanings and task
+      requirement contracts without modifying any assay data.
+- [x] Add focused contract tests and no-corpus import verification.
+- [x] Document the catalog, pinned baselines and migration sequence.
+- [ ] Run format, lint and full tests; review diff and bump patch version.
+- [ ] Open PR, pass final-head CI, merge and deploy from clean main.
+
+## Review
+
+The catalog declares 14 logical evidence/context types, six task contracts,
+five T-cell assay families, source population overlap and generation-scoped
+count baselines. Existing source rows and label exporters are untouched.
+Six focused catalog tests and 46 assay/T-cell tests pass under a clean,
+worktree-local locked Python 3.12 environment. Its one editable install reports
+version 1.82.18 consistently. Format and lint pass. The first local
+`./test.sh` invocation was refused by its memory guard: 1.37 GiB free against
+the required 2.5 GiB for one worker. Full-suite verification remains pending.
