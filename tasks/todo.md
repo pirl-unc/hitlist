@@ -7013,8 +7013,17 @@ Spec: [v2-evidence-system-spec.md](v2-evidence-system-spec.md). Parent: #733.
       requirement contracts without modifying any assay data.
 - [x] Add focused contract tests and no-corpus import verification.
 - [x] Document the catalog, pinned baselines and migration sequence.
-- [ ] Run format, lint and full tests; review diff and bump patch version.
+- [x] Run format, lint and full tests; review diff and bump patch version.
 - [ ] Open PR, pass final-head CI, merge and deploy from clean main.
+
+CI discovery: every Python unit matrix leg fails when a training bundle has
+no contributor PMIDs. Record this independently, fix the empty mapped-column
+dtype at its source, assert the serialized empty-list value, then repeat the
+full gate before merging PR 1.
+
+- [x] File the empty-contributor bundle bug (#741) and link its fix from PR 1.
+- [x] Fix the dtype and verify both empty and legacy bundle cases locally.
+- [ ] Verify the fix in the final-head CI matrix.
 
 ## Review
 
@@ -7025,4 +7034,8 @@ Six focused catalog tests and 46 assay/T-cell tests pass under a clean,
 worktree-local locked Python 3.12 environment. Its one editable install reports
 version 1.82.18 consistently. Format and lint pass. The first local
 `./test.sh` invocation was refused by its memory guard: 1.37 GiB free against
-the required 2.5 GiB for one worker. Full-suite verification remains pending.
+the required 2.5 GiB for one worker. A later full run passed: 3,177 passed,
+one skipped, 89% coverage. The five CI unit legs initially exposed #741 in
+empty and legacy bundles. The source fix casts the mapped PMID field to a
+string dtype before filling `[]`, and the two affected test paths now pass
+locally. Final-head CI remains pending.
