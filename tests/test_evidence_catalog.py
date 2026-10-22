@@ -29,6 +29,13 @@ def test_catalog_covers_current_data_grains_without_double_counting():
     assert {"external_mhc_peptide_quantity", "external_digest_peptide_quantity"} <= observations
     assert {"tcell_functional_peptide", "tcell_multimer_peptide"} <= projections
     assert {"peptide_protein_occurrence", "source_contributor", "reviewed_lineage"} <= relations
+    assert {
+        "tcell_reported_outcome",
+        "tcell_antigen_claim",
+        "tcell_source_contributor",
+        "tcell_cedar_mutation_claim",
+        "tcell_eligibility",
+    } <= relations
     assert {"external_source_cell", "external_panel_sequence", "external_derivation_input"} <= (
         relations
     )
@@ -84,6 +91,14 @@ def test_catalog_covers_current_data_grains_without_double_counting():
         "external_sdrf_cell",
         "external_deposited_file",
         "external_source_asset",
+        "tcell_availability",
+        "tcell_functional_peptide",
+        "tcell_multimer_peptide",
+        "tcell_reported_outcome",
+        "tcell_antigen_claim",
+        "tcell_source_contributor",
+        "tcell_cedar_mutation_claim",
+        "tcell_eligibility",
     ):
         assert describe_evidence(name)["status"] == "v2_materialized"
     assert describe_evidence("bulk_ms_peptide")["endpoints"] == ("bulk_peptide_detection",)
@@ -96,6 +111,11 @@ def test_catalog_covers_current_data_grains_without_double_counting():
     assert external["source_population"] == digest["source_population"] == "pxd057588"
     assert external["endpoints"] != digest["endpoints"]
     assert digest["native_selector"] == "table=11"
+    assert functional["materialized_artifact"] == multimer["materialized_artifact"]
+    assert functional["native_selector"] != multimer["native_selector"]
+    assert describe_evidence("tcell_cedar_mutation_claim")["materialized_artifact"] == (
+        "tcell/typed/cedar_mutation_claims.parquet"
+    )
     for candidate in (
         "external_proteasome_fragment_quantity",
         "external_paired_protein_quantity",
@@ -213,5 +233,5 @@ def test_catalog_import_does_not_build_or_download(tmp_path):
         text=True,
         cwd=Path(__file__).parents[1],
     )
-    assert probe.stdout.strip() == "5"
+    assert probe.stdout.strip() == "6"
     assert not data_root.exists()

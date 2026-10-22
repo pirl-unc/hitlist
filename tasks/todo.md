@@ -7266,11 +7266,11 @@ This stacked worktree starts on PR 5's exact head; open PR 6 only after
       availability and bounded training counts.
 - [x] Audit the full IEDB/CEDAR field intersection and the CEDAR-only mutation
       field; file the preservation gap as #750.
-- [ ] Implement one verified successor generation with native ZIP snapshots,
+- [x] Implement one verified successor generation with native ZIP snapshots,
       typed assay/measurement/context/contributor relations and field disposition.
-- [ ] Materialize the 578,529-row availability and 55,844-row bounded training
+- [x] Materialize the 578,529-row availability and 55,844-row bounded training
       eligibility funnel with explicit exclusions and source-linked claims.
-- [ ] Independently replay all source rows, family counts, CEDAR overlap,
+- [x] Independently replay all source rows, family counts, CEDAR overlap,
       candidate statuses and source fields; add focused offline fixtures.
 - [ ] Bump 1.82.23, run format/lint/full tests and final-head CI; review, merge,
       deploy clean main and verify PyPI exact hashes before PR 7.
@@ -7287,3 +7287,21 @@ funnel accounts for every IEDB assay and recovers all 56,025 direct candidates.
 All 157,263 shared IDs match on the 158 common source columns. CEDAR has one
 additional `Epitope | Mutation` column, populated on 30,639 overlap rows,
 including 17 current training IDs. Preserve this contributor claim (#750).
+
+The final 99-file package manifest in
+[tcell-v2-evidence-results](tcell-v2-evidence-results/README.md) has SHA-256
+`4c3275ca6da9a9e1de084fcc1a8d1243d4e67b1e9c3ed4d6307cbcce5c3738e3`.
+It embeds both exact original ZIPs and the verified external predecessor.
+Independent source replay compares all 578,529 assay rows with the prior
+metadata export, all 55,844 examples with the prior functional/multimer
+bundles, 735,792 source-contributor locators, 30,639 mutation claims, and
+every reported outcome, antigen and eligibility key; mismatches are zero.
+Two offline fixtures cover source disagreement, pooled antigen exclusion,
+unknown HLA and distinct functional/multimer labels. The source mutation
+field remains linked to CEDAR without changing the 17 affected examples.
+The nested-predecessor verifier regression, `./format.sh` and `./lint.sh`
+pass; 29 focused catalog, T-cell, external and availability tests pass. The
+isolated editable install is 1.82.23 and `uv pip check` passes. The first
+`./test.sh` attempt stopped at the existing #483 preflight (0.19 GiB free
+versus 2.5 GiB required). The retry passes all 3,218 tests with one skip and
+87% coverage in 1m58s. Final-head hosted CI remains pending.

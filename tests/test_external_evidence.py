@@ -255,6 +255,16 @@ def test_external_generation_embeds_parent_and_rejects_asset_tampering(tmp_path,
     manifest = external_evidence.verify_external_evidence_package(output)
     assert manifest["source_ids"] == ["fixture"]
     assert manifest["sources"]["fixture"]["reconciliation"]["n_source_rows"] == 1
+    nested = output / "manifests" / "external.json"
+    nested.write_bytes((output / "manifest.json").read_bytes())
+    assert external_evidence.verify_external_evidence_package(
+        output, manifest_path="manifests/external.json"
+    )["source_ids"] == ["fixture"]
+    with pytest.raises(ValueError, match="file inventory"):
+        external_evidence.verify_external_evidence_package(output)
+    nested.unlink()
+    with pytest.raises(ValueError, match="Invalid external source path"):
+        external_evidence.verify_external_evidence_package(output, manifest_path="../manifest.json")
     (source / "data.txt").write_text("source edited after ingest\n")
     external_evidence.verify_external_evidence_package(output)
     with (output / "external" / "fixture" / "assets" / "data.txt").open("ab") as stream:
