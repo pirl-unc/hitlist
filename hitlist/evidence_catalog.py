@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 FIELD_ROLES = frozenset(
     {
         "identity",
@@ -60,6 +60,7 @@ class Evidence:
     assay_families: tuple[str, ...] = ()
     status: str = "v2_contract_only"
     materialized_artifact: str = ""
+    index_required_any_of: tuple[tuple[str, ...], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -69,6 +70,7 @@ class Task:
     required: tuple[str, ...]
     label_rule: str
     status: str = "v2_contract_only"
+    required_any_of: tuple[tuple[str, ...], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -172,6 +174,25 @@ FIELDS = (
         "Evidence status of peptide-level assignment",
     ),
     _field("material_id", "biological_context", "identifier", "Sample or experimental material"),
+    _field("sample_label_raw", "biological_context", "text", "Unmodified source sample label"),
+    _field("material_link_status", "relation", "category", "Precision of a material link"),
+    _field("line_key", "biological_context", "identifier", "Source expression line key"),
+    _field("source_ids", "provenance", "set", "Registered source IDs for a line anchor"),
+    _field("profile_id_raw", "provenance", "identifier", "Original expression profile ID"),
+    _field("gene_name", "molecular_input", "text", "Reported gene name or symbol"),
+    _field("quantity_scale", "target", "category", "Source-specific quantity scale"),
+    _field("representation", "target", "category", "Reported or derived measurement form"),
+    _field("value_status", "provenance", "category", "Reported or derived value status"),
+    _field("search_enzyme", "protocol", "text", "Reviewed MS search enzyme specification"),
+    _field("search_enzyme_status", "provenance", "category", "Evidence for a search enzyme"),
+    _field(
+        "n_replicates_detected", "protocol", "number", "Number of reported detecting replicates"
+    ),
+    _field("n_fractions_in_run", "protocol", "number", "Technical fractions in a reported run"),
+    _field("mapping_id", "relation", "identifier", "One source peptide occurrence key"),
+    _field("mapping_status", "relation", "category", "Mapped or unmatched eligible peptide"),
+    _field("n_mapping_occurrences", "relation", "number", "Number of retained alternatives"),
+    _field("protocol_scope_id", "protocol", "identifier", "Source-backed protocol scope"),
     _field("arm_id", "biological_context", "identifier", "Curated study-arm key, not a specimen"),
     _field("study_id", "provenance", "identifier", "Source study key"),
     _field("control_arm_id", "relation", "identifier", "Curated control arm"),
@@ -434,18 +455,28 @@ EVIDENCE = (
         "peptide_material_protocol",
         "bulk_proteomics.parquet",
         "bulk_v4",
-        ("bulk_peptide_detection", "peptide_intensity"),
+        ("bulk_peptide_detection",),
         (
             *_SOURCE,
             "peptide_sequence",
             "protein_id",
-            "material_id",
+            "sample_label_raw",
+            "cell_line_name",
+            "material_link_status",
             "endpoint",
-            *_MEASUREMENT,
+            "representation",
+            "qualitative_result",
+            "n_replicates_detected",
             *_MS_PROTOCOL,
+            "search_enzyme",
+            "search_enzyme_status",
+            "n_fractions_in_run",
+            "protocol_scope_id",
         ),
-        ("source_dataset", "peptide_sequence", "material_id"),
+        ("source_dataset", "source_record_id", "peptide_sequence", "endpoint"),
         native_selector="granularity=peptide",
+        status="v2_materialized",
+        materialized_artifact="typed/bulk_results.parquet",
     ),
     Evidence(
         "bulk_ms_protein",
@@ -458,14 +489,25 @@ EVIDENCE = (
         (
             *_SOURCE,
             "protein_id",
-            "gene_id",
-            "material_id",
+            "gene_name",
+            "sample_label_raw",
+            "cell_line_name",
+            "material_link_status",
             "endpoint",
-            *_MEASUREMENT,
+            "representation",
+            "quantitative_value",
+            "quantity_scale",
+            "measurement_unit",
             *_MS_PROTOCOL,
+            "search_enzyme",
+            "search_enzyme_status",
+            "n_fractions_in_run",
+            "protocol_scope_id",
         ),
-        ("source_dataset", "protein_id", "material_id"),
+        ("source_dataset", "source_record_id", "protein_id", "endpoint"),
         native_selector="granularity=protein",
+        status="v2_materialized",
+        materialized_artifact="typed/bulk_results.parquet",
     ),
     Evidence(
         "line_expression_gene",
@@ -478,13 +520,21 @@ EVIDENCE = (
         (
             *_SOURCE,
             "gene_id",
-            "material_id",
+            "gene_name",
+            "line_key",
+            "profile_id_raw",
+            "material_link_status",
             "quantitative_value",
+            "representation",
+            "quantity_scale",
             "measurement_unit",
             "normalization",
         ),
-        ("source_dataset", "gene_id", "material_id"),
+        ("source_dataset", "source_record_id", "line_key", "normalization"),
         native_selector="granularity=gene",
+        status="v2_materialized",
+        materialized_artifact="typed/expression_results.parquet",
+        index_required_any_of=(("gene_id", "gene_name"),),
     ),
     Evidence(
         "line_expression_transcript",
@@ -498,12 +548,14 @@ EVIDENCE = (
             *_SOURCE,
             "gene_id",
             "transcript_id",
-            "material_id",
+            "line_key",
+            "profile_id_raw",
+            "material_link_status",
             "quantitative_value",
             "measurement_unit",
             "normalization",
         ),
-        ("source_dataset", "transcript_id", "material_id"),
+        ("source_dataset", "transcript_id", "line_key"),
         native_selector="granularity=transcript",
     ),
     Evidence(
@@ -515,6 +567,7 @@ EVIDENCE = (
         "mhc_v4",
         (),
         (
+            "mapping_id",
             "peptide_sequence",
             "protein_id",
             "gene_id",
@@ -524,7 +577,70 @@ EVIDENCE = (
             "c_flank",
             "proteome",
         ),
-        ("peptide_sequence", "protein_id", "mapping_position", "proteome"),
+        ("mapping_id", "peptide_sequence", "protein_id", "mapping_position", "proteome"),
+        status="v2_materialized",
+        materialized_artifact="typed/peptide_protein_occurrences.parquet",
+    ),
+    Evidence(
+        "peptide_mapping_coverage",
+        "relation",
+        "mapping",
+        "eligible_peptide_mapping_status",
+        "peptide_mappings.parquet",
+        "mhc_v4",
+        (),
+        ("peptide_sequence", "n_mapping_occurrences", "mapping_status"),
+        ("peptide_sequence", "mapping_status"),
+        status="v2_materialized",
+        materialized_artifact="typed/peptide_mapping_coverage.parquet",
+    ),
+    Evidence(
+        "bulk_protocol_scope",
+        "context",
+        "measurement_protocol",
+        "source_enzyme_protocol_claim",
+        "hitlist/data/bulk_proteomics/sources.yaml",
+        "bulk_v4",
+        (),
+        (
+            "protocol_scope_id",
+            "source_dataset",
+            "digestion_enzyme",
+            "search_enzyme",
+            "search_enzyme_status",
+            "instrument",
+            "acquisition_mode",
+            "fractionation",
+        ),
+        ("protocol_scope_id", "source_dataset", "digestion_enzyme"),
+        status="v2_materialized",
+        materialized_artifact="typed/bulk_protocol_scopes.parquet",
+    ),
+    Evidence(
+        "line_expression_source",
+        "context",
+        "provenance",
+        "source_profile_registry",
+        "hitlist/data/line_expression/sources.yaml",
+        "line_expression_v4",
+        (),
+        ("source_dataset", "normalization", "source_reference_id"),
+        ("source_dataset", "normalization"),
+        status="v2_materialized",
+        materialized_artifact="typed/expression_sources.parquet",
+    ),
+    Evidence(
+        "line_anchor_claim",
+        "relation",
+        "biological_context",
+        "source_line_anchor",
+        "hitlist/data/line_expression_anchors.yaml",
+        "line_expression_v4",
+        (),
+        ("line_key", "material_link_status", "source_ids"),
+        ("line_key", "material_link_status"),
+        status="v2_materialized",
+        materialized_artifact="typed/line_anchor_claims.parquet",
     ),
     Evidence(
         "source_contributor",
@@ -780,14 +896,27 @@ TASKS = (
     Task(
         "bulk_peptide_detection",
         ("bulk_ms_peptide",),
-        ("peptide_sequence", "material_id", "digestion_enzyme", "endpoint"),
+        (
+            "peptide_sequence",
+            "source_dataset",
+            "digestion_enzyme",
+            "material_link_status",
+            "endpoint",
+        ),
         "Observed bulk MS detection under the recorded preparation; absent peptides are not measured negatives.",
     ),
     Task(
         "gene_expression",
         ("line_expression_gene",),
-        ("gene_id", "material_id", "quantitative_value", "normalization"),
+        (
+            "source_dataset",
+            "line_key",
+            "quantitative_value",
+            "normalization",
+            "material_link_status",
+        ),
         "Measured expression on its reported scale; surrogate material links require separate policy.",
+        required_any_of=(("gene_id", "gene_name"),),
     ),
 )
 _TASK_BY_NAME = {task.name: task for task in TASKS}
@@ -860,15 +989,29 @@ BASELINES = (
         "bulk_v4",
         "corrected-corpus-v4:2026-10-16",
         2_269_288,
-        "measurement_rows",
-        "Protein and peptide rows together",
+        "source_result_rows",
+        "2,047,003 peptide detections plus 222,285 protein abundance rows",
     ),
     Baseline(
         "line_expression_v4",
         "corrected-corpus-v4:2026-10-16",
         42_909,
-        "measurement_rows",
-        "Gene and transcript rows together",
+        "source_result_rows",
+        "Gene rows in two profiles; no native transcript measurements",
+    ),
+    Baseline(
+        "peptide_protein_occurrence",
+        "corrected-corpus-v4:2026-10-16",
+        6_205_013,
+        "mapping_rows",
+        "Protein-position alternatives are relations, not assay results",
+    ),
+    Baseline(
+        "peptide_mapping_coverage",
+        "corrected-corpus-v4:2026-10-16",
+        1_506_664,
+        "eligible_unique_peptides",
+        "1,145,721 mapped and 360,943 without a retained occurrence",
     ),
 )
 
@@ -892,6 +1035,8 @@ def _validate_catalog() -> None:
             raise ValueError(f"Duplicate assay family on {item.name}")
         if set(item.fields) - _FIELD_BY_NAME.keys() or set(item.index_required) - set(item.fields):
             raise ValueError(f"Invalid fields on {item.name}")
+        if any(not group or set(group) - set(item.fields) for group in item.index_required_any_of):
+            raise ValueError(f"Invalid alternative index fields on {item.name}")
     for task in TASKS:
         if len(set(task.required)) != len(task.required):
             raise ValueError(f"Duplicate task requirement: {task.name}")
@@ -900,6 +1045,11 @@ def _validate_catalog() -> None:
         for key in task.evidence:
             if set(task.required) - set(_EVIDENCE_BY_NAME[key].fields):
                 raise ValueError(f"Task fields absent from {key}: {task.name}")
+            if any(
+                not group or set(group) - set(_EVIDENCE_BY_NAME[key].fields)
+                for group in task.required_any_of
+            ):
+                raise ValueError(f"Alternative task fields absent from {key}: {task.name}")
     populations = set(_EVIDENCE_BY_NAME) | {item.source_population for item in EVIDENCE}
     for baseline in BASELINES:
         if baseline.population not in populations or baseline.n_rows < 0:

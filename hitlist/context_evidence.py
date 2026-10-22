@@ -981,10 +981,13 @@ def _write_assay_context(mhc_dir, cohort_dir, typed_dir, historical_arms, audit_
         audit.close()
 
 
-def verify_context_evidence_package(directory):
-    """Recheck all source hashes, parent relations and context row inventories."""
+def verify_context_evidence_package(directory, *, manifest_path="manifest.json"):
+    """Recheck a context manifest, including one retained in a successor package."""
     directory = Path(directory)
-    manifest = json.loads((directory / "manifest.json").read_text())
+    path = Path(manifest_path)
+    if path.is_absolute() or ".." in path.parts:
+        raise ValueError("Invalid context package manifest path")
+    manifest = json.loads((directory / path).read_text())
     if manifest.get("schema_version") != PACKAGE_SCHEMA_VERSION:
         raise ValueError("Unsupported context evidence package schema")
     if manifest.get("catalog_schema_version") != CONTEXT_CATALOG_SCHEMA_VERSION:
@@ -992,13 +995,14 @@ def verify_context_evidence_package(directory):
     if manifest.get("field_disposition") != _field_disposition(manifest["reconciliation"]):
         raise ValueError("Context field disposition mismatch")
     files = manifest.get("files", {})
-    actual_files = {
-        str(path.relative_to(directory))
-        for path in directory.rglob("*")
-        if path.is_file() and path != directory / "manifest.json"
-    }
-    if set(files) != actual_files:
-        raise ValueError("Context package file inventory mismatch")
+    if path == Path("manifest.json"):
+        actual_files = {
+            str(file.relative_to(directory))
+            for file in directory.rglob("*")
+            if file.is_file() and file != directory / "manifest.json"
+        }
+        if set(files) != actual_files:
+            raise ValueError("Context package file inventory mismatch")
     for relative, expected in files.items():
         path = Path(relative)
         if path.is_absolute() or ".." in path.parts or file_digest(directory / path) != expected:

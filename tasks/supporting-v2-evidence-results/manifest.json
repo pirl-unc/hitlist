@@ -1,0 +1,725 @@
+{
+  "catalog_schema_version": 4,
+  "field_disposition": {
+    "bulk_proteomics": {
+      "abundance_log2_normalized": {
+        "native_relation": "native/bulk_proteomics.parquet",
+        "status": "typed"
+      },
+      "abundance_percentile": {
+        "native_relation": "native/bulk_proteomics.parquet",
+        "status": "typed"
+      },
+      "acquisition_mode": {
+        "native_relation": "native/bulk_proteomics.parquet",
+        "status": "typed"
+      },
+      "cell_line_name": {
+        "native_relation": "native/bulk_proteomics.parquet",
+        "status": "typed"
+      },
+      "digestion": {
+        "native_relation": "native/bulk_proteomics.parquet",
+        "status": "native_source_preserved"
+      },
+      "digestion_enzyme": {
+        "native_relation": "native/bulk_proteomics.parquet",
+        "status": "typed"
+      },
+      "end_position": {
+        "native_relation": "native/bulk_proteomics.parquet",
+        "status": "native_source_preserved"
+      },
+      "enrichment": {
+        "native_relation": "native/bulk_proteomics.parquet",
+        "status": "typed"
+      },
+      "evidence_kind": {
+        "native_relation": "native/bulk_proteomics.parquet",
+        "status": "native_source_preserved"
+      },
+      "fdr": {
+        "native_relation": "native/bulk_proteomics.parquet",
+        "status": "native_source_preserved"
+      },
+      "fractionation": {
+        "native_relation": "native/bulk_proteomics.parquet",
+        "status": "native_source_preserved"
+      },
+      "fractionation_ph": {
+        "native_relation": "native/bulk_proteomics.parquet",
+        "status": "native_source_preserved"
+      },
+      "fragmentation": {
+        "native_relation": "native/bulk_proteomics.parquet",
+        "status": "typed"
+      },
+      "gene_symbol": {
+        "native_relation": "native/bulk_proteomics.parquet",
+        "status": "typed"
+      },
+      "granularity": {
+        "native_relation": "native/bulk_proteomics.parquet",
+        "status": "typed"
+      },
+      "instrument": {
+        "native_relation": "native/bulk_proteomics.parquet",
+        "status": "typed"
+      },
+      "instrument_type": {
+        "native_relation": "native/bulk_proteomics.parquet",
+        "status": "native_source_preserved"
+      },
+      "labeling": {
+        "native_relation": "native/bulk_proteomics.parquet",
+        "status": "native_source_preserved"
+      },
+      "length": {
+        "native_relation": "native/bulk_proteomics.parquet",
+        "status": "native_source_preserved"
+      },
+      "log2_intensity": {
+        "native_relation": "native/bulk_proteomics.parquet",
+        "status": "typed"
+      },
+      "modifications": {
+        "native_relation": "native/bulk_proteomics.parquet",
+        "status": "typed"
+      },
+      "n_fractions": {
+        "native_relation": "native/bulk_proteomics.parquet",
+        "status": "native_source_preserved"
+      },
+      "n_fractions_in_run": {
+        "native_relation": "native/bulk_proteomics.parquet",
+        "status": "typed"
+      },
+      "n_peptides": {
+        "native_relation": "native/bulk_proteomics.parquet",
+        "status": "typed"
+      },
+      "n_replicates_detected": {
+        "native_relation": "native/bulk_proteomics.parquet",
+        "status": "typed"
+      },
+      "peptide": {
+        "native_relation": "native/bulk_proteomics.parquet",
+        "status": "typed"
+      },
+      "perturbation": {
+        "native_relation": "native/bulk_proteomics.parquet",
+        "status": "native_source_preserved"
+      },
+      "pmid": {
+        "native_relation": "native/bulk_proteomics.parquet",
+        "status": "typed"
+      },
+      "quantification": {
+        "native_relation": "native/bulk_proteomics.parquet",
+        "status": "native_source_preserved"
+      },
+      "reference": {
+        "native_relation": "native/bulk_proteomics.parquet",
+        "status": "typed"
+      },
+      "sample_label": {
+        "native_relation": "native/bulk_proteomics.parquet",
+        "status": "typed"
+      },
+      "search_engine": {
+        "native_relation": "native/bulk_proteomics.parquet",
+        "status": "native_source_preserved"
+      },
+      "source": {
+        "native_relation": "native/bulk_proteomics.parquet",
+        "status": "typed"
+      },
+      "species": {
+        "native_relation": "native/bulk_proteomics.parquet",
+        "status": "typed"
+      },
+      "start_position": {
+        "native_relation": "native/bulk_proteomics.parquet",
+        "status": "native_source_preserved"
+      },
+      "study_label": {
+        "native_relation": "native/bulk_proteomics.parquet",
+        "status": "native_source_preserved"
+      },
+      "uniprot_acc": {
+        "native_relation": "native/bulk_proteomics.parquet",
+        "status": "typed"
+      }
+    },
+    "line_expression": {
+      "backend": {
+        "native_relation": "native/line_expression.parquet",
+        "status": "typed"
+      },
+      "gene_id": {
+        "native_relation": "native/line_expression.parquet",
+        "status": "typed"
+      },
+      "gene_name": {
+        "native_relation": "native/line_expression.parquet",
+        "status": "typed"
+      },
+      "granularity": {
+        "native_relation": "native/line_expression.parquet",
+        "status": "typed"
+      },
+      "license": {
+        "native_relation": "native/line_expression.parquet",
+        "status": "typed"
+      },
+      "line_key": {
+        "native_relation": "native/line_expression.parquet",
+        "status": "typed"
+      },
+      "log2_tpm": {
+        "native_relation": "native/line_expression.parquet",
+        "status": "typed"
+      },
+      "normalization": {
+        "native_relation": "native/line_expression.parquet",
+        "status": "typed"
+      },
+      "parent_line_key": {
+        "native_relation": "native/line_expression.parquet",
+        "status": "typed"
+      },
+      "pmid": {
+        "native_relation": "native/line_expression.parquet",
+        "status": "typed"
+      },
+      "profile_id": {
+        "native_relation": "native/line_expression.parquet",
+        "status": "typed"
+      },
+      "quantifier": {
+        "native_relation": "native/line_expression.parquet",
+        "status": "typed"
+      },
+      "reference": {
+        "native_relation": "native/line_expression.parquet",
+        "status": "typed"
+      },
+      "source_id": {
+        "native_relation": "native/line_expression.parquet",
+        "status": "typed"
+      },
+      "species": {
+        "native_relation": "native/line_expression.parquet",
+        "status": "typed"
+      },
+      "study_label": {
+        "native_relation": "native/line_expression.parquet",
+        "status": "native_source_preserved"
+      },
+      "tpm": {
+        "native_relation": "native/line_expression.parquet",
+        "status": "typed"
+      },
+      "transcript_id": {
+        "native_relation": "native/line_expression.parquet",
+        "status": "typed"
+      }
+    },
+    "peptide_mappings": {
+      "c_flank": {
+        "native_relation": "native/peptide_mappings.parquet",
+        "status": "typed"
+      },
+      "gene_biotype": {
+        "native_relation": "native/peptide_mappings.parquet",
+        "status": "typed"
+      },
+      "gene_id": {
+        "native_relation": "native/peptide_mappings.parquet",
+        "status": "typed"
+      },
+      "gene_name": {
+        "native_relation": "native/peptide_mappings.parquet",
+        "status": "typed"
+      },
+      "is_canonical_transcript": {
+        "native_relation": "native/peptide_mappings.parquet",
+        "status": "typed"
+      },
+      "n_flank": {
+        "native_relation": "native/peptide_mappings.parquet",
+        "status": "typed"
+      },
+      "peptide": {
+        "native_relation": "native/peptide_mappings.parquet",
+        "status": "typed"
+      },
+      "position": {
+        "native_relation": "native/peptide_mappings.parquet",
+        "status": "typed"
+      },
+      "protein_id": {
+        "native_relation": "native/peptide_mappings.parquet",
+        "status": "typed"
+      },
+      "proteome": {
+        "native_relation": "native/peptide_mappings.parquet",
+        "status": "typed"
+      },
+      "proteome_source": {
+        "native_relation": "native/peptide_mappings.parquet",
+        "status": "typed"
+      },
+      "transcript_id": {
+        "native_relation": "native/peptide_mappings.parquet",
+        "status": "typed"
+      }
+    }
+  },
+  "files": {
+    "assets/bulk_proteomics/bekker_jensen_2017_peptides.csv.gz": {
+      "sha256": "3ec65dd05e8ec58c3293e0fb5720570197a8b152cd14778130bae4224106e3d3",
+      "size_bytes": 35074080
+    },
+    "assets/bulk_proteomics/bekker_jensen_2017_protein_abundance.csv.gz": {
+      "sha256": "17628f1a9c3ed5e3ee1ad7aab4480008000a6beb2c042928f3fbdf699366bc45",
+      "size_bytes": 4410669
+    },
+    "assets/bulk_proteomics/ccle_nusinow_2020.csv.gz": {
+      "sha256": "1cd9bdd7b40e1a22593c0045f5ba1d785004b64943c4845d4311bc44e7f97d82",
+      "size_bytes": 1671535
+    },
+    "assets/bulk_proteomics/detectability.yaml": {
+      "sha256": "1936194860c47917681448a75401569258f0cf4ea5a46a295a6bfabf4db8073b",
+      "size_bytes": 12315
+    },
+    "assets/bulk_proteomics/sources.yaml": {
+      "sha256": "26a410b2839d6ad6ea0701066434919ea3ab90fb05c636e20391499212b2fc52",
+      "size_bytes": 8115
+    },
+    "assets/line_expression/apm_rna_build_report.yaml": {
+      "sha256": "443361d7803837c8a8de7139a68415d303a1e5aae10ea457eda9935ccb7c71a8",
+      "size_bytes": 306
+    },
+    "assets/line_expression/ensembl_gene_id_symbol.csv": {
+      "sha256": "cd5a8f42cd45137ffd3de580f395d42107e6ff4b77a80b0a746b9508c0f4c0e2",
+      "size_bytes": 257327
+    },
+    "assets/line_expression/gm12878_encode_rnaseq_tpm.csv.gz": {
+      "sha256": "b3d605f3426d283ecf166bd6a38006dc40d4d3aa9c4050c40f7f2101ff60d8ab",
+      "size_bytes": 271557
+    },
+    "assets/line_expression/hap1_depmap24q4_gene_tpm.csv.gz": {
+      "sha256": "9c91022631272fdd626369b03b848162da30062004295cc7249fc3140d149918",
+      "size_bytes": 253816
+    },
+    "assets/line_expression/sources.yaml": {
+      "sha256": "7e3ea4f05481ae1d810cf8bbbf2f0cb1e7b41b4f7c779629a413525a7b013ea2",
+      "size_bytes": 7621
+    },
+    "assets/line_expression_anchors.yaml": {
+      "sha256": "b736261a977b416b40623848a410b2b9ff16c56527bea392592996480f8f678e",
+      "size_bytes": 13122
+    },
+    "assets/receipt.json": {
+      "sha256": "baa0da5ac120c71a58252587cc48503fb76fffd82463309e067b612862c88436",
+      "size_bytes": 2107
+    },
+    "cohort_native/contributors.parquet": {
+      "sha256": "dfbe4bfcd96cc5e07772497201c1c12ad9b4aac620dd92f090aa5de3723b0b8e",
+      "size_bytes": 2066297045
+    },
+    "cohort_native/identities.parquet": {
+      "sha256": "6020667400ae4834f9a800479142b54f7c225f9e37ebb972a5a0a168b9c82001",
+      "size_bytes": 141119541
+    },
+    "cohort_native/lineage.json": {
+      "sha256": "75858cf562f65013aaae2325ea95deb70f826ea07f2373d394e8182ce459a1a5",
+      "size_bytes": 31901
+    },
+    "cohort_native/manifest.json": {
+      "sha256": "b180eba804532f633a6d61bb350584dbe24f8df4b4b96f02c6ec492c60144372",
+      "size_bytes": 33972
+    },
+    "cohort_native/training.parquet": {
+      "sha256": "f902341e90c1c57defc93f4bc540ffcbea1b41061afb4492ddd8aaa7642c65bd",
+      "size_bytes": 188175209
+    },
+    "curation/pmid_overrides_1_78.yaml": {
+      "sha256": "5223fc63d0a0a563f469641b2abb58578a359b9bfac32218ce2611aa9cc8ef27",
+      "size_bytes": 745987
+    },
+    "curation/pmid_overrides_current.yaml": {
+      "sha256": "f563a8f1a6224d668bf06aed2f034b439ec9a1b607f78f883ace21e053850b09",
+      "size_bytes": 747015
+    },
+    "curation/specimen_lineage.yaml": {
+      "sha256": "03300e7732c49a6c5359c211a9c8703beba0927003900c98881a25f3f34da276",
+      "size_bytes": 25870
+    },
+    "manifests/context.json": {
+      "sha256": "0d16dd1b9fd0708087d9f04df5c4c57c0f3166f48db513d41816c9bda2685e6b",
+      "size_bytes": 57461
+    },
+    "manifests/mhc.json": {
+      "sha256": "efa5ea38cbed460a0a860d5ea2780314ead808a6b3eba064cff18228e2596674",
+      "size_bytes": 24598
+    },
+    "native/README.md": {
+      "sha256": "01bdac0dc3854df34379548923e6a125e3b5e9298c9c2fe0bf90022b8f8df759",
+      "size_bytes": 1367
+    },
+    "native/binding.parquet": {
+      "sha256": "2b3f6ea2dd647e7fc54d214eef420feaebc4e81fab97ffc0565a2de1f8695ba0",
+      "size_bytes": 17096569
+    },
+    "native/bulk_proteomics.parquet": {
+      "sha256": "9e3d52301fe014205bc65e7a8e4554f4e75ce7caa7de8ed184d517d6688df86b",
+      "size_bytes": 45394459
+    },
+    "native/line_expression.parquet": {
+      "sha256": "d2a2cbf00fdd5cbd285bcd88ed06c511f09ed3404c4b705e5108af407b3feddf",
+      "size_bytes": 730671
+    },
+    "native/observation_contributors.parquet": {
+      "sha256": "41ff93e08bc6ea4af692fee16044726af26c4e20ec650ec6c7cd851974b71db1",
+      "size_bytes": 628447260
+    },
+    "native/observations.parquet": {
+      "sha256": "a665f37c0b5917fefb6d12eade530d7e2001de1f0ee73479b21d2c393d173ab4",
+      "size_bytes": 145685701
+    },
+    "native/observations_meta.json": {
+      "sha256": "2318bc53cdae228285218991d58fbcc2bd7266327cec1dd3ed9a03b1c944a5b7",
+      "size_bytes": 12146
+    },
+    "native/other_assays.parquet": {
+      "sha256": "c40f5227ded408830885ecba8336dbdd701172df9573b0d32e5e8a5f8fc947c2",
+      "size_bytes": 1259717
+    },
+    "native/peptide_mappings.parquet": {
+      "sha256": "057c9f01da3aea46816aa9d164c24951e45b42c4cf5d8dc84f44ab201ec1fcc9",
+      "size_bytes": 176051509
+    },
+    "native/peptide_mappings_meta.json": {
+      "sha256": "c188f0f874c8d997ace15c79eca7365e0805f985cd0de9f28c6ec2f0128c8542",
+      "size_bytes": 90848
+    },
+    "typed/arm_control_links.parquet": {
+      "sha256": "d2808a92c52f330a7efa0c7117e1b863cf829c55fc20e0c40dece35df4aac332",
+      "size_bytes": 4916
+    },
+    "typed/arm_factors.parquet": {
+      "sha256": "a6c1f7f3decb6c0d51c4b6a7a4277d80e5fd84545e4e5798a52f46deb1ab4526",
+      "size_bytes": 43718
+    },
+    "typed/arm_mhc_claims.parquet": {
+      "sha256": "47374ec6feabde4035a1a3d6d202b9c1ead8926b26984953cb2e2212e2b11eac",
+      "size_bytes": 43943
+    },
+    "typed/assay_context.parquet": {
+      "sha256": "a8b30d17a19a252f5dd5c03a3f17318a006713d35e172dbde7913f3f44a39eab",
+      "size_bytes": 63755382
+    },
+    "typed/bulk_measurements.parquet": {
+      "sha256": "5805f2cb6c09eeeb7c9fde2fbe30b721b007fb80c57dec5cf23bf17abe731f7c",
+      "size_bytes": 16084453
+    },
+    "typed/bulk_protocol_scopes.parquet": {
+      "sha256": "bc38f212ace79f7db2869885b268b245e4836480c561871fffeae6dbb04b017e",
+      "size_bytes": 5600
+    },
+    "typed/bulk_results.parquet": {
+      "sha256": "26aaf2073084b435dc94a2d9c4236b5e98a2769c03be985e8be95496dd80ed3c",
+      "size_bytes": 44721009
+    },
+    "typed/curated_arms.parquet": {
+      "sha256": "1974a9066261080df688006adda471fd11736287f8aff1b37880e64d88016ed8",
+      "size_bytes": 47356
+    },
+    "typed/curated_studies.parquet": {
+      "sha256": "34af4b944737cae98e62bb599727ee8b9a0c242bb661f5ed89d91c9e2613fb90",
+      "size_bytes": 70080
+    },
+    "typed/curation_amendments.parquet": {
+      "sha256": "292208a5da61cbe4bacdb3cc3c9f56c5d698777962140235bf6a14fd5f8e15b9",
+      "size_bytes": 3699
+    },
+    "typed/expression_measurements.parquet": {
+      "sha256": "90586c8786cf836a0e3dadc879c6f6c9bb4c258f2b1613ab40c52963918b941c",
+      "size_bytes": 694960
+    },
+    "typed/expression_results.parquet": {
+      "sha256": "0249b504e608328acacd518b3d287f62345b55174e2fdafdf9295f594f189309",
+      "size_bytes": 700352
+    },
+    "typed/expression_sources.parquet": {
+      "sha256": "a55082215be962cd226182bb9e6e05339b4f0c6651888fb6023121ed33cf784f",
+      "size_bytes": 4365
+    },
+    "typed/line_anchor_claims.parquet": {
+      "sha256": "cb1f796fc09f77580d9ea23f4ffffa6443a174d38da980645ac73c034edf004a",
+      "size_bytes": 4629
+    },
+    "typed/lineage_claims.parquet": {
+      "sha256": "c773accbf621037a7d1c2d8dfb2efd5eef3d3457f29296007412535d56f9c100",
+      "size_bytes": 4464
+    },
+    "typed/mhc_measurements.parquet": {
+      "sha256": "fc2e65c1ed5aad1460a0907c2774b6c8679dcbed663bf4bcb152c7c66d2df819",
+      "size_bytes": 30274921
+    },
+    "typed/mhc_observations.parquet": {
+      "sha256": "31f1c671147bf4c283cf439ba4706d2664e070bb9e3eac38778b19871c7c2913",
+      "size_bytes": 110352724
+    },
+    "typed/peptide_mapping_coverage.parquet": {
+      "sha256": "62eab74bda6acddc6ff4f48b829dfb7d2afa14a45ffa8db1de639c54513ad4e7",
+      "size_bytes": 13232432
+    },
+    "typed/peptide_protein_occurrences.parquet": {
+      "sha256": "e9f2e5c877bff4c3d5c8df9a804f1155d1aab4b92c39e3f0e9cd1d929de09173",
+      "size_bytes": 151559805
+    },
+    "typed/protocol_claims.parquet": {
+      "sha256": "09ef9ae174b6a443127834a67d18fa889d6a9b9b06d69740d1f44f49f1d5598a",
+      "size_bytes": 9438
+    }
+  },
+  "hitlist_version": "1.82.21",
+  "parent_manifest_sha256": "0d16dd1b9fd0708087d9f04df5c4c57c0f3166f48db513d41816c9bda2685e6b",
+  "reconciliation": {
+    "bulk_by_protocol_scope": [
+      {
+        "digestion_enzyme_raw": "Chymotrypsin",
+        "enrichment_raw": "none",
+        "grain": "peptide",
+        "n_fractions_in_run": 39,
+        "n_results": 99980,
+        "source": "Bekker-Jensen_2017"
+      },
+      {
+        "digestion_enzyme_raw": "GluC",
+        "enrichment_raw": "none",
+        "grain": "peptide",
+        "n_fractions_in_run": 39,
+        "n_results": 85909,
+        "source": "Bekker-Jensen_2017"
+      },
+      {
+        "digestion_enzyme_raw": "LysC",
+        "enrichment_raw": "none",
+        "grain": "peptide",
+        "n_fractions_in_run": 39,
+        "n_results": 90835,
+        "source": "Bekker-Jensen_2017"
+      },
+      {
+        "digestion_enzyme_raw": "Trypsin/P (cleaves K/R except before P)",
+        "enrichment_raw": "TiO2",
+        "grain": "peptide",
+        "n_fractions_in_run": 12,
+        "n_results": 59718,
+        "source": "Bekker-Jensen_2017"
+      },
+      {
+        "digestion_enzyme_raw": "Trypsin/P (cleaves K/R except before P)",
+        "enrichment_raw": "none",
+        "grain": "peptide",
+        "n_fractions_in_run": 14,
+        "n_results": 207570,
+        "source": "Bekker-Jensen_2017"
+      },
+      {
+        "digestion_enzyme_raw": "Trypsin/P (cleaves K/R except before P)",
+        "enrichment_raw": "none",
+        "grain": "peptide",
+        "n_fractions_in_run": 39,
+        "n_results": 165033,
+        "source": "Bekker-Jensen_2017"
+      },
+      {
+        "digestion_enzyme_raw": "Trypsin/P (cleaves K/R except before P)",
+        "enrichment_raw": "none",
+        "grain": "peptide",
+        "n_fractions_in_run": 46,
+        "n_results": 1118871,
+        "source": "Bekker-Jensen_2017"
+      },
+      {
+        "digestion_enzyme_raw": "Trypsin/P (cleaves K/R except before P)",
+        "enrichment_raw": "TiO2",
+        "grain": "peptide",
+        "n_fractions_in_run": 50,
+        "n_results": 39448,
+        "source": "Bekker-Jensen_2017"
+      },
+      {
+        "digestion_enzyme_raw": "Trypsin/P (cleaves K/R except before P)",
+        "enrichment_raw": "none",
+        "grain": "peptide",
+        "n_fractions_in_run": 70,
+        "n_results": 179639,
+        "source": "Bekker-Jensen_2017"
+      },
+      {
+        "digestion_enzyme_raw": "Chymotrypsin",
+        "enrichment_raw": "none",
+        "grain": "protein",
+        "n_fractions_in_run": 39,
+        "n_results": 9335,
+        "source": "Bekker-Jensen_2017"
+      },
+      {
+        "digestion_enzyme_raw": "GluC",
+        "enrichment_raw": "none",
+        "grain": "protein",
+        "n_fractions_in_run": 39,
+        "n_results": 9777,
+        "source": "Bekker-Jensen_2017"
+      },
+      {
+        "digestion_enzyme_raw": "LysC",
+        "enrichment_raw": "none",
+        "grain": "protein",
+        "n_fractions_in_run": 39,
+        "n_results": 10950,
+        "source": "Bekker-Jensen_2017"
+      },
+      {
+        "digestion_enzyme_raw": "Trypsin/P (cleaves K/R except before P)",
+        "enrichment_raw": "TiO2",
+        "grain": "protein",
+        "n_fractions_in_run": 12,
+        "n_results": 12716,
+        "source": "Bekker-Jensen_2017"
+      },
+      {
+        "digestion_enzyme_raw": "Trypsin/P (cleaves K/R except before P)",
+        "enrichment_raw": "none",
+        "grain": "protein",
+        "n_fractions_in_run": 14,
+        "n_results": 11557,
+        "source": "Bekker-Jensen_2017"
+      },
+      {
+        "digestion_enzyme_raw": "Trypsin/P (cleaves K/R except before P)",
+        "enrichment_raw": "none",
+        "grain": "protein",
+        "n_fractions_in_run": 39,
+        "n_results": 11053,
+        "source": "Bekker-Jensen_2017"
+      },
+      {
+        "digestion_enzyme_raw": "Trypsin/P (cleaves K/R except before P)",
+        "enrichment_raw": "none",
+        "grain": "protein",
+        "n_fractions_in_run": 46,
+        "n_results": 71199,
+        "source": "Bekker-Jensen_2017"
+      },
+      {
+        "digestion_enzyme_raw": "Trypsin/P (cleaves K/R except before P)",
+        "enrichment_raw": "TiO2",
+        "grain": "protein",
+        "n_fractions_in_run": 50,
+        "n_results": 7232,
+        "source": "Bekker-Jensen_2017"
+      },
+      {
+        "digestion_enzyme_raw": "Trypsin/P (cleaves K/R except before P)",
+        "enrichment_raw": "none",
+        "grain": "protein",
+        "n_fractions_in_run": 70,
+        "n_results": 12392,
+        "source": "Bekker-Jensen_2017"
+      },
+      {
+        "digestion_enzyme_raw": "Trypsin/P (cleaves K/R except before P)",
+        "enrichment_raw": "none",
+        "grain": "protein",
+        "n_fractions_in_run": null,
+        "n_results": 66074,
+        "source": "CCLE_Nusinow_2020"
+      }
+    ],
+    "bulk_by_source_grain": [
+      {
+        "grain": "peptide",
+        "n_results": 2047003,
+        "source": "Bekker-Jensen_2017"
+      },
+      {
+        "grain": "protein",
+        "n_results": 156211,
+        "source": "Bekker-Jensen_2017"
+      },
+      {
+        "grain": "protein",
+        "n_results": 66074,
+        "source": "CCLE_Nusinow_2020"
+      }
+    ],
+    "expression_by_source": [
+      {
+        "n_results": 19193,
+        "source": "DepMap_24Q4_HAP1_gene"
+      },
+      {
+        "n_results": 23716,
+        "source": "ENCODE_GM12878_polyA_rnaseq"
+      }
+    ],
+    "mapping_occurrence_schema": "mapping_id: string\nnative_row_index: int64\npeptide: large_string\nprotein_id: large_string\ngene_name: large_string\ngene_id: large_string\ngene_biotype: large_string\ntranscript_id: large_string\nis_canonical_transcript: bool\nposition: int64\nn_flank: large_string\nc_flank: large_string\nproteome: large_string\nproteome_source: large_string",
+    "n_bulk_measurements": 2491573,
+    "n_bulk_peptide_results": 2047003,
+    "n_bulk_protein_results": 222285,
+    "n_bulk_protocol_scopes": 5,
+    "n_bulk_results": 2269288,
+    "n_eligible_input_peptides": 1506664,
+    "n_expression_measurements": 85818,
+    "n_expression_profiles": 2,
+    "n_expression_results": 42909,
+    "n_expression_sources": 6,
+    "n_expression_transcript_results": 0,
+    "n_line_anchor_claims": 21,
+    "n_line_anchors_with_v4_measurement": 2,
+    "n_mapped_input_peptides": 1145721,
+    "n_mapping_occurrences": 6205013,
+    "n_mapping_peptides_without_eligible_input": 0,
+    "n_raw_input_peptides": 1506973,
+    "n_unmapped_input_peptides": 360943
+  },
+  "relation_keys": {
+    "bulk_observation_id": "observation_id",
+    "expression_observation_id": "observation_id",
+    "mapping_id": "mapping_id",
+    "mapping_to_bulk_peptide": "peptide_sequence",
+    "mapping_to_mhc": "peptide_sequence",
+    "physical_material_join": "unresolved",
+    "surrogate_line_anchor": "line_name"
+  },
+  "schema_version": 3,
+  "source_asset_generation": "v4-supporting-sources-2026-10-16",
+  "source_asset_receipt_sha256": "baa0da5ac120c71a58252587cc48503fb76fffd82463309e067b612862c88436",
+  "source_registry": {
+    "bulk_v4": {
+      "license_status": "unverified",
+      "n_results": 2269288,
+      "native_artifact": "native/bulk_proteomics.parquet",
+      "source_asset_receipt_sha256": "baa0da5ac120c71a58252587cc48503fb76fffd82463309e067b612862c88436"
+    },
+    "line_expression_v4": {
+      "license_status": "source_specific_in_bundled_registry",
+      "n_results": 42909,
+      "native_artifact": "native/line_expression.parquet",
+      "source_asset_receipt_sha256": "baa0da5ac120c71a58252587cc48503fb76fffd82463309e067b612862c88436"
+    },
+    "peptide_mapping_v4": {
+      "license_status": "unverified",
+      "n_relations": 6205013,
+      "native_artifact": "native/peptide_mappings.parquet",
+      "reference_contract": "native/peptide_mappings_meta.json"
+    }
+  }
+}
