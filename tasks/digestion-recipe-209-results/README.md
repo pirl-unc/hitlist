@@ -1,7 +1,9 @@
 # Soh digestion arithmetic and bounded time-course recipe (2.0.9 candidate)
 
 Source: Soh et al. 2024, MSV000092631 / PXD044463. This review advances #775
-under #770. The source package is the independently reviewed 2.0.8 candidate
+under #770. Hitlist 2.0.8 is published from the exact clean-main release run
+`39979099617` with both PyPI file hashes verified. The source package is the
+independently reviewed 2.0.8 candidate
 `/private/tmp/hitlist-v2-digestion-208-unit-candidate`, manifest SHA-256
 `ad62414d511b74a6aa1e4da457fdff68d9f4527874d1a2e385c65e5b98df41e8`.
 It has 251 hashed files. The recipe materialization reads that verified package
