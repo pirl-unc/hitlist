@@ -44,10 +44,13 @@ def _reference_metadata(directory, parent):
     return json.loads((Path(directory) / PARENT_MANIFESTS["reference"]).read_text())["reference"]
 
 
-def verify_external_successor(directory):
+def verify_external_successor(
+    directory, *, manifest_path="manifest.json", allow_additional_files=False
+):
     """Verify the full inventory, embedded predecessor and appended sources."""
     directory = Path(directory)
-    manifest = json.loads((directory / "manifest.json").read_text())
+    manifest_path = Path(manifest_path)
+    manifest = json.loads((directory / manifest_path).read_text())
     version = (manifest.get("schema_version"), manifest.get("catalog_schema_version"))
     if package_family(manifest) != "external" or version not in READABLE_SCHEMA_VERSIONS:
         raise ValueError("Unsupported external successor schema")
@@ -66,9 +69,9 @@ def verify_external_successor(directory):
     actual = {
         str(path.relative_to(directory))
         for path in directory.rglob("*")
-        if path.is_file() and path != directory / "manifest.json"
+        if path.is_file() and path != directory / manifest_path
     }
-    if set(files) != actual:
+    if not (set(files) <= actual if allow_additional_files else set(files) == actual):
         raise ValueError("External successor inventory mismatch")
     for name, digest in files.items():
         if file_digest(directory / _safe_relative(name)) != digest:

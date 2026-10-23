@@ -7886,3 +7886,32 @@ No new biological model fit.
 PR #776 is open as a draft. Local format/lint, 3,351 full tests,
 strict docs, distribution gates and both independent real-source verifiers pass.
 Final-head hosted CI, review, merge and PyPI publication are still required.
+
+Release update: PR #776 merged as `3a7844f`; clean-main run `39985180560`
+passed and exact wheel/sdist hashes were verified on PyPI as Hitlist 2.0.9.
+Issue #775 is closed. The broader source-selection, RF1, MS-response and
+biological-fit questions remain in #770.
+
+## Binding assay protocol context (#721)
+
+Plan: [binding-assay-context-210.md](binding-assay-context-210.md).
+
+- [x] Inspect pinned v4/cohort schemas and source-study coverage; pin one
+      primary article and its literal method claims.
+- [x] Implement a portable reviewed-evidence successor with assay-grain
+      review links and study-scope protocol claims.
+- [x] Audit all corrected-cohort binding/IC50 rows and independently verify
+      real package conservation, source anchors and query behavior.
+- [ ] Run all required local and hosted gates, review, merge and publish 2.0.10.
+
+Review: 25,896 corrected-cohort binding assays contain 8,084 literal IC50
+results over 198 populated PMIDs plus 543 PMID-unknown rows; only 560 IC50
+rows have a populated assay comment. PMID 28481943 contributes 910 cohort
+rows plus 28 same-study influenza controls in full v4. Its published method
+reports ranges and alternatives that remain at their reported scope. The
+256-file real successor and independent replay conserve all 251 predecessor
+files and 814,268 original binding result IDs. All 21 protocol claims match
+source excerpts. Format/lint/36 focused tests pass. The default local full
+test runner refused at 2.18GiB free versus its 2.5GiB preflight requirement;
+the hosted gate is still required. No binding labels or donor/replicate counts
+changed. See [binding-assay-context-210-results/README.md](binding-assay-context-210-results/README.md).

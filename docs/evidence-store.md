@@ -18,6 +18,12 @@ Actual source presence,
 rather than the version number alone, determines available relations in the
 verified generation.
 
+A source-reviewed binding successor uses package schema 10 and catalog 15. It
+embeds the complete verified schema-9 predecessor, the original article XML,
+the review ledger, and both typed review relations. The same package path opens
+all inherited and new evidence. Every predecessor file is retained and checked
+against its original digest.
+
 ```python
 from hitlist import EvidenceStore
 
@@ -27,7 +33,7 @@ print(catalog["package_manifest_sha256"])
 print([(item["name"], item.get("n_rows")) for item in catalog["evidence"]])
 ```
 
-The review-augmented 2.0 package contains 54 materialized evidence types and
+The schema-10 review-augmented package contains 56 materialized evidence types and
 four declared contracts. The predecessor numeric and reference packages remain
 readable and report later types as `not_in_generation`. The catalog
 identifies grain, source population, endpoint, ingest requirements,
@@ -45,6 +51,53 @@ rows are assay IDs; the bounded training projection contains 47,421 direct
 functional and 8,423 multimer examples. The 2,269,288 bulk and 42,909
 expression source rows include linked numeric representations without becoming
 MHC or T-cell labels.
+
+## Binding protocol review
+
+`binding_assay_context` has one row for each of the 814,268 v4 binding assay
+results, keyed by the original `observation_id`. Its original source assay ID,
+PMID, method, endpoint, raw measurement, unit and inequality are immutable
+anchors. `review_status` is `source_reviewed_study_scope` for the 938 results
+from PMID 28481943 and `not_source_reviewed` for every other result. The 938
+include 910 results in the corrected human-source-organism cohort and 28
+influenza peptide controls outside that cohort. An unreviewed row has a null
+`protocol_id`; it does not assert that protocol details were absent.
+
+`binding_protocol_claim` has one row per source-scoped protocol assertion, not
+one per assay or biological replicate. The current 21 claims cite the article
+URL, original XML hash, Methods section and supporting excerpt. Statuses
+distinguish a reported study-wide condition, a locus-specific condition, an
+unresolved range or alternative, a reported interpretation, and an unreported
+field. Source silence never means explicit absence. In this study, the exact
+temperature, tracer concentration and peptide purity of an individual assay
+are unresolved. The paper's conditional statement about IC50 approximating KD
+is retained as interpretation; no KD measurement or label is created.
+
+```python
+reviewed = store.query(
+    "mhc_binding",
+    select=["observation_id", "reported_measurement.endpoint_reported",
+            "binding_assay_context.review_status",
+            "binding_assay_context.protocol_id"],
+    joins=["reported_measurement", "binding_assay_context"],
+    where={"binding_assay_context.review_status": "source_reviewed_study_scope"},
+    limit=100,
+)
+temperature = store.query(
+    "binding_protocol_claim",
+    select=["protocol_id", "assertion_value", "claim_status",
+            "claim_applicability", "source_locator"],
+    where={"assertion_predicate": "incubation_temperature_alternatives"},
+)
+```
+
+To construct this generation, call
+`write_binding_assay_context_package(predecessor_package, source_xml, destination)`
+with the verified schema-9/catalog-14 package and the pinned Europe PMC
+`PMC5421785/fullTextXML` bytes. The writer checks the source hash, pinned v4
+and cohort manifests, exact assay identities and every inherited file before
+publishing the successor. See
+[the source review and audit](https://github.com/pirl-unc/hitlist/blob/main/tasks/binding-assay-context-210-results/README.md).
 
 ## Query one evidence grain
 

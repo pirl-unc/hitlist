@@ -160,6 +160,10 @@ class EvidenceStore:
             from .external_successor import verify_external_successor
 
             manifest = verify_external_successor(directory)
+        elif family == "binding_review":
+            from .binding_assay_context import verify_binding_assay_context_package
+
+            manifest = verify_binding_assay_context_package(directory)
         elif family == "adjudication":
             manifest = verify_assay_adjudication_package(directory)
         elif family == "reference":

@@ -46,6 +46,8 @@ numeric cell.
   scientific decisions behind the current package.
 - [Purified digestion evidence](https://github.com/pirl-unc/hitlist/blob/main/docs/digestion-evidence.md):
   original MS1, acquisition, substrate and conflict relations with training admission limits.
+- [Binding protocol review](https://github.com/pirl-unc/hitlist/blob/main/tasks/binding-assay-context-210-results/README.md):
+  source-scoped assay conditions, explicit unknowns, and complete binding-row reconciliation.
 - [Legacy 1.x README](https://github.com/pirl-unc/hitlist/blob/main/docs/legacy-1x.md): historical indexes and commands.
   Its sample-level and training-readiness descriptions were superseded by
   the verified corpus audits and should not be used as current labels.

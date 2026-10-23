@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, replace
 
-SCHEMA_VERSION = 14
+SCHEMA_VERSION = 15
 FIELD_ROLES = frozenset(
     {
         "identity",
@@ -463,6 +463,17 @@ FIELDS = (
     _field("contributor_status", "relation", "category", "Source-to-observation relationship"),
     _field("review_revision", "provenance", "identifier", "Immutable source-review revision"),
     _field("review_status", "annotation", "category", "Resolution status of one source review"),
+    _field("protocol_id", "protocol", "identifier", "One source-reviewed assay protocol"),
+    _field(
+        "claim_applicability",
+        "protocol",
+        "category",
+        "Study-wide or locus-specific scope of a protocol claim",
+        "unreported",
+        "unresolved",
+        "not_applicable",
+    ),
+    _field("source_excerpt", "provenance", "text", "Literal source text supporting a claim"),
     _field(
         "interpretation_code", "annotation", "category", "Controlled source-review interpretation"
     ),
@@ -1211,6 +1222,62 @@ EVIDENCE = (
         status="v2_materialized",
         materialized_artifact="tcell/adjudication/reviews.parquet",
         min_package_schema_version=8,
+    ),
+    Evidence(
+        "binding_assay_context",
+        "relation",
+        "mhc_binding",
+        "one_review_state_per_binding_assay_result",
+        "binding_review/review.json",
+        "mhc_v4_binding_review",
+        (),
+        (
+            "observation_id",
+            "source_assay_id",
+            "source_pmid",
+            "source_dataset",
+            "endpoint_reported",
+            "assay_method",
+            "quantitative_raw",
+            "measurement_unit",
+            "measurement_inequality",
+            "review_status",
+            "protocol_id",
+            "review_revision",
+        ),
+        ("observation_id",),
+        status="v2_materialized",
+        materialized_artifact="binding_review/binding_assay_context.parquet",
+        min_package_schema_version=10,
+    ),
+    Evidence(
+        "binding_protocol_claim",
+        "context",
+        "mhc_binding",
+        "one_source_scoped_protocol_assertion",
+        "binding_review/source.xml",
+        "mhc_v4_binding_review",
+        (),
+        (
+            "claim_id",
+            "protocol_id",
+            "assertion_predicate",
+            "assertion_value",
+            "measurement_unit",
+            "claim_status",
+            "claim_applicability",
+            "source_scope",
+            "review_revision",
+            "source_pmid",
+            "publication_url",
+            "source_asset_sha256",
+            "source_locator",
+            "source_excerpt",
+        ),
+        ("claim_id", "protocol_id", "claim_status"),
+        status="v2_materialized",
+        materialized_artifact="binding_review/binding_protocol_claims.parquet",
+        min_package_schema_version=10,
     ),
     Evidence(
         "bulk_ms_peptide",

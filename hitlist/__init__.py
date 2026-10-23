@@ -62,6 +62,8 @@ _PUBLIC_API: dict[str, str] = {
     "verify_reference_evidence_package": ".reference_evidence",
     "write_assay_adjudication_package": ".assay_adjudication",
     "verify_assay_adjudication_package": ".assay_adjudication",
+    "write_binding_assay_context_package": ".binding_assay_context",
+    "verify_binding_assay_context_package": ".binding_assay_context",
     "write_mhc_evidence_package": ".mhc_evidence",
     "verify_mhc_evidence_package": ".mhc_evidence",
     "write_context_evidence_package": ".context_evidence",
