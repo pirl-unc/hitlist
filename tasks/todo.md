@@ -7623,7 +7623,10 @@ accepted training rows and changed eligibility. Schema-8 review queries join
 to the original assay, outcome, antigen and eligibility without multiplying
 the source assay. Schema 7 remains readable and marks the review relation
 `not_in_generation`. A source-registry inheritance failure found by the real
-package replay was fixed and covered by a focused regression.
+package replay was fixed and covered by a focused regression. The Hombrink
+source URL was corrected from the landing page to the publisher's direct PDF
+endpoint after a fresh download matched its pinned SHA-256; the final package
+and distributions were rebuilt from those reviewed bytes.
 
 The real schema-8 successor has 126 hashed files: all 123 predecessor files
 match by SHA-256 and occupy distinct inodes, plus the predecessor manifest,

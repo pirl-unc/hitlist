@@ -20,7 +20,7 @@ from .reference_evidence import _safe_relative, verify_reference_evidence_packag
 PACKAGE_SCHEMA_VERSION = 8
 CATALOG_SCHEMA_VERSION = 10
 REVIEW_REVISION = "tcell_multimer_2026_10_23"
-REVIEW_SHA256 = "71a6e4e9d151391ea2a1136cd9f95b42702f7c8466265830e8859ee1a1bff9ca"
+REVIEW_SHA256 = "0cc78c8f956abccda03053e474019d6c8b1a762b45373c469891f9a933a81f11"
 REVIEW_SOURCE = files("hitlist").joinpath("data/assay_adjudications.yaml")
 REVIEW_ASSET = Path("tcell/adjudication/reviews.yaml")
 REVIEW_TABLE = Path("tcell/adjudication/reviews.parquet")

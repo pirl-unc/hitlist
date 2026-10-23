@@ -18,7 +18,7 @@ sources:
   hombrink_2015:
     source_pmid: '25589627'
     publication_url: https://pubmed.ncbi.nlm.nih.gov/25589627/
-    source_asset_url: https://aacr.figshare.com/articles/journal_contribution/Supplementary_Table_3_from_Identification_of_Biological_Relevant_Minor_Histocompatibility_Antigens_within_the_B-lymphocyte_Derived_HLA-Ligandome_Using_a_Reverse_Immunology_Approach/22459571
+    source_asset_url: https://api.figshare.com/v2/file/download/39910871
     source_asset_sha256: fa6758ca9d58cf4691dc9b6a0f17575ec88215fb023998a730cb7abe8b264058
     source_asset_status: sha256_pinned
     source_locator: Supplementary Table III, HNF4G-1M column after first and second multimer pull-down

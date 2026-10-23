@@ -3,7 +3,7 @@
 This review is first-class `assay_adjudication` evidence in the schema-8
 successor package. Its versioned input is
 [`hitlist/data/assay_adjudications.yaml`](../../hitlist/data/assay_adjudications.yaml),
-SHA-256 `71a6e4e9d151391ea2a1136cd9f95b42702f7c8466265830e8859ee1a1bff9ca`.
+SHA-256 `0cc78c8f956abccda03053e474019d6c8b1a762b45373c469891f9a933a81f11`.
 Each row is a review of one IEDB source assay ID, not another measured assay or
 one independent donor. Its claim links to the original outcome, antigen,
 eligibility and IEDB/CEDAR contributor relations by `source_assay_id`.
@@ -41,7 +41,9 @@ III](https://aacr.figshare.com/articles/journal_contribution/Supplementary_Table
 reports measurements after one or two MHC-multimer pull-down and expansion
 rounds. IEDB's `Direct Ex Vivo` identifies starting material, while the
 source's measured lines have undergone preparation. The publication does not
-resolve IEDB's Positive/0-of-6 discrepancy. The publisher PDFs are linked and
+resolve IEDB's Positive/0-of-6 discrepancy. The ledger's
+[direct publisher file endpoint](https://api.figshare.com/v2/file/download/39910871)
+was checked against the stated SHA-256. The publisher PDFs are linked and
 hash-pinned in the review ledger, not redistributed in the package.
 
 ## Package and count reconciliation
@@ -50,12 +52,12 @@ The writer verified the schema-7 predecessor at
 `/private/tmp/hitlist-v2-reference-200-final`, independently snapshotted all
 123 listed files, added its exact predecessor manifest, the review input and
 the nine-row Parquet relation, then verified the resulting 126-file schema-8
-package at `/private/tmp/hitlist-v2-adjudication-204-final`. The parent manifest
+package at `/private/tmp/hitlist-v2-adjudication-204-reviewed`. The parent manifest
 SHA-256 is `d99f67e625c6c33a2054a56dea4f98fb8248ca5f717cc98af3662f228655fa6a`;
 the new root manifest SHA-256 is
-`f00c12acdb84bfd68e05933c53f27e8e49db43655ac734d08a9be91ae14f48ea`.
+`8f35dc5529b376f1b2e3b25f91dd2f2dc57d0a53c4d8a76c094294193708c9b6`.
 The review Parquet SHA-256 is
-`5c8d1a1243c2767d8631307fd4c5939c70abe69c5556edf30a386a55009cd3a2`.
+`6f712666aede4ba12dd95cd9cb17f28dc721b344b28ca3a8b53f12907a36755a`.
 All predecessor file hashes match, and predecessor and successor files have
 distinct inodes.
 
