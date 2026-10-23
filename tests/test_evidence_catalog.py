@@ -196,11 +196,11 @@ def test_index_requirements_are_weaker_than_task_requirements():
 
 
 def test_available_captured_fragment_task_resolves_registered_recipe_contracts():
-    from hitlist.evidence_recipes import list_training_recipes
+    from hitlist.mapp_composition import registered_contracts
 
     task = describe_task("captured_fragment_conditional_composition")
     assert task["status"] == "v2_recipe_available"
-    assert set(task["recipe_ids"]) == {r["recipe_id"] for r in list_training_recipes()}
+    assert set(task["recipe_ids"]) == {r["recipe_id"] for r in registered_contracts()}
 
 
 def test_strict_description_and_deterministic_json():
@@ -266,7 +266,7 @@ def test_catalog_import_does_not_build_or_download(tmp_path):
         text=True,
         cwd=Path(__file__).parents[1],
     )
-    assert probe.stdout.strip() == "9"
+    assert probe.stdout.strip() == "10"
     assert not data_root.exists()
 
 

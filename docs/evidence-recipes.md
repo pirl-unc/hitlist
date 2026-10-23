@@ -1,31 +1,38 @@
-# Declared training recipes
+# Registered distribution recipes
 
-`hitlist.evidence_recipes` materializes registered endpoints from a verified
-shared evidence generation. Discover the captured-fragment task through
-`hitlist.evidence_catalog.describe_task("captured_fragment_conditional_composition")`;
-its `recipe_ids` identify the executable contracts.
+`EvidenceStore.materialize` handles both row-wise recipes and registered distribution
+tasks. Discover the latter through `store.catalog()["registered_recipes"]`; status
+is computed from the relations actually present in the verified generation.
 
 ```python
-from hitlist.evidence_recipes import (
-    list_training_recipes, write_training_recipe, verify_training_recipe,
-)
+from hitlist import EvidenceStore
+from hitlist.evidence_recipe import verify_recipe_package
 
-contracts = list_training_recipes()
-manifest = write_training_recipe(
-    external_package,
-    new_destination,
-    recipe_id="mapp_captured_composition_min2_v1",
-)
-verify_training_recipe(new_destination)
+store = EvidenceStore.open(current_package)
+recipe = {
+    "schema_version": 1,
+    "name": "mapp-observed-composition",
+    "registered_recipe": "mapp_captured_composition_min2_v1",
+}
+manifest = store.materialize(recipe, new_destination)
+verify_recipe_package(new_destination, source_package=current_package)
 ```
+
+The same JSON/YAML request works with `hitlist evidence materialize PACKAGE RECIPE OUTPUT`
+and `hitlist evidence verify-recipe OUTPUT --source-package PACKAGE`. The canonical
+manifest records `output_kind: registered_distribution`, the exact request, immutable
+registered contract, source package hash/schema and source-peptide coverage. Distribution
+examples retain their candidate sets; they are not independent scalar labels. The
+JSONL relations preserve the prior experimental targets and source provenance.
 
 Unknown recipes and existing destinations fail explicitly. The writer verifies
 the source package before reading typed relations and publishes into a new
 directory after all files are complete. It emits the recipe contract, copied
 source manifest, every peptide's admission/exclusion reasons, full parent
 sequences, original accessions, all peptide positions, examples, measurement/run/
-evidence contributors, coverage and file hashes. The output verifier checks
-inventory, bytes and contract; independent source replay is a separate check.
+evidence contributors, coverage and file hashes. The output verifier checks inventory, bytes, contract, coverage, source binding,
+probability arithmetic, mappings and contributors; independent original-source replay
+remains a separate check.
 
 Both initial recipes use human HEK293 MAPP PXD009092, untreated versus TNF+IFN,
 with canonical peptides/parents, no reverse or contaminant flag, one source group,
@@ -44,14 +51,16 @@ protein groups. It constrains exact overlap, not homology/specimen independence.
 Targets normalize published, nonimputed median-filtered intensities within each
 parent and condition. Original log10 values remain, and all three run contributors
 survive, including filter zeros. The normalization removes a common parent-wide
-scale, but peptide-dependent capture/MS response remains. This endpoint predicts
+scale, including true changes in processing yield, while peptide-dependent capture/MS
+response remains. This endpoint predicts
 relative captured signal conditional on an observed set; mass outside the set is
 unidentified and unreported peptides are not negatives. It is not a calibrated
 intracellular concentration or professional-APC validation endpoint.
 
-These recipes are a scoped foundation for [the unified query/recipe work #739](https://github.com/pirl-unc/hitlist/issues/739),
-not a completed multi-modality major release. They require the MAPP schema2 source
-adapter in [PR758](https://github.com/pirl-unc/hitlist/pull/758). Independent precursor
+The MAPP schema2 adapter is appended to the complete Hitlist 2.0 reference generation
+with `hitlist evidence append-sources REFERENCE_PACKAGE OUTPUT --source-root pxd009092=ASSETS`.
+The schema8 successor preserves every predecessor byte, source and modality; old
+experimental packages and receipts are not relabeled. Independent precursor
 estimates and exact parallel-proteome pairing remain in [#757](https://github.com/pirl-unc/hitlist/issues/757).
 
 ## Complete-run observation recipe
@@ -67,7 +76,8 @@ base-recipe peptide, including ineligible peptides and filtered zeros. It preser
 the original channel and measurement records, acquisition/file and replicate labels,
 source metadata, exact evidence contributors and explicit complete-peptide/parent
 eligibility. Extra exclusion reasons remain in the all-source disposition ledger.
-Old recipes and byte contracts are unchanged.
+Prior target, contributor and disposition records are unchanged; the canonical
+source/recipe envelope records the new generation separately.
 
 This supports run-repeatability diagnostics without logging zeros or adding
 pseudocounts. Complete-case selection changes the population. Acquisition labels

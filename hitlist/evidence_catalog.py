@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 
-SCHEMA_VERSION = 9
+SCHEMA_VERSION = 10
 FIELD_ROLES = frozenset(
     {
         "identity",
@@ -203,7 +203,6 @@ FIELDS = (
     _field("reported_value", "target", "number", "Source-reported numeric value"),
     _field("recomputed_value", "target", "number", "Audited recomputation of a source value"),
     _field("result_id", "identity", "identifier", "One typed result in a source panel"),
-    _field("peptide_row_id", "identity", "identifier", "One peptide row in a source panel"),
     _field("quantitative_status", "target", "category", "Reported, unresolved or unreported value"),
     _field("qualitative_status", "target", "category", "Reported or unreported qualitative tier"),
     _field("measurement_unit", "target", "category", "Reported unit, before any conversion"),
@@ -518,6 +517,24 @@ _TCELL_CONTEXT = (
     "peptide_mhc_restriction",
     "restriction_evidence",
 )
+
+
+def _mapp_evidence(name, table, kind, grain, fields, required, endpoints=()):
+    path = f"external/pxd009092/typed/{table}.parquet"
+    return Evidence(
+        name,
+        kind,
+        "quantitative_ms",
+        grain,
+        path,
+        "PXD009092",
+        endpoints,
+        ("source_dataset", *fields),
+        required,
+        status="v2_materialized",
+        materialized_artifact=path,
+    )
+
 
 EVIDENCE = (
     Evidence(
@@ -1326,6 +1343,141 @@ EVIDENCE = (
         status="v2_materialized",
         materialized_artifact="external/pxd057588/typed/reference_result_context.parquet",
     ),
+    _mapp_evidence(
+        "mapp_source_record",
+        "source_records",
+        "relation",
+        "one_original_source_table_row",
+        ("source_record_id", "source_file", "source_row_index"),
+        ("source_record_id",),
+    ),
+    _mapp_evidence(
+        "mapp_peptide",
+        "peptide_rows",
+        "relation",
+        "one_deposited_peptide_row",
+        (
+            "peptide_row_id",
+            "source_record_id",
+            "peptide_sequence",
+            "parent_label_raw",
+            "measured_pool",
+            "material_link_precision",
+        ),
+        ("peptide_row_id", "source_record_id"),
+    ),
+    _mapp_evidence(
+        "mapp_group",
+        "groups",
+        "relation",
+        "one_deposited_protein_group",
+        ("source_record_id", "parent_label_raw"),
+        ("source_record_id",),
+    ),
+    _mapp_evidence(
+        "mapp_channel",
+        "channels",
+        "context",
+        "one_source_acquisition_run",
+        (
+            "channel_id",
+            "source_record_id",
+            "source_file",
+            "sample_label_raw",
+            "condition_text",
+            "organism_name",
+            "cell_line_name",
+            "measured_pool",
+            "material_link_precision",
+            "search_enzyme",
+        ),
+        ("channel_id", "source_record_id"),
+    ),
+    _mapp_evidence(
+        "mapp_identification",
+        "evidence",
+        "observation",
+        "one_deposited_peptide_identification",
+        (
+            "observation_id",
+            "source_record_id",
+            "peptide_row_id",
+            "channel_id",
+            "peptide_sequence",
+            "peptide_modifications_raw",
+            "quantitative_value",
+            "value_status",
+        ),
+        ("observation_id", "source_record_id"),
+    ),
+    _mapp_evidence(
+        "mapp_quantity_measurement",
+        "quantity_measurements",
+        "measurement",
+        "one_result_representation",
+        (
+            "measurement_id",
+            "result_id",
+            "peptide_row_id",
+            "representation",
+            "value_status",
+            "measurement_unit",
+            "quantity_scale",
+            "quantitative_value",
+            "recomputed_value",
+            "source_locator",
+        ),
+        ("measurement_id", "result_id"),
+    ),
+    _mapp_evidence(
+        "mapp_derivation_input",
+        "derivation_inputs",
+        "relation",
+        "one_quantity_derivation_edge",
+        ("derived_measurement_id", "input_measurement_id"),
+        ("derived_measurement_id", "input_measurement_id"),
+    ),
+    _mapp_evidence(
+        "mapp_source_assertion",
+        "source_assertions",
+        "context",
+        "one_source_scoped_assertion",
+        (
+            "claim_id",
+            "assertion_predicate",
+            "assertion_value",
+            "assertion_status",
+            "source_locator",
+            "source_scope",
+        ),
+        ("claim_id",),
+    ),
+    _mapp_evidence(
+        "mapp_publisher_cell",
+        "publisher_cells",
+        "relation",
+        "one_original_publisher_workbook_cell",
+        ("source_cell", "source_file", "quantitative_raw"),
+        ("source_cell",),
+    ),
+    _mapp_evidence(
+        "mapp_publisher_quantity",
+        "publisher_quantities",
+        "measurement",
+        "one_publisher_peptide_condition_representation",
+        (
+            "measurement_id",
+            "peptide_row_id",
+            "source_cell",
+            "representation",
+            "condition_text",
+            "value_status",
+            "measurement_unit",
+            "quantitative_value",
+            "recomputed_value",
+        ),
+        ("measurement_id", "peptide_row_id"),
+    ),
     Evidence(
         "external_proteasome_fragment_quantity",
         "observation",
@@ -1335,6 +1487,9 @@ EVIDENCE = (
         "PXD009092",
         ("proteasome_associated_fragment_abundance",),
         (
+            "result_id",
+            "peptide_row_id",
+            "channel_id",
             "source_dataset",
             "source_record_id",
             "peptide_sequence",
@@ -1346,7 +1501,7 @@ EVIDENCE = (
             "quantity_scale",
             "instrument",
         ),
-        ("source_dataset", "source_record_id", "peptide_sequence", "measured_pool"),
+        ("result_id", "peptide_row_id", "channel_id", "measured_pool"),
         status="v2_materialized",
         materialized_artifact="external/pxd009092/typed/quantity_results.parquet",
     ),

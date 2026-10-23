@@ -8,6 +8,7 @@ nav:
   - Home: index.md
   - How Curation Works: curation-process.md
   - Assay Modality and MS Evidence: assay-modality.md
+  - Evidence Store and Query: evidence-store.md
   - Evidence Catalog: evidence-catalog.md
   - Declared Training Recipes: evidence-recipes.md
   - MAPP Fragment Evidence: mapp-evidence.md

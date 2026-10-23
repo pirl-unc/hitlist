@@ -9,7 +9,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
-from hitlist import evidence_recipes as recipes
+from hitlist import mapp_composition as recipes
 
 
 def _tables():
@@ -223,32 +223,114 @@ def test_two_peptide_extension_keeps_existing_splits_and_quantities():
         recipes.compile_mapp_recipe(tables)
 
 
-@pytest.mark.parametrize("recipe_id", [recipes.RECIPE_ID, recipes.RUN_RECIPE_ID])
-def test_registered_export_is_immutable_and_hash_bound(tmp_path, monkeypatch, recipe_id):
+def _store_tables(tmp_path, tables):
+    from hitlist.distribution_recipe import TABLE_BINDINGS
+    from hitlist.evidence_bindings import materialized_bindings
+    from hitlist.evidence_store import EvidenceStore
+
+    store = EvidenceStore.__new__(EvidenceStore)
+    store.directory = tmp_path
+    store.manifest = {"schema_version": 8, "appended_sources": {"pxd009092": {}}}
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    (tmp_path / "manifest.json").write_text(json.dumps(store.manifest))
+    bindings = materialized_bindings(8, appended_source_ids=["pxd009092"])
+    store.bindings, store.schemas = {}, {}
+    for table, rows in tables.items():
+        name = TABLE_BINDINGS[table]
+        path = tmp_path / bindings[name][0].materialized_artifact
+        path.parent.mkdir(parents=True, exist_ok=True)
+        pq.write_table(pa.Table.from_pylist(rows), path)
+        store.bindings[name] = bindings[name]
+        store.schemas[name] = pq.ParquetFile(path).schema_arrow
+    return store
+
+
+@pytest.mark.parametrize("recipe_id", list(recipes.RECIPES))
+def test_registered_export_is_immutable_and_hash_bound(tmp_path, recipe_id):
+    from hitlist.evidence_recipe import verify_recipe_package
+
     tables = _complete_tables() if recipe_id == recipes.RUN_RECIPE_ID else _tables()
-    source = tmp_path / "source"
-    typed = source / "external/pxd009092/typed"
-    typed.mkdir(parents=True)
-    (source / "manifest.json").write_text(json.dumps({"fixture": True}))
-    for name, rows in tables.items():
-        pq.write_table(pa.Table.from_pylist(rows), typed / f"{name}.parquet")
-    # Real package verification is covered by the real-source experiment; this
-    # fixture isolates the recipe export's own atomicity and immutable bytes.
-    monkeypatch.setattr(recipes, "verify_external_evidence_package", lambda _: None)
+    store = _store_tables(tmp_path / "source", tables)
     output = tmp_path / "output"
-    with pytest.raises(ValueError, match="Unknown"):
-        recipes.write_training_recipe(source, output, recipe_id="invented")
+    recipe = {"schema_version": 1, "name": "fixture", "registered_recipe": recipe_id}
+    with pytest.raises(ValueError, match="unknown"):
+        store.materialize({**recipe, "registered_recipe": "invented"}, output)
     assert not output.exists()
-    recipes.write_training_recipe(source, output, recipe_id=recipe_id)
-    recipes.verify_training_recipe(output)
+    with pytest.raises(ValueError, match="Invalid"):
+        store.materialize({**recipe, "limit": 1}, output)
+    store.materialize(recipe, output)
+    verified = verify_recipe_package(output, source_package=store.directory)
+    assert verified["output_kind"] == "registered_distribution"
+    compiled = recipes.compile_mapp_recipe(tables, recipe_id=recipe_id)
+    for name, values in compiled.items():
+        if name == "summary":
+            actual = json.loads((output / "summary.json").read_text())
+        else:
+            actual = [
+                json.loads(line) for line in (output / f"{name}.jsonl").read_text().splitlines()
+            ]
+        assert actual == values
     with pytest.raises(FileExistsError):
-        recipes.write_training_recipe(source, output, recipe_id=recipe_id)
+        store.materialize(recipe, output)
     (output / "examples.jsonl").write_text("modified")
-    with pytest.raises(ValueError, match="byte mismatch"):
-        recipes.verify_training_recipe(output)
-    contract = recipes.list_training_recipes()[0]
+    with pytest.raises(ValueError, match="artifact mismatch"):
+        verify_recipe_package(output)
+    contract = recipes.registered_contracts()[0]
     contract["selection"]["max_reported_peptide_pep"] = 1
-    assert recipes.list_training_recipes()[0]["selection"]["max_reported_peptide_pep"] == 0.01
+    assert recipes.registered_contracts()[0]["selection"]["max_reported_peptide_pep"] == 0.01
+
+
+def test_registered_recipe_missing_sources_fail_without_output(tmp_path):
+    tables = _tables()
+    del tables["evidence"]
+    store = _store_tables(tmp_path / "source", tables)
+    with pytest.raises(ValueError, match="not materialized"):
+        store.materialize(
+            {"schema_version": 1, "name": "fixture", "registered_recipe": recipes.RECIPE_ID},
+            tmp_path / "output",
+        )
+    assert not (tmp_path / "output").exists()
+
+
+def test_mapp_query_keeps_result_measurement_and_parent_grains_separate(tmp_path):
+    from hitlist.evidence_store import EvidenceRelationshipError
+
+    store = _store_tables(tmp_path / "source", _tables())
+    result = store.query(
+        "external_proteasome_fragment_quantity",
+        select=["result_id", "peptide.peptide_sequence", "channel.organism_name"],
+        joins=["peptide", "channel"],
+        limit=None,
+    ).table.to_pylist()
+    assert len(result) == 36
+    assert {row["channel.organism_name"] for row in result} == {"Homo sapiens"}
+    with pytest.raises(EvidenceRelationshipError, match="many cardinality"):
+        store.query(
+            "external_proteasome_fragment_quantity",
+            select=["measurements.quantitative_value"],
+            joins=["measurements"],
+        )
+
+
+def test_registered_verifier_recomputes_targets_after_rehashed_tampering(tmp_path):
+    from hitlist.evidence_recipe import verify_recipe_package
+    from hitlist.provenance import file_digest
+
+    store = _store_tables(tmp_path / "source", _tables())
+    output = tmp_path / "output"
+    store.materialize(
+        {"schema_version": 1, "name": "fixture", "registered_recipe": recipes.RECIPE_ID}, output
+    )
+    path = output / "examples.jsonl"
+    rows = [json.loads(line) for line in path.read_text().splitlines()]
+    rows[0]["candidates"][0]["target_probability"] = 0.999
+    path.write_text("".join(json.dumps(row) + "\n" for row in rows))
+    manifest_path = output / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["files"][path.name] = file_digest(path)
+    manifest_path.write_text(json.dumps(manifest))
+    with pytest.raises(ValueError, match="arithmetic mismatch"):
+        verify_recipe_package(output)
 
 
 def _complete_tables():

@@ -9,14 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
-import shutil
-import tempfile
 from collections import Counter, defaultdict
-from pathlib import Path
-
-import pyarrow.parquet as pq
-
-from .external_evidence import verify_external_evidence_package
 
 RECIPE_ID = "mapp_captured_composition_v1"
 REFERENCE_ID = "reviewed_2026_03_isoforms"
@@ -97,7 +90,7 @@ RUN_RECIPE["limitations"].append(
 RECIPES[RUN_RECIPE_ID] = RUN_RECIPE
 
 
-def list_training_recipes():
+def registered_contracts():
     """Return independent JSON-compatible public contracts, without source reads."""
     return [json.loads(json.dumps(recipe)) for recipe in RECIPES.values()]
 
@@ -509,98 +502,3 @@ def _compile_complete_runs(tables):
         }
     )
     return base
-
-
-def _sha(path):
-    h = hashlib.sha256()
-    with Path(path).open("rb") as stream:
-        for block in iter(lambda: stream.read(8 * 1024 * 1024), b""):
-            h.update(block)
-    return h.hexdigest()
-
-
-def write_training_recipe(package, destination, *, recipe_id):
-    """Export a registered observable endpoint; refuse overwrite and unknown tasks."""
-    if recipe_id not in RECIPES:
-        raise ValueError(f"Unknown training recipe: {recipe_id}")
-    package, destination = Path(package), Path(destination)
-    if destination.exists():
-        raise FileExistsError(destination)
-    verify_external_evidence_package(package)
-    source = package / "external/pxd009092/typed"
-    tables = {name: pq.read_table(source / f"{name}.parquet").to_pylist() for name in TABLES}
-    compiled = compile_mapp_recipe(tables, recipe_id=recipe_id)
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix=".recipe-", dir=destination.parent) as temp:
-        stage = Path(temp) / "output"
-        stage.mkdir()
-        shutil.copyfile(package / "manifest.json", stage / "source_manifest.json")
-        (stage / "recipe.json").write_text(
-            json.dumps(RECIPES[recipe_id], indent=2, sort_keys=True) + "\n"
-        )
-        (stage / "summary.json").write_text(
-            json.dumps(compiled.pop("summary"), indent=2, sort_keys=True) + "\n"
-        )
-        for name, rows in compiled.items():
-            with (stage / f"{name}.jsonl").open("w") as stream:
-                for row in rows:
-                    stream.write(json.dumps(row, sort_keys=True, allow_nan=False) + "\n")
-        manifest = {
-            "kind": "hitlist_training_recipe",
-            "schema_version": 1,
-            "recipe_id": recipe_id,
-            "source_package": str(package.resolve()),
-            "source_manifest_sha256": _sha(package / "manifest.json"),
-            "files": {
-                p.name: {"sha256": _sha(p), "size_bytes": p.stat().st_size}
-                for p in sorted(stage.iterdir())
-            },
-        }
-        (stage / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
-        verify_training_recipe(stage)
-        if destination.exists():
-            raise FileExistsError(destination)
-        stage.rename(destination)
-    return destination / "manifest.json"
-
-
-def verify_training_recipe(directory):
-    """Verify complete output bytes and pinned recipe; source replay is separate."""
-    directory = Path(directory)
-    manifest = json.loads((directory / "manifest.json").read_text())
-    if (
-        manifest.get("kind") != "hitlist_training_recipe"
-        or manifest.get("schema_version") != 1
-        or manifest.get("recipe_id") not in RECIPES
-    ):
-        raise ValueError("Unsupported training recipe generation")
-    expected = {
-        "recipe.json",
-        "source_manifest.json",
-        "summary.json",
-        "parents.jsonl",
-        "examples.jsonl",
-        "peptide_dispositions.jsonl",
-        "contributors.jsonl",
-    }
-    if manifest["recipe_id"] == RUN_RECIPE_ID:
-        expected.add("run_observations.jsonl")
-    if set(manifest["files"]) != expected or {p.name for p in directory.iterdir()} != expected | {
-        "manifest.json"
-    }:
-        raise ValueError("Training recipe inventory mismatch")
-    for name, digest in manifest["files"].items():
-        path = directory / name
-        if (
-            path.is_symlink()
-            or not path.is_file()
-            or path.stat().st_size != digest["size_bytes"]
-            or _sha(path) != digest["sha256"]
-        ):
-            raise ValueError(f"Training recipe byte mismatch: {name}")
-    if (
-        json.loads((directory / "recipe.json").read_text()) != RECIPES[manifest["recipe_id"]]
-        or _sha(directory / "source_manifest.json") != manifest["source_manifest_sha256"]
-    ):
-        raise ValueError("Training recipe or source contract mismatch")
-    return manifest

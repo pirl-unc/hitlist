@@ -272,4 +272,4 @@ hitlist evidence build-reference /path/to/numeric-package \
 `hitlist evidence query --all --output data.parquet` streams a full relation.
 The source package itself is immutable. Its construction writers and pinned
 source receipts are documented in [the migration catalog](evidence-catalog.md)
-and the [serial implementation plan](../tasks/pr8-evidence-store-spec.md).
+and the [serial implementation plan](https://github.com/pirl-unc/hitlist/blob/main/tasks/pr8-evidence-store-spec.md).
