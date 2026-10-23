@@ -7388,6 +7388,8 @@ the publication provenance check.
 
 Spec: [pr8-evidence-store-spec.md](pr8-evidence-store-spec.md). Base is merged
 PR 7 commit `b124ecb`; publish its 1.82.24 distributions before PR 8 merges.
+The October 22 mouse-reference acceptance amendment in #739 extends this PR
+before the 2.0 merge; the first implementation commit is `361c3c7`.
 
 - [x] Audit all materialized files and declared fields; add explicit physical
       selectors, aliases, readiness and missing-field disposition.
@@ -7398,8 +7400,16 @@ PR 7 commit `b124ecb`; publish its 1.82.24 distributions before PR 8 merges.
 - [x] Implement declarative recipe materialization with eligibility decisions,
       exact source lineage, uncertainty, coverage and hash-bound outputs.
 - [x] Add one CLI surface, examples, migration notes, and 2.0.0 version bump.
-- [ ] Replay pinned baselines and adversarial fixtures; run format/lint/full
-      tests, final-head CI, review, merge and exact-artifact PyPI deployment.
+- [x] Retire the public v1 `hitlist export training` command so the evidence
+      recipe is the sole CLI training path; retain audited source export code.
+- [x] Append a byte-preserving, hash-verified mouse-reference successor
+      generation with typed source mappings, exact occurrences, parents,
+      parent-support sets, species roles and result-context lookup.
+- [x] Extend the catalog, query bindings, recipe and audit to expose those
+      relations without multiplying labels or promoting project claims.
+- [ ] Replay all original and new pinned baselines and adversarial fixtures;
+      run format/lint/full tests, final-head CI, review, merge and exact-artifact
+      PyPI deployment.
 
 ## Review
 
@@ -7408,7 +7418,7 @@ evidence types, all with existing physical files. Of the original catalog's
 declared field placements, 232 were not same-named physical columns. Four
 additional typed relations are now registered: MHC measurements, external
 quantity measurements, primary external peptide rows and source panels. The
-2.0 catalog has 46 materialized and four contract-only types. Its 46 physical
+pre-reference catalog had 46 materialized and four contract-only types. Its 46 physical
 bindings validate against real schemas; all typed columns have a native query
 name. Across declared fields, 367 are direct physical, 12 source constants,
 73 related through named links, 68 unavailable at the claimed grain and 43
@@ -7424,10 +7434,33 @@ accepted peptide label and two contributor rows, one per provider, with no
 extra assay. No provider link is unresolved in either bounded replay.
 Recipe YAML uses the repository's duplicate-key guard, and recipes include
 available direct source identifiers even when not explicitly selected. The
-final audit replay retains the published audit hash above. The required full
-unit gate passes twice: 3,222 passed, one skipped, 86% coverage. `./format.sh`
-and `./lint.sh` pass. The isolated editable-install metadata matches 2.0.0;
-the wheel and sdist build, pass `twine check`, and carry the exact Apache-2.0
-license. The 1.x README is preserved in `docs/legacy-1x.md` with a clear
+pre-reference audit replay retained its original audit hash. Before the
+amendment, the required full unit gate passed twice: 3,222 passed, one skipped,
+86% coverage; format/lint and the 2.0.0 wheel/sdist checks also passed. The
+1.x README is preserved in `docs/legacy-1x.md` with a clear
 historical warning; the project landing page now documents the 2.0 interface.
-Final-head CI and deployment remain.
+The October 22 shared-reference amendment arrived after these checks. Its
+ten output hashes, independent replay receipt and 18,126,470-byte FASTA hash
+match the pinned source. The new 124-file package independently clones every
+predecessor file, adds seven typed relations and retains distinct inodes. The
+53 materialized types validate against actual schemas; all 32 baselines match.
+The reference audit preserves 35,772 source rows, 30,587 sequences, 52,277
+exact positions, 25,758 reference parents, 26,449 support sets, five scoped
+mouse role claims and one context row per 309,126 original result. The source
+parent statuses are 35,747 exact, 24 missing IDs and one resolved ID without
+the peptide. A bounded numeric recipe preserves 20 measurement candidates and
+their 20 source peptide links, explicitly filters 200,724 fold-change rows,
+and marks the other 309,106 intensities as limit-omitted. Table 10 measured
+macrophage versus tumor-partner roles and unresolved specimens remain explicit.
+The final audit JSON records 431 physical, 21 constant, 105 related, 68
+unavailable and 43 contract-only field placements; its SHA-256 is
+`02dd24ac68ebbd68067437cfd906e04f2f059221c588ce0765326475676aa731`.
+The old `hitlist export training` CLI parser and dispatch are removed; the
+source export implementation remains available for historical audits. Its
+old helper tests and the new CLI rejection test pass. The first final full
+suite attempt under the filesystem sandbox passed 3,209 tests but failed 18
+environment-bound checks: 12 localhost HTTP fixtures could not bind, and six
+`test.sh` tests inherited the explicit unknown-memory fallback. The rerun
+with normal macOS probing and localhost access passed all 3,227 tests at 85%
+coverage before the CLI retirement. Final format/lint/full tests on that
+small follow-up diff, CI and deployment remain.

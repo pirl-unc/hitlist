@@ -168,6 +168,124 @@ def test_project_instrument_is_not_result_instrument(tmp_path):
     }
 
 
+def test_mouse_reference_context_keeps_measurements_and_roles_distinct(tmp_path):
+    store = _store(
+        tmp_path / "source",
+        {
+            "external_quantity_measurement": [
+                {
+                    "measurement_id": "m9",
+                    "result_id": "r9",
+                    "representation": "raw_tmt_intensity",
+                    "reported_value": 4.0,
+                    "unit": "source_intensity_units",
+                    "quantity_scale": "relative_tmt_signal",
+                    "value_status": "source_reported",
+                },
+                {
+                    "measurement_id": "m10",
+                    "result_id": "r10",
+                    "representation": "raw_tmt_intensity",
+                    "reported_value": 5.0,
+                    "unit": "source_intensity_units",
+                    "quantity_scale": "relative_tmt_signal",
+                    "value_status": "source_reported",
+                },
+            ],
+            "external_reference_result_context": [
+                {
+                    "result_id": "r9",
+                    "peptide_row_id": "p9",
+                    "component": "shared-parent-component",
+                    "source_parent_status": "exact_sequence_match",
+                    "measured_population": "macrophage",
+                    "partner_population": "tumor_cell",
+                    "material_link_precision": "assay_channel_unresolved_specimen",
+                    "specimen_status": "unresolved",
+                    "organism_taxon_id": "10090",
+                },
+                {
+                    "result_id": "r10",
+                    "peptide_row_id": "p10",
+                    "component": "shared-parent-component",
+                    "source_parent_status": "missing_id",
+                    "measured_population": "macrophage",
+                    "partner_population": "mhc_i_loss_tumor_cell",
+                    "material_link_precision": "assay_channel_unresolved_specimen",
+                    "specimen_status": "unresolved",
+                    "organism_taxon_id": "10090",
+                },
+            ],
+        },
+    )
+    rows = store.query(
+        "external_quantity_measurement",
+        select=[
+            "measurement_id",
+            "reference_context.measured_population",
+            "reference_context.partner_population",
+            "reference_context.source_parent_status",
+            "reference_context.specimen_status",
+        ],
+        joins=["reference_context"],
+    ).table.to_pylist()
+    assert len(rows) == 2
+    assert [row["reference_context.measured_population"] for row in rows] == [
+        "macrophage",
+        "macrophage",
+    ]
+    assert rows[1]["reference_context.partner_population"] == "mhc_i_loss_tumor_cell"
+    assert rows[1]["reference_context.source_parent_status"] == "missing_id"
+    assert all(row["reference_context.specimen_status"] == "unresolved" for row in rows)
+    recipe = {
+        "schema_version": 1,
+        "name": "reported_mouse_signal",
+        "mapping_policy": "no_expansion",
+        "sources": [
+            {
+                "evidence_type": "external_quantity_measurement",
+                "row_id": "measurement_id",
+                "select": ["reference_context.source_record_id"],
+                "joins": ["reference_context"],
+                "where": {"representation": "raw_tmt_intensity"},
+                "target": {
+                    "field": "reported_value",
+                    "mode": "numeric",
+                    "unit_field": "measurement_unit",
+                    "allowed_units": ["source_intensity_units"],
+                    "scale_field": "quantity_scale",
+                    "allowed_scales": ["relative_tmt_signal"],
+                    "status_field": "value_status",
+                    "allowed_statuses": ["source_reported"],
+                },
+                "context_precision": {
+                    "field": "reference_context.material_link_precision",
+                    "allowed": ["assay_channel_unresolved_specimen"],
+                    "on_mismatch": "ambiguous",
+                },
+                "grouping": {
+                    "fields": ["reference_context.component"],
+                    "on_missing": "mark_uncertain",
+                },
+            }
+        ],
+    }
+    output = tmp_path / "training"
+    store.materialize(recipe, output)
+    base = output / "sources" / "external_quantity_measurement"
+    assert pq.read_table(base / "accepted.parquet").num_rows == 2
+    assert {
+        row["source_record_id"] for row in pq.read_table(base / "contributors.parquet").to_pylist()
+    } == {
+        "p9",
+        "p10",
+    }
+    assert (
+        len({row["split_group_id"] for row in pq.read_table(base / "lineage.parquet").to_pylist()})
+        == 1
+    )
+
+
 def test_tcell_availability_is_not_a_peptide_label(tmp_path):
     store = _store(
         tmp_path,
@@ -463,3 +581,64 @@ def test_numeric_recipe_marks_censoring_and_unknown_units_ambiguous(tmp_path):
         "inequality_not_allowed": 1,
         "unit_not_allowed": 1,
     }
+
+
+def test_numeric_unit_conversion_preserves_censored_values_as_ambiguous(tmp_path):
+    store = _store(
+        tmp_path / "source",
+        {
+            "mhc_reported_measurement": [
+                {
+                    "measurement_id": "exact",
+                    "observation_id": "a",
+                    "quantitative_value": 0.5,
+                    "measurement_unit": "uM",
+                    "measurement_inequality": "=",
+                    "quantitative_status": "reported",
+                },
+                {
+                    "measurement_id": "censored",
+                    "observation_id": "b",
+                    "quantitative_value": 0.5,
+                    "measurement_unit": "uM",
+                    "measurement_inequality": ">",
+                    "quantitative_status": "reported",
+                },
+            ]
+        },
+    )
+    target = {
+        "field": "quantitative_value",
+        "mode": "numeric",
+        "unit_field": "measurement_unit",
+        "allowed_units": ["uM"],
+        "unit_conversion": {"output_unit": "nM", "factor_by_unit": {"uM": 1000.0}},
+        "inequality_field": "measurement_inequality",
+        "allowed_inequalities": ["="],
+        "status_field": "quantitative_status",
+        "allowed_statuses": ["reported"],
+    }
+    recipe = {
+        "schema_version": 1,
+        "name": "exact_binding_nM",
+        "mapping_policy": "no_expansion",
+        "sources": [
+            {
+                "evidence_type": "mhc_reported_measurement",
+                "row_id": "measurement_id",
+                "target": target,
+                "grouping": {"fields": ["observation_id"], "on_missing": "mark_uncertain"},
+            }
+        ],
+    }
+    output = tmp_path / "training"
+    store.materialize(recipe, output)
+    base = output / "sources" / "mhc_reported_measurement"
+    accepted = pq.read_table(base / "accepted.parquet").to_pylist()
+    ambiguous = pq.read_table(base / "ambiguous.parquet").to_pylist()
+    assert [(row["target_value"], row["target_unit"]) for row in accepted] == [(500.0, "nM")]
+    assert ambiguous[0]["reason_codes"] == ["inequality_not_allowed"]
+    assert ambiguous[0]["measurement_inequality"] == ">"
+    target["allowed_inequalities"] = [">"]
+    with pytest.raises(RecipeError, match="Censored inequalities"):
+        store.materialize(recipe, tmp_path / "invalid")

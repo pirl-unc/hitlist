@@ -183,6 +183,12 @@ ALIASES = {
         "new_value": "new_value_json",
     },
     "reviewed_lineage": {"lineage_axis": "axis", "lineage_status": "status"},
+    "external_reference_source_mapping": {
+        "source_record_id": "peptide_row_id",
+        "peptide_sequence": "sequence_raw",
+    },
+    "external_reference_sequence": {"peptide_sequence": "sequence"},
+    "external_reference_result_context": {"source_record_id": "peptide_row_id"},
 }
 
 # Dataset identity is an immutable property of these source-specific files.
@@ -201,8 +207,19 @@ CONSTANTS = {
         "external_sdrf_cell",
         "external_deposited_file",
         "external_source_asset",
+        "external_quantity_measurement",
+        "external_reference_source_mapping",
+        "external_reference_sequence",
+        "external_reference_occurrence",
+        "external_reference_parent_support",
+        "external_reference_result_context",
     )
 }
+CONSTANTS["external_reference_parent"] = {
+    "source_dataset": "PXD057588",
+    "organism_taxon_id": "10090",
+}
+CONSTANTS["external_reference_source_mapping"]["organism_taxon_id"] = "10090"
 
 LINKS = (
     Link(
@@ -430,13 +447,90 @@ LINKS = (
         "many",
         "assay_channel_result",
     ),
+    Link(
+        "reference_mapping",
+        "external_peptide_source_row",
+        "external_reference_source_mapping",
+        "peptide_row_id",
+        "peptide_row_id",
+        "one",
+        "source_peptide_row",
+    ),
+    Link(
+        "reference_context",
+        "external_mhc_peptide_quantity",
+        "external_reference_result_context",
+        "result_id",
+        "result_id",
+        "one",
+        "assay_channel_result",
+    ),
+    Link(
+        "reference_context",
+        "external_digest_peptide_quantity",
+        "external_reference_result_context",
+        "result_id",
+        "result_id",
+        "one",
+        "assay_channel_result",
+    ),
+    Link(
+        "reference_context",
+        "external_quantity_measurement",
+        "external_reference_result_context",
+        "result_id",
+        "result_id",
+        "one",
+        "assay_channel_result",
+    ),
+    Link(
+        "reference_sequence",
+        "external_reference_source_mapping",
+        "external_reference_sequence",
+        "sequence_id",
+        "sequence_id",
+        "one",
+        "deduplicated_source_sequence",
+    ),
+    Link(
+        "reference_occurrences",
+        "external_reference_sequence",
+        "external_reference_occurrence",
+        "sequence_id",
+        "sequence_id",
+        "many",
+        "reference_position_alternatives",
+    ),
+    Link(
+        "reference_parent",
+        "external_reference_occurrence",
+        "external_reference_parent",
+        "accession",
+        "accession",
+        "one",
+        "reference_identity",
+    ),
+    Link(
+        "source_mapping",
+        "external_reference_result_context",
+        "external_reference_source_mapping",
+        "peptide_row_id",
+        "peptide_row_id",
+        "one",
+        "source_peptide_row",
+    ),
 )
 
 
-def materialized_bindings():
+def materialized_bindings(package_schema_version=None):
     """Return each declared physical relation with an exact row selector."""
     return {
         item.name: (item, SELECTORS.get(item.name, ()), ALIASES.get(item.name, {}))
         for item in EVIDENCE
         if item.status == "v2_materialized"
+        and (
+            package_schema_version is None
+            or package_schema_version >= 7
+            or item.source_population != "pxd057588_mouse_reference_2026_03"
+        )
     }

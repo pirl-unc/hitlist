@@ -15,8 +15,10 @@ print(catalog["package_manifest_sha256"])
 print([(item["name"], item.get("n_rows")) for item in catalog["evidence"]])
 ```
 
-The catalog contains 46 materialized evidence types and four declared contracts
-in 2.0.0. It identifies grain, source population, endpoint, ingest requirements,
+The reference-augmented 2.0 package contains 53 materialized evidence types and
+four declared contracts. The predecessor numeric package remains readable and
+reports its seven later reference types as `not_in_generation`. The catalog
+identifies grain, source population, endpoint, ingest requirements,
 physical selector, native columns and relationships. Each logical field is
 `physical`, `constant`, `related` or `unavailable`. A source-specific column
 without a safe common alias remains available as `native.<column>`. A missing
@@ -123,6 +125,51 @@ and reported/recomputed fold changes with their representations and derivation
 links. The source peptide row and independently keyed extra worksheet panels
 are distinct relations.
 
+## Mouse reference and source roles
+
+The [pinned PXD057588 reference audit](https://github.com/pirl-unc/presto/blob/24f1d2b/experiments/2026-10-22_1914_codex_pxd057588-shared-sequence-admission/README.md)
+uses the reviewed mouse UniProt 2026_03 reference including isoforms. The
+successor package keeps its FASTA and raw mapping ledgers under one verified
+manifest. `external_reference_source_mapping` has one row for each of the
+35,772 original peptide rows; `external_reference_occurrence` has 52,277
+possible exact parent positions over 30,587 distinct sequences. Positions,
+parent identities and connected components are alternatives and grouping
+constraints, not new measurements or evidence of specimen pairing.
+
+```python
+species = store.query(
+    "external_reference_species_role",
+    select=["population_role", "population_label", "organism_taxon_id",
+            "source_scope", "source_locator"],
+    limit=None,
+)
+mouse_signal = store.query(
+    "external_quantity_measurement",
+    select=["measurement_id", "reported_value", "measurement_unit",
+            "reference_context.source_record_id",
+            "reference_context.source_parent_status",
+            "reference_context.measured_population",
+            "reference_context.partner_population",
+            "reference_context.specimen_status",
+            "reference_context.component"],
+    joins=["reference_context"],
+    where={"representation": "raw_tmt_intensity"},
+    limit=20,
+)
+```
+
+The organism claim is **Mus musculus (10090)** at PRIDE project scope. The
+result context records that scope explicitly and retains
+`assay_channel_unresolved_specimen`. Table 10 MHC-I loss belongs to the
+`mhc_i_loss_tumor_cell` partner; its measured population is macrophage.
+Missing source parent IDs (24) and the one resolved ID without the peptide
+remain distinct from 35,747 exact source-parent matches. A reference match
+does not establish the study's original search database or a measured protein.
+Query parent support as its own `external_reference_parent_support` relation;
+it holds source-row sets under literal, verified-source and exact-reference
+definitions without multiplying either Table 9 ligand or Table 11 digest
+quantities.
+
 ```python
 tcell = store.query(
     "tcell_availability",
@@ -142,6 +189,12 @@ response and multimer cell binding are different training projections.
 CEDAR's 157,263 overlapping T-cell IDs remain contributors, not extra assays.
 
 ## Training recipe
+
+Hitlist 2.0 removes the `hitlist export training` command. Use
+`hitlist evidence materialize` with a versioned recipe so every target has
+an explicit grain, admission decision and source-manifest binding. The old
+source export implementation remains available to reproduce historical
+audits, but it is outside the 2.0 training interface.
 
 The recipe is YAML or JSON. It names a result grain, a stable row key, exact
 target interpretation, unit/scale and censoring policies where applicable,
@@ -187,8 +240,21 @@ training labels. Other evidence types emit their direct source key or an
 explicit unresolved link status.
 Numeric targets require explicit unit or scale, value-status and censoring
 policies when the source records those axes. Accepted numeric targets are
-stored as typed float values; the source cell and all alternatives remain in
-the evidence package.
+stored as typed float values with `target_unit`; the source cell and all
+alternatives remain in the evidence package. A recipe can declare a linear
+`unit_conversion`, for example
+`{output_unit: nM, factor_by_unit: {uM: 1000.0}}`. Every allowed source unit
+must have a factor. Censored inequalities such as `>` remain ambiguous for
+an exact numeric point target; they are never silently treated as equality.
+
+For a numeric PXD057588 recipe, use `external_quantity_measurement` as the
+candidate grain, join `reference_context`, select its `source_record_id`, and
+group by `reference_context.component`. An explicit context policy can admit
+condition-level observations while retaining unresolved specimen status.
+Table 11 digest intensity is still a peptide measurement. Protein aggregation,
+complete-case filtering and condition-surrogate matching need a separately
+declared recipe; this interface never silently creates a precursor estimate or
+interprets an unobserved peptide as a zero.
 
 ```bash
 hitlist evidence catalog /path/to/evidence-package --type arm_factor
@@ -198,6 +264,9 @@ hitlist evidence query /path/to/evidence-package arm_factor \
 hitlist evidence materialize /path/to/evidence-package recipe.yaml training-output
 hitlist evidence verify-recipe training-output \
   --source-package /path/to/evidence-package
+hitlist evidence build-reference /path/to/numeric-package \
+  /path/to/pinned-reference-results /path/to/mouse-reference.fasta \
+  /path/to/new-evidence-package
 ```
 
 `hitlist evidence query --all --output data.parquet` streams a full relation.

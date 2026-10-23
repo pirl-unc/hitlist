@@ -224,9 +224,72 @@
       "n_revisions": 1,
       "population": "external_source_panel",
       "status": "matched"
+    },
+    {
+      "count_unit": "primary_peptide_source_rows",
+      "generation": "mouse-reference:2026-10-22",
+      "n_actual_rows": 35772,
+      "n_expected_rows": 35772,
+      "n_revisions": 1,
+      "population": "external_reference_source_mapping",
+      "status": "matched"
+    },
+    {
+      "count_unit": "distinct_source_sequences",
+      "generation": "mouse-reference:2026-10-22",
+      "n_actual_rows": 30587,
+      "n_expected_rows": 30587,
+      "n_revisions": 1,
+      "population": "external_reference_sequence",
+      "status": "matched"
+    },
+    {
+      "count_unit": "exact_reference_positions",
+      "generation": "mouse-reference:2026-10-22",
+      "n_actual_rows": 52277,
+      "n_expected_rows": 52277,
+      "n_revisions": 1,
+      "population": "external_reference_occurrence",
+      "status": "matched"
+    },
+    {
+      "count_unit": "reference_identities",
+      "generation": "UniProt-2026_03:mouse-reviewed-isoforms",
+      "n_actual_rows": 25758,
+      "n_expected_rows": 25758,
+      "n_revisions": 1,
+      "population": "external_reference_parent",
+      "status": "matched"
+    },
+    {
+      "count_unit": "parent_support_sets",
+      "generation": "mouse-reference:2026-10-22",
+      "n_actual_rows": 26449,
+      "n_expected_rows": 26449,
+      "n_revisions": 1,
+      "population": "external_reference_parent_support",
+      "status": "matched"
+    },
+    {
+      "count_unit": "project_scoped_population_roles",
+      "generation": "PXD057588-project:2026-10-22",
+      "n_actual_rows": 5,
+      "n_expected_rows": 5,
+      "n_revisions": 1,
+      "population": "external_reference_species_role",
+      "status": "matched"
+    },
+    {
+      "count_unit": "assay_result_context_rows",
+      "generation": "mouse-reference:2026-10-22",
+      "n_actual_rows": 309126,
+      "n_expected_rows": 309126,
+      "n_revisions": 1,
+      "population": "external_reference_result_context",
+      "status": "matched"
     }
   ],
-  "catalog_schema_version": 8,
+  "catalog_schema_version": 9,
   "field_disposition": {
     "arm_control_link": {
       "fields": {
@@ -2673,6 +2736,12 @@
           "source": "channel_id",
           "status": "physical"
         },
+        "component": {
+          "relationships": [
+            "reference_context"
+          ],
+          "status": "related"
+        },
         "contrast_id": {
           "relationships": [
             "quantity_measurements"
@@ -2698,7 +2767,8 @@
         "measured_population": {
           "relationships": [
             "assay_channel",
-            "peptide_source_row"
+            "peptide_source_row",
+            "reference_context"
           ],
           "status": "related"
         },
@@ -2723,6 +2793,12 @@
           "source": "result_id",
           "status": "physical"
         },
+        "organism_taxon_id": {
+          "relationships": [
+            "reference_context"
+          ],
+          "status": "related"
+        },
         "parent_label_raw": {
           "relationships": [
             "peptide_source_row"
@@ -2732,7 +2808,8 @@
         "partner_population": {
           "relationships": [
             "assay_channel",
-            "peptide_source_row"
+            "peptide_source_row",
+            "reference_context"
           ],
           "status": "related"
         },
@@ -2749,6 +2826,24 @@
         "quantity_scale": {
           "relationships": [
             "quantity_measurements"
+          ],
+          "status": "related"
+        },
+        "reference_full_sequence_count": {
+          "relationships": [
+            "reference_context"
+          ],
+          "status": "related"
+        },
+        "reference_identity_count": {
+          "relationships": [
+            "reference_context"
+          ],
+          "status": "related"
+        },
+        "reference_occurrence_count": {
+          "relationships": [
+            "reference_context"
           ],
           "status": "related"
         },
@@ -2772,9 +2867,21 @@
           "source": "PXD057588",
           "status": "constant"
         },
+        "source_parent_status": {
+          "relationships": [
+            "reference_context"
+          ],
+          "status": "related"
+        },
         "source_record_id": {
           "source": "peptide_row_id",
           "status": "physical"
+        },
+        "specimen_status": {
+          "relationships": [
+            "reference_context"
+          ],
+          "status": "related"
         }
       },
       "grain": "source_peptide_by_assay_channel",
@@ -2844,6 +2951,12 @@
           "source": "channel_id",
           "status": "physical"
         },
+        "component": {
+          "relationships": [
+            "reference_context"
+          ],
+          "status": "related"
+        },
         "contrast_id": {
           "relationships": [
             "quantity_measurements"
@@ -2869,7 +2982,8 @@
         "measured_population": {
           "relationships": [
             "assay_channel",
-            "peptide_source_row"
+            "peptide_source_row",
+            "reference_context"
           ],
           "status": "related"
         },
@@ -2890,6 +3004,12 @@
           "source": "result_id",
           "status": "physical"
         },
+        "organism_taxon_id": {
+          "relationships": [
+            "reference_context"
+          ],
+          "status": "related"
+        },
         "parent_label_raw": {
           "relationships": [
             "peptide_source_row"
@@ -2899,7 +3019,8 @@
         "partner_population": {
           "relationships": [
             "assay_channel",
-            "peptide_source_row"
+            "peptide_source_row",
+            "reference_context"
           ],
           "status": "related"
         },
@@ -2916,6 +3037,24 @@
         "quantity_scale": {
           "relationships": [
             "quantity_measurements"
+          ],
+          "status": "related"
+        },
+        "reference_full_sequence_count": {
+          "relationships": [
+            "reference_context"
+          ],
+          "status": "related"
+        },
+        "reference_identity_count": {
+          "relationships": [
+            "reference_context"
+          ],
+          "status": "related"
+        },
+        "reference_occurrence_count": {
+          "relationships": [
+            "reference_context"
           ],
           "status": "related"
         },
@@ -2939,9 +3078,21 @@
           "source": "PXD057588",
           "status": "constant"
         },
+        "source_parent_status": {
+          "relationships": [
+            "reference_context"
+          ],
+          "status": "related"
+        },
         "source_record_id": {
           "source": "peptide_row_id",
           "status": "physical"
+        },
+        "specimen_status": {
+          "relationships": [
+            "reference_context"
+          ],
+          "status": "related"
         }
       },
       "grain": "source_peptide_by_assay_channel",
@@ -3105,6 +3256,12 @@
     },
     "external_peptide_source_row": {
       "fields": {
+        "component": {
+          "relationships": [
+            "reference_mapping"
+          ],
+          "status": "related"
+        },
         "material_link_precision": {
           "source": "material_link_precision",
           "status": "physical"
@@ -3116,6 +3273,12 @@
         "measured_population": {
           "source": "measured_population",
           "status": "physical"
+        },
+        "organism_taxon_id": {
+          "relationships": [
+            "reference_mapping"
+          ],
+          "status": "related"
         },
         "parent_label_raw": {
           "source": "parent_label_raw",
@@ -3133,9 +3296,33 @@
           "source": "sequence_raw",
           "status": "physical"
         },
+        "reference_full_sequence_count": {
+          "relationships": [
+            "reference_mapping"
+          ],
+          "status": "related"
+        },
+        "reference_identity_count": {
+          "relationships": [
+            "reference_mapping"
+          ],
+          "status": "related"
+        },
+        "reference_occurrence_count": {
+          "relationships": [
+            "reference_mapping"
+          ],
+          "status": "related"
+        },
         "source_dataset": {
           "source": "PXD057588",
           "status": "constant"
+        },
+        "source_parent_status": {
+          "relationships": [
+            "reference_mapping"
+          ],
+          "status": "related"
         }
       },
       "grain": "one_source_peptide_row",
@@ -3250,9 +3437,27 @@
     },
     "external_quantity_measurement": {
       "fields": {
+        "component": {
+          "relationships": [
+            "reference_context"
+          ],
+          "status": "related"
+        },
         "contrast_id": {
           "source": "contrast_id",
           "status": "physical"
+        },
+        "material_link_precision": {
+          "relationships": [
+            "reference_context"
+          ],
+          "status": "related"
+        },
+        "measured_population": {
+          "relationships": [
+            "reference_context"
+          ],
+          "status": "related"
         },
         "measurement_id": {
           "source": "measurement_id",
@@ -3266,6 +3471,24 @@
           "source": "normalization_policy",
           "status": "physical"
         },
+        "organism_source_scope": {
+          "relationships": [
+            "reference_context"
+          ],
+          "status": "related"
+        },
+        "organism_taxon_id": {
+          "relationships": [
+            "reference_context"
+          ],
+          "status": "related"
+        },
+        "partner_population": {
+          "relationships": [
+            "reference_context"
+          ],
+          "status": "related"
+        },
         "quantity_scale": {
           "source": "quantity_scale",
           "status": "physical"
@@ -3273,6 +3496,24 @@
         "recomputed_value": {
           "source": "recomputed_value",
           "status": "physical"
+        },
+        "reference_full_sequence_count": {
+          "relationships": [
+            "reference_context"
+          ],
+          "status": "related"
+        },
+        "reference_identity_count": {
+          "relationships": [
+            "reference_context"
+          ],
+          "status": "related"
+        },
+        "reference_occurrence_count": {
+          "relationships": [
+            "reference_context"
+          ],
+          "status": "related"
         },
         "reported_value": {
           "source": "reported_value",
@@ -3289,6 +3530,28 @@
         "source_cell": {
           "source": "source_cell",
           "status": "physical"
+        },
+        "source_dataset": {
+          "source": "PXD057588",
+          "status": "constant"
+        },
+        "source_parent_status": {
+          "relationships": [
+            "reference_context"
+          ],
+          "status": "related"
+        },
+        "source_record_id": {
+          "relationships": [
+            "reference_context"
+          ],
+          "status": "related"
+        },
+        "specimen_status": {
+          "relationships": [
+            "reference_context"
+          ],
+          "status": "related"
         },
         "value_status": {
           "source": "value_status",
@@ -3379,6 +3642,882 @@
             "value_status"
           ],
           "query_field": "native.value_status",
+          "status": "logical_and_native"
+        }
+      },
+      "status": "materialized"
+    },
+    "external_reference_occurrence": {
+      "fields": {
+        "accession": {
+          "source": "accession",
+          "status": "physical"
+        },
+        "component": {
+          "source": "component",
+          "status": "physical"
+        },
+        "end1": {
+          "source": "end1",
+          "status": "physical"
+        },
+        "left": {
+          "source": "left",
+          "status": "physical"
+        },
+        "peptide_sequence": {
+          "source": "peptide_sequence",
+          "status": "physical"
+        },
+        "right": {
+          "source": "right",
+          "status": "physical"
+        },
+        "sequence_id": {
+          "source": "sequence_id",
+          "status": "physical"
+        },
+        "source_dataset": {
+          "source": "PXD057588",
+          "status": "constant"
+        },
+        "start1": {
+          "source": "start1",
+          "status": "physical"
+        }
+      },
+      "grain": "one_exact_peptide_position_in_one_reference_parent",
+      "n_native_fields": 9,
+      "n_rows": 52277,
+      "native_field_disposition": {
+        "accession": {
+          "logical_fields": [
+            "accession"
+          ],
+          "query_field": "native.accession",
+          "status": "logical_and_native"
+        },
+        "component": {
+          "logical_fields": [
+            "component"
+          ],
+          "query_field": "native.component",
+          "status": "logical_and_native"
+        },
+        "end1": {
+          "logical_fields": [
+            "end1"
+          ],
+          "query_field": "native.end1",
+          "status": "logical_and_native"
+        },
+        "left": {
+          "logical_fields": [
+            "left"
+          ],
+          "query_field": "native.left",
+          "status": "logical_and_native"
+        },
+        "parent_sequence_sha256": {
+          "logical_fields": [],
+          "query_field": "native.parent_sequence_sha256",
+          "status": "native_only"
+        },
+        "peptide_sequence": {
+          "logical_fields": [
+            "peptide_sequence"
+          ],
+          "query_field": "native.peptide_sequence",
+          "status": "logical_and_native"
+        },
+        "right": {
+          "logical_fields": [
+            "right"
+          ],
+          "query_field": "native.right",
+          "status": "logical_and_native"
+        },
+        "sequence_id": {
+          "logical_fields": [
+            "sequence_id"
+          ],
+          "query_field": "native.sequence_id",
+          "status": "logical_and_native"
+        },
+        "start1": {
+          "logical_fields": [
+            "start1"
+          ],
+          "query_field": "native.start1",
+          "status": "logical_and_native"
+        }
+      },
+      "status": "materialized"
+    },
+    "external_reference_parent": {
+      "fields": {
+        "accession": {
+          "source": "accession",
+          "status": "physical"
+        },
+        "organism_taxon_id": {
+          "source": "10090",
+          "status": "constant"
+        },
+        "reference_status": {
+          "source": "reference_status",
+          "status": "physical"
+        },
+        "source_dataset": {
+          "source": "PXD057588",
+          "status": "constant"
+        }
+      },
+      "grain": "one_uniprot_reference_identity",
+      "n_native_fields": 8,
+      "n_rows": 25758,
+      "native_field_disposition": {
+        "accession": {
+          "logical_fields": [
+            "accession"
+          ],
+          "query_field": "native.accession",
+          "status": "logical_and_native"
+        },
+        "aliases": {
+          "logical_fields": [],
+          "query_field": "native.aliases",
+          "status": "native_only"
+        },
+        "entry": {
+          "logical_fields": [],
+          "query_field": "native.entry",
+          "status": "native_only"
+        },
+        "length": {
+          "logical_fields": [],
+          "query_field": "native.length",
+          "status": "native_only"
+        },
+        "reference_status": {
+          "logical_fields": [
+            "reference_status"
+          ],
+          "query_field": "native.reference_status",
+          "status": "logical_and_native"
+        },
+        "sequence": {
+          "logical_fields": [],
+          "query_field": "native.sequence",
+          "status": "native_only"
+        },
+        "sequence_sha256": {
+          "logical_fields": [],
+          "query_field": "native.sequence_sha256",
+          "status": "native_only"
+        },
+        "taxonomy": {
+          "logical_fields": [],
+          "query_field": "native.taxonomy",
+          "status": "native_only"
+        }
+      },
+      "status": "materialized"
+    },
+    "external_reference_parent_support": {
+      "fields": {
+        "definition": {
+          "source": "definition",
+          "status": "physical"
+        },
+        "n_table11_rows": {
+          "source": "n_table11_rows",
+          "status": "physical"
+        },
+        "n_table9_rows": {
+          "source": "n_table9_rows",
+          "status": "physical"
+        },
+        "parent_key": {
+          "source": "parent_key",
+          "status": "physical"
+        },
+        "source_dataset": {
+          "source": "PXD057588",
+          "status": "constant"
+        },
+        "table11_rows": {
+          "source": "table11_rows",
+          "status": "physical"
+        },
+        "table9_rows": {
+          "source": "table9_rows",
+          "status": "physical"
+        }
+      },
+      "grain": "one_parent_key_and_support_definition",
+      "n_native_fields": 6,
+      "n_rows": 26449,
+      "native_field_disposition": {
+        "definition": {
+          "logical_fields": [
+            "definition"
+          ],
+          "query_field": "native.definition",
+          "status": "logical_and_native"
+        },
+        "n_table11_rows": {
+          "logical_fields": [
+            "n_table11_rows"
+          ],
+          "query_field": "native.n_table11_rows",
+          "status": "logical_and_native"
+        },
+        "n_table9_rows": {
+          "logical_fields": [
+            "n_table9_rows"
+          ],
+          "query_field": "native.n_table9_rows",
+          "status": "logical_and_native"
+        },
+        "parent_key": {
+          "logical_fields": [
+            "parent_key"
+          ],
+          "query_field": "native.parent_key",
+          "status": "logical_and_native"
+        },
+        "table11_rows": {
+          "logical_fields": [
+            "table11_rows"
+          ],
+          "query_field": "native.table11_rows",
+          "status": "logical_and_native"
+        },
+        "table9_rows": {
+          "logical_fields": [
+            "table9_rows"
+          ],
+          "query_field": "native.table9_rows",
+          "status": "logical_and_native"
+        }
+      },
+      "status": "materialized"
+    },
+    "external_reference_result_context": {
+      "fields": {
+        "component": {
+          "source": "component",
+          "status": "physical"
+        },
+        "material_link_precision": {
+          "source": "material_link_precision",
+          "status": "physical"
+        },
+        "measured_pool": {
+          "source": "measured_pool",
+          "status": "physical"
+        },
+        "measured_population": {
+          "source": "measured_population",
+          "status": "physical"
+        },
+        "organism_source_scope": {
+          "source": "organism_source_scope",
+          "status": "physical"
+        },
+        "organism_taxon_id": {
+          "source": "organism_taxon_id",
+          "status": "physical"
+        },
+        "partner_population": {
+          "source": "partner_population",
+          "status": "physical"
+        },
+        "peptide_row_id": {
+          "source": "peptide_row_id",
+          "status": "physical"
+        },
+        "reference_full_sequence_count": {
+          "source": "reference_full_sequence_count",
+          "status": "physical"
+        },
+        "reference_identity_count": {
+          "source": "reference_identity_count",
+          "status": "physical"
+        },
+        "reference_occurrence_count": {
+          "source": "reference_occurrence_count",
+          "status": "physical"
+        },
+        "result_id": {
+          "source": "result_id",
+          "status": "physical"
+        },
+        "sequence_id": {
+          "source": "sequence_id",
+          "status": "physical"
+        },
+        "source_dataset": {
+          "source": "PXD057588",
+          "status": "constant"
+        },
+        "source_parent_status": {
+          "source": "source_parent_status",
+          "status": "physical"
+        },
+        "source_record_id": {
+          "source": "peptide_row_id",
+          "status": "physical"
+        },
+        "specimen_status": {
+          "source": "specimen_status",
+          "status": "physical"
+        },
+        "table_number": {
+          "source": "table_number",
+          "status": "physical"
+        }
+      },
+      "grain": "one_assay_result_to_source_row_and_reference_status",
+      "n_native_fields": 17,
+      "n_rows": 309126,
+      "native_field_disposition": {
+        "component": {
+          "logical_fields": [
+            "component"
+          ],
+          "query_field": "native.component",
+          "status": "logical_and_native"
+        },
+        "material_link_precision": {
+          "logical_fields": [
+            "material_link_precision"
+          ],
+          "query_field": "native.material_link_precision",
+          "status": "logical_and_native"
+        },
+        "measured_pool": {
+          "logical_fields": [
+            "measured_pool"
+          ],
+          "query_field": "native.measured_pool",
+          "status": "logical_and_native"
+        },
+        "measured_population": {
+          "logical_fields": [
+            "measured_population"
+          ],
+          "query_field": "native.measured_population",
+          "status": "logical_and_native"
+        },
+        "organism_source_scope": {
+          "logical_fields": [
+            "organism_source_scope"
+          ],
+          "query_field": "native.organism_source_scope",
+          "status": "logical_and_native"
+        },
+        "organism_taxon_id": {
+          "logical_fields": [
+            "organism_taxon_id"
+          ],
+          "query_field": "native.organism_taxon_id",
+          "status": "logical_and_native"
+        },
+        "partner_population": {
+          "logical_fields": [
+            "partner_population"
+          ],
+          "query_field": "native.partner_population",
+          "status": "logical_and_native"
+        },
+        "peptide_row_id": {
+          "logical_fields": [
+            "peptide_row_id",
+            "source_record_id"
+          ],
+          "query_field": "native.peptide_row_id",
+          "status": "logical_and_native"
+        },
+        "reference_full_sequence_count": {
+          "logical_fields": [
+            "reference_full_sequence_count"
+          ],
+          "query_field": "native.reference_full_sequence_count",
+          "status": "logical_and_native"
+        },
+        "reference_identity_count": {
+          "logical_fields": [
+            "reference_identity_count"
+          ],
+          "query_field": "native.reference_identity_count",
+          "status": "logical_and_native"
+        },
+        "reference_occurrence_count": {
+          "logical_fields": [
+            "reference_occurrence_count"
+          ],
+          "query_field": "native.reference_occurrence_count",
+          "status": "logical_and_native"
+        },
+        "result_id": {
+          "logical_fields": [
+            "result_id"
+          ],
+          "query_field": "native.result_id",
+          "status": "logical_and_native"
+        },
+        "sequence_id": {
+          "logical_fields": [
+            "sequence_id"
+          ],
+          "query_field": "native.sequence_id",
+          "status": "logical_and_native"
+        },
+        "source_dataset": {
+          "logical_fields": [
+            "source_dataset"
+          ],
+          "query_field": "native.source_dataset",
+          "status": "logical_and_native"
+        },
+        "source_parent_status": {
+          "logical_fields": [
+            "source_parent_status"
+          ],
+          "query_field": "native.source_parent_status",
+          "status": "logical_and_native"
+        },
+        "specimen_status": {
+          "logical_fields": [
+            "specimen_status"
+          ],
+          "query_field": "native.specimen_status",
+          "status": "logical_and_native"
+        },
+        "table_number": {
+          "logical_fields": [
+            "table_number"
+          ],
+          "query_field": "native.table_number",
+          "status": "logical_and_native"
+        }
+      },
+      "status": "materialized"
+    },
+    "external_reference_sequence": {
+      "fields": {
+        "component": {
+          "source": "component",
+          "status": "physical"
+        },
+        "peptide_sequence": {
+          "source": "sequence",
+          "status": "physical"
+        },
+        "reference_full_sequence_count": {
+          "source": "reference_full_sequence_count",
+          "status": "physical"
+        },
+        "reference_identity_count": {
+          "source": "reference_identity_count",
+          "status": "physical"
+        },
+        "reference_occurrence_count": {
+          "source": "reference_occurrence_count",
+          "status": "physical"
+        },
+        "sequence_id": {
+          "source": "sequence_id",
+          "status": "physical"
+        },
+        "source_dataset": {
+          "source": "PXD057588",
+          "status": "constant"
+        }
+      },
+      "grain": "one_distinct_source_peptide_sequence",
+      "n_native_fields": 7,
+      "n_rows": 30587,
+      "native_field_disposition": {
+        "component": {
+          "logical_fields": [
+            "component"
+          ],
+          "query_field": "native.component",
+          "status": "logical_and_native"
+        },
+        "length": {
+          "logical_fields": [],
+          "query_field": "native.length",
+          "status": "native_only"
+        },
+        "reference_full_sequence_count": {
+          "logical_fields": [
+            "reference_full_sequence_count"
+          ],
+          "query_field": "native.reference_full_sequence_count",
+          "status": "logical_and_native"
+        },
+        "reference_identity_count": {
+          "logical_fields": [
+            "reference_identity_count"
+          ],
+          "query_field": "native.reference_identity_count",
+          "status": "logical_and_native"
+        },
+        "reference_occurrence_count": {
+          "logical_fields": [
+            "reference_occurrence_count"
+          ],
+          "query_field": "native.reference_occurrence_count",
+          "status": "logical_and_native"
+        },
+        "sequence": {
+          "logical_fields": [
+            "peptide_sequence"
+          ],
+          "query_field": "native.sequence",
+          "status": "logical_and_native"
+        },
+        "sequence_id": {
+          "logical_fields": [
+            "sequence_id"
+          ],
+          "query_field": "native.sequence_id",
+          "status": "logical_and_native"
+        }
+      },
+      "status": "materialized"
+    },
+    "external_reference_source_mapping": {
+      "fields": {
+        "component": {
+          "source": "component",
+          "status": "physical"
+        },
+        "material_link_precision": {
+          "source": "material_link_precision",
+          "status": "physical"
+        },
+        "measured_pool": {
+          "source": "measured_pool",
+          "status": "physical"
+        },
+        "measured_population": {
+          "source": "measured_population",
+          "status": "physical"
+        },
+        "organism_taxon_id": {
+          "source": "10090",
+          "status": "constant"
+        },
+        "parent_label_raw": {
+          "source": "parent_label_raw",
+          "status": "physical"
+        },
+        "partner_population": {
+          "source": "partner_population",
+          "status": "physical"
+        },
+        "peptide_row_id": {
+          "source": "peptide_row_id",
+          "status": "physical"
+        },
+        "peptide_sequence": {
+          "source": "sequence_raw",
+          "status": "physical"
+        },
+        "reference_full_sequence_count": {
+          "source": "reference_full_sequence_count",
+          "status": "physical"
+        },
+        "reference_identity_count": {
+          "source": "reference_identity_count",
+          "status": "physical"
+        },
+        "reference_occurrence_count": {
+          "source": "reference_occurrence_count",
+          "status": "physical"
+        },
+        "selection_scope": {
+          "source": "selection_scope",
+          "status": "physical"
+        },
+        "sequence_id": {
+          "source": "sequence_id",
+          "status": "physical"
+        },
+        "source_dataset": {
+          "source": "PXD057588",
+          "status": "constant"
+        },
+        "source_parent_status": {
+          "source": "source_parent_status",
+          "status": "physical"
+        },
+        "source_record_id": {
+          "source": "peptide_row_id",
+          "status": "physical"
+        },
+        "table_number": {
+          "source": "table_number",
+          "status": "physical"
+        }
+      },
+      "grain": "one_primary_source_peptide_row",
+      "n_native_fields": 22,
+      "n_rows": 35772,
+      "native_field_disposition": {
+        "additional_parent_identities": {
+          "logical_fields": [],
+          "query_field": "native.additional_parent_identities",
+          "status": "native_only"
+        },
+        "asset_path": {
+          "logical_fields": [],
+          "query_field": "native.asset_path",
+          "status": "native_only"
+        },
+        "component": {
+          "logical_fields": [
+            "component"
+          ],
+          "query_field": "native.component",
+          "status": "logical_and_native"
+        },
+        "material_link_precision": {
+          "logical_fields": [
+            "material_link_precision"
+          ],
+          "query_field": "native.material_link_precision",
+          "status": "logical_and_native"
+        },
+        "measured_pool": {
+          "logical_fields": [
+            "measured_pool"
+          ],
+          "query_field": "native.measured_pool",
+          "status": "logical_and_native"
+        },
+        "measured_population": {
+          "logical_fields": [
+            "measured_population"
+          ],
+          "query_field": "native.measured_population",
+          "status": "logical_and_native"
+        },
+        "parent_label_cell": {
+          "logical_fields": [],
+          "query_field": "native.parent_label_cell",
+          "status": "native_only"
+        },
+        "parent_label_raw": {
+          "logical_fields": [
+            "parent_label_raw"
+          ],
+          "query_field": "native.parent_label_raw",
+          "status": "logical_and_native"
+        },
+        "parent_mapping_status": {
+          "logical_fields": [],
+          "query_field": "native.parent_mapping_status",
+          "status": "native_only"
+        },
+        "partner_population": {
+          "logical_fields": [
+            "partner_population"
+          ],
+          "query_field": "native.partner_population",
+          "status": "logical_and_native"
+        },
+        "peptide_row_id": {
+          "logical_fields": [
+            "peptide_row_id",
+            "source_record_id"
+          ],
+          "query_field": "native.peptide_row_id",
+          "status": "logical_and_native"
+        },
+        "reference_full_sequence_count": {
+          "logical_fields": [
+            "reference_full_sequence_count"
+          ],
+          "query_field": "native.reference_full_sequence_count",
+          "status": "logical_and_native"
+        },
+        "reference_identity_count": {
+          "logical_fields": [
+            "reference_identity_count"
+          ],
+          "query_field": "native.reference_identity_count",
+          "status": "logical_and_native"
+        },
+        "reference_occurrence_count": {
+          "logical_fields": [
+            "reference_occurrence_count"
+          ],
+          "query_field": "native.reference_occurrence_count",
+          "status": "logical_and_native"
+        },
+        "row_1based": {
+          "logical_fields": [],
+          "query_field": "native.row_1based",
+          "status": "native_only"
+        },
+        "selection_scope": {
+          "logical_fields": [
+            "selection_scope"
+          ],
+          "query_field": "native.selection_scope",
+          "status": "logical_and_native"
+        },
+        "sequence_cell": {
+          "logical_fields": [],
+          "query_field": "native.sequence_cell",
+          "status": "native_only"
+        },
+        "sequence_id": {
+          "logical_fields": [
+            "sequence_id"
+          ],
+          "query_field": "native.sequence_id",
+          "status": "logical_and_native"
+        },
+        "sequence_raw": {
+          "logical_fields": [
+            "peptide_sequence"
+          ],
+          "query_field": "native.sequence_raw",
+          "status": "logical_and_native"
+        },
+        "source_parent_positions_start1": {
+          "logical_fields": [],
+          "query_field": "native.source_parent_positions_start1",
+          "status": "native_only"
+        },
+        "source_parent_status": {
+          "logical_fields": [
+            "source_parent_status"
+          ],
+          "query_field": "native.source_parent_status",
+          "status": "logical_and_native"
+        },
+        "table_number": {
+          "logical_fields": [
+            "table_number"
+          ],
+          "query_field": "native.table_number",
+          "status": "logical_and_native"
+        }
+      },
+      "status": "materialized"
+    },
+    "external_reference_species_role": {
+      "fields": {
+        "claim_id": {
+          "source": "claim_id",
+          "status": "physical"
+        },
+        "organism_name": {
+          "source": "organism_name",
+          "status": "physical"
+        },
+        "organism_taxon_id": {
+          "source": "organism_taxon_id",
+          "status": "physical"
+        },
+        "population_label": {
+          "source": "population_label",
+          "status": "physical"
+        },
+        "population_role": {
+          "source": "population_role",
+          "status": "physical"
+        },
+        "role_basis": {
+          "source": "role_basis",
+          "status": "physical"
+        },
+        "source_dataset": {
+          "source": "source_dataset",
+          "status": "physical"
+        },
+        "source_locator": {
+          "source": "source_locator",
+          "status": "physical"
+        },
+        "source_scope": {
+          "source": "source_scope",
+          "status": "physical"
+        }
+      },
+      "grain": "one_project_organism_and_source_population_role",
+      "n_native_fields": 9,
+      "n_rows": 5,
+      "native_field_disposition": {
+        "claim_id": {
+          "logical_fields": [
+            "claim_id"
+          ],
+          "query_field": "native.claim_id",
+          "status": "logical_and_native"
+        },
+        "organism_name": {
+          "logical_fields": [
+            "organism_name"
+          ],
+          "query_field": "native.organism_name",
+          "status": "logical_and_native"
+        },
+        "organism_taxon_id": {
+          "logical_fields": [
+            "organism_taxon_id"
+          ],
+          "query_field": "native.organism_taxon_id",
+          "status": "logical_and_native"
+        },
+        "population_label": {
+          "logical_fields": [
+            "population_label"
+          ],
+          "query_field": "native.population_label",
+          "status": "logical_and_native"
+        },
+        "population_role": {
+          "logical_fields": [
+            "population_role"
+          ],
+          "query_field": "native.population_role",
+          "status": "logical_and_native"
+        },
+        "role_basis": {
+          "logical_fields": [
+            "role_basis"
+          ],
+          "query_field": "native.role_basis",
+          "status": "logical_and_native"
+        },
+        "source_dataset": {
+          "logical_fields": [
+            "source_dataset"
+          ],
+          "query_field": "native.source_dataset",
+          "status": "logical_and_native"
+        },
+        "source_locator": {
+          "logical_fields": [
+            "source_locator"
+          ],
+          "query_field": "native.source_locator",
+          "status": "logical_and_native"
+        },
+        "source_scope": {
+          "logical_fields": [
+            "source_scope"
+          ],
+          "query_field": "native.source_scope",
           "status": "logical_and_native"
         }
       },
@@ -7237,9 +8376,109 @@
     }
   },
   "n_contract_only_types": 4,
-  "n_materialized_types": 46,
-  "package_manifest_sha256": "560770376121758b3c18679c3bf4db78bc89f9e95cc72785a7314fe35167cb1e",
-  "package_schema_version": 6,
+  "n_materialized_types": 53,
+  "n_not_in_generation_types": 0,
+  "package_manifest_sha256": "d99f67e625c6c33a2054a56dea4f98fb8248ca5f717cc98af3662f228655fa6a",
+  "package_schema_version": 7,
+  "reference_component_summary": {
+    "interpretation": "candidate split constraint, not donor or specimen identity",
+    "n_components": 5374,
+    "n_distinct_sequences": 30587,
+    "n_sequences_largest_component": 862,
+    "n_unmatched_sequences": 1
+  },
+  "reference_mapping_funnel": [
+    {
+      "measured_pool": "mhc_bound",
+      "n_source_rows": 2819,
+      "source_parent_status": "exact_sequence_match",
+      "table_number": 7
+    },
+    {
+      "measured_pool": "mhc_bound",
+      "n_source_rows": 5,
+      "source_parent_status": "missing_id",
+      "table_number": 7
+    },
+    {
+      "measured_pool": "mhc_bound",
+      "n_source_rows": 3548,
+      "source_parent_status": "exact_sequence_match",
+      "table_number": 8
+    },
+    {
+      "measured_pool": "mhc_bound",
+      "n_source_rows": 6,
+      "source_parent_status": "missing_id",
+      "table_number": 8
+    },
+    {
+      "measured_pool": "mhc_bound",
+      "n_source_rows": 1306,
+      "source_parent_status": "exact_sequence_match",
+      "table_number": 9
+    },
+    {
+      "measured_pool": "mhc_bound",
+      "n_source_rows": 3,
+      "source_parent_status": "missing_id",
+      "table_number": 9
+    },
+    {
+      "measured_pool": "mhc_bound",
+      "n_source_rows": 2609,
+      "source_parent_status": "exact_sequence_match",
+      "table_number": 10
+    },
+    {
+      "measured_pool": "mhc_bound",
+      "n_source_rows": 4,
+      "source_parent_status": "missing_id",
+      "table_number": 10
+    },
+    {
+      "measured_pool": "bulk_digest_peptide",
+      "n_source_rows": 25103,
+      "source_parent_status": "exact_sequence_match",
+      "table_number": 11
+    },
+    {
+      "measured_pool": "bulk_digest_peptide",
+      "n_source_rows": 6,
+      "source_parent_status": "missing_id",
+      "table_number": 11
+    },
+    {
+      "measured_pool": "bulk_digest_peptide",
+      "n_source_rows": 1,
+      "source_parent_status": "resolved_id_peptide_absent",
+      "table_number": 11
+    },
+    {
+      "measured_pool": "mhc_bound",
+      "n_source_rows": 362,
+      "source_parent_status": "exact_sequence_match",
+      "table_number": 12
+    }
+  ],
+  "reference_support_definitions": [
+    {
+      "definition": "all_reference_full_sequences",
+      "n_parent_support_sets": 8291
+    },
+    {
+      "definition": "all_reference_identities",
+      "n_parent_support_sets": 8305
+    },
+    {
+      "definition": "literal_label",
+      "n_parent_support_sets": 4928
+    },
+    {
+      "definition": "verified_source_label",
+      "n_parent_support_sets": 4925
+    }
+  ],
   "source_endpoint_counts": {
     "bulk_ms_peptide": [
       {
@@ -7324,6 +8563,22 @@
         "n_rows": 200724,
         "representation": "reported_log2_fold_change",
         "source_population": "pxd057588"
+      }
+    ],
+    "external_reference_result_context": [
+      {
+        "grain": "one_assay_result_to_source_row_and_reference_status",
+        "n_rows": 309126,
+        "source_dataset": "PXD057588",
+        "source_population": "pxd057588_mouse_reference_2026_03"
+      }
+    ],
+    "external_reference_species_role": [
+      {
+        "grain": "one_project_organism_and_source_population_role",
+        "n_rows": 5,
+        "source_dataset": "PXD057588",
+        "source_population": "pxd057588_mouse_reference_2026_03"
       }
     ],
     "line_expression_gene": [
@@ -7839,6 +9094,20 @@
     "pxd057588": {
       "asset_receipt_sha256": "14419b00aeff8caebdc67917522e329b63b07d1ea85bbb59e15ef0c07bc3a27c",
       "rights_relation": "external_source_asset"
+    },
+    "pxd057588_mouse_reference_2026_03": {
+      "interpretation": "exact candidate mappings; not original search database or specimen pairing",
+      "output_receipt_sha256": "a6599a24c01f484660b91f227a57f68f6904605fbce8389e3b096c0e13abfcf6",
+      "presto_commit": "24f1d2b",
+      "reference_fasta_sha256": "41bc0fa6cb9118ba95f330a27b18c39559e9397b6d99d1e73cc094869c99787a",
+      "release": "UniProt 2026_03 reviewed mouse including isoforms",
+      "report": "pirl-unc/presto/experiments/2026-10-22_1914_codex_pxd057588-shared-sequence-admission",
+      "source_rights": {
+        "pride_project_metadata": "CC0",
+        "publisher_supplements": "CC BY 4.0",
+        "uniprot_reference": "CC BY 4.0"
+      },
+      "taxonomy_id": "10090"
     },
     "tcell_2026_10_20": {
       "CEDAR": {

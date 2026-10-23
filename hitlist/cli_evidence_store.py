@@ -10,6 +10,7 @@ import pyarrow.parquet as pq
 
 from .evidence_recipe import verify_recipe_package
 from .evidence_store import EvidenceQueryError, EvidenceStore
+from .reference_evidence import write_reference_evidence_package
 
 
 def register_evidence_cli(sub):
@@ -47,6 +48,14 @@ def register_evidence_cli(sub):
     verify_recipe = commands.add_parser("verify-recipe", help="Verify a training output")
     verify_recipe.add_argument("output", type=Path)
     verify_recipe.add_argument("--source-package", type=Path)
+
+    build_reference = commands.add_parser(
+        "build-reference", help="Append the pinned mouse reference to a numeric package"
+    )
+    build_reference.add_argument("numeric_package", type=Path)
+    build_reference.add_argument("results_dir", type=Path)
+    build_reference.add_argument("reference_fasta", type=Path)
+    build_reference.add_argument("output", type=Path)
 
 
 def _output_json(value, destination=None):
@@ -111,6 +120,16 @@ def handle_evidence_cli(args):
         if args.evidence_command == "verify-recipe":
             manifest = verify_recipe_package(args.output, source_package=args.source_package)
             _output_json({"recipe": manifest["recipe"]["name"], "coverage": manifest["coverage"]})
+            return
+        if args.evidence_command == "build-reference":
+            print(
+                write_reference_evidence_package(
+                    args.numeric_package,
+                    args.results_dir,
+                    args.reference_fasta,
+                    args.output,
+                )
+            )
             return
         if args.evidence_command is None:
             args._subgroup_parser.print_help(sys.stderr)

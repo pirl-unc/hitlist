@@ -32,13 +32,16 @@ evidence rows. The catalog reports direct, related and unavailable fields,
 source scope, row counts and ingest requirements. A recipe writes accepted,
 excluded and ambiguous rows with counts, reasons, lineage, contributor keys
 and a hash-bound manifest. It never rewrites source evidence.
+The reference-augmented package adds source-backed mouse species roles and
+exact peptide-to-parent alternatives while retaining every original assay and
+numeric cell.
 
 ## Start here
 
 - [Evidence store guide](https://github.com/pirl-unc/hitlist/blob/main/docs/evidence-store.md): catalog, grain-safe queries,
   named relationships, recipes and verification.
-- [Pinned source and count audit](https://github.com/pirl-unc/hitlist/blob/main/tasks/evidence-store-results/README.md): 46
-  materialized evidence types, 25 reconciled baselines and field disposition.
+- [Pinned source and count audit](https://github.com/pirl-unc/hitlist/blob/main/tasks/evidence-store-results/README.md): 53
+  materialized evidence types, 32 reconciled baselines and field disposition.
 - [Migration history](https://github.com/pirl-unc/hitlist/blob/main/docs/evidence-catalog.md): source generations and
   scientific decisions behind the current package.
 - [Legacy 1.x README](https://github.com/pirl-unc/hitlist/blob/main/docs/legacy-1x.md): historical indexes and commands.

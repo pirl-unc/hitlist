@@ -13,6 +13,11 @@ claims, lineage and mapping alternatives. The external quantitative and T-cell
 generations add assay-scoped channels, source-backed derivations and bounded
 cellular-response eligibility. The common query and training interface is now
 available through `EvidenceStore` and `hitlist evidence`.
+The 2.0 successor also appends the pinned PXD057588 mouse-reference audit as
+typed source mappings, exact parent-position alternatives, parent-support
+sets, project-scoped species roles and a result-context lookup. Its source
+and typed bytes are verified under one top-level manifest; the predecessor
+numeric generation remains readable without these seven later types.
 
 ## Discover types and requirements
 

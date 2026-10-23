@@ -12,6 +12,7 @@ import pyarrow.parquet as pq
 
 from .evidence_bindings import ALIASES, CONSTANTS, LINKS, SELECTORS, materialized_bindings
 from .evidence_catalog import EVIDENCE, FIELDS, NULL_STATES, SCHEMA_VERSION, TASKS
+from .reference_evidence import verify_reference_evidence_package
 from .supporting_numeric_evidence import verify_supporting_numeric_evidence_package
 
 
@@ -116,7 +117,7 @@ class EvidenceStore:
     def __init__(self, directory: Path, manifest: dict):
         self.directory = directory
         self.manifest = manifest
-        self.bindings = materialized_bindings()
+        self.bindings = materialized_bindings(manifest["schema_version"])
         self.schemas = {}
         for name, (item, selectors, aliases) in self.bindings.items():
             path = directory / item.materialized_artifact
@@ -134,7 +135,7 @@ class EvidenceStore:
             self.schemas[name] = schema
         for link in LINKS:
             if link.source not in self.schemas or link.target not in self.schemas:
-                raise EvidenceRelationshipError(f"Unknown relationship type: {link.name}")
+                continue
             if (
                 link.source_key not in self.schemas[link.source].names
                 or link.target_key not in self.schemas[link.target].names
@@ -144,7 +145,13 @@ class EvidenceStore:
     @classmethod
     def open(cls, directory: str | Path) -> EvidenceStore:
         directory = Path(directory)
-        manifest = verify_supporting_numeric_evidence_package(directory)
+        schema = json.loads((directory / "manifest.json").read_text()).get("schema_version")
+        if schema == 7:
+            manifest = verify_reference_evidence_package(directory)
+        elif schema == 6:
+            manifest = verify_supporting_numeric_evidence_package(directory)
+        else:
+            raise EvidenceQueryError(f"Unsupported evidence package schema: {schema}")
         return cls(directory, manifest)
 
     def _field(self, evidence_type: str, field: str):
@@ -170,7 +177,9 @@ class EvidenceStore:
         if item.name not in self.bindings:
             return {
                 "name": item.name,
-                "status": "contract_only",
+                "status": (
+                    "not_in_generation" if item.status == "v2_materialized" else "contract_only"
+                ),
                 "kind": item.kind,
                 "family": item.family,
                 "grain": item.grain,
@@ -178,14 +187,17 @@ class EvidenceStore:
                 "rights_scope": item.source_population,
                 "endpoints": list(item.endpoints),
                 "ingest_required": list(item.index_required),
-                "fields": dict.fromkeys(item.fields, "contract_only"),
+                "fields": dict.fromkeys(
+                    item.fields,
+                    "not_in_generation" if item.status == "v2_materialized" else "contract_only",
+                ),
                 "native_fields": [],
                 "relationships": [],
             }
         schema = self.schemas[item.name]
         related = {}
         for link in LINKS:
-            if link.source != item.name:
+            if link.source != item.name or link.target not in self.bindings:
                 continue
             for field in self.bindings[link.target][0].fields:
                 try:
@@ -219,7 +231,11 @@ class EvidenceStore:
             "selectors": [vars(selector) for selector in SELECTORS.get(item.name, ())],
             "fields": readiness,
             "native_fields": [f"native.{name}" for name in schema.names],
-            "relationships": [vars(link) for link in LINKS if link.source == item.name],
+            "relationships": [
+                vars(link)
+                for link in LINKS
+                if link.source == item.name and link.target in self.bindings
+            ],
         }
 
     def catalog(self) -> dict:
@@ -244,7 +260,7 @@ class EvidenceStore:
         supporting = json.loads((self.directory / "manifests" / "supporting.json").read_text())
         tcell = json.loads((self.directory / "manifests" / "tcell.json").read_text())
         external = json.loads((self.directory / "manifests" / "external.json").read_text())
-        return {
+        registry = {
             "mhc_v4": {
                 name: {
                     "license_status": details.get("license_status"),
@@ -263,6 +279,9 @@ class EvidenceStore:
                 "rights_relation": "external_source_asset",
             },
         }
+        if self.manifest["schema_version"] >= 7:
+            registry["pxd057588_mouse_reference_2026_03"] = self.manifest["reference"]
+        return registry
 
     def _manifest_hash(self):
         from .provenance import file_digest
@@ -335,7 +354,11 @@ class EvidenceStore:
         )
 
     def _link(self, evidence_type, name):
-        links = [link for link in LINKS if link.source == evidence_type and link.name == name]
+        links = [
+            link
+            for link in LINKS
+            if link.source == evidence_type and link.name == name and link.target in self.bindings
+        ]
         if len(links) != 1:
             raise EvidenceRelationshipError(f"Unknown relationship: {evidence_type}.{name}")
         link = links[0]
@@ -385,7 +408,11 @@ class EvidenceStore:
         kind, source = self._field(link.target, field)
         keys = tuple(set(base[link.source_key].to_pylist()))
         if not keys:
-            dtype = self.schemas[link.target].field(source).type if kind == "physical" else None
+            dtype = (
+                self.schemas[link.target].field(source).type
+                if kind == "physical"
+                else pa.scalar(source).type
+            )
             return pa.array([], type=dtype)
         physical = [link.target_key] + ([source] if kind == "physical" else [])
         right = self._target_scan(link, physical, keys=keys)
@@ -484,7 +511,9 @@ class EvidenceStore:
                 if kind == "physical"
                 else self._joined_values(*source, table)
                 if kind == "related"
-                else pa.chunked_array([pa.array([source] * table.num_rows)])
+                else pa.chunked_array(
+                    [pa.array([source] * table.num_rows, type=pa.scalar(source).type)]
+                )
             )
         return pa.Table.from_arrays(arrays, names=plan.select)
 

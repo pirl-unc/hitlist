@@ -270,20 +270,6 @@ def test_freshness_change_during_export_cleans_up(built_index, tmp_path, monkeyp
     assert not list(tmp_path.glob(".bundle-*"))
 
 
-def test_cli_archival_opt_out_requires_bundle(tmp_path, monkeypatch, capsys):
-    from hitlist.cli import main
-
-    output = tmp_path / "training.csv"
-    monkeypatch.setattr(
-        sys, "argv", ["hitlist", "export", "training", "--allow-stale-indexes", "-o", str(output)]
-    )
-    with pytest.raises(SystemExit) as exc:
-        main()
-    assert exc.value.code == 1
-    assert "--allow-stale-indexes requires --bundle" in capsys.readouterr().err
-    assert not output.exists()
-
-
 def test_cache_rejects_missing_contributor_contract(built_index):
     from hitlist.builder import _cache_is_valid, _source_paths
 
@@ -298,22 +284,7 @@ def test_cli_bundle_and_split_audit(built_index, tmp_path, monkeypatch):
     from hitlist.cli import main
 
     directory = tmp_path / "bundle"
-    monkeypatch.setattr(
-        sys,
-        "argv",
-        [
-            "hitlist",
-            "export",
-            "training",
-            "--include-evidence",
-            "ms",
-            "--bundle",
-            str(directory),
-            "--columns",
-            "peptide",
-        ],
-    )
-    main()
+    write_training_bundle(directory, include_evidence="ms", columns=["peptide"])
     assert verify_training_bundle(directory)["n_rows"] == 2
     output = tmp_path / "audit.json"
     monkeypatch.setattr(

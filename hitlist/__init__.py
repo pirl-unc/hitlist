@@ -58,6 +58,8 @@ from .version import __version__  # after the pandas flag, like every submodule
 _PUBLIC_API: dict[str, str] = {
     "EvidenceStore": ".evidence_store",
     "verify_recipe_package": ".evidence_recipe",
+    "write_reference_evidence_package": ".reference_evidence",
+    "verify_reference_evidence_package": ".reference_evidence",
     "write_mhc_evidence_package": ".mhc_evidence",
     "verify_mhc_evidence_package": ".mhc_evidence",
     "write_context_evidence_package": ".context_evidence",

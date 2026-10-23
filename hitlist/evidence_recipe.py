@@ -30,6 +30,7 @@ RESERVED = {
     "evidence_type",
     "source_population",
     "target_value",
+    "target_unit",
     "decision",
     "reason_codes",
     "split_group_id",
@@ -163,6 +164,7 @@ def _validate(recipe):
                 "allowed_inequalities",
                 "status_field",
                 "allowed_statuses",
+                "unit_conversion",
             },
             "target",
         )
@@ -191,6 +193,30 @@ def _validate(recipe):
             raise RecipeError("Only mapped targets accept dtype and map")
         if target["mode"] == "numeric" and not ("unit_field" in target or "scale_field" in target):
             raise RecipeError("Numeric targets need an explicit unit or scale policy")
+        if "unit_conversion" in target:
+            conversion = target["unit_conversion"]
+            _keys(conversion, {"output_unit", "factor_by_unit"}, "unit_conversion")
+            if (
+                target["mode"] != "numeric"
+                or "unit_field" not in target
+                or "allowed_units" not in target
+                or not isinstance(conversion.get("output_unit"), str)
+                or not conversion["output_unit"]
+                or not isinstance(conversion.get("factor_by_unit"), dict)
+                or not conversion["factor_by_unit"]
+            ):
+                raise RecipeError("Unit conversion needs a numeric target and source unit policy")
+            for unit, factor in conversion["factor_by_unit"].items():
+                if (
+                    not isinstance(unit, str)
+                    or not isinstance(factor, (int, float))
+                    or isinstance(factor, bool)
+                    or not math.isfinite(factor)
+                    or factor <= 0
+                ):
+                    raise RecipeError("Unit conversion factors must be finite and positive")
+            if set(conversion["factor_by_unit"]) != set(target["allowed_units"]):
+                raise RecipeError("Unit conversion must cover exactly the allowed source units")
         for field_key, allowed_key in (
             ("unit_field", "allowed_units"),
             ("scale_field", "allowed_scales"),
@@ -203,6 +229,10 @@ def _validate(recipe):
                 not isinstance(target[field_key], str) or not isinstance(target[allowed_key], list)
             ):
                 raise RecipeError(f"Invalid {field_key} policy")
+        if target["mode"] == "numeric" and any(
+            inequality != "=" for inequality in target.get("allowed_inequalities", [])
+        ):
+            raise RecipeError("Censored inequalities cannot be exact numeric point targets")
         context = source.get("context_precision")
         if context is not None:
             _keys(context, {"field", "allowed", "on_mismatch"}, "context_precision")
@@ -251,6 +281,18 @@ def _missing(value):
     return value is None or value == "" or value == []
 
 
+def _lineage_value(row, field):
+    direct = row.get(field)
+    if not _missing(direct):
+        return direct
+    related = [
+        value for name, value in row.items() if name.endswith(f".{field}") and not _missing(value)
+    ]
+    if len(related) == 1:
+        return related[0]
+    return None
+
+
 def _target_value(row, target):
     value = row[target["field"]]
     if _missing(value):
@@ -279,7 +321,18 @@ def _target_value(row, target):
     ):
         if field_key in target and row[target[field_key]] not in target[allowed_key]:
             return None, reason
+    if mode == "numeric" and "unit_conversion" in target:
+        result *= target["unit_conversion"]["factor_by_unit"][row[target["unit_field"]]]
+        if not math.isfinite(result):
+            return None, "nonfinite_converted_target"
     return result, None
+
+
+def _target_unit(row, target):
+    if target["mode"] != "numeric" or "unit_field" not in target:
+        return None
+    conversion = target.get("unit_conversion")
+    return conversion["output_unit"] if conversion else row[target["unit_field"]]
 
 
 def _group(row, grouping, evidence_type):
@@ -504,6 +557,7 @@ def materialize_recipe(store, recipe, destination):
                     ("source_population", pa.string()),
                     *[(field.name, field.type) for field in empty.schema],
                     ("target_value", _target_type(source["target"])),
+                    ("target_unit", pa.string()),
                     ("decision", pa.string()),
                     ("reason_codes", pa.list_(pa.string())),
                     ("split_group_id", pa.string()),
@@ -544,10 +598,10 @@ def materialize_recipe(store, recipe, destination):
                                     if contributor_link is not None
                                     and row[contributor_link.source_key] is not None
                                     else None,
-                                    row.get("source_record_id"),
-                                    row.get("source_assay_id"),
-                                    row.get("source_dataset"),
-                                    row.get("source_reference_id"),
+                                    _lineage_value(row, "source_record_id"),
+                                    _lineage_value(row, "source_assay_id"),
+                                    _lineage_value(row, "source_dataset"),
+                                    _lineage_value(row, "source_reference_id"),
                                 ),
                             )
                         except sqlite3.IntegrityError as error:
@@ -564,14 +618,19 @@ def materialize_recipe(store, recipe, destination):
                                 "source_population": batch.source_population,
                                 **row,
                                 "target_value": target,
+                                "target_unit": (
+                                    _target_unit(row, source["target"])
+                                    if decision == "accepted"
+                                    else None
+                                ),
                                 "decision": decision,
                                 "reason_codes": codes,
                                 "split_group_id": group_id,
                                 "split_status": split_status,
                             }
                         )
-                        source_record_id = row.get("source_record_id")
-                        source_assay_id = row.get("source_assay_id")
+                        source_record_id = _lineage_value(row, "source_record_id")
+                        source_assay_id = _lineage_value(row, "source_assay_id")
                         if contributor_link is None:
                             if not (source_record_id or source_assay_id):
                                 n_unresolved_links += 1
@@ -580,8 +639,10 @@ def materialize_recipe(store, recipe, destination):
                                     "candidate_id": candidate_id,
                                     "source_record_id": source_record_id,
                                     "source_assay_id": source_assay_id,
-                                    "source_dataset": row.get("source_dataset"),
-                                    "source_reference_id": row.get("source_reference_id"),
+                                    "source_dataset": _lineage_value(row, "source_dataset"),
+                                    "source_reference_id": _lineage_value(
+                                        row, "source_reference_id"
+                                    ),
                                     "link_status": (
                                         "direct_source_key"
                                         if source_record_id or source_assay_id

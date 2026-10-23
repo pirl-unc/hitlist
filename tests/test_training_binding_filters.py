@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 
 from hitlist import cli, downloads, export
-from hitlist.training_bundle import verify_training_bundle
+from hitlist.training_bundle import verify_training_bundle, write_training_bundle
 
 IC50 = "half maximal inhibitory concentration (IC50)"
 KD = "dissociation constant KD"
@@ -142,43 +142,21 @@ def test_training_binding_filters_precede_mapping_and_projection(endpoint_indexe
 
 
 @pytest.mark.parametrize("destination", ["csv", "bundle"])
-def test_training_binding_cli_and_bundle(endpoint_indexes, tmp_path, monkeypatch, destination):
+def test_historical_training_export_and_bundle(endpoint_indexes, tmp_path, destination):
     output = tmp_path / ("export.csv" if destination == "csv" else "bundle")
-    monkeypatch.setattr(
-        sys,
-        "argv",
-        [
-            "hitlist",
-            "export",
-            "training",
-            "--include-evidence",
-            "both",
-            "--class",
-            "I",
-            "--species",
-            "human",
-            "--assay-method",
-            "PURIFIED",
-            "--response-measured",
-            IC50,
-            "--response-measured",
-            KD.upper(),
-            "--measurement-units",
-            "nM",
-            "--has-quantitative-value",
-            "--quantitative-value-min",
-            "12.5",
-            "--quantitative-value-max",
-            "5000",
-            "--output" if destination == "csv" else "--bundle",
-            str(output),
-            *(["--allow-stale-indexes"] if destination == "bundle" else []),
-        ],
-    )
-    cli.main()
+    options = {
+        **AFFINITY_FILTERS,
+        "assay_method": ["PURIFIED"],
+        "measurement_units": ["nM"],
+        "include_evidence": "both",
+        "mhc_class": "I",
+        "species": "human",
+    }
     if destination == "csv":
+        export.generate_training_table(**options).to_csv(output, index=False)
         result = pd.read_csv(output, keep_default_na=False)
     else:
+        write_training_bundle(output, require_current_indexes=False, **options)
         result = pd.read_parquet(output / "training.parquet")
         manifest = verify_training_bundle(output)
         assert manifest["input_validation"]["require_current_indexes"] is False
@@ -191,8 +169,7 @@ def test_training_binding_cli_and_bundle(endpoint_indexes, tmp_path, monkeypatch
     assert list(result.measurement_inequality) == ["", "=", "<", ">", "="]
 
 
-@pytest.mark.parametrize("command", ["binding", "training"])
-def test_training_binding_cli_qualitative_only(endpoint_indexes, tmp_path, monkeypatch, command):
+def test_binding_cli_qualitative_only(endpoint_indexes, tmp_path, monkeypatch):
     output = tmp_path / "qualitative.csv"
     monkeypatch.setattr(
         sys,
@@ -200,7 +177,7 @@ def test_training_binding_cli_qualitative_only(endpoint_indexes, tmp_path, monke
         [
             "hitlist",
             "export",
-            command,
+            "binding",
             "--qualitative-only",
             "-o",
             str(output),
@@ -208,7 +185,4 @@ def test_training_binding_cli_qualitative_only(endpoint_indexes, tmp_path, monke
     )
     cli.main()
     result = pd.read_csv(output)
-    assert list(result.peptide) == (["MMMMMMMMM"] if command == "training" else []) + [
-        "KKKKKKKKK",
-        "LLLLLLLLL",
-    ]
+    assert list(result.peptide) == ["KKKKKKKKK", "LLLLLLLLL"]

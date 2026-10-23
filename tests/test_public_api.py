@@ -27,6 +27,8 @@ def test_top_level_entry_points_importable():
         build_observations,
         fetch,
         verify_recipe_package,
+        verify_reference_evidence_package,
+        write_reference_evidence_package,
     )
 
     assert callable(build_observations)
