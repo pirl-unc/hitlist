@@ -1,0 +1,33 @@
+{
+  "final_slot_states": {
+    "n_annotation_only_rows": 269,
+    "n_reported_vectors": 53144,
+    "postprocessing_forced_zero": 62860,
+    "postprocessing_missing_unresolved_contributors": 4782,
+    "source_positive": 213022
+  },
+  "n_constructs": 15,
+  "original_row_roundtrip": {
+    "filtered_vectors": 121556,
+    "final_vectors": 53413,
+    "identifications": 649789,
+    "members": 391,
+    "ms1": 5792969,
+    "raw_quantities": 545664
+  },
+  "run_links": {
+    "ms1_run_link_status": {
+      "blank_original_source_name": 152,
+      "matched_main_search": 5792817
+    },
+    "n_main_search_runs": 388,
+    "n_quantity_time_conflicts": 2278
+  },
+  "source_id": "soh2024_digestion",
+  "workbook_rows": {
+    "Contaminant_DB_generation": 31,
+    "InGel_digestion": 3,
+    "Main_searches": 388,
+    "Peptide_validation": 20
+  }
+}

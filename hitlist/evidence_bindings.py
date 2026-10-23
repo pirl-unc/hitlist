@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 
-from .evidence_catalog import CONTROLLED_RELATION_NAMES, EVIDENCE
+from .evidence_catalog import CONTROLLED_RELATION_NAMES, DIGESTION_RELATIONS, EVIDENCE
 
 
 @dataclass(frozen=True)
@@ -888,6 +888,65 @@ LINKS += tuple(
     )
     for link in LINKS
     if link.source in CONTROLLED_RELATION_NAMES and link.target in CONTROLLED_RELATION_NAMES
+)
+
+
+ALIASES.update(
+    {"digestion_" + name: dict(aliases) for name, (_, aliases) in DIGESTION_RELATIONS.items()}
+)
+for _table in ("raw_quantities", "ms1", "identifications", "conflicts"):
+    LINKS += (
+        Link(
+            "acquisition",
+            "digestion_" + _table,
+            "digestion_runs",
+            "run_id",
+            "run_id",
+            "one",
+            "exact_original_acquisition",
+        ),
+    )
+for _table in ("raw_quantities", "filtered_vectors", "final_vectors", "final_values", "contexts"):
+    LINKS += (
+        Link(
+            "substrate",
+            "digestion_" + _table,
+            "digestion_constructs",
+            "construct_id",
+            "construct_id",
+            "one",
+            "exact_original_construct",
+        ),
+    )
+for _table in (
+    "raw_quantities",
+    "filtered_vectors",
+    "final_vectors",
+    "final_values",
+    "ms1",
+    "identifications",
+):
+    LINKS += (
+        Link(
+            "condition",
+            "digestion_" + _table,
+            "digestion_contexts",
+            "condition_id",
+            "condition_id",
+            "one",
+            "source_condition_not_APC_specimen",
+        ),
+    )
+LINKS += (
+    Link(
+        "source_vector",
+        "digestion_final_values",
+        "digestion_final_vectors",
+        "vector_id",
+        "source_record_id",
+        "one",
+        "original_vector_slot",
+    ),
 )
 
 

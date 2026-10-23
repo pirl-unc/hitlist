@@ -7821,12 +7821,42 @@ Plan: [mapp-controlled-207-release-spec.md](mapp-controlled-207-release-spec.md)
 - [x] Rebuild real controlled successor and replay all old and new recipes.
 - [x] Run local formatting, lint, strict docs and distribution gates.
 - [x] Pass the full local test suite under its unchanged memory guard.
-- [ ] Review final-head CI, merge and publish exact 2.0.7 artifacts.
+- [x] Review final-head CI, merge and publish exact 2.0.7 artifacts.
 
 ## Review
 
 The 2.0.7 real package preserves all 183 prior combined files and nine review
 claims, and its source and both new recipes pass independent replay. All four
 previous recipe semantic payloads remain byte-identical. Distribution gates
-and 3,330 local tests pass; hosted release gates remain; see
+and 3,330 local tests pass; the hosted release gate and exact PyPI artifact
+hash verification passed; see
 [mapp-controlled-207-results/README.md](mapp-controlled-207-results/README.md).
+
+
+## Shared quantitative digestion source #774 (parent #770)
+
+Plan: tasks/digestion-source-spec.md.
+- [x] Source-faithful typed adapter and canonical catalog bindings.
+- [x] Fixtures, real source reconciliation and prior-source conservation.
+- [x] Complete independent original-source row/cell/slot checks on the 2.0.8
+      reviewed package.
+- [ ] Run final-head CI and review the source-only #773 PR.
+- [ ] Merge and deploy 2.0.8; leave all-substrate arithmetic and the grouped
+      kinetic recipe to #775.
+
+Review: ongoing; full concentration goal remains active.
+
+Digestion review: draft PR773 at977adc2, all18 assets/11 typed relations/250 package files verified; all218 prior source payloads and33 baselines conserved. Independent original-source decoding/typed replay passes.37 focused and3,341 normal guarded tests pass; format/lint/strict docs pass. Published Presto1503d67 source and synthetic kinetic reports. All-substrate quantitative arithmetic, training recipe and biological fitting remain pending, as do final-head review/CI/merge/deployment. No concentration claim.
+
+Review update: the 2.0.8 review head adds a 391-member typed inventory, named
+workbook cells, explicit 152 blank-run Skyline dispositions and source-unit/
+representation labels. A 251-file real package at manifest SHA-256
+`ad62414d511b74a6aa1e4da457fdff68d9f4527874d1a2e385c65e5b98df41e8`
+preserves all218 prior files exactly at separate inodes. The independent
+Hitlist-free round-trip verifies the five typed source tables, all source
+members/workbook rows/constructs, original MS1 and raw values, run/time links
+and280,664 final slots; details in
+[digestion-source-208-results/README.md](digestion-source-208-results/README.md).
+Format/lint/37 focused tests/strict docs and distribution gates pass. The
+current local full test runner refused at0.68GiB free versus2.5GiB required;
+hosted final-head test and integration checks are still required.

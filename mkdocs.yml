@@ -13,6 +13,7 @@ nav:
   - Declared Training Recipes: evidence-recipes.md
   - MAPP Fragment Evidence: mapp-evidence.md
   - Controlled MAPP Evidence: mapp-controlled-evidence.md
+  - Digestion time courses: digestion-evidence.md
   - MS calibration evidence: ms-calibration-evidence.md
   - Source Classification: source-classification.md
   - PMID Curation Overrides: pmid-curation.md

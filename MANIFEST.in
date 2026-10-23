@@ -1,5 +1,6 @@
 include LICENSE
 include README.md
+include scripts/verify_digestion_roundtrip.py
 recursive-include tests/data/canine_orfdata *.md *.json *.tsv *.fasta
 
 # Large paper-derived data files (#303) are fetched on demand via datacache,

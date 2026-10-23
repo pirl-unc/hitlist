@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, replace
 
-SCHEMA_VERSION = 13
+SCHEMA_VERSION = 14
 FIELD_ROLES = frozenset(
     {
         "identity",
@@ -575,6 +575,157 @@ FIELDS += (
         "Direct MS/MS contributors with positive intensity",
     ),
     _field("n_matched_evidence", "relation", "number", "Contributors labeled MULTI-MATCH"),
+)
+
+
+# Same-grain roles for purified processing time courses. Source-specific raw
+# columns remain available as native.*; training readiness is a separate gate.
+FIELDS += (
+    _field(
+        "digestion_construct_id", "identity", "identifier", "Exact deposited substrate construct"
+    ),
+    _field(
+        "digestion_run_id",
+        "identity",
+        "identifier",
+        "Original MS acquisition; not a biological digest",
+    ),
+    _field(
+        "digestion_run_link_status",
+        "provenance",
+        "category",
+        "Exact main-search join, blank source name, or outside roster",
+    ),
+    _field(
+        "digestion_member_status",
+        "provenance",
+        "category",
+        "Typed relation, retained original-only asset, or archive directory",
+    ),
+    _field(
+        "digestion_member_size_bytes",
+        "provenance",
+        "number",
+        "Original nested archive member size in bytes",
+    ),
+    _field(
+        "digestion_product_type_raw",
+        "annotation",
+        "category",
+        "Original PCP/PSP product classification without remapping",
+    ),
+    _field(
+        "digestion_splice_type_raw",
+        "annotation",
+        "text",
+        "Original cis/reverse/trans splice mapping alternatives",
+    ),
+    _field(
+        "digestion_positions_raw",
+        "relation",
+        "text",
+        "Original possible substrate positions; may be ambiguous",
+    ),
+    _field(
+        "digestion_modified_sequence_raw",
+        "molecular_input",
+        "text",
+        "Original modified peptide sequence, not collapsed to canonical sequence",
+    ),
+    _field("digestion_raw_fields", "provenance", "text", "Original source row fields as JSON"),
+    _field(
+        "digestion_biological_replicate",
+        "lineage",
+        "identifier",
+        "Literal biological digest label within condition",
+    ),
+    _field(
+        "digestion_control_role",
+        "biological_context",
+        "category",
+        "Explicit substrate-only control or digestion",
+    ),
+    _field(
+        "digestion_quantity_time", "protocol", "number", "Hours supplied in original quantity layer"
+    ),
+    _field(
+        "digestion_metadata_time",
+        "protocol",
+        "number",
+        "Hours supplied in original acquisition metadata",
+    ),
+    _field(
+        "digestion_time_status",
+        "provenance",
+        "category",
+        "Agreement/conflict or repeated original time slots",
+    ),
+    _field(
+        "digestion_training_status",
+        "annotation",
+        "category",
+        "Source readiness; no implicit training admission",
+    ),
+    _field(
+        "digestion_enzyme_species",
+        "biological_context",
+        "text",
+        "Species of purified enzyme, separate from substrate/APC",
+    ),
+    _field(
+        "digestion_substrate_species",
+        "biological_context",
+        "text",
+        "Species explicit in construct header; unknown otherwise",
+    ),
+    _field(
+        "digestion_enzyme_origin",
+        "biological_context",
+        "text",
+        "Enzyme preparation cell origin; not an APC specimen",
+    ),
+    _field(
+        "digestion_input_um",
+        "protocol",
+        "number",
+        "Protocol-scoped starting substrate micromolar concentration",
+    ),
+    _field(
+        "digestion_enzyme_ratio_denominator",
+        "protocol",
+        "number",
+        "Substrate molar units per one enzyme unit",
+    ),
+    _field(
+        "digestion_temperature_c",
+        "protocol",
+        "number",
+        "Protocol-scoped digestion temperature in Celsius",
+    ),
+    _field(
+        "digestion_buffer",
+        "protocol",
+        "text",
+        "Protocol-scoped buffer composition with explicit units",
+    ),
+    _field(
+        "digestion_context_scope",
+        "provenance",
+        "category",
+        "Scope of protocol claims; not measured per-run inputs",
+    ),
+    _field(
+        "digestion_vector_id",
+        "relation",
+        "identifier",
+        "Original peptide/biological-replicate vector row",
+    ),
+    _field(
+        "digestion_slot",
+        "relation",
+        "number",
+        "Original zero-based slot; repeated times remain distinct",
+    ),
 )
 
 _FIELD_BY_NAME = {field.name: field for field in FIELDS}
@@ -2441,6 +2592,204 @@ def _controlled_catalog():
 
 
 EVIDENCE += _controlled_catalog()
+
+
+DIGESTION_RELATIONS = {
+    "members": (
+        "one_original_nested_archive_member",
+        {
+            "source_record_id": "source_record_id",
+            "source_locator": "source_locator",
+            "digestion_raw_fields": "fields_json",
+            "digestion_member_status": "materialization_status",
+            "digestion_member_size_bytes": "member_size_bytes",
+        },
+    ),
+    "metadata": (
+        "one_original_workbook_row",
+        {
+            "source_record_id": "source_record_id",
+            "source_locator": "source_locator",
+            "digestion_raw_fields": "fields_json",
+        },
+    ),
+    "constructs": (
+        "one_deposited_substrate_construct",
+        {
+            "source_record_id": "source_record_id",
+            "source_locator": "source_locator",
+            "digestion_raw_fields": "fields_json",
+            "digestion_construct_id": "construct_id",
+            "reference_sequence": "sequence",
+            "digestion_substrate_species": "substrate_species",
+        },
+    ),
+    "runs": (
+        "one_original_MS_acquisition",
+        {
+            "source_record_id": "source_record_id",
+            "source_locator": "source_locator",
+            "digestion_raw_fields": "fields_json",
+            "digestion_run_id": "run_id",
+            "acquisition_id": "run_id",
+            "instrument": "instrument_raw",
+            "time_hours": "time_hours",
+            "digestion_biological_replicate": "biological_replicate_raw",
+            "digestion_control_role": "control_role",
+        },
+    ),
+    "contexts": (
+        "one_purified_digestion_condition",
+        {
+            "source_record_id": "source_record_id",
+            "source_locator": "source_locator",
+            "digestion_raw_fields": "fields_json",
+            "condition_id": "condition_id",
+            "digestion_construct_id": "construct_id",
+            "digestion_enzyme_species": "enzyme_species",
+            "digestion_substrate_species": "substrate_species",
+            "digestion_enzyme_origin": "enzyme_preparation_cell_line",
+            "digestion_input_um": "substrate_concentration_um",
+            "digestion_enzyme_ratio_denominator": "enzyme_substrate_denominator",
+            "digestion_temperature_c": "temperature_c",
+            "digestion_buffer": "buffer_json",
+            "digestion_context_scope": "context_scope",
+            "digestion_training_status": "training_status",
+        },
+    ),
+    "identifications": (
+        "one_original_assignment_row",
+        {
+            "source_record_id": "source_record_id",
+            "source_locator": "source_locator",
+            "digestion_raw_fields": "fields_json",
+            "condition_id": "condition_id",
+            "digestion_run_id": "run_id",
+            "digestion_run_link_status": "run_link_status",
+            "peptide_sequence": "peptide_sequence",
+            "digestion_modified_sequence_raw": "modified_sequence",
+            "digestion_product_type_raw": "product_type_raw",
+            "digestion_positions_raw": "positions_raw",
+        },
+    ),
+    "ms1": (
+        "one_original_Skyline_row_not_independent_peptide_measurement",
+        {
+            "source_record_id": "source_record_id",
+            "source_locator": "source_locator",
+            "digestion_raw_fields": "fields_json",
+            "condition_id": "condition_id",
+            "digestion_run_id": "run_id",
+            "digestion_run_link_status": "run_link_status",
+            "peptide_sequence": "peptide_sequence",
+            "digestion_modified_sequence_raw": "modified_sequence",
+            "quantitative_value": "ms1_area",
+            "measurement_unit": "measurement_unit",
+            "quantity_scale": "quantity_scale",
+            "value_status": "value_status",
+        },
+    ),
+    "raw_quantities": (
+        "one_original_peptide_run_quantity",
+        {
+            "source_record_id": "source_record_id",
+            "source_locator": "source_locator",
+            "digestion_raw_fields": "fields_json",
+            "condition_id": "condition_id",
+            "digestion_construct_id": "construct_id",
+            "digestion_run_id": "run_id",
+            "peptide_sequence": "peptide_sequence",
+            "digestion_biological_replicate": "biological_replicate_raw",
+            "digestion_control_role": "control_role",
+            "digestion_quantity_time": "quantity_time_hours",
+            "digestion_metadata_time": "metadata_time_hours",
+            "digestion_time_status": "time_status",
+            "quantitative_value": "intensity",
+            "measurement_unit": "measurement_unit",
+            "quantity_scale": "quantity_scale",
+            "value_status": "value_status",
+        },
+    ),
+    "filtered_vectors": (
+        "one_original_peptide_technical_vector",
+        {
+            "source_record_id": "source_record_id",
+            "source_locator": "source_locator",
+            "digestion_raw_fields": "fields_json",
+            "condition_id": "condition_id",
+            "digestion_construct_id": "construct_id",
+            "peptide_sequence": "peptide_sequence",
+            "digestion_product_type_raw": "product_type_raw",
+            "digestion_splice_type_raw": "splice_type_raw",
+            "digestion_positions_raw": "positions_raw",
+            "digestion_biological_replicate": "biological_replicate_raw",
+        },
+    ),
+    "final_vectors": (
+        "one_original_peptide_biological_vector_or_annotation",
+        {
+            "source_record_id": "source_record_id",
+            "source_locator": "source_locator",
+            "digestion_raw_fields": "fields_json",
+            "condition_id": "condition_id",
+            "digestion_construct_id": "construct_id",
+            "peptide_sequence": "peptide_sequence",
+            "digestion_product_type_raw": "product_type_raw",
+            "digestion_splice_type_raw": "splice_type_raw",
+            "digestion_positions_raw": "positions_raw",
+            "digestion_biological_replicate": "biological_replicate_raw",
+        },
+    ),
+    "final_values": (
+        "one_original_final_vector_slot",
+        {
+            "source_record_id": "source_record_id",
+            "source_locator": "source_locator",
+            "digestion_raw_fields": "fields_json",
+            "condition_id": "condition_id",
+            "digestion_construct_id": "construct_id",
+            "peptide_sequence": "peptide_sequence",
+            "digestion_biological_replicate": "biological_replicate_raw",
+            "digestion_vector_id": "vector_id",
+            "digestion_slot": "slot_0based",
+            "time_hours": "time_hours",
+            "quantitative_value": "intensity",
+            "measurement_unit": "measurement_unit",
+            "quantity_scale": "quantity_scale",
+            "value_status": "value_status",
+            "digestion_time_status": "time_status",
+        },
+    ),
+    "conflicts": (
+        "one_original_source_claim_conflict",
+        {
+            "source_record_id": "source_record_id",
+            "source_locator": "source_locator",
+            "digestion_raw_fields": "fields_json",
+            "condition_id": "condition_id",
+            "digestion_run_id": "run_id",
+        },
+    ),
+}
+
+EVIDENCE += tuple(
+    Evidence(
+        "digestion_" + table,
+        "context" if table in ("runs", "contexts") else "relation",
+        "processing",
+        grain,
+        f"external/soh2024_digestion/typed/{table}.parquet",
+        "soh2024_digestion",
+        (),
+        tuple(aliases),
+        ("source_record_id",),
+        status="v2_materialized",
+        materialized_artifact=f"external/soh2024_digestion/typed/{table}.parquet",
+        min_package_schema_version=9,
+        required_appended_source="soh2024_digestion",
+    )
+    for table, (grain, aliases) in DIGESTION_RELATIONS.items()
+)
 
 _EVIDENCE_BY_NAME = {item.name: item for item in EVIDENCE}
 

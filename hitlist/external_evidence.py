@@ -20,6 +20,7 @@ CATALOG_SCHEMA_VERSION = 5
 
 
 def _adapters():
+    from .digestion_evidence import DigestionAdapter
     from .mapp_controlled_evidence import ControlledMAPPAdapter
     from .mapp_evidence import MAPPAdapter
     from .ms_calibration_evidence import MSCalibrationAdapter
@@ -30,6 +31,7 @@ def _adapters():
         MAPPAdapter.source_id: MAPPAdapter(),
         MSCalibrationAdapter.source_id: MSCalibrationAdapter(),
         ControlledMAPPAdapter.source_id: ControlledMAPPAdapter(),
+        DigestionAdapter.source_id: DigestionAdapter(),
     }
 
 
