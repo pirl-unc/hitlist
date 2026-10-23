@@ -1,0 +1,87 @@
+{
+  "archive_provenance": {
+    "publisher_equivalence": [
+      "supplementary-data-2.xlsx",
+      "supplementary-data-8.xlsx"
+    ],
+    "sha256": "d8c99067fee216285284623eadc25cfdc121b3e7e73b551c2da9b28e09a501f5",
+    "size": 59882038,
+    "url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC5566333/supplementaryFiles"
+  },
+  "assets": {
+    "article.xml": {
+      "decompress": false,
+      "license_raw": "CC-BY4.0_with_third_party_credit_exceptions",
+      "sha256": "36407dc5bacd14286d3b032806a31fbf4358e7264f523ad948172e658ba16f6a",
+      "size": 158096,
+      "url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC5566333/fullTextXML"
+    },
+    "supplementary-data-1.xlsx": {
+      "decompress": false,
+      "license_raw": "Article CC-BY4.0, subject to third-party credit exceptions",
+      "public_archive_member": "41467_2017_249_MOESM3_ESM.xlsx",
+      "publication_label": "Supplementary Data 1",
+      "sha256": "a7cfcefcfb2c056fdf4ffc935a0a4d783c1967d23e9282e41333271ba714d871",
+      "size": 8883,
+      "url": "https://media.springernature.com/original/springer-static/esm/art%3A10.1038%2Fs41467-017-00249-5/MediaObjects/41467_2017_249_MOESM3_ESM.xlsx"
+    },
+    "supplementary-data-13.xlsx": {
+      "decompress": false,
+      "license_raw": "Article CC-BY4.0, subject to third-party credit exceptions",
+      "public_archive_member": "41467_2017_249_MOESM15_ESM.xlsx",
+      "publication_label": "Supplementary Data 13",
+      "sha256": "2e06edbbc7b12734737cf7903df4beb167c9390bd3da400f9598aa944d20e578",
+      "size": 13733,
+      "url": "https://media.springernature.com/original/springer-static/esm/art%3A10.1038%2Fs41467-017-00249-5/MediaObjects/41467_2017_249_MOESM15_ESM.xlsx"
+    },
+    "supplementary-data-14.xlsx": {
+      "decompress": false,
+      "license_raw": "Article CC-BY4.0, subject to third-party credit exceptions",
+      "public_archive_member": "41467_2017_249_MOESM16_ESM.xlsx",
+      "publication_label": "Supplementary Data 14",
+      "sha256": "1dbc8838a073faa3160342b54bac91b6da28ca83d3ea54af5bfd02969a7511fd",
+      "size": 10850,
+      "url": "https://media.springernature.com/original/springer-static/esm/art%3A10.1038%2Fs41467-017-00249-5/MediaObjects/41467_2017_249_MOESM16_ESM.xlsx"
+    },
+    "supplementary-data-15.xlsx": {
+      "decompress": false,
+      "license_raw": "Article CC-BY4.0, subject to third-party credit exceptions",
+      "public_archive_member": "41467_2017_249_MOESM17_ESM.xlsx",
+      "publication_label": "Supplementary Data 15",
+      "sha256": "da6499d873647e849a0f5eaa163beea1f9139620a2528d37e9d09e6f668ba7a1",
+      "size": 13132,
+      "url": "https://media.springernature.com/original/springer-static/esm/art%3A10.1038%2Fs41467-017-00249-5/MediaObjects/41467_2017_249_MOESM17_ESM.xlsx"
+    },
+    "supplementary-data-2.xlsx": {
+      "decompress": false,
+      "license_raw": "Article CC-BY4.0, subject to third-party credit exceptions",
+      "public_archive_member": "41467_2017_249_MOESM4_ESM.xlsx",
+      "publication_label": "Supplementary Data 2",
+      "sha256": "877c1a8737a88fad64c007cc84008f81465bde7c23a463720e7210a473e555fe",
+      "size": 14180,
+      "url": "https://media.springernature.com/original/springer-static/esm/art%3A10.1038%2Fs41467-017-00249-5/MediaObjects/41467_2017_249_MOESM4_ESM.xlsx"
+    },
+    "supplementary-data-4.xlsx": {
+      "decompress": false,
+      "license_raw": "Article CC-BY4.0, subject to third-party credit exceptions",
+      "public_archive_member": "41467_2017_249_MOESM6_ESM.xlsx",
+      "publication_label": "Supplementary Data 4",
+      "sha256": "89eece0d34b627c170c4252d9d6107ce1e88b41bf1c883126749cffa55badddc",
+      "size": 83827,
+      "url": "https://media.springernature.com/original/springer-static/esm/art%3A10.1038%2Fs41467-017-00249-5/MediaObjects/41467_2017_249_MOESM6_ESM.xlsx"
+    },
+    "supplementary-data-8.xlsx": {
+      "decompress": false,
+      "license_raw": "Article CC-BY4.0, subject to third-party credit exceptions",
+      "public_archive_member": "41467_2017_249_MOESM10_ESM.xlsx",
+      "publication_label": "Supplementary Data 8",
+      "sha256": "b9272ec7b46238a3c0dd80d15fa6a1dc34fbc38a67c35d270b780e1c533eeaa7",
+      "size": 117542,
+      "url": "https://media.springernature.com/original/springer-static/esm/art%3A10.1038%2Fs41467-017-00249-5/MediaObjects/41467_2017_249_MOESM10_ESM.xlsx"
+    }
+  },
+  "attribution": "Collins et al. Multi-laboratory assessment of reproducibility, qualitative and quantitative performance of SWATH-mass spectrometry. Nature Communications8,291(2017), doi:10.1038/s41467-017-00249-5; PXD004886.",
+  "qualification_report": "https://github.com/pirl-unc/presto/blob/3f1ae1b/experiments/2026-10-23_0216_codex_ms-calibration-admission/README.md",
+  "rights_note": "The publication declares CC-BY4.0 with third-party exceptions. No additional restriction found in these four workbook cells. Original assets remain caller-supplied and are not distributed in the wheel.",
+  "source_id": "pxd004886"
+}

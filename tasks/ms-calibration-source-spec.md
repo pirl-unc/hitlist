@@ -20,7 +20,7 @@ Use the existing external adapter/source registry and common context/assertion, 
 
 ## Integration and scope
 
-Register source px d004886 (identifier spelling: pxd004886), adapter schema1 and catalog schema11. EvidenceStore exposes every typed relation, native columns and compatible logical aliases; safe joins connect observation→reporter/slot/nominal load and reporter→standard. A standard→multiple forms relationship must remain explicitly many-valued. Older schema6/7/8 generations must still open without falsely advertising calibration availability; accept historical catalog10 receipts unchanged.
+Register source pxd004886, adapter schema1 and catalog schema11. EvidenceStore exposes every typed relation, native columns and compatible logical aliases; safe joins connect observation→reporter/slot/nominal load and reporter→standard. A standard→multiple forms relationship must remain explicitly many-valued. Older schema6/7/8 generations must still open without falsely advertising calibration availability; accept historical catalog10 receipts unchanged.
 
 Use the existing schema7→schema8 append-sources interface to build a fresh complete generation with both MAPP and calibration adapters. This avoids changing lineage semantics in this source PR. Independently compare every existing source file and all71 prior typed bindings against the verified MAPP generation; retain its exact parent/reference and biological recipe targets. This is a new immutable generation from the same reference base, not a relabeled old manifest. The currently reference-only append interface is explicit; recursive appends to schema8 are not required for this admission and will not be silently simulated by overwriting parent manifests.
 
@@ -40,3 +40,5 @@ Source ingestion and training eligibility are separate. First implement/publish 
 - [ ] Canonical registry/catalog/query bindings and safe relationships.
 - [ ] Independent complete source/old-generation conservation and software checks.
 - [ ] Published source evidence and precise raw-S4 training-admission follow-up.
+
+Metadata amendment before any materialization: a whole-Methods check found a reported2µL reference-protocol injection volume, so it must not be asserted unreported. The already pinned public archive also supplies Data13 per-site LC/MS configuration, Data14 stage/site-specific gradients, and Data15 the64-window acquisition scheme. Preserve these original assets and source cells and add one homogeneous protocol-parameter relation with source site, stage, position, parameter/value/units, explicit empty/absent states and exact locators. Do not infer that a local S4 column has a particular day/file, and do not apply pilot-stage gradients to the main study. Scope reference-protocol assertions separately from individual-run metadata. Original four-workbook source audit remains unchanged; full new source counts are verified in the upcoming integration experiment.

@@ -1,0 +1,336 @@
+{
+  "assertions": [
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": "synthetic_standard_after_background_digestion",
+      "predicate": "spiking_stage",
+      "scope": "study_protocol",
+      "source_locator": "article.xml#Sec11",
+      "subject_id": "pxd004886:protocol",
+      "value_raw": "synthetic_standard_after_background_digestion"
+    },
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": "synthetic_standard_in_background_digest",
+      "predicate": "measured_pool",
+      "scope": "study_protocol",
+      "source_locator": "article.xml#Sec11",
+      "subject_id": "pxd004886:protocol",
+      "value_raw": "synthetic_standard_in_background_digest"
+    },
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": "Homo sapiens",
+      "predicate": "background_species",
+      "scope": "background_material",
+      "source_locator": "article.xml#Sec11",
+      "subject_id": "pxd004886:protocol",
+      "value_raw": "Homo sapiens"
+    },
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": "HEK293",
+      "predicate": "background_cell_line",
+      "scope": "background_material",
+      "source_locator": "article.xml#Sec11",
+      "subject_id": "pxd004886:protocol",
+      "value_raw": "HEK293"
+    },
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": "trypsin",
+      "predicate": "background_digestion_enzyme",
+      "scope": "background_digestion",
+      "source_locator": "article.xml#Sec11",
+      "subject_id": "pxd004886:protocol",
+      "value_raw": "trypsin"
+    },
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": "Sus scrofa",
+      "predicate": "background_digestion_enzyme_species",
+      "scope": "background_digestion",
+      "source_locator": "article.xml#Sec11",
+      "subject_id": "pxd004886:protocol",
+      "value_raw": "Sus scrofa"
+    },
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": "1:50",
+      "predicate": "background_digest_ratio_protease_to_protein",
+      "scope": "background_digestion",
+      "source_locator": "article.xml#Sec11",
+      "subject_id": "pxd004886:protocol",
+      "value_raw": "1:50"
+    },
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": "centrally_prepared_then_shipped_to_sites",
+      "predicate": "standard_preparation",
+      "scope": "material_preparation",
+      "source_locator": "article.xml#Sec11",
+      "subject_id": "pxd004886:protocol",
+      "value_raw": "centrally_prepared_then_shipped_to_sites"
+    },
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": "previous_LC_MS_performing_SIS_peptides",
+      "predicate": "standard_selection",
+      "scope": "panel_selection",
+      "source_locator": "article.xml#Sec11",
+      "subject_id": "pxd004886:protocol",
+      "value_raw": "previous_LC_MS_performing_SIS_peptides"
+    },
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": "ranked_by_measured_MS_response",
+      "predicate": "dilution_group_assignment",
+      "scope": "panel_selection",
+      "source_locator": "article.xml#Sec11",
+      "subject_id": "pxd004886:protocol",
+      "value_raw": "ranked_by_measured_MS_response"
+    },
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": "SCIEX TripleTOF5600/5600+",
+      "predicate": "instrument_family",
+      "scope": "study_protocol",
+      "source_locator": "article.xml#Sec3",
+      "subject_id": "pxd004886:protocol",
+      "value_raw": "SCIEX TripleTOF5600/5600+"
+    },
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": "SWATH_DIA",
+      "predicate": "acquisition_mode",
+      "scope": "study_protocol",
+      "source_locator": "article.xml#Sec3",
+      "subject_id": "pxd004886:protocol",
+      "value_raw": "SWATH_DIA"
+    },
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": "1 microgram",
+      "predicate": "background_digest_mass",
+      "scope": "background_material",
+      "source_locator": "article.xml#Sec3",
+      "subject_id": "pxd004886:protocol",
+      "value_raw": "1 microgram"
+    },
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": "MultiQuant_fragment_XIC_peak_area",
+      "predicate": "quantification_method",
+      "scope": "study_protocol",
+      "source_locator": "article.xml#Sec5",
+      "subject_id": "pxd004886:protocol",
+      "value_raw": "MultiQuant_fragment_XIC_peak_area"
+    },
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": "removed_until_LLOQ_criteria_passed",
+      "predicate": "lower_curve_point_selection",
+      "scope": "quantification_selection",
+      "source_locator": "article.xml#Sec6",
+      "subject_id": "pxd004886:protocol",
+      "value_raw": "removed_until_LLOQ_criteria_passed"
+    },
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": "saturation_reported_at_highest_load",
+      "predicate": "high_load_response",
+      "scope": "quantification_selection",
+      "source_locator": "article.xml#Sec6",
+      "subject_id": "pxd004886:protocol",
+      "value_raw": "saturation_reported_at_highest_load"
+    },
+    {
+      "assertion_status": "unresolved",
+      "normalized_value": "unresolved",
+      "predicate": "curve_selection_cell_map",
+      "scope": "quantification_selection",
+      "source_locator": "supplementary-data-8.xlsx",
+      "subject_id": "pxd004886:protocol",
+      "value_raw": "unresolved"
+    },
+    {
+      "assertion_status": "unresolved",
+      "normalized_value": "unresolved",
+      "predicate": "curve_nominal_sample_join",
+      "scope": "measurement_identity",
+      "source_locator": "supplementary-data-1.xlsx|supplementary-data-8.xlsx",
+      "subject_id": "pxd004886:protocol",
+      "value_raw": "unresolved"
+    },
+    {
+      "assertion_status": "conflicting",
+      "normalized_value": "publication_Data8_workbook_title_Data9",
+      "predicate": "source_label_conflict",
+      "scope": "source_identity",
+      "source_locator": "supplementary-data-8.xlsx#A1",
+      "subject_id": "pxd004886:protocol",
+      "value_raw": "publication_Data8_workbook_title_Data9"
+    },
+    {
+      "assertion_status": "unreported",
+      "normalized_value": "unreported_in_admitted_assets",
+      "predicate": "standard_lot",
+      "scope": "admission_scope",
+      "source_locator": "article.xml|supplementary-data-1.xlsx|supplementary-data-2.xlsx|supplementary-data-4.xlsx|supplementary-data-8.xlsx",
+      "subject_id": "pxd004886:protocol",
+      "value_raw": "unreported_in_admitted_assets"
+    },
+    {
+      "assertion_status": "unreported",
+      "normalized_value": "unreported_in_admitted_assets",
+      "predicate": "standard_purity",
+      "scope": "admission_scope",
+      "source_locator": "article.xml|supplementary-data-1.xlsx|supplementary-data-2.xlsx|supplementary-data-4.xlsx|supplementary-data-8.xlsx",
+      "subject_id": "pxd004886:protocol",
+      "value_raw": "unreported_in_admitted_assets"
+    },
+    {
+      "assertion_status": "unreported",
+      "normalized_value": "unreported_in_admitted_assets",
+      "predicate": "assigned_amount_uncertainty",
+      "scope": "admission_scope",
+      "source_locator": "article.xml|supplementary-data-1.xlsx|supplementary-data-2.xlsx|supplementary-data-4.xlsx|supplementary-data-8.xlsx",
+      "subject_id": "pxd004886:protocol",
+      "value_raw": "unreported_in_admitted_assets"
+    },
+    {
+      "assertion_status": "unreported",
+      "normalized_value": "unreported_in_admitted_assets",
+      "predicate": "stock_molarity",
+      "scope": "admission_scope",
+      "source_locator": "article.xml|supplementary-data-1.xlsx|supplementary-data-2.xlsx|supplementary-data-4.xlsx|supplementary-data-8.xlsx",
+      "subject_id": "pxd004886:protocol",
+      "value_raw": "unreported_in_admitted_assets"
+    },
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": "2 microliters",
+      "predicate": "reported_common_injection_volume",
+      "scope": "reference_LC_protocol_not_individual_run_receipt",
+      "source_locator": "article.xml#Sec12",
+      "subject_id": "pxd004886:protocol",
+      "value_raw": "2 microliters"
+    },
+    {
+      "assertion_status": "unreported",
+      "normalized_value": "unreported_in_admitted_assets",
+      "predicate": "acquisition_file_ids",
+      "scope": "admission_scope",
+      "source_locator": "article.xml|supplementary-data-1.xlsx|supplementary-data-2.xlsx|supplementary-data-4.xlsx|supplementary-data-8.xlsx",
+      "subject_id": "pxd004886:protocol",
+      "value_raw": "unreported_in_admitted_assets"
+    },
+    {
+      "assertion_status": "unreported",
+      "normalized_value": "unreported_in_admitted_assets",
+      "predicate": "acquisition_days",
+      "scope": "admission_scope",
+      "source_locator": "article.xml|supplementary-data-1.xlsx|supplementary-data-2.xlsx|supplementary-data-4.xlsx|supplementary-data-8.xlsx",
+      "subject_id": "pxd004886:protocol",
+      "value_raw": "unreported_in_admitted_assets"
+    },
+    {
+      "assertion_status": "unreported",
+      "normalized_value": "unreported_in_admitted_assets",
+      "predicate": "biological_specimens",
+      "scope": "admission_scope",
+      "source_locator": "article.xml|supplementary-data-1.xlsx|supplementary-data-2.xlsx|supplementary-data-4.xlsx|supplementary-data-8.xlsx",
+      "subject_id": "pxd004886:protocol",
+      "value_raw": "unreported_in_admitted_assets"
+    },
+    {
+      "assertion_status": "unreported",
+      "normalized_value": "unreported_in_admitted_assets",
+      "predicate": "supplied_normalization_coefficients",
+      "scope": "admission_scope",
+      "source_locator": "article.xml|supplementary-data-1.xlsx|supplementary-data-2.xlsx|supplementary-data-4.xlsx|supplementary-data-8.xlsx",
+      "subject_id": "pxd004886:protocol",
+      "value_raw": "unreported_in_admitted_assets"
+    },
+    {
+      "assertion_status": "not_applicable",
+      "normalized_value": "not_applicable_to_synthetic_response_assay",
+      "predicate": "APC_species",
+      "scope": "assay_scope",
+      "source_locator": "article.xml#Sec11",
+      "subject_id": "pxd004886:protocol",
+      "value_raw": "not_applicable_to_synthetic_response_assay"
+    },
+    {
+      "assertion_status": "not_applicable",
+      "normalized_value": "not_applicable_to_synthetic_response_assay",
+      "predicate": "APC_machinery_perturbation",
+      "scope": "assay_scope",
+      "source_locator": "article.xml#Sec11",
+      "subject_id": "pxd004886:protocol",
+      "value_raw": "not_applicable_to_synthetic_response_assay"
+    },
+    {
+      "assertion_status": "not_applicable",
+      "normalized_value": "not_applicable_to_synthetic_response_assay",
+      "predicate": "MHC_class",
+      "scope": "assay_scope",
+      "source_locator": "article.xml#Sec11",
+      "subject_id": "pxd004886:protocol",
+      "value_raw": "not_applicable_to_synthetic_response_assay"
+    },
+    {
+      "assertion_status": "not_applicable",
+      "normalized_value": "not_applicable_to_synthetic_response_assay",
+      "predicate": "MHC_allele",
+      "scope": "assay_scope",
+      "source_locator": "article.xml#Sec11",
+      "subject_id": "pxd004886:protocol",
+      "value_raw": "not_applicable_to_synthetic_response_assay"
+    },
+    {
+      "assertion_status": "not_applicable",
+      "normalized_value": "not_applicable_to_synthetic_response_assay",
+      "predicate": "intracellular_pool_concentration",
+      "scope": "assay_scope",
+      "source_locator": "article.xml#Sec11",
+      "subject_id": "pxd004886:protocol",
+      "value_raw": "not_applicable_to_synthetic_response_assay"
+    }
+  ],
+  "expected_reconciliation": {
+    "S4_normalized_statuses": {
+      "absent_source_cell": 99,
+      "explicit_empty_string": 572,
+      "reported_positive": 2398
+    },
+    "S4_raw_statuses": {
+      "absent_source_cell": 129,
+      "explicit_empty_string": 568,
+      "reported_positive": 2372
+    },
+    "n_curve_measurements_rows": 3410,
+    "n_curve_rows_rows": 682,
+    "n_nominal_loads_rows": 25,
+    "n_nominal_standards_rows": 30,
+    "n_nonuniform_normalization_columns": 39,
+    "n_normalization_diagnostics_rows": 99,
+    "n_normalized_only_values": 26,
+    "n_positive_curve_values": 2416,
+    "n_protocol_parameters_rows": 520,
+    "n_reporter_forms_rows": 31,
+    "n_reproduced_summary_values": 162,
+    "n_s4_measurements_rows": 6138,
+    "n_source_assertions_rows": 33,
+    "n_source_cells_rows": 13561,
+    "n_source_sheets_rows": 7,
+    "n_source_slots_rows": 99,
+    "n_summary_measurements_rows": 186
+  },
+  "measurement_grain": "reported_form_by_source_column_or_RSQ_range_position_and_representation",
+  "schema_version": 1,
+  "source_id": "pxd004886",
+  "source_receipt_sha256": "99b24b0aebae0382e2bf1a2895739be0bbb715737ae77e256eeddac3a87540f2",
+  "target_semantics": "instrument_response_not_intracellular_concentration",
+  "training_admission": "deferred_to_explicit_nominal_response_recipe"
+}

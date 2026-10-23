@@ -13,7 +13,7 @@ from .provenance import file_digest
 from .reference_evidence import verify_reference_evidence_package
 
 PACKAGE_SCHEMA_VERSION = 8
-CATALOG_SCHEMA_VERSION = 10
+CATALOG_SCHEMA_VERSION = 11
 PARENT_MANIFEST = "manifests/reference.json"
 
 
@@ -21,10 +21,9 @@ def verify_external_successor(directory):
     """Verify the full inventory, embedded predecessor and appended sources."""
     directory = Path(directory)
     manifest = json.loads((directory / "manifest.json").read_text())
-    if (
-        manifest.get("schema_version") != PACKAGE_SCHEMA_VERSION
-        or manifest.get("catalog_schema_version") != CATALOG_SCHEMA_VERSION
-    ):
+    if manifest.get("schema_version") != PACKAGE_SCHEMA_VERSION or manifest.get(
+        "catalog_schema_version"
+    ) not in (10, CATALOG_SCHEMA_VERSION):
         raise ValueError("Unsupported external successor schema")
     files = manifest.get("files", {})
     actual = {
