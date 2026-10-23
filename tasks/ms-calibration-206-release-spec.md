@@ -26,8 +26,9 @@ concentration or detector-transfer claim.
    catalog 12. Use `predecessor_package` consistently for the writer argument
    and documentation because both reference and adjudication predecessors are
    valid. Correct the calibration guide's stale reference-only instructions.
-3. Open historical schema-7, both historical schema-8 families and the new
-   schema-9 package. Build a real 2.0.6 combined successor from the verified
+3. Open historical schema-7, both historical schema-8 families, the released
+   schema-9/catalog-11 MAPP package and the new schema-9/catalog-12 package.
+   Build a real 2.0.6 combined successor from the verified
    adjudication input and pinned MAPP/PXD004886 assets. Verify source snapshots,
    all nine review claims, both source registries and every physical binding.
 4. Independently compare all earlier MAPP typed relation rows and all three

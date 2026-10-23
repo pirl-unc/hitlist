@@ -7739,16 +7739,52 @@ Review: executed code0219827 preserves all126 predecessor files,9 review claims 
 
 Report: https://github.com/pirl-unc/presto/blob/82feaf2/experiments/2026-10-23_0551_codex_adjudication-source-conservation/README.md. Combined manifest42317a5efb7d642be5b8265131e6a6f7963e469adda946b780dac4d6aebb05b0. Fix is on existing draft767; controls source admission759 remains next. Broader availability goal stays active.
 
+## 2026-10-23: reconcile MAPP PR #760 with released 2.0.4
+
+Plan: [mapp-main-204-merge-spec.md](mapp-main-204-merge-spec.md).
+
+- [x] Merge current main and resolve the schema-8 family collision.
+- [x] Preserve MAPP relations/recipes and source-reviewed adjudications with
+      accurate generation-specific bindings and registry.
+- [x] Verify both historical package families and real MAPP-only successors.
+- [x] Reconcile all three recipe targets/contributors with the prior generation.
+- [x] Run format/lint/test/docs, review CI, merge #760 and release 2.0.5 with
+      verified PyPI artifact hashes.
+- [x] Start #767 integration on the released MAPP version as the next serial PR.
+
+### Review
+
+Schema-9/catalog-11 successors built from both verified parent kinds. Independent
+SHA-256 checks match all 126 reviewed-parent and 123 reference-parent files,
+with separate inodes. The review-based package exposes 72 materialized relations,
+9 review claims and 10,673 MAPP peptides, with all 33 baselines matched. The
+reference-based package correctly omits review availability. All 18 MAPP typed
+relations match 1,829,008 prior logical rows; all three recipe data inventories
+match previous targets, contributors and admissions byte for byte. Focused
+catalog/review/successor/recipe tests pass (45), as do format, lint and strict
+docs. Full local `./test.sh` passes: 3,290 passed, one skipped (85% total
+coverage). Final-head hosted CI passes. PR #760 merged as `cfbb43f`; the
+clean-main release run 39941299674 passed and PyPI 2.0.5 wheel/sdist hashes
+match the CI receipt (`08460a9a0b1d0f5b56fdf3f4ffb335bbe8f7a90e01812e09ab68b2c81b8bc110`,
+`d63eeb63f34f1917d428a592f1c2270a88868d60e2cf94380364c04e2c7b6c0c`).
+See [mapp-205-results/README.md](mapp-205-results/README.md).
+
 ## 2026-10-23 release #767 after MAPP 2.0.5
 
 Plan: [ms-calibration-206-release-spec.md](ms-calibration-206-release-spec.md).
 
-- [ ] Confirm published 2.0.5 and live #767 head, then merge main.
-- [ ] Bump 2.0.6; correct predecessor terminology and calibration guide.
-- [ ] Replay historical and real combined packages and all four recipes.
-- [ ] Run format, lint, full tests, strict docs and distribution checks.
+- [x] Confirm published 2.0.5 and live #767 head, then merge main.
+- [x] Bump 2.0.6; correct predecessor terminology and calibration guide.
+- [x] Replay historical and real combined packages and all four recipes.
+- [x] Run format, lint, full tests, strict docs and distribution checks.
 - [ ] Review final-head CI, merge and publish exact 2.0.6 artifacts.
 
 ## Review
 
-Pending serial integration after #760 release.
+The 2.0.6 candidate preserves all 126 adjudication predecessor files, all 183
+files in the prior combined source generation, and all four registered recipe
+semantic payloads. The released 2.0.5 MAPP package remains readable. The full
+local test suite passes (3,319 tests, 84% coverage). The wheel and sdist pass
+Twine, license, and calibration file-inventory checks. Hosted release gates
+remain before merge and PyPI publication; see
+[ms-calibration-206-results/README.md](ms-calibration-206-results/README.md).

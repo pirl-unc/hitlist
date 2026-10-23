@@ -162,6 +162,11 @@ def test_bindings_do_not_claim_absent_mapp_or_mouse_sources():
     assert set(seven) < set(eight)
     assert "mapp_peptide" in eight and "external_peptide_parent_occurrence" in eight
     assert "assay_adjudication" not in eight
+    mapp_only = materialized_bindings(
+        9, appended_source_ids=["pxd009092"], include_adjudications=True
+    )
+    assert "mapp_peptide" in mapp_only
+    assert "calibration_s4_measurement" not in mapp_only
     combined = materialized_bindings(
         9, appended_source_ids=["pxd009092", "pxd004886"], include_adjudications=True
     )
@@ -181,6 +186,17 @@ def test_legacy_external_eight_remains_readable(tmp_path, monkeypatch, catalog):
     assert successor.verify_external_successor(output) == manifest
 
 
+def test_released_mapp_schema_nine_remains_readable(tmp_path, monkeypatch):
+    parent, source, _ = _fixture(tmp_path, monkeypatch, adjudication=True)
+    output = tmp_path / "output"
+    successor.write_external_successor(parent, output, source_roots={"fixture": source})
+    path = output / "manifest.json"
+    manifest = json.loads(path.read_text())
+    manifest["catalog_schema_version"] = 11
+    path.write_text(json.dumps(manifest))
+    assert successor.verify_external_successor(output) == manifest
+
+
 @pytest.mark.parametrize(
     "changes",
     [
@@ -188,7 +204,7 @@ def test_legacy_external_eight_remains_readable(tmp_path, monkeypatch, catalog):
         {"parent_manifest_path": "manifests/adjudication.json"},
         {"parent_manifest_path": "../escape"},
         {"review_revision": "ambiguous"},
-        {"catalog_schema_version": 11},
+        {"catalog_schema_version": 13},
     ],
 )
 def test_successor_rejects_false_family_or_predecessor(tmp_path, monkeypatch, changes):

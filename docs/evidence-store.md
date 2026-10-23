@@ -11,8 +11,10 @@ predecessor can be a schema-7 reference package or a schema-8 adjudication
 package. The latter retains all nine multimer reviews when MAPP and calibration
 sources are appended. Both historical schema-8 families remain readable:
 `review_revision` identifies adjudications and `appended_sources` identifies the
-earlier source drafts. Ambiguous envelopes are rejected. Actual source presence,
-rather than the version number alone, determines available relations.
+earlier source drafts. The released schema-9/catalog-11 MAPP generation also
+remains readable. Ambiguous envelopes are rejected. Actual source presence,
+rather than the version number alone, determines available relations in the
+verified generation.
 
 ```python
 from hitlist import EvidenceStore
@@ -219,7 +221,8 @@ review = store.query(
 The assay-to-review relationship is optional one-to-one. Source contributors
 remain a separate many-row relation, so a query cannot silently multiply an
 assay when one record appears in both IEDB and CEDAR. Schema-6 and schema-7
-packages remain readable; their catalogs mark the review relation as absent.
+packages and historical schema-8 external-source packages remain readable;
+their catalogs mark the review relation as absent.
 
 ## Training recipe
 

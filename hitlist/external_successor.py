@@ -16,6 +16,7 @@ from .reference_evidence import verify_reference_evidence_package
 
 PACKAGE_SCHEMA_VERSION = 9
 CATALOG_SCHEMA_VERSION = 12
+PREVIOUS_CATALOG_SCHEMA_VERSION = 11
 PARENT_MANIFESTS = {
     "reference": "manifests/reference.json",
     "adjudication": "manifests/adjudication.json",
@@ -44,6 +45,7 @@ def verify_external_successor(directory):
     if package_family(manifest) != "external" or version not in (
         (8, 10),
         (8, 11),
+        (PACKAGE_SCHEMA_VERSION, PREVIOUS_CATALOG_SCHEMA_VERSION),
         (PACKAGE_SCHEMA_VERSION, CATALOG_SCHEMA_VERSION),
     ):
         raise ValueError("Unsupported external successor schema")
@@ -104,29 +106,29 @@ def verify_external_successor(directory):
     return manifest
 
 
-def write_external_successor(reference_package, destination, *, source_roots):
+def write_external_successor(predecessor_package, destination, *, source_roots):
     """Append sources to a verified reference or adjudication generation."""
-    reference_package, destination = Path(reference_package), Path(destination)
+    predecessor_package, destination = Path(predecessor_package), Path(destination)
     if destination.exists():
         raise FileExistsError(destination)
     adapters = _adapters()
     if not source_roots or any(name not in adapters for name in source_roots):
         raise ValueError("Unregistered appended source")
-    envelope = json.loads((reference_package / "manifest.json").read_text())
+    envelope = json.loads((predecessor_package / "manifest.json").read_text())
     parent_kind = package_family(envelope)
-    parent = _verify_parent(reference_package, parent_kind)
+    parent = _verify_parent(predecessor_package, parent_kind)
     parent_path = PARENT_MANIFESTS[parent_kind]
     if parent_path in parent["files"]:
         raise ValueError("External successor predecessor manifest would replace an artifact")
     for name in source_roots:
-        if (reference_package / "external" / name).exists():
+        if (predecessor_package / "external" / name).exists():
             raise ValueError(f"Appended source replaces predecessor: {name}")
     destination.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=f".{destination.name}-", dir=destination.parent))
     try:
         for name in parent["files"]:
-            snapshot_file(reference_package / _safe_relative(name), staging / name)
-        snapshot_file(reference_package / "manifest.json", staging / parent_path)
+            snapshot_file(predecessor_package / _safe_relative(name), staging / name)
+        snapshot_file(predecessor_package / "manifest.json", staging / parent_path)
         sources = {}
         for name, root in sorted(source_roots.items()):
             adapter = adapters[name]
@@ -155,7 +157,7 @@ def write_external_successor(reference_package, destination, *, source_roots):
             "parent_kind": parent_kind,
             "parent_manifest_path": parent_path,
             "parent_manifest_sha256": files[parent_path]["sha256"],
-            "reference": _reference_metadata(reference_package, parent),
+            "reference": _reference_metadata(predecessor_package, parent),
             "appended_sources": sources,
             "files": files,
         }
@@ -164,9 +166,9 @@ def write_external_successor(reference_package, destination, *, source_roots):
         )
         verify_external_successor(staging)
         # A producer must not silently consume a predecessor changed during its run.
-        _verify_parent(reference_package, parent_kind)
+        _verify_parent(predecessor_package, parent_kind)
         if (
-            file_digest(reference_package / "manifest.json")["sha256"]
+            file_digest(predecessor_package / "manifest.json")["sha256"]
             != manifest["parent_manifest_sha256"]
         ):
             raise ValueError("Predecessor changed during source generation")
