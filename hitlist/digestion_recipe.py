@@ -17,6 +17,8 @@ from .evidence_snapshot import snapshot_file
 from .provenance import file_digest
 
 RECIPE_ID = "digestion_contiguous_timecourses_v1"
+MS1_UNIT = "source_MS1_peak_area_arbitrary_units"
+QUANTITY_SCALE = "aSPIRE_background_adjusted_biological_mean"
 TABLE_COLUMNS = {
     "constructs": ("construct_id", "sequence", "sequence_sha256"),
     "contexts": (
@@ -77,7 +79,9 @@ CONTRACT = {
     "schema_version": 1,
     "source_id": "soh2024_digestion",
     "endpoint": "source_selected_contiguous_corrected_positive_MS_timecourse",
-    "target": "original_positive_signal_in_arbitrary_units;no_normalization",
+    "target": "original_positive_background_adjusted_biological_mean_MS1_peak_area;no_normalization",
+    "measurement_unit": MS1_UNIT,
+    "quantity_scale": QUANTITY_SCALE,
     "mapping": "exactly_one_IL_equivalent_span_in_literal_construct;canonical20;source_PCP_without_splice_alternative",
     "baseline": "actual_filtered_zero_in_every_source_technical_label_and_raw_metadata_agreeing_zero;no_mock_zero",
     "duplicates": "IL_alias_and_repeated_slot_collapse_only_if_values_agree_relative1e-10;otherwise_exclude_curve",
@@ -215,10 +219,22 @@ def compile_timecourses(tables):
             for slot, (t, v) in enumerate(
                 zip(row["times_raw"].split(";"), row["intensities_raw"].split(";"), strict=True)
             ):
-                values[float(t)].append(
+                time_hours, value = float(t), _value(v)
+                if time_hours == 0 and value == 0:
+                    value_status = "postprocessing_forced_zero"
+                elif value is None:
+                    value_status = "postprocessing_missing_unresolved_contributors"
+                elif value > 0:
+                    value_status = "source_positive"
+                elif value == 0:
+                    value_status = "source_zero"
+                else:
+                    value_status = "source_negative"
+                values[time_hours].append(
                     {
-                        "value": _value(v),
+                        "value": value,
                         "value_raw": v,
+                        "value_status": value_status,
                         "vector_id": row["source_record_id"],
                         "slot_0based": slot,
                     }
@@ -271,7 +287,8 @@ def compile_timecourses(tables):
                     "end_0based": positions[0] + len(peptide),
                     "peptide_sequence": sequence[positions[0] : positions[0] + len(peptide)],
                     "observations": observations,
-                    "target_unit": "arbitrary_MS_signal",
+                    "target_unit": MS1_UNIT,
+                    "target_quantity_scale": QUANTITY_SCALE,
                     "context": contexts[condition],
                     "actual_zero_raw_quantity_ids": sorted(raw_zero[key]),
                     "filtered_source_vector_ids": sorted(filtered_ids[key]),

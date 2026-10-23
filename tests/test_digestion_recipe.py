@@ -7,7 +7,13 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
-from hitlist.digestion_recipe import RECIPE_ID, TABLE_BINDINGS, compile_timecourses
+from hitlist.digestion_recipe import (
+    MS1_UNIT,
+    QUANTITY_SCALE,
+    RECIPE_ID,
+    TABLE_BINDINGS,
+    compile_timecourses,
+)
 
 
 def fixture():
@@ -79,8 +85,12 @@ def test_aliases_and_repeated_zero_slots_do_not_multiply_targets():
         assert all(len(r["source_slots"]) == 2 for r in curve["observations"])
         assert curve["peptide_sequence"] == "CDI" and curve["peptide_IL_sequence"] == "CDL"
         assert curve["start_0based"] == 1 and curve["end_0based"] == 4
+        assert curve["target_unit"] == MS1_UNIT
+        assert curve["target_quantity_scale"] == QUANTITY_SCALE
         assert curve["actual_zero_raw_quantity_ids"]
         assert curve["context"]["enzyme_species"] == "Homo sapiens"
+    slots = compiled["dispositions"][0]["source_slots"]
+    assert slots[0]["contributors"][0]["value_status"] == "postprocessing_forced_zero"
 
 
 @pytest.mark.parametrize(
