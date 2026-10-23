@@ -872,7 +872,7 @@ EVIDENCE = (
         "observation",
         "quantitative_ms",
         "proteasome_fragment_by_source_material_and_measurement",
-        "",
+        "external/pxd009092/typed/quantity_results.parquet",
         "PXD009092",
         ("proteasome_associated_fragment_abundance",),
         (
@@ -888,6 +888,8 @@ EVIDENCE = (
             "instrument",
         ),
         ("source_dataset", "source_record_id", "peptide_sequence", "measured_pool"),
+        status="v2_materialized",
+        materialized_artifact="external/pxd009092/typed/quantity_results.parquet",
     ),
     Evidence(
         "external_paired_protein_quantity",

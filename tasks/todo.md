@@ -7309,3 +7309,14 @@ versus 2.5 GiB required). The retry passes all 3,218 tests with one skip and
 is byte-identical to the audited head; format/lint and `./test.sh` pass again
 with 3,218 tests, one skip and 87% coverage in 2m42s. Final-head hosted CI
 remains pending.
+
+# MAPP source generation (#752)
+
+Plan: tasks/mapp-source-plan.md.
+- [ ] Preserve pinned original source quantities, context, confidence and mapping alternatives.
+- [ ] Integrate canonical external package/catalog and verify real conservation.
+- [ ] Run format/lint/full tests, publish reviewed release and consumer evidence.
+
+MAPP first shared generation completed in43.29s:10,673peptides,149,959evidence rows,362,882quantity representations,540,034derivation edges. Independent original TSV/workbook-XML replay passes in9.46s. Preserved first launcher path-type and source-NaN failures;74,573PEP NaN values now explicit.16focused tests and format/lint pass. Full normal test suite running. Reference occurrence relations/query/recipe and reviewed deployment remain pending; do not close752. Concurrent numericPR756 reserves1.82.24; source PR uses1.82.25 and will rebase before merge. First generation records development1.82.24 and immutable original bytes; do not relabel it as a final release.
+
+MAPP verification: full normal suite passes3,224tests/10warnings in356.83s;16focused final-catalog tests and format/lint pass. Independent111-file inventory and original TSV/XML replay pass. Filed757for missing parallel-proteome run metadata/independent precursor estimates. Keep752open for reference integration and full recipe handoff. Worktree creation triggered repository metadata-refresh hook for existing editable1.82.2; pip check reports no broken requirements. Subsequent git writes disable hooks to avoid shared-environment churn.

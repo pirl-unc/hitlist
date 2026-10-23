@@ -1,0 +1,90 @@
+{
+  "archive_provenance": {
+    "decompress": false,
+    "sha256": "ff1c9a2adcef2f1d4f585254c7f8ee0cfdd373dc545439fc3667985d60011237",
+    "size": 51736986,
+    "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2018/10/PXD009092/SEARCH.7z"
+  },
+  "assets": {
+    "PXD009092/files.json": {
+      "decompress": false,
+      "license_raw": "EBI terms of use",
+      "sha256": "e7350ef7f6445856a944bc48a93d58c2b3abd3b06bd89ff8222e7abed94fe666",
+      "size": 21979,
+      "url": "https://www.ebi.ac.uk/pride/ws/archive/v2/projects/PXD009092/files?pageSize=100&page=0"
+    },
+    "PXD009092/project.json": {
+      "decompress": false,
+      "license_raw": "EBI terms of use",
+      "sha256": "998f54e5c155f38495a976e5e303dbe7cf4435ed633160d37a75f9190f0253f6",
+      "size": 4482,
+      "url": "https://www.ebi.ac.uk/pride/ws/archive/v2/projects/PXD009092"
+    },
+    "PXD009360/files.json": {
+      "decompress": false,
+      "license_raw": "EBI terms of use",
+      "sha256": "af67353fe522aee5db7a10e864bb4019940358e564ac06bc3d2a5cbefc89875c",
+      "size": 11557,
+      "url": "https://www.ebi.ac.uk/pride/ws/archive/v2/projects/PXD009360/files?pageSize=100&page=0"
+    },
+    "PXD009360/project.json": {
+      "decompress": false,
+      "license_raw": "EBI terms of use",
+      "sha256": "8c7c30704a298901c49422d0dd35fef38baa5e0317ecb5d81ec9a7edf1bdf0b7",
+      "size": 4207,
+      "url": "https://www.ebi.ac.uk/pride/ws/archive/v2/projects/PXD009360"
+    },
+    "publisher/suppdata2.xlsx": {
+      "decompress": false,
+      "license_raw": "unverified",
+      "sha256": "22ca91a68f772042a8a96848bc2a9446b120046fcfe2baa31968e5d05d839ce3",
+      "size": 467804,
+      "url": "https://media.springernature.com/original/springer-static/esm/art%3A10.1038%2Fnbt.4279/MediaObjects/41587_2018_BFnbt4279_MOESM10_ESM.xlsx"
+    },
+    "publisher/suppdata3.xlsx": {
+      "decompress": false,
+      "license_raw": "unverified",
+      "sha256": "cfd7f0e008f5d7cbae261092fba68cf5b1495b5e34cadcae65a2105d9e0e39fb",
+      "size": 16664,
+      "url": "https://media.springernature.com/original/springer-static/esm/art%3A10.1038%2Fnbt.4279/MediaObjects/41587_2018_BFnbt4279_MOESM11_ESM.xlsx"
+    },
+    "txt/evidence.txt": {
+      "decompress": false,
+      "license_raw": "EBI terms of use",
+      "sha256": "9f8706d585cdd025c02b3b1240f25a1c27542cd1e8fde096b71f7277c3b350d5",
+      "size": 69533363,
+      "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2018/10/PXD009092/SEARCH.7z#txt/evidence.txt"
+    },
+    "txt/parameters.txt": {
+      "decompress": false,
+      "license_raw": "EBI terms of use",
+      "sha256": "7b332c70bbfeb42b7b0f51c55b6590ac43f02725de6994aa12681dc3ac8fda75",
+      "size": 1676,
+      "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2018/10/PXD009092/SEARCH.7z#txt/parameters.txt"
+    },
+    "txt/peptides.txt": {
+      "decompress": false,
+      "license_raw": "EBI terms of use",
+      "sha256": "7dacb6636ab0662d54db37fac591f4895488afcccb993a37c8634b0ed47edc14",
+      "size": 6859516,
+      "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2018/10/PXD009092/SEARCH.7z#txt/peptides.txt"
+    },
+    "txt/proteinGroups.txt": {
+      "decompress": false,
+      "license_raw": "EBI terms of use",
+      "sha256": "060b19d74baaa917b29316f4174b410ada7947a9dbd9d2fb3a6bbffa598c0b09",
+      "size": 3767997,
+      "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2018/10/PXD009092/SEARCH.7z#txt/proteinGroups.txt"
+    },
+    "txt/summary.txt": {
+      "decompress": false,
+      "license_raw": "EBI terms of use",
+      "sha256": "38fbe7b68927f5459a44bf0eb4b3e73e3e31a26b7bc077636b7e18b496d57428",
+      "size": 8294,
+      "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2018/10/PXD009092/SEARCH.7z#txt/summary.txt"
+    }
+  },
+  "attribution": "Wolf-Levy et al. Revealing the cellular degradome by mass spectrometry analysis of proteasome-cleaved peptides. Nature Biotechnology 36,1110\u20131116 (2018), doi:10.1038/nbt.4279. PRIDE PXD009092.",
+  "rights_note": "Original scientific inputs remain local package inputs; only their hashes/locators and adapter code are distributed. Source deposit declares EBI terms of use, not CC0. Publisher supplemental redistribution license unverified.",
+  "source_id": "pxd009092"
+}

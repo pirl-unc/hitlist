@@ -116,8 +116,10 @@ def test_catalog_covers_current_data_grains_without_double_counting():
     assert describe_evidence("tcell_cedar_mutation_claim")["materialized_artifact"] == (
         "tcell/typed/cedar_mutation_claims.parquet"
     )
+    mapp = describe_evidence("external_proteasome_fragment_quantity")
+    assert mapp["status"] == "v2_materialized"
+    assert mapp["materialized_artifact"] == "external/pxd009092/typed/quantity_results.parquet"
     for candidate in (
-        "external_proteasome_fragment_quantity",
         "external_paired_protein_quantity",
         "external_calibrated_target_quantity",
     ):

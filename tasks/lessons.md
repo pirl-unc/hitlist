@@ -636,3 +636,7 @@ field requirements and missingness by task. Treat consumer migration as a
 downstream concern. Before claiming a new source is usable, reconcile every
 native row or cell and keep uncertain identities and contradictory labels
 queryable rather than replacing them with inferred values.
+
+## 2026-10-22 — file upstream data gaps as they appear
+
+- When a biological experiment hits missing data, metadata, pairing or representation limits, file a concrete Hitlist issue with source evidence, the blocked modeling use and acceptance criteria. Search existing issues first; link or extend an existing owner instead of creating duplicates. Do not leave actionable gaps only in Presto experiment prose.
