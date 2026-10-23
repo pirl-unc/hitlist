@@ -223,8 +223,9 @@ def test_two_peptide_extension_keeps_existing_splits_and_quantities():
         recipes.compile_mapp_recipe(tables)
 
 
-def test_registered_export_is_immutable_and_hash_bound(tmp_path, monkeypatch):
-    tables = _tables()
+@pytest.mark.parametrize("recipe_id", [recipes.RECIPE_ID, recipes.RUN_RECIPE_ID])
+def test_registered_export_is_immutable_and_hash_bound(tmp_path, monkeypatch, recipe_id):
+    tables = _complete_tables() if recipe_id == recipes.RUN_RECIPE_ID else _tables()
     source = tmp_path / "source"
     typed = source / "external/pxd009092/typed"
     typed.mkdir(parents=True)
@@ -238,13 +239,80 @@ def test_registered_export_is_immutable_and_hash_bound(tmp_path, monkeypatch):
     with pytest.raises(ValueError, match="Unknown"):
         recipes.write_training_recipe(source, output, recipe_id="invented")
     assert not output.exists()
-    recipes.write_training_recipe(source, output, recipe_id=recipes.RECIPE_ID)
+    recipes.write_training_recipe(source, output, recipe_id=recipe_id)
     recipes.verify_training_recipe(output)
     with pytest.raises(FileExistsError):
-        recipes.write_training_recipe(source, output, recipe_id=recipes.RECIPE_ID)
+        recipes.write_training_recipe(source, output, recipe_id=recipe_id)
     (output / "examples.jsonl").write_text("modified")
     with pytest.raises(ValueError, match="byte mismatch"):
         recipes.verify_training_recipe(output)
     contract = recipes.list_training_recipes()[0]
     contract["selection"]["max_reported_peptide_pep"] = 1
     assert recipes.list_training_recipes()[0]["selection"]["max_reported_peptide_pep"] == 0.01
+
+
+def _complete_tables():
+    tables = _tables()
+    for channel in tables["channels"]:
+        channel.update(
+            raw_file="original:" + channel["channel_id"],
+            replicate_label=int(channel["channel_id"][-1]) + 1,
+        )
+    for quantity in tables["quantity_measurements"]:
+        if quantity["value"] == 0:
+            quantity["value"] = 10000.0
+        quantity["value_status"] = "passed_background_filter"
+        quantity["unit"] = "arbitrary_intensity"
+    return tables
+
+
+def test_complete_run_recipe_preserves_observations_and_base_partitions():
+    tables = _complete_tables()
+    old = recipes.compile_mapp_recipe(tables, recipe_id=recipes.PAIR_RECIPE_ID)
+    result = recipes.compile_mapp_recipe(tables, recipe_id=recipes.RUN_RECIPE_ID)
+    assert result["summary"]["n_admitted_peptides"] == 6
+    assert len(result["run_observations"]) == 36
+    assert result["parents"] == old["parents"]
+    assert result["peptide_dispositions"] == old["peptide_dispositions"]
+    for a, b in zip(old["examples"], result["examples"]):
+        assert a["candidates"] == b["candidates"] and a["split"] == b["split"]
+    assert all(r["channel"]["raw_file"].startswith("original:") for r in result["run_observations"])
+    assert all(
+        r["measurement"]["unit"] == "arbitrary_intensity" for r in result["run_observations"]
+    )
+    shuffled = copy.deepcopy(tables)
+    for values in shuffled.values():
+        values.reverse()
+    assert result == recipes.compile_mapp_recipe(shuffled, recipe_id=recipes.RUN_RECIPE_ID)
+    assert old == recipes.compile_mapp_recipe(tables, recipe_id=recipes.PAIR_RECIPE_ID)
+
+
+@pytest.mark.parametrize("missing", [0.0, None, float("nan")])
+def test_complete_runs_keep_ineligible_values_and_recompute_candidate_normalization(missing):
+    tables = _complete_tables()
+    tables["quantity_measurements"][0]["value"] = missing
+    output = recipes.compile_mapp_recipe(tables, recipe_id=recipes.RUN_RECIPE_ID)
+    assert output["summary"]["n_admitted_peptides"] == 5
+    assert output["summary"]["n_nonpositive_or_missing_runs"] == 1
+    excluded = next(r for r in output["peptide_dispositions"] if r["peptide_row_id"] == "p0:0")
+    assert excluded["reasons"] == ["incomplete_positive_filtered_runs"]
+    observations = [r for r in output["run_observations"] if r["peptide_row_id"] == "p0:0"]
+    assert len(observations) == 6 and all(not r["complete_peptide"] for r in observations)
+    for example in output["examples"]:
+        values = [10 ** c["source_log10_intensity"] for c in example["candidates"]]
+        assert [c["target_probability"] for c in example["candidates"]] == pytest.approx(
+            [v / sum(values) for v in values]
+        )
+    tables["quantity_measurements"][6]["value"] = 0
+    output = recipes.compile_mapp_recipe(tables, recipe_id=recipes.RUN_RECIPE_ID)
+    assert output["summary"]["n_admitted_peptides"] == 3
+    survivor = next(r for r in output["peptide_dispositions"] if r["peptide_row_id"] == "p0:2")
+    assert survivor["reasons"] == ["fewer_than_two_complete_peptides_per_parent"]
+    assert len(output["run_observations"]) == 36
+
+
+def test_duplicate_run_evidence_fails():
+    tables = _complete_tables()
+    tables["evidence"].append(copy.deepcopy(tables["evidence"][0]))
+    with pytest.raises(ValueError, match="Duplicate run evidence"):
+        recipes.compile_mapp_recipe(tables, recipe_id=recipes.RUN_RECIPE_ID)

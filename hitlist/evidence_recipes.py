@@ -85,6 +85,17 @@ PAIR_RECIPE["split"]["salt"] = RECIPE_ID
 PAIR_RECIPE["split"]["key"] = "sha256(split_salt + ':' + lexically_smallest_component_peptide_id)"
 RECIPES = {RECIPE_ID: RECIPE, PAIR_RECIPE_ID: PAIR_RECIPE}
 
+RUN_RECIPE_ID = "mapp_complete_run_composition_v1"
+RUN_RECIPE = json.loads(json.dumps(PAIR_RECIPE))
+RUN_RECIPE["recipe_id"] = RUN_RECIPE_ID
+RUN_RECIPE["base_recipe_id"] = PAIR_RECIPE_ID
+RUN_RECIPE["selection"]["all_six_filtered_runs"] = "finite_and_strictly_positive"
+RUN_RECIPE["run_observations"] = "all_base_recipe_peptides_including_ineligible_filtered_zeros"
+RUN_RECIPE["limitations"].append(
+    "complete_case_population_not_unbiased_replication_or_specimen_pairing"
+)
+RECIPES[RUN_RECIPE_ID] = RUN_RECIPE
+
 
 def list_training_recipes():
     """Return independent JSON-compatible public contracts, without source reads."""
@@ -132,6 +143,8 @@ def compile_mapp_recipe(tables, *, recipe_id=RECIPE_ID):
     """Compile typed relations; caller must verify their enclosing generation."""
     if recipe_id not in RECIPES:
         raise ValueError(f"Unknown training recipe: {recipe_id}")
+    if recipe_id == RUN_RECIPE_ID:
+        return _compile_complete_runs(tables)
     minimum = RECIPES[recipe_id]["selection"]["min_eligible_peptides_per_parent"]
     minimum_word = "three" if minimum == 3 else "two"
     peptides = _unique(tables["peptide_rows"], "peptide_row_id")
@@ -378,6 +391,126 @@ def compile_mapp_recipe(tables, *, recipe_id=RECIPE_ID):
     }
 
 
+def _compile_complete_runs(tables):
+    """Keep original admission/splits, add complete-run eligibility and lineage."""
+    base = compile_mapp_recipe(tables, recipe_id=PAIR_RECIPE_ID)
+    channels = _unique(tables["channels"], "channel_id")
+    results = _unique(tables["quantity_results"], "result_id")
+    quantities = _unique(tables["quantity_measurements"], "measurement_id")
+    candidates = {
+        c["peptide_row_id"]: (e, c)
+        for e in base["examples"]
+        if e["condition"] == "UT"
+        for c in e["candidates"]
+    }
+    evidence = defaultdict(list)
+    for row in tables["evidence"]:
+        evidence[row["peptide_row_id"], row["channel_id"]].append(row)
+    observations = []
+    for contributor in base["contributors"]:
+        pid = contributor["peptide_row_id"]
+        example, _ = candidates[pid]
+        for mid in contributor["run_measurement_ids"]:
+            q = quantities[mid]
+            result = results[q["result_id"]]
+            channel = channels[result["channel_id"]]
+            ev = evidence[pid, channel["channel_id"]]
+            if len({r["evidence_id"] for r in ev}) != len(ev):
+                raise ValueError("Duplicate run evidence identity")
+            positive = q["value"] is not None and math.isfinite(q["value"]) and q["value"] > 0
+            observations.append(
+                {
+                    "peptide_row_id": pid,
+                    "parent_sequence_sha256": example["parent_sequence_sha256"],
+                    "component_id": example["component_id"],
+                    "split": example["split"],
+                    "condition": contributor["condition"],
+                    "channel": channel,
+                    "measurement": q,
+                    "evidence_ids": sorted(r["evidence_id"] for r in ev),
+                    "direct_msms_evidence_ids": sorted(
+                        r["evidence_id"]
+                        for r in ev
+                        if r["msms_count"] is not None and r["msms_count"] > 0
+                    ),
+                    "positive_finite": positive,
+                }
+            )
+    observations.sort(key=lambda r: (r["peptide_row_id"], r["channel"]["channel_id"]))
+    by_peptide = defaultdict(list)
+    for row in observations:
+        by_peptide[row["peptide_row_id"]].append(row)
+    complete = set()
+    for pid, runs in by_peptide.items():
+        if len(runs) != 6 or len({r["channel"]["channel_id"] for r in runs}) != 6:
+            raise ValueError("Expected six distinct source acquisitions per base peptide")
+        if all(r["positive_finite"] for r in runs):
+            complete.add(pid)
+    counts = Counter(candidates[pid][0]["parent_sequence_sha256"] for pid in complete)
+    admitted = {
+        pid for pid in complete if counts[candidates[pid][0]["parent_sequence_sha256"]] >= 2
+    }
+    parents = {candidates[pid][0]["parent_sequence_sha256"] for pid in admitted}
+    for row in observations:
+        pid = row["peptide_row_id"]
+        row["complete_peptide"] = pid in complete
+        row["admitted_complete_parent_set"] = pid in admitted
+    for row in base["peptide_dispositions"]:
+        pid = row["peptide_row_id"]
+        if row["status"] == "admitted":
+            if pid not in complete:
+                row["reasons"].append("incomplete_positive_filtered_runs")
+            elif pid not in admitted:
+                row["reasons"].append("fewer_than_two_complete_peptides_per_parent")
+            row["status"] = "admitted" if pid in admitted else "excluded"
+    examples = []
+    for example in base["examples"]:
+        if example["parent_sequence_sha256"] not in parents:
+            continue
+        example["example_id"] = example["example_id"].replace(
+            PAIR_RECIPE_ID + ":", RUN_RECIPE_ID + ":", 1
+        )
+        example["candidates"] = [
+            c for c in example["candidates"] if c["peptide_row_id"] in admitted
+        ]
+        values = [c["source_log10_intensity"] for c in example["candidates"]]
+        pivot = max(values) * math.log(10)
+        log_z = pivot + math.log(sum(math.exp(v * math.log(10) - pivot) for v in values))
+        for c in example["candidates"]:
+            c["target_log_probability"] = c["source_log10_intensity"] * math.log(10) - log_z
+            c["target_probability"] = math.exp(c["target_log_probability"])
+            c["target_centered_log10"] = c["source_log10_intensity"] - sum(values) / len(values)
+        examples.append(example)
+    base["examples"] = examples
+    base["parents"] = [r for r in base["parents"] if r["parent_sequence_sha256"] in parents]
+    base["contributors"] = [r for r in base["contributors"] if r["peptide_row_id"] in admitted]
+    base["run_observations"] = observations
+    base["summary"].update(
+        {
+            "base_recipe_id": PAIR_RECIPE_ID,
+            "n_base_admitted_peptides": len(candidates),
+            "n_complete_positive_peptides_before_parent_gate": len(complete),
+            "n_run_observations": len(observations),
+            "n_nonpositive_or_missing_runs": sum(not r["positive_finite"] for r in observations),
+            "n_admitted_peptides": len(admitted),
+            "n_parent_sequences": len(parents),
+            "n_examples": len(examples),
+            "n_contributor_rows": len(base["contributors"]),
+            "n_parents_by_split": dict(
+                sorted(Counter(r["split"] for r in base["parents"]).items())
+            ),
+            "exclusion_reasons": dict(
+                sorted(
+                    Counter(
+                        reason for r in base["peptide_dispositions"] for reason in r["reasons"]
+                    ).items()
+                )
+            ),
+        }
+    )
+    return base
+
+
 def _sha(path):
     h = hashlib.sha256()
     with Path(path).open("rb") as stream:
@@ -450,6 +583,8 @@ def verify_training_recipe(directory):
         "peptide_dispositions.jsonl",
         "contributors.jsonl",
     }
+    if manifest["recipe_id"] == RUN_RECIPE_ID:
+        expected.add("run_observations.jsonl")
     if set(manifest["files"]) != expected or {p.name for p in directory.iterdir()} != expected | {
         "manifest.json"
     }:

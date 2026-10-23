@@ -7403,3 +7403,11 @@ Plan: tasks/mapp-biological-recipe-plan.md. This is a scoped shared recipe found
 - [ ] Publish and hand off immutable recipe output to the registered Presto experiment.
 
 MAPP recipe verification: both shared exports independently replayed; normal full suite passes 3,243 tests / 10 warnings in 327.51 s, format/lint and strict docs pass. Nine local biological fits and independent checkpoint/prediction replay complete; uniform remains the held-out reference. New data request #759; precursor issue #757 remains open. Draft recipe PR and complete unified query release remain separate.
+
+## 2026-10-23 MAPP run repeatability and representation
+
+Previous goal turn: progress. Plan: mapp-run-repeatability (Presto) / tasks/mapp-run-recipe-plan.md (Hitlist).
+- [ ] Shared complete-run recipe with all original observations/status and fixed source partitions.
+- [ ] Independent original-source replay and local software checks.
+- [ ] Registered run-repeatability diagnostics, then evidence-led fixed representation comparison.
+- [ ] Complete artifacts, report, canonical registry and publication.

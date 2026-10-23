@@ -1559,7 +1559,11 @@ TASKS = (
         ),
         "Use the registered MAPP recipe, including publisher medians, reference alternatives and all-source split constraints. Predict relative captured signal on the admitted observable set, not free concentration or missing-fragment negatives.",
         status="v2_recipe_available",
-        recipe_ids=("mapp_captured_composition_v1", "mapp_captured_composition_min2_v1"),
+        recipe_ids=(
+            "mapp_captured_composition_v1",
+            "mapp_captured_composition_min2_v1",
+            "mapp_complete_run_composition_v1",
+        ),
     ),
     Task(
         "mhc_positive_presentation",

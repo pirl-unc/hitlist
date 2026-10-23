@@ -53,3 +53,23 @@ These recipes are a scoped foundation for [the unified query/recipe work #739](h
 not a completed multi-modality major release. They require the MAPP schema2 source
 adapter in [PR758](https://github.com/pirl-unc/hitlist/pull/758). Independent precursor
 estimates and exact parallel-proteome pairing remain in [#757](https://github.com/pirl-unc/hitlist/issues/757).
+
+## Complete-run observation recipe
+
+`mapp_complete_run_composition_v1` starts from the two-peptide recipe and requires
+finite positive filtered quantities in all six UT/TNF+IFN runs, then at least two
+complete peptides per parent. The source graph and partition salt are unchanged.
+Publisher median targets are renormalized only over the remaining parent set;
+they remain distinct from per-run measurements.
+
+The additional `run_observations.jsonl` contains all six observations for every
+base-recipe peptide, including ineligible peptides and filtered zeros. It preserves
+the original channel and measurement records, acquisition/file and replicate labels,
+source metadata, exact evidence contributors and explicit complete-peptide/parent
+eligibility. Extra exclusion reasons remain in the all-source disposition ledger.
+Old recipes and byte contracts are unchanged.
+
+This supports run-repeatability diagnostics without logging zeros or adding
+pseudocounts. Complete-case selection changes the population. Acquisition labels
+do not establish specimen pairing or a precise biological noise ceiling; no
+filtered zero is promoted to biological absence.
