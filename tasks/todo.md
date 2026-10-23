@@ -7835,9 +7835,11 @@ and 3,330 local tests pass; hosted release gates remain; see
 ## Shared quantitative digestion source770
 
 Plan: tasks/digestion-source-spec.md.
-- [ ] Source-faithful typed adapter and canonical catalog bindings.
-- [ ] Fixtures, real source reconciliation and prior-source conservation.
+- [x] Source-faithful typed adapter and canonical catalog bindings.
+- [x] Fixtures, real source reconciliation and prior-source conservation.
 - [ ] Independent arithmetic/source checks and registered training admission.
 - [ ] Normal verification, PR, review and deployment.
 
 Review: pending; full concentration goal remains active.
+
+Digestion review: draft PR773 at977adc2, all18 assets/11 typed relations/250 package files verified; all218 prior source payloads and33 baselines conserved. Independent original-source decoding/typed replay passes.37 focused and3,341 normal guarded tests pass; format/lint/strict docs pass. Published Presto1503d67 source and synthetic kinetic reports. All-substrate quantitative arithmetic, training recipe and biological fitting remain pending, as do final-head review/CI/merge/deployment. No concentration claim.
