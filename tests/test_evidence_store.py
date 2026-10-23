@@ -1,0 +1,465 @@
+"""Adversarial fixtures for grain-safe v2 evidence requests."""
+
+import json
+
+import pyarrow as pa
+import pyarrow.parquet as pq
+import pytest
+import yaml
+
+from hitlist.evidence_bindings import materialized_bindings
+from hitlist.evidence_recipe import RecipeError, _read_recipe, verify_recipe_package
+from hitlist.evidence_store import (
+    EvidenceFieldError,
+    EvidenceRelationshipError,
+    EvidenceStore,
+)
+
+
+def _store(tmp_path, rows):
+    bindings = materialized_bindings()
+    schemas = {}
+    for name, values in rows.items():
+        path = tmp_path / bindings[name][0].materialized_artifact
+        path.parent.mkdir(parents=True, exist_ok=True)
+        pq.write_table(pa.Table.from_pylist(values), path)
+        schemas[name] = pq.ParquetFile(path).schema_arrow
+    (tmp_path / "manifest.json").write_text(json.dumps({"schema_version": 6}))
+    store = EvidenceStore.__new__(EvidenceStore)
+    store.directory = tmp_path
+    store.manifest = {"schema_version": 6}
+    store.bindings = {name: bindings[name] for name in rows}
+    store.schemas = schemas
+    return store
+
+
+def test_recipe_yaml_rejects_duplicate_keys(tmp_path):
+    recipe = tmp_path / "recipe.yaml"
+    recipe.write_text("schema_version: 1\nschema_version: 2\n")
+    with pytest.raises(yaml.constructor.ConstructorError, match="duplicate key"):
+        _read_recipe(recipe)
+
+
+def test_mhc_partition_and_measurement_do_not_convert_negative_ms(tmp_path):
+    store = _store(
+        tmp_path,
+        {
+            "mhc_positive_ms": [
+                {"observation_id": "positive", "evidence_type": "mhc_positive_ms"},
+                {"observation_id": "negative", "evidence_type": "mhc_other"},
+            ],
+            "mhc_other": [
+                {"observation_id": "positive", "evidence_type": "mhc_positive_ms"},
+                {"observation_id": "negative", "evidence_type": "mhc_other"},
+            ],
+            "mhc_reported_measurement": [
+                {"observation_id": "positive", "qualitative_result": "Positive"},
+                {"observation_id": "negative", "qualitative_result": "Negative"},
+            ],
+        },
+    )
+    fields = ["observation_id", "reported_measurement.qualitative_result"]
+    positive = store.query(
+        "mhc_positive_ms", select=fields, joins=["reported_measurement"], limit=None
+    )
+    other = store.query("mhc_other", select=fields, joins=["reported_measurement"], limit=None)
+    assert positive.table.to_pylist() == [
+        {"observation_id": "positive", "reported_measurement.qualitative_result": "Positive"}
+    ]
+    assert other.table.to_pylist() == [
+        {"observation_id": "negative", "reported_measurement.qualitative_result": "Negative"}
+    ]
+
+
+def test_join_requires_name_and_rejects_broken_one_to_one(tmp_path):
+    store = _store(
+        tmp_path,
+        {
+            "mhc_positive_ms": [{"observation_id": "a", "evidence_type": "mhc_positive_ms"}],
+            "mhc_reported_measurement": [
+                {"observation_id": "a", "qualitative_result": "Positive"},
+                {"observation_id": "a", "qualitative_result": "Negative"},
+            ],
+        },
+    )
+    with pytest.raises(EvidenceRelationshipError, match="Name relationship"):
+        store.query("mhc_positive_ms", select=["reported_measurement.qualitative_result"])
+    with pytest.raises(EvidenceRelationshipError, match="multiple target rows"):
+        store.query(
+            "mhc_positive_ms",
+            select=["reported_measurement.qualitative_result"],
+            joins=["reported_measurement"],
+        )
+
+
+def test_source_numeric_representations_are_distinct_measurements(tmp_path):
+    store = _store(
+        tmp_path,
+        {
+            "bulk_ms_protein": [
+                {"observation_id": "protein:1", "grain": "protein", "protein_id": "P1"}
+            ],
+            "bulk_numeric_measurement": [
+                {
+                    "observation_id": "protein:1",
+                    "measurement_id": "protein:1:log2",
+                    "quantity_scale": "log2_intensity",
+                    "quantitative_value": 3.0,
+                },
+                {
+                    "observation_id": "protein:1",
+                    "measurement_id": "protein:1:percentile",
+                    "quantity_scale": "abundance_percentile",
+                    "quantitative_value": 0.8,
+                },
+            ],
+        },
+    )
+    values = store.query(
+        "bulk_numeric_measurement",
+        select=["measurement_id", "quantity_scale", "quantitative_value"],
+        limit=None,
+    ).table.to_pylist()
+    assert [value["quantity_scale"] for value in values] == [
+        "log2_intensity",
+        "abundance_percentile",
+    ]
+    with pytest.raises(EvidenceRelationshipError, match="many cardinality"):
+        store.query(
+            "bulk_ms_protein",
+            select=["numeric_measurements.quantitative_value"],
+            joins=["numeric_measurements"],
+        )
+
+
+def test_project_instrument_is_not_result_instrument(tmp_path):
+    store = _store(
+        tmp_path,
+        {
+            "external_mhc_peptide_quantity": [
+                {
+                    "result_id": "r1",
+                    "peptide_row_id": "p1",
+                    "channel_id": "c1",
+                    "table_number": 7,
+                    "endpoint": "observed_source_intensity",
+                }
+            ],
+            "external_context_assertion": [
+                {
+                    "assertion_id": "project:1",
+                    "predicate": "instrument",
+                    "value_raw": "Orbitrap Exploris 480",
+                    "scope": "project_not_individual_run",
+                }
+            ],
+        },
+    )
+    with pytest.raises(EvidenceFieldError, match="unavailable"):
+        store.query("external_mhc_peptide_quantity", select=["instrument"])
+    claim = store.query(
+        "external_context_assertion",
+        select=["assertion_predicate", "assertion_value", "source_scope"],
+    ).table.to_pylist()[0]
+    assert claim == {
+        "assertion_predicate": "instrument",
+        "assertion_value": "Orbitrap Exploris 480",
+        "source_scope": "project_not_individual_run",
+    }
+
+
+def test_tcell_availability_is_not_a_peptide_label(tmp_path):
+    store = _store(
+        tmp_path,
+        {
+            "tcell_availability": [
+                {
+                    "source_assay_id": "123",
+                    "assay_family": "soluble_factor_release",
+                    "qualitative_measurement": "Positive",
+                }
+            ],
+            "tcell_functional_peptide": [
+                {
+                    "source_assay_id": "123",
+                    "task": "assay_specific_tcell_qualitative_response",
+                    "peptide": "LLDVTAAV",
+                    "source_qualitative_result": "Positive",
+                }
+            ],
+        },
+    )
+    with pytest.raises(EvidenceFieldError, match="Unknown field"):
+        store.query("tcell_availability", select=["peptide_sequence"])
+    assert store.query(
+        "tcell_functional_peptide", select=["peptide_sequence", "qualitative_result"]
+    ).table.to_pylist() == [{"peptide_sequence": "LLDVTAAV", "qualitative_result": "Positive"}]
+
+
+def test_recipe_retains_accepted_excluded_and_ambiguous_candidates(tmp_path):
+    store = _store(
+        tmp_path / "source",
+        {
+            "mhc_positive_ms": [
+                {
+                    "observation_id": "a",
+                    "evidence_type": "mhc_positive_ms",
+                    "peptide_sequence": "LLDVTAAV",
+                    "source_dataset": "iedb",
+                },
+                {
+                    "observation_id": "b",
+                    "evidence_type": "mhc_positive_ms",
+                    "peptide_sequence": "VVVVVVVV",
+                    "source_dataset": "iedb",
+                },
+                {
+                    "observation_id": "c",
+                    "evidence_type": "mhc_positive_ms",
+                    "peptide_sequence": None,
+                    "source_dataset": "cedar",
+                },
+            ],
+            "mhc_reported_measurement": [
+                {"observation_id": "a", "qualitative_result": "Positive"},
+                {"observation_id": "b", "qualitative_result": "Positive-Low"},
+                {"observation_id": "c", "qualitative_result": "Positive"},
+            ],
+            "source_contributor": [
+                {
+                    "provenance_id": "a",
+                    "source_record_id": "iedb:a",
+                    "source_dataset": "iedb",
+                    "original_pmid": "1",
+                    "source_row": 1,
+                    "relationships": '["retained"]',
+                },
+                {
+                    "provenance_id": "a",
+                    "source_record_id": "cedar:a",
+                    "source_dataset": "cedar",
+                    "original_pmid": "1",
+                    "source_row": 2,
+                    "relationships": '["database_copy"]',
+                },
+                {
+                    "provenance_id": "b",
+                    "source_record_id": "iedb:b",
+                    "source_dataset": "iedb",
+                    "original_pmid": "1",
+                    "source_row": 3,
+                    "relationships": '["retained"]',
+                },
+                {
+                    "provenance_id": "c",
+                    "source_record_id": "iedb:c",
+                    "source_dataset": "iedb",
+                    "original_pmid": "1",
+                    "source_row": 4,
+                    "relationships": '["retained"]',
+                },
+            ],
+        },
+    )
+    recipe = {
+        "schema_version": 1,
+        "name": "strict_positive_ligand",
+        "mapping_policy": "no_expansion",
+        "sources": [
+            {
+                "evidence_type": "mhc_positive_ms",
+                "row_id": "observation_id",
+                "select": ["peptide_sequence", "source_dataset"],
+                "joins": ["reported_measurement"],
+                "required_fields": ["peptide_sequence"],
+                "target": {
+                    "field": "reported_measurement.qualitative_result",
+                    "mode": "mapped",
+                    "dtype": "boolean",
+                    "map": {"Positive": True},
+                },
+                "grouping": {"fields": ["source_dataset"], "on_missing": "mark_uncertain"},
+            }
+        ],
+    }
+    output = tmp_path / "training"
+    store.materialize(recipe, output)
+    manifest = verify_recipe_package(output, source_package=store.directory)
+    report = manifest["coverage"]["mhc_positive_ms"]
+    assert (
+        report["n_candidates"],
+        report["n_accepted"],
+        report["n_excluded"],
+        report["n_ambiguous"],
+    ) == (
+        3,
+        1,
+        1,
+        1,
+    )
+    assert report["reason_counts"] == {
+        "missing_required:peptide_sequence": 1,
+        "unmapped_target": 1,
+    }
+    base = output / "sources" / "mhc_positive_ms"
+    accepted = pq.read_table(base / "accepted.parquet").to_pylist()
+    assert [(row["candidate_id"], row["target_value"]) for row in accepted] == [
+        ("mhc_positive_ms:a", True)
+    ]
+    contributors = pq.read_table(base / "contributors.parquet").to_pylist()
+    assert len(contributors) == 4
+    assert {
+        row["source_dataset"] for row in contributors if row["candidate_id"] == "mhc_positive_ms:a"
+    } == {"iedb", "cedar"}
+    assert pq.read_table(base / "lineage.parquet").num_rows == 3
+
+
+def test_recipe_includes_direct_source_lineage_without_explicit_selection(tmp_path):
+    store = _store(
+        tmp_path / "source",
+        {
+            "bulk_ms_peptide": [
+                {
+                    "grain": "peptide",
+                    "source_record_id": "bulk:row:7",
+                    "source_dataset": "bulk",
+                    "peptide_sequence": "LLDVTAAV",
+                }
+            ]
+        },
+    )
+    recipe = {
+        "schema_version": 1,
+        "name": "bulk_peptide_inventory",
+        "mapping_policy": "no_expansion",
+        "sources": [
+            {
+                "evidence_type": "bulk_ms_peptide",
+                "row_id": "source_record_id",
+                "select": ["peptide_sequence"],
+                "target": {"field": "peptide_sequence", "mode": "category"},
+                "grouping": {"fields": ["source_dataset"], "on_missing": "mark_uncertain"},
+            }
+        ],
+    }
+    output = tmp_path / "training"
+    store.materialize(recipe, output)
+    base = output / "sources" / "bulk_ms_peptide"
+    assert pq.read_table(base / "accepted.parquet").to_pylist()[0]["source_dataset"] == "bulk"
+    assert (
+        pq.read_table(base / "contributors.parquet").to_pylist()[0]["source_record_id"]
+        == "bulk:row:7"
+    )
+
+
+def test_recipe_refuses_duplicate_candidate_identity(tmp_path):
+    store = _store(
+        tmp_path / "source",
+        {
+            "bulk_numeric_measurement": [
+                {
+                    "measurement_id": "duplicate",
+                    "quantitative_value": 1.0,
+                    "quantity_scale": "tpm",
+                    "value_status": "source_numeric_cell",
+                },
+                {
+                    "measurement_id": "duplicate",
+                    "quantitative_value": 2.0,
+                    "quantity_scale": "tpm",
+                    "value_status": "source_numeric_cell",
+                },
+            ]
+        },
+    )
+    recipe = {
+        "schema_version": 1,
+        "name": "duplicate_guard",
+        "mapping_policy": "no_expansion",
+        "sources": [
+            {
+                "evidence_type": "bulk_numeric_measurement",
+                "row_id": "measurement_id",
+                "target": {
+                    "field": "quantitative_value",
+                    "mode": "numeric",
+                    "scale_field": "quantity_scale",
+                    "allowed_scales": ["tpm"],
+                    "status_field": "value_status",
+                    "allowed_statuses": ["source_numeric_cell"],
+                },
+                "grouping": {"fields": ["quantity_scale"], "on_missing": "mark_uncertain"},
+            }
+        ],
+    }
+    with pytest.raises(RecipeError, match="Duplicate candidate identity"):
+        store.materialize(recipe, tmp_path / "output")
+    assert not (tmp_path / "output").exists()
+
+
+def test_numeric_recipe_marks_censoring_and_unknown_units_ambiguous(tmp_path):
+    store = _store(
+        tmp_path / "source",
+        {
+            "mhc_reported_measurement": [
+                {
+                    "measurement_id": "exact",
+                    "observation_id": "assay:a",
+                    "quantitative_value": 50.0,
+                    "measurement_unit": "nM",
+                    "measurement_inequality": "=",
+                    "quantitative_status": "reported",
+                },
+                {
+                    "measurement_id": "censored",
+                    "observation_id": "assay:b",
+                    "quantitative_value": 100.0,
+                    "measurement_unit": "nM",
+                    "measurement_inequality": "<",
+                    "quantitative_status": "reported",
+                },
+                {
+                    "measurement_id": "unitless",
+                    "observation_id": "assay:c",
+                    "quantitative_value": 200.0,
+                    "measurement_unit": None,
+                    "measurement_inequality": "=",
+                    "quantitative_status": "reported",
+                },
+            ]
+        },
+    )
+    recipe = {
+        "schema_version": 1,
+        "name": "exact_affinity",
+        "mapping_policy": "no_expansion",
+        "sources": [
+            {
+                "evidence_type": "mhc_reported_measurement",
+                "row_id": "measurement_id",
+                "target": {
+                    "field": "quantitative_value",
+                    "mode": "numeric",
+                    "unit_field": "measurement_unit",
+                    "allowed_units": ["nM"],
+                    "inequality_field": "measurement_inequality",
+                    "allowed_inequalities": ["="],
+                    "status_field": "quantitative_status",
+                    "allowed_statuses": ["reported"],
+                },
+                "grouping": {"fields": ["observation_id"], "on_missing": "exclude"},
+            }
+        ],
+    }
+    output = tmp_path / "output"
+    store.materialize(recipe, output)
+    report = verify_recipe_package(output)["coverage"]["mhc_reported_measurement"]
+    assert (report["n_accepted"], report["n_ambiguous"], report["n_excluded"]) == (
+        1,
+        2,
+        0,
+    )
+    assert report["reason_counts"] == {
+        "inequality_not_allowed": 1,
+        "unit_not_allowed": 1,
+    }

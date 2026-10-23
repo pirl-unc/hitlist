@@ -7325,8 +7325,10 @@ Branch from PR 6's exact merged commit `ca0c729`; merge only after its
 - [x] Replay every populated native numeric cell independently, add small
       offline fixtures for null, zero, multiple scales and source alignment.
 - [x] Bump 1.82.24 and pass format/lint/focused offline tests.
-- [ ] Run full tests, review final diff and final-head CI.
-- [ ] Merge and deploy from clean main; verify exact PyPI wheel/sdist hashes
+- [x] Review final diff and pass final-head hosted unit, integration, coverage,
+      build and lint CI. Local full tests stopped at the unchanged #483 memory
+      preflight; hosted full-corpus integration passed.
+- [x] Merge and deploy from clean main; verify exact PyPI wheel/sdist hashes
       before PR 8.
 
 ## Initial review
@@ -7359,8 +7361,19 @@ its existing #483 preflight (0.09 GiB free versus 2.5 GiB required); no
 worker or memory threshold was bypassed. The isolated editable install
 reports 1.82.24 consistently; `uv pip check` passes for all 48 packages.
 The 1.82.24 wheel/sdist build, license metadata and `twine check` pass;
-large source assets are absent from the wheel. Hosted CI and a local full-test
-retry remain pending.
+large source assets are absent from the wheel. Final-head hosted unit,
+integration, coverage, build and lint jobs passed. PR 7 merged as `b124ecb`
+with the same tree as its validated head. Its clean-main local deploy preflight
+stopped at 0.13 GiB free versus the 2.5 GiB floor; the hosted clean-main
+release workflow passed the full suite and build on `b124ecb`. Two independent
+Actions artifact downloads matched the release manifest, and PyPI 1.82.24
+serves exact wheel SHA-256
+`32bd91de1d40dc2c671dfc4df3ab9d83f863bb0cc48e9d75d5785e843e5a5e69`
+and sdist SHA-256
+`37cd0197ee66a04c91246f60ee1f266dbf6ebc6967bb49ce2e286931c3cea3f6`.
+The release verifier's direct artifact ZIP endpoint remains affected by #755;
+the successful workflow, sole retained artifact and byte-identical double
+download supplied the independent publication check.
 
 PR 6 merged in #753 and PyPI 1.82.23 serves exact wheel SHA-256
 `b7c265994d43bed66ab614d6ef5edbc4cbf56eb127d0523b3472bdb08e0627e9`
@@ -7370,3 +7383,51 @@ The clean-main workflow passed; the release verifier's direct artifact-ZIP
 retrieval hung (#755), so two independent Actions downloads, the run's exact
 commit/artifact metadata and matching manifest/distribution hashes supplied
 the publication provenance check.
+
+# Hitlist 2.0 evidence store and recipes — PR 8 of 8 (#739)
+
+Spec: [pr8-evidence-store-spec.md](pr8-evidence-store-spec.md). Base is merged
+PR 7 commit `b124ecb`; publish its 1.82.24 distributions before PR 8 merges.
+
+- [x] Audit all materialized files and declared fields; add explicit physical
+      selectors, aliases, readiness and missing-field disposition.
+- [x] Add MHC and external numeric measurement evidence entries; validate
+      source identities, endpoints, grains and population counts.
+- [x] Implement verified `EvidenceStore` catalog/query and named relationships
+      with strict predicates, no silent label or context promotion.
+- [x] Implement declarative recipe materialization with eligibility decisions,
+      exact source lineage, uncertainty, coverage and hash-bound outputs.
+- [x] Add one CLI surface, examples, migration notes, and 2.0.0 version bump.
+- [ ] Replay pinned baselines and adversarial fixtures; run format/lint/full
+      tests, final-head CI, review, merge and exact-artifact PyPI deployment.
+
+## Review
+
+The preflight on PR 7's 103-file package found 42 original materialized
+evidence types, all with existing physical files. Of the original catalog's
+declared field placements, 232 were not same-named physical columns. Four
+additional typed relations are now registered: MHC measurements, external
+quantity measurements, primary external peptide rows and source panels. The
+2.0 catalog has 46 materialized and four contract-only types. Its 46 physical
+bindings validate against real schemas; all typed columns have a native query
+name. Across declared fields, 367 are direct physical, 12 source constants,
+73 related through named links, 68 unavailable at the claimed grain and 43
+contract-only. The real-package audit matches all 25 pinned baselines,
+including the two-revision arm/study counts, and gives 64 source/endpoint
+groups and 33 T-cell eligibility groups. Ten adversarial fixtures pass.
+A bounded real-package MHC recipe reconciles all 4,486,991 source rows into
+20 accepted candidates and 4,486,971 explicitly limit-omitted rows; its
+output verifier checks all files, decisions, contributor and lineage rows.
+Those 20 MHC candidates retain 40 separate IEDB/CEDAR source-contributor
+records. A real T-cell functional example for shared assay ID 450 emits one
+accepted peptide label and two contributor rows, one per provider, with no
+extra assay. No provider link is unresolved in either bounded replay.
+Recipe YAML uses the repository's duplicate-key guard, and recipes include
+available direct source identifiers even when not explicitly selected. The
+final audit replay retains the published audit hash above. The required full
+unit gate passes twice: 3,222 passed, one skipped, 86% coverage. `./format.sh`
+and `./lint.sh` pass. The isolated editable-install metadata matches 2.0.0;
+the wheel and sdist build, pass `twine check`, and carry the exact Apache-2.0
+license. The 1.x README is preserved in `docs/legacy-1x.md` with a clear
+historical warning; the project landing page now documents the 2.0 interface.
+Final-head CI and deployment remain.

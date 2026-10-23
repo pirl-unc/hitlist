@@ -56,11 +56,8 @@ from .version import __version__  # after the pandas flag, like every submodule
 # are only imported on first attribute access. Listed in ``__all__`` so the API
 # is discoverable via ``dir(hitlist)`` / autocomplete and stable across refactors.
 _PUBLIC_API: dict[str, str] = {
-    "list_evidence": ".evidence_catalog",
-    "describe_evidence": ".evidence_catalog",
-    "list_tasks": ".evidence_catalog",
-    "describe_task": ".evidence_catalog",
-    "describe_catalog": ".evidence_catalog",
+    "EvidenceStore": ".evidence_store",
+    "verify_recipe_package": ".evidence_recipe",
     "write_mhc_evidence_package": ".mhc_evidence",
     "verify_mhc_evidence_package": ".mhc_evidence",
     "write_context_evidence_package": ".context_evidence",
@@ -108,9 +105,6 @@ _PUBLIC_API: dict[str, str] = {
     "verify_human_tcell_multimer_training_bundle": ".tcell_training",
     "load_contributors": ".provenance",
     "load_lineage": ".lineage",
-    "write_training_bundle": ".training_bundle",
-    "verify_training_bundle": ".training_bundle",
-    "audit_training_bundles": ".training_bundle",
     "audit_splits": ".split_audit",
     # Public enumerations shared by scanners, APIs, and CLIs.
     "MHC_ALLELE_PROVENANCE_VALUES": ".curation",
@@ -121,12 +115,7 @@ _PUBLIC_API: dict[str, str] = {
     "observations_cache_is_current": ".observations",
     "mappings_cache_is_current": ".mappings",
     # Load the built indexes (filters documented on each function).
-    "load_ms_observations": ".observations",
-    "load_observations": ".observations",
-    "load_binding": ".observations",
-    "load_other_assays": ".observations",
     "assay_annotations": ".assays",
-    "load_all_evidence": ".observations",
     # Curated MHC typing. `sample_alleles_for_pmid` is the sample-level
     # answer, available for every study; the peptide-level functions below
     # need a `peptide_attributions` CSV and so are empty for most studies.
@@ -138,8 +127,6 @@ _PUBLIC_API: dict[str, str] = {
     "attribute_peptide_to_sample_alleles": ".curation",
     "attribute_peptide_to_per_sample_typings": ".curation",
     # Generate derived tables.
-    "generate_ms_observations_table": ".export",
-    "generate_training_table": ".export",
     # Proteome enumeration + gene sets.
     "ProteomeIndex": ".proteome",
     "DetectabilitySearchSpace": ".detectability",

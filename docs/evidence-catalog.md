@@ -1,4 +1,9 @@
-# Evidence catalog (Hitlist 2.0 design)
+# Evidence catalog migration history
+
+The implemented Hitlist 2.0 interface is in the [evidence store guide](evidence-store.md).
+This page records the staged schemas, source migrations and pinned audits that
+produced the frozen package. Its earlier contract-only examples are historical;
+use `EvidenceStore.catalog()` for actual physical field readiness.
 
 The [Hitlist 2.0 plan](https://github.com/pirl-unc/hitlist/issues/733)
 defines one evidence vocabulary without claiming that each indexed row is
@@ -6,7 +11,8 @@ ready to train a model. The MHC, biological-context and supporting-measurement
 migrations now materialize typed results, measurements, arms, factors, protocol
 claims, lineage and mapping alternatives. The external quantitative and T-cell
 generations add assay-scoped channels, source-backed derivations and bounded
-cellular-response eligibility. The common query and training interface follows.
+cellular-response eligibility. The common query and training interface is now
+available through `EvidenceStore` and `hitlist evidence`.
 
 ## Discover types and requirements
 

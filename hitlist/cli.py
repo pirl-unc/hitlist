@@ -800,8 +800,7 @@ def _handle_data(args: argparse.Namespace) -> None:
     if args.data_command in _DEPRECATED_DATA_SUBCOMMANDS:
         new_path = _DEPRECATED_DATA_SUBCOMMANDS[args.data_command]
         print(
-            f"Note: `hitlist data {args.data_command}` is deprecated; use "
-            f"`{new_path}` instead.  Will be removed in v2.0.",
+            f"Note: `hitlist data {args.data_command}` is deprecated; use `{new_path}` instead.",
             file=sys.stderr,
         )
     handlers[args.data_command](args)
@@ -824,12 +823,15 @@ def main() -> None:
 
     parser = ColorArgumentParser(
         prog="hitlist",
-        description="hitlist: curated mass spectrometry evidence for MHC ligand data",
+        description="hitlist: verified immune and nonimmune evidence for model training",
     )
     parser.add_argument("--version", action="version", version=f"hitlist {__version__}")
     sub = parser.add_subparsers(dest="command")
     _build_data_parser(sub)
     _build_top_level_build_parser(sub)
+    from .cli_evidence_store import register_evidence_cli
+
+    register_evidence_cli(sub)
 
     p_report = sub.add_parser(
         "report",
@@ -1905,11 +1907,16 @@ def main() -> None:
     # The library resolves the data directory silently (`data_dir()` backs
     # `observations_cache_is_current()`, which promises no output); the CLI is
     # where a user is told they are still on the legacy location (#291).
-    notice = legacy_data_dir_notice()
-    if notice:
-        print(notice, file=sys.stderr)
+    if args.command != "evidence":
+        notice = legacy_data_dir_notice()
+        if notice:
+            print(notice, file=sys.stderr)
     if args.command == "data":
         _handle_data(args)
+    elif args.command == "evidence":
+        from .cli_evidence_store import handle_evidence_cli
+
+        handle_evidence_cli(args)
     elif args.command == "build":
         _handle_build(args)
     elif args.command == "report":
@@ -2664,7 +2671,7 @@ def _export(args: argparse.Namespace) -> None:
 
     # Deprecation notices for legacy export subcommands.  Behavior is
     # preserved for one release; these notices steer users at the
-    # canonical replacement before removal in v2.0.
+    # canonical replacement for historical 1.x export commands.
     _deprecated_export = {
         "summary": "hitlist export peptide-counts --by class",
         "counts": "hitlist export peptide-counts --by study",
@@ -2677,8 +2684,7 @@ def _export(args: argparse.Namespace) -> None:
     }
     if cmd in _deprecated_export:
         print(
-            f"Note: `hitlist export {cmd}` is deprecated; use "
-            f"`{_deprecated_export[cmd]}` instead.  Will be removed in v2.0.",
+            f"Note: `hitlist export {cmd}` is deprecated; use `{_deprecated_export[cmd]}` instead.",
             file=sys.stderr,
         )
 
