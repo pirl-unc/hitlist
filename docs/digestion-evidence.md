@@ -29,7 +29,8 @@ schema 9/catalog 14; prior catalog 11/12/13 external generations remain readable
 
 | Evidence type | Grain |
 | --- | --- |
-| `digestion_metadata` | Original identifier-workbook row |
+| `digestion_members` | Original nested archive member, including retained-only assets |
+| `digestion_metadata` | Original identifier-workbook row with column names and values |
 | `digestion_constructs` | Exact deposited substrate sequence |
 | `digestion_runs` | Original main-search MS acquisition |
 | `digestion_contexts` | Purified digestion condition and scoped protocol |
@@ -46,6 +47,8 @@ columns through `native.<field>` and source-row JSON. Acquisition, construct,
 condition and final-vector links are explicit. A query joining raw quantities
 to acquisition metadata can inspect both supplied time and replicate labels.
 Replicate labels do not create assured biological specimen pairs.
+The 391-member archive inventory identifies which original files have typed
+rows and which remain original-only (for example logs, TICs and plots).
 
 The 17 condition archives contain 15 substrates, including three Ffh ratios.
 Context keeps human enzyme species, HeLa enzyme-preparation origin, substrate
@@ -62,12 +65,18 @@ slots are not averaged again. Annotation-only rows produce no numeric samples.
 Peptide modifications, contiguous/spliced assignments and alternative positions
 remain original claims. Neither missingness nor a short product becomes a
 negative binding or concentration label.
+Numeric rows expose `measurement_unit=source_MS1_peak_area_arbitrary_units` and
+different `quantity_scale` values for Skyline peaks, aSPIRE run quantities and
+background-adjusted biological means. The paper reports label-free MS1 peak
+area without further normalization; these scales are not molar units.
 
 Two RF1 acquisitions named as time-zero controls have time one in the raw
 quantity layer (2,278 rows). Both times survive, and the whole affected condition
 is marked `unresolved_source_time_conflict`. Relabeling final averages would not
 resolve their contributor history. Six contaminant-digestion enzyme labels also
 contradict filename labels; those claims remain separate conflicts.
+The 152 Skyline rows with blank source filenames keep their original rows and
+carry `blank_original_source_name`; no main-search run is invented.
 
 There is **no registered training recipe for this source yet**. Other conditions
 are `pending_registered_recipe_and_independent_replay`. Typed source fidelity
@@ -81,8 +90,10 @@ grouped split and treatment of MS response. Raw MS signal is not molar copies.
 Construction validates pinned assets, nested CRCs, run joins, source census,
 literal constructs and vector alignment. Portable package verification checks
 the complete artifact inventory and hashes, source contracts, schemas and row
-counts. An independent original-source replay additionally compares every
-original selected row and normalized value with all canonical query rows.
+counts. Run `python scripts/verify_digestion_roundtrip.py PACKAGE ORIGINAL_ASSETS
+DECODED_RDATA` with the separately exported original RData tables from the
+pinned source audit. It checks archive members, all typed original CSV/RData
+rows, workbook cells, constructs and final vector slots.
 These checks do not claim that the original search, mapping or quantitative
 analysis is scientifically correct. Quantitative arithmetic and training
 admission remain separate gates tracked in Hitlist issue #770.

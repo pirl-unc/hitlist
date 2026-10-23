@@ -54,12 +54,21 @@
   },
   "expected": {
     "n_archives": 17,
+    "n_archive_members": 391,
+    "n_annotation_only_rows": 269,
+    "n_constructs": 15,
+    "n_contexts": 17,
     "n_final_rows": 53413,
+    "n_final_values": 280664,
+    "n_filtered_vectors": 121556,
+    "n_identifications": 649789,
+    "n_metadata_rows": 442,
     "n_metadata_enzyme_conflicts": 6,
     "n_ms1_rows": 5792969,
     "n_raw_quantities": 545664,
     "n_runs": 388,
-    "n_time_conflicts": 2278
+    "n_time_conflicts": 2278,
+    "n_unlinked_ms1_rows": 152
   },
   "input_scope": "publication protocol values; Ffh ratios also explicit metadata; not independently measured per run",
   "observation_scope": "raw/filtered/reported peptide signal; no concentration or implicit negative labels",

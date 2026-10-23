@@ -1,6 +1,7 @@
-# Shared quantitative digestion source (Hitlist770)
+# Shared quantitative digestion source (#774; parent #770)
 
-Prospective implementation contract, October23,2026. Source audit: Presto0b92401,
+Prospective implementation contract, October23,2026. Recipe successor #775.
+Source audit: Presto0b92401,
 experiments/2026-10-23_0800_codex_digestion-source-audit. Branch starts from
 controlled-source b1c5de4; preserve concurrent release work. Candidate version2.0.8,
 based on772, now merged as942cd0a. Do not claim release/admission complete prematurely.
@@ -21,9 +22,14 @@ not need R. Do not install or modify the shared environment.
 Relations expose acquisition metadata, construct identity, condition/protocol,
 original identification/MS1 records, raw run quantities, filtered technical
 vectors, final biological vectors/values, source assertions and conflicts.
+An inventory relation makes all391 nested archive members discoverable, marking
+typed tables versus retained original-only logs, TICs, plots and other files.
 Use stable source/member/row/cell locators and explicit count units. Keep
 original text alongside typed numeric values and status. Distinguish absent,
 NaN, forced zero, positive and unresolved source values; no negative inference.
+Expose original instrument and product/mapping claims through the common catalog;
+qualify Skyline, raw run and corrected biological mean MS1 scales separately in
+source arbitrary units, never molar concentration.
 Preserve both replicate labels and exact metadata joins; do not conflate a
 biological digest with a technical acquisition or an APC specimen.
 

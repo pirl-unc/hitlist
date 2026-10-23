@@ -26,9 +26,14 @@ from .mapp_evidence import _schema, _Sink
 from .provenance import file_digest
 
 SOURCE_ID = "soh2024_digestion"
+MS1_UNIT = "source_MS1_peak_area_arbitrary_units"
 DATA = Path(__file__).parent / "data/evidence_revisions"
 COMMON = ("source_record_id", "source_locator", "fields_json")
 SCHEMAS = {
+    "members": _schema(
+        (*COMMON, "outer_archive", "inner_member", "materialization_status"),
+        integers=("member_size_bytes", "member_crc32"),
+    ),
     "metadata": _schema(
         (
             *COMMON,
@@ -81,6 +86,7 @@ SCHEMAS = {
             "assignment_id_raw",
             "product_type_raw",
             "positions_raw",
+            "run_link_status",
         ),
         numbers=("q_value", "posterior_error_probability"),
     ),
@@ -95,7 +101,10 @@ SCHEMAS = {
             "assignment_id_raw",
             "fragment_ion_raw",
             "precursor_charge_raw",
+            "run_link_status",
             "value_status",
+            "measurement_unit",
+            "quantity_scale",
         ),
         numbers=("ms1_area", "ms1_background"),
     ),
@@ -113,6 +122,8 @@ SCHEMAS = {
             "value_status",
             "time_status",
             "assignments_raw",
+            "measurement_unit",
+            "quantity_scale",
         ),
         numbers=(
             "quantity_time_hours",
@@ -165,6 +176,8 @@ SCHEMAS = {
             "value_raw",
             "value_status",
             "time_status",
+            "measurement_unit",
+            "quantity_scale",
         ),
         integers=("slot_0based",),
         numbers=("time_hours", "intensity"),
@@ -277,12 +290,36 @@ def raw_quantity(row, runs):
         else "source_agreement",
         "intensity": intensity,
         "value_status": status,
+        "measurement_unit": MS1_UNIT,
+        "quantity_scale": "aSPIRE_raw_peptide_run_quantity",
         "assignments_raw": row["assignments"],
         "fraction_background": numeric(row["frac_background"])[0],
         "noise": numeric(row["noise"])[0],
         "mean_technical": numeric(row["mean_techRep"])[0],
         "mean_biological": numeric(row["mean_bioRep"])[0],
     }
+
+
+def run_link_status(source_name, run):
+    if not source_name:
+        return "blank_original_source_name"
+    return "matched_main_search" if run is not None else "outside_main_search_roster"
+
+
+def member_materialization(name, is_directory):
+    if is_directory:
+        return "archive_directory"
+    if name == "QUANTITIES_raw.RData":
+        return "typed_raw_quantities"
+    if name == "QUANTITIES_filtered.RData":
+        return "typed_filtered_vectors"
+    if name == "MS1_HPR.csv":
+        return "typed_ms1"
+    if name == "ASSIGNMENTS.csv":
+        return "typed_identifications"
+    if name.endswith("finalKinetics.csv"):
+        return "typed_final_vectors"
+    return "original_asset_only"
 
 
 def _records(handle, locator):
@@ -325,7 +362,9 @@ def write_tables(source_dir):
     typed = source_dir / "typed"
     typed.mkdir()
     sinks = {name: _Sink(typed, name, schema=schema) for name, schema in SCHEMAS.items()}
-    runs, constructs, source_counts, condition_conflicts = {}, {}, Counter(), Counter()
+    runs, constructs = {}, {}
+    source_counts = Counter(dict.fromkeys(contract["expected"], 0))
+    condition_conflicts = Counter()
     exports = []
     try:
         workbook = openpyxl.load_workbook(
@@ -339,9 +378,12 @@ def write_tables(source_dir):
                 common = {
                     "source_record_id": f"{SOURCE_ID}:Identifier.xlsx:{sheet.title}:{number}",
                     "source_locator": f"Identifier.xlsx:{sheet.title}:row:{number}",
-                    "fields_json": json.dumps(list(values)),
+                    "fields_json": json.dumps(
+                        {"columns": list(header), "values": list(values)}, default=str
+                    ),
                 }
                 sinks["metadata"].add({**common, "sheet_name": sheet.title, "row_1based": number})
+                source_counts["n_metadata_rows"] += 1
                 if sheet.title == "Main_searches":
                     run = run_context(row)
                     if run["source_name"] in runs:
@@ -413,8 +455,33 @@ def write_tables(source_dir):
                     if inner.testzip() is not None:
                         raise ValueError("Corrupt nested digestion source")
                     for entry in inner.infolist():
+                        source_counts["n_archive_members"] += 1
                         name = Path(entry.filename).name
                         locator = f"aSPIRE_outputs_zip.zip!{member.filename}!{entry.filename}"
+                        sinks["members"].add(
+                            {
+                                "source_record_id": f"{SOURCE_ID}:member:{locator}",
+                                "source_locator": locator,
+                                "fields_json": json.dumps(
+                                    {
+                                        "filename": entry.filename,
+                                        "file_size": entry.file_size,
+                                        "compress_size": entry.compress_size,
+                                        "CRC": entry.CRC,
+                                        "date_time": entry.date_time,
+                                        "external_attr": entry.external_attr,
+                                    },
+                                    sort_keys=True,
+                                ),
+                                "outer_archive": member.filename,
+                                "inner_member": entry.filename,
+                                "member_size_bytes": entry.file_size,
+                                "member_crc32": entry.CRC,
+                                "materialization_status": member_materialization(
+                                    name, entry.is_dir()
+                                ),
+                            }
+                        )
                         if name.endswith(".RData") and name in (
                             "QUANTITIES_raw.RData",
                             "QUANTITIES_filtered.RData",
@@ -486,6 +553,7 @@ def write_tables(source_dir):
                                                 "positions_raw": row["positions"],
                                             }
                                         )
+                                        source_counts["n_filtered_vectors"] += 1
                         elif name in ("MS1_HPR.csv", "ASSIGNMENTS.csv") or name.endswith(
                             "finalKinetics.csv"
                         ):
@@ -502,12 +570,17 @@ def write_tables(source_dir):
                                                 **base,
                                                 "run_id": run["run_id"] if run else None,
                                                 "source_name": source_name,
+                                                "run_link_status": run_link_status(
+                                                    source_name, run
+                                                ),
                                                 "peptide_sequence": row["PeptideSequence"],
                                                 "modified_sequence": row["PeptideModifiedSequence"],
                                                 "assignment_id_raw": row["ProteinName"],
                                                 "fragment_ion_raw": row["FragmentIon"],
                                                 "precursor_charge_raw": row["PrecursorCharge"],
                                                 "value_status": status,
+                                                "measurement_unit": MS1_UNIT,
+                                                "quantity_scale": "Skyline_MS1_peak_area",
                                                 "ms1_area": area,
                                                 "ms1_background": numeric(
                                                     row["TotalBackgroundMs1"]
@@ -515,6 +588,8 @@ def write_tables(source_dir):
                                             }
                                         )
                                         source_counts["n_ms1_rows"] += 1
+                                        if run is None:
+                                            source_counts["n_unlinked_ms1_rows"] += 1
                                     elif name == "ASSIGNMENTS.csv":
                                         run = runs.get(row["source"])
                                         sinks["identifications"].add(
@@ -522,6 +597,9 @@ def write_tables(source_dir):
                                                 **base,
                                                 "run_id": run["run_id"] if run else None,
                                                 "source_name": row["source"],
+                                                "run_link_status": run_link_status(
+                                                    row["source"], run
+                                                ),
                                                 "peptide_sequence": row["pepSeq"],
                                                 "modified_sequence": row["modifiedSequence"],
                                                 "assignment_id_raw": row["ID"],
@@ -533,12 +611,15 @@ def write_tables(source_dir):
                                                 )[0],
                                             }
                                         )
+                                        source_counts["n_identifications"] += 1
                                     else:
                                         if row["substrateSeq"] != sequence:
                                             raise ValueError(
                                                 "Final substrate differs from original construct"
                                             )
                                         source_counts["n_final_rows"] += 1
+                                        if row["biological_replicate"] == "NA":
+                                            source_counts["n_annotation_only_rows"] += 1
                                         sinks["final_vectors"].add(
                                             {
                                                 **base,
@@ -570,8 +651,11 @@ def write_tables(source_dir):
                                                     "biological_replicate_raw": row[
                                                         "biological_replicate"
                                                     ],
+                                                    "measurement_unit": MS1_UNIT,
+                                                    "quantity_scale": "aSPIRE_background_adjusted_biological_mean",
                                                 }
                                             )
+                                            source_counts["n_final_values"] += 1
                 sinks["contexts"].add(
                     {
                         "source_record_id": condition,
@@ -599,7 +683,9 @@ def write_tables(source_dir):
                         else "pending_registered_recipe_and_independent_replay",
                     }
                 )
+                source_counts["n_contexts"] += 1
         source_counts["n_runs"] = len(runs)
+        source_counts["n_constructs"] = len(constructs)
         if dict(source_counts) != contract["expected"]:
             raise ValueError(f"Digestion source census changed: {dict(source_counts)}")
     finally:

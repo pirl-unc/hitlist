@@ -44,6 +44,8 @@ numeric cell.
   materialized evidence types, 32 reconciled baselines and field disposition.
 - [Migration history](https://github.com/pirl-unc/hitlist/blob/main/docs/evidence-catalog.md): source generations and
   scientific decisions behind the current package.
+- [Purified digestion evidence](https://github.com/pirl-unc/hitlist/blob/main/docs/digestion-evidence.md):
+  original MS1, acquisition, substrate and conflict relations with training admission limits.
 - [Legacy 1.x README](https://github.com/pirl-unc/hitlist/blob/main/docs/legacy-1x.md): historical indexes and commands.
   Its sample-level and training-readiness descriptions were superseded by
   the verified corpus audits and should not be used as current labels.

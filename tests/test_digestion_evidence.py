@@ -42,11 +42,20 @@ def _fixture(root, monkeypatch):
     contract["construct_files"] = {"aSPIRE_H4": "H4.fasta"}
     contract["expected"] = {
         "n_runs": 1,
+        "n_metadata_rows": 2,
+        "n_constructs": 1,
+        "n_contexts": 1,
         "n_metadata_enzyme_conflicts": 1,
         "n_archives": 1,
+        "n_archive_members": 6,
         "n_ms1_rows": 1,
+        "n_unlinked_ms1_rows": 0,
         "n_raw_quantities": 1,
+        "n_filtered_vectors": 1,
+        "n_identifications": 1,
         "n_final_rows": 2,
+        "n_final_values": 4,
+        "n_annotation_only_rows": 1,
         "n_time_conflicts": 1,
     }
     (root / "contracts/contract.json").write_text(json.dumps(contract))
@@ -124,6 +133,7 @@ def _fixture(root, monkeypatch):
         archive.writestr("output/QUANTITIES_filtered.RData", _csv([filtered]))
         archive.writestr("output/MS1_HPR.csv", _csv([ms1]))
         archive.writestr("output/ASSIGNMENTS.csv", _csv([identification]))
+        archive.writestr("output/log.txt", "Retained original-only method details\n")
     with zipfile.ZipFile(assets / "aSPIRE_outputs_zip.zip", "w") as archive:
         archive.writestr("aSPIRE_H4.zip", inner.getvalue())
 
@@ -151,11 +161,23 @@ def test_source_states_conflicts_controls_and_modifications_survive(tmp_path, mo
     assert quantity["biological_replicate_raw"] == "b1"
     assert quantity["metadata_biological_replicate_raw"] == "1"
     assert quantity["time_status"] == "source_metadata_conflict"
+    assert quantity["measurement_unit"] == digestion.MS1_UNIT
+    assert quantity["quantity_scale"] == "aSPIRE_raw_peptide_run_quantity"
     context = _rows(root, "contexts")[0]
     assert context["training_status"] == "unresolved_source_time_conflict"
     assert context["enzyme_species"] == "Homo sapiens"
     assert context["substrate_species"] is None
     assert len(_rows(root, "conflicts")) == 2
+    members = _rows(root, "members")
+    assert len(members) == 6
+    assert {row["materialization_status"] for row in members} == {
+        "typed_raw_quantities",
+        "typed_filtered_vectors",
+        "typed_ms1",
+        "typed_identifications",
+        "typed_final_vectors",
+        "original_asset_only",
+    }
     vectors = _rows(root, "final_vectors")
     assert [r["row_status"] for r in vectors] == ["reported_vector", "annotation_only"]
     assert vectors[0]["product_type_raw"] == "spliced"
@@ -168,11 +190,19 @@ def test_source_states_conflicts_controls_and_modifications_survive(tmp_path, mo
         "postprocessing_missing_unresolved_contributors",
         "source_positive",
     ]
+    assert {r["measurement_unit"] for r in values} == {digestion.MS1_UNIT}
+    assert {r["quantity_scale"] for r in values} == {"aSPIRE_background_adjusted_biological_mean"}
     assert all(r["time_status"] == "repeated_source_time_slots" for r in values)
     assert len({r["source_record_id"] for r in values}) == 4
     assert _rows(root, "ms1")[0]["modified_sequence"] == "AC[57]D"
+    assert _rows(root, "ms1")[0]["run_link_status"] == "matched_main_search"
+    assert _rows(root, "ms1")[0]["quantity_scale"] == "Skyline_MS1_peak_area"
     assert _rows(root, "ms1")[0]["ms1_background"] is None
+    assert _rows(root, "identifications")[0]["run_link_status"] == "matched_main_search"
     assert _rows(root, "identifications")[0]["posterior_error_probability"] is None
+    metadata = json.loads(_rows(root, "metadata")[0]["fields_json"])
+    assert metadata["columns"][0] == "raw_file"
+    assert metadata["values"][0] == "control.raw"
     assert len(json.loads((root / "rdata_decoding.json").read_text())["exports"]) == 2
 
 
@@ -192,6 +222,9 @@ def test_missing_is_not_zero(value, expected):
 
 
 def test_bad_time_vectors_and_unknown_runs_reject():
+    assert digestion.run_link_status("", None) == "blank_original_source_name"
+    assert digestion.run_link_status("other", None) == "outside_main_search_roster"
+    assert digestion.run_link_status("known", {"run_id": "x"}) == "matched_main_search"
     with pytest.raises(ValueError, match="lengths differ"):
         digestion.vector_values(
             {"biological_replicate": "1", "digestTimes": "0;1", "intensities": "1"}
