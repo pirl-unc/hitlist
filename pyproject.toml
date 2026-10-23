@@ -177,6 +177,7 @@ include = [
     "scripts/verify_digestion_roundtrip.py",
     "scripts/verify_digestion_arithmetic.py",
     "scripts/verify_digestion_timecourses.py",
+    "scripts/verify_binding_assay_context.py",
 ]
 
 [tool.ruff.lint]

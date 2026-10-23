@@ -1,0 +1,191 @@
+{
+  "schema_version": 1,
+  "revision": "sidney_2017_binding_protocol_v1",
+  "source": {
+    "pmid": 28481943,
+    "doi": "10.1371/journal.pone.0177140",
+    "article_url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0177140",
+    "source_xml_url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC5421785/fullTextXML",
+    "source_xml_sha256": "948816f8584a2779082048ad161bf12d8c8f0ebae2c2a70315d9d22efcaf65aa",
+    "license": "CC BY 4.0",
+    "section_id": "sec003",
+    "section_title": "MHC purification and peptide binding studies"
+  },
+  "protocol_id": "iedb:pmid:28481943:binding_protocol:sec003:v1",
+  "expected_binding_rows": 938,
+  "expected_cohort_rows": 910,
+  "required_source": "iedb",
+  "required_method": "purified MHC/competitive/radioactivity",
+  "required_endpoint": "half maximal inhibitory concentration (IC50)",
+  "required_unit": "nM",
+  "claims": [
+    {
+      "predicate": "assay_format",
+      "value": "purified HLA class II MHC competitive radioligand binding",
+      "unit": null,
+      "status": "reported_study_scope",
+      "applicability": "all_study_binding_assays",
+      "source_excerpt": "assays based on the inhibition of binding of a high affinity radiolabeled peptide"
+    },
+    {
+      "predicate": "mhc_preparation_source",
+      "value": "EBV transformed homozygous cell lines",
+      "unit": null,
+      "status": "reported_study_scope",
+      "applicability": "all_study_binding_assays",
+      "source_excerpt": "EBV transformed homozygous cell lines were used as sources of MHC molecules"
+    },
+    {
+      "predicate": "tracer_concentration_range",
+      "value": "0.1–1",
+      "unit": "nM",
+      "status": "reported_range_per_assay_unresolved",
+      "applicability": "all_study_binding_assays",
+      "source_excerpt": "radiolabeled peptide (0.1–1 nM)"
+    },
+    {
+      "predicate": "tracer_identity",
+      "value": null,
+      "unit": null,
+      "status": "unreported",
+      "applicability": "all_study_binding_assays",
+      "source_excerpt": null
+    },
+    {
+      "predicate": "incubation_temperature_alternatives",
+      "value": "room temperature or 37°C",
+      "unit": "°C",
+      "status": "reported_alternatives_per_assay_unresolved",
+      "applicability": "all_study_binding_assays",
+      "source_excerpt": "at room temperature or 37°C"
+    },
+    {
+      "predicate": "incubation_duration",
+      "value": "2",
+      "unit": "days",
+      "status": "reported_study_scope",
+      "applicability": "all_study_binding_assays",
+      "source_excerpt": "Following a two-day incubation"
+    },
+    {
+      "predicate": "protease_inhibitors",
+      "value": "cocktail present; components unreported",
+      "unit": null,
+      "status": "reported_study_scope",
+      "applicability": "all_study_binding_assays",
+      "source_excerpt": "in the presence of a cocktail of protease inhibitors"
+    },
+    {
+      "predicate": "capture_antibody",
+      "value": "L243",
+      "unit": null,
+      "status": "reported_locus_scope",
+      "applicability": "HLA-DR",
+      "source_excerpt": "HLA-DR: L243"
+    },
+    {
+      "predicate": "capture_antibody",
+      "value": "SPVL3",
+      "unit": null,
+      "status": "reported_locus_scope",
+      "applicability": "HLA-DQ",
+      "source_excerpt": "HLA-DQ: SPVL3"
+    },
+    {
+      "predicate": "capture_antibody",
+      "value": "B7/21",
+      "unit": null,
+      "status": "reported_locus_scope",
+      "applicability": "HLA-DP",
+      "source_excerpt": "HLA-DP: B7/21"
+    },
+    {
+      "predicate": "capture_plate",
+      "value": "Lumitrac 600",
+      "unit": null,
+      "status": "reported_study_scope",
+      "applicability": "all_study_binding_assays",
+      "source_excerpt": "coated Lumitrac 600 plates"
+    },
+    {
+      "predicate": "readout_instrument",
+      "value": "TopCount microscintillation counter",
+      "unit": null,
+      "status": "reported_study_scope",
+      "applicability": "all_study_binding_assays",
+      "source_excerpt": "TopCount (Packard Instrument Co., Meriden, CT) microscintillation counter"
+    },
+    {
+      "predicate": "n_competitor_concentrations",
+      "value": "6",
+      "unit": "concentrations",
+      "status": "reported_study_scope",
+      "applicability": "all_study_binding_assays",
+      "source_excerpt": "tested at six different concentrations"
+    },
+    {
+      "predicate": "competitor_concentration_span",
+      "value": "100000",
+      "unit": "fold",
+      "status": "reported_study_scope",
+      "applicability": "all_study_binding_assays",
+      "source_excerpt": "covering a 100,000-fold range"
+    },
+    {
+      "predicate": "min_n_independent_experiments",
+      "value": "3",
+      "unit": "experiments",
+      "status": "reported_study_scope",
+      "applicability": "all_study_binding_assays",
+      "source_excerpt": "in three or more independent experiments"
+    },
+    {
+      "predicate": "positive_control",
+      "value": "unlabeled version of the radiolabeled probe",
+      "unit": null,
+      "status": "reported_study_scope",
+      "applicability": "all_study_binding_assays",
+      "source_excerpt": "the unlabeled version of the radiolabeled probe was also tested"
+    },
+    {
+      "predicate": "peptide_purity_alternatives",
+      "value": "crude material or >95% HPLC-purified",
+      "unit": null,
+      "status": "reported_alternatives_per_assay_unresolved",
+      "applicability": "all_study_binding_assays",
+      "source_excerpt": "as crude material on a 1 mg scale, or purified (>95%) by reverse phase HPLC"
+    },
+    {
+      "predicate": "assay_pH",
+      "value": null,
+      "unit": null,
+      "status": "unreported",
+      "applicability": "all_study_binding_assays",
+      "source_excerpt": null
+    },
+    {
+      "predicate": "replicate_identifiers",
+      "value": null,
+      "unit": null,
+      "status": "unreported",
+      "applicability": "all_study_binding_assays",
+      "source_excerpt": null
+    },
+    {
+      "predicate": "measurement_uncertainty",
+      "value": null,
+      "unit": null,
+      "status": "unreported",
+      "applicability": "all_study_binding_assays",
+      "source_excerpt": null
+    },
+    {
+      "predicate": "KD_interpretation",
+      "value": "IC50 is a reasonable approximation of KD only under stated concentration conditions; no KD value reported here",
+      "unit": null,
+      "status": "reported_interpretation_not_measurement",
+      "applicability": "all_study_binding_assays",
+      "source_excerpt": "the measured IC50 values are reasonable approximations of the true Kd values"
+    }
+  ]
+}
