@@ -136,10 +136,38 @@
       "value_raw": "NO-DSP and NO-INH affect crosslinking/preservation; not gene knockouts"
     }
   ],
+  "references": [
+    {
+      "asset_path": "references/human-reviewed-2023.dat.gz",
+      "asset_sha256": "defd9fd7fdc3be6f36b5b57b1a2c29978b956612e1437ec15f7065b055bbe9d3",
+      "asset_size_bytes": 108046188,
+      "generation_label": "local_2023_canonical_snapshot_release_not_further_resolved",
+      "license": "CC BY 4.0",
+      "organism_scope": "Homo sapiens",
+      "original_reference_status": "study_2016_FASTA_unavailable",
+      "reference_format": "uniprot_dat_gzip",
+      "reference_id": "reviewed_2023_canonical",
+      "reference_role": "later_model_reference",
+      "source_url": "file:///Users/iskander/code/weirdo/data/swissprot-dat-files/uniprot_sprot_human.dat.gz"
+    },
+    {
+      "asset_path": "references/human-reviewed-2026_03-isoforms.fasta",
+      "asset_sha256": "8c4459cc1e190caad54150511e5a0b5779863557f88387e5a86647a48d19a9d4",
+      "asset_size_bytes": 29338408,
+      "generation_label": "UniProt_2026_03_reviewed_human_isoform_inclusive",
+      "license": "CC BY 4.0",
+      "organism_scope": "Homo sapiens",
+      "original_reference_status": "study_2016_FASTA_unavailable",
+      "reference_format": "uniprot_fasta",
+      "reference_id": "reviewed_2026_03_isoforms",
+      "reference_role": "later_model_reference",
+      "source_url": "https://rest.uniprot.org/uniprotkb/stream?query=%28organism_id%3A9606%29%20AND%20%28reviewed%3Atrue%29&format=fasta&includeIsoform=true"
+    }
+  ],
   "rights_sources": [
     "https://www.ebi.ac.uk/about/terms-of-use/",
     "https://www.nature.com/articles/nbt.4279"
   ],
-  "schema_version": 1,
-  "source_receipt_sha256": "70956e64c898963d48de904a96d1baee549eb9056bc013d55492a530ea3139f6"
+  "schema_version": 2,
+  "source_receipt_sha256": "1bb665ba3f4fdf385f3bb6f93416ff1b44e67bf9d117f0d065a8e96499f283bb"
 }

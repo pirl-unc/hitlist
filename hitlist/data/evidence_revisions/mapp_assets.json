@@ -48,6 +48,20 @@
       "size": 16664,
       "url": "https://media.springernature.com/original/springer-static/esm/art%3A10.1038%2Fnbt.4279/MediaObjects/41587_2018_BFnbt4279_MOESM11_ESM.xlsx"
     },
+    "references/human-reviewed-2023.dat.gz": {
+      "decompress": false,
+      "license_raw": "CC BY 4.0",
+      "sha256": "defd9fd7fdc3be6f36b5b57b1a2c29978b956612e1437ec15f7065b055bbe9d3",
+      "size": 108046188,
+      "url": "file:///Users/iskander/code/weirdo/data/swissprot-dat-files/uniprot_sprot_human.dat.gz"
+    },
+    "references/human-reviewed-2026_03-isoforms.fasta": {
+      "decompress": false,
+      "license_raw": "CC BY 4.0",
+      "sha256": "8c4459cc1e190caad54150511e5a0b5779863557f88387e5a86647a48d19a9d4",
+      "size": 29338408,
+      "url": "https://rest.uniprot.org/uniprotkb/stream?query=%28organism_id%3A9606%29%20AND%20%28reviewed%3Atrue%29&format=fasta&includeIsoform=true"
+    },
     "txt/evidence.txt": {
       "decompress": false,
       "license_raw": "EBI terms of use",
@@ -85,6 +99,7 @@
     }
   },
   "attribution": "Wolf-Levy et al. Revealing the cellular degradome by mass spectrometry analysis of proteasome-cleaved peptides. Nature Biotechnology 36,1110\u20131116 (2018), doi:10.1038/nbt.4279. PRIDE PXD009092.",
+  "reference_attribution": "The UniProt Consortium, UniProtKB; CC BY 4.0 https://rest.uniprot.org/help/license. Preserve reference generation and original source scope.",
   "rights_note": "Original scientific inputs remain local package inputs; only their hashes/locators and adapter code are distributed. Source deposit declares EBI terms of use, not CC0. Publisher supplemental redistribution license unverified.",
   "source_id": "pxd009092"
 }

@@ -241,3 +241,22 @@ def test_catalog_import_does_not_build_or_download(tmp_path):
     )
     assert probe.stdout.strip() == "7"
     assert not data_root.exists()
+
+
+def test_external_sequence_reference_relations_keep_identity_scopes():
+    names = (
+        "external_sequence_reference",
+        "external_reference_protein",
+        "external_reference_accession",
+        "external_peptide_parent_occurrence",
+        "external_source_parent_claim",
+        "external_source_parent_resolution",
+        "external_peptide_reference_coverage",
+    )
+    records = [describe_evidence(name) for name in names]
+    assert len({row["materialized_artifact"] for row in records}) == 7
+    assert all(row["status"] == "v2_materialized" for row in records)
+    occurrence = describe_evidence("external_peptide_parent_occurrence")
+    assert {"peptide_row_id", "reference_id", "reference_record_id", "occurrence_id"} <= set(
+        occurrence["index_required"]
+    )

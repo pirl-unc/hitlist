@@ -656,7 +656,7 @@ def write_mapp_tables(directory):
 
 class MAPPAdapter:
     source_id = SOURCE_ID
-    schema_version = 1
+    schema_version = 2
     asset_receipt_path = ASSET_RECEIPT
     support_files = SUPPORT_FILES
 
@@ -666,9 +666,23 @@ class MAPPAdapter:
         receipt = source_dir / "contracts/source_assets.json"
         if hashlib.sha256(receipt.read_bytes()).hexdigest() != contract["source_receipt_sha256"]:
             raise ValueError("MAPP contract receipt hash changed")
-        return write_mapp_tables(source_dir)
+        from .sequence_reference_evidence import write_reference_relations
+
+        reconciliation = write_mapp_tables(source_dir)
+        peptides = pq.read_table(source_dir / "typed/peptide_rows.parquet").to_pylist()
+        reconciliation.update(
+            write_reference_relations(source_dir, contract["references"], peptides)
+        )
+        return reconciliation
 
     def verify(self, source_dir, reconciliation):
+        from .sequence_reference_evidence import verify_reference_relations
+
+        verify_reference_relations(source_dir, reconciliation)
+        if reconciliation["reference_relation_rows"]["peptide_reference_occurrences"] != 37721:
+            raise ValueError("Pinned MAPP reference occurrence count changed")
+        if reconciliation["reference_relation_rows"]["source_parent_claims"] != 64538:
+            raise ValueError("Pinned MAPP source parent claim count changed")
         for name, schema in SCHEMAS.items():
             parquet = pq.ParquetFile(Path(source_dir) / "typed" / f"{name}.parquet")
             if (
@@ -697,8 +711,10 @@ class MAPPAdapter:
             "organism_scope": "human_HEK293_measured_cells",
             "measured_pools": ["proteasome_associated_fragment"],
             "measurement_grain": "peptide_by_source_acquisition_run",
-            "training_admission": "deferred_pending_endpoint_recipe_and_parent_reference_join",
+            "training_admission": "deferred_pending_endpoint_recipe_and_parent_alternative_policy",
             "quantity_artifact": "typed/quantity_measurements.parquet",
+            "reference_occurrence_artifact": "typed/peptide_reference_occurrences.parquet",
+            "reference_ids": [r["reference_id"] for r in reconciliation["reference_counts"]],
             "rights": {
                 "PRIDE_deposit": "EBI terms of use",
                 "publisher_workbooks": "unverified_not_bundled_in_distribution",

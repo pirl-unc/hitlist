@@ -7381,3 +7381,15 @@ Plan: tasks/mapp-source-plan.md.
 MAPP first shared generation completed in43.29s:10,673peptides,149,959evidence rows,362,882quantity representations,540,034derivation edges. Independent original TSV/workbook-XML replay passes in9.46s. Preserved first launcher path-type and source-NaN failures;74,573PEP NaN values now explicit.16focused tests and format/lint pass. Full normal test suite running. Reference occurrence relations/query/recipe and reviewed deployment remain pending; do not close752. Concurrent numericPR756 reserves1.82.24; source PR uses1.82.25 and will rebase before merge. First generation records development1.82.24 and immutable original bytes; do not relabel it as a final release.
 
 MAPP verification: full normal suite passes3,224tests/10warnings in356.83s;16focused final-catalog tests and format/lint pass. Independent111-file inventory and original TSV/XML replay pass. Filed757for missing parallel-proteome run metadata/independent precursor estimates. Keep752open for reference integration and full recipe handoff. Worktree creation triggered repository metadata-refresh hook for existing editable1.82.2; pip check reports no broken requirements. Subsequent git writes disable hooks to avoid shared-environment churn.
+
+## MAPP reference integration
+
+Plan: tasks/mapp-reference-plan.md. Current main numericPR756 merged into branch; version1.82.25 retained.
+- [x] Materialize seven reference relations with exact alternative occurrences and negative candidates.
+- [x] Verify all full sequences, aliases, occurrences and original source claims independently.
+- [x] Verify byte-identical original eleven MAPP typed tables and PXD057588 source artifacts.
+- [ ] Publish reviewed release and downstream endpoint handoff.
+
+Actual schema2 package:120files,62,984proteins,133,414accessionclaims,37,721occurrences,64,538sourceclaims,26,992resolutions,21,346coverage rows. Producer54.80s, independentBioPython/Aho-Corasick/graph replay20.22s, peakRSS0.987GiB. Initial test guard refused0.77GiB; normal retry admitted one worker at3.89GiB.21focused tests and format/lint pass. Broader endpoint/recipe remains739; precursor pairing757. No fit or concentration claim.
+
+Reference software closure: normal full suite passes3,236tests/10warnings in320.81s with one worker and intact memoryguard. Format/lint and21focused tests pass; independent complete source/reference replay passes. Indexed-corpus integration CI remains separate. No source code changed after validation.
