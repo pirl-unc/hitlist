@@ -15,8 +15,8 @@ from .provenance import file_digest
 from .reference_evidence import verify_reference_evidence_package
 
 PACKAGE_SCHEMA_VERSION = 9
-CATALOG_SCHEMA_VERSION = 12
-PREVIOUS_CATALOG_SCHEMA_VERSION = 11
+CATALOG_SCHEMA_VERSION = 13
+READABLE_SCHEMA_VERSIONS = ((8, 10), (8, 11), (9, 11), (9, 12), (9, CATALOG_SCHEMA_VERSION))
 PARENT_MANIFESTS = {
     "reference": "manifests/reference.json",
     "adjudication": "manifests/adjudication.json",
@@ -42,12 +42,7 @@ def verify_external_successor(directory):
     directory = Path(directory)
     manifest = json.loads((directory / "manifest.json").read_text())
     version = (manifest.get("schema_version"), manifest.get("catalog_schema_version"))
-    if package_family(manifest) != "external" or version not in (
-        (8, 10),
-        (8, 11),
-        (PACKAGE_SCHEMA_VERSION, PREVIOUS_CATALOG_SCHEMA_VERSION),
-        (PACKAGE_SCHEMA_VERSION, CATALOG_SCHEMA_VERSION),
-    ):
+    if package_family(manifest) != "external" or version not in READABLE_SCHEMA_VERSIONS:
         raise ValueError("Unsupported external successor schema")
     if version[0] == 8:
         if "parent_kind" in manifest or "parent_manifest_path" in manifest:

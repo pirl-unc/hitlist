@@ -7,9 +7,9 @@ Selectors distinguish evidence types that intentionally share one Parquet file.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
-from .evidence_catalog import EVIDENCE
+from .evidence_catalog import CONTROLLED_RELATION_NAMES, EVIDENCE
 
 
 @dataclass(frozen=True)
@@ -878,6 +878,19 @@ LINKS = (
 )
 
 
+ALIASES.update({new: dict(ALIASES.get(old, {})) for old, new in CONTROLLED_RELATION_NAMES.items()})
+ALIASES["processing_label_alias"] = {"source_record_id": "alias_id"}
+LINKS += tuple(
+    replace(
+        link,
+        source=CONTROLLED_RELATION_NAMES[link.source],
+        target=CONTROLLED_RELATION_NAMES[link.target],
+    )
+    for link in LINKS
+    if link.source in CONTROLLED_RELATION_NAMES and link.target in CONTROLLED_RELATION_NAMES
+)
+
+
 def materialized_bindings(
     package_schema_version=None, *, appended_source_ids=(), include_adjudications=False
 ):
@@ -892,8 +905,8 @@ def materialized_bindings(
         )
         and (
             package_schema_version is None
-            or item.source_population not in ("PXD009092", "PXD004886")
-            or item.source_population.lower() in appended_source_ids
+            or item.required_appended_source is None
+            or item.required_appended_source in appended_source_ids
         )
         and (
             package_schema_version is None

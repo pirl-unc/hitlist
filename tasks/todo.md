@@ -7788,3 +7788,45 @@ local test suite passes (3,319 tests, 84% coverage). The wheel and sdist pass
 Twine, license, and calibration file-inventory checks. Hosted release gates
 remain before merge and PyPI publication; see
 [ms-calibration-206-results/README.md](ms-calibration-206-results/README.md).
+
+## 2026-10-23 controlled MAPP source and signal (#759)
+
+Previous goal turn: progress. Plan: tasks/mapp-controlled-source-spec.md.
+- [ ] Shared two-panel adapter, source-linked metadata, aliases and quantities.
+- [ ] Reference alternatives, canonical query and run-level recipe.
+- [ ] Registered real-source generation and independent verification.
+- [ ] Normal format/lint/tests/docs; source/recipe conservation.
+- [ ] Training-only signal check and frozen biological comparison contract.
+- [ ] Publish source/experiment evidence and update759; retain broader goal.
+
+Review: pending. Captured signal does not directly measure free concentration.
+
+## Shared complete-case controlled response
+
+Plan: tasks/mapp-controlled-contrast-spec.md; frozen scientific contract is the
+Presto controlled-mapp-exact-sampled-fit specification.
+- [x] Canonical contrast materialize/verify implementation, base recipe preserved.
+- [ ] Fixture/source replay and required format/lint/test/docs.
+- [ ] Publish real 59/14/14 membership and contrast evidence with biological fit.
+
+Review: implementation in progress; no new biological fitting yet.
+
+## 2026-10-23 release #772 after calibration 2.0.6
+
+Plan: [mapp-controlled-207-release-spec.md](mapp-controlled-207-release-spec.md).
+
+- [x] Confirm PR #767 merged and merge its exact main commit.
+- [x] Confirm exact Hitlist 2.0.6 published before readying PR #772.
+- [x] Bump 2.0.7 and retain historical catalog-11/12 readers.
+- [x] Rebuild real controlled successor and replay all old and new recipes.
+- [x] Run local formatting, lint, strict docs and distribution gates.
+- [x] Pass the full local test suite under its unchanged memory guard.
+- [ ] Review final-head CI, merge and publish exact 2.0.7 artifacts.
+
+## Review
+
+The 2.0.7 real package preserves all 183 prior combined files and nine review
+claims, and its source and both new recipes pass independent replay. All four
+previous recipe semantic payloads remain byte-identical. Distribution gates
+and 3,330 local tests pass; hosted release gates remain; see
+[mapp-controlled-207-results/README.md](mapp-controlled-207-results/README.md).

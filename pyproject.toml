@@ -173,6 +173,7 @@ include = [
     "scripts/verify_bulk_replicates.py",
     "scripts/publish_bulk_replicates.py",
     "scripts/verify_bulk_fractionation.py",
+    "scripts/verify_mapp_controlled_contrast.py",
 ]
 
 [tool.ruff.lint]

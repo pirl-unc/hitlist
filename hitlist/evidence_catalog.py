@@ -6,9 +6,9 @@ against a verified package by :class:`hitlist.evidence_store.EvidenceStore`.
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 
-SCHEMA_VERSION = 12
+SCHEMA_VERSION = 13
 FIELD_ROLES = frozenset(
     {
         "identity",
@@ -60,6 +60,7 @@ class Evidence:
     materialized_artifact: str = ""
     index_required_any_of: tuple[tuple[str, ...], ...] = ()
     min_package_schema_version: int = 1
+    required_appended_source: str | None = None
 
 
 @dataclass(frozen=True)
@@ -496,6 +497,86 @@ FIELDS = (
         "training_effect", "annotation", "category", "Explicit review effect on target admission"
     ),
 )
+
+FIELDS += (
+    _field(
+        "capture_label_raw",
+        "protocol",
+        "text",
+        "Source capture label without assuming a gene alias",
+    ),
+    _field(
+        "capture_role", "protocol", "category", "Capture or control role, separate from treatment"
+    ),
+    _field(
+        "capture_target_gene",
+        "protocol",
+        "identifier",
+        "Directly resolved capture target gene, if supplied",
+    ),
+    _field(
+        "treatment_label_raw",
+        "biological_context",
+        "text",
+        "Unmodified acquisition treatment label",
+    ),
+    _field(
+        "treatment_kind",
+        "biological_context",
+        "category",
+        "Pharmacological, control or exposure context",
+    ),
+    _field(
+        "treatment_name",
+        "biological_context",
+        "text",
+        "Resolved treatment name; scoped conflicts remain unknown",
+    ),
+    _field(
+        "treatment_context_status", "provenance", "category", "Evidence scope for treatment context"
+    ),
+    _field(
+        "treatment_dose",
+        "biological_context",
+        "number",
+        "Dose with explicit unit and evidence scope",
+    ),
+    _field("treatment_dose_unit", "biological_context", "text", "Unit of treatment dose"),
+    _field(
+        "duration_hours",
+        "biological_context",
+        "number",
+        "Exposure duration, not time since substrate synthesis",
+    ),
+    _field(
+        "time_hours",
+        "biological_context",
+        "number",
+        "Source exposure time with publication context",
+    ),
+    _field("measured_cell_scope", "provenance", "text", "Scope of measured cell identity"),
+    _field("measured_species_scope", "provenance", "text", "Scope of measured species identity"),
+    _field("aliquot_id", "lineage", "identifier", "Supplied physical aliquot identity"),
+    _field(
+        "pair_id",
+        "lineage",
+        "identifier",
+        "Supplied physical pairing; replicate numbers are insufficient",
+    ),
+    _field("n_source_evidence", "relation", "number", "Number of source evidence contributors"),
+    _field("n_numeric_evidence", "relation", "number", "Contributors with numeric intensity"),
+    _field(
+        "n_direct_msms_evidence", "relation", "number", "Positive MS/MS count and not MULTI-MATCH"
+    ),
+    _field(
+        "n_positive_direct_msms_evidence",
+        "relation",
+        "number",
+        "Direct MS/MS contributors with positive intensity",
+    ),
+    _field("n_matched_evidence", "relation", "number", "Contributors labeled MULTI-MATCH"),
+)
+
 _FIELD_BY_NAME = {field.name: field for field in FIELDS}
 
 _SOURCE = ("observation_id", "source_record_id", "source_dataset", "source_reference_id")
@@ -569,6 +650,7 @@ def _mapp_evidence(name, table, kind, grain, fields, required, endpoints=()):
         required,
         status="v2_materialized",
         materialized_artifact=path,
+        required_appended_source="pxd009092",
     )
 
 
@@ -586,6 +668,7 @@ def _calibration_evidence(name, table, kind, grain, fields, required):
         required,
         status="v2_materialized",
         materialized_artifact=path,
+        required_appended_source="pxd004886",
     )
 
 
@@ -1735,6 +1818,7 @@ EVIDENCE = (
         ("result_id", "peptide_row_id", "channel_id", "measured_pool"),
         status="v2_materialized",
         materialized_artifact="external/pxd009092/typed/quantity_results.parquet",
+        required_appended_source="pxd009092",
     ),
     Evidence(
         "external_sequence_reference",
@@ -1748,6 +1832,7 @@ EVIDENCE = (
         ("reference_id", "asset_sha256"),
         status="v2_materialized",
         materialized_artifact="external/pxd009092/typed/sequence_references.parquet",
+        required_appended_source="pxd009092",
     ),
     Evidence(
         "external_reference_protein",
@@ -1767,6 +1852,7 @@ EVIDENCE = (
         ("reference_id", "reference_record_id", "sequence_sha256"),
         status="v2_materialized",
         materialized_artifact="external/pxd009092/typed/reference_proteins.parquet",
+        required_appended_source="pxd009092",
     ),
     Evidence(
         "external_reference_accession",
@@ -1780,6 +1866,7 @@ EVIDENCE = (
         ("reference_id", "reference_record_id", "accession_raw"),
         status="v2_materialized",
         materialized_artifact="external/pxd009092/typed/reference_accessions.parquet",
+        required_appended_source="pxd009092",
     ),
     Evidence(
         "external_peptide_parent_occurrence",
@@ -1801,6 +1888,7 @@ EVIDENCE = (
         ("occurrence_id", "peptide_row_id", "reference_id", "reference_record_id"),
         status="v2_materialized",
         materialized_artifact="external/pxd009092/typed/peptide_reference_occurrences.parquet",
+        required_appended_source="pxd009092",
     ),
     Evidence(
         "external_source_parent_claim",
@@ -1814,6 +1902,7 @@ EVIDENCE = (
         ("claim_id", "peptide_row_id", "reference_id"),
         status="v2_materialized",
         materialized_artifact="external/pxd009092/typed/source_parent_claims.parquet",
+        required_appended_source="pxd009092",
     ),
     Evidence(
         "external_source_parent_resolution",
@@ -1833,6 +1922,7 @@ EVIDENCE = (
         ("claim_id", "reference_record_id"),
         status="v2_materialized",
         materialized_artifact="external/pxd009092/typed/source_parent_resolutions.parquet",
+        required_appended_source="pxd009092",
     ),
     Evidence(
         "external_peptide_reference_coverage",
@@ -1853,6 +1943,7 @@ EVIDENCE = (
         ("peptide_row_id", "reference_id", "mapping_status"),
         status="v2_materialized",
         materialized_artifact="external/pxd009092/typed/peptide_reference_coverage.parquet",
+        required_appended_source="pxd009092",
     ),
     Evidence(
         "external_paired_protein_quantity",
@@ -2245,6 +2336,112 @@ EVIDENCE = (
         materialized_artifact="typed/lineage_claims.parquet",
     ),
 )
+
+CONTROLLED_RELATION_NAMES = {
+    "mapp_source_record": "processing_source_record",
+    "mapp_peptide": "processing_peptide",
+    "mapp_group": "processing_group",
+    "mapp_channel": "processing_channel",
+    "mapp_identification": "processing_identification",
+    "external_proteasome_fragment_quantity": "processing_quantity_result",
+    "mapp_quantity_measurement": "processing_quantity_measurement",
+    "mapp_derivation_input": "processing_derivation_input",
+    "mapp_source_assertion": "processing_source_assertion",
+    "external_sequence_reference": "processing_sequence_reference",
+    "external_reference_protein": "processing_reference_protein",
+    "external_reference_accession": "processing_reference_accession",
+    "external_peptide_parent_occurrence": "processing_peptide_parent_occurrence",
+    "external_source_parent_claim": "processing_source_parent_claim",
+    "external_source_parent_resolution": "processing_source_parent_resolution",
+    "external_peptide_reference_coverage": "processing_peptide_reference_coverage",
+}
+_CONTROLLED_CHANNEL_FIELDS = (
+    "capture_label_raw",
+    "capture_role",
+    "capture_target_gene",
+    "treatment_label_raw",
+    "treatment_kind",
+    "treatment_name",
+    "treatment_context_status",
+    "treatment_dose",
+    "treatment_dose_unit",
+    "duration_hours",
+    "time_hours",
+    "measured_cell_scope",
+    "measured_species_scope",
+    "specimen_id",
+    "aliquot_id",
+    "pair_id",
+)
+_CONTROLLED_COUNT_FIELDS = (
+    "n_source_evidence",
+    "n_numeric_evidence",
+    "n_direct_msms_evidence",
+    "n_positive_direct_msms_evidence",
+    "n_matched_evidence",
+)
+
+
+def _controlled_catalog():
+    """Reuse same-grain meanings across projects without inheriting source claims."""
+    entries = []
+    for item in EVIDENCE:
+        if item.name not in CONTROLLED_RELATION_NAMES:
+            continue
+        name = CONTROLLED_RELATION_NAMES[item.name]
+        is_reference = (
+            item.name.startswith("external_")
+            and item.name != "external_proteasome_fragment_quantity"
+        )
+        fields = (
+            tuple(field for field in item.fields if field != "source_dataset")
+            if is_reference
+            else item.fields
+        )
+        if name == "processing_channel":
+            fields += _CONTROLLED_CHANNEL_FIELDS
+        if name == "processing_quantity_result":
+            fields += _CONTROLLED_COUNT_FIELDS
+        path = item.materialized_artifact.replace(
+            "external/pxd009092/", "external/wolflevy2018_controlled/"
+        )
+        entries.append(
+            replace(
+                item,
+                name=name,
+                native_artifact=path,
+                materialized_artifact=path,
+                source_population="wolflevy2018_controlled",
+                fields=fields,
+                endpoints=("captured_fragment_MS_intensity",)
+                if name == "processing_quantity_result"
+                else (),
+                required_appended_source="wolflevy2018_controlled",
+                min_package_schema_version=9,
+            )
+        )
+    entries.append(
+        Evidence(
+            "processing_label_alias",
+            "relation",
+            "source_provenance",
+            "one_quantity_column_to_acquisition_label_assertion",
+            "external/wolflevy2018_controlled/typed/label_aliases.parquet",
+            "wolflevy2018_controlled",
+            (),
+            ("source_dataset", "source_record_id", "channel_id", "source_locator"),
+            ("source_record_id", "channel_id"),
+            status="v2_materialized",
+            materialized_artifact="external/wolflevy2018_controlled/typed/label_aliases.parquet",
+            required_appended_source="wolflevy2018_controlled",
+            min_package_schema_version=9,
+        )
+    )
+    return tuple(entries)
+
+
+EVIDENCE += _controlled_catalog()
+
 _EVIDENCE_BY_NAME = {item.name: item for item in EVIDENCE}
 
 TASKS = (
