@@ -13,7 +13,8 @@ and archive/publisher equivalence receipts are retained.
 ## Shared generation and typed queries
 
 Build a fresh successor from a verified reference generation, including every
-registered source required in the resulting store:
+registered source required in the resulting store. Workbook ingestion requires
+Hitlist’s `curation` extra (`pip install "hitlist[curation]"`):
 
 ```sh
 hitlist evidence append-sources /path/to/reference-generation /path/to/new-generation \
@@ -64,7 +65,9 @@ many-valued and cannot silently multiply measurements.
 - `calibration_standard` describes 30 nominal sequences, with response-informed
   dilution groups. `calibration_nominal_load` stores 25 group/sample design
   amounts. The source heading says concentration, but its unit is fmol on column.
-- `calibration_reporter_form` retains 32 distinct labels across the two source tables (31 each). SMD2 has a `.sum4` suffix only in Data8; cross-table aggregation equivalence is unresolved. CNNVLYIR has separate CAM and PCm
+- `calibration_reporter_form` retains 32 distinct labels across the two source
+  tables (31 each). SMD2 has a `.sum4` suffix only in Data8; cross-table aggregation
+  equivalence is unresolved. CNNVLYIR has separate CAM and PCm
   reporter forms; isotope and aggregation annotations remain explicit. Panel
   membership does not establish each form's share of nominal molar load.
 - `calibration_source_slot` preserves 99 structural columns under 11 site

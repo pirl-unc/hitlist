@@ -36,8 +36,8 @@ Source ingestion and training eligibility are separate. First implement/publish 
 
 ## Checkpoints
 
-- [ ] Pinned source contract and typed adapter with semantic verification.
-- [ ] Canonical registry/catalog/query bindings and safe relationships.
+- [x] Pinned source contract and typed adapter with semantic verification.
+- [x] Canonical registry/catalog/query bindings and safe relationships.
 - [ ] Independent complete source/old-generation conservation and software checks.
 - [ ] Published source evidence and precise raw-S4 training-admission follow-up.
 
@@ -47,3 +47,5 @@ Metadata amendment before any materialization: a whole-Methods check found a rep
 ## Replan after first original-source materialization
 
 Attempt1 (f7ebc08, retained verbatim in Presto0316/attempts/attempt-1) failed before publishing an output generation. The cause is a source identity difference, not an absent table heading: Data4 reports `SMD2.NNTQVLINC[CAM]R[+10]`; Data8 reports `SMD2.NNTQVLINC[CAM]R[+10].sum4` in all22 site/representation blocks. Previous exact cross-source reporter-universe assumption was wrong. Preserve32 distinct labels across both assets,31 per asset; do not treat different aggregation labels as identical measurements. Require consistency within Data8 blocks, keep unique sequence-level panel membership, restrict normalization comparisons to Data4 reporter IDs. Add a scoped source-conflict assertion and regression covering this case. Update the prospective source counts, retain the failed execution and freeze the corrected code/config before retry. Independently verify the label sets and upstream issue762 acceptance criteria; no training eligibility is inferred from this correction.
+
+Review: corrected04f7369 real-source materialization and independent original-XML/Parquet comparison pass (Presto0316). All13,561 source cells,6,138 S4 slots,3,410 curve positions,520 protocol parameters,157 prior files and three prior recipes checked.56 focused tests/format/lint/strict docs pass. Required normal full-suite memory guard refuses0.65GiB available/2.5GiB needed; not bypassed. Hosted current-head CI and review/publication remain. No release or trained concentration model claimed.
