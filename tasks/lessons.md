@@ -640,3 +640,7 @@ queryable rather than replacing them with inferred values.
 ## 2026-10-22 — file upstream data gaps as they appear
 
 - When a biological experiment hits missing data, metadata, pairing or representation limits, file a concrete Hitlist issue with source evidence, the blocked modeling use and acceptance criteria. Search existing issues first; link or extend an existing owner instead of creating duplicates. Do not leave actionable gaps only in Presto experiment prose.
+
+## 2026-10-23 — missing metadata needs an explicit source scope
+
+- Before asserting a protocol field is unreported, search the whole admitted Methods and supplement index. The PXD004886 four-workbook audit did not surface injection volume, but the admitted article explicitly reports2µL. Preserve that reference-protocol fact and distinguish it from unknown per-run volumes or stock molarity. Materialize relevant site/protocol tables when available; source-cell preservation alone is not homogeneous context curation.

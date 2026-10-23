@@ -150,12 +150,14 @@ def test_review_verifier_accepts_embedded_manifest_without_claiming_outer_files(
     )
 
 
-def test_review_relation_is_only_available_in_schema_eight():
+def test_review_relation_requires_explicit_presence():
     assert "assay_adjudication" not in materialized_bindings(6)
     assert "external_reference_sequence" not in materialized_bindings(6)
     assert "external_reference_sequence" in materialized_bindings(7)
     assert "assay_adjudication" not in materialized_bindings(7)
+    assert "assay_adjudication" not in materialized_bindings(8)
     assert "assay_adjudication" in materialized_bindings(8, include_adjudications=True)
+    assert "assay_adjudication" in materialized_bindings(9, include_adjudications=True)
 
 
 def test_one_review_joins_to_one_assay_without_multiplying_it(tmp_path):

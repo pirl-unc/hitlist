@@ -7698,7 +7698,48 @@ The required local `./test.sh` stopped before collection at its conservative
 memory preflight: 0.75 GiB free versus the 2.5 GiB one-worker minimum. Full
 hosted PR CI and clean-main release gates remain pending.
 
-# 2026-10-23: reconcile MAPP PR #760 with released 2.0.4
+## 2026-10-23 shared MS-calibration source
+
+Plan: tasks/ms-calibration-source-spec.md. Previous goal turn: progress (published original-source audit and exact issue762 handoff). Build on verified6e275fe in this isolated branch; preserve earlier experiments and shared environment.
+- [x] Source adapter, nominal panel/amounts, distinct reporter forms and context.
+- [x] Canonical typed-query exposure with source-scoped availability and safe joins.
+- [ ] Original-source and predecessor conservation, software checks, report and publication.
+
+The availability/concentration goal remains active. This source is an observation-response anchor candidate; no intracellular concentration or processing-effect label is supplied.
+
+Pre-materialization review:55 focused tests, format/lint and strict docs pass. Whole-Methods review corrected injection-volume metadata to reported2µL reference protocol and addedData13/14/15 for site instruments, stage-specific gradients and64-window settings.13 typed relations and8 pinned source assets (seven workbooks plus article XML). Source-only implementation; real-source/parser conservation and all previous package/recipe checks remain next.
+
+Source integration attempt1 stopped at a real cross-workbook reporter-label difference. Plan amended before code: preserve32 distinct labels, restrict raw/normalized comparisons to Data4, keep source conflict and failed execution. No output generation published.
+
+Real-source closure: corrected04f7369 and independent verifier pass, preserving157 previous files and allthree MAPP recipes.32 distinct aggregation/form labels retained.56 focused tests, format/lint and strict docs pass; normal full runner refuses0.65/2.5GiB before pytest. Hitlist762 updated with protocol context and aggregation-equivalence acceptance. Review/release, hosted CI and bounded canonical raw-S4 admission remain.
+
+## 2026-10-23 bounded MS nominal-response recipe
+
+Plan: tasks/ms-calibration-response-spec.md; Presto raw-s4-nominal-response plan.
+- [x] Compile source-bound conditional raw-S4 examples with complete exclusions/provenance.
+- [x] Expose and verify through canonical catalog/materialize/CLI APIs; preserve old recipes.
+- [x] Verify original-source admission independently, then run the registered local response diagnostic.
+
+No free-concentration, processing supervision or SWATH-to-MAPP transfer claim. Full availability goal remains active.
+
+Raw-S4 review: independent XML admission checks all3069 raw slots;1974 positives become224 summaries/22 observed peptides. All295 local fits and validation/test outputs independently replay (maxprediction delta7.93e-11). Context RMSE0.8084 versus mean1.1796 and shared-penalty sequence model1.2762; no detector-transfer/concentration claim. Full report: https://github.com/pirl-unc/presto/blob/9f8e4e0/experiments/2026-10-23_0359_codex_raw-s4-response/README.md.61 focused tests/format/lint/docs pass; normal full local runner refuses0.30/2.5GiB before pytest. Previous ad60a8f full hosted CI passes; current96b9232 CI is separate. Review/merge/release remain;2.0.3 is unreleased.
+
+
+## 2026-10-23 evidence successor compatibility (#771)
+
+Plan: [evidence-successor-compat-spec.md](evidence-successor-compat-spec.md).
+- [x] Identify and file schema-8 collision with the newer adjudication release.
+- [x] Merge current main without losing either evidence family.
+- [x] Write schema-9 successors with verified reference/adjudication predecessors.
+- [x] Regress family dispatch, source registry, snapshot conservation and tamper rejection.
+- [x] Register and independently verify a real combined source/recipe generation.
+- [x] Run required format/lint/tests/docs and publish draft with exact readback.
+
+Review: executed code0219827 preserves all126 predecessor files,9 review claims and56 appended-source files in a183-file combined generation. Independent direct-Parquet/hash replay checks32relations/1,853,840mixed-grain rows and allfour unchanged recipe outputs; both historical schema8 families remain readable. New package schema9/catalog12, version2.0.5 candidate. Normal localtest.sh passes3,317tests/10warnings in321.51s with unchanged memoryguard, one worker; format/lint/70focused checks/strict docs pass. First sandbox memory probe and initial standalone-recipe baseline mismatch are retained in the report. Source code was not changed after validation. No new biological fit. Review/hostedCI/merge/release remain separate gates.
+
+Report: https://github.com/pirl-unc/presto/blob/82feaf2/experiments/2026-10-23_0551_codex_adjudication-source-conservation/README.md. Combined manifest42317a5efb7d642be5b8265131e6a6f7963e469adda946b780dac4d6aebb05b0. Fix is on existing draft767; controls source admission759 remains next. Broader availability goal stays active.
+
+## 2026-10-23: reconcile MAPP PR #760 with released 2.0.4
 
 Plan: [mapp-main-204-merge-spec.md](mapp-main-204-merge-spec.md).
 
@@ -7707,11 +7748,11 @@ Plan: [mapp-main-204-merge-spec.md](mapp-main-204-merge-spec.md).
       accurate generation-specific bindings and registry.
 - [x] Verify both historical package families and real MAPP-only successors.
 - [x] Reconcile all three recipe targets/contributors with the prior generation.
-- [ ] Run format/lint/test/docs, review CI, merge #760 and release 2.0.5 with
+- [x] Run format/lint/test/docs, review CI, merge #760 and release 2.0.5 with
       verified PyPI artifact hashes.
-- [ ] Rebase #767 onto the released MAPP version as the next serial PR.
+- [x] Start #767 integration on the released MAPP version as the next serial PR.
 
-## Review
+### Review
 
 Schema-9/catalog-11 successors built from both verified parent kinds. Independent
 SHA-256 checks match all 126 reviewed-parent and 123 reference-parent files,
@@ -7722,5 +7763,28 @@ relations match 1,829,008 prior logical rows; all three recipe data inventories
 match previous targets, contributors and admissions byte for byte. Focused
 catalog/review/successor/recipe tests pass (45), as do format, lint and strict
 docs. Full local `./test.sh` passes: 3,290 passed, one skipped (85% total
-coverage). Hosted final-head CI, merge and PyPI release remain. See
-[mapp-205-results/README.md](mapp-205-results/README.md).
+coverage). Final-head hosted CI passes. PR #760 merged as `cfbb43f`; the
+clean-main release run 39941299674 passed and PyPI 2.0.5 wheel/sdist hashes
+match the CI receipt (`08460a9a0b1d0f5b56fdf3f4ffb335bbe8f7a90e01812e09ab68b2c81b8bc110`,
+`d63eeb63f34f1917d428a592f1c2270a88868d60e2cf94380364c04e2c7b6c0c`).
+See [mapp-205-results/README.md](mapp-205-results/README.md).
+
+## 2026-10-23 release #767 after MAPP 2.0.5
+
+Plan: [ms-calibration-206-release-spec.md](ms-calibration-206-release-spec.md).
+
+- [x] Confirm published 2.0.5 and live #767 head, then merge main.
+- [x] Bump 2.0.6; correct predecessor terminology and calibration guide.
+- [x] Replay historical and real combined packages and all four recipes.
+- [x] Run format, lint, full tests, strict docs and distribution checks.
+- [ ] Review final-head CI, merge and publish exact 2.0.6 artifacts.
+
+## Review
+
+The 2.0.6 candidate preserves all 126 adjudication predecessor files, all 183
+files in the prior combined source generation, and all four registered recipe
+semantic payloads. The released 2.0.5 MAPP package remains readable. The full
+local test suite passes (3,319 tests, 84% coverage). The wheel and sdist pass
+Twine, license, and calibration file-inventory checks. Hosted release gates
+remain before merge and PyPI publication; see
+[ms-calibration-206-results/README.md](ms-calibration-206-results/README.md).

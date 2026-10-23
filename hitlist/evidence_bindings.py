@@ -50,6 +50,41 @@ SELECTORS = {
 # These are exact same-grain aliases. Related values are declared as links below;
 # a raw field with an uncertain role is intentionally left under native.*.
 ALIASES = {
+    "calibration_protocol_parameter": {
+        "source_record_id": "parameter_id",
+        "source_scope": "scope",
+        "assertion_predicate": "parameter_name_raw",
+        "assertion_value": "value_json",
+    },
+    "calibration_source_sheet": {"source_record_id": "sheet_id", "source_file": "asset_path"},
+    "calibration_source_cell": {
+        "source_cell": "cell_id",
+        "source_file": "asset_path",
+        "source_row_index": "row_1based",
+    },
+    "calibration_standard": {
+        "source_record_id": "standard_id",
+        "parent_label_raw": "protein_label_raw",
+    },
+    "calibration_nominal_load": {
+        "measurement_id": "nominal_load_id",
+        "sample_label_raw": "sample_label",
+        "quantitative_value": "value",
+        "measurement_unit": "unit",
+    },
+    "calibration_reporter_form": {"source_record_id": "reporter_id"},
+    "calibration_source_slot": {"source_record_id": "slot_id", "sample_label_raw": "sample_label"},
+    "calibration_s4_measurement": {"quantitative_value": "value", "measurement_unit": "unit"},
+    "calibration_summary_measurement": {"quantitative_value": "value", "measurement_unit": "unit"},
+    "calibration_curve": {"source_record_id": "curve_id"},
+    "calibration_curve_measurement": {"quantitative_value": "value", "measurement_unit": "unit"},
+    "calibration_source_assertion": {
+        "claim_id": "assertion_id",
+        "assertion_predicate": "predicate",
+        "assertion_value": "value_raw",
+        "source_scope": "scope",
+    },
+    "calibration_normalization_diagnostic": {"source_record_id": "diagnostic_id"},
     "mapp_source_record": {"source_file": "asset_path", "source_row_index": "row_1based"},
     "mapp_peptide": {"peptide_sequence": "sequence_raw", "parent_label_raw": "parent_labels_raw"},
     "mapp_group": {"parent_label_raw": "protein_ids_raw"},
@@ -266,13 +301,121 @@ CONSTANTS["external_reference_source_mapping"]["organism_taxon_id"] = "10090"
 
 CONSTANTS.update(
     {
-        item.name: {"source_dataset": "PXD009092"}
+        item.name: {"source_dataset": item.source_population}
         for item in EVIDENCE
-        if item.source_population == "PXD009092" and "source_dataset" in item.fields
+        if item.source_population in ("PXD009092", "PXD004886") and "source_dataset" in item.fields
     }
 )
 
 LINKS = (
+    Link(
+        "reporter",
+        "calibration_s4_measurement",
+        "calibration_reporter_form",
+        "reporter_id",
+        "reporter_id",
+        "one",
+        "original_reporter_form",
+    ),
+    Link(
+        "source_slot",
+        "calibration_s4_measurement",
+        "calibration_source_slot",
+        "slot_id",
+        "slot_id",
+        "one",
+        "source_column_not_acquisition_identity",
+    ),
+    Link(
+        "nominal_load",
+        "calibration_s4_measurement",
+        "calibration_nominal_load",
+        "nominal_load_id",
+        "nominal_load_id",
+        "one",
+        "nominal_panel_load_not_form_molarity",
+    ),
+    Link(
+        "standard",
+        "calibration_reporter_form",
+        "calibration_standard",
+        "standard_id",
+        "standard_id",
+        "one",
+        "unique_sequence_panel_membership",
+    ),
+    Link(
+        "reporter_forms",
+        "calibration_standard",
+        "calibration_reporter_form",
+        "standard_id",
+        "standard_id",
+        "many",
+        "molecular_form_alternatives",
+    ),
+    Link(
+        "reporter",
+        "calibration_curve",
+        "calibration_reporter_form",
+        "reporter_id",
+        "reporter_id",
+        "one",
+        "original_reporter_form",
+    ),
+    Link(
+        "curve",
+        "calibration_curve_measurement",
+        "calibration_curve",
+        "curve_id",
+        "curve_id",
+        "one",
+        "reported_curve_row",
+    ),
+    Link(
+        "reporter",
+        "calibration_summary_measurement",
+        "calibration_reporter_form",
+        "reporter_id",
+        "reporter_id",
+        "one",
+        "original_reporter_form",
+    ),
+    Link(
+        "source_slot",
+        "calibration_normalization_diagnostic",
+        "calibration_source_slot",
+        "slot_id",
+        "slot_id",
+        "one",
+        "source_column_not_acquisition_identity",
+    ),
+    Link(
+        "source_cell",
+        "calibration_s4_measurement",
+        "calibration_source_cell",
+        "source_cell",
+        "cell_id",
+        "one",
+        "original_source_coordinate",
+    ),
+    Link(
+        "source_cell",
+        "calibration_curve_measurement",
+        "calibration_source_cell",
+        "source_cell",
+        "cell_id",
+        "one",
+        "original_source_coordinate",
+    ),
+    Link(
+        "source_cell",
+        "calibration_summary_measurement",
+        "calibration_source_cell",
+        "source_cell",
+        "cell_id",
+        "one",
+        "original_source_coordinate",
+    ),
     Link(
         "peptide",
         "external_proteasome_fragment_quantity",
@@ -749,8 +892,8 @@ def materialized_bindings(
         )
         and (
             package_schema_version is None
-            or item.source_population != "PXD009092"
-            or "pxd009092" in appended_source_ids
+            or item.source_population not in ("PXD009092", "PXD004886")
+            or item.source_population.lower() in appended_source_ids
         )
         and (
             package_schema_version is None

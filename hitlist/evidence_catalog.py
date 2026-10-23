@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 
-SCHEMA_VERSION = 11
+SCHEMA_VERSION = 12
 FIELD_ROLES = frozenset(
     {
         "identity",
@@ -572,7 +572,158 @@ def _mapp_evidence(name, table, kind, grain, fields, required, endpoints=()):
     )
 
 
+def _calibration_evidence(name, table, kind, grain, fields, required):
+    path = f"external/pxd004886/typed/{table}.parquet"
+    return Evidence(
+        "calibration_" + name,
+        kind,
+        "quantitative_ms",
+        grain,
+        path,
+        "PXD004886",
+        (),
+        ("source_dataset", *fields),
+        required,
+        status="v2_materialized",
+        materialized_artifact=path,
+    )
+
+
 EVIDENCE = (
+    _calibration_evidence(
+        "protocol_parameter",
+        "protocol_parameters",
+        "context",
+        "source_site_stage_position_and_parameter",
+        (
+            "source_record_id",
+            "source_scope",
+            "assertion_predicate",
+            "assertion_value",
+            "source_cell",
+            "value_status",
+        ),
+        ("source_record_id",),
+    ),
+    _calibration_evidence(
+        "source_sheet",
+        "source_sheets",
+        "relation",
+        "source_workbook_sheet",
+        ("source_record_id", "source_file"),
+        ("source_record_id",),
+    ),
+    _calibration_evidence(
+        "source_cell",
+        "source_cells",
+        "relation",
+        "original_populated_XML_cell",
+        ("source_cell", "source_file", "source_row_index", "value_status"),
+        ("source_cell",),
+    ),
+    _calibration_evidence(
+        "standard",
+        "nominal_standards",
+        "relation",
+        "nominal_standard_sequence",
+        ("source_record_id", "peptide_sequence", "parent_label_raw"),
+        ("source_record_id",),
+    ),
+    _calibration_evidence(
+        "nominal_load",
+        "nominal_loads",
+        "measurement",
+        "nominal_panel_group_by_sample",
+        ("measurement_id", "sample_label_raw", "quantitative_value", "measurement_unit"),
+        ("measurement_id",),
+    ),
+    _calibration_evidence(
+        "reporter_form",
+        "reporter_forms",
+        "relation",
+        "original_reporter_label",
+        ("source_record_id", "peptide_sequence"),
+        ("source_record_id",),
+    ),
+    _calibration_evidence(
+        "source_slot",
+        "source_slots",
+        "context",
+        "source_column_under_reported_site",
+        ("source_record_id", "sample_label_raw", "material_link_precision"),
+        ("source_record_id",),
+    ),
+    _calibration_evidence(
+        "s4_measurement",
+        "s4_measurements",
+        "measurement",
+        "reporter_by_S4_source_column_and_representation",
+        (
+            "measurement_id",
+            "quantitative_value",
+            "measurement_unit",
+            "quantity_scale",
+            "representation",
+            "value_status",
+            "source_cell",
+            "calibration_applicability",
+        ),
+        ("measurement_id",),
+    ),
+    _calibration_evidence(
+        "summary_measurement",
+        "summary_measurements",
+        "measurement",
+        "reported_reporter_statistic_by_representation",
+        (
+            "measurement_id",
+            "quantitative_value",
+            "measurement_unit",
+            "representation",
+            "value_status",
+            "source_cell",
+        ),
+        ("measurement_id",),
+    ),
+    _calibration_evidence(
+        "curve",
+        "curve_rows",
+        "relation",
+        "site_by_reporter_and_curve_representation",
+        ("source_record_id", "representation"),
+        ("source_record_id",),
+    ),
+    _calibration_evidence(
+        "curve_measurement",
+        "curve_measurements",
+        "measurement",
+        "reported_curve_RSQ_argument_position",
+        (
+            "measurement_id",
+            "quantitative_value",
+            "measurement_unit",
+            "representation",
+            "value_status",
+            "source_cell",
+        ),
+        ("measurement_id",),
+    ),
+    _calibration_evidence(
+        "source_assertion",
+        "source_assertions",
+        "context",
+        "scoped_source_claim",
+        ("claim_id", "assertion_predicate", "assertion_value", "assertion_status", "source_scope"),
+        ("claim_id",),
+    ),
+    _calibration_evidence(
+        "normalization_diagnostic",
+        "normalization_diagnostics",
+        "relation",
+        "source_column_raw_normalized_pair_audit",
+        ("source_record_id",),
+        ("source_record_id",),
+    ),
     Evidence(
         "mhc_positive_ms",
         "observation",

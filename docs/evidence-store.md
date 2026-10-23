@@ -6,12 +6,14 @@ The package contains the original source generations as well as typed relations;
 the API makes each relation discoverable without searching for sidecars. The
 package directory is the only location a reader supplies.
 
-New external-source successors use package schema 9 and catalog 11. Their
-predecessor may be a verified schema-7 reference package or the released
-schema-8 adjudication package. An adjudication predecessor retains all nine
-multimer reviews when MAPP is appended. Historical schema-8 external-source
-packages remain readable; explicit family markers distinguish them from the
-schema-8 review package. The catalog lists only relations present in the
+New external-source generations use package schema 9 and catalog 12. Their
+predecessor can be a schema-7 reference package or a schema-8 adjudication
+package. The latter retains all nine multimer reviews when MAPP and calibration
+sources are appended. Both historical schema-8 families remain readable:
+`review_revision` identifies adjudications and `appended_sources` identifies the
+earlier source drafts. The released schema-9/catalog-11 MAPP generation also
+remains readable. Ambiguous envelopes are rejected. Actual source presence,
+rather than the version number alone, determines available relations in the
 verified generation.
 
 ```python
