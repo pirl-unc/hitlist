@@ -33,11 +33,13 @@ TABLE_BINDINGS = {
 
 
 def describe_registered_recipes(store):
+    from .ms_calibration_response import describe
+
     available = set(TABLE_BINDINGS.values()) <= store.bindings.keys()
     return [
         {"contract": contract, "status": "materialized" if available else "not_in_generation"}
         for contract in registered_contracts()
-    ]
+    ] + [describe(store)]
 
 
 def validate_registered_recipe(recipe):

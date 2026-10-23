@@ -519,7 +519,10 @@ def materialize_recipe(store, recipe, destination):
     recipe = _read_recipe(recipe)
     if isinstance(recipe, dict) and "registered_recipe" in recipe:
         from .distribution_recipe import materialize_distribution
+        from .ms_calibration_response import RECIPE_ID, materialize_response
 
+        if recipe["registered_recipe"] == RECIPE_ID:
+            return materialize_response(store, recipe, destination)
         return materialize_distribution(store, recipe, destination)
     _validate(recipe)
     requests = _preflight(store, recipe)
@@ -752,6 +755,10 @@ def verify_recipe_package(directory, *, source_package=None):
     ):
         raise RecipeError("Source package manifest changed")
     output_kind = manifest.get("output_kind", "row_decisions")
+    if output_kind == "registered_response":
+        from .ms_calibration_response import verify_response_contents
+
+        return verify_response_contents(directory, manifest, source_package)
     if output_kind == "registered_distribution":
         from .distribution_recipe import verify_distribution_contents
 

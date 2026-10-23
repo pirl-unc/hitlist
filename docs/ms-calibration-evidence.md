@@ -101,3 +101,37 @@ identity and detailed censor/saturation mapping remain unknown or unresolved.
 Training admission requires a separate canonical recipe with explicit eligibility
 and retained exclusions. Full curve calibration and transfer to MAPP or MHC
 elution require additional evidence.
+
+## Bounded raw-S4 response recipe
+
+`ms_calibration_raw_s4_nominal_response_v1` produces conditional log10 peak-area
+targets under nominal standard loading. It excludes multiple raw reporter forms
+for one standard, explicitly summed reporters, unresolved isotope annotation
+matches, and responses that are not reported positive finite quantities. It
+retains every raw source slot with all applicable exclusion reasons. Normalized
+rows remain in the source receipt and count as outside the endpoint scope.
+
+```python
+store.materialize(
+    {
+        "schema_version": 1,
+        "name": "raw_s4_response",
+        "registered_recipe": "ms_calibration_raw_s4_nominal_response_v1",
+    },
+    "/path/to/new-response-export",
+)
+```
+
+The output kind is `registered_response`. Examples are medians of positive
+log10 responses within reporter and site, with every contributing observation
+attached. Nominal load remains a separate covariate; the target is not divided by
+load or presented as a molecular response coefficient. Missing slots remain
+unobserved. Protocol context and original molecular annotations are retained.
+
+Sequence-based fold IDs keep all sites and repeated slots for one peptide
+together. They do not prove specimen independence or broad sequence transfer.
+The common `verify-recipe` command checks hashes and recomputes admission and
+targets. Supply `--source-package` to additionally verify all exported source
+rows against the original hash-bound Parquet files; standalone verification
+establishes internal consistency only. Scientific source and split qualification
+remains necessary before fitting or comparing models.

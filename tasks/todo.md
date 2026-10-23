@@ -7566,3 +7566,12 @@ Pre-materialization review:55 focused tests, format/lint and strict docs pass. W
 Source integration attempt1 stopped at a real cross-workbook reporter-label difference. Plan amended before code: preserve32 distinct labels, restrict raw/normalized comparisons to Data4, keep source conflict and failed execution. No output generation published.
 
 Real-source closure: corrected04f7369 and independent verifier pass, preserving157 previous files and allthree MAPP recipes.32 distinct aggregation/form labels retained.56 focused tests, format/lint and strict docs pass; normal full runner refuses0.65/2.5GiB before pytest. Hitlist762 updated with protocol context and aggregation-equivalence acceptance. Review/release, hosted CI and bounded canonical raw-S4 admission remain.
+
+## 2026-10-23 bounded MS nominal-response recipe
+
+Plan: tasks/ms-calibration-response-spec.md; Presto raw-s4-nominal-response plan.
+- [ ] Compile source-bound conditional raw-S4 examples with complete exclusions/provenance.
+- [ ] Expose and verify through canonical catalog/materialize/CLI APIs; preserve old recipes.
+- [ ] Verify original-source admission independently, then run the registered local response diagnostic.
+
+No free-concentration, processing supervision or SWATH-to-MAPP transfer claim. Full availability goal remains active.
