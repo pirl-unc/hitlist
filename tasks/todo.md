@@ -1,3 +1,57 @@
+# Release integration memory headroom and diagnostics (#754, 2.0.3)
+
+## Specification
+
+The first clean-main 1.82.22 release attempt (run 39836089683, attempt 1)
+ended with exit 143 after 32 of 96 integration tests. It had only 14.52 GiB
+`MemAvailable` before that phase. No pytest failure, `/usr/bin/time` integration
+profile, or kernel OOM evidence was captured. The retry passed. The 2.0.2
+release also passed all 96 tests but reached 14,667,796 KiB peak process RSS.
+Memory pressure is plausible, not a proved cause of the historical SIGTERM.
+
+The separate CI integration job already provisions 8 GiB of disk-backed swap.
+Give the clean-main release job the same bounded capacity before its complete
+test gate. Record memory and swap state before and after the gate, including on
+a nonzero exit when the runner remains alive. Emit each integration test name
+and outcome as it completes, so the last observed case is available if a
+future process is terminated. Preserve the existing source, corpus, complete
+unit and integration, packaging, license, and exact-artifact release gates.
+The release artifact must never upload after an incomplete test phase.
+
+This PR changes release reliability and diagnostics only. It does not claim a
+confirmed root cause or change scientific data. Bump the package to 2.0.3.
+
+## Plan
+
+- [x] Read the incident, failed attempt, successful release, release workflow,
+      integration CI workflow, test launcher, and relevant project lessons.
+- [x] Add the same tested swap setup to the release workflow and bounded
+      before/after diagnostics that cannot turn a failed gate green.
+- [x] Add integration-only per-test progress to `test.sh`; verify a terminated
+      integration phase remains nonzero and cannot reach packaging/upload.
+- [ ] Run `./format.sh`, `./lint.sh`, and `./test.sh`; use full hosted
+      release-build validation if local memory preflight cannot run.
+- [ ] Review the final diff and PR checks, merge, build from clean main,
+      verify exact artifact provenance, publish 2.0.3, and compare PyPI hashes.
+- [ ] Record release evidence and remaining uncertainty on #754, then select
+      the next foundational backlog issue.
+
+## Review
+
+Historical exit 143 identifies SIGTERM, but the recorded logs do not establish
+whether the runner, memory pressure, or a test-side process sent it. The
+release workflow now matches the regular integration job's 8 GiB swap setup.
+It reports memory state after success or failure and attempts bounded kernel
+messages only after failure. `test.sh` prints per-case integration progress.
+The existing release gating still skips artifact upload on a failed build;
+stubbed exit 143 now exercises the non-retry behavior explicitly.
+
+Focused shell/deployment tests: 38 passed. `./format.sh` and `./lint.sh`
+passed. The local `./test.sh` first lacked a permitted macOS page-size probe
+inside the sandbox; with the probe permitted, it correctly refused because
+only 0.22 GiB was available against its 2.5 GiB minimum. Full suite and
+actual swap provisioning remain for hosted release-build CI.
+
 # Atlas acquisition lineage and exact-cohort audit (#705, #680)
 
 ## Specification
