@@ -309,6 +309,24 @@ CONSTANTS.update(
 
 LINKS = (
     Link(
+        "membership",
+        "gomez_source_result",
+        "gomez_peptide_membership",
+        "membership_id",
+        "membership_id",
+        "one",
+        "source_result_to_reported_sample_peptide_membership",
+    ),
+    Link(
+        "derived_peptide",
+        "gomez_peptide_membership",
+        "mhc_positive_ms",
+        "derived_observation_id",
+        "observation_id",
+        "optional_one",
+        "sequence_and_source_file_match_to_merged_derived_peptide",
+    ),
+    Link(
         "reporter",
         "calibration_s4_measurement",
         "calibration_reporter_form",

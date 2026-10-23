@@ -24,6 +24,14 @@ the review ledger, and both typed review relations. The same package path opens
 all inherited and new evidence. Every predecessor file is retained and checked
 against its original digest.
 
+A Gomez-Zepeda source successor uses package schema 11 and catalog 16. It
+inherits the entire verified schema-10 package and embeds the original
+publisher S3 and S5 ZIPs, their source registry, original result rows, and
+run-level peptide memberships. The old 68,552 peptide observations remain
+byte-identical. Source rows carry both the original CSV columns and typed
+common fields. The source archives are CC BY 4.0; all other sources retain
+their own rights scope.
+
 ```python
 from hitlist import EvidenceStore
 
@@ -34,6 +42,7 @@ print([(item["name"], item.get("n_rows")) for item in catalog["evidence"]])
 ```
 
 The audited schema-10 successor contains 116 materialized evidence types and
+the schema-11 successor adds the two original Gomez-Zepeda relations. Both have
 three declared contracts. The predecessor numeric and reference packages remain
 readable and report later types as `not_in_generation`. The catalog
 identifies grain, source population, endpoint, ingest requirements,
@@ -98,6 +107,58 @@ with the verified schema-9/catalog-14 package and the pinned Europe PMC
 and cohort manifests, exact assay identities and every inherited file before
 publishing the successor. See
 [the source review and audit](https://github.com/pirl-unc/hitlist/blob/main/tasks/binding-assay-context-210-results/README.md).
+
+## Gomez-Zepeda original result lineage
+
+`gomez_source_result` is one original S3 or S5 CSV data row, including all
+original columns under `native.<CSV column>`. The common fields include
+`source_phase`, `condition_text`, `biological_replicate_label`,
+`sample_label_raw`, `technical_replicate_label`, `acquisition_id`,
+`peptide_sequence`, `peptide_modifications_raw`, `reported_peptidoform_raw`,
+`charge_raw`, `identification_method_raw`, `identification_confidence_raw`,
+`identification_q_value_raw`, `tims_ramp_raw`, `polygon_raw`,
+`quantitative_raw` and `log2_area_raw`.
+`quantitative_raw` is the original `Area` cell; its unit is source peak-area
+arbitrary units. Blank and zero remain distinct. A CSV row does not identify
+an independent donor, specimen or assay. `biological_replicate_label` is a
+literal source cell and is not uniformly resolved to an independent culture;
+in S3 it can simply name the cell line.
+
+`gomez_peptide_membership` is one detected sequence in one reported phase,
+condition, culture label, sample and acquisition file. It gives the number of
+original source rows behind that membership. Each membership links to the
+merged derived 8–15-amino-acid peptide observation where the source permits an
+exact sequence and cell-source match. Original results outside that length
+remain queryable with a null derived link and explicit
+`derivation_link_status`. JY and Raji peptides often occur in both WT and
+transfected conditions; the one merged peptide observation does not by itself
+identify a unique arm. Missing sequence membership is not a negative result.
+
+```python
+source = store.query(
+    "gomez_source_result",
+    select=["source_record_id", "source_phase", "condition_text",
+            "sample_label_raw", "acquisition_id", "peptide_sequence",
+            "quantitative_raw", "native.mokapot_q_value"],
+    where={"source_phase": "s5_spike_experiment", "cell_line_name": "JY"},
+    limit=100,
+)
+memberships = store.query(
+    "gomez_peptide_membership",
+    select=["membership_id", "condition_text", "sample_label_raw",
+            "peptide_sequence", "n_source_result_rows", "derived_observation_id"],
+    where={"cell_line_name": "JY", "peptide_sequence": "AAAAAAAAA"},
+)
+```
+
+To build this successor, call
+`write_gomez_source_package(predecessor_package, archives_directory, destination)`.
+The archive directory must contain the publisher's pinned `MOESM7.zip` and
+`MOESM9.zip`. The writer checks the exact archive and member hashes, source
+row counts, five derived peptide unions, complete derived coverage, and every
+predecessor file before publication. Request the membership relation
+explicitly when condition or run detail is needed; joining it onto merged
+peptide observations would multiply training weights.
 
 ## Query one evidence grain
 

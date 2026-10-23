@@ -272,10 +272,12 @@ def _compile(directory, ledger):
     )
 
 
-def verify_binding_assay_context_package(directory):
+def verify_binding_assay_context_package(
+    directory, *, manifest_path="manifest.json", allow_additional_files=False
+):
     """Verify the inherited package and independently reconstruct every new row."""
     directory = Path(directory)
-    manifest = json.loads((directory / "manifest.json").read_text())
+    manifest = json.loads((directory / manifest_path).read_text())
     if (
         manifest.get("schema_version") != PACKAGE_SCHEMA_VERSION
         or manifest.get("catalog_schema_version") != CATALOG_SCHEMA_VERSION
@@ -290,7 +292,9 @@ def verify_binding_assay_context_package(directory):
         for path in directory.rglob("*")
         if path.is_file() and path != directory / "manifest.json"
     }
-    if set(files) != actual:
+    if (not allow_additional_files and set(files) != actual) or (
+        allow_additional_files and not set(files) <= actual
+    ):
         raise ValueError("Binding assay review inventory mismatch")
     for name, digest in files.items():
         if file_digest(directory / _safe_relative(name)) != digest:

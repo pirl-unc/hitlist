@@ -164,6 +164,10 @@ class EvidenceStore:
             from .binding_assay_context import verify_binding_assay_context_package
 
             manifest = verify_binding_assay_context_package(directory)
+        elif family == "gomez_source":
+            from .gomez_source_lineage import verify_gomez_source_package
+
+            manifest = verify_gomez_source_package(directory)
         elif family == "adjudication":
             manifest = verify_assay_adjudication_package(directory)
         elif family == "reference":
@@ -326,6 +330,10 @@ class EvidenceStore:
                 "asset_receipt_sha256": source["asset_receipt_sha256"],
                 "adapter_schema_version": source["adapter_schema_version"],
             }
+        if self.manifest["schema_version"] >= 11:
+            registry["gomez_zepeda_2024_original"] = json.loads(
+                (self.directory / "gomez_source/registry.json").read_text()
+            )
         return registry
 
     def _manifest_hash(self):

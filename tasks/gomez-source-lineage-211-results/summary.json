@@ -1,0 +1,48 @@
+{
+  "condition_rows": {
+    "s3_method_comparison:100ms_HeLa_None": 7624,
+    "s3_method_comparison:100ms_HeLa_Thunder": 8102,
+    "s3_method_comparison:100ms_JY_None": 6055,
+    "s3_method_comparison:100ms_JY_Thunder": 6496,
+    "s3_method_comparison:100ms_Plasma_None": 1100,
+    "s3_method_comparison:100ms_Plasma_Thunder": 1093,
+    "s3_method_comparison:100ms_SK-MEL-37_None": 7579,
+    "s3_method_comparison:100ms_SK-MEL-37_Thunder": 8248,
+    "s3_method_comparison:300ms_HeLa_None": 14299,
+    "s3_method_comparison:300ms_HeLa_Thunder": 15654,
+    "s3_method_comparison:300ms_JY_None": 9922,
+    "s3_method_comparison:300ms_JY_Thunder": 11571,
+    "s3_method_comparison:300ms_Plasma_None": 1813,
+    "s3_method_comparison:300ms_Plasma_Thunder": 2052,
+    "s3_method_comparison:300ms_SK-MEL-37_None": 16616,
+    "s3_method_comparison:300ms_SK-MEL-37_Thunder": 17464,
+    "s5_spike_experiment:JY_S": 109819,
+    "s5_spike_experiment:JY_WT": 101670,
+    "s5_spike_experiment:Raji_S": 143588,
+    "s5_spike_experiment:Raji_WT": 104151
+  },
+  "derived_sequence_unions": {
+    "HeLa": 10356,
+    "JY": 20983,
+    "Plasma": 1397,
+    "Raji": 24325,
+    "SK-MEL-37": 11491
+  },
+  "manifest_sha256": "ade958582dd2eb580f4e02187cd7445621e72fc07ec294a97624a09ba24a2659",
+  "n_derived_observations_linked": 68552,
+  "n_predecessor_files": 256,
+  "n_source_memberships": 590615,
+  "n_source_result_rows": 594916,
+  "n_successor_files": 262,
+  "outside_derived_length_rows": {
+    "HeLa": 2206,
+    "JY": 19945,
+    "Plasma": 431,
+    "Raji": 25562,
+    "SK-MEL-37": 3347
+  },
+  "source_rows": {
+    "s3_method_comparison": 135688,
+    "s5_spike_experiment": 459228
+  }
+}

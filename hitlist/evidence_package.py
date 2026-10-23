@@ -22,6 +22,12 @@ def package_family(manifest):
         and manifest.get("appended_sources")
     ):
         return "binding_review"
+    if (
+        schema == 11
+        and manifest.get("parent_kind") == "binding_review"
+        and manifest.get("revision") == "gomez_zepeda_2024_original_results_v1"
+    ):
+        return "gomez_source"
     raise ValueError(f"Unknown or ambiguous evidence package family: schema {schema}")
 
 
@@ -33,5 +39,7 @@ def adjudication_manifest_path(manifest):
     if family == "external" and manifest.get("parent_kind") == "adjudication":
         return "manifests/adjudication.json"
     if family == "binding_review":
+        return manifest.get("adjudication_manifest_path")
+    if family == "gomez_source":
         return manifest.get("adjudication_manifest_path")
     return None
