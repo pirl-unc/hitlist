@@ -19,6 +19,7 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+from .evidence_snapshot import snapshot_file
 from .provenance import file_digest
 from .tcell_evidence import verify_tcell_evidence_package
 
@@ -252,15 +253,6 @@ def _safe_relative(value):
     return path
 
 
-def _snapshot_file(source, target):
-    """Copy a package byte stream without sharing the source inode."""
-    target.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(source, target)
-    source_stat, target_stat = source.stat(), target.stat()
-    if source_stat.st_dev == target_stat.st_dev and source_stat.st_ino == target_stat.st_ino:
-        raise ValueError(f"Supporting numeric snapshot shares source inode: {source}")
-
-
 def verify_supporting_numeric_evidence_package(directory, *, manifest_path="manifest.json"):
     """Verify an appended numeric generation and its complete T-cell parent."""
     directory = Path(directory)
@@ -318,8 +310,8 @@ def write_supporting_numeric_evidence_package(tcell_package, destination):
         for relative in parent["files"]:
             source = tcell_package / _safe_relative(relative)
             target = staging / relative
-            _snapshot_file(source, target)
-        _snapshot_file(tcell_package / "manifest.json", staging / "manifests" / "tcell.json")
+            snapshot_file(source, target)
+        snapshot_file(tcell_package / "manifest.json", staging / "manifests" / "tcell.json")
         typed = staging / "typed"
         reconciliation = {
             "bulk": _write_one(

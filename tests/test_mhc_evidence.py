@@ -236,6 +236,22 @@ def test_mhc_package_verifier_detects_artifact_change(tmp_path):
         verify_mhc_evidence_package(target)
 
 
+def test_mhc_package_survives_mutated_ingestion_file(tmp_path):
+    source = _source(tmp_path)
+    target = tmp_path / "package"
+    write_mhc_evidence_package(source, target)
+    original = (target / "native" / "observations.parquet").read_bytes()
+
+    with (source / "observations.parquet").open("ab") as stream:
+        stream.write(b"later source edit")
+
+    assert (target / "native" / "observations.parquet").read_bytes() == original
+    assert (source / "observations.parquet").stat().st_ino != (
+        target / "native" / "observations.parquet"
+    ).stat().st_ino
+    verify_mhc_evidence_package(target)
+
+
 def test_mhc_package_manifest_remains_verifiable_inside_later_generation(tmp_path):
     source = _source(tmp_path)
     target = tmp_path / "package"

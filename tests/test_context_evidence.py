@@ -219,6 +219,36 @@ def test_context_package_keeps_native_sources_and_separate_claim_roles(tmp_path)
     assert not any(x["role"] == "peptide_mhc_restriction" for x in mhc_claims)
 
 
+def test_context_package_survives_mutated_predecessor_and_cohort_inputs(tmp_path):
+    mhc, cohort, old, current, lineage = _cohort_fixture(tmp_path)
+    target = tmp_path / "context"
+    write_context_evidence_package(
+        mhc,
+        cohort,
+        target,
+        historical_curation_path=old,
+        current_curation_path=current,
+        lineage_file=lineage,
+    )
+    original_mhc = (target / "native" / "binding.parquet").read_bytes()
+    original_cohort = (target / "cohort_native" / "training.parquet").read_bytes()
+
+    with (mhc / "native" / "binding.parquet").open("ab") as stream:
+        stream.write(b"later predecessor edit")
+    with (cohort / "training.parquet").open("ab") as stream:
+        stream.write(b"later cohort edit")
+
+    assert (target / "native" / "binding.parquet").read_bytes() == original_mhc
+    assert (target / "cohort_native" / "training.parquet").read_bytes() == original_cohort
+    assert (target / "native" / "binding.parquet").stat().st_ino != (
+        mhc / "native" / "binding.parquet"
+    ).stat().st_ino
+    assert (target / "cohort_native" / "training.parquet").stat().st_ino != (
+        cohort / "training.parquet"
+    ).stat().st_ino
+    verify_context_evidence_package(target)
+
+
 @pytest.mark.parametrize(
     "variation, message",
     [

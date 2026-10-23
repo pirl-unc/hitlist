@@ -273,3 +273,13 @@ hitlist evidence build-reference /path/to/numeric-package \
 The source package itself is immutable. Its construction writers and pinned
 source receipts are documented in [the migration catalog](evidence-catalog.md)
 and the [serial implementation plan](../tasks/pr8-evidence-store-spec.md).
+
+# Evidence package snapshots
+
+Each evidence-package generation snapshots its verified inputs and predecessor
+files into new inodes before atomic publication. On filesystems that support
+copy-on-write cloning, the snapshot shares storage blocks until either path is
+modified; otherwise the writer makes a full copy. Editing an ingestion file or
+an earlier package after publication cannot change a later package's bytes.
+Each generation still records file hashes in its manifest, and verification
+checks those hashes before the data is used.
