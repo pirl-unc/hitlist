@@ -33,8 +33,8 @@ print(catalog["package_manifest_sha256"])
 print([(item["name"], item.get("n_rows")) for item in catalog["evidence"]])
 ```
 
-The schema-10 review-augmented package contains 56 materialized evidence types and
-four declared contracts. The predecessor numeric and reference packages remain
+The audited schema-10 successor contains 116 materialized evidence types and
+three declared contracts. The predecessor numeric and reference packages remain
 readable and report later types as `not_in_generation`. The catalog
 identifies grain, source population, endpoint, ingest requirements,
 physical selector, native columns and relationships. Each logical field is
