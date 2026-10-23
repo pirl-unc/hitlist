@@ -7551,3 +7551,12 @@ Format and lint pass. An isolated editable install reports the expected 2.0.1
 metadata; both 2.0.1 distribution artifacts build, pass `twine check`, and
 the wheel contains the new snapshot helper. Final-head CI, review, merge and
 release remain.
+
+## 2026-10-23 shared MS-calibration source
+
+Plan: tasks/ms-calibration-source-spec.md. Previous goal turn: progress (published original-source audit and exact issue762 handoff). Build on verified6e275fe in this isolated branch; preserve earlier experiments and shared environment.
+- [ ] Source adapter, nominal panel/amounts, distinct reporter forms and context.
+- [ ] Canonical typed-query exposure with source-scoped availability and safe joins.
+- [ ] Original-source and predecessor conservation, software checks, report and publication.
+
+The availability/concentration goal remains active. This source is an observation-response anchor candidate; no intracellular concentration or processing-effect label is supplied.
