@@ -296,6 +296,15 @@
       "source_locator": "article.xml#Sec11",
       "subject_id": "pxd004886:protocol",
       "value_raw": "not_applicable_to_synthetic_response_assay"
+    },
+    {
+      "assertion_status": "conflicting",
+      "normalized_value": "SMD2_Data4_no_aggregation_suffix_Data8_sum4_equivalence_unresolved",
+      "predicate": "cross_asset_reporter_aggregation_identity",
+      "scope": "measurement_identity",
+      "source_locator": "supplementary-data-4.xlsx#A21|supplementary-data-8.xlsx#A25",
+      "subject_id": "pxd004886:protocol",
+      "value_raw": "SMD2.NNTQVLINC[CAM]R[+10] vs SMD2.NNTQVLINC[CAM]R[+10].sum4"
     }
   ],
   "expected_reconciliation": {
@@ -318,10 +327,10 @@
     "n_normalized_only_values": 26,
     "n_positive_curve_values": 2416,
     "n_protocol_parameters_rows": 520,
-    "n_reporter_forms_rows": 31,
+    "n_reporter_forms_rows": 32,
     "n_reproduced_summary_values": 162,
     "n_s4_measurements_rows": 6138,
-    "n_source_assertions_rows": 33,
+    "n_source_assertions_rows": 34,
     "n_source_cells_rows": 13561,
     "n_source_sheets_rows": 7,
     "n_source_slots_rows": 99,

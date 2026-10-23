@@ -7562,3 +7562,5 @@ Plan: tasks/ms-calibration-source-spec.md. Previous goal turn: progress (publish
 The availability/concentration goal remains active. This source is an observation-response anchor candidate; no intracellular concentration or processing-effect label is supplied.
 
 Pre-materialization review:55 focused tests, format/lint and strict docs pass. Whole-Methods review corrected injection-volume metadata to reported2µL reference protocol and addedData13/14/15 for site instruments, stage-specific gradients and64-window settings.13 typed relations and8 pinned source assets (seven workbooks plus article XML). Source-only implementation; real-source/parser conservation and all previous package/recipe checks remain next.
+
+Source integration attempt1 stopped at a real cross-workbook reporter-label difference. Plan amended before code: preserve32 distinct labels, restrict raw/normalized comparisons to Data4, keep source conflict and failed execution. No output generation published.

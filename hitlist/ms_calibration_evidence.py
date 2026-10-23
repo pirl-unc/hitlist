@@ -277,6 +277,16 @@ def _mode(label):
     return {"unnormalized": "raw", "normalized": "normalized"}.get(normalized)
 
 
+def _validate_curve_reporters(curve_labels):
+    """Validate within-table identity without equating cross-table aggregations."""
+    expected = {(str(site), mode) for site in range(1, 12) for mode in ("raw", "normalized")}
+    if set(curve_labels) != expected:
+        raise ValueError("Curve site/representation universe changed")
+    labels = curve_labels["1", "raw"]
+    if len(labels) != 31 or any(other != labels for other in curve_labels.values()):
+        raise ValueError("Curve reporter universe changed within source table")
+
+
 def _column(number):
     label = ""
     while number:
@@ -697,7 +707,7 @@ def _build_tables(source_dir):
         mode = _mode(label) or mode
         if not isinstance(label, str) or "." not in label or group not in set("ABCDE"):
             continue
-        if not site or not mode or label not in representations["raw"]:
+        if not site or not mode:
             raise ValueError("Unresolved curve source context or reporter")
         rep = reporter(label, book.source(f"A{row}"))
         if group != panel[rep["peptide_sequence"]]["group_label"]:
@@ -749,10 +759,7 @@ def _build_tables(source_dir):
                     "reported_grid_amount": amount,
                 }
             )
-    if len(curve_labels) != 22 or any(
-        labels != representations["raw"] for labels in curve_labels.values()
-    ):
-        raise ValueError("Curve site/representation universe changed")
+    _validate_curve_reporters(curve_labels)
     for record in reporters.values():
         record["source_cells_json"] = _json(sorted(set(record["source_cells_json"])))
         tables["reporter_forms"].append(record)
@@ -762,7 +769,8 @@ def _build_tables(source_dir):
     }
     for slot in tables["source_slots"]:
         ratios, only_normalized, only_raw, cells = [], 0, 0, []
-        for rep in reporters.values():
+        for label in sorted(representations["raw"]):
+            rep = reporters[label]
             raw, norm = [
                 measurements[slot["slot_id"], rep["reporter_id"], mode]
                 for mode in ("raw", "normalized")
@@ -884,6 +892,7 @@ class MSCalibrationAdapter:
                 "unknown_run_day_and_specimen_links",
                 "curve_grid_to_sample_unresolved",
                 "normalization_source_discrepancies",
+                "cross_asset_reporter_aggregation_equivalence_unresolved",
                 "censoring_and_saturation_mapping_unresolved",
             ],
         }

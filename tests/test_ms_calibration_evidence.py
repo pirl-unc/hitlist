@@ -23,6 +23,25 @@ def test_reporter_sequence_membership_does_not_erase_form_identity():
         calibration.canonical_sequence("protein.INVALIDX")
 
 
+def test_curve_reporter_aggregation_is_not_an_s4_identity_alias():
+    s4 = "SMD2.NNTQVLINC[CAM]R[+10]"
+    curve = s4 + ".sum4"
+    assert calibration.canonical_sequence(s4) == calibration.canonical_sequence(curve)
+    assert calibration._id("reporter", s4) != calibration._id("reporter", curve)
+    labels = {curve} | {f"other:{i}" for i in range(30)}
+    blocks = {
+        (str(site), mode): set(labels) for site in range(1, 12) for mode in ("raw", "normalized")
+    }
+    calibration._validate_curve_reporters(blocks)
+    blocks["5", "normalized"].remove(curve)
+    blocks["5", "normalized"].add(s4)
+    with pytest.raises(ValueError, match="within source table"):
+        calibration._validate_curve_reporters(blocks)
+    blocks.pop(("5", "normalized"))
+    with pytest.raises(ValueError, match="site/representation"):
+        calibration._validate_curve_reporters(blocks)
+
+
 @pytest.mark.parametrize(
     "value,present,formula,status",
     [
