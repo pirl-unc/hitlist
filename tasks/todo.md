@@ -7430,9 +7430,12 @@ Review: shared source and every run/feature/metric/checkpoint replay pass; all 1
 ## 2026-10-23 MAPP integration with Hitlist 2.0
 
 Previous goal turn: progress (30 fits/report/data issue published). Plan: tasks/mapp-v2-integration-spec.md. Preserve original experiment inputs while integrating source758/recipe760 with concurrent main release761.
-- [ ] Immutable successor of current reference package; canonical query bindings.
-- [ ] Canonical registered distribution recipes without a parallel public API.
-- [ ] Independent real-source/recipe conservation, software checks and publication.
+- [x] Immutable successor of current reference package; canonical query bindings.
+- [x] Canonical registered distribution recipes without a parallel public API.
+- [x] Independent real-source/recipe conservation and focused software checks.
+- [ ] Final integrated-head full CI, publication, review and release.
+
+Review:124 predecessor files have independent inodes and unchanged bytes;33 MAPP files, all18 query relations/1,829,008 rows and all original three recipe targets/splits independently conserved.55 focused tests, format/lint and strict docs pass. Normal full-suite memory preflight refused before workers (0.67GiB available/2.5required); no full-suite pass claimed. Integration execution is1442c03; final import-order correction is recorded separately. Source snapshot dependency763 merged;2.0.2 is reserved for this integration. Concentration/response/precursor gaps remain752/762/757/759.
 
 # Hitlist 2.0 evidence store and recipes — PR 8 of 8 (#739)
 

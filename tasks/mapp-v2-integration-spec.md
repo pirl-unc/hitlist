@@ -23,10 +23,12 @@ This integration makes existing evidence reachable from the actual current share
 
 ## Implementation checkpoints
 
-- [ ] Merge and reconcile version/catalog without losing either source history.
-- [ ] Immutable successor package plus canonical query bindings and tests.
-- [ ] Registered distribution recipe through canonical materialize/verify and tests.
-- [ ] Actual package/recipe admission and independent full conservation replay.
+- [x] Merge and reconcile version/catalog without losing either source history.
+- [x] Immutable successor package plus canonical query bindings and tests.
+- [x] Registered distribution recipe through canonical materialize/verify and tests.
+- [x] Actual package/recipe admission and independent full conservation replay.
 - [ ] Full software checks, report, publication and reviewed release handoff.
 
 Dependency amendment before any real materialization: concurrent PR763 (`6fa5871`) reserves2.0.1 and supplies `evidence_snapshot.snapshot_file`. Merge that dependency, reuse its helper for the new successor as well as inherited writers, and reserve2.0.2 here. PR763 release remains a merge/release dependency; no claim that this branch is already deployed. The experiment will record the integrated code revision after this change.
+
+Review: source execution at1442c03 preserved124 predecessor files with independent inodes and33 MAPP files byte-for-byte. Independent replay matched18 query relations (1,829,008 rows),32 old baselines and all original recipe targets/splits;3,058 values recomputed across overlapping cohorts. The three recipes retain544/616/369 peptides and65/101/71 parents. The canonical Presto report is experiments/2026-10-23_0149_codex_mapp-v2-integration. Final lint caught only the snapshot-helper import order; correct that without replacing the frozen executed source. After correction, format/lint and55 focused tests pass; strict docs passes. Normal full-suite preflight refused at0.67GiB versus2.5GiB required, before launching workers. Final-head CI and reviewed release remain gates. PR763 has now merged asdcd33aa; reconcile its squash history so this PR diff contains only its own changes. No concentration or new predictive-quality claim.
