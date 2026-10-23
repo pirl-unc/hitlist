@@ -34,7 +34,13 @@ Save predictions on all train/validation/test rows for selected checkpoints, inc
 
 Independent source replay must reconstruct admission, quantities, positions, grouping/splits and target arithmetic without importing the recipe producer; independently recompute all final metrics and checkpoint selection. Compare exact versus sampled at matched updates, record all scored candidates/draws/runtime and gradient variation. A nonconstant fit or good observed-distribution score is not identification of latent availability. Keep biology/confidence/specimen/precursor/response limitations visible. Register under experiments/ before real materialization/training and close out the complete family with raw artifact hashes, launch/env/git receipts, report and canonical log.
 
-- [ ] Build and test shared recipe and freeze real admitted cohort.
-- [ ] Independently verify source admission and holdouts; check support gate.
-- [ ] Run registered local exact/sampled/no-context fits and preserve every output.
-- [ ] Independently verify results, report limitations and advance the next biological hypothesis.
+- [x] Build and test shared recipe and freeze real admitted cohort.
+- [x] Independently verify source admission and holdouts; check support gate.
+- [x] Run registered local exact/sampled/no-context fits and preserve every output.
+- [x] Independently verify results, report limitations and advance the next biological hypothesis.
+
+## Review — October 23, 2026
+
+Shared recipes and catalog discovery pass 14 focused tests; the immutable code commit `80b69d3` passes the normal full suite: 3,243 tests, 10 warnings, 327.51 s, with the memory guard intact. The initial attempt was refused before workers launched; the successful retry used one worker. Format/lint pass. Strict docs initially exposed four existing relative links to reports outside the documentation tree; these now point to their tracked repository destinations, and recipe/MAPP pages appear in navigation. Strict docs now pass. No production code changed after the full suite.
+
+Actual source exports and both original/extended admission graphs were independently replayed in Presto family `2026-10-22_2330_codex_mapp-biological-comparison`. All nine local fits completed in 54.98 s; independent NumPy forward/metric/checkpoint replay passes. None improves held-out reverse KL or composition RMSE over uniform. This is not a concentration model or a completed unified query release. Hitlist759 requests controlled inhibitor/reporter comparisons;757 retains precursor/pairing ownership. Draft publication and final-commit CI remain separate gates.

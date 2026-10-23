@@ -7401,3 +7401,5 @@ Plan: tasks/mapp-biological-recipe-plan.md. This is a scoped shared recipe found
 - [ ] Explicit parent/occurrence policy, connected-component holdouts and quantities.
 - [ ] Fixtures, real independent admission replay, format/lint/full tests.
 - [ ] Publish and hand off immutable recipe output to the registered Presto experiment.
+
+MAPP recipe verification: both shared exports independently replayed; normal full suite passes 3,243 tests / 10 warnings in 327.51 s, format/lint and strict docs pass. Nine local biological fits and independent checkpoint/prediction replay complete; uniform remains the held-out reference. New data request #759; precursor issue #757 remains open. Draft recipe PR and complete unified query release remain separate.
