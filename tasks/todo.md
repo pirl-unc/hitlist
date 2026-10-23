@@ -7407,7 +7407,9 @@ MAPP recipe verification: both shared exports independently replayed; normal ful
 ## 2026-10-23 MAPP run repeatability and representation
 
 Previous goal turn: progress. Plan: mapp-run-repeatability (Presto) / tasks/mapp-run-recipe-plan.md (Hitlist).
-- [ ] Shared complete-run recipe with all original observations/status and fixed source partitions.
-- [ ] Independent original-source replay and local software checks.
-- [ ] Registered run-repeatability diagnostics, then evidence-led fixed representation comparison.
-- [ ] Complete artifacts, report, canonical registry and publication.
+- [x] Shared complete-run recipe with all original observations/status and fixed source partitions.
+- [x] Independent original-source replay and local software checks.
+- [x] Registered run-repeatability diagnostics, then evidence-led fixed representation comparison.
+- [ ] Publish complete artifacts, report and canonical registry; verify remote readback.
+
+Review: shared source and every run/feature/metric/checkpoint replay pass; all 186 archived fitting files and nine recipe files match original bytes. Baseline repeats (r=0.914); treatment-change repeatability is weak (r=0.172). Thirty regularized fits complete in 25.81s; all allocated weights train, but none beats uniform. Hitlist b94289d: 20 focused tests and strict docs pass; normal local full-suite memory preflight refused twice. Hosted Python 3.10–3.14 unit CI and integration/coverage/lint/docs all pass (3.11: 3,247 passed/2 optional skips; integration: 96 passed). Calibration data request #762 filed and read back exactly; precursor #757 and perturbation #759 remain open. Complete artifact and report publication is the remaining closure step; full concentration goal remains active.
