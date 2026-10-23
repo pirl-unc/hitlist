@@ -7,7 +7,8 @@ import pyarrow.parquet as pq
 import pytest
 
 from hitlist.evidence_catalog import describe_evidence
-from hitlist.supporting_numeric_evidence import _snapshot_file, _write_one
+from hitlist.evidence_snapshot import snapshot_file
+from hitlist.supporting_numeric_evidence import _write_one
 from hitlist.tcell_evidence import verify_tcell_evidence_package
 
 
@@ -171,7 +172,7 @@ def test_snapshot_is_independent_of_mutable_source(tmp_path):
     source.parent.mkdir()
     source.write_text("original source bytes")
     target = tmp_path / "package" / "asset.txt"
-    _snapshot_file(source, target)
+    snapshot_file(source, target)
     source.write_text("later changed bytes")
     assert target.read_text() == "original source bytes"
     assert source.stat().st_ino != target.stat().st_ino

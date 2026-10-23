@@ -27,10 +27,10 @@ from .conditions import (
 )
 from .curation import MS_SAMPLE_FIELDS, PMID_ENTRY_FIELDS
 from .curation_yaml import load_curation_yaml
+from .evidence_snapshot import snapshot_file
 from .lineage import lineage_path, validate_lineage
 from .mhc_evidence import (
     NATIVE_FIELDS,
-    _link_or_copy,
     verify_mhc_evidence_package,
 )
 from .provenance import file_digest
@@ -1099,18 +1099,18 @@ def write_context_evidence_package(
         for relative in parent_manifest["files"]:
             target = staging / relative
             target.parent.mkdir(parents=True, exist_ok=True)
-            _link_or_copy(mhc_package / relative, target)
+            snapshot_file(mhc_package / relative, target)
         (staging / "manifests").mkdir()
-        _link_or_copy(mhc_package / "manifest.json", staging / "manifests" / "mhc.json")
+        snapshot_file(mhc_package / "manifest.json", staging / "manifests" / "mhc.json")
         native = staging / "cohort_native"
         native.mkdir()
         for filename in (*COHORT_ARTIFACTS.values(), "manifest.json"):
-            _link_or_copy(cohort_dir / filename, native / filename)
+            snapshot_file(cohort_dir / filename, native / filename)
         curation = staging / "curation"
         curation.mkdir()
-        _link_or_copy(historical_curation_path, curation / "pmid_overrides_1_78.yaml")
-        _link_or_copy(current_curation_path, curation / "pmid_overrides_current.yaml")
-        _link_or_copy(lineage_file, curation / "specimen_lineage.yaml")
+        snapshot_file(historical_curation_path, curation / "pmid_overrides_1_78.yaml")
+        snapshot_file(current_curation_path, curation / "pmid_overrides_current.yaml")
+        snapshot_file(lineage_file, curation / "specimen_lineage.yaml")
         typed = staging / "typed"
         small = _write_small_tables(
             typed,

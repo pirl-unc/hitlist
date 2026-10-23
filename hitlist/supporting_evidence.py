@@ -19,7 +19,7 @@ import pyarrow.parquet as pq
 
 from .context_evidence import verify_context_evidence_package
 from .curation_yaml import load_curation_yaml
-from .mhc_evidence import _link_or_copy
+from .evidence_snapshot import snapshot_file
 from .provenance import file_digest
 
 PACKAGE_SCHEMA_VERSION = 3
@@ -1040,16 +1040,16 @@ def write_supporting_evidence_package(
         for relative in parent["files"]:
             target = staging / relative
             target.parent.mkdir(parents=True, exist_ok=True)
-            _link_or_copy(context_package / relative, target)
+            snapshot_file(context_package / relative, target)
         (staging / "manifests").mkdir(exist_ok=True)
-        _link_or_copy(context_package / "manifest.json", staging / "manifests" / "context.json")
+        snapshot_file(context_package / "manifest.json", staging / "manifests" / "context.json")
         asset_dir = staging / "assets"
         asset_dir.mkdir()
-        shutil.copy2(source_asset_receipt, asset_dir / "receipt.json")
+        snapshot_file(source_asset_receipt, asset_dir / "receipt.json")
         for relative in receipt["assets"]:
             target = asset_dir / relative
             target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(source_paths[relative], target)
+            snapshot_file(source_paths[relative], target)
         typed = staging / "typed"
         native = staging / "native"
         expression, expression_counts, expression_profiles = _write_expression(native, typed)

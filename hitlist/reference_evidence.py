@@ -11,8 +11,6 @@ import csv
 import gzip
 import json
 import shutil
-import subprocess
-import sys
 import tempfile
 from collections import Counter
 from pathlib import Path
@@ -20,6 +18,7 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+from .evidence_snapshot import snapshot_file
 from .provenance import file_digest
 from .supporting_numeric_evidence import verify_supporting_numeric_evidence_package
 
@@ -142,19 +141,6 @@ SCHEMAS = {
         ("organism_source_scope", pa.string()),
     ),
 }
-
-
-def _copy(source, target):
-    target.parent.mkdir(parents=True, exist_ok=True)
-    if sys.platform == "darwin":
-        # APFS copy-on-write gives an independent inode and preserves the old
-        # byte stream when either generation is later edited.
-        subprocess.run(["cp", "-c", str(source), str(target)], check=True)
-    else:
-        shutil.copy2(source, target)
-    a, b = source.stat(), target.stat()
-    if a.st_dev == b.st_dev and a.st_ino == b.st_ino:
-        raise ValueError(f"Reference package shares an input inode: {source}")
 
 
 def _jsonl(path):
@@ -609,18 +595,18 @@ def write_reference_evidence_package(numeric_package, results_dir, reference_fas
     staging = Path(tempfile.mkdtemp(prefix=f".{destination.name}-", dir=destination.parent))
     try:
         for relative in parent["files"]:
-            _copy(numeric_package / _safe_relative(relative), staging / relative)
-        _copy(numeric_package / "manifest.json", staging / "manifests/numeric.json")
+            snapshot_file(numeric_package / _safe_relative(relative), staging / relative)
+        snapshot_file(numeric_package / "manifest.json", staging / "manifests/numeric.json")
         if file_digest(results_dir / "output_hashes.json")["sha256"] != OUTPUT_RECEIPT_SHA256:
             raise ValueError("Unrecognized shared-reference output receipt")
         hashes = json.loads((results_dir / "output_hashes.json").read_text())
         for name in (*hashes, "output_hashes.json"):
-            _copy(results_dir / name, staging / ROOT / name)
-        _copy(
+            snapshot_file(results_dir / name, staging / ROOT / name)
+        snapshot_file(
             results_dir / "independent-verification.json",
             staging / ROOT / "independent-verification.json",
         )
-        _copy(reference_fasta, staging / ROOT / "reference.fasta")
+        snapshot_file(reference_fasta, staging / ROOT / "reference.fasta")
         _source_receipt(staging)
         reconciliation = _build_typed(staging)
         files = {

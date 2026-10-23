@@ -7,9 +7,7 @@ becomes the only surviving representation of an assay or source claim.
 
 from __future__ import annotations
 
-import errno
 import json
-import os
 import shutil
 import sqlite3
 import tempfile
@@ -20,6 +18,7 @@ import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.parquet as pq
 
+from .evidence_snapshot import snapshot_file
 from .provenance import CONTRIBUTOR_COLUMNS, file_digest
 
 PACKAGE_SCHEMA_VERSION = 1
@@ -455,15 +454,6 @@ def _source_manifest(source_dir):
     return manifest, file_digest(path)
 
 
-def _link_or_copy(source, target):
-    try:
-        os.link(source, target)
-    except OSError as error:
-        if error.errno not in (errno.EXDEV, errno.ENOTSUP, errno.EOPNOTSUPP):
-            raise
-        shutil.copy2(source, target)
-
-
 def _write_typed(source_dir, typed_dir, audit_path, known_sources):
     typed_dir.mkdir()
     counts = Counter()
@@ -659,7 +649,7 @@ def write_mhc_evidence_package(source_dir, destination):
         native = staging / "native"
         native.mkdir()
         for name in (*source_manifest["files"], "observations_meta.json"):
-            _link_or_copy(source_dir / name, native / name)
+            snapshot_file(source_dir / name, native / name)
         reconciliation = _write_typed(
             native,
             staging / "typed",

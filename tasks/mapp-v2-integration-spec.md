@@ -28,3 +28,5 @@ This integration makes existing evidence reachable from the actual current share
 - [ ] Registered distribution recipe through canonical materialize/verify and tests.
 - [ ] Actual package/recipe admission and independent full conservation replay.
 - [ ] Full software checks, report, publication and reviewed release handoff.
+
+Dependency amendment before any real materialization: concurrent PR763 (`6fa5871`) reserves2.0.1 and supplies `evidence_snapshot.snapshot_file`. Merge that dependency, reuse its helper for the new successor as well as inherited writers, and reserve2.0.2 here. PR763 release remains a merge/release dependency; no claim that this branch is already deployed. The experiment will record the integrated code revision after this change.

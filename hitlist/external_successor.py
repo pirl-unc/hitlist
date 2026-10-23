@@ -9,7 +9,8 @@ from pathlib import Path
 
 from .external_evidence import _adapters, _copy_source, _safe_relative, _verify_source
 from .provenance import file_digest
-from .reference_evidence import _copy, verify_reference_evidence_package
+from .reference_evidence import verify_reference_evidence_package
+from .evidence_snapshot import snapshot_file
 
 PACKAGE_SCHEMA_VERSION = 8
 CATALOG_SCHEMA_VERSION = 10
@@ -87,8 +88,8 @@ def write_external_successor(reference_package, destination, *, source_roots):
     staging = Path(tempfile.mkdtemp(prefix=f".{destination.name}-", dir=destination.parent))
     try:
         for name in parent["files"]:
-            _copy(reference_package / _safe_relative(name), staging / name)
-        _copy(reference_package / "manifest.json", staging / PARENT_MANIFEST)
+            snapshot_file(reference_package / _safe_relative(name), staging / name)
+        snapshot_file(reference_package / "manifest.json", staging / PARENT_MANIFEST)
         sources = {}
         for name, root in sorted(source_roots.items()):
             adapter = adapters[name]

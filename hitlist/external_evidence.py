@@ -11,7 +11,7 @@ import shutil
 import tempfile
 from pathlib import Path
 
-from .mhc_evidence import _link_or_copy
+from .evidence_snapshot import snapshot_file
 from .provenance import file_digest
 from .supporting_evidence import verify_supporting_evidence_package
 
@@ -59,13 +59,13 @@ def _copy_source(adapter, source_root, destination):
     contract_dir = destination / "contracts"
     asset_dir.mkdir(parents=True)
     contract_dir.mkdir()
-    shutil.copy2(adapter.asset_receipt_path, contract_dir / "source_assets.json")
+    snapshot_file(adapter.asset_receipt_path, contract_dir / "source_assets.json")
     for name, path in adapter.support_files.items():
-        shutil.copy2(path, contract_dir / _safe_relative(name))
+        snapshot_file(path, contract_dir / _safe_relative(name))
     for relative, path in paths.items():
         target = asset_dir / relative
         target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(path, target)
+        snapshot_file(path, target)
     return receipt
 
 
@@ -162,9 +162,9 @@ def write_external_evidence_package(
         for relative in parent["files"]:
             target = staging / _safe_relative(relative)
             target.parent.mkdir(parents=True, exist_ok=True)
-            _link_or_copy(supporting_package / relative, target)
+            snapshot_file(supporting_package / relative, target)
         (staging / "manifests").mkdir(exist_ok=True)
-        _link_or_copy(
+        snapshot_file(
             supporting_package / "manifest.json", staging / "manifests" / "supporting.json"
         )
         sources = {}
