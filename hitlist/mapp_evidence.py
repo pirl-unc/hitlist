@@ -164,8 +164,8 @@ SCHEMAS = {
 
 
 class _Sink:
-    def __init__(self, directory, name):
-        self.schema = SCHEMAS[name]
+    def __init__(self, directory, name, *, schema=None):
+        self.schema = SCHEMAS[name] if schema is None else schema
         self.writer = pq.ParquetWriter(
             directory / f"{name}.parquet", self.schema, compression="zstd"
         )

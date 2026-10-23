@@ -93,7 +93,7 @@ def test_successor_preserves_and_isolates_predecessor(tmp_path, monkeypatch, adj
     successor.write_external_successor(parent, output, source_roots={"fixture": source})
     manifest = successor.verify_external_successor(output)
     assert manifest["schema_version"] == 9
-    assert manifest["catalog_schema_version"] == 12
+    assert manifest["catalog_schema_version"] == 13
     assert (output / "newer-modality.txt").read_bytes() == (
         parent / "newer-modality.txt"
     ).read_bytes()

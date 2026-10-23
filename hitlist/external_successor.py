@@ -15,7 +15,7 @@ from .provenance import file_digest
 from .reference_evidence import verify_reference_evidence_package
 
 PACKAGE_SCHEMA_VERSION = 9
-CATALOG_SCHEMA_VERSION = 12
+CATALOG_SCHEMA_VERSION = 13
 PARENT_MANIFESTS = {
     "reference": "manifests/reference.json",
     "adjudication": "manifests/adjudication.json",
@@ -44,6 +44,7 @@ def verify_external_successor(directory):
     if package_family(manifest) != "external" or version not in (
         (8, 10),
         (8, 11),
+        (9, 12),
         (PACKAGE_SCHEMA_VERSION, CATALOG_SCHEMA_VERSION),
     ):
         raise ValueError("Unsupported external successor schema")

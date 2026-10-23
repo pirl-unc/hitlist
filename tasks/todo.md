@@ -7738,3 +7738,15 @@ Plan: [evidence-successor-compat-spec.md](evidence-successor-compat-spec.md).
 Review: executed code0219827 preserves all126 predecessor files,9 review claims and56 appended-source files in a183-file combined generation. Independent direct-Parquet/hash replay checks32relations/1,853,840mixed-grain rows and allfour unchanged recipe outputs; both historical schema8 families remain readable. New package schema9/catalog12, version2.0.5 candidate. Normal localtest.sh passes3,317tests/10warnings in321.51s with unchanged memoryguard, one worker; format/lint/70focused checks/strict docs pass. First sandbox memory probe and initial standalone-recipe baseline mismatch are retained in the report. Source code was not changed after validation. No new biological fit. Review/hostedCI/merge/release remain separate gates.
 
 Report: https://github.com/pirl-unc/presto/blob/82feaf2/experiments/2026-10-23_0551_codex_adjudication-source-conservation/README.md. Combined manifest42317a5efb7d642be5b8265131e6a6f7963e469adda946b780dac4d6aebb05b0. Fix is on existing draft767; controls source admission759 remains next. Broader availability goal stays active.
+
+## 2026-10-23 controlled MAPP source and signal (#759)
+
+Previous goal turn: progress. Plan: tasks/mapp-controlled-source-spec.md.
+- [ ] Shared two-panel adapter, source-linked metadata, aliases and quantities.
+- [ ] Reference alternatives, canonical query and run-level recipe.
+- [ ] Registered real-source generation and independent verification.
+- [ ] Normal format/lint/tests/docs; source/recipe conservation.
+- [ ] Training-only signal check and frozen biological comparison contract.
+- [ ] Publish source/experiment evidence and update759; retain broader goal.
+
+Review: pending. Captured signal does not directly measure free concentration.

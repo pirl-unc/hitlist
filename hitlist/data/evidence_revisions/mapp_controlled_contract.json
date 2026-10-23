@@ -1,0 +1,284 @@
+{
+  "assertions": [
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": null,
+      "predicate": "title",
+      "scope": "project_level",
+      "source_dataset": "PXD009508",
+      "source_locator": "PXD009508/project.json:title",
+      "subject_id": "pxd009508",
+      "value_raw": "Defining the cellular proteolytic landscape with different controls"
+    },
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": null,
+      "predicate": "projectDescription",
+      "scope": "project_level",
+      "source_dataset": "PXD009508",
+      "source_locator": "PXD009508/project.json:projectDescription",
+      "subject_id": "pxd009508",
+      "value_raw": "Mass spectrometry analysis of cellular targets of protein degradation"
+    },
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": null,
+      "predicate": "sampleProcessingProtocol",
+      "scope": "project_level",
+      "source_dataset": "PXD009508",
+      "source_locator": "PXD009508/project.json:sampleProcessingProtocol",
+      "subject_id": "pxd009508",
+      "value_raw": "Cellular lysates were subjected to MS/MS analysis on a QE instrument"
+    },
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": null,
+      "predicate": "dataProcessingProtocol",
+      "scope": "project_level",
+      "source_dataset": "PXD009508",
+      "source_locator": "PXD009508/project.json:dataProcessingProtocol",
+      "subject_id": "pxd009508",
+      "value_raw": "The acquired raw spectra were analyzed using MaxQuant software (version 1.5.3.30) with the default parameters for the analysis of proteins and peptides (LFQ) minimum ratio count of 1, minimum peptide length for unspecific search of 6, maximum peptide length for unspecific search of 40, peptide FDR was set to 0.01 and match between runs enabled. Masses were searched against the human proteome database from UniprotKB"
+    },
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": "HEK293",
+      "predicate": "measured_cell",
+      "scope": "publication_experiment_context_not_run_specimen_identity",
+      "source_dataset": "PXD009508",
+      "source_locator": "https://www.nature.com/articles/nbt.4279#Methods",
+      "subject_id": "pxd009508",
+      "value_raw": "HEK293"
+    },
+    {
+      "assertion_status": "unreported_in_admitted_assets",
+      "normalized_value": null,
+      "predicate": "specimen_aliquot_pairing",
+      "scope": "acquisition_to_physical_material",
+      "source_dataset": "PXD009508",
+      "source_locator": "PXD009508/txt/summary.txt;PXD009508/txt/evidence.txt",
+      "subject_id": "pxd009508",
+      "value_raw": "not supplied in admitted run tables"
+    },
+    {
+      "assertion_status": "unreported",
+      "normalized_value": null,
+      "predicate": "residual_processing_activity",
+      "scope": "no_gene_KO_or_residual_activity_fraction_inferred_from_treatment",
+      "source_dataset": "PXD009508",
+      "source_locator": "https://www.nature.com/articles/nbt.4279",
+      "subject_id": "pxd009508",
+      "value_raw": "not measured"
+    },
+    {
+      "assertion_status": "original_bytes_unavailable",
+      "normalized_value": null,
+      "predicate": "original_sequence_reference",
+      "scope": "original_search_reference",
+      "source_dataset": "PXD009508",
+      "source_locator": "PXD009508/txt/parameters.txt",
+      "subject_id": "pxd009508",
+      "value_raw": "Human_UP_2016_02.fasta"
+    },
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": "6:40",
+      "predicate": "search_scope",
+      "scope": "MS_search_observability_not_biological_support",
+      "source_dataset": "PXD009508",
+      "source_locator": "PXD009508/project.json:dataProcessingProtocol",
+      "subject_id": "pxd009508",
+      "value_raw": "6-40 residues"
+    },
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": "epoxomicin:1:micromolar:4:hours",
+      "predicate": "live_cell_epoxomicin",
+      "scope": "publication_treatment_context_not_per_run_dose_confirmation",
+      "source_dataset": "PXD009508",
+      "source_locator": "https://www.nature.com/articles/nbt.4279#Methods",
+      "subject_id": "pxd009508",
+      "value_raw": "1 micromolar, 4 hours"
+    },
+    {
+      "assertion_status": "alias_not_source_supplied",
+      "normalized_value": null,
+      "predicate": "capture_target_alias",
+      "scope": "candidate_proteasome_capture_gene_mapping_unresolved",
+      "source_dataset": "PXD009508",
+      "source_locator": "PXD009508/txt/summary.txt;https://www.nature.com/articles/nbt.4279#Fig1",
+      "subject_id": "pxd009508",
+      "value_raw": "run alpha6; publication PSMA1"
+    },
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": "iso;gap",
+      "predicate": "capture_controls",
+      "scope": "capture_specificity_controls_separate_from_processing_treatment",
+      "source_dataset": "PXD009508",
+      "source_locator": "https://www.nature.com/articles/nbt.4279#Fig1",
+      "subject_id": "pxd009508",
+      "value_raw": "isotype-matched antibody and GAPDH"
+    },
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": null,
+      "predicate": "title",
+      "scope": "project_level",
+      "source_dataset": "PXD007263",
+      "source_locator": "PXD007263/project.json:title",
+      "subject_id": "pxd007263",
+      "value_raw": "Defining the cellular proteolytic landscape cross time points"
+    },
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": null,
+      "predicate": "projectDescription",
+      "scope": "project_level",
+      "source_dataset": "PXD007263",
+      "source_locator": "PXD007263/project.json:projectDescription",
+      "subject_id": "pxd007263",
+      "value_raw": "Mass spectrometry analysis of cellular targets of protein degradation"
+    },
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": null,
+      "predicate": "sampleProcessingProtocol",
+      "scope": "project_level",
+      "source_dataset": "PXD007263",
+      "source_locator": "PXD007263/project.json:sampleProcessingProtocol",
+      "subject_id": "pxd007263",
+      "value_raw": "Samples are reversibly cross-linked together with immunoprecipitation of cellular proteasomes prior to reverse-phase isolation and elution of captured peptides. The method inhibits proteases throughout sample processing to ensure retention of native peptide characteristics"
+    },
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": null,
+      "predicate": "dataProcessingProtocol",
+      "scope": "project_level",
+      "source_dataset": "PXD007263",
+      "source_locator": "PXD007263/project.json:dataProcessingProtocol",
+      "subject_id": "pxd007263",
+      "value_raw": "The acquired raw spectra were analyzed using MaxQuant software (version 1.5.3.30) with the default parameters for the analysis of proteins and peptides (LFQ) minimum ratio count of 1, minimum peptide length for unspecific search of 6, maximum peptide length for unspecific search of 40, peptide FDR was set to 0.01 and match between runs enabled. Masses were searched against the human proteome database from UniprotKB"
+    },
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": "HEK293",
+      "predicate": "measured_cell",
+      "scope": "publication_experiment_context_not_run_specimen_identity",
+      "source_dataset": "PXD007263",
+      "source_locator": "https://www.nature.com/articles/nbt.4279#Methods",
+      "subject_id": "pxd007263",
+      "value_raw": "HEK293"
+    },
+    {
+      "assertion_status": "unreported_in_admitted_assets",
+      "normalized_value": null,
+      "predicate": "specimen_aliquot_pairing",
+      "scope": "acquisition_to_physical_material",
+      "source_dataset": "PXD007263",
+      "source_locator": "PXD007263/txt/summary.txt;PXD007263/txt/evidence.txt",
+      "subject_id": "pxd007263",
+      "value_raw": "not supplied in admitted run tables"
+    },
+    {
+      "assertion_status": "unreported",
+      "normalized_value": null,
+      "predicate": "residual_processing_activity",
+      "scope": "no_gene_KO_or_residual_activity_fraction_inferred_from_treatment",
+      "source_dataset": "PXD007263",
+      "source_locator": "https://www.nature.com/articles/nbt.4279",
+      "subject_id": "pxd007263",
+      "value_raw": "not measured"
+    },
+    {
+      "assertion_status": "original_bytes_unavailable",
+      "normalized_value": null,
+      "predicate": "original_sequence_reference",
+      "scope": "original_search_reference",
+      "source_dataset": "PXD007263",
+      "source_locator": "PXD007263/txt/parameters.txt",
+      "subject_id": "pxd007263",
+      "value_raw": "Human_UP_2016_02.fasta"
+    },
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": "6:40",
+      "predicate": "search_scope",
+      "scope": "MS_search_observability_not_biological_support",
+      "source_dataset": "PXD007263",
+      "source_locator": "PXD007263/project.json:dataProcessingProtocol",
+      "subject_id": "pxd007263",
+      "value_raw": "6-40 residues"
+    },
+    {
+      "assertion_status": "scoped_source_label_disagreement",
+      "normalized_value": null,
+      "predicate": "cytokine_context",
+      "scope": "literal_run_label_does_not_establish_single_cytokine",
+      "source_dataset": "PXD007263",
+      "source_locator": "PXD007263/txt/summary.txt;https://www.nature.com/articles/nbt.4279#Results",
+      "subject_id": "pxd007263",
+      "value_raw": "run TNF; paper TNF-alpha plus IFN-gamma"
+    },
+    {
+      "assertion_status": "source_labels_with_publication_context",
+      "normalized_value": "0;1;2;6",
+      "predicate": "exposure_time",
+      "scope": "cytokine_exposure_not_time_since_substrate_synthesis",
+      "source_dataset": "PXD007263",
+      "source_locator": "PXD007263/txt/summary.txt;https://www.nature.com/articles/nbt.4279#Results",
+      "subject_id": "pxd007263",
+      "value_raw": "0, 1, 2, 6 hours"
+    }
+  ],
+  "direct_identification_policy": "MS/MS Count positive and Type not MULTI-MATCH; retains raw Type and count",
+  "primary_paper": {
+    "accepted_manuscript_url": "https://weizmann.elsevierpure.com/ws/files/111310290/ym_NatBio_RevealingTheCellularDegradomeByMassSpectrometry_AM2018.pdf",
+    "doi": "10.1038/nbt.4279",
+    "manuscript_asset_status": "linked_public_source_not_redistributed",
+    "reviewed_pdf_sha256": "482a2f066af5183f785dedf9ca0cced6a391fa2e4216ac8cabf0a6479e004b8b",
+    "url": "https://www.nature.com/articles/nbt.4279"
+  },
+  "quantity_replay": {
+    "absolute_tolerance": 1.0,
+    "missing_evidence_intensity": "unreported_not_measured_zero",
+    "relative_tolerance": 0.0001,
+    "zero_policy": "reported_zero_not_biological_absence"
+  },
+  "references": [
+    {
+      "asset_path": "references/human-reviewed-2023.dat.gz",
+      "asset_sha256": "defd9fd7fdc3be6f36b5b57b1a2c29978b956612e1437ec15f7065b055bbe9d3",
+      "asset_size_bytes": 108046188,
+      "generation_label": "local_2023_canonical_snapshot_release_not_further_resolved",
+      "license": "CC BY 4.0",
+      "organism_scope": "Homo sapiens",
+      "original_reference_status": "study_2016_FASTA_unavailable",
+      "reference_format": "uniprot_dat_gzip",
+      "reference_id": "reviewed_2023_canonical",
+      "reference_role": "later_model_reference",
+      "source_url": "file:///Users/iskander/code/weirdo/data/swissprot-dat-files/uniprot_sprot_human.dat.gz"
+    },
+    {
+      "asset_path": "references/human-reviewed-2026_03-isoforms.fasta",
+      "asset_sha256": "8c4459cc1e190caad54150511e5a0b5779863557f88387e5a86647a48d19a9d4",
+      "asset_size_bytes": 29338408,
+      "generation_label": "UniProt_2026_03_reviewed_human_isoform_inclusive",
+      "license": "CC BY 4.0",
+      "organism_scope": "Homo sapiens",
+      "original_reference_status": "study_2016_FASTA_unavailable",
+      "reference_format": "uniprot_fasta",
+      "reference_id": "reviewed_2026_03_isoforms",
+      "reference_role": "later_model_reference",
+      "source_url": "https://rest.uniprot.org/uniprotkb/stream?query=%28organism_id%3A9606%29%20AND%20%28reviewed%3Atrue%29&format=fasta&includeIsoform=true"
+    }
+  ],
+  "run_identity": "numbered_source_acquisitions_not_assured_physical_specimens",
+  "schema_version": 1,
+  "source_id": "wolflevy2018_controlled",
+  "source_projects": [
+    "PXD009508",
+    "PXD007263"
+  ],
+  "source_receipt_sha256": "91a24996bf369f833a0c69e04c68b4c8a34c2c5544579206807fff43a861cfe9"
+}
