@@ -10,6 +10,7 @@ import pyarrow as pa
 import pyarrow.dataset as ds
 import pyarrow.parquet as pq
 
+from .assay_adjudication import verify_assay_adjudication_package
 from .evidence_bindings import ALIASES, CONSTANTS, LINKS, SELECTORS, materialized_bindings
 from .evidence_catalog import EVIDENCE, FIELDS, NULL_STATES, SCHEMA_VERSION, TASKS
 from .reference_evidence import verify_reference_evidence_package
@@ -146,7 +147,9 @@ class EvidenceStore:
     def open(cls, directory: str | Path) -> EvidenceStore:
         directory = Path(directory)
         schema = json.loads((directory / "manifest.json").read_text()).get("schema_version")
-        if schema == 7:
+        if schema == 8:
+            manifest = verify_assay_adjudication_package(directory)
+        elif schema == 7:
             manifest = verify_reference_evidence_package(directory)
         elif schema == 6:
             manifest = verify_supporting_numeric_evidence_package(directory)
@@ -280,7 +283,19 @@ class EvidenceStore:
             },
         }
         if self.manifest["schema_version"] >= 7:
-            registry["pxd057588_mouse_reference_2026_03"] = self.manifest["reference"]
+            reference_manifest = (
+                self.manifest
+                if self.manifest["schema_version"] == 7
+                else json.loads((self.directory / "manifests/reference.json").read_text())
+            )
+            registry["pxd057588_mouse_reference_2026_03"] = reference_manifest["reference"]
+        if self.manifest["schema_version"] >= 8:
+            registry["tcell_multimer_review_2026_10_23"] = {
+                "revision": self.manifest["review_revision"],
+                "source_review_sha256": self.manifest["source_review_sha256"],
+                "n_assay_reviews": self.manifest["reconciliation"]["n_assay_reviews"],
+                "rights_scope": "publisher-linked review assertions; source PDFs not redistributed",
+            }
         return registry
 
     def _manifest_hash(self):

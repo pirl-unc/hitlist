@@ -502,23 +502,25 @@ def _verify_typed_relations(directory):
             raise ValueError("Numeric measurement lost reference result context")
 
 
-def verify_reference_evidence_package(directory):
-    """Verify every byte, predecessor and new typed-grain reconciliation."""
+def verify_reference_evidence_package(directory, *, manifest_path="manifest.json"):
+    """Verify every byte and typed relation, including an embedded predecessor."""
     directory = Path(directory)
-    manifest = json.loads((directory / "manifest.json").read_text())
+    location = _safe_relative(manifest_path)
+    manifest = json.loads((directory / location).read_text())
     if (
         manifest.get("schema_version") != PACKAGE_SCHEMA_VERSION
         or manifest.get("catalog_schema_version") != CATALOG_SCHEMA_VERSION
     ):
         raise ValueError("Unsupported reference evidence package schema")
     files = manifest["files"]
-    actual = {
-        str(path.relative_to(directory))
-        for path in directory.rglob("*")
-        if path.is_file() and path != directory / "manifest.json"
-    }
-    if set(files) != actual:
-        raise ValueError("Reference package file inventory mismatch")
+    if location == Path("manifest.json"):
+        actual = {
+            str(path.relative_to(directory))
+            for path in directory.rglob("*")
+            if path.is_file() and path != directory / "manifest.json"
+        }
+        if set(files) != actual:
+            raise ValueError("Reference package file inventory mismatch")
     for relative, digest in files.items():
         if file_digest(directory / _safe_relative(relative)) != digest:
             raise ValueError(f"Reference package artifact mismatch: {relative}")

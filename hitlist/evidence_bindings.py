@@ -358,6 +358,60 @@ LINKS = (
         "source_assay",
     ),
     Link(
+        "adjudication",
+        "tcell_availability",
+        "assay_adjudication",
+        "source_assay_id",
+        "source_assay_id",
+        "optional_one",
+        "source_assay",
+    ),
+    Link(
+        "source_assay",
+        "assay_adjudication",
+        "tcell_availability",
+        "source_assay_id",
+        "source_assay_id",
+        "one",
+        "source_assay",
+    ),
+    Link(
+        "reported_outcome",
+        "assay_adjudication",
+        "tcell_reported_outcome",
+        "source_assay_id",
+        "source_assay_id",
+        "one",
+        "source_assay",
+    ),
+    Link(
+        "antigen_claim",
+        "assay_adjudication",
+        "tcell_antigen_claim",
+        "source_assay_id",
+        "source_assay_id",
+        "one",
+        "source_assay",
+    ),
+    Link(
+        "eligibility",
+        "assay_adjudication",
+        "tcell_eligibility",
+        "source_assay_id",
+        "source_assay_id",
+        "one",
+        "source_assay",
+    ),
+    Link(
+        "source_contributors",
+        "assay_adjudication",
+        "tcell_source_contributor",
+        "source_assay_id",
+        "source_assay_id",
+        "many",
+        "source_assay",
+    ),
+    Link(
         "numeric_measurements",
         "bulk_ms_protein",
         "bulk_numeric_measurement",
@@ -530,7 +584,6 @@ def materialized_bindings(package_schema_version=None):
         if item.status == "v2_materialized"
         and (
             package_schema_version is None
-            or package_schema_version >= 7
-            or item.source_population != "pxd057588_mouse_reference_2026_03"
+            or package_schema_version >= item.min_package_schema_version
         )
     }
