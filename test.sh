@@ -211,6 +211,12 @@ run_pytest() {
     if [[ -n "$marker" ]]; then
         filter_args=(-m "$marker")
     fi
+    local progress_args=()
+    if [[ "$marker" == "integration" ]]; then
+        # If the runner terminates mid-corpus, retain the last completed test
+        # name rather than only a count of pytest dots (#754).
+        progress_args=(-vv)
+    fi
     local xdist_flags=()
     local status workers mem_note attempted_retry=0
     while true; do
@@ -236,8 +242,8 @@ run_pytest() {
     if (( use_xdist )); then
         xdist_flags=(-n "$workers")
     fi
-    log "→ exec python -m pytest ${xdist_flags[*]:-} ${filter_args[*]:-} $* tests ${extra[*]:-}"
-    local pytest_command=(python -m pytest "${xdist_flags[@]}" "${filter_args[@]}" "$@" tests "${extra[@]}")
+    log "→ exec python -m pytest ${xdist_flags[*]:-} ${filter_args[*]:-} ${progress_args[*]:-} $* tests ${extra[*]:-}"
+    local pytest_command=(python -m pytest "${xdist_flags[@]}" "${filter_args[@]}" "${progress_args[@]}" "$@" tests "${extra[@]}")
     if [[ "$TEST_SH_PROFILE" == "1" && -x /usr/bin/time ]]; then
         log "Resource profile for '${marker}' (peak RSS is a process peak, not summed worker RAM)"
         case "$OS" in

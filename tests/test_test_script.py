@@ -109,12 +109,14 @@ def test_all_runs_two_passes_with_independent_worker_budgets(
     assert light[:4] == ["-m", "pytest", "-n", str(expected_light)]
     assert _marker(light) == "not integration"
     assert "--cov=hitlist/" in light
+    assert "-vv" not in light
     assert "--cov-append" not in light
     assert "--cov-report=term-missing" not in light
 
     assert integration[:4] == ["-m", "pytest", "-n", str(expected_integration)]
     assert _marker(integration) == "integration"
     assert "--cov=hitlist/" in integration
+    assert "-vv" in integration
     assert "--cov-append" in integration
     assert "--cov-report=term-missing" in integration
 
@@ -332,11 +334,13 @@ def test_first_phase_can_recover_and_new_invocation_runs_both_phases(tmp_path, h
 
 
 @pytest.mark.parametrize("failed_marker", ["not integration", "integration"])
-def test_real_pytest_failure_is_not_retried(tmp_path, failed_marker):
+@pytest.mark.parametrize("exit_code", [42, 143])
+def test_real_pytest_failure_is_not_retried(tmp_path, failed_marker, exit_code):
     env = _retry_env(tmp_path, has_xdist=True)
     (tmp_path / "python").write_text(
         '#!/bin/sh\nif [ "$1" = "-c" ]; then exit 0; fi\nprintf "%s\\n" "$@"\n'
-        f'for arg in "$@"; do [ "$arg" = "{failed_marker}" ] && exit 42; done\nexit 0\n'
+        f'for arg in "$@"; do [ "$arg" = "{failed_marker}" ] && exit {exit_code}; done\n'
+        "exit 0\n"
     )
     result = subprocess.run(
         ["bash", str(SCRIPT), "--all", "--retry-memory"],
@@ -344,7 +348,7 @@ def test_real_pytest_failure_is_not_retried(tmp_path, failed_marker):
         capture_output=True,
         text=True,
     )
-    assert result.returncode == 42
+    assert result.returncode == exit_code
     markers = [_marker(call) for call in _split_invocations(result.stdout.splitlines())]
     expected = ["not integration"]
     if failed_marker == "integration":
