@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 import json
+import shutil
 
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
+from hitlist import assay_adjudication as review
 from hitlist.assay_adjudication import _validate_source_anchors, load_assay_adjudications
 from hitlist.evidence_bindings import materialized_bindings
 from hitlist.evidence_store import EvidenceStore
+from hitlist.provenance import file_digest
 
 
 def _write(directory, name, rows):
@@ -101,12 +104,58 @@ def test_review_source_anchors_reject_changed_counts_and_training_admission(tmp_
         _validate_source_anchors(tmp_path, [row])
 
 
+def test_review_verifier_accepts_embedded_manifest_without_claiming_outer_files(
+    tmp_path, monkeypatch
+):
+    manifests = tmp_path / "manifests"
+    manifests.mkdir()
+    parent_path = manifests / "reference.json"
+    parent_path.write_text('{"catalog_schema_version": 9}\n')
+    review_dir = tmp_path / "tcell" / "adjudication"
+    review_dir.mkdir(parents=True)
+    yaml_path = review_dir / "reviews.yaml"
+    shutil.copyfile(review.REVIEW_SOURCE, yaml_path)
+    parquet_path = review_dir / "reviews.parquet"
+    pq.write_table(
+        pa.Table.from_pylist(load_assay_adjudications(), schema=review.REVIEW_SCHEMA),
+        parquet_path,
+    )
+    files = {
+        str(path.relative_to(tmp_path)): file_digest(path)
+        for path in (parent_path, yaml_path, parquet_path)
+    }
+    manifest = {
+        "schema_version": 8,
+        "catalog_schema_version": 10,
+        "parent_manifest_sha256": files["manifests/reference.json"]["sha256"],
+        "review_revision": review.REVIEW_REVISION,
+        "source_review_sha256": review.REVIEW_SHA256,
+        "reconciliation": {"n_assay_reviews": 9},
+        "files": files,
+    }
+    (manifests / "adjudication.json").write_text(json.dumps(manifest))
+    (tmp_path / "external.txt").write_text("owned by the outer successor")
+    monkeypatch.setattr(
+        review,
+        "verify_reference_evidence_package",
+        lambda directory, *, manifest_path: {"catalog_schema_version": 9},
+    )
+    monkeypatch.setattr(review, "_validate_source_anchors", lambda directory, rows: None)
+    monkeypatch.setattr(review, "_reconciliation", lambda directory: {})
+    assert (
+        review.verify_assay_adjudication_package(
+            tmp_path, manifest_path="manifests/adjudication.json"
+        )
+        == manifest
+    )
+
+
 def test_review_relation_is_only_available_in_schema_eight():
     assert "assay_adjudication" not in materialized_bindings(6)
     assert "external_reference_sequence" not in materialized_bindings(6)
     assert "external_reference_sequence" in materialized_bindings(7)
     assert "assay_adjudication" not in materialized_bindings(7)
-    assert "assay_adjudication" in materialized_bindings(8)
+    assert "assay_adjudication" in materialized_bindings(8, include_adjudications=True)
 
 
 def test_one_review_joins_to_one_assay_without_multiplying_it(tmp_path):
@@ -129,7 +178,7 @@ def test_one_review_joins_to_one_assay_without_multiplying_it(tmp_path):
     store = EvidenceStore.__new__(EvidenceStore)
     store.directory = tmp_path
     store.manifest = {"schema_version": 8}
-    bindings = materialized_bindings(8)
+    bindings = materialized_bindings(8, include_adjudications=True)
     store.bindings = {name: bindings[name] for name in ("tcell_availability", "assay_adjudication")}
     store.schemas = {
         name: pq.ParquetFile(tmp_path / binding[0].materialized_artifact).schema_arrow

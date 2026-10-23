@@ -20,9 +20,10 @@ CATALOG_SCHEMA_VERSION = 5
 
 
 def _adapters():
+    from .mapp_evidence import MAPPAdapter
     from .pxd057588_evidence import PXD057588Adapter
 
-    return {PXD057588Adapter.source_id: PXD057588Adapter()}
+    return {PXD057588Adapter.source_id: PXD057588Adapter(), MAPPAdapter.source_id: MAPPAdapter()}
 
 
 def _safe_relative(name):

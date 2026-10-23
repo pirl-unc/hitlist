@@ -3,7 +3,7 @@
 This preserves the earlier project README for migration and historical context.
 Its counts, sample-level claims and training-readiness descriptions predate the
 verified v4 and 2.0 evidence audits. Use [the current evidence store guide](evidence-store.md)
-and [the pinned audit](../tasks/evidence-store-results/README.md) for current data.
+and [the pinned audit](https://github.com/pirl-unc/hitlist/blob/main/tasks/evidence-store-results/README.md) for current data.
 
 ---
 
@@ -117,7 +117,7 @@ hitlist export training --include-evidence both --class I --species "Homo sapien
 
 ### Pinned T-cell assay metadata
 
-The [IEDB/CEDAR T-cell availability audit](../tasks/tcell-availability-results/README.md)
+The [IEDB/CEDAR T-cell availability audit](https://github.com/pirl-unc/hitlist/blob/main/tasks/tcell-availability-results/README.md)
 also has a row-level interface. It verifies the pinned source ZIPs and writes
 one local Parquet row per IEDB assay, with a `cedar_present` flag for the
 overlapping CEDAR rows:

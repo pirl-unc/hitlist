@@ -302,22 +302,24 @@ def _reconciliation(directory):
     return result
 
 
-def verify_assay_adjudication_package(directory):
+def verify_assay_adjudication_package(directory, *, manifest_path="manifest.json"):
     """Verify the complete successor, parent chain and review-to-assay anchors."""
     directory = Path(directory)
-    manifest = json.loads((directory / "manifest.json").read_text())
+    location = _safe_relative(manifest_path)
+    manifest = json.loads((directory / location).read_text())
     if (manifest.get("schema_version"), manifest.get("catalog_schema_version")) != (
         PACKAGE_SCHEMA_VERSION,
         CATALOG_SCHEMA_VERSION,
     ):
         raise ValueError("Unsupported assay adjudication package schema")
-    inventory = {
-        str(path.relative_to(directory))
-        for path in directory.rglob("*")
-        if path.is_file() and path != directory / "manifest.json"
-    }
-    if set(manifest["files"]) != inventory:
-        raise ValueError("Assay adjudication package file inventory mismatch")
+    if location == Path("manifest.json"):
+        inventory = {
+            str(path.relative_to(directory))
+            for path in directory.rglob("*")
+            if path.is_file() and path != directory / "manifest.json"
+        }
+        if set(manifest["files"]) != inventory:
+            raise ValueError("Assay adjudication package file inventory mismatch")
     for relative, expected in manifest["files"].items():
         if file_digest(directory / _safe_relative(relative)) != expected:
             raise ValueError(f"Assay adjudication artifact changed: {relative}")

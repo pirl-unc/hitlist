@@ -127,8 +127,10 @@ def test_catalog_covers_current_data_grains_without_double_counting():
     assert describe_evidence("tcell_cedar_mutation_claim")["materialized_artifact"] == (
         "tcell/typed/cedar_mutation_claims.parquet"
     )
+    mapp = describe_evidence("external_proteasome_fragment_quantity")
+    assert mapp["status"] == "v2_materialized"
+    assert mapp["materialized_artifact"] == "external/pxd009092/typed/quantity_results.parquet"
     for candidate in (
-        "external_proteasome_fragment_quantity",
         "external_paired_protein_quantity",
         "external_calibrated_target_quantity",
     ):
@@ -186,7 +188,19 @@ def test_index_requirements_are_weaker_than_task_requirements():
         in describe_task("external_digest_peptide_relative_quantity")["required"]
     )
     assert "material_link_precision" in describe_task("external_mhc_relative_quantity")["required"]
-    assert all(describe_task(name)["status"] == "v2_contract_only" for name in list_tasks())
+    assert all(
+        describe_task(name)["status"] == "v2_contract_only"
+        for name in list_tasks()
+        if name != "captured_fragment_conditional_composition"
+    )
+
+
+def test_available_captured_fragment_task_resolves_registered_recipe_contracts():
+    from hitlist.mapp_composition import registered_contracts
+
+    task = describe_task("captured_fragment_conditional_composition")
+    assert task["status"] == "v2_recipe_available"
+    assert set(task["recipe_ids"]) == {r["recipe_id"] for r in registered_contracts()}
 
 
 def test_strict_description_and_deterministic_json():
@@ -252,5 +266,24 @@ def test_catalog_import_does_not_build_or_download(tmp_path):
         text=True,
         cwd=Path(__file__).parents[1],
     )
-    assert probe.stdout.strip() == "10"
+    assert probe.stdout.strip() == "11"
     assert not data_root.exists()
+
+
+def test_external_sequence_reference_relations_keep_identity_scopes():
+    names = (
+        "external_sequence_reference",
+        "external_reference_protein",
+        "external_reference_accession",
+        "external_peptide_parent_occurrence",
+        "external_source_parent_claim",
+        "external_source_parent_resolution",
+        "external_peptide_reference_coverage",
+    )
+    records = [describe_evidence(name) for name in names]
+    assert len({row["materialized_artifact"] for row in records}) == 7
+    assert all(row["status"] == "v2_materialized" for row in records)
+    occurrence = describe_evidence("external_peptide_parent_occurrence")
+    assert {"peptide_row_id", "reference_id", "reference_record_id", "occurrence_id"} <= set(
+        occurrence["index_required"]
+    )

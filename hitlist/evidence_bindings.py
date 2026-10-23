@@ -50,6 +50,49 @@ SELECTORS = {
 # These are exact same-grain aliases. Related values are declared as links below;
 # a raw field with an uncertain role is intentionally left under native.*.
 ALIASES = {
+    "mapp_source_record": {"source_file": "asset_path", "source_row_index": "row_1based"},
+    "mapp_peptide": {"peptide_sequence": "sequence_raw", "parent_label_raw": "parent_labels_raw"},
+    "mapp_group": {"parent_label_raw": "protein_ids_raw"},
+    "mapp_channel": {
+        "source_file": "raw_file",
+        "sample_label_raw": "experiment_raw",
+        "condition_text": "condition",
+        "organism_name": "measured_species",
+        "cell_line_name": "measured_cell",
+        "search_enzyme": "search_enzyme_mode_raw",
+    },
+    "mapp_identification": {
+        "observation_id": "evidence_id",
+        "peptide_sequence": "sequence_raw",
+        "peptide_modifications_raw": "modifications_raw",
+        "quantitative_value": "intensity",
+        "value_status": "intensity_status",
+    },
+    "mapp_quantity_measurement": {"measurement_unit": "unit", "quantitative_value": "value"},
+    "mapp_source_assertion": {
+        "claim_id": "assertion_id",
+        "assertion_predicate": "predicate",
+        "assertion_value": "value_raw",
+        "source_scope": "scope",
+    },
+    "mapp_publisher_cell": {
+        "source_cell": "cell_id",
+        "source_file": "asset_path",
+        "quantitative_raw": "value_text",
+    },
+    "mapp_publisher_quantity": {
+        "condition_text": "condition",
+        "measurement_unit": "unit",
+        "quantitative_value": "value",
+    },
+    "external_reference_protein": {"reference_sequence": "sequence", "accession_raw": "accession"},
+    "external_peptide_parent_occurrence": {"mapping_position": "start_1based"},
+    "external_source_parent_claim": {
+        "parent_label_raw": "source_accession_raw",
+        "mapping_status": "resolution_status",
+    },
+    "external_source_parent_resolution": {"mapping_status": "occurrence_status"},
+    "external_peptide_reference_coverage": {"n_mapping_occurrences": "n_occurrences"},
     "mhc_positive_ms": {"source_reference_id": "source_reference_iri"},
     "mhc_binding": {"source_reference_id": "source_reference_iri"},
     "mhc_other": {"source_reference_id": "source_reference_iri"},
@@ -221,7 +264,123 @@ CONSTANTS["external_reference_parent"] = {
 }
 CONSTANTS["external_reference_source_mapping"]["organism_taxon_id"] = "10090"
 
+CONSTANTS.update(
+    {
+        item.name: {"source_dataset": "PXD009092"}
+        for item in EVIDENCE
+        if item.source_population == "PXD009092" and "source_dataset" in item.fields
+    }
+)
+
 LINKS = (
+    Link(
+        "peptide",
+        "external_proteasome_fragment_quantity",
+        "mapp_peptide",
+        "peptide_row_id",
+        "peptide_row_id",
+        "one",
+        "source_peptide_row",
+    ),
+    Link(
+        "channel",
+        "external_proteasome_fragment_quantity",
+        "mapp_channel",
+        "channel_id",
+        "channel_id",
+        "one",
+        "source_acquisition",
+    ),
+    Link(
+        "measurements",
+        "external_proteasome_fragment_quantity",
+        "mapp_quantity_measurement",
+        "result_id",
+        "result_id",
+        "many",
+        "result_representation",
+    ),
+    Link(
+        "result",
+        "mapp_quantity_measurement",
+        "external_proteasome_fragment_quantity",
+        "result_id",
+        "result_id",
+        "one",
+        "source_result",
+    ),
+    Link(
+        "peptide",
+        "mapp_quantity_measurement",
+        "mapp_peptide",
+        "peptide_row_id",
+        "peptide_row_id",
+        "one",
+        "source_peptide_row",
+    ),
+    Link(
+        "peptide",
+        "mapp_publisher_quantity",
+        "mapp_peptide",
+        "peptide_row_id",
+        "peptide_row_id",
+        "one",
+        "source_peptide_row",
+    ),
+    Link(
+        "cell",
+        "mapp_publisher_quantity",
+        "mapp_publisher_cell",
+        "source_cell",
+        "cell_id",
+        "one",
+        "source_workbook_cell",
+    ),
+    Link(
+        "channel",
+        "mapp_identification",
+        "mapp_channel",
+        "channel_id",
+        "channel_id",
+        "one",
+        "source_acquisition",
+    ),
+    Link(
+        "peptide",
+        "mapp_identification",
+        "mapp_peptide",
+        "peptide_row_id",
+        "peptide_row_id",
+        "one",
+        "source_peptide_row",
+    ),
+    Link(
+        "source",
+        "mapp_peptide",
+        "mapp_source_record",
+        "source_record_id",
+        "source_record_id",
+        "one",
+        "source_table_row",
+    ),
+    Link(
+        "occurrences",
+        "mapp_peptide",
+        "external_peptide_parent_occurrence",
+        "peptide_row_id",
+        "peptide_row_id",
+        "many",
+        "reference_alternatives",
+    ),
+    Link(
+        "protein",
+        "external_peptide_parent_occurrence",
+        "external_reference_protein",
+        "reference_record_id",
+        "reference_record_id",
+        "one",
+        "reference_record",
+    ),
     Link(
         "source_contributors",
         "mhc_positive_ms",
@@ -576,7 +735,9 @@ LINKS = (
 )
 
 
-def materialized_bindings(package_schema_version=None):
+def materialized_bindings(
+    package_schema_version=None, *, appended_source_ids=(), include_adjudications=False
+):
     """Return each declared physical relation with an exact row selector."""
     return {
         item.name: (item, SELECTORS.get(item.name, ()), ALIASES.get(item.name, {}))
@@ -585,5 +746,15 @@ def materialized_bindings(package_schema_version=None):
         and (
             package_schema_version is None
             or package_schema_version >= item.min_package_schema_version
+        )
+        and (
+            package_schema_version is None
+            or item.source_population != "PXD009092"
+            or "pxd009092" in appended_source_ids
+        )
+        and (
+            package_schema_version is None
+            or item.name != "assay_adjudication"
+            or include_adjudications
         )
     }

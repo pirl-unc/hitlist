@@ -6,6 +6,14 @@ The package contains the original source generations as well as typed relations;
 the API makes each relation discoverable without searching for sidecars. The
 package directory is the only location a reader supplies.
 
+New external-source successors use package schema 9 and catalog 11. Their
+predecessor may be a verified schema-7 reference package or the released
+schema-8 adjudication package. An adjudication predecessor retains all nine
+multimer reviews when MAPP is appended. Historical schema-8 external-source
+packages remain readable; explicit family markers distinguish them from the
+schema-8 review package. The catalog lists only relations present in the
+verified generation.
+
 ```python
 from hitlist import EvidenceStore
 
@@ -211,7 +219,8 @@ review = store.query(
 The assay-to-review relationship is optional one-to-one. Source contributors
 remain a separate many-row relation, so a query cannot silently multiply an
 assay when one record appears in both IEDB and CEDAR. Schema-6 and schema-7
-packages remain readable; their catalogs mark the review relation as absent.
+packages and historical schema-8 external-source packages remain readable;
+their catalogs mark the review relation as absent.
 
 ## Training recipe
 
@@ -297,7 +306,7 @@ hitlist evidence build-reference /path/to/numeric-package \
 `hitlist evidence query --all --output data.parquet` streams a full relation.
 The source package itself is immutable. Its construction writers and pinned
 source receipts are documented in [the migration catalog](evidence-catalog.md)
-and the [serial implementation plan](../tasks/pr8-evidence-store-spec.md).
+and the [serial implementation plan](https://github.com/pirl-unc/hitlist/blob/main/tasks/pr8-evidence-store-spec.md).
 
 # Evidence package snapshots
 

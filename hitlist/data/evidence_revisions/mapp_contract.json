@@ -1,0 +1,173 @@
+{
+  "assertions": [
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": null,
+      "predicate": "sampleProcessingProtocol",
+      "scope": "PXD009092",
+      "source_locator": "PXD009092/project.json",
+      "subject_id": "pxd009092",
+      "value_raw": "Samples are reversibly cross-linked together with immunoprecipitation of cellular proteasomes prior to reverse-phase isolation and elution of captured peptides. The method inhibits proteases throughout sample processing to ensure retention of native peptide characteristics."
+    },
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": null,
+      "predicate": "dataProcessingProtocol",
+      "scope": "PXD009092",
+      "source_locator": "PXD009092/project.json",
+      "subject_id": "pxd009092",
+      "value_raw": "The acquired raw spectra was analyzed using MaxQuant software (version 1.5.3.30) with the default parameters for the analysis of proteins and peptides (LFQ) minimum ratio count of 1, minimum peptide length for unspecific search of 6, maximum peptide length for unspecific search of 40, peptide FDR was set to 0.1 and match between runs enabled. Masses were searched against the human proteome database from UniprotKB"
+    },
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": null,
+      "predicate": "license",
+      "scope": "PXD009092",
+      "source_locator": "PXD009092/project.json",
+      "subject_id": "pxd009092",
+      "value_raw": "EBI terms of use"
+    },
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": "Homo sapiens",
+      "predicate": "measured_species",
+      "scope": "measured_HEK293_cells",
+      "source_locator": "PXD009092/project.json",
+      "subject_id": "pxd009092",
+      "value_raw": "Homo sapiens"
+    },
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": "HEK293",
+      "predicate": "measured_cell",
+      "scope": "measured_cells",
+      "source_locator": "PXD009092/project.json",
+      "subject_id": "pxd009092",
+      "value_raw": "HEK293"
+    },
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": "6",
+      "predicate": "search_min_length",
+      "scope": "search_observability",
+      "source_locator": "PXD009092/project.json",
+      "subject_id": "pxd009092",
+      "value_raw": "6"
+    },
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": "40",
+      "predicate": "search_max_length",
+      "scope": "search_observability",
+      "source_locator": "PXD009092/project.json",
+      "subject_id": "pxd009092",
+      "value_raw": "40"
+    },
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": "0.1",
+      "predicate": "peptide_FDR",
+      "scope": "project_search_claim",
+      "source_locator": "PXD009092/project.json",
+      "subject_id": "pxd009092",
+      "value_raw": "0.1"
+    },
+    {
+      "assertion_status": "conflicting_source_claim",
+      "normalized_value": null,
+      "predicate": "peptide_FDR",
+      "scope": "publication_methods",
+      "source_locator": "https://www.nature.com/articles/nbt.4279",
+      "subject_id": "pxd009092",
+      "value_raw": "1%"
+    },
+    {
+      "assertion_status": "empirically_reconstructed",
+      "normalized_value": "retain_greater_equal_twice_background_median",
+      "predicate": "filtered_quantity_rule",
+      "scope": "all_published_filtered_cells",
+      "source_locator": "txt/peptides.txt;txt/evidence.txt",
+      "subject_id": "pxd009092",
+      "value_raw": "run evidence sum >= 2 * median(three BEADS run sums)"
+    },
+    {
+      "assertion_status": "unresolved",
+      "normalized_value": null,
+      "predicate": "source_reference",
+      "scope": "parent_mapping",
+      "source_locator": "txt/parameters.txt",
+      "subject_id": "pxd009092",
+      "value_raw": "Human_UP_2016_02.fasta; original reference bytes unavailable"
+    },
+    {
+      "assertion_status": "conflicting",
+      "normalized_value": null,
+      "predicate": "publisher_imputed_header",
+      "scope": "publisher_imputed_quantities",
+      "source_locator": "publisher/suppdata2.xlsx:Sheet1:E3:F3",
+      "subject_id": "pxd009092",
+      "value_raw": "Data2 columns E/F disagree with source-derived condition medians; no relabeling"
+    },
+    {
+      "assertion_status": "unresolved",
+      "normalized_value": null,
+      "predicate": "publisher_protein_panel",
+      "scope": "publisher_selected_protein_panel",
+      "source_locator": "publisher/suppdata3.xlsx",
+      "subject_id": "pxd009092",
+      "value_raw": "Selected 131-gene panel; no exact acquisition/specimen mapping; not an independent precursor denominator"
+    },
+    {
+      "assertion_status": "unresolved",
+      "normalized_value": null,
+      "predicate": "parallel_tryptic_pairing",
+      "scope": "parallel_tryptic_support",
+      "source_locator": "PXD009360/project.json;PXD009360/files.json",
+      "subject_id": "pxd009092",
+      "value_raw": "PXD009360 raw runs448\u2013456 lack established condition/specimen map"
+    },
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": null,
+      "predicate": "procedural_controls",
+      "scope": "procedural_context",
+      "source_locator": "https://www.nature.com/articles/nbt.4279",
+      "subject_id": "pxd009092",
+      "value_raw": "NO-DSP and NO-INH affect crosslinking/preservation; not gene knockouts"
+    }
+  ],
+  "references": [
+    {
+      "asset_path": "references/human-reviewed-2023.dat.gz",
+      "asset_sha256": "defd9fd7fdc3be6f36b5b57b1a2c29978b956612e1437ec15f7065b055bbe9d3",
+      "asset_size_bytes": 108046188,
+      "generation_label": "local_2023_canonical_snapshot_release_not_further_resolved",
+      "license": "CC BY 4.0",
+      "organism_scope": "Homo sapiens",
+      "original_reference_status": "study_2016_FASTA_unavailable",
+      "reference_format": "uniprot_dat_gzip",
+      "reference_id": "reviewed_2023_canonical",
+      "reference_role": "later_model_reference",
+      "source_url": "file:///Users/iskander/code/weirdo/data/swissprot-dat-files/uniprot_sprot_human.dat.gz"
+    },
+    {
+      "asset_path": "references/human-reviewed-2026_03-isoforms.fasta",
+      "asset_sha256": "8c4459cc1e190caad54150511e5a0b5779863557f88387e5a86647a48d19a9d4",
+      "asset_size_bytes": 29338408,
+      "generation_label": "UniProt_2026_03_reviewed_human_isoform_inclusive",
+      "license": "CC BY 4.0",
+      "organism_scope": "Homo sapiens",
+      "original_reference_status": "study_2016_FASTA_unavailable",
+      "reference_format": "uniprot_fasta",
+      "reference_id": "reviewed_2026_03_isoforms",
+      "reference_role": "later_model_reference",
+      "source_url": "https://rest.uniprot.org/uniprotkb/stream?query=%28organism_id%3A9606%29%20AND%20%28reviewed%3Atrue%29&format=fasta&includeIsoform=true"
+    }
+  ],
+  "rights_sources": [
+    "https://www.ebi.ac.uk/about/terms-of-use/",
+    "https://www.nature.com/articles/nbt.4279"
+  ],
+  "schema_version": 2,
+  "source_receipt_sha256": "1bb665ba3f4fdf385f3bb6f93416ff1b44e67bf9d117f0d065a8e96499f283bb"
+}

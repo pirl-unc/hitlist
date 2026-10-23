@@ -175,7 +175,7 @@ non-peptide-ligand rows are kept in the native assays and do not enter this
 eligible mapping denominator. A mapping row or technical fraction never adds
 an independent assay or donor.
 
-The companion [supporting conversion report](../tasks/supporting-v2-evidence-results/README.md)
+The companion [supporting conversion report](https://github.com/pirl-unc/hitlist/blob/main/tasks/supporting-v2-evidence-results/README.md)
 records source hashes, count reconciliation and the independent field/value
 parity audit. External quantitative MS panels with actual channel/material
 claims enter through the dependent source-generation work in
@@ -217,7 +217,7 @@ tumor partners; conflicting Table 8 and Table 10 source statements remain
 separate assertions. Matching channel labels across tables do not establish
 sample identity.
 
-The [external-source conversion report](../tasks/external-v2-evidence-results/README.md)
+The [external-source conversion report](https://github.com/pirl-unc/hitlist/blob/main/tasks/external-v2-evidence-results/README.md)
 reconciles every source cell and derived value. The other candidate datasets
 in #746 remain discoverable as deferred source contracts until their original
 quantities, material links and rights are reviewed. The PXD057588 quantitative
@@ -260,7 +260,7 @@ rows. Existing source outcome and subject-count disagreement policies exclude
 multimer examples. The 4,054 candidate single-HLA assignments retain their
 evidence status. No specimen identity is supplied, and availability metadata
 does not become a peptide label. The
-[T-cell conversion report](../tasks/tcell-v2-evidence-results/README.md)
+[T-cell conversion report](https://github.com/pirl-unc/hitlist/blob/main/tasks/tcell-v2-evidence-results/README.md)
 records independent row and source-field reconciliation.
 
 ## Supporting numeric measurements
@@ -283,7 +283,7 @@ The 42,909 gene-expression rows contribute separate TPM and source-reported
 log2 TPM cells, 85,818 measurements in total. All 3,771 zero-TPM HAP1 rows
 remain measured zeros. Scale names follow the source columns; unreported units
 remain unreported and no label conversion or specimen pairing is inferred.
-The [supporting numeric report](../tasks/supporting-numeric-results/README.md)
+The [supporting numeric report](https://github.com/pirl-unc/hitlist/blob/main/tasks/supporting-numeric-results/README.md)
 reconciles every new typed cell with the native table.
 
 ## Roles and null meanings

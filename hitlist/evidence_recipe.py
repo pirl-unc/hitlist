@@ -517,6 +517,10 @@ def _append_unresolved_contributors(database, source_name, sink):
 def materialize_recipe(store, recipe, destination):
     """Write all candidate decisions without changing the verified source package."""
     recipe = _read_recipe(recipe)
+    if isinstance(recipe, dict) and "registered_recipe" in recipe:
+        from .distribution_recipe import materialize_distribution
+
+        return materialize_distribution(store, recipe, destination)
     _validate(recipe)
     requests = _preflight(store, recipe)
     destination = Path(destination)
@@ -747,6 +751,13 @@ def verify_recipe_package(directory, *, source_package=None):
         != manifest["source_package_manifest_sha256"]
     ):
         raise RecipeError("Source package manifest changed")
+    output_kind = manifest.get("output_kind", "row_decisions")
+    if output_kind == "registered_distribution":
+        from .distribution_recipe import verify_distribution_contents
+
+        return verify_distribution_contents(directory, manifest)
+    if output_kind != "row_decisions":
+        raise RecipeError(f"Unknown training output kind: {output_kind}")
     for name, report in manifest["coverage"].items():
         if (
             report["n_filtered_by_query"] + report["n_query_matches"] != report["n_source_rows"]

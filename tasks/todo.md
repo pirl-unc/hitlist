@@ -7438,6 +7438,59 @@ retrieval hung (#755), so two independent Actions downloads, the run's exact
 commit/artifact metadata and matching manifest/distribution hashes supplied
 the publication provenance check.
 
+# MAPP source generation (#752)
+
+Plan: tasks/mapp-source-plan.md.
+- [ ] Preserve pinned original source quantities, context, confidence and mapping alternatives.
+- [ ] Integrate canonical external package/catalog and verify real conservation.
+- [ ] Run format/lint/full tests, publish reviewed release and consumer evidence.
+
+MAPP first shared generation completed in43.29s:10,673peptides,149,959evidence rows,362,882quantity representations,540,034derivation edges. Independent original TSV/workbook-XML replay passes in9.46s. Preserved first launcher path-type and source-NaN failures;74,573PEP NaN values now explicit.16focused tests and format/lint pass. Full normal test suite running. Reference occurrence relations/query/recipe and reviewed deployment remain pending; do not close752. Concurrent numericPR756 reserves1.82.24; source PR uses1.82.25 and will rebase before merge. First generation records development1.82.24 and immutable original bytes; do not relabel it as a final release.
+
+MAPP verification: full normal suite passes3,224tests/10warnings in356.83s;16focused final-catalog tests and format/lint pass. Independent111-file inventory and original TSV/XML replay pass. Filed757for missing parallel-proteome run metadata/independent precursor estimates. Keep752open for reference integration and full recipe handoff. Worktree creation triggered repository metadata-refresh hook for existing editable1.82.2; pip check reports no broken requirements. Subsequent git writes disable hooks to avoid shared-environment churn.
+
+## MAPP reference integration
+
+Plan: tasks/mapp-reference-plan.md. Current main numericPR756 merged into branch; version1.82.25 retained.
+- [x] Materialize seven reference relations with exact alternative occurrences and negative candidates.
+- [x] Verify all full sequences, aliases, occurrences and original source claims independently.
+- [x] Verify byte-identical original eleven MAPP typed tables and PXD057588 source artifacts.
+- [ ] Publish reviewed release and downstream endpoint handoff.
+
+Actual schema2 package:120files,62,984proteins,133,414accessionclaims,37,721occurrences,64,538sourceclaims,26,992resolutions,21,346coverage rows. Producer54.80s, independentBioPython/Aho-Corasick/graph replay20.22s, peakRSS0.987GiB. Initial test guard refused0.77GiB; normal retry admitted one worker at3.89GiB.21focused tests and format/lint pass. Broader endpoint/recipe remains739; precursor pairing757. No fit or concentration claim.
+
+Reference software closure: normal full suite passes3,236tests/10warnings in320.81s with one worker and intact memoryguard. Format/lint and21focused tests pass; independent complete source/reference replay passes. Indexed-corpus integration CI remains separate. No source code changed after validation.
+
+## MAPP biological recipe (stacked on758)
+
+Plan: tasks/mapp-biological-recipe-plan.md. This is a scoped shared recipe foundation for739, not the whole unified major release.
+- [ ] Registered recipe, source verification, complete dispositions and contributors.
+- [ ] Explicit parent/occurrence policy, connected-component holdouts and quantities.
+- [ ] Fixtures, real independent admission replay, format/lint/full tests.
+- [ ] Publish and hand off immutable recipe output to the registered Presto experiment.
+
+MAPP recipe verification: both shared exports independently replayed; normal full suite passes 3,243 tests / 10 warnings in 327.51 s, format/lint and strict docs pass. Nine local biological fits and independent checkpoint/prediction replay complete; uniform remains the held-out reference. New data request #759; precursor issue #757 remains open. Draft recipe PR and complete unified query release remain separate.
+
+## 2026-10-23 MAPP run repeatability and representation
+
+Previous goal turn: progress. Plan: mapp-run-repeatability (Presto) / tasks/mapp-run-recipe-plan.md (Hitlist).
+- [x] Shared complete-run recipe with all original observations/status and fixed source partitions.
+- [x] Independent original-source replay and local software checks.
+- [x] Registered run-repeatability diagnostics, then evidence-led fixed representation comparison.
+- [ ] Publish complete artifacts, report and canonical registry; verify remote readback.
+
+Review: shared source and every run/feature/metric/checkpoint replay pass; all 186 archived fitting files and nine recipe files match original bytes. Baseline repeats (r=0.914); treatment-change repeatability is weak (r=0.172). Thirty regularized fits complete in 25.81s; all allocated weights train, but none beats uniform. Hitlist b94289d: 20 focused tests and strict docs pass; normal local full-suite memory preflight refused twice. Hosted Python 3.10–3.14 unit CI and integration/coverage/lint/docs all pass (3.11: 3,247 passed/2 optional skips; integration: 96 passed). Calibration data request #762 filed and read back exactly; precursor #757 and perturbation #759 remain open. Complete artifact and report publication is the remaining closure step; full concentration goal remains active.
+
+## 2026-10-23 MAPP integration with Hitlist 2.0
+
+Previous goal turn: progress (30 fits/report/data issue published). Plan: tasks/mapp-v2-integration-spec.md. Preserve original experiment inputs while integrating source758/recipe760 with concurrent main release761.
+- [x] Immutable successor of current reference package; canonical query bindings.
+- [x] Canonical registered distribution recipes without a parallel public API.
+- [x] Independent real-source/recipe conservation and focused software checks.
+- [ ] Final integrated-head full CI, publication, review and release.
+
+Review:124 predecessor files have independent inodes and unchanged bytes;33 MAPP files, all18 query relations/1,829,008 rows and all original three recipe targets/splits independently conserved.55 focused tests, format/lint and strict docs pass. Normal full-suite memory preflight refused before workers (0.67GiB available/2.5required); no full-suite pass claimed. Integration execution is1442c03; final import-order correction is recorded separately. Source snapshot dependency763 merged;2.0.2 is reserved for this integration. Concentration/response/precursor gaps remain752/762/757/759.
+
 # Hitlist 2.0 evidence store and recipes — PR 8 of 8 (#739)
 
 Spec: [pr8-evidence-store-spec.md](pr8-evidence-store-spec.md). Base is merged
@@ -7644,3 +7697,30 @@ review input and module, pass Twine checks and retain exact license metadata.
 The required local `./test.sh` stopped before collection at its conservative
 memory preflight: 0.75 GiB free versus the 2.5 GiB one-worker minimum. Full
 hosted PR CI and clean-main release gates remain pending.
+
+# 2026-10-23: reconcile MAPP PR #760 with released 2.0.4
+
+Plan: [mapp-main-204-merge-spec.md](mapp-main-204-merge-spec.md).
+
+- [x] Merge current main and resolve the schema-8 family collision.
+- [x] Preserve MAPP relations/recipes and source-reviewed adjudications with
+      accurate generation-specific bindings and registry.
+- [x] Verify both historical package families and real MAPP-only successors.
+- [x] Reconcile all three recipe targets/contributors with the prior generation.
+- [ ] Run format/lint/test/docs, review CI, merge #760 and release 2.0.5 with
+      verified PyPI artifact hashes.
+- [ ] Rebase #767 onto the released MAPP version as the next serial PR.
+
+## Review
+
+Schema-9/catalog-11 successors built from both verified parent kinds. Independent
+SHA-256 checks match all 126 reviewed-parent and 123 reference-parent files,
+with separate inodes. The review-based package exposes 72 materialized relations,
+9 review claims and 10,673 MAPP peptides, with all 33 baselines matched. The
+reference-based package correctly omits review availability. All 18 MAPP typed
+relations match 1,829,008 prior logical rows; all three recipe data inventories
+match previous targets, contributors and admissions byte for byte. Focused
+catalog/review/successor/recipe tests pass (45), as do format, lint and strict
+docs. Full local `./test.sh` passes: 3,290 passed, one skipped (85% total
+coverage). Hosted final-head CI, merge and PyPI release remain. See
+[mapp-205-results/README.md](mapp-205-results/README.md).

@@ -57,6 +57,15 @@ def register_evidence_cli(sub):
     build_reference.add_argument("reference_fasta", type=Path)
     build_reference.add_argument("output", type=Path)
 
+    append_sources = commands.add_parser(
+        "append-sources", help="Append sources to a reference or adjudication package"
+    )
+    append_sources.add_argument("predecessor_package", type=Path)
+    append_sources.add_argument("output", type=Path)
+    append_sources.add_argument(
+        "--source-root", action="append", required=True, metavar="SOURCE_ID=PATH"
+    )
+
 
 def _output_json(value, destination=None):
     content = json.dumps(value, indent=2, sort_keys=True, default=str) + "\n"
@@ -129,6 +138,21 @@ def handle_evidence_cli(args):
                     args.reference_fasta,
                     args.output,
                 )
+            )
+            return
+        if args.evidence_command == "append-sources":
+            from .external_successor import write_external_successor
+
+            roots = {}
+            for value in args.source_root:
+                name, separator, path = value.partition("=")
+                if not separator or not name or not path or name in roots:
+                    raise EvidenceQueryError(
+                        "Distinct --source-root SOURCE_ID=PATH values required"
+                    )
+                roots[name] = Path(path)
+            print(
+                write_external_successor(args.predecessor_package, args.output, source_roots=roots)
             )
             return
         if args.evidence_command is None:
