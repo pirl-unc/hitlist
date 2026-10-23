@@ -7413,3 +7413,10 @@ Previous goal turn: progress. Plan: mapp-run-repeatability (Presto) / tasks/mapp
 - [ ] Publish complete artifacts, report and canonical registry; verify remote readback.
 
 Review: shared source and every run/feature/metric/checkpoint replay pass; all 186 archived fitting files and nine recipe files match original bytes. Baseline repeats (r=0.914); treatment-change repeatability is weak (r=0.172). Thirty regularized fits complete in 25.81s; all allocated weights train, but none beats uniform. Hitlist b94289d: 20 focused tests and strict docs pass; normal local full-suite memory preflight refused twice. Hosted Python 3.10–3.14 unit CI and integration/coverage/lint/docs all pass (3.11: 3,247 passed/2 optional skips; integration: 96 passed). Calibration data request #762 filed and read back exactly; precursor #757 and perturbation #759 remain open. Complete artifact and report publication is the remaining closure step; full concentration goal remains active.
+
+## 2026-10-23 MAPP integration with Hitlist 2.0
+
+Previous goal turn: progress (30 fits/report/data issue published). Plan: tasks/mapp-v2-integration-spec.md. Preserve original experiment inputs while integrating source758/recipe760 with concurrent main release761.
+- [ ] Immutable successor of current reference package; canonical query bindings.
+- [ ] Canonical registered distribution recipes without a parallel public API.
+- [ ] Independent real-source/recipe conservation, software checks and publication.
