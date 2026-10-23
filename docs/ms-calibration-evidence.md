@@ -12,22 +12,24 @@ and archive/publisher equivalence receipts are retained.
 
 ## Shared generation and typed queries
 
-Build a fresh successor from a verified reference generation, including every
-registered source required in the resulting store. Workbook ingestion requires
+Build a fresh schema-9 successor from a verified schema-7 reference generation
+or schema-8 adjudication generation, including every registered external source
+required in the resulting store. Starting from an adjudication generation
+preserves its nine source-reviewed multimer claims. Workbook ingestion requires
 Hitlist’s `curation` extra (`pip install "hitlist[curation]"`):
 
 ```sh
-hitlist evidence append-sources /path/to/reference-generation /path/to/new-generation \
+hitlist evidence append-sources /path/to/adjudication-generation /path/to/new-generation \
   --source-root pxd009092=/path/to/mapp-assets \
   --source-root pxd004886=/path/to/calibration-assets
 ```
 
-The reference generation and original MAPP generation remain immutable. This
-command starts from the schema-7 reference package; it does not recursively append
-to an existing schema-8 successor. Including both sources retains the MAPP
-relations alongside calibration. Compare original source bytes when qualifying a
-new generation. Older catalog-10 successors remain readable without advertising
-calibration tables that they do not contain.
+The predecessor and original MAPP generation remain immutable. This command
+does not recursively append to an external-source successor: supply both MAPP
+and calibration roots in the same request. Compare original source bytes when
+qualifying a new generation. Historical schema-8 external successors remain
+readable and advertise only the sources they contain; they cannot serve as
+predecessors for a new append.
 
 ```python
 from hitlist import EvidenceStore

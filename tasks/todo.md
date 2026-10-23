@@ -7738,3 +7738,17 @@ Plan: [evidence-successor-compat-spec.md](evidence-successor-compat-spec.md).
 Review: executed code0219827 preserves all126 predecessor files,9 review claims and56 appended-source files in a183-file combined generation. Independent direct-Parquet/hash replay checks32relations/1,853,840mixed-grain rows and allfour unchanged recipe outputs; both historical schema8 families remain readable. New package schema9/catalog12, version2.0.5 candidate. Normal localtest.sh passes3,317tests/10warnings in321.51s with unchanged memoryguard, one worker; format/lint/70focused checks/strict docs pass. First sandbox memory probe and initial standalone-recipe baseline mismatch are retained in the report. Source code was not changed after validation. No new biological fit. Review/hostedCI/merge/release remain separate gates.
 
 Report: https://github.com/pirl-unc/presto/blob/82feaf2/experiments/2026-10-23_0551_codex_adjudication-source-conservation/README.md. Combined manifest42317a5efb7d642be5b8265131e6a6f7963e469adda946b780dac4d6aebb05b0. Fix is on existing draft767; controls source admission759 remains next. Broader availability goal stays active.
+
+## 2026-10-23 release #767 after MAPP 2.0.5
+
+Plan: [ms-calibration-206-release-spec.md](ms-calibration-206-release-spec.md).
+
+- [ ] Confirm published 2.0.5 and live #767 head, then merge main.
+- [ ] Bump 2.0.6; correct predecessor terminology and calibration guide.
+- [ ] Replay historical and real combined packages and all four recipes.
+- [ ] Run format, lint, full tests, strict docs and distribution checks.
+- [ ] Review final-head CI, merge and publish exact 2.0.6 artifacts.
+
+## Review
+
+Pending serial integration after #760 release.
