@@ -39,6 +39,13 @@ def test_catalog_covers_current_data_grains_without_double_counting():
     assert {"external_source_cell", "external_panel_sequence", "external_derivation_input"} <= (
         relations
     )
+    assert {
+        "external_reference_source_mapping",
+        "external_reference_sequence",
+        "external_reference_occurrence",
+        "external_reference_parent",
+        "external_reference_parent_support",
+    } <= relations
 
     functional = describe_evidence("tcell_functional_peptide")
     multimer = describe_evidence("tcell_multimer_peptide")
@@ -147,6 +154,8 @@ def test_labels_and_biological_state_have_distinct_roles():
     assert fields["quantity_scale"]["role"] == "target"
     assert fields["measured_pool"]["role"] == "target"
     assert fields["partner_population"]["role"] == "biological_context"
+    assert fields["organism_taxon_id"]["role"] == "biological_context"
+    assert fields["source_parent_status"]["role"] == "relation"
     assert fields["normalization_policy"]["role"] == "protocol"
     assert fields["source_cell"]["role"] == "provenance"
     assert fields["qualitative_result"]["role"] == "target"
@@ -231,6 +240,12 @@ def test_baselines_have_explicit_generation_and_count_units():
     assert baselines["external_mhc_peptide_quantity"].n_rows == 83_136
     assert baselines["external_digest_peptide_quantity"].n_rows == 225_990
     assert baselines["external_source_cell"].n_rows == 851_830
+    assert baselines["external_reference_source_mapping"].n_rows == 35_772
+    assert baselines["external_reference_sequence"].n_rows == 30_587
+    assert baselines["external_reference_occurrence"].n_rows == 52_277
+    assert baselines["external_reference_parent"].n_rows == 25_758
+    assert baselines["external_reference_parent_support"].n_rows == 26_449
+    assert baselines["external_reference_result_context"].n_rows == 309_126
     assert all(item.generation for item in BASELINES)
 
 
@@ -251,7 +266,7 @@ def test_catalog_import_does_not_build_or_download(tmp_path):
         text=True,
         cwd=Path(__file__).parents[1],
     )
-    assert probe.stdout.strip() == "7"
+    assert probe.stdout.strip() == "9"
     assert not data_root.exists()
 
 

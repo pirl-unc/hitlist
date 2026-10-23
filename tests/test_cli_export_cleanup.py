@@ -10,18 +10,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for the v1.27.0 export cleanup:
+"""Tests for the historical export cleanup and the v2 training CLI removal:
 - ``bulk-proteomics`` is the canonical name; ``bulk`` is an alias.
 - ``peptide-counts --by class|study`` replaces ``summary`` and ``counts``.
 - ``alleles`` and ``data-alleles`` emit deprecation notices.
 
-All legacy commands continue to dispatch to the same handlers so behavior
-is unchanged during the v1.x deprecation window.
+The older source export aliases still dispatch to their handlers; v2 training
+uses the evidence recipe interface.
 """
 
 from __future__ import annotations
 
 import argparse
+import sys
+
+import pytest
+
+
+def test_v2_training_cli_uses_evidence_recipe(monkeypatch, capsys):
+    from hitlist import cli
+
+    monkeypatch.setattr(sys, "argv", ["hitlist", "export", "training"])
+    with pytest.raises(SystemExit) as error:
+        cli.main()
+    assert error.value.code == 2
+    assert "invalid choice: 'training'" in capsys.readouterr().err
 
 
 def _build_full_parser() -> argparse.ArgumentParser:

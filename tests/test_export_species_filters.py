@@ -113,7 +113,7 @@ def test_peptide_summary_species_filters_preserve_support(species_indexes, filte
     assert result["n_support_rows"].sum() == len(raw)
 
 
-@pytest.mark.parametrize("command", ["ms", "binding", "training", "peptide-summary"])
+@pytest.mark.parametrize("command", ["ms", "binding", "peptide-summary"])
 def test_cli_species_filters_select_expected_rows(species_indexes, command, tmp_path, monkeypatch):
     output = tmp_path / "export.csv"
     args = [
@@ -136,4 +136,4 @@ def test_cli_species_filters_select_expected_rows(species_indexes, command, tmp_
     cli.main()
     result = pd.read_csv(output)
     assert set(result["peptide"]) == {"AAAAAAAAA"}
-    assert len(result) == (2 if command == "training" else 1)
+    assert len(result) == 1

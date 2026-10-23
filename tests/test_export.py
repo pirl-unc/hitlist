@@ -3162,7 +3162,7 @@ def test_export_ms_cli_helper(monkeypatch):
     assert captured["restriction_evidence"] == ["predicted"]
 
 
-@pytest.mark.parametrize("subcommand", ["ms", "binding", "training"])
+@pytest.mark.parametrize("subcommand", ["ms", "binding"])
 def test_cli_parses_restriction_evidence_filter(monkeypatch, subcommand):
     import sys
 
@@ -4175,7 +4175,7 @@ def test_merged_hla_dm_observation_has_unknown_arm_metadata(tmp_path, monkeypatc
     assert row["is_control_arm"] == ""
 
 
-@pytest.mark.parametrize("subcommand", ["ms", "binding", "training"])
+@pytest.mark.parametrize("subcommand", ["ms", "binding"])
 def test_cli_parses_serotype_source_filter(monkeypatch, subcommand):
     """#458: every evidence export can restrict a serotype query by provenance."""
     import sys
