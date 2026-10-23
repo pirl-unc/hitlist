@@ -32,6 +32,20 @@
     "purified MHC/direct/phage display": 163,
     "purified MHC/direct/radioactivity": 7481
   },
+  "claim_applicability_counts": {
+    "HLA-DP": 1,
+    "HLA-DQ": 1,
+    "HLA-DR": 1,
+    "all_study_binding_assays": 18
+  },
+  "claim_status_counts": {
+    "reported_alternatives_per_assay_unresolved": 2,
+    "reported_interpretation_not_measurement": 1,
+    "reported_locus_scope": 3,
+    "reported_range_per_assay_unresolved": 1,
+    "reported_study_scope": 10,
+    "unreported": 4
+  },
   "cohort_ic50_by_pmid": {
     "10403279": 10,
     "10473111": 8,
@@ -238,6 +252,7 @@
     "iedb": 8080
   },
   "n_binding_assay_rows": 814268,
+  "n_changed_cohort_binding_rows": 0,
   "n_cohort_binding_rows": 25896,
   "n_cohort_ic50_assay_comment_rows": 560,
   "n_cohort_ic50_distinct_pmids": 198,
@@ -249,7 +264,38 @@
   "n_reviewed_binding_rows": 938,
   "n_reviewed_cohort_rows": 910,
   "n_reviewed_outside_cohort_rows": 28,
+  "n_unreviewed_binding_rows": 813330,
+  "n_unreviewed_cohort_binding_rows": 24986,
   "package_manifest_sha256": "58ac75009b6c6452cf19b317908f6043f1be414c81dc8ae9e9423a185467721d",
   "parent_manifest_sha256": "ad62414d511b74a6aa1e4da457fdff68d9f4527874d1a2e385c65e5b98df41e8",
+  "source_linked_examples": [
+    {
+      "endpoint_reported": "half maximal inhibitory concentration (IC50)",
+      "observation_id": "observation:record:iedb:row:677282",
+      "protocol_id": "iedb:pmid:28481943:binding_protocol:sec003:v1",
+      "publication_url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0177140",
+      "source_assay_id": "http://www.iedb.org/assay/3318674",
+      "source_locator": "PMC5421785/fullTextXML#sec003",
+      "source_pmid": "28481943"
+    },
+    {
+      "endpoint_reported": "half maximal inhibitory concentration (IC50)",
+      "observation_id": "observation:record:iedb:row:677283",
+      "protocol_id": "iedb:pmid:28481943:binding_protocol:sec003:v1",
+      "publication_url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0177140",
+      "source_assay_id": "http://www.iedb.org/assay/3318675",
+      "source_locator": "PMC5421785/fullTextXML#sec003",
+      "source_pmid": "28481943"
+    },
+    {
+      "endpoint_reported": "half maximal inhibitory concentration (IC50)",
+      "observation_id": "observation:record:iedb:row:677284",
+      "protocol_id": "iedb:pmid:28481943:binding_protocol:sec003:v1",
+      "publication_url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0177140",
+      "source_assay_id": "http://www.iedb.org/assay/3318676",
+      "source_locator": "PMC5421785/fullTextXML#sec003",
+      "source_pmid": "28481943"
+    }
+  ],
   "source_xml_sha256": "948816f8584a2779082048ad161bf12d8c8f0ebae2c2a70315d9d22efcaf65aa"
 }

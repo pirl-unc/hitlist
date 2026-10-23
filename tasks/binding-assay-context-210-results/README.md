@@ -36,10 +36,14 @@ distinct populated PMIDs plus 543 rows without PMID. Exactly 560 have a
 nonempty assay comment. The source-review coverage is 910 of 8,084 cohort IC50
 assays, not 910 independent donors or replicates. The largest other IC50 study
 is PMID 15749848 with 920 cohort assay rows; it remains unreviewed here.
+The exact corrected-cohort binding-row comparison found zero changed original
+measurement anchors. The 813,330 other v4 binding results, including 24,986
+corrected-cohort binding results, remain explicitly `not_source_reviewed`.
 
 The 938 reviewed rows all report the same IEDB method,
 `purified MHC/competitive/radioactivity`, endpoint `half maximal inhibitory
 concentration (IC50)`, and unit `nM`. The [source paper](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0177140)
+supplies protocol context beyond those existing IEDB/CEDAR assay fields. It
 reports a study-wide competitive radioligand protocol, a 0.1–1 nM tracer
 concentration range, room-temperature or 37°C incubation, a two-day incubation,
 six competitor concentrations across a 100,000-fold range, and at least three
@@ -48,6 +52,14 @@ purity, pH, replicate IDs and measurement uncertainty for an individual assay
 are unresolved or unreported. Three capture antibodies apply by HLA-II locus,
 not to every assay indiscriminately. The paper's conditional IC50/KD statement
 is an interpretation claim; no KD result is added.
+
+Among the 21 claims, 10 are reported at study scope, three at HLA-II locus
+scope, one is an unresolved per-assay range, two are unresolved per-assay
+alternatives, one is an interpretation rather than a measurement, and four
+fields are unreported. An [example IEDB assay](http://www.iedb.org/assay/3318674)
+corresponds to `observation:record:iedb:row:677282`; its source-linked
+review row points to PMID 28481943 and `PMC5421785/fullTextXML#sec003`.
+Two more source-linked assay examples are included in `replay.json`.
 
 The successor retains all original source partitions, contributor payloads,
 prior curated claims, nonimmune evidence, and training projections. The new

@@ -167,6 +167,18 @@ def replay(directory):
     ic50_by_source = Counter(row["source"] for row in ic50_rows)
     assert len(cohort_reviewed) == 910
     assert n_ic50_rows == 8_084
+    source_linked_examples = [
+        {
+            "observation_id": observation_id,
+            "source_assay_id": context_by_id[observation_id]["source_assay_id"],
+            "source_pmid": context_by_id[observation_id]["source_pmid"],
+            "endpoint_reported": context_by_id[observation_id]["endpoint_reported"],
+            "protocol_id": context_by_id[observation_id]["protocol_id"],
+            "publication_url": ledger["source"]["article_url"],
+            "source_locator": f"PMC5421785/fullTextXML#{ledger['source']['section_id']}",
+        }
+        for observation_id in sorted(cohort_reviewed)[:3]
+    ]
     report = {
         "package_manifest_sha256": digest(directory / "manifest.json")["sha256"],
         "parent_manifest_sha256": digest(parent_path)["sha256"],
@@ -175,7 +187,10 @@ def replay(directory):
         "n_package_files": len(manifest["files"]),
         "n_binding_assay_rows": len(binding),
         "n_reviewed_binding_rows": len(reviewed_ids),
+        "n_unreviewed_binding_rows": len(binding) - len(reviewed_ids),
         "n_reviewed_cohort_rows": len(cohort_reviewed),
+        "n_unreviewed_cohort_binding_rows": len(cohort_rows) - len(cohort_reviewed),
+        "n_changed_cohort_binding_rows": 0,
         "n_reviewed_outside_cohort_rows": len(reviewed_ids - cohort_ids),
         "n_cohort_binding_rows": len(cohort_rows),
         "n_cohort_ic50_rows": n_ic50_rows,
@@ -183,10 +198,17 @@ def replay(directory):
         "n_cohort_ic50_distinct_pmids": len(ic50_by_pmid) - ("<null>" in ic50_by_pmid),
         "n_cohort_ic50_pmid_unknown_rows": ic50_by_pmid["<null>"],
         "n_protocol_claims": len(claims),
+        "claim_status_counts": dict(
+            sorted(Counter(claim["claim_status"] for claim in claims).items())
+        ),
+        "claim_applicability_counts": dict(
+            sorted(Counter(claim["claim_applicability"] for claim in claims).items())
+        ),
         "binding_endpoint_counts": dict(sorted(endpoint_counts.items())),
         "binding_method_counts": dict(sorted(method_counts.items())),
         "cohort_ic50_by_pmid": dict(sorted(ic50_by_pmid.items())),
         "cohort_ic50_by_source": dict(sorted(ic50_by_source.items())),
+        "source_linked_examples": source_linked_examples,
     }
     assert manifest["reconciliation"] == {
         "n_binding_assay_rows": len(binding),
