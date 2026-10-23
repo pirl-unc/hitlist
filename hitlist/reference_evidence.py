@@ -503,7 +503,7 @@ def _verify_typed_relations(directory):
 
 
 def verify_reference_evidence_package(directory, *, manifest_path="manifest.json"):
-    """Verify every byte, predecessor and new typed-grain reconciliation."""
+    """Verify every byte and typed relation, including an embedded predecessor."""
     directory = Path(directory)
     location = _safe_relative(manifest_path)
     manifest = json.loads((directory / location).read_text())

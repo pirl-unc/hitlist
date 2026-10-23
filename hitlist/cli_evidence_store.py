@@ -58,7 +58,7 @@ def register_evidence_cli(sub):
     build_reference.add_argument("output", type=Path)
 
     append_sources = commands.add_parser(
-        "append-sources", help="Append registered external sources to a reference package"
+        "append-sources", help="Append sources to a reference or adjudication package"
     )
     append_sources.add_argument("reference_package", type=Path)
     append_sources.add_argument("output", type=Path)

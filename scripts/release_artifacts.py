@@ -9,9 +9,10 @@ import runpy
 import subprocess
 import tempfile
 from pathlib import Path
-from zipfile import ZipFile
 
 ROOT = Path(__file__).resolve().parents[1]
+GITHUB_API_TIMEOUT_SECONDS = 30
+ARTIFACT_DOWNLOAD_TIMEOUT_SECONDS = 120
 CORPUS_FILES = (
     "observations.parquet",
     "peptide_mappings.parquet",
@@ -119,11 +120,15 @@ def verify_manifest(directory, root=ROOT):
         raise ValueError("Release provenance has no GitHub workflow run")
 
     def github(path):
-        return json.loads(
-            subprocess.check_output(
-                ["gh", "api", f"repos/pirl-unc/hitlist/actions/{path}"], text=True
+        try:
+            response = subprocess.check_output(
+                ["gh", "api", f"repos/pirl-unc/hitlist/actions/{path}"],
+                text=True,
+                timeout=GITHUB_API_TIMEOUT_SECONDS,
             )
-        )
+        except subprocess.TimeoutExpired as error:
+            raise ValueError("Timed out querying GitHub release provenance") from error
+        return json.loads(response)
 
     workflow = github("workflows/release-build.yml")
     run = github(f"runs/{run_id}")
@@ -137,27 +142,65 @@ def verify_manifest(directory, root=ROOT):
     }
     if any(run.get(key) != value for key, value in expected.items()):
         raise ValueError("Artifacts require a successful manual release build on current main")
-    artifacts = github(f"runs/{run_id}/artifacts")["artifacts"]
-    matches = [
-        artifact
-        for artifact in artifacts
-        if artifact["name"] == f"hitlist-release-{source['commit']}" and not artifact["expired"]
-    ]
-    if len(matches) != 1:
-        raise ValueError("Expected one retained release artifact on the verified workflow run")
+    artifact_name = f"hitlist-release-{source['commit']}"
+
+    def matching_artifact():
+        artifacts = github(f"runs/{run_id}/artifacts")["artifacts"]
+        matches = [
+            artifact
+            for artifact in artifacts
+            if artifact["name"] == artifact_name and not artifact["expired"]
+        ]
+        if len(matches) != 1:
+            raise ValueError("Expected one retained release artifact on the verified workflow run")
+        return matches[0]
+
+    artifact_id = matching_artifact()["id"]
     # Bind the supplied manifest to the actual Actions artifact, rather than
     # trusting a locally editable JSON file's claim about a successful run.
-    with tempfile.TemporaryFile() as archive_file:
-        subprocess.run(
-            ["gh", "api", f"repos/pirl-unc/hitlist/actions/artifacts/{matches[0]['id']}/zip"],
-            stdout=archive_file,
-            check=True,
-        )
-        archive_file.seek(0)
-        with ZipFile(archive_file) as archive:
-            trusted_manifest = json.loads(archive.read("release.json"))
-    if manifest != trusted_manifest:
-        raise ValueError("Release manifest differs from the verified GitHub artifact")
+    with tempfile.TemporaryDirectory(prefix="hitlist-release-") as temporary:
+        download_dir = Path(temporary)
+        try:
+            subprocess.run(
+                [
+                    "gh",
+                    "run",
+                    "download",
+                    run_id,
+                    "--name",
+                    artifact_name,
+                    "--repo",
+                    "pirl-unc/hitlist",
+                    "--dir",
+                    str(download_dir),
+                ],
+                check=True,
+                timeout=ARTIFACT_DOWNLOAD_TIMEOUT_SECONDS,
+                capture_output=True,
+                text=True,
+            )
+        except subprocess.TimeoutExpired as error:
+            raise ValueError("Timed out downloading the verified GitHub artifact") from error
+        except subprocess.CalledProcessError as error:
+            raise ValueError("Verified GitHub artifact download failed") from error
+        if matching_artifact()["id"] != artifact_id:
+            raise ValueError("Release artifact identity changed during download")
+        expected_files = {"release.json", *manifest["files"]}
+        downloaded_files = list(download_dir.iterdir())
+        if {path.name for path in downloaded_files} != expected_files or any(
+            not path.is_file() or path.is_symlink() for path in downloaded_files
+        ):
+            raise ValueError("Verified GitHub artifact has missing or unexpected files")
+        try:
+            trusted_manifest = json.loads((download_dir / "release.json").read_text())
+        except (OSError, json.JSONDecodeError) as error:
+            raise ValueError(
+                "Verified GitHub artifact has an unreadable release manifest"
+            ) from error
+        if manifest != trusted_manifest:
+            raise ValueError("Release manifest differs from the verified GitHub artifact")
+        if trusted_manifest["files"] != distribution_files(download_dir, source["version"]):
+            raise ValueError("Verified GitHub artifact distributions disagree with its manifest")
     print(f"Both distributions match clean main {source['commit']} ({source['version']}).")
 
 

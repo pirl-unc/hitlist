@@ -10,8 +10,10 @@ import pyarrow as pa
 import pyarrow.dataset as ds
 import pyarrow.parquet as pq
 
+from .assay_adjudication import verify_assay_adjudication_package
 from .evidence_bindings import ALIASES, CONSTANTS, LINKS, SELECTORS, materialized_bindings
 from .evidence_catalog import EVIDENCE, FIELDS, NULL_STATES, SCHEMA_VERSION, TASKS
+from .evidence_package import adjudication_manifest_path, package_family
 from .reference_evidence import verify_reference_evidence_package
 from .supporting_numeric_evidence import verify_supporting_numeric_evidence_package
 
@@ -118,7 +120,9 @@ class EvidenceStore:
         self.directory = directory
         self.manifest = manifest
         self.bindings = materialized_bindings(
-            manifest["schema_version"], appended_source_ids=manifest.get("appended_sources", {})
+            manifest["schema_version"],
+            appended_source_ids=manifest.get("appended_sources", {}),
+            include_adjudications=adjudication_manifest_path(manifest) is not None,
         )
         self.schemas = {}
         for name, (item, selectors, aliases) in self.bindings.items():
@@ -147,17 +151,21 @@ class EvidenceStore:
     @classmethod
     def open(cls, directory: str | Path) -> EvidenceStore:
         directory = Path(directory)
-        schema = json.loads((directory / "manifest.json").read_text()).get("schema_version")
-        if schema == 8:
+        envelope = json.loads((directory / "manifest.json").read_text())
+        try:
+            family = package_family(envelope)
+        except ValueError as exc:
+            raise EvidenceQueryError(str(exc)) from exc
+        if family == "external":
             from .external_successor import verify_external_successor
 
             manifest = verify_external_successor(directory)
-        elif schema == 7:
+        elif family == "adjudication":
+            manifest = verify_assay_adjudication_package(directory)
+        elif family == "reference":
             manifest = verify_reference_evidence_package(directory)
-        elif schema == 6:
-            manifest = verify_supporting_numeric_evidence_package(directory)
         else:
-            raise EvidenceQueryError(f"Unsupported evidence package schema: {schema}")
+            manifest = verify_supporting_numeric_evidence_package(directory)
         return cls(directory, manifest)
 
     def _field(self, evidence_type: str, field: str):
@@ -289,7 +297,25 @@ class EvidenceStore:
             },
         }
         if self.manifest["schema_version"] >= 7:
-            registry["pxd057588_mouse_reference_2026_03"] = self.manifest["reference"]
+            reference_manifest = (
+                self.manifest
+                if self.manifest["schema_version"] == 7
+                else json.loads((self.directory / "manifests/reference.json").read_text())
+            )
+            registry["pxd057588_mouse_reference_2026_03"] = reference_manifest["reference"]
+        review_path = adjudication_manifest_path(self.manifest)
+        if review_path is not None:
+            review = (
+                self.manifest
+                if review_path == "manifest.json"
+                else json.loads((self.directory / review_path).read_text())
+            )
+            registry["tcell_multimer_review_2026_10_23"] = {
+                "revision": review["review_revision"],
+                "source_review_sha256": review["source_review_sha256"],
+                "n_assay_reviews": review["reconciliation"]["n_assay_reviews"],
+                "rights_scope": "publisher-linked review assertions; source PDFs not redistributed",
+            }
         for source_id, source in self.manifest.get("appended_sources", {}).items():
             registry[source_id] = {
                 **source["registry"],
