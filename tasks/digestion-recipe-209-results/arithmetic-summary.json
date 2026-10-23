@@ -1,0 +1,11 @@
+{
+  "checked_source_files": 33,
+  "failed_conditions": [],
+  "final_slots": 280664,
+  "n_conditions": 17,
+  "n_passing": 17,
+  "raw_rows": 545664,
+  "source_package_manifest_sha256": "ad62414d511b74a6aa1e4da457fdff68d9f4527874d1a2e385c65e5b98df41e8",
+  "source_scope": "Original arithmetic only; no claim of independent search/mapping/synthesis-removal validation or training admission",
+  "wall_seconds": 50.70953350001946
+}

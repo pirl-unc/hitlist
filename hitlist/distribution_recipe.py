@@ -33,6 +33,7 @@ TABLE_BINDINGS = {
 
 
 def describe_registered_recipes(store):
+    from .digestion_recipe import describe as describe_digestion
     from .mapp_controlled_recipe import describe as describe_controlled
     from .ms_calibration_response import describe
 
@@ -40,7 +41,12 @@ def describe_registered_recipes(store):
     return [
         {"contract": contract, "status": "materialized" if available else "not_in_generation"}
         for contract in registered_contracts()
-    ] + [describe(store), describe_controlled(store), describe_controlled(store, contrast=True)]
+    ] + [
+        describe(store),
+        describe_controlled(store),
+        describe_controlled(store, contrast=True),
+        describe_digestion(store),
+    ]
 
 
 def validate_registered_recipe(recipe):

@@ -7840,11 +7840,16 @@ Plan: tasks/digestion-source-spec.md.
 - [x] Fixtures, real source reconciliation and prior-source conservation.
 - [x] Complete independent original-source row/cell/slot checks on the 2.0.8
       reviewed package.
-- [ ] Run final-head CI and review the source-only #773 PR.
-- [ ] Merge and deploy 2.0.8; leave all-substrate arithmetic and the grouped
-      kinetic recipe to #775.
+- [x] Run final-head CI and review the source-only #773 PR.
+- [x] Merge #773; leave all-substrate arithmetic and the grouped kinetic
+      recipe to #775.
+- [x] Publish the exact 2.0.8 release artifacts to PyPI.
 
 Review: ongoing; full concentration goal remains active.
+
+PR #773 merged as `89e45ed` after all exact-head checks passed. The clean-main
+2.0.8 release run `39979099617` passed; both published PyPI distributions
+match its SHA-256 and size receipts exactly. Source admission #774 is shipped.
 
 Digestion review: draft PR773 at977adc2, all18 assets/11 typed relations/250 package files verified; all218 prior source payloads and33 baselines conserved. Independent original-source decoding/typed replay passes.37 focused and3,341 normal guarded tests pass; format/lint/strict docs pass. Published Presto1503d67 source and synthetic kinetic reports. All-substrate quantitative arithmetic, training recipe and biological fitting remain pending, as do final-head review/CI/merge/deployment. No concentration claim.
 
@@ -7860,3 +7865,24 @@ and280,664 final slots; details in
 Format/lint/37 focused tests/strict docs and distribution gates pass. The
 current local full test runner refused at0.68GiB free versus2.5GiB required;
 hosted final-head test and integration checks are still required.
+
+## Contiguous digestion time-course recipe
+
+Plan: tasks/digestion-contiguous-recipe.md. Based on merged PR773 source review.
+- [x] Implement pure source-linked curve compilation and frozen component grouping.
+- [x] Register canonical materialize/verify/discovery with fixtures.
+- [x] Freeze and run real source admission, independently verify targets and groups.
+- [ ] Preserve exclusions, complete full software gates and ship the candidate.
+
+Review: the 251-file reviewed source package remains byte-identical after
+materialization. All 17 original condition arithmetic checks pass; every one
+of 50,372 curve dispositions and 30,566 admitted curves passes an independent
+Hitlist-free replay. The median train/validation/test repeated-label temporal
+correlations are 0.951/0.776/0.960 on the selected panel. The output is MS1
+peak area in source arbitrary units, not molar concentration. See
+[digestion-recipe-209-results/README.md](digestion-recipe-209-results/README.md).
+No new biological model fit.
+
+PR #776 is open as a draft. Local format/lint, 3,351 full tests,
+strict docs, distribution gates and both independent real-source verifiers pass.
+Final-head hosted CI, review, merge and PyPI publication are still required.

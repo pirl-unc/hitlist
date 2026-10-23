@@ -1,0 +1,55 @@
+{
+  "n_admitted_curves": 30566,
+  "n_construct_components": 15,
+  "n_curve_dispositions": 50372,
+  "n_source_final_vectors": 53413,
+  "passed": true,
+  "recipe_manifest_sha256": "5f616170b5514cb4d8f0c7b7843d232959e9514eebbca6483f976e17b0846615",
+  "source_manifest_sha256": "ad62414d511b74a6aa1e4da457fdff68d9f4527874d1a2e385c65e5b98df41e8",
+  "technical_repeatability_by_split": {
+    "test": {
+      "fraction_positive": 0.9563776186687881,
+      "median_log10_1plus_MS1_temporal_pearson": 0.9215323774342592,
+      "n_constant_literal_pairs": 0,
+      "n_nonconstant_literal_pairs": 7542,
+      "n_unpaired_or_short_literal_groups": 0
+    },
+    "train": {
+      "fraction_positive": 0.9457673267326733,
+      "median_log10_1plus_MS1_temporal_pearson": 0.9577664121747587,
+      "n_constant_literal_pairs": 2,
+      "n_nonconstant_literal_pairs": 40400,
+      "n_unpaired_or_short_literal_groups": 0
+    },
+    "val": {
+      "fraction_positive": 0.9119061357953453,
+      "median_log10_1plus_MS1_temporal_pearson": 0.9038458637129091,
+      "n_constant_literal_pairs": 1,
+      "n_nonconstant_literal_pairs": 5199,
+      "n_unpaired_or_short_literal_groups": 0
+    }
+  },
+  "temporal_repeatability_by_split": {
+    "test": {
+      "fraction_positive": 0.975,
+      "median_log10_temporal_pearson": 0.9598573234040326,
+      "n_constant_pairs": 0,
+      "n_label_pairs": 1840,
+      "n_nonconstant_pairs": 1840
+    },
+    "train": {
+      "fraction_positive": 0.8907781729851653,
+      "median_log10_temporal_pearson": 0.9509005324200263,
+      "n_constant_pairs": 0,
+      "n_label_pairs": 11527,
+      "n_nonconstant_pairs": 11527
+    },
+    "val": {
+      "fraction_positive": 0.8366388308977035,
+      "median_log10_temporal_pearson": 0.775876505157524,
+      "n_constant_pairs": 0,
+      "n_label_pairs": 1916,
+      "n_nonconstant_pairs": 1916
+    }
+  }
+}

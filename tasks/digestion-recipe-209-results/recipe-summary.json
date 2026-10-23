@@ -1,0 +1,36 @@
+{
+  "curves_by_condition": {
+    "soh2024_digestion:condition:aSPIRE_AnnexinA1": 1600,
+    "soh2024_digestion:condition:aSPIRE_FFH_12p5": 5058,
+    "soh2024_digestion:condition:aSPIRE_FFH_6p25": 5400,
+    "soh2024_digestion:condition:aSPIRE_H2A": 1394,
+    "soh2024_digestion:condition:aSPIRE_H2B": 1500,
+    "soh2024_digestion:condition:aSPIRE_H3": 644,
+    "soh2024_digestion:condition:aSPIRE_H4": 1588,
+    "soh2024_digestion:condition:aSPIRE_IL37b": 1140,
+    "soh2024_digestion:condition:aSPIRE_LEDGF": 3888,
+    "soh2024_digestion:condition:aSPIRE_UBE2K": 1200,
+    "soh2024_digestion:condition:aSPIRE_aSyn": 2480,
+    "soh2024_digestion:condition:aSPIRE_hTau": 4674
+  },
+  "curves_by_split": {
+    "test": 3680,
+    "train": 23054,
+    "val": 3832
+  },
+  "n_components": 15,
+  "n_constructs": 15,
+  "n_curve_candidates": 50372,
+  "n_examples": 30566,
+  "n_source_final_vectors": 53413,
+  "reason_counts": {
+    "annotation_only": 206,
+    "conflicting_IL_alias_or_repeated_slot_values": 1,
+    "fewer_than_three_positive_nonzero_times": 907,
+    "insufficient_repeated_common_positive_times": 2880,
+    "no_actual_zero_baseline_for_every_technical_label": 10642,
+    "not_exclusively_source_contiguous": 7094,
+    "not_one_IL_equivalent_contiguous_span": 6912,
+    "unresolved_condition_time_conflict": 2198
+  }
+}

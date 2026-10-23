@@ -78,12 +78,52 @@ contradict filename labels; those claims remain separate conflicts.
 The 152 Skyline rows with blank source filenames keep their original rows and
 carry `blank_original_source_name`; no main-search run is invented.
 
-There is **no registered training recipe for this source yet**. Other conditions
-are `pending_registered_recipe_and_independent_replay`. Typed source fidelity
-does not establish correct biological observation likelihood or independently
-replay all preprocessing arithmetic. Before fitting, verify the admitted
-quantitative transformations, control joins, product mapping, temporal signal,
-grouped split and treatment of MS response. Raw MS signal is not molar copies.
+## Contiguous time-course recipe (2.0.9)
+
+The registered `digestion_contiguous_timecourses_v1` recipe produces one curve
+per source condition, I/L-equivalent peptide and reported biological label.
+It retains all 53,413 final source vectors in 50,372 disposition groups. The
+reviewed candidate admits 30,566 curves across 15 construct groups; the rest
+have explicit, sometimes multiple exclusion reasons. Five conditions have no
+admitted curve: RF1 retains its time conflict, CaM/IF2/UBE2S lack the required
+source-backed zero-time coverage, and the Ffh 1:25 condition lacks sufficient
+repeated common positive times after the source baseline rule.
+
+The target is positive, background-adjusted biological-mean MS1 peak area at
+reported nonzero digestion times, in `source_MS1_peak_area_arbitrary_units`.
+It is conditional on the deposited final table. Whether that table exactly
+matches the paper's additional positive 4 h (3 h for alpha-synuclein)
+selection remains unresolved. Forced zero-time values,
+missing/below-background slots and unobserved products are retained as source
+states, never treated as negative or zero targets. Product eligibility requires
+the source's contiguous PCP claim and exactly one I/L-equivalent span in its
+literal deposited construct. Short and nonbinding fragments remain eligible.
+Original aliases, spliced products and ambiguous positions survive in the
+source package and disposition ledger.
+
+An admitted curve needs actual zero-time raw quantity records matching the
+count of filtered technical records, zero-time entries for all filtered
+technical labels, three positive nonzero times, and a second reported
+biological label with at least three common positive times. The source does not
+prove that filtered technical labels identify paired physical acquisitions.
+The same source parent and all Ffh ratios share a construct group. The frozen
+five-fold split has 15 groups and guards exact source peptide overlap, but not
+sequence homology or study independence. Source biological labels are not
+independent donors. No curve is a molar fragment amount, APC concentration,
+TAP observation or MHC label.
+
+```json
+{"schema_version": 1, "name": "digestion_contiguous_timecourses_v1", "registered_recipe": "digestion_contiguous_timecourses_v1"}
+```
+
+Pass this JSON to `EvidenceStore.materialize(recipe, output)` or
+`hitlist evidence materialize PACKAGE recipe.json OUTPUT`. The export contains
+source-linked curves and all candidate decisions, exact input Parquet tables,
+the source manifest, declared contract and output hashes. Verification
+recomputes every target and disposition from those frozen tables. The recipe
+does not independently validate the original search, synthesis-error removal
+or paper-level product-selection decisions, and it does not supply an MS response
+likelihood. Biological fitting remains a separate step.
 
 ## Verification scope
 
@@ -94,6 +134,12 @@ counts. Run `python scripts/verify_digestion_roundtrip.py PACKAGE ORIGINAL_ASSET
 DECODED_RDATA` with the separately exported original RData tables from the
 pinned source audit. It checks archive members, all typed original CSV/RData
 rows, workbook cells, constructs and final vector slots.
-These checks do not claim that the original search, mapping or quantitative
-analysis is scientifically correct. Quantitative arithmetic and training
-admission remain separate gates tracked in Hitlist issue #770.
+Run `python scripts/verify_digestion_arithmetic.py PACKAGE REPORT_DIR` to
+independently replay all 545,664 raw quantities and 280,664 final slots from
+the original nested MS1 archive and source tables. Run
+`python scripts/verify_digestion_timecourses.py PACKAGE RECIPE_OUTPUT` to
+independently replay every curve decision, source slot, target and construct
+split without importing the recipe producer. The [review report](https://github.com/pirl-unc/hitlist/blob/main/tasks/digestion-recipe-209-results/README.md)
+records the exact manifests, counts and remaining scientific limits. These
+checks do not establish the original search, mapping or synthesis-error
+decisions as biologically correct; that scope remains open under #770.
