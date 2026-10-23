@@ -7915,3 +7915,29 @@ source excerpts. Format/lint/36 focused tests pass. The default local full
 test runner refused at 2.18GiB free versus its 2.5GiB preflight requirement;
 the hosted gate is still required. No binding labels or donor/replicate counts
 changed. See [binding-assay-context-210-results/README.md](binding-assay-context-210-results/README.md).
+
+Release update: PR #777 merged as `fc25dba`; clean-main run `39994432709`
+passed, and exact wheel/sdist hashes were verified on PyPI as Hitlist 2.0.10.
+Issue #721 remains open for the other binding studies.
+
+## Gomez-Zepeda original result and run lineage (#778 / #779)
+
+Plan: [gomez-source-lineage-211.md](gomez-source-lineage-211.md).
+
+- [x] Pin both original supplemental archives and reconcile all five peptide unions.
+- [x] Implement immutable schema-11 successor with all original S3/S5 rows and
+      source-run peptide memberships at explicit grains.
+- [x] Register typed evidence and query bindings, with source-specific fields.
+- [x] Independently replay source rows, membership and links against the real
+      source archives and verify predecessor conservation.
+- [ ] Run format/lint/test and hosted gates; review, merge and deploy 2.0.11.
+
+Review: the independent replay checks all 594,916 original CSV rows, 590,615
+source-run peptide memberships, 68,552 exact derived links and all 256
+unchanged predecessor files. All 51,491 out-of-length rows remain with
+explicit null links. The 262-file schema-11 package has manifest SHA-256
+`ade958582dd2eb580f4e02187cd7445621e72fc07ec294a97624a09ba24a2659`.
+JY and Raji each contain large WT/S overlap, so #780 will repair arm labels
+after #779 preserves source rows. The first full local test pass found one
+catalog-version assertion still pinned to 15; it is updated to 16 and the
+full required gate is rerunning.
