@@ -7476,7 +7476,7 @@ patch release for package-byte safety; it does not change assay semantics.
       every evidence-package writer to it.
 - [x] Prove fallback, target-exists and source/predecessor mutation behavior;
       compare original source hashes and package reconciliation.
-- [ ] Bump 2.0.1, run format/lint/full tests, review, open PR, pass final-head
+- [x] Bump 2.0.1, run format/lint/full tests, review, open PR, pass final-head
       CI, merge and deploy from clean main; verify exact public artifacts.
 
 ## Review
@@ -7496,5 +7496,41 @@ with one worker and an explicit 0.75 GB memory budget after the normal 2.5 GB
 preflight refused at 1.03 GB free. Its peak resident set was 0.88 GiB.
 Format and lint pass. An isolated editable install reports the expected 2.0.1
 metadata; both 2.0.1 distribution artifacts build, pass `twine check`, and
-the wheel contains the new snapshot helper. Final-head CI, review, merge and
-release remain.
+the wheel contains the new snapshot helper. PR #763 passed the complete
+Python matrix, integration and coverage checks, merged as `dcd33aa`, and the
+clean-main release run 39908123658 passed 3,226 unit tests plus 96 integration
+tests. PyPI 2.0.1 serves the tested wheel and sdist SHA-256 values
+`3f1ec6bb0898a198e922001d72e4b015ad8682b322246f5409c1a12abdf1956b`
+and `3192df2afb1aaac972d43dba9523bab576525602c2843b1b3498a56619295722`.
+
+# PR 10: bounded release-artifact verifier (#755)
+
+Spec: [pr10-release-verifier-spec.md](pr10-release-verifier-spec.md). Base is
+the merged and PyPI-published 2.0.1 release (`dcd33aa`). This is an
+independent 2.0.2 patch release for the publication gate.
+
+- [x] Reproduce the unbounded direct artifact-ZIP request in a failing test.
+- [x] Add bounded exact-run artifact retrieval and retain the trusted receipt
+      plus downloaded-distribution hash checks.
+- [x] Cover timeout, failure, corruption, mismatch and artifact replacement.
+- [ ] Bump 2.0.2; run format/lint/full tests, build, review, PR CI, merge and
+      deploy from clean main; verify exact public artifacts.
+
+## Review
+
+The new bounded-download regression fails against 2.0.1 at the exact direct
+`gh api .../zip` call, before any implementation change. The replacement
+verifier limits metadata calls to 30 seconds and the exact-run, exact-name
+artifact download to 120 seconds. It rechecks the artifact ID, rejects
+missing, extra or symlinked files, compares the trusted and local receipts,
+and checks downloaded distribution hashes against the receipt. All 26
+focused release tests pass, including simulated timeout, partial cleanup,
+failed download, corrupt receipt, modified wheel and artifact replacement.
+The new verifier also passed against the real 2.0.1 release artifact from
+successful run 39908123658 and clean main `dcd33aa`. Format and lint pass;
+66 release/deploy/corpus tests pass. An isolated editable install reports
+the expected 2.0.2 metadata, and the wheel and sdist build, pass `twine check`
+and retain exact license metadata. Local `TEST_SH_MAX=1 ./test.sh` stopped at
+its memory preflight (0.37 GB available versus the conservative 2.5 GB
+one-worker budget), before pytest started. The hosted PR matrix and corpus
+integration will supply the full test gate. PR CI, merge and release remain.
