@@ -39,18 +39,22 @@ scientific targets or claim new model performance.
 
 ## Verification and publication
 
-- [ ] File a concrete issue after checking existing owners.
-- [ ] Merge upstream and implement the minimal dispatch/snapshot changes.
-- [ ] Regression fixtures cover both schema-8 families, schema-9 predecessors,
+- [x] File a concrete issue after checking existing owners.
+- [x] Merge upstream and implement the minimal dispatch/snapshot changes.
+- [x] Regression fixtures cover both schema-8 families, schema-9 predecessors,
       missing/ambiguous tags, tampering, source replacement, registry and bindings.
-- [ ] Run format.sh, lint.sh, normal test.sh and strict docs; preserve any memory
+- [x] Run format.sh, lint.sh, normal test.sh and strict docs; preserve any memory
       guard refusal without bypassing it. Use hosted full tests when necessary.
-- [ ] Prospectively register a real package-conservation family in Presto before
+- [x] Prospectively register a real package-conservation family in Presto before
       generating it. Build actual adjudication plus appended sources from pinned
       originals. Independently check every predecessor file, nine review rows,
       source tables, canonical queries and the four registered recipe outputs.
-- [ ] Publish draft changes and exact readbacks, link issue and record limitations.
+- [x] Publish draft changes and exact readbacks, link issue and record limitations.
 
 No training, new biological split, held-out prediction, cloud compute or shared
 environment modification belongs to this compatibility task. Controls source
 admission and a frozen local biological comparison remain the next goal step.
+
+## Review
+
+Executed code0219827 passes the local normal3317-test suite, format/lint/docs and independent real183-file conservation. Published report and exact provenance: https://github.com/pirl-unc/presto/blob/82feaf2/experiments/2026-10-23_0551_codex_adjudication-source-conservation/README.md. Draft767 includes this integration; release is not claimed. The source-generation and recipe results are data conservation, not a new biological fit.
