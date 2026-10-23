@@ -7464,3 +7464,37 @@ environment-bound checks: 12 localhost HTTP fixtures could not bind, and six
 with normal macOS probing and localhost access passed all 3,227 tests at 85%
 coverage before the CLI retirement. Final format/lint/full tests on that
 small follow-up diff, CI and deployment remain.
+
+# PR 9: immutable evidence-generation snapshots (#748)
+
+Spec: [pr9-evidence-snapshot-spec.md](pr9-evidence-snapshot-spec.md). Base is
+the merged and PyPI-published 2.0.0 release (`0dfa170`). This is a 2.0.1
+patch release for package-byte safety; it does not change assay semantics.
+
+- [x] Reproduce source and predecessor hardlink mutation failures.
+- [x] Add one clone-first, independent-inode snapshot primitive and migrate
+      every evidence-package writer to it.
+- [x] Prove fallback, target-exists and source/predecessor mutation behavior;
+      compare original source hashes and package reconciliation.
+- [ ] Bump 2.0.1, run format/lint/full tests, review, open PR, pass final-head
+      CI, merge and deploy from clean main; verify exact public artifacts.
+
+## Review
+
+Both new regressions fail against 2.0.0 before the fix: appending to a v4
+`observations.parquet` input changes the published MHC package's native
+file, and appending to the MHC predecessor changes the published context
+package's native binding file. This proves the shared-inode mechanism rather
+than relying only on a hypothetical failure. All seven generation writers now
+use one clone-first snapshot helper for imported input and predecessor files.
+Five focused snapshot and
+mutation tests pass after the change; the full set of 39 focused package
+tests passes. Each package writer still verifies its manifest and
+reconciliation, so file hashes and typed row counts remain part of the
+acceptance check. The full repository gate passes: 3,227 tests, 85% coverage,
+with one worker and an explicit 0.75 GB memory budget after the normal 2.5 GB
+preflight refused at 1.03 GB free. Its peak resident set was 0.88 GiB.
+Format and lint pass. An isolated editable install reports the expected 2.0.1
+metadata; both 2.0.1 distribution artifacts build, pass `twine check`, and
+the wheel contains the new snapshot helper. Final-head CI, review, merge and
+release remain.

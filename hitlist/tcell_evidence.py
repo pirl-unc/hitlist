@@ -25,8 +25,8 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from .curation_yaml import load_curation_yaml
+from .evidence_snapshot import snapshot_file
 from .external_evidence import verify_external_evidence_package
-from .mhc_evidence import _link_or_copy
 from .provenance import file_digest
 from .tcell_assays import (
     CATALOG_PATH,
@@ -697,17 +697,17 @@ def write_tcell_evidence_package(external_package, destination, *, iedb_path, ce
         for relative in parent["files"]:
             target = staging / relative
             target.parent.mkdir(parents=True, exist_ok=True)
-            _link_or_copy(external_package / relative, target)
+            snapshot_file(external_package / relative, target)
         (staging / "manifests").mkdir(exist_ok=True)
-        _link_or_copy(external_package / "manifest.json", staging / "manifests/external.json")
+        snapshot_file(external_package / "manifest.json", staging / "manifests/external.json")
         tcell = staging / "tcell"
         assets = tcell / "assets"
         typed = tcell / "typed"
         assets.mkdir(parents=True)
         typed.mkdir()
-        shutil.copy2(CATALOG_PATH, tcell / "source_receipt.yaml")
+        snapshot_file(CATALOG_PATH, tcell / "source_receipt.yaml")
         for name, path in sources.items():
-            shutil.copy2(path, assets / name)
+            snapshot_file(path, assets / name)
         reconciliation = _write_tcell_rows(assets, typed)
         _validate_reconciliation(reconciliation)
         _check_sources({name: assets / name for name in SOURCE_NAMES}, catalog)
