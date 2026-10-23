@@ -7551,3 +7551,20 @@ Format and lint pass. An isolated editable install reports the expected 2.0.1
 metadata; both 2.0.1 distribution artifacts build, pass `twine check`, and
 the wheel contains the new snapshot helper. Final-head CI, review, merge and
 release remain.
+
+# 2026-10-23: reconcile MAPP PR #760 with released 2.0.4
+
+Plan: [mapp-main-204-merge-spec.md](mapp-main-204-merge-spec.md).
+
+- [ ] Merge current main and resolve the schema-8 family collision.
+- [ ] Preserve MAPP relations/recipes and source-reviewed adjudications with
+      accurate generation-specific bindings and registry.
+- [ ] Verify both historical package families and real MAPP-only successors.
+- [ ] Reconcile all three recipe targets/contributors with the prior generation.
+- [ ] Run format/lint/test/docs, review CI, merge #760 and release 2.0.5 with
+      verified PyPI artifact hashes.
+- [ ] Rebase #767 onto the released MAPP version as the next serial PR.
+
+## Review
+
+Pending integration and release.
