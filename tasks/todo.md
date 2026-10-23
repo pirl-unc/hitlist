@@ -7830,3 +7830,14 @@ claims, and its source and both new recipes pass independent replay. All four
 previous recipe semantic payloads remain byte-identical. Distribution gates
 and 3,330 local tests pass; hosted release gates remain; see
 [mapp-controlled-207-results/README.md](mapp-controlled-207-results/README.md).
+
+
+## Shared quantitative digestion source770
+
+Plan: tasks/digestion-source-spec.md.
+- [ ] Source-faithful typed adapter and canonical catalog bindings.
+- [ ] Fixtures, real source reconciliation and prior-source conservation.
+- [ ] Independent arithmetic/source checks and registered training admission.
+- [ ] Normal verification, PR, review and deployment.
+
+Review: pending; full concentration goal remains active.

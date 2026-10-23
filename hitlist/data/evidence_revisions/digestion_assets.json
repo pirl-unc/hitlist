@@ -1,0 +1,119 @@
+{
+  "assets": {
+    "Identifier.xlsx": {
+      "original_descriptor": "f.MSV000092631/metadata/Identifier.xlsx",
+      "sha256": "2e6ea54198bf53417fa33afb3fee0da9b6e54a03726d3d9b6fd51e6560466913",
+      "size": 28339,
+      "url": "ftp://massive-ftp.ucsd.edu/v06/MSV000092631/metadata/Identifier.xlsx"
+    },
+    "PSP_proteins_PRIDE_v2_JL.docx": {
+      "original_descriptor": "f.MSV000092631/methods/PSP_proteins_PRIDE_v2_JL.docx",
+      "sha256": "1fb34cd736c17a9fd5186c83ab560f8108ecacd96a56393ba5e6305f363b9bf9",
+      "size": 20209,
+      "url": "ftp://massive-ftp.ucsd.edu/v06/MSV000092631/methods/PSP_proteins_PRIDE_v2_JL.docx"
+    },
+    "aSPIRE_outputs_zip.zip": {
+      "original_descriptor": "f.MSV000092631/other/aSPIRE_outputs_zip.zip",
+      "sha256": "939a87fc73f8321d177011ad68380aec0b3ea84020bf07f88e221cee2103e0ff",
+      "size": 963763954,
+      "url": "ftp://massive-ftp.ucsd.edu/v06/MSV000092631/other/aSPIRE_outputs_zip.zip"
+    },
+    "substrate-fastas/AnnexinA1.fasta": {
+      "original_descriptor": "f.MSV000092631/sequence/AA_Sequences/AnnexinA1.fasta",
+      "sha256": "4249baee930de34317911abc904a77d56451e2d8f443a4e3eaf66b0b20153dd2",
+      "size": 429,
+      "url": "ftp://massive-ftp.ucsd.edu/v06/MSV000092631/sequence/AA_Sequences/AnnexinA1.fasta"
+    },
+    "substrate-fastas/CaM.fasta": {
+      "original_descriptor": "f.MSV000092631/sequence/AA_Sequences/CaM.fasta",
+      "sha256": "bd1aa276b87bfe392893238f683f14886e367bfc3e5a008c15f1f831004f046a",
+      "size": 153,
+      "url": "ftp://massive-ftp.ucsd.edu/v06/MSV000092631/sequence/AA_Sequences/CaM.fasta"
+    },
+    "substrate-fastas/Ffh.fasta": {
+      "original_descriptor": "f.MSV000092631/sequence/AA_Sequences/Ffh.fasta",
+      "sha256": "320a65df322b0e275c2d72545c0e5f9ac69939f497a8a28060eb004eeaa09c50",
+      "size": 458,
+      "url": "ftp://massive-ftp.ucsd.edu/v06/MSV000092631/sequence/AA_Sequences/Ffh.fasta"
+    },
+    "substrate-fastas/H2A.fasta": {
+      "original_descriptor": "f.MSV000092631/sequence/AA_Sequences/H2A.fasta",
+      "sha256": "f471dce8d0dbff4c774c4fea1bea6d512bbc16c39bd2501b5762bdb31ee487d4",
+      "size": 137,
+      "url": "ftp://massive-ftp.ucsd.edu/v06/MSV000092631/sequence/AA_Sequences/H2A.fasta"
+    },
+    "substrate-fastas/H2B.fasta": {
+      "original_descriptor": "f.MSV000092631/sequence/AA_Sequences/H2B.fasta",
+      "sha256": "5e324e69c151d34073b40945e02f6098d9782261d19caff80afedd89eb0dec5b",
+      "size": 128,
+      "url": "ftp://massive-ftp.ucsd.edu/v06/MSV000092631/sequence/AA_Sequences/H2B.fasta"
+    },
+    "substrate-fastas/H3.fasta": {
+      "original_descriptor": "f.MSV000092631/sequence/AA_Sequences/H3.fasta",
+      "sha256": "aadd289762e57a181b9c970d8822495dec4f80136af7a12e67bcd9683e8b8b8d",
+      "size": 142,
+      "url": "ftp://massive-ftp.ucsd.edu/v06/MSV000092631/sequence/AA_Sequences/H3.fasta"
+    },
+    "substrate-fastas/H4.fasta": {
+      "original_descriptor": "f.MSV000092631/sequence/AA_Sequences/H4.fasta",
+      "sha256": "3e70621a4cee38355bf8a3a6fda8e05dabb20a811c8b9404468737b437eba0d8",
+      "size": 108,
+      "url": "ftp://massive-ftp.ucsd.edu/v06/MSV000092631/sequence/AA_Sequences/H4.fasta"
+    },
+    "substrate-fastas/IF2.fasta": {
+      "original_descriptor": "f.MSV000092631/sequence/AA_Sequences/IF2.fasta",
+      "sha256": "04db15344695cbb30a753080eea4f95e1ecf31e2b7b48d94bb033d44c67e5037",
+      "size": 895,
+      "url": "ftp://massive-ftp.ucsd.edu/v06/MSV000092631/sequence/AA_Sequences/IF2.fasta"
+    },
+    "substrate-fastas/IL37b.fasta": {
+      "original_descriptor": "f.MSV000092631/sequence/AA_Sequences/IL37b.fasta",
+      "sha256": "8cab74e95fb99da131804fa2fec252897b087956f0cbef6b51ebed3918d43c85",
+      "size": 264,
+      "url": "ftp://massive-ftp.ucsd.edu/v06/MSV000092631/sequence/AA_Sequences/IL37b.fasta"
+    },
+    "substrate-fastas/LEDGF.fasta": {
+      "original_descriptor": "f.MSV000092631/sequence/AA_Sequences/LEDGF.fasta",
+      "sha256": "b29c2e299f499e9c5f9c6aeae00a941142e12e123f48764749f29f1d67eb651e",
+      "size": 542,
+      "url": "ftp://massive-ftp.ucsd.edu/v06/MSV000092631/sequence/AA_Sequences/LEDGF.fasta"
+    },
+    "substrate-fastas/RF1.fasta": {
+      "original_descriptor": "f.MSV000092631/sequence/AA_Sequences/RF1.fasta",
+      "sha256": "a0228624a8cf4214297baa9982aadcf4a2ebf8d55b206b7809cb977c582692d1",
+      "size": 366,
+      "url": "ftp://massive-ftp.ucsd.edu/v06/MSV000092631/sequence/AA_Sequences/RF1.fasta"
+    },
+    "substrate-fastas/Ube2K.fasta": {
+      "original_descriptor": "f.MSV000092631/sequence/AA_Sequences/Ube2K.fasta",
+      "sha256": "f8ab26ba14baf61fa02168d6f3df7bb91dd7f77199c1d373c94fc54500a52bbb",
+      "size": 207,
+      "url": "ftp://massive-ftp.ucsd.edu/v06/MSV000092631/sequence/AA_Sequences/Ube2K.fasta"
+    },
+    "substrate-fastas/Ube2S.fasta": {
+      "original_descriptor": "f.MSV000092631/sequence/AA_Sequences/Ube2S.fasta",
+      "sha256": "58aad03219692d4fd25e1e9575ef97b1d4dc48f4d264463267255c29f70e9959",
+      "size": 229,
+      "url": "ftp://massive-ftp.ucsd.edu/v06/MSV000092631/sequence/AA_Sequences/Ube2S.fasta"
+    },
+    "substrate-fastas/aSynuclein.fasta": {
+      "original_descriptor": "f.MSV000092631/sequence/AA_Sequences/aSynuclein.fasta",
+      "sha256": "1dfd9520bc124f51d027d4ad1f3f6986389622dde903370149bf6a93ecf4fc3e",
+      "size": 220,
+      "url": "ftp://massive-ftp.ucsd.edu/v06/MSV000092631/sequence/AA_Sequences/aSynuclein.fasta"
+    },
+    "substrate-fastas/tau.fasta": {
+      "original_descriptor": "f.MSV000092631/sequence/AA_Sequences/tau.fasta",
+      "sha256": "26f276968b717a429ed3000baefd04fbea0c6bfcbc0a60468a88e7e88d765930",
+      "size": 548,
+      "url": "ftp://massive-ftp.ucsd.edu/v06/MSV000092631/sequence/AA_Sequences/tau.fasta"
+    }
+  },
+  "dataset_accessions": [
+    "MSV000092631",
+    "PXD044463"
+  ],
+  "license": "CC0-1.0",
+  "source_id": "soh2024_digestion",
+  "source_url": "https://massive.ucsd.edu/ProteoSAFe/dataset.jsp?accession=MSV000092631"
+}

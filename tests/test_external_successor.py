@@ -93,7 +93,7 @@ def test_successor_preserves_and_isolates_predecessor(tmp_path, monkeypatch, adj
     successor.write_external_successor(parent, output, source_roots={"fixture": source})
     manifest = successor.verify_external_successor(output)
     assert manifest["schema_version"] == 9
-    assert manifest["catalog_schema_version"] == 13
+    assert manifest["catalog_schema_version"] == 14
     assert (output / "newer-modality.txt").read_bytes() == (
         parent / "newer-modality.txt"
     ).read_bytes()
@@ -186,7 +186,7 @@ def test_legacy_external_eight_remains_readable(tmp_path, monkeypatch, catalog):
     assert successor.verify_external_successor(output) == manifest
 
 
-@pytest.mark.parametrize("catalog", [11, 12])
+@pytest.mark.parametrize("catalog", [11, 12, 13])
 def test_released_schema_nine_packages_remain_readable(tmp_path, monkeypatch, catalog):
     parent, source, _ = _fixture(tmp_path, monkeypatch, adjudication=True)
     output = tmp_path / "output"
@@ -205,7 +205,7 @@ def test_released_schema_nine_packages_remain_readable(tmp_path, monkeypatch, ca
         {"parent_manifest_path": "manifests/adjudication.json"},
         {"parent_manifest_path": "../escape"},
         {"review_revision": "ambiguous"},
-        {"catalog_schema_version": 14},
+        {"catalog_schema_version": 15},
     ],
 )
 def test_successor_rejects_false_family_or_predecessor(tmp_path, monkeypatch, changes):

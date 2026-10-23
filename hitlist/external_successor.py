@@ -15,8 +15,15 @@ from .provenance import file_digest
 from .reference_evidence import verify_reference_evidence_package
 
 PACKAGE_SCHEMA_VERSION = 9
-CATALOG_SCHEMA_VERSION = 13
-READABLE_SCHEMA_VERSIONS = ((8, 10), (8, 11), (9, 11), (9, 12), (9, CATALOG_SCHEMA_VERSION))
+CATALOG_SCHEMA_VERSION = 14
+READABLE_SCHEMA_VERSIONS = (
+    (8, 10),
+    (8, 11),
+    (9, 11),
+    (9, 12),
+    (9, 13),
+    (9, CATALOG_SCHEMA_VERSION),
+)
 PARENT_MANIFESTS = {
     "reference": "manifests/reference.json",
     "adjudication": "manifests/adjudication.json",

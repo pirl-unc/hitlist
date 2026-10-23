@@ -1,0 +1,72 @@
+{
+  "buffer": {
+    "HEPES_mM": 50,
+    "KCl_mM": 20,
+    "MgCl2_mM": 5,
+    "pH": 7.2
+  },
+  "conflicts": {
+    "RF1_time": "two b1 0h runs have quantity time1h; preserve both; no training admission",
+    "contaminant_enzymes": "six metadata enzyme labels conflict with raw/search filenames"
+  },
+  "construct_files": {
+    "aSPIRE_AnnexinA1": "AnnexinA1.fasta",
+    "aSPIRE_CaM": "CaM.fasta",
+    "aSPIRE_FFH_12p5": "Ffh.fasta",
+    "aSPIRE_FFH_25": "Ffh.fasta",
+    "aSPIRE_FFH_6p25": "Ffh.fasta",
+    "aSPIRE_H2A": "H2A.fasta",
+    "aSPIRE_H2B": "H2B.fasta",
+    "aSPIRE_H3": "H3.fasta",
+    "aSPIRE_H4": "H4.fasta",
+    "aSPIRE_IF2": "IF2.fasta",
+    "aSPIRE_IL37b": "IL37b.fasta",
+    "aSPIRE_LEDGF": "LEDGF.fasta",
+    "aSPIRE_RF1": "RF1.fasta",
+    "aSPIRE_UBE2K": "Ube2K.fasta",
+    "aSPIRE_UBE2S": "Ube2S.fasta",
+    "aSPIRE_aSyn": "aSynuclein.fasta",
+    "aSPIRE_hTau": "tau.fasta"
+  },
+  "endpoint": "purified_proteasome_fragment_MS_response",
+  "enzyme_complex": "20S standard proteasome",
+  "enzyme_preparation_cell_line": "HeLa",
+  "enzyme_scope": "publication common preparation; not an APC sample",
+  "enzyme_species": "Homo sapiens",
+  "enzyme_substrate_denominators": {
+    "aSPIRE_AnnexinA1": 5,
+    "aSPIRE_CaM": 100,
+    "aSPIRE_FFH_12p5": 12.5,
+    "aSPIRE_FFH_25": 25,
+    "aSPIRE_FFH_6p25": 6.25,
+    "aSPIRE_H2A": 100,
+    "aSPIRE_H2B": 100,
+    "aSPIRE_H3": 25,
+    "aSPIRE_H4": 25,
+    "aSPIRE_IF2": 25,
+    "aSPIRE_IL37b": 5,
+    "aSPIRE_LEDGF": 25,
+    "aSPIRE_RF1": 25,
+    "aSPIRE_UBE2K": 25,
+    "aSPIRE_UBE2S": 25,
+    "aSPIRE_aSyn": 35,
+    "aSPIRE_hTau": 25
+  },
+  "expected": {
+    "n_archives": 17,
+    "n_final_rows": 53413,
+    "n_metadata_enzyme_conflicts": 6,
+    "n_ms1_rows": 5792969,
+    "n_raw_quantities": 545664,
+    "n_runs": 388,
+    "n_time_conflicts": 2278
+  },
+  "input_scope": "publication protocol values; Ffh ratios also explicit metadata; not independently measured per run",
+  "observation_scope": "raw/filtered/reported peptide signal; no concentration or implicit negative labels",
+  "protocol_citation": "https://doi.org/10.1038/s41467-024-45339-3",
+  "source_receipt_sha256": "f15e37aa9d445d29d498f556c17c1ee71adc16d158546b835442ac8e7c2dde8a",
+  "substrate_concentration_um_aSyn": 7,
+  "substrate_concentration_um_default": 5,
+  "temperature_c": 37,
+  "training_admission": "pending_registered_recipe_and_all_admitted_arithmetic_replay"
+}
