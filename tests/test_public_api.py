@@ -21,21 +21,25 @@ from hitlist import _PUBLIC_API
 def test_top_level_entry_points_importable():
     from hitlist import (  # noqa: F401
         MHC_ALLELE_PROVENANCE_VALUES,
+        EvidenceStore,
         ProteomeIndex,
         VersionedDatasetRegistry,
         build_observations,
         fetch,
-        generate_ms_observations_table,
-        load_ms_observations,
+        verify_recipe_package,
+        verify_reference_evidence_package,
+        write_reference_evidence_package,
     )
 
     assert callable(build_observations)
     assert callable(fetch)
+    assert callable(EvidenceStore.open)
 
 
 def test_public_api_is_discoverable():
     assert "build_observations" in dir(hitlist)
-    assert "load_ms_observations" in hitlist.__all__
+    assert "EvidenceStore" in hitlist.__all__
+    assert "generate_training_table" not in hitlist.__all__
     assert "VersionedDatasetRegistry" in hitlist.__all__
 
 

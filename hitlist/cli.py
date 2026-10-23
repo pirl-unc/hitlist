@@ -800,8 +800,7 @@ def _handle_data(args: argparse.Namespace) -> None:
     if args.data_command in _DEPRECATED_DATA_SUBCOMMANDS:
         new_path = _DEPRECATED_DATA_SUBCOMMANDS[args.data_command]
         print(
-            f"Note: `hitlist data {args.data_command}` is deprecated; use "
-            f"`{new_path}` instead.  Will be removed in v2.0.",
+            f"Note: `hitlist data {args.data_command}` is deprecated; use `{new_path}` instead.",
             file=sys.stderr,
         )
     handlers[args.data_command](args)
@@ -824,12 +823,15 @@ def main() -> None:
 
     parser = ColorArgumentParser(
         prog="hitlist",
-        description="hitlist: curated mass spectrometry evidence for MHC ligand data",
+        description="hitlist: verified immune and nonimmune evidence for model training",
     )
     parser.add_argument("--version", action="version", version=f"hitlist {__version__}")
     sub = parser.add_subparsers(dest="command")
     _build_data_parser(sub)
     _build_top_level_build_parser(sub)
+    from .cli_evidence_store import register_evidence_cli
+
+    register_evidence_cli(sub)
 
     p_report = sub.add_parser(
         "report",
@@ -1183,182 +1185,8 @@ def main() -> None:
     _add_binding_measurement_args(p_bind)
     p_bind.add_argument("--output", "-o", help="Write to file (.csv or .parquet)")
 
-    p_training = export_sub.add_parser(
-        "training",
-        help=(
-            "Unified pMHC training export composed from the canonical MS, "
-            "binding, and peptide-mappings indexes."
-        ),
-    )
-    p_training.add_argument(
-        "--include-evidence",
-        choices=["ms", "binding", "both"],
-        default="both",
-        help="Which evidence families to include (default: both).",
-    )
-    p_training.add_argument("--class", dest="mhc_class", help="MHC class (I, II, or non-classical)")
-    p_training.add_argument("--species", help="Filter by MHC species")
-    _add_binding_measurement_args(p_training)
-    _add_export_species_axis_args(p_training)
-    p_training.add_argument(
-        "--source",
-        choices=["iedb", "cedar", "supplement"],
-        help=(
-            "Filter by data source. Supplementary data is MS-only, so it "
-            "only contributes rows when --include-evidence includes ms."
-        ),
-    )
-    p_training.add_argument(
-        "--instrument-type",
-        help="MS-only filter on instrument type (Orbitrap, timsTOF).",
-    )
-    p_training.add_argument(
-        "--acquisition-mode",
-        help="MS-only filter on acquisition mode (DDA, DIA, PRM).",
-    )
-    p_training.add_argument(
-        "--mono-allelic",
-        dest="mono_allelic",
-        action="store_true",
-        default=None,
-        help="MS-only filter: keep mono-allelic rows.",
-    )
-    p_training.add_argument(
-        "--multi-allelic",
-        dest="mono_allelic",
-        action="store_false",
-        help="MS-only filter: keep multi-allelic rows.",
-    )
-    p_training.add_argument(
-        "--min-allele-resolution",
-        choices=ALLELE_RESOLUTION_FLOORS,
-        help="Minimum allele resolution",
-    )
-    p_training.add_argument(
-        "--mhc-allele",
-        action="extend",
-        nargs="+",
-        help="Exact allele filter. Space-separated, comma-separated, or repeated.",
-    )
-    p_training.add_argument(
-        "--mhc-allele-in-set",
-        action="extend",
-        nargs="+",
-        help=(
-            "Filter to rows whose mhc_allele_set (issue #137 expanded "
-            "candidate-allele set) contains any of the listed alleles. "
-            "Captures both 4-digit rows AND multi-allele class-only rows whose "
-            "donor genotype includes the allele.  Repeatable."
-        ),
-    )
-    p_training.add_argument(
-        "--mhc-allele-provenance",
-        action="extend",
-        nargs="+",
-        choices=MHC_ALLELE_PROVENANCE_VALUES,
-        help=(
-            "Filter by how the allele set was obtained.  Use 'exact' for "
-            "strict-resolution training; ['exact', 'sample_allele_match'] for "
-            "MIL / noisy-OR over small trusted sets."
-        ),
-    )
-    p_training.add_argument(
-        "--restriction-evidence",
-        action="extend",
-        nargs="+",
-        choices=RESTRICTION_EVIDENCE_VALUES,
-        help="Filter by how the named peptide-to-MHC restriction was established.",
-    )
-    p_training.add_argument(
-        "--serotype-source",
-        action="extend",
-        nargs="+",
-        choices=SEROTYPE_SOURCE_VALUES,
-        help=(
-            "Filter by whether the serotype is primary data (reported), a "
-            "projection of a named molecule (derived), or a union over a "
-            "donor's typed alleles (donor_set)."
-        ),
-    )
-    p_training.add_argument(
-        "--gene",
-        action="extend",
-        nargs="+",
-        help=(
-            "Filter by gene (HGNC symbol, Ensembl ID, or old alias). "
-            "Space-separated, comma-separated, or repeated. Requires a mappings-built index."
-        ),
-    )
-    p_training.add_argument(
-        "--gene-name", action="extend", nargs="+", help="Exact match on gene_name."
-    )
-    p_training.add_argument("--gene-id", action="extend", nargs="+", help="Exact match on gene_id.")
-    p_training.add_argument(
-        "--peptide",
-        action="extend",
-        nargs="+",
-        help="Filter to one or more peptide sequences. Space-separated, comma-separated, or repeated.",
-    )
-    p_training.add_argument(
-        "--serotype",
-        action="extend",
-        nargs="+",
-        help="Filter by MHC serotype (A2, BoLA-A18). Space-separated, comma-separated, or repeated.",
-    )
-    p_training.add_argument("--length-min", type=int, help="Minimum peptide length (inclusive).")
-    p_training.add_argument("--length-max", type=int, help="Maximum peptide length (inclusive).")
-    p_training.add_argument(
-        "--map-source-proteins",
-        "--explode-mappings",
-        dest="map_source_proteins",
-        action="store_true",
-        help=(
-            "Expand to one row per (evidence row, source-protein mapping), "
-            "adding protein_id / gene_name / gene_id / gene_biotype / "
-            "transcript_id / position / n_flank / c_flank from "
-            "peptide_mappings.parquet. "
-            "Suitable for flank-aware training pipelines such as Presto. "
-            "(--explode-mappings is a deprecated alias.)"
-        ),
-    )
-    p_training.add_argument(
-        "--with-peptide-origin",
-        action="store_true",
-        help=(
-            "Enrich each row with a per-sample expression anchor and "
-            "peptide-origin call (argmax-TPM gene with provenance). "
-            "Adds expression_backend / expression_key / "
-            "expression_match_tier / expression_parent_key and "
-            "peptide_origin_gene / peptide_origin_tpm / "
-            "peptide_origin_dominant_transcript columns. Issue #140."
-        ),
-    )
-    p_training.add_argument(
-        "--proteome-release",
-        type=int,
-        default=112,
-        help=(
-            "Ensembl release used for transcript-isoform lookup when "
-            "--with-peptide-origin is set and transcript-level TPM is "
-            "available (default: 112)."
-        ),
-    )
-    training_destination = p_training.add_mutually_exclusive_group()
-    training_destination.add_argument("--output", "-o", help="Write to file (.csv or .parquet)")
-    training_destination.add_argument(
-        "--bundle", help="Write a new directory with a verified manifest"
-    )
-    p_training.add_argument(
-        "--allow-stale-indexes",
-        action="store_true",
-        help="Allow historical/unverifiable indexes in --bundle; record their freshness",
-    )
-    p_training.add_argument(
-        "--columns", nargs="+", help="Project training columns; identity is retained"
-    )
     from .split_audit import POLICIES
 
-    p_training.add_argument("--split-policy", choices=sorted(POLICIES), default="report_only")
     p_audit = sub.add_parser(
         "audit-splits", help="Audit partitions supplied as verified training bundles"
     )
@@ -1905,11 +1733,16 @@ def main() -> None:
     # The library resolves the data directory silently (`data_dir()` backs
     # `observations_cache_is_current()`, which promises no output); the CLI is
     # where a user is told they are still on the legacy location (#291).
-    notice = legacy_data_dir_notice()
-    if notice:
-        print(notice, file=sys.stderr)
+    if args.command != "evidence":
+        notice = legacy_data_dir_notice()
+        if notice:
+            print(notice, file=sys.stderr)
     if args.command == "data":
         _handle_data(args)
+    elif args.command == "evidence":
+        from .cli_evidence_store import handle_evidence_cli
+
+        handle_evidence_cli(args)
     elif args.command == "build":
         _handle_build(args)
     elif args.command == "report":
@@ -2503,7 +2336,7 @@ def _add_export_species_axis_args(parser: argparse.ArgumentParser) -> None:
 
 
 def _export_training(args: argparse.Namespace):
-    """Run the ``hitlist export training`` subcommand."""
+    """Reproduce the historical MHC training export for source audits."""
     from .export import generate_training_table
 
     options = {
@@ -2664,7 +2497,7 @@ def _export(args: argparse.Namespace) -> None:
 
     # Deprecation notices for legacy export subcommands.  Behavior is
     # preserved for one release; these notices steer users at the
-    # canonical replacement before removal in v2.0.
+    # canonical replacement for historical 1.x export commands.
     _deprecated_export = {
         "summary": "hitlist export peptide-counts --by class",
         "counts": "hitlist export peptide-counts --by study",
@@ -2677,8 +2510,7 @@ def _export(args: argparse.Namespace) -> None:
     }
     if cmd in _deprecated_export:
         print(
-            f"Note: `hitlist export {cmd}` is deprecated; use "
-            f"`{_deprecated_export[cmd]}` instead.  Will be removed in v2.0.",
+            f"Note: `hitlist export {cmd}` is deprecated; use `{_deprecated_export[cmd]}` instead.",
             file=sys.stderr,
         )
 
@@ -2758,19 +2590,6 @@ def _export(args: argparse.Namespace) -> None:
                 has_quantitative_value=getattr(args, "has_quantitative_value", None),
             )
         except (ValueError, FileNotFoundError) as e:
-            print(f"Error: {e}", file=sys.stderr)
-            sys.exit(1)
-    elif cmd == "training":
-        _export_progress(
-            "Composing the training export from observations.parquet, binding.parquet, "
-            "and peptide_mappings.parquet ..."
-        )
-        try:
-            df = _export_training(args)
-            if getattr(args, "bundle", None):
-                print(f"Wrote training bundle manifest to {df}")
-                return
-        except (ValueError, OSError) as e:
             print(f"Error: {e}", file=sys.stderr)
             sys.exit(1)
     elif cmd in ("bulk", "bulk-proteomics"):

@@ -17,7 +17,7 @@ def test_version_flag_prints_version_and_exits(monkeypatch, capsys):
     assert __version__ in out
 
 
-@pytest.mark.parametrize("export_command", ["ms", "binding", "training"])
+@pytest.mark.parametrize("export_command", ["ms", "binding"])
 def test_export_cli_accepts_every_mhc_allele_provenance(export_command, monkeypatch):
     """#419: the parser vocabulary cannot lag values emitted by the scanner."""
     from hitlist.cli import main

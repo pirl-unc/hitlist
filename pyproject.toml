@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "hitlist"
 dynamic = ["version"]
-description = "Curated mass spectrometry evidence for MHC ligand data from IEDB and CEDAR"
+description = "Verified, source-preserving evidence for immune and nonimmune training data"
 readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
