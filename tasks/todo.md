@@ -7393,3 +7393,11 @@ Plan: tasks/mapp-reference-plan.md. Current main numericPR756 merged into branch
 Actual schema2 package:120files,62,984proteins,133,414accessionclaims,37,721occurrences,64,538sourceclaims,26,992resolutions,21,346coverage rows. Producer54.80s, independentBioPython/Aho-Corasick/graph replay20.22s, peakRSS0.987GiB. Initial test guard refused0.77GiB; normal retry admitted one worker at3.89GiB.21focused tests and format/lint pass. Broader endpoint/recipe remains739; precursor pairing757. No fit or concentration claim.
 
 Reference software closure: normal full suite passes3,236tests/10warnings in320.81s with one worker and intact memoryguard. Format/lint and21focused tests pass; independent complete source/reference replay passes. Indexed-corpus integration CI remains separate. No source code changed after validation.
+
+## MAPP biological recipe (stacked on758)
+
+Plan: tasks/mapp-biological-recipe-plan.md. This is a scoped shared recipe foundation for739, not the whole unified major release.
+- [ ] Registered recipe, source verification, complete dispositions and contributors.
+- [ ] Explicit parent/occurrence policy, connected-component holdouts and quantities.
+- [ ] Fixtures, real independent admission replay, format/lint/full tests.
+- [ ] Publish and hand off immutable recipe output to the registered Presto experiment.

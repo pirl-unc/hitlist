@@ -179,7 +179,19 @@ def test_index_requirements_are_weaker_than_task_requirements():
         in describe_task("external_digest_peptide_relative_quantity")["required"]
     )
     assert "material_link_precision" in describe_task("external_mhc_relative_quantity")["required"]
-    assert all(describe_task(name)["status"] == "v2_contract_only" for name in list_tasks())
+    assert all(
+        describe_task(name)["status"] == "v2_contract_only"
+        for name in list_tasks()
+        if name != "captured_fragment_conditional_composition"
+    )
+
+
+def test_available_captured_fragment_task_resolves_registered_recipe_contracts():
+    from hitlist.evidence_recipes import list_training_recipes
+
+    task = describe_task("captured_fragment_conditional_composition")
+    assert task["status"] == "v2_recipe_available"
+    assert set(task["recipe_ids"]) == {r["recipe_id"] for r in list_training_recipes()}
 
 
 def test_strict_description_and_deterministic_json():

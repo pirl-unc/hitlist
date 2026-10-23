@@ -71,6 +71,7 @@ class Task:
     label_rule: str
     status: str = "v2_contract_only"
     required_any_of: tuple[tuple[str, ...], ...] = ()
+    recipe_ids: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -1545,6 +1546,21 @@ EVIDENCE = (
 _EVIDENCE_BY_NAME = {item.name: item for item in EVIDENCE}
 
 TASKS = (
+    Task(
+        "captured_fragment_conditional_composition",
+        ("external_proteasome_fragment_quantity",),
+        (
+            "source_dataset",
+            "peptide_sequence",
+            "measured_pool",
+            "quantitative_value",
+            "quantity_scale",
+            "material_link_precision",
+        ),
+        "Use the registered MAPP recipe, including publisher medians, reference alternatives and all-source split constraints. Predict relative captured signal on the admitted observable set, not free concentration or missing-fragment negatives.",
+        status="v2_recipe_available",
+        recipe_ids=("mapp_captured_composition_v1", "mapp_captured_composition_min2_v1"),
+    ),
     Task(
         "mhc_positive_presentation",
         ("mhc_positive_ms",),

@@ -85,3 +85,7 @@ and [shared query/recipe interface #739](https://github.com/pirl-unc/hitlist/iss
 [Parallel proteome metadata #757](https://github.com/pirl-unc/hitlist/issues/757)
 tracks the independent precursor quantities and pairing needed downstream.
 This importer alone does not complete either issue or establish a biological fit.
+
+[Declared training recipes](evidence-recipes.md) export conditional captured-signal
+compositions with explicit source admission, contributors and component splits.
+They do not identify free-pool concentration or mass outside the admitted set.
