@@ -5,6 +5,11 @@ Date: 2026-10-23. Codex / GPT-6. Owner: Hitlist759. Previous goal turn: progress
 Base:46df42d, current main0a21661 (2.0.4). This feature reserves2.0.6, building on
 unreleased2.0.5 source work. Preserve the other checkout's unstaged documentation.
 
+Release reconciliation: 2.0.6 was this experiment's provisional version and
+has since been reserved for the merged MS calibration PR #767. The controlled
+panels will ship as 2.0.7 under
+[mapp-controlled-207-release-spec.md](mapp-controlled-207-release-spec.md).
+
 ## Scientific scope and hypothesis
 
 The immediate question is whether a directly perturbed processing panel has a

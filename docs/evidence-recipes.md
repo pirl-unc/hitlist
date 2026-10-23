@@ -57,10 +57,9 @@ relative captured signal conditional on an observed set; mass outside the set is
 unidentified and unreported peptides are not negatives. It is not a calibrated
 intracellular concentration or professional-APC validation endpoint.
 
-The MAPP schema2 adapter is appended to the complete Hitlist 2.0 reference generation
-with `hitlist evidence append-sources PREDECESSOR_PACKAGE OUTPUT --source-root pxd009092=ASSETS`.
-The predecessor may be a verified reference or adjudication package. The schema9
-successor preserves every predecessor byte, source and modality; old
+The MAPP schema2 adapter can be appended to a verified reference or adjudication
+generation with `hitlist evidence append-sources PREDECESSOR_PACKAGE OUTPUT --source-root pxd009092=ASSETS`.
+The schema-9 successor preserves every predecessor byte, source and modality; old
 experimental packages and receipts are not relabeled. Independent precursor
 estimates and exact parallel-proteome pairing remain in [#757](https://github.com/pirl-unc/hitlist/issues/757).
 
