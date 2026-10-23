@@ -7309,3 +7309,35 @@ versus 2.5 GiB required). The retry passes all 3,218 tests with one skip and
 is byte-identical to the audited head; format/lint and `./test.sh` pass again
 with 3,218 tests, one skip and 87% coverage in 2m42s. Final-head hosted CI
 remains pending.
+
+# Hitlist 2.0 supporting numeric measurements — PR 7 of 8 (#751)
+
+Spec: [pr7-supporting-numeric-spec.md](pr7-supporting-numeric-spec.md).
+Branch from PR 6's exact merged commit `ca0c729`; merge only after its
+1.82.23 wheel and sdist are published and hash-verified.
+
+- [x] Audit every native bulk-protein and expression numeric column by source,
+      grain and missingness; preserve peptide detection as nonquantitative.
+- [ ] Append one immutable, independently snapshotted successor generation
+      with typed per-representation measurements and source-row lineage.
+- [ ] Register the new measurement relations and field-level source
+      dispositions; verify parent hashes, schemas, counts and source identities.
+- [ ] Replay every populated native numeric cell independently, add small
+      offline fixtures for null, zero, multiple scales and source alignment.
+- [ ] Bump 1.82.24, run format/lint/full tests, review final diff and CI.
+- [ ] Merge and deploy from clean main; verify exact PyPI wheel/sdist hashes
+      before PR 8.
+
+## Initial review
+
+Pinned v4 native bulk has 2,047,003 Bekker-Jensen peptide-detection rows and
+222,285 protein rows: 156,211 Bekker-Jensen and 66,074 CCLE. No peptide row
+has a populated source numeric quantity. All 156,211 Bekker-Jensen protein
+rows have log2 intensity and abundance percentile; all 66,074 CCLE protein
+rows have normalized log2 abundance and percentile. That yields 444,570
+source numeric protein cells. Each of 42,909 gene-expression rows has TPM and
+log2 TPM, yielding 85,818 expression cells, including 3,771 measured zeros
+on each scale. The source percentile ranges approximately 0–1. The typed
+result files preserve all source-row identities but currently omit these
+numeric cells, as filed in #751. An independent snapshot for the successor
+will also address the final-generation inode risk described in #748.
