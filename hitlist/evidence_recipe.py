@@ -518,12 +518,16 @@ def materialize_recipe(store, recipe, destination):
     """Write all candidate decisions without changing the verified source package."""
     recipe = _read_recipe(recipe)
     if isinstance(recipe, dict) and "registered_recipe" in recipe:
+        from .digestion_recipe import RECIPE_ID as DIGESTION_ID
+        from .digestion_recipe import materialize_timecourses
         from .distribution_recipe import materialize_distribution
         from .mapp_controlled_recipe import CONTRAST_ID as CONTROLLED_CONTRAST_ID
         from .mapp_controlled_recipe import RECIPE_ID as CONTROLLED_ID
         from .mapp_controlled_recipe import materialize_controlled
         from .ms_calibration_response import RECIPE_ID, materialize_response
 
+        if recipe["registered_recipe"] == DIGESTION_ID:
+            return materialize_timecourses(store, recipe, destination)
         if recipe["registered_recipe"] in (CONTROLLED_ID, CONTROLLED_CONTRAST_ID):
             return materialize_controlled(store, recipe, destination)
         if recipe["registered_recipe"] == RECIPE_ID:
@@ -760,6 +764,10 @@ def verify_recipe_package(directory, *, source_package=None):
     ):
         raise RecipeError("Source package manifest changed")
     output_kind = manifest.get("output_kind", "row_decisions")
+    if output_kind == "registered_digestion_timecourses":
+        from .digestion_recipe import verify_timecourse_contents
+
+        return verify_timecourse_contents(directory, manifest, source_package)
     if output_kind in ("registered_processing_runs", "registered_processing_contrast"):
         from .mapp_controlled_recipe import verify_controlled_contents
 

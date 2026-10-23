@@ -7860,3 +7860,13 @@ and280,664 final slots; details in
 Format/lint/37 focused tests/strict docs and distribution gates pass. The
 current local full test runner refused at0.68GiB free versus2.5GiB required;
 hosted final-head test and integration checks are still required.
+
+## Contiguous digestion time-course recipe
+
+Plan: tasks/digestion-contiguous-recipe.md. Based on merged PR773 source review.
+- [ ] Implement pure source-linked curve compilation and frozen component grouping.
+- [ ] Register canonical materialize/verify/discovery with fixtures.
+- [ ] Freeze and run real source admission, independently verify targets and groups.
+- [ ] Preserve exclusions, publish candidate and retain biological fitting gate.
+
+Review: pending. No new biological model fit.
