@@ -135,3 +135,9 @@ targets. Supply `--source-package` to additionally verify all exported source
 rows against the original hash-bound Parquet files; standalone verification
 establishes internal consistency only. Scientific source and split qualification
 remains necessary before fitting or comparing models.
+
+The [registered raw-S4 diagnostic](https://github.com/pirl-unc/presto/blob/9f8e4e0/experiments/2026-10-23_0359_codex_raw-s4-response/README.md) independently verified the original-source recipe and its local grouped fits.
+The admitted population has22 observed peptides and224 peptide/site summaries.
+A load/site baseline outperformed the prespecified sequence-augmented ridge
+model in that selected cohort; neither result establishes biological
+concentration or cross-assay transfer.

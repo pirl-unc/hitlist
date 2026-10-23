@@ -7570,8 +7570,10 @@ Real-source closure: corrected04f7369 and independent verifier pass, preserving1
 ## 2026-10-23 bounded MS nominal-response recipe
 
 Plan: tasks/ms-calibration-response-spec.md; Presto raw-s4-nominal-response plan.
-- [ ] Compile source-bound conditional raw-S4 examples with complete exclusions/provenance.
-- [ ] Expose and verify through canonical catalog/materialize/CLI APIs; preserve old recipes.
-- [ ] Verify original-source admission independently, then run the registered local response diagnostic.
+- [x] Compile source-bound conditional raw-S4 examples with complete exclusions/provenance.
+- [x] Expose and verify through canonical catalog/materialize/CLI APIs; preserve old recipes.
+- [x] Verify original-source admission independently, then run the registered local response diagnostic.
 
 No free-concentration, processing supervision or SWATH-to-MAPP transfer claim. Full availability goal remains active.
+
+Raw-S4 review: independent XML admission checks all3069 raw slots;1974 positives become224 summaries/22 observed peptides. All295 local fits and validation/test outputs independently replay (maxprediction delta7.93e-11). Context RMSE0.8084 versus mean1.1796 and shared-penalty sequence model1.2762; no detector-transfer/concentration claim. Full report: https://github.com/pirl-unc/presto/blob/9f8e4e0/experiments/2026-10-23_0359_codex_raw-s4-response/README.md.61 focused tests/format/lint/docs pass; normal full local runner refuses0.30/2.5GiB before pytest. Previous ad60a8f full hosted CI passes; current96b9232 CI is separate. Review/merge/release remain;2.0.3 is unreleased.
