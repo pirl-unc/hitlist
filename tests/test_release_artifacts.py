@@ -2,11 +2,10 @@
 
 import importlib.util
 import json
+import shutil
 import subprocess
-from io import BytesIO
 from pathlib import Path
 from types import SimpleNamespace
-from zipfile import ZipFile
 
 import pytest
 
@@ -78,10 +77,7 @@ def release_bundle(tmp_path, monkeypatch):
     monkeypatch.setenv("GITHUB_RUN_ID", "123")
     write_manifest(dist, corpus, root)
     manifest = json.loads((dist / "release.json").read_text())
-    archive = BytesIO()
-    with ZipFile(archive, "w") as bundle:
-        bundle.writestr("release.json", json.dumps(manifest))
-    archive_bytes = archive.getvalue()
+    trusted_files = {path.name: path.read_bytes() for path in dist.iterdir()}
     run = {
         "workflow_id": 456,
         "event": "workflow_dispatch",
@@ -116,9 +112,15 @@ def release_bundle(tmp_path, monkeypatch):
     original_run = subprocess.run
 
     def run_command(command, **kwargs):
-        if command[:2] == ["gh", "api"]:
-            assert command[-1].endswith("/artifacts/789/zip")
-            kwargs["stdout"].write(archive_bytes)
+        if command[:3] == ["gh", "run", "download"]:
+            assert command[3] == "123"
+            assert command[command.index("--name") + 1] == (
+                f"hitlist-release-{manifest['source_commit']}"
+            )
+            assert command[command.index("--repo") + 1] == "pirl-unc/hitlist"
+            destination = Path(command[command.index("--dir") + 1])
+            for name, data in trusted_files.items():
+                (destination / name).write_bytes(data)
             return subprocess.CompletedProcess(command, 0)
         return original_run(command, **kwargs)
 
@@ -129,6 +131,132 @@ def release_bundle(tmp_path, monkeypatch):
 def test_verified_main_release_matches_both_artifacts(release_bundle):
     root, dist, _, _ = release_bundle
     verify_manifest(dist, root)
+
+
+def test_trusted_artifact_download_is_bounded_and_run_scoped(release_bundle, monkeypatch):
+    root, dist, _, _ = release_bundle
+    commit = json.loads((dist / "release.json").read_text())["source_commit"]
+    original_run = subprocess.run
+
+    def download(command, **kwargs):
+        if command[:2] == ["gh", "api"] and command[-1].endswith("/zip"):
+            pytest.fail("Direct artifact ZIP request has no bounded download contract")
+        if command[:3] == ["gh", "run", "download"]:
+            assert command[3] == "123"
+            assert command[command.index("--name") + 1] == f"hitlist-release-{commit}"
+            assert command[command.index("--repo") + 1] == "pirl-unc/hitlist"
+            assert kwargs["timeout"] == 120
+            target = Path(command[command.index("--dir") + 1])
+            for file in dist.iterdir():
+                shutil.copy2(file, target / file.name)
+            return subprocess.CompletedProcess(command, 0)
+        return original_run(command, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", download)
+    verify_manifest(dist, root)
+
+
+def test_release_metadata_timeout_fails_closed(release_bundle, monkeypatch):
+    root, dist, _, _ = release_bundle
+    original_output = subprocess.check_output
+
+    def timed_out(command, **kwargs):
+        if command[:2] == ["gh", "api"]:
+            assert kwargs["timeout"] == 30
+            raise subprocess.TimeoutExpired(command, kwargs["timeout"])
+        return original_output(command, **kwargs)
+
+    monkeypatch.setattr(subprocess, "check_output", timed_out)
+    with pytest.raises(ValueError, match="Timed out querying GitHub release provenance"):
+        verify_manifest(dist, root)
+
+
+def test_partial_download_timeout_fails_closed_and_cleans_up(release_bundle, monkeypatch):
+    root, dist, _, _ = release_bundle
+    original_run = subprocess.run
+    downloaded_to = []
+
+    def timed_out(command, **kwargs):
+        if command[:3] == ["gh", "run", "download"]:
+            destination = Path(command[command.index("--dir") + 1])
+            (destination / "release.json").write_text("partial")
+            downloaded_to.append(destination)
+            raise subprocess.TimeoutExpired(command, kwargs["timeout"])
+        return original_run(command, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", timed_out)
+    with pytest.raises(ValueError, match="Timed out downloading"):
+        verify_manifest(dist, root)
+    assert downloaded_to and not downloaded_to[0].exists()
+
+
+def test_failed_artifact_download_fails_closed(release_bundle, monkeypatch):
+    root, dist, _, _ = release_bundle
+    original_run = subprocess.run
+
+    def failed(command, **kwargs):
+        if command[:3] == ["gh", "run", "download"]:
+            raise subprocess.CalledProcessError(1, command)
+        return original_run(command, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", failed)
+    with pytest.raises(ValueError, match="artifact download failed"):
+        verify_manifest(dist, root)
+
+
+@pytest.mark.parametrize(
+    "change", ["missing_receipt", "corrupt_receipt", "modified_wheel", "symlinked_receipt"]
+)
+def test_incomplete_or_corrupt_artifact_fails_closed(release_bundle, monkeypatch, change):
+    root, dist, _, _ = release_bundle
+    original_run = subprocess.run
+
+    def changed_download(command, **kwargs):
+        result = original_run(command, **kwargs)
+        if command[:3] == ["gh", "run", "download"]:
+            destination = Path(command[command.index("--dir") + 1])
+            if change == "missing_receipt":
+                (destination / "release.json").unlink()
+            elif change == "corrupt_receipt":
+                (destination / "release.json").write_text("{invalid JSON")
+            elif change == "symlinked_receipt":
+                (destination / "release.json").unlink()
+                (destination / "release.json").symlink_to(dist / "release.json")
+            else:
+                (destination / "hitlist-1.2.3-py3-none-any.whl").write_bytes(b"changed bytes")
+        return result
+
+    monkeypatch.setattr(subprocess, "run", changed_download)
+    message = {
+        "missing_receipt": "missing or unexpected files",
+        "corrupt_receipt": "unreadable release manifest",
+        "modified_wheel": "distributions disagree with its manifest",
+        "symlinked_receipt": "missing or unexpected files",
+    }[change]
+    with pytest.raises(ValueError, match=message):
+        verify_manifest(dist, root)
+
+
+def test_artifact_replacement_during_download_fails_closed(release_bundle, monkeypatch):
+    root, dist, _, _ = release_bundle
+    original_output = subprocess.check_output
+    inventory_calls = 0
+
+    def replaced(command, **kwargs):
+        nonlocal inventory_calls
+        response = original_output(command, **kwargs)
+        if command[:2] == ["gh", "api"] and command[-1].endswith("/runs/123/artifacts"):
+            inventory_calls += 1
+            if inventory_calls == 2:
+                inventory = json.loads(response)
+                inventory["artifacts"][0]["id"] = 790
+                return json.dumps(inventory)
+        return response
+
+    monkeypatch.setattr(subprocess, "check_output", replaced)
+    with pytest.raises(ValueError, match="artifact identity changed"):
+        verify_manifest(dist, root)
+    assert inventory_calls == 2
 
 
 @pytest.mark.parametrize(
