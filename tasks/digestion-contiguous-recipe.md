@@ -30,8 +30,11 @@ they are not assured paired acquisition identities.
   does not independently validate the original search/synthesis-error removal.
 - Exclude RF1/unresolved quantity-metadata time conflicts at condition scope.
 - Require actual zero-time values in the filtered source for each admitted
-  peptide/biological/technical trajectory; do not accept postprocessor mock0.
-  These are observed filtered baselines, not guaranteed substrate-only controls.
+  peptide/biological/technical trajectory and as many original zero-time raw
+  quantity rows with agreeing run metadata as filtered technical rows; do not
+  accept postprocessor mock0. The source does not establish exact technical
+  acquisition pairing, so this is an aggregate coverage rule. These are
+  observed filtered baselines, not guaranteed substrate-only controls.
 - Do not turn forced final time0 into a loss target. Nonzero-time absent/NaN,
   nonpositive or nonfinite values stay exclusions/missing states.
 - Retain quantitative trajectories only when at least3 distinct positive times
@@ -59,6 +62,13 @@ subset and missing values explicitly; no outcome-based holdout reassignment.
 Reuse canonical materialize/verify infrastructure and independently rebuild
 from original source identities to verify targets, duplicate handling, groups
 and exclusions. Preserve the typed source and prior recipes.
+
+Review evidence: `tasks/digestion-recipe-209-results/README.md` and its small
+JSON receipts. The independent all-condition arithmetic and recipe verifiers
+are included in `scripts/`; no original source archive is bundled in the
+Python distribution. The original final panel's search, synthesis-error and
+terminal-time selection remain a documented source condition, not independently
+validated biological absence.
 
 ## Observation model for later fitting (not launched here)
 First test conditional temporal shape: a supplied measured reference-time value

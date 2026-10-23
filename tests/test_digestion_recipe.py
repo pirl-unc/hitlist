@@ -31,19 +31,20 @@ def fixture():
         }
     ]
     for bio in ("1", "2"):
-        tables["raw_quantities"].append(
-            {
-                "source_record_id": "raw" + bio,
-                "condition_id": "c1",
-                "peptide_sequence": "CDI",
-                "biological_replicate_raw": bio,
-                "run_id": "r" + bio,
-                "quantity_time_hours": 0.0,
-                "metadata_time_hours": 0.0,
-                "time_status": "source_agreement",
-                "intensity": 0.0,
-            }
-        )
+        for tech in ("1", "2"):
+            tables["raw_quantities"].append(
+                {
+                    "source_record_id": "raw" + bio + tech,
+                    "condition_id": "c1",
+                    "peptide_sequence": "CDI",
+                    "biological_replicate_raw": bio,
+                    "run_id": "r" + bio + tech,
+                    "quantity_time_hours": 0.0,
+                    "metadata_time_hours": 0.0,
+                    "time_status": "source_agreement",
+                    "intensity": 0.0,
+                }
+            )
         for tech in ("1", "2"):
             tables["filtered_vectors"].append(
                 {
@@ -53,6 +54,7 @@ def fixture():
                     "biological_replicate_raw": bio,
                     "technical_replicate_raw": tech,
                     "times_raw": "0;1;2;4",
+                    "intensities_raw": "0;10;20;15",
                 }
             )
         for peptide in ("CDI", "CDL"):
@@ -97,6 +99,7 @@ def test_aliases_and_repeated_zero_slots_do_not_multiply_targets():
     "mutation,reason",
     [
         ("mock_zero", "no_actual_zero_baseline_for_every_technical_label"),
+        ("missing_raw_baseline", "no_actual_zero_baseline_for_every_technical_label"),
         ("time_conflict", "unresolved_condition_time_conflict"),
         ("alias_conflict", "conflicting_IL_alias_or_repeated_slot_values"),
         ("mapping", "not_one_IL_equivalent_contiguous_span"),
@@ -108,6 +111,9 @@ def test_unsupported_measurements_exclude_with_exact_reason(mutation, reason):
     tables = fixture()
     if mutation == "mock_zero":
         tables["filtered_vectors"][0]["times_raw"] = "1;2;4"
+        tables["filtered_vectors"][0]["intensities_raw"] = "10;20;15"
+    elif mutation == "missing_raw_baseline":
+        tables["raw_quantities"].pop()
     elif mutation == "time_conflict":
         tables["raw_quantities"][0]["time_status"] = "source_metadata_conflict"
         tables["raw_quantities"][0]["quantity_time_hours"] = 1.0
@@ -160,6 +166,8 @@ def test_excluded_annotation_bridges_define_groups_before_outcomes():
 
 
 def test_portable_roundtrip_rejects_changed_target_even_with_updated_hash(tmp_path):
+    from scripts.verify_digestion_timecourses import replay
+
     from hitlist.digestion_evidence import SCHEMAS
     from hitlist.evidence_bindings import materialized_bindings
     from hitlist.evidence_recipe import RecipeError, verify_recipe_package
@@ -192,6 +200,7 @@ def test_portable_roundtrip_rejects_changed_target_even_with_updated_hash(tmp_pa
         {"schema_version": 1, "name": "fixture", "registered_recipe": RECIPE_ID}, output
     )
     verify_recipe_package(output, source_package=package)
+    assert replay(package, output)["n_admitted_curves"] == 2
     p = output / "examples.json"
     examples = json.loads(p.read_text())
     examples[0]["observations"][0]["target_value"] += 1
@@ -202,3 +211,5 @@ def test_portable_roundtrip_rejects_changed_target_even_with_updated_hash(tmp_pa
     p.write_text(json.dumps(manifest))
     with pytest.raises(RecipeError, match="derived contents changed: examples"):
         verify_recipe_package(output, source_package=package)
+    with pytest.raises(ValueError, match="Example or target differs"):
+        replay(package, output)

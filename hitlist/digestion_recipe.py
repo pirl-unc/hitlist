@@ -83,7 +83,7 @@ CONTRACT = {
     "measurement_unit": MS1_UNIT,
     "quantity_scale": QUANTITY_SCALE,
     "mapping": "exactly_one_IL_equivalent_span_in_literal_construct;canonical20;source_PCP_without_splice_alternative",
-    "baseline": "actual_filtered_zero_in_every_source_technical_label_and_raw_metadata_agreeing_zero;no_mock_zero",
+    "baseline": "actual_filtered_zero_in_every_source_technical_label;equal_count_original_zero_raw_quantities_with_metadata_agreement;no_mock_zero;technical_pairing_unresolved",
     "duplicates": "IL_alias_and_repeated_slot_collapse_only_if_values_agree_relative1e-10;otherwise_exclude_curve",
     "replication": "at_least_two_source_biological_labels_share_at_least_three_positive_nonzero_times",
     "split": "all_source_final_peptide_IL_components_and_identical_constructs;sorted_component_hash_round_robin5;fold0_test,1_val,2to4_train",
@@ -210,7 +210,11 @@ def compile_timecourses(tables):
             errors.append("not_one_IL_equivalent_contiguous_span")
         if condition in bad_conditions:
             errors.append("unresolved_condition_time_conflict")
-        if not technical[key] or technical[key] != zero_technical[key] or not raw_zero[key]:
+        if (
+            not technical[key]
+            or technical[key] != zero_technical[key]
+            or len(raw_zero[key]) != len(filtered_ids[key])
+        ):
             errors.append("no_actual_zero_baseline_for_every_technical_label")
         values = defaultdict(list)
         for row in rows:
