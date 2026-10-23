@@ -77,12 +77,14 @@ correctly differ because the new package adds a source.
 
 `./format.sh`, `./lint.sh`, strict MkDocs and 63 focused tests pass. The normal
 local `./test.sh` first refused before collection at 0.16 GiB available versus
-its unchanged 2.5 GiB minimum. The 2.0.7 wheel and sdist build with the
+its unchanged 2.5 GiB minimum. After free memory recovered, the same guarded
+runner passed all 3,330 tests with 84% total coverage and 10 expected warnings
+using three workers. The 2.0.7 wheel and sdist build with the
 controlled implementation and pinned assets, and pass Twine and exact license
 checks. An initial `uv build` attempt could not open its external user cache
 inside the sandbox; `python -m build --no-isolation` built the same source tree
-without changing any package dependency. The full-suite retry, final-head
-hosted CI, merge and exact PyPI publication remain gates.
+without changing any package dependency. Final-head hosted CI, merge and exact
+PyPI publication remain gates.
 
 The six-run response selects peptides with positive captured signal in both
 arms. It is an acquisition-level comparison, not a source-backed biological

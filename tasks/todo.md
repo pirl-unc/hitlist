@@ -7820,7 +7820,7 @@ Plan: [mapp-controlled-207-release-spec.md](mapp-controlled-207-release-spec.md)
 - [x] Bump 2.0.7 and retain historical catalog-11/12 readers.
 - [x] Rebuild real controlled successor and replay all old and new recipes.
 - [x] Run local formatting, lint, strict docs and distribution gates.
-- [ ] Pass the full local test suite under its unchanged memory guard.
+- [x] Pass the full local test suite under its unchanged memory guard.
 - [ ] Review final-head CI, merge and publish exact 2.0.7 artifacts.
 
 ## Review
@@ -7828,5 +7828,5 @@ Plan: [mapp-controlled-207-release-spec.md](mapp-controlled-207-release-spec.md)
 The 2.0.7 real package preserves all 183 prior combined files and nine review
 claims, and its source and both new recipes pass independent replay. All four
 previous recipe semantic payloads remain byte-identical. Distribution gates
-pass; local full-suite and hosted release gates remain; see
+and 3,330 local tests pass; hosted release gates remain; see
 [mapp-controlled-207-results/README.md](mapp-controlled-207-results/README.md).
