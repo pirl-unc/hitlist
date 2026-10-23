@@ -7750,3 +7750,13 @@ Previous goal turn: progress. Plan: tasks/mapp-controlled-source-spec.md.
 - [ ] Publish source/experiment evidence and update759; retain broader goal.
 
 Review: pending. Captured signal does not directly measure free concentration.
+
+## Shared complete-case controlled response
+
+Plan: tasks/mapp-controlled-contrast-spec.md; frozen scientific contract is the
+Presto controlled-mapp-exact-sampled-fit specification.
+- [x] Canonical contrast materialize/verify implementation, base recipe preserved.
+- [ ] Fixture/source replay and required format/lint/test/docs.
+- [ ] Publish real 59/14/14 membership and contrast evidence with biological fit.
+
+Review: implementation in progress; no new biological fitting yet.

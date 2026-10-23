@@ -16,6 +16,7 @@ from .evidence_catalog import SCHEMA_VERSION
 from .provenance import file_digest
 
 RECIPE_ID = "mapp_controlled_run_intensity_v1"
+CONTRAST_ID = "mapp_controlled_complete_alpha6_response_v1"
 TABLE_BINDINGS = {
     "peptide_rows": "processing_peptide",
     "channels": "processing_channel",
@@ -50,6 +51,22 @@ CONTRACT = {
         "cytokine_exposure_time_not_time_since_substrate_synthesis",
     ],
 }
+CONTRAST_CONTRACT = {
+    **CONTRACT,
+    "recipe_id": CONTRAST_ID,
+    "base_recipe": RECIPE_ID,
+    "endpoint": "complete_case_alpha6_untreated_epoxomicin_captured_signal",
+    "target": "arithmetic_mean_of_three_reported_positive_run_intensities_per_arm",
+    "admission": "base_run_admission;PXD009508;alpha6;three_positive_runs_each_arm;one_direct_MSMS_each_arm",
+    "MSMS_policy": "at_least_one_direct_MSMS_record_per_arm;not_each_run",
+    "pairing_policy": "unpaired_acquisition_numbers;no_specimen_pairing_inferred",
+    "selection_policy": "both_arm_positive_complete_cases;not_prospective_detection_or_unobserved_product_labels",
+    "normalization": "none;retain_six_values_and_two_arithmetic_means",
+}
+
+
+def _contract(recipe_id):
+    return CONTRAST_CONTRACT if recipe_id == CONTRAST_ID else CONTRACT
 
 
 def _validate(recipe):
@@ -58,16 +75,16 @@ def _validate(recipe):
     if (
         set(recipe) != {"schema_version", "name", "registered_recipe"}
         or recipe["schema_version"] != 1
-        or recipe["registered_recipe"] != RECIPE_ID
+        or recipe["registered_recipe"] not in (RECIPE_ID, CONTRAST_ID)
         or not isinstance(recipe["name"], str)
         or not recipe["name"].strip()
     ):
         raise RecipeError("Invalid registered controlled MAPP recipe")
 
 
-def describe(store):
+def describe(store, *, contrast=False):
     return {
-        "contract": CONTRACT,
+        "contract": CONTRAST_CONTRACT if contrast else CONTRACT,
         "status": "materialized"
         if set(TABLE_BINDINGS.values()) <= store.bindings.keys()
         else "not_in_generation",
@@ -209,6 +226,78 @@ def compile_controlled(tables):
     }
 
 
+def compile_contrast(tables):
+    """One source-linked response per peptide; do not infer biological pairs."""
+    base = compile_controlled(tables)
+    assignments = {row["peptide_row_id"]: row for row in base["components"]}
+    runs = defaultdict(list)
+    for row in base["examples"]:
+        if row["source_dataset"] == "PXD009508" and row["context"]["capture_label_raw"] == "alpha6":
+            runs[row["peptide_row_id"]].append(row)
+    examples, dispositions, counts = [], [], Counter()
+    for peptide in sorted(tables["peptide_rows"], key=lambda row: row["peptide_row_id"]):
+        pid = peptide["peptide_row_id"]
+        errors, arms = [], {}
+        if peptide["source_dataset"] != "PXD009508":
+            errors.append("outside_inhibitor_project")
+        else:
+            for arm in ("ut", "epoxo"):
+                values = sorted(
+                    [r for r in runs[pid] if r["context"]["treatment_label_raw"] == arm],
+                    key=lambda row: row["context"]["replicate_label"],
+                )
+                if len({r["context"]["replicate_label"] for r in values}) != len(values):
+                    raise ValueError("Repeated contrast acquisition label")
+                if [r["context"]["replicate_label"] for r in values] != [1, 2, 3]:
+                    errors.append("fewer_than_three_positive_runs_" + arm)
+                if sum(r["evidence_counts"]["n_direct_msms_evidence"] for r in values) < 1:
+                    errors.append("no_direct_msms_" + arm)
+                arms[arm] = values
+        common = {
+            **assignments[pid],
+            "source_dataset": peptide["source_dataset"],
+            "peptide_sequence": peptide["sequence_raw"],
+        }
+        dispositions.append(
+            {**common, "status": "excluded" if errors else "admitted", "reasons": errors}
+        )
+        counts.update(errors)
+        if errors:
+            continue
+        example = dict(common)
+        for arm, label in (("ut", "untreated"), ("epoxo", "epoxomicin")):
+            observations = arms[arm]
+            intensities = [r["reported_intensity"] for r in observations]
+            example[label + "_intensities"] = intensities
+            example[label + "_measurement_ids"] = [r["measurement_id"] for r in observations]
+            example[label + "_mean_intensity"] = math.fsum(intensities) / 3
+        examples.append(example)
+    return {
+        "components": base["components"],
+        "run_examples": base["examples"],
+        "run_dispositions": base["dispositions"],
+        "examples": examples,
+        "dispositions": dispositions,
+        "summary": {
+            "n_source_peptides": len(dispositions),
+            "n_examples": len(examples),
+            "n_excluded_peptides": len(dispositions) - len(examples),
+            "n_contributing_runs": 6 * len(examples),
+            "examples_by_split": dict(sorted(Counter(r["split"] for r in examples).items())),
+            "components_by_split": {
+                split: len({r["component_id"] for r in examples if r["split"] == split})
+                for split in ("train", "val", "test")
+            },
+            "reason_counts": dict(sorted(counts.items())),
+            "base_run_coverage": base["summary"],
+        },
+    }
+
+
+def _compile(tables, recipe_id):
+    return compile_contrast(tables) if recipe_id == CONTRAST_ID else compile_controlled(tables)
+
+
 def materialize_controlled(store, recipe, destination):
     from .evidence_recipe import RecipeError, verify_recipe_package
 
@@ -227,18 +316,24 @@ def materialize_controlled(store, recipe, destination):
         ]
         for table, name in TABLE_BINDINGS.items()
     }
-    compiled = compile_controlled(tables)
+    compiled = _compile(tables, recipe["registered_recipe"])
     destination.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=f".{destination.name}-", dir=destination.parent))
     try:
         shutil.copyfile(store.directory / "manifest.json", staging / "source_manifest.json")
-        for name, value in {"recipe": CONTRACT, "source_tables": tables, **compiled}.items():
+        for name, value in {
+            "recipe": _contract(recipe["registered_recipe"]),
+            "source_tables": tables,
+            **compiled,
+        }.items():
             with (staging / f"{name}.json").open("w") as stream:
                 json.dump(value, stream, sort_keys=True, indent=2, allow_nan=False)
                 stream.write("\n")
         manifest = {
             "schema_version": 1,
-            "output_kind": "registered_processing_runs",
+            "output_kind": "registered_processing_contrast"
+            if recipe["registered_recipe"] == CONTRAST_ID
+            else "registered_processing_runs",
             "catalog_schema_version": SCHEMA_VERSION,
             "hitlist_version": store._software_version(),
             "recipe": recipe,
@@ -253,6 +348,8 @@ def materialize_controlled(store, recipe, destination):
         (staging / "manifest.json").write_text(
             json.dumps(manifest, sort_keys=True, indent=2) + "\n"
         )
+        # Verification reloads the portable tables; avoid retaining a second copy.
+        del tables, compiled
         verify_recipe_package(staging, source_package=store.directory)
         staging.rename(destination)
         return destination / "manifest.json"
@@ -265,6 +362,13 @@ def verify_controlled_contents(directory, manifest, source_package=None):
     from .evidence_recipe import RecipeError
 
     _validate(manifest["recipe"])
+    expected_kind = (
+        "registered_processing_contrast"
+        if manifest["recipe"]["registered_recipe"] == CONTRAST_ID
+        else "registered_processing_runs"
+    )
+    if manifest["output_kind"] != expected_kind:
+        raise RecipeError("Controlled recipe output grain changed")
     directory = Path(directory)
     expected = {
         "recipe",
@@ -275,10 +379,12 @@ def verify_controlled_contents(directory, manifest, source_package=None):
         "summary",
         "source_manifest",
     }
+    if manifest["recipe"]["registered_recipe"] == CONTRAST_ID:
+        expected.update({"run_examples", "run_dispositions"})
     if set(manifest["files"]) != {name + ".json" for name in expected}:
         raise RecipeError("Controlled recipe inventory changed")
     records = {name: json.loads((directory / f"{name}.json").read_text()) for name in expected}
-    if records["recipe"] != CONTRACT:
+    if records["recipe"] != _contract(manifest["recipe"]["registered_recipe"]):
         raise RecipeError("Controlled recipe contract changed")
     if (
         file_digest(directory / "source_manifest.json")["sha256"]
@@ -295,7 +401,7 @@ def verify_controlled_contents(directory, manifest, source_package=None):
                 or pq.read_table(path).to_pylist() != records["source_tables"][table]
             ):
                 raise RecipeError(f"Controlled recipe source rows changed: {table}")
-    compiled = compile_controlled(records["source_tables"])
+    compiled = _compile(records["source_tables"], manifest["recipe"]["registered_recipe"])
     for name, value in compiled.items():
         if records[name] != value:
             raise RecipeError(f"Controlled recipe derived contents changed: {name}")

@@ -40,7 +40,7 @@ def describe_registered_recipes(store):
     return [
         {"contract": contract, "status": "materialized" if available else "not_in_generation"}
         for contract in registered_contracts()
-    ] + [describe(store), describe_controlled(store)]
+    ] + [describe(store), describe_controlled(store), describe_controlled(store, contrast=True)]
 
 
 def validate_registered_recipe(recipe):

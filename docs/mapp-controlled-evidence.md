@@ -76,3 +76,22 @@ No raw MS quantity here is a calibrated intracellular concentration. Precursor
 abundance, capture recovery and peptide-specific MS response remain unresolved.
 Cytokine exposure time is not time since substrate synthesis. Those distinctions
 must remain explicit in any availability or cleavage-kinetics model.
+
+## Complete-case inhibitor response
+
+`mapp_controlled_complete_alpha6_response_v1` applies a declared response cohort
+to the same run admissions: PXD009508 alpha6, all three positive untreated and
+all three positive epoxomicin runs, with at least one direct-MS/MS identification
+in each arm. It preserves the original component/split and all six measurement
+IDs and values, reporting arithmetic mean intensity separately for each arm.
+It does not create physical replicate pairs or normalize the source quantities.
+The base run examples, all run exclusions, all peptide contrast decisions and
+original source/context/contributor tables remain in the export. Verification
+recomputes the means and membership from those source tables.
+
+This selects on positive signal in both arms. It cannot measure detection of
+unobserved peptides or total intracellular products; a conditional-response model
+must state that it requires an observed untreated baseline. Use the base run
+recipe for wider observation/missingness work. The strict complete-case cohort
+and all zero/missing exclusions remain explicit, not silently converted into
+absence or negative concentration labels.

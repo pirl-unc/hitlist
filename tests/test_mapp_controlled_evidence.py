@@ -21,8 +21,8 @@ def _write(path, rows):
         writer.writerows(rows)
 
 
-def _fixture(root):
-    (root / "contracts").mkdir()
+def _fixture(root, *, all_positive=False):
+    (root / "contracts").mkdir(parents=True)
     (root / "contracts/contract.json").write_text(json.dumps({"assertions": []}))
     for project in ("PXD009508", "PXD007263"):
         if project == "PXD009508":
@@ -73,7 +73,7 @@ def _fixture(root):
             "Reverse": "",
             "Potential contaminant": "",
             "Evidence IDs": ";".join(str(i) for i in range(len(labels))),
-            **{column: str(index) for index, column in enumerate(columns)},
+            **{column: str(index + int(all_positive)) for index, column in enumerate(columns)},
         }
         _write(directory / "peptides.txt", [peptide])
         _write(
@@ -98,7 +98,7 @@ def _fixture(root):
                     "Sequence": "ACDEFGH",
                     "Raw file": f"raw_{index}",
                     "Protein group IDs": "0",
-                    "Intensity": str(index) if index else "",
+                    "Intensity": str(index + int(all_positive)) if index or all_positive else "",
                     "Type": "MULTI-MSMS" if index else "MSMS",
                     "MS/MS Count": "1",
                     "Modified sequence": "_ACDEFGH_",
@@ -240,17 +240,18 @@ def test_recipe_connects_shared_parent_sequence_across_reference_ids(tmp_path):
     assert len({row["component_id"] for row in result["components"]}) == 1
 
 
-def test_recipe_roundtrip_rejects_changed_target_even_with_new_file_hash(tmp_path):
+@pytest.mark.parametrize("contrast", [False, True])
+def test_recipe_roundtrip_rejects_changed_target_even_with_new_file_hash(tmp_path, contrast):
     from hitlist.evidence_bindings import materialized_bindings
     from hitlist.evidence_recipe import RecipeError, verify_recipe_package
     from hitlist.evidence_store import EvidenceStore
-    from hitlist.mapp_controlled_recipe import RECIPE_ID, TABLE_BINDINGS
+    from hitlist.mapp_controlled_recipe import CONTRAST_ID, RECIPE_ID, TABLE_BINDINGS
     from hitlist.provenance import file_digest
 
     source = tmp_path / "package"
     panel = source / "external/wolflevy2018_controlled"
     panel.mkdir(parents=True)
-    _recipe_tables(_fixture(panel))
+    _recipe_tables(_fixture(panel, all_positive=contrast))
     files = {
         str(path.relative_to(source)): file_digest(path)
         for path in source.rglob("*")
@@ -272,12 +273,17 @@ def test_recipe_roundtrip_rejects_changed_target_even_with_new_file_hash(tmp_pat
     }
     destination = tmp_path / "recipe"
     store.materialize(
-        {"schema_version": 1, "name": "fixture", "registered_recipe": RECIPE_ID}, destination
+        {
+            "schema_version": 1,
+            "name": "fixture",
+            "registered_recipe": CONTRAST_ID if contrast else RECIPE_ID,
+        },
+        destination,
     )
     verify_recipe_package(destination, source_package=source)
     path = destination / "examples.json"
     examples = json.loads(path.read_text())
-    examples[0]["target_log10_intensity"] += 1
+    examples[0]["epoxomicin_mean_intensity" if contrast else "target_log10_intensity"] += 1
     path.write_text(json.dumps(examples))
     manifest_path = destination / "manifest.json"
     manifest = json.loads(manifest_path.read_text())
@@ -285,3 +291,34 @@ def test_recipe_roundtrip_rejects_changed_target_even_with_new_file_hash(tmp_pat
     manifest_path.write_text(json.dumps(manifest))
     with pytest.raises(RecipeError, match="derived contents changed: examples"):
         verify_recipe_package(destination, source_package=source)
+
+
+def test_contrast_complete_positive_runs_direct_evidence_and_means(tmp_path):
+    from hitlist.mapp_controlled_recipe import compile_contrast, compile_controlled
+
+    incomplete = _recipe_tables(_fixture(tmp_path / "incomplete"))
+    excluded = compile_contrast(incomplete)
+    assert not excluded["examples"]
+    assert "fewer_than_three_positive_runs_ut" in next(
+        row["reasons"] for row in excluded["dispositions"] if row["source_dataset"] == "PXD009508"
+    )
+    tables = _recipe_tables(_fixture(tmp_path / "complete", all_positive=True))
+    base = compile_controlled(tables)
+    admitted = compile_contrast(tables)
+    assert len(admitted["examples"]) == 1
+    row = admitted["examples"][0]
+    assert row["untreated_intensities"] == [1.0, 2.0, 3.0]
+    assert row["epoxomicin_intensities"] == [4.0, 5.0, 6.0]
+    assert row["untreated_mean_intensity"] == 2.0
+    assert row["epoxomicin_mean_intensity"] == 5.0
+    assert len(row["untreated_measurement_ids"]) == 3
+    assert admitted["components"] == base["components"]
+    assert admitted["run_examples"] == base["examples"]
+    assert admitted["run_dispositions"] == base["dispositions"]
+    epoxo = {c["channel_id"] for c in tables["channels"] if c["treatment_label_raw"] == "epoxo"}
+    for result in tables["quantity_results"]:
+        if result["channel_id"] in epoxo:
+            result["n_direct_msms_evidence"] = 0
+    rejected = compile_contrast(tables)
+    assert not rejected["examples"]
+    assert any("no_direct_msms_epoxo" in d["reasons"] for d in rejected["dispositions"])
