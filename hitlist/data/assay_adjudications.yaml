@@ -1,0 +1,196 @@
+schema_version: 1
+revision: tcell_multimer_2026_10_23
+sources:
+  kotzin_1999:
+    source_pmid: '10618411'
+    publication_url: https://pmc.ncbi.nlm.nih.gov/articles/PMC26656/
+    source_asset_url: https://pmc.ncbi.nlm.nih.gov/articles/PMC26656/
+    source_asset_sha256: null
+    source_asset_status: linked_unpinned
+    source_locator: Figures 3-4, gp39-DR4 tetramer staining of rheumatoid synovial CD4 cells
+  gapvac_2018:
+    source_pmid: '30568303'
+    publication_url: https://www.nature.com/articles/s41586-018-0810-y
+    source_asset_url: https://static-content.springer.com/esm/art%3A10.1038%2Fs41586-018-0810-y/MediaObjects/41586_2018_810_MOESM1_ESM.pdf
+    source_asset_sha256: e755519a29e08dc1378e09f1d95f94ac4bc893494df7330b99f6e76bba7a2631
+    source_asset_status: sha256_pinned
+    source_locator: Corrected Supplementary Information, Table 2, PDF page 15
+  hombrink_2015:
+    source_pmid: '25589627'
+    publication_url: https://pubmed.ncbi.nlm.nih.gov/25589627/
+    source_asset_url: https://api.figshare.com/v2/file/download/39910871
+    source_asset_sha256: fa6758ca9d58cf4691dc9b6a0f17575ec88215fb023998a730cb7abe8b264058
+    source_asset_status: sha256_pinned
+    source_locator: Supplementary Table III, HNF4G-1M column after first and second multimer pull-down
+reviews:
+  - source_assay_id: '1646138'
+    source_key: kotzin_1999
+    source_peptide_code: HCgp39
+    source_row_locator: Figures 3-4, gp39 peptide-DR4 tetramer
+    expected_source_reference_id: '1014650'
+    expected_qualitative_result_raw: Negative
+    expected_n_subjects_tested_raw: '20'
+    expected_n_subjects_positive_raw: '3'
+    expected_peptide_sequence: RSFTLASSETGVG
+    expected_reported_mhc_raw: HLA-DRB1*04:01
+    expected_effector_cell_name: T cell CD4+
+    review_status: partially_resolved
+    interpretation_code: cohort_negative_with_weak_individual_signals
+    reviewed_endpoint_scope: Overall gp39-DR4 tetramer staining was judged negative; three patients had weak individual signals.
+    reviewed_population_scope: Synovial CD4 cells from rheumatoid arthritis patients, not one independent peptide-level result per patient.
+    reviewed_preparation_scope: Directly sampled synovial cells in the paper.
+    reviewed_reagent: Soluble gp39 peptide-DR4 tetramer; IEDB reports HLA-DRB1*04:01 for this assay.
+    unresolved_question: Individual weak signals and broader DR4-subtype context do not define a binary peptide-level training label.
+    training_effect: retain_excluded
+  - source_assay_id: '12892501'
+    source_key: gapvac_2018
+    source_peptide_code: GRI-002
+    source_row_locator: Supplementary Table 2, GRI-002 row
+    expected_source_reference_id: '1038427'
+    expected_qualitative_result_raw: Positive
+    expected_n_subjects_tested_raw: '2'
+    expected_n_subjects_positive_raw: '0'
+    expected_peptide_sequence: VLIQDVPTL
+    expected_reported_mhc_raw: HLA-A*02:01
+    expected_effector_cell_name: T cell CD8+
+    review_status: unresolved
+    interpretation_code: vaccine_response_zero_iedb_positive_unexplained
+    reviewed_endpoint_scope: Table 2 reports zero vaccine-induced immune responses among two immune-evaluable patients.
+    reviewed_population_scope: Vaccinated GAPVAC-101 patients eligible for this APVAC1 peptide.
+    reviewed_preparation_scope: Table 2 summarizes post-vaccination response; it does not specify the per-assay cell preparation represented by IEDB Positive.
+    reviewed_reagent: IEDB reports multimer/tetramer; Table 2 is a peptide-level response summary.
+    unresolved_question: The source does not explain IEDB's Positive qualitative tier for this zero-response Table 2 row.
+    training_effect: retain_excluded
+  - source_assay_id: '12892550'
+    source_key: gapvac_2018
+    source_peptide_code: SEZ6L-001
+    source_row_locator: Supplementary Table 2, SEZ6L-001 row
+    expected_source_reference_id: '1038427'
+    expected_qualitative_result_raw: Positive
+    expected_n_subjects_tested_raw: '3'
+    expected_n_subjects_positive_raw: '0'
+    expected_peptide_sequence: LLLGSPAAA
+    expected_reported_mhc_raw: HLA-A*02:01
+    expected_effector_cell_name: T cell CD8+
+    review_status: unresolved
+    interpretation_code: vaccine_response_zero_iedb_positive_unexplained
+    reviewed_endpoint_scope: Table 2 reports zero vaccine-induced immune responses among three immune-evaluable patients.
+    reviewed_population_scope: Vaccinated GAPVAC-101 patients eligible for this APVAC1 peptide.
+    reviewed_preparation_scope: Table 2 summarizes post-vaccination response; it does not specify the per-assay cell preparation represented by IEDB Positive.
+    reviewed_reagent: IEDB reports multimer/tetramer; Table 2 is a peptide-level response summary.
+    unresolved_question: The source does not explain IEDB's Positive qualitative tier for this zero-response Table 2 row.
+    training_effect: retain_excluded
+  - source_assay_id: '12892559'
+    source_key: gapvac_2018
+    source_peptide_code: ASPM-002
+    source_row_locator: Supplementary Table 2, ASPM-002 row
+    expected_source_reference_id: '1038427'
+    expected_qualitative_result_raw: Positive
+    expected_n_subjects_tested_raw: '1'
+    expected_n_subjects_positive_raw: '0'
+    expected_peptide_sequence: SYNPLWLRI
+    expected_reported_mhc_raw: HLA-A*24:02
+    expected_effector_cell_name: T cell CD8+
+    review_status: unresolved
+    interpretation_code: vaccine_response_zero_iedb_positive_unexplained
+    reviewed_endpoint_scope: Table 2 reports zero vaccine-induced immune responses among one immune-evaluable patient.
+    reviewed_population_scope: Vaccinated GAPVAC-101 patients eligible for this APVAC1 peptide.
+    reviewed_preparation_scope: Table 2 summarizes post-vaccination response; it does not specify the per-assay cell preparation represented by IEDB Positive.
+    reviewed_reagent: IEDB reports multimer/tetramer; Table 2 is a peptide-level response summary.
+    unresolved_question: The source does not explain IEDB's Positive qualitative tier for this zero-response Table 2 row.
+    training_effect: retain_excluded
+  - source_assay_id: '12892569'
+    source_key: gapvac_2018
+    source_peptide_code: FADS2-002
+    source_row_locator: Supplementary Table 2, FADS2-002 row
+    expected_source_reference_id: '1038427'
+    expected_qualitative_result_raw: Positive
+    expected_n_subjects_tested_raw: '1'
+    expected_n_subjects_positive_raw: '0'
+    expected_peptide_sequence: PYNHQHEYF
+    expected_reported_mhc_raw: HLA-A*24:02
+    expected_effector_cell_name: T cell CD8+
+    review_status: unresolved
+    interpretation_code: vaccine_response_zero_iedb_positive_unexplained
+    reviewed_endpoint_scope: Table 2 reports zero vaccine-induced immune responses among one immune-evaluable patient.
+    reviewed_population_scope: Vaccinated GAPVAC-101 patients eligible for this APVAC1 peptide.
+    reviewed_preparation_scope: Table 2 summarizes post-vaccination response; it does not specify the per-assay cell preparation represented by IEDB Positive.
+    reviewed_reagent: IEDB reports multimer/tetramer; Table 2 is a peptide-level response summary.
+    unresolved_question: The source does not explain IEDB's Positive qualitative tier for this zero-response Table 2 row.
+    training_effect: retain_excluded
+  - source_assay_id: '12892606'
+    source_key: gapvac_2018
+    source_peptide_code: ST8SIA5-001
+    source_row_locator: Supplementary Table 2, ST8SIA5-001 row
+    expected_source_reference_id: '1038427'
+    expected_qualitative_result_raw: Positive
+    expected_n_subjects_tested_raw: '1'
+    expected_n_subjects_positive_raw: '0'
+    expected_peptide_sequence: VYYFHPQYL
+    expected_reported_mhc_raw: HLA-A*24:02
+    expected_effector_cell_name: T cell CD8+
+    review_status: unresolved
+    interpretation_code: vaccine_response_zero_iedb_positive_unexplained
+    reviewed_endpoint_scope: Table 2 reports zero vaccine-induced immune responses among one immune-evaluable patient.
+    reviewed_population_scope: Vaccinated GAPVAC-101 patients eligible for this APVAC1 peptide.
+    reviewed_preparation_scope: Table 2 summarizes post-vaccination response; it does not specify the per-assay cell preparation represented by IEDB Positive.
+    reviewed_reagent: IEDB reports multimer/tetramer; Table 2 is a peptide-level response summary.
+    unresolved_question: The source does not explain IEDB's Positive qualitative tier for this zero-response Table 2 row.
+    training_effect: retain_excluded
+  - source_assay_id: '12892609'
+    source_key: gapvac_2018
+    source_peptide_code: TMEM231-001
+    source_row_locator: Supplementary Table 2, TMEM231-001 row
+    expected_source_reference_id: '1038427'
+    expected_qualitative_result_raw: Positive
+    expected_n_subjects_tested_raw: '1'
+    expected_n_subjects_positive_raw: '0'
+    expected_peptide_sequence: TYIPPLLVAF
+    expected_reported_mhc_raw: HLA-A*24:02
+    expected_effector_cell_name: T cell CD8+
+    review_status: unresolved
+    interpretation_code: vaccine_response_zero_iedb_positive_unexplained
+    reviewed_endpoint_scope: Table 2 reports zero vaccine-induced immune responses among one immune-evaluable patient.
+    reviewed_population_scope: Vaccinated GAPVAC-101 patients eligible for this APVAC1 peptide.
+    reviewed_preparation_scope: Table 2 summarizes post-vaccination response; it does not specify the per-assay cell preparation represented by IEDB Positive.
+    reviewed_reagent: IEDB reports multimer/tetramer; Table 2 is a peptide-level response summary.
+    unresolved_question: The source does not explain IEDB's Positive qualitative tier for this zero-response Table 2 row.
+    training_effect: retain_excluded
+  - source_assay_id: '12892626'
+    source_key: gapvac_2018
+    source_peptide_code: BCA-005
+    source_row_locator: Supplementary Table 2, BCA-005 row
+    expected_source_reference_id: '1038427'
+    expected_qualitative_result_raw: Positive
+    expected_n_subjects_tested_raw: '1'
+    expected_n_subjects_positive_raw: '0'
+    expected_peptide_sequence: VKVNEAYRFRVALPAYPA
+    expected_reported_mhc_raw: HLA-DR
+    expected_effector_cell_name: T cell CD4+
+    review_status: unresolved
+    interpretation_code: vaccine_response_zero_iedb_positive_unexplained
+    reviewed_endpoint_scope: Table 2 reports zero vaccine-induced immune responses among one immune-evaluable patient.
+    reviewed_population_scope: Vaccinated GAPVAC-101 patients eligible for this APVAC1 pan-DR peptide.
+    reviewed_preparation_scope: Table 2 summarizes post-vaccination response; it does not specify the per-assay cell preparation represented by IEDB Positive.
+    reviewed_reagent: IEDB reports multimer/tetramer; Table 2 is a peptide-level response summary.
+    unresolved_question: The source does not explain IEDB's Positive qualitative tier for this zero-response Table 2 row; no HLA-DR allele is resolved.
+    training_effect: retain_excluded
+  - source_assay_id: '2445272'
+    source_key: hombrink_2015
+    source_peptide_code: HNF4G-1M
+    source_row_locator: Supplementary Table III, HNF4G-1M column
+    expected_source_reference_id: '1028928'
+    expected_qualitative_result_raw: Positive
+    expected_n_subjects_tested_raw: '6'
+    expected_n_subjects_positive_raw: '0'
+    expected_peptide_sequence: MMYKDILLL
+    expected_reported_mhc_raw: HLA-A*02:01
+    expected_effector_cell_name: T cell CD8+
+    review_status: unresolved
+    interpretation_code: no_hnf4g_frequency_iedb_positive_unexplained
+    reviewed_endpoint_scope: Supplementary Table III shows no HNF4G-1M positive frequency in the listed donor lines.
+    reviewed_population_scope: In vitro expanded donor T-cell lines after MHC-multimer pull-down, distinct from starting PBMC.
+    reviewed_preparation_scope: The source measurement follows one or two pull-down and expansion rounds; IEDB reports Direct Ex Vivo for starting material.
+    reviewed_reagent: HNF4G-1M pMHC multimer/tetramer.
+    unresolved_question: No source-backed mapping explains IEDB Positive with zero positive subjects for this assay.
+    training_effect: retain_excluded

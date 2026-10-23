@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 
-SCHEMA_VERSION = 10
+SCHEMA_VERSION = 11
 FIELD_ROLES = frozenset(
     {
         "identity",
@@ -59,6 +59,7 @@ class Evidence:
     status: str = "v2_contract_only"
     materialized_artifact: str = ""
     index_required_any_of: tuple[tuple[str, ...], ...] = ()
+    min_package_schema_version: int = 1
 
 
 @dataclass(frozen=True)
@@ -459,6 +460,41 @@ FIELDS = (
     _field("c_flank", "relation", "sequence", "C-terminal sequence of one mapping"),
     _field("proteome", "relation", "identifier", "Reference in which mapping was found"),
     _field("contributor_status", "relation", "category", "Source-to-observation relationship"),
+    _field("review_revision", "provenance", "identifier", "Immutable source-review revision"),
+    _field("review_status", "annotation", "category", "Resolution status of one source review"),
+    _field(
+        "interpretation_code", "annotation", "category", "Controlled source-review interpretation"
+    ),
+    _field("publication_url", "provenance", "identifier", "Primary publication URL"),
+    _field("source_asset_url", "provenance", "identifier", "Publisher-hosted review source"),
+    _field(
+        "source_asset_sha256", "provenance", "identifier", "Reviewed source asset hash when pinned"
+    ),
+    _field(
+        "source_asset_status", "provenance", "category", "Whether source asset bytes are pinned"
+    ),
+    _field("source_row_locator", "provenance", "text", "Exact reviewed row or figure locator"),
+    _field("source_peptide_code", "provenance", "identifier", "Paper's peptide code"),
+    _field(
+        "reviewed_endpoint_scope", "annotation", "text", "Endpoint established by primary source"
+    ),
+    _field(
+        "reviewed_population_scope",
+        "annotation",
+        "text",
+        "Population established by primary source",
+    ),
+    _field(
+        "reviewed_preparation_scope",
+        "annotation",
+        "text",
+        "Measurement preparation established by source",
+    ),
+    _field("reviewed_reagent", "annotation", "text", "Reagent claim with its source scope"),
+    _field("unresolved_question", "annotation", "text", "Remaining source interpretation gap"),
+    _field(
+        "training_effect", "annotation", "category", "Explicit review effect on target admission"
+    ),
 )
 _FIELD_BY_NAME = {field.name: field for field in FIELDS}
 
@@ -753,6 +789,43 @@ EVIDENCE = (
         ("source_assay_id",),
         status="v2_materialized",
         materialized_artifact="tcell/typed/eligibility.parquet",
+    ),
+    Evidence(
+        "assay_adjudication",
+        "relation",
+        "tcell",
+        "source_assay_review",
+        "tcell/adjudication/reviews.yaml",
+        "tcell_multimer_review_2026_10_23",
+        (),
+        (
+            "claim_id",
+            "source_assay_id",
+            "source_dataset",
+            "assay_family",
+            "review_revision",
+            "source_pmid",
+            "publication_url",
+            "source_asset_url",
+            "source_asset_sha256",
+            "source_asset_status",
+            "source_locator",
+            "source_row_locator",
+            "source_peptide_code",
+            "review_status",
+            "interpretation_code",
+            "reviewed_endpoint_scope",
+            "reviewed_population_scope",
+            "reviewed_preparation_scope",
+            "reviewed_reagent",
+            "unresolved_question",
+            "training_effect",
+        ),
+        ("claim_id", "source_assay_id", "review_status"),
+        assay_families=("pmhc_multimer",),
+        status="v2_materialized",
+        materialized_artifact="tcell/adjudication/reviews.parquet",
+        min_package_schema_version=8,
     ),
     Evidence(
         "bulk_ms_peptide",
@@ -1209,6 +1282,7 @@ EVIDENCE = (
         ("peptide_row_id", "sequence_id", "source_parent_status"),
         status="v2_materialized",
         materialized_artifact="external/pxd057588/typed/reference_source_mappings.parquet",
+        min_package_schema_version=7,
     ),
     Evidence(
         "external_reference_sequence",
@@ -1230,6 +1304,7 @@ EVIDENCE = (
         ("sequence_id", "peptide_sequence"),
         status="v2_materialized",
         materialized_artifact="external/pxd057588/typed/reference_sequences.parquet",
+        min_package_schema_version=7,
     ),
     Evidence(
         "external_reference_occurrence",
@@ -1253,6 +1328,7 @@ EVIDENCE = (
         ("sequence_id", "accession", "start1", "end1"),
         status="v2_materialized",
         materialized_artifact="external/pxd057588/typed/reference_occurrences.parquet",
+        min_package_schema_version=7,
     ),
     Evidence(
         "external_reference_parent",
@@ -1266,6 +1342,7 @@ EVIDENCE = (
         ("accession",),
         status="v2_materialized",
         materialized_artifact="external/pxd057588/typed/reference_parents.parquet",
+        min_package_schema_version=7,
     ),
     Evidence(
         "external_reference_parent_support",
@@ -1287,6 +1364,7 @@ EVIDENCE = (
         ("definition", "parent_key"),
         status="v2_materialized",
         materialized_artifact="external/pxd057588/typed/reference_parent_support.parquet",
+        min_package_schema_version=7,
     ),
     Evidence(
         "external_reference_species_role",
@@ -1310,6 +1388,7 @@ EVIDENCE = (
         ("claim_id", "organism_taxon_id", "source_scope"),
         status="v2_materialized",
         materialized_artifact="external/pxd057588/typed/reference_species_roles.parquet",
+        min_package_schema_version=7,
     ),
     Evidence(
         "external_reference_result_context",
@@ -1342,6 +1421,7 @@ EVIDENCE = (
         ("result_id", "peptide_row_id", "source_parent_status"),
         status="v2_materialized",
         materialized_artifact="external/pxd057588/typed/reference_result_context.parquet",
+        min_package_schema_version=7,
     ),
     _mapp_evidence(
         "mapp_source_record",
@@ -2232,6 +2312,13 @@ BASELINES = (
         "Bounded direct-peptide multimer subset",
     ),
     Baseline(
+        "assay_adjudication",
+        "tcell-multimer-review:2026-10-23",
+        9,
+        "source_assay_reviews",
+        "Nine source-linked multimer interpretations; no changed training admission",
+    ),
+    Baseline(
         "bulk_v4",
         "corrected-corpus-v4:2026-10-16",
         2_269_288,
@@ -2401,6 +2488,8 @@ def _validate_catalog() -> None:
     for item in EVIDENCE:
         if item.kind not in EVIDENCE_KINDS:
             raise ValueError(f"Unknown evidence kind: {item.kind}")
+        if item.min_package_schema_version < 1:
+            raise ValueError(f"Invalid minimum package schema: {item.name}")
         if len(set(item.fields)) != len(item.fields):
             raise ValueError(f"Duplicate field on {item.name}")
         if len(set(item.assay_families)) != len(item.assay_families):

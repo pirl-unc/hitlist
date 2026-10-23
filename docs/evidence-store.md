@@ -6,6 +6,14 @@ The package contains the original source generations as well as typed relations;
 the API makes each relation discoverable without searching for sidecars. The
 package directory is the only location a reader supplies.
 
+New external-source successors use package schema 9 and catalog 11. Their
+predecessor may be a verified schema-7 reference package or the released
+schema-8 adjudication package. An adjudication predecessor retains all nine
+multimer reviews when MAPP is appended. Historical schema-8 external-source
+packages remain readable; explicit family markers distinguish them from the
+schema-8 review package. The catalog lists only relations present in the
+verified generation.
+
 ```python
 from hitlist import EvidenceStore
 
@@ -15,9 +23,9 @@ print(catalog["package_manifest_sha256"])
 print([(item["name"], item.get("n_rows")) for item in catalog["evidence"]])
 ```
 
-The reference-augmented 2.0 package contains 53 materialized evidence types and
-four declared contracts. The predecessor numeric package remains readable and
-reports its seven later reference types as `not_in_generation`. The catalog
+The review-augmented 2.0 package contains 54 materialized evidence types and
+four declared contracts. The predecessor numeric and reference packages remain
+readable and report later types as `not_in_generation`. The catalog
 identifies grain, source population, endpoint, ingest requirements,
 physical selector, native columns and relationships. Each logical field is
 `physical`, `constant`, `related` or `unavailable`. A source-specific column
@@ -187,6 +195,32 @@ direct_peptide = store.query(
 Availability metadata cannot supply an unverified peptide identity. Functional
 response and multimer cell binding are different training projections.
 CEDAR's 157,263 overlapping T-cell IDs remain contributors, not extra assays.
+
+Nine source-discordant pMHC multimer assays have a reviewed interpretation at
+`source_assay_review` grain. The review is a separate relation, not a replacement
+outcome or an extra assay. It preserves IEDB's raw qualitative and subject-count
+claims as validated anchors, links the primary paper or supplement, and states
+what remains unresolved. All nine retain their existing exclusion from
+peptide-level training. The [source-linked audit](https://github.com/pirl-unc/hitlist/blob/main/tasks/multimer-adjudication-results/README.md)
+reconciles the full 578,529 assays and 55,844 training examples.
+
+```python
+review = store.query(
+    "assay_adjudication",
+    select=["source_assay_id", "review_status", "interpretation_code",
+            "source_row_locator", "publication_url",
+            "reported_outcome.qualitative_result",
+            "eligibility.eligibility_status", "antigen_claim.reported_mhc"],
+    joins=["reported_outcome", "eligibility", "antigen_claim"],
+    limit=None,
+)
+```
+
+The assay-to-review relationship is optional one-to-one. Source contributors
+remain a separate many-row relation, so a query cannot silently multiply an
+assay when one record appears in both IEDB and CEDAR. Schema-6 and schema-7
+packages and historical schema-8 external-source packages remain readable;
+their catalogs mark the review relation as absent.
 
 ## Training recipe
 

@@ -1,0 +1,28 @@
+"""Identify historical evidence families without conflating their version numbers."""
+
+from __future__ import annotations
+
+
+def package_family(manifest):
+    """Classify the envelope; the family's verifier still validates all content."""
+    schema = manifest.get("schema_version")
+    if schema in (6, 7):
+        return {6: "supporting", 7: "reference"}[schema]
+    if schema in (8, 9):
+        external = "appended_sources" in manifest
+        reviews = "review_revision" in manifest
+        if external and not reviews:
+            return "external"
+        if schema == 8 and reviews and not external:
+            return "adjudication"
+    raise ValueError(f"Unknown or ambiguous evidence package family: schema {schema}")
+
+
+def adjudication_manifest_path(manifest):
+    """Locate the reviewed predecessor only when explicitly present."""
+    family = package_family(manifest)
+    if family == "adjudication":
+        return "manifest.json"
+    if family == "external" and manifest.get("parent_kind") == "adjudication":
+        return "manifests/adjudication.json"
+    return None

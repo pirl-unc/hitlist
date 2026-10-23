@@ -116,6 +116,19 @@ jobs:
             --cache-dir "$RUNNER_TEMP/hitlist-ci-corpus")
           echo "HITLIST_DATA_DIR=$corpus_dir" >> "$GITHUB_ENV"
 
+      - name: Provision memory for the full corpus
+        run: |
+          # Match the integration CI job's 8 GiB of bounded disk-backed
+          # headroom. The release gate has reached nearly 14 GiB process RSS
+          # on a runner with about 14.5 GiB MemAvailable (#754).
+          swap_path="$RUNNER_TEMP/hitlist-release.swap"
+          sudo fallocate -l 8G "$swap_path"
+          sudo chmod 600 "$swap_path"
+          sudo mkswap "$swap_path"
+          sudo swapon "$swap_path"
+          free -h
+          swapon --show
+
       - name: Format, test and build the release artifacts
         run: |
           ./format.sh
@@ -125,6 +138,26 @@ jobs:
           /usr/bin/time -v ./deploy.sh --build-only
           twine check dist/*.whl dist/*.tar.gz
           python scripts/release_artifacts.py write dist --corpus-dir "$HITLIST_DATA_DIR"
+
+      - name: Report memory state after the release gate
+        if: always()
+        run: |
+          free -h
+          swapon --show
+          cat /proc/pressure/memory || true
+          for events in /sys/fs/cgroup/memory.events /sys/fs/cgroup/memory.swap.events; do
+            if test -r "$events"; then
+              echo "$events"
+              cat "$events"
+            fi
+          done
+
+      - name: Report kernel messages after a release failure
+        if: failure()
+        run: |
+          # Kernel OOM evidence may be unavailable on a hosted runner.
+          # Keep the release gate's original result even if access is denied.
+          sudo dmesg -T 2>&1 | tail -40 || true
 
       - uses: actions/upload-artifact@v7
         with:

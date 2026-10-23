@@ -1,27 +1,27 @@
 # MAPP proteasome-associated fragment evidence
 
 `MAPPAdapter` imports the pinned PXD009092 MaxQuant tables and original publisher
-workbooks through `write_external_evidence_package`. It preserves 10,673 peptide
-rows, 149,959 evidence rows, 18 source runs and every original TSV field.
+workbooks through the Hitlist 2.0 external-source successor. It preserves 10,673
+peptide rows, 149,959 evidence rows, 18 source runs and every original TSV field.
 It does not assign intracellular concentration or training eligibility.
 
 ```python
-from hitlist.external_evidence import write_external_evidence_package
+from hitlist.external_successor import write_external_successor
 
-write_external_evidence_package(
-    supporting_package,
+write_external_successor(
+    reference_or_adjudication_package,
     destination,
     source_roots={"pxd009092": original_mapp_assets},
-    source_ids=("pxd009092",),
 )
 ```
 
 Supply the exact relative paths and bytes in
-`hitlist/data/evidence_revisions/mapp_assets.json`. Include `pxd057588` and its
-source root when that source should also appear in the new generation. Source
-selection is explicit. This builds an external-source generation from its
-supporting predecessor; it does not automatically append or rebuild later
-T-cell, numeric or query generations.
+`hitlist/data/evidence_revisions/mapp_assets.json`. The predecessor must be a
+verified schema-7 reference or schema-8 adjudication package. The schema-9
+successor preserves all of its files, including newer T-cell and numeric evidence,
+and exposes only explicitly appended sources. The original supporting-package
+adapter generation remains a historical source receipt, not the current query
+surface.
 
 The typed relations separate source records, peptide identities, group rows,
 channels, individual evidence observations, peptide/run results, quantity

@@ -123,10 +123,11 @@ def test_build_only_runs_all_gates_without_invoking_upload(tmp_path):
     assert "Deploy complete" not in result.stdout
 
 
-def test_build_only_test_failure_cannot_produce_artifacts(tmp_path):
-    env = _stub_deploy_dir(tmp_path, test_sh_body="#!/bin/sh\nexit 42\n")
+@pytest.mark.parametrize("exit_code", [42, 143])
+def test_build_only_test_failure_cannot_produce_artifacts(tmp_path, exit_code):
+    env = _stub_deploy_dir(tmp_path, test_sh_body=f"#!/bin/sh\nexit {exit_code}\n")
     result = _run(tmp_path, env, "--build-only")
-    assert result.returncode == 42
+    assert result.returncode == exit_code
     assert not (tmp_path / "dist").exists()
 
 

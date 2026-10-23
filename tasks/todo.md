@@ -1,3 +1,57 @@
+# Release integration memory headroom and diagnostics (#754, 2.0.3)
+
+## Specification
+
+The first clean-main 1.82.22 release attempt (run 39836089683, attempt 1)
+ended with exit 143 after 32 of 96 integration tests. It had only 14.52 GiB
+`MemAvailable` before that phase. No pytest failure, `/usr/bin/time` integration
+profile, or kernel OOM evidence was captured. The retry passed. The 2.0.2
+release also passed all 96 tests but reached 14,667,796 KiB peak process RSS.
+Memory pressure is plausible, not a proved cause of the historical SIGTERM.
+
+The separate CI integration job already provisions 8 GiB of disk-backed swap.
+Give the clean-main release job the same bounded capacity before its complete
+test gate. Record memory and swap state before and after the gate, including on
+a nonzero exit when the runner remains alive. Emit each integration test name
+and outcome as it completes, so the last observed case is available if a
+future process is terminated. Preserve the existing source, corpus, complete
+unit and integration, packaging, license, and exact-artifact release gates.
+The release artifact must never upload after an incomplete test phase.
+
+This PR changes release reliability and diagnostics only. It does not claim a
+confirmed root cause or change scientific data. Bump the package to 2.0.3.
+
+## Plan
+
+- [x] Read the incident, failed attempt, successful release, release workflow,
+      integration CI workflow, test launcher, and relevant project lessons.
+- [x] Add the same tested swap setup to the release workflow and bounded
+      before/after diagnostics that cannot turn a failed gate green.
+- [x] Add integration-only per-test progress to `test.sh`; verify a terminated
+      integration phase remains nonzero and cannot reach packaging/upload.
+- [ ] Run `./format.sh`, `./lint.sh`, and `./test.sh`; use full hosted
+      release-build validation if local memory preflight cannot run.
+- [ ] Review the final diff and PR checks, merge, build from clean main,
+      verify exact artifact provenance, publish 2.0.3, and compare PyPI hashes.
+- [ ] Record release evidence and remaining uncertainty on #754, then select
+      the next foundational backlog issue.
+
+## Review
+
+Historical exit 143 identifies SIGTERM, but the recorded logs do not establish
+whether the runner, memory pressure, or a test-side process sent it. The
+release workflow now matches the regular integration job's 8 GiB swap setup.
+It reports memory state after success or failure and attempts bounded kernel
+messages only after failure. `test.sh` prints per-case integration progress.
+The existing release gating still skips artifact upload on a failed build;
+stubbed exit 143 now exercises the non-retry behavior explicitly.
+
+Focused shell/deployment tests: 38 passed. `./format.sh` and `./lint.sh`
+passed. The local `./test.sh` first lacked a permitted macOS page-size probe
+inside the sandbox; with the probe permitted, it correctly refused because
+only 0.22 GiB was available against its 2.5 GiB minimum. Full suite and
+actual swap provisioning remain for hosted release-build CI.
+
 # Atlas acquisition lineage and exact-cohort audit (#705, #680)
 
 ## Specification
@@ -7529,7 +7583,7 @@ patch release for package-byte safety; it does not change assay semantics.
       every evidence-package writer to it.
 - [x] Prove fallback, target-exists and source/predecessor mutation behavior;
       compare original source hashes and package reconciliation.
-- [ ] Bump 2.0.1, run format/lint/full tests, review, open PR, pass final-head
+- [x] Bump 2.0.1, run format/lint/full tests, review, open PR, pass final-head
       CI, merge and deploy from clean main; verify exact public artifacts.
 
 ## Review
@@ -7549,22 +7603,124 @@ with one worker and an explicit 0.75 GB memory budget after the normal 2.5 GB
 preflight refused at 1.03 GB free. Its peak resident set was 0.88 GiB.
 Format and lint pass. An isolated editable install reports the expected 2.0.1
 metadata; both 2.0.1 distribution artifacts build, pass `twine check`, and
-the wheel contains the new snapshot helper. Final-head CI, review, merge and
-release remain.
+the wheel contains the new snapshot helper. PR #763 passed the complete
+Python matrix, integration and coverage checks, merged as `dcd33aa`, and the
+clean-main release run 39908123658 passed 3,226 unit tests plus 96 integration
+tests. PyPI 2.0.1 serves the tested wheel and sdist SHA-256 values
+`3f1ec6bb0898a198e922001d72e4b015ad8682b322246f5409c1a12abdf1956b`
+and `3192df2afb1aaac972d43dba9523bab576525602c2843b1b3498a56619295722`.
+
+# PR 10: bounded release-artifact verifier (#755)
+
+Spec: [pr10-release-verifier-spec.md](pr10-release-verifier-spec.md). Base is
+the merged and PyPI-published 2.0.1 release (`dcd33aa`). This is an
+independent 2.0.2 patch release for the publication gate.
+
+- [x] Reproduce the unbounded direct artifact-ZIP request in a failing test.
+- [x] Add bounded exact-run artifact retrieval and retain the trusted receipt
+      plus downloaded-distribution hash checks.
+- [x] Cover timeout, failure, corruption, mismatch and artifact replacement.
+- [ ] Bump 2.0.2; run format/lint/full tests, build, review, PR CI, merge and
+      deploy from clean main; verify exact public artifacts.
+
+## Review
+
+The new bounded-download regression fails against 2.0.1 at the exact direct
+`gh api .../zip` call, before any implementation change. The replacement
+verifier limits metadata calls to 30 seconds and the exact-run, exact-name
+artifact download to 120 seconds. It rechecks the artifact ID, rejects
+missing, extra or symlinked files, compares the trusted and local receipts,
+and checks downloaded distribution hashes against the receipt. All 26
+focused release tests pass, including simulated timeout, partial cleanup,
+failed download, corrupt receipt, modified wheel and artifact replacement.
+The new verifier also passed against the real 2.0.1 release artifact from
+successful run 39908123658 and clean main `dcd33aa`. Format and lint pass;
+66 release/deploy/corpus tests pass. An isolated editable install reports
+the expected 2.0.2 metadata, and the wheel and sdist build, pass `twine check`
+and retain exact license metadata. Local `TEST_SH_MAX=1 ./test.sh` stopped at
+its memory preflight (0.37 GB available versus the conservative 2.5 GB
+one-worker budget), before pytest started. The hosted PR matrix and corpus
+integration will supply the full test gate. PR CI, merge and release remain.
+
+# PR 12: first-class multimer source adjudication (#766)
+
+Spec: [pr12-multimer-adjudication-spec.md](pr12-multimer-adjudication-spec.md).
+Base is merged and PyPI-published 2.0.3 (`d27415e`); the successor release is
+2.0.4. PR 11 (#768) passed its complete clean-main release gate in run
+39922883083 and PyPI serves its exact wheel and sdist hashes. The historical
+SIGTERM cause remains open under #754.
+
+- [x] Review all nine IEDB assays against the pinned typed package and their
+      primary papers/supplements; preserve unresolved source meaning.
+- [x] Specify one assay-linked review grain, source anchors, schema-8
+      inheritance, query links and a zero-change label reconciliation.
+- [x] Add a controlled, versioned review input and strict source/eligibility
+      validation, with adversarial tests first.
+- [x] Append independently snapshotted schema-8 package, register its typed
+      review relation in EvidenceStore and preserve schema-6/7 access.
+- [x] Build and verify the real successor package; reconcile all predecessor
+      hashes, 578,529 assays, 8,432 direct multimer candidates and 55,844
+      training examples, including nine retained exclusions.
+- [ ] Bump 2.0.4, run format/lint/full tests and focused real-package checks;
+      review the diff, open PR, pass final-head CI, merge, run clean-main
+      release and verify exact PyPI hashes.
+
+## Review
+
+The review ledger contains nine IEDB source-assay claims at
+`source_assay_review` grain, keyed to three primary publications/supplements.
+Its SHA-256-pinned YAML is copied into the package and materialized as one
+queryable Parquet relation. The verifier rejects changed raw qualitative or
+subject-count cells, antigen/MHC assertions, missing IEDB contributors,
+accepted training rows and changed eligibility. Schema-8 review queries join
+to the original assay, outcome, antigen and eligibility without multiplying
+the source assay. Schema 7 remains readable and marks the review relation
+`not_in_generation`. A source-registry inheritance failure found by the real
+package replay was fixed and covered by a focused regression. The Hombrink
+source URL was corrected from the landing page to the publisher's direct PDF
+endpoint after a fresh download matched its pinned SHA-256; the final package
+and distributions were rebuilt from those reviewed bytes.
+
+The real schema-8 successor has 126 hashed files: all 123 predecessor files
+match by SHA-256 and occupy distinct inodes, plus the predecessor manifest,
+review YAML and nine-row Parquet relation. The original T-cell assay,
+outcome, eligibility, training and contributor files are byte-identical.
+`EvidenceStore.open` verifies both generations. The full new audit has 54
+materialized types, four contract-only types and all 33 baselines matched.
+The before/after source counts are 578,529 assays, 735,792 contributor rows,
+8,432 direct-peptide multimer candidates, 8,423 accepted multimer examples,
+55,844 total training examples and nine unchanged exclusions.
+
+Format/lint pass; 22 focused catalog/store/adjudication tests pass. An
+isolated editable install reports 2.0.4 and both distributions build with the
+review input and module, pass Twine checks and retain exact license metadata.
+The required local `./test.sh` stopped before collection at its conservative
+memory preflight: 0.75 GiB free versus the 2.5 GiB one-worker minimum. Full
+hosted PR CI and clean-main release gates remain pending.
 
 # 2026-10-23: reconcile MAPP PR #760 with released 2.0.4
 
 Plan: [mapp-main-204-merge-spec.md](mapp-main-204-merge-spec.md).
 
-- [ ] Merge current main and resolve the schema-8 family collision.
-- [ ] Preserve MAPP relations/recipes and source-reviewed adjudications with
+- [x] Merge current main and resolve the schema-8 family collision.
+- [x] Preserve MAPP relations/recipes and source-reviewed adjudications with
       accurate generation-specific bindings and registry.
-- [ ] Verify both historical package families and real MAPP-only successors.
-- [ ] Reconcile all three recipe targets/contributors with the prior generation.
+- [x] Verify both historical package families and real MAPP-only successors.
+- [x] Reconcile all three recipe targets/contributors with the prior generation.
 - [ ] Run format/lint/test/docs, review CI, merge #760 and release 2.0.5 with
       verified PyPI artifact hashes.
 - [ ] Rebase #767 onto the released MAPP version as the next serial PR.
 
 ## Review
 
-Pending integration and release.
+Schema-9/catalog-11 successors built from both verified parent kinds. Independent
+SHA-256 checks match all 126 reviewed-parent and 123 reference-parent files,
+with separate inodes. The review-based package exposes 72 materialized relations,
+9 review claims and 10,673 MAPP peptides, with all 33 baselines matched. The
+reference-based package correctly omits review availability. All 18 MAPP typed
+relations match 1,829,008 prior logical rows; all three recipe data inventories
+match previous targets, contributors and admissions byte for byte. Focused
+catalog/review/successor/recipe tests pass (45), as do format, lint and strict
+docs. Full local `./test.sh` passes: 3,290 passed, one skipped (85% total
+coverage). Hosted final-head CI, merge and PyPI release remain. See
+[mapp-205-results/README.md](mapp-205-results/README.md).
