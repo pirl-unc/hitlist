@@ -252,6 +252,29 @@ does not become a peptide label. The
 [T-cell conversion report](../tasks/tcell-v2-evidence-results/README.md)
 records independent row and source-field reconciliation.
 
+## Supporting numeric measurements
+
+`write_supporting_numeric_evidence_package(tcell_package, destination)` appends
+source-faithful bulk protein and gene-expression numeric measurements to the
+complete verified T-cell generation. The successor independently snapshots
+its predecessor files, preserving original source rows and every earlier
+assay, outcome, mapping and context relation. The catalog gives numeric cells
+their own `measurement` kind, separate from assay observation rows. Its verifier checks both the
+new files and all predecessor manifest hashes.
+
+The pinned v4 bulk source contains 2,047,003 peptide detection rows with no
+populated numeric quantity. They remain detection evidence. The 156,211
+Bekker-Jensen protein rows contribute log2 intensity and 0–1 abundance
+percentile values; the 66,074 CCLE protein rows contribute normalized log2
+abundance and percentile values. These are 444,570 distinct source numeric
+cells, each linked to its original protein result and native source column.
+The 42,909 gene-expression rows contribute separate TPM and source-reported
+log2 TPM cells, 85,818 measurements in total. All 3,771 zero-TPM HAP1 rows
+remain measured zeros. Scale names follow the source columns; unreported units
+remain unreported and no label conversion or specimen pairing is inferred.
+The [supporting numeric report](../tasks/supporting-numeric-results/README.md)
+reconciles every new typed cell with the native table.
+
 ## Roles and null meanings
 
 The catalog separates molecular inputs, biological context, measured targets,
@@ -273,7 +296,8 @@ chooses a valid target transformation.
 `describe_catalog()["baselines"]` labels each count by generation and unit.
 For the corrected 2026-10-16 v4 corpus, the baselines are 4,486,991 positive
 MHC MS, 814,268 binding and 26,537 other MHC assay rows; 2,269,288 bulk
-proteomics and 42,909 line-expression measurement rows. The pinned T-cell
+proteomics source rows and 42,909 line-expression source rows. The linked
+numeric relations add 444,570 protein and 85,818 expression source cells. The pinned T-cell
 availability audit has 578,529 distinct IEDB assay IDs. Its bounded training
 projections have 47,421 functional and 8,423 multimer examples. These are
 checks for later migration reports, not counts of independent donors,

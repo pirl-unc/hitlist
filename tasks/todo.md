@@ -7318,13 +7318,14 @@ Branch from PR 6's exact merged commit `ca0c729`; merge only after its
 
 - [x] Audit every native bulk-protein and expression numeric column by source,
       grain and missingness; preserve peptide detection as nonquantitative.
-- [ ] Append one immutable, independently snapshotted successor generation
+- [x] Append one immutable, independently snapshotted successor generation
       with typed per-representation measurements and source-row lineage.
-- [ ] Register the new measurement relations and field-level source
+- [x] Register the new measurement relations and field-level source
       dispositions; verify parent hashes, schemas, counts and source identities.
-- [ ] Replay every populated native numeric cell independently, add small
+- [x] Replay every populated native numeric cell independently, add small
       offline fixtures for null, zero, multiple scales and source alignment.
-- [ ] Bump 1.82.24, run format/lint/full tests, review final diff and CI.
+- [x] Bump 1.82.24 and pass format/lint/focused offline tests.
+- [ ] Run full tests, review final diff and final-head CI.
 - [ ] Merge and deploy from clean main; verify exact PyPI wheel/sdist hashes
       before PR 8.
 
@@ -7341,3 +7342,31 @@ on each scale. The source percentile ranges approximately 0–1. The typed
 result files preserve all source-row identities but currently omit these
 numeric cells, as filed in #751. An independent snapshot for the successor
 will also address the final-generation inode risk described in #748.
+
+
+The 103-file successor package has manifest SHA-256
+`560770376121758b3c18679c3bf4db78bc89f9e95cc72785a7314fe35167cb1e`
+and exact predecessor manifest SHA-256
+`4c3275ca6da9a9e1de084fcc1a8d1243d4e67b1e9c3ed4d6307cbcce5c3738e3`.
+The writer checked all 2,312,197 native source-row alignments and emitted
+444,570 distinct bulk-protein plus 85,818 expression numeric representations.
+An independent streaming replay found zero mismatches for every source value,
+source field, result ID and native locator. All 3,771 HAP1 TPM zeros survive.
+The complete package verifier passed, and none of the predecessor files share
+inodes with the new snapshot. Thirteen focused numeric/catalog/T-cell checks
+and format/lint pass. The first full local `./test.sh` attempt stopped at
+its existing #483 preflight (0.09 GiB free versus 2.5 GiB required); no
+worker or memory threshold was bypassed. The isolated editable install
+reports 1.82.24 consistently; `uv pip check` passes for all 48 packages.
+The 1.82.24 wheel/sdist build, license metadata and `twine check` pass;
+large source assets are absent from the wheel. Hosted CI and a local full-test
+retry remain pending.
+
+PR 6 merged in #753 and PyPI 1.82.23 serves exact wheel SHA-256
+`b7c265994d43bed66ab614d6ef5edbc4cbf56eb127d0523b3472bdb08e0627e9`
+and sdist SHA-256
+`1bae77fc2a8268a1f375067762ebb5e6d2da980b51b110d7fe649f46783fff6b`.
+The clean-main workflow passed; the release verifier's direct artifact-ZIP
+retrieval hung (#755), so two independent Actions downloads, the run's exact
+commit/artifact metadata and matching manifest/distribution hashes supplied
+the publication provenance check.

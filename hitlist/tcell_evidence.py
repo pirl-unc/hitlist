@@ -614,22 +614,26 @@ def _validate_reconciliation(reconciliation):
         raise ValueError("Pinned CEDAR-only mutation training overlap changed")
 
 
-def verify_tcell_evidence_package(directory):
-    """Verify a complete T-cell generation and its embedded predecessor."""
+def verify_tcell_evidence_package(directory, *, manifest_path="manifest.json"):
+    """Verify a T-cell generation, including one embedded in its successor."""
     directory = Path(directory)
-    manifest = json.loads((directory / "manifest.json").read_text())
+    location = Path(manifest_path)
+    if location.is_absolute() or ".." in location.parts or not location.parts:
+        raise ValueError("Invalid T-cell package manifest path")
+    manifest = json.loads((directory / location).read_text())
     if manifest.get("schema_version") != PACKAGE_SCHEMA_VERSION:
         raise ValueError("Unsupported T-cell package schema")
     if manifest.get("catalog_schema_version") != CATALOG_SCHEMA_VERSION:
         raise ValueError("Unsupported T-cell catalog schema")
     files = manifest.get("files", {})
-    actual = {
-        str(path.relative_to(directory))
-        for path in directory.rglob("*")
-        if path.is_file() and path != directory / "manifest.json"
-    }
-    if set(files) != actual:
-        raise ValueError("T-cell package file inventory mismatch")
+    if location == Path("manifest.json"):
+        actual = {
+            str(path.relative_to(directory))
+            for path in directory.rglob("*")
+            if path.is_file() and path != directory / "manifest.json"
+        }
+        if set(files) != actual:
+            raise ValueError("T-cell package file inventory mismatch")
     for relative, expected in files.items():
         path = Path(relative)
         if path.is_absolute() or ".." in path.parts or file_digest(directory / path) != expected:

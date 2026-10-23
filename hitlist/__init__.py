@@ -71,6 +71,8 @@ _PUBLIC_API: dict[str, str] = {
     "verify_external_evidence_package": ".external_evidence",
     "write_tcell_evidence_package": ".tcell_evidence",
     "verify_tcell_evidence_package": ".tcell_evidence",
+    "write_supporting_numeric_evidence_package": ".supporting_numeric_evidence",
+    "verify_supporting_numeric_evidence_package": ".supporting_numeric_evidence",
     "dataset_snapshot": ".dataset",
     "curate_canine_bulk": ".canine_bulk",
     "canine_bulk_catalog": ".canine_bulk",

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 
-SCHEMA_VERSION = 6
+SCHEMA_VERSION = 7
 FIELD_ROLES = frozenset(
     {
         "identity",
@@ -25,7 +25,7 @@ FIELD_ROLES = frozenset(
     }
 )
 VALUE_KINDS = frozenset({"identifier", "text", "number", "boolean", "category", "set", "sequence"})
-EVIDENCE_KINDS = frozenset({"observation", "projection", "relation", "context"})
+EVIDENCE_KINDS = frozenset({"observation", "measurement", "projection", "relation", "context"})
 
 NULL_STATES = {
     "unreported": "The source did not establish a value; absence is not implied.",
@@ -92,6 +92,12 @@ FIELDS = (
     _field("source_record_id", "provenance", "identifier", "Original source row locator"),
     _field("source_assay_id", "provenance", "identifier", "Reported source assay identifier"),
     _field("source_row_index", "provenance", "number", "One-based source CSV data-row index"),
+    _field(
+        "source_value_field",
+        "provenance",
+        "text",
+        "Exact native column holding one numeric source value",
+    ),
     _field("source_reference_id", "provenance", "identifier", "Source publication or deposit"),
     _field("source_reference_iri", "provenance", "identifier", "Unmodified source reference IRI"),
     _field("source_dataset", "provenance", "identifier", "Pinned source release"),
@@ -677,6 +683,60 @@ EVIDENCE = (
         status="v2_materialized",
         materialized_artifact="typed/expression_results.parquet",
         index_required_any_of=(("gene_id", "gene_name"),),
+    ),
+    Evidence(
+        "bulk_numeric_measurement",
+        "measurement",
+        "bulk_proteomics",
+        "protein_source_numeric_cell",
+        "bulk_proteomics.parquet",
+        "bulk_v4",
+        ("protein_abundance",),
+        (
+            "measurement_id",
+            "observation_id",
+            "source_record_id",
+            "source_dataset",
+            "native_row_index",
+            "endpoint",
+            "source_value_field",
+            "quantity_scale",
+            "quantitative_value",
+            "value_status",
+            "measurement_unit",
+            "unit_status",
+        ),
+        ("measurement_id", "source_record_id", "source_value_field", "quantitative_value"),
+        native_selector="granularity=protein; populated numeric source cell",
+        status="v2_materialized",
+        materialized_artifact="typed/bulk_numeric_measurements.parquet",
+    ),
+    Evidence(
+        "line_expression_measurement",
+        "measurement",
+        "line_expression",
+        "gene_profile_source_numeric_cell",
+        "line_expression.parquet",
+        "line_expression_v4",
+        ("gene_expression",),
+        (
+            "measurement_id",
+            "observation_id",
+            "source_record_id",
+            "source_dataset",
+            "native_row_index",
+            "endpoint",
+            "source_value_field",
+            "quantity_scale",
+            "quantitative_value",
+            "value_status",
+            "measurement_unit",
+            "unit_status",
+        ),
+        ("measurement_id", "source_record_id", "source_value_field", "quantitative_value"),
+        native_selector="granularity=gene; populated numeric source cell",
+        status="v2_materialized",
+        materialized_artifact="typed/line_expression_measurements.parquet",
     ),
     Evidence(
         "line_expression_transcript",
@@ -1470,6 +1530,20 @@ BASELINES = (
         42_909,
         "source_result_rows",
         "Gene rows in two profiles; no native transcript measurements",
+    ),
+    Baseline(
+        "bulk_numeric_measurement",
+        "corrected-corpus-v4:2026-10-16",
+        444_570,
+        "source_numeric_cells",
+        "Three distinct protein abundance representations; no peptide quantities",
+    ),
+    Baseline(
+        "line_expression_measurement",
+        "corrected-corpus-v4:2026-10-16",
+        85_818,
+        "source_numeric_cells",
+        "TPM and reported log2 TPM remain separate representations",
     ),
     Baseline(
         "peptide_protein_occurrence",
