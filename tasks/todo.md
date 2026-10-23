@@ -7760,3 +7760,19 @@ Presto controlled-mapp-exact-sampled-fit specification.
 - [ ] Publish real 59/14/14 membership and contrast evidence with biological fit.
 
 Review: implementation in progress; no new biological fitting yet.
+
+## 2026-10-23 release #772 after calibration 2.0.6
+
+Plan: [mapp-controlled-207-release-spec.md](mapp-controlled-207-release-spec.md).
+
+- [ ] Confirm PR #767 merged and exact Hitlist 2.0.6 published; merge main.
+- [ ] Bump 2.0.7 and retain historical catalog-11/12 readers.
+- [ ] Rebuild real controlled successor and replay all old and new recipes.
+- [ ] Run local formatting, lint, full tests, strict docs and distribution gates.
+- [ ] Review final-head CI, merge and publish exact 2.0.7 artifacts.
+
+## Review
+
+Pending serial reconciliation with released calibration and independent
+contrast replay. The original-source audit and current candidate remain
+linked from #759 and PR #772.
