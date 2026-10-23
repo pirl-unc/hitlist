@@ -50,7 +50,11 @@ def test_catalog_covers_current_data_grains_without_double_counting():
     assert set(functional["assay_families"]).isdisjoint(multimer["assay_families"])
     assert "pmhc_multimer" not in availability["endpoints"]
 
-    bulk = [item for item in describe_catalog()["evidence"] if item["family"] == "bulk_proteomics"]
+    bulk = [
+        item
+        for item in describe_catalog()["evidence"]
+        if item["name"] in {"bulk_ms_peptide", "bulk_ms_protein"}
+    ]
     assert {item["native_selector"] for item in bulk} == {
         "granularity=peptide",
         "granularity=protein",
@@ -235,5 +239,5 @@ def test_catalog_import_does_not_build_or_download(tmp_path):
         text=True,
         cwd=Path(__file__).parents[1],
     )
-    assert probe.stdout.strip() == "6"
+    assert probe.stdout.strip() == "7"
     assert not data_root.exists()
