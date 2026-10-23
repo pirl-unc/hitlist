@@ -7588,3 +7588,56 @@ and retain exact license metadata. Local `TEST_SH_MAX=1 ./test.sh` stopped at
 its memory preflight (0.37 GB available versus the conservative 2.5 GB
 one-worker budget), before pytest started. The hosted PR matrix and corpus
 integration will supply the full test gate. PR CI, merge and release remain.
+
+# PR 12: first-class multimer source adjudication (#766)
+
+Spec: [pr12-multimer-adjudication-spec.md](pr12-multimer-adjudication-spec.md).
+Base is merged and PyPI-published 2.0.3 (`d27415e`); the successor release is
+2.0.4. PR 11 (#768) passed its complete clean-main release gate in run
+39922883083 and PyPI serves its exact wheel and sdist hashes. The historical
+SIGTERM cause remains open under #754.
+
+- [x] Review all nine IEDB assays against the pinned typed package and their
+      primary papers/supplements; preserve unresolved source meaning.
+- [x] Specify one assay-linked review grain, source anchors, schema-8
+      inheritance, query links and a zero-change label reconciliation.
+- [x] Add a controlled, versioned review input and strict source/eligibility
+      validation, with adversarial tests first.
+- [x] Append independently snapshotted schema-8 package, register its typed
+      review relation in EvidenceStore and preserve schema-6/7 access.
+- [x] Build and verify the real successor package; reconcile all predecessor
+      hashes, 578,529 assays, 8,432 direct multimer candidates and 55,844
+      training examples, including nine retained exclusions.
+- [ ] Bump 2.0.4, run format/lint/full tests and focused real-package checks;
+      review the diff, open PR, pass final-head CI, merge, run clean-main
+      release and verify exact PyPI hashes.
+
+## Review
+
+The review ledger contains nine IEDB source-assay claims at
+`source_assay_review` grain, keyed to three primary publications/supplements.
+Its SHA-256-pinned YAML is copied into the package and materialized as one
+queryable Parquet relation. The verifier rejects changed raw qualitative or
+subject-count cells, antigen/MHC assertions, missing IEDB contributors,
+accepted training rows and changed eligibility. Schema-8 review queries join
+to the original assay, outcome, antigen and eligibility without multiplying
+the source assay. Schema 7 remains readable and marks the review relation
+`not_in_generation`. A source-registry inheritance failure found by the real
+package replay was fixed and covered by a focused regression.
+
+The real schema-8 successor has 126 hashed files: all 123 predecessor files
+match by SHA-256 and occupy distinct inodes, plus the predecessor manifest,
+review YAML and nine-row Parquet relation. The original T-cell assay,
+outcome, eligibility, training and contributor files are byte-identical.
+`EvidenceStore.open` verifies both generations. The full new audit has 54
+materialized types, four contract-only types and all 33 baselines matched.
+The before/after source counts are 578,529 assays, 735,792 contributor rows,
+8,432 direct-peptide multimer candidates, 8,423 accepted multimer examples,
+55,844 total training examples and nine unchanged exclusions.
+
+Format/lint pass; 22 focused catalog/store/adjudication tests pass. An
+isolated editable install reports 2.0.4 and both distributions build with the
+review input and module, pass Twine checks and retain exact license metadata.
+The required local `./test.sh` stopped before collection at its conservative
+memory preflight: 0.75 GiB free versus the 2.5 GiB one-worker minimum. Full
+hosted PR CI and clean-main release gates remain pending.
