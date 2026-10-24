@@ -491,3 +491,31 @@ The audit keeps literal IC50 and `KD (~IC50)` in separate endpoint families;
 binding protocol claims remain source-scoped and are not broadcast into assay
 rows. Joining this relation to `mhc_binding` is one-to-one on `observation_id`,
 so adding context cannot multiply assay or training-example weights.
+
+# Native cellular peptide measurements
+
+Schema 15 adds the standalone `tmab_peptidomics` package family for the
+Dasgupta 2014 and Gelman 2013 TMAB native-peptide supplements. It is not an
+MHC-elution package and does not infer processing, knockout, absolute
+concentration, donor identity, or specimen independence from a drug label.
+
+The package has five homogeneous relations: hash-pinned source workbooks,
+lossless source rows, experiment-level protocol context, one measurement per
+reported ratio channel cell, and a lineage assessment per measurement. Raw
+ratio text is retained alongside parsed values; bounds, missing signals,
+overlapping peaks, and nonnumeric values have distinct statuses. Heat-map
+republications remain source rows with an explicit deferred disposition rather
+than being silently counted as independent measurements.
+
+Build it from caller-supplied, hash-verified workbooks:
+
+```python
+from hitlist import write_tmab_peptidomics_package
+
+write_tmab_peptidomics_package("/path/to/tmab-assets", "tmab-package")
+```
+
+Query `tmab_measurement` for native ratios and join `tmab_protocol_context`
+for cell line, treatment, extraction, labeling and instrument details.
+`tmab_measurement_lineage` flags possible cross-paper reuse but leaves
+independence `unknown` until source reconciliation establishes it.
