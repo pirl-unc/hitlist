@@ -299,6 +299,19 @@ ALIASES = {
     },
 }
 
+ALIASES.update(
+    {
+        "pbmc_mapp_source_record": ALIASES["mapp_source_record"],
+        "pbmc_mapp_peptide": ALIASES["mapp_peptide"],
+        "pbmc_mapp_group": ALIASES["mapp_group"],
+        "pbmc_mapp_channel": ALIASES["mapp_channel"],
+        "pbmc_mapp_identification": ALIASES["mapp_identification"],
+        "pbmc_mapp_quantity_measurement": ALIASES["mapp_quantity_measurement"],
+        "pbmc_mapp_source_assertion": ALIASES["mapp_source_assertion"],
+        "external_pbmc_proteasome_fragment_quantity": {},
+    }
+)
+
 # Dataset identity is an immutable property of these source-specific files.
 CONSTANTS = {
     name: {"source_dataset": "PXD057588"}
@@ -333,7 +346,8 @@ CONSTANTS.update(
     {
         item.name: {"source_dataset": item.source_population}
         for item in EVIDENCE
-        if item.source_population in ("PXD009092", "PXD004886") and "source_dataset" in item.fields
+        if item.source_population in ("PXD009092", "PXD009438", "PXD004886")
+        and "source_dataset" in item.fields
     }
 )
 
@@ -1312,6 +1326,108 @@ LINKS += (
         "reference_record_id",
         "one",
         "deposited_search_reference_alternative",
+    ),
+)
+
+LINKS += (
+    Link(
+        "peptide",
+        "external_pbmc_proteasome_fragment_quantity",
+        "pbmc_mapp_peptide",
+        "peptide_row_id",
+        "peptide_row_id",
+        "one",
+        "source_peptide_row",
+    ),
+    Link(
+        "channel",
+        "external_pbmc_proteasome_fragment_quantity",
+        "pbmc_mapp_channel",
+        "channel_id",
+        "channel_id",
+        "one",
+        "source_acquisition",
+    ),
+    Link(
+        "material_context",
+        "pbmc_mapp_channel",
+        "pbmc_mapp_material_context",
+        "channel_id",
+        "context_id",
+        "one",
+        "source_acquisition_context",
+    ),
+    Link(
+        "source_material_context",
+        "pbmc_mapp_material_link",
+        "pbmc_mapp_material_context",
+        "source_context_id",
+        "context_id",
+        "one",
+        "qualified_source_context",
+    ),
+    Link(
+        "target_material_context",
+        "pbmc_mapp_material_link",
+        "pbmc_mapp_material_context",
+        "target_context_id",
+        "context_id",
+        "one",
+        "qualified_target_context",
+    ),
+    Link(
+        "measurements",
+        "external_pbmc_proteasome_fragment_quantity",
+        "pbmc_mapp_quantity_measurement",
+        "result_id",
+        "result_id",
+        "many",
+        "result_representation",
+    ),
+    Link(
+        "result",
+        "pbmc_mapp_quantity_measurement",
+        "external_pbmc_proteasome_fragment_quantity",
+        "result_id",
+        "result_id",
+        "one",
+        "source_result",
+    ),
+    Link(
+        "peptide",
+        "pbmc_mapp_quantity_measurement",
+        "pbmc_mapp_peptide",
+        "peptide_row_id",
+        "peptide_row_id",
+        "one",
+        "source_peptide_row",
+    ),
+    Link(
+        "channel",
+        "pbmc_mapp_identification",
+        "pbmc_mapp_channel",
+        "channel_id",
+        "channel_id",
+        "one",
+        "source_acquisition",
+    ),
+    Link(
+        "peptide",
+        "pbmc_mapp_identification",
+        "pbmc_mapp_peptide",
+        "peptide_row_id",
+        "peptide_row_id",
+        "one",
+        "source_peptide_row",
+    ),
+    Link(
+        "source",
+        "pbmc_mapp_peptide",
+        "pbmc_mapp_source_record",
+        "source_record_id",
+        "source_record_id",
+        "one",
+        "source_table_row",
     ),
 )
 

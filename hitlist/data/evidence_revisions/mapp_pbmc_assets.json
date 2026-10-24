@@ -1,0 +1,73 @@
+{
+  "archive_provenance": {
+    "PXD009438": {
+      "member_selection": "txt/{peptides,evidence,proteinGroups,summary,parameters}.txt; other archive members retained by archive-level SHA-1/256 receipt but not materialized",
+      "pride_sha1": "cb60adadcdfe8afb149543d0e564bcf84347a0c0",
+      "sha256": "36f8fcab917a25054a351adfa21b3cbb5439079e3afdab708a8ac3deb5bd83e9",
+      "size": 199785170,
+      "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2018/10/PXD009438/SLE-search.tar.gz"
+    }
+  },
+  "assets": {
+    "files.json": {
+      "decompress": false,
+      "license_raw": "EBI terms of use",
+      "sha256": "530fb04765768919ce983c20db244f2b5c25b5478cd9f7ed7e52c6b4fb11fbbf",
+      "size": 17577,
+      "url": "https://www.ebi.ac.uk/pride/ws/archive/v2/projects/PXD009438/files?page=0&pageSize=1000"
+    },
+    "project.json": {
+      "decompress": false,
+      "license_raw": "EBI terms of use",
+      "sha256": "95eaff2c31b4b13cde63a7eb608d948c6982637155f27240c87b94791ba6d9a3",
+      "size": 4905,
+      "url": "https://www.ebi.ac.uk/pride/ws/archive/v2/projects/PXD009438"
+    },
+    "txt/evidence.txt": {
+      "archive_member": "txt/evidence.txt",
+      "archive_project": "PXD009438",
+      "decompress": false,
+      "license_raw": "EBI terms of use",
+      "sha256": "8da270d7c28ecda5b8bc374b6cd5babe1157b1f0c84bfa74e0820422166654f0",
+      "size": 3844216,
+      "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2018/10/PXD009438/SLE-search.tar.gz#txt/evidence.txt"
+    },
+    "txt/parameters.txt": {
+      "archive_member": "txt/parameters.txt",
+      "archive_project": "PXD009438",
+      "decompress": false,
+      "license_raw": "EBI terms of use",
+      "sha256": "b3df0cadd7fbdb503a12c20457febb2df39f102002990c9e82d83134077bcc36",
+      "size": 1675,
+      "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2018/10/PXD009438/SLE-search.tar.gz#txt/parameters.txt"
+    },
+    "txt/peptides.txt": {
+      "archive_member": "txt/peptides.txt",
+      "archive_project": "PXD009438",
+      "decompress": false,
+      "license_raw": "EBI terms of use",
+      "sha256": "74db2c9da68a9994658a302fe593fef4f7e5a1b5aa14586553ed5fc805cf9e45",
+      "size": 506850,
+      "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2018/10/PXD009438/SLE-search.tar.gz#txt/peptides.txt"
+    },
+    "txt/proteinGroups.txt": {
+      "archive_member": "txt/proteinGroups.txt",
+      "archive_project": "PXD009438",
+      "decompress": false,
+      "license_raw": "EBI terms of use",
+      "sha256": "868736e7017d6d3ca5caea74df95179c22421c03934c1797096a8ae86d65dc68",
+      "size": 269522,
+      "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2018/10/PXD009438/SLE-search.tar.gz#txt/proteinGroups.txt"
+    },
+    "txt/summary.txt": {
+      "archive_member": "txt/summary.txt",
+      "archive_project": "PXD009438",
+      "decompress": false,
+      "license_raw": "EBI terms of use",
+      "sha256": "68e8ec383d8dda7c8f1f473ac1649a339333b4e5798a11587e4dd79810e80a34",
+      "size": 6428,
+      "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2018/10/PXD009438/SLE-search.tar.gz#txt/summary.txt"
+    }
+  },
+  "source_id": "pxd009438"
+}

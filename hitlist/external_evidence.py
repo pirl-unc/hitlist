@@ -23,12 +23,14 @@ def _adapters():
     from .digestion_evidence import DigestionAdapter
     from .mapp_controlled_evidence import ControlledMAPPAdapter
     from .mapp_evidence import MAPPAdapter
+    from .mapp_pbmc_evidence import PBMCMAPPAdapter
     from .ms_calibration_evidence import MSCalibrationAdapter
     from .pxd057588_evidence import PXD057588Adapter
 
     return {
         PXD057588Adapter.source_id: PXD057588Adapter(),
         MAPPAdapter.source_id: MAPPAdapter(),
+        PBMCMAPPAdapter.source_id: PBMCMAPPAdapter(),
         MSCalibrationAdapter.source_id: MSCalibrationAdapter(),
         ControlledMAPPAdapter.source_id: ControlledMAPPAdapter(),
         DigestionAdapter.source_id: DigestionAdapter(),

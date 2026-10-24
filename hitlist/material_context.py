@@ -14,6 +14,7 @@ CONTEXT_KINDS = frozenset(
     {
         "source_project",
         "study_arm",
+        "source_sample",
         "source_acquisition",
         "specimen",
         "aliquot",
