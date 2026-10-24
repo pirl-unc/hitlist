@@ -674,3 +674,29 @@ splice/synthesis dispositions remain source statuses; they are not converted
 to measured negatives. The ledger explicitly marks APC/TAP/clearance/MHC
 processing as unavailable, because purified proteasome digestion measures
 relative MS response rather than intracellular production or concentration.
+
+# Standalone precursor context
+
+Schema 20/catalog 25 begins the standalone `precursor_context` package for the
+PXD009360 parallel tryptic proteome. The first package generation retains the
+hash-pinned project and deposited-file metadata, the recovered MaxQuant search
+archive, parameter and summary files, its 17 archive-member inventory, and nine
+acquisition labels (448–456). The source archive is copied into the immutable
+package; later generations will materialize its evidence, peptide, all-peptide
+and protein-group rows.
+
+The source contract deliberately exposes condition, specimen, aliquot and MAPP
+pairing as unresolved claims. Run order, label similarity, abundance
+correlation and same-cell-line assertions do not establish a biological link.
+`precursor_context_family` and `precursor_context_availability` therefore show
+zero precursor training examples in this first generation, while
+`precursor_source_asset`, `precursor_acquisition`,
+`precursor_table_inventory`, and `precursor_pairing_assertion` remain queryable
+through `EvidenceStore`. MaxQuant LFQ and future precursor aggregates are not
+absolute copies-per-cell or intracellular concentration labels.
+
+The quantitative HAP1 and PXD009360 precursor-context families each retain their
+pinned schema-20/catalog-25 source envelopes. A source schema number is interpreted
+with its explicit `package_family` and `revision`; it does not select a reader on
+its own. The combined live catalog is version 26. Existing immutable source
+packages are not relabeled when the consumer catalog gains another family.
