@@ -8308,3 +8308,33 @@ Spec: tasks/nanaware-lymph-quantities-spec.md.
 Source review: actual materialization and independent121346cell/32995quantity/3430reference/23455identification replay pass. Initial full suite:3459pass/7fail, all failures are expected global catalog-version assertions28versus29; updated only those assertions, preserving historical package versions. Focused source tests pass8cases. Source issue: https://github.com/pirl-unc/hitlist/issues/817. Full required rerun/release remains pending.
 
 Required full rerun passes3466tests in294.19seconds; maximum processRSS870432768bytes. Actual source quantity/reference bytes are unchanged. Structural readiness finds raw accession spelling differences and DC reported-length inconsistencies, retained for recipe review rather than silently corrected by the source importer. This source-only task is not complete until its PR is merged and PyPI release verified; endpoint recipe remains follow-up.
+
+## MAPP material-linkage qualification
+
+Specification: [mapp-material-linkage-qualification.md](mapp-material-linkage-qualification.md).
+
+- [x] Audit current deposited MAPP coverage and distinguish MAPP from adjacent
+      tryptic projects.
+- [x] Establish that the primary paper supplies a publication-level parallel
+      MAPP/proteome comparison but not an acquisition/specimen/aliquot crosswalk.
+- [x] File/link the material-graph, missing-PXD009438 and parallel-tryptic
+      recovery work items (#820, #821, #822, #823; #823 is linked to #757).
+- [x] Add verified common material-context/link relations and real MAPP facts.
+- [ ] Audit/admit PXD009438 without inventing patient/run identities.
+- [ ] Recover an exact PXD009360 mapping or publish a pinned negative-evidence
+      audit; never use run order or correlation as a surrogate.
+
+Review: current coverage is PXD009092 (10,673 peptide rows, 149,959 evidence
+rows, 18 runs), PXD007263 (3,146/27,196/12) and PXD009508 (6,060/19,581/18):
+19,879 deposited peptide rows,196,736 evidence rows and48 MAPP acquisition runs
+before deduplication. PXD009438 is the unadmitted fourth captured-fragment MAPP
+project. PXD009360/PXD009181/PXD009112 are tryptic panels. The paper's parallel
+HEK293 statement is scoped context, not a per-run or physical-material join.
+
+Material-graph review: catalog30 / package version2.0.29 add the shared
+`material_contexts` and `material_links` relations. Replayed PXD009092 has25
+contexts/24 links, while PXD009508+PXD007263 have42/40; all physical IDs remain
+null. Source adapter verification and the final rebased guarded suite pass:3,480
+tests,393 warnings in173.10seconds with two workers. `./format.sh` and `./lint.sh`
+also pass. One initial suite failure was a stale expected catalog value29 in the
+import-isolation test; it now expects the intentional live value30.

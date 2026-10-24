@@ -57,7 +57,7 @@ relative captured signal conditional on an observed set; mass outside the set is
 unidentified and unreported peptides are not negatives. It is not a calibrated
 intracellular concentration or professional-APC validation endpoint.
 
-The MAPP schema2 adapter can be appended to a verified reference or adjudication
+The MAPP schema3 adapter can be appended to a verified reference or adjudication
 generation with `hitlist evidence append-sources PREDECESSOR_PACKAGE OUTPUT --source-root pxd009092=ASSETS`.
 The schema-9 successor preserves every predecessor byte, source and modality; old
 experimental packages and receipts are not relabeled. Independent precursor

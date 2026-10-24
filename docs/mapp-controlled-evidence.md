@@ -46,8 +46,10 @@ hitlist evidence append-sources PREDECESSOR OUTPUT \
 ```
 
 `processing_*` evidence types expose the shared relation grains through the
-same query API as other sources. `processing_channel` includes capture,
-treatment, dose/time, evidence scopes and nullable material identities.
+same query API as other sources. `processing_material_context` and
+`processing_material_link` distinguish source project, study arm and acquisition
+membership from a physical specimen/aliquot link. `processing_channel` includes
+capture, treatment, dose/time, evidence scopes and nullable material identities.
 `processing_quantity_result` reports direct-MS/MS and matched contributor counts.
 Every original column is also available through `native.<field>`.
 

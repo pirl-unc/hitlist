@@ -80,6 +80,91 @@ def test_required_context_join_rejects_null_source_key(tmp_path):
         )
 
 
+def test_mapp_context_graph_exposes_source_arm_without_physical_pairing(tmp_path):
+    store = _store(
+        tmp_path / "source",
+        {
+            "mapp_channel": [
+                {
+                    "channel_id": "pxd009092:run:run_1",
+                    "source_record_id": "summary:2",
+                    "experiment_raw": "run_1",
+                    "condition": "UT",
+                    "material_link_precision": "acquisition_run_unresolved_specimen",
+                }
+            ],
+            "mapp_material_context": [
+                {
+                    "context_id": "pxd009092:run:run_1",
+                    "context_kind": "source_acquisition",
+                    "condition_id": "pxd009092:arm:UT",
+                    "condition_text": "UT",
+                    "condition_status": "source_run_label",
+                    "specimen_id": None,
+                    "aliquot_id": None,
+                    "material_link_precision": "source_acquisition",
+                    "context_status": "source_acquisition_unresolved_specimen_aliquot",
+                    "source_locator": "summary:2",
+                },
+                {
+                    "context_id": "pxd009092:arm:UT",
+                    "context_kind": "study_arm",
+                    "condition_id": "pxd009092:arm:UT",
+                    "condition_text": "UT",
+                    "condition_status": "source_run_label",
+                    "specimen_id": None,
+                    "aliquot_id": None,
+                    "material_link_precision": "study_arm",
+                    "context_status": "source_labelled_study_arm_without_physical_material_identity",
+                    "source_locator": "summary:2",
+                },
+            ],
+            "mapp_material_link": [
+                {
+                    "claim_id": "run_1:in_arm",
+                    "source_context_id": "pxd009092:run:run_1",
+                    "target_context_id": "pxd009092:arm:UT",
+                    "assertion_predicate": "source_acquisition_in_study_arm",
+                    "assertion_status": "source_reported",
+                    "material_link_precision": "study_arm",
+                    "source_locator": "summary:2",
+                }
+            ],
+        },
+    )
+    run = store.query(
+        "mapp_channel",
+        select=[
+            "channel_id",
+            "material_context.condition_id",
+            "material_context.specimen_id",
+            "material_context.aliquot_id",
+        ],
+        joins=["material_context"],
+        limit=None,
+    ).table.to_pylist()
+    assert run == [
+        {
+            "channel_id": "pxd009092:run:run_1",
+            "material_context.condition_id": "pxd009092:arm:UT",
+            "material_context.specimen_id": None,
+            "material_context.aliquot_id": None,
+        }
+    ]
+    link = store.query(
+        "mapp_material_link",
+        select=["target_material_context.context_kind", "material_link_precision"],
+        joins=["target_material_context"],
+        limit=None,
+    ).table.to_pylist()
+    assert link == [
+        {
+            "target_material_context.context_kind": "study_arm",
+            "material_link_precision": "study_arm",
+        }
+    ]
+
+
 def test_mhc_partition_and_measurement_do_not_convert_negative_ms(tmp_path):
     store = _store(
         tmp_path,

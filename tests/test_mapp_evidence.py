@@ -9,6 +9,7 @@ import pyarrow.parquet as pq
 import pytest
 
 from hitlist.mapp_evidence import write_mapp_tables
+from hitlist.material_context import links_with_minimum_precision
 
 
 def _tsv(path, rows):
@@ -181,6 +182,23 @@ def test_source_zeros_and_imputation_are_not_biological_absence(tmp_path):
     assert all(
         row["input_measurement_id"] in references for row in _table(tmp_path, "derivation_inputs")
     )
+    contexts = _table(tmp_path, "material_contexts")
+    links = _table(tmp_path, "material_links")
+    assert len(contexts) == 25
+    assert len(links) == 24
+    assert {row["condition_text"] for row in contexts if row["context_kind"] == "study_arm"} == {
+        "UT",
+        "TNF+IFN",
+        "CHX",
+        "NO-DSP",
+        "NO-INH",
+        "BEADS",
+    }
+    acquisition = [row for row in contexts if row["context_kind"] == "source_acquisition"]
+    assert len(acquisition) == 18
+    assert all(row["specimen_id"] is row["aliquot_id"] is None for row in acquisition)
+    assert not links_with_minimum_precision(links, "exact_specimen")
+    assert len(links_with_minimum_precision(links, "study_arm")) == 18
 
 
 @pytest.mark.parametrize(

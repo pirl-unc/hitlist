@@ -23,7 +23,8 @@ and exposes only explicitly appended sources. The original supporting-package
 adapter generation remains a historical source receipt, not the current query
 surface.
 
-The typed relations separate source records, peptide identities, group rows,
+The typed relations separate source records, project/study-arm/acquisition
+material contexts, qualified context links, peptide identities, group rows,
 channels, individual evidence observations, peptide/run results, quantity
 representations, derivation inputs, source assertions and publisher cells.
 All 36 group rows lacking numeric IDs remain quarantined records with unique
@@ -43,7 +44,7 @@ all three filtered source runs, including zeros. Imputed columns retain conflict
 headers and no assigned condition. The selected protein panel remains original
 cells with unresolved specimen/acquisition identity, not a precursor denominator.
 Source parent lists, leading coordinates and flanks remain source claims.
-Adapter schema 2 adds seven reference relations: `sequence_references`,
+Adapter schema 2 added seven reference relations: `sequence_references`,
 `reference_proteins`, `reference_accessions`, `peptide_reference_occurrences`,
 `source_parent_claims`, `source_parent_resolutions` and
 `peptide_reference_coverage`. The pinned historical canonical DAT and modern
@@ -65,14 +66,16 @@ one quantity must not become several independent labels. Reference-local shared
 full-sequence components can constrain splits but establish neither homology nor
 specimen independence. They include unmatched singleton peptide identities.
 The first adapter generation remains immutable and needs its schema-1 code to
-verify; schema 2 does not silently migrate existing artifacts.
+verify; schema 3 does not silently migrate existing artifacts.
 
-Run context preserves human HEK293 measured cells, actual UT/TNF+IFN/CHX conditions,
-BEADS background and NO-DSP/NO-INH procedural controls. The shared `T+I` filename
-prefix does not assign treatment. Procedural preservation controls are not gene
-knockouts. Source specimen identities remain unresolved. Search scope is 6–40
-residues; unreported shorter products are not negatives. The project/paper FDR
-conflict and unresolved PXD009360 parallel-tryptic pairing remain assertions.
+The material graph records the source-backed project → study-arm → acquisition
+membership for human HEK293 UT/TNF+IFN/CHX conditions, BEADS background and
+NO-DSP/NO-INH procedural controls. The shared `T+I` filename prefix does not
+assign treatment. Each acquisition has an explicit unresolved specimen/aliquot
+status; neither a numbered repeat nor a study arm can satisfy a physical-pair
+request. Procedural preservation controls are not gene knockouts. Search scope
+is 6–40 residues; unreported shorter products are not negatives. The project/paper
+FDR conflict and unresolved PXD009360 parallel-tryptic pairing remain assertions.
 
 Original inputs are supplied locally and copied into the caller's package, not
 bundled in the Python distribution. PXD009092 declares EBI terms of use, not CC0;
