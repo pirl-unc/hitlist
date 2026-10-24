@@ -8439,3 +8439,24 @@ peptide-cell decisions retained;94,034baseline review candidates, including19,05
 omitted publisher cells. Source/publisher/pooled values and material precision
 reconcile. Format/lint and3,489unit tests pass; full-corpus CI, PR/merge and verified
 release remain pending. No model fit or predictive improvement in this family.
+
+## Goldberg2025 baseline prediction
+
+- [x] Freeze cohort, dependence, feature, optimizer and numerical gates.
+- [x] Implement shared composition recipe and verify original-source cohort.
+- [x] Qualify exact/sampled gradients and feature support.
+- [x] Fit all frozen arms and seal covariate predictions.
+- [x] Evaluate held-outs once and independently reconstruct outputs/metrics.
+- [ ] Publish results and complete dependency release checks.
+
+### Baseline composition review
+
+Shared recipe and original-source replay pass:40,701measurements across274/74/110
+train/validation/test components. All394,732baseline decisions retained; no
+publisher filtering or missing-negative inference. Thirteen focused tests, format
+and lint pass; full unchanged guarded rerun passes3,493tests/392warnings in314.19s.
+First full attempt had16disk-reserve failures while temporary source materialization
+occupied space; its log is retained and the guard was not relaxed. Presto2244
+independently verifies targets,529,113predictions,allmetricsandbootstrap. Exact/RL
+beatuniform; primarysequence-versus-length5%gatefails ontest(4.334%). No APC
+concentration claim. PR/rebased checks/release still pending.

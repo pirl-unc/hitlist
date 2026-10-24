@@ -523,6 +523,8 @@ def materialize_recipe(store, recipe, destination):
         from .distribution_recipe import materialize_distribution
         from .goldberg_candidates import RECIPE_ID as GOLDBERG_ID
         from .goldberg_candidates import materialize_candidates
+        from .goldberg_composition import RECIPE_ID as GOLDBERG_COMPOSITION_ID
+        from .goldberg_composition import materialize_composition
         from .hap1_response_recipe import RECIPE_ID as HAP1_RESPONSE_ID
         from .hap1_response_recipe import materialize_responses as materialize_hap1_responses
         from .lymph_composition import RECIPE_ID as LYMPH_ID
@@ -536,6 +538,8 @@ def materialize_recipe(store, recipe, destination):
         from .tmab_response_recipe import RECIPE_ID as NATIVE_RESPONSE_ID
         from .tmab_response_recipe import materialize_responses
 
+        if recipe["registered_recipe"] == GOLDBERG_COMPOSITION_ID:
+            return materialize_composition(store, recipe, destination)
         if recipe["registered_recipe"] == GOLDBERG_ID:
             return materialize_candidates(store, recipe, destination)
         if recipe["registered_recipe"] == LYMPH_ID:
@@ -784,6 +788,10 @@ def verify_recipe_package(directory, *, source_package=None):
     ):
         raise RecipeError("Source package manifest changed")
     output_kind = manifest.get("output_kind", "row_decisions")
+    if output_kind == "registered_goldberg_composition":
+        from .goldberg_composition import verify_composition_contents
+
+        return verify_composition_contents(directory, manifest, source_package)
     if output_kind == "registered_goldberg_candidates":
         from .goldberg_candidates import verify_candidate_contents
 

@@ -96,3 +96,25 @@ full search-reference support, physical precursor pairing and processing-model
 eligibility remain separately labeled. A downstream experiment must declare its
 endpoint and policies before fitting; these candidates are not certified free
 intracellular concentrations.
+
+## Conditional observed composition
+
+Registered recipe `goldberg2025_observed_baseline_composition_v1` retains the
+complete baseline decision universe and adds a stricter conditional signal cohort:
+source peptide PEP in [0,.01), direct per-run MS/MS, one supplied accession, and
+at least three distinct positive observed sequences per accession/acquisition.
+Duplicate eligible sequences within a group are refused. Publisher selection is
+not a filter. All original peptide/accession nodes, including excluded bridges,
+define stable dependency components before the fixed 60/20/20 hash split.
+
+The export includes decisions, component membership, group support, source-linked
+examples, and a separate label-free covariate table. Targets are centered log10
+intensity and intensity fractions within observed groups. Weights give equal mass
+to components, then groups, then peptides. The declared support gate is reported,
+including for insufficient cohorts; it never triggers a resplit. Verification
+reconstructs all outputs from the bound source tables, even after rehashing.
+
+These targets describe captured, observed signal in A549. They do not identify
+free-peptide concentrations, unobserved mass, exact origins, or paired precursor
+amounts. Sequence totals may aggregate molecular forms. Original source/confidence/
+reference/material uncertainties remain separate fields.
