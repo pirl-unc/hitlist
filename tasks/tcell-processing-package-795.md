@@ -26,7 +26,7 @@ families remain explicit availability results rather than synthetic negatives.
       multiplying observations.
 - [x] Add availability and no-direct-processing audit relations, source-linked
       examples, replay/count/hash tests, and explicit donor/restriction policy.
-- [ ] Run hosted gates, merge, and deploy 2.0.18.
+- [x] Run hosted gates, merge, and deploy 2.0.18.
 
 ## Review
 
@@ -40,4 +40,10 @@ host-level one-worker `./test.sh` run passes all 3,418 non-integration tests.
 The package manifest verifies as schema 18/catalog 23; its EvidenceStore
 replay returns 47,421 functional responses, 8,423 multimer bindings, 192,114
 processing measurements, 362,882 MAPP measurements, five family rows and five
-availability rows. Hosted and release evidence remain.
+availability rows.
+
+Release update: PR #796 merged as `fda1eff79d7a77f195e6a5f3a4c5abbee5cfd7c4`;
+clean-main release workflow `40079964064` passed. Hitlist 2.0.18 is on PyPI
+with wheel SHA-256
+`eece32b864313a5bddd45113a48717d7e86da37ea4d55fb5c3f5be487c7ea065` and sdist SHA-256
+`8177479c633b5e870a89a4bc682d53b2c8e208e8f7cf5fb1c0cd3366ab36fafb`.

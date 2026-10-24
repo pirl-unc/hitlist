@@ -8087,11 +8087,34 @@ Plan: [tcell-processing-package-795.md](tcell-processing-package-795.md).
       functional, multimer, receptor, processing and MAPP families separate.
 - [x] Register typed family projections, availability/no-direct-processing
       results and replay tests.
-- [ ] Run hosted gates, merge and deploy 2.0.18.
+- [x] Run hosted gates, merge and deploy 2.0.18.
 
 Review: the standalone replay preserves 55,844 T-cell examples, 578,529
 assay rows, 192,114 MAPP quantity results and 362,882 MAPP measurements.
 Aliases query functional response, pMHC multimer binding, processing
 measurement and MAPP products without merging their scientific families.
 The branch is rebased on the strict TMAB response successor (schema 17 /
-catalog 22); hosted review and release evidence are pending.
+catalog 22).
+
+Release update: PR #796 merged as `fda1eff79d7a77f195e6a5f3a4c5abbee5cfd7c4`;
+clean-main release workflow `40079964064` passed. Hitlist 2.0.18 is on PyPI
+with wheel SHA-256
+`eece32b864313a5bddd45113a48717d7e86da37ea4d55fb5c3f5be487c7ea065` and sdist
+SHA-256 `8177479c633b5e870a89a4bc682d53b2c8e208e8f7cf5fb1c0cd3366ab36fafb`.
+
+## Standalone proteasome processing package (#797 / #770)
+
+Plan: [digestion-processing-package-797.md](digestion-processing-package-797.md).
+
+- [x] Freeze the schema-9/10 source appendage, relation schemas and replay anchors.
+- [x] Define schema-19/catalog-24 family and availability ledgers without
+      relabeling MS response as molar production or APC processing.
+- [x] Copy all source assets and typed relations into a standalone envelope;
+      expose aliases and preserve run/construct/context/conflict joins.
+- [ ] Run hosted gates, merge and deploy 2.0.19.
+
+Review: the real package replay verifies schema 19/catalog 24 and preserves
+388 runs, 5,792,969 MS1 rows, 545,664 raw quantities, 53,413 final vectors,
+280,664 final values and 2,284 conflicts. EvidenceStore exposes 14 bindings;
+aliases return those source counts and five family/five availability rows.
+Hosted review and release evidence are pending.
