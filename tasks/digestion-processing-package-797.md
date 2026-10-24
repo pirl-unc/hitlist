@@ -21,7 +21,7 @@ not APC, TAP, MHC or intracellular concentration supervision.
       multiply observations; preserve explicit RF1, forced-zero, missing,
       annotation-only and non-contiguous product statuses.
 - [x] Run required local gates and real-source replay.
-- [ ] Run hosted gates, merge, and deploy 2.0.19.
+- [x] Run hosted gates, merge, and deploy 2.0.19.
 
 ## Review
 
@@ -34,3 +34,9 @@ The cellular APC family is explicitly unavailable, and RF1 time/metadata
 conflicts remain source rows rather than being silently adjudicated. Focused
 tests, formatting and lint pass; the one-worker full non-integration gate now
 passes all 3,422 tests (392 warnings) on the constrained host.
+
+Release update: PR #799 merged as `e8faa7fd437d9f8b47d67a4c7836ad3df073f948`;
+clean-main release workflow `40084695481` passed. Hitlist 2.0.19 is on PyPI
+with wheel SHA-256
+`56c5dd7fdcbc474aeac18bdee614b32f4d64fa677add4225bd2d2a29136a787b` and sdist SHA-256
+`4a7f167b7e10807b51a4184905e916cb790f15030e2df8aa4d9842406b759f3d`.

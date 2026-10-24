@@ -1,0 +1,96 @@
+{
+  "source_id": "pxd009360_precursor",
+  "dataset_accession": "PXD009360",
+  "source_reference_iri": "https://www.ebi.ac.uk/pride/archive/projects/PXD009360",
+  "assets": {
+    "PXD009360/project.json": {
+      "sha256": "8c7c30704a298901c49422d0dd35fef38baa5e0317ecb5d81ec9a7edf1bdf0b7",
+      "size_bytes": 4207,
+      "asset_kind": "project_metadata",
+      "source_locator": "PXD009360/project.json"
+    },
+    "PXD009360/files.json": {
+      "sha256": "af67353fe522aee5db7a10e864bb4019940358e564ac06bc3d2a5cbefc89875c",
+      "size_bytes": 11557,
+      "asset_kind": "deposited_file_inventory",
+      "source_locator": "PXD009360/files.json"
+    },
+    "search/pxd009360-search.tar.gz": {
+      "sha256": "45b1f2b278937b43a40913798b96c7fb31a0d1a7753ebcf99951287c0ebe91c7",
+      "size_bytes": 733580954,
+      "asset_kind": "maxquant_search_archive",
+      "source_locator": "PXD009360 processed search archive"
+    },
+    "search/parameters.txt": {
+      "sha256": "bd4af0697e3e5ad6689368b3156dbabdc100ddfe6ac6cc122f6957658e245025",
+      "size_bytes": 1740,
+      "asset_kind": "maxquant_parameters",
+      "source_locator": "txt/parameters.txt"
+    },
+    "search/summary.txt": {
+      "sha256": "49692701b0d25fd57e20a39efb71c20d37b9991e658a500c3fd13b55dc2b2610",
+      "size_bytes": 4611,
+      "asset_kind": "maxquant_summary",
+      "source_locator": "txt/summary.txt"
+    }
+  },
+  "archive_members": [
+    {"path": "txt/msms.txt", "size_bytes": 413854532},
+    {"path": "txt/allPeptides.txt", "size_bytes": 1158152038},
+    {"path": "txt/mzRange.txt", "size_bytes": 4027321},
+    {"path": "txt/peptides.txt", "size_bytes": 19412930},
+    {"path": "txt/aifMsms.txt", "size_bytes": 0},
+    {"path": "txt/ms3Scans.txt", "size_bytes": 0},
+    {"path": "txt/msmsScans.txt", "size_bytes": 98241069},
+    {"path": "txt/tables.pdf", "size_bytes": 50190},
+    {"path": "txt/summary.txt", "size_bytes": 4611},
+    {"path": "txt/libraryMatch.txt", "size_bytes": 0},
+    {"path": "txt/evidence.txt", "size_bytes": 151095645},
+    {"path": "txt/modificationSpecificPeptides.txt", "size_bytes": 18536553},
+    {"path": "txt/proteinGroups.txt", "size_bytes": 8151794},
+    {"path": "txt/matchedFeatures.txt", "size_bytes": 0},
+    {"path": "txt/msScans.txt", "size_bytes": 34563240},
+    {"path": "txt/parameters.txt", "size_bytes": 1740},
+    {"path": "txt/Oxidation (M)Sites.txt", "size_bytes": 315636}
+  ],
+  "acquisitions": [
+    {"acquisition_id": "pxd009360:run:448", "sample_label_raw": "448", "source_file": "QEP2_YME_448_1_071216.raw"},
+    {"acquisition_id": "pxd009360:run:449", "sample_label_raw": "449", "source_file": "QEP2_YME_449_1_071216.raw"},
+    {"acquisition_id": "pxd009360:run:450", "sample_label_raw": "450", "source_file": "QEP2_YME_450_1_071216.raw"},
+    {"acquisition_id": "pxd009360:run:451", "sample_label_raw": "451", "source_file": "QEP2_YME_451_1_071216.raw"},
+    {"acquisition_id": "pxd009360:run:452", "sample_label_raw": "452", "source_file": "QEP2_YME_452_1_071216.raw"},
+    {"acquisition_id": "pxd009360:run:453", "sample_label_raw": "453", "source_file": "QEP2_YME_453_1_071216.raw"},
+    {"acquisition_id": "pxd009360:run:454", "sample_label_raw": "454", "source_file": "QEP2_YME_454_1_071216.raw"},
+    {"acquisition_id": "pxd009360:run:455", "sample_label_raw": "455", "source_file": "QEP2_YME_455_1_071216.raw"},
+    {"acquisition_id": "pxd009360:run:456", "sample_label_raw": "456", "source_file": "QEP2_YME_456_1_071216.raw"}
+  ],
+  "pairings": [
+    {
+      "claim_id": "pxd009360:run_condition_map",
+      "assertion_predicate": "run_to_condition",
+      "assertion_value": "unresolved",
+      "assertion_status": "unresolved",
+      "pairing_scope": "pxd009360_acquisition",
+      "pairing_status": "unresolved",
+      "pairing_evidence": "no_source_backed_condition_map"
+    },
+    {
+      "claim_id": "pxd009360:mapp_specimen_pairing",
+      "assertion_predicate": "mapp_to_precursor_specimen",
+      "assertion_value": "unresolved",
+      "assertion_status": "unresolved",
+      "pairing_scope": "cross_project_specimen",
+      "pairing_status": "unresolved",
+      "pairing_evidence": "run_labels_do_not_establish_specimen_identity"
+    },
+    {
+      "claim_id": "pxd009360:mapp_aliquot_pairing",
+      "assertion_predicate": "mapp_to_precursor_aliquot",
+      "assertion_value": "unresolved",
+      "assertion_status": "unresolved",
+      "pairing_scope": "cross_project_aliquot",
+      "pairing_status": "unresolved",
+      "pairing_evidence": "no_source_backed_aliquot_crosswalk"
+    }
+  ]
+}

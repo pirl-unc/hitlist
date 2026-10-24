@@ -84,6 +84,8 @@ _PUBLIC_API: dict[str, str] = {
     "verify_tcell_processing_package": ".tcell_processing_package",
     "write_digestion_processing_package": ".digestion_processing_package",
     "verify_digestion_processing_package": ".digestion_processing_package",
+    "write_precursor_context_package": ".precursor_context_package",
+    "verify_precursor_context_package": ".precursor_context_package",
     "dataset_snapshot": ".dataset",
     "curate_canine_bulk": ".canine_bulk",
     "canine_bulk_catalog": ".canine_bulk",
