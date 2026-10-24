@@ -523,6 +523,8 @@ def materialize_recipe(store, recipe, destination):
         from .distribution_recipe import materialize_distribution
         from .hap1_response_recipe import RECIPE_ID as HAP1_RESPONSE_ID
         from .hap1_response_recipe import materialize_responses as materialize_hap1_responses
+        from .lymph_composition import RECIPE_ID as LYMPH_ID
+        from .lymph_composition import materialize_response as materialize_lymph
         from .mapp_controlled_recipe import CONTRAST_ID as CONTROLLED_CONTRAST_ID
         from .mapp_controlled_recipe import RECIPE_ID as CONTROLLED_ID
         from .mapp_controlled_recipe import materialize_controlled
@@ -532,6 +534,8 @@ def materialize_recipe(store, recipe, destination):
         from .tmab_response_recipe import RECIPE_ID as NATIVE_RESPONSE_ID
         from .tmab_response_recipe import materialize_responses
 
+        if recipe["registered_recipe"] == LYMPH_ID:
+            return materialize_lymph(store, recipe, destination)
         if recipe["registered_recipe"] == PROTEOMETOOLS_ID:
             return materialize_proteometools(store, recipe, destination)
         if recipe["registered_recipe"] == HAP1_RESPONSE_ID:
@@ -776,6 +780,10 @@ def verify_recipe_package(directory, *, source_package=None):
     ):
         raise RecipeError("Source package manifest changed")
     output_kind = manifest.get("output_kind", "row_decisions")
+    if output_kind == "registered_lymph_composition":
+        from .lymph_composition import verify_response_contents
+
+        return verify_response_contents(directory, manifest, source_package)
     if output_kind == "registered_proteometools_response":
         from .proteometools_response import verify_response_contents
 
