@@ -8047,3 +8047,32 @@ censoring/value-status counts. It records 971 conservative possible
 cross-paper candidate groups (1,942 source rows) without asserting specimen
 independence; tentative/unresolved identities are deferred. Local format,
 lint and full tests pass (3,389 tests).
+
+## TMAB semantic corrections (#791 / #792)
+
+- [x] Implement tasks/tmab-semantic-corrections-791.md on the isolated correction branch.
+- [x] Verify focused regressions, canonical query fields and the full original workbooks.
+- [ ] Finish full repository tests, review and publish the correction PR/release.
+- [ ] Qualify the canonical native-response recipe separately before fitting.
+
+Review: 43 focused tests pass; the final regression file gives 14 failures and
+one pass against pinned f4d3a6d. Format and lint pass. Full ./test.sh completed successfully (3,403 tests).
+The real-source replay preserves 10,564 rows and 61,908 measurement slots and
+recovers all 830 independently identified candidate reuse groups (1,660 rows).
+There are 7,933 exact and 4,662 censored treated/control source candidates;
+these are not independent training counts. The first replay's 1,242 whitespace
+comparison failures are retained and explained by a separate successful closure:
+existing projected labels trim whitespace while raw rows remain literal. No
+production data or parser rule changed to resolve that comparator error.
+Evidence: Presto experiments/2026-10-24_0156_codex_tmab-semantic-replay.
+
+
+## Reconciled native response successor (#791 / #793)
+
+- [x] Merge concurrent main7649ffe while preserving its raw provenance additions.
+- [x] Retain strict sequence/peptidoform parsing, full compound names, handling contexts and per-slot possible reuse.
+- [x] Add v3/schema17/catalog22 and the registered exact/bounded response recipe, version2.0.17.
+- [x] Pass format/lint,54focused and3,414full local tests plus independent full-source/reference/target/split/weight replay.
+- [ ] Push the resolved merge, pass new-head hosted gates, merge and release2.0.17.
+
+Review: see tmab-upstream-reconciliation.md and Presto0259 admission. PR794 merged independently and its2.0.16release-build passed; preserve issue792closure and do not treat prior PR793 checks as new-head evidence. No APC concentration qualification is claimed.

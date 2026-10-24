@@ -50,6 +50,7 @@ SELECTORS = {
 # These are exact same-grain aliases. Related values are declared as links below;
 # a raw field with an uncertain role is intentionally left under native.*.
 ALIASES = {
+    "tmab_source_asset": {"source_asset_role": "source_role"},
     "calibration_protocol_parameter": {
         "source_record_id": "parameter_id",
         "source_scope": "scope",

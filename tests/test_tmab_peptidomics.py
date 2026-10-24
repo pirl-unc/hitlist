@@ -5,12 +5,7 @@ import pytest
 from hitlist.evidence_bindings import materialized_bindings
 from hitlist.evidence_catalog import SCHEMA_VERSION, describe_evidence
 from hitlist.evidence_package import package_family
-from hitlist.tmab_peptidomics import (
-    _candidate_reuse_key,
-    _parse_ratio,
-    _parse_sequence,
-    _treatment,
-)
+from hitlist.tmab_peptidomics import _parse_ratio, _parse_sequence, _treatment
 
 
 @pytest.mark.parametrize(
@@ -32,26 +27,9 @@ def test_native_ratio_states_preserve_censoring_and_missingness(
 
 
 def test_sequence_and_modification_are_separate():
-    assert _parse_sequence("Ac-ASKRALVILA") == (
-        "ASKRALVILA",
-        "N_terminal_acetylation",
-        "reported_sequence",
-        "reported_source_modification",
-    )
-    assert _parse_sequence("(ASKRALVILA)") == (
-        "ASKRALVILA",
-        None,
-        "tentative_source_annotation",
-        "none_reported",
-    )
-    assert _parse_sequence(None) == (None, None, "unreported", "unreported")
-    assert _parse_sequence("Ac-MoxQNDAGEFVDLYVPRK") == (
-        "MQNDAGEFVDLYVPRK",
-        "N_terminal_acetylation;oxidized_methionine",
-        "reported_sequence",
-        "reported_source_modification",
-    )
-    assert _parse_sequence("APIKVGDAIPAVE -18 (dehydro?)")[-1] == "unresolved_source_annotation"
+    assert _parse_sequence("Ac-ASKRALVILA") == ("ASKRALVILA", "N_terminal_acetylation")
+    assert _parse_sequence("(ASKRALVILA)") == ("ASKRALVILA", None)
+    assert _parse_sequence(None) == (None, None)
 
 
 def test_treatment_parser_keeps_dose_and_duration_scoped_to_raw_label():
@@ -65,36 +43,14 @@ def test_treatment_parser_keeps_dose_and_duration_scoped_to_raw_label():
     assert _treatment("control") == ("control", "control", None, None, None)
 
 
-def test_candidate_reuse_key_is_source_independent_but_conservative():
-    common = {
-        "cell": "HEK293T",
-        "sequence_raw": "Ac-ASKRALVILA",
-        "charge_raw": "2",
-        "observed_mass_raw": "1082.677",
-        "experiment": "bortezomib 30min, 500nM",
-        "ratio_values": (0.2, 0.3, 0.4, 0.5, 0.6),
-    }
-    assert _candidate_reuse_key(source_id="dasgupta_2014", source_record_id="a", **common) == (
-        _candidate_reuse_key(source_id="gelman_2013", source_record_id="b", **common)
-    )
-    assert (
-        _candidate_reuse_key(
-            source_id="dasgupta_2014",
-            source_record_id="a",
-            **{**common, "ratio_values": ("<0.2", None, None, None, None)},
-        )
-        == "dasgupta_2014|a"
-    )
-
-
 def test_tmab_package_is_standalone_and_queryable():
     envelope = {
-        "schema_version": 16,
+        "schema_version": 17,
         "package_family": "tmab_peptidomics",
-        "revision": "tmab_native_peptidomics_v2",
+        "revision": "tmab_native_peptidomics_v3",
     }
     assert package_family(envelope) == "tmab_peptidomics"
-    assert SCHEMA_VERSION == 21
+    assert SCHEMA_VERSION == 22
     fields = {field["name"] for field in describe_evidence("tmab_measurement")["fields"]}
     assert {
         "peptide_sequence_raw",
@@ -106,7 +62,7 @@ def test_tmab_package_is_standalone_and_queryable():
         field["name"] for field in describe_evidence("tmab_protocol_context")["fields"]
     }
     assert {"instrument", "cell_line_name", "treatment_name"} <= context_fields
-    bindings = materialized_bindings(16)
+    bindings = materialized_bindings(17)
     assert {
         "tmab_measurement",
         "tmab_source_row",

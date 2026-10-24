@@ -525,7 +525,11 @@ def materialize_recipe(store, recipe, destination):
         from .mapp_controlled_recipe import RECIPE_ID as CONTROLLED_ID
         from .mapp_controlled_recipe import materialize_controlled
         from .ms_calibration_response import RECIPE_ID, materialize_response
+        from .tmab_response_recipe import RECIPE_ID as NATIVE_RESPONSE_ID
+        from .tmab_response_recipe import materialize_responses
 
+        if recipe["registered_recipe"] == NATIVE_RESPONSE_ID:
+            return materialize_responses(store, recipe, destination)
         if recipe["registered_recipe"] == DIGESTION_ID:
             return materialize_timecourses(store, recipe, destination)
         if recipe["registered_recipe"] in (CONTROLLED_ID, CONTROLLED_CONTRAST_ID):
@@ -764,6 +768,10 @@ def verify_recipe_package(directory, *, source_package=None):
     ):
         raise RecipeError("Source package manifest changed")
     output_kind = manifest.get("output_kind", "row_decisions")
+    if output_kind == "registered_native_response":
+        from .tmab_response_recipe import verify_response_contents
+
+        return verify_response_contents(directory, manifest, source_package)
     if output_kind == "registered_digestion_timecourses":
         from .digestion_recipe import verify_timecourse_contents
 
