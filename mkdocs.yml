@@ -15,6 +15,7 @@ nav:
   - Controlled MAPP Evidence: mapp-controlled-evidence.md
   - Digestion time courses: digestion-evidence.md
   - MS calibration evidence: ms-calibration-evidence.md
+  - Nontryptic MS1 response: proteometools-ms1.md
   - Source Classification: source-classification.md
   - PMID Curation Overrides: pmid-curation.md
   - Training Provenance and Split Audits: training-provenance.md

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, replace
 
-SCHEMA_VERSION = 27
+SCHEMA_VERSION = 28
 FIELD_ROLES = frozenset(
     {
         "identity",
@@ -4627,6 +4627,94 @@ EVIDENCE += tuple(
         min_package_schema_version=20,
     )
     for name, (grain, fields) in HAP1_RELATIONS.items()
+)
+
+PROTEOMETOOLS_RELATIONS = {
+    "assets": (
+        "one_immutable_original_source_asset",
+        ("source_asset_id", "source_file", "source_asset_url", "source_asset_role", "asset_sha256"),
+    ),
+    "source_records": (
+        "one_original_tabular_row_with_positional_headers",
+        (
+            "source_record_id",
+            "source_file",
+            "source_locator",
+            "source_row_json",
+            "source_row_index",
+        ),
+    ),
+    "planned_products": (
+        "one_original_intended_sequence_pool_mapping_row",
+        (
+            "source_record_id",
+            "source_file",
+            "source_locator",
+            "source_row_index",
+            "sample_label_raw",
+            "peptide_sequence",
+        ),
+    ),
+    "contexts": (
+        "one_primary_synthetic_pool_protocol_with_explicit_conflicts",
+        ("context_id", "source_reference_iri", "measured_pool", "instrument", "digestion_enzyme"),
+    ),
+    "runs": (
+        "one_original_single_run_SEARCH_archive",
+        ("acquisition_id", "source_record_id", "source_file", "context_id", "sample_label_raw"),
+    ),
+    "peptides": (
+        "one_original_sequence_MS1_quantity_including_nonpositive",
+        (
+            "measurement_id",
+            "source_record_id",
+            "acquisition_id",
+            "peptide_sequence",
+            "quantitative_raw",
+            "quantitative_value",
+            "value_status",
+            "measurement_unit",
+            "quantity_scale",
+            "parent_label_raw",
+        ),
+    ),
+    "forms": (
+        "one_original_molecular_form_MS1_quantity_including_nonpositive",
+        (
+            "measurement_id",
+            "source_record_id",
+            "acquisition_id",
+            "peptide_sequence",
+            "peptide_modifications_raw",
+            "quantitative_raw",
+            "quantitative_value",
+            "value_status",
+            "measurement_unit",
+            "quantity_scale",
+            "parent_label_raw",
+        ),
+    ),
+}
+EVIDENCE += tuple(
+    Evidence(
+        "proteometools_" + name,
+        "context"
+        if name in ("runs", "contexts")
+        else "measurement"
+        if name in ("peptides", "forms")
+        else "relation",
+        "non_MHC_MS_response",
+        grain,
+        f"proteometools_ms1/typed/{name}.parquet",
+        "pxd021013",
+        (),
+        fields,
+        (fields[0],),
+        status="v2_materialized",
+        materialized_artifact=f"proteometools_ms1/typed/{name}.parquet",
+        min_package_schema_version=23,
+    )
+    for name, (grain, fields) in PROTEOMETOOLS_RELATIONS.items()
 )
 
 _EVIDENCE_BY_NAME = {item.name: item for item in EVIDENCE}

@@ -38,6 +38,7 @@ def describe_registered_recipes(store):
     from .mapp_controlled_recipe import describe as describe_controlled
     from .ms_calibration_response import describe
     from .precursor_recipe import describe as describe_precursor
+    from .proteometools_response import describe as describe_proteometools
     from .tmab_response_recipe import describe as describe_native_response
 
     available = set(TABLE_BINDINGS.values()) <= store.bindings.keys()
@@ -52,6 +53,7 @@ def describe_registered_recipes(store):
         describe_native_response(store),
         describe_precursor(store),
         describe_hap1_response(store),
+        describe_proteometools(store),
     ]
 
 

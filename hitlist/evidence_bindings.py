@@ -50,6 +50,23 @@ SELECTORS = {
 # These are exact same-grain aliases. Related values are declared as links below;
 # a raw field with an uncertain role is intentionally left under native.*.
 ALIASES = {
+    "proteometools_assets": {
+        "source_asset_id": "asset_id",
+        "source_asset_url": "source_url",
+        "asset_sha256": "sha256",
+    },
+    "proteometools_planned_products": {
+        "source_record_id": "planned_id",
+        "sample_label_raw": "pool_name",
+    },
+    "proteometools_contexts": {
+        "source_reference_iri": "source_url",
+        "measured_pool": "material_type",
+        "digestion_enzyme": "laboratory_digest",
+    },
+    "proteometools_runs": {"acquisition_id": "run_id", "sample_label_raw": "pool_name"},
+    "proteometools_peptides": {"acquisition_id": "run_id"},
+    "proteometools_forms": {"acquisition_id": "run_id"},
     "hap1_assets": {"source_asset_role": "source_role"},
     "hap1_runs": {"acquisition_id": "run_id"},
     "hap1_occurrences": {"mapping_position": "start_1based"},
@@ -1140,6 +1157,52 @@ LINKS += (
         "reference_record_id",
         "optional_one",
         "exact_sequence_candidate_not_measured_origin",
+    ),
+)
+
+
+for _table in ("runs", "peptides", "forms"):
+    LINKS += (
+        Link(
+            "source_record",
+            "proteometools_" + _table,
+            "proteometools_source_records",
+            "source_record_id",
+            "source_record_id",
+            "one",
+            "literal_source_row",
+        ),
+    )
+for _table in ("peptides", "forms"):
+    LINKS += (
+        Link(
+            "run",
+            "proteometools_" + _table,
+            "proteometools_runs",
+            "run_id",
+            "run_id",
+            "one",
+            "deposited_single_run",
+        ),
+    )
+LINKS += (
+    Link(
+        "peptide",
+        "proteometools_forms",
+        "proteometools_peptides",
+        "peptide_measurement_id",
+        "measurement_id",
+        "one",
+        "original_MaxQuant_Peptide_ID",
+    ),
+    Link(
+        "context",
+        "proteometools_runs",
+        "proteometools_contexts",
+        "context_id",
+        "context_id",
+        "one",
+        "primary_study_protocol",
     ),
 )
 

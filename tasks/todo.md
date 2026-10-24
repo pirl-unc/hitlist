@@ -8273,3 +8273,22 @@ pinned response package replays under this consumer in 22.06 seconds: all
 2,391,692 dispositions, 220,271 responses and original precursor/split relations
 match. Source and recipe manifest hashes remain 88cad10d… and a1eec392….
 Hosted checks, merge and PyPI deployment remain pending; do not claim release.
+
+## PXD021013 relative MS response (#762)
+
+Specification: [proteometools-ms1-spec.md](proteometools-ms1-spec.md).
+
+- [x] Revalidate current main, existing issue and public source audit; preserve shared editable environment.
+- [x] Specify source, homogeneous context, quantities, uncertainty and target before implementation.
+- [x] Implement subset-capable source package and EvidenceStore registration.
+- [x] Implement registered relative-response recipe and dependence groups.
+- [x] Verify meaningful fixtures and real source conservation in the experiment registry.
+- [x] Run format.sh, lint.sh and test.sh: 3,458 passed; strict documentation build passes.
+- [ ] Publish PR/version and deploy after full release gates.
+- [ ] Run prospective grouped biological observer evaluation in Presto.
+
+Review: local source/recipe implementation verified against 320,222 original cells and
+1,147 unchanged measured targets. The corrected intended-product graph has two
+pilot components; 106 shared off-planned background IDs remain audited. Local suite
+3,458 passed in 325.27 seconds; peak process RSS 926,728,192 bytes. Full integration
+release gates and PyPI deployment remain pending. No new predictive gain claimed.
