@@ -1,0 +1,59 @@
+{
+  "assertions": [
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": null,
+      "predicate": "sampleProcessingProtocol",
+      "scope": "PXD009438",
+      "source_locator": "project.json",
+      "subject_id": "pxd009438",
+      "value_raw": "Samples are reversibly cross-linked together with immunoprecipitation of cellular proteasomes prior to reverse-phase isolation and elution of captured peptides."
+    },
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": "blood serum",
+      "predicate": "project_metadata_organism_part",
+      "scope": "project_metadata",
+      "source_locator": "project.json:sampleAttributes",
+      "subject_id": "pxd009438",
+      "value_raw": "blood serum"
+    },
+    {
+      "assertion_status": "conflicting_source_claim",
+      "normalized_value": "peripheral blood mononuclear cell",
+      "predicate": "publication_reported_material",
+      "scope": "publication_cohort_context_not_run_identity",
+      "source_locator": "https://www.nature.com/articles/nbt.4279",
+      "subject_id": "pxd009438",
+      "value_raw": "PBMCs were purified from 6 healthy individuals and 8 SLE patients."
+    },
+    {
+      "assertion_status": "source_reported",
+      "normalized_value": "CTRL:6;LUPUS:8",
+      "predicate": "source_run_label_group_design",
+      "scope": "deposited_summary_runs",
+      "source_locator": "txt/summary.txt",
+      "subject_id": "pxd009438",
+      "value_raw": "Six CTRL_1..6 and eight LUPUS_1..8 acquisition labels."
+    },
+    {
+      "assertion_status": "unreported_in_admitted_assets",
+      "normalized_value": null,
+      "predicate": "specimen_aliquot_pairing",
+      "scope": "acquisition_to_physical_material",
+      "source_locator": "txt/summary.txt;project.json",
+      "subject_id": "pxd009438",
+      "value_raw": "The admitted archive identifies source acquisition and source sample labels, but supplies no physical specimen or aliquot identifier."
+    },
+    {
+      "assertion_status": "unreported_in_admitted_assets",
+      "normalized_value": null,
+      "predicate": "cross_modal_or_cross_patient_pairing",
+      "scope": "PXD009438_to_other_sources",
+      "source_locator": "project.json:otherOmicsLinks;txt/summary.txt",
+      "subject_id": "pxd009438",
+      "value_raw": "Project-level related deposits do not establish an acquisition-, patient-, specimen-, or aliquot-level pair."
+    }
+  ],
+  "source_receipt_sha256": "665fefc523c1305426c7873c06d1b2604717fb6413b8d4e25bf84cf974cdad2a"
+}

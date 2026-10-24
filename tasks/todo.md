@@ -1,3 +1,88 @@
+# PXD009438 primary-PBMC MAPP admission (#822, planned 2.0.30)
+
+## Specification
+
+Admit the deposited PXD009438 nonspecific-digest/MAPP search results through a
+new source-specific adapter without changing, replacing, or deduplicating any
+existing PXD009092/PXD007263/PXD009508 evidence. Freeze the PRIDE project
+metadata, complete file inventory and `SLE-search.tar.gz` source archive with
+content hashes and byte/row receipts. Retain every input row and raw value,
+including excluded, reverse, contaminant and unquantified records, in typed
+relations with lossless original record locators.
+
+The admitted endpoint is proteasome-associated captured-fragment MS signal,
+not peptide concentration, antigen presentation, an MHC ligand, a cleavage
+rate, or a training label. Patient cohort facts, clinical group labels, source
+sample labels, physical specimen IDs, aliquot IDs and acquisition identifiers
+must remain distinct. Populate a clinical-group context only where the source
+explicitly supports it. Populate physical specimen/aliquot identity only when
+the source table gives an explicit identifier. Do not match archive run number
+or raw-file order to patients, clinical groups, supplementary tables, or any
+other proteomic modality. Record every unavailable crosswalk as an explicit
+negative-evidence assertion instead of silently dropping it.
+
+Materialize the archive in the same typed interface and material-context graph
+as the first MAPP PR, with a dedicated catalog surface so no existing relation
+or source identity is overloaded. Lock source cell/row conservation, typed
+counts, graph invariants, and source receipts in tests. No recipe or training
+consumer gains examples from this PR. Bump the breaking-release version and
+update source/catalog documentation.
+
+## Plan
+
+- [x] Read #822 and the parent material-linkage contract; create an isolated
+      branch from released 2.0.29.
+- [x] Inspect the primary article and PRIDE project/file inventory; begin
+      freezing the complete MaxQuant search archive and raw-acquisition
+      inventory.
+- [x] Inventory the archive's unmodified tables and all reported sample/run
+      labels; retain the publication's cohort statement only as source-scoped
+      supporting evidence, never as a physical-material crosswalk.
+- [x] Write the source receipt/contract and lossless PXD009438 adapter with
+      separate project, clinical-arm, acquisition, specimen and aliquot
+      contexts plus explicit unresolved links.
+- [x] Register the typed relations/catalog bindings, source package and
+      documentation while preserving all existing source packages bytewise.
+- [x] Add fixture and real-source conservation tests, then independently
+      replay rows, quantities, conditions and graph precision.
+- [ ] Bump the version; run `./format.sh`, `./lint.sh`, `./test.sh`, hosted
+      checks and the clean-main release; merge and publish to PyPI.
+- [ ] Record receipts, coverage and remaining unknowns on #822/#820, then
+      continue with #823 only after this source admission ships.
+
+## Review
+
+Initial PRIDE metadata describes PXD009438 as the original
+"Defining the cellular proteolytic landscape in systemic lupus erythematosus
+– nonspecific digest" submission. Its public inventory names one 199,785,170
+byte search archive and fourteen raw acquisitions. The article reports six
+healthy and eight SLE participants. The directly deposited `summary.txt` then
+supplies fourteen acquisition labels: `CTRL_1` through `CTRL_6` and `LUPUS_1`
+through `LUPUS_8`, each joined to one raw file. The adapter records those as
+literal source group/sample-label/acquisition facts. It intentionally leaves
+all specimen and aliquot IDs null: a label such as `CTRL_1` is not itself a
+physical-material identifier.
+
+The frozen search archive is 199,785,170 bytes, matches PRIDE's published SHA-1
+`cb60adadcdfe8afb149543d0e564bcf84347a0c0`, and has SHA-256
+`36f8fcab917a25054a351adfa21b3cbb5439079e3afdab708a8ac3deb5bd83e9`.
+The real-source replay conserves 10,207 rows across the five selected source
+tables: 985 peptide rows (including repeated sequences), 283 groups, 8,851
+evidence rows, 14 acquisitions, 13,790 peptide/run results and 27,580 quantity
+representations. All reported peptide/run intensities replay from evidence at a
+maximum relative error of 0.00006500425353919898. The graph has 31 contexts
+(project, two groups, fourteen source sample labels and fourteen acquisitions)
+and 30 qualified links, none at physical-specimen precision.
+
+The project metadata's `blood serum` organism-part claim conflicts with the
+paper's PBMC description; both are source assertions. No source supports an
+aliquot, donor, clinical annotation beyond the literal source label, or a
+cross-modal/other-project pair. The test fixture and real replay pass. A
+pre-existing controlled-MAPP label-alias catalog-key mismatch found during the
+catalog work is tracked in #826 and corrected here: both controlled and PBMC
+alias relations now expose their physical `alias_id`, rather than claiming a
+nonexistent source-record key.
+
 # Release integration memory headroom and diagnostics (#754, 2.0.3)
 
 ## Specification

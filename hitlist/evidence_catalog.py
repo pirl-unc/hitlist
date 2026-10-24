@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, replace
 
-SCHEMA_VERSION = 30
+SCHEMA_VERSION = 31
 FIELD_ROLES = frozenset(
     {
         "identity",
@@ -214,6 +214,12 @@ FIELDS = (
     _field("observation_id", "identity", "identifier", "One typed result at its declared grain"),
     _field("measurement_id", "identity", "identifier", "One reported result measurement"),
     _field("source_record_id", "provenance", "identifier", "Original source row locator"),
+    _field(
+        "alias_id",
+        "provenance",
+        "identifier",
+        "One source-column-to-acquisition alias claim",
+    ),
     _field("source_id", "provenance", "identifier", "Stable source study key"),
     _field("source_assay_id", "provenance", "identifier", "Reported source assay identifier"),
     _field("source_row_index", "provenance", "number", "One-based source CSV data-row index"),
@@ -4331,8 +4337,8 @@ def _controlled_catalog():
             "external/wolflevy2018_controlled/typed/label_aliases.parquet",
             "wolflevy2018_controlled",
             (),
-            ("source_dataset", "source_record_id", "channel_id", "source_locator"),
-            ("source_record_id", "channel_id"),
+            ("source_dataset", "alias_id", "channel_id", "source_locator"),
+            ("alias_id", "channel_id"),
             status="v2_materialized",
             materialized_artifact="external/wolflevy2018_controlled/typed/label_aliases.parquet",
             required_appended_source="wolflevy2018_controlled",
@@ -4343,6 +4349,70 @@ def _controlled_catalog():
 
 
 EVIDENCE += _controlled_catalog()
+
+
+_PBMC_RELATION_NAMES = {
+    "mapp_source_record": "pbmc_mapp_source_record",
+    "mapp_peptide": "pbmc_mapp_peptide",
+    "mapp_group": "pbmc_mapp_group",
+    "mapp_channel": "pbmc_mapp_channel",
+    "mapp_material_context": "pbmc_mapp_material_context",
+    "mapp_material_link": "pbmc_mapp_material_link",
+    "mapp_identification": "pbmc_mapp_identification",
+    "external_proteasome_fragment_quantity": "external_pbmc_proteasome_fragment_quantity",
+    "mapp_quantity_measurement": "pbmc_mapp_quantity_measurement",
+    "mapp_derivation_input": "pbmc_mapp_derivation_input",
+    "mapp_source_assertion": "pbmc_mapp_source_assertion",
+}
+
+
+def _pbmc_mapp_catalog():
+    """Expose PXD009438 separately from HEK293 and controlled MAPP sources."""
+    entries = []
+    for item in EVIDENCE:
+        if item.name not in _PBMC_RELATION_NAMES:
+            continue
+        name = _PBMC_RELATION_NAMES[item.name]
+        fields = item.fields
+        if name == "pbmc_mapp_channel":
+            fields += _CONTROLLED_CHANNEL_FIELDS
+        if name == "external_pbmc_proteasome_fragment_quantity":
+            fields += _CONTROLLED_COUNT_FIELDS
+        path = item.materialized_artifact.replace("external/pxd009092/", "external/pxd009438/")
+        entries.append(
+            replace(
+                item,
+                name=name,
+                native_artifact=path,
+                materialized_artifact=path,
+                source_population="PXD009438",
+                fields=fields,
+                endpoints=("captured_fragment_MS_intensity",)
+                if name == "external_pbmc_proteasome_fragment_quantity"
+                else (),
+                required_appended_source="pxd009438",
+            )
+        )
+    entries.append(
+        Evidence(
+            "pbmc_mapp_label_alias",
+            "relation",
+            "source_provenance",
+            "one_quantity_column_to_source_acquisition_label_assertion",
+            "external/pxd009438/typed/label_aliases.parquet",
+            "PXD009438",
+            (),
+            ("source_dataset", "alias_id", "channel_id", "source_locator"),
+            ("alias_id", "channel_id"),
+            status="v2_materialized",
+            materialized_artifact="external/pxd009438/typed/label_aliases.parquet",
+            required_appended_source="pxd009438",
+        )
+    )
+    return tuple(entries)
+
+
+EVIDENCE += _pbmc_mapp_catalog()
 
 
 DIGESTION_RELATIONS = {
