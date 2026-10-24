@@ -58,6 +58,12 @@ def package_family(manifest):
         and manifest.get("revision") == "tcell_processing_evidence_v1"
     ):
         return "tcell_processing"
+    if (
+        schema == 19
+        and manifest.get("package_family") == "digestion_processing"
+        and manifest.get("revision") == "soh2024_digestion_processing_v1"
+    ):
+        return "digestion_processing"
     raise ValueError(f"Unknown or ambiguous evidence package family: schema {schema}")
 
 

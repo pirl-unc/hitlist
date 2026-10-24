@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, replace
 
-SCHEMA_VERSION = 23
+SCHEMA_VERSION = 24
 FIELD_ROLES = frozenset(
     {
         "identity",
@@ -1695,6 +1695,56 @@ EVIDENCE = (
         status="v2_materialized",
         materialized_artifact="tcell_processing/availability.parquet",
         min_package_schema_version=18,
+    ),
+    Evidence(
+        "digestion_processing_family",
+        "relation",
+        "evidence_registry",
+        "one_declared_processing_evidence_family",
+        "digestion_processing/families.parquet",
+        "soh2024_digestion_processing_v1",
+        (),
+        (
+            "family_id",
+            "evidence_family",
+            "availability_state",
+            "source_scope",
+            "n_source_rows",
+            "n_measurements",
+            "n_training_examples",
+            "training_status",
+            "evidence_types_json",
+            "notes",
+        ),
+        ("family_id",),
+        status="v2_materialized",
+        materialized_artifact="digestion_processing/families.parquet",
+        min_package_schema_version=19,
+    ),
+    Evidence(
+        "digestion_processing_availability",
+        "relation",
+        "evidence_registry",
+        "one_processing_family_source_availability_summary",
+        "digestion_processing/availability.parquet",
+        "soh2024_digestion_processing_v1",
+        (),
+        (
+            "family_id",
+            "source_id",
+            "availability_state",
+            "n_source_rows",
+            "n_measurements",
+            "n_training_examples",
+            "count_unit",
+            "evidence_basis",
+            "source_locator_status",
+            "training_status",
+        ),
+        ("family_id", "source_id"),
+        status="v2_materialized",
+        materialized_artifact="digestion_processing/availability.parquet",
+        min_package_schema_version=19,
     ),
     Evidence(
         "assay_adjudication",

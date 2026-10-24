@@ -598,3 +598,24 @@ row is not a measured negative. Query aliases include
 source-specific relations remain available for provenance joins. Donor or
 specimen independence is not inferred, and MAPP captured products are not
 intracellular concentration or direct cleavage-rate labels.
+
+# Standalone proteasome processing evidence
+
+Schema 19/catalog 24 introduces the standalone `digestion_processing` package
+for the Soh et al. purified-human-20S proteasome time-course source. It retains
+the original archive members, substrate constructs, metadata, runs and
+instrument claims, identifications, MS1 rows, raw quantities, filtered and
+final vectors, final value slots, and explicit source conflicts. The package
+copies the pinned schema-9/10 source appendage without carrying unrelated MHC,
+T-cell or bulk evidence files.
+
+The package ledger separates raw MS1/search evidence, source raw quantities,
+filtered/final time-course vectors, and conflict provenance. The registered
+aliases `processing_ms1`, `processing_raw_quantity`, `processing_timecourse`,
+`processing_run`, `processing_context`, and `processing_conflict` query those
+relations through `EvidenceStore`. Source time conflicts, forced zeros,
+missing/censored values, annotation-only rows, non-contiguous products and
+splice/synthesis dispositions remain source statuses; they are not converted
+to measured negatives. The ledger explicitly marks APC/TAP/clearance/MHC
+processing as unavailable, because purified proteasome digestion measures
+relative MS response rather than intracellular production or concentration.

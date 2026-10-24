@@ -138,6 +138,14 @@ class EvidenceStore:
                 if name in MATERIALIZED_EVIDENCE_TYPES
                 or name in {"tcell_processing_family", "tcell_processing_availability"}
             }
+        elif family == "digestion_processing":
+            from .digestion_processing_package import MATERIALIZED_EVIDENCE_TYPES
+
+            self.bindings = {
+                name: binding
+                for name, binding in self.bindings.items()
+                if name in MATERIALIZED_EVIDENCE_TYPES
+            }
         self.schemas = {}
         for name, (item, selectors, aliases) in self.bindings.items():
             path = directory / item.materialized_artifact
@@ -204,6 +212,10 @@ class EvidenceStore:
             from .tcell_processing_package import verify_tcell_processing_package
 
             manifest = verify_tcell_processing_package(directory)
+        elif family == "digestion_processing":
+            from .digestion_processing_package import verify_digestion_processing_package
+
+            manifest = verify_digestion_processing_package(directory)
         elif family == "adjudication":
             manifest = verify_assay_adjudication_package(directory)
         elif family == "reference":
@@ -328,6 +340,8 @@ class EvidenceStore:
         if family == "tmab_peptidomics":
             return self.manifest.get("source_registry", {})
         if family == "tcell_processing":
+            return self.manifest.get("source_registry", {})
+        if family == "digestion_processing":
             return self.manifest.get("source_registry", {})
         mhc = json.loads((self.directory / "manifests" / "mhc.json").read_text())
         context = json.loads((self.directory / "manifests" / "context.json").read_text())
