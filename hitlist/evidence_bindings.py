@@ -1432,6 +1432,53 @@ LINKS += (
 )
 
 
+for _table in (
+    "acquisitions",
+    "groups",
+    "references",
+    "peptides",
+    "forms",
+    "identifications",
+    "quantities",
+    "assertions",
+    "publisher_cells",
+    "publisher_quantities",
+    "publisher_links",
+    "pooled_slots",
+):
+    LINKS += (
+        Link(
+            "source_record",
+            "goldberg_" + _table,
+            "goldberg_source_records",
+            "source_record_id",
+            "source_record_id",
+            "many_to_one",
+            "original_source_row_not_physical_sample",
+        ),
+    )
+LINKS += (
+    Link(
+        "peptide",
+        "goldberg_quantities",
+        "goldberg_peptides",
+        "peptide_id",
+        "peptide_id",
+        "many_to_one",
+        "original_peptide_identity",
+    ),
+    Link(
+        "acquisition",
+        "goldberg_quantities",
+        "goldberg_acquisitions",
+        "acquisition_id",
+        "acquisition_id",
+        "many_to_one",
+        "source_acquisition_not_specimen_or_aliquot",
+    ),
+)
+
+
 def materialized_bindings(
     package_schema_version=None, *, appended_source_ids=(), include_adjudications=False
 ):

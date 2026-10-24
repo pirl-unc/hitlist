@@ -125,7 +125,13 @@ class EvidenceStore:
             appended_source_ids=manifest.get("appended_sources", {}),
             include_adjudications=adjudication_manifest_path(manifest) is not None,
         )
-        if family == "nanaware_lymph":
+        if family == "goldberg_mapp":
+            self.bindings = {
+                name: binding
+                for name, binding in self.bindings.items()
+                if name.startswith("goldberg_")
+            }
+        elif family == "nanaware_lymph":
             self.bindings = {
                 name: binding
                 for name, binding in self.bindings.items()
@@ -202,7 +208,11 @@ class EvidenceStore:
             family = package_family(envelope)
         except ValueError as exc:
             raise EvidenceQueryError(str(exc)) from exc
-        if family == "nanaware_lymph":
+        if family == "goldberg_mapp":
+            from .goldberg_mapp import verify_goldberg_mapp_package
+
+            manifest = verify_goldberg_mapp_package(directory)
+        elif family == "nanaware_lymph":
             from .nanaware_lymph import verify_nanaware_lymph_package
 
             manifest = verify_nanaware_lymph_package(directory)
@@ -377,7 +387,7 @@ class EvidenceStore:
     def _source_registry(self):
         """Expose verified source revisions and rights evidence at source scope."""
         family = package_family(self.manifest)
-        if family in ("hap1_quantitative", "proteometools_ms1", "nanaware_lymph"):
+        if family in ("hap1_quantitative", "proteometools_ms1", "nanaware_lymph", "goldberg_mapp"):
             return self.manifest.get("source_registry", {})
         if family == "tmab_peptidomics":
             return self.manifest.get("source_registry", {})
