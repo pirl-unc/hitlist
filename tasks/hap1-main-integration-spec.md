@@ -33,3 +33,9 @@ assertions found by repository-wide search; never change pinned-source numbers.
 Repeat integration checks after this actual code change, retain the already-passed
 prior-head suites and original package replay, and revalidate latest main before
 claiming release. No biological model rerun or new test exposure is needed.
+
+Upstream v2 accepts a different precursor envelope and no longer accepts v1.
+Keep that observed compatibility limit explicit: dispatch tests now cover HAP1v1/schema20 and
+precursorv2/schema21 and reject the older precursor envelope. The original HAP1
+package remains directly readable; precursorv1 reproduction requires its pinned
+historical consumer. Do not relabel files or claim current support for v1.

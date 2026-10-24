@@ -8130,8 +8130,11 @@ Plan: [precursor-source-contract-801.md](precursor-source-contract-801.md).
 - [x] Create parent #800 and child PR issues #801, #802 and #803.
 - [x] Freeze hash-pinned PXD009360 source assets, archive members and
       unresolved run/pairing requirements.
-- [x] Implement schema-20/catalog-25 source-contract package and local replay.
-- [ ] Materialize complete precursor quantities in child PR #802.
+- [x] Implement schema-20/catalog-25 source-contract package and local replay (PR #804; merged at `6416616a9b496a4706d9bd161242a247ace103d2`).
+- [x] Verify clean-main release run `40089253494`, upload 2.0.20 to PyPI, and
+      record wheel `bdebbe850890f92cfed5b9925ce5f5f03c38cb6958e574519d02a1f7889ddcaa`
+      and sdist `aabab8b9a0dc30853ca13d52247940d110d05ca5dec5a3a1185d138ab257ede7`.
+- [ ] Materialize complete precursor quantities in child PR #802 (schema-21/catalog-26 implementation in progress).
 - [ ] Qualify the precursor recipe and pairing scope in child PR #803.
 
 # Quantitative HAP1 admission — issue 726
@@ -8197,3 +8200,10 @@ memory probe3.42GiB. Original pinned HAP1 package reopens under2.0.21/catalog26,
 replaying all typed relations from original assets in51.46s; manifest88cad10d…
 remains unchanged and contextual query succeeds. Source/schema20/catalog25 is
 preserved. New-head hosted CI and upstream merge/release remain pending.
+
+Successor-main897c98c integration: source consumer2.0.22/live catalog27 preserves
+HAP1schema20/catalog25 and upstream precursorv2/schema21/catalog26. Format/lint,
+70focused tests and guarded full ./test.sh pass (3,443tests/393warnings,162.99s,
+2workers after7.15GiB memory probe). Original HAP1 package again replays/query-opens
+with unchanged manifest88cad10d… in53.08s. Upstream's older precursorv1 envelope
+requires its historical consumer; this observed compatibility limit is explicit.
