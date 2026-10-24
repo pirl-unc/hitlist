@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, replace
 
-SCHEMA_VERSION = 29
+SCHEMA_VERSION = 30
 FIELD_ROLES = frozenset(
     {
         "identity",
@@ -1372,6 +1372,24 @@ FIELDS += (
         "relation",
         "identifier",
         "Comparator condition, without implied specimen pairing",
+    ),
+    _field(
+        "context_kind",
+        "biological_context",
+        "category",
+        "Source scope represented by a material-context row",
+    ),
+    _field(
+        "source_context_id",
+        "relation",
+        "identifier",
+        "Source end of one qualified material-context link",
+    ),
+    _field(
+        "target_context_id",
+        "relation",
+        "identifier",
+        "Target end of one qualified material-context link",
     ),
 )
 
@@ -3552,6 +3570,44 @@ EVIDENCE = (
         ("channel_id", "source_record_id"),
     ),
     _mapp_evidence(
+        "mapp_material_context",
+        "material_contexts",
+        "context",
+        "one_source_project_study_arm_acquisition_or_physical_material_context",
+        (
+            "context_id",
+            "context_kind",
+            "sample_label_raw",
+            "condition_id",
+            "condition_text",
+            "condition_status",
+            "specimen_id",
+            "aliquot_id",
+            "material_link_precision",
+            "context_status",
+            "source_locator",
+            "notes",
+        ),
+        ("context_id", "context_kind", "material_link_precision"),
+    ),
+    _mapp_evidence(
+        "mapp_material_link",
+        "material_links",
+        "relation",
+        "one_source_qualified_material_context_link",
+        (
+            "claim_id",
+            "source_context_id",
+            "target_context_id",
+            "assertion_predicate",
+            "assertion_status",
+            "material_link_precision",
+            "source_locator",
+            "notes",
+        ),
+        ("claim_id", "source_context_id", "target_context_id", "material_link_precision"),
+    ),
+    _mapp_evidence(
         "mapp_identification",
         "evidence",
         "observation",
@@ -4186,6 +4242,8 @@ CONTROLLED_RELATION_NAMES = {
     "mapp_peptide": "processing_peptide",
     "mapp_group": "processing_group",
     "mapp_channel": "processing_channel",
+    "mapp_material_context": "processing_material_context",
+    "mapp_material_link": "processing_material_link",
     "mapp_identification": "processing_identification",
     "external_proteasome_fragment_quantity": "processing_quantity_result",
     "mapp_quantity_measurement": "processing_quantity_measurement",

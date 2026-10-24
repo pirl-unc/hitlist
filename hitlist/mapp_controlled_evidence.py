@@ -15,6 +15,7 @@ import pyarrow.parquet as pq
 
 from .mapp_evidence import SCHEMAS as MAPP_SCHEMAS
 from .mapp_evidence import _integer, _number, _schema, _Sink
+from .material_context import validate_material_graph
 
 SOURCE_ID = "wolflevy2018_controlled"
 PROJECTS = ("PXD009508", "PXD007263")
@@ -180,6 +181,110 @@ def channel_context(project, experiment):
     raise ValueError("Unregistered controlled MAPP project")
 
 
+def _write_material_graph(project, sinks, contexts, run_locators):
+    """Emit source-label arms and runs without assigning physical material IDs."""
+    source_id = project.lower()
+    project_id = f"{source_id}:project"
+    graph_contexts = [
+        {
+            "source_dataset": project,
+            "context_id": project_id,
+            "context_kind": "source_project",
+            "sample_label_raw": None,
+            "condition_id": None,
+            "condition_text": None,
+            "condition_status": "not_applicable_source_project",
+            "specimen_id": None,
+            "aliquot_id": None,
+            "material_link_precision": "project_context",
+            "context_status": "source_project_context",
+            "source_locator": f"{project}/project.json",
+            "notes": "Project identity does not establish a physical specimen or aliquot.",
+        }
+    ]
+    graph_links = []
+    grouped = defaultdict(list)
+    for experiment, context in contexts.items():
+        if project == "PXD009508":
+            arm_key = (context["capture_label_raw"], context["treatment_label_raw"])
+            condition_text = ";".join(arm_key)
+        else:
+            arm_key = (context["treatment_label_raw"], context["time_hours"])
+            condition_text = f"{arm_key[0]}_label:{arm_key[1]:g}h"
+        grouped[arm_key].append((experiment, condition_text))
+    for _arm_key, members in sorted(grouped.items()):
+        condition_text = members[0][1]
+        condition_id = f"{source_id}:arm:{condition_text}"
+        arm_locator = ";".join(run_locators[experiment] for experiment, _ in sorted(members))
+        graph_contexts.append(
+            {
+                "source_dataset": project,
+                "context_id": condition_id,
+                "context_kind": "study_arm",
+                "sample_label_raw": None,
+                "condition_id": condition_id,
+                "condition_text": condition_text,
+                "condition_status": "source_run_label",
+                "specimen_id": None,
+                "aliquot_id": None,
+                "material_link_precision": "study_arm",
+                "context_status": "source_labelled_study_arm_without_physical_material_identity",
+                "source_locator": arm_locator,
+                "notes": "The source label resolves the arm, not its specimen or aliquot.",
+            }
+        )
+        graph_links.append(
+            {
+                "source_dataset": project,
+                "claim_id": f"{condition_id}:in_project",
+                "source_context_id": condition_id,
+                "target_context_id": project_id,
+                "assertion_predicate": "study_arm_in_project",
+                "assertion_status": "source_reported",
+                "material_link_precision": "project_context",
+                "source_locator": arm_locator,
+                "notes": "Source acquisition labels establish this project membership only.",
+            }
+        )
+        for experiment, _ in sorted(members):
+            channel_id = f"{source_id}:run:{experiment}"
+            graph_contexts.append(
+                {
+                    "source_dataset": project,
+                    "context_id": channel_id,
+                    "context_kind": "source_acquisition",
+                    "sample_label_raw": experiment,
+                    "condition_id": condition_id,
+                    "condition_text": condition_text,
+                    "condition_status": "source_run_label",
+                    "specimen_id": None,
+                    "aliquot_id": None,
+                    "material_link_precision": "source_acquisition",
+                    "context_status": "source_acquisition_unresolved_specimen_aliquot",
+                    "source_locator": run_locators[experiment],
+                    "notes": "The source run is not a reported physical specimen or aliquot.",
+                }
+            )
+            graph_links.append(
+                {
+                    "source_dataset": project,
+                    "claim_id": f"{channel_id}:in_arm",
+                    "source_context_id": channel_id,
+                    "target_context_id": condition_id,
+                    "assertion_predicate": "source_acquisition_in_study_arm",
+                    "assertion_status": "source_reported",
+                    "material_link_precision": "study_arm",
+                    "source_locator": run_locators[experiment],
+                    "notes": "The acquisition label resolves a source arm, not a physical pairing.",
+                }
+            )
+    validate_material_graph(graph_contexts, graph_links)
+    for row in graph_contexts:
+        sinks["material_contexts"].add(row)
+    for row in graph_links:
+        sinks["material_links"].add(row)
+
+
 def _write_project(directory, project, sinks):
     sid = project.lower()
 
@@ -195,7 +300,7 @@ def _write_project(directory, project, sinks):
     def result_key(pid, experiment):
         return f"{peptide_key(pid)}:run:{experiment}"
 
-    runs, contexts = {}, {}
+    runs, contexts, run_locators = {}, {}, {}
     for locator, row in _rows(directory, project, "summary", sinks):
         experiment = row["Experiment"]
         if not experiment:
@@ -203,6 +308,7 @@ def _write_project(directory, project, sinks):
         if experiment in runs or row["Raw file"] in {item["Raw file"] for item in runs.values()}:
             raise ValueError("Duplicate controlled-panel source run")
         runs[experiment] = row
+        run_locators[experiment] = locator
         contexts[experiment] = channel_context(project, experiment)
         add(
             "channels",
@@ -231,6 +337,7 @@ def _write_project(directory, project, sinks):
         expected = {(hour, replicate) for hour in (0, 1, 2, 6) for replicate in (1, 2, 3)}
     if observed != expected:
         raise ValueError("Controlled-panel condition/replicate design changed")
+    _write_material_graph(project, sinks, contexts, run_locators)
     peptides, locators, sequences = {}, {}, set()
     for locator, row in _rows(directory, project, "peptides", sinks):
         pid = row["id"]
@@ -476,7 +583,7 @@ def write_controlled_tables(source_dir):
 
 class ControlledMAPPAdapter:
     source_id = SOURCE_ID
-    schema_version = 1
+    schema_version = 2
     asset_receipt_path = DATA / "mapp_controlled_assets.json"
     support_files = SUPPORT_FILES
 
@@ -511,6 +618,9 @@ class ControlledMAPPAdapter:
                 or parquet.metadata.num_rows != reconciliation["relation_rows"][name]
             ):
                 raise ValueError(f"Controlled MAPP relation changed: {name}")
+        for name, expected in {"material_contexts": 42, "material_links": 40}.items():
+            if reconciliation["relation_rows"][name] != expected:
+                raise ValueError(f"Controlled MAPP material graph changed: {name}")
         for project, expected in {
             "PXD009508": (6060, 1058, 19581, 18, 15484, 93596, 400),
             "PXD007263": (3146, 733, 27196, 12, 20940, 16812, 500),
@@ -538,6 +648,8 @@ class ControlledMAPPAdapter:
             "organism_scope": "human project organisms; HEK293 paper-level experiment context",
             "measurement_grain": "source_peptide_by_acquisition_run",
             "quantity_artifact": "typed/quantity_measurements.parquet",
+            "material_context_artifact": "typed/material_contexts.parquet",
+            "material_link_artifact": "typed/material_links.parquet",
             "reference_occurrence_artifact": "typed/peptide_reference_occurrences.parquet",
             "n_primary_peptide_rows": reconciliation["relation_rows"]["peptide_rows"],
             "projects": reconciliation["projects"],

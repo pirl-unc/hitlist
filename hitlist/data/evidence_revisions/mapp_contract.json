@@ -100,6 +100,15 @@
       "value_raw": "Human_UP_2016_02.fasta; original reference bytes unavailable"
     },
     {
+      "assertion_status": "unreported_in_admitted_assets",
+      "normalized_value": null,
+      "predicate": "specimen_aliquot_pairing",
+      "scope": "acquisition_to_physical_material",
+      "source_locator": "txt/summary.txt;txt/evidence.txt",
+      "subject_id": "pxd009092",
+      "value_raw": "The admitted run tables supply acquisition labels but no physical specimen or aliquot identity."
+    },
+    {
       "assertion_status": "conflicting",
       "normalized_value": null,
       "predicate": "publisher_imputed_header",
@@ -168,6 +177,6 @@
     "https://www.ebi.ac.uk/about/terms-of-use/",
     "https://www.nature.com/articles/nbt.4279"
   ],
-  "schema_version": 2,
+  "schema_version": 3,
   "source_receipt_sha256": "1bb665ba3f4fdf385f3bb6f93416ff1b44e67bf9d117f0d065a8e96499f283bb"
 }

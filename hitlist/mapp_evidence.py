@@ -18,6 +18,8 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+from .material_context import MATERIAL_CONTEXT_SCHEMA, MATERIAL_LINK_SCHEMA, validate_material_graph
+
 SOURCE_ID = "pxd009092"
 DATA = Path(__file__).parent / "data" / "evidence_revisions"
 ASSET_RECEIPT = DATA / "mapp_assets.json"
@@ -141,6 +143,8 @@ SCHEMAS = {
             "scope",
         ),
     ),
+    "material_contexts": MATERIAL_CONTEXT_SCHEMA,
+    "material_links": MATERIAL_LINK_SCHEMA,
     "publisher_cells": _schema(
         ("cell_id", "asset_path", "sheet_name", "cell_ref", "excel_type", "value_text"),
         ("row_1based", "column_1based"),
@@ -266,8 +270,95 @@ def _link(sinks, target, source, role):
     )
 
 
+def _write_material_graph(sinks, conditions, run_locators):
+    """Write source-label contexts without inventing physical material IDs."""
+    contexts = [
+        {
+            "context_id": f"{SOURCE_ID}:project",
+            "context_kind": "source_project",
+            "sample_label_raw": None,
+            "condition_id": None,
+            "condition_text": None,
+            "condition_status": "not_applicable_source_project",
+            "specimen_id": None,
+            "aliquot_id": None,
+            "material_link_precision": "project_context",
+            "context_status": "source_project_context",
+            "source_locator": "PXD009092/project.json",
+            "notes": "Project identity does not establish a physical specimen or aliquot.",
+        }
+    ]
+    links = []
+    for condition, experiments in sorted(conditions.items()):
+        arm_id = f"{SOURCE_ID}:arm:{condition}"
+        arm_locator = ";".join(run_locators[experiment] for experiment in sorted(experiments))
+        contexts.append(
+            {
+                "context_id": arm_id,
+                "context_kind": "study_arm",
+                "sample_label_raw": None,
+                "condition_id": arm_id,
+                "condition_text": condition,
+                "condition_status": "source_run_label",
+                "specimen_id": None,
+                "aliquot_id": None,
+                "material_link_precision": "study_arm",
+                "context_status": "source_labelled_study_arm_without_physical_material_identity",
+                "source_locator": arm_locator,
+                "notes": "The source label resolves the arm, not its specimen or aliquot.",
+            }
+        )
+        links.append(
+            {
+                "claim_id": f"{arm_id}:in_project",
+                "source_context_id": arm_id,
+                "target_context_id": f"{SOURCE_ID}:project",
+                "assertion_predicate": "study_arm_in_project",
+                "assertion_status": "source_reported",
+                "material_link_precision": "project_context",
+                "source_locator": arm_locator,
+                "notes": "Source acquisition labels establish this project membership only.",
+            }
+        )
+        for experiment in sorted(experiments):
+            channel_id = _channel_id(experiment)
+            contexts.append(
+                {
+                    "context_id": channel_id,
+                    "context_kind": "source_acquisition",
+                    "sample_label_raw": experiment,
+                    "condition_id": arm_id,
+                    "condition_text": condition,
+                    "condition_status": "source_run_label",
+                    "specimen_id": None,
+                    "aliquot_id": None,
+                    "material_link_precision": "source_acquisition",
+                    "context_status": "source_acquisition_unresolved_specimen_aliquot",
+                    "source_locator": run_locators[experiment],
+                    "notes": "The source run is not a reported physical specimen or aliquot.",
+                }
+            )
+            links.append(
+                {
+                    "claim_id": f"{channel_id}:in_arm",
+                    "source_context_id": channel_id,
+                    "target_context_id": arm_id,
+                    "assertion_predicate": "source_acquisition_in_study_arm",
+                    "assertion_status": "source_reported",
+                    "material_link_precision": "study_arm",
+                    "source_locator": run_locators[experiment],
+                    "notes": "The acquisition label resolves a source arm, not a physical pairing.",
+                }
+            )
+    validate_material_graph(contexts, links)
+    for row in contexts:
+        sinks["material_contexts"].add(row)
+    for row in links:
+        sinks["material_links"].add(row)
+
+
 def _write_tables(directory, sinks):
-    runs, conditions = {}, defaultdict(list)
+    runs, conditions, run_locators = {}, defaultdict(list), {}
     for locator, row in _rows(directory, "txt/summary.txt", sinks):
         experiment = row["Experiment"]
         if not experiment:
@@ -283,6 +374,7 @@ def _write_tables(directory, sinks):
             raise ValueError("Duplicate source run")
         condition = parts[1]
         runs[experiment] = row
+        run_locators[experiment] = locator
         conditions[condition].append(experiment)
         sinks["channels"].add(
             {
@@ -310,6 +402,7 @@ def _write_tables(directory, sinks):
         len(v) != 3 for v in conditions.values()
     ):
         raise ValueError("Expected three source runs in each of six conditions")
+    _write_material_graph(sinks, conditions, run_locators)
     peptides, locators, sequences = {}, {}, set()
     for locator, row in _rows(directory, "txt/peptides.txt", sinks):
         pid = row["id"]
@@ -656,7 +749,7 @@ def write_mapp_tables(directory):
 
 class MAPPAdapter:
     source_id = SOURCE_ID
-    schema_version = 2
+    schema_version = 3
     asset_receipt_path = ASSET_RECEIPT
     support_files = SUPPORT_FILES
 
@@ -694,7 +787,10 @@ class MAPPAdapter:
             "n_peptide_rows_rows": 10673,
             "n_evidence_rows": 149959,
             "n_channels_rows": 18,
+            "n_material_contexts_rows": 25,
+            "n_material_links_rows": 24,
             "n_quantity_results_rows": 192114,
+            "n_source_assertions_rows": 75,
             "n_quarantined_groups": 36,
             "n_filtered_zeros_with_positive_evidence": 9276,
             "n_publisher_UT_numeric": 4983,
@@ -713,6 +809,8 @@ class MAPPAdapter:
             "measurement_grain": "peptide_by_source_acquisition_run",
             "training_admission": "deferred_pending_endpoint_recipe_and_parent_alternative_policy",
             "quantity_artifact": "typed/quantity_measurements.parquet",
+            "material_context_artifact": "typed/material_contexts.parquet",
+            "material_link_artifact": "typed/material_links.parquet",
             "reference_occurrence_artifact": "typed/peptide_reference_occurrences.parquet",
             "reference_ids": [r["reference_id"] for r in reconciliation["reference_counts"]],
             "rights": {

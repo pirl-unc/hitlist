@@ -11,6 +11,7 @@ from hitlist.mapp_controlled_evidence import (
     match_quantity_columns,
     write_controlled_tables,
 )
+from hitlist.material_context import links_with_minimum_precision
 
 
 def _write(path, rows):
@@ -160,6 +161,13 @@ def test_all_runs_quantities_raw_claims_and_missing_values_survive(tmp_path):
     assert {row["source_dataset"] for row in values} == {"PXD009508", "PXD007263"}
     assertions = pq.read_table(root / "typed/source_assertions.parquet").to_pylist()
     assert all(row["predicate"] == "Protein FDR" and row["value_raw"] == "1" for row in assertions)
+    contexts = pq.read_table(root / "typed/material_contexts.parquet").to_pylist()
+    links = pq.read_table(root / "typed/material_links.parquet").to_pylist()
+    assert len(contexts) == 42
+    assert len(links) == 40
+    assert {row["source_dataset"] for row in contexts} == {"PXD009508", "PXD007263"}
+    assert all(row["specimen_id"] is row["aliquot_id"] is None for row in contexts)
+    assert not links_with_minimum_precision(links, "exact_specimen")
 
 
 def test_unreplayable_reported_quantity_fails_before_admission(tmp_path):
@@ -180,6 +188,7 @@ def test_optional_source_bindings_are_explicit():
     assert "processing_peptide" not in materialized_bindings(9)
     bindings = materialized_bindings(9, appended_source_ids=["wolflevy2018_controlled"])
     assert "processing_peptide" in bindings and "processing_channel" in bindings
+    assert "processing_material_context" in bindings and "processing_material_link" in bindings
     assert "mapp_peptide" not in bindings
 
 
