@@ -8184,3 +8184,16 @@ The focused integration suite passes45 tests after updating a stale current-cata
 version assertion (initial44pass/1fail preserved in /private/tmp/hitlist-hap1-merged-focused.log).
 Required full guarded tests and original-package reopen remain pending until the
 concurrent local biological fits finish; hosted checks will validate this new head.
+
+Full integration validation found five additional stale live-catalog assertions:
+Python3.14 CI40093682648 and local guarded ./test.sh both fail only those assertions
+(local3437pass/5fail,168.19s). Update those to live catalog26; immutable source
+schema/catalog assertions remain unchanged. Preserve both failure logs and rerun
+format/lint/focused/full tests. This corrects the missed integration test scope.
+
+Corrected source integration validation: format/lint and24 targeted tests pass;
+full guarded ./test.sh passes3,442tests/392warnings in303.37s with1worker after
+memory probe3.42GiB. Original pinned HAP1 package reopens under2.0.21/catalog26,
+replaying all typed relations from original assets in51.46s; manifest88cad10d…
+remains unchanged and contextual query succeeds. Source/schema20/catalog25 is
+preserved. New-head hosted CI and upstream merge/release remain pending.
