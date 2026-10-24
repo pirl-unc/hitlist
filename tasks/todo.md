@@ -8151,3 +8151,12 @@ query exposed the existing all-null optional-join bug now tracked as #805. Three
 regressions fail before the fix; 55 focused tests pass afterward. The original
 package now supports nullable context queries without losing unknown rows.
 No biological model fit yet; full-suite validation and release remain pending.
+
+## Integrate HAP1 and concurrent precursor context
+
+Spec: tasks/hap1-main-integration-spec.md. Keep both explicit package families;
+their pinned schema20 envelopes remain distinguishable by family and revision.
+- [x] Inspect current main6416616 and source/recipe exact-head CI (all source/recipe checks pass).
+- [ ] Merge main, retain both catalogs/dispatch paths and advance live catalog/version.
+- [ ] Verify namespace regression, old HAP1 package and required test suite.
+- [ ] Integrate the stacked response PR, publish/release through the upstream workflow.
