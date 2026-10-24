@@ -34,7 +34,7 @@ contributor IDs, missing/filter/imputation states and source hashes.
 - [x] Add arithmetic, ambiguity, missingness, split and replay tests.
 - [x] Update docs, child/parent task tracking and issue evidence.
 - [x] Run `./format.sh`, `./lint.sh`, and the full bounded `./test.sh`.
-- [ ] Open PR, pass hosted checks, merge, run the clean-main release build,
+- [x] Open PR, pass hosted checks, merge, run the clean-main release build,
       verify and upload artifacts to PyPI, then close issue #803.
 
 ## Review
@@ -49,3 +49,15 @@ Every pairing claim remains `source_backed=false`, `training_status=unavailable`
 and frozen to source-file scope until a source-backed condition/specimen/aliquot
 crosswalk exists. The replay verifier recomputes each relation digest and
 qualification count, and reports zero training examples.
+
+PR #810 merged into clean main as `ba4774217e76ebbfd3a11e99b7deeb08e03583b1`.
+The merged-main checks passed (tests run `40102292686`, docs run
+`40102292729`) and the clean-main release build `40103757775` passed in 20m9s.
+The release manifest verifier matched both distributions to that commit and
+version 2.0.24. PyPI serves wheel SHA-256
+`eaf5f6f9f407dcec32ab8d5c37119d710d4a679950fcc3b74abc55b7123e5110` and sdist
+SHA-256 `4cff9737acb1e0921867a0dfb95a3488658ef686fee8914ca0657b890e878400`.
+The local `deploy.sh` attempt completed lint and the unit suite but correctly
+refused the integration phase twice because the host had about 4 GiB free
+against the guarded ~24 GiB requirement; hosted integration and the release
+workflow supplied the full gate instead.
