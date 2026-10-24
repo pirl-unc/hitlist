@@ -8292,3 +8292,17 @@ Review: local source/recipe implementation verified against 320,222 original cel
 pilot components; 106 shared off-planned background IDs remain audited. Local suite
 3,458 passed in 325.27 seconds; peak process RSS 926,728,192 bytes. Full integration
 release gates and PyPI deployment remain pending. No new predictive gain claimed.
+
+## Nanaware2024 quantitative lymph/DC evidence
+
+Spec: tasks/nanaware-lymph-quantities-spec.md.
+
+- [x] Inspect recovered primary assets and distinguish native human lymph, DC presentation and uncertain mouse digest material.
+- [x] Freeze typed source contract before implementation.
+- [ ] File source owner with measurement/sample gaps.
+- [ ] Implement source snapshots, typed relations, EvidenceStore integration and integrity checks.
+- [ ] Verify fixtures and actual source independently; run required format/lint/tests.
+- [ ] Publish PR with version bump; merge and deploy after checks.
+- [ ] Register an endpoint-specific recipe and prospective biological comparison before fitting.
+
+Source review: actual materialization and independent121346cell/32995quantity/3430reference/23455identification replay pass. Initial full suite:3459pass/7fail, all failures are expected global catalog-version assertions28versus29; updated only those assertions, preserving historical package versions. Focused source tests pass8cases. Source issue: https://github.com/pirl-unc/hitlist/issues/817. Full required rerun/release remains pending.

@@ -1,0 +1,724 @@
+{
+  "revision": "nanaware2024_lymph_quantities_v1",
+  "assets": [
+    {
+      "filename": "NIHMS2005243-supplement-10.xlsx",
+      "role": "original_quantitative_workbook",
+      "source_url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC11233987.319/NIHMS2005243-supplement-10.xlsx",
+      "sha256": "4cb5756a4ada63e045bc62fbf02e5b3a2efa72b13370b385d77b69e849705730",
+      "size_bytes": 427934
+    },
+    {
+      "filename": "NIHMS2005243-supplement-4.xlsx",
+      "role": "original_quantitative_workbook",
+      "source_url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC11233987.319/NIHMS2005243-supplement-4.xlsx",
+      "sha256": "ae09512b70da6d157281b82861f52a43836d62c24b8651ea708599f4b0ef334b",
+      "size_bytes": 51019751
+    },
+    {
+      "filename": "NIHMS2005243-supplement-5.xlsx",
+      "role": "original_quantitative_workbook",
+      "source_url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC11233987.319/NIHMS2005243-supplement-5.xlsx",
+      "sha256": "2b62c2899020ba0685e46839f8e3c47e505056add50a46466c431aab830a0034",
+      "size_bytes": 1914333
+    },
+    {
+      "filename": "NIHMS2005243-supplement-6.xlsx",
+      "role": "original_quantitative_workbook",
+      "source_url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC11233987.319/NIHMS2005243-supplement-6.xlsx",
+      "sha256": "afd9a694ff63bbc8ac5016157a6200638290d5437ab43c6e2fe2bbc79787369c",
+      "size_bytes": 4066651
+    },
+    {
+      "filename": "NIHMS2005243-supplement-7.xlsx",
+      "role": "original_quantitative_workbook",
+      "source_url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC11233987.319/NIHMS2005243-supplement-7.xlsx",
+      "sha256": "57c7f9256e2bddfd732de8ba551e741b6ce6afa9d5243879ed7a534599cc90b7",
+      "size_bytes": 21326270
+    },
+    {
+      "filename": "NIHMS2005243-supplement-8.xlsx",
+      "role": "original_quantitative_workbook",
+      "source_url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC11233987.319/NIHMS2005243-supplement-8.xlsx",
+      "sha256": "7936df9e5fa57056c971af23137c8905aeb6e8e3ddc4e4d1e81fa8d450582a7b",
+      "size_bytes": 1209161
+    },
+    {
+      "filename": "NIHMS2005243-supplement-9.xlsx",
+      "role": "original_quantitative_workbook",
+      "source_url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC11233987.319/NIHMS2005243-supplement-9.xlsx",
+      "sha256": "b744f615395d9327d32542127715f1812fdd6562681f2409edf6a4a578537617",
+      "size_bytes": 365682
+    },
+    {
+      "filename": "PMC11233987.319.json",
+      "role": "rights_and_source_metadata",
+      "source_url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC11233987.319/PMC11233987.319.json",
+      "sha256": "470922a4bf4e3a8b5ed09c6cc9f3cd4db4e220c6cfb78bb507eb86dfb0d1e67a",
+      "size_bytes": 2671
+    },
+    {
+      "filename": "PMC11233987.319.xml",
+      "role": "primary_protocol",
+      "source_url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC11233987.319/PMC11233987.319.xml",
+      "sha256": "d48bcc3728ac405ac56d4585c88c205b4049b5574faa8bece52fb75f5c8b5b35",
+      "size_bytes": 268729
+    },
+    {
+      "filename": "PXD051024-peptides.mzid.gz",
+      "role": "original_identifications_and_reference_sequences",
+      "source_url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2024/08/PXD051024/peptides.mzid.gz",
+      "sha256": "dbec4791a8ad78c8a718eec41c2c9e7ffbe430d6398934ae05cb0195a2417e5e",
+      "size_bytes": 347247
+    },
+    {
+      "filename": "PXD051024_community_annotated.sdrf.tsv",
+      "role": "community_sample_metadata",
+      "source_url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2024/08/PXD051024/PXD051024_community_annotated.sdrf.tsv",
+      "sha256": "327d1012ee5a3475dbefb95fa074ce4e71ebd6569b75639cb0bf026756f027ac",
+      "size_bytes": 1087
+    },
+    {
+      "filename": "MSV000094761-Mudpit_MS206071LUM_Laura_Santambrogio_CL1_a__peptides_1_1_0.mzid_.mzid",
+      "role": "original_identifications_and_reference_sequences",
+      "source_url": "https://massive.ucsd.edu/ProteoSAFe/DownloadResultFile?file=f.MSV000094761%2Fresult%2FMudpit_MS206071LUM_Laura_Santambrogio_CL1_a__peptides_1_1_0.mzid_.mzid&forceDownload=true",
+      "sha256": "5adc4f5e660ff6ac7795061c4faa0e2dd35fed7c46e8d4d238966b910fd8cd27",
+      "size_bytes": 5158993
+    },
+    {
+      "filename": "MSV000094761-Mudpit_MS206071LUM_Laura_Santambrogio_CL2_a__peptides_1_1_0.mzid_.mzid",
+      "role": "original_identifications_and_reference_sequences",
+      "source_url": "https://massive.ucsd.edu/ProteoSAFe/DownloadResultFile?file=f.MSV000094761%2Fresult%2FMudpit_MS206071LUM_Laura_Santambrogio_CL2_a__peptides_1_1_0.mzid_.mzid&forceDownload=true",
+      "sha256": "ef66eb77df21c98c8ab6e9aff1cfc4dacdd6abb5fccaefec278789a3b75ac092",
+      "size_bytes": 6005921
+    },
+    {
+      "filename": "MSV000094761-Mudpit_MS206071LUM_Laura_Santambrogio_CL3_a__peptides_1_1_0.mzid_.mzid",
+      "role": "original_identifications_and_reference_sequences",
+      "source_url": "https://massive.ucsd.edu/ProteoSAFe/DownloadResultFile?file=f.MSV000094761%2Fresult%2FMudpit_MS206071LUM_Laura_Santambrogio_CL3_a__peptides_1_1_0.mzid_.mzid&forceDownload=true",
+      "sha256": "fad96a77f8781e1c2ebf7c4a0dbac190ca3d006c84575cd2aaf8513686fc93ed",
+      "size_bytes": 3121698
+    },
+    {
+      "filename": "MSV000094761-Mudpit_MS206071LUM_Laura_Santambrogio_Isotype-CL_a__peptides_1_1_0.mzid_.mzid",
+      "role": "original_identifications_and_reference_sequences",
+      "source_url": "https://massive.ucsd.edu/ProteoSAFe/DownloadResultFile?file=f.MSV000094761%2Fresult%2FMudpit_MS206071LUM_Laura_Santambrogio_Isotype-CL_a__peptides_1_1_0.mzid_.mzid&forceDownload=true",
+      "sha256": "04194db25c9eb520091e0cb6eac3fdffbbc2de9cbfd51e740c289b84529e1bab",
+      "size_bytes": 13373788
+    },
+    {
+      "filename": "MSV000094761-Mudpit_MS206071LUM_Laura_Santambrogio_ML1_a__peptides_1_1_0.mzid_.mzid",
+      "role": "original_identifications_and_reference_sequences",
+      "source_url": "https://massive.ucsd.edu/ProteoSAFe/DownloadResultFile?file=f.MSV000094761%2Fresult%2FMudpit_MS206071LUM_Laura_Santambrogio_ML1_a__peptides_1_1_0.mzid_.mzid&forceDownload=true",
+      "sha256": "ff67a6ac2a9742f0e65464f05f75e64875370d5937ce6a77c943d07a2c4ebbbf",
+      "size_bytes": 9421676
+    },
+    {
+      "filename": "MSV000094761-Mudpit_MS206071LUM_Laura_Santambrogio_ML2_a__peptides_1_1_0.mzid_.mzid",
+      "role": "original_identifications_and_reference_sequences",
+      "source_url": "https://massive.ucsd.edu/ProteoSAFe/DownloadResultFile?file=f.MSV000094761%2Fresult%2FMudpit_MS206071LUM_Laura_Santambrogio_ML2_a__peptides_1_1_0.mzid_.mzid&forceDownload=true",
+      "sha256": "f8c6b1ecd12d828f6975eb390bf19697527e2c999e0a4850f17e4616daed971e",
+      "size_bytes": 13719011
+    },
+    {
+      "filename": "MSV000094761-Mudpit_MS206071LUM_Laura_Santambrogio_ML3_a__peptides_1_1_0.mzid_.mzid",
+      "role": "original_identifications_and_reference_sequences",
+      "source_url": "https://massive.ucsd.edu/ProteoSAFe/DownloadResultFile?file=f.MSV000094761%2Fresult%2FMudpit_MS206071LUM_Laura_Santambrogio_ML3_a__peptides_1_1_0.mzid_.mzid&forceDownload=true",
+      "sha256": "ae2aff3ae5606b63734ae7d495c188a02ea2a3bc7774a54e3469cdd955c6468d",
+      "size_bytes": 7250083
+    },
+    {
+      "filename": "MSV000094761-Mudpit_MS206203LUM_Laura_Santambrogio_Isotype-POOL-400-500_a__peptides_1_1_0.mzid_.mzid",
+      "role": "original_identifications_and_reference_sequences",
+      "source_url": "https://massive.ucsd.edu/ProteoSAFe/DownloadResultFile?file=f.MSV000094761%2Fresult%2FMudpit_MS206203LUM_Laura_Santambrogio_Isotype-POOL-400-500_a__peptides_1_1_0.mzid_.mzid&forceDownload=true",
+      "sha256": "f10dc1dc349995b8d8daf65554dea4be9edd864d3e12dbcd33d6cd3e83409be4",
+      "size_bytes": 2135983
+    }
+  ],
+  "blocks": [
+    {
+      "filename": "NIHMS2005243-supplement-9.xlsx",
+      "sheet": "Suppl Table S6 (a)",
+      "block_id": "human_native",
+      "column_bounds": [
+        1,
+        17
+      ],
+      "headers": {
+        "A": "Protein Accession",
+        "B": "Peptide",
+        "C": "Unique",
+        "D": "-10lgP",
+        "E": "Mass",
+        "F": "Length",
+        "G": "ppm",
+        "H": "m/z",
+        "I": "z",
+        "J": "RT",
+        "K": "Area Sample 1",
+        "L": "Fraction",
+        "M": "Scan",
+        "N": "#Feature",
+        "O": "#Feature Sample 1",
+        "P": "Start",
+        "Q": "End"
+      },
+      "description": {
+        "A": "Table S6 (a): Endogenously processed peptides and their proteins substrates source in the human lymph from IBD patients identified using HUMAN reviewed swissprot database search and \"no enzyme\" restriction."
+      },
+      "columns": {
+        "parent": "A",
+        "peptide": "B",
+        "length": "F",
+        "charge": "I",
+        "scan": "M",
+        "start": "P",
+        "end": "Q"
+      },
+      "confidence": {
+        "unique": "C",
+        "minus_10lgP": "D"
+      },
+      "quantities": [
+        {
+          "column": "K",
+          "kind": "area",
+          "sample_id": "nanaware2024:human_native:sample1"
+        }
+      ]
+    },
+    {
+      "filename": "NIHMS2005243-supplement-7.xlsx",
+      "sheet": "Suppl Table S4(e)",
+      "block_id": "dc_dia_database",
+      "column_bounds": [
+        1,
+        35
+      ],
+      "headers": {
+        "A": "Accession",
+        "B": "Peptide",
+        "C": "Unique",
+        "D": "-10LgP",
+        "E": "Mass",
+        "F": "Length",
+        "G": "ppm",
+        "H": "m/z",
+        "I": "z",
+        "J": "RT",
+        "K": "Delta RT",
+        "L": "Scan",
+        "M": "Area Sample cervical 1",
+        "N": "Area Sample  cervical 2",
+        "O": "Area Sample  cervical 3",
+        "P": "Area Sample mesenteric 1",
+        "Q": "Area Sample mesenteric 2",
+        "R": "Area Sample mesenteric 3",
+        "S": "Intensity Sample cervical 1",
+        "T": "Intensity Sample cervical 2",
+        "U": "Intensity Sample cervical 3",
+        "V": "Intensity Sample mesenteric1",
+        "W": "Intensity Sample mesenteric2",
+        "X": "Intensity Sample mesenteric3",
+        "Y": "#Spec",
+        "Z": "#Spec Sample cervical 1",
+        "AA": "#Spec Sample cervical 2",
+        "AB": "#Spec Sample cervical 3",
+        "AC": "#Spec Sample mesenteric1",
+        "AD": "#Spec Sample mesenteric2",
+        "AE": "#Spec Sample mesenteric3",
+        "AF": "Start",
+        "AG": "End",
+        "AH": "PTM",
+        "AI": "Found by PEAKS 11 DB (database search)"
+      },
+      "description": {
+        "A": "Supplement Table S4 (e): I-Ab eluted peptidome from cervical (CL) and mesenteric (ML) lymph nodes's DCs: n=3 cervical biological replicates; n=6 mesenteric replicates; n=3 isotype control CL replicates; n=3 isotype control ML replicates.",
+        "G": "DIA MS analysis in PEAKS 11"
+      },
+      "columns": {
+        "parent": "A",
+        "peptide": "B",
+        "length": "F",
+        "charge": "I",
+        "scan": "L",
+        "start": "AF",
+        "end": "AG",
+        "ptm": "AH"
+      },
+      "confidence": {
+        "unique": "C",
+        "minus_10lgP": "D"
+      },
+      "quantities": [
+        {
+          "column": "M",
+          "kind": "area",
+          "sample_id": "nanaware2024:dc_cervical:1"
+        },
+        {
+          "column": "N",
+          "kind": "area",
+          "sample_id": "nanaware2024:dc_cervical:2"
+        },
+        {
+          "column": "O",
+          "kind": "area",
+          "sample_id": "nanaware2024:dc_cervical:3"
+        },
+        {
+          "column": "P",
+          "kind": "area",
+          "sample_id": "nanaware2024:dc_mesenteric:1"
+        },
+        {
+          "column": "Q",
+          "kind": "area",
+          "sample_id": "nanaware2024:dc_mesenteric:2"
+        },
+        {
+          "column": "R",
+          "kind": "area",
+          "sample_id": "nanaware2024:dc_mesenteric:3"
+        },
+        {
+          "column": "S",
+          "kind": "intensity",
+          "sample_id": "nanaware2024:dc_cervical:1"
+        },
+        {
+          "column": "T",
+          "kind": "intensity",
+          "sample_id": "nanaware2024:dc_cervical:2"
+        },
+        {
+          "column": "U",
+          "kind": "intensity",
+          "sample_id": "nanaware2024:dc_cervical:3"
+        },
+        {
+          "column": "V",
+          "kind": "intensity",
+          "sample_id": "nanaware2024:dc_mesenteric:1"
+        },
+        {
+          "column": "W",
+          "kind": "intensity",
+          "sample_id": "nanaware2024:dc_mesenteric:2"
+        },
+        {
+          "column": "X",
+          "kind": "intensity",
+          "sample_id": "nanaware2024:dc_mesenteric:3"
+        }
+      ]
+    },
+    {
+      "filename": "NIHMS2005243-supplement-7.xlsx",
+      "sheet": "Suppl Table S4(e)",
+      "block_id": "dc_dia_library",
+      "column_bounds": [
+        37,
+        71
+      ],
+      "headers": {
+        "AK": "Accession",
+        "AL": "Peptide",
+        "AM": "Unique",
+        "AN": "-10LgP",
+        "AO": "Mass",
+        "AP": "Length",
+        "AQ": "ppm",
+        "AR": "m/z",
+        "AS": "z",
+        "AT": "RT",
+        "AU": "Delta RT",
+        "AV": "Scan",
+        "AW": "Area Sample cervical 1",
+        "AX": "Area Sample  cervical 2",
+        "AY": "Area Sample  cervical 3",
+        "AZ": "Area Sample mesenteric 1",
+        "BA": "Area Sample mesenteric 2",
+        "BB": "Area Sample mesenteric 3",
+        "BC": "Intensity Sample cervical 1",
+        "BD": "Intensity Sample cervical 2",
+        "BE": "Intensity Sample cervical 3",
+        "BF": "Intensity Sample mesenteric1",
+        "BG": "Intensity Sample mesenteric2",
+        "BH": "Intensity Sample mesenteric3",
+        "BI": "#Spec",
+        "BJ": "#Spec Sample cervical 1",
+        "BK": "#Spec Sample cervical 2",
+        "BL": "#Spec Sample cervical 3",
+        "BM": "#Spec Sample mesenteric1",
+        "BN": "#Spec Sample mesenteric2",
+        "BO": "#Spec Sample mesenteric3",
+        "BP": "Start",
+        "BQ": "End",
+        "BR": "PTM",
+        "BS": "Found by PEAKS 11 search against DDA sample-based spectra libraries"
+      },
+      "description": {},
+      "columns": {
+        "parent": "AK",
+        "peptide": "AL",
+        "length": "AP",
+        "charge": "AS",
+        "scan": "AV",
+        "start": "BP",
+        "end": "BQ",
+        "ptm": "BR"
+      },
+      "confidence": {
+        "unique": "AM",
+        "minus_10lgP": "AN"
+      },
+      "quantities": [
+        {
+          "column": "AW",
+          "kind": "area",
+          "sample_id": "nanaware2024:dc_cervical:1"
+        },
+        {
+          "column": "AX",
+          "kind": "area",
+          "sample_id": "nanaware2024:dc_cervical:2"
+        },
+        {
+          "column": "AY",
+          "kind": "area",
+          "sample_id": "nanaware2024:dc_cervical:3"
+        },
+        {
+          "column": "AZ",
+          "kind": "area",
+          "sample_id": "nanaware2024:dc_mesenteric:1"
+        },
+        {
+          "column": "BA",
+          "kind": "area",
+          "sample_id": "nanaware2024:dc_mesenteric:2"
+        },
+        {
+          "column": "BB",
+          "kind": "area",
+          "sample_id": "nanaware2024:dc_mesenteric:3"
+        },
+        {
+          "column": "BC",
+          "kind": "intensity",
+          "sample_id": "nanaware2024:dc_cervical:1"
+        },
+        {
+          "column": "BD",
+          "kind": "intensity",
+          "sample_id": "nanaware2024:dc_cervical:2"
+        },
+        {
+          "column": "BE",
+          "kind": "intensity",
+          "sample_id": "nanaware2024:dc_cervical:3"
+        },
+        {
+          "column": "BF",
+          "kind": "intensity",
+          "sample_id": "nanaware2024:dc_mesenteric:1"
+        },
+        {
+          "column": "BG",
+          "kind": "intensity",
+          "sample_id": "nanaware2024:dc_mesenteric:2"
+        },
+        {
+          "column": "BH",
+          "kind": "intensity",
+          "sample_id": "nanaware2024:dc_mesenteric:3"
+        }
+      ]
+    }
+  ],
+  "contexts": [
+    {
+      "context_id": "nanaware2024:human_native",
+      "organism_name": "Homo sapiens",
+      "organism_taxon_id": "9606",
+      "tissue_name": "mesenteric lymph",
+      "cell_type": "not_applicable_extracellular_material",
+      "measured_pool": "native_extracellular_lymph_peptides",
+      "mhc_class": null,
+      "mhc_genotype": null,
+      "mhc_capture": "not_applicable",
+      "digestion_enzyme": "none_in_primary_native_extraction",
+      "instrument": "Q-Exactive HF primary; Fusion Lumos community SDRF conflict",
+      "acquisition_mode": "DDA",
+      "normalization_policy": "exported_PEAKS_area_or_intensity_normalization_not_established",
+      "condition_text": "IBD; individual diagnosis and pooling unresolved",
+      "component_state_status": "unreported_not_assumed_wildtype",
+      "condition_knockout_genes": null,
+      "context_scope": "primary_method_and_table_block_not_individual_specimen",
+      "source_reference_iri": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11233987/",
+      "source_row_json": "{\"mouse_strain\": null, \"primary_method\": \"Extraction of endogenous peptides (peptidome) from human mesenteric lymph\", \"source_sheet\": \"Suppl Table S6 (a)\"}"
+    },
+    {
+      "context_id": "nanaware2024:dc_cervical",
+      "organism_name": "Mus musculus",
+      "organism_taxon_id": "10090",
+      "tissue_name": "cervical lymph node",
+      "cell_type": "CD11c-enriched dendritic cells",
+      "measured_pool": "MHC_II_immunoaffinity_eluted_peptides",
+      "mhc_class": "II",
+      "mhc_genotype": "H-2-IAb_capture_context_not_peptide_specific_restriction",
+      "mhc_capture": "M5/114 immunoaffinity",
+      "digestion_enzyme": "no_analytical_digest_reported_for_MHC_elution",
+      "instrument": "Orbitrap Fusion Lumos primary DIA methods",
+      "acquisition_mode": "DIA",
+      "normalization_policy": "exported_PEAKS_area_or_intensity_normalization_not_established",
+      "condition_text": "B16-FLT3-L-mediated DC expansion; exported channels lack DSS assignment",
+      "component_state_status": "unreported_not_assumed_wildtype",
+      "condition_knockout_genes": null,
+      "context_scope": "primary_method_and_table_block_not_individual_specimen",
+      "source_reference_iri": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11233987/",
+      "source_row_json": "{\"mouse_strain\": \"C57BL/6J; study-level scope\", \"primary_method\": \"Isolation of I-Ab peptide complexes from dendritic cells harvested from cervical and mesenteric lymph nodes and peptide elution\", \"source_sheet\": \"Suppl Table S4(e)\"}"
+    },
+    {
+      "context_id": "nanaware2024:dc_mesenteric",
+      "organism_name": "Mus musculus",
+      "organism_taxon_id": "10090",
+      "tissue_name": "mesenteric lymph node",
+      "cell_type": "CD11c-enriched dendritic cells",
+      "measured_pool": "MHC_II_immunoaffinity_eluted_peptides",
+      "mhc_class": "II",
+      "mhc_genotype": "H-2-IAb_capture_context_not_peptide_specific_restriction",
+      "mhc_capture": "M5/114 immunoaffinity",
+      "digestion_enzyme": "no_analytical_digest_reported_for_MHC_elution",
+      "instrument": "Orbitrap Fusion Lumos primary DIA methods",
+      "acquisition_mode": "DIA",
+      "normalization_policy": "exported_PEAKS_area_or_intensity_normalization_not_established",
+      "condition_text": "B16-FLT3-L-mediated DC expansion; exported channels lack DSS assignment",
+      "component_state_status": "unreported_not_assumed_wildtype",
+      "condition_knockout_genes": null,
+      "context_scope": "primary_method_and_table_block_not_individual_specimen",
+      "source_reference_iri": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11233987/",
+      "source_row_json": "{\"mouse_strain\": \"C57BL/6J; study-level scope\", \"primary_method\": \"Isolation of I-Ab peptide complexes from dendritic cells harvested from cervical and mesenteric lymph nodes and peptide elution\", \"source_sheet\": \"Suppl Table S4(e)\"}"
+    }
+  ],
+  "samples": [
+    {
+      "sample_id": "nanaware2024:human_native:sample1",
+      "context_id": "nanaware2024:human_native",
+      "sample_label_raw": "Sample 1",
+      "biological_replicate_raw": null,
+      "specimen_id": null,
+      "aliquot_id": null,
+      "material_link_precision": "unresolved_donor_or_pool_identity",
+      "replicate_link_status": "single_exported_channel_not_independent_donor_assignment"
+    },
+    {
+      "sample_id": "nanaware2024:dc_cervical:1",
+      "context_id": "nanaware2024:dc_cervical",
+      "sample_label_raw": "cervical 1",
+      "biological_replicate_raw": "1",
+      "specimen_id": null,
+      "aliquot_id": null,
+      "material_link_precision": "same_exported_channel_across_search_algorithms_not_exact_specimen_join",
+      "replicate_link_status": "header_label; total_replicate_and_control_mapping_unresolved"
+    },
+    {
+      "sample_id": "nanaware2024:dc_cervical:2",
+      "context_id": "nanaware2024:dc_cervical",
+      "sample_label_raw": "cervical 2",
+      "biological_replicate_raw": "2",
+      "specimen_id": null,
+      "aliquot_id": null,
+      "material_link_precision": "same_exported_channel_across_search_algorithms_not_exact_specimen_join",
+      "replicate_link_status": "header_label; total_replicate_and_control_mapping_unresolved"
+    },
+    {
+      "sample_id": "nanaware2024:dc_cervical:3",
+      "context_id": "nanaware2024:dc_cervical",
+      "sample_label_raw": "cervical 3",
+      "biological_replicate_raw": "3",
+      "specimen_id": null,
+      "aliquot_id": null,
+      "material_link_precision": "same_exported_channel_across_search_algorithms_not_exact_specimen_join",
+      "replicate_link_status": "header_label; total_replicate_and_control_mapping_unresolved"
+    },
+    {
+      "sample_id": "nanaware2024:dc_mesenteric:1",
+      "context_id": "nanaware2024:dc_mesenteric",
+      "sample_label_raw": "mesenteric 1",
+      "biological_replicate_raw": "1",
+      "specimen_id": null,
+      "aliquot_id": null,
+      "material_link_precision": "same_exported_channel_across_search_algorithms_not_exact_specimen_join",
+      "replicate_link_status": "header_label; total_replicate_and_control_mapping_unresolved"
+    },
+    {
+      "sample_id": "nanaware2024:dc_mesenteric:2",
+      "context_id": "nanaware2024:dc_mesenteric",
+      "sample_label_raw": "mesenteric 2",
+      "biological_replicate_raw": "2",
+      "specimen_id": null,
+      "aliquot_id": null,
+      "material_link_precision": "same_exported_channel_across_search_algorithms_not_exact_specimen_join",
+      "replicate_link_status": "header_label; total_replicate_and_control_mapping_unresolved"
+    },
+    {
+      "sample_id": "nanaware2024:dc_mesenteric:3",
+      "context_id": "nanaware2024:dc_mesenteric",
+      "sample_label_raw": "mesenteric 3",
+      "biological_replicate_raw": "3",
+      "specimen_id": null,
+      "aliquot_id": null,
+      "material_link_precision": "same_exported_channel_across_search_algorithms_not_exact_specimen_join",
+      "replicate_link_status": "header_label; total_replicate_and_control_mapping_unresolved"
+    }
+  ],
+  "assertions": [
+    {
+      "source_record_id": "nanaware2024:assertion:0",
+      "source_scope": "study",
+      "assertion_predicate": "rights",
+      "assertion_value": "CC BY-NC-ND per PMC metadata",
+      "assertion_status": "reported",
+      "source_reference_iri": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11233987/",
+      "source_locator": "PMC11233987.319.json"
+    },
+    {
+      "source_record_id": "nanaware2024:assertion:1",
+      "source_scope": "human_native",
+      "assertion_predicate": "donor_and_pool_mapping",
+      "assertion_value": "Sample1 cannot be joined to the five human proteomics donors by label or row position",
+      "assertion_status": "unresolved",
+      "source_reference_iri": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11233987/",
+      "source_locator": "S6(a), S5(a)"
+    },
+    {
+      "source_record_id": "nanaware2024:assertion:2",
+      "source_scope": "human_native",
+      "assertion_predicate": "precursor_quantity",
+      "assertion_value": "side-by-side S6(a) protein summary derives from native peptides, not independent precursor proteomics",
+      "assertion_status": "reported",
+      "source_reference_iri": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11233987/",
+      "source_locator": "S6(a) A:Q versus S:AB"
+    },
+    {
+      "source_record_id": "nanaware2024:assertion:3",
+      "source_scope": "human_native",
+      "assertion_predicate": "instrument",
+      "assertion_value": "primary native method: Q-Exactive HF; community SDRF: Fusion Lumos",
+      "assertion_status": "conflicting",
+      "source_reference_iri": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11233987/",
+      "source_locator": "primary LC-MS method; PXD051024_community_annotated.sdrf.tsv"
+    },
+    {
+      "source_record_id": "nanaware2024:assertion:4",
+      "source_scope": "dc",
+      "assertion_predicate": "replicates",
+      "assertion_value": "description:3 cervical/6 mesenteric plus3+3 controls; exported quantity headers:3 cervical/3 mesenteric; correspondence unresolved",
+      "assertion_status": "unresolved",
+      "source_reference_iri": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11233987/",
+      "source_locator": "S4(e) rows1-2"
+    },
+    {
+      "source_record_id": "nanaware2024:assertion:5",
+      "source_scope": "dc",
+      "assertion_predicate": "search_dependency",
+      "assertion_value": "database and spectral-library blocks are alternative search outputs, not independent acquisition replicates",
+      "assertion_status": "reported",
+      "source_reference_iri": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11233987/",
+      "source_locator": "S4(e) columnsAI/BS; DIA methods"
+    },
+    {
+      "source_record_id": "nanaware2024:assertion:6",
+      "source_scope": "dc",
+      "assertion_predicate": "APC_expansion",
+      "assertion_value": "DCs harvested after B16-FLT3-L-mediated expansion; not untreated baseline APCs",
+      "assertion_status": "reported",
+      "source_reference_iri": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11233987/",
+      "source_locator": "primary DC isolation method"
+    },
+    {
+      "source_record_id": "nanaware2024:assertion:7",
+      "source_scope": "dc",
+      "assertion_predicate": "machinery_loss",
+      "assertion_value": "no per-sample KO or machinery abundance supplied; no wildtype default asserted",
+      "assertion_status": "unreported",
+      "source_reference_iri": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11233987/",
+      "source_locator": "primary DC isolation and S4(e)"
+    },
+    {
+      "source_record_id": "nanaware2024:assertion:8",
+      "source_scope": "dc",
+      "assertion_predicate": "source_library_description",
+      "assertion_value": "DIA library paragraph uses control/DSS lymph wording; exported DC channel assignment to DSS not established",
+      "assertion_status": "unresolved",
+      "source_reference_iri": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11233987/",
+      "source_locator": "DIA analysis of the I-Ab peptidomes"
+    },
+    {
+      "source_record_id": "nanaware2024:assertion:9",
+      "source_scope": "mouse_lymph_S4n",
+      "assertion_predicate": "native_processing_eligibility",
+      "assertion_value": "no-enzyme search includes source files otherwise described under enzymatically digested proteomics; preparation origin unresolved",
+      "assertion_status": "unresolved",
+      "source_reference_iri": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11233987/",
+      "source_locator": "S4(n) Source File; primary mouse lymph proteomics"
+    },
+    {
+      "source_record_id": "nanaware2024:assertion:10",
+      "source_scope": "study",
+      "assertion_predicate": "cross_modality_pairing",
+      "assertion_value": "same anatomy or protein does not establish paired specimen/aliquot; human and mouse are separate",
+      "assertion_status": "unresolved",
+      "source_reference_iri": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11233987/",
+      "source_locator": "primary methods and S4/S5/S6"
+    },
+    {
+      "source_record_id": "nanaware2024:assertion:11",
+      "source_scope": "study",
+      "assertion_predicate": "projected_scope",
+      "assertion_value": "only human S6(a) A:Q and DC S4(e) A:AI/AK:BS are projected as quantities; other workbook blocks remain original source assets",
+      "assertion_status": "reported",
+      "source_reference_iri": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11233987/",
+      "source_locator": "source block contract"
+    },
+    {
+      "source_record_id": "nanaware2024:assertion:12",
+      "source_scope": "dc",
+      "assertion_predicate": "confidence_policy",
+      "assertion_value": "branch-specific FDR and aggregation are not inferred from broad methods; source score/uniqueness remain raw",
+      "assertion_status": "unresolved",
+      "source_reference_iri": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11233987/",
+      "source_locator": "S4(e); PEAKS and Scaffold method sections"
+    },
+    {
+      "source_record_id": "nanaware2024:assertion:13",
+      "source_scope": "study",
+      "assertion_predicate": "reference_origin",
+      "assertion_value": "deposited DBSequence and PeptideEvidence entries are search candidates, not measured precursor origin",
+      "assertion_status": "reported",
+      "source_reference_iri": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11233987/",
+      "source_locator": "original mzIdentML SequenceCollection"
+    }
+  ],
+  "source_registry": {
+    "nanaware2024": {
+      "source_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11233987/",
+      "pmid": "38848214",
+      "doi": "10.1016/j.celrep.2024.114311",
+      "pmc_asset_version": "PMC11233987.319",
+      "source_role": "native_human_lymph_and_mouse_DC_MHC_II_quantities",
+      "license_status": "CC BY-NC-ND as recorded by PMC metadata",
+      "access": "public_original_processed_assets",
+      "training_status": "source_evidence_only_no_registered_recipe",
+      "projected_blocks": [
+        "human_native",
+        "dc_dia_database",
+        "dc_dia_library"
+      ],
+      "reference_scope": "deposited_search_entries_not_certain_precursor_origins",
+      "unprojected_workbook_blocks": "retained original assets; no quantitative eligibility inferred"
+    }
+  }
+}

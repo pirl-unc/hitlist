@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, replace
 
-SCHEMA_VERSION = 28
+SCHEMA_VERSION = 29
 FIELD_ROLES = frozenset(
     {
         "identity",
@@ -4715,6 +4715,102 @@ EVIDENCE += tuple(
         min_package_schema_version=23,
     )
     for name, (grain, fields) in PROTEOMETOOLS_RELATIONS.items()
+)
+
+LYMPH_RELATIONS = {
+    "assets": (
+        "one_immutable_original_source_asset",
+        HAP1_RELATIONS["assets"][1],
+    ),
+    "source_records": (
+        "one_original_independent_algorithm_block_row",
+        HAP1_RELATIONS["source_records"][1],
+    ),
+    "contexts": (
+        "one_source_anatomical_group_and_measurement_modality",
+        (
+            "context_id",
+            "organism_name",
+            "organism_taxon_id",
+            "measured_pool",
+            "mhc_class",
+            "mhc_genotype",
+            "digestion_enzyme",
+            "instrument",
+            "acquisition_mode",
+            "normalization_policy",
+            "condition_text",
+            "component_state_status",
+            "condition_knockout_genes",
+            "context_scope",
+            "source_reference_iri",
+            "source_row_json",
+        ),
+    ),
+    "samples": (
+        "one_exported_sample_label_reused_across_search_algorithms",
+        tuple(field for field in HAP1_RELATIONS["samples"][1] if field != "condition_id"),
+    ),
+    "observations": (
+        "one_original_peptidoform_feature_row_not_aggregated_sequence_quantity",
+        (
+            "source_record_id",
+            "peptide_sequence",
+            "peptide_modifications_raw",
+            "parent_label_raw",
+        ),
+    ),
+    "quantities": (
+        "one_original_PEAKS_area_or_intensity_cell_including_missing",
+        HAP1_RELATIONS["quantities"][1],
+    ),
+    "references": (
+        "one_deposited_search_DBSequence_not_confirmed_parent_origin",
+        tuple(field for field in HAP1_RELATIONS["references"][1] if field != "organism_taxon_id"),
+    ),
+    "identifications": (
+        "one_source_peptide_evidence_reference_alternative",
+        (
+            "source_file",
+            "source_locator",
+            "reference_record_id",
+            "peptide_sequence",
+            "peptide_modifications_raw",
+            "source_row_json",
+        ),
+    ),
+    "assertions": (
+        "one_source_scoped_claim_with_explicit_conflict_or_unknown_status",
+        (
+            "source_record_id",
+            "source_scope",
+            "assertion_predicate",
+            "assertion_value",
+            "source_reference_iri",
+            "source_locator",
+        ),
+    ),
+}
+EVIDENCE += tuple(
+    Evidence(
+        "lymph_" + name,
+        "context"
+        if name in ("contexts", "samples")
+        else "measurement"
+        if name == "quantities"
+        else "relation",
+        "native_lymph_and_DC_MHC_elution",
+        grain,
+        f"nanaware_lymph/typed/{name}.parquet",
+        "nanaware2024",
+        (),
+        fields,
+        (fields[0],),
+        status="v2_materialized",
+        materialized_artifact=f"nanaware_lymph/typed/{name}.parquet",
+        min_package_schema_version=24,
+    )
+    for name, (grain, fields) in LYMPH_RELATIONS.items()
 )
 
 _EVIDENCE_BY_NAME = {item.name: item for item in EVIDENCE}
