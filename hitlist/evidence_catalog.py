@@ -1265,6 +1265,69 @@ FIELDS += (
         "identifier",
         "Digest of the materialized source-row identities",
     ),
+    _field("recipe_id", "protocol", "identifier", "Declared aggregation recipe identifier"),
+    _field(
+        "recipe_revision", "provenance", "identifier", "Package revision implementing the recipe"
+    ),
+    _field(
+        "source_relations_json", "provenance", "text", "Source relations admitted by the recipe"
+    ),
+    _field("grouping_policy_json", "protocol", "text", "Explicit parent and split grouping policy"),
+    _field("quantity_policy_json", "protocol", "text", "Native quantity and no-imputation policy"),
+    _field(
+        "missingness_policy_json", "protocol", "text", "Missingness, ambiguity and filter policy"
+    ),
+    _field(
+        "pairing_policy_json",
+        "lineage",
+        "text",
+        "Condition, specimen, aliquot and MAPP pairing policy",
+    ),
+    _field("qualification_id", "identity", "identifier", "Stable recipe qualification assertion"),
+    _field(
+        "source_relation",
+        "provenance",
+        "identifier",
+        "Materialized source relation being qualified",
+    ),
+    _field(
+        "source_relation_sha256",
+        "provenance",
+        "identifier",
+        "Digest of qualified source relation rows",
+    ),
+    _field(
+        "n_rows_with_sequence", "relation", "number", "Qualified rows with a populated sequence"
+    ),
+    _field(
+        "n_rows_with_contributors", "relation", "number", "Qualified rows with contributor values"
+    ),
+    _field(
+        "n_rows_with_intensity",
+        "relation",
+        "number",
+        "Qualified rows with a non-missing intensity cell",
+    ),
+    _field(
+        "n_rows_missing_intensity",
+        "relation",
+        "number",
+        "Qualified rows retaining missing intensity",
+    ),
+    _field("n_rows_ambiguous", "relation", "number", "Qualified rows with ambiguous contributors"),
+    _field(
+        "n_contributor_links",
+        "relation",
+        "number",
+        "Contributor identifiers retained by the qualification",
+    ),
+    _field("qualification_status", "annotation", "category", "Recipe qualification disposition"),
+    _field(
+        "source_backed", "provenance", "boolean", "Whether a pairing assertion is source-backed"
+    ),
+    _field(
+        "split_policy", "protocol", "text", "Frozen parent, specimen and biological split policy"
+    ),
 )
 
 FIELDS += (
@@ -1864,7 +1927,7 @@ EVIDENCE = (
         "evidence_registry",
         "one_declared_precursor_context_evidence_family",
         "precursor_context/families.parquet",
-        "pxd009360_precursor_context_v2",
+        "pxd009360_precursor_context_v3",
         (),
         (
             "family_id",
@@ -1881,7 +1944,7 @@ EVIDENCE = (
         ("family_id",),
         status="v2_materialized",
         materialized_artifact="precursor_context/families.parquet",
-        min_package_schema_version=21,
+        min_package_schema_version=22,
         required_appended_source="pxd009360_precursor",
     ),
     Evidence(
@@ -1890,7 +1953,7 @@ EVIDENCE = (
         "evidence_registry",
         "one_precursor_context_source_availability_summary",
         "precursor_context/availability.parquet",
-        "pxd009360_precursor_context_v2",
+        "pxd009360_precursor_context_v3",
         (),
         (
             "family_id",
@@ -1907,7 +1970,7 @@ EVIDENCE = (
         ("family_id", "source_id"),
         status="v2_materialized",
         materialized_artifact="precursor_context/availability.parquet",
-        min_package_schema_version=21,
+        min_package_schema_version=22,
         required_appended_source="pxd009360_precursor",
     ),
     Evidence(
@@ -1916,7 +1979,7 @@ EVIDENCE = (
         "source_provenance",
         "one_hash_pinned_precursor_source_asset",
         "precursor_context/source_assets.parquet",
-        "pxd009360_precursor_context_v2",
+        "pxd009360_precursor_context_v3",
         (),
         (
             "source_asset_id",
@@ -1932,7 +1995,7 @@ EVIDENCE = (
         ("source_asset_id",),
         status="v2_materialized",
         materialized_artifact="precursor_context/source_assets.parquet",
-        min_package_schema_version=21,
+        min_package_schema_version=22,
         required_appended_source="pxd009360_precursor",
     ),
     Evidence(
@@ -1941,7 +2004,7 @@ EVIDENCE = (
         "assay_context",
         "one_precursor_source_acquisition_inventory_row",
         "precursor_context/acquisitions.parquet",
-        "pxd009360_precursor_context_v2",
+        "pxd009360_precursor_context_v3",
         (),
         (
             "source_record_id",
@@ -1960,7 +2023,7 @@ EVIDENCE = (
         ("acquisition_id",),
         status="v2_materialized",
         materialized_artifact="precursor_context/acquisitions.parquet",
-        min_package_schema_version=21,
+        min_package_schema_version=22,
         required_appended_source="pxd009360_precursor",
     ),
     Evidence(
@@ -1969,7 +2032,7 @@ EVIDENCE = (
         "source_provenance",
         "one_precursor_archive_member_inventory_row",
         "precursor_context/tables.parquet",
-        "pxd009360_precursor_context_v2",
+        "pxd009360_precursor_context_v3",
         (),
         (
             "source_record_id",
@@ -1991,7 +2054,7 @@ EVIDENCE = (
         ("source_record_id",),
         status="v2_materialized",
         materialized_artifact="precursor_context/tables.parquet",
-        min_package_schema_version=21,
+        min_package_schema_version=22,
         required_appended_source="pxd009360_precursor",
     ),
     Evidence(
@@ -2000,7 +2063,7 @@ EVIDENCE = (
         "lineage",
         "one_precursor_cross_project_pairing_claim",
         "precursor_context/pairings.parquet",
-        "pxd009360_precursor_context_v2",
+        "pxd009360_precursor_context_v3",
         (),
         (
             "claim_id",
@@ -2017,7 +2080,7 @@ EVIDENCE = (
         ("claim_id",),
         status="v2_materialized",
         materialized_artifact="precursor_context/pairings.parquet",
-        min_package_schema_version=21,
+        min_package_schema_version=22,
         required_appended_source="pxd009360_precursor",
     ),
     Evidence(
@@ -2026,7 +2089,7 @@ EVIDENCE = (
         "precursor_context",
         "one_lossless_PXD009360_MaxQuant_evidence_row",
         "precursor_context/precursor_evidence_row.parquet",
-        "pxd009360_precursor_context_v2",
+        "pxd009360_precursor_context_v3",
         (),
         (
             "source_record_id",
@@ -2053,7 +2116,7 @@ EVIDENCE = (
         ("source_record_id",),
         status="v2_materialized",
         materialized_artifact="precursor_context/precursor_evidence_row.parquet",
-        min_package_schema_version=21,
+        min_package_schema_version=22,
         required_appended_source="pxd009360_precursor",
     ),
     Evidence(
@@ -2062,7 +2125,7 @@ EVIDENCE = (
         "precursor_context",
         "one_lossless_PXD009360_MaxQuant_peptide_row",
         "precursor_context/precursor_peptide_row.parquet",
-        "pxd009360_precursor_context_v2",
+        "pxd009360_precursor_context_v3",
         (),
         (
             "source_record_id",
@@ -2089,7 +2152,7 @@ EVIDENCE = (
         ("source_record_id",),
         status="v2_materialized",
         materialized_artifact="precursor_context/precursor_peptide_row.parquet",
-        min_package_schema_version=21,
+        min_package_schema_version=22,
         required_appended_source="pxd009360_precursor",
     ),
     Evidence(
@@ -2098,7 +2161,7 @@ EVIDENCE = (
         "precursor_context",
         "one_lossless_PXD009360_MaxQuant_all_peptide_row",
         "precursor_context/precursor_all_peptide_row.parquet",
-        "pxd009360_precursor_context_v2",
+        "pxd009360_precursor_context_v3",
         (),
         (
             "source_record_id",
@@ -2125,7 +2188,7 @@ EVIDENCE = (
         ("source_record_id",),
         status="v2_materialized",
         materialized_artifact="precursor_context/precursor_all_peptide_row.parquet",
-        min_package_schema_version=21,
+        min_package_schema_version=22,
         required_appended_source="pxd009360_precursor",
     ),
     Evidence(
@@ -2134,7 +2197,7 @@ EVIDENCE = (
         "precursor_context",
         "one_lossless_PXD009360_MaxQuant_protein_group_row",
         "precursor_context/precursor_protein_group_row.parquet",
-        "pxd009360_precursor_context_v2",
+        "pxd009360_precursor_context_v3",
         (),
         (
             "source_record_id",
@@ -2161,7 +2224,90 @@ EVIDENCE = (
         ("source_record_id",),
         status="v2_materialized",
         materialized_artifact="precursor_context/precursor_protein_group_row.parquet",
-        min_package_schema_version=21,
+        min_package_schema_version=22,
+        required_appended_source="pxd009360_precursor",
+    ),
+    Evidence(
+        "precursor_aggregation_recipe",
+        "relation",
+        "protocol",
+        "one_declared_PXD009360_precursor_aggregation_recipe",
+        "precursor_context/recipes.parquet",
+        "pxd009360_precursor_context_v3",
+        (),
+        (
+            "recipe_id",
+            "recipe_revision",
+            "source_dataset",
+            "source_relations_json",
+            "grouping_policy_json",
+            "quantity_policy_json",
+            "missingness_policy_json",
+            "pairing_policy_json",
+            "training_status",
+            "notes",
+        ),
+        ("recipe_id",),
+        status="v2_materialized",
+        materialized_artifact="precursor_context/recipes.parquet",
+        min_package_schema_version=22,
+        required_appended_source="pxd009360_precursor",
+    ),
+    Evidence(
+        "precursor_aggregation_qualification",
+        "relation",
+        "annotation",
+        "one_PXD009360_precursor_aggregation_qualification",
+        "precursor_context/qualifications.parquet",
+        "pxd009360_precursor_context_v3",
+        (),
+        (
+            "qualification_id",
+            "recipe_id",
+            "source_relation",
+            "source_file",
+            "n_source_rows",
+            "n_rows_with_sequence",
+            "n_rows_with_contributors",
+            "n_rows_with_intensity",
+            "n_rows_missing_intensity",
+            "n_rows_ambiguous",
+            "n_contributor_links",
+            "source_relation_sha256",
+            "qualification_status",
+            "training_status",
+            "notes",
+        ),
+        ("qualification_id",),
+        status="v2_materialized",
+        materialized_artifact="precursor_context/qualifications.parquet",
+        min_package_schema_version=22,
+        required_appended_source="pxd009360_precursor",
+    ),
+    Evidence(
+        "precursor_pairing_qualification",
+        "relation",
+        "lineage",
+        "one_PXD009360_precursor_pairing_qualification",
+        "precursor_context/pairing_qualifications.parquet",
+        "pxd009360_precursor_context_v3",
+        (),
+        (
+            "qualification_id",
+            "claim_id",
+            "pairing_scope",
+            "material_link_precision",
+            "pairing_status",
+            "source_backed",
+            "training_status",
+            "split_policy",
+            "evidence_basis",
+            "notes",
+        ),
+        ("qualification_id",),
+        status="v2_materialized",
+        materialized_artifact="precursor_context/pairing_qualifications.parquet",
+        min_package_schema_version=22,
         required_appended_source="pxd009360_precursor",
     ),
     Evidence(

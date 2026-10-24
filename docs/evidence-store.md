@@ -1,5 +1,4 @@
 # Hitlist 2.0 evidence store
-
 ## Quantitative HAP1 source package
 
 `write_hap1_quantitative_package(source_directory, destination)` builds the
@@ -717,13 +716,13 @@ MS detectability, or intracellular peptide concentrations.
 
 # Standalone precursor context
 
-Schema 21/catalog 26 extends the standalone `precursor_context` package for the
+Schema 22/catalog 27 extends the standalone `precursor_context` package for the
 PXD009360 parallel tryptic proteome. The source-contract generation retains the
 hash-pinned project and deposited-file metadata, the recovered MaxQuant search
 archive, parameter and summary files, its 17 archive-member inventory, and nine
 acquisition labels (448–456). The source archive is copied into the immutable
-package; the v2 generation now materializes its evidence, peptide, all-peptide
-and protein-group rows.
+package and its evidence, peptide, all-peptide and protein-group rows are
+materialized losslessly.
 
 The source contract deliberately exposes condition, specimen, aliquot and MAPP
 pairing as unresolved claims. Run order, label similarity, abundance
@@ -732,7 +731,7 @@ correlation and same-cell-line assertions do not establish a biological link.
 zero precursor training examples, while
 `precursor_source_asset`, `precursor_acquisition`,
 `precursor_table_inventory`, and `precursor_pairing_assertion` remain queryable
-through `EvidenceStore`. The v2 package additionally exposes lossless typed
+through `EvidenceStore`. The package additionally exposes lossless typed
 Arrow relations for `precursor_evidence_row`, `precursor_peptide_row`,
 `precursor_all_peptide_row`, and `precursor_protein_group_row`. Each row keeps
 the exact tab-delimited source text, ordered columns and values, source-row
@@ -740,9 +739,14 @@ digest, modifications, charge, identification representations, contributors,
 status flags, match-between-runs fields and LFQ/intensity cells. MaxQuant LFQ
 and any future precursor aggregates are not absolute copies-per-cell or
 intracellular concentration labels.
-
+The v3 package registers `pxd009360_precursor_quantity_qualification_v1` as a
+non-training recipe. Its qualification relation reports source-row coverage,
+contributors, missing intensity cells and ambiguous memberships; its pairing
+qualification relation keeps condition/specimen/aliquot/MAPP links unresolved
+unless a source-backed crosswalk exists. Parent/specimen splits remain frozen
+to source-file scope until that evidence exists.
 The current consumer retains HAP1 schema20/catalog25 and precursor-context
-schema21/catalog26, selected by their explicit family and revision. The combined
-live catalog is27. Existing source packages are not relabeled. The older
-precursor-context v1 source-contract package uses its historical consumer;
-upstream v2 does not admit that older envelope.
+schema22/catalog27, selected by their explicit family and revision. The combined
+live catalog preserves both source families. Existing source packages are not
+relabeled, and older precursor-context envelopes remain tied to their historical
+consumer.

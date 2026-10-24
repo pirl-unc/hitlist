@@ -15,9 +15,9 @@ import pyarrow.parquet as pq
 from .evidence_snapshot import snapshot_file
 from .provenance import file_digest
 
-PACKAGE_SCHEMA_VERSION = 21
-CATALOG_SCHEMA_VERSION = 26
-REVISION = "pxd009360_precursor_context_v2"
+PACKAGE_SCHEMA_VERSION = 22
+CATALOG_SCHEMA_VERSION = 27
+REVISION = "pxd009360_precursor_context_v3"
 PACKAGE_FAMILY = "precursor_context"
 SOURCE_ID = "pxd009360_precursor"
 SOURCE_PREFIX = f"external/{SOURCE_ID}/"
@@ -32,6 +32,9 @@ QUERY_ALIASES = {
     "precursor_peptide": "precursor_peptide_row",
     "precursor_all_peptide": "precursor_all_peptide_row",
     "precursor_protein_group": "precursor_protein_group_row",
+    "precursor_recipe": "precursor_aggregation_recipe",
+    "precursor_qualification": "precursor_aggregation_qualification",
+    "precursor_pairing_qualification": "precursor_pairing_qualification",
 }
 MATERIALIZED_EVIDENCE_TYPES = frozenset(
     {
@@ -45,6 +48,9 @@ MATERIALIZED_EVIDENCE_TYPES = frozenset(
         "precursor_peptide_row",
         "precursor_all_peptide_row",
         "precursor_protein_group_row",
+        "precursor_aggregation_recipe",
+        "precursor_aggregation_qualification",
+        "precursor_pairing_qualification",
     }
 )
 
@@ -147,6 +153,53 @@ QUANTITY_ROW_SCHEMA = pa.schema(
         ("match_between_runs_raw", pa.string()),
         ("contributors_json", pa.string()),
         ("status_flags_json", pa.string()),
+    ]
+)
+RECIPE_SCHEMA = pa.schema(
+    [
+        ("recipe_id", pa.string()),
+        ("recipe_revision", pa.string()),
+        ("source_dataset", pa.string()),
+        ("source_relations_json", pa.string()),
+        ("grouping_policy_json", pa.string()),
+        ("quantity_policy_json", pa.string()),
+        ("missingness_policy_json", pa.string()),
+        ("pairing_policy_json", pa.string()),
+        ("training_status", pa.string()),
+        ("notes", pa.string()),
+    ]
+)
+QUALIFICATION_SCHEMA = pa.schema(
+    [
+        ("qualification_id", pa.string()),
+        ("recipe_id", pa.string()),
+        ("source_relation", pa.string()),
+        ("source_file", pa.string()),
+        ("n_source_rows", pa.int64()),
+        ("n_rows_with_sequence", pa.int64()),
+        ("n_rows_with_contributors", pa.int64()),
+        ("n_rows_with_intensity", pa.int64()),
+        ("n_rows_missing_intensity", pa.int64()),
+        ("n_rows_ambiguous", pa.int64()),
+        ("n_contributor_links", pa.int64()),
+        ("source_relation_sha256", pa.string()),
+        ("qualification_status", pa.string()),
+        ("training_status", pa.string()),
+        ("notes", pa.string()),
+    ]
+)
+PAIRING_QUALIFICATION_SCHEMA = pa.schema(
+    [
+        ("qualification_id", pa.string()),
+        ("claim_id", pa.string()),
+        ("pairing_scope", pa.string()),
+        ("material_link_precision", pa.string()),
+        ("pairing_status", pa.string()),
+        ("source_backed", pa.bool_()),
+        ("training_status", pa.string()),
+        ("split_policy", pa.string()),
+        ("evidence_basis", pa.string()),
+        ("notes", pa.string()),
     ]
 )
 PAIRING_SCHEMA = pa.schema(
@@ -345,8 +398,114 @@ def _extract_quantity_tables(archive_path, destination, source_dataset):
     return metadata
 
 
-def _rows(receipt, materialized_tables=None):
+def _recipe_rows(receipt):
+    from .precursor_recipe import CONTRACT, RECIPE_ID
+
+    return [
+        {
+            "recipe_id": RECIPE_ID,
+            "recipe_revision": REVISION,
+            "source_dataset": receipt["dataset_accession"],
+            "source_relations_json": _json(CONTRACT["source_relations"]),
+            "grouping_policy_json": _json(CONTRACT["grouping"]),
+            "quantity_policy_json": _json(CONTRACT["quantity_policy"]),
+            "missingness_policy_json": _json(CONTRACT["missingness_policy"]),
+            "pairing_policy_json": _json(CONTRACT["pairing_policy"]),
+            "training_status": CONTRACT["training_status"],
+            "notes": "Qualification only; no precursor rows are admitted as training examples.",
+        }
+    ]
+
+
+def _qualify_quantity_relations(directory, materialized_tables):
+    from .precursor_recipe import RECIPE_ID
+
+    rows = []
+    for source_file, metadata in sorted(materialized_tables.items()):
+        relation = metadata["materialized_relation"]
+        counts = {
+            "n_source_rows": 0,
+            "n_rows_with_sequence": 0,
+            "n_rows_with_contributors": 0,
+            "n_rows_with_intensity": 0,
+            "n_rows_missing_intensity": 0,
+            "n_rows_ambiguous": 0,
+            "n_contributor_links": 0,
+        }
+        parquet = pq.ParquetFile(Path(directory) / f"{relation}.parquet")
+        for batch in parquet.iter_batches(
+            batch_size=8192,
+            columns=["sequence_raw", "contributors_json", "intensity_raw"],
+        ):
+            for sequence, contributor_text, intensity in zip(
+                batch.column("sequence_raw").to_pylist(),
+                batch.column("contributors_json").to_pylist(),
+                batch.column("intensity_raw").to_pylist(),
+            ):
+                counts["n_source_rows"] += 1
+                if sequence not in (None, ""):
+                    counts["n_rows_with_sequence"] += 1
+                contributor_values = []
+                if contributor_text:
+                    contributor_values = list(json.loads(contributor_text).values())
+                if contributor_values:
+                    counts["n_rows_with_contributors"] += 1
+                    counts["n_contributor_links"] += sum(
+                        1 for value in contributor_values for item in value.split(";") if item
+                    )
+                    if any(";" in value for value in contributor_values):
+                        counts["n_rows_ambiguous"] += 1
+                if intensity in (None, "", "NaN", "nan", "#N/A"):
+                    counts["n_rows_missing_intensity"] += 1
+                else:
+                    counts["n_rows_with_intensity"] += 1
+        rows.append(
+            {
+                "qualification_id": f"{RECIPE_ID}:{relation}",
+                "recipe_id": RECIPE_ID,
+                "source_relation": relation,
+                "source_file": source_file,
+                **counts,
+                "source_relation_sha256": metadata["relation_sha256"],
+                "qualification_status": "qualified_for_nontraining_only",
+                "training_status": "unavailable",
+                "notes": "Counts are source-row qualifications; no abundance or pairing inference.",
+            }
+        )
+    return rows
+
+
+def _pairing_qualification_rows(receipt):
+    from .precursor_recipe import RECIPE_ID
+
+    return [
+        {
+            "qualification_id": f"{RECIPE_ID}:pairing:{row['claim_id']}",
+            "claim_id": row["claim_id"],
+            "pairing_scope": row["pairing_scope"],
+            "material_link_precision": "unresolved",
+            "pairing_status": row["pairing_status"],
+            "source_backed": row["assertion_status"] == "established",
+            "training_status": "unavailable",
+            "split_policy": "no_biological_split_until_source_backed_crosswalk",
+            "evidence_basis": row["pairing_evidence"],
+            "notes": "Run labels, ordering and abundance correlation do not establish pairing.",
+        }
+        for row in receipt["pairings"]
+    ]
+
+
+def _rows(
+    receipt,
+    materialized_tables=None,
+    recipe_rows=None,
+    qualification_rows=None,
+    pairing_qualification_rows=None,
+):
     materialized_tables = materialized_tables or {}
+    recipe_rows = recipe_rows or []
+    qualification_rows = qualification_rows or []
+    pairing_qualification_rows = pairing_qualification_rows or []
     assets = [
         {
             "source_asset_id": f"{SOURCE_ID}:asset:{relative}",
@@ -491,6 +650,27 @@ def _rows(receipt, materialized_tables=None):
             "notes": "Condition, specimen and aliquot links remain unresolved claims.",
         },
     ]
+    if recipe_rows:
+        families.append(
+            {
+                "family_id": "precursor_recipe_qualification",
+                "evidence_family": "recipe_qualification",
+                "availability_state": "materialized",
+                "source_scope": "PXD009360_lossless_quantity_relations",
+                "n_source_rows": len(qualification_rows),
+                "n_measurements": 0,
+                "n_training_examples": 0,
+                "training_status": "unavailable",
+                "evidence_types_json": _json(
+                    [
+                        "precursor_aggregation_recipe",
+                        "precursor_aggregation_qualification",
+                        "precursor_pairing_qualification",
+                    ]
+                ),
+                "notes": "Recipe arithmetic and pairing scope are qualified without training admission.",
+            }
+        )
     availability = [
         {
             "family_id": row["family_id"],
@@ -558,8 +738,19 @@ def verify_precursor_context_package(directory):
         for field in ("n_source_rows", "source_member_size_bytes", "source_member_sha256"):
             if stored[field] != expected[field]:
                 raise ValueError(f"Pinned materialized table ledger changed: {relative}.{field}")
+    recipe_rows = pq.read_table(directory / "precursor_context" / "recipes.parquet").to_pylist()
+    qualification_rows = pq.read_table(
+        directory / "precursor_context" / "qualifications.parquet"
+    ).to_pylist()
+    pairing_qualification_rows = pq.read_table(
+        directory / "precursor_context" / "pairing_qualifications.parquet"
+    ).to_pylist()
     families, availability, assets, acquisitions, tables, pairings = _rows(
-        receipt, materialized_tables
+        receipt,
+        materialized_tables,
+        recipe_rows,
+        qualification_rows,
+        pairing_qualification_rows,
     )
     expected = {
         "families": (FAMILY_SCHEMA, families),
@@ -568,11 +759,21 @@ def verify_precursor_context_package(directory):
         "acquisitions": (ACQUISITION_SCHEMA, acquisitions),
         "tables": (TABLE_SCHEMA, tables),
         "pairings": (PAIRING_SCHEMA, pairings),
+        "recipes": (RECIPE_SCHEMA, recipe_rows),
+        "qualifications": (QUALIFICATION_SCHEMA, qualification_rows),
+        "pairing_qualifications": (
+            PAIRING_QUALIFICATION_SCHEMA,
+            pairing_qualification_rows,
+        ),
     }
     for name, (schema, rows) in expected.items():
         table = pq.read_table(directory / "precursor_context" / f"{name}.parquet")
         if table.schema != schema or table.to_pylist() != rows:
             raise ValueError(f"Precursor context relation changed: {name}")
+    if qualification_rows != _qualify_quantity_relations(
+        directory / "precursor_context", materialized_tables
+    ):
+        raise ValueError("Precursor quantity qualification changed")
     for _source_file, row in materialized_tables.items():
         relation = row["materialized_relation"]
         path = directory / "precursor_context" / f"{relation}.parquet"
@@ -629,8 +830,15 @@ def write_precursor_context_package(source_root, destination):
             for field in ("n_source_rows", "source_member_size_bytes", "source_member_sha256"):
                 if actual[field] != expected[field]:
                     raise ValueError(f"Pinned materialized table mismatch: {relative}.{field}")
+        recipe_rows = _recipe_rows(receipt)
+        qualification_rows = _qualify_quantity_relations(typed, materialized_tables)
+        pairing_qualification_rows = _pairing_qualification_rows(receipt)
         families, availability, assets, acquisitions, tables, pairings = _rows(
-            receipt, materialized_tables
+            receipt,
+            materialized_tables,
+            recipe_rows,
+            qualification_rows,
+            pairing_qualification_rows,
         )
         _write_table(typed, "families", families, FAMILY_SCHEMA)
         _write_table(typed, "availability", availability, AVAILABILITY_SCHEMA)
@@ -638,6 +846,14 @@ def write_precursor_context_package(source_root, destination):
         _write_table(typed, "acquisitions", acquisitions, ACQUISITION_SCHEMA)
         _write_table(typed, "tables", tables, TABLE_SCHEMA)
         _write_table(typed, "pairings", pairings, PAIRING_SCHEMA)
+        _write_table(typed, "recipes", recipe_rows, RECIPE_SCHEMA)
+        _write_table(typed, "qualifications", qualification_rows, QUALIFICATION_SCHEMA)
+        _write_table(
+            typed,
+            "pairing_qualifications",
+            pairing_qualification_rows,
+            PAIRING_QUALIFICATION_SCHEMA,
+        )
         from .version import __version__
 
         files = {
@@ -657,6 +873,9 @@ def write_precursor_context_package(source_root, destination):
             "n_materialized_quantity_rows": sum(
                 row["n_source_rows"] for row in materialized_tables.values()
             ),
+            "n_recipe_rows": len(recipe_rows),
+            "n_qualification_rows": len(qualification_rows),
+            "n_pairing_qualification_rows": len(pairing_qualification_rows),
         }
         manifest = {
             "schema_version": PACKAGE_SCHEMA_VERSION,
@@ -677,6 +896,9 @@ def write_precursor_context_package(source_root, destination):
                     row["n_source_rows"] for row in materialized_tables.values()
                 ),
                 "n_training_examples": 0,
+                "n_recipe_rows": len(recipe_rows),
+                "n_qualification_rows": len(qualification_rows),
+                "n_pairing_qualification_rows": len(pairing_qualification_rows),
             },
             "files": files,
         }

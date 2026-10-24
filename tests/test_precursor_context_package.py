@@ -6,6 +6,7 @@ from hitlist import EvidenceStore
 from hitlist import precursor_context_package as package
 from hitlist.evidence_catalog import SCHEMA_VERSION, describe_evidence
 from hitlist.evidence_package import package_family
+from hitlist.precursor_recipe import CONTRACT, RECIPE_ID
 from hitlist.provenance import file_digest
 
 
@@ -83,15 +84,21 @@ def test_precursor_package_family_and_catalog_are_versioned():
     assert (
         package_family(
             {
-                "schema_version": 21,
+                "schema_version": 22,
                 "package_family": "precursor_context",
-                "revision": "pxd009360_precursor_context_v2",
+                "revision": "pxd009360_precursor_context_v3",
             }
         )
         == "precursor_context"
     )
     fields = {field["name"] for field in describe_evidence("precursor_pairing_assertion")["fields"]}
     assert {"claim_id", "pairing_status", "pairing_evidence"} <= fields
+    assert CONTRACT["recipe_id"] == RECIPE_ID
+    assert CONTRACT["quantity_policy"]["imputation"] == "none"
+    assert CONTRACT["quantity_policy"]["normalization"] == "none"
+    assert CONTRACT["pairing_policy"]["evidence_required"] == (
+        "source_backed_crosswalk_or_explicit_assertion"
+    )
 
 
 def test_precursor_writer_verifier_and_evidence_store(tmp_path, monkeypatch):
@@ -103,11 +110,14 @@ def test_precursor_writer_verifier_and_evidence_store(tmp_path, monkeypatch):
     destination = tmp_path / "package"
     package.write_precursor_context_package(source_root, destination)
     manifest = package.verify_precursor_context_package(destination)
-    assert manifest["schema_version"] == 21
+    assert manifest["schema_version"] == 22
     store = EvidenceStore.open(destination)
     assert store.count("precursor_run") == 1
     assert store.count("precursor_pairing") == 1
     assert store.count("precursor_peptide") == 1
+    assert store.count("precursor_recipe") == 1
+    assert store.count("precursor_qualification") == 1
+    assert store.count("precursor_pairing_qualification") == 1
     family = store.query(
         "precursor_context_family",
         select=("availability_state", "n_source_rows", "n_measurements"),
@@ -128,5 +138,24 @@ def test_precursor_writer_verifier_and_evidence_store(tmp_path, monkeypatch):
     assert json.loads(peptide["values_json"]) == ["PEPTIDE", "Oxidation (M)", "2", "NaN"]
     assert peptide["charge_raw"] == "2"
     assert peptide["intensity_raw"] == "NaN"
+    recipe = store.query(
+        "precursor_recipe", select=("recipe_id", "training_status"), limit=None
+    ).table.to_pylist()[0]
+    assert recipe == {
+        "recipe_id": "pxd009360_precursor_quantity_qualification_v1",
+        "training_status": "unavailable",
+    }
+    qualification = store.query("precursor_qualification", limit=None).table.to_pylist()[0]
+    assert qualification["n_source_rows"] == 1
+    assert qualification["n_rows_with_sequence"] == 1
+    assert qualification["n_rows_with_contributors"] == 0
+    assert qualification["n_rows_with_intensity"] == 0
+    assert qualification["n_rows_missing_intensity"] == 1
+    assert qualification["qualification_status"] == "qualified_for_nontraining_only"
+    pairing = store.query("precursor_pairing_qualification", limit=None).table.to_pylist()[0]
+    assert pairing["source_backed"] is False
+    assert pairing["pairing_status"] == "unresolved"
+    assert pairing["training_status"] == "unavailable"
+    assert pairing["split_policy"] == "no_biological_split_until_source_backed_crosswalk"
     assert store._source_registry()[package.SOURCE_ID]["n_acquisitions"] == 1
     assert store._source_registry()[package.SOURCE_ID]["n_materialized_quantity_rows"] == 1

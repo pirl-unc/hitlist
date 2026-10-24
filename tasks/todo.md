@@ -8134,8 +8134,12 @@ Plan: [precursor-source-contract-801.md](precursor-source-contract-801.md).
 - [x] Verify clean-main release run `40089253494`, upload 2.0.20 to PyPI, and
       record wheel `bdebbe850890f92cfed5b9925ce5f5f03c38cb6958e574519d02a1f7889ddcaa`
       and sdist `aabab8b9a0dc30853ca13d52247940d110d05ca5dec5a3a1185d138ab257ede7`.
-- [ ] Materialize complete precursor quantities in child PR #802 (schema-21/catalog-26 implementation in progress).
-- [ ] Qualify the precursor recipe and pairing scope in child PR #803.
+- [x] Materialize complete precursor quantities in child PR #802 (schema-22/catalog-27 package; PR #808 merged at `897c98cbd514b03ea3156733f48e1e2d5354a534`).
+- [x] Verify clean-main release run `40094966489`, upload 2.0.21 to PyPI, and
+      record wheel `e21b3019c6c9798174ded0f4be36e66eed1c621f3b78ceb14b02f26515a75f58`
+      and sdist `a981791ef83ff85c93aaa45a368307f1e8a9784281f32e4411d24d37ec45650a`.
+- [ ] Qualify the precursor recipe and pairing scope in child PR #803 (PR #810
+      open; hosted integration gate pending).
 
 # Quantitative HAP1 admission — issue 726
 
@@ -8245,7 +8249,8 @@ recipe49focused tests pass; recipe full-suite/actual pinned-recipe replay and re
 remain pending. Publish integration as draft and obtain new-head hosted checks.
 
 Successor-main897c98c integration: source consumer2.0.22/live catalog27 preserves
-HAP1schema20/catalog25 and upstream precursorv2/schema21/catalog26. Format/lint,
+HAP1schema20/catalog25 and upstream precursorv2/schema21/catalog26. The current
+recipe branch advances the precursor reader to v3/schema22/catalog27. Format/lint,
 70focused tests and guarded full ./test.sh pass (3,443tests/393warnings,162.99s,
 2workers after7.15GiB memory probe). Original HAP1 package again replays/query-opens
 with unchanged manifest88cad10d… in53.08s. Upstream's older precursorv1 envelope
