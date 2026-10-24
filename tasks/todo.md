@@ -8076,3 +8076,22 @@ Evidence: Presto experiments/2026-10-24_0156_codex_tmab-semantic-replay.
 - [ ] Push the resolved merge, pass new-head hosted gates, merge and release2.0.17.
 
 Review: see tmab-upstream-reconciliation.md and Presto0259 admission. PR794 merged independently and its2.0.16release-build passed; preserve issue792closure and do not treat prior PR793 checks as new-head evidence. No APC concentration qualification is claimed.
+
+## Standalone T-cell and processing evidence package (#795 / #723)
+
+Plan: [tcell-processing-package-795.md](tcell-processing-package-795.md).
+
+- [x] Audit current T-cell and controlled-processing package/registry paths
+      and freeze source/count/hash anchors.
+- [x] Define the schema-18/catalog-23 common package contract while keeping
+      functional, multimer, receptor, processing and MAPP families separate.
+- [x] Register typed family projections, availability/no-direct-processing
+      results and replay tests.
+- [ ] Run hosted gates, merge and deploy 2.0.18.
+
+Review: the standalone replay preserves 55,844 T-cell examples, 578,529
+assay rows, 192,114 MAPP quantity results and 362,882 MAPP measurements.
+Aliases query functional response, pMHC multimer binding, processing
+measurement and MAPP products without merging their scientific families.
+The branch is rebased on the strict TMAB response successor (schema 17 /
+catalog 22); hosted review and release evidence are pending.

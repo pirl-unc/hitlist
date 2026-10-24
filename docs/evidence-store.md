@@ -581,3 +581,20 @@ Chemical exposure remains separate from genetic loss, and native extract ratios
 are not absolute APC concentrations. Full-parent model support is reported
 separately from sequence-response admission. Use `verify_recipe_package` with the
 source package to replay every quantity, contributor, split and reference occurrence.
+
+# T-cell and processing evidence
+
+Schema 18/catalog 23 introduces the standalone `tcell_processing` package.
+It copies the source-faithful T-cell v2 typed relations and the controlled
+PXD009092 MAPP relations into one package/query envelope while keeping
+functional responses, pMHC multimer binding, receptor evidence, direct
+processing availability and captured products as separate families.
+
+The family and availability ledgers distinguish materialized, unobserved and
+unavailable source families. A missing receptor or direct cleavage/transport
+row is not a measured negative. Query aliases include
+`tcell_functional_response`, `pmhc_multimer_binding`,
+`processing_measurement`, and `mapp_controlled_product`; the underlying
+source-specific relations remain available for provenance joins. Donor or
+specimen independence is not inferred, and MAPP captured products are not
+intracellular concentration or direct cleavage-rate labels.

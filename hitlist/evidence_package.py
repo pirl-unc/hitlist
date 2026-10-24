@@ -52,6 +52,12 @@ def package_family(manifest):
         and manifest.get("revision") == "tmab_native_peptidomics_v3"
     ):
         return "tmab_peptidomics"
+    if (
+        schema == 18
+        and manifest.get("package_family") == "tcell_processing"
+        and manifest.get("revision") == "tcell_processing_evidence_v1"
+    ):
+        return "tcell_processing"
     raise ValueError(f"Unknown or ambiguous evidence package family: schema {schema}")
 
 
