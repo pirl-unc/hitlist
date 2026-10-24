@@ -57,6 +57,11 @@ def test_store_uses_family_specific_verifier(tmp_path, monkeypatch, envelope, fa
         {"schema_version": 9, "review_revision": "wrong_version"},
         {"schema_version": 9},
         {"schema_version": 100},
+        {
+            "schema_version": 20,
+            "package_family": "precursor_context",
+            "revision": "pxd009360_precursor_context_v1",
+        },
     ],
 )
 def test_ambiguous_or_unknown_envelope_fails_before_reading_tables(tmp_path, envelope):
@@ -66,18 +71,18 @@ def test_ambiguous_or_unknown_envelope_fails_before_reading_tables(tmp_path, env
 
 
 @pytest.mark.parametrize(
-    "family,revision",
+    "family,revision,schema",
     [
-        ("hap1_quantitative", "shapiro2025_hap1_quantitative_v1"),
-        ("precursor_context", "pxd009360_precursor_context_v1"),
+        ("hap1_quantitative", "shapiro2025_hap1_quantitative_v1", 20),
+        ("precursor_context", "pxd009360_precursor_context_v2", 21),
     ],
 )
-def test_schema_twenty_keeps_explicit_source_families_separate(
-    tmp_path, monkeypatch, family, revision
+def test_current_explicit_source_envelopes_select_their_own_reader(
+    tmp_path, monkeypatch, family, revision, schema
 ):
     from hitlist import hap1_quantitative, precursor_context_package
 
-    envelope = {"schema_version": 20, "package_family": family, "revision": revision}
+    envelope = {"schema_version": schema, "package_family": family, "revision": revision}
     (tmp_path / "manifest.json").write_text(json.dumps(envelope))
     calls = []
 

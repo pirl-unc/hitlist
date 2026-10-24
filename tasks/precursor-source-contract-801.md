@@ -8,11 +8,13 @@ source-supported. This first child PR admits only hash-pinned source metadata,
 archive member inventory, acquisition labels and explicit unresolved-link
 claims. It does not create precursor training examples or infer abundance.
 
-The package uses schema 20/catalog 25 and family `precursor_context`. Every
+The source-contract package uses schema 20/catalog 25 and family
+`precursor_context`; child PR #802 promotes it to schema 21/catalog 26. Every
 source asset is copied into the standalone package and verified against its
-receipt. Quantity tables remain available-in-source/deferred until child PR 2
-materializes their rows. Family and availability ledgers make that state
-queryable instead of hiding it in an external sidecar.
+receipt. The v1 package marked quantity tables available-in-source/deferred.
+Child PR #802 materializes their rows losslessly while preserving the same
+source contract. Family and availability ledgers make both states queryable
+instead of hiding them in an external sidecar.
 
 ## Plan
 
@@ -23,7 +25,8 @@ queryable instead of hiding it in an external sidecar.
 - [x] Preserve unresolved condition/specimen/MAPP links as explicit claims.
 - [x] Replay the real local source root.
 - [x] Run required local format, lint and full test gates.
-- [ ] Run hosted gates, merge and deploy 2.0.20.
+- [x] Run hosted gates and merge PR #804 at `6416616a9b496a4706d9bd161242a247ace103d2`.
+- [x] Verify release run 40089253494 and deploy 2.0.20 to PyPI.
 
 ## Review
 
@@ -34,6 +37,13 @@ assets, nine acquisitions, 17 archive members and three unresolved pairing
 claims. It admits zero precursor training rows in this child PR; all quantity
 tables are deferred with source-backed availability states. No condition,
 specimen, aliquot or MAPP pairing is inferred.
+
+PR #804 merged at `6416616a9b496a4706d9bd161242a247ace103d2`. Release run
+`40089253494` passed on clean main. The verified wheel has SHA-256
+`bdebbe850890f92cfed5b9925ce5f5f03c38cb6958e574519d02a1f7889ddcaa`; the
+sdist has SHA-256
+`aabab8b9a0dc30853ca13d52247940d110d05ca5dec5a3a1185d138ab257ede7`.
+PyPI's release index reports both files for version 2.0.20.
 
 The host-level serial full non-integration suite passes all 3,427 tests (392
 warnings). `./format.sh` and `./lint.sh` pass.

@@ -1,4 +1,6 @@
+import io
 import json
+import tarfile
 
 from hitlist import EvidenceStore
 from hitlist import precursor_context_package as package
@@ -11,6 +13,13 @@ def _receipt(source_root, receipt_path):
     source = source_root / "asset.txt"
     source.write_text("pinned source\n")
     digest = file_digest(source)
+    archive = source_root / "search.tar.gz"
+    member = b"Sequence\tModifications\tCharge\tIntensity\nPEPTIDE\tOxidation (M)\t2\tNaN\n"
+    with tarfile.open(archive, "w:gz") as handle:
+        info = tarfile.TarInfo("txt/peptides.txt")
+        info.size = len(member)
+        handle.addfile(info, io.BytesIO(member))
+    archive_digest = file_digest(archive)
     value = {
         "source_id": "test_precursor",
         "dataset_accession": "TEST-PXD",
@@ -21,7 +30,13 @@ def _receipt(source_root, receipt_path):
                 "size_bytes": digest["size_bytes"],
                 "asset_kind": "test_asset",
                 "source_locator": "asset.txt",
-            }
+            },
+            "search.tar.gz": {
+                "sha256": archive_digest["sha256"],
+                "size_bytes": archive_digest["size_bytes"],
+                "asset_kind": "search_archive",
+                "source_locator": "search.tar.gz",
+            },
         },
         "archive_members": [{"path": "txt/peptides.txt", "size_bytes": 12}],
         "acquisitions": [
@@ -64,13 +79,13 @@ def test_precursor_family_ledger_keeps_unresolved_pairing_and_deferred_quantitie
 
 
 def test_precursor_package_family_and_catalog_are_versioned():
-    assert SCHEMA_VERSION == 26
+    assert SCHEMA_VERSION == 27
     assert (
         package_family(
             {
-                "schema_version": 20,
+                "schema_version": 21,
                 "package_family": "precursor_context",
-                "revision": "pxd009360_precursor_context_v1",
+                "revision": "pxd009360_precursor_context_v2",
             }
         )
         == "precursor_context"
@@ -88,8 +103,30 @@ def test_precursor_writer_verifier_and_evidence_store(tmp_path, monkeypatch):
     destination = tmp_path / "package"
     package.write_precursor_context_package(source_root, destination)
     manifest = package.verify_precursor_context_package(destination)
-    assert manifest["schema_version"] == 20
+    assert manifest["schema_version"] == 21
     store = EvidenceStore.open(destination)
     assert store.count("precursor_run") == 1
     assert store.count("precursor_pairing") == 1
+    assert store.count("precursor_peptide") == 1
+    family = store.query(
+        "precursor_context_family",
+        select=("availability_state", "n_source_rows", "n_measurements"),
+        where={"family_id": "precursor_quantity_tables"},
+        limit=None,
+    ).table.to_pylist()[0]
+    assert family == {
+        "availability_state": "typed_rows_materialized",
+        "n_source_rows": 1,
+        "n_measurements": 0,
+    }
+    peptide = store.query(
+        "precursor_peptide",
+        select=("raw_row", "values_json", "charge_raw", "intensity_raw"),
+        limit=None,
+    ).table.to_pylist()[0]
+    assert peptide["raw_row"].endswith("PEPTIDE\tOxidation (M)\t2\tNaN")
+    assert json.loads(peptide["values_json"]) == ["PEPTIDE", "Oxidation (M)", "2", "NaN"]
+    assert peptide["charge_raw"] == "2"
+    assert peptide["intensity_raw"] == "NaN"
     assert store._source_registry()[package.SOURCE_ID]["n_acquisitions"] == 1
+    assert store._source_registry()[package.SOURCE_ID]["n_materialized_quantity_rows"] == 1

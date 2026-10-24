@@ -717,26 +717,32 @@ MS detectability, or intracellular peptide concentrations.
 
 # Standalone precursor context
 
-Schema 20/catalog 25 begins the standalone `precursor_context` package for the
-PXD009360 parallel tryptic proteome. The first package generation retains the
+Schema 21/catalog 26 extends the standalone `precursor_context` package for the
+PXD009360 parallel tryptic proteome. The source-contract generation retains the
 hash-pinned project and deposited-file metadata, the recovered MaxQuant search
 archive, parameter and summary files, its 17 archive-member inventory, and nine
 acquisition labels (448–456). The source archive is copied into the immutable
-package; later generations will materialize its evidence, peptide, all-peptide
+package; the v2 generation now materializes its evidence, peptide, all-peptide
 and protein-group rows.
 
 The source contract deliberately exposes condition, specimen, aliquot and MAPP
 pairing as unresolved claims. Run order, label similarity, abundance
 correlation and same-cell-line assertions do not establish a biological link.
 `precursor_context_family` and `precursor_context_availability` therefore show
-zero precursor training examples in this first generation, while
+zero precursor training examples, while
 `precursor_source_asset`, `precursor_acquisition`,
 `precursor_table_inventory`, and `precursor_pairing_assertion` remain queryable
-through `EvidenceStore`. MaxQuant LFQ and future precursor aggregates are not
-absolute copies-per-cell or intracellular concentration labels.
+through `EvidenceStore`. The v2 package additionally exposes lossless typed
+Arrow relations for `precursor_evidence_row`, `precursor_peptide_row`,
+`precursor_all_peptide_row`, and `precursor_protein_group_row`. Each row keeps
+the exact tab-delimited source text, ordered columns and values, source-row
+digest, modifications, charge, identification representations, contributors,
+status flags, match-between-runs fields and LFQ/intensity cells. MaxQuant LFQ
+and any future precursor aggregates are not absolute copies-per-cell or
+intracellular concentration labels.
 
-The quantitative HAP1 and PXD009360 precursor-context families each retain their
-pinned schema-20/catalog-25 source envelopes. A source schema number is interpreted
-with its explicit `package_family` and `revision`; it does not select a reader on
-its own. The combined live catalog is version 26. Existing immutable source
-packages are not relabeled when the consumer catalog gains another family.
+The current consumer retains HAP1 schema20/catalog25 and precursor-context
+schema21/catalog26, selected by their explicit family and revision. The combined
+live catalog is27. Existing source packages are not relabeled. The older
+precursor-context v1 source-contract package uses its historical consumer;
+upstream v2 does not admit that older envelope.
