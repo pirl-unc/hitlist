@@ -8151,3 +8151,33 @@ query exposed the existing all-null optional-join bug now tracked as #805. Three
 regressions fail before the fix; 55 focused tests pass afterward. The original
 package now supports nullable context queries without losing unknown rows.
 No biological model fit yet; full-suite validation and release remain pending.
+
+## HAP1 response recipe and biological baselines
+
+Previous status-only goal turn: no progress. Revalidated shared source CI40088549411 succeeds at2f4bbe0, including integration and Python3.10–3.14 units.
+- [x] Freeze response/precursor/split and local baseline contracts before fitting.
+- [ ] Implement registered Hitlist recipe, source-conserving dispositions and meaningful tests.
+- [ ] Materialize and independently verify real HAP1 response dataset.
+- [ ] Run local complete-precursor controls and sequence baselines, training-only grouped CV.
+- [ ] Independently verify, publish report/artifacts and specify physical follow-up from evidence.
+
+HAP1 response review: registered recipe materialization succeeds against the original
+schema20 source (manifest a1eec392c06485966e131663f85e7599dcd9e5ff621841eb0d44eeaafe779309).
+All 2,391,692 supplement cells retain dispositions; 220,271 canonical positive KO
+responses and 129,728 complete-precursor responses across all partitions. Independent
+consumer verification reproduces every response, precursor group and dependency split.
+Original source bytes/NA values are unchanged. Source replay+recipe424.19s/1.802GiB;
+independent typed-source closure114.83s/1.109GiB. Presto development fit finds10.0%
+inner-CV RMSE improvement from simple sequence features; this is not concentration
+validation or an untouched test. No outer validation/test model score was produced.
+
+Format/lint pass.43 focused tests pass. Full guarded ./test.sh runs with3workers
+and passes3,439 tests/394warnings in642.44s (wrapper658.47s). Initial sandbox memory
+probe failed; the host-probed launch used7.95GiB free and retained the guard. A first
+focused command named a nonexistent singular test file and collected0tests; corrected
+plural filename was verified from rg before the successful43-test run.
+
+[ ] Upstream merge/release remains pending: main concurrently added the distinct
+PXD009360 precursor_context family at schema20/catalog25/version2.0.20 (PR804).
+Publish this recipe as a stacked draft until source PR806's schema/version integration
+is resolved; do not claim this work is released.
