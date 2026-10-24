@@ -494,7 +494,8 @@ so adding context cannot multiply assay or training-example weights.
 
 # Native cellular peptide measurements
 
-Schema 15 adds the standalone `tmab_peptidomics` package family for the
+The schema-15 release introduced the standalone `tmab_peptidomics` package
+family for the
 Dasgupta 2014 and Gelman 2013 TMAB native-peptide supplements. It is not an
 MHC-elution package and does not infer processing, knockout, absolute
 concentration, donor identity, or specimen independence from a drug label.
@@ -519,3 +520,11 @@ Query `tmab_measurement` for native ratios and join `tmab_protocol_context`
 for cell line, treatment, extraction, labeling and instrument details.
 `tmab_measurement_lineage` flags possible cross-paper reuse but leaves
 independence `unknown` until source reconciliation establishes it.
+
+Schema 16/catalog 21 is the provenance-correction successor. Its candidate
+reuse key is source-independent but its measurement and source-row IDs remain
+source-specific. Tentative sequence annotations, unresolved modifications,
+source-specific Synapt instrument claims, exposure/wash intervals, and
+publishing-study versus inherited-acquisition scope are separate fields. The
+Gelman heat-map sequence projection follows its source column F; raw row JSON
+and workbook bytes remain unchanged.

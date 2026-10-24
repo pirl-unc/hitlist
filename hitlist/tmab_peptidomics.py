@@ -24,9 +24,9 @@ import pyarrow.parquet as pq
 from .evidence_snapshot import snapshot_file
 from .provenance import file_digest
 
-PACKAGE_SCHEMA_VERSION = 15
-CATALOG_SCHEMA_VERSION = 20
-REVISION = "tmab_native_peptidomics_v1"
+PACKAGE_SCHEMA_VERSION = 16
+CATALOG_SCHEMA_VERSION = 21
+REVISION = "tmab_native_peptidomics_v2"
 ROOT = Path("tmab")
 SOURCE_ROOT = ROOT / "source_assets"
 SOURCE_TABLE = ROOT / "source_assets.parquet"
@@ -45,6 +45,8 @@ _PRIMARY = {
         "cell": 1,
         "experiment": 2,
         "charge": 3,
+        "observed_mass": 5,
+        "theoretical_mass": 6,
         "protein": 7,
         "gene": 8,
         "location": 9,
@@ -54,6 +56,7 @@ _PRIMARY = {
         "comments": 13,
         "analysis": 14,
         "treatment": 14,
+        "handling": 22,
         "ratio_columns": (
             (15, "treated_vs_control", "Rep1"),
             (16, "treated_vs_control", "Rep2"),
@@ -70,6 +73,8 @@ _PRIMARY = {
         "cell": 1,
         "experiment": 2,
         "charge": 3,
+        "observed_mass": 5,
+        "theoretical_mass": 6,
         "protein": 7,
         "gene": None,
         "location": 8,
@@ -79,6 +84,7 @@ _PRIMARY = {
         "comments": 12,
         "analysis": 13,
         "treatment": 13,
+        "handling": 21,
         "ratio_columns": (
             (14, "treated_vs_control", "Rep1"),
             (15, "treated_vs_control", "Rep2"),
@@ -91,8 +97,8 @@ _PRIMARY = {
 }
 
 _HEATMAP = {
-    "dasgupta_s2.xlsx": {"sheet": "Table S2", "data_row": 18},
-    "gelman_s2.xlsx": {"sheet": "Sheet1", "data_row": 15},
+    "dasgupta_s2.xlsx": {"sheet": "Table S2", "data_row": 18, "sequence": 5},
+    "gelman_s2.xlsx": {"sheet": "Sheet1", "data_row": 15, "sequence": 6},
 }
 
 _STUDIES = {
@@ -142,6 +148,8 @@ ROW_COLUMNS = (
     "source_row_json",
     "source_row_disposition",
     "source_sequence_raw",
+    "source_handling_raw",
+    "source_observed_mass_raw",
     "source_experiment_raw",
     "source_cell_raw",
     "source_comments_raw",
@@ -174,12 +182,18 @@ CONTEXT_COLUMNS = (
     "normalization_policy",
     "context_scope",
     "context_status",
+    "wash_interval_raw",
+    "wash_presence_status",
+    "exposure_interval_status",
+    "acquisition_source_scope",
+    "source_study_inheritance_status",
 )
 MEASUREMENT_COLUMNS = (
     "measurement_id",
     "source_record_id",
     "context_id",
     "lineage_group_id",
+    "candidate_reuse_key",
     "source_asset_id",
     "source_id",
     "source_file",
@@ -190,12 +204,16 @@ MEASUREMENT_COLUMNS = (
     "channel_label_raw",
     "peptide_sequence_raw",
     "peptide_sequence",
+    "sequence_identity_status",
     "peptide_modifications_raw",
+    "modification_status",
     "parent_label_raw",
     "gene_name",
     "cell_line_name",
     "subcellular_location_raw",
     "charge_raw",
+    "observed_mass_raw",
+    "theoretical_mass_raw",
     "measured_pool",
     "quantitative_raw",
     "quantitative_value",
@@ -206,6 +224,7 @@ MEASUREMENT_COLUMNS = (
     "peak_overlap_status",
     "eligibility_status",
     "source_reuse_status",
+    "acquisition_provenance_status",
     "shared_control_group_id",
     "source_comments_raw",
 )
@@ -275,14 +294,36 @@ def _text(value):
 def _parse_sequence(raw):
     text = _text(raw)
     if not text:
-        return None, None
+        return None, None, "unreported", "unreported"
+    tentative = "(" in text or ")" in text
     modifications = []
-    if text.startswith("Ac-"):
+    core = text.split()[0].strip()
+    core = core.replace("(", "").replace(")", "")
+    if core.startswith("Ac-"):
         modifications.append("N_terminal_acetylation")
-        text = text[3:]
-    text = text.replace("(", "").replace(")", "")
-    sequence = "".join(re.findall(r"[A-Z]", text)) or None
-    return sequence, ";".join(modifications) or None
+        core = core[3:]
+    if core.startswith("pyroE-"):
+        modifications.append("N_terminal_pyroglutamate")
+        core = core[6:]
+    if "Mox" in core:
+        modifications.append("oxidized_methionine")
+        core = core.replace("Mox", "M")
+    if "-18" in text or "dehydro" in text.lower():
+        modifications.append("unresolved_mass_or_dehydro_annotation")
+    sequence = "".join(re.findall(r"[A-Z]", core)) or None
+    modification_status = (
+        "unresolved_source_annotation"
+        if "unresolved_mass_or_dehydro_annotation" in modifications
+        else "reported_source_modification"
+        if modifications
+        else "none_reported"
+    )
+    return (
+        sequence,
+        ";".join(modifications) or None,
+        "tentative_source_annotation" if tentative else "reported_sequence",
+        modification_status,
+    )
 
 
 def _parse_ratio(raw):
@@ -328,7 +369,41 @@ def _treatment(raw):
     return text or None, name, dose, unit, duration
 
 
-def _context_for(source_id, source_asset_id, source_file, cell, experiment):
+def _candidate_reuse_key(
+    *,
+    source_id,
+    source_record_id,
+    cell,
+    sequence_raw,
+    charge_raw,
+    observed_mass_raw,
+    experiment,
+    ratio_values,
+):
+    """Build a source-independent key only when source values support matching."""
+    _, treatment_name, treatment_dose, treatment_unit, duration_hours = _treatment(experiment)
+    first_five = tuple(_text(value) for value in ratio_values[:5])
+    numeric_first_five = sum(
+        isinstance(value, (int, float)) and not isinstance(value, bool)
+        for value in ratio_values[:5]
+    )
+    values = (
+        cell,
+        sequence_raw,
+        charge_raw,
+        observed_mass_raw,
+        treatment_name,
+        treatment_dose,
+        (treatment_unit or "").lower(),
+        duration_hours,
+        *first_five,
+    )
+    if numeric_first_five < 2:
+        return f"{source_id}|{source_record_id}"
+    return "|".join(str(value or "") for value in values)
+
+
+def _context_for(source_id, source_asset_id, source_file, cell, experiment, handling):
     label, name, dose, unit, duration = _treatment(experiment)
     study = _STUDIES[source_id]
     key = f"{source_id}|{cell or ''}|{experiment or ''}"
@@ -352,13 +427,22 @@ def _context_for(source_id, source_asset_id, source_file, cell, experiment):
         "exposure_duration_raw": label,
         "duration_hours": duration,
         "labeling_method": "TMAB-NHS isotopic labeling",
-        "instrument": "Waters Synapt G1",
+        "instrument": "Waters Synapt G2" if source_id == "dasgupta_2014" else "Waters Synapt G1",
         "acquisition_mode": "data_dependent_LC_MS/MS",
         "assay_method": "native cellular peptidomics LC-MS/MS",
         "assay_readout": "relative isotope-channel peak-intensity ratio",
         "normalization_policy": "treated_or_control_channel_relative_to_source_control_average",
         "context_scope": "study_and_experiment_context",
         "context_status": "reported_source_scope",
+        "wash_interval_raw": _text(handling),
+        "wash_presence_status": (
+            "method_explicit_inhibitor_present_during_harvest"
+            if source_id == "dasgupta_2014"
+            else "method_reports_inhibitor_present_during_wash_for_some_experiments"
+        ),
+        "exposure_interval_status": "source_experiment_label_plus_methods_scope",
+        "acquisition_source_scope": "publishing_study_protocol",
+        "source_study_inheritance_status": "unresolved_for_reused_rows",
     }
 
 
@@ -399,8 +483,14 @@ def _compile(directory):
             cell = _text(values[config["cell"] - 1])
             experiment = _text(values[config["experiment"] - 1])
             sequence_raw = _text(values[config["sequence"] - 1])
+            handling_raw = _text(values[config["handling"] - 1])
             context = _context_for(
-                asset["source_id"], asset["source_asset_id"], source_file, cell, experiment
+                asset["source_id"],
+                asset["source_asset_id"],
+                source_file,
+                cell,
+                experiment,
+                handling_raw,
             )
             contexts[context["context_id"]] = context
             source_rows.append(
@@ -415,6 +505,8 @@ def _compile(directory):
                     "source_row_json": _row_json(values),
                     "source_row_disposition": "primary_ratio_panel",
                     "source_sequence_raw": sequence_raw,
+                    "source_handling_raw": handling_raw,
+                    "source_observed_mass_raw": _text(values[config["observed_mass"] - 1]),
                     "source_experiment_raw": experiment,
                     "source_cell_raw": cell,
                     "source_comments_raw": _text(values[config["comments"] - 1]),
@@ -424,19 +516,37 @@ def _compile(directory):
                 }
             )
             source_counter[source_file] += 1
-            sequence, modifications = _parse_sequence(sequence_raw)
+            sequence, modifications, sequence_status, modification_status = _parse_sequence(
+                sequence_raw
+            )
+            observed_mass_raw = _text(values[config["observed_mass"] - 1])
+            ratio_values = tuple(
+                values[column - 1] if column <= len(values) else None
+                for column, _, _ in config["ratio_columns"][:5]
+            )
+            reuse_key = _candidate_reuse_key(
+                source_id=asset["source_id"],
+                source_record_id=source_record_id,
+                cell=cell,
+                sequence_raw=sequence_raw,
+                charge_raw=_text(values[config["charge"] - 1]),
+                observed_mass_raw=observed_mass_raw,
+                experiment=experiment,
+                ratio_values=ratio_values,
+            )
+            lineage_group_id = _id("lineage", reuse_key)
             shared_control = _id("control", f"{asset['source_id']}|{cell}|{experiment}")
             for column, role, replicate in config["ratio_columns"]:
                 raw = values[column - 1] if column <= len(values) else None
                 value, inequality, censoring, value_status, overlap = _parse_ratio(raw)
                 source_cell = f"{openpyxl.utils.get_column_letter(column)}{row_index}"
-                measurement_key = f"{asset['source_id']}|{cell}|{experiment}|{sequence or sequence_raw or ''}|{role}|{replicate}|{raw!s}"
                 measurements.append(
                     {
                         "measurement_id": _id("measurement", f"{source_record_id}|{source_cell}"),
                         "source_record_id": source_record_id,
                         "context_id": context["context_id"],
-                        "lineage_group_id": _id("lineage", measurement_key),
+                        "lineage_group_id": lineage_group_id,
+                        "candidate_reuse_key": reuse_key,
                         "source_asset_id": asset["source_asset_id"],
                         "source_id": asset["source_id"],
                         "source_file": source_file,
@@ -447,12 +557,16 @@ def _compile(directory):
                         "channel_label_raw": f"{role}:{replicate}",
                         "peptide_sequence_raw": sequence_raw,
                         "peptide_sequence": sequence,
+                        "sequence_identity_status": sequence_status,
                         "peptide_modifications_raw": modifications,
+                        "modification_status": modification_status,
                         "parent_label_raw": _text(values[config["protein"] - 1]),
                         "gene_name": _text(values[config["gene"] - 1]) if config["gene"] else None,
                         "cell_line_name": cell,
                         "subcellular_location_raw": _text(values[config["location"] - 1]),
                         "charge_raw": _text(values[config["charge"] - 1]),
+                        "observed_mass_raw": observed_mass_raw,
+                        "theoretical_mass_raw": _text(values[config["theoretical_mass"] - 1]),
                         "measured_pool": "native_cellular_peptide_extract",
                         "quantitative_raw": _text(raw),
                         "quantitative_value": value,
@@ -461,10 +575,16 @@ def _compile(directory):
                         "censoring_status": censoring,
                         "value_status": value_status,
                         "peak_overlap_status": overlap,
-                        "eligibility_status": "candidate_exact"
-                        if censoring == "exact"
-                        else "deferred_non_exact_or_missing",
+                        "eligibility_status": (
+                            "deferred_tentative_or_unresolved_identity"
+                            if sequence_status != "reported_sequence"
+                            or modification_status == "unresolved_source_annotation"
+                            else "candidate_exact"
+                            if censoring == "exact"
+                            else "deferred_non_exact_or_missing"
+                        ),
                         "source_reuse_status": "unresolved_cross_paper_reuse",
+                        "acquisition_provenance_status": "publishing_study_protocol",
                         "shared_control_group_id": shared_control,
                         "source_comments_raw": _text(values[config["comments"] - 1]),
                     }
@@ -494,7 +614,13 @@ def _compile(directory):
                     "source_row_locator": f"{source_file}:{config['sheet']}!A{row_index}",
                     "source_row_json": _row_json(values),
                     "source_row_disposition": "deferred_heatmap_republication",
-                    "source_sequence_raw": _text(values[4]) if len(values) > 4 else None,
+                    "source_sequence_raw": (
+                        _text(values[config["sequence"] - 1])
+                        if len(values) >= config["sequence"]
+                        else None
+                    ),
+                    "source_handling_raw": None,
+                    "source_observed_mass_raw": None,
                     "source_experiment_raw": None,
                     "source_cell_raw": None,
                     "source_comments_raw": None,
@@ -511,7 +637,12 @@ def _compile(directory):
         group = row["lineage_group_id"]
         cross_paper = len(by_group_sources[group]) > 1
         row["source_reuse_status"] = (
-            "possible_cross_paper_reuse" if cross_paper else "not_observed_across_papers"
+            "possible_cross_paper_reuse" if cross_paper else "unresolved_independence"
+        )
+        row["acquisition_provenance_status"] = (
+            "publishing_study_protocol_with_possible_inherited_acquisition"
+            if cross_paper
+            else "publishing_study_protocol"
         )
         lineage.append(
             {
@@ -519,15 +650,24 @@ def _compile(directory):
                 "measurement_id": row["measurement_id"],
                 "source_record_id": row["source_record_id"],
                 "source_id": row["source_id"],
-                "cross_paper_match_key": group,
-                "lineage_status": "possible_cross_paper_reuse" if cross_paper else "source_unique",
-                "reuse_status": "unresolved_cross_paper_reuse" if cross_paper else "not_observed",
+                "cross_paper_match_key": row["candidate_reuse_key"],
+                "lineage_status": "possible_cross_paper_reuse"
+                if cross_paper
+                else "source_unique_unresolved",
+                "reuse_status": "candidate_cross_paper_reuse"
+                if cross_paper
+                else "unresolved_not_matched",
                 "relation_basis": "same_normalized_source_labels_and_value"
                 if cross_paper
                 else "source_row_measurement_identity",
                 "independent_specimen_status": "unknown",
             }
         )
+
+    cross_groups = {group for group, sources in by_group_sources.items() if len(sources) > 1}
+    cross_rows = {
+        row["source_record_id"] for row in measurements if row["lineage_group_id"] in cross_groups
+    }
 
     coverage = {
         "n_source_assets": len(assets),
@@ -549,6 +689,7 @@ def _compile(directory):
         "n_possible_cross_paper_reuse_groups": sum(
             len(sources) > 1 for sources in by_group_sources.values()
         ),
+        "n_possible_cross_paper_reuse_rows": len(cross_rows),
         "native_rows_preserved": True,
         "source_assets_snapshotted": True,
         "absolute_quantity_claim": False,
