@@ -7999,12 +7999,28 @@ SHA-256 is `a4b8b7fcdd77de27ebcb4520be9eb562aa1da8d50b6f06d89b70036b00fd8f47`.
 
 Plan: [binding-context-availability-786.md](binding-context-availability-786.md).
 
-- [ ] Add schema-14/catalog-19 audit relation over every retained binding row.
-- [ ] Preserve native values and represent source-scope/unknown status without
+- [x] Add schema-14/catalog-19 audit relation over every retained binding row.
+- [x] Preserve native values and represent source-scope/unknown status without
       broadcasting study claims or converting IC50/KD.
-- [ ] Run required gates, review, merge and publish 2.0.14.
+- [x] Run required gates, review, merge and publish 2.0.14.
 
 Review: the real corrected-cohort replay produces 25,896 unique rows, with
 8,084 literal IC50 and 3,232 KD (~IC50) rows; 910 rows are in the reviewed
 PMID 28481943 study scope and 24,986 remain unreviewed. Focused tests pass
-(42); format and lint pass. Full gates remain pending.
+(47). PR #787 merged as `6245d98`; clean-main release workflow `40062604133`
+passed the complete gate. Hitlist 2.0.14 was published to PyPI with wheel
+SHA-256 `1b6f060e58fff5249d305b56d87ee55118b11c0d1ce6c6b2dd77d17708667124`
+and sdist SHA-256
+`42eb07754831ad4a7fea4da87a92bb95dc1fbc7be6610d9e8a0f9cb0d9aeb74e`.
+
+## Homogeneous native peptide measurements (#789 / #788)
+
+Plan: [tmab-native-measurements-789.md](tmab-native-measurements-789.md).
+
+- [ ] Pin and audit Dasgupta 2014 and Gelman 2013 native-peptide workbooks.
+- [ ] Materialize common measurement, protocol, source-row and lineage
+      relations without dropping unidentified, censored or reused entries.
+- [ ] Register the package in the catalog/query/recipe contract and run the
+      required gates, review, merge and publish 2.0.15.
+
+Review: pending implementation.

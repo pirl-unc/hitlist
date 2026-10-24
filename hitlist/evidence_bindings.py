@@ -318,6 +318,33 @@ CONSTANTS.update(
 
 LINKS = (
     Link(
+        "tmab_measurement_source_row",
+        "tmab_measurement",
+        "tmab_source_row",
+        "source_record_id",
+        "source_record_id",
+        "one",
+        "native_measurement_to_lossless_workbook_row",
+    ),
+    Link(
+        "tmab_measurement_context",
+        "tmab_measurement",
+        "tmab_protocol_context",
+        "context_id",
+        "context_id",
+        "one",
+        "native_measurement_to_source_experiment_context",
+    ),
+    Link(
+        "tmab_lineage_measurement",
+        "tmab_measurement_lineage",
+        "tmab_measurement",
+        "measurement_id",
+        "measurement_id",
+        "one",
+        "lineage_assessment_to_native_measurement",
+    ),
+    Link(
         "binding_context_availability_observation",
         "binding_context_availability",
         "mhc_binding",

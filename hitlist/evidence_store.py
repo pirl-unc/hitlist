@@ -119,11 +119,16 @@ class EvidenceStore:
     def __init__(self, directory: Path, manifest: dict):
         self.directory = directory
         self.manifest = manifest
+        family = package_family(manifest)
         self.bindings = materialized_bindings(
             manifest["schema_version"],
             appended_source_ids=manifest.get("appended_sources", {}),
             include_adjudications=adjudication_manifest_path(manifest) is not None,
         )
+        if family == "tmab_peptidomics":
+            self.bindings = {
+                name: binding for name, binding in self.bindings.items() if name.startswith("tmab_")
+            }
         self.schemas = {}
         for name, (item, selectors, aliases) in self.bindings.items():
             path = directory / item.materialized_artifact
@@ -182,6 +187,10 @@ class EvidenceStore:
             )
 
             manifest = verify_binding_context_availability_package(directory)
+        elif family == "tmab_peptidomics":
+            from .tmab_peptidomics import verify_tmab_peptidomics_package
+
+            manifest = verify_tmab_peptidomics_package(directory)
         elif family == "adjudication":
             manifest = verify_assay_adjudication_package(directory)
         elif family == "reference":
@@ -294,6 +303,9 @@ class EvidenceStore:
 
     def _source_registry(self):
         """Expose verified source revisions and rights evidence at source scope."""
+        family = package_family(self.manifest)
+        if family == "tmab_peptidomics":
+            return self.manifest.get("source_registry", {})
         mhc = json.loads((self.directory / "manifests" / "mhc.json").read_text())
         context = json.loads((self.directory / "manifests" / "context.json").read_text())
         supporting = json.loads((self.directory / "manifests" / "supporting.json").read_text())
@@ -344,7 +356,6 @@ class EvidenceStore:
                 "asset_receipt_sha256": source["asset_receipt_sha256"],
                 "adapter_schema_version": source["adapter_schema_version"],
             }
-        family = package_family(self.manifest)
         if family in {
             "gomez_source",
             "gomez_arm_projection",

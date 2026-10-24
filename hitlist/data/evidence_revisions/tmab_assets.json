@@ -1,0 +1,36 @@
+{
+  "assets": [
+    {
+      "asset_id": "dasgupta_2014_table_s1",
+      "filename": "dasgupta_s1.xlsx",
+      "url": "https://journals.plos.org/plosone/article/file?type=supplementary&id=10.1371/journal.pone.0103604.s001",
+      "sha256": "dbdd837f2f7d40be8aa69c6f3ce845d2a7babc6c38432b539aabcebe3ed9b8a2",
+      "source_id": "dasgupta_2014",
+      "role": "primary_measurement_workbook"
+    },
+    {
+      "asset_id": "dasgupta_2014_table_s2",
+      "filename": "dasgupta_s2.xlsx",
+      "url": "https://journals.plos.org/plosone/article/file?type=supplementary&id=10.1371/journal.pone.0103604.s002",
+      "sha256": "3c722c0e4fdb1e1aeff35648ade3ca3fef18020b111abe0f90a34e6c64ad924b",
+      "source_id": "dasgupta_2014",
+      "role": "heatmap_republication_workbook"
+    },
+    {
+      "asset_id": "gelman_2013_table_s1",
+      "filename": "gelman_s1.xlsx",
+      "url": "https://journals.plos.org/plosone/article/file?type=supplementary&id=10.1371/journal.pone.0053263.s004",
+      "sha256": "5f2a7c922a4fc86cfdc4ca3dff853f895f52ae9fe15a0f1fd9866314d1c7de70",
+      "source_id": "gelman_2013",
+      "role": "primary_measurement_workbook"
+    },
+    {
+      "asset_id": "gelman_2013_table_s2",
+      "filename": "gelman_s2.xlsx",
+      "url": "https://journals.plos.org/plosone/article/file?type=supplementary&id=10.1371/journal.pone.0053263.s005",
+      "sha256": "9ebd25dfeb8d5539adb1f99cc7a29b794d3f84edb71638c27e66c32d7783f081",
+      "source_id": "gelman_2013",
+      "role": "heatmap_republication_workbook"
+    }
+  ]
+}
