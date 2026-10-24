@@ -34,6 +34,12 @@ def package_family(manifest):
         and manifest.get("revision") == "gomez_zepeda_2024_arm_projection_v1"
     ):
         return "gomez_arm_projection"
+    if (
+        schema == 13
+        and manifest.get("parent_kind") == "gomez_arm_projection"
+        and manifest.get("revision") == "gomez_zepeda_2024_prediction_panels_v1"
+    ):
+        return "gomez_prediction_panel"
     raise ValueError(f"Unknown or ambiguous evidence package family: schema {schema}")
 
 
@@ -49,5 +55,7 @@ def adjudication_manifest_path(manifest):
     if family == "gomez_source":
         return manifest.get("adjudication_manifest_path")
     if family == "gomez_arm_projection":
+        return manifest.get("adjudication_manifest_path")
+    if family == "gomez_prediction_panel":
         return manifest.get("adjudication_manifest_path")
     return None

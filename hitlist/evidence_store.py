@@ -172,6 +172,10 @@ class EvidenceStore:
             from .gomez_arm_projection import verify_gomez_arm_projection_package
 
             manifest = verify_gomez_arm_projection_package(directory)
+        elif family == "gomez_prediction_panel":
+            from .gomez_prediction_panel import verify_gomez_prediction_panel_package
+
+            manifest = verify_gomez_prediction_panel_package(directory)
         elif family == "adjudication":
             manifest = verify_assay_adjudication_package(directory)
         elif family == "reference":
@@ -341,6 +345,10 @@ class EvidenceStore:
         if self.manifest["schema_version"] >= 12:
             registry["gomez_zepeda_2024_arm_projection"] = json.loads(
                 (self.directory / "gomez_projection/review.json").read_text()
+            )
+        if self.manifest["schema_version"] >= 13:
+            registry["gomez_zepeda_2024_prediction_panels"] = json.loads(
+                (self.directory / "gomez_prediction/review.json").read_text()
             )
         return registry
 
