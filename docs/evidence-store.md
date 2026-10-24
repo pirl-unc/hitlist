@@ -622,8 +622,8 @@ relative MS response rather than intracellular production or concentration.
 
 # Standalone precursor context
 
-Schema 20/catalog 25 begins the standalone `precursor_context` package for the
-PXD009360 parallel tryptic proteome. The first package generation retains the
+Schema 21/catalog 26 extends the standalone `precursor_context` package for the
+PXD009360 parallel tryptic proteome. The source-contract generation retains the
 hash-pinned project and deposited-file metadata, the recovered MaxQuant search
 archive, parameter and summary files, its 17 archive-member inventory, and nine
 acquisition labels (448–456). The source archive is copied into the immutable
@@ -634,8 +634,14 @@ The source contract deliberately exposes condition, specimen, aliquot and MAPP
 pairing as unresolved claims. Run order, label similarity, abundance
 correlation and same-cell-line assertions do not establish a biological link.
 `precursor_context_family` and `precursor_context_availability` therefore show
-zero precursor training examples in this first generation, while
+zero precursor training examples, while
 `precursor_source_asset`, `precursor_acquisition`,
 `precursor_table_inventory`, and `precursor_pairing_assertion` remain queryable
-through `EvidenceStore`. MaxQuant LFQ and future precursor aggregates are not
-absolute copies-per-cell or intracellular concentration labels.
+through `EvidenceStore`. The v2 package additionally exposes lossless typed
+Arrow relations for `precursor_evidence_row`, `precursor_peptide_row`,
+`precursor_all_peptide_row`, and `precursor_protein_group_row`. Each row keeps
+the exact tab-delimited source text, ordered columns and values, source-row
+digest, modifications, charge, identification representations, contributors,
+status flags, match-between-runs fields and LFQ/intensity cells. MaxQuant LFQ
+and any future precursor aggregates are not absolute copies-per-cell or
+intracellular concentration labels.
