@@ -47,9 +47,9 @@ def package_family(manifest):
     ):
         return "binding_context_availability"
     if (
-        schema == 15
+        schema == 16
         and manifest.get("package_family") == "tmab_peptidomics"
-        and manifest.get("revision") == "tmab_native_peptidomics_v1"
+        and manifest.get("revision") == "tmab_native_peptidomics_v2"
     ):
         return "tmab_peptidomics"
     raise ValueError(f"Unknown or ambiguous evidence package family: schema {schema}")
