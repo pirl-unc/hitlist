@@ -45,8 +45,37 @@ the common typed relation shapes and material graph make all three queryable by
 the same EvidenceStore interface. Every physical column remains available as
 `native.<field>`.
 
-No endpoint-specific recipe is registered for this panel. The deposited 6–40
-residue nonspecific-search scope, MAPP capture recovery, peptide-specific MS
-response, unresolved physical identity, and unresolved cross-modal links rule
-out treating unobserved peptides as negatives or admitting these rows as
-training data by default.
+## Conditional observed-composition recipe
+
+`pxd009438_observed_baseline_composition_v1` is an explicit, narrow consumer
+contract, available through `EvidenceStore.materialize` and the normal recipe CLI.
+It keeps CTRL and LUPUS separately weighted and preserves every peptide/run
+admission decision. Source admission alone still does not authorize training.
+
+Eligibility requires positive finite original intensity, canonical sequence,
+explicitly blank peptide flags, peptide PEP in [0, 0.01), per-run `By MS/MS`, at
+least one positive direct-MS/MS evidence row, all linked intensities reported,
+and one distinct supplied parent accession. Every otherwise eligible occurrence
+of a duplicated sequence within an accession/run is excluded, without summing or
+choosing by intensity. Groups need at least three distinct remaining sequences.
+
+Targets are within-group centered log10 intensity and observed-set intensity
+fraction. Source-wide sequence/accession connected components include excluded
+bridges before eligibility. Each clinical source group gets equal component,
+then accession/run group, then peptide weights. This external-evaluation recipe
+has no new train/validation split. Its support flags require at least 20 components,
+20 groups and 100 observations per cohort; materialization retains the data and
+failed support flags rather than silently relaxing the policy.
+
+The output includes examples, label-free covariates, decisions, groups and all
+component nodes. Its manifest binds all twelve source relations and the source
+generation; verification independently recompiles the derivation from those
+snapshots. Original-source parsing is a separate audit.
+
+On the pinned deposit, CTRL has 6 components / 27 groups / 234 observations and
+LUPUS has 7 / 20 / 161. Both fail the component support requirement. These counts
+do not constitute a model-transfer result. Parent origin/species remains a project
+assertion because the original full search FASTA is unavailable. The deposited
+6–40-residue nonspecific-search scope, capture recovery, peptide-specific MS
+response and unresolved physical/cross-modal identities still rule out interpreting
+these quantities as free-peptide concentrations or unobserved peptides as negatives.

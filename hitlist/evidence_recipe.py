@@ -533,11 +533,15 @@ def materialize_recipe(store, recipe, destination):
         from .mapp_controlled_recipe import RECIPE_ID as CONTROLLED_ID
         from .mapp_controlled_recipe import materialize_controlled
         from .ms_calibration_response import RECIPE_ID, materialize_response
+        from .pbmc_composition import RECIPE_ID as PBMC_COMPOSITION_ID
+        from .pbmc_composition import materialize_composition as materialize_pbmc
         from .proteometools_response import RECIPE_ID as PROTEOMETOOLS_ID
         from .proteometools_response import materialize_response as materialize_proteometools
         from .tmab_response_recipe import RECIPE_ID as NATIVE_RESPONSE_ID
         from .tmab_response_recipe import materialize_responses
 
+        if recipe["registered_recipe"] == PBMC_COMPOSITION_ID:
+            return materialize_pbmc(store, recipe, destination)
         if recipe["registered_recipe"] == GOLDBERG_COMPOSITION_ID:
             return materialize_composition(store, recipe, destination)
         if recipe["registered_recipe"] == GOLDBERG_ID:
@@ -788,6 +792,10 @@ def verify_recipe_package(directory, *, source_package=None):
     ):
         raise RecipeError("Source package manifest changed")
     output_kind = manifest.get("output_kind", "row_decisions")
+    if output_kind == "registered_pbmc_composition":
+        from .pbmc_composition import verify_composition_contents
+
+        return verify_composition_contents(directory, manifest, source_package)
     if output_kind == "registered_goldberg_composition":
         from .goldberg_composition import verify_composition_contents
 
