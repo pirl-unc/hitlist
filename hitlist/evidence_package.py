@@ -6,6 +6,12 @@ from __future__ import annotations
 def package_family(manifest):
     """Classify the envelope; the family's verifier still validates all content."""
     schema = manifest.get("schema_version")
+    if (
+        schema == 20
+        and manifest.get("package_family") == "hap1_quantitative"
+        and manifest.get("revision") == "shapiro2025_hap1_quantitative_v1"
+    ):
+        return "hap1_quantitative"
     if schema in (6, 7):
         return {6: "supporting", 7: "reference"}[schema]
     if schema in (8, 9):

@@ -125,7 +125,11 @@ class EvidenceStore:
             appended_source_ids=manifest.get("appended_sources", {}),
             include_adjudications=adjudication_manifest_path(manifest) is not None,
         )
-        if family == "tmab_peptidomics":
+        if family == "hap1_quantitative":
+            self.bindings = {
+                name: binding for name, binding in self.bindings.items() if name.startswith("hap1_")
+            }
+        elif family == "tmab_peptidomics":
             self.bindings = {
                 name: binding for name, binding in self.bindings.items() if name.startswith("tmab_")
             }
@@ -178,7 +182,11 @@ class EvidenceStore:
             family = package_family(envelope)
         except ValueError as exc:
             raise EvidenceQueryError(str(exc)) from exc
-        if family == "external":
+        if family == "hap1_quantitative":
+            from .hap1_quantitative import verify_hap1_quantitative_package
+
+            manifest = verify_hap1_quantitative_package(directory)
+        elif family == "external":
             from .external_successor import verify_external_successor
 
             manifest = verify_external_successor(directory)
@@ -337,6 +345,8 @@ class EvidenceStore:
     def _source_registry(self):
         """Expose verified source revisions and rights evidence at source scope."""
         family = package_family(self.manifest)
+        if family == "hap1_quantitative":
+            return self.manifest.get("source_registry", {})
         if family == "tmab_peptidomics":
             return self.manifest.get("source_registry", {})
         if family == "tcell_processing":
@@ -539,14 +549,17 @@ class EvidenceStore:
 
     def _joined_values(self, link, field, base):
         kind, source = self._field(link.target, field)
-        keys = tuple(set(base[link.source_key].to_pylist()))
+        source_keys = base[link.source_key].to_pylist()
+        dtype = (
+            self.schemas[link.target].field(source).type
+            if kind == "physical"
+            else pa.scalar(source).type
+        )
+        if link.cardinality == "one" and any(key is None for key in source_keys):
+            raise EvidenceRelationshipError(f"{link.source}.{link.name} has missing source keys")
+        keys = tuple({key for key in source_keys if key is not None})
         if not keys:
-            dtype = (
-                self.schemas[link.target].field(source).type
-                if kind == "physical"
-                else pa.scalar(source).type
-            )
-            return pa.array([], type=dtype)
+            return pa.nulls(len(source_keys), type=dtype)
         physical = [link.target_key] + ([source] if kind == "physical" else [])
         right = self._target_scan(link, physical, keys=keys)
         values = {}
@@ -559,7 +572,7 @@ class EvidenceStore:
             values[key] = row[source] if kind == "physical" else source
         if link.cardinality == "one" and any(key not in values for key in keys):
             raise EvidenceRelationshipError(f"{link.source}.{link.name} has missing target rows")
-        return pa.array([values.get(key) for key in base[link.source_key].to_pylist()])
+        return pa.array([values.get(key) for key in source_keys], type=dtype)
 
     def _prepare_query(self, evidence_type, select, where, joins, limit):
         if evidence_type not in self.bindings:

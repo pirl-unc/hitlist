@@ -1,0 +1,57 @@
+{
+  "source_id": "shapiro2025_hap1",
+  "pmid": "40113210",
+  "pmcid": "PMC12090245",
+  "pride": "PXD056426",
+  "assets": [
+    {
+      "filename": "article.xml",
+      "source_relative_path": "retrieval/europepmc-xml/body",
+      "size_bytes": 144026,
+      "sha256": "cd648ff45478c7f826aa3f52fac7d708b49aef8b4e108e74f80a9c5012ec74c4",
+      "url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC12090245/fullTextXML"
+    },
+    {
+      "filename": "supplements.zip",
+      "source_relative_path": "retrieval/europepmc-supplements/body",
+      "size_bytes": 14889810,
+      "sha256": "8f9327e501cdf4831fa2a9e25a67d986f631457ca331c15966f6180225b98153",
+      "url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC12090245/supplementaryFiles?includeInlineImage=false"
+    },
+    {
+      "filename": "project.json",
+      "source_relative_path": "retrieval/pride-project/body",
+      "size_bytes": 9481,
+      "sha256": "df500d1321185fffa29a1dd3c66556062f4f866eeaa03818d5d94c7b3d91ec66",
+      "url": "https://www.ebi.ac.uk/pride/ws/archive/v2/projects/PXD056426"
+    },
+    {
+      "filename": "files-page0.json",
+      "source_relative_path": "retrieval/pride-files-page0/body",
+      "size_bytes": 117858,
+      "sha256": "c5cf319100948902911e634fb8def64892b71caaadbe65cc17f5e8810674c76e",
+      "url": "https://www.ebi.ac.uk/pride/ws/archive/v2/projects/PXD056426/files?pageSize=100&page=0"
+    },
+    {
+      "filename": "files-page1.json",
+      "source_relative_path": "retrieval/pride-files-page1/body",
+      "size_bytes": 78940,
+      "sha256": "fb24f1a51db85017fe10ac7dabc62237cbf436c8aca4fc243a3a23dca9978e8d",
+      "url": "https://www.ebi.ac.uk/pride/ws/archive/v2/projects/PXD056426/files?pageSize=100&page=1"
+    },
+    {
+      "filename": "Search.zip",
+      "source_relative_path": "deposits/Search.zip",
+      "sha256": "487af2106fa6f73d40c79dfc7d17c3c736a4e8c97a3aa97747bccf98797978b9",
+      "size_bytes": 130237651,
+      "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2025/04/PXD056426/Search.zip"
+    },
+    {
+      "filename": "samples.sdrf.tsv",
+      "source_relative_path": "deposits/PXD056426_community_annotated.sdrf.tsv",
+      "sha256": "fa3f78d329b75638314462366d8bb4a58f5f0784b184ec33a28258865175b970",
+      "size_bytes": 46722,
+      "url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2025/04/PXD056426/PXD056426_community_annotated.sdrf.tsv"
+    }
+  ]
+}

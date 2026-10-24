@@ -77,6 +77,8 @@ _PUBLIC_API: dict[str, str] = {
     "write_supporting_numeric_evidence_package": ".supporting_numeric_evidence",
     "verify_supporting_numeric_evidence_package": ".supporting_numeric_evidence",
     "write_tmab_peptidomics_package": ".tmab_peptidomics",
+    "write_hap1_quantitative_package": ".hap1_quantitative",
+    "verify_hap1_quantitative_package": ".hap1_quantitative",
     "verify_tmab_peptidomics_package": ".tmab_peptidomics",
     "write_tcell_processing_package": ".tcell_processing_package",
     "verify_tcell_processing_package": ".tcell_processing_package",

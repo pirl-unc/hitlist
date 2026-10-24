@@ -8118,3 +8118,36 @@ Review: the real package replay verifies schema 19/catalog 24 and preserves
 280,664 final values and 2,284 conflicts. EvidenceStore exposes 14 bindings;
 aliases return those source counts and five family/five availability rows.
 Hosted review and release evidence are pending.
+# Quantitative HAP1 admission — issue 726
+
+Previous goal turn: progress (source arithmetic verified and issue updated).
+Plan: [hap1-quantitative-726.md](hap1-quantitative-726.md).
+- [x] Revalidate current main and existing issue; pin actual source semantics.
+- [x] Implement immutable typed source/context/quantity/reference package.
+- [x] Connect the package to EvidenceStore and test source-faithful query behavior.
+- [x] Build on original assets and independently verify all admitted quantities.
+- [ ] Run format/lint/tests, bump version, publish and track merge/release.
+- [ ] Register the downstream biological comparison after source admission.
+
+Review in progress: format/lint and 52 focused package/catalog/query tests pass.
+The full test script first could not access its memory probe in the sandbox;
+with access restored, the real probe found 0.22 GiB free against its 2.5 GiB
+minimum and refused to launch. No worker-capacity override was used. Hosted/full
+suite and merge/release remain pending.
+
+Original-source build v1 correctly stopped on repeated SDRF column names before
+quantity projection. Positional metadata preservation and its regression test fix
+that issue. Build v2 completes source replay in 379.92 seconds, peak 1.163 GiB:
+2,391,692 supplement cells, 558,216 deposited protein cells, 607,928 DIA rows,
+40,964 FASTA entries and 60,447 occurrence/unmapped records. There are 83 declared
+sample groups because DDA library generation includes additional WT/TAP1/TAP2
+biological labels beyond the 36 quantitative elution and 36 proteomics groups.
+Independent original-cell verification passes all 2,391,692 supplement cells,
+558,216 protein cells and 607,928 DIA rows, with source/sample/run links and
+59,726 emitted exact occurrences checked (721 source peptide rows have no match).
+The checker took 96.90s and peaked at 0.987 GiB. It checks each emitted match,
+not independently the exhaustiveness of the reference search. The actual package
+query exposed the existing all-null optional-join bug now tracked as #805. Three
+regressions fail before the fix; 55 focused tests pass afterward. The original
+package now supports nullable context queries without losing unknown rows.
+No biological model fit yet; full-suite validation and release remain pending.
