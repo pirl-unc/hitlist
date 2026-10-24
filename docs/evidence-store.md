@@ -1,5 +1,60 @@
 # Hitlist 2.0 evidence store
 
+## Quantitative HAP1 source package
+
+`write_hap1_quantitative_package(source_directory, destination)` builds the
+standalone schema-20/catalog-25 HAP1 generation from the seven hash-pinned assets
+listed in `hitlist/data/evidence_revisions/hap1_assets.json`. Its input directory
+may use the listed filenames or recorded retrieval-relative paths. The output
+contains all original bytes, the frozen context review and ten typed relations.
+`EvidenceStore.open(destination)` verifies hashes and replays those relations.
+
+```python
+from hitlist import EvidenceStore, write_hap1_quantitative_package
+
+write_hap1_quantitative_package("/path/to/original-hap1-assets", "/path/to/hap1-package")
+store = EvidenceStore.open("/path/to/hap1-package")
+observations = store.query(
+    "hap1_quantities",
+    select=[
+        "measurement_id", "peptide_sequence", "quantitative_value",
+        "value_status", "native.quantity_kind", "context.condition_knockout_genes",
+        "context.mhc_genotype", "context.measured_pool",
+    ],
+    joins=["context"],
+    where={"native.quantity_kind": "normalized_peptide_intensity"},
+    limit=100,
+)
+```
+
+`hap1_quantities` preserves every supplemental numeric and missing cell. Its
+canonical peptide quantities reconstruct normalized precursor sums averaged over
+declared technical runs; protein intensities reconstruct MaxLFQ. Protein sampling
+density is an elution-derived quantity and joins to the elution context. The
+noncanonical supplement remains explicitly deferred from semantic replay.
+`hap1_precursors` preserves each canonical DIA row, raw and normalized values,
+peptidoform and confidence fields. `hap1_protein_quantities` preserves raw and
+MaxLFQ report values independently of the supplement, including disagreements.
+
+`hap1_source_records` retains original rows, including positional SDRF headers and
+values so repeated source column names are not collapsed. `hap1_samples`,
+`hap1_runs` and `hap1_contexts` distinguish declared biological replicate groups,
+technical acquisitions, conditions and measurement modalities. Filename aliases
+are candidates; equal replicate numbers do not assert paired specimens. KO labels
+assert interventions, not measured residual machinery activity. The supplied HLA
+allele set does not assign a measured restriction to individual peptides.
+
+`hap1_references` and `hap1_occurrences` retain original search proteins, standards,
+decoys and every exact peptide occurrence, plus unmapped peptide rows. Candidate
+sequence origins are not additional labels. DDA reports and logs remain available
+as original archive members; this package does not claim a quantitative projection
+of those assets. `hap1_assets` lists source files and members.
+
+This generation is source evidence, with endpoint-recipe eligibility still
+deferred. No missing value becomes a measured zero or inferred censoring bound.
+Observed elution/protein intensities do not establish intracellular free-peptide
+concentrations, independent gene effects or an isolated MS-detectability label.
+
 `EvidenceStore` opens a frozen package and verifies its manifest chain, source
 bytes, typed schemas and pinned reconciliation before answering a request.
 The package contains the original source generations as well as typed relations;
@@ -627,7 +682,7 @@ PXD009360 parallel tryptic proteome. The source-contract generation retains the
 hash-pinned project and deposited-file metadata, the recovered MaxQuant search
 archive, parameter and summary files, its 17 archive-member inventory, and nine
 acquisition labels (448–456). The source archive is copied into the immutable
-package; later generations will materialize its evidence, peptide, all-peptide
+package; the v2 generation now materializes its evidence, peptide, all-peptide
 and protein-group rows.
 
 The source contract deliberately exposes condition, specimen, aliquot and MAPP
@@ -645,3 +700,9 @@ digest, modifications, charge, identification representations, contributors,
 status flags, match-between-runs fields and LFQ/intensity cells. MaxQuant LFQ
 and any future precursor aggregates are not absolute copies-per-cell or
 intracellular concentration labels.
+
+The current consumer retains HAP1 schema20/catalog25 and precursor-context
+schema21/catalog26, selected by their explicit family and revision. The combined
+live catalog is27. Existing source packages are not relabeled. The older
+precursor-context v1 source-contract package uses its historical consumer;
+upstream v2 does not admit that older envelope.

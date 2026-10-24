@@ -40,6 +40,46 @@ def test_recipe_yaml_rejects_duplicate_keys(tmp_path):
         _read_recipe(recipe)
 
 
+@pytest.mark.parametrize("keys", [[None], [None, "ctx"]])
+def test_optional_context_join_preserves_null_rows_and_never_matches_null_identity(tmp_path, keys):
+    store = _store(
+        tmp_path / "source",
+        {
+            "hap1_precursors": [
+                {"source_record_id": str(i), "context_id": key} for i, key in enumerate(keys)
+            ],
+            "hap1_contexts": [
+                {"context_id": None, "condition_knockout_genes": "must_not_match"},
+                {"context_id": "ctx", "condition_knockout_genes": "TAP1"},
+            ],
+        },
+    )
+    result = store.query(
+        "hap1_precursors",
+        select=["source_record_id", "context.condition_knockout_genes"],
+        joins=["context"],
+        limit=None,
+    )
+    assert result.table["context.condition_knockout_genes"].to_pylist() == [
+        None if key is None else "TAP1" for key in keys
+    ]
+    assert result.table.schema.field("context.condition_knockout_genes").type == pa.string()
+
+
+def test_required_context_join_rejects_null_source_key(tmp_path):
+    store = _store(
+        tmp_path / "source",
+        {
+            "hap1_quantities": [{"measurement_id": "m", "context_id": None}],
+            "hap1_contexts": [{"context_id": "ctx", "condition_knockout_genes": "TAP1"}],
+        },
+    )
+    with pytest.raises(EvidenceRelationshipError, match="missing"):
+        store.query(
+            "hap1_quantities", select=["context.condition_knockout_genes"], joins=["context"]
+        )
+
+
 def test_mhc_partition_and_measurement_do_not_convert_negative_ms(tmp_path):
     store = _store(
         tmp_path,

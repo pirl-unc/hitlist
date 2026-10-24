@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, replace
 
-SCHEMA_VERSION = 26
+SCHEMA_VERSION = 27
 FIELD_ROLES = frozenset(
     {
         "identity",
@@ -1264,6 +1264,51 @@ FIELDS += (
         "provenance",
         "identifier",
         "Digest of the materialized source-row identities",
+    ),
+)
+
+FIELDS += (
+    _field(
+        "sample_id",
+        "identity",
+        "identifier",
+        "Source-scoped sample group; not proof of a physical specimen",
+    ),
+    _field(
+        "biological_replicate_raw",
+        "lineage",
+        "text",
+        "Literal source biological replicate label; independence not inferred",
+    ),
+    _field(
+        "mhc_class",
+        "biological_context",
+        "category",
+        "Contextual MHC class with evidence scope retained",
+    ),
+    _field(
+        "mhc_genotype",
+        "biological_context",
+        "set",
+        "Supplied contextual allele set; not a peptide-specific restriction",
+    ),
+    _field(
+        "condition_knockout_genes",
+        "biological_context",
+        "set",
+        "Source-asserted knockout genes; not measured residual activity",
+    ),
+    _field(
+        "component_state_status",
+        "provenance",
+        "category",
+        "Evidence basis for machinery component state",
+    ),
+    _field(
+        "control_condition_id",
+        "relation",
+        "identifier",
+        "Comparator condition, without implied specimen pairing",
     ),
 )
 
@@ -4291,6 +4336,151 @@ EVIDENCE += tuple(
         required_appended_source="soh2024_digestion",
     )
     for table, (grain, aliases) in DIGESTION_RELATIONS.items()
+)
+
+HAP1_RELATIONS = {
+    "assets": (
+        "one_original_asset_or_archive_member",
+        ("source_asset_id", "source_file", "asset_sha256", "source_asset_url", "source_asset_role"),
+    ),
+    "source_records": (
+        "one_original_supplement_or_metadata_or_protein_report_row",
+        (
+            "source_record_id",
+            "source_file",
+            "source_locator",
+            "source_row_json",
+            "source_row_index",
+        ),
+    ),
+    "contexts": (
+        "one_source_condition_and_measurement_modality",
+        (
+            "context_id",
+            "condition_id",
+            "control_condition_id",
+            "condition_text",
+            "condition_knockout_genes",
+            "component_state_status",
+            "organism_name",
+            "organism_taxon_id",
+            "cell_line_name",
+            "mhc_class",
+            "mhc_genotype",
+            "measured_pool",
+            "digestion_enzyme",
+            "instrument",
+            "normalization_policy",
+            "context_scope",
+            "source_row_json",
+        ),
+    ),
+    "samples": (
+        "one_modality_condition_biological_replicate_group",
+        (
+            "sample_id",
+            "context_id",
+            "condition_id",
+            "sample_label_raw",
+            "biological_replicate_raw",
+            "specimen_id",
+            "aliquot_id",
+            "material_link_precision",
+        ),
+    ),
+    "runs": (
+        "one_declared_or_unmapped_MS_acquisition",
+        ("acquisition_id", "sample_id", "context_id", "source_record_id", "acquisition_mode"),
+    ),
+    "quantities": (
+        "one_original_supplement_quantity_cell_including_missing",
+        (
+            "measurement_id",
+            "source_record_id",
+            "sample_id",
+            "context_id",
+            "peptide_sequence",
+            "parent_label_raw",
+            "quantitative_raw",
+            "quantitative_value",
+            "value_status",
+            "measurement_unit",
+            "quantity_scale",
+            "eligibility_status",
+        ),
+    ),
+    "precursors": (
+        "one_original_deposited_DIA_precursor_run_row",
+        (
+            "source_record_id",
+            "source_file",
+            "source_locator",
+            "source_row_json",
+            "source_row_index",
+            "sample_id",
+            "context_id",
+            "peptide_sequence",
+            "peptide_modifications_raw",
+            "parent_label_raw",
+        ),
+    ),
+    "protein_quantities": (
+        "one_original_deposited_protein_run_quantity_cell",
+        (
+            "measurement_id",
+            "source_record_id",
+            "sample_id",
+            "context_id",
+            "parent_label_raw",
+            "quantitative_raw",
+            "quantitative_value",
+            "value_status",
+            "measurement_unit",
+            "quantity_scale",
+        ),
+    ),
+    "references": (
+        "one_original_search_FASTA_entry_including_decoys_and_standards",
+        (
+            "reference_record_id",
+            "accession_raw",
+            "reference_sequence",
+            "sequence_sha256",
+            "reference_role",
+            "organism_taxon_id",
+            "source_locator",
+        ),
+    ),
+    "occurrences": (
+        "one_all_candidate_reference_occurrence_or_unmapped_peptide_row",
+        (
+            "occurrence_id",
+            "source_record_id",
+            "peptide_sequence",
+            "parent_label_raw",
+            "reference_record_id",
+            "mapping_position",
+            "mapping_status",
+        ),
+    ),
+}
+
+EVIDENCE += tuple(
+    Evidence(
+        "hap1_" + name,
+        "context" if name in ("contexts", "samples", "runs") else "relation",
+        "mhc_elution_and_proteomics",
+        grain,
+        f"hap1/typed/{name}.parquet",
+        "shapiro2025_hap1",
+        (),
+        fields,
+        (fields[0],),
+        status="v2_materialized",
+        materialized_artifact=f"hap1/typed/{name}.parquet",
+        min_package_schema_version=20,
+    )
+    for name, (grain, fields) in HAP1_RELATIONS.items()
 )
 
 _EVIDENCE_BY_NAME = {item.name: item for item in EVIDENCE}
