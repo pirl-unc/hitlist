@@ -8299,10 +8299,12 @@ Spec: tasks/nanaware-lymph-quantities-spec.md.
 
 - [x] Inspect recovered primary assets and distinguish native human lymph, DC presentation and uncertain mouse digest material.
 - [x] Freeze typed source contract before implementation.
-- [ ] File source owner with measurement/sample gaps.
-- [ ] Implement source snapshots, typed relations, EvidenceStore integration and integrity checks.
-- [ ] Verify fixtures and actual source independently; run required format/lint/tests.
+- [x] File source owner with measurement/sample gaps: Hitlist817.
+- [x] Implement source snapshots, typed relations, EvidenceStore integration and integrity checks.
+- [x] Verify fixtures and actual source independently; format/lint and3466full unit tests pass;43focused source/catalog tests pass.
 - [ ] Publish PR with version bump; merge and deploy after checks.
 - [ ] Register an endpoint-specific recipe and prospective biological comparison before fitting.
 
 Source review: actual materialization and independent121346cell/32995quantity/3430reference/23455identification replay pass. Initial full suite:3459pass/7fail, all failures are expected global catalog-version assertions28versus29; updated only those assertions, preserving historical package versions. Focused source tests pass8cases. Source issue: https://github.com/pirl-unc/hitlist/issues/817. Full required rerun/release remains pending.
+
+Required full rerun passes3466tests in294.19seconds; maximum processRSS870432768bytes. Actual source quantity/reference bytes are unchanged. Structural readiness finds raw accession spelling differences and DC reported-length inconsistencies, retained for recipe review rather than silently corrected by the source importer. This source-only task is not complete until its PR is merged and PyPI release verified; endpoint recipe remains follow-up.
