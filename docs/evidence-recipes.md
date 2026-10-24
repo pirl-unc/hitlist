@@ -83,3 +83,7 @@ This supports run-repeatability diagnostics without logging zeros or adding
 pseudocounts. Complete-case selection changes the population. Acquisition labels
 do not establish specimen pairing or a precise biological noise ceiling; no
 filtered zero is promoted to biological absence.
+
+The [PXD021013 relative MS1 recipe](proteometools-ms1.md) supplies conditional
+within-run signals for intended synthesized products. It preserves synthesis/load
+uncertainty and pool/sequence dependence; it is not a concentration calibration.

@@ -1,0 +1,33 @@
+{
+  "revision": "pxd021013_ms1_core_v1",
+  "assets": [
+    {
+      "filename": "article-2021.xml",
+      "role": "primary_protocol",
+      "source_url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC8184761/fullTextXML",
+      "sha256": "f8850eea101b78586c1d9b5b7eed72a575712ce6eaad228493a05b0e2fd5ed8c",
+      "size_bytes": 154377
+    },
+    {
+      "filename": "article-2021-planned-peptides.xlsx",
+      "role": "intended_products",
+      "source_url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC8184761/supplementaryFiles#41467_2021_23713_MOESM4_ESM.xlsx",
+      "sha256": "14987fc732f84b827120103dda7a9f9fc1f82995b861fea2b8b0f8195ac7ca77",
+      "size_bytes": 63188883
+    },
+    {
+      "filename": "PXD021013-README.txt",
+      "role": "deposited_file_index",
+      "source_url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2021/04/PXD021013/README.txt",
+      "sha256": "05e1ef9569e6d48f3d3024821fb7a4dca44a20233e1a250771865e852a6b33a7",
+      "size_bytes": 628502
+    },
+    {
+      "filename": "PXD021013-sdrf.tsv",
+      "role": "community_metadata",
+      "source_url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2021/04/PXD021013/PXD021013_community_annotated.sdrf.tsv",
+      "sha256": "820934b3c7faaf7010f7b168919dac8953d0b3b77922c24bca6f542808e017d0",
+      "size_bytes": 661043
+    }
+  ]
+}

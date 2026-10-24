@@ -527,9 +527,13 @@ def materialize_recipe(store, recipe, destination):
         from .mapp_controlled_recipe import RECIPE_ID as CONTROLLED_ID
         from .mapp_controlled_recipe import materialize_controlled
         from .ms_calibration_response import RECIPE_ID, materialize_response
+        from .proteometools_response import RECIPE_ID as PROTEOMETOOLS_ID
+        from .proteometools_response import materialize_response as materialize_proteometools
         from .tmab_response_recipe import RECIPE_ID as NATIVE_RESPONSE_ID
         from .tmab_response_recipe import materialize_responses
 
+        if recipe["registered_recipe"] == PROTEOMETOOLS_ID:
+            return materialize_proteometools(store, recipe, destination)
         if recipe["registered_recipe"] == HAP1_RESPONSE_ID:
             return materialize_hap1_responses(store, recipe, destination)
         if recipe["registered_recipe"] == NATIVE_RESPONSE_ID:
@@ -772,6 +776,10 @@ def verify_recipe_package(directory, *, source_package=None):
     ):
         raise RecipeError("Source package manifest changed")
     output_kind = manifest.get("output_kind", "row_decisions")
+    if output_kind == "registered_proteometools_response":
+        from .proteometools_response import verify_response_contents
+
+        return verify_response_contents(directory, manifest, source_package)
     if output_kind == "registered_hap1_response":
         from .hap1_response_recipe import verify_response_contents
 
