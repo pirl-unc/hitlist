@@ -8138,8 +8138,13 @@ Plan: [precursor-source-contract-801.md](precursor-source-contract-801.md).
 - [x] Verify clean-main release run `40094966489`, upload 2.0.21 to PyPI, and
       record wheel `e21b3019c6c9798174ded0f4be36e66eed1c621f3b78ceb14b02f26515a75f58`
       and sdist `a981791ef83ff85c93aaa45a368307f1e8a9784281f32e4411d24d37ec45650a`.
-- [ ] Qualify the precursor recipe and pairing scope in child PR #803 (PR #810
-      open; hosted integration gate pending).
+- [x] Qualify the precursor recipe and pairing scope in child PR #803 (PR #810
+      merged as `ba4774217e76ebbfd3a11e99b7deeb08e03583b1`). The real replay
+      retains 2,423,504 quantity rows, emits four source-relation qualifications
+      and three unresolved pairings, and admits zero training rows.
+- [x] Verify clean-main release run `40103757775`, upload 2.0.24 to PyPI, and
+      record wheel `eaf5f6f9f407dcec32ab8d5c37119d710d4a679950fcc3b74abc55b7123e5110`
+      and sdist `4cff9737acb1e0921867a0dfb95a3488658ef686fee8914ca0657b890e878400`.
 
 # Quantitative HAP1 admission — issue 726
 
