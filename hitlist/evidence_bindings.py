@@ -50,6 +50,9 @@ SELECTORS = {
 # These are exact same-grain aliases. Related values are declared as links below;
 # a raw field with an uncertain role is intentionally left under native.*.
 ALIASES = {
+    "hap1_assets": {"source_asset_role": "source_role"},
+    "hap1_runs": {"acquisition_id": "run_id"},
+    "hap1_occurrences": {"mapping_position": "start_1based"},
     "tmab_source_asset": {"source_asset_role": "source_role"},
     "calibration_protocol_parameter": {
         "source_record_id": "parameter_id",
@@ -1082,6 +1085,61 @@ LINKS += (
         "source_record_id",
         "one",
         "original_vector_slot",
+    ),
+)
+
+
+for _table in ("quantities", "protein_quantities", "occurrences"):
+    LINKS += (
+        Link(
+            "source_row",
+            "hap1_" + _table,
+            "hap1_source_records",
+            "source_record_id",
+            "source_record_id",
+            "one",
+            "exact_original_source_row",
+        ),
+    )
+for _table in ("quantities", "protein_quantities", "precursors", "runs"):
+    LINKS += (
+        Link(
+            "sample",
+            "hap1_" + _table,
+            "hap1_samples",
+            "sample_id",
+            "sample_id",
+            "optional_one" if _table in ("precursors", "runs", "protein_quantities") else "one",
+            "declared_modality_sample_not_cross_modality_specimen_pair",
+        ),
+    )
+for _table in ("quantities", "protein_quantities", "precursors", "runs", "samples"):
+    LINKS += (
+        Link(
+            "context",
+            "hap1_" + _table,
+            "hap1_contexts",
+            "context_id",
+            "context_id",
+            "optional_one" if _table in ("precursors", "runs", "protein_quantities") else "one",
+            "source_condition_and_protocol_scope",
+        ),
+    )
+for _table in ("protein_quantities", "precursors"):
+    LINKS += (
+        Link(
+            "run", "hap1_" + _table, "hap1_runs", "run_id", "run_id", "one", "original_source_run"
+        ),
+    )
+LINKS += (
+    Link(
+        "reference",
+        "hap1_occurrences",
+        "hap1_references",
+        "reference_record_id",
+        "reference_record_id",
+        "optional_one",
+        "exact_sequence_candidate_not_measured_origin",
     ),
 )
 

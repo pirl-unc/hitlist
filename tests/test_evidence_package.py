@@ -57,9 +57,63 @@ def test_store_uses_family_specific_verifier(tmp_path, monkeypatch, envelope, fa
         {"schema_version": 9, "review_revision": "wrong_version"},
         {"schema_version": 9},
         {"schema_version": 100},
+        {
+            "schema_version": 20,
+            "package_family": "precursor_context",
+            "revision": "pxd009360_precursor_context_v1",
+        },
     ],
 )
 def test_ambiguous_or_unknown_envelope_fails_before_reading_tables(tmp_path, envelope):
     (tmp_path / "manifest.json").write_text(json.dumps(envelope))
     with pytest.raises(evidence_store.EvidenceQueryError, match="Unknown or ambiguous"):
         evidence_store.EvidenceStore.open(tmp_path)
+
+
+@pytest.mark.parametrize(
+    "family,revision,schema",
+    [
+        ("hap1_quantitative", "shapiro2025_hap1_quantitative_v1", 20),
+        ("precursor_context", "pxd009360_precursor_context_v2", 21),
+    ],
+)
+def test_current_explicit_source_envelopes_select_their_own_reader(
+    tmp_path, monkeypatch, family, revision, schema
+):
+    from hitlist import hap1_quantitative, precursor_context_package
+
+    envelope = {"schema_version": schema, "package_family": family, "revision": revision}
+    (tmp_path / "manifest.json").write_text(json.dumps(envelope))
+    calls = []
+
+    def verify(expected):
+        def callback(directory):
+            assert directory == tmp_path
+            calls.append(expected)
+            return envelope
+
+        return callback
+
+    monkeypatch.setattr(
+        hap1_quantitative, "verify_hap1_quantitative_package", verify("hap1_quantitative")
+    )
+    monkeypatch.setattr(
+        precursor_context_package, "verify_precursor_context_package", verify("precursor_context")
+    )
+    monkeypatch.setattr(
+        evidence_store.EvidenceStore,
+        "__init__",
+        lambda self, directory, manifest: setattr(self, "manifest", manifest),
+    )
+    assert evidence_store.EvidenceStore.open(tmp_path).manifest == envelope
+    assert calls == [family]
+    assert package_family(envelope) == family
+    assert adjudication_manifest_path(envelope) is None
+    changed = {
+        **envelope,
+        "package_family": "precursor_context"
+        if family == "hap1_quantitative"
+        else "hap1_quantitative",
+    }
+    with pytest.raises(ValueError, match="Unknown or ambiguous"):
+        package_family(changed)

@@ -8140,3 +8140,74 @@ Plan: [precursor-source-contract-801.md](precursor-source-contract-801.md).
       and sdist `a981791ef83ff85c93aaa45a368307f1e8a9784281f32e4411d24d37ec45650a`.
 - [ ] Qualify the precursor recipe and pairing scope in child PR #803 (PR #810
       open; hosted integration gate pending).
+
+# Quantitative HAP1 admission — issue 726
+
+Previous goal turn: progress (source arithmetic verified and issue updated).
+Plan: [hap1-quantitative-726.md](hap1-quantitative-726.md).
+- [x] Revalidate current main and existing issue; pin actual source semantics.
+- [x] Implement immutable typed source/context/quantity/reference package.
+- [x] Connect the package to EvidenceStore and test source-faithful query behavior.
+- [x] Build on original assets and independently verify all admitted quantities.
+- [ ] Run format/lint/tests, bump version, publish and track merge/release.
+- [ ] Register the downstream biological comparison after source admission.
+
+Review in progress: format/lint and 52 focused package/catalog/query tests pass.
+The full test script first could not access its memory probe in the sandbox;
+with access restored, the real probe found 0.22 GiB free against its 2.5 GiB
+minimum and refused to launch. No worker-capacity override was used. Hosted/full
+suite and merge/release remain pending.
+
+Original-source build v1 correctly stopped on repeated SDRF column names before
+quantity projection. Positional metadata preservation and its regression test fix
+that issue. Build v2 completes source replay in 379.92 seconds, peak 1.163 GiB:
+2,391,692 supplement cells, 558,216 deposited protein cells, 607,928 DIA rows,
+40,964 FASTA entries and 60,447 occurrence/unmapped records. There are 83 declared
+sample groups because DDA library generation includes additional WT/TAP1/TAP2
+biological labels beyond the 36 quantitative elution and 36 proteomics groups.
+Independent original-cell verification passes all 2,391,692 supplement cells,
+558,216 protein cells and 607,928 DIA rows, with source/sample/run links and
+59,726 emitted exact occurrences checked (721 source peptide rows have no match).
+The checker took 96.90s and peaked at 0.987 GiB. It checks each emitted match,
+not independently the exhaustiveness of the reference search. The actual package
+query exposed the existing all-null optional-join bug now tracked as #805. Three
+regressions fail before the fix; 55 focused tests pass afterward. The original
+package now supports nullable context queries without losing unknown rows.
+No biological model fit yet; full-suite validation and release remain pending.
+
+## Integrate HAP1 and concurrent precursor context
+
+Spec: tasks/hap1-main-integration-spec.md. Keep both explicit package families;
+their pinned schema20 envelopes remain distinguishable by family and revision.
+- [x] Inspect current main6416616 and source/recipe exact-head CI (all source/recipe checks pass).
+- [ ] Merge main, retain both catalogs/dispatch paths and advance live catalog/version.
+- [ ] Verify namespace regression, old HAP1 package and required test suite.
+- [ ] Integrate the stacked response PR, publish/release through the upstream workflow.
+
+Integration review: both explicit schema20 families coexist without relabeling
+pinned source generations. Live catalog26 and package version2.0.21 retain all
+upstream precursor-context support and HAP1/null-join behavior. Format/lint pass.
+The focused integration suite passes45 tests after updating a stale current-catalog
+version assertion (initial44pass/1fail preserved in /private/tmp/hitlist-hap1-merged-focused.log).
+Required full guarded tests and original-package reopen remain pending until the
+concurrent local biological fits finish; hosted checks will validate this new head.
+
+Full integration validation found five additional stale live-catalog assertions:
+Python3.14 CI40093682648 and local guarded ./test.sh both fail only those assertions
+(local3437pass/5fail,168.19s). Update those to live catalog26; immutable source
+schema/catalog assertions remain unchanged. Preserve both failure logs and rerun
+format/lint/focused/full tests. This corrects the missed integration test scope.
+
+Corrected source integration validation: format/lint and24 targeted tests pass;
+full guarded ./test.sh passes3,442tests/392warnings in303.37s with1worker after
+memory probe3.42GiB. Original pinned HAP1 package reopens under2.0.21/catalog26,
+replaying all typed relations from original assets in51.46s; manifest88cad10d…
+remains unchanged and contextual query succeeds. Source/schema20/catalog25 is
+preserved. New-head hosted CI and upstream merge/release remain pending.
+
+Successor-main897c98c integration: source consumer2.0.22/live catalog27 preserves
+HAP1schema20/catalog25 and upstream precursorv2/schema21/catalog26. Format/lint,
+70focused tests and guarded full ./test.sh pass (3,443tests/393warnings,162.99s,
+2workers after7.15GiB memory probe). Original HAP1 package again replays/query-opens
+with unchanged manifest88cad10d… in53.08s. Upstream's older precursorv1 envelope
+requires its historical consumer; this observed compatibility limit is explicit.
