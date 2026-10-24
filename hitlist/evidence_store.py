@@ -146,6 +146,14 @@ class EvidenceStore:
                 for name, binding in self.bindings.items()
                 if name in MATERIALIZED_EVIDENCE_TYPES
             }
+        elif family == "precursor_context":
+            from .precursor_context_package import MATERIALIZED_EVIDENCE_TYPES
+
+            self.bindings = {
+                name: binding
+                for name, binding in self.bindings.items()
+                if name in MATERIALIZED_EVIDENCE_TYPES
+            }
         self.schemas = {}
         for name, (item, selectors, aliases) in self.bindings.items():
             path = directory / item.materialized_artifact
@@ -216,6 +224,10 @@ class EvidenceStore:
             from .digestion_processing_package import verify_digestion_processing_package
 
             manifest = verify_digestion_processing_package(directory)
+        elif family == "precursor_context":
+            from .precursor_context_package import verify_precursor_context_package
+
+            manifest = verify_precursor_context_package(directory)
         elif family == "adjudication":
             manifest = verify_assay_adjudication_package(directory)
         elif family == "reference":
@@ -342,6 +354,8 @@ class EvidenceStore:
         if family == "tcell_processing":
             return self.manifest.get("source_registry", {})
         if family == "digestion_processing":
+            return self.manifest.get("source_registry", {})
+        if family == "precursor_context":
             return self.manifest.get("source_registry", {})
         mhc = json.loads((self.directory / "manifests" / "mhc.json").read_text())
         context = json.loads((self.directory / "manifests" / "context.json").read_text())

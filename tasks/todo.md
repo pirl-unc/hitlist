@@ -8111,10 +8111,25 @@ Plan: [digestion-processing-package-797.md](digestion-processing-package-797.md)
       relabeling MS response as molar production or APC processing.
 - [x] Copy all source assets and typed relations into a standalone envelope;
       expose aliases and preserve run/construct/context/conflict joins.
-- [ ] Run hosted gates, merge and deploy 2.0.19.
+- [x] Run hosted gates, merge and deploy 2.0.19.
 
 Review: the real package replay verifies schema 19/catalog 24 and preserves
 388 runs, 5,792,969 MS1 rows, 545,664 raw quantities, 53,413 final vectors,
 280,664 final values and 2,284 conflicts. EvidenceStore exposes 14 bindings;
 aliases return those source counts and five family/five availability rows.
-Hosted review and release evidence are pending.
+Hosted build/lint/unit/integration/coverage checks passed. PR #799 merged as
+`e8faa7fd437d9f8b47d67a4c7836ad3df073f948`; clean-main release workflow
+`40084695481` passed and Hitlist 2.0.19 is on PyPI with wheel SHA-256
+`56c5dd7fdcbc474aeac18bdee614b32f4d64fa677add4225bd2d2a29136a787b` and sdist
+SHA-256 `4a7f167b7e10807b51a4184905e916cb790f15030e2df8aa4d9842406b759f3d`.
+
+## PXD009360 precursor source contract (#801 / #800)
+
+Plan: [precursor-source-contract-801.md](precursor-source-contract-801.md).
+
+- [x] Create parent #800 and child PR issues #801, #802 and #803.
+- [x] Freeze hash-pinned PXD009360 source assets, archive members and
+      unresolved run/pairing requirements.
+- [x] Implement schema-20/catalog-25 source-contract package and local replay.
+- [ ] Materialize complete precursor quantities in child PR #802.
+- [ ] Qualify the precursor recipe and pairing scope in child PR #803.
