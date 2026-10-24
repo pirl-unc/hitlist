@@ -168,6 +168,10 @@ class EvidenceStore:
             from .gomez_source_lineage import verify_gomez_source_package
 
             manifest = verify_gomez_source_package(directory)
+        elif family == "gomez_arm_projection":
+            from .gomez_arm_projection import verify_gomez_arm_projection_package
+
+            manifest = verify_gomez_arm_projection_package(directory)
         elif family == "adjudication":
             manifest = verify_assay_adjudication_package(directory)
         elif family == "reference":
@@ -333,6 +337,10 @@ class EvidenceStore:
         if self.manifest["schema_version"] >= 11:
             registry["gomez_zepeda_2024_original"] = json.loads(
                 (self.directory / "gomez_source/registry.json").read_text()
+            )
+        if self.manifest["schema_version"] >= 12:
+            registry["gomez_zepeda_2024_arm_projection"] = json.loads(
+                (self.directory / "gomez_projection/review.json").read_text()
             )
         return registry
 

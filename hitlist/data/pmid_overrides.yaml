@@ -12644,13 +12644,10 @@
     # Arm-resolution verdict (#366).
     arm_resolution: curation_gap
     arm_resolution_note: >
-      24,030 rows remain arm-ambiguous, but a per-row discriminator is present, so this is
-      unfinished curation rather than a limit of the deposit. Measured:
-      attributed_sample_label populated on 68,552 of 68,552 rows; varying per-row fields:
-      cell_name (5 distinct), source_tissue (3 distinct). Whether that field varies WITH THE
-      ARM (rather than being study-level boilerplate that names every arm on every row) still
-      needs per-study checking -- that check is the work this verdict marks, and #366 records
-      narrative fields as a known dead end for exactly this reason.
+      Original S3/S5 memberships establish the material and experimental arm for each
+      source run, but merged peptide rows can be observed in several JY or Raji arms.
+      The source-backed projection retains those memberships and leaves a merged row
+      arm-ambiguous whenever more than one arm supports it.
     study_label: "Gomez-Zepeda 2024 — Thunder-DDA-PASEF deep immunopeptidomics"
     title: "Thunder-DDA-PASEF enables high-coverage immunopeptidomics and is boosted by MS2Rescore with MS2PIP timsTOF fragmentation prediction model"
     override: cell_line
