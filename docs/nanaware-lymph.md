@@ -56,3 +56,26 @@ concentration calibration, detection negatives, measured binding registers, or m
 quality result. Endpoint selection, sequence-reference occurrence resolution,
 confidence/aggregation policy, dependence groups and prospective splits require a
 separate registered recipe before fitting.
+
+## Conditional representative-feature composition
+
+`nanaware2024_observed_composition_v1` is a registered recipe available from
+Hitlist2.0.28. The older source package's source-only registry assertion describes
+its original publication; the query API's registered-recipe inventory describes
+current capabilities without rewriting that historical manifest.
+
+The recipe retains positive original area measurements for chemistry-compatible
+representative features, uniquely supported original parent sequences and groups
+of at least three peptides. It selects source features by confidence before area,
+retains every exclusion, connects all source dependencies before filtering, and
+emits deterministic component splits plus centered log10 signals and fractions.
+Original same-study identification alternatives enter origin ambiguity; original
+reported length/start conflicts do not shorten sequences. Source context and
+sample identifiers remain linked through snapshotted relations.
+
+This conditional endpoint is neither total peptide molarity nor a free APC pool.
+The DC database/library blocks share acquisitions; human lymph is extracellular.
+An experiment must check independent-component support and model the observation
+and selection limitations explicitly. See `tasks/lymph-composition-recipe-spec.md`
+for the prospective experiment and exact contract; the registered verifier
+recomputes all decisions from pinned source relations even after inventory rehash.

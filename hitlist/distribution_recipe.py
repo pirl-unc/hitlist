@@ -35,6 +35,7 @@ TABLE_BINDINGS = {
 def describe_registered_recipes(store):
     from .digestion_recipe import describe as describe_digestion
     from .hap1_response_recipe import describe as describe_hap1_response
+    from .lymph_composition import describe as describe_lymph
     from .mapp_controlled_recipe import describe as describe_controlled
     from .ms_calibration_response import describe
     from .precursor_recipe import describe as describe_precursor
@@ -54,6 +55,7 @@ def describe_registered_recipes(store):
         describe_precursor(store),
         describe_hap1_response(store),
         describe_proteometools(store),
+        describe_lymph(store),
     ]
 
 
