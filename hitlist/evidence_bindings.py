@@ -1207,6 +1207,61 @@ LINKS += (
 )
 
 
+for _table in ("observations", "quantities"):
+    LINKS += (
+        Link(
+            "source_record",
+            "lymph_" + _table,
+            "lymph_source_records",
+            "source_record_id",
+            "source_record_id",
+            "one",
+            "original_independent_source_block_row",
+        ),
+    )
+for _table in ("samples", "quantities"):
+    LINKS += (
+        Link(
+            "context",
+            "lymph_" + _table,
+            "lymph_contexts",
+            "context_id",
+            "context_id",
+            "one",
+            "source_anatomical_and_modality_scope",
+        ),
+    )
+LINKS += (
+    Link(
+        "sample",
+        "lymph_quantities",
+        "lymph_samples",
+        "sample_id",
+        "sample_id",
+        "one",
+        "original_channel_label_not_established_independent_specimen",
+    ),
+    Link(
+        "observation",
+        "lymph_quantities",
+        "lymph_observations",
+        "observation_id",
+        "observation_id",
+        "one",
+        "original_peptidoform_feature_row",
+    ),
+    Link(
+        "reference",
+        "lymph_identifications",
+        "lymph_references",
+        "reference_record_id",
+        "reference_record_id",
+        "one",
+        "deposited_search_reference_alternative",
+    ),
+)
+
+
 def materialized_bindings(
     package_schema_version=None, *, appended_source_ids=(), include_adjudications=False
 ):

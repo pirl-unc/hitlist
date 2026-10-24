@@ -7,6 +7,12 @@ def package_family(manifest):
     """Classify the envelope; the family's verifier still validates all content."""
     schema = manifest.get("schema_version")
     if (
+        schema == 24
+        and manifest.get("package_family") == "nanaware_lymph"
+        and manifest.get("revision") == "nanaware2024_lymph_quantities_v1"
+    ):
+        return "nanaware_lymph"
+    if (
         schema == 23
         and manifest.get("package_family") == "proteometools_ms1"
         and manifest.get("revision") == "pxd021013_ms1_v1"
