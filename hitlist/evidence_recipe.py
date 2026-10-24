@@ -521,6 +521,8 @@ def materialize_recipe(store, recipe, destination):
         from .digestion_recipe import RECIPE_ID as DIGESTION_ID
         from .digestion_recipe import materialize_timecourses
         from .distribution_recipe import materialize_distribution
+        from .hap1_response_recipe import RECIPE_ID as HAP1_RESPONSE_ID
+        from .hap1_response_recipe import materialize_responses as materialize_hap1_responses
         from .mapp_controlled_recipe import CONTRAST_ID as CONTROLLED_CONTRAST_ID
         from .mapp_controlled_recipe import RECIPE_ID as CONTROLLED_ID
         from .mapp_controlled_recipe import materialize_controlled
@@ -528,6 +530,8 @@ def materialize_recipe(store, recipe, destination):
         from .tmab_response_recipe import RECIPE_ID as NATIVE_RESPONSE_ID
         from .tmab_response_recipe import materialize_responses
 
+        if recipe["registered_recipe"] == HAP1_RESPONSE_ID:
+            return materialize_hap1_responses(store, recipe, destination)
         if recipe["registered_recipe"] == NATIVE_RESPONSE_ID:
             return materialize_responses(store, recipe, destination)
         if recipe["registered_recipe"] == DIGESTION_ID:
@@ -768,6 +772,10 @@ def verify_recipe_package(directory, *, source_package=None):
     ):
         raise RecipeError("Source package manifest changed")
     output_kind = manifest.get("output_kind", "row_decisions")
+    if output_kind == "registered_hap1_response":
+        from .hap1_response_recipe import verify_response_contents
+
+        return verify_response_contents(directory, manifest, source_package)
     if output_kind == "registered_native_response":
         from .tmab_response_recipe import verify_response_contents
 
