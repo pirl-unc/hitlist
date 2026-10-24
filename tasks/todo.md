@@ -8460,3 +8460,20 @@ occupied space; its log is retained and the guard was not relaxed. Presto2244
 independently verifies targets,529,113predictions,allmetricsandbootstrap. Exact/RL
 beatuniform; primarysequence-versus-length5%gatefails ontest(4.334%). No APC
 concentration claim. PR/rebased checks/release still pending.
+
+## PBMC observed composition and frozen transfer
+
+- [x] Freeze source, confidence, duplication, component, endpoint and transfer policy.
+- [x] Register canonical PBMC observed-composition recipe and meaningful tests.
+- [x] Verify source and cohort independently with original quantities/metadata.
+- [x] Enforce support before prediction: both cohorts fail; no models scored.
+- [ ] Complete shared-code checks/publication and experiment closure.
+
+Review: twenty-eight focused source/composition tests, format and lint pass. Independent
+Presto2315 replay checks692,452original cells, all13,790decisions and395admitted
+quantities/weights; max arithmetic error1.78e-15. CTRL6components/27groups/234cells;
+LUPUS7/20/161; both fail the frozen20component gate. No threshold relaxation,
+prediction/fit or biological transfer claim. Initial fixture reciprocal-group
+omission was fixed before admission; source validation was not weakened. Full
+local suite remains gated by2GiBdisk headroom; latest observed~1.42GiB. Hosted
+full tests and publication/release remain required before this change is done.
