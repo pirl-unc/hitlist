@@ -374,10 +374,15 @@ def _compile(directory, *, verify=False):
             archive.close()
 
 
-def verify_gomez_source_package(directory):
+def verify_gomez_source_package(
+    directory, *, manifest_path="manifest.json", allow_additional_files=False
+):
     """Check every inherited byte and replay the original publisher source rows."""
     directory = Path(directory)
-    manifest = json.loads((directory / "manifest.json").read_text())
+    manifest_path = Path(manifest_path)
+    if manifest_path.is_absolute() or ".." in manifest_path.parts:
+        raise ValueError("Invalid Gomez-Zepeda source package manifest path")
+    manifest = json.loads((directory / manifest_path).read_text())
     if (
         manifest.get("schema_version") != PACKAGE_SCHEMA_VERSION
         or manifest.get("catalog_schema_version") != CATALOG_SCHEMA_VERSION
@@ -390,9 +395,11 @@ def verify_gomez_source_package(directory):
     actual = {
         str(path.relative_to(directory))
         for path in directory.rglob("*")
-        if path.is_file() and path != directory / "manifest.json"
+        if path.is_file() and path != directory / manifest_path
     }
-    if set(files) != actual:
+    if not allow_additional_files and set(files) != actual:
+        raise ValueError("Gomez-Zepeda source package inventory mismatch")
+    if allow_additional_files and not set(files).issubset(actual):
         raise ValueError("Gomez-Zepeda source package inventory mismatch")
     for name, digest in files.items():
         if file_digest(directory / _safe_relative(name)) != digest:
@@ -405,7 +412,10 @@ def verify_gomez_source_package(directory):
     additions = {str(PARENT_MANIFEST), str(RESULTS), str(MEMBERSHIPS), str(REGISTRY)} | {
         str(ROOT / source["archive"]) for source in SOURCES
     }
-    if set(files) != set(parent["files"]) | additions:
+    expected_files = set(parent["files"]) | additions
+    if not allow_additional_files and set(files) != expected_files:
+        raise ValueError("Gomez-Zepeda package has unowned files")
+    if allow_additional_files and not expected_files.issubset(set(files)):
         raise ValueError("Gomez-Zepeda package has unowned files")
     if any(files[name] != digest for name, digest in parent["files"].items()):
         raise ValueError("Gomez-Zepeda package changed predecessor artifacts")

@@ -7930,7 +7930,7 @@ Plan: [gomez-source-lineage-211.md](gomez-source-lineage-211.md).
 - [x] Register typed evidence and query bindings, with source-specific fields.
 - [x] Independently replay source rows, membership and links against the real
       source archives and verify predecessor conservation.
-- [ ] Run format/lint/test and hosted gates; review, merge and deploy 2.0.11.
+- [x] Run format/lint/test and hosted gates; review, merge and deploy 2.0.11.
 
 Review: the independent replay checks all 594,916 original CSV rows, 590,615
 source-run peptide memberships, 68,552 exact derived links and all 256
@@ -7941,3 +7941,33 @@ JY and Raji each contain large WT/S overlap, so #780 will repair arm labels
 after #779 preserves source rows. The first full local test pass found one
 catalog-version assertion still pinned to 15; it is updated to 16 and the
 full required gate is rerunning.
+
+Release update: PR #781 merged as `41efb7d`; clean-main run `40004210180`
+passed. PyPI Hitlist 2.0.11 exactly matches the tested wheel SHA-256
+`e817336cc14ed82081b6f8c9c8a75f3aa6cf8b93a05b9814b23b5c12d1fcec23`
+and sdist SHA-256
+`316eae7adc504ef98bcd131df37042268c84e77372b067f85bebd85f7eaa9498`.
+
+## Gomez-Zepeda source-backed arm projection (#780)
+
+Plan: [gomez-arm-projection-212.md](gomez-arm-projection-212.md).
+
+- [x] Audit original conditions, source-arm cardinality and current wrong labels.
+- [x] Implement the schema-12 source membership, arm-support and unique
+      projection relations without changing predecessor files.
+- [x] Publish the nine-arm source vocabulary and Gomez-only authoritative
+      assay-context projection; predecessor context and all assay/training
+      counts remain unchanged.
+- [x] Independently replay all source-to-arm decisions and before/after labels
+      on the pinned schema-11 candidate (the full copied successor is deferred
+      locally because the 5.7GB predecessor plus copy exceeds available disk).
+- [ ] Run required local/hosted gates, review, merge and publish 2.0.12.
+
+Review: implementation is complete locally. Frozen anchors: 33,156 one-arm,
+10,840 two-arm and 24,556 three-arm derived peptides; 723 cross-material
+plasma errors; 355 current JY-WT assignments with no WT source membership.
+The source replay produces 590,615 membership-arm rows and nine explicit arms;
+the source-specific context projection has 68,552 rows (33,156 unique and
+35,396 multi-arm). Local format/lint pass; the repository test runner refused
+to start at 0.57GB free versus its 2.5GB preflight requirement, so hosted
+checks are required before merge.

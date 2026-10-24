@@ -435,3 +435,27 @@ modified; otherwise the writer makes a full copy. Editing an ingestion file or
 an earlier package after publication cannot change a later package's bytes.
 Each generation still records file hashes in its manifest, and verification
 checks those hashes before the data is used.
+
+# Gomez-Zepeda source-backed arm projection
+
+Schema 12 adds `gomez_source_arm`, `gomez_source_membership_arm`,
+`gomez_derived_arm_support`, `gomez_derived_arm_projection` and
+`gomez_assay_context_projection`. These are additive relations over the
+verified schema-11 source rows: the original S3/S5 result and membership
+tables remain unchanged, and the predecessor context remains available at
+`typed/assay_context.parquet`.
+
+The arm table has nine biological arms: JY wild type, JY S1 and S2
+transfectants, Raji wild type, Raji S1 and S2 transfectants, HeLa, SK-MEL-37,
+and commercial human plasma. S5 mappings are derived from the native
+`ConditionGenotype`, `Condition`, `Genotype`, and `BioReplicate` fields; S3 JY
+rows are retained as wild-type method-comparison memberships. A derived peptide
+is `unique_source_arm` only when all linked memberships support one arm. When
+memberships support several arms, the projection keeps the complete arm set,
+sets `arm_id` to null, and records `multi_source_arm`; this is evidence of
+shared support, not a guessed donor or negative label.
+
+The context projection contains exactly the Gomez-derived observations and is
+therefore safe to join by `observation_id` without implying that unrelated
+assays were rewritten. Every source row, source asset, membership, acquisition,
+and historical context remains queryable through the predecessor bindings.
