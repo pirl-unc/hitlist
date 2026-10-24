@@ -1,0 +1,38 @@
+# Standalone T-cell and processing evidence package (#795)
+
+## Specification
+
+The existing schema-5 T-cell evidence generation and the controlled MAPP
+processing relations are source-faithful but are exposed through different
+appendage/registry paths. This successor introduces one package envelope and
+query contract without merging scientific target families. Functional T-cell
+responses, pMHC multimer binding, receptor evidence, direct processing
+measurements and controlled MAPP products remain distinct; missing source
+families remain explicit availability results rather than synthetic negatives.
+
+## Plan
+
+- [x] Audit the current T-cell v2 and controlled-processing manifests, source
+      assets, relation schemas and registry paths; freeze row/count/hash anchors.
+- [x] Define schema-17/catalog-22 package-family metadata and the common source,
+      assay-context, reported-measurement, molecular-input, lineage and
+      eligibility contract.
+- [x] Add typed family projections for functional response, multimer binding,
+      receptor/repertoire evidence, processing measurements and MAPP products;
+      preserve source values, units, qualifiers, context, contributor rows and
+      unknown/not-applicable/absent states.
+- [x] Register one standalone EvidenceStore/query package while retaining
+      predecessor manifests and preventing family-specific joins from
+      multiplying observations.
+- [x] Add availability and no-direct-processing audit relations, source-linked
+      examples, replay/count/hash tests, and explicit donor/restriction policy.
+- [ ] Run format/lint/full/hosted gates, merge, and deploy 2.0.17.
+
+## Review
+
+The package replay built from the pinned T-cell v2 and PXD009092 generations
+is 208 MB and preserves 55,844 T-cell examples, 578,529 assay rows, 192,114
+MAPP quantity results and 362,882 MAPP quantity measurements. The family
+ledger records receptor and direct-processing availability as explicit
+unmaterialized/unobserved states. Local focused tests and standalone
+EvidenceStore alias queries pass; full and hosted release evidence remain.

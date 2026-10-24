@@ -266,7 +266,7 @@ def test_catalog_import_does_not_build_or_download(tmp_path):
         text=True,
         cwd=Path(__file__).parents[1],
     )
-    assert probe.stdout.strip() == "21"
+    assert probe.stdout.strip() == "22"
     assert not data_root.exists()
 
 

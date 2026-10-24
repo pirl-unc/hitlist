@@ -129,6 +129,15 @@ class EvidenceStore:
             self.bindings = {
                 name: binding for name, binding in self.bindings.items() if name.startswith("tmab_")
             }
+        elif family == "tcell_processing":
+            from .tcell_processing_package import MATERIALIZED_EVIDENCE_TYPES
+
+            self.bindings = {
+                name: binding
+                for name, binding in self.bindings.items()
+                if name in MATERIALIZED_EVIDENCE_TYPES
+                or name in {"tcell_processing_family", "tcell_processing_availability"}
+            }
         self.schemas = {}
         for name, (item, selectors, aliases) in self.bindings.items():
             path = directory / item.materialized_artifact
@@ -191,6 +200,10 @@ class EvidenceStore:
             from .tmab_peptidomics import verify_tmab_peptidomics_package
 
             manifest = verify_tmab_peptidomics_package(directory)
+        elif family == "tcell_processing":
+            from .tcell_processing_package import verify_tcell_processing_package
+
+            manifest = verify_tcell_processing_package(directory)
         elif family == "adjudication":
             manifest = verify_assay_adjudication_package(directory)
         elif family == "reference":
@@ -217,6 +230,13 @@ class EvidenceStore:
                 f"{evidence_type}.{field} is declared but unavailable at {item.grain} grain"
             )
         raise EvidenceFieldError(f"Unknown field: {evidence_type}.{field}")
+
+    def _canonical_evidence_type(self, evidence_type):
+        aliases = self.manifest.get("query_aliases", {})
+        canonical = aliases.get(evidence_type, evidence_type)
+        if not isinstance(canonical, str):
+            raise EvidenceQueryError(f"Invalid query alias: {evidence_type}")
+        return canonical
 
     def _description(self, item):
         if item.name not in self.bindings:
@@ -299,12 +319,15 @@ class EvidenceStore:
             "fields": [vars(field) for field in FIELDS],
             "source_registry": self._source_registry(),
             "registered_recipes": describe_registered_recipes(self),
+            "query_aliases": dict(self.manifest.get("query_aliases", {})),
         }
 
     def _source_registry(self):
         """Expose verified source revisions and rights evidence at source scope."""
         family = package_family(self.manifest)
         if family == "tmab_peptidomics":
+            return self.manifest.get("source_registry", {})
+        if family == "tcell_processing":
             return self.manifest.get("source_registry", {})
         mhc = json.loads((self.directory / "manifests" / "mhc.json").read_text())
         context = json.loads((self.directory / "manifests" / "context.json").read_text())
@@ -432,6 +455,7 @@ class EvidenceStore:
 
     def count(self, evidence_type, *, where=None, joins=()):
         """Count source rows after selectors and predicates, before any limit."""
+        evidence_type = self._canonical_evidence_type(evidence_type)
         if where is None:
             where = {}
         schema = self.schemas.get(evidence_type)
@@ -634,6 +658,7 @@ class EvidenceStore:
         limit: int | None = 1000,
     ) -> QueryResult:
         """Select direct fields and explicitly named one-to-one relationships."""
+        evidence_type = self._canonical_evidence_type(evidence_type)
         plan = self._prepare_query(evidence_type, select, where, joins, limit)
         table = self._scan(
             plan.evidence_type, plan.physical, plan.where, plan.limit, plan.related_keys
@@ -650,6 +675,7 @@ class EvidenceStore:
         limit: int | None = None,
     ):
         """Stream bounded Arrow batches without materializing the source relation."""
+        evidence_type = self._canonical_evidence_type(evidence_type)
         plan = self._prepare_query(evidence_type, select, where, joins, limit)
         for batch in self._scan_batches(
             plan.evidence_type, plan.physical, plan.where, plan.limit, plan.related_keys

@@ -94,7 +94,7 @@ def test_tmab_package_is_standalone_and_queryable():
         "revision": "tmab_native_peptidomics_v2",
     }
     assert package_family(envelope) == "tmab_peptidomics"
-    assert SCHEMA_VERSION == 21
+    assert SCHEMA_VERSION == 22
     fields = {field["name"] for field in describe_evidence("tmab_measurement")["fields"]}
     assert {
         "peptide_sequence_raw",

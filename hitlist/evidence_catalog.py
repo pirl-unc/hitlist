@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, replace
 
-SCHEMA_VERSION = 21
+SCHEMA_VERSION = 22
 FIELD_ROLES = frozenset(
     {
         "identity",
@@ -582,6 +582,34 @@ FIELDS = (
     _field("curation_source_field", "provenance", "identifier", "Original curated field"),
     _field("citation", "provenance", "text", "Source locator for one claim"),
     _field("source_scope", "provenance", "category", "Study default or arm override"),
+    _field("family_id", "relation", "identifier", "Stable identifier for one evidence family"),
+    _field(
+        "evidence_family",
+        "relation",
+        "category",
+        "Explicit family represented by an availability row",
+    ),
+    _field(
+        "availability_state",
+        "provenance",
+        "category",
+        "Whether a family is materialized, unobserved or unavailable in the pinned source",
+    ),
+    _field("n_source_rows", "relation", "number", "Number of preserved source rows"),
+    _field("n_measurements", "relation", "number", "Number of typed measurement rows"),
+    _field("n_training_examples", "relation", "number", "Number of bounded training examples"),
+    _field("count_unit", "relation", "category", "Units for declared family counts"),
+    _field(
+        "evidence_types_json", "relation", "text", "JSON list of materialized evidence relations"
+    ),
+    _field("notes", "annotation", "text", "Human-readable source or family qualification note"),
+    _field(
+        "source_locator_status",
+        "provenance",
+        "category",
+        "Whether source assets and locators are pinned",
+    ),
+    _field("training_status", "provenance", "category", "Training admission status for a family"),
     _field("protocol_field", "protocol", "category", "Named protocol variable"),
     _field("protocol_value", "protocol", "text", "Reported protocol value"),
     _field("lineage_axis", "lineage", "category", "Origin, donor, specimen or acquisition"),
@@ -1532,6 +1560,55 @@ EVIDENCE = (
         ("source_assay_id",),
         status="v2_materialized",
         materialized_artifact="tcell/typed/eligibility.parquet",
+    ),
+    Evidence(
+        "tcell_processing_family",
+        "relation",
+        "evidence_registry",
+        "one_declared_tcell_or_processing_family",
+        "tcell_processing/families.parquet",
+        "tcell_processing_v1",
+        (),
+        (
+            "family_id",
+            "evidence_family",
+            "availability_state",
+            "source_scope",
+            "n_source_rows",
+            "n_measurements",
+            "n_training_examples",
+            "training_status",
+            "evidence_types_json",
+        ),
+        ("family_id",),
+        status="v2_materialized",
+        materialized_artifact="tcell_processing/families.parquet",
+        min_package_schema_version=17,
+    ),
+    Evidence(
+        "tcell_processing_availability",
+        "relation",
+        "evidence_registry",
+        "one_family_source_availability_summary",
+        "tcell_processing/availability.parquet",
+        "tcell_processing_v1",
+        (),
+        (
+            "family_id",
+            "source_id",
+            "availability_state",
+            "n_source_rows",
+            "n_measurements",
+            "n_training_examples",
+            "count_unit",
+            "evidence_basis",
+            "source_locator_status",
+            "training_status",
+        ),
+        ("family_id", "source_id"),
+        status="v2_materialized",
+        materialized_artifact="tcell_processing/availability.parquet",
+        min_package_schema_version=17,
     ),
     Evidence(
         "assay_adjudication",

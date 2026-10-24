@@ -8039,7 +8039,7 @@ Plan: [tmab-provenance-corrections-792.md](tmab-provenance-corrections-792.md).
       correct acquisition and exposure/wash provenance.
 - [x] Correct Gelman heatmap sequence projection and run the local required
       gates.
-- [ ] Open the PR, pass hosted gates, merge and publish 2.0.16.
+- [x] Open the PR, pass hosted gates, merge and publish 2.0.16.
 
 Review: implementation is complete locally. The rebuilt package preserves
 10,564 source rows, 61,908 measurements, 33 protocol contexts and all prior
@@ -8047,3 +8047,28 @@ censoring/value-status counts. It records 971 conservative possible
 cross-paper candidate groups (1,942 source rows) without asserting specimen
 independence; tentative/unresolved identities are deferred. Local format,
 lint and full tests pass (3,389 tests).
+
+Release update: PR #794 merged as `7649ffe`; clean-main release workflow
+`40071541566` passed the complete release gate. Hitlist 2.0.16 was published
+to PyPI with wheel SHA-256
+`f6f6dd68e0aa462418b6f9b08d358ea837f8e9adbc9304c81ea5c920d37e3a46` and sdist
+SHA-256
+`c6a968c987c13b4fb7a2b0a1d69d4f2120ad2cd5fd3e2ac4680df73c87e16450`.
+
+## Standalone T-cell and processing evidence package (#795 / #723)
+
+Plan: [tcell-processing-package-795.md](tcell-processing-package-795.md).
+
+- [x] Audit current T-cell and controlled-processing package/registry paths
+      and freeze source/count/hash anchors.
+- [x] Define the schema-17/catalog-22 common package contract while keeping
+      functional, multimer, receptor, processing and MAPP families separate.
+- [x] Register typed family projections, availability/no-direct-processing
+      results and replay tests.
+- [ ] Run hosted gates, merge and deploy 2.0.17.
+
+Review: the standalone replay preserves 55,844 T-cell examples, 578,529
+assay rows, 192,114 MAPP quantity results and 362,882 MAPP measurements.
+Aliases query functional response, pMHC multimer binding, processing
+measurement and MAPP products without merging their scientific families.
+Hosted review and release evidence are pending.
