@@ -176,6 +176,12 @@ class EvidenceStore:
             from .gomez_prediction_panel import verify_gomez_prediction_panel_package
 
             manifest = verify_gomez_prediction_panel_package(directory)
+        elif family == "binding_context_availability":
+            from .binding_context_availability import (
+                verify_binding_context_availability_package,
+            )
+
+            manifest = verify_binding_context_availability_package(directory)
         elif family == "adjudication":
             manifest = verify_assay_adjudication_package(directory)
         elif family == "reference":
@@ -338,17 +344,26 @@ class EvidenceStore:
                 "asset_receipt_sha256": source["asset_receipt_sha256"],
                 "adapter_schema_version": source["adapter_schema_version"],
             }
-        if self.manifest["schema_version"] >= 11:
+        family = package_family(self.manifest)
+        if family in {
+            "gomez_source",
+            "gomez_arm_projection",
+            "gomez_prediction_panel",
+        }:
             registry["gomez_zepeda_2024_original"] = json.loads(
                 (self.directory / "gomez_source/registry.json").read_text()
             )
-        if self.manifest["schema_version"] >= 12:
+        if family in {"gomez_arm_projection", "gomez_prediction_panel"}:
             registry["gomez_zepeda_2024_arm_projection"] = json.loads(
                 (self.directory / "gomez_projection/review.json").read_text()
             )
-        if self.manifest["schema_version"] >= 13:
+        if family == "gomez_prediction_panel":
             registry["gomez_zepeda_2024_prediction_panels"] = json.loads(
                 (self.directory / "gomez_prediction/review.json").read_text()
+            )
+        if family == "binding_context_availability":
+            registry["binding_assay_context_availability"] = json.loads(
+                (self.directory / "binding_context/coverage.json").read_text()
             )
         return registry
 

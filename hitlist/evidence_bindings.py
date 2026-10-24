@@ -318,6 +318,15 @@ CONSTANTS.update(
 
 LINKS = (
     Link(
+        "binding_context_availability_observation",
+        "binding_context_availability",
+        "mhc_binding",
+        "observation_id",
+        "observation_id",
+        "one",
+        "one_row_preserving_binding_context_audit",
+    ),
+    Link(
         "prediction_derived_observation",
         "gomez_prediction_row",
         "mhc_positive_ms",

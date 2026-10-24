@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, replace
 
-SCHEMA_VERSION = 18
+SCHEMA_VERSION = 19
 FIELD_ROLES = frozenset(
     {
         "identity",
@@ -930,6 +930,40 @@ FIELDS += (
     ),
 )
 
+# Binding context availability is a row-preserving audit.  Study-level source
+# claims are represented as scoped availability, never as per-assay values.
+FIELDS += (
+    _field("endpoint_family", "target", "category", "Literal endpoint family used by the audit"),
+    _field("assay_comments_raw", "provenance", "text", "Unchanged native assay-comments text"),
+    _field(
+        "row_comment_status", "provenance", "category", "Whether native row comments are populated"
+    ),
+    _field("source_review_status", "provenance", "category", "Source-review scope for the study"),
+    _field("context_scope", "provenance", "category", "Row-native or study-protocol claim scope"),
+    _field("assay_format_status", "provenance", "category", "Availability of assay-format context"),
+    _field(
+        "temperature_status",
+        "provenance",
+        "category",
+        "Availability of incubation-temperature context",
+    ),
+    _field("ph_status", "provenance", "category", "Availability of assay-pH context"),
+    _field("tracer_status", "provenance", "category", "Availability of tracer identity context"),
+    _field("competitor_status", "provenance", "category", "Availability of competitor context"),
+    _field(
+        "incubation_status", "provenance", "category", "Availability of incubation-duration context"
+    ),
+    _field("range_status", "provenance", "category", "Availability of concentration-range context"),
+    _field(
+        "replicate_status", "provenance", "category", "Availability of replicate identity context"
+    ),
+    _field("uncertainty_status", "provenance", "category", "Availability of uncertainty context"),
+    _field(
+        "kd_conversion_status", "annotation", "category", "Explicit KD conversion policy status"
+    ),
+    _field("audit_reason", "annotation", "category", "Reason code for endpoint/audit treatment"),
+)
+
 _FIELD_BY_NAME = {field.name: field for field in FIELDS}
 
 _SOURCE = ("observation_id", "source_record_id", "source_dataset", "source_reference_id")
@@ -1469,6 +1503,47 @@ EVIDENCE = (
         status="v2_materialized",
         materialized_artifact="binding_review/binding_protocol_claims.parquet",
         min_package_schema_version=10,
+    ),
+    Evidence(
+        "binding_context_availability",
+        "relation",
+        "mhc_binding",
+        "one_availability_audit_row_per_binding_observation",
+        "binding_context/availability.parquet",
+        "mhc_v4_binding_context_availability",
+        (),
+        (
+            "observation_id",
+            "source_assay_id",
+            "source_pmid",
+            "source_dataset",
+            "endpoint_reported",
+            "endpoint_family",
+            "assay_method",
+            "quantitative_raw",
+            "quantitative_value",
+            "measurement_unit",
+            "measurement_inequality",
+            "assay_comments_raw",
+            "row_comment_status",
+            "source_review_status",
+            "context_scope",
+            "assay_format_status",
+            "temperature_status",
+            "ph_status",
+            "tracer_status",
+            "competitor_status",
+            "incubation_status",
+            "range_status",
+            "replicate_status",
+            "uncertainty_status",
+            "kd_conversion_status",
+            "audit_reason",
+        ),
+        ("observation_id",),
+        status="v2_materialized",
+        materialized_artifact="binding_context/availability.parquet",
+        min_package_schema_version=14,
     ),
     Evidence(
         "gomez_source_result",

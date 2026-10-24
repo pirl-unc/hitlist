@@ -477,3 +477,17 @@ named native restriction is exposed as `predicted`; a blank native restriction
 remains `unknown` with an explicit reason. No native assay row, source result,
 or source membership is rewritten or removed, and a predicted restriction
 does not establish a donor, specimen, or experimental assay label.
+
+# Binding assay context availability
+
+Schema 14 adds `binding_context_availability` as a one-row-per-binding-result
+audit over the corrected human binding cohort. It preserves endpoint, method,
+raw value, unit, inequality, source identifiers, and native assay comments,
+then records whether each requested context axis is row-native, available only
+as a source-scoped study claim, unreported, unresolved, or not reviewed.
+
+The audit keeps literal IC50 and `KD (~IC50)` in separate endpoint families;
+`kd_conversion_status` is always `not_performed` in this revision. The existing
+binding protocol claims remain source-scoped and are not broadcast into assay
+rows. Joining this relation to `mhc_binding` is one-to-one on `observation_id`,
+so adding context cannot multiply assay or training-example weights.

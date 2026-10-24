@@ -7990,8 +7990,21 @@ Plan: [gomez-prediction-panel-213.md](gomez-prediction-panel-213.md).
 Review: source archives and row counts are pinned in the implementation plan.
 The real schema-11 native inventory replay linked 322,513 prediction rows and
 resolved exactly 50,761 named rows as `predicted`, leaving 17,791 `unknown`.
-Format and lint pass; focused tests pass (36). The standard test preflight
-refused at 1.05GB available; the explicit low-memory serial run reached 3,353
-passes but had 12 sandbox socket-bind errors and six expected probe-test
-failures because the override intentionally disables the memory-probe refusal.
-Hosted CI remains the authoritative full gate.
+PR #784 merged as `3d96612`; clean-main release workflow `40056724704` passed
+and Hitlist 2.0.13 was published to PyPI. Wheel SHA-256 is
+`fb2f08af0ec5d74c421ef246ebe42d1b01c3de5f9f2cf4215908623e891775e6`; sdist
+SHA-256 is `a4b8b7fcdd77de27ebcb4520be9eb562aa1da8d50b6f06d89b70036b00fd8f47`.
+
+## Binding assay context availability (#786)
+
+Plan: [binding-context-availability-786.md](binding-context-availability-786.md).
+
+- [ ] Add schema-14/catalog-19 audit relation over every retained binding row.
+- [ ] Preserve native values and represent source-scope/unknown status without
+      broadcasting study claims or converting IC50/KD.
+- [ ] Run required gates, review, merge and publish 2.0.14.
+
+Review: the real corrected-cohort replay produces 25,896 unique rows, with
+8,084 literal IC50 and 3,232 KD (~IC50) rows; 910 rows are in the reviewed
+PMID 28481943 study scope and 24,986 remain unreviewed. Focused tests pass
+(42); format and lint pass. Full gates remain pending.
