@@ -25,9 +25,9 @@ import pyarrow.parquet as pq
 from .evidence_snapshot import snapshot_file
 from .provenance import file_digest
 
-PACKAGE_SCHEMA_VERSION = 16
-CATALOG_SCHEMA_VERSION = 21
-REVISION = "tmab_native_peptidomics_v2"
+PACKAGE_SCHEMA_VERSION = 17
+CATALOG_SCHEMA_VERSION = 22
+REVISION = "tmab_native_peptidomics_v3"
 ROOT = Path("tmab")
 SOURCE_ROOT = ROOT / "source_assets"
 SOURCE_TABLE = ROOT / "source_assets.parquet"
@@ -46,6 +46,8 @@ _PRIMARY = {
         "cell": 1,
         "experiment": 2,
         "charge": 3,
+        "observed_mass": 5,
+        "theoretical_mass": 6,
         "protein": 7,
         "gene": 8,
         "location": 9,
@@ -72,6 +74,8 @@ _PRIMARY = {
         "cell": 1,
         "experiment": 2,
         "charge": 3,
+        "observed_mass": 5,
+        "theoretical_mass": 6,
         "protein": 7,
         "gene": None,
         "location": 8,
@@ -151,6 +155,8 @@ ROW_COLUMNS = (
     "source_row_json",
     "source_row_disposition",
     "source_sequence_raw",
+    "source_handling_raw",
+    "source_observed_mass_raw",
     "source_experiment_raw",
     "source_cell_raw",
     "source_comments_raw",
@@ -193,12 +199,18 @@ CONTEXT_COLUMNS = (
     "normalization_policy",
     "context_scope",
     "context_status",
+    "wash_interval_raw",
+    "wash_presence_status",
+    "exposure_interval_status",
+    "acquisition_source_scope",
+    "source_study_inheritance_status",
 )
 MEASUREMENT_COLUMNS = (
     "measurement_id",
     "source_record_id",
     "context_id",
     "lineage_group_id",
+    "candidate_reuse_key",
     "source_asset_id",
     "source_id",
     "source_file",
@@ -211,13 +223,15 @@ MEASUREMENT_COLUMNS = (
     "peptide_sequence",
     "peptide_modifications_raw",
     "peptide_modifications_json",
-    "identification_status",
+    "sequence_identity_status",
     "modification_status",
     "parent_label_raw",
     "gene_name",
     "cell_line_name",
     "subcellular_location_raw",
     "charge_raw",
+    "observed_mass_raw",
+    "theoretical_mass_raw",
     "measured_pool",
     "quantitative_raw",
     "quantitative_value",
@@ -228,6 +242,7 @@ MEASUREMENT_COLUMNS = (
     "peak_overlap_status",
     "eligibility_status",
     "source_reuse_status",
+    "acquisition_provenance_status",
     "shared_control_group_id",
     "shared_control_group_status",
     "source_comments_raw",
@@ -501,6 +516,15 @@ def _context_for(
         "normalization_policy": "treated_or_control_channel_relative_to_source_control_average",
         "context_scope": "study_and_experiment_context",
         "context_status": "reported_source_scope",
+        "wash_interval_raw": annotation,
+        "wash_presence_status": harvest_presence,
+        "exposure_interval_status": "source_experiment_label_plus_methods_scope",
+        "acquisition_source_scope": "original_acquisition_unresolved"
+        if reused
+        else "reported_study_protocol",
+        "source_study_inheritance_status": "unresolved_for_reused_rows"
+        if reused
+        else "reported_study_protocol",
     }
 
 
@@ -520,13 +544,17 @@ def _asset_rows():
 
 def _candidate_fingerprint(cell, sequence, charge, mass, ratios):
     """Candidate reuse only: source-independent identity and exact ratio vector."""
-    if not sequence or not all(
-        isinstance(v, (int, float)) and math.isfinite(v) for v in (charge, mass)
-    ):
+
+    def is_number(value):
+        return (
+            isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+        )
+
+    if not all(is_number(v) for v in (charge, mass)):
         return None
-    if sum(isinstance(v, (int, float)) and math.isfinite(v) for v in ratios) < 2:
+    if sum(is_number(v) for v in ratios) < 2:
         return None
-    values = [float(v) if isinstance(v, (int, float)) else v for v in ratios]
+    values = [float(v) if is_number(v) else v for v in ratios]
     payload = json.dumps([cell, sequence, float(charge), float(mass), values], ensure_ascii=False)
     return _id("reuse-candidate", payload)
 
@@ -581,6 +609,10 @@ def _compile(directory):
                     "source_row_json": _row_json(values),
                     "source_row_disposition": "primary_ratio_panel",
                     "source_sequence_raw": sequence_raw,
+                    "source_handling_raw": _text(values[config["average_annotation"] - 1])
+                    if len(values) >= config["average_annotation"]
+                    else None,
+                    "source_observed_mass_raw": _text(values[config["observed_mass"] - 1]),
                     "source_experiment_raw": experiment,
                     "source_cell_raw": cell,
                     "source_comments_raw": _text(values[config["comments"] - 1]),
@@ -611,6 +643,7 @@ def _compile(directory):
                         "source_record_id": source_record_id,
                         "context_id": context["context_id"],
                         "lineage_group_id": _id("lineage", f"{source_record_id}|{source_cell}"),
+                        "candidate_reuse_key": candidate,
                         "source_asset_id": asset["source_asset_id"],
                         "source_id": asset["source_id"],
                         "source_file": source_file,
@@ -625,13 +658,15 @@ def _compile(directory):
                         "peptide_modifications_json": json.dumps(
                             identity["modifications"], sort_keys=True
                         ),
-                        "identification_status": identity["identification"],
+                        "sequence_identity_status": identity["identification"],
                         "modification_status": identity["modification_status"],
                         "parent_label_raw": _text(values[config["protein"] - 1]),
                         "gene_name": _text(values[config["gene"] - 1]) if config["gene"] else None,
                         "cell_line_name": cell,
                         "subcellular_location_raw": _text(values[config["location"] - 1]),
                         "charge_raw": _text(values[config["charge"] - 1]),
+                        "observed_mass_raw": _text(values[config["observed_mass"] - 1]),
+                        "theoretical_mass_raw": _text(values[config["theoretical_mass"] - 1]),
                         "measured_pool": "native_cellular_peptide_extract",
                         "quantitative_raw": _text(raw),
                         "quantitative_value": value,
@@ -642,6 +677,7 @@ def _compile(directory):
                         "peak_overlap_status": overlap,
                         "eligibility_status": _eligibility(identity, role, value, censoring),
                         "source_reuse_status": "unresolved_cross_paper_reuse",
+                        "acquisition_provenance_status": context["instrument_status"],
                         "shared_control_group_id": shared_control,
                         "shared_control_group_status": "source_label_proxy_unresolved_denominator",
                         "source_comments_raw": _text(values[config["comments"] - 1]),
@@ -675,6 +711,8 @@ def _compile(directory):
                     "source_sequence_raw": _text(values[config["sequence"] - 1])
                     if len(values) >= config["sequence"]
                     else None,
+                    "source_handling_raw": None,
+                    "source_observed_mass_raw": None,
                     "source_experiment_raw": None,
                     "source_cell_raw": None,
                     "source_comments_raw": None,
@@ -751,7 +789,7 @@ def _compile(directory):
             len(candidate_labels[group]) == 1 for group in cross_paper_groups
         ),
         "by_identification_status": dict(
-            sorted(Counter(row["identification_status"] for row in measurements).items())
+            sorted(Counter(row["sequence_identity_status"] for row in measurements).items())
         ),
         "by_eligibility_status": dict(
             sorted(Counter(row["eligibility_status"] for row in measurements).items())

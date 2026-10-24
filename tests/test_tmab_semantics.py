@@ -131,7 +131,7 @@ def test_raw_numeric_exactness_does_not_override_identity_or_role(source_package
             assert row["eligibility_status"].startswith("deferred_")
     tentative = next(row for row in rows if row["peptide_sequence_raw"] == "(Ac-AGKQAVSASGK)")
     assert tentative["peptide_sequence"] == "AGKQAVSASGK"
-    assert tentative["identification_status"] == "tentative"
+    assert tentative["sequence_identity_status"] == "tentative"
     assert tentative["quantitative_value"] == 1.2
 
 
@@ -194,7 +194,7 @@ def test_public_package_rejects_mutated_raw_sources(source_package):
 def test_manifest_keeps_correction_revision_explicit(source_package):
     root, _ = source_package
     manifest = json.loads((root / "manifest.json").read_text())
-    assert manifest["revision"] == "tmab_native_peptidomics_v2"
+    assert manifest["revision"] == "tmab_native_peptidomics_v3"
 
 
 def test_numeric_zero_stays_exact_but_is_deferred_from_log_ratio_candidates():
@@ -215,3 +215,34 @@ def test_unknown_original_acquisition_is_not_filled_from_republishing_protocol()
     assert context["instrument"] is None
     assert context["publishing_protocol_instrument"] == "Waters Synapt G1"
     assert context["harvest_compound_status"] == "unresolved"
+
+
+def test_handling_variants_do_not_overwrite_one_source_context():
+    first = tmab._context_for(
+        "dasgupta_2014",
+        "asset",
+        "file",
+        "HEK293T",
+        "MG132 35min 2.5uM",
+        "20min+15'wash",
+    )
+    second = tmab._context_for(
+        "dasgupta_2014",
+        "asset",
+        "file",
+        "HEK293T",
+        "MG132 35min 2.5uM",
+        "20min+10'wash",
+    )
+    assert first["context_id"] != second["context_id"]
+    assert first["harvest_duration_hours"] == 0.25
+    assert second["harvest_duration_hours"] == pytest.approx(1 / 6)
+
+
+def test_unidentified_peaks_can_have_candidate_reuse_without_sequence_labels():
+    key = tmab._candidate_fingerprint("HEK293T", None, 2, 1234.5, [1.1, 0.9, None, None, None])
+    assert key is not None
+    assert (
+        tmab._candidate_fingerprint("HEK293T", None, 2, 1234.5, [True, False, None, None, None])
+        is None
+    )

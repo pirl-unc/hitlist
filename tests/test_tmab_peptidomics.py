@@ -45,12 +45,12 @@ def test_treatment_parser_keeps_dose_and_duration_scoped_to_raw_label():
 
 def test_tmab_package_is_standalone_and_queryable():
     envelope = {
-        "schema_version": 16,
+        "schema_version": 17,
         "package_family": "tmab_peptidomics",
-        "revision": "tmab_native_peptidomics_v2",
+        "revision": "tmab_native_peptidomics_v3",
     }
     assert package_family(envelope) == "tmab_peptidomics"
-    assert SCHEMA_VERSION == 21
+    assert SCHEMA_VERSION == 22
     fields = {field["name"] for field in describe_evidence("tmab_measurement")["fields"]}
     assert {
         "peptide_sequence_raw",
@@ -62,7 +62,7 @@ def test_tmab_package_is_standalone_and_queryable():
         field["name"] for field in describe_evidence("tmab_protocol_context")["fields"]
     }
     assert {"instrument", "cell_line_name", "treatment_name"} <= context_fields
-    bindings = materialized_bindings(16)
+    bindings = materialized_bindings(17)
     assert {
         "tmab_measurement",
         "tmab_source_row",

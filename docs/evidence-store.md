@@ -494,7 +494,7 @@ so adding context cannot multiply assay or training-example weights.
 
 # Native cellular peptide measurements
 
-Schema 16 / catalog 21 exposes corrected revision `tmab_native_peptidomics_v2` of the
+Schema 17 / catalog 22 exposes corrected revision `tmab_native_peptidomics_v3` of the
 standalone `tmab_peptidomics` package family for the
 Dasgupta 2014 and Gelman 2013 TMAB native-peptide supplements. It is not an
 MHC-elution package and does not infer processing, knockout, absolute
@@ -521,14 +521,14 @@ for cell line, treatment, extraction, labeling and instrument details.
 `tmab_measurement_lineage` flags possible cross-paper reuse but leaves
 independence `unknown` until source reconciliation establishes it.
 
-The superseded schema-15 revision is rejected by this corrected reader; rebuild
+The superseded schema-15 and schema-16 revisions are rejected by this corrected reader; rebuild
 from the same pinned original workbooks instead of relabeling old packages.
 Source row/measurement IDs and raw quantities are preserved. Tentative or
 unsupported identities, unknown sequences, nonpositive ratios, controls and
 derived averages have explicit deferred source eligibility. Exact and censored
 positive treated-ratio candidates still need an independence-qualified recipe.
 
-`identification_status` is separate from `value_status`; supported acetylation
+`sequence_identity_status` is separate from `value_status`; supported acetylation
 and methionine oxidation retain source tokens and position-bearing JSON.
 Unsupported pyroglutamate/dehydration notation remains unresolved until a parent
 mapping or source adjudication establishes its identity. Source-independent
@@ -541,3 +541,43 @@ original acquisition for reused measurements. It retains both source timing labe
 parsed incubation/harvest intervals, compound presence during harvesting and
 primary Methods links. The 2014 protocol retains inhibitor during its harvest wash;
 20 minutes incubation plus 15 minutes handling supports 35 minutes total exposure.
+
+## Native response recipe
+
+`tmab_native_response_v1` is registered in the common store catalog and materializes
+grouped exact/censored treated-control responses. Supply a hash-pinned reviewed
+human FASTA as an explicitly modern model reference:
+
+```python
+store.materialize({
+    "schema_version": 1,
+    "name": "native-response",
+    "registered_recipe": "tmab_native_response_v1",
+    "reference": {
+        "path": "/path/to/human-reviewed.fasta",
+        "sha256": "<sha256 of the exact input>",
+        "source_url": "<original public reference URL>",
+        "generation_label": "<recorded reference generation>",
+        "license": "CC BY 4.0",
+        "role": "model_reference_not_original_search",
+    },
+}, "native-response-recipe")
+```
+
+The immutable recipe snapshots the reference and native tables, retains every
+exact sequence occurrence/parent alternative and all source dispositions, and
+never treats a protein description as an accession or measured origin. Its
+components connect all source sequences, reference alternatives, source parent
+assertions and possible reuse before eligibility or split assignment. Charge
+states and reported ratios contribute within a peptide-form/condition group;
+matching source copies share one observation weight. Different-label candidate
+reuse remains deferred. Exact and bounded observations remain separate, with
+condition/component/form/observation weights normalized within each split.
+
+These are peptide/parent component splits within the same studies. Shared-control
+label proxies may cross them; physical denominator, donor and specimen identities
+remain unknown. They do not establish homology or external biological independence.
+Chemical exposure remains separate from genetic loss, and native extract ratios
+are not absolute APC concentrations. Full-parent model support is reported
+separately from sequence-response admission. Use `verify_recipe_package` with the
+source package to replay every quantity, contributor, split and reference occurrence.

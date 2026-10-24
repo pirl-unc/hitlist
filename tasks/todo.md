@@ -8017,13 +8017,36 @@ and sdist SHA-256
 
 Plan: [tmab-native-measurements-789.md](tmab-native-measurements-789.md).
 
-- [ ] Pin and audit Dasgupta 2014 and Gelman 2013 native-peptide workbooks.
-- [ ] Materialize common measurement, protocol, source-row and lineage
+- [x] Pin and audit Dasgupta 2014 and Gelman 2013 native-peptide workbooks.
+- [x] Materialize common measurement, protocol, source-row and lineage
       relations without dropping unidentified, censored or reused entries.
-- [ ] Register the package in the catalog/query/recipe contract and run the
+- [x] Register the package in the catalog/query/recipe contract and run the
       required gates, review, merge and publish 2.0.15.
 
-Review: pending implementation.
+Review: PR #790 merged as `f4d3a6d`; clean-main release workflow `40066109622`
+passed the complete gate. Hitlist 2.0.15 was published to PyPI with wheel
+SHA-256 `0b29abe8c3d4c4addc61d5b656eac2085c9fa842a45a8dd44c3a6b79fb9d3840`
+and sdist SHA-256
+`b3304a026264f9ccc4bed8c5166714e78385f37f92b0b22c22a2e2863ef22ab2`.
+
+## TMAB reuse, identity and protocol provenance corrections (#792 / #791)
+
+Plan: [tmab-provenance-corrections-792.md](tmab-provenance-corrections-792.md).
+
+- [x] Make cross-paper reuse candidates source-independent while preserving
+      source-specific rows and unresolved specimen independence.
+- [x] Separate tentative/modification identity from numeric exactness and
+      correct acquisition and exposure/wash provenance.
+- [x] Correct Gelman heatmap sequence projection and run the local required
+      gates.
+- [ ] Open the PR, pass hosted gates, merge and publish 2.0.16.
+
+Review: implementation is complete locally. The rebuilt package preserves
+10,564 source rows, 61,908 measurements, 33 protocol contexts and all prior
+censoring/value-status counts. It records 971 conservative possible
+cross-paper candidate groups (1,942 source rows) without asserting specimen
+independence; tentative/unresolved identities are deferred. Local format,
+lint and full tests pass (3,389 tests).
 
 ## TMAB semantic corrections (#791 / #792)
 
@@ -8042,3 +8065,14 @@ comparison failures are retained and explained by a separate successful closure:
 existing projected labels trim whitespace while raw rows remain literal. No
 production data or parser rule changed to resolve that comparator error.
 Evidence: Presto experiments/2026-10-24_0156_codex_tmab-semantic-replay.
+
+
+## Reconciled native response successor (#791 / #793)
+
+- [x] Merge concurrent main7649ffe while preserving its raw provenance additions.
+- [x] Retain strict sequence/peptidoform parsing, full compound names, handling contexts and per-slot possible reuse.
+- [x] Add v3/schema17/catalog22 and the registered exact/bounded response recipe, version2.0.17.
+- [x] Pass format/lint,54focused and3,414full local tests plus independent full-source/reference/target/split/weight replay.
+- [ ] Push the resolved merge, pass new-head hosted gates, merge and release2.0.17.
+
+Review: see tmab-upstream-reconciliation.md and Presto0259 admission. PR794 merged independently and its2.0.16release-build passed; preserve issue792closure and do not treat prior PR793 checks as new-head evidence. No APC concentration qualification is claimed.

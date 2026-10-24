@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, replace
 
-SCHEMA_VERSION = 21
+SCHEMA_VERSION = 22
 FIELD_ROLES = frozenset(
     {
         "identity",
@@ -88,6 +88,40 @@ def _field(name, role, value_kind, meaning, *null_states):
 
 
 FIELDS = (
+    _field("source_handling_raw", "provenance", "text", "Unmodified source wash or handling cell"),
+    _field(
+        "source_observed_mass_raw", "provenance", "text", "Unmodified source observed mass cell"
+    ),
+    _field(
+        "candidate_reuse_key", "lineage", "text", "Source-independent candidate-reuse fingerprint"
+    ),
+    _field("observed_mass_raw", "molecular_input", "text", "Unmodified observed mass cell"),
+    _field("theoretical_mass_raw", "molecular_input", "text", "Unmodified theoretical mass cell"),
+    _field(
+        "acquisition_provenance_status",
+        "provenance",
+        "category",
+        "Row-level acquisition provenance scope",
+    ),
+    _field("wash_interval_raw", "protocol", "text", "Unmodified source wash or harvest interval"),
+    _field(
+        "wash_presence_status",
+        "protocol",
+        "category",
+        "Source scope for compound presence during washing",
+    ),
+    _field(
+        "exposure_interval_status", "provenance", "category", "Evidence scope for exposure timing"
+    ),
+    _field(
+        "acquisition_source_scope", "provenance", "category", "Scope of an acquisition assertion"
+    ),
+    _field(
+        "source_study_inheritance_status",
+        "provenance",
+        "category",
+        "Whether acquisition inheritance is resolved",
+    ),
     _field(
         "reference_id",
         "provenance",
@@ -372,7 +406,7 @@ FIELDS = (
         "Whether a shared-control group is a source-label proxy or a resolved physical denominator",
     ),
     _field(
-        "identification_status",
+        "sequence_identity_status",
         "annotation",
         "category",
         "Reported, tentative, unidentified or unresolved sequence identity; separate from numeric exactness",
@@ -1738,7 +1772,7 @@ EVIDENCE = (
         ("source_asset_id",),
         status="v2_materialized",
         materialized_artifact="tmab/source_assets.parquet",
-        min_package_schema_version=16,
+        min_package_schema_version=17,
     ),
     Evidence(
         "tmab_source_row",
@@ -1758,6 +1792,8 @@ EVIDENCE = (
             "source_row_json",
             "source_row_disposition",
             "source_sequence_raw",
+            "source_handling_raw",
+            "source_observed_mass_raw",
             "source_experiment_raw",
             "source_cell_raw",
             "source_comments_raw",
@@ -1766,7 +1802,7 @@ EVIDENCE = (
         ("source_record_id",),
         status="v2_materialized",
         materialized_artifact="tmab/source_rows.parquet",
-        min_package_schema_version=16,
+        min_package_schema_version=17,
     ),
     Evidence(
         "tmab_protocol_context",
@@ -1813,11 +1849,16 @@ EVIDENCE = (
             "normalization_policy",
             "context_scope",
             "context_status",
+            "wash_interval_raw",
+            "wash_presence_status",
+            "exposure_interval_status",
+            "acquisition_source_scope",
+            "source_study_inheritance_status",
         ),
         ("context_id",),
         status="v2_materialized",
         materialized_artifact="tmab/protocol_context.parquet",
-        min_package_schema_version=16,
+        min_package_schema_version=17,
     ),
     Evidence(
         "tmab_measurement",
@@ -1832,6 +1873,7 @@ EVIDENCE = (
             "source_record_id",
             "context_id",
             "lineage_group_id",
+            "candidate_reuse_key",
             "source_asset_id",
             "source_id",
             "source_file",
@@ -1844,13 +1886,15 @@ EVIDENCE = (
             "peptide_sequence",
             "peptide_modifications_raw",
             "peptide_modifications_json",
-            "identification_status",
+            "sequence_identity_status",
             "modification_status",
             "parent_label_raw",
             "gene_name",
             "cell_line_name",
             "subcellular_location_raw",
             "charge_raw",
+            "observed_mass_raw",
+            "theoretical_mass_raw",
             "measured_pool",
             "quantitative_raw",
             "quantitative_value",
@@ -1861,6 +1905,7 @@ EVIDENCE = (
             "peak_overlap_status",
             "eligibility_status",
             "source_reuse_status",
+            "acquisition_provenance_status",
             "shared_control_group_id",
             "shared_control_group_status",
             "source_comments_raw",
@@ -1868,7 +1913,7 @@ EVIDENCE = (
         ("measurement_id", "source_record_id", "source_cell"),
         status="v2_materialized",
         materialized_artifact="tmab/measurements.parquet",
-        min_package_schema_version=16,
+        min_package_schema_version=17,
     ),
     Evidence(
         "tmab_measurement_lineage",
@@ -1894,7 +1939,7 @@ EVIDENCE = (
         ("measurement_id", "lineage_group_id"),
         status="v2_materialized",
         materialized_artifact="tmab/lineage.parquet",
-        min_package_schema_version=16,
+        min_package_schema_version=17,
     ),
     Evidence(
         "gomez_source_result",
