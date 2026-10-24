@@ -8206,7 +8206,8 @@ remains unchanged and contextual query succeeds. Source/schema20/catalog25 is
 preserved. New-head hosted CI and upstream merge/release remain pending.
 
 Successor-main897c98c integration: source consumer2.0.22/live catalog27 preserves
-HAP1schema20/catalog25 and upstream precursorv2/schema21/catalog26. Format/lint,
+HAP1schema20/catalog25 and upstream precursorv2/schema21/catalog26. The current
+recipe branch advances the precursor reader to v3/schema22/catalog27. Format/lint,
 70focused tests and guarded full ./test.sh pass (3,443tests/393warnings,162.99s,
 2workers after7.15GiB memory probe). Original HAP1 package again replays/query-opens
 with unchanged manifest88cad10d… in53.08s. Upstream's older precursorv1 envelope
