@@ -65,9 +65,9 @@ def package_family(manifest):
     ):
         return "digestion_processing"
     if (
-        schema == 20
+        schema == 21
         and manifest.get("package_family") == "precursor_context"
-        and manifest.get("revision") == "pxd009360_precursor_context_v1"
+        and manifest.get("revision") == "pxd009360_precursor_context_v2"
     ):
         return "precursor_context"
     raise ValueError(f"Unknown or ambiguous evidence package family: schema {schema}")

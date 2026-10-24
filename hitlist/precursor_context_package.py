@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import shutil
+import tarfile
 import tempfile
 from pathlib import Path
 
@@ -13,9 +15,9 @@ import pyarrow.parquet as pq
 from .evidence_snapshot import snapshot_file
 from .provenance import file_digest
 
-PACKAGE_SCHEMA_VERSION = 20
-CATALOG_SCHEMA_VERSION = 25
-REVISION = "pxd009360_precursor_context_v1"
+PACKAGE_SCHEMA_VERSION = 21
+CATALOG_SCHEMA_VERSION = 26
+REVISION = "pxd009360_precursor_context_v2"
 PACKAGE_FAMILY = "precursor_context"
 SOURCE_ID = "pxd009360_precursor"
 SOURCE_PREFIX = f"external/{SOURCE_ID}/"
@@ -26,6 +28,10 @@ QUERY_ALIASES = {
     "precursor_run": "precursor_acquisition",
     "precursor_table": "precursor_table_inventory",
     "precursor_pairing": "precursor_pairing_assertion",
+    "precursor_evidence": "precursor_evidence_row",
+    "precursor_peptide": "precursor_peptide_row",
+    "precursor_all_peptide": "precursor_all_peptide_row",
+    "precursor_protein_group": "precursor_protein_group_row",
 }
 MATERIALIZED_EVIDENCE_TYPES = frozenset(
     {
@@ -35,6 +41,10 @@ MATERIALIZED_EVIDENCE_TYPES = frozenset(
         "precursor_acquisition",
         "precursor_table_inventory",
         "precursor_pairing_assertion",
+        "precursor_evidence_row",
+        "precursor_peptide_row",
+        "precursor_all_peptide_row",
+        "precursor_protein_group_row",
     }
 )
 
@@ -104,9 +114,39 @@ TABLE_SCHEMA = pa.schema(
         ("source_dataset", pa.string()),
         ("availability_state", pa.string()),
         ("table_status", pa.string()),
+        ("materialized_relation", pa.string()),
+        ("n_source_rows", pa.int64()),
+        ("source_member_sha256", pa.string()),
+        ("source_member_size_bytes", pa.int64()),
+        ("relation_sha256", pa.string()),
         ("source_locator", pa.string()),
         ("source_row_disposition", pa.string()),
         ("notes", pa.string()),
+    ]
+)
+
+QUANTITY_ROW_SCHEMA = pa.schema(
+    [
+        ("source_record_id", pa.string()),
+        ("source_file", pa.string()),
+        ("source_dataset", pa.string()),
+        ("source_row_index", pa.int64()),
+        ("source_row_sha256", pa.string()),
+        ("raw_row", pa.string()),
+        ("column_names_json", pa.string()),
+        ("values_json", pa.string()),
+        ("sequence_raw", pa.string()),
+        ("modified_sequence_raw", pa.string()),
+        ("modifications_raw", pa.string()),
+        ("raw_file_raw", pa.string()),
+        ("experiment_raw", pa.string()),
+        ("charge_raw", pa.string()),
+        ("identification_type_raw", pa.string()),
+        ("intensity_raw", pa.string()),
+        ("lfq_intensity_raw", pa.string()),
+        ("match_between_runs_raw", pa.string()),
+        ("contributors_json", pa.string()),
+        ("status_flags_json", pa.string()),
     ]
 )
 PAIRING_SCHEMA = pa.schema(
@@ -150,7 +190,163 @@ def _source_paths(source_root, receipt):
     return paths
 
 
-def _rows(receipt):
+QUANTITY_MEMBERS = {
+    "txt/evidence.txt": "precursor_evidence_row",
+    "txt/peptides.txt": "precursor_peptide_row",
+    "txt/allPeptides.txt": "precursor_all_peptide_row",
+    "txt/proteinGroups.txt": "precursor_protein_group_row",
+}
+
+
+def _json(value):
+    return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+
+
+def _first(headers, values, *names):
+    for name in names:
+        try:
+            return values[headers.index(name)]
+        except ValueError:
+            continue
+    return None
+
+
+def _matching(headers, values, prefix):
+    return {
+        header: values[index]
+        for index, header in enumerate(headers)
+        if header == prefix or header.startswith(prefix + " ")
+    }
+
+
+def _quantity_row(relative, row_index, raw_line, headers, values, source_dataset):
+    row_sha256 = hashlib.sha256(raw_line).hexdigest()
+    raw_row = raw_line.rstrip(b"\r\n").decode("utf-8")
+    contributors = {
+        header: values[index]
+        for index, header in enumerate(headers)
+        if any(
+            token in header.lower()
+            for token in ("protein", "peptide ids", "evidence ids", "ms/ms ids")
+        )
+    }
+    status_flags = {
+        header: values[index]
+        for index, header in enumerate(headers)
+        if header in {"Reverse", "Potential contaminant", "Identified", "Type"}
+        or header.startswith("Identification type")
+    }
+    return {
+        "source_record_id": f"{SOURCE_ID}:{relative}:{row_index}",
+        "source_file": relative,
+        "source_dataset": source_dataset,
+        "source_row_index": row_index,
+        "source_row_sha256": row_sha256,
+        "raw_row": raw_row,
+        "column_names_json": _json(headers),
+        "values_json": _json(values),
+        "sequence_raw": _first(headers, values, "Sequence"),
+        "modified_sequence_raw": _first(headers, values, "Modified sequence"),
+        "modifications_raw": _first(headers, values, "Modifications"),
+        "raw_file_raw": _first(headers, values, "Raw file"),
+        "experiment_raw": _first(headers, values, "Experiment"),
+        "charge_raw": _first(headers, values, "Charge", "Charges"),
+        "identification_type_raw": _json(_matching(headers, values, "Identification type")),
+        "intensity_raw": _first(headers, values, "Intensity"),
+        "lfq_intensity_raw": _json(_matching(headers, values, "LFQ intensity")),
+        "match_between_runs_raw": _json(_matching(headers, values, "Match")),
+        "contributors_json": _json(contributors),
+        "status_flags_json": _json(status_flags),
+    }
+
+
+def _extract_quantity_tables(archive_path, destination, source_dataset):
+    """Stream selected MaxQuant members into typed Parquet relations."""
+    destination = Path(destination)
+    writers = {}
+    buffers = {relation: [] for relation in QUANTITY_MEMBERS.values()}
+    metadata = {}
+    try:
+        with tarfile.open(archive_path, mode="r|gz") as archive:
+            for member in archive:
+                relation = QUANTITY_MEMBERS.get(member.name)
+                if relation is None:
+                    continue
+                expected_size = None
+                if member.isfile():
+                    with archive.extractfile(member) as stream:
+                        if stream is None:
+                            raise ValueError(f"Archive member cannot be read: {member.name}")
+                        member_digest = hashlib.sha256()
+                        member_size = 0
+                        row_count = 0
+                        relation_digest = hashlib.sha256()
+                        headers = None
+                        for raw_line in stream:
+                            member_digest.update(raw_line)
+                            member_size += len(raw_line)
+                            if headers is None:
+                                headers = raw_line.rstrip(b"\r\n").decode("utf-8").split("\t")
+                                continue
+                            row_count += 1
+                            values = raw_line.rstrip(b"\r\n").decode("utf-8").split("\t")
+                            if len(values) != len(headers):
+                                raise ValueError(
+                                    f"Column count mismatch in {member.name} row {row_count}"
+                                )
+                            row = _quantity_row(
+                                member.name, row_count, raw_line, headers, values, source_dataset
+                            )
+                            relation_digest.update(row["source_row_sha256"].encode("ascii"))
+                            relation_digest.update(b"\n")
+                            buffers[relation].append(row)
+                            if len(buffers[relation]) >= 1024:
+                                table = pa.Table.from_pylist(
+                                    buffers[relation], schema=QUANTITY_ROW_SCHEMA
+                                )
+                                if relation not in writers:
+                                    writers[relation] = pq.ParquetWriter(
+                                        destination / f"{relation}.parquet", QUANTITY_ROW_SCHEMA
+                                    )
+                                writers[relation].write_table(table)
+                                buffers[relation].clear()
+                        if headers is None:
+                            raise ValueError(f"Archive member has no header: {member.name}")
+                        expected_size = member.size
+                        if member_size != expected_size:
+                            raise ValueError(
+                                f"Archive member size mismatch for {member.name}: "
+                                f"{member_size} != {expected_size}"
+                            )
+                        metadata[member.name] = {
+                            "materialized_relation": relation,
+                            "n_source_rows": row_count,
+                            "source_member_sha256": member_digest.hexdigest(),
+                            "source_member_size_bytes": member_size,
+                            "relation_sha256": relation_digest.hexdigest(),
+                        }
+    finally:
+        for relation, values in buffers.items():
+            if values and relation not in writers:
+                writers[relation] = pq.ParquetWriter(
+                    destination / f"{relation}.parquet", QUANTITY_ROW_SCHEMA
+                )
+            if values:
+                writers[relation].write_table(
+                    pa.Table.from_pylist(values, schema=QUANTITY_ROW_SCHEMA)
+                )
+                values.clear()
+        for _relation, writer in writers.items():
+            writer.close()
+    for relation in QUANTITY_MEMBERS.values():
+        path = destination / f"{relation}.parquet"
+        if not path.exists():
+            pq.write_table(pa.Table.from_pylist([], schema=QUANTITY_ROW_SCHEMA), path)
+    return metadata
+
+
+def _rows(receipt, materialized_tables=None):
+    materialized_tables = materialized_tables or {}
     assets = [
         {
             "source_asset_id": f"{SOURCE_ID}:asset:{relative}",
@@ -189,11 +385,36 @@ def _rows(receipt):
             "table_name": Path(row["path"]).stem,
             "archive_member_size_bytes": row["size_bytes"],
             "source_dataset": receipt["dataset_accession"],
-            "availability_state": "materialized_source_archive",
-            "table_status": "deferred_typed_materialization",
+            "availability_state": (
+                "materialized_typed_rows"
+                if row["path"] in materialized_tables
+                else "materialized_source_archive"
+            ),
+            "table_status": (
+                "typed_materialized"
+                if row["path"] in materialized_tables
+                else "deferred_typed_materialization"
+            ),
+            "materialized_relation": materialized_tables.get(row["path"], {}).get(
+                "materialized_relation"
+            ),
+            "n_source_rows": materialized_tables.get(row["path"], {}).get("n_source_rows", 0),
+            "source_member_sha256": materialized_tables.get(row["path"], {}).get(
+                "source_member_sha256"
+            ),
+            "source_member_size_bytes": materialized_tables.get(row["path"], {}).get(
+                "source_member_size_bytes", row["size_bytes"]
+            ),
+            "relation_sha256": materialized_tables.get(row["path"], {}).get("relation_sha256"),
             "source_locator": "search/pxd009360-search.tar.gz",
-            "source_row_disposition": "source_asset_only",
-            "notes": "Archive member is retained; typed quantity rows are child PR 2.",
+            "source_row_disposition": (
+                "typed_source_rows" if row["path"] in materialized_tables else "source_asset_only"
+            ),
+            "notes": (
+                "Archive member and lossless typed quantity rows are retained."
+                if row["path"] in materialized_tables
+                else "Archive member is retained; typed quantity rows are child PR 2."
+            ),
         }
         for row in receipt["archive_members"]
     ]
@@ -234,14 +455,26 @@ def _rows(receipt):
         {
             "family_id": "precursor_quantity_tables",
             "evidence_family": "precursor_measurement",
-            "availability_state": "source_assets_available_rows_deferred",
+            "availability_state": (
+                "typed_rows_materialized"
+                if materialized_tables
+                else "source_assets_available_rows_deferred"
+            ),
             "source_scope": "PXD009360_maxquant_search_archive",
-            "n_source_rows": 0,
+            "n_source_rows": sum(
+                row.get("n_source_rows", 0) for row in materialized_tables.values()
+            ),
             "n_measurements": 0,
             "n_training_examples": 0,
-            "training_status": "deferred_typed_materialization",
+            "training_status": (
+                "not_training_data" if materialized_tables else "deferred_typed_materialization"
+            ),
             "evidence_types_json": json.dumps(["precursor_table_inventory"], separators=(",", ":")),
-            "notes": "Evidence, peptide, all-peptide and protein-group rows await child PR 2.",
+            "notes": (
+                "Evidence, peptide, all-peptide and protein-group rows are retained losslessly."
+                if materialized_tables
+                else "Evidence, peptide, all-peptide and protein-group rows await child PR 2."
+            ),
         },
         {
             "family_id": "mapp_precursor_pairing",
@@ -288,6 +521,15 @@ def _verify_assets(directory, receipt):
             raise ValueError(f"PXD009360 package asset mismatch: {relative}")
 
 
+def _relation_digest(path):
+    table = pq.read_table(path, columns=["source_row_sha256"])
+    digest = hashlib.sha256()
+    for value in table.column("source_row_sha256").to_pylist():
+        digest.update(value.encode("ascii"))
+        digest.update(b"\n")
+    return table.num_rows, digest.hexdigest()
+
+
 def verify_precursor_context_package(directory):
     directory = Path(directory)
     manifest = _manifest(directory)
@@ -305,7 +547,20 @@ def verify_precursor_context_package(directory):
     _verify_assets(directory, receipt)
     if manifest.get("query_aliases") != QUERY_ALIASES:
         raise ValueError("Precursor context query aliases changed")
-    families, availability, assets, acquisitions, tables, pairings = _rows(receipt)
+    stored_tables = pq.read_table(directory / "precursor_context" / "tables.parquet").to_pylist()
+    materialized_tables = {
+        row["source_file"]: row for row in stored_tables if row.get("materialized_relation")
+    }
+    for relative, expected in receipt.get("materialized_tables", {}).items():
+        stored = materialized_tables.get(relative)
+        if stored is None:
+            raise ValueError(f"Missing pinned materialized table ledger row: {relative}")
+        for field in ("n_source_rows", "source_member_size_bytes", "source_member_sha256"):
+            if stored[field] != expected[field]:
+                raise ValueError(f"Pinned materialized table ledger changed: {relative}.{field}")
+    families, availability, assets, acquisitions, tables, pairings = _rows(
+        receipt, materialized_tables
+    )
     expected = {
         "families": (FAMILY_SCHEMA, families),
         "availability": (AVAILABILITY_SCHEMA, availability),
@@ -318,6 +573,17 @@ def verify_precursor_context_package(directory):
         table = pq.read_table(directory / "precursor_context" / f"{name}.parquet")
         if table.schema != schema or table.to_pylist() != rows:
             raise ValueError(f"Precursor context relation changed: {name}")
+    for _source_file, row in materialized_tables.items():
+        relation = row["materialized_relation"]
+        path = directory / "precursor_context" / f"{relation}.parquet"
+        if not path.is_file():
+            raise ValueError(f"Missing materialized precursor relation: {relation}")
+        table = pq.read_table(path)
+        if table.schema != QUANTITY_ROW_SCHEMA:
+            raise ValueError(f"Precursor quantity relation schema changed: {relation}")
+        n_rows, relation_sha256 = _relation_digest(path)
+        if n_rows != row["n_source_rows"] or relation_sha256 != row["relation_sha256"]:
+            raise ValueError(f"Precursor quantity relation digest changed: {relation}")
     for name, digest in manifest["files"].items():
         if file_digest(directory / name) != digest:
             raise ValueError(f"Precursor context package artifact mismatch: {name}")
@@ -339,9 +605,33 @@ def write_precursor_context_package(source_root, destination):
         snapshot_file(ASSET_RECEIPT, source_dir / "contracts/source_assets.json")
         for relative, path in paths.items():
             snapshot_file(path, source_dir / "assets" / relative)
-        families, availability, assets, acquisitions, tables, pairings = _rows(receipt)
         typed = staging / "precursor_context"
         typed.mkdir()
+        archive_relative = next(
+            relative
+            for relative, expected in receipt["assets"].items()
+            if expected["asset_kind"] in {"search_archive", "maxquant_search_archive"}
+            or relative.endswith(".tar.gz")
+        )
+        materialized_paths = {
+            row["path"] for row in receipt["archive_members"] if row["path"] in QUANTITY_MEMBERS
+        }
+        materialized_tables = _extract_quantity_tables(
+            paths[archive_relative], typed, receipt["dataset_accession"]
+        )
+        if materialized_paths - set(materialized_tables):
+            missing = sorted(materialized_paths - set(materialized_tables))
+            raise ValueError(f"Missing required quantity archive members: {missing}")
+        for relative, expected in receipt.get("materialized_tables", {}).items():
+            actual = materialized_tables.get(relative)
+            if actual is None:
+                raise ValueError(f"Missing pinned materialized table: {relative}")
+            for field in ("n_source_rows", "source_member_size_bytes", "source_member_sha256"):
+                if actual[field] != expected[field]:
+                    raise ValueError(f"Pinned materialized table mismatch: {relative}.{field}")
+        families, availability, assets, acquisitions, tables, pairings = _rows(
+            receipt, materialized_tables
+        )
         _write_table(typed, "families", families, FAMILY_SCHEMA)
         _write_table(typed, "availability", availability, AVAILABILITY_SCHEMA)
         _write_table(typed, "source_assets", assets, SOURCE_ASSET_SCHEMA)
@@ -363,7 +653,10 @@ def write_precursor_context_package(source_root, destination):
             "n_acquisitions": len(acquisitions),
             "condition_map_status": "unresolved",
             "specimen_pairing_status": "unresolved",
-            "quantity_materialization_status": "deferred_child_pr_802",
+            "quantity_materialization_status": "materialized_typed_relations",
+            "n_materialized_quantity_rows": sum(
+                row["n_source_rows"] for row in materialized_tables.values()
+            ),
         }
         manifest = {
             "schema_version": PACKAGE_SCHEMA_VERSION,
@@ -380,7 +673,9 @@ def write_precursor_context_package(source_root, destination):
                 "n_archive_members": len(receipt["archive_members"]),
                 "n_acquisitions": len(acquisitions),
                 "n_pairing_assertions": len(pairings),
-                "n_precursor_measurements": 0,
+                "n_precursor_quantity_rows": sum(
+                    row["n_source_rows"] for row in materialized_tables.values()
+                ),
                 "n_training_examples": 0,
             },
             "files": files,

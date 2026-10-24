@@ -8130,6 +8130,9 @@ Plan: [precursor-source-contract-801.md](precursor-source-contract-801.md).
 - [x] Create parent #800 and child PR issues #801, #802 and #803.
 - [x] Freeze hash-pinned PXD009360 source assets, archive members and
       unresolved run/pairing requirements.
-- [x] Implement schema-20/catalog-25 source-contract package and local replay.
-- [ ] Materialize complete precursor quantities in child PR #802.
+- [x] Implement schema-20/catalog-25 source-contract package and local replay (PR #804; merged at `6416616a9b496a4706d9bd161242a247ace103d2`).
+- [x] Verify clean-main release run `40089253494`, upload 2.0.20 to PyPI, and
+      record wheel `bdebbe850890f92cfed5b9925ce5f5f03c38cb6958e574519d02a1f7889ddcaa`
+      and sdist `aabab8b9a0dc30853ca13d52247940d110d05ca5dec5a3a1185d138ab257ede7`.
+- [ ] Materialize complete precursor quantities in child PR #802 (schema-21/catalog-26 implementation in progress).
 - [ ] Qualify the precursor recipe and pairing scope in child PR #803.

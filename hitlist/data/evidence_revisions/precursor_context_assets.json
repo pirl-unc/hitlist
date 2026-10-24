@@ -53,6 +53,28 @@
     {"path": "txt/parameters.txt", "size_bytes": 1740},
     {"path": "txt/Oxidation (M)Sites.txt", "size_bytes": 315636}
   ],
+  "materialized_tables": {
+    "txt/allPeptides.txt": {
+      "n_source_rows": 2028032,
+      "source_member_size_bytes": 1158152038,
+      "source_member_sha256": "bdf9652589dc9f694c98b83d682781af629fb7485b9ab47e6aa9a821c4853d87"
+    },
+    "txt/peptides.txt": {
+      "n_source_rows": 37416,
+      "source_member_size_bytes": 19412930,
+      "source_member_sha256": "d77b025a4187f6fad003cda9c18e3244bb88da63756260ba9f6180f39ed58412"
+    },
+    "txt/evidence.txt": {
+      "n_source_rows": 352666,
+      "source_member_size_bytes": 151095645,
+      "source_member_sha256": "fa21c07b3041c8218647d262a561f78d7dca97ffd806530201804004c0791a4d"
+    },
+    "txt/proteinGroups.txt": {
+      "n_source_rows": 5390,
+      "source_member_size_bytes": 8151794,
+      "source_member_sha256": "1c8744a90f43572278a08c5691a556a7eadfa4f1846bc439df792f50472d6da6"
+    }
+  },
   "acquisitions": [
     {"acquisition_id": "pxd009360:run:448", "sample_label_raw": "448", "source_file": "QEP2_YME_448_1_071216.raw"},
     {"acquisition_id": "pxd009360:run:449", "sample_label_raw": "449", "source_file": "QEP2_YME_449_1_071216.raw"},
