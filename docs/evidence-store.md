@@ -674,6 +674,46 @@ to measured negatives. The ledger explicitly marks APC/TAP/clearance/MHC
 processing as unavailable, because purified proteasome digestion measures
 relative MS response rather than intracellular production or concentration.
 
+## HAP1 machinery response recipe
+
+The registered `hap1_machinery_response_v1` recipe consumes the standalone
+quantitative HAP1 source package through the same materialization interface:
+
+```python
+store.materialize({
+    "schema_version": 1,
+    "name": "hap1-machinery-response",
+    "registered_recipe": "hap1_machinery_response_v1",
+}, "hap1-responses")
+```
+
+Each response retains one positive canonical KO biological-replicate peptide cell
+and the source IDs of at least two positive WT cells used for its mean-log10
+reference. WT is reference only; B2M is background only. Peptides detected in B2M
+are excluded under the explicit recipe policy. Missing and zero quantities remain
+source dispositions, without synthetic bounds or negative labels. Noncanonical
+quantities remain deferred. Original source tables and context contracts are frozen
+in the recipe alongside all 2.4 million source-cell decisions for the full study.
+
+Candidate parent sequence groups retain every exact reference alternative. Before
+eligibility filtering, components connect all canonical/noncanonical source peptide
+identities, parent claims, exact full sequences and deposited protein inference
+groups. Deterministic component splits prevent shared exact molecular inputs from
+crossing partitions; specimen, clone, study and homology independence remain unknown.
+
+Optional precursor inputs use only supplement MaxLFQ cells, with at least two
+positive WT and KO replicates for every candidate parent. Missing or ambiguous
+protein groups remain unresolved. These are condition-level protein-group surrogates;
+no exact aliquot pairing or molar interpretation is inferred. Complete-precursor
+status is separate from elution-response eligibility, so consumers must declare
+their cohort and normalize condition/component/peptide/replicate weights within it.
+
+The source package remains an unfiltered evidence layer: its deferred eligibility
+statuses are not overwritten by recipe decisions. `verify_recipe_package` checks
+source hashes and replays derived arithmetic, components and all dispositions.
+HAP1 elution response does not by itself identify processing, transport, selection,
+MS detectability, or intracellular peptide concentrations.
+
 # Standalone precursor context
 
 Schema 22/catalog 27 extends the standalone `precursor_context` package for the

@@ -8175,13 +8175,43 @@ regressions fail before the fix; 55 focused tests pass afterward. The original
 package now supports nullable context queries without losing unknown rows.
 No biological model fit yet; full-suite validation and release remain pending.
 
+## HAP1 response recipe and biological baselines
+
+Previous status-only goal turn: no progress. Revalidated shared source CI40088549411 succeeds at2f4bbe0, including integration and Python3.10–3.14 units.
+- [x] Freeze response/precursor/split and local baseline contracts before fitting.
+- [x] Implement registered Hitlist recipe, source-conserving dispositions and meaningful tests.
+- [x] Materialize and independently verify real HAP1 response dataset.
+- [x] Run local complete-precursor controls and sequence baselines, training-only grouped CV.
+- [x] Independently verify, publish report/artifacts and specify physical follow-up from evidence.
+
+HAP1 response review: registered recipe materialization succeeds against the original
+schema20 source (manifest a1eec392c06485966e131663f85e7599dcd9e5ff621841eb0d44eeaafe779309).
+All 2,391,692 supplement cells retain dispositions; 220,271 canonical positive KO
+responses and 129,728 complete-precursor responses across all partitions. Independent
+consumer verification reproduces every response, precursor group and dependency split.
+Original source bytes/NA values are unchanged. Source replay+recipe424.19s/1.802GiB;
+independent typed-source closure114.83s/1.109GiB. Presto development fit finds10.0%
+inner-CV RMSE improvement from simple sequence features; this is not concentration
+validation or an untouched test. No outer validation/test model score was produced.
+
+Format/lint pass.43 focused tests pass. Full guarded ./test.sh runs with3workers
+and passes3,439 tests/394warnings in642.44s (wrapper658.47s). Initial sandbox memory
+probe failed; the host-probed launch used7.95GiB free and retained the guard. A first
+focused command named a nonexistent singular test file and collected0tests; corrected
+plural filename was verified from rg before the successful43-test run.
+
+[ ] Upstream merge/release remains pending: main concurrently added the distinct
+PXD009360 precursor_context family at schema20/catalog25/version2.0.20 (PR804).
+Publish this recipe as a stacked draft until source PR806's schema/version integration
+is resolved; do not claim this work is released.
+
 ## Integrate HAP1 and concurrent precursor context
 
 Spec: tasks/hap1-main-integration-spec.md. Keep both explicit package families;
 their pinned schema20 envelopes remain distinguishable by family and revision.
 - [x] Inspect current main6416616 and source/recipe exact-head CI (all source/recipe checks pass).
-- [ ] Merge main, retain both catalogs/dispatch paths and advance live catalog/version.
-- [ ] Verify namespace regression, old HAP1 package and required test suite.
+- [x] Merge main, retain both catalogs/dispatch paths and advance live catalog/version.
+- [x] Verify namespace regression, old HAP1 package and required test suite.
 - [ ] Integrate the stacked response PR, publish/release through the upstream workflow.
 
 Integration review: both explicit schema20 families coexist without relabeling
@@ -8191,6 +8221,10 @@ The focused integration suite passes45 tests after updating a stale current-cata
 version assertion (initial44pass/1fail preserved in /private/tmp/hitlist-hap1-merged-focused.log).
 Required full guarded tests and original-package reopen remain pending until the
 concurrent local biological fits finish; hosted checks will validate this new head.
+
+Stacked integration: retained both documentation/task sections and both package
+families; recipe consumer advances to2.0.22. Original pinned source/recipe hashes
+remain unchanged. New-head format/lint/focused and full tests pending.
 
 Full integration validation found five additional stale live-catalog assertions:
 Python3.14 CI40093682648 and local guarded ./test.sh both fail only those assertions
@@ -8205,6 +8239,15 @@ replaying all typed relations from original assets in51.46s; manifest88cad10d…
 remains unchanged and contextual query succeeds. Source/schema20/catalog25 is
 preserved. New-head hosted CI and upstream merge/release remain pending.
 
+Stacked2.0.22 integration retains the validated source fixes. Format/lint and
+49focused source/recipe/query tests pass; final recipe full suite and pinned recipe
+replay now pending. The earlier source full suite and actual source reopen passed.
+
+Recipe full-suite preflight refused before collecting tests:1.83GiB available versus
+2.5GiB minimum. No guard override or hidden partial suite. Source3,442tests and
+recipe49focused tests pass; recipe full-suite/actual pinned-recipe replay and release
+remain pending. Publish integration as draft and obtain new-head hosted checks.
+
 Successor-main897c98c integration: source consumer2.0.22/live catalog27 preserves
 HAP1schema20/catalog25 and upstream precursorv2/schema21/catalog26. The current
 recipe branch advances the precursor reader to v3/schema22/catalog27. Format/lint,
@@ -8212,3 +8255,16 @@ recipe branch advances the precursor reader to v3/schema22/catalog27. Format/lin
 2workers after7.15GiB memory probe). Original HAP1 package again replays/query-opens
 with unchanged manifest88cad10d… in53.08s. Upstream's older precursorv1 envelope
 requires its historical consumer; this observed compatibility limit is explicit.
+
+The earlier integrated recipe865acb8 subsequently passed3,446tests/394warnings
+in119.32s after a7.92GiB probe allowed3workers. Main then advanced again. The
+current recipe integrates source a3b80a8 and becomes2.0.23/live catalog27;
+new-head focused/full checks and pinned recipe replay are now required.
+
+Final integration validation for recipe 2.0.23: format/lint and 50 focused tests
+pass. Guarded ./test.sh passes 3,447 tests with 393 warnings in 168.41 seconds;
+the real memory probe allowed two workers with 5.39 GiB available. The original
+pinned response package replays under this consumer in 22.06 seconds: all
+2,391,692 dispositions, 220,271 responses and original precursor/split relations
+match. Source and recipe manifest hashes remain 88cad10d… and a1eec392….
+Hosted checks, merge and PyPI deployment remain pending; do not claim release.
