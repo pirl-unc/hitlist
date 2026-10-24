@@ -40,11 +40,11 @@ def test_family_ledger_keeps_unavailable_families_explicit():
 
 
 def test_package_family_and_query_alias_contract_are_versioned():
-    assert SCHEMA_VERSION == 22
+    assert SCHEMA_VERSION == 23
     assert (
         package_family(
             {
-                "schema_version": 17,
+                "schema_version": 18,
                 "package_family": "tcell_processing",
                 "revision": "tcell_processing_evidence_v1",
             }

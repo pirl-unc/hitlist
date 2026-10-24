@@ -8039,7 +8039,7 @@ Plan: [tmab-provenance-corrections-792.md](tmab-provenance-corrections-792.md).
       correct acquisition and exposure/wash provenance.
 - [x] Correct Gelman heatmap sequence projection and run the local required
       gates.
-- [x] Open the PR, pass hosted gates, merge and publish 2.0.16.
+- [ ] Open the PR, pass hosted gates, merge and publish 2.0.16.
 
 Review: implementation is complete locally. The rebuilt package preserves
 10,564 source rows, 61,908 measurements, 33 protocol contexts and all prior
@@ -8048,12 +8048,34 @@ cross-paper candidate groups (1,942 source rows) without asserting specimen
 independence; tentative/unresolved identities are deferred. Local format,
 lint and full tests pass (3,389 tests).
 
-Release update: PR #794 merged as `7649ffe`; clean-main release workflow
-`40071541566` passed the complete release gate. Hitlist 2.0.16 was published
-to PyPI with wheel SHA-256
-`f6f6dd68e0aa462418b6f9b08d358ea837f8e9adbc9304c81ea5c920d37e3a46` and sdist
-SHA-256
-`c6a968c987c13b4fb7a2b0a1d69d4f2120ad2cd5fd3e2ac4680df73c87e16450`.
+## TMAB semantic corrections (#791 / #792)
+
+- [x] Implement tasks/tmab-semantic-corrections-791.md on the isolated correction branch.
+- [x] Verify focused regressions, canonical query fields and the full original workbooks.
+- [ ] Finish full repository tests, review and publish the correction PR/release.
+- [ ] Qualify the canonical native-response recipe separately before fitting.
+
+Review: 43 focused tests pass; the final regression file gives 14 failures and
+one pass against pinned f4d3a6d. Format and lint pass. Full ./test.sh completed successfully (3,403 tests).
+The real-source replay preserves 10,564 rows and 61,908 measurement slots and
+recovers all 830 independently identified candidate reuse groups (1,660 rows).
+There are 7,933 exact and 4,662 censored treated/control source candidates;
+these are not independent training counts. The first replay's 1,242 whitespace
+comparison failures are retained and explained by a separate successful closure:
+existing projected labels trim whitespace while raw rows remain literal. No
+production data or parser rule changed to resolve that comparator error.
+Evidence: Presto experiments/2026-10-24_0156_codex_tmab-semantic-replay.
+
+
+## Reconciled native response successor (#791 / #793)
+
+- [x] Merge concurrent main7649ffe while preserving its raw provenance additions.
+- [x] Retain strict sequence/peptidoform parsing, full compound names, handling contexts and per-slot possible reuse.
+- [x] Add v3/schema17/catalog22 and the registered exact/bounded response recipe, version2.0.17.
+- [x] Pass format/lint,54focused and3,414full local tests plus independent full-source/reference/target/split/weight replay.
+- [ ] Push the resolved merge, pass new-head hosted gates, merge and release2.0.17.
+
+Review: see tmab-upstream-reconciliation.md and Presto0259 admission. PR794 merged independently and its2.0.16release-build passed; preserve issue792closure and do not treat prior PR793 checks as new-head evidence. No APC concentration qualification is claimed.
 
 ## Standalone T-cell and processing evidence package (#795 / #723)
 
@@ -8061,14 +8083,15 @@ Plan: [tcell-processing-package-795.md](tcell-processing-package-795.md).
 
 - [x] Audit current T-cell and controlled-processing package/registry paths
       and freeze source/count/hash anchors.
-- [x] Define the schema-17/catalog-22 common package contract while keeping
+- [x] Define the schema-18/catalog-23 common package contract while keeping
       functional, multimer, receptor, processing and MAPP families separate.
 - [x] Register typed family projections, availability/no-direct-processing
       results and replay tests.
-- [ ] Run hosted gates, merge and deploy 2.0.17.
+- [ ] Run hosted gates, merge and deploy 2.0.18.
 
 Review: the standalone replay preserves 55,844 T-cell examples, 578,529
 assay rows, 192,114 MAPP quantity results and 362,882 MAPP measurements.
 Aliases query functional response, pMHC multimer binding, processing
 measurement and MAPP products without merging their scientific families.
-Hosted review and release evidence are pending.
+The branch is rebased on the strict TMAB response successor (schema 17 /
+catalog 22); hosted review and release evidence are pending.

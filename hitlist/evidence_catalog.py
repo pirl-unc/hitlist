@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, replace
 
-SCHEMA_VERSION = 22
+SCHEMA_VERSION = 23
 FIELD_ROLES = frozenset(
     {
         "identity",
@@ -88,6 +88,40 @@ def _field(name, role, value_kind, meaning, *null_states):
 
 
 FIELDS = (
+    _field("source_handling_raw", "provenance", "text", "Unmodified source wash or handling cell"),
+    _field(
+        "source_observed_mass_raw", "provenance", "text", "Unmodified source observed mass cell"
+    ),
+    _field(
+        "candidate_reuse_key", "lineage", "text", "Source-independent candidate-reuse fingerprint"
+    ),
+    _field("observed_mass_raw", "molecular_input", "text", "Unmodified observed mass cell"),
+    _field("theoretical_mass_raw", "molecular_input", "text", "Unmodified theoretical mass cell"),
+    _field(
+        "acquisition_provenance_status",
+        "provenance",
+        "category",
+        "Row-level acquisition provenance scope",
+    ),
+    _field("wash_interval_raw", "protocol", "text", "Unmodified source wash or harvest interval"),
+    _field(
+        "wash_presence_status",
+        "protocol",
+        "category",
+        "Source scope for compound presence during washing",
+    ),
+    _field(
+        "exposure_interval_status", "provenance", "category", "Evidence scope for exposure timing"
+    ),
+    _field(
+        "acquisition_source_scope", "provenance", "category", "Scope of an acquisition assertion"
+    ),
+    _field(
+        "source_study_inheritance_status",
+        "provenance",
+        "category",
+        "Whether acquisition inheritance is resolved",
+    ),
     _field(
         "reference_id",
         "provenance",
@@ -364,11 +398,103 @@ FIELDS = (
     ),
     _field("source_cell_raw", "biological_context", "text", "Unmodified source cell-line label"),
     _field("source_comments_raw", "provenance", "text", "Unmodified source comments cell"),
-    _field("source_handling_raw", "provenance", "text", "Unmodified source wash or handling cell"),
-    _field(
-        "source_observed_mass_raw", "provenance", "text", "Unmodified source observed-mass cell"
-    ),
     _field("row_identity_status", "provenance", "category", "Source row sequence identity status"),
+    _field(
+        "shared_control_group_status",
+        "lineage",
+        "category",
+        "Whether a shared-control group is a source-label proxy or a resolved physical denominator",
+    ),
+    _field(
+        "sequence_identity_status",
+        "annotation",
+        "category",
+        "Reported, tentative, unidentified or unresolved sequence identity; separate from numeric exactness",
+    ),
+    _field(
+        "modification_status",
+        "annotation",
+        "category",
+        "Supported, absent from source notation or unresolved modification annotation",
+    ),
+    _field(
+        "peptide_modifications_json",
+        "molecular_input",
+        "text",
+        "Source-supported modification objects; residue positions are 1-based and N-terminus is position 0",
+    ),
+    _field(
+        "duration_role",
+        "protocol",
+        "category",
+        "Scope of the duration value; a reported total interval is not necessarily incubation alone",
+    ),
+    _field(
+        "average_annotation_raw",
+        "provenance",
+        "text",
+        "Original average-label annotation with treatment and harvest assertions",
+    ),
+    _field(
+        "incubation_duration_hours",
+        "protocol",
+        "number",
+        "Incubation duration parsed from an explicit source timeline; unknown stays null",
+    ),
+    _field(
+        "harvest_duration_hours",
+        "protocol",
+        "number",
+        "Harvest interval parsed from an explicit source timeline; unknown stays null",
+    ),
+    _field(
+        "harvest_compound_status",
+        "protocol",
+        "category",
+        "Source-scoped compound presence during harvesting; never inferred washout",
+    ),
+    _field(
+        "timeline_status",
+        "provenance",
+        "category",
+        "Availability of explicit source timeline components",
+    ),
+    _field(
+        "timeline_evidence_url",
+        "provenance",
+        "text",
+        "Primary Methods evidence for treatment and handling scope",
+    ),
+    _field(
+        "publishing_protocol_instrument",
+        "protocol",
+        "text",
+        "Instrument asserted by the publishing study protocol, not necessarily reused-data acquisition",
+    ),
+    _field(
+        "instrument_status",
+        "provenance",
+        "category",
+        "Source scope or unresolved original acquisition for the instrument field",
+    ),
+    _field(
+        "protocol_evidence_url",
+        "provenance",
+        "text",
+        "Primary Methods evidence for the publishing protocol",
+    ),
+    _field(
+        "candidate_reuse_group_id",
+        "lineage",
+        "identifier",
+        "Possible cross-paper source-row reuse group; not adjudicated specimen identity",
+    ),
+    _field(
+        "experiment_label_agreement",
+        "lineage",
+        "category",
+        "Whether candidate reuse rows also share case/whitespace-normalized experiment labels",
+    ),
     _field("source_sha256", "provenance", "identifier", "SHA256 of a source asset"),
     _field("publication_doi", "provenance", "identifier", "Publication DOI for a source context"),
     _field("extraction_method", "protocol", "text", "Reported material extraction method"),
@@ -408,7 +534,6 @@ FIELDS = (
     _field(
         "lineage_group_id", "lineage", "identifier", "Potentially reused measurement lineage group"
     ),
-    _field("candidate_reuse_key", "lineage", "text", "Source-independent candidate-reuse key"),
     _field(
         "cross_paper_match_key",
         "lineage",
@@ -426,45 +551,6 @@ FIELDS = (
     _field("context_id", "relation", "identifier", "One source study and experiment context"),
     _field(
         "context_status", "provenance", "category", "Completeness of a source experiment context"
-    ),
-    _field("wash_interval_raw", "protocol", "text", "Unmodified source wash or harvest interval"),
-    _field(
-        "wash_presence_status",
-        "protocol",
-        "category",
-        "Source scope for compound presence during washing",
-    ),
-    _field(
-        "exposure_interval_status", "provenance", "category", "Evidence scope for exposure timing"
-    ),
-    _field(
-        "acquisition_source_scope", "provenance", "category", "Scope of an acquisition assertion"
-    ),
-    _field(
-        "source_study_inheritance_status",
-        "provenance",
-        "category",
-        "Whether acquisition inheritance is resolved",
-    ),
-    _field(
-        "sequence_identity_status",
-        "molecular_input",
-        "category",
-        "Confidence of source sequence identity",
-    ),
-    _field(
-        "modification_status",
-        "molecular_input",
-        "category",
-        "Resolution of source modification annotations",
-    ),
-    _field("observed_mass_raw", "molecular_input", "text", "Unmodified observed mass cell"),
-    _field("theoretical_mass_raw", "molecular_input", "text", "Unmodified theoretical mass cell"),
-    _field(
-        "acquisition_provenance_status",
-        "provenance",
-        "category",
-        "Row-level acquisition provenance scope",
     ),
     _field("license_status", "provenance", "category", "Evidence for a source asset license"),
     _field("source_locator", "provenance", "text", "Source file and exact row or cell"),
@@ -1583,7 +1669,7 @@ EVIDENCE = (
         ("family_id",),
         status="v2_materialized",
         materialized_artifact="tcell_processing/families.parquet",
-        min_package_schema_version=17,
+        min_package_schema_version=18,
     ),
     Evidence(
         "tcell_processing_availability",
@@ -1608,7 +1694,7 @@ EVIDENCE = (
         ("family_id", "source_id"),
         status="v2_materialized",
         materialized_artifact="tcell_processing/availability.parquet",
-        min_package_schema_version=17,
+        min_package_schema_version=18,
     ),
     Evidence(
         "assay_adjudication",
@@ -1763,7 +1849,7 @@ EVIDENCE = (
         ("source_asset_id",),
         status="v2_materialized",
         materialized_artifact="tmab/source_assets.parquet",
-        min_package_schema_version=16,
+        min_package_schema_version=17,
     ),
     Evidence(
         "tmab_source_row",
@@ -1793,7 +1879,7 @@ EVIDENCE = (
         ("source_record_id",),
         status="v2_materialized",
         materialized_artifact="tmab/source_rows.parquet",
-        min_package_schema_version=16,
+        min_package_schema_version=17,
     ),
     Evidence(
         "tmab_protocol_context",
@@ -1822,8 +1908,18 @@ EVIDENCE = (
             "treatment_dose_unit",
             "exposure_duration_raw",
             "duration_hours",
+            "duration_role",
+            "average_annotation_raw",
+            "incubation_duration_hours",
+            "harvest_duration_hours",
+            "harvest_compound_status",
+            "timeline_status",
+            "timeline_evidence_url",
             "labeling_method",
             "instrument",
+            "publishing_protocol_instrument",
+            "instrument_status",
+            "protocol_evidence_url",
             "acquisition_mode",
             "assay_method",
             "assay_readout",
@@ -1839,7 +1935,7 @@ EVIDENCE = (
         ("context_id",),
         status="v2_materialized",
         materialized_artifact="tmab/protocol_context.parquet",
-        min_package_schema_version=16,
+        min_package_schema_version=17,
     ),
     Evidence(
         "tmab_measurement",
@@ -1865,8 +1961,9 @@ EVIDENCE = (
             "channel_label_raw",
             "peptide_sequence_raw",
             "peptide_sequence",
-            "sequence_identity_status",
             "peptide_modifications_raw",
+            "peptide_modifications_json",
+            "sequence_identity_status",
             "modification_status",
             "parent_label_raw",
             "gene_name",
@@ -1887,12 +1984,13 @@ EVIDENCE = (
             "source_reuse_status",
             "acquisition_provenance_status",
             "shared_control_group_id",
+            "shared_control_group_status",
             "source_comments_raw",
         ),
         ("measurement_id", "source_record_id", "source_cell"),
         status="v2_materialized",
         materialized_artifact="tmab/measurements.parquet",
-        min_package_schema_version=16,
+        min_package_schema_version=17,
     ),
     Evidence(
         "tmab_measurement_lineage",
@@ -1912,11 +2010,13 @@ EVIDENCE = (
             "reuse_status",
             "relation_basis",
             "independent_specimen_status",
+            "candidate_reuse_group_id",
+            "experiment_label_agreement",
         ),
         ("measurement_id", "lineage_group_id"),
         status="v2_materialized",
         materialized_artifact="tmab/lineage.parquet",
-        min_package_schema_version=16,
+        min_package_schema_version=17,
     ),
     Evidence(
         "gomez_source_result",

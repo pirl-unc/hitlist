@@ -20,8 +20,8 @@ import pyarrow.parquet as pq
 from .evidence_snapshot import snapshot_file
 from .provenance import file_digest
 
-PACKAGE_SCHEMA_VERSION = 17
-CATALOG_SCHEMA_VERSION = 22
+PACKAGE_SCHEMA_VERSION = 18
+CATALOG_SCHEMA_VERSION = 23
 REVISION = "tcell_processing_evidence_v1"
 PACKAGE_FAMILY = "tcell_processing"
 

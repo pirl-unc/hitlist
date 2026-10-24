@@ -36,6 +36,7 @@ def describe_registered_recipes(store):
     from .digestion_recipe import describe as describe_digestion
     from .mapp_controlled_recipe import describe as describe_controlled
     from .ms_calibration_response import describe
+    from .tmab_response_recipe import describe as describe_native_response
 
     available = set(TABLE_BINDINGS.values()) <= store.bindings.keys()
     return [
@@ -46,6 +47,7 @@ def describe_registered_recipes(store):
         describe_controlled(store),
         describe_controlled(store, contrast=True),
         describe_digestion(store),
+        describe_native_response(store),
     ]
 
 

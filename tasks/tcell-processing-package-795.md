@@ -14,7 +14,7 @@ families remain explicit availability results rather than synthetic negatives.
 
 - [x] Audit the current T-cell v2 and controlled-processing manifests, source
       assets, relation schemas and registry paths; freeze row/count/hash anchors.
-- [x] Define schema-17/catalog-22 package-family metadata and the common source,
+- [x] Define schema-18/catalog-23 package-family metadata and the common source,
       assay-context, reported-measurement, molecular-input, lineage and
       eligibility contract.
 - [x] Add typed family projections for functional response, multimer binding,
@@ -26,7 +26,7 @@ families remain explicit availability results rather than synthetic negatives.
       multiplying observations.
 - [x] Add availability and no-direct-processing audit relations, source-linked
       examples, replay/count/hash tests, and explicit donor/restriction policy.
-- [ ] Run format/lint/full/hosted gates, merge, and deploy 2.0.17.
+- [ ] Run hosted gates, merge, and deploy 2.0.18.
 
 ## Review
 
@@ -35,4 +35,9 @@ is 208 MB and preserves 55,844 T-cell examples, 578,529 assay rows, 192,114
 MAPP quantity results and 362,882 MAPP quantity measurements. The family
 ledger records receptor and direct-processing availability as explicit
 unmaterialized/unobserved states. Local focused tests and standalone
-EvidenceStore alias queries pass; full and hosted release evidence remain.
+EvidenceStore alias queries pass. `./format.sh` and `./lint.sh` pass, and the
+host-level one-worker `./test.sh` run passes all 3,418 non-integration tests.
+The package manifest verifies as schema 18/catalog 23; its EvidenceStore
+replay returns 47,421 functional responses, 8,423 multimer bindings, 192,114
+processing measurements, 362,882 MAPP measurements, five family rows and five
+availability rows. Hosted and release evidence remain.
