@@ -8172,10 +8172,10 @@ No biological model fit yet; full-suite validation and release remain pending.
 
 Previous status-only goal turn: no progress. Revalidated shared source CI40088549411 succeeds at2f4bbe0, including integration and Python3.10–3.14 units.
 - [x] Freeze response/precursor/split and local baseline contracts before fitting.
-- [ ] Implement registered Hitlist recipe, source-conserving dispositions and meaningful tests.
-- [ ] Materialize and independently verify real HAP1 response dataset.
-- [ ] Run local complete-precursor controls and sequence baselines, training-only grouped CV.
-- [ ] Independently verify, publish report/artifacts and specify physical follow-up from evidence.
+- [x] Implement registered Hitlist recipe, source-conserving dispositions and meaningful tests.
+- [x] Materialize and independently verify real HAP1 response dataset.
+- [x] Run local complete-precursor controls and sequence baselines, training-only grouped CV.
+- [x] Independently verify, publish report/artifacts and specify physical follow-up from evidence.
 
 HAP1 response review: registered recipe materialization succeeds against the original
 schema20 source (manifest a1eec392c06485966e131663f85e7599dcd9e5ff621841eb0d44eeaafe779309).
@@ -8203,8 +8203,8 @@ is resolved; do not claim this work is released.
 Spec: tasks/hap1-main-integration-spec.md. Keep both explicit package families;
 their pinned schema20 envelopes remain distinguishable by family and revision.
 - [x] Inspect current main6416616 and source/recipe exact-head CI (all source/recipe checks pass).
-- [ ] Merge main, retain both catalogs/dispatch paths and advance live catalog/version.
-- [ ] Verify namespace regression, old HAP1 package and required test suite.
+- [x] Merge main, retain both catalogs/dispatch paths and advance live catalog/version.
+- [x] Verify namespace regression, old HAP1 package and required test suite.
 - [ ] Integrate the stacked response PR, publish/release through the upstream workflow.
 
 Integration review: both explicit schema20 families coexist without relabeling
@@ -8218,3 +8218,25 @@ concurrent local biological fits finish; hosted checks will validate this new he
 Stacked integration: retained both documentation/task sections and both package
 families; recipe consumer advances to2.0.22. Original pinned source/recipe hashes
 remain unchanged. New-head format/lint/focused and full tests pending.
+
+Full integration validation found five additional stale live-catalog assertions:
+Python3.14 CI40093682648 and local guarded ./test.sh both fail only those assertions
+(local3437pass/5fail,168.19s). Update those to live catalog26; immutable source
+schema/catalog assertions remain unchanged. Preserve both failure logs and rerun
+format/lint/focused/full tests. This corrects the missed integration test scope.
+
+Corrected source integration validation: format/lint and24 targeted tests pass;
+full guarded ./test.sh passes3,442tests/392warnings in303.37s with1worker after
+memory probe3.42GiB. Original pinned HAP1 package reopens under2.0.21/catalog26,
+replaying all typed relations from original assets in51.46s; manifest88cad10d…
+remains unchanged and contextual query succeeds. Source/schema20/catalog25 is
+preserved. New-head hosted CI and upstream merge/release remain pending.
+
+Stacked2.0.22 integration retains the validated source fixes. Format/lint and
+49focused source/recipe/query tests pass; final recipe full suite and pinned recipe
+replay now pending. The earlier source full suite and actual source reopen passed.
+
+Recipe full-suite preflight refused before collecting tests:1.83GiB available versus
+2.5GiB minimum. No guard override or hidden partial suite. Source3,442tests and
+recipe49focused tests pass; recipe full-suite/actual pinned-recipe replay and release
+remain pending. Publish integration as draft and obtain new-head hosted checks.
