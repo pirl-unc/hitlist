@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, replace
 
-SCHEMA_VERSION = 30
+SCHEMA_VERSION = 31
 FIELD_ROLES = frozenset(
     {
         "identity",
@@ -88,6 +88,7 @@ def _field(name, role, value_kind, meaning, *null_states):
 
 
 FIELDS = (
+    _field("source_field", "provenance", "text", "Exact original column label at source row grain"),
     _field("source_handling_raw", "provenance", "text", "Unmodified source wash or handling cell"),
     _field(
         "source_observed_mass_raw", "provenance", "text", "Unmodified source observed mass cell"
@@ -4869,6 +4870,179 @@ EVIDENCE += tuple(
         min_package_schema_version=24,
     )
     for name, (grain, fields) in LYMPH_RELATIONS.items()
+)
+
+GOLDBERG_RELATIONS = {
+    "assets": ("one_pinned_original_asset", HAP1_RELATIONS["assets"][1]),
+    "source_records": (
+        "one_original_row_preserving_ordered_fields_or_metadata_document",
+        (
+            "source_record_id",
+            "source_file",
+            "source_locator",
+            "source_row_index",
+            "source_row_json",
+        ),
+    ),
+    "acquisitions": (
+        "one_original_deposition_raw_file_not_a_physical_specimen",
+        (
+            "acquisition_id",
+            "source_record_id",
+            "context_id",
+            "sample_label_raw",
+            "cell_line_name",
+            "measured_pool",
+            "specimen_id",
+            "aliquot_id",
+            "material_link_precision",
+        ),
+    ),
+    "groups": (
+        "one_original_MaxQuant_protein_group",
+        ("source_record_id", "parent_label_raw"),
+    ),
+    "references": (
+        "one_source_FASTA_header_slot_not_a_full_reference_or_verified_origin",
+        (
+            "reference_record_id",
+            "source_record_id",
+            "accession_raw",
+            "organism_taxon_id",
+            "reference_sequence",
+        ),
+    ),
+    "peptides": (
+        "one_original_MaxQuant_peptide_row",
+        ("source_record_id", "peptide_sequence", "parent_label_raw"),
+    ),
+    "forms": (
+        "one_original_MaxQuant_modification_specific_peptide_row",
+        ("source_record_id", "peptide_sequence", "parent_label_raw", "peptide_modifications_raw"),
+    ),
+    "identifications": (
+        "one_original_MaxQuant_evidence_row_not_aggregated_peptide_amount",
+        (
+            "source_record_id",
+            "acquisition_id",
+            "peptide_sequence",
+            "parent_label_raw",
+            "peptide_modifications_raw",
+        ),
+    ),
+    "quantities": (
+        "one_original_peptide_form_or_evidence_intensity_cell_including_zero_and_missing",
+        (
+            "measurement_id",
+            "source_record_id",
+            "acquisition_id",
+            "source_field",
+            "source_cell",
+            "quantitative_raw",
+            "quantitative_value",
+            "value_status",
+            "measurement_unit",
+            "quantity_scale",
+        ),
+    ),
+    "assertions": (
+        "one_source_scoped_assertion_preserving_original_or_secondary_provenance",
+        (
+            "source_record_id",
+            "source_scope",
+            "assertion_predicate",
+            "assertion_value",
+            "assertion_status",
+            "source_locator",
+        ),
+    ),
+    "publisher_cells": (
+        "one_original_publisher_XML_cell_with_literal_type_style_and_formula",
+        ("source_record_id", "source_file", "source_cell", "source_row_index"),
+    ),
+    "publisher_quantities": (
+        "one_publisher_quantity_cell_in_a_distinct_assay_view",
+        (
+            "measurement_id",
+            "source_record_id",
+            "source_file",
+            "source_cell",
+            "peptide_sequence",
+            "parent_label_raw",
+            "measured_pool",
+            "quantitative_raw",
+            "quantitative_value",
+            "value_status",
+            "measurement_unit",
+            "quantity_scale",
+        ),
+    ),
+    "publisher_links": (
+        "one_publisher_original_identity_or_exact_column_value_reconciliation_claim",
+        ("source_record_id", "assertion_predicate", "source_locator"),
+    ),
+    "pooled_slots": (
+        "one_ordered_Table3_label_value_slot_with_unresolved_sample_and_unit",
+        (
+            "source_record_id",
+            "source_cell",
+            "sample_label_raw",
+            "quantitative_raw",
+            "quantitative_value",
+            "value_status",
+            "measurement_unit",
+            "quantity_scale",
+            "acquisition_id",
+            "specimen_id",
+            "aliquot_id",
+        ),
+    ),
+    "material_contexts": (
+        "one_qualified_project_arm_or_acquisition_context_not_inferred_physical_sample",
+        (
+            "context_id",
+            "context_kind",
+            "condition_id",
+            "condition_status",
+            "specimen_id",
+            "aliquot_id",
+            "material_link_precision",
+            "source_locator",
+        ),
+    ),
+    "material_links": (
+        "one_qualified_material_context_membership_claim",
+        (
+            "claim_id",
+            "source_context_id",
+            "target_context_id",
+            "assertion_predicate",
+            "assertion_status",
+            "material_link_precision",
+            "source_locator",
+        ),
+    ),
+}
+EVIDENCE += tuple(
+    Evidence(
+        "goldberg_" + name,
+        "measurement"
+        if name in ("quantities", "publisher_quantities", "pooled_slots")
+        else "context"
+        if name in ("acquisitions", "material_contexts")
+        else "relation",
+        "original_MAPP_and_distinct_publisher_assays",
+        grain,
+        f"goldberg_mapp/typed/{name}.parquet",
+        "goldberg2025",
+        (),
+        fields,
+        (fields[0],),
+        status="v2_materialized",
+        materialized_artifact=f"goldberg_mapp/typed/{name}.parquet",
+        min_package_schema_version=25,
+    )
+    for name, (grain, fields) in GOLDBERG_RELATIONS.items()
 )
 
 _EVIDENCE_BY_NAME = {item.name: item for item in EVIDENCE}

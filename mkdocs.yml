@@ -12,6 +12,7 @@ nav:
   - Evidence Catalog: evidence-catalog.md
   - Declared Training Recipes: evidence-recipes.md
   - MAPP Fragment Evidence: mapp-evidence.md
+  - Goldberg2025 MAPP Evidence: goldberg-mapp.md
   - Controlled MAPP Evidence: mapp-controlled-evidence.md
   - Digestion time courses: digestion-evidence.md
   - MS calibration evidence: ms-calibration-evidence.md

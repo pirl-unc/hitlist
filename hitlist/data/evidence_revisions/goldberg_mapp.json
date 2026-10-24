@@ -1,0 +1,89 @@
+{
+  "assets": [
+    {
+      "filename": "project.json",
+      "role": "pride_project_metadata",
+      "source_url": "https://www.ebi.ac.uk/pride/ws/archive/v2/projects/PXD052314",
+      "sha256": "ca8009acbadedd1060c22ceba388cf835652d75c56756948d337cf7d7defd51b",
+      "size_bytes": 6986
+    },
+    {
+      "filename": "files.json",
+      "role": "pride_file_inventory",
+      "source_url": "https://www.ebi.ac.uk/pride/ws/archive/v2/projects/PXD052314/files?page=0&pageSize=1000",
+      "sha256": "9f05b957ee847b86d4b91fc90b8d8d2b5c4b7b3c744b33e8799f9e806a607008",
+      "size_bytes": 46362
+    },
+    {
+      "filename": "supplement.zip",
+      "role": "complete_publisher_supplement",
+      "source_url": "https://media.springernature.com/original/springer-static/esm/art%3A10.1038%2Fs41586-025-08615-w/MediaObjects/41586_2025_8615_MOESM5_ESM.zip",
+      "sha256": "4de056f094c34e1cfcdde14410d5ac35c45de7d187e9c6b987b7c5c75ff78714",
+      "size_bytes": 48110489
+    },
+    {
+      "filename": "EC_infection_Degradome_MAPP_Peptides.zip",
+      "role": "original_mapp_search_results",
+      "source_url": "ftp://ftp.pride.ebi.ac.uk/pride/data/archive/2025/03/PXD052314/EC_infection_Degradome_MAPP_Peptides.zip",
+      "sha256": "a7314be5a1fd268736bd40b6a96e92ff74303bde53822bdac7d6941f367f6fe4",
+      "size_bytes": 356132312
+    },
+    {
+      "filename": "Data_Deposition_Table.xlsx",
+      "role": "original_deposition_metadata",
+      "source_url": "ftp://ftp.pride.ebi.ac.uk/pride/data/archive/2025/03/PXD052314/Data_Deposition_Table.xlsx",
+      "sha256": "c304aca41c0519e6c9b9f0105a1f42c595c23c8853573f609be96751a0a7bf2e",
+      "size_bytes": 10668
+    },
+    {
+      "filename": "PXD052314_community_annotated.sdrf.tsv",
+      "role": "secondary_community_metadata",
+      "source_url": "ftp://ftp.pride.ebi.ac.uk/pride/data/archive/2025/03/PXD052314/PXD052314_community_annotated.sdrf.tsv",
+      "sha256": "57b2e973f6f5c01a0e46b30b6511be5c53b95e2cdfa49a1e2204c86fde795dc9",
+      "size_bytes": 19547
+    }
+  ],
+  "archive": "EC_infection_Degradome_MAPP_Peptides.zip",
+  "deposition": "Data_Deposition_Table.xlsx",
+  "sdrf": "PXD052314_community_annotated.sdrf.tsv",
+  "project_metadata": "project.json",
+  "file_metadata": "files.json",
+  "publisher": "supplement.zip",
+  "assay_pools": {
+    "EC infection Proteomics": "whole_cell_digested_protein",
+    "EC infection Degradome MAPP Peptides": "proteasome_associated_peptides",
+    "Proteasome Composition (MAPP: Whole Proteins)": "proteasome_associated_protein"
+  },
+  "publisher_workbooks": [
+    {
+      "member": "2024-04-08499C-s5/2024-04-08499C-Supplementary Table 3- Data from multiple MAPP experiments_correct.xlsx",
+      "sheet_pools": {
+        "MAPP database": "pooled_MAPP_unresolved_experiments"
+      }
+    },
+    {
+      "member": "2024-04-08499C-s5/2024-04-08499C-Supplementary Table 5 - proteomics.xlsx",
+      "sheet_pools": {
+        "MAPP_peptidomics": "proteasome_associated_peptides",
+        "MAPP_proteomics": "proteasome_associated_protein",
+        "Shotgun_proteomics": "whole_cell_digested_protein",
+        "A549_secretome": "extracellular_secretome",
+        "dTAG_A549_secretome": "extracellular_secretome_distinct_perturbation"
+      }
+    }
+  ],
+  "source_registry": {
+    "goldberg2025": {
+      "source_url": "https://www.nature.com/articles/s41586-025-08615-w",
+      "doi": "10.1038/s41586-025-08615-w",
+      "project_accession": "PXD052314",
+      "source_role": "original_MAPP_quantities_and_distinct_publisher_views",
+      "license_status": "not_adjudicated_by_this_importer",
+      "access": "public_original_processed_assets",
+      "training_status": "source_evidence_only_no_registered_recipe",
+      "reference_scope": "headers_only_full_search_FASTA_absent",
+      "material_scope": "acquisition_and_study_labels_not_exact_specimen_or_aliquot",
+      "unprojected_workbook_blocks": "Other publisher tables retained as original ZIP bytes; no activity ranking or antimicrobial modeling"
+    }
+  }
+}

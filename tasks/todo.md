@@ -8338,3 +8338,19 @@ null. Source adapter verification and the final rebased guarded suite pass:3,480
 tests,393 warnings in173.10seconds with two workers. `./format.sh` and `./lint.sh`
 also pass. One initial suite failure was a stale expected catalog value29 in the
 import-isolation test; it now expects the intentional live value30.
+
+## Goldberg2025 canonical MAPP admission
+
+- [x] Freeze source, context and candidate-export specification.
+- [x] Implement shared source/query interfaces and explicit dispositions.
+- [x] Verify fixtures and original-source replay.
+- [x] Register baseline candidates and qualification axes.
+- [ ] Complete checks, publication/release and experiment registry.
+
+### Goldberg2025 admission review
+
+Original source and registered candidate export independently pass. All394,732
+peptide-cell decisions retained;94,034baseline review candidates, including19,058
+omitted publisher cells. Source/publisher/pooled values and material precision
+reconcile. Format/lint and3,489unit tests pass; full-corpus CI, PR/merge and verified
+release remain pending. No model fit or predictive improvement in this family.
