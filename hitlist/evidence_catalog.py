@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, replace
 
-SCHEMA_VERSION = 17
+SCHEMA_VERSION = 18
 FIELD_ROLES = frozenset(
     {
         "identity",
@@ -833,6 +833,103 @@ FIELDS += (
     ),
 )
 
+# Source prediction panels are measurements from a model, not experimental
+# MHC assays.  Their restriction projection is deliberately a separate label.
+FIELDS += (
+    _field("prediction_id", "identity", "identifier", "Stable source prediction row identity"),
+    _field(
+        "supplementary_file",
+        "provenance",
+        "identifier",
+        "Derived-row supplementary source filename",
+    ),
+    _field(
+        "native_mhc_restriction", "target", "identifier", "Existing curated MHC restriction value"
+    ),
+    _field(
+        "native_restriction_evidence",
+        "provenance",
+        "category",
+        "Existing native restriction-evidence value",
+    ),
+    _field("allele_raw", "provenance", "text", "Publisher-reported allele spelling"),
+    _field("allele_normalized", "target", "identifier", "Join-normalized HLA allele"),
+    _field(
+        "cell_line_allele_scope",
+        "biological_context",
+        "text",
+        "Publisher scope text for the cell-line allele panel",
+    ),
+    _field("prediction_model", "protocol", "category", "Prediction software and model version"),
+    _field("binder", "annotation", "category", "Publisher Binder tier"),
+    _field("el_score", "annotation", "number", "NetMHCpan eluted-ligand score"),
+    _field("el_rank", "annotation", "number", "NetMHCpan eluted-ligand percentile rank"),
+    _field("aff_score", "annotation", "number", "NetMHCpan affinity score"),
+    _field("aff_rank", "annotation", "number", "NetMHCpan affinity percentile rank"),
+    _field("aff_nm", "annotation", "number", "NetMHCpan predicted affinity in nM"),
+    _field(
+        "prediction_link_status",
+        "lineage",
+        "category",
+        "Exact source prediction to derived-observation link status",
+    ),
+    _field(
+        "projected_restriction_evidence",
+        "annotation",
+        "category",
+        "Restriction label status from the explicit prediction projection",
+    ),
+    _field(
+        "restriction_projection_status",
+        "annotation",
+        "category",
+        "Named predicted restriction or unresolved restriction projection",
+    ),
+    _field(
+        "restriction_projection_reason",
+        "provenance",
+        "text",
+        "Source-backed reason for the projected restriction status",
+    ),
+    _field(
+        "selected_prediction_ids",
+        "relation",
+        "text",
+        "JSON list of source prediction rows supporting the selected allele",
+    ),
+    _field(
+        "alternative_prediction_ids",
+        "relation",
+        "text",
+        "JSON list of retained alternative source prediction rows",
+    ),
+    _field(
+        "selected_allele_raw",
+        "target",
+        "text",
+        "Existing curated allele spelling in the derived row",
+    ),
+    _field(
+        "selected_allele_normalized", "target", "identifier", "Normalized existing curated allele"
+    ),
+    _field(
+        "prediction_panel_scope", "provenance", "category", "Prediction panel used for projection"
+    ),
+    _field("n_prediction_rows", "relation", "number", "Number of linked prediction rows"),
+    _field(
+        "n_selected_prediction_rows",
+        "relation",
+        "number",
+        "Number of linked prediction rows supporting the selected allele",
+    ),
+    _field(
+        "n_alternative_prediction_rows",
+        "relation",
+        "number",
+        "Number of linked prediction rows for alternative alleles",
+    ),
+)
+
 _FIELD_BY_NAME = {field.name: field for field in FIELDS}
 
 _SOURCE = ("observation_id", "source_record_id", "source_dataset", "source_reference_id")
@@ -1578,6 +1675,73 @@ EVIDENCE = (
         status="v2_materialized",
         materialized_artifact="gomez_projection/assay_context.parquet",
         min_package_schema_version=12,
+    ),
+    Evidence(
+        "gomez_prediction_row",
+        "measurement",
+        "mhc_prediction",
+        "one_original_gomez_netmhcpan_prediction_row",
+        "gomez_prediction/prediction_rows.parquet",
+        "gomez_zepeda_2024_prediction_panels",
+        ("source_prediction_row",),
+        (
+            "prediction_id",
+            "source_row_index",
+            "source_phase",
+            "source_asset_id",
+            "source_pmid",
+            "source_dataset",
+            "cell_line_name",
+            "peptide_sequence",
+            "allele_raw",
+            "allele_normalized",
+            "cell_line_allele_scope",
+            "prediction_model",
+            "binder",
+            "el_score",
+            "el_rank",
+            "aff_score",
+            "aff_rank",
+            "aff_nm",
+            "derived_observation_id",
+            "prediction_link_status",
+        ),
+        ("prediction_id",),
+        status="v2_materialized",
+        materialized_artifact="gomez_prediction/prediction_rows.parquet",
+        min_package_schema_version=13,
+    ),
+    Evidence(
+        "gomez_restriction_projection",
+        "projection",
+        "mhc_prediction",
+        "one_derived_observation_restriction_prediction_projection",
+        "gomez_prediction/restriction_projection.parquet",
+        "gomez_zepeda_2024_prediction_panels",
+        ("predicted_restriction_projection",),
+        (
+            "derived_observation_id",
+            "supplementary_file",
+            "peptide_sequence",
+            "material_id",
+            "native_mhc_restriction",
+            "native_restriction_evidence",
+            "projected_restriction_evidence",
+            "restriction_projection_status",
+            "restriction_projection_reason",
+            "selected_allele_raw",
+            "selected_allele_normalized",
+            "prediction_panel_scope",
+            "selected_prediction_ids",
+            "alternative_prediction_ids",
+            "n_prediction_rows",
+            "n_selected_prediction_rows",
+            "n_alternative_prediction_rows",
+        ),
+        ("derived_observation_id",),
+        status="v2_materialized",
+        materialized_artifact="gomez_prediction/restriction_projection.parquet",
+        min_package_schema_version=13,
     ),
     Evidence(
         "bulk_ms_peptide",

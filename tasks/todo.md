@@ -7971,3 +7971,27 @@ the source-specific context projection has 68,552 rows (33,156 unique and
 35,396 multi-arm). Local format/lint pass; the repository test runner refused
 to start at 0.57GB free versus its 2.5GB preflight requirement, so hosted
 checks are required before merge.
+
+Release update: PR #783 merged as `d29e17f`; clean-main workflow `40052322873`
+passed the complete release gate. Hitlist 2.0.12 is on PyPI with wheel SHA-256
+`2fc18bd279aca523d1b8e75e9b651fdc8cfdd56368a4dd6b953dfdcff44ac8e6` and sdist
+SHA-256 `a606e63b1c3f91ad2d5cea5bcaec8dc45c8f8f3345861f8bf9570a7c22227511`.
+
+## Gomez-Zepeda prediction panels (#782)
+
+Plan: [gomez-prediction-panel-213.md](gomez-prediction-panel-213.md).
+
+- [x] Preserve MOESM8/S5 and MOESM10/S7 prediction rows at source grain.
+- [x] Add explicit predicted-vs-unknown restriction projection without
+      rewriting native assay labels or dropping alternatives.
+- [x] Independently replay all 394,952 prediction rows and 68,552 joins.
+- [ ] Run required gates, review, merge and publish 2.0.13.
+
+Review: source archives and row counts are pinned in the implementation plan.
+The real schema-11 native inventory replay linked 322,513 prediction rows and
+resolved exactly 50,761 named rows as `predicted`, leaving 17,791 `unknown`.
+Format and lint pass; focused tests pass (36). The standard test preflight
+refused at 1.05GB available; the explicit low-memory serial run reached 3,353
+passes but had 12 sandbox socket-bind errors and six expected probe-test
+failures because the override intentionally disables the memory-probe refusal.
+Hosted CI remains the authoritative full gate.

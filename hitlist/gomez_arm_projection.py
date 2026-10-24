@@ -475,10 +475,13 @@ def _manifest_files(staging):
     }
 
 
-def verify_gomez_arm_projection_package(directory):
+def verify_gomez_arm_projection_package(
+    directory, *, manifest_path="manifest.json", allow_additional_files=False
+):
     """Verify inherited bytes, source mappings, row counts, and projection joins."""
     directory = Path(directory)
-    manifest = json.loads((directory / "manifest.json").read_text())
+    manifest_file = directory / manifest_path
+    manifest = json.loads(manifest_file.read_text())
     if (
         manifest.get("schema_version") != PACKAGE_SCHEMA_VERSION
         or manifest.get("catalog_schema_version") != CATALOG_SCHEMA_VERSION
@@ -490,9 +493,11 @@ def verify_gomez_arm_projection_package(directory):
     actual = {
         str(path.relative_to(directory))
         for path in directory.rglob("*")
-        if path.is_file() and path != directory / "manifest.json"
+        if path.is_file() and path != manifest_file
     }
-    if set(manifest.get("files", {})) != actual:
+    if not allow_additional_files and set(manifest.get("files", {})) != actual:
+        raise ValueError("Gomez-Zepeda arm-projection inventory mismatch")
+    if allow_additional_files and not set(manifest.get("files", {})) <= actual:
         raise ValueError("Gomez-Zepeda arm-projection inventory mismatch")
     for name, digest in manifest["files"].items():
         if file_digest(directory / name)["sha256"] != digest["sha256"]:

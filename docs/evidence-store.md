@@ -459,3 +459,21 @@ The context projection contains exactly the Gomez-derived observations and is
 therefore safe to join by `observation_id` without implying that unrelated
 assays were rewritten. Every source row, source asset, membership, acquisition,
 and historical context remains queryable through the predecessor bindings.
+
+# Gomez-Zepeda prediction panels
+
+Schema 13 adds `gomez_prediction_row` and `gomez_restriction_projection` over
+the schema-12 arm projection. The two pinned NetMHCpan panels retain all
+394,952 publisher rows, including alternative alleles, scores, ranks, Binder
+tiers, raw source cells, and rows that do not join to a retained derived
+peptide. The source prediction relation is a model measurement; it is not a
+measured MHC-ligand or binding assay.
+
+The projection is one row per Gomez-derived observation. It preserves the
+native restriction value and evidence, records the preferred panel (S7 for JY,
+S5 for the other materials, with S5 fallback where the preferred JY panel has
+no Binder row), and stores selected and alternative prediction-row IDs. A
+named native restriction is exposed as `predicted`; a blank native restriction
+remains `unknown` with an explicit reason. No native assay row, source result,
+or source membership is rewritten or removed, and a predicted restriction
+does not establish a donor, specimen, or experimental assay label.

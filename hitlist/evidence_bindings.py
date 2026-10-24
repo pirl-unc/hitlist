@@ -269,6 +269,13 @@ ALIASES = {
     },
     "external_reference_sequence": {"peptide_sequence": "sequence"},
     "external_reference_result_context": {"source_record_id": "peptide_row_id"},
+    "gomez_prediction_row": {
+        "prediction_id": "source_prediction_id",
+    },
+    "gomez_restriction_projection": {
+        "selected_prediction_ids": "selected_prediction_ids_json",
+        "alternative_prediction_ids": "alternative_prediction_ids_json",
+    },
 }
 
 # Dataset identity is an immutable property of these source-specific files.
@@ -310,6 +317,24 @@ CONSTANTS.update(
 )
 
 LINKS = (
+    Link(
+        "prediction_derived_observation",
+        "gomez_prediction_row",
+        "mhc_positive_ms",
+        "derived_observation_id",
+        "observation_id",
+        "optional_one",
+        "exact_prediction_sequence_and_supplementary_file_link",
+    ),
+    Link(
+        "restriction_projection_observation",
+        "gomez_restriction_projection",
+        "mhc_positive_ms",
+        "derived_observation_id",
+        "observation_id",
+        "optional_one",
+        "explicit_prediction_projection_to_derived_observation",
+    ),
     Link(
         "membership",
         "gomez_source_result",
