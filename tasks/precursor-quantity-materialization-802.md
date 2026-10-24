@@ -33,13 +33,13 @@ absolute-abundance inference is allowed.
 
 ## Implementation checklist
 
-- [ ] Bump package/catalog schema versions and versioned revision.
-- [ ] Add streaming table schemas, extraction and replay verification.
-- [ ] Extend source registry, family/availability ledgers and catalog entries.
-- [ ] Add losslessness, source-hash, row-count and `EvidenceStore` tests.
-- [ ] Update package docs and parent task tracking.
+- [x] Bump package/catalog schema versions and versioned revision.
+- [x] Add streaming table schemas, extraction and replay verification.
+- [x] Extend source registry, family/availability ledgers and catalog entries.
+- [x] Add losslessness, source-hash, row-count and `EvidenceStore` tests.
+- [x] Update package docs and parent task tracking.
 - [x] Run `./format.sh`, `./lint.sh`, and the full bounded `./test.sh`.
-- [ ] Open PR, pass hosted checks, merge, run clean-main release build, verify
+- [x] Open PR, pass hosted checks, merge, run clean-main release build, verify
       and upload artifacts to PyPI, then record hashes and close issue #802.
 
 ## Review
@@ -54,3 +54,9 @@ The real PXD009360 replay verifies schema 21/catalog 26 and materializes
 5,390 protein-group rows (2,423,504 quantity rows total). All four relations
 start at source row index 1, retain `source_dataset=PXD009360`, and verify the
 pinned uncompressed member hashes and row-count ledger.
+
+PR #808 merged as `897c98cbd514b03ea3156733f48e1e2d5354a534`. Clean-main
+release workflow `40094966489` passed in 27m1s; its artifacts match that exact
+commit and version 2.0.21. PyPI now serves the wheel SHA-256
+`e21b3019c6c9798174ded0f4be36e66eed1c621f3b78ceb14b02f26515a75f58` and sdist
+SHA-256 `a981791ef83ff85c93aaa45a368307f1e8a9784281f32e4411d24d37ec45650a`.
