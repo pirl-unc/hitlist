@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 import shutil
 import tempfile
@@ -24,9 +25,9 @@ import pyarrow.parquet as pq
 from .evidence_snapshot import snapshot_file
 from .provenance import file_digest
 
-PACKAGE_SCHEMA_VERSION = 15
-CATALOG_SCHEMA_VERSION = 20
-REVISION = "tmab_native_peptidomics_v1"
+PACKAGE_SCHEMA_VERSION = 16
+CATALOG_SCHEMA_VERSION = 21
+REVISION = "tmab_native_peptidomics_v2"
 ROOT = Path("tmab")
 SOURCE_ROOT = ROOT / "source_assets"
 SOURCE_TABLE = ROOT / "source_assets.parquet"
@@ -54,6 +55,7 @@ _PRIMARY = {
         "comments": 13,
         "analysis": 14,
         "treatment": 14,
+        "average_annotation": 22,
         "ratio_columns": (
             (15, "treated_vs_control", "Rep1"),
             (16, "treated_vs_control", "Rep2"),
@@ -79,6 +81,7 @@ _PRIMARY = {
         "comments": 12,
         "analysis": 13,
         "treatment": 13,
+        "average_annotation": 21,
         "ratio_columns": (
             (14, "treated_vs_control", "Rep1"),
             (15, "treated_vs_control", "Rep2"),
@@ -91,8 +94,8 @@ _PRIMARY = {
 }
 
 _HEATMAP = {
-    "dasgupta_s2.xlsx": {"sheet": "Table S2", "data_row": 18},
-    "gelman_s2.xlsx": {"sheet": "Sheet1", "data_row": 15},
+    "dasgupta_s2.xlsx": {"sheet": "Table S2", "data_row": 18, "sequence": 5},
+    "gelman_s2.xlsx": {"sheet": "Sheet1", "data_row": 15, "sequence": 6},
 }
 
 _STUDIES = {
@@ -100,11 +103,17 @@ _STUDIES = {
         "doi": "10.1371/journal.pone.0103604",
         "url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0103604",
         "cells": "HEK293T and SH-SY5Y",
+        "protocol_instrument": "Waters Synapt G2",
+        "protocol_section": "s2b2",
+        "treatment_section": "s2b1",
     },
     "gelman_2013": {
         "doi": "10.1371/journal.pone.0053263",
         "url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0053263",
         "cells": "HEK293T and SH-SY5Y",
+        "protocol_instrument": "Waters Synapt G1",
+        "protocol_section": "s2d",
+        "treatment_section": "s2c",
     },
 }
 
@@ -166,8 +175,18 @@ CONTEXT_COLUMNS = (
     "treatment_dose_unit",
     "exposure_duration_raw",
     "duration_hours",
+    "duration_role",
+    "average_annotation_raw",
+    "incubation_duration_hours",
+    "harvest_duration_hours",
+    "harvest_compound_status",
+    "timeline_status",
+    "timeline_evidence_url",
     "labeling_method",
     "instrument",
+    "publishing_protocol_instrument",
+    "instrument_status",
+    "protocol_evidence_url",
     "acquisition_mode",
     "assay_method",
     "assay_readout",
@@ -191,6 +210,9 @@ MEASUREMENT_COLUMNS = (
     "peptide_sequence_raw",
     "peptide_sequence",
     "peptide_modifications_raw",
+    "peptide_modifications_json",
+    "identification_status",
+    "modification_status",
     "parent_label_raw",
     "gene_name",
     "cell_line_name",
@@ -207,6 +229,7 @@ MEASUREMENT_COLUMNS = (
     "eligibility_status",
     "source_reuse_status",
     "shared_control_group_id",
+    "shared_control_group_status",
     "source_comments_raw",
 )
 LINEAGE_COLUMNS = (
@@ -219,11 +242,21 @@ LINEAGE_COLUMNS = (
     "reuse_status",
     "relation_basis",
     "independent_specimen_status",
+    "candidate_reuse_group_id",
+    "experiment_label_agreement",
 )
 
 SOURCE_SCHEMA = _schema(SOURCE_COLUMNS)
 ROW_SCHEMA = _schema(ROW_COLUMNS, integer=("source_row_index",))
-CONTEXT_SCHEMA = _schema(CONTEXT_COLUMNS, numeric=("treatment_dose", "duration_hours"))
+CONTEXT_SCHEMA = _schema(
+    CONTEXT_COLUMNS,
+    numeric=(
+        "treatment_dose",
+        "duration_hours",
+        "incubation_duration_hours",
+        "harvest_duration_hours",
+    ),
+)
 MEASUREMENT_SCHEMA = _schema(
     MEASUREMENT_COLUMNS, numeric=("quantitative_value",), integer=("source_row_index",)
 )
@@ -272,17 +305,90 @@ def _text(value):
     return None if value is None else str(value).strip() or None
 
 
-def _parse_sequence(raw):
+def _sequence_identity(raw):
+    """Parse only supported source notation; never extract annotation letters."""
     text = _text(raw)
     if not text:
-        return None, None
+        return {
+            "sequence": None,
+            "modifications": [],
+            "summary": None,
+            "raw_modifications": None,
+            "identification": "unidentified",
+            "modification_status": "unresolved",
+        }
+    tentative = text.startswith("(") and text.endswith(")")
+    if tentative:
+        text = text[1:-1].strip()
     modifications = []
+    summary = []
+    tokens = []
     if text.startswith("Ac-"):
-        modifications.append("N_terminal_acetylation")
+        modifications.append(
+            {"name": "N_terminal_acetylation", "position": 0, "source_token": "Ac-"}
+        )
+        summary.append("N_terminal_acetylation")
+        tokens.append("Ac-")
         text = text[3:]
-    text = text.replace("(", "").replace(")", "")
-    sequence = "".join(re.findall(r"[A-Z]", text)) or None
-    return sequence, ";".join(modifications) or None
+    residues = []
+    while text:
+        if text.startswith("Mox"):
+            residues.append("M")
+            position = len(residues)
+            modifications.append({"name": "oxidation", "position": position, "source_token": "Mox"})
+            summary.append(f"oxidation@{position}")
+            tokens.append(f"Mox@{position}")
+            text = text[3:]
+        elif text[0] in "ACDEFGHIKLMNPQRSTVWY":
+            residues.append(text[0])
+            text = text[1:]
+        else:
+            return {
+                "sequence": None,
+                "modifications": [],
+                "summary": None,
+                "raw_modifications": _text(raw),
+                "identification": "unresolved_annotation",
+                "modification_status": "unresolved_source_notation",
+            }
+    if not residues:
+        return {
+            "sequence": None,
+            "modifications": [],
+            "summary": None,
+            "raw_modifications": _text(raw),
+            "identification": "unresolved_annotation",
+            "modification_status": "unresolved_source_notation",
+        }
+    return {
+        "sequence": "".join(residues),
+        "modifications": modifications,
+        "summary": ";".join(summary) or None,
+        "raw_modifications": ";".join(tokens) or None,
+        "identification": "tentative" if tentative else "reported_sequence",
+        "modification_status": "supported_source_notation" if modifications else "none_reported",
+    }
+
+
+def _parse_sequence(raw):
+    identity = _sequence_identity(raw)
+    return identity["sequence"], identity["summary"]
+
+
+def _eligibility(identity, role, value, censoring):
+    if role != "treated_vs_control":
+        return "deferred_control_or_derived_average"
+    if identity["identification"] != "reported_sequence":
+        return "deferred_" + identity["identification"]
+    if value is None or not math.isfinite(value):
+        return "deferred_nonquantifiable"
+    if value <= 0:
+        return "deferred_nonpositive_ratio"
+    if censoring == "exact":
+        return "candidate_exact"
+    if censoring == "source_declared_bound":
+        return "candidate_censored"
+    return "deferred_nonquantifiable"
 
 
 def _parse_ratio(raw):
@@ -314,7 +420,7 @@ def _parse_ratio(raw):
 def _treatment(raw):
     text = _text(raw) or ""
     label = re.split(r"[/=]", text, maxsplit=1)[0].strip()
-    name_match = re.match(r"([A-Za-z][A-Za-z0-9-]*)", label)
+    name_match = re.match(r"([A-Za-z][A-Za-z0-9-]*(?:\s+[A-Za-z][A-Za-z-]*)*)", label)
     name = name_match.group(1).lower() if name_match else None
     dose_match = re.search(r"([0-9]+(?:\.[0-9]+)?)\s*(nM|uM|µM|mM)", text, re.I)
     duration_match = re.search(r"([0-9]+(?:\.[0-9]+)?)\s*(min|minutes?|h|hr|hours?)", text, re.I)
@@ -328,10 +434,34 @@ def _treatment(raw):
     return text or None, name, dose, unit, duration
 
 
-def _context_for(source_id, source_asset_id, source_file, cell, experiment):
+def _context_for(
+    source_id, source_asset_id, source_file, cell, experiment, average_annotation=None
+):
     label, name, dose, unit, duration = _treatment(experiment)
     study = _STUDIES[source_id]
-    key = f"{source_id}|{cell or ''}|{experiment or ''}"
+    annotation = _text(average_annotation)
+    key = json.dumps([source_id, cell, experiment, annotation])
+    reused = (name or "").startswith(("epoxomicin", "epoximicin")) or (
+        source_id == "dasgupta_2014" and name == "bortezomib"
+    )
+    # Original raw assertions are retained even if the full timing is unresolved.
+    timeline = re.search(
+        r"([0-9]+(?:\.[0-9]+)?)\s*(min|hr|h|')\s*\+\s*"
+        r"(?:([0-9]+(?:\.[0-9]+)?)\s*(min|hr|h|')?\s*)?wash",
+        annotation or "",
+        re.I,
+    )
+
+    def hours(value, unit):
+        return float(value) / 60 if unit.lower() in {"min", "'"} else float(value)
+
+    incubation = hours(timeline[1], timeline[2]) if timeline else None
+    harvest = hours(timeline[3], timeline[4] or "min") if timeline and timeline[3] else None
+    harvest_presence = (
+        "present_per_study_protocol"
+        if source_id == "dasgupta_2014" and not reused
+        else "unresolved"
+    )
     return {
         "context_id": _id("context", key),
         "study_id": source_id,
@@ -351,8 +481,20 @@ def _context_for(source_id, source_asset_id, source_file, cell, experiment):
         "treatment_dose_unit": unit,
         "exposure_duration_raw": label,
         "duration_hours": duration,
+        "duration_role": "reported_total_interval" if duration is not None else "unresolved",
+        "average_annotation_raw": annotation,
+        "incubation_duration_hours": incubation,
+        "harvest_duration_hours": harvest,
+        "harvest_compound_status": harvest_presence,
+        "timeline_status": "source_annotation_components" if timeline else "unresolved_components",
+        "timeline_evidence_url": study["url"] + "#" + study["treatment_section"],
         "labeling_method": "TMAB-NHS isotopic labeling",
-        "instrument": "Waters Synapt G1",
+        "instrument": None if reused else study["protocol_instrument"],
+        "publishing_protocol_instrument": study["protocol_instrument"],
+        "instrument_status": "unresolved_reused_acquisition"
+        if reused
+        else "reported_study_protocol",
+        "protocol_evidence_url": study["url"] + "#" + study["protocol_section"],
         "acquisition_mode": "data_dependent_LC_MS/MS",
         "assay_method": "native cellular peptidomics LC-MS/MS",
         "assay_readout": "relative isotope-channel peak-intensity ratio",
@@ -376,6 +518,19 @@ def _asset_rows():
     ]
 
 
+def _candidate_fingerprint(cell, sequence, charge, mass, ratios):
+    """Candidate reuse only: source-independent identity and exact ratio vector."""
+    if not sequence or not all(
+        isinstance(v, (int, float)) and math.isfinite(v) for v in (charge, mass)
+    ):
+        return None
+    if sum(isinstance(v, (int, float)) and math.isfinite(v) for v in ratios) < 2:
+        return None
+    values = [float(v) if isinstance(v, (int, float)) else v for v in ratios]
+    payload = json.dumps([cell, sequence, float(charge), float(mass), values], ensure_ascii=False)
+    return _id("reuse-candidate", payload)
+
+
 def _compile(directory):
     directory = Path(directory)
     assets = _asset_rows()
@@ -384,6 +539,9 @@ def _compile(directory):
     measurements = []
     contexts = {}
     source_counter = Counter()
+    row_candidates = {}
+    candidate_sources = {}
+    candidate_labels = {}
     for source_file, config in _PRIMARY.items():
         asset = by_file[source_file]
         path = directory / SOURCE_ROOT / source_file
@@ -399,8 +557,16 @@ def _compile(directory):
             cell = _text(values[config["cell"] - 1])
             experiment = _text(values[config["experiment"] - 1])
             sequence_raw = _text(values[config["sequence"] - 1])
+            identity = _sequence_identity(sequence_raw)
             context = _context_for(
-                asset["source_id"], asset["source_asset_id"], source_file, cell, experiment
+                asset["source_id"],
+                asset["source_asset_id"],
+                source_file,
+                cell,
+                experiment,
+                values[config["average_annotation"] - 1]
+                if len(values) >= config["average_annotation"]
+                else None,
             )
             contexts[context["context_id"]] = context
             source_rows.append(
@@ -418,25 +584,33 @@ def _compile(directory):
                     "source_experiment_raw": experiment,
                     "source_cell_raw": cell,
                     "source_comments_raw": _text(values[config["comments"] - 1]),
-                    "row_identity_status": "reported_sequence"
-                    if sequence_raw
-                    else "unidentified_or_unreported_sequence",
+                    "row_identity_status": identity["identification"],
                 }
             )
             source_counter[source_file] += 1
-            sequence, modifications = _parse_sequence(sequence_raw)
+            sequence = identity["sequence"]
+            ratios = [
+                values[col - 1] if col <= len(values) else None
+                for col, _, _ in config["ratio_columns"][:5]
+            ]
+            candidate = _candidate_fingerprint(cell, sequence_raw, values[2], values[4], ratios)
+            row_candidates[source_record_id] = candidate
+            if candidate is not None:
+                candidate_sources.setdefault(candidate, set()).add(asset["source_id"])
+                candidate_labels.setdefault(candidate, set()).add(
+                    " ".join((experiment or "").lower().split())
+                )
             shared_control = _id("control", f"{asset['source_id']}|{cell}|{experiment}")
             for column, role, replicate in config["ratio_columns"]:
                 raw = values[column - 1] if column <= len(values) else None
                 value, inequality, censoring, value_status, overlap = _parse_ratio(raw)
                 source_cell = f"{openpyxl.utils.get_column_letter(column)}{row_index}"
-                measurement_key = f"{asset['source_id']}|{cell}|{experiment}|{sequence or sequence_raw or ''}|{role}|{replicate}|{raw!s}"
                 measurements.append(
                     {
                         "measurement_id": _id("measurement", f"{source_record_id}|{source_cell}"),
                         "source_record_id": source_record_id,
                         "context_id": context["context_id"],
-                        "lineage_group_id": _id("lineage", measurement_key),
+                        "lineage_group_id": _id("lineage", f"{source_record_id}|{source_cell}"),
                         "source_asset_id": asset["source_asset_id"],
                         "source_id": asset["source_id"],
                         "source_file": source_file,
@@ -447,7 +621,12 @@ def _compile(directory):
                         "channel_label_raw": f"{role}:{replicate}",
                         "peptide_sequence_raw": sequence_raw,
                         "peptide_sequence": sequence,
-                        "peptide_modifications_raw": modifications,
+                        "peptide_modifications_raw": identity["raw_modifications"],
+                        "peptide_modifications_json": json.dumps(
+                            identity["modifications"], sort_keys=True
+                        ),
+                        "identification_status": identity["identification"],
+                        "modification_status": identity["modification_status"],
                         "parent_label_raw": _text(values[config["protein"] - 1]),
                         "gene_name": _text(values[config["gene"] - 1]) if config["gene"] else None,
                         "cell_line_name": cell,
@@ -461,11 +640,10 @@ def _compile(directory):
                         "censoring_status": censoring,
                         "value_status": value_status,
                         "peak_overlap_status": overlap,
-                        "eligibility_status": "candidate_exact"
-                        if censoring == "exact"
-                        else "deferred_non_exact_or_missing",
+                        "eligibility_status": _eligibility(identity, role, value, censoring),
                         "source_reuse_status": "unresolved_cross_paper_reuse",
                         "shared_control_group_id": shared_control,
+                        "shared_control_group_status": "source_label_proxy_unresolved_denominator",
                         "source_comments_raw": _text(values[config["comments"] - 1]),
                     }
                 )
@@ -494,7 +672,9 @@ def _compile(directory):
                     "source_row_locator": f"{source_file}:{config['sheet']}!A{row_index}",
                     "source_row_json": _row_json(values),
                     "source_row_disposition": "deferred_heatmap_republication",
-                    "source_sequence_raw": _text(values[4]) if len(values) > 4 else None,
+                    "source_sequence_raw": _text(values[config["sequence"] - 1])
+                    if len(values) >= config["sequence"]
+                    else None,
                     "source_experiment_raw": None,
                     "source_cell_raw": None,
                     "source_comments_raw": None,
@@ -503,15 +683,18 @@ def _compile(directory):
             )
             source_counter[source_file] += 1
 
-    by_group_sources = {}
-    for row in measurements:
-        by_group_sources.setdefault(row["lineage_group_id"], set()).add(row["source_id"])
     lineage = []
+    cross_paper_groups = {group for group, sources in candidate_sources.items() if len(sources) > 1}
     for row in measurements:
+        candidate = row_candidates[row["source_record_id"]]
+        cross_paper = candidate in cross_paper_groups
+        if cross_paper:
+            row["lineage_group_id"] = _id(
+                "lineage", f"{candidate}|{row['ratio_role']}|{row['replicate_label']}"
+            )
         group = row["lineage_group_id"]
-        cross_paper = len(by_group_sources[group]) > 1
         row["source_reuse_status"] = (
-            "possible_cross_paper_reuse" if cross_paper else "not_observed_across_papers"
+            "possible_cross_paper_reuse" if cross_paper else "unresolved_cross_paper_reuse"
         )
         lineage.append(
             {
@@ -519,13 +702,23 @@ def _compile(directory):
                 "measurement_id": row["measurement_id"],
                 "source_record_id": row["source_record_id"],
                 "source_id": row["source_id"],
-                "cross_paper_match_key": group,
-                "lineage_status": "possible_cross_paper_reuse" if cross_paper else "source_unique",
-                "reuse_status": "unresolved_cross_paper_reuse" if cross_paper else "not_observed",
-                "relation_basis": "same_normalized_source_labels_and_value"
+                "cross_paper_match_key": candidate,
+                "lineage_status": "possible_cross_paper_reuse"
                 if cross_paper
-                else "source_row_measurement_identity",
+                else "unresolved_source_lineage",
+                "reuse_status": "unresolved_cross_paper_reuse",
+                "relation_basis": "same_cell_sequence_charge_mass_ratio_vector"
+                if cross_paper
+                else "source_cell_identity_only",
                 "independent_specimen_status": "unknown",
+                "candidate_reuse_group_id": candidate if cross_paper else None,
+                "experiment_label_agreement": (
+                    "equal_after_case_whitespace_normalization"
+                    if len(candidate_labels[candidate]) == 1
+                    else "different_source_labels"
+                )
+                if cross_paper
+                else "not_applicable",
             }
         )
 
@@ -546,8 +739,22 @@ def _compile(directory):
             sorted(Counter(row["censoring_status"] for row in measurements).items())
         ),
         "by_source_file": dict(sorted(source_counter.items())),
-        "n_possible_cross_paper_reuse_groups": sum(
-            len(sources) > 1 for sources in by_group_sources.values()
+        "n_possible_cross_paper_reuse_groups": len(
+            {
+                row["lineage_group_id"]
+                for row in measurements
+                if row["source_reuse_status"] == "possible_cross_paper_reuse"
+            }
+        ),
+        "n_candidate_cross_paper_row_groups": len(cross_paper_groups),
+        "n_candidate_row_groups_with_equal_experiment_labels": sum(
+            len(candidate_labels[group]) == 1 for group in cross_paper_groups
+        ),
+        "by_identification_status": dict(
+            sorted(Counter(row["identification_status"] for row in measurements).items())
+        ),
+        "by_eligibility_status": dict(
+            sorted(Counter(row["eligibility_status"] for row in measurements).items())
         ),
         "native_rows_preserved": True,
         "source_assets_snapshotted": True,

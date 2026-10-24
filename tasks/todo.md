@@ -8024,3 +8024,21 @@ Plan: [tmab-native-measurements-789.md](tmab-native-measurements-789.md).
       required gates, review, merge and publish 2.0.15.
 
 Review: pending implementation.
+
+## TMAB semantic corrections (#791 / #792)
+
+- [x] Implement tasks/tmab-semantic-corrections-791.md on the isolated correction branch.
+- [x] Verify focused regressions, canonical query fields and the full original workbooks.
+- [ ] Finish full repository tests, review and publish the correction PR/release.
+- [ ] Qualify the canonical native-response recipe separately before fitting.
+
+Review: 43 focused tests pass; the final regression file gives 14 failures and
+one pass against pinned f4d3a6d. Format and lint pass. Full ./test.sh completed successfully (3,403 tests).
+The real-source replay preserves 10,564 rows and 61,908 measurement slots and
+recovers all 830 independently identified candidate reuse groups (1,660 rows).
+There are 7,933 exact and 4,662 censored treated/control source candidates;
+these are not independent training counts. The first replay's 1,242 whitespace
+comparison failures are retained and explained by a separate successful closure:
+existing projected labels trim whitespace while raw rows remain literal. No
+production data or parser rule changed to resolve that comparator error.
+Evidence: Presto experiments/2026-10-24_0156_codex_tmab-semantic-replay.
