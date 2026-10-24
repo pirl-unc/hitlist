@@ -1,5 +1,4 @@
 # Hitlist 2.0 evidence store
-
 `EvidenceStore` opens a frozen package and verifies its manifest chain, source
 bytes, typed schemas and pinned reconciliation before answering a request.
 The package contains the original source generations as well as typed relations;
@@ -622,13 +621,13 @@ relative MS response rather than intracellular production or concentration.
 
 # Standalone precursor context
 
-Schema 21/catalog 26 extends the standalone `precursor_context` package for the
+Schema 22/catalog 27 extends the standalone `precursor_context` package for the
 PXD009360 parallel tryptic proteome. The source-contract generation retains the
 hash-pinned project and deposited-file metadata, the recovered MaxQuant search
 archive, parameter and summary files, its 17 archive-member inventory, and nine
 acquisition labels (448–456). The source archive is copied into the immutable
-package; later generations will materialize its evidence, peptide, all-peptide
-and protein-group rows.
+package and its evidence, peptide, all-peptide and protein-group rows are
+materialized losslessly.
 
 The source contract deliberately exposes condition, specimen, aliquot and MAPP
 pairing as unresolved claims. Run order, label similarity, abundance
@@ -637,7 +636,7 @@ correlation and same-cell-line assertions do not establish a biological link.
 zero precursor training examples, while
 `precursor_source_asset`, `precursor_acquisition`,
 `precursor_table_inventory`, and `precursor_pairing_assertion` remain queryable
-through `EvidenceStore`. The v2 package additionally exposes lossless typed
+through `EvidenceStore`. The package additionally exposes lossless typed
 Arrow relations for `precursor_evidence_row`, `precursor_peptide_row`,
 `precursor_all_peptide_row`, and `precursor_protein_group_row`. Each row keeps
 the exact tab-delimited source text, ordered columns and values, source-row
@@ -645,3 +644,9 @@ digest, modifications, charge, identification representations, contributors,
 status flags, match-between-runs fields and LFQ/intensity cells. MaxQuant LFQ
 and any future precursor aggregates are not absolute copies-per-cell or
 intracellular concentration labels.
+The v3 package registers `pxd009360_precursor_quantity_qualification_v1` as a
+non-training recipe. Its qualification relation reports source-row coverage,
+contributors, missing intensity cells and ambiguous memberships; its pairing
+qualification relation keeps condition/specimen/aliquot/MAPP links unresolved
+unless a source-backed crosswalk exists. Parent/specimen splits remain frozen
+to source-file scope until that evidence exists.
