@@ -1,3 +1,32 @@
+# Release the merged Wolf-Levy material graph after the 2.0.38 collision (planned 2.0.39)
+
+## Specification
+
+PyPI already contains a nonmatching 2.0.38 distribution. Do not replace it,
+and do not represent merged Wolf-Levy material-graph commit `82aa4aa` as having
+been deployed under that version. Make a version-only follow-up from exactly
+that merge commit. It must preserve every source and assay unchanged, use a new
+patch version, and be released only after the hosted workflow's source commit
+and wheel/sdist hashes match the release receipt.
+
+### Plan
+
+- [x] Record the PyPI collision: both existing 2.0.38 files differ from the
+      validated hosted build for `82aa4aa`.
+- [x] Bump only the package version to 2.0.39; inspect the diff to prove no
+      evidence records, APIs, or source receipts changed.
+- [ ] Run format, lint, tests and the editable-install metadata check; open a
+      version-only PR and wait for its complete hosted CI result.
+- [ ] Merge, build from clean main, validate the exact artifacts, publish and
+      compare PyPI hashes to the release receipt. Report the result on the
+      material-graph issues.
+
+## Review
+
+In progress on `codex/release-2-0-39-20261025`, based exactly on merged
+`82aa4aa`. This PR exists solely to resolve the public-version collision; it
+does not alter the PXD009360 source audit or material graph.
+
 # Qualify Wolf-Levy companion tryptic context and material mapping (#823 / #757, planned 2.0.38)
 
 ## Specification
