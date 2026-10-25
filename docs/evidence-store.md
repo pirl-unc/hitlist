@@ -750,3 +750,8 @@ schema22/catalog27, selected by their explicit family and revision. The combined
 live catalog preserves both source families. Existing source packages are not
 relabeled, and older precursor-context envelopes remain tied to their historical
 consumer.
+
+The standalone [intact-degradomics source](intact-degradomics.md) adds original
+PXD058121 mass observations, candidate fragment assignments, time/organ context
+and publisher reconciliation as package schema 26/catalog 32. It supplies source
+evidence, not a qualified kinetic training recipe or calibrated concentration.

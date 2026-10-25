@@ -1,0 +1,256 @@
+{
+  "assets": [
+    {
+      "filename": "F1_SF2_SF3_SF4_SF5_SearchResults.xlsx",
+      "source_url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2025/08/PXD058121/F1_SF2_SF3_SF4_SF5_SearchResults.xlsx",
+      "sha256": "a456075c84dae86e3104882fb0f0e5d6cf8a2f3fbffa7b204b6fb60c77f4d99b",
+      "size_bytes": 276292,
+      "role": "original_search_workbook",
+      "license_status": "PRIDE_reported_CC0"
+    },
+    {
+      "filename": "F2_SF6_SearchResults.xlsx",
+      "source_url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2025/08/PXD058121/F2_SF6_SearchResults.xlsx",
+      "sha256": "9f71662595a5539dd8f135bef7ee042a90135f5147fe2482af53daeac3af36cb",
+      "size_bytes": 457989,
+      "role": "original_search_workbook",
+      "license_status": "PRIDE_reported_CC0"
+    },
+    {
+      "filename": "F3_SF7_SearchResults.xlsx",
+      "source_url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2025/08/PXD058121/F3_SF7_SearchResults.xlsx",
+      "sha256": "71f6ef6327387a0b739c358015a49f9b39c7bc6f3703e6cc413ee9eaf307f55f",
+      "size_bytes": 760180,
+      "role": "original_search_workbook",
+      "license_status": "PRIDE_reported_CC0"
+    },
+    {
+      "filename": "article.xml",
+      "source_url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC11874349/fullTextXML",
+      "sha256": "34c2d374b62afe17c48e04bdfd75a5f91e23786db1d537035d632c0f7f411bea",
+      "size_bytes": 125833,
+      "role": "primary_publication_xml",
+      "license_status": "publication_CC_BY_NC_ND_4_0"
+    },
+    {
+      "filename": "files-page1.json",
+      "source_url": "https://www.ebi.ac.uk/pride/ws/archive/v2/projects/PXD058121/files?page=1&pageSize=1000",
+      "sha256": "2333fd89038c5ff47550e792ac68dc19814f9a96ca84373a0527a80f391803d8",
+      "size_bytes": 5717,
+      "role": "original_source_inventory_or_metadata",
+      "license_status": "PRIDE_reported_CC0"
+    },
+    {
+      "filename": "files-project-route.json",
+      "source_url": "https://www.ebi.ac.uk/pride/ws/archive/v2/projects/PXD058121/files?page=0&pageSize=1000",
+      "sha256": "71311c11cc9f19bb7eed2d5ebbaf53a317754dd22b612f88fba1f411b807acda",
+      "size_bytes": 113285,
+      "role": "original_source_inventory_or_metadata",
+      "license_status": "PRIDE_reported_CC0"
+    },
+    {
+      "filename": "pmc-object-list.xml",
+      "source_url": "https://pmc-oa-opendata.s3.amazonaws.com/?list-type=2&prefix=PMC11874349",
+      "sha256": "1a48298bb9bcd191411331755d534846fcfe295772b0562136b4808596562514",
+      "size_bytes": 4396,
+      "role": "original_source_inventory_or_metadata",
+      "license_status": "public_metadata_rights_not_adjudicated"
+    },
+    {
+      "filename": "pnas.2419607122.sapp.pdf",
+      "source_url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC11874349.1/pnas.2419607122.sapp.pdf",
+      "sha256": "83fc71b464efea6d2dd2659a2ebab97c4d45282c10e9b1d180e7b71c270f0b9a",
+      "size_bytes": 1322575,
+      "role": "supplementary_figures_and_definitions",
+      "license_status": "publication_CC_BY_NC_ND_4_0"
+    },
+    {
+      "filename": "pnas.2419607122.sd01.xlsx",
+      "source_url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC11874349.1/pnas.2419607122.sd01.xlsx",
+      "sha256": "291f9b8c9022743ecc14213c80551da843f1ceaab1e3f65b0e028c8955f55602",
+      "size_bytes": 594567,
+      "role": "original_supplement_workbook",
+      "license_status": "publication_CC_BY_NC_ND_4_0"
+    },
+    {
+      "filename": "pnas.2419607122.sd02.xlsx",
+      "source_url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC11874349.1/pnas.2419607122.sd02.xlsx",
+      "sha256": "5eee5cd7710bd452272d1d0e3f6e583761fadcf80d7452bc39ea0cfc1c3294a4",
+      "size_bytes": 190361,
+      "role": "original_supplement_workbook",
+      "license_status": "publication_CC_BY_NC_ND_4_0"
+    },
+    {
+      "filename": "pnas.2419607122.sd03.xlsx",
+      "source_url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC11874349.1/pnas.2419607122.sd03.xlsx",
+      "sha256": "1d26d39f0941fe99a8cf8e18dd91612a0a80af94747379cc872582894dc40f59",
+      "size_bytes": 412942,
+      "role": "original_supplement_workbook",
+      "license_status": "publication_CC_BY_NC_ND_4_0"
+    },
+    {
+      "filename": "pnas.2419607122.sd04.xlsx",
+      "source_url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC11874349.1/pnas.2419607122.sd04.xlsx",
+      "sha256": "7fe9c39546955612ebd477fbbf1bb2a73c4f0c1d764b463fad116495f55e672b",
+      "size_bytes": 190858,
+      "role": "original_supplement_workbook",
+      "license_status": "publication_CC_BY_NC_ND_4_0"
+    },
+    {
+      "filename": "pnas.2419607122.sd05.xlsx",
+      "source_url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC11874349.1/pnas.2419607122.sd05.xlsx",
+      "sha256": "8543f8efa1994ea8744826e98b18cd4778882f81fedd7f9a53fcdc52f4a3e777",
+      "size_bytes": 253756,
+      "role": "original_supplement_workbook",
+      "license_status": "publication_CC_BY_NC_ND_4_0"
+    },
+    {
+      "filename": "project.json",
+      "source_url": "https://www.ebi.ac.uk/pride/ws/archive/v2/projects/PXD058121",
+      "sha256": "e8858137e78682267b556ee20c22ea5d958f95b293f79519fbb0392e690beeeb",
+      "size_bytes": 9462,
+      "role": "original_source_inventory_or_metadata",
+      "license_status": "PRIDE_reported_CC0"
+    }
+  ],
+  "parent_accession": "P37840",
+  "parent_sequence": "MDVFMKGLSKAKEGVVAAAEKTKQGVAEAAGKTKEGVLYVGSKTKEGVVHGVATVAEKTKEQVTNVGGAVVTGVTAVAQKTVEGAGSIAAATGFVKKDQLGKNEEGAPQEGILEDMPVDPDNEAYEMPSEEGYQDYEPEA",
+  "project_metadata": "project.json",
+  "file_metadata": [
+    "files-project-route.json",
+    "files-page1.json"
+  ],
+  "search_workbooks": {
+    "F1_SF2_SF3_SF4_SF5_SearchResults.xlsx": "controls_and_endpoints",
+    "F2_SF6_SearchResults.xlsx": "kinetics",
+    "F3_SF7_SearchResults.xlsx": "organs"
+  },
+  "supplement_workbooks": {
+    "pnas.2419607122.sd01.xlsx": "fit_factor_comparison",
+    "pnas.2419607122.sd02.xlsx": "publisher_assignments",
+    "pnas.2419607122.sd03.xlsx": "publisher_envelopes",
+    "pnas.2419607122.sd04.xlsx": "kinetics_publisher",
+    "pnas.2419607122.sd05.xlsx": "organs_publisher"
+  },
+  "layout_exceptions": {
+    "F2_SF6_SearchResults.xlsx:20S_AlphaSyn_40min_R1": "extra_H_identifier_assignments_shift_after_G",
+    "F3_SF7_SearchResults.xlsx:Brain_20S_aSyn_0min_2": "input_ids_absent_masses_A_B_intensity_C"
+  },
+  "source_registry": {
+    "pxd058121": {
+      "source_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11874349/",
+      "doi": "10.1073/pnas.2419607122",
+      "project_accession": "PXD058121",
+      "access": "public_original_processed_assets",
+      "license_status": "asset_scoped_PRIDE_CC0_publication_CC_BY_NC_ND",
+      "training_status": "source_only_no_admitted_supervised_recipe",
+      "measured_pool": "purified_20S_substrate_and_products",
+      "material_scope": "one_source_animal_reported_replicates_not_verified_independent_animals",
+      "source_role": "generation_and_destruction_time_courses_not_MHC_elution_or_APC_concentration"
+    }
+  },
+  "assertions": [
+    {
+      "predicate": "substrate_species",
+      "value": "Homo sapiens",
+      "status": "reported",
+      "locator": "article.xml:Methods/Purification of alpha-synuclein"
+    },
+    {
+      "predicate": "enzyme_species",
+      "value": "Mus musculus",
+      "status": "reported",
+      "locator": "article.xml:Methods/Purification of the 20S proteasome"
+    },
+    {
+      "predicate": "expression_host",
+      "value": "Escherichia coli; separate from substrate species",
+      "status": "reported",
+      "locator": "article.xml:Methods/Purification of alpha-synuclein"
+    },
+    {
+      "predicate": "organ_material_dependency",
+      "value": "All organs reported from the same animal",
+      "status": "reported",
+      "locator": "article.xml:Methods/Purification of the 20S proteasome"
+    },
+    {
+      "predicate": "replicate_independence",
+      "value": "Biological versus technical independence of R1-R3 unresolved",
+      "status": "unresolved",
+      "locator": "article.xml:Methods/Degradation Assay"
+    },
+    {
+      "predicate": "initial_product_pool",
+      "value": "Products present at nominal zero",
+      "status": "reported",
+      "locator": "article.xml:Results/Unraveling the Kinetics"
+    },
+    {
+      "predicate": "quantity_scale",
+      "value": "Deconvoluted intensity does not identify peptide molarity",
+      "status": "unresolved",
+      "locator": "article.xml:Methods/ID-MS Data Analysis and Statistics"
+    },
+    {
+      "predicate": "mass_assignment_scope",
+      "value": "Intact-mass match; selected MS/MS examples are separate",
+      "status": "reported",
+      "locator": "article.xml:Results/Establishing the Intact Degradomics Workflow"
+    },
+    {
+      "predicate": "MS_search_minimum_length",
+      "value": "4 amino acids",
+      "status": "reported",
+      "locator": "article.xml:Methods/ID-MS Data Analysis and Statistics"
+    },
+    {
+      "predicate": "MS_search_mass_tolerance",
+      "value": "10 ppm",
+      "status": "reported",
+      "locator": "article.xml:Methods/ID-MS Data Analysis and Statistics"
+    },
+    {
+      "predicate": "MS_search_modifications",
+      "value": "No additional modifications in the reported search",
+      "status": "reported",
+      "locator": "article.xml:Methods/ID-MS Data Analysis and Statistics"
+    },
+    {
+      "predicate": "source_plot_recurrence_filter",
+      "value": "At least two of three replicates in subsequent analyses; not applied to source rows",
+      "status": "reported",
+      "locator": "article.xml:Methods/ID-MS Data Analysis and Statistics"
+    },
+    {
+      "predicate": "machinery_numeric_measurement",
+      "value": "Original numeric SI Figure S8 densitometry not located in these assets",
+      "status": "unresolved",
+      "locator": "pnas.2419607122.sapp.pdf:Figure S8"
+    },
+    {
+      "predicate": "MHC_capture_class_allele",
+      "value": "Not applicable to purified digestion mixture",
+      "status": "not_applicable",
+      "locator": "article.xml:Methods/Degradation Assay"
+    },
+    {
+      "predicate": "APC_cell_type",
+      "value": "Not applicable to organ-purified enzyme mixture",
+      "status": "not_applicable",
+      "locator": "article.xml:Methods/Purification of the 20S proteasome"
+    },
+    {
+      "predicate": "missing_Spleen_30min_R3",
+      "value": "Absent from both processed views and complete RAW inventory",
+      "status": "unresolved",
+      "locator": "files-project-route.json+files-page1.json"
+    },
+    {
+      "predicate": "normalization",
+      "value": "Sum of listed deconvoluted intensities is not established as total ion current",
+      "status": "unresolved",
+      "locator": "pnas.2419607122.sapp.pdf:Figures S5-S7"
+    }
+  ]
+}

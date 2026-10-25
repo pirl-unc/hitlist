@@ -8,7 +8,11 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, replace
 
-SCHEMA_VERSION = 31
+from .intact_degradomics_schema import FIELD_MEANINGS as INTACT_FIELD_MEANINGS
+from .intact_degradomics_schema import RELATIONS as INTACT_RELATIONS
+from .intact_degradomics_schema import SCHEMAS as INTACT_SCHEMAS
+
+SCHEMA_VERSION = 32
 FIELD_ROLES = frozenset(
     {
         "identity",
@@ -1399,6 +1403,25 @@ FIELDS += (
         "Target end of one qualified material-context link",
     ),
 )
+
+_existing_fields = {field.name for field in FIELDS}
+_intact_fields = {field.name: field for schema in INTACT_SCHEMAS.values() for field in schema}
+for _name, _definition in sorted(_intact_fields.items()):
+    if _name in _existing_fields:
+        continue
+    _kind = "number" if str(_definition.type) in {"int64", "double"} else "text"
+    _role = "provenance"
+    if _name.endswith("_id"):
+        _role, _kind = "identity", "identifier"
+    elif _name in {"parent_sequence", "parent_accession", "start_1based", "end_1based"}:
+        _role = "molecular_input"
+        if _name == "parent_sequence":
+            _kind = "sequence"
+    elif _name in {"organ_label", "enzyme_species", "substrate_species"}:
+        _role = "biological_context"
+    elif _name in {"time_minutes", "quantity_kind", "fit_percent"}:
+        _role = "protocol"
+    FIELDS += (_field(_name, _role, _kind, INTACT_FIELD_MEANINGS[_name]),)
 
 _FIELD_BY_NAME = {field.name: field for field in FIELDS}
 
@@ -5113,6 +5136,24 @@ EVIDENCE += tuple(
         min_package_schema_version=25,
     )
     for name, (grain, fields) in GOLDBERG_RELATIONS.items()
+)
+
+EVIDENCE += tuple(
+    Evidence(
+        "intact_" + name,
+        kind,
+        "purified_intact_degradomics",
+        grain,
+        f"intact_degradomics/typed/{name}.parquet",
+        "pxd058121",
+        (),
+        tuple(INTACT_SCHEMAS[name].names),
+        (primary_key,),
+        status="v2_materialized",
+        materialized_artifact=f"intact_degradomics/typed/{name}.parquet",
+        min_package_schema_version=26,
+    )
+    for name, (grain, kind, primary_key) in INTACT_RELATIONS.items()
 )
 
 _EVIDENCE_BY_NAME = {item.name: item for item in EVIDENCE}

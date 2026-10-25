@@ -8477,3 +8477,32 @@ prediction/fit or biological transfer claim. Initial fixture reciprocal-group
 omission was fixed before admission; source validation was not weakened. Full
 local suite remains gated by2GiBdisk headroom; latest observed~1.42GiB. Hosted
 full tests and publication/release remain required before this change is done.
+
+
+## PXD058121 intact-degradomics source (Hitlist831)
+
+- [x] Review original source audit and freeze tasks/intact-degradomics-source-spec.md.
+- [x] Implement standalone source package and common material/query registration.
+- [x] Add source-exception fixtures and run format/lint/45 relevant tests; full hosted suite pending.
+- [x] Independently verify all real-source values and links through public queries.
+- [ ] Publish PR, pass full hosted gates, merge and verify package release.
+
+Implementation in progress: the standalone adapter, typed tables, pinned asset
+contract and public catalog/store bindings now exist on the feature branch.
+Format and lint pass; six focused source-fixture tests pass (one existing pandas
+deprecation warning). Verification caught and corrected prefix replacement that
+corrupted acquisition labels, and relationship cardinalities that the public query
+API rejected. Repeated views and publisher conflicts now reconcile in the fixtures.
+These are software checks, not a real-source admission or biological fit. Public
+package/catalog regression checks, original-data replay, documentation and hosted
+full tests remain pending. The source audit is Presto2338; feature base is
+mergededf061a2/version2.0.32, with proposed source release2.0.33.
+
+Real-source verification: Presto family2026-10-25_0021_codex_intact-canonical
+builds in13.37s/659.4MiB and independently replays in12.25s/946.7MiB. All410,349XML
+cells/325,718populated cells,44,457quantities,17,862input masses,8,138assignments
+and public joined contexts agree with originals. Publisher3,427links retain one
+conflict; nine repeated views remain non-independent. The initial independent
+verifier omitted substrate-only label grammar; its failure and explicit coverage
+amendment are retained. Canonical bytes did not change. No training or predictive
+gain. Full hosted gates, review, merge and verified release remain open.
