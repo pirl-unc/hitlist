@@ -8506,3 +8506,6 @@ conflict; nine repeated views remain non-independent. The initial independent
 verifier omitted substrate-only label grammar; its failure and explicit coverage
 amendment are retained. Canonical bytes did not change. No training or predictive
 gain. Full hosted gates, review, merge and verified release remain open.
+
+Hosted CI at7ece088found six stale global catalog-version assertions (32versus31), with3,499unit tests passing on Python3.10. Update those global assertions only; historical package schema/catalog contracts remain unchanged. Runtime source/data bytes are unchanged. Run all six affected test files before pushing and require fresh hosted full gates.
+The six affected files now pass27tests/one pandas warning in0.35s; format/lint pass. All frozen runtime hashes remain unchanged. Fresh hosted gates required.
