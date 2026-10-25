@@ -7,6 +7,12 @@ def package_family(manifest):
     """Classify the envelope; the family's verifier still validates all content."""
     schema = manifest.get("schema_version")
     if (
+        schema == 28
+        and manifest.get("package_family") == "dilution_observer"
+        and manifest.get("revision") == "pxd024809_dilution_observer_v1"
+    ):
+        return "dilution_observer"
+    if (
         schema == 27
         and manifest.get("package_family") == "native_peptidomics"
         and manifest.get("revision") == "pxd018722_hi20s_native_v1"

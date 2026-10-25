@@ -8926,3 +8926,23 @@ contributors. Support: train55components/158contrasts, validation8/38, test18/32
 82parent sequences across81components. No fitted predictor or held-out effect
 summary. SourcePR839 merged as e755be4 with the identical tree as bfbaa67 base;
 source release40167325306 remains live. Recipe PR/release and later fit pending.
+
+## PXD024809 observation source — #845
+
+- [x] Create isolated branch from current main and write source contract before code.
+- [x] Complete independent scored/aligned/library lineage audit before freezing compiler schema.
+- [x] Implement source package, catalog/bindings/store/provenance and meaningful corruption fixtures.
+- [ ] Independently reconcile the original source and complete required format/lint/test gates.
+- [ ] Publish patch-version PR, pass hosted checks, merge and verify tested PyPI deployment.
+
+Spec: tasks/dilution_observer_spec.md. No calibration training or biological concentration claim yet.
+
+Implementation review: candidate2.0.40 has15shared tables,17pinned originals,
+explicit cross-namespace links and15source-supported named protocol claims.
+18focused tests pass, including tamper rejection after manifest rehash, large
+IDs, ambiguous/decoy/missing states, source-exact protocol claims and public joins.
+format.sh/lint.sh pass. Two full-suite preflights refused at0.25/0.08GiB free plus
+speculative memory; no tests ran and no guard was weakened. psutil.available's
+13.9GiB includes inactive pages and did not establish admission. Original-source
+materialization/replay and full-suite/publication gates remain pending. Preserve
+both refusal logs; proceed with a reviewable draft while awaiting real headroom.

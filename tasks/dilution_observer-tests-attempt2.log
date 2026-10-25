@@ -1,0 +1,1 @@
+[test.sh] only 0.08GB available, need ~2.5GB for 1 worker(s) at 2.5GB each -- free memory and retry (or lower TEST_SH_MIN if it forces extra workers) (#483)

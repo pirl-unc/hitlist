@@ -1,0 +1,383 @@
+{
+  "source_dataset": "PXD024809",
+  "source_dataset_precision": "deposited_project_accession",
+  "source_panel": "nominal_dose_DIA",
+  "assets": [
+    {
+      "filename": "DIAlignR-1.2.2.R",
+      "role": "pipeline_script",
+      "source_url": "https://github.com/nf-core/diaproteomics/blob/1.2.2/bin/DIAlignR.R",
+      "sha256": "f5a43381f6e656ab74426ae7248173ace1304531f7dda0895d2ed3d8c0ca543b",
+      "size_bytes": 1166,
+      "license_status": "source_rights_claim_preserved_not_inferred"
+    },
+    {
+      "filename": "Dilute_peptide_quantities.csv",
+      "role": "aligned_quantities",
+      "source_url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2025/09/PXD024809/Dilute_peptide_quantities.csv",
+      "sha256": "646f8054ca9f60d9ebad46722a994c507c0b30c0c897a75df356586f0bfcccb8",
+      "size_bytes": 13073500,
+      "license_status": "source_rights_claim_preserved_not_inferred"
+    },
+    {
+      "filename": "article.xml",
+      "role": "article_xml",
+      "source_url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC12406853/fullTextXML",
+      "sha256": "1f0f06ae0ac20ecb0edd84ca8244e5ce080770e1d99791fedb3c83b58060389d",
+      "size_bytes": 80140,
+      "license_status": "source_rights_claim_preserved_not_inferred"
+    },
+    {
+      "filename": "files-project-page0.json",
+      "role": "file_inventory",
+      "source_url": "https://www.ebi.ac.uk/pride/ws/archive/v2/projects/PXD024809/files?pageSize=100&page=0",
+      "sha256": "3e5b9b29f9cd531d7f55d44b16fdb579a79f75664dbbc6e8c4ac6332589837c0",
+      "size_bytes": 84282,
+      "license_status": "source_rights_claim_preserved_not_inferred"
+    },
+    {
+      "filename": "nfcore-main-1.2.2.nf",
+      "role": "pipeline_script",
+      "source_url": "https://github.com/nf-core/diaproteomics/blob/1.2.2/main.nf",
+      "sha256": "dce6f3bc78ee43a59abf60db06ecabdba59417a704acde6f9e3d5225aaf3db81",
+      "size_bytes": 46685,
+      "license_status": "source_rights_claim_preserved_not_inferred"
+    },
+    {
+      "filename": "project.json",
+      "role": "project_metadata",
+      "source_url": "https://www.ebi.ac.uk/pride/ws/archive/v2/projects/PXD024809",
+      "sha256": "3f3c061802f8f2517b9cdc3ab48157d688c220fe97b7e86b95b80e7f627b0fd7",
+      "size_bytes": 7300,
+      "license_status": "source_rights_claim_preserved_not_inferred"
+    },
+    {
+      "filename": "201207_AM_Demobox_V3_JY19_1_No1_Dilution1_02fmol-ul_DIA_1_400-650mz_msms35.mzML.tsv",
+      "role": "per_run_scored_candidates",
+      "source_url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2025/09/PXD024809/201207_AM_Demobox_V3_JY19_1_No1_Dilution1_02fmol-ul_DIA_1_400-650mz_msms35.mzML.tsv",
+      "sha256": "13689e96e502522816f832e7853f4efabc3e324ca9d40a7a240664826a64a6be",
+      "size_bytes": 26860000,
+      "license_status": "project_reported_CC0"
+    },
+    {
+      "filename": "201207_AM_Demobox_V3_JY19_1_No1_Dilution1_02fmol-ul_DIA_2_400-650mz_msms36.mzML.tsv",
+      "role": "per_run_scored_candidates",
+      "source_url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2025/09/PXD024809/201207_AM_Demobox_V3_JY19_1_No1_Dilution1_02fmol-ul_DIA_2_400-650mz_msms36.mzML.tsv",
+      "sha256": "6f55698ab15abdd16d5ae9226fd0a66c7b5f8d3620a7e960341fe2043745bead",
+      "size_bytes": 26891605,
+      "license_status": "project_reported_CC0"
+    },
+    {
+      "filename": "201207_AM_Demobox_V3_JY19_1_No2_Dilution1-2_01fmol-ul_DIA_1_400-650mz_msms30.mzML.tsv",
+      "role": "per_run_scored_candidates",
+      "source_url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2025/09/PXD024809/201207_AM_Demobox_V3_JY19_1_No2_Dilution1-2_01fmol-ul_DIA_1_400-650mz_msms30.mzML.tsv",
+      "sha256": "e55ccc773c4b1706a64735643334da97e1eedab6f20fc0d1d89e2577065715f8",
+      "size_bytes": 26437141,
+      "license_status": "project_reported_CC0"
+    },
+    {
+      "filename": "201207_AM_Demobox_V3_JY19_1_No2_Dilution1-2_01fmol-ul_DIA_2_400-650mz_msms31.mzML.tsv",
+      "role": "per_run_scored_candidates",
+      "source_url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2025/09/PXD024809/201207_AM_Demobox_V3_JY19_1_No2_Dilution1-2_01fmol-ul_DIA_2_400-650mz_msms31.mzML.tsv",
+      "sha256": "1ac96af786cd6d235812fc8393be9e92161ccc4fda7c0907d03a84e15c374a8d",
+      "size_bytes": 26290105,
+      "license_status": "project_reported_CC0"
+    },
+    {
+      "filename": "201207_AM_Demobox_V3_JY19_1_No3_Dilution1-4_005fmol-ul_DIA_1_400-650mz_msms25_201209153602.mzML.tsv",
+      "role": "per_run_scored_candidates",
+      "source_url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2025/09/PXD024809/201207_AM_Demobox_V3_JY19_1_No3_Dilution1-4_005fmol-ul_DIA_1_400-650mz_msms25_201209153602.mzML.tsv",
+      "sha256": "510c0cd43394eaa1a680b250b9194aad0f39ea2669620a01cde48d5340f183fe",
+      "size_bytes": 22348912,
+      "license_status": "project_reported_CC0"
+    },
+    {
+      "filename": "201207_AM_Demobox_V3_JY19_1_No3_Dilution1-4_005fmol-ul_DIA_2_400-650mz_msms26.mzML.tsv",
+      "role": "per_run_scored_candidates",
+      "source_url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2025/09/PXD024809/201207_AM_Demobox_V3_JY19_1_No3_Dilution1-4_005fmol-ul_DIA_2_400-650mz_msms26.mzML.tsv",
+      "sha256": "42f9ef60ef41275b31c4ce7c1215d9df3dfb2d842562e0019aa589ad99d645c9",
+      "size_bytes": 22196869,
+      "license_status": "project_reported_CC0"
+    },
+    {
+      "filename": "201207_AM_Demobox_V3_JY19_1_No4_Dilution1-8_0025fmol-ul_DIA_1_400-650mz_msms20.mzML.tsv",
+      "role": "per_run_scored_candidates",
+      "source_url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2025/09/PXD024809/201207_AM_Demobox_V3_JY19_1_No4_Dilution1-8_0025fmol-ul_DIA_1_400-650mz_msms20.mzML.tsv",
+      "sha256": "9d6f180b13ee4d3777b15289df8664a74e6b12e508315d3322de6612f62d71a0",
+      "size_bytes": 18679990,
+      "license_status": "project_reported_CC0"
+    },
+    {
+      "filename": "201207_AM_Demobox_V3_JY19_1_No4_Dilution1-8_0025fmol-ul_DIA_2_400-650mz_msms21.mzML.tsv",
+      "role": "per_run_scored_candidates",
+      "source_url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2025/09/PXD024809/201207_AM_Demobox_V3_JY19_1_No4_Dilution1-8_0025fmol-ul_DIA_2_400-650mz_msms21.mzML.tsv",
+      "sha256": "c64dca8dc00af401aecd4fbd93b9611f2e103a0185316787b2f47aa744f4e28d",
+      "size_bytes": 18855037,
+      "license_status": "project_reported_CC0"
+    },
+    {
+      "filename": "201207_AM_Demobox_V3_JY19_1_No5_Dilution1-16_00125fmol-ul_DIA_1_400-650mz_msms15.mzML.tsv",
+      "role": "per_run_scored_candidates",
+      "source_url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2025/09/PXD024809/201207_AM_Demobox_V3_JY19_1_No5_Dilution1-16_00125fmol-ul_DIA_1_400-650mz_msms15.mzML.tsv",
+      "sha256": "cf6d2f5a742ac7e025ec84d6a6dfe5a082905e5c948b511f1c1fe02937eb16a7",
+      "size_bytes": 14158089,
+      "license_status": "project_reported_CC0"
+    },
+    {
+      "filename": "201207_AM_Demobox_V3_JY19_1_No5_Dilution1-16_00125fmol-ul_DIA_2_400-650mz_msms16.mzML.tsv",
+      "role": "per_run_scored_candidates",
+      "source_url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2025/09/PXD024809/201207_AM_Demobox_V3_JY19_1_No5_Dilution1-16_00125fmol-ul_DIA_2_400-650mz_msms16.mzML.tsv",
+      "sha256": "b5fed0d44bab074ceae4104217d6815f92688ed3bce3784aa017cf2bbf3c2b79",
+      "size_bytes": 14378443,
+      "license_status": "project_reported_CC0"
+    },
+    {
+      "filename": "Dilute_library_merged_decoy.tsv",
+      "role": "master_query_library",
+      "source_url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2025/09/PXD024809/Dilute_library_merged_decoy.tsv",
+      "sha256": "ffa5d0753e0ba85f3b52a08f195f548ace8bd7f7a7a7159869be083bdb49abb8",
+      "size_bytes": 172372507,
+      "license_status": "project_reported_CC0"
+    }
+  ],
+  "headers": {
+    "per_run_scored_candidates": [
+      "transition_group_id",
+      "decoy",
+      "run_id",
+      "filename",
+      "RT",
+      "assay_rt",
+      "delta_rt",
+      "iRT",
+      "assay_iRT",
+      "delta_iRT",
+      "id",
+      "Sequence",
+      "FullPeptideName",
+      "Charge",
+      "mz",
+      "Intensity",
+      "aggr_prec_Peak_Area",
+      "aggr_prec_Peak_Apex",
+      "leftWidth",
+      "rightWidth",
+      "peak_group_rank",
+      "d_score",
+      "m_score",
+      "aggr_Peak_Area",
+      "aggr_Peak_Apex",
+      "aggr_Fragment_Annotation",
+      "ProteinName",
+      "m_score_peptide_run_specific",
+      "m_score_peptide_experiment_wide",
+      "m_score_peptide_global"
+    ],
+    "master_query_library": [
+      "PrecursorMz",
+      "ProductMz",
+      "PrecursorCharge",
+      "ProductCharge",
+      "LibraryIntensity",
+      "NormalizedRetentionTime",
+      "PeptideSequence",
+      "ModifiedPeptideSequence",
+      "PeptideGroupLabel",
+      "LabelType",
+      "CompoundName",
+      "SumFormula",
+      "SMILES",
+      "Adducts",
+      "ProteinId",
+      "UniprotId",
+      "GeneName",
+      "FragmentType",
+      "FragmentSeriesNumber",
+      "Annotation",
+      "CollisionEnergy",
+      "PrecursorIonMobility",
+      "TransitionGroupId",
+      "TransitionId",
+      "Decoy",
+      "DetectingTransition",
+      "IdentifyingTransition",
+      "QuantifyingTransition",
+      "Peptidoforms"
+    ],
+    "aligned_quantities": [
+      "peptide_id",
+      "precursor",
+      "run",
+      "RT",
+      "intensity",
+      "leftWidth",
+      "rightWidth",
+      "peak_group_rank",
+      "m_score",
+      "alignment_rank",
+      "feature_id",
+      "sequence",
+      "charge",
+      "group_label"
+    ]
+  },
+  "project": "project.json",
+  "article": "article.xml",
+  "inventory": "files-project-page0.json",
+  "aligned": "Dilute_peptide_quantities.csv",
+  "library": "Dilute_library_merged_decoy.tsv",
+  "n_nominal_standards": 10,
+  "n_nominal_levels": 5,
+  "n_scored_assets": 10,
+  "comparison_atol": "1e-12",
+  "comparison_rtol": "1e-12",
+  "source_registry": {
+    "PXD024809": {
+      "project_url": "https://www.ebi.ac.uk/pride/archive/projects/PXD024809",
+      "article_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC12406853/",
+      "doi": "10.1136/jitc-2025-012083",
+      "source_role": "post_isolation_nominal_standard_response_in_HLA_selected_matrix",
+      "license_source": "project.json#/license",
+      "license_reported": "Creative Commons Public Domain (CC0)",
+      "curation_contract": "Preserve all original aligned/scored/library states; no calibration training or APC concentration admission",
+      "audited_source_revision": "Presto50a2af40f32cad0f297d71884c9215310f17011d/family0844"
+    }
+  },
+  "protocol_assertions": [
+    {
+      "predicate": "reported_DIA1_window_width",
+      "value_raw": "15",
+      "unit": "m/z",
+      "evidence_text": "The mass window for the DIA1 experiment was set to 15 m/z, resulting in 10 DIA windows in covering an interval from 400 m/z - 550 m/z.",
+      "subject": "project",
+      "project_field": "sampleProcessingProtocol",
+      "applicability": "reported_reference_protocol_not_per_run_receipt"
+    },
+    {
+      "predicate": "reported_DIA1_n_windows",
+      "value_raw": "10",
+      "unit": "windows",
+      "evidence_text": "The mass window for the DIA1 experiment was set to 15 m/z, resulting in 10 DIA windows in covering an interval from 400 m/z - 550 m/z.",
+      "subject": "project",
+      "project_field": "sampleProcessingProtocol",
+      "applicability": "reported_reference_protocol_not_per_run_receipt"
+    },
+    {
+      "predicate": "reported_DIA1_mass_interval",
+      "value_raw": "[400, 550]",
+      "unit": "m/z",
+      "evidence_text": "The mass window for the DIA1 experiment was set to 15 m/z, resulting in 10 DIA windows in covering an interval from 400 m/z - 550 m/z.",
+      "subject": "project",
+      "project_field": "sampleProcessingProtocol",
+      "applicability": "reported_reference_protocol_not_per_run_receipt"
+    },
+    {
+      "predicate": "reported_DIA2_window_width",
+      "value_raw": "34",
+      "unit": "m/z",
+      "evidence_text": "The DIA2 experiment consisted of 34 m/z mass windows, resulting in 3 DIA windows covering 550 m/z - 650 m/z.",
+      "subject": "project",
+      "project_field": "sampleProcessingProtocol",
+      "applicability": "reported_reference_protocol_not_per_run_receipt"
+    },
+    {
+      "predicate": "reported_DIA2_n_windows",
+      "value_raw": "3",
+      "unit": "windows",
+      "evidence_text": "The DIA2 experiment consisted of 34 m/z mass windows, resulting in 3 DIA windows covering 550 m/z - 650 m/z.",
+      "subject": "project",
+      "project_field": "sampleProcessingProtocol",
+      "applicability": "reported_reference_protocol_not_per_run_receipt"
+    },
+    {
+      "predicate": "reported_DIA2_mass_interval",
+      "value_raw": "[550, 650]",
+      "unit": "m/z",
+      "evidence_text": "The DIA2 experiment consisted of 34 m/z mass windows, resulting in 3 DIA windows covering 550 m/z - 650 m/z.",
+      "subject": "project",
+      "project_field": "sampleProcessingProtocol",
+      "applicability": "reported_reference_protocol_not_per_run_receipt"
+    },
+    {
+      "predicate": "reported_MS_maximum_injection_time",
+      "value_raw": "100",
+      "unit": "ms",
+      "evidence_text": "100 ms maximum injection time",
+      "subject": "project",
+      "project_field": "sampleProcessingProtocol",
+      "applicability": "mass_spectrometer_accumulation_time_not_LC_injection_volume"
+    },
+    {
+      "predicate": "reported_fragmentation_method",
+      "value_raw": "CID",
+      "unit": null,
+      "evidence_text": "HLA-I ligands were fragmented with CID",
+      "subject": "project",
+      "project_field": "sampleProcessingProtocol",
+      "applicability": "reported_reference_protocol_not_per_run_receipt"
+    },
+    {
+      "predicate": "reported_collision_energy",
+      "value_raw": "35",
+      "unit": "percent",
+      "evidence_text": "collision energy of 35%",
+      "subject": "project",
+      "project_field": "sampleProcessingProtocol",
+      "applicability": "reported_reference_protocol_not_per_run_receipt"
+    },
+    {
+      "predicate": "reported_LC_separation_flow_rate",
+      "value_raw": "0.3",
+      "unit": "\u00b5L/min",
+      "evidence_text": "flow rate of 0.3 \u00b5l/min over 90 minutes",
+      "subject": "project",
+      "project_field": "sampleProcessingProtocol",
+      "applicability": "reported_reference_protocol_not_per_run_receipt"
+    },
+    {
+      "predicate": "reported_LC_gradient_duration",
+      "value_raw": "90",
+      "unit": "minutes",
+      "evidence_text": "flow rate of 0.3 \u00b5l/min over 90 minutes",
+      "subject": "project",
+      "project_field": "sampleProcessingProtocol",
+      "applicability": "reported_reference_protocol_not_per_run_receipt"
+    },
+    {
+      "predicate": "spike_stage",
+      "value_raw": "after_HLA_isolation",
+      "unit": null,
+      "evidence_text": "the purified JY HLA-I peptide solution was spiked",
+      "subject": "standards",
+      "project_field": "sampleProcessingProtocol",
+      "applicability": "reported_reference_protocol_not_per_run_receipt"
+    },
+    {
+      "predicate": "matrix_dilution_scope",
+      "value_raw": "serial_dilution_of_standard_spiked_eluate",
+      "unit": null,
+      "evidence_text": "The sample No.1 was diluted 1:2",
+      "subject": "matrix",
+      "project_field": "sampleProcessingProtocol",
+      "applicability": "reported_reference_protocol_not_per_run_receipt"
+    },
+    {
+      "predicate": "library_construction_scope",
+      "value_raw": "all_DDA_peptide_identification_results",
+      "unit": null,
+      "evidence_text": "A master library of all DDA peptide identification results was generated",
+      "subject": "project",
+      "project_field": "dataProcessingProtocol",
+      "applicability": "reported_reference_protocol_not_per_run_receipt"
+    },
+    {
+      "predicate": "reported_DIA_workflow_settings",
+      "value_raw": "default_settings",
+      "unit": null,
+      "evidence_text": "nfcore/DIAproteomics workflow V.1.2.2 with default settings",
+      "subject": "project",
+      "project_field": "dataProcessingProtocol",
+      "applicability": "reported_reference_protocol_not_per_run_receipt"
+    }
+  ]
+}
