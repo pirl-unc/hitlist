@@ -527,6 +527,8 @@ def materialize_recipe(store, recipe, destination):
         from .goldberg_composition import materialize_composition
         from .hap1_response_recipe import RECIPE_ID as HAP1_RESPONSE_ID
         from .hap1_response_recipe import materialize_responses as materialize_hap1_responses
+        from .intact_kinetics import RECIPE_ID as INTACT_KINETICS_ID
+        from .intact_kinetics import materialize_kinetics
         from .lymph_composition import RECIPE_ID as LYMPH_ID
         from .lymph_composition import materialize_response as materialize_lymph
         from .mapp_controlled_recipe import CONTRAST_ID as CONTROLLED_CONTRAST_ID
@@ -540,6 +542,8 @@ def materialize_recipe(store, recipe, destination):
         from .tmab_response_recipe import RECIPE_ID as NATIVE_RESPONSE_ID
         from .tmab_response_recipe import materialize_responses
 
+        if recipe["registered_recipe"] == INTACT_KINETICS_ID:
+            return materialize_kinetics(store, recipe, destination)
         if recipe["registered_recipe"] == PBMC_COMPOSITION_ID:
             return materialize_pbmc(store, recipe, destination)
         if recipe["registered_recipe"] == GOLDBERG_COMPOSITION_ID:
@@ -796,6 +800,10 @@ def verify_recipe_package(directory, *, source_package=None):
         from .pbmc_composition import verify_composition_contents
 
         return verify_composition_contents(directory, manifest, source_package)
+    if output_kind == "registered_intact_kinetics":
+        from .intact_kinetics import verify_kinetic_contents
+
+        return verify_kinetic_contents(directory, manifest, source_package)
     if output_kind == "registered_goldberg_composition":
         from .goldberg_composition import verify_composition_contents
 

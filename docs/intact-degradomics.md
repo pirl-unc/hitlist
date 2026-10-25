@@ -65,3 +65,41 @@ peptide response and run scaling remain. Missing peptides are not zero/negative
 labels. A supervised kinetic recipe and prospective split/model contract must
 be qualified separately before training. One substrate and one animal cannot
 establish independent new-protein or APC generalization.
+
+## Registered product/substrate forecast
+
+`pxd058121_product_substrate_forecast_v1` is available through the common recipe
+catalog, `EvidenceStore.materialize`, and `hitlist evidence materialize`:
+
+```python
+store.materialize({
+    "schema_version": 1,
+    "name": "intact_kinetic_forecast",
+    "registered_recipe": "pxd058121_product_substrate_forecast_v1",
+}, "new-kinetic-package")
+```
+
+The fixed contract uses original F2 kinetic assignments once, excluding duplicate
+F1 views and the publisher-selected subset. Targets require a positive finite,
+explicitly unmodified, unambiguous assignment with valid parent span, absolute
+mass error <=10 ppm, consistent input-mass identity/intensity, and no remaining
+duplicate mass for the sequence/acquisition. All original assignment decisions,
+including excluded candidates and nonexclusive reasons, remain in the output.
+
+A unique eligible intact-parent quantity supplies the denominator within each
+acquisition. The parent is not a target. Each product needs two distinct fitting
+times among 0/20/40/60/80 minutes; future presence does not select training rows.
+Validation is 100 minutes and test 120 minutes. Both held-outs require at least
+20 sequences and 40 measurements before the support gate passes. Weights give
+equal mass to peptide sequences, then times, then replicate cells within split.
+The scalar target is log10 product intensity minus log10 intact-parent intensity.
+Missing values remain missing; there is no censoring, negative generation,
+intensity clipping, imputation or molar interpretation.
+
+The package separates covariates from target/normalizer quantities and retains
+source assignments, acquisitions, material context, original links and every
+decision. Verification deterministically reconstructs admission and compares
+tables, targets, weights and source fingerprints; updating a file hash alone
+cannot certify altered labels. These are temporal forecasts of previously seen
+peptides, not peptide-disjoint or independent-specimen validation. An unknown
+peptide-specific MS response remains a modeling limitation.

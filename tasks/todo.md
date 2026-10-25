@@ -8509,3 +8509,21 @@ gain. Full hosted gates, review, merge and verified release remain open.
 
 Hosted CI at7ece088found six stale global catalog-version assertions (32versus31), with3,499unit tests passing on Python3.10. Update those global assertions only; historical package schema/catalog contracts remain unchanged. Runtime source/data bytes are unchanged. Run all six affected test files before pushing and require fresh hosted full gates.
 The six affected files now pass27tests/one pandas warning in0.35s; format/lint pass. All frozen runtime hashes remain unchanged. Fresh hosted gates required.
+
+## Intact-degradomics kinetic forecast recipe
+
+- [x] Freeze tasks/intact-kinetic-recipe-spec.md against the prospective Presto model plan.
+- [x] Implement source-bound registered recipe and all dispositions/context.
+- [x] Verify targets, support and blinding with meaningful fixtures and independent originals.
+- [ ] Publish, pass full hosted checks, merge and verify release.
+
+Review: 32 focused source/recipe/interface tests pass; format/lint pass. A fixture
+initially omitted the original F2 40-minute R1 extra column; corrected before
+admission without changing production behavior. Presto0046 independently verifies
+993 targets (626 train/181 validation/186 test), all 8,138 dispositions, weights
+and source lineage; maximum target error8.88e-16. Sixteen/64-draw sampled gradients
+and exact training both fail the biological comparator; this does not invalidate
+the original measurements or change the recipe. Full local suite remains deferred
+below the unchanged2GiBfree-space prerequisite. Full hosted tests and release are
+required. Source PR832 passed all unit/integration/docs/lint checks and merged as
+18bbf81d; its2.0.33 release build40149903223 is running separately.
