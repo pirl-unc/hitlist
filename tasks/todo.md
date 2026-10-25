@@ -8821,3 +8821,21 @@ Presto family 0519 independently reconciles all 255,635 quantities,73,113 refere
 public store; all 16 primary keys and 28 relationships pass. Dependency components
 remain 1,689. All 3,533 default non-integration tests pass in 179.10 seconds. Format and lint
 also pass. Integration release gates, merge and PyPI publication remain pending.
+
+## Native same-parent contrast recipe (#837)
+
+- [x] Freeze tasks/native-contrast-recipe-spec.md before computing source effects.
+- [x] Implement registered recipe, all dispositions, lineage and source binding.
+- [x] Verify invariants through meaningful fixtures and independent source replay.
+- [ ] Run required software gates and complete versioned PR/tested release.
+- [ ] Consume the released recipe in the separately registered biological fit.
+
+
+Native contrast review: format/lint, 36 focused tests and all 3,544 default tests
+pass (184.61s pytest; 189.59s wall). Initial full-suite preflight refused 2.33GB;
+retry retained unchanged guards and passed with 5.01GB available/two workers.
+Presto family0612 independently replays all10,647decisions,228contrasts and2,736
+contributors. Support: train55components/158contrasts, validation8/38, test18/32;
+82parent sequences across81components. No fitted predictor or held-out effect
+summary. SourcePR839 merged as e755be4 with the identical tree as bfbaa67 base;
+source release40167325306 remains live. Recipe PR/release and later fit pending.

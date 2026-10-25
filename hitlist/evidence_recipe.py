@@ -535,6 +535,8 @@ def materialize_recipe(store, recipe, destination):
         from .mapp_controlled_recipe import RECIPE_ID as CONTROLLED_ID
         from .mapp_controlled_recipe import materialize_controlled
         from .ms_calibration_response import RECIPE_ID, materialize_response
+        from .native_contrast import RECIPE_ID as NATIVE_CONTRAST_ID
+        from .native_contrast import materialize_contrasts
         from .pbmc_composition import RECIPE_ID as PBMC_COMPOSITION_ID
         from .pbmc_composition import materialize_composition as materialize_pbmc
         from .proteometools_response import RECIPE_ID as PROTEOMETOOLS_ID
@@ -558,6 +560,8 @@ def materialize_recipe(store, recipe, destination):
             return materialize_hap1_responses(store, recipe, destination)
         if recipe["registered_recipe"] == NATIVE_RESPONSE_ID:
             return materialize_responses(store, recipe, destination)
+        if recipe["registered_recipe"] == NATIVE_CONTRAST_ID:
+            return materialize_contrasts(store, recipe, destination)
         if recipe["registered_recipe"] == DIGESTION_ID:
             return materialize_timecourses(store, recipe, destination)
         if recipe["registered_recipe"] in (CONTROLLED_ID, CONTROLLED_CONTRAST_ID):
@@ -828,6 +832,10 @@ def verify_recipe_package(directory, *, source_package=None):
         from .tmab_response_recipe import verify_response_contents
 
         return verify_response_contents(directory, manifest, source_package)
+    if output_kind == "registered_native_contrast":
+        from .native_contrast import verify_contrast_contents
+
+        return verify_contrast_contents(directory, manifest, source_package)
     if output_kind == "registered_digestion_timecourses":
         from .digestion_recipe import verify_timecourse_contents
 

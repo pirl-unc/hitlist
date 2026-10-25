@@ -41,6 +41,7 @@ def describe_registered_recipes(store):
     from .lymph_composition import describe as describe_lymph
     from .mapp_controlled_recipe import describe as describe_controlled
     from .ms_calibration_response import describe
+    from .native_contrast import describe as describe_native_contrast
     from .pbmc_composition import describe as describe_pbmc
     from .precursor_recipe import describe as describe_precursor
     from .proteometools_response import describe as describe_proteometools
@@ -56,6 +57,7 @@ def describe_registered_recipes(store):
         describe_controlled(store, contrast=True),
         describe_digestion(store),
         describe_native_response(store),
+        describe_native_contrast(store),
         describe_precursor(store),
         describe_hap1_response(store),
         describe_intact_kinetics(store),
