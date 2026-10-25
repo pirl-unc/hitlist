@@ -12,7 +12,7 @@ and archive/publisher equivalence receipts are retained.
 
 ## Shared generation and typed queries
 
-Build a fresh schema-9 successor from a verified schema-7 reference generation
+Build a fresh schema-27 successor from a verified schema-7 reference generation
 or schema-8 adjudication generation, including every registered external source
 required in the resulting store. Starting from an adjudication generation
 preserves its nine source-reviewed multimer claims. Workbook ingestion requires
@@ -23,6 +23,7 @@ hitlist evidence append-sources /path/to/adjudication-generation /path/to/new-ge
   --source-root pxd009092=/path/to/mapp-assets \
   --source-root wolflevy2018_controlled=/path/to/controlled-mapp-assets \
   --source-root pxd009438=/path/to/pbmc-mapp-assets \
+  --source-root goldberg2025=/path/to/goldberg-mapp-assets \
   --source-root pxd004886=/path/to/calibration-assets
 ```
 

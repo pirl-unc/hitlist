@@ -8,11 +8,12 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, replace
 
+from .goldberg_mapp import SCHEMAS as GOLDBERG_MAPP_SCHEMAS
 from .intact_degradomics_schema import FIELD_MEANINGS as INTACT_FIELD_MEANINGS
 from .intact_degradomics_schema import RELATIONS as INTACT_RELATIONS
 from .intact_degradomics_schema import SCHEMAS as INTACT_SCHEMAS
 
-SCHEMA_VERSION = 33
+SCHEMA_VERSION = 34
 FIELD_ROLES = frozenset(
     {
         "identity",
@@ -1459,6 +1460,69 @@ for _name, _definition in sorted(_intact_fields.items()):
     elif _name in {"time_minutes", "quantity_kind", "fit_percent"}:
         _role = "protocol"
     FIELDS += (_field(_name, _role, _kind, INTACT_FIELD_MEANINGS[_name]),)
+
+# Goldberg PXD052314 remains source-faithful when projected into canonical
+# MAPP extensions. These fields are deliberately named for the original source
+# rather than normalized into biological identities or quantities.
+FIELDS += (
+    _field(
+        "acquisition_link_status",
+        "provenance",
+        "category",
+        "Source scope of a quantity-to-run link",
+    ),
+    _field("assay_name_raw", "protocol", "text", "Unmodified source assay name"),
+    _field("confidence_raw", "provenance", "text", "Unmodified source confidence literal"),
+    _field("contaminant_raw", "annotation", "text", "Unmodified source contaminant flag"),
+    _field("end_raw", "provenance", "text", "Unmodified source peptide end coordinate"),
+    _field("fasta_headers_raw", "provenance", "text", "Unmodified source FASTA header list"),
+    _field("flank_c_raw", "provenance", "text", "Unmodified source C-terminal flank"),
+    _field("flank_n_raw", "provenance", "text", "Unmodified source N-terminal flank"),
+    _field("form_id", "identity", "identifier", "Source modification-specific peptide identity"),
+    _field("group_id", "identity", "identifier", "Source protein-group identity"),
+    _field("header_raw", "provenance", "text", "Unmodified source FASTA header"),
+    _field("identification_id", "identity", "identifier", "Source MaxQuant evidence identity"),
+    _field("identification_type", "annotation", "category", "Source identification-method label"),
+    _field("identity_status", "provenance", "category", "Source identity-resolution status"),
+    _field("link_status", "relation", "category", "Source reconciliation-link status"),
+    _field("native_id", "provenance", "identifier", "Unmodified source-local identity"),
+    _field("peptide_id", "identity", "identifier", "Source peptide-row identity"),
+    _field(
+        "posterior_error_probability",
+        "provenance",
+        "number",
+        "Reported source posterior error probability",
+    ),
+    _field(
+        "publisher_measurement_id", "relation", "identifier", "Publisher-side measurement identity"
+    ),
+    _field("reverse_raw", "annotation", "text", "Unmodified source reverse/decoy flag"),
+    _field("slot_id", "identity", "identifier", "Ordered publisher pooled-slot identity"),
+    _field("slot_raw", "provenance", "text", "Unmodified ordered publisher pooled-slot literal"),
+    _field(
+        "source_evidence_ids_raw", "provenance", "text", "Unmodified linked source evidence IDs"
+    ),
+    _field("source_form_ids_raw", "provenance", "text", "Unmodified linked source form IDs"),
+    _field("source_group_ids_raw", "provenance", "text", "Unmodified linked source group IDs"),
+    _field(
+        "source_measurement_id",
+        "relation",
+        "identifier",
+        "Original search-side measurement identity",
+    ),
+    _field(
+        "source_organism_status",
+        "annotation",
+        "category",
+        "Source-header organism-status assertion",
+    ),
+    _field("source_peptide_ids_raw", "provenance", "text", "Unmodified linked source peptide IDs"),
+    _field("source_slot_index", "provenance", "number", "One-based ordered source slot index"),
+    _field("start_raw", "provenance", "text", "Unmodified source peptide start coordinate"),
+    _field(
+        "taxonomy_status", "annotation", "category", "Status of a source-header taxonomy assertion"
+    ),
+)
 
 _FIELD_BY_NAME = {field.name: field for field in FIELDS}
 
@@ -4327,7 +4391,7 @@ EVIDENCE = tuple(
         item,
         native_artifact=f"mapp/typed/{_CANONICAL_MAPP_ARTIFACTS[item.name]}.parquet",
         materialized_artifact=f"mapp/typed/{_CANONICAL_MAPP_ARTIFACTS[item.name]}.parquet",
-        source_population="captured_fragment_mapp_v1",
+        source_population="captured_fragment_mapp",
         fields=(
             "source_dataset",
             "source_dataset_precision",
@@ -5145,6 +5209,88 @@ EVIDENCE += tuple(
         min_package_schema_version=25,
     )
     for name, (grain, fields) in GOLDBERG_RELATIONS.items()
+)
+
+_CANONICAL_GOLDBERG_EXTENSIONS = {
+    "mapp_source_asset": ("assets", "relation", "one_pinned_original_source_asset"),
+    "mapp_source_record_source_detail": (
+        "source_records",
+        "relation",
+        "one_original_source_record_including_ordered_native_fields",
+    ),
+    "mapp_acquisition_source_detail": (
+        "acquisitions",
+        "context",
+        "one_original_deposition_raw_file_not_a_physical_specimen",
+    ),
+    "mapp_group_source_detail": ("groups", "relation", "one_original_MaxQuant_protein_group"),
+    "mapp_source_reference": (
+        "references",
+        "relation",
+        "one_source_FASTA_header_slot_not_a_full_reference",
+    ),
+    "mapp_peptide_source_detail": ("peptides", "relation", "one_original_MaxQuant_peptide_row"),
+    "mapp_peptide_form": (
+        "forms",
+        "relation",
+        "one_original_modification_specific_peptide_row",
+    ),
+    "mapp_identification_source_detail": (
+        "identifications",
+        "relation",
+        "one_original_MaxQuant_evidence_row",
+    ),
+    "mapp_search_quantity_detail": (
+        "quantities",
+        "measurement",
+        "one_original_search_quantity_cell_including_zero_or_missing",
+    ),
+    "mapp_source_assertion_source_detail": (
+        "assertions",
+        "relation",
+        "one_source_scoped_assertion_with_original_provenance",
+    ),
+    "mapp_publisher_cell_source_detail": (
+        "publisher_cells",
+        "relation",
+        "one_publisher_XML_cell_with_literal_style_formula_and_value",
+    ),
+    "mapp_publisher_quantity_source_detail": (
+        "publisher_quantities",
+        "measurement",
+        "one_publisher_quantity_cell_in_a_distinct_assay_view",
+    ),
+    "mapp_publisher_reconciliation": (
+        "publisher_links",
+        "relation",
+        "one_publisher_to_original_reconciliation_claim",
+    ),
+    "mapp_pooled_quantity_slot": (
+        "pooled_slots",
+        "measurement",
+        "one_ordered_pooled_label_value_slot_with_unresolved_identity",
+    ),
+}
+EVIDENCE += tuple(
+    Evidence(
+        name,
+        kind,
+        "quantitative_ms",
+        grain,
+        f"mapp/typed/{name.removeprefix('mapp_')}.parquet",
+        "PXD052314",
+        (),
+        (
+            "source_dataset",
+            "source_dataset_precision",
+            *GOLDBERG_MAPP_SCHEMAS[source_table].names,
+        ),
+        ("source_dataset", GOLDBERG_MAPP_SCHEMAS[source_table].names[0]),
+        status="v2_materialized",
+        materialized_artifact=f"mapp/typed/{name.removeprefix('mapp_')}.parquet",
+        required_package_feature="canonical_mapp_v2",
+    )
+    for name, (source_table, kind, grain) in _CANONICAL_GOLDBERG_EXTENSIONS.items()
 )
 
 EVIDENCE += tuple(

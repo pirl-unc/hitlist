@@ -14,6 +14,7 @@ from hitlist import goldberg_mapp as source
 from hitlist.evidence_catalog import FIELDS, GOLDBERG_RELATIONS
 from hitlist.evidence_package import package_family
 from hitlist.evidence_store import EvidenceStore
+from hitlist.external_evidence import _copy_source
 from hitlist.goldberg_workbooks import workbook_rows
 from hitlist.material_context import links_with_minimum_precision
 from hitlist.provenance import file_digest
@@ -222,6 +223,58 @@ def tables(package):
         name: pq.read_table(package / source.ROOT / "typed" / f"{name}.parquet").to_pylist()
         for name in source.SCHEMAS
     }
+
+
+def test_external_adapter_receipt_matches_the_standalone_contract():
+    contract = json.loads(source.CONTRACT.read_text())
+    receipt = json.loads(source.ASSET_RECEIPT.read_text())
+    assert receipt == {
+        "source_id": "goldberg2025",
+        "assets": {
+            asset["filename"]: {"sha256": asset["sha256"], "size": asset["size_bytes"]}
+            for asset in contract["assets"]
+        },
+    }
+
+
+def test_external_adapter_replays_the_same_source_faithful_relations(
+    original, tmp_path, monkeypatch
+):
+    contract = json.loads(source.CONTRACT.read_text())
+    receipt = tmp_path / "receipt.json"
+    receipt.write_text(
+        json.dumps(
+            {
+                "source_id": "goldberg2025",
+                "assets": {
+                    asset["filename"]: {
+                        "sha256": asset["sha256"],
+                        "size": asset["size_bytes"],
+                    }
+                    for asset in contract["assets"]
+                },
+            }
+        )
+    )
+    monkeypatch.setattr(source.GoldbergMAPPAdapter, "asset_receipt_path", receipt)
+    monkeypatch.setattr(
+        source.GoldbergMAPPAdapter, "support_files", {"contract.json": source.CONTRACT}
+    )
+    adapter = source.GoldbergMAPPAdapter()
+    external = tmp_path / "external"
+    _copy_source(adapter, original, external)
+    reconciliation = adapter.write(external)
+    adapter.verify(external, reconciliation)
+    assert reconciliation["n_peptides_rows"] == 3
+    assert reconciliation["n_quantities_rows"] == 13
+    assert adapter.registry(reconciliation)["dataset_accession"] == "PXD052314"
+
+    path = external / "typed/quantities.parquet"
+    rows = pq.read_table(path).to_pylist()
+    rows[0]["quantitative_value"] = 999
+    pq.write_table(pa.Table.from_pylist(rows, schema=source.SCHEMAS["quantities"]), path)
+    with pytest.raises(ValueError, match="typed rows differ"):
+        adapter.verify(external, reconciliation)
 
 
 def test_original_identity_grains_and_ambiguous_material(original, tmp_path):

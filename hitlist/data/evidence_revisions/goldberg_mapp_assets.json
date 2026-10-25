@@ -1,0 +1,29 @@
+{
+  "assets": {
+    "Data_Deposition_Table.xlsx": {
+      "sha256": "c304aca41c0519e6c9b9f0105a1f42c595c23c8853573f609be96751a0a7bf2e",
+      "size": 10668
+    },
+    "EC_infection_Degradome_MAPP_Peptides.zip": {
+      "sha256": "a7314be5a1fd268736bd40b6a96e92ff74303bde53822bdac7d6941f367f6fe4",
+      "size": 356132312
+    },
+    "PXD052314_community_annotated.sdrf.tsv": {
+      "sha256": "57b2e973f6f5c01a0e46b30b6511be5c53b95e2cdfa49a1e2204c86fde795dc9",
+      "size": 19547
+    },
+    "files.json": {
+      "sha256": "9f05b957ee847b86d4b91fc90b8d8d2b5c4b7b3c744b33e8799f9e806a607008",
+      "size": 46362
+    },
+    "project.json": {
+      "sha256": "ca8009acbadedd1060c22ceba388cf835652d75c56756948d337cf7d7defd51b",
+      "size": 6986
+    },
+    "supplement.zip": {
+      "sha256": "4de056f094c34e1cfcdde14410d5ac35c45de7d187e9c6b987b7c5c75ff78714",
+      "size": 48110489
+    }
+  },
+  "source_id": "goldberg2025"
+}

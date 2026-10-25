@@ -4,6 +4,12 @@ The `goldberg_mapp` family preserves original PXD052314 search results and
 separate views from Goldberg2025 publisher Tables3/5. The pinned revision is
 `goldberg2025_mapp_original_v1` (package schema25, catalog31).
 
+For cross-source work, append `goldberg2025` together with the other
+captured-fragment adapters and query the common [`mapp_*` API](mapp-canonical.md).
+The canonical package adds lossless same-grain extensions for the source's
+search, publisher and pooled-table layout; it does not replace this standalone,
+independently replayable source receipt.
+
 ```python
 from hitlist.goldberg_mapp import write_goldberg_mapp_package
 from hitlist.evidence_store import EvidenceStore
@@ -19,11 +25,14 @@ quantities = store.query(
 ```
 
 Six original assets are hash/size pinned in
-`hitlist/data/evidence_revisions/goldberg_mapp.json`. The writer copies complete
-assets to independent snapshots, materializes the typed tables, and replays them
-before publishing a new directory. Reopening verifies both the original bytes and
-the exact typed rows; editing a Parquet file and rehashing the inventory is not
-sufficient to pass verification. No existing package is overwritten.
+`hitlist/data/evidence_revisions/goldberg_mapp.json`; the source-adapter receipt
+used by the canonical package is separately pinned in
+`hitlist/data/evidence_revisions/goldberg_mapp_assets.json`. The writer copies
+complete assets to independent snapshots, materializes the typed tables, and
+replays them before publishing a new directory. Reopening verifies both the
+original bytes and the exact typed rows; editing a Parquet file and rehashing the
+inventory is not sufficient to pass verification. No existing package is
+overwritten.
 
 The source grain remains explicit:
 

@@ -9,11 +9,13 @@ import pyarrow.parquet as pq
 import pytest
 
 from hitlist import external_successor as successor
+from hitlist import goldberg_mapp
 from hitlist.evidence_bindings import materialized_bindings
 from hitlist.mapp_controlled_evidence import write_controlled_tables
 from hitlist.mapp_evidence import write_mapp_tables
 from hitlist.mapp_pbmc_evidence import write_pbmc_tables
 from hitlist.provenance import file_digest
+from tests.test_goldberg_mapp import original as goldberg_original_fixture
 from tests.test_mapp_controlled_evidence import _fixture as controlled_fixture
 from tests.test_mapp_evidence import _source as pxd009092_fixture
 from tests.test_mapp_pbmc_evidence import _fixture as pxd009438_fixture
@@ -99,8 +101,8 @@ def test_successor_preserves_and_isolates_predecessor(tmp_path, monkeypatch, adj
     output = tmp_path / "output"
     successor.write_external_successor(parent, output, source_roots={"fixture": source})
     manifest = successor.verify_external_successor(output)
-    assert manifest["schema_version"] == 9
-    assert manifest["catalog_schema_version"] == 15
+    assert manifest["schema_version"] == 27
+    assert manifest["catalog_schema_version"] == 17
     assert (output / "newer-modality.txt").read_bytes() == (
         parent / "newer-modality.txt"
     ).read_bytes()
@@ -235,6 +237,18 @@ def test_all_mapp_adapters_publish_and_verify_one_canonical_projection(tmp_path,
         "wolflevy2018_controlled", controlled_fixture, write_controlled_tables
     )
     pxd009438_root, pxd009438 = adapter("pxd009438", pxd009438_fixture, write_pbmc_tables)
+
+    def write_goldberg_tables(directory):
+        original = goldberg_original_fixture.__wrapped__(directory, monkeypatch)
+        return goldberg_mapp._compile(
+            original, Path(directory) / "typed", json.loads(goldberg_mapp.CONTRACT.read_text())
+        )
+
+    def prepare_goldberg(directory):
+        for name in ("assets", "contracts"):
+            (Path(directory) / name).mkdir()
+
+    goldberg_root, goldberg = adapter("goldberg2025", prepare_goldberg, write_goldberg_tables)
     monkeypatch.setattr(
         successor,
         "_adapters",
@@ -242,6 +256,7 @@ def test_all_mapp_adapters_publish_and_verify_one_canonical_projection(tmp_path,
             "pxd009092": pxd009092,
             "wolflevy2018_controlled": controlled,
             "pxd009438": pxd009438,
+            "goldberg2025": goldberg,
         },
     )
 
@@ -253,6 +268,7 @@ def test_all_mapp_adapters_publish_and_verify_one_canonical_projection(tmp_path,
             "pxd009092": pxd009092_root,
             "wolflevy2018_controlled": controlled_root,
             "pxd009438": pxd009438_root,
+            "goldberg2025": goldberg_root,
         },
     )
     manifest = successor.verify_external_successor(output)
@@ -261,8 +277,9 @@ def test_all_mapp_adapters_publish_and_verify_one_canonical_projection(tmp_path,
         "PXD009092",
         "PXD009438",
         "PXD009508",
+        "PXD052314",
     ]
-    assert manifest["mapp_canonical"]["relation_rows"]["mapp_acquisition"] == 62
+    assert manifest["mapp_canonical"]["relation_rows"]["mapp_acquisition"] == 64
 
     path = output / "mapp/typed/channels.parquet"
     rows = pq.read_table(path).to_pylist()
@@ -296,7 +313,7 @@ def test_released_schema_nine_packages_remain_readable(tmp_path, monkeypatch, ca
     successor.write_external_successor(parent, output, source_roots={"fixture": source})
     path = output / "manifest.json"
     manifest = json.loads(path.read_text())
-    manifest["catalog_schema_version"] = catalog
+    manifest.update(schema_version=9, catalog_schema_version=catalog)
     path.write_text(json.dumps(manifest))
     assert successor.verify_external_successor(output) == manifest
 
@@ -308,7 +325,7 @@ def test_released_schema_nine_packages_remain_readable(tmp_path, monkeypatch, ca
         {"parent_manifest_path": "manifests/adjudication.json"},
         {"parent_manifest_path": "../escape"},
         {"review_revision": "ambiguous"},
-        {"catalog_schema_version": 16},
+        {"catalog_schema_version": 18},
     ],
 )
 def test_successor_rejects_false_family_or_predecessor(tmp_path, monkeypatch, changes):

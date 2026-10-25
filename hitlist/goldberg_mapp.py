@@ -32,6 +32,8 @@ PACKAGE_FAMILY = "goldberg_mapp"
 REVISION = "goldberg2025_mapp_original_v1"
 ROOT = Path("goldberg_mapp")
 CONTRACT = Path(__file__).parent / "data/evidence_revisions/goldberg_mapp.json"
+ASSET_RECEIPT = Path(__file__).parent / "data/evidence_revisions/goldberg_mapp_assets.json"
+SUPPORT_FILES = {"contract.json": CONTRACT}
 
 SCHEMAS = {
     "assets": _schema(
@@ -710,6 +712,42 @@ def _compile(assets, destination, contract):
     return _Compiler(assets, destination, contract).run()
 
 
+def _verify_typed_tables(assets, typed, contract, reconciliation):
+    """Replay direct typed relations from frozen source assets.
+
+    Both the standalone source receipt and the external-source adapter use this
+    verifier. Keeping the replay independent of either package envelope means
+    neither form can hide a changed typed value behind a refreshed inventory.
+    """
+    with tempfile.TemporaryDirectory(prefix="hitlist-goldberg-verify-") as temporary:
+        replay = Path(temporary) / "typed"
+        counts = _compile(assets, replay, contract)
+        if counts != reconciliation:
+            raise ValueError("Goldberg source reconciliation differs")
+        for name, schema in SCHEMAS.items():
+            expected = pq.ParquetFile(replay / f"{name}.parquet")
+            actual = pq.ParquetFile(Path(typed) / f"{name}.parquet")
+            if not actual.schema_arrow.equals(schema):
+                raise ValueError(f"Goldberg schema differs: {name}")
+            for left, right in zip(expected.iter_batches(), actual.iter_batches(), strict=True):
+                if not left.equals(right):
+                    raise ValueError(f"Goldberg typed rows differ from original: {name}")
+
+
+def _adapter_contract(source_dir):
+    """Read a generic external-source envelope without weakening its contract."""
+    source_dir = Path(source_dir)
+    contract = json.loads((source_dir / "contracts/contract.json").read_text())
+    receipt = json.loads((source_dir / "contracts/source_assets.json").read_text())
+    expected = {
+        asset["filename"]: {"sha256": asset["sha256"], "size": asset["size_bytes"]}
+        for asset in contract["assets"]
+    }
+    if receipt.get("assets") != expected:
+        raise ValueError("Goldberg adapter receipt disagrees with source contract")
+    return contract
+
+
 def _inventory(directory):
     return {
         str(p.relative_to(directory)): file_digest(p)
@@ -740,19 +778,12 @@ def verify_goldberg_mapp_package(directory):
             k: asset[k] for k in ("sha256", "size_bytes")
         }:
             raise ValueError("Goldberg original source mismatch")
-    with tempfile.TemporaryDirectory(prefix="hitlist-goldberg-verify-") as temporary:
-        replay = Path(temporary) / "typed"
-        counts = _compile(directory / ROOT / "source_assets", replay, contract)
-        if counts != manifest.get("reconciliation"):
-            raise ValueError("Goldberg source reconciliation differs")
-        for name, schema in SCHEMAS.items():
-            expected = pq.ParquetFile(replay / f"{name}.parquet")
-            actual = pq.ParquetFile(directory / ROOT / "typed" / f"{name}.parquet")
-            if not actual.schema_arrow.equals(schema):
-                raise ValueError(f"Goldberg schema differs: {name}")
-            for left, right in zip(expected.iter_batches(), actual.iter_batches(), strict=True):
-                if not left.equals(right):
-                    raise ValueError(f"Goldberg typed rows differ from original: {name}")
+    _verify_typed_tables(
+        directory / ROOT / "source_assets",
+        directory / ROOT / "typed",
+        contract,
+        manifest.get("reconciliation"),
+    )
     return manifest
 
 
@@ -793,3 +824,56 @@ def write_goldberg_mapp_package(source_directory, destination):
     except Exception:
         shutil.rmtree(staging, ignore_errors=True)
         raise
+
+
+class GoldbergMAPPAdapter:
+    """Expose Goldberg source preservation through the shared adapter protocol.
+
+    This adapter does not replace the standalone ``goldberg_mapp`` package. It
+    writes the same source-faithful relations beneath an external successor so
+    the canonical MAPP projector can consume them alongside other sources.
+    """
+
+    source_id = "goldberg2025"
+    schema_version = 1
+    asset_receipt_path = ASSET_RECEIPT
+    support_files = SUPPORT_FILES
+
+    def write(self, source_dir):
+        source_dir = Path(source_dir)
+        contract = _adapter_contract(source_dir)
+        return _compile(source_dir / "assets", source_dir / "typed", contract)
+
+    def verify(self, source_dir, reconciliation):
+        source_dir = Path(source_dir)
+        _verify_typed_tables(
+            source_dir / "assets",
+            source_dir / "typed",
+            _adapter_contract(source_dir),
+            reconciliation,
+        )
+
+    def registry(self, reconciliation):
+        contract = json.loads(CONTRACT.read_text())
+        registry = contract["source_registry"][self.source_id]
+        return {
+            "source_id": self.source_id,
+            "dataset_accession": registry["project_accession"],
+            "organism_scope": "A549 source cell-line label; source reference origin unresolved",
+            "measured_pools": list(contract["assay_pools"].values()),
+            "measurement_grain": "original_MaxQuant_quantity_or_publisher_cell",
+            "training_admission": registry["training_status"],
+            "quantity_artifact": "typed/quantities.parquet",
+            "material_context_artifact": "typed/material_contexts.parquet",
+            "material_link_artifact": "typed/material_links.parquet",
+            "rights": {"source": registry["license_status"]},
+            "n_primary_peptide_rows": reconciliation["n_peptides_rows"],
+            "limitations": [
+                "captured_pool_not_free_concentration",
+                "source_sample_labels_not_physical_specimen_identity",
+                "unresolved_specimens_and_aliquots",
+                "publisher_views_are_distinct_assays",
+                "pooled_slots_have_unresolved_run_and_quantity_semantics",
+                "full_search_FASTA_absent",
+            ],
+        }
