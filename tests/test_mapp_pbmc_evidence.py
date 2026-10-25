@@ -145,7 +145,8 @@ def test_source_adapter_is_registered_separately_from_other_mapp_panels():
     from hitlist.external_evidence import _adapters
 
     assert "pxd009438" in _adapters()
-    bindings = materialized_bindings(9, appended_source_ids=["pxd009438"])
-    assert "pbmc_mapp_channel" in bindings
-    assert "external_pbmc_proteasome_fragment_quantity" in bindings
-    assert "mapp_channel" not in bindings
+    assert "mapp_acquisition" not in materialized_bindings(9, appended_source_ids=["pxd009438"])
+    bindings = materialized_bindings(9, package_features=["canonical_mapp"])
+    assert "mapp_acquisition" in bindings
+    assert "mapp_quantity_result" in bindings
+    assert not any(name.startswith("pbmc_mapp_") for name in bindings)

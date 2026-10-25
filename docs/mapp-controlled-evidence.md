@@ -1,5 +1,9 @@
 # Controlled MAPP observations
 
+> The public MAPP API is now the [canonical captured-fragment MAPP package](mapp-canonical.md).
+> `processing_*` relation names were removed; this page retains source-specific
+> controlled-panel parsing and scientific-scope documentation.
+
 The `wolflevy2018_controlled` adapter preserves two Wolf-Levy 2018 PRIDE panels
 using the same source, peptide, identification, run, quantity and context tables.
 
@@ -33,25 +37,17 @@ abundance.
 
 ## Canonical queries and run recipe
 
-Append this source with any other required sources to a verified reference or
-adjudication predecessor. New packages use schema 9/catalog 13. Existing
-catalog-12 packages remain readable; optional relations are exposed only when
-their source is actually present.
+Append all three captured-fragment adapters to a verified reference or
+adjudication predecessor, as shown in the [canonical MAPP guide](mapp-canonical.md#query).
+Appending this controlled source alone retains its source receipt but does not
+expose a partial public MAPP relation set.
 
-```sh
-hitlist evidence append-sources PREDECESSOR OUTPUT \
-  --source-root pxd009092=MAPP_ASSETS \
-  --source-root pxd004886=CALIBRATION_ASSETS \
-  --source-root wolflevy2018_controlled=CONTROLLED_ASSETS
-```
-
-`processing_*` evidence types expose the shared relation grains through the
-same query API as other sources. `processing_material_context` and
-`processing_material_link` distinguish source project, study arm and acquisition
-membership from a physical specimen/aliquot link. `processing_channel` includes
-capture, treatment, dose/time, evidence scopes and nullable material identities.
-`processing_quantity_result` reports direct-MS/MS and matched contributor counts.
-Every original column is also available through `native.<field>`.
+Use `mapp_acquisition`, `mapp_acquisition_context`, `mapp_quantity_result` and
+`mapp_quantity_evidence_summary`, filtering `source_dataset` to PXD009508 or
+PXD007263 as needed. Material contexts/links retain source project, study arm
+and acquisition membership without claiming a physical specimen/aliquot link.
+Every original column remains in the retained source table and is represented by
+the canonical base or its typed extension relation.
 
 Materialize registered recipe `mapp_controlled_run_intensity_v1` for positive
 response analysis. Each example is one reported positive peptide/run intensity

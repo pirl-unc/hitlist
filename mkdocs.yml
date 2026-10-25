@@ -11,7 +11,8 @@ nav:
   - Evidence Store and Query: evidence-store.md
   - Evidence Catalog: evidence-catalog.md
   - Declared Training Recipes: evidence-recipes.md
-  - MAPP Fragment Evidence: mapp-evidence.md
+  - Canonical MAPP Evidence: mapp-canonical.md
+  - PXD009092 MAPP Source Notes: mapp-evidence.md
   - Goldberg2025 MAPP Evidence: goldberg-mapp.md
   - Controlled MAPP Evidence: mapp-controlled-evidence.md
   - Primary-PBMC MAPP Evidence: mapp-pbmc-evidence.md

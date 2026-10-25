@@ -203,7 +203,11 @@ def test_calibration_bindings_are_scoped_to_actual_source_generations():
     assert "calibration_s4_measurement" not in materialized_bindings(
         8, appended_source_ids=["pxd009092"]
     )
-    both = materialized_bindings(8, appended_source_ids=["pxd004886", "pxd009092"])
+    both = materialized_bindings(
+        9,
+        appended_source_ids=["pxd004886"],
+        package_features=["canonical_mapp"],
+    )
     assert "calibration_s4_measurement" in both and "mapp_peptide" in both
     assert sum(name.startswith("calibration_") for name in both) == 13
 

@@ -20,15 +20,15 @@ from .provenance import file_digest
 
 TABLE_BINDINGS = {
     "peptide_rows": "mapp_peptide",
-    "channels": "mapp_channel",
+    "channels": "mapp_acquisition",
     "evidence": "mapp_identification",
-    "quantity_results": "external_proteasome_fragment_quantity",
+    "quantity_results": "mapp_quantity_result",
     "quantity_measurements": "mapp_quantity_measurement",
     "publisher_quantities": "mapp_publisher_quantity",
     "derivation_inputs": "mapp_derivation_input",
-    "reference_proteins": "external_reference_protein",
-    "peptide_reference_occurrences": "external_peptide_parent_occurrence",
-    "peptide_reference_coverage": "external_peptide_reference_coverage",
+    "reference_proteins": "mapp_reference_protein",
+    "peptide_reference_occurrences": "mapp_peptide_parent_occurrence",
+    "peptide_reference_coverage": "mapp_peptide_reference_coverage",
 }
 
 
@@ -121,7 +121,12 @@ def materialize_distribution(store, recipe, destination):
     tables = {}
     for table, name in TABLE_BINDINGS.items():
         result = store.query(
-            name, select=[f"native.{field}" for field in store.schemas[name].names], limit=None
+            name,
+            select=[f"native.{field}" for field in store.schemas[name].names],
+            where={"source_dataset": "PXD009092"}
+            if "source_dataset" in store.schemas[name].names
+            else {},
+            limit=None,
         )
         tables[table] = [
             {key.removeprefix("native."): value for key, value in row.items()}

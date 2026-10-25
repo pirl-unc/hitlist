@@ -124,6 +124,7 @@ class EvidenceStore:
             manifest["schema_version"],
             appended_source_ids=manifest.get("appended_sources", {}),
             include_adjudications=adjudication_manifest_path(manifest) is not None,
+            package_features=("canonical_mapp",) if "mapp_canonical" in manifest else (),
         )
         if family == "intact_degradomics":
             self.bindings = {

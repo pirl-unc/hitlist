@@ -1,19 +1,17 @@
-# MAPP proteasome-associated fragment evidence
+# PXD009092 MAPP source notes
+
+> The public MAPP API is now the [canonical captured-fragment MAPP package](mapp-canonical.md).
+> This page documents source-specific PXD009092 parsing facts only. The former
+> one-source `mapp_*` relation surface was intentionally removed.
 
 `MAPPAdapter` imports the pinned PXD009092 MaxQuant tables and original publisher
 workbooks through the Hitlist 2.0 external-source successor. It preserves 10,673
 peptide rows, 149,959 evidence rows, 18 source runs and every original TSV field.
 It does not assign intracellular concentration or training eligibility.
 
-```python
-from hitlist.external_successor import write_external_successor
-
-write_external_successor(
-    reference_or_adjudication_package,
-    destination,
-    source_roots={"pxd009092": original_mapp_assets},
-)
-```
+PXD009092 alone remains a verified source receipt, but it does not materialize
+the public MAPP API. Build the canonical package with all three adapters as
+shown in the [canonical MAPP guide](mapp-canonical.md#query).
 
 Supply the exact relative paths and bytes in
 `hitlist/data/evidence_revisions/mapp_assets.json`. The predecessor must be a

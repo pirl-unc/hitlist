@@ -12,7 +12,7 @@ from .intact_degradomics_schema import FIELD_MEANINGS as INTACT_FIELD_MEANINGS
 from .intact_degradomics_schema import RELATIONS as INTACT_RELATIONS
 from .intact_degradomics_schema import SCHEMAS as INTACT_SCHEMAS
 
-SCHEMA_VERSION = 32
+SCHEMA_VERSION = 33
 FIELD_ROLES = frozenset(
     {
         "identity",
@@ -65,6 +65,7 @@ class Evidence:
     index_required_any_of: tuple[tuple[str, ...], ...] = ()
     min_package_schema_version: int = 1
     required_appended_source: str | None = None
+    required_package_feature: str | None = None
 
 
 @dataclass(frozen=True)
@@ -866,6 +867,42 @@ FIELDS = (
 
 FIELDS += (
     _field(
+        "source_dataset_precision",
+        "provenance",
+        "category",
+        "Whether source_dataset is an exact project accession or source-adapter scope",
+    ),
+    _field(
+        "source_adapter_id",
+        "provenance",
+        "identifier",
+        "Registered adapter retaining the original source tables",
+    ),
+    _field(
+        "canonical_relation",
+        "relation",
+        "identifier",
+        "Canonical MAPP relation receiving a source typed table projection",
+    ),
+    _field(
+        "source_typed_table",
+        "provenance",
+        "identifier",
+        "Source-owned typed Parquet relation before canonical projection",
+    ),
+    _field(
+        "source_schema_fields_json",
+        "provenance",
+        "text",
+        "JSON array of the source-owned typed relation's physical fields",
+    ),
+    _field(
+        "extension_status",
+        "provenance",
+        "category",
+        "Whether a canonical extension has source-reported fields or a source-layout null",
+    ),
+    _field(
         "capture_label_raw",
         "protocol",
         "text",
@@ -1483,20 +1520,20 @@ _TCELL_CONTEXT = (
 
 
 def _mapp_evidence(name, table, kind, grain, fields, required, endpoints=()):
-    path = f"external/pxd009092/typed/{table}.parquet"
+    path = f"mapp/typed/{table}.parquet"
     return Evidence(
         name,
         kind,
         "quantitative_ms",
         grain,
         path,
-        "PXD009092",
+        "captured_fragment_mapp_v1",
         endpoints,
-        ("source_dataset", *fields),
+        ("source_dataset", "source_dataset_precision", *fields),
         required,
         status="v2_materialized",
         materialized_artifact=path,
-        required_appended_source="pxd009092",
+        required_package_feature="canonical_mapp",
     )
 
 
@@ -3581,7 +3618,7 @@ EVIDENCE = (
         ("source_record_id",),
     ),
     _mapp_evidence(
-        "mapp_channel",
+        "mapp_acquisition",
         "channels",
         "context",
         "one_source_acquisition_run",
@@ -3723,7 +3760,7 @@ EVIDENCE = (
         ("measurement_id", "peptide_row_id"),
     ),
     Evidence(
-        "external_proteasome_fragment_quantity",
+        "mapp_quantity_result",
         "observation",
         "quantitative_ms",
         "proteasome_fragment_by_source_material_and_measurement",
@@ -3734,16 +3771,9 @@ EVIDENCE = (
             "result_id",
             "peptide_row_id",
             "channel_id",
-            "source_dataset",
-            "source_record_id",
-            "peptide_sequence",
             "measured_pool",
             "material_link_precision",
             "endpoint",
-            "quantitative_value",
-            "measurement_unit",
-            "quantity_scale",
-            "instrument",
         ),
         ("result_id", "peptide_row_id", "channel_id", "measured_pool"),
         status="v2_materialized",
@@ -3751,7 +3781,7 @@ EVIDENCE = (
         required_appended_source="pxd009092",
     ),
     Evidence(
-        "external_sequence_reference",
+        "mapp_sequence_reference",
         "context",
         "mapping",
         "sequence_references",
@@ -3765,7 +3795,7 @@ EVIDENCE = (
         required_appended_source="pxd009092",
     ),
     Evidence(
-        "external_reference_protein",
+        "mapp_reference_protein",
         "relation",
         "mapping",
         "reference_proteins",
@@ -3785,7 +3815,7 @@ EVIDENCE = (
         required_appended_source="pxd009092",
     ),
     Evidence(
-        "external_reference_accession",
+        "mapp_reference_accession",
         "relation",
         "mapping",
         "reference_accessions",
@@ -3799,7 +3829,7 @@ EVIDENCE = (
         required_appended_source="pxd009092",
     ),
     Evidence(
-        "external_peptide_parent_occurrence",
+        "mapp_peptide_parent_occurrence",
         "relation",
         "mapping",
         "peptide_reference_occurrences",
@@ -3821,7 +3851,7 @@ EVIDENCE = (
         required_appended_source="pxd009092",
     ),
     Evidence(
-        "external_source_parent_claim",
+        "mapp_source_parent_claim",
         "relation",
         "mapping",
         "source_parent_claims",
@@ -3835,7 +3865,7 @@ EVIDENCE = (
         required_appended_source="pxd009092",
     ),
     Evidence(
-        "external_source_parent_resolution",
+        "mapp_source_parent_resolution",
         "relation",
         "mapping",
         "source_parent_resolutions",
@@ -3855,7 +3885,7 @@ EVIDENCE = (
         required_appended_source="pxd009092",
     ),
     Evidence(
-        "external_peptide_reference_coverage",
+        "mapp_peptide_reference_coverage",
         "relation",
         "mapping",
         "peptide_reference_coverage",
@@ -4267,177 +4297,156 @@ EVIDENCE = (
     ),
 )
 
-CONTROLLED_RELATION_NAMES = {
-    "mapp_source_record": "processing_source_record",
-    "mapp_peptide": "processing_peptide",
-    "mapp_group": "processing_group",
-    "mapp_channel": "processing_channel",
-    "mapp_material_context": "processing_material_context",
-    "mapp_material_link": "processing_material_link",
-    "mapp_identification": "processing_identification",
-    "external_proteasome_fragment_quantity": "processing_quantity_result",
-    "mapp_quantity_measurement": "processing_quantity_measurement",
-    "mapp_derivation_input": "processing_derivation_input",
-    "mapp_source_assertion": "processing_source_assertion",
-    "external_sequence_reference": "processing_sequence_reference",
-    "external_reference_protein": "processing_reference_protein",
-    "external_reference_accession": "processing_reference_accession",
-    "external_peptide_parent_occurrence": "processing_peptide_parent_occurrence",
-    "external_source_parent_claim": "processing_source_parent_claim",
-    "external_source_parent_resolution": "processing_source_parent_resolution",
-    "external_peptide_reference_coverage": "processing_peptide_reference_coverage",
+# Captured-fragment MAPP has one public package.  Source adapters still retain
+# their independently verified typed tables under ``external/<source>/typed``;
+# these entries deliberately point only at the lossless canonical projection.
+_CANONICAL_MAPP_ARTIFACTS = {
+    "mapp_source_record": "source_records",
+    "mapp_peptide": "peptide_rows",
+    "mapp_group": "groups",
+    "mapp_acquisition": "channels",
+    "mapp_material_context": "material_contexts",
+    "mapp_material_link": "material_links",
+    "mapp_identification": "evidence",
+    "mapp_quantity_result": "quantity_results",
+    "mapp_quantity_measurement": "quantity_measurements",
+    "mapp_derivation_input": "derivation_inputs",
+    "mapp_source_assertion": "source_assertions",
+    "mapp_publisher_cell": "publisher_cells",
+    "mapp_publisher_quantity": "publisher_quantities",
+    "mapp_sequence_reference": "sequence_references",
+    "mapp_reference_protein": "reference_proteins",
+    "mapp_reference_accession": "reference_accessions",
+    "mapp_peptide_parent_occurrence": "peptide_reference_occurrences",
+    "mapp_source_parent_claim": "source_parent_claims",
+    "mapp_source_parent_resolution": "source_parent_resolutions",
+    "mapp_peptide_reference_coverage": "peptide_reference_coverage",
 }
-_CONTROLLED_CHANNEL_FIELDS = (
-    "capture_label_raw",
-    "capture_role",
-    "capture_target_gene",
-    "treatment_label_raw",
-    "treatment_kind",
-    "treatment_name",
-    "treatment_context_status",
-    "treatment_dose",
-    "treatment_dose_unit",
-    "duration_hours",
-    "time_hours",
-    "measured_cell_scope",
-    "measured_species_scope",
-    "specimen_id",
-    "aliquot_id",
-    "pair_id",
-)
-_CONTROLLED_COUNT_FIELDS = (
-    "n_source_evidence",
-    "n_numeric_evidence",
-    "n_direct_msms_evidence",
-    "n_positive_direct_msms_evidence",
-    "n_matched_evidence",
-)
-
-
-def _controlled_catalog():
-    """Reuse same-grain meanings across projects without inheriting source claims."""
-    entries = []
-    for item in EVIDENCE:
-        if item.name not in CONTROLLED_RELATION_NAMES:
-            continue
-        name = CONTROLLED_RELATION_NAMES[item.name]
-        is_reference = (
-            item.name.startswith("external_")
-            and item.name != "external_proteasome_fragment_quantity"
-        )
-        fields = (
-            tuple(field for field in item.fields if field != "source_dataset")
-            if is_reference
-            else item.fields
-        )
-        if name == "processing_channel":
-            fields += _CONTROLLED_CHANNEL_FIELDS
-        if name == "processing_quantity_result":
-            fields += _CONTROLLED_COUNT_FIELDS
-        path = item.materialized_artifact.replace(
-            "external/pxd009092/", "external/wolflevy2018_controlled/"
-        )
-        entries.append(
-            replace(
-                item,
-                name=name,
-                native_artifact=path,
-                materialized_artifact=path,
-                source_population="wolflevy2018_controlled",
-                fields=fields,
-                endpoints=("captured_fragment_MS_intensity",)
-                if name == "processing_quantity_result"
-                else (),
-                required_appended_source="wolflevy2018_controlled",
-                min_package_schema_version=9,
-            )
-        )
-    entries.append(
-        Evidence(
-            "processing_label_alias",
-            "relation",
-            "source_provenance",
-            "one_quantity_column_to_acquisition_label_assertion",
-            "external/wolflevy2018_controlled/typed/label_aliases.parquet",
-            "wolflevy2018_controlled",
-            (),
-            ("source_dataset", "alias_id", "channel_id", "source_locator"),
-            ("alias_id", "channel_id"),
-            status="v2_materialized",
-            materialized_artifact="external/wolflevy2018_controlled/typed/label_aliases.parquet",
-            required_appended_source="wolflevy2018_controlled",
-            min_package_schema_version=9,
-        )
+EVIDENCE = tuple(
+    replace(
+        item,
+        native_artifact=f"mapp/typed/{_CANONICAL_MAPP_ARTIFACTS[item.name]}.parquet",
+        materialized_artifact=f"mapp/typed/{_CANONICAL_MAPP_ARTIFACTS[item.name]}.parquet",
+        source_population="captured_fragment_mapp_v1",
+        fields=(
+            "source_dataset",
+            "source_dataset_precision",
+            *tuple(
+                field
+                for field in item.fields
+                if field not in {"source_dataset", "source_dataset_precision"}
+            ),
+        ),
+        required_appended_source=None,
+        required_package_feature="canonical_mapp",
     )
-    return tuple(entries)
-
-
-EVIDENCE += _controlled_catalog()
-
-
-_PBMC_RELATION_NAMES = {
-    "mapp_source_record": "pbmc_mapp_source_record",
-    "mapp_peptide": "pbmc_mapp_peptide",
-    "mapp_group": "pbmc_mapp_group",
-    "mapp_channel": "pbmc_mapp_channel",
-    "mapp_material_context": "pbmc_mapp_material_context",
-    "mapp_material_link": "pbmc_mapp_material_link",
-    "mapp_identification": "pbmc_mapp_identification",
-    "external_proteasome_fragment_quantity": "external_pbmc_proteasome_fragment_quantity",
-    "mapp_quantity_measurement": "pbmc_mapp_quantity_measurement",
-    "mapp_derivation_input": "pbmc_mapp_derivation_input",
-    "mapp_source_assertion": "pbmc_mapp_source_assertion",
-}
-
-
-def _pbmc_mapp_catalog():
-    """Expose PXD009438 separately from HEK293 and controlled MAPP sources."""
-    entries = []
-    for item in EVIDENCE:
-        if item.name not in _PBMC_RELATION_NAMES:
-            continue
-        name = _PBMC_RELATION_NAMES[item.name]
-        fields = item.fields
-        if name == "pbmc_mapp_channel":
-            fields += _CONTROLLED_CHANNEL_FIELDS
-        if name == "external_pbmc_proteasome_fragment_quantity":
-            fields += _CONTROLLED_COUNT_FIELDS
-        path = item.materialized_artifact.replace("external/pxd009092/", "external/pxd009438/")
-        entries.append(
-            replace(
-                item,
-                name=name,
-                native_artifact=path,
-                materialized_artifact=path,
-                source_population="PXD009438",
-                fields=fields,
-                endpoints=("captured_fragment_MS_intensity",)
-                if name == "external_pbmc_proteasome_fragment_quantity"
-                else (),
-                required_appended_source="pxd009438",
-            )
-        )
-    entries.append(
-        Evidence(
-            "pbmc_mapp_label_alias",
-            "relation",
-            "source_provenance",
-            "one_quantity_column_to_source_acquisition_label_assertion",
-            "external/pxd009438/typed/label_aliases.parquet",
-            "PXD009438",
-            (),
-            ("source_dataset", "alias_id", "channel_id", "source_locator"),
-            ("alias_id", "channel_id"),
-            status="v2_materialized",
-            materialized_artifact="external/pxd009438/typed/label_aliases.parquet",
-            required_appended_source="pxd009438",
-        )
-    )
-    return tuple(entries)
-
-
-EVIDENCE += _pbmc_mapp_catalog()
-
+    if item.name in _CANONICAL_MAPP_ARTIFACTS
+    else item
+    for item in EVIDENCE
+)
+EVIDENCE += (
+    Evidence(
+        "mapp_label_alias",
+        "relation",
+        "source_provenance",
+        "one_quantity_column_to_source_acquisition_label_assertion",
+        "mapp/typed/label_aliases.parquet",
+        "captured_fragment_mapp_v1",
+        (),
+        (
+            "source_dataset",
+            "source_dataset_precision",
+            "alias_id",
+            "channel_id",
+            "source_locator",
+        ),
+        ("alias_id", "channel_id"),
+        status="v2_materialized",
+        materialized_artifact="mapp/typed/label_aliases.parquet",
+        required_package_feature="canonical_mapp",
+    ),
+    Evidence(
+        "mapp_acquisition_context",
+        "context",
+        "protocol",
+        "one_source_acquisition_capture_treatment_or_time_context",
+        "mapp/typed/acquisition_context.parquet",
+        "captured_fragment_mapp_v1",
+        (),
+        (
+            "source_dataset",
+            "source_dataset_precision",
+            "channel_id",
+            "capture_label_raw",
+            "capture_role",
+            "capture_target_gene",
+            "treatment_label_raw",
+            "treatment_kind",
+            "treatment_name",
+            "treatment_context_status",
+            "treatment_dose",
+            "treatment_dose_unit",
+            "duration_hours",
+            "time_hours",
+            "measured_cell_scope",
+            "measured_species_scope",
+            "specimen_id",
+            "aliquot_id",
+            "pair_id",
+            "extension_status",
+        ),
+        ("channel_id",),
+        status="v2_materialized",
+        materialized_artifact="mapp/typed/acquisition_context.parquet",
+        required_package_feature="canonical_mapp",
+    ),
+    Evidence(
+        "mapp_quantity_evidence_summary",
+        "context",
+        "quantitative_ms",
+        "one_result_level_evidence_contributor_summary",
+        "mapp/typed/quantity_evidence_summary.parquet",
+        "captured_fragment_mapp_v1",
+        (),
+        (
+            "source_dataset",
+            "source_dataset_precision",
+            "result_id",
+            "n_source_evidence",
+            "n_numeric_evidence",
+            "n_direct_msms_evidence",
+            "n_positive_direct_msms_evidence",
+            "n_matched_evidence",
+            "extension_status",
+        ),
+        ("result_id",),
+        status="v2_materialized",
+        materialized_artifact="mapp/typed/quantity_evidence_summary.parquet",
+        required_package_feature="canonical_mapp",
+    ),
+    Evidence(
+        "mapp_source_table",
+        "relation",
+        "source_provenance",
+        "one_source_typed_table_to_canonical_relation_mapping",
+        "mapp/typed/source_table.parquet",
+        "captured_fragment_mapp_v1",
+        (),
+        (
+            "source_dataset",
+            "source_dataset_precision",
+            "source_adapter_id",
+            "canonical_relation",
+            "source_typed_table",
+            "n_source_rows",
+            "source_schema_fields_json",
+        ),
+        ("source_dataset", "source_adapter_id", "canonical_relation", "source_typed_table"),
+        status="v2_materialized",
+        materialized_artifact="mapp/typed/source_table.parquet",
+        required_package_feature="canonical_mapp",
+    ),
+)
 
 DIGESTION_RELATIONS = {
     "members": (
@@ -5161,14 +5170,12 @@ _EVIDENCE_BY_NAME = {item.name: item for item in EVIDENCE}
 TASKS = (
     Task(
         "captured_fragment_conditional_composition",
-        ("external_proteasome_fragment_quantity",),
+        ("mapp_quantity_measurement",),
         (
             "source_dataset",
-            "peptide_sequence",
-            "measured_pool",
             "quantitative_value",
             "quantity_scale",
-            "material_link_precision",
+            "measurement_unit",
         ),
         "Use the registered MAPP recipe, including publisher medians, reference alternatives and all-source split constraints. Predict relative captured signal on the admitted observable set, not free concentration or missing-fragment negatives.",
         status="v2_recipe_available",

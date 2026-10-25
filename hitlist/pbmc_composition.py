@@ -21,18 +21,18 @@ from .provenance import file_digest
 RECIPE_ID = "pxd009438_observed_baseline_composition_v1"
 ROOT = Path("external/pxd009438")
 TABLE_BINDINGS = {
-    "source_records": "pbmc_mapp_source_record",
-    "peptide_rows": "pbmc_mapp_peptide",
-    "groups": "pbmc_mapp_group",
-    "channels": "pbmc_mapp_channel",
-    "evidence": "pbmc_mapp_identification",
-    "quantity_results": "external_pbmc_proteasome_fragment_quantity",
-    "quantity_measurements": "pbmc_mapp_quantity_measurement",
-    "derivation_inputs": "pbmc_mapp_derivation_input",
-    "source_assertions": "pbmc_mapp_source_assertion",
-    "material_contexts": "pbmc_mapp_material_context",
-    "material_links": "pbmc_mapp_material_link",
-    "label_aliases": "pbmc_mapp_label_alias",
+    "source_records": "mapp_source_record",
+    "peptide_rows": "mapp_peptide",
+    "groups": "mapp_group",
+    "channels": "mapp_acquisition",
+    "evidence": "mapp_identification",
+    "quantity_results": "mapp_quantity_result",
+    "quantity_measurements": "mapp_quantity_measurement",
+    "derivation_inputs": "mapp_derivation_input",
+    "source_assertions": "mapp_source_assertion",
+    "material_contexts": "mapp_material_context",
+    "material_links": "mapp_material_link",
+    "label_aliases": "mapp_label_alias",
 }
 CONTRACT = {
     "recipe_id": RECIPE_ID,

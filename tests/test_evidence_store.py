@@ -17,7 +17,11 @@ from hitlist.evidence_store import (
 
 
 def _store(tmp_path, rows):
-    bindings = materialized_bindings()
+    bindings = materialized_bindings(
+        package_features=("canonical_mapp",)
+        if any(name.startswith("mapp_") for name in rows)
+        else ()
+    )
     schemas = {}
     for name, values in rows.items():
         path = tmp_path / bindings[name][0].materialized_artifact
@@ -84,7 +88,7 @@ def test_mapp_context_graph_exposes_source_arm_without_physical_pairing(tmp_path
     store = _store(
         tmp_path / "source",
         {
-            "mapp_channel": [
+            "mapp_acquisition": [
                 {
                     "channel_id": "pxd009092:run:run_1",
                     "source_record_id": "summary:2",
@@ -133,7 +137,7 @@ def test_mapp_context_graph_exposes_source_arm_without_physical_pairing(tmp_path
         },
     )
     run = store.query(
-        "mapp_channel",
+        "mapp_acquisition",
         select=[
             "channel_id",
             "material_context.condition_id",
