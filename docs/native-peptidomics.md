@@ -91,10 +91,60 @@ P22222/NS3CCNB1_HUMAN engineered construct remains explicitly marked even though
 its header carries human taxonomy. Neither taxonomy nor a leading-parent label
 proves an endogenous unique origin. Reporter possibilities, I/L alternatives,
 unresolved contaminants and all declared parents participate in dependency groups;
-a future recipe must make its eligibility decisions explicitly. Reporter sequences
+the registered recipe below makes its eligibility decisions explicitly. Reporter sequences
 are provenance/exclusion evidence, not predictive targets.
 
 Matched precursor abundance, recovery calibration, run-specific treatment mapping
 and APC transfer are not established by this package. A model-facing recipe and
 biological validation remain separate work tracked in
 [Hitlist #837](https://github.com/pirl-unc/hitlist/issues/837).
+
+## Same-parent response recipe
+
+`pxd018722_native_contrast_v1` materializes an explicitly conditional observed-signal
+endpoint through the common recipe API:
+
+```python
+store.materialize(
+    {
+        "schema_version": 1,
+        "name": "native-same-parent-response",
+        "registered_recipe": "pxd018722_native_contrast_v1",
+    },
+    "native-contrasts",
+)
+```
+
+An admitted peptide must have a standard 8–25-residue sequence, source PEP at most
+0.01, no reverse/contaminant flag, only literal human nonengineered origins from
+one complete parent sequence, and no unresolved or contradictory declared parent.
+Its six original raw sequence intensities must all be finite and positive. A
+parent needs at least two admitted peptides. The lowest fixed sequence/parent
+hash selects its reference; signal magnitude does not select the reference.
+
+For peptide i and reference j, the target is the KD mean of
+`log10(I_i) - log10(I_j)` minus the control mean. The six individual run ratios
+and twelve source-quantity contributions remain available. This yields one
+contrast, without asserting paired specimens or six independent biological subjects.
+Shared precursor abundance/run loading and fixed peptide response cancel only
+under the stated multiplicative observation assumptions. Condition-dependent
+extraction, ion suppression or modification composition can still affect the target.
+
+The full source dependency component determines the split before eligibility.
+Excluded peptides cannot break a component. Components, then parents within a
+component, then contrasts within a parent receive equal weight in each split.
+Training/validation/test fractions and minimum support counts are fixed in the
+registered contract. `coverage.qualified_for_screen` reports whether those support
+requirements pass; consumers must refuse a fit when they fail, rather than change
+the split seed or silently loosen eligibility. Successful materialization alone
+does not establish sufficient support or predictive accuracy.
+
+The output retains source snapshots/manifest, the contract, all-peptide decisions,
+admitted parents, examples, source contributors and all original component members.
+The `typed/covariates.parquet` relation omits numeric targets and acquisition log
+ratios; examples and contributors contain labels and must be accessed by split.
+`verify_recipe_package(..., source_package=...)` replays every decision, target,
+split and weight from pinned source tables and rejects changed derived values
+even when their artifact hashes have been refreshed. The writer refuses overwrites
+and retains failed staging. This recipe does not fit a model, convert zeros to
+negative labels, or recover an unobserved complete intracellular distribution.
