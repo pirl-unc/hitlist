@@ -19,6 +19,11 @@ only source-backed pool labels distinguish them. The original Goldberg source
 package remains independently verifiable alongside its canonical projection.
 Adjacent PXD009360/PXD009181/PXD009112 deposits are tryptic/conventional
 proteomics, not captured-fragment MAPP; they remain separately typed evidence.
+PXD009360 exposes the same source-assertion/material-context/material-link
+field pattern in its `precursor_*` package, but it has no source-backed
+condition, specimen, aliquot or acquisition-level MAPP pairing. PXD009181 and
+PXD009112 remain audit-backed companion candidates, not MAPP rows or paired
+precursor data.
 
 PXD052314 is admitted at the complete pinned-asset/source-table boundary, not
 as a hand-selected peptide list: six assets include its deposition workbook,
