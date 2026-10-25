@@ -8990,3 +8990,20 @@ Spec: tasks/intact-method-policy-spec.md. Same unmerged PR848/version2.0.41.
 Method-policy review: format/lint,30focused tests (including both strict parity checks)
 and3,594default-suite tests pass. Evidence: tasks/verification/organ-method/.
 Real new-cohort admission/replay and new-head CI/release remain pending.
+
+
+## PXD024917 nominal MS2 calibration — issue849
+
+- [x] Register source/implementation scope in tasks/nontryptic_calibration_spec.md.
+- [x] Implement source-literal workbook reader without biological interpretation.
+- [x] Reject ambiguous XML roots/containers and duplicate cell payloads.
+- [ ] Verify synthetic reader fixtures; local attempt1 refused before pytest at2.02GiB.
+- [ ] Publish a versioned reader draft PR and inspect exact-head hosted software checks.
+- [ ] Qualify original transition exports through Presto1857 before package/recipe implementation.
+- [ ] Integrate/replay shared evidence tables, run required checks and open versioned PR.
+
+Publication remains pending explicit user authorization for public PyPI uploads.
+
+Review: Presto PR131 CI40223280643 passed all jobs at717ed59. The source reader
+is unverified and the numeric source exports have not been downloaded. No training
+or biological held-out access occurs in this software verification step.
