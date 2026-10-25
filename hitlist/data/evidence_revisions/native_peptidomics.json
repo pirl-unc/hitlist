@@ -1,0 +1,529 @@
+{
+  "source_dataset": "PXD018722",
+  "source_dataset_precision": "deposited_project_accession",
+  "source_panel": "Hi20S",
+  "id_prefix": "pxd018722:hi20s",
+  "assets": [
+    {
+      "filename": "HUMAN_NS3_Cyclin.fasta",
+      "source_url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2021/11/PXD018722/HUMAN_NS3_Cyclin.fasta",
+      "role": "original_reference",
+      "sha256": "70d892190223b0491c48446bfda48845865822f975beb518aaa3334a56873cba",
+      "size_bytes": 33003906,
+      "license_status": "public_source_rights_evidence_retained_not_adjudicated",
+      "member_provenance": null
+    },
+    {
+      "filename": "Hi20S_txt.zip.tail",
+      "source_url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2021/11/PXD018722/Hi20S_txt.zip",
+      "role": "original_archive_range",
+      "sha256": "618602a9d53fdc3507c124ea6898ee6a41abbbdacedfb2f7170650e31b3e3685",
+      "size_bytes": 65557,
+      "license_status": "public_source_rights_evidence_retained_not_adjudicated",
+      "member_provenance": {
+        "requested_range": "167324239:167389795",
+        "full_archive_sha1_verified": false
+      }
+    },
+    {
+      "filename": "Hi20S_txt.parameters-peptides.range",
+      "source_url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2021/11/PXD018722/Hi20S_txt.zip",
+      "role": "original_archive_range",
+      "sha256": "6683dfdba3e8d4985d0f6466c07087d755086f5fd74b9689c7e49235fcdb8ce2",
+      "size_bytes": 1677846,
+      "license_status": "public_source_rights_evidence_retained_not_adjudicated",
+      "member_provenance": {
+        "requested_range": "165030948:166708793",
+        "full_archive_sha1_verified": false
+      }
+    },
+    {
+      "filename": "Hi20S_txt.evidence-modified.range",
+      "source_url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2021/11/PXD018722/Hi20S_txt.zip",
+      "role": "original_archive_range",
+      "sha256": "acec7b4df318f3eff4a959fd02547370fbc736ccfd53c2c27071746a38767c5c",
+      "size_bytes": 6222508,
+      "license_status": "public_source_rights_evidence_retained_not_adjudicated",
+      "member_provenance": {
+        "requested_range": "93940793:100163300",
+        "full_archive_sha1_verified": false
+      }
+    },
+    {
+      "filename": "parameters.txt",
+      "source_url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2021/11/PXD018722/Hi20S_txt.zip#Hi20S_txt/parameters.txt",
+      "role": "original_processed_table",
+      "sha256": "3ee0e199e8c5a6588996e3d1132982fcda42cf101c92568186cc1b495f947ba7",
+      "size_bytes": 3541,
+      "license_status": "public_source_rights_evidence_retained_not_adjudicated",
+      "member_provenance": {
+        "name": "Hi20S_txt/parameters.txt",
+        "flags": 0,
+        "method": 8,
+        "crc32": 2570141904,
+        "compressed_bytes": 1162,
+        "uncompressed_bytes": 3541,
+        "local_header_offset": 165030948,
+        "directory_offset": 167389250,
+        "directory_record_bytes": 106,
+        "retained_range": "Hi20S_txt.parameters-peptides.range",
+        "sha256": "3ee0e199e8c5a6588996e3d1132982fcda42cf101c92568186cc1b495f947ba7"
+      }
+    },
+    {
+      "filename": "peptides.txt",
+      "source_url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2021/11/PXD018722/Hi20S_txt.zip#Hi20S_txt/peptides.txt",
+      "role": "original_processed_table",
+      "sha256": "b7ffff93a4354e1597b4f0d166221471e4694547af5b7f3324780d1e26dffdab",
+      "size_bytes": 4934986,
+      "license_status": "public_source_rights_evidence_retained_not_adjudicated",
+      "member_provenance": {
+        "name": "Hi20S_txt/peptides.txt",
+        "flags": 0,
+        "method": 8,
+        "crc32": 1274756029,
+        "compressed_bytes": 1676578,
+        "uncompressed_bytes": 4934986,
+        "local_header_offset": 165032164,
+        "directory_offset": 167389356,
+        "directory_record_bytes": 104,
+        "retained_range": "Hi20S_txt.parameters-peptides.range",
+        "sha256": "b7ffff93a4354e1597b4f0d166221471e4694547af5b7f3324780d1e26dffdab"
+      }
+    },
+    {
+      "filename": "summary.txt",
+      "source_url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2021/11/PXD018722/Hi20S_txt.zip#Hi20S_txt/summary.txt",
+      "role": "original_processed_table",
+      "sha256": "d590e9850f5deb301b4eaabda7a57e8b3325eebb0fe0dd814e6895eee144b45d",
+      "size_bytes": 3038,
+      "license_status": "public_source_rights_evidence_retained_not_adjudicated",
+      "member_provenance": {
+        "name": "Hi20S_txt/summary.txt",
+        "flags": 0,
+        "method": 8,
+        "crc32": 1110024846,
+        "compressed_bytes": 1200,
+        "uncompressed_bytes": 3038,
+        "local_header_offset": 167347916,
+        "directory_offset": 167389569,
+        "directory_record_bytes": 103,
+        "retained_range": "Hi20S_txt.zip.tail",
+        "sha256": "d590e9850f5deb301b4eaabda7a57e8b3325eebb0fe0dd814e6895eee144b45d"
+      }
+    },
+    {
+      "filename": "evidence.txt",
+      "source_url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2021/11/PXD018722/Hi20S_txt.zip#Hi20S_txt/evidence.txt",
+      "role": "original_processed_table",
+      "sha256": "5d079d5120a1efd75b0bf9179d31772aa131bca7e651733c8c400ecb4f4aea83",
+      "size_bytes": 18452018,
+      "license_status": "public_source_rights_evidence_retained_not_adjudicated",
+      "member_provenance": {
+        "name": "Hi20S_txt/evidence.txt",
+        "flags": 0,
+        "method": 8,
+        "crc32": 1891855479,
+        "compressed_bytes": 4868280,
+        "uncompressed_bytes": 18452018,
+        "local_header_offset": 93940793,
+        "directory_offset": 167388277,
+        "directory_record_bytes": 104,
+        "retained_range": "Hi20S_txt.evidence-modified.range",
+        "sha256": "5d079d5120a1efd75b0bf9179d31772aa131bca7e651733c8c400ecb4f4aea83"
+      }
+    },
+    {
+      "filename": "modificationSpecificPeptides.txt",
+      "source_url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2021/11/PXD018722/Hi20S_txt.zip#Hi20S_txt/modificationSpecificPeptides.txt",
+      "role": "original_processed_table",
+      "sha256": "5e16d09d1594725fd4247e8651bc7b2919aa77c512766f8bd329988d0617272e",
+      "size_bytes": 3999287,
+      "license_status": "public_source_rights_evidence_retained_not_adjudicated",
+      "member_provenance": {
+        "name": "Hi20S_txt/modificationSpecificPeptides.txt",
+        "flags": 0,
+        "method": 8,
+        "crc32": 2887880692,
+        "compressed_bytes": 1353989,
+        "uncompressed_bytes": 3999287,
+        "local_header_offset": 98809240,
+        "directory_offset": 167388600,
+        "directory_record_bytes": 124,
+        "retained_range": "Hi20S_txt.evidence-modified.range",
+        "sha256": "5e16d09d1594725fd4247e8651bc7b2919aa77c512766f8bd329988d0617272e"
+      }
+    },
+    {
+      "filename": "Hi20S_mqpar.xml",
+      "source_url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2021/11/PXD018722/Hi20S_mqpar.xml",
+      "role": "original_metadata",
+      "sha256": "1aabf54c072497ad70c5a6a33c3aed4d47d727b487988b6f64c1783fa6f507e8",
+      "size_bytes": 22385,
+      "license_status": "public_source_rights_evidence_retained_not_adjudicated",
+      "member_provenance": null
+    },
+    {
+      "filename": "Hi20S_experimentalDesignTemplate.txt",
+      "source_url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2021/11/PXD018722/Hi20S_experimentalDesignTemplate.txt",
+      "role": "original_metadata",
+      "sha256": "e0e094a5d13f27d9941aa3ea5469ce0f48dbff749c9e88c8e4f61e2357e0b162",
+      "size_bytes": 156,
+      "license_status": "public_source_rights_evidence_retained_not_adjudicated",
+      "member_provenance": null
+    },
+    {
+      "filename": "PXD018722-project.json",
+      "source_url": "https://www.ebi.ac.uk/pride/ws/archive/v2/projects/PXD018722",
+      "role": "original_metadata",
+      "sha256": "279e3279cce590b6dfe97e49252e12c5b23b911bef18fecf507e92c4f3ab4b76",
+      "size_bytes": 8924,
+      "license_status": "public_source_rights_evidence_retained_not_adjudicated",
+      "member_provenance": null
+    },
+    {
+      "filename": "PXD018722-project-files-page0-retry1.json",
+      "source_url": "https://www.ebi.ac.uk/pride/ws/archive/v2/projects/PXD018722/files?page=0&pageSize=100",
+      "role": "original_metadata",
+      "sha256": "964741188e866a6a23722d31e80aaa7ecd6a9bdb2e780f6a10cefb9802caf1f2",
+      "size_bytes": 54459,
+      "license_status": "public_source_rights_evidence_retained_not_adjudicated",
+      "member_provenance": null
+    },
+    {
+      "filename": "sahu-article.xml",
+      "source_url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC8548400/fullTextXML",
+      "role": "primary_publication",
+      "sha256": "6b1687f4fd729a959e323502d57b07710bda66fd1ffe09569e44d84624090d95",
+      "size_bytes": 241272,
+      "license_status": "public_source_rights_evidence_retained_not_adjudicated",
+      "member_provenance": null
+    },
+    {
+      "filename": "41467_2021_26427_MOESM10_ESM.xlsx",
+      "source_url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC8548400/supplementaryFiles#41467_2021_26427_MOESM10_ESM.xlsx",
+      "role": "publisher_workbook",
+      "sha256": "f29811e09144f6d526ce1f2955681bb5f07a7ed0a4957e1a9f596740fc492ea5",
+      "size_bytes": 1975294,
+      "license_status": "public_source_rights_evidence_retained_not_adjudicated",
+      "member_provenance": {
+        "source_family": "0344",
+        "complete_member_crc_verified": true,
+        "outer_archive_complete": false
+      }
+    }
+  ],
+  "project_metadata": "PXD018722-project.json",
+  "metadata_json": [
+    "PXD018722-project.json",
+    "PXD018722-project-files-page0-retry1.json"
+  ],
+  "metadata_xml": [
+    "sahu-article.xml",
+    "Hi20S_mqpar.xml"
+  ],
+  "design": "Hi20S_experimentalDesignTemplate.txt",
+  "mqpar": "Hi20S_mqpar.xml",
+  "reference": "HUMAN_NS3_Cyclin.fasta",
+  "publisher_workbook": "41467_2021_26427_MOESM10_ESM.xlsx",
+  "cell_line": "HEK293T",
+  "acquisitions": [
+    {
+      "sample_label": "Cont1",
+      "raw_file": "Seq61406_HFX",
+      "condition": "control"
+    },
+    {
+      "sample_label": "Cont2",
+      "raw_file": "Seq61407_HFX",
+      "condition": "control"
+    },
+    {
+      "sample_label": "Cont3",
+      "raw_file": "Seq61408_HFX",
+      "condition": "control"
+    },
+    {
+      "sample_label": "KD1",
+      "raw_file": "Seq61409_HFX",
+      "condition": "PSMD2_knockdown"
+    },
+    {
+      "sample_label": "KD2",
+      "raw_file": "Seq61410_HFX",
+      "condition": "PSMD2_knockdown"
+    },
+    {
+      "sample_label": "KD3",
+      "raw_file": "Seq61411_HFX",
+      "condition": "PSMD2_knockdown"
+    }
+  ],
+  "assertions": [
+    {
+      "predicate": "cell_species",
+      "value": "Homo sapiens",
+      "scope": "source_project",
+      "status": "reported",
+      "condition": null,
+      "locator": "PXD018722-project.json:organisms[accession=NEWT:9606]",
+      "source_file": "PXD018722-project.json"
+    },
+    {
+      "predicate": "cell_taxon_id",
+      "value": "9606",
+      "scope": "source_project",
+      "status": "reported",
+      "condition": null,
+      "locator": "PXD018722-project.json:organisms[accession=NEWT:9606]",
+      "source_file": "PXD018722-project.json"
+    },
+    {
+      "predicate": "cell_type",
+      "value": "HEK293T",
+      "scope": "panel",
+      "status": "reported",
+      "condition": null,
+      "locator": "PMC8548400:Sec5, final paragraph; Fig6 panels c-f; Sec22 (Intracellular peptide isolation)",
+      "source_file": "sahu-article.xml"
+    },
+    {
+      "predicate": "measured_pool",
+      "value": "native_intracellular_peptide_extract",
+      "scope": "panel",
+      "status": "reported",
+      "condition": null,
+      "locator": "PMC8548400:Sec5, final paragraph; Fig6 panels c-f; Sec22 (Intracellular peptide isolation)",
+      "source_file": "sahu-article.xml"
+    },
+    {
+      "predicate": "capture_mode",
+      "value": "intracellular_extraction_without_MHC_or_proteasome_pulldown",
+      "scope": "panel",
+      "status": "reported",
+      "condition": null,
+      "locator": "PMC8548400:Sec5, final paragraph; Fig6 panels c-f; Sec22 (Intracellular peptide isolation)",
+      "source_file": "sahu-article.xml"
+    },
+    {
+      "predicate": "extraction_method",
+      "value": "hot_water_extraction_reported",
+      "scope": "panel",
+      "status": "reported",
+      "condition": null,
+      "locator": "PMC8548400:Sec5, final paragraph; Fig6 panels c-f; Sec22 (Intracellular peptide isolation)",
+      "source_file": "sahu-article.xml"
+    },
+    {
+      "predicate": "harvest_detachment",
+      "value": "trypsinization_reported",
+      "scope": "panel",
+      "status": "reported",
+      "condition": null,
+      "locator": "PMC8548400:Sec5, final paragraph; Fig6 panels c-f; Sec22 (Intracellular peptide isolation)",
+      "source_file": "sahu-article.xml"
+    },
+    {
+      "predicate": "reference_count_article_claim",
+      "value": "20239",
+      "scope": "panel",
+      "status": "reported",
+      "condition": null,
+      "locator": "PMC8548400:Sec33 (Mass spectrometry data analysis), MaxQuant paragraph",
+      "source_file": "sahu-article.xml"
+    },
+    {
+      "predicate": "perturbation_target",
+      "value": "PSMD2",
+      "scope": "study_arm",
+      "status": "reported",
+      "condition": "PSMD2_knockdown",
+      "locator": "PMC8548400:Sec5, second paragraph; Sec15 (Cell culture and growth conditions)",
+      "source_file": "sahu-article.xml"
+    },
+    {
+      "predicate": "perturbation_kind",
+      "value": "inducible_knockdown",
+      "scope": "study_arm",
+      "status": "reported",
+      "condition": "PSMD2_knockdown",
+      "locator": "PMC8548400:Sec5, second paragraph; Sec15 (Cell culture and growth conditions)",
+      "source_file": "sahu-article.xml"
+    },
+    {
+      "predicate": "complete_knockout",
+      "value": null,
+      "scope": "study_arm",
+      "status": "unreported",
+      "condition": "PSMD2_knockdown",
+      "locator": "PMC8548400:Sec5, second paragraph; Sec15 (Cell culture and growth conditions)",
+      "source_file": "sahu-article.xml"
+    },
+    {
+      "predicate": "numeric_remaining_activity",
+      "value": null,
+      "scope": "study_arm",
+      "status": "unreported",
+      "condition": "PSMD2_knockdown",
+      "locator": "PMC8548400:Sec5, second paragraph; Sec15 (Cell culture and growth conditions)",
+      "source_file": "sahu-article.xml"
+    },
+    {
+      "predicate": "acquisition_to_independent_experiment_assignment",
+      "value": null,
+      "scope": "six_deposited_acquisitions",
+      "status": "unresolved",
+      "condition": null,
+      "locator": "PMC8548400:Sec5, final paragraph; Fig6 panels c-f; Sec22 (Intracellular peptide isolation)",
+      "source_file": "sahu-article.xml"
+    },
+    {
+      "predicate": "control_KD_specimen_pairing",
+      "value": null,
+      "scope": "panel",
+      "status": "unresolved",
+      "condition": null,
+      "locator": "PMC8548400:Sec5, final paragraph; Fig6 panels c-f; Sec22 (Intracellular peptide isolation)",
+      "source_file": "sahu-article.xml"
+    },
+    {
+      "predicate": "professional_APC_status",
+      "value": null,
+      "scope": "panel",
+      "status": "unresolved",
+      "condition": null,
+      "locator": "PMC8548400:Sec5, final paragraph; Fig6 panels c-f; Sec22 (Intracellular peptide isolation)",
+      "source_file": "sahu-article.xml"
+    },
+    {
+      "predicate": "matched_precursor_abundance",
+      "value": null,
+      "scope": "panel",
+      "status": "unresolved",
+      "condition": null,
+      "locator": "PMC8548400:Sec5, final paragraph; Fig6 panels c-f; Sec22 (Intracellular peptide isolation)",
+      "source_file": "sahu-article.xml"
+    },
+    {
+      "predicate": "extraction_recovery",
+      "value": null,
+      "scope": "panel",
+      "status": "unresolved",
+      "condition": null,
+      "locator": "PMC8548400:Sec5, final paragraph; Fig6 panels c-f; Sec22 (Intracellular peptide isolation)",
+      "source_file": "sahu-article.xml"
+    },
+    {
+      "predicate": "molar_calibration",
+      "value": null,
+      "scope": "panel",
+      "status": "unresolved",
+      "condition": null,
+      "locator": "PMC8548400:Sec5, final paragraph; Fig6 panels c-f; Sec22 (Intracellular peptide isolation)",
+      "source_file": "sahu-article.xml"
+    },
+    {
+      "predicate": "sample_inhibitor_exposure",
+      "value": null,
+      "scope": "panel",
+      "status": "unresolved",
+      "condition": null,
+      "locator": "PMC8548400:Sec5, final paragraph; Fig6 panels c-f; Sec22 (Intracellular peptide isolation)",
+      "source_file": "sahu-article.xml"
+    },
+    {
+      "predicate": "sample_doxycycline_exposure",
+      "value": null,
+      "scope": "panel",
+      "status": "unresolved",
+      "condition": null,
+      "locator": "PMC8548400:Sec5, final paragraph; Fig6 panels c-f; Sec22 (Intracellular peptide isolation)",
+      "source_file": "sahu-article.xml"
+    },
+    {
+      "predicate": "induction_protocol",
+      "value": "doxycycline_inducible_cell_line_reported",
+      "scope": "cell_line_generation_protocol",
+      "status": "reported",
+      "condition": null,
+      "locator": "PMC8548400:Sec15 (Cell culture and growth conditions)",
+      "source_file": "sahu-article.xml"
+    },
+    {
+      "predicate": "replicate_description_article_claim",
+      "value": "triplicate data sets",
+      "scope": "figure_panel",
+      "status": "reported",
+      "condition": null,
+      "locator": "PMC8548400:Fig6 panel e",
+      "source_file": "sahu-article.xml"
+    },
+    {
+      "predicate": "independent_experiments_article_claim",
+      "value": "3 independent experiments",
+      "scope": "figure_panel",
+      "status": "reported",
+      "condition": null,
+      "locator": "PMC8548400:Fig6 panel f",
+      "source_file": "sahu-article.xml"
+    },
+    {
+      "predicate": "20S_complex_fraction_article_claim",
+      "value": "greater than 80 percent of total; not remaining PSMD2 activity",
+      "scope": "cell_line_characterization",
+      "status": "reported",
+      "condition": null,
+      "locator": "PMC8548400:Sec5 second paragraph; Fig6 panel a",
+      "source_file": "sahu-article.xml"
+    },
+    {
+      "predicate": "reporter_expression_article_context",
+      "value": "intracellular peptidomics follows expression of cyclin reporter; per-acquisition expression state unresolved",
+      "scope": "study_context",
+      "status": "reported",
+      "condition": null,
+      "locator": "PMC8548400:Sec5 final paragraph; Fig6 panels c-f",
+      "source_file": "sahu-article.xml"
+    }
+  ],
+  "engineered_references": {
+    "P22222": {
+      "header_prefix": "sp|P22222|NS3CCNB1_HUMAN ",
+      "description": "Documented engineered reference construct; human taxonomy tag does not establish endogenous origin",
+      "locator": "PMC8548400:Sec33 (Mass spectrometry data analysis), MaxQuant paragraph; original deposited header"
+    }
+  },
+  "search_paths": [
+    "maxQuantVersion",
+    "matchBetweenRuns",
+    "matchBetweenRunsFdr",
+    "peptideFdr",
+    "proteinFdr",
+    "minPeptideLengthForUnspecificSearch",
+    "maxPeptideLengthForUnspecificSearch",
+    "parameterGroups/parameterGroup/enzymeMode",
+    "parameterGroups/parameterGroup/lfqMode",
+    "parameterGroups/parameterGroup/lfqSkipNorm",
+    "parameterGroups/parameterGroup/variableModifications",
+    "fixedModifications",
+    "minPepLen"
+  ],
+  "source_registry": {
+    "PXD018722": {
+      "revision": "pxd018722_hi20s_native_v1",
+      "source_url": "https://www.ebi.ac.uk/pride/archive/projects/PXD018722",
+      "publication": "https://doi.org/10.1038/s41467-021-26427-0",
+      "source_panel": "Hi20S",
+      "measured_pool": "native_intracellular_peptide_extract",
+      "rights_status": "original_project_and_publication_metadata_preserved",
+      "not_established": [
+        "professional_APC",
+        "molar_concentration",
+        "matched_precursor",
+        "biological_replicate_independence",
+        "complete_KO"
+      ],
+      "full_processed_archive_checksum_verified": false
+    }
+  }
+}

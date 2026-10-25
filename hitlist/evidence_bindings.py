@@ -1545,6 +1545,152 @@ LINKS += (
 )
 
 
+for _native_table in (
+    "source_cells",
+    "acquisitions",
+    "references",
+    "peptides",
+    "forms",
+    "identifications",
+    "quantities",
+    "declared_parents",
+    "origins",
+    "assertions",
+    "reconciliations",
+):
+    LINKS += (
+        Link(
+            "source_record",
+            "native_" + _native_table,
+            "native_source_records",
+            "source_record_id",
+            "source_record_id",
+            "one",
+            "original_source_record_not_a_new_observation",
+        ),
+    )
+for _native_table in (
+    "forms",
+    "identifications",
+    "quantities",
+    "declared_parents",
+    "origins",
+    "dependency_groups",
+):
+    LINKS += (
+        Link(
+            "peptide",
+            "native_" + _native_table,
+            "native_peptides",
+            "peptide_id",
+            "peptide_id",
+            "one",
+            "original_sequence_identity_not_unique_parent_assignment",
+        ),
+    )
+LINKS += (
+    Link(
+        "asset",
+        "native_source_records",
+        "native_assets",
+        "source_asset_id",
+        "source_asset_id",
+        "one",
+        "exact_pinned_original_asset",
+    ),
+    Link(
+        "acquisition",
+        "native_quantities",
+        "native_acquisitions",
+        "acquisition_id",
+        "acquisition_id",
+        "optional_one",
+        "original_run_not_specimen_or_biological_replicate",
+    ),
+    Link(
+        "acquisition",
+        "native_identifications",
+        "native_acquisitions",
+        "acquisition_id",
+        "acquisition_id",
+        "one",
+        "original_run_not_specimen_or_biological_replicate",
+    ),
+    Link(
+        "form",
+        "native_identifications",
+        "native_forms",
+        "form_id",
+        "form_id",
+        "one",
+        "original_modification_specific_identity",
+    ),
+    Link(
+        "form",
+        "native_quantities",
+        "native_forms",
+        "form_id",
+        "form_id",
+        "optional_one",
+        "source_form_not_imputed_for_sequence_aggregate",
+    ),
+    Link(
+        "identification",
+        "native_quantities",
+        "native_identifications",
+        "identification_id",
+        "identification_id",
+        "optional_one",
+        "source_feature_identity_only_for_feature_quantities",
+    ),
+    Link(
+        "reference",
+        "native_origins",
+        "native_references",
+        "reference_record_id",
+        "reference_record_id",
+        "one",
+        "one_candidate_reference_not_preferred_origin",
+    ),
+    Link(
+        "reference",
+        "native_declared_parents",
+        "native_references",
+        "reference_record_id",
+        "reference_record_id",
+        "optional_one",
+        "reported_accession_resolution_may_be_absent",
+    ),
+    Link(
+        "material_context",
+        "native_acquisitions",
+        "native_material_contexts",
+        "context_id",
+        "context_id",
+        "one",
+        "reported_acquisition_context_not_inferred_specimen",
+    ),
+    Link(
+        "source_context",
+        "native_material_links",
+        "native_material_contexts",
+        "source_context_id",
+        "context_id",
+        "one",
+        "source_qualified_context_membership",
+    ),
+    Link(
+        "target_context",
+        "native_material_links",
+        "native_material_contexts",
+        "target_context_id",
+        "context_id",
+        "one",
+        "source_qualified_context_membership",
+    ),
+)
+
+
 def materialized_bindings(
     package_schema_version=None,
     *,

@@ -8133,7 +8133,7 @@ representation labels. A 251-file real package at manifest SHA-256
 preserves all218 prior files exactly at separate inodes. The independent
 Hitlist-free round-trip verifies the five typed source tables, all source
 members/workbook rows/constructs, original MS1 and raw values, run/time links
-and280,664 final slots; details in
+and 280,664 final slots; details in
 [digestion-source-208-results/README.md](digestion-source-208-results/README.md).
 Format/lint/37 focused tests/strict docs and distribution gates pass. The
 current local full test runner refused at0.68GiB free versus2.5GiB required;
@@ -8715,3 +8715,23 @@ the original measurements or change the recipe. Full local suite remains deferre
 below the unchanged2GiBfree-space prerequisite. Full hosted tests and release are
 required. Source PR832 passed all unit/integration/docs/lint checks and merged as
 18bbf81d; its2.0.33 release build40149903223 is running separately.
+
+# Native PSMD2 source admission (#837)
+
+- [x] Create isolated durable feature checkout from authoritative main.
+- [x] Read source qualification and freeze the source/query implementation spec.
+- [x] Implement the shared source adapter, typed relations and metadata contract.
+- [x] Add meaningful fixtures and independently replay the real source package.
+- [x] Run format, lint and the full default suite with unchanged resource guards.
+- [ ] Complete a versioned PR, verified merge and tested PyPI release.
+
+Spec: tasks/native_psmd2_source_spec.md. The native adapter, catalog/query bindings
+and source-fidelity fixtures are implemented; verification and release are pending.
+Presto family 0424 independently qualifies the original reference and quantities.
+
+Review: 33 focused checks pass, including nine new source-fidelity fixture tests.
+Presto family 0519 independently reconciles all 255,635 quantities,73,113 references,
+38,641 origins,292,449 workbook cells and228,749 parent alternatives through the
+public store; all 16 primary keys and 28 relationships pass. Dependency components
+remain 1,689. All 3,533 default non-integration tests pass in 179.10 seconds. Format and lint
+also pass. Integration release gates, merge and PyPI publication remain pending.

@@ -1,0 +1,8 @@
+.................................                                        [100%]
+=============================== warnings summary ===============================
+hitlist/__init__.py:48
+  /Users/iskander/code/presto/.worktrees/hitlist-native-psmd2/hitlist/__init__.py:48: Pandas4Warning: The 'future.infer_string' option is deprecated and will be removed in pandas 4.0. Inferring str dtype for string data has been the default since pandas 3.0, and it will no longer be possible to disable it.
+    _pd.options.future.infer_string = True
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+33 passed, 1 warning in 2.00s

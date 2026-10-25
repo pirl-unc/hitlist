@@ -1,0 +1,24 @@
+{
+  "utc": "2026-10-25T05:31:19.543069+00:00",
+  "source_base": "8008fd713bfdb8f340bd635cc830803662c9a186",
+  "version": "2.0.37",
+  "format": "passed",
+  "lint": "passed",
+  "focused_tests": {
+    "passed": 33,
+    "seconds": 2.0
+  },
+  "default_nonintegration_suite": {
+    "passed": 3533,
+    "warnings": 393,
+    "pytest_seconds": 179.1,
+    "wall_seconds": 183.27,
+    "worker_cap": 2,
+    "peak_process_rss_bytes": 887554048,
+    "not_summed_worker_ram": true
+  },
+  "integration_release_gate": "pending",
+  "shared_environment_modified": false,
+  "real_source_verification": "real-source-verification.json",
+  "presto_family": "2026-10-25_0519_codex_native-source-canonical"
+}

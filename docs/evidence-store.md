@@ -548,6 +548,12 @@ so adding context cannot multiply assay or training-example weights.
 
 # Native cellular peptide measurements
 
+For the separate PXD018722 Hi20S source, see
+[Native intracellular peptide evidence](native-peptidomics.md). Its `native_*`
+relations preserve original raw/LFQ signals, modification and feature grains,
+complete reference alternatives and source-scoped acquisition context. The
+source-only package is distinct from the TMAB response recipe below.
+
 Schema 17 / catalog 22 exposes corrected revision `tmab_native_peptidomics_v3` of the
 standalone `tmab_peptidomics` package family for the
 Dasgupta 2014 and Gelman 2013 TMAB native-peptide supplements. It is not an
