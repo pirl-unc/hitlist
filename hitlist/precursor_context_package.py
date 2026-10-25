@@ -13,15 +13,20 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from .evidence_snapshot import snapshot_file
+from .material_context import MATERIAL_CONTEXT_SCHEMA, MATERIAL_LINK_SCHEMA, validate_material_graph
 from .provenance import file_digest
 
-PACKAGE_SCHEMA_VERSION = 22
-CATALOG_SCHEMA_VERSION = 27
-REVISION = "pxd009360_precursor_context_v3"
+PACKAGE_SCHEMA_VERSION = 23
+CATALOG_SCHEMA_VERSION = 36
+REVISION = "pxd009360_precursor_context_v4"
 PACKAGE_FAMILY = "precursor_context"
 SOURCE_ID = "pxd009360_precursor"
 SOURCE_PREFIX = f"external/{SOURCE_ID}/"
 ASSET_RECEIPT = Path(__file__).parent / "data/evidence_revisions/precursor_context_assets.json"
+
+_PREVIOUS_PACKAGE_SCHEMA_VERSION = 22
+_PREVIOUS_CATALOG_SCHEMA_VERSION = 27
+_PREVIOUS_REVISION = "pxd009360_precursor_context_v3"
 
 QUERY_ALIASES = {
     "precursor_asset": "precursor_source_asset",
@@ -35,6 +40,14 @@ QUERY_ALIASES = {
     "precursor_recipe": "precursor_aggregation_recipe",
     "precursor_qualification": "precursor_aggregation_qualification",
     "precursor_pairing_qualification": "precursor_pairing_qualification",
+    "precursor_assertion": "precursor_source_assertion",
+    "precursor_material_context": "precursor_material_context",
+    "precursor_material_link": "precursor_material_link",
+}
+_V3_QUERY_ALIASES = {
+    key: value
+    for key, value in QUERY_ALIASES.items()
+    if key not in {"precursor_assertion", "precursor_material_context", "precursor_material_link"}
 }
 MATERIALIZED_EVIDENCE_TYPES = frozenset(
     {
@@ -44,6 +57,9 @@ MATERIALIZED_EVIDENCE_TYPES = frozenset(
         "precursor_acquisition",
         "precursor_table_inventory",
         "precursor_pairing_assertion",
+        "precursor_source_assertion",
+        "precursor_material_context",
+        "precursor_material_link",
         "precursor_evidence_row",
         "precursor_peptide_row",
         "precursor_all_peptide_row",
@@ -216,6 +232,35 @@ PAIRING_SCHEMA = pa.schema(
         ("notes", pa.string()),
     ]
 )
+
+
+def _source_scoped_schema(schema):
+    """Give shared context vocabularies the canonical source scope columns."""
+    return pa.schema(
+        [
+            ("source_dataset", pa.string()),
+            ("source_dataset_precision", pa.string()),
+            *schema,
+        ]
+    )
+
+
+SOURCE_ASSERTION_SCHEMA = pa.schema(
+    [
+        ("source_dataset", pa.string()),
+        ("source_dataset_precision", pa.string()),
+        ("assertion_id", pa.string()),
+        ("subject_id", pa.string()),
+        ("predicate", pa.string()),
+        ("value_raw", pa.string()),
+        ("normalized_value", pa.string()),
+        ("assertion_status", pa.string()),
+        ("source_locator", pa.string()),
+        ("scope", pa.string()),
+    ]
+)
+PRECURSOR_MATERIAL_CONTEXT_SCHEMA = _source_scoped_schema(MATERIAL_CONTEXT_SCHEMA)
+PRECURSOR_MATERIAL_LINK_SCHEMA = _source_scoped_schema(MATERIAL_LINK_SCHEMA)
 
 
 def _receipt():
@@ -495,6 +540,107 @@ def _pairing_qualification_rows(receipt):
     ]
 
 
+def _material_graph_rows(receipt):
+    """Return only the source-backed project/run graph and unresolved claims.
+
+    A deposited raw-file record establishes an acquisition's project membership.
+    It does not establish a condition, study arm, specimen, aliquot, or link to
+    a captured-fragment MAPP acquisition. The rows deliberately use the same
+    source-scoped assertion/material layout as canonical MAPP.
+    """
+    source_dataset = receipt["dataset_accession"]
+    project_id = f"{source_dataset.lower()}:project"
+    contexts = [
+        {
+            "source_dataset": source_dataset,
+            "source_dataset_precision": "exact_project",
+            "context_id": project_id,
+            "context_kind": "source_project",
+            "sample_label_raw": None,
+            "condition_id": None,
+            "condition_text": None,
+            "condition_status": "not_applicable_source_project",
+            "specimen_id": None,
+            "aliquot_id": None,
+            "material_link_precision": "project_context",
+            "context_status": "source_project_context",
+            "source_locator": f"{source_dataset}/project.json",
+            "notes": "Project identity does not establish condition or physical material.",
+        }
+    ]
+    links = []
+    for acquisition in receipt["acquisitions"]:
+        acquisition_id = acquisition["acquisition_id"]
+        raw_file = acquisition["source_file"]
+        locator = f"{source_dataset}/files.json::fileName={raw_file}"
+        contexts.append(
+            {
+                "source_dataset": source_dataset,
+                "source_dataset_precision": "exact_project",
+                "context_id": acquisition_id,
+                "context_kind": "source_acquisition",
+                "sample_label_raw": acquisition["sample_label_raw"],
+                "condition_id": None,
+                "condition_text": None,
+                "condition_status": "unreported_in_admitted_assets",
+                "specimen_id": None,
+                "aliquot_id": None,
+                "material_link_precision": "source_acquisition",
+                "context_status": "source_acquisition_without_condition_or_physical_material",
+                "source_locator": locator,
+                "notes": "The raw-file label does not establish condition, specimen, or aliquot.",
+            }
+        )
+        links.append(
+            {
+                "source_dataset": source_dataset,
+                "source_dataset_precision": "exact_project",
+                "claim_id": f"{acquisition_id}:in_project",
+                "source_context_id": acquisition_id,
+                "target_context_id": project_id,
+                "assertion_predicate": "source_acquisition_in_project",
+                "assertion_status": "source_reported",
+                "material_link_precision": "project_context",
+                "source_locator": locator,
+                "notes": "The file inventory establishes project membership only.",
+            }
+        )
+    assertions = [
+        {
+            "source_dataset": source_dataset,
+            "source_dataset_precision": "exact_project",
+            "assertion_id": f"{source_dataset.lower()}:acquisition_physical_material_map",
+            "subject_id": project_id,
+            "predicate": "acquisition_to_specimen_or_aliquot",
+            "value_raw": "not supplied in admitted project/file metadata",
+            "normalized_value": None,
+            "assertion_status": "unreported_in_admitted_assets",
+            "source_locator": f"{source_dataset}/project.json;{source_dataset}/files.json",
+            "scope": "acquisition_to_physical_material",
+        }
+    ]
+    assertions.extend(
+        {
+            "source_dataset": source_dataset,
+            "source_dataset_precision": "exact_project",
+            "assertion_id": row["claim_id"],
+            "subject_id": project_id,
+            "predicate": row["assertion_predicate"],
+            "value_raw": row["assertion_value"],
+            "normalized_value": None,
+            "assertion_status": row["assertion_status"],
+            "source_locator": f"{source_dataset}/project.json;PXD009092 source contract",
+            "scope": row["pairing_scope"],
+        }
+        for row in receipt["pairings"]
+    )
+    validate_material_graph(
+        [{field.name: row[field.name] for field in MATERIAL_CONTEXT_SCHEMA} for row in contexts],
+        [{field.name: row[field.name] for field in MATERIAL_LINK_SCHEMA} for row in links],
+    )
+    return assertions, contexts, links
+
+
 def _rows(
     receipt,
     materialized_tables=None,
@@ -713,19 +859,24 @@ def _relation_digest(path):
 def verify_precursor_context_package(directory):
     directory = Path(directory)
     manifest = _manifest(directory)
-    if (
-        manifest.get("schema_version") != PACKAGE_SCHEMA_VERSION
-        or manifest.get("catalog_schema_version") != CATALOG_SCHEMA_VERSION
-        or manifest.get("package_family") != PACKAGE_FAMILY
-        or manifest.get("revision") != REVISION
-    ):
+    current = (
+        manifest.get("schema_version") == PACKAGE_SCHEMA_VERSION
+        and manifest.get("catalog_schema_version") == CATALOG_SCHEMA_VERSION
+        and manifest.get("revision") == REVISION
+    )
+    previous = (
+        manifest.get("schema_version") == _PREVIOUS_PACKAGE_SCHEMA_VERSION
+        and manifest.get("catalog_schema_version") == _PREVIOUS_CATALOG_SCHEMA_VERSION
+        and manifest.get("revision") == _PREVIOUS_REVISION
+    )
+    if manifest.get("package_family") != PACKAGE_FAMILY or not (current or previous):
         raise ValueError("Unsupported precursor context package envelope")
     receipt_path = directory / SOURCE_PREFIX / "contracts/source_assets.json"
     if file_digest(receipt_path) != file_digest(ASSET_RECEIPT):
         raise ValueError("PXD009360 source receipt differs from the pinned contract")
     receipt = json.loads(receipt_path.read_text())
     _verify_assets(directory, receipt)
-    if manifest.get("query_aliases") != QUERY_ALIASES:
+    if manifest.get("query_aliases") != (QUERY_ALIASES if current else _V3_QUERY_ALIASES):
         raise ValueError("Precursor context query aliases changed")
     stored_tables = pq.read_table(directory / "precursor_context" / "tables.parquet").to_pylist()
     materialized_tables = {
@@ -745,6 +896,7 @@ def verify_precursor_context_package(directory):
     pairing_qualification_rows = pq.read_table(
         directory / "precursor_context" / "pairing_qualifications.parquet"
     ).to_pylist()
+    assertion_rows, material_context_rows, material_link_rows = _material_graph_rows(receipt)
     families, availability, assets, acquisitions, tables, pairings = _rows(
         receipt,
         materialized_tables,
@@ -766,6 +918,14 @@ def verify_precursor_context_package(directory):
             pairing_qualification_rows,
         ),
     }
+    if current:
+        expected.update(
+            {
+                "source_assertions": (SOURCE_ASSERTION_SCHEMA, assertion_rows),
+                "material_contexts": (PRECURSOR_MATERIAL_CONTEXT_SCHEMA, material_context_rows),
+                "material_links": (PRECURSOR_MATERIAL_LINK_SCHEMA, material_link_rows),
+            }
+        )
     for name, (schema, rows) in expected.items():
         table = pq.read_table(directory / "precursor_context" / f"{name}.parquet")
         if table.schema != schema or table.to_pylist() != rows:
@@ -833,6 +993,7 @@ def write_precursor_context_package(source_root, destination):
         recipe_rows = _recipe_rows(receipt)
         qualification_rows = _qualify_quantity_relations(typed, materialized_tables)
         pairing_qualification_rows = _pairing_qualification_rows(receipt)
+        assertion_rows, material_context_rows, material_link_rows = _material_graph_rows(receipt)
         families, availability, assets, acquisitions, tables, pairings = _rows(
             receipt,
             materialized_tables,
@@ -846,6 +1007,14 @@ def write_precursor_context_package(source_root, destination):
         _write_table(typed, "acquisitions", acquisitions, ACQUISITION_SCHEMA)
         _write_table(typed, "tables", tables, TABLE_SCHEMA)
         _write_table(typed, "pairings", pairings, PAIRING_SCHEMA)
+        _write_table(typed, "source_assertions", assertion_rows, SOURCE_ASSERTION_SCHEMA)
+        _write_table(
+            typed,
+            "material_contexts",
+            material_context_rows,
+            PRECURSOR_MATERIAL_CONTEXT_SCHEMA,
+        )
+        _write_table(typed, "material_links", material_link_rows, PRECURSOR_MATERIAL_LINK_SCHEMA)
         _write_table(typed, "recipes", recipe_rows, RECIPE_SCHEMA)
         _write_table(typed, "qualifications", qualification_rows, QUALIFICATION_SCHEMA)
         _write_table(
@@ -876,6 +1045,9 @@ def write_precursor_context_package(source_root, destination):
             "n_recipe_rows": len(recipe_rows),
             "n_qualification_rows": len(qualification_rows),
             "n_pairing_qualification_rows": len(pairing_qualification_rows),
+            "n_source_assertion_rows": len(assertion_rows),
+            "n_material_context_rows": len(material_context_rows),
+            "n_material_link_rows": len(material_link_rows),
         }
         manifest = {
             "schema_version": PACKAGE_SCHEMA_VERSION,
@@ -899,6 +1071,9 @@ def write_precursor_context_package(source_root, destination):
                 "n_recipe_rows": len(recipe_rows),
                 "n_qualification_rows": len(qualification_rows),
                 "n_pairing_qualification_rows": len(pairing_qualification_rows),
+                "n_source_assertion_rows": len(assertion_rows),
+                "n_material_context_rows": len(material_context_rows),
+                "n_material_link_rows": len(material_link_rows),
             },
             "files": files,
         }

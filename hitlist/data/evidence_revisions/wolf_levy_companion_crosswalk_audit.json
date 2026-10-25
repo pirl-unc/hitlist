@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "audit_date": "2026-10-25",
+  "source_family": "wolf_levy_2018_companion_tryptic_deposits",
+  "primary_paper_doi": "10.1038/nbt.4279",
+  "project_file_inventory_audit": [
+    {
+      "source_dataset": "PXD009360",
+      "files_endpoint": "https://www.ebi.ac.uk/pride/ws/archive/v2/projects/PXD009360/files?pageSize=1000&page=0",
+      "files_sha256": "af67353fe522aee5db7a10e864bb4019940358e564ac06bc3d2a5cbefc89875c",
+      "files_size_bytes": 11557,
+      "n_raw_files": 9,
+      "n_raw_files_with_sample_properties": 0,
+      "source_contract": "precursor_context_assets.json"
+    },
+    {
+      "source_dataset": "PXD009181",
+      "project_endpoint": "https://www.ebi.ac.uk/pride/ws/archive/v2/projects/PXD009181",
+      "project_sha256": "fdedff6e9a638514e169e12a15861f6b784477f7a0c5348514d21bed88722a36",
+      "project_size_bytes": 4234,
+      "files_endpoint": "https://www.ebi.ac.uk/pride/ws/archive/v2/projects/PXD009181/files?pageSize=1000&page=0",
+      "files_sha256": "76d2fa47e3928bad282e42f15651171fc77730ca12f1cc3be467e7730be99bbe",
+      "files_size_bytes": 29225,
+      "n_raw_files": 24,
+      "n_raw_files_with_sample_properties": 0
+    },
+    {
+      "source_dataset": "PXD009112",
+      "project_endpoint": "https://www.ebi.ac.uk/pride/ws/archive/v2/projects/PXD009112",
+      "project_sha256": "b86fbc673c74bd164e2dab33f65793ac940b1adfbde57ad4c9ab3b0fa7c612b8",
+      "project_size_bytes": 4501,
+      "files_endpoint": "https://www.ebi.ac.uk/pride/ws/archive/v2/projects/PXD009112/files?pageSize=1000&page=0",
+      "files_sha256": "21fe6fce43af1772be574b39fcbb2a9eaba32e80d2ead1b5327de1930bb186c8",
+      "files_size_bytes": 17507,
+      "n_raw_files": 14,
+      "n_raw_files_with_sample_properties": 0
+    }
+  ],
+  "conclusion": "condition_specimen_aliquot_and_mapp_crosswalk_unresolved",
+  "conclusion_scope": "The reviewed project and file-inventory JSON assets do not identify a condition, specimen, aliquot, or cross-project MAPP pairing for individual raw acquisitions. This is bounded to those assets and does not rule out a future submitted metadata file or author correction.",
+  "non_inference_rules": [
+    "Do not derive a condition from acquisition order or a numeric raw-file token without source backed metadata.",
+    "Do not derive a specimen or aliquot from a shared cell-line description without source backed metadata.",
+    "Do not create a MAPP-to-tryptic pair from publication-level parallelism, a matched label, or abundance correlation without source backed metadata."
+  ]
+}

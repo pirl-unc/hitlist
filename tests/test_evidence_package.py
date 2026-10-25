@@ -79,7 +79,7 @@ def test_ambiguous_or_unknown_envelope_fails_before_reading_tables(tmp_path, env
     "family,revision,schema",
     [
         ("hap1_quantitative", "shapiro2025_hap1_quantitative_v1", 20),
-        ("precursor_context", "pxd009360_precursor_context_v3", 22),
+        ("precursor_context", "pxd009360_precursor_context_v4", 23),
         ("intact_degradomics", "pxd058121_intact_degradomics_v1", 26),
     ],
 )

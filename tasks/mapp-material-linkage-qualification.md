@@ -20,10 +20,11 @@ three captured-fragment MAPP deposits:
 | PXD009508 | 6,060 peptide rows, 19,581 evidence rows, 18 runs | alpha6/isotype/GAPDH capture labels crossed with untreated/epoxomicin, three numbered acquisitions each |
 
 That is 19,879 deposited peptide rows (not a deduplicated peptide universe),
-196,736 evidence rows and 48 MAPP acquisition runs. PXD009438 is the fourth
-captured-fragment MAPP deposit (primary PBMC SLE/healthy study) and is not yet
-admitted. PXD009360, PXD009181 and PXD009112 are deposited tryptic panels, not
-MAPP measurements, and are not a substitute for the missing MAPP PBMC panel.
+196,736 evidence rows and 48 MAPP acquisition runs before PXD009438 admission.
+PXD009438 is now the admitted fourth captured-fragment MAPP deposit (14 runs);
+canonical MAPP also includes the separate 36-run Goldberg PXD052314 source.
+PXD009360, PXD009181 and PXD009112 are deposited tryptic panels, not MAPP
+measurements, and are not a substitute for the captured-fragment PBMC panel.
 
 The manuscript reports a HEK293 untreated versus TNF-alpha+IFN-gamma 24-hour
 comparison analyzed by MAPP and standard proteomics in parallel. This supports
@@ -66,11 +67,9 @@ context packages.
    already source-backed PXD009092, PXD007263 and PXD009508 run-to-arm/condition
    facts. Explicitly retain their unknown specimen/aliquot identity. No new
    training examples.
-2. **Missing MAPP PBMC source.** Freeze PXD009438 asset receipts; audit its
-   original search archive, supporting metadata and publication tables. Admit
-   its MAPP source rows only with exact source conditions/specimen IDs where
-   supplied; otherwise emit unknowns and a coverage ledger. Keep patients,
-   controls and sample counts separate from run identity.
+2. **Missing MAPP PBMC source.** Completed: PXD009438 was frozen, audited and
+   admitted with source labels and retained PBMC/metadata conflict. Patients,
+   controls and sample counts remain separate from run identity.
 3. **Parallel tryptic recovery.** Audit PXD009360 and, where relevant,
    PXD009181/PXD009112 original submitted metadata, archive members and
    publisher material for an exact acquisition-to-condition/specimen/aliquot

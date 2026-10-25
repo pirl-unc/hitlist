@@ -1,3 +1,61 @@
+# Qualify Wolf-Levy companion tryptic context and material mapping (#823 / #757, planned 2.0.38)
+
+## Specification
+
+Extend the independently replayable PXD009360 precursor package so its
+acquisition, provenance-assertion and material-graph facts use the same
+source-scoped field layout and relationship pattern as canonical MAPP. This is
+an additive evidence improvement: existing lossless MaxQuant rows and their
+raw source payloads remain untouched, while the new relations make the known
+run/project facts and explicit absence of a physical crosswalk queryable.
+
+Audit the original PRIDE project and file metadata for all three Wolf-Levy
+companion tryptic deposits: PXD009360 (nine raw runs), PXD009181 (24), and
+PXD009112 (14). Freeze the byte hashes, raw-file counts and empty
+`sampleProperties` result in a negative-evidence ledger. The audit establishes
+only that the reviewed inventories do not provide a condition, specimen,
+aliquot, or MAPP crosswalk; it does not assert that such a mapping cannot
+exist in a future original submission or author correction.
+
+For the already packaged PXD009360 source, materialize source-scoped
+`precursor_source_assertion`, `precursor_material_context` and
+`precursor_material_link` relations. Their field names and semantics must
+match `mapp_source_assertion`, `mapp_material_context` and
+`mapp_material_link` at matching grains, including `source_dataset`, locator,
+assertion status, and qualified link precision. Project and source-acquisition
+contexts may be linked at `project_context`; no condition/study arm,
+specimen, aliquot, duplicate, donor, or precursor-to-MAPP physical link may be
+invented. A consumer may query the same assertion/material API pattern for
+MAPP and precursor evidence, but still must open the package that owns the
+source rows.
+
+### Plan
+
+- [x] Retrieve and hash-check the current original PRIDE project/file metadata
+      for PXD009181 and PXD009112; compare it with the already pinned
+      PXD009360 file inventory and record the raw-file/sample-property audit.
+- [x] Add the immutable negative-evidence receipt and source-audit report with
+      exact endpoints, byte hashes, counts and scope limitations.
+- [x] Add source-scoped PXD009360 assertions, project/acquisition material
+      contexts and qualified project-membership links, preserving all existing
+      `precursor_*` source rows and zero-training policy.
+- [x] Register the new relations, logical aliases and named EvidenceStore joins
+      so queries use the same source-assertion/material-graph pattern as MAPP.
+- [x] Add replay, schema, source-absence and negative-inference tests; prove a
+      project context does not satisfy an exact specimen/aliquot pairing.
+- [x] Document the MAPP/companion-tryptic coverage boundary and uniform query
+      contract; bump the version.
+- [ ] Run format, lint and the full test suite.
+- [ ] Open, merge and deploy the PR from clean main; report release evidence on
+      #823 and #757.
+
+## Review
+
+In progress on `codex/wolf-levy-material-crosswalk-20261025`, based on released
+2.0.37 / main `d2e0cb6`. The audit has so far confirmed that the current PRIDE
+file inventories list 9 PXD009360, 24 PXD009181 and 14 PXD009112 raw files and
+that none of their raw-file records carries nonempty `sampleProperties`.
+
 # Qualify PXD052314 condition and source-sample material contexts (#825, planned 2.0.37)
 
 ## Specification

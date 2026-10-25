@@ -722,7 +722,7 @@ MS detectability, or intracellular peptide concentrations.
 
 # Standalone precursor context
 
-Schema 22/catalog 27 extends the standalone `precursor_context` package for the
+Schema 23/catalog 36 extends the standalone `precursor_context` package for the
 PXD009360 parallel tryptic proteome. The source-contract generation retains the
 hash-pinned project and deposited-file metadata, the recovered MaxQuant search
 archive, parameter and summary files, its 17 archive-member inventory, and nine
@@ -745,17 +745,60 @@ digest, modifications, charge, identification representations, contributors,
 status flags, match-between-runs fields and LFQ/intensity cells. MaxQuant LFQ
 and any future precursor aggregates are not absolute copies-per-cell or
 intracellular concentration labels.
-The v3 package registers `pxd009360_precursor_quantity_qualification_v1` as a
+The v4 package additionally exposes `precursor_source_assertion`,
+`precursor_material_context`, and `precursor_material_link`. They use the same
+source-dataset, assertion and material-precision field layout as canonical
+`mapp_source_assertion`, `mapp_material_context`, and `mapp_material_link`.
+
+| Source-neutral concept | Captured MAPP relation | PXD009360 precursor relation |
+| --- | --- | --- |
+| Source-scoped assertion | `mapp_source_assertion` | `precursor_source_assertion` |
+| Project/arm/sample/acquisition/material context | `mapp_material_context` | `precursor_material_context` |
+| Qualified context link | `mapp_material_link` | `precursor_material_link` |
+
+PXD009360 has one project context, nine acquisition contexts and only
+acquisition-to-project links. Its condition/specimen/aliquot and MAPP-pairing
+claims are explicit unknown assertions, so querying the common pattern cannot
+silently create a physical pair.
+
+```python
+store.query(
+    "precursor_material_link",
+    select=[
+        "source_dataset",
+        "material_link_precision",
+        "source_material_context.context_kind",
+        "target_material_context.context_kind",
+    ],
+    joins=["source_material_context", "target_material_context"],
+    limit=None,
+)
+```
+
+This has the same assertion and material-link semantics as the `mapp_*` query
+pattern; an exact pairing consumer must still require `exact_specimen` or
+`exact_aliquot`, neither of which is present here.
+
+The v4 package registers `pxd009360_precursor_quantity_qualification_v1` as a
 non-training recipe. Its qualification relation reports source-row coverage,
 contributors, missing intensity cells and ambiguous memberships; its pairing
 qualification relation keeps condition/specimen/aliquot/MAPP links unresolved
 unless a source-backed crosswalk exists. Parent/specimen splits remain frozen
 to source-file scope until that evidence exists.
+
+The adjacent PXD009181 (24 raw files) and PXD009112 (14) inventories were also
+audited as potential tryptic companions for the PXD007263 time-course and
+PXD009438 PBMC MAPP deposits. Neither inventory carries a raw-file
+`sampleProperties` mapping, just as PXD009360's nine raw files do not. The
+hash-pinned [crosswalk audit](../tasks/wolf-levy-crosswalk-audit-results/README.md)
+therefore retains them as source candidates rather than promoting them to
+paired precursor measurements.
+
 The current consumer retains HAP1 schema20/catalog25 and precursor-context
-schema22/catalog27, selected by their explicit family and revision. The combined
-live catalog preserves both source families. Existing source packages are not
-relabeled, and older precursor-context envelopes remain tied to their historical
-consumer.
+schema23/catalog36, selected by their explicit family and revision. The combined
+live catalog preserves both source families. Older precursor-context v3
+envelopes remain independently verifiable and retain their historical query
+surface.
 
 The standalone [intact-degradomics source](intact-degradomics.md) adds original
 PXD058121 mass observations, candidate fragment assignments, time/organ context
