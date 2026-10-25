@@ -1,3 +1,117 @@
+# Project Goldberg PXD052314 onto the canonical MAPP API (#835, planned 2.0.36)
+
+## Specification
+
+Extend the deliberately breaking canonical captured-fragment MAPP package with
+the existing, independently verified Goldberg2025 / PXD052314 source package.
+The resulting public `mapp_*` API must cover the four currently admitted
+datasets plus PXD052314 without flattening one source's search, publisher or
+pooled-table semantics into another's. The existing standalone `goldberg_*`
+package remains an immutable, independently verifiable source receipt during
+and after this migration.
+
+Every canonical row must retain `source_dataset=PXD052314` and an explicit
+source-scope precision. Semantic equivalents must share a canonical base grain:
+source record, source asset, peptide, form, group, acquisition,
+identification, result, measurement, source assertion, material context and
+material link. Source-only properties must be retained in same-grain extensions
+(including original search quantity details, publisher XML cells/quantities and
+links, source FASTA-header assertions, and ordered pooled-table slots), never
+dropped or padded into unrelated base rows. The canonical ledger must enumerate
+every native typed table, its field inventory and its base/extension projection.
+
+The projection does not create donor, specimen, aliquot, HLA, MHC presentation,
+concentration, peptide-negative, exact precursor pairing or coherent pooled
+experiment assertions. Raw zero, missing, invalid and positive values retain
+their distinct source status. PXD009360/PXD009181/PXD009112 remain separately
+typed tryptic/conventional MS sources, not captured-fragment MAPP.
+
+### Projection ledger design
+
+| Goldberg native relation | Canonical home | Conservation rule |
+| --- | --- | --- |
+| `assets` | `mapp_source_asset` | One pinned source asset; retain URL, role, SHA-256 and `size_bytes`. |
+| `source_records` | `mapp_source_record` | Normalize source file/path, locator, row index and ordered raw-row JSON without parsing away duplicate/order information. |
+| `acquisitions` | `mapp_acquisition` plus `mapp_acquisition_source_detail` | One deposited raw file; retain literal assay/sample/cell/pool labels and null specimen/aliquot fields. |
+| `groups` | `mapp_group` plus `mapp_group_source_detail` | One original MaxQuant group; retain all parent, FASTA-header and linked-ID literals. |
+| `references` | `mapp_source_reference` | A FASTA-header assertion is not a complete reference sequence or validated organism call. |
+| `peptides` | `mapp_peptide` plus `mapp_peptide_source_detail` | One original MaxQuant peptide; preserve native IDs, source organism/confidence status and raw flanks/coordinates. |
+| `forms` | `mapp_peptide_form` | One modification-specific original peptide row; do not collapse it into an unmodified peptide. |
+| `identifications` | `mapp_identification` plus `mapp_identification_source_detail` | One evidence row and its source type/modification/confidence fields. |
+| `quantities` | `mapp_quantity_result`, `mapp_quantity_measurement` and `mapp_search_quantity_detail` | Keep one source quantity identity and raw/value-status representation; a one-to-one result is structural, not an inferred aggregation. |
+| `assertions` | `mapp_source_assertion` | Retain source scope, subject, locator and status. |
+| `publisher_cells` / `publisher_quantities` / `publisher_links` | `mapp_publisher_cell`, `mapp_publisher_quantity`, `mapp_publisher_reconciliation` | Publisher cells are a distinct assay view; raw XML/formula/style and original reconciliation claims remain queryable. |
+| `pooled_slots` | `mapp_pooled_quantity_slot` | Preserve order and repeated labels; these rows never become acquisition/specimen/aliquot facts. |
+| `material_contexts` / `material_links` | `mapp_material_context` / `mapp_material_link` | Copy source-backed graph assertions at their existing precision. |
+
+Existing PXD009092/PXD009508/PXD007263/PXD009438 source tables will be remapped
+to the same semantic base relations. Their capture, treatment, reference,
+derived-measurement, label-alias and source-specific result fields remain
+extensions. The ledger test must reject an unmapped native field in either the
+existing or Goldberg sources.
+
+## Plan
+
+- [x] Audit the exact Goldberg source schemas against the canonical base
+      relations and write an explicit field-to-base-or-extension mapping before
+      changing the projection.
+- [x] Refactor the Goldberg compiler into a registered external-source adapter
+      while preserving the standalone source package, all frozen asset hashes,
+      original typed relations and independent replay verifier.
+- [x] Upgrade the canonical MAPP schema to a semantic, source-neutral base
+      layout; map the existing four-source relations and PXD052314 at matching
+      grains, retaining source-only fields in explicit extensions.
+- [x] Add PXD052314 source assets, source rows, peptide/forms/groups,
+      acquisitions, identifications, quantities, publisher views, pooled slots,
+      source assertions and material graph to the canonical ledger with exact
+      field/row/value replay checks.
+- [x] Replace the public catalog, bindings and EvidenceStore surface with the
+      expanded uniform `mapp_*` relations; retain no Goldberg-specific public
+      API aliases in the canonical package.
+- [x] Add cross-source query tests and negative tests proving sample labels,
+      parallel assays, publisher selection and ordered pooled slots do not
+      become physical specimen/aliquot or training facts.
+- [x] Update MAPP coverage, query and recipe documentation; bump the version;
+      run `./format.sh`, `./lint.sh` and `./test.sh` before review.
+- [ ] Open, merge and deploy the PR from clean main; verify PyPI artifact
+      hashes, then record the exact coverage and remaining material-mapping
+      gaps on #835 and #825.
+
+## Review
+
+The prerequisite canonical API landed as #836 and released on PyPI as 2.0.35;
+this 2.0.36 branch begins from that shipped main commit. It admits the existing
+independently replayable Goldberg/PXD052314 source adapter into canonical MAPP
+without replacing, modifying or deleting its standalone package. A six-asset
+generic receipt and the canonical projection both reproduce source rows.
+
+Coverage now includes the three deposited 12-run PXD052314 assay views (36
+source acquisitions), original search quantities/identifications, native
+peptide/forms/groups/FASTA-header assertions, publisher XML cells and quantities,
+publisher reconciliation assertions, and every ordered pooled Table3 slot. The
+new source-detail relations retain the complete native schema beside matching
+canonical MAPP relations. The ledger test proves that every native field from
+all four adapters has either a canonical base or source-detail home; historical
+three-source canonical v1 packages still replay exactly.
+
+Uniform query links expose only exact same-record relationships: source detail
+to canonical source records, acquisitions, peptides/forms, identifications,
+search measurements, assertions, publisher cells/measurements, and optional
+publisher reconciliation claims. Pooled slots link only to an original source
+record. No source label, replicate number, raw-file name, publisher selection,
+or Table3 repeated label becomes a donor/specimen/aliquot, condition,
+perturbation, HLA/presentation, concentration, negative label, or training
+example. Pooled-run/material identity resolution remains the explicit follow-up
+in #825.
+
+Verification: `./format.sh` and `./lint.sh` passed; 99 focused adapter,
+canonical-package, catalog/store and successor tests passed; the full standard
+suite passed outside the sandbox (temporary loopback HTTP fixtures require it):
+3,523 passed, 1 skipped, 10 expected warnings in 381.94 seconds. `./develop.sh`
+also verified one matching editable 2.0.36 install and metadata. The first
+sandboxed full attempt was not used as evidence: it could not bind loopback
+HTTP and inherited its explicit memory-probe fallback into runner self-tests.
+
 # Canonical captured-fragment MAPP package and query API (#834, planned 2.0.34)
 
 ## Specification

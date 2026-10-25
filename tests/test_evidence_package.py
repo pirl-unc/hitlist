@@ -19,6 +19,11 @@ from hitlist.evidence_package import adjudication_manifest_path, package_family
             "external",
             "manifests/adjudication.json",
         ),
+        (
+            {"schema_version": 27, "appended_sources": {}, "parent_kind": "adjudication"},
+            "external",
+            "manifests/adjudication.json",
+        ),
     ],
 )
 def test_store_uses_family_specific_verifier(tmp_path, monkeypatch, envelope, family, review_path):

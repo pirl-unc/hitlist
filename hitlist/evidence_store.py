@@ -120,11 +120,16 @@ class EvidenceStore:
         self.directory = directory
         self.manifest = manifest
         family = package_family(manifest)
+        package_features = []
+        if "mapp_canonical" in manifest:
+            package_features.append("canonical_mapp")
+            if manifest["mapp_canonical"].get("revision") == "captured_fragment_mapp_canonical_v2":
+                package_features.append("canonical_mapp_v2")
         self.bindings = materialized_bindings(
             manifest["schema_version"],
             appended_source_ids=manifest.get("appended_sources", {}),
             include_adjudications=adjudication_manifest_path(manifest) is not None,
-            package_features=("canonical_mapp",) if "mapp_canonical" in manifest else (),
+            package_features=package_features,
         )
         if family == "intact_degradomics":
             self.bindings = {

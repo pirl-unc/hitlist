@@ -10,16 +10,25 @@ has `source_dataset` and `source_dataset_precision`.
 | PXD009508 | `wolflevy2018_controlled` | 18 | capture-control and epoxomicin panel |
 | PXD007263 | `wolflevy2018_controlled` | 12 | cytokine-label time course |
 | PXD009438 | `pxd009438` | 14 | CTRL/LUPUS source samples; PBMC/metadata conflict retained |
+| PXD052314 | `goldberg2025` | 36 | A549 source acquisitions across MAPP, whole-cell and proteasome-composition views; specimen/aliquot mapping unresolved |
 
-The four entries are 62 deposited acquisition rows. This is an assay/source
-inventory, not 62 independent specimens, donors, biological replicates, or
-training examples. The known Goldberg PXD052314 MAPP source remains preserved
-in its own original-source package. Its distinct search/publisher layout is the
-next candidate for an explicit canonical projection, tracked in
-[#835](https://github.com/pirl-unc/hitlist/issues/835) after source recovery in
-[#825](https://github.com/pirl-unc/hitlist/issues/825).
+The five entries are 98 deposited acquisition rows. This is an assay/source
+inventory, not 98 independent specimens, donors, biological replicates, or
+training examples. PXD052314's 36 rows include distinct source assay pools;
+only source-backed pool labels distinguish them. The original Goldberg source
+package remains independently verifiable alongside its canonical projection.
 Adjacent PXD009360/PXD009181/PXD009112 deposits are tryptic/conventional
 proteomics, not captured-fragment MAPP; they remain separately typed evidence.
+
+PXD052314 is admitted at the complete pinned-asset/source-table boundary, not
+as a hand-selected peptide list: six assets include its deposition workbook,
+original MaxQuant archive, publisher supplement, project/file metadata and
+community SDRF. The projection retains all three sets of 12 deposited raw-file
+rows, Table5 MAPP search quantities and its distinct whole-cell/proteasome
+views, publisher cells/quantities, and every ordered Table3 pooled-value slot.
+This expands MAPP coverage without asserting that the parallel assay labels or
+repeated Table3 labels identify the same specimen, aliquot, perturbation, or
+free intracellular peptide pool.
 
 ## Layout
 
@@ -27,8 +36,9 @@ The stable base relations are:
 
 | Evidence type | Grain |
 |---|---|
+| `mapp_source_asset` | one pinned original source asset |
 | `mapp_source_record` | one original source-table row |
-| `mapp_peptide`, `mapp_group` | one deposited peptide or protein-group row |
+| `mapp_peptide`, `mapp_peptide_form`, `mapp_group` | one deposited peptide, modification-specific form, or protein-group row |
 | `mapp_acquisition` | one source acquisition |
 | `mapp_identification` | one deposited peptide identification |
 | `mapp_quantity_result`, `mapp_quantity_measurement` | one peptide/acquisition result and one of its representations |
@@ -44,6 +54,24 @@ material without making it a property of every source. Reference mappings have
 the corresponding `mapp_*` names. `mapp_source_table` is the mapping ledger:
 it identifies the retained source-owned table, schema fields and row count for
 every canonical projection.
+
+PXD052314 adds same-grain extensions, rather than nullable Goldberg columns to
+the other sources' base rows: `mapp_*_source_detail` preserves native search
+rows, `mapp_source_reference` preserves FASTA-header assertions,
+`mapp_search_quantity_detail` preserves source quantity fields,
+`mapp_publisher_*_source_detail` and `mapp_publisher_reconciliation` preserve
+publisher XML/reconciliation evidence, and `mapp_pooled_quantity_slot` retains
+ordered Table3 slots. These extensions are data, not resolved donor, specimen,
+aliquot, condition, perturbation or training labels.
+
+The source-detail relations expose the same query contract as every other
+evidence relation: their shared logical fields are selectable directly and
+their named `canonical_*` links return the matching canonical relation. For
+example, `mapp_search_quantity_detail.canonical_measurement` is an exact
+one-to-one source-cell/measurement link; a publisher reconciliation link is
+optional and remains an asserted match rather than a new identity. Pooled
+slots link only to their original source record, never to an acquisition,
+specimen or aliquot.
 
 Every canonical table has the same first two columns:
 
@@ -61,14 +89,15 @@ verification.
 
 ## Query
 
-Build a current external successor with all three source adapters together;
+Build a current external successor with all four source adapters together;
 the controlled adapter contributes two PXD datasets.
 
 ```sh
 hitlist evidence append-sources PREDECESSOR OUTPUT \
   --source-root pxd009092=PXD009092_ASSETS \
   --source-root wolflevy2018_controlled=CONTROLLED_ASSETS \
-  --source-root pxd009438=PXD009438_ASSETS
+  --source-root pxd009438=PXD009438_ASSETS \
+  --source-root goldberg2025=PXD052314_ASSETS
 ```
 
 Then one query pattern spans all admitted sources:
@@ -78,25 +107,48 @@ from hitlist.evidence_store import EvidenceStore
 
 store = EvidenceStore.open("OUTPUT")
 result = store.query(
-    "mapp_quantity_result",
+    "mapp_quantity_measurement",
     select=[
         "source_dataset",
+        "measurement_id",
         "result_id",
-        "acquisition.condition_text",
-        "evidence_summary.n_direct_msms_evidence",
+        "value_status",
+        "quantitative_value",
     ],
-    joins=["acquisition", "evidence_summary"],
     limit=None,
 )
 ```
 
-`mapp_acquisition` joins to `mapp_acquisition_context` and the material graph.
-No query turns a study arm, raw-file label, source sample label, or repeat
-number into a donor, specimen, aliquot, or cross-modal pairing. A source zero,
-missing intensity and unreported intensity remain separate quantity states; no
-canonical projection turns them into biological absence or a presentation label.
+Source-specific evidence remains uniformly queryable when needed:
+
+```python
+search_cells = store.query(
+    "mapp_search_quantity_detail",
+    select=[
+        "source_dataset",
+        "measurement_id",
+        "quantitative_raw",
+        "value_status",
+        "canonical_measurement.quantitative_value",
+    ],
+    joins=["canonical_measurement"],
+    limit=None,
+)
+```
+
+`mapp_acquisition` joins to `mapp_acquisition_context` and the material graph
+when a source quantity has an acquisition identity. Aggregate or pooled source
+quantities retain a null acquisition link; they must not be joined by matching
+their labels. No query turns a study arm, raw-file label, source sample label,
+or repeat number into a donor, specimen, aliquot, or cross-modal pairing. A
+source zero, missing intensity and unreported intensity remain separate quantity
+states; no canonical projection turns them into biological absence or a
+presentation label.
 
 This is a deliberate breaking release. The old `processing_*`, `pbmc_mapp_*`,
 `mapp_channel`, and `external_*` MAPP relation names are removed rather than
 kept as aliases. Consumers should migrate to the `mapp_*` relations above and
-filter `source_dataset` explicitly where an endpoint requires one source.
+filter `source_dataset` explicitly where an endpoint requires one source. The
+expanded external envelope is package schema 27/catalog schema 17; canonical
+MAPP v1 remains replay-verifiable for historical packages, while new packages
+expose the v2 source-detail relations.

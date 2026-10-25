@@ -21,6 +21,7 @@ CATALOG_SCHEMA_VERSION = 5
 
 def _adapters():
     from .digestion_evidence import DigestionAdapter
+    from .goldberg_mapp import GoldbergMAPPAdapter
     from .mapp_controlled_evidence import ControlledMAPPAdapter
     from .mapp_evidence import MAPPAdapter
     from .mapp_pbmc_evidence import PBMCMAPPAdapter
@@ -29,6 +30,7 @@ def _adapters():
 
     return {
         PXD057588Adapter.source_id: PXD057588Adapter(),
+        GoldbergMAPPAdapter.source_id: GoldbergMAPPAdapter(),
         MAPPAdapter.source_id: MAPPAdapter(),
         PBMCMAPPAdapter.source_id: PBMCMAPPAdapter(),
         MSCalibrationAdapter.source_id: MSCalibrationAdapter(),

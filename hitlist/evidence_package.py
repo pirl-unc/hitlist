@@ -38,7 +38,7 @@ def package_family(manifest):
         return "hap1_quantitative"
     if schema in (6, 7):
         return {6: "supporting", 7: "reference"}[schema]
-    if schema in (8, 9):
+    if schema in (8, 9, 27):
         external = "appended_sources" in manifest
         reviews = "review_revision" in manifest
         if external and not reviews:

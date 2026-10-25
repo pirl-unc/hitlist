@@ -10,12 +10,12 @@ peptide rows, 149,959 evidence rows, 18 source runs and every original TSV field
 It does not assign intracellular concentration or training eligibility.
 
 PXD009092 alone remains a verified source receipt, but it does not materialize
-the public MAPP API. Build the canonical package with all three adapters as
+the public MAPP API. Build the canonical package with all four adapters as
 shown in the [canonical MAPP guide](mapp-canonical.md#query).
 
 Supply the exact relative paths and bytes in
 `hitlist/data/evidence_revisions/mapp_assets.json`. The predecessor must be a
-verified schema-7 reference or schema-8 adjudication package. The schema-9
+verified schema-7 reference or schema-8 adjudication package. The current schema-27
 successor preserves all of its files, including newer T-cell and numeric evidence,
 and exposes only explicitly appended sources. The original supporting-package
 adapter generation remains a historical source receipt, not the current query

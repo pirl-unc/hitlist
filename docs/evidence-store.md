@@ -60,7 +60,7 @@ The package contains the original source generations as well as typed relations;
 the API makes each relation discoverable without searching for sidecars. The
 package directory is the only location a reader supplies.
 
-New external-source generations use package schema 9 and catalog 14. Their
+Current external-source generations use package schema 27 and catalog 17. Their
 predecessor can be a schema-7 reference package or a schema-8 adjudication
 package. The latter retains all nine multimer reviews when MAPP and calibration
 sources are appended. Both historical schema-8 families remain readable:

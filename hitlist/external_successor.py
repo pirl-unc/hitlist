@@ -14,8 +14,8 @@ from .external_evidence import _adapters, _copy_source, _safe_relative, _verify_
 from .provenance import file_digest
 from .reference_evidence import verify_reference_evidence_package
 
-PACKAGE_SCHEMA_VERSION = 9
-CATALOG_SCHEMA_VERSION = 15
+PACKAGE_SCHEMA_VERSION = 27
+CATALOG_SCHEMA_VERSION = 17
 READABLE_SCHEMA_VERSIONS = (
     (8, 10),
     (8, 11),
@@ -23,7 +23,8 @@ READABLE_SCHEMA_VERSIONS = (
     (9, 12),
     (9, 13),
     (9, 14),
-    (9, CATALOG_SCHEMA_VERSION),
+    (9, 15),
+    (PACKAGE_SCHEMA_VERSION, CATALOG_SCHEMA_VERSION),
 )
 PARENT_MANIFESTS = {
     "reference": "manifests/reference.json",
@@ -63,7 +64,7 @@ def verify_external_successor(
         parent_kind = manifest.get("parent_kind")
     parent_path = PARENT_MANIFESTS.get(parent_kind)
     if parent_path is None or (
-        version[0] == 9 and manifest.get("parent_manifest_path") != parent_path
+        version[0] != 8 and manifest.get("parent_manifest_path") != parent_path
     ):
         raise ValueError("External successor predecessor kind/path mismatch")
     files = manifest.get("files", {})
