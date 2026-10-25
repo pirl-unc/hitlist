@@ -8957,3 +8957,12 @@ Keep original-source replay and required full gates pending.
 Catalog correction review: all48tests across the six existing catalog files and
 new dilution source tests pass in1.63s (one existing pandas warning). Format and
 lint pass. Production source modules and fixed data contract are unchanged.
+
+Hosted Tests40182919894/Python3.11 found one additional stale subprocess-output
+assertion (catalog string36 rather than37):3568passed,2skipped,1failed in142.55s.
+Fix that assertion as part of the same global catalog migration; historical
+package catalog constants remain unchanged. Re-run the catalog and source files
+before publishing a fresh head. Docs40182919914 and lint already pass.
+
+Final catalog correction:26catalog/source tests pass in1.68s; format/lint pass.
+CI failure log40182919894/Python3.11 is retained. New-head full checks required.

@@ -653,3 +653,8 @@ queryable rather than replacing them with inferred values.
   before retrying, preserve refusal logs, and never lower the guard or change the
   definition to force a run. Keep hosted software verification separate from
   local source/materialization and biological training evidence.
+
+- A global catalog-version change must cover subprocess stdout assertions as
+  well as imported constants. Search the full catalog/interface test surface;
+  do not change historical package-envelope/catalog versions to satisfy current
+  global assertions. Preserve the failing CI evidence and verify the new head.

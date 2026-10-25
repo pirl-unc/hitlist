@@ -1,0 +1,12 @@
+{
+  "workflow_run": 40182919894,
+  "job_id": 121137647562,
+  "format": "decoded GitHub job log, gzip preserving all decoded bytes",
+  "raw_sha256": "28163ba0e7e0cfa6090cc3634ca89848ad6e4c6e262fe611fc00613c5cf38e69",
+  "raw_size_bytes": 73347,
+  "gzip_sha256": "0e8048ee7f689d2be89246c9a35f8c6bf9b70c3677bca0355a46ec388062e1e6",
+  "n_passed": 3568,
+  "n_failed": 1,
+  "n_skipped": 2,
+  "failure": "tests/test_evidence_catalog.py::test_catalog_import_does_not_build_or_download expected stale catalog string36; actual37"
+}
