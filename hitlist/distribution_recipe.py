@@ -38,6 +38,7 @@ def describe_registered_recipes(store):
     from .goldberg_composition import describe as describe_goldberg_composition
     from .hap1_response_recipe import describe as describe_hap1_response
     from .intact_kinetics import describe as describe_intact_kinetics
+    from .intact_organ_transfer import describe as describe_intact_organs
     from .lymph_composition import describe as describe_lymph
     from .mapp_controlled_recipe import describe as describe_controlled
     from .ms_calibration_response import describe
@@ -61,6 +62,7 @@ def describe_registered_recipes(store):
         describe_precursor(store),
         describe_hap1_response(store),
         describe_intact_kinetics(store),
+        describe_intact_organs(store),
         describe_proteometools(store),
         describe_lymph(store),
         describe_goldberg(store),

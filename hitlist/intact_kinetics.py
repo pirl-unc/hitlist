@@ -6,6 +6,7 @@ import hashlib
 import json
 import math
 import shutil
+import sys
 import tempfile
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -20,6 +21,7 @@ from .mapp_evidence import _schema, _Sink
 from .provenance import file_digest
 
 RECIPE_ID = "pxd058121_product_substrate_forecast_v1"
+OUTPUT_KIND = "registered_intact_kinetics"
 TABLES = (
     "assignments",
     "quantities",
@@ -316,10 +318,14 @@ def describe(store):
 
 
 def materialize_kinetics(store, recipe, destination):
+    return _materialize(store, recipe, destination, sys.modules[__name__])
+
+
+def _materialize(store, recipe, destination, implementation):
     from .evidence_recipe import RecipeError, verify_recipe_package
 
-    _validate(recipe)
-    if describe(store)["status"] != "materialized":
+    implementation._validate(recipe)
+    if implementation.describe(store)["status"] != "materialized":
         raise RecipeError("Intact-degradomics source not materialized")
     destination = Path(destination)
     if destination.exists():
@@ -328,17 +334,17 @@ def materialize_kinetics(store, recipe, destination):
     staging = Path(tempfile.mkdtemp(prefix=f".{destination.name}-", dir=destination.parent))
     try:
         snapshot_file(store.directory / "manifest.json", staging / "source_manifest.json")
-        for name in TABLES:
+        for name in implementation.TABLES:
             snapshot_file(
                 store.directory / ROOT / "typed" / f"{name}.parquet",
                 staging / "source_tables" / f"{name}.parquet",
             )
-        summary = compile_kinetics(staging / "source_tables", staging / "typed")
-        (staging / "contract.json").write_text(_json(CONTRACT) + "\n")
+        summary = implementation.compile_kinetics(staging / "source_tables", staging / "typed")
+        (staging / "contract.json").write_text(_json(implementation.CONTRACT) + "\n")
         (staging / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
         manifest = {
             "schema_version": 1,
-            "output_kind": "registered_intact_kinetics",
+            "output_kind": implementation.OUTPUT_KIND,
             "catalog_schema_version": SCHEMA_VERSION,
             "hitlist_version": store._software_version(),
             "recipe": recipe,
@@ -364,9 +370,13 @@ def materialize_kinetics(store, recipe, destination):
 
 
 def verify_kinetic_contents(directory, manifest, source_package=None):
+    return _verify_contents(directory, manifest, source_package, sys.modules[__name__])
+
+
+def _verify_contents(directory, manifest, source_package, implementation):
     from .evidence_recipe import RecipeError
 
-    _validate(manifest["recipe"])
+    implementation._validate(manifest["recipe"])
     source = json.loads((directory / "source_manifest.json").read_text())
     if (
         file_digest(directory / "source_manifest.json")["sha256"]
@@ -375,16 +385,16 @@ def verify_kinetic_contents(directory, manifest, source_package=None):
         or source["schema_version"] != manifest["source_package_schema_version"]
     ):
         raise RecipeError("Intact kinetics source binding differs")
-    if json.loads((directory / "contract.json").read_text()) != CONTRACT:
+    if json.loads((directory / "contract.json").read_text()) != implementation.CONTRACT:
         raise RecipeError("Intact kinetics contract differs")
     expected = (
         {"source_manifest.json", "contract.json", "summary.json"}
-        | {f"typed/{name}.parquet" for name in OUTPUT_SCHEMAS}
-        | {f"source_tables/{n}.parquet" for n in TABLES}
+        | {f"typed/{name}.parquet" for name in implementation.OUTPUT_SCHEMAS}
+        | {f"source_tables/{n}.parquet" for n in implementation.TABLES}
     )
     if set(manifest["files"]) != expected:
         raise RecipeError("Intact kinetics inventory differs")
-    for name in TABLES:
+    for name in implementation.TABLES:
         relative = str(ROOT / "typed" / f"{name}.parquet")
         if (
             file_digest(directory / "source_tables" / f"{name}.parquet")
@@ -398,12 +408,12 @@ def verify_kinetic_contents(directory, manifest, source_package=None):
             raise RecipeError("Intact kinetics source table changed")
     temporary = Path(tempfile.mkdtemp(prefix="hitlist-intact-kinetic-verify-"))
     try:
-        summary = compile_kinetics(directory / "source_tables", temporary / "typed")
+        summary = implementation.compile_kinetics(directory / "source_tables", temporary / "typed")
         if summary != manifest["coverage"] or summary != json.loads(
             (directory / "summary.json").read_text()
         ):
             raise RecipeError("Intact kinetics coverage differs")
-        for name, schema in OUTPUT_SCHEMAS.items():
+        for name, schema in implementation.OUTPUT_SCHEMAS.items():
             left = pq.ParquetFile(temporary / "typed" / f"{name}.parquet")
             right = pq.ParquetFile(directory / "typed" / f"{name}.parquet")
             if not right.schema_arrow.equals(schema):

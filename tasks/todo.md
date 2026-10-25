@@ -8966,3 +8966,13 @@ before publishing a fresh head. Docs40182919914 and lint already pass.
 
 Final catalog correction:26catalog/source tests pass in1.68s; format/lint pass.
 CI failure log40182919894/Python3.11 is retained. New-head full checks required.
+
+
+## PXD058121 organ baseline-change recipe
+
+- [x] Freeze source/endpoint contract before numeric admission.
+- [x] Implement registered F3 compiler and shared package/replay support.
+- [x] Verify synthetic edge cases and unchanged F2 output.
+- [ ] Run format/lint/test, open PR, merge and verify release.
+
+Spec: tasks/intact-organ-transfer-spec.md. Source issue: #831.

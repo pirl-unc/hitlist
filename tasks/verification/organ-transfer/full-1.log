@@ -1,0 +1,317 @@
+[test.sh] cpus=10 cpu_cap=8 ram_free=2.95GB mem_cap=1 per_worker=2.5GB workers=1
+[test.sh] → exec python -m pytest -n 1 -m not integration  --cov=hitlist/ --cov-report=term-missing tests -q
+[test.sh] Resource profile for 'not integration' (peak RSS is a process peak, not summed worker RAM)
+bringing up nodes...
+bringing up nodes...
+
+........................................................................ [  2%]
+........................................................................ [  4%]
+........................................................................ [  6%]
+........................................................................ [  8%]
+........................................................................ [ 10%]
+........................................................................ [ 12%]
+........................................................................ [ 14%]
+........................................................................ [ 16%]
+........................................................................ [ 18%]
+........................................................................ [ 20%]
+........................................................................ [ 22%]
+........................................................................ [ 24%]
+........................................................................ [ 26%]
+........................................................................ [ 28%]
+........................................................................ [ 30%]
+........................................................................ [ 32%]
+........................................................................ [ 34%]
+........................................................................ [ 36%]
+........................................................................ [ 38%]
+........................................................................ [ 40%]
+........................................................................ [ 42%]
+........................................................................ [ 44%]
+........................................................................ [ 46%]
+........................................................................ [ 48%]
+........................................................................ [ 50%]
+........................................................................ [ 52%]
+........................................................................ [ 54%]
+........................................................................ [ 56%]
+........................................................................ [ 58%]
+........................................................................ [ 60%]
+........................................................................ [ 62%]
+........................................................................ [ 64%]
+........................................................................ [ 66%]
+........................................................................ [ 68%]
+........................................................................ [ 70%]
+........................................................................ [ 72%]
+........................................................................ [ 74%]
+........................................................................ [ 76%]
+........................................................................ [ 78%]
+........................................................................ [ 80%]
+........................................................................ [ 82%]
+........................................................................ [ 84%]
+........................................................................ [ 86%]
+........................................................................ [ 88%]
+........................................................................ [ 90%]
+........................................................................ [ 92%]
+........................................................................ [ 94%]
+........................................................................ [ 96%]
+........................................................................ [ 98%]
+......................................................                   [100%]
+=============================== warnings summary ===============================
+hitlist/__init__.py:48
+  /Users/iskander/code/presto/.worktrees/hitlist-organ-transfer/hitlist/__init__.py:48: Pandas4Warning: The 'future.infer_string' option is deprecated and will be removed in pandas 4.0. Inferring str dtype for string data has been the default since pandas 3.0, and it will no longer be possible to disable it.
+    _pd.options.future.infer_string = True
+
+tests/test_allele_candidates.py: 8 warnings
+tests/test_attribution_query_context.py: 43 warnings
+tests/test_canine_ligands.py: 1 warning
+tests/test_corpus_v3_arm_contexts.py: 1 warning
+tests/test_cta_evidence_bundle.py: 13 warnings
+tests/test_curated_erap2_lines.py: 1 warning
+tests/test_curation_sanity_pass.py: 5 warnings
+tests/test_curation_source_followup.py: 4 warnings
+tests/test_deposited_elution_conditions.py: 35 warnings
+tests/test_export.py: 52 warnings
+tests/test_export_filter_parity.py: 18 warnings
+tests/test_export_join_lifetime.py: 4 warnings
+tests/test_export_species_filters.py: 76 warnings
+tests/test_genotype_attribution.py: 6 warnings
+tests/test_mhc_typing_contract.py: 17 warnings
+tests/test_mutant_sample_genotypes.py: 2 warnings
+tests/test_peptide_attribution_scope.py: 1 warning
+tests/test_source_verification.py: 26 warnings
+tests/test_species_contexts.py: 3 warnings
+tests/test_study_identity_corrections.py: 3 warnings
+tests/test_supplementary_build_e2e.py: 4 warnings
+tests/test_training_binding_filters.py: 4 warnings
+tests/test_training_bundle.py: 19 warnings
+tests/test_training_identity.py: 9 warnings
+tests/test_training_qc_metadata.py: 6 warnings
+  /Users/iskander/code/presto/.worktrees/hitlist-organ-transfer/hitlist/export.py:2820: Pandas4Warning: The inplace keyword in DataFrame.drop is deprecated and will be removed in a future version (PDEP-8).
+  See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
+    obs.drop(columns=["_pmid_int", "_mhc_class_norm"], inplace=True)
+
+tests/test_builder.py::test_hitlist_import_enables_pandas_infer_string
+  /Users/iskander/code/presto/.worktrees/hitlist-organ-transfer/tests/test_builder.py:769: Pandas4Warning: The 'future.infer_string' option is deprecated and will be removed in pandas 4.0. Inferring str dtype for string data has been the default since pandas 3.0, and it will no longer be possible to disable it.
+    assert pd.options.future.infer_string is True
+
+tests/test_bulk_proteomics_unit.py: 16 warnings
+  /Users/iskander/code/presto/.worktrees/hitlist-organ-transfer/hitlist/builder.py:1391: Pandas4Warning: 'str' is not supported as a fill value for float64 dtype. In a future version, calling fillna with an incompatible value will raise. Explicitly cast to a common dtype before filling.
+    df["modifications"] = df["modifications"].fillna("")
+
+tests/test_line_expression.py::test_tier4_backend_exception_is_swallowed
+  /Users/iskander/code/presto/.worktrees/hitlist-organ-transfer/tests/test_line_expression.py:266: RuntimeWarning: cancer_type_backend raised RuntimeError('boom'); skipping tier 4
+    a = resolve_sample_expression_anchor(
+
+tests/test_multi_proteome_flanking.py::test_add_flanking_per_species_routing
+  /Users/iskander/code/presto/.worktrees/hitlist-organ-transfer/hitlist/builder.py:2241: Pandas4Warning: The inplace keyword in DataFrame.drop is deprecated and will be removed in a future version (PDEP-8).
+  See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
+    obs.drop(columns=["_canonical_species", "_flanking_organism"], inplace=True)
+
+tests/test_reassign_genotypes.py::test_unresolved_candidate_pool_never_invokes_a_predictor[HLA-A*01 HLA-A*03 HLA-B*07 HLA-B*27 HLA-C*02 HLA-C*07-pure_one_field]
+  /Users/iskander/code/presto/.worktrees/hitlist-organ-transfer/tests/test_reassign_genotypes.py:161: UserWarning: Reassignment abstained on 1 peptide/sample contexts (1 observations): unresolved class-I candidates (1 observations, e.g. HLA-A*01, HLA-A*03, HLA-B*07, HLA-B*27) (#574)
+    result = predict.reassign_class_only_alleles()
+
+tests/test_reassign_genotypes.py::test_unresolved_candidate_pool_never_invokes_a_predictor[HLA-B*27-pure_single_group]
+  /Users/iskander/code/presto/.worktrees/hitlist-organ-transfer/tests/test_reassign_genotypes.py:161: UserWarning: Reassignment abstained on 1 peptide/sample contexts (1 observations): unresolved class-I candidates (1 observations, e.g. HLA-B*27) (#574)
+    result = predict.reassign_class_only_alleles()
+
+tests/test_reassign_genotypes.py::test_unresolved_candidate_pool_never_invokes_a_predictor[HLA-A*02:01 HLA-A*03:01 HLA-B*40:02 HLA-B*47 HLA-C*03:04 HLA-C*06:02-mixed]
+  /Users/iskander/code/presto/.worktrees/hitlist-organ-transfer/tests/test_reassign_genotypes.py:161: UserWarning: Reassignment abstained on 1 peptide/sample contexts (1 observations): unresolved class-I candidates (1 observations, e.g. HLA-B*47) (#574)
+    result = predict.reassign_class_only_alleles()
+
+tests/test_reassign_genotypes.py::test_unresolved_candidate_pool_never_invokes_a_predictor[HLA-A HLA-B HLA-C-gene_only]
+  /Users/iskander/code/presto/.worktrees/hitlist-organ-transfer/tests/test_reassign_genotypes.py:161: UserWarning: Reassignment abstained on 1 peptide/sample contexts (1 observations): unresolved class-I candidates (1 observations, e.g. HLA-A, HLA-B, HLA-C) (#574)
+    result = predict.reassign_class_only_alleles()
+
+tests/test_reassign_genotypes.py::test_unresolved_candidate_pool_never_invokes_a_predictor[HLA-A2 HLA-B*07:02-serotype_plus_allele]
+  /Users/iskander/code/presto/.worktrees/hitlist-organ-transfer/tests/test_reassign_genotypes.py:161: UserWarning: Reassignment abstained on 1 peptide/sample contexts (1 observations): unresolved class-I candidates (1 observations, e.g. HLA-A2) (#574)
+    result = predict.reassign_class_only_alleles()
+
+tests/test_reassign_genotypes.py::test_unresolved_candidate_pool_never_invokes_a_predictor[HLA-A*02:01 HLA class I-sentinel_plus_allele]
+  /Users/iskander/code/presto/.worktrees/hitlist-organ-transfer/tests/test_reassign_genotypes.py:161: UserWarning: Reassignment abstained on 1 peptide/sample contexts (1 observations): unresolved class-I candidates (1 observations, e.g. human class I) (#574)
+    result = predict.reassign_class_only_alleles()
+
+tests/test_reassign_genotypes.py::test_unresolved_candidate_pool_never_invokes_a_predictor[HLA-A*02:01 HLA-E*01:01-class_ib_plus_allele]
+  /Users/iskander/code/presto/.worktrees/hitlist-organ-transfer/tests/test_reassign_genotypes.py:161: UserWarning: Reassignment abstained on 1 peptide/sample contexts (1 observations): unresolved class-I candidates (1 observations, e.g. HLA-E*01:01) (#574)
+    result = predict.reassign_class_only_alleles()
+
+tests/test_reassign_genotypes.py::test_cellular_typing_cannot_resolve_an_unresolved_experimental_pool
+  /Users/iskander/code/presto/.worktrees/hitlist-organ-transfer/tests/test_reassign_genotypes.py:227: UserWarning: Reassignment abstained on 1 peptide/sample contexts (1 observations): unresolved class-I candidates (1 observations, e.g. HLA-B*27) (#574)
+    assert predict.reassign_class_only_alleles().empty
+
+tests/test_reassign_genotypes.py::test_six_distinct_allele_default_does_not_truncate_larger_genotypes
+  /Users/iskander/code/presto/.worktrees/hitlist-organ-transfer/tests/test_reassign_genotypes.py:355: UserWarning: Reassignment abstained on 1 peptide/sample contexts (1 observations): more candidates than max_alleles_per_sample (1 observations, e.g. HLA-A*01:01, HLA-A*02:01, HLA-A*24:02, HLA-B*07:02) (#574)
+    result = predict.reassign_class_only_alleles().set_index("sample_label")
+
+tests/test_species_evidence.py::test_explicit_empty_canine_normal_snapshot
+  /Users/iskander/code/presto/.worktrees/hitlist-organ-transfer/tests/test_species_evidence.py:379: Pandas4Warning: The inplace keyword in DataFrame.drop is deprecated and will be removed in a future version (PDEP-8).
+  See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
+    update(inputs, "normal", lambda d: d.drop(d.index, inplace=True))
+
+tests/test_species_evidence.py::test_contributor_coverage_required
+  /Users/iskander/code/presto/.worktrees/hitlist-organ-transfer/tests/test_species_evidence.py:402: Pandas4Warning: The inplace keyword in DataFrame.drop is deprecated and will be removed in a future version (PDEP-8).
+  See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
+    update(inputs, "contributors", lambda d: d.drop(d.index[0], inplace=True))
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================================ tests coverage ================================
+_______________ coverage: platform darwin, python 3.12.6-final-0 _______________
+
+Name                                       Stmts   Miss  Cover   Missing
+------------------------------------------------------------------------
+hitlist/__init__.py                           15      0   100%
+hitlist/aggregate.py                          78      5    94%   37, 40-41, 94, 96
+hitlist/apm.py                                18      0   100%
+hitlist/assay_adjudication.py                179     71    60%   94, 102, 104, 111, 114, 120, 123, 125, 127, 130, 134, 136, 138, 140, 142, 154, 156, 169, 178, 234, 244, 260, 270, 274-302, 314, 316-322, 325, 328, 331, 333, 335, 339, 341, 344, 350-394
+hitlist/assays.py                             91      0   100%
+hitlist/atlas.py                              46      0   100%
+hitlist/binding_assay_context.py             210    133    37%   94, 97, 99, 101, 104, 115, 119, 142, 145, 154-160, 164-188, 196-263, 279-337, 342-411
+hitlist/binding_context_availability.py      151    102    32%   83, 101, 103, 113-118, 122-130, 134-222, 226, 234-271, 276-320
+hitlist/builder.py                           929    153    84%   158, 284, 288, 298, 505, 784, 928, 968, 987, 1014-1032, 1387, 1389, 1453-1457, 1516, 1584-1586, 1588, 1610, 1695, 1700, 1712, 1717-1718, 1724-1725, 1736, 1758, 1767, 1769, 1866, 1875, 1931-1966, 1989-1999, 2007-2008, 2017, 2027-2095, 2130-2131, 2155, 2171-2173, 2188, 2194-2195, 2199-2200, 2222, 2228, 2261
+hitlist/bulk_fractionation.py                 55      2    96%   47, 94
+hitlist/bulk_proteomics.py                   218     18    92%   71, 77-79, 111, 146, 217, 225, 251, 286, 288, 482-484, 621-623, 628-630, 635-637
+hitlist/bulk_replicates.py                    55      1    98%   79
+hitlist/cache_inventory.py                    63      3    95%   82-84
+hitlist/canine_bulk.py                       335     39    88%   95, 102, 108, 116, 124, 139, 152, 156, 187, 189, 203, 206-207, 223, 240, 329, 381, 394, 397, 405, 421, 438, 445, 495, 503-504, 523, 555, 561-563, 565, 586, 588, 598, 616, 636, 638, 645
+hitlist/canine_ligands.py                     88     10    89%   32, 42, 59, 110-111, 118, 130, 177-179
+hitlist/canine_orfdata.py                    123     13    89%   81, 84, 100, 113, 124, 156, 163, 169, 187, 195, 200, 203, 211
+hitlist/cell_name_parser.py                  136      3    98%   402-403, 437
+hitlist/cli.py                               948    315    67%   62, 64, 67, 94-95, 165, 191-202, 212-213, 232, 234, 256-261, 265-270, 274-280, 284-289, 293-298, 302-306, 310-316, 320-322, 334-416, 420-436, 763-764, 798-799, 810-818, 1731-1732, 1743-1745, 1747, 1749, 1764-1772, 1784-1786, 1796-1800, 1814-1820, 1823, 1829, 1833-1836, 1838-1845, 1847-1856, 1858-1867, 1875, 1877-1886, 1889-1890, 1949, 1952, 1992-1993, 2013-2019, 2023-2032, 2038-2044, 2055-2084, 2088-2121, 2132-2139, 2143-2144, 2171-2173, 2179, 2181, 2186-2189, 2197-2198, 2378-2380, 2387, 2389, 2401, 2408-2411, 2424, 2530-2538, 2555-2557, 2562-2564, 2592-2594, 2596-2597, 2610-2611, 2628
+hitlist/cli_evidence.py                       38      3    92%   102-104
+hitlist/cli_evidence_store.py                131     82    37%   71-75, 79-124, 128-187
+hitlist/cli_help.py                           35      3    91%   46-47, 92
+hitlist/cli_uniprot.py                        39      6    85%   51-52, 55-61
+hitlist/condition_categories.py               27      0   100%
+hitlist/conditions.py                        164      6    96%   520, 535, 561, 567, 635, 649
+hitlist/context_evidence.py                  375     53    86%   343, 355, 372, 375, 380, 386, 395, 399, 405, 429, 472, 475, 557-558, 600, 604, 609, 808-818, 873, 883, 886, 900, 940, 970, 992, 994, 996, 1005, 1013, 1015, 1025, 1030, 1045, 1050, 1062, 1068, 1091, 1131, 1141-1156
+hitlist/cta_expression.py                    130     30    77%   21-27, 31-34, 39-44, 48-49, 53-58, 90, 93, 98, 163, 182, 197, 202, 204
+hitlist/curation.py                         1204     39    97%   402, 493, 500, 659-660, 666, 722, 726, 900, 971, 973, 1042-1043, 1054, 1315, 1866, 1895-1896, 1999-2000, 2047-2048, 2075, 2078, 2080, 2214, 2233-2234, 2626, 2877, 3032, 3151, 3392-3393, 3446-3447, 3456, 3499, 3654
+hitlist/curation_yaml.py                      17      0   100%
+hitlist/data/__init__.py                       0      0   100%
+hitlist/data/bulk_proteomics/__init__.py       0      0   100%
+hitlist/data/line_expression/__init__.py       0      0   100%
+hitlist/dataset.py                           128      4    97%   65, 198, 203, 243
+hitlist/detectability.py                     426     46    89%   112, 124, 126, 129, 144, 181, 183, 187, 202, 204, 208, 212, 221, 236, 238, 253, 257, 260, 267, 269, 280, 295, 306, 319, 322, 331, 337, 341, 371, 424, 441, 458, 461, 485, 489, 492, 494, 496, 508, 581, 626, 723, 726, 759, 761, 785
+hitlist/digestion_evidence.py                246     21    91%   225, 277, 311, 328, 331, 343, 390, 415, 418, 444, 447, 456, 504, 534, 592, 617, 690, 722, 727, 734, 737
+hitlist/digestion_processing_package.py       90     58    36%   81-84, 88, 184-187, 191-219, 224-277
+hitlist/digestion_recipe.py                  202     15    93%   193, 233-236, 356, 365, 367, 416-418, 431, 433, 440, 447, 459
+hitlist/dilution_observer.py                  90      8    91%   31, 45, 60, 62, 68, 80, 85, 119
+hitlist/dilution_observer_compiler.py        161      8    95%   51-52, 54, 127, 189, 218, 225, 258
+hitlist/dilution_observer_metadata.py        116      9    92%   46, 75, 78, 82, 87, 104, 133, 266, 270
+hitlist/dilution_observer_schema.py           18      0   100%
+hitlist/distribution_recipe.py               153     20    87%   92, 180-182, 202, 204, 211, 220, 232, 235, 239, 243, 246, 249, 282, 288, 298, 317, 328, 330
+hitlist/downloads.py                         481    103    79%   219-220, 425-428, 716, 764-794, 958, 982-998, 1004-1018, 1023-1040, 1045, 1078, 1087, 1096-1097, 1101-1117, 1162, 1165, 1168, 1220, 1223-1225, 1272, 1277, 1330-1339, 1345-1348, 1390-1392, 1401, 1432-1443, 1456-1457, 1459-1460, 1492, 1518-1521
+hitlist/evidence_audit.py                     64     64     0%   3-167
+hitlist/evidence_bindings.py                  73      0   100%
+hitlist/evidence_bundle.py                   269     21    92%   113-115, 141, 155, 230, 350, 383, 401, 405, 466, 469, 481, 496, 498, 506, 517, 525, 527, 537, 568
+hitlist/evidence_catalog.py                  212     15    93%   5842, 5844, 5847, 5849, 5852, 5854, 5856, 5858, 5860, 5862, 5865, 5867, 5870, 5875, 5879
+hitlist/evidence_package.py                   62      4    94%   78, 129, 131, 135
+hitlist/evidence_recipe.py                   493     63    87%   76, 95-97, 102, 105, 111, 113, 115, 118, 139, 142, 144, 146, 148, 150, 172, 174, 177, 182-185, 191, 193, 195, 208, 217, 219, 227, 231, 244, 252, 268, 299, 308, 310, 314, 327, 340, 343, 359-360, 365-369, 396, 502-513, 580, 645, 782, 790, 799, 805, 864, 870, 878, 881, 887, 895
+hitlist/evidence_snapshot.py                  32      8    75%   21, 29-30, 48, 51-54
+hitlist/evidence_store.py                    465    107    77%   45, 48, 66, 70, 73, 75-88, 95, 101-109, 125-127, 179-181, 188-190, 209-210, 213, 215-216, 225, 268-270, 272-274, 276-278, 280-282, 284-288, 294-296, 298-300, 310, 320, 336, 368-369, 376-378, 439, 441, 489, 499, 503, 507, 511, 536-537, 541, 547, 575, 581, 594, 606, 608-621, 630-636, 662, 667-669, 673, 675, 687, 691, 695, 710-715, 727, 808-810
+hitlist/export.py                           1505    112    93%   407, 572, 577-578, 633, 803, 1018, 1049-1050, 1052, 1540, 1546, 1548, 1550, 1974, 2108-2109, 2157-2160, 2280, 2382-2383, 2555, 2578, 2805, 2830, 2847, 2855, 2857, 2859, 2863, 3107, 3111, 3113, 3118, 3120, 3126-3129, 3261, 3330-3331, 3335-3336, 3346, 3350-3352, 3359-3360, 3362, 3402-3404, 3467, 3490-3495, 3526, 3613, 3641, 3648, 3670, 4010, 4019, 4038, 4061, 4067-4068, 4286, 4322, 4381-4382, 4457-4472, 4483, 4486-4487, 4493, 4611, 4632, 4678, 4750, 4876-4877, 4928, 4964-4965, 5064, 5088-5091, 5108-5111
+hitlist/expression_inputs.py                  84      5    94%   107, 129, 133, 158, 174
+hitlist/external_evidence.py                 148     22    85%   53, 59, 64, 88, 90-91, 101, 103, 119, 122, 126, 128, 130, 137, 142, 145, 164, 168, 170, 223-225
+hitlist/external_successor.py                128     13    90%   40, 61, 82, 85, 91, 96, 101, 106, 135, 193, 196-198
+hitlist/genes.py                             106     10    91%   51-54, 71-72, 84, 88, 157, 196
+hitlist/goldberg_candidates.py               122     15    88%   137, 139, 237, 254, 257, 290-292, 305, 307, 316, 323, 328, 335, 340
+hitlist/goldberg_composition.py              181     11    94%   154, 291, 308, 311, 359, 361, 377, 384, 389, 396, 400
+hitlist/goldberg_mapp.py                     334     21    94%   289, 297, 412, 416, 493, 495, 512, 561, 608, 613, 618, 653, 656, 741, 746, 762, 783, 785, 788, 790, 795
+hitlist/goldberg_workbooks.py                204     20    90%   31, 43-47, 66, 70, 102, 129, 131, 136, 166, 174, 183, 200, 288, 294, 320, 384
+hitlist/gomez_arm_projection.py              204    129    37%   200, 204, 210-212, 224, 226, 233-330, 374, 403-426, 428, 434, 437, 445, 471, 482-531, 536-633
+hitlist/gomez_prediction_panel.py            206    149    28%   146, 150, 166-179, 183-221, 257-273, 277-350, 354, 358, 366-415, 420-501
+hitlist/gomez_source_lineage.py              253    189    25%   119-120, 132-144, 175-192, 196-374, 381-437, 441, 457-511
+hitlist/hap1_quantitative.py                 286     21    93%   205, 208, 251, 277, 285, 345, 409, 433, 460, 469, 576, 597, 663, 687, 689, 692, 699, 705, 710, 725, 735
+hitlist/hap1_response_recipe.py              290     24    92%   192, 200, 204, 227, 243, 247, 256, 265, 268, 348, 354, 430, 440, 443, 450, 476-478, 492, 500, 507, 512, 517, 527
+hitlist/indexer.py                            44     44     0%   31-154
+hitlist/intact_degradomics.py                358     22    94%   51, 92, 202, 206, 246, 282-286, 332, 491, 533, 535, 548, 763, 765, 768, 770, 775, 780, 785
+hitlist/intact_degradomics_schema.py           5      0   100%
+hitlist/intact_degradomics_workbook.py        44      4    91%   18, 30-31, 48
+hitlist/intact_kinetics.py                   201     18    91%   133, 152, 156, 159, 165, 168, 308, 329, 365-369, 387, 389, 396, 403, 408, 415, 420
+hitlist/intact_organ_transfer.py             161      4    98%   116, 122, 124, 355
+hitlist/line_expression.py                   565     24    96%   167, 286, 290, 357, 453, 683, 705, 709, 1024-1031, 1083, 1289-1290, 1314, 1330, 1336, 1415, 1418-1419, 1421, 1441, 1451-1452
+hitlist/lineage.py                            88      6    93%   35, 42, 53, 74, 81, 93
+hitlist/lymph_composition.py                 255     25    90%   65, 77, 95, 116-118, 125, 143, 145, 224, 226, 246, 248, 283, 370, 387, 438-440, 454, 456, 462, 467, 476, 481
+hitlist/managed_assets.py                     26      3    88%   11, 25, 34
+hitlist/mapp_canonical.py                    217     18    92%   209, 217, 229, 231, 234, 390, 421, 445, 580, 600, 604, 612, 614, 647, 651, 658, 665, 668
+hitlist/mapp_composition.py                  267     15    94%   101, 138, 156, 159, 177, 185, 188, 203, 248, 253, 280, 311, 314, 320, 439
+hitlist/mapp_controlled_evidence.py          233     40    83%   83, 86, 138, 162, 181, 309, 323, 339, 345, 375, 400, 405, 407, 464, 467, 540, 574, 591-608, 611-642, 645
+hitlist/mapp_controlled_recipe.py            206     31    85%   82, 148, 158, 160, 162, 164, 168, 250, 307, 309, 327-342, 350-366, 410-412, 425, 439, 442, 448, 464, 470
+hitlist/mapp_evidence.py                     267     45    83%   181, 185, 201, 204, 365, 374, 404, 410, 442, 464, 471, 515, 519, 522, 653, 657, 659, 668, 684, 743, 757-769, 772-801, 804
+hitlist/mapp_pbmc_evidence.py                186     34    82%   40, 43, 60, 63, 240, 243, 269, 276, 313, 345, 350, 356, 423, 428, 513, 529, 555-560, 563-598, 601
+hitlist/mappings.py                          478    101    79%   284-285, 342, 602, 604, 607, 617, 624, 628, 654-671, 682, 735-736, 760-766, 784-810, 813, 823, 834, 860, 871, 879-912, 954-957, 1068, 1106-1110, 1119, 1169-1176, 1196-1202, 1204-1205, 1212-1215, 1229-1233, 1327, 1333, 1336-1348, 1362
+hitlist/material_context.py                   45     11    76%   71, 73, 76, 80, 84, 86, 92, 97, 99, 101, 121
+hitlist/mhc_evidence.py                      210     24    89%   206, 310, 320, 448, 450, 453, 512, 528, 579, 581, 583, 586, 589, 591, 599, 602, 605, 614, 620, 625, 630, 635, 644, 664
+hitlist/ms_calibration_evidence.py           325    174    46%   274-277, 301, 342, 410, 413-414, 417, 420, 424-517, 530-809, 859, 869-870, 873
+hitlist/ms_calibration_response.py           147     13    91%   86, 97, 104, 110, 184, 305-307, 325, 328, 334, 340, 348
+hitlist/nanaware_lymph.py                    194     16    92%   175-176, 185, 209, 301, 306, 329, 343, 383, 412, 414, 417, 419, 424, 429, 434
+hitlist/native_contrast.py                    82     10    88%   58, 91-95, 112, 121, 126, 128, 134, 139
+hitlist/native_contrast_compiler.py          171     15    91%   33, 52, 56, 65, 68, 70, 76, 82, 94, 96, 107, 111, 122, 184, 195
+hitlist/native_contrast_schema.py              9      0   100%
+hitlist/native_peptidomics.py                 81      7    91%   35, 50, 52, 58, 64, 70, 75
+hitlist/native_peptidomics_compiler.py       295      9    97%   218, 226, 292, 295, 303, 471, 683-692, 742
+hitlist/native_peptidomics_reference.py       54      2    96%   18, 30
+hitlist/native_peptidomics_schema.py          12      0   100%
+hitlist/observations.py                      410     12    97%   705, 736, 891, 897, 956, 1064, 1102, 1287, 1299-1302
+hitlist/pandas_utils.py                        5      0   100%
+hitlist/parquet_io.py                         35      0   100%
+hitlist/pbmc_composition.py                  199     16    92%   185, 195, 197, 199, 357, 374, 377, 410-412, 425, 427, 437, 444, 449, 456
+hitlist/peptide_modifications.py              28      1    96%   129
+hitlist/pmhc_query.py                        637     45    93%   216, 237, 392, 401, 409, 493, 751, 766-770, 782-784, 786, 913, 1000, 1027-1028, 1080-1085, 1132, 1182, 1328, 1415, 1457, 1514, 1523, 1529-1533, 1545-1547, 1553, 1597, 1661, 1669, 1673, 1675, 1787, 1803
+hitlist/precursor_context_package.py         321     46    86%   273, 283, 286, 372, 377, 392, 402-410, 412, 415, 497-502, 506, 847, 873, 876, 880, 886-891, 932, 936, 941, 944, 947, 950, 958, 984-985, 987-992, 1086-1088
+hitlist/precursor_recipe.py                    7      0   100%
+hitlist/predict.py                           126      8    94%   153-154, 172, 228, 231, 247-248, 357
+hitlist/proteome.py                          596     85    86%   75, 191, 215, 223, 235, 240, 255-258, 308, 327, 344, 454-455, 514, 531, 543, 596, 600-603, 606-607, 630-631, 734, 737, 743-744, 763-764, 911, 914-915, 917, 927, 936, 997-1001, 1074-1075, 1087, 1110-1145, 1207-1211, 1229, 1305, 1309, 1455-1463, 1516-1517, 1548, 1596
+hitlist/proteometools_ms1.py                 234     26    89%   123-124, 126, 134, 137, 172, 182, 184, 249, 252, 260, 264, 267, 272, 325, 334, 340, 367, 382, 391, 416, 418, 426, 431, 436, 441
+hitlist/proteometools_response.py            162     16    90%   60, 75, 130, 136, 154, 254, 257, 305-307, 321, 323, 329, 334, 343, 348
+hitlist/provenance.py                        250     12    95%   73, 103, 156, 168, 190, 241, 288, 296, 430, 451, 453, 491
+hitlist/pxd013455.py                         197     33    83%   37-101, 129, 169, 175, 190, 254, 258
+hitlist/pxd013455_download.py                 10      0   100%
+hitlist/pxd013455_publication.py             167     11    93%   89, 97, 99, 103, 106, 116, 174, 184, 388, 394, 418
+hitlist/pxd057588_evidence.py                335    104    69%   224, 308, 316, 332, 356, 360, 371, 379-380, 387, 391, 394, 396, 408, 418, 448, 450, 479, 481, 546, 551, 600, 634, 665, 706, 708, 726, 770-833, 843-862, 874-933, 936-968, 971
+hitlist/qc.py                                442     19    96%   110, 120, 215, 734, 736, 833, 844, 1068, 1225, 1246-1247, 1274, 1293-1294, 1339, 1608, 1680, 1686, 1720
+hitlist/reference_evidence.py                276    237    14%   147-149, 153-154, 158-159, 163-180, 184-196, 200-397, 414, 420-502, 507-584, 589-649
+hitlist/report.py                            216     19    91%   75, 81-85, 104-107, 280, 288-289, 294-297, 396-400
+hitlist/sample_identity.py                    32      1    97%   95
+hitlist/samples.py                            62      8    87%   75, 81, 99, 101, 103, 156, 161, 166
+hitlist/scanner.py                           233     34    85%   34-35, 166-167, 169, 234-238, 271-272, 280-282, 394-402, 429-430, 450-459, 461, 463-465, 476-478, 505, 507
+hitlist/sequence_reference_evidence.py       194     11    94%   117, 120, 141, 159, 190, 255, 258, 293, 425, 432, 475
+hitlist/species_contexts.py                  138     27    80%   104, 109, 111, 117, 120, 134, 136, 138, 141, 151, 155, 161, 163, 167, 169, 173, 177, 188, 191, 193, 197, 204, 209, 221, 224, 231, 252
+hitlist/species_evidence.py                  350     38    89%   143, 148, 177, 180, 187, 190, 207, 214, 219, 228, 230, 232, 241, 243, 248, 261, 263, 272, 277, 279, 284, 291, 300, 332, 412, 431, 433, 439, 464, 526, 666, 669, 684, 687, 690, 701, 707, 710
+hitlist/species_expression.py                191     29    85%   39, 49, 58, 60, 62, 64, 66, 69, 75, 80, 83, 89, 101, 109, 119, 121, 124, 137, 139, 148, 150, 156, 159, 162, 166, 172, 191, 195, 197
+hitlist/split_audit.py                       102      4    96%   32, 118, 146, 148
+hitlist/supplement.py                        149     18    88%   72, 132, 154-159, 172, 178, 197, 202, 209, 427-443, 460, 465
+hitlist/supporting_evidence.py               354     44    88%   247, 249, 255, 259-267, 285, 374, 405, 422, 435, 514, 519, 528, 544, 558, 560, 581, 689, 695, 697, 704, 806, 859, 923, 925, 927, 942, 945, 948, 950, 954, 962, 1008, 1016, 1033, 1068-1070, 1109
+hitlist/supporting_numeric_evidence.py       165     80    52%   86, 139, 152, 165, 169, 209-223, 227, 250-253, 258-297, 302-356
+hitlist/tcell_assays.py                      161     23    86%   81, 83, 86, 91-92, 107, 116, 121-122, 125, 136, 140, 144, 185, 245, 304-312, 318
+hitlist/tcell_evidence.py                    306    118    61%   163, 180, 185-186, 189, 196, 210-216, 344, 351, 362, 368, 402, 407, 414, 548, 584-587, 591-598, 602-614, 623-682, 687-752
+hitlist/tcell_functional.py                   69     10    86%   77, 80, 140-148, 164
+hitlist/tcell_multimer.py                     67     11    84%   78, 81, 107, 133-141, 145
+hitlist/tcell_peptides.py                     31      0   100%
+hitlist/tcell_processing_package.py          126     91    28%   92-95, 99, 103-111, 115-121, 212-224, 228, 236-279, 284-338
+hitlist/tcell_training.py                    203     32    84%   93, 102, 196, 255, 259, 274, 384, 386, 394, 399, 408, 410, 412, 414, 425, 440, 442, 446, 452, 469, 471, 473, 480, 498-507, 523
+hitlist/tissue_blacklist.py                  123     12    90%   61, 64, 70, 77, 138, 147, 167, 173, 175, 180, 189, 230
+hitlist/tmab_peptidomics.py                  288     20    93%   282, 298, 310, 370, 406, 429-432, 554, 830, 837, 844, 856, 859, 868, 875, 922-924
+hitlist/tmab_response_recipe.py              267     23    91%   80, 89, 105, 122, 151, 155, 163, 176, 282, 290, 309, 343, 462, 494-496, 520, 525, 533, 536, 544, 548, 550
+hitlist/training_bundle.py                   234     28    88%   92-95, 129, 142, 162, 238-239, 309, 311, 319, 330-345, 365, 398-400, 415, 417, 429, 440, 442, 444, 456, 459, 464, 483
+hitlist/uniprot.py                           154      8    95%   44, 47, 51, 54, 146, 173, 228, 238
+hitlist/version.py                             1      0   100%
+------------------------------------------------------------------------
+TOTAL                                      27609   4480    84%
+3582 passed, 392 warnings in 413.12s (0:06:53)
+      417.48 real       302.99 user        44.15 sys
+           738590720  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             3347813  page reclaims
+               13585  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                 145  messages sent
+                 211  messages received
+                 230  signals received
+               42179  voluntary context switches
+              413485  involuntary context switches
+         96405038999  instructions retired
+         33652389505  cycles elapsed
+           380994640  peak memory footprint
