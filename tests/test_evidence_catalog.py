@@ -127,9 +127,9 @@ def test_catalog_covers_current_data_grains_without_double_counting():
     assert describe_evidence("tcell_cedar_mutation_claim")["materialized_artifact"] == (
         "tcell/typed/cedar_mutation_claims.parquet"
     )
-    mapp = describe_evidence("external_proteasome_fragment_quantity")
+    mapp = describe_evidence("mapp_quantity_result")
     assert mapp["status"] == "v2_materialized"
-    assert mapp["materialized_artifact"] == "external/pxd009092/typed/quantity_results.parquet"
+    assert mapp["materialized_artifact"] == "mapp/typed/quantity_results.parquet"
     for candidate in (
         "external_paired_protein_quantity",
         "external_calibrated_target_quantity",
@@ -266,24 +266,24 @@ def test_catalog_import_does_not_build_or_download(tmp_path):
         text=True,
         cwd=Path(__file__).parents[1],
     )
-    assert probe.stdout.strip() == "32"
+    assert probe.stdout.strip() == "33"
     assert not data_root.exists()
 
 
 def test_external_sequence_reference_relations_keep_identity_scopes():
     names = (
-        "external_sequence_reference",
-        "external_reference_protein",
-        "external_reference_accession",
-        "external_peptide_parent_occurrence",
-        "external_source_parent_claim",
-        "external_source_parent_resolution",
-        "external_peptide_reference_coverage",
+        "mapp_sequence_reference",
+        "mapp_reference_protein",
+        "mapp_reference_accession",
+        "mapp_peptide_parent_occurrence",
+        "mapp_source_parent_claim",
+        "mapp_source_parent_resolution",
+        "mapp_peptide_reference_coverage",
     )
     records = [describe_evidence(name) for name in names]
     assert len({row["materialized_artifact"] for row in records}) == 7
     assert all(row["status"] == "v2_materialized" for row in records)
-    occurrence = describe_evidence("external_peptide_parent_occurrence")
+    occurrence = describe_evidence("mapp_peptide_parent_occurrence")
     assert {"peptide_row_id", "reference_id", "reference_record_id", "occurrence_id"} <= set(
         occurrence["index_required"]
     )

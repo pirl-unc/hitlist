@@ -1,5 +1,9 @@
 # Primary-PBMC MAPP observations
 
+> The public MAPP API is now the [canonical captured-fragment MAPP package](mapp-canonical.md).
+> `pbmc_mapp_*` and `external_pbmc_proteasome_fragment_quantity` were removed;
+> this page retains PXD009438-specific source and cohort notes.
+
 `PBMCMAPPAdapter` imports the deposited PXD009438 MaxQuant search tables as a
 separate, source-faithful MAPP panel. It retains 985 peptide rows, 8,851 evidence
 rows, 283 protein-group rows and 14 source acquisitions. It is captured
@@ -29,21 +33,19 @@ rows; source zeros, no reported evidence, partially reported evidence and
 missing intensity retain different statuses. Matching-between-runs, direct
 MS/MS, PEP, reverse and contaminant fields are also independent original claims.
 
-To append the panel, extract exactly the received archive members plus freeze
-the project and file-inventory JSON at the paths and hashes in
-`mapp_pbmc_assets.json`, then supply that root explicitly:
+To materialize the public panel, extract exactly the received archive members
+and freeze the project/file-inventory JSON at the paths and hashes in
+`mapp_pbmc_assets.json`. Then append it together with PXD009092 and the
+controlled adapter, as shown in the [canonical MAPP guide](mapp-canonical.md#query).
+Appending PXD009438 alone retains a verified source receipt but deliberately
+does not expose a partial public MAPP relation set.
 
-```sh
-hitlist evidence append-sources PREDECESSOR OUTPUT \
-  --source-root pxd009438=PXD009438_ASSETS
-```
-
-The catalog exposes `pbmc_mapp_*` relations and
-`external_pbmc_proteasome_fragment_quantity`. This dedicated surface avoids
-mixing primary-PBMC rows with HEK293 or inhibitor/capture-control MAPP rows;
-the common typed relation shapes and material graph make all three queryable by
-the same EvidenceStore interface. Every physical column remains available as
-`native.<field>`.
+Filter the common `mapp_*` relations to `source_dataset=PXD009438` for this
+panel. Its primary-PBMC rows remain distinct through that field, while the
+identical relation names permit cross-source queries when appropriate. The
+material graph makes its source samples queryable without claiming physical
+identity; every original source field remains preserved through the canonical
+base/extension relation and retained source table.
 
 ## Conditional observed-composition recipe
 

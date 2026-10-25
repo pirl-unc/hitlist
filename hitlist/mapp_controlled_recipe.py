@@ -18,16 +18,16 @@ from .provenance import file_digest
 RECIPE_ID = "mapp_controlled_run_intensity_v1"
 CONTRAST_ID = "mapp_controlled_complete_alpha6_response_v1"
 TABLE_BINDINGS = {
-    "peptide_rows": "processing_peptide",
-    "channels": "processing_channel",
-    "quantity_results": "processing_quantity_result",
-    "quantity_measurements": "processing_quantity_measurement",
-    "evidence": "processing_identification",
-    "derivation_inputs": "processing_derivation_input",
-    "source_assertions": "processing_source_assertion",
-    "label_aliases": "processing_label_alias",
-    "reference_proteins": "processing_reference_protein",
-    "peptide_reference_occurrences": "processing_peptide_parent_occurrence",
+    "peptide_rows": "mapp_peptide",
+    "channels": "mapp_acquisition",
+    "quantity_results": "mapp_quantity_result",
+    "quantity_measurements": "mapp_quantity_measurement",
+    "evidence": "mapp_identification",
+    "derivation_inputs": "mapp_derivation_input",
+    "source_assertions": "mapp_source_assertion",
+    "label_aliases": "mapp_label_alias",
+    "reference_proteins": "mapp_reference_protein",
+    "peptide_reference_occurrences": "mapp_peptide_parent_occurrence",
 }
 CONTRACT = {
     "recipe_id": RECIPE_ID,
@@ -311,11 +311,65 @@ def materialize_controlled(store, recipe, destination):
         table: [
             {key.removeprefix("native."): value for key, value in row.items()}
             for row in store.query(
-                name, select=["native." + field for field in store.schemas[name].names], limit=None
+                name,
+                select=["native." + field for field in store.schemas[name].names],
+                where=(
+                    {"source_dataset": {"op": "in", "value": ["PXD009508", "PXD007263"]}}
+                    if "source_dataset" in store.schemas[name].names
+                    else {}
+                ),
+                limit=None,
             ).table.to_pylist()
         ]
         for table, name in TABLE_BINDINGS.items()
     }
+    if "mapp_acquisition_context" in store.bindings:
+        acquisition_context = {
+            row["channel_id"]: row
+            for row in store.query(
+                "mapp_acquisition_context",
+                select=[
+                    "native." + field for field in store.schemas["mapp_acquisition_context"].names
+                ],
+                where={"source_dataset": {"op": "in", "value": ["PXD009508", "PXD007263"]}},
+                limit=None,
+            ).table.to_pylist()
+        }
+        for row in tables["channels"]:
+            context = acquisition_context.get(row["channel_id"])
+            if context is None:
+                raise ValueError("Controlled MAPP acquisition lacks its extension context")
+            row.update(
+                {
+                    field: context[field]
+                    for field in context
+                    if field not in {"source_dataset", "source_dataset_precision", "channel_id"}
+                }
+            )
+    if "mapp_quantity_evidence_summary" in store.bindings:
+        quantity_summary = {
+            row["result_id"]: row
+            for row in store.query(
+                "mapp_quantity_evidence_summary",
+                select=[
+                    "native." + field
+                    for field in store.schemas["mapp_quantity_evidence_summary"].names
+                ],
+                where={"source_dataset": {"op": "in", "value": ["PXD009508", "PXD007263"]}},
+                limit=None,
+            ).table.to_pylist()
+        }
+        for row in tables["quantity_results"]:
+            summary = quantity_summary.get(row["result_id"])
+            if summary is None:
+                raise ValueError("Controlled MAPP quantity lacks its evidence summary")
+            row.update(
+                {
+                    field: summary[field]
+                    for field in summary
+                    if field not in {"source_dataset", "source_dataset_precision", "result_id"}
+                }
+            )
     compiled = _compile(tables, recipe["registered_recipe"])
     destination.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=f".{destination.name}-", dir=destination.parent))
@@ -394,11 +448,18 @@ def verify_controlled_contents(directory, manifest, source_package=None):
         raise RecipeError("Controlled recipe source binding changed")
     if source_package is not None:
         for table in TABLE_BINDINGS:
-            relative = f"external/wolflevy2018_controlled/typed/{table}.parquet"
+            relative = f"mapp/typed/{table}.parquet"
             path = Path(source_package) / relative
+            source_rows = pq.read_table(path).to_pylist()
+            if source_rows and "source_dataset" in source_rows[0]:
+                source_rows = [
+                    row
+                    for row in source_rows
+                    if row["source_dataset"] in {"PXD009508", "PXD007263"}
+                ]
             if (
                 file_digest(path) != records["source_manifest"]["files"][relative]
-                or pq.read_table(path).to_pylist() != records["source_tables"][table]
+                or source_rows != records["source_tables"][table]
             ):
                 raise RecipeError(f"Controlled recipe source rows changed: {table}")
     compiled = _compile(records["source_tables"], manifest["recipe"]["registered_recipe"])

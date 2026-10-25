@@ -1,6 +1,7 @@
 """Successors preserve newer modalities and isolate their predecessor bytes."""
 
 import json
+import shutil
 from pathlib import Path
 
 import pyarrow as pa
@@ -9,7 +10,13 @@ import pytest
 
 from hitlist import external_successor as successor
 from hitlist.evidence_bindings import materialized_bindings
+from hitlist.mapp_controlled_evidence import write_controlled_tables
+from hitlist.mapp_evidence import write_mapp_tables
+from hitlist.mapp_pbmc_evidence import write_pbmc_tables
 from hitlist.provenance import file_digest
+from tests.test_mapp_controlled_evidence import _fixture as controlled_fixture
+from tests.test_mapp_evidence import _source as pxd009092_fixture
+from tests.test_mapp_pbmc_evidence import _fixture as pxd009438_fixture
 
 
 def _fixture(tmp_path, monkeypatch, *, adjudication=False):
@@ -93,7 +100,7 @@ def test_successor_preserves_and_isolates_predecessor(tmp_path, monkeypatch, adj
     successor.write_external_successor(parent, output, source_roots={"fixture": source})
     manifest = successor.verify_external_successor(output)
     assert manifest["schema_version"] == 9
-    assert manifest["catalog_schema_version"] == 14
+    assert manifest["catalog_schema_version"] == 15
     assert (output / "newer-modality.txt").read_bytes() == (
         parent / "newer-modality.txt"
     ).read_bytes()
@@ -159,18 +166,114 @@ def test_bindings_do_not_claim_absent_mapp_or_mouse_sources():
     assert "external_reference_occurrence" in seven
     assert "mapp_peptide" not in seven
     assert "mapp_peptide" not in materialized_bindings(8)
-    assert set(seven) < set(eight)
-    assert "mapp_peptide" in eight and "external_peptide_parent_occurrence" in eight
+    assert set(seven) == set(eight)
+    assert "mapp_peptide" not in eight
     assert "assay_adjudication" not in eight
     mapp_only = materialized_bindings(
-        9, appended_source_ids=["pxd009092"], include_adjudications=True
+        9, include_adjudications=True, package_features=["canonical_mapp"]
     )
-    assert "mapp_peptide" in mapp_only
+    assert "mapp_peptide" in mapp_only and "mapp_quantity_result" in mapp_only
     assert "calibration_s4_measurement" not in mapp_only
     combined = materialized_bindings(
-        9, appended_source_ids=["pxd009092", "pxd004886"], include_adjudications=True
+        9,
+        appended_source_ids=["pxd009092", "pxd004886"],
+        include_adjudications=True,
+        package_features=["canonical_mapp"],
     )
     assert {"mapp_peptide", "assay_adjudication", "calibration_s4_measurement"} <= combined.keys()
+
+
+def test_all_mapp_adapters_publish_and_verify_one_canonical_projection(tmp_path, monkeypatch):
+    parent, _source, _calls = _fixture(tmp_path, monkeypatch)
+
+    def adapter(source_id, prepare, write_tables):
+        root = tmp_path / f"{source_id}-assets"
+        root.mkdir()
+        marker = root / "marker.txt"
+        marker.write_text(source_id)
+        receipt = tmp_path / f"{source_id}-receipt.json"
+        digest = file_digest(marker)
+        receipt.write_text(
+            json.dumps(
+                {
+                    "assets": {
+                        "marker.txt": {
+                            "sha256": digest["sha256"],
+                            "size": digest["size_bytes"],
+                        }
+                    }
+                }
+            )
+        )
+
+        class Adapter:
+            schema_version = 1
+            asset_receipt_path = receipt
+            support_files = {}
+
+            def write(self, directory):
+                directory = Path(directory)
+                source_receipt = (directory / "contracts/source_assets.json").read_bytes()
+                shutil.rmtree(directory / "assets")
+                shutil.rmtree(directory / "contracts")
+                prepare(directory)
+                (directory / "contracts/source_assets.json").write_bytes(source_receipt)
+                (directory / "assets/marker.txt").write_text(source_id)
+                return write_tables(directory)
+
+            def verify(self, directory, reconciliation):
+                typed = Path(directory) / "typed"
+                assert typed.is_dir() and any(typed.glob("*.parquet"))
+
+            def registry(self, reconciliation):
+                return {"source_id": source_id, "fixture_reconciliation": reconciliation}
+
+        return root, Adapter()
+
+    pxd009092_root, pxd009092 = adapter("pxd009092", pxd009092_fixture, write_mapp_tables)
+    controlled_root, controlled = adapter(
+        "wolflevy2018_controlled", controlled_fixture, write_controlled_tables
+    )
+    pxd009438_root, pxd009438 = adapter("pxd009438", pxd009438_fixture, write_pbmc_tables)
+    monkeypatch.setattr(
+        successor,
+        "_adapters",
+        lambda: {
+            "pxd009092": pxd009092,
+            "wolflevy2018_controlled": controlled,
+            "pxd009438": pxd009438,
+        },
+    )
+
+    output = tmp_path / "output"
+    successor.write_external_successor(
+        parent,
+        output,
+        source_roots={
+            "pxd009092": pxd009092_root,
+            "wolflevy2018_controlled": controlled_root,
+            "pxd009438": pxd009438_root,
+        },
+    )
+    manifest = successor.verify_external_successor(output)
+    assert manifest["mapp_canonical"]["source_datasets"] == [
+        "PXD007263",
+        "PXD009092",
+        "PXD009438",
+        "PXD009508",
+    ]
+    assert manifest["mapp_canonical"]["relation_rows"]["mapp_acquisition"] == 62
+
+    path = output / "mapp/typed/channels.parquet"
+    rows = pq.read_table(path).to_pylist()
+    rows[0]["condition"] = "drift"
+    pq.write_table(pa.Table.from_pylist(rows, schema=pq.ParquetFile(path).schema_arrow), path)
+    manifest_path = output / "manifest.json"
+    changed = json.loads(manifest_path.read_text())
+    changed["files"][str(path.relative_to(output))] = file_digest(path)
+    manifest_path.write_text(json.dumps(changed))
+    with pytest.raises(ValueError, match="Canonical MAPP relation drift"):
+        successor.verify_external_successor(output)
 
 
 @pytest.mark.parametrize("catalog", [10, 11])
@@ -205,7 +308,7 @@ def test_released_schema_nine_packages_remain_readable(tmp_path, monkeypatch, ca
         {"parent_manifest_path": "manifests/adjudication.json"},
         {"parent_manifest_path": "../escape"},
         {"review_revision": "ambiguous"},
-        {"catalog_schema_version": 15},
+        {"catalog_schema_version": 16},
     ],
 )
 def test_successor_rejects_false_family_or_predecessor(tmp_path, monkeypatch, changes):

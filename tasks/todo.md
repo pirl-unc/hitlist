@@ -1,3 +1,77 @@
+# Canonical captured-fragment MAPP package and query API (#834, planned 2.0.34)
+
+## Specification
+
+Replace the public source-specific captured-fragment MAPP surface with one
+breaking `mapp_*` package. The package must expose PXD009092,
+PXD009508, PXD007263 and PXD009438 at the same grains, with the same physical
+schema for each canonical relation and a mandatory `source_dataset` on every
+row. It must preserve all source assets and existing typed source relations
+inside their owned source directories, then materialize canonical union
+relations in one owned `mapp/typed/` directory. No source-native field, row,
+quantity representation, assertion, material context/link or unresolved state
+may be deleted.
+
+The uniform base relations are source records, peptide rows, protein groups,
+acquisitions, identifications, quantity results, quantity measurements,
+derivation inputs, source assertions, material contexts, material links and
+label aliases. Their logical API is respectively `mapp_source_record`,
+`mapp_peptide`, `mapp_group`, `mapp_acquisition`, `mapp_identification`,
+`mapp_quantity_result`, `mapp_quantity_measurement`,
+`mapp_derivation_input`, `mapp_source_assertion`, `mapp_material_context`,
+`mapp_material_link` and `mapp_label_alias`. A stable native/source identifier
+and provenance locator remain queryable. Typed extension relations hold
+capture/treatment/time-course/run-context metrics and publisher-workbook
+material rather than deforming the base schemas.
+
+The package remains evidence, not a presentation label, concentration,
+specimen/aliquot/donor identity or cross-modal pairing. Source-only run/sample
+labels and all unknown/conflicting material facts must remain explicit. The
+legacy `processing_*`, `pbmc_mapp_*` and one-source `mapp_*` public relations
+are removed: existing consumers must migrate to the canonical API.
+
+## Plan
+
+- [x] Verify the current four-source coverage and identify the incompatible
+      public namespaces, schemas and storage locations; record #834.
+- [x] Specify canonical schemas, extension schemas, source mapping ledger and
+      required conservation invariants before changing public bindings.
+- [x] Materialize a canonical union from the four source-owned typed packages,
+      preserving source tables/assets byte-for-byte and requiring `source_dataset`
+      in every canonical relation.
+- [x] Replace the catalog and EvidenceStore bindings/links with the one
+      `mapp_*` API; delete the legacy public source-specific relation names.
+- [x] Update recipes and documentation to consume the canonical surface without
+      weakening endpoint, context, provenance or material-precision contracts.
+- [x] Add source-by-source row/field/ID conservation tests and a uniform
+      cross-source query test covering peptide, acquisition, condition,
+      measurement, protocol and material context.
+- [x] Update the MAPP coverage inventory: distinguish admitted captured-fragment
+      deposits, active candidate Goldberg PXD052314 (#835, after #825), and
+      adjacent tryptic/conventional proteomics deposits excluded from this assay family.
+- [x] Bump the breaking-release version and run `./format.sh`, `./lint.sh` and
+      `./test.sh`.
+- [ ] Review, open and merge the PR; build from clean main and publish to PyPI.
+
+## Review
+
+Canonical captured-fragment MAPP now has a single public `mapp_*` namespace,
+four admitted project datasets (62 fixture acquisition rows), and a mandatory
+source dataset plus precision on every row. All native source tables/assets
+remain adapter-owned; canonical rows replay from them and the mapping ledger
+records every base/extension projection. The public external-successor test
+proves all three source adapters materialize the projection and rejects a
+manifest-rehashed canonical-table change. A native-field invariant proves every
+retained source-table field has a canonical base or explicit extension home.
+
+Validation on 2026-10-24: `./format.sh`, `./lint.sh`, and serial
+`./test.sh` passed after final rebase (3,518 passed, 1 skipped). The full run used an isolated
+temporary test directory and a 0.1 GiB provenance free-space reserve because
+the shared volume had approximately 1.1 GiB available; the default 1 GiB
+reserve otherwise refused the fixture builder before tests ran. No source or
+package artifact was removed. Goldberg PXD052314 canonical projection is
+tracked as #835 after source recovery #825.
+
 # PXD009438 primary-PBMC MAPP admission (#822, planned 2.0.30)
 
 ## Specification

@@ -7,9 +7,9 @@ Selectors distinguish evidence types that intentionally share one Parquet file.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 
-from .evidence_catalog import CONTROLLED_RELATION_NAMES, DIGESTION_RELATIONS, EVIDENCE
+from .evidence_catalog import DIGESTION_RELATIONS, EVIDENCE
 
 
 @dataclass(frozen=True)
@@ -109,7 +109,7 @@ ALIASES = {
     "mapp_source_record": {"source_file": "asset_path", "source_row_index": "row_1based"},
     "mapp_peptide": {"peptide_sequence": "sequence_raw", "parent_label_raw": "parent_labels_raw"},
     "mapp_group": {"parent_label_raw": "protein_ids_raw"},
-    "mapp_channel": {
+    "mapp_acquisition": {
         "source_file": "raw_file",
         "sample_label_raw": "experiment_raw",
         "condition_text": "condition",
@@ -301,14 +301,19 @@ ALIASES = {
 
 ALIASES.update(
     {
-        "pbmc_mapp_source_record": ALIASES["mapp_source_record"],
-        "pbmc_mapp_peptide": ALIASES["mapp_peptide"],
-        "pbmc_mapp_group": ALIASES["mapp_group"],
-        "pbmc_mapp_channel": ALIASES["mapp_channel"],
-        "pbmc_mapp_identification": ALIASES["mapp_identification"],
-        "pbmc_mapp_quantity_measurement": ALIASES["mapp_quantity_measurement"],
-        "pbmc_mapp_source_assertion": ALIASES["mapp_source_assertion"],
-        "external_pbmc_proteasome_fragment_quantity": {},
+        "mapp_sequence_reference": {},
+        "mapp_reference_protein": {
+            "reference_sequence": "sequence",
+            "accession_raw": "accession",
+        },
+        "mapp_reference_accession": {},
+        "mapp_peptide_parent_occurrence": {"mapping_position": "start_1based"},
+        "mapp_source_parent_claim": {
+            "parent_label_raw": "source_accession_raw",
+            "mapping_status": "resolution_status",
+        },
+        "mapp_source_parent_resolution": {"mapping_status": "occurrence_status"},
+        "mapp_peptide_reference_coverage": {"n_mapping_occurrences": "n_occurrences"},
     }
 )
 
@@ -531,168 +536,6 @@ LINKS = (
         "cell_id",
         "one",
         "original_source_coordinate",
-    ),
-    Link(
-        "peptide",
-        "external_proteasome_fragment_quantity",
-        "mapp_peptide",
-        "peptide_row_id",
-        "peptide_row_id",
-        "one",
-        "source_peptide_row",
-    ),
-    Link(
-        "channel",
-        "external_proteasome_fragment_quantity",
-        "mapp_channel",
-        "channel_id",
-        "channel_id",
-        "one",
-        "source_acquisition",
-    ),
-    Link(
-        "material_context",
-        "mapp_channel",
-        "mapp_material_context",
-        "channel_id",
-        "context_id",
-        "one",
-        "source_acquisition_context",
-    ),
-    Link(
-        "source_material_context",
-        "mapp_material_link",
-        "mapp_material_context",
-        "source_context_id",
-        "context_id",
-        "one",
-        "qualified_source_context",
-    ),
-    Link(
-        "target_material_context",
-        "mapp_material_link",
-        "mapp_material_context",
-        "target_context_id",
-        "context_id",
-        "one",
-        "qualified_target_context",
-    ),
-    Link(
-        "measurements",
-        "external_proteasome_fragment_quantity",
-        "mapp_quantity_measurement",
-        "result_id",
-        "result_id",
-        "many",
-        "result_representation",
-    ),
-    Link(
-        "result",
-        "mapp_quantity_measurement",
-        "external_proteasome_fragment_quantity",
-        "result_id",
-        "result_id",
-        "one",
-        "source_result",
-    ),
-    Link(
-        "peptide",
-        "mapp_quantity_measurement",
-        "mapp_peptide",
-        "peptide_row_id",
-        "peptide_row_id",
-        "one",
-        "source_peptide_row",
-    ),
-    Link(
-        "peptide",
-        "mapp_publisher_quantity",
-        "mapp_peptide",
-        "peptide_row_id",
-        "peptide_row_id",
-        "one",
-        "source_peptide_row",
-    ),
-    Link(
-        "cell",
-        "mapp_publisher_quantity",
-        "mapp_publisher_cell",
-        "source_cell",
-        "cell_id",
-        "one",
-        "source_workbook_cell",
-    ),
-    Link(
-        "channel",
-        "mapp_identification",
-        "mapp_channel",
-        "channel_id",
-        "channel_id",
-        "one",
-        "source_acquisition",
-    ),
-    Link(
-        "peptide",
-        "mapp_identification",
-        "mapp_peptide",
-        "peptide_row_id",
-        "peptide_row_id",
-        "one",
-        "source_peptide_row",
-    ),
-    Link(
-        "source",
-        "mapp_peptide",
-        "mapp_source_record",
-        "source_record_id",
-        "source_record_id",
-        "one",
-        "source_table_row",
-    ),
-    Link(
-        "occurrences",
-        "mapp_peptide",
-        "external_peptide_parent_occurrence",
-        "peptide_row_id",
-        "peptide_row_id",
-        "many",
-        "reference_alternatives",
-    ),
-    Link(
-        "material_context",
-        "processing_channel",
-        "processing_material_context",
-        "channel_id",
-        "context_id",
-        "one",
-        "source_acquisition_context",
-    ),
-    Link(
-        "source_material_context",
-        "processing_material_link",
-        "processing_material_context",
-        "source_context_id",
-        "context_id",
-        "one",
-        "qualified_source_context",
-    ),
-    Link(
-        "target_material_context",
-        "processing_material_link",
-        "processing_material_context",
-        "target_context_id",
-        "context_id",
-        "one",
-        "qualified_target_context",
-    ),
-    Link(
-        "protein",
-        "external_peptide_parent_occurrence",
-        "external_reference_protein",
-        "reference_record_id",
-        "reference_record_id",
-        "one",
-        "reference_record",
     ),
     Link(
         "source_contributors",
@@ -1102,19 +945,6 @@ LINKS = (
 )
 
 
-ALIASES.update({new: dict(ALIASES.get(old, {})) for old, new in CONTROLLED_RELATION_NAMES.items()})
-ALIASES["processing_label_alias"] = {"source_record_id": "alias_id"}
-LINKS += tuple(
-    replace(
-        link,
-        source=CONTROLLED_RELATION_NAMES[link.source],
-        target=CONTROLLED_RELATION_NAMES[link.target],
-    )
-    for link in LINKS
-    if link.source in CONTROLLED_RELATION_NAMES and link.target in CONTROLLED_RELATION_NAMES
-)
-
-
 ALIASES.update(
     {"digestion_" + name: dict(aliases) for name, (_, aliases) in DIGESTION_RELATIONS.items()}
 )
@@ -1329,109 +1159,6 @@ LINKS += (
     ),
 )
 
-LINKS += (
-    Link(
-        "peptide",
-        "external_pbmc_proteasome_fragment_quantity",
-        "pbmc_mapp_peptide",
-        "peptide_row_id",
-        "peptide_row_id",
-        "one",
-        "source_peptide_row",
-    ),
-    Link(
-        "channel",
-        "external_pbmc_proteasome_fragment_quantity",
-        "pbmc_mapp_channel",
-        "channel_id",
-        "channel_id",
-        "one",
-        "source_acquisition",
-    ),
-    Link(
-        "material_context",
-        "pbmc_mapp_channel",
-        "pbmc_mapp_material_context",
-        "channel_id",
-        "context_id",
-        "one",
-        "source_acquisition_context",
-    ),
-    Link(
-        "source_material_context",
-        "pbmc_mapp_material_link",
-        "pbmc_mapp_material_context",
-        "source_context_id",
-        "context_id",
-        "one",
-        "qualified_source_context",
-    ),
-    Link(
-        "target_material_context",
-        "pbmc_mapp_material_link",
-        "pbmc_mapp_material_context",
-        "target_context_id",
-        "context_id",
-        "one",
-        "qualified_target_context",
-    ),
-    Link(
-        "measurements",
-        "external_pbmc_proteasome_fragment_quantity",
-        "pbmc_mapp_quantity_measurement",
-        "result_id",
-        "result_id",
-        "many",
-        "result_representation",
-    ),
-    Link(
-        "result",
-        "pbmc_mapp_quantity_measurement",
-        "external_pbmc_proteasome_fragment_quantity",
-        "result_id",
-        "result_id",
-        "one",
-        "source_result",
-    ),
-    Link(
-        "peptide",
-        "pbmc_mapp_quantity_measurement",
-        "pbmc_mapp_peptide",
-        "peptide_row_id",
-        "peptide_row_id",
-        "one",
-        "source_peptide_row",
-    ),
-    Link(
-        "channel",
-        "pbmc_mapp_identification",
-        "pbmc_mapp_channel",
-        "channel_id",
-        "channel_id",
-        "one",
-        "source_acquisition",
-    ),
-    Link(
-        "peptide",
-        "pbmc_mapp_identification",
-        "pbmc_mapp_peptide",
-        "peptide_row_id",
-        "peptide_row_id",
-        "one",
-        "source_peptide_row",
-    ),
-    Link(
-        "source",
-        "pbmc_mapp_peptide",
-        "pbmc_mapp_source_record",
-        "source_record_id",
-        "source_record_id",
-        "one",
-        "source_table_row",
-    ),
-)
-
-
 for _table in (
     "acquisitions",
     "groups",
@@ -1515,6 +1242,159 @@ for _table in ("source_views", "input_masses", "assignments", "supplement_rows",
     )
 LINKS += (
     Link(
+        "material_context",
+        "mapp_acquisition",
+        "mapp_material_context",
+        "channel_id",
+        "context_id",
+        "one",
+        "source_acquisition_context",
+    ),
+    Link(
+        "acquisition_context",
+        "mapp_acquisition",
+        "mapp_acquisition_context",
+        "channel_id",
+        "channel_id",
+        "one",
+        "source_capture_treatment_or_time_context",
+    ),
+    Link(
+        "source_material_context",
+        "mapp_material_link",
+        "mapp_material_context",
+        "source_context_id",
+        "context_id",
+        "one",
+        "qualified_source_context",
+    ),
+    Link(
+        "target_material_context",
+        "mapp_material_link",
+        "mapp_material_context",
+        "target_context_id",
+        "context_id",
+        "one",
+        "qualified_target_context",
+    ),
+    Link(
+        "peptide",
+        "mapp_quantity_result",
+        "mapp_peptide",
+        "peptide_row_id",
+        "peptide_row_id",
+        "one",
+        "source_peptide_row",
+    ),
+    Link(
+        "acquisition",
+        "mapp_quantity_result",
+        "mapp_acquisition",
+        "channel_id",
+        "channel_id",
+        "one",
+        "source_acquisition",
+    ),
+    Link(
+        "measurements",
+        "mapp_quantity_result",
+        "mapp_quantity_measurement",
+        "result_id",
+        "result_id",
+        "many",
+        "result_representation",
+    ),
+    Link(
+        "evidence_summary",
+        "mapp_quantity_result",
+        "mapp_quantity_evidence_summary",
+        "result_id",
+        "result_id",
+        "one",
+        "source_evidence_contributor_summary",
+    ),
+    Link(
+        "result",
+        "mapp_quantity_measurement",
+        "mapp_quantity_result",
+        "result_id",
+        "result_id",
+        "one",
+        "source_result",
+    ),
+    Link(
+        "peptide",
+        "mapp_quantity_measurement",
+        "mapp_peptide",
+        "peptide_row_id",
+        "peptide_row_id",
+        "one",
+        "source_peptide_row",
+    ),
+    Link(
+        "channel",
+        "mapp_identification",
+        "mapp_acquisition",
+        "channel_id",
+        "channel_id",
+        "one",
+        "source_acquisition",
+    ),
+    Link(
+        "peptide",
+        "mapp_identification",
+        "mapp_peptide",
+        "peptide_row_id",
+        "peptide_row_id",
+        "one",
+        "source_peptide_row",
+    ),
+    Link(
+        "source",
+        "mapp_peptide",
+        "mapp_source_record",
+        "source_record_id",
+        "source_record_id",
+        "one",
+        "source_table_row",
+    ),
+    Link(
+        "occurrences",
+        "mapp_peptide",
+        "mapp_peptide_parent_occurrence",
+        "peptide_row_id",
+        "peptide_row_id",
+        "many",
+        "reference_alternatives",
+    ),
+    Link(
+        "peptide",
+        "mapp_publisher_quantity",
+        "mapp_peptide",
+        "peptide_row_id",
+        "peptide_row_id",
+        "one",
+        "source_peptide_row",
+    ),
+    Link(
+        "cell",
+        "mapp_publisher_quantity",
+        "mapp_publisher_cell",
+        "source_cell",
+        "cell_id",
+        "one",
+        "source_workbook_cell",
+    ),
+    Link(
+        "protein",
+        "mapp_peptide_parent_occurrence",
+        "mapp_reference_protein",
+        "reference_record_id",
+        "reference_record_id",
+        "one",
+        "reference_record",
+    ),
+    Link(
         "quantity",
         "intact_assignments",
         "intact_quantities",
@@ -1536,7 +1416,11 @@ LINKS += (
 
 
 def materialized_bindings(
-    package_schema_version=None, *, appended_source_ids=(), include_adjudications=False
+    package_schema_version=None,
+    *,
+    appended_source_ids=(),
+    include_adjudications=False,
+    package_features=(),
 ):
     """Return each declared physical relation with an exact row selector."""
     return {
@@ -1551,6 +1435,11 @@ def materialized_bindings(
             package_schema_version is None
             or item.required_appended_source is None
             or item.required_appended_source in appended_source_ids
+        )
+        and (
+            package_schema_version is None
+            or item.required_package_feature is None
+            or item.required_package_feature in package_features
         )
         and (
             package_schema_version is None

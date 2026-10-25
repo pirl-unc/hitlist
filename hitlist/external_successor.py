@@ -15,13 +15,14 @@ from .provenance import file_digest
 from .reference_evidence import verify_reference_evidence_package
 
 PACKAGE_SCHEMA_VERSION = 9
-CATALOG_SCHEMA_VERSION = 14
+CATALOG_SCHEMA_VERSION = 15
 READABLE_SCHEMA_VERSIONS = (
     (8, 10),
     (8, 11),
     (9, 11),
     (9, 12),
     (9, 13),
+    (9, 14),
     (9, CATALOG_SCHEMA_VERSION),
 )
 PARENT_MANIFESTS = {
@@ -106,6 +107,12 @@ def verify_external_successor(
         if record.get("registry") != adapter.registry(record["reconciliation"]):
             raise ValueError(f"Appended source metadata mismatch: {name}")
         expected.update(path for path in files if path.startswith(prefix))
+    canonical_mapp = manifest.get("mapp_canonical")
+    if canonical_mapp is not None:
+        from .mapp_canonical import verify_canonical_mapp_tables
+
+        verify_canonical_mapp_tables(directory, canonical_mapp)
+        expected.update(path for path in files if path.startswith("mapp/"))
     if set(files) != expected:
         raise ValueError("External successor contains unowned artifacts")
     return manifest
@@ -150,6 +157,11 @@ def write_external_successor(predecessor_package, destination, *, source_roots):
             }
         from .version import __version__
 
+        canonical_mapp = None
+        from .mapp_canonical import MAPP_SOURCE_IDS, write_canonical_mapp_tables
+
+        if set(MAPP_SOURCE_IDS) <= set(sources):
+            canonical_mapp = write_canonical_mapp_tables(staging)
         files = {
             str(path.relative_to(staging)): file_digest(path)
             for path in sorted(staging.rglob("*"))
@@ -164,6 +176,7 @@ def write_external_successor(predecessor_package, destination, *, source_roots):
             "parent_manifest_sha256": files[parent_path]["sha256"],
             "reference": _reference_metadata(predecessor_package, parent),
             "appended_sources": sources,
+            **({"mapp_canonical": canonical_mapp} if canonical_mapp is not None else {}),
             "files": files,
         }
         (staging / "manifest.json").write_text(

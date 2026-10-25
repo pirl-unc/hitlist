@@ -230,10 +230,10 @@ def _store_tables(tmp_path, tables):
 
     store = EvidenceStore.__new__(EvidenceStore)
     store.directory = tmp_path
-    store.manifest = {"schema_version": 8, "appended_sources": {"pxd009092": {}}}
+    store.manifest = {"schema_version": 9, "mapp_canonical": {}}
     tmp_path.mkdir(parents=True, exist_ok=True)
     (tmp_path / "manifest.json").write_text(json.dumps(store.manifest))
-    bindings = materialized_bindings(8, appended_source_ids=["pxd009092"])
+    bindings = materialized_bindings(9, package_features=["canonical_mapp"])
     store.bindings, store.schemas = {}, {}
     for table, rows in tables.items():
         name = TABLE_BINDINGS[table]
@@ -297,16 +297,16 @@ def test_mapp_query_keeps_result_measurement_and_parent_grains_separate(tmp_path
 
     store = _store_tables(tmp_path / "source", _tables())
     result = store.query(
-        "external_proteasome_fragment_quantity",
-        select=["result_id", "peptide.peptide_sequence", "channel.organism_name"],
-        joins=["peptide", "channel"],
+        "mapp_quantity_result",
+        select=["result_id", "peptide.peptide_sequence", "acquisition.organism_name"],
+        joins=["peptide", "acquisition"],
         limit=None,
     ).table.to_pylist()
     assert len(result) == 36
-    assert {row["channel.organism_name"] for row in result} == {"Homo sapiens"}
+    assert {row["acquisition.organism_name"] for row in result} == {"Homo sapiens"}
     with pytest.raises(EvidenceRelationshipError, match="many cardinality"):
         store.query(
-            "external_proteasome_fragment_quantity",
+            "mapp_quantity_result",
             select=["measurements.quantitative_value"],
             joins=["measurements"],
         )

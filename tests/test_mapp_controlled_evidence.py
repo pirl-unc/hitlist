@@ -2,6 +2,7 @@
 
 import csv
 import json
+import shutil
 
 import pyarrow.parquet as pq
 import pytest
@@ -185,11 +186,11 @@ def test_unreplayable_reported_quantity_fails_before_admission(tmp_path):
 def test_optional_source_bindings_are_explicit():
     from hitlist.evidence_bindings import materialized_bindings
 
-    assert "processing_peptide" not in materialized_bindings(9)
-    bindings = materialized_bindings(9, appended_source_ids=["wolflevy2018_controlled"])
-    assert "processing_peptide" in bindings and "processing_channel" in bindings
-    assert "processing_material_context" in bindings and "processing_material_link" in bindings
-    assert "mapp_peptide" not in bindings
+    assert "mapp_peptide" not in materialized_bindings(9)
+    bindings = materialized_bindings(9, package_features=["canonical_mapp"])
+    assert "mapp_peptide" in bindings and "mapp_acquisition" in bindings
+    assert "mapp_material_context" in bindings and "mapp_material_link" in bindings
+    assert "processing_peptide" not in bindings
 
 
 def _recipe_tables(root):
@@ -261,6 +262,12 @@ def test_recipe_roundtrip_rejects_changed_target_even_with_new_file_hash(tmp_pat
     panel = source / "external/wolflevy2018_controlled"
     panel.mkdir(parents=True)
     _recipe_tables(_fixture(panel, all_positive=contrast))
+    (source / "mapp/typed").mkdir(parents=True)
+    for table in TABLE_BINDINGS:
+        shutil.copyfile(
+            panel / "typed" / f"{table}.parquet",
+            source / "mapp/typed" / f"{table}.parquet",
+        )
     files = {
         str(path.relative_to(source)): file_digest(path)
         for path in source.rglob("*")
@@ -274,7 +281,7 @@ def test_recipe_roundtrip_rejects_changed_target_even_with_new_file_hash(tmp_pat
     (source / "manifest.json").write_text(json.dumps(envelope))
     store = EvidenceStore.__new__(EvidenceStore)
     store.directory, store.manifest = source, envelope
-    bindings = materialized_bindings(9, appended_source_ids=["wolflevy2018_controlled"])
+    bindings = materialized_bindings(9, package_features=["canonical_mapp"])
     store.bindings = {name: bindings[name] for name in TABLE_BINDINGS.values()}
     store.schemas = {
         name: pq.ParquetFile(source / binding[0].materialized_artifact).schema_arrow

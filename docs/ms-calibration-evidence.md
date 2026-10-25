@@ -21,15 +21,17 @@ Hitlist’s `curation` extra (`pip install "hitlist[curation]"`):
 ```sh
 hitlist evidence append-sources /path/to/adjudication-generation /path/to/new-generation \
   --source-root pxd009092=/path/to/mapp-assets \
+  --source-root wolflevy2018_controlled=/path/to/controlled-mapp-assets \
+  --source-root pxd009438=/path/to/pbmc-mapp-assets \
   --source-root pxd004886=/path/to/calibration-assets
 ```
 
-The predecessor and original MAPP generation remain immutable. This command
-does not recursively append to an external-source successor: supply both MAPP
-and calibration roots in the same request. Compare original source bytes when
-qualifying a new generation. Historical schema-8 external successors remain
-readable and advertise only the sources they contain; they cannot serve as
-predecessors for a new append.
+The predecessor and original MAPP generations remain immutable. This command
+does not recursively append to an external-source successor: supply every MAPP
+adapter and the calibration root in the same request. Compare original source
+bytes when qualifying a new generation. Historical schema-8 external successors
+remain readable and advertise only the sources they contain; they cannot serve
+as predecessors for a new append.
 
 ```python
 from hitlist import EvidenceStore
