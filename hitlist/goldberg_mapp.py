@@ -26,10 +26,10 @@ from .mapp_evidence import _schema, _Sink
 from .material_context import MATERIAL_CONTEXT_SCHEMA, MATERIAL_LINK_SCHEMA, validate_material_graph
 from .provenance import file_digest
 
-PACKAGE_SCHEMA_VERSION = 25
+PACKAGE_SCHEMA_VERSION = 26
 CATALOG_SCHEMA_VERSION = 31
 PACKAGE_FAMILY = "goldberg_mapp"
-REVISION = "goldberg2025_mapp_original_v1"
+REVISION = "goldberg2025_mapp_original_v2"
 ROOT = Path("goldberg_mapp")
 CONTRACT = Path(__file__).parent / "data/evidence_revisions/goldberg_mapp.json"
 ASSET_RECEIPT = Path(__file__).parent / "data/evidence_revisions/goldberg_mapp_assets.json"
@@ -304,7 +304,9 @@ class _Compiler:
         destination.mkdir(parents=True)
         self.sinks = {name: _Sink(destination, name, schema=s) for name, s in SCHEMAS.items()}
         self.acquisitions = {}
+        self.acquisitions_by_id = {}
         self.experiments = {}
+        self.search_run_labels = defaultdict(list)
         self.peptides = {}
         self.forms = {}
         self.peptide_quantities = {}
@@ -360,6 +362,10 @@ class _Compiler:
                 "material_link_precision": {
                     "source_project": "project_context",
                     "study_arm": "study_arm",
+                    # A source-sample context is a literal source label, not a
+                    # physical specimen. Its strongest safe granularity is the
+                    # reported study-arm grouping.
+                    "source_sample": "study_arm",
                     "source_acquisition": "source_acquisition",
                 }[kind],
                 "context_status": "reported_context_not_physical_sample_identity",
@@ -388,6 +394,7 @@ class _Compiler:
         project = _id("project", "PXD052314")
         self.context(project, "source_project", "PXD052314", self.contract["deposition"])
         arms = set()
+        source_samples = set()
         for sheet, index, cells in workbook_rows(self.assets / self.contract["deposition"]):
             if index == 1:
                 headers = [c["cell_value_resolved"] for c in cells]
@@ -409,6 +416,11 @@ class _Compiler:
                 raise ValueError("Duplicate deposition raw-file identity")
             acquisition = _id("acquisition", raw)
             arm = _id("arm", row["Experiment"], row["Sample Name"])
+            source_sample = _id("source_sample", "PXD052314", row["Sample Name"])
+            if source_sample not in source_samples:
+                self.context(source_sample, "source_sample", row["Sample Name"], locator)
+                self.link(source_sample, project, "project_context", locator)
+                source_samples.add(source_sample)
             if arm not in arms:
                 self.context(
                     arm, "study_arm", row["Experiment"] + ":" + row["Sample Name"], locator
@@ -417,6 +429,7 @@ class _Compiler:
                 arms.add(arm)
             self.context(acquisition, "source_acquisition", raw, locator)
             self.link(acquisition, arm, "study_arm", locator)
+            self.link(acquisition, source_sample, "source_acquisition", locator)
             baseline = bool(re.fullmatch(r"Ctrl4?_[123]", row["Sample Name"]))
             data = {
                 "acquisition_id": acquisition,
@@ -434,6 +447,7 @@ class _Compiler:
                 "component_state_status": "unreported_not_assumed_wildtype",
             }
             self.acquisitions[raw] = data
+            self.acquisitions_by_id[acquisition] = data
             self.sinks["acquisitions"].add(data)
             for field, value in row.items():
                 self.assertion(
@@ -480,6 +494,7 @@ class _Compiler:
             if row["Experiment"] in self.experiments:
                 raise ValueError("Experiment label does not identify exactly one acquisition")
             self.experiments[row["Experiment"]] = self.acquisitions[raw]["acquisition_id"]
+            self.search_run_labels[self.experiments[row["Experiment"]]].append(row["Experiment"])
             for field, value in row.items():
                 self.assertion(
                     record,

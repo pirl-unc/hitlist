@@ -3704,7 +3704,7 @@ EVIDENCE = (
         "mapp_material_context",
         "material_contexts",
         "context",
-        "one_source_project_study_arm_acquisition_or_physical_material_context",
+        "one_source_project_study_arm_source_sample_acquisition_or_physical_material_context",
         (
             "context_id",
             "context_kind",
@@ -5164,7 +5164,7 @@ GOLDBERG_RELATIONS = {
         ),
     ),
     "material_contexts": (
-        "one_qualified_project_arm_or_acquisition_context_not_inferred_physical_sample",
+        "one_qualified_project_arm_source_label_or_acquisition_context_not_inferred_physical_sample",
         (
             "context_id",
             "context_kind",
@@ -5206,7 +5206,7 @@ EVIDENCE += tuple(
         (fields[0],),
         status="v2_materialized",
         materialized_artifact=f"goldberg_mapp/typed/{name}.parquet",
-        min_package_schema_version=25,
+        min_package_schema_version=26,
     )
     for name, (grain, fields) in GOLDBERG_RELATIONS.items()
 )

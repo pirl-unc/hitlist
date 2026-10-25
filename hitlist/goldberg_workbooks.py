@@ -16,6 +16,13 @@ from .goldberg_mapp import _id, _number
 
 NS = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
 REL_NS = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
+_SAMPLE_LABEL = r"(?:Ctrl|Infect)4?_[1-9][0-9]*"
+_RUN_LABEL = re.compile(rf"(?P<run>[0-9]+)_(?P<label>.+_{_SAMPLE_LABEL})$")
+_SAMPLE_SUFFIX = re.compile(rf"(?P<sample>{_SAMPLE_LABEL})$")
+_READ_ME_CONDITION = re.compile(
+    r"A549 (?P<role>control|S\.E\. infection)(?: for)? "
+    r"(?P<hours>[1-9][0-9]*) hours?, bio replicate (?P<replicate>[1-9][0-9]*)$"
+)
 
 
 def _column(coordinate):
@@ -129,6 +136,124 @@ def _quantity_kind(field):
     return "publisher_other_intensity", "source_reported_unqualified"
 
 
+def _row_values(cells):
+    return {cell["source_column_index"]: cell for cell in cells}
+
+
+def _source_run_tokens(raw_file):
+    """Return unambiguous four-digit literal tokens from a deposited raw name."""
+    return set(re.findall(r"(?<![0-9])[0-9]{4}(?![0-9])", raw_file))
+
+
+def _header_run_label(compiler, field, experiment):
+    """Resolve a Table5 column label only through source-reported identities.
+
+    The original MAPP summary has a full experiment label for its own rows.
+    The other two publisher views carry a literal raw-file run token and the
+    deposited sample-label suffix. Neither route uses a run order or a
+    replicate number as an identity.
+    """
+    direct = [
+        (label, acquisition_id)
+        for label, acquisition_id in compiler.experiments.items()
+        if field.endswith(label)
+        and compiler.acquisitions_by_id[acquisition_id]["assay_name_raw"] == experiment
+    ]
+    if len(direct) == 1:
+        label, acquisition_id = direct[0]
+        return label, acquisition_id, "exact_original_search_run_and_deposition_acquisition"
+    if len(direct) > 1:
+        raise ValueError("Publisher header matches multiple original search labels")
+
+    match = _RUN_LABEL.search(field)
+    if not match:
+        return None
+    run_label = match.group(0)
+    sample = _SAMPLE_SUFFIX.search(run_label)
+    if not sample:
+        return None
+    candidates = [
+        row
+        for row in compiler.acquisitions.values()
+        if row["assay_name_raw"] == experiment
+        and row["sample_label_raw"] == sample.group("sample")
+        and match.group("run") in _source_run_tokens(row["raw_file"])
+    ]
+    if len(candidates) != 1:
+        return None
+    acquisition_id = candidates[0]["acquisition_id"]
+    status = "exact_deposition_raw_token_and_sample_label"
+    if compiler.search_run_labels[acquisition_id]:
+        status = "exact_deposition_raw_token_and_sample_label_conflicts_original_search_run"
+    return run_label, acquisition_id, status
+
+
+def _publisher_sample_label(run_label):
+    match = _RUN_LABEL.fullmatch(run_label)
+    return match.group("label") if match else run_label
+
+
+def _readme_condition(value):
+    """Parse only the stable literal wording in the source ReadMe legend."""
+    match = _READ_ME_CONDITION.fullmatch(value)
+    if not match:
+        return ()
+    return (
+        ("reported_condition_role", match.group("role")),
+        ("reported_exposure_duration_hours", match.group("hours")),
+        ("reported_biological_replicate", match.group("replicate")),
+    )
+
+
+def _publisher_condition_assertions(compiler, headers, legends):
+    """Attach Table5 legend facts through exact header/deposition identities.
+
+    This records the publisher evidence at the acquisition grain. The shared
+    source-sample label context remains deliberately nonphysical, and no
+    mapping is made for Table3's pooled slots or other workbook sheets.
+    """
+    for (sheet, run_label), header in headers.items():
+        legend_rows = legends.get((sheet, _publisher_sample_label(run_label)), ())
+        # The ReadMe contains several unrelated legends. Only an unambiguous
+        # matching literal label can contribute a condition claim; all other
+        # workbook cells remain in publisher_cells without an invented join.
+        if len(legend_rows) != 1:
+            continue
+        legend = legend_rows[0]
+        record, label_cell, description_cell, description = legend
+        acquisition_id = header["acquisition_id"]
+        locator = f"{sheet}!{label_cell}"
+        status = "exact_publisher_header_to_deposition_acquisition"
+        compiler.assertion(
+            record,
+            acquisition_id,
+            "publisher_table5_readme_via_exact_header_and_deposition_raw",
+            "publisher_sample_label",
+            _publisher_sample_label(run_label),
+            locator,
+            status,
+        )
+        compiler.assertion(
+            record,
+            acquisition_id,
+            "publisher_table5_readme_via_exact_header_and_deposition_raw",
+            "reported_condition_description",
+            description,
+            f"{sheet}!{description_cell}",
+            status,
+        )
+        for predicate, value in _readme_condition(description):
+            compiler.assertion(
+                record,
+                acquisition_id,
+                "publisher_table5_readme_via_exact_header_and_deposition_raw",
+                predicate,
+                value,
+                f"{sheet}!{description_cell}",
+                "literal_parse_of_publisher_readme_description",
+            )
+
+
 def _publisher_row(compiler, source, sheet, record, cells, headers, pool):
     values = {headers.get(c["source_column_index"], ""): c["cell_value_resolved"] for c in cells}
     sequence = values.get("Sequence", values.get("Peptide Sequence"))
@@ -214,6 +339,9 @@ def _publisher_row(compiler, source, sheet, record, cells, headers, pool):
 
 
 def compile_publisher(compiler):
+    views = compiler.contract.get("publisher_condition_views", {})
+    headers_by_label = {}
+    legends = {}
     with zipfile.ZipFile(compiler.assets / compiler.contract["publisher"]) as archive:
         for block in compiler.contract["publisher_workbooks"]:
             source = compiler.contract["publisher"] + "!" + block["member"]
@@ -241,7 +369,52 @@ def compile_publisher(compiler):
                     headers[sheet] = {
                         c["source_column_index"]: c["cell_value_resolved"] for c in cells
                     }
+                    experiment = views.get(sheet)
+                    if experiment:
+                        for cell in cells:
+                            resolved = _header_run_label(
+                                compiler, cell["cell_value_resolved"], experiment
+                            )
+                            if resolved is None:
+                                continue
+                            run_label, acquisition_id, status = resolved
+                            key = (sheet, run_label)
+                            previous = headers_by_label.get(key)
+                            if previous and previous["acquisition_id"] != acquisition_id:
+                                raise ValueError(
+                                    "Publisher run label maps to multiple deposited acquisitions"
+                                )
+                            if previous is None:
+                                headers_by_label[key] = {
+                                    "acquisition_id": acquisition_id,
+                                    "status": status,
+                                }
+                                compiler.assertion(
+                                    record,
+                                    acquisition_id,
+                                    "publisher_table5_column_header",
+                                    "publisher_run_label",
+                                    run_label,
+                                    f"{sheet}!{cell['source_cell']}",
+                                    status,
+                                )
                     continue
+                if sheet == "ReadMe":
+                    values = _row_values(cells)
+                    label, description = values.get(1), values.get(2)
+                    if label is not None and description is not None:
+                        label_value = label["cell_value_resolved"]
+                        for condition_sheet in views:
+                            key = (condition_sheet, label_value)
+                            legends.setdefault(key, []).append(
+                                (
+                                    record,
+                                    label["source_cell"],
+                                    description["source_cell"],
+                                    description["cell_value_resolved"],
+                                )
+                            )
                 pool = block["sheet_pools"].get(sheet)
                 if pool:
                     _publisher_row(compiler, source, sheet, record, cells, headers[sheet], pool)
+    _publisher_condition_assertions(compiler, headers_by_label, legends)

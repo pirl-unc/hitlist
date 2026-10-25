@@ -13,9 +13,9 @@ def package_family(manifest):
     ):
         return "intact_degradomics"
     if (
-        schema == 25
+        schema == 26
         and manifest.get("package_family") == "goldberg_mapp"
-        and manifest.get("revision") == "goldberg2025_mapp_original_v1"
+        and manifest.get("revision") == "goldberg2025_mapp_original_v2"
     ):
         return "goldberg_mapp"
     if (

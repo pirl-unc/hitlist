@@ -10,7 +10,7 @@ has `source_dataset` and `source_dataset_precision`.
 | PXD009508 | `wolflevy2018_controlled` | 18 | capture-control and epoxomicin panel |
 | PXD007263 | `wolflevy2018_controlled` | 12 | cytokine-label time course |
 | PXD009438 | `pxd009438` | 14 | CTRL/LUPUS source samples; PBMC/metadata conflict retained |
-| PXD052314 | `goldberg2025` | 36 | A549 source acquisitions across MAPP, whole-cell and proteasome-composition views; specimen/aliquot mapping unresolved |
+| PXD052314 | `goldberg2025` | 36 | A549 source acquisitions across MAPP, whole-cell and proteasome-composition views; 12 nonphysical source-label contexts, Table5 condition claims, specimen/aliquot mapping unresolved |
 
 The five entries are 98 deposited acquisition rows. This is an assay/source
 inventory, not 98 independent specimens, donors, biological replicates, or
@@ -28,7 +28,11 @@ rows, Table5 MAPP search quantities and its distinct whole-cell/proteasome
 views, publisher cells/quantities, and every ordered Table3 pooled-value slot.
 This expands MAPP coverage without asserting that the parallel assay labels or
 repeated Table3 labels identify the same specimen, aliquot, perturbation, or
-free intracellular peptide pool.
+free intracellular peptide pool. PXD052314 Table5 conditions are available as
+source assertions only after a publisher header's literal raw-file run token
+and deposited sample-label suffix identify one acquisition. The 12 shared
+source-label contexts facilitate source-scoped condition queries but do not pair
+the three assay views physically.
 
 ## Layout
 
@@ -137,13 +141,18 @@ search_cells = store.query(
 ```
 
 `mapp_acquisition` joins to `mapp_acquisition_context` and the material graph
-when a source quantity has an acquisition identity. Aggregate or pooled source
-quantities retain a null acquisition link; they must not be joined by matching
-their labels. No query turns a study arm, raw-file label, source sample label,
-or repeat number into a donor, specimen, aliquot, or cross-modal pairing. A
-source zero, missing intensity and unreported intensity remain separate quantity
-states; no canonical projection turns them into biological absence or a
-presentation label.
+when a source quantity has an acquisition identity. PXD052314 condition claims
+use the same `mapp_source_assertion` relation as the rest of the API: filter
+`source_scope=publisher_table5_readme_via_exact_header_and_deposition_raw` and the
+`reported_condition_*` predicates, then join `subject_acquisition` and traverse
+its qualified material links when a nonphysical source-label grouping is useful.
+Assertions whose subject is not an acquisition retain a null optional link.
+Aggregate or pooled source quantities retain a null acquisition link; they must
+not be joined by matching their labels. No query turns a study arm, raw-file
+label, source sample label, or repeat number into a donor, specimen, aliquot,
+or cross-modal pairing. A source zero, missing intensity and unreported
+intensity remain separate quantity states; no canonical projection turns them
+into biological absence or a presentation label.
 
 This is a deliberate breaking release. The old `processing_*`, `pbmc_mapp_*`,
 `mapp_channel`, and `external_*` MAPP relation names are removed rather than

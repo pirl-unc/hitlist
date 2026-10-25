@@ -54,6 +54,11 @@
     "EC infection Degradome MAPP Peptides": "proteasome_associated_peptides",
     "Proteasome Composition (MAPP: Whole Proteins)": "proteasome_associated_protein"
   },
+  "publisher_condition_views": {
+    "Shotgun_proteomics": "EC infection Proteomics",
+    "MAPP_peptidomics": "EC infection Degradome MAPP Peptides",
+    "MAPP_proteomics": "Proteasome Composition (MAPP: Whole Proteins)"
+  },
   "publisher_workbooks": [
     {
       "member": "2024-04-08499C-s5/2024-04-08499C-Supplementary Table 3- Data from multiple MAPP experiments_correct.xlsx",

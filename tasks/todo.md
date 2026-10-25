@@ -1,3 +1,89 @@
+# Qualify PXD052314 condition and source-sample material contexts (#825, planned 2.0.37)
+
+## Specification
+
+Build the next source-conserving PXD052314 improvement on released canonical
+MAPP v2. The Goldberg deposition already reports a raw file, experiment and
+sample label for each of 36 acquisitions, while the original MaxQuant summary
+provides an exact run-to-deposition raw-file link. The current graph preserves
+those facts but scopes a study arm to `(Experiment, Sample Name)`, so it cannot
+express the source-backed fact that identically reported labels recur across
+distinct assay views without pretending they are a shared physical sample.
+
+Audit the pinned deposition workbook, original archive, publisher Table5 ReadMe
+and community SDRF byte-for-byte. Add only the following evidence when directly
+reported: a source-sample context for an exact deposited sample-label literal;
+source acquisition-to-label-context links; and condition/time/replicate claims
+with original locators and a status that distinguishes original deposition,
+original search, publisher and secondary SDRF assertions. The canonical MAPP
+projection must expose the same relations and named links as the other sources.
+
+No label, timing, replicate, assay-group or parallel-analysis statement may
+become a donor, specimen, aliquot, exact cross-assay pairing, concentration,
+treatment-target, HLA/presentation, negative label or training example. A
+conflicting or absent source fact remains an explicit competing assertion or
+null—not a repair. Table3 pooled labels stay ordered unresolved slots unless a
+source document supplies a precise identifier/crosswalk for the exact slot.
+
+### Evidence decision matrix
+
+| Candidate fact | Admissible source | Permitted graph effect | Forbidden inference |
+| --- | --- | --- | --- |
+| Raw file belongs to deposited `Experiment` / `Sample Name` | `Data_Deposition_Table.xlsx` | source acquisition → source sample-label context | specimen/aliquot or independent biological replicate identity |
+| Original search run belongs to deposited raw file | original `summary.txt` plus exact deposition name | source acquisition assertion | mapping a label to a different raw file |
+| Control duration / reported replicate wording | exact publisher Table5 ReadMe cell/row | qualified source assertion or source-sample context attribute | treatment target or physical-material pairing |
+| Conflicting run/replicate/protocol annotation | community SDRF with locator | a competing secondary assertion | correction, alias, or overwrite of deposition truth |
+| Table3 pooled label/value slot | Table3 exact cell/slot | retain ordered unresolved slot | run/specimen/condition/quantity-unit assignment |
+
+## Plan
+
+- [x] Create an immutable audit receipt of the exact pinned deposition, original
+      summary and publisher ReadMe cells/rows used for any new fact; enumerate
+      every 36-run experiment/sample-label group and all source conflicts.
+- [x] Extend the Goldberg source adapter with a source-sample context and
+      qualified links only where its exact label occurs in the deposition;
+      retain source assertions and their original locators rather than replacing
+      raw labels.
+- [x] Represent publisher time/control/replicate facts at their actual source
+      scope, and preserve any disagreement with original/SDRF evidence.
+- [x] Project every new source table/field to canonical `mapp_*` relations,
+      update the ledger/catalog/bindings and add query links that cannot imply
+      specimen or aliquot identity.
+- [x] Add exact replay, conflict, cross-assay-label and negative-inference
+      tests; prove Table3 remains unjoined and historic canonical packages keep
+      replaying.
+- [x] Document the observed mapping coverage and unresolved remainder; bump the
+      version and run `./format.sh`, `./lint.sh`, `./test.sh` before review.
+- [ ] Open, merge and deploy the PR from clean main; report results on #825.
+
+## Review
+
+Implemented on `codex/goldberg-material-mapping-20261025`, starting from released
+2.0.36 / main `8008fd7`. The v2 Goldberg receipt now writes 12 nonphysical
+project-scoped source-label contexts and 36 acquisition-to-label links. The
+Table5 bridge covers all 36 acquisition headers and ReadMe descriptions, with
+typed source assertions for reported role, duration and replicate. It accepts
+only an exact sheet/experiment mapping, raw-file token and deposited label
+suffix; the original MAPP summary's 5450 and 5454 labels remain explicit
+conflicts. Table3 remains unjoined; all specimen/aliquot fields and
+exact-physical links remain null.
+
+The canonical API exposes the new rows through the existing material relations
+and now adds optional `mapp_source_assertion.subject_acquisition` and
+`subject_material_context` links, making source-scoped condition facts queryable
+without coercing another assertion subject into an acquisition. The standalone
+Goldberg receipt revision is v2/package schema26 and the package version is
+2.0.37. The audit receipt is
+`tasks/goldberg-material-mapping-results/README.md`.
+
+Verification: real pinned-source audit reproduced 36 header bridges, 36 ReadMe
+descriptions, 36 role/duration/replicate claims and two original-search conflicts;
+focused tests passed (41 passed); `./format.sh` and `./lint.sh` passed; the
+standard `./test.sh` suite passed outside the sandbox after its memory guard
+could run (3,526 passed, 1 skipped, 10 expected warnings, 338.31 seconds);
+`./develop.sh` confirmed a single matching editable 2.0.37 install. Pending:
+open, merge and deploy the PR, then record released artifact hashes on #825.
+
 # Project Goldberg PXD052314 onto the canonical MAPP API (#835, planned 2.0.36)
 
 ## Specification
