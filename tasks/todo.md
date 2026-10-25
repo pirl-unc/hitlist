@@ -8946,3 +8946,14 @@ speculative memory; no tests ran and no guard was weakened. psutil.available's
 13.9GiB includes inactive pages and did not establish admission. Original-source
 materialization/replay and full-suite/publication gates remain pending. Preserve
 both refusal logs; proceed with a reviewable draft while awaiting real headroom.
+
+Continuation: branch7c9fa84 is published as draftPR846. Hosted Tests40182792458
+and Docs40182792527 are live. The latest local admitting memory read is0.063GiB;
+no full-suite or source build was launched. Static review found six existing
+assertions of the global catalog36; update those to37 without changing the
+historical package envelopes, then run the six affected files and source tests.
+Keep original-source replay and required full gates pending.
+
+Catalog correction review: all48tests across the six existing catalog files and
+new dilution source tests pass in1.63s (one existing pandas warning). Format and
+lint pass. Production source modules and fixed data contract are unchanged.
