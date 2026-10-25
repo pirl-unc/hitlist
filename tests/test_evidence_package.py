@@ -75,12 +75,13 @@ def test_ambiguous_or_unknown_envelope_fails_before_reading_tables(tmp_path, env
     [
         ("hap1_quantitative", "shapiro2025_hap1_quantitative_v1", 20),
         ("precursor_context", "pxd009360_precursor_context_v3", 22),
+        ("intact_degradomics", "pxd058121_intact_degradomics_v1", 26),
     ],
 )
 def test_current_explicit_source_envelopes_select_their_own_reader(
     tmp_path, monkeypatch, family, revision, schema
 ):
-    from hitlist import hap1_quantitative, precursor_context_package
+    from hitlist import hap1_quantitative, intact_degradomics, precursor_context_package
 
     envelope = {"schema_version": schema, "package_family": family, "revision": revision}
     (tmp_path / "manifest.json").write_text(json.dumps(envelope))
@@ -99,6 +100,9 @@ def test_current_explicit_source_envelopes_select_their_own_reader(
     )
     monkeypatch.setattr(
         precursor_context_package, "verify_precursor_context_package", verify("precursor_context")
+    )
+    monkeypatch.setattr(
+        intact_degradomics, "verify_intact_degradomics_package", verify("intact_degradomics")
     )
     monkeypatch.setattr(
         evidence_store.EvidenceStore,

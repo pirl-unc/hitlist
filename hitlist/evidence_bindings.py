@@ -1479,6 +1479,62 @@ LINKS += (
 )
 
 
+for _table in (
+    "source_cells",
+    "source_views",
+    "input_masses",
+    "assignments",
+    "supplement_rows",
+    "quantities",
+    "reconciliations",
+    "assertions",
+    "acquisitions",
+):
+    LINKS += (
+        Link(
+            "source_record",
+            "intact_" + _table,
+            "intact_source_records",
+            "source_record_id",
+            "source_record_id",
+            "one",
+            "original_source_record",
+        ),
+    )
+for _table in ("source_views", "input_masses", "assignments", "supplement_rows", "quantities"):
+    LINKS += (
+        Link(
+            "acquisition",
+            "intact_" + _table,
+            "intact_acquisitions",
+            "acquisition_id",
+            "acquisition_id",
+            "optional_one",
+            "source_file_not_specimen",
+        ),
+    )
+LINKS += (
+    Link(
+        "quantity",
+        "intact_assignments",
+        "intact_quantities",
+        "measurement_id",
+        "measurement_id",
+        "one",
+        "source_assignment_quantity_not_independent_mass",
+    ),
+    Link(
+        "input_mass",
+        "intact_assignments",
+        "intact_input_masses",
+        "input_mass_id",
+        "input_mass_id",
+        "optional_one",
+        "explicit_input_ID_link_never_row_order_inference",
+    ),
+)
+
+
 def materialized_bindings(
     package_schema_version=None, *, appended_source_ids=(), include_adjudications=False
 ):

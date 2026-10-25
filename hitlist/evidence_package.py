@@ -7,6 +7,12 @@ def package_family(manifest):
     """Classify the envelope; the family's verifier still validates all content."""
     schema = manifest.get("schema_version")
     if (
+        schema == 26
+        and manifest.get("package_family") == "intact_degradomics"
+        and manifest.get("revision") == "pxd058121_intact_degradomics_v1"
+    ):
+        return "intact_degradomics"
+    if (
         schema == 25
         and manifest.get("package_family") == "goldberg_mapp"
         and manifest.get("revision") == "goldberg2025_mapp_original_v1"
