@@ -4,6 +4,7 @@ import csv
 import io
 import json
 import zipfile
+from types import SimpleNamespace
 
 import openpyxl
 import pyarrow as pa
@@ -15,7 +16,7 @@ from hitlist.evidence_catalog import FIELDS, GOLDBERG_RELATIONS
 from hitlist.evidence_package import package_family
 from hitlist.evidence_store import EvidenceStore
 from hitlist.external_evidence import _copy_source
-from hitlist.goldberg_workbooks import workbook_rows
+from hitlist.goldberg_workbooks import _header_run_label, workbook_rows
 from hitlist.material_context import links_with_minimum_precision
 from hitlist.provenance import file_digest
 
@@ -311,6 +312,29 @@ def test_original_identity_grains_and_ambiguous_material(original, tmp_path):
         "identification_intensity",
     }
     assert len(data["acquisitions"]) == 2
+    source_samples = [
+        row for row in data["material_contexts"] if row["context_kind"] == "source_sample"
+    ]
+    assert {row["sample_label_raw"] for row in source_samples} == {"Ctrl_1", "Ctrl4_1"}
+    assert all(
+        row["specimen_id"] is row["aliquot_id"] is None
+        and row["material_link_precision"] == "study_arm"
+        for row in source_samples
+    )
+    source_sample_ids = {row["context_id"] for row in source_samples}
+    acquisition_context_ids = {row["context_id"] for row in data["acquisitions"]}
+    assert {
+        (row["source_context_id"], row["target_context_id"])
+        for row in data["material_links"]
+        if row["source_context_id"] in acquisition_context_ids
+        and row["target_context_id"] in source_sample_ids
+    } == {
+        (
+            acquisition["context_id"],
+            source._id("source_sample", "PXD052314", acquisition["sample_label_raw"]),
+        )
+        for acquisition in data["acquisitions"]
+    }
     assert not links_with_minimum_precision(data["material_links"], "exact_specimen")
     assert all(r["specimen_id"] is None and r["aliquot_id"] is None for r in data["acquisitions"])
     assert all(
@@ -340,6 +364,148 @@ def test_original_identity_grains_and_ambiguous_material(original, tmp_path):
     assert all(set(fields) <= known for _, fields in GOLDBERG_RELATIONS.values())
     with pytest.raises(FileExistsError):
         source.write_goldberg_mapp_package(original, package)
+
+
+def test_publisher_readme_conditions_need_an_exact_header_to_deposition_bridge(original, tmp_path):
+    """A ReadMe legend adds condition facts without making physical material."""
+    contract = json.loads(source.CONTRACT.read_text())
+    publisher = original / contract["publisher"]
+    with zipfile.ZipFile(publisher, "w") as archive:
+        archive.writestr(
+            contract["publisher_workbooks"][0]["member"],
+            workbook(
+                {
+                    "MAPP database": [
+                        ["Sequence", "Leading razor protein", "Treatment"],
+                        ["ACDEFGH", "P1", "repeat:3"],
+                    ]
+                }
+            ),
+        )
+        archive.writestr(
+            contract["publisher_workbooks"][1]["member"],
+            workbook(
+                {
+                    "MAPP_peptidomics": [
+                        [
+                            "Sequence",
+                            "Proteins",
+                            "id",
+                            "Intensity sourceA_Ctrl_1",
+                            "Intensity sourceB_Ctrl4_1",
+                        ],
+                        ["ACDEFGH", "P1", 0, 10, 4],
+                    ],
+                    "ReadMe": [
+                        ["Sample_name", "Description"],
+                        ["sourceA_Ctrl_1", "A549 control 1 hour, bio replicate 1"],
+                        [
+                            "sourceB_Ctrl4_1",
+                            "A549 S.E. infection for 4 hours, bio replicate 3",
+                        ],
+                        ["unmatched_Ctrl_9", "A549 control 1 hour, bio replicate 9"],
+                    ],
+                }
+            ),
+        )
+    for asset in contract["assets"]:
+        asset.update(file_digest(original / asset["filename"]))
+    source.CONTRACT.write_text(json.dumps(contract))
+
+    package = tmp_path / "package"
+    source.write_goldberg_mapp_package(original, package)
+    data = tables(package)
+    claims = [
+        row
+        for row in data["assertions"]
+        if row["source_scope"] == "publisher_table5_readme_via_exact_header_and_deposition_raw"
+    ]
+    assert {row["subject_id"] for row in claims} == {
+        row["acquisition_id"] for row in data["acquisitions"]
+    }
+    values = {(row["assertion_predicate"], row["assertion_value"]) for row in claims}
+    assert ("reported_condition_role", "control") in values
+    assert ("reported_condition_role", "S.E. infection") in values
+    assert ("reported_exposure_duration_hours", "4") in values
+    assert ("reported_biological_replicate", "3") in values
+    assert "unmatched_Ctrl_9" not in {row["assertion_value"] for row in claims}
+    assert all(row["specimen_id"] is row["aliquot_id"] is None for row in data["material_contexts"])
+    assert not links_with_minimum_precision(data["material_links"], "exact_specimen")
+
+
+def test_shared_deposited_label_is_a_source_context_not_a_cross_assay_specimen(original, tmp_path):
+    contract = json.loads(source.CONTRACT.read_text())
+    (original / contract["deposition"]).write_bytes(
+        workbook(
+            {
+                "Sheet1": [
+                    ["Raw File", "Experiment", "Sample Name", "Cell Type", "Comments"],
+                    ["rawA", "EC infection Degradome MAPP Peptides", "Ctrl_1", "A549", None],
+                    ["rawB", "EC infection Degradome MAPP Peptides", "Ctrl4_1", "A549", None],
+                    ["rawC", "EC infection Proteomics", "Ctrl_1", "A549", None],
+                ]
+            }
+        )
+    )
+    for asset in contract["assets"]:
+        asset.update(file_digest(original / asset["filename"]))
+    source.CONTRACT.write_text(json.dumps(contract))
+
+    package = tmp_path / "package"
+    source.write_goldberg_mapp_package(original, package)
+    data = tables(package)
+    ctrl_context = next(
+        row
+        for row in data["material_contexts"]
+        if row["context_kind"] == "source_sample" and row["sample_label_raw"] == "Ctrl_1"
+    )
+    acquisitions = {row["raw_file"]: row for row in data["acquisitions"]}
+    assert {
+        row["source_context_id"]
+        for row in data["material_links"]
+        if row["target_context_id"] == ctrl_context["context_id"]
+    } == {acquisitions["rawA"]["context_id"], acquisitions["rawC"]["context_id"]}
+    assert {acquisitions[raw]["assay_name_raw"] for raw in ("rawA", "rawC")} == {
+        "EC infection Degradome MAPP Peptides",
+        "EC infection Proteomics",
+    }
+    assert all(
+        row["source_context_id"]
+        not in {acquisitions["rawA"]["context_id"], acquisitions["rawC"]["context_id"]}
+        or row["target_context_id"]
+        not in {acquisitions["rawA"]["context_id"], acquisitions["rawC"]["context_id"]}
+        for row in data["material_links"]
+    )
+    assert not links_with_minimum_precision(data["material_links"], "exact_specimen")
+
+
+def test_publisher_deposition_bridge_flags_a_competing_original_search_run_label():
+    """A raw-file-token bridge retains, rather than repairs, a source conflict."""
+    acquisition_id = "acquisition"
+    compiler = SimpleNamespace(
+        experiments={"5450_A549AMP30_Infect4_3": acquisition_id},
+        acquisitions_by_id={
+            acquisition_id: {"assay_name_raw": "EC infection Degradome MAPP Peptides"}
+        },
+        acquisitions={
+            "EX1_YM_19175_5450_25072023": {
+                "acquisition_id": acquisition_id,
+                "assay_name_raw": "EC infection Degradome MAPP Peptides",
+                "sample_label_raw": "Infect4_2",
+                "raw_file": "EX1_YM_19175_5450_25072023",
+            }
+        },
+        search_run_labels={acquisition_id: ["5450_A549AMP30_Infect4_3"]},
+    )
+    assert _header_run_label(
+        compiler,
+        "Intensity 5450_A549AMP30_Infect4_2",
+        "EC infection Degradome MAPP Peptides",
+    ) == (
+        "5450_A549AMP30_Infect4_2",
+        acquisition_id,
+        "exact_deposition_raw_token_and_sample_label_conflicts_original_search_run",
+    )
 
 
 def test_replay_rejects_tampering_even_with_rehashed_manifest(original, tmp_path):

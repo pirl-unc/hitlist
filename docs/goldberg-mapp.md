@@ -2,7 +2,7 @@
 
 The `goldberg_mapp` family preserves original PXD052314 search results and
 separate views from Goldberg2025 publisher Tables3/5. The pinned revision is
-`goldberg2025_mapp_original_v1` (package schema25, catalog31).
+`goldberg2025_mapp_original_v2` (package schema26, catalog31).
 
 For cross-source work, append `goldberg2025` together with the other
 captured-fragment adapters and query the common [`mapp_*` API](mapp-canonical.md).
@@ -42,10 +42,10 @@ The source grain remains explicit:
 | `peptides`, `forms`, `identifications`, `groups` | Native identities, source contributor lists, all parent labels, confidence and reverse/contaminant flags |
 | `quantities` | Separate peptide, molecular-form and individual-identification intensities, including total/run values, zeros, missing and invalid values |
 | `references` | Source FASTA header assertions, including truncated taxonomy; full search reference sequences are absent |
-| `acquisitions`, `assertions` | Original raw-file/experiment/sample labels and separately scoped community metadata |
+| `acquisitions`, `assertions` | Original raw-file/experiment/sample labels, exact Table5 condition claims, and separately scoped community metadata |
 | `publisher_cells`, `publisher_quantities`, `publisher_links` | Exact workbook coordinates, XML types/styles/formulas, distinct assay quantities, and original/publisher reconciliation claims |
 | `pooled_slots` | Every ordered Table3 label/value slot, retaining repeated labels and unresolved sample/unit identity |
-| `material_contexts`, `material_links` | Shared project/arm/acquisition graph with explicit linkage precision |
+| `material_contexts`, `material_links` | Shared project/arm/source-label/acquisition graph with explicit linkage precision |
 
 Original and publisher rows have distinct identities. The publisher-selected
 subset omits unflagged original rows and includes nonhuman source annotations.
@@ -55,12 +55,19 @@ are not independently validated peptide origins. Cell-line species and peptide
 origin must not be substituted for each other.
 
 Whole-cell digested proteomics, proteasome-associated proteins, associated peptides
-and extracellular secretome have different measured-pool labels. Matching repeat
-labels do not establish aliquot-matched precursor measurements. The shared material
-graph contains no invented physical specimens or aliquots. Unknown machinery
-status is explicitly not assumed wild type. Community SDRF annotations retain
-their separate provenance, including unmatched raw-file labels and conflicting
-preparation/search descriptions.
+and extracellular secretome have different measured-pool labels. The 36 deposited
+acquisitions share 12 exact *source-label* contexts (`Ctrl_1` through the reported
+four-hour labels); these are not specimens. Table5 headers join each publisher
+condition legend to a deposited acquisition only when the literal raw-file run
+token and deposited label suffix agree. This exposes the publisher's A549
+control/infection wording, 1/4-hour duration and reported replicate as source
+assertions, rather than overwriting the deposition. Of the 12 original MAPP
+search-run labels, ten agree with that bridge; the 5450 and 5454 four-hour
+infection labels disagree and remain competing source assertions. Matching labels
+still do not establish aliquot-matched precursor measurements. The graph contains
+no invented physical specimens or aliquots. Unknown machinery status is explicitly
+not assumed wild type. Community SDRF annotations retain their separate provenance,
+including unmatched raw-file labels and conflicting preparation/search descriptions.
 
 Excel date-styled cells retain their original serial and style instead of guessed
 gene names. Table3 repeated labels are never collapsed into a dictionary; numbers

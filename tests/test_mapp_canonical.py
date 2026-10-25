@@ -226,10 +226,45 @@ def test_uniform_query_spans_sources_and_joins_context_without_physical_inferenc
     )
     contexts = store.query(
         "mapp_material_context",
-        select=["source_dataset", "context_kind", "specimen_id", "aliquot_id"],
+        select=["source_dataset", "context_kind", "sample_label_raw", "specimen_id", "aliquot_id"],
         limit=None,
     ).table.to_pylist()
     assert all(row["specimen_id"] is row["aliquot_id"] is None for row in contexts)
+    assert {
+        row["sample_label_raw"]
+        for row in contexts
+        if row["source_dataset"] == "PXD052314" and row["context_kind"] == "source_sample"
+    } == {"Ctrl_1", "Ctrl4_1"}
+    source_sample_links = store.query(
+        "mapp_material_link",
+        select=[
+            "source_dataset",
+            "material_link_precision",
+            "source_material_context.context_kind",
+            "target_material_context.context_kind",
+        ],
+        joins=["source_material_context", "target_material_context"],
+        limit=None,
+    ).table.to_pylist()
+    assert any(
+        row["source_dataset"] == "PXD052314"
+        and row["material_link_precision"] == "source_acquisition"
+        and row["source_material_context.context_kind"] == "source_acquisition"
+        and row["target_material_context.context_kind"] == "source_sample"
+        for row in source_sample_links
+    )
+    acquisition_assertions = store.query(
+        "mapp_source_assertion",
+        select=["source_dataset", "source_scope", "subject_acquisition.channel_id"],
+        joins=["subject_acquisition"],
+        limit=None,
+    ).table.to_pylist()
+    assert any(
+        row["source_dataset"] == "PXD052314"
+        and row["source_scope"] == "original_deposition_acquisition"
+        and row["subject_acquisition.channel_id"] is not None
+        for row in acquisition_assertions
+    )
 
 
 def test_goldberg_extensions_are_uniformly_queryable_without_identity_inference(
