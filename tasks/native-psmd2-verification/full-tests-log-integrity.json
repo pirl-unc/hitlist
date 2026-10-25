@@ -1,0 +1,8 @@
+{
+  "original_file": "full-tests.log",
+  "published_lossless_copy": "full-tests.log.gz",
+  "sha256": "800fc4779aba2c6d7f9c9029c70cc6d614d36a38b3355d30a4dbd5f67526ba37",
+  "size_bytes": 33446,
+  "exact_decompression_verified": true,
+  "reason": "Preserve original test output including trailing whitespace; raw local log unchanged"
+}

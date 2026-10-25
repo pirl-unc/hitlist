@@ -35,7 +35,7 @@ def test_processing_family_ledger_preserves_unavailable_apc_scope():
 
 
 def test_processing_package_family_and_aliases_are_versioned():
-    assert SCHEMA_VERSION == 34
+    assert SCHEMA_VERSION == 35
     assert (
         package_family(
             {

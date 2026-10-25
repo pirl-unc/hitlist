@@ -12,8 +12,11 @@ from .goldberg_mapp import SCHEMAS as GOLDBERG_MAPP_SCHEMAS
 from .intact_degradomics_schema import FIELD_MEANINGS as INTACT_FIELD_MEANINGS
 from .intact_degradomics_schema import RELATIONS as INTACT_RELATIONS
 from .intact_degradomics_schema import SCHEMAS as INTACT_SCHEMAS
+from .native_peptidomics_schema import FIELD_MEANINGS as NATIVE_FIELD_MEANINGS
+from .native_peptidomics_schema import RELATIONS as NATIVE_RELATIONS
+from .native_peptidomics_schema import SCHEMAS as NATIVE_SCHEMAS
 
-SCHEMA_VERSION = 34
+SCHEMA_VERSION = 35
 FIELD_ROLES = frozenset(
     {
         "identity",
@@ -1523,6 +1526,19 @@ FIELDS += (
         "taxonomy_status", "annotation", "category", "Status of a source-header taxonomy assertion"
     ),
 )
+
+_existing_fields = {field.name for field in FIELDS}
+_native_fields = {field.name: field for schema in NATIVE_SCHEMAS.values() for field in schema}
+for _name, _definition in sorted(_native_fields.items()):
+    if _name in _existing_fields:
+        continue
+    _kind = "number" if str(_definition.type) in {"int64", "double"} else "text"
+    _role = "provenance"
+    if _name.endswith("_id"):
+        _role, _kind = "identity", "identifier"
+    elif _name.startswith("candidate_"):
+        _role = "molecular_input"
+    FIELDS += (_field(_name, _role, _kind, NATIVE_FIELD_MEANINGS[_name]),)
 
 _FIELD_BY_NAME = {field.name: field for field in FIELDS}
 
@@ -5309,6 +5325,24 @@ EVIDENCE += tuple(
         min_package_schema_version=26,
     )
     for name, (grain, kind, primary_key) in INTACT_RELATIONS.items()
+)
+
+EVIDENCE += tuple(
+    Evidence(
+        "native_" + name,
+        kind,
+        "native_intracellular_peptidomics",
+        grain,
+        f"native_peptidomics/typed/{name}.parquet",
+        "source_qualified_native_cellular_extraction",
+        (),
+        tuple(NATIVE_SCHEMAS[name].names),
+        (primary_key,),
+        status="v2_materialized",
+        materialized_artifact=f"native_peptidomics/typed/{name}.parquet",
+        min_package_schema_version=27,
+    )
+    for name, (grain, kind, primary_key) in NATIVE_RELATIONS.items()
 )
 
 _EVIDENCE_BY_NAME = {item.name: item for item in EVIDENCE}

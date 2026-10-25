@@ -131,7 +131,13 @@ class EvidenceStore:
             include_adjudications=adjudication_manifest_path(manifest) is not None,
             package_features=package_features,
         )
-        if family == "intact_degradomics":
+        if family == "native_peptidomics":
+            self.bindings = {
+                name: binding
+                for name, binding in self.bindings.items()
+                if name.startswith("native_")
+            }
+        elif family == "intact_degradomics":
             self.bindings = {
                 name: binding
                 for name, binding in self.bindings.items()
@@ -220,7 +226,11 @@ class EvidenceStore:
             family = package_family(envelope)
         except ValueError as exc:
             raise EvidenceQueryError(str(exc)) from exc
-        if family == "intact_degradomics":
+        if family == "native_peptidomics":
+            from .native_peptidomics import verify_native_peptidomics_package
+
+            manifest = verify_native_peptidomics_package(directory)
+        elif family == "intact_degradomics":
             from .intact_degradomics import verify_intact_degradomics_package
 
             manifest = verify_intact_degradomics_package(directory)
@@ -409,6 +419,7 @@ class EvidenceStore:
             "nanaware_lymph",
             "goldberg_mapp",
             "intact_degradomics",
+            "native_peptidomics",
         ):
             return self.manifest.get("source_registry", {})
         if family == "tmab_peptidomics":
