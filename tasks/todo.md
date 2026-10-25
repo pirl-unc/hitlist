@@ -8976,3 +8976,17 @@ CI failure log40182919894/Python3.11 is retained. New-head full checks required.
 - [ ] Run format/lint/test, open PR, merge and verify release.
 
 Spec: tasks/intact-organ-transfer-spec.md. Source issue: #831.
+
+
+## Method-supported F3 search policy
+
+- [x] Qualify the original no-additional-modification Methods declaration.
+- [x] Add separate policy/assertion and immutable article provenance; preserve strict recipes.
+- [x] Verify positive/negative source-policy cases and strict-F3 parity.
+- [ ] Run required checks and qualify a separately registered real cohort before release.
+
+Spec: tasks/intact-method-policy-spec.md. Same unmerged PR848/version2.0.41.
+
+Method-policy review: format/lint,30focused tests (including both strict parity checks)
+and3,594default-suite tests pass. Evidence: tasks/verification/organ-method/.
+Real new-cohort admission/replay and new-head CI/release remain pending.

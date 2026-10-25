@@ -339,6 +339,11 @@ def _materialize(store, recipe, destination, implementation):
                 store.directory / ROOT / "typed" / f"{name}.parquet",
                 staging / "source_tables" / f"{name}.parquet",
             )
+        for name in getattr(implementation, "SOURCE_ASSETS", ()):
+            snapshot_file(
+                store.directory / ROOT / "source_assets" / name,
+                staging / "source_assets" / name,
+            )
         summary = implementation.compile_kinetics(staging / "source_tables", staging / "typed")
         (staging / "contract.json").write_text(_json(implementation.CONTRACT) + "\n")
         (staging / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
@@ -391,6 +396,7 @@ def _verify_contents(directory, manifest, source_package, implementation):
         {"source_manifest.json", "contract.json", "summary.json"}
         | {f"typed/{name}.parquet" for name in implementation.OUTPUT_SCHEMAS}
         | {f"source_tables/{n}.parquet" for n in implementation.TABLES}
+        | {f"source_assets/{n}" for n in getattr(implementation, "SOURCE_ASSETS", ())}
     )
     if set(manifest["files"]) != expected:
         raise RecipeError("Intact kinetics inventory differs")
@@ -406,6 +412,15 @@ def _verify_contents(directory, manifest, source_package, implementation):
             and file_digest(Path(source_package) / relative) != source["files"][relative]
         ):
             raise RecipeError("Intact kinetics source table changed")
+    for name in getattr(implementation, "SOURCE_ASSETS", ()):
+        relative = str(ROOT / "source_assets" / name)
+        if file_digest(directory / "source_assets" / name) != source["files"][relative]:
+            raise RecipeError("Intact kinetics source asset differs")
+        if (
+            source_package is not None
+            and file_digest(Path(source_package) / relative) != source["files"][relative]
+        ):
+            raise RecipeError("Intact kinetics original source asset changed")
     temporary = Path(tempfile.mkdtemp(prefix="hitlist-intact-kinetic-verify-"))
     try:
         summary = implementation.compile_kinetics(directory / "source_tables", temporary / "typed")

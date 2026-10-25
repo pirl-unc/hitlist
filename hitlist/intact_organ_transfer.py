@@ -126,7 +126,24 @@ def acquisition_scope(views, acquisitions, reconciliations):
     return result
 
 
+def search_policies(source):
+    return []
+
+
+def modification_eligibility(assignment, policies):
+    return json.loads(assignment["modifications_json"]) == {
+        "Localized Mod": "0",
+        "Unlocalized Mod": "None",
+        "Term Mod": "0",
+    }, {}
+
+
 def compile_kinetics(source, destination):
+    return _compile_organ_changes(source, destination, sys.modules[__name__])
+
+
+def _compile_organ_changes(source, destination, implementation):
+    policies = implementation.search_policies(source)
     views = {r["view_id"]: r for r in _rows(source, "source_views")}
     acquisitions = {r["acquisition_id"]: r for r in _rows(source, "acquisitions")}
     scope = acquisition_scope(views, acquisitions, _rows(source, "reconciliations"))
@@ -146,6 +163,7 @@ def compile_kinetics(source, destination):
         view = views[assignment["view_id"]]
         acquisition = acquisitions.get(assignment["acquisition_id"], {})
         reasons = list(scope[view["view_id"]])
+        modification_metadata = {}
         q = quantities.get(assignment["measurement_id"], {})
         value = q.get("quantitative_value") if view["source_view_role"] == "organs" else None
         if view["source_view_role"] == "organs":
@@ -163,13 +181,14 @@ def compile_kinetics(source, destination):
             error = assignment["mass_error_ppm"]
             if error is None or not math.isfinite(error) or abs(error) > 10:
                 reasons.append("outside_reported_mass_tolerance")
-            if json.loads(assignment["modifications_json"]) != {
-                "Localized Mod": "0",
-                "Unlocalized Mod": "None",
-                "Term Mod": "0",
-            }:
-                reasons.append("not_explicit_unmodified")
-        row = {k: assignment.get(k) for k in DECISIONS.names}
+            eligible_modification, modification_metadata = implementation.modification_eligibility(
+                assignment, policies
+            )
+            if not eligible_modification:
+                reasons.append(
+                    getattr(implementation, "MODIFICATION_REJECTION", "not_explicit_unmodified")
+                )
+        row = {k: assignment.get(k) for k in implementation.DECISIONS.names}
         row.update(
             {
                 k: acquisition.get(k)
@@ -191,6 +210,7 @@ def compile_kinetics(source, destination):
             split=TIMES.get(acquisition.get("time_minutes")),
             reasons_json=reasons,
         )
+        row.update(modification_metadata)
         rows.append(row)
         if not reasons:
             groups[row["peptide_sequence"], row["acquisition_id"]].append(row)
@@ -312,7 +332,7 @@ def compile_kinetics(source, destination):
             for organ in ORGANS
         }
     destination.mkdir(parents=True)
-    sinks = {n: _Sink(destination, n, schema=s) for n, s in OUTPUT_SCHEMAS.items()}
+    sinks = {n: _Sink(destination, n, schema=s) for n, s in implementation.OUTPUT_SCHEMAS.items()}
     reasons = Counter()
     try:
         for row in rows:
@@ -322,11 +342,16 @@ def compile_kinetics(source, destination):
             sinks["decisions"].add(row)
             if row["status"] == "admitted":
                 sinks["examples"].add(row)
-                sinks["covariates"].add({k: v for k, v in row.items() if k not in LABEL_FIELDS})
+                sinks["covariates"].add(
+                    {k: v for k, v in row.items() if k not in implementation.LABEL_FIELDS}
+                )
             elif row["status"] == "baseline_only":
                 sinks["baselines"].add(row)
         for row in trajectories:
             sinks["trajectories"].add(row)
+        if "search_policies" in sinks:
+            for policy in policies:
+                sinks["search_policies"].add(policy)
         return {
             "cohort_support": support,
             "support_passed": all(
